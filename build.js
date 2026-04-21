@@ -612,6 +612,15 @@ ${chunks}
 </section>`;
   }).join('\n');
 
+  // TOC entries – flat list of named columns (§5: TOC is column-only, not
+  // chunk-level). Anonymous columns (e.g. the cover-slide-only column with
+  // no # heading) are skipped.
+  const tocItems = columns
+    .map((c, i) => ({ heading: c.heading, colIdx: i }))
+    .filter(c => c.heading)
+    .map(c => `<li data-toc-col="${c.colIdx}"><button type="button">${escapeHtml(c.heading)}</button></li>`)
+    .join('\n    ');
+
   // Lecture-title string drives the localStorage namespace. Escaping it
   // into JSON makes the value safe to embed inline in a script literal.
   const titleJson = JSON.stringify(title);
@@ -635,9 +644,20 @@ ${columnsHtml}
 <div id="hints">
   <kbd>←</kbd><kbd>→</kbd> column &nbsp; <kbd>↑</kbd><kbd>↓</kbd> chunk &nbsp; <kbd>Space</kbd> reveal<br>
   <kbd>Enter</kbd>/<kbd>1</kbd>–<kbd>9</kbd> expand &nbsp; <kbd>N</kbd> annotate &nbsp; <kbd>C</kbd> collapse<br>
-  <kbd>+</kbd><kbd>-</kbd><kbd>0</kbd> zoom &nbsp; <kbd>B</kbd> blank &nbsp; <kbd>P</kbd> print &nbsp; <kbd>?</kbd> hide
+  <kbd>O</kbd> overview &nbsp; <kbd>T</kbd> toc &nbsp; <kbd>/</kbd> search &nbsp; <kbd>P</kbd> print &nbsp; <kbd>B</kbd> blank<br>
+  <kbd>+</kbd><kbd>-</kbd><kbd>0</kbd> zoom &nbsp; <kbd>?</kbd> hide
 </div>
 <div id="mode-badge"></div>
+<div id="overview-badge">
+  <span class="hint">overview · drag · wheel · click · <kbd>O</kbd>/<kbd>Enter</kbd> land · <kbd>/</kbd> search · <kbd>Esc</kbd></span>
+  <input id="search-input" type="text" placeholder="search..." autocomplete="off" spellcheck="false">
+</div>
+<nav id="toc" aria-label="Contents">
+  <h2>Contents</h2>
+  <ol>
+    ${tocItems}
+  </ol>
+</nav>
 <script>
 const LECTURE_TITLE = ${titleJson};
 ${AUDIENCE_JS}
@@ -1073,6 +1093,100 @@ body.blanked #stage { opacity: 0; }
   pointer-events: none;
 }
 #mode-badge.visible { display: block; }
+
+/* overview mode (PRD §5) ------------------------------------------- */
+body.overview-mode #stage-viewport { cursor: grab; }
+body.overview-mode #stage-viewport:active { cursor: grabbing; }
+body.overview-mode #stage { transition: transform var(--camera-duration) cubic-bezier(0.45, 0, 0.2, 1); }
+body.overview-mode.overview-dragging #stage { transition: none; }
+body.overview-mode .chunk {
+  opacity: 1 !important;
+  cursor: pointer;
+  outline: 2px solid transparent;
+  outline-offset: -1em;
+  transition: outline-color 120ms ease;
+}
+body.overview-mode .chunk.overview-selected { outline-color: oklch(0.55 0.12 220); }
+body.overview-mode .chunk.search-match    { outline-color: oklch(0.62 0.16 90); }
+body.overview-mode .chunk.search-miss     { opacity: 0.1 !important; }
+body.overview-mode .annot-add,
+body.overview-mode .exps,
+body.overview-mode .annot-box,
+body.overview-mode .margin-note { display: none !important; }
+
+#overview-badge {
+  position: fixed;
+  top: 14px; left: 14px;
+  background: oklch(0.55 0.12 220);
+  color: var(--paper);
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.15em;
+  font-size: 11px;
+  padding: 0.4rem 0.8rem;
+  font-weight: 600;
+  display: none;
+  z-index: 21;
+  pointer-events: auto;
+}
+body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.7em; }
+#overview-badge .hint { pointer-events: none; }
+#overview-badge #search-input {
+  display: none;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  min-width: 10em;
+  text-transform: lowercase;
+}
+body.search-active #overview-badge #search-input { display: inline-block; }
+body.search-active #overview-badge .hint { display: none; }
+#overview-badge #search-input::placeholder { color: oklch(0.97 0 0 / 0.7); font-style: italic; }
+
+/* TOC overlay (PRD §5) --------------------------------------------- */
+#toc {
+  position: fixed;
+  top: 0; right: 0;
+  height: 100vh;
+  width: 22em;
+  max-width: 40vw;
+  background: oklch(0.98 0 0 / 0.96);
+  border-left: 1px solid var(--rule);
+  padding: 3rem 2rem 2rem;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 220ms cubic-bezier(0.45, 0, 0.2, 1);
+  z-index: 25;
+}
+body.toc-visible #toc { transform: translateX(0); }
+#toc h2 {
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  font-weight: 500;
+  margin: 0 0 1.2rem;
+}
+#toc ol { list-style: decimal outside; padding-left: 1.6em; margin: 0; }
+#toc li { margin: 0.5em 0; }
+#toc button {
+  background: transparent;
+  border: 0;
+  padding: 0.1em 0;
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  letter-spacing: -0.005em;
+  line-height: 1.3;
+}
+#toc button:hover { color: var(--emph); }
+#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 `;
 
 // ── audience runtime JS (inlined verbatim into the output HTML) ──────
@@ -1103,6 +1217,14 @@ let openExp = null;            // { chunkIdx, expIdx } | null
 let annotEditingId = null;
 let annotations = {};          // chunkId -> text
 const revealed = {};           // chunkId -> count of visible segments
+
+// overview / TOC / search (PRD §5)
+let overview = false;
+let overviewScale = 0.28;
+let selectedIdx = 0;           // overview selection (independent of activeIdx)
+let manualPan = { dx: 0, dy: 0 };
+let searchActive = false;
+let tocVisible = false;
 
 function loadPersisted() {
   try {
@@ -1192,6 +1314,7 @@ function getOffset(el, parent) {
   return { left: x, top: y, width: el.offsetWidth, height: el.offsetHeight };
 }
 function focusCamera(instant = false) {
+  if (overview) { applyOverviewCamera(instant); return; }
   const entry = flatChunks[state.activeIdx];
   if (!entry) return;
   const vp = viewport.getBoundingClientRect();
@@ -1221,6 +1344,118 @@ function focusCamera(instant = false) {
   if (instant) stage.style.transition = 'none';
   stage.style.transform = \`translate(\${tx}px, \${ty}px)\`;
   if (instant) requestAnimationFrame(() => { stage.style.transition = ''; });
+}
+
+// Overview camera: translate-and-scale to center the selected chunk at
+// --overview-scale. The selected chunk (not the active one) drives
+// framing, so click-to-select in overview re-centers on each pick.
+function applyOverviewCamera(instant = false) {
+  const entry = flatChunks[selectedIdx] || flatChunks[state.activeIdx];
+  if (!entry) return;
+  const vp = viewport.getBoundingClientRect();
+  const { left, top, width, height } = getOffset(entry.el, stage);
+  const s = overviewScale;
+  const tx = vp.width / 2 - (left + width / 2) * s + manualPan.dx;
+  const ty = vp.height / 2 - (top + height / 2) * s + manualPan.dy;
+  if (instant) stage.style.transition = 'none';
+  stage.style.transform = \`translate(\${tx}px, \${ty}px) scale(\${s})\`;
+  if (instant) requestAnimationFrame(() => { stage.style.transition = ''; });
+}
+
+function setSelectedIdx(idx) {
+  if (idx < 0 || idx >= flatChunks.length) return;
+  flatChunks.forEach((c, i) => c.el.classList.toggle('overview-selected', i === idx));
+  selectedIdx = idx;
+  if (overview) applyOverviewCamera(false);
+}
+
+function toggleOverview() {
+  if (overview) {
+    // Exit: land on whatever was selected. If unchanged from active, it's a
+    // no-op camera translation, which is exactly the right behavior.
+    endSearch(); // leaving overview also leaves search
+    overview = false;
+    document.body.classList.remove('overview-mode');
+    manualPan = { dx: 0, dy: 0 };
+    if (selectedIdx !== state.activeIdx) {
+      state.activeIdx = selectedIdx;
+      applyState();
+      saveActive();
+    }
+    flatChunks.forEach(c => c.el.classList.remove('overview-selected'));
+    focusCamera(false);
+  } else {
+    overview = true;
+    document.body.classList.add('overview-mode');
+    manualPan = { dx: 0, dy: 0 };
+    setSelectedIdx(state.activeIdx);
+    applyOverviewCamera(false);
+  }
+}
+
+function dismissOverviewNoMove() {
+  if (!overview) return;
+  endSearch();
+  overview = false;
+  document.body.classList.remove('overview-mode');
+  manualPan = { dx: 0, dy: 0 };
+  flatChunks.forEach(c => c.el.classList.remove('overview-selected'));
+  focusCamera(false);
+}
+
+// TOC panel – flat list of named columns (see renderAudience).
+function toggleToc() {
+  tocVisible = !tocVisible;
+  document.body.classList.toggle('toc-visible', tocVisible);
+  if (tocVisible) markTocActive();
+}
+function markTocActive() {
+  const curColIdx = flatChunks[state.activeIdx]?.colIdx;
+  document.querySelectorAll('#toc li').forEach(li => {
+    li.classList.toggle('toc-active', parseInt(li.dataset.tocCol, 10) === curColIdx);
+  });
+}
+function jumpToColumn(colIdx) {
+  const idx = flatChunks.findIndex(c => c.colIdx === colIdx);
+  if (idx >= 0) jumpTo(idx, idx < state.activeIdx ? 'back' : 'forward');
+}
+
+// Fulltext search (PRD §5) – active only in overview. Each keystroke filters
+// chunks: matches get a highlight outline, non-matches fade to 0.1 opacity.
+const searchInput = document.getElementById('search-input');
+function startSearch() {
+  if (!overview) return;
+  searchActive = true;
+  document.body.classList.add('search-active');
+  searchInput.value = '';
+  searchInput.focus();
+  updateSearch();
+}
+function endSearch() {
+  if (!searchActive) return;
+  searchActive = false;
+  document.body.classList.remove('search-active');
+  searchInput.blur();
+  searchInput.value = '';
+  flatChunks.forEach(c => c.el.classList.remove('search-match', 'search-miss'));
+}
+function updateSearch() {
+  const q = searchInput.value.trim().toLowerCase();
+  if (!q) {
+    flatChunks.forEach(c => c.el.classList.remove('search-match', 'search-miss'));
+    return;
+  }
+  flatChunks.forEach(c => {
+    const text = (c.el.textContent || '').toLowerCase();
+    const hit = text.includes(q);
+    c.el.classList.toggle('search-match', hit);
+    c.el.classList.toggle('search-miss', !hit);
+  });
+}
+function commitSearchFirstMatch() {
+  const first = flatChunks.findIndex(c => c.el.classList.contains('search-match'));
+  if (first >= 0) setSelectedIdx(first);
+  endSearch();
 }
 
 // Nav
@@ -1386,6 +1621,8 @@ function wireAnnotations() {
 function wireClicks() {
   flatChunks.forEach((entry, idx) => {
     entry.el.addEventListener('click', (ev) => {
+      // Overview: click selects (no camera move, no expansion, no annotate).
+      if (overview) { setSelectedIdx(idx); return; }
       if (ev.target.closest('.annot-textarea')) return;
       if (ev.target.closest('[data-annot-add]')) { startAnnotate(entry.id); return; }
       if (ev.target.closest('.annot-box')) { startAnnotate(entry.id); return; }
@@ -1393,6 +1630,17 @@ function wireClicks() {
       if (chev) { toggleExp(idx, parseInt(chev.dataset.exp, 10)); return; }
       if (annotEditingId === entry.id) { blurAnnotation(); return; }
       if (idx !== state.activeIdx) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
+    });
+  });
+  // TOC column buttons: jump camera + close TOC.
+  document.querySelectorAll('#toc li').forEach(li => {
+    const btn = li.querySelector('button');
+    if (!btn) return;
+    const colIdx = parseInt(li.dataset.tocCol, 10);
+    btn.addEventListener('click', () => {
+      jumpToColumn(colIdx);
+      tocVisible = false;
+      document.body.classList.remove('toc-visible');
     });
   });
 }
@@ -1427,6 +1675,13 @@ function flashMode(text) {
 // Keyboard
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('.annot-textarea')) return;
+  // Search input: Enter commits, Esc exits search; other keys bubble to input.
+  if (e.target === searchInput) {
+    if (e.key === 'Enter') { commitSearchFirstMatch(); e.preventDefault(); }
+    else if (e.key === 'Escape') { endSearch(); e.preventDefault(); }
+    // typing is handled by the 'input' event listener on the input
+    return;
+  }
   if (e.target.matches('input,textarea')) {
     if (e.key === 'Escape') { e.target.blur(); e.preventDefault(); }
     return;
@@ -1438,32 +1693,41 @@ document.addEventListener('keydown', (e) => {
     case 'ArrowUp':    prevChunk(); e.preventDefault(); break;
     case ' ': {
       // Space: advance reveal; if fully revealed, pass through to next chunk.
+      if (overview) { e.preventDefault(); break; }
       if (!advanceReveal()) nextChunk();
       e.preventDefault(); break;
     }
     case 'Enter': {
+      if (overview) { toggleOverview(); e.preventDefault(); break; }
       const entry = flatChunks[state.activeIdx];
       if (entry && entry.el.querySelector('.exp-chev[data-exp="0"]')) toggleExp(state.activeIdx, 0);
       e.preventDefault(); break;
     }
     case '1': case '2': case '3': case '4': case '5':
     case '6': case '7': case '8': case '9': {
+      if (overview) break;
       const n = parseInt(e.key, 10) - 1;
       const entry = flatChunks[state.activeIdx];
       if (entry && entry.el.querySelector(\`.exp-chev[data-exp="\${n}"]\`)) toggleExp(state.activeIdx, n);
       e.preventDefault(); break;
     }
     case 'Escape': {
+      if (tocVisible) { tocVisible = false; document.body.classList.remove('toc-visible'); break; }
+      if (overview) { dismissOverviewNoMove(); break; }
       if (annotEditingId) { blurAnnotation(); break; }
       if (openExp) { closeAnyExpansion(); setTimeout(() => focusCamera(false), 20); }
       break;
     }
     case 'n': case 'N': {
+      if (overview) break;
       const entry = flatChunks[state.activeIdx];
       if (entry) startAnnotate(entry.id);
       e.preventDefault(); break;
     }
     case 'c': case 'C': cycleCollapse(e.shiftKey ? -1 : 1); e.preventDefault(); break;
+    case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
+    case 't': case 'T': toggleToc(); e.preventDefault(); break;
+    case '/': if (overview) { startSearch(); e.preventDefault(); } break;
     case '+': case '=': setZoom(state.zoom + 0.1); e.preventDefault(); break;
     case '-': case '_': setZoom(state.zoom - 0.1); e.preventDefault(); break;
     case '0': setZoom(1.35); e.preventDefault(); break;
@@ -1478,6 +1742,48 @@ document.addEventListener('keydown', (e) => {
       document.getElementById('hints').classList.toggle('hidden');
       e.preventDefault(); break;
   }
+});
+
+// Search input: live-filter on every keystroke.
+searchInput.addEventListener('input', updateSearch);
+
+// Overview: wheel adjusts scale, pointer drag pans.
+viewport.addEventListener('wheel', (e) => {
+  if (!overview) return;
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? 0.92 : 1.08;
+  overviewScale = Math.max(0.08, Math.min(1, overviewScale * factor));
+  applyOverviewCamera(false);
+}, { passive: false });
+
+viewport.addEventListener('pointerdown', (e) => {
+  // Skip drag on interactive children so click-to-select still works.
+  if (e.target.closest('button, textarea, input, .annot-box, .exp-chev, .annot-add, #toc')) return;
+  if (!overview) return;
+  e.preventDefault();
+  viewport.setPointerCapture(e.pointerId);
+  document.body.classList.add('overview-dragging');
+  const session = { x: e.clientX, y: e.clientY, dx0: manualPan.dx, dy0: manualPan.dy, moved: false };
+  const move = (ev) => {
+    const dx = ev.clientX - session.x, dy = ev.clientY - session.y;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) session.moved = true;
+    manualPan.dx = session.dx0 + dx;
+    manualPan.dy = session.dy0 + dy;
+    applyOverviewCamera(true);
+  };
+  const up = () => {
+    viewport.removeEventListener('pointermove', move);
+    viewport.removeEventListener('pointerup', up);
+    document.body.classList.remove('overview-dragging');
+    if (session.moved) {
+      // Swallow the synthesized click that follows a real drag, so a pan
+      // doesn't accidentally select a chunk on mouse-up.
+      const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); window.removeEventListener('click', swallow, true); };
+      window.addEventListener('click', swallow, true);
+    }
+  };
+  viewport.addEventListener('pointermove', move);
+  viewport.addEventListener('pointerup', up);
 });
 
 window.addEventListener('resize', () => focusCamera(true));
