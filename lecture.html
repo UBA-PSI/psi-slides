@@ -1,0 +1,1142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Foundations of Anonymity — Lecture</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,400&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+<style>
+/*
+  Lecture view — chromeless. All controls are keyboard:
+
+    ← →    prev / next column
+    ↑ ↓    prev / next chunk in column        (h j k l also work)
+    Enter  open first expansion on active chunk
+    1–9    open nth expansion
+    Esc    close expansion / exit edit / exit overview
+    N      annotate (create / focus annotation)
+    C      cycle collapse mode: full → topic → topic+bold → bold
+    O      toggle birds-eye overview (drag to pan, wheel to zoom distance)
+    B      blank screen
+    +      zoom in
+    -      zoom out
+    0      reset zoom
+    ?      toggle keyboard hints overlay
+    Shift+drag   manually pan the camera (any mode)
+
+  Authoring: edit the LECTURE object below. See AUTHORING.md for the schema.
+*/
+
+:root {
+  /* Observed-calibrated defaults (from playground authoring sessions) */
+  --ink-l:       0.20;
+  --ink-soft-l:  0.62;
+  --ink:        oklch(var(--ink-l) 0.01 260);
+  --ink-soft:   oklch(var(--ink-soft-l) 0.01 260);
+  --paper:      oklch(0.98 0.00 0);
+  --paper-warm: oklch(0.96 0.01 90);
+  --rule:       oklch(0.78 0.00 0);
+  --emph:       oklch(0.42 0.16 30);
+
+  --zoom: 1.35;
+  --dim: 0.86;
+  --camera-duration: 250ms;
+  --slide-pad-x: 14%;
+  --slide-pad-y: 4.9vh;
+  --slide-height: 40vh;              /* min-height; chunks auto-grow past this */
+  --chunk-gap: 4vh;
+  --body-font: 'Literata', 'Source Serif 4', Georgia, serif;
+  --annot-font: 'JetBrains Mono', monospace;
+  --overview-scale: 0.28;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body-font);
+  font-size: clamp(20px, 2.6vh, 38px);
+}
+
+/* ================ stage ================ */
+#stage-viewport {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+#stage {
+  position: absolute;
+  top: 0; left: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 8vw;
+  transform-origin: 0 0;
+  transition: transform var(--camera-duration) cubic-bezier(0.45, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--chunk-gap);
+  flex-shrink: 0;
+  position: relative;
+  width: 100vw;
+}
+
+/* ================ chunk = slide ================ */
+.chunk {
+  position: relative;
+  width: 100vw;
+  min-height: var(--slide-height);
+  display: grid;
+  grid-template-columns: 1fr minmax(0, var(--content-w, 36em)) 1fr;
+  align-items: center;
+  padding: var(--slide-pad-y) var(--slide-pad-x);
+  transition: opacity var(--camera-duration) ease;
+}
+
+.chunk[data-width=narrow]   { --content-w: 22em; }
+.chunk[data-width=standard] { --content-w: 36em; }
+.chunk[data-width=wide]     { --content-w: 52em; }
+.chunk[data-width=full]     { --content-w: 72em; }
+
+.chunk { --content-col-start: 2; --content-col-end: 3; }
+.chunk[data-align=left]   { grid-template-columns: minmax(0, var(--content-w, 36em)) 2fr; --content-col-start: 1; --content-col-end: 2; }
+.chunk[data-align=right]  { grid-template-columns: 2fr minmax(0, var(--content-w, 36em)); --content-col-start: 2; --content-col-end: 3; }
+
+.chunk-content {
+  grid-column: var(--content-col-start) / var(--content-col-end);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  position: relative;
+}
+
+.tag-label {
+  font-family: 'Inter Tight', sans-serif;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.13em;
+  font-size: calc(0.62em * var(--zoom));
+  font-weight: 500;
+  color: var(--ink-soft);
+  margin: 0;
+  opacity: 0.85;
+}
+
+.chunk-heading {
+  font-family: var(--body-font);
+  font-weight: 600;
+  font-size: calc(1.55em * var(--zoom));
+  margin: 0;
+  line-height: 1.15;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+}
+
+.chunk-body {
+  font-size: calc(1em * var(--zoom));
+  line-height: 1.5;
+  text-align: left;
+}
+.chunk-body p { margin: 0 0 0.7em 0; }
+.chunk-body p:last-child { margin-bottom: 0; }
+.chunk-body strong { font-weight: 600; color: var(--emph); }
+.chunk-body em { font-style: italic; }
+
+/* per-tag treatments */
+.chunk[data-tag=principle] .chunk-content::before {
+  content: '';
+  display: block;
+  width: 2.5em; height: 4px;
+  background: var(--ink);
+  margin-bottom: 0.4em;
+}
+.chunk[data-tag=principle] .chunk-body { font-size: calc(1.2em * var(--zoom)); line-height: 1.4; }
+.chunk[data-tag=principle] .chunk-heading { font-size: calc(1.8em * var(--zoom)); }
+
+.chunk[data-tag=definition] .chunk-content::before {
+  content: '';
+  display: block;
+  width: 100%; height: 1px;
+  background: var(--rule);
+  margin-bottom: 0.4em;
+}
+
+.chunk[data-tag=question] { text-align: center; }
+.chunk[data-tag=question] .chunk-content { gap: 0.8em; align-items: flex-start; }
+.chunk[data-tag=question] .chunk-heading { font-size: calc(2.4em * var(--zoom)); font-weight: 500; }
+.chunk[data-tag=question] .chunk-body { font-size: calc(1.15em * var(--zoom)); color: var(--ink-soft); }
+
+.chunk[data-tag=figure] .chunk-heading { font-size: calc(1.05em * var(--zoom)); font-weight: 500; color: var(--ink-soft); font-variant-caps: all-small-caps; letter-spacing: 0.1em; }
+
+.chunk[data-tag=exercise] .chunk-heading { font-style: italic; }
+.chunk[data-tag=exercise] .chunk-content::before {
+  content: 'EXERCISE';
+  font-family: 'Inter Tight', sans-serif;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.18em;
+  font-size: calc(0.6em * var(--zoom));
+  color: var(--ink-soft);
+  margin-bottom: 0.2em;
+}
+
+/* layout archetypes */
+.chunk[data-layout=two-col] { --content-w: 56em; }
+.chunk[data-layout=two-col] .chunk-body {
+  column-count: 2;
+  column-gap: 2.5em;
+  column-rule: 1px solid var(--rule);
+}
+.chunk[data-layout=two-col] .chunk-body p { break-inside: avoid; }
+
+.chunk[data-layout=side-by-side] { --content-w: 54em; }
+.chunk[data-layout=side-by-side] .chunk-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr);
+  gap: 2em;
+  align-items: start;
+}
+.chunk[data-layout=side-by-side] .chunk-content > * { grid-column: 2; }
+.chunk[data-layout=side-by-side] .chunk-heading {
+  grid-column: 1;
+  grid-row: 1 / span 99;
+  align-self: start;
+  padding-top: 0.1em;
+  border-right: 1px solid var(--rule);
+  padding-right: 1.2em;
+}
+.chunk[data-layout=side-by-side] .tag-label { grid-column: 2; }
+
+.chunk[data-layout=sketch-hero] { --content-w: 60em; }
+.chunk[data-layout=sketch-hero] .chunk-content { gap: 1em; align-items: center; }
+.chunk[data-layout=sketch-hero] .chunk-heading { order: 2; text-align: center; color: var(--ink-soft); }
+.chunk[data-layout=sketch-hero] .chunk-body { order: 3; text-align: center; max-width: 40em; }
+.chunk[data-layout=sketch-hero] .sketch { order: 1; margin: 0; font-size: calc(0.9em * var(--zoom)); }
+.chunk[data-layout=sketch-hero] .tag-label { order: 0; text-align: center; }
+
+.chunk[data-layout=pull-quote] { --content-w: 36em; text-align: center; }
+.chunk[data-layout=pull-quote] .chunk-heading { display: none; }
+.chunk[data-layout=pull-quote] .chunk-body {
+  font-size: calc(1.5em * var(--zoom));
+  font-weight: 500;
+  line-height: 1.35;
+  font-style: italic;
+}
+.chunk[data-layout=pull-quote] .chunk-content::before {
+  content: '';
+  display: block;
+  width: 3em; height: 2px;
+  background: var(--ink);
+  margin: 0 auto 0.8em;
+}
+
+/* annotation (anchored to content column's left edge) */
+.annot-box {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 2.5vw);
+  width: 21vw;
+  display: none;
+  font-family: var(--annot-font);
+  font-size: calc(0.56em * var(--zoom));
+  line-height: 1.5;
+  color: var(--ink);
+  padding: 1em 1.2em;
+  border: 1px dotted var(--rule);
+  background: var(--paper);
+  z-index: 2;
+  opacity: 0.4;
+  transition: opacity 220ms ease;
+}
+.chunk.has-annot .annot-box,
+.chunk.annot-visible .annot-box { display: block; }
+.chunk.annot-visible .annot-box { opacity: 1; }
+
+.annot-box-label {
+  font-family: 'Inter Tight', sans-serif;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.15em;
+  font-size: 0.82em;
+  color: var(--ink-soft);
+  opacity: 0.7;
+  margin-bottom: 0.6em;
+}
+
+.annot-textarea {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  resize: none;
+  outline: none;
+  white-space: pre-wrap;
+  overflow: hidden;
+  min-height: 1.5em;
+  height: auto;
+  padding: 0;
+  line-height: 1.5;
+}
+.annot-textarea::placeholder { color: oklch(0.78 0 0); font-style: italic; }
+
+.annot-add {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 2.5vw);
+  font-family: 'Inter Tight', sans-serif;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.15em;
+  font-size: calc(0.6em * var(--zoom));
+  color: var(--ink-soft);
+  opacity: 0;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  padding: 0.25em 0.4em;
+  transition: opacity 200ms ease;
+  z-index: 2;
+  white-space: nowrap;
+}
+.chunk.active:not(.has-annot):not(.annot-visible) .annot-add { opacity: 0.45; }
+.annot-add:hover { opacity: 0.9; }
+
+/* expansion chevrons — bottom-right corner */
+.exps {
+  position: absolute;
+  bottom: calc(var(--slide-pad-y) * 0.65);
+  right: var(--slide-pad-x);
+  display: flex;
+  flex-direction: row;
+  gap: 0.4em;
+  align-items: flex-end;
+  z-index: 2;
+}
+.exp-chev {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-family: 'Inter Tight', sans-serif;
+  font-size: calc(0.62em * var(--zoom));
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.12em;
+  padding: 0.45em 0.7em;
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 150ms, border-color 150ms, background 150ms;
+  white-space: nowrap;
+}
+.exp-chev:hover { color: var(--ink); border-color: var(--ink); }
+.exp-chev .caret { opacity: 0.55; transition: transform 150ms; }
+.exp-chev.on { color: var(--paper); background: var(--ink); border-color: var(--ink); }
+.exp-chev.on .caret { opacity: 1; transform: rotate(90deg); }
+.chunk:not(.active) .exps { display: none; }
+
+/* expansion body — splits the slide grid into two columns */
+.chunk.expanded {
+  grid-template-columns: minmax(0, var(--content-w, 36em)) minmax(0, 30em);
+  gap: 6%;
+  --content-col-start: 1;
+  --content-col-end: 2;
+}
+.chunk.expanded .exp-body.on {
+  grid-column: 2;
+  position: relative;
+  z-index: 3;
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  align-self: center;
+  font-size: calc(0.92em * var(--zoom));
+  line-height: 1.5;
+  color: var(--ink);
+  font-family: var(--body-font);
+  background: var(--paper);
+  padding: 1.2em 1.6em;
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--ink);
+}
+.exp-body { display: none; }
+.chunk.expanded .exp-body.on { display: block; }
+.exp-body .tag-label { text-align: left; font-size: 0.72em; margin-bottom: 0.3em; }
+
+/* sketch */
+.sketch {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: calc(0.78em * var(--zoom));
+  line-height: 1.35;
+  white-space: pre;
+  margin: 0.4em 0 0 0;
+  color: var(--ink);
+}
+.chunk-body .katex { font-size: 1em; }
+
+/* focus / dim */
+.chunk:not(.active) {
+  opacity: calc(1 - var(--dim) * 0.96);
+  transition: opacity 500ms ease;
+}
+.chunk.active { opacity: 1; }
+
+/* collapse modes — all apply on the single projector stage */
+[data-collapse=topic] .sentence-rest,
+[data-collapse=topic] .chunk-body p:nth-of-type(n+2) { display: none; }
+
+[data-collapse=bold] .prose,
+[data-collapse=bold] .chunk-body p:not(:has(strong)) { display: none; }
+[data-collapse=bold] .chunk-body p { line-height: 1.35; margin-bottom: 0.4em; }
+[data-collapse=bold] .sketch { display: none; }
+
+[data-collapse=topic-bold] .sentence-rest .prose { display: none; }
+[data-collapse=topic-bold] .sentence-rest strong {
+  display: block;
+  margin: 0.35em 0 0 1.5em;
+  font-weight: 500;
+  position: relative;
+  color: var(--emph);
+}
+[data-collapse=topic-bold] .sentence-rest strong::before {
+  content: '—';
+  position: absolute;
+  left: -1em;
+  color: var(--ink-soft);
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+/* blank */
+body.blanked #stage-viewport { background: oklch(0.06 0 0); }
+body.blanked #stage { opacity: 0; }
+
+/* overview mode */
+body.overview-mode #stage-viewport { cursor: grab; }
+body.overview-mode #stage-viewport:active { cursor: grabbing; }
+body.overview-mode .chunk { opacity: 1 !important; cursor: pointer; }
+body.overview-mode .chunk:hover { outline: 2px solid oklch(0.55 0.12 220); outline-offset: -1em; }
+body.overview-mode .chunk.active { outline: 2px solid oklch(0.55 0.12 220); outline-offset: -1em; }
+body.overview-mode .chunk-content { opacity: 1 !important; }
+body.overview-mode .annot-add, body.overview-mode .exps, body.overview-mode .annot-box { display: none !important; }
+body.overview-mode.overview-dragging #stage { transition: none; }
+
+/* small overlays */
+#hints {
+  position: fixed;
+  bottom: 14px; left: 14px;
+  background: oklch(0.98 0 0 / 0.85);
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  padding: 0.5rem 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0.8;
+  max-width: 360px;
+}
+#hints.hidden { display: none; }
+#hints kbd { color: var(--ink); padding: 0 4px; border: 1px solid var(--rule); font-family: inherit; background: oklch(0.96 0 0); }
+
+#overview-badge {
+  position: fixed;
+  top: 14px; left: 14px;
+  background: oklch(0.55 0.12 220);
+  color: var(--paper);
+  font-family: 'Inter Tight', sans-serif;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.15em;
+  font-size: 11px;
+  padding: 0.4rem 0.8rem;
+  font-weight: 600;
+  display: none;
+  z-index: 20;
+  pointer-events: none;
+}
+body.overview-mode #overview-badge { display: block; }
+
+#mode-badge {
+  position: fixed;
+  top: 14px; right: 14px;
+  background: oklch(0.98 0 0 / 0.9);
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-family: 'Inter Tight', sans-serif;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+  padding: 0.3rem 0.6rem;
+  display: none;
+  z-index: 20;
+  pointer-events: none;
+}
+#mode-badge.visible { display: block; }
+</style>
+</head>
+<body data-focus="lecture" data-collapse="none">
+
+<div id="stage-viewport">
+  <div id="stage"></div>
+</div>
+
+<div id="hints">
+  <kbd>←</kbd><kbd>→</kbd> column &nbsp; <kbd>↑</kbd><kbd>↓</kbd> chunk &nbsp; <kbd>Enter</kbd>/<kbd>1</kbd>–<kbd>9</kbd> expand<br>
+  <kbd>N</kbd> annotate &nbsp; <kbd>C</kbd> collapse mode &nbsp; <kbd>O</kbd> overview<br>
+  <kbd>+</kbd><kbd>-</kbd><kbd>0</kbd> zoom &nbsp; <kbd>B</kbd> blank &nbsp; <kbd>Shift</kbd>+drag pan &nbsp; <kbd>?</kbd> hide hints
+</div>
+
+<div id="overview-badge">overview · drag to pan · wheel to zoom · click a slide</div>
+<div id="mode-badge"></div>
+
+<script>
+/* ================================================================
+   LECTURE CONTENT — edit this object to build your own lecture.
+   See AUTHORING.md for the schema and layout archetypes.
+   ================================================================ */
+const LECTURE = {
+  title: 'Foundations of Anonymity',
+  columns: [
+    {
+      id: 'motivation', heading: 'Motivation',
+      chunks: [
+        {
+          id: 'motivation/why-not-privacy', tag: 'free', width: 'wide', align: 'center', layout: 'two-col',
+          heading: 'Why anonymity ≠ privacy',
+          body:
+`<p><strong>Anonymity is a property of actions, not of people.</strong> An act is anonymous when the adversary cannot tell the actor apart from a set of other possible actors.</p>
+<p>Privacy concerns what is known about an identified person. Breaking anonymity is usually the first step toward violating privacy — but they diverge in revealing edge cases.</p>`,
+          expansions: [
+            { label: 'reference', body: `<p>Pfitzmann, A. &amp; Hansen, M. (2010). <em>A terminology for talking about privacy by data minimization.</em> v0.34. The canonical reference for this vocabulary.</p>` },
+          ],
+        },
+        {
+          id: 'motivation/unlinkability', tag: 'principle', width: 'wide', align: 'center', layout: 'pull-quote',
+          heading: 'Unlinkability is the primitive',
+          body:
+`<p>Two items are <strong>unlinkable</strong> if the adversary cannot decide, from observation alone, whether they belong to the same subject.</p>
+<p><strong>Anonymity, pseudonymity, and unobservability are all special cases.</strong> Hide identity, hide everything but a chosen pseudonym, hide the observation entirely — three rungs of the same ladder.</p>`,
+          expansions: [
+            { label: 'example', body: `<p>A voter dataset stripped of names is <em>pseudonymous</em>: each row carries a persistent ID. Strip the ID too and you approach <em>anonymity</em> against linkage by ID — though not against linkage by quasi-identifiers.</p>` },
+          ],
+        },
+        {
+          id: 'motivation/bridge', tag: 'free', width: 'narrow', align: 'left',
+          body: `<p>With that vocabulary settled we can be precise about what each mechanism actually protects, and against whom.</p>`,
+        },
+      ],
+    },
+    {
+      id: 'definitions', heading: 'Definitions',
+      chunks: [
+        {
+          id: 'definitions/k-anonymity', tag: 'definition', width: 'wide', align: 'center', layout: 'side-by-side',
+          heading: 'k-anonymity',
+          body:
+`<p>A release satisfies <strong>k-anonymity</strong> when every record is indistinguishable from at least $k-1$ others on its quasi-identifier attributes:</p>
+<p style="text-align:center; margin-top: 0.3em">$|\\{r' : QI(r') = QI(r)\\}| \\geq k$</p>
+<p>The quasi-identifier set is the parameter that matters most. <strong>Necessary, but not sufficient.</strong></p>`,
+          expansions: [
+            { label: 'example', body: `<p>Sweeney (2002): <strong>87% of US residents are uniquely identified by (5-digit ZIP, sex, date of birth).</strong> Any release retaining those three fails $k > 1$ against voter-roll linkage.</p>` },
+            { label: 'reference', body: `<p>Sweeney, L. (2002). <em>k-anonymity: A Model for Protecting Privacy.</em> Int. J. Uncertainty, Fuzziness and Knowledge-Based Systems, 10(5).</p>` },
+          ],
+        },
+        {
+          id: 'definitions/l-diversity', tag: 'definition', width: 'wide', align: 'center', layout: 'side-by-side',
+          heading: 'l-diversity',
+          body:
+`<p>k-anonymity fails when records in a class share the same sensitive value (the <em>homogeneity attack</em>). <strong>l-diversity</strong> requires each class to also contain at least $l$ well-represented sensitive values.</p>`,
+          expansions: [
+            { label: 'example', body: `<p>Ten records, k=5 on (ZIP, DOB), but all with diagnosis <em>pancreatic cancer</em>. An adversary who knows Alice's quasi-identifiers learns her diagnosis — without ever identifying her row.</p>` },
+          ],
+        },
+        {
+          id: 'definitions/k-enough', tag: 'question', width: 'narrow', align: 'center',
+          heading: "Isn't k enough?",
+          body: `<p>Why l-diversity, t-closeness, differential privacy?</p>`,
+          expansions: [
+            { label: 'answer', body: `<p>k-anonymity hides identity but not attributes. <strong>l-diversity</strong> fixes the homogeneity gap. <strong>t-closeness</strong> fixes a distributional-similarity attack. <strong>Differential privacy</strong> generalizes into a single tunable definition with rigorous semantics.</p>` },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'adversary', heading: 'Adversary model',
+      chunks: [
+        {
+          id: 'adversary/ladder', tag: 'figure', width: 'wide', align: 'center', layout: 'sketch-hero',
+          heading: 'Attacker capability ladder',
+          body: `<p>Five rungs. Each subsumes those below. <strong>A claim of anonymity is meaningful only relative to a specified rung.</strong></p>`,
+          sketch:
+`    passive observer            (sees traffic, cannot modify)
+          │
+          ▼
+    active observer             (can inject, replay, drop)
+          │
+          ▼
+    partial-network adversary   (sees a fraction of all links)
+          │
+          ▼
+    global-network adversary    (sees every inter-node message)
+          │
+          ▼
+    global + endpoint compromise(owns some clients or servers)`,
+          expansions: [
+            { label: 'example', body: `<p>Tor's formal threat model targets rung 3. In practice it is discussed against rung 4. Hence: <em>Tor does not protect against traffic-pattern analysis by an observer of both ends.</em></p>` },
+          ],
+        },
+        {
+          id: 'adversary/reading', tag: 'free', width: 'standard', align: 'center',
+          heading: 'Reading the ladder',
+          body:
+`<p>Most published systems target rungs 1–3. Tor targets rung 4 in practice. <strong>Nothing targets rung 5 and claims to succeed.</strong></p>
+<p>That is design discipline, not pessimism: a system that admits endpoint compromise must say what guarantees degrade and how fast.</p>`,
+        },
+        {
+          id: 'adversary/threats-first', tag: 'principle', width: 'wide', align: 'center', layout: 'pull-quote',
+          heading: 'Threats first, mechanisms second',
+          body: `<p><strong>Specify the adversary before specifying the defense.</strong> A mechanism designed against rung 2 looks foolish against rung 4 — or, worse, looks convincing.</p>`,
+        },
+      ],
+    },
+    {
+      id: 'exercise', heading: 'Exercise',
+      chunks: [
+        {
+          id: 'exercise/reid', tag: 'exercise', width: 'wide', align: 'center',
+          heading: 'Re-identify this dataset',
+          body:
+`<p>Compute the maximum $k$ for which the release on the course page is k-anonymous against a (ZIP, DOB) adversary.</p>
+<p>Propose a minimum-suppression strategy reaching $k \\geq 5$. <strong>Report the suppressed rows and the utility cost.</strong></p>`,
+          expansions: [
+            { label: 'setup', body: `<p>CSV on the course page, "Anonymity → Exercise 2". Submit before next lecture.</p>` },
+          ],
+        },
+        {
+          id: 'exercise/hint', tag: 'free', width: 'narrow', align: 'right',
+          body: `<p>Next week: from static releases to <strong>interactive queries</strong>. The adversary chooses the questions. The transition is the lecture.</p>`,
+        },
+      ],
+    },
+  ],
+};
+
+/* ================================================================
+   Runtime — no editing below needed for authoring.
+   ================================================================ */
+
+function parseHTML(str) {
+  const doc = new DOMParser().parseFromString(str, 'text/html');
+  const frag = document.createDocumentFragment();
+  while (doc.body.firstChild) frag.appendChild(doc.body.firstChild);
+  return frag;
+}
+function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function abbrevFor(label) {
+  const l = String(label || '').toLowerCase();
+  if (!l) return 'Exp';
+  if (l.startsWith('exa')) return 'Ex';
+  if (l.startsWith('exp') || l.startsWith('det') || l.startsWith('deep')) return 'Exp';
+  if (l.startsWith('ref') || l.startsWith('cit') || l.startsWith('bib')) return 'Ref';
+  if (l.startsWith('ans') || l.startsWith('sol')) return '?';
+  if (l.startsWith('pro')) return 'Pf';
+  if (l.startsWith('fig') || l.startsWith('dia')) return 'Fig';
+  if (l.startsWith('cod')) return '{}';
+  if (l.startsWith('set')) return 'Set';
+  if (l.startsWith('note')) return 'N.B.';
+  return l.slice(0, 3).replace(/^./, c => c.toUpperCase());
+}
+
+/* state + persistence */
+const COLLAPSE_MODES = ['none', 'topic', 'topic-bold', 'bold'];
+const STORAGE_PREFIX = 'psi-lecdoc:';
+const state = {
+  collapse: 'none',
+  zoom: 1.35,
+  blanked: false,
+};
+let activeIdx = 0;
+let flatChunks = [];
+let openExp = null;
+let annotations = {};
+let annotEditingId = null;
+let overview = false;
+let overviewScale = 0.28;
+let manualPan = { dx: 0, dy: 0 };
+let chunkScrollY = 0;
+
+function storageKey(suffix) { return STORAGE_PREFIX + LECTURE.title + ':' + suffix; }
+function loadPersisted() {
+  try {
+    const raw = localStorage.getItem(storageKey('annotations'));
+    if (raw) annotations = JSON.parse(raw);
+  } catch (e) {}
+  try {
+    const pos = localStorage.getItem(storageKey('activeIdx'));
+    if (pos !== null) activeIdx = Math.max(0, parseInt(pos, 10) || 0);
+  } catch (e) {}
+}
+function persistAnnotations() {
+  try { localStorage.setItem(storageKey('annotations'), JSON.stringify(annotations)); } catch (e) {}
+}
+function persistActive() {
+  try { localStorage.setItem(storageKey('activeIdx'), String(activeIdx)); } catch (e) {}
+}
+
+/* content transforms for collapse-modes */
+function splitFirstSentence(htmlStr) {
+  const frag = parseHTML(`<div>${htmlStr}</div>`);
+  const root = frag.firstElementChild;
+  root.querySelectorAll('p').forEach(p => { splitPFirstSentence(p); wrapProse(p); });
+  return root.outerHTML.replace(/^<div>|<\/div>$/g, '');
+}
+function splitPFirstSentence(p) {
+  const head = document.createElement('span'); head.className = 'sentence-head';
+  const rest = document.createElement('span'); rest.className = 'sentence-rest';
+  let mode = 'head';
+  for (const k of [...p.childNodes]) {
+    if (mode === 'head' && k.nodeType === 3) {
+      const text = k.nodeValue;
+      const m = text.match(/^([\s\S]*?[.!?])(\s+[\s\S]*)$/);
+      if (m) {
+        head.appendChild(document.createTextNode(m[1]));
+        rest.appendChild(document.createTextNode(m[2]));
+        mode = 'rest';
+      } else { head.appendChild(k.cloneNode(true)); }
+    } else if (mode === 'head') { head.appendChild(k.cloneNode(true)); }
+    else { rest.appendChild(k.cloneNode(true)); }
+  }
+  clear(p);
+  p.appendChild(head);
+  if (rest.childNodes.length) p.appendChild(rest);
+}
+function wrapProse(node) {
+  for (const k of [...node.childNodes]) {
+    if (k.nodeType === 3 && k.textContent.trim()) {
+      const span = document.createElement('span');
+      span.className = 'prose';
+      span.appendChild(document.createTextNode(k.textContent));
+      node.replaceChild(span, k);
+    } else if (k.nodeType === 1 && k.tagName !== 'STRONG' && !k.classList.contains('prose')) {
+      wrapProse(k);
+    }
+  }
+}
+
+/* render */
+const stage = document.getElementById('stage');
+const viewport = document.getElementById('stage-viewport');
+
+function chunkEl(chunk, colIdx, chunkIdx) {
+  const hasAnnot = !!(annotations[chunk.id] || '').trim();
+  const parts = [];
+  parts.push(`<article class="chunk${hasAnnot ? ' has-annot' : ''}" data-width="${chunk.width || 'standard'}"${chunk.tag ? ` data-tag="${chunk.tag}"` : ''}${chunk.align ? ` data-align="${chunk.align}"` : ''}${chunk.layout ? ` data-layout="${chunk.layout}"` : ''} data-id="${esc(chunk.id)}">`);
+  parts.push(`<div class="chunk-content">`);
+  if (chunk.tag && chunk.tag !== 'free' && chunk.tag !== 'exercise') parts.push(`<div class="tag-label">${chunk.tag}</div>`);
+  if (chunk.heading) parts.push(`<h2 class="chunk-heading">${esc(chunk.heading)}</h2>`);
+  parts.push(`<div class="chunk-body">${splitFirstSentence(chunk.body || '')}</div>`);
+  if (chunk.sketch) parts.push(`<pre class="sketch">${esc(chunk.sketch)}</pre>`);
+
+  parts.push(`<aside class="annot-box" data-annot-for="${esc(chunk.id)}">
+    <div class="annot-box-label">annotation · ${esc(chunk.id)}</div>
+    <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1">${esc(annotations[chunk.id] || '')}</textarea>
+  </aside>`);
+  parts.push(`<button class="annot-add" data-annot-add type="button">+ note</button>`);
+  parts.push(`</div>`);
+
+  if (chunk.expansions && chunk.expansions.length) {
+    const chevs = chunk.expansions.map((e, i) =>
+      `<button class="exp-chev" type="button" data-exp="${i}">
+        <span>${abbrevFor(e.label)}</span>
+        <span class="caret">›</span>
+      </button>`).join('');
+    parts.push(`<div class="exps">${chevs}</div>`);
+    chunk.expansions.forEach((e, i) => {
+      parts.push(`<aside class="exp-body" data-exp-body="${i}">
+        <div class="tag-label">${esc(e.label)}</div>
+        ${e.body}
+      </aside>`);
+    });
+  }
+  parts.push(`</article>`);
+
+  const frag = parseHTML(parts.join(''));
+  const el = frag.firstElementChild;
+  el.addEventListener('click', (ev) => {
+    if (overview) return;
+    if (ev.target.closest('.annot-textarea')) return;
+    if (ev.target.closest('[data-annot-add]')) { startAnnotate(chunk.id); return; }
+    if (ev.target.closest('.annot-box')) { startAnnotate(chunk.id); return; }
+    const chev = ev.target.closest('[data-exp]');
+    if (chev) { toggleExp(chunk.id, parseInt(chev.dataset.exp, 10)); return; }
+    if (annotEditingId === chunk.id) { blurAnnotation(); return; }
+    jumpTo(flatIndex(colIdx, chunkIdx));
+  });
+  const ta = el.querySelector('.annot-textarea');
+  if (ta) {
+    autosize(ta);
+    ta.addEventListener('input', () => {
+      annotations[chunk.id] = ta.value;
+      autosize(ta);
+      el.classList.toggle('has-annot', !!ta.value.trim());
+      persistAnnotations();
+    });
+    ta.addEventListener('focus', () => {
+      annotEditingId = chunk.id;
+      el.classList.add('annot-visible');
+      autosize(ta);
+      requestAnimationFrame(() => requestAnimationFrame(() => focusCamera(false)));
+    });
+    ta.addEventListener('blur', () => {
+      if (annotEditingId === chunk.id) annotEditingId = null;
+      el.classList.remove('annot-visible');
+      setTimeout(() => focusCamera(false), 20);
+    });
+    ta.addEventListener('keydown', (e) => { if (e.key === 'Escape') { ta.blur(); e.preventDefault(); } });
+  }
+  return el;
+}
+
+function autosize(ta) {
+  if (!ta) return;
+  ta.style.height = 'auto';
+  ta.style.height = Math.max(ta.scrollHeight, parseFloat(getComputedStyle(ta).lineHeight || 20)) + 'px';
+}
+
+function startAnnotate(chunkId) {
+  const c = flatChunks.find(x => x.data.id === chunkId);
+  if (!c) return;
+  const annotEl = c.el.querySelector('.annot-box');
+  const ta = c.el.querySelector('.annot-textarea');
+  if (!annotEl || !ta) return;
+  c.el.classList.add('annot-visible', 'has-annot');
+  activeIdx = flatChunks.indexOf(c);
+  applyState();
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+function blurAnnotation() {
+  if (!annotEditingId) return;
+  const c = flatChunks.find(x => x.data.id === annotEditingId);
+  if (c) { const ta = c.el.querySelector('.annot-textarea'); if (ta) ta.blur(); }
+}
+
+function render() {
+  clear(stage);
+  flatChunks = [];
+  LECTURE.columns.forEach((col, ci) => {
+    const colEl = document.createElement('section');
+    colEl.className = 'column';
+    col.chunks.forEach((c, xi) => {
+      const el = chunkEl(c, ci, xi);
+      colEl.appendChild(el);
+      flatChunks.push({ colIdx: ci, chunkIdx: xi, data: c, el, firstInCol: xi === 0 });
+    });
+    stage.appendChild(colEl);
+  });
+  activeIdx = Math.min(activeIdx, flatChunks.length - 1);
+  applyState();
+  if (window.renderMathInElement) {
+    renderMathInElement(stage, { delimiters: [{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError: false });
+  }
+  document.querySelectorAll('.annot-textarea').forEach(autosize);
+  setTimeout(() => focusCamera(true), 60);
+}
+
+/* camera */
+function flatIndex(ci, xi) { return flatChunks.findIndex(c => c.colIdx === ci && c.chunkIdx === xi); }
+function getOffset(el, parent) {
+  let x = 0, y = 0, n = el;
+  while (n && n !== parent) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+  return { left: x, top: y, width: el.offsetWidth, height: el.offsetHeight };
+}
+
+function focusCamera(instant = false) {
+  if (overview) { applyOverviewCamera(instant); return; }
+  const entry = flatChunks[activeIdx];
+  if (!entry) return;
+  const vpRect = viewport.getBoundingClientRect();
+  const vpW = vpRect.width;
+  const vpH = vpRect.height;
+  const c = entry.el;
+  const { left: ox, top: oy, width: ow, height: oh } = getOffset(c, stage);
+
+  let tx, ty;
+  const isEditingAnnot = annotEditingId === entry.data.id;
+  if (isEditingAnnot) {
+    const contentEl = c.querySelector('.chunk-content');
+    const contentOff = contentEl ? getOffset(contentEl, stage) : { left: ox + ow / 2 };
+    tx = vpW * 0.33 - contentOff.left;
+    ty = (oh <= vpH) ? vpH / 2 - (oy + oh / 2) : (vpH * 0.05) - oy;
+  } else if (openExp && openExp.chunkId === entry.data.id) {
+    const expBody = c.querySelector(`.exp-body[data-exp-body="${openExp.expIdx}"]`);
+    if (expBody) {
+      const exp = getOffset(expBody, stage);
+      tx = vpW / 2 - (exp.left + exp.width / 2);
+      ty = vpH / 2 - (exp.top + exp.height / 2);
+    } else { tx = vpW / 2 - (ox + ow / 2); ty = vpH / 2 - (oy + oh / 2); }
+  } else {
+    tx = vpW / 2 - (ox + ow / 2);
+    ty = (oh <= vpH) ? vpH / 2 - (oy + oh / 2) : (vpH * 0.05) - oy - chunkScrollY;
+  }
+  tx += manualPan.dx;
+  ty += manualPan.dy;
+
+  if (instant) stage.style.transition = 'none';
+  stage.style.transform = `translate(${tx}px, ${ty}px)`;
+  if (instant) requestAnimationFrame(() => { stage.style.transition = ''; });
+}
+
+function applyOverviewCamera(instant = false) {
+  const vpRect = viewport.getBoundingClientRect();
+  const entry = flatChunks[activeIdx];
+  if (!entry) return;
+  const { left, top, width, height } = getOffset(entry.el, stage);
+  const s = overviewScale;
+  const tx = vpRect.width / 2 - (left + width / 2) * s + manualPan.dx;
+  const ty = vpRect.height / 2 - (top + height / 2) * s + manualPan.dy;
+  if (instant) stage.style.transition = 'none';
+  stage.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+  if (instant) requestAnimationFrame(() => { stage.style.transition = ''; });
+}
+
+function toggleOverview() {
+  overview = !overview;
+  document.body.classList.toggle('overview-mode', overview);
+  manualPan = { dx: 0, dy: 0 };
+  if (overview) applyOverviewCamera(false); else focusCamera(false);
+}
+
+/* wheel in overview controls camera distance */
+viewport.addEventListener('wheel', (e) => {
+  if (!overview) return;
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? 0.92 : 1.08;
+  overviewScale = Math.max(0.08, Math.min(1, overviewScale * factor));
+  applyOverviewCamera(false);
+}, { passive: false });
+
+/* shift+drag pan (or drag in overview) */
+viewport.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('button, textarea, .annot-box, .exp-chev, .annot-add')) return;
+  const shouldPan = overview || e.shiftKey;
+  if (!shouldPan) return;
+  e.preventDefault();
+  viewport.setPointerCapture(e.pointerId);
+  document.body.classList.add('overview-dragging');
+  const session = { x: e.clientX, y: e.clientY, dx0: manualPan.dx, dy0: manualPan.dy, moved: false };
+  const move = (ev) => {
+    const dx = ev.clientX - session.x, dy = ev.clientY - session.y;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) session.moved = true;
+    manualPan.dx = session.dx0 + dx;
+    manualPan.dy = session.dy0 + dy;
+    stage.style.transition = 'none';
+    if (overview) applyOverviewCamera(true); else focusCamera(true);
+  };
+  const up = () => {
+    viewport.removeEventListener('pointermove', move);
+    viewport.removeEventListener('pointerup', up);
+    stage.style.transition = '';
+    document.body.classList.remove('overview-dragging');
+    if (session.moved) {
+      const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); window.removeEventListener('click', swallow, true); };
+      window.addEventListener('click', swallow, true);
+    }
+  };
+  viewport.addEventListener('pointermove', move);
+  viewport.addEventListener('pointerup', up);
+});
+
+/* click-to-jump in overview */
+stage.addEventListener('click', (e) => {
+  if (!overview) return;
+  const chunk = e.target.closest('.chunk');
+  if (!chunk) return;
+  const idx = flatChunks.findIndex(c => c.data.id === chunk.dataset.id);
+  if (idx >= 0) {
+    overview = false;
+    document.body.classList.remove('overview-mode');
+    manualPan = { dx: 0, dy: 0 };
+    jumpTo(idx);
+  }
+});
+
+/* state apply */
+function applyState() {
+  document.body.dataset.collapse = state.collapse;
+  document.documentElement.style.setProperty('--zoom', state.zoom);
+  flatChunks.forEach((c, i) => c.el.classList.toggle('active', i === activeIdx));
+}
+
+/* navigation */
+function jumpTo(idx) {
+  if (idx < 0 || idx >= flatChunks.length) return;
+  if (annotEditingId) blurAnnotation();
+  activeIdx = idx;
+  chunkScrollY = 0;
+  manualPan = { dx: 0, dy: 0 };
+  if (openExp) {
+    const prev = flatChunks.find(x => x.data.id === openExp.chunkId);
+    if (prev) {
+      prev.el.classList.remove('expanded');
+      prev.el.querySelectorAll('.exp-chev, .exp-body').forEach(x => x.classList.remove('on'));
+    }
+    openExp = null;
+  }
+  applyState();
+  focusCamera(false);
+  persistActive();
+}
+
+function toggleExp(chunkId, expIdx) {
+  const c = flatChunks.find(x => x.data.id === chunkId);
+  if (!c?.data.expansions?.[expIdx]) return;
+  if (openExp) {
+    const prev = flatChunks.find(x => x.data.id === openExp.chunkId);
+    if (prev) {
+      prev.el.classList.remove('expanded');
+      prev.el.querySelectorAll('.exp-chev, .exp-body').forEach(x => x.classList.remove('on'));
+    }
+  }
+  const same = openExp && openExp.chunkId === chunkId && openExp.expIdx === expIdx;
+  if (same) { openExp = null; }
+  else {
+    const chev = c.el.querySelector(`.exp-chev[data-exp="${expIdx}"]`);
+    const body = c.el.querySelector(`.exp-body[data-exp-body="${expIdx}"]`);
+    if (chev) chev.classList.add('on');
+    if (body) body.classList.add('on');
+    c.el.classList.add('expanded');
+    openExp = { chunkId, expIdx };
+    activeIdx = flatChunks.indexOf(c);
+  }
+  applyState();
+  requestAnimationFrame(() => requestAnimationFrame(() => focusCamera(false)));
+}
+
+function nextCol() {
+  const cur = flatChunks[activeIdx].colIdx;
+  for (let i = activeIdx + 1; i < flatChunks.length; i++)
+    if (flatChunks[i].colIdx > cur && flatChunks[i].firstInCol) return jumpTo(i);
+  jumpTo(Math.min(activeIdx + 1, flatChunks.length - 1));
+}
+function prevCol() {
+  const cur = flatChunks[activeIdx].colIdx;
+  for (let i = activeIdx - 1; i >= 0; i--)
+    if (flatChunks[i].colIdx < cur && flatChunks[i].firstInCol) return jumpTo(i);
+  jumpTo(0);
+}
+function nextChunk() {
+  const cur = flatChunks[activeIdx], nxt = flatChunks[activeIdx + 1];
+  if (nxt && nxt.colIdx === cur.colIdx) jumpTo(activeIdx + 1); else nextCol();
+}
+function prevChunk() {
+  const cur = flatChunks[activeIdx], prv = flatChunks[activeIdx - 1];
+  if (prv && prv.colIdx === cur.colIdx) jumpTo(activeIdx - 1); else prevCol();
+}
+
+/* collapse mode cycle */
+function cycleCollapse(dir = 1) {
+  const i = COLLAPSE_MODES.indexOf(state.collapse);
+  const ni = (i + dir + COLLAPSE_MODES.length) % COLLAPSE_MODES.length;
+  state.collapse = COLLAPSE_MODES[ni];
+  applyState();
+  flashMode('collapse: ' + state.collapse);
+}
+
+/* zoom */
+function setZoom(z) {
+  state.zoom = Math.round(Math.max(0.6, Math.min(2.2, z)) * 20) / 20;
+  document.documentElement.style.setProperty('--zoom', state.zoom);
+  chunkScrollY = 0;
+  setTimeout(() => focusCamera(false), 30);
+  flashMode('zoom: ' + state.zoom.toFixed(2) + '×');
+}
+
+/* mode badge (brief flash on keyboard actions) */
+const modeBadge = document.getElementById('mode-badge');
+let modeTimer = null;
+function flashMode(text) {
+  modeBadge.textContent = text;
+  modeBadge.classList.add('visible');
+  if (modeTimer) clearTimeout(modeTimer);
+  modeTimer = setTimeout(() => modeBadge.classList.remove('visible'), 1500);
+}
+
+/* keyboard */
+document.addEventListener('keydown', (e) => {
+  if (e.target.matches('.annot-textarea')) return;
+  if (e.target.matches('input,textarea')) {
+    if (e.key === 'Escape') { e.target.blur(); e.preventDefault(); }
+    return;
+  }
+  switch (e.key) {
+    case 'ArrowRight': case 'l': case 'L': nextCol(); e.preventDefault(); break;
+    case 'ArrowLeft':  case 'h': case 'H': prevCol(); e.preventDefault(); break;
+    case 'ArrowDown':  case 'j': case 'J': nextChunk(); e.preventDefault(); break;
+    case 'ArrowUp':    case 'k': case 'K': prevChunk(); e.preventDefault(); break;
+    case 'Enter': {
+      const cur = flatChunks[activeIdx];
+      if (cur?.data.expansions?.length) toggleExp(cur.data.id, 0);
+      e.preventDefault(); break;
+    }
+    case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': {
+      const n = parseInt(e.key, 10) - 1;
+      const cur = flatChunks[activeIdx];
+      if (cur?.data.expansions?.[n]) toggleExp(cur.data.id, n);
+      e.preventDefault(); break;
+    }
+    case 'Escape':
+      if (annotEditingId) { blurAnnotation(); break; }
+      if (overview) { toggleOverview(); break; }
+      if (openExp) {
+        const c = flatChunks.find(x => x.data.id === openExp.chunkId);
+        if (c) { c.el.classList.remove('expanded'); c.el.querySelectorAll('.exp-chev, .exp-body').forEach(x => x.classList.remove('on')); }
+        openExp = null;
+        setTimeout(() => focusCamera(false), 20);
+      }
+      break;
+    case 'n': case 'N': {
+      const cur = flatChunks[activeIdx];
+      if (cur) startAnnotate(cur.data.id);
+      e.preventDefault(); break;
+    }
+    case 'c': case 'C': cycleCollapse(e.shiftKey ? -1 : 1); e.preventDefault(); break;
+    case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
+    case '+': case '=': setZoom(state.zoom + 0.1); break;
+    case '-': case '_': setZoom(state.zoom - 0.1); break;
+    case '0': setZoom(1.35); break;
+    case 'b': case 'B':
+      state.blanked = !state.blanked;
+      document.body.classList.toggle('blanked', state.blanked);
+      break;
+    case '?':
+      document.getElementById('hints').classList.toggle('hidden');
+      break;
+  }
+});
+
+/* boot */
+window.addEventListener('resize', () => focusCamera(true));
+loadPersisted();
+document.fonts.ready.then(() => { render(); });
+setTimeout(() => { if (!flatChunks.length) render(); }, 1500);
+</script>
+</body>
+</html>

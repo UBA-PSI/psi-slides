@@ -35,12 +35,12 @@ These are the commitments. Everything downstream is subordinate.
 
 **Placement algorithm (deterministic).** Given the ordered list of columns and, per column, the ordered list of chunks, positions are computed purely from source:
 
-1. **Slide size.** Each chunk is rendered as a slide of `width = 100vw` and `min-height = 82vh` — i.e., one viewport. Internal text column width is determined by the chunk's width class: `narrow = 22em`, `standard = 36em`, `wide = 52em`, `full = 72em`. Width classes control *content layout inside the slide*, not the frame.
+1. **Slide size.** Each chunk is rendered as a slide of `width = 100vw` and `min-height = var(--slide-min, 40vh)` — large enough to own the viewport but small enough that short chunks (e.g. a `question` or a `free`-narration transition) auto-size to their content and leave room for neighbor peek. Internal text column width is determined by the chunk's width class: `narrow = 22em`, `standard = 36em`, `wide = 52em`, `full = 72em`. Width classes control *content layout inside the slide*, not the frame.
 2. **Column X.** Columns are placed left-to-right, separated by `column-gap = 8vw`. Because each slide is viewport-wide, this gap is always enough to fully isolate the neighboring column from the active one.
-3. **Chunk Y within a column.** Slides stack top-to-bottom with `chunk-gap` — a tunable CSS custom property (default `8vh`, range ~2vh–40vh). Small values create a "flow" feel with neighboring slides peeking during transitions; large values enforce full slide isolation. The gap is a deliberate design knob, not a fixed rule.
+3. **Chunk Y within a column.** Slides stack top-to-bottom with `chunk-gap` — a tunable CSS custom property (default `4vh`, range `0vh`–`25vh`). Small values create a "flow" feel with neighboring slides peeking during transitions; large values enforce full slide isolation. The gap is a deliberate design knob, not a fixed rule.
 4. **Camera.** The camera **translates only**; there is no `transform: scale()` at the camera level. On chunk change, the stage translates to place the active slide centered in the viewport. On annotation activation, the camera offsets right so the slide's left edge lands around viewport-X = 55%, revealing the annotation box on the left.
 5. **Expansions.** When a chevron is clicked, the parent slide's internal CSS grid switches to a two-column layout (content left, expansion right). The slide frame itself doesn't move. Expansions do **not** nest — a `::: expand` cannot contain another (enforced by the parser and linter).
-6. **Neighbor behavior.** Three modes, spec-configurable: `dim` (neighbors always at a reduced opacity), `fade-after-settle` (neighbors briefly visible during the camera transition, then fade to `0` after the camera lands — gives continuity during motion, isolation at rest), `hidden` (always fully transparent). Default: `fade-after-settle`.
+6. **Neighbor behavior.** Three modes, spec-configurable: `dim` (neighbors always at reduced opacity — currently ~`calc(1 - dim * 0.96)` ≈ 4%), `fade-after-settle` (neighbors briefly visible during the camera transition, then fade to `0` after the camera lands — gives continuity during motion, isolation at rest), `hidden` (always fully transparent). Default: **`dim`** — calibrated authoring runs found constant peek preferable to motion-only peek.
 7. **Reading order and scrubber.** Source order: all chunks of column 0 top-to-bottom, then column 1, etc. Expansions are attached to their parent and do not occupy a separate scrubber slot.
 
 This algorithm is pure: same source → same slide positions → same camera targets → same deep-link behavior across rebuilds and machines.
@@ -181,15 +181,15 @@ This anchors the entire scale to the projector's vertical resolution, keeping th
 OKLCH palette, uchu-inspired, deliberately restrained. Calibrated for projector-distance readability (values observed from authoring sessions):
 
 ```css
---ink:        oklch(0.10 0.01 260);   /* body text — high contrast for back-of-room legibility */
---ink-soft:   oklch(0.50 0.01 260);   /* marginalia, captions, dimmed non-active chunks */
+--ink:        oklch(0.20 0.01 260);   /* body text — calibrated for back-of-room legibility */
+--ink-soft:   oklch(0.62 0.01 260);   /* marginalia, captions, dimmed non-active chunks */
 --paper:      oklch(0.98 0.00 0);     /* background */
 --paper-warm: oklch(0.96 0.01 90);    /* dimmed background for unfocused surfaces */
 --rule:       oklch(0.78 0.00 0);     /* hairlines */
 --emph:       oklch(0.42 0.16 30);    /* bolded core claim text, sparingly */
 ```
 
-`--ink-l` and `--ink-soft-l` are exposed as CSS custom properties so the lightness can be tuned in authoring without editing the color definitions. Both values (0.10 / 0.50) are the defaults that survived a full live lecture — do not lighten further without testing in the actual room.
+`--ink-l` and `--ink-soft-l` are exposed as CSS custom properties so the lightness can be tuned in authoring without editing the color definitions. Both values (0.20 / 0.62) are the defaults that survived authoring and rehearsal — do not lighten `--ink` beyond ~0.25 without testing from the back of the actual lecture room.
 
 Dimming of non-active slides goes to **opacity** (toward `0`), not to a color wash. Three modes: `dim` (always visible at `1 - 0.86 * 0.96 ≈ 4%` opacity), `fade-after-settle` (flash to full dim during camera pan, fade to 0 after), `hidden` (always 0). No background tinting, no blur — the slide frame is the isolation primitive.
 
@@ -252,7 +252,7 @@ Density budget per chunk: body text should occupy no more than ~12 line-heights 
 
 **Camera implementation:** CSS `transform: translate()` on a stage `div`. **No `scale()` at the camera level** — each slide is rendered at its native viewport-matching size, and zoom is a text-size multiplier (§4.2), not a camera operation. This removes the reveal.js-style bitmap-scaling failure mode entirely.
 
-Transition: 325ms, `cubic-bezier(0.45, 0.0, 0.2, 1)`. Snappy by lecture standards — a slower transition (e.g. 500ms+) reads as sluggish in a room. Interruptible — pressing a new nav key mid-transition retargets without rebounding.
+Transition: **250ms**, `cubic-bezier(0.45, 0.0, 0.2, 1)`. Snappy by lecture standards — a slower transition (e.g. 500ms+) reads as sluggish in a room; calibrated values came out at 250ms. Interruptible — pressing a new nav key mid-transition retargets without rebounding.
 
 Three translation behaviors:
 - **Next/prev column:** translate by one viewport width plus `column-gap` (8vw). Feels like a page turn.
@@ -300,6 +300,37 @@ Separate browser window on laptop display. Opens via hotkey `S` from audience vi
 - Sketch slots: editable textarea for any sketch slot the current chunk contains. Typing here updates the audience view live.
 
 **Persistence:** current chunk ID, timer state, and sketch slot contents persist to `localStorage` per lecture file every 5 seconds. On crash or accidental close, reopening restores position. A small but genuine safety feature for live teaching.
+
+### 7.1 Annotation slot UX (in-viewport)
+
+Every chunk carries an author-editable annotation slot intended for live speaker marginalia — notes, ASCII diagrams, references added mid-lecture. Independent of the speaker view (§7) which runs in its own window. This section specifies the interaction.
+
+**DOM anchoring.** The annotation box is a child of `.chunk-content`, not `.chunk`. This means the slot is positioned relative to the *visible text column* (which varies by width class and layout archetype), not the slide frame. Across a `narrow` pull-quote, a `wide` side-by-side definition, and a `full` sketch-hero figure, the annotation always sits just to the left of the content, with uniform gap.
+
+**Geometry.** Positioned with `right: calc(100% + 2.5vw)` inside `.chunk-content`. Width `21vw`. Top aligned with content's top. Font: monospace (`JetBrains Mono`) by default for ~65-column ASCII, sans toggleable.
+
+**State model.**
+
+| State | Trigger | Visual |
+|---|---|---|
+| No content, active chunk | — | Dimmed `+ note` affordance in the annotation position |
+| No content, not active | — | Nothing |
+| Has content, not editing | `N` pressed previously, then `Esc` / blur | Annotation visible, `opacity: 0.4`, in slide's left margin. Camera does **not** pan — slide stays centered. |
+| Editing | `N` or click on annotation | Annotation at `opacity: 1`; camera pans so content's left edge is at viewport 33%, revealing full annotation on the left |
+
+The rule separating "has content" from "editing" is critical: a chunk that has a note continues to feel like a normal slide, with the note peeking from the left margin at reduced opacity. Only active editing shifts the camera.
+
+**Focus management.**
+- `N` on the active slide → starts annotation (creates if empty, re-focuses if exists). Textarea receives focus.
+- `Esc` while editing → blurs textarea; camera returns to slide-centered.
+- Click on the annotation's textarea region → focuses it (editing).
+- Click on slide content while editing → blurs annotation (returns to slide).
+
+**Growth.** Textarea is a single line initially (`rows=1`, `min-height: 1.5em`, `overflow: hidden`). On input, a listener sets `height: auto; height: scrollHeight px` — grows one line at a time as text wraps or Enter is pressed. No scrollbar inside the textarea. In print view the same textarea grows to fit entire content without an inner scroll.
+
+**Not for references.** Source-authored citations belong in a `Ref` expansion (right lane chevron labeled `Ref`), not in the annotation slot. The slot is reserved for speaker marginalia.
+
+**Persistence.** Annotations are keyed by `chunk.id + lecture.id` and persist to `localStorage`. Once written, they survive reloads until deliberately cleared.
 
 ---
 
