@@ -44,11 +44,17 @@ The audience is the **state root**. The speaker owns a **local shadow** of the s
 
 | Field | Who owns it | Why |
 |---|---|---|
-| `overview`, `selectedIdx`, `overviewScale`, `manualPan` | speaker only | planning surface; audience has no overview mode anyway |
-| `tocVisible`, `searchActive` | speaker only | same |
-| `openExp` | audience only | expansions happen *on* the projection |
-| `annotEditingId` | audience only | edit-state is transient |
+| `overview`, `selectedIdx`, `overviewScale`, `manualPan` | per-view | overview is a planning surface; each side runs its own |
+| `tocVisible`, `searchActive` | per-view | same |
+| `annotEditingId` | per-view | edit-state is transient and UI-local |
 | timer elapsed | speaker only | speaker-side artifact |
+
+**Sync additions (revised after implementation):**
+
+- `openExp` **is** synced after all. The interactive speaker mirror makes
+  chevron clicks propagate to audience, which wouldn't work with audience-
+  only state. The clean model is: openExp lives in the snapshot and both
+  sides mirror it.
 
 The speaker's "next previews" always render chunks **fully revealed** regardless of the synced `revealed` state (PRD §7 – the planning surface shows author-intent, not live pacing).
 
