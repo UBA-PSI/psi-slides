@@ -73,11 +73,30 @@ In absteigender Priorität bezogen auf realen Lecture-Einsatz. Die Liste ist die
 
 ## Empfehlung für den nächsten Slice
 
-Zwei sinnvolle Pakete, wähle eines:
+Drei sinnvolle Pakete, wähle eines:
 
 **A. Linter** (Posten 4 oben). Jetzt der hochwirksamste Einzelposten: `--watch` macht die Feedback-Schleife schon kurz, aber ohne Linter sind Tippfehler in IDs/Tags/Width-Klassen erst nach dem Browser-Refresh sichtbar (oder unsichtbar). Errors first (missing/duplicate IDs, unknown tags, nested directives), dann Warnings (density, reveal overuse mit Tag-Differenzierung, orphan columns, title count). Mittelgroß, ~200 Zeilen, ein bis zwei Commits.
 
-**B. Content-Fidelity (KaTeX + Images + Highlighting).** Sobald die nächste reale Vorlesung Mathe oder Figures oder Code enthält. Aktuell weder in `demo` noch in `wlab01` verwendet, daher noch nicht dringend. Mittelgroß, ~500 Zeilen über 3 Commits.
+**B. Code-Highlighting + Python-Tutorial-Lecture.** Gekoppelter Slice: das eine ist Build-Feature, das andere ist die Lecture, die das Feature *braucht* und gleichzeitig real motiviert.
+
+  - **Code-Highlighting:** Build-time mit [shiki](https://shiki.style) – reiner Static-HTML-Output, keine Runtime-Abhängigkeit, wirkt in audience/print/speaker gleich. Theme-Wahl (Light + Dark, OKLCH-kompatibel) und Sprach-Whitelist sind die einzigen Sub-Entscheidungen. Triple-Backtick-Fences mit Sprach-Annotation (` ```python `, ` ```bash `, ` ```html `) → highlighted `<pre>` Output. Langes-Code-Block-Verhalten (scroll vs. wrap) im audience-Renderer separat festlegen. Kleiner Commit, ~80–120 Zeilen.
+
+  - **`lectures/python-intro/source.md`:** Englischsprachige Demo-Lecture, vermittelt Python-Basics und endet mit einem simplen Playwright-basierten Website-Scanner. Curriculum:
+
+    1. *Setup.* `uv` (modern, schnell) als primärer Pfad, `pip3` + `venv` als Fallback. Zeigt beides – `uv venv` / `source .venv/bin/activate` / `uv pip install`. Einer der Punkte, an denen die `narrow`-Width für die Befehlsblöcke gut wirkt.
+    2. *Python-Grundlagen.* Variables und Types (int, float, str, bool, None), F-Strings, Listen + Dicts + Tuples, Control Flow (`if`/`for`/`while`/`match`), Funktionen mit Type Hints, Comprehensions, kurzer Exception-Handling-Block. Jeder Sub-Topic ist eine eigene Column oder zwei.
+    3. *Standard-Library-Highlights.* `pathlib`, `urllib.parse`, `re`, `dataclasses`, `argparse` – nur soviel wie für den Scanner gebraucht wird.
+    4. *Async-Grundlagen.* `async`/`await`, `asyncio.run`, Konzept von Event-Loop in zwei Sätzen. Playwright-Async-API ist Pflicht-Setup.
+    5. *Playwright.* `playwright install chromium`, `async_playwright`, `browser.new_page`, `page.goto`, `page.locator`, `page.evaluate`. Drei oder vier Code-Blöcke, jeder ein in sich geschlossenes Beispiel.
+    6. *Der Scanner.* Endprodukt: eine kleine CLI, die eine URL nimmt, alle Links extrahiert, jede besucht, prüft auf etwas Konkretes (z.B. `<title>`-Länge, `meta[name=description]`-Existenz, gebrochene Links per Status-Code, oder externe-vs-interne-Link-Verhältnis – die Lecture wählt eines klar aus). Vollständiger Source als ein `figure:`-Chunk im `.full`-Format.
+
+    Die Lecture nutzt die volle Vokabel: `principle:` für die ein-Satz-Kernaussagen ("Use a venv. Always.", "Async is for I/O, not CPU."), `definition:` für Vokabel-Einführungen, `example:` für die Code-Snippets, `figure:` für den finalen Scanner-Source, `exercise:` für 3–4 Aufgaben am Ende. Reveal-Segmente sparsam – Code-Blöcke selbst dürfen nicht reveal-segmentiert werden (würde zerreißen).
+
+  Reihenfolge: erst Code-Highlighting bauen, dann die Lecture schreiben (im `--watch`-Loop). Dann fühlt sich die Lecture sofort *richtig* an statt mit plain-text Code-Blöcken zu beginnen.
+
+  Aufwand: Code-Highlighting ~120 Zeilen, Lecture ~25–35 chunks – mittelgroß bis groß über 4–6 Commits.
+
+**C. Content-Fidelity-Rest (KaTeX + Images).** Sobald die nächste reale Vorlesung Mathe oder Figures enthält. Aktuell noch keine Math-Lecture in der Pipeline, daher nicht dringend. ~350 Zeilen über 2 Commits.
 
 Die Verfeinerungen (6–11) sind jeweils eigene kleine Commits und können dazwischen laufen.
 
