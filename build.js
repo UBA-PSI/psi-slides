@@ -2006,15 +2006,17 @@ ${chunks}
 </section>`;
   }).join('\n');
 
-  // Speaker notes are rendered to HTML at build time (trusted source)
-  // and emitted as <template> fragments. JS clones template content into
-  // the notes pane – no innerHTML assignment at runtime.
+  // Speaker-source notes are emitted as <template> fragments holding
+  // the *raw* note text (joined with blank lines between blocks). The
+  // notes-pane is an editable textarea: each chunk's source text is
+  // the default; per-chunk overrides live in localStorage so the
+  // speaker can rewrite notes during rehearsal without touching source.
   const noteTemplates = [];
   for (const col of columns) for (const c of col.chunks) {
     if (c.id && c.speakerNotes && c.speakerNotes.length) {
-      const inner = c.speakerNotes.map(n => marked.parse(n)).join('\n');
+      const raw = c.speakerNotes.join('\n\n');
       noteTemplates.push(
-        `<template data-notes-for="${escapeHtml(c.id)}">${inner}</template>`
+        `<template data-notes-for="${escapeHtml(c.id)}">${escapeHtml(raw)}</template>`
       );
     }
   }
@@ -2056,8 +2058,8 @@ ${scrubberHtml}
 ${columnsHtml}
     </div>
   </div>
-  <aside id="notes-pane" tabindex="0">
-    <div id="notes-content"></div>
+  <aside id="notes-pane">
+    <textarea id="notes-content" spellcheck="false" placeholder="no notes for this chunk – type to add"></textarea>
   </aside>
 </div>
 <div id="preview-strip"></div>
@@ -2161,22 +2163,29 @@ body[data-view=speaker] #stage-viewport {
 #notes-pane {
   grid-column: 2;
   border-left: 1px solid var(--rule);
-  padding: 1.5rem 1.5rem 1rem;
-  overflow-y: auto;
   background: var(--paper-warm);
+  display: flex;
+  min-height: 0;
+}
+#notes-content {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  resize: none;
+  padding: 1.5rem 1.5rem 1rem;
+  background: transparent;
+  color: var(--ink);
   font-family: var(--body-font);
   font-size: 0.95rem;
   line-height: 1.5;
 }
-#notes-pane:focus { outline: 2px solid oklch(0.55 0.12 220); outline-offset: -2px; }
-#notes-content:empty::before {
-  content: 'no notes for this chunk';
+#notes-content:focus { outline: 2px solid oklch(0.55 0.12 220); outline-offset: -2px; }
+#notes-content::placeholder {
   color: var(--ink-soft);
   font-style: italic;
   font-size: 0.88rem;
 }
-#notes-content p  { margin: 0 0 0.7em; }
-#notes-content strong { color: var(--emph); }
 
 /* bottom: preview strip */
 #preview-strip {
@@ -2280,15 +2289,37 @@ function forcePush() {
 // tabindex=0).
 // (Default viewHooks.onN already maps to startAnnotate – no override.)
 
-// Clone the per-chunk <template> content into the notes pane. The
-// template body is pre-rendered by marked at build time.
+// Per-chunk speaker notes. Each chunk has a default text from the
+// source > note: lines (carried in a <template>); the speaker can
+// rewrite it during rehearsal/lecture and the override is persisted
+// in localStorage. An empty string is a valid override (the speaker
+// intentionally cleared the source notes for this chunk).
+const noteOverrideKey = (id) => storageKey('speakernote:' + id);
+function sourceNotesFor(id) {
+  const tmpl = document.querySelector(\`template[data-notes-for="\${id}"]\`);
+  // Template body was escapeHtml'd at build time; parsed back into text via .textContent.
+  return tmpl ? tmpl.content.textContent : '';
+}
+function loadNotesFor(id) {
+  try {
+    const raw = localStorage.getItem(noteOverrideKey(id));
+    return raw !== null ? raw : sourceNotesFor(id);
+  } catch (e) { return sourceNotesFor(id); }
+}
 function populateNotesPane() {
-  notesContent.replaceChildren();
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) { notesContent.value = ''; return; }
+  notesContent.value = loadNotesFor(entry.id);
+}
+notesContent.addEventListener('input', () => {
   const entry = flatChunks[state.activeIdx];
   if (!entry) return;
-  const tmpl = document.querySelector(\`template[data-notes-for="\${entry.id}"]\`);
-  if (tmpl) notesContent.appendChild(tmpl.content.cloneNode(true));
-}
+  try { localStorage.setItem(noteOverrideKey(entry.id), notesContent.value); } catch (e) {}
+});
+notesContent.addEventListener('keydown', (e) => {
+  // Esc blurs back to the slide so global hotkeys (arrows, space) work again.
+  if (e.key === 'Escape') { notesContent.blur(); e.preventDefault(); }
+});
 
 // Column / chunk-dot bookkeeping: a flat index of which flatChunks entry
 // corresponds to each (colIdx, chunkIdx) pair in the scrubber.
