@@ -1,12 +1,15 @@
 # Handoff – nach Authoring-Workflow + wlab01-Rework
 
-Stand nach Commit `08ea25a`. Phase 1 ist weit fortgeschritten; die tragenden drei Outputs (audience, print, speaker) existieren und synchronisieren live über BroadcastChannel. Der Authoring-Loop ist mit `--watch` (Live-Reload) und `--new` (Scaffold) jetzt kurz; wlab01 ist als Demo der vollen Tag-/Width-/Reveal-Vokabel aufgewertet worden. Dieser Handoff beschreibt den aktuellen Zustand, was definitiv funktioniert, und welche Phase-1-Posten noch offen sind.
+Stand nach Commit `31735fa`. Phase 1 ist weit fortgeschritten; die tragenden drei Outputs (audience, print, speaker) existieren und synchronisieren live über `window.postMessage` zwischen Audience und ihrer per `S` gespawnten Speaker-Window (cross-`file://`-fähig, ein Transport, kein HTTP-Server nötig). Der Authoring-Loop ist mit `--watch` (Live-Reload) und `--new` (Scaffold) jetzt kurz; wlab01 ist als Demo der vollen Tag-/Width-/Reveal-Vokabel aufgewertet worden. Dieser Handoff beschreibt den aktuellen Zustand, was definitiv funktioniert, und welche Phase-1-Posten noch offen sind.
 
 ## Was seit dem letzten Handoff gebaut wurde
 
 Commits, chronologisch (neueste zuerst):
 
 ```
+31735fa  sync: replace BroadcastChannel with window.postMessage
+a51fb5a  HANDOFF: split out code-highlighting + python-intro lecture as next slice
+3d20376  HANDOFF: --watch + --new + wlab01 rework
 08ea25a  wlab01: rework with reveals, principles, narrow widths
 5d5dbd4  build: --new <slug> scaffolds a new lecture
 27677c2  build: --watch with live-reload via WebSocket
@@ -27,7 +30,7 @@ Kurzbeschreibung der Slices:
 
 1. **Audience-Renderer** (`71aeb99`, `8d64de2`): `build.js` emittiert `audience.html` aus `source.md` mit 2D-Stage, Per-Tag-Treatments, Title-Slide (lower-left-third), Progressive-Reveal (§4.6), Collapse-Modes (§4.5), Annotations mit localStorage, Expand-Chevrons.
 2. **Overview / TOC / Fulltext** (`97e57c8`): `O` für Birds-eye, `T` für rechtes TOC-Panel, `/` für Fulltext-Suche im Overview. Click-to-select, zweites `O` oder Enter landet.
-3. **Speaker-View + Sync** (`71771cb`, `0c1219c`, `392899a`, `086c98b`): Dritter Output `speaker.html`. Drei Panels (Scrubber, Current-Chunk-Mirror + Notes-Pane, Next-Previews). Live-Sync beide Richtungen über BroadcastChannel mit Full-State-Snapshots. Push-Toggle (`Shift-P`), Force-Push (`.`), Hello-Handshake.
+3. **Speaker-View + Sync** (`71771cb`, `0c1219c`, `392899a`, `086c98b`, `31735fa`): Dritter Output `speaker.html`. Drei Panels (Scrubber, Current-Chunk-Mirror + Notes-Pane, Next-Previews). Live-Sync beide Richtungen mit Full-State-Snapshots. Push-Toggle (`Shift-P`), Force-Push (`.`), Hello-Handshake. Transport seit `31735fa` ist `window.postMessage` über die opener/popup-Referenzen statt BroadcastChannel – funktioniert auch zwischen zwei `file://`-Pages.
 4. **Simplify-Pass** (`95c67b2`): Reuse (renderTitleBlock, renderTocNav), cleaner broadcast-gate via `viewHooks.shouldBroadcast` statt `window.pushEnabled`-Leak, `applyRemoteState` ohne doppelten `applyState`-Call, Guard auf `populatePreviewStrip` damit Annotation-Keystroke-Sync nicht drei DOM-Clones pro Zeichen rebuildet. -18 Zeilen netto, keine Verhaltensänderung.
 5. **`--watch` Live-Reload** (`27677c2`): `node build.js <src> --watch` startet einen WS-Server auf einem freien Port, baut bei jedem Save neu (fs.watch + 80 ms Debounce) und triggert `location.reload()` in offenen Tabs. Reconnect-Loop im Snippet überlebt Watch-Restarts. `ws` ist devDep – Production-HTMLs bleiben statisch ohne WS-Snippet.
 6. **`--new <slug>` Scaffold** (`5d5dbd4`): `node build.js --new wlab02` legt `lectures/wlab02/source.md` + `assets/` an. Slug-Regex `^[a-z][a-z0-9-]*$`. Non-destruktiv (refused wenn Dir existiert). Scaffold-Source hat TODO-Sentinel-Strings in Frontmatter + ersten Chunk, baut aber sofort sauber durch.
@@ -42,7 +45,7 @@ Kurzbeschreibung der Slices:
 - Parser-Features: frontmatter, columns (`#`), chunks (`##`) mit attribute tails (`{.width #id}`), `::: expand <label>`, `::: margin`, `> note:` (multi-line, orphan-safe), reveal-separator `---`, fence-aware Code-Blöcke.
 - Audience-Runtime: Arrows, Space-Reveal-mit-Passthrough, Enter/1-9 Expand, Esc, N Annotate, C Collapse-Cycle, +/-/0 Zoom, B Blank, P Print, O Overview, T TOC, / Fulltext, S öffnet Speaker, ?-Hints-Toggle.
 - Speaker-Runtime: wie Audience plus Scrubber-Click, Notes-Pane-`N`, Timer, Shift-P Push-Toggle, . Force-Push.
-- BroadcastChannel-Sync: activeIdx, revealed, collapse, zoom, blanked, annotations, openExp. Hello-Handshake beim Speaker-Boot. Audience antwortet auf Hello mit aktuellem Snapshot. `isApplyingRemote`-Guard verhindert Loops.
+- Sync via `window.postMessage`: activeIdx, revealed, collapse, zoom, blanked, annotations, openExp. Audience hält die Speaker-Window-Referenz aus `S`-Spawn, Speaker hält `window.opener`. Receiver adoptiert `ev.source` als peer (Audience-Reload-Recovery automatisch). Hello-Handshake beim Speaker-Boot, Audience antwortet mit Snapshot. `isApplyingRemote`-Guard verhindert Loops.
 - Live-Lecture: zwei Tabs nebeneinander – beide navigieren gemeinsam, Shift-P schaltet Speaker in Vorschau-Modus, `.` resyncht.
 - Lectures: `lectures/demo/source.md` (4 cols / 8 chunks mit 2-Segment-Reveal-Test) und `lectures/wlab01/source.md` (7 cols / 23 chunks / 8 Speaker-Notes / 3 Expand / 1 Margin / 10 Chunks mit Reveal-Segments / 5 narrow / 3 principle) bauen sauber.
 - phase0/ steht als Referenz-Archiv; `lectures/wlab01/lecture.html` (das handgeschriebene Original) ist retired.
