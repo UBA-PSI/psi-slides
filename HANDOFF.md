@@ -1,12 +1,17 @@
-# Handoff – nach Authoring-Workflow + wlab01-Rework
+# Handoff – nach Authoring-Workflow + UX-Bugfix-Pass
 
-Stand nach Commit `31735fa`. Phase 1 ist weit fortgeschritten; die tragenden drei Outputs (audience, print, speaker) existieren und synchronisieren live über `window.postMessage` zwischen Audience und ihrer per `S` gespawnten Speaker-Window (cross-`file://`-fähig, ein Transport, kein HTTP-Server nötig). Der Authoring-Loop ist mit `--watch` (Live-Reload) und `--new` (Scaffold) jetzt kurz; wlab01 ist als Demo der vollen Tag-/Width-/Reveal-Vokabel aufgewertet worden. Dieser Handoff beschreibt den aktuellen Zustand, was definitiv funktioniert, und welche Phase-1-Posten noch offen sind.
+Stand nach Commit `a4b52e0`. Phase 1 ist weit fortgeschritten; die tragenden drei Outputs (audience, print, speaker) existieren und synchronisieren live über `window.postMessage` zwischen Audience und ihrer per `S` gespawnten Speaker-Window (cross-`file://`-fähig, ein Transport, kein HTTP-Server nötig). Der Authoring-Loop ist mit `--watch` (Live-Reload) und `--new` (Scaffold) kurz; wlab01 ist als Demo der vollen Tag-/Width-/Reveal-Vokabel aufgewertet worden. Letzter Pass war ein UX-Cleanup: Speaker-`N` öffnet wieder die Annotation-Box, Overview-Click-to-Select klappt, Shift-Drag pant in der normalen View, Speaker-Notes sind editierbar, und ein Laser-Pointer mirrored den Speaker-Cursor zur Audience.
 
 ## Was seit dem letzten Handoff gebaut wurde
 
 Commits, chronologisch (neueste zuerst):
 
 ```
+a4b52e0  feat: laser pointer – mirror speaker mouse to audience
+7017ee5  feat: editable speaker notes with localStorage override
+4151062  feat: shift-drag pan in normal view
+7ded1f6  fix: speaker N opens annotation, overview click selects
+b404dc5  HANDOFF: reflect postMessage transport swap
 31735fa  sync: replace BroadcastChannel with window.postMessage
 a51fb5a  HANDOFF: split out code-highlighting + python-intro lecture as next slice
 3d20376  HANDOFF: --watch + --new + wlab01 rework
@@ -35,6 +40,7 @@ Kurzbeschreibung der Slices:
 5. **`--watch` Live-Reload** (`27677c2`): `node build.js <src> --watch` startet einen WS-Server auf einem freien Port, baut bei jedem Save neu (fs.watch + 80 ms Debounce) und triggert `location.reload()` in offenen Tabs. Reconnect-Loop im Snippet überlebt Watch-Restarts. `ws` ist devDep – Production-HTMLs bleiben statisch ohne WS-Snippet.
 6. **`--new <slug>` Scaffold** (`5d5dbd4`): `node build.js --new wlab02` legt `lectures/wlab02/source.md` + `assets/` an. Slug-Regex `^[a-z][a-z0-9-]*$`. Non-destruktiv (refused wenn Dir existiert). Scaffold-Source hat TODO-Sentinel-Strings in Frontmatter + ersten Chunk, baut aber sofort sauber durch.
 7. **wlab01-Content-Rework** (`08ea25a`): `lectures/wlab01/source.md` zieht jetzt durch die volle Phase-1-Vokabel. 21 → 23 Chunks, 3 principle (von 1), 5 narrow (von 0), 10 Chunks mit Reveal-Segments, 4 Directives (von 2). Kein Content entfernt oder umsortiert – nur Re-Tagging, Width-Promotions und `---`-Splits.
+8. **UX-Bugfix-Pass** (`7ded1f6`, `4151062`, `7017ee5`, `a4b52e0`): vier zusammenhängende Korrekturen + eine Mirror-Feature. (a) Speaker-`N` öffnet jetzt die Annotation-Box statt die Notes-Pane zu fokussieren (PRD §2-konform). Notes-Pane ist über Click fokussierbar. (b) Overview-Click setzt selectedIdx korrekt – der eager `setPointerCapture` hatte den synthetischen Click-Event auf den darunterliegenden Chunk verschluckt. (c) Shift-Drag in normaler View pant die Kamera (manualPan jetzt auch für non-overview, reset bei Chunk-Navigation, Esc resettet manuell). (d) Speaker-Notes sind als textarea editierbar, mit Per-Chunk-localStorage-Override, Source-`> note:`-Inhalt als Default. (e) Laser-Pointer: Speaker-Mausbewegung mirroring zur Audience als kleiner Dot, Position als Bruchteil des aktiven Chunks (zoom-tolerant), rAF-throttled.
 
 ## Was jetzt definitiv funktioniert
 
@@ -43,9 +49,10 @@ Kurzbeschreibung der Slices:
 - `node build.js --new <slug>` → `lectures/<slug>/source.md` + `assets/` mit baubarem Phase-1-Scaffold.
 - Flags: `--audience-only`, `--print-only`, `--speaker-only` (mutually exclusive). Kombinierbar mit `--watch`.
 - Parser-Features: frontmatter, columns (`#`), chunks (`##`) mit attribute tails (`{.width #id}`), `::: expand <label>`, `::: margin`, `> note:` (multi-line, orphan-safe), reveal-separator `---`, fence-aware Code-Blöcke.
-- Audience-Runtime: Arrows, Space-Reveal-mit-Passthrough, Enter/1-9 Expand, Esc, N Annotate, C Collapse-Cycle, +/-/0 Zoom, B Blank, P Print, O Overview, T TOC, / Fulltext, S öffnet Speaker, ?-Hints-Toggle.
-- Speaker-Runtime: wie Audience plus Scrubber-Click, Notes-Pane-`N`, Timer, Shift-P Push-Toggle, . Force-Push.
-- Sync via `window.postMessage`: activeIdx, revealed, collapse, zoom, blanked, annotations, openExp. Audience hält die Speaker-Window-Referenz aus `S`-Spawn, Speaker hält `window.opener`. Receiver adoptiert `ev.source` als peer (Audience-Reload-Recovery automatisch). Hello-Handshake beim Speaker-Boot, Audience antwortet mit Snapshot. `isApplyingRemote`-Guard verhindert Loops.
+- Audience-Runtime: Arrows, Space-Reveal-mit-Passthrough, Enter/1-9 Expand, Esc (Pan-Reset → Annotation-Blur → Expansion-Close), N Annotate, C Collapse-Cycle, +/-/0 Zoom, B Blank, P Print, O Overview, T TOC, / Fulltext, S öffnet Speaker, ?-Hints-Toggle, Shift-Drag pant.
+- Speaker-Runtime: wie Audience plus Scrubber-Click, editierbare Notes-Pane (Click-fokussiert), Timer, Shift-P Push-Toggle, `.` Force-Push, Mausbewegung über Stage mirroring als Laser-Pointer zur Audience.
+- Sync via `window.postMessage`: activeIdx, revealed, collapse, zoom, blanked, annotations, openExp (state-snapshot), plus cursor-mirror (chunkIdx + Bruchteil-Koordinaten). Audience hält die Speaker-Window-Referenz aus `S`-Spawn, Speaker hält `window.opener`. Receiver adoptiert `ev.source` als peer (Audience-Reload-Recovery automatisch). Hello-Handshake beim Speaker-Boot, Audience antwortet mit Snapshot. `isApplyingRemote`-Guard verhindert Loops.
+- Speaker-Notes: pro Chunk localStorage-Override (key `psi-lecdoc:<title>:speakernote:<chunk-id>`); leerer String ist valide (clear), Default ist die source-`> note:`-Inhalte. Markdown wird *nicht* gerendert (Plain-Text-Textarea); Markdown-Render und Export-zurück-zu-Source sind deferred features.
 - Live-Lecture: zwei Tabs nebeneinander – beide navigieren gemeinsam, Shift-P schaltet Speaker in Vorschau-Modus, `.` resyncht.
 - Lectures: `lectures/demo/source.md` (4 cols / 8 chunks mit 2-Segment-Reveal-Test) und `lectures/wlab01/source.md` (7 cols / 23 chunks / 8 Speaker-Notes / 3 Expand / 1 Margin / 10 Chunks mit Reveal-Segments / 5 narrow / 3 principle) bauen sauber.
 - phase0/ steht als Referenz-Archiv; `lectures/wlab01/lecture.html` (das handgeschriebene Original) ist retired.
