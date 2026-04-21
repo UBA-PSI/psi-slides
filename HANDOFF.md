@@ -1,66 +1,92 @@
-# Handoff – nächste Session: Overview + TOC + Fulltext-Suche
+# Handoff – nach Speaker-Slice
 
-Stand nach Commit `8d64de2` plus der wlab01-Retire- und HANDOFF-Commits. Der Phase-1-Build emittiert jetzt `audience.html` + `print.html` aus einer einzigen `source.md`. Die handgeschriebene `lectures/wlab01/lecture.html` ist retired; `phase0/lecture.html` bleibt als Referenz-Artefakt stehen, wird aber nicht mehr gepflegt.
+Stand nach Commit `086c98b`. Phase 1 ist weit fortgeschritten; die tragenden drei Outputs (audience, print, speaker) existieren und synchronisieren live über BroadcastChannel. Dieser Handoff beschreibt den aktuellen Zustand, was definitiv funktioniert, und welche Phase-1-Posten noch offen sind.
 
-## Auftrag
+## Was seit dem letzten Handoff gebaut wurde
 
-Erweitere `build.js` um drei Live-Navigation-Primitive aus PRD §5, die in der letzten Session explizit auf diesen Slice verschoben wurden:
+Zehn Commits, chronologisch (neueste zuerst):
 
-1. **Overview (`O`)** – Birds-eye-Ansicht der gesamten Lecture. Click-to-select (dicker Rand, keine Kamera-Bewegung), zweites `O` oder `Enter` landet auf dem ausgewählten Chunk. `Esc` dismissed ohne Move. Drag-to-pan, wheel-to-zoom-distance.
-2. **TOC overlay (`T`)** – fixes Seitenpanel, flache Liste der Column-Headings. `Enter` springt zum ersten Chunk dieser Column. Keine Chunk-Ebene – das ist bewusst flach.
-3. **Fulltext-Suche (`/` im Overview)** – live filtert die Chunks auf Treffer in Body, Heading oder Expansion-Text. Non-matches dimmen, Matches highlighten. `Enter` committet den ersten Treffer als Selection.
+```
+086c98b  speaker.md: openExp is synced, not audience-only
+392899a  speaker: BroadcastChannel sync – audience ↔ speaker
+0c1219c  build: speaker.html view (static – scrubber, mirror, notes, previews, timer)
+71771cb  speaker: spec for the speaker view and sync protocol
+97e57c8  audience: overview (O), TOC (T), fulltext search (/)
+a7bcd0e  retire wlab01/lecture.html; HANDOFF to next slice (overview, TOC, /)
+8d64de2  audience: pre blocks stay left-aligned in figure chunks
+71aeb99  build: audience.html renderer (nav, reveal, collapse, annotations)
+```
 
-Die drei sind eng verwandt: Overview ist die Stage-Transformation, TOC und Fulltext sind Overlays/Modes *auf* Overview. Saubere Reihenfolge: Overview zuerst, dann TOC, dann Fulltext.
+Kurzbeschreibung der drei großen Slices:
 
-## Wo der Vorgänger stand
+1. **Audience-Renderer** (`71aeb99`, `8d64de2`): `build.js` emittiert `audience.html` aus `source.md` mit 2D-Stage, Per-Tag-Treatments, Title-Slide (lower-left-third), Progressive-Reveal (§4.6), Collapse-Modes (§4.5), Annotations mit localStorage, Expand-Chevrons.
+2. **Overview / TOC / Fulltext** (`97e57c8`): `O` für Birds-eye, `T` für rechtes TOC-Panel, `/` für Fulltext-Suche im Overview. Click-to-select, zweites `O` oder Enter landet.
+3. **Speaker-View + Sync** (`71771cb`, `0c1219c`, `392899a`, `086c98b`): Dritter Output `speaker.html`. Drei Panels (Scrubber, Current-Chunk-Mirror + Notes-Pane, Next-Previews). Live-Sync beide Richtungen über BroadcastChannel mit Full-State-Snapshots. Push-Toggle (`Shift-P`), Force-Push (`.`), Hello-Handshake.
 
-- `PRD.md §5` ist die Spec, besonders der Abschnitt "**Overview (`O`)**" und "**TOC overlay (`T`)**".
-- `build.js` hat einen funktionierenden Audience-Renderer und Runtime. Das Keyboard-Dispatch in `document.addEventListener('keydown', ...)` ist der Punkt, an dem `O`, `T`, `/` ankommen. Stage-Transformation läuft über CSS-`transform` auf `#stage` – Overview ist *auch* eine Stage-Transform, nur mit `scale()` dazu.
-- `phase0/lecture.html` hat eine voll funktionsfähige Overview-Implementierung (Zeilen ~667–1000). **Referenz, nicht portieren** – das Design-Vocabulary lebt in PRD §5, der Code soll das dort lesen, nicht phase0 kopieren.
-- `lectures/wlab01/audience.html` und `lectures/demo/audience.html` sind die Smoke-Test-Grundlagen. Beide werden automatisch bei jedem `node build.js <source>` regeneriert; sie sind via `.gitignore` aus der History raus.
+## Was jetzt definitiv funktioniert
 
-## Konkrete Sub-Aufgaben in sinnvoller Reihenfolge
+- `node build.js <source.md>` → `print.html` + `audience.html` + `speaker.html` in denselben Ordner.
+- Flags: `--audience-only`, `--print-only`, `--speaker-only` (mutually exclusive).
+- Parser-Features: frontmatter, columns (`#`), chunks (`##`) mit attribute tails (`{.width #id}`), `::: expand <label>`, `::: margin`, `> note:` (multi-line, orphan-safe), reveal-separator `---`, fence-aware Code-Blöcke.
+- Audience-Runtime: Arrows, Space-Reveal-mit-Passthrough, Enter/1-9 Expand, Esc, N Annotate, C Collapse-Cycle, +/-/0 Zoom, B Blank, P Print, O Overview, T TOC, / Fulltext, S öffnet Speaker, ?-Hints-Toggle.
+- Speaker-Runtime: wie Audience plus Scrubber-Click, Notes-Pane-`N`, Timer, Shift-P Push-Toggle, . Force-Push.
+- BroadcastChannel-Sync: activeIdx, revealed, collapse, zoom, blanked, annotations, openExp. Hello-Handshake beim Speaker-Boot. Audience antwortet auf Hello mit aktuellem Snapshot. `isApplyingRemote`-Guard verhindert Loops.
+- Live-Lecture: zwei Tabs nebeneinander – beide navigieren gemeinsam, Shift-P schaltet Speaker in Vorschau-Modus, `.` resyncht.
+- Lectures: `lectures/demo/source.md` (4 cols / 8 chunks mit 2-Segment-Reveal-Test) und `lectures/wlab01/source.md` (7 cols / 21 chunks / 7 Speaker-Notes / 1 Expand / 1 Margin) bauen sauber.
+- phase0/ steht als Referenz-Archiv; `lectures/wlab01/lecture.html` (das handgeschriebene Original) ist retired.
 
-1. **Overview-Mode aktivieren.** `O` toggelt `body.overview-mode`. CSS-Regel: in dem Mode setzt der JS-Runtime die Stage auf `transform: translate(…) scale(--overview-scale)` statt centered-chunk. Alle Chunks gleich sichtbar (`.chunk { opacity: 1 }`), keine Chevrons, keine `+ note`. Drag-to-pan via Pointer-Events auf `#stage-viewport`. Wheel ändert `--overview-scale`.
-2. **Click-to-select.** Im Overview-Mode setzt ein Click auf eine `.chunk` `selectedIdx`, visualisiert als `outline: 2px solid --accent`. Zweites `O` oder `Enter` dismissed Overview und lässt Kamera auf `selectedIdx` landen. `Esc` dismissed ohne Move.
-3. **TOC-Overlay.** Separate Slash-Aufgabe, aber parallel denkbar. Fixed-position-Panel rechts (`#toc`), DOM-Source ist der gleiche `flatChunks`-List aber gefiltert auf `firstInCol`. `T` toggelt das Panel. Keine Overview-Abhängigkeit.
-4. **Fulltext-Suche.** Nur im Overview-Mode. `/` fokussiert ein Such-Input im `#overview-badge` (oder einem eigenen Overlay). Jedes Keystroke filtert Chunks: hat der Text (lowercase) die Query als Substring? Treffer: `outline: 2px solid --accent-warm`. Non-Treffer: `opacity: 0.1`. `Enter` committet ersten Treffer.
-5. **Shortcuts-Overlay aktualisieren.** `O`, `T`, `/` im `#hints`-Block mit aufnehmen.
+## Was noch offen ist (Phase-1-Restliste)
 
-## Entscheidungen, die vor Codezeile 1 zu klären sind
+In absteigender Priorität bezogen auf realen Lecture-Einsatz. Die Liste ist die Differenz zwischen PRD §11 Phase 1 und dem aktuellen Build-State.
 
-Dem User vor dem Start stellen:
+### Content-Fidelity
 
-1. **Overview-Scale-Default**: PRD §5 sagt nichts Konkretes; phase0 hatte `0.28`. Behalten oder dynamisch (fit-all-columns)?
-2. **TOC-Position**: PRD §5 sagt "fixed side panel" ohne Seite festzulegen. Rechts ist konventionell, links wäre näher am Annotation-Slot. Recommend: rechts.
-3. **Fulltext-Input-UI**: inline im Overview-Badge (minimal), oder eigenes Overlay mit dedizierter Eingabe-Box? Recommend: inline, keeps the mode-indicator kompakt.
+1. **KaTeX build-time** – Aktuell rendern `$...$` und `$$...$$` als Literal. Jede Mathe-Vorlesung braucht das. Build-time-Render mit KaTeX (dependency bereits in PRD angedacht §9 Schritt 4) in `build.js` einbauen; sowohl audience als auch print und speaker bekommen fertig-gerenderte HTML + CSS-Import.
+2. **Image shorthand** – `![](fig-id)` → `images/fig-id.{svg,png,jpg}` auflösen, Dimensionen einlesen, als `<figure>` einbetten. PRD §9 Schritt 3. Ohne das gibt es keine echten Figuren.
+3. **Code-Highlighting** – Build-time mit [shiki](https://shiki.style) (reiner Static-HTML-Output, keine Runtime-Abhängigkeit). Kleiner Commit, wirkt in allen drei Views gleich.
 
-## Nicht-Ziele dieser Session
+### Authoring-Workflow
 
-- `speaker.html` und BroadcastChannel
-- `::: sketch` live-editing
-- KaTeX-Build-Time-Rendering (runtime via CDN bleibt erstmal)
-- Image shorthand (`![](fig-id)`)
-- Linter
-- `--watch`
-- `--new` Scaffold
-- Camera-Refinement für expanded Chunks (separates kleines Thema, eigener Commit später)
-- In-Chunk-Scroll via Wheel (phase0 hatte das; deferred bis es weh tut)
-- Margin-Notes ins linke Lane positionieren (aktuell inline-unten; PRD §7.1 beschreibt das ausführlicher, wenn wir es dann aufnehmen)
+4. **Linter** – PRD §9: Build-Errors (missing IDs, duplicate IDs, dead images, nested directives, unknown tags) und Warnings (density budget, reveal overuse, orphan columns, title count). Sehr hochwirksam – macht den Build vertrauenswürdig.
+5. **`--new <slug>` Scaffold** – PRD §9: legt `lectures/<slug>/source.md` + `assets/` an mit einem Phase-1-gültigen Gerüst. Kleiner Commit.
+6. **`--assign-ids`** – PRD §9: ein-Shot-Pass der fehlende `{#id}`-Attribute in-place hinzufügt und committet. Pair mit dem Linter: Linter fordert IDs, `--assign-ids` erzeugt sie.
+7. **`--watch`** – Dateien beobachten, bei Save neu bauen, kleiner WebSocket triggert Browser-Reload (PRD §9). Die 30 Zeilen.
 
-## Zum Arbeitsstil
+### Verfeinerungen am bestehenden Code
+
+8. **Camera-Framing bei expandierten langen Chunks** – aktuell zentriert die Kamera die Expansion-Body, schneidet dabei oben/unten ab. Hier wäre eine Hybrid-Logik sinnvoll: scroll-in-chunk, wenn höher als Viewport.
+9. **In-Chunk-Wheel-Scroll** – phase0 hatte das; Arrows navigieren Chunks, Wheel scrollt *innerhalb*. Wichtig bei Chunks höher als Viewport.
+10. **Margin-Notes ins linke Lane** – aktuell rendern `::: margin`-Blöcke inline unter dem Body. PRD §2 skizziert das linke Lane analog zur Annotation-Box. Klein, kosmetisch.
+11. **Persistence-Snapshot alle 5s** – Speaker hat nur activeIdx + annotations persistiert. Spec §5 will den vollen Snapshot + elapsedSeconds alle 5s für Crash-Recovery.
+12. **Font-Loading** – Audience + Speaker laden Fonts noch nicht explizit; fallback auf System-Fonts. PRD will self-hosted WOFF2. Ohne das sieht es auf anderen Maschinen anders aus.
+13. **Build-time Geometry (pretext)** – Deep-links und Speaker-Sync laufen aktuell über CSS-native Messung. PRD §9 Schritt 5 will pretext für deterministische Chunk-Positionen. Macht den Build langsamer; Gewinn ist marginal solange Client-Layout zuverlässig ist. Eher deferred Phase-2.
+
+## Empfehlung für den nächsten Slice
+
+Zwei sinnvolle Pakete, wähle eines:
+
+**A. Content-Fidelity (KaTeX + Images + Highlighting).** Macht die gebauten Lectures visuell echt. Wenn die nächste reale Vorlesung Mathe oder Figures oder Code enthält, ist das der Pfad. Mittelgroß, ~500 Zeilen über 3 Commits.
+
+**B. Authoring-Workflow (Linter + `--new` + `--watch`).** Macht die Feedback-Schleife beim Schreiben neuer Lectures kurz. Wenn die nächste Aufgabe "viele neue Lectures schreiben" ist, ist das der Pfad. Auch mittelgroß, ~400 Zeilen über 3 Commits.
+
+Die Verfeinerungen (8–13) sind jeweils eigene kleine Commits und können dazwischen laufen.
+
+## Arbeitsstil
 
 - Wir sind per du.
 - Keine em-dashes im Output – en-dashes (`–`) oder `&ndash;`. Harte User-Präferenz, siehe auto-memory.
 - Keine Zeit- oder Datumsschätzungen in Task-Files (global CLAUDE.md).
 - Commits einzeln, fokussiert, mit erklärendem Body.
 - Explanatory output style: Vor und nach Code-Edits einen `★ Insight ─────` Block mit 2-3 Punkten.
-- User ist Fast. Drei Entscheidungen oben kurz klären, dann los.
+- User ist Fast. Wenige offene Entscheidungen kurz klären, dann los.
+- Spec-First-Prinzip wenn die Entscheidungs-Komplexität hoch ist (siehe `speaker.md`); sonst direkt codieren.
+- Paritätsprüfungen per Playwright im Browser nach jedem größeren UI-Slice.
 
 ## Start-Ritual
 
-1. `git log --oneline -10` lesen – die letzten Commits sind der Kontext.
-2. `PRD.md §5` (Camera and navigation) komplett überfliegen, besonders Overview und TOC.
-3. `build.js` aktuellen Runtime durchlesen: `focusCamera`, `jumpTo`, das Keyboard-Switch.
-4. `phase0/lecture.html` Zeilen ~907–980 (Overview-Camera) als Muster, aber aus der PRD begründen.
-5. Drei offene Entscheidungen klären, dann mit Sub-Aufgabe 1 (Overview-Mode aktivieren) beginnen.
+1. `git log --oneline -15` – die letzten Commits sind der Kontext.
+2. `PRD.md §11 (Phase 1)` und `§9 (Build system)` überfliegen – das ist der Masterplan.
+3. `speaker.md` als Beispiel, wie Specs in diesem Repo aussehen.
+4. `build.js` als Ganzes durchlesen – der relevante Teil ist inzwischen eine Datei, die auf ~2100 Zeilen gewachsen ist. Struktur: parser → print renderer + CSS → audience renderer + CSS + JS → speaker renderer + CSS + JS → CLI.
+5. Nächsten Slice (A oder B) wählen. Bei A: KaTeX zuerst, dann Images, dann Highlighting. Bei B: Linter zuerst (strukturell am tragendsten), dann `--new`, dann `--watch`.
+6. Vor Codezeile 1 den User fragen, welchen Slice, und ob bestimmte Sub-Entscheidungen (z.B. KaTeX-CSS-Bundling, shiki-Theme-Wahl) zuerst geklärt werden sollen.
