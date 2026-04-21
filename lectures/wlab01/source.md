@@ -15,7 +15,7 @@ lecture: wlab01
 
 > note: Short welcome, time check, housekeeping. Ask how many have already started drafting.
 
-## free: What you will take away {.standard #learning-objectives}
+## free: What you will take away {.narrow #learning-objectives}
 
 By the end of this session you will:
 
@@ -47,6 +47,13 @@ For every section or referenced source, check whether you have addressed:
 - **Research questions** – what does this section (or source) try to answer?
 - **Methodological approach** – methods or techniques, where applicable.
 - **Expected outcomes** – the results or claims you expect to present.
+
+::: expand Why?
+The first four dimensions are the *content* of the section – they answer "what is this about, and what does it claim". A section that doesn't define its terms or state its questions has no place to be checked against.
+:::
+
+---
+
 - **Limitations** – caveats that apply here specifically.
 - **Dependencies and connections** – backward (what this needs) and forward (what depends on it).
 - **Additional resources** – diagrams, figures, tables that would help.
@@ -61,7 +68,11 @@ A minimal version of this list also works as a per-paragraph check during revisi
 
 Seven techniques to push a topic further.
 
-> note: Frame these as "moves you can make when the outline feels thin". Encourage students to try two or three, not all seven.
+---
+
+Pick two or three. Not seven.
+
+> note: Frame these as "moves you can make when the outline feels thin". Encourage students to try two or three, not all seven. Reveal the "pick two or three" only after they've heard the seven – otherwise they pre-discount the list.
 
 ## free: Cross-domain analysis {.standard #cross-domain}
 
@@ -91,9 +102,13 @@ Ask the uncomfortable questions:
 - What evidence **supports or contradicts** these claims?
 - Are there **alternative explanations** or interpretations?
 
+## principle: Analogies as transport {.narrow #analogies-principle}
+
+A single good metaphor can carry a whole section.
+
 ## free: Analogy and metaphor {.standard #analogy}
 
-Compare the topic to something **seemingly unrelated**. Analogies surface unexpected relationships – and sometimes a single good metaphor carries a whole section.
+Compare the topic to something **seemingly unrelated**. Analogies surface unexpected relationships across domains; the trick is to follow the analogy only as far as it stays honest, and to drop it the moment it stops paying off.
 
 # Organizing information {#organizing}
 
@@ -103,15 +118,18 @@ A four-step working rhythm:
 
 1. **Determine the purpose.** Goals of the paper; main message in one sentence.
 2. **Gather ideas and references.** Short phrases for each idea; group them logically; keep parallel structure across subpoints (e.g. consistently active voice).
-3. **Determine the main structure.** Break the text into major sections. For a research paper: *Introduction, Related Work, Methods, Results, Discussion, Conclusion*. Add signposts at section boundaries.
-4. **Check for gaps and inconsistencies.** Revise the organization. If needed, revise the purpose and main message from step 1.
 
-::: expand Exp
+::: expand Step 2
 Step 2 is where most outlines quietly go wrong. Two specific rules help:
 
 - **Short phrases, not sentences.** An outline item is a label, not a draft sentence. If you're writing prose here, you're not outlining any more.
 - **Parallel structure across subpoints.** If one subpoint is a noun phrase, all siblings should be noun phrases. If one is an imperative verb, all siblings should be imperatives. Mixed grammatical shapes at the same level signal mixed conceptual shapes.
 :::
+
+---
+
+3. **Determine the main structure.** Break the text into major sections. For a research paper: *Introduction, Related Work, Methods, Results, Discussion, Conclusion*. Add signposts at section boundaries.
+4. **Check for gaps and inconsistencies.** Revise the organization. If needed, revise the purpose and main message from step 1.
 
 ## definition: Schemes for organizing material {.wide #schemes}
 
@@ -121,6 +139,13 @@ Pick a structure that matches the **shape of the content**:
 - **Spatial** – physical arrangement. Scenes, settings, objects in detail.
 - **Cause and effect** – why something happened, what followed.
 - **Problem and solution** – name a problem, then present solutions. Common in argumentative and policy writing.
+
+::: expand Ex
+"Smartphones changed how teenagers sleep" is cause-and-effect. "Why our build is slow, and what we tried" is problem-and-solution. Same project, two outlines – the right scheme depends on what the section is *for*.
+:::
+
+---
+
 - **Compare and contrast** – similarities and differences between two or more subjects.
 - **Categorical / topical** – divide by shared characteristic or theme.
 - **Hierarchical / taxonomic** – rank, importance, or level of specificity.
@@ -134,6 +159,9 @@ Zooming in on the body of the paper:
 
 1. **Choose a logical structure** for the main part (chronological, compare/contrast, problem–solution, cause–effect – whichever fits the content).
 2. **Identify the main points or arguments.** Each point should tie back to the thesis or research question.
+
+---
+
 3. **Organize the main points.** Group related points; arrange them in the order your chosen structure prescribes; use headings and subheadings as visible scaffolding.
 4. **Add supporting evidence and details.** For each point, bring in findings, examples, or expert opinions – and show explicitly how the evidence supports the point.
 
@@ -194,9 +222,13 @@ III. Solution: Machine learning algorithms
         – Meta-dialogue with self: "not sure how to explain decision trees yet – TODO."
 ```
 
-**Meta-comments are scaffolding for yourself.** They carry *purpose*, *relevance*, *scope*, and open *TODOs*. They come out before the paper is submitted.
+The em-dashes carry *purpose*, *relevance*, *scope*, and open *TODOs*.
 
-> note: This is the pedagogical core of the session – the moment to slow down. Show how each kind of meta-comment resolves a different writing anxiety.
+---
+
+**Meta-comments are scaffolding for yourself.** They come out before the paper is submitted.
+
+> note: This is the pedagogical core of the session – the moment to slow down. Show how each kind of meta-comment resolves a different writing anxiety. Reveal the "scaffolding" line only after the example has had a beat to land.
 
 # In practice {#in-practice}
 
@@ -207,20 +239,40 @@ Small habits that keep outlining productive:
 - Use an **outlining tool** – a plain editor with folding is enough. Lock in one and learn it.
 - Treat the outline as a **checklist or issue tracker** as you draft. Check items off; leave TODOs in place.
 - Keep an **"attic"** at the end of the outline: a storage area for unresolved issues and orphan ideas. Move items in and out as structure settles.
+
+---
+
 - Carry a **notepad** (or phone) to catch ideas when they arrive.
 - **Dedicated writing time** beats long weekend marathons. Make it routine.
-- When stuck: tell yourself you are only **filling gaps in the outline**. This dissolves most instances of writer's block.
+
+## principle: Filling gaps dissolves writer's block {.narrow #fill-gaps}
+
+When stuck, tell yourself you are only filling gaps in the outline.
+
+> note: This is the single most useful sentence in the session for anyone who has been stuck on a draft. Stay on it for a beat.
 
 ## exercise: Checklist I – is the outline complete? {.wide #checklist-completeness}
 
-Before moving from outline to prose, check each item:
+Before moving from outline to prose, check each item.
+
+*Structure.*
 
 - **Sections and subsections.** Are all relevant ones present?
 - **Logical organization.** Is the hierarchy clear and consistent?
 - **Dependencies.** Are backward/forward dependencies between sections marked, and does the order respect them?
+
+---
+
+*Meaning.*
+
 - **Purpose.** Is the purpose of each (sub)section stated? Is each section's role as prerequisite or consequence of others noted?
 - **Relevance, importance, scope.** Are these three meta-dimensions covered – why it's here, how important it is, what is in and what is out?
 - **Prioritization.** Are essentials distinguished from nice-to-haves? Does the balance make sense?
+
+---
+
+*Form.*
+
 - **Order of presentation.** Is the chosen order justified? Are alternative arrangements considered?
 - **Bullet points and fragments.** Are key ideas, evidence, and examples sketched under each section?
 - **Title.** Does it capture the main message and remain honest to the contents?
@@ -233,6 +285,9 @@ Watch for these failure modes – all common, all fixable:
 - **Inconsistency.** Formatting, numbering, or grammatical structure drifts across the outline.
 - **Insufficient depth.** Important concepts or arguments are named but not explored.
 - **Poor organization.** Section order is confusing or illogical.
+
+---
+
 - **Redundancy.** The same idea surfaces in several sections without acknowledgement.
 - **Ambiguity.** Vague labels obscure what a section actually contains.
 - **Inadequate transitions.** Connections between neighboring ideas are missing.
