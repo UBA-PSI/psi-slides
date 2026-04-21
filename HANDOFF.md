@@ -1,12 +1,14 @@
 # Handoff – nach Speaker-Slice
 
-Stand nach Commit `086c98b`. Phase 1 ist weit fortgeschritten; die tragenden drei Outputs (audience, print, speaker) existieren und synchronisieren live über BroadcastChannel. Dieser Handoff beschreibt den aktuellen Zustand, was definitiv funktioniert, und welche Phase-1-Posten noch offen sind.
+Stand nach Commit `95c67b2`. Phase 1 ist weit fortgeschritten; die tragenden drei Outputs (audience, print, speaker) existieren und synchronisieren live über BroadcastChannel. Dieser Handoff beschreibt den aktuellen Zustand, was definitiv funktioniert, und welche Phase-1-Posten noch offen sind.
 
 ## Was seit dem letzten Handoff gebaut wurde
 
-Zehn Commits, chronologisch (neueste zuerst):
+Commits, chronologisch (neueste zuerst):
 
 ```
+95c67b2  simplify: reuse helpers, cleaner broadcast gate, guarded speaker refresh
+cfd04c7  HANDOFF: after the speaker slice – content fidelity vs. authoring workflow
 086c98b  speaker.md: openExp is synced, not audience-only
 392899a  speaker: BroadcastChannel sync – audience ↔ speaker
 0c1219c  build: speaker.html view (static – scrubber, mirror, notes, previews, timer)
@@ -22,6 +24,7 @@ Kurzbeschreibung der drei großen Slices:
 1. **Audience-Renderer** (`71aeb99`, `8d64de2`): `build.js` emittiert `audience.html` aus `source.md` mit 2D-Stage, Per-Tag-Treatments, Title-Slide (lower-left-third), Progressive-Reveal (§4.6), Collapse-Modes (§4.5), Annotations mit localStorage, Expand-Chevrons.
 2. **Overview / TOC / Fulltext** (`97e57c8`): `O` für Birds-eye, `T` für rechtes TOC-Panel, `/` für Fulltext-Suche im Overview. Click-to-select, zweites `O` oder Enter landet.
 3. **Speaker-View + Sync** (`71771cb`, `0c1219c`, `392899a`, `086c98b`): Dritter Output `speaker.html`. Drei Panels (Scrubber, Current-Chunk-Mirror + Notes-Pane, Next-Previews). Live-Sync beide Richtungen über BroadcastChannel mit Full-State-Snapshots. Push-Toggle (`Shift-P`), Force-Push (`.`), Hello-Handshake.
+4. **Simplify-Pass** (`95c67b2`): Reuse (renderTitleBlock, renderTocNav), cleaner broadcast-gate via `viewHooks.shouldBroadcast` statt `window.pushEnabled`-Leak, `applyRemoteState` ohne doppelten `applyState`-Call, Guard auf `populatePreviewStrip` damit Annotation-Keystroke-Sync nicht drei DOM-Clones pro Zeichen rebuildet. -18 Zeilen netto, keine Verhaltensänderung.
 
 ## Was jetzt definitiv funktioniert
 
