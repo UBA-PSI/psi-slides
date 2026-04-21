@@ -1,16 +1,17 @@
 ---
-title: Writing Lab 1 – Structure and Outlines
+title: Writing Lab 1
+presenter: Prof. Dr. Dominik Herrmann
+info: |
+  Structure and outlines for scientific texts
+  PSI-Sem-B · PSI-Sem-M
+  SoSe 2026
 course: psi-sem-sose26
 lecture: wlab01
 ---
 
+## title: {#title}
+
 # Welcome {#welcome}
-
-## free: Writing Lab 1 {.wide #title}
-
-**Structure and outlines for scientific texts.**
-
-PSI-Sem-B / PSI-Sem-M – Prof. Dr. Dominik Herrmann
 
 > note: Short welcome, time check, housekeeping. Ask how many have already started drafting.
 

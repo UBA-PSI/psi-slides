@@ -58,16 +58,26 @@ function parseLecture(src) {
   let currentChunk = null;
   let bodyLines = [];
   let inFence = false;
+  let currentExpansion = null; // { label, lines } while inside a ::: expand block
+
+  const flushExpansion = () => {
+    if (!currentExpansion || !currentChunk) return;
+    currentChunk.expansions.push({
+      label: currentExpansion.label,
+      kind: currentExpansion.kind,
+      body: currentExpansion.lines.join('\n').trim(),
+    });
+    currentExpansion = null;
+  };
 
   const flushChunk = () => {
     if (!currentChunk) return;
-    // Strip reveal separators (standalone `---`) from body before
-    // handing it to marked. `---` inside a ``` fenced code block is
-    // preserved so code samples survive.
+    flushExpansion();
+    // Strip reveal separators (standalone `---`) from the main body.
+    // `---` inside a ``` fenced code block is preserved.
     const body = bodyLines
       .filter((l, i, arr) => {
         if (l.trim() !== '---') return true;
-        // Check if this line is inside a fence (bodyLines-level).
         let fence = false;
         for (let j = 0; j < i; j++) {
           if (/^```/.test(arr[j])) fence = !fence;
@@ -101,8 +111,6 @@ function parseLecture(src) {
         flushChunk();
         if (!currentColumn) {
           // A chunk before any `# Column` (e.g. the title chunk).
-          // Attach it to an anonymous column that will be skipped by
-          // the TOC renderer but still shown in body order.
           currentColumn = { heading: null, id: null, chunks: [] };
           columns.push(currentColumn);
         }
@@ -113,12 +121,43 @@ function parseLecture(src) {
           heading,
           width: width || 'standard',
           id,
+          expansions: [],
         };
         continue;
       }
+
+      if (currentChunk) {
+        // Speaker-note blockquote (single line): stripped from print.
+        // PRD §9 specifies no speaker notes in the print view.
+        if (/^>\s*note:/i.test(line)) continue;
+
+        // ::: expand <label>  or  ::: margin  –  open an aside block.
+        // Both are modeled as expansions for the print renderer; the
+        // audience view will distinguish them later (expansions get a
+        // chevron, margins sit in the left lane).
+        const expandOpen = line.match(/^:::\s+expand\s+(.+?)\s*$/);
+        const marginOpen = /^:::\s+margin\s*$/.test(line);
+        if (expandOpen || marginOpen) {
+          flushExpansion();
+          currentExpansion = {
+            label: expandOpen ? expandOpen[1].trim() : 'note',
+            kind: marginOpen ? 'margin' : 'expand',
+            lines: [],
+          };
+          continue;
+        }
+        // :::  –  closes the open aside.
+        if (/^:::\s*$/.test(line) && currentExpansion) {
+          flushExpansion();
+          continue;
+        }
+      }
     }
 
-    if (currentChunk) bodyLines.push(line);
+    if (currentChunk) {
+      if (currentExpansion) currentExpansion.lines.push(line);
+      else bodyLines.push(line);
+    }
   }
   flushChunk();
 
@@ -153,7 +192,7 @@ function renderTitleBlock({ title, presenter, info, bodyHtml }) {
 }
 
 function renderChunk(chunk, frontmatter) {
-  const { tag, heading, body = '', id, width } = chunk;
+  const { tag, heading, body = '', id, width, expansions = [] } = chunk;
   const bodyHtml = body ? marked.parse(body) : '';
 
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
@@ -175,10 +214,19 @@ function renderChunk(chunk, frontmatter) {
     `width-${width}`,
   ].join(' ');
 
+  const expansionsHtml = expansions.map(e => {
+    const inner = marked.parse(e.body || '');
+    const kind = e.kind || 'expand';
+    return `<aside class="chunk-expansion chunk-expansion-${kind}" data-label="${escapeHtml(e.label)}">
+${inner}
+</aside>`;
+  }).join('\n');
+
   return `<article class="${classes}"${idAttr}>
   ${label}
   ${heading ? `<h2 class="chunk-heading">${escapeHtml(heading)}</h2>` : ''}
   ${bodyHtml}
+  ${expansionsHtml}
 </article>`;
 }
 
@@ -368,6 +416,27 @@ a:hover { text-decoration-color: var(--ink); }
   order: 2;
 }
 .chunk-figure pre { background: transparent; padding: 0; margin: 0 0 0.4rem; }
+
+/* Expansions (::: expand <label>) inlined into the print stream. */
+.chunk-expansion {
+  margin: 1.1rem 0 0.6rem;
+  padding: 0.1rem 0 0.1rem 1.1rem;
+  border-left: 1.5pt solid var(--rule);
+  color: var(--ink-soft);
+  font-size: 0.96em;
+}
+.chunk-expansion::before {
+  content: attr(data-label);
+  display: block;
+  font-family: var(--sans);
+  font-variant-caps: all-small-caps;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  margin: 0 0 0.25rem;
+}
+.chunk-expansion > :first-child { margin-top: 0; }
+.chunk-expansion > :last-child { margin-bottom: 0; }
+.chunk-expansion strong { color: var(--ink); }
 
 /* Title slide: lower-left-third per PRD §4.4 */
 .chunk-title {
