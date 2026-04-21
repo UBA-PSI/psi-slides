@@ -2442,14 +2442,76 @@ async function runWatch(absIn, only) {
   });
 }
 
+// Phase-1-valid scaffold for `--new <slug>`. Builds without errors as
+// soon as it lands on disk; TODO markers stay sentence-level so the
+// title slide reads obviously-incomplete (and a future linter can flag
+// them as author-action-required).
+function scaffoldSource(slug) {
+  return `---
+title: TODO – Lecture title
+presenter: Prof. Dr. Dominik Herrmann
+info: |
+  TODO – first info line (date, location)
+  TODO – second info line (course code, semester)
+course: TODO-course-slug
+lecture: ${slug}
+---
+
+## title: {#title}
+
+# Introduction {#intro}
+
+## free: TODO – placeholder chunk {.standard #intro-placeholder}
+
+Replace this paragraph with the opening prose of the lecture.
+
+> note: Speaker note for this chunk lives here.
+`;
+}
+
+const SLUG_RE = /^[a-z][a-z0-9-]*$/;
+
+function runNew(slug) {
+  if (!slug) {
+    console.error('Usage: node build.js --new <slug>   (e.g. --new wlab02)');
+    process.exit(1);
+  }
+  if (!SLUG_RE.test(slug)) {
+    console.error(`Invalid slug: ${slug}. Use lowercase letters, digits, and hyphens; must start with a letter.`);
+    process.exit(1);
+  }
+
+  const dir = path.resolve('lectures', slug);
+  if (fs.existsSync(dir)) {
+    console.error(`Error: ${path.relative(process.cwd(), dir)} already exists. Pick a different slug or delete it first.`);
+    process.exit(1);
+  }
+
+  fs.mkdirSync(dir, { recursive: true });
+  fs.mkdirSync(path.join(dir, 'assets'), { recursive: true });
+  const srcPath = path.join(dir, 'source.md');
+  fs.writeFileSync(srcPath, scaffoldSource(slug));
+
+  const rel = path.relative(process.cwd(), srcPath);
+  console.log(`Created ${rel} – run \`node build.js ${rel} --watch\` to start.`);
+}
+
 function main() {
   const argv = process.argv.slice(2);
   const flags = new Set(argv.filter(a => a.startsWith('--')));
   const positional = argv.filter(a => !a.startsWith('--'));
+
+  if (flags.has('--new')) {
+    runNew(positional[0]);
+    return;
+  }
+
   const [inputPath] = positional;
 
   if (!inputPath || flags.has('--help') || flags.has('-h')) {
-    console.error('Usage: node build.js <source.md> [--watch] [--audience-only|--print-only|--speaker-only]');
+    console.error('Usage:');
+    console.error('  node build.js <source.md> [--watch] [--audience-only|--print-only|--speaker-only]');
+    console.error('  node build.js --new <slug>');
     process.exit(inputPath ? 0 : 1);
   }
 
