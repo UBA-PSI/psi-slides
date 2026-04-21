@@ -5,6 +5,7 @@ node_modules/
 # generated build output – rebuild with: node build.js <source.md>
 lectures/*/print.html
 lectures/*/audience.html
+lectures/*/speaker.html
 
 # playwright smoke-test scratch
 .playwright-mcp/

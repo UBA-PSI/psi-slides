@@ -59,6 +59,8 @@ function parseLecture(src) {
   let bodyLines = [];
   let inFence = false;
   let currentExpansion = null; // { label, lines } while inside a ::: expand block
+  let noteBlock = null;        // { lines: string[] } – current `> note:` block
+  let pendingNotes = [];       // notes that appeared before a chunk, attach to the next one
 
   const flushExpansion = () => {
     if (!currentExpansion || !currentChunk) return;
@@ -70,8 +72,19 @@ function parseLecture(src) {
     currentExpansion = null;
   };
 
+  const flushNoteBlock = () => {
+    if (!noteBlock) return;
+    const text = noteBlock.lines.join('\n').trim();
+    if (text) {
+      if (currentChunk) currentChunk.speakerNotes.push(text);
+      else pendingNotes.push(text);  // orphan – attach to the next chunk
+    }
+    noteBlock = null;
+  };
+
   const flushChunk = () => {
     if (!currentChunk) return;
+    flushNoteBlock();
     flushExpansion();
     // Split body at standalone `---` lines into reveal segments (§4.6).
     // `---` inside a ``` fenced code block stays part of the segment.
@@ -127,14 +140,32 @@ function parseLecture(src) {
           width: width || 'standard',
           id,
           expansions: [],
+          speakerNotes: pendingNotes,
         };
+        pendingNotes = [];
         continue;
       }
 
+      // Speaker-note blockquotes. `> note: ...` opens a note block; any
+      // following `> ...` continuation lines extend the same block until
+      // a non-blockquote line ends it. Notes appearing before any chunk
+      // are buffered in pendingNotes and attached to the next chunk (so
+      // e.g. a `> note:` placed right under a column header still lands
+      // on the first chunk of that column). Stripped from audience + print.
+      const noteOpen = line.match(/^>\s*note:\s*(.*)$/i);
+      if (noteOpen) {
+        flushNoteBlock();
+        noteBlock = { lines: [noteOpen[1]] };
+        continue;
+      }
+      if (noteBlock) {
+        const noteCont = line.match(/^>\s?(.*)$/);
+        if (noteCont) { noteBlock.lines.push(noteCont[1]); continue; }
+        flushNoteBlock();
+        // fall through: this non-> line still needs normal handling
+      }
+
       if (currentChunk) {
-        // Speaker-note blockquote (single line): stripped from print.
-        // PRD §9 specifies no speaker notes in the print view.
-        if (/^>\s*note:/i.test(line)) continue;
 
         // ::: expand <label>  or  ::: margin  –  open an aside block.
         // Both are modeled as expansions for the print renderer; the
@@ -1195,6 +1226,17 @@ const AUDIENCE_JS = `
 const STORAGE_PREFIX = 'psi-lecdoc:';
 const storageKey = (s) => STORAGE_PREFIX + LECTURE_TITLE + ':' + s;
 
+// The audience runtime is shared with the speaker view. The HTML sets
+// body[data-view] to "audience" or "speaker"; runtime branches on it.
+// Speaker-only behavior hangs off the viewHooks object defined below
+// and is overridden in the speaker-specific runtime.
+const VIEW = document.body.dataset.view || 'audience';
+const viewHooks = {
+  onN: (entry) => startAnnotate(entry.id),
+  onActiveChange: () => {},
+  onStateChange: () => {},
+};
+
 const stage = document.getElementById('stage');
 const viewport = document.getElementById('stage-viewport');
 const modeBadge = document.getElementById('mode-badge');
@@ -1290,6 +1332,7 @@ function applyState() {
   document.body.dataset.collapse = state.collapse;
   document.documentElement.style.setProperty('--zoom', state.zoom);
   flatChunks.forEach((c, i) => c.el.classList.toggle('active', i === state.activeIdx));
+  viewHooks.onActiveChange();
 }
 
 function countSegments(el) {
@@ -1721,7 +1764,7 @@ document.addEventListener('keydown', (e) => {
     case 'n': case 'N': {
       if (overview) break;
       const entry = flatChunks[state.activeIdx];
-      if (entry) startAnnotate(entry.id);
+      if (entry) viewHooks.onN(entry);
       e.preventDefault(); break;
     }
     case 'c': case 'C': cycleCollapse(e.shiftKey ? -1 : 1); e.preventDefault(); break;
@@ -1736,8 +1779,27 @@ document.addEventListener('keydown', (e) => {
       document.body.classList.toggle('blanked', state.blanked);
       e.preventDefault(); break;
     case 'p': case 'P':
-      window.open('print.html', '_blank');
+      // In the speaker view, Shift-P is the push-to-audience toggle;
+      // plain P still opens the print view in a new tab.
+      if (VIEW === 'speaker' && e.shiftKey && typeof togglePush === 'function') {
+        togglePush();
+      } else {
+        window.open('print.html', '_blank');
+      }
       e.preventDefault(); break;
+    case '.':
+      if (VIEW === 'speaker' && typeof forcePush === 'function') {
+        forcePush();
+        e.preventDefault();
+      }
+      break;
+    case 's': case 'S':
+      // Only in audience: open the speaker window.
+      if (VIEW === 'audience') {
+        window.open('speaker.html', 'psi-lecdoc-speaker', 'width=1400,height=900');
+        e.preventDefault();
+      }
+      break;
     case '?':
       document.getElementById('hints').classList.toggle('hidden');
       e.preventDefault(); break;
@@ -1802,6 +1864,414 @@ if (document.fonts && document.fonts.ready) {
 }
 `;
 
+// ── speaker rendering ────────────────────────────────────────────────
+
+function renderSpeaker(lecture) {
+  const { frontmatter, columns } = lecture;
+  const title = frontmatter.title || 'Untitled lecture';
+
+  const columnsHtml = columns.map((col, ci) => {
+    const chunks = col.chunks
+      .map((c, xi) => renderAudienceChunk(c, frontmatter, ci, xi))
+      .join('\n');
+    const idAttr = col.id ? ` id="${escapeHtml(col.id)}"` : '';
+    return `<section class="column" data-col="${ci}"${idAttr}>
+${chunks}
+</section>`;
+  }).join('\n');
+
+  // Speaker notes are rendered to HTML at build time (trusted source)
+  // and emitted as <template> fragments. JS clones template content into
+  // the notes pane – no innerHTML assignment at runtime.
+  const noteTemplates = [];
+  for (const col of columns) for (const c of col.chunks) {
+    if (c.id && c.speakerNotes && c.speakerNotes.length) {
+      const inner = c.speakerNotes.map(n => marked.parse(n)).join('\n');
+      noteTemplates.push(
+        `<template data-notes-for="${escapeHtml(c.id)}">${inner}</template>`
+      );
+    }
+  }
+
+  // Scrubber: column buttons + chunk dots below.
+  const scrubberHtml = columns.map((col, ci) => {
+    const dots = col.chunks
+      .map((c, xi) => `<span class="dot" data-col-idx="${ci}" data-chunk-idx="${xi}"></span>`)
+      .join('');
+    const label = col.heading ? escapeHtml(col.heading) : '·';
+    return `<div class="col-entry" data-col-idx="${ci}">
+      <button class="col-btn" type="button">${label}</button>
+      <div class="dots">${dots}</div>
+    </div>`;
+  }).join('\n');
+
+  const slug = frontmatter.lecture || frontmatter.course || '';
+  const titleJson = JSON.stringify(title);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escapeHtml(title)} – speaker</title>
+<style>
+${AUDIENCE_CSS}
+${SPEAKER_CSS}
+</style>
+</head>
+<body data-collapse="topic-bold" data-view="speaker">
+<div id="scrubber">
+${scrubberHtml}
+</div>
+<div id="speaker-main">
+  <div id="stage-viewport">
+    <div id="stage">
+${columnsHtml}
+    </div>
+  </div>
+  <aside id="notes-pane" tabindex="0">
+    <div id="notes-content"></div>
+  </aside>
+</div>
+<div id="preview-strip"></div>
+<footer id="speaker-footer">
+  <span id="timer">00:00</span>
+  <span id="push-indicator" class="push-on">push ●</span>
+  <span id="slug">${escapeHtml(slug)}</span>
+  <span class="spacer"></span>
+  <span class="kbd-hint"><kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force push &nbsp; <kbd>?</kbd> hints</span>
+</footer>
+<div id="note-templates">
+${noteTemplates.join('\n')}
+</div>
+<div id="hints" class="hidden">
+  <kbd>←</kbd><kbd>→</kbd> column &nbsp; <kbd>↑</kbd><kbd>↓</kbd> chunk &nbsp; <kbd>Space</kbd> reveal<br>
+  <kbd>Enter</kbd>/<kbd>1</kbd>–<kbd>9</kbd> expand &nbsp; <kbd>N</kbd> notes &nbsp; <kbd>C</kbd> collapse<br>
+  <kbd>O</kbd> overview &nbsp; <kbd>T</kbd> toc &nbsp; <kbd>/</kbd> search &nbsp; <kbd>B</kbd> blank<br>
+  <kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force push &nbsp; <kbd>P</kbd> print
+</div>
+<div id="mode-badge"></div>
+<div id="overview-badge">
+  <span class="hint">overview · drag · wheel · click · <kbd>O</kbd>/<kbd>Enter</kbd> land · <kbd>/</kbd> search · <kbd>Esc</kbd></span>
+  <input id="search-input" type="text" placeholder="search..." autocomplete="off" spellcheck="false">
+</div>
+<nav id="toc" aria-label="Contents">
+  <h2>Contents</h2>
+  <ol>
+    ${columns.map((c, i) => ({ c, i })).filter(x => x.c.heading).map(x =>
+      `<li data-toc-col="${x.i}"><button type="button">${escapeHtml(x.c.heading)}</button></li>`
+    ).join('\n    ')}
+  </ol>
+</nav>
+<script>
+const LECTURE_TITLE = ${titleJson};
+${AUDIENCE_JS}
+${SPEAKER_JS}
+</script>
+</body>
+</html>
+`;
+}
+
+// ── speaker CSS (layered on top of AUDIENCE_CSS) ─────────────────────
+
+const SPEAKER_CSS = `
+body[data-view=speaker] {
+  display: grid;
+  grid-template-rows: 3vh 1fr 22vh 2.2rem;
+  grid-template-columns: 1fr;
+  overflow: hidden;
+}
+#note-templates { display: none; }
+
+/* scrubber: thin top strip with column buttons + chunk dots */
+#scrubber {
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 1.5em;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+  font-family: var(--sans-font);
+  font-size: 11px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+}
+.col-entry { display: flex; align-items: center; gap: 0.4em; flex-shrink: 0; }
+.col-entry.active .col-btn { color: var(--emph); font-weight: 600; }
+.col-btn {
+  background: transparent;
+  border: 0;
+  padding: 0.2em 0.3em;
+  font: inherit;
+  color: var(--ink-soft);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  max-width: 14em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.col-btn:hover { color: var(--ink); }
+.dots { display: flex; gap: 3px; }
+.dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--rule);
+  cursor: pointer;
+  transition: background 120ms;
+}
+.dot:hover { background: var(--ink-soft); }
+.dot.active { background: var(--emph); }
+
+/* middle row: stage viewport + notes pane */
+#speaker-main {
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: 1fr 26em;
+  min-height: 0;
+  overflow: hidden;
+}
+body[data-view=speaker] #stage-viewport {
+  width: auto;
+  height: 100%;
+  grid-column: 1;
+}
+#notes-pane {
+  grid-column: 2;
+  border-left: 1px solid var(--rule);
+  padding: 1.5rem 1.5rem 1rem;
+  overflow-y: auto;
+  background: var(--paper-warm);
+  font-family: var(--body-font);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+#notes-pane:focus { outline: 2px solid oklch(0.55 0.12 220); outline-offset: -2px; }
+#notes-content:empty::before {
+  content: 'no notes for this chunk';
+  color: var(--ink-soft);
+  font-style: italic;
+  font-size: 0.88rem;
+}
+#notes-content p  { margin: 0 0 0.7em; }
+#notes-content strong { color: var(--emph); }
+
+/* bottom: preview strip */
+#preview-strip {
+  grid-row: 3;
+  display: flex;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--rule);
+  background: var(--paper);
+  overflow: hidden;
+}
+.preview-slot {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+}
+.preview-slot-label {
+  position: absolute;
+  top: 4px; left: 6px;
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.12em;
+  font-size: 9px;
+  color: var(--ink-soft);
+  z-index: 1;
+  opacity: 0.8;
+}
+.preview-slot .chunk-clone {
+  transform-origin: top left;
+  pointer-events: none;
+}
+.preview-slot.empty { border-style: dashed; opacity: 0.4; }
+
+/* footer */
+#speaker-footer {
+  grid-row: 4;
+  display: flex;
+  align-items: center;
+  gap: 1.2em;
+  padding: 0 1rem;
+  border-top: 1px solid var(--rule);
+  background: var(--paper);
+  font-family: var(--sans-font);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+#speaker-footer #timer {
+  font-family: var(--mono-font);
+  color: var(--ink);
+}
+#speaker-footer #push-indicator {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+}
+#speaker-footer #push-indicator.push-on  { color: oklch(0.55 0.16 150); }
+#speaker-footer #push-indicator.push-off { color: var(--ink-soft); opacity: 0.55; }
+#speaker-footer #slug { color: var(--ink-soft); font-style: italic; }
+#speaker-footer .spacer { flex: 1; }
+#speaker-footer .kbd-hint { font-size: 10px; opacity: 0.7; }
+#speaker-footer kbd { padding: 0 3px; border: 1px solid var(--rule); background: oklch(0.96 0 0); color: var(--ink); font-family: var(--mono-font); font-size: 9px; }
+
+/* Hide the annotation "+ note" affordance in speaker – speaker has the
+   notes pane for author-written notes. */
+body[data-view=speaker] .annot-add { display: none !important; }
+`;
+
+// ── speaker-specific runtime (loaded after AUDIENCE_JS) ──────────────
+
+const SPEAKER_JS = `
+// AUDIENCE_JS has run: flatChunks, state, viewHooks, applyState, focusCamera,
+// jumpTo, toggleExp, etc. exist. This block wires the speaker-only panels
+// and overrides viewHooks for speaker-specific behavior.
+
+const notesContent = document.getElementById('notes-content');
+const notesPane = document.getElementById('notes-pane');
+const previewStrip = document.getElementById('preview-strip');
+const scrubberEl = document.getElementById('scrubber');
+const timerEl = document.getElementById('timer');
+const pushIndicator = document.getElementById('push-indicator');
+
+// Push-to-audience toggle (Shift-P) and force-push (.). Real BC sync lands
+// in the next commit; here they're local state only.
+let pushEnabled = true;
+function togglePush() {
+  pushEnabled = !pushEnabled;
+  pushIndicator.classList.toggle('push-on', pushEnabled);
+  pushIndicator.classList.toggle('push-off', !pushEnabled);
+  pushIndicator.textContent = pushEnabled ? 'push ●' : 'push ○';
+  flashMode(pushEnabled ? 'push on' : 'push off');
+}
+function forcePush() {
+  flashMode('force push (sync not yet wired)');
+}
+
+// N on the speaker focuses the notes pane, rather than opening an
+// annotation (speaker never edits audience annotations directly).
+function focusNotesPane() {
+  notesPane.focus();
+  flashMode('notes focused');
+}
+viewHooks.onN = focusNotesPane;
+
+// Populate the notes pane by cloning the per-chunk <template>. No
+// innerHTML – template content is a live DocumentFragment produced at
+// build time from trusted source.
+function populateNotesPane() {
+  notesContent.replaceChildren();
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) return;
+  const tmpl = document.querySelector(\`template[data-notes-for="\${entry.id}"]\`);
+  if (tmpl) notesContent.appendChild(tmpl.content.cloneNode(true));
+}
+
+// Column / chunk-dot bookkeeping: a flat index of which flatChunks entry
+// corresponds to each (colIdx, chunkIdx) pair in the scrubber.
+const colChunkIdx = {};
+flatChunks.forEach((c, i) => {
+  if (!colChunkIdx[c.colIdx]) colChunkIdx[c.colIdx] = [];
+  colChunkIdx[c.colIdx].push(i);
+});
+
+function updateScrubber() {
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) return;
+  document.querySelectorAll('.col-entry').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.colIdx, 10) === entry.colIdx);
+  });
+  document.querySelectorAll('#scrubber .dot').forEach(dot => {
+    const ci = parseInt(dot.dataset.colIdx, 10);
+    const xi = parseInt(dot.dataset.chunkIdx, 10);
+    dot.classList.toggle('active', colChunkIdx[ci]?.[xi] === state.activeIdx);
+  });
+}
+
+scrubberEl.addEventListener('click', (e) => {
+  const dot = e.target.closest('.dot');
+  if (dot) {
+    const ci = parseInt(dot.dataset.colIdx, 10);
+    const xi = parseInt(dot.dataset.chunkIdx, 10);
+    const idx = colChunkIdx[ci]?.[xi];
+    if (idx !== undefined) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
+    return;
+  }
+  const btn = e.target.closest('.col-btn');
+  if (btn) {
+    const ci = parseInt(btn.closest('.col-entry').dataset.colIdx, 10);
+    const idx = colChunkIdx[ci]?.[0];
+    if (idx !== undefined) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
+  }
+});
+
+// Preview strip: next 3 chunks, each cloned, scaled to fit its slot,
+// fully revealed (§7 – planning surface shows author intent).
+const PREVIEW_COUNT = 3;
+function populatePreviewStrip() {
+  previewStrip.replaceChildren();
+  for (let i = 0; i < PREVIEW_COUNT; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'preview-slot';
+    const targetIdx = state.activeIdx + 1 + i;
+    const entry = flatChunks[targetIdx];
+    if (!entry) {
+      slot.classList.add('empty');
+    } else {
+      const label = document.createElement('div');
+      label.className = 'preview-slot-label';
+      label.textContent = '+' + (i + 1);
+      slot.appendChild(label);
+      const clone = entry.el.cloneNode(true);
+      clone.classList.add('chunk-clone');
+      clone.classList.remove('active', 'expanded', 'annot-visible', 'has-annot', 'overview-selected');
+      clone.querySelectorAll('.reveal-segment').forEach(s => s.removeAttribute('data-hidden'));
+      clone.querySelectorAll('.exps, .annot-box, .annot-add').forEach(n => n.remove());
+      slot.appendChild(clone);
+      requestAnimationFrame(() => {
+        const scale = slot.clientWidth / window.innerWidth;
+        clone.style.transform = \`scale(\${scale})\`;
+        clone.style.width = window.innerWidth + 'px';
+        clone.style.height = (slot.clientHeight / scale) + 'px';
+      });
+    }
+    previewStrip.appendChild(slot);
+  }
+}
+
+// Timer: elapsed since page load, mm:ss.
+const tStart = Date.now();
+function renderTimer() {
+  const s = Math.floor((Date.now() - tStart) / 1000);
+  const mm = String(Math.floor(s / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  timerEl.textContent = mm + ':' + ss;
+}
+setInterval(renderTimer, 1000);
+renderTimer();
+
+// Hook: refresh the three panels on every active-chunk change.
+viewHooks.onActiveChange = () => {
+  updateScrubber();
+  populateNotesPane();
+  populatePreviewStrip();
+};
+
+// First populate (applyState ran before viewHooks was reassigned).
+updateScrubber();
+populateNotesPane();
+populatePreviewStrip();
+
+window.addEventListener('resize', populatePreviewStrip);
+`;
+
 // ── CLI ──────────────────────────────────────────────────────────────
 
 function main() {
@@ -1811,16 +2281,16 @@ function main() {
   const [inputPath] = positional;
 
   if (!inputPath || flags.has('--help') || flags.has('-h')) {
-    console.error('Usage: node build.js <source.md> [--audience-only] [--print-only]');
+    console.error('Usage: node build.js <source.md> [--audience-only|--print-only|--speaker-only]');
     process.exit(inputPath ? 0 : 1);
   }
 
-  const audienceOnly = flags.has('--audience-only');
-  const printOnly    = flags.has('--print-only');
-  if (audienceOnly && printOnly) {
-    console.error('Error: --audience-only and --print-only are mutually exclusive.');
+  const onlyFlags = ['--audience-only', '--print-only', '--speaker-only'].filter(f => flags.has(f));
+  if (onlyFlags.length > 1) {
+    console.error(`Error: ${onlyFlags.join(' and ')} are mutually exclusive.`);
     process.exit(1);
   }
+  const only = onlyFlags[0];
 
   const absIn = path.resolve(inputPath);
   if (!fs.existsSync(absIn)) {
@@ -1835,15 +2305,22 @@ function main() {
   const shape = `${lecture.columns.length} columns, ${chunkCount} chunks`;
   const written = [];
 
-  if (!audienceOnly) {
-    const printPath = path.join(outDir, 'print.html');
-    fs.writeFileSync(printPath, renderDocument(lecture));
-    written.push(path.relative(process.cwd(), printPath));
+  const wants = (target) => !only || only === `--${target}-only`;
+
+  if (wants('print')) {
+    const p = path.join(outDir, 'print.html');
+    fs.writeFileSync(p, renderDocument(lecture));
+    written.push(path.relative(process.cwd(), p));
   }
-  if (!printOnly) {
-    const audiencePath = path.join(outDir, 'audience.html');
-    fs.writeFileSync(audiencePath, renderAudience(lecture));
-    written.push(path.relative(process.cwd(), audiencePath));
+  if (wants('audience')) {
+    const p = path.join(outDir, 'audience.html');
+    fs.writeFileSync(p, renderAudience(lecture));
+    written.push(path.relative(process.cwd(), p));
+  }
+  if (wants('speaker')) {
+    const p = path.join(outDir, 'speaker.html');
+    fs.writeFileSync(p, renderSpeaker(lecture));
+    written.push(path.relative(process.cwd(), p));
   }
 
   console.log(`Wrote ${written.join(', ')} (${shape})`);
