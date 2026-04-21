@@ -1932,30 +1932,34 @@ viewport.addEventListener('pointerdown', (e) => {
   // Skip drag on interactive children so click-to-select still works.
   if (e.target.closest('button, textarea, input, .annot-box, .exp-chev, .annot-add, #toc')) return;
   if (!overview) return;
-  e.preventDefault();
-  viewport.setPointerCapture(e.pointerId);
-  document.body.classList.add('overview-dragging');
+  // Don't preventDefault and don't setPointerCapture eagerly: the
+  // capture would re-target pointerup to viewport, breaking the
+  // synthesized click on the underlying chunk. Instead listen on the
+  // window and only enter "dragging" mode after a real move.
   const session = { x: e.clientX, y: e.clientY, dx0: manualPan.dx, dy0: manualPan.dy, moved: false };
   const move = (ev) => {
     const dx = ev.clientX - session.x, dy = ev.clientY - session.y;
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) session.moved = true;
+    if (!session.moved && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
+      session.moved = true;
+      document.body.classList.add('overview-dragging');
+    }
+    if (!session.moved) return;
     manualPan.dx = session.dx0 + dx;
     manualPan.dy = session.dy0 + dy;
     applyOverviewCamera(true);
   };
   const up = () => {
-    viewport.removeEventListener('pointermove', move);
-    viewport.removeEventListener('pointerup', up);
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    if (!session.moved) return;
     document.body.classList.remove('overview-dragging');
-    if (session.moved) {
-      // Swallow the synthesized click that follows a real drag, so a pan
-      // doesn't accidentally select a chunk on mouse-up.
-      const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); window.removeEventListener('click', swallow, true); };
-      window.addEventListener('click', swallow, true);
-    }
+    // Swallow the synthesized click that follows a real drag, so a pan
+    // doesn't accidentally select a chunk on mouse-up.
+    const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); window.removeEventListener('click', swallow, true); };
+    window.addEventListener('click', swallow, true);
   };
-  viewport.addEventListener('pointermove', move);
-  viewport.addEventListener('pointerup', up);
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
 });
 
 window.addEventListener('resize', () => focusCamera(true));
@@ -2257,13 +2261,12 @@ function forcePush() {
   flashMode('force push');
 }
 
-// N on the speaker focuses the notes pane, rather than opening an
-// annotation (speaker never edits audience annotations directly).
-function focusNotesPane() {
-  notesPane.focus();
-  flashMode('notes focused');
-}
-viewHooks.onN = focusNotesPane;
+// N on the speaker opens the audience-visible annotation slot (PRD §2 –
+// the live marginalia channel that mirrors to the audience). The notes
+// pane on the right is the read-side of source > note: lines plus the
+// editable speaker-private notes; it is focused by clicking it (it has
+// tabindex=0).
+// (Default viewHooks.onN already maps to startAnnotate – no override.)
 
 // Clone the per-chunk <template> content into the notes pane. The
 // template body is pre-rendered by marked at build time.
