@@ -7,7 +7,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,400&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,400&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
@@ -35,9 +35,9 @@
   --camera-duration: 325ms;
   --slide-pad-x: 14%;
   --slide-pad-y: 10%;
-  --slide-height: 60vh;             /* chunk min-height; lower = more neighbor peek */
+  --slide-height: 0vh;              /* chunk min-height; 0 = auto-size to content */
   --chunk-gap: 4vh;
-  --body-font: 'Source Serif 4', Georgia, serif;
+  --body-font: 'Literata', 'Source Serif 4', Georgia, serif;
   --annot-font: 'JetBrains Mono', monospace;
   --overview-scale: 0.28;
 }
@@ -122,6 +122,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 0.6em;
+  position: relative;               /* anchor for absolute-positioned annotation */
 }
 
 .tag-label {
@@ -192,6 +193,65 @@ html, body {
   margin-bottom: 0.2em;
 }
 
+/* ============ layout archetypes: visual variability inside the slide frame ============ */
+
+/* two-col: body flows across two columns with a column rule between.
+   Good for chunks with ~2 short paragraphs — halves the line length, feels textbook-like. */
+.chunk[data-layout=two-col] { --content-w: 56em; }
+.chunk[data-layout=two-col] .chunk-body {
+  column-count: 2;
+  column-gap: 2.5em;
+  column-rule: 1px solid var(--rule);
+}
+.chunk[data-layout=two-col] .chunk-body p { break-inside: avoid; }
+
+/* side-by-side: heading on left, body on right. For definition-like chunks
+   where the heading is the object being defined and the body is the definition. */
+.chunk[data-layout=side-by-side] { --content-w: 54em; }
+.chunk[data-layout=side-by-side] .chunk-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr);
+  gap: 2em;
+  align-items: start;
+}
+.chunk[data-layout=side-by-side] .chunk-content > * { grid-column: 2; }
+.chunk[data-layout=side-by-side] .chunk-heading {
+  grid-column: 1;
+  grid-row: 1 / span 99;
+  align-self: start;
+  padding-top: 0.1em;
+  border-right: 1px solid var(--rule);
+  padding-right: 1.2em;
+  margin-right: 0;
+}
+.chunk[data-layout=side-by-side] .tag-label { grid-column: 2; }
+
+/* sketch-hero: sketch dominates; caption / heading below it, quiet. */
+.chunk[data-layout=sketch-hero] { --content-w: 60em; }
+.chunk[data-layout=sketch-hero] .chunk-content { gap: 1em; align-items: center; }
+.chunk[data-layout=sketch-hero] .chunk-heading { order: 2; text-align: center; color: var(--ink-soft); }
+.chunk[data-layout=sketch-hero] .chunk-body { order: 3; text-align: center; max-width: 40em; }
+.chunk[data-layout=sketch-hero] .sketch { order: 1; margin: 0; font-size: calc(0.9em * var(--zoom)); }
+.chunk[data-layout=sketch-hero] .tag-label { order: 0; text-align: center; }
+
+/* pull-quote: body is a centered large statement, no heading visible.
+   For a principle-like chunk that wants to land as a single quote. */
+.chunk[data-layout=pull-quote] { --content-w: 36em; text-align: center; }
+.chunk[data-layout=pull-quote] .chunk-heading { display: none; }
+.chunk[data-layout=pull-quote] .chunk-body {
+  font-size: calc(1.5em * var(--zoom));
+  font-weight: 500;
+  line-height: 1.35;
+  font-style: italic;
+}
+.chunk[data-layout=pull-quote] .chunk-content::before {
+  content: '';
+  display: block;
+  width: 3em; height: 2px;
+  background: var(--ink);
+  margin: 0 auto 0.8em;
+}
+
 .sketch {
   font-family: 'JetBrains Mono', monospace;
   font-size: calc(0.78em * var(--zoom));
@@ -207,20 +267,26 @@ html, body {
    4vw gap, ~14vw of left-of-viewport padding.  Computed in focusCamera. */
 .annot-box {
   position: absolute;
-  top: var(--slide-pad-y);
-  right: calc(100% + 4vw);
-  width: 42vw;
+  top: 0;                            /* aligned with top of content column */
+  right: calc(100% + 2.5vw);         /* 2.5vw left of content column's left edge */
+  width: 21vw;
   display: none;
   font-family: var(--annot-font);
-  font-size: calc(0.62em * var(--zoom));
+  font-size: calc(0.56em * var(--zoom));
   line-height: 1.5;
   color: var(--ink);
-  padding: 1.2em 1.6em;
+  padding: 1em 1.2em;
   border: 1px dotted var(--rule);
   background: var(--paper);
   z-index: 2;
+  opacity: 0.4;                      /* dimmed by default — visible but not competing */
+  transition: opacity 220ms ease;
 }
+/* Show the annot-box whenever the chunk has an annotation OR is being edited */
+.chunk.has-annot .annot-box,
 .chunk.annot-visible .annot-box { display: block; }
+/* Full opacity only while actively editing */
+.chunk.annot-visible .annot-box { opacity: 1; }
 
 .annot-box-label {
   font-family: 'Inter Tight', sans-serif;
@@ -255,21 +321,9 @@ html, body {
    Layout: outer is 7vw wide positioned at slide's left edge; inner pre is 38vw
    anchored to outer's right, extending leftward off the outer (overflow: hidden
    clips the left-most portion). Effect: user sees the "right edge" of the note. */
-.annot-preview {
-  position: absolute;
-  top: var(--slide-pad-y);
-  left: 0;
-  width: 7vw;
-  max-height: calc(var(--slide-height) - var(--slide-pad-y) * 2);
-  overflow: hidden;
-  opacity: 0.32;
-  cursor: pointer;
-  z-index: 2;
-  display: none;
-  pointer-events: auto;
-}
-.chunk.has-annot:not(.annot-visible) .annot-preview { display: block; }
-.annot-preview:hover { opacity: 0.55; }
+/* Annot-preview retired: the dimmed annot-box itself now serves as the visible
+   indicator when a chunk has an annotation but isn't being edited. */
+.annot-preview { display: none !important; }
 .annot-preview .annot-preview-inner {
   position: absolute;
   top: 0;
@@ -277,18 +331,18 @@ html, body {
   width: 38vw;
   margin: 0;
   font-family: var(--annot-font);
-  font-size: calc(0.55em * var(--zoom));
-  line-height: 1.45;
+  font-size: calc(0.62em * var(--zoom));
+  line-height: 1.4;
   color: var(--ink);
   white-space: pre-wrap;
   text-align: right;
 }
 
-/* "+ NOTE" affordance — only visible on active chunk without annotation, not editing */
+/* "+ NOTE" affordance — positioned where a future note would appear (left of content) */
 .annot-add {
   position: absolute;
-  top: calc(var(--slide-pad-y) * 0.7);
-  left: var(--slide-pad-x);
+  top: 0;
+  right: calc(100% + 2.5vw);
   font-family: 'Inter Tight', sans-serif;
   font-variant-caps: all-small-caps;
   letter-spacing: 0.15em;
@@ -298,9 +352,10 @@ html, body {
   cursor: pointer;
   background: transparent;
   border: 0;
-  padding: 0.25em 0.4em 0.25em 0;
+  padding: 0.25em 0.4em;
   transition: opacity 200ms ease;
   z-index: 2;
+  white-space: nowrap;
 }
 .chunk.active:not(.has-annot):not(.annot-visible) .annot-add { opacity: 0.45; }
 .chunk.active:not(.has-annot):not(.annot-visible) .annot-add:hover { opacity: 0.9; }
@@ -348,7 +403,8 @@ html, body {
 }
 .chunk.expanded .exp-body.on {
   grid-column: 2;
-  position: static;
+  position: relative;
+  z-index: 3;                        /* sits above any overflowing slide content */
   opacity: 1;
   pointer-events: auto;
   transform: none;
@@ -357,14 +413,12 @@ html, body {
   line-height: 1.5;
   color: var(--ink);
   font-family: var(--body-font);
+  background: var(--paper);          /* solid paper under expansion text */
+  padding: 1.2em 1.6em;
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--ink); /* heavier left edge marks it as a panel */
 }
-.chunk.expanded .exp-body.on::before {
-  content: '';
-  display: block;
-  width: 2em; height: 1px;
-  background: var(--rule);
-  margin-bottom: 0.5em;
-}
+.chunk.expanded .exp-body.on::before { display: none; }
 .exp-body { display: none; }
 .chunk.expanded .exp-body.on { display: block; }
 .exp-body .tag-label { text-align: left; font-size: 0.72em; margin-bottom: 0.3em; }
@@ -403,9 +457,26 @@ body.neighbor-fade.navigating .chunk:not(.active) {
 [data-collapse=bold] #stage .chunk-body p { line-height: 1.35; margin-bottom: 0.4em; }
 [data-collapse=bold] #stage .sketch { display: none; }
 
-/* Combined: first sentence of every paragraph visible; in the rest, only bold phrases */
+/* Combined: first sentence of every paragraph visible;
+   bold phrases from the rest of each paragraph become their own
+   indented block lines with a dash marker — reading as sub-points
+   belonging to the topic sentence above. */
 [data-collapse=topic-bold] #stage .sentence-rest .prose { display: none; }
-/* sentence-head visible in full, strong inside sentence-rest visible, all paragraphs shown */
+[data-collapse=topic-bold] #stage .sentence-rest strong {
+  display: block;
+  margin: 0.35em 0 0 1.5em;
+  font-weight: 500;
+  position: relative;
+  color: var(--emph);
+}
+[data-collapse=topic-bold] #stage .sentence-rest strong::before {
+  content: '—';
+  position: absolute;
+  left: -1em;
+  color: var(--ink-soft);
+  font-weight: 400;
+  opacity: 0.6;
+}
 
 /* ================ blank ================ */
 body.blanked #stage-viewport { background: oklch(0.06 0 0); }
@@ -796,8 +867,8 @@ input[type=range] { width: 100%; accent-color: var(--chrome-accent); margin: 0.2
       <div class="row"><label>Slide padding</label><span class="val" id="pad-val">14%</span></div>
       <input type="range" id="pad" min="2" max="22" step="0.5" value="14">
 
-      <div class="row"><label>Slide height</label><span class="val" id="slideh-val">60vh</span></div>
-      <input type="range" id="slideh" min="40" max="95" step="1" value="60">
+      <div class="row"><label>Min slide height</label><span class="val" id="slideh-val">0vh</span></div>
+      <input type="range" id="slideh" min="0" max="95" step="1" value="0">
 
       <div class="row"><label>Chunk gap (vertical)</label><span class="val" id="gap-val">4vh</span></div>
       <input type="range" id="gap" min="0" max="25" step="1" value="4">
@@ -883,7 +954,7 @@ const LECTURE = {
       id: 'motivation', heading: 'Motivation',
       chunks: [
         {
-          id: 'motivation/why-not-privacy', tag: 'free', width: 'standard', align: 'center',
+          id: 'motivation/why-not-privacy', tag: 'free', width: 'wide', align: 'center', layout: 'two-col',
           heading: 'Why anonymity ≠ privacy',
           body:
 `<p><strong>Anonymity is a property of actions, not of people.</strong> An act is anonymous when the adversary cannot tell the actor apart from a set of other possible actors.</p>
@@ -894,7 +965,7 @@ const LECTURE = {
           speakerNote: 'Open with the pseudonymous-diary example. Ask the room for a case where privacy holds but anonymity fails. 2 min max.'
         },
         {
-          id: 'motivation/unlinkability', tag: 'principle', width: 'wide', align: 'center',
+          id: 'motivation/unlinkability', tag: 'principle', width: 'wide', align: 'center', layout: 'pull-quote',
           heading: 'Unlinkability is the primitive',
           body:
 `<p>Two items are <strong>unlinkable</strong> if the adversary cannot decide, from observation alone, whether they belong to the same subject.</p>
@@ -915,7 +986,7 @@ const LECTURE = {
       id: 'definitions', heading: 'Definitions',
       chunks: [
         {
-          id: 'definitions/k-anonymity', tag: 'definition', width: 'standard', align: 'center',
+          id: 'definitions/k-anonymity', tag: 'definition', width: 'wide', align: 'center', layout: 'side-by-side',
           heading: 'k-anonymity',
           body:
 `<p>A release satisfies <strong>k-anonymity</strong> when every record is indistinguishable from at least $k-1$ others on its quasi-identifier attributes:</p>
@@ -928,7 +999,7 @@ const LECTURE = {
           speakerNote: 'Derive on the board if the room looks lost. k=2 is the minimum meaningful value but rarely adequate.'
         },
         {
-          id: 'definitions/l-diversity', tag: 'definition', width: 'standard', align: 'center',
+          id: 'definitions/l-diversity', tag: 'definition', width: 'wide', align: 'center', layout: 'side-by-side',
           heading: 'l-diversity',
           body:
 `<p>k-anonymity fails when records in a class share the same sensitive value (the <em>homogeneity attack</em>). <strong>l-diversity</strong> requires each class to also contain at least $l$ well-represented sensitive values.</p>`,
@@ -952,7 +1023,7 @@ const LECTURE = {
       id: 'adversary', heading: 'Adversary model',
       chunks: [
         {
-          id: 'adversary/ladder', tag: 'figure', width: 'wide', align: 'center',
+          id: 'adversary/ladder', tag: 'figure', width: 'wide', align: 'center', layout: 'sketch-hero',
           heading: 'Attacker capability ladder',
           body: `<p>Five rungs. Each subsumes those below. <strong>A claim of anonymity is meaningful only relative to a specified rung.</strong></p>`,
           sketch:
@@ -983,7 +1054,7 @@ const LECTURE = {
           speakerNote: 'Pause for questions after "claims to succeed". It usually provokes one.'
         },
         {
-          id: 'adversary/threats-first', tag: 'principle', width: 'wide', align: 'center',
+          id: 'adversary/threats-first', tag: 'principle', width: 'wide', align: 'center', layout: 'pull-quote',
           heading: 'Threats first, mechanisms second',
           body: `<p><strong>Specify the adversary before specifying the defense.</strong> A mechanism designed against rung 2 looks foolish against rung 4 — or, worse, looks convincing.</p>`,
           speakerNote: 'Repeat "threats first, mechanisms second" twice. It shows up on the exam.'
@@ -1024,7 +1095,7 @@ const DEFAULTS = {
   inkSoft: 0.50,
   zoom: 1.2,
   pad: 14,
-  slideH: 60,
+  slideH: 0,
   gap: 4,
   cam: 325,
   view: 'single',
@@ -1097,21 +1168,21 @@ const presenter = document.getElementById('presenter');
 function chunkEl(chunk, colIdx, chunkIdx, forPresenter = false) {
   const hasAnnot = !!(annotations[chunk.id] || '').trim();
   const parts = [];
-  parts.push(`<article class="chunk${hasAnnot ? ' has-annot' : ''}" data-width="${chunk.width || 'standard'}"${chunk.tag ? ` data-tag="${chunk.tag}"` : ''}${chunk.align ? ` data-align="${chunk.align}"` : ''} data-id="${esc(chunk.id)}">`);
+  parts.push(`<article class="chunk${hasAnnot ? ' has-annot' : ''}" data-width="${chunk.width || 'standard'}"${chunk.tag ? ` data-tag="${chunk.tag}"` : ''}${chunk.align ? ` data-align="${chunk.align}"` : ''}${chunk.layout ? ` data-layout="${chunk.layout}"` : ''} data-id="${esc(chunk.id)}">`);
   parts.push(`<div class="chunk-content">`);
   if (chunk.tag && chunk.tag !== 'free' && chunk.tag !== 'exercise') parts.push(`<div class="tag-label">${chunk.tag}</div>`);
   if (chunk.heading) parts.push(`<h2 class="chunk-heading">${esc(chunk.heading)}</h2>`);
   parts.push(`<div class="chunk-body">${splitFirstSentence(chunk.body || '')}</div>`);
   if (chunk.sketch) parts.push(`<pre class="sketch">${esc(chunk.sketch)}</pre>`);
-  parts.push(`</div>`);
 
-  // Annotation box (left of slide) + preview sliver in left margin when content exists
+  // Annotation elements inside chunk-content: absolutely positioned at its left edge
   parts.push(`<aside class="annot-box" data-annot-for="${esc(chunk.id)}">
     <div class="annot-box-label">annotation · ${esc(chunk.id)}</div>
     <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1">${esc(annotations[chunk.id] || '')}</textarea>
   </aside>`);
   parts.push(`<button class="annot-add" data-annot-add type="button">+ note</button>`);
   parts.push(`<div class="annot-preview" data-annot-preview-for="${esc(chunk.id)}" title="Click to open annotation"><pre class="annot-preview-inner">${esc(annotations[chunk.id] || '')}</pre></div>`);
+  parts.push(`</div>`);
 
   if (chunk.expansions && chunk.expansions.length) {
     const chevs = chunk.expansions.map((e, i) =>
@@ -1167,9 +1238,9 @@ function chunkEl(chunk, colIdx, chunkIdx, forPresenter = false) {
       });
       ta.addEventListener('blur', () => {
         if (annotEditingId === chunk.id) annotEditingId = null;
-        if (!(annotations[chunk.id] || '').trim()) {
-          el.classList.remove('annot-visible');
-        }
+        // Always exit editing visual state on blur. If content exists,
+        // .has-annot keeps the preview showing; if empty, nothing remains.
+        el.classList.remove('annot-visible');
         setTimeout(() => focusCamera(false), 20);
       });
       ta.addEventListener('keydown', (e) => {
@@ -1290,8 +1361,13 @@ function focusCamera(instant = false) {
   const { left: ox, top: oy, width: ow, height: oh } = getOffset(c, stage);
 
   let tx, ty;
-  if (annotEditingId === entry.data.id) {
-    tx = vpW * 0.60 - ox;
+  const isEditingAnnot = annotEditingId === entry.data.id;
+  if (isEditingAnnot) {
+    // Active editing: pan camera so content's left edge lands at viewport 33%,
+    // fully revealing the annot-box to its left.
+    const contentEl = c.querySelector('.chunk-content');
+    const contentOff = contentEl ? getOffset(contentEl, stage) : { left: ox + ow / 2 };
+    tx = vpW * 0.33 - contentOff.left;
     ty = (oh <= vpH) ? vpH / 2 - (oy + oh / 2) : (vpH * 0.05) - oy;
   } else if (openExp && openExp.chunkId === entry.data.id) {
     // Center camera on the expansion body itself (user request: "focus decisively on the expanded content")
@@ -1501,7 +1577,10 @@ function applyState() {
   r.style.setProperty('--ink-l', state.ink);
   r.style.setProperty('--ink-soft-l', state.inkSoft);
   r.style.setProperty('--slide-pad-x', state.pad + '%');
-  r.style.setProperty('--slide-pad-y', Math.max(4, state.pad - 2) + '%');
+  // vertical padding in vh (not %), decoupled from horizontal padding.
+  // Small vertical pad lets auto-height chunks actually be short, which
+  // in turn lets neighbor peek become substantial.
+  r.style.setProperty('--slide-pad-y', Math.max(2, state.pad * 0.35) + 'vh');
   r.style.setProperty('--slide-height', state.slideH + 'vh');
   r.style.setProperty('--chunk-gap', state.gap + 'vh');
   r.style.setProperty('--body-font', state.font === 'serif' ? "'Source Serif 4', Georgia, serif" : "'Inter Tight', system-ui, sans-serif");
@@ -1704,14 +1783,14 @@ bindSlider('cam', 'cam', v => v + 'ms', parseInt);
 
 /* ---------- presets ---------- */
 const PRESETS = {
-  live:    { focus:'lecture', dim:0.86, collapse:'none',       neighbor:'fade',    ink:0.10, inkSoft:0.50, zoom:1.2, pad:14, slideH:60, gap:4,  cam:325, view:'single', disc:'70-30', font:'serif', annotFont:'mono' },
-  skim:    { focus:'lecture', dim:0.86, collapse:'topic-bold', neighbor:'fade',    ink:0.10, inkSoft:0.50, zoom:1.2, pad:14, slideH:60, gap:4,  cam:325, view:'single', disc:'70-30', font:'serif', annotFont:'mono' },
+  live:    { focus:'lecture', dim:0.86, collapse:'none',       neighbor:'fade',    ink:0.10, inkSoft:0.50, zoom:1.2, pad:14, slideH:0, gap:4,  cam:325, view:'single', disc:'70-30', font:'serif', annotFont:'mono' },
+  skim:    { focus:'lecture', dim:0.86, collapse:'topic-bold', neighbor:'fade',    ink:0.10, inkSoft:0.50, zoom:1.2, pad:14, slideH:0, gap:4,  cam:325, view:'single', disc:'70-30', font:'serif', annotFont:'mono' },
   flow:    { focus:'lecture', dim:0.70, collapse:'none',       neighbor:'dim',     ink:0.12, inkSoft:0.55, zoom:1.2, pad:14, slideH:55, gap:2,  cam:325, view:'single', disc:'70-30', font:'serif', annotFont:'mono' },
   iso:     { focus:'lecture', dim:1.00, collapse:'none',       neighbor:'hidden',  ink:0.10, inkSoft:0.50, zoom:1.2, pad:14, slideH:90, gap:20, cam:325, view:'single', disc:'70-30', font:'serif', annotFont:'mono' },
-  dual:    { focus:'lecture', dim:0.86, collapse:'none',       neighbor:'fade',    ink:0.10, inkSoft:0.50, zoom:1.2, pad:14, slideH:60, gap:4,  cam:325, view:'dual',   disc:'70-30', font:'serif', annotFont:'mono' },
-  study:   { focus:'off',     dim:0.30, collapse:'none',       neighbor:'dim',     ink:0.15, inkSoft:0.50, zoom:1.2, pad:14, slideH:60, gap:4,  cam:325, view:'single', disc:'70-30', font:'serif', annotFont:'mono' },
-  handout: { focus:'off',     dim:0,    collapse:'none',       neighbor:'dim',     ink:0.15, inkSoft:0.50, zoom:1,   pad:14, slideH:60, gap:4,  cam:325, view:'print',  disc:'70-30', font:'serif', annotFont:'mono' },
-  anti:    { focus:'lecture', dim:0.86, collapse:'none',       neighbor:'fade',    ink:0.10, inkSoft:0.50, zoom:1.2, pad:14, slideH:60, gap:4,  cam:325, view:'single', disc:'anti',  font:'serif', annotFont:'mono' },
+  dual:    { focus:'lecture', dim:0.86, collapse:'none',       neighbor:'fade',    ink:0.10, inkSoft:0.50, zoom:1.2, pad:14, slideH:0, gap:4,  cam:325, view:'dual',   disc:'70-30', font:'serif', annotFont:'mono' },
+  study:   { focus:'off',     dim:0.30, collapse:'none',       neighbor:'dim',     ink:0.15, inkSoft:0.50, zoom:1.2, pad:14, slideH:0, gap:4,  cam:325, view:'single', disc:'70-30', font:'serif', annotFont:'mono' },
+  handout: { focus:'off',     dim:0,    collapse:'none',       neighbor:'dim',     ink:0.15, inkSoft:0.50, zoom:1,   pad:14, slideH:0, gap:4,  cam:325, view:'print',  disc:'70-30', font:'serif', annotFont:'mono' },
+  anti:    { focus:'lecture', dim:0.86, collapse:'none',       neighbor:'fade',    ink:0.10, inkSoft:0.50, zoom:1.2, pad:14, slideH:0, gap:4,  cam:325, view:'single', disc:'anti',  font:'serif', annotFont:'mono' },
 };
 document.querySelectorAll('.preset').forEach(b => b.addEventListener('click', () => applyPreset(b.dataset.preset)));
 function applyPreset(name) {
