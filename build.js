@@ -1285,6 +1285,80 @@ function saveActive() {
   try { localStorage.setItem(storageKey('activeIdx'), String(state.activeIdx)); } catch (e) {}
 }
 
+// ── BroadcastChannel sync (PRD §7 / speaker.md §3) ──────────────────
+// Same-origin + same-browser-profile. Channel name keyed by lecture
+// title so two lectures open at once don't cross-talk. Messages are
+// always full state snapshots, never diffs.
+const channel = new BroadcastChannel('psi-lecdoc-sync:' + LECTURE_TITLE);
+let isApplyingRemote = false;
+// The speaker-side push toggle is declared in SPEAKER_JS. Audience has
+// no equivalent – it broadcasts unconditionally. shouldBroadcast() reads
+// this through the window object so both contexts can test it.
+function shouldBroadcast() {
+  if (isApplyingRemote) return false;
+  if (VIEW === 'audience') return true;
+  return window.pushEnabled === true;
+}
+function snapshot() {
+  return {
+    activeIdx: state.activeIdx,
+    revealed: Object.assign({}, revealed),
+    collapse: state.collapse,
+    zoom: state.zoom,
+    blanked: state.blanked,
+    annotations: Object.assign({}, annotations),
+    openExp: openExp ? { chunkIdx: openExp.chunkIdx, expIdx: openExp.expIdx } : null,
+  };
+}
+function broadcastState() {
+  if (!shouldBroadcast()) return;
+  channel.postMessage({ type: 'state', source: VIEW, payload: snapshot() });
+}
+function applyRemoteState(payload) {
+  isApplyingRemote = true;
+  try {
+    state.activeIdx = Math.max(0, Math.min(flatChunks.length - 1, payload.activeIdx || 0));
+    state.collapse = payload.collapse || 'topic-bold';
+    state.zoom = payload.zoom || 1.35;
+    state.blanked = !!payload.blanked;
+    Object.keys(revealed).forEach(k => delete revealed[k]);
+    Object.assign(revealed, payload.revealed || {});
+    Object.keys(annotations).forEach(k => delete annotations[k]);
+    Object.assign(annotations, payload.annotations || {});
+    // Reflect annotation text into the textareas so the other view sees
+    // keystrokes landing in real time.
+    flatChunks.forEach(c => {
+      const ta = c.el.querySelector('.annot-textarea');
+      if (!ta) return;
+      const v = annotations[c.id] || '';
+      if (ta.value !== v) { ta.value = v; autosize(ta); }
+      c.el.classList.toggle('has-annot', !!v.trim());
+    });
+    document.body.classList.toggle('blanked', state.blanked);
+    // Expansions: close any current, open the remote one if any.
+    closeAnyExpansion();
+    if (payload.openExp) toggleExp(payload.openExp.chunkIdx, payload.openExp.expIdx);
+    applyState();
+    applyRevealAll();
+    saveActive();
+    focusCamera(false);
+  } finally {
+    isApplyingRemote = false;
+  }
+}
+channel.onmessage = (ev) => {
+  const m = ev.data;
+  if (!m || typeof m !== 'object') return;
+  if (m.type === 'hello' && m.source !== VIEW && VIEW === 'audience') {
+    // Audience replies to any hello with the current state.
+    channel.postMessage({ type: 'state', source: 'audience', payload: snapshot() });
+    return;
+  }
+  if (m.type === 'state' && m.source !== VIEW) {
+    applyRemoteState(m.payload);
+  }
+};
+
 // Collapse-mode DOM transforms: wrap each paragraph's first sentence in
 // .sentence-head + .sentence-rest, and wrap text runs inside .sentence-rest
 // with .prose so the collapse CSS can hide just the prose while keeping
@@ -1333,6 +1407,7 @@ function applyState() {
   document.documentElement.style.setProperty('--zoom', state.zoom);
   flatChunks.forEach((c, i) => c.el.classList.toggle('active', i === state.activeIdx));
   viewHooks.onActiveChange();
+  broadcastState();
 }
 
 function countSegments(el) {
@@ -1533,6 +1608,7 @@ function advanceReveal() {
   if (cur < segCount) {
     revealed[entry.id] = cur + 1;
     applyReveal(entry.el, entry.id);
+    broadcastState();
     return true;
   }
   return false;
@@ -1641,6 +1717,7 @@ function wireAnnotations() {
       autosize(ta);
       el.classList.toggle('has-annot', !!ta.value.trim());
       saveAnnotations();
+      broadcastState();
     });
     ta.addEventListener('focus', () => {
       annotEditingId = id;
@@ -1703,6 +1780,7 @@ function setZoom(z) {
   state.zoom = Math.round(Math.max(0.6, Math.min(2.2, z)) * 20) / 20;
   document.documentElement.style.setProperty('--zoom', state.zoom);
   setTimeout(() => focusCamera(false), 30);
+  broadcastState();
   flashMode('zoom: ' + state.zoom.toFixed(2) + '×');
 }
 
@@ -1758,7 +1836,7 @@ document.addEventListener('keydown', (e) => {
       if (tocVisible) { tocVisible = false; document.body.classList.remove('toc-visible'); break; }
       if (overview) { dismissOverviewNoMove(); break; }
       if (annotEditingId) { blurAnnotation(); break; }
-      if (openExp) { closeAnyExpansion(); setTimeout(() => focusCamera(false), 20); }
+      if (openExp) { closeAnyExpansion(); broadcastState(); setTimeout(() => focusCamera(false), 20); }
       break;
     }
     case 'n': case 'N': {
@@ -1777,6 +1855,7 @@ document.addEventListener('keydown', (e) => {
     case 'b': case 'B':
       state.blanked = !state.blanked;
       document.body.classList.toggle('blanked', state.blanked);
+      broadcastState();
       e.preventDefault(); break;
     case 'p': case 'P':
       // In the speaker view, Shift-P is the push-to-audience toggle;
@@ -2141,18 +2220,24 @@ const scrubberEl = document.getElementById('scrubber');
 const timerEl = document.getElementById('timer');
 const pushIndicator = document.getElementById('push-indicator');
 
-// Push-to-audience toggle (Shift-P) and force-push (.). Real BC sync lands
-// in the next commit; here they're local state only.
-let pushEnabled = true;
+// Push-to-audience toggle (Shift-P) and force-push (.). Real BC sync.
+// pushEnabled lives on window so the shared shouldBroadcast() in
+// AUDIENCE_JS can test it without importing anything.
+window.pushEnabled = true;
 function togglePush() {
-  pushEnabled = !pushEnabled;
-  pushIndicator.classList.toggle('push-on', pushEnabled);
-  pushIndicator.classList.toggle('push-off', !pushEnabled);
-  pushIndicator.textContent = pushEnabled ? 'push ●' : 'push ○';
-  flashMode(pushEnabled ? 'push on' : 'push off');
+  window.pushEnabled = !window.pushEnabled;
+  pushIndicator.classList.toggle('push-on', window.pushEnabled);
+  pushIndicator.classList.toggle('push-off', !window.pushEnabled);
+  pushIndicator.textContent = window.pushEnabled ? 'push ●' : 'push ○';
+  flashMode(window.pushEnabled ? 'push on' : 'push off');
 }
 function forcePush() {
-  flashMode('force push (sync not yet wired)');
+  // Bypass the push gate: broadcast once regardless.
+  const wasOn = window.pushEnabled;
+  window.pushEnabled = true;
+  broadcastState();
+  window.pushEnabled = wasOn;
+  flashMode('force push');
 }
 
 // N on the speaker focuses the notes pane, rather than opening an
@@ -2270,6 +2355,12 @@ populateNotesPane();
 populatePreviewStrip();
 
 window.addEventListener('resize', populatePreviewStrip);
+
+// Hello handshake: announce on boot. Audience replies with current
+// state; speaker applyRemoteState picks it up. If no audience is
+// listening, the message is dropped and we stay on our localStorage
+// state – audience will broadcast its own state once it opens.
+channel.postMessage({ type: 'hello', source: 'speaker' });
 `;
 
 // ── CLI ──────────────────────────────────────────────────────────────
