@@ -539,18 +539,12 @@ function abbrevForLabel(label) {
 }
 
 function renderTitleChunk(chunk, frontmatter) {
-  const { title, presenter, info } = frontmatter;
   const idAttr = chunk.id ? ` id="${escapeHtml(chunk.id)}"` : '';
   const chunkId = chunk.id || 'title';
   const bodyHtml = (chunk.body || '').trim() ? marked.parse(chunk.body) : '';
-  const infoHtml = bodyHtml
-    ? bodyHtml
-    : splitInfo(info).map(l => `<p>${escapeHtml(l)}</p>`).join('');
   return `<article class="chunk chunk-title" data-tag="title" data-width="full" data-chunk-id="${escapeHtml(chunkId)}"${idAttr}>
   <div class="chunk-content">
-    <h1 class="title-main">${escapeHtml(title || '')}</h1>
-    ${presenter ? `<p class="title-presenter">${escapeHtml(presenter)}</p>` : ''}
-    ${infoHtml ? `<div class="title-info">${infoHtml}</div>` : ''}
+    ${renderTitleBlock({ ...frontmatter, bodyHtml })}
   </div>
 </article>`;
 }
@@ -630,6 +624,20 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx) {
 </article>`;
 }
 
+function renderTocNav(columns) {
+  const items = columns
+    .map((c, i) => ({ c, i }))
+    .filter(x => x.c.heading)
+    .map(x => `<li data-toc-col="${x.i}"><button type="button">${escapeHtml(x.c.heading)}</button></li>`)
+    .join('\n    ');
+  return `<nav id="toc" aria-label="Contents">
+  <h2>Contents</h2>
+  <ol>
+    ${items}
+  </ol>
+</nav>`;
+}
+
 function renderAudience(lecture) {
   const { frontmatter, columns } = lecture;
   const title = frontmatter.title || 'Untitled lecture';
@@ -643,17 +651,6 @@ ${chunks}
 </section>`;
   }).join('\n');
 
-  // TOC entries – flat list of named columns (§5: TOC is column-only, not
-  // chunk-level). Anonymous columns (e.g. the cover-slide-only column with
-  // no # heading) are skipped.
-  const tocItems = columns
-    .map((c, i) => ({ heading: c.heading, colIdx: i }))
-    .filter(c => c.heading)
-    .map(c => `<li data-toc-col="${c.colIdx}"><button type="button">${escapeHtml(c.heading)}</button></li>`)
-    .join('\n    ');
-
-  // Lecture-title string drives the localStorage namespace. Escaping it
-  // into JSON makes the value safe to embed inline in a script literal.
   const titleJson = JSON.stringify(title);
 
   return `<!DOCTYPE html>
@@ -683,12 +680,7 @@ ${columnsHtml}
   <span class="hint">overview · drag · wheel · click · <kbd>O</kbd>/<kbd>Enter</kbd> land · <kbd>/</kbd> search · <kbd>Esc</kbd></span>
   <input id="search-input" type="text" placeholder="search..." autocomplete="off" spellcheck="false">
 </div>
-<nav id="toc" aria-label="Contents">
-  <h2>Contents</h2>
-  <ol>
-    ${tocItems}
-  </ol>
-</nav>
+${renderTocNav(columns)}
 <script>
 const LECTURE_TITLE = ${titleJson};
 ${AUDIENCE_JS}
@@ -1235,6 +1227,7 @@ const viewHooks = {
   onN: (entry) => startAnnotate(entry.id),
   onActiveChange: () => {},
   onStateChange: () => {},
+  shouldBroadcast: () => true,
 };
 
 const stage = document.getElementById('stage');
@@ -1291,13 +1284,11 @@ function saveActive() {
 // always full state snapshots, never diffs.
 const channel = new BroadcastChannel('psi-lecdoc-sync:' + LECTURE_TITLE);
 let isApplyingRemote = false;
-// The speaker-side push toggle is declared in SPEAKER_JS. Audience has
-// no equivalent – it broadcasts unconditionally. shouldBroadcast() reads
-// this through the window object so both contexts can test it.
+// Audience broadcasts unconditionally; speaker overrides
+// viewHooks.shouldBroadcast to gate on its push toggle.
 function shouldBroadcast() {
   if (isApplyingRemote) return false;
-  if (VIEW === 'audience') return true;
-  return window.pushEnabled === true;
+  return viewHooks.shouldBroadcast();
 }
 function snapshot() {
   return {
@@ -1335,10 +1326,14 @@ function applyRemoteState(payload) {
       c.el.classList.toggle('has-annot', !!v.trim());
     });
     document.body.classList.toggle('blanked', state.blanked);
-    // Expansions: close any current, open the remote one if any.
+    // Expansions: close any current, open the remote one if any. toggleExp
+    // calls applyState internally, so skip the second call in that branch.
     closeAnyExpansion();
-    if (payload.openExp) toggleExp(payload.openExp.chunkIdx, payload.openExp.expIdx);
-    applyState();
+    if (payload.openExp) {
+      toggleExp(payload.openExp.chunkIdx, payload.openExp.expIdx);
+    } else {
+      applyState();
+    }
     applyRevealAll();
     saveActive();
     focusCamera(false);
@@ -1359,11 +1354,22 @@ channel.onmessage = (ev) => {
   }
 };
 
-// Collapse-mode DOM transforms: wrap each paragraph's first sentence in
-// .sentence-head + .sentence-rest, and wrap text runs inside .sentence-rest
-// with .prose so the collapse CSS can hide just the prose while keeping
-// <strong> phrases visible in topic+bold mode.
+// Wraps each paragraph as <head><rest>, and within rest wraps bare text
+// runs in .prose. Collapse mode "topic-bold" then hides .prose while
+// keeping <strong> phrases visible.
 function splitSentencesIn(root) {
+  const wrapProse = (node) => {
+    for (const k of [...node.childNodes]) {
+      if (k.nodeType === 3 && k.textContent.trim()) {
+        const span = document.createElement('span');
+        span.className = 'prose';
+        span.appendChild(document.createTextNode(k.textContent));
+        node.replaceChild(span, k);
+      } else if (k.nodeType === 1 && k.tagName !== 'STRONG' && !k.classList.contains('prose')) {
+        wrapProse(k);
+      }
+    }
+  };
   root.querySelectorAll('p').forEach(p => {
     if (p.querySelector('.sentence-head')) return;
     const head = document.createElement('span'); head.className = 'sentence-head';
@@ -1387,18 +1393,6 @@ function splitSentencesIn(root) {
       p.appendChild(rest);
     }
   });
-}
-function wrapProse(node) {
-  for (const k of [...node.childNodes]) {
-    if (k.nodeType === 3 && k.textContent.trim()) {
-      const span = document.createElement('span');
-      span.className = 'prose';
-      span.appendChild(document.createTextNode(k.textContent));
-      node.replaceChild(span, k);
-    } else if (k.nodeType === 1 && k.tagName !== 'STRONG' && !k.classList.contains('prose')) {
-      wrapProse(k);
-    }
-  }
 }
 
 // State
@@ -1736,8 +1730,6 @@ function wireAnnotations() {
   });
 }
 
-// Click handling on the stage: distinguishes chunk-body clicks, chevrons,
-// and annotation affordances.
 function wireClicks() {
   flatChunks.forEach((entry, idx) => {
     entry.el.addEventListener('click', (ev) => {
@@ -2034,14 +2026,7 @@ ${noteTemplates.join('\n')}
   <span class="hint">overview · drag · wheel · click · <kbd>O</kbd>/<kbd>Enter</kbd> land · <kbd>/</kbd> search · <kbd>Esc</kbd></span>
   <input id="search-input" type="text" placeholder="search..." autocomplete="off" spellcheck="false">
 </div>
-<nav id="toc" aria-label="Contents">
-  <h2>Contents</h2>
-  <ol>
-    ${columns.map((c, i) => ({ c, i })).filter(x => x.c.heading).map(x =>
-      `<li data-toc-col="${x.i}"><button type="button">${escapeHtml(x.c.heading)}</button></li>`
-    ).join('\n    ')}
-  </ol>
-</nav>
+${renderTocNav(columns)}
 <script>
 const LECTURE_TITLE = ${titleJson};
 ${AUDIENCE_JS}
@@ -2209,10 +2194,6 @@ body[data-view=speaker] .annot-add { display: none !important; }
 // ── speaker-specific runtime (loaded after AUDIENCE_JS) ──────────────
 
 const SPEAKER_JS = `
-// AUDIENCE_JS has run: flatChunks, state, viewHooks, applyState, focusCamera,
-// jumpTo, toggleExp, etc. exist. This block wires the speaker-only panels
-// and overrides viewHooks for speaker-specific behavior.
-
 const notesContent = document.getElementById('notes-content');
 const notesPane = document.getElementById('notes-pane');
 const previewStrip = document.getElementById('preview-strip');
@@ -2220,23 +2201,19 @@ const scrubberEl = document.getElementById('scrubber');
 const timerEl = document.getElementById('timer');
 const pushIndicator = document.getElementById('push-indicator');
 
-// Push-to-audience toggle (Shift-P) and force-push (.). Real BC sync.
-// pushEnabled lives on window so the shared shouldBroadcast() in
-// AUDIENCE_JS can test it without importing anything.
-window.pushEnabled = true;
+let pushEnabled = true;
+viewHooks.shouldBroadcast = () => pushEnabled;
 function togglePush() {
-  window.pushEnabled = !window.pushEnabled;
-  pushIndicator.classList.toggle('push-on', window.pushEnabled);
-  pushIndicator.classList.toggle('push-off', !window.pushEnabled);
-  pushIndicator.textContent = window.pushEnabled ? 'push ●' : 'push ○';
-  flashMode(window.pushEnabled ? 'push on' : 'push off');
+  pushEnabled = !pushEnabled;
+  pushIndicator.classList.toggle('push-on', pushEnabled);
+  pushIndicator.classList.toggle('push-off', !pushEnabled);
+  pushIndicator.textContent = pushEnabled ? 'push ●' : 'push ○';
+  flashMode(pushEnabled ? 'push on' : 'push off');
 }
 function forcePush() {
-  // Bypass the push gate: broadcast once regardless.
-  const wasOn = window.pushEnabled;
-  window.pushEnabled = true;
-  broadcastState();
-  window.pushEnabled = wasOn;
+  // Bypass the push gate with a direct postMessage.
+  if (isApplyingRemote) return;
+  channel.postMessage({ type: 'state', source: VIEW, payload: snapshot() });
   flashMode('force push');
 }
 
@@ -2248,9 +2225,8 @@ function focusNotesPane() {
 }
 viewHooks.onN = focusNotesPane;
 
-// Populate the notes pane by cloning the per-chunk <template>. No
-// innerHTML – template content is a live DocumentFragment produced at
-// build time from trusted source.
+// Clone the per-chunk <template> content into the notes pane. The
+// template body is pre-rendered by marked at build time.
 function populateNotesPane() {
   notesContent.replaceChildren();
   const entry = flatChunks[state.activeIdx];
@@ -2342,9 +2318,15 @@ function renderTimer() {
 setInterval(renderTimer, 1000);
 renderTimer();
 
-// Hook: refresh the three panels on every active-chunk change.
+// Hook: refresh scrubber on every state change, but only re-populate the
+// notes pane and preview strip when the active chunk actually changed.
+// Without this guard, every remote annotation keystroke would rebuild 3
+// cloned chunk subtrees in the preview strip.
+let lastPopulatedIdx = -1;
 viewHooks.onActiveChange = () => {
   updateScrubber();
+  if (state.activeIdx === lastPopulatedIdx) return;
+  lastPopulatedIdx = state.activeIdx;
   populateNotesPane();
   populatePreviewStrip();
 };
