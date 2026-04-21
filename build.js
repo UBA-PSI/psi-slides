@@ -1142,6 +1142,8 @@ body.overview-mode #stage-viewport { cursor: grab; }
 body.overview-mode #stage-viewport:active { cursor: grabbing; }
 body.overview-mode #stage { transition: transform var(--camera-duration) cubic-bezier(0.45, 0, 0.2, 1); }
 body.overview-mode.overview-dragging #stage { transition: none; }
+body.view-panning, body.view-panning * { cursor: grabbing !important; }
+body.view-panning #stage { transition: none; }
 body.overview-mode .chunk {
   opacity: 1 !important;
   cursor: pointer;
@@ -1491,6 +1493,9 @@ function focusCamera(instant = false) {
     ty = (height <= vp.height) ? vp.height / 2 - (top + height / 2) : vp.height * 0.05 - top;
   }
 
+  // Shift-drag manual pan offset (§5: zoom-induced overflow). Reset on chunk change.
+  tx += manualPan.dx; ty += manualPan.dy;
+
   if (instant) stage.style.transition = 'none';
   stage.style.transform = \`translate(\${tx}px, \${ty}px)\`;
   if (instant) requestAnimationFrame(() => { stage.style.transition = ''; });
@@ -1613,6 +1618,8 @@ function jumpTo(idx, direction) {
   if (idx < 0 || idx >= flatChunks.length) return;
   if (annotEditingId) blurAnnotation();
   closeAnyExpansion();
+  // Reset shift-drag pan on chunk change – pan is per-chunk inspection.
+  manualPan = { dx: 0, dy: 0 };
 
   const target = flatChunks[idx];
   const segCount = countSegments(target.el);
@@ -1866,6 +1873,7 @@ document.addEventListener('keydown', (e) => {
       if (tocVisible) { tocVisible = false; document.body.classList.remove('toc-visible'); break; }
       if (overview) { dismissOverviewNoMove(); break; }
       if (annotEditingId) { blurAnnotation(); break; }
+      if (manualPan.dx || manualPan.dy) { manualPan = { dx: 0, dy: 0 }; focusCamera(false); break; }
       if (openExp) { closeAnyExpansion(); broadcastState(); setTimeout(() => focusCamera(false), 20); }
       break;
     }
@@ -1931,30 +1939,34 @@ viewport.addEventListener('wheel', (e) => {
 viewport.addEventListener('pointerdown', (e) => {
   // Skip drag on interactive children so click-to-select still works.
   if (e.target.closest('button, textarea, input, .annot-box, .exp-chev, .annot-add, #toc')) return;
-  if (!overview) return;
-  // Don't preventDefault and don't setPointerCapture eagerly: the
-  // capture would re-target pointerup to viewport, breaking the
-  // synthesized click on the underlying chunk. Instead listen on the
-  // window and only enter "dragging" mode after a real move.
-  const session = { x: e.clientX, y: e.clientY, dx0: manualPan.dx, dy0: manualPan.dy, moved: false };
+  // Two pan modes share this handler: in overview, any drag pans; in
+  // normal view, shift+drag pans (chunk-local, reset on navigation).
+  const mode = overview ? 'overview' : (e.shiftKey ? 'view' : null);
+  if (!mode) return;
+  // Don't setPointerCapture eagerly: it would re-target pointerup to
+  // viewport, breaking the synthesized click on the underlying chunk.
+  // Use window-level listeners and only enter "dragging" after a real move.
+  const session = { x: e.clientX, y: e.clientY, dx0: manualPan.dx, dy0: manualPan.dy, moved: false, mode };
+  const dragClass = mode === 'overview' ? 'overview-dragging' : 'view-panning';
+  const apply = mode === 'overview' ? applyOverviewCamera : focusCamera;
   const move = (ev) => {
     const dx = ev.clientX - session.x, dy = ev.clientY - session.y;
     if (!session.moved && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
       session.moved = true;
-      document.body.classList.add('overview-dragging');
+      document.body.classList.add(dragClass);
     }
     if (!session.moved) return;
     manualPan.dx = session.dx0 + dx;
     manualPan.dy = session.dy0 + dy;
-    applyOverviewCamera(true);
+    apply(true);
   };
   const up = () => {
     window.removeEventListener('pointermove', move);
     window.removeEventListener('pointerup', up);
     if (!session.moved) return;
-    document.body.classList.remove('overview-dragging');
+    document.body.classList.remove(dragClass);
     // Swallow the synthesized click that follows a real drag, so a pan
-    // doesn't accidentally select a chunk on mouse-up.
+    // doesn't accidentally select/jump on mouse-up.
     const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); window.removeEventListener('click', swallow, true); };
     window.addEventListener('click', swallow, true);
   };
