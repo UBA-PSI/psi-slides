@@ -1298,12 +1298,26 @@ function saveActive() {
   try { localStorage.setItem(storageKey('activeIdx'), String(state.activeIdx)); } catch (e) {}
 }
 
-// ── BroadcastChannel sync (PRD §7 / speaker.md §3) ──────────────────
-// Same-origin + same-browser-profile. Channel name keyed by lecture
-// title so two lectures open at once don't cross-talk. Messages are
-// always full state snapshots, never diffs.
-const channel = new BroadcastChannel('psi-lecdoc-sync:' + LECTURE_TITLE);
+// ── window.postMessage sync (PRD §7 / speaker.md §3) ────────────────
+// The audience spawns the speaker via S (window.open), which gives
+// each window a reference to the other (return value of window.open
+// for the audience, window.opener for the speaker). postMessage on
+// these references is cross-origin by design, so this works even
+// between two file:// pages where BroadcastChannel does not.
+//
+// Messages are always full state snapshots, never diffs. The peer
+// is auto-adopted from any inbound message, so an audience reload
+// while the speaker is alive recovers the link as soon as the
+// speaker next pushes.
+let peer = null;
 let isApplyingRemote = false;
+function setPeer(w) {
+  if (w && w !== window && !w.closed) peer = w;
+}
+function sendToPeer(msg) {
+  if (!peer || peer.closed) { peer = null; return; }
+  try { peer.postMessage(msg, '*'); } catch (e) { peer = null; }
+}
 // Audience broadcasts unconditionally; speaker overrides
 // viewHooks.shouldBroadcast to gate on its push toggle.
 function shouldBroadcast() {
@@ -1323,7 +1337,7 @@ function snapshot() {
 }
 function broadcastState() {
   if (!shouldBroadcast()) return;
-  channel.postMessage({ type: 'state', source: VIEW, payload: snapshot() });
+  sendToPeer({ type: 'state', source: VIEW, payload: snapshot() });
 }
 function applyRemoteState(payload) {
   isApplyingRemote = true;
@@ -1361,18 +1375,22 @@ function applyRemoteState(payload) {
     isApplyingRemote = false;
   }
 }
-channel.onmessage = (ev) => {
+window.addEventListener('message', (ev) => {
   const m = ev.data;
   if (!m || typeof m !== 'object') return;
-  if (m.type === 'hello' && m.source !== VIEW && VIEW === 'audience') {
-    // Audience replies to any hello with the current state.
-    channel.postMessage({ type: 'state', source: 'audience', payload: snapshot() });
+  if (m.source === VIEW) return; // ignore our own postings (shouldn't happen, defensive)
+  // Adopt sender as peer. Handles two cases: audience reload while
+  // speaker is alive (speaker's next push reconnects us); audience
+  // first hearing from a speaker that booted via opener.
+  if (ev.source && ev.source !== window) setPeer(ev.source);
+  if (m.type === 'hello' && VIEW === 'audience') {
+    sendToPeer({ type: 'state', source: 'audience', payload: snapshot() });
     return;
   }
-  if (m.type === 'state' && m.source !== VIEW) {
+  if (m.type === 'state') {
     applyRemoteState(m.payload);
   }
-};
+});
 
 // Wraps each paragraph as <head><rest>, and within rest wraps bare text
 // runs in .prose. Collapse mode "topic-bold" then hides .prose while
@@ -1885,9 +1903,10 @@ document.addEventListener('keydown', (e) => {
       }
       break;
     case 's': case 'S':
-      // Only in audience: open the speaker window.
+      // Only in audience: open the speaker window and remember it as our peer.
       if (VIEW === 'audience') {
-        window.open('speaker.html', 'psi-lecdoc-speaker', 'width=1400,height=900');
+        const w = window.open('speaker.html', 'psi-lecdoc-speaker', 'width=1400,height=900');
+        setPeer(w);
         e.preventDefault();
       }
       break;
@@ -2232,9 +2251,9 @@ function togglePush() {
   flashMode(pushEnabled ? 'push on' : 'push off');
 }
 function forcePush() {
-  // Bypass the push gate with a direct postMessage.
+  // Bypass the push gate with a direct send.
   if (isApplyingRemote) return;
-  channel.postMessage({ type: 'state', source: VIEW, payload: snapshot() });
+  sendToPeer({ type: 'state', source: VIEW, payload: snapshot() });
   flashMode('force push');
 }
 
@@ -2359,11 +2378,13 @@ populatePreviewStrip();
 
 window.addEventListener('resize', populatePreviewStrip);
 
-// Hello handshake: announce on boot. Audience replies with current
-// state; speaker applyRemoteState picks it up. If no audience is
-// listening, the message is dropped and we stay on our localStorage
-// state – audience will broadcast its own state once it opens.
-channel.postMessage({ type: 'hello', source: 'speaker' });
+// Hello handshake: at boot the speaker adopts its opener (the
+// audience that spawned it via S) as peer and announces itself.
+// Audience replies with the current state snapshot; applyRemoteState
+// picks it up. If we were opened standalone (no opener), peer stays
+// null and we run on our localStorage state.
+setPeer(window.opener);
+sendToPeer({ type: 'hello', source: 'speaker' });
 `;
 
 // ── CLI ──────────────────────────────────────────────────────────────

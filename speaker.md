@@ -6,7 +6,7 @@ Short spec for the speaker view and its sync protocol with `audience.html`. Comm
 
 **In (Phase 1, this slice):**
 - New output `speaker.html`, built from the same `source.md` as `audience.html` and `print.html`.
-- `BroadcastChannel` sync between audience and speaker (same-origin, same-machine, per PRD §7).
+- `window.postMessage` sync between audience and speaker via the opener relationship (audience spawns speaker via `S`, both windows hold cross-references). Works across `file://` origins where `BroadcastChannel` is isolated by Chrome's per-file opaque-origin policy.
 - Three-panel layout: current-chunk mirror (centered), next-previews (bottom strip, 2-3 upcoming), notes pane (right).
 - Column-level **scrubber** (top or bottom edge): flat list of column headings + chunk-count pips, click jumps. No full chunk thumbnails.
 - **Push-to-audience toggle**: when off, speaker navigates privately; when on (default), speaker nav drives audience.
@@ -40,7 +40,7 @@ The audience is the **state root**. The speaker owns a **local shadow** of the s
 | `blanked` | bool | audience blackout |
 | `annotations` | `{id: string}` | speaker-edited, mirrors to audience |
 
-**State that stays local** (never sent over the channel):
+**State that stays local** (never posted to the peer):
 
 | Field | Who owns it | Why |
 |---|---|---|
@@ -60,7 +60,9 @@ The speaker's "next previews" always render chunks **fully revealed** regardless
 
 ## 3. Message protocol
 
-Channel name: `psi-lecdoc:<lecture-title>`. Every message is a **full snapshot**, never a diff. Snapshots are cheap, and this eliminates the class of bugs where a late-joiner sees a partially-reconstructed state.
+Transport: `window.postMessage(msg, '*')` between the two windows. The audience holds the speaker reference returned by `window.open(...)`; the speaker holds `window.opener`. Both views adopt any inbound `ev.source` as their peer, so an audience reload while the speaker is alive recovers the link the moment the speaker next pushes.
+
+Every message is a **full snapshot**, never a diff. Snapshots are cheap, and this eliminates the class of bugs where a late-joiner sees a partially-reconstructed state.
 
 ```javascript
 // Sent by either side on any syncable state change (if push enabled).
@@ -137,12 +139,12 @@ Speaker inherits audience nav bindings, plus:
 ### 4.3 Audience → speaker startup
 
 On `S` in audience:
-1. Audience runs `window.open('speaker.html', 'psi-lecdoc-speaker', 'width=1400,height=900')`.
-2. Speaker boots, posts a `hello` on the channel.
-3. Audience receives `hello`, replies with current state.
+1. Audience runs `window.open('speaker.html', 'psi-lecdoc-speaker', 'width=1400,height=900')` and stashes the returned `Window` reference as its `peer`.
+2. Speaker boots, picks up `window.opener` as its `peer`, posts a `hello` to it.
+3. Audience receives `hello`, replies with current state via `peer.postMessage(...)`.
 4. Speaker applies state, shows itself ready.
 
-If speaker opens first (URL typed directly), it waits up to ~500 ms for a `hello`-reply; if none arrives, it shows a placeholder "waiting for audience" and keeps polling `hello` every 2 s until connected.
+If speaker opens standalone (URL typed directly, bookmark) there is no `window.opener` and the speaker has no peer; it boots from localStorage and runs disconnected until an audience appears. Live cross-window discovery for the standalone case is not in this slice.
 
 ## 5. Persistence
 
@@ -172,7 +174,7 @@ All confirmed before implementation starts:
 
 1. Parser: add `chunk.speakerNotes: string[]`; audience/print behavior unchanged (they never read it).
 2. `renderSpeaker(lecture)` + SPEAKER_CSS + SPEAKER_JS: static layout first, no sync. Just renders correctly with dummy local state.
-3. BroadcastChannel wiring on **both** outputs. Audience sends state; speaker receives + applies. Hello/reply handshake.
+3. `window.postMessage` wiring on **both** outputs (peer adoption from inbound messages; audience stashes the spawn return value, speaker uses `window.opener`). Audience sends state; speaker receives + applies. Hello/reply handshake.
 4. Speaker → audience direction. Push-toggle. `.` force-push.
 5. Timer + crash-recovery localStorage.
 6. Smoke test: open both tabs, nav in audience, verify speaker mirrors. Nav in speaker, verify audience mirrors. Toggle push, verify desync + resync.
