@@ -832,10 +832,25 @@ html, body {
   font-size: calc(0.78em * var(--zoom));
   line-height: 1.4;
   white-space: pre;
+  /* Code blocks are not bound by the chunk's text-column width. They
+     grow to their longest line, capped at the slide-inner width
+     (viewport minus slide-padding on both sides – we expand to 72vw,
+     matching the chunk's 14% horizontal padding). This lets a .narrow
+     or .standard chunk hold a wide code snippet without clipping;
+     long lines can still scroll horizontally as a last resort.
+     Centering trick: chunk-content sits in the middle grid column
+     (slide-centered); position:relative + left:50% + translateX(-50%)
+     re-pins the pre's center to the slide's center even when the pre
+     is wider than its containing chunk-content. */
+  width: max-content;
+  max-width: 72vw;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
   overflow-x: auto;
   margin: 0.4em 0;
   color: var(--ink);
-  text-align: left; /* defensive: don't inherit parent text-align into preformatted text */
+  text-align: left;
 }
 
 /* reveal segments: first visible, rest hidden until advanced */
