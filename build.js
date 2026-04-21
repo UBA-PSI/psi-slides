@@ -771,6 +771,7 @@ html, body {
   overflow-x: auto;
   margin: 0.4em 0;
   color: var(--ink);
+  text-align: left; /* defensive: don't inherit parent text-align into preformatted text */
 }
 
 /* reveal segments: first visible, rest hidden until advanced */
