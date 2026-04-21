@@ -202,6 +202,24 @@ function parseLecture(src) {
 
 // ── rendering ────────────────────────────────────────────────────────
 
+// Live-reload snippet for --watch mode. The build threads opts.watchPort
+// into each renderer; a non-null port emits this <script> just before
+// </head>. Production builds receive opts.watchPort = null and the
+// renderers emit nothing, keeping the output a static file.
+function reloadScript(port) {
+  if (!port) return '';
+  return `<script>
+(() => {
+  const connect = () => {
+    const ws = new WebSocket('ws://localhost:${port}');
+    ws.addEventListener('message', e => { if (e.data === 'reload') location.reload(); });
+    ws.addEventListener('close', () => setTimeout(connect, 500));
+  };
+  connect();
+})();
+</script>`;
+}
+
 function escapeHtml(s = '') {
   return String(s)
     .replace(/&/g, '&amp;')
@@ -292,7 +310,7 @@ function renderToc(columns) {
 </nav>`;
 }
 
-function renderDocument(lecture) {
+function renderDocument(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
   const title = frontmatter.title || 'Untitled lecture';
   const toc = renderToc(columns);
@@ -312,6 +330,7 @@ function renderDocument(lecture) {
 <style>
 ${PRINT_CSS}
 </style>
+${reloadScript(opts.watchPort)}
 </head>
 <body>
 <main>
@@ -638,7 +657,7 @@ function renderTocNav(columns) {
 </nav>`;
 }
 
-function renderAudience(lecture) {
+function renderAudience(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
   const title = frontmatter.title || 'Untitled lecture';
   const columnsHtml = columns.map((col, ci) => {
@@ -662,6 +681,7 @@ ${chunks}
 <style>
 ${AUDIENCE_CSS}
 </style>
+${reloadScript(opts.watchPort)}
 </head>
 <body data-collapse="topic-bold">
 <div id="stage-viewport">
@@ -1937,7 +1957,7 @@ if (document.fonts && document.fonts.ready) {
 
 // ── speaker rendering ────────────────────────────────────────────────
 
-function renderSpeaker(lecture) {
+function renderSpeaker(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
   const title = frontmatter.title || 'Untitled lecture';
 
@@ -1989,6 +2009,7 @@ ${chunks}
 ${AUDIENCE_CSS}
 ${SPEAKER_CSS}
 </style>
+${reloadScript(opts.watchPort)}
 </head>
 <body data-collapse="topic-bold" data-view="speaker">
 <div id="scrubber">
@@ -2347,6 +2368,80 @@ channel.postMessage({ type: 'hello', source: 'speaker' });
 
 // ── CLI ──────────────────────────────────────────────────────────────
 
+// Build the three HTML outputs for a single source file. Returns the
+// list of written paths and the lecture shape string. Throws on parse
+// errors – callers in --watch wrap this so a single bad save does not
+// kill the watcher.
+function buildOnce(absIn, only, opts = {}) {
+  const src = fs.readFileSync(absIn, 'utf8');
+  const lecture = parseLecture(src);
+
+  const outDir = path.dirname(absIn);
+  const chunkCount = lecture.columns.reduce((n, c) => n + c.chunks.length, 0);
+  const shape = `${lecture.columns.length} columns, ${chunkCount} chunks`;
+  const written = [];
+
+  const wants = (target) => !only || only === `--${target}-only`;
+
+  if (wants('print')) {
+    const p = path.join(outDir, 'print.html');
+    fs.writeFileSync(p, renderDocument(lecture, opts));
+    written.push(path.relative(process.cwd(), p));
+  }
+  if (wants('audience')) {
+    const p = path.join(outDir, 'audience.html');
+    fs.writeFileSync(p, renderAudience(lecture, opts));
+    written.push(path.relative(process.cwd(), p));
+  }
+  if (wants('speaker')) {
+    const p = path.join(outDir, 'speaker.html');
+    fs.writeFileSync(p, renderSpeaker(lecture, opts));
+    written.push(path.relative(process.cwd(), p));
+  }
+
+  return { written, shape };
+}
+
+// Watch mode: build once, start a WS server on a free port, install a
+// debounced fs.watch on the source file, and broadcast 'reload' to all
+// connected clients on each successful rebuild. The reload snippet
+// reconnects on close, so the server can come and go without breaking
+// the open browser tabs.
+async function runWatch(absIn, only) {
+  const { WebSocketServer } = await import('ws');
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise(resolve => wss.on('listening', resolve));
+  const port = wss.address().port;
+  const opts = { watchPort: port };
+
+  const broadcast = (msg) => {
+    for (const client of wss.clients) {
+      if (client.readyState === 1) client.send(msg);
+    }
+  };
+
+  const rebuild = (label) => {
+    try {
+      const { written, shape } = buildOnce(absIn, only, opts);
+      console.log(`[${label}] ${written.join(', ')} (${shape})`);
+      broadcast('reload');
+    } catch (err) {
+      console.error(`[${label}] build failed: ${err.message}`);
+    }
+  };
+
+  rebuild('initial');
+  console.log(`Watching ${path.relative(process.cwd(), absIn)} – live-reload on ws://localhost:${port}`);
+
+  // Editors typically emit two close-spaced events per save (write +
+  // rename on atomic save). Debounce so we rebuild once per save.
+  let timer = null;
+  fs.watch(absIn, { persistent: true }, () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => rebuild('rebuild'), 80);
+  });
+}
+
 function main() {
   const argv = process.argv.slice(2);
   const flags = new Set(argv.filter(a => a.startsWith('--')));
@@ -2354,7 +2449,7 @@ function main() {
   const [inputPath] = positional;
 
   if (!inputPath || flags.has('--help') || flags.has('-h')) {
-    console.error('Usage: node build.js <source.md> [--audience-only|--print-only|--speaker-only]');
+    console.error('Usage: node build.js <source.md> [--watch] [--audience-only|--print-only|--speaker-only]');
     process.exit(inputPath ? 0 : 1);
   }
 
@@ -2370,32 +2465,16 @@ function main() {
     console.error(`Input not found: ${absIn}`);
     process.exit(1);
   }
-  const src = fs.readFileSync(absIn, 'utf8');
-  const lecture = parseLecture(src);
 
-  const outDir = path.dirname(absIn);
-  const chunkCount = lecture.columns.reduce((n, c) => n + c.chunks.length, 0);
-  const shape = `${lecture.columns.length} columns, ${chunkCount} chunks`;
-  const written = [];
-
-  const wants = (target) => !only || only === `--${target}-only`;
-
-  if (wants('print')) {
-    const p = path.join(outDir, 'print.html');
-    fs.writeFileSync(p, renderDocument(lecture));
-    written.push(path.relative(process.cwd(), p));
-  }
-  if (wants('audience')) {
-    const p = path.join(outDir, 'audience.html');
-    fs.writeFileSync(p, renderAudience(lecture));
-    written.push(path.relative(process.cwd(), p));
-  }
-  if (wants('speaker')) {
-    const p = path.join(outDir, 'speaker.html');
-    fs.writeFileSync(p, renderSpeaker(lecture));
-    written.push(path.relative(process.cwd(), p));
+  if (flags.has('--watch')) {
+    runWatch(absIn, only).catch(err => {
+      console.error(`Watch failed: ${err.message}`);
+      process.exit(1);
+    });
+    return;
   }
 
+  const { written, shape } = buildOnce(absIn, only);
   console.log(`Wrote ${written.join(', ')} (${shape})`);
 }
 
