@@ -689,6 +689,7 @@ ${reloadScript(opts.watchPort)}
 ${columnsHtml}
   </div>
 </div>
+<div id="laser-pointer" aria-hidden="true"></div>
 <div id="hints">
   <kbd>←</kbd><kbd>→</kbd> column &nbsp; <kbd>↑</kbd><kbd>↓</kbd> chunk &nbsp; <kbd>Space</kbd> reveal<br>
   <kbd>Enter</kbd>/<kbd>1</kbd>–<kbd>9</kbd> expand &nbsp; <kbd>N</kbd> annotate &nbsp; <kbd>C</kbd> collapse<br>
@@ -1137,6 +1138,24 @@ body.blanked #stage { opacity: 0; }
 }
 #mode-badge.visible { display: block; }
 
+/* Laser pointer – the audience's mirror of the speaker's cursor.
+   Speaker view does not render this (the speaker has a real cursor). */
+#laser-pointer {
+  position: fixed;
+  top: 0; left: 0;
+  width: 18px; height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  background: oklch(0.62 0.22 25 / 0.55);
+  box-shadow: 0 0 0 2px oklch(0.62 0.22 25 / 0.25), 0 0 12px oklch(0.62 0.22 25 / 0.45);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms ease;
+  z-index: 25;
+}
+#laser-pointer.visible { opacity: 1; }
+body[data-view=speaker] #laser-pointer { display: none; }
+
 /* overview mode (PRD §5) ------------------------------------------- */
 body.overview-mode #stage-viewport { cursor: grab; }
 body.overview-mode #stage-viewport:active { cursor: grabbing; }
@@ -1391,8 +1410,35 @@ window.addEventListener('message', (ev) => {
   }
   if (m.type === 'state') {
     applyRemoteState(m.payload);
+    return;
+  }
+  if (m.type === 'cursor' && VIEW === 'audience') {
+    showLaserPointer(m.chunkIdx, m.x, m.y);
   }
 });
+
+// Laser pointer – audience-only mirror of the speaker's mouse position.
+// chunkIdx + percentage coords let the receiver position relative to
+// its own copy of the active chunk (so different zoom levels still align).
+const laserEl = document.getElementById('laser-pointer');
+let laserHideTimer = null;
+function showLaserPointer(chunkIdx, px, py) {
+  if (!laserEl) return;
+  if (chunkIdx !== state.activeIdx) { hideLaserPointer(); return; }
+  const entry = flatChunks[chunkIdx];
+  if (!entry) return;
+  const r = entry.el.getBoundingClientRect();
+  laserEl.style.left = (r.left + px * r.width) + 'px';
+  laserEl.style.top  = (r.top  + py * r.height) + 'px';
+  laserEl.classList.add('visible');
+  clearTimeout(laserHideTimer);
+  laserHideTimer = setTimeout(hideLaserPointer, 500);
+}
+function hideLaserPointer() {
+  if (laserEl) laserEl.classList.remove('visible');
+  clearTimeout(laserHideTimer);
+  laserHideTimer = null;
+}
 
 // Wraps each paragraph as <head><rest>, and within rest wraps bare text
 // runs in .prose. Collapse mode "topic-bold" then hides .prose while
@@ -2423,6 +2469,33 @@ populateNotesPane();
 populatePreviewStrip();
 
 window.addEventListener('resize', populatePreviewStrip);
+
+// Laser pointer: while the speaker mouse hovers over the stage
+// viewport, mirror its position to the audience. Coordinates are
+// expressed as fractions of the active chunk's bounding box, so the
+// audience can place the dot correctly even at a different zoom.
+// rAF-throttled so we don't spam the peer with raw pointermove.
+let laserPending = null;
+function maybeSendLaser() {
+  if (!laserPending) return;
+  const { x, y, chunkIdx } = laserPending;
+  laserPending = null;
+  sendToPeer({ type: 'cursor', source: 'speaker', chunkIdx, x, y });
+}
+viewport.addEventListener('pointermove', (ev) => {
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) return;
+  const r = entry.el.getBoundingClientRect();
+  if (r.width <= 0 || r.height <= 0) return;
+  const x = (ev.clientX - r.left) / r.width;
+  const y = (ev.clientY - r.top) / r.height;
+  if (!laserPending) requestAnimationFrame(maybeSendLaser);
+  laserPending = { x, y, chunkIdx: state.activeIdx };
+});
+viewport.addEventListener('pointerleave', () => {
+  // Tell audience to drop the dot when the speaker mouse leaves the stage.
+  sendToPeer({ type: 'cursor', source: 'speaker', chunkIdx: -1, x: 0, y: 0 });
+});
 
 // Hello handshake: at boot the speaker adopts its opener (the
 // audience that spawned it via S) as peer and announces itself.
