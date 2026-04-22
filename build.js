@@ -427,7 +427,9 @@ function renderChunk(chunk, frontmatter) {
 </article>`;
   }
 
-  const labelTag = tag && tag !== 'free' ? tag : null;
+  // `figure:` is self-evident from the artwork; eyebrow would just stack a
+  // third label above the heading + sub-heading.
+  const labelTag = tag && tag !== 'free' && tag !== 'figure' ? tag : null;
   const label = labelTag
     ? `<span class="chunk-label">${escapeHtml(labelTag)}</span>`
     : '';
@@ -831,7 +833,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx) {
   const chunkId = id || `c${colIdx}-${chunkIdx}`;
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
 
-  const labelTag = tag && tag !== 'free' && tag !== 'exercise' ? tag : null;
+  const labelTag = tag && tag !== 'free' && tag !== 'exercise' && tag !== 'figure' ? tag : null;
   const tagLabel = labelTag
     ? `<div class="tag-label">${escapeHtml(labelTag)}</div>`
     : '';
@@ -1436,9 +1438,8 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
   letter-spacing: 0.1em;
 }
 .chunk[data-tag=figure] .chunk-content { align-items: center; gap: 0.9em; }
-.chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: center; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
+.chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
 .chunk[data-tag=figure] .chunk-heading { order: 2; }
-.chunk[data-tag=figure] .tag-label { order: 0; }
 .chunk[data-tag=figure] .chunk-body pre { order: 1; font-size: calc(0.82em * var(--zoom)); }
 
 .chunk[data-tag=exercise] .chunk-heading { font-style: italic; }

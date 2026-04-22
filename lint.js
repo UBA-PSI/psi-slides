@@ -115,6 +115,34 @@ function lintFile(filePath) {
             `chunk body is ${wc} words (budget for ${chunk.tag ?? 'free'}: ${budget})`);
       }
     }
+    // Figure chunks where the image sits directly below the heading:
+    // the image alt text renders as a <figcaption>, stacking a second
+    // title on top of the artwork (often itself titled internally).
+    // Discourage – authors should use `![](id)` to drop the caption,
+    // or move prose between heading and image if the caption is load-
+    // bearing.
+    if (chunk.tag === 'figure') {
+      let firstContent = null;
+      for (const l of chunkBody) {
+        const t = l.trim();
+        if (!t) continue;
+        if (t.startsWith(':::')) continue;
+        if (t.startsWith('>')) continue;
+        firstContent = t;
+        break;
+      }
+      if (firstContent) {
+        const m = firstContent.match(/^!\[([^\]]*)\]\(([^)]+)\)\s*$/);
+        if (m && m[1].trim()) {
+          const hasSubHeading = chunk.heading && chunk.heading.includes('|');
+          const extra = hasSubHeading
+            ? ` (heading already has a sub-heading via '|', so the caption is the third stacked label)`
+            : ``;
+          add(chunk.line, 'warn', 'figure-caption-redundant',
+              `figure opens with an image whose alt text '${m[1]}' becomes a caption under the heading${extra} – use \`![](${m[2]})\` to drop the caption, or move prose above the image if the caption is load-bearing`);
+        }
+      }
+    }
     if (activeDirective) {
       add(activeDirective.line, 'error', 'unclosed-directive',
           `::: ${activeDirective.kind} not closed before next chunk or column`);
