@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>psi-slides – a ten-step tour – print</title>
+<style>
+
+:root {
+  --ink: #1f1f24;
+  --ink-soft: #6b6b72;
+  --paper: #fafaf7;
+  --rule: #c8c8c0;
+  --emph: #8b2e00;
+  --serif: 'Source Serif 4', 'Source Serif Pro', Georgia, serif;
+  --sans: 'Inter', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', Menlo, monospace;
+}
+
+@page { size: A4; margin: 2.2cm 2cm 2.5cm; }
+
+* { box-sizing: border-box; }
+html { font-family: var(--serif); color: var(--ink); line-height: 1.55; background: var(--paper); }
+body { margin: 0; }
+
+main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
+
+h1, h2, h3 { font-weight: 500; letter-spacing: -0.01em; }
+p { margin: 0.4em 0 0.9em; }
+strong { color: var(--emph); font-weight: 600; }
+em { font-style: italic; }
+
+ul, ol { margin: 0.4em 0 0.9em 1.4em; }
+li { margin: 0.2em 0; }
+li > p:first-child { margin-top: 0; }
+li > p:last-child { margin-bottom: 0.3em; }
+
+code { font-family: var(--mono); font-size: 0.92em; }
+pre {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: rgba(0,0,0,0.04);
+  padding: 0.8em 1em;
+  overflow-x: auto;
+  border-radius: 2px;
+  line-height: 1.45;
+}
+pre code { font-size: inherit; }
+
+a { color: inherit; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 0.15em; }
+a:hover { text-decoration-color: var(--ink); }
+
+.toc {
+  margin: 0 0 4rem;
+  padding: 1.2rem 0 1.8rem;
+  border-bottom: 0.5pt solid var(--rule);
+  page-break-after: always;
+}
+.toc h2 {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-soft);
+  font-weight: 500;
+  margin: 0 0 0.8rem;
+}
+.toc ol { list-style: decimal; padding-left: 2em; }
+.toc li { margin: 0.4em 0; font-size: 1rem; }
+.toc a { text-decoration: none; }
+
+.column { margin: 0 0 3rem; page-break-before: always; }
+.column-anon { page-break-before: auto; margin-top: 0; }
+.column-heading {
+  font-size: 1.9rem;
+  margin: 0 0 1.8rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 0.5pt solid var(--rule);
+}
+
+.chunk {
+  margin: 1.6rem 0 2.2rem;
+  page-break-inside: avoid;
+}
+.chunk-heading {
+  font-size: 1.12rem;
+  margin: 0 0 0.5rem;
+}
+.chunk-label {
+  display: block;
+  font-family: var(--sans);
+  font-variant-caps: all-small-caps;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+  margin: 0 0 0.15rem;
+}
+
+.chunk-principle {
+  border-top: 2.5pt solid var(--ink);
+  padding-top: 1rem;
+  margin-top: 2.8rem;
+}
+.chunk-principle .chunk-heading { font-size: 1.25rem; }
+.chunk-principle p { font-size: 1.05rem; }
+
+.chunk-definition {
+  border-top: 0.5pt solid var(--rule);
+  padding-top: 0.7rem;
+}
+
+.chunk-question {
+  margin: 2.5rem 0;
+  padding: 0.8rem 0;
+}
+.chunk-question .chunk-heading {
+  font-size: 1.5rem;
+  font-style: italic;
+}
+
+.chunk-exercise .chunk-heading { font-style: italic; }
+.chunk-exercise .chunk-label { color: var(--emph); }
+
+.chunk-figure .chunk-heading {
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  margin-top: 0.8rem;
+  order: 2;
+}
+.chunk-figure pre { background: transparent; padding: 0; margin: 0 0 0.4rem; }
+
+/* Expansions (::: expand <label>) inlined into the print stream. */
+.chunk-expansion {
+  margin: 1.1rem 0 0.6rem;
+  padding: 0.1rem 0 0.1rem 1.1rem;
+  border-left: 1.5pt solid var(--rule);
+  color: var(--ink-soft);
+  font-size: 0.96em;
+}
+.chunk-expansion::before {
+  content: attr(data-label);
+  display: block;
+  font-family: var(--sans);
+  font-variant-caps: all-small-caps;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  margin: 0 0 0.25rem;
+}
+.chunk-expansion > :first-child { margin-top: 0; }
+.chunk-expansion > :last-child { margin-bottom: 0; }
+.chunk-expansion strong { color: var(--ink); }
+
+/* Title slide: lower-left-third per PRD §4.4 */
+.chunk-title {
+  min-height: calc(100vh - 6rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: 0 0 12vh;
+  page-break-after: always;
+  page-break-inside: avoid;
+  margin: 0;
+}
+.chunk-title .title-main {
+  font-size: 2.6rem;
+  margin: 0 0 0.8rem;
+  line-height: 1.15;
+}
+.chunk-title .title-presenter {
+  font-size: 1.1rem;
+  margin: 0 0 1.2rem;
+  color: var(--ink);
+}
+.chunk-title .title-info p {
+  margin: 0.12em 0;
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+/* Two-line action heading – the sub-line reads like a subtitle in
+   print, italicized and quieter. The space between the spans (see
+   renderHeadingHtml) keeps the two lines separated visually when
+   they collapse inline. */
+.chunk-heading.has-sub .hd-main { display: block; }
+.chunk-heading.has-sub .hd-sub {
+  display: block;
+  font-weight: 400;
+  font-size: 0.82em;
+  font-style: italic;
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  margin-top: 0.05em;
+  letter-spacing: -0.005em;
+}
+
+/* Layout primitives reflow to linear prose in print. The goal is a
+   readable document: columns collapse, side panes stack, marginalia
+   sits inline as a quiet aside. */
+.cols, .cols-2, .cols-3 { column-count: auto; }
+.cols { margin: 0.4em 0; }
+.cols > p, .side-a > p, .side-b > p { margin: 0.4em 0 0.9em; }
+.side { display: block; margin: 0.4em 0; }
+.side-a, .side-b { display: block; }
+.side-a { margin-bottom: 0.2em; }
+.marginalia {
+  display: block;
+  margin: 0.8em 0;
+  padding: 0.1rem 0 0.1rem 1.1rem;
+  border-left: 1.5pt solid var(--rule);
+  color: var(--ink-soft);
+  font-size: 0.95em;
+}
+.marginalia > :first-child { margin-top: 0; }
+.marginalia > :last-child { margin-bottom: 0; }
+
+/* figure-img: single-column figure with caption below */
+figure.figure-img { margin: 1rem 0; text-align: center; }
+figure.figure-img img { max-width: 100%; height: auto; }
+figure.figure-img figcaption {
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+  margin-top: 0.3em;
+}
+figure.figure-missing {
+  border: 1px dashed #c88a7e;
+  color: #8b2e00;
+  font-family: var(--mono);
+  padding: 0.8em 1em;
+}
+
+/* Shiki code blocks in print: transparent background, inline color */
+pre.shiki { background: transparent !important; padding: 0; margin: 0.4em 0 0.9em; }
+pre.shiki code { font-size: inherit; }
+/* Force inline on .line: white-space:pre already breaks lines via the
+   
+ text nodes shiki leaves between spans. Block would double the gap. */
+pre.shiki .line { display: inline; }
+
+/* Width classes are a live-view concern; in print the column runs
+   at a single reading measure. We still expose them on the DOM for
+   future CSS. */
+
+@media print {
+  body { background: white; }
+  main { padding: 0; max-width: none; }
+  a { text-decoration: none; color: inherit; }
+  .chunk-title { min-height: 24cm; }
+  pre { background: rgba(0,0,0,0.03); }
+}
+
+@media screen {
+  body { padding: 0; }
+  main { padding-top: 4rem; }
+}
+
+</style>
+
+</head>
+<body>
+<main>
+<section class="column column-anon">
+<article class="chunk chunk-title" id="title">
+  <h1 class="title-main">psi-slides – a ten-step tour</h1>
+    <p class="title-presenter">Your own copy</p>
+    <div class="title-info"><p>Tutorial lecture built with psi-slides itself</p><p>Use the tool to learn the tool</p></div>
+</article>
+</section>
+<nav class="toc" aria-label="Contents">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#welcome">Welcome</a></li>
+    <li><a href="#moving">Moving around</a></li>
+    <li><a href="#finding">Finding content</a></li>
+    <li><a href="#speaker">Speaker cockpit</a></li>
+    <li><a href="#next">Next steps</a></li>
+  </ol>
+</nav>
+<section class="column" id="welcome">
+  <h1 class="column-heading">Welcome</h1>
+<article class="chunk chunk-principle width-narrow" id="one-source">
+  <span class="chunk-label">principle</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">One source, three views</span> <span class="hd-sub">print, audience, speaker all come from the same `source.md`</span></h2>
+  <p><strong>psi-slides builds three HTML files from each Markdown source.</strong> Print is a document-style reading copy with a cover and a TOC; audience is this live projection view; speaker is the cockpit with notes, preview strip, and timer.</p>
+<p>The authoring format is the same Markdown for all three – views only differ in <em>what they emit</em>, never in <em>what you wrote</em>.</p>
+
+  
+</article>
+<article class="chunk chunk-free width-wide" id="audience-now">
+  
+  <h2 class="chunk-heading has-sub"><span class="hd-main">What you're reading right now</span> <span class="hd-sub">is the audience view</span></h2>
+  <p><strong>You are in <code>audience.html</code>.</strong> It&#39;s the projector-facing view: one chunk occupies the slide, keyboard nav moves between chunks, and any speaker connected via postMessage can mirror state here in real time.</p>
+<div class="cols cols-2">
+
+
+<p><strong>To see the other two views:</strong></p>
+<ul>
+<li>Press <code>P</code> now to open <code>print.html</code> in a new tab – scroll through the whole lecture as a document.</li>
+<li>Press <code>S</code> to spawn <code>speaker.html</code> as a popup window – that&#39;s the cockpit.</li>
+</ul>
+<p><strong>The source that produced all three</strong> lives at <code>lectures/tutorial/source.md</code>. Every chunk in every view came out of that one file. Open it in a text editor beside this window to see the mapping.</p>
+</div>
+  
+</article>
+</section>
+<section class="column" id="moving">
+  <h1 class="column-heading">Moving around</h1>
+<article class="chunk chunk-example width-standard" id="arrows">
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Arrows and Space</span> <span class="hd-sub">navigate chunks, reveal segments</span></h2>
+  <p><strong>Three key-families carry the whole live-talk navigation:</strong></p>
+<ul>
+<li><code>←</code> <code>→</code> move between <strong>columns</strong> – the top-level sections headed <code># Name</code>.</li>
+<li><code>↑</code> <code>↓</code> move between <strong>chunks</strong> within a column – each <code>## tag: …</code> is one chunk.</li>
+<li><code>Space</code> reveals the next <strong>segment</strong> – a chunk can split into pieces at standalone <code>---</code> lines. Try it now:</li>
+</ul>
+<p><strong>Good – you just revealed a segment.</strong> In the source, a line with only <code>---</code> (outside a code fence) breaks the chunk body into reveal segments. The first is visible on entry; each <code>Space</code> uncovers the next, and past the last, <code>Space</code> advances to the next chunk.</p>
+<p><strong>One more, to show chaining.</strong> Reveal lets you pace dense content during a live talk without dumping everything at once – and in print, all segments render together as one flowing body.</p>
+
+  
+</article>
+<article class="chunk chunk-example width-wide" id="expand">
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Expansions</span> <span class="hd-sub">`Enter` and `1`-`9` open side asides</span></h2>
+  <p><strong>Some chunks have extra detail tucked behind a chevron button.</strong> Click one, or press <code>Enter</code> for the first, or <code>1</code>…<code>9</code> for the N-th. This chunk has two expansions – try both.</p>
+<p><strong>Print collapses all expansions</strong> into block-quoted asides in source order, so the reading copy loses nothing.</p>
+
+  <aside class="chunk-expansion chunk-expansion-expand" data-label="enter-and-digits">
+<p><strong><code>Enter</code> opens the first expansion, digits open specific ones.</strong> This is expansion number 1. Press <code>Esc</code> to close, or <code>2</code> to switch to the second expansion directly – no need to close first.</p>
+<p>In source, an expansion is authored with <code>::: expand &lt;label&gt;</code> … <code>:::</code>. The label shows in the expanded pane header; the chevron button gets an abbreviation (<code>Exp</code> for unknown labels, <code>Ex</code> / <code>Ref</code> / <code>Fig</code> / <code>?</code> / <code>N.B.</code> / <code>!</code> for known families).</p>
+
+</aside>
+<aside class="chunk-expansion chunk-expansion-expand" data-label="collapse-behaviour">
+<p><strong>Expansions disappear in collapse modes.</strong> Press <code>C</code> after closing this to try collapse – the chunk shrinks to topic sentence + bold keywords, and expansions hide entirely. The idea is that expansions are &quot;the branch you take <em>if</em> someone asks&quot;; the main text carries the argument on its own.</p>
+
+</aside>
+</article>
+<article class="chunk chunk-example width-standard" id="overview">
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Overview</span> <span class="hd-sub">`O` zooms out so you can see everything</span></h2>
+  <p><strong>Press <code>O</code> now.</strong> The stage zooms out to show all chunks at once, laid out in their column grid. Drag with the mouse or arrows to move a selection outline; <code>O</code> or <code>Enter</code> lands on the selected chunk; <code>Esc</code> exits without moving.</p>
+<p>Overview is the single best way to get oriented in an unfamiliar lecture – the typographic rhythm of principles, examples, and figures is immediately visible.</p>
+
+  
+</article>
+</section>
+<section class="column" id="finding">
+  <h1 class="column-heading">Finding content</h1>
+<article class="chunk chunk-example width-standard" id="toc">
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">TOC</span> <span class="hd-sub">`T` toggles a flat column index</span></h2>
+  <p><strong><code>T</code> shows a list of every named column with its ID.</strong> Click an entry to jump there directly; <code>T</code> again closes the panel.</p>
+<p>Columns without a <code>{#id}</code> don&#39;t appear – anonymous columns like the title page stay invisible in the nav but still render normally. IDs on named columns are how the TOC links, and also how cross-references (when a <code>[text](#some-id)</code> link shows up in body text) resolve.</p>
+
+  
+</article>
+<article class="chunk chunk-example width-standard" id="search">
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Search</span> <span class="hd-sub">`/` inside overview filters by keyword</span></h2>
+  <p><strong>Only active while <code>O</code> overview is on.</strong> Press <code>O</code>, then <code>/</code>, then start typing – matching chunks keep their outline, non-matches fade to a low-opacity miss state. <code>Enter</code> lands on the first match; <code>Esc</code> exits search without moving.</p>
+<p>Combined: <code>O</code> <code>/</code> <em>word</em> <code>Enter</code> jumps to the first chunk that mentions <em>word</em>, even in a long lecture. This is the fastest jump tool when you half-remember a topic but not its position.</p>
+
+  
+</article>
+</section>
+<section class="column" id="speaker">
+  <h1 class="column-heading">Speaker cockpit</h1>
+<article class="chunk chunk-free width-wide" id="speaker-s">
+  
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Speaker view</span> <span class="hd-sub">the other window `S` spawned</span></h2>
+  <p><strong>The speaker view is the four-lane cockpit.</strong> Press <code>S</code> in this audience view if you haven&#39;t already – it opens <code>speaker.html</code> as a popup, and both windows adopt each other as peers over <code>window.postMessage</code>.</p>
+<div class="cols cols-2">
+
+
+<p><strong>Four lanes, top to bottom:</strong></p>
+<ul>
+<li><strong>Column scrubber</strong> with clickable dots for every chunk.</li>
+<li><strong>Stage mirror</strong> – identical layout to the audience at the same zoom.</li>
+<li><strong>Editable notes pane</strong> below the stage (collapses when empty).</li>
+<li><strong>Preview strip</strong> of all chunks, scrollable and clickable.</li>
+</ul>
+<p><strong>Everything stays in sync.</strong> Chunk changes, reveal state, annotations, theme, font, zoom, expansion state, and the laser pointer all flow through postMessage snapshots. <code>Shift-P</code> on the speaker toggles push on/off; <code>.</code> force-pushes a snapshot even when push is off (useful after a reload).</p>
+</div>
+  
+</article>
+<article class="chunk chunk-example width-wide" id="notes-vs-annot">
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">N vs Shift-N</span> <span class="hd-sub">audience-visible vs private</span></h2>
+  <p><strong>Two different note surfaces, one letter apart:</strong></p>
+<div class="side"><div class="side-a">
+
+
+<p><strong><code>N</code> (both views) is an annotation on the current chunk.</strong> A textarea appears under the chunk; whatever you type is mirrored keystroke-by-keystroke to the other view. Use it for &quot;live marginalia&quot; – a rule you want on screen, a question you captured from the room, a correction during a talk.</p>
+<p>Annotations persist in localStorage per lecture and travel with state snapshots.</p>
+</div><div class="side-b">
+
+
+<p><strong><code>Shift-N</code> (speaker only) opens the private notes pane</strong> below the slide. This is <em>your</em> memory aid, never mirrored. The pane is pre-filled from <code>&gt; note: …</code> lines in source; your in-talk edits override the source text and persist per chunk in localStorage.</p>
+<p>If the pane is collapsed (no notes for this chunk), the corner <code>+ note</code> button on the stage does the same thing as <code>Shift-N</code>.</p>
+</div></div>
+  
+</article>
+<article class="chunk chunk-example width-wide" id="knobs">
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">V and the reading knobs</span> <span class="hd-sub">speaker-side personalisation</span></h2>
+  <p><strong><code>V</code> toggles the preview-strip orientation.</strong> Default is a horizontal bar along the bottom; <code>V</code> moves it to the right edge as a vertical column. Text in the thumbs is larger in vertical mode – worth it on any setup with horizontal room to spare. Pref is persisted globally, so it follows you across lectures.</p>
+<p><strong>Three reading knobs also cycle with single keys:</strong></p>
+<ul>
+<li><code>C</code> cycles <strong>collapse</strong> (none → topic+bold → topic-only → bold-only). Topic+bold is the default live mode; <code>none</code> reads as the full script.</li>
+<li><code>F</code> cycles <strong>font</strong> (serif → sans → mono) for projector legibility.</li>
+<li><code>A</code> cycles <strong>accent theme</strong> – four light shades plus two terminal/phosphor modes.</li>
+</ul>
+<p>All three snap onto both views via postMessage; a change on the speaker is immediately visible on the audience. <code>Shift</code>-any-of-these cycles backwards.</p>
+
+  
+</article>
+</section>
+<section class="column" id="next">
+  <h1 class="column-heading">Next steps</h1>
+<article class="chunk chunk-exercise width-wide" id="read-more">
+  <span class="chunk-label">exercise</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the three artefacts that close the loop</span></h2>
+  <p><strong>Close this tab and poke around the real lectures and docs.</strong> The tour covered the hotkeys; the craft shows in authored content.</p>
+<div class="cols cols-2">
+
+
+<p><strong>1. <code>lectures/python-intro/audience.html</code>.</strong> A 36-chunk teaching lecture. Spawn its speaker with <code>S</code>, try the layout vocabulary (<code>::: cols</code>, <code>::: side</code>, <code>::: marginalia</code>), watch how each layout cooperates with the reveal + collapse system.</p>
+<p><strong>2. <code>PRD.md</code>.</strong> The design philosophy: why three views, why the specific tag set, why reveals are off by default in print. Short, pragmatic, concretely linked to the code.</p>
+<p><strong>3. <code>HANDOFF.md</code>.</strong> Narrates what has been built, slice by slice, including the decisions deliberately <em>not</em> taken. Skim the latest sections for the current state.</p>
+</div>
+  
+</article>
+<article class="chunk chunk-free width-standard" id="authoring">
+  
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Authoring your own</span> <span class="hd-sub">`--new`, `--watch`, `lint.js`</span></h2>
+  <p><strong>Three CLI entries cover the full authoring loop:</strong></p>
+<ul>
+<li><code>node build.js --new &lt;slug&gt;</code> scaffolds <code>lectures/&lt;slug&gt;/source.md</code> with a minimal valid frontmatter + two chunks. Builds cleanly the moment it lands on disk; TODO markers make it obvious what to fill in.</li>
+<li><code>node build.js &lt;source.md&gt; --watch</code> gives live-reload: WebSocket on a free port, editor save triggers rebuild + reload in any open tab.</li>
+<li><code>node lint.js lectures/</code> runs static checks (unknown tags, unclosed directives, duplicate IDs, density budgets, reveal overuse, orphan columns).</li>
+</ul>
+
+  
+</article>
+</section>
+</main>
+</body>
+</html>
