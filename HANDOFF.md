@@ -135,6 +135,28 @@ Drei-Agent-Review-Pass über `build.js` mit Fokus auf Duplikation, Hot-Path-Effi
 
 Alles per Chrome-DevTools-MCP smoke-getestet: speaker-Layout füllt Viewport exakt, notes+preview+footer stapeln ohne Überlapp, Audience-Nav (O/T/Arrows) funktioniert unverändert, Overview-Enter/Exit läuft über den neuen `exitOverview`-Pfad sauber.
 
+## Speaker-UX-Slice (Notes-Entrypoint + vertikale Preview + Zoom)
+
+Drei konkrete Speaker-View-Wünsche, zusammen als ein Slice – die hingen inhaltlich zusammen.
+
+1. **Notes-Pane lässt sich auch ohne Source-Notes öffnen.** Der Bug: `Shift-N` rief `focusNotesPane()` → `classList.add('has-notes')` → rAF → `focus()` + `autoSizeNotes()`. Aber `autoSizeNotes` hat `has-notes` *auf Basis des Textareas-Inhalts* gesetzt – war leer → Klasse wieder weg, ein-Frame-Flicker. Fix: `autoSizeNotes` behält die Klasse drauf solange das Textarea fokussiert ist (`hasText || activeElement === notesContent`). Beim Blur mit immer-noch-leerem Textarea kollabiert die Pane wieder – das ist die gewünschte Semantik.
+
+2. **"+ note" Corner-Button auf der Stage-Ecke.** Unten-rechts auf dem stage-cell, halbtransparent, absolute positioniert, `z-index: 10`, `opacity: 0.5` → `1` on hover. Klick triggert `focusNotesPane()`. Mit `title="Open speaker notes (Shift-N)"` als Tooltip. Sichtbar *nur* wenn `body:not(.has-notes)` – sobald die Pane offen ist, verschwindet der Button. Discoverability-Kanal für den Hotkey, den Newcomer im `?`-Hint-Panel sonst eventuell nicht finden.
+
+3. **Preview-Strip kann vertikal an den rechten Rand wandern – Hotkey `V`.** Neue Body-Class `preview-right` schaltet das Grid um:
+   - `grid-template-rows: 3vh 1fr auto 2.2rem` (4 Rows statt 5)
+   - `grid-template-columns: 1fr clamp(180px, 18vw, 300px)`
+   - scrubber+notes+footer spannen beide Spalten, stage sitzt in col 1, preview-strip in col 2 zwischen scrubber und notes.
+   - Strip selbst: `flex-direction: column`, `overflow: hidden auto`, `border-left` statt `border-top`.
+
+   Pref ist global via `localStorage psi-lecdoc:preview-orientation` persistiert (folgt dem User über Lectures hinweg, wie Font/Theme). Die drei Helper im Preview-Code (`scrollPreviewToActive`, pointer-drag, wheel-handler) bekamen einen `isPreviewVertical()`-Guard und achsenunabhängige Logik. Slot-Aspect-Ratio (`--audience-aspect`) funktioniert out-of-the-box für beide Orientierungen, weil flex-parent-stretch cross-axis füllt und aspect-ratio dann die main-axis ableitet.
+
+4. **Preview-Thumbs 1.22× reingezoomt** für bessere Textlesbarkeit. `PREVIEW_ZOOM`-Konstante (= 1.22) wird als Multiplikator auf das transform-scale gepackt; Slot-`overflow: hidden` clippt die 22% Überhang. Transform-Origin bleibt `top left`, d.h. geclippt wird unten + rechts (dort wo Slide-Padding sitzt, nicht Content). Spart sich die Ambiguität von center-origin, die Content an allen Seiten angeknabbert hätte.
+
+Per Chrome-DevTools verifiziert: V togglet Orientation sauber + persistiert über Reload; scale rechnet auf 0.184 bei 1800-px-Viewport (= 271/1800 × 1.22); "+"-Button öffnet Pane, bleibt offen während Fokus, kollabiert beim Blur wenn leer.
+
+Hint-Panel (`?`-Hotkey) um `<kbd>V</kbd> preview view` ergänzt; `Shift-N notes` stand da schon.
+
 ## Was funktioniert
 
 - `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.
