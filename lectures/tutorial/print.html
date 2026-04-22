@@ -17,21 +17,30 @@
   --mono: 'JetBrains Mono', Menlo, monospace;
 }
 
-@page { size: A4; margin: 2.2cm 2cm 2.5cm; }
+@page {
+  size: A4;
+  margin: 2.2cm 2.5cm 2.8cm;
+  @bottom-center {
+    content: counter(page);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 8pt;
+    color: #888;
+  }
+}
 
 * { box-sizing: border-box; }
-html { font-family: var(--serif); color: var(--ink); line-height: 1.55; background: var(--paper); }
+html { font-family: var(--serif); font-size: 10pt; color: var(--ink); line-height: 1.6; background: var(--paper); text-rendering: optimizeLegibility; }
 body { margin: 0; }
 
 main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
 
-h1, h2, h3 { font-weight: 500; letter-spacing: -0.01em; }
-p { margin: 0.4em 0 0.9em; }
+h1, h2, h3 { font-weight: 500; letter-spacing: -0.01em; break-after: avoid; page-break-after: avoid; }
+p { margin: 0.4em 0 0.9em; orphans: 3; widows: 3; }
 strong { color: var(--emph); font-weight: 600; }
 em { font-style: italic; }
 
 ul, ol { margin: 0.4em 0 0.9em 1.4em; }
-li { margin: 0.2em 0; }
+li { margin: 0.2em 0; orphans: 2; widows: 2; }
 li > p:first-child { margin-top: 0; }
 li > p:last-child { margin-bottom: 0.3em; }
 
@@ -69,22 +78,29 @@ a:hover { text-decoration-color: var(--ink); }
 .toc li { margin: 0.4em 0; font-size: 1rem; }
 .toc a { text-decoration: none; }
 
-.column { margin: 0 0 3rem; page-break-before: always; }
-.column-anon { page-break-before: auto; margin-top: 0; }
+.column { margin: 0 0 2rem; }
+.column-anon { margin-top: 0; }
 .column-heading {
   font-size: 1.9rem;
-  margin: 0 0 1.8rem;
+  margin: 3.5rem 0 1.8rem;
+  padding-top: 1.2rem;
   padding-bottom: 0.4rem;
+  border-top: 1.5pt solid var(--ink);
   border-bottom: 0.5pt solid var(--rule);
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
 .chunk {
   margin: 1.6rem 0 2.2rem;
   page-break-inside: avoid;
+  break-inside: avoid;
 }
 .chunk-heading {
   font-size: 1.12rem;
   margin: 0 0 0.5rem;
+  break-after: avoid;
+  page-break-after: avoid;
 }
 .chunk-label {
   display: block;
