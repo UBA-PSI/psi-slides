@@ -2382,14 +2382,18 @@ function jumpTo(idx, direction) {
 
   const target = flatChunks[idx];
   const segCount = countSegments(target.el);
-  if (direction === 'back') {
-    // Backward nav: target shows fully revealed (§4.6).
-    revealed[target.id] = segCount;
-  } else if (revealed[target.id] === undefined) {
-    // First forward visit: only segment 0 visible.
+  if (revealed[target.id] === undefined) {
+    // First visit from any direction – show only the opening segment.
+    // Backward nav only "re-reveals everything" when we're genuinely
+    // returning to a chunk that's already been advanced; a chunk we've
+    // never seen before should present itself fresh even if approached
+    // from ahead in the reading order.
     revealed[target.id] = segCount ? 1 : 0;
+  } else if (direction === 'back') {
+    // Revisit via backward nav: show fully revealed (§4.6).
+    revealed[target.id] = segCount;
   }
-  // Otherwise: preserve whatever state it was in (revisit = already shown).
+  // Forward revisit: preserve whatever state it was in.
   applyReveal(target.el, target.id);
 
   state.activeIdx = idx;
@@ -3107,6 +3111,14 @@ body[data-view=speaker] #stage-viewport {
    them – but that triggers the global dim rule. Force full opacity. */
 .preview-slot .chunk-clone,
 .preview-slot .chunk-clone.chunk { opacity: 1 !important; }
+
+/* Title chunks in audience are bottom-aligned with 12vh of bottom
+   padding (lower-left-third per PRD §4.4). In a miniature preview
+   that leaves 80%+ of the slot empty with the title crammed at the
+   bottom edge. Center-align + zero padding inside clones so the
+   thumbnail reads like what's on stage: a titled slide. */
+.preview-slot .chunk-clone.chunk-title { align-items: center; }
+.preview-slot .chunk-clone.chunk-title .chunk-content { padding-bottom: 0; }
 
 /* footer */
 #speaker-footer {
