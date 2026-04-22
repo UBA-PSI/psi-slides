@@ -157,6 +157,25 @@ Per Chrome-DevTools verifiziert: V togglet Orientation sauber + persistiert übe
 
 Hint-Panel (`?`-Hotkey) um `<kbd>V</kbd> preview view` ergänzt; `Shift-N notes` stand da schon.
 
+## Rename + Tutorial + Footer-Hints
+
+Drei kleinere, zusammenhängende Stücke in einem Slice.
+
+1. **Tool heißt jetzt `psi-slides`** statt `psi-lecdoc`. Betrifft `package.json`-Name, `STORAGE_PREFIX` (`psi-slides:`), den speaker-window-open-name (`psi-slides-speaker`), `PREVIEW_ORIENTATION_KEY`, und alle Doku-Referenzen (`speaker.md`, `phase0/AUTHORING.md`, dieses HANDOFF). Repo-Verzeichnis heißt weiterhin `psi-lecdoc/` – das ist ein git-remote-Thema, bei Gelegenheit manuell umbenennen.
+
+   Migration: vor `loadPersisted` läuft ein einmaliges `migrateLegacyStorage`-IIFE, das alle `psi-lecdoc:*`-Keys in `localStorage` zu `psi-slides:*` umbenennt und die alten löscht. Font-/Theme-Prefs, Preview-Orientation, per-Lecture-Annotations und `activeIdx` überleben den Rename transparent. Getestet mit gesetztem `psi-lecdoc:font=mono` + `psi-lecdoc:my-lecture:annotations`-Blob – beide tauchen nach Reload unter `psi-slides:*` wieder auf, die alten Keys sind weg.
+
+2. **Self-teaching tutorial-Lecture** unter `lectures/tutorial/source.md`. 13 Chunks (1 title + 12 Steps) über 6 Kolonnen, die das Tool *durch Benutzung* erklären:
+   - "Space reveals segments"-Step hat echte `---`-Segmente, an denen der Leser Space drückt.
+   - "Enter opens expansions"-Step hat zwei authored `::: expand`-Blöcke, damit Leser `Enter` + `1` + `2` live ausprobieren.
+   - "cols 2"-Step ist ein `::: cols 2`-Layout.
+   - "N vs Shift-N"-Step benutzt `::: side / flip` um die zwei Notes-Konzepte nebeneinander zu stellen.
+   - Abschluss-Step verweist konkret auf `python-intro/audience.html`, `PRD.md`, `HANDOFF.md`, plus die drei CLI-Entries (`--new`, `--watch`, `lint.js`).
+
+   Zielgruppe: First-Time-User, die in einem Durchgang Hotkeys + strukturelles Vokabular (Chunks, Kolonnen, Reveals, Expansions, Layouts) mitnehmen sollen.
+
+3. **Footer-Hint erweitert.** Die `.kbd-hint`-Zeile im `#speaker-footer` listet jetzt `N annot / Shift-N notes / V preview / Shift-P push / . force / ? all` statt vorher nur `Shift-P push / . force push / ? hints`. Die drei hinzugefügten Einträge waren die bisher schlechtest-discoverablen Interaktionen.
+
 ## Was funktioniert
 
 - `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.
