@@ -2653,6 +2653,12 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
       }
       break;
+    case 'v': case 'V':
+      if (VIEW === 'speaker' && typeof togglePreviewOrientation === 'function') {
+        togglePreviewOrientation();
+        e.preventDefault();
+      }
+      break;
     case 's': case 'S':
       // Only in audience: open the speaker window and remember it as our peer.
       if (VIEW === 'audience') {
@@ -2858,6 +2864,7 @@ ${scrubberHtml}
 ${columnsHtml}
     </div>
   </div>
+  <button id="add-note-btn" type="button" title="Open speaker notes (Shift-N)">+ note</button>
 </div>
 <aside id="notes-pane">
   <textarea id="notes-content" rows="1" spellcheck="false" placeholder=""></textarea>
@@ -2877,7 +2884,7 @@ ${noteTemplates.join('\n')}
 <div id="hints" class="hidden">
   <kbd>←</kbd><kbd>→</kbd> column &nbsp; <kbd>↑</kbd><kbd>↓</kbd> chunk &nbsp; <kbd>Space</kbd> reveal<br>
   <kbd>Enter</kbd>/<kbd>1</kbd>–<kbd>9</kbd> expand &nbsp; <kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>C</kbd> collapse<br>
-  <kbd>O</kbd> overview &nbsp; <kbd>T</kbd> toc &nbsp; <kbd>/</kbd> search &nbsp; <kbd>B</kbd> blank<br>
+  <kbd>O</kbd> overview &nbsp; <kbd>T</kbd> toc &nbsp; <kbd>/</kbd> search &nbsp; <kbd>V</kbd> preview view &nbsp; <kbd>B</kbd> blank<br>
   <kbd>F</kbd> font &nbsp; <kbd>A</kbd> accent/theme &nbsp;
   <kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force push &nbsp; <kbd>P</kbd> print
 </div>
@@ -3109,6 +3116,66 @@ body[data-view=speaker] #stage-viewport {
 /* Hide the annotation "+ note" affordance in speaker – speaker has the
    notes pane for author-written notes. */
 body[data-view=speaker] .annot-add { display: none !important; }
+
+/* Corner-overlay button that opens the notes pane when it's collapsed.
+   Doubles as discoverability for the Shift-N hotkey – newcomers see the
+   affordance and learn the shortcut from the tooltip. Hidden once notes
+   are visible so it doesn't clutter the slide. */
+#add-note-btn {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 0.7rem;
+  z-index: 10;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--rule);
+  background: color-mix(in oklab, var(--paper) 82%, transparent);
+  border-radius: 3px;
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 120ms, color 120ms, border-color 120ms;
+}
+#add-note-btn:hover {
+  opacity: 1;
+  color: var(--ink);
+  border-color: var(--ink-soft);
+}
+body.has-notes #add-note-btn { display: none; }
+
+/* ── preview-strip: right-mode (vertical) ─────────────────────────────
+   Toggled by V. Strip moves from row 4 into row 2 / col 2, stacks
+   slots vertically, scrolls on Y. Stage stays in col 1, notes and
+   footer span both cols. Slot aspect-ratio handles sizing so slots
+   grow taller when the strip is wider – more text legibility than
+   the horizontal mode. */
+body[data-view=speaker].preview-right {
+  grid-template-rows: 3vh 1fr auto 2.2rem;
+  grid-template-columns: 1fr clamp(180px, 18vw, 300px);
+}
+body[data-view=speaker].preview-right #scrubber     { grid-column: 1 / -1; grid-row: 1; }
+body[data-view=speaker].preview-right #stage-cell   { grid-column: 1; grid-row: 2; }
+body[data-view=speaker].preview-right #notes-pane   { grid-column: 1 / -1; grid-row: 3; }
+body[data-view=speaker].preview-right #speaker-footer { grid-column: 1 / -1; grid-row: 4; }
+body[data-view=speaker].preview-right #preview-strip {
+  grid-column: 2;
+  grid-row: 2;
+  flex-direction: column;
+  padding: 0.5rem 0.5rem;
+  border-top: 0;
+  border-left: 1px solid var(--rule);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+body[data-view=speaker].preview-right #preview-strip::-webkit-scrollbar { width: 6px; height: auto; }
+body[data-view=speaker].preview-right .preview-slot {
+  height: auto;
+  width: auto;
+  /* align-items: stretch on the flex parent fills cross-axis (width). */
+}
 `;
 
 // ── speaker-specific runtime (loaded after AUDIENCE_JS) ──────────────
@@ -3194,9 +3261,11 @@ const NOTES_MIN_LINES = 1;
 const NOTES_MAX_LINES = 3;
 function autoSizeNotes() {
   const hasText = notesContent.value.trim().length > 0;
-  // Also consider placeholder-less empty state "no notes" – currently
-  // empty textarea → collapse pane entirely.
-  document.body.classList.toggle('has-notes', hasText);
+  // Pane stays open while the textarea is focused so the author can
+  // type into an empty pane (Shift-N / + note btn). On blur the class
+  // drops back to hasText and an untouched pane collapses again.
+  const keepOpen = hasText || document.activeElement === notesContent;
+  document.body.classList.toggle('has-notes', keepOpen);
   if (!hasText) {
     notesContent.style.height = '1.35em';
     return;
@@ -3285,10 +3354,19 @@ scrubberEl.addEventListener('click', (e) => {
   }
 });
 
-// Preview strip: ALL chunks, each cloned and scaled to fit a fixed-
-// width slot. Horizontally scrollable – drag to pan, click a slot to
-// jump there, wheel-scroll also works (browser default). The current
-// chunk is highlighted and auto-scrolled into view.
+// Preview strip: ALL chunks, each cloned and scaled to fit a slot.
+// Scrollable along the strip's main axis – drag to pan, click a slot
+// to jump. Current chunk highlighted and auto-scrolled into view.
+//
+// Clone is rendered at the audience reference size (slide-w × slide-h)
+// and CSS-scaled into the slot. The scale factor is multiplied by
+// PREVIEW_ZOOM so the content fills more of each slot than the raw
+// letterbox would; the slot's overflow:hidden clips the small margin
+// that overflows, which is an acceptable trade for readable text.
+const PREVIEW_ZOOM = 1.22;
+function isPreviewVertical() {
+  return document.body.classList.contains('preview-right');
+}
 function populatePreviewStrip() {
   previewStrip.replaceChildren();
   flatChunks.forEach((entry, idx) => {
@@ -3311,10 +3389,11 @@ function populatePreviewStrip() {
     requestAnimationFrame(() => {
       const slideW = viewport.clientWidth || window.innerWidth;
       if (!slideW) return;
-      const scale = slot.clientWidth / slideW;
+      const baseScale = slot.clientWidth / slideW;
+      const scale = baseScale * PREVIEW_ZOOM;
       clone.style.transform = \`scale(\${scale})\`;
       clone.style.width = slideW + 'px';
-      clone.style.height = (slot.clientHeight / scale) + 'px';
+      clone.style.height = (slot.clientHeight / baseScale) + 'px';
     });
   });
   scrollPreviewToActive(false);
@@ -3323,11 +3402,17 @@ function populatePreviewStrip() {
 function scrollPreviewToActive(smooth) {
   const el = previewStrip.querySelector('.preview-slot.current');
   if (!el) return;
-  // Center the current slot in the visible strip.
+  // Center the current slot along the strip's main axis.
   const stripRect = previewStrip.getBoundingClientRect();
   const elRect = el.getBoundingClientRect();
-  const target = previewStrip.scrollLeft + (elRect.left + elRect.width / 2) - (stripRect.left + stripRect.width / 2);
-  previewStrip.scrollTo({ left: target, behavior: smooth ? 'smooth' : 'auto' });
+  const behavior = smooth ? 'smooth' : 'auto';
+  if (isPreviewVertical()) {
+    const top = previewStrip.scrollTop + (elRect.top + elRect.height / 2) - (stripRect.top + stripRect.height / 2);
+    previewStrip.scrollTo({ top, behavior });
+  } else {
+    const left = previewStrip.scrollLeft + (elRect.left + elRect.width / 2) - (stripRect.left + stripRect.width / 2);
+    previewStrip.scrollTo({ left, behavior });
+  }
 }
 
 // Light-touch "current" marker update without rebuilding the whole strip.
@@ -3353,9 +3438,11 @@ let previewDrag = null;
 previewStrip.addEventListener('pointerdown', (e) => {
   if (e.button !== 0) return;
   const slot = e.target.closest('.preview-slot');
+  const vert = isPreviewVertical();
   previewDrag = {
-    startX: e.clientX,
-    scrollLeft: previewStrip.scrollLeft,
+    vert,
+    start: vert ? e.clientY : e.clientX,
+    scrollStart: vert ? previewStrip.scrollTop : previewStrip.scrollLeft,
     moved: false,
     pointerId: e.pointerId,
     slot,
@@ -3364,9 +3451,11 @@ previewStrip.addEventListener('pointerdown', (e) => {
 });
 previewStrip.addEventListener('pointermove', (e) => {
   if (!previewDrag) return;
-  const dx = e.clientX - previewDrag.startX;
-  if (Math.abs(dx) > 4) previewDrag.moved = true;
-  previewStrip.scrollLeft = previewDrag.scrollLeft - dx;
+  const cur = previewDrag.vert ? e.clientY : e.clientX;
+  const d = cur - previewDrag.start;
+  if (Math.abs(d) > 4) previewDrag.moved = true;
+  if (previewDrag.vert) previewStrip.scrollTop = previewDrag.scrollStart - d;
+  else previewStrip.scrollLeft = previewDrag.scrollStart - d;
   if (previewDrag.moved) previewStrip.classList.add('dragging');
 });
 previewStrip.addEventListener('pointerup', (e) => {
@@ -3385,9 +3474,11 @@ previewStrip.addEventListener('pointercancel', () => {
   previewStrip.classList.remove('dragging');
 });
 
-// Vertical wheel → horizontal scroll (common UX for horizontal strips).
+// Vertical wheel maps to horizontal scroll when the strip runs
+// horizontally; in vertical-strip mode the browser's native vertical
+// scroll is already what we want.
 previewStrip.addEventListener('wheel', (e) => {
-  // Allow horizontal wheel to pass through natively.
+  if (isPreviewVertical()) return;
   if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
   previewStrip.scrollLeft += e.deltaY;
   e.preventDefault();
@@ -3416,6 +3507,32 @@ viewHooks.onActiveChange = () => {
   populateNotesPane();
   markPreviewCurrent();
 };
+
+// Preview orientation (horizontal along bottom vs vertical along the
+// right edge). Persisted globally – user preference follows them
+// across lectures. Toggled with V.
+const PREVIEW_ORIENTATION_KEY = 'psi-lecdoc:preview-orientation';
+function applyPreviewOrientation(mode) {
+  document.body.classList.toggle('preview-right', mode === 'right');
+}
+try {
+  const saved = localStorage.getItem(PREVIEW_ORIENTATION_KEY);
+  if (saved === 'right') applyPreviewOrientation('right');
+} catch (e) {}
+function togglePreviewOrientation() {
+  const next = document.body.classList.contains('preview-right') ? 'bottom' : 'right';
+  applyPreviewOrientation(next);
+  try { localStorage.setItem(PREVIEW_ORIENTATION_KEY, next); } catch (e) {}
+  flashMode('preview · ' + next);
+  populatePreviewStrip();
+}
+
+// The in-stage "+ note" overlay is an alternative entry point to
+// Shift-N. Visible only while the notes pane is collapsed; the CSS
+// hides it once has-notes lands on body.
+document.getElementById('add-note-btn')?.addEventListener('click', () => {
+  focusNotesPane();
+});
 
 // First populate (applyState ran before viewHooks was reassigned).
 updateScrubber();
