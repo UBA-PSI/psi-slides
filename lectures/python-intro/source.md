@@ -23,7 +23,7 @@ A **virtual environment** is a directory with its own interpreter and its own `s
 
 > note: The single most valuable sentence in a Python intro. If students remember nothing else from today, this is the one.
 
-## free: What you will build | a link-health scanner, under 80 lines {.standard #what-you-will-build}
+## free: What you will build | a link-health scanner, under 80 lines {.wide #what-you-will-build}
 
 By the end of this session you will have a **small command-line tool** that visits a URL, follows every link it finds, and prints a short report for each page it touches. Broken links, missing titles, and missing meta descriptions all get flagged on one line each.
 
@@ -35,7 +35,7 @@ We will build it up **piece by piece**. Each topic in this lecture contributes o
 
 :::
 
-## free: What you already need | three boxes to tick before we start {.standard #prerequisites}
+## free: What you already need | three boxes to tick before we start {.wide #prerequisites}
 
 ::: side
 
@@ -334,7 +334,7 @@ for md in here.glob("**/*.md"):
 
 **Cross-platform correctness comes for free.** `Path` normalizes slashes and drive letters so the same code runs on Linux, macOS, and Windows without `os.path.join` gymnastics.
 
-## example: urllib.parse | URL surgery without regex {.standard #urllib-parse}
+## example: urllib.parse | URL surgery without regex {.wide #urllib-parse}
 
 **Parsing URLs with a regex is almost always a mistake.** `urllib.parse` already knows about schemes, userinfo, punycode hosts, port defaults, and path normalization.
 
