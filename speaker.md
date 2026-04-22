@@ -139,7 +139,7 @@ Speaker inherits audience nav bindings, plus:
 ### 4.3 Audience → speaker startup
 
 On `S` in audience:
-1. Audience runs `window.open('speaker.html', 'psi-lecdoc-speaker', 'width=1400,height=900')` and stashes the returned `Window` reference as its `peer`.
+1. Audience runs `window.open('speaker.html', 'psi-slides-speaker', 'width=1400,height=900')` and stashes the returned `Window` reference as its `peer`.
 2. Speaker boots, picks up `window.opener` as its `peer`, posts a `hello` to it.
 3. Audience receives `hello`, replies with current state via `peer.postMessage(...)`.
 4. Speaker applies state, shows itself ready.
@@ -148,9 +148,9 @@ If speaker opens standalone (URL typed directly, bookmark) there is no `window.o
 
 ## 5. Persistence
 
-Key: `psi-lecdoc:<title>:speaker`. Written every 5 s on change. Same schema as the snapshot payload, plus `elapsedSeconds`. On speaker reload, this is applied locally and then broadcast so the audience catches up if it also restarted.
+Key: `psi-slides:<title>:speaker`. Written every 5 s on change. Same schema as the snapshot payload, plus `elapsedSeconds`. On speaker reload, this is applied locally and then broadcast so the audience catches up if it also restarted.
 
-Annotations use the existing `psi-lecdoc:<title>:annotations` key – already wired in audience. Speaker writes to the same key.
+Annotations use the existing `psi-slides:<title>:annotations` key – already wired in audience. Speaker writes to the same key.
 
 ## 6. Build pipeline changes
 

@@ -1832,7 +1832,7 @@ body.toc-visible #toc { transform: translateX(0); }
 // ── audience runtime JS (inlined verbatim into the output HTML) ──────
 
 const AUDIENCE_JS = `
-const STORAGE_PREFIX = 'psi-lecdoc:';
+const STORAGE_PREFIX = 'psi-slides:';
 const storageKey = (s) => STORAGE_PREFIX + LECTURE_TITLE + ':' + s;
 
 // The audience runtime is shared with the speaker view. The HTML sets
@@ -1943,6 +1943,30 @@ function replaceContents(obj, src) {
   Object.assign(obj, src || {});
 }
 
+// One-shot rename of any leftover 'psi-lecdoc:*' localStorage keys to
+// 'psi-slides:*'. Covers font, theme, preview-orientation, annotations,
+// and activeIdx. Runs before loadPersisted so the subsequent reads find
+// the migrated values. Safe to remove once no field instances are
+// expected to have the old prefix.
+(function migrateLegacyStorage() {
+  try {
+    const OLD = 'psi-lecdoc:';
+    const NEW = 'psi-slides:';
+    const toMove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(OLD)) toMove.push(k);
+    }
+    for (const k of toMove) {
+      const newKey = NEW + k.slice(OLD.length);
+      if (localStorage.getItem(newKey) === null) {
+        localStorage.setItem(newKey, localStorage.getItem(k));
+      }
+      localStorage.removeItem(k);
+    }
+  } catch (e) {}
+})();
+
 function loadPersisted() {
   try {
     const raw = localStorage.getItem(storageKey('annotations'));
@@ -1955,11 +1979,11 @@ function loadPersisted() {
   // Font + theme are global (not per-lecture): shared across all lectures
   // so the reading preference follows the user, not the source file.
   try {
-    const f = localStorage.getItem('psi-lecdoc:font');
+    const f = localStorage.getItem('psi-slides:font');
     if (f && FONT_CYCLE.includes(f)) state.font = f;
   } catch (e) {}
   try {
-    const t = localStorage.getItem('psi-lecdoc:theme');
+    const t = localStorage.getItem('psi-slides:theme');
     if (t && THEME_CYCLE.includes(t)) state.theme = t;
   } catch (e) {}
 }
@@ -1978,7 +2002,7 @@ function cycleFont(dir) {
   const next = FONT_CYCLE[(i + (dir || 1) + FONT_CYCLE.length) % FONT_CYCLE.length];
   state.font = next;
   applyFontTheme();
-  try { localStorage.setItem('psi-lecdoc:font', next); } catch (e) {}
+  try { localStorage.setItem('psi-slides:font', next); } catch (e) {}
   flashMode('font · ' + next);
   broadcastState();
 }
@@ -1987,7 +2011,7 @@ function cycleTheme(dir) {
   const next = THEME_CYCLE[(i + (dir || 1) + THEME_CYCLE.length) % THEME_CYCLE.length];
   state.theme = next;
   applyFontTheme();
-  try { localStorage.setItem('psi-lecdoc:theme', next); } catch (e) {}
+  try { localStorage.setItem('psi-slides:theme', next); } catch (e) {}
   flashMode('theme · ' + next);
   broadcastState();
 }
@@ -2662,7 +2686,7 @@ document.addEventListener('keydown', (e) => {
     case 's': case 'S':
       // Only in audience: open the speaker window and remember it as our peer.
       if (VIEW === 'audience') {
-        const w = window.open('speaker.html', 'psi-lecdoc-speaker', 'width=1400,height=900');
+        const w = window.open('speaker.html', 'psi-slides-speaker', 'width=1400,height=900');
         setPeer(w);
         e.preventDefault();
       }
@@ -2876,7 +2900,7 @@ ${columnsHtml}
   <span id="push-indicator" class="push-on">push ●</span>
   <span id="slug">${escapeHtml(slug)}</span>
   <span class="spacer"></span>
-  <span class="kbd-hint"><kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force push &nbsp; <kbd>?</kbd> hints</span>
+  <span class="kbd-hint"><kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>V</kbd> preview &nbsp; <kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force &nbsp; <kbd>?</kbd> all</span>
 </footer>
 <div id="note-templates">
 ${noteTemplates.join('\n')}
@@ -3511,7 +3535,7 @@ viewHooks.onActiveChange = () => {
 // Preview orientation (horizontal along bottom vs vertical along the
 // right edge). Persisted globally – user preference follows them
 // across lectures. Toggled with V.
-const PREVIEW_ORIENTATION_KEY = 'psi-lecdoc:preview-orientation';
+const PREVIEW_ORIENTATION_KEY = 'psi-slides:preview-orientation';
 function applyPreviewOrientation(mode) {
   document.body.classList.toggle('preview-right', mode === 'right');
 }

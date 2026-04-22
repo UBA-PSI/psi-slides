@@ -160,7 +160,7 @@ The annotation slot is for live marginalia added during the lecture — ad-hoc d
 - Annotations auto-save to `localStorage` (keyed by `LECTURE.title + chunk.id`).
 - When navigating back to an annotated chunk later in the lecture, the note is still there, dimmed in the slide's left margin.
 
-If you want to pre-author annotations (e.g. before a rehearsal), edit `localStorage` via the browser's DevTools — the key is `psi-lecdoc:<LECTURE.title>:annotations`.
+If you want to pre-author annotations (e.g. before a rehearsal), edit `localStorage` via the browser's DevTools — the key is `psi-slides:<LECTURE.title>:annotations`.
 
 ---
 
