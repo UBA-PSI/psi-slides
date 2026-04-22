@@ -1788,7 +1788,11 @@ body.search-active #overview-badge .hint { display: none; }
 #overview-badge #search-input::placeholder { color: oklch(0.97 0 0 / 0.7); font-style: italic; }
 
 /* TOC overlay (PRD §5) --------------------------------------------- */
-#toc {
+/* Scoped to the <nav> tag so author chunks that legitimately use
+   id="toc" (see lectures/tutorial – a chunk explaining the TOC
+   feature) don't inherit the overlay's fixed positioning and
+   collapse into a floating blob. */
+nav#toc {
   position: fixed;
   top: 0; right: 0;
   height: 100vh;
@@ -1802,8 +1806,8 @@ body.search-active #overview-badge .hint { display: none; }
   transition: transform 220ms cubic-bezier(0.45, 0, 0.2, 1);
   z-index: 25;
 }
-body.toc-visible #toc { transform: translateX(0); }
-#toc h2 {
+body.toc-visible nav#toc { transform: translateX(0); }
+nav#toc h2 {
   font-family: var(--sans-font);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.18em;
@@ -1812,9 +1816,9 @@ body.toc-visible #toc { transform: translateX(0); }
   font-weight: 500;
   margin: 0 0 1.2rem;
 }
-#toc ol { list-style: decimal outside; padding-left: 1.6em; margin: 0; }
-#toc li { margin: 0.5em 0; }
-#toc button {
+nav#toc ol { list-style: decimal outside; padding-left: 1.6em; margin: 0; }
+nav#toc li { margin: 0.5em 0; }
+nav#toc button {
   background: transparent;
   border: 0;
   padding: 0.1em 0;
@@ -1825,8 +1829,8 @@ body.toc-visible #toc { transform: translateX(0); }
   letter-spacing: -0.005em;
   line-height: 1.3;
 }
-#toc button:hover { color: var(--emph); }
-#toc li.toc-active button { font-weight: 600; color: var(--emph); }
+nav#toc button:hover { color: var(--emph); }
+nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 `;
 
 // ── audience runtime JS (inlined verbatim into the output HTML) ──────
@@ -2324,7 +2328,7 @@ function toggleToc() {
 }
 function markTocActive() {
   const curColIdx = flatChunks[state.activeIdx]?.colIdx;
-  document.querySelectorAll('#toc li').forEach(li => {
+  document.querySelectorAll('nav#toc li').forEach(li => {
     li.classList.toggle('toc-active', parseInt(li.dataset.tocCol, 10) === curColIdx);
   });
 }
@@ -2551,7 +2555,7 @@ function wireClicks() {
     });
   });
   // TOC column buttons: jump camera + close TOC.
-  document.querySelectorAll('#toc li').forEach(li => {
+  document.querySelectorAll('nav#toc li').forEach(li => {
     const btn = li.querySelector('button');
     if (!btn) return;
     const colIdx = parseInt(li.dataset.tocCol, 10);
@@ -2715,7 +2719,7 @@ viewport.addEventListener('wheel', (e) => {
 
 viewport.addEventListener('pointerdown', (e) => {
   // Skip drag on interactive children so click-to-select still works.
-  if (e.target.closest('button, textarea, input, .annot-box, .exp-chev, .annot-add, #toc')) return;
+  if (e.target.closest('button, textarea, input, .annot-box, .exp-chev, .annot-add, nav#toc')) return;
   // Two pan modes share this handler: in overview, any drag pans; in
   // normal view, shift+drag pans (chunk-local, reset on navigation).
   const mode = overview ? 'overview' : (e.shiftKey ? 'view' : null);
