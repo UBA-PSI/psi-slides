@@ -42,17 +42,27 @@ const LANG_ALIAS = {
   plaintext: 'text', '': 'text',
 };
 let highlighter = null;
+let loadedLangs = null; // Set of languages Shiki has tokenizers for
+// Keyed on `${useLang}::${code}`; Shiki output is deterministic per input,
+// so the same code block rendered into print/audience/speaker pays the
+// tokenization cost once per build (and once per --watch rebuild).
+const highlightCache = new Map();
 async function initHighlighter() {
   if (highlighter) return;
   highlighter = await createHighlighter({ themes: [SHIKI_THEME], langs: SHIKI_LANGS });
+  loadedLangs = new Set(highlighter.getLoadedLanguages());
 }
 function highlightCode(code, lang) {
   if (!highlighter) return null;
   const alias = LANG_ALIAS[lang] ?? lang;
-  const supported = highlighter.getLoadedLanguages().includes(alias);
-  const useLang = supported ? alias : 'text';
-  try { return highlighter.codeToHtml(code, { lang: useLang, theme: SHIKI_THEME }); }
-  catch (e) { return null; }
+  const useLang = loadedLangs.has(alias) ? alias : 'text';
+  const key = useLang + '::' + code;
+  if (highlightCache.has(key)) return highlightCache.get(key);
+  let html;
+  try { html = highlighter.codeToHtml(code, { lang: useLang, theme: SHIKI_THEME }); }
+  catch (e) { html = null; }
+  highlightCache.set(key, html);
+  return html;
 }
 
 // ── image shorthand resolution ───────────────────────────────────────
@@ -186,7 +196,8 @@ function parseLecture(src) {
     // body HTML stays balanced. The linter will flag these separately.
     while (layoutStack.length) bodyLines.push('', layoutStack.pop(), '');
     // Split body at standalone `---` lines into reveal segments (§4.6).
-    // `---` inside a ``` fenced code block stays part of the segment.
+    // A `---` inside a fenced code block stays part of the segment — the
+    // `inFence` flag below tracks that.
     const segments = [];
     let cur = [];
     let fence = false;
@@ -202,7 +213,8 @@ function parseLecture(src) {
     if (cur.length) segments.push(cur.join('\n').trim());
     const nonEmpty = segments.filter(s => s.length);
     currentChunk.segments = nonEmpty;
-    // Print back-compat: body is the segments re-joined (fully revealed).
+    // Print collapses reveals: `body` is every segment joined, so the
+    // print renderer can stay oblivious to the reveal split.
     currentChunk.body = nonEmpty.join('\n\n');
     currentColumn.chunks.push(currentChunk);
     currentChunk = null;
@@ -364,6 +376,17 @@ function escapeHtml(s = '') {
     .replace(/"/g, '&quot;');
 }
 
+// Serialize a value for inline <script> injection. Plain JSON would let
+// a title containing `</script>` close the tag and inject arbitrary HTML;
+// escaping `<` as a unicode escape blocks that path and stays valid JSON.
+function jsonForScript(v) {
+  return JSON.stringify(v).replace(/</g, '\\u003C');
+}
+
+function lectureTitle(frontmatter) {
+  return frontmatter.title || 'Untitled lecture';
+}
+
 function splitInfo(info = '') {
   return String(info).split('\n').map(l => l.trim()).filter(Boolean);
 }
@@ -459,7 +482,7 @@ function renderToc(columns) {
 
 function renderDocument(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
-  const title = frontmatter.title || 'Untitled lecture';
+  const title = lectureTitle(frontmatter);
   const toc = renderToc(columns);
   // Title / anon columns render above the TOC (cover page first),
   // named columns render after (body of the document).
@@ -860,6 +883,27 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx) {
 </article>`;
 }
 
+// Shared audience/speaker column shell. Both stage the same flat-chunk
+// markup; only the per-view head/chrome differs.
+function renderColumnsHtml(columns, frontmatter) {
+  return columns.map((col, ci) => {
+    const chunks = col.chunks
+      .map((c, xi) => renderAudienceChunk(c, frontmatter, ci, xi))
+      .join('\n');
+    const idAttr = col.id ? ` id="${escapeHtml(col.id)}"` : '';
+    return `<section class="column" data-col="${ci}"${idAttr}>
+${chunks}
+</section>`;
+  }).join('\n');
+}
+
+// The overview badge + search input is identical in both live views;
+// keeping it a single constant means label/hotkey changes land once.
+const OVERVIEW_BADGE_HTML = `<div id="overview-badge">
+  <span class="hint">overview · drag · wheel · click · <kbd>O</kbd>/<kbd>Enter</kbd> land · <kbd>/</kbd> search · <kbd>Esc</kbd></span>
+  <input id="search-input" type="text" placeholder="search..." autocomplete="off" spellcheck="false">
+</div>`;
+
 function renderTocNav(columns) {
   const items = columns
     .map((c, i) => ({ c, i }))
@@ -876,18 +920,9 @@ function renderTocNav(columns) {
 
 function renderAudience(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
-  const title = frontmatter.title || 'Untitled lecture';
-  const columnsHtml = columns.map((col, ci) => {
-    const chunks = col.chunks
-      .map((c, xi) => renderAudienceChunk(c, frontmatter, ci, xi))
-      .join('\n');
-    const idAttr = col.id ? ` id="${escapeHtml(col.id)}"` : '';
-    return `<section class="column" data-col="${ci}"${idAttr}>
-${chunks}
-</section>`;
-  }).join('\n');
-
-  const titleJson = JSON.stringify(title);
+  const title = lectureTitle(frontmatter);
+  const columnsHtml = renderColumnsHtml(columns, frontmatter);
+  const titleJson = jsonForScript(title);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -916,10 +951,7 @@ ${columnsHtml}
   <kbd>+</kbd><kbd>-</kbd><kbd>0</kbd> zoom &nbsp; <kbd>?</kbd> hide
 </div>
 <div id="mode-badge"></div>
-<div id="overview-badge">
-  <span class="hint">overview · drag · wheel · click · <kbd>O</kbd>/<kbd>Enter</kbd> land · <kbd>/</kbd> search · <kbd>Esc</kbd></span>
-  <input id="search-input" type="text" placeholder="search..." autocomplete="off" spellcheck="false">
-</div>
+${OVERVIEW_BADGE_HTML}
 ${renderTocNav(columns)}
 <script>
 const LECTURE_TITLE = ${titleJson};
@@ -1867,11 +1899,7 @@ if (VIEW === 'audience') {
 }
 // Speaker's initial slide reference stays as this window's dimensions
 // until the first audience state snapshot arrives via applyRemoteState,
-// which calls setAudienceAspect → setSlideRef. No immediate call needed.
-function setAudienceAspect(w, h) {
-  // Kept for name-compat with prior callsite; forwards to setSlideRef.
-  setSlideRef(w, h);
-}
+// which calls setSlideRef directly. No immediate call needed.
 
 // Flat list of all chunk elements with column index, preserving source order.
 const flatChunks = [];
@@ -1906,6 +1934,14 @@ let selectedIdx = 0;           // overview selection (independent of activeIdx)
 let manualPan = { dx: 0, dy: 0 };
 let searchActive = false;
 let tocVisible = false;
+
+// Replace obj's contents in-place so existing references (closures,
+// readers holding &obj) see the update. Used from applyRemoteState
+// where several module-level maps are live-synced.
+function replaceContents(obj, src) {
+  for (const k of Object.keys(obj)) delete obj[k];
+  Object.assign(obj, src || {});
+}
 
 function loadPersisted() {
   try {
@@ -2021,12 +2057,10 @@ function applyRemoteState(payload) {
     // lays out content identically. Ignored on audience side (its own
     // window dimensions are the source of truth).
     if (VIEW === 'speaker' && payload.audienceW > 0 && payload.audienceH > 0) {
-      setAudienceAspect(payload.audienceW, payload.audienceH);
+      setSlideRef(payload.audienceW, payload.audienceH);
     }
-    Object.keys(revealed).forEach(k => delete revealed[k]);
-    Object.assign(revealed, payload.revealed || {});
-    Object.keys(annotations).forEach(k => delete annotations[k]);
-    Object.assign(annotations, payload.annotations || {});
+    replaceContents(revealed, payload.revealed);
+    replaceContents(annotations, payload.annotations);
     // Reflect annotation text into the textareas so the other view sees
     // keystrokes landing in real time.
     flatChunks.forEach(c => {
@@ -2229,39 +2263,34 @@ function setSelectedIdx(idx) {
   if (overview) applyOverviewCamera(false);
 }
 
-function toggleOverview() {
-  if (overview) {
-    // Exit: land on whatever was selected. If unchanged from active, it's a
-    // no-op camera translation, which is exactly the right behavior.
-    endSearch(); // leaving overview also leaves search
-    overview = false;
-    document.body.classList.remove('overview-mode');
-    manualPan = { dx: 0, dy: 0 };
-    if (selectedIdx !== state.activeIdx) {
-      state.activeIdx = selectedIdx;
-      applyState();
-      saveActive();
-    }
-    flatChunks.forEach(c => c.el.classList.remove('overview-selected'));
-    focusCamera(false);
-  } else {
-    overview = true;
-    document.body.classList.add('overview-mode');
-    manualPan = { dx: 0, dy: 0 };
-    setSelectedIdx(state.activeIdx);
-    applyOverviewCamera(false);
-  }
-}
-
-function dismissOverviewNoMove() {
+// Shared teardown for both the O-toggle exit and the Esc-style dismiss.
+// The caller decides whether the selected chunk should become active —
+// O lands on it, Esc keeps the original.
+function exitOverview(landOnSelected) {
   if (!overview) return;
   endSearch();
   overview = false;
   document.body.classList.remove('overview-mode');
   manualPan = { dx: 0, dy: 0 };
+  if (landOnSelected && selectedIdx !== state.activeIdx) {
+    state.activeIdx = selectedIdx;
+    applyState();
+    saveActive();
+  }
   flatChunks.forEach(c => c.el.classList.remove('overview-selected'));
   focusCamera(false);
 }
+
+function toggleOverview() {
+  if (overview) { exitOverview(true); return; }
+  overview = true;
+  document.body.classList.add('overview-mode');
+  manualPan = { dx: 0, dy: 0 };
+  setSelectedIdx(state.activeIdx);
+  applyOverviewCamera(false);
+}
+
+function dismissOverviewNoMove() { exitOverview(false); }
 
 // TOC panel – flat list of named columns (see renderAudience).
 function toggleToc() {
@@ -2360,9 +2389,7 @@ function advanceReveal() {
 }
 
 function nextChunk() {
-  const cur = flatChunks[state.activeIdx];
-  const nxt = flatChunks[state.activeIdx + 1];
-  if (!nxt) return;
+  if (state.activeIdx + 1 >= flatChunks.length) return;
   jumpTo(state.activeIdx + 1, 'forward');
 }
 function prevChunk() {
@@ -2776,17 +2803,8 @@ if (document.fonts && document.fonts.ready) {
 
 function renderSpeaker(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
-  const title = frontmatter.title || 'Untitled lecture';
-
-  const columnsHtml = columns.map((col, ci) => {
-    const chunks = col.chunks
-      .map((c, xi) => renderAudienceChunk(c, frontmatter, ci, xi))
-      .join('\n');
-    const idAttr = col.id ? ` id="${escapeHtml(col.id)}"` : '';
-    return `<section class="column" data-col="${ci}"${idAttr}>
-${chunks}
-</section>`;
-  }).join('\n');
+  const title = lectureTitle(frontmatter);
+  const columnsHtml = renderColumnsHtml(columns, frontmatter);
 
   // Speaker-source notes are emitted as <template> fragments holding
   // the *raw* note text (joined with blank lines between blocks). The
@@ -2816,7 +2834,7 @@ ${chunks}
   }).join('\n');
 
   const slug = frontmatter.lecture || frontmatter.course || '';
-  const titleJson = JSON.stringify(title);
+  const titleJson = jsonForScript(title);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -2864,10 +2882,7 @@ ${noteTemplates.join('\n')}
   <kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force push &nbsp; <kbd>P</kbd> print
 </div>
 <div id="mode-badge"></div>
-<div id="overview-badge">
-  <span class="hint">overview · drag · wheel · click · <kbd>O</kbd>/<kbd>Enter</kbd> land · <kbd>/</kbd> search · <kbd>Esc</kbd></span>
-  <input id="search-input" type="text" placeholder="search..." autocomplete="off" spellcheck="false">
-</div>
+${OVERVIEW_BADGE_HTML}
 ${renderTocNav(columns)}
 <script>
 const LECTURE_TITLE = ${titleJson};
@@ -3003,7 +3018,7 @@ body[data-view=speaker] #stage-viewport {
    wheel to pan, click to jump. The active slot is highlighted and
    automatically scrolled into view on chunk change. */
 #preview-strip {
-  grid-row: 3;
+  grid-row: 4;
   display: flex;
   align-items: stretch;
   gap: 0.7rem;
@@ -3064,7 +3079,7 @@ body[data-view=speaker] #stage-viewport {
 
 /* footer */
 #speaker-footer {
-  grid-row: 4;
+  grid-row: 5;
   display: flex;
   align-items: center;
   gap: 1.2em;
@@ -3234,17 +3249,23 @@ flatChunks.forEach((c, i) => {
   colChunkIdx[c.colIdx].push(i);
 });
 
+// Scrubber DOM is static after build — cache the node lists once so the
+// onActiveChange hook (every keystroke, every remote-state apply) doesn't
+// re-scan the document on each tick.
+const colEntryEls = Array.from(document.querySelectorAll('.col-entry'));
+const dotEls = Array.from(document.querySelectorAll('#scrubber .dot'));
+
 function updateScrubber() {
   const entry = flatChunks[state.activeIdx];
   if (!entry) return;
-  document.querySelectorAll('.col-entry').forEach(el => {
+  for (const el of colEntryEls) {
     el.classList.toggle('active', parseInt(el.dataset.colIdx, 10) === entry.colIdx);
-  });
-  document.querySelectorAll('#scrubber .dot').forEach(dot => {
+  }
+  for (const dot of dotEls) {
     const ci = parseInt(dot.dataset.colIdx, 10);
     const xi = parseInt(dot.dataset.chunkIdx, 10);
     dot.classList.toggle('active', colChunkIdx[ci]?.[xi] === state.activeIdx);
-  });
+  }
 }
 
 scrubberEl.addEventListener('click', (e) => {
@@ -3401,7 +3422,14 @@ updateScrubber();
 populateNotesPane();
 populatePreviewStrip();
 
-window.addEventListener('resize', populatePreviewStrip);
+// Resize fires at ~60 Hz during a drag; rebuilding every tick clones
+// N chunks and schedules N rAFs per event. Debounce to the trailing
+// edge so one rebuild lands after the user stops dragging.
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(populatePreviewStrip, 120);
+});
 
 // Laser pointer: while the speaker mouse hovers over the stage
 // viewport, mirror its position to the audience. Coordinates are
@@ -3450,31 +3478,27 @@ function buildOnce(absIn, only, opts = {}) {
   const outDir = path.dirname(absIn);
   // Scope image-shorthand resolution to this lecture's folder for the
   // duration of the render. marked renderers close over this via the
-  // module-level currentSourceDir.
+  // module-level currentSourceDir. Clearing the resolve cache per build
+  // keeps --watch honest when authors add/remove asset files between
+  // rebuilds (stale hits would otherwise mask real missing-asset errors).
   currentSourceDir = outDir;
+  imgResolveCache.clear();
   const lecture = parseLecture(src);
   const chunkCount = lecture.columns.reduce((n, c) => n + c.chunks.length, 0);
   const shape = `${lecture.columns.length} columns, ${chunkCount} chunks`;
+
+  const targets = [
+    ['print',    renderDocument],
+    ['audience', renderAudience],
+    ['speaker',  renderSpeaker],
+  ].filter(([name]) => !only || only === `--${name}-only`);
+
   const written = [];
-
-  const wants = (target) => !only || only === `--${target}-only`;
-
-  if (wants('print')) {
-    const p = path.join(outDir, 'print.html');
-    fs.writeFileSync(p, renderDocument(lecture, opts));
+  for (const [name, render] of targets) {
+    const p = path.join(outDir, `${name}.html`);
+    fs.writeFileSync(p, render(lecture, opts));
     written.push(path.relative(process.cwd(), p));
   }
-  if (wants('audience')) {
-    const p = path.join(outDir, 'audience.html');
-    fs.writeFileSync(p, renderAudience(lecture, opts));
-    written.push(path.relative(process.cwd(), p));
-  }
-  if (wants('speaker')) {
-    const p = path.join(outDir, 'speaker.html');
-    fs.writeFileSync(p, renderSpeaker(lecture, opts));
-    written.push(path.relative(process.cwd(), p));
-  }
-
   return { written, shape };
 }
 
