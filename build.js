@@ -18,6 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
 import { marked } from 'marked';
+import { createHighlighter } from 'shiki';
 
 const VALID_TAGS = new Set([
   'title', 'principle', 'definition', 'example',
@@ -25,6 +26,89 @@ const VALID_TAGS = new Set([
 ]);
 
 const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
+
+// ── syntax highlighting ──────────────────────────────────────────────
+// Shiki is loaded once per process and reused across rebuilds. Output
+// is static HTML with inline styles – no runtime theme CSS needed.
+
+const SHIKI_LANGS = [
+  'python', 'bash', 'shell', 'javascript', 'typescript',
+  'html', 'css', 'json', 'yaml', 'markdown', 'sql', 'toml', 'diff', 'text',
+];
+const SHIKI_THEME = 'github-light';
+const LANG_ALIAS = {
+  py: 'python', sh: 'bash', zsh: 'bash',
+  js: 'javascript', ts: 'typescript', md: 'markdown',
+  plaintext: 'text', '': 'text',
+};
+let highlighter = null;
+async function initHighlighter() {
+  if (highlighter) return;
+  highlighter = await createHighlighter({ themes: [SHIKI_THEME], langs: SHIKI_LANGS });
+}
+function highlightCode(code, lang) {
+  if (!highlighter) return null;
+  const alias = LANG_ALIAS[lang] ?? lang;
+  const supported = highlighter.getLoadedLanguages().includes(alias);
+  const useLang = supported ? alias : 'text';
+  try { return highlighter.codeToHtml(code, { lang: useLang, theme: SHIKI_THEME }); }
+  catch (e) { return null; }
+}
+
+// ── image shorthand resolution ───────────────────────────────────────
+// ![](fig-id) with no extension and no slash resolves to assets/<fig-id>.<ext>
+// where <ext> is the first found among svg, png, jpg, jpeg, gif, webp.
+// Set once per build from buildOnce so the marked renderer can close over it.
+
+const IMG_EXTS = ['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
+let currentSourceDir = null;
+const imgResolveCache = new Map();
+function resolveFigId(figId) {
+  if (!currentSourceDir) return null;
+  const cacheKey = currentSourceDir + '::' + figId;
+  if (imgResolveCache.has(cacheKey)) return imgResolveCache.get(cacheKey);
+  for (const ext of IMG_EXTS) {
+    const rel = path.join('assets', `${figId}.${ext}`);
+    if (fs.existsSync(path.join(currentSourceDir, rel))) {
+      imgResolveCache.set(cacheKey, rel);
+      return rel;
+    }
+  }
+  imgResolveCache.set(cacheKey, null);
+  return null;
+}
+
+// ── marked renderer overrides (code highlighting + image shorthand) ──
+
+marked.use({
+  renderer: {
+    code(code, infostring) {
+      const lang = (infostring || '').trim().split(/\s+/)[0].toLowerCase();
+      if (lang) {
+        const html = highlightCode(code, lang);
+        if (html) return html + '\n';
+      }
+      return `<pre><code>${escapeHtml(code)}</code></pre>\n`;
+    },
+    image(href, title, text) {
+      // Shorthand: bare id (no slash, no extension) → assets/<id>.<ext>
+      const isShorthand = href && !/[\\/]/.test(href) && !/\.[a-z0-9]+$/i.test(href);
+      if (isShorthand) {
+        const resolved = resolveFigId(href);
+        if (resolved) {
+          const alt = escapeHtml(text || '');
+          const cap = text ? `<figcaption>${alt}</figcaption>` : '';
+          const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+          return `<figure class="figure-img" data-fig-id="${escapeHtml(href)}"><img src="${escapeHtml(resolved)}" alt="${alt}"${titleAttr} loading="lazy">${cap}</figure>`;
+        }
+        // Unresolved: emit a visible placeholder so authors notice immediately.
+        return `<figure class="figure-img figure-missing" data-fig-id="${escapeHtml(href)}"><div class="figure-missing-placeholder">missing: assets/${escapeHtml(href)}.(${IMG_EXTS.join('|')})</div>${text ? `<figcaption>${escapeHtml(text)}</figcaption>` : ''}</figure>`;
+      }
+      const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+      return `<img src="${escapeHtml(href)}" alt="${escapeHtml(text || '')}"${titleAttr}>`;
+    },
+  },
+});
 
 // ── parsing ──────────────────────────────────────────────────────────
 
@@ -46,9 +130,20 @@ function parseAttributeTail(text) {
 function parseTagPrefix(text) {
   const m = text.match(/^([a-z]+):\s*(.*)$/);
   if (m && VALID_TAGS.has(m[1])) {
-    return { tag: m[1], heading: m[2].trim() };
+    return { tag: m[1], ...splitHeading(m[2].trim()) };
   }
-  return { heading: text.trim() };
+  return { ...splitHeading(text.trim()) };
+}
+
+// A heading may use `|` to split into two lines: the first line is the
+// action/claim ("Make it concurrent"), the second is the qualifier
+// ("by swapping the loop for asyncio.gather"). Both render as block
+// lines in the chunk heading; the second is typographically quieter.
+function splitHeading(text) {
+  if (!text.includes('|')) return { heading: text };
+  const parts = text.split('|').map(s => s.trim()).filter(Boolean);
+  if (parts.length < 2) return { heading: parts[0] || '' };
+  return { heading: parts[0], headingSub: parts.slice(1).join(' ') };
 }
 
 function parseLecture(src) {
@@ -61,6 +156,7 @@ function parseLecture(src) {
   let currentExpansion = null; // { label, lines } while inside a ::: expand block
   let noteBlock = null;        // { lines: string[] } – current `> note:` block
   let pendingNotes = [];       // notes that appeared before a chunk, attach to the next one
+  let layoutStack = [];        // closing HTML tokens for open layout directives
 
   const flushExpansion = () => {
     if (!currentExpansion || !currentChunk) return;
@@ -86,6 +182,9 @@ function parseLecture(src) {
     if (!currentChunk) return;
     flushNoteBlock();
     flushExpansion();
+    // Close any still-open layout directives defensively so the emitted
+    // body HTML stays balanced. The linter will flag these separately.
+    while (layoutStack.length) bodyLines.push('', layoutStack.pop(), '');
     // Split body at standalone `---` lines into reveal segments (§4.6).
     // `---` inside a ``` fenced code block stays part of the segment.
     const segments = [];
@@ -133,10 +232,11 @@ function parseLecture(src) {
           columns.push(currentColumn);
         }
         const { text, width, id } = parseAttributeTail(h2[1]);
-        const { tag, heading } = parseTagPrefix(text);
+        const { tag, heading, headingSub } = parseTagPrefix(text);
         currentChunk = {
           tag,
           heading,
+          headingSub,
           width: width || 'standard',
           id,
           expansions: [],
@@ -182,10 +282,46 @@ function parseLecture(src) {
           };
           continue;
         }
-        // :::  –  closes the open aside.
-        if (/^:::\s*$/.test(line) && currentExpansion) {
-          flushExpansion();
+
+        // Layout directives – inserted as literal HTML blocks into the
+        // body (or expansion body) so marked's html_block passthrough
+        // renders them as wrappers around the authored markdown.
+        //   ::: cols 2 / cols 3  – CSS column-count multi-column flow
+        //   ::: side             – 2-pane grid; switch panes with ::: flip
+        //   ::: flip             – mid-marker of a ::: side pair
+        //   ::: marginalia       – aside that extends into the right margin
+        //   :::                  – closes the innermost layout (or expansion)
+        const target = currentExpansion ? currentExpansion.lines : bodyLines;
+        const colsOpen = line.match(/^:::\s+cols\s+(2|3)\s*$/);
+        if (colsOpen) {
+          target.push('', `<div class="cols cols-${colsOpen[1]}">`, '');
+          layoutStack.push('</div>');
           continue;
+        }
+        if (/^:::\s+side\s*$/.test(line)) {
+          target.push('', `<div class="side"><div class="side-a">`, '');
+          layoutStack.push('</div></div>');
+          continue;
+        }
+        if (/^:::\s+flip\s*$/.test(line)) {
+          target.push('', `</div><div class="side-b">`, '');
+          continue;
+        }
+        if (/^:::\s+marginalia\s*$/.test(line)) {
+          target.push('', `<aside class="marginalia">`, '');
+          layoutStack.push('</aside>');
+          continue;
+        }
+        // :::  –  closes the innermost open layout, or the expansion.
+        if (/^:::\s*$/.test(line)) {
+          if (layoutStack.length) {
+            target.push('', layoutStack.pop(), '');
+            continue;
+          }
+          if (currentExpansion) {
+            flushExpansion();
+            continue;
+          }
         }
       }
     }
@@ -245,8 +381,19 @@ function renderTitleBlock({ title, presenter, info, bodyHtml }) {
   `.trim();
 }
 
+function renderHeadingHtml(chunk, cls = 'chunk-heading') {
+  if (!chunk.heading && !chunk.headingSub) return '';
+  const main = escapeHtml(chunk.heading || '');
+  if (!chunk.headingSub) return `<h2 class="${cls}">${main}</h2>`;
+  const sub = escapeHtml(chunk.headingSub);
+  // Space between spans so the print renderer (which uses display:inline
+  // for the subline) keeps a readable gap; audience uses flex-column and
+  // the space collapses under `gap: 0.1em`.
+  return `<h2 class="${cls} has-sub"><span class="hd-main">${main}</span> <span class="hd-sub">${sub}</span></h2>`;
+}
+
 function renderChunk(chunk, frontmatter) {
-  const { tag, heading, body = '', id, width, expansions = [] } = chunk;
+  const { tag, body = '', id, width, expansions = [] } = chunk;
   const bodyHtml = body ? marked.parse(body) : '';
 
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
@@ -278,7 +425,7 @@ ${inner}
 
   return `<article class="${classes}"${idAttr}>
   ${label}
-  ${heading ? `<h2 class="chunk-heading">${escapeHtml(heading)}</h2>` : ''}
+  ${renderHeadingHtml(chunk)}
   ${bodyHtml}
   ${expansionsHtml}
 </article>`;
@@ -522,6 +669,67 @@ a:hover { text-decoration-color: var(--ink); }
   color: var(--ink-soft);
 }
 
+/* Two-line action heading – the sub-line reads like a subtitle in
+   print, italicized and quieter. The space between the spans (see
+   renderHeadingHtml) keeps the two lines separated visually when
+   they collapse inline. */
+.chunk-heading.has-sub .hd-main { display: block; }
+.chunk-heading.has-sub .hd-sub {
+  display: block;
+  font-weight: 400;
+  font-size: 0.82em;
+  font-style: italic;
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  margin-top: 0.05em;
+  letter-spacing: -0.005em;
+}
+
+/* Layout primitives reflow to linear prose in print. The goal is a
+   readable document: columns collapse, side panes stack, marginalia
+   sits inline as a quiet aside. */
+.cols, .cols-2, .cols-3 { column-count: auto; }
+.cols { margin: 0.4em 0; }
+.cols > p, .side-a > p, .side-b > p { margin: 0.4em 0 0.9em; }
+.side { display: block; margin: 0.4em 0; }
+.side-a, .side-b { display: block; }
+.side-a { margin-bottom: 0.2em; }
+.marginalia {
+  display: block;
+  margin: 0.8em 0;
+  padding: 0.1rem 0 0.1rem 1.1rem;
+  border-left: 1.5pt solid var(--rule);
+  color: var(--ink-soft);
+  font-size: 0.95em;
+}
+.marginalia > :first-child { margin-top: 0; }
+.marginalia > :last-child { margin-bottom: 0; }
+
+/* figure-img: single-column figure with caption below */
+figure.figure-img { margin: 1rem 0; text-align: center; }
+figure.figure-img img { max-width: 100%; height: auto; }
+figure.figure-img figcaption {
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+  margin-top: 0.3em;
+}
+figure.figure-missing {
+  border: 1px dashed #c88a7e;
+  color: #8b2e00;
+  font-family: var(--mono);
+  padding: 0.8em 1em;
+}
+
+/* Shiki code blocks in print: transparent background, inline color */
+pre.shiki { background: transparent !important; padding: 0; margin: 0.4em 0 0.9em; }
+pre.shiki code { font-size: inherit; }
+/* Force inline on .line: white-space:pre already breaks lines via the
+   \n text nodes shiki leaves between spans. Block would double the gap. */
+pre.shiki .line { display: inline; }
+
 /* Width classes are a live-view concern; in print the column runs
    at a single reading measure. We still expose them on the DOM for
    future CSS. */
@@ -542,6 +750,13 @@ a:hover { text-decoration-color: var(--ink); }
 
 // ── audience rendering ───────────────────────────────────────────────
 
+// Expansion labels resolve to a fixed vocabulary of chevron
+// abbreviations. The label string in source is free-form and
+// descriptive (e.g. "format-spec", "None-vs-False"); the chevron
+// only shows one of the canonical categories from PRD §2, which
+// keeps the UI readable and honest about what kind of aside the
+// student is about to open. Unknown labels fall back to "Exp" –
+// "this is an explanation" – never to a truncated slug.
 function abbrevForLabel(label) {
   const l = String(label || '').toLowerCase();
   if (!l) return 'Exp';
@@ -553,8 +768,10 @@ function abbrevForLabel(label) {
   if (l.startsWith('fig') || l.startsWith('dia')) return 'Fig';
   if (l.startsWith('cod')) return '{}';
   if (l.startsWith('set')) return 'Set';
-  if (l.startsWith('note')) return 'N.B.';
-  return l.slice(0, 3).replace(/^./, c => c.toUpperCase());
+  if (l.startsWith('note') || l.startsWith('n.b') || l.startsWith('nb')) return 'N.B.';
+  if (l.startsWith('asi') || l.startsWith('asd')) return 'ASD';
+  if (l.startsWith('war') || l.startsWith('cav') || l.startsWith('pit')) return '!';
+  return 'Exp';
 }
 
 function renderTitleChunk(chunk, frontmatter) {
@@ -590,7 +807,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx) {
     return `<div class="reveal-segment" data-seg="${i}"${hidden}>${inner}</div>`;
   }).join('\n');
 
-  const headingHtml = heading ? `<h2 class="chunk-heading">${escapeHtml(heading)}</h2>` : '';
+  const headingHtml = renderHeadingHtml(chunk);
 
   // Margin expansions render as a quiet, always-visible side note; expand
   // expansions get chevrons that the JS wires up to the expanded grid.
@@ -683,17 +900,19 @@ ${AUDIENCE_CSS}
 </style>
 ${reloadScript(opts.watchPort)}
 </head>
-<body data-collapse="topic-bold">
+<body data-collapse="topic-bold" data-font="serif" data-theme="light-red">
 <div id="stage-viewport">
   <div id="stage">
 ${columnsHtml}
   </div>
 </div>
 <div id="laser-pointer" aria-hidden="true"></div>
+<div id="figure-overlay" aria-hidden="true"></div>
 <div id="hints">
   <kbd>←</kbd><kbd>→</kbd> column &nbsp; <kbd>↑</kbd><kbd>↓</kbd> chunk &nbsp; <kbd>Space</kbd> reveal<br>
   <kbd>Enter</kbd>/<kbd>1</kbd>–<kbd>9</kbd> expand &nbsp; <kbd>N</kbd> annotate &nbsp; <kbd>C</kbd> collapse<br>
   <kbd>O</kbd> overview &nbsp; <kbd>T</kbd> toc &nbsp; <kbd>/</kbd> search &nbsp; <kbd>P</kbd> print &nbsp; <kbd>B</kbd> blank<br>
+  <kbd>F</kbd> font &nbsp; <kbd>A</kbd> accent/theme &nbsp;
   <kbd>+</kbd><kbd>-</kbd><kbd>0</kbd> zoom &nbsp; <kbd>?</kbd> hide
 </div>
 <div id="mode-badge"></div>
@@ -728,13 +947,97 @@ const AUDIENCE_CSS = `
   --dim: 0.86;
   --camera-duration: 250ms;
   --slide-pad-x: 14%;
-  --slide-pad-y: 4.9vh;
-  --slide-height: 40vh;
-  --chunk-gap: 4vh;
-  --body-font: 'Literata', 'Source Serif 4', Georgia, serif;
-  --sans-font: 'Inter Tight', system-ui, sans-serif;
-  --mono-font: 'JetBrains Mono', Menlo, monospace;
+  /* Slide-internal sizes all derive from --slide-h so content layout is
+     pixel-identical across views. --slide-w / --slide-h hold the AUDIENCE
+     reference dimensions: in audience that's window.innerW/H; in speaker
+     it's the audience's reported dimensions (postMessage). The speaker
+     then applies transform: scale(--stage-scale) to fit this full-size
+     slide into its narrower cell. This keeps font-size, padding, and
+     text wrap identical on both sides – essential for laser-pointer
+     coordinates to land correctly. */
+  --slide-w: 100vw;
+  --slide-h: 100vh;
+  --stage-scale: 1;
+  --slide-pad-y: calc(var(--slide-h) * 0.049);
+  --slide-height: calc(var(--slide-h) * 0.4);
+  --chunk-gap: calc(var(--slide-h) * 0.04);
+  --serif-stack: 'Literata', 'Source Serif 4', Georgia, serif;
+  --sans-stack:  'Inter Tight', 'Inter', system-ui, -apple-system, sans-serif;
+  /* Readable mono ("iA Writer"-style): prefer the Duo/Quattro faces if
+     present, fall back to JetBrains Mono and system monospace. The iA
+     fonts are free-to-use (SIL) when self-hosted; here we treat them
+     as an opportunistic upgrade if the user installed them locally. */
+  --read-mono-stack: 'iA Writer Duo V', 'iA Writer Duospace', 'iA Writer Quattro V',
+                     'JetBrains Mono', 'Berkeley Mono', 'SF Mono', ui-monospace,
+                     Menlo, monospace;
+  --body-font: var(--serif-stack);
+  --sans-font: var(--sans-stack);
+  --mono-font: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --bold-weight: 500;
 }
+
+/* ── Font family switch (hotkey F) ───────────────────────────────
+   Three reading faces, cycled by the audience/speaker runtime. The
+   switch is on <body> via data-font, so it persists across reloads
+   when we mirror it into localStorage. Default: serif. */
+body[data-font=serif] { --body-font: var(--serif-stack); }
+body[data-font=sans]  { --body-font: var(--sans-stack); --bold-weight: 600; }
+body[data-font=mono]  {
+  --body-font: var(--read-mono-stack);
+  --bold-weight: 600;
+  /* Reading mono slides are visually denser; loosen line-height a hair. */
+  line-height: 1.55;
+}
+
+/* ── Theme / accent cycle (hotkey A) ──────────────────────────────
+   Four light-mode accent variants plus two terminal/CRT dark modes.
+   Paper/ink/rule/emph are all re-derived per theme so shadows, dims,
+   and hairlines pick up the new colors automatically via var(). */
+body[data-theme=light-red]    { --emph: oklch(0.42 0.16 30); }
+body[data-theme=light-teal]   { --emph: oklch(0.52 0.12 195); }
+body[data-theme=light-blue]   { --emph: oklch(0.48 0.18 250); }
+body[data-theme=light-orange] { --emph: oklch(0.58 0.17 60);  }
+
+/* Terminal modes – black paper, amber or phosphor-green ink.
+   Dim opacity stays via --dim, shiki colors get suppressed (see below)
+   so the whole slide reads as a single foreground color. */
+body[data-theme=terminal-amber] {
+  --paper:      oklch(0.12 0.02 60);
+  --paper-warm: oklch(0.18 0.03 60);
+  --ink:        oklch(0.82 0.14 75);
+  --ink-soft:   oklch(0.60 0.10 75);
+  --rule:       oklch(0.35 0.06 60);
+  --emph:       oklch(0.94 0.18 85);
+}
+body[data-theme=terminal-green] {
+  --paper:      oklch(0.11 0.02 150);
+  --paper-warm: oklch(0.17 0.03 150);
+  --ink:        oklch(0.80 0.20 145);
+  --ink-soft:   oklch(0.58 0.12 145);
+  --rule:       oklch(0.33 0.06 150);
+  --emph:       oklch(0.92 0.24 145);
+}
+
+/* In terminal modes, neutralise shiki's baked-in token colors so the
+   code reads in a single phosphor tone. The !important is necessary
+   because shiki emits inline style="color:#..." per span. Fonts stay
+   mono regardless of the body font choice. */
+body[data-theme^=terminal] .chunk-body pre.shiki,
+body[data-theme^=terminal] .chunk-body pre.shiki *,
+body[data-theme^=terminal] .exp-body pre.shiki,
+body[data-theme^=terminal] .exp-body pre.shiki * {
+  color: var(--ink) !important;
+  background: transparent !important;
+}
+body[data-theme^=terminal] .chunk-body pre.shiki,
+body[data-theme^=terminal] .exp-body pre.shiki { background: var(--paper-warm) !important; padding: 0.5em 0.8em; }
+/* Inline code and the shiki inline span inherit current color too. */
+body[data-theme^=terminal] .chunk-body code,
+body[data-theme^=terminal] .exp-body code { color: var(--emph); }
+/* Exp-body card gets a slightly lighter background than paper so it
+   still reads as a frame in terminal mode. */
+body[data-theme^=terminal] .chunk.expanded .exp-body.on { background: var(--paper-warm); }
+body[data-theme^=terminal] #stage-viewport { background: var(--paper); }
 
 * { box-sizing: border-box; }
 html, body {
@@ -743,14 +1046,23 @@ html, body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--body-font);
-  font-size: clamp(20px, 2.6vh, 38px);
+  font-size: clamp(20px, calc(var(--slide-h) * 0.026), 38px);
+}
+/* Disable text selection in the live views: shift-drag pans the stage
+   and accidentally selecting prose mid-lecture is a constant
+   micro-distraction. Print keeps selection for copy-paste. Textareas
+   and inputs re-enable it so annotations/notes remain editable. */
+html, body { user-select: none; -webkit-user-select: none; }
+textarea, input, [contenteditable=true] {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* stage */
 #stage-viewport {
   position: relative;
-  width: 100vw;
-  height: 100vh;
+  width: var(--slide-w);
+  height: var(--slide-h);
   overflow: hidden;
   background: var(--paper);
 }
@@ -759,7 +1071,7 @@ html, body {
   top: 0; left: 0;
   display: flex;
   align-items: stretch;
-  gap: 8vw;
+  gap: calc(var(--slide-w) * 0.08);
   transform-origin: 0 0;
   transition: transform var(--camera-duration) cubic-bezier(0.45, 0, 0.2, 1);
   will-change: transform;
@@ -769,14 +1081,14 @@ html, body {
   flex-direction: column;
   gap: var(--chunk-gap);
   flex-shrink: 0;
-  width: 100vw;
+  width: var(--slide-w);
   position: relative;
 }
 
 /* chunk = slide */
 .chunk {
   position: relative;
-  width: 100vw;
+  width: var(--slide-w);
   min-height: var(--slide-height);
   display: grid;
   grid-template-columns: 1fr minmax(0, var(--content-w, 36em)) 1fr;
@@ -822,7 +1134,7 @@ html, body {
 }
 .chunk-body p { margin: 0 0 0.7em 0; }
 .chunk-body p:last-child { margin-bottom: 0; }
-.chunk-body strong { font-weight: 600; color: var(--emph); }
+.chunk-body strong { font-weight: var(--bold-weight); color: var(--emph); }
 .chunk-body em { font-style: italic; }
 .chunk-body ul, .chunk-body ol { margin: 0 0 0.7em 1.4em; }
 .chunk-body li { margin: 0.15em 0; }
@@ -832,26 +1144,213 @@ html, body {
   font-size: calc(0.78em * var(--zoom));
   line-height: 1.4;
   white-space: pre;
-  /* Code blocks are not bound by the chunk's text-column width. They
-     grow to their longest line, capped at the slide-inner width
-     (viewport minus slide-padding on both sides – we expand to 72vw,
-     matching the chunk's 14% horizontal padding). This lets a .narrow
-     or .standard chunk hold a wide code snippet without clipping;
-     long lines can still scroll horizontally as a last resort.
-     Centering trick: chunk-content sits in the middle grid column
-     (slide-centered); position:relative + left:50% + translateX(-50%)
-     re-pins the pre's center to the slide's center even when the pre
-     is wider than its containing chunk-content. */
-  width: max-content;
-  max-width: 72vw;
-  position: relative;
-  left: 50%;
-  transform: translateX(-50%);
   overflow-x: auto;
   margin: 0.4em 0;
   color: var(--ink);
   text-align: left;
+  max-width: 100%;
 }
+/* Top-level pre inside a reveal segment escapes the chunk's text-column
+   width and pins to the slide center (same trick as before): pre grows
+   to max-content, capped at 72vw (viewport minus 2×14% slide padding),
+   and position:relative + left:50% + translateX(-50%) re-centers it on
+   the slide when the pre is wider than .chunk-content. Nested pre (in
+   .cols / .side / .marginalia) stays at 100% of its local container. */
+.reveal-segment > pre,
+.reveal-segment > div > pre, /* shiki wraps in <pre>; direct child is fine */
+.chunk-content > .reveal-segment > pre {
+  width: max-content;
+  max-width: calc(var(--slide-w) * 0.72);
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Shiki code blocks: match the chunk-body pre typography, suppress the
+   theme's own background (use the slide's paper color so the code sits
+   in the prose visually, not in a card). */
+.chunk-body pre.shiki {
+  background: transparent !important;
+  padding: 0.4em 0;
+}
+.chunk-body pre.shiki code { font-size: inherit; }
+/* Shiki wraps each line in <span class="line">. With white-space:pre on
+   the outer <pre>, the newline text nodes between spans already break
+   lines — display:block on .line would double the gap, so we force
+   inline explicitly (some shiki versions apply block via their CSS). */
+.chunk-body pre.shiki .line { display: inline; }
+
+/* Layout primitives – cols, side, marginalia -------------------------- */
+
+/* ::: cols N  – CSS multi-column flow for 2 or 3 short paragraphs */
+.cols {
+  column-gap: 2.2em;
+  column-rule: 1px dotted transparent;
+  margin: 0.3em 0;
+}
+.cols-2 { column-count: 2; }
+.cols-3 { column-count: 3; }
+.cols > * { break-inside: avoid; }
+.cols > :first-child { margin-top: 0; }
+.cols p { margin: 0 0 0.55em; }
+.cols p:last-child { margin-bottom: 0; }
+
+/* ::: side / ::: flip  – explicit two-pane grid for figure+text */
+.side {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2em;
+  align-items: start;
+  margin: 0.5em 0;
+}
+.side-a, .side-b { min-width: 0; }
+.side-a > :first-child, .side-b > :first-child { margin-top: 0; }
+.side-a > :last-child, .side-b > :last-child { margin-bottom: 0; }
+
+/* ::: marginalia  – aside that extends into the right slide margin.
+   Anchored to chunk-content's right edge, spills toward the slide
+   padding. Camera does not pan automatically on load; click pans
+   manualPan so the marginalia lands centered. */
+.marginalia {
+  position: absolute;
+  left: calc(100% + 2vw);
+  top: 0;
+  width: 26vw;
+  max-width: 36em;
+  font-family: var(--body-font);
+  font-size: calc(0.82em * var(--zoom));
+  line-height: 1.45;
+  color: var(--ink-soft);
+  padding: 0 0 0 1.1em;
+  border-left: 1px dotted var(--rule);
+  cursor: zoom-in;
+  z-index: 2;
+}
+.marginalia > :first-child { margin-top: 0; }
+.marginalia > :last-child { margin-bottom: 0; }
+.marginalia figure { margin: 0; }
+.marginalia img { max-width: 100%; height: auto; display: block; }
+.marginalia pre { font-size: 0.85em; }
+
+/* Two-line action heading (heading | subline) */
+.chunk-heading.has-sub { display: flex; flex-direction: column; gap: 0.1em; }
+.chunk-heading .hd-main { display: block; }
+.chunk-heading .hd-sub {
+  display: block;
+  font-weight: 400;
+  font-size: 0.68em;
+  line-height: 1.25;
+  color: var(--ink-soft);
+  letter-spacing: -0.005em;
+  font-family: var(--sans-font);
+  font-variant: normal;
+  font-style: italic;
+}
+
+/* Images & figures --------------------------------------------------- */
+figure.figure-img {
+  margin: 0.6em 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: zoom-in;
+}
+figure.figure-img img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  background: var(--paper);
+}
+figure.figure-img figcaption {
+  font-family: var(--sans-font);
+  font-size: calc(0.68em * var(--zoom));
+  color: var(--ink-soft);
+  margin-top: 0.4em;
+  text-align: center;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.08em;
+}
+figure.figure-missing {
+  border: 1px dashed oklch(0.62 0.16 30 / 0.6);
+  padding: 0.8em 1em;
+  color: oklch(0.42 0.16 30);
+  font-family: var(--mono-font);
+  font-size: 0.75em;
+}
+figure.figure-missing .figure-missing-placeholder { font-style: italic; }
+
+/* Focused figure / pre overlay --------------------------------------- */
+body.figure-focused #figure-overlay { display: flex; }
+#figure-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: oklch(0.06 0 0 / 0.78);
+  z-index: 30;
+  cursor: zoom-out;
+  padding: 4vh 4vw;
+}
+/* The target is always shown on a solid paper card – otherwise the
+   dimmed backdrop bleeds through (shiki-highlighted code in particular
+   loses legibility when translucent). !important wins over shiki's
+   and the chunk-body override that set pre.shiki background to
+   transparent for in-flow rendering. */
+#figure-overlay > .figure-focus-target {
+  max-width: 92vw;
+  max-height: 88vh;
+  overflow: auto;
+  background: var(--paper) !important;
+  box-shadow: 0 0 0 1px var(--rule);
+  padding: 3vh 3vw;
+  cursor: zoom-out;
+  font-family: var(--body-font);
+  color: var(--ink);
+}
+#figure-overlay > pre.figure-focus-target,
+#figure-overlay > pre.shiki.figure-focus-target {
+  background: var(--paper) !important;
+}
+#figure-overlay pre {
+  font-family: var(--mono-font);
+  /* Overlay code should read LARGER than on-slide (where it's ~0.78em
+     × zoom of body font). Scale off --slide-h so it stays consistent
+     across audience/speaker. */
+  font-size: clamp(20px, calc(var(--slide-h, 100vh) * 0.034), 52px);
+  line-height: 1.5;
+  white-space: pre;
+  margin: 0;
+  background: transparent;
+}
+#figure-overlay figure.figure-img { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.8em; }
+/* Scale the image up to use the available overlay area. width:auto +
+   max-width + max-height preserves aspect ratio while letting the
+   image grow beyond its intrinsic size (SVGs often default to 300×150
+   when embedded via <img>, which is too small for a zoom overlay). */
+#figure-overlay figure.figure-img img {
+  width: min(86vw, 1400px);
+  max-height: 78vh;
+  height: auto;
+  object-fit: contain;
+}
+#figure-overlay figcaption {
+  font-family: var(--sans-font);
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  margin-top: 0.6em;
+  text-align: center;
+}
+/* Dim the slide underneath so the overlay reads as a zoomed view. */
+body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
+
+/* Any figure/pre/marginalia inside an active chunk is pointer-targetable. */
+.chunk.active .chunk-body figure.figure-img,
+.chunk.active .chunk-body pre,
+.chunk.active .marginalia { cursor: zoom-in; }
+.chunk:not(.active) .chunk-body figure.figure-img,
+.chunk:not(.active) .chunk-body pre,
+.chunk:not(.active) .marginalia { cursor: default; }
 
 /* reveal segments: first visible, rest hidden until advanced */
 .reveal-segment { transition: opacity 180ms ease; }
@@ -1056,10 +1555,12 @@ html, body {
 .exp-chev.on .caret { opacity: 1; transform: rotate(90deg); }
 .chunk:not(.active) .exps { display: none; }
 
-/* expanded: split the slide grid into content-left + expansion-right */
+/* expanded: split the slide grid into content-left + expansion-right.
+   Exp-body gets a bit of extra breathing room (36em vs. 30em) so that
+   standard-width code blocks fit without horizontal scroll. */
 .chunk.expanded {
-  grid-template-columns: minmax(0, var(--content-w, 36em)) minmax(0, 30em);
-  gap: 6%;
+  grid-template-columns: minmax(0, var(--content-w, 36em)) minmax(0, 36em);
+  gap: 5%;
 }
 .chunk.expanded .chunk-content { grid-column: 1; }
 .exp-body { display: none; }
@@ -1067,18 +1568,46 @@ html, body {
   display: block;
   grid-column: 2;
   align-self: center;
-  font-size: calc(0.92em * var(--zoom));
+  font-size: calc(0.88em * var(--zoom));
   line-height: 1.5;
   color: var(--ink);
   background: var(--paper);
   padding: 1.2em 1.6em;
   border: 1px solid var(--rule);
   border-left: 2px solid var(--ink);
+  min-width: 0;
+  max-height: 80vh;
+  overflow-y: auto;
+  /* Raise above the chunk-content column: code blocks inside reveal
+     segments escape their grid cell (width: max-content, left: 50%,
+     translateX(-50%)) and would otherwise paint on top of the card. */
+  position: relative;
+  z-index: 5;
+  box-shadow: 0 2px 18px oklch(0 0 0 / 0.08);
 }
 .exp-body .tag-label { text-align: left; font-size: 0.72em; margin-bottom: 0.3em; }
 .exp-body p { margin: 0 0 0.6em; }
 .exp-body p:last-child { margin-bottom: 0; }
-.exp-body strong { font-weight: 600; color: var(--emph); }
+.exp-body strong { font-weight: var(--bold-weight); color: var(--emph); }
+/* Code inside an expansion: a touch smaller than inline code so a typical
+   6–8 line snippet fits the 36em width; overflow scrolls horizontally
+   (and the aside's max-height caps vertical growth). */
+.exp-body pre {
+  font-family: var(--mono-font);
+  font-size: 0.8em;
+  line-height: 1.4;
+  white-space: pre;
+  margin: 0.4em 0;
+  max-width: 100%;
+  overflow-x: auto;
+  background: transparent;
+  color: var(--ink);
+}
+.exp-body pre.shiki { background: transparent !important; padding: 0.4em 0; }
+.exp-body pre.shiki .line { display: inline; }
+.exp-body code { font-family: var(--mono-font); font-size: 0.92em; }
+.exp-body ul, .exp-body ol { margin: 0 0 0.6em 1.3em; padding: 0; }
+.exp-body li { margin: 0.15em 0; }
 
 /* focus / dim (§2 neighbor behavior: dim mode) */
 .chunk:not(.active) {
@@ -1290,6 +1819,60 @@ const stage = document.getElementById('stage');
 const viewport = document.getElementById('stage-viewport');
 const modeBadge = document.getElementById('mode-badge');
 
+// ── Slide-size sync ─────────────────────────────────────────────────
+// --slide-w / --slide-h hold the AUDIENCE window's pixel dimensions so
+// that every slide-internal size (font, padding, chunk gap, etc.) is
+// computed against the same reference on both sides. Audience fills
+// its window 1:1; speaker renders the full audience-size slide and
+// then CSS-transforms it down into its physical cell, preserving
+// wrap, font-size, and laser-pointer coords exactly.
+//
+// Audience source of truth: window.innerWidth / window.innerHeight,
+// refreshed on resize. Speaker: last-received audienceW/H from the
+// state snapshot. Until a snapshot arrives, speaker falls back to
+// window dims (best guess at projector shape).
+function setSlideRef(w, h) {
+  if (!(w > 0 && h > 0)) return;
+  const root = document.documentElement.style;
+  root.setProperty('--slide-w', w + 'px');
+  root.setProperty('--slide-h', h + 'px');
+  root.setProperty('--audience-aspect', String(w / h));
+  if (VIEW === 'speaker' && typeof sizeStageViewport === 'function') {
+    sizeStageViewport();
+  }
+  if (typeof focusCamera === 'function') focusCamera(true);
+}
+// Layout-space viewport size (untouched by --stage-scale transforms).
+// getBoundingClientRect() returns visual pixels, which in speaker are
+// scaled down; camera math lives in unscaled coords, so we use
+// offsetWidth / offsetHeight instead wherever the math needs to match
+// chunk.offsetLeft / offsetWidth.
+function vpLayout() {
+  return { width: viewport.offsetWidth, height: viewport.offsetHeight };
+}
+// Initial CSS-var write at module-load time – we can't call setSlideRef
+// here yet because it calls focusCamera, and focusCamera reads the
+// 'overview' let declared further down (TDZ). So set the raw vars
+// directly, then register handlers that will use the full setSlideRef
+// once the rest of the module (state, overview, etc.) has initialised.
+(function primeSlideVars() {
+  const w = window.innerWidth, h = window.innerHeight;
+  const root = document.documentElement.style;
+  root.setProperty('--slide-w', w + 'px');
+  root.setProperty('--slide-h', h + 'px');
+  root.setProperty('--audience-aspect', String(w / h));
+})();
+if (VIEW === 'audience') {
+  window.addEventListener('resize', () => setSlideRef(window.innerWidth, window.innerHeight));
+}
+// Speaker's initial slide reference stays as this window's dimensions
+// until the first audience state snapshot arrives via applyRemoteState,
+// which calls setAudienceAspect → setSlideRef. No immediate call needed.
+function setAudienceAspect(w, h) {
+  // Kept for name-compat with prior callsite; forwards to setSlideRef.
+  setSlideRef(w, h);
+}
+
 // Flat list of all chunk elements with column index, preserving source order.
 const flatChunks = [];
 document.querySelectorAll('.column').forEach((col, ci) => {
@@ -1303,7 +1886,14 @@ const state = {
   collapse: 'topic-bold',
   zoom: 1.35,
   blanked: false,
+  font: 'serif',          // serif | sans | mono (readable)
+  theme: 'light-red',     // light-{red,teal,blue,orange} | terminal-{amber,green}
 };
+const FONT_CYCLE = ['serif', 'sans', 'mono'];
+const THEME_CYCLE = [
+  'light-red', 'light-teal', 'light-blue', 'light-orange',
+  'terminal-amber', 'terminal-green',
+];
 let openExp = null;            // { chunkIdx, expIdx } | null
 let annotEditingId = null;
 let annotations = {};          // chunkId -> text
@@ -1326,12 +1916,44 @@ function loadPersisted() {
     const pos = localStorage.getItem(storageKey('activeIdx'));
     if (pos !== null) state.activeIdx = Math.max(0, Math.min(flatChunks.length - 1, parseInt(pos, 10) || 0));
   } catch (e) {}
+  // Font + theme are global (not per-lecture): shared across all lectures
+  // so the reading preference follows the user, not the source file.
+  try {
+    const f = localStorage.getItem('psi-lecdoc:font');
+    if (f && FONT_CYCLE.includes(f)) state.font = f;
+  } catch (e) {}
+  try {
+    const t = localStorage.getItem('psi-lecdoc:theme');
+    if (t && THEME_CYCLE.includes(t)) state.theme = t;
+  } catch (e) {}
 }
 function saveAnnotations() {
   try { localStorage.setItem(storageKey('annotations'), JSON.stringify(annotations)); } catch (e) {}
 }
 function saveActive() {
   try { localStorage.setItem(storageKey('activeIdx'), String(state.activeIdx)); } catch (e) {}
+}
+function applyFontTheme() {
+  document.body.dataset.font = state.font;
+  document.body.dataset.theme = state.theme;
+}
+function cycleFont(dir) {
+  const i = FONT_CYCLE.indexOf(state.font);
+  const next = FONT_CYCLE[(i + (dir || 1) + FONT_CYCLE.length) % FONT_CYCLE.length];
+  state.font = next;
+  applyFontTheme();
+  try { localStorage.setItem('psi-lecdoc:font', next); } catch (e) {}
+  flashMode('font · ' + next);
+  broadcastState();
+}
+function cycleTheme(dir) {
+  const i = THEME_CYCLE.indexOf(state.theme);
+  const next = THEME_CYCLE[(i + (dir || 1) + THEME_CYCLE.length) % THEME_CYCLE.length];
+  state.theme = next;
+  applyFontTheme();
+  try { localStorage.setItem('psi-lecdoc:theme', next); } catch (e) {}
+  flashMode('theme · ' + next);
+  broadcastState();
 }
 
 // ── window.postMessage sync (PRD §7 / speaker.md §3) ────────────────
@@ -1367,6 +1989,16 @@ function snapshot() {
     collapse: state.collapse,
     zoom: state.zoom,
     blanked: state.blanked,
+    font: state.font,
+    theme: state.theme,
+    // Inner window dimensions travel with every snapshot so the speaker
+    // can match its preview's aspect ratio to the actual projector
+    // window. Without this, laser-pointer coordinates (fractions of the
+    // active chunk's bounding box) would land at the wrong pixel, and
+    // content layout could differ (text wrap, code-block width, etc.).
+    // Audience is the source of truth; speaker-side value is ignored.
+    audienceW: window.innerWidth,
+    audienceH: window.innerHeight,
     annotations: Object.assign({}, annotations),
     openExp: openExp ? { chunkIdx: openExp.chunkIdx, expIdx: openExp.expIdx } : null,
   };
@@ -1382,6 +2014,15 @@ function applyRemoteState(payload) {
     state.collapse = payload.collapse || 'topic-bold';
     state.zoom = payload.zoom || 1.35;
     state.blanked = !!payload.blanked;
+    if (payload.font && FONT_CYCLE.includes(payload.font)) state.font = payload.font;
+    if (payload.theme && THEME_CYCLE.includes(payload.theme)) state.theme = payload.theme;
+    applyFontTheme();
+    // Speaker mirrors the audience window's aspect so its preview area
+    // lays out content identically. Ignored on audience side (its own
+    // window dimensions are the source of truth).
+    if (VIEW === 'speaker' && payload.audienceW > 0 && payload.audienceH > 0) {
+      setAudienceAspect(payload.audienceW, payload.audienceH);
+    }
     Object.keys(revealed).forEach(k => delete revealed[k]);
     Object.assign(revealed, payload.revealed || {});
     Object.keys(annotations).forEach(k => delete annotations[k]);
@@ -1530,7 +2171,10 @@ function focusCamera(instant = false) {
   if (overview) { applyOverviewCamera(instant); return; }
   const entry = flatChunks[state.activeIdx];
   if (!entry) return;
-  const vp = viewport.getBoundingClientRect();
+  // Layout-space viewport dims: getBoundingClientRect is post-transform
+  // (speaker's --stage-scale shrinks it visually) but chunk offsets live
+  // in unscaled layout coords, so the math must stay in layout space.
+  const vp = vpLayout();
   const { left, top, width, height } = getOffset(entry.el, stage);
 
   let tx, ty;
@@ -1568,7 +2212,7 @@ function focusCamera(instant = false) {
 function applyOverviewCamera(instant = false) {
   const entry = flatChunks[selectedIdx] || flatChunks[state.activeIdx];
   if (!entry) return;
-  const vp = viewport.getBoundingClientRect();
+  const vp = vpLayout();
   const { left, top, width, height } = getOffset(entry.el, stage);
   const s = overviewScale;
   const tx = vp.width / 2 - (left + width / 2) * s + manualPan.dx;
@@ -1678,6 +2322,7 @@ function commitSearchFirstMatch() {
 function jumpTo(idx, direction) {
   if (idx < 0 || idx >= flatChunks.length) return;
   if (annotEditingId) blurAnnotation();
+  if (focusedFigure) unfocusFigure();
   closeAnyExpansion();
   // Reset shift-drag pan on chunk change – pan is per-chunk inspection.
   manualPan = { dx: 0, dy: 0 };
@@ -1931,6 +2576,7 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault(); break;
     }
     case 'Escape': {
+      if (focusedFigure) { unfocusFigure(); break; }
       if (tocVisible) { tocVisible = false; document.body.classList.remove('toc-visible'); break; }
       if (overview) { dismissOverviewNoMove(); break; }
       if (annotEditingId) { blurAnnotation(); break; }
@@ -1940,11 +2586,20 @@ document.addEventListener('keydown', (e) => {
     }
     case 'n': case 'N': {
       if (overview) break;
+      // Shift-N on speaker: force-open the private notes pane and
+      // focus it (even when empty/collapsed). Plain N keeps the
+      // existing behavior – audience-mirrored annotations.
+      if (VIEW === 'speaker' && e.shiftKey && typeof focusNotesPane === 'function') {
+        focusNotesPane();
+        e.preventDefault(); break;
+      }
       const entry = flatChunks[state.activeIdx];
       if (entry) viewHooks.onN(entry);
       e.preventDefault(); break;
     }
     case 'c': case 'C': cycleCollapse(e.shiftKey ? -1 : 1); e.preventDefault(); break;
+    case 'f': case 'F': cycleFont(e.shiftKey ? -1 : 1); e.preventDefault(); break;
+    case 'a': case 'A': cycleTheme(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
     case '/': if (overview) { startSearch(); e.preventDefault(); } break;
@@ -2037,11 +2692,77 @@ viewport.addEventListener('pointerdown', (e) => {
 
 window.addEventListener('resize', () => focusCamera(true));
 
+// ── figure focus / marginalia pan (§figures) ────────────────────────
+// Click a <figure>, a <pre>, or a .marginalia inside the active chunk
+// to "focus" it: figures/pre land in a centered overlay with the slide
+// dimmed underneath; .marginalia instead pans the camera right so the
+// aside is centered in the viewport (no overlay – it's in-frame).
+const figureOverlay = document.getElementById('figure-overlay');
+let focusedFigure = null;
+function unfocusFigure() {
+  if (!focusedFigure) return;
+  focusedFigure = null;
+  figureOverlay.replaceChildren();
+  document.body.classList.remove('figure-focused');
+}
+function focusFigure(el) {
+  unfocusFigure();
+  const clone = el.cloneNode(true);
+  clone.classList.add('figure-focus-target');
+  clone.removeAttribute('id');
+  figureOverlay.replaceChildren(clone);
+  document.body.classList.add('figure-focused');
+  focusedFigure = clone;
+}
+figureOverlay.addEventListener('click', unfocusFigure);
+
+// Pan the camera so that a given element inside the active chunk lands
+// centered horizontally in the viewport. Used for .marginalia clicks so
+// the right-margin aside becomes the focal point without leaving the
+// slide. Math lives in stage-local layout space so the speaker's
+// transform:scale on the viewport doesn't break the calculation.
+function panToElement(el) {
+  const vp = vpLayout();
+  const activeEntry = flatChunks[state.activeIdx];
+  if (!activeEntry) return;
+  const ao = getOffset(activeEntry.el, stage);
+  const eo = getOffset(el, stage);
+  // manualPan.dx offsets relative to the chunk-centered camera, so:
+  //   Δ = (ao_center_x) - (eo_center_x)
+  const dx = (ao.left + ao.width / 2) - (eo.left + eo.width / 2);
+  manualPan = { dx: dx, dy: manualPan.dy || 0 };
+  focusCamera(false);
+}
+
+function wireFigureClicks() {
+  flatChunks.forEach(({ el }) => {
+    el.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia').forEach(target => {
+      if (target.dataset.figureWired) return;
+      target.dataset.figureWired = '1';
+      target.addEventListener('click', (ev) => {
+        if (overview) return;
+        if (ev.target.closest('.annot-textarea, input, button')) return;
+        const chunk = target.closest('.chunk');
+        if (!chunk || !chunk.classList.contains('active')) return;
+        ev.stopPropagation();
+        ev.preventDefault();
+        if (target.classList.contains('marginalia')) {
+          panToElement(target);
+          return;
+        }
+        focusFigure(target);
+      });
+    });
+  });
+}
+
 // Boot
 loadPersisted();
+applyFontTheme();
 document.querySelectorAll('.reveal-segment').forEach(seg => splitSentencesIn(seg));
 wireAnnotations();
 wireClicks();
+wireFigureClicks();
 applyRevealAll();
 applyState();
 // Two rAFs so fonts have a chance to settle before the first camera solve.
@@ -2109,21 +2830,22 @@ ${SPEAKER_CSS}
 </style>
 ${reloadScript(opts.watchPort)}
 </head>
-<body data-collapse="topic-bold" data-view="speaker">
+<body data-collapse="topic-bold" data-view="speaker" data-font="serif" data-theme="light-red">
 <div id="scrubber">
 ${scrubberHtml}
 </div>
-<div id="speaker-main">
+<div id="stage-cell">
   <div id="stage-viewport">
     <div id="stage">
 ${columnsHtml}
     </div>
   </div>
-  <aside id="notes-pane">
-    <textarea id="notes-content" spellcheck="false" placeholder="no notes for this chunk – type to add"></textarea>
-  </aside>
 </div>
+<aside id="notes-pane">
+  <textarea id="notes-content" rows="1" spellcheck="false" placeholder=""></textarea>
+</aside>
 <div id="preview-strip"></div>
+<div id="figure-overlay" aria-hidden="true"></div>
 <footer id="speaker-footer">
   <span id="timer">00:00</span>
   <span id="push-indicator" class="push-on">push ●</span>
@@ -2136,8 +2858,9 @@ ${noteTemplates.join('\n')}
 </div>
 <div id="hints" class="hidden">
   <kbd>←</kbd><kbd>→</kbd> column &nbsp; <kbd>↑</kbd><kbd>↓</kbd> chunk &nbsp; <kbd>Space</kbd> reveal<br>
-  <kbd>Enter</kbd>/<kbd>1</kbd>–<kbd>9</kbd> expand &nbsp; <kbd>N</kbd> notes &nbsp; <kbd>C</kbd> collapse<br>
+  <kbd>Enter</kbd>/<kbd>1</kbd>–<kbd>9</kbd> expand &nbsp; <kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>C</kbd> collapse<br>
   <kbd>O</kbd> overview &nbsp; <kbd>T</kbd> toc &nbsp; <kbd>/</kbd> search &nbsp; <kbd>B</kbd> blank<br>
+  <kbd>F</kbd> font &nbsp; <kbd>A</kbd> accent/theme &nbsp;
   <kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force push &nbsp; <kbd>P</kbd> print
 </div>
 <div id="mode-badge"></div>
@@ -2161,10 +2884,13 @@ ${SPEAKER_JS}
 const SPEAKER_CSS = `
 body[data-view=speaker] {
   display: grid;
-  grid-template-rows: 3vh 1fr 22vh 2.2rem;
+  /* scrubber · stage · notes (auto, collapses to 0 when empty) ·
+     preview-strip · footer */
+  grid-template-rows: 3vh 1fr auto 22vh 2.2rem;
   grid-template-columns: 1fr;
   overflow: hidden;
 }
+body[data-view=speaker]:not(.has-notes) #notes-pane { display: none; }
 #note-templates { display: none; }
 
 /* scrubber: thin top strip with column buttons + chunk dots */
@@ -2208,25 +2934,43 @@ body[data-view=speaker] {
 .dot:hover { background: var(--ink-soft); }
 .dot.active { background: var(--emph); }
 
-/* middle row: stage viewport + notes pane */
-#speaker-main {
+/* row 2: stage – full width, letterbox bars left/right if audience
+   aspect is narrower than the cell. */
+#stage-cell {
   grid-row: 2;
-  display: grid;
-  grid-template-columns: 1fr 26em;
+  position: relative;
+  min-width: 0;
   min-height: 0;
+  /* Letterbox bars: slightly darker than paper so the frame is visible
+     without competing visually. */
+  background: oklch(from var(--paper) calc(l - 0.03) c h);
   overflow: hidden;
 }
 body[data-view=speaker] #stage-viewport {
-  width: auto;
-  height: 100%;
-  grid-column: 1;
+  /* Full audience-size rectangle (slide-w × slide-h), visually shrunk
+     by --stage-scale to fit #stage-cell. translate(-50%, -50%) centers
+     it inside the cell; because translate percentages refer to the
+     element's layout size (pre-scale), centering still lands correctly
+     after the scale composes in. */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--slide-w);
+  height: var(--slide-h);
+  transform: translate(-50%, -50%) scale(var(--stage-scale, 1));
+  transform-origin: center center;
+  box-shadow: 0 0 0 1px var(--rule);
 }
+/* row 3: speaker notes below the slide. Collapses to 0 when empty
+   (body lacks .has-notes). Auto-sizes 1→3 lines based on content,
+   sans-serif for projector legibility at a glance. */
 #notes-pane {
-  grid-column: 2;
-  border-left: 1px solid var(--rule);
+  grid-row: 3;
+  border-top: 1px solid var(--rule);
   background: var(--paper-warm);
   display: flex;
   min-height: 0;
+  overflow: hidden;
 }
 #notes-content {
   flex: 1;
@@ -2234,37 +2978,67 @@ body[data-view=speaker] #stage-viewport {
   border: 0;
   outline: 0;
   resize: none;
-  padding: 1.5rem 1.5rem 1rem;
+  padding: 0.6rem 1rem;
   background: transparent;
   color: var(--ink);
-  font-family: var(--body-font);
-  font-size: 0.95rem;
-  line-height: 1.5;
+  font-family: var(--sans-font);
+  font-size: 1.15rem;
+  line-height: 1.35;
+  /* Box-sizing content so the textarea's scrollHeight calc is stable. */
+  box-sizing: content-box;
+  overflow: hidden;
+  height: 1.35em;
 }
-#notes-content:focus { outline: 2px solid oklch(0.55 0.12 220); outline-offset: -2px; }
+#notes-content:focus {
+  outline: 2px solid oklch(0.55 0.12 220);
+  outline-offset: -2px;
+  overflow: auto; /* allow scroll while editing if overflowing 3 lines */
+}
 #notes-content::placeholder {
   color: var(--ink-soft);
   font-style: italic;
-  font-size: 0.88rem;
 }
 
-/* bottom: preview strip */
+/* bottom: preview strip – horizontal scroll of all chunks, drag or
+   wheel to pan, click to jump. The active slot is highlighted and
+   automatically scrolled into view on chunk change. */
 #preview-strip {
   grid-row: 3;
   display: flex;
-  gap: 1rem;
+  align-items: stretch;
+  gap: 0.7rem;
   padding: 0.5rem 1rem;
   border-top: 1px solid var(--rule);
   background: var(--paper);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  cursor: grab;
+  /* Firefox: thin scrollbar; Chrome/Safari: via -webkit-* below. */
+  scrollbar-width: thin;
 }
+#preview-strip.dragging { cursor: grabbing; scroll-behavior: auto; }
+#preview-strip::-webkit-scrollbar { height: 6px; }
+#preview-strip::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 3px; }
 .preview-slot {
-  flex: 1 1 0;
+  flex: 0 0 auto;
+  /* Match audience aspect so clones render without letterboxing.
+     Height fills the strip; width derives from aspect. */
+  height: 100%;
+  aspect-ratio: var(--audience-aspect, 16 / 9);
+  width: auto;
   min-width: 0;
   overflow: hidden;
   position: relative;
   border: 1px solid var(--rule);
   background: var(--paper);
+  cursor: pointer;
+  transition: box-shadow 120ms, border-color 120ms;
+}
+.preview-slot:hover { border-color: var(--ink-soft); }
+.preview-slot.current {
+  border-color: var(--emph);
+  box-shadow: 0 0 0 2px var(--emph);
 }
 .preview-slot-label {
   position: absolute;
@@ -2275,13 +3049,18 @@ body[data-view=speaker] #stage-viewport {
   font-size: 9px;
   color: var(--ink-soft);
   z-index: 1;
-  opacity: 0.8;
+  opacity: 0.85;
+  pointer-events: none;
 }
+.preview-slot.current .preview-slot-label { color: var(--emph); opacity: 1; }
 .preview-slot .chunk-clone {
   transform-origin: top left;
   pointer-events: none;
 }
-.preview-slot.empty { border-style: dashed; opacity: 0.4; }
+/* Clones have .active removed so the live styling does not bleed onto
+   them – but that triggers the global dim rule. Force full opacity. */
+.preview-slot .chunk-clone,
+.preview-slot .chunk-clone.chunk { opacity: 1 !important; }
 
 /* footer */
 #speaker-footer {
@@ -2326,6 +3105,31 @@ const previewStrip = document.getElementById('preview-strip');
 const scrubberEl = document.getElementById('scrubber');
 const timerEl = document.getElementById('timer');
 const pushIndicator = document.getElementById('push-indicator');
+const stageCell = document.getElementById('stage-cell');
+
+// Compute --stage-scale so the audience-sized slide (slide-w × slide-h)
+// fits inside #stage-cell with letterbox bars. The viewport itself is
+// laid out at the full reference size; scale is purely visual. This
+// guarantees identical content wrap + font size across audience and
+// speaker, which the laser-pointer geometry depends on.
+function sizeStageViewport() {
+  if (!stageCell) return;
+  const cw = stageCell.clientWidth;
+  const ch = stageCell.clientHeight;
+  if (!cw || !ch) return;
+  const slideW = viewport.offsetWidth || parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slide-w')) || cw;
+  const slideH = viewport.offsetHeight || parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slide-h')) || ch;
+  if (!slideW || !slideH) return;
+  const scale = Math.min(cw / slideW, ch / slideH);
+  document.documentElement.style.setProperty('--stage-scale', String(scale));
+  if (typeof focusCamera === 'function') focusCamera(true);
+  if (typeof populatePreviewStrip === 'function') populatePreviewStrip();
+}
+try {
+  new ResizeObserver(sizeStageViewport).observe(stageCell);
+} catch (e) {}
+window.addEventListener('resize', sizeStageViewport);
+requestAnimationFrame(sizeStageViewport);
 
 let pushEnabled = true;
 viewHooks.shouldBroadcast = () => pushEnabled;
@@ -2367,20 +3171,60 @@ function loadNotesFor(id) {
     return raw !== null ? raw : sourceNotesFor(id);
   } catch (e) { return sourceNotesFor(id); }
 }
+// Auto-size the notes textarea: 1 line minimum, up to 3 lines, scroll
+// beyond. Also toggles body.has-notes so CSS can collapse the row
+// entirely when there are no notes – reclaims vertical space for the
+// slide preview above. Line-height is 1.35 (matching CSS).
+const NOTES_MIN_LINES = 1;
+const NOTES_MAX_LINES = 3;
+function autoSizeNotes() {
+  const hasText = notesContent.value.trim().length > 0;
+  // Also consider placeholder-less empty state "no notes" – currently
+  // empty textarea → collapse pane entirely.
+  document.body.classList.toggle('has-notes', hasText);
+  if (!hasText) {
+    notesContent.style.height = '1.35em';
+    return;
+  }
+  // Measure content height by resetting then reading scrollHeight.
+  notesContent.style.height = '1.35em';
+  const lineHeight = 1.35 * parseFloat(getComputedStyle(notesContent).fontSize);
+  const max = lineHeight * NOTES_MAX_LINES;
+  const wanted = Math.min(notesContent.scrollHeight, max);
+  const min = lineHeight * NOTES_MIN_LINES;
+  notesContent.style.height = Math.max(min, wanted) + 'px';
+}
+
 function populateNotesPane() {
   const entry = flatChunks[state.activeIdx];
-  if (!entry) { notesContent.value = ''; return; }
-  notesContent.value = loadNotesFor(entry.id);
+  notesContent.value = entry ? loadNotesFor(entry.id) : '';
+  autoSizeNotes();
 }
 notesContent.addEventListener('input', () => {
   const entry = flatChunks[state.activeIdx];
-  if (!entry) return;
-  try { localStorage.setItem(noteOverrideKey(entry.id), notesContent.value); } catch (e) {}
+  if (entry) {
+    try { localStorage.setItem(noteOverrideKey(entry.id), notesContent.value); } catch (e) {}
+  }
+  autoSizeNotes();
 });
 notesContent.addEventListener('keydown', (e) => {
   // Esc blurs back to the slide so global hotkeys (arrows, space) work again.
   if (e.key === 'Escape') { notesContent.blur(); e.preventDefault(); }
 });
+notesContent.addEventListener('blur', autoSizeNotes);
+
+// Shift-N entry point: force-show the notes row and focus the textarea
+// even when currently collapsed (body lacks .has-notes). The class
+// makes the row visible; focus() lands the caret; user types and the
+// input handler keeps has-notes on. If they blur with no content,
+// autoSizeNotes collapses again.
+function focusNotesPane() {
+  document.body.classList.add('has-notes');
+  requestAnimationFrame(() => {
+    notesContent.focus();
+    autoSizeNotes();
+  });
+}
 
 // Column / chunk-dot bookkeeping: a flat index of which flatChunks entry
 // corresponds to each (colIdx, chunkIdx) pair in the scrubber.
@@ -2420,39 +3264,113 @@ scrubberEl.addEventListener('click', (e) => {
   }
 });
 
-// Preview strip: next 3 chunks, each cloned, scaled to fit its slot,
-// fully revealed (§7 – planning surface shows author intent).
-const PREVIEW_COUNT = 3;
+// Preview strip: ALL chunks, each cloned and scaled to fit a fixed-
+// width slot. Horizontally scrollable – drag to pan, click a slot to
+// jump there, wheel-scroll also works (browser default). The current
+// chunk is highlighted and auto-scrolled into view.
 function populatePreviewStrip() {
   previewStrip.replaceChildren();
-  for (let i = 0; i < PREVIEW_COUNT; i++) {
+  flatChunks.forEach((entry, idx) => {
     const slot = document.createElement('div');
     slot.className = 'preview-slot';
-    const targetIdx = state.activeIdx + 1 + i;
-    const entry = flatChunks[targetIdx];
-    if (!entry) {
-      slot.classList.add('empty');
-    } else {
-      const label = document.createElement('div');
-      label.className = 'preview-slot-label';
-      label.textContent = '+' + (i + 1);
-      slot.appendChild(label);
-      const clone = entry.el.cloneNode(true);
-      clone.classList.add('chunk-clone');
-      clone.classList.remove('active', 'expanded', 'annot-visible', 'has-annot', 'overview-selected');
-      clone.querySelectorAll('.reveal-segment').forEach(s => s.removeAttribute('data-hidden'));
-      clone.querySelectorAll('.exps, .annot-box, .annot-add').forEach(n => n.remove());
-      slot.appendChild(clone);
-      requestAnimationFrame(() => {
-        const scale = slot.clientWidth / window.innerWidth;
-        clone.style.transform = \`scale(\${scale})\`;
-        clone.style.width = window.innerWidth + 'px';
-        clone.style.height = (slot.clientHeight / scale) + 'px';
-      });
-    }
+    slot.dataset.idx = String(idx);
+    if (idx === state.activeIdx) slot.classList.add('current');
+    const label = document.createElement('div');
+    label.className = 'preview-slot-label';
+    const offset = idx - state.activeIdx;
+    label.textContent = offset === 0 ? 'now' : (offset > 0 ? '+' + offset : String(offset));
+    slot.appendChild(label);
+    const clone = entry.el.cloneNode(true);
+    clone.classList.add('chunk-clone');
+    clone.classList.remove('active', 'expanded', 'annot-visible', 'has-annot', 'overview-selected');
+    clone.querySelectorAll('.reveal-segment').forEach(s => s.removeAttribute('data-hidden'));
+    clone.querySelectorAll('.exps, .annot-box, .annot-add').forEach(n => n.remove());
+    slot.appendChild(clone);
     previewStrip.appendChild(slot);
-  }
+    requestAnimationFrame(() => {
+      const slideW = viewport.clientWidth || window.innerWidth;
+      if (!slideW) return;
+      const scale = slot.clientWidth / slideW;
+      clone.style.transform = \`scale(\${scale})\`;
+      clone.style.width = slideW + 'px';
+      clone.style.height = (slot.clientHeight / scale) + 'px';
+    });
+  });
+  scrollPreviewToActive(false);
 }
+
+function scrollPreviewToActive(smooth) {
+  const el = previewStrip.querySelector('.preview-slot.current');
+  if (!el) return;
+  // Center the current slot in the visible strip.
+  const stripRect = previewStrip.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  const target = previewStrip.scrollLeft + (elRect.left + elRect.width / 2) - (stripRect.left + stripRect.width / 2);
+  previewStrip.scrollTo({ left: target, behavior: smooth ? 'smooth' : 'auto' });
+}
+
+// Light-touch "current" marker update without rebuilding the whole strip.
+function markPreviewCurrent() {
+  previewStrip.querySelectorAll('.preview-slot').forEach(el => {
+    const idx = parseInt(el.dataset.idx, 10);
+    el.classList.toggle('current', idx === state.activeIdx);
+    const lbl = el.querySelector('.preview-slot-label');
+    if (lbl) {
+      const off = idx - state.activeIdx;
+      lbl.textContent = off === 0 ? 'now' : (off > 0 ? '+' + off : String(off));
+    }
+  });
+  scrollPreviewToActive(true);
+}
+
+// Pointer drag to pan. Tracks whether the pointer actually moved enough
+// to constitute a drag (vs a click); click-to-jump wins if no drag.
+// The slot is saved at pointerdown because pointer capture reroutes
+// pointerup's e.target to the capturing element (previewStrip), so
+// e.target.closest('.preview-slot') returns null at release time.
+let previewDrag = null;
+previewStrip.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0) return;
+  const slot = e.target.closest('.preview-slot');
+  previewDrag = {
+    startX: e.clientX,
+    scrollLeft: previewStrip.scrollLeft,
+    moved: false,
+    pointerId: e.pointerId,
+    slot,
+  };
+  previewStrip.setPointerCapture(e.pointerId);
+});
+previewStrip.addEventListener('pointermove', (e) => {
+  if (!previewDrag) return;
+  const dx = e.clientX - previewDrag.startX;
+  if (Math.abs(dx) > 4) previewDrag.moved = true;
+  previewStrip.scrollLeft = previewDrag.scrollLeft - dx;
+  if (previewDrag.moved) previewStrip.classList.add('dragging');
+});
+previewStrip.addEventListener('pointerup', (e) => {
+  if (!previewDrag) return;
+  const { moved, slot } = previewDrag;
+  try { previewStrip.releasePointerCapture(previewDrag.pointerId); } catch (err) {}
+  previewDrag = null;
+  previewStrip.classList.remove('dragging');
+  if (moved || !slot) return;
+  const idx = parseInt(slot.dataset.idx, 10);
+  if (!Number.isFinite(idx) || idx === state.activeIdx) return;
+  jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
+});
+previewStrip.addEventListener('pointercancel', () => {
+  previewDrag = null;
+  previewStrip.classList.remove('dragging');
+});
+
+// Vertical wheel → horizontal scroll (common UX for horizontal strips).
+previewStrip.addEventListener('wheel', (e) => {
+  // Allow horizontal wheel to pass through natively.
+  if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
+  previewStrip.scrollLeft += e.deltaY;
+  e.preventDefault();
+}, { passive: false });
 
 // Timer: elapsed since page load, mm:ss.
 const tStart = Date.now();
@@ -2465,17 +3383,17 @@ function renderTimer() {
 setInterval(renderTimer, 1000);
 renderTimer();
 
-// Hook: refresh scrubber on every state change, but only re-populate the
-// notes pane and preview strip when the active chunk actually changed.
-// Without this guard, every remote annotation keystroke would rebuild 3
-// cloned chunk subtrees in the preview strip.
+// Hook: refresh scrubber on every state change, notes+preview on chunk
+// change only. The full-strip rebuild (populatePreviewStrip) happens
+// once at load and on resize; subsequent chunk changes just re-mark
+// the current slot and scroll it into view.
 let lastPopulatedIdx = -1;
 viewHooks.onActiveChange = () => {
   updateScrubber();
   if (state.activeIdx === lastPopulatedIdx) return;
   lastPopulatedIdx = state.activeIdx;
   populateNotesPane();
-  populatePreviewStrip();
+  markPreviewCurrent();
 };
 
 // First populate (applyState ran before viewHooks was reassigned).
@@ -2529,9 +3447,12 @@ sendToPeer({ type: 'hello', source: 'speaker' });
 // kill the watcher.
 function buildOnce(absIn, only, opts = {}) {
   const src = fs.readFileSync(absIn, 'utf8');
-  const lecture = parseLecture(src);
-
   const outDir = path.dirname(absIn);
+  // Scope image-shorthand resolution to this lecture's folder for the
+  // duration of the render. marked renderers close over this via the
+  // module-level currentSourceDir.
+  currentSourceDir = outDir;
+  const lecture = parseLecture(src);
   const chunkCount = lecture.columns.reduce((n, c) => n + c.chunks.length, 0);
   const shape = `${lecture.columns.length} columns, ${chunkCount} chunks`;
   const written = [];
@@ -2651,7 +3572,7 @@ function runNew(slug) {
   console.log(`Created ${rel} – run \`node build.js ${rel} --watch\` to start.`);
 }
 
-function main() {
+async function main() {
   const argv = process.argv.slice(2);
   const flags = new Set(argv.filter(a => a.startsWith('--')));
   const positional = argv.filter(a => !a.startsWith('--'));
@@ -2660,6 +3581,10 @@ function main() {
     runNew(positional[0]);
     return;
   }
+
+  // Shiki must be ready before any renderer runs (the highlighter
+  // singleton is shared across --watch rebuilds).
+  await initHighlighter();
 
   const [inputPath] = positional;
 
@@ -2695,4 +3620,4 @@ function main() {
   console.log(`Wrote ${written.join(', ')} (${shape})`);
 }
 
-main();
+main().catch(err => { console.error(err); process.exit(1); });

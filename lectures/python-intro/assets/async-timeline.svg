@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 280" width="640" height="280" font-family="Inter Tight, Inter, sans-serif" font-size="12">
+  <style>
+    .axis  { stroke: #6b6b72; stroke-width: 1; }
+    .tick  { stroke: #6b6b72; stroke-width: 1; }
+    .label { fill: #1f1f24; }
+    .dim   { fill: #6b6b72; }
+    .bar-a { fill: #c4d8e8; stroke: #2e5e86; stroke-width: 1; }
+    .bar-s { fill: #f0d9c0; stroke: #8b5a2e; stroke-width: 1; }
+    .done  { fill: #1a7a3a; font-weight: 600; }
+    .row   { font-family: 'JetBrains Mono', monospace; font-size: 11px; fill: #1f1f24; }
+    .head  { font-family: 'Inter Tight', sans-serif; font-size: 11px; fill: #6b6b72; font-variant-caps: all-small-caps; letter-spacing: 0.1em; }
+  </style>
+  <!-- async block -->
+  <text x="12" y="26" class="head">async — gather(a, b, c)</text>
+  <g>
+    <rect x="90" y="36" width="140" height="14" class="bar-a"/>
+    <rect x="90" y="56" width="140" height="14" class="bar-a"/>
+    <rect x="90" y="76" width="140" height="14" class="bar-a"/>
+    <text x="16" y="48" class="row">fetch a</text>
+    <text x="16" y="68" class="row">fetch b</text>
+    <text x="16" y="88" class="row">fetch c</text>
+    <text x="236" y="66" class="done">≈ 1 s total</text>
+  </g>
+
+  <!-- sync block -->
+  <text x="12" y="136" class="head">sync — fetch(a); fetch(b); fetch(c)</text>
+  <g>
+    <rect x="90" y="146" width="140" height="14" class="bar-s"/>
+    <rect x="230" y="166" width="140" height="14" class="bar-s"/>
+    <rect x="370" y="186" width="140" height="14" class="bar-s"/>
+    <text x="16" y="158" class="row">fetch a</text>
+    <text x="16" y="178" class="row">fetch b</text>
+    <text x="16" y="198" class="row">fetch c</text>
+    <text x="516" y="198" class="done">≈ 3 s</text>
+  </g>
+
+  <!-- time axis -->
+  <line x1="90" y1="232" x2="600" y2="232" class="axis"/>
+  <g class="tick">
+    <line x1="90" y1="228" x2="90" y2="236"/>
+    <line x1="230" y1="228" x2="230" y2="236"/>
+    <line x1="370" y1="228" x2="370" y2="236"/>
+    <line x1="510" y1="228" x2="510" y2="236"/>
+  </g>
+  <text x="90" y="252" class="dim">0 s</text>
+  <text x="222" y="252" class="dim">1 s</text>
+  <text x="362" y="252" class="dim">2 s</text>
+  <text x="502" y="252" class="dim">3 s</text>
+  <text x="550" y="252" class="dim">time →</text>
+</svg>

@@ -103,6 +103,7 @@ function lintFile(filePath) {
   let chunkHasReveal = false;
   let inFence = false;
   let activeDirective = null;
+  let layoutStack = [];
 
   const flushChunk = () => {
     if (!chunk) return;
@@ -118,6 +119,11 @@ function lintFile(filePath) {
       add(activeDirective.line, 'error', 'unclosed-directive',
           `::: ${activeDirective.kind} not closed before next chunk or column`);
       activeDirective = null;
+    }
+    while (layoutStack.length) {
+      const l = layoutStack.pop();
+      add(l.line, 'error', 'unclosed-directive',
+          `::: ${l.kind} not closed before next chunk or column`);
     }
     chunk.hasReveal = chunkHasReveal;
     col.chunks.push(chunk);
@@ -203,6 +209,8 @@ function lintFile(filePath) {
       continue;
     }
 
+    // Sidebar directives (::: expand / margin) extract into a separate
+    // node; they don't nest with each other and `chunk` is required.
     const expandOpen = line.match(/^:::\s+expand\s+(.+?)\s*$/);
     const marginOpen = /^:::\s+margin\s*$/.test(line);
     if (expandOpen || marginOpen) {
@@ -217,7 +225,37 @@ function lintFile(filePath) {
       activeDirective = { kind: expandOpen ? 'expand' : 'margin', line: ln };
       continue;
     }
+
+    // Layout directives (::: cols N / side / flip / marginalia) stay
+    // inline in the body as HTML wrappers. They have their own small
+    // stack so bare `:::` closes the innermost layout first, and the
+    // outer sidebar directive only after.
+    const colsOpen = line.match(/^:::\s+cols\s+(2|3)\s*$/);
+    const sideOpen = /^:::\s+side\s*$/.test(line);
+    const flipMark = /^:::\s+flip\s*$/.test(line);
+    const marginaliaOpen = /^:::\s+marginalia\s*$/.test(line);
+    if (colsOpen || sideOpen || marginaliaOpen) {
+      if (!chunk) {
+        add(ln, 'error', 'stray-directive',
+            `::: layout directive outside any chunk`);
+      }
+      const kind = colsOpen ? `cols ${colsOpen[1]}` : sideOpen ? 'side' : 'marginalia';
+      layoutStack.push({ kind, line: ln });
+      continue;
+    }
+    if (flipMark) {
+      const top = layoutStack[layoutStack.length - 1];
+      if (!top || top.kind !== 'side') {
+        add(ln, 'error', 'stray-directive',
+            `::: flip without an enclosing ::: side`);
+      }
+      continue;
+    }
     if (/^:::\s*$/.test(line)) {
+      if (layoutStack.length) {
+        layoutStack.pop();
+        continue;
+      }
       if (!activeDirective) {
         add(ln, 'error', 'stray-directive-close',
             `::: without a matching open directive`);

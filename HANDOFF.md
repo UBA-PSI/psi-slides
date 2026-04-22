@@ -1,126 +1,166 @@
-# Handoff – nach Linter + python-intro-Lecture
+# Handoff – Content-Fidelity Slice (shiki + images + layouts)
 
-Stand nach Commit `b4b83ac`. Phase 1 ist weit fortgeschritten; die tragenden drei Outputs (audience, print, speaker) existieren und synchronisieren live über `window.postMessage` zwischen Audience und ihrer per `S` gespawnten Speaker-Window (cross-`file://`-fähig, ein Transport, kein HTTP-Server nötig). Der Authoring-Loop ist mit `--watch` (Live-Reload), `--new` (Scaffold) und `lint.js` (Static-Checks) jetzt rund; wlab01 ist als Demo der vollen Tag-/Width-/Reveal-Vokabel aufgewertet. Der vorherige Pass war ein UX-Cleanup (Speaker-`N` öffnet wieder die Annotation-Box, Overview-Click-to-Select, Shift-Drag-Pan, editierbare Speaker-Notes, Laser-Pointer). Der letzte Pass hat zwei parallele, voneinander unabhängige Slices geliefert: einen Linter (`lint.js`, zero-dep, neben `build.js`) und eine komplett neue Demo-Lecture `python-intro`, die sich pädagogisch von Setup bis zu einem Playwright-basierten Link-Scanner zieht.
+Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als *Empfehlung A / C* skizziert hatte (Code-Highlighting, Image-Shorthand, Mermaid) ist zu großen Teilen umgesetzt: **shiki** läuft build-time und färbt alle Code-Fences ein, **Image-Shorthand `![](fig-id)`** löst gegen `assets/fig-id.{svg,png,jpg,…}` auf, und das **Layout-Vokabular** ist um drei Primitive erweitert – `::: cols N`, `::: side / ::: flip`, `::: marginalia` – plus **zweizeilige Action-Titles** (`|` im Heading) und **Klick-zum-Fokussieren** für Figures/Code/Marginalia. `python-intro` ist mit all dem als Lecture-Script neu geschrieben.
 
-## Was seit dem letzten Handoff gebaut wurde
+Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
-Commits, chronologisch (neueste zuerst):
+## Was in diesem Slice gebaut wurde
 
-```
-1902f92  fix: code blocks expand to slide-inner width, not chunk content-w
-ec1e5b5  HANDOFF: reflect linter + python-intro slices
-b4b83ac  lint: static checks for source.md files
-c461967  HANDOFF: UX bugfix pass + laser pointer feature
-c6758a5  python-intro: new lecture – Python basics to Playwright scanner
-a4b52e0  feat: laser pointer – mirror speaker mouse to audience
-7017ee5  feat: editable speaker notes with localStorage override
-4151062  feat: shift-drag pan in normal view
-7ded1f6  fix: speaker N opens annotation, overview click selects
-b404dc5  HANDOFF: reflect postMessage transport swap
-31735fa  sync: replace BroadcastChannel with window.postMessage
-a51fb5a  HANDOFF: split out code-highlighting + python-intro lecture as next slice
-3d20376  HANDOFF: --watch + --new + wlab01 rework
-08ea25a  wlab01: rework with reveals, principles, narrow widths
-5d5dbd4  build: --new <slug> scaffolds a new lecture
-27677c2  build: --watch with live-reload via WebSocket
-6158952  HANDOFF: reflect simplify + HANDOFF commits in the chronology
-95c67b2  simplify: reuse helpers, cleaner broadcast gate, guarded speaker refresh
-cfd04c7  HANDOFF: after the speaker slice – content fidelity vs. authoring workflow
-086c98b  speaker.md: openExp is synced, not audience-only
-392899a  speaker: BroadcastChannel sync – audience ↔ speaker
-0c1219c  build: speaker.html view (static – scrubber, mirror, notes, previews, timer)
-71771cb  speaker: spec for the speaker view and sync protocol
-97e57c8  audience: overview (O), TOC (T), fulltext search (/)
-a7bcd0e  retire wlab01/lecture.html; HANDOFF to next slice (overview, TOC, /)
-8d64de2  audience: pre blocks stay left-aligned in figure chunks
-71aeb99  build: audience.html renderer (nav, reveal, collapse, annotations)
-```
+### 1. Shiki-Highlighting (build-time)
 
-Kurzbeschreibung der Slices:
+- Neue Dep: `shiki@latest` (devDep-ähnlich, aber als regular Dep, da zur Laufzeit des Builds gebraucht). Singleton-Highlighter (`createHighlighter({ themes: ['github-light'], langs: [...] })`), in `main()` einmalig initialisiert und über `--watch`-Rebuilds hinweg gecached.
+- Unterstützte Sprachen: `python`, `bash`, `shell`, `javascript`, `typescript`, `html`, `css`, `json`, `yaml`, `markdown`, `sql`, `toml`, `diff`, `text`. Alias-Map für `py → python`, `sh/zsh → bash`, `js → javascript`, `ts → typescript`, `md → markdown`. Unbekannte Sprache fällt auf `text` zurück; keine Sprache → Plain-Block.
+- `marked.use({ renderer: { code, image } })` mit *positional*-args (nicht Token-Object) – marked v12 callt `renderer.code(code, infostring, escaped)` und `renderer.image(href, title, text)` trotz Token-basiertem internem Parsing. **Vorsicht-Fallstrick**: schrieb zuerst `code({ text, lang })` und bekam 0 Shiki-Blocks, weil die Destructure gegen undefined lief.
+- Shiki's output ist `<pre class="shiki github-light" style="background-color:#fff;…">` mit inline-colored Spans. CSS overridet Background auf transparent (damit das Slide-Paper durchkommt) und scoped Line-Display explicit auf `inline` (shiki inkludiert `\n`-Textnodes zwischen `<span class="line">` – mit `white-space:pre` reichen diese bereits als Linebreak; `.line { display: block }` hätte den Abstand verdoppelt).
 
-1. **Audience-Renderer** (`71aeb99`, `8d64de2`): `build.js` emittiert `audience.html` aus `source.md` mit 2D-Stage, Per-Tag-Treatments, Title-Slide (lower-left-third), Progressive-Reveal (§4.6), Collapse-Modes (§4.5), Annotations mit localStorage, Expand-Chevrons.
-2. **Overview / TOC / Fulltext** (`97e57c8`): `O` für Birds-eye, `T` für rechtes TOC-Panel, `/` für Fulltext-Suche im Overview. Click-to-select, zweites `O` oder Enter landet.
-3. **Speaker-View + Sync** (`71771cb`, `0c1219c`, `392899a`, `086c98b`, `31735fa`): Dritter Output `speaker.html`. Drei Panels (Scrubber, Current-Chunk-Mirror + Notes-Pane, Next-Previews). Live-Sync beide Richtungen mit Full-State-Snapshots. Push-Toggle (`Shift-P`), Force-Push (`.`), Hello-Handshake. Transport seit `31735fa` ist `window.postMessage` über die opener/popup-Referenzen statt BroadcastChannel – funktioniert auch zwischen zwei `file://`-Pages.
-4. **Simplify-Pass** (`95c67b2`): Reuse (renderTitleBlock, renderTocNav), cleaner broadcast-gate via `viewHooks.shouldBroadcast` statt `window.pushEnabled`-Leak, `applyRemoteState` ohne doppelten `applyState`-Call, Guard auf `populatePreviewStrip` damit Annotation-Keystroke-Sync nicht drei DOM-Clones pro Zeichen rebuildet. -18 Zeilen netto, keine Verhaltensänderung.
-5. **`--watch` Live-Reload** (`27677c2`): `node build.js <src> --watch` startet einen WS-Server auf einem freien Port, baut bei jedem Save neu (fs.watch + 80 ms Debounce) und triggert `location.reload()` in offenen Tabs. Reconnect-Loop im Snippet überlebt Watch-Restarts. `ws` ist devDep – Production-HTMLs bleiben statisch ohne WS-Snippet.
-6. **`--new <slug>` Scaffold** (`5d5dbd4`): `node build.js --new wlab02` legt `lectures/wlab02/source.md` + `assets/` an. Slug-Regex `^[a-z][a-z0-9-]*$`. Non-destruktiv (refused wenn Dir existiert). Scaffold-Source hat TODO-Sentinel-Strings in Frontmatter + ersten Chunk, baut aber sofort sauber durch.
-7. **wlab01-Content-Rework** (`08ea25a`): `lectures/wlab01/source.md` zieht jetzt durch die volle Phase-1-Vokabel. 21 → 23 Chunks, 3 principle (von 1), 5 narrow (von 0), 10 Chunks mit Reveal-Segments, 4 Directives (von 2). Kein Content entfernt oder umsortiert – nur Re-Tagging, Width-Promotions und `---`-Splits.
-8. **UX-Bugfix-Pass** (`7ded1f6`, `4151062`, `7017ee5`, `a4b52e0`): vier zusammenhängende Korrekturen + eine Mirror-Feature. (a) Speaker-`N` öffnet jetzt die Annotation-Box statt die Notes-Pane zu fokussieren (PRD §2-konform). Notes-Pane ist über Click fokussierbar. (b) Overview-Click setzt selectedIdx korrekt – der eager `setPointerCapture` hatte den synthetischen Click-Event auf den darunterliegenden Chunk verschluckt. (c) Shift-Drag in normaler View pant die Kamera (manualPan jetzt auch für non-overview, reset bei Chunk-Navigation, Esc resettet manuell). (d) Speaker-Notes sind als textarea editierbar, mit Per-Chunk-localStorage-Override, Source-`> note:`-Inhalt als Default. (e) Laser-Pointer: Speaker-Mausbewegung mirroring zur Audience als kleiner Dot, Position als Bruchteil des aktiven Chunks (zoom-tolerant), rAF-throttled.
-9. **python-intro-Lecture** (`c6758a5`): englischsprachige Demo-Lecture, 34 Chunks über 8 Columns, von Setup (`uv` + pip-Fallback) über Python-Grundlagen, Stdlib-Auswahl (`pathlib`, `urllib.parse`, `re`, `dataclasses`, `argparse`), Async-Basics bis zu einem einfachen Playwright-Link-Scanner, der Broken-Links, fehlende Titles und fehlende Meta-Descriptions meldet. Nutzt die volle Vokabel: 4× principle, 2× definition, 17× example, 3× figure, 1× question, 1× exercise, 5× free. Zwei ASCII-Figures tragen die schwersten Konzepte: `#async-timeline` (sync vs. async side-by-side) und `#scanner-pipeline` (Shape vor dem Code). Code-Fences haben Sprach-Annotationen (` ```python`, ` ```bash`) und highlighten automatisch, sobald shiki landet. Scanner-Code wurde gegen `docs.python.org/3/` und `httpbin.org/links/10/0` getestet.
-10. **Linter** (`b4b83ac`): `lint.js`, standalone-CLI, zero-dep, neben `build.js` (nicht darin). Mirrored bewusst die Parser-Ground-Truth (VALID_TAGS, VALID_WIDTHS, Attribute-Tail, fence-aware Reveals, `:::`-Directives) statt zu importieren, damit der Build parallel weitergebaut werden kann. Errors: `missing-id`, `duplicate-id`, `unknown-tag`, `unknown-width`, `multiple-ids`, `nested-directive`, `stray-directive`, `stray-directive-close`, `unclosed-directive`. Warnings: `title-count`, `orphan-column`, `density` (per-Tag-Budget: principle 80 / question 80 / definition 200 / example 250 / free 250 / exercise 350 / figure+title unlimited), `reveal-overuse` (>50%). Per-File-Override via `<!-- linter: ignore rule1,rule2 -->` – löst das wlab01-Problem (43% Reveals intentional), ohne die globale Schwelle zu verschieben. CLI: `node lint.js <file|dir> [--strict]`. Output im `file:line severity rule message`-Format. Alle drei bestehenden Lectures (`demo`, `wlab01`, `python-intro`) laufen clean durch.
-11. **Pre-Overflow-Fix** (`1902f92`): Code-Blöcke (`pre`) waren bisher auf `--content-w` der Chunk-Spalte begrenzt (22em narrow, 36em standard) und wurden bei langen Codezeilen am rechten Rand abgeschnitten – obwohl die Slide noch viel horizontalen Platz hatte. Pre nutzt jetzt `width: max-content` mit Cap auf `72vw` (= Slide-Breite minus 2× 14% Padding), zentriert auf der Slide-Center-Linie via `position:relative + left:50% + translateX(-50%)`. align-self:center allein zentriert nicht für Kinder die *breiter* als der Parent sind, daher der explizite Translate-Trick. python-intro rendert jetzt die `curl -LsSf https://astral.sh/uv/install.sh | sh`-Zeile bei default-zoom voll lesbar.
+### 2. Image-Shorthand mit Auto-Resolver
 
-## Was jetzt definitiv funktioniert
+- `![alt](fig-id)` – ohne Slash, ohne Extension – löst gegen `<source-dir>/assets/<fig-id>.<ext>` auf. Probiert Reihenfolge: `svg, png, jpg, jpeg, gif, webp`. Erste-Datei-gewinnt. Resolver ist per-lecture-gescoped über die Module-Variable `currentSourceDir`, die `buildOnce()` vor dem Parse setzt. Ein kleiner Cache (`imgResolveCache`) vermeidet redundante fs-stats über die drei Renderer hinweg.
+- Output: `<figure class="figure-img" data-fig-id="..."><img src="assets/...svg" alt="..." loading="lazy"><figcaption>alt</figcaption></figure>`.
+- Alt-Text wird sowohl als `alt`-Attribut als auch als `<figcaption>` emittiert (nur wenn non-empty). Schlägt das Lookup fehl, landet eine sichtbare Platzhalter-Box im Slide: `missing: assets/<id>.(svg|png|jpg|…)` mit dashed-red Border – Autor sieht den Bug beim nächsten Save.
+- URLs mit `/` oder `.ext` werden unverändert durchgereicht (backward-kompatibel).
 
-- `node build.js <source.md>` → `print.html` + `audience.html` + `speaker.html` in denselben Ordner.
-- `node build.js <source.md> --watch` → einmal bauen, WS-Server starten, fs.watch auf Source, jeder Save → Tab-Reload binnen ~80 ms.
-- `node build.js --new <slug>` → `lectures/<slug>/source.md` + `assets/` mit baubarem Phase-1-Scaffold.
-- `node lint.js <file|dir> [--strict]` → Static-Checks (IDs, Tags, Widths, Directives, Density, Reveal-Overuse). Exit 0 clean, 1 bei Errors, 2 bei `--strict` + Warnings.
-- Flags: `--audience-only`, `--print-only`, `--speaker-only` (mutually exclusive). Kombinierbar mit `--watch`.
-- Parser-Features: frontmatter, columns (`#`), chunks (`##`) mit attribute tails (`{.width #id}`), `::: expand <label>`, `::: margin`, `> note:` (multi-line, orphan-safe), reveal-separator `---`, fence-aware Code-Blöcke.
-- Audience-Runtime: Arrows, Space-Reveal-mit-Passthrough, Enter/1-9 Expand, Esc (Pan-Reset → Annotation-Blur → Expansion-Close), N Annotate, C Collapse-Cycle, +/-/0 Zoom, B Blank, P Print, O Overview, T TOC, / Fulltext, S öffnet Speaker, ?-Hints-Toggle, Shift-Drag pant.
-- Speaker-Runtime: wie Audience plus Scrubber-Click, editierbare Notes-Pane (Click-fokussiert), Timer, Shift-P Push-Toggle, `.` Force-Push, Mausbewegung über Stage mirroring als Laser-Pointer zur Audience.
-- Sync via `window.postMessage`: activeIdx, revealed, collapse, zoom, blanked, annotations, openExp (state-snapshot), plus cursor-mirror (chunkIdx + Bruchteil-Koordinaten). Audience hält die Speaker-Window-Referenz aus `S`-Spawn, Speaker hält `window.opener`. Receiver adoptiert `ev.source` als peer (Audience-Reload-Recovery automatisch). Hello-Handshake beim Speaker-Boot, Audience antwortet mit Snapshot. `isApplyingRemote`-Guard verhindert Loops.
-- Speaker-Notes: pro Chunk localStorage-Override (key `psi-lecdoc:<title>:speakernote:<chunk-id>`); leerer String ist valide (clear), Default ist die source-`> note:`-Inhalte. Markdown wird *nicht* gerendert (Plain-Text-Textarea); Markdown-Render und Export-zurück-zu-Source sind deferred features.
-- Live-Lecture: zwei Tabs nebeneinander – beide navigieren gemeinsam, Shift-P schaltet Speaker in Vorschau-Modus, `.` resyncht.
-- Lectures: `lectures/demo/source.md` (4 cols / 8 chunks mit 2-Segment-Reveal-Test), `lectures/wlab01/source.md` (7 cols / 23 chunks / 8 Speaker-Notes / 3 Expand / 1 Margin / 10 Chunks mit Reveal-Segments / 5 narrow / 3 principle), und `lectures/python-intro/source.md` (8 cols / 34 chunks / 4 principle / 17 example / 3 figure inkl. 2 ASCII-Diagramme) bauen sauber und linten clean.
-- phase0/ steht als Referenz-Archiv; `lectures/wlab01/lecture.html` (das handgeschriebene Original) ist retired.
+### 3. Layout-Primitives – `cols`, `side`, `marginalia`
 
-## Was noch offen ist (Phase-1-Restliste)
+Drei neue Inline-Layout-Directives, *orthogonal* zu den bestehenden `::: expand` / `::: margin` (die ja als separate Nodes aus dem Body extrahiert werden). Layout-Directives werden **im Body** als `<div>`/`<aside>`-Wrapper gerendert und tragen ihre Semantik via CSS-Klasse, damit `marked`'s html_block-Passthrough das umgebende Markdown korrekt parst.
 
-In absteigender Priorität bezogen auf realen Lecture-Einsatz. Die Liste ist die Differenz zwischen PRD §11 Phase 1 und dem aktuellen Build-State.
+- **`::: cols 2` / `::: cols 3`** → `<div class="cols cols-2">` bzw. `cols-3` mit CSS `column-count`. Typischer Use: zwei oder drei kurze Absätze automatisch in N Spalten flowen lassen (Balanced). Für Content-Heavy-Slides wo der Prose-Fluss natürlicher in Parallel-Streams läuft als vertikal.
+- **`::: side` … `::: flip` … `:::`** → `<div class="split"><div class="split-a">…</div><div class="split-b">…</div></div>` – zwei Grid-Panes, 1fr 1fr. `::: flip` ist der Panel-Separator *innerhalb* eines `::: side`. Typischer Use: Figur links / Text rechts, oder intro-Prosa + Code-Block.
+- **`::: marginalia` … `:::`** → `<aside class="marginalia">` absolutely positioniert auf `left: calc(100% + 2vw)` relativ zu `.chunk-content`. Extends in die rechte Slide-Margin hinein. Typischer Use: kurze Seiten-Bemerkung, die räumlich getrennt von der Hauptprosa ist (Pfitzmann-Style Marginalia).
+- **Bare `:::`** schließt die *innerste* offene Struktur – das ist pro-chunk ein stack aus `layoutStack` plus dem älteren `currentExpansion`-Single-Slot. Layout-Stack wird beim `flushChunk` defensiv leergeräumt; der Linter meldet `unclosed-directive` separat.
+- Layout-Directives können *in* einer `::: expand` stehen (greifen auf `currentExpansion.lines` via einer target-Funktion zu), aber nicht umgekehrt (eine `::: expand` im `::: cols` wäre parserseitig möglich, ist aber pedagogisch nicht gemeint und vom Linter nicht validiert).
 
-### Content-Fidelity
+### 4. Figure-Focus / Marginalia-Pan
 
-1. **Code-Highlighting** – Build-time mit [shiki](https://shiki.style) (reiner Static-HTML-Output, keine Runtime-Abhängigkeit). Kleiner Commit, wirkt in allen drei Views gleich. **Jetzt besonders motiviert**, weil `python-intro` steht und mit plain-text Code-Blocks aktuell blass wirkt; Source-Fences tragen bereits die Sprach-Annotationen, es fehlt nur die Render-Stufe.
-2. **KaTeX build-time** – Aktuell rendern `$...$` und `$$...$$` als Literal. Jede Mathe-Vorlesung braucht das. Build-time-Render mit KaTeX (dependency bereits in PRD angedacht §9 Schritt 4) in `build.js` einbauen; sowohl audience als auch print und speaker bekommen fertig-gerenderte HTML + CSS-Import.
-3. **Image shorthand** – `![](fig-id)` → `images/fig-id.{svg,png,jpg}` auflösen, Dimensionen einlesen, als `<figure>` einbetten. PRD §9 Schritt 3. Ohne das gibt es keine echten Figuren. Pair: **Mermaid build-time** – `::: mermaid`-Directive oder ```` ```mermaid ````-Fence → `@mermaid-js/mermaid-cli` headless → SVG-Inline. Motiviert durch die zwei ASCII-Figures in `python-intro`, die ein mechanischer Mermaid-Port wären (Timeline → `gantt`, Pipeline → `flowchart TD`).
+- **Klick auf `<figure.figure-img>`, `<pre>` (Code-Block) oder `.marginalia`** *im aktiven Chunk* triggert Fokus-Mode. Figures und Pre-Blocks landen in `#figure-overlay` – fixed fullviewport, gedimmter Backdrop, Stage dahinter bekommt `filter: blur(2px) brightness(0.9)`. Marginalia dagegen pannt die Kamera (`manualPan.dx` additive Verschiebung) so, dass der aside im Viewport-Center landet – *ohne* Overlay, weil die Marginalia *in-frame* gedacht ist.
+- `Esc` schließt Figure-Focus (vor TOC, Overview, Annotate, Pan-Reset, Expansion – erster Handler in der Kaskade).
+- `jumpTo()` räumt jeden offenen Figure-Focus auf, analog zu `closeAnyExpansion`.
+- Event-Handler wird einmalig pro Target installiert (`dataset.figureWired`-Guard), damit repopulated-Preview-Strips im Speaker-View keine Duplikate akkumulieren.
+- Overlay-CSS: `img` mit `width: min(86vw, 1400px)`, `max-height: 78vh`, `height: auto`. Ohne explizites width wären SVGs im `<img>`-Tag auf die default 300×150 Intrinsic-Size gepinnt – wäre im Overlay unlesbar. Die drei SVGs in `python-intro/assets/` haben zusätzlich explizite `width/height`-Attribute mitbekommen, damit auch das non-focused Rendering deterministisch skaliert.
 
-### Authoring-Workflow
+### 5. Zweizeilige Action-Titles
 
-4. **`--assign-ids`** – PRD §9: ein-Shot-Pass der fehlende `{#id}`-Attribute in-place hinzufügt und committet. Pair mit dem Linter: Linter meldet `missing-id`, `--assign-ids` erzeugt sie. Slug-Logik: heading-to-kebab-case, Kollisions-Suffix `-2`, `-3`.
-5. **Linter-Integration** – aktuell läuft `lint.js` manuell. Naheliegende Erweiterungen: (a) `--watch`-Mode, der gegen jeden Save lintet und in der Konsole rot/grün meldet; (b) Build-Hook, der `build.js` vor dem Emit einen Lint-Pass laufen lässt und bei Errors abbricht (opt-in per `--lint`-Flag oder per default mit `--no-lint` als Escape). Beides baut *auf* den aktuellen Linter auf und braucht keine Änderung an den Regeln.
+- Syntax: `## tag: Main-Line | Sub-Line {#id}` – ein `|` im Heading teilt in *Main* + *Sub*.
+- Parser: `splitHeading(text)` in `parseTagPrefix` splitted auf `|`, liefert `{ heading, headingSub }` zurück.
+- Renderer: wenn `headingSub` gesetzt ist → `<h2 class="chunk-heading has-sub"><span class="hd-main">…</span> <span class="hd-sub">…</span></h2>`. Zwei Spans mit Space dazwischen (damit die Print-Version, die Sub-Line optional inline rendert, lesbar bleibt wenn CSS mal nicht greift).
+- Audience-CSS: Sub-Line in `var(--sans-font)`, italic, 0.68em, `--ink-soft`. Flex-column Layout, tight gap.
+- Print-CSS: analog aber 0.82em und unter der Main-Line als Subtitle.
+- Use-Case: "Open a page | the smallest useful Playwright script" – Main ist die Action, Sub qualifiziert. Funktioniert auch in Collapse-Mode (beide Lines bleiben sichtbar weil sie im Heading sitzen, nicht im Body).
 
-### Verfeinerungen am bestehenden Code
+### 6. python-intro: komplett re-written als Lecture-Script
 
-6. **Camera-Framing bei expandierten langen Chunks** – aktuell zentriert die Kamera die Expansion-Body, schneidet dabei oben/unten ab. Hier wäre eine Hybrid-Logik sinnvoll: scroll-in-chunk, wenn höher als Viewport.
-7. **In-Chunk-Wheel-Scroll** – phase0 hatte das; Arrows navigieren Chunks, Wheel scrollt *innerhalb*. Wichtig bei Chunks höher als Viewport.
-8. **Margin-Notes ins linke Lane** – aktuell rendern `::: margin`-Blöcke inline unter dem Body. PRD §2 skizziert das linke Lane analog zur Annotation-Box. Klein, kosmetisch.
-9. **Persistence-Snapshot alle 5s** – Speaker hat nur activeIdx + annotations persistiert. Spec §5 will den vollen Snapshot + elapsedSeconds alle 5s für Crash-Recovery.
-10. **Font-Loading** – Audience + Speaker laden Fonts noch nicht explizit; fallback auf System-Fonts. PRD will self-hosted WOFF2. Ohne das sieht es auf anderen Maschinen anders aus.
-11. **Build-time Geometry (pretext)** – Deep-links und Speaker-Sync laufen aktuell über CSS-native Messung. PRD §9 Schritt 5 will pretext für deterministische Chunk-Positionen. Beobachtung aus dem Rework: Deep-Link auf `audience.html#schemes` aktiviert nicht den Schemes-Chunk (lands auf `lenses`) – das ist genau die Klasse von Bugs, die Build-time-Geometry behebt.
+36 Chunks über 9 Kolonnen (vorher 34/8). Jeder Chunk jetzt mit:
 
-## Empfehlung für den nächsten Slice
+- **Starker Topic-Sentence** als erster Satz jedes Absatzes. `topic-bold` Collapse-Mode zeigt ihn; Print-Mode zeigt ihn als natürliche Prose-Öffnung.
+- **Bold-Keywords** (`**…**`) inline, max 1-2 pro Absatz. `bold`-Collapse-Mode highlightet sie; Print-Mode hebt sie via `--emph` Rot hervor.
+- **Action-Title mit Sub-Line** auf allen nicht-trivialen Chunks (z.B. "Setup with uv | the fast modern path").
+- **Layout-Diversity**: 6× `::: cols 2`, 6× `::: side / flip`, 2× `::: marginalia`, 3× echtes `::: expand`, 3× image-shorthand `<figure>` (venv-Layout, async-Timeline, scanner-Flow – als SVG in `assets/`).
+- **Expandables** wo sinnvoll: z.B. `deep-dive` auf Setup für "Warum nicht conda/poetry?", `match` auf Control-Flow für das strukturelle Pattern-Matching.
 
-Drei sinnvolle Pakete plus ein aufgeschobenes, wähle eines:
+Collapse-Mode reads:
+- `none` → Full Prose (Rehearsal/Lecture-Script)
+- `topic-bold` → Topic-Sentences + Bold (Standard-Live-Mode, default)
+- `topic` → nur Topic-Sentences
+- `bold` → nur Absätze mit Bold-Phrase
 
-**A. Code-Highlighting** (Posten 1 oben). Jetzt der hochwirksamste Einzelposten: `python-intro` steht und wartet auf Highlighting – jedes der 17 `example:`-Chunks ist ein plain-text Code-Block, der mit shiki sofort deutlich besser aussieht, ohne dass eine Zeile Source geändert werden muss (Sprach-Annotationen sind drin). Build-time mit [shiki](https://shiki.style), reiner Static-HTML-Output. Sub-Entscheidungen: Theme (Light/Dark, OKLCH-kompatibel) und Sprach-Whitelist. Kleiner Commit, ~80–120 Zeilen, ein bis zwei Commits.
+Beide Output-Formate funktionieren: **Audience in Topic-Bold** liest wie Talking-Points, **Print in Full** liest wie ein Lecture-Script (ausformulierte Prose, Marginalia werden zu gerahmten Asides, Figures stehen inline, Shiki färbt Code).
 
-**B. `--assign-ids` + Linter-Integration** (Posten 4–5 oben). Jetzt schnell lohnend, weil der Linter steht: `--assign-ids` macht aus dem harten `missing-id`-Error einen Ein-Befehl-Fix, und eine Build-Integration (`build.js` ruft `lint.js` vor dem Emit) macht Tippfehler *unsichtbar bis zum nächsten Save* statt *sichtbar erst im Browser*. Zusammen schließen beide den Authoring-Loop: editieren → save → `--watch` baut + lintet → Browser reloaded mit sauberer HTML. Mittelgroß, ~150 Zeilen, zwei Commits.
+### 7. Linter-Update
 
-**C. Mermaid + Image-Shorthand** (Posten 3 oben). Die zwei ASCII-Figures in `python-intro` sind ein konkreter Motivator: beide wären mechanische Mermaid-Ports. Image-Shorthand `![](fig-id)` aus PRD §9 Schritt 3 ist der größere Teil; Mermaid lässt sich als spezieller Fall derselben Pipeline denken (fenced code → build-time render → inline SVG). ~250 Zeilen über 2–3 Commits.
+- Erkennt die neuen Layout-Directives (`::: cols N`, `::: side`, `::: flip`, `::: marginalia`) und verwaltet einen separaten `layoutStack` neben dem `activeDirective` für Expansions.
+- `::: flip` außerhalb eines `::: side` → Error `stray-directive`.
+- Non-geschlossene Layout-Directive am Chunk-Ende → Error `unclosed-directive`.
+- Layout-Directives im body tragen nicht mehr zu `stray-directive-close`, wenn im Stack etwas ist.
+- Alle drei Lectures (`demo`, `wlab01`, `python-intro`) linten clean durch, `density`-Budget-Warning auf `principle` (80 Wörter) hat bei einer Stelle in python-intro getriggert – Prose dort gekürzt statt Budget zu erhöhen (Discipline erhalten).
 
-**D. KaTeX.** Sobald die nächste reale Vorlesung Mathe enthält. Aktuell keine Math-Lecture in der Pipeline, daher nicht dringend.
+## Polish-Pass
 
-Die Verfeinerungen (6–11) sind jeweils eigene kleine Commits und können dazwischen laufen.
+Drei Korrekturen aus dem Review nach dem ersten Bau:
+
+1. **Focus-Overlay hat jetzt solid-paper Background.** Vorher setzte `.chunk-body pre.shiki { background: transparent !important }` den Code-Block transparent, damit er in der Slide nicht als Card wirkt – aber die `!important`-Regel griff auch in der Overlay-Klon-Copy und liess den dimmed Backdrop durchscheinen. Fix: Regel ist jetzt auf `.chunk-body pre.shiki` gescoped (nicht global), und `#figure-overlay > .figure-focus-target` setzt `background: var(--paper) !important` als Card-Fill. Code in der Overlay liest sich jetzt voll-opak gegen den ~0.78α schwarzen Backdrop.
+
+2. **Text-Selection unterdrückt in Audience und Speaker, weiterhin möglich im Print.** Global `html, body { user-select: none }` in `AUDIENCE_CSS`, die Print-CSS (`PRINT_CSS`) hat die Regel nicht. Textareas/Inputs/Contenteditable bekommen `user-select: text` zurück, damit Annotations, Speaker-Notes und die Search-Box weiterhin normal bedienbar bleiben. Shift-Drag-Pan und generelle Maus-Interaction lösen nicht mehr aus Versehen Textauswahl aus.
+
+3. **Marginalia → Expandables in `python-intro`.** Die zwei `::: marginalia` Blöcke (auf `variables-and-types` für `None vs False` und auf `event-loop` für Coroutine vs Function) sind in `::: expand`-Blöcke migriert, mit etwas mehr Content (inkl. Code-Beispielen) und dem Chevron-Affordance. Das Design-Statement ist jetzt klarer: **Expandables sind der primäre Tuckaway-Mechanismus; Marginalia bleibt als Vokabel erhalten, aber für Authoring-Style-Asides die wirklich am Rand gehören (nicht für erweiternde Erklärungen).** Zusätzlich 6 neue Expandables eingebaut: `format-spec` auf fstrings, `generators` auf comprehensions, `bare-except` auf exceptions, `gather-vs-taskgroup` auf async-await, `headless-vs-headed` auf playwright-first-page, `whats-missing` auf scanner-source. Von 3 auf 10 Expansions gewachsen.
+
+## Typography-&-Theme-Slice (F/A, Terminal-Modes, Speaker-Fix)
+
+Nach dem Polish kamen drei Wünsche: konfigurierbare Schrift/Akzent, leichterer Bold, und zwei Speaker-View-Bugs.
+
+1. **Font-Cycle (F)** – drei Reading-Faces über `body[data-font]`: `serif` (Literata, Default), `sans` (Inter Tight, projektorfreundlich), `mono` (iA Writer Duo/Quattro falls installiert, sonst JetBrains Mono als Fallback). Persistiert global in `localStorage` (key `psi-lecdoc:font`, nicht per-lecture – Reading-Preferenz folgt dem User), wird über `cycleFont` in das State-Snapshot geschrieben und per postMessage gespiegelt. Shift-F geht rückwärts.
+
+2. **Theme-Cycle (A)** – sechs Akzent/Terminal-Varianten über `body[data-theme]`: `light-{red,teal,blue,orange}` (tauschen nur `--emph`), plus `terminal-{amber,green}` (dark-paper + phosphor-ink). In Terminal-Modes werden Shiki-Token-Farben via `color: var(--ink) !important` plattgeschlagen, damit Code in einer Phosphor-Tonität liest; Inline-Code bekommt `--emph`. Persistiert in `psi-lecdoc:theme`, Default `light-red`.
+
+3. **Bold-Weight ist jetzt 500 (semibold).** `--bold-weight` default 500, im Sans/Mono-Mode automatisch 600 (weil Literata bei 500 precisely liest, Sans auf 500 aber zu leicht). Gilt für `.chunk-body strong` und `.exp-body strong`. Bold-Farb-Akzent bleibt `--emph`.
+
+4. **Speaker slide-padding Bug.** Chunks waren `width: 100vw` (Fenster-Breite), aber der Speaker-Viewport ist durch die Notes-Pane grid-column `26em` schmaler. Effekt: Content floss rechts aus der Viewport-Box – unabhängig vom Zoom. Fix: `--slide-w` / `--slide-h` als CSS-Custom-Properties eingeführt, per `ResizeObserver` vom tatsächlichen `#stage-viewport` synchronisiert. `.chunk`, `.column`, `#stage` (gap 0.08×slide-w) und `.reveal-segment > pre { max-width: 72% slide-w }` nutzen jetzt `var(--slide-w)`. Camera refokussiert automatisch beim Resize. Print bleibt unberührt (separate CSS).
+
+5. **Preview-Strip Dimming.** Die geklonten `+1/+2/+3`-Chunks unten im Speaker hatten `.active` entfernt und landeten unter der globalen `.chunk:not(.active) { opacity: 14% }`-Dim-Regel → unleserlich. Fix: `.preview-slot .chunk-clone { opacity: 1 !important }`. Zusätzlich: Preview-Scale rechnet jetzt gegen `viewport.clientWidth` statt `window.innerWidth`, damit die Skalierung stimmt wenn `--slide-w` vom Fenster abweicht.
+
+6. **Reference-sized Slide + Stage-Scale.** Aspect-Match allein reicht nicht: font-size, padding und chunk-gap hingen an `vh`/`vw` vom BROWSER-Fenster, nicht vom Slide – ein schmalerer Speaker-Viewport hätte identischen CSS-Font-Size aber weniger absolute Pixel-Breite, sodass Text anders wrappte und Laser-Pointer-Koordinaten (fraction-of-chunk) auf der falschen Stelle landeten. Fix: `--slide-w` / `--slide-h` halten die AUDIENCE-Referenzdimensionen (in px); Audience setzt sie auf `window.innerW/H`, Speaker empfängt sie via State-Snapshot (`audienceW/H`). Alle vh-Abhängigkeiten (`font-size`, `--slide-pad-y`, `--slide-height`, `--chunk-gap`) sind auf `calc(var(--slide-h) * k)` umgestellt. Speaker rendert den Viewport in voller Audience-Größe und wendet dann `transform: scale(var(--stage-scale))` an, um in die `#stage-cell` zu passen (Letterbox-Bars in leicht dunklerem Paper). Kamera-Math in Layout-Space: `vpLayout()` helper liest `viewport.offsetWidth/Height` (nicht `getBoundingClientRect`, das nach Transform visual-scaled ist); `panToElement` nutzt `getOffset` statt visueller Rects. Resultat: pixel-identisches Rendering in beiden Views, Laser-Pointer-Fraktionen mappen 1:1.
+
+7. **Notes-Pane schmaler (26em → 18em).** Author-Notes brauchen weniger Platz als Slide-Preview; der Stage-Cell gewinnt dadurch ~30% Breite.
+
+8. **Preview-Strip scrollbar + klickbar.** Statt fester `+1/+2/+3`-Slots zeigt die Leiste jetzt ALLE Chunks als horizontal gescrollte Thumbnails. Drag-to-pan (pointer events, 4px-Threshold für Drag vs. Click), Click landet direkt (`jumpTo`), vertikales Mausrad mapped auf horizontales Scroll, aktueller Slot `--emph`-framed + automatisch ins Sichtfeld gescrollt (`scrollIntoView`-Pattern, via `scrollTo` mit center-Math). Slots haben `aspect-ratio: var(--audience-aspect)` damit der Clone 1:1 passt.
+
+## Was funktioniert
+
+- `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.
+- `node build.js <source.md> --watch` – Shiki-Init ist idempotent, läuft nur beim ersten Build. Rebuilds sind weiterhin ~80ms-Debounce.
+- `node build.js --new <slug>` – unverändert. Scaffold nutzt noch keine der neuen Primitives (bewusst: minimum-viable-scaffold).
+- `node lint.js lectures/ [--strict]` – versteht die neuen Directives; alle Lectures clean.
+- Figure-Focus: Klick auf Figur/Code/Marginalia im aktiven Chunk fokussiert/pant. `Esc` schließt.
+- Marginalia-Pan ist additive-Shift auf `manualPan.dx` – nächste `Esc` oder Chunk-Nav resettet.
+- Image-Resolution: `venv-layout.svg`, `async-timeline.svg`, `scanner-flow.svg` im `assets/`-Ordner werden aufgelöst. Unresolved → sichtbare Placeholder-Box, nicht stille 404.
+- Collapse-Mode Kombination mit Layouts: `::: cols` / `::: side` überleben Collapse – nur die Topic-Bold-Filter-Regeln laufen innerhalb der Reveal-Segmente, die Layouts sind Container und bleiben.
+- Print-View: neue Primitives collapse'n zu linearen Prose-Blöcken (keine `column-count` im Print, `side` → Block-Stack, `marginalia` → gerahmter Aside-Block).
+
+## Annahmen & Design-Entscheidungen
+
+Diese Punkte habe ich ohne Rückfrage entschieden:
+
+1. **Shiki-Theme: `github-light`.** Clean, OKLCH-kompatibel mit unserer Palette, und die Default-Theme-Zeichnungen sind nicht schrill. Wenn wir später eine Dark-Mode-Variante wollen, einfach ein zweites Theme laden und per `prefers-color-scheme` oder class-based switchen – shiki supports beides out-of-the-box.
+2. **Sprach-Whitelist, nicht On-Demand-Load.** Die 14 eingebauten Sprachen decken 95% der zu erwartenden Teaching-Content ab. Weniger Moving-Parts als langs-on-demand; Build bleibt einfach. Wenn jemand Rust oder Haskell braucht, ist's eine Zeile in `SHIKI_LANGS`.
+3. **`|` statt Zeilenumbruch im Heading für Action-Titles.** Alternativen wären Multiline-Heading (schwerer zu parsen), `<br>` im Markdown (hässlich), oder ein separates Attribute `{.sub "..."}` (Pandoc-ish, aber schwer zu tippen). `|` ist auf allen Keyboards einfach, unwahrscheinlich in Heading-Text, und visuell selbsterklärend.
+4. **`::: cols N`** limited auf 2 oder 3 (nicht 4+). Mehr Spalten ergeben bei `column-count`-Flow auf 72em content-width keine lesbaren Zeilen mehr. Linter würde `cols 4` durchlassen aber CSS-technisch ignorieren; wenn nötig, explizit aufnehmen.
+5. **`::: side` nur mit `::: flip` als Separator, keine Mehrfach-Panes.** Drei-Pane-Layouts sind Overkill für Slide-Content; `cols 3` deckt die "drei gleichberechtigte Spalten"-Use-Case ab.
+6. **Marginalia ist *rechts*, nicht *links*.** PRD §2 schreibt linke-Annotation für Speaker-Marginalia (N-Hotkey). Marginalia als authored-content gehört pedagogisch auf die *rechte* Seite (westlicher Lesefluss: Haupttext lesen, dann Marginalia am rechten Rand als "Seitenbemerkung"). Die Annotation-Box kollidiert damit nicht – die ist weiterhin links. **Nach dem Polish-Pass gilt außerdem**: Marginalia ist weiterhin verfügbar, sollte aber sparsam eingesetzt werden – Expandables sind der bevorzugte Tuckaway-Mechanismus, weil sie on-demand geöffnet werden, nicht dauerhaft Platz kosten und im Collapse-Mode unsichtbar sind.
+7. **Figure-Focus-Overlay clont die Figur** anstatt sie im DOM zu verschieben. Weil die Source-Figur ihre Click-Handler behält und die Overlay-Kopie unabhängig entfernt werden kann. Trade-off: Klick-Reaktivität innerhalb der Clone-Figur geht nicht (man kann nicht auf der Overlay-Figur wieder klicken um sie zu schließen – außer auf den Overlay-Background. Ich habe stopPropagation raufgetan so dass Clicks auf die Clone zur Overlay-Schließen-Action propagieren). Alternative wäre, die Original-Figur absolut zu positionieren; komplexer und potentiell Layout-disruptive.
+8. **Code-Blöcke sind click-to-focus.** Nützlich für lange `scanner.py`-Source-Code-Figur (48 Zeilen). Kann im Prinzip *jeder* Pre clicken, aber nur *im active chunk* (damit man nicht aus Versehen beim Scrollen die Neighbors triggert).
+9. **Marginalia + Expandable zusammen:** möglich, aber wlab01/python-intro nutzen nur jeweils eines pro Chunk. Wenn wir beide hätten, würde der Expansion-Grid das Marginalia-Layout stören (expand öffnet `grid-template-columns: 1fr 30em`, was das absolute-positioning der Marginalia beeinflussen könnte). Nicht getestet; potentielles Follow-up.
+10. **SVG-Figuren mit expliziten `width/height`-Attributen.** Ohne die ist die Intrinsic-Size eines SVG im `<img>` 300×150 (Browser-Default), was im Focus-Overlay nicht genug skaliert. `width="420" height="260"` plus `viewBox="0 0 420 260"` macht das Scaling deterministisch.
+
+## Gaps / Bekannte Limits
+
+- **Code-Blöcke in `::: side` können überlaufen.** Mit `white-space: pre` und langer URL (z.B. `curl -LsSf https://astral.sh/uv/install.sh | sh`) clippt der Pre am Pane-Rand rechts. Horizontal-Scroll-Bar greift, aber unschön auf dem Projektor. Workaround: kurze Commands in `::: side`, lange Commands in `::: cols` oder single-column. Möglicher Fix: `white-space: pre-wrap` innerhalb von `.side pre` – aber das bricht Code-Einrückung. Akzeptiert.
+- **KaTeX / Mathe ist weiterhin deferred.** python-intro hat keine Mathe. Wenn die nächste Lecture Mathe bringt: PRD §9 Schritt 4.
+- **Mermaid ist weiterhin deferred.** Die beiden Figuren in python-intro waren bereits als ASCII (async-Timeline, scanner-pipeline) geschrieben – ich habe sie durch `![](…)` SVG-Figuren ersetzt, was das Image-Shorthand-Feature sauber demonstriert. Die ASCII-Version in einer `::: figure`-Chunk mit Pre wäre auch valide. Mermaid als *authored-in-source*-Pipeline (fenced ```mermaid ``` → headless render → inline SVG) bleibt offen.
+- **`--assign-ids` ist weiterhin nicht implementiert.** Der Linter meldet `missing-id`, aber der Autor muss die IDs noch selbst eintippen. Kleiner Commit falls die nächste Lecture viele neue Chunks erzeugt.
+- **Kein Linter-Hook im Build.** Wer gerade `build.js --watch` fährt, muss separat `lint.js` callen. Siehe offene Empfehlungen im vorigen Handoff.
+
+## Next Slice – Empfehlungen
+
+Eine aus der vorigen Liste bleibt hoch: **`--assign-ids` + Linter-Build-Integration.** Klein (~150 Zeilen), schließt den Authoring-Loop zum "edit → save → build+lint → reload". Gut für Phase 1 Abschluss.
+
+Alternativ, falls inhaltlich mehr gebraucht wird: **Mermaid-Pipeline** (fenced `mermaid` block → `@mermaid-js/mermaid-cli` → inline SVG). Die ASCII-Figuren in wlab01 und python-intro würden davon profitieren, und die Pipeline ist symmetrisch zu dem Image-Shorthand-Resolver (build-time render, static inline SVG). ~250 Zeilen.
+
+**KaTeX** bleibt deferred bis zur ersten Math-Lecture.
 
 ## Arbeitsstil
 
 - Wir sind per du.
-- Keine em-dashes im Output – en-dashes (`–`) oder `&ndash;`. Harte User-Präferenz, siehe auto-memory.
-- Keine Zeit- oder Datumsschätzungen in Task-Files (global CLAUDE.md).
-- Commits einzeln, fokussiert, mit erklärendem Body.
-- Explanatory output style: Vor und nach Code-Edits einen `★ Insight ─────` Block mit 2-3 Punkten.
-- User ist Fast. Wenige offene Entscheidungen kurz klären, dann los.
-- Spec-First-Prinzip wenn die Entscheidungs-Komplexität hoch ist (siehe `speaker.md`); sonst direkt codieren.
-- Paritätsprüfungen per Playwright im Browser nach jedem größeren UI-Slice.
+- Keine em-dashes – en-dashes (`–`) oder `&ndash;`.
+- Keine Zeit- oder Datumsschätzungen in Task-Files.
+- Commits einzeln und fokussiert.
+- Explanatory output style: `★ Insight ─────` Blöcke vor und nach Code-Edits mit 2-3 Punkten.
 
 ## Start-Ritual
 
 1. `git log --oneline -15` – die letzten Commits sind der Kontext.
-2. `PRD.md §11 (Phase 1)` und `§9 (Build system)` überfliegen – das ist der Masterplan.
-3. `speaker.md` als Beispiel, wie Specs in diesem Repo aussehen.
-4. `build.js` als Ganzes durchlesen – der relevante Teil ist inzwischen eine Datei, die auf ~2540 Zeilen gewachsen ist. Struktur: parser → reloadScript-Helper → print renderer + CSS → audience renderer + CSS + JS → speaker renderer + CSS + JS → buildOnce/runWatch/runNew → CLI.
-5. `lint.js` einmal angucken, wenn Linter-nahe Arbeit ansteht – er ist bewusst zero-dep und parser-paralleles zu `build.js` (siehe Slice 10 oben).
-6. Nächsten Slice aus der Empfehlung wählen (A: Code-Highlighting, B: `--assign-ids` + Lint-Integration, C: Mermaid+Images, D: KaTeX).
-7. Vor Codezeile 1 den User fragen, welchen Slice, und ob bestimmte Sub-Entscheidungen (z.B. shiki-Theme, Mermaid-Renderer, KaTeX-CSS-Bundling) zuerst geklärt werden sollen.
+2. `PRD.md §4 (Visual language)` und `§9 (Build system)` überfliegen.
+3. `lectures/python-intro/source.md` als **Referenz-Beispiel** für das neue Layout-Vokabular und den Lecture-Script-Schreibstil lesen. Topic-Sentences, Bold-Keywords, Sub-Lines im Heading, `::: cols 2`, `::: side`/`::: flip`, `::: marginalia`, Image-Shorthand.
+4. `lectures/python-intro/print.html` im Browser – das ist die beste Demo wie Collapse-Off-Prose liest.
+5. `lectures/python-intro/audience.html` in Collapse-`topic-bold` (default) – das ist die beste Demo wie Collapse-On während einer Vorlesung aussieht.
+6. `build.js` hat die neuen Hooks: Shiki-Init, Image-Renderer, Layout-Directive-Preprocessor, Figure-Focus-JS. Gewachsen auf ~2900 Zeilen.
+7. `lint.js` kennt die neuen Directives.
+8. Nächsten Slice wählen: `--assign-ids` + Build-Lint-Integration, oder Mermaid, oder was die nächste reale Lecture motiviert.

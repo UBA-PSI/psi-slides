@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 260" width="560" height="260" font-family="Inter Tight, Inter, sans-serif" font-size="12">
+  <style>
+    .box { fill: #fafaf7; stroke: #1f1f24; stroke-width: 1.2; }
+    .pill { fill: #f0ebe3; stroke: #6b6b72; stroke-width: 1; }
+    .edge { fill: none; stroke: #1f1f24; stroke-width: 1.2; marker-end: url(#arr); }
+    .label { fill: #1f1f24; }
+    .dim { fill: #6b6b72; font-style: italic; font-size: 11px; }
+    .code { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+    .head { fill: #8b2e00; font-weight: 600; font-variant-caps: all-small-caps; letter-spacing: 0.1em; font-size: 11px; }
+  </style>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="strokeWidth" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f1f24"/>
+    </marker>
+  </defs>
+
+  <rect x="14" y="22" width="124" height="40" class="pill"/>
+  <text x="32" y="42" class="head">CLI</text>
+  <text x="32" y="56" class="code">url, --max</text>
+
+  <rect x="196" y="12" width="168" height="60" class="box"/>
+  <text x="212" y="32" class="head">page.goto(url)</text>
+  <text x="212" y="50" class="dim">load start page</text>
+  <text x="212" y="64" class="code">response.status</text>
+
+  <rect x="196" y="98" width="168" height="60" class="box"/>
+  <text x="212" y="118" class="head">collect_links()</text>
+  <text x="212" y="136" class="dim">evaluate a[href]</text>
+  <text x="212" y="150" class="code">same host, dedup, ≤max</text>
+
+  <rect x="196" y="184" width="168" height="62" class="box"/>
+  <text x="212" y="204" class="head">scan_page()</text>
+  <text x="212" y="222" class="dim">goto · title · meta</text>
+  <text x="212" y="236" class="code">→ PageReport</text>
+
+  <rect x="410" y="184" width="132" height="62" class="pill"/>
+  <text x="426" y="208" class="head">report</text>
+  <text x="426" y="224" class="dim">flags + url</text>
+  <text x="426" y="240" class="code">one line per page</text>
+
+  <!-- edges -->
+  <path d="M138 42 H196" class="edge"/>
+  <path d="M280 72 V98" class="edge"/>
+  <path d="M280 158 V184" class="edge"/>
+  <path d="M364 214 H410" class="edge"/>
+  <path d="M196 230 H180 V120 H196" class="edge" stroke-dasharray="3,3"/>
+  <text x="84" y="118" class="dim" text-anchor="middle">loop over links</text>
+</svg>
