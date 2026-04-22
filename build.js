@@ -1664,15 +1664,9 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
 }
 .chunk.active { opacity: 1; }
 
-/* collapse modes (§4.5) – applied per reveal-segment */
-[data-collapse=topic] .reveal-segment p:nth-of-type(n+2) { display: none; }
-[data-collapse=topic] .reveal-segment .sentence-rest { display: none; }
-
-[data-collapse=bold] .reveal-segment p:not(:has(strong)) { display: none; }
-[data-collapse=bold] .reveal-segment li:not(:has(strong)) { display: none; }
-[data-collapse=bold] .reveal-segment .sentence-rest .prose { display: none; }
-[data-collapse=bold] .reveal-segment pre { display: none; }
-
+/* collapse modes (§4.5) – applied per reveal-segment.
+   Two states only: 'none' (show everything) and 'topic-bold'
+   (topic sentence + promoted bold fragments). */
 [data-collapse=topic-bold] .reveal-segment .sentence-rest .prose { display: none; }
 [data-collapse=topic-bold] .reveal-segment .sentence-rest strong {
   display: block;
@@ -2091,7 +2085,7 @@ function applyRemoteState(payload) {
   isApplyingRemote = true;
   try {
     state.activeIdx = Math.max(0, Math.min(flatChunks.length - 1, payload.activeIdx || 0));
-    state.collapse = payload.collapse || 'topic-bold';
+    state.collapse = COLLAPSE_MODES.includes(payload.collapse) ? payload.collapse : 'topic-bold';
     state.zoom = payload.zoom || 1.35;
     state.blanked = !!payload.blanked;
     if (payload.font && FONT_CYCLE.includes(payload.font)) state.font = payload.font;
@@ -2583,14 +2577,15 @@ function wireClicks() {
   });
 }
 
-// Collapse cycle
-const COLLAPSE_MODES = ['none', 'topic', 'topic-bold', 'bold'];
+// Collapse toggle: 'none' (show everything) ↔ 'topic-bold' (topic + bold).
+const COLLAPSE_MODES = ['none', 'topic-bold'];
+const COLLAPSE_LABEL = { 'none': 'show everything', 'topic-bold': 'topic + bold' };
 function cycleCollapse(dir = 1) {
   const i = COLLAPSE_MODES.indexOf(state.collapse);
   const ni = (i + dir + COLLAPSE_MODES.length) % COLLAPSE_MODES.length;
   state.collapse = COLLAPSE_MODES[ni];
   applyState();
-  flashMode('collapse: ' + state.collapse);
+  flashMode('collapse: ' + COLLAPSE_LABEL[state.collapse]);
 }
 
 // Zoom
