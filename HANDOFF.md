@@ -103,6 +103,38 @@ Nach dem Polish kamen drei Wünsche: konfigurierbare Schrift/Akzent, leichterer 
 
 8. **Preview-Strip scrollbar + klickbar.** Statt fester `+1/+2/+3`-Slots zeigt die Leiste jetzt ALLE Chunks als horizontal gescrollte Thumbnails. Drag-to-pan (pointer events, 4px-Threshold für Drag vs. Click), Click landet direkt (`jumpTo`), vertikales Mausrad mapped auf horizontales Scroll, aktueller Slot `--emph`-framed + automatisch ins Sichtfeld gescrollt (`scrollIntoView`-Pattern, via `scrollTo` mit center-Math). Slots haben `aspect-ratio: var(--audience-aspect)` damit der Clone 1:1 passt.
 
+## Simplify-Slice (Helpers, Shiki-Cache, Speaker-Grid-Fix)
+
+Drei-Agent-Review-Pass über `build.js` mit Fokus auf Duplikation, Hot-Path-Effizienz und echte Bugs. Keine neuen Features, nur Strukturhygiene – dafür einen echten Layout-Bug nebenbei gefangen.
+
+1. **python-intro: drei Width-Ausreißer korrigiert.** `#prerequisites`, `#what-you-will-build` und `#urllib-parse` standen auf `.standard`, obwohl sie ein `::: side / ::: flip` bzw. `::: cols 2` im Body tragen – alle Peers mit denselben Directives waren bereits `.wide`. Jetzt konsistent. Die Lecture ist damit als Beispiel-Quelle fürs Layout-Vokabular sauber referenzierbar: jeder `.standard`-Chunk ist ein Single-Column-Chunk, jeder `.wide` trägt eine Multi-Pane-Struktur.
+
+2. **Shiki-Memoization.** `highlightCode(code, lang)` cached Ergebnisse in einem `Map` keyed auf `${lang}::${code}`. Vorher lief Shiki dreimal pro Fence und Build (einmal für print, audience, speaker). Jetzt einmal pro unique Block. Zusätzlich ist `highlighter.getLoadedLanguages()` einmalig in ein `Set` materialisiert – die Per-Fence-Prüfung war vorher ein O(n)-`Array.includes` gegen ein frisch zurückgegebenes Array.
+
+3. **`imgResolveCache.clear()` am Anfang von `buildOnce`.** Vorher blieb eine `null`-Auflösung persistent über `--watch`-Rebuilds hinweg: hat der Autor ein fehlendes Bild nachgelegt, kam die Placeholder-Box trotzdem wieder. Jetzt wird der Cache pro Build geleert, die `fs.existsSync`-Passage läuft einmal frisch durch, der Cache spart die redundanten drei Renderer-Durchgänge.
+
+4. **`jsonForScript()`-Helper für Title-Injection.** `JSON.stringify(title)` embedded in `<script>…</script>` hätte bei einem Title mit `</script>` die Tag-Grenze gesprengt – XSS-Vektor über Frontmatter. Neuer Helper escapet `<` als `<`. Genutzt an beiden Call-Sites (audience, speaker).
+
+5. **Duplikate zwischen `renderAudience` und `renderSpeaker` rausgezogen.**
+   - `renderColumnsHtml(columns, frontmatter)` – das `columns.map(…renderAudienceChunk…)` war byte-für-byte identisch in beiden Renderern.
+   - `OVERVIEW_BADGE_HTML` als Modul-Konstante – die `<div id="overview-badge">`-HTML mit dem `<input id="search-input">` stand verbatim in beiden Templates. Hinweise/Hotkeys ändern jetzt an *einer* Stelle.
+   - `lectureTitle(frontmatter)` – einfacher Helper statt dreimal `frontmatter.title || 'Untitled lecture'`.
+   - `buildOnce` ist jetzt eine kleine Target-Tabelle + Loop statt dreier `if (wants(...))`-Stanzas.
+
+6. **Speaker-Grid: preview-strip und footer waren die falschen Rows zugewiesen.** `grid-template-rows` deklariert fünf Rows (scrubber · stage · notes · preview · footer), aber die CSS-Assignments hatten `#preview-strip` auf `grid-row: 3` (kollidiert mit notes) und `#speaker-footer` auf `grid-row: 4` (stretchte über die 22vh die für preview gedacht waren). Der Bug war durch `body:not(.has-notes) #notes-pane { display: none }` nur ohne Notes maskiert – mit sichtbaren Notes wären preview und notes übereinander gelandet. Fix: preview → row 4, footer → row 5. Per Chrome-DevTools verifiziert, Rows summieren jetzt exakt auf die Viewport-Höhe (29.7 + 686.6 + 0 + 218 + 56.7 = 991 px bei 991-px-Viewport).
+
+7. **Speaker-Runtime-Cleanup.**
+   - `colEntryEls` + `dotEls` als Modul-Level-Arrays einmalig aus `querySelectorAll` materialisiert. Vorher scannte `updateScrubber` bei jedem Keystroke und jedem eingehenden State-Snapshot das Dokument neu.
+   - `populatePreviewStrip`-Resize-Handler ist jetzt 120ms-debounced. Vorher klonte er bei jedem Resize-Tick (60 Hz während Window-Drag) jeden Chunk frisch und scheduled N rAF-Callbacks – sichtbarer Jank beim Resize.
+
+8. **Shared-Runtime-Cleanup (audience + speaker).**
+   - `setAudienceAspect` war ein No-op-Forwarding-Wrapper um `setSlideRef`. Gelöscht, Call-Sites ruft jetzt direkt.
+   - `exitOverview(landOnSelected)` vereinigt den Exit-Branch von `toggleOverview` und `dismissOverviewNoMove` – beide Funktionen hatten fünf von sieben Zeilen identisch.
+   - `replaceContents(obj, src)` – "Clear dann Object.assign" stand zweimal in `applyRemoteState` direkt untereinander für `revealed` und `annotations`. Jetzt eine Utility, die beim nächsten live-synced Objekt automatisch wiederverwendet wird.
+   - `nextChunk` hatte ein ungenutztes `const cur = flatChunks[state.activeIdx]` – Copy-Paste aus `nextCol`, wo es gebraucht wird. Entfernt.
+
+Alles per Chrome-DevTools-MCP smoke-getestet: speaker-Layout füllt Viewport exakt, notes+preview+footer stapeln ohne Überlapp, Audience-Nav (O/T/Arrows) funktioniert unverändert, Overview-Enter/Exit läuft über den neuen `exitOverview`-Pfad sauber.
+
 ## Was funktioniert
 
 - `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.
@@ -140,11 +172,18 @@ Diese Punkte habe ich ohne Rückfrage entschieden:
 
 ## Next Slice – Empfehlungen
 
-Eine aus der vorigen Liste bleibt hoch: **`--assign-ids` + Linter-Build-Integration.** Klein (~150 Zeilen), schließt den Authoring-Loop zum "edit → save → build+lint → reload". Gut für Phase 1 Abschluss.
+Die beiden hochrangigen Kandidaten aus dem letzten Handoff bleiben offen und unverändert prioritär:
 
-Alternativ, falls inhaltlich mehr gebraucht wird: **Mermaid-Pipeline** (fenced `mermaid` block → `@mermaid-js/mermaid-cli` → inline SVG). Die ASCII-Figuren in wlab01 und python-intro würden davon profitieren, und die Pipeline ist symmetrisch zu dem Image-Shorthand-Resolver (build-time render, static inline SVG). ~250 Zeilen.
+- **`--assign-ids` + Linter-Build-Integration.** Klein (~150 Zeilen), schließt den Authoring-Loop zu "edit → save → build+lint → reload". Gut für Phase 1 Abschluss.
+- **Mermaid-Pipeline** (fenced `mermaid` block → `@mermaid-js/mermaid-cli` → inline SVG). Symmetrisch zu dem Image-Shorthand-Resolver (build-time render, static inline SVG). ~250 Zeilen.
 
 **KaTeX** bleibt deferred bis zur ersten Math-Lecture.
+
+Nicht-geerntet aus dem Simplify-Pass (bewusst geskippt, kurz dokumentiert damit sie nicht verloren gehen):
+
+- **`applyState` broadcasted unconditionally** – einzelne Aktionen wie `setZoom` rufen `applyState` und direkt danach nochmal `broadcastState`, d.h. zwei postMessage-Snapshots pro User-Action. Fix wäre ein Mikrotask-Debounce oder einfach `applyState` nicht broadcasten lassen und jede Aktion explicit `broadcastState` anschieben. Wurde ausgespart, weil das Sync-Protokoll empfindlich ist und ich keinen passenden End-to-End-Test hatte.
+- **Head-Boilerplate zwischen `renderAudience` und `renderSpeaker`.** `<!DOCTYPE>`/`<meta>`/`<title>` plus `#mode-badge` und `${renderTocNav}` stehen ziemlich identisch in beiden Renderern. Eine gemeinsame `renderSharedHead(title, opts, extraCss)`-Helper-Funktion wäre möglich; die Divergenzen (`data-view`, `<title>`-Suffix, `#laser-pointer` nur audience) machen das aber zu einem non-trivialen Refactor mit vielen Branches – mehr Churn als Wert. Offen als Kandidat für später, falls ein dritter Live-View dazukommt.
+- **Stringly-typed `'forward'`/`'back'`-Directions** in `jumpTo`. Ein Tippfehler landet stumm im "preserve"-Branch. Könnte zu `const DIR = { FORWARD, BACK }` werden; low impact, nicht gemacht.
 
 ## Arbeitsstil
 
@@ -161,6 +200,6 @@ Alternativ, falls inhaltlich mehr gebraucht wird: **Mermaid-Pipeline** (fenced `
 3. `lectures/python-intro/source.md` als **Referenz-Beispiel** für das neue Layout-Vokabular und den Lecture-Script-Schreibstil lesen. Topic-Sentences, Bold-Keywords, Sub-Lines im Heading, `::: cols 2`, `::: side`/`::: flip`, `::: marginalia`, Image-Shorthand.
 4. `lectures/python-intro/print.html` im Browser – das ist die beste Demo wie Collapse-Off-Prose liest.
 5. `lectures/python-intro/audience.html` in Collapse-`topic-bold` (default) – das ist die beste Demo wie Collapse-On während einer Vorlesung aussieht.
-6. `build.js` hat die neuen Hooks: Shiki-Init, Image-Renderer, Layout-Directive-Preprocessor, Figure-Focus-JS. Gewachsen auf ~2900 Zeilen.
+6. `build.js` hat die neuen Hooks: Shiki-Init (memoized), Image-Renderer, Layout-Directive-Preprocessor, Figure-Focus-JS. Gewachsen auf ~3650 Zeilen (davon ~2100 embedded CSS/JS für audience+speaker – die Node-Build-Logik selbst ist immer noch kompakt).
 7. `lint.js` kennt die neuen Directives.
 8. Nächsten Slice wählen: `--assign-ids` + Build-Lint-Integration, oder Mermaid, oder was die nächste reale Lecture motiviert.
