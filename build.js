@@ -2614,6 +2614,7 @@ function cycleCollapse(dir = 1) {
   const ni = (i + dir + COLLAPSE_MODES.length) % COLLAPSE_MODES.length;
   state.collapse = COLLAPSE_MODES[ni];
   applyState();
+  focusCamera(false);
   flashMode('collapse: ' + COLLAPSE_LABEL[state.collapse]);
 }
 
