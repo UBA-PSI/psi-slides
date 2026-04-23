@@ -2085,6 +2085,7 @@ function broadcastState() {
 function applyRemoteState(payload) {
   isApplyingRemote = true;
   try {
+    unfocusFigure();
     state.activeIdx = Math.max(0, Math.min(flatChunks.length - 1, payload.activeIdx || 0));
     state.collapse = COLLAPSE_MODES.includes(payload.collapse) ? payload.collapse : 'topic-bold';
     state.zoom = payload.zoom || 1.35;
@@ -2143,6 +2144,30 @@ window.addEventListener('message', (ev) => {
   }
   if (m.type === 'cursor' && VIEW === 'audience') {
     showLaserPointer(m.chunkIdx, m.x, m.y);
+  }
+  if (VIEW === 'audience') {
+    if (m.type === 'figure-focus') {
+      const chunk = flatChunks[m.chunkIdx];
+      if (chunk) {
+        const el = chunk.el.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia')[m.figureIdx];
+        if (el) focusFigure(el);
+      }
+      return;
+    }
+    if (m.type === 'figure-pan') {
+      const chunk = flatChunks[m.chunkIdx];
+      if (chunk) {
+        const el = chunk.el.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia')[m.figureIdx];
+        if (el) panToElement(el);
+      }
+      return;
+    }
+    if (m.type === 'figure-unfocus') { unfocusFigure(); return; }
+    if (m.type === 'overview') {
+      if (m.active && !overview) toggleOverview();
+      else if (!m.active && overview) exitOverview(false);
+      return;
+    }
   }
 });
 
@@ -2650,9 +2675,17 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault(); break;
     }
     case 'Escape': {
-      if (focusedFigure) { unfocusFigure(); break; }
+      if (focusedFigure) {
+        unfocusFigure();
+        if (shouldBroadcast()) sendToPeer({ type: 'figure-unfocus' });
+        break;
+      }
       if (tocVisible) { tocVisible = false; document.body.classList.remove('toc-visible'); break; }
-      if (overview) { dismissOverviewNoMove(); break; }
+      if (overview) {
+        dismissOverviewNoMove();
+        if (shouldBroadcast()) sendToPeer({ type: 'overview', active: false });
+        break;
+      }
       if (annotEditingId) { blurAnnotation(); break; }
       if (manualPan.dx || manualPan.dy) { manualPan = { dx: 0, dy: 0 }; focusCamera(false); break; }
       if (openExp) { closeAnyExpansion(); broadcastState(); setTimeout(() => focusCamera(false), 20); }
@@ -2674,7 +2707,10 @@ document.addEventListener('keydown', (e) => {
     case 'c': case 'C': cycleCollapse(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'f': case 'F': cycleFont(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'a': case 'A': cycleTheme(e.shiftKey ? -1 : 1); e.preventDefault(); break;
-    case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
+    case 'o': case 'O':
+      toggleOverview();
+      if (shouldBroadcast()) sendToPeer({ type: 'overview', active: overview });
+      e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
     case '/': if (overview) { startSearch(); e.preventDefault(); } break;
     case '+': case '=': setZoom(state.zoom + 0.1); e.preventDefault(); break;
@@ -2794,7 +2830,10 @@ function focusFigure(el) {
   document.body.classList.add('figure-focused');
   focusedFigure = clone;
 }
-figureOverlay.addEventListener('click', unfocusFigure);
+figureOverlay.addEventListener('click', () => {
+  unfocusFigure();
+  if (shouldBroadcast()) sendToPeer({ type: 'figure-unfocus' });
+});
 
 // Pan the camera so that a given element inside the active chunk lands
 // centered horizontally in the viewport. Used for .marginalia clicks so
@@ -2828,9 +2867,17 @@ function wireFigureClicks() {
         ev.preventDefault();
         if (target.classList.contains('marginalia')) {
           panToElement(target);
+          if (shouldBroadcast()) {
+            const figureIdx = Array.from(chunk.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia')).indexOf(target);
+            sendToPeer({ type: 'figure-pan', chunkIdx: state.activeIdx, figureIdx });
+          }
           return;
         }
         focusFigure(target);
+        if (shouldBroadcast()) {
+          const figureIdx = Array.from(chunk.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia')).indexOf(target);
+          sendToPeer({ type: 'figure-focus', chunkIdx: state.activeIdx, figureIdx });
+        }
       });
     });
   });
