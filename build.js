@@ -2198,7 +2198,10 @@ function splitSentencesIn(root) {
           rest.appendChild(document.createTextNode(m[2]));
           mode = 'rest';
         } else head.appendChild(k.cloneNode(true));
-      } else if (mode === 'head') head.appendChild(k.cloneNode(true));
+      } else if (mode === 'head') {
+        head.appendChild(k.cloneNode(true));
+        if (k.nodeType === 1 && /[.!?]$/.test(k.textContent.trimEnd())) mode = 'rest';
+      }
       else rest.appendChild(k.cloneNode(true));
     }
     p.textContent = '';
