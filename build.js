@@ -3703,7 +3703,7 @@ async function runWatch(absIn, only) {
   };
 
   rebuild('initial');
-  console.log(`Watching ${path.relative(process.cwd(), absIn)} – live-reload on ws://localhost:${port}`);
+  console.log(`Watching ${path.relative(process.cwd(), absIn)} – live-reload active (open the HTML files in Chrome)`);
 
   // Editors typically emit two close-spaced events per save (write +
   // rename on atomic save). Debounce so we rebuild once per save.
