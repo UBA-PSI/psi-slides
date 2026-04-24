@@ -3404,50 +3404,114 @@ body[data-view=speaker] #stage-viewport {
 }
 #speaker-footer #export-annot-btn:hover { background: oklch(0.93 0 0); }
 
-/* Fallback modal for the rare case that clipboard access is denied on
-   file://. The read-only textarea lets the lecturer select-all + copy
-   by hand; dismissing keeps all drafts untouched. */
-#export-fallback {
+/* Post-Shift-E modal: walks the lecturer through pasting the clipboard
+   content back into source.md, running --integrate-annotations,
+   rebuilding, and finally clearing the now-redundant localStorage
+   drafts. The raw snippet stays in a <details> so a flaked clipboard
+   copy can be recovered without re-triggering the export. */
+#export-modal {
   position: fixed; inset: 0;
   background: oklch(0 0 0 / 0.45);
   display: flex; align-items: center; justify-content: center;
   z-index: 9999;
+  font-family: var(--sans-font);
 }
-#export-fallback .export-fallback-inner {
+#export-modal .export-modal-inner {
   background: var(--paper);
   border: 1px solid var(--rule);
-  border-radius: 6px;
-  padding: 1rem;
-  width: min(720px, 90vw);
-  max-height: 80vh;
-  display: flex; flex-direction: column; gap: 0.6rem;
-  box-shadow: 0 8px 32px oklch(0 0 0 / 0.2);
+  border-radius: 8px;
+  padding: 1.3rem 1.5rem;
+  width: min(640px, 92vw);
+  max-height: 88vh;
+  display: flex; flex-direction: column; gap: 0.75rem;
+  box-shadow: 0 12px 40px oklch(0 0 0 / 0.25);
+  overflow: auto;
+  color: var(--ink);
 }
-#export-fallback .export-fallback-head {
-  font-family: var(--sans-font);
+.export-modal-head {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.export-modal-intro {
+  margin: 0;
   font-size: 13px;
-  color: var(--ink);
+  color: var(--ink-soft);
 }
-#export-fallback textarea {
+.export-modal-steps {
+  margin: 0;
+  padding-left: 1.3em;
+  display: flex; flex-direction: column; gap: 0.55rem;
+  font-size: 13px;
+}
+.export-modal-steps li { line-height: 1.4; }
+.export-modal-step-title { margin-bottom: 0.2rem; }
+.export-modal-code-row {
+  display: flex; align-items: stretch; gap: 4px;
+}
+.export-modal-code {
   flex: 1;
-  min-height: 14em;
-  font-family: var(--mono-font);
-  font-size: 12px;
-  padding: 0.5rem;
-  border: 1px solid var(--rule);
-  background: oklch(0.98 0 0);
-  color: var(--ink);
-  resize: vertical;
-}
-#export-fallback button {
-  align-self: flex-end;
-  font: inherit;
-  padding: 4px 12px;
+  padding: 4px 8px;
   border: 1px solid var(--rule);
   border-radius: 3px;
-  background: oklch(0.97 0 0);
+  background: oklch(0.98 0 0);
+  font-family: var(--mono-font);
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.export-modal-copy {
+  font: inherit;
+  font-size: 11px;
+  padding: 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: oklch(0.96 0 0);
   cursor: pointer;
 }
+.export-modal-copy:hover { background: oklch(0.92 0 0); }
+.export-modal-raw summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.export-modal-raw textarea {
+  width: 100%;
+  min-height: 8em;
+  margin-top: 0.4rem;
+  padding: 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: oklch(0.98 0 0);
+  color: var(--ink);
+  font-family: var(--mono-font);
+  font-size: 11.5px;
+  resize: vertical;
+}
+.export-modal-warn {
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border-left: 2pt solid oklch(0.72 0.12 80);
+  background: oklch(0.985 0.014 80);
+  font-size: 12px;
+  color: var(--ink);
+}
+.export-modal-actions {
+  display: flex; justify-content: flex-end; gap: 8px;
+  margin-top: 0.2rem;
+}
+.export-modal-actions button {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.export-modal-keep { background: oklch(0.97 0 0); color: var(--ink); }
+.export-modal-keep:hover { background: oklch(0.93 0 0); }
+.export-modal-clear { background: oklch(0.55 0.16 25); color: oklch(0.99 0 0); border-color: oklch(0.45 0.16 25); }
+.export-modal-clear:hover { background: oklch(0.48 0.17 25); }
 
 /* Hide the annotation "+ note" affordance in speaker – speaker has the
    notes pane for author-written notes. */
@@ -3622,51 +3686,7 @@ async function copyToClipboardSafe(text) {
   }
 }
 
-function showExportFallback(snippet) {
-  let host = document.getElementById('export-fallback');
-  if (host) host.remove();
-  host = document.createElement('div');
-  host.id = 'export-fallback';
-  const inner = document.createElement('div');
-  inner.className = 'export-fallback-inner';
-  const head = document.createElement('div');
-  head.className = 'export-fallback-head';
-  head.textContent = 'Clipboard blocked — copy manually, then close.';
-  inner.appendChild(head);
-  const ta = document.createElement('textarea');
-  ta.readOnly = true;
-  ta.value = snippet;
-  inner.appendChild(ta);
-  const closeBtn = document.createElement('button');
-  closeBtn.type = 'button';
-  closeBtn.textContent = 'Close (keeps drafts)';
-  closeBtn.addEventListener('click', () => host.remove());
-  inner.appendChild(closeBtn);
-  host.appendChild(inner);
-  document.body.appendChild(host);
-  ta.select();
-}
-
-async function exportAnnotations() {
-  const drafts = collectAnnotationDrafts();
-  if (!drafts.length) {
-    flashMode('no annotations to export');
-    return;
-  }
-  const snippet = buildAnnotationSnippet(drafts);
-  const copied = await copyToClipboardSafe(snippet);
-  if (!copied) {
-    flashMode('clipboard blocked — showing text');
-    showExportFallback(snippet);
-    return;
-  }
-  flashMode(drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied');
-  const clear = window.confirm(
-    drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied to clipboard.\\n\\n' +
-    'Clear these drafts from this browser now?\\n' +
-    '(OK = clear, Cancel = keep drafts so you can re-export.)'
-  );
-  if (!clear) return;
+function clearExportedDrafts(drafts) {
   drafts.forEach(({ id }) => {
     delete annotations[id];
     const entry = flatChunks.find(c => c.id === id);
@@ -3682,6 +3702,163 @@ async function exportAnnotations() {
   saveAnnotations();
   broadcastState();
   flashMode('drafts cleared');
+}
+
+// Derive the source.md path from the current page location so the modal
+// can show a ready-to-run command. file:// URLs URL-encode spaces; decode
+// before displaying. Falls back to a generic placeholder on non-file URLs.
+function sourcePathForCommand() {
+  try {
+    const raw = decodeURIComponent(window.location.pathname || '');
+    if (!raw) return '<path-to>/source.md';
+    return raw.replace(/\\/[^/]+$/, '/source.md');
+  } catch (e) {
+    return '<path-to>/source.md';
+  }
+}
+
+function showExportModal({ drafts, snippet, clipboardOk }) {
+  let host = document.getElementById('export-modal');
+  if (host) host.remove();
+  host = document.createElement('div');
+  host.id = 'export-modal';
+
+  const inner = document.createElement('div');
+  inner.className = 'export-modal-inner';
+
+  const head = document.createElement('h2');
+  head.className = 'export-modal-head';
+  head.textContent = clipboardOk
+    ? drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied to clipboard'
+    : 'Clipboard blocked — copy manually below';
+  inner.appendChild(head);
+
+  const intro = document.createElement('p');
+  intro.className = 'export-modal-intro';
+  intro.textContent = clipboardOk
+    ? 'Next steps to make these notes part of the lecture source:'
+    : 'Select the text below and copy it by hand, then follow the steps:';
+  inner.appendChild(intro);
+
+  const srcPath = sourcePathForCommand();
+  const steps = [
+    {
+      n: 1,
+      title: 'Paste the clipboard content at the end of source.md',
+      code: srcPath,
+      codeLabel: 'file',
+    },
+    {
+      n: 2,
+      title: 'Integrate the pasted block into the right chunks',
+      code: 'node build.js ' + srcPath + ' --integrate-annotations',
+    },
+    {
+      n: 3,
+      title: 'Rebuild the lecture',
+      code: 'node build.js ' + srcPath,
+    },
+    {
+      n: 4,
+      title: 'Review with git diff and commit when happy',
+      code: 'git diff',
+    },
+    {
+      n: 5,
+      title: 'Then return here and press Clear Drafts to remove them from this browser',
+    },
+  ];
+
+  const stepList = document.createElement('ol');
+  stepList.className = 'export-modal-steps';
+  for (const step of steps) {
+    const li = document.createElement('li');
+    const title = document.createElement('div');
+    title.className = 'export-modal-step-title';
+    title.textContent = step.title;
+    li.appendChild(title);
+    if (step.code) {
+      const row = document.createElement('div');
+      row.className = 'export-modal-code-row';
+      const code = document.createElement('code');
+      code.className = 'export-modal-code';
+      code.textContent = step.code;
+      row.appendChild(code);
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'export-modal-copy';
+      copyBtn.textContent = 'copy';
+      copyBtn.addEventListener('click', async () => {
+        const ok = await copyToClipboardSafe(step.code);
+        copyBtn.textContent = ok ? 'copied ✓' : 'copy failed';
+        setTimeout(() => { copyBtn.textContent = 'copy'; }, 1500);
+      });
+      row.appendChild(copyBtn);
+      li.appendChild(row);
+    }
+    stepList.appendChild(li);
+  }
+  inner.appendChild(stepList);
+
+  // Always expose the raw snippet in a <details> so the lecturer can
+  // re-copy it (clipboard flaked, pasted into wrong window, etc.) without
+  // having to re-trigger the export flow.
+  const details = document.createElement('details');
+  details.className = 'export-modal-raw';
+  details.open = !clipboardOk;
+  const summary = document.createElement('summary');
+  summary.textContent = clipboardOk ? 'show copied text' : 'copied text (select all and copy)';
+  details.appendChild(summary);
+  const raw = document.createElement('textarea');
+  raw.readOnly = true;
+  raw.value = snippet;
+  details.appendChild(raw);
+  inner.appendChild(details);
+
+  const warn = document.createElement('p');
+  warn.className = 'export-modal-warn';
+  warn.textContent = 'Clear Drafts removes the annotations from localStorage. Do this only after the notes are safely in source.md.';
+  inner.appendChild(warn);
+
+  const actions = document.createElement('div');
+  actions.className = 'export-modal-actions';
+  const keepBtn = document.createElement('button');
+  keepBtn.type = 'button';
+  keepBtn.className = 'export-modal-keep';
+  keepBtn.textContent = 'Keep drafts (close)';
+  keepBtn.addEventListener('click', () => host.remove());
+  actions.appendChild(keepBtn);
+  const clearBtn = document.createElement('button');
+  clearBtn.type = 'button';
+  clearBtn.className = 'export-modal-clear';
+  clearBtn.textContent = 'Clear drafts now';
+  clearBtn.addEventListener('click', () => {
+    clearExportedDrafts(drafts);
+    host.remove();
+  });
+  actions.appendChild(clearBtn);
+  inner.appendChild(actions);
+
+  host.appendChild(inner);
+  host.addEventListener('click', (e) => { if (e.target === host) host.remove(); });
+  host.addEventListener('keydown', (e) => { if (e.key === 'Escape') host.remove(); });
+  document.body.appendChild(host);
+  if (!clipboardOk) raw.select();
+  else keepBtn.focus();
+}
+
+async function exportAnnotations() {
+  const drafts = collectAnnotationDrafts();
+  if (!drafts.length) {
+    flashMode('no annotations to export');
+    return;
+  }
+  const snippet = buildAnnotationSnippet(drafts);
+  const copied = await copyToClipboardSafe(snippet);
+  flashMode(copied
+    ? drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied'
+    : 'clipboard blocked — copy manually');
+  showExportModal({ drafts, snippet, clipboardOk: copied });
 }
 
 const exportAnnotBtn = document.getElementById('export-annot-btn');
