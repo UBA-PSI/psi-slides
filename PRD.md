@@ -123,7 +123,8 @@ Formal statement. $k \geq 2$ inline math.
 - Width classes: `.narrow`, `.standard`, `.wide`, `.full`. Default: `.standard`.
 - `::: margin` and `::: expand <label>` are fenced divs.
 - `::: sketch <sketch-id>` defines a live sketch slot with a stable id.
-- `> note:` at the start of a blockquote marks a speaker note.
+- `> note:` at the start of a blockquote marks a speaker note (private, speaker-only).
+- `> annot:` at the start of a blockquote is a **presentation note** – text the lecturer typed live into the audience annotation box and exported back via `Shift`-`E` on the speaker. It prefills the audience textarea and renders as a "Presentation Note" block in print. Public by design.
 - `---` on its own line inside a chunk body is a reveal separator (§4.6). At the top of the file, `---` delimits frontmatter (handled by `gray-matter`, never reaches chunk parsing).
 - Standard Markdown for everything else (lists, bold, italics, code, links).
 - Images: `![](fig-id)` resolves to `images/fig-id.{svg,png,jpg}`; the build determines extension and dimensions.
@@ -144,7 +145,7 @@ Source is parsed to a single AST; no regex post-processing on rendered HTML. Pip
 5. **Reveal segmentation.** After directive reification, each chunk body is split at standalone `---` lines into an ordered array of reveal segments. Because frontmatter was stripped by `gray-matter` in step 1, and thematic-break `---` at chunk level is redefined as the reveal separator, there is no ambiguity. If an author genuinely needs a thematic break inside a chunk body (extremely rare), they can use `***` which `marked` treats as equivalent.
 6. **Downstream passes** (ID validation, image dimension resolution, KaTeX, TOC, placement, renderers, linter) operate on the AST only — no string mangling of rendered HTML.
 
-The `::: directive` syntax is the preferred form for anything non-trivial; `> note:` is a convenience shorthand for single-line speaker notes and is the *only* blockquote-based extension. If you need a blockquote whose text begins with the literal word "note:", escape it (`> \note:`) or use a fenced `::: note` directive (reserved synonym).
+The `::: directive` syntax is the preferred form for anything non-trivial; `> note:` (speaker) and `> annot:` (presentation note) are convenience shorthands and are the *only* blockquote-based extensions. If you need a blockquote whose text begins with the literal word "note:" or "annot:", escape it (`> \note:`) or use a fenced `::: note` directive (reserved synonym).
 
 ---
 

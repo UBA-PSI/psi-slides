@@ -71,8 +71,20 @@ function highlightCode(code, lang) {
 // Set once per build from buildOnce so the marked renderer can close over it.
 
 const IMG_EXTS = ['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
+const MIME_BY_EXT = {
+  svg: 'image/svg+xml',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+};
+const MAX_INLINE_BYTES = 2 * 1024 * 1024;
+const AUTO_INLINE_BUDGET = 10 * 1024 * 1024;
 let currentSourceDir = null;
+let inlineAssetsEnabled = false;
 const imgResolveCache = new Map();
+const dataUriCache = new Map();
 function resolveFigId(figId) {
   if (!currentSourceDir) return null;
   const cacheKey = currentSourceDir + '::' + figId;
@@ -86,6 +98,70 @@ function resolveFigId(figId) {
   }
   imgResolveCache.set(cacheKey, null);
   return null;
+}
+
+// Inline an asset as a data: URI for --inline-images builds. SVG goes
+// through encodeURIComponent (smaller than base64 and human-readable in
+// view-source); raster formats use base64. Files over MAX_INLINE_BYTES
+// are skipped with a warning so authors notice when a deck is too heavy
+// for the single-file shape, and the renderer falls back to the path.
+function toDataUri(absPath) {
+  if (!absPath) return null;
+  if (dataUriCache.has(absPath)) return dataUriCache.get(absPath);
+  let stat;
+  try { stat = fs.statSync(absPath); }
+  catch { dataUriCache.set(absPath, null); return null; }
+  if (stat.size > MAX_INLINE_BYTES) {
+    const mb = (stat.size / 1024 / 1024).toFixed(2);
+    console.warn(`[inline-images] skipping ${path.relative(process.cwd(), absPath)} (${mb} MB > 2 MB limit)`);
+    dataUriCache.set(absPath, null);
+    return null;
+  }
+  const ext = path.extname(absPath).slice(1).toLowerCase();
+  const mime = MIME_BY_EXT[ext];
+  if (!mime) { dataUriCache.set(absPath, null); return null; }
+  let uri;
+  if (ext === 'svg') {
+    const text = fs.readFileSync(absPath, 'utf8');
+    uri = `data:${mime};utf8,${encodeURIComponent(text)}`;
+  } else {
+    const buf = fs.readFileSync(absPath);
+    uri = `data:${mime};base64,${buf.toString('base64')}`;
+  }
+  dataUriCache.set(absPath, uri);
+  return uri;
+}
+
+// Pre-scan a source file's image references to estimate inline cost.
+// Used by the auto-inline decision in buildOnce: if total bytes fit
+// AUTO_INLINE_BUDGET, the build inlines without an explicit flag. The
+// regex catches false positives in code blocks, but for a budget
+// heuristic that's fine – fence-aware scanning would be over-engineered.
+function scanReferencedImages(src, sourceDir) {
+  const refs = new Set();
+  for (const match of src.matchAll(/!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
+    refs.add(match[1]);
+  }
+
+  let total = 0;
+  let count = 0;
+  for (const href of refs) {
+    let abs = null;
+    const isShorthand = !/[\\/]/.test(href) && !/\.[a-z0-9]+$/i.test(href);
+    if (isShorthand) {
+      const rel = resolveFigId(href);
+      if (rel) abs = path.join(sourceDir, rel);
+    } else if (!/^(?:https?:|data:|\/\/|\/)/i.test(href)) {
+      abs = path.resolve(sourceDir, href);
+    }
+    if (!abs) continue;
+    try {
+      const stat = fs.statSync(abs);
+      total += stat.size;
+      count += 1;
+    } catch { /* missing assets surface elsewhere as figure-missing */ }
+  }
+  return { total, count };
 }
 
 // ── marked renderer overrides (code highlighting + image shorthand) ──
@@ -106,16 +182,28 @@ marked.use({
       if (isShorthand) {
         const resolved = resolveFigId(href);
         if (resolved) {
+          let src = resolved;
+          if (inlineAssetsEnabled) {
+            const inlined = toDataUri(path.join(currentSourceDir, resolved));
+            if (inlined) src = inlined;
+          }
           const alt = escapeHtml(text || '');
           const cap = text ? `<figcaption>${alt}</figcaption>` : '';
           const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
-          return `<figure class="figure-img" data-fig-id="${escapeHtml(href)}"><img src="${escapeHtml(resolved)}" alt="${alt}"${titleAttr} loading="lazy">${cap}</figure>`;
+          return `<figure class="figure-img" data-fig-id="${escapeHtml(href)}"><img src="${escapeHtml(src)}" alt="${alt}"${titleAttr} loading="lazy">${cap}</figure>`;
         }
         // Unresolved: emit a visible placeholder so authors notice immediately.
         return `<figure class="figure-img figure-missing" data-fig-id="${escapeHtml(href)}"><div class="figure-missing-placeholder">missing: assets/${escapeHtml(href)}.(${IMG_EXTS.join('|')})</div>${text ? `<figcaption>${escapeHtml(text)}</figcaption>` : ''}</figure>`;
       }
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
-      return `<img src="${escapeHtml(href)}" alt="${escapeHtml(text || '')}"${titleAttr}>`;
+      let src = href;
+      // Inline only true relative paths from disk; leave external URLs,
+      // existing data URIs, and root-absolute paths untouched.
+      if (inlineAssetsEnabled && href && currentSourceDir && !/^(?:https?:|data:|\/\/|\/)/i.test(href)) {
+        const inlined = toDataUri(path.resolve(currentSourceDir, href));
+        if (inlined) src = inlined;
+      }
+      return `<img src="${escapeHtml(src)}" alt="${escapeHtml(text || '')}"${titleAttr}>`;
     },
   },
 });
@@ -166,6 +254,8 @@ function parseLecture(src) {
   let currentExpansion = null; // { label, lines } while inside a ::: expand block
   let noteBlock = null;        // { lines: string[] } – current `> note:` block
   let pendingNotes = [];       // notes that appeared before a chunk, attach to the next one
+  let annotBlock = null;       // { lines: string[] } – current `> annot:` block
+  let pendingAnnotation = '';  // annotation that appeared before a chunk, attach to the next one
   let layoutStack = [];        // closing HTML tokens for open layout directives
 
   const flushExpansion = () => {
@@ -188,9 +278,27 @@ function parseLecture(src) {
     noteBlock = null;
   };
 
+  const flushAnnotBlock = () => {
+    if (!annotBlock) return;
+    const text = annotBlock.lines.join('\n').trim();
+    if (text) {
+      if (currentChunk) {
+        currentChunk.annotation = currentChunk.annotation
+          ? currentChunk.annotation + '\n\n' + text
+          : text;
+      } else {
+        pendingAnnotation = pendingAnnotation
+          ? pendingAnnotation + '\n\n' + text
+          : text;
+      }
+    }
+    annotBlock = null;
+  };
+
   const flushChunk = () => {
     if (!currentChunk) return;
     flushNoteBlock();
+    flushAnnotBlock();
     flushExpansion();
     // Close any still-open layout directives defensively so the emitted
     // body HTML stays balanced. The linter will flag these separately.
@@ -253,8 +361,10 @@ function parseLecture(src) {
           id,
           expansions: [],
           speakerNotes: pendingNotes,
+          annotation: pendingAnnotation,
         };
         pendingNotes = [];
+        pendingAnnotation = '';
         continue;
       }
 
@@ -264,16 +374,36 @@ function parseLecture(src) {
       // are buffered in pendingNotes and attached to the next chunk (so
       // e.g. a `> note:` placed right under a column header still lands
       // on the first chunk of that column). Stripped from audience + print.
+      //
+      // `> annot: ...` is the parallel mechanism for *public* per-chunk
+      // annotations — text the lecturer typed live in the audience
+      // annotation-box and then exported back into source. It prefills
+      // the audience textarea and renders as a "Presentation Note" block
+      // in print.
       const noteOpen = line.match(/^>\s*note:\s*(.*)$/i);
+      const annotOpen = line.match(/^>\s*annot:\s*(.*)$/i);
       if (noteOpen) {
         flushNoteBlock();
+        flushAnnotBlock();
         noteBlock = { lines: [noteOpen[1]] };
+        continue;
+      }
+      if (annotOpen) {
+        flushNoteBlock();
+        flushAnnotBlock();
+        annotBlock = { lines: [annotOpen[1]] };
         continue;
       }
       if (noteBlock) {
         const noteCont = line.match(/^>\s?(.*)$/);
         if (noteCont) { noteBlock.lines.push(noteCont[1]); continue; }
         flushNoteBlock();
+        // fall through: this non-> line still needs normal handling
+      }
+      if (annotBlock) {
+        const annotCont = line.match(/^>\s?(.*)$/);
+        if (annotCont) { annotBlock.lines.push(annotCont[1]); continue; }
+        flushAnnotBlock();
         // fall through: this non-> line still needs normal handling
       }
 
@@ -416,7 +546,7 @@ function renderHeadingHtml(chunk, cls = 'chunk-heading') {
 }
 
 function renderChunk(chunk, frontmatter) {
-  const { tag, body = '', id, width, expansions = [] } = chunk;
+  const { tag, body = '', id, width, expansions = [], annotation = '' } = chunk;
   const bodyHtml = body ? marked.parse(body) : '';
 
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
@@ -448,11 +578,19 @@ ${inner}
 </aside>`;
   }).join('\n');
 
+  const annotationHtml = annotation.trim()
+    ? `<aside class="presentation-note">
+<span class="presentation-note-label">Presentation Note</span>
+<div class="presentation-note-body">${marked.parse(annotation)}</div>
+</aside>`
+    : '';
+
   return `<article class="${classes}"${idAttr}>
   ${label}
   ${renderHeadingHtml(chunk)}
   ${bodyHtml}
   ${expansionsHtml}
+  ${annotationHtml}
 </article>`;
 }
 
@@ -681,6 +819,32 @@ a:hover { text-decoration-color: var(--ink); }
 .chunk-expansion > :last-child { margin-bottom: 0; }
 .chunk-expansion strong { color: var(--ink); }
 
+/* Presentation Note: annotation the lecturer typed live (> annot: in
+   source) and committed back into the document. Rendered as a small,
+   indented block so it reads as a post-hoc remark rather than part of
+   the main argument. */
+.presentation-note {
+  margin: 0.9rem 0 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border-left: 2pt solid oklch(0.72 0.12 80);
+  background: oklch(0.985 0.014 80);
+  color: var(--ink);
+  font-size: 0.92em;
+}
+.presentation-note-label {
+  display: inline-block;
+  font-family: var(--sans);
+  font-variant-caps: all-small-caps;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: oklch(0.48 0.1 80);
+  margin-right: 0.4em;
+}
+.presentation-note-body { display: inline; }
+.presentation-note-body > :first-child { display: inline; margin: 0; }
+.presentation-note-body > :first-child + * { margin-top: 0.35em; }
+.presentation-note-body > :last-child { margin-bottom: 0; }
+
 /* Title slide: lower-left-third per PRD §4.4 */
 .chunk-title {
   min-height: calc(100vh - 6rem);
@@ -829,7 +993,7 @@ function renderTitleChunk(chunk, frontmatter) {
 function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx) {
   if (chunk.tag === 'title') return renderTitleChunk(chunk, frontmatter);
 
-  const { tag, heading, segments = [], id, width, expansions = [] } = chunk;
+  const { tag, heading, segments = [], id, width, expansions = [], annotation = '' } = chunk;
   const chunkId = id || `c${colIdx}-${chunkIdx}`;
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
 
@@ -892,7 +1056,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx) {
     ${marginsHtml}
     <aside class="annot-box" data-annot-for="${escapeHtml(chunkId)}">
       <div class="annot-box-label">annotation · ${escapeHtml(chunkId)}</div>
-      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1">${escapeHtml(annotation)}</textarea>
     </aside>
     <button class="annot-add" type="button" data-annot-add>+ note</button>
   </div>
@@ -2102,11 +2266,14 @@ function applyRemoteState(payload) {
     replaceContents(revealed, payload.revealed);
     replaceContents(annotations, payload.annotations);
     // Reflect annotation text into the textareas so the other view sees
-    // keystrokes landing in real time.
+    // keystrokes landing in real time. A draft (annotations[id]) wins
+    // over the source-prefilled defaultValue; if the draft is gone (e.g.
+    // the speaker cleared it after export), fall back to defaultValue so
+    // the Markdown-authored annotation stays visible.
     flatChunks.forEach(c => {
       const ta = c.el.querySelector('.annot-textarea');
       if (!ta) return;
-      const v = annotations[c.id] || '';
+      const v = (c.id in annotations) ? annotations[c.id] : ta.defaultValue;
       if (ta.value !== v) { ta.value = v; autosize(ta); }
       c.el.classList.toggle('has-annot', !!v.trim());
     });
@@ -2551,9 +2718,11 @@ function wireAnnotations() {
   flatChunks.forEach(({ el, id }) => {
     const ta = el.querySelector('.annot-textarea');
     if (!ta) return;
-    const existing = annotations[id] || '';
-    ta.value = existing;
-    if (existing.trim()) el.classList.add('has-annot');
+    // Source-authored annotation is baked into ta.defaultValue by the
+    // server render; a localStorage draft (if any) wins. An explicit
+    // empty-string draft is honored — the lecturer deliberately cleared.
+    if (id in annotations) ta.value = annotations[id];
+    if (ta.value.trim()) el.classList.add('has-annot');
     autosize(ta);
     ta.addEventListener('input', () => {
       annotations[id] = ta.value;
@@ -2731,6 +2900,14 @@ document.addEventListener('keydown', (e) => {
         window.open('print.html', '_blank');
       }
       e.preventDefault(); break;
+    case 'e': case 'E':
+      // Shift-E on the speaker copies live annotation drafts to the
+      // clipboard for paste-back into source.md. Plain E is unbound.
+      if (VIEW === 'speaker' && e.shiftKey && typeof exportAnnotations === 'function') {
+        exportAnnotations();
+        e.preventDefault();
+      }
+      break;
     case '.':
       if (VIEW === 'speaker' && typeof forcePush === 'function') {
         forcePush();
@@ -2969,9 +3146,10 @@ ${columnsHtml}
 <footer id="speaker-footer">
   <span id="timer">00:00</span>
   <span id="push-indicator" class="push-on">push ●</span>
+  <button id="export-annot-btn" type="button" title="Copy live annotations as &gt; annot: Markdown (Shift-E)">export notes</button>
   <span id="slug">${escapeHtml(slug)}</span>
   <span class="spacer"></span>
-  <span class="kbd-hint"><kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>V</kbd> preview &nbsp; <kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force &nbsp; <kbd>?</kbd> all</span>
+  <span class="kbd-hint"><kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export &nbsp; <kbd>V</kbd> preview &nbsp; <kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force &nbsp; <kbd>?</kbd> all</span>
 </footer>
 <div id="note-templates">
 ${noteTemplates.join('\n')}
@@ -3215,6 +3393,61 @@ body[data-view=speaker] #stage-viewport {
 #speaker-footer .spacer { flex: 1; }
 #speaker-footer .kbd-hint { font-size: 10px; opacity: 0.7; }
 #speaker-footer kbd { padding: 0 3px; border: 1px solid var(--rule); background: oklch(0.96 0 0); color: var(--ink); font-family: var(--mono-font); font-size: 9px; }
+#speaker-footer #export-annot-btn {
+  font: inherit;
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: oklch(0.97 0 0);
+  color: var(--ink);
+  cursor: pointer;
+}
+#speaker-footer #export-annot-btn:hover { background: oklch(0.93 0 0); }
+
+/* Fallback modal for the rare case that clipboard access is denied on
+   file://. The read-only textarea lets the lecturer select-all + copy
+   by hand; dismissing keeps all drafts untouched. */
+#export-fallback {
+  position: fixed; inset: 0;
+  background: oklch(0 0 0 / 0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+#export-fallback .export-fallback-inner {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 1rem;
+  width: min(720px, 90vw);
+  max-height: 80vh;
+  display: flex; flex-direction: column; gap: 0.6rem;
+  box-shadow: 0 8px 32px oklch(0 0 0 / 0.2);
+}
+#export-fallback .export-fallback-head {
+  font-family: var(--sans-font);
+  font-size: 13px;
+  color: var(--ink);
+}
+#export-fallback textarea {
+  flex: 1;
+  min-height: 14em;
+  font-family: var(--mono-font);
+  font-size: 12px;
+  padding: 0.5rem;
+  border: 1px solid var(--rule);
+  background: oklch(0.98 0 0);
+  color: var(--ink);
+  resize: vertical;
+}
+#export-fallback button {
+  align-self: flex-end;
+  font: inherit;
+  padding: 4px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: oklch(0.97 0 0);
+  cursor: pointer;
+}
 
 /* Hide the annotation "+ note" affordance in speaker – speaker has the
    notes pane for author-written notes. */
@@ -3331,6 +3564,128 @@ function forcePush() {
   sendToPeer({ type: 'state', source: VIEW, payload: snapshot() });
   flashMode('force push');
 }
+
+// Export live annotation drafts as Markdown. Copies to clipboard first,
+// then asks for explicit confirmation before clearing the draft buffer —
+// a failed copy or a cancelled confirm leaves localStorage untouched, so
+// nothing is lost if the lecturer aborts mid-workflow.
+function collectAnnotationDrafts() {
+  const out = [];
+  flatChunks.forEach(({ id, el }) => {
+    if (!id) return;
+    if (!(id in annotations)) return;
+    const text = (annotations[id] || '').trim();
+    const ta = el.querySelector('.annot-textarea');
+    const sourceDefault = ta ? (ta.defaultValue || '').trim() : '';
+    if (!text && !sourceDefault) return;
+    if (text === sourceDefault) return;
+    out.push({ id, text });
+  });
+  return out;
+}
+
+function buildAnnotationSnippet(drafts) {
+  const lines = ['<!-- annotations:start -->', ''];
+  drafts.forEach(({ id, text }, i) => {
+    if (i > 0) lines.push('');
+    lines.push('### ' + id);
+    if (text) {
+      text.split('\\n').forEach(l => lines.push('> annot: ' + l));
+    } else {
+      lines.push('> annot:');
+    }
+  });
+  lines.push('', '<!-- annotations:end -->', '');
+  return lines.join('\\n');
+}
+
+async function copyToClipboardSafe(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) {}
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+function showExportFallback(snippet) {
+  let host = document.getElementById('export-fallback');
+  if (host) host.remove();
+  host = document.createElement('div');
+  host.id = 'export-fallback';
+  const inner = document.createElement('div');
+  inner.className = 'export-fallback-inner';
+  const head = document.createElement('div');
+  head.className = 'export-fallback-head';
+  head.textContent = 'Clipboard blocked — copy manually, then close.';
+  inner.appendChild(head);
+  const ta = document.createElement('textarea');
+  ta.readOnly = true;
+  ta.value = snippet;
+  inner.appendChild(ta);
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.textContent = 'Close (keeps drafts)';
+  closeBtn.addEventListener('click', () => host.remove());
+  inner.appendChild(closeBtn);
+  host.appendChild(inner);
+  document.body.appendChild(host);
+  ta.select();
+}
+
+async function exportAnnotations() {
+  const drafts = collectAnnotationDrafts();
+  if (!drafts.length) {
+    flashMode('no annotations to export');
+    return;
+  }
+  const snippet = buildAnnotationSnippet(drafts);
+  const copied = await copyToClipboardSafe(snippet);
+  if (!copied) {
+    flashMode('clipboard blocked — showing text');
+    showExportFallback(snippet);
+    return;
+  }
+  flashMode(drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied');
+  const clear = window.confirm(
+    drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied to clipboard.\\n\\n' +
+    'Clear these drafts from this browser now?\\n' +
+    '(OK = clear, Cancel = keep drafts so you can re-export.)'
+  );
+  if (!clear) return;
+  drafts.forEach(({ id }) => {
+    delete annotations[id];
+    const entry = flatChunks.find(c => c.id === id);
+    if (entry) {
+      const ta2 = entry.el.querySelector('.annot-textarea');
+      if (ta2) {
+        ta2.value = ta2.defaultValue;
+        entry.el.classList.toggle('has-annot', !!ta2.value.trim());
+        autosize(ta2);
+      }
+    }
+  });
+  saveAnnotations();
+  broadcastState();
+  flashMode('drafts cleared');
+}
+
+const exportAnnotBtn = document.getElementById('export-annot-btn');
+if (exportAnnotBtn) exportAnnotBtn.addEventListener('click', exportAnnotations);
 
 // N on the speaker opens the audience-visible annotation slot (PRD §2 –
 // the live marginalia channel that mirrors to the audience). The notes
@@ -3687,6 +4042,134 @@ setPeer(window.opener);
 sendToPeer({ type: 'hello', source: 'speaker' });
 `;
 
+// ── annotation integration ───────────────────────────────────────────
+
+// Move `> annot:` blocks from a trailing `<!-- annotations:start --> … end`
+// marker block (pasted in from the speaker's Shift-E export) into their
+// target chunks. Each inner `### <chunk-id>` section is matched against a
+// `## … {#<chunk-id>}` heading elsewhere in the source; the `> annot:`
+// blockquote is inserted directly under that heading. Unresolved sections
+// (unknown id) are kept in a trimmed marker block at EOF so nothing is lost.
+//
+// Pure string patch, no AST — the source round-trips verbatim aside from
+// the moved annotations and the removed marker block.
+const ANNOT_MARKER_START = '<!-- annotations:start -->';
+const ANNOT_MARKER_END = '<!-- annotations:end -->';
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractAnnotLines(lines) {
+  const out = [];
+  let inAnnot = false;
+  for (const line of lines) {
+    if (/^>\s*annot:/i.test(line)) {
+      if (inAnnot) out.push('');
+      out.push(line);
+      inAnnot = true;
+      continue;
+    }
+    if (inAnnot && /^>/.test(line)) { out.push(line); continue; }
+    if (inAnnot && !line.trim()) { inAnnot = false; continue; }
+    inAnnot = false;
+  }
+  return out;
+}
+
+function integrateAnnotations(src) {
+  const startIdx = src.indexOf(ANNOT_MARKER_START);
+  if (startIdx < 0) return { src, moved: 0, unresolved: [], warnings: [], hadMarker: false };
+  const endMarkerIdx = src.indexOf(ANNOT_MARKER_END, startIdx + ANNOT_MARKER_START.length);
+  const blockEnd = endMarkerIdx >= 0 ? endMarkerIdx + ANNOT_MARKER_END.length : src.length;
+  const blockInner = src.slice(
+    startIdx + ANNOT_MARKER_START.length,
+    endMarkerIdx >= 0 ? endMarkerIdx : src.length,
+  );
+
+  const warnings = [];
+  const orphanLines = [];
+  const sections = new Map();
+  let cur = null;
+  for (const line of blockInner.split('\n')) {
+    const h3 = line.match(/^###\s+([A-Za-z0-9_-]+)\s*$/);
+    if (h3) {
+      cur = sections.get(h3[1]) || { id: h3[1], lines: [] };
+      sections.set(h3[1], cur);
+      continue;
+    }
+    if (cur) cur.lines.push(line);
+    else orphanLines.push(line);
+  }
+  if (orphanLines.some(l => /^>\s*annot:/i.test(l))) {
+    warnings.push('`> annot:` lines before the first `### <id>` header were ignored — prefix them with `### some-chunk-id` so the integrator knows where to put them.');
+  }
+
+  let before = src.slice(0, startIdx).replace(/\n+$/, '\n');
+  let after = src.slice(blockEnd).replace(/^\n+/, '');
+  const baseSrc = before + (after ? '\n' + after : '');
+
+  // Compute target positions against the unmutated source so injected
+  // annotation text can never be misread as a chunk heading by a later
+  // section's regex scan. Apply injections in descending order so earlier
+  // indices stay valid.
+  const plans = [];
+  const unresolved = [];
+  for (const sec of sections.values()) {
+    const annotLines = extractAnnotLines(sec.lines);
+    if (!annotLines.length) { unresolved.push({ id: sec.id, reason: 'no > annot: lines' }); continue; }
+    const headingRe = new RegExp(
+      '^##[^\\n]*\\{[^}\\n]*#' + escapeRegex(sec.id) + '(?=[\\s}])[^}\\n]*\\}[^\\n]*$',
+      'm',
+    );
+    const m = baseSrc.match(headingRe);
+    if (!m) { unresolved.push({ id: sec.id, reason: 'chunk id not found' }); continue; }
+    plans.push({ insertAt: m.index + m[0].length, annotLines });
+  }
+  plans.sort((a, b) => b.insertAt - a.insertAt);
+
+  let working = baseSrc;
+  for (const { insertAt, annotLines } of plans) {
+    working = working.slice(0, insertAt) + '\n\n' + annotLines.join('\n') + working.slice(insertAt);
+  }
+
+  if (unresolved.length) {
+    const parked = unresolved
+      .map(u => {
+        const sec = sections.get(u.id);
+        return '### ' + u.id + '\n' + sec.lines.join('\n').replace(/^\n+|\n+$/g, '');
+      })
+      .join('\n\n');
+    if (!working.endsWith('\n')) working += '\n';
+    working += '\n' + ANNOT_MARKER_START + '\n\n' + parked + '\n\n' + ANNOT_MARKER_END + '\n';
+  }
+
+  return { src: working, moved: plans.length, unresolved, warnings, hadMarker: true };
+}
+
+function runIntegrate(absIn) {
+  const src = fs.readFileSync(absIn, 'utf8');
+  const result = integrateAnnotations(src);
+  if (!result.hadMarker) {
+    console.error('No <!-- annotations:start --> block found in ' + absIn);
+    process.exit(1);
+  }
+  if (result.moved === 0 && result.unresolved.length === 0 && !result.warnings.length) {
+    console.log('Marker block was empty — nothing to integrate. Source unchanged.');
+    return;
+  }
+  fs.writeFileSync(absIn, result.src);
+  console.log('Integrated ' + result.moved + ' annotation' + (result.moved === 1 ? '' : 's') + ' into ' + absIn);
+  for (const w of result.warnings) console.warn('Warning: ' + w);
+  if (result.unresolved.length) {
+    console.log('Unresolved (parked at EOF in the marker block):');
+    for (const u of result.unresolved) {
+      console.log('  - ' + u.id + ': ' + u.reason);
+    }
+  }
+  console.log('Review with `git diff`, then rebuild the lecture to render the new Presentation Notes.');
+}
+
 // ── CLI ──────────────────────────────────────────────────────────────
 
 // Build the three HTML outputs for a single source file. Returns the
@@ -3703,6 +4186,29 @@ function buildOnce(absIn, only, opts = {}) {
   // rebuilds (stale hits would otherwise mask real missing-asset errors).
   currentSourceDir = outDir;
   imgResolveCache.clear();
+  dataUriCache.clear();
+  // Auto-inline decision when neither --inline-images nor --no-inline-images
+  // was passed: scan referenced images, inline iff total fits AUTO_INLINE_BUDGET.
+  // Either way log the decision so authors notice when a deck silently flips
+  // from inlined back to external (e.g. after adding a heavy asset).
+  let inlineImages = opts.inlineImages;
+  if (inlineImages === undefined) {
+    const { total, count } = scanReferencedImages(src, outDir);
+    if (count === 0) {
+      inlineImages = false;
+    } else if (total <= AUTO_INLINE_BUDGET) {
+      inlineImages = true;
+      const mb = (total / 1024 / 1024).toFixed(2);
+      const budgetMb = AUTO_INLINE_BUDGET / 1024 / 1024;
+      console.log(`[inline-images] auto-inlining ${count} image(s), ${mb} MB total (under ${budgetMb} MB budget). Use --no-inline-images to disable.`);
+    } else {
+      inlineImages = false;
+      const mb = (total / 1024 / 1024).toFixed(2);
+      const budgetMb = AUTO_INLINE_BUDGET / 1024 / 1024;
+      console.log(`[inline-images] ${count} image(s) total ${mb} MB exceed ${budgetMb} MB auto-inline budget; using external paths. Use --inline-images to force.`);
+    }
+  }
+  inlineAssetsEnabled = !!inlineImages;
   const lecture = parseLecture(src);
   const chunkCount = lecture.columns.reduce((n, c) => n + c.chunks.length, 0);
   const shape = `${lecture.columns.length} columns, ${chunkCount} chunks`;
@@ -3727,12 +4233,12 @@ function buildOnce(absIn, only, opts = {}) {
 // connected clients on each successful rebuild. The reload snippet
 // reconnects on close, so the server can come and go without breaking
 // the open browser tabs.
-async function runWatch(absIn, only) {
+async function runWatch(absIn, only, baseOpts = {}) {
   const { WebSocketServer } = await import('ws');
   const wss = new WebSocketServer({ port: 0 });
   await new Promise(resolve => wss.on('listening', resolve));
   const port = wss.address().port;
-  const opts = { watchPort: port };
+  const opts = { ...baseOpts, watchPort: port };
 
   const broadcast = (msg) => {
     for (const client of wss.clients) {
@@ -3835,8 +4341,29 @@ async function main() {
   if (!inputPath || flags.has('--help') || flags.has('-h')) {
     console.error('Usage:');
     console.error('  node build.js <source.md> [--watch] [--audience-only|--print-only|--speaker-only]');
+    console.error('                            [--inline-images|--no-inline-images]');
+    console.error('  node build.js <source.md> --integrate-annotations');
     console.error('  node build.js --new <slug>');
+    console.error('');
+    console.error('Image inlining (default: auto – inline iff referenced images sum < 10 MB; per-image cap 2 MB):');
+    console.error('  --inline-images       force inlining regardless of total size');
+    console.error('  --no-inline-images    force external asset paths');
+    console.error('');
+    console.error('Annotation integration:');
+    console.error('  --integrate-annotations   move `> annot:` blocks from a trailing');
+    console.error('                            <!-- annotations:start --> … :end marker block');
+    console.error('                            into their chunks and remove the marker block.');
     process.exit(inputPath ? 0 : 1);
+  }
+
+  if (flags.has('--integrate-annotations')) {
+    const absIn = path.resolve(inputPath);
+    if (!fs.existsSync(absIn)) {
+      console.error(`Input not found: ${absIn}`);
+      process.exit(1);
+    }
+    runIntegrate(absIn);
+    return;
   }
 
   const onlyFlags = ['--audience-only', '--print-only', '--speaker-only'].filter(f => flags.has(f));
@@ -3845,6 +4372,14 @@ async function main() {
     process.exit(1);
   }
   const only = onlyFlags[0];
+  if (flags.has('--inline-images') && flags.has('--no-inline-images')) {
+    console.error('Error: --inline-images and --no-inline-images are mutually exclusive.');
+    process.exit(1);
+  }
+  const opts = {};
+  if (flags.has('--inline-images')) opts.inlineImages = true;
+  else if (flags.has('--no-inline-images')) opts.inlineImages = false;
+  // else: leave undefined → buildOnce decides automatically
 
   const absIn = path.resolve(inputPath);
   if (!fs.existsSync(absIn)) {
@@ -3853,14 +4388,14 @@ async function main() {
   }
 
   if (flags.has('--watch')) {
-    runWatch(absIn, only).catch(err => {
+    runWatch(absIn, only, opts).catch(err => {
       console.error(`Watch failed: ${err.message}`);
       process.exit(1);
     });
     return;
   }
 
-  const { written, shape } = buildOnce(absIn, only);
+  const { written, shape } = buildOnce(absIn, only, opts);
   console.log(`Wrote ${written.join(', ')} (${shape})`);
 }
 

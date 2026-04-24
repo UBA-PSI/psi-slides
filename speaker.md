@@ -133,6 +133,7 @@ Speaker inherits audience nav bindings, plus:
 | `P` | Open print.html in new tab |
 | `.` | **Force-push** current state to audience |
 | `Shift`-`P` | Toggle push-to-audience |
+| `Shift`-`E` | **Export annotation drafts**: copy every live `annotations[id]` as a marker-wrapped `> annot:` block to the clipboard, then ask before clearing the drafts from localStorage. A declined confirm or blocked clipboard leaves drafts untouched, so the raw notes can always be rescued on a second try. The pasted block is consumed by `node build.js <source.md> --integrate-annotations`, which moves each `> annot:` under its chunk and removes the marker block. |
 | `T` | Toggle a small TOC overlay (same as audience) |
 | `O`, `/` | **Local overview & search on the speaker**, never broadcast |
 
@@ -151,6 +152,14 @@ If speaker opens standalone (URL typed directly, bookmark) there is no `window.o
 Key: `psi-slides:<title>:speaker`. Written every 5 s on change. Same schema as the snapshot payload, plus `elapsedSeconds`. On speaker reload, this is applied locally and then broadcast so the audience catches up if it also restarted.
 
 Annotations use the existing `psi-slides:<title>:annotations` key – already wired in audience. Speaker writes to the same key.
+
+### 5.1 Source ↔ draft precedence for annotations
+
+Chunks can carry a source-authored annotation via `> annot:` blockquotes (see PRD §3). That text is baked into the audience textarea as its `defaultValue` at build time. At runtime:
+
+- If `annotations[id]` exists in the map (i.e. someone typed live and the keystroke landed in localStorage), that draft wins – even if it is an empty string (the lecturer deliberately cleared).
+- Otherwise the textarea shows the source default, nothing is written to localStorage.
+- `Shift`-`E` on the speaker is the one-way export: clipboard copy first, then confirm-to-clear. After clearing, the textarea falls back to `defaultValue`, so once the exported snippet is pasted back into `source.md` and the lecture is rebuilt, the source value is again authoritative.
 
 ## 6. Build pipeline changes
 

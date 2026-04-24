@@ -116,7 +116,9 @@ Combined: `O` `/` *word* `Enter` jumps to the first chunk that mentions *word*, 
 
 **`N` (both views) is an annotation on the current chunk.** A textarea appears under the chunk; whatever you type is mirrored keystroke-by-keystroke to the other view. Use it for "live marginalia" – a rule you want on screen, a question you captured from the room, a correction during a talk.
 
-Annotations persist in localStorage per lecture and travel with state snapshots.
+Annotations persist in localStorage per lecture and travel with state snapshots. `Shift-E` on the speaker copies every live annotation as `> annot:` Markdown to your clipboard; paste it under the matching chunk heading in `source.md` and the text becomes a permanent "Presentation Note" – prefilled into the audience textarea and rendered inline in the print view.
+
+> annot: The `> annot:` block you read here in print is the same mechanism exported from a previous run; the audience textarea above starts prefilled with this text.
 
 ::: flip
 

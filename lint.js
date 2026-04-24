@@ -104,6 +104,11 @@ function lintFile(filePath) {
   let inFence = false;
   let activeDirective = null;
   let layoutStack = [];
+  // `> note:` (speaker notes) and `> annot:` (exported live annotations)
+  // are peeled off by build.js into chunk.speakerNotes / chunk.annotation
+  // before the body is rendered. We mirror that here so density budgets
+  // reflect the on-slide prose, not the meta-text.
+  let inMetaBlock = false;
 
   const flushChunk = () => {
     if (!chunk) return;
@@ -294,10 +299,18 @@ function lintFile(filePath) {
 
     if (chunk && !activeDirective && line.trim() === '---') {
       chunkHasReveal = true;
+      inMetaBlock = false;
       continue;
     }
 
-    if (chunk) chunkBody.push(line);
+    if (chunk) {
+      if (/^>\s*(note|annot):/i.test(line)) { inMetaBlock = true; continue; }
+      if (inMetaBlock) {
+        if (/^>/.test(line)) continue;
+        inMetaBlock = false;
+      }
+      chunkBody.push(line);
+    }
   }
   flushChunk();
 
