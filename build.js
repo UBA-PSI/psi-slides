@@ -1687,6 +1687,12 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
 .chunk.has-annot .annot-box,
 .chunk.annot-visible .annot-box { display: block; }
 .chunk.annot-visible .annot-box { opacity: 1; }
+/* On the projected audience view the rest-state opacity (0.4) makes the
+   note render as pale gray on the beamer – readable in the cockpit, but
+   not out in the lecture hall. Keep notes fully opaque on audience so
+   the Presentation Note is legible from the back row. Speaker keeps
+   the dim at rest so the cockpit stays visually quiet. */
+body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
 .annot-box-label {
   font-family: var(--sans-font);
   font-variant-caps: all-small-caps;
@@ -2239,6 +2245,12 @@ function snapshot() {
     audienceW: window.innerWidth,
     audienceH: window.innerHeight,
     annotations: Object.assign({}, annotations),
+    // Editing-id travels so the non-editing peer can pan its camera and
+    // raise its .annot-box to full opacity while the lecturer types –
+    // otherwise the audience view keeps the box at rest-state opacity
+    // and doesn't shift the stage, so viewers can't read what's being
+    // written. Cleared on blur, which also signals the pan-reset.
+    annotEditingId: annotEditingId,
     openExp: openExp ? { chunkIdx: openExp.chunkIdx, expIdx: openExp.expIdx } : null,
   };
 }
@@ -2277,6 +2289,23 @@ function applyRemoteState(payload) {
       if (ta.value !== v) { ta.value = v; autosize(ta); }
       c.el.classList.toggle('has-annot', !!v.trim());
     });
+    // Mirror the remote editing state: only the peer that owns the
+    // focused textarea acts as editor, but both views raise the box
+    // opacity and pan their stage to the same off-center position so
+    // the audience can read along while the speaker types. focusCamera
+    // reads annotEditingId below.
+    const remoteEditingId = payload.annotEditingId || null;
+    if (annotEditingId !== remoteEditingId) {
+      if (annotEditingId) {
+        const prev = flatChunks.find(c => c.id === annotEditingId);
+        if (prev) prev.el.classList.remove('annot-visible');
+      }
+      annotEditingId = remoteEditingId;
+      if (annotEditingId) {
+        const cur = flatChunks.find(c => c.id === annotEditingId);
+        if (cur) cur.el.classList.add('annot-visible', 'has-annot');
+      }
+    }
     document.body.classList.toggle('blanked', state.blanked);
     // Expansions: close any current, open the remote one if any. toggleExp
     // calls applyState internally, so skip the second call in that branch.
@@ -2736,11 +2765,15 @@ function wireAnnotations() {
       el.classList.add('annot-visible');
       autosize(ta);
       requestAnimationFrame(() => requestAnimationFrame(() => focusCamera(false)));
+      // Tell the peer so it can raise its box opacity and mirror the pan.
+      broadcastState();
     });
     ta.addEventListener('blur', () => {
       if (annotEditingId === id) annotEditingId = null;
       el.classList.remove('annot-visible');
       setTimeout(() => focusCamera(false), 20);
+      // Signals the peer to drop .annot-visible and pan back to center.
+      broadcastState();
     });
     ta.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') { ta.blur(); e.preventDefault(); }
