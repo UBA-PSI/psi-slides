@@ -30,6 +30,8 @@ node build.js lectures/python-intro/source.md --watch
 
 Rebuilds on every save and pushes a reload message over WebSocket to all open tabs.
 
+Image assets are inlined as `data:` URIs automatically when the referenced images sum to under 10 MB, so a small lecture builds straight to a single shareable HTML file. Larger decks fall back to external `assets/` paths; force the choice with `--inline-images` or `--no-inline-images`.
+
 ## Learn the tool
 
 Build, then open `lectures/tutorial/audience.html`:
