@@ -3162,6 +3162,7 @@ ${noteTemplates.join('\n')}
   <kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force push &nbsp; <kbd>P</kbd> print
 </div>
 <div id="mode-badge"></div>
+<div id="center-toast" role="status" aria-live="polite"></div>
 ${OVERVIEW_BADGE_HTML}
 ${renderTocNav(columns)}
 <script>
@@ -3403,6 +3404,33 @@ body[data-view=speaker] #stage-viewport {
   cursor: pointer;
 }
 #speaker-footer #export-annot-btn:hover { background: oklch(0.93 0 0); }
+
+/* Center toast — prominent transient feedback for export-flow events.
+   Placed inside the stage viewing zone (bottom-centre of #stage-cell)
+   because the 10px #mode-badge in the top-right is too peripheral for
+   outcomes the lecturer actually needs to see. */
+#center-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22%;
+  transform: translateX(-50%);
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  background: oklch(0.18 0 0 / 0.88);
+  color: oklch(0.99 0 0);
+  font-family: var(--sans-font);
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  box-shadow: 0 6px 20px oklch(0 0 0 / 0.25);
+  opacity: 0;
+  transition: opacity 0.12s ease-out;
+  pointer-events: none;
+  z-index: 30;
+  max-width: 60vw;
+  text-align: center;
+}
+#center-toast.visible { opacity: 1; }
+#center-toast.warn { background: oklch(0.55 0.16 25 / 0.92); }
 
 /* Post-Shift-E modal: walks the lecturer through pasting the clipboard
    content back into source.md, running --integrate-annotations,
@@ -3686,6 +3714,20 @@ async function copyToClipboardSafe(text) {
   }
 }
 
+const centerToast = document.getElementById('center-toast');
+let centerToastTimer = null;
+function flashCenter(text, opts = {}) {
+  if (!centerToast) return;
+  centerToast.textContent = text;
+  centerToast.classList.remove('warn');
+  centerToast.classList.add('visible');
+  if (opts.warn) centerToast.classList.add('warn');
+  if (centerToastTimer) clearTimeout(centerToastTimer);
+  centerToastTimer = setTimeout(() => {
+    centerToast.classList.remove('visible', 'warn');
+  }, opts.duration || 1800);
+}
+
 function clearExportedDrafts(drafts) {
   drafts.forEach(({ id }) => {
     delete annotations[id];
@@ -3701,7 +3743,7 @@ function clearExportedDrafts(drafts) {
   });
   saveAnnotations();
   broadcastState();
-  flashMode('drafts cleared');
+  flashCenter('drafts cleared');
 }
 
 // Derive the source.md path from the current page location so the modal
@@ -3850,14 +3892,11 @@ function showExportModal({ drafts, snippet, clipboardOk }) {
 async function exportAnnotations() {
   const drafts = collectAnnotationDrafts();
   if (!drafts.length) {
-    flashMode('no annotations to export');
+    flashCenter('No live annotations to export — type some with N first.', { warn: true, duration: 2600 });
     return;
   }
   const snippet = buildAnnotationSnippet(drafts);
   const copied = await copyToClipboardSafe(snippet);
-  flashMode(copied
-    ? drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied'
-    : 'clipboard blocked — copy manually');
   showExportModal({ drafts, snippet, clipboardOk: copied });
 }
 
