@@ -461,9 +461,8 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
   letter-spacing: 0.1em;
 }
 .chunk[data-tag=figure] .chunk-content { align-items: center; gap: 0.9em; }
-.chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: center; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
+.chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
 .chunk[data-tag=figure] .chunk-heading { order: 2; }
-.chunk[data-tag=figure] .tag-label { order: 0; }
 .chunk[data-tag=figure] .chunk-body pre { order: 1; font-size: calc(0.82em * var(--zoom)); }
 
 .chunk[data-tag=exercise] .chunk-heading { font-style: italic; }
@@ -547,6 +546,12 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
 .chunk.has-annot .annot-box,
 .chunk.annot-visible .annot-box { display: block; }
 .chunk.annot-visible .annot-box { opacity: 1; }
+/* On the projected audience view the rest-state opacity (0.4) makes the
+   note render as pale gray on the beamer – readable in the cockpit, but
+   not out in the lecture hall. Keep notes fully opaque on audience so
+   the Presentation Note is legible from the back row. Speaker keeps
+   the dim at rest so the cockpit stays visually quiet. */
+body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
 .annot-box-label {
   font-family: var(--sans-font);
   font-variant-caps: all-small-caps;
@@ -689,15 +694,9 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
 }
 .chunk.active { opacity: 1; }
 
-/* collapse modes (§4.5) – applied per reveal-segment */
-[data-collapse=topic] .reveal-segment p:nth-of-type(n+2) { display: none; }
-[data-collapse=topic] .reveal-segment .sentence-rest { display: none; }
-
-[data-collapse=bold] .reveal-segment p:not(:has(strong)) { display: none; }
-[data-collapse=bold] .reveal-segment li:not(:has(strong)) { display: none; }
-[data-collapse=bold] .reveal-segment .sentence-rest .prose { display: none; }
-[data-collapse=bold] .reveal-segment pre { display: none; }
-
+/* collapse modes (§4.5) – applied per reveal-segment.
+   Two states only: 'none' (show everything) and 'topic-bold'
+   (topic sentence + promoted bold fragments). */
 [data-collapse=topic-bold] .reveal-segment .sentence-rest .prose { display: none; }
 [data-collapse=topic-bold] .reveal-segment .sentence-rest strong {
   display: block;
@@ -1082,7 +1081,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 
 
 <p><strong><code>N</code> (both views) is an annotation on the current chunk.</strong> A textarea appears under the chunk; whatever you type is mirrored keystroke-by-keystroke to the other view. Use it for &quot;live marginalia&quot; – a rule you want on screen, a question you captured from the room, a correction during a talk.</p>
-<p>Annotations persist in localStorage per lecture and travel with state snapshots.</p>
+<p>Annotations persist in localStorage per lecture and travel with state snapshots. <code>Shift-E</code> on the speaker copies every live annotation as <code>&gt; annot:</code> Markdown to your clipboard; paste it under the matching chunk heading in <code>source.md</code> and the text becomes a permanent &quot;Presentation Note&quot; – prefilled into the audience textarea and rendered inline in the print view.</p>
 </div><div class="side-b">
 
 
@@ -1092,7 +1091,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     
     <aside class="annot-box" data-annot-for="notes-vs-annot">
       <div class="annot-box-label">annotation · notes-vs-annot</div>
-      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1">The `&gt; annot:` block you read here in print is the same mechanism exported from a previous run; the audience textarea above starts prefilled with this text.</textarea>
     </aside>
     <button class="annot-add" type="button" data-annot-add>+ note</button>
   </div>
@@ -1425,6 +1424,12 @@ function snapshot() {
     audienceW: window.innerWidth,
     audienceH: window.innerHeight,
     annotations: Object.assign({}, annotations),
+    // Editing-id travels so the non-editing peer can pan its camera and
+    // raise its .annot-box to full opacity while the lecturer types –
+    // otherwise the audience view keeps the box at rest-state opacity
+    // and doesn't shift the stage, so viewers can't read what's being
+    // written. Cleared on blur, which also signals the pan-reset.
+    annotEditingId: annotEditingId,
     openExp: openExp ? { chunkIdx: openExp.chunkIdx, expIdx: openExp.expIdx } : null,
   };
 }
@@ -1435,8 +1440,9 @@ function broadcastState() {
 function applyRemoteState(payload) {
   isApplyingRemote = true;
   try {
+    unfocusFigure();
     state.activeIdx = Math.max(0, Math.min(flatChunks.length - 1, payload.activeIdx || 0));
-    state.collapse = payload.collapse || 'topic-bold';
+    state.collapse = COLLAPSE_MODES.includes(payload.collapse) ? payload.collapse : 'topic-bold';
     state.zoom = payload.zoom || 1.35;
     state.blanked = !!payload.blanked;
     if (payload.font && FONT_CYCLE.includes(payload.font)) state.font = payload.font;
@@ -1451,14 +1457,34 @@ function applyRemoteState(payload) {
     replaceContents(revealed, payload.revealed);
     replaceContents(annotations, payload.annotations);
     // Reflect annotation text into the textareas so the other view sees
-    // keystrokes landing in real time.
+    // keystrokes landing in real time. A draft (annotations[id]) wins
+    // over the source-prefilled defaultValue; if the draft is gone (e.g.
+    // the speaker cleared it after export), fall back to defaultValue so
+    // the Markdown-authored annotation stays visible.
     flatChunks.forEach(c => {
       const ta = c.el.querySelector('.annot-textarea');
       if (!ta) return;
-      const v = annotations[c.id] || '';
+      const v = (c.id in annotations) ? annotations[c.id] : ta.defaultValue;
       if (ta.value !== v) { ta.value = v; autosize(ta); }
       c.el.classList.toggle('has-annot', !!v.trim());
     });
+    // Mirror the remote editing state: only the peer that owns the
+    // focused textarea acts as editor, but both views raise the box
+    // opacity and pan their stage to the same off-center position so
+    // the audience can read along while the speaker types. focusCamera
+    // reads annotEditingId below.
+    const remoteEditingId = payload.annotEditingId || null;
+    if (annotEditingId !== remoteEditingId) {
+      if (annotEditingId) {
+        const prev = flatChunks.find(c => c.id === annotEditingId);
+        if (prev) prev.el.classList.remove('annot-visible');
+      }
+      annotEditingId = remoteEditingId;
+      if (annotEditingId) {
+        const cur = flatChunks.find(c => c.id === annotEditingId);
+        if (cur) cur.el.classList.add('annot-visible', 'has-annot');
+      }
+    }
     document.body.classList.toggle('blanked', state.blanked);
     // Expansions: close any current, open the remote one if any. toggleExp
     // calls applyState internally, so skip the second call in that branch.
@@ -1493,6 +1519,30 @@ window.addEventListener('message', (ev) => {
   }
   if (m.type === 'cursor' && VIEW === 'audience') {
     showLaserPointer(m.chunkIdx, m.x, m.y);
+  }
+  if (VIEW === 'audience') {
+    if (m.type === 'figure-focus') {
+      const chunk = flatChunks[m.chunkIdx];
+      if (chunk) {
+        const el = chunk.el.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia')[m.figureIdx];
+        if (el) focusFigure(el);
+      }
+      return;
+    }
+    if (m.type === 'figure-pan') {
+      const chunk = flatChunks[m.chunkIdx];
+      if (chunk) {
+        const el = chunk.el.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia')[m.figureIdx];
+        if (el) panToElement(el);
+      }
+      return;
+    }
+    if (m.type === 'figure-unfocus') { unfocusFigure(); return; }
+    if (m.type === 'overview') {
+      if (m.active && !overview) toggleOverview();
+      else if (!m.active && overview) exitOverview(false);
+      return;
+    }
   }
 });
 
@@ -1548,7 +1598,10 @@ function splitSentencesIn(root) {
           rest.appendChild(document.createTextNode(m[2]));
           mode = 'rest';
         } else head.appendChild(k.cloneNode(true));
-      } else if (mode === 'head') head.appendChild(k.cloneNode(true));
+      } else if (mode === 'head') {
+        head.appendChild(k.cloneNode(true));
+        if (k.nodeType === 1 && /[.!?]$/.test(k.textContent.trimEnd())) mode = 'rest';
+      }
       else rest.appendChild(k.cloneNode(true));
     }
     p.textContent = '';
@@ -1873,9 +1926,11 @@ function wireAnnotations() {
   flatChunks.forEach(({ el, id }) => {
     const ta = el.querySelector('.annot-textarea');
     if (!ta) return;
-    const existing = annotations[id] || '';
-    ta.value = existing;
-    if (existing.trim()) el.classList.add('has-annot');
+    // Source-authored annotation is baked into ta.defaultValue by the
+    // server render; a localStorage draft (if any) wins. An explicit
+    // empty-string draft is honored — the lecturer deliberately cleared.
+    if (id in annotations) ta.value = annotations[id];
+    if (ta.value.trim()) el.classList.add('has-annot');
     autosize(ta);
     ta.addEventListener('input', () => {
       annotations[id] = ta.value;
@@ -1889,11 +1944,15 @@ function wireAnnotations() {
       el.classList.add('annot-visible');
       autosize(ta);
       requestAnimationFrame(() => requestAnimationFrame(() => focusCamera(false)));
+      // Tell the peer so it can raise its box opacity and mirror the pan.
+      broadcastState();
     });
     ta.addEventListener('blur', () => {
       if (annotEditingId === id) annotEditingId = null;
       el.classList.remove('annot-visible');
       setTimeout(() => focusCamera(false), 20);
+      // Signals the peer to drop .annot-visible and pan back to center.
+      broadcastState();
     });
     ta.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') { ta.blur(); e.preventDefault(); }
@@ -1928,14 +1987,16 @@ function wireClicks() {
   });
 }
 
-// Collapse cycle
-const COLLAPSE_MODES = ['none', 'topic', 'topic-bold', 'bold'];
+// Collapse toggle: 'none' (show everything) ↔ 'topic-bold' (topic + bold).
+const COLLAPSE_MODES = ['none', 'topic-bold'];
+const COLLAPSE_LABEL = { 'none': 'show everything', 'topic-bold': 'topic + bold' };
 function cycleCollapse(dir = 1) {
   const i = COLLAPSE_MODES.indexOf(state.collapse);
   const ni = (i + dir + COLLAPSE_MODES.length) % COLLAPSE_MODES.length;
   state.collapse = COLLAPSE_MODES[ni];
   applyState();
-  flashMode('collapse: ' + state.collapse);
+  focusCamera(false);
+  flashMode('collapse: ' + COLLAPSE_LABEL[state.collapse]);
 }
 
 // Zoom
@@ -1996,9 +2057,17 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault(); break;
     }
     case 'Escape': {
-      if (focusedFigure) { unfocusFigure(); break; }
+      if (focusedFigure) {
+        unfocusFigure();
+        if (shouldBroadcast()) sendToPeer({ type: 'figure-unfocus' });
+        break;
+      }
       if (tocVisible) { tocVisible = false; document.body.classList.remove('toc-visible'); break; }
-      if (overview) { dismissOverviewNoMove(); break; }
+      if (overview) {
+        dismissOverviewNoMove();
+        if (shouldBroadcast()) sendToPeer({ type: 'overview', active: false });
+        break;
+      }
       if (annotEditingId) { blurAnnotation(); break; }
       if (manualPan.dx || manualPan.dy) { manualPan = { dx: 0, dy: 0 }; focusCamera(false); break; }
       if (openExp) { closeAnyExpansion(); broadcastState(); setTimeout(() => focusCamera(false), 20); }
@@ -2020,7 +2089,10 @@ document.addEventListener('keydown', (e) => {
     case 'c': case 'C': cycleCollapse(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'f': case 'F': cycleFont(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'a': case 'A': cycleTheme(e.shiftKey ? -1 : 1); e.preventDefault(); break;
-    case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
+    case 'o': case 'O':
+      toggleOverview();
+      if (shouldBroadcast()) sendToPeer({ type: 'overview', active: overview });
+      e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
     case '/': if (overview) { startSearch(); e.preventDefault(); } break;
     case '+': case '=': setZoom(state.zoom + 0.1); e.preventDefault(); break;
@@ -2040,6 +2112,14 @@ document.addEventListener('keydown', (e) => {
         window.open('print.html', '_blank');
       }
       e.preventDefault(); break;
+    case 'e': case 'E':
+      // Shift-E on the speaker copies live annotation drafts to the
+      // clipboard for paste-back into source.md. Plain E is unbound.
+      if (VIEW === 'speaker' && e.shiftKey && typeof exportAnnotations === 'function') {
+        exportAnnotations();
+        e.preventDefault();
+      }
+      break;
     case '.':
       if (VIEW === 'speaker' && typeof forcePush === 'function') {
         forcePush();
@@ -2140,7 +2220,10 @@ function focusFigure(el) {
   document.body.classList.add('figure-focused');
   focusedFigure = clone;
 }
-figureOverlay.addEventListener('click', unfocusFigure);
+figureOverlay.addEventListener('click', () => {
+  unfocusFigure();
+  if (shouldBroadcast()) sendToPeer({ type: 'figure-unfocus' });
+});
 
 // Pan the camera so that a given element inside the active chunk lands
 // centered horizontally in the viewport. Used for .marginalia clicks so
@@ -2174,9 +2257,17 @@ function wireFigureClicks() {
         ev.preventDefault();
         if (target.classList.contains('marginalia')) {
           panToElement(target);
+          if (shouldBroadcast()) {
+            const figureIdx = Array.from(chunk.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia')).indexOf(target);
+            sendToPeer({ type: 'figure-pan', chunkIdx: state.activeIdx, figureIdx });
+          }
           return;
         }
         focusFigure(target);
+        if (shouldBroadcast()) {
+          const figureIdx = Array.from(chunk.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia')).indexOf(target);
+          sendToPeer({ type: 'figure-focus', chunkIdx: state.activeIdx, figureIdx });
+        }
       });
     });
   });

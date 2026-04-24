@@ -85,6 +85,9 @@ let currentSourceDir = null;
 let inlineAssetsEnabled = false;
 const imgResolveCache = new Map();
 const dataUriCache = new Map();
+// Per-build counter for unique SVG ID prefixes. Reset in buildOnce so the
+// first inlined SVG of a build is always psi-fig-1-.
+let inlineSvgCounter = 0;
 function resolveFigId(figId) {
   if (!currentSourceDir) return null;
   const cacheKey = currentSourceDir + '::' + figId;
@@ -130,6 +133,140 @@ function toDataUri(absPath) {
   }
   dataUriCache.set(absPath, uri);
   return uri;
+}
+
+// Splice an SVG file directly into the page as an inline <svg> element so
+// it inherits CSS custom properties (--ink, --paper, …) from the embedding
+// document and re-colors when the user cycles themes (`A` hotkey). Used
+// instead of toDataUri for SVG assets when inlining is enabled, because
+// SVGs loaded via <img src="data:…"> live in an isolated document context
+// and cannot inherit page-level vars.
+//
+// To avoid cross-contamination when the same (or another) SVG is spliced
+// multiple times we (1) generate a per-instance prefix and rewrite all
+// internal `id`s and `url(#…)` / `href="#…"` refs to use it, and (2) wrap
+// every inline <style> block in `@scope (svg#${prefix}root) { … }` so
+// generic selectors like `text { … }` or `svg { … }` only apply within
+// this SVG. `@import` and `@font-face` are hoisted out of the @scope
+// block (they must remain at top level to work).
+//
+// Returns the inline `<svg …>…</svg>` string, or null if the file is
+// missing, oversized (caller falls back to external path), or empty.
+function inlineSvg(absPath, { alt = '', title = '', extraClass = '' } = {}) {
+  if (!absPath) return null;
+  let stat;
+  try { stat = fs.statSync(absPath); }
+  catch { return null; }
+  if (stat.size > MAX_INLINE_BYTES) {
+    const mb = (stat.size / 1024 / 1024).toFixed(2);
+    console.warn(`[inline-images] skipping ${path.relative(process.cwd(), absPath)} (${mb} MB > 2 MB limit)`);
+    return null;
+  }
+  let text = fs.readFileSync(absPath, 'utf8');
+  // Strip XML prolog and DOCTYPE – both break when spliced into HTML.
+  text = text.replace(/^\s*<\?xml\b[^?]*\?>\s*/i, '');
+  text = text.replace(/^\s*<!DOCTYPE[^>]*>\s*/i, '');
+  // Find the root <svg …> open tag.
+  const rootOpen = text.match(/<svg\b([^>]*)>/i);
+  if (!rootOpen) return null;
+  const rootAttrs = rootOpen[1] || '';
+  const rootStart = rootOpen.index;
+  const rootBodyStart = rootStart + rootOpen[0].length;
+  const rootEnd = text.lastIndexOf('</svg>');
+  if (rootEnd < 0) return null;
+  let body = text.slice(rootBodyStart, rootEnd);
+
+  inlineSvgCounter += 1;
+  const prefix = `psi-fig-${inlineSvgCounter}-`;
+  const rootId = `${prefix}root`;
+
+  // Collect all internal IDs from id="X" attributes anywhere in the SVG
+  // body (defs, masks, markers, gradients, etc.). Then rewrite those IDs
+  // *and* the references to them. Whitelisting refs to known IDs avoids
+  // touching arbitrary `url(#…)` strings that might appear in textContent
+  // or `data-*` attributes.
+  const idMap = new Map(); // oldId -> newId
+  for (const m of body.matchAll(/\bid\s*=\s*"([^"]+)"/g)) idMap.set(m[1], prefix + m[1]);
+  for (const m of body.matchAll(/\bid\s*=\s*'([^']+)'/g)) idMap.set(m[1], prefix + m[1]);
+
+  // Rewrite id="X" attributes (only attribute position, via the regex shape).
+  body = body.replace(/(\bid\s*=\s*")([^"]+)(")/g, (_, a, id, c) =>
+    a + (idMap.get(id) || (prefix + id)) + c);
+  body = body.replace(/(\bid\s*=\s*')([^']+)(')/g, (_, a, id, c) =>
+    a + (idMap.get(id) || (prefix + id)) + c);
+
+  if (idMap.size > 0) {
+    // Build an alternation regex of escaped old IDs so we only rewrite
+    // refs that point to IDs we actually own.
+    const escIds = Array.from(idMap.keys())
+      .sort((a, b) => b.length - a.length)
+      .map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const refAlt = escIds.join('|');
+    // url(#X) and url("#X") and url('#X')
+    const urlRe = new RegExp(`url\\(\\s*(['"]?)#(${refAlt})\\1\\s*\\)`, 'g');
+    body = body.replace(urlRe, (_, q, id) => `url(${q}#${idMap.get(id)}${q})`);
+    // href="#X" and xlink:href="#X" (single or double quotes)
+    const hrefRe = new RegExp(`((?:xlink:)?href\\s*=\\s*)"#(${refAlt})"`, 'g');
+    body = body.replace(hrefRe, (_, a, id) => `${a}"#${idMap.get(id)}"`);
+    const hrefReSingle = new RegExp(`((?:xlink:)?href\\s*=\\s*)'#(${refAlt})'`, 'g');
+    body = body.replace(hrefReSingle, (_, a, id) => `${a}'#${idMap.get(id)}'`);
+  }
+
+  // Wrap inline <style> contents with @scope(svg#${rootId}). We hoist
+  // @import and @font-face rules out of the @scope block (they must
+  // appear at the top level of the stylesheet to work).
+  body = body.replace(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi, (_, attrs, css) => {
+    const hoisted = [];
+    // @import may contain `;` inside quoted URLs (e.g. Google Fonts
+    // family=Inter:wght@400;500;600;700), so match the statement
+    // string-aware: accept "…", '…', or unquoted runs between the
+    // @import and the terminating semicolon.
+    let scoped = css.replace(/@import\s+(?:"[^"]*"|'[^']*'|[^;'"]+)+;/g, (m) => { hoisted.push(m); return ''; });
+    scoped = scoped.replace(/@font-face\s*\{[^}]*\}/g, (m) => { hoisted.push(m); return ''; });
+    // Inside @scope (svg#…) { … }, a bare `svg` selector matches descendant
+    // <svg> elements, NOT the scope root. The root is reachable only via
+    // `:scope`. Rewrite top-level `svg { … }` rules (e.g. mermaid's root
+    // custom-property block) so their declarations actually land on the
+    // root SVG. We only touch bare `svg` selectors at the start of a rule
+    // block (start of file, or after a closing brace) – chained selectors
+    // like `svg text { … }` stay as-is (they were already descendant
+    // selectors and remain correct under @scope).
+    scoped = scoped.replace(/(^|\})(\s*)svg(\s*)\{/g, '$1$2:scope$3{');
+    const trimmed = scoped.trim();
+    const wrapped = trimmed
+      ? `@scope (svg#${rootId}) {\n${trimmed}\n}`
+      : '';
+    const out = (hoisted.length ? hoisted.join('\n') + '\n' : '') + wrapped;
+    return `<style${attrs}>${out}</style>`;
+  });
+
+  // Reassemble the root <svg> tag with the engine-assigned id, sizing
+  // attrs forwarded, and accessibility hooks. Strip any pre-existing id
+  // on the root (preserve as a class so authoring intent isn't lost) and
+  // any pre-existing role/aria-label so ours wins.
+  let attrs = rootAttrs;
+  let preservedRootId = null;
+  attrs = attrs.replace(/\sid\s*=\s*"([^"]*)"/i, (_, v) => { preservedRootId = v; return ''; });
+  attrs = attrs.replace(/\sid\s*=\s*'([^']*)'/i, (_, v) => { preservedRootId = preservedRootId ?? v; return ''; });
+  attrs = attrs.replace(/\srole\s*=\s*"[^"]*"/i, '');
+  attrs = attrs.replace(/\srole\s*=\s*'[^']*'/i, '');
+  attrs = attrs.replace(/\saria-label\s*=\s*"[^"]*"/i, '');
+  attrs = attrs.replace(/\saria-label\s*=\s*'[^']*'/i, '');
+  // Pull existing class to merge with extraClass.
+  let existingClass = '';
+  attrs = attrs.replace(/\sclass\s*=\s*"([^"]*)"/i, (_, v) => { existingClass = v; return ''; });
+  attrs = attrs.replace(/\sclass\s*=\s*'([^']*)'/i, (_, v) => { existingClass = existingClass || v; return ''; });
+  const classParts = [];
+  if (existingClass) classParts.push(existingClass);
+  if (preservedRootId) classParts.push(preservedRootId);
+  if (extraClass) classParts.push(extraClass);
+  const classAttr = classParts.length ? ` class="${escapeHtml(classParts.join(' '))}"` : '';
+  const idAttr = ` id="${rootId}"`;
+  const a11yAttrs = alt
+    ? ` role="img" aria-label="${escapeHtml(alt)}"`
+    : ' role="img"';
+  const titleEl = title ? `<title>${escapeHtml(title)}</title>` : '';
+  return `<svg${attrs}${idAttr}${classAttr}${a11yAttrs}>${titleEl}${body}</svg>`;
 }
 
 // Pre-scan a source file's image references to estimate inline cost.
@@ -182,9 +319,21 @@ marked.use({
       if (isShorthand) {
         const resolved = resolveFigId(href);
         if (resolved) {
+          const absResolved = path.join(currentSourceDir, resolved);
+          const isSvg = path.extname(absResolved).toLowerCase() === '.svg';
+          // SVGs are spliced inline (not data-URI'd in <img>) so they
+          // inherit page CSS custom properties and react to theme cycle.
+          if (inlineAssetsEnabled && isSvg) {
+            const svg = inlineSvg(absResolved, { alt: text || '', title: title || '' });
+            if (svg) {
+              const alt = escapeHtml(text || '');
+              const cap = text ? `<figcaption>${alt}</figcaption>` : '';
+              return `<figure class="figure-img" data-fig-id="${escapeHtml(href)}">${svg}${cap}</figure>`;
+            }
+          }
           let src = resolved;
           if (inlineAssetsEnabled) {
-            const inlined = toDataUri(path.join(currentSourceDir, resolved));
+            const inlined = toDataUri(absResolved);
             if (inlined) src = inlined;
           }
           const alt = escapeHtml(text || '');
@@ -196,10 +345,18 @@ marked.use({
         return `<figure class="figure-img figure-missing" data-fig-id="${escapeHtml(href)}"><div class="figure-missing-placeholder">missing: assets/${escapeHtml(href)}.(${IMG_EXTS.join('|')})</div>${text ? `<figcaption>${escapeHtml(text)}</figcaption>` : ''}</figure>`;
       }
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+      // Direct relative path: also splice SVGs inline for theme inheritance.
+      const isRelative = href && currentSourceDir && !/^(?:https?:|data:|\/\/|\/)/i.test(href);
+      const isSvgPath = href && /\.svg(?:[?#]|$)/i.test(href);
+      if (inlineAssetsEnabled && isRelative && isSvgPath) {
+        const abs = path.resolve(currentSourceDir, href);
+        const svg = inlineSvg(abs, { alt: text || '', title: title || '' });
+        if (svg) return svg;
+      }
       let src = href;
       // Inline only true relative paths from disk; leave external URLs,
       // existing data URIs, and root-absolute paths untouched.
-      if (inlineAssetsEnabled && href && currentSourceDir && !/^(?:https?:|data:|\/\/|\/)/i.test(href)) {
+      if (inlineAssetsEnabled && isRelative) {
         const inlined = toDataUri(path.resolve(currentSourceDir, href));
         if (inlined) src = inlined;
       }
@@ -4436,6 +4593,7 @@ function buildOnce(absIn, only, opts = {}) {
   currentSourceDir = outDir;
   imgResolveCache.clear();
   dataUriCache.clear();
+  inlineSvgCounter = 0;
   // Auto-inline decision when neither --inline-images nor --no-inline-images
   // was passed: scan referenced images, inline iff total fits AUTO_INLINE_BUDGET.
   // Either way log the decision so authors notice when a deck silently flips

@@ -30,7 +30,7 @@ node build.js lectures/python-intro/source.md --watch
 
 Rebuilds on every save and pushes a reload message over WebSocket to all open tabs.
 
-Image assets are inlined as `data:` URIs automatically when the referenced images sum to under 10 MB, so a small lecture builds straight to a single shareable HTML file. Larger decks fall back to external `assets/` paths; force the choice with `--inline-images` or `--no-inline-images`.
+Image assets are inlined automatically when the referenced images sum to under 10 MB, so a small lecture builds straight to a single shareable HTML file. Raster assets become `data:` URIs; SVGs are spliced as inline `<svg>` elements (with per-instance ID prefixing and `@scope`-wrapped styles) so they inherit the page's theme variables and re-color on the `A` theme cycle. Larger decks fall back to external `assets/` paths; force the choice with `--inline-images` or `--no-inline-images`.
 
 ## Learn the tool
 
