@@ -95,7 +95,7 @@ Checks enforced:
 
 ### Three views, one source
 
-The three HTML files are **self-contained outputs**. They ship with their runtime JS/CSS inlined from build.js template literals, so they open from `file://` without a server. They are gitignored (`lectures/*/print.html`, `lectures/*/audience.html`, `lectures/*/speaker.html`) – rebuild instead of committing them.
+The three HTML files are **self-contained outputs**. They ship with their runtime JS/CSS inlined from build.js template literals, so they open from `file://` without a server. They are gitignored (`lectures/*/print.html`, `lectures/*/audience.html`, `lectures/*/speaker.html`) – rebuild instead of committing them. The one exception is `lectures/tutorial/`, whose built HTMLs are tracked so readers can browse the self-referential tour straight from the repo; rebuild and commit them whenever the tutorial source changes.
 
 The audience↔speaker sync is cross-`file://`-origin safe because it uses `window.postMessage` over the opener relationship. Chrome's per-file opaque-origin policy isolates `BroadcastChannel` between tabs loaded from disk, which is why postMessage is the load-bearing channel. See `speaker.md` §2 for the full state-ownership matrix (audience is state root; speaker holds a local shadow plus a `pushEnabled` flag).
 
@@ -124,6 +124,6 @@ Chunk grammar: `## tag: Heading | Sub-Heading {.width #id}` where `tag` is one o
 
 - **En-dashes only.** Use `–` or `&ndash;` in all prose (docs, markdown, comments, lecture sources). Never em-dashes (`—`).
 - When adding or renaming a chunk tag, change it in **both** `build.js` and `lint.js` (and document the visual treatment in `PRD.md` §2.1).
-- Don't commit generated HTML outputs – they are regenerated per build and gitignored.
+- Don't commit generated HTML outputs – they are regenerated per build and gitignored. Exception: `lectures/tutorial/{audience,print,speaker}.html` are tracked so the tour is browsable from the repo; rebuild and commit when the tutorial source changes.
 - `{#id}` attributes on chunks are **frozen once authored**. They are the anchor for cross-references, TOC entries, speaker-sync snapshots, and localStorage persistence. Don't renumber them reflexively when headings change.
 - Shiki is loaded once and cached across `--watch` rebuilds; adding a new language means extending `SHIKI_LANGS` (and optionally `LANG_ALIAS`) at the top of `build.js`.
