@@ -95,6 +95,7 @@ a:hover { text-decoration-color: var(--ink); }
   margin: 1.6rem 0 2.2rem;
   page-break-inside: avoid;
   break-inside: avoid;
+  position: relative;
 }
 .chunk-heading {
   font-size: 1.12rem;
@@ -111,6 +112,26 @@ a:hover { text-decoration-color: var(--ink); }
   color: var(--ink-soft);
   margin: 0 0 0.15rem;
 }
+/* Unobtrusive slide number in the outer margin, aligned with the chunk
+   heading. Sits to the left of the text column so it never disturbs
+   line wrap; vertical writing mode keeps the marker thin against tall
+   chunks and matches the audience badge orientation. */
+.chunk-num {
+  position: absolute;
+  top: 0;
+  left: -2.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  color: var(--ink-soft);
+  opacity: 0.55;
+}
+.chunk-num i { font-style: normal; }
+.chunk-title .chunk-num { display: none; }
 
 .chunk-principle {
   border-top: 2.5pt solid var(--ink);
@@ -260,9 +281,13 @@ a:hover { text-decoration-color: var(--ink); }
 .marginalia > :first-child { margin-top: 0; }
 .marginalia > :last-child { margin-bottom: 0; }
 
-/* figure-img: single-column figure with caption below */
+/* figure-img: single-column figure with caption below. Both <img> and
+   inlined <svg> need an explicit max-width — SVGs spliced via
+   inlineSvg() preserve their intrinsic width="…" attribute and would
+   otherwise overflow the page measure. */
 figure.figure-img { margin: 1rem 0; text-align: center; }
-figure.figure-img img { max-width: 100%; height: auto; }
+figure.figure-img img,
+figure.figure-img svg { max-width: 100%; height: auto; }
 figure.figure-img figcaption {
   font-family: var(--sans);
   font-size: 0.78rem;
@@ -309,7 +334,8 @@ pre.shiki .line { display: inline; }
 <body>
 <main>
 <section class="column column-anon">
-<article class="chunk chunk-title" id="title">
+<article class="chunk chunk-title" data-chunk-num="1" id="title">
+  <span class="chunk-num" aria-hidden="true"><i>1</i></span>
   <h1 class="title-main">psi-slides – a ten-step tour</h1>
     <p class="title-presenter">Your own copy</p>
     <div class="title-info"><p>Tutorial lecture built with psi-slides itself</p><p>Use the tool to learn the tool</p></div>
@@ -322,12 +348,14 @@ pre.shiki .line { display: inline; }
     <li><a href="#moving">Moving around</a></li>
     <li><a href="#finding">Finding content</a></li>
     <li><a href="#speaker">Speaker cockpit</a></li>
+    <li><a href="#layouts">Authoring layouts</a></li>
     <li><a href="#next">Next steps</a></li>
   </ol>
 </nav>
 <section class="column" id="welcome">
   <h1 class="column-heading">Welcome</h1>
-<article class="chunk chunk-principle width-narrow" id="one-source">
+<article class="chunk chunk-principle width-narrow" id="one-source" data-chunk-num="2">
+  <span class="chunk-num" aria-hidden="true"><i>2</i></span>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">One source, three views</span> <span class="hd-sub">print, audience, speaker all come from the same `source.md`</span></h2>
   <p><strong>psi-slides builds three HTML files from each Markdown source.</strong> Print is a document-style reading copy with a cover and a TOC; audience is this live projection view; speaker is the cockpit with notes, preview strip, and timer.</p>
@@ -336,7 +364,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="audience-now">
+<article class="chunk chunk-free width-wide" id="audience-now" data-chunk-num="3">
+  <span class="chunk-num" aria-hidden="true"><i>3</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">What you're reading right now</span> <span class="hd-sub">is the audience view</span></h2>
   <p><strong>You are in <code>audience.html</code>.</strong> It&#39;s the projector-facing view: one chunk occupies the slide, keyboard nav moves between chunks, and any speaker connected via postMessage can mirror state here in real time.</p>
@@ -356,7 +385,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="moving">
   <h1 class="column-heading">Moving around</h1>
-<article class="chunk chunk-example width-standard" id="arrows">
+<article class="chunk chunk-example width-standard" id="arrows" data-chunk-num="4">
+  <span class="chunk-num" aria-hidden="true"><i>4</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Arrows and Space</span> <span class="hd-sub">navigate chunks, reveal segments</span></h2>
   <p><strong>Three key-families carry the whole live-talk navigation:</strong></p>
@@ -371,7 +401,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="expand">
+<article class="chunk chunk-example width-wide" id="expand" data-chunk-num="5">
+  <span class="chunk-num" aria-hidden="true"><i>5</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Expansions</span> <span class="hd-sub">`Enter` and `1`-`9` open side asides</span></h2>
   <p><strong>Some chunks have extra detail tucked behind a chevron button.</strong> Click one, or press <code>Enter</code> for the first, or <code>1</code>…<code>9</code> for the N-th. This chunk has two expansions – try both.</p>
@@ -388,7 +419,8 @@ pre.shiki .line { display: inline; }
 </aside>
   
 </article>
-<article class="chunk chunk-example width-standard" id="overview">
+<article class="chunk chunk-example width-standard" id="overview" data-chunk-num="6">
+  <span class="chunk-num" aria-hidden="true"><i>6</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Overview</span> <span class="hd-sub">`O` zooms out so you can see everything</span></h2>
   <p><strong>Press <code>O</code> now.</strong> The stage zooms out to show all chunks at once, laid out in their column grid. Drag with the mouse or arrows to move a selection outline; <code>O</code> or <code>Enter</code> lands on the selected chunk; <code>Esc</code> exits without moving.</p>
@@ -400,7 +432,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="finding">
   <h1 class="column-heading">Finding content</h1>
-<article class="chunk chunk-example width-standard" id="toc">
+<article class="chunk chunk-example width-standard" id="toc" data-chunk-num="7">
+  <span class="chunk-num" aria-hidden="true"><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">TOC</span> <span class="hd-sub">`T` toggles a flat column index</span></h2>
   <p><strong><code>T</code> shows a list of every named column with its ID.</strong> Click an entry to jump there directly; <code>T</code> again closes the panel.</p>
@@ -409,7 +442,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-standard" id="search">
+<article class="chunk chunk-example width-standard" id="search" data-chunk-num="8">
+  <span class="chunk-num" aria-hidden="true"><i>8</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Search</span> <span class="hd-sub">`/` inside overview filters by keyword</span></h2>
   <p><strong>Only active while <code>O</code> overview is on.</strong> Press <code>O</code>, then <code>/</code>, then start typing – matching chunks keep their outline, non-matches fade to a low-opacity miss state. <code>Enter</code> lands on the first match; <code>Esc</code> exits search without moving.</p>
@@ -421,7 +455,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="speaker">
   <h1 class="column-heading">Speaker cockpit</h1>
-<article class="chunk chunk-free width-wide" id="speaker-s">
+<article class="chunk chunk-free width-wide" id="speaker-s" data-chunk-num="9">
+  <span class="chunk-num" aria-hidden="true"><i>9</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Speaker view</span> <span class="hd-sub">the other window `S` spawned</span></h2>
   <p><strong>The speaker view is the four-lane cockpit.</strong> Press <code>S</code> in this audience view if you haven&#39;t already – it opens <code>speaker.html</code> as a popup, and both windows adopt each other as peers over <code>window.postMessage</code>.</p>
@@ -440,7 +475,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="notes-vs-annot">
+<article class="chunk chunk-example width-wide" id="notes-vs-annot" data-chunk-num="10">
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">N vs Shift-N</span> <span class="hd-sub">audience-visible vs private</span></h2>
   <p><strong>Two different note surfaces, one letter apart:</strong></p>
@@ -462,7 +498,8 @@ pre.shiki .line { display: inline; }
 </div>
 </aside>
 </article>
-<article class="chunk chunk-example width-wide" id="knobs">
+<article class="chunk chunk-example width-wide" id="knobs" data-chunk-num="11">
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>1</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">V and the reading knobs</span> <span class="hd-sub">speaker-side personalisation</span></h2>
   <p><strong><code>V</code> toggles the preview-strip orientation.</strong> Default is a horizontal bar along the bottom; <code>V</code> moves it to the right edge as a vertical column. Text in the thumbs is larger in vertical mode – worth it on any setup with horizontal room to spare. Pref is persisted globally, so it follows you across lectures.</p>
@@ -478,23 +515,108 @@ pre.shiki .line { display: inline; }
   
 </article>
 </section>
+<section class="column" id="layouts">
+  <h1 class="column-heading">Authoring layouts</h1>
+<article class="chunk chunk-principle width-standard" id="layout-axes" data-chunk-num="12">
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>2</i></span>
+  <span class="chunk-label">principle</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Two layout axes</span> <span class="hd-sub">chunk widths and body directives</span></h2>
+  <p><strong>Layout works on two axes.</strong> Each chunk picks one of four widths in its heading – <code>{.narrow}</code>, <code>{.standard}</code>, <code>{.wide}</code>, <code>{.full}</code> – which sets how much horizontal stage it occupies. Inside the body, four <code>:::</code> directives shape internal flow: <code>::: cols</code>, <code>::: side</code>, <code>::: marginalia</code>, <code>::: margin</code>.</p>
+<p>Width is the slide-level decision; directives compose within. A <code>.wide</code> chunk with a <code>::: side</code> body is the most common figure-plus-commentary pattern.</p>
+
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="cols-demo" data-chunk-num="13">
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Multi-column flow</span> <span class="hd-sub">`::: cols 2` and `::: cols 3`</span></h2>
+  <p><strong><code>::: cols 2</code> (or <code>cols 3</code>) wraps the body in a CSS multi-column flow.</strong> Use it when several short paragraphs read better in parallel than stacked – feature lists, brief comparisons, parallel definitions.</p>
+<div class="cols cols-2">
+
+
+<p><strong>Left flow.</strong> Multi-column flow auto-balances – the engine fills top-to-bottom and lets content break wherever fits. Avoid putting one long paragraph here; one column dominates and the other sits empty. Several short blocks are the sweet spot.</p>
+<p><strong>Right flow.</strong> This block is the third paragraph in source, which is why it landed in column two – column flow goes top-down and then wraps. In print, columns collapse back to a single linear stream.</p>
+</div>
+
+
+<p>Reveal segments still work inside <code>::: cols</code>, but mixing reveal-on-<code>Space</code> with multi-column flow is rarely worth the cognitive load – pick one rhythm or the other.</p>
+
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="side-demo" data-chunk-num="14">
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Two-pane grid</span> <span class="hd-sub">`::: side` and `::: flip`</span></h2>
+  <p><strong><code>::: side</code> opens a two-pane grid; <code>::: flip</code> is the mid-marker between panes.</strong> Unlike <code>cols</code>, the split is deterministic – the left pane gets everything before <code>::: flip</code>, the right pane gets everything after. Best for figure-plus-commentary, or before/after pairs where you need to control which side gets which content.</p>
+<div class="side"><div class="side-a">
+
+
+<p><strong>Left pane.</strong> Authoring shape: write <code>::: side</code>, then left content, then <code>::: flip</code>, then right content, then <code>:::</code> to close. The grid is balanced 1fr/1fr by default, so neither side dominates the slide.</p>
+</div><div class="side-b">
+
+
+<p><strong>Right pane.</strong> A figure usually goes here, with the textual context on the left. In the audience view, click either pane to focus-zoom it; print stacks the two panes vertically so neither side is ever hidden.</p>
+</div></div>
+
+
+<p>You can nest a <code>::: marginalia</code> <em>inside</em> a side pane if a tangent belongs to one half specifically – it still escapes to the slide&#39;s right margin.</p>
+
+  
+  
+</article>
+<article class="chunk chunk-example width-standard" id="marginalia-demo" data-chunk-num="15">
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Marginalia</span> <span class="hd-sub">`::: marginalia` escapes to the slide margin</span></h2>
+  <p><strong><code>::: marginalia</code> floats an aside to the right of the chunk body</strong>, anchored to the content column&#39;s right edge and spilling into the slide padding. The audience camera does not pan automatically – click the marginalia in this chunk to bring it centred into view.</p>
+<aside class="marginalia">
+
+
+<p>This whole block is rendered in the slide margin, in dimmed sans-serif. Use marginalia for tangents that <em>belong with</em> a chunk but would crowd the main flow – an aside, a citation, a &quot;see also&quot; pointer to another column.</p>
+<p>In print, marginalia stack inline below the body as block-quoted asides, so the reading copy keeps every word.</p>
+</aside>
+
+
+<p>The body itself stays in the central column; only the marginalia escapes outward. Keep marginalia short – they share vertical space with the chunk body and can&#39;t grow taller than it.</p>
+
+  
+  
+</article>
+<article class="chunk chunk-example width-standard" id="margin-demo" data-chunk-num="16">
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>6</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Margin notes</span> <span class="hd-sub">`::: margin` is a quiet inline footnote</span></h2>
+  <p><strong><code>::: margin</code> adds a dim, small-caps-labelled note below the chunk body</strong> – a Tufte-style sidenote, but in-flow rather than off to the side. Always visible, no chevron, no separate panel.</p>
+<p>Reach for <code>::: margin</code> when the supplementary content is short and trustworthy enough that you want it always rendered. Reach for <code>::: expand &lt;label&gt;</code> (back at <code>#expand</code>) when it should hide behind a chevron until someone opens it.</p>
+
+  <aside class="chunk-expansion chunk-expansion-margin" data-label="note">
+<p>This is a margin note. The label header reads &quot;NOTE&quot; by default; the block renders in muted sans-serif under a dotted top rule. Margin notes are quieter than expansions: no button to click, just a soft footnote attached to this chunk.</p>
+
+</aside>
+  
+</article>
+</section>
 <section class="column" id="next">
   <h1 class="column-heading">Next steps</h1>
-<article class="chunk chunk-exercise width-wide" id="read-more">
+<article class="chunk chunk-exercise width-wide" id="read-more" data-chunk-num="17">
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></span>
   <span class="chunk-label">exercise</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the three artefacts that close the loop</span></h2>
   <p><strong>Close this tab and poke around the real lectures and docs.</strong> The tour covered the hotkeys; the craft shows in authored content.</p>
 <div class="cols cols-2">
 
 
-<p><strong>1. <code>lectures/python-intro/audience.html</code>.</strong> A 36-chunk teaching lecture. Spawn its speaker with <code>S</code>, try the layout vocabulary (<code>::: cols</code>, <code>::: side</code>, <code>::: marginalia</code>), watch how each layout cooperates with the reveal + collapse system.</p>
+<p><strong>1. <code>lectures/python-intro/audience.html</code>.</strong> A 36-chunk teaching lecture. Spawn its speaker with <code>S</code> and watch the layout vocabulary you just learned in real use, woven through reveals, expansions, and figure focus.</p>
 <p><strong>2. <code>PRD.md</code>.</strong> The design philosophy: why three views, why the specific tag set, why reveals are off by default in print. Short, pragmatic, concretely linked to the code.</p>
 <p><strong>3. <code>HANDOFF.md</code>.</strong> Narrates what has been built, slice by slice, including the decisions deliberately <em>not</em> taken. Skim the latest sections for the current state.</p>
 </div>
   
   
 </article>
-<article class="chunk chunk-free width-standard" id="authoring">
+<article class="chunk chunk-free width-standard" id="authoring" data-chunk-num="18">
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Authoring your own</span> <span class="hd-sub">`--new`, `--watch`, `lint.js`</span></h2>
   <p><strong>Three CLI entries cover the full authoring loop:</strong></p>

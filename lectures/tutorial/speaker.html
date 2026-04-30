@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>psi-slides – a ten-step tour – lecture</title>
+<title>psi-slides – a ten-step tour – speaker</title>
 <style>
 
 :root {
@@ -988,12 +988,471 @@ nav#toc button {
 nav#toc button:hover { color: var(--emph); }
 nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 
+
+body[data-view=speaker] {
+  display: grid;
+  /* scrubber · stage · notes (auto, collapses to 0 when empty) ·
+     preview-strip · footer */
+  grid-template-rows: 3vh 1fr auto 22vh 2.2rem;
+  grid-template-columns: 1fr;
+  overflow: hidden;
+}
+body[data-view=speaker]:not(.has-notes) #notes-pane { display: none; }
+#note-templates { display: none; }
+
+/* scrubber: thin top strip with column buttons + chunk dots */
+#scrubber {
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 1.5em;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+  font-family: var(--sans-font);
+  font-size: 11px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+}
+.col-entry { display: flex; align-items: center; gap: 0.4em; flex-shrink: 0; }
+.col-entry.active .col-btn { color: var(--emph); font-weight: 600; }
+.col-btn {
+  background: transparent;
+  border: 0;
+  padding: 0.2em 0.3em;
+  font: inherit;
+  color: var(--ink-soft);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  max-width: 14em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.col-btn:hover { color: var(--ink); }
+.dots { display: flex; gap: 3px; }
+.dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--rule);
+  cursor: pointer;
+  transition: background 120ms;
+}
+.dot:hover { background: var(--ink-soft); }
+.dot.active { background: var(--emph); }
+
+/* row 2: stage – full width, letterbox bars left/right if audience
+   aspect is narrower than the cell. */
+#stage-cell {
+  grid-row: 2;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  /* Letterbox bars: slightly darker than paper so the frame is visible
+     without competing visually. */
+  background: oklch(from var(--paper) calc(l - 0.03) c h);
+  overflow: hidden;
+}
+body[data-view=speaker] #stage-viewport {
+  /* Full audience-size rectangle (slide-w × slide-h), visually shrunk
+     by --stage-scale to fit #stage-cell. translate(-50%, -50%) centers
+     it inside the cell; because translate percentages refer to the
+     element's layout size (pre-scale), centering still lands correctly
+     after the scale composes in. */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--slide-w);
+  height: var(--slide-h);
+  transform: translate(-50%, -50%) scale(var(--stage-scale, 1));
+  transform-origin: center center;
+  box-shadow: 0 0 0 1px var(--rule);
+}
+/* row 3: speaker notes below the slide. Collapses to 0 when empty
+   (body lacks .has-notes). Auto-sizes 1→3 lines based on content,
+   sans-serif for projector legibility at a glance. */
+#notes-pane {
+  grid-row: 3;
+  border-top: 1px solid var(--rule);
+  background: var(--paper-warm);
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+#notes-content {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  resize: none;
+  padding: 0.6rem 1rem;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--sans-font);
+  font-size: 1.15rem;
+  line-height: 1.35;
+  /* Box-sizing content so the textarea's scrollHeight calc is stable. */
+  box-sizing: content-box;
+  overflow: hidden;
+  height: 1.35em;
+}
+#notes-content:focus {
+  outline: 2px solid oklch(0.55 0.12 220);
+  outline-offset: -2px;
+  overflow: auto; /* allow scroll while editing if overflowing 3 lines */
+}
+#notes-content::placeholder {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+/* bottom: preview strip – horizontal scroll of all chunks, drag or
+   wheel to pan, click to jump. The active slot is highlighted and
+   automatically scrolled into view on chunk change. */
+#preview-strip {
+  grid-row: 4;
+  display: flex;
+  align-items: stretch;
+  gap: 0.7rem;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--rule);
+  background: var(--paper);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  cursor: grab;
+  /* Firefox: thin scrollbar; Chrome/Safari: via -webkit-* below. */
+  scrollbar-width: thin;
+}
+#preview-strip.dragging { cursor: grabbing; scroll-behavior: auto; }
+#preview-strip::-webkit-scrollbar { height: 6px; }
+#preview-strip::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 3px; }
+.preview-slot {
+  flex: 0 0 auto;
+  /* Match audience aspect so clones render without letterboxing.
+     Height fills the strip; width derives from aspect. */
+  height: 100%;
+  aspect-ratio: var(--audience-aspect, 16 / 9);
+  width: auto;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  cursor: pointer;
+  transition: box-shadow 120ms, border-color 120ms;
+}
+.preview-slot:hover { border-color: var(--ink-soft); }
+.preview-slot.current {
+  border-color: var(--emph);
+  box-shadow: 0 0 0 2px var(--emph);
+}
+.preview-slot-label {
+  position: absolute;
+  top: 4px; left: 6px;
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.12em;
+  font-size: 9px;
+  color: var(--ink-soft);
+  z-index: 1;
+  opacity: 0.85;
+  pointer-events: none;
+}
+.preview-slot.current .preview-slot-label { color: var(--emph); opacity: 1; }
+.preview-slot .chunk-clone {
+  transform-origin: top left;
+  pointer-events: none;
+}
+/* Clones have .active removed so the live styling does not bleed onto
+   them – but that triggers the global dim rule. Force full opacity. */
+.preview-slot .chunk-clone,
+.preview-slot .chunk-clone.chunk { opacity: 1 !important; }
+
+/* Title chunks in audience are bottom-aligned with 12vh of bottom
+   padding (lower-left-third per PRD §4.4). In a miniature preview
+   that leaves 80%+ of the slot empty with the title crammed at the
+   bottom edge. Center-align + zero padding inside clones so the
+   thumbnail reads like what's on stage: a titled slide. */
+.preview-slot .chunk-clone.chunk-title { align-items: center; }
+.preview-slot .chunk-clone.chunk-title .chunk-content { padding-bottom: 0; }
+
+/* footer */
+#speaker-footer {
+  grid-row: 5;
+  display: flex;
+  align-items: center;
+  gap: 1.2em;
+  padding: 0 1rem;
+  border-top: 1px solid var(--rule);
+  background: var(--paper);
+  font-family: var(--sans-font);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+#speaker-footer #timer {
+  font-family: var(--mono-font);
+  color: var(--ink);
+}
+#speaker-footer #push-indicator {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+}
+#speaker-footer #push-indicator.push-on  { color: oklch(0.55 0.16 150); }
+#speaker-footer #push-indicator.push-off { color: var(--ink-soft); opacity: 0.55; }
+#speaker-footer #slug { color: var(--ink-soft); font-style: italic; }
+#speaker-footer .spacer { flex: 1; }
+#speaker-footer .kbd-hint { font-size: 10px; opacity: 0.7; }
+#speaker-footer kbd { padding: 0 3px; border: 1px solid var(--rule); background: oklch(0.96 0 0); color: var(--ink); font-family: var(--mono-font); font-size: 9px; }
+#speaker-footer #export-annot-btn {
+  font: inherit;
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: oklch(0.97 0 0);
+  color: var(--ink);
+  cursor: pointer;
+}
+#speaker-footer #export-annot-btn:hover { background: oklch(0.93 0 0); }
+
+/* Center toast — prominent transient feedback for export-flow events.
+   Placed inside the stage viewing zone (bottom-centre of #stage-cell)
+   because the 10px #mode-badge in the top-right is too peripheral for
+   outcomes the lecturer actually needs to see. */
+#center-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22%;
+  transform: translateX(-50%);
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  background: oklch(0.18 0 0 / 0.88);
+  color: oklch(0.99 0 0);
+  font-family: var(--sans-font);
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  box-shadow: 0 6px 20px oklch(0 0 0 / 0.25);
+  opacity: 0;
+  transition: opacity 0.12s ease-out;
+  pointer-events: none;
+  z-index: 30;
+  max-width: 60vw;
+  text-align: center;
+}
+#center-toast.visible { opacity: 1; }
+#center-toast.warn { background: oklch(0.55 0.16 25 / 0.92); }
+
+/* Post-Shift-E modal: walks the lecturer through pasting the clipboard
+   content back into source.md, running --integrate-annotations,
+   rebuilding, and finally clearing the now-redundant localStorage
+   drafts. The raw snippet stays in a <details> so a flaked clipboard
+   copy can be recovered without re-triggering the export. */
+#export-modal {
+  position: fixed; inset: 0;
+  background: oklch(0 0 0 / 0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+  font-family: var(--sans-font);
+}
+#export-modal .export-modal-inner {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 1.3rem 1.5rem;
+  width: min(640px, 92vw);
+  max-height: 88vh;
+  display: flex; flex-direction: column; gap: 0.75rem;
+  box-shadow: 0 12px 40px oklch(0 0 0 / 0.25);
+  overflow: auto;
+  color: var(--ink);
+}
+.export-modal-head {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.export-modal-intro {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.export-modal-steps {
+  margin: 0;
+  padding-left: 1.3em;
+  display: flex; flex-direction: column; gap: 0.55rem;
+  font-size: 13px;
+}
+.export-modal-steps li { line-height: 1.4; }
+.export-modal-step-title { margin-bottom: 0.2rem; }
+.export-modal-code-row {
+  display: flex; align-items: stretch; gap: 4px;
+}
+.export-modal-code {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: oklch(0.98 0 0);
+  font-family: var(--mono-font);
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.export-modal-copy {
+  font: inherit;
+  font-size: 11px;
+  padding: 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: oklch(0.96 0 0);
+  cursor: pointer;
+}
+.export-modal-copy:hover { background: oklch(0.92 0 0); }
+.export-modal-raw summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.export-modal-raw textarea {
+  width: 100%;
+  min-height: 8em;
+  margin-top: 0.4rem;
+  padding: 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: oklch(0.98 0 0);
+  color: var(--ink);
+  font-family: var(--mono-font);
+  font-size: 11.5px;
+  resize: vertical;
+}
+.export-modal-warn {
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border-left: 2pt solid oklch(0.72 0.12 80);
+  background: oklch(0.985 0.014 80);
+  font-size: 12px;
+  color: var(--ink);
+}
+.export-modal-actions {
+  display: flex; justify-content: flex-end; gap: 8px;
+  margin-top: 0.2rem;
+}
+.export-modal-actions button {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.export-modal-keep { background: oklch(0.97 0 0); color: var(--ink); }
+.export-modal-keep:hover { background: oklch(0.93 0 0); }
+.export-modal-clear { background: oklch(0.55 0.16 25); color: oklch(0.99 0 0); border-color: oklch(0.45 0.16 25); }
+.export-modal-clear:hover { background: oklch(0.48 0.17 25); }
+
+/* Hide the annotation "+ note" affordance in speaker – speaker has the
+   notes pane for author-written notes. */
+body[data-view=speaker] .annot-add { display: none !important; }
+
+/* Corner-overlay button that opens the notes pane when it's collapsed.
+   Doubles as discoverability for the Shift-N hotkey – newcomers see the
+   affordance and learn the shortcut from the tooltip. Hidden once notes
+   are visible so it doesn't clutter the slide. */
+#add-note-btn {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 0.7rem;
+  z-index: 10;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--rule);
+  background: color-mix(in oklab, var(--paper) 82%, transparent);
+  border-radius: 3px;
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 120ms, color 120ms, border-color 120ms;
+}
+#add-note-btn:hover {
+  opacity: 1;
+  color: var(--ink);
+  border-color: var(--ink-soft);
+}
+body.has-notes #add-note-btn { display: none; }
+
+/* ── preview-strip: right-mode (vertical) ─────────────────────────────
+   Toggled by V. Strip moves from row 4 into row 2 / col 2, stacks
+   slots vertically, scrolls on Y. Stage stays in col 1, notes and
+   footer span both cols. Slot aspect-ratio handles sizing so slots
+   grow taller when the strip is wider – more text legibility than
+   the horizontal mode. */
+body[data-view=speaker].preview-right {
+  grid-template-rows: 3vh 1fr auto 2.2rem;
+  grid-template-columns: 1fr clamp(180px, 18vw, 300px);
+}
+body[data-view=speaker].preview-right #scrubber     { grid-column: 1 / -1; grid-row: 1; }
+body[data-view=speaker].preview-right #stage-cell   { grid-column: 1; grid-row: 2; }
+body[data-view=speaker].preview-right #notes-pane   { grid-column: 1 / -1; grid-row: 3; }
+body[data-view=speaker].preview-right #speaker-footer { grid-column: 1 / -1; grid-row: 4; }
+body[data-view=speaker].preview-right #preview-strip {
+  grid-column: 2;
+  grid-row: 2;
+  flex-direction: column;
+  padding: 0.5rem 0.5rem;
+  border-top: 0;
+  border-left: 1px solid var(--rule);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+body[data-view=speaker].preview-right #preview-strip::-webkit-scrollbar { width: 6px; height: auto; }
+body[data-view=speaker].preview-right .preview-slot {
+  height: auto;
+  width: auto;
+  /* align-items: stretch on the flex parent fills cross-axis (width). */
+}
+
 </style>
 
 </head>
-<body data-collapse="topic-bold" data-font="serif" data-theme="light-red">
-<div id="stage-viewport">
-  <div id="stage">
+<body data-collapse="topic-bold" data-view="speaker" data-font="serif" data-theme="light-red">
+<div id="scrubber">
+<div class="col-entry" data-col-idx="0">
+      <button class="col-btn" type="button">·</button>
+      <div class="dots"><span class="dot" data-col-idx="0" data-chunk-idx="0"></span></div>
+    </div>
+<div class="col-entry" data-col-idx="1">
+      <button class="col-btn" type="button">Welcome</button>
+      <div class="dots"><span class="dot" data-col-idx="1" data-chunk-idx="0"></span><span class="dot" data-col-idx="1" data-chunk-idx="1"></span></div>
+    </div>
+<div class="col-entry" data-col-idx="2">
+      <button class="col-btn" type="button">Moving around</button>
+      <div class="dots"><span class="dot" data-col-idx="2" data-chunk-idx="0"></span><span class="dot" data-col-idx="2" data-chunk-idx="1"></span><span class="dot" data-col-idx="2" data-chunk-idx="2"></span></div>
+    </div>
+<div class="col-entry" data-col-idx="3">
+      <button class="col-btn" type="button">Finding content</button>
+      <div class="dots"><span class="dot" data-col-idx="3" data-chunk-idx="0"></span><span class="dot" data-col-idx="3" data-chunk-idx="1"></span></div>
+    </div>
+<div class="col-entry" data-col-idx="4">
+      <button class="col-btn" type="button">Speaker cockpit</button>
+      <div class="dots"><span class="dot" data-col-idx="4" data-chunk-idx="0"></span><span class="dot" data-col-idx="4" data-chunk-idx="1"></span><span class="dot" data-col-idx="4" data-chunk-idx="2"></span></div>
+    </div>
+<div class="col-entry" data-col-idx="5">
+      <button class="col-btn" type="button">Authoring layouts</button>
+      <div class="dots"><span class="dot" data-col-idx="5" data-chunk-idx="0"></span><span class="dot" data-col-idx="5" data-chunk-idx="1"></span><span class="dot" data-col-idx="5" data-chunk-idx="2"></span><span class="dot" data-col-idx="5" data-chunk-idx="3"></span><span class="dot" data-col-idx="5" data-chunk-idx="4"></span></div>
+    </div>
+<div class="col-entry" data-col-idx="6">
+      <button class="col-btn" type="button">Next steps</button>
+      <div class="dots"><span class="dot" data-col-idx="6" data-chunk-idx="0"></span><span class="dot" data-col-idx="6" data-chunk-idx="1"></span></div>
+    </div>
+</div>
+<div id="stage-cell">
+  <div id="stage-viewport">
+    <div id="stage">
 <section class="column" data-col="0">
 
 <article class="chunk chunk-title" data-tag="title" data-width="full" data-chunk-id="title" data-chunk-num="1" id="title">
@@ -1447,25 +1906,36 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></div>
 </article>
 </section>
+    </div>
   </div>
+  <button id="add-note-btn" type="button" title="Open speaker notes (Shift-N)">+ note</button>
 </div>
-<div id="laser-pointer" aria-hidden="true"></div>
+<aside id="notes-pane">
+  <textarea id="notes-content" rows="1" spellcheck="false" placeholder=""></textarea>
+</aside>
+<div id="preview-strip"></div>
 <div id="figure-overlay" aria-hidden="true"></div>
-<nav id="touch-controls" aria-label="Slide controls">
-  <button type="button" data-action="prev" aria-label="Previous">‹</button>
-  <button type="button" data-action="next" aria-label="Next">›</button>
-  <button type="button" data-action="overview" aria-label="Overview">⊞</button>
-  <button type="button" data-action="zoom-out" aria-label="Zoom out">−</button>
-  <button type="button" data-action="zoom-in" aria-label="Zoom in">+</button>
-</nav>
-<div id="hints">
+<footer id="speaker-footer">
+  <span id="timer">00:00</span>
+  <span id="push-indicator" class="push-on">push ●</span>
+  <button id="export-annot-btn" type="button" title="Copy live annotations as &gt; annot: Markdown (Shift-E)">export notes</button>
+  <span id="slug">tutorial</span>
+  <span class="spacer"></span>
+  <span class="kbd-hint"><kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export &nbsp; <kbd>V</kbd> preview &nbsp; <kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force &nbsp; <kbd>?</kbd> all</span>
+</footer>
+<div id="note-templates">
+<template data-notes-for="one-source">This is a self-referential lecture – it explains the tool by being the tool. First-time readers should have both this audience view and a spawned speaker view (S) open side by side. Steps 7-9 assume the speaker is running.</template>
+<template data-notes-for="authoring">When finishing this tour with a first-timer, end by asking them what felt discoverable and what did not – their first-impression friction points are the most valuable feedback the tool will get before release.</template>
+</div>
+<div id="hints" class="hidden">
   <kbd>←</kbd><kbd>→</kbd> column &nbsp; <kbd>↑</kbd><kbd>↓</kbd> chunk &nbsp; <kbd>Space</kbd> reveal<br>
-  <kbd>Enter</kbd>/<kbd>1</kbd>–<kbd>9</kbd> expand &nbsp; <kbd>N</kbd> annotate &nbsp; <kbd>C</kbd> collapse<br>
-  <kbd>O</kbd> overview &nbsp; <kbd>T</kbd> toc &nbsp; <kbd>/</kbd> search &nbsp; <kbd>P</kbd> print &nbsp; <kbd>B</kbd> blank<br>
+  <kbd>Enter</kbd>/<kbd>1</kbd>–<kbd>9</kbd> expand &nbsp; <kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>C</kbd> collapse<br>
+  <kbd>O</kbd> overview &nbsp; <kbd>T</kbd> toc &nbsp; <kbd>/</kbd> search &nbsp; <kbd>V</kbd> preview view &nbsp; <kbd>B</kbd> blank<br>
   <kbd>F</kbd> font &nbsp; <kbd>A</kbd> accent/theme &nbsp;
-  <kbd>+</kbd><kbd>-</kbd><kbd>0</kbd> zoom &nbsp; <kbd>?</kbd> hide
+  <kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force push &nbsp; <kbd>P</kbd> print
 </div>
 <div id="mode-badge"></div>
+<div id="center-toast" role="status" aria-live="polite"></div>
 <div id="overview-badge">
   <span class="hint">overview · drag · wheel · click · <kbd>O</kbd>/<kbd>Enter</kbd> land · <kbd>/</kbd> search · <kbd>Esc</kbd></span>
   <input id="search-input" type="text" placeholder="search..." autocomplete="off" spellcheck="false">
@@ -2708,6 +3178,674 @@ requestAnimationFrame(() => requestAnimationFrame(() => focusCamera(true)));
 if (document.fonts && document.fonts.ready) {
   document.fonts.ready.then(() => focusCamera(true));
 }
+
+
+const notesContent = document.getElementById('notes-content');
+const notesPane = document.getElementById('notes-pane');
+const previewStrip = document.getElementById('preview-strip');
+const scrubberEl = document.getElementById('scrubber');
+const timerEl = document.getElementById('timer');
+const pushIndicator = document.getElementById('push-indicator');
+const stageCell = document.getElementById('stage-cell');
+
+// Compute --stage-scale so the audience-sized slide (slide-w × slide-h)
+// fits inside #stage-cell with letterbox bars. The viewport itself is
+// laid out at the full reference size; scale is purely visual. This
+// guarantees identical content wrap + font size across audience and
+// speaker, which the laser-pointer geometry depends on.
+function sizeStageViewport() {
+  if (!stageCell) return;
+  const cw = stageCell.clientWidth;
+  const ch = stageCell.clientHeight;
+  if (!cw || !ch) return;
+  const slideW = viewport.offsetWidth || parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slide-w')) || cw;
+  const slideH = viewport.offsetHeight || parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slide-h')) || ch;
+  if (!slideW || !slideH) return;
+  const scale = Math.min(cw / slideW, ch / slideH);
+  document.documentElement.style.setProperty('--stage-scale', String(scale));
+  if (typeof focusCamera === 'function') focusCamera(true);
+  if (typeof populatePreviewStrip === 'function') populatePreviewStrip();
+}
+try {
+  new ResizeObserver(sizeStageViewport).observe(stageCell);
+} catch (e) {}
+window.addEventListener('resize', sizeStageViewport);
+requestAnimationFrame(sizeStageViewport);
+
+let pushEnabled = true;
+viewHooks.shouldBroadcast = () => pushEnabled;
+function togglePush() {
+  pushEnabled = !pushEnabled;
+  pushIndicator.classList.toggle('push-on', pushEnabled);
+  pushIndicator.classList.toggle('push-off', !pushEnabled);
+  pushIndicator.textContent = pushEnabled ? 'push ●' : 'push ○';
+  flashMode(pushEnabled ? 'push on' : 'push off');
+}
+function forcePush() {
+  // Bypass the push gate with a direct send.
+  if (isApplyingRemote) return;
+  sendToPeer({ type: 'state', source: VIEW, payload: snapshot() });
+  flashMode('force push');
+}
+
+// Export live annotation drafts as Markdown. Copies to clipboard first,
+// then asks for explicit confirmation before clearing the draft buffer —
+// a failed copy or a cancelled confirm leaves localStorage untouched, so
+// nothing is lost if the lecturer aborts mid-workflow.
+function collectAnnotationDrafts() {
+  const out = [];
+  flatChunks.forEach(({ id, el }) => {
+    if (!id) return;
+    if (!(id in annotations)) return;
+    const text = (annotations[id] || '').trim();
+    const ta = el.querySelector('.annot-textarea');
+    const sourceDefault = ta ? (ta.defaultValue || '').trim() : '';
+    if (!text && !sourceDefault) return;
+    if (text === sourceDefault) return;
+    out.push({ id, text });
+  });
+  return out;
+}
+
+function buildAnnotationSnippet(drafts) {
+  const lines = ['<!-- annotations:start -->', ''];
+  drafts.forEach(({ id, text }, i) => {
+    if (i > 0) lines.push('');
+    lines.push('### ' + id);
+    if (text) {
+      text.split('\n').forEach(l => lines.push('> annot: ' + l));
+    } else {
+      lines.push('> annot:');
+    }
+  });
+  lines.push('', '<!-- annotations:end -->', '');
+  return lines.join('\n');
+}
+
+async function copyToClipboardSafe(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) {}
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+const centerToast = document.getElementById('center-toast');
+let centerToastTimer = null;
+function flashCenter(text, opts = {}) {
+  if (!centerToast) return;
+  centerToast.textContent = text;
+  centerToast.classList.remove('warn');
+  centerToast.classList.add('visible');
+  if (opts.warn) centerToast.classList.add('warn');
+  if (centerToastTimer) clearTimeout(centerToastTimer);
+  centerToastTimer = setTimeout(() => {
+    centerToast.classList.remove('visible', 'warn');
+  }, opts.duration || 1800);
+}
+
+function clearExportedDrafts(drafts) {
+  drafts.forEach(({ id }) => {
+    delete annotations[id];
+    const entry = flatChunks.find(c => c.id === id);
+    if (entry) {
+      const ta2 = entry.el.querySelector('.annot-textarea');
+      if (ta2) {
+        ta2.value = ta2.defaultValue;
+        entry.el.classList.toggle('has-annot', !!ta2.value.trim());
+        autosize(ta2);
+      }
+    }
+  });
+  saveAnnotations();
+  broadcastState();
+  flashCenter('drafts cleared');
+}
+
+// Derive the source.md path from the current page location so the modal
+// can show a ready-to-run command. file:// URLs URL-encode spaces; decode
+// before displaying. Falls back to a generic placeholder on non-file URLs.
+function sourcePathForCommand() {
+  try {
+    const raw = decodeURIComponent(window.location.pathname || '');
+    if (!raw) return '<path-to>/source.md';
+    return raw.replace(/\/[^/]+$/, '/source.md');
+  } catch (e) {
+    return '<path-to>/source.md';
+  }
+}
+
+function showExportModal({ drafts, snippet, clipboardOk }) {
+  let host = document.getElementById('export-modal');
+  if (host) host.remove();
+  host = document.createElement('div');
+  host.id = 'export-modal';
+
+  const inner = document.createElement('div');
+  inner.className = 'export-modal-inner';
+
+  const head = document.createElement('h2');
+  head.className = 'export-modal-head';
+  head.textContent = clipboardOk
+    ? drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied to clipboard'
+    : 'Clipboard blocked — copy manually below';
+  inner.appendChild(head);
+
+  const intro = document.createElement('p');
+  intro.className = 'export-modal-intro';
+  intro.textContent = clipboardOk
+    ? 'Next steps to make these notes part of the lecture source:'
+    : 'Select the text below and copy it by hand, then follow the steps:';
+  inner.appendChild(intro);
+
+  const srcPath = sourcePathForCommand();
+  const steps = [
+    {
+      n: 1,
+      title: 'Paste the clipboard content at the end of source.md',
+      code: srcPath,
+      codeLabel: 'file',
+    },
+    {
+      n: 2,
+      title: 'Integrate the pasted block into the right chunks',
+      code: 'node build.js ' + srcPath + ' --integrate-annotations',
+    },
+    {
+      n: 3,
+      title: 'Rebuild the lecture',
+      code: 'node build.js ' + srcPath,
+    },
+    {
+      n: 4,
+      title: 'Review with git diff and commit when happy',
+      code: 'git diff',
+    },
+    {
+      n: 5,
+      title: 'Then return here and press Clear Drafts to remove them from this browser',
+    },
+  ];
+
+  const stepList = document.createElement('ol');
+  stepList.className = 'export-modal-steps';
+  for (const step of steps) {
+    const li = document.createElement('li');
+    const title = document.createElement('div');
+    title.className = 'export-modal-step-title';
+    title.textContent = step.title;
+    li.appendChild(title);
+    if (step.code) {
+      const row = document.createElement('div');
+      row.className = 'export-modal-code-row';
+      const code = document.createElement('code');
+      code.className = 'export-modal-code';
+      code.textContent = step.code;
+      row.appendChild(code);
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'export-modal-copy';
+      copyBtn.textContent = 'copy';
+      copyBtn.addEventListener('click', async () => {
+        const ok = await copyToClipboardSafe(step.code);
+        copyBtn.textContent = ok ? 'copied ✓' : 'copy failed';
+        setTimeout(() => { copyBtn.textContent = 'copy'; }, 1500);
+      });
+      row.appendChild(copyBtn);
+      li.appendChild(row);
+    }
+    stepList.appendChild(li);
+  }
+  inner.appendChild(stepList);
+
+  // Always expose the raw snippet in a <details> so the lecturer can
+  // re-copy it (clipboard flaked, pasted into wrong window, etc.) without
+  // having to re-trigger the export flow.
+  const details = document.createElement('details');
+  details.className = 'export-modal-raw';
+  details.open = !clipboardOk;
+  const summary = document.createElement('summary');
+  summary.textContent = clipboardOk ? 'show copied text' : 'copied text (select all and copy)';
+  details.appendChild(summary);
+  const raw = document.createElement('textarea');
+  raw.readOnly = true;
+  raw.value = snippet;
+  details.appendChild(raw);
+  inner.appendChild(details);
+
+  const warn = document.createElement('p');
+  warn.className = 'export-modal-warn';
+  warn.textContent = 'Clear Drafts removes the annotations from localStorage. Do this only after the notes are safely in source.md.';
+  inner.appendChild(warn);
+
+  const actions = document.createElement('div');
+  actions.className = 'export-modal-actions';
+  const keepBtn = document.createElement('button');
+  keepBtn.type = 'button';
+  keepBtn.className = 'export-modal-keep';
+  keepBtn.textContent = 'Keep drafts (close)';
+  keepBtn.addEventListener('click', () => host.remove());
+  actions.appendChild(keepBtn);
+  const clearBtn = document.createElement('button');
+  clearBtn.type = 'button';
+  clearBtn.className = 'export-modal-clear';
+  clearBtn.textContent = 'Clear drafts now';
+  clearBtn.addEventListener('click', () => {
+    clearExportedDrafts(drafts);
+    host.remove();
+  });
+  actions.appendChild(clearBtn);
+  inner.appendChild(actions);
+
+  host.appendChild(inner);
+  host.addEventListener('click', (e) => { if (e.target === host) host.remove(); });
+  host.addEventListener('keydown', (e) => { if (e.key === 'Escape') host.remove(); });
+  document.body.appendChild(host);
+  if (!clipboardOk) raw.select();
+  else keepBtn.focus();
+}
+
+async function exportAnnotations() {
+  const drafts = collectAnnotationDrafts();
+  if (!drafts.length) {
+    flashCenter('No live annotations to export — type some with N first.', { warn: true, duration: 2600 });
+    return;
+  }
+  const snippet = buildAnnotationSnippet(drafts);
+  const copied = await copyToClipboardSafe(snippet);
+  showExportModal({ drafts, snippet, clipboardOk: copied });
+}
+
+const exportAnnotBtn = document.getElementById('export-annot-btn');
+if (exportAnnotBtn) exportAnnotBtn.addEventListener('click', exportAnnotations);
+
+// N on the speaker opens the audience-visible annotation slot (PRD §2 –
+// the live marginalia channel that mirrors to the audience). The notes
+// pane on the right is the read-side of source > note: lines plus the
+// editable speaker-private notes; it is focused by clicking it (it has
+// tabindex=0).
+// (Default viewHooks.onN already maps to startAnnotate – no override.)
+
+// Per-chunk speaker notes. Each chunk has a default text from the
+// source > note: lines (carried in a <template>); the speaker can
+// rewrite it during rehearsal/lecture and the override is persisted
+// in localStorage. An empty string is a valid override (the speaker
+// intentionally cleared the source notes for this chunk).
+const noteOverrideKey = (id) => storageKey('speakernote:' + id);
+function sourceNotesFor(id) {
+  const tmpl = document.querySelector(`template[data-notes-for="${id}"]`);
+  // Template body was escapeHtml'd at build time; parsed back into text via .textContent.
+  return tmpl ? tmpl.content.textContent : '';
+}
+function loadNotesFor(id) {
+  try {
+    const raw = localStorage.getItem(noteOverrideKey(id));
+    return raw !== null ? raw : sourceNotesFor(id);
+  } catch (e) { return sourceNotesFor(id); }
+}
+// Auto-size the notes textarea: 1 line minimum, up to 3 lines, scroll
+// beyond. Also toggles body.has-notes so CSS can collapse the row
+// entirely when there are no notes – reclaims vertical space for the
+// slide preview above. Line-height is 1.35 (matching CSS).
+const NOTES_MIN_LINES = 1;
+const NOTES_MAX_LINES = 3;
+function autoSizeNotes() {
+  const hasText = notesContent.value.trim().length > 0;
+  // Pane stays open while the textarea is focused so the author can
+  // type into an empty pane (Shift-N / + note btn). On blur the class
+  // drops back to hasText and an untouched pane collapses again.
+  const keepOpen = hasText || document.activeElement === notesContent;
+  document.body.classList.toggle('has-notes', keepOpen);
+  if (!hasText) {
+    notesContent.style.height = '1.35em';
+    return;
+  }
+  // Measure content height by resetting then reading scrollHeight.
+  notesContent.style.height = '1.35em';
+  const lineHeight = 1.35 * parseFloat(getComputedStyle(notesContent).fontSize);
+  const max = lineHeight * NOTES_MAX_LINES;
+  const wanted = Math.min(notesContent.scrollHeight, max);
+  const min = lineHeight * NOTES_MIN_LINES;
+  notesContent.style.height = Math.max(min, wanted) + 'px';
+}
+
+function populateNotesPane() {
+  const entry = flatChunks[state.activeIdx];
+  notesContent.value = entry ? loadNotesFor(entry.id) : '';
+  autoSizeNotes();
+}
+notesContent.addEventListener('input', () => {
+  const entry = flatChunks[state.activeIdx];
+  if (entry) {
+    try { localStorage.setItem(noteOverrideKey(entry.id), notesContent.value); } catch (e) {}
+  }
+  autoSizeNotes();
+});
+notesContent.addEventListener('keydown', (e) => {
+  // Esc blurs back to the slide so global hotkeys (arrows, space) work again.
+  if (e.key === 'Escape') { notesContent.blur(); e.preventDefault(); }
+});
+notesContent.addEventListener('blur', autoSizeNotes);
+
+// Shift-N entry point: force-show the notes row and focus the textarea
+// even when currently collapsed (body lacks .has-notes). The class
+// makes the row visible; focus() lands the caret; user types and the
+// input handler keeps has-notes on. If they blur with no content,
+// autoSizeNotes collapses again.
+function focusNotesPane() {
+  document.body.classList.add('has-notes');
+  requestAnimationFrame(() => {
+    notesContent.focus();
+    autoSizeNotes();
+  });
+}
+
+// Column / chunk-dot bookkeeping: a flat index of which flatChunks entry
+// corresponds to each (colIdx, chunkIdx) pair in the scrubber.
+const colChunkIdx = {};
+flatChunks.forEach((c, i) => {
+  if (!colChunkIdx[c.colIdx]) colChunkIdx[c.colIdx] = [];
+  colChunkIdx[c.colIdx].push(i);
+});
+
+// Scrubber DOM is static after build — cache the node lists once so the
+// onActiveChange hook (every keystroke, every remote-state apply) doesn't
+// re-scan the document on each tick.
+const colEntryEls = Array.from(document.querySelectorAll('.col-entry'));
+const dotEls = Array.from(document.querySelectorAll('#scrubber .dot'));
+
+function updateScrubber() {
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) return;
+  for (const el of colEntryEls) {
+    el.classList.toggle('active', parseInt(el.dataset.colIdx, 10) === entry.colIdx);
+  }
+  for (const dot of dotEls) {
+    const ci = parseInt(dot.dataset.colIdx, 10);
+    const xi = parseInt(dot.dataset.chunkIdx, 10);
+    dot.classList.toggle('active', colChunkIdx[ci]?.[xi] === state.activeIdx);
+  }
+}
+
+scrubberEl.addEventListener('click', (e) => {
+  const dot = e.target.closest('.dot');
+  if (dot) {
+    const ci = parseInt(dot.dataset.colIdx, 10);
+    const xi = parseInt(dot.dataset.chunkIdx, 10);
+    const idx = colChunkIdx[ci]?.[xi];
+    if (idx !== undefined) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
+    return;
+  }
+  const btn = e.target.closest('.col-btn');
+  if (btn) {
+    const ci = parseInt(btn.closest('.col-entry').dataset.colIdx, 10);
+    const idx = colChunkIdx[ci]?.[0];
+    if (idx !== undefined) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
+  }
+});
+
+// Preview strip: ALL chunks, each cloned and scaled to fit a slot.
+// Scrollable along the strip's main axis – drag to pan, click a slot
+// to jump. Current chunk highlighted and auto-scrolled into view.
+//
+// Clone is rendered at the audience reference size (slide-w × slide-h)
+// and CSS-scaled into the slot. The scale factor is multiplied by
+// PREVIEW_ZOOM so the content fills more of each slot than the raw
+// letterbox would; the slot's overflow:hidden clips the small margin
+// that overflows, which is an acceptable trade for readable text.
+const PREVIEW_ZOOM = 1.22;
+function isPreviewVertical() {
+  return document.body.classList.contains('preview-right');
+}
+function populatePreviewStrip() {
+  previewStrip.replaceChildren();
+  flatChunks.forEach((entry, idx) => {
+    const slot = document.createElement('div');
+    slot.className = 'preview-slot';
+    slot.dataset.idx = String(idx);
+    if (idx === state.activeIdx) slot.classList.add('current');
+    const label = document.createElement('div');
+    label.className = 'preview-slot-label';
+    const offset = idx - state.activeIdx;
+    label.textContent = offset === 0 ? 'now' : (offset > 0 ? '+' + offset : String(offset));
+    slot.appendChild(label);
+    const clone = entry.el.cloneNode(true);
+    clone.classList.add('chunk-clone');
+    clone.classList.remove('active', 'expanded', 'annot-visible', 'has-annot', 'overview-selected');
+    clone.querySelectorAll('.reveal-segment').forEach(s => s.removeAttribute('data-hidden'));
+    clone.querySelectorAll('.exps, .annot-box, .annot-add').forEach(n => n.remove());
+    slot.appendChild(clone);
+    previewStrip.appendChild(slot);
+    requestAnimationFrame(() => {
+      const slideW = viewport.clientWidth || window.innerWidth;
+      if (!slideW) return;
+      const baseScale = slot.clientWidth / slideW;
+      const scale = baseScale * PREVIEW_ZOOM;
+      clone.style.transform = `scale(${scale})`;
+      clone.style.width = slideW + 'px';
+      clone.style.height = (slot.clientHeight / baseScale) + 'px';
+    });
+  });
+  scrollPreviewToActive(false);
+}
+
+function scrollPreviewToActive(smooth) {
+  const el = previewStrip.querySelector('.preview-slot.current');
+  if (!el) return;
+  // Center the current slot along the strip's main axis.
+  const stripRect = previewStrip.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  const behavior = smooth ? 'smooth' : 'auto';
+  if (isPreviewVertical()) {
+    const top = previewStrip.scrollTop + (elRect.top + elRect.height / 2) - (stripRect.top + stripRect.height / 2);
+    previewStrip.scrollTo({ top, behavior });
+  } else {
+    const left = previewStrip.scrollLeft + (elRect.left + elRect.width / 2) - (stripRect.left + stripRect.width / 2);
+    previewStrip.scrollTo({ left, behavior });
+  }
+}
+
+// Light-touch "current" marker update without rebuilding the whole strip.
+function markPreviewCurrent() {
+  previewStrip.querySelectorAll('.preview-slot').forEach(el => {
+    const idx = parseInt(el.dataset.idx, 10);
+    el.classList.toggle('current', idx === state.activeIdx);
+    const lbl = el.querySelector('.preview-slot-label');
+    if (lbl) {
+      const off = idx - state.activeIdx;
+      lbl.textContent = off === 0 ? 'now' : (off > 0 ? '+' + off : String(off));
+    }
+  });
+  scrollPreviewToActive(true);
+}
+
+// Pointer drag to pan. Tracks whether the pointer actually moved enough
+// to constitute a drag (vs a click); click-to-jump wins if no drag.
+// The slot is saved at pointerdown because pointer capture reroutes
+// pointerup's e.target to the capturing element (previewStrip), so
+// e.target.closest('.preview-slot') returns null at release time.
+let previewDrag = null;
+previewStrip.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0) return;
+  const slot = e.target.closest('.preview-slot');
+  const vert = isPreviewVertical();
+  previewDrag = {
+    vert,
+    start: vert ? e.clientY : e.clientX,
+    scrollStart: vert ? previewStrip.scrollTop : previewStrip.scrollLeft,
+    moved: false,
+    pointerId: e.pointerId,
+    slot,
+  };
+  previewStrip.setPointerCapture(e.pointerId);
+});
+previewStrip.addEventListener('pointermove', (e) => {
+  if (!previewDrag) return;
+  const cur = previewDrag.vert ? e.clientY : e.clientX;
+  const d = cur - previewDrag.start;
+  if (Math.abs(d) > 4) previewDrag.moved = true;
+  if (previewDrag.vert) previewStrip.scrollTop = previewDrag.scrollStart - d;
+  else previewStrip.scrollLeft = previewDrag.scrollStart - d;
+  if (previewDrag.moved) previewStrip.classList.add('dragging');
+});
+previewStrip.addEventListener('pointerup', (e) => {
+  if (!previewDrag) return;
+  const { moved, slot } = previewDrag;
+  try { previewStrip.releasePointerCapture(previewDrag.pointerId); } catch (err) {}
+  previewDrag = null;
+  previewStrip.classList.remove('dragging');
+  if (moved || !slot) return;
+  const idx = parseInt(slot.dataset.idx, 10);
+  if (!Number.isFinite(idx) || idx === state.activeIdx) return;
+  jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
+});
+previewStrip.addEventListener('pointercancel', () => {
+  previewDrag = null;
+  previewStrip.classList.remove('dragging');
+});
+
+// Vertical wheel maps to horizontal scroll when the strip runs
+// horizontally; in vertical-strip mode the browser's native vertical
+// scroll is already what we want.
+previewStrip.addEventListener('wheel', (e) => {
+  if (isPreviewVertical()) return;
+  if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
+  previewStrip.scrollLeft += e.deltaY;
+  e.preventDefault();
+}, { passive: false });
+
+// Timer: elapsed since page load, mm:ss.
+const tStart = Date.now();
+function renderTimer() {
+  const s = Math.floor((Date.now() - tStart) / 1000);
+  const mm = String(Math.floor(s / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  timerEl.textContent = mm + ':' + ss;
+}
+setInterval(renderTimer, 1000);
+renderTimer();
+
+// Hook: refresh scrubber on every state change, notes+preview on chunk
+// change only. The full-strip rebuild (populatePreviewStrip) happens
+// once at load and on resize; subsequent chunk changes just re-mark
+// the current slot and scroll it into view.
+let lastPopulatedIdx = -1;
+viewHooks.onActiveChange = () => {
+  updateScrubber();
+  if (state.activeIdx === lastPopulatedIdx) return;
+  lastPopulatedIdx = state.activeIdx;
+  populateNotesPane();
+  markPreviewCurrent();
+};
+
+// Preview orientation (horizontal along bottom vs vertical along the
+// right edge). Persisted globally – user preference follows them
+// across lectures. Toggled with V.
+const PREVIEW_ORIENTATION_KEY = 'psi-slides:preview-orientation';
+function applyPreviewOrientation(mode) {
+  document.body.classList.toggle('preview-right', mode === 'right');
+}
+try {
+  const saved = localStorage.getItem(PREVIEW_ORIENTATION_KEY);
+  if (saved === 'right') applyPreviewOrientation('right');
+} catch (e) {}
+function togglePreviewOrientation() {
+  const next = document.body.classList.contains('preview-right') ? 'bottom' : 'right';
+  applyPreviewOrientation(next);
+  try { localStorage.setItem(PREVIEW_ORIENTATION_KEY, next); } catch (e) {}
+  flashMode('preview · ' + next);
+  populatePreviewStrip();
+}
+
+// The in-stage "+ note" overlay is an alternative entry point to
+// Shift-N. Visible only while the notes pane is collapsed; the CSS
+// hides it once has-notes lands on body.
+document.getElementById('add-note-btn')?.addEventListener('click', () => {
+  focusNotesPane();
+});
+
+// First populate (applyState ran before viewHooks was reassigned).
+updateScrubber();
+populateNotesPane();
+populatePreviewStrip();
+
+// Resize fires at ~60 Hz during a drag; rebuilding every tick clones
+// N chunks and schedules N rAFs per event. Debounce to the trailing
+// edge so one rebuild lands after the user stops dragging.
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(populatePreviewStrip, 120);
+});
+
+// Laser pointer: while the speaker mouse hovers over the stage
+// viewport, mirror its position to the audience. Coordinates are
+// expressed as fractions of the active chunk's bounding box, so the
+// audience can place the dot correctly even at a different zoom.
+// rAF-throttled so we don't spam the peer with raw pointermove.
+let laserPending = null;
+function maybeSendLaser() {
+  if (!laserPending) return;
+  const { x, y, chunkIdx, target } = laserPending;
+  laserPending = null;
+  sendToPeer({ type: 'cursor', source: 'speaker', chunkIdx, x, y, target });
+}
+viewport.addEventListener('pointermove', (ev) => {
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) return;
+  const r = entry.el.getBoundingClientRect();
+  if (r.width <= 0 || r.height <= 0) return;
+  const x = (ev.clientX - r.left) / r.width;
+  const y = (ev.clientY - r.top) / r.height;
+  if (!laserPending) requestAnimationFrame(maybeSendLaser);
+  laserPending = { x, y, chunkIdx: state.activeIdx, target: 'chunk' };
+});
+viewport.addEventListener('pointerleave', () => {
+  // Tell audience to drop the dot when the speaker mouse leaves the stage.
+  sendToPeer({ type: 'cursor', source: 'speaker', chunkIdx: -1, x: 0, y: 0 });
+});
+
+// Mirror the speaker's cursor while a figure is focused. The overlay
+// covers the viewport (z-index 30), so the viewport pointermove above
+// stops firing once focus is active – without this handler the audience
+// would never see the laser dot during figure inspection. Coords are
+// fractions of the focused card's bounding box, which the audience
+// resolves against its own card (kept in lockstep via figure-view).
+figureOverlay.addEventListener('pointermove', (ev) => {
+  if (!focusedFigure) return;
+  const r = focusedFigure.getBoundingClientRect();
+  if (r.width <= 0 || r.height <= 0) return;
+  const x = (ev.clientX - r.left) / r.width;
+  const y = (ev.clientY - r.top) / r.height;
+  if (!laserPending) requestAnimationFrame(maybeSendLaser);
+  laserPending = { x, y, chunkIdx: state.activeIdx, target: 'figure' };
+});
+figureOverlay.addEventListener('pointerleave', () => {
+  sendToPeer({ type: 'cursor', source: 'speaker', chunkIdx: -1, x: 0, y: 0 });
+});
+
+// Hello handshake: at boot the speaker adopts its opener (the
+// audience that spawned it via S) as peer and announces itself.
+// Audience replies with the current state snapshot; applyRemoteState
+// picks it up. If we were opened standalone (no opener), peer stays
+// null and we run on our localStorage state.
+setPeer(window.opener);
+sendToPeer({ type: 'hello', source: 'speaker' });
 
 </script>
 </body>
