@@ -1671,9 +1671,18 @@ body.figure-focused #figure-overlay { display: flex; }
   justify-content: center;
   background: oklch(0.06 0 0 / 0.92);
   z-index: 30;
-  cursor: zoom-out;
+  cursor: grab;
   padding: 1vh 1vw;
+  overflow: hidden;
 }
+body.figure-dragging #figure-overlay,
+body.figure-dragging #figure-overlay * { cursor: grabbing !important; }
+#figure-overlay > .figure-focus-target {
+  transform-origin: center center;
+  transition: transform 80ms ease-out;
+  will-change: transform;
+}
+body.figure-dragging #figure-overlay > .figure-focus-target { transition: none; }
 /* The target is always shown on a solid paper card – otherwise the
    dimmed backdrop bleeds through (shiki-highlighted code in particular
    loses legibility when translucent). !important wins over shiki's
@@ -1686,7 +1695,7 @@ body.figure-focused #figure-overlay { display: flex; }
   background: var(--paper) !important;
   box-shadow: 0 0 0 1px var(--rule);
   padding: 1.2vh 1.2vw;
-  cursor: zoom-out;
+  cursor: grab;
   font-family: var(--body-font);
   color: var(--ink);
 }
@@ -2121,9 +2130,9 @@ body[data-view=speaker] #laser-pointer { display: none; }
     touch-action: manipulation;
   }
   #touch-controls button:active { background: oklch(0.30 0 0); }
-  /* Hide while a figure is focused or the screen is blanked – tapping
-     prev/next during those states would advance behind an overlay. */
-  body.figure-focused #touch-controls,
+  /* Hide while the screen is blanked. Stay visible during figure-focus
+     so the +/− buttons remain reachable for figure zoom; the rail is
+     above the overlay (z-index 35 vs 30) so taps still land on it. */
   body.blanked #touch-controls { display: none; }
 }
 
@@ -2573,6 +2582,13 @@ window.addEventListener('message', (ev) => {
       return;
     }
     if (m.type === 'figure-unfocus') { unfocusFigure(); return; }
+    if (m.type === 'figure-view') {
+      if (!focusedFigure) return;
+      figureScale = Math.max(FIG_MIN_SCALE, Math.min(FIG_MAX_SCALE, m.scale || 1));
+      figurePan = { x: m.panX || 0, y: m.panY || 0 };
+      applyFigureTransform();
+      return;
+    }
     if (m.type === 'overview') {
       if (m.active && !overview) toggleOverview();
       else if (!m.active && overview) exitOverview(false);
@@ -3130,9 +3146,21 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
     case '/': if (overview) { startSearch(); e.preventDefault(); } break;
-    case '+': case '=': setZoom(state.zoom + 0.1); e.preventDefault(); break;
-    case '-': case '_': setZoom(state.zoom - 0.1); e.preventDefault(); break;
-    case '0': setZoom(1.35); e.preventDefault(); break;
+    case '+': case '=':
+      if (focusedFigure) setFigureScale(figureScale * 1.2);
+      else setZoom(state.zoom + 0.1);
+      e.preventDefault(); break;
+    case '-': case '_':
+      if (focusedFigure) setFigureScale(figureScale / 1.2);
+      else setZoom(state.zoom - 0.1);
+      e.preventDefault(); break;
+    case '0':
+      if (focusedFigure) {
+        resetFigureView();
+        applyFigureTransform();
+        broadcastFigureView();
+      } else setZoom(1.35);
+      e.preventDefault(); break;
     case 'b': case 'B':
       state.blanked = !state.blanked;
       document.body.classList.toggle('blanked', state.blanked);
@@ -3241,25 +3269,101 @@ window.addEventListener('resize', () => focusCamera(true));
 // aside is centered in the viewport (no overlay – it's in-frame).
 const figureOverlay = document.getElementById('figure-overlay');
 let focusedFigure = null;
+// Per-focus zoom + pan: +/− keys (and wheel) scale; drag pans. Reset
+// every time a new figure gets focused so each one starts at 1x. Pan
+// is in CSS px on the focus-target's layout box. The transform is
+// applied with transform-origin: center, so the scale grows around
+// the center of the card.
+let figureScale = 1;
+let figurePan = { x: 0, y: 0 };
+const FIG_MIN_SCALE = 0.4;
+const FIG_MAX_SCALE = 8;
+function resetFigureView() {
+  figureScale = 1;
+  figurePan = { x: 0, y: 0 };
+}
+function applyFigureTransform() {
+  if (!focusedFigure) return;
+  focusedFigure.style.transform =
+    'translate(' + figurePan.x + 'px, ' + figurePan.y + 'px) scale(' + figureScale + ')';
+}
+function setFigureScale(next) {
+  figureScale = Math.max(FIG_MIN_SCALE, Math.min(FIG_MAX_SCALE, next));
+  applyFigureTransform();
+  broadcastFigureView();
+}
+function broadcastFigureView() {
+  if (!shouldBroadcast()) return;
+  sendToPeer({ type: 'figure-view', scale: figureScale, panX: figurePan.x, panY: figurePan.y });
+}
 function unfocusFigure() {
   if (!focusedFigure) return;
+  focusedFigure.style.transform = '';
   focusedFigure = null;
   figureOverlay.replaceChildren();
   document.body.classList.remove('figure-focused');
+  resetFigureView();
 }
 function focusFigure(el) {
   unfocusFigure();
+  resetFigureView();
   const clone = el.cloneNode(true);
   clone.classList.add('figure-focus-target');
   clone.removeAttribute('id');
   figureOverlay.replaceChildren(clone);
   document.body.classList.add('figure-focused');
   focusedFigure = clone;
+  applyFigureTransform();
 }
-figureOverlay.addEventListener('click', () => {
-  unfocusFigure();
-  if (shouldBroadcast()) sendToPeer({ type: 'figure-unfocus' });
+
+// Overlay pointerdown: drag pans the focused figure; a click without
+// drag closes (matches the previous click-to-unfocus affordance). 3px
+// movement threshold mirrors the viewport-pan handler so a fingertip
+// jitter still counts as a tap.
+figureOverlay.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('button, textarea, input')) return;
+  const session = {
+    x: e.clientX, y: e.clientY,
+    panX0: figurePan.x, panY0: figurePan.y,
+    moved: false,
+  };
+  const move = (ev) => {
+    const dx = ev.clientX - session.x, dy = ev.clientY - session.y;
+    if (!session.moved && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
+      session.moved = true;
+      document.body.classList.add('figure-dragging');
+    }
+    if (!session.moved) return;
+    figurePan = { x: session.panX0 + dx, y: session.panY0 + dy };
+    applyFigureTransform();
+    broadcastFigureView();
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    if (!session.moved) {
+      // Pure click → close (preserve previous click-to-unfocus UX).
+      unfocusFigure();
+      if (shouldBroadcast()) sendToPeer({ type: 'figure-unfocus' });
+      return;
+    }
+    document.body.classList.remove('figure-dragging');
+    const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); window.removeEventListener('click', swallow, true); };
+    window.addEventListener('click', swallow, true);
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
 });
+
+// Wheel zoom while focused. deltaY > 0 = scroll-down = zoom out, the
+// natural direction for trackpad pinch (browsers translate pinch to
+// wheel + ctrlKey on macOS but the sign is the same).
+figureOverlay.addEventListener('wheel', (e) => {
+  if (!focusedFigure) return;
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? 0.9 : 1.1;
+  setFigureScale(figureScale * factor);
+}, { passive: false });
 
 // Pan the camera so that a given element inside the active chunk lands
 // centered horizontally in the viewport. Used for .marginalia clicks so
@@ -3293,8 +3397,14 @@ function wireTouchControls() {
       case 'prev':      prevChunk(); break;
       case 'next':      if (!advanceReveal()) nextChunk(); break;
       case 'overview':  toggleOverview(); break;
-      case 'zoom-in':   setZoom(state.zoom + 0.1); break;
-      case 'zoom-out':  setZoom(state.zoom - 0.1); break;
+      case 'zoom-in':
+        if (focusedFigure) setFigureScale(figureScale * 1.2);
+        else setZoom(state.zoom + 0.1);
+        break;
+      case 'zoom-out':
+        if (focusedFigure) setFigureScale(figureScale / 1.2);
+        else setZoom(state.zoom - 0.1);
+        break;
     }
   });
 }
