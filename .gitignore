@@ -6,6 +6,11 @@ node_modules/
 lectures/*/print.html
 lectures/*/audience.html
 lectures/*/speaker.html
+# the self-referential tutorial ships its built outputs so the lecture
+# can be browsed directly from the repo without running build.js
+!lectures/tutorial/print.html
+!lectures/tutorial/audience.html
+!lectures/tutorial/speaker.html
 
 # playwright smoke-test scratch
 .playwright-mcp/
