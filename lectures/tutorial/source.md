@@ -140,6 +140,68 @@ If the pane is collapsed (no notes for this chunk), the corner `+ note` button o
 
 All three snap onto both views via postMessage; a change on the speaker is immediately visible on the audience. `Shift`-any-of-these cycles backwards.
 
+# Authoring layouts {#layouts}
+
+## principle: Two layout axes | chunk widths and body directives {.standard #layout-axes}
+
+**Layout works on two axes.** Each chunk picks one of four widths in its heading – `{.narrow}`, `{.standard}`, `{.wide}`, `{.full}` – which sets how much horizontal stage it occupies. Inside the body, four `:::` directives shape internal flow: `::: cols`, `::: side`, `::: marginalia`, `::: margin`.
+
+Width is the slide-level decision; directives compose within. A `.wide` chunk with a `::: side` body is the most common figure-plus-commentary pattern.
+
+## example: Multi-column flow | `::: cols 2` and `::: cols 3` {.wide #cols-demo}
+
+**`::: cols 2` (or `cols 3`) wraps the body in a CSS multi-column flow.** Use it when several short paragraphs read better in parallel than stacked – feature lists, brief comparisons, parallel definitions.
+
+::: cols 2
+
+**Left flow.** Multi-column flow auto-balances – the engine fills top-to-bottom and lets content break wherever fits. Avoid putting one long paragraph here; one column dominates and the other sits empty. Several short blocks are the sweet spot.
+
+**Right flow.** This block is the third paragraph in source, which is why it landed in column two – column flow goes top-down and then wraps. In print, columns collapse back to a single linear stream.
+
+:::
+
+Reveal segments still work inside `::: cols`, but mixing reveal-on-`Space` with multi-column flow is rarely worth the cognitive load – pick one rhythm or the other.
+
+## example: Two-pane grid | `::: side` and `::: flip` {.wide #side-demo}
+
+**`::: side` opens a two-pane grid; `::: flip` is the mid-marker between panes.** Unlike `cols`, the split is deterministic – the left pane gets everything before `::: flip`, the right pane gets everything after. Best for figure-plus-commentary, or before/after pairs where you need to control which side gets which content.
+
+::: side
+
+**Left pane.** Authoring shape: write `::: side`, then left content, then `::: flip`, then right content, then `:::` to close. The grid is balanced 1fr/1fr by default, so neither side dominates the slide.
+
+::: flip
+
+**Right pane.** A figure usually goes here, with the textual context on the left. In the audience view, click either pane to focus-zoom it; print stacks the two panes vertically so neither side is ever hidden.
+
+:::
+
+You can nest a `::: marginalia` *inside* a side pane if a tangent belongs to one half specifically – it still escapes to the slide's right margin.
+
+## example: Marginalia | `::: marginalia` escapes to the slide margin {.standard #marginalia-demo}
+
+**`::: marginalia` floats an aside to the right of the chunk body**, anchored to the content column's right edge and spilling into the slide padding. The audience camera does not pan automatically – click the marginalia in this chunk to bring it centred into view.
+
+::: marginalia
+
+This whole block is rendered in the slide margin, in dimmed sans-serif. Use marginalia for tangents that *belong with* a chunk but would crowd the main flow – an aside, a citation, a "see also" pointer to another column.
+
+In print, marginalia stack inline below the body as block-quoted asides, so the reading copy keeps every word.
+
+:::
+
+The body itself stays in the central column; only the marginalia escapes outward. Keep marginalia short – they share vertical space with the chunk body and can't grow taller than it.
+
+## example: Margin notes | `::: margin` is a quiet inline footnote {.standard #margin-demo}
+
+**`::: margin` adds a dim, small-caps-labelled note below the chunk body** – a Tufte-style sidenote, but in-flow rather than off to the side. Always visible, no chevron, no separate panel.
+
+::: margin
+This is a margin note. The label header reads "NOTE" by default; the block renders in muted sans-serif under a dotted top rule. Margin notes are quieter than expansions: no button to click, just a soft footnote attached to this chunk.
+:::
+
+Reach for `::: margin` when the supplementary content is short and trustworthy enough that you want it always rendered. Reach for `::: expand <label>` (back at `#expand`) when it should hide behind a chevron until someone opens it.
+
 # Next steps {#next}
 
 ## exercise: Read more | the three artefacts that close the loop {.wide #read-more}
@@ -148,7 +210,7 @@ All three snap onto both views via postMessage; a change on the speaker is immed
 
 ::: cols 2
 
-**1. `lectures/python-intro/audience.html`.** A 36-chunk teaching lecture. Spawn its speaker with `S`, try the layout vocabulary (`::: cols`, `::: side`, `::: marginalia`), watch how each layout cooperates with the reveal + collapse system.
+**1. `lectures/python-intro/audience.html`.** A 36-chunk teaching lecture. Spawn its speaker with `S` and watch the layout vocabulary you just learned in real use, woven through reveals, expansions, and figure focus.
 
 **2. `PRD.md`.** The design philosophy: why three views, why the specific tag set, why reveals are off by default in print. Short, pragmatic, concretely linked to the code.
 
