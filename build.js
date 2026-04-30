@@ -1067,9 +1067,13 @@ a:hover { text-decoration-color: var(--ink); }
 .marginalia > :first-child { margin-top: 0; }
 .marginalia > :last-child { margin-bottom: 0; }
 
-/* figure-img: single-column figure with caption below */
+/* figure-img: single-column figure with caption below. Both <img> and
+   inlined <svg> need an explicit max-width — SVGs spliced via
+   inlineSvg() preserve their intrinsic width="…" attribute and would
+   otherwise overflow the page measure. */
 figure.figure-img { margin: 1rem 0; text-align: center; }
-figure.figure-img img { max-width: 100%; height: auto; }
+figure.figure-img img,
+figure.figure-img svg { max-width: 100%; height: auto; }
 figure.figure-img figcaption {
   font-family: var(--sans);
   font-size: 0.78rem;
@@ -1282,6 +1286,13 @@ ${columnsHtml}
 </div>
 <div id="laser-pointer" aria-hidden="true"></div>
 <div id="figure-overlay" aria-hidden="true"></div>
+<nav id="touch-controls" aria-label="Slide controls">
+  <button type="button" data-action="prev" aria-label="Previous">‹</button>
+  <button type="button" data-action="next" aria-label="Next">›</button>
+  <button type="button" data-action="overview" aria-label="Overview">⊞</button>
+  <button type="button" data-action="zoom-out" aria-label="Zoom out">−</button>
+  <button type="button" data-action="zoom-in" aria-label="Zoom in">+</button>
+</nav>
 <div id="hints">
   <kbd>←</kbd><kbd>→</kbd> column &nbsp; <kbd>↑</kbd><kbd>↓</kbd> chunk &nbsp; <kbd>Space</kbd> reveal<br>
   <kbd>Enter</kbd>/<kbd>1</kbd>–<kbd>9</kbd> expand &nbsp; <kbd>N</kbd> annotate &nbsp; <kbd>C</kbd> collapse<br>
@@ -1658,10 +1669,10 @@ body.figure-focused #figure-overlay { display: flex; }
   display: none;
   align-items: center;
   justify-content: center;
-  background: oklch(0.06 0 0 / 0.78);
+  background: oklch(0.06 0 0 / 0.92);
   z-index: 30;
   cursor: zoom-out;
-  padding: 4vh 4vw;
+  padding: 1vh 1vw;
 }
 /* The target is always shown on a solid paper card – otherwise the
    dimmed backdrop bleeds through (shiki-highlighted code in particular
@@ -1669,12 +1680,12 @@ body.figure-focused #figure-overlay { display: flex; }
    and the chunk-body override that set pre.shiki background to
    transparent for in-flow rendering. */
 #figure-overlay > .figure-focus-target {
-  max-width: 92vw;
-  max-height: 88vh;
+  max-width: 98vw;
+  max-height: 98vh;
   overflow: auto;
   background: var(--paper) !important;
   box-shadow: 0 0 0 1px var(--rule);
-  padding: 3vh 3vw;
+  padding: 1.2vh 1.2vw;
   cursor: zoom-out;
   font-family: var(--body-font);
   color: var(--ink);
@@ -1694,14 +1705,16 @@ body.figure-focused #figure-overlay { display: flex; }
   margin: 0;
   background: transparent;
 }
-#figure-overlay figure.figure-img { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.8em; }
-/* Scale the image up to use the available overlay area. width:auto +
-   max-width + max-height preserves aspect ratio while letting the
-   image grow beyond its intrinsic size (SVGs often default to 300×150
-   when embedded via <img>, which is too small for a zoom overlay). */
-#figure-overlay figure.figure-img img {
-  width: min(86vw, 1400px);
-  max-height: 78vh;
+#figure-overlay figure.figure-img { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.6em; }
+/* Scale the image up to use the available overlay area. We drop the
+   px cap so the figure consumes the viewport on big displays; the
+   ~92vh ceiling leaves a sliver for the figcaption underneath.
+   Inlined SVGs need the same constraints as <img> – they're spliced
+   as <svg> elements and otherwise honor their intrinsic width="…". */
+#figure-overlay figure.figure-img img,
+#figure-overlay figure.figure-img svg {
+  width: 95vw;
+  max-height: 92vh;
   height: auto;
   object-fit: contain;
 }
@@ -2069,6 +2082,50 @@ body.blanked #stage { opacity: 0; }
 }
 #laser-pointer.visible { opacity: 1; }
 body[data-view=speaker] #laser-pointer { display: none; }
+
+/* Touch control rail (audience only) – prev/next/overview/zoom shown
+   only on coarse-pointer devices (phones, tablets without keyboards).
+   The element doesn't exist in speaker.html. The CSS @media gate
+   self-adapts: an iPad with a Magic Keyboard re-classifies as a fine
+   pointer and the rail disappears. */
+#touch-controls { display: none; }
+@media (pointer: coarse) {
+  #touch-controls {
+    display: flex;
+    position: fixed;
+    bottom: max(0.6em, env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    gap: 0.25em;
+    z-index: 35;
+    background: oklch(0.10 0 0 / 0.78);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    padding: 0.35em 0.5em;
+    border-radius: 999px;
+    box-shadow: 0 4px 18px oklch(0 0 0 / 0.35);
+  }
+  #touch-controls button {
+    background: transparent;
+    border: 0;
+    color: oklch(0.96 0 0);
+    font-size: 1.5em;
+    width: 2.2em;
+    height: 2.2em;
+    border-radius: 50%;
+    cursor: pointer;
+    font-family: inherit;
+    line-height: 1;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  #touch-controls button:active { background: oklch(0.30 0 0); }
+  /* Hide while a figure is focused or the screen is blanked – tapping
+     prev/next during those states would advance behind an overlay. */
+  body.figure-focused #touch-controls,
+  body.blanked #touch-controls { display: none; }
+}
 
 /* overview mode (PRD §5) ------------------------------------------- */
 body.overview-mode #stage-viewport { cursor: grab; }
@@ -3222,6 +3279,26 @@ function panToElement(el) {
   focusCamera(false);
 }
 
+// Touch control rail (audience only). The element is rendered only
+// in audience.html; speaker.html doesn't include it, so this no-ops
+// there. CSS hides the rail on fine-pointer devices.
+function wireTouchControls() {
+  const bar = document.getElementById('touch-controls');
+  if (!bar) return;
+  bar.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    e.stopPropagation();
+    switch (btn.dataset.action) {
+      case 'prev':      prevChunk(); break;
+      case 'next':      if (!advanceReveal()) nextChunk(); break;
+      case 'overview':  toggleOverview(); break;
+      case 'zoom-in':   setZoom(state.zoom + 0.1); break;
+      case 'zoom-out':  setZoom(state.zoom - 0.1); break;
+    }
+  });
+}
+
 function wireFigureClicks() {
   flatChunks.forEach(({ el }) => {
     el.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia').forEach(target => {
@@ -3259,6 +3336,7 @@ document.querySelectorAll('.reveal-segment').forEach(seg => splitSentencesIn(seg
 wireAnnotations();
 wireClicks();
 wireFigureClicks();
+wireTouchControls();
 applyRevealAll();
 applyState();
 // Two rAFs so fonts have a chance to settle before the first camera solve.
