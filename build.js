@@ -1226,15 +1226,30 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx) {
 </article>`;
 }
 
+// A column with `# Heading {#id}` opens with a section-divider slide so
+// the audience/speaker camera lands on the heading before the first
+// chunk. Print already renders col.heading as a static `<h1>`; here we
+// need it as its own `.chunk` so flatChunks (the navigator) sees it.
+function renderColumnSectionChunk(col, ci) {
+  const chunkId = col.id ? `${col.id}-section` : `__section-c${ci}`;
+  return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-chunk-id="${escapeHtml(chunkId)}">
+  <div class="chunk-content">
+    <h1 class="section-heading">${escapeHtml(col.heading)}</h1>
+  </div>
+</article>`;
+}
+
 // Shared audience/speaker column shell. Both stage the same flat-chunk
 // markup; only the per-view head/chrome differs.
 function renderColumnsHtml(columns, frontmatter) {
   return columns.map((col, ci) => {
+    const sectionHtml = col.heading ? renderColumnSectionChunk(col, ci) : '';
     const chunks = col.chunks
       .map((c, xi) => renderAudienceChunk(c, frontmatter, ci, xi))
       .join('\n');
     const idAttr = col.id ? ` id="${escapeHtml(col.id)}"` : '';
     return `<section class="column" data-col="${ci}"${idAttr}>
+${sectionHtml}
 ${chunks}
 </section>`;
   }).join('\n');
@@ -1822,6 +1837,36 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
   line-height: 1.5;
 }
 .chunk-title .title-info p { margin: 0.15em 0; }
+
+/* section divider slide: opens each named column ('# Heading').
+   Centered like a part-title page so the camera has a clear stop
+   before the first chunk of the section. */
+.chunk-section { align-items: center; }
+.chunk-section .chunk-content {
+  grid-column: 2;
+  align-items: flex-start;
+  gap: 0.4em;
+}
+.chunk-section .section-heading {
+  font-family: var(--body-font);
+  font-size: calc(2.6em * var(--zoom));
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+  color: var(--ink);
+}
+.chunk-section .section-heading::before {
+  content: '§';
+  display: block;
+  font-family: var(--sans-font);
+  font-size: calc(0.42em * var(--zoom));
+  font-weight: 400;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.18em;
+  color: var(--ink-soft);
+  margin-bottom: 0.6em;
+}
 
 /* margin notes: inline below body, dimmed, small */
 .margin-note {
