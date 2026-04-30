@@ -663,6 +663,16 @@ function escapeHtml(s = '') {
     .replace(/"/g, '&quot;');
 }
 
+// Slide-number badge. Each digit gets its own <i> so the CSS can stack
+// them with flex-direction: column without relying on writing-mode +
+// text-orientation, which renders inconsistently across sans fonts
+// (some glyphs end up rotated when text-orientation: upright is set).
+function renderChunkNumBadge(num, tag = 'div') {
+  if (!num) return '';
+  const digits = String(num).split('').map(d => `<i>${d}</i>`).join('');
+  return `<${tag} class="chunk-num" aria-hidden="true">${digits}</${tag}>`;
+}
+
 // Serialize a value for inline <script> injection. Plain JSON would let
 // a title containing `</script>` close the tag and inject arbitrary HTML;
 // escaping `<` as a unicode escape blocks that path and stays valid JSON.
@@ -702,11 +712,13 @@ function renderHeadingHtml(chunk, cls = 'chunk-heading') {
   return `<h2 class="${cls} has-sub"><span class="hd-main">${main}</span> <span class="hd-sub">${sub}</span></h2>`;
 }
 
-function renderChunk(chunk, frontmatter) {
+function renderChunk(chunk, frontmatter, num) {
   const { tag, body = '', id, width, expansions = [], annotation = '' } = chunk;
   const bodyHtml = body ? marked.parse(body) : '';
 
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
+  const numAttr = num ? ` data-chunk-num="${num}"` : '';
+  const numHtml = renderChunkNumBadge(num, 'span');
 
   if (tag === 'title') {
     // Title chunk's heading text and sub-heading are intentionally ignored:
@@ -714,7 +726,8 @@ function renderChunk(chunk, frontmatter) {
     // there's a single source of truth. Authors write `## title: {#title}`
     // with an empty heading by convention; the body, if non-empty, overrides
     // the `info` lines (PRD §3, §4.4).
-    return `<article class="chunk chunk-title"${idAttr}>
+    return `<article class="chunk chunk-title"${numAttr}${idAttr}>
+  ${numHtml}
   ${renderTitleBlock({ ...frontmatter, bodyHtml })}
 </article>`;
   }
@@ -747,7 +760,8 @@ ${inner}
 </aside>`
     : '';
 
-  return `<article class="${classes}"${idAttr}>
+  return `<article class="${classes}"${idAttr}${numAttr}>
+  ${numHtml}
   ${label}
   ${renderHeadingHtml(chunk)}
   ${bodyHtml}
@@ -756,8 +770,8 @@ ${inner}
 </article>`;
 }
 
-function renderColumn(col, frontmatter) {
-  const chunksHtml = col.chunks.map(c => renderChunk(c, frontmatter)).join('\n');
+function renderColumn(col, frontmatter, nextNum) {
+  const chunksHtml = col.chunks.map(c => renderChunk(c, frontmatter, nextNum ? nextNum() : undefined)).join('\n');
   if (!col.heading) {
     return `<section class="column column-anon">\n${chunksHtml}\n</section>`;
   }
@@ -786,12 +800,16 @@ function renderDocument(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
   const title = lectureTitle(frontmatter);
   const toc = renderToc(columns);
+  // Single monotonic counter shared across anon + named columns so
+  // the print numbers match the audience's chunk-num badges 1:1.
+  let chunkCounter = 0;
+  const nextNum = () => ++chunkCounter;
   // Title / anon columns render above the TOC (cover page first),
   // named columns render after (body of the document).
   const anonHtml = columns.filter(c => !c.heading)
-    .map(c => renderColumn(c, frontmatter)).join('\n');
+    .map(c => renderColumn(c, frontmatter, nextNum)).join('\n');
   const namedHtml = columns.filter(c => c.heading)
-    .map(c => renderColumn(c, frontmatter)).join('\n');
+    .map(c => renderColumn(c, frontmatter, nextNum)).join('\n');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -907,6 +925,7 @@ a:hover { text-decoration-color: var(--ink); }
   margin: 1.6rem 0 2.2rem;
   page-break-inside: avoid;
   break-inside: avoid;
+  position: relative;
 }
 .chunk-heading {
   font-size: 1.12rem;
@@ -923,6 +942,26 @@ a:hover { text-decoration-color: var(--ink); }
   color: var(--ink-soft);
   margin: 0 0 0.15rem;
 }
+/* Unobtrusive slide number in the outer margin, aligned with the chunk
+   heading. Sits to the left of the text column so it never disturbs
+   line wrap; vertical writing mode keeps the marker thin against tall
+   chunks and matches the audience badge orientation. */
+.chunk-num {
+  position: absolute;
+  top: 0;
+  left: -2.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  color: var(--ink-soft);
+  opacity: 0.55;
+}
+.chunk-num i { font-style: normal; }
+.chunk-title .chunk-num { display: none; }
 
 .chunk-principle {
   border-top: 2.5pt solid var(--ink);
@@ -1145,19 +1184,22 @@ function abbrevForLabel(label) {
   return 'Exp';
 }
 
-function renderTitleChunk(chunk, frontmatter) {
+function renderTitleChunk(chunk, frontmatter, num) {
   const idAttr = chunk.id ? ` id="${escapeHtml(chunk.id)}"` : '';
   const chunkId = chunk.id || 'title';
   const bodyHtml = (chunk.body || '').trim() ? marked.parse(chunk.body) : '';
-  return `<article class="chunk chunk-title" data-tag="title" data-width="full" data-chunk-id="${escapeHtml(chunkId)}"${idAttr}>
+  const numAttr = num ? ` data-chunk-num="${num}"` : '';
+  const numHtml = renderChunkNumBadge(num, 'div');
+  return `<article class="chunk chunk-title" data-tag="title" data-width="full" data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}>
   <div class="chunk-content">
     ${renderTitleBlock({ ...frontmatter, bodyHtml })}
   </div>
+  ${numHtml}
 </article>`;
 }
 
-function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx) {
-  if (chunk.tag === 'title') return renderTitleChunk(chunk, frontmatter);
+function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num) {
+  if (chunk.tag === 'title') return renderTitleChunk(chunk, frontmatter, num);
 
   const { tag, heading, segments = [], id, width, expansions = [], annotation = '' } = chunk;
   const chunkId = id || `c${colIdx}-${chunkIdx}`;
@@ -1213,8 +1255,10 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx) {
 
   const widthAttr = ` data-width="${escapeHtml(width || 'standard')}"`;
   const tagAttr = tag ? ` data-tag="${escapeHtml(tag)}"` : '';
+  const numAttr = num ? ` data-chunk-num="${num}"` : '';
+  const numHtml = renderChunkNumBadge(num, 'div');
 
-  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}>
+  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${numAttr}>
   <div class="chunk-content">
     ${tagLabel}
     ${headingHtml}
@@ -1228,6 +1272,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx) {
   </div>
   ${chevsHtml}
   ${expBodiesHtml}
+  ${numHtml}
 </article>`;
 }
 
@@ -1246,11 +1291,20 @@ function renderColumnSectionChunk(col, ci) {
 
 // Shared audience/speaker column shell. Both stage the same flat-chunk
 // markup; only the per-view head/chrome differs.
+//
+// A monotonic chunk counter is threaded across every authored chunk so
+// each slide can render a corner badge with its global number. Section
+// dividers are auto-inserted, not authored, and stay unnumbered – this
+// keeps audience numbering aligned with print.
 function renderColumnsHtml(columns, frontmatter) {
+  let num = 0;
   return columns.map((col, ci) => {
     const sectionHtml = col.heading ? renderColumnSectionChunk(col, ci) : '';
     const chunks = col.chunks
-      .map((c, xi) => renderAudienceChunk(c, frontmatter, ci, xi))
+      .map((c, xi) => {
+        num += 1;
+        return renderAudienceChunk(c, frontmatter, ci, xi, num);
+      })
       .join('\n');
     const idAttr = col.id ? ` id="${escapeHtml(col.id)}"` : '';
     return `<section class="column" data-col="${ci}"${idAttr}>
@@ -1520,6 +1574,35 @@ textarea, input, [contenteditable=true] {
   color: var(--ink-soft);
   opacity: 0.85;
 }
+
+/* Floating slide-number badge: vertical orientation, anchored to the
+   top of the chunk so it stays visible even when a chunk's content
+   overflows the viewport height (the audience camera lands on the
+   heading first, and the badge sits right next to it). Sized in plain
+   em (inherits from the responsive body font) so it tracks the viewport
+   but ignores the user's --zoom hotkey. */
+.chunk-num {
+  position: absolute;
+  top: var(--slide-pad-y);
+  right: calc(var(--slide-pad-x) * 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--sans-font);
+  font-size: 0.78em;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  line-height: 1.05;
+  color: var(--ink-soft);
+  opacity: 0.32;
+  pointer-events: none;
+  user-select: none;
+  z-index: 2;
+}
+.chunk-num i { font-style: normal; }
+.chunk:hover > .chunk-num,
+.chunk.active > .chunk-num { opacity: 0.5; }
+body.figure-focused .chunk-num { opacity: 0; }
 .chunk-heading {
   font-family: var(--body-font);
   font-weight: 600;
