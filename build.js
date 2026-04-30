@@ -709,6 +709,11 @@ function renderChunk(chunk, frontmatter) {
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
 
   if (tag === 'title') {
+    // Title chunk's heading text and sub-heading are intentionally ignored:
+    // the cover renders from frontmatter (`title`, `presenter`, `info`) so
+    // there's a single source of truth. Authors write `## title: {#title}`
+    // with an empty heading by convention; the body, if non-empty, overrides
+    // the `info` lines (PRD §3, §4.4).
     return `<article class="chunk chunk-title"${idAttr}>
   ${renderTitleBlock({ ...frontmatter, bodyHtml })}
 </article>`;

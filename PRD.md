@@ -119,7 +119,7 @@ Formal statement. $k \geq 2$ inline math.
 **Rules:**
 - `# Heading` = column title.
 - `## tag: Chunk heading` = chunk, with structural tag prefix. Tag is optional; width class and ID are attributes.
-- `## title: {#title}` = cover slide. Body may be empty; the renderer pulls `title`, `presenter`, `info` from frontmatter. A non-empty body overrides `info`.
+- `## title: {#title}` = cover slide. The heading text after `title:` is intentionally ignored – the cover always renders from frontmatter (`title`, `presenter`, `info`), so the heading is left empty by convention and only the `{#title}` id is needed. The body may also be empty; a non-empty body overrides `info`.
 - Width classes: `.narrow`, `.standard`, `.wide`, `.full`. Default: `.standard`.
 - `::: margin` and `::: expand <label>` are fenced divs.
 - `::: sketch <sketch-id>` defines a live sketch slot with a stable id.
