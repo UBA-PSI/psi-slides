@@ -2087,7 +2087,9 @@ body.blanked #stage { opacity: 0; }
   pointer-events: none;
   opacity: 0;
   transition: opacity 180ms ease;
-  z-index: 25;
+  /* Above #figure-overlay (z 30) so the laser stays visible while the
+     speaker hovers over a focused figure. */
+  z-index: 40;
 }
 #laser-pointer.visible { opacity: 1; }
 body[data-view=speaker] #laser-pointer { display: none; }
@@ -2562,7 +2564,7 @@ window.addEventListener('message', (ev) => {
     return;
   }
   if (m.type === 'cursor' && VIEW === 'audience') {
-    showLaserPointer(m.chunkIdx, m.x, m.y);
+    showLaserPointer(m.chunkIdx, m.x, m.y, m.target);
   }
   if (VIEW === 'audience') {
     if (m.type === 'figure-focus') {
@@ -2602,12 +2604,22 @@ window.addEventListener('message', (ev) => {
 // its own copy of the active chunk (so different zoom levels still align).
 const laserEl = document.getElementById('laser-pointer');
 let laserHideTimer = null;
-function showLaserPointer(chunkIdx, px, py) {
+function showLaserPointer(chunkIdx, px, py, target) {
   if (!laserEl) return;
-  if (chunkIdx !== state.activeIdx) { hideLaserPointer(); return; }
-  const entry = flatChunks[chunkIdx];
-  if (!entry) return;
-  const r = entry.el.getBoundingClientRect();
+  if (chunkIdx < 0) { hideLaserPointer(); return; }
+  let r;
+  if (target === 'figure') {
+    // Position relative to the audience's own focused card. If no figure
+    // is focused locally (e.g. the focus message hasn't arrived yet),
+    // drop the dot rather than render at a stale chunk position.
+    if (!focusedFigure) { hideLaserPointer(); return; }
+    r = focusedFigure.getBoundingClientRect();
+  } else {
+    if (chunkIdx !== state.activeIdx) { hideLaserPointer(); return; }
+    const entry = flatChunks[chunkIdx];
+    if (!entry) return;
+    r = entry.el.getBoundingClientRect();
+  }
   laserEl.style.left = (r.left + px * r.width) + 'px';
   laserEl.style.top  = (r.top  + py * r.height) + 'px';
   laserEl.classList.add('visible');
@@ -4609,9 +4621,9 @@ window.addEventListener('resize', () => {
 let laserPending = null;
 function maybeSendLaser() {
   if (!laserPending) return;
-  const { x, y, chunkIdx } = laserPending;
+  const { x, y, chunkIdx, target } = laserPending;
   laserPending = null;
-  sendToPeer({ type: 'cursor', source: 'speaker', chunkIdx, x, y });
+  sendToPeer({ type: 'cursor', source: 'speaker', chunkIdx, x, y, target });
 }
 viewport.addEventListener('pointermove', (ev) => {
   const entry = flatChunks[state.activeIdx];
@@ -4621,10 +4633,29 @@ viewport.addEventListener('pointermove', (ev) => {
   const x = (ev.clientX - r.left) / r.width;
   const y = (ev.clientY - r.top) / r.height;
   if (!laserPending) requestAnimationFrame(maybeSendLaser);
-  laserPending = { x, y, chunkIdx: state.activeIdx };
+  laserPending = { x, y, chunkIdx: state.activeIdx, target: 'chunk' };
 });
 viewport.addEventListener('pointerleave', () => {
   // Tell audience to drop the dot when the speaker mouse leaves the stage.
+  sendToPeer({ type: 'cursor', source: 'speaker', chunkIdx: -1, x: 0, y: 0 });
+});
+
+// Mirror the speaker's cursor while a figure is focused. The overlay
+// covers the viewport (z-index 30), so the viewport pointermove above
+// stops firing once focus is active – without this handler the audience
+// would never see the laser dot during figure inspection. Coords are
+// fractions of the focused card's bounding box, which the audience
+// resolves against its own card (kept in lockstep via figure-view).
+figureOverlay.addEventListener('pointermove', (ev) => {
+  if (!focusedFigure) return;
+  const r = focusedFigure.getBoundingClientRect();
+  if (r.width <= 0 || r.height <= 0) return;
+  const x = (ev.clientX - r.left) / r.width;
+  const y = (ev.clientY - r.top) / r.height;
+  if (!laserPending) requestAnimationFrame(maybeSendLaser);
+  laserPending = { x, y, chunkIdx: state.activeIdx, target: 'figure' };
+});
+figureOverlay.addEventListener('pointerleave', () => {
   sendToPeer({ type: 'cursor', source: 'speaker', chunkIdx: -1, x: 0, y: 0 });
 });
 
