@@ -1419,8 +1419,8 @@ html, body {
   font-family: var(--body-font);
   font-size: clamp(20px, calc(var(--slide-h) * 0.026), 38px);
 }
-/* Disable text selection in the live views: shift-drag pans the stage
-   and accidentally selecting prose mid-lecture is a constant
+/* Disable text selection in the live views: drag pans the stage and
+   accidentally selecting prose mid-lecture is a constant
    micro-distraction. Print keeps selection for copy-paste. Textareas
    and inputs re-enable it so annotations/notes remain editable. */
 html, body { user-select: none; -webkit-user-select: none; }
@@ -2652,7 +2652,7 @@ function focusCamera(instant = false) {
     ty = (height <= vp.height) ? vp.height / 2 - (top + height / 2) : vp.height * 0.05 - top;
   }
 
-  // Shift-drag manual pan offset (§5: zoom-induced overflow). Reset on chunk change.
+  // Manual pan offset from drag (§5: zoom-induced overflow). Reset on chunk change.
   tx += manualPan.dx; ty += manualPan.dy;
 
   if (instant) stage.style.transition = 'none';
@@ -2773,7 +2773,7 @@ function jumpTo(idx, direction) {
   if (annotEditingId) blurAnnotation();
   if (focusedFigure) unfocusFigure();
   closeAnyExpansion();
-  // Reset shift-drag pan on chunk change – pan is per-chunk inspection.
+  // Reset drag pan on chunk change – pan is per-chunk inspection.
   manualPan = { dx: 0, dy: 0 };
 
   const target = flatChunks[idx];
@@ -3140,9 +3140,10 @@ viewport.addEventListener('pointerdown', (e) => {
   // Skip drag on interactive children so click-to-select still works.
   if (e.target.closest('button, textarea, input, .annot-box, .exp-chev, .annot-add, nav#toc')) return;
   // Two pan modes share this handler: in overview, any drag pans; in
-  // normal view, shift+drag pans (chunk-local, reset on navigation).
-  const mode = overview ? 'overview' : (e.shiftKey ? 'view' : null);
-  if (!mode) return;
+  // normal view, plain drag pans (chunk-local, reset on navigation).
+  // The 3px movement threshold below keeps plain clicks (chunk select,
+  // figure focus) intact – only an actual drag flips into pan mode.
+  const mode = overview ? 'overview' : 'view';
   // Don't setPointerCapture eagerly: it would re-target pointerup to
   // viewport, breaking the synthesized click on the underlying chunk.
   // Use window-level listeners and only enter "dragging" after a real move.
