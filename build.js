@@ -1111,6 +1111,11 @@ a:hover { text-decoration-color: var(--ink); }
 .marginalia > :first-child { margin-top: 0; }
 .marginalia > :last-child { margin-bottom: 0; }
 
+/* Baseline: any raw <img> (e.g. direct-path Markdown images that bypass
+   the figure.figure-img wrapper) is constrained to the page measure so
+   high-resolution screenshots cannot overflow A4. */
+img { max-width: 100%; height: auto; }
+
 /* figure-img: single-column figure with caption below. Both <img> and
    inlined <svg> need an explicit max-width — SVGs spliced via
    inlineSvg() preserve their intrinsic width="…" attribute and would
@@ -1733,6 +1738,11 @@ body.figure-focused .chunk-num { opacity: 0; }
 }
 
 /* Images & figures --------------------------------------------------- */
+/* Baseline for raw <img> (direct-path Markdown images that bypass the
+   figure.figure-img wrapper). Without this, a high-resolution screenshot
+   would render at intrinsic pixel size and overflow the slide. */
+img { max-width: 100%; height: auto; }
+
 figure.figure-img {
   margin: 0.6em 0;
   display: flex;
