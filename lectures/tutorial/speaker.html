@@ -350,6 +350,11 @@ body.figure-focused .chunk-num { opacity: 0; }
 }
 
 /* Images & figures --------------------------------------------------- */
+/* Baseline for raw <img> (direct-path Markdown images that bypass the
+   figure.figure-img wrapper). Without this, a high-resolution screenshot
+   would render at intrinsic pixel size and overflow the slide. */
+img { max-width: 100%; height: auto; }
+
 figure.figure-img {
   margin: 0.6em 0;
   display: flex;

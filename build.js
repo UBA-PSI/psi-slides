@@ -712,8 +712,8 @@ function renderHeadingHtml(chunk, cls = 'chunk-heading') {
   return `<h2 class="${cls} has-sub"><span class="hd-main">${main}</span> <span class="hd-sub">${sub}</span></h2>`;
 }
 
-function renderChunk(chunk, frontmatter, num) {
-  const { tag, body = '', id, width, expansions = [], annotation = '' } = chunk;
+function renderChunk(chunk, frontmatter, num, opts = {}) {
+  const { tag, body = '', id, width, expansions = [], annotation = '', speakerNotes = [] } = chunk;
   const bodyHtml = body ? marked.parse(body) : '';
 
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
@@ -760,6 +760,13 @@ ${inner}
 </aside>`
     : '';
 
+  const notesHtml = (opts.withNotes && speakerNotes.length)
+    ? `<aside class="speaker-note">
+<span class="speaker-note-label">Speaker Note</span>
+<div class="speaker-note-body">${speakerNotes.map(n => marked.parse(n)).join('\n')}</div>
+</aside>`
+    : '';
+
   return `<article class="${classes}"${idAttr}${numAttr}>
   ${numHtml}
   ${label}
@@ -767,11 +774,12 @@ ${inner}
   ${bodyHtml}
   ${expansionsHtml}
   ${annotationHtml}
+  ${notesHtml}
 </article>`;
 }
 
-function renderColumn(col, frontmatter, nextNum) {
-  const chunksHtml = col.chunks.map(c => renderChunk(c, frontmatter, nextNum ? nextNum() : undefined)).join('\n');
+function renderColumn(col, frontmatter, nextNum, chunkOpts = {}) {
+  const chunksHtml = col.chunks.map(c => renderChunk(c, frontmatter, nextNum ? nextNum() : undefined, chunkOpts)).join('\n');
   if (!col.heading) {
     return `<section class="column column-anon">\n${chunksHtml}\n</section>`;
   }
@@ -806,17 +814,19 @@ function renderDocument(lecture, opts = {}) {
   const nextNum = () => ++chunkCounter;
   // Title / anon columns render above the TOC (cover page first),
   // named columns render after (body of the document).
+  const chunkOpts = { withNotes: !!opts.withNotes };
   const anonHtml = columns.filter(c => !c.heading)
-    .map(c => renderColumn(c, frontmatter, nextNum)).join('\n');
+    .map(c => renderColumn(c, frontmatter, nextNum, chunkOpts)).join('\n');
   const namedHtml = columns.filter(c => c.heading)
-    .map(c => renderColumn(c, frontmatter, nextNum)).join('\n');
+    .map(c => renderColumn(c, frontmatter, nextNum, chunkOpts)).join('\n');
 
+  const titleSuffix = opts.withNotes ? 'print + notes' : 'print';
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(title)} – print</title>
+<title>${escapeHtml(title)} – ${titleSuffix}</title>
 <style>
 ${PRINT_CSS}
 </style>
@@ -1020,31 +1030,48 @@ a:hover { text-decoration-color: var(--ink); }
 .chunk-expansion > :last-child { margin-bottom: 0; }
 .chunk-expansion strong { color: var(--ink); }
 
-/* Presentation Note: annotation the lecturer typed live (> annot: in
-   source) and committed back into the document. Rendered as a small,
-   indented block so it reads as a post-hoc remark rather than part of
-   the main argument. */
-.presentation-note {
+/* Chunk-attached asides. Two flavors share layout and differ only in color:
+   .presentation-note (warm) – live annotation typed during the lecture
+     and committed back via "> annot:" integration.
+   .speaker-note (cool) – author-written "> note:" text, emitted only by
+     the print-with-notes target. */
+.presentation-note,
+.speaker-note {
   margin: 0.9rem 0 0.4rem;
   padding: 0.45rem 0.8rem;
-  border-left: 2pt solid oklch(0.72 0.12 80);
-  background: oklch(0.985 0.014 80);
+  border-left: 2pt solid var(--note-border);
+  background: var(--note-bg);
   color: var(--ink);
   font-size: 0.92em;
 }
-.presentation-note-label {
+.presentation-note-label,
+.speaker-note-label {
   display: inline-block;
   font-family: var(--sans);
   font-variant-caps: all-small-caps;
   font-size: 0.72rem;
   letter-spacing: 0.14em;
-  color: oklch(0.48 0.1 80);
+  color: var(--note-label);
   margin-right: 0.4em;
 }
-.presentation-note-body { display: inline; }
-.presentation-note-body > :first-child { display: inline; margin: 0; }
-.presentation-note-body > :first-child + * { margin-top: 0.35em; }
-.presentation-note-body > :last-child { margin-bottom: 0; }
+.presentation-note-body,
+.speaker-note-body { display: inline; }
+.presentation-note-body > :first-child,
+.speaker-note-body > :first-child { display: inline; margin: 0; }
+.presentation-note-body > :first-child + *,
+.speaker-note-body > :first-child + * { margin-top: 0.35em; }
+.presentation-note-body > :last-child,
+.speaker-note-body > :last-child { margin-bottom: 0; }
+.presentation-note {
+  --note-border: oklch(0.72 0.12 80);
+  --note-bg:     oklch(0.985 0.014 80);
+  --note-label:  oklch(0.48 0.1 80);
+}
+.speaker-note {
+  --note-border: oklch(0.66 0.1 240);
+  --note-bg:     oklch(0.97 0.018 240);
+  --note-label:  oklch(0.46 0.09 240);
+}
 
 /* Title slide: lower-left-third per PRD §4.4 */
 .chunk-title {
@@ -4984,9 +5011,10 @@ function buildOnce(absIn, only, opts = {}) {
   const shape = `${lecture.columns.length} columns, ${chunkCount} chunks`;
 
   const targets = [
-    ['print',    renderDocument],
-    ['audience', renderAudience],
-    ['speaker',  renderSpeaker],
+    ['print',       renderDocument],
+    ['print-notes', (l, o) => renderDocument(l, { ...o, withNotes: true })],
+    ['audience',    renderAudience],
+    ['speaker',     renderSpeaker],
   ].filter(([name]) => !only || only === `--${name}-only`);
 
   const written = [];
@@ -5110,7 +5138,7 @@ async function main() {
 
   if (!inputPath || flags.has('--help') || flags.has('-h')) {
     console.error('Usage:');
-    console.error('  node build.js <source.md> [--watch] [--audience-only|--print-only|--speaker-only]');
+    console.error('  node build.js <source.md> [--watch] [--audience-only|--print-only|--print-notes-only|--speaker-only]');
     console.error('                            [--inline-images|--no-inline-images]');
     console.error('  node build.js <source.md> --integrate-annotations');
     console.error('  node build.js --new <slug>');
@@ -5136,7 +5164,7 @@ async function main() {
     return;
   }
 
-  const onlyFlags = ['--audience-only', '--print-only', '--speaker-only'].filter(f => flags.has(f));
+  const onlyFlags = ['--audience-only', '--print-only', '--print-notes-only', '--speaker-only'].filter(f => flags.has(f));
   if (onlyFlags.length > 1) {
     console.error(`Error: ${onlyFlags.join(' and ')} are mutually exclusive.`);
     process.exit(1);
