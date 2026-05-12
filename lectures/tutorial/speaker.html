@@ -1083,6 +1083,50 @@ body[data-view=speaker] #stage-viewport {
   display: flex;
   min-height: 0;
   overflow: hidden;
+  position: relative;
+}
+/* Drag handle straddling the stage/notes seam. Visible only while the
+   notes row is open (has-notes); ns-resize cursor invites the drag.
+   Sits 3px above the border-top so the hit area straddles the seam. */
+#notes-resizer {
+  display: none;
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  z-index: 5;
+  background: transparent;
+  touch-action: none;
+}
+#notes-resizer::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 42px;
+  height: 2px;
+  background: var(--ink-soft);
+  opacity: 0.25;
+  border-radius: 1px;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+#notes-resizer:hover::before { opacity: 0.7; }
+body.notes-resizing #notes-resizer::before { opacity: 1; background: var(--emph); }
+body.has-notes #notes-resizer { display: block; }
+/* When the user has dragged the resizer, swap the auto row for a fixed
+   pixel height; the 1fr stage row absorbs the delta and the
+   stage-cell ResizeObserver re-fits --stage-scale automatically, so the
+   audience preview shrinks ratio-proportional. */
+body[data-view=speaker].notes-sized {
+  grid-template-rows: 3vh 1fr var(--notes-height, auto) 22vh 2.2rem;
+}
+body[data-view=speaker].notes-sized #notes-content {
+  height: 100% !important;
+  box-sizing: border-box;
+  overflow: auto;
 }
 #notes-content {
   flex: 1;
@@ -1399,6 +1443,9 @@ body.has-notes #add-note-btn { display: none; }
 body[data-view=speaker].preview-right {
   grid-template-rows: 3vh 1fr auto 2.2rem;
   grid-template-columns: 1fr clamp(180px, 18vw, 300px);
+}
+body[data-view=speaker].preview-right.notes-sized {
+  grid-template-rows: 3vh 1fr var(--notes-height, auto) 2.2rem;
 }
 body[data-view=speaker].preview-right #scrubber     { grid-column: 1 / -1; grid-row: 1; }
 body[data-view=speaker].preview-right #stage-cell   { grid-column: 1; grid-row: 2; }
@@ -1916,6 +1963,7 @@ body[data-view=speaker].preview-right .preview-slot {
   <button id="add-note-btn" type="button" title="Open speaker notes (Shift-N)">+ note</button>
 </div>
 <aside id="notes-pane">
+  <div id="notes-resizer" role="separator" aria-orientation="horizontal" title="Drag to resize notes · double-click to reset"></div>
   <textarea id="notes-content" rows="1" spellcheck="false" placeholder=""></textarea>
 </aside>
 <div id="preview-strip"></div>
@@ -3511,11 +3559,18 @@ const NOTES_MIN_LINES = 1;
 const NOTES_MAX_LINES = 3;
 function autoSizeNotes() {
   const hasText = notesContent.value.trim().length > 0;
+  const sized = document.body.classList.contains('notes-sized');
   // Pane stays open while the textarea is focused so the author can
   // type into an empty pane (Shift-N / + note btn). On blur the class
   // drops back to hasText and an untouched pane collapses again.
-  const keepOpen = hasText || document.activeElement === notesContent;
+  // A manually-sized pane stays open unconditionally.
+  const keepOpen = sized || hasText || document.activeElement === notesContent;
   document.body.classList.toggle('has-notes', keepOpen);
+  if (sized) {
+    // Manually-sized: textarea fills the row; height comes from grid.
+    notesContent.style.height = '100%';
+    return;
+  }
   if (!hasText) {
     notesContent.style.height = '1.35em';
     return;
@@ -3782,6 +3837,69 @@ function togglePreviewOrientation() {
 // hides it once has-notes lands on body.
 document.getElementById('add-note-btn')?.addEventListener('click', () => {
   focusNotesPane();
+});
+
+// Drag-to-resize for the notes pane. Setting --notes-height + the
+// notes-sized class swaps the grid's auto row for a fixed pixel row;
+// the 1fr stage row shrinks correspondingly and stageCell's
+// ResizeObserver re-runs sizeStageViewport(), so the audience preview
+// rescales ratio-proportional. Persisted per-user; double-click resets.
+const notesResizer = document.getElementById('notes-resizer');
+const NOTES_HEIGHT_KEY = 'psi-slides:notes-height';
+const NOTES_MIN_PX = 60;
+const STAGE_MIN_PX = 140;
+
+function applyNotesHeight(px) {
+  document.documentElement.style.setProperty('--notes-height', px + 'px');
+  document.body.classList.add('notes-sized');
+  document.body.classList.add('has-notes');
+  notesContent.style.height = '100%';
+}
+function clearNotesHeight() {
+  document.documentElement.style.removeProperty('--notes-height');
+  document.body.classList.remove('notes-sized');
+  autoSizeNotes();
+}
+try {
+  const saved = parseFloat(localStorage.getItem(NOTES_HEIGHT_KEY));
+  if (saved && saved >= NOTES_MIN_PX) applyNotesHeight(saved);
+} catch (e) {}
+
+let notesDrag = null;
+notesResizer?.addEventListener('pointerdown', (ev) => {
+  ev.preventDefault();
+  try { notesResizer.setPointerCapture(ev.pointerId); } catch (e) {}
+  notesDrag = {
+    pointerId: ev.pointerId,
+    startY: ev.clientY,
+    startHeight: notesPane.getBoundingClientRect().height,
+    stageHeight: stageCell.getBoundingClientRect().height,
+  };
+  document.body.classList.add('notes-resizing');
+});
+notesResizer?.addEventListener('pointermove', (ev) => {
+  if (!notesDrag || ev.pointerId !== notesDrag.pointerId) return;
+  // Drag up → notes grows (positive dy); cap so the stage keeps at
+  // least STAGE_MIN_PX of room.
+  const dy = notesDrag.startY - ev.clientY;
+  const maxGrow = Math.max(0, notesDrag.stageHeight - STAGE_MIN_PX);
+  const next = Math.max(NOTES_MIN_PX, Math.min(notesDrag.startHeight + dy, notesDrag.startHeight + maxGrow));
+  applyNotesHeight(next);
+});
+function endNotesDrag(ev) {
+  if (!notesDrag) return;
+  try { notesResizer.releasePointerCapture(notesDrag.pointerId); } catch (e) {}
+  document.body.classList.remove('notes-resizing');
+  const px = Math.round(notesPane.getBoundingClientRect().height);
+  try { localStorage.setItem(NOTES_HEIGHT_KEY, String(px)); } catch (e) {}
+  notesDrag = null;
+}
+notesResizer?.addEventListener('pointerup', endNotesDrag);
+notesResizer?.addEventListener('pointercancel', endNotesDrag);
+notesResizer?.addEventListener('dblclick', () => {
+  try { localStorage.removeItem(NOTES_HEIGHT_KEY); } catch (e) {}
+  clearNotesHeight();
+  flashMode('notes height: auto');
 });
 
 // First populate (applyState ran before viewHooks was reassigned).
