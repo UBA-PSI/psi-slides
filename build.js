@@ -1777,8 +1777,15 @@ figure.figure-img {
   align-items: center;
   cursor: zoom-in;
 }
-figure.figure-img img {
+figure.figure-img img,
+figure.figure-img svg {
   max-width: 100%;
+  /* Cap on-slide figure height so tall/portrait images fit the slide with
+     room for heading + caption, instead of overflowing the (overflow:hidden)
+     slide and being clipped top and bottom. vh-based so it scales with the
+     viewport like the rest of the layout. The zoom overlay (press Enter)
+     still shows the figure at full 92vh. */
+  max-height: 50vh;
   height: auto;
   display: block;
   background: var(--paper);
