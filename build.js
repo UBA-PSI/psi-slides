@@ -362,6 +362,15 @@ marked.use({
       }
       return `<img src="${escapeHtml(src)}" alt="${escapeHtml(text || '')}"${titleAttr}>`;
     },
+    link(href, title, text) {
+      // External http(s) links open in a new tab so a click during a live
+      // talk never navigates away from the deck. Internal cross-references
+      // (`#id`) and other schemes keep default in-page behavior.
+      const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+      const isExternal = /^https?:\/\//i.test(href || '');
+      const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
+      return `<a href="${escapeHtml(href || '')}"${titleAttr}${target}>${text}</a>`;
+    },
   },
 });
 
@@ -895,6 +904,22 @@ pre {
   line-height: 1.45;
 }
 pre code { font-size: inherit; }
+
+table {
+  border-collapse: collapse;
+  margin: 0.6em 0 1.1em;
+  font-size: 0.92em;
+  line-height: 1.4;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+th, td {
+  padding: 0.35em 0.7em;
+  border: 0.5pt solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+th { font-weight: 600; color: var(--emph); border-bottom-width: 1pt; }
 
 a { color: inherit; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 0.15em; }
 a:hover { text-decoration-color: var(--ink); }
@@ -1653,9 +1678,31 @@ body.figure-focused .chunk-num { opacity: 0; }
 .chunk-body p:last-child { margin-bottom: 0; }
 .chunk-body strong { font-weight: var(--bold-weight); color: var(--emph); }
 .chunk-body em { font-style: italic; }
+.chunk-body a { color: var(--emph); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+.chunk-body a:hover { text-decoration-thickness: 2px; }
 .chunk-body ul, .chunk-body ol { margin: 0 0 0.7em 1.4em; }
 .chunk-body li { margin: 0.15em 0; }
 .chunk-body code { font-family: var(--mono-font); font-size: 0.92em; }
+/* GFM tables: marked emits bare <table>; without this they collapse to the
+   browser default of ~1px cell spacing and read as cramped. Borders use
+   var(--rule) so they track all six themes (same reactivity rule as figures). */
+.chunk-body table {
+  border-collapse: collapse;
+  margin: 0.4em 0 0.7em 0;
+  font-size: calc(0.92em * var(--zoom));
+  line-height: 1.35;
+}
+.chunk-body th, .chunk-body td {
+  padding: 0.35em 0.75em;
+  border: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+.chunk-body th {
+  font-weight: var(--bold-weight);
+  color: var(--emph);
+  border-bottom-width: 2px;
+}
 .chunk-body pre {
   font-family: var(--mono-font);
   font-size: calc(0.78em * var(--zoom));
