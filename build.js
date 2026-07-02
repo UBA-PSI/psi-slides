@@ -2654,11 +2654,43 @@ function snapshot() {
     // written. Cleared on blur, which also signals the pan-reset.
     annotEditingId: annotEditingId,
     openExp: openExp ? { chunkIdx: openExp.chunkIdx, expIdx: openExp.expIdx } : null,
+    // Camera framing so the peer mirrors the exact viewport, not just which
+    // slide is active: the manual drag-pan offset (layout-space dx/dy, shared
+    // directly since both views do camera math in layout space and share the
+    // audience aspect above), plus overview scale and the framed chunk.
+    panDx: manualPan.dx,
+    panDy: manualPan.dy,
+    overviewScale: overviewScale,
+    selectedIdx: selectedIdx,
   };
 }
 function broadcastState() {
   if (!shouldBroadcast()) return;
   sendToPeer({ type: 'state', source: VIEW, payload: snapshot() });
+}
+// Camera pan travels as a lightweight message during a drag (rAF-throttled)
+// so the peer follows smoothly without re-running the full-snapshot apply
+// 60×/second. The same fields also ride every state snapshot (above) so a
+// navigation or a freshly (re)connected peer still lands on the right pan.
+function broadcastPan() {
+  if (!shouldBroadcast()) return;
+  sendToPeer({ type: 'pan', source: VIEW, dx: manualPan.dx, dy: manualPan.dy, overviewScale, selectedIdx });
+}
+let panBroadcastScheduled = false;
+function schedulePanBroadcast() {
+  if (panBroadcastScheduled) return;
+  panBroadcastScheduled = true;
+  requestAnimationFrame(() => { panBroadcastScheduled = false; broadcastPan(); });
+}
+// Apply a peer's camera framing (from a 'pan' message or a state snapshot).
+function applyRemoteCamera(dx, dy, ovScale, selIdx) {
+  manualPan.dx = dx || 0;
+  manualPan.dy = dy || 0;
+  if (typeof ovScale === 'number' && ovScale > 0) overviewScale = ovScale;
+  if (typeof selIdx === 'number' && selIdx >= 0 && selIdx < flatChunks.length) {
+    flatChunks.forEach((c, i) => c.el.classList.toggle('overview-selected', i === selIdx));
+    selectedIdx = selIdx;
+  }
 }
 function applyRemoteState(payload) {
   isApplyingRemote = true;
@@ -2709,6 +2741,10 @@ function applyRemoteState(payload) {
       }
     }
     document.body.classList.toggle('blanked', state.blanked);
+    // Mirror the peer's camera framing before the camera is drawn below, so
+    // focusCamera / applyOverviewCamera pick up the same drag-pan, overview
+    // scale, and framed chunk.
+    applyRemoteCamera(payload.panDx, payload.panDy, payload.overviewScale, payload.selectedIdx);
     // Expansions: close any current, open the remote one if any. toggleExp
     // calls applyState internally, so skip the second call in that branch.
     closeAnyExpansion();
@@ -2738,6 +2774,14 @@ window.addEventListener('message', (ev) => {
   }
   if (m.type === 'state') {
     applyRemoteState(m.payload);
+    return;
+  }
+  if (m.type === 'pan') {
+    isApplyingRemote = true;
+    try {
+      applyRemoteCamera(m.dx, m.dy, m.overviewScale, m.selectedIdx);
+      focusCamera(true);
+    } finally { isApplyingRemote = false; }
     return;
   }
   if (m.type === 'cursor' && VIEW === 'audience') {
@@ -2942,7 +2986,7 @@ function setSelectedIdx(idx) {
   if (idx < 0 || idx >= flatChunks.length) return;
   flatChunks.forEach((c, i) => c.el.classList.toggle('overview-selected', i === idx));
   selectedIdx = idx;
-  if (overview) applyOverviewCamera(false);
+  if (overview) { applyOverviewCamera(false); broadcastPan(); }
 }
 
 // Shared teardown for both the O-toggle exit and the Esc-style dismiss.
@@ -3408,6 +3452,7 @@ viewport.addEventListener('wheel', (e) => {
   const factor = e.deltaY > 0 ? 0.92 : 1.08;
   overviewScale = Math.max(0.08, Math.min(1, overviewScale * factor));
   applyOverviewCamera(false);
+  schedulePanBroadcast();
 }, { passive: false });
 
 viewport.addEventListener('pointerdown', (e) => {
@@ -3434,12 +3479,14 @@ viewport.addEventListener('pointerdown', (e) => {
     manualPan.dx = session.dx0 + dx;
     manualPan.dy = session.dy0 + dy;
     apply(true);
+    schedulePanBroadcast();
   };
   const up = () => {
     window.removeEventListener('pointermove', move);
     window.removeEventListener('pointerup', up);
     if (!session.moved) return;
     document.body.classList.remove(dragClass);
+    broadcastPan(); // final position, exact (past any dropped throttle frame)
     // Swallow the synthesized click that follows a real drag, so a pan
     // doesn't accidentally select/jump on mouse-up.
     const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); window.removeEventListener('click', swallow, true); };
