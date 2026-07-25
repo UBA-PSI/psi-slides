@@ -340,13 +340,9 @@ Reach for `::: margin` when the supplementary content is short and trustworthy e
 
 $$d = \frac{H(S)}{\log_2 |S|}$$
 
-::: cols 2
+**Display math behaves like a figure**, staying on screen when the prose around it collapses, and clicking it zooms it into a focus card – which is what you want when a room asks to see a formula bigger. Inline math instead follows the sentence it lives in: visible in a topic sentence, hidden with continuation prose.
 
-**Display math behaves like a figure.** It stays on screen when the prose around it collapses, and clicking it zooms it into a focus card – which is what you want when a room asks to see a formula bigger. Inline math follows the sentence it lives in: visible in the topic sentence, hidden with the continuation prose.
-
-**A lone dollar is safe.** The delimiters are parsed as Markdown tokens, so `$PATH` inside code, a price of $5 and $10 in prose, and a `$$` inside a fence are all left alone. Write `\$` for a literal dollar if you want to be explicit.
-
-:::
+**A lone dollar is safe**, because the delimiters are parsed as Markdown tokens rather than by a search-and-replace over your source. `$PATH` inside code, a price of $5 and $10 in prose, and a `$$` inside a fence are all left alone; write `\$` if you want to be explicit.
 
 **Fonts are the price of the single-file promise.** A lecture with math inlines only the KaTeX font families its formulas actually use, typically around 130 KB of the full 254 KB; a lecture without math inlines nothing at all. The build prints which it did.
 
