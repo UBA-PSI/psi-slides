@@ -33,12 +33,12 @@ const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
 
 const SHIKI_LANGS = [
   'python', 'bash', 'shell', 'javascript', 'typescript',
-  'html', 'css', 'json', 'yaml', 'markdown', 'sql', 'toml', 'diff', 'text',
+  'html', 'css', 'c', 'json', 'yaml', 'markdown', 'sql', 'toml', 'diff', 'text',
 ];
 const SHIKI_THEME = 'github-light';
 const LANG_ALIAS = {
   py: 'python', sh: 'bash', zsh: 'bash',
-  js: 'javascript', ts: 'typescript', md: 'markdown',
+  js: 'javascript', ts: 'typescript', md: 'markdown', cc: 'c', h: 'c',
   plaintext: 'text', '': 'text',
 };
 let highlighter = null;
