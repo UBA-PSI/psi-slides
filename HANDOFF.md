@@ -303,6 +303,12 @@ Display-Mathe ist block-level und wird von den `topic-bold`-Regeln gar nicht erf
 
 **Fehlerverhalten.** `throwOnError: false` – eine kaputte Formel rendert rot statt den Build zu killen, weil ein Tippfehler mitten in der Vorlesung nicht den Projektor leeren darf. Damit sie nicht stumm ausgeliefert wird, prüft `renderMath` das Ergebnis auf `katex-error` und `buildOnce` meldet sie dedupliziert auf dem Terminal. `lint.js` hat zusätzlich `unclosed-math` (fence-aware, zero-dep); Inline-`$` wird bewusst nicht geprüft, weil ein einzelner Dollar in Prosa legitim ist.
 
+**Nachgezogen: `::: cols` im Collapse.** Aufgefallen am neuen `#math`-Chunk (zwei sehr kurze Topic-Sentences nebeneinander, dazwischen die volle Gutter-Breite – sieht aus wie ein Layout-Fehler), aber die Ursache ist älter. `#images` zeigt sie schlimmer: links „Alt text becomes a caption.“ allein, rechts fünf Zeilen. Kollabiert bleibt pro Absatz ein Satz, und `.cols > *` setzt `break-inside: avoid`, also kann der Browser nur in ganzen Absätzen balancieren. Mehrspaltiger Flow braucht genug Masse – kollabierter Inhalt hat sie per Definition nicht.
+
+Fix ist eine Regel unter `[data-collapse=topic-bold]`: `column-count: 1`. Print und der ungefaltete Lesemodus behalten die Spalten. Verifiziert an `python-intro` `#collections`, wo vier Definitionen vorher 2+2 auf ungleiche Höhen verteilt waren und jetzt als saubere vertikale Liste lesen. `#cols-demo` erklärt das Verhalten jetzt selbst, sonst würde ausgerechnet der Chunk über Mehrspaltigkeit kollabiert einspaltig dastehen.
+
+Dabei bin ich in genau den Fallstrick gelaufen, vor dem `CLAUDE.md` warnt: ein Backtick in einem Kommentar **innerhalb** von `AUDIENCE_CSS` beendet das Template-Literal. Der Build warf einen `SyntaxError`, aber ich hatte in derselben Zeile `2>&1 >/dev/null` stehen – die Screenshots zeigten danach den vorherigen Build, und der sah unverändert aus, was zunächst wie eine wirkungslose CSS-Regel aussah. Lehre für den nächsten Slice: beim Verifizieren einer Änderung nie stderr wegwerfen, und nach einer Änderung an einem inlined Stylesheet zuerst prüfen, ob die Regel überhaupt im Output steht (`grep -F` auf die HTML), bevor man sie im Browser beurteilt.
+
 **Regression.** Alle drei Lectures bauen, `lint.js lectures/` unverändert bei 3 Warnungen (die bekannten `figure-caption-redundant` in python-intro), Tutorial jetzt 10 Columns / 34 Chunks mit einem `#math`-Chunk als lebendem Beispiel. Der Header-Kommentar in `build.js`, der KaTeX als deferred führte, ist korrigiert.
 
 ## Was funktioniert
