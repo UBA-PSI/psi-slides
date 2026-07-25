@@ -70,7 +70,7 @@ The overview framing is therefore a pure function of `(overviewAnchorIdx, overvi
   only state. The clean model is: openExp lives in the snapshot and both
   sides mirror it.
 
-The speaker's "next previews" always render chunks **fully revealed** regardless of the synced `revealed` state (PRD §7 – the planning surface shows author-intent, not live pacing).
+The speaker's “next previews” always render chunks **fully revealed** regardless of the synced `revealed` state (PRD §7 – the planning surface shows author-intent, not live pacing).
 
 ## 3. Message protocol
 
@@ -151,14 +151,14 @@ Rebroadcast rule: **never** rebroadcast a received state. The sender is the sing
 - **Scrubber**: one `<button>` per column, showing `N. <heading>`. Below it, a row of dots – one per chunk – the active chunk's dot is filled. Click a button to jump to the column's first chunk. Click a dot to jump to that chunk.
 - **Current chunk**: identical rendering to the audience (same `renderAudienceChunk`), same collapse mode, same reveal state. Full chunk frame, scaled to fill the pane.
 - **Next previews**: 3 upcoming chunks (or fewer if near end), each at ~0.25 scale. No expansions, no annotations, no reveal – always fully revealed per PRD §7.
-- **Notes pane**: speaker notes extracted from `> note:` lines in source, per chunk. Drag the hairline bar on its top edge to resize (the stage preview rescales to fit via the `#stage-cell` ResizeObserver); double-click the bar to return to automatic height. The height is persisted per user. The bar names the gesture on hover, because a 2px line is not self-explanatory and "how do I make the notes bigger" turned out to be the question the pane most reliably failed to answer.
+- **Notes pane**: speaker notes extracted from `> note:` lines in source, per chunk. Drag the hairline bar on its top edge to resize (the stage preview rescales to fit via the `#stage-cell` ResizeObserver); double-click the bar to return to automatic height. The height is persisted per user. The bar names the gesture on hover, because a 2px line is not self-explanatory and “how do I make the notes bigger” turned out to be the question the pane most reliably failed to answer.
 - **Footer**: mm:ss timer, push-on/off indicator, and three buttons that duplicate the key-only cockpit actions – `⇄ preview` (strip orientation, = `V`), `export notes` (= `Shift-E`), `? help` (= `?`) – then the lecture slug and a one-line key crib.
 
 ### 4.1a Help overlay
 
 Both live views ship a full-screen keyboard-and-mouse reference on `?` (or the small `?` button in the corner / footer). It is grouped **by task, not by key**, and lists mouse gestures next to keys: several of the most useful affordances (resize the notes pane, click a figure to zoom it, drag to pan the overview board) have no key at all and were previously undiscoverable. `Esc` closes it ahead of every other Esc target; clicking the scrim closes, clicking inside does not, so the panel can stay open while you try a key.
 
-The speaker's copy leads with "Arranging this window", "Notes", and "The projector"; the audience's copy omits those and adds `S`. Generated once by `renderHelpOverlay(view)` in build.js so a label change lands in both.
+The speaker's copy leads with “Arranging this window”, “Notes”, and “The projector”; the audience's copy omits those and adds `S`. Generated once by `renderHelpOverlay(view)` in build.js so a label change lands in both.
 
 ### 4.2 Keyboard (speaker)
 

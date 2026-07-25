@@ -124,7 +124,7 @@ if not x:       # any falsy value
     ...
 ```
 
-The two guards mean different things the moment `x` can legitimately be `0` or an empty string. Use `is None` when you care about "was this ever assigned", `not x` when you care about "is there anything useful here".
+The two guards mean different things the moment `x` can legitimately be `0` or an empty string. Use `is None` when you care about “was this ever assigned”, `not x` when you care about “is there anything useful here”.
 :::
 
 ## example: F-strings | self-documenting prints for debugging {.standard #fstrings}
@@ -158,7 +158,7 @@ Worth remembering the two or three you use weekly; look the rest up when needed.
 
 ::: cols 2
 
-**`list`** is an **ordered, mutable** sequence. Use it when order matters and the contents change: `urls = ["a", "b", "c"]`. The workhorse for "a bunch of things in a row".
+**`list`** is an **ordered, mutable** sequence. Use it when order matters and the contents change: `urls = ["a", "b", "c"]`. The workhorse for “a bunch of things in a row”.
 
 **`tuple`** is an **ordered, immutable** sequence. Use it for fixed-shape records: `(lat, lon)`, `(host, port)`. Unpacks neatly into multiple names in one line.
 
@@ -252,7 +252,7 @@ greet(name="Ada")             # same, keyword form
 
 ## example: Comprehensions | one line from an iterable {.standard #comprehensions}
 
-**Comprehensions build a list, dict, or set from an existing iterable in a single expression.** They read like "{element} for each item in source, optionally filtered".
+**Comprehensions build a list, dict, or set from an existing iterable in a single expression.** They read like “{element} for each item in source, optionally filtered”.
 
 ```python
 urls = ["https://a.com/", "https://b.com", "mailto:x@y"]
@@ -262,7 +262,7 @@ lengths = {u: len(u) for u in https_only}
 domains = {u.split("/")[2] for u in https_only}
 ```
 
-**Prefer a comprehension over a for-loop with `.append()`.** The comprehension form is more compact, slightly faster, and signals intent: "I am building a collection", not "I am performing side effects".
+**Prefer a comprehension over a for-loop with `.append()`.** The comprehension form is more compact, slightly faster, and signals intent: “I am building a collection”, not “I am performing side effects”.
 
 ::: expand generators
 **A generator expression is a comprehension without the brackets.** It produces values lazily, one at a time, instead of materializing the whole list in memory.
@@ -366,7 +366,7 @@ The scanner uses both: **`urljoin`** to turn relative links into absolute URLs, 
 
 ## example: re | just enough regex {.standard #re}
 
-**Reach for `re` when pattern matching is the right tool, not before.** If you only need "starts with" or "contains", `str.startswith`, `str.endswith`, and `in` are faster to write and faster to read.
+**Reach for `re` when pattern matching is the right tool, not before.** If you only need “starts with” or “contains”, `str.startswith`, `str.endswith`, and `in` are faster to write and faster to read.
 
 ```python
 import re
@@ -452,7 +452,7 @@ x = await fetch()     # actually 42 (only legal inside async def)
 x = asyncio.run(fetch())  # also 42, but starts its own loop
 ```
 
-Forgetting the `await` is the most common async bug. Python will warn about "coroutine was never awaited" at runtime, but only if the object gets garbage-collected without being awaited – not always.
+Forgetting the `await` is the most common async bug. Python will warn about “coroutine was never awaited” at runtime, but only if the object gets garbage-collected without being awaited – not always.
 :::
 
 ## example: async and await | three waits, one second total {.wide #async-await}
@@ -672,7 +672,7 @@ if __name__ == "__main__":
 - No output format beyond stdout print (no CSV, no JSON).
 - No robots.txt check (we assume we're allowed to crawl).
 
-Each omission is deliberate: the 80-line target leaves room for exactly one "happy path" read-through. Production hardening doubles the line count – and changes nothing about the core logic.
+Each omission is deliberate: the 80-line target leaves room for exactly one “happy path” read-through. Production hardening doubles the line count – and changes nothing about the core logic.
 :::
 
 ## example: Running it | pipe into grep for the interesting cases {.standard #scanner-run}
@@ -693,7 +693,7 @@ status=404 no-title                      https://example.com/oops
 
 ## principle: Small scripts beat big frameworks | if you understand them end-to-end {.narrow #small-scripts-principle}
 
-**A fifty-line script you understand is worth more than a five-hundred-line framework you do not.** The whole point of this lecture was that the bar for "real tool" is much lower than the ecosystem suggests. Standard library plus one dependency plus type hints plus `asyncio.run` – that is a real tool.
+**A fifty-line script you understand is worth more than a five-hundred-line framework you do not.** The whole point of this lecture was that the bar for “real tool” is much lower than the ecosystem suggests. Standard library plus one dependency plus type hints plus `asyncio.run` – that is a real tool.
 
 ## exercise: Extend the scanner | pick one, or two if you're bored {.wide #exercise-extend}
 
