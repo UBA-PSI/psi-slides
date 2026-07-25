@@ -45,7 +45,7 @@ Drei neue Inline-Layout-Directives, *orthogonal* zu den bestehenden `::: expand`
 - Renderer: wenn `headingSub` gesetzt ist → `<h2 class="chunk-heading has-sub"><span class="hd-main">…</span> <span class="hd-sub">…</span></h2>`. Zwei Spans mit Space dazwischen (damit die Print-Version, die Sub-Line optional inline rendert, lesbar bleibt wenn CSS mal nicht greift).
 - Audience-CSS: Sub-Line in `var(--sans-font)`, italic, 0.68em, `--ink-soft`. Flex-column Layout, tight gap.
 - Print-CSS: analog aber 0.82em und unter der Main-Line als Subtitle.
-- Use-Case: "Open a page | the smallest useful Playwright script" – Main ist die Action, Sub qualifiziert. Funktioniert auch in Collapse-Mode (beide Lines bleiben sichtbar weil sie im Heading sitzen, nicht im Body).
+- Use-Case: „Open a page | the smallest useful Playwright script“ – Main ist die Action, Sub qualifiziert. Funktioniert auch in Collapse-Mode (beide Lines bleiben sichtbar weil sie im Heading sitzen, nicht im Body).
 
 ### 6. python-intro: komplett re-written als Lecture-Script
 
@@ -53,9 +53,9 @@ Drei neue Inline-Layout-Directives, *orthogonal* zu den bestehenden `::: expand`
 
 - **Starker Topic-Sentence** als erster Satz jedes Absatzes. `topic-bold` Collapse-Mode zeigt ihn; Print-Mode zeigt ihn als natürliche Prose-Öffnung.
 - **Bold-Keywords** (`**…**`) inline, max 1-2 pro Absatz. `bold`-Collapse-Mode highlightet sie; Print-Mode hebt sie via `--emph` Rot hervor.
-- **Action-Title mit Sub-Line** auf allen nicht-trivialen Chunks (z.B. "Setup with uv | the fast modern path").
+- **Action-Title mit Sub-Line** auf allen nicht-trivialen Chunks (z.B. „Setup with uv | the fast modern path“).
 - **Layout-Diversity**: 6× `::: cols 2`, 6× `::: side / flip`, 2× `::: marginalia`, 3× echtes `::: expand`, 3× image-shorthand `<figure>` (venv-Layout, async-Timeline, scanner-Flow – als SVG in `assets/`).
-- **Expandables** wo sinnvoll: z.B. `deep-dive` auf Setup für "Warum nicht conda/poetry?", `match` auf Control-Flow für das strukturelle Pattern-Matching.
+- **Expandables** wo sinnvoll: z.B. `deep-dive` auf Setup für „Warum nicht conda/poetry?“, `match` auf Control-Flow für das strukturelle Pattern-Matching.
 
 Collapse-Mode reads:
 - `none` → Full Prose (Rehearsal/Lecture-Script)
@@ -130,7 +130,7 @@ Drei-Agent-Review-Pass über `build.js` mit Fokus auf Duplikation, Hot-Path-Effi
 8. **Shared-Runtime-Cleanup (audience + speaker).**
    - `setAudienceAspect` war ein No-op-Forwarding-Wrapper um `setSlideRef`. Gelöscht, Call-Sites ruft jetzt direkt.
    - `exitOverview(landOnSelected)` vereinigt den Exit-Branch von `toggleOverview` und `dismissOverviewNoMove` – beide Funktionen hatten fünf von sieben Zeilen identisch.
-   - `replaceContents(obj, src)` – "Clear dann Object.assign" stand zweimal in `applyRemoteState` direkt untereinander für `revealed` und `annotations`. Jetzt eine Utility, die beim nächsten live-synced Objekt automatisch wiederverwendet wird.
+   - `replaceContents(obj, src)` – „Clear dann Object.assign“ stand zweimal in `applyRemoteState` direkt untereinander für `revealed` und `annotations`. Jetzt eine Utility, die beim nächsten live-synced Objekt automatisch wiederverwendet wird.
    - `nextChunk` hatte ein ungenutztes `const cur = flatChunks[state.activeIdx]` – Copy-Paste aus `nextCol`, wo es gebraucht wird. Entfernt.
 
 Alles per Chrome-DevTools-MCP smoke-getestet: speaker-Layout füllt Viewport exakt, notes+preview+footer stapeln ohne Überlapp, Audience-Nav (O/T/Arrows) funktioniert unverändert, Overview-Enter/Exit läuft über den neuen `exitOverview`-Pfad sauber.
@@ -141,7 +141,7 @@ Drei konkrete Speaker-View-Wünsche, zusammen als ein Slice – die hingen inhal
 
 1. **Notes-Pane lässt sich auch ohne Source-Notes öffnen.** Der Bug: `Shift-N` rief `focusNotesPane()` → `classList.add('has-notes')` → rAF → `focus()` + `autoSizeNotes()`. Aber `autoSizeNotes` hat `has-notes` *auf Basis des Textareas-Inhalts* gesetzt – war leer → Klasse wieder weg, ein-Frame-Flicker. Fix: `autoSizeNotes` behält die Klasse drauf solange das Textarea fokussiert ist (`hasText || activeElement === notesContent`). Beim Blur mit immer-noch-leerem Textarea kollabiert die Pane wieder – das ist die gewünschte Semantik.
 
-2. **"+ note" Corner-Button auf der Stage-Ecke.** Unten-rechts auf dem stage-cell, halbtransparent, absolute positioniert, `z-index: 10`, `opacity: 0.5` → `1` on hover. Klick triggert `focusNotesPane()`. Mit `title="Open speaker notes (Shift-N)"` als Tooltip. Sichtbar *nur* wenn `body:not(.has-notes)` – sobald die Pane offen ist, verschwindet der Button. Discoverability-Kanal für den Hotkey, den Newcomer im `?`-Hint-Panel sonst eventuell nicht finden.
+2. **„+ note“ Corner-Button auf der Stage-Ecke.** Unten-rechts auf dem stage-cell, halbtransparent, absolute positioniert, `z-index: 10`, `opacity: 0.5` → `1` on hover. Klick triggert `focusNotesPane()`. Mit `title="Open speaker notes (Shift-N)"` als Tooltip. Sichtbar *nur* wenn `body:not(.has-notes)` – sobald die Pane offen ist, verschwindet der Button. Discoverability-Kanal für den Hotkey, den Newcomer im `?`-Hint-Panel sonst eventuell nicht finden.
 
 3. **Preview-Strip kann vertikal an den rechten Rand wandern – Hotkey `V`.** Neue Body-Class `preview-right` schaltet das Grid um:
    - `grid-template-rows: 3vh 1fr auto 2.2rem` (4 Rows statt 5)
@@ -153,7 +153,7 @@ Drei konkrete Speaker-View-Wünsche, zusammen als ein Slice – die hingen inhal
 
 4. **Preview-Thumbs 1.22× reingezoomt** für bessere Textlesbarkeit. `PREVIEW_ZOOM`-Konstante (= 1.22) wird als Multiplikator auf das transform-scale gepackt; Slot-`overflow: hidden` clippt die 22% Überhang. Transform-Origin bleibt `top left`, d.h. geclippt wird unten + rechts (dort wo Slide-Padding sitzt, nicht Content). Spart sich die Ambiguität von center-origin, die Content an allen Seiten angeknabbert hätte.
 
-Per Chrome-DevTools verifiziert: V togglet Orientation sauber + persistiert über Reload; scale rechnet auf 0.184 bei 1800-px-Viewport (= 271/1800 × 1.22); "+"-Button öffnet Pane, bleibt offen während Fokus, kollabiert beim Blur wenn leer.
+Per Chrome-DevTools verifiziert: V togglet Orientation sauber + persistiert über Reload; scale rechnet auf 0.184 bei 1800-px-Viewport (= 271/1800 × 1.22); „+“-Button öffnet Pane, bleibt offen während Fokus, kollabiert beim Blur wenn leer.
 
 Hint-Panel (`?`-Hotkey) um `<kbd>V</kbd> preview view` ergänzt; `Shift-N notes` stand da schon.
 
@@ -166,10 +166,10 @@ Drei kleinere, zusammenhängende Stücke in einem Slice.
    Migration: vor `loadPersisted` läuft ein einmaliges `migrateLegacyStorage`-IIFE, das alle `psi-lecdoc:*`-Keys in `localStorage` zu `psi-slides:*` umbenennt und die alten löscht. Font-/Theme-Prefs, Preview-Orientation, per-Lecture-Annotations und `activeIdx` überleben den Rename transparent. Getestet mit gesetztem `psi-lecdoc:font=mono` + `psi-lecdoc:my-lecture:annotations`-Blob – beide tauchen nach Reload unter `psi-slides:*` wieder auf, die alten Keys sind weg.
 
 2. **Self-teaching tutorial-Lecture** unter `lectures/tutorial/source.md`. 13 Chunks (1 title + 12 Steps) über 6 Kolonnen, die das Tool *durch Benutzung* erklären:
-   - "Space reveals segments"-Step hat echte `---`-Segmente, an denen der Leser Space drückt.
-   - "Enter opens expansions"-Step hat zwei authored `::: expand`-Blöcke, damit Leser `Enter` + `1` + `2` live ausprobieren.
-   - "cols 2"-Step ist ein `::: cols 2`-Layout.
-   - "N vs Shift-N"-Step benutzt `::: side / flip` um die zwei Notes-Konzepte nebeneinander zu stellen.
+   - „Space reveals segments“-Step hat echte `---`-Segmente, an denen der Leser Space drückt.
+   - „Enter opens expansions“-Step hat zwei authored `::: expand`-Blöcke, damit Leser `Enter` + `1` + `2` live ausprobieren.
+   - „cols 2“-Step ist ein `::: cols 2`-Layout.
+   - „N vs Shift-N“-Step benutzt `::: side / flip` um die zwei Notes-Konzepte nebeneinander zu stellen.
    - Abschluss-Step verweist konkret auf `python-intro/audience.html`, `PRD.md`, `HANDOFF.md`, plus die drei CLI-Entries (`--new`, `--watch`, `lint.js`).
 
    Zielgruppe: First-Time-User, die in einem Durchgang Hotkeys + strukturelles Vokabular (Chunks, Kolonnen, Reveals, Expansions, Layouts) mitnehmen sollen.
@@ -191,9 +191,9 @@ Follow-up: Eine eingebaute Mermaid-Build-Pipeline (fenced ` ```mermaid ` block �
 
 ## Review-Slice (Overview-Sync, expliziter Slide-Modus, Selbstdokumentation)
 
-Auslöser: nach einem ganzen Semester im Realbetrieb waren drei Dinge chronisch. Der Overview-Mode „sprang irgendwo hin", die Lecturer-Ansicht erklärte sich nicht selbst (konkret: wie man Slide/Notes-Arrangement ändert), und der `topic-bold`-Collapse zwang Fließtext in eine Form, die Fließtext nicht mag. Alles vier E2E gegen ein echtes audience+speaker-Fensterpaar verifiziert, vorher und nachher.
+Auslöser: nach einem ganzen Semester im Realbetrieb waren drei Dinge chronisch. Der Overview-Mode „sprang irgendwo hin“, die Lecturer-Ansicht erklärte sich nicht selbst (konkret: wie man Slide/Notes-Arrangement ändert), und der `topic-bold`-Collapse zwang Fließtext in eine Form, die Fließtext nicht mag. Alles vier E2E gegen ein echtes audience+speaker-Fensterpaar verifiziert, vorher und nachher.
 
-**1. Overview – vier Defekte, eine Ursache.** Kamera und Auswahl hingen an derselben Variable (`selectedIdx`), also *musste* jeder Klick die Bühne bewegen, und `applyOverviewCamera` addierte dabei den noch stehenden Drag-Pan: die angeklickte Folie wurde zentriert und dann um den alten Pan-Betrag weggeschoben. PRD §5 hatte „select it (thick border, no camera move)" die ganze Zeit korrekt spezifiziert – der Code war von seiner eigenen Spec abgedriftet.
+**1. Overview – vier Defekte, eine Ursache.** Kamera und Auswahl hingen an derselben Variable (`selectedIdx`), also *musste* jeder Klick die Bühne bewegen, und `applyOverviewCamera` addierte dabei den noch stehenden Drag-Pan: die angeklickte Folie wurde zentriert und dann um den alten Pan-Betrag weggeschoben. PRD §5 hatte „select it (thick border, no camera move)“ die ganze Zeit korrekt spezifiziert – der Code war von seiner eigenen Spec abgedriftet.
 
 Dazu kam die Sync-Asymmetrie: der `overview`-Handler stand innerhalb von `if (VIEW === 'audience')`, also lief die Synchronisation nur speaker → audience. Umgekehrt blieben die Fenster dauerhaft in verschiedenen Modi – und schlimmer, der Speaker übernahm den Overview-Drag-Pan der Audience und wendete ihn auf die *Normalkamera* an: gemessen `translate(-1596px, -1607px)`, also ein leeres Cockpit, während die Audience nur scrollte. Vierter Punkt: Pfeiltasten im Overview verschoben `activeIdx` hinter einem unveränderten Auswahlrahmen, ein `Esc` danach landete auf einer nie gewählten Folie.
 
@@ -202,7 +202,7 @@ Dazu kam die Sync-Asymmetrie: der `overview`-Handler stand innerhalb von `if (VI
 - Pfeile bewegen im Overview die Auswahl und re-ankern (Kamera folgt, weil das Ziel meist außerhalb des Bildes liegt); ein Klick tut beides nicht.
 - `speaker.md` §2 behauptete noch, der ganze Overview-Cluster sei per-View-lokal. Das stimmte seit `8a835d3` (Camera-Sync) nicht mehr und ist jetzt nachgezogen, inklusive vollständiger Feldliste und Message-Katalog.
 
-**2. Expliziter Slide-Modus (`::: slide` / `::: script`).** Das eigentliche Format-Thema. Die Ableitung „erster Satz plus Bold-Fragmente" ist billig zu autoren und hält Print und Screen in einem Text, kostet aber eine harte Schreibbedingung: jeder Absatz muss mit einem bullet-fähigen Satz öffnen. Für argumentförmige Chunks ist das der richtige Tausch, für lange Befund- oder Walkthrough-Chunks kämpft es gegen den Text.
+**2. Expliziter Slide-Modus (`::: slide` / `::: script`).** Das eigentliche Format-Thema. Die Ableitung „erster Satz plus Bold-Fragmente“ ist billig zu autoren und hält Print und Screen in einem Text, kostet aber eine harte Schreibbedingung: jeder Absatz muss mit einem bullet-fähigen Satz öffnen. Für argumentförmige Chunks ist das der richtige Tausch, für lange Befund- oder Walkthrough-Chunks kämpft es gegen den Text.
 
 Jetzt entscheidet der Chunk, in drei Regeln: `::: slide`-Block vorhanden → nur der ist Leinwand; sonst `::: script` vorhanden → alles außer dem ist Leinwand; sonst wie bisher. Bewusst billig gebaut – kein neuer Runtime-State, kein neues Sync-Feld, kein dritter Halt im `C`-Zyklus. Der Parser emittiert zwei Wrapper-Divs wie die anderen Layout-Directives, der Modus ist CSS (`:has()` unter `[data-collapse=topic-bold]`) plus ein `closest()`-Guard in `splitSentencesIn`. Print und `none` zeigen beide Hälften in Source-Order.
 
@@ -233,6 +233,38 @@ Regression: alle 19 realen Lectures bauen weiter (0 Fehler), Lint unverändert b
 
 Kleine Test-Lektion für spätere Slices: Bilder tragen `loading="lazy"`, und auf der großen Stage ist fast alles off-screen. `naturalWidth` ist dort *immer* 0, ein `await img.decode()` über 16 Bilder sprengt das Tool-Timeout. Der belastbare Check ist, die base64-Payloads aus dem HTML zu extrahieren und mit `magick identify` zu validieren – schneller und deterministisch.
 
+## Docs- und Positioning-Slice (Lizenz, README, Pages, Tutorial-Craft)
+
+Auslöser: das Repo ist öffentlich, hat ein Semester Lehre getragen – und die Vordertür sagte weder was das Ding produziert, noch für wen es ist, noch wann man es *nicht* nehmen sollte. Kein Code-Slice; `build.js` und `lint.js` sind unangetastet.
+
+**Lizenz.** Vorher `licenseInfo: null`, also durfte formal niemand irgendetwas nachnutzen. Jetzt ein Split entlang der Linie, die hier wirklich zählt: Tooling und Doku MIT (`LICENSE`), Lehrinhalte unter `lectures/` CC BY-SA 4.0 (`lectures/LICENSE`). Die Root-`LICENSE` ist wortwörtlicher MIT-Text ohne Zusatzprosa, sonst kippt GitHubs `licensee`-Erkennung auf „Other“. `lectures/LICENSE` hält außerdem fest, dass die generierten HTMLs gemischt sind – Inhalt CC BY-SA, das von `build.js` inlinete Runtime-JS/CSS bleibt MIT. `package.json` hat jetzt `license`, `repository`, `homepage`, `bugs` und `engines: node >=20` (der Boden kommt von shiki, nicht geraten).
+
+**README.** Komplett neu. Führt mit dem Artefakt und dem Problem (Skript und Folien driften auseinander), zeigt den Collapse-Mechanismus als Vorher/Nachher-Paar, dann Quickstart, Format, und zwei Abschnitte die es vorher gar nicht gab: „When to use“ und – ausführlicher – „When *not* to use“. Der Anti-Fit-Teil ist der eigentliche Punkt: wer pptx-Export, GUI-Koautoren, Mathe oder ein Cockpit auf dem Tablet braucht, soll das erfahren ohne zu klonen. Dazu ein fairer Vergleich zu reveal.js, Quarto, Beamer, Marp.
+
+Beim Faktencheck herausgefallen und korrigiert: „drei Views“ (sind vier), „dreizehn Chunks über sechs Columns“ (waren 29/9, jetzt 33/10), der `lectures/wlab01/`-Eintrag (Source liegt längst in `psi-slides-mylectures`, hier lagen nur verwaiste HTMLs – gelöscht), und fehlende Flags (`--optimize-images`, `--integrate-annotations`, `--print-notes-only`). **KaTeX ist nie gelandet** – der Header-Kommentar in `build.js` Zeile 13 listet es, `grep -c katex build.js` sagt 0. Im README steht deshalb ausdrücklich „keine Mathe“.
+
+**Browser-Floor, nachgemessen statt behauptet.** Aus MDNs `browser-compat-data` 8.0.8: `oklch()` Chrome 111 / FF 113 / Safari 15.4, `:has()` 105 / 121 / 15.4, `text-wrap: balance` 114 / 121 / 17.5, `@scope` 118 / **146** / 17.4. Wichtig für die Formulierung: `@scope` steht an sieben Stellen und **alle** liegen in `inlineSvg()` – es wrappt nur `<style>`-Blöcke eingebetteter SVGs. Es ist also nicht der bindende Constraint für das Tool, sondern nur für Lectures mit selbstgestylten SVG-Assets. Der reale Boden ist Chrome 114 / FF 121 / Safari 17.5, und das steht so drin, getrennt vom SVG-Sonderfall.
+
+**Screenshots** liegen in `docs/img/`, bewusst **nicht** in einem `assets/`-Ordner einer Lecture, damit sie nie in ein Deck inlined werden und nie am 2-MB-Cap hängen. So sind sie entstanden, damit man sie refreshen kann:
+
+1. `node build.js lectures/tutorial/source.md`
+2. Chrome auf `file://…/lectures/tutorial/audience.html`, Viewport 1600×900 (Speaker 1600×1000, print-notes 1200×1400).
+3. Auf den Ziel-Chunk springen – es gibt kein Hash-Deeplinking, aber `jumpTo()` ist eine Top-Level-`function` in einem plain `<script>` und damit auf `window`:
+   `const all=[...document.querySelectorAll('.chunk')]; jumpTo(all.findIndex(e=>e.id==='derived-mode'), 1)`
+   Achtung: der Index zählt die `.chunk-section`-Elemente mit, `flatChunks` ist per `const` deklariert und liegt *nicht* auf `window`.
+4. Collapse-Paar: Screenshot, dann `C`, dann nochmal.
+5. Nachbearbeitung: `magick "$f" -resize 1920x -strip -colors 192 -define png:compression-level=9`. Bringt das Set von 2,5 MB auf 650 KB, auf flacher UI ohne sichtbaren Verlust. `sips -Z` taugt hier nicht – das Resampling machte eine Datei sogar größer.
+
+**Pages-Demo.** `.github/workflows/pages.yml` baut das Tutorial in CI aus der Source (nicht aus den getrackten HTMLs) und deployt es zusammen mit `docs/site/index.html`. Damit kann die Demo nicht veralten, und der Job ist nebenbei der erste Build-Check den das Repo hat. Muss einmalig unter Settings → Pages → Source: „GitHub Actions“ scharfgeschaltet werden. Project Pages sind pro Repository, es kollidiert also nichts mit anderen Seiten.
+
+**Tutorial.** Neue Schluss-Column `#craft` mit vier Chunks über die *Methode* statt das Werkzeug: Topic-Sentence-Disziplin, die vier Anti-Patterns (Label-Bolds, Ein-Wort-Bolds, Konnektor-Opener, Doppelpunkt-Schnitte), die Wahl zwischen ableiten und ausschreiben, und der Squint-Test. Adaptiert aus dem Authoring-Conventions-Teil von `../psi-slides-mylectures/recap-syntax-and-semantics.md`. `#anti-patterns` ist selbst in einem `::: slide`-Block geschrieben – der Chunk demonstriert den expliziten Modus während er den abgeleiteten erklärt.
+
+**PRD §7** sprach weiterhin von `BroadcastChannel`. Jetzt steht dort nicht nur das Mechanismus-Update, sondern der Grund: Chrome gibt jedem `file://`-Dokument einen eigenen opaken Origin, zwei von der Platte geladene Tabs sind also zueinander cross-origin und ein `BroadcastChannel` im einen erreicht den anderen nie. Weil `file://`-ohne-Server ein §1-Non-Negotiable ist, musste der Kanal `window.postMessage` über das Opener-Handle werden. Fünf weitere Vorkommen im Dokument mitgezogen. `CLAUDE.md`: die Zeilenzahl für `build.js` ist raus (war „~3.800“, real 6.227 – die Zahl veraltet zuverlässig).
+
+**Typografie-Sweep.** `PRD.md` war die letzte Datei mit Em-Dashes und geraden Anführungszeichen: 72 Em-Dashes und 42 gerade Quotes ersetzt, fence- und inline-code-aware, die zwei Em-Dashes *innerhalb* von Code-Blöcken blieben stehen. In `HANDOFF.md` außerdem drei Stellen der klassischen Fehlerform „öffnendes `„` mit ASCII-`"` geschlossen“ repariert plus 28 gerade Quotes auf `„…“` gezogen.
+
+Nicht angefasst (bewusst): die drei `figure-caption-redundant`-Warnungen in `python-intro`, weshalb `node lint.js lectures/ --strict` weiterhin mit 2 endet. Das ist Lecture-Content, kein Doku-Thema. Ebenso offen: `README` verlinkt noch keine Live-Demo, weil Pages erst nach dem Push aktiviert werden kann – eine Zeile, sobald die URL steht.
+
 ## Was funktioniert
 
 - `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.
@@ -253,8 +285,8 @@ Diese Punkte habe ich ohne Rückfrage entschieden:
 2. **Sprach-Whitelist, nicht On-Demand-Load.** Die 14 eingebauten Sprachen decken 95% der zu erwartenden Teaching-Content ab. Weniger Moving-Parts als langs-on-demand; Build bleibt einfach. Wenn jemand Rust oder Haskell braucht, ist's eine Zeile in `SHIKI_LANGS`.
 3. **`|` statt Zeilenumbruch im Heading für Action-Titles.** Alternativen wären Multiline-Heading (schwerer zu parsen), `<br>` im Markdown (hässlich), oder ein separates Attribute `{.sub "..."}` (Pandoc-ish, aber schwer zu tippen). `|` ist auf allen Keyboards einfach, unwahrscheinlich in Heading-Text, und visuell selbsterklärend.
 4. **`::: cols N`** limited auf 2 oder 3 (nicht 4+). Mehr Spalten ergeben bei `column-count`-Flow auf 72em content-width keine lesbaren Zeilen mehr. Linter würde `cols 4` durchlassen aber CSS-technisch ignorieren; wenn nötig, explizit aufnehmen.
-5. **`::: side` nur mit `::: flip` als Separator, keine Mehrfach-Panes.** Drei-Pane-Layouts sind Overkill für Slide-Content; `cols 3` deckt die "drei gleichberechtigte Spalten"-Use-Case ab.
-6. **Marginalia ist *rechts*, nicht *links*.** PRD §2 schreibt linke-Annotation für Speaker-Marginalia (N-Hotkey). Marginalia als authored-content gehört pedagogisch auf die *rechte* Seite (westlicher Lesefluss: Haupttext lesen, dann Marginalia am rechten Rand als "Seitenbemerkung"). Die Annotation-Box kollidiert damit nicht – die ist weiterhin links. **Nach dem Polish-Pass gilt außerdem**: Marginalia ist weiterhin verfügbar, sollte aber sparsam eingesetzt werden – Expandables sind der bevorzugte Tuckaway-Mechanismus, weil sie on-demand geöffnet werden, nicht dauerhaft Platz kosten und im Collapse-Mode unsichtbar sind.
+5. **`::: side` nur mit `::: flip` als Separator, keine Mehrfach-Panes.** Drei-Pane-Layouts sind Overkill für Slide-Content; `cols 3` deckt die „drei gleichberechtigte Spalten“-Use-Case ab.
+6. **Marginalia ist *rechts*, nicht *links*.** PRD §2 schreibt linke-Annotation für Speaker-Marginalia (N-Hotkey). Marginalia als authored-content gehört pedagogisch auf die *rechte* Seite (westlicher Lesefluss: Haupttext lesen, dann Marginalia am rechten Rand als „Seitenbemerkung“). Die Annotation-Box kollidiert damit nicht – die ist weiterhin links. **Nach dem Polish-Pass gilt außerdem**: Marginalia ist weiterhin verfügbar, sollte aber sparsam eingesetzt werden – Expandables sind der bevorzugte Tuckaway-Mechanismus, weil sie on-demand geöffnet werden, nicht dauerhaft Platz kosten und im Collapse-Mode unsichtbar sind.
 7. **Figure-Focus-Overlay clont die Figur** anstatt sie im DOM zu verschieben. Weil die Source-Figur ihre Click-Handler behält und die Overlay-Kopie unabhängig entfernt werden kann. Trade-off: Klick-Reaktivität innerhalb der Clone-Figur geht nicht (man kann nicht auf der Overlay-Figur wieder klicken um sie zu schließen – außer auf den Overlay-Background. Ich habe stopPropagation raufgetan so dass Clicks auf die Clone zur Overlay-Schließen-Action propagieren). Alternative wäre, die Original-Figur absolut zu positionieren; komplexer und potentiell Layout-disruptive.
 8. **Code-Blöcke sind click-to-focus.** Nützlich für lange `scanner.py`-Source-Code-Figur (48 Zeilen). Kann im Prinzip *jeder* Pre clicken, aber nur *im active chunk* (damit man nicht aus Versehen beim Scrollen die Neighbors triggert).
 9. **Marginalia + Expandable zusammen:** möglich, aber wlab01/python-intro nutzen nur jeweils eines pro Chunk. Wenn wir beide hätten, würde der Expansion-Grid das Marginalia-Layout stören (expand öffnet `grid-template-columns: 1fr 30em`, was das absolute-positioning der Marginalia beeinflussen könnte). Nicht getestet; potentielles Follow-up.
@@ -272,7 +304,7 @@ Diese Punkte habe ich ohne Rückfrage entschieden:
 
 Die beiden hochrangigen Kandidaten aus dem letzten Handoff bleiben offen und unverändert prioritär:
 
-- **`--assign-ids` + Linter-Build-Integration.** Klein (~150 Zeilen), schließt den Authoring-Loop zu "edit → save → build+lint → reload". Gut für Phase 1 Abschluss.
+- **`--assign-ids` + Linter-Build-Integration.** Klein (~150 Zeilen), schließt den Authoring-Loop zu „edit → save → build+lint → reload“. Gut für Phase 1 Abschluss.
 - **Mermaid-Pipeline** (fenced `mermaid` block → `@mermaid-js/mermaid-cli` → inline SVG). Symmetrisch zu dem Image-Shorthand-Resolver (build-time render, static inline SVG). ~250 Zeilen.
 
 **KaTeX** bleibt deferred bis zur ersten Math-Lecture.
@@ -281,7 +313,7 @@ Nicht-geerntet aus dem Simplify-Pass (bewusst geskippt, kurz dokumentiert damit 
 
 - **`applyState` broadcasted unconditionally** – einzelne Aktionen wie `setZoom` rufen `applyState` und direkt danach nochmal `broadcastState`, d.h. zwei postMessage-Snapshots pro User-Action. Fix wäre ein Mikrotask-Debounce oder einfach `applyState` nicht broadcasten lassen und jede Aktion explicit `broadcastState` anschieben. Wurde ausgespart, weil das Sync-Protokoll empfindlich ist und ich keinen passenden End-to-End-Test hatte.
 - **Head-Boilerplate zwischen `renderAudience` und `renderSpeaker`.** `<!DOCTYPE>`/`<meta>`/`<title>` plus `#mode-badge` und `${renderTocNav}` stehen ziemlich identisch in beiden Renderern. Eine gemeinsame `renderSharedHead(title, opts, extraCss)`-Helper-Funktion wäre möglich; die Divergenzen (`data-view`, `<title>`-Suffix, `#laser-pointer` nur audience) machen das aber zu einem non-trivialen Refactor mit vielen Branches – mehr Churn als Wert. Offen als Kandidat für später, falls ein dritter Live-View dazukommt.
-- **Stringly-typed `'forward'`/`'back'`-Directions** in `jumpTo`. Ein Tippfehler landet stumm im "preserve"-Branch. Könnte zu `const DIR = { FORWARD, BACK }` werden; low impact, nicht gemacht.
+- **Stringly-typed `'forward'`/`'back'`-Directions** in `jumpTo`. Ein Tippfehler landet stumm im „preserve“-Branch. Könnte zu `const DIR = { FORWARD, BACK }` werden; low impact, nicht gemacht.
 
 ## Arbeitsstil
 
