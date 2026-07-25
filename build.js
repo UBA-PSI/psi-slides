@@ -10,16 +10,22 @@
  * HTML with a flat column-level TOC.
  *
  * Deferred (later Phase 1 milestones): audience view, speaker view,
- * ::: directives (margin/expand/sketch), KaTeX, image resolution,
+ * ::: directives (margin/expand/sketch), image resolution,
  * geometry pass, linter, --watch, --assign-ids, --new.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import matter from 'gray-matter';
 import { marked } from 'marked';
 import { createHighlighter } from 'shiki';
+import katex from 'katex';
+
+// KaTeX ships its stylesheet and fonts as plain files next to the module.
+// They are not importable as ESM, so resolve them the CommonJS way.
+const nodeRequire = createRequire(import.meta.url);
 
 const VALID_TAGS = new Set([
   'title', 'principle', 'definition', 'example',
@@ -376,6 +382,152 @@ function assertInlinable(oversized, sourceDir) {
   throw err;
 }
 
+// ── math (KaTeX, rendered at build time) ─────────────────────────────
+// PRD §2 specifies `$inline$` and `$$display$$`. Rendering happens here,
+// in the build, for the same reason highlighting does: the outputs must
+// open from file:// with no runtime, so there is no client-side KaTeX
+// pass and no reflow flash when the camera pans onto a formula.
+//
+// The cost of that promise is fonts. KaTeX needs its own woff2 faces, and
+// a self-contained file cannot link them – they have to be base64'd into
+// the stylesheet. All twenty faces are 254 KB, which is not something to
+// impose on the many lectures that contain no math at all. So the whole
+// stylesheet is emitted only when the rendered HTML actually contains a
+// formula, and even then only the font families that formula uses.
+//
+// Which families those are is derived from katex.min.css rather than
+// hard-coded: the stylesheet itself records that `.amsrm` means KaTeX_AMS
+// and `.delimsizing.size2` means KaTeX_Size2. Reading the mapping out of
+// the CSS keeps it correct across KaTeX upgrades, where a table in this
+// file would silently rot. Same instinct as imageSize(): parse the thing
+// that knows, do not restate what it says.
+
+const MATH_ERRORS = [];
+const mathCache = new Map();
+
+function renderMath(tex, displayMode) {
+  const key = (displayMode ? 'd::' : 'i::') + tex;
+  if (mathCache.has(key)) return mathCache.get(key);
+  let html;
+  try {
+    html = katex.renderToString(tex, {
+      displayMode,
+      throwOnError: false,   // render the bad source in red instead of failing the build
+      errorColor: '#b3261e',
+      strict: false,
+      trust: false,
+    });
+  } catch (e) {
+    // renderToString with throwOnError:false still throws on a few
+    // malformed inputs. Keep the source visible so the author can see it.
+    MATH_ERRORS.push({ tex, message: e.message });
+    html = `<code class="math-error">${escapeHtml(tex)}</code>`;
+  }
+  // The soft-failure path is the common one: KaTeX marks a bad formula with
+  // .katex-error and returns normally, which is right on a projector and
+  // wrong on a terminal, where the author would never hear about it.
+  if (/katex-error/.test(html)) {
+    MATH_ERRORS.push({ tex, message: 'rendered as an error (shown in red)' });
+  }
+  mathCache.set(key, html);
+  return html;
+}
+
+// Lazily read and parsed once per process; both are pure functions of the
+// installed KaTeX version.
+let katexCssRaw = null;
+let katexFaces = null;      // [{ whole, fam, urls }]
+let katexFamClasses = null; // Map<family, Set<class>>
+
+function loadKatexCss() {
+  if (katexCssRaw !== null) return;
+  const cssPath = nodeRequire.resolve('katex/dist/katex.min.css');
+  const cssDir = path.dirname(cssPath);
+  katexCssRaw = fs.readFileSync(cssPath, 'utf8');
+
+  katexFaces = [...katexCssRaw.matchAll(/@font-face\{([^}]*)\}/g)].map(m => {
+    const body = m[1];
+    const fam = (body.match(/font-family:\s*([^;]+)/) || [])[1]
+      ?.trim().replace(/^["']|["']$/g, '');
+    const urls = [...body.matchAll(/url\(([^)]+)\)\s*format\(["']?([^"')]+)["']?\)/g)]
+      .map(u => ({ abs: path.resolve(cssDir, u[1]), fmt: u[2] }));
+    return { whole: m[0], body, fam, urls };
+  });
+
+  // `.katex` is the root container of every rendered formula, so it cannot
+  // tell families apart; drop it and keep the discriminating classes.
+  const stripped = katexCssRaw.replace(/@font-face\{[^}]*\}/g, '');
+  katexFamClasses = new Map();
+  for (const m of stripped.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+    if (!/font-family:\s*KaTeX_/.test(m[2])) continue;
+    const fams = [...m[2].matchAll(/KaTeX_[A-Za-z0-9]+/g)].map(x => x[0]);
+    const classes = [...m[1].matchAll(/\.([A-Za-z0-9_-]+)/g)]
+      .map(x => x[1]).filter(c => c !== 'katex');
+    for (const f of fams) {
+      if (!katexFamClasses.has(f)) katexFamClasses.set(f, new Set());
+      classes.forEach(c => katexFamClasses.get(f).add(c));
+    }
+  }
+}
+
+function katexFamiliesUsedBy(html) {
+  loadKatexCss();
+  // KaTeX_Main carries the base `.katex` rule, so it is always needed.
+  const need = new Set(['KaTeX_Main']);
+  for (const [fam, classes] of katexFamClasses) {
+    if (!classes.size) { need.add(fam); continue; }
+    for (const c of classes) {
+      if (new RegExp(`class="[^"]*(?:^|[\\s"])${c}(?:[\\s"]|$)`).test(html)) {
+        need.add(fam);
+        break;
+      }
+    }
+  }
+  return need;
+}
+
+const katexSheetCache = new Map();
+// Set on every emit so buildOnce can report the payload once per build
+// without re-deriving it or reading an output file back off disk.
+let lastKatexSheet = null;
+
+// Returns '' when the HTML contains no rendered math, so lectures without
+// formulas pay nothing at all.
+function katexStylesheetFor(html) {
+  if (!/class="katex/.test(html)) return '';
+  const need = katexFamiliesUsedBy(html);
+  const key = [...need].sort().join(',');
+  if (katexSheetCache.has(key)) return (lastKatexSheet = katexSheetCache.get(key));
+
+  let css = katexCssRaw;
+  let bytes = 0;
+  for (const face of katexFaces) {
+    if (!need.has(face.fam)) {
+      css = css.replace(face.whole, '');
+      continue;
+    }
+    // Keep woff2 only: every browser above the floor in README supports it,
+    // and the woff/ttf fallbacks would triple the inlined payload.
+    const woff2 = face.urls.find(u => u.fmt === 'woff2');
+    if (!woff2 || !fs.existsSync(woff2.abs)) continue;
+    const buf = fs.readFileSync(woff2.abs);
+    bytes += buf.length;
+    const src = `src:url(data:font/woff2;base64,${buf.toString('base64')}) format("woff2")`;
+    css = css.replace(face.whole, face.whole.replace(/src:[^;}]+/, src));
+  }
+  const out = { css, families: need.size, bytes };
+  katexSheetCache.set(key, out);
+  return (lastKatexSheet = out);
+}
+
+// The renderers want a ready-made <style> block; keep the size reporting
+// in one place so every view logs the same number.
+function katexStyleTag(html) {
+  const sheet = katexStylesheetFor(html);
+  if (!sheet) return '';
+  return `<style>\n${sheet.css}\n</style>`;
+}
+
 // ── marked renderer overrides (code highlighting + image shorthand) ──
 
 marked.use({
@@ -447,6 +599,56 @@ marked.use({
       return `<a href="${escapeHtml(href || '')}"${titleAttr}${target}>${text}</a>`;
     },
   },
+});
+
+// Math delimiters as marked extensions rather than a pre-pass over the
+// source string, so fenced blocks are consumed whole by the code tokenizer
+// before a block-level dollar pair is ever considered.
+//
+// Inline is the subtle one. marked runs custom inline extensions BEFORE its
+// own tokenizers, codespan included, so a naive rule happily matches from a
+// stray dollar in prose to a dollar inside a following code span and eats
+// the backtick that delimits it. Measured, not theorised: it turned
+// "a price of $5 and $10, `$PATH` in code" into a formula reading "10, `".
+// Excluding backticks from the content class is what makes the claim true –
+// math can no longer cross an inline-code boundary in either direction, and
+// a dollar pair fully inside backticks is never exposed, because codespan
+// consumes the span before the walker reaches its interior.
+//
+// The rest of the rule is deliberately strict – no space after the opening
+// delimiter, none before the closing one, no digit straight after it – so
+// that a sentence mentioning $5 and $10 does not silently become math.
+// A literal dollar is `\$`, handled by marked's own escape tokenizer,
+// which wins because it matches at the backslash rather than the dollar.
+marked.use({
+  extensions: [
+    {
+      name: 'mathBlock',
+      level: 'block',
+      start(src) { return src.indexOf('$$'); },
+      tokenizer(src) {
+        const m = /^ {0,3}\$\$([\s\S]+?)\$\$ *(?:\n+|$)/.exec(src);
+        if (!m) return;
+        return { type: 'mathBlock', raw: m[0], text: m[1].trim() };
+      },
+      renderer(token) {
+        return `<div class="math-display">${renderMath(token.text, true)}</div>\n`;
+      },
+    },
+    {
+      name: 'mathInline',
+      level: 'inline',
+      start(src) { return src.indexOf('$'); },
+      tokenizer(src) {
+        const m = /^\$(?![\s$])((?:\\.|[^\\$\n`])+?)(?<![\s\\])\$(?!\d)/.exec(src);
+        if (!m) return;
+        return { type: 'mathInline', raw: m[0], text: m[1] };
+      },
+      renderer(token) {
+        return `<span class="math-inline">${renderMath(token.text, false)}</span>`;
+      },
+    },
+  ],
 });
 
 // ── parsing ──────────────────────────────────────────────────────────
@@ -949,6 +1151,7 @@ function renderDocument(lecture, opts = {}) {
 <style>
 ${PRINT_CSS}
 </style>
+${katexStyleTag(anonHtml + namedHtml)}
 ${reloadScript(opts.watchPort)}
 </head>
 <body>
@@ -1132,6 +1335,15 @@ a:hover { text-decoration-color: var(--ink); }
 
 .chunk-exercise .chunk-heading { font-style: italic; }
 .chunk-exercise .chunk-label { color: var(--emph); }
+
+/* Math (PRD §2). Print has no collapse, so both inline and display formulas
+   simply render. Display math stays centred and is allowed to scroll rather
+   than widen the text column, which would break the page for PDF export. */
+.katex { font-size: 1.05em; color: inherit; }
+.math-display { margin-block: 0.9em; overflow-x: auto; overflow-y: hidden; }
+.math-display .katex-display { margin: 0; }
+.math-display .katex { font-size: 1.15em; }
+.math-error { color: var(--emph); font-family: var(--mono, ui-monospace, monospace); }
 
 .chunk-figure .chunk-heading {
   font-family: var(--sans);
@@ -1630,6 +1842,7 @@ function renderAudience(lecture, opts = {}) {
 <style>
 ${AUDIENCE_CSS}
 </style>
+${katexStyleTag(columnsHtml)}
 ${reloadScript(opts.watchPort)}
 </head>
 <body data-collapse="topic-bold" data-font="serif" data-theme="light-red">
@@ -2516,6 +2729,24 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
 .slide-explicit > :last-child { margin-block-end: 0; }
 .script-only { color: var(--ink-soft); }
 
+/* Math (PRD §2). Display formulas are block-level, so the topic-bold rules
+   above never touch them – like a figure or a code block, a formula stays on
+   screen when the prose around it collapses. Inline math lives inside a
+   paragraph and therefore follows that paragraph: visible if it sits in the
+   topic sentence, hidden with the continuation prose otherwise.
+   KaTeX defaults to 1.21em, which shouts next to this body serif; 1.05em
+   keeps a formula the same optical weight as the sentence carrying it. */
+.katex { font-size: 1.05em; color: inherit; }
+.math-display {
+  margin-block: 0.9em;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.15em;
+}
+.math-display .katex-display { margin: 0; }
+.math-display .katex { font-size: 1.15em; }
+.math-error { color: var(--emph); font-family: var(--mono, ui-monospace, monospace); }
+
 /* blank mode */
 body.blanked #stage-viewport { background: oklch(0.06 0 0); }
 body.blanked #stage { opacity: 0; }
@@ -2830,6 +3061,14 @@ const viewHooks = {
 const stage = document.getElementById('stage');
 const viewport = document.getElementById('stage-viewport');
 const modeBadge = document.getElementById('mode-badge');
+
+// What a click can zoom into, and the ordering the speaker-sync protocol
+// addresses by index. This must be one constant: the audience and the
+// speaker resolve figureIdx against their own DOM, so the two windows
+// would focus different elements the moment the selectors disagreed.
+// Display math is in the list because a formula on a projector is exactly
+// the thing a room asks to see bigger.
+const FOCUSABLE_SEL = 'figure.figure-img, .chunk-body pre, .chunk-body .math-display, .marginalia';
 
 // ── Slide-size sync ─────────────────────────────────────────────────
 // --slide-w / --slide-h hold the AUDIENCE window's pixel dimensions so
@@ -3221,7 +3460,7 @@ window.addEventListener('message', (ev) => {
     if (m.type === 'figure-focus') {
       const chunk = flatChunks[m.chunkIdx];
       if (chunk) {
-        const el = chunk.el.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia')[m.figureIdx];
+        const el = chunk.el.querySelectorAll(FOCUSABLE_SEL)[m.figureIdx];
         if (el) focusFigure(el);
       }
       return;
@@ -3229,7 +3468,7 @@ window.addEventListener('message', (ev) => {
     if (m.type === 'figure-pan') {
       const chunk = flatChunks[m.chunkIdx];
       if (chunk) {
-        const el = chunk.el.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia')[m.figureIdx];
+        const el = chunk.el.querySelectorAll(FOCUSABLE_SEL)[m.figureIdx];
         if (el) panToElement(el);
       }
       return;
@@ -3281,6 +3520,17 @@ function hideLaserPointer() {
 // Wraps each paragraph as <head><rest>, and within rest wraps bare text
 // runs in .prose. Collapse mode "topic-bold" then hides .prose while
 // keeping <strong> phrases visible.
+// A rendered formula is a precise tree of nested spans whose CSS depends on
+// that exact nesting, so the walker treats it as one opaque node: never
+// descend into it, and never let its text content decide where a sentence
+// ends. Without the first guard, wrapProse would inject span.prose elements
+// between KaTeX's own spans and the formula would visibly fall apart.
+function isMathNode(el) {
+  return el.nodeType === 1 && (el.classList.contains('katex')
+    || el.classList.contains('math-inline')
+    || el.classList.contains('math-display'));
+}
+
 function splitSentencesIn(root) {
   const wrapProse = (node) => {
     for (const k of [...node.childNodes]) {
@@ -3289,6 +3539,16 @@ function splitSentencesIn(root) {
         span.className = 'prose';
         span.appendChild(document.createTextNode(k.textContent));
         node.replaceChild(span, k);
+      } else if (isMathNode(k)) {
+        // Wrap rather than descend. A formula in continuation prose has to
+        // disappear with the sentence it belongs to, or the collapsed slide
+        // shows a bare symbol with none of the words that gave it meaning.
+        // Wrapping hides it by the same rule as the surrounding text while
+        // leaving KaTeX's internal markup untouched.
+        const span = document.createElement('span');
+        span.className = 'prose';
+        node.replaceChild(span, k);
+        span.appendChild(k);
       } else if (k.nodeType === 1 && k.tagName !== 'STRONG' && !k.classList.contains('prose')) {
         wrapProse(k);
       }
@@ -3313,7 +3573,10 @@ function splitSentencesIn(root) {
         } else head.appendChild(k.cloneNode(true));
       } else if (mode === 'head') {
         head.appendChild(k.cloneNode(true));
-        if (k.nodeType === 1 && /[.!?]$/.test(k.textContent.trimEnd())) mode = 'rest';
+        // KaTeX renders a hidden MathML copy alongside the visible HTML, so
+        // a formula's textContent is not the text the reader sees and must
+        // not be tested for a sentence-ending period.
+        if (k.nodeType === 1 && !isMathNode(k) && /[.!?]$/.test(k.textContent.trimEnd())) mode = 'rest';
       }
       else rest.appendChild(k.cloneNode(true));
     }
@@ -4155,7 +4418,7 @@ function wireTouchControls() {
 
 function wireFigureClicks() {
   flatChunks.forEach(({ el }) => {
-    el.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia').forEach(target => {
+    el.querySelectorAll(FOCUSABLE_SEL).forEach(target => {
       if (target.dataset.figureWired) return;
       target.dataset.figureWired = '1';
       target.addEventListener('click', (ev) => {
@@ -4168,14 +4431,14 @@ function wireFigureClicks() {
         if (target.classList.contains('marginalia')) {
           panToElement(target);
           if (shouldBroadcast()) {
-            const figureIdx = Array.from(chunk.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia')).indexOf(target);
+            const figureIdx = Array.from(chunk.querySelectorAll(FOCUSABLE_SEL)).indexOf(target);
             sendToPeer({ type: 'figure-pan', chunkIdx: state.activeIdx, figureIdx });
           }
           return;
         }
         focusFigure(target);
         if (shouldBroadcast()) {
-          const figureIdx = Array.from(chunk.querySelectorAll('figure.figure-img, .chunk-body pre, .marginalia')).indexOf(target);
+          const figureIdx = Array.from(chunk.querySelectorAll(FOCUSABLE_SEL)).indexOf(target);
           sendToPeer({ type: 'figure-focus', chunkIdx: state.activeIdx, figureIdx });
         }
       });
@@ -4247,6 +4510,7 @@ function renderSpeaker(lecture, opts = {}) {
 ${AUDIENCE_CSS}
 ${SPEAKER_CSS}
 </style>
+${katexStyleTag(columnsHtml)}
 ${reloadScript(opts.watchPort)}
 </head>
 <body data-collapse="topic-bold" data-view="speaker" data-font="serif" data-theme="light-red">
@@ -5957,6 +6221,8 @@ function buildOnce(absIn, only, opts = {}) {
   imgResolveCache.clear();
   dataUriCache.clear();
   inlineSvgCounter = 0;
+  MATH_ERRORS.length = 0;
+  lastKatexSheet = null;
   // Auto-inline decision when neither --inline-images nor --no-inline-images
   // was passed: scan referenced images, inline iff total fits AUTO_INLINE_BUDGET.
   // Either way log the decision so authors notice when a deck silently flips
@@ -6004,6 +6270,22 @@ function buildOnce(absIn, only, opts = {}) {
     const p = path.join(outDir, `${name}.html`);
     fs.writeFileSync(p, render(lecture, opts));
     written.push(path.relative(process.cwd(), p));
+  }
+  // KaTeX renders a broken formula in red rather than throwing, which is the
+  // right call mid-lecture but means a typo would otherwise ship silently.
+  // Report it here so the author sees it on the terminal too. Deduplicated:
+  // the same formula is rendered once per view.
+  if (MATH_ERRORS.length) {
+    const seen = new Set();
+    for (const e of MATH_ERRORS) {
+      if (seen.has(e.tex)) continue;
+      seen.add(e.tex);
+      console.warn(`[math] could not render: ${e.tex.slice(0, 60)} – ${e.message}`);
+    }
+  }
+  if (lastKatexSheet) {
+    const kb = (lastKatexSheet.bytes / 1024).toFixed(0);
+    console.log(`[math] ${lastKatexSheet.families} KaTeX font families inlined, ${kb} KB of woff2 per view (of 254 KB for the full set). A lecture without math inlines nothing.`);
   }
   return { written, shape };
 }

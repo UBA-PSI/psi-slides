@@ -415,6 +415,31 @@ function lintFile(filePath) {
     }
   });
 
+  // Unclosed display math. A `$$` that never closes swallows the rest of the
+  // chunk into one formula, and because KaTeX renders errors in red rather
+  // than failing, the build stays green and the damage only shows up on the
+  // projector. Cheap to catch here. Fence-aware, so `$$` inside a code block
+  // is not counted; inline `$…$` is deliberately not checked, because a lone
+  // dollar in prose is legitimate and the build leaves it alone.
+  {
+    let fence = false;
+    let openLine = 0;
+    let open = false;
+    lines.forEach((line, i) => {
+      if (/^\s*(```|~~~)/.test(line)) { fence = !fence; return; }
+      if (fence) return;
+      const count = (line.match(/\$\$/g) || []).length;
+      for (let k = 0; k < count; k++) {
+        if (!open) { open = true; openLine = i + 1; }
+        else open = false;
+      }
+    });
+    if (open) {
+      add(openLine, 'warn', 'unclosed-math',
+          'display math opened with `$$` is never closed – everything after it renders as one formula');
+    }
+  }
+
   return findings;
 }
 
