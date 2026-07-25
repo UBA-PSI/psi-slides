@@ -135,7 +135,12 @@ By default every chunk must open with a **topic sentence that stands on its own*
 
 A chunk can opt out of that derivation with `::: slide` (this block is the screen) or `::: script` (everything but this block is the screen). Use it when the argument wants continuous prose that no first-sentence rule can carve up sensibly. See PRD §4.5.
 
-Chunk grammar: `## tag: Heading | Sub-Heading {.width #id}` where `tag` is one of `title`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`, and width is one of `narrow`, `standard`, `wide`, `full`. The `|` sub-heading and the `{...}` attribute tail are both optional.
+Chunk grammar: `## tag: Heading | Sub-Heading {.width #id}` where `tag` is one of `title`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`, and width is one of `narrow` (28em), `standard` (36em), `wide` (52em), `full` (72em). The `|` sub-heading and the `{...}` attribute tail are both optional; width defaults to `standard`.
+
+Two things worth knowing before writing chunks, both learned the hard way:
+
+- **`principle` is not a narrow tag.** The tag sets treatment and budget, never width, but the docs used to pair it with `.narrow` and every example followed – which meant anything longer than one sentence became a tall thin ribbon. Prefer `.standard` for principles. `narrow` itself went from 22em to 28em for the same reason.
+- **The live views do not print the tag name.** The small-caps eyebrow (PRINCIPLE, DEFINITION, …) was removed from `renderAudienceChunk`: it announced a taxonomy that is only as right as the tag choice was, and a mislabelled slide reads to the room as an error. `renderChunk` (the document renderer) still emits `.chunk-label`, and `.tag-label` in the audience is now only the *expansion* label. Search results read the tag off `data-tag` for this reason.
 
 ## Reference material
 

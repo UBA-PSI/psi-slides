@@ -337,6 +337,24 @@ Zweitens, subtiler und ohne jede Fehlermeldung: **`\\s` in einem Template-Litera
 
 **Regression.** Alle drei Lectures bauen, Lint unverändert bei 3 Warnungen, Tutorial 10 Columns / 34 Chunks. Beide Views geprüft: Suche von der Folie und aus dem Overview, `Enter`, Klick, `Esc`, Overview-Klick landet und schließt, Zoom-Roundtrip über alle Chunks, keine Konsolenfehler.
 
+## Tag-Eyebrow, Auto-Fit, Blank-Trennung
+
+**Der Tag-Eyebrow ist aus den Live-Views raus.** Das kleine Kapitälchen-Wort über der Überschrift (PRINCIPLE, DEFINITION, QUESTION, EXAMPLE) verkündete eine Taxonomie, die nur so oft stimmt wie die Tag-Wahl des Autors – und eine Folie mit der Aufschrift PRINCIPLE, die keines ist, liest sich im Raum wie ein Fehler. Das Tag macht weiterhin seine Arbeit (Linie oben, Typo-Skala, Abstände, Lint-Budget), es benennt sich nur nicht mehr selbst. Der Print-Renderer behält das Label: ein Lesedokument wird im eigenen Tempo gescannt und profitiert von der Taxonomie, ein Projektionsbild nicht.
+
+Nebeneffekt, der beinahe durchgerutscht wäre: die Suchliste zog das Tag aus dem gerenderten Label. Sie liest es jetzt aus `data-tag` – robuster, und unabhängig davon, was ein Renderer gerade anzeigt.
+
+**`principle` war nie ein schmales Tag.** Die Breite kommt ausschließlich aus dem `{.narrow}` im Heading, `principle` hat in der Audience-View gar keine eigene CSS-Regel. Aber `PRD.md` §2.1 legte narrow nahe („short claims“), alle Tutorial-Beispiele machten es vor, und wer danach Folien baut – Mensch oder Modell – kopiert brav ein Muster, das das Repo selbst lehrt. Zwei Änderungen: die Guidance in PRD, CLAUDE.md und den Tutorial-Beispielen empfiehlt jetzt `.standard` für principle, und `narrow` selbst geht von 22em auf 28em. 22em war wirklich schmal – alles länger als ein Satz wurde zum hohen dünnen Band. Bestehende Lectures ändern sich nur über die Breite, nicht über die Semantik; `{.narrow}` bleibt gültig.
+
+**Auto-Fit auf `#`.** Der Zoom-pro-Modus aus dem letzten Slice löste nur das Umschalten; wenn Chunks stark unterschiedlich lang sind, stimmt der Zoom trotzdem auf halber Strecke nicht mehr. `#` schaltet einen Modus, in dem jede Folie beim Ankommen auf den Schirm gerechnet wird, in beiden Collapse-Modi. Wichtiger Unterschied zum Einmal-Fit: Auto-Fit darf auch **wachsen** (Decke ist das globale Maximum 2.2), der Fit beim Eintritt in den Volltext darf nur schrumpfen. Begründung steht am Parameter `ceiling`: wer `C` drückt, will mehr Text sehen, nicht größeren; wer `#` drückt, will genau das Gegenteil.
+
+`autoFit` reist im Snapshot mit. Es wäre verlockend gewesen, es lokal zu lassen – aber dann rechnete das Fenster, in dem man tippt, den Fit, und das andere bekäme nur den fertigen Zoom; sobald der Speaker mit Push navigiert, wäre der Modus in der Audience stumm wirkungslos. Wer handelt, rechnet und broadcastet; wer empfängt, wendet an. Gleiche Regel wie beim Collapse.
+
+**`B` blankt nur noch den Projektor.** Vorher wurde `body.blanked` in beiden Fenstern gesetzt, also war auch das Cockpit schwarz – genau dann, wenn man in Ruhe die nächste Folie suchen will. Die beiden Regeln hängen jetzt an `body:not([data-view=speaker])`. Achtung beim Nachbauen: die Audience setzt **kein** `data-view`, nur der Speaker tut das (`VIEW` fällt im JS auf `'audience'` zurück). Ein Selektor `body[data-view=audience]` hätte nie gegriffen, und genau den hatte ich zuerst geschrieben.
+
+Dazu ein `#blank-badge`: weiß auf schwarz, klein, unten zentriert. Sichtbar im Speaker immer wenn geblankt, in der Audience **nur wenn kein Peer offen ist** – wer von einem Schirm aus arbeitet, soll wissen wie er wieder rauskommt; wer zwei hat, will keinen Text auf der schwarzen Leinwand. Wird in `applyState()` neu ausgewertet, weil `S` jederzeit einen Peer erzeugen und ein Fensterschluss ihn wieder wegnehmen kann.
+
+**Toasts gab es schon** – `flashMode()` mit `#mode-badge`, seit dem Typo-Slice. Sie feuerten nur nicht überall: `B` war stumm. Jetzt melden auch Blank und Auto-Fit. Wer einen neuen Toggle baut, hängt eine `flashMode()`-Zeile dran; das ist die Konvention.
+
 ## Was funktioniert
 
 - `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.

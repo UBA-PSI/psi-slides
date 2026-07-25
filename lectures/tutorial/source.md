@@ -14,7 +14,7 @@ lecture: tutorial
 
 > note: This is a self-referential lecture – it explains the tool by being the tool. First-time readers should have both this audience view and a spawned speaker view (S) open side by side. The cockpit column assumes the speaker is running.
 
-## principle: One source, four views | print, print-notes, audience, speaker all come from the same `source.md` {.narrow #one-source}
+## principle: One source, four views | print, print-notes, audience, speaker all come from the same `source.md` {.standard #one-source}
 
 **psi-slides builds four HTML files from each Markdown source.** Print is a document-style reading copy with a cover and a TOC; print-notes is the same document with your speaker notes folded in; audience is this live projection view; speaker is the cockpit with notes, preview strip, and timer.
 
@@ -119,7 +119,7 @@ This is the fastest jump tool when you half-remember a topic but not its positio
 
 # What goes on the slide {#on-screen}
 
-## principle: Two ways to decide what the room sees | derived, or stated outright {.narrow #two-modes}
+## principle: Two ways to decide what the room sees | derived, or stated outright {.standard #two-modes}
 
 **`C` toggles between the full text and the collapsed slide.** Collapsed is the default, and it is what the projector shows during a talk; the full text is the rehearsal and recap mode.
 
@@ -163,7 +163,7 @@ The tag vocabulary is a good predictor: `principle` and `question` chunks are sh
 
 # The chunk vocabulary {#vocabulary}
 
-## principle: Eight tags, one grammar | `## tag: Heading | Sub {.width #id}` {.narrow #grammar}
+## principle: Eight tags, one grammar | `## tag: Heading | Sub {.width #id}` {.standard #grammar}
 
 **Every chunk opens with a tag that names what kind of move it makes.** `title`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`.
 
@@ -254,11 +254,16 @@ If the pane is collapsed because this chunk has no notes, the corner `+ note` bu
 - `C` toggles **collapse**: what the room sees, or the full text.
 - `F` cycles **font**: serif → sans → mono, for projector legibility.
 - `A` cycles **accent theme**: four light shades plus two terminal phosphor modes.
-- `+` `-` `0` set the **text size**, and `B` blanks the screen entirely.
+- `+` `-` `0` set the **text size**; `#` hands that job to the tool.
+- `B` **blanks the projection** – and only the projection.
 
 `Shift` plus any of the cycling keys goes backwards. Font and theme are stored globally rather than per lecture, so the preference follows you; zoom and collapse belong to the talk.
 
 **The two collapse modes keep separate zoom levels.** The collapsed slide holds whatever size you set with `+` and `-` – that is the projector setting, and nothing changes it behind your back. Switching to the full text picks its own zoom so the whole chunk fits the screen, and switching back restores yours exactly. Without that, every `C` was followed by a row of `-` presses and every `C` back by a row of `+` presses.
+
+**`#` turns on auto-fit** and every slide is then sized to the screen as you arrive on it, in either collapse mode – growing a short chunk as readily as shrinking a long one. `#` again hands the zoom back to you. It is the right mode for a lecture whose chunks vary a lot in length, and the wrong one if you want a constant type size in the room.
+
+**`B` blanks the projection, not your cockpit.** The audience view goes black; the speaker window keeps the slide, the notes and the preview strip, so you can change slide or read ahead while the room sees nothing. A small `BLANK · hit B to toggle` marker sits at the bottom of the speaker window – or at the bottom of the audience view if no speaker is open, so a one-screen setup still knows how to get out.
 
 # Authoring layouts {#layouts}
 
@@ -356,7 +361,7 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 # Writing chunks that work {#craft}
 
-## principle: The topic sentence is the slide | so write the opening line for the projector {.narrow #topic-sentence}
+## principle: The topic sentence is the slide | so write the opening line for the projector {.standard #topic-sentence}
 
 **In derived mode the room reads your first sentences, so each one has to be a claim that survives without its paragraph.** Everything after it is print.
 

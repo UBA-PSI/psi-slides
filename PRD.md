@@ -35,7 +35,7 @@ These are the commitments. Everything downstream is subordinate.
 
 **Placement algorithm (deterministic).** Given the ordered list of columns and, per column, the ordered list of chunks, positions are computed purely from source:
 
-1. **Slide size.** Each chunk is rendered as a slide of `width = 100vw` and `min-height = var(--slide-min, 40vh)` – large enough to own the viewport but small enough that short chunks (e.g. a `question` or a `free`-narration transition) auto-size to their content and leave room for neighbor peek. Internal text column width is determined by the chunk's width class: `narrow = 22em`, `standard = 36em`, `wide = 52em`, `full = 72em`. Width classes control *content layout inside the slide*, not the frame.
+1. **Slide size.** Each chunk is rendered as a slide of `width = 100vw` and `min-height = var(--slide-min, 40vh)` – large enough to own the viewport but small enough that short chunks (e.g. a `question` or a `free`-narration transition) auto-size to their content and leave room for neighbor peek. Internal text column width is determined by the chunk's width class: `narrow = 28em`, `standard = 36em`, `wide = 52em`, `full = 72em`. Width classes control *content layout inside the slide*, not the frame.
 2. **Column X.** Columns are placed left-to-right, separated by `column-gap = 8vw`. Because each slide is viewport-wide, this gap is always enough to fully isolate the neighboring column from the active one.
 3. **Chunk Y within a column.** Slides stack top-to-bottom with `chunk-gap` – a tunable CSS custom property (default `4vh`, range `0vh`–`25vh`). Small values create a “flow” feel with neighboring slides peeking during transitions; large values enforce full slide isolation. The gap is a deliberate design knob, not a fixed rule.
 4. **Camera.** The camera **translates only**; there is no `transform: scale()` at the camera level. On chunk change, the stage translates to place the active slide centered in the viewport. On annotation activation, the camera offsets right so the slide's left edge lands around viewport-X = 55%, revealing the annotation box on the left.
@@ -54,15 +54,17 @@ The `## tag: Heading` prefix marks the chunk's structural role. This list is **e
 | Tag | Use |
 |---|---|
 | `title` | Lecture cover slide. Pulls `title`, `presenter`, `info` from frontmatter; see §4.4 for layout. |
-| `principle` | A core claim or rule. Rendered with a thick rule above and small-caps label. |
+| `principle` | A core claim or rule. Thick rule above, larger heading. `.standard` reads better than `.narrow`: a claim of two sentences in a 28em column becomes a tall thin ribbon. |
 | `definition` | A formal statement. Small-caps label, typically `.standard` width. |
 | `example` | A concrete instance. Often `.wide`, often followed by a principle chunk. |
 | `question` | A posed question, often paired with an `::: expand` answer. |
 | `figure` | A visual-dominant chunk (image, diagram, ASCII sketch). Usually `.wide` or `.full`. |
 | `exercise` | Student-facing task. Rendered with the exercise marginalia treatment in print. |
-| `free` | Uncategorized narration. The only tag with no small-caps label and no rule above – intentionally typographically quiet. |
+| `free` | Uncategorized narration. No rule above – intentionally typographically quiet. |
 
-Tag is optional on a chunk; omitting `tag:` is equivalent to `free:` but renders identically without the label space reserved.
+Tag is optional on a chunk; omitting `tag:` is equivalent to `free:`.
+
+**The live views do not print the tag name.** They did, as a small-caps eyebrow above the heading, and it was removed: the word announced a taxonomy that is correct only as often as the author's tag choice was, and a slide labelled PRINCIPLE that is not one reads to the room as a mistake. The tag still decides the rule above, the type scale, the spacing and the lint budget – it just stops naming itself. The document renderer keeps the label, because a reader scanning a long text does benefit from the taxonomy, and because a document is read at one's own pace rather than projected at a room.
 
 ---
 
@@ -159,10 +161,12 @@ Four column widths, expressed in `rem` so they reflow with zoom:
 
 | Class | Width | Typical use |
 |---|---|---|
-| `narrow` | 18rem | Observations, pull quotes, short claims, marginalia-heavy chunks |
-| `standard` | 28rem | Default prose, definitions, examples |
-| `wide` | 42rem | Two-part chunks, inline figures, comparisons |
-| `full` | 60rem | Large figures, process diagrams, full-width sketches |
+| `narrow` | 28em | Pull quotes, single-sentence observations, marginalia-heavy chunks |
+| `standard` | 36em | Default prose, principles, definitions, examples |
+| `wide` | 52em | Two-part chunks, inline figures, comparisons |
+| `full` | 72em | Large figures, process diagrams, full-width sketches |
+
+(`narrow` was 22em until a semester of use showed it produced tall thin ribbons out of anything longer than a sentence. The table above is the implemented set; §2 carries the same numbers.)
 
 Column width is the strongest compositional lever. Content of the same structural type looks entirely different in a `narrow` vs `wide` box without any per-chunk design work.
 

@@ -169,7 +169,11 @@ textarea, input, [contenteditable=true] {
   padding: var(--slide-pad-y) var(--slide-pad-x);
   transition: opacity var(--camera-duration) ease;
 }
-.chunk[data-width=narrow]   { --content-w: 22em; }
+/* 22em was a genuinely narrow column: a claim of two sentences became a
+   tall thin ribbon that read worse than the same text at standard width.
+   28em still reads as the narrow option next to standard's 36em, without
+   forcing a line break every six words. */
+.chunk[data-width=narrow]   { --content-w: 28em; }
 .chunk[data-width=standard] { --content-w: 36em; }
 .chunk[data-width=wide]     { --content-w: 52em; }
 .chunk[data-width=full]     { --content-w: 72em; }
@@ -897,8 +901,37 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
 .math-error { color: var(--emph); font-family: var(--mono, ui-monospace, monospace); }
 
 /* blank mode */
-body.blanked #stage-viewport { background: oklch(0.06 0 0); }
-body.blanked #stage { opacity: 0; }
+/* Blanking is a projector action, not a global one. The speaker window
+   keeps everything visible so the lecturer can change slide, read notes and
+   line up what comes next while the room sees black. */
+body:not([data-view=speaker]).blanked #stage-viewport { background: oklch(0.06 0 0); }
+body:not([data-view=speaker]).blanked #stage { opacity: 0; }
+
+/* The badge is the only feedback that the projection is off. In the speaker
+   window it always shows while blanked; in the audience it shows only when
+   there is no speaker window to show it instead, so a lecturer working from
+   one screen still knows what happened and how to undo it. */
+#blank-badge {
+  position: fixed;
+  bottom: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: oklch(0.06 0 0);
+  color: oklch(0.97 0 0);
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.32rem 0.8rem;
+  z-index: 45;
+  pointer-events: none;
+}
+#blank-badge.hidden { display: none; }
+/* The speaker footer already owns the bottom edge; clear it rather than
+   sitting on top of the push indicator and the hotkey legend. */
+body[data-view=speaker] #blank-badge { bottom: 3.4rem; }
+#blank-badge span { font-weight: 400; opacity: 0.72; }
 
 /* overlays */
 
@@ -1005,7 +1038,7 @@ body[data-theme^=terminal] #help-inner kbd { background: oklch(0.24 0.02 90); }
 }
 #help-button:hover { opacity: 1; }
 body.overview-mode #help-button,
-body.blanked #help-button { display: none; }
+body:not([data-view=speaker]).blanked #help-button { display: none; }
 
 #mode-badge {
   position: fixed;
@@ -1085,7 +1118,7 @@ body[data-view=speaker] #laser-pointer { display: none; }
   /* Hide while the screen is blanked. Stay visible during figure-focus
      so the +/− buttons remain reachable for figure zoom; the rail is
      above the overlay (z-index 35 vs 30) so taps still land on it. */
-  body.blanked #touch-controls { display: none; }
+  body:not([data-view=speaker]).blanked #touch-controls { display: none; }
 }
 
 /* overview mode (PRD §5) ------------------------------------------- */
@@ -1284,9 +1317,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     <h1 class="section-heading">Welcome</h1>
   </div>
 </article>
-<article class="chunk chunk-principle" id="one-source" data-chunk-id="one-source" data-tag="principle" data-width="narrow" data-chunk-num="2">
+<article class="chunk chunk-principle" id="one-source" data-chunk-id="one-source" data-tag="principle" data-width="standard" data-chunk-num="2">
   <div class="chunk-content">
-    <div class="tag-label">principle</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">One source, four views</span> <span class="hd-sub">print, print-notes, audience, speaker all come from the same <code>source.md</code></span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>psi-slides builds four HTML files from each Markdown source.</strong> Print is a document-style reading copy with a cover and a TOC; print-notes is the same document with your speaker notes folded in; audience is this live projection view; speaker is the cockpit with notes, preview strip, and timer.</p>
 <p>The authoring format is the same Markdown for all four – views only differ in <em>what they emit</em>, never in <em>what you wrote</em>.</p>
@@ -1407,7 +1440,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="arrows" data-chunk-id="arrows" data-tag="example" data-width="standard" data-chunk-num="5">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Arrows and Space</span> <span class="hd-sub">navigate chunks, reveal segments</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Three key-families carry the whole live-talk navigation:</strong></p>
 <ul>
@@ -1433,7 +1466,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="expand" data-chunk-id="expand" data-tag="example" data-width="wide" data-chunk-num="6">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Expansions</span> <span class="hd-sub"><code>Enter</code> and <code>1</code>-<code>9</code> open side asides</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Some chunks have extra detail tucked behind a chevron button.</strong> Click one, or press <code>Enter</code> for the first, or <code>1</code>…<code>9</code> for the N-th. This chunk has two expansions – try both.</p>
 <p><strong>Print collapses all expansions</strong> into block-quoted asides in source order, so the reading copy loses nothing.</p>
@@ -1467,7 +1500,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="figure-focus" data-chunk-id="figure-focus" data-tag="example" data-width="standard" data-chunk-num="7">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Zoom into a figure or code block</span> <span class="hd-sub">click it</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Click any figure, code block, or marginalia inside the active chunk.</strong> Figures and code lift into a centred card with the slide dimmed behind; a marginalia instead pans the camera so the aside sits in the middle of the screen.</p>
 <p>Inside a focused card: drag to pan, wheel or <code>+</code> <code>-</code> to zoom, <code>0</code> to reset, <code>Esc</code> or a click to close. With a speaker connected, the audience mirrors the focus, the zoom, and the pan, so what you inspect is what the room sees.</p>
@@ -1495,7 +1528,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="overview" data-chunk-id="overview" data-tag="example" data-width="standard" data-chunk-num="8">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Overview</span> <span class="hd-sub"><code>O</code> zooms out so you can see everything</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Press <code>O</code> now.</strong> The stage zooms out to show every chunk at once in its column grid, and the slide you were on carries a selection outline.</p>
 <ul>
@@ -1519,7 +1552,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="toc" data-chunk-id="toc" data-tag="example" data-width="standard" data-chunk-num="9">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">TOC</span> <span class="hd-sub"><code>T</code> toggles a flat column index</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>T</code> shows a list of every named column with its ID.</strong> Click an entry to jump there directly; <code>T</code> again closes the panel.</p>
 <p>Columns without a <code>{#id}</code> do not appear – anonymous columns like the title page stay invisible in the nav but still render normally. IDs on named columns are how the TOC links, and also how cross-references (a <code>[text](#some-id)</code> link in body text) resolve.</p>
@@ -1537,7 +1570,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="search" data-chunk-id="search" data-tag="example" data-width="wide" data-chunk-num="10">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Search</span> <span class="hd-sub"><code>/</code> lists every slide that mentions a word</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Press <code>/</code> from anywhere – you do not have to be in overview first.</strong> A panel opens and every slide whose heading or body contains what you type is listed with the sentence it matched, the term highlighted.</p>
 <p><code>↑</code> <code>↓</code> pick a hit, <code>Enter</code> or a click goes there, <code>Esc</code> closes without moving. If you opened the search from the overview board, the board follows your pick as you move down the list, so a match on the far side of the lecture comes into view while you are still choosing.</p>
@@ -1561,9 +1594,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     <h1 class="section-heading">What goes on the slide</h1>
   </div>
 </article>
-<article class="chunk chunk-principle" id="two-modes" data-chunk-id="two-modes" data-tag="principle" data-width="narrow" data-chunk-num="11">
+<article class="chunk chunk-principle" id="two-modes" data-chunk-id="two-modes" data-tag="principle" data-width="standard" data-chunk-num="11">
   <div class="chunk-content">
-    <div class="tag-label">principle</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Two ways to decide what the room sees</span> <span class="hd-sub">derived, or stated outright</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>C</code> toggles between the full text and the collapsed slide.</strong> Collapsed is the default, and it is what the projector shows during a talk; the full text is the rehearsal and recap mode.</p>
 <p><strong>What “collapsed” means is per chunk, and you choose the mechanism.</strong> Either psi-slides derives the slide from your prose, or you state the slide explicitly. The next two chunks show both.</p>
@@ -1581,7 +1614,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="derived-mode" data-chunk-id="derived-mode" data-tag="example" data-width="wide" data-chunk-num="12">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Derived</span> <span class="hd-sub">first sentence of each paragraph, plus bold fragments</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>By default the collapsed slide is the first sentence of every paragraph plus any <code>**bold**</code> phrases from the rest.</strong> This chunk is written that way – press <code>C</code> twice and watch what appears and disappears.</p>
 <p>The mechanism costs nothing to author and it keeps print and screen in one text. It also imposes a real constraint: every paragraph has to open with a sentence that works as a standalone claim, and the <strong>bold fragments have to read as bullets on their own</strong>. Continuation prose is print-only.</p>
@@ -1600,7 +1633,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="explicit-mode" data-chunk-id="explicit-mode" data-tag="example" data-width="wide" data-chunk-num="13">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Stated</span> <span class="hd-sub"><code>::: slide</code> and <code>::: script</code></span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><div class="slide-explicit">
 
@@ -1629,7 +1662,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-question" id="which-mode" data-chunk-id="which-mode" data-tag="question" data-width="narrow" data-chunk-num="14">
   <div class="chunk-content">
-    <div class="tag-label">question</div>
+    
     <h2 class="chunk-heading">Which mode does a chunk use?</h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A <code>::: slide</code> block if there is one, otherwise everything outside <code>::: script</code>, otherwise the derived first-sentence-plus-bold.</strong> Three rules, checked in that order, per chunk.</p>
 </div></div>
@@ -1659,9 +1692,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     <h1 class="section-heading">The chunk vocabulary</h1>
   </div>
 </article>
-<article class="chunk chunk-principle" id="grammar" data-chunk-id="grammar" data-tag="principle" data-width="narrow" data-chunk-num="15">
+<article class="chunk chunk-principle" id="grammar" data-chunk-id="grammar" data-tag="principle" data-width="standard" data-chunk-num="15">
   <div class="chunk-content">
-    <div class="tag-label">principle</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Eight tags, one grammar</span> <span class="hd-sub"><code>## tag: Heading Sub {.width #id}</code></span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Every chunk opens with a tag that names what kind of move it makes.</strong> <code>title</code>, <code>principle</code>, <code>definition</code>, <code>example</code>, <code>question</code>, <code>figure</code>, <code>exercise</code>, <code>free</code>.</p>
 <p>The <code>| Sub-Heading</code> and the <code>{.width #id}</code> tail are both optional. Width is one of <code>narrow</code>, <code>standard</code>, <code>wide</code>, <code>full</code>, and <strong>the <code>{#id}</code> is frozen once authored</strong> – it anchors cross-references, TOC entries, speaker-sync snapshots, and localStorage.</p>
@@ -1679,7 +1712,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-definition" id="tag-effects" data-chunk-id="tag-effects" data-tag="definition" data-width="standard" data-chunk-num="16">
   <div class="chunk-content">
-    <div class="tag-label">definition</div>
+    
     <h2 class="chunk-heading">What a tag actually does</h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A tag sets the visual treatment and the density budget, not the layout.</strong> <code>principle</code>, <code>definition</code>, <code>question</code> and <code>example</code> print their tag name as a small label above the heading; <code>free</code>, <code>exercise</code> and <code>figure</code> render unlabelled.</p>
 <p>The lint budgets differ per tag, and they encode intent rather than taste: <code>principle</code> and <code>question</code> get 80 words because a claim that needs 200 is not a claim yet. <code>definition</code> gets 200, <code>example</code> and <code>free</code> get 250, <code>exercise</code> gets 350, and <code>title</code> and <code>figure</code> are unbudgeted.</p>
@@ -1758,7 +1791,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="cockpit-layout" data-chunk-id="cockpit-layout" data-tag="example" data-width="wide" data-chunk-num="19">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Arranging the cockpit</span> <span class="hd-sub">the part everyone forgets</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><div class="slide-explicit">
 
@@ -1788,7 +1821,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="notes-vs-annot" data-chunk-id="notes-vs-annot" data-tag="example" data-width="wide" data-chunk-num="20">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">N vs Shift-N</span> <span class="hd-sub">audience-visible vs private</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Two different note surfaces, one letter apart:</strong></p>
 <div class="side"><div class="side-a">
@@ -1816,17 +1849,20 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="knobs" data-chunk-id="knobs" data-tag="example" data-width="wide" data-chunk-num="21">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">The reading knobs</span> <span class="hd-sub"><code>C</code> <code>F</code> <code>A</code> and zoom</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Four single keys change how the text reads, and all four sync to both views.</strong></p>
 <ul>
 <li><code>C</code> toggles <strong>collapse</strong>: what the room sees, or the full text.</li>
 <li><code>F</code> cycles <strong>font</strong>: serif → sans → mono, for projector legibility.</li>
 <li><code>A</code> cycles <strong>accent theme</strong>: four light shades plus two terminal phosphor modes.</li>
-<li><code>+</code> <code>-</code> <code>0</code> set the <strong>text size</strong>, and <code>B</code> blanks the screen entirely.</li>
+<li><code>+</code> <code>-</code> <code>0</code> set the <strong>text size</strong>; <code>#</code> hands that job to the tool.</li>
+<li><code>B</code> <strong>blanks the projection</strong> – and only the projection.</li>
 </ul>
 <p><code>Shift</code> plus any of the cycling keys goes backwards. Font and theme are stored globally rather than per lecture, so the preference follows you; zoom and collapse belong to the talk.</p>
 <p><strong>The two collapse modes keep separate zoom levels.</strong> The collapsed slide holds whatever size you set with <code>+</code> and <code>-</code> – that is the projector setting, and nothing changes it behind your back. Switching to the full text picks its own zoom so the whole chunk fits the screen, and switching back restores yours exactly. Without that, every <code>C</code> was followed by a row of <code>-</code> presses and every <code>C</code> back by a row of <code>+</code> presses.</p>
+<p><strong><code>#</code> turns on auto-fit</strong> and every slide is then sized to the screen as you arrive on it, in either collapse mode – growing a short chunk as readily as shrinking a long one. <code>#</code> again hands the zoom back to you. It is the right mode for a lecture whose chunks vary a lot in length, and the wrong one if you want a constant type size in the room.</p>
+<p><strong><code>B</code> blanks the projection, not your cockpit.</strong> The audience view goes black; the speaker window keeps the slide, the notes and the preview strip, so you can change slide or read ahead while the room sees nothing. A small <code>BLANK · hit B to toggle</code> marker sits at the bottom of the speaker window – or at the bottom of the audience view if no speaker is open, so a one-screen setup still knows how to get out.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="knobs">
@@ -1848,7 +1884,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-principle" id="layout-axes" data-chunk-id="layout-axes" data-tag="principle" data-width="standard" data-chunk-num="22">
   <div class="chunk-content">
-    <div class="tag-label">principle</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Two layout axes</span> <span class="hd-sub">chunk widths and body directives</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Layout works on two axes.</strong> Each chunk picks one of four widths in its heading – <code>{.narrow}</code>, <code>{.standard}</code>, <code>{.wide}</code>, <code>{.full}</code> – which sets how much horizontal stage it occupies. Inside the body, <code>:::</code> directives shape internal flow.</p>
 <p>Width is the slide-level decision; directives compose within. A <code>.wide</code> chunk with a <code>::: side</code> body is the most common figure-plus-commentary pattern.</p>
@@ -1866,7 +1902,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="cols-demo" data-chunk-id="cols-demo" data-tag="example" data-width="wide" data-chunk-num="23">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Multi-column flow</span> <span class="hd-sub"><code>::: cols 2</code> and <code>::: cols 3</code></span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: cols 2</code> (or <code>cols 3</code>) wraps the body in a CSS multi-column flow.</strong> Use it when several short paragraphs read better in parallel than stacked – feature lists, brief comparisons, parallel definitions.</p>
 <div class="cols cols-2">
@@ -1893,7 +1929,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="side-demo" data-chunk-id="side-demo" data-tag="example" data-width="wide" data-chunk-num="24">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Two-pane grid</span> <span class="hd-sub"><code>::: side</code> and <code>::: flip</code></span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: side</code> opens a two-pane grid; <code>::: flip</code> is the mid-marker between panes.</strong> Unlike <code>cols</code>, the split is deterministic – the left pane gets everything before <code>::: flip</code>, the right pane everything after. Best for figure-plus-commentary, or before-and-after pairs where you need to control which side gets which content.</p>
 <div class="side"><div class="side-a">
@@ -1922,7 +1958,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="marginalia-demo" data-chunk-id="marginalia-demo" data-tag="example" data-width="standard" data-chunk-num="25">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Marginalia</span> <span class="hd-sub"><code>::: marginalia</code> escapes to the slide margin</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: marginalia</code> floats an aside to the right of the chunk body</strong>, anchored to the content column&#39;s right edge and spilling into the slide padding. The camera does not pan there automatically – click the marginalia in this chunk to bring it centred into view.</p>
 <aside class="marginalia">
@@ -1948,7 +1984,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="margin-demo" data-chunk-id="margin-demo" data-tag="example" data-width="standard" data-chunk-num="26">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Margin notes</span> <span class="hd-sub"><code>::: margin</code> is a quiet inline footnote</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: margin</code> adds a dim, small-caps-labelled note below the chunk body</strong> – a Tufte-style sidenote, but in-flow rather than off to the side. Always visible, no chevron, no separate panel.</p>
 <p>Reach for <code>::: margin</code> when the supplementary content is short and trustworthy enough that you want it always rendered. Reach for <code>::: expand &lt;label&gt;</code> (back at <code>#expand</code>) when it should hide behind a chevron until someone opens it.</p>
@@ -1967,7 +2003,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="images" data-chunk-id="images" data-tag="example" data-width="wide" data-chunk-num="27">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Images</span> <span class="hd-sub"><code>![](fig-id)</code> resolves against <code>assets/</code></span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>The shorthand <code>![](fig-id)</code> looks for <code>assets/fig-id.{svg,png,jpg,jpeg,gif,webp}</code> and takes the first match.</strong> No path, no extension. An explicit path still works if you need one.</p>
 <div class="cols cols-2">
@@ -1993,7 +2029,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="math" data-chunk-id="math" data-tag="example" data-width="wide" data-chunk-num="28">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">Math</span> <span class="hd-sub"><code>$inline$</code> and <code>$$display$$</code></span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Formulas are rendered by KaTeX during the build, so the output stays a single file with no runtime.</strong> Inline math sits in a sentence – the anonymity set <span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi></mrow><annotation encoding="application/x-tex">S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span></span></span></span></span> has size <span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">∣</mi><mi>S</mi><mi mathvariant="normal">∣</mi></mrow><annotation encoding="application/x-tex">|S|</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">∣</span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span><span class="mord">∣</span></span></span></span></span> – and display math takes its own block:</p>
 <div class="math-display"><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>d</mi><mo>=</mo><mfrac><mrow><mi>H</mi><mo stretchy="false">(</mo><mi>S</mi><mo stretchy="false">)</mo></mrow><mrow><msub><mrow><mi>log</mi><mo>⁡</mo></mrow><mn>2</mn></msub><mi mathvariant="normal">∣</mi><mi>S</mi><mi mathvariant="normal">∣</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">d = \frac{H(S)}{\log_2 |S|}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.363em;vertical-align:-0.936em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mop"><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.207em;"><span style="top:-2.4559em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2441em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">∣</span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span><span class="mord">∣</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0813em;">H</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span></div>
@@ -2019,9 +2055,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     <h1 class="section-heading">Writing chunks that work</h1>
   </div>
 </article>
-<article class="chunk chunk-principle" id="topic-sentence" data-chunk-id="topic-sentence" data-tag="principle" data-width="narrow" data-chunk-num="29">
+<article class="chunk chunk-principle" id="topic-sentence" data-chunk-id="topic-sentence" data-tag="principle" data-width="standard" data-chunk-num="29">
   <div class="chunk-content">
-    <div class="tag-label">principle</div>
+    
     <h2 class="chunk-heading has-sub"><span class="hd-main">The topic sentence is the slide</span> <span class="hd-sub">so write the opening line for the projector</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>In derived mode the room reads your first sentences, so each one has to be a claim that survives without its paragraph.</strong> Everything after it is print.</p>
 <p><strong>That rule doubles as a rehearsal test.</strong> If the collapsed chunk would not remind <em>you</em> what you meant to say, the chunk is not finished yet.</p>
@@ -2039,7 +2075,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-example" id="anti-patterns" data-chunk-id="anti-patterns" data-tag="example" data-width="wide" data-chunk-num="30">
   <div class="chunk-content">
-    <div class="tag-label">example</div>
+    
     <h2 class="chunk-heading">Four ways a chunk goes soft</h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Most chunks that read badly on the projector fail in one of four ways</strong>, and each one is a single edit away from working.</p>
 <div class="slide-explicit">
@@ -2070,7 +2106,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </article>
 <article class="chunk chunk-question" id="choose-mechanism" data-chunk-id="choose-mechanism" data-tag="question" data-width="standard" data-chunk-num="31">
   <div class="chunk-content">
-    <div class="tag-label">question</div>
+    
     <h2 class="chunk-heading">Derive it, or state it?</h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Derive while the chunk is an argument of one to three paragraphs; state the slide once the argument wants continuous prose.</strong> Try the derivation first – if it keeps fighting you, that is the signal, not a failure.</p>
 </div></div>
@@ -2236,8 +2272,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
         <dt><kbd>C</kbd></dt><dd>collapse: what the room sees ↔ the full text</dd>
         <dt><kbd>F</kbd></dt><dd>font: serif → sans → mono</dd>
         <dt><kbd>A</kbd></dt><dd>theme: four light accents, two phosphor modes</dd>
-        <dt><kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></dt><dd>text size</dd>
-        <dt><kbd>B</kbd></dt><dd>blank the screen</dd>
+        <dt><kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></dt><dd>text size (kept separately for each collapse mode)</dd>
+        <dt><kbd>#</kbd></dt><dd>auto-fit: size every slide to the screen, on or off</dd>
+        <dt><kbd>B</kbd></dt><dd>blank the projection – the speaker window keeps working</dd>
         <dt><kbd>Shift</kbd>-any</dt><dd>cycle that knob backwards</dd>
       </dl>
     </section>
@@ -2262,6 +2299,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   <ul id="search-results" role="listbox"></ul>
   <div id="search-foot"><kbd>↑</kbd><kbd>↓</kbd> pick · <kbd>Enter</kbd> go · <kbd>Esc</kbd> close</div>
 </div>
+<div id="blank-badge" class="hidden" role="status">BLANK<span> &middot; hit B to toggle</span></div>
 <nav id="toc" aria-label="Contents">
   <h2>Contents</h2>
   <ol>
@@ -2368,6 +2406,7 @@ const state = {
   activeIdx: 0,
   collapse: 'topic-bold',
   zoom: 1.35,
+  autoFit: false,        // # – refit the zoom on every slide, both modes
   blanked: false,
   font: 'serif',          // serif | sans | mono (readable)
   theme: 'light-red',     // light-{red,teal,blue,orange} | terminal-{amber,green}
@@ -2513,6 +2552,7 @@ function snapshot() {
     activeIdx: state.activeIdx,
     revealed: Object.assign({}, revealed),
     collapse: state.collapse,
+    autoFit: state.autoFit,
     zoom: state.zoom,
     blanked: state.blanked,
     font: state.font,
@@ -2600,6 +2640,7 @@ function applyRemoteState(payload) {
     state.activeIdx = Math.max(0, Math.min(flatChunks.length - 1, payload.activeIdx || 0));
     state.collapse = COLLAPSE_MODES.includes(payload.collapse) ? payload.collapse : 'topic-bold';
     state.zoom = payload.zoom || 1.35;
+    state.autoFit = !!payload.autoFit;
     // Track the peer's collapsed zoom rather than syncing it as a field.
     // Both windows see the same zoom values, so remembering the one that
     // was live in topic-bold keeps the two in step without widening the
@@ -2646,7 +2687,7 @@ function applyRemoteState(payload) {
         if (cur) cur.el.classList.add('annot-visible', 'has-annot');
       }
     }
-    document.body.classList.toggle('blanked', state.blanked);
+    applyBlankBadge();
     // Overview first: it decides which projection focusCamera picks, and
     // entering/leaving zeroes manualPan – so it has to run before the
     // camera fields are restored from the payload below.
@@ -2831,9 +2872,23 @@ function splitSentencesIn(root) {
 }
 
 // State
+// Visible in the speaker window whenever the room is blanked, and in the
+// audience only when no speaker window exists to carry it. Recomputed on
+// every state application because the peer can appear or go away at any
+// time – S spawns one, closing it takes it away again.
+const blankBadge = document.getElementById('blank-badge');
+function applyBlankBadge() {
+  if (!blankBadge) return;
+  const hasPeer = !!(peer && !peer.closed);
+  const show = state.blanked && (VIEW === 'speaker' || !hasPeer);
+  blankBadge.classList.toggle('hidden', !show);
+}
+
 function applyState() {
   document.body.dataset.collapse = state.collapse;
   document.documentElement.style.setProperty('--zoom', state.zoom);
+  document.body.classList.toggle('blanked', state.blanked);
+  applyBlankBadge();
   flatChunks.forEach((c, i) => c.el.classList.toggle('active', i === state.activeIdx));
   viewHooks.onActiveChange();
   broadcastState();
@@ -3049,9 +3104,10 @@ function escText(s) {
 function buildSearchIndex() {
   searchIndex = flatChunks.map((c, idx) => {
     const headEl = c.el.querySelector('.chunk-heading');
-    // The audience view labels the tag with .tag-label, the document
-    // renderer with .chunk-label; the index serves both views.
-    const tagEl = c.el.querySelector('.tag-label, .chunk-label');
+    // Read the tag off the element, not off a rendered label: the live
+    // views stopped printing the eyebrow, and the search list is exactly
+    // the place where naming the kind of slide is still useful.
+    const tagName = c.el.dataset.tag && c.el.dataset.tag !== 'free' ? c.el.dataset.tag : '';
     const bodyEl = c.el.querySelector('.chunk-body');
     const mainEl = c.el.querySelector('.chunk-heading .hd-main');
     const subEl = c.el.querySelector('.chunk-heading .hd-sub');
@@ -3061,7 +3117,7 @@ function buildSearchIndex() {
     const body = clean(bodyEl);
     return {
       idx,
-      tag: clean(tagEl),
+      tag: tagName,
       title: title || '(untitled)',
       sub,
       body,
@@ -3204,6 +3260,7 @@ function jumpTo(idx, direction) {
   applyReveal(target.el, target.id);
 
   state.activeIdx = idx;
+  if (state.autoFit) fitZoomToChunk(2.2);
   applyState();
   focusCamera(false);
   saveActive();
@@ -3395,13 +3452,19 @@ let collapsedZoom = state.zoom;
 // lecturer pressed to see more text, not bigger text.
 const FULL_FIT_FILL = 0.94;   // leave a little air top and bottom
 
-function fitZoomToChunk() {
+// ceiling: the largest zoom the fit is allowed to reach. Entering the full
+// text on its own must never grow the type past what the lecturer chose for
+// the projector – they pressed C to see more text, not bigger text. In
+// auto-fit mode the ceiling is the global maximum instead, because there
+// the whole point is that every slide is sized to the screen.
+function fitZoomToChunk(ceiling) {
   const entry = flatChunks[state.activeIdx];
   const el = entry && entry.el;
   if (!el || !viewport) return;
+  const cap = ceiling === undefined ? collapsedZoom : ceiling;
   const avail = viewport.clientHeight * FULL_FIT_FILL;
   if (!(avail > 0)) return;
-  if (el.scrollHeight <= avail) return;      // already fits, leave it alone
+  if (el.scrollHeight <= avail && state.zoom >= cap) return;  // nothing to gain
 
   // A single proportional estimate is not enough, because zoom changes line
   // wrapping and therefore height, and it is not safe either: solving for
@@ -3413,7 +3476,7 @@ function fitZoomToChunk() {
   // they needed to be.
   const STEP = 0.05;
   let z = clampZoom(state.zoom * (avail / el.scrollHeight));
-  if (z > collapsedZoom) z = collapsedZoom;
+  if (z > cap) z = cap;
   applyZoom(z);
 
   // Shrink until it fits.
@@ -3421,13 +3484,25 @@ function fitZoomToChunk() {
     z = clampZoom(z - STEP);
     applyZoom(z);
   }
-  // Grow back while it still fits, never past the lecturer's own setting.
-  while (z + STEP <= collapsedZoom) {
+  // Grow back while it still fits, never past the ceiling.
+  while (z + STEP <= cap) {
     const probe = clampZoom(z + STEP);
     applyZoom(probe);
     if (el.scrollHeight > avail) { applyZoom(z); break; }
     z = probe;
   }
+}
+
+// Auto-fit mode: every slide gets a zoom that makes it fit, in both collapse
+// modes, until it is switched off again. Distinct from the fit that happens
+// on entering the full text, which is a one-off and never grows the type.
+function toggleAutoFit() {
+  state.autoFit = !state.autoFit;
+  if (state.autoFit) fitZoomToChunk(2.2);
+  else applyZoom(state.collapse === 'topic-bold' ? collapsedZoom : state.zoom);
+  applyState();
+  focusCamera(false);
+  flashMode(state.autoFit ? 'auto-fit on · every slide sized to the screen' : 'auto-fit off · manual zoom');
 }
 
 // Zoom
@@ -3448,7 +3523,8 @@ function cycleCollapse(dir = 1) {
   if (leavingCollapsed) collapsedZoom = state.zoom;
   state.collapse = COLLAPSE_MODES[ni];
   applyState();
-  if (state.collapse === 'none') fitZoomToChunk();
+  if (state.autoFit) fitZoomToChunk(2.2);
+  else if (state.collapse === 'none') fitZoomToChunk();
   else applyZoom(collapsedZoom);
   focusCamera(false);
   broadcastState();
@@ -3581,6 +3657,7 @@ document.addEventListener('keydown', (e) => {
     case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
     case '/': startSearch(); e.preventDefault(); break;
+    case '#': toggleAutoFit(); e.preventDefault(); break;
     case '+': case '=':
       if (focusedFigure) setFigureScale(figureScale * 1.2);
       else setZoom(state.zoom + 0.1);
@@ -3598,8 +3675,8 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault(); break;
     case 'b': case 'B':
       state.blanked = !state.blanked;
-      document.body.classList.toggle('blanked', state.blanked);
-      broadcastState();
+      applyState();
+      flashMode(state.blanked ? 'projection blanked' : 'projection back');
       e.preventDefault(); break;
     case 'p': case 'P':
       // In the speaker view, Shift-P is the push-to-audience toggle;
