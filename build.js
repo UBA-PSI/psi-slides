@@ -2420,8 +2420,16 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
    Rule 1 wins so a chunk can carry both: the slide block is the screen,
    the script block plus any loose prose is the narration.
    Inside an explicit block nothing is abridged – splitSentencesIn skips
-   these subtrees entirely, so paragraphs render whole. */
-[data-collapse=topic-bold] .chunk-body:has(.slide-explicit) .reveal-segment > *:not(.slide-explicit),
+   these subtrees entirely, so paragraphs render whole.
+
+   The selector hides every element in the segment that is neither the slide
+   block, nor an ancestor of it, nor inside it. Matching only direct children
+   of .reveal-segment is not enough: a ::: slide nested in a ::: side or
+   ::: cols sits below a wrapper div, and hiding that wrapper takes the slide
+   block down with it. The guard is per reveal-segment, not per chunk, so a
+   segment without an explicit block still falls back to rule 3. */
+[data-collapse=topic-bold] .reveal-segment:has(.slide-explicit)
+  *:not(.slide-explicit):not(:has(.slide-explicit)):not(.slide-explicit *),
 [data-collapse=topic-bold] .script-only { display: none; }
 
 /* Print and the un-collapsed reading mode show both, in source order, so
@@ -5594,11 +5602,39 @@ function runIntegrate(absIn) {
 
 // ── CLI ──────────────────────────────────────────────────────────────
 
+// Self-check on the inlined stylesheets. Every CSS block in this file lives
+// inside a template literal, where two edit mistakes are silent and costly:
+// an unterminated /* comment swallows the rules that follow it, and a stray
+// backtick inside a comment ends the literal (that one at least throws at
+// parse time). An unbalanced comment does not throw – it just deletes styling
+// from every output, which is how a whole collapse-mode rule once shipped
+// broken. Cheap to check, so check it on every build.
+function assertStylesheetsWellFormed() {
+  const sheets = { AUDIENCE_CSS, SPEAKER_CSS, PRINT_CSS };
+  for (const [name, css] of Object.entries(sheets)) {
+    if (typeof css !== 'string') continue;
+    const opens = (css.match(/\/\*/g) || []).length;
+    const closes = (css.match(/\*\//g) || []).length;
+    if (opens !== closes) {
+      throw new Error(
+        `${name} has ${opens} "/*" but ${closes} "*/" – an unbalanced CSS comment ` +
+        `silently drops every rule until the next "*/". Fix build.js before shipping.`
+      );
+    }
+    // Nesting is not allowed in CSS comments either: /* /* */ terminates at
+    // the first */ and leaves the rest of the "comment" as broken CSS.
+    if (/\/\*[^*]*(\*(?!\/)[^*]*)*\/\*/.test(css)) {
+      throw new Error(`${name} contains a nested "/*" inside a CSS comment.`);
+    }
+  }
+}
+
 // Build the three HTML outputs for a single source file. Returns the
 // list of written paths and the lecture shape string. Throws on parse
 // errors – callers in --watch wrap this so a single bad save does not
 // kill the watcher.
 function buildOnce(absIn, only, opts = {}) {
+  assertStylesheetsWellFormed();
   const src = fs.readFileSync(absIn, 'utf8');
   const outDir = path.dirname(absIn);
   // Scope image-shorthand resolution to this lecture's folder for the

@@ -279,6 +279,8 @@ Precedence, highest first: a `::: slide` block is the slide; otherwise everythin
 - **Per-chunk, not per-lecture.** Mixed decks work, and every existing lecture keeps behaving exactly as it did – the derivation is the fallback, not the deprecated path.
 - **No new mode in the `C` cycle.** `none` still shows everything in source order; `topic-bold` still means "what the room sees". The author's markup, not a global switch, decides which half that is.
 - **Nothing is abridged inside an explicit block.** Sentence extraction skips those subtrees, so paragraphs, lists, figures, and code render whole.
+- **The blocks nest.** A `::: slide` inside a `::: side` pane or a `::: cols` flow works: the wrapper stays visible because it contains the slide block, and only the wrapper's other content is hidden.
+- **The unit is the reveal segment, not the chunk.** A chunk whose segment 0 carries a `::: slide` and whose segment 1 does not gets explicit treatment for the first and the derived treatment for the second.
 - **Print keeps both halves** in source order, with the slide block marked by a hairline rule. The reading copy is the union; only the projector is the selection.
 - **Density budgets (lint) apply to the on-screen half only.** Narration is deliberately unbudgeted – writing it freely is the entire point.
 
