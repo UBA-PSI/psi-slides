@@ -1,0 +1,67 @@
+# Publishes the tutorial lecture to GitHub Pages as a live demo.
+#
+# The lecture is rebuilt from source rather than copied from the tracked
+# HTML outputs, so the demo can never be stale relative to source.md. That
+# also makes this job a de-facto build check: a source or build.js change
+# that breaks the tutorial fails here.
+#
+# Requires Settings -> Pages -> Source: "GitHub Actions" to be enabled once.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deploy midway; queue instead.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint the lectures
+        run: node lint.js lectures/
+
+      - name: Build the tutorial
+        run: node build.js lectures/tutorial/source.md
+
+      - name: Assemble the site
+        run: |
+          mkdir -p _site/tutorial
+          cp docs/site/index.html _site/index.html
+          cp lectures/tutorial/audience.html \
+             lectures/tutorial/speaker.html \
+             lectures/tutorial/print.html \
+             lectures/tutorial/print-notes.html \
+             _site/tutorial/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

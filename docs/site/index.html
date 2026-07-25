@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>psi-slides &ndash; live demo</title>
+<style>
+  :root {
+    --paper: oklch(0.98 0.00 0);
+    --ink: oklch(0.20 0.01 260);
+    --ink-soft: oklch(0.52 0.01 260);
+    --accent: oklch(0.42 0.13 25);
+    --rule: oklch(0.88 0.01 260);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Iowan Old Style, Palatino, Georgia, serif;
+    font-size: 18px;
+    line-height: 1.55;
+  }
+  main { max-width: 46rem; margin: 0 auto; padding: 4rem 1.5rem 6rem; }
+  h1 { font-size: 2.4rem; line-height: 1.1; margin: 0 0 .4rem; letter-spacing: -0.01em; }
+  .tagline { color: var(--ink-soft); font-style: italic; margin: 0 0 2.5rem; }
+  h2 {
+    font-size: .78rem; text-transform: uppercase; letter-spacing: .12em;
+    font-family: ui-sans-serif, system-ui, sans-serif; font-weight: 600;
+    color: var(--ink-soft); margin: 3rem 0 1rem;
+    border-top: 1px solid var(--rule); padding-top: .9rem;
+  }
+  a { color: var(--accent); }
+  .views { list-style: none; padding: 0; margin: 0; display: grid; gap: 1.1rem; }
+  .views a.name { font-size: 1.15rem; font-weight: 600; text-decoration: none; }
+  .views a.name:hover { text-decoration: underline; }
+  .views p { margin: .15rem 0 0; color: var(--ink-soft); font-size: .95rem; }
+  .hint {
+    background: oklch(0.96 0.01 90); border-left: 3px solid var(--rule);
+    padding: .9rem 1.1rem; font-size: .95rem; margin: 2rem 0 0;
+  }
+  kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em;
+    border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 4px;
+    padding: .05em .35em; background: var(--paper);
+  }
+  footer { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--rule);
+           font-size: .9rem; color: var(--ink-soft); }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: oklch(0.18 0.01 260); --ink: oklch(0.92 0.01 260);
+      --ink-soft: oklch(0.65 0.01 260); --accent: oklch(0.72 0.12 25);
+      --rule: oklch(0.32 0.01 260);
+    }
+    .hint { background: oklch(0.22 0.01 90); }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>psi-slides</h1>
+  <p class="tagline">One Markdown file, four artefacts. This is the tutorial lecture, built from
+  <code>lectures/tutorial/source.md</code> &ndash; a lecture that explains the tool by being the tool.</p>
+
+  <h2>The four views</h2>
+  <ul class="views">
+    <li>
+      <a class="name" href="tutorial/audience.html">audience.html &rarr;</a>
+      <p>The projection. Start here. Arrow keys navigate, <kbd>Space</kbd> reveals,
+         <kbd>C</kbd> toggles collapse, <kbd>O</kbd> opens the overview board, <kbd>?</kbd> lists everything.</p>
+    </li>
+    <li>
+      <a class="name" href="tutorial/speaker.html">speaker.html &rarr;</a>
+      <p>The presenter cockpit. Opening it from this link shows the layout, but it will not be
+         in sync with anything &ndash; press <kbd>S</kbd> inside the audience view to spawn a
+         connected one.</p>
+    </li>
+    <li>
+      <a class="name" href="tutorial/print.html">print.html &rarr;</a>
+      <p>The reading document, with a cover and a table of contents. Print it to PDF for students.</p>
+    </li>
+    <li>
+      <a class="name" href="tutorial/print-notes.html">print-notes.html &rarr;</a>
+      <p>The same document with every speaker note folded in under its chunk.</p>
+    </li>
+  </ul>
+
+  <div class="hint">
+    All four files are self-contained: CSS, JavaScript, and images are inlined, and they open
+    just as happily from <code>file://</code> as from this server.
+  </div>
+
+  <h2>Source</h2>
+  <p><a href="https://github.com/UBA-PSI/psi-slides">github.com/UBA-PSI/psi-slides</a> &ndash; the
+  README explains the format, what the tool is good at, and what it is not.</p>
+
+  <footer>
+    Tooling MIT-licensed, lecture content CC&nbsp;BY-SA&nbsp;4.0. Rebuilt from source on every push.
+  </footer>
+</main>
+</body>
+</html>
