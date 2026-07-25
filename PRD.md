@@ -1,4 +1,4 @@
-# Lecture Medium — Specification v0.1
+# Lecture Medium – Specification v0.1
 
 A medium for live university lecturing that is neither slides nor document. The content lives on a bounded 2D plane as typographically composed chunks arranged in columns; the lecturer navigates by camera motion between chunks; the same source produces a printable study version. Authored in plain Markdown, rendered by a small amount of static HTML and JS, built by a small Node script. Designed to be written this week, iterated all semester.
 
@@ -21,35 +21,35 @@ These are the commitments. Everything downstream is subordinate.
 
 ## 2. Content model
 
-**Frame.** Each chunk is a *slide* — it occupies its own viewport-sized frame. There is no global 2D plane the camera pans across; the camera frames one slide at a time. This is the "slideshow with structure" model: each slide owns the screen, and visual variability lives *inside* the slide, not at the frame level.
+**Frame.** Each chunk is a *slide* – it occupies its own viewport-sized frame. There is no global 2D plane the camera pans across; the camera frames one slide at a time. This is the “slideshow with structure” model: each slide owns the screen, and visual variability lives *inside* the slide, not at the frame level.
 
-**Column.** A vertical stack of related slides. Horizontal motion between columns signals a new sub-topic; vertical motion signals the next slide within the current sub-topic. Columns are visually isolated — the inter-column spacing is large enough that the neighboring column is fully off-viewport whenever the camera is framing any slide.
+**Column.** A vertical stack of related slides. Horizontal motion between columns signals a new sub-topic; vertical motion signals the next slide within the current sub-topic. Columns are visually isolated – the inter-column spacing is large enough that the neighboring column is fully off-viewport whenever the camera is framing any slide.
 
 **Chunk.** The atomic unit of lecture content, rendered as one slide. Has a stable ID, an optional heading, a body, an optional structural tag (`title`, `principle`, `example`, `definition`, `question`, `figure`, `exercise`, `free`), a width class, optional reveal separators (`---`) inside the body (§4.6), optional expansions, and an optional author-editable annotation slot. The width class determines the slide's *internal* text-column max-width, **not** the frame size.
 
-**Expansion.** Detail content (deeper explanation, worked example, answer to a question) that lives with its parent chunk, reached via a chevron affordance in the bottom-right of the slide. When opened, the slide's internal layout splits into two columns — content on the left, expansion on the right — without leaving the slide frame. Chevrons carry a 2–3 letter abbreviation (`Ex`, `Exp`, `Ref`, `?`, `Pf`, `Fig`, `Set`) derived from the expansion label.
+**Expansion.** Detail content (deeper explanation, worked example, answer to a question) that lives with its parent chunk, reached via a chevron affordance in the bottom-right of the slide. When opened, the slide's internal layout splits into two columns – content on the left, expansion on the right – without leaving the slide frame. Chevrons carry a 2–3 letter abbreviation (`Ex`, `Exp`, `Ref`, `?`, `Pf`, `Fig`, `Set`) derived from the expansion label.
 
-**Annotation slot.** One author-editable text area per chunk, used for live speaker marginalia during a lecture (not for source-authored references — those belong in a `Ref` expansion). Hidden by default; revealed only when the speaker activates it (`N` key or click on the `+ note` affordance). When active, the camera pans the slide to the right and the annotation opens as a ~65-column box on the left (monospace by default, sans toggleable), allowing ASCII-friendly editing. `Esc` returns focus to the slide.
+**Annotation slot.** One author-editable text area per chunk, used for live speaker marginalia during a lecture (not for source-authored references – those belong in a `Ref` expansion). Hidden by default; revealed only when the speaker activates it (`N` key or click on the `+ note` affordance). When active, the camera pans the slide to the right and the annotation opens as a ~65-column box on the left (monospace by default, sans toggleable), allowing ASCII-friendly editing. `Esc` returns focus to the slide.
 
 **Sketch slot.** A named live-editable region inside a chunk. Renders monospace text in the audience view; editable via textarea on the speaker view only (or embedded iframe for etherpad/collaborative cases).
 
 **Placement algorithm (deterministic).** Given the ordered list of columns and, per column, the ordered list of chunks, positions are computed purely from source:
 
-1. **Slide size.** Each chunk is rendered as a slide of `width = 100vw` and `min-height = var(--slide-min, 40vh)` — large enough to own the viewport but small enough that short chunks (e.g. a `question` or a `free`-narration transition) auto-size to their content and leave room for neighbor peek. Internal text column width is determined by the chunk's width class: `narrow = 22em`, `standard = 36em`, `wide = 52em`, `full = 72em`. Width classes control *content layout inside the slide*, not the frame.
+1. **Slide size.** Each chunk is rendered as a slide of `width = 100vw` and `min-height = var(--slide-min, 40vh)` – large enough to own the viewport but small enough that short chunks (e.g. a `question` or a `free`-narration transition) auto-size to their content and leave room for neighbor peek. Internal text column width is determined by the chunk's width class: `narrow = 22em`, `standard = 36em`, `wide = 52em`, `full = 72em`. Width classes control *content layout inside the slide*, not the frame.
 2. **Column X.** Columns are placed left-to-right, separated by `column-gap = 8vw`. Because each slide is viewport-wide, this gap is always enough to fully isolate the neighboring column from the active one.
-3. **Chunk Y within a column.** Slides stack top-to-bottom with `chunk-gap` — a tunable CSS custom property (default `4vh`, range `0vh`–`25vh`). Small values create a "flow" feel with neighboring slides peeking during transitions; large values enforce full slide isolation. The gap is a deliberate design knob, not a fixed rule.
+3. **Chunk Y within a column.** Slides stack top-to-bottom with `chunk-gap` – a tunable CSS custom property (default `4vh`, range `0vh`–`25vh`). Small values create a “flow” feel with neighboring slides peeking during transitions; large values enforce full slide isolation. The gap is a deliberate design knob, not a fixed rule.
 4. **Camera.** The camera **translates only**; there is no `transform: scale()` at the camera level. On chunk change, the stage translates to place the active slide centered in the viewport. On annotation activation, the camera offsets right so the slide's left edge lands around viewport-X = 55%, revealing the annotation box on the left.
-5. **Expansions.** When a chevron is clicked, the parent slide's internal CSS grid switches to a two-column layout (content left, expansion right). The slide frame itself doesn't move. Expansions do **not** nest — a `::: expand` cannot contain another (enforced by the parser and linter).
-6. **Neighbor behavior.** Three modes, spec-configurable: `dim` (neighbors always at reduced opacity — currently ~`calc(1 - dim * 0.96)` ≈ 4%), `fade-after-settle` (neighbors briefly visible during the camera transition, then fade to `0` after the camera lands — gives continuity during motion, isolation at rest), `hidden` (always fully transparent). Default: **`dim`** — calibrated authoring runs found constant peek preferable to motion-only peek.
+5. **Expansions.** When a chevron is clicked, the parent slide's internal CSS grid switches to a two-column layout (content left, expansion right). The slide frame itself doesn't move. Expansions do **not** nest – a `::: expand` cannot contain another (enforced by the parser and linter).
+6. **Neighbor behavior.** Three modes, spec-configurable: `dim` (neighbors always at reduced opacity – currently ~`calc(1 - dim * 0.96)` ≈ 4%), `fade-after-settle` (neighbors briefly visible during the camera transition, then fade to `0` after the camera lands – gives continuity during motion, isolation at rest), `hidden` (always fully transparent). Default: **`dim`** – calibrated authoring runs found constant peek preferable to motion-only peek.
 7. **Reading order and scrubber.** Source order: all chunks of column 0 top-to-bottom, then column 1, etc. Expansions are attached to their parent and do not occupy a separate scrubber slot.
 
 This algorithm is pure: same source → same slide positions → same camera targets → same deep-link behavior across rebuilds and machines.
 
-**Stable chunk IDs.** Every chunk carries an explicit `{#column-slug/chunk-slug}` attribute in source. IDs are frozen once authored; renaming a heading does not change the ID. Normal builds — including `--watch` — never mutate source. A separate, opt-in `build.js --assign-ids` one-shot mode generates IDs from current slugs for any chunk missing one and writes them back, resolving collisions. This keeps the rebuild loop pure and makes source the single source of truth. Every downstream feature — speaker sync, URL deep-links, print anchors, student references, linter — depends on these IDs being present and stable.
+**Stable chunk IDs.** Every chunk carries an explicit `{#column-slug/chunk-slug}` attribute in source. IDs are frozen once authored; renaming a heading does not change the ID. Normal builds – including `--watch` – never mutate source. A separate, opt-in `build.js --assign-ids` one-shot mode generates IDs from current slugs for any chunk missing one and writes them back, resolving collisions. This keeps the rebuild loop pure and makes source the single source of truth. Every downstream feature – speaker sync, URL deep-links, print anchors, student references, linter – depends on these IDs being present and stable.
 
 ### 2.1 Structural tag vocabulary
 
-The `## tag: Heading` prefix marks the chunk's structural role. This list is **exhaustive** — an unknown tag is a build error (§9), not a custom extension point. Adding a tag is a deliberate spec change, because each tag has visual treatment in the CSS and reading-order implications in the print view.
+The `## tag: Heading` prefix marks the chunk's structural role. This list is **exhaustive** – an unknown tag is a build error (§9), not a custom extension point. Adding a tag is a deliberate spec change, because each tag has visual treatment in the CSS and reading-order implications in the print view.
 
 | Tag | Use |
 |---|---|
@@ -124,7 +124,7 @@ Formal statement. $k \geq 2$ inline math.
 - `::: margin` and `::: expand <label>` are fenced divs.
 - `::: sketch <sketch-id>` defines a live sketch slot with a stable id.
 - `> note:` at the start of a blockquote marks a speaker note (private, speaker-only).
-- `> annot:` at the start of a blockquote is a **presentation note** – text the lecturer typed live into the audience annotation box and exported back via `Shift`-`E` on the speaker. It prefills the audience textarea and renders as a "Presentation Note" block in print. Public by design.
+- `> annot:` at the start of a blockquote is a **presentation note** – text the lecturer typed live into the audience annotation box and exported back via `Shift`-`E` on the speaker. It prefills the audience textarea and renders as a “Presentation Note” block in print. Public by design.
 - `---` on its own line inside a chunk body is a reveal separator (§4.6). At the top of the file, `---` delimits frontmatter (handled by `gray-matter`, never reaches chunk parsing).
 - Standard Markdown for everything else (lists, bold, italics, code, links).
 - Images: `![](fig-id)` resolves to `images/fig-id.{svg,png,jpg}`; the build determines extension and dimensions.
@@ -143,9 +143,9 @@ Source is parsed to a single AST; no regex post-processing on rendered HTML. Pip
     - **Attribute tokenizer.** The trailing `{.class #id}` syntax on headings and images is Pandoc-style; `marked`'s core does not ship it. The build includes a ~30-line inline tokenizer that parses `{ ... }` at end-of-line into `{classes: string[], id?: string}` and attaches the result to the host AST node. This tokenizer is the one intentional divergence from plain Markdown.
 4. **Directive reification.** The placeholders from step 2 are resolved in a single AST walk into typed nodes: `margin`, `expand` (with label), `sketch` (with slot id), `etherpad` (with url). Nested directives are rejected at this stage.
 5. **Reveal segmentation.** After directive reification, each chunk body is split at standalone `---` lines into an ordered array of reveal segments. Because frontmatter was stripped by `gray-matter` in step 1, and thematic-break `---` at chunk level is redefined as the reveal separator, there is no ambiguity. If an author genuinely needs a thematic break inside a chunk body (extremely rare), they can use `***` which `marked` treats as equivalent.
-6. **Downstream passes** (ID validation, image dimension resolution, KaTeX, TOC, placement, renderers, linter) operate on the AST only — no string mangling of rendered HTML.
+6. **Downstream passes** (ID validation, image dimension resolution, KaTeX, TOC, placement, renderers, linter) operate on the AST only – no string mangling of rendered HTML.
 
-The `::: directive` syntax is the preferred form for anything non-trivial; `> note:` (speaker) and `> annot:` (presentation note) are convenience shorthands and are the *only* blockquote-based extensions. If you need a blockquote whose text begins with the literal word "note:" or "annot:", escape it (`> \note:`) or use a fenced `::: note` directive (reserved synonym).
+The `::: directive` syntax is the preferred form for anything non-trivial; `> note:` (speaker) and `> annot:` (presentation note) are convenience shorthands and are the *only* blockquote-based extensions. If you need a blockquote whose text begins with the literal word “note:” or “annot:”, escape it (`> \note:`) or use a fenced `::: note` directive (reserved synonym).
 
 ---
 
@@ -170,12 +170,12 @@ Column width is the strongest compositional lever. Content of the same structura
 
 Type scale, used with discipline:
 
-- `xs` (0.75rem) — marginalia, captions
-- `sm` (0.875rem) — expansions, secondary detail
-- `base` (1rem) — body
-- `lg` (1.25rem) — chunk headings
-- `xl` (1.75rem) — column headings
-- `display` (2.75rem) — lecture title, reserved for title slides or pull statements
+- `xs` (0.75rem) – marginalia, captions
+- `sm` (0.875rem) – expansions, secondary detail
+- `base` (1rem) – body
+- `lg` (1.25rem) – chunk headings
+- `xl` (1.75rem) – column headings
+- `display` (2.75rem) – lecture title, reserved for title slides or pull statements
 
 Weight palette: regular, medium, bold. Nothing else. Small caps for labels (`DEFINITION`, `EXAMPLE`, `NOTE`) via `font-variant-caps: all-small-caps`, not faked with CSS `text-transform`.
 
@@ -191,7 +191,7 @@ Fonts: one serif for body, one sans for labels and UI, one monospace for sketche
 
 This anchors the entire scale to the projector's vertical resolution, keeping the ~15 line-heights budget regardless of 1080p vs 1024×768. On top of the clamp, the app applies a CSS custom property `--zoom` (default `1`) that the `+` / `-` / `0` hotkeys increment in fixed steps (e.g. 0.9, 1.0, 1.1, 1.25, 1.5). The effective root size is `calc(clamp(14px, 100vh/40, 24px) * var(--zoom))`. Because all widths are expressed in `rem`, text reflows at every step. Native browser Ctrl+/- also reflows (since no pixel dimensions are hard-coded) but is treated as a user-agent courtesy, not part of the contract.
 
-**Density budget and zoom interaction.** The ~15 line-heights-per-chunk budget is defined and linted at `--zoom: 1.0`. At higher zoom steps, a `full` chunk's `60rem` width plus `14rem + 18rem` lanes may exceed the projector viewport width; the camera compensates by scaling out to fit, which cancels part of the zoom-in. This is by design — zoom is a readability tool for individual chunks, not a universal magnifier — but authors should know that zooming past `1.25` on `full`-width chunks gives diminishing returns. The linter emits a warning if a `full` chunk's content would not fit the camera frame at `--zoom: 1.5`.
+**Density budget and zoom interaction.** The ~15 line-heights-per-chunk budget is defined and linted at `--zoom: 1.0`. At higher zoom steps, a `full` chunk's `60rem` width plus `14rem + 18rem` lanes may exceed the projector viewport width; the camera compensates by scaling out to fit, which cancels part of the zoom-in. This is by design – zoom is a readability tool for individual chunks, not a universal magnifier – but authors should know that zooming past `1.25` on `full`-width chunks gives diminishing returns. The linter emits a warning if a `full` chunk's content would not fit the camera frame at `--zoom: 1.5`.
 
 ### 4.3 Color
 
@@ -206,9 +206,9 @@ OKLCH palette, uchu-inspired, deliberately restrained. Calibrated for projector-
 --emph:       oklch(0.42 0.16 30);    /* bolded core claim text, sparingly */
 ```
 
-`--ink-l` and `--ink-soft-l` are exposed as CSS custom properties so the lightness can be tuned in authoring without editing the color definitions. Both values (0.20 / 0.62) are the defaults that survived authoring and rehearsal — do not lighten `--ink` beyond ~0.25 without testing from the back of the actual lecture room.
+`--ink-l` and `--ink-soft-l` are exposed as CSS custom properties so the lightness can be tuned in authoring without editing the color definitions. Both values (0.20 / 0.62) are the defaults that survived authoring and rehearsal – do not lighten `--ink` beyond ~0.25 without testing from the back of the actual lecture room.
 
-Dimming of non-active slides goes to **opacity** (toward `0`), not to a color wash. Three modes: `dim` (always visible at `1 - 0.86 * 0.96 ≈ 4%` opacity), `fade-after-settle` (flash to full dim during camera pan, fade to 0 after), `hidden` (always 0). No background tinting, no blur — the slide frame is the isolation primitive.
+Dimming of non-active slides goes to **opacity** (toward `0`), not to a color wash. Three modes: `dim` (always visible at `1 - 0.86 * 0.96 ≈ 4%` opacity), `fade-after-settle` (flash to full dim during camera pan, fade to 0 after), `hidden` (always 0). No background tinting, no blur – the slide frame is the isolation primitive.
 
 ### 4.4 Compositional moves
 
@@ -216,7 +216,7 @@ Because each slide fills the viewport and shares one frame, visual variability l
 
 1. **Width class** → internal text-column max-width (`narrow 22em / standard 36em / wide 52em / full 72em`). A narrow chunk floats a tight column in whitespace; a full chunk fills the slide.
 2. **Alignment** (`data-align="left" | "center" | "right"`) → where the text column sits within the slide horizontally. Left-anchored chunks feel like running prose; right-anchored feel like a closing remark.
-3. **Per-tag treatment** — the canonical compositional vocabulary:
+3. **Per-tag treatment** – the canonical compositional vocabulary:
    - `title`: lecture cover. `title` in `display` size; below it `presenter` in `lg`; below that a multiline `info` block in `sm` soft ink (date, location, course code, URL, any extra line). Left-aligned. Vertically placed so the whole block sits in the lower-left third of the slide – deliberately *not* centered. Centered cover slides look institutional and dead; lower-left-third gives asymmetric weight and reads as intentional. Content is pulled from frontmatter; a non-empty chunk body overrides the `info` lines.
    - `principle`: thick rule above, larger body (1.2× zoom), larger heading. Pull-quote feel.
    - `definition`: hairline rule above, math blocks centered, tight body. Academic feel.
@@ -244,7 +244,7 @@ The projector view can selectively hide parts of each slide's body to reduce inf
 
 `topic-bold` is the default: the speaker narrates the topic sentences aloud while bold phrases anchor the eye. The `topic`-only and `bold`-only modes from the original four-mode design were dropped – in practice nobody reached for them, and each extra stop in the cycle costs a keypress during a live talk.
 
-Collapse applies to the *projector* stage only; the presenter view always shows the full text. The collapse setting is a lecture-time affordance, not a source-level decision — authors write the full prose once; the speaker chooses the collapse level per lecture.
+Collapse applies to the *projector* stage only; the presenter view always shows the full text. The collapse setting is a lecture-time affordance, not a source-level decision – authors write the full prose once; the speaker chooses the collapse level per lecture.
 
 **Explicit slide content (`::: slide` / `::: script`).** Deriving the slide from the shape of the prose asks a lot of the author: every paragraph has to open with a sentence that works as a standalone bullet, which fights against writing continuous text. Two directives opt a chunk out of the derivation and let the author state the split outright:
 
@@ -277,7 +277,7 @@ model decides the size …
 Precedence, highest first: a `::: slide` block is the slide; otherwise everything outside `::: script` is the slide; otherwise `topic-bold` applies as before. Rule 1 wins, so a chunk may carry both blocks. Consequences by design:
 
 - **Per-chunk, not per-lecture.** Mixed decks work, and every existing lecture keeps behaving exactly as it did – the derivation is the fallback, not the deprecated path.
-- **No new mode in the `C` cycle.** `none` still shows everything in source order; `topic-bold` still means "what the room sees". The author's markup, not a global switch, decides which half that is.
+- **No new mode in the `C` cycle.** `none` still shows everything in source order; `topic-bold` still means “what the room sees”. The author's markup, not a global switch, decides which half that is.
 - **Nothing is abridged inside an explicit block.** Sentence extraction skips those subtrees, so paragraphs, lists, figures, and code render whole.
 - **The blocks nest.** A `::: slide` inside a `::: side` pane or a `::: cols` flow works: the wrapper stays visible because it contains the slide block, and only the wrapper's other content is hidden.
 - **The unit is the reveal segment, not the chunk.** A chunk whose segment 0 carries a `::: slide` and whose segment 1 does not gets explicit treatment for the first and the derived treatment for the second.
@@ -307,7 +307,7 @@ Second consequence, which is the punchline.
 Semantics:
 
 - **Forward navigation into the chunk.** Entering via `↓`, `→`, overview, or deep-link shows segment 0 only. Subsequent segments are hidden.
-- **`Space`**: advance to the next segment on the active chunk. When all segments are visible, another `Space` passes through to "next chunk" navigation, so `Space` can be the single forward key for a whole column.
+- **`Space`**: advance to the next segment on the active chunk. When all segments are visible, another `Space` passes through to “next chunk” navigation, so `Space` can be the single forward key for a whole column.
 - **Backward navigation** (`↑`, `←`, or entering an earlier chunk from the overview): the target chunk is shown **fully revealed**. Reveal is a forward-only live-pacing mechanism; it does not need to be re-performed on revisit. The speaker coming back to answer a question sees everything they already showed.
 - **Camera.** Reveal never moves the camera. The slide stays framed; segments fade in place.
 - **Speaker view.** Only the currently-focused slide reflects live reveal state. The next-previews pane and any scrubber thumbnail always show slides **fully revealed**, so the speaker can see where each upcoming slide will land.
@@ -318,7 +318,7 @@ Discipline: reveal is for the chunks where the *sequence* of ideas is the point 
 
 ### 4.7 Discipline
 
-The 70/30 rule: roughly 70% of chunks use a quiet repeating vocabulary (body prose, standard width, `free` or `definition` tags). Roughly 30% take compositional risks (principle with thick rule, question centered large, figure with sketch, full-width chunk). Invert this and risk becomes the baseline; monotony returns through the opposite door. The playground's "anti-pattern" preset — every chunk widened, every tag promoted to `principle` — is the concrete visualization of this failure mode.
+The 70/30 rule: roughly 70% of chunks use a quiet repeating vocabulary (body prose, standard width, `free` or `definition` tags). Roughly 30% take compositional risks (principle with thick rule, question centered large, figure with sketch, full-width chunk). Invert this and risk becomes the baseline; monotony returns through the opposite door. The playground's “anti-pattern” preset – every chunk widened, every tag promoted to `principle` – is the concrete visualization of this failure mode.
 
 Density budget per chunk: body text should occupy no more than ~12 line-heights at default zoom, with slide padding ~14%. The linter enforces this.
 
@@ -342,16 +342,16 @@ Density budget per chunk: body text should occupy no more than ~12 line-heights 
 - `B`: blank screen (press again to restore). A dead-simple attention reset.
 - `.` : push current speaker-view position to audience (in case views desynced).
 
-**Camera implementation:** CSS `transform: translate()` on a stage `div`. **No `scale()` at the camera level** — each slide is rendered at its native viewport-matching size, and zoom is a text-size multiplier (§4.2), not a camera operation. This removes the reveal.js-style bitmap-scaling failure mode entirely.
+**Camera implementation:** CSS `transform: translate()` on a stage `div`. **No `scale()` at the camera level** – each slide is rendered at its native viewport-matching size, and zoom is a text-size multiplier (§4.2), not a camera operation. This removes the reveal.js-style bitmap-scaling failure mode entirely.
 
-Transition: **250ms**, `cubic-bezier(0.45, 0.0, 0.2, 1)`. Snappy by lecture standards — a slower transition (e.g. 500ms+) reads as sluggish in a room; calibrated values came out at 250ms. Interruptible — pressing a new nav key mid-transition retargets without rebounding.
+Transition: **250ms**, `cubic-bezier(0.45, 0.0, 0.2, 1)`. Snappy by lecture standards – a slower transition (e.g. 500ms+) reads as sluggish in a room; calibrated values came out at 250ms. Interruptible – pressing a new nav key mid-transition retargets without rebounding.
 
 Three translation behaviors:
 - **Next/prev column:** translate by one viewport width plus `column-gap` (8vw). Feels like a page turn.
 - **Next/prev chunk within column:** translate by the slide's min-height plus `chunk-gap`. Feels like a scroll.
 - **Annotation active (§2 annotation slot):** camera offsets right so the slide's left edge lands at viewport-X ≈ 55%, revealing the annotation box on the left. `Esc` returns the camera to slide-centered.
 
-Zoom-induced overflow (when a chunk's rendered height exceeds viewport at high zoom) is handled by in-chunk scrolling via the mouse wheel — the camera pans Y within the chunk's bounds. Arrow keys always navigate between chunks; they never scroll within a chunk, so scroll and navigation are unambiguous.
+Zoom-induced overflow (when a chunk's rendered height exceeds viewport at high zoom) is handled by in-chunk scrolling via the mouse wheel – the camera pans Y within the chunk's bounds. Arrow keys always navigate between chunks; they never scroll within a chunk, so scroll and navigation are unambiguous.
 
 **Overview (`O`):** Birds-eye view of the entire lecture – all columns, all chunks, rendered at reduced scale on a single pannable plane. This is the primary live-navigation tool for jumping to an arbitrary chunk.
 
@@ -361,17 +361,17 @@ Zoom-induced overflow (when a chunk's rendered height exceeds viewport at high z
 - `Esc` dismisses overview without moving.
 - Drag to pan. Wheel to adjust zoom (CSS scale on the overview stage only, so distance changes but text still reflows at any zoom level).
 - The framing is a pure function of `(anchor chunk, scale, pan)`, and all three travel in the sync payload, so audience and speaker show the same board pixel-for-pixel. The anchor is set on entry and on keyboard/search selection; a click changes only the outline. See `speaker.md` §2.
-- `/` starts **fulltext search**: as you type, chunks whose body, heading, or expansion text matches narrow to highlighted matches; non-matches dim. Enter commits the first match as the selection. This is the tool for "I want the slide where I said X".
+- `/` starts **fulltext search**: as you type, chunks whose body, heading, or expansion text matches narrow to highlighted matches; non-matches dim. Enter commits the first match as the selection. This is the tool for “I want the slide where I said X”.
 
 **TOC overlay (`T`):** A fixed side panel with a **flat** list of column headings only, not chunks. `Enter` jumps the camera to that column's first slide. The TOC's primary home is the **print view**, where chapter-level navigation is load-bearing for a linear document; in the live view it is a quick section-jump fallback. Overview + fulltext search is the main live-navigation path.
 
-**URL deep-links:** `?c=chunk-id` opens at that chunk. Useful for student references ("in the lecture, section 3.2...") and for resuming mid-lecture after a crash.
+**URL deep-links:** `?c=chunk-id` opens at that chunk. Useful for student references (“in the lecture, section 3.2...”) and for resuming mid-lecture after a crash.
 
 ---
 
 ## 6. Zoom and reflow
 
-The reveal.js failure mode is CSS `transform: scale()` applied to the whole deck — text rescales as bitmap, lines don't rewrap, narrow screens become unreadable.
+The reveal.js failure mode is CSS `transform: scale()` applied to the whole deck – text rescales as bitmap, lines don't rewrap, narrow screens become unreadable.
 
 This spec avoids that by:
 - All sizes in `rem` or viewport units, not pixels.
@@ -380,7 +380,7 @@ This spec avoids that by:
 - On any zoom step, a `resize`-triggered pass recomputes chunk geometry and the current camera target so the focused chunk stays centered.
 - `transform: scale()` is used **only** by the camera for pan/zoom motion, never for text sizing.
 - Chunk widths are set in rem, so zooming in shows fewer chunks per viewport but keeps text at readable density.
-- Native browser Ctrl+/- is not broken — since nothing is pixel-hard-coded, text still reflows — but it does not re-target the camera, so `+` / `-` / `0` are the documented, room-safe controls.
+- Native browser Ctrl+/- is not broken – since nothing is pixel-hard-coded, text still reflows – but it does not re-target the camera, so `+` / `-` / `0` are the documented, room-safe controls.
 
 ---
 
@@ -393,15 +393,15 @@ Separate browser window on laptop display. Opens via hotkey `S` from audience vi
 **Architectural constraint.** The consequence is the same, and if anything tighter. Audience and speaker are two windows in one browser, linked by an opener handle, so they must run on the same machine in the same browser instance – the typical setup is a lecturer's laptop with an extended display, audience on the external screen, speaker view on the built-in. Driving the audience view from one device and the speaker view from another (e.g. tablet speaker view, projector audience view) is **out of scope** for Phase 0–2. A WebSocket-based sync mode is deferred to Phase 3 if the single-machine setup turns out to be a real limitation in teaching practice.
 
 **Layout (three panels):**
-1. **Current chunk large** — same rendering as audience, middle pane. Reveal state mirrors the audience: segments reveal in step with the projector. Collapse mode also mirrors the audience. This panel is the single source of "what is on the screen right now".
-2. **Next previews** — thumbnails of the following 2–3 chunks in reading order. **Always fully revealed**, regardless of the audience's live reveal state, so the speaker sees the complete target state of upcoming slides.
-3. **Notes pane** — speaker notes for the current chunk, independently scrollable. Can scroll ahead or back in notes without affecting audience.
+1. **Current chunk large** – same rendering as audience, middle pane. Reveal state mirrors the audience: segments reveal in step with the projector. Collapse mode also mirrors the audience. This panel is the single source of “what is on the screen right now”.
+2. **Next previews** – thumbnails of the following 2–3 chunks in reading order. **Always fully revealed**, regardless of the audience's live reveal state, so the speaker sees the complete target state of upcoming slides.
+3. **Notes pane** – speaker notes for the current chunk, independently scrollable. Can scroll ahead or back in notes without affecting audience.
 
 The scrubber (see controls below) also shows all thumbnails fully revealed. Reveal is a live-performance layer; the speaker's planning surfaces show the author's artifact.
 
 **Controls:**
 - Lecture scrubber at bottom: timeline of all chunks, click to jump.
-- "Push to audience" toggle: by default, navigation from speaker view moves the audience. Toggle off to browse notes privately without moving the projector.
+- “Push to audience” toggle: by default, navigation from speaker view moves the audience. Toggle off to browse notes privately without moving the projector.
 - Timer: elapsed lecture time, discretely shown.
 - Sketch slots: editable textarea for any sketch slot the current chunk contains. Typing here updates the audience view live.
 
@@ -409,7 +409,7 @@ The scrubber (see controls below) also shows all thumbnails fully revealed. Reve
 
 ### 7.1 Annotation slot UX (in-viewport)
 
-Every chunk carries an author-editable annotation slot intended for live speaker marginalia — notes, ASCII diagrams, references added mid-lecture. Independent of the speaker view (§7) which runs in its own window. This section specifies the interaction.
+Every chunk carries an author-editable annotation slot intended for live speaker marginalia – notes, ASCII diagrams, references added mid-lecture. Independent of the speaker view (§7) which runs in its own window. This section specifies the interaction.
 
 **DOM anchoring.** The annotation box is a child of `.chunk-content`, not `.chunk`. This means the slot is positioned relative to the *visible text column* (which varies by width class and layout archetype), not the slide frame. Across a `narrow` pull-quote, a `wide` side-by-side definition, and a `full` sketch-hero figure, the annotation always sits just to the left of the content, with uniform gap.
 
@@ -419,12 +419,12 @@ Every chunk carries an author-editable annotation slot intended for live speaker
 
 | State | Trigger | Visual |
 |---|---|---|
-| No content, active chunk | — | Dimmed `+ note` affordance in the annotation position |
-| No content, not active | — | Nothing |
-| Has content, not editing | `N` pressed previously, then `Esc` / blur | Annotation visible, `opacity: 0.4`, in slide's left margin. Camera does **not** pan — slide stays centered. |
+| No content, active chunk | – | Dimmed `+ note` affordance in the annotation position |
+| No content, not active | – | Nothing |
+| Has content, not editing | `N` pressed previously, then `Esc` / blur | Annotation visible, `opacity: 0.4`, in slide's left margin. Camera does **not** pan – slide stays centered. |
 | Editing | `N` or click on annotation | Annotation at `opacity: 1`; camera pans so content's left edge is at viewport 33%, revealing full annotation on the left |
 
-The rule separating "has content" from "editing" is critical: a chunk that has a note continues to feel like a normal slide, with the note peeking from the left margin at reduced opacity. Only active editing shifts the camera.
+The rule separating “has content” from “editing” is critical: a chunk that has a note continues to feel like a normal slide, with the note peeking from the left margin at reduced opacity. Only active editing shifts the camera.
 
 **Focus management.**
 - `N` on the active slide → starts annotation (creates if empty, re-focuses if exists). Textarea receives focus.
@@ -432,7 +432,7 @@ The rule separating "has content" from "editing" is critical: a chunk that has a
 - Click on the annotation's textarea region → focuses it (editing).
 - Click on slide content while editing → blurs annotation (returns to slide).
 
-**Growth.** Textarea is a single line initially (`rows=1`, `min-height: 1.5em`, `overflow: hidden`). On input, a listener sets `height: auto; height: scrollHeight px` — grows one line at a time as text wraps or Enter is pressed. No scrollbar inside the textarea. In print view the same textarea grows to fit entire content without an inner scroll.
+**Growth.** Textarea is a single line initially (`rows=1`, `min-height: 1.5em`, `overflow: hidden`). On input, a listener sets `height: auto; height: scrollHeight px` – grows one line at a time as text wraps or Enter is pressed. No scrollbar inside the textarea. In print view the same textarea grows to fit entire content without an inner scroll.
 
 **Not for references.** Source-authored citations belong in a `Ref` expansion (right lane chevron labeled `Ref`), not in the annotation slot. The slot is reserved for speaker marginalia.
 
@@ -444,19 +444,19 @@ The rule separating "has content" from "editing" is critical: a chunk that has a
 
 Three kinds of live interaction, one architecture.
 
-**Pre-authored sketches.** Inline fenced monospace blocks in the source. Nothing live; they just render. Covers 80% of your ASCII drawings — the ones you knew you'd draw when preparing.
+**Pre-authored sketches.** Inline fenced monospace blocks in the source. Nothing live; they just render. Covers 80% of your ASCII drawings – the ones you knew you'd draw when preparing.
 
 **Live co-constructed sketches.** `::: sketch <id>` in source creates a named slot. Audience view renders it as read-only monospace. Speaker view renders it as editable textarea (monospace, fixed-width, no autocomplete). Typing on the speaker side propagates to audience in real time over the `postMessage` sync channel. Slot contents persist keyed by sketch-id + lecture-id, so last semester's sketch reappears next semester (or you clear it deliberately from a menu).
 
 **Etherpad / shared editing.** Same `::: sketch <id>` mechanism, but with `::: etherpad <url>` as an alternative fence. Renders an iframe of the shared pad in both views. Audience sees the pad; you contribute from whichever device you use.
 
-**Polls and live quizzes.** Reserved for later. The architecture is the same — a typed slot with an ID. Concrete choice deferred; candidates are embedded Mentimeter/Poll Everywhere (works but proprietary), a minimal self-hosted WebSocket poll server (~200 lines), or piggybacking on the university LMS if it has an API.
+**Polls and live quizzes.** Reserved for later. The architecture is the same – a typed slot with an ID. Concrete choice deferred; candidates are embedded Mentimeter/Poll Everywhere (works but proprietary), a minimal self-hosted WebSocket poll server (~200 lines), or piggybacking on the university LMS if it has an API.
 
 ---
 
 ## 9. Build system
 
-Single Node script, target <400 lines. Dependencies: `marked`, `katex`, `gray-matter`, `cheerio`, [`@chenglou/pretext`](https://github.com/chenglou/pretext) (build-time text measurement), and whatever font-loading primitive pretext needs in Node (typically `node-canvas` or equivalent). Nothing else — no bundler, no framework, no headless browser.
+Single Node script, target <400 lines. Dependencies: `marked`, `katex`, `gray-matter`, `cheerio`, [`@chenglou/pretext`](https://github.com/chenglou/pretext) (build-time text measurement), and whatever font-loading primitive pretext needs in Node (typically `node-canvas` or equivalent). Nothing else – no bundler, no framework, no headless browser.
 
 **Steps, in order:**
 
@@ -464,21 +464,21 @@ Single Node script, target <400 lines. Dependencies: `marked`, `katex`, `gray-ma
 2. **Chunk ID validation.** For each `##` heading, require an explicit `{#id}` attribute. Missing IDs are a build error with a listed suggested assignment per chunk. Normal builds and `--watch` never rewrite source. A separate `build.js --assign-ids` mode computes `column-slug/chunk-slug` for any chunk missing an ID, resolves collisions by appending `-2`, `-3`, …, and writes the attributes back. `--assign-ids` is idempotent on already-annotated sources and exits non-zero if anything was changed so CI can detect drift.
 3. **Image shorthand resolution.** `![](fig-id)` → resolve to `images/fig-id.{ext}`, read dimensions, inject `width`/`height` attributes to prevent layout shift. Optional width hint: `![](fig-id){.wide}`. A sibling convention `![](sketch-id.txt)` inlines a monospace text file as a sketch.
 4. **Math pre-rendering.** KaTeX renders `$...$` and `$$...$$` at build time. No runtime LaTeX flash when panning. KaTeX's emitted output carries explicit metrics on display-math containers; these are captured for the geometry pass.
-5. **Geometry pass.** For every chunk, every text block (heading, body paragraph, margin note, expansion body, monospace sketch) is measured via [pretext](https://github.com/chenglou/pretext) against the self-hosted WOFF2 font metrics at zoom 1.0 and the chunk's declared width class. Math heights come from KaTeX metrics; image heights come from file-dimension reads (step 3). Heights are summed per chunk; the §2 placement algorithm then runs deterministically over the height map. The build emits each chunk's resolved geometry as CSS custom properties on the element: `--chunk-x`, `--chunk-y`, `--chunk-height`, plus per-column `--column-x` and `--column-track-width`. The audience, speaker, and print renderers consume these properties directly — there is no client-side measurement pass, no "ready" promise to gate camera moves on, and no sync-message buffering. Deep-links resolve on first paint.
+5. **Geometry pass.** For every chunk, every text block (heading, body paragraph, margin note, expansion body, monospace sketch) is measured via [pretext](https://github.com/chenglou/pretext) against the self-hosted WOFF2 font metrics at zoom 1.0 and the chunk's declared width class. Math heights come from KaTeX metrics; image heights come from file-dimension reads (step 3). Heights are summed per chunk; the §2 placement algorithm then runs deterministically over the height map. The build emits each chunk's resolved geometry as CSS custom properties on the element: `--chunk-x`, `--chunk-y`, `--chunk-height`, plus per-column `--column-x` and `--column-track-width`. The audience, speaker, and print renderers consume these properties directly – there is no client-side measurement pass, no “ready” promise to gate camera moves on, and no sync-message buffering. Deep-links resolve on first paint.
 6. **TOC generation.** Walk H1/H2, strip tags, emit JSON embedded in the page for the TOC overlay.
-7. **Render views.** Produce `lecture.html` (audience), `speaker.html` (speaker view, loads same data), `print.html` (linear, expansions inlined, no speaker notes, no camera — designed for PDF export via browser).
+7. **Render views.** Produce `lecture.html` (audience), `speaker.html` (speaker view, loads same data), `print.html` (linear, expansions inlined, no speaker notes, no camera – designed for PDF export via browser).
 8. **Linter.** Split into integrity errors (build fails, non-zero exit) and compositional warnings (build succeeds, reported on stderr).
 
-   **Errors — break the build:**
+   **Errors – break the build:**
    - Missing required frontmatter field (`title`, `course`, `lecture`).
    - Chunk missing an ID (every deep-link, speaker-sync message, and print anchor depends on it).
    - Duplicate chunk ID within a lecture.
    - Dead image reference (`images/fig-id.*` not found).
    - Orphaned sketch ID: speaker textarea referencing an undeclared slot, or a `::: sketch` slot never mentioned by id in the source structure.
    - Unknown structural tag on a `## tag:` heading (typo-catcher; the tag vocabulary in §2.1 is exhaustive).
-   - Nested directive of any kind (`::: expand` inside `::: expand`, `::: margin` inside `::: expand`, etc.). Directives do not nest — the parser and placement algorithm both rely on this.
+   - Nested directive of any kind (`::: expand` inside `::: expand`, `::: margin` inside `::: expand`, etc.). Directives do not nest – the parser and placement algorithm both rely on this.
 
-   **Warnings — succeed but surface:**
+   **Warnings – succeed but surface:**
    - Chunk exceeding the ~15 line-heights density budget at standard width.
    - Column wider than `full` allows.
    - Column with only one chunk (probably belongs to a neighbor).
@@ -489,9 +489,9 @@ Single Node script, target <400 lines. Dependencies: `marked`, `katex`, `gray-ma
 
 **No bundling, no minification, no transpilation, no framework.** Browser loads the output HTML directly. Edit source, save, refresh.
 
-**Dev mode:** `node build.js --watch` rebuilds on save. A tiny WebSocket triggers browser reload. ~30 extra lines. This is the *only* WebSocket in the entire stack — used exclusively for dev reload. Runtime audience↔speaker sync uses `window.postMessage` between the two windows, not a server (see §7). Production-rendered output has no WebSocket dependency.
+**Dev mode:** `node build.js --watch` rebuilds on save. A tiny WebSocket triggers browser reload. ~30 extra lines. This is the *only* WebSocket in the entire stack – used exclusively for dev reload. Runtime audience↔speaker sync uses `window.postMessage` between the two windows, not a server (see §7). Production-rendered output has no WebSocket dependency.
 
-**`--assign-ids` workflow.** When an author adds a chunk without an ID, the normal `build.js --watch` fails with a diff showing the suggested IDs. The author runs `build.js --assign-ids` once (which writes the IDs into source), commits the result, and resumes editing. CI runs `--assign-ids` as a dry check: if it would have changed source, CI fails — this catches PRs that add chunks without running the init step. Because `--assign-ids` is the only path that mutates source, the dev loop stays pure and the ID-generation story is one explicit, recoverable step, not a hidden side effect.
+**`--assign-ids` workflow.** When an author adds a chunk without an ID, the normal `build.js --watch` fails with a diff showing the suggested IDs. The author runs `build.js --assign-ids` once (which writes the IDs into source), commits the result, and resumes editing. CI runs `--assign-ids` as a dry check: if it would have changed source, CI fails – this catches PRs that add chunks without running the init step. Because `--assign-ids` is the only path that mutates source, the dev loop stays pure and the ID-generation story is one explicit, recoverable step, not a hidden side effect.
 
 **`--new <slug>` workflow.** Scaffolds a new lecture. Creates:
 
@@ -507,7 +507,7 @@ Non-destructive: if `lectures/<slug>/` already exists, `--new` fails with a clea
 
 ---
 
-## 10. Aesthetic constraints — what NOT to do
+## 10. Aesthetic constraints – what NOT to do
 
 These are as important as the positive rules. They are the failure modes.
 
@@ -521,13 +521,13 @@ These are as important as the positive rules. They are the failure modes.
 - **No bullet lists as the default body form.** Prose first; lists only when content is genuinely enumerable.
 - **No emoji as icons.**
 - **No unicode box-drawing for UI chrome** (sketches yes, interface no).
-- **No dark mode ornament** — a dark mode exists for evening lectures, but it uses the same restraint as the light mode, inverted through OKLCH, not a separate "cool" theme.
+- **No dark mode ornament** – a dark mode exists for evening lectures, but it uses the same restraint as the light mode, inverted through OKLCH, not a separate “cool” theme.
 
 ---
 
 ## 11. Roadmap
 
-### Phase 0 — This week (Week 1 MVP)
+### Phase 0 – This week (Week 1 MVP)
 
 Deliverable: one real lecture taught in the new medium.
 
@@ -536,7 +536,7 @@ Deliverable: one real lecture taught in the new medium.
 - Single HTML + single JS file, no Node build script.
 - Hand-author Markdown with hand-written IDs and explicit `{.width-class}` attributes just this once.
 - Parsing is client-side `marked` with a minimal inline tokenizer for the `{.class #id}` attribute tail and the `::: expand` / `::: margin` / `::: sketch` fences. The full §3.1 parsing contract and AST pipeline is Phase 1 work.
-- Layout is **runtime-measured** via `getBoundingClientRect` in Phase 0 — no pretext, no build-time geometry. Deep-links are gated on a `ready` promise; sync messages are buffered until first measurement. This is explicitly the temporary path; §9 step 5 replaces it in Phase 1.
+- Layout is **runtime-measured** via `getBoundingClientRect` in Phase 0 – no pretext, no build-time geometry. Deep-links are gated on a `ready` promise; sync messages are buffered until first measurement. This is explicitly the temporary path; §9 step 5 replaces it in Phase 1.
 - Four chunk types available via CSS: narrow/standard/wide/full.
 - Camera navigation (arrows, chevron click).
 - Speaker window with notes pane via `postMessage` (single machine only, per §7 constraint).
@@ -548,9 +548,9 @@ Deliverable: one real lecture taught in the new medium.
 
 Target: ~400 lines HTML+CSS+JS, sitting in a folder with your Markdown.
 
-### Phase 1 — Weeks 2–4
+### Phase 1 – Weeks 2–4
 
-The goal of Phase 1 is to retire every "temporarily" in Phase 0 **and** close the gaps the first real-world lecture (`lectures/wlab01/`) surfaced. Ordered roughly by pain felt during that lecture:
+The goal of Phase 1 is to retire every “temporarily” in Phase 0 **and** close the gaps the first real-world lecture (`lectures/wlab01/`) surfaced. Ordered roughly by pain felt during that lecture:
 
 **Build pipeline (enables everything else):**
 - Node build script with §3.1 parsing pipeline, `--assign-ids` init, and `--new <slug>` scaffold.
@@ -563,7 +563,7 @@ The goal of Phase 1 is to retire every "temporarily" in Phase 0 **and** close th
 - **Speaker view** in a separate window, synced via `window.postMessage`: current chunk, next-previews (fully revealed, see §7), notes pane, scrubber, timer, push-to-audience toggle, crash-recovery `localStorage` persistence.
 
 **Live interactions the wlab01 input shape broke:**
-- **Progressive reveal** per §4.6. The `---` separator, `Space` to advance, backward-nav resets to fully-revealed. This is what will make bullet-heavy content (the dominant shape in practice, despite the "prose first" intent) teachable at a controlled pace.
+- **Progressive reveal** per §4.6. The `---` separator, `Space` to advance, backward-nav resets to fully-revealed. This is what will make bullet-heavy content (the dominant shape in practice, despite the “prose first” intent) teachable at a controlled pace.
 - **Title slide renderer** per §4.4 `title` tag – lower-left-third layout, frontmatter-driven.
 
 **Overview upgrades (the wlab01 overview was a dead end once you entered it):**
@@ -575,7 +575,7 @@ The goal of Phase 1 is to retire every "temporarily" in Phase 0 **and** close th
 
 **Discipline check: `topic+bold` as default collapse.** In practice this will be the most-used mode; ensure the audience view boots in `topic+bold` unless overridden.
 
-### Phase 2 — Mid-semester
+### Phase 2 – Mid-semester
 
 - Extract the pattern language that actually emerged from 4–5 hand-authored lectures.
 - Document it as **concrete examples**, not abstract rules.
@@ -583,7 +583,7 @@ The goal of Phase 1 is to retire every "temporarily" in Phase 0 **and** close th
 - Dark mode variant.
 - Etherpad iframe integration.
 
-### Phase 3 — End of semester
+### Phase 3 – End of semester
 
 - Polls/quizzes (architecture decision deferred until then).
 - Multi-lecture project structure: how 14 lectures of a course share assets, cross-reference, and render as a coherent student resource.
@@ -592,23 +592,23 @@ The goal of Phase 1 is to retire every "temporarily" in Phase 0 **and** close th
 
 ---
 
-## 12. Open questions — things this spec deliberately does not decide
+## 12. Open questions – things this spec deliberately does not decide
 
 These are the things I'd flag as genuinely underspecified rather than just deferred. Worth thinking about before they bite.
 
-1. **Crash recovery during a live lecture.** Persistence to `localStorage` is in the spec, but what's the actual recovery ritual when the laptop freezes mid-lecture? Reboot, reopen browser, restore from URL + localStorage — do you trust that enough for a live room? Might need a backup printed handout as the true fallback. Worth deciding policy explicitly.
+1. **Crash recovery during a live lecture.** Persistence to `localStorage` is in the spec, but what's the actual recovery ritual when the laptop freezes mid-lecture? Reboot, reopen browser, restore from URL + localStorage – do you trust that enough for a live room? Might need a backup printed handout as the true fallback. Worth deciding policy explicitly.
 
 2. **Dark mode lighting policy.** Evening lectures with dim lecture halls vs bright daytime. The spec says both exist but doesn't define when to switch. A tiny hotkey toggle (`D`) is easy; the harder question is whether the print view and student web view follow suit, and whether figures need dark-mode variants.
 
-3. **Student-facing web study view.** The spec has `audience.html`, `speaker.html`, `print.html`. Is there also a `study.html` — a web version for students that's different from both audience (no camera, all chunks visible) and print (scrollable, interactive expansions)? I think yes, but we haven't designed it. Probably the easiest win: print view + clickable chevrons for expansions.
+3. **Student-facing web study view.** The spec has `audience.html`, `speaker.html`, `print.html`. Is there also a `study.html` – a web version for students that's different from both audience (no camera, all chunks visible) and print (scrollable, interactive expansions)? I think yes, but we haven't designed it. Probably the easiest win: print view + clickable chevrons for expansions.
 
-4. **Poll/quiz architecture.** Named as a slot, implementation deferred. But polls are exactly the live element that makes the "why come to lecture" problem go away, so deferring too long weakens the whole pitch.
+4. **Poll/quiz architecture.** Named as a slot, implementation deferred. But polls are exactly the live element that makes the “why come to lecture” problem go away, so deferring too long weakens the whole pitch.
 
-5. **Multi-lecture project structure.** A full course has 14 lectures. How do they share a styles file, a fonts folder, cross-reference each other, and render as a coherent course-wide student resource? Not just 14 separate HTML files in a folder — there should be a course index, navigation between lectures, and probably a single semester-wide PDF.
+5. **Multi-lecture project structure.** A full course has 14 lectures. How do they share a styles file, a fonts folder, cross-reference each other, and render as a coherent course-wide student resource? Not just 14 separate HTML files in a folder – there should be a course index, navigation between lectures, and probably a single semester-wide PDF.
 
-6. **Cross-references between lectures.** "Recall from lecture 3" — does that resolve to a link students can click? Implies chunk IDs are globally unique across a course, which is a small but real design decision.
+6. **Cross-references between lectures.** “Recall from lecture 3” – does that resolve to a link students can click? Implies chunk IDs are globally unique across a course, which is a small but real design decision.
 
-7. **Font licensing and durability.** Self-hosting is in the spec. Actual font choices are suggestions. Pick two or three and commit — "we'll decide later" is how projects end up with six half-chosen fonts.
+7. **Font licensing and durability.** Self-hosting is in the spec. Actual font choices are suggestions. Pick two or three and commit – “we'll decide later” is how projects end up with six half-chosen fonts.
 
 8. **Figure authoring pipeline.** Images work via shorthand, but where do the SVG figures come from? If you're converting from existing slide decks, there's an ecosystem question (Excalidraw, tldraw, Figma, hand-drawn scanned) worth deciding early so figures are editable long-term, not flattened PNGs.
 
@@ -622,13 +622,13 @@ These are the things I'd flag as genuinely underspecified rather than just defer
 
 ---
 
-## 13. Anti-spec — what this is not
+## 13. Anti-spec – what this is not
 
 To prevent scope creep and keep the project shippable:
 
 - Not a presentation tool. No remote control apps, laser pointer, live-feed integrations.
 - Not a publication platform. No CMS, no server, no accounts.
 - Not a note-taking tool for students. They receive the print PDF or study page.
-- Not a concept-map tool. Relations between chunks are implicit in spatial layout and narration, not stored as typed edges (for now — could revisit).
+- Not a concept-map tool. Relations between chunks are implicit in spatial layout and narration, not stored as typed edges (for now – could revisit).
 - Not a LaTeX replacement. Math is supported; it's not a mathematical typesetting project.
 - Not collaborative authoring. One author per lecture file; Git handles any collaboration needed.
