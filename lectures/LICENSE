@@ -1,0 +1,28 @@
+# Licence for the lecture content in this directory
+
+Copyright (c) 2026 Dominik Herrmann
+
+The lecture material in `lectures/` – the `source.md` files, their `assets/`,
+and the prose, figures and examples they contain – is licensed under the
+**Creative Commons Attribution-ShareAlike 4.0 International** licence
+(CC BY-SA 4.0).
+
+- Human-readable summary: https://creativecommons.org/licenses/by-sa/4.0/
+- Full legal code: https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+You are free to share and adapt this material for any purpose, including
+commercially, provided you give appropriate credit and license your
+derivative work under the same terms.
+
+SPDX-License-Identifier: CC-BY-SA-4.0
+
+## Scope
+
+This licence covers **content only**. The rest of the repository – `build.js`,
+`lint.js`, the documentation, and the tooling – is licensed under the MIT
+licence; see `../LICENSE`.
+
+The generated HTML files in this directory (`audience.html`, `speaker.html`,
+`print.html`, `print-notes.html`) are a mixture: the lecture text and assets
+are CC BY-SA 4.0 as above, while the runtime JavaScript and CSS that `build.js`
+inlines into them remain under the MIT licence.

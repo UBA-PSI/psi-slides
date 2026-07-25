@@ -3,7 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "description": "Lecture medium (see PRD.md). Phase-1 build pipeline.",
+  "license": "MIT",
+  "author": "Dominik Herrmann",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UBA-PSI/psi-slides.git"
+  },
+  "homepage": "https://github.com/UBA-PSI/psi-slides#readme",
+  "bugs": {
+    "url": "https://github.com/UBA-PSI/psi-slides/issues"
+  },
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "node build.js"
   },
