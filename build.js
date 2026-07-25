@@ -302,6 +302,9 @@ function scanReferencedImages(src, sourceDir) {
 
   let total = 0;
   let count = 0;
+  // Assets past the per-image cap are collected rather than merely counted:
+  // buildOnce refuses to emit a half-inlined output (see assertInlinable).
+  const oversized = [];
   for (const href of refs) {
     let abs = null;
     const isShorthand = !/[\\/]/.test(href) && !/\.[a-z0-9]+$/i.test(href);
@@ -316,9 +319,61 @@ function scanReferencedImages(src, sourceDir) {
       const stat = fs.statSync(abs);
       total += stat.size;
       count += 1;
+      if (stat.size > MAX_INLINE_BYTES) oversized.push({ abs, size: stat.size });
     } catch { /* missing assets surface elsewhere as figure-missing */ }
   }
-  return { total, count };
+  return { total, count, oversized };
+}
+
+// Refuse to emit an output that claims to be single-file and is not.
+//
+// The old behaviour was a warning: an asset past the per-image cap was left
+// as an external path and the build succeeded. That fails in the worst
+// possible way – the deck is correct on the machine that built it, and the
+// figure is missing wherever the HTML travels alone, which is exactly when
+// nobody is around to notice. Two lectures in the content repo shipped in
+// that state.
+//
+// The message differs by what the author can actually do about it: rasters
+// are fixable with --optimize-images, an oversized SVG is not (that verb only
+// handles PNG/JPEG), and a missing encoder has to be installed first.
+function assertInlinable(oversized, sourceDir) {
+  if (!oversized.length) return;
+  const cap = MAX_INLINE_BYTES / 1024 / 1024;
+  const lines = [
+    `${oversized.length} asset(s) exceed the ${cap} MB per-image inline cap, so they would be left as`,
+    `external paths and this output would not be self-contained:`,
+    '',
+  ];
+  for (const o of oversized) {
+    lines.push(`  ${path.relative(sourceDir, o.abs)}  ${(o.size / 1024 / 1024).toFixed(2)} MB`);
+  }
+  lines.push('');
+  const rasters = oversized.filter(o => OPTIMIZABLE_EXTS.has(path.extname(o.abs).slice(1).toLowerCase()));
+  if (rasters.length) {
+    if (detectWebpEncoder()) {
+      lines.push('Fix:  node build.js <source.md> --optimize-images');
+    } else {
+      lines.push('No WebP encoder is installed, so the build cannot tell you to convert and');
+      lines.push('expect it to work. Install one, then convert:');
+      lines.push('  brew install webp             # provides cwebp (preferred)');
+      lines.push('  brew install imagemagick      # provides magick');
+      lines.push('  node build.js <source.md> --optimize-images');
+    }
+  }
+  const others = oversized.filter(o => !rasters.includes(o));
+  if (others.length) {
+    if (rasters.length) lines.push('');
+    lines.push(`--optimize-images only handles PNG and JPEG, so it cannot help with`);
+    lines.push(`${others.map(o => path.basename(o.abs)).join(', ')} – simplify or split ${others.length === 1 ? 'that asset' : 'those assets'} by hand.`);
+  }
+  lines.push('');
+  lines.push('Or pass --no-inline-images to deliberately ship external asset paths.');
+  const err = new Error(lines.join('\n'));
+  // Something the author has to act on, not a bug in the build – print the
+  // message alone. A stack trace here only buries the instructions.
+  err.userFacing = true;
+  throw err;
 }
 
 // ── marked renderer overrides (code highlighting + image shorthand) ──
@@ -5907,8 +5962,10 @@ function buildOnce(absIn, only, opts = {}) {
   // Either way log the decision so authors notice when a deck silently flips
   // from inlined back to external (e.g. after adding a heavy asset).
   let inlineImages = opts.inlineImages;
+  let scan = null;
   if (inlineImages === undefined) {
-    const { total, count } = scanReferencedImages(src, outDir);
+    scan = scanReferencedImages(src, outDir);
+    const { total, count } = scan;
     if (count === 0) {
       inlineImages = false;
     } else if (total <= AUTO_INLINE_BUDGET) {
@@ -5924,6 +5981,13 @@ function buildOnce(absIn, only, opts = {}) {
     }
   }
   inlineAssetsEnabled = !!inlineImages;
+  // Pre-flight, before any rendering: fail without leaving a half-broken
+  // artefact on disk. Only matters when inlining is on – with external paths
+  // the size cap is irrelevant and nothing is being promised.
+  if (inlineAssetsEnabled) {
+    if (!scan) scan = scanReferencedImages(src, outDir);
+    assertInlinable(scan.oversized, outDir);
+  }
   const lecture = parseLecture(src);
   const chunkCount = lecture.columns.reduce((n, c) => n + c.chunks.length, 0);
   const shape = `${lecture.columns.length} columns, ${chunkCount} chunks`;
@@ -6155,4 +6219,9 @@ async function main() {
   console.log(`Wrote ${written.join(', ')} (${shape})`);
 }
 
-main().catch(err => { console.error(err); process.exit(1); });
+main().catch(err => {
+  // userFacing errors carry instructions for the author; anything else is a
+  // defect in the build and deserves its stack.
+  console.error(err && err.userFacing ? err.message : err);
+  process.exit(1);
+});

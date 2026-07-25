@@ -900,7 +900,7 @@ pre.shiki .line { display: inline; }
 </div>
 
 
-<p><strong>A file over the 2 MB per-image cap stays an external path</strong>, and the output is then no longer self-contained: the figure breaks wherever the HTML travels without its assets folder. <code>node build.js &lt;source.md&gt; --optimize-images</code> converts the offenders to WebP in place, which on real lecture assets lands at 12 to 18 percent of the original with no visible loss. <code>lint.js</code> flags them too, so the pre-commit gate catches what a scrolling build log does not.</p>
+<p><strong>A file over the 2 MB per-image cap fails the build.</strong> Inlining it is impossible, and shipping it as an external path would quietly break the single-file promise: correct on your machine, broken figure wherever the HTML travels without its assets folder. <code>node build.js &lt;source.md&gt; --optimize-images</code> converts the offenders to WebP in place, which on real lecture assets lands at 12 to 18 percent of the original with no visible loss. <code>--no-inline-images</code> is the escape hatch if you actually want external paths.</p>
 
   
   
