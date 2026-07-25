@@ -730,11 +730,26 @@ function renderTitleBlock({ title, presenter, info, bodyHtml }) {
   `.trim();
 }
 
+// Chunk headings carry inline Markdown, most usefully code spans: a heading
+// like "Loops | for, while, and `enumerate`" is common, and escaping it
+// wholesale rendered the backticks literally in all four views. parseInline
+// gives code spans, emphasis, and links without wrapping the result in <p>;
+// it escapes text itself, so no double-escaping. Falls back to plain
+// escaping if marked ever chokes on a heading.
+function renderInlineMd(text) {
+  const raw = text || '';
+  try {
+    return marked.parseInline(raw);
+  } catch (e) {
+    return escapeHtml(raw);
+  }
+}
+
 function renderHeadingHtml(chunk, cls = 'chunk-heading') {
   if (!chunk.heading && !chunk.headingSub) return '';
-  const main = escapeHtml(chunk.heading || '');
+  const main = renderInlineMd(chunk.heading);
   if (!chunk.headingSub) return `<h2 class="${cls}">${main}</h2>`;
-  const sub = escapeHtml(chunk.headingSub);
+  const sub = renderInlineMd(chunk.headingSub);
   // Space between spans so the print renderer (which uses display:inline
   // for the subline) keeps a readable gap; audience uses flex-column and
   // the space collapses under `gap: 0.1em`.
@@ -1161,6 +1176,15 @@ a:hover { text-decoration-color: var(--ink); }
   font-family: var(--sans);
   margin-top: 0.05em;
   letter-spacing: -0.005em;
+}
+/* Code spans inside a heading (renderInlineMd) – keep them upright and a
+   touch smaller so an identifier does not outweigh the heading itself. */
+.chunk-heading code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  font-style: normal;
+  font-weight: inherit;
+  margin: 0 0.09em;
 }
 
 /* Layout primitives reflow to linear prose in print. The goal is a
@@ -1927,6 +1951,18 @@ body.figure-focused .chunk-num { opacity: 0; }
   font-family: var(--sans-font);
   font-variant: normal;
   font-style: italic;
+}
+/* Code spans inside a heading (renderInlineMd). Default monospace at 1em
+   towers over a large serif heading, and the italic sub-line should not
+   italicise an identifier. */
+.chunk-heading code {
+  font-family: var(--mono-font);
+  font-size: 0.84em;
+  font-style: normal;
+  font-weight: inherit;
+  /* A mono glyph ends flush against the following italic word, so the
+     inter-word space reads as none. Buy a hair of it back. */
+  margin: 0 0.09em;
 }
 
 /* Images & figures --------------------------------------------------- */
