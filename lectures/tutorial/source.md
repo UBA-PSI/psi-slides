@@ -334,6 +334,24 @@ Reach for `::: margin` when the supplementary content is short and trustworthy e
 
 > note: The verb deliberately does not downscale. The heavy files are usually already at slide resolution – the bytes are PNG being a poor fit for photographic content. And figure focus zooms to 8×, so a high-resolution diagram is high-resolution on purpose; `--max-width` is opt-in for genuine outliers.
 
+## example: Math | `$inline$` and `$$display$$` {.wide #math}
+
+**Formulas are rendered by KaTeX during the build, so the output stays a single file with no runtime.** Inline math sits in a sentence – the anonymity set $S$ has size $|S|$ – and display math takes its own block:
+
+$$d = \frac{H(S)}{\log_2 |S|}$$
+
+::: cols 2
+
+**Display math behaves like a figure.** It stays on screen when the prose around it collapses, and clicking it zooms it into a focus card – which is what you want when a room asks to see a formula bigger. Inline math follows the sentence it lives in: visible in the topic sentence, hidden with the continuation prose.
+
+**A lone dollar is safe.** The delimiters are parsed as Markdown tokens, so `$PATH` inside code, a price of $5 and $10 in prose, and a `$$` inside a fence are all left alone. Write `\$` for a literal dollar if you want to be explicit.
+
+:::
+
+**Fonts are the price of the single-file promise.** A lecture with math inlines only the KaTeX font families its formulas actually use, typically around 130 KB of the full 254 KB; a lecture without math inlines nothing at all. The build prints which it did.
+
+> note: A malformed formula does not fail the build – KaTeX renders it in red so a typo never blanks the projector mid-lecture. The terminal reports it instead, and `lint.js` warns about a `$$` you forgot to close.
+
 # Writing chunks that work {#craft}
 
 ## principle: The topic sentence is the slide | so write the opening line for the projector {.narrow #topic-sentence}
