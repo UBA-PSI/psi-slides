@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 250" width="520" height="250" font-family="JetBrains Mono, monospace" font-size="12">
+  <style>
+    /* Colours come from the page's theme custom properties, with hex
+       fallbacks for contexts that have none (a raw file:// open of the
+       asset, or an editor preview). This is what makes the figure
+       re-colour when the reader cycles themes with A. */
+    .box  { fill: var(--paper, #fafaf7); stroke: var(--ink, #1f1f24); stroke-width: 1.2; }
+    .lbl  { fill: var(--ink, #1f1f24); }
+    .dim  { fill: var(--ink-soft, #6b6b72); }
+    .emph { fill: var(--emph, #8b2e00); font-weight: 600; }
+    .edge { stroke: var(--ink-soft, #6b6b72); stroke-width: 1; fill: none; }
+  </style>
+
+  <rect x="8" y="96" width="128" height="52" rx="2" class="box"/>
+  <text x="24" y="118" class="emph">source.md</text>
+  <text x="24" y="136" class="dim">one file</text>
+
+  <line x1="136" y1="122" x2="196" y2="122" class="edge" marker-end="url(#arrow)"/>
+  <defs>
+    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 7 4 L 0 7 z" fill="var(--ink-soft, #6b6b72)"/>
+    </marker>
+  </defs>
+  <text x="150" y="114" class="dim" font-size="10">build.js</text>
+
+  <rect x="200" y="10" width="150" height="44" rx="2" class="box"/>
+  <text x="212" y="30" class="lbl">print.html</text>
+  <text x="212" y="46" class="dim" font-size="10">the document</text>
+
+  <rect x="200" y="66" width="150" height="44" rx="2" class="box"/>
+  <text x="212" y="86" class="lbl">print-notes.html</text>
+  <text x="212" y="102" class="dim" font-size="10">document + notes</text>
+
+  <rect x="200" y="134" width="150" height="44" rx="2" class="box"/>
+  <text x="212" y="154" class="lbl">audience.html</text>
+  <text x="212" y="170" class="dim" font-size="10">the projector</text>
+
+  <rect x="200" y="190" width="150" height="44" rx="2" class="box"/>
+  <text x="212" y="210" class="lbl">speaker.html</text>
+  <text x="212" y="226" class="dim" font-size="10">the cockpit</text>
+
+  <line x1="196" y1="122" x2="196" y2="32" class="edge"/>
+  <line x1="196" y1="122" x2="196" y2="212" class="edge"/>
+  <line x1="196" y1="32"  x2="200" y2="32"  class="edge"/>
+  <line x1="196" y1="88"  x2="200" y2="88"  class="edge"/>
+  <line x1="196" y1="156" x2="200" y2="156" class="edge"/>
+  <line x1="196" y1="212" x2="200" y2="212" class="edge"/>
+
+  <path d="M 350 156 C 400 156 400 212 350 212" class="edge" stroke-dasharray="4,3"/>
+  <text x="366" y="188" class="emph" font-size="10">postMessage</text>
+  <text x="366" y="202" class="dim" font-size="9">live sync</text>
+</svg>

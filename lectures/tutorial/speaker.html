@@ -370,6 +370,18 @@ body.figure-focused .chunk-num { opacity: 0; }
   font-variant: normal;
   font-style: italic;
 }
+/* Code spans inside a heading (renderInlineMd). Default monospace at 1em
+   towers over a large serif heading, and the italic sub-line should not
+   italicise an identifier. */
+.chunk-heading code {
+  font-family: var(--mono-font);
+  font-size: 0.84em;
+  font-style: normal;
+  font-weight: inherit;
+  /* A mono glyph ends flush against the following italic word, so the
+     inter-word space reads as none. Buy a hair of it back. */
+  margin: 0 0.09em;
+}
 
 /* Images & figures --------------------------------------------------- */
 /* Baseline for raw <img> (direct-path Markdown images that bypass the
@@ -1648,7 +1660,7 @@ body[data-view=speaker].preview-right .preview-slot {
     </div>
 <div class="col-entry" data-col-idx="1">
       <button class="col-btn" type="button">Welcome</button>
-      <div class="dots"><span class="dot" data-col-idx="1" data-chunk-idx="0"></span><span class="dot" data-col-idx="1" data-chunk-idx="1"></span></div>
+      <div class="dots"><span class="dot" data-col-idx="1" data-chunk-idx="0"></span><span class="dot" data-col-idx="1" data-chunk-idx="1"></span><span class="dot" data-col-idx="1" data-chunk-idx="2"></span></div>
     </div>
 <div class="col-entry" data-col-idx="2">
       <button class="col-btn" type="button">Moving around</button>
@@ -1656,19 +1668,27 @@ body[data-view=speaker].preview-right .preview-slot {
     </div>
 <div class="col-entry" data-col-idx="3">
       <button class="col-btn" type="button">Finding content</button>
-      <div class="dots"><span class="dot" data-col-idx="3" data-chunk-idx="0"></span><span class="dot" data-col-idx="3" data-chunk-idx="1"></span></div>
+      <div class="dots"><span class="dot" data-col-idx="3" data-chunk-idx="0"></span><span class="dot" data-col-idx="3" data-chunk-idx="1"></span><span class="dot" data-col-idx="3" data-chunk-idx="2"></span></div>
     </div>
 <div class="col-entry" data-col-idx="4">
-      <button class="col-btn" type="button">Speaker cockpit</button>
-      <div class="dots"><span class="dot" data-col-idx="4" data-chunk-idx="0"></span><span class="dot" data-col-idx="4" data-chunk-idx="1"></span><span class="dot" data-col-idx="4" data-chunk-idx="2"></span></div>
+      <button class="col-btn" type="button">What goes on the slide</button>
+      <div class="dots"><span class="dot" data-col-idx="4" data-chunk-idx="0"></span><span class="dot" data-col-idx="4" data-chunk-idx="1"></span><span class="dot" data-col-idx="4" data-chunk-idx="2"></span><span class="dot" data-col-idx="4" data-chunk-idx="3"></span></div>
     </div>
 <div class="col-entry" data-col-idx="5">
-      <button class="col-btn" type="button">Authoring layouts</button>
-      <div class="dots"><span class="dot" data-col-idx="5" data-chunk-idx="0"></span><span class="dot" data-col-idx="5" data-chunk-idx="1"></span><span class="dot" data-col-idx="5" data-chunk-idx="2"></span><span class="dot" data-col-idx="5" data-chunk-idx="3"></span><span class="dot" data-col-idx="5" data-chunk-idx="4"></span></div>
+      <button class="col-btn" type="button">The chunk vocabulary</button>
+      <div class="dots"><span class="dot" data-col-idx="5" data-chunk-idx="0"></span><span class="dot" data-col-idx="5" data-chunk-idx="1"></span><span class="dot" data-col-idx="5" data-chunk-idx="2"></span></div>
     </div>
 <div class="col-entry" data-col-idx="6">
+      <button class="col-btn" type="button">Speaker cockpit</button>
+      <div class="dots"><span class="dot" data-col-idx="6" data-chunk-idx="0"></span><span class="dot" data-col-idx="6" data-chunk-idx="1"></span><span class="dot" data-col-idx="6" data-chunk-idx="2"></span><span class="dot" data-col-idx="6" data-chunk-idx="3"></span></div>
+    </div>
+<div class="col-entry" data-col-idx="7">
+      <button class="col-btn" type="button">Authoring layouts</button>
+      <div class="dots"><span class="dot" data-col-idx="7" data-chunk-idx="0"></span><span class="dot" data-col-idx="7" data-chunk-idx="1"></span><span class="dot" data-col-idx="7" data-chunk-idx="2"></span><span class="dot" data-col-idx="7" data-chunk-idx="3"></span><span class="dot" data-col-idx="7" data-chunk-idx="4"></span><span class="dot" data-col-idx="7" data-chunk-idx="5"></span></div>
+    </div>
+<div class="col-entry" data-col-idx="8">
       <button class="col-btn" type="button">Next steps</button>
-      <div class="dots"><span class="dot" data-col-idx="6" data-chunk-idx="0"></span><span class="dot" data-col-idx="6" data-chunk-idx="1"></span></div>
+      <div class="dots"><span class="dot" data-col-idx="8" data-chunk-idx="0"></span><span class="dot" data-col-idx="8" data-chunk-idx="1"></span></div>
     </div>
 </div>
 <div id="stage-cell">
@@ -1694,9 +1714,9 @@ body[data-view=speaker].preview-right .preview-slot {
 <article class="chunk chunk-principle" id="one-source" data-chunk-id="one-source" data-tag="principle" data-width="narrow" data-chunk-num="2">
   <div class="chunk-content">
     <div class="tag-label">principle</div>
-    <h2 class="chunk-heading has-sub"><span class="hd-main">One source, three views</span> <span class="hd-sub">print, audience, speaker all come from the same `source.md`</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>psi-slides builds three HTML files from each Markdown source.</strong> Print is a document-style reading copy with a cover and a TOC; audience is this live projection view; speaker is the cockpit with notes, preview strip, and timer.</p>
-<p>The authoring format is the same Markdown for all three – views only differ in <em>what they emit</em>, never in <em>what you wrote</em>.</p>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">One source, four views</span> <span class="hd-sub">print, print-notes, audience, speaker all come from the same <code>source.md</code></span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>psi-slides builds four HTML files from each Markdown source.</strong> Print is a document-style reading copy with a cover and a TOC; print-notes is the same document with your speaker notes folded in; audience is this live projection view; speaker is the cockpit with notes, preview strip, and timer.</p>
+<p>The authoring format is the same Markdown for all four – views only differ in <em>what they emit</em>, never in <em>what you wrote</em>.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="one-source">
@@ -1709,20 +1729,90 @@ body[data-view=speaker].preview-right .preview-slot {
   
   <div class="chunk-num" aria-hidden="true"><i>2</i></div>
 </article>
-<article class="chunk chunk-free" id="audience-now" data-chunk-id="audience-now" data-tag="free" data-width="wide" data-chunk-num="3">
+<article class="chunk chunk-figure" id="four-views" data-chunk-id="four-views" data-tag="figure" data-width="wide" data-chunk-num="3">
   <div class="chunk-content">
     
-    <h2 class="chunk-heading has-sub"><span class="hd-main">What you're reading right now</span> <span class="hd-sub">is the audience view</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>You are in <code>audience.html</code>.</strong> It&#39;s the projector-facing view: one chunk occupies the slide, keyboard nav moves between chunks, and any speaker connected via postMessage can mirror state here in real time.</p>
+    <h2 class="chunk-heading">The build, in one picture</h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><figure class="figure-img" data-fig-id="four-views"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 250" width="520" height="250" font-family="JetBrains Mono, monospace" font-size="12" id="psi-fig-4-root" role="img">
+  <style>@scope (svg#psi-fig-4-root) {
+/* Colours come from the page's theme custom properties, with hex
+       fallbacks for contexts that have none (a raw file:// open of the
+       asset, or an editor preview). This is what makes the figure
+       re-colour when the reader cycles themes with A. */
+    .box  { fill: var(--paper, #fafaf7); stroke: var(--ink, #1f1f24); stroke-width: 1.2; }
+    .lbl  { fill: var(--ink, #1f1f24); }
+    .dim  { fill: var(--ink-soft, #6b6b72); }
+    .emph { fill: var(--emph, #8b2e00); font-weight: 600; }
+    .edge { stroke: var(--ink-soft, #6b6b72); stroke-width: 1; fill: none; }
+}</style>
+
+  <rect x="8" y="96" width="128" height="52" rx="2" class="box"/>
+  <text x="24" y="118" class="emph">source.md</text>
+  <text x="24" y="136" class="dim">one file</text>
+
+  <line x1="136" y1="122" x2="196" y2="122" class="edge" marker-end="url(#psi-fig-4-arrow)"/>
+  <defs>
+    <marker id="psi-fig-4-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 7 4 L 0 7 z" fill="var(--ink-soft, #6b6b72)"/>
+    </marker>
+  </defs>
+  <text x="150" y="114" class="dim" font-size="10">build.js</text>
+
+  <rect x="200" y="10" width="150" height="44" rx="2" class="box"/>
+  <text x="212" y="30" class="lbl">print.html</text>
+  <text x="212" y="46" class="dim" font-size="10">the document</text>
+
+  <rect x="200" y="66" width="150" height="44" rx="2" class="box"/>
+  <text x="212" y="86" class="lbl">print-notes.html</text>
+  <text x="212" y="102" class="dim" font-size="10">document + notes</text>
+
+  <rect x="200" y="134" width="150" height="44" rx="2" class="box"/>
+  <text x="212" y="154" class="lbl">audience.html</text>
+  <text x="212" y="170" class="dim" font-size="10">the projector</text>
+
+  <rect x="200" y="190" width="150" height="44" rx="2" class="box"/>
+  <text x="212" y="210" class="lbl">speaker.html</text>
+  <text x="212" y="226" class="dim" font-size="10">the cockpit</text>
+
+  <line x1="196" y1="122" x2="196" y2="32" class="edge"/>
+  <line x1="196" y1="122" x2="196" y2="212" class="edge"/>
+  <line x1="196" y1="32"  x2="200" y2="32"  class="edge"/>
+  <line x1="196" y1="88"  x2="200" y2="88"  class="edge"/>
+  <line x1="196" y1="156" x2="200" y2="156" class="edge"/>
+  <line x1="196" y1="212" x2="200" y2="212" class="edge"/>
+
+  <path d="M 350 156 C 400 156 400 212 350 212" class="edge" stroke-dasharray="4,3"/>
+  <text x="366" y="188" class="emph" font-size="10">postMessage</text>
+  <text x="366" y="202" class="dim" font-size="9">live sync</text>
+</svg></figure></p>
+<p>The four outputs are self-contained: images are inlined, CSS and JavaScript are embedded, and every file opens from <code>file://</code> with no server. That is why you can mail a lecture to a colleague as a single attachment.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="four-views">
+      <div class="annot-box-label">annotation · four-views</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>3</i></div>
+</article>
+<article class="chunk chunk-free" id="audience-now" data-chunk-id="audience-now" data-tag="free" data-width="wide" data-chunk-num="4">
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">What you&#39;re reading right now</span> <span class="hd-sub">is the audience view</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>You are in <code>audience.html</code>.</strong> It is the projector-facing view: one chunk occupies the slide, keyboard nav moves between chunks, and any speaker connected via postMessage mirrors state here in real time.</p>
 <div class="cols cols-2">
 
 
-<p><strong>To see the other two views:</strong></p>
+<p><strong>To see the other views:</strong></p>
 <ul>
 <li>Press <code>P</code> now to open <code>print.html</code> in a new tab – scroll through the whole lecture as a document.</li>
-<li>Press <code>S</code> to spawn <code>speaker.html</code> as a popup window – that&#39;s the cockpit.</li>
+<li>Press <code>S</code> to spawn <code>speaker.html</code> as a popup window – that is the cockpit.</li>
+<li>Press <code>?</code> for the full keyboard and mouse reference. Everything below is in there too.</li>
 </ul>
-<p><strong>The source that produced all three</strong> lives at <code>lectures/tutorial/source.md</code>. Every chunk in every view came out of that one file. Open it in a text editor beside this window to see the mapping.</p>
+<p><strong>The source that produced all four</strong> lives at <code>lectures/tutorial/source.md</code>. Every chunk in every view came out of that one file. Open it in a text editor beside this window to see the mapping.</p>
 </div></div></div>
     
     <aside class="annot-box" data-annot-for="audience-now">
@@ -1733,7 +1823,7 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>4</i></div>
 </article>
 </section>
 <section class="column" data-col="2" id="moving">
@@ -1742,7 +1832,7 @@ body[data-view=speaker].preview-right .preview-slot {
     <h1 class="section-heading">Moving around</h1>
   </div>
 </article>
-<article class="chunk chunk-example" id="arrows" data-chunk-id="arrows" data-tag="example" data-width="standard" data-chunk-num="4">
+<article class="chunk chunk-example" id="arrows" data-chunk-id="arrows" data-tag="example" data-width="standard" data-chunk-num="5">
   <div class="chunk-content">
     <div class="tag-label">example</div>
     <h2 class="chunk-heading has-sub"><span class="hd-main">Arrows and Space</span> <span class="hd-sub">navigate chunks, reveal segments</span></h2>
@@ -1755,7 +1845,7 @@ body[data-view=speaker].preview-right .preview-slot {
 </div>
 <div class="reveal-segment" data-seg="1" data-hidden><p><strong>Good – you just revealed a segment.</strong> In the source, a line with only <code>---</code> (outside a code fence) breaks the chunk body into reveal segments. The first is visible on entry; each <code>Space</code> uncovers the next, and past the last, <code>Space</code> advances to the next chunk.</p>
 </div>
-<div class="reveal-segment" data-seg="2" data-hidden><p><strong>One more, to show chaining.</strong> Reveal lets you pace dense content during a live talk without dumping everything at once – and in print, all segments render together as one flowing body.</p>
+<div class="reveal-segment" data-seg="2" data-hidden><p><strong>One more, to show chaining.</strong> Reveal lets you pace dense content during a live talk without dumping everything at once, and in print all segments render together as one flowing body.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="arrows">
@@ -1766,12 +1856,12 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>4</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>5</i></div>
 </article>
-<article class="chunk chunk-example" id="expand" data-chunk-id="expand" data-tag="example" data-width="wide" data-chunk-num="5">
+<article class="chunk chunk-example" id="expand" data-chunk-id="expand" data-tag="example" data-width="wide" data-chunk-num="6">
   <div class="chunk-content">
     <div class="tag-label">example</div>
-    <h2 class="chunk-heading has-sub"><span class="hd-main">Expansions</span> <span class="hd-sub">`Enter` and `1`-`9` open side asides</span></h2>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Expansions</span> <span class="hd-sub"><code>Enter</code> and <code>1</code>-<code>9</code> open side asides</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Some chunks have extra detail tucked behind a chevron button.</strong> Click one, or press <code>Enter</code> for the first, or <code>1</code>…<code>9</code> for the N-th. This chunk has two expansions – try both.</p>
 <p><strong>Print collapses all expansions</strong> into block-quoted asides in source order, so the reading copy loses nothing.</p>
 </div></div>
@@ -1797,17 +1887,51 @@ body[data-view=speaker].preview-right .preview-slot {
     </aside>
 <aside class="exp-body" data-exp-body="1">
       <div class="tag-label">collapse-behaviour</div>
-      <p><strong>Expansions disappear in collapse modes.</strong> Press <code>C</code> after closing this to try collapse – the chunk shrinks to topic sentence + bold keywords, and expansions hide entirely. The idea is that expansions are &quot;the branch you take <em>if</em> someone asks&quot;; the main text carries the argument on its own.</p>
+      <p><strong>Expansions disappear in collapse mode.</strong> Press <code>C</code> after closing this to try it – the chunk shrinks to topic sentence plus bold keywords, and expansions hide entirely. The idea is that an expansion is “the branch you take <em>if</em> someone asks”; the main text carries the argument on its own.</p>
 
     </aside>
-  <div class="chunk-num" aria-hidden="true"><i>5</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>6</i></div>
 </article>
-<article class="chunk chunk-example" id="overview" data-chunk-id="overview" data-tag="example" data-width="standard" data-chunk-num="6">
+<article class="chunk chunk-example" id="figure-focus" data-chunk-id="figure-focus" data-tag="example" data-width="standard" data-chunk-num="7">
   <div class="chunk-content">
     <div class="tag-label">example</div>
-    <h2 class="chunk-heading has-sub"><span class="hd-main">Overview</span> <span class="hd-sub">`O` zooms out so you can see everything</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Press <code>O</code> now.</strong> The stage zooms out to show all chunks at once, laid out in their column grid. Drag with the mouse or arrows to move a selection outline; <code>O</code> or <code>Enter</code> lands on the selected chunk; <code>Esc</code> exits without moving.</p>
-<p>Overview is the single best way to get oriented in an unfamiliar lecture – the typographic rhythm of principles, examples, and figures is immediately visible.</p>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Zoom into a figure or code block</span> <span class="hd-sub">click it</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Click any figure, code block, or marginalia inside the active chunk.</strong> Figures and code lift into a centred card with the slide dimmed behind; a marginalia instead pans the camera so the aside sits in the middle of the screen.</p>
+<p>Inside a focused card: drag to pan, wheel or <code>+</code> <code>-</code> to zoom, <code>0</code> to reset, <code>Esc</code> or a click to close. With a speaker connected, the audience mirrors the focus, the zoom, and the pan, so what you inspect is what the room sees.</p>
+<pre class="shiki github-light" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#6A737D"># Click this block to zoom it. Useful when a line matters more than the slide.</span></span>
+<span class="line"><span style="color:#D73A49">def</span><span style="color:#6F42C1"> anonymity_set</span><span style="color:#24292E">(observations, senders):</span></span>
+<span class="line"><span style="color:#D73A49">    return</span><span style="color:#24292E"> {s </span><span style="color:#D73A49">for</span><span style="color:#24292E"> s </span><span style="color:#D73A49">in</span><span style="color:#24292E"> senders </span><span style="color:#D73A49">if</span><span style="color:#24292E"> plausible(s, observations)}</span></span></code></pre>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="figure-focus">
+      <div class="annot-box-label">annotation · figure-focus</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>7</i></div>
+</article>
+</section>
+<section class="column" data-col="3" id="finding">
+<article class="chunk chunk-section" data-tag="section" data-width="full" data-chunk-id="finding-section">
+  <div class="chunk-content">
+    <h1 class="section-heading">Finding content</h1>
+  </div>
+</article>
+<article class="chunk chunk-example" id="overview" data-chunk-id="overview" data-tag="example" data-width="standard" data-chunk-num="8">
+  <div class="chunk-content">
+    <div class="tag-label">example</div>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Overview</span> <span class="hd-sub"><code>O</code> zooms out so you can see everything</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Press <code>O</code> now.</strong> The stage zooms out to show every chunk at once in its column grid, and the slide you were on carries a selection outline.</p>
+<ul>
+<li><strong>Drag</strong> to pan the board, <strong>wheel</strong> to zoom it.</li>
+<li><strong>Click</strong> a slide to select it. The board stays exactly where it is, so you can keep comparing neighbours.</li>
+<li><strong>Arrow keys</strong> move the selection instead, and the board follows, because the next pick is often off screen.</li>
+<li><code>O</code> or <code>Enter</code> <strong>lands</strong> on the selection; <code>Esc</code> leaves without moving.</li>
+</ul>
+<p>Overview is the fastest way to get oriented in an unfamiliar lecture: the typographic rhythm of principles, examples, and figures is visible at a glance. With a speaker connected, both windows enter, pan, zoom, and leave together.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="overview">
@@ -1818,21 +1942,14 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>6</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>8</i></div>
 </article>
-</section>
-<section class="column" data-col="3" id="finding">
-<article class="chunk chunk-section" data-tag="section" data-width="full" data-chunk-id="finding-section">
-  <div class="chunk-content">
-    <h1 class="section-heading">Finding content</h1>
-  </div>
-</article>
-<article class="chunk chunk-example" id="toc" data-chunk-id="toc" data-tag="example" data-width="standard" data-chunk-num="7">
+<article class="chunk chunk-example" id="toc" data-chunk-id="toc" data-tag="example" data-width="standard" data-chunk-num="9">
   <div class="chunk-content">
     <div class="tag-label">example</div>
-    <h2 class="chunk-heading has-sub"><span class="hd-main">TOC</span> <span class="hd-sub">`T` toggles a flat column index</span></h2>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">TOC</span> <span class="hd-sub"><code>T</code> toggles a flat column index</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>T</code> shows a list of every named column with its ID.</strong> Click an entry to jump there directly; <code>T</code> again closes the panel.</p>
-<p>Columns without a <code>{#id}</code> don&#39;t appear – anonymous columns like the title page stay invisible in the nav but still render normally. IDs on named columns are how the TOC links, and also how cross-references (when a <code>[text](#some-id)</code> link shows up in body text) resolve.</p>
+<p>Columns without a <code>{#id}</code> do not appear – anonymous columns like the title page stay invisible in the nav but still render normally. IDs on named columns are how the TOC links, and also how cross-references (a <code>[text](#some-id)</code> link in body text) resolve.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="toc">
@@ -1843,14 +1960,14 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>7</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>9</i></div>
 </article>
-<article class="chunk chunk-example" id="search" data-chunk-id="search" data-tag="example" data-width="standard" data-chunk-num="8">
+<article class="chunk chunk-example" id="search" data-chunk-id="search" data-tag="example" data-width="standard" data-chunk-num="10">
   <div class="chunk-content">
     <div class="tag-label">example</div>
-    <h2 class="chunk-heading has-sub"><span class="hd-main">Search</span> <span class="hd-sub">`/` inside overview filters by keyword</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Only active while <code>O</code> overview is on.</strong> Press <code>O</code>, then <code>/</code>, then start typing – matching chunks keep their outline, non-matches fade to a low-opacity miss state. <code>Enter</code> lands on the first match; <code>Esc</code> exits search without moving.</p>
-<p>Combined: <code>O</code> <code>/</code> <em>word</em> <code>Enter</code> jumps to the first chunk that mentions <em>word</em>, even in a long lecture. This is the fastest jump tool when you half-remember a topic but not its position.</p>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Search</span> <span class="hd-sub"><code>/</code> inside overview filters by keyword</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Only active while <code>O</code> overview is on.</strong> Press <code>O</code>, then <code>/</code>, then start typing – matching chunks keep their outline, non-matches fade to a low-opacity miss state. <code>Enter</code> selects the first match and centres it; <code>Esc</code> exits search without moving.</p>
+<p>Combined: <code>O</code> <code>/</code> <em>word</em> <code>Enter</code> <code>O</code> jumps to the first chunk that mentions <em>word</em>, even in a long lecture. This is the fastest jump tool when you half-remember a topic but not its position.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="search">
@@ -1861,20 +1978,187 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>8</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>0</i></div>
 </article>
 </section>
-<section class="column" data-col="4" id="speaker">
+<section class="column" data-col="4" id="on-screen">
+<article class="chunk chunk-section" data-tag="section" data-width="full" data-chunk-id="on-screen-section">
+  <div class="chunk-content">
+    <h1 class="section-heading">What goes on the slide</h1>
+  </div>
+</article>
+<article class="chunk chunk-principle" id="two-modes" data-chunk-id="two-modes" data-tag="principle" data-width="narrow" data-chunk-num="11">
+  <div class="chunk-content">
+    <div class="tag-label">principle</div>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Two ways to decide what the room sees</span> <span class="hd-sub">derived, or stated outright</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>C</code> toggles between the full text and the collapsed slide.</strong> Collapsed is the default, and it is what the projector shows during a talk; the full text is the rehearsal and recap mode.</p>
+<p><strong>What “collapsed” means is per chunk, and you choose the mechanism.</strong> Either psi-slides derives the slide from your prose, or you state the slide explicitly. The next two chunks show both.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="two-modes">
+      <div class="annot-box-label">annotation · two-modes</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>1</i></div>
+</article>
+<article class="chunk chunk-example" id="derived-mode" data-chunk-id="derived-mode" data-tag="example" data-width="wide" data-chunk-num="12">
+  <div class="chunk-content">
+    <div class="tag-label">example</div>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Derived</span> <span class="hd-sub">first sentence of each paragraph, plus bold fragments</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>By default the collapsed slide is the first sentence of every paragraph plus any <code>**bold**</code> phrases from the rest.</strong> This chunk is written that way – press <code>C</code> twice and watch what appears and disappears.</p>
+<p>The mechanism costs nothing to author and it keeps print and screen in one text. It also imposes a real constraint: every paragraph has to open with a sentence that works as a standalone claim, and the <strong>bold fragments have to read as bullets on their own</strong>. Continuation prose is print-only.</p>
+<p>That constraint is the right trade for argument-shaped chunks. It fights you when the chunk wants continuous explanation, which is what the next chunk is for.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="derived-mode">
+      <div class="annot-box-label">annotation · derived-mode</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>2</i></div>
+</article>
+<article class="chunk chunk-example" id="explicit-mode" data-chunk-id="explicit-mode" data-tag="example" data-width="wide" data-chunk-num="13">
+  <div class="chunk-content">
+    <div class="tag-label">example</div>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Stated</span> <span class="hd-sub"><code>::: slide</code> and <code>::: script</code></span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><div class="slide-explicit">
+
+
+<ul>
+<li><strong><code>::: slide</code></strong> marks the block that is the screen. Everything else in the chunk is narration.</li>
+<li><strong><code>::: script</code></strong> does the reverse: the chunk is the screen, and only the marked block is narration.</li>
+<li>Neither block is abridged. Lists, figures, and code render whole.</li>
+</ul>
+</div>
+
+
+<p>You are reading the projector version of this chunk right now: the bullets above sit inside a <code>::: slide</code> block, and this paragraph does not. Press <code>C</code> and this sentence appears; press <code>C</code> again and it goes away. Nothing here was derived from a first-sentence rule, because the block says outright what belongs on screen.</p>
+<p>Reach for <code>::: slide</code> when the slide wants to be tight bullets while the argument wants to be prose. Reach for <code>::: script</code> when the chunk is already slide-shaped and you only want to park a paragraph of narration next to it. A chunk may carry both, in which case the slide block wins and everything outside it is narration. Chunks with neither block keep behaving exactly as <code>#derived-mode</code> does, which is why no existing lecture changed when this landed.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="explicit-mode">
+      <div class="annot-box-label">annotation · explicit-mode</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></div>
+</article>
+<article class="chunk chunk-question" id="which-mode" data-chunk-id="which-mode" data-tag="question" data-width="narrow" data-chunk-num="14">
+  <div class="chunk-content">
+    <div class="tag-label">question</div>
+    <h2 class="chunk-heading">Which mode does a chunk use?</h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A <code>::: slide</code> block if there is one, otherwise everything outside <code>::: script</code>, otherwise the derived first-sentence-plus-bold.</strong> Three rules, checked in that order, per chunk.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="which-mode">
+      <div class="annot-box-label">annotation · which-mode</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  <div class="exps"><button class="exp-chev" type="button" data-exp="0">
+         <span>?</span>
+         <span class="caret">›</span>
+       </button></div>
+  <aside class="exp-body" data-exp-body="0">
+      <div class="tag-label">answer-in-practice</div>
+      <p><strong>In practice you will mix them inside one lecture.</strong> Principles and questions tend to be argument-shaped and do fine derived; long Befund or walkthrough chunks are usually easier to write with an explicit <code>::: slide</code>.</p>
+<p>The tag vocabulary is a good predictor: <code>principle</code> and <code>question</code> chunks are short enough that derivation rarely bites, while <code>example</code> and <code>free</code> chunks at the top of their density budget are where the explicit mode earns its keep.</p>
+
+    </aside>
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></div>
+</article>
+</section>
+<section class="column" data-col="5" id="vocabulary">
+<article class="chunk chunk-section" data-tag="section" data-width="full" data-chunk-id="vocabulary-section">
+  <div class="chunk-content">
+    <h1 class="section-heading">The chunk vocabulary</h1>
+  </div>
+</article>
+<article class="chunk chunk-principle" id="grammar" data-chunk-id="grammar" data-tag="principle" data-width="narrow" data-chunk-num="15">
+  <div class="chunk-content">
+    <div class="tag-label">principle</div>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Eight tags, one grammar</span> <span class="hd-sub"><code>## tag: Heading Sub {.width #id}</code></span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Every chunk opens with a tag that names what kind of move it makes.</strong> <code>title</code>, <code>principle</code>, <code>definition</code>, <code>example</code>, <code>question</code>, <code>figure</code>, <code>exercise</code>, <code>free</code>.</p>
+<p>The <code>| Sub-Heading</code> and the <code>{.width #id}</code> tail are both optional. Width is one of <code>narrow</code>, <code>standard</code>, <code>wide</code>, <code>full</code>, and <strong>the <code>{#id}</code> is frozen once authored</strong> – it anchors cross-references, TOC entries, speaker-sync snapshots, and localStorage.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="grammar">
+      <div class="annot-box-label">annotation · grammar</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></div>
+</article>
+<article class="chunk chunk-definition" id="tag-effects" data-chunk-id="tag-effects" data-tag="definition" data-width="standard" data-chunk-num="16">
+  <div class="chunk-content">
+    <div class="tag-label">definition</div>
+    <h2 class="chunk-heading">What a tag actually does</h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A tag sets the visual treatment and the density budget, not the layout.</strong> <code>principle</code>, <code>definition</code>, <code>question</code> and <code>example</code> print their tag name as a small label above the heading; <code>free</code>, <code>exercise</code> and <code>figure</code> render unlabelled.</p>
+<p>The lint budgets differ per tag, and they encode intent rather than taste: <code>principle</code> and <code>question</code> get 80 words because a claim that needs 200 is not a claim yet. <code>definition</code> gets 200, <code>example</code> and <code>free</code> get 250, <code>exercise</code> gets 350, and <code>title</code> and <code>figure</code> are unbudgeted.</p>
+<p>Picking the wrong tag is not an error, and the linter will not tell you. It only shows up later, when a <code>principle</code> you wrote as an <code>example</code> no longer stands out in the overview board.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="tag-effects">
+      <div class="annot-box-label">annotation · tag-effects</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>6</i></div>
+</article>
+<article class="chunk chunk-exercise" id="try-tags" data-chunk-id="try-tags" data-tag="exercise" data-width="wide" data-chunk-num="17">
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading">Try the vocabulary</h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Open <code>lectures/tutorial/source.md</code> with <code>--watch</code> running and change three things.</strong> Every save rebuilds and reloads all open tabs over a WebSocket, so keep the audience, the speaker, and your editor visible at once.</p>
+<div class="cols cols-2">
+
+
+<ol>
+<li>Change this chunk&#39;s tag from <code>exercise</code> to <code>principle</code>. The label appears, and <code>lint.js</code> starts complaining: the budget dropped from 350 words to 80.</li>
+<li>Wrap the list in a <code>::: slide</code> block, then press <code>C</code> here. Everything else leaves the screen.</li>
+<li>Add a <code>&gt; note:</code> line under the heading, then look at the speaker&#39;s notes pane and at <code>print-notes.html</code>.</li>
+</ol>
+</div></div></div>
+    
+    <aside class="annot-box" data-annot-for="try-tags">
+      <div class="annot-box-label">annotation · try-tags</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></div>
+</article>
+</section>
+<section class="column" data-col="6" id="speaker">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-chunk-id="speaker-section">
   <div class="chunk-content">
     <h1 class="section-heading">Speaker cockpit</h1>
   </div>
 </article>
-<article class="chunk chunk-free" id="speaker-s" data-chunk-id="speaker-s" data-tag="free" data-width="wide" data-chunk-num="9">
+<article class="chunk chunk-free" id="speaker-s" data-chunk-id="speaker-s" data-tag="free" data-width="wide" data-chunk-num="18">
   <div class="chunk-content">
     
-    <h2 class="chunk-heading has-sub"><span class="hd-main">Speaker view</span> <span class="hd-sub">the other window `S` spawned</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>The speaker view is the four-lane cockpit.</strong> Press <code>S</code> in this audience view if you haven&#39;t already – it opens <code>speaker.html</code> as a popup, and both windows adopt each other as peers over <code>window.postMessage</code>.</p>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Speaker view</span> <span class="hd-sub">the other window <code>S</code> spawned</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>The speaker view is the four-lane cockpit.</strong> Press <code>S</code> in this audience view if you have not already – it opens <code>speaker.html</code> as a popup, and both windows adopt each other as peers over <code>window.postMessage</code>.</p>
 <div class="cols cols-2">
 
 
@@ -1882,10 +2166,10 @@ body[data-view=speaker].preview-right .preview-slot {
 <ul>
 <li><strong>Column scrubber</strong> with clickable dots for every chunk.</li>
 <li><strong>Stage mirror</strong> – identical layout to the audience at the same zoom.</li>
-<li><strong>Editable notes pane</strong> below the stage (collapses when empty).</li>
+<li><strong>Editable notes pane</strong> below the stage, collapsed when the chunk has no notes.</li>
 <li><strong>Preview strip</strong> of all chunks, scrollable and clickable.</li>
 </ul>
-<p><strong>Everything stays in sync.</strong> Chunk changes, reveal state, annotations, theme, font, zoom, expansion state, and the laser pointer all flow through postMessage snapshots. <code>Shift-P</code> on the speaker toggles push on/off; <code>.</code> force-pushes a snapshot even when push is off (useful after a reload).</p>
+<p><strong>Everything stays in sync.</strong> Chunk changes, reveal state, annotations, theme, font, zoom, expansion state, overview framing, figure focus, and the laser pointer all flow through postMessage snapshots. <code>Shift-P</code> toggles push on and off; <code>.</code> force-pushes a snapshot even when push is off, which is what you want after a reload.</p>
 </div></div></div>
     
     <aside class="annot-box" data-annot-for="speaker-s">
@@ -1896,9 +2180,39 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>9</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></div>
 </article>
-<article class="chunk chunk-example" id="notes-vs-annot" data-chunk-id="notes-vs-annot" data-tag="example" data-width="wide" data-chunk-num="10">
+<article class="chunk chunk-example" id="cockpit-layout" data-chunk-id="cockpit-layout" data-tag="example" data-width="wide" data-chunk-num="19">
+  <div class="chunk-content">
+    <div class="tag-label">example</div>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Arranging the cockpit</span> <span class="hd-sub">the part everyone forgets</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><div class="slide-explicit">
+
+
+<ul>
+<li><strong><code>V</code></strong> moves the preview strip between the bottom edge and the right edge.</li>
+<li><strong>Drag the hairline bar above the notes</strong> to resize the notes pane. The slide preview rescales to fit.</li>
+<li><strong>Double-click that bar</strong> to go back to automatic height.</li>
+<li><strong><code>?</code></strong> opens the full reference. The footer has buttons for all three.</li>
+</ul>
+</div>
+
+
+<p>The notes pane starts at automatic height: one line when empty, up to three when it has content, collapsed entirely when the chunk has no notes at all. Once you drag it, the height becomes fixed and is remembered across lectures and reloads, which is usually what you want on a fixed lectern screen. The stage above it is a <code>1fr</code> grid row, so it gives up exactly the space the notes take and the audience mirror stays letterboxed at the projector&#39;s aspect ratio rather than distorting.</p>
+<p>Vertical preview mode is worth trying on any screen with horizontal room to spare: the thumbnails get larger and their text becomes legible, which turns the strip from a position indicator into something you can actually read ahead in.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="cockpit-layout">
+      <div class="annot-box-label">annotation · cockpit-layout</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></div>
+</article>
+<article class="chunk chunk-example" id="notes-vs-annot" data-chunk-id="notes-vs-annot" data-tag="example" data-width="wide" data-chunk-num="20">
   <div class="chunk-content">
     <div class="tag-label">example</div>
     <h2 class="chunk-heading has-sub"><span class="hd-main">N vs Shift-N</span> <span class="hd-sub">audience-visible vs private</span></h2>
@@ -1906,13 +2220,14 @@ body[data-view=speaker].preview-right .preview-slot {
 <div class="side"><div class="side-a">
 
 
-<p><strong><code>N</code> (both views) is an annotation on the current chunk.</strong> A textarea appears under the chunk; whatever you type is mirrored keystroke-by-keystroke to the other view. Use it for &quot;live marginalia&quot; – a rule you want on screen, a question you captured from the room, a correction during a talk.</p>
-<p>Annotations persist in localStorage per lecture and travel with state snapshots. <code>Shift-E</code> on the speaker copies every live annotation as <code>&gt; annot:</code> Markdown to your clipboard; paste it under the matching chunk heading in <code>source.md</code> and the text becomes a permanent &quot;Presentation Note&quot; – prefilled into the audience textarea and rendered inline in the print view.</p>
+<p><strong><code>N</code> (both views) is an annotation on the current chunk.</strong> A textarea appears under the chunk; whatever you type is mirrored keystroke-by-keystroke to the other view. Use it for live marginalia – a rule you want on screen, a question you captured from the room, a correction during a talk.</p>
+<p>Annotations persist in localStorage per lecture and travel with state snapshots. <code>Shift-E</code> on the speaker copies every live annotation as <code>&gt; annot:</code> Markdown to your clipboard; paste it under the matching chunk heading in <code>source.md</code>, run <code>node build.js &lt;source.md&gt; --integrate-annotations</code>, and the text becomes a permanent Presentation Note – prefilled into the audience textarea and rendered inline in print.</p>
 </div><div class="side-b">
 
 
 <p><strong><code>Shift-N</code> (speaker only) opens the private notes pane</strong> below the slide. This is <em>your</em> memory aid, never mirrored. The pane is pre-filled from <code>&gt; note: …</code> lines in source; your in-talk edits override the source text and persist per chunk in localStorage.</p>
-<p>If the pane is collapsed (no notes for this chunk), the corner <code>+ note</code> button on the stage does the same thing as <code>Shift-N</code>.</p>
+<p>If the pane is collapsed because this chunk has no notes, the corner <code>+ note</code> button on the stage does the same thing as <code>Shift-N</code>.</p>
+<p><code>print-notes.html</code> is the third home for the same text: the print document with every <code>&gt; note:</code> folded in under its chunk. That is the file to hand out when you want “what was on the slide, plus what the lecturer said”.</p>
 </div></div></div></div>
     
     <aside class="annot-box" data-annot-for="notes-vs-annot">
@@ -1923,20 +2238,20 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>0</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></div>
 </article>
-<article class="chunk chunk-example" id="knobs" data-chunk-id="knobs" data-tag="example" data-width="wide" data-chunk-num="11">
+<article class="chunk chunk-example" id="knobs" data-chunk-id="knobs" data-tag="example" data-width="wide" data-chunk-num="21">
   <div class="chunk-content">
     <div class="tag-label">example</div>
-    <h2 class="chunk-heading has-sub"><span class="hd-main">V and the reading knobs</span> <span class="hd-sub">speaker-side personalisation</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>V</code> toggles the preview-strip orientation.</strong> Default is a horizontal bar along the bottom; <code>V</code> moves it to the right edge as a vertical column. Text in the thumbs is larger in vertical mode – worth it on any setup with horizontal room to spare. Pref is persisted globally, so it follows you across lectures.</p>
-<p><strong>Three reading knobs also cycle with single keys:</strong></p>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">The reading knobs</span> <span class="hd-sub"><code>C</code> <code>F</code> <code>A</code> and zoom</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Four single keys change how the text reads, and all four sync to both views.</strong></p>
 <ul>
-<li><code>C</code> cycles <strong>collapse</strong> (none → topic+bold → topic-only → bold-only). Topic+bold is the default live mode; <code>none</code> reads as the full script.</li>
-<li><code>F</code> cycles <strong>font</strong> (serif → sans → mono) for projector legibility.</li>
-<li><code>A</code> cycles <strong>accent theme</strong> – four light shades plus two terminal/phosphor modes.</li>
+<li><code>C</code> toggles <strong>collapse</strong>: what the room sees, or the full text.</li>
+<li><code>F</code> cycles <strong>font</strong>: serif → sans → mono, for projector legibility.</li>
+<li><code>A</code> cycles <strong>accent theme</strong>: four light shades plus two terminal phosphor modes.</li>
+<li><code>+</code> <code>-</code> <code>0</code> set the <strong>text size</strong>, and <code>B</code> blanks the screen entirely.</li>
 </ul>
-<p>All three snap onto both views via postMessage; a change on the speaker is immediately visible on the audience. <code>Shift</code>-any-of-these cycles backwards.</p>
+<p><code>Shift</code> plus any of the cycling keys goes backwards. Font and theme are stored globally rather than per lecture, so the preference follows you; zoom and collapse belong to the talk.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="knobs">
@@ -1947,20 +2262,20 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>1</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>1</i></div>
 </article>
 </section>
-<section class="column" data-col="5" id="layouts">
+<section class="column" data-col="7" id="layouts">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-chunk-id="layouts-section">
   <div class="chunk-content">
     <h1 class="section-heading">Authoring layouts</h1>
   </div>
 </article>
-<article class="chunk chunk-principle" id="layout-axes" data-chunk-id="layout-axes" data-tag="principle" data-width="standard" data-chunk-num="12">
+<article class="chunk chunk-principle" id="layout-axes" data-chunk-id="layout-axes" data-tag="principle" data-width="standard" data-chunk-num="22">
   <div class="chunk-content">
     <div class="tag-label">principle</div>
     <h2 class="chunk-heading has-sub"><span class="hd-main">Two layout axes</span> <span class="hd-sub">chunk widths and body directives</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Layout works on two axes.</strong> Each chunk picks one of four widths in its heading – <code>{.narrow}</code>, <code>{.standard}</code>, <code>{.wide}</code>, <code>{.full}</code> – which sets how much horizontal stage it occupies. Inside the body, four <code>:::</code> directives shape internal flow: <code>::: cols</code>, <code>::: side</code>, <code>::: marginalia</code>, <code>::: margin</code>.</p>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Layout works on two axes.</strong> Each chunk picks one of four widths in its heading – <code>{.narrow}</code>, <code>{.standard}</code>, <code>{.wide}</code>, <code>{.full}</code> – which sets how much horizontal stage it occupies. Inside the body, <code>:::</code> directives shape internal flow.</p>
 <p>Width is the slide-level decision; directives compose within. A <code>.wide</code> chunk with a <code>::: side</code> body is the most common figure-plus-commentary pattern.</p>
 </div></div>
     
@@ -1972,17 +2287,17 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>2</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></div>
 </article>
-<article class="chunk chunk-example" id="cols-demo" data-chunk-id="cols-demo" data-tag="example" data-width="wide" data-chunk-num="13">
+<article class="chunk chunk-example" id="cols-demo" data-chunk-id="cols-demo" data-tag="example" data-width="wide" data-chunk-num="23">
   <div class="chunk-content">
     <div class="tag-label">example</div>
-    <h2 class="chunk-heading has-sub"><span class="hd-main">Multi-column flow</span> <span class="hd-sub">`::: cols 2` and `::: cols 3`</span></h2>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Multi-column flow</span> <span class="hd-sub"><code>::: cols 2</code> and <code>::: cols 3</code></span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: cols 2</code> (or <code>cols 3</code>) wraps the body in a CSS multi-column flow.</strong> Use it when several short paragraphs read better in parallel than stacked – feature lists, brief comparisons, parallel definitions.</p>
 <div class="cols cols-2">
 
 
-<p><strong>Left flow.</strong> Multi-column flow auto-balances – the engine fills top-to-bottom and lets content break wherever fits. Avoid putting one long paragraph here; one column dominates and the other sits empty. Several short blocks are the sweet spot.</p>
+<p><strong>Left flow.</strong> Multi-column flow auto-balances: the engine fills top-to-bottom and lets content break wherever it fits. Avoid putting one long paragraph here; one column dominates and the other sits empty. Several short blocks are the sweet spot.</p>
 <p><strong>Right flow.</strong> This block is the third paragraph in source, which is why it landed in column two – column flow goes top-down and then wraps. In print, columns collapse back to a single linear stream.</p>
 </div>
 
@@ -1998,13 +2313,13 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></div>
 </article>
-<article class="chunk chunk-example" id="side-demo" data-chunk-id="side-demo" data-tag="example" data-width="wide" data-chunk-num="14">
+<article class="chunk chunk-example" id="side-demo" data-chunk-id="side-demo" data-tag="example" data-width="wide" data-chunk-num="24">
   <div class="chunk-content">
     <div class="tag-label">example</div>
-    <h2 class="chunk-heading has-sub"><span class="hd-main">Two-pane grid</span> <span class="hd-sub">`::: side` and `::: flip`</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: side</code> opens a two-pane grid; <code>::: flip</code> is the mid-marker between panes.</strong> Unlike <code>cols</code>, the split is deterministic – the left pane gets everything before <code>::: flip</code>, the right pane gets everything after. Best for figure-plus-commentary, or before/after pairs where you need to control which side gets which content.</p>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Two-pane grid</span> <span class="hd-sub"><code>::: side</code> and <code>::: flip</code></span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: side</code> opens a two-pane grid; <code>::: flip</code> is the mid-marker between panes.</strong> Unlike <code>cols</code>, the split is deterministic – the left pane gets everything before <code>::: flip</code>, the right pane everything after. Best for figure-plus-commentary, or before-and-after pairs where you need to control which side gets which content.</p>
 <div class="side"><div class="side-a">
 
 
@@ -2027,22 +2342,22 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>4</i></div>
 </article>
-<article class="chunk chunk-example" id="marginalia-demo" data-chunk-id="marginalia-demo" data-tag="example" data-width="standard" data-chunk-num="15">
+<article class="chunk chunk-example" id="marginalia-demo" data-chunk-id="marginalia-demo" data-tag="example" data-width="standard" data-chunk-num="25">
   <div class="chunk-content">
     <div class="tag-label">example</div>
-    <h2 class="chunk-heading has-sub"><span class="hd-main">Marginalia</span> <span class="hd-sub">`::: marginalia` escapes to the slide margin</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: marginalia</code> floats an aside to the right of the chunk body</strong>, anchored to the content column&#39;s right edge and spilling into the slide padding. The audience camera does not pan automatically – click the marginalia in this chunk to bring it centred into view.</p>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Marginalia</span> <span class="hd-sub"><code>::: marginalia</code> escapes to the slide margin</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: marginalia</code> floats an aside to the right of the chunk body</strong>, anchored to the content column&#39;s right edge and spilling into the slide padding. The camera does not pan there automatically – click the marginalia in this chunk to bring it centred into view.</p>
 <aside class="marginalia">
 
 
-<p>This whole block is rendered in the slide margin, in dimmed sans-serif. Use marginalia for tangents that <em>belong with</em> a chunk but would crowd the main flow – an aside, a citation, a &quot;see also&quot; pointer to another column.</p>
+<p>This whole block is rendered in the slide margin, in dimmed sans-serif. Use marginalia for tangents that <em>belong with</em> a chunk but would crowd the main flow – an aside, a citation, a “see also” pointer to another column.</p>
 <p>In print, marginalia stack inline below the body as block-quoted asides, so the reading copy keeps every word.</p>
 </aside>
 
 
-<p>The body itself stays in the central column; only the marginalia escapes outward. Keep marginalia short – they share vertical space with the chunk body and can&#39;t grow taller than it.</p>
+<p>The body itself stays in the central column; only the marginalia escapes outward. Keep marginalia short – they share vertical space with the chunk body and cannot grow taller than it.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="marginalia-demo">
@@ -2053,16 +2368,16 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></div>
 </article>
-<article class="chunk chunk-example" id="margin-demo" data-chunk-id="margin-demo" data-tag="example" data-width="standard" data-chunk-num="16">
+<article class="chunk chunk-example" id="margin-demo" data-chunk-id="margin-demo" data-tag="example" data-width="standard" data-chunk-num="26">
   <div class="chunk-content">
     <div class="tag-label">example</div>
-    <h2 class="chunk-heading has-sub"><span class="hd-main">Margin notes</span> <span class="hd-sub">`::: margin` is a quiet inline footnote</span></h2>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Margin notes</span> <span class="hd-sub"><code>::: margin</code> is a quiet inline footnote</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: margin</code> adds a dim, small-caps-labelled note below the chunk body</strong> – a Tufte-style sidenote, but in-flow rather than off to the side. Always visible, no chevron, no separate panel.</p>
 <p>Reach for <code>::: margin</code> when the supplementary content is short and trustworthy enough that you want it always rendered. Reach for <code>::: expand &lt;label&gt;</code> (back at <code>#expand</code>) when it should hide behind a chevron until someone opens it.</p>
 </div></div>
-    <aside class="margin-note" data-label="note"><p>This is a margin note. The label header reads &quot;NOTE&quot; by default; the block renders in muted sans-serif under a dotted top rule. Margin notes are quieter than expansions: no button to click, just a soft footnote attached to this chunk.</p>
+    <aside class="margin-note" data-label="note"><p>This is a margin note. The label header reads NOTE by default; the block renders in muted sans-serif under a dotted top rule. Margin notes are quieter than expansions: no button to click, just a soft footnote attached to this chunk.</p>
 </aside>
     <aside class="annot-box" data-annot-for="margin-demo">
       <div class="annot-box-label">annotation · margin-demo</div>
@@ -2072,26 +2387,49 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>6</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></div>
+</article>
+<article class="chunk chunk-example" id="images" data-chunk-id="images" data-tag="example" data-width="wide" data-chunk-num="27">
+  <div class="chunk-content">
+    <div class="tag-label">example</div>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Images</span> <span class="hd-sub"><code>![](fig-id)</code> resolves against <code>assets/</code></span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>The shorthand <code>![](fig-id)</code> looks for <code>assets/fig-id.{svg,png,jpg,jpeg,gif,webp}</code> and takes the first match.</strong> No path, no extension. An explicit path still works if you need one.</p>
+<div class="cols cols-2">
+
+
+<p><strong>Alt text becomes a caption.</strong> <code>![a caption](fig-id)</code> renders a <code>&lt;figcaption&gt;</code> under the image. On a <code>figure:</code> chunk whose heading already says what the picture is, that stacks two labels, so the linter warns and suggests the empty-alt form.</p>
+<p><strong>SVG assets are spliced inline</strong> as real <code>&lt;svg&gt;</code> elements rather than <code>data:</code> URIs, so they inherit the page&#39;s <code>--ink</code>, <code>--paper</code>, and <code>--ink-soft</code> and re-colour with the <code>A</code> theme key. Raster images become base64 <code>data:</code> URIs. Everything under a 10 MB total and 2 MB per file is inlined automatically; <code>--no-inline-images</code> keeps external paths instead.</p>
+</div></div></div>
+    
+    <aside class="annot-box" data-annot-for="images">
+      <div class="annot-box-label">annotation · images</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></div>
 </article>
 </section>
-<section class="column" data-col="6" id="next">
+<section class="column" data-col="8" id="next">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-chunk-id="next-section">
   <div class="chunk-content">
     <h1 class="section-heading">Next steps</h1>
   </div>
 </article>
-<article class="chunk chunk-exercise" id="read-more" data-chunk-id="read-more" data-tag="exercise" data-width="wide" data-chunk-num="17">
+<article class="chunk chunk-exercise" id="read-more" data-chunk-id="read-more" data-tag="exercise" data-width="wide" data-chunk-num="28">
   <div class="chunk-content">
     
-    <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the three artefacts that close the loop</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Close this tab and poke around the real lectures and docs.</strong> The tour covered the hotkeys; the craft shows in authored content.</p>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the artefacts that close the loop</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Close this tab and poke around the real lectures and docs.</strong> The tour covered the keys; the craft shows in authored content.</p>
 <div class="cols cols-2">
 
 
 <p><strong>1. <code>lectures/python-intro/audience.html</code>.</strong> A 36-chunk teaching lecture. Spawn its speaker with <code>S</code> and watch the layout vocabulary you just learned in real use, woven through reveals, expansions, and figure focus.</p>
-<p><strong>2. <code>PRD.md</code>.</strong> The design philosophy: why three views, why the specific tag set, why reveals are off by default in print. Short, pragmatic, concretely linked to the code.</p>
-<p><strong>3. <code>HANDOFF.md</code>.</strong> Narrates what has been built, slice by slice, including the decisions deliberately <em>not</em> taken. Skim the latest sections for the current state.</p>
+<p><strong>2. <code>PRD.md</code>.</strong> The design philosophy: why four views, why this tag set, why collapse has two modes and not four, why reveals are off by default in print. Short, pragmatic, linked to the code.</p>
+<p><strong>3. <code>speaker.md</code>.</strong> The sync protocol: which fields travel between the two windows, which stay local, and why the overview framing is a pure function of anchor, scale, and pan.</p>
+<p><strong>4. <code>HANDOFF.md</code>.</strong> Narrates what has been built, slice by slice, including the decisions deliberately <em>not</em> taken.</p>
 </div></div></div>
     
     <aside class="annot-box" data-annot-for="read-more">
@@ -2102,18 +2440,19 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></div>
 </article>
-<article class="chunk chunk-free" id="authoring" data-chunk-id="authoring" data-tag="free" data-width="standard" data-chunk-num="18">
+<article class="chunk chunk-free" id="authoring" data-chunk-id="authoring" data-tag="free" data-width="standard" data-chunk-num="29">
   <div class="chunk-content">
     
-    <h2 class="chunk-heading has-sub"><span class="hd-main">Authoring your own</span> <span class="hd-sub">`--new`, `--watch`, `lint.js`</span></h2>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Authoring your own</span> <span class="hd-sub"><code>--new</code>, <code>--watch</code>, <code>lint.js</code></span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Three CLI entries cover the full authoring loop:</strong></p>
 <ul>
-<li><code>node build.js --new &lt;slug&gt;</code> scaffolds <code>lectures/&lt;slug&gt;/source.md</code> with a minimal valid frontmatter + two chunks. Builds cleanly the moment it lands on disk; TODO markers make it obvious what to fill in.</li>
-<li><code>node build.js &lt;source.md&gt; --watch</code> gives live-reload: WebSocket on a free port, editor save triggers rebuild + reload in any open tab.</li>
-<li><code>node lint.js lectures/</code> runs static checks (unknown tags, unclosed directives, duplicate IDs, density budgets, reveal overuse, orphan columns).</li>
+<li><code>node build.js --new &lt;slug&gt;</code> scaffolds a lecture folder with valid frontmatter and two chunks. It builds cleanly the moment it lands on disk.</li>
+<li><code>node build.js &lt;source.md&gt; --watch</code> gives live-reload in every open tab.</li>
+<li><code>node lint.js lectures/</code> runs the static checks: unknown tags, unclosed directives, duplicate IDs, density budgets, reveal overuse, orphan columns, redundant figure captions. <code>--strict</code> makes warnings fail.</li>
 </ul>
+<p>A source file can silence one check with <code>&lt;!-- linter: ignore reveal-overuse, density --&gt;</code> anywhere in the body.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="authoring">
@@ -2124,7 +2463,7 @@ body[data-view=speaker].preview-right .preview-slot {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></div>
 </article>
 </section>
     </div>
@@ -2148,8 +2487,13 @@ body[data-view=speaker].preview-right .preview-slot {
   <span class="kbd-hint"><kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export &nbsp; <kbd>V</kbd> preview &nbsp; <kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force &nbsp; <kbd>?</kbd> all</span>
 </footer>
 <div id="note-templates">
-<template data-notes-for="one-source">This is a self-referential lecture – it explains the tool by being the tool. First-time readers should have both this audience view and a spawned speaker view (S) open side by side. Steps 7-9 assume the speaker is running.</template>
-<template data-notes-for="authoring">When finishing this tour with a first-timer, end by asking them what felt discoverable and what did not – their first-impression friction points are the most valuable feedback the tool will get before release.</template>
+<template data-notes-for="one-source">This is a self-referential lecture – it explains the tool by being the tool. First-time readers should have both this audience view and a spawned speaker view (S) open side by side. The cockpit column assumes the speaker is running.</template>
+<template data-notes-for="four-views">The SVG above is spliced into the page as a real `&lt;svg&gt;` element rather than a `data:` URI, and its colours are theme variables. Press A a few times while this slide is up: the figure re-colours with the page. That only works because the asset uses `var(--ink)` instead of hard-coded hex.</template>
+<template data-notes-for="derived-mode">If the collapsed version of a chunk reads as a pile of cryptic one-word bullets, the fix is almost always fewer bolds and a stronger first sentence, not a different mode.</template>
+<template data-notes-for="explicit-mode">The lint density budget only counts the on-screen half. Narration is deliberately unbudgeted – writing it freely is the entire point of the explicit mode.</template>
+<template data-notes-for="try-tags">Watch mode picks a free port and injects a reload snippet into each output; production builds get none, which is why the committed HTML has no WebSocket code in it.</template>
+<template data-notes-for="images">A file over the 2 MB per-image cap is skipped and stays an external path. The build logs it, but the output is then no longer self-contained – downscale the asset if the single-file property matters.</template>
+<template data-notes-for="authoring">When finishing this tour with a first-timer, end by asking them what felt discoverable and what did not. Their first-impression friction is the most valuable feedback the tool will get.</template>
 </div>
 <div id="help-overlay" class="hidden" role="dialog" aria-label="Keyboard and mouse reference" aria-modal="false">
   <div id="help-inner">
@@ -2250,9 +2594,11 @@ body[data-view=speaker].preview-right .preview-slot {
     <li data-toc-col="1"><button type="button">Welcome</button></li>
     <li data-toc-col="2"><button type="button">Moving around</button></li>
     <li data-toc-col="3"><button type="button">Finding content</button></li>
-    <li data-toc-col="4"><button type="button">Speaker cockpit</button></li>
-    <li data-toc-col="5"><button type="button">Authoring layouts</button></li>
-    <li data-toc-col="6"><button type="button">Next steps</button></li>
+    <li data-toc-col="4"><button type="button">What goes on the slide</button></li>
+    <li data-toc-col="5"><button type="button">The chunk vocabulary</button></li>
+    <li data-toc-col="6"><button type="button">Speaker cockpit</button></li>
+    <li data-toc-col="7"><button type="button">Authoring layouts</button></li>
+    <li data-toc-col="8"><button type="button">Next steps</button></li>
   </ol>
 </nav>
 <script>

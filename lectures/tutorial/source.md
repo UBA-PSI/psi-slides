@@ -12,26 +12,35 @@ lecture: tutorial
 
 # Welcome {#welcome}
 
-> note: This is a self-referential lecture – it explains the tool by being the tool. First-time readers should have both this audience view and a spawned speaker view (S) open side by side. Steps 7-9 assume the speaker is running.
+> note: This is a self-referential lecture – it explains the tool by being the tool. First-time readers should have both this audience view and a spawned speaker view (S) open side by side. The cockpit column assumes the speaker is running.
 
-## principle: One source, three views | print, audience, speaker all come from the same `source.md` {.narrow #one-source}
+## principle: One source, four views | print, print-notes, audience, speaker all come from the same `source.md` {.narrow #one-source}
 
-**psi-slides builds three HTML files from each Markdown source.** Print is a document-style reading copy with a cover and a TOC; audience is this live projection view; speaker is the cockpit with notes, preview strip, and timer.
+**psi-slides builds four HTML files from each Markdown source.** Print is a document-style reading copy with a cover and a TOC; print-notes is the same document with your speaker notes folded in; audience is this live projection view; speaker is the cockpit with notes, preview strip, and timer.
 
-The authoring format is the same Markdown for all three – views only differ in *what they emit*, never in *what you wrote*.
+The authoring format is the same Markdown for all four – views only differ in *what they emit*, never in *what you wrote*.
+
+## figure: The build, in one picture {.wide #four-views}
+
+![](four-views)
+
+The four outputs are self-contained: images are inlined, CSS and JavaScript are embedded, and every file opens from `file://` with no server. That is why you can mail a lecture to a colleague as a single attachment.
+
+> note: The SVG above is spliced into the page as a real `<svg>` element rather than a `data:` URI, and its colours are theme variables. Press A a few times while this slide is up: the figure re-colours with the page. That only works because the asset uses `var(--ink)` instead of hard-coded hex.
 
 ## free: What you're reading right now | is the audience view {.wide #audience-now}
 
-**You are in `audience.html`.** It's the projector-facing view: one chunk occupies the slide, keyboard nav moves between chunks, and any speaker connected via postMessage can mirror state here in real time.
+**You are in `audience.html`.** It is the projector-facing view: one chunk occupies the slide, keyboard nav moves between chunks, and any speaker connected via postMessage mirrors state here in real time.
 
 ::: cols 2
 
-**To see the other two views:**
+**To see the other views:**
 
 - Press `P` now to open `print.html` in a new tab – scroll through the whole lecture as a document.
-- Press `S` to spawn `speaker.html` as a popup window – that's the cockpit.
+- Press `S` to spawn `speaker.html` as a popup window – that is the cockpit.
+- Press `?` for the full keyboard and mouse reference. Everything below is in there too.
 
-**The source that produced all three** lives at `lectures/tutorial/source.md`. Every chunk in every view came out of that one file. Open it in a text editor beside this window to see the mapping.
+**The source that produced all four** lives at `lectures/tutorial/source.md`. Every chunk in every view came out of that one file. Open it in a text editor beside this window to see the mapping.
 
 :::
 
@@ -51,7 +60,7 @@ The authoring format is the same Markdown for all three – views only differ in
 
 ---
 
-**One more, to show chaining.** Reveal lets you pace dense content during a live talk without dumping everything at once – and in print, all segments render together as one flowing body.
+**One more, to show chaining.** Reveal lets you pace dense content during a live talk without dumping everything at once, and in print all segments render together as one flowing body.
 
 ## example: Expansions | `Enter` and `1`-`9` open side asides {.wide #expand}
 
@@ -64,36 +73,127 @@ In source, an expansion is authored with `::: expand <label>` … `:::`. The lab
 :::
 
 ::: expand collapse-behaviour
-**Expansions disappear in collapse modes.** Press `C` after closing this to try collapse – the chunk shrinks to topic sentence + bold keywords, and expansions hide entirely. The idea is that expansions are "the branch you take *if* someone asks"; the main text carries the argument on its own.
+**Expansions disappear in collapse mode.** Press `C` after closing this to try it – the chunk shrinks to topic sentence plus bold keywords, and expansions hide entirely. The idea is that an expansion is “the branch you take *if* someone asks”; the main text carries the argument on its own.
 :::
 
 **Print collapses all expansions** into block-quoted asides in source order, so the reading copy loses nothing.
 
-## example: Overview | `O` zooms out so you can see everything {.standard #overview}
+## example: Zoom into a figure or code block | click it {.standard #figure-focus}
 
-**Press `O` now.** The stage zooms out to show all chunks at once, laid out in their column grid. Drag with the mouse or arrows to move a selection outline; `O` or `Enter` lands on the selected chunk; `Esc` exits without moving.
+**Click any figure, code block, or marginalia inside the active chunk.** Figures and code lift into a centred card with the slide dimmed behind; a marginalia instead pans the camera so the aside sits in the middle of the screen.
 
-Overview is the single best way to get oriented in an unfamiliar lecture – the typographic rhythm of principles, examples, and figures is immediately visible.
+Inside a focused card: drag to pan, wheel or `+` `-` to zoom, `0` to reset, `Esc` or a click to close. With a speaker connected, the audience mirrors the focus, the zoom, and the pan, so what you inspect is what the room sees.
+
+```python
+# Click this block to zoom it. Useful when a line matters more than the slide.
+def anonymity_set(observations, senders):
+    return {s for s in senders if plausible(s, observations)}
+```
 
 # Finding content {#finding}
+
+## example: Overview | `O` zooms out so you can see everything {.standard #overview}
+
+**Press `O` now.** The stage zooms out to show every chunk at once in its column grid, and the slide you were on carries a selection outline.
+
+- **Drag** to pan the board, **wheel** to zoom it.
+- **Click** a slide to select it. The board stays exactly where it is, so you can keep comparing neighbours.
+- **Arrow keys** move the selection instead, and the board follows, because the next pick is often off screen.
+- `O` or `Enter` **lands** on the selection; `Esc` leaves without moving.
+
+Overview is the fastest way to get oriented in an unfamiliar lecture: the typographic rhythm of principles, examples, and figures is visible at a glance. With a speaker connected, both windows enter, pan, zoom, and leave together.
 
 ## example: TOC | `T` toggles a flat column index {.standard #toc}
 
 **`T` shows a list of every named column with its ID.** Click an entry to jump there directly; `T` again closes the panel.
 
-Columns without a `{#id}` don't appear – anonymous columns like the title page stay invisible in the nav but still render normally. IDs on named columns are how the TOC links, and also how cross-references (when a `[text](#some-id)` link shows up in body text) resolve.
+Columns without a `{#id}` do not appear – anonymous columns like the title page stay invisible in the nav but still render normally. IDs on named columns are how the TOC links, and also how cross-references (a `[text](#some-id)` link in body text) resolve.
 
 ## example: Search | `/` inside overview filters by keyword {.standard #search}
 
-**Only active while `O` overview is on.** Press `O`, then `/`, then start typing – matching chunks keep their outline, non-matches fade to a low-opacity miss state. `Enter` lands on the first match; `Esc` exits search without moving.
+**Only active while `O` overview is on.** Press `O`, then `/`, then start typing – matching chunks keep their outline, non-matches fade to a low-opacity miss state. `Enter` selects the first match and centres it; `Esc` exits search without moving.
 
-Combined: `O` `/` *word* `Enter` jumps to the first chunk that mentions *word*, even in a long lecture. This is the fastest jump tool when you half-remember a topic but not its position.
+Combined: `O` `/` *word* `Enter` `O` jumps to the first chunk that mentions *word*, even in a long lecture. This is the fastest jump tool when you half-remember a topic but not its position.
+
+# What goes on the slide {#on-screen}
+
+## principle: Two ways to decide what the room sees | derived, or stated outright {.narrow #two-modes}
+
+**`C` toggles between the full text and the collapsed slide.** Collapsed is the default, and it is what the projector shows during a talk; the full text is the rehearsal and recap mode.
+
+**What “collapsed” means is per chunk, and you choose the mechanism.** Either psi-slides derives the slide from your prose, or you state the slide explicitly. The next two chunks show both.
+
+## example: Derived | first sentence of each paragraph, plus bold fragments {.wide #derived-mode}
+
+**By default the collapsed slide is the first sentence of every paragraph plus any `**bold**` phrases from the rest.** This chunk is written that way – press `C` twice and watch what appears and disappears.
+
+The mechanism costs nothing to author and it keeps print and screen in one text. It also imposes a real constraint: every paragraph has to open with a sentence that works as a standalone claim, and the **bold fragments have to read as bullets on their own**. Continuation prose is print-only.
+
+That constraint is the right trade for argument-shaped chunks. It fights you when the chunk wants continuous explanation, which is what the next chunk is for.
+
+> note: If the collapsed version of a chunk reads as a pile of cryptic one-word bullets, the fix is almost always fewer bolds and a stronger first sentence, not a different mode.
+
+## example: Stated | `::: slide` and `::: script` {.wide #explicit-mode}
+
+::: slide
+
+- **`::: slide`** marks the block that is the screen. Everything else in the chunk is narration.
+- **`::: script`** does the reverse: the chunk is the screen, and only the marked block is narration.
+- Neither block is abridged. Lists, figures, and code render whole.
+
+:::
+
+You are reading the projector version of this chunk right now: the bullets above sit inside a `::: slide` block, and this paragraph does not. Press `C` and this sentence appears; press `C` again and it goes away. Nothing here was derived from a first-sentence rule, because the block says outright what belongs on screen.
+
+Reach for `::: slide` when the slide wants to be tight bullets while the argument wants to be prose. Reach for `::: script` when the chunk is already slide-shaped and you only want to park a paragraph of narration next to it. A chunk may carry both, in which case the slide block wins and everything outside it is narration. Chunks with neither block keep behaving exactly as `#derived-mode` does, which is why no existing lecture changed when this landed.
+
+> note: The lint density budget only counts the on-screen half. Narration is deliberately unbudgeted – writing it freely is the entire point of the explicit mode.
+
+## question: Which mode does a chunk use? {.narrow #which-mode}
+
+**A `::: slide` block if there is one, otherwise everything outside `::: script`, otherwise the derived first-sentence-plus-bold.** Three rules, checked in that order, per chunk.
+
+::: expand answer-in-practice
+**In practice you will mix them inside one lecture.** Principles and questions tend to be argument-shaped and do fine derived; long Befund or walkthrough chunks are usually easier to write with an explicit `::: slide`.
+
+The tag vocabulary is a good predictor: `principle` and `question` chunks are short enough that derivation rarely bites, while `example` and `free` chunks at the top of their density budget are where the explicit mode earns its keep.
+:::
+
+# The chunk vocabulary {#vocabulary}
+
+## principle: Eight tags, one grammar | `## tag: Heading | Sub {.width #id}` {.narrow #grammar}
+
+**Every chunk opens with a tag that names what kind of move it makes.** `title`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`.
+
+The `| Sub-Heading` and the `{.width #id}` tail are both optional. Width is one of `narrow`, `standard`, `wide`, `full`, and **the `{#id}` is frozen once authored** – it anchors cross-references, TOC entries, speaker-sync snapshots, and localStorage.
+
+## definition: What a tag actually does {.standard #tag-effects}
+
+**A tag sets the visual treatment and the density budget, not the layout.** `principle`, `definition`, `question` and `example` print their tag name as a small label above the heading; `free`, `exercise` and `figure` render unlabelled.
+
+The lint budgets differ per tag, and they encode intent rather than taste: `principle` and `question` get 80 words because a claim that needs 200 is not a claim yet. `definition` gets 200, `example` and `free` get 250, `exercise` gets 350, and `title` and `figure` are unbudgeted.
+
+Picking the wrong tag is not an error, and the linter will not tell you. It only shows up later, when a `principle` you wrote as an `example` no longer stands out in the overview board.
+
+## exercise: Try the vocabulary {.wide #try-tags}
+
+**Open `lectures/tutorial/source.md` with `--watch` running and change three things.** Every save rebuilds and reloads all open tabs over a WebSocket, so keep the audience, the speaker, and your editor visible at once.
+
+::: cols 2
+
+1. Change this chunk's tag from `exercise` to `principle`. The label appears, and `lint.js` starts complaining: the budget dropped from 350 words to 80.
+2. Wrap the list in a `::: slide` block, then press `C` here. Everything else leaves the screen.
+3. Add a `> note:` line under the heading, then look at the speaker's notes pane and at `print-notes.html`.
+
+:::
+
+> note: Watch mode picks a free port and injects a reload snippet into each output; production builds get none, which is why the committed HTML has no WebSocket code in it.
 
 # Speaker cockpit {#speaker}
 
 ## free: Speaker view | the other window `S` spawned {.wide #speaker-s}
 
-**The speaker view is the four-lane cockpit.** Press `S` in this audience view if you haven't already – it opens `speaker.html` as a popup, and both windows adopt each other as peers over `window.postMessage`.
+**The speaker view is the four-lane cockpit.** Press `S` in this audience view if you have not already – it opens `speaker.html` as a popup, and both windows adopt each other as peers over `window.postMessage`.
 
 ::: cols 2
 
@@ -101,12 +201,27 @@ Combined: `O` `/` *word* `Enter` jumps to the first chunk that mentions *word*, 
 
 - **Column scrubber** with clickable dots for every chunk.
 - **Stage mirror** – identical layout to the audience at the same zoom.
-- **Editable notes pane** below the stage (collapses when empty).
+- **Editable notes pane** below the stage, collapsed when the chunk has no notes.
 - **Preview strip** of all chunks, scrollable and clickable.
 
-**Everything stays in sync.** Chunk changes, reveal state, annotations, theme, font, zoom, expansion state, and the laser pointer all flow through postMessage snapshots. `Shift-P` on the speaker toggles push on/off; `.` force-pushes a snapshot even when push is off (useful after a reload).
+**Everything stays in sync.** Chunk changes, reveal state, annotations, theme, font, zoom, expansion state, overview framing, figure focus, and the laser pointer all flow through postMessage snapshots. `Shift-P` toggles push on and off; `.` force-pushes a snapshot even when push is off, which is what you want after a reload.
 
 :::
+
+## example: Arranging the cockpit | the part everyone forgets {.wide #cockpit-layout}
+
+::: slide
+
+- **`V`** moves the preview strip between the bottom edge and the right edge.
+- **Drag the hairline bar above the notes** to resize the notes pane. The slide preview rescales to fit.
+- **Double-click that bar** to go back to automatic height.
+- **`?`** opens the full reference. The footer has buttons for all three.
+
+:::
+
+The notes pane starts at automatic height: one line when empty, up to three when it has content, collapsed entirely when the chunk has no notes at all. Once you drag it, the height becomes fixed and is remembered across lectures and reloads, which is usually what you want on a fixed lectern screen. The stage above it is a `1fr` grid row, so it gives up exactly the space the notes take and the audience mirror stays letterboxed at the projector's aspect ratio rather than distorting.
+
+Vertical preview mode is worth trying on any screen with horizontal room to spare: the thumbnails get larger and their text becomes legible, which turns the strip from a position indicator into something you can actually read ahead in.
 
 ## example: N vs Shift-N | audience-visible vs private {.wide #notes-vs-annot}
 
@@ -114,9 +229,9 @@ Combined: `O` `/` *word* `Enter` jumps to the first chunk that mentions *word*, 
 
 ::: side
 
-**`N` (both views) is an annotation on the current chunk.** A textarea appears under the chunk; whatever you type is mirrored keystroke-by-keystroke to the other view. Use it for "live marginalia" – a rule you want on screen, a question you captured from the room, a correction during a talk.
+**`N` (both views) is an annotation on the current chunk.** A textarea appears under the chunk; whatever you type is mirrored keystroke-by-keystroke to the other view. Use it for live marginalia – a rule you want on screen, a question you captured from the room, a correction during a talk.
 
-Annotations persist in localStorage per lecture and travel with state snapshots. `Shift-E` on the speaker copies every live annotation as `> annot:` Markdown to your clipboard; paste it under the matching chunk heading in `source.md` and the text becomes a permanent "Presentation Note" – prefilled into the audience textarea and rendered inline in the print view.
+Annotations persist in localStorage per lecture and travel with state snapshots. `Shift-E` on the speaker copies every live annotation as `> annot:` Markdown to your clipboard; paste it under the matching chunk heading in `source.md`, run `node build.js <source.md> --integrate-annotations`, and the text becomes a permanent Presentation Note – prefilled into the audience textarea and rendered inline in print.
 
 > annot: The `> annot:` block you read here in print is the same mechanism exported from a previous run; the audience textarea above starts prefilled with this text.
 
@@ -124,27 +239,28 @@ Annotations persist in localStorage per lecture and travel with state snapshots.
 
 **`Shift-N` (speaker only) opens the private notes pane** below the slide. This is *your* memory aid, never mirrored. The pane is pre-filled from `> note: …` lines in source; your in-talk edits override the source text and persist per chunk in localStorage.
 
-If the pane is collapsed (no notes for this chunk), the corner `+ note` button on the stage does the same thing as `Shift-N`.
+If the pane is collapsed because this chunk has no notes, the corner `+ note` button on the stage does the same thing as `Shift-N`.
+
+`print-notes.html` is the third home for the same text: the print document with every `> note:` folded in under its chunk. That is the file to hand out when you want “what was on the slide, plus what the lecturer said”.
 
 :::
 
-## example: V and the reading knobs | speaker-side personalisation {.wide #knobs}
+## example: The reading knobs | `C` `F` `A` and zoom {.wide #knobs}
 
-**`V` toggles the preview-strip orientation.** Default is a horizontal bar along the bottom; `V` moves it to the right edge as a vertical column. Text in the thumbs is larger in vertical mode – worth it on any setup with horizontal room to spare. Pref is persisted globally, so it follows you across lectures.
+**Four single keys change how the text reads, and all four sync to both views.**
 
-**Three reading knobs also cycle with single keys:**
+- `C` toggles **collapse**: what the room sees, or the full text.
+- `F` cycles **font**: serif → sans → mono, for projector legibility.
+- `A` cycles **accent theme**: four light shades plus two terminal phosphor modes.
+- `+` `-` `0` set the **text size**, and `B` blanks the screen entirely.
 
-- `C` cycles **collapse** (none → topic+bold → topic-only → bold-only). Topic+bold is the default live mode; `none` reads as the full script.
-- `F` cycles **font** (serif → sans → mono) for projector legibility.
-- `A` cycles **accent theme** – four light shades plus two terminal/phosphor modes.
-
-All three snap onto both views via postMessage; a change on the speaker is immediately visible on the audience. `Shift`-any-of-these cycles backwards.
+`Shift` plus any of the cycling keys goes backwards. Font and theme are stored globally rather than per lecture, so the preference follows you; zoom and collapse belong to the talk.
 
 # Authoring layouts {#layouts}
 
 ## principle: Two layout axes | chunk widths and body directives {.standard #layout-axes}
 
-**Layout works on two axes.** Each chunk picks one of four widths in its heading – `{.narrow}`, `{.standard}`, `{.wide}`, `{.full}` – which sets how much horizontal stage it occupies. Inside the body, four `:::` directives shape internal flow: `::: cols`, `::: side`, `::: marginalia`, `::: margin`.
+**Layout works on two axes.** Each chunk picks one of four widths in its heading – `{.narrow}`, `{.standard}`, `{.wide}`, `{.full}` – which sets how much horizontal stage it occupies. Inside the body, `:::` directives shape internal flow.
 
 Width is the slide-level decision; directives compose within. A `.wide` chunk with a `::: side` body is the most common figure-plus-commentary pattern.
 
@@ -154,7 +270,7 @@ Width is the slide-level decision; directives compose within. A `.wide` chunk wi
 
 ::: cols 2
 
-**Left flow.** Multi-column flow auto-balances – the engine fills top-to-bottom and lets content break wherever fits. Avoid putting one long paragraph here; one column dominates and the other sits empty. Several short blocks are the sweet spot.
+**Left flow.** Multi-column flow auto-balances: the engine fills top-to-bottom and lets content break wherever it fits. Avoid putting one long paragraph here; one column dominates and the other sits empty. Several short blocks are the sweet spot.
 
 **Right flow.** This block is the third paragraph in source, which is why it landed in column two – column flow goes top-down and then wraps. In print, columns collapse back to a single linear stream.
 
@@ -164,7 +280,7 @@ Reveal segments still work inside `::: cols`, but mixing reveal-on-`Space` with 
 
 ## example: Two-pane grid | `::: side` and `::: flip` {.wide #side-demo}
 
-**`::: side` opens a two-pane grid; `::: flip` is the mid-marker between panes.** Unlike `cols`, the split is deterministic – the left pane gets everything before `::: flip`, the right pane gets everything after. Best for figure-plus-commentary, or before/after pairs where you need to control which side gets which content.
+**`::: side` opens a two-pane grid; `::: flip` is the mid-marker between panes.** Unlike `cols`, the split is deterministic – the left pane gets everything before `::: flip`, the right pane everything after. Best for figure-plus-commentary, or before-and-after pairs where you need to control which side gets which content.
 
 ::: side
 
@@ -180,41 +296,57 @@ You can nest a `::: marginalia` *inside* a side pane if a tangent belongs to one
 
 ## example: Marginalia | `::: marginalia` escapes to the slide margin {.standard #marginalia-demo}
 
-**`::: marginalia` floats an aside to the right of the chunk body**, anchored to the content column's right edge and spilling into the slide padding. The audience camera does not pan automatically – click the marginalia in this chunk to bring it centred into view.
+**`::: marginalia` floats an aside to the right of the chunk body**, anchored to the content column's right edge and spilling into the slide padding. The camera does not pan there automatically – click the marginalia in this chunk to bring it centred into view.
 
 ::: marginalia
 
-This whole block is rendered in the slide margin, in dimmed sans-serif. Use marginalia for tangents that *belong with* a chunk but would crowd the main flow – an aside, a citation, a "see also" pointer to another column.
+This whole block is rendered in the slide margin, in dimmed sans-serif. Use marginalia for tangents that *belong with* a chunk but would crowd the main flow – an aside, a citation, a “see also” pointer to another column.
 
 In print, marginalia stack inline below the body as block-quoted asides, so the reading copy keeps every word.
 
 :::
 
-The body itself stays in the central column; only the marginalia escapes outward. Keep marginalia short – they share vertical space with the chunk body and can't grow taller than it.
+The body itself stays in the central column; only the marginalia escapes outward. Keep marginalia short – they share vertical space with the chunk body and cannot grow taller than it.
 
 ## example: Margin notes | `::: margin` is a quiet inline footnote {.standard #margin-demo}
 
 **`::: margin` adds a dim, small-caps-labelled note below the chunk body** – a Tufte-style sidenote, but in-flow rather than off to the side. Always visible, no chevron, no separate panel.
 
 ::: margin
-This is a margin note. The label header reads "NOTE" by default; the block renders in muted sans-serif under a dotted top rule. Margin notes are quieter than expansions: no button to click, just a soft footnote attached to this chunk.
+This is a margin note. The label header reads NOTE by default; the block renders in muted sans-serif under a dotted top rule. Margin notes are quieter than expansions: no button to click, just a soft footnote attached to this chunk.
 :::
 
 Reach for `::: margin` when the supplementary content is short and trustworthy enough that you want it always rendered. Reach for `::: expand <label>` (back at `#expand`) when it should hide behind a chevron until someone opens it.
 
+## example: Images | `![](fig-id)` resolves against `assets/` {.wide #images}
+
+**The shorthand `![](fig-id)` looks for `assets/fig-id.{svg,png,jpg,jpeg,gif,webp}` and takes the first match.** No path, no extension. An explicit path still works if you need one.
+
+::: cols 2
+
+**Alt text becomes a caption.** `![a caption](fig-id)` renders a `<figcaption>` under the image. On a `figure:` chunk whose heading already says what the picture is, that stacks two labels, so the linter warns and suggests the empty-alt form.
+
+**SVG assets are spliced inline** as real `<svg>` elements rather than `data:` URIs, so they inherit the page's `--ink`, `--paper`, and `--ink-soft` and re-colour with the `A` theme key. Raster images become base64 `data:` URIs. Everything under a 10 MB total and 2 MB per file is inlined automatically; `--no-inline-images` keeps external paths instead.
+
+:::
+
+> note: A file over the 2 MB per-image cap is skipped and stays an external path. The build logs it, but the output is then no longer self-contained – downscale the asset if the single-file property matters.
+
 # Next steps {#next}
 
-## exercise: Read more | the three artefacts that close the loop {.wide #read-more}
+## exercise: Read more | the artefacts that close the loop {.wide #read-more}
 
-**Close this tab and poke around the real lectures and docs.** The tour covered the hotkeys; the craft shows in authored content.
+**Close this tab and poke around the real lectures and docs.** The tour covered the keys; the craft shows in authored content.
 
 ::: cols 2
 
 **1. `lectures/python-intro/audience.html`.** A 36-chunk teaching lecture. Spawn its speaker with `S` and watch the layout vocabulary you just learned in real use, woven through reveals, expansions, and figure focus.
 
-**2. `PRD.md`.** The design philosophy: why three views, why the specific tag set, why reveals are off by default in print. Short, pragmatic, concretely linked to the code.
+**2. `PRD.md`.** The design philosophy: why four views, why this tag set, why collapse has two modes and not four, why reveals are off by default in print. Short, pragmatic, linked to the code.
 
-**3. `HANDOFF.md`.** Narrates what has been built, slice by slice, including the decisions deliberately *not* taken. Skim the latest sections for the current state.
+**3. `speaker.md`.** The sync protocol: which fields travel between the two windows, which stay local, and why the overview framing is a pure function of anchor, scale, and pan.
+
+**4. `HANDOFF.md`.** Narrates what has been built, slice by slice, including the decisions deliberately *not* taken.
 
 :::
 
@@ -222,8 +354,10 @@ Reach for `::: margin` when the supplementary content is short and trustworthy e
 
 **Three CLI entries cover the full authoring loop:**
 
-- `node build.js --new <slug>` scaffolds `lectures/<slug>/source.md` with a minimal valid frontmatter + two chunks. Builds cleanly the moment it lands on disk; TODO markers make it obvious what to fill in.
-- `node build.js <source.md> --watch` gives live-reload: WebSocket on a free port, editor save triggers rebuild + reload in any open tab.
-- `node lint.js lectures/` runs static checks (unknown tags, unclosed directives, duplicate IDs, density budgets, reveal overuse, orphan columns).
+- `node build.js --new <slug>` scaffolds a lecture folder with valid frontmatter and two chunks. It builds cleanly the moment it lands on disk.
+- `node build.js <source.md> --watch` gives live-reload in every open tab.
+- `node lint.js lectures/` runs the static checks: unknown tags, unclosed directives, duplicate IDs, density budgets, reveal overuse, orphan columns, redundant figure captions. `--strict` makes warnings fail.
 
-> note: When finishing this tour with a first-timer, end by asking them what felt discoverable and what did not – their first-impression friction points are the most valuable feedback the tool will get before release.
+A source file can silence one check with `<!-- linter: ignore reveal-overuse, density -->` anywhere in the body.
+
+> note: When finishing this tour with a first-timer, end by asking them what felt discoverable and what did not. Their first-impression friction is the most valuable feedback the tool will get.
