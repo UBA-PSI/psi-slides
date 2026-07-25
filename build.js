@@ -1606,10 +1606,13 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num) {
   const chunkId = id || `c${colIdx}-${chunkIdx}`;
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
 
-  const labelTag = tag && tag !== 'free' && tag !== 'exercise' && tag !== 'figure' ? tag : null;
-  const tagLabel = labelTag
-    ? `<div class="tag-label">${escapeHtml(labelTag)}</div>`
-    : '';
+  // No tag eyebrow on the projection. The word announced a taxonomy that is
+  // right only as often as the author's tag choice was, and a slide labelled
+  // PRINCIPLE that is not one reads as a mistake to the room. The tag still
+  // does its work – rule above, type scale, spacing, lint budget – it just
+  // stops naming itself. The document renderer keeps the label, where a
+  // reader scanning a long text does benefit from the taxonomy.
+  const tagLabel = '';
 
   // Each reveal segment becomes its own block; first one is visible by
   // default, the rest carry data-hidden so the JS can reveal them one
@@ -1725,6 +1728,10 @@ const OVERVIEW_BADGE_HTML = `<div id="overview-badge">
 // opened from anywhere, and so a hit can be shown as a readable line
 // (heading plus the sentence it matched) instead of only as a highlight on
 // a board the reader may not be looking at. Same markup in both live views.
+// Shown while the projection is blanked. In the speaker window it is the
+// only sign that the room sees black, so it has to say how to undo that.
+const BLANK_BADGE_HTML = `<div id="blank-badge" class="hidden" role="status">BLANK<span> &middot; hit B to toggle</span></div>`;
+
 const SEARCH_PANEL_HTML = `<div id="search-panel" class="hidden" role="dialog" aria-label="Search slides">
   <input id="search-input" type="text" placeholder="search the lecture..." autocomplete="off" spellcheck="false" aria-controls="search-results">
   <ul id="search-results" role="listbox"></ul>
@@ -1773,8 +1780,9 @@ function renderHelpOverlay(view) {
       ['<kbd>C</kbd>', 'collapse: what the room sees ↔ the full text'],
       ['<kbd>F</kbd>', 'font: serif → sans → mono'],
       ['<kbd>A</kbd>', 'theme: four light accents, two phosphor modes'],
-      ['<kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'text size'],
-      ['<kbd>B</kbd>', 'blank the screen'],
+      ['<kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'text size (kept separately for each collapse mode)'],
+      ['<kbd>#</kbd>', 'auto-fit: size every slide to the screen, on or off'],
+      ['<kbd>B</kbd>', 'blank the projection – the speaker window keeps working'],
       ['<kbd>Shift</kbd>-any', 'cycle that knob backwards'],
     ]],
   ];
@@ -1880,6 +1888,7 @@ ${renderHelpOverlay('audience')}
 <div id="mode-badge"></div>
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
+${BLANK_BADGE_HTML}
 ${renderTocNav(columns)}
 <script>
 const LECTURE_TITLE = ${titleJson};
@@ -2056,7 +2065,11 @@ textarea, input, [contenteditable=true] {
   padding: var(--slide-pad-y) var(--slide-pad-x);
   transition: opacity var(--camera-duration) ease;
 }
-.chunk[data-width=narrow]   { --content-w: 22em; }
+/* 22em was a genuinely narrow column: a claim of two sentences became a
+   tall thin ribbon that read worse than the same text at standard width.
+   28em still reads as the narrow option next to standard's 36em, without
+   forcing a line break every six words. */
+.chunk[data-width=narrow]   { --content-w: 28em; }
 .chunk[data-width=standard] { --content-w: 36em; }
 .chunk[data-width=wide]     { --content-w: 52em; }
 .chunk[data-width=full]     { --content-w: 72em; }
@@ -2784,8 +2797,37 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
 .math-error { color: var(--emph); font-family: var(--mono, ui-monospace, monospace); }
 
 /* blank mode */
-body.blanked #stage-viewport { background: oklch(0.06 0 0); }
-body.blanked #stage { opacity: 0; }
+/* Blanking is a projector action, not a global one. The speaker window
+   keeps everything visible so the lecturer can change slide, read notes and
+   line up what comes next while the room sees black. */
+body:not([data-view=speaker]).blanked #stage-viewport { background: oklch(0.06 0 0); }
+body:not([data-view=speaker]).blanked #stage { opacity: 0; }
+
+/* The badge is the only feedback that the projection is off. In the speaker
+   window it always shows while blanked; in the audience it shows only when
+   there is no speaker window to show it instead, so a lecturer working from
+   one screen still knows what happened and how to undo it. */
+#blank-badge {
+  position: fixed;
+  bottom: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: oklch(0.06 0 0);
+  color: oklch(0.97 0 0);
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.32rem 0.8rem;
+  z-index: 45;
+  pointer-events: none;
+}
+#blank-badge.hidden { display: none; }
+/* The speaker footer already owns the bottom edge; clear it rather than
+   sitting on top of the push indicator and the hotkey legend. */
+body[data-view=speaker] #blank-badge { bottom: 3.4rem; }
+#blank-badge span { font-weight: 400; opacity: 0.72; }
 
 /* overlays */
 
@@ -2892,7 +2934,7 @@ body[data-theme^=terminal] #help-inner kbd { background: oklch(0.24 0.02 90); }
 }
 #help-button:hover { opacity: 1; }
 body.overview-mode #help-button,
-body.blanked #help-button { display: none; }
+body:not([data-view=speaker]).blanked #help-button { display: none; }
 
 #mode-badge {
   position: fixed;
@@ -2972,7 +3014,7 @@ body[data-view=speaker] #laser-pointer { display: none; }
   /* Hide while the screen is blanked. Stay visible during figure-focus
      so the +/− buttons remain reachable for figure zoom; the rail is
      above the overlay (z-index 35 vs 30) so taps still land on it. */
-  body.blanked #touch-controls { display: none; }
+  body:not([data-view=speaker]).blanked #touch-controls { display: none; }
 }
 
 /* overview mode (PRD §5) ------------------------------------------- */
@@ -3237,6 +3279,7 @@ const state = {
   activeIdx: 0,
   collapse: 'topic-bold',
   zoom: 1.35,
+  autoFit: false,        // # – refit the zoom on every slide, both modes
   blanked: false,
   font: 'serif',          // serif | sans | mono (readable)
   theme: 'light-red',     // light-{red,teal,blue,orange} | terminal-{amber,green}
@@ -3382,6 +3425,7 @@ function snapshot() {
     activeIdx: state.activeIdx,
     revealed: Object.assign({}, revealed),
     collapse: state.collapse,
+    autoFit: state.autoFit,
     zoom: state.zoom,
     blanked: state.blanked,
     font: state.font,
@@ -3469,6 +3513,7 @@ function applyRemoteState(payload) {
     state.activeIdx = Math.max(0, Math.min(flatChunks.length - 1, payload.activeIdx || 0));
     state.collapse = COLLAPSE_MODES.includes(payload.collapse) ? payload.collapse : 'topic-bold';
     state.zoom = payload.zoom || 1.35;
+    state.autoFit = !!payload.autoFit;
     // Track the peer's collapsed zoom rather than syncing it as a field.
     // Both windows see the same zoom values, so remembering the one that
     // was live in topic-bold keeps the two in step without widening the
@@ -3515,7 +3560,7 @@ function applyRemoteState(payload) {
         if (cur) cur.el.classList.add('annot-visible', 'has-annot');
       }
     }
-    document.body.classList.toggle('blanked', state.blanked);
+    applyBlankBadge();
     // Overview first: it decides which projection focusCamera picks, and
     // entering/leaving zeroes manualPan – so it has to run before the
     // camera fields are restored from the payload below.
@@ -3700,9 +3745,23 @@ function splitSentencesIn(root) {
 }
 
 // State
+// Visible in the speaker window whenever the room is blanked, and in the
+// audience only when no speaker window exists to carry it. Recomputed on
+// every state application because the peer can appear or go away at any
+// time – S spawns one, closing it takes it away again.
+const blankBadge = document.getElementById('blank-badge');
+function applyBlankBadge() {
+  if (!blankBadge) return;
+  const hasPeer = !!(peer && !peer.closed);
+  const show = state.blanked && (VIEW === 'speaker' || !hasPeer);
+  blankBadge.classList.toggle('hidden', !show);
+}
+
 function applyState() {
   document.body.dataset.collapse = state.collapse;
   document.documentElement.style.setProperty('--zoom', state.zoom);
+  document.body.classList.toggle('blanked', state.blanked);
+  applyBlankBadge();
   flatChunks.forEach((c, i) => c.el.classList.toggle('active', i === state.activeIdx));
   viewHooks.onActiveChange();
   broadcastState();
@@ -3918,9 +3977,10 @@ function escText(s) {
 function buildSearchIndex() {
   searchIndex = flatChunks.map((c, idx) => {
     const headEl = c.el.querySelector('.chunk-heading');
-    // The audience view labels the tag with .tag-label, the document
-    // renderer with .chunk-label; the index serves both views.
-    const tagEl = c.el.querySelector('.tag-label, .chunk-label');
+    // Read the tag off the element, not off a rendered label: the live
+    // views stopped printing the eyebrow, and the search list is exactly
+    // the place where naming the kind of slide is still useful.
+    const tagName = c.el.dataset.tag && c.el.dataset.tag !== 'free' ? c.el.dataset.tag : '';
     const bodyEl = c.el.querySelector('.chunk-body');
     const mainEl = c.el.querySelector('.chunk-heading .hd-main');
     const subEl = c.el.querySelector('.chunk-heading .hd-sub');
@@ -3930,7 +3990,7 @@ function buildSearchIndex() {
     const body = clean(bodyEl);
     return {
       idx,
-      tag: clean(tagEl),
+      tag: tagName,
       title: title || '(untitled)',
       sub,
       body,
@@ -4073,6 +4133,7 @@ function jumpTo(idx, direction) {
   applyReveal(target.el, target.id);
 
   state.activeIdx = idx;
+  if (state.autoFit) fitZoomToChunk(2.2);
   applyState();
   focusCamera(false);
   saveActive();
@@ -4264,13 +4325,19 @@ let collapsedZoom = state.zoom;
 // lecturer pressed to see more text, not bigger text.
 const FULL_FIT_FILL = 0.94;   // leave a little air top and bottom
 
-function fitZoomToChunk() {
+// ceiling: the largest zoom the fit is allowed to reach. Entering the full
+// text on its own must never grow the type past what the lecturer chose for
+// the projector – they pressed C to see more text, not bigger text. In
+// auto-fit mode the ceiling is the global maximum instead, because there
+// the whole point is that every slide is sized to the screen.
+function fitZoomToChunk(ceiling) {
   const entry = flatChunks[state.activeIdx];
   const el = entry && entry.el;
   if (!el || !viewport) return;
+  const cap = ceiling === undefined ? collapsedZoom : ceiling;
   const avail = viewport.clientHeight * FULL_FIT_FILL;
   if (!(avail > 0)) return;
-  if (el.scrollHeight <= avail) return;      // already fits, leave it alone
+  if (el.scrollHeight <= avail && state.zoom >= cap) return;  // nothing to gain
 
   // A single proportional estimate is not enough, because zoom changes line
   // wrapping and therefore height, and it is not safe either: solving for
@@ -4282,7 +4349,7 @@ function fitZoomToChunk() {
   // they needed to be.
   const STEP = 0.05;
   let z = clampZoom(state.zoom * (avail / el.scrollHeight));
-  if (z > collapsedZoom) z = collapsedZoom;
+  if (z > cap) z = cap;
   applyZoom(z);
 
   // Shrink until it fits.
@@ -4290,13 +4357,25 @@ function fitZoomToChunk() {
     z = clampZoom(z - STEP);
     applyZoom(z);
   }
-  // Grow back while it still fits, never past the lecturer's own setting.
-  while (z + STEP <= collapsedZoom) {
+  // Grow back while it still fits, never past the ceiling.
+  while (z + STEP <= cap) {
     const probe = clampZoom(z + STEP);
     applyZoom(probe);
     if (el.scrollHeight > avail) { applyZoom(z); break; }
     z = probe;
   }
+}
+
+// Auto-fit mode: every slide gets a zoom that makes it fit, in both collapse
+// modes, until it is switched off again. Distinct from the fit that happens
+// on entering the full text, which is a one-off and never grows the type.
+function toggleAutoFit() {
+  state.autoFit = !state.autoFit;
+  if (state.autoFit) fitZoomToChunk(2.2);
+  else applyZoom(state.collapse === 'topic-bold' ? collapsedZoom : state.zoom);
+  applyState();
+  focusCamera(false);
+  flashMode(state.autoFit ? 'auto-fit on · every slide sized to the screen' : 'auto-fit off · manual zoom');
 }
 
 // Zoom
@@ -4317,7 +4396,8 @@ function cycleCollapse(dir = 1) {
   if (leavingCollapsed) collapsedZoom = state.zoom;
   state.collapse = COLLAPSE_MODES[ni];
   applyState();
-  if (state.collapse === 'none') fitZoomToChunk();
+  if (state.autoFit) fitZoomToChunk(2.2);
+  else if (state.collapse === 'none') fitZoomToChunk();
   else applyZoom(collapsedZoom);
   focusCamera(false);
   broadcastState();
@@ -4450,6 +4530,7 @@ document.addEventListener('keydown', (e) => {
     case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
     case '/': startSearch(); e.preventDefault(); break;
+    case '#': toggleAutoFit(); e.preventDefault(); break;
     case '+': case '=':
       if (focusedFigure) setFigureScale(figureScale * 1.2);
       else setZoom(state.zoom + 0.1);
@@ -4467,8 +4548,8 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault(); break;
     case 'b': case 'B':
       state.blanked = !state.blanked;
-      document.body.classList.toggle('blanked', state.blanked);
-      broadcastState();
+      applyState();
+      flashMode(state.blanked ? 'projection blanked' : 'projection back');
       e.preventDefault(); break;
     case 'p': case 'P':
       // In the speaker view, Shift-P is the push-to-audience toggle;
@@ -4857,6 +4938,7 @@ ${renderHelpOverlay('speaker')}
 <div id="center-toast" role="status" aria-live="polite"></div>
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
+${BLANK_BADGE_HTML}
 ${renderTocNav(columns)}
 <script>
 const LECTURE_TITLE = ${titleJson};
