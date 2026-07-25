@@ -1411,6 +1411,97 @@ const OVERVIEW_BADGE_HTML = `<div id="overview-badge">
   <input id="search-input" type="text" placeholder="search..." autocomplete="off" spellcheck="false">
 </div>`;
 
+// Keyboard + mouse reference, opened with ? (or the corner button) in both
+// live views. Grouped by task rather than by key, because the thing a
+// lecturer forgets mid-talk is "how do I make the notes bigger", not "what
+// does V do". Mouse gestures are listed alongside the keys – several of the
+// most useful ones (resize the notes pane, click a figure to zoom, drag to
+// pan) have no key at all and were previously undiscoverable.
+function renderHelpOverlay(view) {
+  const shared = [
+    ['Moving around', [
+      ['<kbd>←</kbd> <kbd>→</kbd>', 'previous / next column'],
+      ['<kbd>↑</kbd> <kbd>↓</kbd>', 'previous / next chunk'],
+      ['<kbd>Space</kbd>', 'reveal the next segment, then move on'],
+      ['<kbd>Enter</kbd> · <kbd>1</kbd>–<kbd>9</kbd>', 'open the first / n-th expansion'],
+      ['<kbd>Esc</kbd>', 'step back out: figure, then overview, then expansion'],
+    ]],
+    ['Finding a slide', [
+      ['<kbd>O</kbd>', 'overview – the whole lecture on one board'],
+      ['drag · wheel', 'pan the board · zoom the board'],
+      ['click', 'select a slide, without moving the board'],
+      ['<kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>', 'move the selection (the board follows)'],
+      ['<kbd>O</kbd> · <kbd>Enter</kbd>', 'land on the selected slide'],
+      ['<kbd>/</kbd>', 'search inside overview, <kbd>Enter</kbd> takes the first hit'],
+      ['<kbd>T</kbd>', 'column list'],
+    ]],
+    ['On the slide', [
+      ['click a figure or code block', 'zoom it into a centred card'],
+      ['drag · wheel · <kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'pan · zoom · reset the zoomed card'],
+      ['click a marginalia', 'pan the camera onto the aside'],
+      ['drag the slide', 'pan within a chunk that is taller than the screen'],
+      ['<kbd>Esc</kbd>', 'back to the whole slide'],
+    ]],
+    ['Reading knobs', [
+      ['<kbd>C</kbd>', 'collapse: what the room sees ↔ the full text'],
+      ['<kbd>F</kbd>', 'font: serif → sans → mono'],
+      ['<kbd>A</kbd>', 'theme: four light accents, two phosphor modes'],
+      ['<kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'text size'],
+      ['<kbd>B</kbd>', 'blank the screen'],
+      ['<kbd>Shift</kbd>-any', 'cycle that knob backwards'],
+    ]],
+  ];
+  const speakerOnly = [
+    ['Arranging this window', [
+      ['<kbd>V</kbd>', 'preview strip: along the bottom ↔ down the right edge'],
+      ['drag the bar above the notes', 'resize the notes pane; the slide preview rescales to fit'],
+      ['double-click that bar', 'back to automatic height'],
+      ['drag the preview strip', 'scroll it · click a thumbnail to jump'],
+    ]],
+    ['Notes', [
+      ['<kbd>Shift</kbd>-<kbd>N</kbd>', 'private notes for this chunk – never shown to the room'],
+      ['<kbd>N</kbd>', 'annotation on the slide itself – the room sees you type'],
+      ['<kbd>Shift</kbd>-<kbd>E</kbd>', 'copy annotations out as Markdown for source.md'],
+      ['<kbd>Esc</kbd> in a note', 'back to the slide, so the arrows work again'],
+    ]],
+    ['The projector', [
+      ['<kbd>Shift</kbd>-<kbd>P</kbd>', 'push on / off – off lets you look ahead privately'],
+      ['<kbd>.</kbd>', 'force one push, even with push off (after a reload)'],
+      ['move the mouse over the stage', 'laser pointer on the projector'],
+    ]],
+  ];
+  const otherWindows = ['The other windows', [
+    ...(view === 'speaker' ? [] : [['<kbd>S</kbd>', 'open the speaker cockpit – both windows then stay in sync']]),
+    ['<kbd>P</kbd>', 'open the print view in a new tab'],
+    ['<kbd>?</kbd>', 'this panel'],
+  ]];
+  const groups = view === 'speaker'
+    ? [...speakerOnly, ...shared, otherWindows]
+    : [...shared, otherWindows];
+
+  // Both columns are static author-written HTML (kbd markup and en-dashes),
+  // never user content, so they go through verbatim.
+  const sections = groups.map(([title, rows]) => `    <section>
+      <h3>${title}</h3>
+      <dl>
+${rows.map(([k, v]) => `        <dt>${k}</dt><dd>${v}</dd>`).join('\n')}
+      </dl>
+    </section>`).join('\n');
+
+  return `<div id="help-overlay" class="hidden" role="dialog" aria-label="Keyboard and mouse reference" aria-modal="false">
+  <div id="help-inner">
+    <header>
+      <h2>psi-slides · ${view === 'speaker' ? 'speaker cockpit' : 'audience view'}</h2>
+      <span class="help-dismiss"><kbd>?</kbd> or <kbd>Esc</kbd> closes</span>
+    </header>
+    <div class="help-grid">
+${sections}
+    </div>
+  </div>
+</div>
+<button id="help-button" type="button" aria-label="Keyboard and mouse reference" title="Keyboard and mouse reference (?)">?</button>`;
+}
+
 function renderTocNav(columns) {
   const items = columns
     .map((c, i) => ({ c, i }))
@@ -1457,13 +1548,7 @@ ${columnsHtml}
   <button type="button" data-action="zoom-out" aria-label="Zoom out">−</button>
   <button type="button" data-action="zoom-in" aria-label="Zoom in">+</button>
 </nav>
-<div id="hints">
-  <kbd>←</kbd><kbd>→</kbd> column &nbsp; <kbd>↑</kbd><kbd>↓</kbd> chunk &nbsp; <kbd>Space</kbd> reveal<br>
-  <kbd>Enter</kbd>/<kbd>1</kbd>–<kbd>9</kbd> expand &nbsp; <kbd>N</kbd> annotate &nbsp; <kbd>C</kbd> collapse<br>
-  <kbd>O</kbd> overview &nbsp; <kbd>T</kbd> toc &nbsp; <kbd>/</kbd> search &nbsp; <kbd>P</kbd> print &nbsp; <kbd>B</kbd> blank<br>
-  <kbd>F</kbd> font &nbsp; <kbd>A</kbd> accent/theme &nbsp;
-  <kbd>+</kbd><kbd>-</kbd><kbd>0</kbd> zoom &nbsp; <kbd>?</kbd> hide
-</div>
+${renderHelpOverlay('audience')}
 <div id="mode-badge"></div>
 ${OVERVIEW_BADGE_HTML}
 ${renderTocNav(columns)}
@@ -2317,23 +2402,111 @@ body.blanked #stage-viewport { background: oklch(0.06 0 0); }
 body.blanked #stage { opacity: 0; }
 
 /* overlays */
-#hints {
+
+/* Help overlay – the self-documentation surface for both live views.
+   Grouped by task, not by key. Scrolls internally on short windows so a
+   1280x800 laptop still reaches the last section. */
+#help-overlay {
   position: fixed;
-  bottom: 14px; left: 14px;
-  background: oklch(0.98 0 0 / 0.85);
-  border: 1px solid var(--rule);
-  color: var(--ink-soft);
-  padding: 0.5rem 0.75rem;
-  font-family: var(--mono-font);
-  font-size: 11px;
-  line-height: 1.6;
-  pointer-events: none;
-  z-index: 20;
-  opacity: 0.8;
-  max-width: 360px;
+  inset: 0;
+  z-index: 60;
+  background: oklch(0.14 0 0 / 0.72);
+  display: grid;
+  place-items: center;
+  padding: 2.2vh 2vw;
 }
-#hints.hidden { display: none; }
-#hints kbd { color: var(--ink); padding: 0 4px; border: 1px solid var(--rule); font-family: inherit; background: oklch(0.96 0 0); }
+#help-overlay.hidden { display: none; }
+#help-inner {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: 0 18px 60px oklch(0 0 0 / 0.35);
+  /* Explicit width, not max-width: as a centred grid item the panel would
+     otherwise shrink to its content and squeeze the description column to
+     one word per line. */
+  width: min(1180px, 95vw);
+  max-height: 95vh;
+  overflow-y: auto;
+  padding: 1.4rem 1.7rem 1.7rem;
+  font-family: var(--sans-font);
+}
+#help-inner header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5em;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.55rem;
+  margin-bottom: 1rem;
+}
+#help-inner h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.16em;
+  color: var(--ink);
+  font-weight: 600;
+}
+#help-inner .help-dismiss { font-size: 0.7rem; color: var(--ink-soft); letter-spacing: 0.06em; }
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: 0.9rem 2.4rem;
+  align-items: start;
+}
+.help-grid h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.7rem;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.18em;
+  color: var(--emph);
+  font-weight: 600;
+}
+/* Two-column definition list: the trigger (key or gesture) sits left at a
+   capped measure, the effect wraps in the remaining space. The cap matters –
+   max-content lets a phrase like "drag the bar above the notes" eat the
+   whole row and reduce the description to one word per line. */
+.help-grid dl {
+  margin: 0 0 0.9rem;
+  display: grid;
+  grid-template-columns: 9.5em 1fr;
+  gap: 0.3rem 0.9rem;
+  font-size: 0.78rem;
+  line-height: 1.38;
+}
+.help-grid dt { color: var(--ink); text-wrap: balance; }
+.help-grid dd { margin: 0; color: var(--ink-soft); }
+#help-inner kbd {
+  font-family: var(--mono-font);
+  font-size: 0.9em;
+  color: var(--ink);
+  background: oklch(0.96 0 0);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0 0.32em;
+}
+body[data-theme^=terminal] #help-inner kbd { background: oklch(0.24 0.02 90); }
+
+/* Persistent, unobtrusive way in. The overlay used to be reachable only by
+   guessing that ? does something. */
+#help-button {
+  position: fixed;
+  bottom: 12px; left: 12px;
+  z-index: 22;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--rule);
+  background: oklch(0.98 0 0 / 0.8);
+  color: var(--ink-soft);
+  font-family: var(--sans-font);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 140ms ease;
+}
+#help-button:hover { opacity: 1; }
+body.overview-mode #help-button,
+body.blanked #help-button { display: none; }
 
 #mode-badge {
   position: fixed;
@@ -3485,6 +3658,24 @@ function setZoom(z) {
   flashMode('zoom: ' + state.zoom.toFixed(2) + '×');
 }
 
+// Help overlay – single toggle for the ? key and the corner button.
+const helpOverlay = document.getElementById('help-overlay');
+const helpButton = document.getElementById('help-button');
+function helpVisible() { return helpOverlay && !helpOverlay.classList.contains('hidden'); }
+function toggleHelp(force) {
+  if (!helpOverlay) return;
+  const show = force === undefined ? !helpVisible() : !!force;
+  helpOverlay.classList.toggle('hidden', !show);
+}
+if (helpButton) helpButton.addEventListener('click', () => toggleHelp(true));
+// Click anywhere on the scrim closes; clicks inside the panel do not, so
+// the reference stays open while you read it and try a key.
+if (helpOverlay) {
+  helpOverlay.addEventListener('click', (e) => {
+    if (e.target === helpOverlay) toggleHelp(false);
+  });
+}
+
 // Mode badge
 let modeTimer = null;
 function flashMode(text) {
@@ -3546,6 +3737,8 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault(); break;
     }
     case 'Escape': {
+      // Help sits in front of everything, so it unwinds first.
+      if (helpVisible()) { toggleHelp(false); e.preventDefault(); break; }
       if (focusedFigure) {
         unfocusFigure();
         if (shouldBroadcast()) sendToPeer({ type: 'figure-unfocus' });
@@ -3634,9 +3827,7 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
       }
       break;
-    case '?':
-      document.getElementById('hints').classList.toggle('hidden');
-      e.preventDefault(); break;
+    case '?': toggleHelp(); e.preventDefault(); break;
   }
 });
 
@@ -3960,7 +4151,9 @@ ${columnsHtml}
 <footer id="speaker-footer">
   <span id="timer">00:00</span>
   <span id="push-indicator" class="push-on">push ●</span>
+  <button id="preview-orient-btn" type="button" title="Preview strip: along the bottom or down the right edge (V)">⇄ preview</button>
   <button id="export-annot-btn" type="button" title="Copy live annotations as &gt; annot: Markdown (Shift-E)">export notes</button>
+  <button id="speaker-help-btn" type="button" title="Keyboard and mouse reference (?)">? help</button>
   <span id="slug">${escapeHtml(slug)}</span>
   <span class="spacer"></span>
   <span class="kbd-hint"><kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export &nbsp; <kbd>V</kbd> preview &nbsp; <kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force &nbsp; <kbd>?</kbd> all</span>
@@ -3968,13 +4161,7 @@ ${columnsHtml}
 <div id="note-templates">
 ${noteTemplates.join('\n')}
 </div>
-<div id="hints" class="hidden">
-  <kbd>←</kbd><kbd>→</kbd> column &nbsp; <kbd>↑</kbd><kbd>↓</kbd> chunk &nbsp; <kbd>Space</kbd> reveal<br>
-  <kbd>Enter</kbd>/<kbd>1</kbd>–<kbd>9</kbd> expand &nbsp; <kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>C</kbd> collapse<br>
-  <kbd>O</kbd> overview &nbsp; <kbd>T</kbd> toc &nbsp; <kbd>/</kbd> search &nbsp; <kbd>V</kbd> preview view &nbsp; <kbd>B</kbd> blank<br>
-  <kbd>F</kbd> font &nbsp; <kbd>A</kbd> accent/theme &nbsp;
-  <kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force push &nbsp; <kbd>P</kbd> print
-</div>
+${renderHelpOverlay('speaker')}
 <div id="mode-badge"></div>
 <div id="center-toast" role="status" aria-live="polite"></div>
 ${OVERVIEW_BADGE_HTML}
@@ -4107,12 +4294,36 @@ body[data-view=speaker] #stage-viewport {
   width: 42px;
   height: 2px;
   background: var(--ink-soft);
-  opacity: 0.25;
+  opacity: 0.35;
   border-radius: 1px;
-  transition: opacity 0.15s, background-color 0.15s;
+  transition: opacity 0.15s, background-color 0.15s, width 0.15s;
 }
-#notes-resizer:hover::before { opacity: 0.7; }
-body.notes-resizing #notes-resizer::before { opacity: 1; background: var(--emph); }
+#notes-resizer:hover::before { opacity: 0.8; width: 84px; }
+body.notes-resizing #notes-resizer::before { opacity: 1; background: var(--emph); width: 84px; }
+/* A 2px hairline is not self-explanatory, and "how do I make the notes
+   bigger" is exactly the question this pane kept failing to answer. Name
+   the gesture on hover instead of relying on the title attribute's delay. */
+#notes-resizer::after {
+  content: 'drag to resize · double-click resets';
+  position: absolute;
+  top: -1.15rem;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--sans-font);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  background: var(--paper);
+  padding: 1px 6px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+#notes-resizer:hover::after,
+body.notes-resizing #notes-resizer::after { opacity: 1; }
 body.has-notes #notes-resizer { display: block; }
 /* When the user has dragged the resizer, swap the auto row for a fixed
    pixel height; the 1fr stage row absorbs the delta and the
@@ -4252,7 +4463,12 @@ body[data-view=speaker].notes-sized #notes-content {
 #speaker-footer .spacer { flex: 1; }
 #speaker-footer .kbd-hint { font-size: 10px; opacity: 0.7; }
 #speaker-footer kbd { padding: 0 3px; border: 1px solid var(--rule); background: oklch(0.96 0 0); color: var(--ink); font-family: var(--mono-font); font-size: 9px; }
-#speaker-footer #export-annot-btn {
+/* Footer buttons. These carry the three cockpit actions that are otherwise
+   key-only – strip orientation, annotation export, and the help panel – so
+   none of them depends on remembering a letter. */
+#speaker-footer #export-annot-btn,
+#speaker-footer #preview-orient-btn,
+#speaker-footer #speaker-help-btn {
   font: inherit;
   padding: 2px 8px;
   border: 1px solid var(--rule);
@@ -4261,7 +4477,9 @@ body[data-view=speaker].notes-sized #notes-content {
   color: var(--ink);
   cursor: pointer;
 }
-#speaker-footer #export-annot-btn:hover { background: oklch(0.93 0 0); }
+#speaker-footer #export-annot-btn:hover,
+#speaker-footer #preview-orient-btn:hover,
+#speaker-footer #speaker-help-btn:hover { background: oklch(0.93 0 0); }
 
 /* Center toast — prominent transient feedback for export-flow events.
    Placed inside the stage viewing zone (bottom-centre of #stage-cell)
@@ -4763,6 +4981,7 @@ async function exportAnnotations() {
 
 const exportAnnotBtn = document.getElementById('export-annot-btn');
 if (exportAnnotBtn) exportAnnotBtn.addEventListener('click', exportAnnotations);
+document.getElementById('speaker-help-btn')?.addEventListener('click', () => toggleHelp(true));
 
 // N on the speaker opens the audience-visible annotation slot (PRD §2 –
 // the live marginalia channel that mirrors to the audience). The notes
@@ -5068,6 +5287,7 @@ function togglePreviewOrientation() {
   flashMode('preview · ' + next);
   populatePreviewStrip();
 }
+document.getElementById('preview-orient-btn')?.addEventListener('click', togglePreviewOrientation);
 
 // The in-stage "+ note" overlay is an alternative entry point to
 // Shift-N. Visible only while the notes pane is collapsed; the CSS

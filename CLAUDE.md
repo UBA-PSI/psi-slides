@@ -64,7 +64,7 @@ A source file can silence specific lint warnings with an HTML comment anywhere i
 - `// ── marked renderer overrides ──` – custom `code` and `image` handlers on `marked`.
 - `// ── parsing ──` – `parseLecture()` and helpers (`parseTagPrefix`, `splitHeading`, `parseAttributeTail`).
 - `// ── rendering ──` + `// ── print CSS ──` – print (document) renderer.
-- `// ── audience rendering ──`, `// ── audience CSS ──`, `// ── audience runtime JS ──` – audience view, inlined as template strings.
+- `// ── audience rendering ──`, `// ── audience CSS ──`, `// ── audience runtime JS ──` – audience view, inlined as template strings. `renderHelpOverlay(view)` here generates the `?` cheat sheet for **both** live views from one data structure – edit labels there, not in the per-view HTML.
 - `// ── window.postMessage sync ──` – the shared audience↔speaker protocol (see `speaker.md`).
 - `// ── figure focus / marginalia pan ──` – click-to-focus for figures, code blocks, and marginalia.
 - `// ── speaker rendering ──`, `// ── speaker CSS ──`, `// ── speaker-specific runtime ──` – speaker cockpit, layered on top of audience.
