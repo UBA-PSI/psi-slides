@@ -386,9 +386,11 @@ This spec avoids that by:
 
 ## 7. Speaker view
 
-Separate browser window on laptop display. Opens via hotkey `S` from audience view. Synced via `BroadcastChannel` (no server).
+Separate browser window on laptop display. Opens via hotkey `S` from audience view. Synced via `window.postMessage` over the opener relationship (no server).
 
-**Architectural constraint.** `BroadcastChannel` is same-origin and same-browser-profile only. Audience and speaker windows must run on the same machine in the same browser — the typical setup is a lecturer's laptop with an HDMI-mirrored-or-extended display, audience on the external screen, speaker view on the built-in. Driving the audience view from one device and the speaker view from another (e.g. tablet speaker view, projector audience view) is **out of scope** for Phase 0–2. A WebSocket-based sync mode is deferred to Phase 3 if the single-machine setup turns out to be a real limitation in teaching practice.
+**Why not `BroadcastChannel`.** This spec originally called for `BroadcastChannel`, and the implementation had to move off it. Chrome gives every `file://` document its own opaque origin, so two tabs loaded from disk are cross-origin to each other and a `BroadcastChannel` in one never reaches the other. Since opening the output from `file://` with no server is a §1 non-negotiable, the channel had to be one that survives opaque origins: `window.postMessage`, addressed through the `window.opener` / child-window handle that `S` establishes. See `speaker.md` §2–3 for the field-level protocol.
+
+**Architectural constraint.** The consequence is the same, and if anything tighter. Audience and speaker are two windows in one browser, linked by an opener handle, so they must run on the same machine in the same browser instance – the typical setup is a lecturer's laptop with an extended display, audience on the external screen, speaker view on the built-in. Driving the audience view from one device and the speaker view from another (e.g. tablet speaker view, projector audience view) is **out of scope** for Phase 0–2. A WebSocket-based sync mode is deferred to Phase 3 if the single-machine setup turns out to be a real limitation in teaching practice.
 
 **Layout (three panels):**
 1. **Current chunk large** — same rendering as audience, middle pane. Reveal state mirrors the audience: segments reveal in step with the projector. Collapse mode also mirrors the audience. This panel is the single source of "what is on the screen right now".
@@ -444,7 +446,7 @@ Three kinds of live interaction, one architecture.
 
 **Pre-authored sketches.** Inline fenced monospace blocks in the source. Nothing live; they just render. Covers 80% of your ASCII drawings — the ones you knew you'd draw when preparing.
 
-**Live co-constructed sketches.** `::: sketch <id>` in source creates a named slot. Audience view renders it as read-only monospace. Speaker view renders it as editable textarea (monospace, fixed-width, no autocomplete). Typing on the speaker side propagates to audience in real time via BroadcastChannel. Slot contents persist keyed by sketch-id + lecture-id, so last semester's sketch reappears next semester (or you clear it deliberately from a menu).
+**Live co-constructed sketches.** `::: sketch <id>` in source creates a named slot. Audience view renders it as read-only monospace. Speaker view renders it as editable textarea (monospace, fixed-width, no autocomplete). Typing on the speaker side propagates to audience in real time over the `postMessage` sync channel. Slot contents persist keyed by sketch-id + lecture-id, so last semester's sketch reappears next semester (or you clear it deliberately from a menu).
 
 **Etherpad / shared editing.** Same `::: sketch <id>` mechanism, but with `::: etherpad <url>` as an alternative fence. Renders an iframe of the shared pad in both views. Audience sees the pad; you contribute from whichever device you use.
 
@@ -462,7 +464,7 @@ Single Node script, target <400 lines. Dependencies: `marked`, `katex`, `gray-ma
 2. **Chunk ID validation.** For each `##` heading, require an explicit `{#id}` attribute. Missing IDs are a build error with a listed suggested assignment per chunk. Normal builds and `--watch` never rewrite source. A separate `build.js --assign-ids` mode computes `column-slug/chunk-slug` for any chunk missing an ID, resolves collisions by appending `-2`, `-3`, …, and writes the attributes back. `--assign-ids` is idempotent on already-annotated sources and exits non-zero if anything was changed so CI can detect drift.
 3. **Image shorthand resolution.** `![](fig-id)` → resolve to `images/fig-id.{ext}`, read dimensions, inject `width`/`height` attributes to prevent layout shift. Optional width hint: `![](fig-id){.wide}`. A sibling convention `![](sketch-id.txt)` inlines a monospace text file as a sketch.
 4. **Math pre-rendering.** KaTeX renders `$...$` and `$$...$$` at build time. No runtime LaTeX flash when panning. KaTeX's emitted output carries explicit metrics on display-math containers; these are captured for the geometry pass.
-5. **Geometry pass.** For every chunk, every text block (heading, body paragraph, margin note, expansion body, monospace sketch) is measured via [pretext](https://github.com/chenglou/pretext) against the self-hosted WOFF2 font metrics at zoom 1.0 and the chunk's declared width class. Math heights come from KaTeX metrics; image heights come from file-dimension reads (step 3). Heights are summed per chunk; the §2 placement algorithm then runs deterministically over the height map. The build emits each chunk's resolved geometry as CSS custom properties on the element: `--chunk-x`, `--chunk-y`, `--chunk-height`, plus per-column `--column-x` and `--column-track-width`. The audience, speaker, and print renderers consume these properties directly — there is no client-side measurement pass, no "ready" promise to gate camera moves on, and no BroadcastChannel buffering. Deep-links resolve on first paint.
+5. **Geometry pass.** For every chunk, every text block (heading, body paragraph, margin note, expansion body, monospace sketch) is measured via [pretext](https://github.com/chenglou/pretext) against the self-hosted WOFF2 font metrics at zoom 1.0 and the chunk's declared width class. Math heights come from KaTeX metrics; image heights come from file-dimension reads (step 3). Heights are summed per chunk; the §2 placement algorithm then runs deterministically over the height map. The build emits each chunk's resolved geometry as CSS custom properties on the element: `--chunk-x`, `--chunk-y`, `--chunk-height`, plus per-column `--column-x` and `--column-track-width`. The audience, speaker, and print renderers consume these properties directly — there is no client-side measurement pass, no "ready" promise to gate camera moves on, and no sync-message buffering. Deep-links resolve on first paint.
 6. **TOC generation.** Walk H1/H2, strip tags, emit JSON embedded in the page for the TOC overlay.
 7. **Render views.** Produce `lecture.html` (audience), `speaker.html` (speaker view, loads same data), `print.html` (linear, expansions inlined, no speaker notes, no camera — designed for PDF export via browser).
 8. **Linter.** Split into integrity errors (build fails, non-zero exit) and compositional warnings (build succeeds, reported on stderr).
@@ -487,7 +489,7 @@ Single Node script, target <400 lines. Dependencies: `marked`, `katex`, `gray-ma
 
 **No bundling, no minification, no transpilation, no framework.** Browser loads the output HTML directly. Edit source, save, refresh.
 
-**Dev mode:** `node build.js --watch` rebuilds on save. A tiny WebSocket triggers browser reload. ~30 extra lines. This is the *only* WebSocket in the entire stack — used exclusively for dev reload. Runtime audience↔speaker sync uses `BroadcastChannel`, not a server (see §7). Production-rendered output has no WebSocket dependency.
+**Dev mode:** `node build.js --watch` rebuilds on save. A tiny WebSocket triggers browser reload. ~30 extra lines. This is the *only* WebSocket in the entire stack — used exclusively for dev reload. Runtime audience↔speaker sync uses `window.postMessage` between the two windows, not a server (see §7). Production-rendered output has no WebSocket dependency.
 
 **`--assign-ids` workflow.** When an author adds a chunk without an ID, the normal `build.js --watch` fails with a diff showing the suggested IDs. The author runs `build.js --assign-ids` once (which writes the IDs into source), commits the result, and resumes editing. CI runs `--assign-ids` as a dry check: if it would have changed source, CI fails — this catches PRs that add chunks without running the init step. Because `--assign-ids` is the only path that mutates source, the dev loop stays pure and the ID-generation story is one explicit, recoverable step, not a hidden side effect.
 
@@ -534,10 +536,10 @@ Deliverable: one real lecture taught in the new medium.
 - Single HTML + single JS file, no Node build script.
 - Hand-author Markdown with hand-written IDs and explicit `{.width-class}` attributes just this once.
 - Parsing is client-side `marked` with a minimal inline tokenizer for the `{.class #id}` attribute tail and the `::: expand` / `::: margin` / `::: sketch` fences. The full §3.1 parsing contract and AST pipeline is Phase 1 work.
-- Layout is **runtime-measured** via `getBoundingClientRect` in Phase 0 — no pretext, no build-time geometry. Deep-links are gated on a `ready` promise; BroadcastChannel messages are buffered until first measurement. This is explicitly the temporary path; §9 step 5 replaces it in Phase 1.
+- Layout is **runtime-measured** via `getBoundingClientRect` in Phase 0 — no pretext, no build-time geometry. Deep-links are gated on a `ready` promise; sync messages are buffered until first measurement. This is explicitly the temporary path; §9 step 5 replaces it in Phase 1.
 - Four chunk types available via CSS: narrow/standard/wide/full.
 - Camera navigation (arrows, chevron click).
-- Speaker window with notes pane via BroadcastChannel (single machine only, per §7 constraint).
+- Speaker window with notes pane via `postMessage` (single machine only, per §7 constraint).
 - KaTeX runtime (accept the flash for now).
 - Pre-authored ASCII sketches only. No live sketch yet.
 - No print view yet.
@@ -558,7 +560,7 @@ The goal of Phase 1 is to retire every "temporarily" in Phase 0 **and** close th
 
 **Views:**
 - **Print view renderer** with TOC (flat, column-only) at the front. Accessible from the live view via `P` hotkey opening in a new tab. This was the single most missed feature in wlab01.
-- **Speaker view** in a separate window, synced via `BroadcastChannel`: current chunk, next-previews (fully revealed, see §7), notes pane, scrubber, timer, push-to-audience toggle, crash-recovery `localStorage` persistence.
+- **Speaker view** in a separate window, synced via `window.postMessage`: current chunk, next-previews (fully revealed, see §7), notes pane, scrubber, timer, push-to-audience toggle, crash-recovery `localStorage` persistence.
 
 **Live interactions the wlab01 input shape broke:**
 - **Progressive reveal** per §4.6. The `---` separator, `Space` to advance, backward-nav resets to fully-revealed. This is what will make bullet-heavy content (the dominant shape in practice, despite the "prose first" intent) teachable at a controlled pace.

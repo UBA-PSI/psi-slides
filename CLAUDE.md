@@ -14,7 +14,7 @@ Status: Phase 1, single-user dev. The `lectures/` folder holds the canonical exa
 # install deps (required once, also before running lectures from sibling content repos)
 npm install
 
-# build all three views next to source.md
+# build all four views next to source.md
 node build.js lectures/tutorial/source.md
 
 # live-reload authoring (WebSocket reload to open tabs on every save)
@@ -66,7 +66,7 @@ A source file can silence specific lint warnings with an HTML comment anywhere i
 
 ### Single-file build pipeline
 
-`build.js` (~3,800 lines) holds the entire rendering stack: parser, three renderers, inlined audience/speaker runtime JS, inlined audience/speaker/print CSS, Shiki highlighter, image-shorthand resolver, WebSocket watch server, and the CLI. It is deliberately one file; navigate it by the `// ── section ──` banners:
+`build.js` holds the entire rendering stack: parser, three renderers, inlined audience/speaker runtime JS, inlined audience/speaker/print CSS, Shiki highlighter, image-shorthand resolver, WebSocket watch server, and the CLI. It is deliberately one file, and a large one – roughly two thirds of it is the embedded CSS and runtime JS, so the Node-side build logic is much smaller than the file size suggests. Navigate it by the `// ── section ──` banners:
 
 - `// ── syntax highlighting ──` – Shiki singleton + per-build highlight cache.
 - `// ── image shorthand resolution ──` – `![](fig-id)` → `assets/fig-id.{svg,png,jpg,jpeg,gif,webp}` (first match wins).
@@ -106,7 +106,7 @@ Checks enforced:
 - Orphan columns (columns with <2 chunks).
 - Figure caption redundancy (`figure:` chunk opens with an image whose alt text becomes a `<figcaption>` stacked under the heading – discourages three-label pile-ups of heading + sub-heading + caption).
 
-### Three views, one source
+### Four outputs, three renderers, one source
 
 The four HTML files are **self-contained outputs**. They ship with their runtime JS/CSS inlined from build.js template literals, so they open from `file://` without a server. They are gitignored (`lectures/*/print.html`, `lectures/*/print-notes.html`, `lectures/*/audience.html`, `lectures/*/speaker.html`) – rebuild instead of committing them. The one exception is `lectures/tutorial/`, whose built HTMLs are tracked so readers can browse the self-referential tour straight from the repo; rebuild and commit them whenever the tutorial source changes.
 
