@@ -31,6 +31,14 @@ const VALID_TAGS = new Set([
 
 const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
 
+// Mirrors build.js: the per-image inline cap, and the extension search order
+// used to resolve `![](fig-id)` shorthand. An asset over the cap is left as
+// an external path, which quietly breaks the single-file promise – the build
+// warns, but the build scrolls, so the pre-commit gate should catch it too.
+// Kept here as plain fs.statSync so lint.js stays zero-dep.
+const IMG_EXTS = ['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
+const MAX_INLINE_BYTES = 2 * 1024 * 1024;
+
 // Per-tag word budget. null = no limit. Tags with deliberately large
 // bodies (figure, title) are exempt; one-liner tags are strict.
 const DENSITY_BUDGET = {
@@ -376,6 +384,36 @@ function lintFile(filePath) {
           `${reveals}/${nonTitle.length} chunks use reveal segments (${Math.round(pct * 100)}% > ${REVEAL_PCT_WARN * 100}%) – split the column, or add '<!-- linter: ignore reveal-overuse -->'`);
     }
   }
+
+  // Oversized assets. Anything past the inline cap stays an external path,
+  // so the output stops being self-contained – the deck still looks fine on
+  // the machine that built it and breaks wherever the HTML travels alone.
+  const sourceDir = path.dirname(filePath);
+  const seenAssets = new Set();
+  lines.forEach((line, i) => {
+    for (const m of line.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) {
+      const href = m[1];
+      if (/^[a-z]+:/i.test(href)) continue;
+      let abs = null;
+      if (!href.includes('/') && !path.extname(href)) {
+        for (const ext of IMG_EXTS) {
+          const cand = path.join(sourceDir, 'assets', `${href}.${ext}`);
+          if (fs.existsSync(cand)) { abs = cand; break; }
+        }
+      } else {
+        const cand = path.resolve(sourceDir, href);
+        if (fs.existsSync(cand)) abs = cand;
+      }
+      if (!abs || seenAssets.has(abs)) continue;
+      seenAssets.add(abs);
+      let size;
+      try { size = fs.statSync(abs).size; } catch (e) { continue; }
+      if (size <= MAX_INLINE_BYTES) continue;
+      const mb = (size / 1024 / 1024).toFixed(2);
+      add(i + 1, 'warn', 'oversized-asset',
+          `${path.relative(sourceDir, abs)} is ${mb} MB (> ${MAX_INLINE_BYTES / 1024 / 1024} MB inline cap), so it stays an external path and the output is not self-contained – run \`node build.js <source.md> --optimize-images\``);
+    }
+  });
 
   return findings;
 }

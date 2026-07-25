@@ -32,6 +32,15 @@ node build.js <source.md> --speaker-only
 node build.js <source.md> --inline-images       # force inline regardless of total size
 node build.js <source.md> --no-inline-images    # force external asset paths
 
+# shrink assets that blow the per-image cap: converts referenced PNG/JPEG to
+# WebP q92 in place, replacing the originals and rewriting explicit-path refs
+# in source.md (shorthand `![](fig-id)` refs need no edit). Needs cwebp or
+# magick on PATH; measured 12-18% of the original on real lecture assets.
+node build.js <source.md> --optimize-images --dry-run   # report, write nothing
+node build.js <source.md> --optimize-images              # apply (assets >= 512 KB)
+node build.js <source.md> --optimize-images --all        # every referenced raster
+node build.js <source.md> --optimize-images --max-width 2600   # also downscale
+
 # scaffold a new lecture folder with valid frontmatter + example chunks
 node build.js --new my-slug
 
@@ -92,6 +101,7 @@ Checks enforced:
 - Unclosed `:::` directives and orphan `:::` closers.
 - Per-tag word-count budgets (principle/question 80, definition 200, example 250, free 250, exercise 350; title/figure unlimited). Counted against the **on-screen** half only: the `::: slide` block if the chunk has one, otherwise everything outside `::: script`.
 - Duplicate `::: slide` / `::: script` blocks in one chunk (warning).
+- Assets over the 2 MB inline cap (`oversized-asset`, warning) – the pre-commit gate for the single-file property.
 - Reveal-overuse (>50% of chunks using segments in a lecture flags a warning).
 - Orphan columns (columns with <2 chunks).
 - Figure caption redundancy (`figure:` chunk opens with an image whose alt text becomes a `<figcaption>` stacked under the heading – discourages three-label pile-ups of heading + sub-heading + caption).
@@ -106,7 +116,9 @@ The audience↔speaker sync is cross-`file://`-origin safe because it uses `wind
 
 ### Asset inlining
 
-Image assets are inlined into the single-file outputs by default (auto-inline budget: 10 MB total, per-file cap 2 MB; `--inline-images` / `--no-inline-images` overrides). Raster formats become base64 `data:` URIs in `<img>` tags. **SVG assets are spliced inline as `<svg>` elements** (not `data:` URIs) so they inherit page CSS custom properties – `--ink`, `--paper`, `--ink-soft` – and re-color when the user cycles themes with the `A` hotkey. To keep multiple inlined SVGs from cross-contaminating each other, the inliner gives every instance a unique `psi-fig-N-` prefix and rewrites `id="…"`, `url(#…)`, `href="#…"`, and `xlink:href="#…"` accordingly; inline `<style>` blocks are wrapped in `@scope (svg#psi-fig-N-root) { … }` (with `@import` and `@font-face` hoisted out so they remain at top level). See `inlineSvg()` in `build.js`.
+Image assets are inlined into the single-file outputs by default (auto-inline budget: 10 MB total, per-file cap 2 MB; `--inline-images` / `--no-inline-images` overrides).
+
+An asset over the per-file cap is left as an **external path**, which silently breaks the single-file promise – the deck looks right on the machine that built it and shows a broken figure anywhere the HTML travels alone. Three things now surface that: `warnOversizedAsset()` names the consequence and the fix instead of just the size, `lint.js` has an `oversized-asset` warning (pure `fs.statSync`, still zero-dep), and `--optimize-images` fixes it. Note what that verb deliberately does **not** do: it does not downscale by default. The offenders measured in the content repo were not oversized in pixels (the worst was 3.03 MB at exactly 1920×1080) and figure focus zooms to `FIG_MAX_SCALE` (8×), so a 3968px-wide diagram is high-resolution on purpose. WebP q92 alone gets those files to 12–18% of their original size. `--max-width` exists for real outliers and only ever shrinks – `cwebp -resize` would happily enlarge a narrower image, so `imageSize()` (a zero-dep PNG/JPEG header reader) gates it. Raster formats become base64 `data:` URIs in `<img>` tags. **SVG assets are spliced inline as `<svg>` elements** (not `data:` URIs) so they inherit page CSS custom properties – `--ink`, `--paper`, `--ink-soft` – and re-color when the user cycles themes with the `A` hotkey. To keep multiple inlined SVGs from cross-contaminating each other, the inliner gives every instance a unique `psi-fig-N-` prefix and rewrites `id="…"`, `url(#…)`, `href="#…"`, and `xlink:href="#…"` accordingly; inline `<style>` blocks are wrapped in `@scope (svg#psi-fig-N-root) { … }` (with `@import` and `@font-face` hoisted out so they remain at top level). See `inlineSvg()` in `build.js`.
 
 ### Authoring contract
 

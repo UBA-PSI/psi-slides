@@ -16,6 +16,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import matter from 'gray-matter';
 import { marked } from 'marked';
 import { createHighlighter } from 'shiki';
@@ -108,6 +109,27 @@ function resolveFigId(figId) {
 // view-source); raster formats use base64. Files over MAX_INLINE_BYTES
 // are skipped with a warning so authors notice when a deck is too heavy
 // for the single-file shape, and the renderer falls back to the path.
+//
+// The old wording ("skipping X (3.03 MB > 2 MB limit)") stated the fact and
+// left the consequence implicit, so it scrolled past unnoticed and a deck
+// shipped with a broken figure whenever the HTML travelled without its
+// assets folder. Say what it costs and how to fix it, once per file per
+// build. Collected so the summary can repeat it after the Wrote… line,
+// where a single warning is less likely to be missed.
+const oversizedWarned = new Set();
+function warnOversizedAsset(absPath, size) {
+  const rel = path.relative(process.cwd(), absPath);
+  if (oversizedWarned.has(rel)) return;
+  oversizedWarned.add(rel);
+  const mb = (size / 1024 / 1024).toFixed(2);
+  console.warn(
+    `[inline-images] NOT inlined: ${rel} (${mb} MB > ${MAX_INLINE_BYTES / 1024 / 1024} MB cap).\n` +
+    `                This output is no longer self-contained – the figure breaks if the\n` +
+    `                HTML is moved without its assets folder. Fix with:\n` +
+    `                  node build.js <source.md> --optimize-images`
+  );
+}
+
 function toDataUri(absPath) {
   if (!absPath) return null;
   if (dataUriCache.has(absPath)) return dataUriCache.get(absPath);
@@ -115,8 +137,7 @@ function toDataUri(absPath) {
   try { stat = fs.statSync(absPath); }
   catch { dataUriCache.set(absPath, null); return null; }
   if (stat.size > MAX_INLINE_BYTES) {
-    const mb = (stat.size / 1024 / 1024).toFixed(2);
-    console.warn(`[inline-images] skipping ${path.relative(process.cwd(), absPath)} (${mb} MB > 2 MB limit)`);
+    warnOversizedAsset(absPath, stat.size);
     dataUriCache.set(absPath, null);
     return null;
   }
@@ -158,8 +179,7 @@ function inlineSvg(absPath, { alt = '', title = '', extraClass = '' } = {}) {
   try { stat = fs.statSync(absPath); }
   catch { return null; }
   if (stat.size > MAX_INLINE_BYTES) {
-    const mb = (stat.size / 1024 / 1024).toFixed(2);
-    console.warn(`[inline-images] skipping ${path.relative(process.cwd(), absPath)} (${mb} MB > 2 MB limit)`);
+    warnOversizedAsset(absPath, stat.size);
     return null;
   }
   let text = fs.readFileSync(absPath, 'utf8');
@@ -5600,6 +5620,242 @@ function runIntegrate(absIn) {
   console.log('Review with `git diff`, then rebuild the lecture to render the new Presentation Notes.');
 }
 
+// ── image optimisation (--optimize-images) ───────────────────────────
+//
+// The problem this solves is narrow and worth stating precisely, because the
+// obvious fix is the wrong one. Assets that blow the inline cap are almost
+// never oversized in *pixels* – measured across the content repo, the worst
+// offender was a 3.03 MB PNG at exactly 1920x1080, i.e. already at slide
+// resolution. The bytes are PNG being a poor fit for photographic content,
+// not excess resolution.
+//
+// So this converts, and deliberately does not downscale by default:
+//
+//   - WebP q92 measured 12–18% of the original on real lecture assets
+//     (3.03 MB -> 0.41 MB), and at 3x pixel-zoom on text over a photographic
+//     background the difference is not visible. Lossless WebP only reaches
+//     32–69%, which does not reliably clear the cap.
+//   - Downscaling would actively damage a feature: figure focus zooms to
+//     FIG_MAX_SCALE (8x), so a high-resolution diagram is high-resolution on
+//     purpose. One asset here is 3968px wide at only 875 KB – exactly the
+//     file you must not touch. --max-width exists for genuine outliers and
+//     is off unless asked for.
+//
+// Encoders are shelled out to rather than added as an npm dependency: this
+// is an occasional authoring step, not the build path, so requiring cwebp or
+// ImageMagick here costs nothing to someone who only ever builds. (sips ships
+// with macOS but cannot write WebP, so there is no zero-install fallback –
+// another reason not to put conversion in buildOnce.)
+
+const OPTIMIZE_MIN_BYTES = 512 * 1024;   // leave small assets alone
+const WEBP_QUALITY = 92;
+const OPTIMIZABLE_EXTS = new Set(['png', 'jpg', 'jpeg']);
+
+// Pixel dimensions straight from the file header, so --max-width can refuse
+// to enlarge and the report can show what it is working with. Zero-dep on
+// purpose: pulling in an image library for two integers would be absurd, and
+// `cwebp -resize W 0` happily *upscales* a narrower image, so the guard has
+// to live here.
+//   PNG: IHDR is always the first chunk – width/height at bytes 16..23.
+//   JPEG: walk the segment chain to the first SOFn marker (excluding the
+//         DHT/DAC/RSTn range) and read height/width from its payload.
+function imageSize(absPath) {
+  let fd;
+  try {
+    fd = fs.openSync(absPath, 'r');
+    const head = Buffer.alloc(32);
+    fs.readSync(fd, head, 0, 32, 0);
+    if (head.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+      return { width: head.readUInt32BE(16), height: head.readUInt32BE(20) };
+    }
+    if (head[0] === 0xff && head[1] === 0xd8) {
+      const size = fs.statSync(absPath).size;
+      let pos = 2;
+      const seg = Buffer.alloc(9);
+      while (pos < size - 9) {
+        fs.readSync(fd, seg, 0, 9, pos);
+        if (seg[0] !== 0xff) { pos++; continue; }        // resync on padding
+        const marker = seg[1];
+        if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) { pos += 2; continue; }
+        const len = seg.readUInt16BE(2);
+        const isSOF = marker >= 0xc0 && marker <= 0xcf
+          && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
+        if (isSOF) return { height: seg.readUInt16BE(5), width: seg.readUInt16BE(7) };
+        pos += 2 + len;
+      }
+    }
+    return null;
+  } catch (e) {
+    return null;
+  } finally {
+    if (fd !== undefined) { try { fs.closeSync(fd); } catch (e) {} }
+  }
+}
+
+function detectWebpEncoder() {
+  const probe = (bin, args) => {
+    try { execFileSync(bin, args, { stdio: 'ignore' }); return true; }
+    catch (e) { return e.code !== 'ENOENT'; }
+  };
+  if (probe('cwebp', ['-version'])) {
+    return {
+      name: 'cwebp',
+      encode(src, dst, resizeTo) {
+        const args = ['-quiet', '-q', String(WEBP_QUALITY), '-m', '6', '-sharp_yuv'];
+        // Height 0 keeps the aspect ratio. The caller has already decided
+        // that resizeTo is smaller than the source.
+        if (resizeTo) args.push('-resize', String(resizeTo), '0');
+        execFileSync('cwebp', [...args, src, '-o', dst], { stdio: 'ignore' });
+      },
+    };
+  }
+  if (probe('magick', ['-version'])) {
+    return {
+      name: 'magick',
+      encode(src, dst, resizeTo) {
+        const args = [src, '-quality', String(WEBP_QUALITY)];
+        // The trailing > is belt-and-braces: the caller already filtered.
+        if (resizeTo) args.push('-resize', `${resizeTo}x>`);
+        execFileSync('magick', [...args, dst], { stdio: 'ignore' });
+      },
+    };
+  }
+  return null;
+}
+
+// Collect every image reference in the source together with how it was
+// written, because that decides whether a rename needs a source edit.
+// Shorthand refs (`![](fig-id)`) resolve through IMG_EXTS and need none;
+// explicit paths (`![](img/foo.png)`) name the extension and do.
+function collectImageRefs(src, sourceDir) {
+  const refs = new Map();   // absPath -> { absPath, ext, explicitRefs: Set<string> }
+  const add = (absPath, explicitRef) => {
+    const ext = path.extname(absPath).slice(1).toLowerCase();
+    if (!refs.has(absPath)) refs.set(absPath, { absPath, ext, explicitRefs: new Set() });
+    if (explicitRef) refs.get(absPath).explicitRefs.add(explicitRef);
+  };
+  for (const m of src.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) {
+    const href = m[1];
+    if (/^[a-z]+:/i.test(href)) continue;                    // remote URL
+    if (!href.includes('/') && !path.extname(href)) {
+      const rel = resolveFigId(href);                        // shorthand
+      if (rel) add(path.join(sourceDir, rel), null);
+      continue;
+    }
+    const abs = path.resolve(sourceDir, href);
+    if (fs.existsSync(abs)) add(abs, href);
+  }
+  return [...refs.values()];
+}
+
+function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null } = {}) {
+  const sourceDir = path.dirname(absIn);
+  currentSourceDir = sourceDir;      // resolveFigId closes over this
+  imgResolveCache.clear();
+  let src = fs.readFileSync(absIn, 'utf8');
+
+  const threshold = all ? 0 : OPTIMIZE_MIN_BYTES;
+  const candidates = collectImageRefs(src, sourceDir)
+    .filter(r => OPTIMIZABLE_EXTS.has(r.ext))
+    .map(r => ({ ...r, size: fs.statSync(r.absPath).size }))
+    .filter(r => r.size >= threshold)
+    .sort((a, b) => b.size - a.size);
+
+  if (!candidates.length) {
+    console.log(all
+      ? 'No PNG/JPEG assets referenced by this lecture.'
+      : `Nothing to do: no referenced PNG/JPEG asset is ${(OPTIMIZE_MIN_BYTES / 1024).toFixed(0)} KB or larger. Use --all to convert every raster.`);
+    return;
+  }
+
+  const encoder = detectWebpEncoder();
+  if (!encoder) {
+    console.error('No WebP encoder found. Install one of:');
+    console.error('  brew install webp        # provides cwebp (preferred)');
+    console.error('  brew install imagemagick # provides magick');
+    console.error('macOS sips cannot write WebP, so there is no built-in fallback.');
+    process.exit(1);
+  }
+
+  console.log(`Encoder: ${encoder.name} · quality ${WEBP_QUALITY}${maxWidth ? ` · max width ${maxWidth}px` : ' · no downscaling'}${dryRun ? ' · DRY RUN' : ''}`);
+  console.log('');
+
+  const rows = [];
+  let before = 0, after = 0, converted = 0;
+  const sourceEdits = [];
+
+  for (const ref of candidates) {
+    const dst = ref.absPath.replace(/\.[^.]+$/, '.webp');
+    // A .webp already sitting next to the original would be shadowed by it
+    // anyway (IMG_EXTS puts png before webp), so overwriting is the right
+    // move – but say so rather than clobbering silently.
+    const dstExisted = fs.existsSync(dst);
+    const tmp = dst + '.tmp';
+    // Only ever shrink. cwebp -resize enlarges a narrower image without
+    // complaint, which would waste bytes and invent detail.
+    const dims = imageSize(ref.absPath);
+    const resizeTo = (maxWidth && dims && dims.width > maxWidth) ? maxWidth : null;
+    const dimLabel = dims
+      ? `${dims.width}x${dims.height}${resizeTo ? ` → ${resizeTo}w` : ''}`
+      : '?';
+    let outSize;
+    try {
+      encoder.encode(ref.absPath, tmp, resizeTo);
+      outSize = fs.statSync(tmp).size;
+    } catch (e) {
+      fs.rmSync(tmp, { force: true });
+      rows.push({ name: path.basename(ref.absPath), from: ref.size, to: null, dims: dimLabel, note: 'encode failed' });
+      continue;
+    }
+    // WebP is not always smaller – an already-optimised PNG of flat colour
+    // can lose. Keep whichever is smaller and never report a regression as
+    // a win.
+    if (outSize >= ref.size) {
+      fs.rmSync(tmp, { force: true });
+      rows.push({ name: path.basename(ref.absPath), from: ref.size, to: outSize, dims: dimLabel, note: 'kept original (webp larger)' });
+      before += ref.size; after += ref.size;
+      continue;
+    }
+    before += ref.size; after += outSize; converted++;
+    rows.push({
+      name: path.basename(ref.absPath), from: ref.size, to: outSize, dims: dimLabel,
+      note: dstExisted ? 'overwrote existing .webp' : '',
+    });
+    if (dryRun) { fs.rmSync(tmp, { force: true }); continue; }
+    fs.renameSync(tmp, dst);
+    fs.rmSync(ref.absPath, { force: true });
+    for (const explicit of ref.explicitRefs) {
+      const replacement = explicit.replace(/\.[^.]+$/, '.webp');
+      sourceEdits.push({ from: explicit, to: replacement });
+      src = src.split(`](${explicit})`).join(`](${replacement})`);
+    }
+  }
+
+  const kb = (n) => (n / 1024).toFixed(0).padStart(6) + ' KB';
+  for (const r of rows) {
+    const pct = r.to == null ? '   –' : String(Math.round((r.to / r.from) * 100)).padStart(3) + '%';
+    console.log(`  ${r.name.padEnd(44)} ${(r.dims || '?').padEnd(16)} ${kb(r.from)} → ${r.to == null ? '     —' : kb(r.to)}  ${pct}  ${r.note}`);
+  }
+  console.log('');
+  console.log(`  ${'total'.padEnd(44)} ${''.padEnd(16)} ${kb(before)} → ${kb(after)}  ${String(Math.round((after / before) * 100)).padStart(3)}%  (${converted} converted)`);
+
+  if (dryRun) {
+    console.log('');
+    console.log('Dry run – nothing written. Drop --dry-run to apply.');
+    return;
+  }
+
+  if (sourceEdits.length) {
+    fs.writeFileSync(absIn, src, 'utf8');
+    console.log('');
+    console.log(`Rewrote ${sourceEdits.length} explicit image path(s) in ${path.basename(absIn)}:`);
+    for (const e of sourceEdits) console.log(`  ${e.from} → ${e.to}`);
+  }
+  console.log('');
+  console.log('Originals were replaced. Review with `git diff` and `git status`, then rebuild.');
+  console.log('Shorthand refs like ![](fig-id) need no edit – the resolver finds the .webp.');
+}
+
 // ── CLI ──────────────────────────────────────────────────────────────
 
 // Self-check on the inlined stylesheets. Every CSS block in this file lives
@@ -5782,13 +6038,43 @@ function runNew(slug) {
   console.log(`Created ${rel} – run \`node build.js ${rel} --watch\` to start.`);
 }
 
+// Flags that consume the following argv token as their value, so it is not
+// mistaken for the source path.
+const VALUE_FLAGS = new Set(['--max-width']);
+
 async function main() {
   const argv = process.argv.slice(2);
   const flags = new Set(argv.filter(a => a.startsWith('--')));
-  const positional = argv.filter(a => !a.startsWith('--'));
+  const positional = argv.filter((a, i) =>
+    !a.startsWith('--') && !VALUE_FLAGS.has(argv[i - 1]));
 
   if (flags.has('--new')) {
     runNew(positional[0]);
+    return;
+  }
+
+  // Image optimisation shells out to an encoder and never renders, so it
+  // runs before the Shiki init below rather than paying for it.
+  if (flags.has('--optimize-images')) {
+    const absIn = path.resolve(positional[0] || '');
+    if (!positional[0] || !fs.existsSync(absIn)) {
+      console.error(`Input not found: ${absIn}`);
+      process.exit(1);
+    }
+    let maxWidth = null;
+    const mwIdx = argv.indexOf('--max-width');
+    if (mwIdx !== -1) {
+      maxWidth = parseInt(argv[mwIdx + 1], 10);
+      if (!Number.isFinite(maxWidth) || maxWidth < 320) {
+        console.error('--max-width needs a pixel value of at least 320.');
+        process.exit(1);
+      }
+    }
+    runOptimizeImages(absIn, {
+      dryRun: flags.has('--dry-run'),
+      all: flags.has('--all'),
+      maxWidth,
+    });
     return;
   }
 
@@ -5803,11 +6089,21 @@ async function main() {
     console.error('  node build.js <source.md> [--watch] [--audience-only|--print-only|--print-notes-only|--speaker-only]');
     console.error('                            [--inline-images|--no-inline-images]');
     console.error('  node build.js <source.md> --integrate-annotations');
+    console.error('  node build.js <source.md> --optimize-images [--dry-run] [--all] [--max-width N]');
     console.error('  node build.js --new <slug>');
     console.error('');
     console.error('Image inlining (default: auto – inline iff referenced images sum < 10 MB; per-image cap 2 MB):');
     console.error('  --inline-images       force inlining regardless of total size');
     console.error('  --no-inline-images    force external asset paths');
+    console.error('');
+    console.error('Image optimisation (converts referenced PNG/JPEG to WebP q92, replacing the');
+    console.error('originals; needs cwebp or magick on PATH):');
+    console.error('  --optimize-images     convert referenced rasters ≥ 512 KB');
+    console.error('  --dry-run             report what would change, write nothing');
+    console.error('  --all                 convert every referenced raster, not just large ones');
+    console.error('  --max-width N         also downscale to N px wide. Off by default on purpose:');
+    console.error('                        figure focus zooms to 8x, so a high-resolution diagram');
+    console.error('                        is high-resolution for a reason.');
     console.error('');
     console.error('Annotation integration:');
     console.error('  --integrate-annotations   move `> annot:` blocks from a trailing');
@@ -5826,7 +6122,7 @@ async function main() {
     return;
   }
 
-  const onlyFlags = ['--audience-only', '--print-only', '--print-notes-only', '--speaker-only'].filter(f => flags.has(f));
+  const onlyFlags =['--audience-only', '--print-only', '--print-notes-only', '--speaker-only'].filter(f => flags.has(f));
   if (onlyFlags.length > 1) {
     console.error(`Error: ${onlyFlags.join(' and ')} are mutually exclusive.`);
     process.exit(1);

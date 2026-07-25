@@ -2407,7 +2407,11 @@ body[data-view=speaker].preview-right .preview-slot {
 
 <p><strong>Alt text becomes a caption.</strong> <code>![a caption](fig-id)</code> renders a <code>&lt;figcaption&gt;</code> under the image. On a <code>figure:</code> chunk whose heading already says what the picture is, that stacks two labels, so the linter warns and suggests the empty-alt form.</p>
 <p><strong>SVG assets are spliced inline</strong> as real <code>&lt;svg&gt;</code> elements rather than <code>data:</code> URIs, so they inherit the page&#39;s <code>--ink</code>, <code>--paper</code>, and <code>--ink-soft</code> and re-colour with the <code>A</code> theme key. Raster images become base64 <code>data:</code> URIs. Everything under a 10 MB total and 2 MB per file is inlined automatically; <code>--no-inline-images</code> keeps external paths instead.</p>
-</div></div></div>
+</div>
+
+
+<p><strong>A file over the 2 MB per-image cap stays an external path</strong>, and the output is then no longer self-contained: the figure breaks wherever the HTML travels without its assets folder. <code>node build.js &lt;source.md&gt; --optimize-images</code> converts the offenders to WebP in place, which on real lecture assets lands at 12 to 18 percent of the original with no visible loss. <code>lint.js</code> flags them too, so the pre-commit gate catches what a scrolling build log does not.</p>
+</div></div>
     
     <aside class="annot-box" data-annot-for="images">
       <div class="annot-box-label">annotation · images</div>
@@ -2500,7 +2504,7 @@ body[data-view=speaker].preview-right .preview-slot {
 <template data-notes-for="derived-mode">If the collapsed version of a chunk reads as a pile of cryptic one-word bullets, the fix is almost always fewer bolds and a stronger first sentence, not a different mode.</template>
 <template data-notes-for="explicit-mode">The lint density budget only counts the on-screen half. Narration is deliberately unbudgeted – writing it freely is the entire point of the explicit mode.</template>
 <template data-notes-for="try-tags">Watch mode picks a free port and injects a reload snippet into each output; production builds get none, which is why the committed HTML has no WebSocket code in it.</template>
-<template data-notes-for="images">A file over the 2 MB per-image cap is skipped and stays an external path. The build logs it, but the output is then no longer self-contained – downscale the asset if the single-file property matters.</template>
+<template data-notes-for="images">The verb deliberately does not downscale. The heavy files are usually already at slide resolution – the bytes are PNG being a poor fit for photographic content. And figure focus zooms to 8×, so a high-resolution diagram is high-resolution on purpose; `--max-width` is opt-in for genuine outliers.</template>
 <template data-notes-for="authoring">When finishing this tour with a first-timer, end by asking them what felt discoverable and what did not. Their first-impression friction is the most valuable feedback the tool will get.</template>
 </div>
 <div id="help-overlay" class="hidden" role="dialog" aria-label="Keyboard and mouse reference" aria-modal="false">

@@ -330,7 +330,9 @@ Reach for `::: margin` when the supplementary content is short and trustworthy e
 
 :::
 
-> note: A file over the 2 MB per-image cap is skipped and stays an external path. The build logs it, but the output is then no longer self-contained – downscale the asset if the single-file property matters.
+**A file over the 2 MB per-image cap stays an external path**, and the output is then no longer self-contained: the figure breaks wherever the HTML travels without its assets folder. `node build.js <source.md> --optimize-images` converts the offenders to WebP in place, which on real lecture assets lands at 12 to 18 percent of the original with no visible loss. `lint.js` flags them too, so the pre-commit gate catches what a scrolling build log does not.
+
+> note: The verb deliberately does not downscale. The heavy files are usually already at slide resolution – the bytes are PNG being a poor fit for photographic content. And figure focus zooms to 8×, so a high-resolution diagram is high-resolution on purpose; `--max-width` is opt-in for genuine outliers.
 
 # Next steps {#next}
 

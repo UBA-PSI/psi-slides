@@ -1862,7 +1862,11 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 
 <p><strong>Alt text becomes a caption.</strong> <code>![a caption](fig-id)</code> renders a <code>&lt;figcaption&gt;</code> under the image. On a <code>figure:</code> chunk whose heading already says what the picture is, that stacks two labels, so the linter warns and suggests the empty-alt form.</p>
 <p><strong>SVG assets are spliced inline</strong> as real <code>&lt;svg&gt;</code> elements rather than <code>data:</code> URIs, so they inherit the page&#39;s <code>--ink</code>, <code>--paper</code>, and <code>--ink-soft</code> and re-colour with the <code>A</code> theme key. Raster images become base64 <code>data:</code> URIs. Everything under a 10 MB total and 2 MB per file is inlined automatically; <code>--no-inline-images</code> keeps external paths instead.</p>
-</div></div></div>
+</div>
+
+
+<p><strong>A file over the 2 MB per-image cap stays an external path</strong>, and the output is then no longer self-contained: the figure breaks wherever the HTML travels without its assets folder. <code>node build.js &lt;source.md&gt; --optimize-images</code> converts the offenders to WebP in place, which on real lecture assets lands at 12 to 18 percent of the original with no visible loss. <code>lint.js</code> flags them too, so the pre-commit gate catches what a scrolling build log does not.</p>
+</div></div>
     
     <aside class="annot-box" data-annot-for="images">
       <div class="annot-box-label">annotation · images</div>
