@@ -103,7 +103,7 @@ The grammar is `## tag: Heading | Sub-heading {.width #id}`. Eight tags (`title`
 - **Derived** (the default): the first sentence of every paragraph, plus any `**bold**` fragments. Costs nothing to author, and imposes a real discipline – every paragraph has to open with a claim that stands alone.
 - **Stated**: a `::: slide` block *is* the screen, everything else is narration. Or `::: script`, the dual: the chunk is the screen and only the marked block is narration. Reach for these when the argument wants continuous prose that no first-sentence rule can carve up.
 
-Everything else is body-level directives: `---` on its own line splits a chunk into **reveal segments**; `::: expand <label>` hides detail behind a chevron; `::: cols 2` / `::: side` / `::: flip` shape internal layout; `::: margin` and `::: marginalia` place asides; `![](fig-id)` resolves against `assets/`. All of it is documented live in the tutorial.
+Everything else is body-level directives: `---` on its own line splits a chunk into **reveal segments**; `::: expand <label>` hides detail behind a chevron; `::: cols 2` / `::: side` / `::: flip` shape internal layout; `::: margin` and `::: marginalia` place asides; `![](fig-id)` resolves against `assets/`; `$inline$` and `$$display$$` are **math**, rendered by KaTeX during the build. All of it is documented live in the tutorial.
 
 Two more surfaces worth knowing apart: **notes** (`> note:`) are yours, written in advance, shown in the cockpit and in the handout. **Annotations** (`N` during a talk) are typed live, visible to the room, and `Shift-E` plus `--integrate-annotations` writes them back into `source.md` as permanent text.
 
@@ -124,8 +124,8 @@ This is the section that will save you the most time. Each line is a real constr
 - **A co-author needs a GUI.** The source is Markdown in a text editor and nothing else. If your collaborator will not edit a text file, this will not work for the two of you.
 - **You want builds, transitions, or animation.** Reveal segments uncover blocks of text in place. That is the whole animation model, on purpose.
 - **You want the cockpit on a tablet and the slides on the projector.** Architecturally unsupported: the two windows sync through `window.postMessage` over the opener relationship, which means same machine, same browser, same profile. A network sync mode is deferred, not planned.
-- **You need mathematical notation.** There is no math rendering. KaTeX is named as deferred in `PRD.md` and has not landed; `$x^2$` renders as literal text today.
-- **You need polls, quizzes, or any audience interaction.** Named and deferred, same as math.
+- **You need more than KaTeX covers.** `$inline$` and `$$display$$` work and render at build time, but that is KaTeX, not LaTeX: no equation numbering or `\ref`, no `mhchem`, no TikZ. If your lecture is a mathematics lecture, check [KaTeX's supported functions](https://katex.org/docs/supported.html) before committing.
+- **You need polls, quizzes, or any audience interaction.** Named and deferred in `PRD.md`.
 - **Your room's browser is old or locked down.** See [Requirements](#requirements) – the stylesheets use modern CSS with no fallbacks.
 - **You want a dependable dependency.** One `build.js` well past six thousand lines, no test suite, no releases, one maintainer, a format that still moves. It is used in earnest, but it is used by the person who wrote it.
 
@@ -147,6 +147,7 @@ The honest differentiator is the combination: the collapse mechanism (one text, 
 - **A current browser** to read. The stylesheets use `oklch()` colours, `:has()`, and `text-wrap: balance` with no fallbacks, which puts the floor at roughly **Chrome/Edge 114, Firefox 121, Safari 17.5**. Lectures with inline-styled SVG assets additionally need `@scope`: Chrome/Edge 118, Safari 17.4, Firefox 146. Development and real use are in Chrome; other browsers are untested rather than unsupported.
 - **`cwebp` or `magick`** on `PATH`, but only if you use `--optimize-images`. macOS `sips` cannot write WebP, so there is no zero-install fallback for that one command.
 - Image assets are inlined automatically when they total under 10 MB. A single asset over 2 MB fails the build rather than silently shipping an external path – `--optimize-images` converts the offenders to WebP, and `--no-inline-images` is the escape hatch.
+- Math is rendered at build time, which means the KaTeX fonts have to travel inside the HTML for it to stay `file://`-openable. Only the font families a lecture's formulas actually use are inlined – typically about 130 KB of the full 254 KB – and a lecture without math inlines none of it. The build prints what it did.
 
 ## Documentation
 
@@ -177,7 +178,7 @@ node lint.js lectures/                       # all lectures
 node lint.js lectures/ --strict              # warnings exit 2
 ```
 
-The linter checks unknown tags and widths, duplicate or missing chunk IDs, unclosed `:::` directives, per-tag word budgets, duplicate explicit-slide blocks, assets over the inline cap, reveal overuse, orphan columns, and redundant figure captions. A source file can silence a check with `<!-- linter: ignore reveal-overuse, density -->`.
+The linter checks unknown tags and widths, duplicate or missing chunk IDs, unclosed `:::` directives and unclosed `$$` math, per-tag word budgets, duplicate explicit-slide blocks, assets over the inline cap, reveal overuse, orphan columns, and redundant figure captions. A source file can silence a check with `<!-- linter: ignore reveal-overuse, density -->`.
 
 ## Hotkeys
 

@@ -41,6 +41,10 @@ node build.js <source.md> --optimize-images              # apply (assets >= 512 
 node build.js <source.md> --optimize-images --all        # every referenced raster
 node build.js <source.md> --optimize-images --max-width 2600   # also downscale
 
+# math needs no flag: $inline$ and $$display$$ render via KaTeX during the
+# build. The KaTeX stylesheet plus the font families the formulas use are
+# inlined only into views that contain math; the build logs the payload.
+
 # scaffold a new lecture folder with valid frontmatter + example chunks
 node build.js --new my-slug
 
@@ -70,6 +74,7 @@ A source file can silence specific lint warnings with an HTML comment anywhere i
 
 - `// ── syntax highlighting ──` – Shiki singleton + per-build highlight cache.
 - `// ── image shorthand resolution ──` – `![](fig-id)` → `assets/fig-id.{svg,png,jpg,jpeg,gif,webp}` (first match wins).
+- `// ── math (KaTeX, rendered at build time) ──` – `$inline$` / `$$display$$`, the per-build render cache, and the conditional stylesheet. Two things here are load-bearing: the family→class map is **parsed out of `katex.min.css`**, never hard-coded, so it survives a KaTeX upgrade; and the stylesheet is emitted only for views that actually contain a formula, because the inlined woff2 faces are 254 KB for the full set.
 - `// ── marked renderer overrides ──` – custom `code` and `image` handlers on `marked`.
 - `// ── parsing ──` – `parseLecture()` and helpers (`parseTagPrefix`, `splitHeading`, `parseAttributeTail`).
 - `// ── rendering ──` + `// ── print CSS ──` – print (document) renderer.
@@ -102,6 +107,7 @@ Checks enforced:
 - Per-tag word-count budgets (principle/question 80, definition 200, example 250, free 250, exercise 350; title/figure unlimited). Counted against the **on-screen** half only: the `::: slide` block if the chunk has one, otherwise everything outside `::: script`.
 - Duplicate `::: slide` / `::: script` blocks in one chunk (warning).
 - Assets over the 2 MB inline cap (`oversized-asset`, warning) – the pre-commit gate for the single-file property.
+- Unclosed display math (`unclosed-math`, warning). Fence-aware. Inline `$…$` is deliberately not checked: a lone dollar in prose is legitimate and the build leaves it alone.
 - Reveal-overuse (>50% of chunks using segments in a lecture flags a warning).
 - Orphan columns (columns with <2 chunks).
 - Figure caption redundancy (`figure:` chunk opens with an image whose alt text becomes a `<figcaption>` stacked under the heading – discourages three-label pile-ups of heading + sub-heading + caption).
@@ -148,4 +154,6 @@ Chunk grammar: `## tag: Heading | Sub-Heading {.width #id}` where `tag` is one o
 - Don't commit generated HTML outputs – they are regenerated per build and gitignored. Exception: `lectures/tutorial/{audience,print,speaker}.html` are tracked so the tour is browsable from the repo; rebuild and commit when the tutorial source changes.
 - `{#id}` attributes on chunks are **frozen once authored**. They are the anchor for cross-references, TOC entries, speaker-sync snapshots, and localStorage persistence. Don't renumber them reflexively when headings change.
 - Shiki is loaded once and cached across `--watch` rebuilds; adding a new language means extending `SHIKI_LANGS` (and optionally `LANG_ALIAS`) at the top of `build.js`.
+- **Math delimiters are `marked` extensions, and the inline rule must keep refusing to cross a backtick.** marked runs custom inline extensions *before* its own `codespan` tokenizer, so relaxing the content class lets a stray `$` in prose pair with one inside a following code span and swallow the delimiting backtick. This was a real regression, not a hypothetical: `a price of $5 and $10, ` + backtick-`$PATH` rendered as a formula reading `10, ` + backtick.
+- **`FOCUSABLE_SEL` in `AUDIENCE_JS` must stay a single constant.** Audience and speaker each resolve `figureIdx` against their own DOM, so the two windows focus different elements the moment their selectors disagree. Adding a focusable element type means editing that one string.
 - **Everything inlined lives in a template literal.** Two edit mistakes are easy and expensive there: a raw backtick (even inside a comment) ends the literal, and an unterminated `/*` in a CSS block silently swallows every rule up to the next `*/`. The first throws at parse time; the second used to ship broken, so `assertStylesheetsWellFormed()` runs on every `buildOnce` and turns it into a hard error. Never write a backtick inside `AUDIENCE_JS` / `SPEAKER_JS` comments – name the identifier plainly instead.

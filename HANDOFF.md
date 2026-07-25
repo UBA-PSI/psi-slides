@@ -265,6 +265,46 @@ Beim Faktencheck herausgefallen und korrigiert: „drei Views“ (sind vier), �
 
 Nicht angefasst (bewusst): die drei `figure-caption-redundant`-Warnungen in `python-intro`, weshalb `node lint.js lectures/ --strict` weiterhin mit 2 endet. Das ist Lecture-Content, kein Doku-Thema. Ebenso offen: `README` verlinkt noch keine Live-Demo, weil Pages erst nach dem Push aktiviert werden kann – eine Zeile, sobald die URL steht.
 
+## Math-Slice (KaTeX, build-time, konditionaler Font-Payload)
+
+Auslöser: beim Doku-Pass fiel auf, dass `build.js` KaTeX im Header-Kommentar führt, aber `grep -c katex build.js` 0 sagt – die Doku hat ein Feature versprochen, das nie gelandet war. PRD §2 und §9 Schritt 4 spezifizieren `$inline$` / `$$block$$` mit Build-Zeit-Rendering seit jeher; dieser Slice implementiert einfach die Spec.
+
+**Warum Build-Zeit und nicht Runtime.** Steht so schon in §9: kein LaTeX-Flash beim Kameraschwenk. Der eigentliche Zwang ist aber §1 – die Outputs müssen aus `file://` ohne Server öffnen. Ein Runtime-KaTeX bräuchte ein Script-Tag; ein Build-Zeit-KaTeX braucht nur die Fonts.
+
+**Und die Fonts sind das ganze Design-Problem.** Rendern sind drei Zeilen. Die 20 woff2-Faces sind 254 KB, base64 rund 350 KB, mal vier Views – das kann man nicht jeder formelfreien Lecture aufdrücken. Also zwei Stufen:
+
+1. Das Stylesheet wird **nur** emittiert, wenn das gerenderte HTML tatsächlich `class="katex` enthält. Eine Lecture ohne Mathe zahlt exakt null Bytes (verifiziert: `grep -c KaTeX_ lectures/demo/audience.html` → 0).
+2. Innerhalb dessen nur die tatsächlich benutzten Font-Familien. Welche Klasse zu welcher Familie gehört, wird **aus `katex.min.css` geparst**, nicht im Code tabelliert – die CSS weiß das selbst (`.amsrm{font-family:KaTeX_AMS}`), und ein KaTeX-Upgrade kann die Zuordnung dann nicht stillschweigend brechen. Gleiche Haltung wie `imageSize()`. Praxis: Tutorial 3 Familien / 119 KB, ein Entropie-lastiges Test-Chunk 5 Familien / 129 KB, statt 254 KB.
+
+Nicht gemacht, bewusst: Subsetting auf **Face**-Ebene (Main-Bold und Main-BoldItalic sind zusammen 42 KB und oft ungenutzt). Ableitbar wäre es – dieselben CSS-Regeln setzen auch `font-weight`/`font-style` – aber ein übersehenes Face heißt synthetisch fetter Text, und für ein Tool mit diesem Typografie-Anspruch ist das der falsche Trade. Kandidat für später.
+
+**Der Bug, der das Ganze interessant machte.** Die Delimiter laufen als `marked`-Extensions, nicht als Regex-Vorlauf über den Source-String – dadurch sind Fences schon konsumiert, bevor Mathe drankommt. Für **inline** stimmte diese Begründung aber nicht: marked ruft Custom-Inline-Extensions **vor** dem eigenen `codespan`-Tokenizer. Gemessen, nicht theoretisiert:
+
+```
+a price of $5 and $10, `$PATH` in code, and Lapsus$ end.
+```
+
+wurde zu einer Formel mit dem Inhalt ``10, ` `` – das `$10` paarte sich mit dem `$` *innerhalb* des Code-Spans und fraß den öffnenden Backtick. Fix: Backtick aus der Content-Klasse ausschließen (`[^\\$\n\`]`). Damit kann Mathe eine Inline-Code-Grenze in keiner Richtung mehr überqueren, und ein Dollar-Paar komplett *innerhalb* von Backticks wird nie exponiert, weil `codespan` den Span vorher konsumiert.
+
+Die Kantenfälle, an denen das hängt (kein Test-Verzeichnis, per Konvention – aber der Slice hat gezeigt, dass sie sich lohnen). Als Wegwerf-Script gegen `marked` nach dem Import von `build.js` laufen lassen, erwartetes Ergebnis in Klammern:
+
+- `Size $|S|$ matters.` (Mathe) · `$$d = \frac{H}{\log_2 n}$$` (Mathe)
+- `Costs $5 and $10 in total.` (kein Mathe) · `A literal \$ sign` (kein Mathe)
+- ``Shell `export $PATH` here.`` (kein Mathe) · ``a price of $5 and $10, `$PATH` in code, and Lapsus$ end.`` (kein Mathe, **und** der Code-Span muss als `<code>$PATH</code>` überleben – das ist die Regression)
+- ``  `cost: $a$ dollars` `` (kein Mathe) · Fence mit `$HOME` (kein Mathe) · Fence mit `$$not display$$` (kein Mathe)
+- `Lapsus$ is the group.` (kein Mathe) · `$ x $ has spaces.` (kein Mathe) · `Multi\nline $a\nb$ no.` (kein Mathe)
+- `Set $A$ and set $B$ differ.` (Mathe) · `Bold **$x^2$** works.` (Mathe) · Liste mit `$\alpha$` (Mathe) · `$$` auf eigenen Zeilen (Mathe)
+
+**Collapse.** Zwei Guards in `splitSentencesIn`, beide notwendig und der zweite erst durch einen Screenshot aufgefallen. `wrapProse` darf nicht *in* das KaTeX-Markup absteigen – die verschachtelten Spans tragen die Layout-CSS, dazwischengeschobene `span.prose` zerlegen die Formel sichtbar. Aber „nicht absteigen“ allein war falsch: Inline-Mathe in Fortsetzungsprosa blieb dann stehen, während die Wörter drumherum verschwanden, und die kollabierte Folie zeigte „an observed message.|S|“. Richtig ist **wrappen statt absteigen**: die Formel bekommt selbst ein `span.prose`, verschwindet mit ihrem Satz und bleibt innen unangetastet. Dritter Guard: der Satzende-Test darf `textContent` einer Formel nicht prüfen, weil KaTeX eine versteckte MathML-Kopie mitliefert und das nicht der Text ist, den der Leser sieht.
+
+Display-Mathe ist block-level und wird von den `topic-bold`-Regeln gar nicht erfasst – es bleibt stehen wie eine Figur oder ein Code-Block. Das ist die gewollte Semantik und kostete keine Zeile CSS.
+
+**Figure-Focus.** `.chunk-body .math-display` ist in die fokussierbaren Elemente aufgenommen – eine Formel ist genau das, was ein Raum größer sehen will. Dabei fiel auf, dass der Selektor an **fünf** Stellen wörtlich dupliziert war, und die Speaker-Sync adressiert Fokus-Ziele über `figureIdx`, also über die Position in genau dieser Liste. Zwei auseinandergelaufene Kopien hätten die beiden Fenster auf verschiedene Elemente fokussieren lassen. Jetzt eine Konstante `FOCUSABLE_SEL` oben in `AUDIENCE_JS`.
+
+**Fehlerverhalten.** `throwOnError: false` – eine kaputte Formel rendert rot statt den Build zu killen, weil ein Tippfehler mitten in der Vorlesung nicht den Projektor leeren darf. Damit sie nicht stumm ausgeliefert wird, prüft `renderMath` das Ergebnis auf `katex-error` und `buildOnce` meldet sie dedupliziert auf dem Terminal. `lint.js` hat zusätzlich `unclosed-math` (fence-aware, zero-dep); Inline-`$` wird bewusst nicht geprüft, weil ein einzelner Dollar in Prosa legitim ist.
+
+**Regression.** Alle drei Lectures bauen, `lint.js lectures/` unverändert bei 3 Warnungen (die bekannten `figure-caption-redundant` in python-intro), Tutorial jetzt 10 Columns / 34 Chunks mit einem `#math`-Chunk als lebendem Beispiel. Der Header-Kommentar in `build.js`, der KaTeX als deferred führte, ist korrigiert.
+
 ## Was funktioniert
 
 - `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.
