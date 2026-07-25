@@ -189,6 +189,37 @@ Auslöser: Die Schwester-Repo `psi-slides-mylectures` hat angefangen, mermaid-ge
 
 Follow-up: Eine eingebaute Mermaid-Build-Pipeline (fenced ` ```mermaid ` block → headless render → inline SVG) ist weiterhin offen (siehe `Empfehlungen` weiter unten). Sie würde den gleichen `inlineSvg`-Pfad als Sink verwenden – das Splice-Shape ist also bereits in place. Bis dahin bleibt die Konvention: SVGs (Mermaid oder hand-authored) liegen in `lectures/<slug>/assets/`, werden via `![](fig-id)` referenziert, und das Build splict sie inline-mit-Theme-Inheritance.
 
+## Review-Slice (Overview-Sync, expliziter Slide-Modus, Selbstdokumentation)
+
+Auslöser: nach einem ganzen Semester im Realbetrieb waren drei Dinge chronisch. Der Overview-Mode „sprang irgendwo hin", die Lecturer-Ansicht erklärte sich nicht selbst (konkret: wie man Slide/Notes-Arrangement ändert), und der `topic-bold`-Collapse zwang Fließtext in eine Form, die Fließtext nicht mag. Alles vier E2E gegen ein echtes audience+speaker-Fensterpaar verifiziert, vorher und nachher.
+
+**1. Overview – vier Defekte, eine Ursache.** Kamera und Auswahl hingen an derselben Variable (`selectedIdx`), also *musste* jeder Klick die Bühne bewegen, und `applyOverviewCamera` addierte dabei den noch stehenden Drag-Pan: die angeklickte Folie wurde zentriert und dann um den alten Pan-Betrag weggeschoben. PRD §5 hatte „select it (thick border, no camera move)" die ganze Zeit korrekt spezifiziert – der Code war von seiner eigenen Spec abgedriftet.
+
+Dazu kam die Sync-Asymmetrie: der `overview`-Handler stand innerhalb von `if (VIEW === 'audience')`, also lief die Synchronisation nur speaker → audience. Umgekehrt blieben die Fenster dauerhaft in verschiedenen Modi – und schlimmer, der Speaker übernahm den Overview-Drag-Pan der Audience und wendete ihn auf die *Normalkamera* an: gemessen `translate(-1596px, -1607px)`, also ein leeres Cockpit, während die Audience nur scrollte. Vierter Punkt: Pfeiltasten im Overview verschoben `activeIdx` hinter einem unveränderten Auswahlrahmen, ein `Esc` danach landete auf einer nie gewählten Folie.
+
+- Neue Invariante: `overviewAnchorIdx` bestimmt allein die Kamera, `selectedIdx` allein den Rahmen. Framing ist damit eine reine Funktion von `(anchor, scale, pan)`, alle drei reisen im State-Snapshot mit – die beiden Fenster kommen konstruktionsbedingt auf identische Pixel (im Test byte-gleiche `transform`-Strings).
+- Die separate `{type:'overview'}`-Message ist weg. Zwei Kanäle für eine Tatsache waren genau die Ursache von Defekt 3.
+- Pfeile bewegen im Overview die Auswahl und re-ankern (Kamera folgt, weil das Ziel meist außerhalb des Bildes liegt); ein Klick tut beides nicht.
+- `speaker.md` §2 behauptete noch, der ganze Overview-Cluster sei per-View-lokal. Das stimmte seit `8a835d3` (Camera-Sync) nicht mehr und ist jetzt nachgezogen, inklusive vollständiger Feldliste und Message-Katalog.
+
+**2. Expliziter Slide-Modus (`::: slide` / `::: script`).** Das eigentliche Format-Thema. Die Ableitung „erster Satz plus Bold-Fragmente" ist billig zu autoren und hält Print und Screen in einem Text, kostet aber eine harte Schreibbedingung: jeder Absatz muss mit einem bullet-fähigen Satz öffnen. Für argumentförmige Chunks ist das der richtige Tausch, für lange Befund- oder Walkthrough-Chunks kämpft es gegen den Text.
+
+Jetzt entscheidet der Chunk, in drei Regeln: `::: slide`-Block vorhanden → nur der ist Leinwand; sonst `::: script` vorhanden → alles außer dem ist Leinwand; sonst wie bisher. Bewusst billig gebaut – kein neuer Runtime-State, kein neues Sync-Feld, kein dritter Halt im `C`-Zyklus. Der Parser emittiert zwei Wrapper-Divs wie die anderen Layout-Directives, der Modus ist CSS (`:has()` unter `[data-collapse=topic-bold]`) plus ein `closest()`-Guard in `splitSentencesIn`. Print und `none` zeigen beide Hälften in Source-Order.
+
+Zwei Fallen, die der Verschachtelungs-Test aufgedeckt hat und die als Warnung taugen:
+
+- Der Hide-Selector darf **nicht** `.reveal-segment > *` sein. Ein `::: slide` in einem `::: side`-Pane hängt unter einem Wrapper-Div, der Wrapper ist selbst nicht `.slide-explicit`, wird versteckt und nimmt den Slide-Block mit – der Chunk kollabierte auf gar nichts. Korrekt ist tiefenunabhängig: `*:not(.slide-explicit):not(:has(.slide-explicit)):not(.slide-explicit *)`.
+- Der Guard gehört an das **Reveal-Segment**, nicht an den Chunk. Per-Chunk blankte ein Segment ohne expliziten Block komplett aus, statt auf die Ableitung zurückzufallen.
+- Lint zählt das Density-Budget nur noch auf der Bildschirm-Hälfte. Erzählung ist absichtlich unbudgetiert, sonst wäre der ganze Modus sinnlos.
+
+**3. Selbstdokumentation.** `#hints` (fünf Zeilen Buchstaben-Liste, `?`-versteckt) ist ersetzt durch ein nach *Aufgabe* gruppiertes Vollbild-Panel in beiden Live-Views, generiert aus einer Datenstruktur (`renderHelpOverlay(view)`), damit Speaker- und Audience-Fassung nicht auseinanderlaufen. Entscheidend: **Maus-Gesten stehen neben den Tasten.** Notes-Pane resizen, Figur anklicken, Overview-Board draggen – nichts davon hat eine Taste, und genau danach hatte ich gesucht und nicht gefunden. Dazu die Einstiege, weil `?` selbst nicht auffindbar ist: dezenter `?`-Button unten links (im Overview und bei `B` ausgeblendet), Footer-Buttons für die drei tastenkritischen Cockpit-Aktionen (`⇄ preview`, `export notes`, `? help`), und der Notes-Divider benennt seine eigene Geste beim Hover statt sich auf ein `title`-Attribut zu verlassen.
+
+**4. Zwei Nebenfunde.** Überschriften wurden komplett escaped, also rendern Backticks in Headings literal – betrifft 19 Überschriften in der Content-Repo, in allen vier Views falsch. Jetzt `marked.parseInline` plus die fehlenden Code-Span-Styles (die Regeln waren auf `.chunk-body`/`.exp-body` gescoped, ein Heading-Code-Span erbte Default-Monospace auf 1em). Und: das Tutorial dokumentierte zwei Dinge, die es nie gab (vier Collapse-Modi, Pfeiltasten-Auswahl im Overview) und drei der acht Tags nie – ist jetzt neu geschrieben, 9 Spalten / 29 Chunks, jeder Chunk passt auf 1920×1080.
+
+**5. `assertStylesheetsWellFormed()`.** Während des Nesting-Fixes habe ich Kommentartext hinter ein `*/` gesetzt und damit stumm jede Regel bis zum nächsten `*/` gelöscht – inklusive `.script-only`, also war auch `::: script` kaputt, ohne dass irgendwas warnte. Weil jedes Stylesheet hier in einem Template-Literal lebt, wo dieser Fehler unsichtbar ist, läuft die Prüfung jetzt bei jedem `buildOnce` und bricht hart ab. Mit einer absichtlich kaputten Kopie verifiziert. Der Schwesterfehler (Backtick in einem Kommentar innerhalb von `AUDIENCE_JS`) wirft immerhin schon beim Parsen – mir zweimal in dieser Session passiert, jetzt in CLAUDE.md notiert.
+
+Regression: alle 19 realen Lectures bauen weiter (0 Fehler), Lint unverändert bei 15 Warnungen, 38 inline-Runtimes parsen, und die 10-Punkte-E2E-Suite (Overview bidirektional, Drag-Mirror, Pfeil-Auswahl, Klick-ohne-Bewegung, Landing, Collapse/Theme/Font-Sync, Help-Overlay, Chunk-Nav) ist grün.
+
 ## Was funktioniert
 
 - `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.
