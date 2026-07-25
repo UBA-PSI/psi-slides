@@ -218,7 +218,20 @@ Zwei Fallen, die der Verschachtelungs-Test aufgedeckt hat und die als Warnung ta
 
 **5. `assertStylesheetsWellFormed()`.** Während des Nesting-Fixes habe ich Kommentartext hinter ein `*/` gesetzt und damit stumm jede Regel bis zum nächsten `*/` gelöscht – inklusive `.script-only`, also war auch `::: script` kaputt, ohne dass irgendwas warnte. Weil jedes Stylesheet hier in einem Template-Literal lebt, wo dieser Fehler unsichtbar ist, läuft die Prüfung jetzt bei jedem `buildOnce` und bricht hart ab. Mit einer absichtlich kaputten Kopie verifiziert. Der Schwesterfehler (Backtick in einem Kommentar innerhalb von `AUDIENCE_JS`) wirft immerhin schon beim Parsen – mir zweimal in dieser Session passiert, jetzt in CLAUDE.md notiert.
 
-Regression: alle 19 realen Lectures bauen weiter (0 Fehler), Lint unverändert bei 15 Warnungen, 38 inline-Runtimes parsen, und die 10-Punkte-E2E-Suite (Overview bidirektional, Drag-Mirror, Pfeil-Auswahl, Klick-ohne-Bewegung, Landing, Collapse/Theme/Font-Sync, Help-Overlay, Chunk-Nav) ist grün.
+**6. `--optimize-images`.** Nachgezogener Fix für den Nebenfund oben: Assets über dem 2-MB-Cap bleiben externe Pfade, das Output ist dann nicht mehr self-contained, und man merkt es nicht – zwei Decks in der Content-Repo waren in diesem Zustand.
+
+Wichtig ist, was der Verb **nicht** macht, weil die naheliegende Antwort die falsche ist. Die Annahme „zu viele Pixel“ hält der Messung nicht stand: der schlimmste Fall war 3,03 MB bei exakt 1920×1080, also schon Folienauflösung – die Bytes sind PNG als schlechter Fit für fotografischen Inhalt. Gleichzeitig zoomt Figure-Focus auf `FIG_MAX_SCALE` (8×), das 3968 px breite Diagramm im selben Ordner hat nur 875 KB und ist absichtlich hochauflösend. Downscaling hätte also ein Feature beschädigt, um ein Problem zu lösen, das dort nicht existiert.
+
+- WebP q92: 12–18 % des Originals über die echten Assets (3,03 → 0,44 MB; eine ganze Lecture 6,6 → 1,15 MB). Bei 3× Pixel-Zoom auf Text über fotografischem Hintergrund nicht vom Original unterscheidbar. Lossless erreicht nur 32–69 % und reicht nicht zuverlässig unters Cap. `--max-width` ist opt-in für echte Ausreißer.
+- Encoder werden geshellt (`cwebp`, sonst `magick`), nicht als npm-Dependency aufgenommen: gelegentlicher Authoring-Schritt, nicht der Build-Pfad. `sips` liegt auf jedem Mac, kann aber **kein** WebP schreiben – es gibt also keinen Zero-Install-Fallback, was ein weiteres Argument gegen Konversion in `buildOnce` ist.
+- `imageSize()` liest Dimensionen aus PNG-IHDR / JPEG-SOF, zero-dep, weil `cwebp -resize W 0` ein schmaleres Bild klaglos **hochskaliert**. Beim Testen aufgefallen: `--max-width 2000` hatte das 1920px-Asset vergrößert. Der Kommentar behauptete eine Prüfung, die nicht existierte.
+- WebP ist nicht immer kleiner (flächige PNGs gewinnen manchmal). Eine verlierende Konversion wird verworfen und als „kept original“ berichtet, nicht als Ersparnis gezählt.
+- Originale werden ersetzt, weil `IMG_EXTS` `png` **vor** `webp` auflöst – ein liegengebliebenes PNG würde die neue Datei verdecken und die Konversion wirkungslos machen. Explizite Pfade in `source.md` werden umgeschrieben; die 84 Shorthand-Refs `![](fig-id)` brauchen keine Änderung.
+- Sichtbarkeit, weil die alte Log-Zeile durchrutschte: `warnOversizedAsset()` nennt Konsequenz und Fix, und `lint.js` hat eine `oversized-asset`-Warnung (weiterhin zero-dep) als Pre-Commit-Gate. Findet exakt die zwei echten Fälle über alle 19 Lectures und schweigt nach der Konversion.
+
+Regression: alle 19 realen Lectures bauen weiter (0 Fehler), Lint unverändert bei 15 Warnungen plus die 2 neuen `oversized-asset`-Treffer, 38 inline-Runtimes parsen, und die 10-Punkte-E2E-Suite (Overview bidirektional, Drag-Mirror, Pfeil-Auswahl, Klick-ohne-Bewegung, Landing, Collapse/Theme/Font-Sync, Help-Overlay, Chunk-Nav) ist grün.
+
+Kleine Test-Lektion für spätere Slices: Bilder tragen `loading="lazy"`, und auf der großen Stage ist fast alles off-screen. `naturalWidth` ist dort *immer* 0, ein `await img.decode()` über 16 Bilder sprengt das Tool-Timeout. Der belastbare Check ist, die base64-Payloads aus dem HTML zu extrahieren und mit `magick identify` zu validieren – schneller und deterministisch.
 
 ## Was funktioniert
 
