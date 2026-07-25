@@ -598,6 +598,8 @@ function parseLecture(src) {
         //   ::: side             – 2-pane grid; switch panes with ::: flip
         //   ::: flip             – mid-marker of a ::: side pair
         //   ::: marginalia       – aside that extends into the right margin
+        //   ::: slide            – explicit on-screen content (§4.5)
+        //   ::: script          – explicit narration, hidden on screen (§4.5)
         //   :::                  – closes the innermost layout (or expansion)
         const target = currentExpansion ? currentExpansion.lines : bodyLines;
         const colsOpen = line.match(/^:::\s+cols\s+(2|3)\s*$/);
@@ -618,6 +620,24 @@ function parseLecture(src) {
         if (/^:::\s+marginalia\s*$/.test(line)) {
           target.push('', `<aside class="marginalia">`, '');
           layoutStack.push('</aside>');
+          continue;
+        }
+        // Explicit-slide mode (§4.5). These two are the escape hatch from
+        // topic-sentence extraction: instead of deriving what the projector
+        // shows from the shape of the prose, the author states it outright.
+        //   ::: slide   – this, and only this, is on screen when collapsed
+        //   ::: script  – everything *but* this is on screen when collapsed
+        // Both are plain wrappers; the whole mode lives in CSS (see the
+        // [data-collapse=topic-bold] rules), so there is no new runtime
+        // state, no new sync field, and no third entry in the C cycle.
+        if (/^:::\s+slide\s*$/.test(line)) {
+          target.push('', `<div class="slide-explicit">`, '');
+          layoutStack.push('</div>');
+          continue;
+        }
+        if (/^:::\s+script\s*$/.test(line)) {
+          target.push('', `<div class="script-only">`, '');
+          layoutStack.push('</div>');
           continue;
         }
         // :::  –  closes the innermost open layout, or the expansion.
@@ -1162,6 +1182,19 @@ a:hover { text-decoration-color: var(--ink); }
 }
 .marginalia > :first-child { margin-top: 0; }
 .marginalia > :last-child { margin-bottom: 0; }
+
+/* Explicit-slide blocks (§4.5). Print shows both halves in source order –
+   it is the reading copy, and losing either would defeat the point. The
+   slide block keeps a hairline marker so a reader can tell what the room
+   actually saw; the script block is the narration around it. */
+.slide-explicit {
+  margin: 0.5em 0;
+  padding-left: 0.9rem;
+  border-left: 1.5pt solid var(--rule);
+}
+.slide-explicit > :first-child { margin-top: 0; }
+.slide-explicit > :last-child { margin-bottom: 0; }
+.script-only { margin: 0.4em 0; }
 
 /* Baseline: any raw <img> (e.g. direct-path Markdown images that bypass
    the figure.figure-img wrapper) is constrained to the page measure so
@@ -2258,6 +2291,27 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
   opacity: 0.6;
 }
 
+/* Explicit-slide mode (§4.5) – the alternative to deriving the slide from
+   the prose. Precedence, highest first:
+     1. chunk has a ::: slide   → show only that block
+     2. chunk has a ::: script  → show everything except that block
+     3. neither                 → topic sentence + promoted bolds (above)
+   Rule 1 wins so a chunk can carry both: the slide block is the screen,
+   the script block plus any loose prose is the narration.
+   Inside an explicit block nothing is abridged – splitSentencesIn skips
+   these subtrees entirely, so paragraphs render whole. */
+[data-collapse=topic-bold] .chunk-body:has(.slide-explicit) .reveal-segment > *:not(.slide-explicit),
+[data-collapse=topic-bold] .script-only { display: none; }
+
+/* Print and the un-collapsed reading mode show both, in source order, so
+   nothing an author wrote is ever lost. The slide block keeps a quiet
+   marker there: it is the part the room actually saw. */
+.slide-explicit { border-inline-start: 2px solid var(--rule); padding-inline-start: 0.9em; }
+[data-collapse=topic-bold] .slide-explicit { border-inline-start: none; padding-inline-start: 0; }
+.slide-explicit > :first-child { margin-block-start: 0; }
+.slide-explicit > :last-child { margin-block-end: 0; }
+.script-only { color: var(--ink-soft); }
+
 /* blank mode */
 body.blanked #stage-viewport { background: oklch(0.06 0 0); }
 body.blanked #stage { opacity: 0; }
@@ -2950,6 +3004,10 @@ function splitSentencesIn(root) {
   };
   root.querySelectorAll('p').forEach(p => {
     if (p.querySelector('.sentence-head')) return;
+    // Explicit-slide blocks opt out of sentence extraction: the author has
+    // already said what belongs on screen, so splitting their paragraphs
+    // into head/rest would only give the collapse CSS something to hide.
+    if (p.closest('.slide-explicit, .script-only')) return;
     const head = document.createElement('span'); head.className = 'sentence-head';
     const rest = document.createElement('span'); rest.className = 'sentence-rest';
     let mode = 'head';

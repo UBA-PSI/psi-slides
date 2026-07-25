@@ -314,6 +314,19 @@ a:hover { text-decoration-color: var(--ink); }
 .marginalia > :first-child { margin-top: 0; }
 .marginalia > :last-child { margin-bottom: 0; }
 
+/* Explicit-slide blocks (§4.5). Print shows both halves in source order –
+   it is the reading copy, and losing either would defeat the point. The
+   slide block keeps a hairline marker so a reader can tell what the room
+   actually saw; the script block is the narration around it. */
+.slide-explicit {
+  margin: 0.5em 0;
+  padding-left: 0.9rem;
+  border-left: 1.5pt solid var(--rule);
+}
+.slide-explicit > :first-child { margin-top: 0; }
+.slide-explicit > :last-child { margin-bottom: 0; }
+.script-only { margin: 0.4em 0; }
+
 /* Baseline: any raw <img> (e.g. direct-path Markdown images that bypass
    the figure.figure-img wrapper) is constrained to the page measure so
    high-resolution screenshots cannot overflow A4. */

@@ -818,6 +818,27 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
   opacity: 0.6;
 }
 
+/* Explicit-slide mode (§4.5) – the alternative to deriving the slide from
+   the prose. Precedence, highest first:
+     1. chunk has a ::: slide   → show only that block
+     2. chunk has a ::: script  → show everything except that block
+     3. neither                 → topic sentence + promoted bolds (above)
+   Rule 1 wins so a chunk can carry both: the slide block is the screen,
+   the script block plus any loose prose is the narration.
+   Inside an explicit block nothing is abridged – splitSentencesIn skips
+   these subtrees entirely, so paragraphs render whole. */
+[data-collapse=topic-bold] .chunk-body:has(.slide-explicit) .reveal-segment > *:not(.slide-explicit),
+[data-collapse=topic-bold] .script-only { display: none; }
+
+/* Print and the un-collapsed reading mode show both, in source order, so
+   nothing an author wrote is ever lost. The slide block keeps a quiet
+   marker there: it is the part the room actually saw. */
+.slide-explicit { border-inline-start: 2px solid var(--rule); padding-inline-start: 0.9em; }
+[data-collapse=topic-bold] .slide-explicit { border-inline-start: none; padding-inline-start: 0; }
+.slide-explicit > :first-child { margin-block-start: 0; }
+.slide-explicit > :last-child { margin-block-end: 0; }
+.script-only { color: var(--ink-soft); }
+
 /* blank mode */
 body.blanked #stage-viewport { background: oklch(0.06 0 0); }
 body.blanked #stage { opacity: 0; }
@@ -2520,6 +2541,10 @@ function splitSentencesIn(root) {
   };
   root.querySelectorAll('p').forEach(p => {
     if (p.querySelector('.sentence-head')) return;
+    // Explicit-slide blocks opt out of sentence extraction: the author has
+    // already said what belongs on screen, so splitting their paragraphs
+    // into head/rest would only give the collapse CSS something to hide.
+    if (p.closest('.slide-explicit, .script-only')) return;
     const head = document.createElement('span'); head.className = 'sentence-head';
     const rest = document.createElement('span'); rest.className = 'sentence-rest';
     let mode = 'head';

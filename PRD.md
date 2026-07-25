@@ -235,20 +235,54 @@ Additional moves available inside the slide:
 
 ### 4.5 Collapse modes (projector-only)
 
-The projector view can selectively hide parts of each slide's body to reduce information density while the slide is read aloud. Four composable modes:
+The projector view can selectively hide parts of each slide's body to reduce information density while the slide is read aloud. `C` cycles two modes:
 
 | Mode | What remains visible |
 |---|---|
-| `full` | All body prose |
-| `topic` | First sentence of each paragraph only |
-| `bold` | Only `<strong>` phrases (in any paragraph) + headings |
-| `topic+bold` | First sentence of every paragraph, plus any bold phrases in the rest |
+| `none` | All body prose – the rehearsal and recap mode |
+| `topic-bold` | First sentence of every paragraph, plus any bold phrases in the rest |
+
+`topic-bold` is the default: the speaker narrates the topic sentences aloud while bold phrases anchor the eye. The `topic`-only and `bold`-only modes from the original four-mode design were dropped – in practice nobody reached for them, and each extra stop in the cycle costs a keypress during a live talk.
 
 Collapse applies to the *projector* stage only; the presenter view always shows the full text. The collapse setting is a lecture-time affordance, not a source-level decision — authors write the full prose once; the speaker chooses the collapse level per lecture.
 
-`topic+bold` is the expected default for most live teaching: the speaker narrates the topic sentences aloud while bold phrases anchor the eye. `full` is the rehearsal/recap mode. `topic` and `bold` are specialist modes for fast skim passes.
+**Explicit slide content (`::: slide` / `::: script`).** Deriving the slide from the shape of the prose asks a lot of the author: every paragraph has to open with a sentence that works as a standalone bullet, which fights against writing continuous text. Two directives opt a chunk out of the derivation and let the author state the split outright:
 
-**Collapse composes with progressive reveal (§4.6).** Each reveal segment is independently filtered by the active collapse mode. In `topic+bold` with three reveal segments, advancing reveal shows the topic sentence and bold phrases of segment 1, then segment 2, then segment 3 – never the full body unless collapse is toggled to `full`.
+```markdown
+## principle: Anonymity needs a crowd {#anon-crowd}
+
+::: slide
+- Anonymity is a property of the **crowd**, not of the channel
+- A mix with a single user protects nobody
+:::
+
+Anonymity only arises once enough others do the same thing. A mix node that
+forwards one message reveals it by timing alone – no cryptanalysis needed …
+```
+
+The dual form, for chunks where the narration is the shorter half to mark:
+
+```markdown
+## definition: Anonymity set {#anon-set}
+
+The anonymity set is the set of all senders that could plausibly have sent
+an observed message.
+
+::: script
+Formally an equivalence class over the attacker's observation model, and the
+model decides the size …
+:::
+```
+
+Precedence, highest first: a `::: slide` block is the slide; otherwise everything outside `::: script` is the slide; otherwise `topic-bold` applies as before. Rule 1 wins, so a chunk may carry both blocks. Consequences by design:
+
+- **Per-chunk, not per-lecture.** Mixed decks work, and every existing lecture keeps behaving exactly as it did – the derivation is the fallback, not the deprecated path.
+- **No new mode in the `C` cycle.** `none` still shows everything in source order; `topic-bold` still means "what the room sees". The author's markup, not a global switch, decides which half that is.
+- **Nothing is abridged inside an explicit block.** Sentence extraction skips those subtrees, so paragraphs, lists, figures, and code render whole.
+- **Print keeps both halves** in source order, with the slide block marked by a hairline rule. The reading copy is the union; only the projector is the selection.
+- **Density budgets (lint) apply to the on-screen half only.** Narration is deliberately unbudgeted – writing it freely is the entire point.
+
+**Collapse composes with progressive reveal (§4.6).** Each reveal segment is independently filtered by the active collapse mode. In `topic-bold` with three reveal segments, advancing reveal shows the topic sentence and bold phrases of segment 1, then segment 2, then segment 3 – never the full body unless collapse is toggled to `none`. Explicit blocks compose the same way: a `::: slide` inside segment 2 becomes visible when segment 2 does.
 
 ### 4.6 Progressive reveal
 

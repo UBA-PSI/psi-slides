@@ -77,7 +77,8 @@ A source file can silence specific lint warnings with an HTML comment anywhere i
 Design implications:
 
 - A line that is exactly `---` inside a chunk body but **outside a code fence** is a reveal-segment separator, not a thematic break. `***` is available if an author needs a true horizontal rule.
-- `::: expand <label>` and `::: margin` / `::: marginalia` become separate nodes attached to the chunk; `::: cols N`, `::: side` / `::: flip` are layout wrappers that stay inline in the body as `<div>`/`<aside>` elements and let `marked`'s html-block passthrough render the inner Markdown.
+- `::: expand <label>` and `::: margin` / `::: marginalia` become separate nodes attached to the chunk; `::: cols N`, `::: side` / `::: flip`, `::: slide` / `::: script` are layout wrappers that stay inline in the body as `<div>`/`<aside>` elements and let `marked`'s html-block passthrough render the inner Markdown.
+- `::: slide` / `::: script` are the **explicit slide-content** escape hatch from topic-sentence extraction (PRD §4.5). They add no runtime state and no sync field: the parser emits `.slide-explicit` / `.script-only` wrappers and the whole mode is CSS (`:has()` rules under `[data-collapse=topic-bold]`), plus a `closest()` guard in `splitSentencesIn` so explicit blocks are never abridged.
 - Speaker notes are blockquotes whose first line matches `note:` exactly; they attach to the current chunk (or to the next one if they precede the first chunk).
 
 ### lint.js is independent
@@ -89,7 +90,8 @@ Checks enforced:
 - Unknown tag, unknown width class.
 - Duplicate or missing chunk IDs (required on every non-title chunk).
 - Unclosed `:::` directives and orphan `:::` closers.
-- Per-tag word-count budgets (principle/question 80, definition 200, example 250, free 250, exercise 350; title/figure unlimited).
+- Per-tag word-count budgets (principle/question 80, definition 200, example 250, free 250, exercise 350; title/figure unlimited). Counted against the **on-screen** half only: the `::: slide` block if the chunk has one, otherwise everything outside `::: script`.
+- Duplicate `::: slide` / `::: script` blocks in one chunk (warning).
 - Reveal-overuse (>50% of chunks using segments in a lecture flags a warning).
 - Orphan columns (columns with <2 chunks).
 - Figure caption redundancy (`figure:` chunk opens with an image whose alt text becomes a `<figcaption>` stacked under the heading – discourages three-label pile-ups of heading + sub-heading + caption).
@@ -108,7 +110,9 @@ Image assets are inlined into the single-file outputs by default (auto-inline bu
 
 ### Authoring contract
 
-Every chunk must open with a **topic sentence that stands on its own**, because in the live audience view the `topic-bold` collapse mode renders only that sentence plus any `**bold**` fragments. Authors promote bullet-worthy phrases to bold; unbolded continuation prose renders only in print. This shapes both the render logic (the `splitSentencesIn` walker and collapse CSS) and the lint budgets (narrow tags have small budgets because the topic sentence is the payload).
+By default every chunk must open with a **topic sentence that stands on its own**, because in the live audience view the `topic-bold` collapse mode renders only that sentence plus any `**bold**` fragments. Authors promote bullet-worthy phrases to bold; unbolded continuation prose renders only in print. This shapes both the render logic (the `splitSentencesIn` walker and collapse CSS) and the lint budgets (narrow tags have small budgets because the topic sentence is the payload).
+
+A chunk can opt out of that derivation with `::: slide` (this block is the screen) or `::: script` (everything but this block is the screen). Use it when the argument wants continuous prose that no first-sentence rule can carve up sensibly. See PRD §4.5.
 
 Chunk grammar: `## tag: Heading | Sub-Heading {.width #id}` where `tag` is one of `title`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`, and width is one of `narrow`, `standard`, `wide`, `full`. The `|` sub-heading and the `{...}` attribute tail are both optional.
 

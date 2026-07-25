@@ -100,6 +100,10 @@ function lintFile(filePath) {
   let col = null;
   let chunk = null;
   let chunkBody = [];
+  // Explicit-slide mode splits a chunk body into three buckets so the
+  // density budget can be applied to whatever actually lands on screen.
+  let slideBody = [];
+  let scriptBody = [];
   let chunkHasReveal = false;
   let inFence = false;
   let activeDirective = null;
@@ -114,10 +118,17 @@ function lintFile(filePath) {
     if (!chunk) return;
     const budget = DENSITY_BUDGET[chunk.tag ?? 'free'];
     if (budget !== null) {
-      const wc = wordCountOf(chunkBody);
+      // What counts against the budget is the on-screen half: the ::: slide
+      // block if the chunk has one, otherwise everything the author did not
+      // park in ::: script. Narration is unbudgeted by design – writing it
+      // freely is the whole point of the explicit mode.
+      const onScreen = slideBody.length ? slideBody : chunkBody;
+      const wc = wordCountOf(onScreen);
+      const scope = slideBody.length ? ' in ::: slide'
+        : scriptBody.length ? ' outside ::: script' : '';
       if (wc > budget) {
         add(chunk.line, 'warn', 'density',
-            `chunk body is ${wc} words (budget for ${chunk.tag ?? 'free'}: ${budget})`);
+            `chunk body is ${wc} words${scope} (budget for ${chunk.tag ?? 'free'}: ${budget})`);
       }
     }
     // Figure chunks where the image sits directly below the heading:
@@ -162,6 +173,8 @@ function lintFile(filePath) {
     col.chunks.push(chunk);
     chunk = null;
     chunkBody = [];
+    slideBody = [];
+    scriptBody = [];
     chunkHasReveal = false;
   };
 
@@ -259,20 +272,37 @@ function lintFile(filePath) {
       continue;
     }
 
-    // Layout directives (::: cols N / side / flip / marginalia) stay
-    // inline in the body as HTML wrappers. They have their own small
-    // stack so bare `:::` closes the innermost layout first, and the
-    // outer sidebar directive only after.
+    // Layout directives (::: cols N / side / flip / marginalia / slide /
+    // script) stay inline in the body as HTML wrappers. They have their
+    // own small stack so bare `:::` closes the innermost layout first,
+    // and the outer sidebar directive only after.
     const colsOpen = line.match(/^:::\s+cols\s+(2|3)\s*$/);
     const sideOpen = /^:::\s+side\s*$/.test(line);
     const flipMark = /^:::\s+flip\s*$/.test(line);
     const marginaliaOpen = /^:::\s+marginalia\s*$/.test(line);
-    if (colsOpen || sideOpen || marginaliaOpen) {
+    const slideOpen = /^:::\s+slide\s*$/.test(line);
+    const scriptOpen = /^:::\s+script\s*$/.test(line);
+    if (colsOpen || sideOpen || marginaliaOpen || slideOpen || scriptOpen) {
       if (!chunk) {
         add(ln, 'error', 'stray-directive',
             `::: layout directive outside any chunk`);
       }
-      const kind = colsOpen ? `cols ${colsOpen[1]}` : sideOpen ? 'side' : 'marginalia';
+      const kind = colsOpen ? `cols ${colsOpen[1]}`
+        : sideOpen ? 'side'
+        : marginaliaOpen ? 'marginalia'
+        : slideOpen ? 'slide' : 'script';
+      if (slideOpen || scriptOpen) {
+        // One explicit block of each kind per chunk. A second one would
+        // render fine but splits the on-screen content into pieces the
+        // author can no longer reason about as "the slide".
+        const seen = slideOpen ? 'slide' : 'script';
+        if (chunk && chunk[seen + 'Seen']) {
+          add(ln, 'warn', 'duplicate-explicit-block',
+              `second ::: ${seen} in one chunk (first at line ${chunk[seen + 'Seen']}) – merge them`);
+        } else if (chunk) {
+          chunk[seen + 'Seen'] = ln;
+        }
+      }
       layoutStack.push({ kind, line: ln });
       continue;
     }
@@ -309,7 +339,13 @@ function lintFile(filePath) {
         if (/^>/.test(line)) continue;
         inMetaBlock = false;
       }
-      chunkBody.push(line);
+      // Density is a budget on what the *projector* shows, so explicit
+      // blocks are counted separately: ::: slide content is the slide,
+      // ::: script content is narration that never reaches the screen.
+      const inKind = (k) => layoutStack.some(l => l.kind === k);
+      if (inKind('slide')) slideBody.push(line);
+      else if (inKind('script')) scriptBody.push(line);
+      else chunkBody.push(line);
     }
   }
   flushChunk();
