@@ -1374,7 +1374,7 @@ ${chunks}
 // The overview badge + search input is identical in both live views;
 // keeping it a single constant means label/hotkey changes land once.
 const OVERVIEW_BADGE_HTML = `<div id="overview-badge">
-  <span class="hint">overview · drag · wheel · click · <kbd>O</kbd>/<kbd>Enter</kbd> land · <kbd>/</kbd> search · <kbd>Esc</kbd></span>
+  <span class="hint">overview · drag pans · wheel zooms · click or <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> selects · <kbd>O</kbd>/<kbd>Enter</kbd> lands · <kbd>/</kbd> search · <kbd>Esc</kbd> leaves</span>
   <input id="search-input" type="text" placeholder="search..." autocomplete="off" spellcheck="false">
 </div>`;
 
@@ -2562,9 +2562,20 @@ let annotations = {};          // chunkId -> text
 const revealed = {};           // chunkId -> count of visible segments
 
 // overview / TOC / search (PRD §5)
+//
+// Two independent indices, deliberately: overviewAnchorIdx is the *only*
+// thing the overview camera is centred on, selectedIdx is only the
+// outline. Coupling them (the original design) forces every click to
+// move the stage, which makes click-to-select feel like the view runs
+// away from you. Keeping them apart means the framing is a pure function
+// of (anchor, scale, pan) – all three travel in the sync payload, so the
+// two views land on identical pixels.
 let overview = false;
 let overviewScale = 0.28;
-let selectedIdx = 0;           // overview selection (independent of activeIdx)
+const OVERVIEW_MIN_SCALE = 0.08;
+const OVERVIEW_MAX_SCALE = 1;
+let selectedIdx = 0;           // overview selection outline (independent of activeIdx)
+let overviewAnchorIdx = 0;     // chunk the overview camera is centred on
 let manualPan = { dx: 0, dy: 0 };
 let searchActive = false;
 let tocVisible = false;
@@ -2707,7 +2718,14 @@ function snapshot() {
     // audience aspect above), plus overview scale and the framed chunk.
     panDx: manualPan.dx,
     panDy: manualPan.dy,
+    // Overview travels in the snapshot rather than in a side-channel
+    // message. It used to be its own postMessage type handled only on the
+    // audience side, which meant audience→speaker never synced and the
+    // speaker could sit in normal-camera mode while adopting the
+    // audience's overview drag-pan – driving its stage off screen.
+    overview: overview,
     overviewScale: overviewScale,
+    overviewAnchorIdx: overviewAnchorIdx,
     selectedIdx: selectedIdx,
   };
 }
@@ -2721,7 +2739,11 @@ function broadcastState() {
 // navigation or a freshly (re)connected peer still lands on the right pan.
 function broadcastPan() {
   if (!shouldBroadcast()) return;
-  sendToPeer({ type: 'pan', source: VIEW, dx: manualPan.dx, dy: manualPan.dy, overviewScale, selectedIdx });
+  sendToPeer({
+    type: 'pan', source: VIEW,
+    dx: manualPan.dx, dy: manualPan.dy,
+    overviewScale, overviewAnchorIdx, selectedIdx,
+  });
 }
 let panBroadcastScheduled = false;
 function schedulePanBroadcast() {
@@ -2730,14 +2752,25 @@ function schedulePanBroadcast() {
   requestAnimationFrame(() => { panBroadcastScheduled = false; broadcastPan(); });
 }
 // Apply a peer's camera framing (from a 'pan' message or a state snapshot).
-function applyRemoteCamera(dx, dy, ovScale, selIdx) {
+// Clamped to the same range the local wheel handler enforces, so a peer
+// running an older build can't push us to an unreachable scale.
+function applyRemoteCamera(dx, dy, ovScale, selIdx, anchorIdx) {
   manualPan.dx = dx || 0;
   manualPan.dy = dy || 0;
-  if (typeof ovScale === 'number' && ovScale > 0) overviewScale = ovScale;
-  if (typeof selIdx === 'number' && selIdx >= 0 && selIdx < flatChunks.length) {
-    flatChunks.forEach((c, i) => c.el.classList.toggle('overview-selected', i === selIdx));
-    selectedIdx = selIdx;
+  if (typeof ovScale === 'number' && ovScale > 0) {
+    overviewScale = Math.max(OVERVIEW_MIN_SCALE, Math.min(OVERVIEW_MAX_SCALE, ovScale));
   }
+  const inRange = (n) => typeof n === 'number' && n >= 0 && n < flatChunks.length;
+  if (inRange(selIdx)) {
+    selectedIdx = selIdx;
+    // Only paint the outline while the mode is actually on: the snapshot
+    // keeps carrying selectedIdx after an exit, and re-adding the class
+    // here would undo the teardown setOverviewMode just did.
+    if (overview) {
+      flatChunks.forEach((c, i) => c.el.classList.toggle('overview-selected', i === selIdx));
+    }
+  }
+  if (inRange(anchorIdx)) overviewAnchorIdx = anchorIdx;
 }
 function applyRemoteState(payload) {
   isApplyingRemote = true;
@@ -2788,10 +2821,14 @@ function applyRemoteState(payload) {
       }
     }
     document.body.classList.toggle('blanked', state.blanked);
+    // Overview first: it decides which projection focusCamera picks, and
+    // entering/leaving zeroes manualPan – so it has to run before the
+    // camera fields are restored from the payload below.
+    setOverviewMode(!!payload.overview, { selectActive: false });
     // Mirror the peer's camera framing before the camera is drawn below, so
     // focusCamera / applyOverviewCamera pick up the same drag-pan, overview
     // scale, and framed chunk.
-    applyRemoteCamera(payload.panDx, payload.panDy, payload.overviewScale, payload.selectedIdx);
+    applyRemoteCamera(payload.panDx, payload.panDy, payload.overviewScale, payload.selectedIdx, payload.overviewAnchorIdx);
     // Expansions: close any current, open the remote one if any. toggleExp
     // calls applyState internally, so skip the second call in that branch.
     closeAnyExpansion();
@@ -2826,7 +2863,7 @@ window.addEventListener('message', (ev) => {
   if (m.type === 'pan') {
     isApplyingRemote = true;
     try {
-      applyRemoteCamera(m.dx, m.dy, m.overviewScale, m.selectedIdx);
+      applyRemoteCamera(m.dx, m.dy, m.overviewScale, m.selectedIdx, m.overviewAnchorIdx);
       focusCamera(true);
     } finally { isApplyingRemote = false; }
     return;
@@ -2857,11 +2894,6 @@ window.addEventListener('message', (ev) => {
       figureScale = Math.max(FIG_MIN_SCALE, Math.min(FIG_MAX_SCALE, m.scale || 1));
       figurePan = { x: m.panX || 0, y: m.panY || 0 };
       applyFigureTransform();
-      return;
-    }
-    if (m.type === 'overview') {
-      if (m.active && !overview) toggleOverview();
-      else if (!m.active && overview) exitOverview(false);
       return;
     }
   }
@@ -3013,11 +3045,13 @@ function focusCamera(instant = false) {
   if (instant) requestAnimationFrame(() => { stage.style.transition = ''; });
 }
 
-// Overview camera: translate-and-scale to center the selected chunk at
-// --overview-scale. The selected chunk (not the active one) drives
-// framing, so click-to-select in overview re-centers on each pick.
+// Overview camera: translate-and-scale to center the anchor chunk at
+// --overview-scale. The anchor is set when overview opens (the active
+// chunk) and whenever the selection is moved *by keyboard or search* –
+// never by a mouse click, so clicking a thumbnail leaves the stage
+// exactly where it is.
 function applyOverviewCamera(instant = false) {
-  const entry = flatChunks[selectedIdx] || flatChunks[state.activeIdx];
+  const entry = flatChunks[overviewAnchorIdx] || flatChunks[state.activeIdx];
   if (!entry) return;
   const vp = vpLayout();
   const { left, top, width, height } = getOffset(entry.el, stage);
@@ -3029,23 +3063,72 @@ function applyOverviewCamera(instant = false) {
   if (instant) requestAnimationFrame(() => { stage.style.transition = ''; });
 }
 
-function setSelectedIdx(idx) {
+// Move the overview selection outline. opts.recenter decides whether the
+// camera follows: a mouse click must NOT move the stage (the thumbnail
+// you clicked has to stay under the cursor), while keyboard selection
+// and search-commit do move, because the target can be off screen.
+// Recentring re-anchors *and* drops the accumulated drag-pan – leaving
+// the old offset in place would shove the freshly centred chunk right
+// back out by however far you had dragged.
+function setSelectedIdx(idx, opts = {}) {
   if (idx < 0 || idx >= flatChunks.length) return;
   flatChunks.forEach((c, i) => c.el.classList.toggle('overview-selected', i === idx));
   selectedIdx = idx;
-  if (overview) { applyOverviewCamera(false); broadcastPan(); }
+  if (!overview) return;
+  if (opts.recenter) {
+    overviewAnchorIdx = idx;
+    manualPan = { dx: 0, dy: 0 };
+    applyOverviewCamera(false);
+  }
+  broadcastPan();
 }
 
-// Shared teardown for both the O-toggle exit and the Esc-style dismiss.
-// The caller decides whether the selected chunk should become active —
-// O lands on it, Esc keeps the original.
-function exitOverview(landOnSelected) {
-  if (!overview) return;
+// Column-wise selection jump in overview: land on the first chunk of the
+// next/previous column. Mirrors nextCol/prevCol, but moves the selection
+// rather than the live slide.
+function selectOverviewCol(dir) {
+  const cur = flatChunks[selectedIdx];
+  if (!cur) return;
+  if (dir > 0) {
+    for (let i = selectedIdx + 1; i < flatChunks.length; i++) {
+      if (flatChunks[i].colIdx > cur.colIdx) return setSelectedIdx(i, { recenter: true });
+    }
+    return setSelectedIdx(flatChunks.length - 1, { recenter: true });
+  }
+  for (let i = selectedIdx - 1; i >= 0; i--) {
+    if (flatChunks[i].colIdx < cur.colIdx) {
+      let j = i;
+      while (j > 0 && flatChunks[j - 1].colIdx === flatChunks[i].colIdx) j--;
+      return setSelectedIdx(j, { recenter: true });
+    }
+  }
+  setSelectedIdx(0, { recenter: true });
+}
+
+// Single entry point for entering/leaving overview, used by both the
+// local hotkeys and applyRemoteState. Idempotent, so re-applying an
+// unchanged remote flag costs nothing.
+//   opts.landOnSelected – on exit, make the selected chunk the live one
+//                         (O lands, Esc keeps the original)
+//   opts.selectActive   – on entry, seed the selection from activeIdx.
+//                         Off for remote applies, where the payload's
+//                         own selectedIdx/anchor land right afterwards.
+function setOverviewMode(on, opts = {}) {
+  if (!!on === overview) return;
+  if (on) {
+    overview = true;
+    document.body.classList.add('overview-mode');
+    manualPan = { dx: 0, dy: 0 };
+    overviewAnchorIdx = state.activeIdx;
+    if (opts.selectActive !== false) setSelectedIdx(state.activeIdx);
+    applyOverviewCamera(false);
+    return;
+  }
   endSearch();
   overview = false;
   document.body.classList.remove('overview-mode');
   manualPan = { dx: 0, dy: 0 };
-  if (landOnSelected && selectedIdx !== state.activeIdx) {
+  if (opts.landOnSelected && selectedIdx !== state.activeIdx) {
     state.activeIdx = selectedIdx;
     applyState();
     saveActive();
@@ -3054,13 +3137,17 @@ function exitOverview(landOnSelected) {
   focusCamera(false);
 }
 
+// Local (user-driven) transitions broadcast a full snapshot, which is
+// what carries the overview flag to the peer in both directions.
+function exitOverview(landOnSelected) {
+  if (!overview) return;
+  setOverviewMode(false, { landOnSelected });
+  broadcastState();
+}
+
 function toggleOverview() {
-  if (overview) { exitOverview(true); return; }
-  overview = true;
-  document.body.classList.add('overview-mode');
-  manualPan = { dx: 0, dy: 0 };
-  setSelectedIdx(state.activeIdx);
-  applyOverviewCamera(false);
+  setOverviewMode(!overview, { landOnSelected: true });
+  broadcastState();
 }
 
 function dismissOverviewNoMove() { exitOverview(false); }
@@ -3116,7 +3203,8 @@ function updateSearch() {
 }
 function commitSearchFirstMatch() {
   const first = flatChunks.findIndex(c => c.el.classList.contains('search-match'));
-  if (first >= 0) setSelectedIdx(first);
+  // Recentre: the match is usually somewhere else entirely on the board.
+  if (first >= 0) setSelectedIdx(first, { recenter: true });
   endSearch();
 }
 
@@ -3295,7 +3383,7 @@ function wireClicks() {
   flatChunks.forEach((entry, idx) => {
     entry.el.addEventListener('click', (ev) => {
       // Overview: click selects (no camera move, no expansion, no annotate).
-      if (overview) { setSelectedIdx(idx); return; }
+      if (overview) { setSelectedIdx(idx, { recenter: false }); return; }
       if (ev.target.closest('.annot-textarea')) return;
       if (ev.target.closest('[data-annot-add]')) { startAnnotate(entry.id); return; }
       if (ev.target.closest('.annot-box')) { startAnnotate(entry.id); return; }
@@ -3362,6 +3450,18 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { e.target.blur(); e.preventDefault(); }
     return;
   }
+  // In overview the arrows move the *selection*, never the live slide.
+  // They used to fall through to nextChunk/nextCol, which silently
+  // re-pointed the active chunk while the visible outline stayed put –
+  // so an Esc afterwards dropped you on a slide you never picked.
+  if (overview) {
+    switch (e.key) {
+      case 'ArrowDown':  setSelectedIdx(selectedIdx + 1, { recenter: true }); e.preventDefault(); return;
+      case 'ArrowUp':    setSelectedIdx(selectedIdx - 1, { recenter: true }); e.preventDefault(); return;
+      case 'ArrowRight': selectOverviewCol(1);  e.preventDefault(); return;
+      case 'ArrowLeft':  selectOverviewCol(-1); e.preventDefault(); return;
+    }
+  }
   switch (e.key) {
     case 'ArrowRight': nextCol(); e.preventDefault(); break;
     case 'ArrowLeft':  prevCol(); e.preventDefault(); break;
@@ -3394,11 +3494,7 @@ document.addEventListener('keydown', (e) => {
         break;
       }
       if (tocVisible) { tocVisible = false; document.body.classList.remove('toc-visible'); break; }
-      if (overview) {
-        dismissOverviewNoMove();
-        if (shouldBroadcast()) sendToPeer({ type: 'overview', active: false });
-        break;
-      }
+      if (overview) { dismissOverviewNoMove(); break; }
       if (annotEditingId) { blurAnnotation(); break; }
       if (manualPan.dx || manualPan.dy) { manualPan = { dx: 0, dy: 0 }; focusCamera(false); break; }
       if (openExp) { closeAnyExpansion(); broadcastState(); setTimeout(() => focusCamera(false), 20); }
@@ -3420,10 +3516,7 @@ document.addEventListener('keydown', (e) => {
     case 'c': case 'C': cycleCollapse(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'f': case 'F': cycleFont(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'a': case 'A': cycleTheme(e.shiftKey ? -1 : 1); e.preventDefault(); break;
-    case 'o': case 'O':
-      toggleOverview();
-      if (shouldBroadcast()) sendToPeer({ type: 'overview', active: overview });
-      e.preventDefault(); break;
+    case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
     case '/': if (overview) { startSearch(); e.preventDefault(); } break;
     case '+': case '=':
@@ -3497,7 +3590,7 @@ viewport.addEventListener('wheel', (e) => {
   if (!overview) return;
   e.preventDefault();
   const factor = e.deltaY > 0 ? 0.92 : 1.08;
-  overviewScale = Math.max(0.08, Math.min(1, overviewScale * factor));
+  overviewScale = Math.max(OVERVIEW_MIN_SCALE, Math.min(OVERVIEW_MAX_SCALE, overviewScale * factor));
   applyOverviewCamera(false);
   schedulePanBroadcast();
 }, { passive: false });

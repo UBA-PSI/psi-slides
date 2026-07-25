@@ -320,9 +320,11 @@ Zoom-induced overflow (when a chunk's rendered height exceeds viewport at high z
 **Overview (`O`):** Birds-eye view of the entire lecture – all columns, all chunks, rendered at reduced scale on a single pannable plane. This is the primary live-navigation tool for jumping to an arbitrary chunk.
 
 - Click a slide to **select** it (thick border, no camera move). Selection is a stable state: you can inspect neighbors, scroll around, keep looking.
+- Arrow keys move the **selection**, not the live slide: `↑`/`↓` step chunk-wise, `←`/`→` jump to the neighbouring column's first chunk. Unlike a click, keyboard selection re-centres the camera on the new pick, because the target is often outside the current frame.
 - Press `O` again (or `Enter`) to **land** on the selected slide: overview dismisses, camera pans to that chunk.
 - `Esc` dismisses overview without moving.
 - Drag to pan. Wheel to adjust zoom (CSS scale on the overview stage only, so distance changes but text still reflows at any zoom level).
+- The framing is a pure function of `(anchor chunk, scale, pan)`, and all three travel in the sync payload, so audience and speaker show the same board pixel-for-pixel. The anchor is set on entry and on keyboard/search selection; a click changes only the outline. See `speaker.md` §2.
 - `/` starts **fulltext search**: as you type, chunks whose body, heading, or expansion text matches narrow to highlighted matches; non-matches dim. Enter commits the first match as the selection. This is the tool for "I want the slide where I said X".
 
 **TOC overlay (`T`):** A fixed side panel with a **flat** list of column headings only, not chunks. `Enter` jumps the camera to that column's first slide. The TOC's primary home is the **print view**, where chapter-level navigation is load-bearing for a linear document; in the live view it is a quick section-jump fallback. Overview + fulltext search is the main live-navigation path.

@@ -35,19 +35,33 @@ The audience is the **state root**. The speaker owns a **local shadow** of the s
 |---|---|---|
 | `activeIdx` | integer | current chunk |
 | `revealed` | `{id: count}` | reveal segments per chunk |
-| `collapse` | enum | `none` / `topic` / `topic-bold` / `bold` |
+| `collapse` | enum | `none` / `topic-bold` |
 | `zoom` | float | text scale multiplier |
 | `blanked` | bool | audience blackout |
 | `annotations` | `{id: string}` | speaker-edited, mirrors to audience |
+| `annotEditingId` | id / null | so the non-editing peer raises the box and pans along |
+| `openExp` | `{chunkIdx, expIdx}` | expansions are mirrored, see below |
+| `audienceW`, `audienceH` | integers | audience window dims; speaker matches its preview aspect |
+| `panDx`, `panDy` | floats | manual drag-pan, layout-space |
+| `overview` | bool | overview mode |
+| `overviewScale` | float | overview zoom, clamped to 0.08 … 1 |
+| `overviewAnchorIdx` | integer | chunk the overview camera is centred on |
+| `selectedIdx` | integer | overview selection outline |
 
 **State that stays local** (never posted to the peer):
 
 | Field | Who owns it | Why |
 |---|---|---|
-| `overview`, `selectedIdx`, `overviewScale`, `manualPan` | per-view | overview is a planning surface; each side runs its own |
-| `tocVisible`, `searchActive` | per-view | same |
-| `annotEditingId` | per-view | edit-state is transient and UI-local |
+| `tocVisible`, `searchActive` | per-view | navigational scratch space, not a shared surface |
+| notes-pane height, preview orientation | speaker only | physical-screen preferences, persisted globally |
 | timer elapsed | speaker only | speaker-side artifact |
+
+**Camera and overview sync** (revised after implementation): the original design kept the whole overview cluster local, on the theory that overview is a private planning surface. That did not survive contact with a real two-screen setup – the lecturer looks at the speaker window while the projector shows the audience one, and an overview that only exists on one of them is worse than none.
+
+The overview framing is therefore a pure function of `(overviewAnchorIdx, overviewScale, panDx, panDy)`, all four of which ride every snapshot. Consequences worth knowing:
+
+- `selectedIdx` is *only* the outline. It deliberately does not drive the camera, so clicking a thumbnail in overview leaves the stage where it is. Keyboard selection and search-commit re-anchor (`overviewAnchorIdx = selectedIdx`) and zero the pan; a click does neither.
+- `overview` used to travel in its own `{type: 'overview', active}` message that was only handled on the audience side. That single-directional handler is gone. Two channels for one fact is what let the speaker sit in normal-camera mode while adopting the audience's overview drag-pan, which drove its stage several thousand pixels off screen.
 
 **Sync additions (revised after implementation):**
 
@@ -66,18 +80,39 @@ Every message is a **full snapshot**, never a diff. Snapshots are cheap, and thi
 
 ```javascript
 // Sent by either side on any syncable state change (if push enabled).
+// Payload is the full field list from §2 – see snapshot() in build.js.
 {
   type: 'state',
   source: 'audience' | 'speaker',
   payload: {
     activeIdx: number,
     revealed: { [chunkId: string]: number },
-    collapse: 'none' | 'topic' | 'topic-bold' | 'bold',
+    collapse: 'none' | 'topic-bold',
     zoom: number,
     blanked: boolean,
     annotations: { [chunkId: string]: string },
+    annotEditingId: string | null,
+    openExp: { chunkIdx: number, expIdx: number } | null,
+    audienceW: number, audienceH: number,
+    panDx: number, panDy: number,
+    overview: boolean,
+    overviewScale: number,
+    overviewAnchorIdx: number,
+    selectedIdx: number,
   }
 }
+
+// Lightweight camera update, rAF-throttled during a drag or wheel-zoom so
+// the peer follows smoothly without re-running the full snapshot apply
+// 60x/second. The same fields also ride every 'state' snapshot, so a
+// navigation or a freshly reconnected peer still converges on the framing.
+{ type: 'pan', source, dx, dy, overviewScale, overviewAnchorIdx, selectedIdx }
+
+// Speaker-to-audience only: laser pointer and figure inspection.
+{ type: 'cursor', source: 'speaker', chunkIdx, x, y, target: 'chunk' | 'figure' }
+{ type: 'figure-focus' | 'figure-pan', chunkIdx, figureIdx }
+{ type: 'figure-unfocus' }
+{ type: 'figure-view', scale, panX, panY }
 
 // Sent by speaker on open; audience replies with current state.
 { type: 'hello', source: 'speaker' }
@@ -85,6 +120,8 @@ Every message is a **full snapshot**, never a diff. Snapshots are cheap, and thi
 // Audience reply to a hello.
 { type: 'state', source: 'audience', payload: { ... } }
 ```
+
+The `figure-*` and `cursor` messages are the one remaining deliberately one-directional family: the audience acts on them, the speaker ignores them. Figure inspection is a lecturer gesture, and the audience window is normally on a projector nobody clicks.
 
 Receive rule: any incoming `state` replaces the local state wholesale (except for the always-local fields in §2). No merging, no conflict resolution. If both sides edit the same field within one tick, last write wins.
 
@@ -134,8 +171,9 @@ Speaker inherits audience nav bindings, plus:
 | `.` | **Force-push** current state to audience |
 | `Shift`-`P` | Toggle push-to-audience |
 | `Shift`-`E` | **Export annotation drafts**: copy every live `annotations[id]` as a marker-wrapped `> annot:` block to the clipboard, then ask before clearing the drafts from localStorage. A declined confirm or blocked clipboard leaves drafts untouched, so the raw notes can always be rescued on a second try. The pasted block is consumed by `node build.js <source.md> --integrate-annotations`, which moves each `> annot:` under its chunk and removes the marker block. |
-| `T` | Toggle a small TOC overlay (same as audience) |
-| `O`, `/` | **Local overview & search on the speaker**, never broadcast |
+| `T` | Toggle a small TOC overlay (**local**, never broadcast) |
+| `O` | Toggle overview – **broadcasts**, both windows enter and leave together |
+| `/` | Fulltext search inside overview (**local**: the filter highlight is not synced, only the selection it commits to) |
 
 ### 4.3 Audience → speaker startup
 
