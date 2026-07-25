@@ -311,6 +311,32 @@ Dabei bin ich in genau den Fallstrick gelaufen, vor dem `CLAUDE.md` warnt: ein B
 
 **Regression.** Alle drei Lectures bauen, `lint.js lectures/` unverändert bei 3 Warnungen (die bekannten `figure-caption-redundant` in python-intro), Tutorial jetzt 10 Columns / 34 Chunks mit einem `#math`-Chunk als lebendem Beispiel. Der Header-Kommentar in `build.js`, der KaTeX als deferred führte, ist korrigiert.
 
+## Live-View-Slice (Suchpanel, Overview-Klick, Zoom pro Collapse-Modus, Layout-Abstände)
+
+Vier Punkte aus dem Realbetrieb, alle vom Nutzer gemeldet.
+
+**Abstände nach Layout-Blöcken.** `.cols` hatte `margin: 0.3em 0`, `.side` 0.5em – beide *enger* als der normale Absatzabstand von 0.7em. Ein Block ist aber eine stärkere visuelle Einheit als ein Absatz und braucht mehr Luft, nicht weniger; die Prosa nach einem Zweispalter las sich, als gehöre sie noch dazu. Jetzt `0.85em 0 1.2em` in der Audience, `0.8em 0 1.05em` im Print. Unten bewusst mehr als oben: das Auge braucht das Ende der Spalten deutlicher signalisiert als ihren Anfang.
+
+**Overview-Klick landet.** Vorher wählte ein Klick nur aus und man musste danach `O` oder `Enter` drücken. Die dokumentierte Begründung („Board bleibt stehen, Nachbarn vergleichen“) kannte der Nutzer gar nicht und brauchte sie nicht – ein Klick im Overview ist eine Entscheidung. `exitOverview(true)` direkt im Klick-Handler. Drag bleibt Pan, weil der `pointerdown`-Handler den synthetischen Klick jenseits von 3px Bewegung ohnehin schluckt; diese Unterscheidung existierte schon und trägt jetzt mehr Gewicht.
+
+**Suche ist eine Trefferliste und geht von überall.** Die alte Suche lief nur im Overview und markierte Treffer per Fade. Das setzte voraus, dass man auf das Board schaut und den Treffer sieht – die meisten Treffer liegen aber außerhalb des Viewports, und die nützliche Frage lautet „welche Folie sagt das“, was eine Liste beantwortet und ein Fade nicht. Jetzt ein eigenes Panel (`#search-panel`) mit Tag, Heading, Sub-Heading und dem Satz, in dem der Treffer steht, Suchbegriff hervorgehoben. `↑`/`↓` wählen, `Enter` oder Klick springt, `Esc` schließt ohne Bewegung. Im Overview folgt die Board-Auswahl dem Cursor, damit ein Treffer am anderen Ende sichtbar wird, während man noch tippt – damit ist das gewünschte „zentrieren“ ohne Debounce mit drin. Der Fade bleibt zusätzlich erhalten, er ist im Overview nach wie vor nützlich.
+
+Der Index wird einmal gebaut (Heading, Sub, Body pro Chunk) statt pro Tastendruck. Klick auf einen Treffer hängt an `mousedown`, nicht an `click`: das Input verliert vorher den Fokus, und ein `click` käme an, wenn `endSearch()` die Liste schon abgeräumt hat.
+
+**Zoom pro Collapse-Modus.** Das war die konkreteste Beschwerde: nach `C` in den Volltext musste man fünfmal `-` drücken und beim Zurückschalten fünfmal `+`. Jetzt hält der kollabierte Modus den vom Lecturer gesetzten Zoom – der wird nie automatisch angefasst – und der Volltext-Modus rechnet sich beim Eintritt einen eigenen aus, der den aktuellen Chunk aufs Bild bringt. Auto-Fit **schrumpft nur**: ein kurzer Chunk soll nicht plötzlich riesig werden, weil man mehr Text sehen wollte, nicht größeren.
+
+Der erste Fit-Versuch war falsch und ist lehrreich. Proportional zu schätzen reicht nicht, weil Zoom den Zeilenumbruch ändert; ein zweiter Korrektur-Pass löste dann aber auf „füllt exakt“ statt „passt“ und wuchs wieder über die Kante – ein Chunk blieb drei Pixel zu hoch. Jetzt: einmal proportional schätzen, dann in echten 0.05-Schritten schrumpfen bis die Invariante hält, dann in denselben Schritten zurückwachsen solange sie hält. Ohne den letzten Teil summierten sich Sicherheitsfaktor und Rundung zu Chunks, die ein Viertel kleiner waren als nötig (`#images` landete bei 0.9 statt 1.05). Über alle 34 Tutorial- und 36 python-intro-Chunks verifiziert: alle passen, keiner ist übermäßig konservativ, Chunks die ohnehin passen behalten ihren Zoom.
+
+Kein neues Sync-Feld. Es reist weiter nur der *aktive* Zoom; jedes Fenster merkt sich lokal den zuletzt in `topic-bold` gesehenen Wert, auch wenn er aus einem Remote-Snapshot kam. Beide Fenster sehen dieselbe Wertefolge, also stimmen die Erinnerungen überein, ohne das Protokoll zu verbreitern. Siehe `speaker.md` §3.
+
+**Zwei Fallstricke, beide aus der Template-Literal-Familie, beide in `CLAUDE.md` nachgetragen.**
+
+Erstens: ein Backtick in einem CSS-Kommentar innerhalb von `AUDIENCE_CSS` beendete das Literal. Der Build warf einen `SyntaxError` – aber ich hatte `2>&1 >/dev/null` in derselben Zeile, also blieb das alte HTML liegen und der Browser zeigte einen Stand, der aussah wie „CSS-Regel wirkungslos“.
+
+Zweitens, subtiler und ohne jede Fehlermeldung: **`\\s` in einem Template-Literal ist ein Escape, das der Build auflöst.** Quelltext `/\\s+/g` emittiert `/s+/g` – ein Regex, der den Buchstaben s matcht. Der Suchindex hatte dadurch jedes „s“ aus Titeln und Fließtext entfernt, weshalb „collapse“ null Treffer lieferte, obwohl das Wort überall steht. In `build.js` müssen Regex-Backslashes verdoppelt werden; der bestehende Code macht das an anderer Stelle bereits (`splitSentencesIn`), es stand nur nirgends. Merksatz für den nächsten Slice: nach jeder Änderung an einem inlined Stylesheet oder Script erst `grep -F` im gebauten HTML, dann im Browser urteilen.
+
+**Regression.** Alle drei Lectures bauen, Lint unverändert bei 3 Warnungen, Tutorial 10 Columns / 34 Chunks. Beide Views geprüft: Suche von der Folie und aus dem Overview, `Enter`, Klick, `Esc`, Overview-Klick landet und schließt, Zoom-Roundtrip über alle Chunks, keine Konsolenfehler.
+
 ## Was funktioniert
 
 - `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.

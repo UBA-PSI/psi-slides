@@ -97,8 +97,8 @@ def anonymity_set(observations, senders):
 **Press `O` now.** The stage zooms out to show every chunk at once in its column grid, and the slide you were on carries a selection outline.
 
 - **Drag** to pan the board, **wheel** to zoom it.
-- **Click** a slide to select it. The board stays exactly where it is, so you can keep comparing neighbours.
-- **Arrow keys** move the selection instead, and the board follows, because the next pick is often off screen.
+- **Click** a slide to go there – one click both selects it and leaves the board.
+- **Arrow keys** move the selection without landing, and the board follows, because the next pick is often off screen.
 - `O` or `Enter` **lands** on the selection; `Esc` leaves without moving.
 
 Overview is the fastest way to get oriented in an unfamiliar lecture: the typographic rhythm of principles, examples, and figures is visible at a glance. With a speaker connected, both windows enter, pan, zoom, and leave together.
@@ -109,11 +109,13 @@ Overview is the fastest way to get oriented in an unfamiliar lecture: the typogr
 
 Columns without a `{#id}` do not appear – anonymous columns like the title page stay invisible in the nav but still render normally. IDs on named columns are how the TOC links, and also how cross-references (a `[text](#some-id)` link in body text) resolve.
 
-## example: Search | `/` inside overview filters by keyword {.standard #search}
+## example: Search | `/` lists every slide that mentions a word {.wide #search}
 
-**Only active while `O` overview is on.** Press `O`, then `/`, then start typing – matching chunks keep their outline, non-matches fade to a low-opacity miss state. `Enter` selects the first match and centres it; `Esc` exits search without moving.
+**Press `/` from anywhere – you do not have to be in overview first.** A panel opens and every slide whose heading or body contains what you type is listed with the sentence it matched, the term highlighted.
 
-Combined: `O` `/` *word* `Enter` `O` jumps to the first chunk that mentions *word*, even in a long lecture. This is the fastest jump tool when you half-remember a topic but not its position.
+`↑` `↓` pick a hit, `Enter` or a click goes there, `Esc` closes without moving. If you opened the search from the overview board, the board follows your pick as you move down the list, so a match on the far side of the lecture comes into view while you are still choosing.
+
+This is the fastest jump tool when you half-remember a topic but not its position, which mid-lecture is most of the time. It searches the rendered text, so a word that only appears in continuation prose still finds its slide even though the room never sees that sentence.
 
 # What goes on the slide {#on-screen}
 
@@ -255,6 +257,8 @@ If the pane is collapsed because this chunk has no notes, the corner `+ note` bu
 - `+` `-` `0` set the **text size**, and `B` blanks the screen entirely.
 
 `Shift` plus any of the cycling keys goes backwards. Font and theme are stored globally rather than per lecture, so the preference follows you; zoom and collapse belong to the talk.
+
+**The two collapse modes keep separate zoom levels.** The collapsed slide holds whatever size you set with `+` and `-` – that is the projector setting, and nothing changes it behind your back. Switching to the full text picks its own zoom so the whole chunk fits the screen, and switching back restores yours exactly. Without that, every `C` was followed by a row of `-` presses and every `C` back by a row of `+` presses.
 
 # Authoring layouts {#layouts}
 

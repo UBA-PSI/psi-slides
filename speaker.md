@@ -36,7 +36,7 @@ The audience is the **state root**. The speaker owns a **local shadow** of the s
 | `activeIdx` | integer | current chunk |
 | `revealed` | `{id: count}` | reveal segments per chunk |
 | `collapse` | enum | `none` / `topic-bold` |
-| `zoom` | float | text scale multiplier |
+| `zoom` | float | text scale multiplier, whichever collapse mode is live |
 | `blanked` | bool | audience blackout |
 | `annotations` | `{id: string}` | speaker-edited, mirrors to audience |
 | `annotEditingId` | id / null | so the non-editing peer raises the box and pans along |
@@ -52,9 +52,12 @@ The audience is the **state root**. The speaker owns a **local shadow** of the s
 
 | Field | Who owns it | Why |
 |---|---|---|
-| `tocVisible`, `searchActive` | per-view | navigational scratch space, not a shared surface |
+| `tocVisible`, `searchActive`, search hits and cursor | per-view | navigational scratch space, not a shared surface. Committing a hit navigates, and *that* rides the normal snapshot |
+| `collapsedZoom` | per-view | see below |
 | notes-pane height, preview orientation | speaker only | physical-screen preferences, persisted globally |
 | timer elapsed | speaker only | speaker-side artifact |
+
+**Per-mode zoom, without a new field.** The two collapse modes carry very different amounts of text, so they keep separate zoom levels: the collapsed slide holds whatever the lecturer set, and switching to the full text computes a zoom that makes the current chunk fit. Only the *live* zoom travels, as it always did. Each window additionally remembers, locally, the zoom that was live the last time `collapse` was `topic-bold` – including zooms that arrived in a remote snapshot. Because both windows see the same sequence of zoom values, the two memories agree without the protocol having to carry a second one. Widening the snapshot for a value that is derivable from what it already contains would have been the wrong trade.
 
 **Camera and overview sync** (revised after implementation): the original design kept the whole overview cluster local, on the theory that overview is a private planning surface. That did not survive contact with a real two-screen setup – the lecturer looks at the speaker window while the projector shows the audience one, and an overview that only exists on one of them is worse than none.
 
