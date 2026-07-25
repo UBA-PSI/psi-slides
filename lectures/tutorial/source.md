@@ -276,6 +276,8 @@ Width is the slide-level decision; directives compose within. A `.wide` chunk wi
 
 :::
 
+**Columns fold to one while the slide is collapsed** – press `C` here and the two flows above stack. Collapsed, each paragraph is down to its topic sentence, and a browser will not split a paragraph across columns, so two paragraphs of one and five visible lines land as a stub beside a wall of text. The columns come back in print and in the full-text mode, where there is enough content for the flow to balance.
+
 Reveal segments still work inside `::: cols`, but mixing reveal-on-`Space` with multi-column flow is rarely worth the cognitive load – pick one rhythm or the other.
 
 ## example: Two-pane grid | `::: side` and `::: flip` {.wide #side-demo}

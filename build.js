@@ -2189,6 +2189,19 @@ body.figure-focused .chunk-num { opacity: 0; }
 .cols p { margin: 0 0 0.55em; }
 .cols p:last-child { margin-bottom: 0; }
 
+/* Collapsed, a multi-column flow stops being worth its own hazard. What
+   survives topic-bold is one sentence per paragraph plus promoted bolds,
+   and the break-inside: avoid rule above forbids splitting a paragraph
+   across columns, so the browser balances in whole paragraphs. Two
+   paragraphs of one and five visible lines therefore land as one short
+   column beside a tall one, and two short ones land as two stubs with the
+   full gutter between them – which reads as a broken layout rather than as
+   two parallel points. Single column while collapsed; print and the
+   un-collapsed reading mode keep the author's columns, where the content
+   is long enough for the flow to balance properly. */
+[data-collapse=topic-bold] .cols-2,
+[data-collapse=topic-bold] .cols-3 { column-count: 1; }
+
 /* ::: side / ::: flip  – explicit two-pane grid for figure+text */
 .side {
   display: grid;
