@@ -334,6 +334,59 @@ Reach for `::: margin` when the supplementary content is short and trustworthy e
 
 > note: The verb deliberately does not downscale. The heavy files are usually already at slide resolution – the bytes are PNG being a poor fit for photographic content. And figure focus zooms to 8×, so a high-resolution diagram is high-resolution on purpose; `--max-width` is opt-in for genuine outliers.
 
+# Writing chunks that work {#craft}
+
+## principle: The topic sentence is the slide | so write the opening line for the projector {.narrow #topic-sentence}
+
+**In derived mode the room reads your first sentences, so each one has to be a claim that survives without its paragraph.** Everything after it is print.
+
+**That rule doubles as a rehearsal test.** If the collapsed chunk would not remind *you* what you meant to say, the chunk is not finished yet.
+
+> note: Present this chunk from the collapsed view while you say it. Nothing lands the argument faster than a slide that is visibly the same text the handout carries.
+
+## example: Four ways a chunk goes soft {.wide #anti-patterns}
+
+**Most chunks that read badly on the projector fail in one of four ways**, and each one is a single edit away from working.
+
+::: slide
+
+- **Label bolds.** `**Consequence:**` collapses to a bullet reading “Consequence” and nothing else. Put the claim inside the sentence.
+- **One-word bolds.** A lone `**not**` becomes a cryptic bullet. Bold a phrase that stands alone, or bold nothing.
+- **Connector openers.** “That was deliberate.” carries no claim. Say the thing itself in the first sentence.
+- **Colon cuts.** If the substance sits after a colon at the end of the opening sentence, the cue dangles. Rewrite it as one sentence.
+
+:::
+
+All four share a shape: they read fine inside a paragraph and fall apart the moment the paragraph is taken away. Walking your own lecture once in collapsed mode, before you teach it, catches every one of them.
+
+When several parallel items pile up inside one paragraph, use a real Markdown list instead of scattering bold across the prose. A list stays legible when abridged; micro-bolding almost never does.
+
+> note: The recurring temptation is to fix a weak collapsed view by adding more bold. It is nearly always the wrong direction – fewer bolds and a stronger opening sentence is the fix.
+
+## question: Derive it, or state it? {.standard #choose-mechanism}
+
+**Derive while the chunk is an argument of one to three paragraphs; state the slide once the argument wants continuous prose.** Try the derivation first – if it keeps fighting you, that is the signal, not a failure.
+
+::: expand tag-as-predictor
+**The tag predicts the answer surprisingly well.** `principle` and `question` chunks are short enough that the first-sentence rule rarely bites. `example` and `free` chunks near their density budget are where `::: slide` earns its keep, because those are the ones carrying a walkthrough or a finding rather than a claim.
+
+A figure chunk plus a paragraph of interpretation is the other reliable case, and there `::: script` around the interpretation is less typing than wrapping the slide half.
+:::
+
+## exercise: The squint test {.wide #squint-test}
+
+**Open your own lecture in the audience view, press `C` until it is collapsed, and walk it end to end without opening the source.** Stop at every chunk you could not narrate from what is on the screen.
+
+::: cols 2
+
+**For each chunk that fails**, ask in this order: is the opening sentence a claim, or a warm-up? Would each bold fragment read as a sensible bullet on its own? Is there a list hiding inside a paragraph?
+
+**If all three answers are fine and it still reads badly,** the chunk wants `::: slide`. That is the honest outcome, not a defeat – the two mechanisms exist because neither one covers every chunk.
+
+:::
+
+> note: This is worth doing once per lecture, ideally the day before. It doubles as a rehearsal, because reading the collapsed deck is very close to actually presenting it.
+
 # Next steps {#next}
 
 ## exercise: Read more | the artefacts that close the loop {.wide #read-more}

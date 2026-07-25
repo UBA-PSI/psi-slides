@@ -411,6 +411,7 @@ pre.shiki .line { display: inline; }
     <li><a href="#vocabulary">The chunk vocabulary</a></li>
     <li><a href="#speaker">Speaker cockpit</a></li>
     <li><a href="#layouts">Authoring layouts</a></li>
+    <li><a href="#craft">Writing chunks that work</a></li>
     <li><a href="#next">Next steps</a></li>
   </ol>
 </nav>
@@ -931,10 +932,89 @@ pre.shiki .line { display: inline; }
 </aside>
 </article>
 </section>
+<section class="column" id="craft">
+  <h1 class="column-heading">Writing chunks that work</h1>
+<article class="chunk chunk-principle width-narrow" id="topic-sentence" data-chunk-num="28">
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></span>
+  <span class="chunk-label">principle</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">The topic sentence is the slide</span> <span class="hd-sub">so write the opening line for the projector</span></h2>
+  <p><strong>In derived mode the room reads your first sentences, so each one has to be a claim that survives without its paragraph.</strong> Everything after it is print.</p>
+<p><strong>That rule doubles as a rehearsal test.</strong> If the collapsed chunk would not remind <em>you</em> what you meant to say, the chunk is not finished yet.</p>
+
+  
+  
+  <aside class="speaker-note">
+<span class="speaker-note-label">Speaker Note</span>
+<div class="speaker-note-body"><p>Present this chunk from the collapsed view while you say it. Nothing lands the argument faster than a slide that is visibly the same text the handout carries.</p>
+</div>
+</aside>
+</article>
+<article class="chunk chunk-example width-wide" id="anti-patterns" data-chunk-num="29">
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading">Four ways a chunk goes soft</h2>
+  <p><strong>Most chunks that read badly on the projector fail in one of four ways</strong>, and each one is a single edit away from working.</p>
+<div class="slide-explicit">
+
+
+<ul>
+<li><strong>Label bolds.</strong> <code>**Consequence:**</code> collapses to a bullet reading “Consequence” and nothing else. Put the claim inside the sentence.</li>
+<li><strong>One-word bolds.</strong> A lone <code>**not**</code> becomes a cryptic bullet. Bold a phrase that stands alone, or bold nothing.</li>
+<li><strong>Connector openers.</strong> “That was deliberate.” carries no claim. Say the thing itself in the first sentence.</li>
+<li><strong>Colon cuts.</strong> If the substance sits after a colon at the end of the opening sentence, the cue dangles. Rewrite it as one sentence.</li>
+</ul>
+</div>
+
+
+<p>All four share a shape: they read fine inside a paragraph and fall apart the moment the paragraph is taken away. Walking your own lecture once in collapsed mode, before you teach it, catches every one of them.</p>
+<p>When several parallel items pile up inside one paragraph, use a real Markdown list instead of scattering bold across the prose. A list stays legible when abridged; micro-bolding almost never does.</p>
+
+  
+  
+  <aside class="speaker-note">
+<span class="speaker-note-label">Speaker Note</span>
+<div class="speaker-note-body"><p>The recurring temptation is to fix a weak collapsed view by adding more bold. It is nearly always the wrong direction – fewer bolds and a stronger opening sentence is the fix.</p>
+</div>
+</aside>
+</article>
+<article class="chunk chunk-question width-standard" id="choose-mechanism" data-chunk-num="30">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></span>
+  <span class="chunk-label">question</span>
+  <h2 class="chunk-heading">Derive it, or state it?</h2>
+  <p><strong>Derive while the chunk is an argument of one to three paragraphs; state the slide once the argument wants continuous prose.</strong> Try the derivation first – if it keeps fighting you, that is the signal, not a failure.</p>
+
+  <aside class="chunk-expansion chunk-expansion-expand" data-label="tag-as-predictor">
+<p><strong>The tag predicts the answer surprisingly well.</strong> <code>principle</code> and <code>question</code> chunks are short enough that the first-sentence rule rarely bites. <code>example</code> and <code>free</code> chunks near their density budget are where <code>::: slide</code> earns its keep, because those are the ones carrying a walkthrough or a finding rather than a claim.</p>
+<p>A figure chunk plus a paragraph of interpretation is the other reliable case, and there <code>::: script</code> around the interpretation is less typing than wrapping the slide half.</p>
+
+</aside>
+  
+  
+</article>
+<article class="chunk chunk-exercise width-wide" id="squint-test" data-chunk-num="31">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></span>
+  <span class="chunk-label">exercise</span>
+  <h2 class="chunk-heading">The squint test</h2>
+  <p><strong>Open your own lecture in the audience view, press <code>C</code> until it is collapsed, and walk it end to end without opening the source.</strong> Stop at every chunk you could not narrate from what is on the screen.</p>
+<div class="cols cols-2">
+
+
+<p><strong>For each chunk that fails</strong>, ask in this order: is the opening sentence a claim, or a warm-up? Would each bold fragment read as a sensible bullet on its own? Is there a list hiding inside a paragraph?</p>
+<p><strong>If all three answers are fine and it still reads badly,</strong> the chunk wants <code>::: slide</code>. That is the honest outcome, not a defeat – the two mechanisms exist because neither one covers every chunk.</p>
+</div>
+  
+  
+  <aside class="speaker-note">
+<span class="speaker-note-label">Speaker Note</span>
+<div class="speaker-note-body"><p>This is worth doing once per lecture, ideally the day before. It doubles as a rehearsal, because reading the collapsed deck is very close to actually presenting it.</p>
+</div>
+</aside>
+</article>
+</section>
 <section class="column" id="next">
   <h1 class="column-heading">Next steps</h1>
-<article class="chunk chunk-exercise width-wide" id="read-more" data-chunk-num="28">
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></span>
+<article class="chunk chunk-exercise width-wide" id="read-more" data-chunk-num="32">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></span>
   <span class="chunk-label">exercise</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the artefacts that close the loop</span></h2>
   <p><strong>Close this tab and poke around the real lectures and docs.</strong> The tour covered the keys; the craft shows in authored content.</p>
@@ -950,8 +1030,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-free width-standard" id="authoring" data-chunk-num="29">
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></span>
+<article class="chunk chunk-free width-standard" id="authoring" data-chunk-num="33">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Authoring your own</span> <span class="hd-sub"><code>--new</code>, <code>--watch</code>, <code>lint.js</code></span></h2>
   <p><strong>Three CLI entries cover the full authoring loop:</strong></p>
