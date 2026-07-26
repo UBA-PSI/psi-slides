@@ -3552,6 +3552,35 @@ const stage = document.getElementById('stage');
 const viewport = document.getElementById('stage-viewport');
 const modeBadge = document.getElementById('mode-badge');
 
+// The camera is the only thing allowed to decide what is on screen, and it
+// positions the deck with a transform on #stage. But #stage-viewport is a
+// scroll container, and overflow: hidden does not make a box unscrollable -
+// it only hides the scrollbars. The browser still scrolls it to reveal
+// things, and then every chunk sits translated by an offset the camera math
+// knows nothing about.
+//
+// Measured: opening audience.html#why-playwright left the viewport at
+// scrollLeft 3111, scrollTop 2121, which put the addressed chunk entirely
+// outside the window - a deep link into a lecture projected a blank screen.
+// Fragment navigation is the obvious way in, but not the only one: focusing
+// any control inside an off-centre chunk (an annotation textarea) or
+// find-in-page does the same thing.
+//
+// Cheaper and more robust than intercepting each of those: let the scroll
+// happen and undo it. Nothing in either view scrolls this element on
+// purpose - the preview strip and the search results have their own
+// containers - so a hard reset here cannot fight a legitimate scroll.
+//
+// Both the listener and the call in focusCamera are load-bearing. The
+// listener catches scrolls that no camera solve follows; the call covers
+// the boot fragment, which the browser may act on before this module has
+// run and attached anything.
+function resetViewportScroll() {
+  if (viewport.scrollLeft) viewport.scrollLeft = 0;
+  if (viewport.scrollTop) viewport.scrollTop = 0;
+}
+viewport.addEventListener('scroll', resetViewportScroll);
+
 // What a click can zoom into, and the ordering the speaker-sync protocol
 // addresses by index. This must be one constant: the audience and the
 // speaker resolve figureIdx against their own DOM, so the two windows
@@ -4244,6 +4273,8 @@ function getOffset(el, parent) {
   return { left: x, top: y, width: el.offsetWidth, height: el.offsetHeight };
 }
 function focusCamera(instant = false) {
+  // The transform only frames correctly from a viewport at scroll origin.
+  resetViewportScroll();
   if (overview) { applyOverviewCamera(instant); return; }
   const entry = flatChunks[state.activeIdx];
   if (!entry) return;
