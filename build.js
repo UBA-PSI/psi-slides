@@ -5231,6 +5231,26 @@ function jumpTo(idx, direction) {
   saveActive();
 }
 
+// A fragment in the address is an explicit request for one chunk, so it
+// has to select it, not merely let the browser scroll the document to it:
+// without this the deck stayed wherever its state was, the addressed chunk
+// sat at the inactive opacity, and the first arrow key jumped away from it.
+// It also outranks the position recovered from localStorage – the reader
+// followed or typed that address, the stored index is only where they
+// happened to stop last time.
+function chunkIdxFromHash() {
+  const raw = (location.hash || '').slice(1);
+  if (!raw) return -1;
+  let id = raw;
+  try { id = decodeURIComponent(raw); } catch (e) {}
+  return flatChunks.findIndex(c => c.id === id);
+}
+window.addEventListener('hashchange', () => {
+  const idx = chunkIdxFromHash();
+  if (idx < 0 || idx === state.activeIdx) return;
+  jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
+});
+
 function advanceReveal() {
   const entry = flatChunks[state.activeIdx];
   if (!entry) return false;
@@ -6268,6 +6288,10 @@ function wireFigureClicks() {
 
 // Boot
 loadPersisted();
+// After loadPersisted, so an address with a fragment wins over the
+// remembered position rather than the other way round.
+const bootHashIdx = chunkIdxFromHash();
+if (bootHashIdx >= 0) state.activeIdx = bootHashIdx;
 applyFontTheme();
 document.querySelectorAll('.reveal-segment').forEach(seg => splitSentencesIn(seg));
 wireAnnotations();
