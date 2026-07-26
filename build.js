@@ -2940,22 +2940,34 @@ body:not([data-view=speaker]).blanked #help-button { display: none; }
    on top of the timer, which the lecturer reads far more often than the help. */
 body[data-view=speaker] #help-button { display: none; }
 
+/* Mode toast. This used to be a 10px small-caps chip in the top-right
+   corner, tinted paper-on-paper – peripheral enough that the feedback for
+   a toggle regularly went unnoticed, which is the one job it has. Now:
+   top-centre, sentence-sized, white on near-black. The white hairline in
+   the box-shadow is what keeps it legible on the terminal themes, where a
+   dark toast would otherwise sit on a dark slide. */
 #mode-badge {
   position: fixed;
-  top: 14px; right: 14px;
-  background: oklch(0.98 0 0 / 0.9);
-  border: 1px solid var(--rule);
-  color: var(--ink-soft);
+  top: 18px; left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  background: oklch(0.16 0 0 / 0.94);
+  color: oklch(0.99 0 0);
   font-family: var(--sans-font);
-  font-variant-caps: all-small-caps;
-  letter-spacing: 0.12em;
-  font-size: 10px;
-  padding: 0.3rem 0.6rem;
-  display: none;
-  z-index: 20;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  padding: 0.5rem 1.1rem;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px oklch(1 0 0 / 0.28), 0 8px 26px oklch(0 0 0 / 0.32);
+  max-width: 70vw;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 130ms ease, transform 130ms ease;
+  /* Above #figure-overlay (30) so a toggle pressed while a figure is
+     zoomed still reports back. */
+  z-index: 40;
   pointer-events: none;
 }
-#mode-badge.visible { display: block; }
+#mode-badge.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* Laser pointer – the audience's mirror of the speaker's cursor.
    Speaker view does not render this (the speaker has a real cursor). */
@@ -3431,6 +3443,13 @@ function sendToPeer(msg) {
   if (!peer || peer.closed) { peer = null; return; }
   try { peer.postMessage(msg, '*'); } catch (e) { peer = null; }
 }
+// Is the other window actually there? Drives the two decisions that differ
+// between "running alone" and "driving a projector": where a mode toast
+// lands, and whether the blank badge is drawn on the projection itself.
+function hasLivePeer() {
+  if (peer && peer.closed) peer = null;
+  return !!peer;
+}
 // Audience broadcasts unconditionally; speaker overrides
 // viewHooks.shouldBroadcast to gate on its push toggle.
 function shouldBroadcast() {
@@ -3617,6 +3636,12 @@ window.addEventListener('message', (ev) => {
     applyRemoteState(m.payload);
     return;
   }
+  // A toast the audience handed over because a cockpit is open. Shown
+  // directly rather than via flashMode, which would bounce it back.
+  if (m.type === 'toast') {
+    showModeBadge(m.text);
+    return;
+  }
   // Aspect-only update: the audience window was resized (full screen, a
   // projector renegotiating its resolution). Re-letterboxes the speaker's
   // stage without touching which slide it is showing.
@@ -3778,8 +3803,7 @@ function splitSentencesIn(root) {
 const blankBadge = document.getElementById('blank-badge');
 function applyBlankBadge() {
   if (!blankBadge) return;
-  const hasPeer = !!(peer && !peer.closed);
-  const show = state.blanked && (VIEW === 'speaker' || !hasPeer);
+  const show = state.blanked && (VIEW === 'speaker' || !hasLivePeer());
   blankBadge.classList.toggle('hidden', !show);
 }
 
@@ -4462,11 +4486,22 @@ if (helpOverlay) {
 
 // Mode badge
 let modeTimer = null;
-function flashMode(text) {
+function showModeBadge(text) {
   modeBadge.textContent = text;
   modeBadge.classList.add('visible');
   if (modeTimer) clearTimeout(modeTimer);
-  modeTimer = setTimeout(() => modeBadge.classList.remove('visible'), 1500);
+  modeTimer = setTimeout(() => modeBadge.classList.remove('visible'), 1800);
+}
+// A mode toast is feedback for the lecturer, so it belongs on the screen the
+// lecturer is looking at – the cockpit – no matter which window the key was
+// pressed in. The room should not have to watch "auto-fit on" slide across
+// the projection. The audience only shows toasts when it is running alone.
+function flashMode(text) {
+  if (VIEW === 'audience' && hasLivePeer()) {
+    sendToPeer({ type: 'toast', source: VIEW, text: text });
+    return;
+  }
+  showModeBadge(text);
 }
 
 // Keyboard
@@ -5280,6 +5315,11 @@ body[data-view=speaker].notes-sized #notes-content {
 #speaker-footer #export-annot-btn:hover,
 #speaker-footer #preview-orient-btn:hover,
 #speaker-footer #speaker-help-btn:hover { background: oklch(0.93 0 0); }
+
+/* Mode toast sits at the top of the *stage*, not the top of the window:
+   row 1 is the scrubber, and a toast overlapping the column strip covers
+   exactly the navigation the lecturer is checking against. */
+body[data-view=speaker] #mode-badge { top: calc(3vh + 14px); }
 
 /* Center toast — prominent transient feedback for export-flow events.
    Placed inside the stage viewing zone (bottom-centre of #stage-cell)
