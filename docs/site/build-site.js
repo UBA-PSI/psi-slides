@@ -25,16 +25,16 @@ import { marked } from 'marked';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
 
-// What the site publishes, in the order a reader should meet it. HANDOFF is
-// deliberately absent: it is a German build diary for whoever works on the
-// tool next, not documentation for someone deciding whether to use it.
+// Only documents that are finished and written for someone deciding whether
+// to use the tool. Three are deliberately absent: PRD.md is part
+// specification and part plan, with sections describing intentions rather
+// than behaviour; speaker.md is an internal protocol note; HANDOFF.md is a
+// German build diary. All three stay in the repository for anyone who wants
+// them, but on a public documentation page they would cost more confusion
+// than they repay.
 const PAGES = [
   { src: 'docs/comparison.md', out: 'comparison.html', title: 'How psi-slides compares',
     lead: 'Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, in both directions.' },
-  { src: 'PRD.md', out: 'prd.html', title: 'Design rationale',
-    lead: 'Why four views, why this tag set, why collapse has two mechanisms and not four.' },
-  { src: 'speaker.md', out: 'speaker.html', title: 'The speaker cockpit',
-    lead: 'The cockpit spec and the postMessage sync protocol: which fields travel, which stay local.' },
 ];
 
 // Heading ids, so the in-page anchors that the Markdown already uses resolve.
@@ -136,8 +136,6 @@ footer { font-family: var(--sans); font-size: 0.8rem; color: var(--ink-soft);
 <nav class="top">
   <a href="index.html">psi-slides</a>
   <a href="comparison.html">Comparison</a>
-  <a href="prd.html">Design rationale</a>
-  <a href="speaker.html">Speaker cockpit</a>
   <a href="https://github.com/UBA-PSI/psi-slides">GitHub</a>
 </nav>
 <main>

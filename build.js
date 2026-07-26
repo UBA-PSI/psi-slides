@@ -773,6 +773,66 @@ function linkQrMap(html) {
   return out;
 }
 
+// ── bundled default fonts ───────────────────────────────────────────
+//
+// The stylesheets used to *name* their typefaces and hope the machine had
+// them. That never held: Safari does not expose locally installed fonts to
+// a page at all, as an anti-fingerprinting measure, so a lecture there fell
+// through to Georgia and system-ui no matter what the lecturer had
+// installed. The design was a suggestion rather than a guarantee.
+//
+// So the three default families ship with the tool and are embedded in
+// every output. All three are SIL OFL 1.1, which permits redistribution
+// and embedding; their licence text travels in the emitted stylesheet, as
+// the licence requires.
+//
+// Variable `wght` subsets, latin, upright plus italic: 282 KB for all three
+// together. The `opsz` cuts of the same families are nearly twice that and
+// buy an optical-size axis this design does not vary.
+//
+// An author who names their own families in `fonts:` overrides the bundle
+// for those roles; `fonts: none` turns the bundle off entirely.
+const BUNDLED_FONTS = [
+  { role: 'serif', family: 'Literata', pkg: '@fontsource-variable/literata',
+    files: { normal: 'literata-latin-wght-normal.woff2', italic: 'literata-latin-wght-italic.woff2' } },
+  // Inter Tight, not Inter: it is what the stacks already ask for first, and
+  // it happens to be the smaller of the two.
+  { role: 'sans', family: 'Inter Tight', pkg: '@fontsource-variable/inter-tight',
+    files: { normal: 'inter-tight-latin-wght-normal.woff2', italic: 'inter-tight-latin-wght-italic.woff2' } },
+  { role: 'mono', family: 'JetBrains Mono', pkg: '@fontsource-variable/jetbrains-mono',
+    files: { normal: 'jetbrains-mono-latin-wght-normal.woff2', italic: 'jetbrains-mono-latin-wght-italic.woff2' } },
+];
+
+let bundledFacesCache = null;
+function bundledFaces() {
+  if (bundledFacesCache) return bundledFacesCache;
+  const out = [];
+  for (const f of BUNDLED_FONTS) {
+    let dir;
+    try {
+      dir = path.dirname(nodeRequire.resolve(`${f.pkg}/package.json`));
+    } catch (e) {
+      const err = new Error(
+        `The bundled font package ${f.pkg} is missing. Run: npm install`
+      );
+      err.userFacing = true;
+      throw err;
+    }
+    for (const [style, file] of Object.entries(f.files)) {
+      const abs = path.join(dir, 'files', file);
+      const buf = fs.readFileSync(abs);
+      out.push({
+        role: f.role, family: f.family, style,
+        // Variable across the whole weight range, so bold needs no second file.
+        weight: '100 900',
+        bytes: buf.length,
+        src: `url(data:font/woff2;base64,${buf.toString('base64')}) format('woff2')`,
+      });
+    }
+  }
+  return (bundledFacesCache = out);
+}
+
 // ── embedded webfonts ───────────────────────────────────────────────
 //
 // Everything else in an output file is self-contained; type was not. The
@@ -955,17 +1015,29 @@ function collectEmbeddedFonts(frontmatter = {}, srcDir) {
   return { faces, overrides, bytes, notes };
 }
 
+const OFL_NOTICE =
+  '/* Bundled typefaces: Literata, Inter Tight and JetBrains Mono, each under\n' +
+  '   SIL Open Font License 1.1 (https://openfontlicense.org). The licence\n' +
+  '   permits this embedding and requires the notice to travel with it.\n' +
+  '   Full text: node_modules/@fontsource-variable/<family>/LICENSE */';
+
+// Emits the @font-face blocks and the stack overrides for one view. Takes
+// the bundled defaults and whatever the author supplied; a role the author
+// named uses their family, every other role uses the bundle.
 function fontStyleTag(embed) {
   if (!embed) return '';
-  const faceCss = embed.faces.map(f =>
-    `@font-face{font-family:'${f.family}';font-style:${f.style};font-weight:${f.weight};font-display:block;src:${f.src};}`
-  ).join('\n');
+  const { faces = [], overrides = [], bundled = [] } = embed;
+  const face = (f) =>
+    `@font-face{font-family:'${f.family}';font-style:${f.style};font-weight:${f.weight};font-display:block;src:${f.src};}`;
   // font-display:block, not swap: a lecture must not flash a fallback face
   // on the projector and then reflow the slide under the room's eyes.
-  const varCss = embed.overrides.map(({ role, family }) =>
+  const faceCss = [...bundled, ...faces].map(face).join('\n');
+  const varCss = overrides.map(({ role, family }) =>
     FONT_ROLE_VARS[role].map(v => `  ${v}: '${family}', ${FONT_STACK_TAILS[role]};`).join('\n')
   ).join('\n');
-  return `<style>\n${faceCss}\n:root {\n${varCss}\n}\n</style>`;
+  const rootBlock = varCss ? `\n:root {\n${varCss}\n}` : '';
+  const notice = bundled.length ? OFL_NOTICE + '\n' : '';
+  return `<style>\n${notice}${faceCss}${rootBlock}\n</style>`;
 }
 
 // ── marked renderer overrides (code highlighting + image shorthand) ──
@@ -1772,8 +1844,12 @@ const PRINT_CSS = `
   --paper: #fafaf7;
   --rule: #c8c8c0;
   --emph: #8b2e00;
-  --serif: 'Source Serif 4', 'Source Serif Pro', Georgia, serif;
-  --sans: 'Inter', system-ui, sans-serif;
+  /* Same three families as the live views, and the same order, so all four
+     outputs are one typographic set. The first entry of each is bundled and
+     embedded, so these resolve even where the machine has nothing installed
+     and even in Safari, which does not expose installed fonts to a page. */
+  --serif: 'Literata', 'Source Serif 4', Georgia, serif;
+  --sans: 'Inter Tight', 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', Menlo, monospace;
 }
 
@@ -8367,11 +8443,28 @@ function buildOnce(absIn, only, opts = {}) {
   // outputs share the same bytes. Runs before anything is written, so a
   // frontmatter family with no matching file fails without leaving an
   // artefact behind – same contract as assertInlinable above.
-  const fontEmbed = collectEmbeddedFonts(lecture.frontmatter, outDir);
-  if (fontEmbed) {
-    const kb = Math.round(fontEmbed.bytes / 1024);
-    console.log(`[fonts] ${fontEmbed.faces.length} face(s) embedded, ${kb} KB per view. Check that your licence permits redistribution.`);
-    for (const n of fontEmbed.notes) console.log(`[fonts] ${n}`);
+  const authorFonts = collectEmbeddedFonts(lecture.frontmatter, outDir);
+  // The bundle covers every role the author did not claim. `fonts: none`
+  // turns it off for someone who would rather ship a smaller file and
+  // accept whatever the presenting machine happens to have.
+  const claimed = new Set((authorFonts ? authorFonts.overrides : []).map(o => o.role));
+  const bundleOff = String(lecture.frontmatter.fonts || '').trim().toLowerCase() === 'none';
+  const bundled = bundleOff ? [] : bundledFaces().filter(f => !claimed.has(f.role));
+  const fontEmbed = (authorFonts || bundled.length)
+    ? { faces: authorFonts ? authorFonts.faces : [],
+        overrides: authorFonts ? authorFonts.overrides : [],
+        bundled }
+    : null;
+  if (authorFonts) {
+    const kb = Math.round(authorFonts.bytes / 1024);
+    console.log(`[fonts] ${authorFonts.faces.length} face(s) from fonts/ embedded, ${kb} KB per view. Check that your licence permits redistribution.`);
+    for (const n of authorFonts.notes) console.log(`[fonts] ${n}`);
+  }
+  if (bundled.length) {
+    const kb = Math.round(bundled.reduce((n, f) => n + f.bytes, 0) / 1024);
+    console.log(`[fonts] ${bundled.length} bundled face(s) embedded, ${kb} KB per view (OFL-1.1). Use \`fonts: none\` to ship without them.`);
+  } else if (bundleOff) {
+    console.log('[fonts] bundle disabled; the outputs name their typefaces and rely on the presenting machine having them. Safari does not expose installed fonts.');
   }
   lastQrStats = { count: 0, bytes: 0 };
   stagedVideos.clear();

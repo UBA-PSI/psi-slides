@@ -104,7 +104,9 @@ The grammar is `## tag: Heading | Sub-heading {.width #id}`. Eight tags (`title`
 
 Everything else is body-level directives: `---` on its own line splits a chunk into **reveal segments**; `::: expand <label>` hides detail behind a chevron; `::: cols 2` / `::: side` / `::: flip` shape internal layout; `::: margin` and `::: marginalia` place asides; `![](fig-id)` resolves against `assets/`; `$inline$` and `$$display$$` are **math**, rendered by KaTeX during the build. All of it is documented live in the tutorial.
 
-**Typefaces travel with the file, if you supply them.** By default the stylesheets name families (Literata, Inter Tight, JetBrains Mono) and fall back to system faces where those are not installed – so a lecture opened on a strange machine keeps its layout but not its type. Drop font files into `fonts/` beside your source and name the families in the frontmatter, and they are embedded into all four outputs:
+**Typefaces travel with the file.** Three families ship with the tool and are embedded in every output: Literata, Inter Tight and JetBrains Mono, all under the SIL Open Font License, which permits exactly this. That is not decoration – Safari does not expose locally installed fonts to a page at all, as an anti-fingerprinting measure, so a deck that merely *names* its typefaces gets whatever the browser feels like there. The bundle costs about 280 KB per file; `fonts: none` in the frontmatter turns it off.
+
+To use your own instead, drop the files into `fonts/` beside your source and name the families:
 
 ```yaml
 fonts:
@@ -113,7 +115,7 @@ fonts:
   mono: JetBrains Mono
 ```
 
-Files are matched by name, with weight and style read off the suffix (`Literata-Bold.woff2`, `Literata-600italic.woff2`, `Literata[wght].woff2`). `.woff2`, `.woff`, `.ttf` and `.otf` all work; woff2 is much the smallest. Naming a family with no matching file fails the build rather than falling back quietly.
+Files are matched by name, with weight and style read off the suffix (`Literata-Bold.woff2`, `Literata-600italic.woff2`, `Literata[wght].woff2`). `.woff2`, `.woff`, `.ttf` and `.otf` all work; woff2 is much the smallest. A role you name uses your font, a role you leave out keeps the bundled one, and naming a family with no matching file fails the build rather than falling back quietly.
 
 > **Check the licence before you embed.** Embedding redistributes the font file. The SIL Open Font License and Apache-2.0 – between them nearly every family on Google Fonts – permit this; most commercial *desktop* licences do not, and require a separate webfont licence. psi-slides prints a reminder and makes no attempt to verify anything. It is your call and your responsibility.
 

@@ -143,7 +143,17 @@ By default every chunk must open with a **topic sentence that stands on its own*
 
 A chunk can opt out of that derivation with `::: slide` (this block is the screen) or `::: script` (everything but this block is the screen). Use it when the argument wants continuous prose that no first-sentence rule can carve up sensibly. See PRD §4.5.
 
-### Embedded webfonts
+### Bundled and embedded webfonts
+
+**Three families ship with the tool and are embedded in every output**: Literata, Inter Tight, JetBrains Mono, as variable `wght` latin subsets, upright and italic – 276 KB for all six faces. All three are SIL OFL 1.1, which permits redistribution and embedding; `OFL_NOTICE` puts the required notice in the emitted stylesheet.
+
+This is a correctness fix, not polish. **Safari does not expose locally installed fonts to a page**, as an anti-fingerprinting measure, so the old name-only stacks resolved to Georgia and system-ui there no matter what the lecturer had installed. `fonts: none` in the frontmatter turns the bundle off for an author who would rather ship a smaller file.
+
+`bundledFaces()` reads them out of `node_modules` rather than from checked-in binaries: the packages carry their own licence files, and `npm install` is required anyway.
+
+An author's own fonts still win. A role named in the `fonts:` block uses their family; every role they leave out keeps the bundled one.
+
+### Author-supplied webfonts
 
 Everything else in an output file is self-contained; type was not. The stylesheets shipped bare family stacks (`'Literata', 'Source Serif 4', Georgia, serif`) which resolve only where those faces are **installed** and fall through silently everywhere else – a lecture mailed to a colleague kept its layout and its figures and lost its face.
 

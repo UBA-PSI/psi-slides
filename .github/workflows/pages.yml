@@ -39,20 +39,24 @@ jobs:
       - name: Lint the lectures
         run: node lint.js lectures/
 
-      - name: Build the tutorial
-        run: node build.js lectures/tutorial/source.md
+      - name: Build the lectures
+        run: |
+          node build.js lectures/tutorial/source.md
+          node build.js lectures/python-intro/source.md
 
       - name: Assemble the site
         run: |
-          mkdir -p _site/tutorial
+          mkdir -p _site/tutorial _site/python-intro
           # Renders the docs from the same Markdown the repository serves, so
           # the site cannot drift from them.
           node docs/site/build-site.js _site
-          cp lectures/tutorial/audience.html \
-             lectures/tutorial/speaker.html \
-             lectures/tutorial/print.html \
-             lectures/tutorial/print-notes.html \
-             _site/tutorial/
+          for l in tutorial python-intro; do
+            cp lectures/$l/audience.html \
+               lectures/$l/speaker.html \
+               lectures/$l/print.html \
+               lectures/$l/print-notes.html \
+               _site/$l/
+          done
 
       - uses: actions/upload-pages-artifact@v3
         with:
