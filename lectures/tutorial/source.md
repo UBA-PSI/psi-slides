@@ -51,12 +51,14 @@ The four outputs are self-contained: images are inlined, CSS and JavaScript are 
 **Three key-families carry the whole live-talk navigation:**
 
 - `←` `→` move between **columns** – the top-level sections headed `# Name`.
-- `↑` `↓` move between **chunks** within a column – each `## tag: …` is one chunk.
-- `Space` reveals the next **segment** – a chunk can split into pieces at standalone `---` lines. Try it now:
+- `↑` moves back a **chunk**; each `## tag: …` is one chunk.
+- `↓` and `Space` are the same key: they reveal the next **segment**, and once a chunk is fully out, move on to the next one. A chunk splits into segments at standalone `---` lines. Try it now:
 
 ---
 
-**Good – you just revealed a segment.** In the source, a line with only `---` (outside a code fence) breaks the chunk body into reveal segments. The first is visible on entry; each `Space` uncovers the next, and past the last, `Space` advances to the next chunk.
+**Good – you just revealed a segment.** In the source, a line with only `---` (outside a code fence) breaks the chunk body into reveal segments. The first is visible on entry; each `↓` or `Space` uncovers the next, and past the last, either key advances to the next chunk.
+
+The two keys behave identically on purpose. `↓` used to skip straight to the next chunk, which meant walking a lecture with the arrows silently swallowed every reveal on the way – and remembering to switch keys for exactly the segmented slides is the sort of thing that goes wrong in front of a room.
 
 ---
 
@@ -298,7 +300,7 @@ Width is the slide-level decision; directives compose within. A `.wide` chunk wi
 
 **Columns fold to one while the slide is collapsed** – press `C` here and the two flows above stack. Collapsed, each paragraph is down to its topic sentence, and a browser will not split a paragraph across columns, so two paragraphs of one and five visible lines land as a stub beside a wall of text. The columns come back in print and in the full-text mode, where there is enough content for the flow to balance.
 
-Reveal segments still work inside `::: cols`, but mixing reveal-on-`Space` with multi-column flow is rarely worth the cognitive load – pick one rhythm or the other.
+Reveal segments still work inside `::: cols`, but mixing reveal-on-`↓` with multi-column flow is rarely worth the cognitive load – pick one rhythm or the other.
 
 ## example: Two-pane grid | `::: side` and `::: flip` {.wide #side-demo}
 

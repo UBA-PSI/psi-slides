@@ -319,7 +319,7 @@ Second consequence, which is the punchline.
 Semantics:
 
 - **Forward navigation into the chunk.** Entering via `↓`, `→`, overview, or deep-link shows segment 0 only. Subsequent segments are hidden.
-- **`Space`**: advance to the next segment on the active chunk. When all segments are visible, another `Space` passes through to “next chunk” navigation, so `Space` can be the single forward key for a whole column.
+- **`Space`** and **`↓`** (identical): advance to the next segment on the active chunk. When all segments are visible, either key passes through to “next chunk” navigation, so one key is the single forward key for a whole column. `↓` used to skip the reveals entirely, which meant navigating with the arrows silently swallowed every segmented slide.
 - **Backward navigation** (`↑`, `←`, or entering an earlier chunk from the overview): the target chunk is shown **fully revealed**. Reveal is a forward-only live-pacing mechanism; it does not need to be re-performed on revisit. The speaker coming back to answer a question sees everything they already showed.
 - **Camera.** Reveal never moves the camera. The slide stays framed; segments fade in place.
 - **Speaker view.** Only the currently-focused slide reflects live reveal state. The next-previews pane and any scrubber thumbnail always show slides **fully revealed**, so the speaker can see where each upcoming slide will land.
@@ -343,7 +343,7 @@ Density budget per chunk: body text should occupy no more than ~12 line-heights 
 - ← : previous column.
 - ↓ (Down arrow or `J`): next chunk in current column.
 - ↑ : previous chunk.
-- `Space`: next reveal segment in current chunk (§4.6). When fully revealed, `Space` passes through to next-chunk navigation.
+- `Space` / `↓`: next reveal segment in current chunk (§4.6). When fully revealed, either passes through to next-chunk navigation. `↑` steps back a chunk and does not un-reveal.
 - `Enter` or click chevron: open the active chunk's expansion.
 - `1`–`9`: open the nth expansion on the active chunk.
 - `Esc`: collapse expansion, return to parent chunk. In overview, dismiss without moving.
@@ -579,7 +579,7 @@ The goal of Phase 1 is to retire every “temporarily” in Phase 0 **and** clos
 - **Speaker view** in a separate window, synced via `window.postMessage`: current chunk, next-previews (fully revealed, see §7), notes pane, scrubber, timer, freeze-the-projection toggle, crash-recovery `localStorage` persistence.
 
 **Live interactions the wlab01 input shape broke:**
-- **Progressive reveal** per §4.6. The `---` separator, `Space` to advance, backward-nav resets to fully-revealed. This is what will make bullet-heavy content (the dominant shape in practice, despite the “prose first” intent) teachable at a controlled pace.
+- **Progressive reveal** per §4.6. The `---` separator, `Space` or `↓` to advance, backward-nav resets to fully-revealed. This is what will make bullet-heavy content (the dominant shape in practice, despite the “prose first” intent) teachable at a controlled pace.
 - **Title slide renderer** per §4.4 `title` tag – lower-left-third layout, frontmatter-driven.
 
 **Overview upgrades (the wlab01 overview was a dead end once you entered it):**

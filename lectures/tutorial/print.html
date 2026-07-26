@@ -538,10 +538,11 @@ pre.shiki .line { display: inline; }
   <p><strong>Three key-families carry the whole live-talk navigation:</strong></p>
 <ul>
 <li><code>←</code> <code>→</code> move between <strong>columns</strong> – the top-level sections headed <code># Name</code>.</li>
-<li><code>↑</code> <code>↓</code> move between <strong>chunks</strong> within a column – each <code>## tag: …</code> is one chunk.</li>
-<li><code>Space</code> reveals the next <strong>segment</strong> – a chunk can split into pieces at standalone <code>---</code> lines. Try it now:</li>
+<li><code>↑</code> moves back a <strong>chunk</strong>; each <code>## tag: …</code> is one chunk.</li>
+<li><code>↓</code> and <code>Space</code> are the same key: they reveal the next <strong>segment</strong>, and once a chunk is fully out, move on to the next one. A chunk splits into segments at standalone <code>---</code> lines. Try it now:</li>
 </ul>
-<p><strong>Good – you just revealed a segment.</strong> In the source, a line with only <code>---</code> (outside a code fence) breaks the chunk body into reveal segments. The first is visible on entry; each <code>Space</code> uncovers the next, and past the last, <code>Space</code> advances to the next chunk.</p>
+<p><strong>Good – you just revealed a segment.</strong> In the source, a line with only <code>---</code> (outside a code fence) breaks the chunk body into reveal segments. The first is visible on entry; each <code>↓</code> or <code>Space</code> uncovers the next, and past the last, either key advances to the next chunk.</p>
+<p>The two keys behave identically on purpose. <code>↓</code> used to skip straight to the next chunk, which meant walking a lecture with the arrows silently swallowed every reveal on the way – and remembering to switch keys for exactly the segmented slides is the sort of thing that goes wrong in front of a room.</p>
 <p><strong>One more, to show chaining.</strong> Reveal lets you pace dense content during a live talk without dumping everything at once, and in print all segments render together as one flowing body.</p>
 
   
@@ -858,7 +859,7 @@ pre.shiki .line { display: inline; }
 
 
 <p><strong>Columns fold to one while the slide is collapsed</strong> – press <code>C</code> here and the two flows above stack. Collapsed, each paragraph is down to its topic sentence, and a browser will not split a paragraph across columns, so two paragraphs of one and five visible lines land as a stub beside a wall of text. The columns come back in print and in the full-text mode, where there is enough content for the flow to balance.</p>
-<p>Reveal segments still work inside <code>::: cols</code>, but mixing reveal-on-<code>Space</code> with multi-column flow is rarely worth the cognitive load – pick one rhythm or the other.</p>
+<p>Reveal segments still work inside <code>::: cols</code>, but mixing reveal-on-<code>↓</code> with multi-column flow is rarely worth the cognitive load – pick one rhythm or the other.</p>
 
   
   

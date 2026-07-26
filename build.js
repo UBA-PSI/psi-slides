@@ -1991,8 +1991,8 @@ const BLANK_BADGE_HTML = `<div id="blank-badge" class="hidden" role="status">BLA
 const LINK_OVERLAY_HTML = `<div id="link-overlay" class="hidden" role="dialog" aria-label="Link address">
   <div id="link-overlay-inner">
     <div id="link-overlay-label"></div>
-    <div id="link-overlay-url"></div>
-    <div id="link-overlay-hint">Esc closes</div>
+    <a id="link-overlay-url" target="_blank" rel="noopener noreferrer"></a>
+    <div id="link-overlay-hint">click the address to open it &middot; Esc closes</div>
   </div>
 </div>`;
 
@@ -2012,8 +2012,8 @@ function renderHelpOverlay(view) {
   const shared = [
     ['Moving around', [
       ['<kbd>←</kbd> <kbd>→</kbd>', 'previous / next column'],
-      ['<kbd>↑</kbd> <kbd>↓</kbd>', 'previous / next chunk'],
-      ['<kbd>Space</kbd>', 'reveal the next segment, then move on'],
+      ['<kbd>↑</kbd>', 'previous chunk'],
+      ['<kbd>↓</kbd> · <kbd>Space</kbd>', 'reveal the next segment, then on to the next chunk'],
       ['<kbd>Enter</kbd> · <kbd>1</kbd>–<kbd>9</kbd>', 'open the first / n-th expansion'],
       ['<kbd>Esc</kbd>', 'step back out: figure, then overview, then expansion'],
     ]],
@@ -3263,14 +3263,21 @@ body:not([data-view=speaker]).blanked #link-overlay { display: none; }
   margin-bottom: 0.9rem;
 }
 #link-overlay-url {
+  display: block;
   font-family: var(--mono-font);
   font-size: clamp(1.1rem, 3.4vw, 2.6rem);
   line-height: 1.35;
   color: var(--emph);
   overflow-wrap: anywhere;
+  text-decoration: none;
+  /* Selectable without the Alt modifier: the whole point of putting an
+     address up is that someone copies it, and here there is no pan gesture
+     to protect – the overlay covers the stage. */
   user-select: text;
   -webkit-user-select: text;
+  cursor: pointer;
 }
+#link-overlay-url:hover { text-decoration: underline; text-underline-offset: 0.18em; }
 #link-overlay-hint {
   margin-top: 1.4rem;
   font-family: var(--sans-font);
@@ -4888,6 +4895,7 @@ function linkOverlayVisible() {
 function showLinkOverlay(href, label) {
   if (!linkOverlay) return;
   linkOverlayUrl.textContent = href;
+  linkOverlayUrl.href = href;
   linkOverlayLabel.textContent = label && label !== href ? label : 'link';
   linkOverlay.classList.remove('hidden');
 }
@@ -4901,7 +4909,18 @@ function dismissLinkOverlay() {
   hideLinkOverlay();
   sendToPeer({ type: 'link-hide', source: VIEW });
 }
-if (linkOverlay) linkOverlay.addEventListener('click', dismissLinkOverlay);
+// Clicking the backdrop dismisses; clicking the address itself opens it in a
+// new tab of this window and leaves the overlay up, so the room keeps the
+// address on screen while the lecturer goes and looks. Selecting the text
+// must not dismiss either, hence the collapsed-selection check.
+if (linkOverlay) {
+  linkOverlay.addEventListener('click', (e) => {
+    if (e.target.closest('#link-overlay-url')) return;
+    const s = window.getSelection();
+    if (s && !s.isCollapsed) return;
+    dismissLinkOverlay();
+  });
+}
 // Capture phase: this has to beat the stage's own click handling, which
 // would otherwise treat the click as a chunk select.
 document.addEventListener('click', (e) => {
@@ -5018,10 +5037,15 @@ document.addEventListener('keydown', (e) => {
   switch (e.key) {
     case 'ArrowRight': nextCol(); e.preventDefault(); break;
     case 'ArrowLeft':  prevCol(); e.preventDefault(); break;
-    case 'ArrowDown':  nextChunk(); e.preventDefault(); break;
     case 'ArrowUp':    prevChunk(); e.preventDefault(); break;
+    case 'ArrowDown':
     case ' ': {
-      // Space: advance reveal; if fully revealed, pass through to next chunk.
+      // Down and Space are the same key. Down used to skip straight to the
+      // next chunk, which meant walking a segmented slide with the arrows
+      // silently swallowed every reveal on it – and remembering to switch
+      // to Space for exactly those slides is the kind of thing that goes
+      // wrong in front of a room. Advance the reveal; once the chunk is
+      // fully out, fall through to the next one.
       if (overview) { e.preventDefault(); break; }
       if (!advanceReveal()) nextChunk();
       e.preventDefault(); break;

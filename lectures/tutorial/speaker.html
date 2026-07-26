@@ -1093,14 +1093,21 @@ body:not([data-view=speaker]).blanked #link-overlay { display: none; }
   margin-bottom: 0.9rem;
 }
 #link-overlay-url {
+  display: block;
   font-family: var(--mono-font);
   font-size: clamp(1.1rem, 3.4vw, 2.6rem);
   line-height: 1.35;
   color: var(--emph);
   overflow-wrap: anywhere;
+  text-decoration: none;
+  /* Selectable without the Alt modifier: the whole point of putting an
+     address up is that someone copies it, and here there is no pan gesture
+     to protect – the overlay covers the stage. */
   user-select: text;
   -webkit-user-select: text;
+  cursor: pointer;
 }
+#link-overlay-url:hover { text-decoration: underline; text-underline-offset: 0.18em; }
 #link-overlay-hint {
   margin-top: 1.4rem;
   font-family: var(--sans-font);
@@ -2217,11 +2224,12 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Three key-families carry the whole live-talk navigation:</strong></p>
 <ul>
 <li><code>←</code> <code>→</code> move between <strong>columns</strong> – the top-level sections headed <code># Name</code>.</li>
-<li><code>↑</code> <code>↓</code> move between <strong>chunks</strong> within a column – each <code>## tag: …</code> is one chunk.</li>
-<li><code>Space</code> reveals the next <strong>segment</strong> – a chunk can split into pieces at standalone <code>---</code> lines. Try it now:</li>
+<li><code>↑</code> moves back a <strong>chunk</strong>; each <code>## tag: …</code> is one chunk.</li>
+<li><code>↓</code> and <code>Space</code> are the same key: they reveal the next <strong>segment</strong>, and once a chunk is fully out, move on to the next one. A chunk splits into segments at standalone <code>---</code> lines. Try it now:</li>
 </ul>
 </div>
-<div class="reveal-segment" data-seg="1" data-hidden><p><strong>Good – you just revealed a segment.</strong> In the source, a line with only <code>---</code> (outside a code fence) breaks the chunk body into reveal segments. The first is visible on entry; each <code>Space</code> uncovers the next, and past the last, <code>Space</code> advances to the next chunk.</p>
+<div class="reveal-segment" data-seg="1" data-hidden><p><strong>Good – you just revealed a segment.</strong> In the source, a line with only <code>---</code> (outside a code fence) breaks the chunk body into reveal segments. The first is visible on entry; each <code>↓</code> or <code>Space</code> uncovers the next, and past the last, either key advances to the next chunk.</p>
+<p>The two keys behave identically on purpose. <code>↓</code> used to skip straight to the next chunk, which meant walking a lecture with the arrows silently swallowed every reveal on the way – and remembering to switch keys for exactly the segmented slides is the sort of thing that goes wrong in front of a room.</p>
 </div>
 <div class="reveal-segment" data-seg="2" data-hidden><p><strong>One more, to show chaining.</strong> Reveal lets you pace dense content during a live talk without dumping everything at once, and in print all segments render together as one flowing body.</p>
 </div></div>
@@ -2693,7 +2701,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 
 
 <p><strong>Columns fold to one while the slide is collapsed</strong> – press <code>C</code> here and the two flows above stack. Collapsed, each paragraph is down to its topic sentence, and a browser will not split a paragraph across columns, so two paragraphs of one and five visible lines land as a stub beside a wall of text. The columns come back in print and in the full-text mode, where there is enough content for the flow to balance.</p>
-<p>Reveal segments still work inside <code>::: cols</code>, but mixing reveal-on-<code>Space</code> with multi-column flow is rarely worth the cognitive load – pick one rhythm or the other.</p>
+<p>Reveal segments still work inside <code>::: cols</code>, but mixing reveal-on-<code>↓</code> with multi-column flow is rarely worth the cognitive load – pick one rhythm or the other.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="cols-demo">
@@ -3113,8 +3121,8 @@ body[data-view=speaker].preview-right #preview-resizer::after {
       <h3>Moving around</h3>
       <dl>
         <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>previous / next column</dd>
-        <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>previous / next chunk</dd>
-        <dt><kbd>Space</kbd></dt><dd>reveal the next segment, then move on</dd>
+        <dt><kbd>↑</kbd></dt><dd>previous chunk</dd>
+        <dt><kbd>↓</kbd> · <kbd>Space</kbd></dt><dd>reveal the next segment, then on to the next chunk</dd>
         <dt><kbd>Enter</kbd> · <kbd>1</kbd>–<kbd>9</kbd></dt><dd>open the first / n-th expansion</dd>
         <dt><kbd>Esc</kbd></dt><dd>step back out: figure, then overview, then expansion</dd>
       </dl>
@@ -3192,8 +3200,8 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <div id="link-overlay" class="hidden" role="dialog" aria-label="Link address">
   <div id="link-overlay-inner">
     <div id="link-overlay-label"></div>
-    <div id="link-overlay-url"></div>
-    <div id="link-overlay-hint">Esc closes</div>
+    <a id="link-overlay-url" target="_blank" rel="noopener noreferrer"></a>
+    <div id="link-overlay-hint">click the address to open it &middot; Esc closes</div>
   </div>
 </div>
 <nav id="toc" aria-label="Contents">
@@ -4557,6 +4565,7 @@ function linkOverlayVisible() {
 function showLinkOverlay(href, label) {
   if (!linkOverlay) return;
   linkOverlayUrl.textContent = href;
+  linkOverlayUrl.href = href;
   linkOverlayLabel.textContent = label && label !== href ? label : 'link';
   linkOverlay.classList.remove('hidden');
 }
@@ -4570,7 +4579,18 @@ function dismissLinkOverlay() {
   hideLinkOverlay();
   sendToPeer({ type: 'link-hide', source: VIEW });
 }
-if (linkOverlay) linkOverlay.addEventListener('click', dismissLinkOverlay);
+// Clicking the backdrop dismisses; clicking the address itself opens it in a
+// new tab of this window and leaves the overlay up, so the room keeps the
+// address on screen while the lecturer goes and looks. Selecting the text
+// must not dismiss either, hence the collapsed-selection check.
+if (linkOverlay) {
+  linkOverlay.addEventListener('click', (e) => {
+    if (e.target.closest('#link-overlay-url')) return;
+    const s = window.getSelection();
+    if (s && !s.isCollapsed) return;
+    dismissLinkOverlay();
+  });
+}
 // Capture phase: this has to beat the stage's own click handling, which
 // would otherwise treat the click as a chunk select.
 document.addEventListener('click', (e) => {
@@ -4687,10 +4707,15 @@ document.addEventListener('keydown', (e) => {
   switch (e.key) {
     case 'ArrowRight': nextCol(); e.preventDefault(); break;
     case 'ArrowLeft':  prevCol(); e.preventDefault(); break;
-    case 'ArrowDown':  nextChunk(); e.preventDefault(); break;
     case 'ArrowUp':    prevChunk(); e.preventDefault(); break;
+    case 'ArrowDown':
     case ' ': {
-      // Space: advance reveal; if fully revealed, pass through to next chunk.
+      // Down and Space are the same key. Down used to skip straight to the
+      // next chunk, which meant walking a segmented slide with the arrows
+      // silently swallowed every reveal on it – and remembering to switch
+      // to Space for exactly those slides is the kind of thing that goes
+      // wrong in front of a room. Advance the reveal; once the chunk is
+      // fully out, fall through to the next one.
       if (overview) { e.preventDefault(); break; }
       if (!advanceReveal()) nextChunk();
       e.preventDefault(); break;
