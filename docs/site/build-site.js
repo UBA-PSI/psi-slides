@@ -103,6 +103,7 @@ const SHELL = (title, lead, body) => `<!DOCTYPE html>
 <h1>${title}</h1>
 <p class="lead">${lead}</p>
 ${body}
+<script src="site.js"></script>
 <footer>
   psi-slides &middot; <a href="https://psi.uni-bamberg.de/">Privacy and Security in Information Systems</a>,
   University of Bamberg &middot; <a href="https://herdom.net">Dominik Herrmann</a><br>
@@ -148,6 +149,7 @@ function main() {
   fs.mkdirSync(outDir, { recursive: true });
   fs.copyFileSync(path.join(HERE, 'index.html'), path.join(outDir, 'index.html'));
   fs.copyFileSync(path.join(HERE, 'site.css'), path.join(outDir, 'site.css'));
+  fs.copyFileSync(path.join(HERE, 'site.js'), path.join(outDir, 'site.js'));
   // Screenshots the landing page shows. Copied rather than referenced out of
   // the repo, because the deployed site only has what lands in outDir.
   const img = path.join(HERE, 'img');

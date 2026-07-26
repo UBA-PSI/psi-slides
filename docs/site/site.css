@@ -229,7 +229,55 @@ figure.shot .dots i {
   width: 0.56rem; height: 0.56rem; border-radius: 50%;
   background: var(--rule); display: block;
 }
-figure.shot img { width: 100%; height: auto; display: block; background: var(--paper); }
+figure.shot img {
+  width: 100%; height: auto; display: block; background: var(--paper);
+  cursor: zoom-in;
+}
+figure.shot img:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+
+/* The bar doubles as a two-state switch on the hero's right-hand shot. */
+figure.shot .swap { display: inline-flex; gap: 0.1rem; }
+figure.shot .swap button {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  padding: 0.05rem 0.45rem;
+  border-radius: 3px;
+  cursor: pointer;
+}
+figure.shot .swap button:hover { color: var(--accent); }
+figure.shot .swap button[aria-pressed="true"] {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/*
+ * Lightbox. `hidden` alone loses to the display rule, so it is restated.
+ */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(18, 18, 22, 0.9);
+  display: grid;
+  place-items: center;
+  padding: 2.5vmin;
+  cursor: zoom-out;
+}
+.lightbox[hidden] { display: none; }
+.lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  border-radius: 4px;
+  background: var(--paper);
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.55);
+}
+body.lightbox-open { overflow: hidden; }
 figure.shot figcaption {
   font-size: 0.88rem;
   color: var(--ink-soft);

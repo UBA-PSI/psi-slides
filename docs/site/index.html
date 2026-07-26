@@ -21,12 +21,23 @@
         <img src="img/collapsed.webp" alt="The slide as projected: heading, sub-heading, the first sentence of each paragraph and the phrases marked bold, in one column.">
       </figure>
       <figure class="shot">
-        <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>what the reader gets</b></div>
+        <div class="bar">
+          <span class="dots"><i></i><i></i><i></i></span> <b>what the reader gets</b>
+          <span class="swap">
+            <button type="button" aria-pressed="true"
+                    data-src="img/full.webp"
+                    data-alt="The same chunk with collapse switched off: all four paragraphs in full, laid out in two columns.">on screen</button>
+            <button type="button" aria-pressed="false"
+                    data-src="img/printed.webp"
+                    data-alt="The same chunk in the print view: a document in a serif face, justified and hyphenated, with the margin note set as an aside.">in print</button>
+          </span>
+        </div>
         <img src="img/full.webp" alt="The same chunk with collapse switched off: all four paragraphs in full, laid out in two columns.">
       </figure>
     </div>
     <p class="shot-note">The same four paragraphs, written once.
-    <b>One keypress between them.</b></p>
+    <b>One keypress between the first two</b> &ndash; and the third is a different
+    file out of the same source. Click any picture to see it full size.</p>
   </div>
 
   <h2>Every lecture has three kinds of text in it</h2>
@@ -177,5 +188,6 @@ browser is for pages meant to be looked at.
     Tooling MIT-licensed, lecture content CC&nbsp;BY-SA&nbsp;4.0. Rebuilt from source on every push.</p>
   </footer>
 </main>
+<script src="site.js"></script>
 </body>
 </html>
