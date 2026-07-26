@@ -2989,7 +2989,20 @@ function vpLayout() {
   root.setProperty('--audience-aspect', String(w / h));
 })();
 if (VIEW === 'audience') {
-  window.addEventListener('resize', () => setSlideRef(window.innerWidth, window.innerHeight));
+  // The new dimensions also have to reach the speaker, and they get their own
+  // message rather than riding the state snapshot. A snapshot is a full state
+  // apply: sending one here would drag the speaker back to whatever slide the
+  // audience is showing, undoing a look-ahead every time the projector
+  // renegotiates its resolution. The aspect is the only field that has to
+  // travel, so it travels alone. Debounced because resize fires at ~60 Hz.
+  let refTimer = null;
+  window.addEventListener('resize', () => {
+    setSlideRef(window.innerWidth, window.innerHeight);
+    clearTimeout(refTimer);
+    refTimer = setTimeout(() => {
+      sendToPeer({ type: 'slide-ref', source: 'audience', w: window.innerWidth, h: window.innerHeight });
+    }, 120);
+  });
 }
 // Speaker's initial slide reference stays as this window's dimensions
 // until the first audience state snapshot arrives via applyRemoteState,
@@ -3326,6 +3339,15 @@ window.addEventListener('message', (ev) => {
   }
   if (m.type === 'state') {
     applyRemoteState(m.payload);
+    return;
+  }
+  // Aspect-only update: the audience window was resized (full screen, a
+  // projector renegotiating its resolution). Re-letterboxes the speaker's
+  // stage without touching which slide it is showing.
+  if (m.type === 'slide-ref' && VIEW === 'speaker') {
+    // setSlideRef re-runs sizeStageViewport, which rebuilds the strip, so
+    // the thumbnails pick up the new --audience-aspect too.
+    if (m.w > 0 && m.h > 0) setSlideRef(m.w, m.h);
     return;
   }
   if (m.type === 'pan') {
