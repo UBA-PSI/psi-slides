@@ -2926,6 +2926,10 @@ function cycleTheme(dir) {
 // speaker next pushes.
 let peer = null;
 let isApplyingRemote = false;
+// Our own origin as postMessage reports it. On file:// that is the string
+// "null" for both sides, which is why location.origin ("file://") is the
+// wrong thing to compare against.
+const SELF_ORIGIN = (typeof window.origin === 'string') ? window.origin : location.origin;
 function setPeer(w) {
   if (w && w !== window && !w.closed) peer = w;
 }
@@ -3113,6 +3117,14 @@ function applyRemoteState(payload) {
   }
 }
 window.addEventListener('message', (ev) => {
+  // Same-origin only. Until ::: embed there were no other windows posting
+  // here, so any sender could be adopted as the peer; a third-party iframe
+  // now lives *inside* this window, and one object message from it would
+  // have captured the peer slot - after which every state snapshot, blank,
+  // toast and address went to the frame instead of the projector, silently.
+  // Both live views are the same origin as each other by construction
+  // (two file:// pages, or two pages off the same --serve).
+  if (ev.origin !== SELF_ORIGIN) return;
   const m = ev.data;
   if (!m || typeof m !== 'object') return;
   if (m.source === VIEW) return; // ignore our own postings (shouldn't happen, defensive)
@@ -4279,6 +4291,10 @@ function endSelecting() {
 }
 window.addEventListener('keydown', (e) => {
   if (e.key !== 'Alt' || altSelectHeld) return;
+  // Same guard the main key handler uses. Without it, reaching for Alt while
+  // typing a note fires the toast - and on the audience that toast is
+  // relayed, so it lands in the lecturer's face mid-sentence.
+  if (e.target && e.target.matches && e.target.matches('input, textarea, [contenteditable=true]')) return;
   altSelectHeld = true;
   setSelecting(true);
   flashMode('select text while Alt is held · Esc clears');

@@ -147,9 +147,13 @@ function warnOversizedAsset(absPath, size) {
   const mb = (size / 1024 / 1024).toFixed(2);
   console.warn(
     `[inline-images] NOT inlined: ${rel} (${mb} MB > ${inlineCapFor(absPath) / 1024 / 1024} MB cap).\n` +
-    `                This output is no longer self-contained – the figure breaks if the\n` +
-    `                HTML is moved without its assets folder. Fix with:\n` +
-    `                  node build.js <source.md> --optimize-images`
+    `                This output is no longer self-contained – the asset breaks if the\n` +
+    `                HTML is moved without its folder. Fix with:\n` +
+    (isVideoExt(absPath)
+      // --optimize-images only handles PNG and JPEG; telling a video author
+      // to run it is advice that cannot work.
+      ? `                  ffmpeg -i ${rel} -vf scale=1280:-2 -c:v libx264 -crf 28 out.mp4`
+      : `                  node build.js <source.md> --optimize-images`)
   );
 }
 
@@ -340,8 +344,15 @@ function scanReferencedImages(src, sourceDir) {
     if (!abs) continue;
     try {
       const stat = fs.statSync(abs);
-      total += stat.size;
-      count += 1;
+      // Video is deliberately kept out of the auto-inline total. That budget
+      // decides "inline the images or none of them"; a clip has its own,
+      // larger per-file cap and its own fallback (staging into videos/), so
+      // letting one push the sum past 10 MB turned inlining off for every
+      // diagram in the lecture and reported the clip as an "image".
+      if (!isVideoExt(abs)) {
+        total += stat.size;
+        count += 1;
+      }
       if (stat.size > inlineCapFor(abs)) oversized.push({ abs, size: stat.size });
     } catch { /* missing assets surface elsewhere as figure-missing */ }
   }
@@ -384,18 +395,12 @@ function assertInlinable(oversized, sourceDir) {
       lines.push('  node build.js <source.md> --optimize-images');
     }
   }
-  // Video needs its own line: "simplify or split by hand" is advice for an
-  // oversized SVG and nonsense for a clip, where the answer is always to
-  // re-encode.
-  const clips = oversized.filter(o => isVideoExt(o.abs));
-  if (clips.length) {
-    if (rasters.length) lines.push('');
-    lines.push(`${clips.map(o => path.basename(o.abs)).join(', ')}: re-encode smaller, for example`);
-    lines.push(`  ffmpeg -i <clip> -vf scale=1280:-2 -c:v libx264 -crf 28 -c:a aac -b:a 96k out.mp4`);
-  }
-  const others = oversized.filter(o => !rasters.includes(o) && !clips.includes(o));
+  // No video branch here on purpose: buildOnce filters clips out before
+  // calling this, because an oversized clip is staged into videos/ rather
+  // than refused. Reaching this function with one would be a bug upstream.
+  const others = oversized.filter(o => !rasters.includes(o));
   if (others.length) {
-    if (rasters.length || clips.length) lines.push('');
+    if (rasters.length) lines.push('');
     lines.push(`--optimize-images only handles PNG and JPEG, so it cannot help with`);
     lines.push(`${others.map(o => path.basename(o.abs)).join(', ')} – simplify or split ${others.length === 1 ? 'that asset' : 'those assets'} by hand.`);
   }
@@ -744,7 +749,13 @@ function linkQrMap(html) {
   for (const m of html.matchAll(/href="(https?:\/\/[^"]+)"/g)) {
     // The href in rendered HTML is entity-escaped; the DOM hands the runtime
     // the decoded form, and that is what the map is keyed by.
-    const url = m[1].replace(/&amp;/g, '&');
+    // Key it the way the runtime will ask. The DOM normalises an href
+    // (https://example.com becomes https://example.com/), so keying by the
+    // raw attribute text meant a bare-domain link looked up a key that did
+    // not exist and showed an empty QR box with no diagnostic anywhere.
+    const raw = m[1].replace(/&amp;/g, '&');
+    let url = raw;
+    try { url = new URL(raw).href; } catch { /* keep the raw form */ }
     if (out[url]) continue;
     out[url] = qrSvg(url);
     bytes += out[url].length;
@@ -4310,6 +4321,10 @@ function cycleTheme(dir) {
 // speaker next pushes.
 let peer = null;
 let isApplyingRemote = false;
+// Our own origin as postMessage reports it. On file:// that is the string
+// "null" for both sides, which is why location.origin ("file://") is the
+// wrong thing to compare against.
+const SELF_ORIGIN = (typeof window.origin === 'string') ? window.origin : location.origin;
 function setPeer(w) {
   if (w && w !== window && !w.closed) peer = w;
 }
@@ -4497,6 +4512,14 @@ function applyRemoteState(payload) {
   }
 }
 window.addEventListener('message', (ev) => {
+  // Same-origin only. Until ::: embed there were no other windows posting
+  // here, so any sender could be adopted as the peer; a third-party iframe
+  // now lives *inside* this window, and one object message from it would
+  // have captured the peer slot - after which every state snapshot, blank,
+  // toast and address went to the frame instead of the projector, silently.
+  // Both live views are the same origin as each other by construction
+  // (two file:// pages, or two pages off the same --serve).
+  if (ev.origin !== SELF_ORIGIN) return;
   const m = ev.data;
   if (!m || typeof m !== 'object') return;
   if (m.source === VIEW) return; // ignore our own postings (shouldn't happen, defensive)
@@ -5663,6 +5686,10 @@ function endSelecting() {
 }
 window.addEventListener('keydown', (e) => {
   if (e.key !== 'Alt' || altSelectHeld) return;
+  // Same guard the main key handler uses. Without it, reaching for Alt while
+  // typing a note fires the toast - and on the audience that toast is
+  // relayed, so it lands in the lecturer's face mid-sentence.
+  if (e.target && e.target.matches && e.target.matches('input, textarea, [contenteditable=true]')) return;
   altSelectHeld = true;
   setSelecting(true);
   flashMode('select text while Alt is held · Esc clears');
@@ -7454,6 +7481,17 @@ function populatePreviewStrip() {
     clone.classList.remove('active', 'expanded', 'annot-visible', 'has-annot', 'overview-selected');
     clone.querySelectorAll('.reveal-segment').forEach(s => s.removeAttribute('data-hidden'));
     clone.querySelectorAll('.exps, .annot-box, .annot-add').forEach(n => n.remove());
+    // Media never travels into a thumbnail. A cloned iframe carries the src
+    // updateEmbedLoading just set, which would open a *second* live player
+    // at the provider - defeating the whole "nothing loads until its chunk
+    // is reached" guarantee, and doing it on every strip rebuild. A cloned
+    // <video> would duplicate its data: URI into every slot.
+    clone.querySelectorAll('.figure-embed iframe').forEach(n => {
+      n.removeAttribute('src'); n.removeAttribute('data-src');
+    });
+    clone.querySelectorAll('.figure-video video').forEach(n => {
+      n.removeAttribute('src'); n.removeAttribute('controls');
+    });
     slot.appendChild(clone);
     previewStrip.appendChild(slot);
     requestAnimationFrame(() => {
@@ -8489,6 +8527,9 @@ const SERVE_MIME = {
 
 async function runServe(rootDir, wantedPort) {
   const http = await import('node:http');
+  // Canonicalise the root too, or a repo reached through a symlinked path
+  // would fail its own containment check.
+  try { rootDir = fs.realpathSync(rootDir); } catch { /* keep as given */ }
   const server = http.createServer((req, res) => {
     let rel;
     try { rel = decodeURIComponent(new URL(req.url, 'http://x').pathname); }
@@ -8496,7 +8537,11 @@ async function runServe(rootDir, wantedPort) {
     if (rel === '/') rel = '/audience.html';
     // Resolve, then confirm the result is still inside the served root:
     // without this, a request for /../../.ssh/id_rsa would be honoured.
-    const abs = path.resolve(rootDir, '.' + rel);
+    // Resolve symlinks before the containment test, not just `..`. A prefix
+    // check on the lexical path still serves whatever a symlink inside the
+    // lecture folder points at.
+    let abs = path.resolve(rootDir, '.' + rel);
+    try { abs = fs.realpathSync(abs); } catch { res.writeHead(404); return res.end('not found'); }
     if (abs !== rootDir && !abs.startsWith(rootDir + path.sep)) {
       res.writeHead(403); return res.end('forbidden');
     }
