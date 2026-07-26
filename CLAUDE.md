@@ -161,6 +161,16 @@ Three things to keep in mind when touching this:
 
 **Licensing is the author's problem and the docs say so.** Embedding redistributes the font file. SIL OFL and Apache-2.0 (between them nearly all of Google Fonts) permit it; most commercial *desktop* licences do not, and want a separate webfont licence. The build prints a reminder and makes no attempt to check.
 
+### Link addresses and their QR codes
+
+`Shift`-click on an external link puts its address on both screens with a QR code beside it, instead of opening a page on the projector. The reasoning, and the measurements behind it, are in `speaker.md`; the short version is that ~64% of realistic link targets refuse to be framed, the refusal is undetectable from script, and a page pushed to the projector is a UI the lecturer is driving blind.
+
+QR codes are generated **at build time** by `qrSvg()` and shipped as a `LINK_QR` map keyed by URL, so there is no encoder in the browser and a lecture without links pays nothing. Three things worth keeping:
+
+- The encoder is a dependency (`qrcode-generator`, MIT, zero deps of its own), not hand-rolled Reed-Solomon. An error in that maths yields codes that scan to the *wrong string* and look perfectly correct. Verify changes by decoding, not by looking – `BarcodeDetector` in Chrome does it in a few lines.
+- The map is keyed by the **decoded** URL (`&amp;` → `&`), because that is what `a.href` hands the runtime.
+- The code keeps a white ground on every theme. Scanners cope badly with inverted codes, and the white card doubles as the quiet zone.
+
 ### Themes, dark mode, and `data-mode`
 
 Seven themes cycle on `A`: four light accents, a neutral `dark` (grey paper, white ink, accent lifted so it carries), and the two `terminal-*` phosphor modes. `dark` is an ordinary reading theme that happens to be dark, so Shiki's syntax colours and the accent stay; the terminal modes deliberately suppress both to read as one phosphor tone.

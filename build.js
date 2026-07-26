@@ -528,6 +528,74 @@ function katexStyleTag(html) {
   return `<style>\n${sheet.css}\n</style>`;
 }
 
+// ── QR codes for link addresses ─────────────────────────────────────
+//
+// A URL shown on a projector is only useful if the room can capture it, and
+// a 90-character DOI is not something anyone writes down correctly. The QR
+// puts the capture on the listener's own phone, which is also where the
+// network request belongs: the projection machine still contacts nobody.
+//
+// Generated at build time, not at runtime. The encoder is a dependency
+// rather than 300 hand-rolled lines of Reed-Solomon, because a mistake in
+// that maths yields codes that scan to the wrong string and look perfectly
+// fine to the eye. Running it in Node also keeps it out of the inlined
+// template literals, where an escape mistake is silent.
+//
+// Error correction level M (~15%), which survives a projector's contrast
+// and a photograph taken at an angle from the back of a room.
+const qrCodeGen = nodeRequire('qrcode-generator');
+const qrCache = new Map();
+
+function qrSvg(url) {
+  if (qrCache.has(url)) return qrCache.get(url);
+  const qr = qrCodeGen(0, 'M');   // 0 = pick the smallest type that fits
+  qr.addData(url);
+  qr.make();
+  const n = qr.getModuleCount();
+  const quiet = 4;                // the spec's mandatory quiet zone, in modules
+  const size = n + quiet * 2;
+  // One path, with horizontal runs merged, rather than a <rect> per module:
+  // a rect-per-module SVG for a 40-module code is several times the size for
+  // an identical image.
+  let d = '';
+  for (let row = 0; row < n; row++) {
+    let col = 0;
+    while (col < n) {
+      if (!qr.isDark(row, col)) { col++; continue; }
+      let run = 1;
+      while (col + run < n && qr.isDark(row, col + run)) run++;
+      d += `M${col + quiet} ${row + quiet}h${run}v1h-${run}z`;
+      col += run;
+    }
+  }
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" ` +
+    `shape-rendering="crispEdges" role="img" aria-label="QR code for this address">` +
+    `<rect width="${size}" height="${size}" fill="#fff"/>` +
+    `<path d="${d}" fill="#000"/></svg>`;
+  qrCache.set(url, svg);
+  return svg;
+}
+
+// Collect every external address a view can put on screen, so the overlay
+// can look its QR up instead of encoding one in the browser.
+let lastQrStats = { count: 0, bytes: 0 };
+function linkQrMap(html) {
+  const out = {};
+  let bytes = 0;
+  for (const m of html.matchAll(/href="(https?:\/\/[^"]+)"/g)) {
+    // The href in rendered HTML is entity-escaped; the DOM hands the runtime
+    // the decoded form, and that is what the map is keyed by.
+    const url = m[1].replace(/&amp;/g, '&');
+    if (out[url]) continue;
+    out[url] = qrSvg(url);
+    bytes += out[url].length;
+  }
+  const n = Object.keys(out).length;
+  if (n > lastQrStats.count) lastQrStats = { count: n, bytes };
+  return out;
+}
+
 // ── embedded webfonts ───────────────────────────────────────────────
 //
 // Everything else in an output file is self-contained; type was not. The
@@ -2032,7 +2100,8 @@ const LINK_OVERLAY_HTML = `<div id="link-overlay" class="hidden" role="dialog" a
   <div id="link-overlay-inner">
     <div id="link-overlay-label"></div>
     <a id="link-overlay-url" target="_blank" rel="noopener noreferrer"></a>
-    <div id="link-overlay-hint">click the address to open it &middot; Esc closes</div>
+    <div id="link-overlay-qr" aria-hidden="true"></div>
+    <div id="link-overlay-hint">scan it, or click the address to open it &middot; Esc closes</div>
   </div>
 </div>`;
 
@@ -2207,6 +2276,7 @@ ${renderTocNav(columns)}
 <script>
 const LECTURE_TITLE = ${titleJson};
 const VIEW_DEFAULTS = ${jsonForScript(defaults)};
+const LINK_QR = ${jsonForScript(linkQrMap(columnsHtml))};
 ${AUDIENCE_JS}
 </script>
 </body>
@@ -3350,6 +3420,20 @@ body:not([data-view=speaker]).blanked #link-overlay { display: none; }
   cursor: pointer;
 }
 #link-overlay-url:hover { text-decoration: underline; text-underline-offset: 0.18em; }
+/* The QR keeps its own white ground on every theme. Scanners cope badly
+   with inverted codes, so a dark theme must not invert this one - the white
+   card doubles as the quiet zone the spec requires. */
+#link-overlay-qr {
+  margin: 1.6rem auto 0;
+  width: min(38vh, 300px);
+  background: #fff;
+  padding: 0.6rem;
+  border-radius: 4px;
+  line-height: 0;
+}
+#link-overlay-qr:empty { display: none; }
+#link-overlay-qr svg { width: 100%; height: auto; display: block; }
+
 #link-overlay-hint {
   margin-top: 1.4rem;
   font-family: var(--sans-font);
@@ -4967,6 +5051,7 @@ if (helpOverlay) {
 const linkOverlay = document.getElementById('link-overlay');
 const linkOverlayUrl = document.getElementById('link-overlay-url');
 const linkOverlayLabel = document.getElementById('link-overlay-label');
+const linkOverlayQr = document.getElementById('link-overlay-qr');
 function linkOverlayVisible() {
   return !!linkOverlay && !linkOverlay.classList.contains('hidden');
 }
@@ -4975,6 +5060,10 @@ function showLinkOverlay(href, label) {
   linkOverlayUrl.textContent = href;
   linkOverlayUrl.href = href;
   linkOverlayLabel.textContent = label && label !== href ? label : 'link';
+  // Pre-rendered at build time, keyed by address. A link that is not in the
+  // source (there is currently no way to reach one) simply gets no code
+  // rather than an encoder in the browser.
+  linkOverlayQr.innerHTML = (typeof LINK_QR === 'object' && LINK_QR[href]) || '';
   linkOverlay.classList.remove('hidden');
 }
 function hideLinkOverlay() {
@@ -5003,7 +5092,9 @@ if (linkOverlay) {
 // would otherwise treat the click as a chunk select.
 document.addEventListener('click', (e) => {
   if (!e.shiftKey) return;
-  const a = e.target.closest && e.target.closest('#stage a[href]');
+  // External only. A cross-reference resolves to a file:// path with a
+  // fragment, which is noise on a projector and has no QR behind it.
+  const a = e.target.closest && e.target.closest('#stage a[href^="http"]');
   if (!a) return;
   e.preventDefault();
   e.stopPropagation();
@@ -5617,6 +5708,7 @@ ${renderTocNav(columns)}
 <script>
 const LECTURE_TITLE = ${titleJson};
 const VIEW_DEFAULTS = ${jsonForScript(defaults)};
+const LINK_QR = ${jsonForScript(linkQrMap(columnsHtml))};
 ${AUDIENCE_JS}
 ${SPEAKER_JS}
 </script>
@@ -7623,6 +7715,7 @@ function buildOnce(absIn, only, opts = {}) {
     console.log(`[fonts] ${fontEmbed.faces.length} face(s) embedded, ${kb} KB per view. Check that your licence permits redistribution.`);
     for (const n of fontEmbed.notes) console.log(`[fonts] ${n}`);
   }
+  lastQrStats = { count: 0, bytes: 0 };
   const renderOpts = { ...opts, fontEmbed };
 
   const targets = [
@@ -7637,6 +7730,9 @@ function buildOnce(absIn, only, opts = {}) {
     const p = path.join(outDir, `${name}.html`);
     fs.writeFileSync(p, render(lecture, renderOpts));
     written.push(path.relative(process.cwd(), p));
+  }
+  if (lastQrStats.count) {
+    console.log(`[qr] ${lastQrStats.count} link address(es) carry a QR code, ${Math.round(lastQrStats.bytes / 1024)} KB per live view.`);
   }
   // KaTeX renders a broken formula in red rather than throwing, which is the
   // right call mid-lecture but means a typo would otherwise ship silently.

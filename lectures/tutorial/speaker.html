@@ -1139,6 +1139,20 @@ body:not([data-view=speaker]).blanked #link-overlay { display: none; }
   cursor: pointer;
 }
 #link-overlay-url:hover { text-decoration: underline; text-underline-offset: 0.18em; }
+/* The QR keeps its own white ground on every theme. Scanners cope badly
+   with inverted codes, so a dark theme must not invert this one - the white
+   card doubles as the quiet zone the spec requires. */
+#link-overlay-qr {
+  margin: 1.6rem auto 0;
+  width: min(38vh, 300px);
+  background: #fff;
+  padding: 0.6rem;
+  border-radius: 4px;
+  line-height: 0;
+}
+#link-overlay-qr:empty { display: none; }
+#link-overlay-qr svg { width: 100%; height: auto; display: block; }
+
 #link-overlay-hint {
   margin-top: 1.4rem;
   font-family: var(--sans-font);
@@ -2353,8 +2367,9 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Zoom into a figure or code block</span> <span class="hd-sub">click it</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Click any figure, code block, or marginalia inside the active chunk.</strong> Figures and code lift into a centred card with the slide dimmed behind; a marginalia instead pans the camera so the aside sits in the middle of the screen.</p>
-<p><strong>Links have two behaviours.</strong> A plain click opens the link in a new tab of the window you clicked in – in the cockpit that is you checking a source, and the deck itself never navigates away. <code>Shift</code>-click instead puts the <strong>address</strong> on both screens, large enough to copy down, and <code>Esc</code> or the next slide clears it.</p>
-<p>That is the deliberate answer to “can I open a page on the projector”. You could, but then you are driving a browser you cannot see from the lectern, and the room is watching someone else&#39;s interface instead of the lecture. What a room wants from a link mid-talk is to write it down.</p>
+<p><strong>Links have two behaviours.</strong> A plain click opens the link in a new tab of the window you clicked in – in the cockpit that is you checking a source, and the deck itself never navigates away. <code>Shift</code>-click instead puts the <strong>address</strong> on both screens, large, with a <strong>QR code</strong> beside it. Click the address to open it anyway; <code>Esc</code> or the next slide clears it.</p>
+<p>That is the considered answer to “can I open a page on the projector”. You could, and it is a bad idea twice over: you would be driving a browser you cannot see from the lectern, and the room would be watching an unrelated interface instead of the lecture. What a room wants from a link mid-talk is to capture it – so the QR moves that job onto the listener&#39;s own phone, which is where the network request belongs too. The projection machine still contacts nobody.</p>
+<p>The codes are generated during the build, one per external address in the source, so they cost nothing in a lecture without links and need no encoder in the browser.</p>
 <p><strong>Hold <code>Alt</code> to select text.</strong> Normally dragging pans the slide, so selection is off – a stray highlight on the projection is a distraction that never stops being one. Hold <code>Alt</code> and the stage becomes selectable and the cursor changes; let go and dragging pans again. The selection survives the key release so you can reach <code>Cmd</code>-<code>C</code>, and <code>Esc</code> clears it.</p>
 <p>Inside a focused card: drag to pan, wheel or <code>+</code> <code>-</code> to zoom, <code>0</code> to reset, <code>Esc</code> or a click to close. With a speaker connected, the audience mirrors the focus, the zoom, and the pan, so what you inspect is what the room sees.</p>
 <pre class="shiki github-light" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#6A737D"># Click this block to zoom it. Useful when a line matters more than the slide.</span></span>
@@ -3272,7 +3287,8 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   <div id="link-overlay-inner">
     <div id="link-overlay-label"></div>
     <a id="link-overlay-url" target="_blank" rel="noopener noreferrer"></a>
-    <div id="link-overlay-hint">click the address to open it &middot; Esc closes</div>
+    <div id="link-overlay-qr" aria-hidden="true"></div>
+    <div id="link-overlay-hint">scan it, or click the address to open it &middot; Esc closes</div>
   </div>
 </div>
 <nav id="toc" aria-label="Contents">
@@ -3292,6 +3308,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <script>
 const LECTURE_TITLE = "psi-slides – a ten-step tour";
 const VIEW_DEFAULTS = {};
+const LINK_QR = {};
 
 const STORAGE_PREFIX = 'psi-slides:';
 const storageKey = (s) => STORAGE_PREFIX + LECTURE_TITLE + ':' + s;
@@ -4636,6 +4653,7 @@ if (helpOverlay) {
 const linkOverlay = document.getElementById('link-overlay');
 const linkOverlayUrl = document.getElementById('link-overlay-url');
 const linkOverlayLabel = document.getElementById('link-overlay-label');
+const linkOverlayQr = document.getElementById('link-overlay-qr');
 function linkOverlayVisible() {
   return !!linkOverlay && !linkOverlay.classList.contains('hidden');
 }
@@ -4644,6 +4662,10 @@ function showLinkOverlay(href, label) {
   linkOverlayUrl.textContent = href;
   linkOverlayUrl.href = href;
   linkOverlayLabel.textContent = label && label !== href ? label : 'link';
+  // Pre-rendered at build time, keyed by address. A link that is not in the
+  // source (there is currently no way to reach one) simply gets no code
+  // rather than an encoder in the browser.
+  linkOverlayQr.innerHTML = (typeof LINK_QR === 'object' && LINK_QR[href]) || '';
   linkOverlay.classList.remove('hidden');
 }
 function hideLinkOverlay() {
@@ -4672,7 +4694,9 @@ if (linkOverlay) {
 // would otherwise treat the click as a chunk select.
 document.addEventListener('click', (e) => {
   if (!e.shiftKey) return;
-  const a = e.target.closest && e.target.closest('#stage a[href]');
+  // External only. A cross-reference resolves to a file:// path with a
+  // fragment, which is noise on a projector and has no QR behind it.
+  const a = e.target.closest && e.target.closest('#stage a[href^="http"]');
   if (!a) return;
   e.preventDefault();
   e.stopPropagation();
