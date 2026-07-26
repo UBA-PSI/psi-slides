@@ -5417,6 +5417,15 @@ let collapsedZoom = state.zoom;
 // lecturer pressed to see more text, not bigger text.
 const FULL_FIT_FILL = 0.94;   // leave a little air top and bottom
 
+// Height alone does not decide whether a chunk fits. A long code line does
+// not wrap, so a chunk can sit comfortably inside the available height and
+// still push its content off the side of the screen. The elements that can
+// do that are the ones whose content refuses to reflow – code blocks,
+// tables, display maths – so they are collected once per fit and only the
+// short resulting list is re-measured on each zoom step, rather than
+// walking the whole subtree every iteration.
+const NOWRAP_SEL = 'pre, table, .katex-display';
+
 // ceiling: the largest zoom the fit is allowed to reach. Entering the full
 // text on its own must never grow the type past what the lecturer chose for
 // the projector – they pressed C to see more text, not bigger text. In
@@ -5429,7 +5438,11 @@ function fitZoomToChunk(ceiling) {
   const cap = ceiling === undefined ? collapsedZoom : ceiling;
   const avail = viewport.clientHeight * FULL_FIT_FILL;
   if (!(avail > 0)) return;
-  if (el.scrollHeight <= avail && state.zoom >= cap) return;  // nothing to gain
+  // Sub-pixel layout rounding makes an exact comparison report phantom
+  // overflow on content that fits, so allow a pixel of slack.
+  const wide = [el].concat(Array.from(el.querySelectorAll(NOWRAP_SEL)));
+  const overflowsX = () => wide.some(n => n.scrollWidth > n.clientWidth + 1);
+  if (el.scrollHeight <= avail && !overflowsX() && state.zoom >= cap) return;  // nothing to gain
 
   // A single proportional estimate is not enough, because zoom changes line
   // wrapping and therefore height, and it is not safe either: solving for
@@ -5444,8 +5457,8 @@ function fitZoomToChunk(ceiling) {
   if (z > cap) z = cap;
   applyZoom(z);
 
-  // Shrink until it fits.
-  while (el.scrollHeight > avail && z > 0.6) {
+  // Shrink until it fits, in both directions.
+  while ((el.scrollHeight > avail || overflowsX()) && z > 0.6) {
     z = clampZoom(z - STEP);
     applyZoom(z);
   }
@@ -5453,7 +5466,7 @@ function fitZoomToChunk(ceiling) {
   while (z + STEP <= cap) {
     const probe = clampZoom(z + STEP);
     applyZoom(probe);
-    if (el.scrollHeight > avail) { applyZoom(z); break; }
+    if (el.scrollHeight > avail || overflowsX()) { applyZoom(z); break; }
     z = probe;
   }
 }
