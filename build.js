@@ -1310,6 +1310,10 @@ a:hover { text-decoration-color: var(--ink); }
 }
 .chunk-num i { font-style: normal; }
 .chunk-title .chunk-num { display: none; }
+/* Mirrors the live views: the frontmatter key travels into print too, so a
+   lecture that turns the markers off does not get them back in the handout. */
+body[data-slide-nums=horizontal] .chunk-num { flex-direction: row; gap: 0.08em; }
+body[data-slide-nums=off] .chunk-num { display: none; }
 
 .chunk-principle {
   border-top: 2.5pt solid var(--ink);
@@ -1782,6 +1786,7 @@ function renderHelpOverlay(view) {
       ['<kbd>A</kbd>', 'theme: four light accents, two phosphor modes'],
       ['<kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'text size (kept separately for each collapse mode)'],
       ['<kbd>#</kbd>', 'auto-fit: size every slide to the screen, on or off'],
+      ['<kbd>L</kbd>', 'slide numbers: stacked → in a row → off'],
       ['<kbd>B</kbd>', 'blank the projection – the speaker window keeps working, frozen or not'],
       ['<kbd>Shift</kbd>-any', 'cycle that knob backwards'],
     ]],
@@ -1871,7 +1876,7 @@ ${AUDIENCE_CSS}
 ${katexStyleTag(columnsHtml)}
 ${reloadScript(opts.watchPort)}
 </head>
-<body data-collapse="topic-bold" data-font="serif" data-theme="light-red">
+<body data-collapse="topic-bold" data-font="serif" data-theme="light-red" data-slide-nums="vertical">
 <div id="stage-viewport">
   <div id="stage">
 ${columnsHtml}
@@ -2122,6 +2127,11 @@ textarea, input, [contenteditable=true] {
 .chunk:hover > .chunk-num,
 .chunk.active > .chunk-num { opacity: 0.5; }
 body.figure-focused .chunk-num { opacity: 0; }
+/* Orientation is a taste question, so it is a setting rather than a
+   decision the tool makes for everyone. L cycles it live; the frontmatter
+   key sets where a lecture starts. */
+body[data-slide-nums=horizontal] .chunk-num { flex-direction: row; gap: 0.08em; }
+body[data-slide-nums=off] .chunk-num { display: none; }
 .chunk-heading {
   font-family: var(--body-font);
   font-weight: 600;
@@ -3314,8 +3324,10 @@ const state = {
   blanked: false,
   font: 'serif',          // serif | sans | mono (readable)
   theme: 'light-red',     // light-{red,teal,blue,orange} | terminal-{amber,green}
+  slideNums: 'vertical',  // vertical | horizontal | off – L cycles
 };
 const FONT_CYCLE = ['serif', 'sans', 'mono'];
+const SLIDE_NUM_MODES = ['vertical', 'horizontal', 'off'];
 const THEME_CYCLE = [
   'light-red', 'light-teal', 'light-blue', 'light-orange',
   'terminal-amber', 'terminal-green',
@@ -3395,6 +3407,10 @@ function loadPersisted() {
     const t = localStorage.getItem('psi-slides:theme');
     if (t && THEME_CYCLE.includes(t)) state.theme = t;
   } catch (e) {}
+  try {
+    const n = localStorage.getItem('psi-slides:slide-nums');
+    if (n && SLIDE_NUM_MODES.includes(n)) state.slideNums = n;
+  } catch (e) {}
 }
 function saveAnnotations() {
   try { localStorage.setItem(storageKey('annotations'), JSON.stringify(annotations)); } catch (e) {}
@@ -3405,6 +3421,16 @@ function saveActive() {
 function applyFontTheme() {
   document.body.dataset.font = state.font;
   document.body.dataset.theme = state.theme;
+  document.body.dataset.slideNums = state.slideNums;
+}
+function cycleSlideNums(dir) {
+  const i = SLIDE_NUM_MODES.indexOf(state.slideNums);
+  const next = SLIDE_NUM_MODES[(i + (dir || 1) + SLIDE_NUM_MODES.length) % SLIDE_NUM_MODES.length];
+  state.slideNums = next;
+  applyFontTheme();
+  try { localStorage.setItem('psi-slides:slide-nums', next); } catch (e) {}
+  flashMode('slide numbers · ' + next);
+  broadcastState();
 }
 function cycleFont(dir) {
   const i = FONT_CYCLE.indexOf(state.font);
@@ -3468,6 +3494,7 @@ function snapshot() {
     blanked: state.blanked,
     font: state.font,
     theme: state.theme,
+    slideNums: state.slideNums,
     // Inner window dimensions travel with every snapshot so the speaker
     // can match its preview's aspect ratio to the actual projector
     // window. Without this, laser-pointer coordinates (fractions of the
@@ -3560,6 +3587,7 @@ function applyRemoteState(payload) {
     state.blanked = !!payload.blanked;
     if (payload.font && FONT_CYCLE.includes(payload.font)) state.font = payload.font;
     if (payload.theme && THEME_CYCLE.includes(payload.theme)) state.theme = payload.theme;
+    if (payload.slideNums && SLIDE_NUM_MODES.includes(payload.slideNums)) state.slideNums = payload.slideNums;
     applyFontTheme();
     // Speaker mirrors the audience window's aspect so its preview area
     // lays out content identically. Ignored on audience side (its own
@@ -4597,6 +4625,7 @@ document.addEventListener('keydown', (e) => {
     case 'c': case 'C': cycleCollapse(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'f': case 'F': cycleFont(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'a': case 'A': cycleTheme(e.shiftKey ? -1 : 1); e.preventDefault(); break;
+    case 'l': case 'L': cycleSlideNums(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
     case '/': startSearch(); e.preventDefault(); break;
@@ -4973,7 +5002,7 @@ ${SPEAKER_CSS}
 ${katexStyleTag(columnsHtml)}
 ${reloadScript(opts.watchPort)}
 </head>
-<body data-collapse="topic-bold" data-view="speaker" data-font="serif" data-theme="light-red">
+<body data-collapse="topic-bold" data-view="speaker" data-font="serif" data-theme="light-red" data-slide-nums="vertical">
 <div id="scrubber">
 ${scrubberHtml}
 </div>

@@ -258,12 +258,15 @@ If the pane is collapsed because this chunk has no notes, the corner `+ note` bu
 - `A` cycles **accent theme**: four light shades plus two terminal phosphor modes.
 - `+` `-` `0` set the **text size**; `#` hands that job to the tool.
 - `B` **blanks the projection** – and only the projection.
+- `L` cycles the **slide numbers**: stacked, in a row, or off.
 
-`Shift` plus any of the cycling keys goes backwards. Font and theme are stored globally rather than per lecture, so the preference follows you; zoom and collapse belong to the talk.
+`Shift` plus any of the cycling keys goes backwards. Font, theme and slide numbers are stored globally rather than per lecture, so the preference follows you; zoom and collapse belong to the talk.
 
 **The two collapse modes keep separate zoom levels.** The collapsed slide holds whatever size you set with `+` and `-` – that is the projector setting, and nothing changes it behind your back. Switching to the full text picks its own zoom so the whole chunk fits the screen, and switching back restores yours exactly. Without that, every `C` was followed by a row of `-` presses and every `C` back by a row of `+` presses.
 
 **`#` turns on auto-fit** and every slide is then sized to the screen as you arrive on it, in either collapse mode – growing a short chunk as readily as shrinking a long one. `#` again hands the zoom back to you. It is the right mode for a lecture whose chunks vary a lot in length, and the wrong one if you want a constant type size in the room.
+
+**`L` decides how the slide number is set.** The stacked digits in the corner are a deliberate look and not to everyone's taste, so they are a setting rather than a decision the tool makes for you: stacked, laid out in a row, or gone entirely.
 
 **`B` blanks the projection, not your cockpit.** The audience view goes black; the speaker window keeps the slide, the notes and the preview strip, so you can change slide or read ahead while the room sees nothing. A small `BLANK · hit B to toggle` marker sits at the bottom of the speaker window – or at the bottom of the audience view if no speaker is open, so a one-screen setup still knows how to get out.
 
