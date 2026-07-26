@@ -81,7 +81,7 @@ A source file can silence specific lint warnings with an HTML comment anywhere i
 
 - `// ── syntax highlighting ──` – Shiki singleton + per-build highlight cache.
 - `// ── image shorthand resolution ──` – `![](fig-id)` → `assets/fig-id.{svg,png,jpg,jpeg,gif,webp}` (first match wins).
-- `// ── math (KaTeX, rendered at build time) ──` – `$inline$` / `$$display$$`, the per-build render cache, and the conditional stylesheet. Two things here are load-bearing: the family→class map is **parsed out of `katex.min.css`**, never hard-coded, so it survives a KaTeX upgrade; and the stylesheet is emitted only for views that actually contain a formula, because the inlined woff2 faces are 254 KB for the full set.
+- `// ── math (KaTeX, rendered at build time) ──` – `$inline$` / `$$display$$`, the per-build render cache, and the conditional stylesheet. Two things here are load-bearing: the family→class map is **parsed out of `katex.min.css`**, never hard-coded, so it survives a KaTeX upgrade; and the stylesheet is emitted only for views that actually contain a formula, because the inlined woff2 faces are 254 KB for the full set. The live views additionally carry `KATEX_TOGGLE_FAMS` (sans + typewriter, ~46 KB) so the maths can follow the `F` toggle; print passes no `fontToggle` flag and pays nothing extra.
 - `// ── marked renderer overrides ──` – custom `code` and `image` handlers on `marked`.
 - `// ── parsing ──` – `parseLecture()` and helpers (`parseTagPrefix`, `splitHeading`, `parseAttributeTail`).
 - `// ── rendering ──` + `// ── print CSS ──` – print (document) renderer.

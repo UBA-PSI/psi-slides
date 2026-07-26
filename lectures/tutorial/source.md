@@ -418,7 +418,9 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 **A lone dollar is safe**, because the delimiters are parsed as Markdown tokens rather than by a search-and-replace over your source. `$PATH` inside code, a price of $5 and $10 in prose, and a `$$` inside a fence are all left alone; write `\$` if you want to be explicit.
 
-**Fonts are the price of the single-file promise.** A lecture with math inlines only the KaTeX font families its formulas actually use, typically around 130 KB of the full 254 KB; a lecture without math inlines nothing at all. The build prints which it did.
+**Fonts are the price of the single-file promise.** A lecture with math inlines only the KaTeX font families its formulas actually use – around 120 KB of the full 254 KB in the print views; a lecture without math inlines nothing at all. The build prints which it did.
+
+**The maths follows the `F` toggle.** Switch the body font to sans or mono and the formulas change with it, instead of sitting there as a serif island in a sans slide. Only the letterforms move: operators, relations and delimiters keep their own faces, and a glyph the sans face does not have falls back per character to the one KaTeX would have used. The live views pay about 46 KB more for the two extra families, because which font you will choose is not knowable at build time. Print has no toggle and does not pay it.
 
 > note: A malformed formula does not fail the build – KaTeX renders it in red so a typo never blanks the projector mid-lecture. The terminal reports it instead, and `lint.js` warns about a `$$` you forgot to close.
 

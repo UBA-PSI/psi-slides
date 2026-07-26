@@ -501,10 +501,18 @@ function loadKatexCss() {
   }
 }
 
-function katexFamiliesUsedBy(html) {
+// The live views let the reader switch the body font at run time (F), and
+// the maths follows – see the katex-follows-the-font block in AUDIENCE_CSS.
+// Which font that will be is not knowable at build time, so a live view with
+// any formula carries the sans and typewriter faces as well. Measured: +46 KB
+// on top of a typical 119 KB. Print has no toggle and pays nothing extra.
+const KATEX_TOGGLE_FAMS = ['KaTeX_SansSerif', 'KaTeX_Typewriter'];
+
+function katexFamiliesUsedBy(html, opts = {}) {
   loadKatexCss();
   // KaTeX_Main carries the base `.katex` rule, so it is always needed.
   const need = new Set(['KaTeX_Main']);
+  if (opts.fontToggle) for (const f of KATEX_TOGGLE_FAMS) need.add(f);
   for (const [fam, classes] of katexFamClasses) {
     if (!classes.size) { need.add(fam); continue; }
     for (const c of classes) {
@@ -524,9 +532,9 @@ let lastKatexSheet = null;
 
 // Returns '' when the HTML contains no rendered math, so lectures without
 // formulas pay nothing at all.
-function katexStylesheetFor(html) {
+function katexStylesheetFor(html, opts = {}) {
   if (!/class="katex/.test(html)) return '';
-  const need = katexFamiliesUsedBy(html);
+  const need = katexFamiliesUsedBy(html, opts);
   const key = [...need].sort().join(',');
   if (katexSheetCache.has(key)) return (lastKatexSheet = katexSheetCache.get(key));
 
@@ -553,8 +561,8 @@ function katexStylesheetFor(html) {
 
 // The renderers want a ready-made <style> block; keep the size reporting
 // in one place so every view logs the same number.
-function katexStyleTag(html) {
-  const sheet = katexStylesheetFor(html);
+function katexStyleTag(html, opts = {}) {
+  const sheet = katexStylesheetFor(html, opts);
   if (!sheet) return '';
   return `<style>\n${sheet.css}\n</style>`;
 }
@@ -2530,7 +2538,7 @@ function renderAudience(lecture, opts = {}) {
 ${AUDIENCE_CSS}
 </style>
 ${fontStyleTag(opts.fontEmbed)}
-${katexStyleTag(columnsHtml)}
+${katexStyleTag(columnsHtml, { fontToggle: true })}
 ${reloadScript(opts.watchPort)}
 </head>
 <body ${viewBodyAttrs(defaults)}>
@@ -2626,6 +2634,27 @@ body[data-font=mono]  {
   --bold-weight: 600;
   /* Reading mono slides are visually denser; loosen line-height a hair. */
   line-height: 1.55;
+}
+
+/* ── Maths follows the font toggle (hotkey F) ─────────────────────
+   With the body in sans or mono, formulas set in KaTeX's serif faces read
+   as a different document embedded in the slide. KaTeX ships sans and
+   typewriter families, so the letterforms can follow.
+
+   Two things make this safe. It is applied only to the classes that carry
+   *letterforms* – italic variables (.mathnormal) and ordinary symbols
+   (.mord) – never to operators, relations or delimiters, whose glyphs live
+   in Main and the Size families and have no sans equivalent. And it is a
+   font *stack*, not a replacement: a glyph missing from the sans face falls
+   back per character to the family KaTeX would have used anyway, which is
+   exactly the desired behaviour and costs nothing when it does not happen. */
+body[data-font=sans] .katex .mord,
+body[data-font=sans] .katex .mathnormal {
+  font-family: KaTeX_SansSerif, KaTeX_Main, KaTeX_Math;
+}
+body[data-font=mono] .katex .mord,
+body[data-font=mono] .katex .mathnormal {
+  font-family: KaTeX_Typewriter, KaTeX_Main, KaTeX_Math;
 }
 
 /* ── Theme / accent cycle (hotkey A) ──────────────────────────────
@@ -6213,7 +6242,7 @@ ${AUDIENCE_CSS}
 ${SPEAKER_CSS}
 </style>
 ${fontStyleTag(opts.fontEmbed)}
-${katexStyleTag(columnsHtml)}
+${katexStyleTag(columnsHtml, { fontToggle: true })}
 ${reloadScript(opts.watchPort)}
 </head>
 <body ${viewBodyAttrs(defaults, 'data-view="speaker"')}>
@@ -8405,7 +8434,10 @@ function buildOnce(absIn, only, opts = {}) {
   }
   if (lastKatexSheet) {
     const kb = (lastKatexSheet.bytes / 1024).toFixed(0);
-    console.log(`[math] ${lastKatexSheet.families} KaTeX font families inlined, ${kb} KB of woff2 per view (of 254 KB for the full set). A lecture without math inlines nothing.`);
+    // The figure reported is the live views', which is the larger of the
+    // two: they carry the sans and typewriter faces so the maths can follow
+    // the F toggle. Print has no toggle and gets only what its formulas use.
+    console.log(`[math] ${lastKatexSheet.families} KaTeX font families inlined, ${kb} KB of woff2 per live view (of 254 KB for the full set); print carries only the families its formulas use. A lecture without math inlines nothing.`);
   }
   return { written, shape };
 }
