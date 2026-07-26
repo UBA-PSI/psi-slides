@@ -31,6 +31,65 @@
     });
   });
 
+  /* ── the other-language hint ───────────────────────────────────────────
+   * GitHub Pages serves static files: no Accept-Language, no server-side
+   * redirect. The tempting fix is a script that reads navigator.language and
+   * jumps. This does not, for three reasons that outlive the convenience:
+   *
+   *   - a shared URL has to keep leading where it points, or the person who
+   *     sent it and the person who opens it are looking at different pages;
+   *   - navigator.language is the interface language, which for a lot of
+   *     academics is English on a German desk, so it guesses badly;
+   *   - it overrules a reader who has already chosen, and a redirect is
+   *     hard to argue with.
+   *
+   * So: offer, once, and remember the answer.
+   */
+  (function languageHint() {
+    var alt = document.querySelector('link[rel=alternate][hreflang]:not([hreflang=x-default])');
+    if (!alt) return;
+    var pageLang = (document.documentElement.lang || 'en').slice(0, 2);
+    var wanted = (navigator.language || '').slice(0, 2).toLowerCase();
+    if (!wanted || wanted === pageLang) return;
+    var target = document.querySelector('link[rel=alternate][hreflang^="' + wanted + '"]');
+    if (!target) return;
+    try {
+      if (localStorage.getItem('psi-slides:lang-hint') === 'off') return;
+    } catch (e) { /* private mode: show it, just do not remember */ }
+
+    var copy = wanted === 'de'
+      ? { text: 'Diese Seite gibt es auch auf Deutsch.', link: 'Zur deutschen Fassung', close: 'Nein, danke' }
+      : { text: 'This page is also available in English.', link: 'Go to the English version', close: 'No thanks' };
+
+    var bar = document.createElement('div');
+    bar.className = 'langhint';
+    bar.lang = wanted;
+    var inner = document.createElement('div');
+    inner.className = 'langhint-in';
+    var p = document.createElement('p');
+    p.textContent = copy.text + ' ';
+    var a = document.createElement('a');
+    a.href = target.getAttribute('href');
+    a.hreflang = wanted;
+    a.textContent = copy.link;
+    p.appendChild(a);
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.textContent = copy.close;
+    close.addEventListener('click', function () {
+      bar.remove();
+      try { localStorage.setItem('psi-slides:lang-hint', 'off'); } catch (e) { /* ignore */ }
+    });
+    inner.appendChild(p);
+    inner.appendChild(close);
+    bar.appendChild(inner);
+    // Under the university bar, above the page: it belongs to the site, not
+    // to the article.
+    var topbar = document.querySelector('.topbar');
+    if (topbar && topbar.parentNode) topbar.parentNode.insertBefore(bar, topbar.nextSibling);
+    else document.body.insertBefore(bar, document.body.firstChild);
+  })();
+
   /* ── the narrow-width menu ─────────────────────────────────────────────
    * The <details> opens, closes, and is keyboard-operable on its own. Two
    * things it does not do are what everyone expects from a menu: Escape, and

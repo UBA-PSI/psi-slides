@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>psi-slides &ndash; Live-Demo</title>
+<link rel="alternate" hreflang="en" href="https://uba-psi.github.io/psi-slides/">
+<link rel="alternate" hreflang="de" href="https://uba-psi.github.io/psi-slides/de/">
+<link rel="alternate" hreflang="x-default" href="https://uba-psi.github.io/psi-slides/">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<!--topbar-->
+<main>
+  <div class="hero">
+    <p class="mark"><b>psi-slides</b> &middot; Präsentationssoftware für Lehrende</p>
+    <h1>Die Vorlesung einmal schreiben.</h1>
+    <p class="what">Hinein geht eine Markdown-Datei. Heraus kommen vier in sich
+    geschlossene HTML-Dateien: die <strong>Projektion</strong> für den Raum, ein
+    <strong>Presenter-Cockpit</strong> auf dem eigenen Bildschirm und
+    <strong>zwei Handouts</strong> &ndash; das Skript allein und das Skript mit den
+    eigenen Notizen.</p>
+    <p class="promise">Alle vier entstehen aus derselben Quelle. Sie können nicht
+    auseinanderlaufen, weil es nichts gibt, das man synchron halten müsste.</p>
+    <p class="extras">Meinungsstark darin, was eine Folie ist, und für die Stunde
+    vor der Gruppe ordentlich ausgerüstet: <b>Übersichtstafel</b>,
+    <b>Volltextsuche</b>, <b>Live-Annotationen</b>, Syntaxhervorhebung,
+    LaTeX-Formeln, Video, QR-Codes für jeden Link, eine Uhr und sieben
+    Farbschemata. Kein Server, keine Laufzeitumgebung, keine Cloud.</p>
+
+    <div class="cta">
+      <a class="primary" href="#getting-started">Loslegen</a>
+      <a class="secondary" href="#open-them-yourself">Eine Vorlesung öffnen</a>
+    </div>
+
+    <div class="pair">
+      <figure class="shot">
+        <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>was der Raum sieht</b></div>
+        <img src="../img/collapsed.webp" alt="Die Folie wie projiziert: Überschrift, Unterzeile, der erste Satz jedes Absatzes und die fett markierten Stellen, einspaltig.">
+      </figure>
+      <figure class="shot">
+        <div class="bar">
+          <span class="dots"><i></i><i></i><i></i></span> <b>was die Lesenden bekommen</b>
+          <span class="swap" role="group" aria-label="Ansicht für die Lesenden wählen">
+            <span class="swap-label" aria-hidden="true">zeigen:</span>
+            <button type="button" aria-pressed="true"
+                    data-src="../img/full.webp"
+                    data-alt="Derselbe Chunk ohne Kürzung: alle vier Absätze vollständig, in zwei Spalten.">am Bildschirm</button>
+            <button type="button" aria-pressed="false"
+                    data-src="../img/printed.webp"
+                    data-alt="Derselbe Chunk in der Druckansicht: ein Dokument in einer Serifenschrift, im Blocksatz mit Silbentrennung, die Randnotiz als Marginalie.">gedruckt</button>
+          </span>
+        </div>
+        <img src="../img/full.webp" alt="Derselbe Chunk ohne Kürzung: alle vier Absätze vollständig, in zwei Spalten.">
+      </figure>
+    </div>
+    <p class="shot-note">Dieselben vier Absätze, einmal geschrieben.
+    <b>Zwischen den ersten beiden liegt ein Tastendruck</b> &ndash; und das dritte ist
+    eine andere Datei aus derselben Quelle: der Schalter <b>zeigen: am Bildschirm
+    / gedruckt</b> in der rechten Leiste zeigt sie. Ein Klick auf ein Bild öffnet
+    es in voller Größe.</p>
+  </div>
+
+  <h2>Jede Vorlesung besteht aus drei Sorten Text</h2>
+
+  <p>Da ist, was <strong>auf die Folie</strong> kommt, dünn genug zum Lesen aus
+  der letzten Reihe. Da ist <strong>das Skript</strong> &ndash; die Sätze, die die
+  Sache wirklich erklären und die in ein Handout gehören statt an die Wand. Und
+  da sind <strong>die Notizen an einen selbst</strong>: erst die Gruppe fragen,
+  das hier weglassen, wenn die Zeit knapp wird, das geht nicht raus.</p>
+
+  <p>Präsentationssoftware gibt einem Folien und ein Notizfeld. Das Skript, der
+  Teil, den Studierende am meisten wollen, wird deshalb nie eine Datei. Man
+  behält es im Kopf oder in einem zweiten Dokument, das vom ersten abweicht,
+  sobald man eines von beiden ändert.</p>
+
+  <p>Hier schreibt man den Absatz einmal und markiert den Satz, der ihn trägt.
+  Die Projektion nimmt diesen Satz, das Dokument nimmt alles, und die Zeilen
+  hinter <code>&gt; note:</code> bleiben auf dem eigenen Bildschirm.</p>
+
+  <h2>Was es tut</h2>
+
+  <p>Die Bilder oben und unten zeigen alle dieselbe Folie einer echten Vorlesung
+  &ndash; einer Python-Einführung aus 36 Chunks &ndash; und das hier ist das Markdown, in
+  dem sie steht. Zwei der vier Absätze sind gekürzt, damit sie auf diese Seite
+  passen; die Vorlesung selbst ist auf Englisch.</p>
+
+<pre><code><span class="t-head">## free: Why Playwright | the modern web is rendered, not served</span> <span class="t-punct">{.wide #why-playwright}</span>
+
+<span class="t-dir">::: cols 2</span>
+
+<span class="t-punct">**</span><span class="t-strong">A lot of the web is rendered by JavaScript in the browser.</span><span class="t-punct">**</span>
+<span class="t-punct">**</span><span class="t-strong"><span class="t-code">`requests`</span> and plain <span class="t-code">`urllib`</span> see only the HTML shell</span><span class="t-punct">**</span> &ndash; often just
+<span class="t-code">`&lt;div id="app"&gt;&lt;/div&gt;`</span> plus a pile of script tags. Useful text, links, and
+titles never arrive.
+
+<span class="t-punct">**</span><span class="t-strong">Playwright drives a real browser</span><span class="t-punct">**</span> &ndash; Chromium, Firefox, or WebKit &ndash; over a
+debugging protocol. The page renders, scripts execute, the DOM settles, and
+then you query it. You see what a human sees.
+
+<span class="t-punct">**</span><span class="t-strong">For a link scanner this matters a lot.</span><span class="t-punct">**</span> …
+
+<span class="t-punct">**</span><span class="t-strong">The cost is weight.</span><span class="t-punct">**</span> …
+
+<span class="t-dir">:::</span>
+
+<span class="t-dir">::: margin</span>
+<span class="t-code">`requests`</span> is still the right tool for an API that answers in JSON. The
+browser is for pages meant to be looked at.
+<span class="t-dir">:::</span>
+
+<span class="t-note">&gt; note: Show the difference live if the room is awake: open a JS-heavy site,
+&gt; curl it, and let them find the missing text themselves.</span></code></pre>
+
+  <p class="tiny">In der Projektion fällt der Satz auf eine Spalte zusammen, weil
+  vier gekürzte Absätze sich nicht ausbalancieren lassen; die Lesefassung behält
+  die zwei Spalten, die der Autor geschrieben hat.</p>
+
+  <figure class="shot">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>speaker.html</b></div>
+    <img src="../img/cockpit.webp" alt="Das Presenter-Cockpit: oben eine Kapitelleiste, darunter eine Spiegelung der projizierten Folie, die private Sprechnotiz, ein Streifen mit den Nachbarfolien und eine Fußzeile mit Uhr und Tastenlegende.">
+    <figcaption><strong>Das Cockpit</strong>, mit <kbd>S</kbd> geöffnet. Die
+    <code>&gt; note:</code> aus der Quelle steht unter der Bühne, wo nur man
+    selbst sie liest, in einer Größe, die man mit den zwei Knöpfen daneben
+    einstellt; der Streifen zeigt, was kommt. Beide Fenster bleiben über
+    <code>postMessage</code> im Gleichschritt, ohne Server dazwischen.</figcaption>
+  </figure>
+
+  <div class="pair">
+    <figure class="shot">
+      <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>audience.html</b> &middot; O</div>
+      <img src="../img/overview.webp" alt="Die Übersichtstafel: die ganze Vorlesung aus 36 Chunks als Raster lesbarer Folien, die aktuelle umrandet.">
+      <figcaption><strong>Die ganze Vorlesung auf einmal.</strong> Keine
+      Miniaturen, sondern die echten Folien, weiterhin lesbar. Ziehen verschiebt,
+      <kbd>Enter</kbd> springt hin.</figcaption>
+    </figure>
+    <figure class="shot">
+      <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>audience.html</b> &middot; /</div>
+      <img src="../img/search.webp" alt="Das Suchfeld über der Folie: die Anfrage async und fünf Treffer, jeder mit Art, Überschrift und dem passenden Satz.">
+      <figcaption><strong>Volltextsuche</strong>, von überall, mitten im Vortrag.
+      Jeder Treffer zeigt seine Art, seine Überschrift und den Satz, in dem er
+      steht.</figcaption>
+    </figure>
+  </div>
+
+  <figure class="shot">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>print-notes.html</b></div>
+    <img src="../img/handout.webp" alt="Das Handout: derselbe Chunk als fließender Blocksatz mit Silbentrennung, die Randnotiz als Marginalie und die Sprechnotiz in einem getönten Block darunter.">
+    <figcaption><strong>Das Handout der Lehrperson.</strong> Dieselbe Quelle als
+    Dokument gesetzt &ndash; mit Silbentrennung, in Lesebreite, die Sprechnotiz unter
+    ihrem Chunk eingefügt. Es gibt zwei Handouts: <code>print.html</code> trägt
+    nur das Skript und ist das zum Austeilen, <code>print-notes.html</code>
+    ergänzt die Sprechnotizen und ist das eigene.</figcaption>
+  </figure>
+
+  <h2 id="open-them-yourself">Selbst öffnen</h2>
+
+  <p>Drei Vorlesungen liegen hier. <strong>python-intro</strong> ist die von
+  oben. Das <strong>Tutorial</strong> ist eine selbstbezügliche Tour, die das
+  Werkzeug erklärt, indem sie es benutzt. Beide sind auf Englisch. Das
+  <strong>Kurzbeispiel</strong> ist ein Ausschnitt aus einer Netzwerk-Vorlesung
+  im ersten Semester, auf Deutsch: 80 Zeilen Markdown, kurz genug, um sie ganz zu
+  lesen und daneben zu sehen, was daraus wird
+  (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">Quelle</a>,
+  gesetzt nach den <a href="https://inf.zone/lectures/8.5-netze/notes85/">Vorlesungsnotizen</a>
+  unter CC&nbsp;BY-NC-SA&nbsp;4.0).</p>
+
+  <table>
+    <tr><th></th><th>python-intro</th><th>Tutorial</th><th>Kurzbeispiel</th></tr>
+    <tr><td>Die Projektion</td>
+        <td><a href="../python-intro/audience.html">audience</a></td>
+        <td><a href="../tutorial/audience.html">audience</a></td>
+        <td><a href="../example/audience.html">audience</a></td></tr>
+    <tr><td>Das Cockpit</td>
+        <td><a href="../python-intro/speaker.html">speaker</a></td>
+        <td><a href="../tutorial/speaker.html">speaker</a></td>
+        <td><a href="../example/speaker.html">speaker</a></td></tr>
+    <tr><td>Das Dokument</td>
+        <td><a href="../python-intro/print.html">print</a></td>
+        <td><a href="../tutorial/print.html">print</a></td>
+        <td><a href="../example/print.html">print</a></td></tr>
+    <tr><td>Mit den Notizen</td>
+        <td><a href="../python-intro/print-notes.html">print-notes</a></td>
+        <td><a href="../tutorial/print-notes.html">print-notes</a></td>
+        <td><a href="../example/print-notes.html">print-notes</a></td></tr>
+  </table>
+
+  <p class="tiny">Am besten mit der Projektion anfangen. Pfeiltasten blättern,
+  <kbd>Leertaste</kbd> blendet ein, <kbd>C</kbd> schaltet die Kürzung um,
+  <kbd>O</kbd> (der Buchstabe, nicht die Null) öffnet die Übersichtstafel,
+  <kbd>/</kbd> sucht, <kbd>?</kbd> listet alles auf. Das Cockpit über einen Link
+  zu öffnen zeigt zwar das Layout, synchronisiert aber mit nichts &ndash; dafür
+  <kbd>S</kbd> in der Projektion drücken.</p>
+
+  <div class="hint">
+    <p>Alle vier Dateien sind in sich geschlossen: CSS, JavaScript, Bilder, die
+    gesetzten Formeln und die Schriften stecken darin. Zur Laufzeit wird nichts
+    nachgeladen, und sie öffnen sich von <code>file://</code> genauso wie von
+    diesem Server.</p>
+  </div>
+
+  <h2 id="getting-started">Loslegen</h2>
+
+  <p>Man braucht <strong>Node 20 oder neuer</strong>, sonst nichts: kein LaTeX,
+  kein Pandoc, keinen Server, nichts global Installiertes. Release herunterladen,
+  auspacken, Tutorial bauen:</p>
+
+<pre><code><span class="t-cmt"># das aktuelle Release, ausgepackt nach psi-slides/</span>
+<span class="t-cmd">curl</span> <span class="t-flag">-L</span> <span class="t-path">https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.tar.gz</span> <span class="t-punct">\</span>
+  <span class="t-punct">|</span> <span class="t-cmd">tar</span> <span class="t-flag">xz</span>
+<span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
+
+<span class="t-cmt"># die mitgelieferten Schriften und die paar Bau-Abhängigkeiten</span>
+<span class="t-cmd">npm</span> install
+
+<span class="t-cmt"># alle vier Ansichten neben source.md bauen, dann die Projektion öffnen</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span>
+<span class="t-cmd">open</span> <span class="t-path">lectures/tutorial/audience.html</span>   <span class="t-cmt"># macOS; sonst xdg-open oder der Browser</span></code></pre>
+
+  <p class="tiny">Unter Windows das <code>.zip</code> von derselben
+  <a href="https://github.com/UBA-PSI/psi-slides/releases">Release-Seite</a>
+  nehmen. Ein <code>git clone</code> des Repositorys funktioniert genauso &ndash; das
+  Archiv ist derselbe Baum ohne die Historie.</p>
+
+  <p>Das baut das Tutorial: eine Vorlesung, die das Werkzeug erklärt, indem sie
+  es benutzt. <kbd>?</kbd> zeigt die Tastenübersicht, <kbd>S</kbd> öffnet das
+  Cockpit. Seine <code>source.md</code> ist die Referenz fürs Schreiben, und die
+  vier erzeugten Dateien kann man verschieben, mailen oder hochladen &ndash; sie
+  tragen alles bei sich, was sie brauchen.</p>
+
+  <h3>Dann die eigene schreiben</h3>
+
+<pre><code><span class="t-cmt"># ein Verzeichnis mit gültigem Frontmatter anlegen</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-flag">--new</span> my-lecture
+
+<span class="t-cmt"># bei jedem Speichern neu bauen und alle offenen Tabs neu laden</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch</span>
+
+<span class="t-cmt"># Chunk-IDs, Wortbudgets, offene Direktiven, zu große Assets</span>
+<span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/my-lecture/source.md</span></code></pre>
+
+  <p>Editor, Projektion und Cockpit nebeneinander offen halten: <code>--watch</code>
+  schickt bei jedem Speichern an alle drei ein Reload. Am Ende sind die vier
+  HTML-Dateien neben der <code>source.md</code> das Ergebnis. Mehr muss nicht
+  mitreisen.</p>
+
+  <h2>Dokumentation</h2>
+  <ul>
+    <li><a href="../comparison.html">Der Vergleich mit anderen Werkzeugen</a> &ndash;
+      Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint und Verwandte, in beide
+      Richtungen, samt der Stellen, an denen psi-slides verliert. Auf Englisch.</li>
+  </ul>
+
+  <h2>Quellcode</h2>
+  <p><a href="https://github.com/UBA-PSI/psi-slides">github.com/UBA-PSI/psi-slides</a>
+  &ndash; die README erklärt das Format, wofür das Werkzeug taugt und wofür nicht.
+  Auf Englisch.</p>
+
+  <footer>
+    <p>Von <a href="https://herdom.net">Dominik Herrmann</a>,
+    <a href="https://psi.uni-bamberg.de/">Lehrstuhl für Privatsphäre und Sicherheit
+    in Informationssystemen</a>, Universität Bamberg.<br>
+    Werkzeug MIT-lizenziert, Vorlesungsinhalte CC&nbsp;BY-SA&nbsp;4.0. Bei jedem
+    Push aus der Quelle neu gebaut.</p>
+  </footer>
+</main>
+<script src="../site.js"></script>
+</body>
+</html>

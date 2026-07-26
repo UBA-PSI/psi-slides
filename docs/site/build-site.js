@@ -89,7 +89,39 @@ function renderMarkdown(md) {
 // page and into every rendered page, because a bar that says who is
 // responsible for the site has to be on all of it. The mark is the
 // university's own outline, inlined: the page fetches nothing.
-const TOPBAR = `<nav class="topbar" aria-label="Universität Bamberg and site navigation">
+// Labels per language. Everything the bar says in words, in one place, so a
+// third language would be a table entry rather than a second copy of the
+// markup.
+const BAR_TEXT = {
+  en: {
+    aria: 'Universität Bamberg and site navigation',
+    chair: 'Chair of Privacy and Security in Information Systems',
+    lectures: 'Live lectures', start: 'Getting started', compare: 'Comparison',
+    overview: 'Overview', menu: 'Menu', lang: 'Language',
+  },
+  de: {
+    aria: 'Universität Bamberg und Seitennavigation',
+    chair: 'Lehrstuhl für Privatsphäre und Sicherheit in Informationssystemen',
+    lectures: 'Vorlesungen', start: 'Loslegen', compare: 'Vergleich',
+    overview: 'Übersicht', menu: 'Menü', lang: 'Sprache',
+  },
+};
+
+// `base` is the path back to the site root: '' for pages at the root, '../'
+// for the German page under de/. `home` is the index in the page's own
+// language, so the bar always navigates within the language you are reading.
+function topbar(lang, base) {
+  const t = BAR_TEXT[lang];
+  const home = lang === 'de' ? base + 'de/index.html' : base + 'index.html';
+  const other = lang === 'de' ? base + 'index.html' : base + 'de/index.html';
+  const compare = base + 'comparison.html';
+  // The switch is two links, not a redirect: see site.js for why the browser's
+  // language only ever produces a hint here, never a jump.
+  const langSwitch = `<span class="topbar-lang" role="group" aria-label="${t.lang}">
+          <a href="${base}index.html" hreflang="en"${lang === 'en' ? ' aria-current="true"' : ''}>EN</a>
+          <a href="${base}de/index.html" hreflang="de"${lang === 'de' ? ' aria-current="true"' : ''}>DE</a>
+        </span>`;
+  return `<nav class="topbar" aria-label="${t.aria}">
   <div class="topbar-in">
     <div class="topbar-row">
       <a class="topbar-brand" href="https://www.uni-bamberg.de/" target="_blank" rel="noopener">
@@ -97,30 +129,33 @@ const TOPBAR = `<nav class="topbar" aria-label="Universität Bamberg and site na
         <span>Universität Bamberg</span>
       </a>
       <div class="topbar-right">
-        <a class="topbar-chair" href="https://psi.uni-bamberg.de/" target="_blank" rel="noopener">Chair of Privacy and Security in Information Systems</a>
+        <a class="topbar-chair" href="https://psi.uni-bamberg.de/" target="_blank" rel="noopener">${t.chair}</a>
         <span class="topbar-sep">·</span>
         <a href="https://psi.uni-bamberg.de/de/ueberuns/" target="_blank" rel="noopener">Prof. Dr. Dominik Herrmann</a>
       </div>
       <div class="topbar-actions">
         <div class="topbar-nav">
-          <a href="index.html#open-them-yourself">Live lectures</a>
-          <a href="index.html#getting-started">Getting started</a>
-          <a href="comparison.html">Comparison</a>
+          <a href="${home}#open-them-yourself">${t.lectures}</a>
+          <a href="${home}#getting-started">${t.start}</a>
+          <a href="${compare}">${t.compare}</a>
         </div>
+        ${langSwitch}
         <a class="topbar-gh" href="https://github.com/UBA-PSI/psi-slides">GitHub</a>
         <details class="topbar-menu">
-          <summary aria-label="Menu">
+          <summary aria-label="${t.menu}">
             <svg viewBox="0 0 14 12" aria-hidden="true" focusable="false"><path d="M0 1h14M0 6h14M0 11h14" style="stroke:currentColor;stroke-width:1.6px;fill:none"/></svg>
-            <span>Menu</span>
+            <span>${t.menu}</span>
           </summary>
           <div class="topbar-panel">
-            <a href="index.html">Overview</a>
-            <a href="index.html#open-them-yourself">Live lectures</a>
-            <a href="index.html#getting-started">Getting started</a>
-            <a href="comparison.html">Comparison</a>
+            <a href="${home}">${t.overview}</a>
+            <a href="${home}#open-them-yourself">${t.lectures}</a>
+            <a href="${home}#getting-started">${t.start}</a>
+            <a href="${compare}">${t.compare}</a>
             <a href="https://github.com/UBA-PSI/psi-slides">GitHub</a>
             <hr>
-            <a href="https://psi.uni-bamberg.de/" target="_blank" rel="noopener">Chair of Privacy and Security in Information Systems</a>
+            <a href="${other}" hreflang="${lang === 'de' ? 'en' : 'de'}">${lang === 'de' ? 'English version' : 'Deutsche Fassung'}</a>
+            <hr>
+            <a href="https://psi.uni-bamberg.de/" target="_blank" rel="noopener">${t.chair}</a>
             <a href="https://psi.uni-bamberg.de/de/ueberuns/" target="_blank" rel="noopener">Prof. Dr. Dominik Herrmann</a>
           </div>
         </details>
@@ -128,6 +163,8 @@ const TOPBAR = `<nav class="topbar" aria-label="Universität Bamberg and site na
     </div>
   </div>
 </nav>`;
+}
+const TOPBAR = topbar('en', '');
 
 const SHELL = (title, lead, body) => `<!DOCTYPE html>
 <html lang="en">
@@ -191,12 +228,21 @@ function main() {
   // thing built into it is the bar, so that its one definition covers every
   // page. A missing marker is an error rather than a page that quietly ships
   // without its affiliation.
-  const indexSrc = fs.readFileSync(path.join(HERE, 'index.html'), 'utf8');
   const MARKER = '<!--topbar-->';
-  if (!indexSrc.includes(MARKER)) {
-    throw new Error(`docs/site/index.html has no ${MARKER} marker for the university bar`);
-  }
-  fs.writeFileSync(path.join(outDir, 'index.html'), indexSrc.replace(MARKER, TOPBAR));
+  const landing = (src, out, lang, base) => {
+    const html = fs.readFileSync(path.join(HERE, src), 'utf8');
+    if (!html.includes(MARKER)) {
+      throw new Error(`docs/site/${src} has no ${MARKER} marker for the university bar`);
+    }
+    fs.mkdirSync(path.dirname(path.join(outDir, out)), { recursive: true });
+    fs.writeFileSync(path.join(outDir, out), html.replace(MARKER, topbar(lang, base)));
+    console.log(`  docs/site/${src} -> ${out}`);
+  };
+  landing('index.html', 'index.html', 'en', '');
+  // The German landing page lives at de/, so every asset reference in it is
+  // one level up. Same document, translated; the lectures it links to stay in
+  // the language they are taught in.
+  landing('index.de.html', path.join('de', 'index.html'), 'de', '../');
   fs.copyFileSync(path.join(HERE, 'site.css'), path.join(outDir, 'site.css'));
   fs.copyFileSync(path.join(HERE, 'site.js'), path.join(outDir, 'site.js'));
   // Screenshots the landing page shows. Copied rather than referenced out of

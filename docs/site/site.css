@@ -183,6 +183,59 @@ main { max-width: 48rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
 }
 
 /*
+ * The language switch. Two links, always both visible, the current one marked
+ * with aria-current. Not a select and not a redirect: a reader who lands on
+ * one language can see at a glance that the other exists and what it is
+ * called, and the URL they end up on is the one they can share.
+ */
+.topbar-lang { display: flex; align-items: center; gap: 0.15rem; font-size: 0.74rem; }
+.topbar-lang a {
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  color: #d6d4d2;
+  letter-spacing: 0.03em;
+}
+.topbar-lang a:hover { color: #ffffff; text-decoration: none; background: #4d4c4a; }
+.topbar-lang a[aria-current] { color: #2a2a2e; background: #ffffff; }
+
+/*
+ * The other-language hint. GitHub Pages serves static files and cannot do
+ * content negotiation, so the alternative would be a script that redirects on
+ * navigator.language. This offers instead of jumping: a shared link keeps
+ * leading where it points, and a reader whose browser is set to one language
+ * but reads another is not overruled. Shown once; the answer is remembered.
+ */
+.langhint {
+  background: var(--shot-bg);
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.92rem;
+}
+.langhint-in {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 0.6rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+.langhint p { margin: 0; max-width: none; }
+.langhint a { font-weight: 600; }
+.langhint button {
+  margin-left: auto;
+  flex: none;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.langhint button:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+/*
  * The narrow-width menu. A <details> rather than a scripted dropdown: it is
  * the one native control that already does keyboard operation and the right
  * semantics, and its contents stay out of the tab order while it is closed.
