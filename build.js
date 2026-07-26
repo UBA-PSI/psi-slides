@@ -578,21 +578,54 @@ const FONT_ROLE_VARS = {
 
 const normFontName = (s) => String(s).toLowerCase().replace(/[\s_-]/g, '');
 
-// Derive weight and style from what follows the family name in a filename:
-// Literata-Bold, Literata-SemiBoldItalic, Literata-600italic, Literata[wght].
-function parseFaceDescriptor(rest, rawBase) {
-  // Google's variable-font naming carries its axes in brackets. A variable
-  // file covers the whole range, so declaring a single weight would make the
-  // browser synthesise the others it could have interpolated properly.
-  if (/\[[^\]]*\]/.test(rawBase) || /^(variable|vf)$/.test(rest)) {
-    return { weight: '100 900', style: 'normal' };
-  }
+// A filename is `<family><sep><descriptor>` or just `<family>`. The
+// descriptor half is a closed vocabulary, which is what lets the family half
+// be recognised exactly rather than by prefix – see splitFontFileName.
+const FACE_DESCRIPTOR_RE = new RegExp(
+  '^(.*?)[-_ ]?(' +
+    '(?:' + Object.keys(FONT_WEIGHT_NAMES).join('|') + ')(?:italic|oblique)?' +
+    '|\\d{3}(?:italic|oblique)?' +
+    '|italic|oblique' +
+    '|variable|vf' +
+  ')$', 'i');
+
+// Split a font filename into the family it declares and its face descriptor.
+//
+// Matching the family by prefix was wrong and wrong silently: with both
+// Inter-Regular and "Inter Tight-Regular" in the folder, asking for `Inter`
+// matched both, because normalising away the space makes "intertightregular"
+// start with "inter". The leftover "tightregular" then hit the weight-name
+// lookup, missed, and fell back to 400 – so two different typefaces were
+// declared as the same family at the same weight and style, and the browser
+// simply took the last one. The author asked for Inter and got Inter Tight
+// with nothing said.
+//
+// So the family is compared for equality, and the whole basename is tried
+// first: a family whose own name ends in a weight word ("Archivo Black")
+// still resolves when the file carries no separate descriptor.
+function splitFontFileName(base) {
+  // Google's variable naming carries the axes in brackets. A variable file
+  // spans the range, so pinning one weight would make the browser
+  // synthesise faces it could have interpolated properly.
+  const axis = /\[[^\]]*\]/.test(base);
+  const bare = base.replace(/\[[^\]]*\]/g, '').trim();
+  const whole = { family: bare, weight: axis ? '100 900' : 400, style: 'normal' };
+  if (axis) return [whole];
+
+  const m = FACE_DESCRIPTOR_RE.exec(bare);
+  if (!m || !m[1]) return [whole];
+
+  let d = m[2].toLowerCase();
   let style = 'normal';
-  let r = rest;
-  if (/(italic|oblique)$/.test(r)) { style = 'italic'; r = r.replace(/(italic|oblique)$/, ''); }
-  if (!r) return { weight: 400, style };
-  if (/^\d{3}$/.test(r)) return { weight: parseInt(r, 10), style };
-  return { weight: FONT_WEIGHT_NAMES[r] || 400, style };
+  if (/(italic|oblique)$/.test(d)) { style = 'italic'; d = d.replace(/(italic|oblique)$/, ''); }
+  let weight;
+  if (!d) weight = 400;
+  else if (/^\d{3}$/.test(d)) weight = parseInt(d, 10);
+  else if (d === 'variable' || d === 'vf') weight = '100 900';
+  else weight = FONT_WEIGHT_NAMES[d] || 400;
+  // Both readings are offered; the caller keeps whichever names the family
+  // it was actually asked for.
+  return [whole, { family: m[1], weight, style }];
 }
 
 // Read `fonts:` out of the frontmatter and turn it into @font-face blocks.
@@ -618,7 +651,14 @@ function collectEmbeddedFonts(frontmatter = {}, srcDir) {
     if (!family) continue;
     const wanted = normFontName(family);
 
-    const matches = entries.filter(f => normFontName(path.basename(f, path.extname(f))).startsWith(wanted));
+    // Keep only files whose family half *equals* the requested family, and
+    // remember which reading matched so the descriptor is the right one.
+    const matches = [];
+    for (const f of entries) {
+      const base = path.basename(f, path.extname(f));
+      const hit = splitFontFileName(base).find(r => normFontName(r.family) === wanted);
+      if (hit) matches.push({ file: f, face: hit });
+    }
     if (!matches.length) {
       // Falling back silently is exactly the failure this feature exists to
       // remove: the build would succeed and the output would look like the
@@ -633,18 +673,33 @@ function collectEmbeddedFonts(frontmatter = {}, srcDir) {
       throw err;
     }
 
-    for (const file of matches) {
+    // One (weight, style) slot can only hold one face. An author who drops
+    // both Inter-Regular.woff2 and Inter-Regular.ttf means one face in two
+    // formats, not two faces – take the better-compressing one and say so,
+    // rather than emitting a duplicate the browser resolves by source order.
+    const bySlot = new Map();
+    for (const { file, face } of matches) {
       const ext = path.extname(file).slice(1).toLowerCase();
-      const base = path.basename(file, path.extname(file));
-      const rest = normFontName(base).slice(wanted.length);
-      const { weight, style } = parseFaceDescriptor(rest, base);
+      const slot = `${face.weight}/${face.style}`;
+      const prev = bySlot.get(slot);
+      if (prev) {
+        const better = FONT_EXTS.indexOf(ext) < FONT_EXTS.indexOf(prev.ext) ? { file, ext } : prev;
+        const dropped = better.file === file ? prev.file : file;
+        notes.push(`${family} ${slot}: using ${better.file}, skipping ${dropped} (same weight and style)`);
+        bySlot.set(slot, { ...better, face });
+        continue;
+      }
+      bySlot.set(slot, { file, ext, face });
+    }
+
+    for (const { file, ext, face } of bySlot.values()) {
       const buf = fs.readFileSync(path.join(dir, file));
       bytes += buf.length;
       if (ext !== 'woff2') {
         notes.push(`${file} is ${ext} (${(buf.length / 1024).toFixed(0)} KB) – woff2 is typically 30-50% smaller`);
       }
       faces.push({
-        family, weight, style, file,
+        family, weight: face.weight, style: face.style, file,
         src: `url(data:${FONT_MIME[ext]};base64,${buf.toString('base64')}) format('${FONT_FORMAT[ext]}')`,
       });
     }
@@ -3194,6 +3249,10 @@ body[data-view=speaker] #help-button { display: none; }
   padding: 4vh 4vw;
 }
 #link-overlay.hidden { display: none; }
+/* B means everything off the screen, now. The overlay sits above the stage,
+   so blanking has to reach it too – the speaker keeps it, like the rest of
+   the cockpit, because that window goes on working while the room is dark. */
+body:not([data-view=speaker]).blanked #link-overlay { display: none; }
 #link-overlay-inner { max-width: 46em; text-align: center; }
 #link-overlay-label {
   font-family: var(--sans-font);

@@ -1079,6 +1079,10 @@ body[data-view=speaker] #help-button { display: none; }
   padding: 4vh 4vw;
 }
 #link-overlay.hidden { display: none; }
+/* B means everything off the screen, now. The overlay sits above the stage,
+   so blanking has to reach it too – the speaker keeps it, like the rest of
+   the cockpit, because that window goes on working while the room is dark. */
+body:not([data-view=speaker]).blanked #link-overlay { display: none; }
 #link-overlay-inner { max-width: 46em; text-align: center; }
 #link-overlay-label {
   font-family: var(--sans-font);
