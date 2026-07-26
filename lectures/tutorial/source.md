@@ -82,6 +82,10 @@ In source, an expansion is authored with `::: expand <label>` … `:::`. The lab
 
 **Click any figure, code block, or marginalia inside the active chunk.** Figures and code lift into a centred card with the slide dimmed behind; a marginalia instead pans the camera so the aside sits in the middle of the screen.
 
+**Links have two behaviours.** A plain click opens the link in a new tab of the window you clicked in – in the cockpit that is you checking a source, and the deck itself never navigates away. `Shift`-click instead puts the **address** on both screens, large enough to copy down, and `Esc` or the next slide clears it.
+
+That is the deliberate answer to “can I open a page on the projector”. You could, but then you are driving a browser you cannot see from the lectern, and the room is watching someone else's interface instead of the lecture. What a room wants from a link mid-talk is to write it down.
+
 **Hold `Alt` to select text.** Normally dragging pans the slide, so selection is off – a stray highlight on the projection is a distraction that never stops being one. Hold `Alt` and the stage becomes selectable and the cursor changes; let go and dragging pans again. The selection survives the key release so you can reach `Cmd`-`C`, and `Esc` clears it.
 
 Inside a focused card: drag to pan, wheel or `+` `-` to zoom, `0` to reset, `Esc` or a click to close. With a speaker connected, the audience mirrors the focus, the zoom, and the pan, so what you inspect is what the room sees.

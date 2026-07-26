@@ -1930,6 +1930,17 @@ const OVERVIEW_BADGE_HTML = `<div id="overview-badge">
 // only sign that the room sees black, so it has to say how to undo that.
 const BLANK_BADGE_HTML = `<div id="blank-badge" class="hidden" role="status">BLANK<span> &middot; hit B to toggle</span></div>`;
 
+// Shift-clicking a link puts its address on both screens, large enough to
+// copy down. See the runtime section for why the room gets the URL to read
+// rather than a browser tab to watch.
+const LINK_OVERLAY_HTML = `<div id="link-overlay" class="hidden" role="dialog" aria-label="Link address">
+  <div id="link-overlay-inner">
+    <div id="link-overlay-label"></div>
+    <div id="link-overlay-url"></div>
+    <div id="link-overlay-hint">Esc closes</div>
+  </div>
+</div>`;
+
 const SEARCH_PANEL_HTML = `<div id="search-panel" class="hidden" role="dialog" aria-label="Search slides">
   <input id="search-input" type="text" placeholder="search the lecture..." autocomplete="off" spellcheck="false" aria-controls="search-results">
   <ul id="search-results" role="listbox"></ul>
@@ -1973,6 +1984,8 @@ function renderHelpOverlay(view) {
       ['click a marginalia', 'pan the camera onto the aside'],
       ['drag the slide', 'pan within a chunk that is taller than the screen'],
       ['hold <kbd>Alt</kbd> and drag', 'select text to copy – dragging pans again once you let go'],
+      ['click a link', 'opens it in a new tab of this window'],
+      ['<kbd>Shift</kbd>-click a link', 'puts the address on both screens, big enough to write down'],
       ['<kbd>Esc</kbd>', 'back to the whole slide'],
     ]],
     ['Reading knobs', [
@@ -2093,6 +2106,7 @@ ${renderHelpOverlay('audience')}
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
 ${BLANK_BADGE_HTML}
+${LINK_OVERLAY_HTML}
 ${renderTocNav(columns)}
 <script>
 const LECTURE_TITLE = ${titleJson};
@@ -3162,6 +3176,50 @@ body:not([data-view=speaker]).blanked #help-button { display: none; }
    on top of the timer, which the lecturer reads far more often than the help. */
 body[data-view=speaker] #help-button { display: none; }
 
+/* Link address overlay. Shift-click on a link shows the URL on both
+   screens instead of opening it on either: a lecture wants the room to be
+   able to write an address down, and a browser tab pushed to a projector
+   is a UI the lecturer is then driving blind. Sized to be read from the
+   back row, and it breaks anywhere so a long URL never overflows. */
+#link-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Opaque, not a veil. The job is an address someone is copying down onto
+     paper; slide text showing through turns it into a puzzle. */
+  background: var(--paper);
+  padding: 4vh 4vw;
+}
+#link-overlay.hidden { display: none; }
+#link-overlay-inner { max-width: 46em; text-align: center; }
+#link-overlay-label {
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.14em;
+  font-size: 1rem;
+  color: var(--ink-soft);
+  margin-bottom: 0.9rem;
+}
+#link-overlay-url {
+  font-family: var(--mono-font);
+  font-size: clamp(1.1rem, 3.4vw, 2.6rem);
+  line-height: 1.35;
+  color: var(--emph);
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+#link-overlay-hint {
+  margin-top: 1.4rem;
+  font-family: var(--sans-font);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  opacity: 0.7;
+}
+
 /* Mode toast. This used to be a 10px small-caps chip in the top-right
    corner, tinted paper-on-paper – peripheral enough that the feedback for
    a toggle regularly went unnoticed, which is the one job it has. Now:
@@ -3882,6 +3940,16 @@ window.addEventListener('message', (ev) => {
     applyRemoteState(m.payload);
     return;
   }
+  // Address overlay, outside the snapshot for the same reason as blank:
+  // it is a command aimed at the projection, not shared navigation state.
+  if (m.type === 'link-show') {
+    showLinkOverlay(m.href, m.label);
+    return;
+  }
+  if (m.type === 'link-hide') {
+    hideLinkOverlay();
+    return;
+  }
   // Blank travels outside the snapshot so it still lands while frozen.
   if (m.type === 'blank' && VIEW === 'audience') {
     state.blanked = !!m.blanked;
@@ -4414,6 +4482,8 @@ function commitSearchHit() {
 function jumpTo(idx, direction) {
   if (idx < 0 || idx >= flatChunks.length) return;
   if (annotEditingId) blurAnnotation();
+  // Moving on retires the address: it belonged to the slide you left.
+  dismissLinkOverlay();
   if (focusedFigure) unfocusFigure();
   closeAnyExpansion();
   // Reset drag pan on chunk change – pan is per-chunk inspection.
@@ -4737,6 +4807,59 @@ if (helpOverlay) {
   });
 }
 
+// ── links ───────────────────────────────────────────────────────────
+// A plain click opens the link in a new tab of whichever window was
+// clicked. In the cockpit that is the lecturer checking a source, which is
+// what they usually want; the deck itself never navigates away, because the
+// renderer puts target="_blank" on external links.
+//
+// Shift-click instead shows the address on *both* screens, large. That is
+// the deliberate answer to "can I open a tab on the projector": you could,
+// but then the lecturer is driving a browser they cannot see, and the room
+// is watching someone else's UI instead of the lecture. What a room
+// actually needs from a link during a talk is to write it down. So the
+// projection gets the URL to read, not a page to watch, and the cockpit
+// shows the identical overlay so the lecturer knows exactly what went up.
+const linkOverlay = document.getElementById('link-overlay');
+const linkOverlayUrl = document.getElementById('link-overlay-url');
+const linkOverlayLabel = document.getElementById('link-overlay-label');
+function linkOverlayVisible() {
+  return !!linkOverlay && !linkOverlay.classList.contains('hidden');
+}
+function showLinkOverlay(href, label) {
+  if (!linkOverlay) return;
+  linkOverlayUrl.textContent = href;
+  linkOverlayLabel.textContent = label && label !== href ? label : 'link';
+  linkOverlay.classList.remove('hidden');
+}
+function hideLinkOverlay() {
+  if (linkOverlay) linkOverlay.classList.add('hidden');
+}
+// Dismissing has to reach both screens, or the room is left staring at a
+// URL the lecturer has already moved on from.
+function dismissLinkOverlay() {
+  if (!linkOverlayVisible()) return;
+  hideLinkOverlay();
+  sendToPeer({ type: 'link-hide', source: VIEW });
+}
+if (linkOverlay) linkOverlay.addEventListener('click', dismissLinkOverlay);
+// Capture phase: this has to beat the stage's own click handling, which
+// would otherwise treat the click as a chunk select.
+document.addEventListener('click', (e) => {
+  if (!e.shiftKey) return;
+  const a = e.target.closest && e.target.closest('#stage a[href]');
+  if (!a) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const href = a.href;
+  const label = (a.textContent || '').trim();
+  showLinkOverlay(href, label);
+  // Ungated by freeze, like blank: showing the room an address is an
+  // explicit act aimed at the projection, not shared navigation state.
+  sendToPeer({ type: 'link-show', source: VIEW, href, label });
+  if (VIEW === 'speaker') flashMode('address shown on the projection');
+}, true);
+
 // ── text selection ──────────────────────────────────────────────────
 // The live views disable selection globally: drag pans the stage, and a
 // stray highlight on the projection is a distraction that never stops being
@@ -4861,6 +4984,9 @@ document.addEventListener('keydown', (e) => {
     case 'Escape': {
       // Help sits in front of everything, so it unwinds first.
       if (helpVisible()) { toggleHelp(false); e.preventDefault(); break; }
+      // The address overlay covers both screens, so it unwinds early – and
+      // on both, or the room would be left staring at a URL.
+      if (linkOverlayVisible()) { dismissLinkOverlay(); e.preventDefault(); break; }
       // A live highlight is the most recent thing the user did, so it is
       // the first thing Esc should take back.
       if (hasTextSelection()) { endSelecting(); e.preventDefault(); break; }
@@ -5324,6 +5450,7 @@ ${renderHelpOverlay('speaker')}
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
 ${BLANK_BADGE_HTML}
+${LINK_OVERLAY_HTML}
 ${renderTocNav(columns)}
 <script>
 const LECTURE_TITLE = ${titleJson};

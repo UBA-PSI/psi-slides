@@ -30,10 +30,15 @@ The audience is the **state root**. The speaker owns a **local shadow** of the s
 
 `frozen` is the projector's metaphor, not the protocol's. It started life as a `pushEnabled` toggle with a companion `.` key that force-pushed one snapshot – two controls describing what the code does (send a snapshot) rather than what the lecturer wants (hold the image while I read ahead). Inverting and renaming it collapses the pair into one: thawing *is* the resync, because the first thing an ungated broadcast does is hand the room the current state. `toggleFreeze()` therefore sends a snapshot directly on the way out of frozen, or unfreezing on the slide you meant to land on would appear to do nothing.
 
-Two message types deliberately bypass the freeze gate, because both are commands to the projector rather than shared state:
+Four message types deliberately bypass the freeze gate, because all four are commands to the projector rather than shared state:
 
 - `blank` – `B` must reach the projection whether or not the cockpit is frozen. It is the key you hit when something has to come off the screen *now*, and a gated `B` would toast “projection blanked” at a projection that stayed lit.
 - `slide-ref` – the audience window's dimensions after a resize (§3).
+- `link-show` / `link-hide` – the address overlay, below.
+
+**Links.** A plain click opens the link in a new tab of the window that was clicked; the renderer puts `target="_blank"` on external links, so the deck itself never navigates away. `Shift`-click instead shows the **address** on both screens, set large, and `Esc`, a click, or the next slide clears it on both.
+
+That is the considered answer to “can I open a page on the projector”. It is technically possible and a bad idea twice over: the lecturer would be driving a browser they cannot see from the lectern, and the room would be watching an unrelated interface instead of the lecture. It would also rest on `window.open` succeeding in the peer without a user gesture there, which is exactly what popup blockers exist to stop. What a room actually wants from a link mid-talk is to write it down, so the projection gets a URL to read rather than a page to watch – and the cockpit shows the identical overlay, so the lecturer knows precisely what went up.
 
 **State that syncs** (both directions, gated by freeze):
 
