@@ -528,6 +528,146 @@ function katexStyleTag(html) {
   return `<style>\n${sheet.css}\n</style>`;
 }
 
+// ── embedded webfonts ───────────────────────────────────────────────
+//
+// Everything else in an output file is self-contained; type was not. The
+// CSS shipped bare family stacks – Literata, Inter Tight, JetBrains Mono –
+// which resolve only on a machine where those are *installed*, and quietly
+// fall through to Georgia / system-ui / Menlo everywhere else. A lecture
+// mailed to a colleague kept its layout and its figures and lost its face.
+//
+// An author opts in by dropping font files next to source.md and naming the
+// families in the frontmatter:
+//
+//   fonts:
+//     serif: Literata
+//     sans: Inter Tight
+//     mono: JetBrains Mono
+//
+// Licensing is the author's call and cannot be checked here, so the build
+// says nothing about it beyond the note in the docs: embedding redistributes
+// the font file, which most open licences (SIL OFL, Apache-2.0 – between
+// them nearly all of Google Fonts) permit and most commercial desktop
+// licences do not.
+const FONT_DIR = 'fonts';
+const FONT_EXTS = ['woff2', 'woff', 'ttf', 'otf'];
+const FONT_FORMAT = { woff2: 'woff2', woff: 'woff', ttf: 'truetype', otf: 'opentype' };
+const FONT_MIME = { woff2: 'font/woff2', woff: 'font/woff', ttf: 'font/ttf', otf: 'font/otf' };
+const FONT_WEIGHT_NAMES = {
+  thin: 100, hairline: 100, extralight: 200, ultralight: 200, light: 300,
+  regular: 400, normal: 400, book: 400, medium: 500, semibold: 600,
+  demibold: 600, bold: 700, extrabold: 800, ultrabold: 800, black: 900,
+  heavy: 900,
+};
+// The tail of each default stack, kept here rather than inline in the two
+// stylesheets so an embedded family can be prepended to the *same* list the
+// build would otherwise have emitted. One source of truth, two consumers.
+const FONT_STACK_TAILS = {
+  serif: `'Literata', 'Source Serif 4', Georgia, serif`,
+  sans: `'Inter Tight', 'Inter', system-ui, -apple-system, sans-serif`,
+  mono: `'JetBrains Mono', ui-monospace, Menlo, monospace`,
+};
+// Which CSS custom properties each role feeds. Audience and print use
+// different names for the same idea; setting a property a given view never
+// reads costs nothing, so one override block serves all four outputs.
+const FONT_ROLE_VARS = {
+  serif: ['--serif-stack', '--serif'],
+  sans: ['--sans-stack', '--sans'],
+  mono: ['--mono-font', '--read-mono-stack', '--mono'],
+};
+
+const normFontName = (s) => String(s).toLowerCase().replace(/[\s_-]/g, '');
+
+// Derive weight and style from what follows the family name in a filename:
+// Literata-Bold, Literata-SemiBoldItalic, Literata-600italic, Literata[wght].
+function parseFaceDescriptor(rest, rawBase) {
+  // Google's variable-font naming carries its axes in brackets. A variable
+  // file covers the whole range, so declaring a single weight would make the
+  // browser synthesise the others it could have interpolated properly.
+  if (/\[[^\]]*\]/.test(rawBase) || /^(variable|vf)$/.test(rest)) {
+    return { weight: '100 900', style: 'normal' };
+  }
+  let style = 'normal';
+  let r = rest;
+  if (/(italic|oblique)$/.test(r)) { style = 'italic'; r = r.replace(/(italic|oblique)$/, ''); }
+  if (!r) return { weight: 400, style };
+  if (/^\d{3}$/.test(r)) return { weight: parseInt(r, 10), style };
+  return { weight: FONT_WEIGHT_NAMES[r] || 400, style };
+}
+
+// Read `fonts:` out of the frontmatter and turn it into @font-face blocks.
+// Returns null when the lecture embeds nothing, so callers can stay terse.
+function collectEmbeddedFonts(frontmatter = {}, srcDir) {
+  const spec = frontmatter.fonts;
+  if (!spec || typeof spec !== 'object' || Array.isArray(spec)) return null;
+
+  const dir = path.join(srcDir, FONT_DIR);
+  let entries = [];
+  try {
+    entries = fs.readdirSync(dir).filter(f => FONT_EXTS.includes(path.extname(f).slice(1).toLowerCase()));
+  } catch (e) { /* handled below as "no files" */ }
+
+  const faces = [];
+  const overrides = [];
+  const notes = [];
+  let bytes = 0;
+
+  for (const role of ['serif', 'sans', 'mono']) {
+    if (!(role in spec)) continue;
+    const family = String(spec[role]).trim();
+    if (!family) continue;
+    const wanted = normFontName(family);
+
+    const matches = entries.filter(f => normFontName(path.basename(f, path.extname(f))).startsWith(wanted));
+    if (!matches.length) {
+      // Falling back silently is exactly the failure this feature exists to
+      // remove: the build would succeed and the output would look like the
+      // author never asked for the font.
+      const err = new Error(
+        `Frontmatter names "fonts.${role}: ${family}" but no matching file is in ${path.join(FONT_DIR, '')}/.\n` +
+        `  Looked in: ${dir}\n` +
+        `  Expected something like ${family.replace(/\s+/g, '')}-Regular.woff2 (also .woff, .ttf, .otf).\n` +
+        `  Found there: ${entries.length ? entries.join(', ') : '(nothing)'}`
+      );
+      err.userFacing = true;
+      throw err;
+    }
+
+    for (const file of matches) {
+      const ext = path.extname(file).slice(1).toLowerCase();
+      const base = path.basename(file, path.extname(file));
+      const rest = normFontName(base).slice(wanted.length);
+      const { weight, style } = parseFaceDescriptor(rest, base);
+      const buf = fs.readFileSync(path.join(dir, file));
+      bytes += buf.length;
+      if (ext !== 'woff2') {
+        notes.push(`${file} is ${ext} (${(buf.length / 1024).toFixed(0)} KB) – woff2 is typically 30-50% smaller`);
+      }
+      faces.push({
+        family, weight, style, file,
+        src: `url(data:${FONT_MIME[ext]};base64,${buf.toString('base64')}) format('${FONT_FORMAT[ext]}')`,
+      });
+    }
+    overrides.push({ role, family });
+  }
+
+  if (!faces.length) return null;
+  return { faces, overrides, bytes, notes };
+}
+
+function fontStyleTag(embed) {
+  if (!embed) return '';
+  const faceCss = embed.faces.map(f =>
+    `@font-face{font-family:'${f.family}';font-style:${f.style};font-weight:${f.weight};font-display:block;src:${f.src};}`
+  ).join('\n');
+  // font-display:block, not swap: a lecture must not flash a fallback face
+  // on the projector and then reflow the slide under the room's eyes.
+  const varCss = embed.overrides.map(({ role, family }) =>
+    FONT_ROLE_VARS[role].map(v => `  ${v}: '${family}', ${FONT_STACK_TAILS[role]};`).join('\n')
+  ).join('\n');
+  return `<style>\n${faceCss}\n:root {\n${varCss}\n}\n</style>`;
+}
+
 // ── marked renderer overrides (code highlighting + image shorthand) ──
 
 marked.use({
@@ -1204,6 +1344,7 @@ function renderDocument(lecture, opts = {}) {
 <style>
 ${PRINT_CSS}
 </style>
+${fontStyleTag(opts.fontEmbed)}
 ${katexStyleTag(anonHtml + namedHtml)}
 ${reloadScript(opts.watchPort)}
 </head>
@@ -1927,6 +2068,7 @@ function renderAudience(lecture, opts = {}) {
 <style>
 ${AUDIENCE_CSS}
 </style>
+${fontStyleTag(opts.fontEmbed)}
 ${katexStyleTag(columnsHtml)}
 ${reloadScript(opts.watchPort)}
 </head>
@@ -1992,8 +2134,10 @@ const AUDIENCE_CSS = `
   --slide-pad-y: calc(var(--slide-h) * 0.049);
   --slide-height: calc(var(--slide-h) * 0.4);
   --chunk-gap: calc(var(--slide-h) * 0.04);
-  --serif-stack: 'Literata', 'Source Serif 4', Georgia, serif;
-  --sans-stack:  'Inter Tight', 'Inter', system-ui, -apple-system, sans-serif;
+  /* Interpolated from FONT_STACK_TAILS so an embedded family can be
+     prepended to the very same list – see the embedded-webfonts section. */
+  --serif-stack: ${FONT_STACK_TAILS.serif};
+  --sans-stack:  ${FONT_STACK_TAILS.sans};
   /* Readable mono ("iA Writer"-style): prefer the Duo/Quattro faces if
      present, fall back to JetBrains Mono and system monospace. The iA
      fonts are free-to-use (SIL) when self-hosted; here we treat them
@@ -2003,7 +2147,7 @@ const AUDIENCE_CSS = `
                      Menlo, monospace;
   --body-font: var(--serif-stack);
   --sans-font: var(--sans-stack);
-  --mono-font: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --mono-font: ${FONT_STACK_TAILS.mono};
   --bold-weight: 500;
 }
 
@@ -5069,6 +5213,7 @@ function renderSpeaker(lecture, opts = {}) {
 ${AUDIENCE_CSS}
 ${SPEAKER_CSS}
 </style>
+${fontStyleTag(opts.fontEmbed)}
 ${katexStyleTag(columnsHtml)}
 ${reloadScript(opts.watchPort)}
 </head>
@@ -7088,6 +7233,18 @@ function buildOnce(absIn, only, opts = {}) {
   const chunkCount = lecture.columns.reduce((n, c) => n + c.chunks.length, 0);
   const shape = `${lecture.columns.length} columns, ${chunkCount} chunks`;
 
+  // Read and encode the embedded faces once, not once per view: the four
+  // outputs share the same bytes. Runs before anything is written, so a
+  // frontmatter family with no matching file fails without leaving an
+  // artefact behind – same contract as assertInlinable above.
+  const fontEmbed = collectEmbeddedFonts(lecture.frontmatter, outDir);
+  if (fontEmbed) {
+    const kb = Math.round(fontEmbed.bytes / 1024);
+    console.log(`[fonts] ${fontEmbed.faces.length} face(s) embedded, ${kb} KB per view. Check that your licence permits redistribution.`);
+    for (const n of fontEmbed.notes) console.log(`[fonts] ${n}`);
+  }
+  const renderOpts = { ...opts, fontEmbed };
+
   const targets = [
     ['print',       renderDocument],
     ['print-notes', (l, o) => renderDocument(l, { ...o, withNotes: true })],
@@ -7098,7 +7255,7 @@ function buildOnce(absIn, only, opts = {}) {
   const written = [];
   for (const [name, render] of targets) {
     const p = path.join(outDir, `${name}.html`);
-    fs.writeFileSync(p, render(lecture, opts));
+    fs.writeFileSync(p, render(lecture, renderOpts));
     written.push(path.relative(process.cwd(), p));
   }
   // KaTeX renders a broken formula in red rather than throwing, which is the

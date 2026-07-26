@@ -445,6 +445,23 @@ A figure chunk plus a paragraph of interpretation is the other reliable case, an
 
 A source file can silence one check with `<!-- linter: ignore reveal-overuse, density -->` anywhere in the body.
 
+## example: Embedding your own type | `fonts/` plus a frontmatter block {.wide #fonts}
+
+**By default the type is named, not carried.** The stylesheets ask for Literata, Inter Tight and JetBrains Mono and fall back to system faces where those are not installed – so a lecture opened on a strange machine keeps its layout and loses its face.
+
+To carry the type, put the files in a `fonts/` folder beside `source.md` and name the families:
+
+```yaml
+fonts:
+  serif: Literata
+  sans: Inter Tight
+  mono: JetBrains Mono
+```
+
+Files are matched by name and the suffix gives weight and style: `Literata-Regular.woff2`, `-Bold`, `-Italic`, `-BoldItalic`, `-600`, `-600italic`, or a variable file named `Literata[wght].woff2`. Naming a family with no matching file fails the build – a silent fallback is exactly what this feature exists to prevent.
+
+**Check the licence first.** Embedding redistributes the font file. The SIL Open Font License and Apache-2.0 – which between them cover nearly all of Google Fonts – allow it; most commercial desktop licences do not, and want a separate webfont licence. The build prints a reminder and verifies nothing.
+
 ## example: Pinning how a lecture opens | five optional frontmatter keys {.wide #view-defaults}
 
 **A lecture can decide its own starting look instead of inheriting the reader's.**

@@ -4,7 +4,7 @@
 
 The problem it solves is drift. Most lecturers keep slides and a script as two documents, and after two semesters they disagree with each other. psi-slides makes them one text: the prose you write is the handout, and the *same* prose – abridged by a rule you control – is what the projector shows. Nothing is written twice, so nothing can fall out of sync.
 
-It is a build script, not an app. `node build.js source.md` writes four self-contained HTML files next to your source. They inline their own CSS, JavaScript, and images, and they open straight from `file://`. No server, no runtime, no cloud account, nothing to install on the lectern machine. Sharing your slides and/or the full manuscript with the audience is easy: the HTML files are fully self-contained and work in all modern browsers.
+It is a build script, not an app. `node build.js source.md` writes four self-contained HTML files next to your source. Everything is inside the file: CSS, JavaScript, images, the maths, and – if you supply the files – the typefaces. Nothing is fetched at run time, from anywhere; open one in a browser with the network unplugged and it is complete. No server, no runtime, no cloud account, nothing to install on the lectern machine. Sharing your slides and/or the full manuscript with the audience is easy: send the file.
 
 psi-slides has already carried a full semester of university teaching. Read [When *not* to use this](#when-not-to-use-this) before you invest in it.
 
@@ -103,6 +103,19 @@ The grammar is `## tag: Heading | Sub-heading {.width #id}`. Eight tags (`title`
 - **Stated**: a `::: slide` block *is* the screen, everything else is narration. Or `::: script`, the dual: the chunk is the screen and only the marked block is narration. Reach for these when the argument wants continuous prose that no first-sentence rule can carve up.
 
 Everything else is body-level directives: `---` on its own line splits a chunk into **reveal segments**; `::: expand <label>` hides detail behind a chevron; `::: cols 2` / `::: side` / `::: flip` shape internal layout; `::: margin` and `::: marginalia` place asides; `![](fig-id)` resolves against `assets/`; `$inline$` and `$$display$$` are **math**, rendered by KaTeX during the build. All of it is documented live in the tutorial.
+
+**Typefaces travel with the file, if you supply them.** By default the stylesheets name families (Literata, Inter Tight, JetBrains Mono) and fall back to system faces where those are not installed – so a lecture opened on a strange machine keeps its layout but not its type. Drop font files into `fonts/` beside your source and name the families in the frontmatter, and they are embedded into all four outputs:
+
+```yaml
+fonts:
+  serif: Literata
+  sans: Inter Tight
+  mono: JetBrains Mono
+```
+
+Files are matched by name, with weight and style read off the suffix (`Literata-Bold.woff2`, `Literata-600italic.woff2`, `Literata[wght].woff2`). `.woff2`, `.woff`, `.ttf` and `.otf` all work; woff2 is much the smallest. Naming a family with no matching file fails the build rather than falling back quietly.
+
+> **Check the licence before you embed.** Embedding redistributes the font file. The SIL Open Font License and Apache-2.0 – between them nearly every family on Google Fonts – permit this; most commercial *desktop* licences do not, and require a separate webfont licence. psi-slides prints a reminder and makes no attempt to verify anything. It is your call and your responsibility.
 
 Five optional frontmatter keys pin how a lecture opens – `font`, `theme`, `collapse`, `auto-fit`, `slide-numbers`. A key that is present wins over the reader's stored preference; a key that is absent leaves it alone, so a lecture that pins nothing still follows whatever the reader last chose.
 

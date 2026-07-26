@@ -413,6 +413,35 @@ Dazu ein Fehler, den nur die Konsole gefangen hat: `previewDrag` gehörte schon 
 
 Ein unbekannter Wert **bricht den Build ab** (`userFacing`, kein Stacktrace) statt ignoriert zu werden. Begründung: ein stillschweigend verworfener Wert ist von einem nie geschriebenen nicht zu unterscheiden – die Vorlesung baut, sieht gut aus, und sieht dabei genau so aus, als hätte der Autor nichts eingestellt. `lint.js` spiegelt die Tabelle als `VIEW_DEFAULTS` und meldet `unknown-view-default` ebenfalls als Error; gleiche Duplizierungs-Abmachung wie bei `VALID_TAGS`.
 
+## Schriften reisen jetzt mit
+
+**Der Befund zuerst:** Typografie war die einzige Zutat, die *nicht* self-contained war. Die Stylesheets haben nackte Family-Stacks ausgeliefert – `'Literata', 'Source Serif 4', Georgia, serif` – die nur dort auflösen, wo die Faces **installiert** sind, und überall sonst still auf Georgia / system-ui / Menlo durchfallen. Bilder, CSS, JS, Mathe: alles eingebettet. Die Schrift nicht. Eine Vorlesung, die man einem Kollegen schickt, behielt Layout und Figuren und verlor ihr Gesicht. Die KaTeX-Faces waren übrigens von Anfang an eingebettet – nur die Textschriften nicht, was den blinden Fleck erklärt.
+
+**Opt-in über `fonts/` + Frontmatter.** Dateien neben `source.md` legen, Familien benennen:
+
+```yaml
+fonts:
+  serif: Literata
+  sans: Inter Tight
+  mono: JetBrains Mono
+```
+
+Zuordnung über Namenspräfix, Gewicht und Stil aus dem Suffix: `-Regular`, `-Bold`, `-Italic`, `-BoldItalic`, `-600`, `-600italic`, dazu Googles Variable-Naming `Literata[wght]` → `font-weight: 100 900`. woff2/woff/ttf/otf; alles außer woff2 bekommt eine Größennotiz.
+
+Drei Entscheidungen, die man beim Anfassen kennen muss:
+
+- **`FONT_STACK_TAILS` ist die einzige Wahrheitsquelle** für die Default-Stacks. `AUDIENCE_CSS` interpoliert daraus, und die `:root`-Überschreibung stellt die eingebettete Familie genau der Liste voran, die der Build sonst ausgegeben hätte. Nicht wieder hart reinschreiben.
+- **`font-display: block`, nicht `swap`.** Eine Vorlesung darf nicht erst einen Fallback auf die Leinwand blitzen und dann die Folie unter den Augen des Raums umbrechen.
+- **Einmal lesen, viermal verwenden.** Die Bytes werden in `buildOnce` gelesen und base64-kodiert und über `opts.fontEmbed` an alle vier Renderer gereicht. Der Aufruf gehört nicht in einen Renderer, das vervierfacht die Arbeit.
+
+Eine benannte Familie ohne passende Datei **bricht den Build ab**, mit Fundliste des Verzeichnisses. Still zurückzufallen ist genau der Fehler, gegen den das Feature gebaut wurde.
+
+`lint.js` spiegelt das bewusst **nicht**. Es bräuchte `fs` plus die ganze Dateinamen-Tabelle, und der Build scheitert ohnehin hart mit den gefundenen Dateien – anders als bei `VALID_TAGS` würde die Duplizierung nichts einbringen.
+
+**Lizenzen sind Autorensache, und die Doku sagt das.** Einbetten heißt weiterverbreiten. SIL OFL und Apache-2.0 – zusammen fast alles bei Google Fonts – erlauben es; die meisten kommerziellen *Desktop*-Lizenzen nicht, die wollen eine separate Webfont-Lizenz. Der Build druckt eine Erinnerung und prüft nichts.
+
+Verifiziert mit sechs Faces (Familienname mit Leerzeichen, Regular/Bold/Italic/BoldItalic, numerisches Gewicht, Variable-Achse): alle korrekt geparst, `document.fonts.check()` positiv, **null externe Font-Requests**, und die Folie rendert sichtbar in der eingebetteten Schrift statt in Georgia.
+
 ## Was funktioniert
 
 - `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.
