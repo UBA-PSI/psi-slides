@@ -72,8 +72,12 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--sans);
-  font-size: 20px;
-  line-height: 1.6;
+  /* Inter Tight is a condensed grotesque: at a given size it sets lighter
+     and narrower than the serif this replaced, so it needs both a step up
+     and a little more weight to read as solid rather than as fine print. */
+  font-size: 21px;
+  font-weight: 430;
+  line-height: 1.62;
   -webkit-font-smoothing: antialiased;
 }
 
