@@ -60,6 +60,8 @@ The four outputs are self-contained: images are inlined, CSS and JavaScript are 
 
 The two keys behave identically on purpose. `↓` used to skip straight to the next chunk, which meant walking a lecture with the arrows silently swallowed every reveal on the way – and remembering to switch keys for exactly the segmented slides is the sort of thing that goes wrong in front of a room.
 
+**The cockpit shows you what comes next.** With a speaker window open, look at this slide there: the segment the next keypress will reveal is already drawn in place, hatched and inside a dashed frame, so you can read ahead without the room seeing it. Only the immediately next one – the segments behind it stay hidden, or the preview would just be the whole chunk with decoration on top.
+
 ---
 
 **One more, to show chaining.** Reveal lets you pace dense content during a live talk without dumping everything at once, and in print all segments render together as one flowing body.

@@ -1841,6 +1841,58 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
    exactly the navigation the lecturer is checking against. */
 body[data-view=speaker] #mode-badge { top: calc(3vh + 14px); }
 
+/* ── Reveal preview ───────────────────────────────────────────────
+   The cockpit shows the segment that Space or Down will bring up next,
+   in place inside the slide, hatched and dash-framed so it can never be
+   mistaken for something the room is already seeing. Only the immediate
+   next one: the segments behind it stay hidden, or the preview would
+   just be the un-collapsed chunk with extra decoration.
+
+   The audience is untouched – [data-hidden] keeps its display:none there,
+   and this override is scoped to the speaker. */
+body[data-view=speaker] .reveal-segment[data-hidden][data-next] {
+  display: block;
+  /* Absolute with no offsets: the box renders at its static position –
+     exactly where it will land when revealed – but contributes nothing to
+     the chunk's height. That matters more than it looks. The laser pointer
+     travels as a fraction of the active chunk's bounding box, so a cockpit
+     chunk taller than the projected one would land the dot in the wrong
+     place; measured on a three-segment chunk, in-flow made the speaker's
+     box 840px against the audience's 718. width:100% resolves against
+     .chunk-content, which is position:relative and the same width. */
+  position: absolute;
+  width: 100%;
+  opacity: 0.5;
+  outline: 2px dashed var(--emph);
+  outline-offset: 7px;
+}
+body[data-view=speaker] .reveal-segment[data-hidden][data-next]::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0 7px,
+    color-mix(in oklch, var(--emph) 14%, transparent) 7px 9px
+  );
+}
+body[data-view=speaker] .reveal-segment[data-hidden][data-next]::after {
+  content: 'next';
+  position: absolute;
+  top: -1.5em; right: 0;
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.16em;
+  font-size: 0.62em;
+  color: var(--emph);
+  opacity: 0.85;
+  pointer-events: none;
+}
+/* Not on the overview board: at that scale the hatch is noise, and the
+   board is for finding a slide, not for pacing one. */
+body[data-view=speaker].overview-mode .reveal-segment[data-hidden][data-next] { display: none; }
+
 /* Cockpit chrome on a dark theme – same reasoning as the dark-chrome block
    in AUDIENCE_CSS. The footer, its key crib and the export modal all carry
    fixed light backgrounds otherwise. */
@@ -2314,6 +2366,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 </div>
 <div class="reveal-segment" data-seg="1" data-hidden><p><strong>Good – you just revealed a segment.</strong> In the source, a line with only <code>---</code> (outside a code fence) breaks the chunk body into reveal segments. The first is visible on entry; each <code>↓</code> or <code>Space</code> uncovers the next, and past the last, either key advances to the next chunk.</p>
 <p>The two keys behave identically on purpose. <code>↓</code> used to skip straight to the next chunk, which meant walking a lecture with the arrows silently swallowed every reveal on the way – and remembering to switch keys for exactly the segmented slides is the sort of thing that goes wrong in front of a room.</p>
+<p><strong>The cockpit shows you what comes next.</strong> With a speaker window open, look at this slide there: the segment the next keypress will reveal is already drawn in place, hatched and inside a dashed frame, so you can read ahead without the room seeing it. Only the immediately next one – the segments behind it stay hidden, or the preview would just be the whole chunk with decoration on top.</p>
 </div>
 <div class="reveal-segment" data-seg="2" data-hidden><p><strong>One more, to show chaining.</strong> Reveal lets you pace dense content during a live talk without dumping everything at once, and in print all segments render together as one flowing body.</p>
 </div></div>
@@ -3180,6 +3233,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
       <dl>
         <dt><kbd>Shift</kbd>-<kbd>V</kbd></dt><dd>preview strip: along the bottom ↔ down the right edge</dd>
         <dt>drag the bar above the notes</dt><dd>resize the notes pane; the slide preview rescales to fit</dd>
+        <dt>the hatched block on a slide</dt><dd>what the next Space or ↓ will reveal – cockpit only</dd>
         <dt>drag the bar on the preview strip</dt><dd>resize the strip, either orientation</dd>
         <dt><kbd>&minus;</kbd> <kbd>+</kbd> in the notes corner</dt><dd>notes text size (no hotkey – you type in there)</dd>
         <dt>double-click either bar</dt><dd>back to automatic size</dd>
@@ -3977,6 +4031,11 @@ function applyReveal(el, id) {
   segs.forEach((s, i) => {
     if (i < count) s.removeAttribute('data-hidden');
     else s.setAttribute('data-hidden', '');
+    // Mark the one segment that Space or Down will bring up next. Only the
+    // speaker's stylesheet reacts to it, but the attribute is set in both
+    // views so the two DOMs stay identical.
+    if (i === count) s.setAttribute('data-next', '');
+    else s.removeAttribute('data-next');
   });
 }
 function applyRevealAll() {

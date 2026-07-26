@@ -2167,6 +2167,7 @@ function renderHelpOverlay(view) {
     ['Arranging this window', [
       ['<kbd>Shift</kbd>-<kbd>V</kbd>', 'preview strip: along the bottom ↔ down the right edge'],
       ['drag the bar above the notes', 'resize the notes pane; the slide preview rescales to fit'],
+      ['the hatched block on a slide', 'what the next Space or ↓ will reveal – cockpit only'],
       ['drag the bar on the preview strip', 'resize the strip, either orientation'],
       ['<kbd>&minus;</kbd> <kbd>+</kbd> in the notes corner', 'notes text size (no hotkey – you type in there)'],
       ['double-click either bar', 'back to automatic size'],
@@ -4375,6 +4376,11 @@ function applyReveal(el, id) {
   segs.forEach((s, i) => {
     if (i < count) s.removeAttribute('data-hidden');
     else s.setAttribute('data-hidden', '');
+    // Mark the one segment that Space or Down will bring up next. Only the
+    // speaker's stylesheet reacts to it, but the attribute is set in both
+    // views so the two DOMs stay identical.
+    if (i === count) s.setAttribute('data-next', '');
+    else s.removeAttribute('data-next');
   });
 }
 function applyRevealAll() {
@@ -6136,6 +6142,58 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
    row 1 is the scrubber, and a toast overlapping the column strip covers
    exactly the navigation the lecturer is checking against. */
 body[data-view=speaker] #mode-badge { top: calc(3vh + 14px); }
+
+/* ── Reveal preview ───────────────────────────────────────────────
+   The cockpit shows the segment that Space or Down will bring up next,
+   in place inside the slide, hatched and dash-framed so it can never be
+   mistaken for something the room is already seeing. Only the immediate
+   next one: the segments behind it stay hidden, or the preview would
+   just be the un-collapsed chunk with extra decoration.
+
+   The audience is untouched – [data-hidden] keeps its display:none there,
+   and this override is scoped to the speaker. */
+body[data-view=speaker] .reveal-segment[data-hidden][data-next] {
+  display: block;
+  /* Absolute with no offsets: the box renders at its static position –
+     exactly where it will land when revealed – but contributes nothing to
+     the chunk's height. That matters more than it looks. The laser pointer
+     travels as a fraction of the active chunk's bounding box, so a cockpit
+     chunk taller than the projected one would land the dot in the wrong
+     place; measured on a three-segment chunk, in-flow made the speaker's
+     box 840px against the audience's 718. width:100% resolves against
+     .chunk-content, which is position:relative and the same width. */
+  position: absolute;
+  width: 100%;
+  opacity: 0.5;
+  outline: 2px dashed var(--emph);
+  outline-offset: 7px;
+}
+body[data-view=speaker] .reveal-segment[data-hidden][data-next]::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0 7px,
+    color-mix(in oklch, var(--emph) 14%, transparent) 7px 9px
+  );
+}
+body[data-view=speaker] .reveal-segment[data-hidden][data-next]::after {
+  content: 'next';
+  position: absolute;
+  top: -1.5em; right: 0;
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.16em;
+  font-size: 0.62em;
+  color: var(--emph);
+  opacity: 0.85;
+  pointer-events: none;
+}
+/* Not on the overview board: at that scale the hatch is noise, and the
+   board is for finding a slide, not for pacing one. */
+body[data-view=speaker].overview-mode .reveal-segment[data-hidden][data-next] { display: none; }
 
 /* Cockpit chrome on a dark theme – same reasoning as the dark-chrome block
    in AUDIENCE_CSS. The footer, its key crib and the export modal all carry
