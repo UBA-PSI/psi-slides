@@ -95,6 +95,45 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
 .tagline, .lead { color: var(--ink-soft); margin: 0 0 3rem; font-size: 1.1rem; }
 
 /*
+ * The hero. The first draft opened with the wordmark and then a wall of
+ * Markdown, which announced "this is a technical thing" before it said what
+ * the thing was good for. Now the promise is the headline and the proof is
+ * two pictures directly under it: the same paragraph as the room sees it and
+ * as the reader gets it. That is the whole idea, and it does not need a
+ * paragraph to explain it.
+ */
+.hero { padding: 1rem 0 0; }
+.hero .mark {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+  margin: 0 0 1.6rem;
+}
+.hero h1 { font-size: 3.1rem; max-width: 20ch; margin-bottom: 0.9rem; }
+.hero .promise { font-size: 1.22rem; max-width: 34rem; margin: 0 0 2.4rem; }
+/* The hero pair breaks out of the reading measure. Side by side inside a
+   48rem column each shot lands at a third of its captured size, and the
+   contrast the pair exists to show – four short lines against four full
+   paragraphs – stops being legible as text and reads as two grey blocks. */
+.hero .pair {
+  width: min(94vw, 66rem);
+  margin-left: 50%;
+  transform: translateX(-50%);
+  gap: 1.4rem;
+}
+.hero .shot-note {
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  text-align: center;
+  margin: 0.2rem 0 3.4rem;
+}
+.hero .shot-note b { color: var(--ink); font-weight: 600; }
+@media (max-width: 46rem) {
+  .hero h1 { font-size: 2.3rem; }
+}
+
+/*
  * Section headings carry the page. The first draft set them as small grey
  * uppercase eyebrows, which left the screenshots and the running text at
  * roughly the same visual weight and made the page hard to scan.
@@ -116,8 +155,11 @@ p, li { max-width: 40rem; }
 code { font-family: var(--mono); font-size: 0.86em; }
 pre {
   font-family: var(--mono);
-  font-size: 0.78rem;
-  line-height: 1.55;
+  /* Iosevka is narrow, so it can carry a longer line than a normal mono at
+     the same size – but it also reads smaller. This is the size at which a
+     Markdown sample is meant to be read, not squinted at. */
+  font-size: 0.9rem;
+  line-height: 1.6;
   background: var(--shot-bg);
   border: 1px solid var(--rule);
   padding: 1rem 1.1rem;

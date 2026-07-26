@@ -8,15 +8,49 @@
 </head>
 <body>
 <main>
-  <h1>psi-slides</h1>
-  <p class="tagline">One Markdown file, four artefacts: the projection for the room, a presenter
-  cockpit, a reading document, and a handout with the spoken notes folded in.</p>
+  <div class="hero">
+    <p class="mark">psi-slides</p>
+    <h1>Write the lecture once.</h1>
+    <p class="promise">The projection, the printed script and your own stage directions
+    all come out of the same Markdown file &ndash; and stay in step because there is
+    nothing to keep in step.</p>
+
+    <div class="pair">
+      <figure class="shot">
+        <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>what the room sees</b></div>
+        <img src="img/collapsed.webp" alt="The slide as projected: heading, sub-heading, the first sentence of each paragraph and the phrases marked bold, in one column.">
+      </figure>
+      <figure class="shot">
+        <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>what the reader gets</b></div>
+        <img src="img/full.webp" alt="The same chunk with collapse switched off: all four paragraphs in full, laid out in two columns.">
+      </figure>
+    </div>
+    <p class="shot-note">The same four paragraphs, written once.
+    <b>One keypress between them.</b></p>
+  </div>
+
+  <h2>Every lecture has three kinds of text in it</h2>
+
+  <p>There is what goes <strong>on the slide</strong>, which has to be sparse
+  enough to read from the back row. There is <strong>the script</strong> &ndash; the
+  full argument, the sentences that actually explain the thing, which belongs in
+  a handout and not on a wall. And there are <strong>the notes to yourself</strong>:
+  ask the room first, skip this if you are short on time, do not send this out.</p>
+
+  <p>Presentation software gives you slides and one notes field. So the script,
+  the part students want most, is the part that never becomes a file. You keep it
+  in your head, or in a second document that drifts away from the first the week
+  you edit one of them.</p>
+
+  <p>Here you write the paragraph once and mark the sentence that carries it. The
+  projection takes that sentence, the document takes all of it, and your
+  <code>&gt; note:</code> lines stay on your screen.</p>
 
   <h2>What it does</h2>
 
-  <p>The screenshots below are all one slide of one real lecture &ndash; a 36-chunk
-  introduction to Python &ndash; and this is the Markdown it was written in. Two of
-  the four paragraphs are abridged here; nothing else is.</p>
+  <p>The pictures above and below are all one slide of one real lecture &ndash; a
+  36-chunk introduction to Python &ndash; and this is the Markdown it was written in.
+  Two of the four paragraphs are abridged here; nothing else is.</p>
 
 <pre><code>## free: Why Playwright | the modern web is rendered, not served {.wide #why-playwright}
 
@@ -44,22 +78,9 @@ browser is for pages meant to be looked at.
 &gt; note: Show the difference live if the room is awake: open a JS-heavy site,
 &gt; curl it, and let them find the missing text themselves.</code></pre>
 
-  <div class="pair">
-    <figure class="shot">
-      <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>audience.html</b></div>
-      <img src="img/collapsed.webp" alt="The slide as projected: heading, sub-heading, the first sentence of each paragraph and the phrases marked bold, in one column.">
-      <figcaption><strong>On the projector.</strong> The first sentence of each
-      paragraph, plus the phrases marked bold. The columns fold to one, because
-      four abridged paragraphs do not balance.</figcaption>
-    </figure>
-    <figure class="shot">
-      <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>audience.html</b> &middot; C</div>
-      <img src="img/full.webp" alt="The same chunk with collapse switched off: all four paragraphs in full, laid out in two columns.">
-      <figcaption><strong>The same chunk, unabridged.</strong> One key gives the
-      room the continuation prose &ndash; the text that otherwise only the document
-      carries.</figcaption>
-    </figure>
-  </div>
+  <p class="tiny">In the projection the columns fold to one, because four
+  abridged paragraphs do not balance; the reading view keeps the two the author
+  wrote.</p>
 
   <figure class="shot">
     <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>speaker.html</b></div>
