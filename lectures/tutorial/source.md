@@ -115,7 +115,7 @@ def anonymity_set(observations, senders):
 - **Arrow keys** move the selection without landing, and the board follows, because the next pick is often off screen.
 - `O` again or `Enter` **lands** on the selection; `Esc` leaves without moving.
 
-Overview is the fastest way to get oriented in an unfamiliar lecture: the typographic rhythm of principles, examples, and figures is visible at a glance. With a speaker connected, both windows enter, pan, zoom, and leave together.
+In an unfamiliar lecture the board shows the typographic rhythm of principles, examples, and figures at a glance, which is usually enough to find the part you want. With a speaker connected, both windows enter, pan, zoom, and leave together.
 
 ## example: TOC | `T` toggles a flat column index {.standard #toc}
 
@@ -129,7 +129,7 @@ Columns without a `{#id}` do not appear – anonymous columns like the title pag
 
 `↑` `↓` pick a hit, `Enter` or a click goes there, `Esc` closes without moving. If you opened the search from the overview board, the board follows your pick as you move down the list, so a match on the far side of the lecture comes into view while you are still choosing.
 
-This is the fastest jump tool when you half-remember a topic but not its position, which mid-lecture is most of the time. It searches the rendered text, so a word that only appears in continuation prose still finds its slide even though the room never sees that sentence.
+It is the tool for the case where you remember a topic but not where it sits. It searches the rendered text, so a word that only appears in continuation prose still finds its slide even though the room never sees that sentence.
 
 # What goes on the slide {#on-screen}
 
@@ -239,7 +239,7 @@ Picking the wrong tag is not an error, and the linter will not tell you. It only
 
 The notes pane starts at automatic height: one line when empty, up to three when it has content, collapsed entirely when the chunk has no notes at all. Once you drag it, the height becomes fixed and is remembered across lectures and reloads, which is usually what you want on a fixed lectern screen. The stage above it is a `1fr` grid row, so it gives up exactly the space the notes take and the audience mirror stays letterboxed at the projector's aspect ratio rather than distorting.
 
-Vertical preview mode is worth trying on any screen with horizontal room to spare: the thumbnails get larger and their text becomes legible, which turns the strip from a position indicator into something you can actually read ahead in. Widen it with the drag handle and the effect compounds. Both the strip's height and its width are remembered separately, so flipping the orientation and flipping back returns each one to the size you gave it.
+Vertical preview mode is worth trying on any screen with horizontal room to spare: the thumbnails get larger and their text becomes legible, which turns the strip from a position indicator into something you can actually read ahead in. Both the strip's height and its width are remembered separately, so flipping the orientation and flipping back returns each one to the size you gave it.
 
 ## example: N vs Shift-N | audience-visible vs private {.wide #notes-vs-annot}
 
@@ -300,7 +300,7 @@ Width is the slide-level decision; directives compose within. A `.wide` chunk wi
 
 ::: cols 2
 
-**Left flow.** Multi-column flow auto-balances: the engine fills top-to-bottom and lets content break wherever it fits. Avoid putting one long paragraph here; one column dominates and the other sits empty. Several short blocks are the sweet spot.
+**Left flow.** Multi-column flow auto-balances: the engine fills top-to-bottom and lets content break wherever it fits. Avoid putting one long paragraph here; one column dominates and the other sits empty. Several short blocks work best.
 
 **Right flow.** This block is the third paragraph in source, which is why it landed in column two – column flow goes top-down and then wraps. In print, columns collapse back to a single linear stream.
 
@@ -378,7 +378,7 @@ Clips are inlined like any other asset, up to a separate 12 MB per-file cap: a c
 
 **There is no separate fullscreen setting, on purpose.** The native player already has a fullscreen button, and how large the clip sits on the slide is the chunk's width class – exactly like a still figure. Clicking a clip does *not* zoom it into the figure card either, because that would fight the play button.
 
-**A clip can also live on a web server:** `![](https://host/clip.mp4)` works and stays an ordinary player, which matters more than it sounds – play, pause and seeking still synchronise between the two windows, which no YouTube or Vimeo embed can do.
+**A clip can also live on a web server:** `![](https://host/clip.mp4)` works and stays an ordinary `<video>` element, so play, pause and seeking still synchronise between the two windows.
 
 **Too large to inline?** The build copies the file into a `videos/` folder beside the output and plays it from there, and says so on the terminal. One companion folder to carry, instead of a path that only resolves on the machine that built it.
 
@@ -436,7 +436,7 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 **In derived mode the room reads your first sentences, so each one has to be a claim that survives without its paragraph.** Everything after it is print.
 
-**That rule doubles as a rehearsal test.** If the collapsed chunk would not remind *you* what you meant to say, the chunk is not finished yet.
+The same rule works as a rehearsal test: if the collapsed chunk would not remind you what you meant to say, it is not finished.
 
 > note: Present this chunk from the collapsed view while you say it. Nothing lands the argument faster than a slide that is visibly the same text the handout carries.
 
@@ -453,7 +453,7 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 :::
 
-All four share a shape: they read fine inside a paragraph and fall apart the moment the paragraph is taken away. Walking your own lecture once in collapsed mode, before you teach it, catches every one of them.
+All four share a shape: they read fine inside a paragraph and fall apart the moment the paragraph is taken away. Walking a lecture once in collapsed mode before teaching it is where they show up.
 
 When several parallel items pile up inside one paragraph, use a real Markdown list instead of scattering bold across the prose. A list stays legible when abridged; micro-bolding almost never does.
 
@@ -461,10 +461,10 @@ When several parallel items pile up inside one paragraph, use a real Markdown li
 
 ## question: Derive it, or state it? {.standard #choose-mechanism}
 
-**Derive while the chunk is an argument of one to three paragraphs; state the slide once the argument wants continuous prose.** Try the derivation first – if it keeps fighting you, that is the signal, not a failure.
+**Derive while the chunk is an argument of one to three paragraphs; state the slide once the argument wants continuous prose.** Try the derivation first and switch when it keeps fighting you.
 
 ::: expand tag-as-predictor
-**The tag predicts the answer surprisingly well.** `principle` and `question` chunks are short enough that the first-sentence rule rarely bites. `example` and `free` chunks near their density budget are where `::: slide` earns its keep, because those are the ones carrying a walkthrough or a finding rather than a claim.
+**The tag is a decent predictor.** `principle` and `question` chunks are short enough that the first-sentence rule rarely bites. `example` and `free` chunks near their density budget are where `::: slide` earns its keep, because those are the ones carrying a walkthrough or a finding rather than a claim.
 
 A figure chunk plus a paragraph of interpretation is the other reliable case, and there `::: script` around the interpretation is less typing than wrapping the slide half.
 :::
@@ -477,7 +477,7 @@ A figure chunk plus a paragraph of interpretation is the other reliable case, an
 
 **For each chunk that fails**, ask in this order: is the opening sentence a claim, or a warm-up? Would each bold fragment read as a sensible bullet on its own? Is there a list hiding inside a paragraph?
 
-**If all three answers are fine and it still reads badly,** the chunk wants `::: slide`. That is the honest outcome, not a defeat – the two mechanisms exist because neither one covers every chunk.
+**If all three answers are fine and it still reads badly,** the chunk wants `::: slide`. The two mechanisms exist because neither one covers every chunk.
 
 :::
 
@@ -487,17 +487,17 @@ A figure chunk plus a paragraph of interpretation is the other reliable case, an
 
 ## exercise: Read more | the artefacts that close the loop {.wide #read-more}
 
-**Close this tab and poke around the real lectures and docs.** The tour covered the keys; the craft shows in authored content.
+**The tour covered the keys. What it could not cover is the craft, which shows in authored content.**
 
 ::: cols 2
 
 **1. `lectures/python-intro/audience.html`.** A 36-chunk teaching lecture. Spawn its speaker with `S` and watch the layout vocabulary you just learned in real use, woven through reveals, expansions, and figure focus.
 
-**2. `PRD.md`.** The design philosophy: why four views, why this tag set, why collapse has two modes and not four, why reveals are off by default in print. Short, pragmatic, linked to the code.
+**2. `PRD.md`.** Why four views, why this tag set, why collapse has two modes and not four. Part specification and part plan, so read it as a record of thinking rather than of behaviour.
 
-**3. `speaker.md`.** The sync protocol: which fields travel between the two windows, which stay local, and why the overview framing is a pure function of anchor, scale, and pan.
+**3. `speaker.md`.** The sync protocol: which fields travel between the two windows and which stay local. Written for whoever changes the code, not for an author.
 
-**4. `HANDOFF.md`.** Narrates what has been built, slice by slice, including the decisions deliberately *not* taken.
+**4. `docs/comparison.md`.** psi-slides against Beamer, reveal.js, Quarto, Marp, Slidev and PowerPoint, including the places it loses.
 
 :::
 
@@ -513,9 +513,9 @@ A source file can silence one check with `<!-- linter: ignore reveal-overuse, de
 
 ## example: Embedding your own type | `fonts/` plus a frontmatter block {.wide #fonts}
 
-**By default the type is named, not carried.** The stylesheets ask for Literata, Inter Tight and JetBrains Mono and fall back to system faces where those are not installed – so a lecture opened on a strange machine keeps its layout and loses its face.
+**Three typefaces ship with the tool and are embedded in every output:** Literata, Inter Tight and JetBrains Mono, all under the SIL Open Font License, which permits it. Safari does not expose installed fonts to a page at all, so a deck that only *names* its typefaces gets whatever that browser decides. The bundle costs about 280 KB per file, and `fonts: none` turns it off.
 
-To carry the type, put the files in a `fonts/` folder beside `source.md` and name the families:
+To use your own instead, put the files in a `fonts/` folder beside `source.md` and name the families:
 
 ```yaml
 fonts:
@@ -524,7 +524,7 @@ fonts:
   mono: JetBrains Mono
 ```
 
-Files are matched by name and the suffix gives weight and style: `Literata-Regular.woff2`, `-Bold`, `-Italic`, `-BoldItalic`, `-600`, `-600italic`, or a variable file named `Literata[wght].woff2`. Naming a family with no matching file fails the build – a silent fallback is exactly what this feature exists to prevent.
+Files are matched by name and the suffix gives weight and style: `Literata-Regular.woff2`, `-Bold`, `-Italic`, `-BoldItalic`, `-600`, `-600italic`, or a variable file named `Literata[wght].woff2`. A role you name uses your font; a role you leave out keeps the bundled one. Naming a family with no matching file fails the build.
 
 **Check the licence first.** Embedding redistributes the font file. The SIL Open Font License and Apache-2.0 – which between them cover nearly all of Google Fonts – allow it; most commercial desktop licences do not, and want a separate webfont licence. The build prints a reminder and verifies nothing.
 

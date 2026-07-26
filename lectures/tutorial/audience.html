@@ -1795,7 +1795,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 <li><strong>Arrow keys</strong> move the selection without landing, and the board follows, because the next pick is often off screen.</li>
 <li><code>O</code> again or <code>Enter</code> <strong>lands</strong> on the selection; <code>Esc</code> leaves without moving.</li>
 </ul>
-<p>Overview is the fastest way to get oriented in an unfamiliar lecture: the typographic rhythm of principles, examples, and figures is visible at a glance. With a speaker connected, both windows enter, pan, zoom, and leave together.</p>
+<p>In an unfamiliar lecture the board shows the typographic rhythm of principles, examples, and figures at a glance, which is usually enough to find the part you want. With a speaker connected, both windows enter, pan, zoom, and leave together.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="overview">
@@ -1832,7 +1832,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     <h2 class="chunk-heading has-sub"><span class="hd-main">Search</span> <span class="hd-sub"><code>/</code> lists every slide that mentions a word</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Press <code>/</code> from anywhere – you do not have to be in overview first.</strong> A panel opens and every slide whose heading or body contains what you type is listed with the sentence it matched, the term highlighted.</p>
 <p><code>↑</code> <code>↓</code> pick a hit, <code>Enter</code> or a click goes there, <code>Esc</code> closes without moving. If you opened the search from the overview board, the board follows your pick as you move down the list, so a match on the far side of the lecture comes into view while you are still choosing.</p>
-<p>This is the fastest jump tool when you half-remember a topic but not its position, which mid-lecture is most of the time. It searches the rendered text, so a word that only appears in continuation prose still finds its slide even though the room never sees that sentence.</p>
+<p>It is the tool for the case where you remember a topic but not where it sits. It searches the rendered text, so a word that only appears in continuation prose still finds its slide even though the room never sees that sentence.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="search">
@@ -2066,7 +2066,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 
 
 <p>The notes pane starts at automatic height: one line when empty, up to three when it has content, collapsed entirely when the chunk has no notes at all. Once you drag it, the height becomes fixed and is remembered across lectures and reloads, which is usually what you want on a fixed lectern screen. The stage above it is a <code>1fr</code> grid row, so it gives up exactly the space the notes take and the audience mirror stays letterboxed at the projector&#39;s aspect ratio rather than distorting.</p>
-<p>Vertical preview mode is worth trying on any screen with horizontal room to spare: the thumbnails get larger and their text becomes legible, which turns the strip from a position indicator into something you can actually read ahead in. Widen it with the drag handle and the effect compounds. Both the strip&#39;s height and its width are remembered separately, so flipping the orientation and flipping back returns each one to the size you gave it.</p>
+<p>Vertical preview mode is worth trying on any screen with horizontal room to spare: the thumbnails get larger and their text becomes legible, which turns the strip from a position indicator into something you can actually read ahead in. Both the strip&#39;s height and its width are remembered separately, so flipping the orientation and flipping back returns each one to the size you gave it.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="cockpit-layout">
@@ -2171,7 +2171,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 <div class="cols cols-2">
 
 
-<p><strong>Left flow.</strong> Multi-column flow auto-balances: the engine fills top-to-bottom and lets content break wherever it fits. Avoid putting one long paragraph here; one column dominates and the other sits empty. Several short blocks are the sweet spot.</p>
+<p><strong>Left flow.</strong> Multi-column flow auto-balances: the engine fills top-to-bottom and lets content break wherever it fits. Avoid putting one long paragraph here; one column dominates and the other sits empty. Several short blocks work best.</p>
 <p><strong>Right flow.</strong> This block is the third paragraph in source, which is why it landed in column two – column flow goes top-down and then wraps. In print, columns collapse back to a single linear stream.</p>
 </div>
 
@@ -2299,7 +2299,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 <p>That player is a real clip, inlined into this file: 34 KB, and it shows the three reveal stages of the <em>Arrows and Space</em> slide you walked through earlier. Press play; then look at the address bar and note that nothing was fetched.</p>
 <p>Clips are inlined like any other asset, up to a separate 12 MB per-file cap: a clip is an order of magnitude heavier than a diagram, and the 2 MB image cap would reject every real one. Over the cap the build tells you the <code>ffmpeg</code> line that fixes it.</p>
 <p><strong>There is no separate fullscreen setting, on purpose.</strong> The native player already has a fullscreen button, and how large the clip sits on the slide is the chunk&#39;s width class – exactly like a still figure. Clicking a clip does <em>not</em> zoom it into the figure card either, because that would fight the play button.</p>
-<p><strong>A clip can also live on a web server:</strong> <code>![](https://host/clip.mp4)</code> works and stays an ordinary player, which matters more than it sounds – play, pause and seeking still synchronise between the two windows, which no YouTube or Vimeo embed can do.</p>
+<p><strong>A clip can also live on a web server:</strong> <code>![](https://host/clip.mp4)</code> works and stays an ordinary <code>&lt;video&gt;</code> element, so play, pause and seeking still synchronise between the two windows.</p>
 <p><strong>Too large to inline?</strong> The build copies the file into a <code>videos/</code> folder beside the output and plays it from there, and says so on the terminal. One companion folder to carry, instead of a path that only resolves on the machine that built it.</p>
 <p><strong>Play, pause and seeking are synced.</strong> Operate the clip in the cockpit and the projection follows. Freeze the projection first and it does not, so you can check a clip before showing it.</p>
 </div></div>
@@ -2381,7 +2381,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">The topic sentence is the slide</span> <span class="hd-sub">so write the opening line for the projector</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>In derived mode the room reads your first sentences, so each one has to be a claim that survives without its paragraph.</strong> Everything after it is print.</p>
-<p><strong>That rule doubles as a rehearsal test.</strong> If the collapsed chunk would not remind <em>you</em> what you meant to say, the chunk is not finished yet.</p>
+<p>The same rule works as a rehearsal test: if the collapsed chunk would not remind you what you meant to say, it is not finished.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="topic-sentence">
@@ -2411,7 +2411,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </div>
 
 
-<p>All four share a shape: they read fine inside a paragraph and fall apart the moment the paragraph is taken away. Walking your own lecture once in collapsed mode, before you teach it, catches every one of them.</p>
+<p>All four share a shape: they read fine inside a paragraph and fall apart the moment the paragraph is taken away. Walking a lecture once in collapsed mode before teaching it is where they show up.</p>
 <p>When several parallel items pile up inside one paragraph, use a real Markdown list instead of scattering bold across the prose. A list stays legible when abridged; micro-bolding almost never does.</p>
 </div></div>
     
@@ -2429,7 +2429,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Derive it, or state it?</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Derive while the chunk is an argument of one to three paragraphs; state the slide once the argument wants continuous prose.</strong> Try the derivation first – if it keeps fighting you, that is the signal, not a failure.</p>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Derive while the chunk is an argument of one to three paragraphs; state the slide once the argument wants continuous prose.</strong> Try the derivation first and switch when it keeps fighting you.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="choose-mechanism">
@@ -2444,7 +2444,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
        </button></div>
   <aside class="exp-body" data-exp-body="0">
       <div class="tag-label">tag-as-predictor</div>
-      <p><strong>The tag predicts the answer surprisingly well.</strong> <code>principle</code> and <code>question</code> chunks are short enough that the first-sentence rule rarely bites. <code>example</code> and <code>free</code> chunks near their density budget are where <code>::: slide</code> earns its keep, because those are the ones carrying a walkthrough or a finding rather than a claim.</p>
+      <p><strong>The tag is a decent predictor.</strong> <code>principle</code> and <code>question</code> chunks are short enough that the first-sentence rule rarely bites. <code>example</code> and <code>free</code> chunks near their density budget are where <code>::: slide</code> earns its keep, because those are the ones carrying a walkthrough or a finding rather than a claim.</p>
 <p>A figure chunk plus a paragraph of interpretation is the other reliable case, and there <code>::: script</code> around the interpretation is less typing than wrapping the slide half.</p>
 
     </aside>
@@ -2459,7 +2459,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 
 
 <p><strong>For each chunk that fails</strong>, ask in this order: is the opening sentence a claim, or a warm-up? Would each bold fragment read as a sensible bullet on its own? Is there a list hiding inside a paragraph?</p>
-<p><strong>If all three answers are fine and it still reads badly,</strong> the chunk wants <code>::: slide</code>. That is the honest outcome, not a defeat – the two mechanisms exist because neither one covers every chunk.</p>
+<p><strong>If all three answers are fine and it still reads badly,</strong> the chunk wants <code>::: slide</code>. The two mechanisms exist because neither one covers every chunk.</p>
 </div></div></div>
     
     <aside class="annot-box" data-annot-for="squint-test">
@@ -2483,14 +2483,14 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the artefacts that close the loop</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Close this tab and poke around the real lectures and docs.</strong> The tour covered the keys; the craft shows in authored content.</p>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>The tour covered the keys. What it could not cover is the craft, which shows in authored content.</strong></p>
 <div class="cols cols-2">
 
 
 <p><strong>1. <code>lectures/python-intro/audience.html</code>.</strong> A 36-chunk teaching lecture. Spawn its speaker with <code>S</code> and watch the layout vocabulary you just learned in real use, woven through reveals, expansions, and figure focus.</p>
-<p><strong>2. <code>PRD.md</code>.</strong> The design philosophy: why four views, why this tag set, why collapse has two modes and not four, why reveals are off by default in print. Short, pragmatic, linked to the code.</p>
-<p><strong>3. <code>speaker.md</code>.</strong> The sync protocol: which fields travel between the two windows, which stay local, and why the overview framing is a pure function of anchor, scale, and pan.</p>
-<p><strong>4. <code>HANDOFF.md</code>.</strong> Narrates what has been built, slice by slice, including the decisions deliberately <em>not</em> taken.</p>
+<p><strong>2. <code>PRD.md</code>.</strong> Why four views, why this tag set, why collapse has two modes and not four. Part specification and part plan, so read it as a record of thinking rather than of behaviour.</p>
+<p><strong>3. <code>speaker.md</code>.</strong> The sync protocol: which fields travel between the two windows and which stay local. Written for whoever changes the code, not for an author.</p>
+<p><strong>4. <code>docs/comparison.md</code>.</strong> psi-slides against Beamer, reveal.js, Quarto, Marp, Slidev and PowerPoint, including the places it loses.</p>
 </div></div></div>
     
     <aside class="annot-box" data-annot-for="read-more">
@@ -2530,13 +2530,13 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own type</span> <span class="hd-sub"><code>fonts/</code> plus a frontmatter block</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>By default the type is named, not carried.</strong> The stylesheets ask for Literata, Inter Tight and JetBrains Mono and fall back to system faces where those are not installed – so a lecture opened on a strange machine keeps its layout and loses its face.</p>
-<p>To carry the type, put the files in a <code>fonts/</code> folder beside <code>source.md</code> and name the families:</p>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Three typefaces ship with the tool and are embedded in every output:</strong> Literata, Inter Tight and JetBrains Mono, all under the SIL Open Font License, which permits it. Safari does not expose installed fonts to a page at all, so a deck that only <em>names</em> its typefaces gets whatever that browser decides. The bundle costs about 280 KB per file, and <code>fonts: none</code> turns it off.</p>
+<p>To use your own instead, put the files in a <code>fonts/</code> folder beside <code>source.md</code> and name the families:</p>
 <pre class="shiki github-light" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">fonts</span><span style="color:#24292E">:</span></span>
 <span class="line"><span style="color:#22863A">  serif</span><span style="color:#24292E">: </span><span style="color:#032F62">Literata</span></span>
 <span class="line"><span style="color:#22863A">  sans</span><span style="color:#24292E">: </span><span style="color:#032F62">Inter Tight</span></span>
 <span class="line"><span style="color:#22863A">  mono</span><span style="color:#24292E">: </span><span style="color:#032F62">JetBrains Mono</span></span></code></pre>
-<p>Files are matched by name and the suffix gives weight and style: <code>Literata-Regular.woff2</code>, <code>-Bold</code>, <code>-Italic</code>, <code>-BoldItalic</code>, <code>-600</code>, <code>-600italic</code>, or a variable file named <code>Literata[wght].woff2</code>. Naming a family with no matching file fails the build – a silent fallback is exactly what this feature exists to prevent.</p>
+<p>Files are matched by name and the suffix gives weight and style: <code>Literata-Regular.woff2</code>, <code>-Bold</code>, <code>-Italic</code>, <code>-BoldItalic</code>, <code>-600</code>, <code>-600italic</code>, or a variable file named <code>Literata[wght].woff2</code>. A role you name uses your font; a role you leave out keeps the bundled one. Naming a family with no matching file fails the build.</p>
 <p><strong>Check the licence first.</strong> Embedding redistributes the font file. The SIL Open Font License and Apache-2.0 – which between them cover nearly all of Google Fonts – allow it; most commercial desktop licences do not, and want a separate webfont licence. The build prints a reminder and verifies nothing.</p>
 </div></div>
     
