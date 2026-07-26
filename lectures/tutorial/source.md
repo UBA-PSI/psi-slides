@@ -1,6 +1,6 @@
 ---
 title: psi-slides – a ten-step tour
-presenter: Your own copy
+presenter: Dominik Herrmann
 info: |
   Tutorial lecture built with psi-slides itself
   Use the tool to learn the tool
@@ -87,6 +87,8 @@ In source, an expansion is authored with `::: expand <label>` … `:::`. The lab
 **Click any figure, code block, or marginalia inside the active chunk.** Figures and code lift into a centred card with the slide dimmed behind; a marginalia instead pans the camera so the aside sits in the middle of the screen.
 
 **Links have two behaviours.** A plain click opens the link in a new tab of the window you clicked in – in the cockpit that is you checking a source, and the deck itself never navigates away. `Shift`-click instead puts the **address** on both screens, large, with a **QR code** beside it. Click the address to open it anyway; `Esc` or the next slide clears it.
+
+Try it on this one: [the group behind the tool](https://psi.uni-bamberg.de/). Plain click opens a tab; `Shift`-click puts the address on the wall with a code the room can scan.
 
 That is the considered answer to “can I open a page on the projector”. You could, and it is a bad idea twice over: you would be driving a browser you cannot see from the lectern, and the room would be watching an unrelated interface instead of the lecture. What a room wants from a link mid-talk is to capture it – so the QR moves that job onto the listener's own phone, which is where the network request belongs too. The projection machine still contacts nobody.
 
@@ -367,6 +369,10 @@ Reach for `::: margin` when the supplementary content is short and trustworthy e
 ## example: Video | a clip is a figure that moves {.wide #video}
 
 **Drop `clip.mp4` into `assets/` and write `![](clip)`** – the same shorthand as an image. The build searches the video extensions after the image ones, so an id with both a poster and a clip still resolves to the still.
+
+![](reveal-demo)
+
+That player is a real clip, inlined into this file: 34 KB, and it shows the three reveal stages of the *Arrows and Space* slide you walked through earlier. Press play; then look at the address bar and note that nothing was fetched.
 
 Clips are inlined like any other asset, up to a separate 12 MB per-file cap: a clip is an order of magnitude heavier than a diagram, and the 2 MB image cap would reject every real one. Over the cap the build tells you the `ffmpeg` line that fixes it.
 
