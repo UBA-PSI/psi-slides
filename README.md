@@ -183,15 +183,9 @@ This is the section that will save you the most time. Each line is a real constr
 
 ## How it compares
 
-All of the tools below are good, and all of them take Markdown, so “it uses Markdown” is not a reason to pick this one.
+Every tool in this space is good, and nearly all of them take Markdown, so “it uses Markdown” is not a reason to pick this one. The honest differentiator is a combination: one text rendered at two densities, a presenter cockpit that needs no server, and a prose handout – all from a single source and all in files that fetch nothing at run time. [Beamer](https://ctan.org/pkg/beamer) beats it on math, citations and sheer durability; [Quarto](https://quarto.org/) is broader and better supported; [reveal.js](https://revealjs.com/), [Marp](https://marp.app/) and [Slidev](https://sli.dev/) are better at being slide decks; PowerPoint wins the moment a colleague has to edit your file.
 
-**[reveal.js](https://revealjs.com/)** and **[Marp](https://marp.app/)** produce slide decks and are better at being slide decks – themes, transitions, an ecosystem, PDF export that people trust. Neither gives you a reading document from the same source; speaker notes are a sidecar, not a second artefact.
-
-**[Quarto](https://quarto.org/)** is the closest in spirit and much broader: literate computing, many output formats, real math, a large community. If you need executable code cells or a book alongside your slides, use Quarto. It renders slides *and* documents from one source too – what it does not do is derive an abridged slide from your prose, which is the specific thing here.
-
-**[Beamer](https://ctan.org/pkg/beamer)** wins on typography, math, and stability, and loses on iteration speed and on the slides-versus-script split, which it does not address either.
-
-The honest differentiator is the combination: the collapse mechanism (one text, two densities), the presenter cockpit, and the notes-handout – all from one file. If you do not want that combination, one of the tools above is a better bet.
+**[docs/comparison.md](docs/comparison.md)** is the long version: nine alternatives across twenty dimensions, including the ones psi-slides loses on.
 
 ## Requirements
 
@@ -207,6 +201,7 @@ The honest differentiator is the combination: the collapse mechanism (one text, 
 | --- | --- |
 | [`lectures/tutorial/source.md`](lectures/tutorial/source.md) | The authoring reference. Build it and read it as a lecture. |
 | [`lectures/python-intro/`](lectures/python-intro/) | The richest worked example – 36 chunks, the full layout vocabulary. |
+| [`docs/comparison.md`](docs/comparison.md) | Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, compared in both directions. |
 | [`PRD.md`](PRD.md) | Design rationale. Why four views, why this tag set, why collapse has two mechanisms and not four. |
 | [`speaker.md`](speaker.md) | The cockpit spec and the `postMessage` sync protocol – which fields travel, which stay local. |
 | [`HANDOFF.md`](HANDOFF.md) | Build diary, slice by slice, including the decisions deliberately not taken. German. |
