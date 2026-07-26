@@ -494,6 +494,28 @@ Vimeo dagegen läuft aus `file://` und ist zusätzlich **fernsteuerbar**: der Pl
 
 **Nicht gebaut, bewusst.** Der Auftrag war zu testen. Wenn es kommt, dann als ausdrückliche Direktive (`::: embed <url>`), nie als Standardbedeutung eines Links oder Assets, mit Build-Warnung („dieser Foliensatz holt zur Laufzeit von <host>"), und mit einem Hinweis für YouTube, dass es aus `file://` nicht spielt. Der Preis bleibt derselbe wie im iframe-Abschnitt: der **Audience**-Rechner kontaktiert mitten im Vortrag einen Dritten.
 
+## Website-Slice, und drei Fehler, die beim Screenshot-Machen aufgefallen sind
+
+Anlass war die GitHub-Page: Grundschriftgröße zu klein, Serif im Fließtext, Screenshots nicht als solche erkennbar, und die Bilder kamen aus der 39-Zeilen-Beispielvorlesung, wo das Overview-Board sechs Folien zeigt und deshalb wie ein Mockup wirkt.
+
+**Typografie.** Inter Tight und Iosevka, beide von der eigenen Origin. Ein Google-Fonts-`<link>` wäre eine Zeile, verrät einem Dritten aber, wer die Seite eines Tools liest, dessen ganzes Versprechen ist, dass seine Ausgaben zur Laufzeit nichts holen. Inter Tight wird beim Site-Build aus `node_modules` kopiert – dasselbe Paket, das `build.js` in Vorlesungen einbettet. Iosevka liegt subsettet unter `docs/site/fonts/` im Repo: der veröffentlichte Latin-Schnitt ist **961 KB**, weil er das komplette Varianten- und Ligaturinventar trägt, subsettet sind es **9 KB**. Einmal lokal mit `uvx --from "fonttools[woff]" pyftsubset` erzeugt, CI braucht dafür kein Python. Landingpage und gerenderte Doku teilen jetzt `docs/site/site.css` statt zweier driftender Kopien.
+
+**Screenshots** kommen aus python-intro, aus `#why-playwright` – Prosa in zwei Spalten, die eingeklappt auf eine zusammenfällt. Kein Chunk, der zu 80 % aus Code besteht; das erzählt die Kollaps-Idee schlechter. Sechs Bilder, jedes in einem Panel mit Titelleiste, die die Quelldatei nennt. WebP statt PNG, halbe Bytes bei lesbarer Kleinschrift im Overview.
+
+Beim Aufnehmen fielen drei echte Fehler auf:
+
+- **Der Suchindex las die `<style>`-Blöcke eingebetteter SVGs mit.** `textContent` gibt die CSS-Regeln als wäre es Prosa zurück; „async" traf die Timeline-Figur mit dem Snippet `all-small-caps; letter-spacing: 0.1em; } }`. Gefixt über eine Kopie des Chunk-Bodys ohne `style`/`script`. Text *im* Bild bleibt indiziert – die Figur matcht jetzt auf ihre Achsenbeschriftungen, was der Teil ist, den man suchen will.
+- **Auto-Fit passte nur die Höhe an.** Ein `<pre>` bricht nicht um, also wuchs der Zoom, bis Code rechts aus dem Fenster lief – gemessen bei 1440×900 auf `#comprehensions`: Zoom 1.55, 489 px außerhalb. Auto-Fit hat das Problem also aktiv verschlimmert. `NOWRAP_SEL` (`pre, table, .katex-display`) wird einmal pro Fit gesammelt, `nowrapProbe` misst die kurze Liste pro Zoomschritt.
+- **Ein Fragment in der Adresse aktivierte den Chunk nicht.** `audience.html#comprehensions` scrollte hin, der Deck blieb aber auf seinem Zustand, der adressierte Chunk stand auf Inaktiv-Opazität und der erste Pfeiltastendruck sprang weg. Fragment schlägt jetzt die gespeicherte Position – ein getippter Anker ist das stärkere Signal – und `hashchange` läuft durch `jumpTo`, damit Reveal-State, Kamera und Broadcast normal greifen.
+
+**Und der Teil, der daraus folgte.** Auto-Fit ist per Default **aus**, `zoom` per Default **1.35** – der Width-Fix half also genau denen nicht, die nichts umstellen. Der Zoom ist eine globale Entscheidung, der Überlauf ist folienspezifisch. `clampZoomToWidth` schrumpft deshalb die eine Folie, und nur so weit, dass nichts mehr abgeschnitten wird. Drei Eigenschaften tragen das:
+
+- Es schreibt **nie** `collapsedZoom` und leitet immer *davon* ab, ist also idempotent, und die Einstellung kommt beim nächsten Chunk unverändert zurück.
+- Der geschrumpfte Wert bleibt lokal: `snapshot()` sendet die Wahl, nicht das Angezeigte. Projektion und Cockpit-Bühne sind verschieden groß, und der geklammerte Wert würde die Einstellung im anderen Fenster still absenken und von dort zurück.
+- `+`/`–` rechnen über `zoomBase()` von der Wahl, nicht vom geklammerten Display – sonst landet die Taste auf demselben Wert und wirkt tot. Die Badge meldet das Sichtbare und sagt warum: `zoom: 1.25× · limited by this slide`.
+
+Sweep über alle 44 Chunks bei 1440×900 mit Auto-Fit aus: null horizontale Überläufe, Wahl unverändert 1.35, **elf** Chunks geklammert. Drei davon landen bei 0.9–0.95, ein sichtbarer Sprung nach unten. Das ist der Preis dafür, nicht abzuschneiden – und zugleich ein Signal, dass diese Chunks Codezeilen haben, die für ihre Width-Klasse zu lang sind. Autorenseitig gelöst wäre es besser als runtimeseitig.
+
 ## Was funktioniert
 
 - `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.
