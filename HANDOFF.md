@@ -442,6 +442,36 @@ Eine benannte Familie ohne passende Datei **bricht den Build ab**, mit Fundliste
 
 Verifiziert mit sechs Faces (Familienname mit Leerzeichen, Regular/Bold/Italic/BoldItalic, numerisches Gewicht, Variable-Achse): alle korrekt geparst, `document.fonts.check()` positiv, **null externe Font-Requests**, und die Folie rendert sichtbar in der eingebetteten Schrift statt in Georgia.
 
+## Textauswahl, Links, und warum kein iframe
+
+**`Alt` halten schaltet die Textauswahl frei.** Ein gehaltener Modifier, kein Modus – ein Modus ist Zustand, den man vergisst, und der vergessene Zustand wäre hier der, in dem Ziehen nicht mehr schwenkt. Genau die falsche Überraschung mitten im Vortrag.
+
+Eine Feinheit, die die naheliegende Implementierung falsch macht: die Klasse muss den Keyup **überleben**, solange eine Auswahl existiert. Lässt man `Alt` los, um `Cmd`-`C` zu erreichen, springt `user-select` auf `none` zurück, und Chrome verwirft die gerade gemachte Markierung. Der Ausstieg hängt deshalb an `selectionchange`, nicht am Keyup. `blur` räumt ebenfalls auf, sonst strandet ein `Alt`-Tab die Bühne in einem Zustand, in dem Ziehen stumm nicht mehr schwenkt.
+
+**Links: Shift-Klick zeigt die Adresse auf beiden Schirmen.** Der einfache Klick öffnet wie gewohnt einen Tab im geklickten Fenster – im Cockpit ist das der Vortragende, der eine Quelle prüft, und der Foliensatz navigiert nie weg (externe Links tragen `target="_blank"`).
+
+**Wir haben ausdrücklich geprüft, ob stattdessen ein iframe die Seite auf beiden Schirmen zeigen könnte. Antwort: nein, gemessen.** Von 39 realen Zielen verweigern 25 (~64%) das Framing per `X-Frame-Options` oder `frame-ancestors` – und die Verweigerungsquote liegt nahe 100% bei genau dem, was man in einer Vorlesung verlinkt: die eigene `uni-bamberg.de`, Verlage und DOI-Ziele, GitHub, Nachrichtenseiten, alles mit Login. Frei sind im Wesentlichen Wikipedia/Wikimedia, ReadTheDocs-artige Doku, kleine Konferenzseiten, arXiv-**PDFs** (nicht `/abs/`) und `youtube.com/embed/`.
+
+Drei Befunde, die das endgültig machen:
+
+- **Der Block ist aus dem Skript nicht erkennbar.** Das `load`-Event feuert bei blockierten wie bei geladenen Frames gleichermaßen, und `contentDocument` ist bei Cross-Origin immer `null`. Der Foliensatz kann also nicht merken, dass auf der Leinwand ein leeres Rechteck steht, und nicht zurückfallen. Für ein Live-Feature ist das die schlechteste denkbare Eigenschaft.
+- **Eine kooperierende Seite könnte uns nicht einmal freischalten.** Ein `file://`-Dokument hat die Origin `null`, und `frame-ancestors` kennt keinen Ausdruck, der darauf passt. Die IT müsste die Direktive ganz streichen.
+- **Interaktion lässt sich nicht spiegeln.** `contentWindow.scrollTo` und `location.hash` werfen beide `SecurityError`. „Der Vortragende scrollt, der Raum folgt" ist bei fremden Inhalten unmöglich; das einzige Sync-Primitiv sind Anker-Sprünge über `iframe.src` mit anderem Fragment (verifiziert, ohne neuen Request).
+
+Dazu der Preis: der **Audience**-Rechner – oft der Hörsaal-PC – müsste mitten im Vortrag einen Dritten kontaktieren, mit dessen ganzer Asset- und Trackerkette, mit Cookies im Third-Party-Kontext (beobachtet), und bei europäischen Seiten mit hoher Wahrscheinlichkeit einem Consent-Banner, das der Vortragende dann auf einem Schirm wegklicken müsste, den er nicht sieht. Also genau der Fehlerfall, gegen den das Adress-Overlay geschrieben wurde, nur innerhalb eines Rahmens reproduziert. Für das Werkzeug einer Privacy-Gruppe ist „der Beamer telefoniert während der DSGVO-Vorlesung still zu einem Verlag" kein guter Auftritt.
+
+Was ein Raum von einem Link im Vortrag tatsächlich will, ist ihn **mitschreiben** zu können. Deshalb bekommt die Projektion eine Adresse zum Lesen, keine Seite zum Zuschauen. Offener Verbesserungsvorschlag aus derselben Untersuchung: ein **QR-Code** neben der Adresse. Das behebt die reale Schwäche (eine 90-Zeichen-DOI schreibt niemand ab), hält alle Zusagen, und verlagert den Netzzugriff auf das Telefon des Publikums – wo er praktisch wie datenschutzlich hingehört.
+
+## Review-Funde (medium, alles seit gestern)
+
+Drei echte Fehler, alle in Code aus dieser Sitzung:
+
+- **Font-Familien wurden per Präfix zugeordnet** – falsch, und still falsch. Liegen `Inter-Regular.woff2` und `Inter Tight-Regular.woff2` im Ordner, traf `Inter` beide: normalisiert man das Leerzeichen weg, beginnt `intertightregular` mit `inter`. Der Rest `tightregular` verfehlte dann die Gewichtstabelle und fiel auf 400 zurück, also wurden **zwei verschiedene Schriften als dieselbe Familie bei gleichem Gewicht und Stil** deklariert, und der Browser nahm schlicht die letzte. Behoben über `splitFontFileName`: die Deskriptor-Hälfte ist ein geschlossenes Vokabular, also lässt sich die Familien-Hälfte exakt vergleichen. Der ganze Basename wird zuerst probiert, damit eine Familie, deren eigener Name auf ein Gewichtswort endet („Archivo Black"), weiter auflöst.
+- **`B` erwischte das Adress-Overlay nicht.** Es liegt mit z-index 45 über der Bühne und blieb stehen – eine Adresse konnte also auf einem gerade geschwärzten Schirm weiterleuchten. `B` heißt: alles vom Schirm, sofort.
+- **Der Linter widersprach dem Build.** `theme: light-red   # Begründung` wurde als unbekannter Wert gemeldet, während der Build dieselbe Datei akzeptierte, weil `gray-matter` echtes YAML parst. Ein Linter, der dem Build widerspricht, ist schlimmer als keiner – er ist das Pre-Commit-Tor.
+
+Kein Fund bei: den Template-Literal-Fallen (keine gefressenen Regex-Escapes im gebauten HTML), den Sync-Gates (alle `figure-*`-Sends sind von einem umschließenden `shouldBroadcast()` gedeckt – der Grep sah nur die Sendezeilen), Toast-Echos (kein `flashMode` läuft im Remote-Apply) und dem Watch-Modus (die neuen harten Fehler werden gefangen, gedruckt, der Watcher lebt weiter).
+
 ## Was funktioniert
 
 - `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.
