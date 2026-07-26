@@ -128,7 +128,13 @@ function lintFile(filePath) {
     if (!m) return;
     const allowed = VIEW_DEFAULTS[m[1]];
     if (!allowed) return;
-    const value = m[2].trim().replace(/^["']|["']$/g, '');
+    // Strip a trailing YAML comment before comparing. Without this the
+    // linter reported an error on `theme: light-red   # why` – a file the
+    // build accepts, because gray-matter parses real YAML. A linter that
+    // disagrees with the build is worse than no linter, since it is the
+    // pre-commit gate. YAML needs whitespace before the `#` for it to start
+    // a comment, so the pattern requires it too.
+    const value = m[2].replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
     if (!value || allowed.includes(value)) return;
     addFm(i + 2, 'error', 'unknown-view-default',
       `'${m[1]}: ${value}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
