@@ -1972,6 +1972,7 @@ function renderHelpOverlay(view) {
       ['drag · wheel · <kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'pan · zoom · reset the zoomed card'],
       ['click a marginalia', 'pan the camera onto the aside'],
       ['drag the slide', 'pan within a chunk that is taller than the screen'],
+      ['hold <kbd>Alt</kbd> and drag', 'select text to copy – dragging pans again once you let go'],
       ['<kbd>Esc</kbd>', 'back to the whole slide'],
     ]],
     ['Reading knobs', [
@@ -2232,6 +2233,16 @@ textarea, input, [contenteditable=true] {
   user-select: text;
   -webkit-user-select: text;
 }
+/* Hold Alt and the stage becomes selectable – see the runtime comment for
+   why this is a held modifier rather than a mode. The cursor change is the
+   only signal that it worked, so it is not optional. */
+body.text-selecting #stage,
+body.text-selecting #stage * {
+  user-select: text;
+  -webkit-user-select: text;
+}
+body.text-selecting #stage { cursor: text; }
+::selection { background: color-mix(in oklch, var(--emph) 30%, transparent); }
 
 /* stage */
 #stage-viewport {
@@ -4726,6 +4737,54 @@ if (helpOverlay) {
   });
 }
 
+// ── text selection ──────────────────────────────────────────────────
+// The live views disable selection globally: drag pans the stage, and a
+// stray highlight on the projection is a distraction that never stops being
+// one. But "let me copy that definition" is a real request, from the
+// lecturer mid-talk and from anyone reading the deck afterwards.
+//
+// Hold Alt rather than toggling a mode. A mode is state you can forget you
+// are in – and the state you forget here is the one where dragging no
+// longer pans, which is exactly the wrong surprise mid-lecture. Selecting
+// is a momentary act, so a held key matches it.
+//
+// The class deliberately outlives the keyup while a selection exists: let
+// go of Alt to reach Cmd-C and user-select would snap back to none, which
+// in Chrome discards the highlight you just made.
+let altSelectHeld = false;
+function hasTextSelection() {
+  const s = window.getSelection();
+  return !!s && !s.isCollapsed && String(s).trim().length > 0;
+}
+function setSelecting(on) {
+  document.body.classList.toggle('text-selecting', on);
+}
+function endSelecting() {
+  const s = window.getSelection();
+  if (s) s.removeAllRanges();
+  setSelecting(false);
+}
+window.addEventListener('keydown', (e) => {
+  if (e.key !== 'Alt' || altSelectHeld) return;
+  altSelectHeld = true;
+  setSelecting(true);
+  flashMode('select text while Alt is held · Esc clears');
+});
+window.addEventListener('keyup', (e) => {
+  if (e.key !== 'Alt') return;
+  altSelectHeld = false;
+  if (!hasTextSelection()) setSelecting(false);
+});
+document.addEventListener('selectionchange', () => {
+  if (!altSelectHeld && !hasTextSelection()) setSelecting(false);
+});
+// Alt-Tab away and the keyup never arrives, which would strand the stage in
+// a state where dragging silently stops panning.
+window.addEventListener('blur', () => {
+  altSelectHeld = false;
+  if (!hasTextSelection()) setSelecting(false);
+});
+
 // Mode badge
 let modeTimer = null;
 function showModeBadge(text) {
@@ -4802,6 +4861,9 @@ document.addEventListener('keydown', (e) => {
     case 'Escape': {
       // Help sits in front of everything, so it unwinds first.
       if (helpVisible()) { toggleHelp(false); e.preventDefault(); break; }
+      // A live highlight is the most recent thing the user did, so it is
+      // the first thing Esc should take back.
+      if (hasTextSelection()) { endSelecting(); e.preventDefault(); break; }
       if (focusedFigure) {
         unfocusFigure();
         if (shouldBroadcast()) sendToPeer({ type: 'figure-unfocus' });
@@ -4923,6 +4985,9 @@ viewport.addEventListener('wheel', (e) => {
 viewport.addEventListener('pointerdown', (e) => {
   // Skip drag on interactive children so click-to-select still works.
   if (e.target.closest('button, textarea, input, .annot-box, .exp-chev, .annot-add, nav#toc')) return;
+  // While Alt-selection is live the same gesture means "highlight this",
+  // so the camera must keep its hands off it.
+  if (document.body.classList.contains('text-selecting')) return;
   // Two pan modes share this handler: in overview, any drag pans; in
   // normal view, plain drag pans (chunk-local, reset on navigation).
   // The 3px movement threshold below keeps plain clicks (chunk select,
