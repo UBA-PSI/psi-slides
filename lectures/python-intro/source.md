@@ -53,10 +53,11 @@ We will build it up **piece by piece**. Each topic in this lecture contributes o
 
 ::: side
 
-`uv` is a **modern Python package manager** written in Rust. It replaces `pip`, `virtualenv`, and `pyenv` with one binary and an order of magnitude more speed. Install it once, globally.
+`uv` is a **modern Python package manager** written in Rust. It replaces `pip`, `virtualenv`, and `pyenv` with one binary and an order of magnitude more speed. Install it once, globally – or run the official script, `curl -LsSf https://astral.sh/uv/install.sh | sh`.
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+pip install uv
+# or: brew install uv
 ```
 
 ::: flip
@@ -181,7 +182,7 @@ seen = {"https://a.com"}
 seen.add("https://b.com")
 
 page = {"url": "https://a.com", "status": 200}
-page["title"] = "A"            # dicts grow by assignment
+page["title"] = "A"   # dicts grow by assignment
 ```
 
 ## example: Control flow | indentation is the block delimiter {.standard #control-flow}
@@ -229,19 +230,25 @@ Useful, but `if`/`elif` covers 90% of cases. Reach for `match` when you have fou
 **Define a function with `def`**, annotate parameters and return type, and you get documentation the editor can read. Hints are **not enforced at runtime** – they are advisory.
 
 ```python
-def greet(name: str, excited: bool = False) -> str:
-    suffix = "!" if excited else "."
-    return f"Hello, {name}{suffix}"
+def greet(
+    name: str,
+    loud: bool = False,
+) -> str:
+    end = "!" if loud else "."
+    return f"Hello, {name}{end}"
 ```
 
 ::: flip
 
-**Call it like any other function.** Positional arguments first, then keyword arguments. Defaults let callers omit what they don't need.
+**Call it like any other function.** Positional arguments first, then keyword arguments. Defaults let callers omit what they don't need. A signature too long for one line wraps, one parameter per line, with a trailing comma – the form every formatter produces.
 
 ```python
-greet("Ada")                  # "Hello, Ada."
-greet("Ada", excited=True)    # "Hello, Ada!"
-greet(name="Ada")             # same, keyword form
+greet("Ada")
+# Hello, Ada.
+greet("Ada", loud=True)
+# Hello, Ada!
+greet(name="Ada")
+# same call, keyword form
 ```
 
 :::
@@ -411,7 +418,8 @@ r = PageReport(
     title="Example",
     has_description=True,
 )
-print(r)   # PageReport(url='https://ex.com', ...)
+print(r)
+# PageReport(url='https://ex.com'...)
 ```
 
 :::
@@ -425,7 +433,7 @@ import argparse
 
 p = argparse.ArgumentParser(description="Scan a page for link health.")
 p.add_argument("url", help="URL to start from")
-p.add_argument("--max", type=int, default=20, help="max links to visit")
+p.add_argument("--max", type=int, default=20, help="max links")
 args = p.parse_args()
 
 print(args.url, args.max)
@@ -453,7 +461,7 @@ async def fetch():
     return 42
 
 x = fetch()           # not 42 – this is <coroutine object>
-x = await fetch()     # actually 42 (only legal inside async def)
+x = await fetch()   # 42 â only inside async def
 x = asyncio.run(fetch())  # also 42, but starts its own loop
 ```
 
@@ -468,7 +476,7 @@ Forgetting the `await` is the most common async bug. Python will warn about “c
 import asyncio
 
 async def fetch(name: str, delay: float) -> str:
-    await asyncio.sleep(delay)    # pretend this is a network call
+    await asyncio.sleep(delay)  # a network call, pretend
     return f"done: {name}"
 
 async def main() -> None:
