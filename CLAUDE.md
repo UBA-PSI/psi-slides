@@ -248,7 +248,6 @@ Two things worth knowing before writing chunks, both learned the hard way:
 - `README.md` – short public-facing intro.
 - `lectures/tutorial/source.md` – the canonical authoring reference (self-referential lecture). Build and open its `audience.html` to see every directive live.
 - `lectures/python-intro/source.md` – richest example of `::: cols`, `::: side`, and `::: marginalia` in combination, 36 chunks.
-- `lectures/demo/` – minimal reference lecture.
 - `phase0/` – the pre-Phase-1 single-file HTML prototype (`lecture.html` with embedded `LECTURE` object). Historical; don't use as a template, but instructive for seeing what Phase 1 replaced.
 
 ## Conventions

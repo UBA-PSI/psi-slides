@@ -15,7 +15,7 @@ lecture: python-intro
 
 > note: Short welcome, ask who has written Python before and who hasn't. Tell the room we will end the session with a working CLI that crawls a website. Everyone leaves with a tool, not just slides.
 
-## principle: Use a venv | always, from the very first import {.narrow #venv-principle}
+## principle: Use a venv | always, from the very first import {.standard #venv-principle}
 
 **Global Python belongs to the operating system**, not to your project. `pip install` on the system interpreter edits a shared dependency tree that other programs read from.
 
@@ -94,7 +94,7 @@ The only difference is **speed**: uv resolves and installs dependencies in paral
 
 ## figure: What a venv actually looks like on disk {.wide #venv-structure}
 
-![venv directory layout](venv-layout)
+![](venv-layout)
 
 The **activation script** rewrites your shell's `PATH` so `.venv/bin/` comes first. Deactivating just restores the previous `PATH`. There is no global state change, no service, no daemon – only a directory.
 
@@ -304,7 +304,7 @@ except:              # never do this
 If you genuinely want to catch everything, write `except Exception:` – it covers all *program* errors while leaving interpreter-level signals intact.
 :::
 
-## principle: Read tracebacks from the bottom | the last line is the failure {.narrow #read-errors-principle}
+## principle: Read tracebacks from the bottom | the last line is the failure {.standard #read-errors-principle}
 
 **The last line of a traceback names the actual failure.** Everything above it is the chain of calls that *led* to that line. Start at the bottom, read one frame up at a time, and stop at the first frame that is your own code.
 
@@ -430,7 +430,7 @@ print(args.url, args.max)
 
 # Async basics {#async}
 
-## principle: Async is for I/O, not CPU | overlapping waits, not overlapping work {.narrow #async-principle}
+## principle: Async is for I/O, not CPU | overlapping waits, not overlapping work {.standard #async-principle}
 
 **Network calls spend almost all their time waiting.** Async lets one thread start many waits and serve whichever one completes first. It does not make CPU-bound code faster – for that, you need processes.
 
@@ -494,7 +494,7 @@ async with asyncio.TaskGroup() as tg:
 
 ## figure: One thread, many overlapping waits {.full #async-timeline}
 
-![async vs sync timeline](async-timeline)
+![](async-timeline)
 
 The same three network calls. The same single thread. The **only difference** is who gets to run while someone else waits. Synchronous code blocks the thread on every wait; async code releases the thread and lets other coroutines progress.
 
@@ -585,7 +585,7 @@ hrefs = await page.evaluate("""
 
 ## figure: Scanner pipeline | data flows left to right, top to bottom {.full #scanner-pipeline}
 
-![scanner data flow](scanner-flow)
+![](scanner-flow)
 
 **Two Playwright calls per page.** `page.goto()` returns a response so we can read its status; `page.evaluate()` runs a JS snippet inside the page for DOM queries. Everything else is plain Python manipulating the resulting strings and objects.
 
@@ -691,7 +691,7 @@ status=404 no-title                      https://example.com/oops
 
 # Wrap-up {#wrap-up}
 
-## principle: Small scripts beat big frameworks | if you understand them end-to-end {.narrow #small-scripts-principle}
+## principle: Small scripts beat big frameworks | if you understand them end-to-end {.standard #small-scripts-principle}
 
 **A fifty-line script you understand is worth more than a five-hundred-line framework you do not.** The whole point of this lecture was that the bar for “real tool” is much lower than the ecosystem suggests. Standard library plus one dependency plus type hints plus `asyncio.run` – that is a real tool.
 

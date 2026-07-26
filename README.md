@@ -209,6 +209,8 @@ Every tool in this space is good, and nearly all of them take Markdown, so “it
 | [`docs/comparison.md`](docs/comparison.md) | Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, compared in both directions. |
 | [`PRD.md`](PRD.md) | Design rationale. Why four views, why this tag set, why collapse has two mechanisms and not four. |
 | [`speaker.md`](speaker.md) | The cockpit spec and the `postMessage` sync protocol – which fields travel, which stay local. |
+| [`CHANGELOG.md`](CHANGELOG.md) | What is in each release, and what the known limits are. |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | What is useful to send, and what to read before touching the code. |
 | [`HANDOFF.md`](HANDOFF.md) | Build diary, slice by slice, including the decisions deliberately not taken. German. |
 | [`CLAUDE.md`](CLAUDE.md) | Repo conventions and a map of `build.js`. Useful to any contributor, not just to Claude. |
 | [`.claude/skills/psi-slides-authoring/`](.claude/skills/psi-slides-authoring/SKILL.md) | The authoring contract in one artefact, for handing to an LLM assistant. |

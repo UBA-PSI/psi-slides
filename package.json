@@ -4,7 +4,10 @@
   "private": true,
   "description": "Lecture medium (see PRD.md). Phase-1 build pipeline.",
   "license": "MIT",
-  "author": "Dominik Herrmann",
+  "author": {
+    "name": "Dominik Herrmann",
+    "url": "https://herdom.net"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/UBA-PSI/psi-slides.git"
@@ -29,5 +32,11 @@
   },
   "devDependencies": {
     "ws": "^8.20.0"
-  }
+  },
+  "contributors": [
+    {
+      "name": "Privacy and Security in Information Systems, University of Bamberg",
+      "url": "https://psi.uni-bamberg.de/"
+    }
+  ]
 }

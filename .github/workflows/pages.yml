@@ -45,7 +45,9 @@ jobs:
       - name: Assemble the site
         run: |
           mkdir -p _site/tutorial
-          cp docs/site/index.html _site/index.html
+          # Renders the docs from the same Markdown the repository serves, so
+          # the site cannot drift from them.
+          node docs/site/build-site.js _site
           cp lectures/tutorial/audience.html \
              lectures/tutorial/speaker.html \
              lectures/tutorial/print.html \

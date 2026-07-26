@@ -86,15 +86,30 @@
   </ul>
 
   <div class="hint">
-    All four files are self-contained: CSS, JavaScript, and images are inlined, and they open
-    just as happily from <code>file://</code> as from this server.
+    All four files are self-contained: CSS, JavaScript, images, the rendered maths and &ndash; when
+    the author supplies them &ndash; the typefaces are all inlined. Nothing is fetched at run time,
+    and they open just as happily from <code>file://</code> as from this server.
   </div>
+
+  <h2>Documentation</h2>
+  <ul>
+    <li><a href="comparison.html">How psi-slides compares</a> &ndash;
+      Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, in both directions,
+      including where psi-slides loses.</li>
+    <li><a href="prd.html">Design rationale</a> &ndash;
+      why four views, why this tag set, why collapse has two mechanisms and not four.</li>
+    <li><a href="speaker.html">The speaker cockpit</a> &ndash;
+      the cockpit spec and the sync protocol between the two windows.</li>
+  </ul>
 
   <h2>Source</h2>
   <p><a href="https://github.com/UBA-PSI/psi-slides">github.com/UBA-PSI/psi-slides</a> &ndash; the
   README explains the format, what the tool is good at, and what it is not.</p>
 
   <footer>
+    By <a href="https://herdom.net">Dominik Herrmann</a>,
+    <a href="https://psi.uni-bamberg.de/">Privacy and Security in Information Systems</a>,
+    University of Bamberg.<br>
     Tooling MIT-licensed, lecture content CC&nbsp;BY-SA&nbsp;4.0. Rebuilt from source on every push.
   </footer>
 </main>
