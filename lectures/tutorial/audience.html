@@ -467,6 +467,24 @@ figure.figure-img {
   align-items: center;
   cursor: zoom-in;
 }
+/* Same box as a still figure, but deliberately NOT in FOCUSABLE_SEL: a
+   click-to-zoom would fight the native controls, whose own fullscreen
+   button does that job better. How big the clip sits on the slide is the
+   chunk's width class. */
+figure.figure-video {
+  margin: 0.6em 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+figure.figure-video video {
+  max-width: 100%;
+  max-height: 56vh;
+  height: auto;
+  display: block;
+  background: oklch(0.12 0 0);
+  border-radius: 2px;
+}
 figure.figure-img img,
 figure.figure-img svg {
   max-width: 100%;
@@ -2185,7 +2203,27 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></div>
 </article>
-<article class="chunk chunk-example" id="math" data-chunk-id="math" data-tag="example" data-width="wide" data-chunk-num="28">
+<article class="chunk chunk-example" id="video" data-chunk-id="video" data-tag="example" data-width="wide" data-chunk-num="28">
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Video</span> <span class="hd-sub">a clip is a figure that moves</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Drop <code>clip.mp4</code> into <code>assets/</code> and write <code>![](clip)</code></strong> – the same shorthand as an image. The build searches the video extensions after the image ones, so an id with both a poster and a clip still resolves to the still.</p>
+<p>Clips are inlined like any other asset, up to a separate 12 MB per-file cap: a clip is an order of magnitude heavier than a diagram, and the 2 MB image cap would reject every real one. Over the cap the build tells you the <code>ffmpeg</code> line that fixes it.</p>
+<p><strong>There is no separate fullscreen setting, on purpose.</strong> The native player already has a fullscreen button, and how large the clip sits on the slide is the chunk&#39;s width class – exactly like a still figure. Clicking a clip does <em>not</em> zoom it into the figure card either, because that would fight the play button.</p>
+<p><strong>Play, pause and seeking are synced.</strong> Operate the clip in the cockpit and the projection follows. Freeze the projection first and it does not, so you can check a clip before showing it.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="video">
+      <div class="annot-box-label">annotation · video</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></div>
+</article>
+<article class="chunk chunk-example" id="math" data-chunk-id="math" data-tag="example" data-width="wide" data-chunk-num="29">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Math</span> <span class="hd-sub"><code>$inline$</code> and <code>$$display$$</code></span></h2>
@@ -2204,7 +2242,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></div>
 </article>
 </section>
 <section class="column" data-col="8" id="craft">
@@ -2213,7 +2251,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     <h1 class="section-heading">Writing chunks that work</h1>
   </div>
 </article>
-<article class="chunk chunk-principle" id="topic-sentence" data-chunk-id="topic-sentence" data-tag="principle" data-width="standard" data-chunk-num="29">
+<article class="chunk chunk-principle" id="topic-sentence" data-chunk-id="topic-sentence" data-tag="principle" data-width="standard" data-chunk-num="30">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">The topic sentence is the slide</span> <span class="hd-sub">so write the opening line for the projector</span></h2>
@@ -2229,9 +2267,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></div>
 </article>
-<article class="chunk chunk-example" id="anti-patterns" data-chunk-id="anti-patterns" data-tag="example" data-width="wide" data-chunk-num="30">
+<article class="chunk chunk-example" id="anti-patterns" data-chunk-id="anti-patterns" data-tag="example" data-width="wide" data-chunk-num="31">
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Four ways a chunk goes soft</h2>
@@ -2260,9 +2298,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></div>
 </article>
-<article class="chunk chunk-question" id="choose-mechanism" data-chunk-id="choose-mechanism" data-tag="question" data-width="standard" data-chunk-num="31">
+<article class="chunk chunk-question" id="choose-mechanism" data-chunk-id="choose-mechanism" data-tag="question" data-width="standard" data-chunk-num="32">
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Derive it, or state it?</h2>
@@ -2285,9 +2323,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 <p>A figure chunk plus a paragraph of interpretation is the other reliable case, and there <code>::: script</code> around the interpretation is less typing than wrapping the slide half.</p>
 
     </aside>
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></div>
 </article>
-<article class="chunk chunk-exercise" id="squint-test" data-chunk-id="squint-test" data-tag="exercise" data-width="wide" data-chunk-num="32">
+<article class="chunk chunk-exercise" id="squint-test" data-chunk-id="squint-test" data-tag="exercise" data-width="wide" data-chunk-num="33">
   <div class="chunk-content">
     
     <h2 class="chunk-heading">The squint test</h2>
@@ -2307,7 +2345,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></div>
 </article>
 </section>
 <section class="column" data-col="9" id="next">
@@ -2316,7 +2354,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     <h1 class="section-heading">Next steps</h1>
   </div>
 </article>
-<article class="chunk chunk-exercise" id="read-more" data-chunk-id="read-more" data-tag="exercise" data-width="wide" data-chunk-num="33">
+<article class="chunk chunk-exercise" id="read-more" data-chunk-id="read-more" data-tag="exercise" data-width="wide" data-chunk-num="34">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the artefacts that close the loop</span></h2>
@@ -2338,9 +2376,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></div>
 </article>
-<article class="chunk chunk-free" id="authoring" data-chunk-id="authoring" data-tag="free" data-width="standard" data-chunk-num="34">
+<article class="chunk chunk-free" id="authoring" data-chunk-id="authoring" data-tag="free" data-width="standard" data-chunk-num="35">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Authoring your own</span> <span class="hd-sub"><code>--new</code>, <code>--watch</code>, <code>lint.js</code></span></h2>
@@ -2361,9 +2399,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></div>
 </article>
-<article class="chunk chunk-example" id="fonts" data-chunk-id="fonts" data-tag="example" data-width="wide" data-chunk-num="35">
+<article class="chunk chunk-example" id="fonts" data-chunk-id="fonts" data-tag="example" data-width="wide" data-chunk-num="36">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own type</span> <span class="hd-sub"><code>fonts/</code> plus a frontmatter block</span></h2>
@@ -2385,9 +2423,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></div>
 </article>
-<article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="36">
+<article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="37">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Pinning how a lecture opens</span> <span class="hd-sub">five optional frontmatter keys</span></h2>
@@ -2412,7 +2450,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></div>
 </article>
 </section>
   </div>
@@ -3000,6 +3038,7 @@ window.addEventListener('message', (ev) => {
     applyRemoteState(m.payload);
     return;
   }
+  if (m.type === 'video') { applyRemoteVideo(m); return; }
   // Address overlay, outside the snapshot for the same reason as blank:
   // it is a command aimed at the projection, not shared navigation state.
   if (m.type === 'link-show') {
@@ -3872,6 +3911,53 @@ if (helpOverlay) {
   });
 }
 
+// ── video ───────────────────────────────────────────────────────────
+// A clip is the one element on a slide the lecturer *operates* rather than
+// just shows, so the two windows have to agree on it: pressing play in the
+// cockpit has to start the projection, and scrubbing has to land the room
+// in the same place. Addressed by data-fig-id rather than by index, because
+// unlike figure focus this survives an author reordering the chunk.
+//
+// Gated by the freeze flag like any other broadcast: a frozen projection
+// should not start playing because the lecturer previewed something.
+let applyingRemoteVideo = false;
+function videoByFigId(figId) {
+  const fig = document.querySelector('.figure-video[data-fig-id="' + CSS.escape(figId) + '"]');
+  return fig ? fig.querySelector('video') : null;
+}
+function wireVideos() {
+  document.querySelectorAll('.figure-video').forEach((fig) => {
+    const v = fig.querySelector('video');
+    const figId = fig.dataset.figId;
+    if (!v || !figId) return;
+    const send = (action) => {
+      if (applyingRemoteVideo || !shouldBroadcast()) return;
+      sendToPeer({ type: 'video', source: VIEW, figId, action, time: v.currentTime });
+    };
+    v.addEventListener('play', () => send('play'));
+    v.addEventListener('pause', () => send('pause'));
+    // 'seeked', not 'seeking': one message when the handle lands, rather
+    // than a stream of them while it is dragged.
+    v.addEventListener('seeked', () => send('seek'));
+  });
+}
+function applyRemoteVideo(m) {
+  const v = videoByFigId(m.figId);
+  if (!v) return;
+  applyingRemoteVideo = true;
+  try {
+    if (typeof m.time === 'number' && Math.abs(v.currentTime - m.time) > 0.35) {
+      v.currentTime = m.time;
+    }
+    if (m.action === 'play') { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+    else if (m.action === 'pause') v.pause();
+  } finally {
+    // Cleared on a later task: the play/pause the line above triggers
+    // arrives as an event of its own, and echoing it back would ping-pong.
+    setTimeout(() => { applyingRemoteVideo = false; }, 0);
+  }
+}
+
 // ── links ───────────────────────────────────────────────────────────
 // A plain click opens the link in a new tab of whichever window was
 // clicked. In the cockpit that is the lecturer checking a source, which is
@@ -4425,6 +4511,7 @@ loadPersisted();
 applyFontTheme();
 document.querySelectorAll('.reveal-segment').forEach(seg => splitSentencesIn(seg));
 wireAnnotations();
+wireVideos();
 wireClicks();
 wireFigureClicks();
 wireTouchControls();

@@ -51,7 +51,14 @@ const VIEW_DEFAULTS = {
 // warns, but the build scrolls, so the pre-commit gate should catch it too.
 // Kept here as plain fs.statSync so lint.js stays zero-dep.
 const IMG_EXTS = ['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
+// Video shares the `![](clip-id)` shorthand and has its own, larger cap –
+// mirrors VIDEO_EXTS / MAX_INLINE_VIDEO_BYTES in build.js.
+const VIDEO_EXTS = ['mp4', 'webm', 'm4v', 'mov'];
 const MAX_INLINE_BYTES = 2 * 1024 * 1024;
+const MAX_INLINE_VIDEO_BYTES = 12 * 1024 * 1024;
+const inlineCapFor = (p) =>
+  (VIDEO_EXTS.includes(path.extname(p).slice(1).toLowerCase())
+    ? MAX_INLINE_VIDEO_BYTES : MAX_INLINE_BYTES);
 
 // Per-tag word budget. null = no limit. Tags with deliberately large
 // bodies (figure, title) are exempt; one-liner tags are strict.
@@ -433,7 +440,7 @@ function lintFile(filePath) {
       if (/^[a-z]+:/i.test(href)) continue;
       let abs = null;
       if (!href.includes('/') && !path.extname(href)) {
-        for (const ext of IMG_EXTS) {
+        for (const ext of [...IMG_EXTS, ...VIDEO_EXTS]) {
           const cand = path.join(sourceDir, 'assets', `${href}.${ext}`);
           if (fs.existsSync(cand)) { abs = cand; break; }
         }
@@ -445,10 +452,14 @@ function lintFile(filePath) {
       seenAssets.add(abs);
       let size;
       try { size = fs.statSync(abs).size; } catch (e) { continue; }
-      if (size <= MAX_INLINE_BYTES) continue;
+      const cap = inlineCapFor(abs);
+      if (size <= cap) continue;
       const mb = (size / 1024 / 1024).toFixed(2);
+      const fix = cap === MAX_INLINE_VIDEO_BYTES
+        ? 're-encode the clip smaller'
+        : 'run \`node build.js <source.md> --optimize-images\`';
       add(i + 1, 'warn', 'oversized-asset',
-          `${path.relative(sourceDir, abs)} is ${mb} MB (> ${MAX_INLINE_BYTES / 1024 / 1024} MB inline cap), so it stays an external path and the output is not self-contained – run \`node build.js <source.md> --optimize-images\``);
+          `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so it stays an external path and the output is not self-contained – ${fix}`);
     }
   });
 

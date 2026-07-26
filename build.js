@@ -78,6 +78,13 @@ function highlightCode(code, lang) {
 // Set once per build from buildOnce so the marked renderer can close over it.
 
 const IMG_EXTS = ['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
+// Video shares the `![](clip-id)` shorthand: a clip is a figure that moves,
+// and giving it its own directive would have bought new grammar for nothing.
+// Searched after the image extensions, so an id with both a poster and a
+// clip still resolves to the still.
+const VIDEO_EXTS = ['mp4', 'webm', 'm4v', 'mov'];
+const VIDEO_MIME = { mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime' };
+const isVideoExt = (p) => VIDEO_EXTS.includes(path.extname(p).slice(1).toLowerCase());
 const MIME_BY_EXT = {
   svg: 'image/svg+xml',
   png: 'image/png',
@@ -85,8 +92,18 @@ const MIME_BY_EXT = {
   jpeg: 'image/jpeg',
   gif: 'image/gif',
   webp: 'image/webp',
+  mp4: 'video/mp4',
+  m4v: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
 };
 const MAX_INLINE_BYTES = 2 * 1024 * 1024;
+// Video gets its own, larger cap. A clip is inherently an order of magnitude
+// heavier than a diagram, and holding it to the image cap would reject every
+// real one. It is still a cap: base64 adds a third again, and the bytes land
+// in all four outputs, so 12 MB of source is already ~64 MB written to disk.
+const MAX_INLINE_VIDEO_BYTES = 12 * 1024 * 1024;
+const inlineCapFor = (p) => (isVideoExt(p) ? MAX_INLINE_VIDEO_BYTES : MAX_INLINE_BYTES);
 const AUTO_INLINE_BUDGET = 10 * 1024 * 1024;
 let currentSourceDir = null;
 let inlineAssetsEnabled = false;
@@ -99,7 +116,7 @@ function resolveFigId(figId) {
   if (!currentSourceDir) return null;
   const cacheKey = currentSourceDir + '::' + figId;
   if (imgResolveCache.has(cacheKey)) return imgResolveCache.get(cacheKey);
-  for (const ext of IMG_EXTS) {
+  for (const ext of [...IMG_EXTS, ...VIDEO_EXTS]) {
     const rel = path.join('assets', `${figId}.${ext}`);
     if (fs.existsSync(path.join(currentSourceDir, rel))) {
       imgResolveCache.set(cacheKey, rel);
@@ -129,7 +146,7 @@ function warnOversizedAsset(absPath, size) {
   oversizedWarned.add(rel);
   const mb = (size / 1024 / 1024).toFixed(2);
   console.warn(
-    `[inline-images] NOT inlined: ${rel} (${mb} MB > ${MAX_INLINE_BYTES / 1024 / 1024} MB cap).\n` +
+    `[inline-images] NOT inlined: ${rel} (${mb} MB > ${inlineCapFor(absPath) / 1024 / 1024} MB cap).\n` +
     `                This output is no longer self-contained – the figure breaks if the\n` +
     `                HTML is moved without its assets folder. Fix with:\n` +
     `                  node build.js <source.md> --optimize-images`
@@ -142,7 +159,7 @@ function toDataUri(absPath) {
   let stat;
   try { stat = fs.statSync(absPath); }
   catch { dataUriCache.set(absPath, null); return null; }
-  if (stat.size > MAX_INLINE_BYTES) {
+  if (stat.size > inlineCapFor(absPath)) {
     warnOversizedAsset(absPath, stat.size);
     dataUriCache.set(absPath, null);
     return null;
@@ -325,7 +342,7 @@ function scanReferencedImages(src, sourceDir) {
       const stat = fs.statSync(abs);
       total += stat.size;
       count += 1;
-      if (stat.size > MAX_INLINE_BYTES) oversized.push({ abs, size: stat.size });
+      if (stat.size > inlineCapFor(abs)) oversized.push({ abs, size: stat.size });
     } catch { /* missing assets surface elsewhere as figure-missing */ }
   }
   return { total, count, oversized };
@@ -345,9 +362,9 @@ function scanReferencedImages(src, sourceDir) {
 // handles PNG/JPEG), and a missing encoder has to be installed first.
 function assertInlinable(oversized, sourceDir) {
   if (!oversized.length) return;
-  const cap = MAX_INLINE_BYTES / 1024 / 1024;
   const lines = [
-    `${oversized.length} asset(s) exceed the ${cap} MB per-image inline cap, so they would be left as`,
+    `${oversized.length} asset(s) exceed the per-file inline cap (${MAX_INLINE_BYTES / 1024 / 1024} MB for images,`,
+    `${MAX_INLINE_VIDEO_BYTES / 1024 / 1024} MB for video), so they would be left as`,
     `external paths and this output would not be self-contained:`,
     '',
   ];
@@ -367,9 +384,18 @@ function assertInlinable(oversized, sourceDir) {
       lines.push('  node build.js <source.md> --optimize-images');
     }
   }
-  const others = oversized.filter(o => !rasters.includes(o));
-  if (others.length) {
+  // Video needs its own line: "simplify or split by hand" is advice for an
+  // oversized SVG and nonsense for a clip, where the answer is always to
+  // re-encode.
+  const clips = oversized.filter(o => isVideoExt(o.abs));
+  if (clips.length) {
     if (rasters.length) lines.push('');
+    lines.push(`${clips.map(o => path.basename(o.abs)).join(', ')}: re-encode smaller, for example`);
+    lines.push(`  ffmpeg -i <clip> -vf scale=1280:-2 -c:v libx264 -crf 28 -c:a aac -b:a 96k out.mp4`);
+  }
+  const others = oversized.filter(o => !rasters.includes(o) && !clips.includes(o));
+  if (others.length) {
+    if (rasters.length || clips.length) lines.push('');
     lines.push(`--optimize-images only handles PNG and JPEG, so it cannot help with`);
     lines.push(`${others.map(o => path.basename(o.abs)).join(', ')} – simplify or split ${others.length === 1 ? 'that asset' : 'those assets'} by hand.`);
   }
@@ -829,10 +855,21 @@ marked.use({
           const alt = escapeHtml(text || '');
           const cap = text ? `<figcaption>${alt}</figcaption>` : '';
           const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+          if (isVideoExt(absResolved)) {
+            // Native controls, deliberately: they carry play, seek, volume
+            // and – the reason this needs no directive of its own – a
+            // fullscreen button. How large the clip sits on the slide is the
+            // chunk's width class, exactly like a still figure.
+            // preload="metadata" so a deck with several clips does not
+            // decode all of them on load; an inlined clip is already in the
+            // document either way.
+            return `<figure class="figure-video" data-fig-id="${escapeHtml(href)}">` +
+              `<video src="${escapeHtml(src)}"${titleAttr} controls preload="metadata" playsinline></video>${cap}</figure>`;
+          }
           return `<figure class="figure-img" data-fig-id="${escapeHtml(href)}"><img src="${escapeHtml(src)}" alt="${alt}"${titleAttr} loading="lazy">${cap}</figure>`;
         }
         // Unresolved: emit a visible placeholder so authors notice immediately.
-        return `<figure class="figure-img figure-missing" data-fig-id="${escapeHtml(href)}"><div class="figure-missing-placeholder">missing: assets/${escapeHtml(href)}.(${IMG_EXTS.join('|')})</div>${text ? `<figcaption>${escapeHtml(text)}</figcaption>` : ''}</figure>`;
+        return `<figure class="figure-img figure-missing" data-fig-id="${escapeHtml(href)}"><div class="figure-missing-placeholder">missing: assets/${escapeHtml(href)}.(${[...IMG_EXTS, ...VIDEO_EXTS].join('|')})</div>${text ? `<figcaption>${escapeHtml(text)}</figcaption>` : ''}</figure>`;
       }
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
       // Direct relative path: also splice SVGs inline for theme inheritance.
@@ -1878,6 +1915,11 @@ img { max-width: 100%; height: auto; }
    inlineSvg() preserve their intrinsic width="…" attribute and would
    otherwise overflow the page measure. */
 figure.figure-img { margin: 1rem 0; text-align: center; }
+/* A clip renders as a real player in the reading copy too – print.html is
+   an HTML document people read in a browser, and only an actual paper print
+   loses the video, which nothing can help. */
+figure.figure-video { margin: 1rem 0; text-align: center; }
+figure.figure-video video { max-width: 100%; height: auto; }
 figure.figure-img img,
 figure.figure-img svg { max-width: 100%; height: auto; }
 figure.figure-img figcaption {
@@ -2748,6 +2790,24 @@ figure.figure-img {
   flex-direction: column;
   align-items: center;
   cursor: zoom-in;
+}
+/* Same box as a still figure, but deliberately NOT in FOCUSABLE_SEL: a
+   click-to-zoom would fight the native controls, whose own fullscreen
+   button does that job better. How big the clip sits on the slide is the
+   chunk's width class. */
+figure.figure-video {
+  margin: 0.6em 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+figure.figure-video video {
+  max-width: 100%;
+  max-height: 56vh;
+  height: auto;
+  display: block;
+  background: oklch(0.12 0 0);
+  border-radius: 2px;
 }
 figure.figure-img img,
 figure.figure-img svg {
@@ -4169,6 +4229,7 @@ window.addEventListener('message', (ev) => {
     applyRemoteState(m.payload);
     return;
   }
+  if (m.type === 'video') { applyRemoteVideo(m); return; }
   // Address overlay, outside the snapshot for the same reason as blank:
   // it is a command aimed at the projection, not shared navigation state.
   if (m.type === 'link-show') {
@@ -5041,6 +5102,53 @@ if (helpOverlay) {
   });
 }
 
+// ── video ───────────────────────────────────────────────────────────
+// A clip is the one element on a slide the lecturer *operates* rather than
+// just shows, so the two windows have to agree on it: pressing play in the
+// cockpit has to start the projection, and scrubbing has to land the room
+// in the same place. Addressed by data-fig-id rather than by index, because
+// unlike figure focus this survives an author reordering the chunk.
+//
+// Gated by the freeze flag like any other broadcast: a frozen projection
+// should not start playing because the lecturer previewed something.
+let applyingRemoteVideo = false;
+function videoByFigId(figId) {
+  const fig = document.querySelector('.figure-video[data-fig-id="' + CSS.escape(figId) + '"]');
+  return fig ? fig.querySelector('video') : null;
+}
+function wireVideos() {
+  document.querySelectorAll('.figure-video').forEach((fig) => {
+    const v = fig.querySelector('video');
+    const figId = fig.dataset.figId;
+    if (!v || !figId) return;
+    const send = (action) => {
+      if (applyingRemoteVideo || !shouldBroadcast()) return;
+      sendToPeer({ type: 'video', source: VIEW, figId, action, time: v.currentTime });
+    };
+    v.addEventListener('play', () => send('play'));
+    v.addEventListener('pause', () => send('pause'));
+    // 'seeked', not 'seeking': one message when the handle lands, rather
+    // than a stream of them while it is dragged.
+    v.addEventListener('seeked', () => send('seek'));
+  });
+}
+function applyRemoteVideo(m) {
+  const v = videoByFigId(m.figId);
+  if (!v) return;
+  applyingRemoteVideo = true;
+  try {
+    if (typeof m.time === 'number' && Math.abs(v.currentTime - m.time) > 0.35) {
+      v.currentTime = m.time;
+    }
+    if (m.action === 'play') { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+    else if (m.action === 'pause') v.pause();
+  } finally {
+    // Cleared on a later task: the play/pause the line above triggers
+    // arrives as an event of its own, and echoing it back would ping-pong.
+    setTimeout(() => { applyingRemoteVideo = false; }, 0);
+  }
+}
+
 // ── links ───────────────────────────────────────────────────────────
 // A plain click opens the link in a new tab of whichever window was
 // clicked. In the cockpit that is the lecturer checking a source, which is
@@ -5594,6 +5702,7 @@ loadPersisted();
 applyFontTheme();
 document.querySelectorAll('.reveal-segment').forEach(seg => splitSentencesIn(seg));
 wireAnnotations();
+wireVideos();
 wireClicks();
 wireFigureClicks();
 wireTouchControls();
@@ -6142,6 +6251,10 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
    row 1 is the scrubber, and a toast overlapping the column strip covers
    exactly the navigation the lecturer is checking against. */
 body[data-view=speaker] #mode-badge { top: calc(3vh + 14px); }
+
+/* A clip in the cockpit is the lecturer's control surface; the projection
+   mirrors it. Nothing view-specific about the box itself. */
+body[data-view=speaker] .figure-video video { cursor: pointer; }
 
 /* ── Reveal preview ───────────────────────────────────────────────
    The cockpit shows the segment that Space or Down will bring up next,

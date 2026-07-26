@@ -161,6 +161,20 @@ Three things to keep in mind when touching this:
 
 **Licensing is the author's problem and the docs say so.** Embedding redistributes the font file. SIL OFL and Apache-2.0 (between them nearly all of Google Fonts) permit it; most commercial *desktop* licences do not, and want a separate webfont licence. The build prints a reminder and makes no attempt to check.
 
+### Video
+
+A clip is a figure that moves, so it shares the `![](clip-id)` shorthand rather than getting a directive of its own: `VIDEO_EXTS` (`mp4`, `webm`, `m4v`, `mov`) are searched *after* the image extensions, so an id with both a poster and a clip still resolves to the still. The renderer emits `<figure class="figure-video"><video controls preload="metadata" playsinline>`.
+
+Three decisions worth keeping:
+
+- **No new "fullscreen" syntax.** Native controls already carry a fullscreen button, and how large the clip sits on the slide is the chunk's width class, exactly like a still figure.
+- **Video is deliberately *not* in `FOCUSABLE_SEL`.** Click-to-zoom would fight the native controls, which live in shadow DOM and cannot be distinguished from the element in a click handler.
+- **`MAX_INLINE_VIDEO_BYTES` is 12 MB**, separate from the 2 MB image cap, because a clip is inherently an order of magnitude heavier and the image cap would reject every real one. It is still a cap: base64 adds a third, and the bytes land in all four outputs, so 12 MB of source is already ~64 MB written to disk. `inlineCapFor()` picks the right one everywhere; `lint.js` mirrors both.
+
+Play, pause and seek are **synced between the windows** (`type: 'video'`, addressed by `data-fig-id`, not by index, so reordering a chunk cannot mis-target it). Gated by the freeze flag like any other broadcast, so a lecturer can preview a clip on a frozen projection. `applyingRemoteVideo` suppresses the echo: applying a remote play fires a local `play` event that would otherwise bounce straight back.
+
+**Not built, and deliberately:** YouTube/Vimeo embeds. They are an `iframe`, which breaks the promise that an output fetches nothing at run time and makes the *audience* machine contact a third party mid-lecture. See the iframe investigation summarised in `HANDOFF.md`. If it is ever wanted, it should be an explicit author-declared directive, never the default meaning of a link or an asset.
+
 ### Link addresses and their QR codes
 
 `Shift`-click on an external link puts its address on both screens with a QR code beside it, instead of opening a page on the projector. The reasoning, and the measurements behind it, are in `speaker.md`; the short version is that ~64% of realistic link targets refuse to be framed, the refusal is undetectable from script, and a page pushed to the projector is a UI the lecturer is driving blind.

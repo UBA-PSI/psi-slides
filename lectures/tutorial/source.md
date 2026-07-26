@@ -364,6 +364,16 @@ Reach for `::: margin` when the supplementary content is short and trustworthy e
 
 > note: The verb deliberately does not downscale. The heavy files are usually already at slide resolution – the bytes are PNG being a poor fit for photographic content. And figure focus zooms to 8×, so a high-resolution diagram is high-resolution on purpose; `--max-width` is opt-in for genuine outliers.
 
+## example: Video | a clip is a figure that moves {.wide #video}
+
+**Drop `clip.mp4` into `assets/` and write `![](clip)`** – the same shorthand as an image. The build searches the video extensions after the image ones, so an id with both a poster and a clip still resolves to the still.
+
+Clips are inlined like any other asset, up to a separate 12 MB per-file cap: a clip is an order of magnitude heavier than a diagram, and the 2 MB image cap would reject every real one. Over the cap the build tells you the `ffmpeg` line that fixes it.
+
+**There is no separate fullscreen setting, on purpose.** The native player already has a fullscreen button, and how large the clip sits on the slide is the chunk's width class – exactly like a still figure. Clicking a clip does *not* zoom it into the figure card either, because that would fight the play button.
+
+**Play, pause and seeking are synced.** Operate the clip in the cockpit and the projection follows. Freeze the projection first and it does not, so you can check a clip before showing it.
+
 ## example: Math | `$inline$` and `$$display$$` {.wide #math}
 
 **Formulas are rendered by KaTeX during the build, so the output stays a single file with no runtime.** Inline math sits in a sentence – the anonymity set $S$ has size $|S|$ – and display math takes its own block:

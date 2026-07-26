@@ -359,6 +359,11 @@ img { max-width: 100%; height: auto; }
    inlineSvg() preserve their intrinsic width="…" attribute and would
    otherwise overflow the page measure. */
 figure.figure-img { margin: 1rem 0; text-align: center; }
+/* A clip renders as a real player in the reading copy too – print.html is
+   an HTML document people read in a browser, and only an actual paper print
+   loses the video, which nothing can help. */
+figure.figure-video { margin: 1rem 0; text-align: center; }
+figure.figure-video video { max-width: 100%; height: auto; }
 figure.figure-img img,
 figure.figure-img svg { max-width: 100%; height: auto; }
 figure.figure-img figcaption {
@@ -966,8 +971,21 @@ pre.shiki .line { display: inline; }
 </div>
 </aside>
 </article>
-<article class="chunk chunk-example width-wide" id="math" data-chunk-num="28">
+<article class="chunk chunk-example width-wide" id="video" data-chunk-num="28">
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Video</span> <span class="hd-sub">a clip is a figure that moves</span></h2>
+  <p><strong>Drop <code>clip.mp4</code> into <code>assets/</code> and write <code>![](clip)</code></strong> – the same shorthand as an image. The build searches the video extensions after the image ones, so an id with both a poster and a clip still resolves to the still.</p>
+<p>Clips are inlined like any other asset, up to a separate 12 MB per-file cap: a clip is an order of magnitude heavier than a diagram, and the 2 MB image cap would reject every real one. Over the cap the build tells you the <code>ffmpeg</code> line that fixes it.</p>
+<p><strong>There is no separate fullscreen setting, on purpose.</strong> The native player already has a fullscreen button, and how large the clip sits on the slide is the chunk&#39;s width class – exactly like a still figure. Clicking a clip does <em>not</em> zoom it into the figure card either, because that would fight the play button.</p>
+<p><strong>Play, pause and seeking are synced.</strong> Operate the clip in the cockpit and the projection follows. Freeze the projection first and it does not, so you can check a clip before showing it.</p>
+
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="math" data-chunk-num="29">
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Math</span> <span class="hd-sub"><code>$inline$</code> and <code>$$display$$</code></span></h2>
   <p><strong>Formulas are rendered by KaTeX during the build, so the output stays a single file with no runtime.</strong> Inline math sits in a sentence – the anonymity set <span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi></mrow><annotation encoding="application/x-tex">S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span></span></span></span></span> has size <span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">∣</mi><mi>S</mi><mi mathvariant="normal">∣</mi></mrow><annotation encoding="application/x-tex">|S|</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">∣</span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span><span class="mord">∣</span></span></span></span></span> – and display math takes its own block:</p>
@@ -987,8 +1005,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="craft">
   <h1 class="column-heading">Writing chunks that work</h1>
-<article class="chunk chunk-principle width-standard" id="topic-sentence" data-chunk-num="29">
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></span>
+<article class="chunk chunk-principle width-standard" id="topic-sentence" data-chunk-num="30">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></span>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The topic sentence is the slide</span> <span class="hd-sub">so write the opening line for the projector</span></h2>
   <p><strong>In derived mode the room reads your first sentences, so each one has to be a claim that survives without its paragraph.</strong> Everything after it is print.</p>
@@ -1002,8 +1020,8 @@ pre.shiki .line { display: inline; }
 </div>
 </aside>
 </article>
-<article class="chunk chunk-example width-wide" id="anti-patterns" data-chunk-num="30">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></span>
+<article class="chunk chunk-example width-wide" id="anti-patterns" data-chunk-num="31">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading">Four ways a chunk goes soft</h2>
   <p><strong>Most chunks that read badly on the projector fail in one of four ways</strong>, and each one is a single edit away from working.</p>
@@ -1030,8 +1048,8 @@ pre.shiki .line { display: inline; }
 </div>
 </aside>
 </article>
-<article class="chunk chunk-question width-standard" id="choose-mechanism" data-chunk-num="31">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></span>
+<article class="chunk chunk-question width-standard" id="choose-mechanism" data-chunk-num="32">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></span>
   <span class="chunk-label">question</span>
   <h2 class="chunk-heading">Derive it, or state it?</h2>
   <p><strong>Derive while the chunk is an argument of one to three paragraphs; state the slide once the argument wants continuous prose.</strong> Try the derivation first – if it keeps fighting you, that is the signal, not a failure.</p>
@@ -1044,8 +1062,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-exercise width-wide" id="squint-test" data-chunk-num="32">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></span>
+<article class="chunk chunk-exercise width-wide" id="squint-test" data-chunk-num="33">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></span>
   <span class="chunk-label">exercise</span>
   <h2 class="chunk-heading">The squint test</h2>
   <p><strong>Open your own lecture in the audience view, press <code>C</code> until it is collapsed, and walk it end to end without opening the source.</strong> Stop at every chunk you could not narrate from what is on the screen.</p>
@@ -1066,8 +1084,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="next">
   <h1 class="column-heading">Next steps</h1>
-<article class="chunk chunk-exercise width-wide" id="read-more" data-chunk-num="33">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></span>
+<article class="chunk chunk-exercise width-wide" id="read-more" data-chunk-num="34">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></span>
   <span class="chunk-label">exercise</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the artefacts that close the loop</span></h2>
   <p><strong>Close this tab and poke around the real lectures and docs.</strong> The tour covered the keys; the craft shows in authored content.</p>
@@ -1083,8 +1101,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-free width-standard" id="authoring" data-chunk-num="34">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></span>
+<article class="chunk chunk-free width-standard" id="authoring" data-chunk-num="35">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Authoring your own</span> <span class="hd-sub"><code>--new</code>, <code>--watch</code>, <code>lint.js</code></span></h2>
   <p><strong>Three CLI entries cover the full authoring loop:</strong></p>
@@ -1099,8 +1117,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="35">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></span>
+<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="36">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own type</span> <span class="hd-sub"><code>fonts/</code> plus a frontmatter block</span></h2>
   <p><strong>By default the type is named, not carried.</strong> The stylesheets ask for Literata, Inter Tight and JetBrains Mono and fall back to system faces where those are not installed – so a lecture opened on a strange machine keeps its layout and loses its face.</p>
@@ -1116,8 +1134,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="view-defaults" data-chunk-num="36">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></span>
+<article class="chunk chunk-example width-wide" id="view-defaults" data-chunk-num="37">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Pinning how a lecture opens</span> <span class="hd-sub">five optional frontmatter keys</span></h2>
   <p><strong>A lecture can decide its own starting look instead of inheriting the reader&#39;s.</strong></p>
