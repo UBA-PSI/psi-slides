@@ -2935,6 +2935,10 @@ body[data-theme^=terminal] #help-inner kbd { background: oklch(0.24 0.02 90); }
 #help-button:hover { opacity: 1; }
 body.overview-mode #help-button,
 body:not([data-view=speaker]).blanked #help-button { display: none; }
+/* The speaker cockpit has a labelled "? help" button in its footer, so the
+   floating circle is a second door to the same room – and it sits bottom-left
+   on top of the timer, which the lecturer reads far more often than the help. */
+body[data-view=speaker] #help-button { display: none; }
 
 #mode-badge {
   position: fixed;
