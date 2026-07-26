@@ -472,6 +472,28 @@ Drei echte Fehler, alle in Code aus dieser Sitzung:
 
 Kein Fund bei: den Template-Literal-Fallen (keine gefressenen Regex-Escapes im gebauten HTML), den Sync-Gates (alle `figure-*`-Sends sind von einem umschließenden `shouldBroadcast()` gedeckt – der Grep sah nur die Sendezeilen), Toast-Echos (kein `flashMode` läuft im Remote-Apply) und dem Watch-Modus (die neuen harten Fehler werden gefangen, gedruckt, der Watcher lebt weiter).
 
+## Video: was geht, und was YouTube betrifft
+
+**Eingebettetes mp4 funktioniert vollständig.** Aus `file://` geöffnet: `readyState` 4, spielt, **null Netzwerk-Requests**, `currentSrc` ist eine `data:`-URI. Play, Pause und Seek sind zwischen den Fenstern synchronisiert und hängen am Freeze-Gate. Das ist der Weg, der alle Zusagen des Projekts hält.
+
+**YouTube und Vimeo als Embed – gemessen, nicht vermutet.** Beide Endpunkte tragen weder `X-Frame-Options` noch `frame-ancestors`; sie sind zum Framen gedacht. Entscheidend ist aber die Herkunft der Seite:
+
+| | aus `file://` | über `http(s)://` |
+|---|---|---|
+| `youtube.com/embed/…` | **Error 153**, „Video player configuration error" | funktioniert |
+| `youtube-nocookie.com/embed/…` | **Error 153** | funktioniert |
+| `player.vimeo.com/video/…` | **funktioniert** | funktioniert |
+
+Ein `file://`-Dokument sendet keinen Referer und hat die Origin `null`; YouTubes Player-Konfiguration lehnt das ab und bietet nur noch „Watch video on YouTube" an. Damit ist YouTube für den Normalfall dieses Projekts – die Datei, die man verschickt und doppelklickt – **nicht verfügbar**. Nur ein ausgelieferter, über HTTP servierter Foliensatz käme in Frage.
+
+Vimeo dagegen läuft aus `file://` und ist zusätzlich **fernsteuerbar**: der Player nimmt `postMessage`-Kommandos vom Elternfenster entgegen. Verifiziert – `{method:'play'}` gesendet, danach `getCurrentTime` → `1.431`. Damit wäre dieselbe Speaker→Audience-Synchronisation möglich wie beim lokalen mp4, was bei einem generischen Cross-Origin-iframe ausdrücklich **nicht** geht (siehe den iframe-Abschnitt oben).
+
+**Einen Weg ohne iframe gibt es nicht.** Die YouTube IFrame Player API ist per Konstruktion ein iframe; die JS-Datei steuert ihn nur. Auch selbst gehostet liefe der Player weiter in einem iframe auf youtube.com – also genau das, was aus `file://` scheitert. `youtube-player` (npm, BSD-3) ist ein Promise-Wrapper um dieselbe API und ändert daran nichts.
+
+**Lizenzen** – für den Fall, dass wir es doch bauen: `@vimeo/player` ist **MIT** (2.30.4, zwei kleine Abhängigkeiten), also mitausliefer­bar. Plyr ist MIT, video.js Apache-2.0. Nur: das Bündeln der SDKs hilft der Self-Containedness **nicht**, weil das Video weiterhin vom Anbieter streamt. Und für Vimeo braucht man die Bibliothek gar nicht – das postMessage-Protokoll sind ein paar Zeilen.
+
+**Nicht gebaut, bewusst.** Der Auftrag war zu testen. Wenn es kommt, dann als ausdrückliche Direktive (`::: embed <url>`), nie als Standardbedeutung eines Links oder Assets, mit Build-Warnung („dieser Foliensatz holt zur Laufzeit von <host>"), und mit einem Hinweis für YouTube, dass es aus `file://` nicht spielt. Der Preis bleibt derselbe wie im iframe-Abschnitt: der **Audience**-Rechner kontaktiert mitten im Vortrag einen Dritten.
+
 ## Was funktioniert
 
 - `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.
