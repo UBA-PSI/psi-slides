@@ -2992,7 +2992,13 @@ function snapshot() {
     revealed: Object.assign({}, revealed),
     collapse: state.collapse,
     autoFit: state.autoFit,
-    zoom: state.zoom,
+    // The zoom that travels is the one the lecturer chose, not the one this
+    // window happens to be showing. A chunk whose code would be cut off is
+    // shrunk locally, and the two windows are different sizes, so each
+    // derives that for itself – sending the shrunk value would let one wide
+    // slide quietly lower the setting in the other window, and then in this
+    // one on the way back.
+    zoom: (!state.autoFit && state.collapse === 'topic-bold') ? collapsedZoom : state.zoom,
     blanked: state.blanked,
     font: state.font,
     theme: state.theme,
@@ -3146,6 +3152,11 @@ function applyRemoteState(payload) {
       applyState();
     }
     applyRevealAll();
+    // The payload carries the zoom the lecturer chose. Whether this window
+    // can show it on this chunk without cutting a code line off is a local
+    // question, and it is asked after applyState has written the incoming
+    // value to --zoom.
+    clampZoomToWidth();
     saveActive();
     focusCamera(false);
   } finally {
@@ -3762,6 +3773,7 @@ function jumpTo(idx, direction) {
 
   state.activeIdx = idx;
   if (state.autoFit) fitZoomToChunk(2.2);
+  else clampZoomToWidth();
   applyState();
   focusCamera(false);
   saveActive();
@@ -3982,6 +3994,16 @@ const FULL_FIT_FILL = 0.94;   // leave a little air top and bottom
 // walking the whole subtree every iteration.
 const NOWRAP_SEL = 'pre, table, .katex-display';
 
+// Returns a predicate over the one chunk's non-reflowing elements. Built
+// once per fit so the repeated zoom steps re-measure a short list instead of
+// walking the subtree again. Sub-pixel layout rounding makes an exact
+// comparison report phantom overflow on content that fits, so allow a pixel
+// of slack.
+function nowrapProbe(el) {
+  const wide = [el].concat(Array.from(el.querySelectorAll(NOWRAP_SEL)));
+  return () => wide.some((n) => n.scrollWidth > n.clientWidth + 1);
+}
+
 // ceiling: the largest zoom the fit is allowed to reach. Entering the full
 // text on its own must never grow the type past what the lecturer chose for
 // the projector – they pressed C to see more text, not bigger text. In
@@ -3994,10 +4016,7 @@ function fitZoomToChunk(ceiling) {
   const cap = ceiling === undefined ? collapsedZoom : ceiling;
   const avail = viewport.clientHeight * FULL_FIT_FILL;
   if (!(avail > 0)) return;
-  // Sub-pixel layout rounding makes an exact comparison report phantom
-  // overflow on content that fits, so allow a pixel of slack.
-  const wide = [el].concat(Array.from(el.querySelectorAll(NOWRAP_SEL)));
-  const overflowsX = () => wide.some(n => n.scrollWidth > n.clientWidth + 1);
+  const overflowsX = nowrapProbe(el);
   if (el.scrollHeight <= avail && !overflowsX() && state.zoom >= cap) return;  // nothing to gain
 
   // A single proportional estimate is not enough, because zoom changes line
@@ -4027,19 +4046,65 @@ function fitZoomToChunk(ceiling) {
   }
 }
 
+// With auto-fit off the zoom is the lecturer's, and it is deliberately never
+// touched automatically. That choice is global, though, and horizontal
+// overflow is not: one chunk with a long code line loses its right-hand
+// column while every other slide is fine, and nothing on screen says so. You
+// find out in the lecture hall.
+//
+// So this shrinks that one chunk, only far enough to stop cutting, and it is
+// the only automatic zoom change outside auto-fit mode. Three properties are
+// load-bearing:
+//
+//   - it never writes collapsedZoom, and it always re-derives *from* it
+//     rather than from whatever it last applied, so it is idempotent and the
+//     lecturer's setting comes back untouched on the next chunk;
+//   - it only ever shrinks – the ceiling is the chosen zoom;
+//   - the shrunk value is local to this window (see snapshot()), because the
+//     projection and the cockpit's stage are different sizes and each has to
+//     answer the question for itself.
+//
+// Returns true when it had to shrink, so the caller can say so.
+function clampZoomToWidth() {
+  if (state.autoFit) return false;                    // auto-fit fits both directions already
+  if (state.collapse !== 'topic-bold') return false;  // full text has its own fit on entry
+  const entry = flatChunks[state.activeIdx];
+  const el = entry && entry.el;
+  if (!el) return false;
+  const overflowsX = nowrapProbe(el);
+  let z = clampZoom(collapsedZoom);
+  applyZoom(z);
+  while (overflowsX() && z > 0.6) {
+    z = clampZoom(z - 0.05);
+    applyZoom(z);
+  }
+  return z < collapsedZoom;
+}
+
 // Auto-fit mode: every slide gets a zoom that makes it fit, in both collapse
 // modes, until it is switched off again. Distinct from the fit that happens
 // on entering the full text, which is a one-off and never grows the type.
 function toggleAutoFit() {
   state.autoFit = !state.autoFit;
   if (state.autoFit) fitZoomToChunk(2.2);
-  else applyZoom(state.collapse === 'topic-bold' ? collapsedZoom : state.zoom);
+  else {
+    applyZoom(state.collapse === 'topic-bold' ? collapsedZoom : state.zoom);
+    clampZoomToWidth();
+  }
   applyState();
   focusCamera(false);
   flashMode(state.autoFit ? 'auto-fit on · every slide sized to the screen' : 'auto-fit off · manual zoom');
 }
 
 // Zoom
+// What + and – step from. On a chunk that clampZoomToWidth had to shrink,
+// state.zoom is what this slide can show, not what the lecturer asked for –
+// stepping from it would land back on the same clamped value and the key
+// would read as dead. Step from the choice instead, so the setting really
+// moves even when this one slide cannot follow it.
+function zoomBase() {
+  return (!state.autoFit && state.collapse === 'topic-bold') ? collapsedZoom : state.zoom;
+}
 function clampZoom(z) {
   return Math.round(Math.max(0.6, Math.min(2.2, z)) * 20) / 20;
 }
@@ -4059,7 +4124,7 @@ function cycleCollapse(dir = 1) {
   applyState();
   if (state.autoFit) fitZoomToChunk(2.2);
   else if (state.collapse === 'none') fitZoomToChunk();
-  else applyZoom(collapsedZoom);
+  else { applyZoom(collapsedZoom); clampZoomToWidth(); }
   focusCamera(false);
   broadcastState();
   flashMode('collapse: ' + COLLAPSE_LABEL[state.collapse]);
@@ -4072,9 +4137,13 @@ function setZoom(z) {
   // in full text it is a one-off correction of the automatic fit and must
   // not overwrite what the lecturer chose for the projector.
   if (state.collapse === 'topic-bold') collapsedZoom = state.zoom;
+  // The new setting is remembered whatever this chunk can show of it, but
+  // the announcement has to report what is actually on screen – otherwise +
+  // on a width-limited slide reads as a key that does nothing.
+  const limited = clampZoomToWidth();
   setTimeout(() => focusCamera(false), 30);
   broadcastState();
-  flashMode('zoom: ' + state.zoom.toFixed(2) + '×');
+  flashMode('zoom: ' + state.zoom.toFixed(2) + '×' + (limited ? ' · limited by this slide' : ''));
 }
 
 // Help overlay – single toggle for the ? key and the corner button.
@@ -4516,11 +4585,11 @@ document.addEventListener('keydown', (e) => {
     case '#': toggleAutoFit(); e.preventDefault(); break;
     case '+': case '=':
       if (focusedFigure) setFigureScale(figureScale * 1.2);
-      else setZoom(state.zoom + 0.1);
+      else setZoom(zoomBase() + 0.1);
       e.preventDefault(); break;
     case '-': case '_':
       if (focusedFigure) setFigureScale(figureScale / 1.2);
-      else setZoom(state.zoom - 0.1);
+      else setZoom(zoomBase() - 0.1);
       e.preventDefault(); break;
     case '0':
       if (focusedFigure) {
@@ -4643,7 +4712,10 @@ viewport.addEventListener('pointerdown', (e) => {
   window.addEventListener('pointerup', up);
 });
 
-window.addEventListener('resize', () => focusCamera(true));
+// A narrower window can start cutting a code line that fitted a moment ago,
+// and a wider one gives the lecturer's zoom back – clampZoomToWidth always
+// re-derives from the chosen value, so it does both.
+window.addEventListener('resize', () => { clampZoomToWidth(); focusCamera(true); });
 
 // ── figure focus / marginalia pan (§figures) ────────────────────────
 // Click a <figure>, a <pre>, or a .marginalia inside the active chunk
@@ -4782,11 +4854,11 @@ function wireTouchControls() {
       case 'overview':  toggleOverview(); break;
       case 'zoom-in':
         if (focusedFigure) setFigureScale(figureScale * 1.2);
-        else setZoom(state.zoom + 0.1);
+        else setZoom(zoomBase() + 0.1);
         break;
       case 'zoom-out':
         if (focusedFigure) setFigureScale(figureScale / 1.2);
-        else setZoom(state.zoom - 0.1);
+        else setZoom(zoomBase() - 0.1);
         break;
     }
   });
@@ -4843,11 +4915,13 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
   // A lecture that opens with auto-fit has to fit its *first* slide too.
   // jumpTo does this on every later move; nothing calls it at boot.
   if (state.autoFit) fitZoomToChunk(2.2);
+  else clampZoomToWidth();
   focusCamera(true);
 }));
 if (document.fonts && document.fonts.ready) {
   document.fonts.ready.then(() => {
     if (state.autoFit) fitZoomToChunk(2.2);
+    else clampZoomToWidth();
     focusCamera(true);
   });
 }
