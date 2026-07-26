@@ -160,6 +160,13 @@ function main() {
   }
   fs.mkdirSync(outDir, { recursive: true });
   fs.copyFileSync(path.join(HERE, 'index.html'), path.join(outDir, 'index.html'));
+  // Screenshots the landing page shows. Copied rather than referenced out of
+  // the repo, because the deployed site only has what lands in outDir.
+  const img = path.join(HERE, 'img');
+  if (fs.existsSync(img)) {
+    fs.cpSync(img, path.join(outDir, 'img'), { recursive: true });
+    console.log(`  docs/site/img -> img/ (${fs.readdirSync(img).length} files)`);
+  }
 
   for (const page of PAGES) {
     const abs = path.join(ROOT, page.src);

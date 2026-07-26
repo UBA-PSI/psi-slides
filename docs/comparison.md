@@ -1,12 +1,8 @@
 # How psi-slides compares
 
-This page compares psi-slides with the tools university lecturers actually use. It is written by the project, so treat the framing as interested. Three rules were applied to keep it useful anyway:
+This page compares psi-slides with the tools university lecturers actually use. It is written by the project, so treat the framing as interested, and read [where psi-slides loses](#where-psi-slides-loses) first if you are deciding.
 
-- **Every claim about psi-slides is verifiable in this repository** – in `build.js`, `lint.js`, `PRD.md`, `speaker.md`, or the built outputs. Where a number appears, it was measured on this machine.
-- **Claims about other tools are the weaker version of what could be checked**, and most were checked against vendor documentation in July 2026. Where behaviour depends on configuration, plugins or version, that is said rather than glossed over. Anything that could not be confirmed is marked *(not verified)*.
-- **The failure mode of a page like this is a conclusion in which the author wins everywhere.** [Where psi-slides loses](#where-psi-slides-loses) is the section to read first if you are deciding.
-
-All of these projects move. Check before you commit a semester to one.
+Numbers about psi-slides were measured here; claims about the other tools follow their documentation as of July 2026, and anything that could not be confirmed is marked *(not verified)*. All of these projects move, so check before you commit a semester to one.
 
 ---
 
@@ -67,7 +63,7 @@ Quarto is the closest in spirit, because it renders slides and a document from o
 
 “Self-contained” is used loosely in this space. Concretely:
 
-**psi-slides.** Verified by grepping the built outputs: `audience.html` and `speaker.html` carry exactly one inlined `<script>` each; `print.html` and `print-notes.html` carry none at all and are pure HTML and CSS. Images inline by default when the referenced assets total under 10 MB, with a 2 MB per-file cap; an asset over that cap fails the build rather than quietly shipping an external path, and `--optimize-images` converts offending rasters to WebP. SVG assets are spliced in as real `<svg>` elements, so they inherit the page's colour variables and re-theme with the `A` key. Three OFL-licensed typefaces are bundled with the tool and embedded in every output, so a deck keeps its type on a machine that has nothing installed – and in Safari, which does not expose installed fonts to a page at all; an author can substitute their own from a `fonts/` directory or switch the bundle off. Measured here: the 36-chunk `python-intro` lecture yields a 242 KB `audience.html` and a 103 KB `print.html`; the tutorial, which has maths, inlines 119 KB of KaTeX woff2 per view out of 254 KB for the full set, because only the families its formulas use are emitted.
+**psi-slides.** `audience.html` and `speaker.html` carry exactly one inlined `<script>` each; `print.html` and `print-notes.html` carry none at all and are pure HTML and CSS. Images inline by default when the referenced assets total under 10 MB, with a 2 MB per-file cap; an asset over that cap fails the build rather than quietly shipping an external path, and `--optimize-images` converts offending rasters to WebP. SVG assets are spliced in as real `<svg>` elements, so they inherit the page's colour variables and re-theme with the `A` key. Three OFL-licensed typefaces are bundled with the tool and embedded in every output, so a deck keeps its type on a machine that has nothing installed – and in Safari, which does not expose installed fonts to a page at all; an author can substitute their own from a `fonts/` directory or switch the bundle off. The 36-chunk `python-intro` lecture yields a 242 KB `audience.html` and a 103 KB `print.html`; the tutorial, which has maths, inlines 119 KB of KaTeX woff2 per view out of 254 KB for the full set, because only the families its formulas use are emitted.
 
 **Beamer** produces one PDF with subset-embedded fonts and embedded figures. As an artefact this is the strongest thing on the page, and it is why Beamer has outlasted everything else. The limitation runs the other way: a PDF has no live layer, so the presenter console must be a separate program.
 
@@ -188,7 +184,7 @@ The browser floor is a real counterweight, though. The stylesheets use `oklch()`
 
 ### Build time and the authoring loop
 
-Measured here: `node build.js lectures/python-intro/source.md`, nine columns and 36 chunks with three images, writes all four outputs in 0.21 s wall clock. `--watch` rebuilds on save and pushes a reload over a WebSocket to every open tab, so editor, audience view and cockpit can all be visible at once.
+`node build.js lectures/python-intro/source.md` – nine columns, 36 chunks, three images – writes all four outputs in 0.21 s. `--watch` rebuilds on save and pushes a reload over a WebSocket to every open tab, so editor, audience view and cockpit can all be visible at once.
 
 A LaTeX run on a comparable Beamer deck is seconds rather than milliseconds, and TikZ-heavy or `minted` decks are worse; this is the main reason people look at Typst. Quarto with executable cells is slower again by design, because it is running your code. reveal.js, Marp and Slidev have fast dev servers with hot reload and are comparable.
 

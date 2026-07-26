@@ -43,10 +43,13 @@ jobs:
         run: |
           node build.js lectures/tutorial/source.md
           node build.js lectures/python-intro/source.md
+          # The short lecture the landing page's screenshots come from, so a
+          # reader can open the thing the pictures show.
+          node build.js docs/site/example/source.md
 
       - name: Assemble the site
         run: |
-          mkdir -p _site/tutorial _site/python-intro
+          mkdir -p _site/tutorial _site/python-intro _site/example
           # Renders the docs from the same Markdown the repository serves, so
           # the site cannot drift from them.
           node docs/site/build-site.js _site
@@ -57,6 +60,7 @@ jobs:
                lectures/$l/print-notes.html \
                _site/$l/
           done
+          cp docs/site/example/{audience,speaker,print,print-notes}.html _site/example/
 
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -54,41 +54,123 @@
     }
     .hint { background: oklch(0.22 0.01 90); }
   }
+  figure.shot { margin: 0 0 1.6rem; }
+  figure.shot img { width: 100%; height: auto; display: block;
+    border: 1px solid var(--rule); border-radius: 3px; }
+  figure.shot figcaption { font-family: var(--sans); font-size: 0.82rem;
+    color: var(--ink-soft); margin-top: 0.4rem; }
+  .pair { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 44rem) { .pair { grid-template-columns: 1fr; } }
+  table.views { border-collapse: collapse; width: 100%; font-family: var(--sans);
+    font-size: 0.86rem; margin: 1rem 0; }
+  table.views th, table.views td { border-bottom: 1px solid var(--rule);
+    padding: 0.4rem 0.5rem; text-align: left; }
+  table.views th { color: var(--ink-soft); font-weight: 600; }
+  table.views td.note { color: var(--ink-soft); border-bottom: 0; padding-top: 0.7rem; }
+  p.tiny { font-family: var(--sans); font-size: 0.82rem; color: var(--ink-soft); }
+  pre.snippet { font-family: var(--mono); font-size: 0.72rem; line-height: 1.5;
+    background: rgba(127,127,127,0.09); padding: 0.9rem 1rem; border-radius: 3px;
+    overflow-x: auto; }
 </style>
 </head>
 <body>
 <main>
   <h1>psi-slides</h1>
-  <p class="tagline">One Markdown file, four artefacts. This is the tutorial lecture, built from
-  <code>lectures/tutorial/source.md</code> &ndash; a lecture that explains the tool by being the tool.</p>
+  <p class="tagline">One Markdown file, four artefacts: the projection for the room, a presenter
+  cockpit, a reading document, and a handout with the spoken notes folded in.</p>
+
+  <h2>What it does</h2>
+
+  <p>Everything below comes from this one chunk of Markdown. Nothing here was
+  authored twice.</p>
+
+<pre class="snippet">## principle: Anonymity is a property of the set | not of the channel {.wide #anon-set}
+
+**Anonymity comes from the others doing the same thing.** A mix node that
+forwards exactly one message leaks it by timing alone: the attacker needs a
+clock, not cryptanalysis.
+
+The size of the anonymity set is therefore a property of the **traffic**, not
+of the protocol. Padding buys you set size; encryption alone buys you none.
+
+::: margin
+Pfitzmann and Hansen give the terminology this chapter follows.
+:::
+
+&gt; note: Ask the room for the smallest set they would trust. Answers cluster
+&gt; around 100, and the reasoning is always worth two minutes.</pre>
+
+  <div class="pair">
+    <figure class="shot">
+      <img src="img/collapsed.png" alt="The slide as projected: heading, sub-heading, the first sentence of each paragraph, and the one bold phrase promoted out of the second.">
+      <figcaption>On the projector. The first sentence of each paragraph, plus
+      the phrases marked bold. Written once, abridged by rule.</figcaption>
+    </figure>
+    <figure class="shot">
+      <img src="img/full.png" alt="The same chunk with collapse off, showing both paragraphs in full.">
+      <figcaption>The same chunk with <kbd>C</kbd> pressed. The continuation
+      prose that the room never saw is the handout text.</figcaption>
+    </figure>
+  </div>
+
+  <figure class="shot">
+    <img src="img/cockpit.png" alt="The presenter cockpit: column scrubber, a mirror of the projected slide, the private speaker note below it, and a strip of upcoming slides.">
+    <figcaption>The cockpit, spawned with <kbd>S</kbd>. The
+    <code>&gt; note:</code> from the source sits under the stage where only you
+    can read it; the strip shows what is coming. Both windows stay in step over
+    <code>postMessage</code>, with no server between them.</figcaption>
+  </figure>
+
+  <div class="pair">
+    <figure class="shot">
+      <img src="img/overview.png" alt="The overview board: the whole lecture laid out as a grid of slides with one outlined.">
+      <figcaption>The overview board (<kbd>O</kbd>, the letter). Drag to pan,
+      <kbd>/</kbd> to search, <kbd>Enter</kbd> to land.</figcaption>
+    </figure>
+    <figure class="shot">
+      <img src="img/handout.png" alt="The handout: the same chunk as flowing prose with the speaker note rendered as an aside beneath it.">
+      <figcaption><code>print-notes.html</code>: the same text as a document,
+      with the spoken note folded in under its chunk.</figcaption>
+    </figure>
+  </div>
 
   <h2>The four views</h2>
-  <ul class="views">
-    <li>
-      <a class="name" href="tutorial/audience.html">audience.html &rarr;</a>
-      <p>The projection. Start here. Arrow keys navigate, <kbd>Space</kbd> reveals,
-         <kbd>C</kbd> toggles collapse, <kbd>O</kbd> (the letter, not zero) opens the overview board, <kbd>?</kbd> lists everything.</p>
-    </li>
-    <li>
-      <a class="name" href="tutorial/speaker.html">speaker.html &rarr;</a>
-      <p>The presenter cockpit. Opening it from this link shows the layout, but it will not be
-         in sync with anything &ndash; press <kbd>S</kbd> inside the audience view to spawn a
-         connected one.</p>
-    </li>
-    <li>
-      <a class="name" href="tutorial/print.html">print.html &rarr;</a>
-      <p>The reading document, with a cover and a table of contents. Print it to PDF for students.</p>
-    </li>
-    <li>
-      <a class="name" href="tutorial/print-notes.html">print-notes.html &rarr;</a>
-      <p>The same document with every speaker note folded in under its chunk.</p>
-    </li>
-  </ul>
+
+  <p>Two lectures to open them from: the <strong>short example</strong> above
+  (39 lines of Markdown,
+  <a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">source</a>),
+  or the <strong>tutorial</strong>, a self-referential tour that explains the tool by being the
+  tool.</p>
+
+  <table class="views">
+    <tr><th></th><th>Short example</th><th>Tutorial</th></tr>
+    <tr><td>The projection</td>
+        <td><a href="example/audience.html">audience.html</a></td>
+        <td><a href="tutorial/audience.html">audience.html</a></td></tr>
+    <tr><td>The cockpit</td>
+        <td><a href="example/speaker.html">speaker.html</a></td>
+        <td><a href="tutorial/speaker.html">speaker.html</a></td></tr>
+    <tr><td>The document</td>
+        <td><a href="example/print.html">print.html</a></td>
+        <td><a href="tutorial/print.html">print.html</a></td></tr>
+    <tr><td>With the notes</td>
+        <td><a href="example/print-notes.html">print-notes.html</a></td>
+        <td><a href="tutorial/print-notes.html">print-notes.html</a></td></tr>
+    <tr><td colspan="3" class="note">Also published: the 36-chunk
+        <a href="python-intro/audience.html">python-intro</a> lecture
+        (<a href="python-intro/print.html">document</a>).</td></tr>
+  </table>
+
+  <p class="tiny">Start with the projection. Arrow keys navigate,
+  <kbd>Space</kbd> reveals, <kbd>C</kbd> toggles collapse, <kbd>O</kbd> (the letter, not zero)
+  opens the overview board, <kbd>?</kbd> lists everything. Opening the cockpit from a link shows
+  the layout but syncs with nothing &ndash; press <kbd>S</kbd> inside the projection to spawn a
+  connected one.</p>
 
   <div class="hint">
-    All four files are self-contained: CSS, JavaScript, images, the rendered maths and &ndash; when
-    the author supplies them &ndash; the typefaces are all inlined. Nothing is fetched at run time,
-    and they open just as happily from <code>file://</code> as from this server.
+    All four files are self-contained: CSS, JavaScript, images, the rendered maths and the
+    typefaces are all inlined. Nothing is fetched at run time, and they open just as happily
+    from <code>file://</code> as from this server.
   </div>
 
   <h2>Documentation</h2>
@@ -96,8 +178,6 @@
     <li><a href="comparison.html">How psi-slides compares</a> &ndash;
       Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, in both directions,
       including where psi-slides loses.</li>
-    <li><a href="https://github.com/UBA-PSI/psi-slides#readme">README</a> &ndash;
-      the format, what the tool is good at, and what it is not.</li>
   </ul>
 
   <h2>Source</h2>
