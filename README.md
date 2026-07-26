@@ -4,15 +4,15 @@
 
 The problem it solves is drift. Most lecturers keep slides and a script as two documents, and after two semesters they disagree with each other. psi-slides makes them one text: the prose you write is the handout, and the *same* prose – abridged by a rule you control – is what the projector shows. Nothing is written twice, so nothing can fall out of sync.
 
-It is a build script, not an app. `node build.js source.md` writes four self-contained HTML files next to your source. They inline their own CSS, JavaScript, and images, and they open straight from `file://`. No server, no runtime, no cloud account, nothing to install on the lectern machine.
+It is a build script, not an app. `node build.js source.md` writes four self-contained HTML files next to your source. They inline their own CSS, JavaScript, and images, and they open straight from `file://`. No server, no runtime, no cloud account, nothing to install on the lectern machine. Sharing your slides and/or the full manuscript with the audience is easy: the HTML files are fully self-contained and work in all modern browsers.
 
-Status: Phase 1, one author, no test suite. It has carried a full semester of university teaching. Read [When *not* to use this](#when-not-to-use-this) before you invest in it.
+psi-slides has already carried a full semester of university teaching. Read [When *not* to use this](#when-not-to-use-this) before you invest in it.
 
 ---
 
 ## What it looks like
 
-The core idea in two pictures. Same source, same chunk, one keypress apart – `C` toggles between what the room sees and the full text.
+The core idea in two pictures. Same source, same chunk, one keypress apart – `C` toggles between a collapsed view with cues for presenting freely and the full manuscript text.
 
 | Collapsed – what the projector shows | Full – the same chunk, unabridged |
 | --- | --- |
@@ -191,9 +191,6 @@ Press `?` in either live view for the full on-screen reference. The ones you nee
 - `#` auto-fit: size every slide to the screen. `B` blanks the projection – the speaker window keeps working so you can change slide while the room sees black.
 - `S` spawn the speaker window, `P` open the print view.
 - `L` slide numbers: stacked, in a row, or off.
-- `N` audience-visible annotation. On the cockpit: `Shift-N` private notes, `V` freeze the projection so the room holds its slide while you read ahead (thawing catches it up), `Shift-V` move the preview strip.
-
-## Stability
 
 Phase 1. The format is still moving and the version number is `0.1.0` for a reason. Two things are nevertheless safe to build on:
 
