@@ -326,6 +326,8 @@ Reveal segments still work inside `::: cols`, but mixing reveal-on-`↓` with mu
 
 You can nest a `::: marginalia` *inside* a side pane if a tangent belongs to one half specifically – it still escapes to the slide's right margin.
 
+**Code in a pane needs short lines.** A pane is half a column, and a `<pre>` does not wrap, so the projection has room for roughly **30 monospace characters** per pane at the default zoom – against about 50 in a `.standard` chunk and 60 in a `.wide` one. Longer lines still do not get cut off, because the build shrinks that one slide until they fit; but a 50-character line in a pane means a slide noticeably smaller than its neighbours. Break the signature across lines, or put the code full-width and keep the panes for prose.
+
 ## example: Marginalia | `::: marginalia` escapes to the slide margin {.standard #marginalia-demo}
 
 **`::: marginalia` floats an aside to the right of the chunk body**, anchored to the content column's right edge and spilling into the slide padding. The camera does not pan there automatically – click the marginalia in this chunk to bring it centred into view.

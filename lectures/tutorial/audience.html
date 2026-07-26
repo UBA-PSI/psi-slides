@@ -2207,6 +2207,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 
 
 <p>You can nest a <code>::: marginalia</code> <em>inside</em> a side pane if a tangent belongs to one half specifically – it still escapes to the slide&#39;s right margin.</p>
+<p><strong>Code in a pane needs short lines.</strong> A pane is half a column, and a <code>&lt;pre&gt;</code> does not wrap, so the projection has room for roughly <strong>30 monospace characters</strong> per pane at the default zoom – against about 50 in a <code>.standard</code> chunk and 60 in a <code>.wide</code> one. Longer lines still do not get cut off, because the build shrinks that one slide until they fit; but a 50-character line in a pane means a slide noticeably smaller than its neighbours. Break the signature across lines, or put the code full-width and keep the panes for prose.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="side-demo">
