@@ -4500,6 +4500,18 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { e.target.blur(); e.preventDefault(); }
     return;
   }
+  // A browser or system shortcut is not a slide command. Every binding here
+  // is a bare letter, so Cmd-C reached the c case and toggled the collapse
+  // instead of copying the selection – on a view that has an Alt-to-select
+  // mode, which makes copying something a reader is invited to do. The same
+  // held for Cmd-A, Cmd-F, Cmd-P and Ctrl-R.
+  //
+  // Shift is deliberately absent from this list: Shift-N, Shift-E, Shift-V
+  // and the reverse-cycling Shift-C are real bindings. Alt is here even
+  // though holding Alt alone starts text selection – that listener tests the
+  // key name, and Alt with a letter is a character on macOS, not a command.
+  // (No backticks in this comment: one would end the template literal.)
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
   // In overview the arrows move the *selection*, never the live slide.
   // They used to fall through to nextChunk/nextCol, which silently
   // re-pointed the active chunk while the visible outline stayed put –
