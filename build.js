@@ -1790,7 +1790,8 @@ function renderHelpOverlay(view) {
     ['Arranging this window', [
       ['<kbd>Shift</kbd>-<kbd>V</kbd>', 'preview strip: along the bottom ↔ down the right edge'],
       ['drag the bar above the notes', 'resize the notes pane; the slide preview rescales to fit'],
-      ['double-click that bar', 'back to automatic height'],
+      ['drag the bar on the preview strip', 'resize the strip, either orientation'],
+      ['double-click either bar', 'back to automatic size'],
       ['drag the preview strip', 'scroll it · click a thumbnail to jump'],
     ]],
     ['Notes', [
@@ -4988,6 +4989,7 @@ ${columnsHtml}
   <textarea id="notes-content" rows="1" spellcheck="false" placeholder=""></textarea>
 </aside>
 <div id="preview-strip"></div>
+<div id="preview-resizer" role="separator" title="Drag to resize the preview strip · double-click to reset"></div>
 <div id="figure-overlay" aria-hidden="true"></div>
 <footer id="speaker-footer">
   <span id="timer">00:00</span>
@@ -5025,8 +5027,10 @@ const SPEAKER_CSS = `
 body[data-view=speaker] {
   display: grid;
   /* scrubber · stage · notes (auto, collapses to 0 when empty) ·
-     preview-strip · footer */
-  grid-template-rows: 3vh 1fr auto 22vh 2.2rem;
+     preview-strip · footer. The preview row carries its default inside the
+     var() fallback rather than behind a "sized" class, so a dragged height
+     needs no extra state and an unset one cannot invalidate the track list. */
+  grid-template-rows: 3vh 1fr auto var(--preview-h, 22vh) 2.2rem;
   grid-template-columns: 1fr;
   overflow: hidden;
 }
@@ -5173,7 +5177,7 @@ body.has-notes #notes-resizer { display: block; }
    stage-cell ResizeObserver re-fits --stage-scale automatically, so the
    audience preview shrinks ratio-proportional. */
 body[data-view=speaker].notes-sized {
-  grid-template-rows: 3vh 1fr var(--notes-height, auto) 22vh 2.2rem;
+  grid-template-rows: 3vh 1fr var(--notes-height, auto) var(--preview-h, 22vh) 2.2rem;
 }
 body[data-view=speaker].notes-sized #notes-content {
   height: 100% !important;
@@ -5212,6 +5216,12 @@ body[data-view=speaker].notes-sized #notes-content {
    automatically scrolled into view on chunk change. */
 #preview-strip {
   grid-row: 4;
+  /* Explicit, not auto: #preview-resizer shares this cell, and grid
+     auto-placement *avoids* an occupied cell instead of overlapping it –
+     leaving the strip auto-placed pushed it into an implicit second column
+     that grid-template-columns never declared. Overlap needs both items
+     placed by hand. */
+  grid-column: 1 / -1;
   display: flex;
   align-items: stretch;
   gap: 0.7rem;
@@ -5228,6 +5238,57 @@ body[data-view=speaker].notes-sized #notes-content {
 #preview-strip.dragging { cursor: grabbing; scroll-behavior: auto; }
 #preview-strip::-webkit-scrollbar { height: 6px; }
 #preview-strip::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 3px; }
+/* Drag handle for the preview strip. It is a grid item of its own sharing
+   the strip's cell and hugging the leading edge – it cannot live *inside*
+   the strip, because the strip is a scroll container and the handle would
+   scroll away with the thumbnails. Negative margin straddles the seam. */
+#preview-resizer {
+  grid-row: 4;
+  grid-column: 1 / -1;
+  align-self: start;
+  position: relative;
+  height: 9px;
+  margin-top: -4px;
+  cursor: ns-resize;
+  touch-action: none;
+  z-index: 6;
+}
+#preview-resizer::before {
+  content: '';
+  position: absolute;
+  top: 3px; left: 50%;
+  transform: translateX(-50%);
+  width: 42px; height: 2px;
+  background: var(--ink-soft);
+  opacity: 0.35;
+  border-radius: 1px;
+  transition: opacity 0.15s, background-color 0.15s, width 0.15s, height 0.15s;
+}
+#preview-resizer:hover::before { opacity: 0.8; width: 84px; }
+body.preview-resizing #preview-resizer::before { opacity: 1; background: var(--emph); width: 84px; }
+/* Same reasoning as the notes handle: a 2px hairline does not announce
+   itself, and "can I make these bigger" is the question it has to answer. */
+#preview-resizer::after {
+  content: 'drag to resize · double-click resets';
+  position: absolute;
+  top: -1.15rem; left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--sans-font);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  background: var(--paper);
+  padding: 1px 6px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+#preview-resizer:hover::after,
+body.preview-resizing #preview-resizer::after { opacity: 1; }
+
 .preview-slot {
   flex: 0 0 auto;
   /* Match audience aspect so clones render without letterboxing.
@@ -5521,7 +5582,7 @@ body.has-notes #add-note-btn { display: none; }
    the horizontal mode. */
 body[data-view=speaker].preview-right {
   grid-template-rows: 3vh 1fr auto 2.2rem;
-  grid-template-columns: 1fr clamp(180px, 18vw, 300px);
+  grid-template-columns: 1fr var(--preview-w, clamp(180px, 18vw, 300px));
 }
 body[data-view=speaker].preview-right.notes-sized {
   grid-template-rows: 3vh 1fr var(--notes-height, auto) 2.2rem;
@@ -5545,6 +5606,32 @@ body[data-view=speaker].preview-right .preview-slot {
   height: auto;
   width: auto;
   /* align-items: stretch on the flex parent fills cross-axis (width). */
+}
+/* The handle rotates with the strip: same cell, now hugging its left edge,
+   and the drag axis becomes horizontal. */
+body[data-view=speaker].preview-right #preview-resizer {
+  grid-row: 2;
+  grid-column: 2;
+  justify-self: start;
+  align-self: stretch;
+  width: 9px;
+  height: auto;
+  margin-top: 0;
+  margin-left: -4px;
+  cursor: ew-resize;
+}
+body[data-view=speaker].preview-right #preview-resizer::before {
+  top: 50%; left: 3px;
+  transform: translateY(-50%);
+  width: 2px; height: 42px;
+}
+body[data-view=speaker].preview-right #preview-resizer:hover::before,
+body.preview-right.preview-resizing #preview-resizer::before { width: 2px; height: 84px; }
+/* Label hangs into the strip instead of above it – there is no room above
+   in this orientation, that cell is the stage. */
+body[data-view=speaker].preview-right #preview-resizer::after {
+  top: 8px; left: 10px;
+  transform: none;
 }
 `;
 
@@ -6236,6 +6323,77 @@ notesResizer?.addEventListener('dblclick', () => {
   try { localStorage.removeItem(NOTES_HEIGHT_KEY); } catch (e) {}
   clearNotesHeight();
   flashMode('notes height: auto');
+});
+
+// Drag-to-resize for the preview strip, in both orientations. Two persisted
+// values rather than one: the bottom strip is a height and the right strip a
+// width, and someone who flips orientation wants each to come back the way
+// they left it. The stage keeps its letterbox either way – #stage-cell's
+// ResizeObserver re-runs sizeStageViewport, so the mirror stays at the
+// audience aspect instead of stretching into whatever room is left.
+const previewResizer = document.getElementById('preview-resizer');
+const PREVIEW_H_KEY = 'psi-slides:preview-height';
+const PREVIEW_W_KEY = 'psi-slides:preview-width';
+const PREVIEW_MIN_PX = 70;
+
+function previewIsVertical() { return document.body.classList.contains('preview-right'); }
+function applyPreviewSize(px, vertical) {
+  document.documentElement.style.setProperty(vertical ? '--preview-w' : '--preview-h', px + 'px');
+}
+try {
+  const h = parseFloat(localStorage.getItem(PREVIEW_H_KEY));
+  if (h >= PREVIEW_MIN_PX) applyPreviewSize(h, false);
+  const w = parseFloat(localStorage.getItem(PREVIEW_W_KEY));
+  if (w >= PREVIEW_MIN_PX) applyPreviewSize(w, true);
+} catch (e) {}
+
+let previewSizeDrag = null;
+previewResizer?.addEventListener('pointerdown', (ev) => {
+  ev.preventDefault();
+  try { previewResizer.setPointerCapture(ev.pointerId); } catch (e) {}
+  const vertical = previewIsVertical();
+  const strip = previewStrip.getBoundingClientRect();
+  const cell = stageCell.getBoundingClientRect();
+  previewSizeDrag = {
+    pointerId: ev.pointerId,
+    vertical,
+    start: vertical ? ev.clientX : ev.clientY,
+    startSize: vertical ? strip.width : strip.height,
+    // How much the stage can give up before it stops being a usable mirror.
+    room: Math.max(0, (vertical ? cell.width : cell.height) - STAGE_MIN_PX),
+  };
+  document.body.classList.add('preview-resizing');
+});
+previewResizer?.addEventListener('pointermove', (ev) => {
+  if (!previewSizeDrag || ev.pointerId !== previewSizeDrag.pointerId) return;
+  // Both orientations grow toward the leading edge: drag up to grow the
+  // bottom strip, drag left to grow the right one.
+  const moved = previewSizeDrag.start - (previewSizeDrag.vertical ? ev.clientX : ev.clientY);
+  const next = Math.max(
+    PREVIEW_MIN_PX,
+    Math.min(previewSizeDrag.startSize + moved, previewSizeDrag.startSize + previewSizeDrag.room)
+  );
+  applyPreviewSize(next, previewSizeDrag.vertical);
+});
+function endPreviewDrag() {
+  if (!previewSizeDrag) return;
+  try { previewResizer.releasePointerCapture(previewSizeDrag.pointerId); } catch (e) {}
+  document.body.classList.remove('preview-resizing');
+  const strip = previewStrip.getBoundingClientRect();
+  const px = Math.round(previewSizeDrag.vertical ? strip.width : strip.height);
+  const key = previewSizeDrag.vertical ? PREVIEW_W_KEY : PREVIEW_H_KEY;
+  try { localStorage.setItem(key, String(px)); } catch (e) {}
+  previewSizeDrag = null;
+  populatePreviewStrip();
+}
+previewResizer?.addEventListener('pointerup', endPreviewDrag);
+previewResizer?.addEventListener('pointercancel', endPreviewDrag);
+previewResizer?.addEventListener('dblclick', () => {
+  const vertical = previewIsVertical();
+  try { localStorage.removeItem(vertical ? PREVIEW_W_KEY : PREVIEW_H_KEY); } catch (e) {}
+  document.documentElement.style.removeProperty(vertical ? '--preview-w' : '--preview-h');
+  populatePreviewStrip();
+  flashMode('preview size: auto');
 });
 
 // First populate (applyState ran before viewHooks was reassigned).

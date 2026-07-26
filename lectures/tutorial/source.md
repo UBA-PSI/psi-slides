@@ -216,14 +216,15 @@ Picking the wrong tag is not an error, and the linter will not tell you. It only
 
 - **`Shift`-`V`** moves the preview strip between the bottom edge and the right edge.
 - **Drag the hairline bar above the notes** to resize the notes pane. The slide preview rescales to fit.
-- **Double-click that bar** to go back to automatic height.
+- **Drag the bar on the edge of the preview strip** to resize that too, in either orientation.
+- **Double-click either bar** to go back to automatic size.
 - **`?`** opens the full reference. The footer has buttons for all of these.
 
 :::
 
 The notes pane starts at automatic height: one line when empty, up to three when it has content, collapsed entirely when the chunk has no notes at all. Once you drag it, the height becomes fixed and is remembered across lectures and reloads, which is usually what you want on a fixed lectern screen. The stage above it is a `1fr` grid row, so it gives up exactly the space the notes take and the audience mirror stays letterboxed at the projector's aspect ratio rather than distorting.
 
-Vertical preview mode is worth trying on any screen with horizontal room to spare: the thumbnails get larger and their text becomes legible, which turns the strip from a position indicator into something you can actually read ahead in.
+Vertical preview mode is worth trying on any screen with horizontal room to spare: the thumbnails get larger and their text becomes legible, which turns the strip from a position indicator into something you can actually read ahead in. Widen it with the drag handle and the effect compounds. Both the strip's height and its width are remembered separately, so flipping the orientation and flipping back returns each one to the size you gave it.
 
 ## example: N vs Shift-N | audience-visible vs private {.wide #notes-vs-annot}
 
