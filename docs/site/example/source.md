@@ -46,7 +46,7 @@ Drei Fragen für eine Antwort – deshalb die Zwischenspeicher auf jeder Stufe.
 
 ## example: Selbst nachsehen | zwei Zeilen im Terminal {.wide #dns-tools}
 
-**Das DNS ist eines der wenigen Internet-Protokolle, die man ohne Werkzeuge direkt befragen kann.**
+**Das DNS kann man von Hand befragen – die Werkzeuge dafür sind auf jedem System schon installiert.**
 
 ```bash
 host www.uni-bamberg.de
