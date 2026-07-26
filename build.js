@@ -5064,9 +5064,20 @@ function buildSearchIndex() {
     const mainEl = c.el.querySelector('.chunk-heading .hd-main');
     const subEl = c.el.querySelector('.chunk-heading .hd-sub');
     const clean = (n) => (n ? n.textContent : '').replace(/\\s+/g, ' ').trim();
+    // The body has to be cleaned on a copy: an inlined SVG carries its own
+    // style block, and textContent hands back the CSS rules as if they were
+    // prose. Searching for a word then hit slides whose figure merely
+    // mentioned it in a selector. Labels inside the drawing stay indexed,
+    // which is the part worth searching.
+    const cleanBody = (n) => {
+      if (!n) return '';
+      const copy = n.cloneNode(true);
+      copy.querySelectorAll('style, script').forEach((s) => s.remove());
+      return copy.textContent.replace(/\\s+/g, ' ').trim();
+    };
     const title = clean(mainEl) || clean(headEl);
     const sub = mainEl ? clean(subEl) : '';
-    const body = clean(bodyEl);
+    const body = cleanBody(bodyEl);
     return {
       idx,
       tag: tagName,
