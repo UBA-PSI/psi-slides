@@ -501,6 +501,8 @@ slide-numbers: off      # vertical | horizontal | off
 ---
 ```
 
+`lang:` sits beside them and is a different kind of key: it names the document language (`en` by default, `de`, `de-DE`, `fr` …) and lands in the `lang` attribute of every view. The print views use it to pick a **hyphenation dictionary**, which is what lets a long German compound break instead of pushing a hole into the line. The live views deliberately do not hyphenate: a broken word on a projection reads badly.
+
 **The precedence rule is one sentence.** A key that is present wins over the reader's stored preference; a key that is absent leaves that preference alone. So a lecture that pins nothing behaves exactly as it always did – font, theme and slide numbers follow the reader from lecture to lecture – while a lecture with a designed look gets it without asking anyone to press keys.
 
 `slide-numbers` reaches the print views as well, since a document has no keyboard to cycle it with. An unknown value fails the build with the list of valid ones rather than being ignored, because a silently dropped setting looks exactly like a setting you forgot to write.

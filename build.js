@@ -1290,6 +1290,26 @@ function lectureTitle(frontmatter) {
   return frontmatter.title || 'Untitled lecture';
 }
 
+// The document language. It is not decoration: the browser's hyphenation
+// dictionary is chosen by it, so `lang: de` is what makes the print view
+// break German words correctly instead of not at all. Screen readers and
+// spell-checkers key off the same attribute.
+function lectureLang(frontmatter = {}) {
+  const raw = String(frontmatter.lang || 'en').trim();
+  // BCP-47 shape, loosely: a primary subtag plus optional refinements.
+  // Loose on purpose – this is a gate against typos like `lang: german`,
+  // not an attempt to own the registry.
+  if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(raw)) {
+    const err = new Error(
+      `Frontmatter: "lang: ${raw}" is not a language tag.\n` +
+      `  Expected something like: en, de, de-DE, en-GB, fr.`
+    );
+    err.userFacing = true;
+    throw err;
+  }
+  return raw;
+}
+
 // ── viewer defaults from frontmatter ─────────────────────────────────
 // An author can pin how a lecture opens: font, theme, collapse mode,
 // auto-fit, slide numbers. Precedence is deliberate and one sentence long:
@@ -1536,7 +1556,7 @@ function renderDocument(lecture, opts = {}) {
   // (collapse, auto-fit) or already fixed here (print has its own type).
   const printNums = viewDefaults(frontmatter).slideNums || 'vertical';
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${escapeHtml(lectureLang(frontmatter))}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -1592,6 +1612,26 @@ main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
 
 h1, h2, h3 { font-weight: 500; letter-spacing: -0.01em; break-after: avoid; page-break-after: avoid; }
 p { margin: 0.4em 0 0.9em; orphans: 3; widows: 3; }
+
+/* Hyphenation. Only in the document views: a hyphenated word on a
+   projection reads badly, and the live views reflow constantly anyway.
+   The browser picks its dictionary from the lang attribute on html, which
+   comes from the frontmatter lang key – so this does nothing useful for a
+   German lecture until the author sets lang: de, and German is exactly the
+   case where a 42rem measure needs it most.
+   Limited to prose: hyphenating an identifier in code, a heading, or a URL
+   would be actively wrong, and the hyphens property is inherited.
+   (No backticks in this comment: one would end the template literal.) */
+p, li, blockquote, figcaption, .speaker-note {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  /* Keep a two-letter stub off the next line where the browser supports it. */
+  hyphenate-limit-chars: 6 3 3;
+}
+h1, h2, h3, h4, code, pre, pre *, .chunk-num, a[href^="http"] {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
 strong { color: var(--emph); font-weight: 600; }
 em { font-style: italic; }
 
@@ -1819,16 +1859,21 @@ body[data-slide-nums=off] .chunk-num { display: none; }
 }
 
 /* Title slide: lower-left-third per PRD §4.4 */
+/* The document opens with its title, not with a screen of paper. This block
+   used to be a full-height cover with the title pinned to the bottom edge –
+   right for a printed title page, wrong for the thing people actually look
+   at, which is print.html in a browser: you opened a document and saw
+   nothing. The cover treatment now lives in @media print, where it belongs,
+   and the screen gets an ordinary masthead. */
 .chunk-title {
-  min-height: calc(100vh - 6rem);
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   align-items: flex-start;
-  padding: 0 0 12vh;
+  padding: 0 0 1.8rem;
+  margin: 0 0 2.6rem;
+  border-bottom: 1px solid var(--rule);
   page-break-after: always;
   page-break-inside: avoid;
-  margin: 0;
 }
 .chunk-title .title-main {
   font-size: 2.6rem;
@@ -1952,7 +1997,15 @@ pre.shiki .line { display: inline; }
   body { background: white; }
   main { padding: 0; max-width: none; }
   a { text-decoration: none; color: inherit; }
-  .chunk-title { min-height: 24cm; }
+  /* On paper it is a cover page again: fills the sheet, title sitting in
+     the lower third (PRD §4.4), no rule under it. */
+  .chunk-title {
+    min-height: 24cm;
+    justify-content: flex-end;
+    padding: 0 0 12vh;
+    margin: 0;
+    border-bottom: 0;
+  }
   pre { background: rgba(0,0,0,0.03); }
 }
 
@@ -2281,7 +2334,7 @@ function renderAudience(lecture, opts = {}) {
   const defaults = viewDefaults(frontmatter);
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${escapeHtml(lectureLang(frontmatter))}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -5762,7 +5815,7 @@ function renderSpeaker(lecture, opts = {}) {
   const defaults = viewDefaults(frontmatter);
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${escapeHtml(lectureLang(frontmatter))}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
