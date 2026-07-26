@@ -31,6 +31,26 @@
     });
   });
 
+  /* ── the narrow-width menu ─────────────────────────────────────────────
+   * The <details> opens, closes, and is keyboard-operable on its own. Two
+   * things it does not do are what everyone expects from a menu: Escape, and
+   * clicking somewhere else. Both are added here, so the markup still works
+   * with scripting off and only the manners are progressive.
+   */
+  var menu = document.querySelector('.topbar-menu');
+  if (menu) {
+    document.addEventListener('click', function (ev) {
+      if (menu.open && !menu.contains(ev.target)) menu.open = false;
+    });
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && menu.open) {
+        menu.open = false;
+        var summary = menu.querySelector('summary');
+        if (summary) summary.focus();
+      }
+    });
+  }
+
   /* ── lightbox ──────────────────────────────────────────────────────────
    * The shots are laid out between a third and a half of the size they were
    * captured at, which is enough to see the shape of a slide and not enough

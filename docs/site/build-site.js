@@ -107,7 +107,23 @@ const TOPBAR = `<nav class="topbar" aria-label="Universität Bamberg and site na
           <a href="index.html#getting-started">Getting started</a>
           <a href="comparison.html">Comparison</a>
         </div>
-        <a href="https://github.com/UBA-PSI/psi-slides">GitHub</a>
+        <a class="topbar-gh" href="https://github.com/UBA-PSI/psi-slides">GitHub</a>
+        <details class="topbar-menu">
+          <summary aria-label="Menu">
+            <svg viewBox="0 0 14 12" aria-hidden="true" focusable="false"><path d="M0 1h14M0 6h14M0 11h14" style="stroke:currentColor;stroke-width:1.6px;fill:none"/></svg>
+            <span>Menu</span>
+          </summary>
+          <div class="topbar-panel">
+            <a href="index.html">Overview</a>
+            <a href="index.html#open-them-yourself">Live lectures</a>
+            <a href="index.html#getting-started">Getting started</a>
+            <a href="comparison.html">Comparison</a>
+            <a href="https://github.com/UBA-PSI/psi-slides">GitHub</a>
+            <hr>
+            <a href="https://psi.uni-bamberg.de/" target="_blank" rel="noopener">Chair of Privacy and Security in Information Systems</a>
+            <a href="https://psi.uni-bamberg.de/de/ueberuns/" target="_blank" rel="noopener">Prof. Dr. Dominik Herrmann</a>
+          </div>
+        </details>
       </div>
     </div>
   </div>

@@ -181,6 +181,69 @@ main { max-width: 48rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
 @media (min-width: 60rem) {
   .topbar-nav { display: flex; gap: 1.1rem; font-size: 0.78rem; white-space: nowrap; }
 }
+
+/*
+ * The narrow-width menu. A <details> rather than a scripted dropdown: it is
+ * the one native control that already does keyboard operation and the right
+ * semantics, and its contents stay out of the tab order while it is closed.
+ * site.js only adds what the element does not do by itself – closing on
+ * Escape and on a click outside – so the menu works with scripting off.
+ *
+ * It carries the affiliation links too. Those are dropped from the bar below
+ * 56rem and 40rem, and on a phone the menu would otherwise be the only place
+ * they could live, which is to say nowhere.
+ */
+.topbar-menu { position: relative; flex: none; }
+.topbar-menu > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.78rem;
+  color: #ffffff;
+  cursor: pointer;
+  list-style: none;              /* Firefox draws a marker without this */
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+.topbar-menu > summary::-webkit-details-marker { display: none; }
+.topbar-menu > summary:hover,
+.topbar-menu[open] > summary { border-color: #86827f; }
+.topbar-menu > summary:focus-visible { outline: 2px solid #ffffff; outline-offset: 1px; }
+.topbar-menu svg { width: 14px; height: 12px; flex: none; }
+.topbar-panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  /* Viewport-bounded on both sides: a bare min-width beats max-width in the
+     cascade, and at 320px the panel would hang off the left edge. */
+  min-width: min(17rem, calc(100vw - 2rem));
+  max-width: min(22rem, calc(100vw - 2rem));
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  padding: 0.4rem 0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+}
+.topbar-panel a {
+  display: block;
+  padding: 0.5rem 0.9rem;
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+.topbar-panel a:hover { background: var(--shot-bg); text-decoration: none; }
+.topbar-panel hr { border: 0; border-top: 1px solid var(--rule); margin: 0.4rem 0; }
+/* Above the breakpoint the row carries the links itself. */
+@media (min-width: 60rem) {
+  .topbar-menu { display: none; }
+}
+/* The bare GitHub link is what the menu replaces, so it goes when the menu
+   arrives – two ways to the same place in a strip this size is clutter. */
+@media (max-width: 60rem) {
+  .topbar-gh { display: none; }
+}
 /* Dropped in stages: the chair's name is the longest string in the bar and
    the first thing that stops fitting; the person is the attribution that
    matters, so it goes last. A sticky strip must never grow a second line. */
