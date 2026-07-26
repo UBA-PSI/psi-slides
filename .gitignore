@@ -1,4 +1,6 @@
-.claude/
+.claude/*
+# the authoring skill is part of the published documentation, so it is tracked
+!.claude/skills/
 .DS_Store
 node_modules/
 

@@ -121,6 +121,44 @@ Five optional frontmatter keys pin how a lecture opens – `font`, `theme`, `col
 
 Two more surfaces worth knowing apart: **notes** (`> note:`) are yours, written in advance, shown in the cockpit and in the handout. **Annotations** (`N` during a talk) are typed live, visible to the room, and `Shift-E` plus `--integrate-annotations` writes them back into `source.md` as permanent text.
 
+## Writing lectures with an LLM assistant
+
+The format is a good fit for one. A lecture is plain Markdown with a small,
+closed grammar: eight tags, four widths, eight `:::` directives, one reveal
+separator. There is nothing to guess at and no binary format in the way, so a
+model that has been shown the rules produces sources that build and lint on the
+first pass. Diffs stay reviewable, because the unit of change is a paragraph of
+prose rather than a slide object.
+
+What still needs you: the argument, the examples, and the judgement about what
+belongs on the screen. A model is useful for turning a draft into chunks,
+proposing IDs and widths, tightening topic sentences so the collapsed view
+reads well, and fixing what the linter flags.
+
+Hand it one artefact rather than five. This repo ships a skill at
+[`.claude/skills/psi-slides-authoring/`](.claude/skills/psi-slides-authoring/SKILL.md)
+that bundles the whole authoring contract – grammar, directives, collapse
+mechanisms, math, frontmatter – plus a companion file on topic sentences,
+bold discipline, and typography. Claude Code picks it up automatically inside
+this repository or a content repo that has a copy; for any other assistant,
+paste the two files into the context.
+
+If you would rather not use the skill, the minimum useful set is:
+
+- [`lectures/tutorial/source.md`](lectures/tutorial/source.md) – the canonical
+  reference, and the one file that shows every directive in real use.
+- [`CLAUDE.md`](CLAUDE.md) – the conventions, the parsing contract, and the
+  things that are easy to get wrong.
+- `node lint.js <source.md>` after every edit. It catches unknown tags and
+  widths, missing or duplicate IDs, unclosed directives, and over-budget
+  chunks, which is most of what a model gets wrong.
+
+Two failure modes are worth naming. Models invent plausible directives that do
+not exist (`::: columns`, `::: note`, extra classes in `{...}`) – the linter
+catches those. And they renumber `{#id}` attributes when they rewrite a
+heading, which silently breaks cross-references, TOC entries, and stored
+speaker state; say so up front, because no check will catch it.
+
 ## When to use this
 
 - Your lecture and its script should be one document, and you are tired of them drifting apart.
@@ -173,6 +211,7 @@ The honest differentiator is the combination: the collapse mechanism (one text, 
 | [`speaker.md`](speaker.md) | The cockpit spec and the `postMessage` sync protocol – which fields travel, which stay local. |
 | [`HANDOFF.md`](HANDOFF.md) | Build diary, slice by slice, including the decisions deliberately not taken. German. |
 | [`CLAUDE.md`](CLAUDE.md) | Repo conventions and a map of `build.js`. Useful to any contributor, not just to Claude. |
+| [`.claude/skills/psi-slides-authoring/`](.claude/skills/psi-slides-authoring/SKILL.md) | The authoring contract in one artefact, for handing to an LLM assistant. |
 
 ## Command reference
 
