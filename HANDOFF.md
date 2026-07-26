@@ -570,9 +570,7 @@ Fix ist `resetViewportScroll()` neben der `viewport`-Deklaration: ein `scroll`-L
 Zwei Doku-Aufgaben, die der Autor explizit vorgemerkt hat:
 
 - **Anti-Fit-Liste im README gegenlesen.** Die „When *not* to use this"-Liste stammt aus dem Docs-Brief und muss vom Autor durchgegangen werden – er ist der Einzige, der weiß, welche der Grenzen ihn in der Praxis wirklich getroffen haben. Bis dahin ist die Liste plausibel, aber nicht belegt.
-- **Abgrenzung zu Beamer und reveal.js.** Für die öffentliche Doku fehlt ein fairer Vergleich, ausdrücklich in beide Richtungen: wo psi-slides gewinnt und wo LaTeX Beamer, reveal.js, Quarto oder Marp die bessere Wahl sind. Der README hat aktuell nur einen kurzen Absatz.
-
-**KaTeX** ist inzwischen gebaut (siehe Math-Slice); der alte „deferred"-Vermerk unten ist historisch.
+- ~~**Abgrenzung zu Beamer und reveal.js.**~~ Erledigt: `docs/comparison.md`, auf der Projektseite als eigene Seite veröffentlicht, in beide Richtungen samt „where psi-slides loses".
 
 ## Next Slice – Empfehlungen
 
@@ -581,7 +579,7 @@ Die beiden hochrangigen Kandidaten aus dem letzten Handoff bleiben offen und unv
 - **`--assign-ids` + Linter-Build-Integration.** Klein (~150 Zeilen), schließt den Authoring-Loop zu „edit → save → build+lint → reload“. Gut für Phase 1 Abschluss.
 - **Mermaid-Pipeline** (fenced `mermaid` block → `@mermaid-js/mermaid-cli` → inline SVG). Symmetrisch zu dem Image-Shorthand-Resolver (build-time render, static inline SVG). ~250 Zeilen.
 
-**KaTeX** bleibt deferred bis zur ersten Math-Lecture.
+**KaTeX** ist gebaut (siehe Math-Slice) – der frühere „deferred"-Vermerk hier war historisch und ist entfernt.
 
 Nicht-geerntet aus dem Simplify-Pass (bewusst geskippt, kurz dokumentiert damit sie nicht verloren gehen):
 
