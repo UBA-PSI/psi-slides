@@ -206,7 +206,7 @@ Picking the wrong tag is not an error, and the linter will not tell you. It only
 - **Editable notes pane** below the stage, collapsed when the chunk has no notes.
 - **Preview strip** of all chunks, scrollable and clickable.
 
-**Everything stays in sync.** Chunk changes, reveal state, annotations, theme, font, zoom, expansion state, overview framing, figure focus, and the laser pointer all flow through postMessage snapshots. `Shift-P` toggles push on and off; `.` force-pushes a snapshot even when push is off, which is what you want after a reload.
+**Everything stays in sync.** Chunk changes, reveal state, annotations, theme, font, zoom, expansion state, overview framing, figure focus, and the laser pointer all flow through postMessage snapshots. `V` freezes the projection when you want to read ahead without the room following, and thawing catches the room up to wherever you got to.
 
 :::
 
@@ -214,10 +214,10 @@ Picking the wrong tag is not an error, and the linter will not tell you. It only
 
 ::: slide
 
-- **`V`** moves the preview strip between the bottom edge and the right edge.
+- **`Shift`-`V`** moves the preview strip between the bottom edge and the right edge.
 - **Drag the hairline bar above the notes** to resize the notes pane. The slide preview rescales to fit.
 - **Double-click that bar** to go back to automatic height.
-- **`?`** opens the full reference. The footer has buttons for all three.
+- **`?`** opens the full reference. The footer has buttons for all of these.
 
 :::
 

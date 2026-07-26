@@ -190,7 +190,7 @@ Press `?` in either live view for the full on-screen reference. The ones you nee
 - `C` collapse, `F` font, `A` accent theme, `+` `-` `0` zoom.
 - `#` auto-fit: size every slide to the screen. `B` blanks the projection – the speaker window keeps working so you can change slide while the room sees black.
 - `S` spawn the speaker window, `P` open the print view.
-- `N` audience-visible annotation. On the cockpit: `Shift-N` private notes, `V` move the preview strip, `Shift-P` toggle push, `.` force-push.
+- `N` audience-visible annotation. On the cockpit: `Shift-N` private notes, `V` freeze the projection so the room holds its slide while you read ahead (thawing catches it up), `Shift-V` move the preview strip.
 
 ## Stability
 

@@ -11,7 +11,7 @@ These are the commitments. Everything downstream is subordinate.
 1. **Plaintext Markdown source.** Diffable, durable, LLM-amenable, survives every tool we will use.
 2. **No slides, no continuous essay.** Content is chunked and arranged spatially. Camera pans between chunks.
 3. **Two views from one source:** live audience projection and printable study document. Same IDs, same chunks, different renderers.
-4. **Live speaker view separate from audience view.** Speaker sees notes, next-chunk previews, lecture scrubber. Audience sees only what you push.
+4. **Live speaker view separate from audience view.** Speaker sees notes, next-chunk previews, lecture scrubber. The room follows the speaker unless the projection is frozen.
 5. **Readable on any projector down to ~1024×768.** Text sizing is viewport-relative. The camera never shows more than roughly 15 line-heights of content at a time at the default zoom. This sets a hard density discipline.
 6. **Zoomable with reflow, not pixel-scaling.** The app owns zoom via explicit hotkeys (`+` / `-` / `0`) that adjust a root-level type-scale multiplier; text reflows, never bitmap-scales. Native browser Ctrl+/- continues to work as a user preference because all sizes are in `rem`, but behavior across browsers is out of our control and the app's own hotkeys are the documented, tested interface. This is the single biggest reveal.js pain point to avoid.
 7. **Typographic variance is the point.** Chunks look different from one another by design. Monotony is a failure mode equal to overload.
@@ -344,7 +344,7 @@ Density budget per chunk: body text should occupy no more than ~12 line-heights 
 - `/`: in overview, start fulltext search over all chunk bodies.
 - `P`: open print view in a new tab.
 - `B`: blank screen (press again to restore). A dead-simple attention reset.
-- `.` : push current speaker-view position to audience (in case views desynced).
+- `V` (speaker only): freeze the projection – the room holds its slide while the speaker reads ahead. Pressing it again goes live and catches the room up, which is why there is no separate resync key.
 
 **Camera implementation:** CSS `transform: translate()` on a stage `div`. **No `scale()` at the camera level** – each slide is rendered at its native viewport-matching size, and zoom is a text-size multiplier (§4.2), not a camera operation. This removes the reveal.js-style bitmap-scaling failure mode entirely.
 
@@ -568,7 +568,7 @@ The goal of Phase 1 is to retire every “temporarily” in Phase 0 **and** clos
 
 **Views:**
 - **Print view renderer** with TOC (flat, column-only) at the front. Accessible from the live view via `P` hotkey opening in a new tab. This was the single most missed feature in wlab01.
-- **Speaker view** in a separate window, synced via `window.postMessage`: current chunk, next-previews (fully revealed, see §7), notes pane, scrubber, timer, push-to-audience toggle, crash-recovery `localStorage` persistence.
+- **Speaker view** in a separate window, synced via `window.postMessage`: current chunk, next-previews (fully revealed, see §7), notes pane, scrubber, timer, freeze-the-projection toggle, crash-recovery `localStorage` persistence.
 
 **Live interactions the wlab01 input shape broke:**
 - **Progressive reveal** per §4.6. The `---` separator, `Space` to advance, backward-nav resets to fully-revealed. This is what will make bullet-heavy content (the dominant shape in practice, despite the “prose first” intent) teachable at a controlled pace.

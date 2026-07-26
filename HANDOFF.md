@@ -355,6 +355,43 @@ Dazu ein `#blank-badge`: weiß auf schwarz, klein, unten zentriert. Sichtbar im 
 
 **Toasts gab es schon** – `flashMode()` mit `#mode-badge`, seit dem Typo-Slice. Sie feuerten nur nicht überall: `B` war stumm. Jetzt melden auch Blank und Auto-Fit. Wer einen neuen Toggle baut, hängt eine `flashMode()`-Zeile dran; das ist die Konvention.
 
+## Freeze statt Push (und was daran hängt)
+
+**Die Semantik ist umgedreht.** Vorher: ein `pushEnabled`-Toggle auf `Shift-P` plus eine `.`-Taste, die einmalig einen Snapshot rausdrückt. Zwei Bedienelemente, die beschreiben, was der Code tut (einen Snapshot senden), nicht was der Vortragende will (das Bild festhalten, während ich vorausschaue). Jetzt: `frozen`, Hotkey `V`, an vielen Beamern gibt es genau diese Taste.
+
+Das Schöne daran ist, dass sich die zweite Taste dabei auflöst. Auftauen **ist** die Resynchronisation, denn das erste, was ein ungegateter Broadcast tut, ist dem Raum den aktuellen Stand zu übergeben. `toggleFreeze()` schickt beim Verlassen des Frozen-Zustands direkt einen Snapshot – ohne diese Zeile bliebe der Raum auf der eingefrorenen Folie stehen, bis man das nächste Mal navigiert, und Auftauen auf genau der Folie, auf der man landen wollte, sähe aus, als hätte es nichts getan.
+
+**Zwei Nachrichten umgehen das Gate bewusst.** Beide sind Befehle an den Projektor, kein geteilter Zustand:
+
+- `blank` – die Falle, die der Umbau erst aufmacht. `B` lief über den State-Snapshot, also hätte eingefroren + `B` den Toast „projection blanked“ vor einer Leinwand gezeigt, die weiter leuchtet. Genau der Fall, der nicht passieren darf: `B` ist die Taste, die man greift, wenn *jetzt* etwas vom Schirm muss.
+- `slide-ref` – die Fenstermaße der Audience nach einem Resize (eigener Abschnitt unten).
+
+Die Regel dahinter, und die steht auch in CLAUDE.md: `applyRemoteState` ist ein **vollständiger** Apply. Wer einen Snapshot schickt, um ein einzelnes Feld zu übertragen, verschiebt beim Empfänger auch die Folienposition. Ein Snapshot-Protokoll ohne Feld-Granularität zwingt dazu, „ich habe *eine* Sache geändert“ als eigene Nachricht zu führen – deshalb gibt es neben `state` schon `pan`, `cursor` und `figure-*`.
+
+**Der Indikator ist jetzt der Schalter.** Aus dem `<span id="push-indicator">` wurde `<button id="freeze-btn">`, Beschriftung `● live` / `❄ frozen`. Freeze war die einzige Cockpit-Funktion ganz ohne Mausweg, und ein Statuslicht, das man nicht drücken kann, ist eine Frage ohne Antwort daneben.
+
+**`V` → `Shift-V` für das Preview-Layout.** `F` ist schon der Font-Zyklus, `V` ist phonetisch nah genug an *freeze*. Das Fenster umräumen ist der seltenere und weit weniger dringende Akt, also wandert es auf Shift. Nebenbei: die Fußzeile beschriftete es mit „preview“, was sich las wie *die Vorschau*, nicht wie *wo die Vorschau sitzt*. Heißt jetzt `⇄ layout`.
+
+Die Fußzeilen-Krücke ist entrümpelt: `. force` und `? all` sind weg (die eine Taste existiert nicht mehr, die andere steht als Button daneben), dafür stehen `V` freeze und `B` blank drin – die zwei, die man im Ernstfall braucht.
+
+## Aspect-Ratio wandert jetzt nach
+
+Der Speaker übernahm das Seitenverhältnis der Audience nur beim Handshake. Danach reisten die Maße ausschließlich als `audienceW/H` im State-Snapshot – und den schickt die Audience nur, wenn *sie* navigiert, was während einer Vorlesung nie passiert. Vollbild oder ein Beamer, der beim Anstecken seine Auflösung neu aushandelt, ließen das Cockpit also auf eine veraltete Form letterboxen.
+
+Naheliegend wäre gewesen, beim Resize einfach `broadcastState()` zu rufen. Das hätte den Fehler behoben und einen schlimmeren eingebaut – siehe die Regel oben: jeder Auflösungswechsel hätte den Speaker auf die Folie des Publikums zurückgerissen. Also `slide-ref` als eigene Nachricht, debounced auf 120 ms.
+
+Verifiziert mit zwei Fenstern: Speaker eingefroren auf Folie 12, Audience von 1200×943 auf 1920×1080 – Speaker rechnet `--stage-scale` neu und bleibt auf 12.
+
+## Toasts sichtbar gemacht
+
+`#mode-badge` war ein 10-px-Kapitälchen-Chip oben rechts, Papier auf Papier. Rückmeldung zu einem Toggle, die man regelmäßig übersah – und das ist die einzige Aufgabe, die das Ding hat. Jetzt oben mittig, Satzgröße, weiß auf Fast-Schwarz. Die weiße Haarlinie im `box-shadow` ist der Trick für die Terminal-Themes, wo ein dunkler Toast sonst auf dunkler Folie steht.
+
+**Wichtiger als die Optik ist das Routing.** Egal in welchem Fenster die Taste fiel: der Toast wird an das Speaker-Fenster übergeben, wenn eines offen ist (`type: 'toast'`). Er ist Rückmeldung für den Vortragenden, und der Raum muss nicht zusehen, wie „auto-fit on“ über die Projektion wandert. Die Audience zeigt Toasts nur, wenn sie allein läuft – dieselbe Bedingung, die das Blank-Badge schon benutzte, jetzt als `hasLivePeer()` herausgezogen.
+
+Im Cockpit sitzt der Toast unter dem Scrubber (`top: calc(3vh + 14px)`), nicht am Fensterrand, sonst verdeckt er genau die Spaltenleiste, gegen die man ihn abgleicht.
+
+Nebenbei: der runde `?`-Button unten links ist in der Speaker-View ausgeblendet. Er lag auf der Uhr, und die Fußzeile hat zwei Zentimeter weiter einen beschrifteten `? help`.
+
 ## Was funktioniert
 
 - `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.

@@ -1792,7 +1792,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 <li><strong>Editable notes pane</strong> below the stage, collapsed when the chunk has no notes.</li>
 <li><strong>Preview strip</strong> of all chunks, scrollable and clickable.</li>
 </ul>
-<p><strong>Everything stays in sync.</strong> Chunk changes, reveal state, annotations, theme, font, zoom, expansion state, overview framing, figure focus, and the laser pointer all flow through postMessage snapshots. <code>Shift-P</code> toggles push on and off; <code>.</code> force-pushes a snapshot even when push is off, which is what you want after a reload.</p>
+<p><strong>Everything stays in sync.</strong> Chunk changes, reveal state, annotations, theme, font, zoom, expansion state, overview framing, figure focus, and the laser pointer all flow through postMessage snapshots. <code>V</code> freezes the projection when you want to read ahead without the room following, and thawing catches the room up to wherever you got to.</p>
 </div></div></div>
     
     <aside class="annot-box" data-annot-for="speaker-s">
@@ -1813,10 +1813,10 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 
 
 <ul>
-<li><strong><code>V</code></strong> moves the preview strip between the bottom edge and the right edge.</li>
+<li><strong><code>Shift</code>-<code>V</code></strong> moves the preview strip between the bottom edge and the right edge.</li>
 <li><strong>Drag the hairline bar above the notes</strong> to resize the notes pane. The slide preview rescales to fit.</li>
 <li><strong>Double-click that bar</strong> to go back to automatic height.</li>
-<li><strong><code>?</code></strong> opens the full reference. The footer has buttons for all three.</li>
+<li><strong><code>?</code></strong> opens the full reference. The footer has buttons for all of these.</li>
 </ul>
 </div>
 
@@ -2290,7 +2290,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
         <dt><kbd>A</kbd></dt><dd>theme: four light accents, two phosphor modes</dd>
         <dt><kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></dt><dd>text size (kept separately for each collapse mode)</dd>
         <dt><kbd>#</kbd></dt><dd>auto-fit: size every slide to the screen, on or off</dd>
-        <dt><kbd>B</kbd></dt><dd>blank the projection – the speaker window keeps working</dd>
+        <dt><kbd>B</kbd></dt><dd>blank the projection – the speaker window keeps working, frozen or not</dd>
         <dt><kbd>Shift</kbd>-any</dt><dd>cycle that knob backwards</dd>
       </dl>
     </section>
@@ -2761,6 +2761,13 @@ window.addEventListener('message', (ev) => {
   }
   if (m.type === 'state') {
     applyRemoteState(m.payload);
+    return;
+  }
+  // Blank travels outside the snapshot so it still lands while frozen.
+  if (m.type === 'blank' && VIEW === 'audience') {
+    state.blanked = !!m.blanked;
+    document.body.classList.toggle('blanked', state.blanked);
+    applyBlankBadge();
     return;
   }
   // A toast the audience handed over because a cockpit is open. Shown
@@ -3737,16 +3744,18 @@ document.addEventListener('keydown', (e) => {
     case 'b': case 'B':
       state.blanked = !state.blanked;
       applyState();
+      // Blanking is a command to the projector, so it outranks the freeze
+      // gate. Without this line, hitting B while frozen would toast
+      // "projection blanked" at a projection that stayed lit – the one
+      // failure that has to not happen, since B is what you reach for when
+      // something must come off the screen now.
+      if (VIEW === 'speaker') {
+        sendToPeer({ type: 'blank', source: VIEW, blanked: state.blanked });
+      }
       flashMode(state.blanked ? 'projection blanked' : 'projection back');
       e.preventDefault(); break;
     case 'p': case 'P':
-      // In the speaker view, Shift-P is the push-to-audience toggle;
-      // plain P still opens the print view in a new tab.
-      if (VIEW === 'speaker' && e.shiftKey && typeof togglePush === 'function') {
-        togglePush();
-      } else {
-        window.open('print.html', '_blank');
-      }
+      window.open('print.html', '_blank');
       e.preventDefault(); break;
     case 'e': case 'E':
       // Shift-E on the speaker copies live annotation drafts to the
@@ -3756,18 +3765,17 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
       }
       break;
-    case '.':
-      if (VIEW === 'speaker' && typeof forcePush === 'function') {
-        forcePush();
-        e.preventDefault();
-      }
-      break;
     case 'v': case 'V':
-      if (VIEW === 'speaker' && typeof togglePreviewOrientation === 'function') {
-        togglePreviewOrientation();
-        e.preventDefault();
+      // V freezes the projection – phonetically close enough to "freeze" to
+      // stick, and F is already the font cycle. Rearranging this window is
+      // the rarer, less urgent act, so it moves to Shift-V.
+      if (VIEW !== 'speaker') break;
+      if (e.shiftKey) {
+        if (typeof togglePreviewOrientation === 'function') togglePreviewOrientation();
+      } else if (typeof toggleFreeze === 'function') {
+        toggleFreeze();
       }
-      break;
+      e.preventDefault(); break;
     case 's': case 'S':
       // Only in audience: open the speaker window and remember it as our peer.
       if (VIEW === 'audience') {

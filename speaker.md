@@ -9,9 +9,8 @@ Short spec for the speaker view and its sync protocol with `audience.html`. Comm
 - `window.postMessage` sync between audience and speaker via the opener relationship (audience spawns speaker via `S`, both windows hold cross-references). Works across `file://` origins where `BroadcastChannel` is isolated by Chrome's per-file opaque-origin policy.
 - Three-panel layout: current-chunk mirror (centered), next-previews (bottom strip, 2-3 upcoming), notes pane (right).
 - Column-level **scrubber** (top or bottom edge): flat list of column headings + chunk-count pips, click jumps. No full chunk thumbnails.
-- **Push-to-audience toggle**: when off, speaker navigates privately; when on (default), speaker nav drives audience.
+- **Freeze toggle** (`V`, or the footer button): when frozen, the room holds the slide it is on while the speaker moves ahead privately; thawing catches the room up. Live by default.
 - **Timer**: elapsed since speaker-page load, `mm:ss`, non-pausable. Resets on reload.
-- **`.` key**: force-push current speaker state to audience (rescue for desync).
 - **`S` from audience** opens `speaker.html` in a new tab.
 - localStorage crash recovery: every 5 s, persist `activeIdx`, `revealed`, `collapse`, `zoom`, `annotations`, elapsed-seconds.
 
@@ -27,9 +26,16 @@ Short spec for the speaker view and its sync protocol with `audience.html`. Comm
 
 ## 2. State ownership and sync
 
-The audience is the **state root**. The speaker owns a **local shadow** of the state, plus a `pushEnabled` flag that governs whether speaker-originated changes are broadcast.
+The audience is the **state root**. The speaker owns a **local shadow** of the state, plus a `frozen` flag that governs whether speaker-originated changes are broadcast.
 
-**State that syncs** (both directions, gated by push):
+`frozen` is the projector's metaphor, not the protocol's. It started life as a `pushEnabled` toggle with a companion `.` key that force-pushed one snapshot – two controls describing what the code does (send a snapshot) rather than what the lecturer wants (hold the image while I read ahead). Inverting and renaming it collapses the pair into one: thawing *is* the resync, because the first thing an ungated broadcast does is hand the room the current state. `toggleFreeze()` therefore sends a snapshot directly on the way out of frozen, or unfreezing on the slide you meant to land on would appear to do nothing.
+
+Two message types deliberately bypass the freeze gate, because both are commands to the projector rather than shared state:
+
+- `blank` – `B` must reach the projection whether or not the cockpit is frozen. It is the key you hit when something has to come off the screen *now*, and a gated `B` would toast “projection blanked” at a projection that stayed lit.
+- `slide-ref` – the audience window's dimensions after a resize (§3).
+
+**State that syncs** (both directions, gated by freeze):
 
 | Field | Kind | Notes |
 |---|---|---|
@@ -148,14 +154,16 @@ Rebroadcast rule: **never** rebroadcast a received state. The sender is the sing
 │   next: [chunk N+1] [N+2] [N+3]        │                     │
 │   (fully revealed, 22% viewport height)│                     │
 └────────────────────────────────────────┴─────────────────────┘
-  00:42 · push ● · wlab01                     [Esc hints]
+  00:42 · [● live] · wlab01                   [Esc hints]
 ```
 
 - **Scrubber**: one `<button>` per column, showing `N. <heading>`. Below it, a row of dots – one per chunk – the active chunk's dot is filled. Click a button to jump to the column's first chunk. Click a dot to jump to that chunk.
 - **Current chunk**: identical rendering to the audience (same `renderAudienceChunk`), same collapse mode, same reveal state. Full chunk frame, scaled to fill the pane.
 - **Next previews**: 3 upcoming chunks (or fewer if near end), each at ~0.25 scale. No expansions, no annotations, no reveal – always fully revealed per PRD §7.
 - **Notes pane**: speaker notes extracted from `> note:` lines in source, per chunk. Drag the hairline bar on its top edge to resize (the stage preview rescales to fit via the `#stage-cell` ResizeObserver); double-click the bar to return to automatic height. The height is persisted per user. The bar names the gesture on hover, because a 2px line is not self-explanatory and “how do I make the notes bigger” turned out to be the question the pane most reliably failed to answer.
-- **Footer**: mm:ss timer, push-on/off indicator, and three buttons that duplicate the key-only cockpit actions – `⇄ preview` (strip orientation, = `V`), `export notes` (= `Shift-E`), `? help` (= `?`) – then the lecture slug and a one-line key crib.
+- **Footer**: mm:ss timer, then four buttons – `● live` / `❄ frozen` (the freeze state *is* the control, = `V`), `⇄ layout` (strip orientation, = `Shift-V`), `export notes` (= `Shift-E`), `? help` (= `?`) – then the lecture slug and a one-line key crib. The freeze state used to be a bare indicator span: a status light with no way to press it is a question with no answer beside it, and it was the one cockpit control with no mouse route at all.
+
+  The floating round `?` button that both live views carry bottom-left is **hidden in the speaker**: the footer already has a labelled `? help`, and the circle sat on top of the timer.
 
 ### 4.1a Help overlay
 
@@ -169,19 +177,18 @@ Speaker inherits audience nav bindings, plus:
 
 | Key | Action |
 |---|---|
-| `←` `→` `↑` `↓` | Same as audience (nav broadcasts via push) |
+| `←` `→` `↑` `↓` | Same as audience (nav broadcasts unless frozen) |
 | `Space` | Advance reveal (broadcasts) |
 | `Enter`, `1`-`9`, `Esc` | Local to speaker, never broadcast (expansions are audience-only) |
 | `N` | **Local**: focuses notes pane; does not open annotation |
 | `C` | Cycle collapse (broadcasts) |
 | `+` `-` `0` | Zoom (broadcasts) |
-| `B` | Blank (broadcasts) |
+| `B` | Blank – broadcasts **ungated**, so it lands while frozen too |
 | `P` | Open print.html in new tab |
-| `.` | **Force-push** current state to audience |
-| `Shift`-`P` | Toggle push-to-audience |
+| `V` | **Freeze / thaw the projection.** Thawing resyncs the room to the speaker |
 | `Shift`-`E` | **Export annotation drafts**: copy every live `annotations[id]` as a marker-wrapped `> annot:` block to the clipboard, then ask before clearing the drafts from localStorage. A declined confirm or blocked clipboard leaves drafts untouched, so the raw notes can always be rescued on a second try. The pasted block is consumed by `node build.js <source.md> --integrate-annotations`, which moves each `> annot:` under its chunk and removes the marker block. |
 | `?` | Toggle the help overlay (§4.1a) – **local** |
-| `V` | Preview strip along the bottom ↔ down the right edge (**local**, persisted) |
+| `Shift`-`V` | Preview strip along the bottom ↔ down the right edge (**local**, persisted). Moved off plain `V`, which now freezes: rearranging this window is the rarer and far less urgent act, and the footer used to label it “preview”, which read as *the preview*, not *where the preview sits* |
 | `T` | Toggle a small TOC overlay (**local**, never broadcast) |
 | `O` | Toggle overview – **broadcasts**, both windows enter and leave together |
 | `/` | Fulltext search inside overview (**local**: the filter highlight is not synced, only the selection it commits to) |
@@ -221,10 +228,10 @@ Chunks can carry a source-authored annotation via `> annot:` blockquotes (see PR
 All confirmed before implementation starts:
 
 - Protocol: **full-state snapshot** per change (§3).
-- Annotations: **live sync** on every keystroke, gated by push.
+- Annotations: **live sync** on every keystroke, gated by freeze.
 - Current-chunk panel: **interactive** – chevron-clicks open expansions and sync to audience.
 - Notes pane: **multi-line Markdown**. Parser collects consecutive `> note:` blockquote lines into `chunk.speakerNotes: string[]`, rendered with `marked`.
-- Push-to-audience default: **ON**. `Shift-P` toggles.
+- Projection default: **live** (not frozen). `V` toggles.
 - Scrubber position: **top strip**.
 - Reload behavior: **audience-first**. Speaker `hello`-pings on boot; if reply within ~500 ms, apply that state. Otherwise fall back to localStorage.
 
@@ -233,7 +240,7 @@ All confirmed before implementation starts:
 1. Parser: add `chunk.speakerNotes: string[]`; audience/print behavior unchanged (they never read it).
 2. `renderSpeaker(lecture)` + SPEAKER_CSS + SPEAKER_JS: static layout first, no sync. Just renders correctly with dummy local state.
 3. `window.postMessage` wiring on **both** outputs (peer adoption from inbound messages; audience stashes the spawn return value, speaker uses `window.opener`). Audience sends state; speaker receives + applies. Hello/reply handshake.
-4. Speaker → audience direction. Push-toggle. `.` force-push.
+4. Speaker → audience direction. Freeze toggle (originally a push toggle plus a `.` force-push; see §2).
 5. Timer + crash-recovery localStorage.
-6. Smoke test: open both tabs, nav in audience, verify speaker mirrors. Nav in speaker, verify audience mirrors. Toggle push, verify desync + resync.
+6. Smoke test: open both tabs, nav in audience, verify speaker mirrors. Nav in speaker, verify audience mirrors. Freeze, verify the room holds while the speaker moves; thaw, verify the room catches up; `B` while frozen, verify the projection still blanks.
 7. Commit.

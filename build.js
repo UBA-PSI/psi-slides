@@ -1782,13 +1782,13 @@ function renderHelpOverlay(view) {
       ['<kbd>A</kbd>', 'theme: four light accents, two phosphor modes'],
       ['<kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'text size (kept separately for each collapse mode)'],
       ['<kbd>#</kbd>', 'auto-fit: size every slide to the screen, on or off'],
-      ['<kbd>B</kbd>', 'blank the projection – the speaker window keeps working'],
+      ['<kbd>B</kbd>', 'blank the projection – the speaker window keeps working, frozen or not'],
       ['<kbd>Shift</kbd>-any', 'cycle that knob backwards'],
     ]],
   ];
   const speakerOnly = [
     ['Arranging this window', [
-      ['<kbd>V</kbd>', 'preview strip: along the bottom ↔ down the right edge'],
+      ['<kbd>Shift</kbd>-<kbd>V</kbd>', 'preview strip: along the bottom ↔ down the right edge'],
       ['drag the bar above the notes', 'resize the notes pane; the slide preview rescales to fit'],
       ['double-click that bar', 'back to automatic height'],
       ['drag the preview strip', 'scroll it · click a thumbnail to jump'],
@@ -1800,8 +1800,8 @@ function renderHelpOverlay(view) {
       ['<kbd>Esc</kbd> in a note', 'back to the slide, so the arrows work again'],
     ]],
     ['The projector', [
-      ['<kbd>Shift</kbd>-<kbd>P</kbd>', 'push on / off – off lets you look ahead privately'],
-      ['<kbd>.</kbd>', 'force one push, even with push off (after a reload)'],
+      ['<kbd>V</kbd>', 'freeze the projection – the room holds this slide while you move on'],
+      ['<kbd>V</kbd> again', 'live again, and the room catches up to where you are now'],
       ['move the mouse over the stage', 'laser pointer on the projector'],
     ]],
   ];
@@ -3636,6 +3636,13 @@ window.addEventListener('message', (ev) => {
     applyRemoteState(m.payload);
     return;
   }
+  // Blank travels outside the snapshot so it still lands while frozen.
+  if (m.type === 'blank' && VIEW === 'audience') {
+    state.blanked = !!m.blanked;
+    document.body.classList.toggle('blanked', state.blanked);
+    applyBlankBadge();
+    return;
+  }
   // A toast the audience handed over because a cockpit is open. Shown
   // directly rather than via flashMode, which would bounce it back.
   if (m.type === 'toast') {
@@ -4610,16 +4617,18 @@ document.addEventListener('keydown', (e) => {
     case 'b': case 'B':
       state.blanked = !state.blanked;
       applyState();
+      // Blanking is a command to the projector, so it outranks the freeze
+      // gate. Without this line, hitting B while frozen would toast
+      // "projection blanked" at a projection that stayed lit – the one
+      // failure that has to not happen, since B is what you reach for when
+      // something must come off the screen now.
+      if (VIEW === 'speaker') {
+        sendToPeer({ type: 'blank', source: VIEW, blanked: state.blanked });
+      }
       flashMode(state.blanked ? 'projection blanked' : 'projection back');
       e.preventDefault(); break;
     case 'p': case 'P':
-      // In the speaker view, Shift-P is the push-to-audience toggle;
-      // plain P still opens the print view in a new tab.
-      if (VIEW === 'speaker' && e.shiftKey && typeof togglePush === 'function') {
-        togglePush();
-      } else {
-        window.open('print.html', '_blank');
-      }
+      window.open('print.html', '_blank');
       e.preventDefault(); break;
     case 'e': case 'E':
       // Shift-E on the speaker copies live annotation drafts to the
@@ -4629,18 +4638,17 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
       }
       break;
-    case '.':
-      if (VIEW === 'speaker' && typeof forcePush === 'function') {
-        forcePush();
-        e.preventDefault();
-      }
-      break;
     case 'v': case 'V':
-      if (VIEW === 'speaker' && typeof togglePreviewOrientation === 'function') {
-        togglePreviewOrientation();
-        e.preventDefault();
+      // V freezes the projection – phonetically close enough to "freeze" to
+      // stick, and F is already the font cycle. Rearranging this window is
+      // the rarer, less urgent act, so it moves to Shift-V.
+      if (VIEW !== 'speaker') break;
+      if (e.shiftKey) {
+        if (typeof togglePreviewOrientation === 'function') togglePreviewOrientation();
+      } else if (typeof toggleFreeze === 'function') {
+        toggleFreeze();
       }
-      break;
+      e.preventDefault(); break;
     case 's': case 'S':
       // Only in audience: open the speaker window and remember it as our peer.
       if (VIEW === 'audience') {
@@ -4983,13 +4991,13 @@ ${columnsHtml}
 <div id="figure-overlay" aria-hidden="true"></div>
 <footer id="speaker-footer">
   <span id="timer">00:00</span>
-  <span id="push-indicator" class="push-on">push ●</span>
-  <button id="preview-orient-btn" type="button" title="Preview strip: along the bottom or down the right edge (V)">⇄ preview</button>
+  <button id="freeze-btn" type="button" aria-pressed="false">● live</button>
+  <button id="preview-orient-btn" type="button" title="Preview strip: along the bottom or down the right edge (Shift-V)">⇄ layout</button>
   <button id="export-annot-btn" type="button" title="Copy live annotations as &gt; annot: Markdown (Shift-E)">export notes</button>
   <button id="speaker-help-btn" type="button" title="Keyboard and mouse reference (?)">? help</button>
   <span id="slug">${escapeHtml(slug)}</span>
   <span class="spacer"></span>
-  <span class="kbd-hint"><kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export &nbsp; <kbd>V</kbd> preview &nbsp; <kbd>Shift</kbd>-<kbd>P</kbd> push &nbsp; <kbd>.</kbd> force &nbsp; <kbd>?</kbd> all</span>
+  <span class="kbd-hint"><kbd>V</kbd> freeze &nbsp; <kbd>B</kbd> blank &nbsp; <kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export</span>
 </footer>
 <div id="note-templates">
 ${noteTemplates.join('\n')}
@@ -5287,13 +5295,27 @@ body[data-view=speaker].notes-sized #notes-content {
   font-family: var(--mono-font);
   color: var(--ink);
 }
-#speaker-footer #push-indicator {
+/* Freeze state, and the control for it – one element, because a status light
+   you cannot press is a question with no answer next to it. */
+#speaker-footer #freeze-btn {
+  font: inherit;
   font-variant-caps: all-small-caps;
   letter-spacing: 0.14em;
   font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 3px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: oklch(0.55 0.16 150);
 }
-#speaker-footer #push-indicator.push-on  { color: oklch(0.55 0.16 150); }
-#speaker-footer #push-indicator.push-off { color: var(--ink-soft); opacity: 0.55; }
+#speaker-footer #freeze-btn:hover { border-color: var(--rule); background: oklch(0.97 0 0); }
+#speaker-footer #freeze-btn.is-frozen {
+  color: oklch(0.99 0 0);
+  background: oklch(0.55 0.15 250);
+  border-color: oklch(0.48 0.15 250);
+}
+#speaker-footer #freeze-btn.is-frozen:hover { background: oklch(0.50 0.15 250); }
 #speaker-footer #slug { color: var(--ink-soft); font-style: italic; }
 #speaker-footer .spacer { flex: 1; }
 #speaker-footer .kbd-hint { font-size: 10px; opacity: 0.7; }
@@ -5305,6 +5327,7 @@ body[data-view=speaker].notes-sized #notes-content {
 #speaker-footer #preview-orient-btn,
 #speaker-footer #speaker-help-btn {
   font: inherit;
+  white-space: nowrap;
   padding: 2px 8px;
   border: 1px solid var(--rule);
   border-radius: 3px;
@@ -5533,7 +5556,7 @@ const notesPane = document.getElementById('notes-pane');
 const previewStrip = document.getElementById('preview-strip');
 const scrubberEl = document.getElementById('scrubber');
 const timerEl = document.getElementById('timer');
-const pushIndicator = document.getElementById('push-indicator');
+const freezeBtn = document.getElementById('freeze-btn');
 const stageCell = document.getElementById('stage-cell');
 
 // Compute --stage-scale so the audience-sized slide (slide-w × slide-h)
@@ -5560,21 +5583,37 @@ try {
 window.addEventListener('resize', sizeStageViewport);
 requestAnimationFrame(sizeStageViewport);
 
-let pushEnabled = true;
-viewHooks.shouldBroadcast = () => pushEnabled;
-function togglePush() {
-  pushEnabled = !pushEnabled;
-  pushIndicator.classList.toggle('push-on', pushEnabled);
-  pushIndicator.classList.toggle('push-off', !pushEnabled);
-  pushIndicator.textContent = pushEnabled ? 'push ●' : 'push ○';
-  flashMode(pushEnabled ? 'push on' : 'push off');
+// Freeze: the projector metaphor, not the plumbing one. This used to be a
+// "push" toggle plus a separate "force one push" key, which described what
+// the code does (send a snapshot) rather than what the lecturer wants (hold
+// the image while I look ahead). Inverted and renamed, the second key
+// disappears: thawing *is* the resync, because the first thing an ungated
+// broadcast does is hand the room our current state.
+let frozen = false;
+viewHooks.shouldBroadcast = () => !frozen;
+function applyFreezeIndicator() {
+  freezeBtn.classList.toggle('is-frozen', frozen);
+  freezeBtn.textContent = frozen ? '❄ frozen' : '● live';
+  freezeBtn.setAttribute('aria-pressed', frozen ? 'true' : 'false');
+  freezeBtn.title = frozen
+    ? 'The room is holding one slide while you move on. Click or press V to catch it up.'
+    : 'The room follows this window. Click or press V to freeze the projection.';
 }
-function forcePush() {
-  // Bypass the push gate with a direct send.
-  if (isApplyingRemote) return;
-  sendToPeer({ type: 'state', source: VIEW, payload: snapshot() });
-  flashMode('force push');
+function toggleFreeze() {
+  frozen = !frozen;
+  applyFreezeIndicator();
+  // Thawing has to push immediately. Without this the room keeps the frozen
+  // slide until the next navigation, so unfreezing on the slide you want to
+  // land on would look like it did nothing at all.
+  if (!frozen && !isApplyingRemote) {
+    sendToPeer({ type: 'state', source: VIEW, payload: snapshot() });
+  }
+  flashMode(frozen
+    ? 'projection frozen · the room holds this slide'
+    : 'projection live · the room follows again');
 }
+applyFreezeIndicator();
+freezeBtn.addEventListener('click', toggleFreeze);
 
 // Export live annotation drafts as Markdown. Copies to clipboard first,
 // then asks for explicit confirmation before clearing the draft buffer —
@@ -6124,7 +6163,7 @@ function togglePreviewOrientation() {
   const next = document.body.classList.contains('preview-right') ? 'bottom' : 'right';
   applyPreviewOrientation(next);
   try { localStorage.setItem(PREVIEW_ORIENTATION_KEY, next); } catch (e) {}
-  flashMode('preview · ' + next);
+  flashMode('viewer layout · preview ' + (next === 'right' ? 'down the right edge' : 'along the bottom'));
   populatePreviewStrip();
 }
 document.getElementById('preview-orient-btn')?.addEventListener('click', togglePreviewOrientation);
