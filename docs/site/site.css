@@ -1,0 +1,217 @@
+/*
+ * Shared stylesheet for the project site: the hand-written landing page and
+ * every page build-site.js renders out of Markdown.
+ *
+ * Both typefaces are served from this origin. A Google Fonts <link> would
+ * have been one line, but it also tells a third party who reads the page of
+ * a tool whose whole point is that its output fetches nothing at run time.
+ *
+ * Inter Tight is copied out of node_modules at build time (variable weight
+ * axis, latin subset). Iosevka is checked in under fonts/, subset to the
+ * characters this site actually sets: the published latin cut is 961 KB
+ * because it carries Iosevka's full variant and ligature inventory, and
+ * nine tenths of that never reaches a code snippet on a web page.
+ */
+
+@font-face {
+  font-family: 'Inter Tight Var';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('fonts/inter-tight-latin-wght-normal.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Inter Tight Var';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('fonts/inter-tight-latin-wght-italic.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Iosevka Web';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('fonts/iosevka-subset-400.woff2') format('woff2');
+}
+
+/*
+ * Inter Tight: SIL OFL 1.1, Copyright The Inter Project Authors.
+ * Iosevka: SIL OFL 1.1, Copyright Renzhi Li (aka. Belleve Invis).
+ * Full licence texts: fonts/iosevka-OFL.txt and the packages they ship in.
+ */
+
+:root {
+  --paper: oklch(0.98 0.00 0);
+  --ink: oklch(0.20 0.01 260);
+  --ink-soft: oklch(0.48 0.01 260);
+  --accent: oklch(0.42 0.13 25);
+  --rule: oklch(0.88 0.01 260);
+  --frame: oklch(0.93 0.01 260);
+  --shot-bg: oklch(0.95 0.005 260);
+  --sans: 'Inter Tight Var', 'Inter Tight', system-ui, -apple-system, sans-serif;
+  --mono: 'Iosevka Web', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: oklch(0.18 0.01 260);
+    --ink: oklch(0.92 0.01 260);
+    --ink-soft: oklch(0.68 0.01 260);
+    --accent: oklch(0.74 0.12 25);
+    --rule: oklch(0.32 0.01 260);
+    --frame: oklch(0.28 0.01 260);
+    --shot-bg: oklch(0.24 0.01 260);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 20px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+main { max-width: 48rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
+
+nav.top {
+  font-size: 0.9rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+nav.top a { color: var(--ink-soft); text-decoration: none; margin-right: 1.4rem; }
+nav.top a:hover { color: var(--accent); }
+
+h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -0.02em; }
+.tagline, .lead { color: var(--ink-soft); margin: 0 0 3rem; font-size: 1.1rem; }
+
+/*
+ * Section headings carry the page. The first draft set them as small grey
+ * uppercase eyebrows, which left the screenshots and the running text at
+ * roughly the same visual weight and made the page hard to scan.
+ */
+h2 {
+  font-size: 1.6rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin: 4rem 0 1.2rem;
+  padding-top: 1.1rem;
+  border-top: 2px solid var(--ink);
+}
+h3 { font-size: 1.15rem; font-weight: 650; margin: 2.2rem 0 0.5rem; }
+
+a { color: var(--accent); }
+p, li { max-width: 40rem; }
+
+code { font-family: var(--mono); font-size: 0.86em; }
+pre {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  background: var(--shot-bg);
+  border: 1px solid var(--rule);
+  padding: 1rem 1.1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+pre code { font-size: inherit; }
+
+kbd {
+  font-family: var(--mono);
+  font-size: 0.82em;
+  border: 1px solid var(--rule);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0.05em 0.35em;
+  background: var(--paper);
+}
+
+blockquote {
+  margin: 1.4rem 0;
+  padding-left: 1.1rem;
+  border-left: 2px solid var(--rule);
+  color: var(--ink-soft);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9rem;
+  display: block;
+  overflow-x: auto;
+}
+th, td { border-bottom: 1px solid var(--rule); padding: 0.5rem 0.6rem; text-align: left; vertical-align: top; }
+th { font-weight: 650; color: var(--ink-soft); }
+
+hr { border: 0; border-top: 1px solid var(--rule); margin: 2.6rem 0; }
+/* A Markdown file that separates its sections with --- would otherwise draw
+   a thin rule directly above the heading's heavy one. */
+hr + h2 { border-top: 0; padding-top: 0; margin-top: 1.6rem; }
+
+/*
+ * Screenshots. The point of the frame is that a reader can tell at a glance
+ * which pixels are the tool and which are this page: without it the shots
+ * read as more page, and the layout stops parsing.
+ */
+figure.shot {
+  margin: 0 0 2rem;
+  border: 1px solid var(--frame);
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--shot-bg);
+}
+figure.shot .bar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  background: var(--frame);
+  border-bottom: 1px solid var(--rule);
+}
+figure.shot .bar b { font-weight: 400; color: var(--ink); }
+figure.shot .dots { display: flex; gap: 0.3rem; }
+figure.shot .dots i {
+  width: 0.56rem; height: 0.56rem; border-radius: 50%;
+  background: var(--rule); display: block;
+}
+figure.shot img { width: 100%; height: auto; display: block; background: var(--paper); }
+figure.shot figcaption {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  padding: 0.7rem 0.85rem 0.85rem;
+  max-width: none;
+}
+figure.shot figcaption strong { color: var(--ink); font-weight: 650; }
+
+.pair { display: grid; gap: 1.2rem; grid-template-columns: 1fr 1fr; margin-bottom: 2rem; }
+.pair figure.shot { margin-bottom: 0; }
+@media (max-width: 46rem) { .pair { grid-template-columns: 1fr; } }
+
+.hint {
+  background: var(--shot-bg);
+  border-left: 3px solid var(--accent);
+  padding: 1rem 1.2rem;
+  font-size: 0.95rem;
+  margin: 2rem 0 0;
+}
+.hint p { margin: 0; max-width: none; }
+
+p.tiny { font-size: 0.9rem; color: var(--ink-soft); }
+
+footer {
+  margin-top: 4rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+footer p { max-width: none; }

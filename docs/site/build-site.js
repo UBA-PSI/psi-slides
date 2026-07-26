@@ -91,46 +91,7 @@ const SHELL = (title, lead, body) => `<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title} – psi-slides</title>
-<style>
-:root {
-  --ink: #1f1f24; --ink-soft: #62626a; --paper: #fbfbf8;
-  --rule: #d9d9d2; --emph: #8b2e00;
-  --serif: 'Source Serif 4', Georgia, serif;
-  --sans: 'Inter Tight', Inter, system-ui, -apple-system, sans-serif;
-  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ink: #ececef; --ink-soft: #a2a2ac; --paper: #16161a;
-    --rule: #35353d; --emph: #ff9b6a;
-  }
-}
-* { box-sizing: border-box; }
-html { font-family: var(--serif); color: var(--ink); background: var(--paper); line-height: 1.62; }
-body { margin: 0; }
-main { max-width: 46rem; margin: 0 auto; padding: 2.5rem 1.25rem 6rem; }
-nav.top { font-family: var(--sans); font-size: 0.86rem; padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--rule); }
-nav.top a { color: var(--ink-soft); text-decoration: none; margin-right: 1.2rem; }
-nav.top a:hover { color: var(--emph); }
-h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 0.3rem; letter-spacing: -0.01em; }
-.lead { font-family: var(--sans); color: var(--ink-soft); margin: 0 0 2.2rem; }
-h2 { font-size: 1.35rem; margin: 2.6rem 0 0.6rem; letter-spacing: -0.01em; }
-h3 { font-size: 1.08rem; margin: 1.8rem 0 0.4rem; }
-p, li { hyphens: auto; }
-a { color: var(--emph); }
-code { font-family: var(--mono); font-size: 0.88em; }
-pre { font-family: var(--mono); font-size: 0.8rem; line-height: 1.5; background: rgba(127,127,127,0.09);
-  padding: 0.8rem 1rem; border-radius: 3px; overflow-x: auto; }
-pre code { font-size: inherit; }
-blockquote { margin: 1.2rem 0; padding-left: 1rem; border-left: 2px solid var(--rule); color: var(--ink-soft); }
-table { border-collapse: collapse; width: 100%; font-size: 0.86rem; display: block; overflow-x: auto; }
-th, td { border: 1px solid var(--rule); padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
-th { font-family: var(--sans); font-weight: 600; }
-hr { border: 0; border-top: 1px solid var(--rule); margin: 2.4rem 0; }
-footer { font-family: var(--sans); font-size: 0.8rem; color: var(--ink-soft);
-  border-top: 1px solid var(--rule); margin-top: 3rem; padding-top: 1rem; }
-</style>
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
 <nav class="top">
@@ -152,6 +113,32 @@ ${body}
 </html>
 `;
 
+// The two typefaces site.css asks for, gathered into one folder next to the
+// pages. Inter Tight comes out of node_modules, the same packages build.js
+// embeds into lectures, so a font upgrade lands here without a second step.
+// Iosevka is checked in already subset (see docs/site/fonts/): its published
+// latin cut is 961 KB, nearly all of it variants a web page never sets.
+// A missing file is a hard error – silently shipping a page whose @font-face
+// 404s is exactly the fallback-to-system-font failure this avoids.
+function copyFonts(outDir) {
+  const sources = [
+    path.join(ROOT, 'node_modules/@fontsource-variable/inter-tight/files/inter-tight-latin-wght-normal.woff2'),
+    path.join(ROOT, 'node_modules/@fontsource-variable/inter-tight/files/inter-tight-latin-wght-italic.woff2'),
+    path.join(HERE, 'fonts', 'iosevka-subset-400.woff2'),
+    path.join(HERE, 'fonts', 'iosevka-OFL.txt'),
+  ];
+  fs.mkdirSync(outDir, { recursive: true });
+  let bytes = 0;
+  for (const src of sources) {
+    if (!fs.existsSync(src)) {
+      throw new Error(`site font missing: ${src}\nRun npm install first.`);
+    }
+    fs.copyFileSync(src, path.join(outDir, path.basename(src)));
+    bytes += fs.statSync(src).size;
+  }
+  console.log(`  fonts -> fonts/ (${sources.length} files, ${Math.round(bytes / 1024)} KB)`);
+}
+
 function main() {
   const outDir = process.argv[2];
   if (!outDir) {
@@ -160,6 +147,7 @@ function main() {
   }
   fs.mkdirSync(outDir, { recursive: true });
   fs.copyFileSync(path.join(HERE, 'index.html'), path.join(outDir, 'index.html'));
+  fs.copyFileSync(path.join(HERE, 'site.css'), path.join(outDir, 'site.css'));
   // Screenshots the landing page shows. Copied rather than referenced out of
   // the repo, because the deployed site only has what lands in outDir.
   const img = path.join(HERE, 'img');
@@ -167,6 +155,7 @@ function main() {
     fs.cpSync(img, path.join(outDir, 'img'), { recursive: true });
     console.log(`  docs/site/img -> img/ (${fs.readdirSync(img).length} files)`);
   }
+  copyFonts(path.join(outDir, 'fonts'));
 
   for (const page of PAGES) {
     const abs = path.join(ROOT, page.src);
