@@ -73,6 +73,20 @@ body[data-theme=light-teal]   { --emph: oklch(0.52 0.12 195); }
 body[data-theme=light-blue]   { --emph: oklch(0.48 0.18 250); }
 body[data-theme=light-orange] { --emph: oklch(0.58 0.17 60);  }
 
+/* Neutral dark mode – grey paper, white ink, the light-red accent lifted
+   until it carries on a dark ground. Distinct from the terminal modes on
+   purpose: those are a single phosphor tone with code colour suppressed,
+   this one is an ordinary reading theme that happens to be dark, so syntax
+   highlighting and the accent keep working. */
+body[data-theme=dark] {
+  --paper:      oklch(0.17 0.005 260);
+  --paper-warm: oklch(0.22 0.008 260);
+  --ink:        oklch(0.95 0 0);
+  --ink-soft:   oklch(0.68 0.01 260);
+  --rule:       oklch(0.38 0.01 260);
+  --emph:       oklch(0.76 0.15 35);
+}
+
 /* Terminal modes – black paper, amber or phosphor-green ink.
    Dim opacity stays via --dim, shiki colors get suppressed (see below)
    so the whole slide reads as a single foreground color. */
@@ -113,6 +127,23 @@ body[data-theme^=terminal] .exp-body code { color: var(--emph); }
    still reads as a frame in terminal mode. */
 body[data-theme^=terminal] .chunk.expanded .exp-body.on { background: var(--paper-warm); }
 body[data-theme^=terminal] #stage-viewport { background: var(--paper); }
+body[data-mode=dark] #stage-viewport { background: var(--paper); }
+
+/* ── Dark chrome ─────────────────────────────────────────────────
+   The panels around the slide were written against paper: fixed
+   near-white backgrounds for the help sheet, the TOC, search, and the
+   cockpit footer. Keyed on data-mode rather than on the theme name, so
+   the terminal modes inherit the fix – they had exactly the same problem
+   and only the help-sheet kbd had ever been patched. */
+body[data-mode=dark] #help-inner kbd { background: var(--paper-warm); color: var(--ink); }
+body[data-mode=dark] #help-button {
+  background: oklch(from var(--paper) calc(l + 0.08) c h / 0.85);
+  color: var(--ink-soft);
+}
+body[data-mode=dark] nav#toc,
+body[data-mode=dark] #search-panel {
+  background: oklch(from var(--paper) calc(l + 0.04) c h / 0.97);
+}
 
 * { box-sizing: border-box; }
 html, body {
@@ -1386,7 +1417,20 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </style>
 
 </head>
-<body data-collapse="topic-bold" data-font="serif" data-theme="light-red" data-slide-nums="vertical">
+<body data-collapse="topic-bold" data-font="serif" data-theme="light-red" data-mode="light" data-slide-nums="vertical">
+<script>
+(function () {
+  var names = ["light-red","light-teal","light-blue","light-orange","dark","terminal-amber","terminal-green"];
+  var dark = ["dark","terminal-amber","terminal-green"];
+  var d = document.body.dataset;
+  var set = function (t) { d.theme = t; d.mode = dark.indexOf(t) >= 0 ? 'dark' : 'light'; };
+  try {
+    var stored = localStorage.getItem('psi-slides:theme');
+    if (stored && names.indexOf(stored) >= 0) { set(stored); return; }
+  } catch (e) {}
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) set('dark');
+})();
+</script>
 <div id="stage-viewport">
   <div id="stage">
 <section class="column" data-col="0">
@@ -1950,12 +1994,13 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 <ul>
 <li><code>C</code> toggles <strong>collapse</strong>: what the room sees, or the full text.</li>
 <li><code>F</code> cycles <strong>font</strong>: serif → sans → mono, for projector legibility.</li>
-<li><code>A</code> cycles <strong>accent theme</strong>: four light shades plus two terminal phosphor modes.</li>
+<li><code>A</code> cycles <strong>theme</strong>: four light accents, a neutral dark mode, and two terminal phosphor modes.</li>
 <li><code>+</code> <code>-</code> <code>0</code> set the <strong>text size</strong>; <code>#</code> hands that job to the tool.</li>
 <li><code>B</code> <strong>blanks the projection</strong> – and only the projection.</li>
 <li><code>L</code> cycles the <strong>slide numbers</strong>: stacked, in a row, or off.</li>
 </ul>
 <p><code>Shift</code> plus any of the cycling keys goes backwards. Font, theme and slide numbers are stored globally rather than per lecture, so the preference follows you; zoom and collapse belong to the talk.</p>
+<p><strong>The dark mode follows your system by default.</strong> If you have never pressed <code>A</code> and the lecture does not pin a theme, a machine set to dark mode opens the deck dark. Press <code>A</code> once and your choice is remembered from then on, on every lecture. An author who pins <code>theme:</code> in the frontmatter overrides both – the same one-sentence rule as the other viewer defaults.</p>
 <p><strong>The two collapse modes keep separate zoom levels.</strong> The collapsed slide holds whatever size you set with <code>+</code> and <code>-</code> – that is the projector setting, and nothing changes it behind your back. Switching to the full text picks its own zoom so the whole chunk fits the screen, and switching back restores yours exactly. Without that, every <code>C</code> was followed by a row of <code>-</code> presses and every <code>C</code> back by a row of <code>+</code> presses.</p>
 <p><strong><code>#</code> turns on auto-fit</strong> and every slide is then sized to the screen as you arrive on it, in either collapse mode – growing a short chunk as readily as shrinking a long one. <code>#</code> again hands the zoom back to you. It is the right mode for a lecture whose chunks vary a lot in length, and the wrong one if you want a constant type size in the room.</p>
 <p><strong><code>L</code> decides how the slide number is set.</strong> The stacked digits in the corner are a deliberate look and not to everyone&#39;s taste, so they are a setting rather than a decision the tool makes for you: stacked, laid out in a row, or gone entirely.</p>
@@ -2422,7 +2467,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
       <dl>
         <dt><kbd>C</kbd></dt><dd>collapse: what the room sees ↔ the full text</dd>
         <dt><kbd>F</kbd></dt><dd>font: serif → sans → mono</dd>
-        <dt><kbd>A</kbd></dt><dd>theme: four light accents, two phosphor modes</dd>
+        <dt><kbd>A</kbd></dt><dd>theme: four light accents, a neutral dark, two phosphor modes</dd>
         <dt><kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></dt><dd>text size, and zero resets it (kept separately for each collapse mode)</dd>
         <dt><kbd>#</kbd></dt><dd>auto-fit: size every slide to the screen, on or off</dd>
         <dt><kbd>L</kbd></dt><dd>slide numbers: stacked → in a row → off</dd>
@@ -2590,10 +2635,8 @@ const state = {
 };
 const FONT_CYCLE = ['serif', 'sans', 'mono'];
 const SLIDE_NUM_MODES = ['vertical', 'horizontal', 'off'];
-const THEME_CYCLE = [
-  'light-red', 'light-teal', 'light-blue', 'light-orange',
-  'terminal-amber', 'terminal-green',
-];
+const THEME_CYCLE = ["light-red","light-teal","light-blue","light-orange","dark","terminal-amber","terminal-green"];
+const DARK_THEMES = ["dark","terminal-amber","terminal-green"];
 let openExp = null;            // { chunkIdx, expIdx } | null
 let annotEditingId = null;
 let annotations = {};          // chunkId -> text
@@ -2668,10 +2711,15 @@ function loadPersisted() {
     const f = localStorage.getItem('psi-slides:font');
     if (!VIEW_DEFAULTS.font && f && FONT_CYCLE.includes(f)) state.font = f;
   } catch (e) {}
-  try {
-    const t = localStorage.getItem('psi-slides:theme');
-    if (!VIEW_DEFAULTS.theme && t && THEME_CYCLE.includes(t)) state.theme = t;
-  } catch (e) {}
+  // Theme is resolved before first paint by the boot script at the top of
+  // <body> – stored preference, else the operating system's. Read its answer
+  // back rather than duplicating that precedence here and risking the two
+  // disagreeing. When the frontmatter pinned the theme no script was emitted
+  // and the attribute already carries the author's choice.
+  if (!VIEW_DEFAULTS.theme) {
+    const booted = document.body.dataset.theme;
+    if (booted && THEME_CYCLE.includes(booted)) state.theme = booted;
+  }
   try {
     const n = localStorage.getItem('psi-slides:slide-nums');
     if (!VIEW_DEFAULTS.slideNums && n && SLIDE_NUM_MODES.includes(n)) state.slideNums = n;
@@ -2686,6 +2734,9 @@ function saveActive() {
 function applyFontTheme() {
   document.body.dataset.font = state.font;
   document.body.dataset.theme = state.theme;
+  // Chrome around the slide keys off this rather than off each theme name,
+  // so a new dark theme needs no new selectors.
+  document.body.dataset.mode = DARK_THEMES.includes(state.theme) ? 'dark' : 'light';
   document.body.dataset.slideNums = state.slideNums;
 }
 function cycleSlideNums(dir) {

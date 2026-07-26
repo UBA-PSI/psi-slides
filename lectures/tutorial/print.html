@@ -816,12 +816,13 @@ pre.shiki .line { display: inline; }
 <ul>
 <li><code>C</code> toggles <strong>collapse</strong>: what the room sees, or the full text.</li>
 <li><code>F</code> cycles <strong>font</strong>: serif → sans → mono, for projector legibility.</li>
-<li><code>A</code> cycles <strong>accent theme</strong>: four light shades plus two terminal phosphor modes.</li>
+<li><code>A</code> cycles <strong>theme</strong>: four light accents, a neutral dark mode, and two terminal phosphor modes.</li>
 <li><code>+</code> <code>-</code> <code>0</code> set the <strong>text size</strong>; <code>#</code> hands that job to the tool.</li>
 <li><code>B</code> <strong>blanks the projection</strong> – and only the projection.</li>
 <li><code>L</code> cycles the <strong>slide numbers</strong>: stacked, in a row, or off.</li>
 </ul>
 <p><code>Shift</code> plus any of the cycling keys goes backwards. Font, theme and slide numbers are stored globally rather than per lecture, so the preference follows you; zoom and collapse belong to the talk.</p>
+<p><strong>The dark mode follows your system by default.</strong> If you have never pressed <code>A</code> and the lecture does not pin a theme, a machine set to dark mode opens the deck dark. Press <code>A</code> once and your choice is remembered from then on, on every lecture. An author who pins <code>theme:</code> in the frontmatter overrides both – the same one-sentence rule as the other viewer defaults.</p>
 <p><strong>The two collapse modes keep separate zoom levels.</strong> The collapsed slide holds whatever size you set with <code>+</code> and <code>-</code> – that is the projector setting, and nothing changes it behind your back. Switching to the full text picks its own zoom so the whole chunk fits the screen, and switching back restores yours exactly. Without that, every <code>C</code> was followed by a row of <code>-</code> presses and every <code>C</code> back by a row of <code>+</code> presses.</p>
 <p><strong><code>#</code> turns on auto-fit</strong> and every slide is then sized to the screen as you arrive on it, in either collapse mode – growing a short chunk as readily as shrinking a long one. <code>#</code> again hands the zoom back to you. It is the right mode for a lecture whose chunks vary a lot in length, and the wrong one if you want a constant type size in the room.</p>
 <p><strong><code>L</code> decides how the slide number is set.</strong> The stacked digits in the corner are a deliberate look and not to everyone&#39;s taste, so they are a setting rather than a decision the tool makes for you: stacked, laid out in a row, or gone entirely.</p>

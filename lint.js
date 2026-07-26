@@ -39,7 +39,7 @@ const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
 // zero-dep reader can see without a YAML parser.
 const VIEW_DEFAULTS = {
   'font': ['serif', 'sans', 'mono'],
-  'theme': ['light-red', 'light-teal', 'light-blue', 'light-orange', 'terminal-amber', 'terminal-green'],
+  'theme': ['light-red', 'light-teal', 'light-blue', 'light-orange', 'dark', 'terminal-amber', 'terminal-green'],
   'collapse': ['topic-bold', 'none'],
   'auto-fit': ['true', 'false'],
   'slide-numbers': ['vertical', 'horizontal', 'off'],

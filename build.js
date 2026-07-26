@@ -1193,9 +1193,20 @@ function lectureTitle(frontmatter) {
 // unchanged for the lectures that say nothing (font and theme keep
 // following the reader across lectures), and an author who has designed a
 // particular look gets it without having to ask the reader to press keys.
+// Theme names in cycle order (hotkey A). One source of truth: the runtime's
+// THEME_CYCLE, the frontmatter validator and the pre-paint boot script are
+// all interpolated from here, so adding a theme is a one-line change.
+const THEME_NAMES = [
+  'light-red', 'light-teal', 'light-blue', 'light-orange',
+  'dark', 'terminal-amber', 'terminal-green',
+];
+// Which of them want dark chrome. Drives body[data-mode], which the surface
+// overrides key off – see the dark-surfaces block in AUDIENCE_CSS.
+const DARK_THEME_NAMES = ['dark', 'terminal-amber', 'terminal-green'];
+
 const VIEW_DEFAULT_SPEC = [
   ['font',          'font',      ['serif', 'sans', 'mono']],
-  ['theme',         'theme',     ['light-red', 'light-teal', 'light-blue', 'light-orange', 'terminal-amber', 'terminal-green']],
+  ['theme',         'theme',     THEME_NAMES],
   ['collapse',      'collapse',  ['topic-bold', 'none']],
   ['auto-fit',      'autoFit',   ['true', 'false']],
   ['slide-numbers', 'slideNums', ['vertical', 'horizontal', 'off']],
@@ -1224,14 +1235,43 @@ function viewDefaults(frontmatter = {}) {
 // author's font and theme. applyFontTheme() would correct them at boot, but
 // only after a visible flash of the built-in defaults.
 function viewBodyAttrs(defaults, extra = '') {
+  const theme = defaults.theme || 'light-red';
   const parts = [
     `data-collapse="${defaults.collapse || 'topic-bold'}"`,
     extra,
     `data-font="${defaults.font || 'serif'}"`,
-    `data-theme="${defaults.theme || 'light-red'}"`,
+    `data-theme="${theme}"`,
+    `data-mode="${DARK_THEME_NAMES.includes(theme) ? 'dark' : 'light'}"`,
     `data-slide-nums="${defaults.slideNums || 'vertical'}"`,
   ].filter(Boolean);
   return parts.join(' ');
+}
+
+// Resolve the theme before the first paint. Without this, a reader whose
+// system is set to dark, or who last chose a dark theme, gets a white flash
+// while the module-level runtime boots and only then corrects the attribute.
+// Emitted as the first child of <body>: a synchronous script blocks
+// rendering, and document.body already exists by then.
+//
+// Precedence, and it is the same sentence as everywhere else in this file:
+// a frontmatter key wins over the reader's stored preference, which wins
+// over the operating system's. When the author pinned the theme there is
+// nothing to resolve, so no script is emitted at all.
+function themeBootScript(defaults) {
+  if (defaults.theme) return '';
+  return `<script>
+(function () {
+  var names = ${JSON.stringify(THEME_NAMES)};
+  var dark = ${JSON.stringify(DARK_THEME_NAMES)};
+  var d = document.body.dataset;
+  var set = function (t) { d.theme = t; d.mode = dark.indexOf(t) >= 0 ? 'dark' : 'light'; };
+  try {
+    var stored = localStorage.getItem('psi-slides:theme');
+    if (stored && names.indexOf(stored) >= 0) { set(stored); return; }
+  } catch (e) {}
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) set('dark');
+})();
+</script>`;
 }
 
 function splitInfo(info = '') {
@@ -2046,7 +2086,7 @@ function renderHelpOverlay(view) {
     ['Reading knobs', [
       ['<kbd>C</kbd>', 'collapse: what the room sees ↔ the full text'],
       ['<kbd>F</kbd>', 'font: serif → sans → mono'],
-      ['<kbd>A</kbd>', 'theme: four light accents, two phosphor modes'],
+      ['<kbd>A</kbd>', 'theme: four light accents, a neutral dark, two phosphor modes'],
       ['<kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'text size, and zero resets it (kept separately for each collapse mode)'],
       ['<kbd>#</kbd>', 'auto-fit: size every slide to the screen, on or off'],
       ['<kbd>L</kbd>', 'slide numbers: stacked → in a row → off'],
@@ -2142,6 +2182,7 @@ ${katexStyleTag(columnsHtml)}
 ${reloadScript(opts.watchPort)}
 </head>
 <body ${viewBodyAttrs(defaults)}>
+${themeBootScript(defaults)}
 <div id="stage-viewport">
   <div id="stage">
 ${columnsHtml}
@@ -2243,6 +2284,20 @@ body[data-theme=light-teal]   { --emph: oklch(0.52 0.12 195); }
 body[data-theme=light-blue]   { --emph: oklch(0.48 0.18 250); }
 body[data-theme=light-orange] { --emph: oklch(0.58 0.17 60);  }
 
+/* Neutral dark mode – grey paper, white ink, the light-red accent lifted
+   until it carries on a dark ground. Distinct from the terminal modes on
+   purpose: those are a single phosphor tone with code colour suppressed,
+   this one is an ordinary reading theme that happens to be dark, so syntax
+   highlighting and the accent keep working. */
+body[data-theme=dark] {
+  --paper:      oklch(0.17 0.005 260);
+  --paper-warm: oklch(0.22 0.008 260);
+  --ink:        oklch(0.95 0 0);
+  --ink-soft:   oklch(0.68 0.01 260);
+  --rule:       oklch(0.38 0.01 260);
+  --emph:       oklch(0.76 0.15 35);
+}
+
 /* Terminal modes – black paper, amber or phosphor-green ink.
    Dim opacity stays via --dim, shiki colors get suppressed (see below)
    so the whole slide reads as a single foreground color. */
@@ -2283,6 +2338,23 @@ body[data-theme^=terminal] .exp-body code { color: var(--emph); }
    still reads as a frame in terminal mode. */
 body[data-theme^=terminal] .chunk.expanded .exp-body.on { background: var(--paper-warm); }
 body[data-theme^=terminal] #stage-viewport { background: var(--paper); }
+body[data-mode=dark] #stage-viewport { background: var(--paper); }
+
+/* ── Dark chrome ─────────────────────────────────────────────────
+   The panels around the slide were written against paper: fixed
+   near-white backgrounds for the help sheet, the TOC, search, and the
+   cockpit footer. Keyed on data-mode rather than on the theme name, so
+   the terminal modes inherit the fix – they had exactly the same problem
+   and only the help-sheet kbd had ever been patched. */
+body[data-mode=dark] #help-inner kbd { background: var(--paper-warm); color: var(--ink); }
+body[data-mode=dark] #help-button {
+  background: oklch(from var(--paper) calc(l + 0.08) c h / 0.85);
+  color: var(--ink-soft);
+}
+body[data-mode=dark] nav#toc,
+body[data-mode=dark] #search-panel {
+  background: oklch(from var(--paper) calc(l + 0.04) c h / 0.97);
+}
 
 * { box-sizing: border-box; }
 html, body {
@@ -3665,10 +3737,8 @@ const state = {
 };
 const FONT_CYCLE = ['serif', 'sans', 'mono'];
 const SLIDE_NUM_MODES = ['vertical', 'horizontal', 'off'];
-const THEME_CYCLE = [
-  'light-red', 'light-teal', 'light-blue', 'light-orange',
-  'terminal-amber', 'terminal-green',
-];
+const THEME_CYCLE = ${JSON.stringify(THEME_NAMES)};
+const DARK_THEMES = ${JSON.stringify(DARK_THEME_NAMES)};
 let openExp = null;            // { chunkIdx, expIdx } | null
 let annotEditingId = null;
 let annotations = {};          // chunkId -> text
@@ -3743,10 +3813,15 @@ function loadPersisted() {
     const f = localStorage.getItem('psi-slides:font');
     if (!VIEW_DEFAULTS.font && f && FONT_CYCLE.includes(f)) state.font = f;
   } catch (e) {}
-  try {
-    const t = localStorage.getItem('psi-slides:theme');
-    if (!VIEW_DEFAULTS.theme && t && THEME_CYCLE.includes(t)) state.theme = t;
-  } catch (e) {}
+  // Theme is resolved before first paint by the boot script at the top of
+  // <body> – stored preference, else the operating system's. Read its answer
+  // back rather than duplicating that precedence here and risking the two
+  // disagreeing. When the frontmatter pinned the theme no script was emitted
+  // and the attribute already carries the author's choice.
+  if (!VIEW_DEFAULTS.theme) {
+    const booted = document.body.dataset.theme;
+    if (booted && THEME_CYCLE.includes(booted)) state.theme = booted;
+  }
   try {
     const n = localStorage.getItem('psi-slides:slide-nums');
     if (!VIEW_DEFAULTS.slideNums && n && SLIDE_NUM_MODES.includes(n)) state.slideNums = n;
@@ -3761,6 +3836,9 @@ function saveActive() {
 function applyFontTheme() {
   document.body.dataset.font = state.font;
   document.body.dataset.theme = state.theme;
+  // Chrome around the slide keys off this rather than off each theme name,
+  // so a new dark theme needs no new selectors.
+  document.body.dataset.mode = DARK_THEMES.includes(state.theme) ? 'dark' : 'light';
   document.body.dataset.slideNums = state.slideNums;
 }
 function cycleSlideNums(dir) {
@@ -5492,6 +5570,7 @@ ${katexStyleTag(columnsHtml)}
 ${reloadScript(opts.watchPort)}
 </head>
 <body ${viewBodyAttrs(defaults, 'data-view="speaker"')}>
+${themeBootScript(defaults)}
 <div id="scrubber">
 ${scrubberHtml}
 </div>
@@ -5965,6 +6044,32 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
    row 1 is the scrubber, and a toast overlapping the column strip covers
    exactly the navigation the lecturer is checking against. */
 body[data-view=speaker] #mode-badge { top: calc(3vh + 14px); }
+
+/* Cockpit chrome on a dark theme – same reasoning as the dark-chrome block
+   in AUDIENCE_CSS. The footer, its key crib and the export modal all carry
+   fixed light backgrounds otherwise. */
+body[data-mode=dark] #speaker-footer kbd,
+body[data-mode=dark] #speaker-footer #export-annot-btn,
+body[data-mode=dark] #speaker-footer #preview-orient-btn,
+body[data-mode=dark] #speaker-footer #speaker-help-btn,
+body[data-mode=dark] #notes-zoom button,
+body[data-mode=dark] .export-modal-inner,
+body[data-mode=dark] .export-modal-code,
+body[data-mode=dark] .export-modal-copy,
+body[data-mode=dark] .export-modal-raw textarea,
+body[data-mode=dark] .export-modal-keep {
+  background: var(--paper-warm);
+  color: var(--ink);
+}
+body[data-mode=dark] #speaker-footer #freeze-btn:hover,
+body[data-mode=dark] #speaker-footer #export-annot-btn:hover,
+body[data-mode=dark] #speaker-footer #preview-orient-btn:hover,
+body[data-mode=dark] #speaker-footer #speaker-help-btn:hover,
+body[data-mode=dark] #notes-zoom button:hover,
+body[data-mode=dark] .export-modal-copy:hover,
+body[data-mode=dark] .export-modal-keep:hover {
+  background: oklch(from var(--paper) calc(l + 0.12) c h);
+}
 
 /* Center toast — prominent transient feedback for export-flow events.
    Placed inside the stage viewing zone (bottom-centre of #stage-cell)

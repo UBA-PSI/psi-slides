@@ -263,12 +263,14 @@ If the pane is collapsed because this chunk has no notes, the corner `+ note` bu
 
 - `C` toggles **collapse**: what the room sees, or the full text.
 - `F` cycles **font**: serif → sans → mono, for projector legibility.
-- `A` cycles **accent theme**: four light shades plus two terminal phosphor modes.
+- `A` cycles **theme**: four light accents, a neutral dark mode, and two terminal phosphor modes.
 - `+` `-` `0` set the **text size**; `#` hands that job to the tool.
 - `B` **blanks the projection** – and only the projection.
 - `L` cycles the **slide numbers**: stacked, in a row, or off.
 
 `Shift` plus any of the cycling keys goes backwards. Font, theme and slide numbers are stored globally rather than per lecture, so the preference follows you; zoom and collapse belong to the talk.
+
+**The dark mode follows your system by default.** If you have never pressed `A` and the lecture does not pin a theme, a machine set to dark mode opens the deck dark. Press `A` once and your choice is remembered from then on, on every lecture. An author who pins `theme:` in the frontmatter overrides both – the same one-sentence rule as the other viewer defaults.
 
 **The two collapse modes keep separate zoom levels.** The collapsed slide holds whatever size you set with `+` and `-` – that is the projector setting, and nothing changes it behind your back. Switching to the full text picks its own zoom so the whole chunk fits the screen, and switching back restores yours exactly. Without that, every `C` was followed by a row of `-` presses and every `C` back by a row of `+` presses.
 
