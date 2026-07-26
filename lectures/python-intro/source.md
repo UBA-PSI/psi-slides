@@ -19,7 +19,7 @@ lecture: python-intro
 
 **Global Python belongs to the operating system**, not to your project. `pip install` on the system interpreter edits a shared dependency tree that other programs read from.
 
-A **virtual environment** is a directory with its own interpreter and its own `site-packages`. You activate it, install into it, throw it away. Your project stays **reproducible**, your machine stays **clean**.
+A **virtual environment** is a directory with its own interpreter and its own `site-packages`. You activate it, install into it, throw it away. **Your project stays reproducible, your machine stays clean.**
 
 > note: The single most valuable sentence in a Python intro. If students remember nothing else from today, this is the one.
 
@@ -29,7 +29,7 @@ By the end of this session you will have a **small command-line tool** that visi
 
 ::: cols 2
 
-The tool is **short**: under 80 lines of Python. It is **real**: it drives an actual Chromium browser under the hood, so it sees JavaScript-rendered pages the way a human does.
+The tool is **short**: under 80 lines of Python. **It drives a real Chromium browser** under the hood, so it sees JavaScript-rendered pages the way a human does.
 
 We will build it up **piece by piece**. Each topic in this lecture contributes one or two lines of the final script. By the last slide you will be able to trace every character of the scanner back to something you have already seen.
 
@@ -165,7 +165,7 @@ Worth remembering the two or three you use weekly; look the rest up when needed.
 
 **`dict`** is a **key-value map**. `{"host": "example.com", "port": 443}`. The workhorse for structured records when you have more than three fields and unpacking stops being readable.
 
-**`set`** is an **unordered, unique** bag. Use it for **membership checks** and **deduplication** – `seen = set(); seen.add(url)`. The scanner uses one to avoid visiting the same URL twice.
+**`set`** is an **unordered, unique** bag. **Use it for membership checks and deduplication** – `seen = set(); seen.add(url)`. The scanner uses one to avoid visiting the same URL twice.
 
 :::
 
@@ -227,7 +227,7 @@ Useful, but `if`/`elif` covers 90% of cases. Reach for `match` when you have fou
 
 ::: side
 
-**Define a function with `def`**, annotate parameters and return type, and you get documentation the editor can read. Hints are **not enforced at runtime** – they are advisory.
+**Define a function with `def`**, annotate parameters and return type, and you get documentation the editor can read. **Hints are not enforced at runtime** – they are advisory.
 
 ```python
 def greet(
@@ -451,7 +451,7 @@ print(args.url, args.max)
 
 **An event loop is a scheduler that runs coroutines** – functions that can pause at `await` and resume later. While one coroutine is waiting for a network response, the loop runs another. **One thread, many overlapping waits.**
 
-You rarely touch the loop directly. **`asyncio.run(main())`** starts it, runs your top-level coroutine to completion, and shuts the loop down.
+You rarely touch the loop directly. **`asyncio.run(main())` starts the loop**, runs your top-level coroutine to completion, and shuts it down.
 
 ::: expand coroutine-vs-function
 **A coroutine looks like a function but behaves differently when called.** Calling `fetch()` on an `async def` function does not run the body – it returns a *coroutine object* that represents the work to do.
@@ -509,13 +509,13 @@ async with asyncio.TaskGroup() as tg:
 
 ![](async-timeline)
 
-The same three network calls. The same single thread. The **only difference** is who gets to run while someone else waits. Synchronous code blocks the thread on every wait; async code releases the thread and lets other coroutines progress.
+The same three network calls. The same single thread. **The only difference is who gets to run while someone else waits.** Synchronous code blocks the thread on every wait; async code releases the thread and lets other coroutines progress.
 
 ## free: Why Playwright | the modern web is rendered, not served {.wide #why-playwright}
 
 ::: cols 2
 
-**A lot of the web is rendered by JavaScript in the browser.** `requests` and plain `urllib` **see only the HTML shell** – often just `<div id="app"></div>` plus a pile of script tags. Useful text, links, and titles never arrive.
+**A lot of the web is rendered by JavaScript in the browser.** **`requests` and plain `urllib` see only the HTML shell** – often just `<div id="app"></div>` plus a pile of script tags. Useful text, links, and titles never arrive.
 
 **Playwright drives a real browser** – Chromium, Firefox, or WebKit – over a debugging protocol. The page renders, scripts execute, the DOM settles, and then you query it. You see what a human sees.
 
@@ -725,7 +725,7 @@ status=404 no-title                      https://example.com/oops
 
 **Make it concurrent.** Replace the sequential loop with `asyncio.gather` over `scan_page` calls, wrapped in a semaphore to cap concurrency at 5. Time both versions against the same site; the async version should win on any page with more than a handful of links.
 
-**Follow external links too, one hop deep.** Add a `--external` flag. Be polite: **one request per host per second**, tracked in a small dict of `host -> last_request_time`.
+**Follow external links too, one hop deep.** Add a `--external` flag. **Be polite: one request per host per second**, tracked in a small dict of `host -> last_request_time`.
 
 **Write the report as CSV.** Add a `--out report.csv` option and use the stdlib `csv` module. Each `PageReport` becomes one row; field names come from `dataclasses.fields(PageReport)`.
 
