@@ -218,6 +218,7 @@ Picking the wrong tag is not an error, and the linter will not tell you. It only
 - **Drag the hairline bar above the notes** to resize the notes pane. The slide preview rescales to fit.
 - **Drag the bar on the edge of the preview strip** to resize that too, in either orientation.
 - **Double-click either bar** to go back to automatic size.
+- **The `−` and `+` in the notes corner** scale the notes text, separately from the pane height.
 - **`?`** opens the full reference. The footer has buttons for all of these.
 
 :::

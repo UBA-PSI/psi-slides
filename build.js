@@ -1791,6 +1791,7 @@ function renderHelpOverlay(view) {
       ['<kbd>Shift</kbd>-<kbd>V</kbd>', 'preview strip: along the bottom ↔ down the right edge'],
       ['drag the bar above the notes', 'resize the notes pane; the slide preview rescales to fit'],
       ['drag the bar on the preview strip', 'resize the strip, either orientation'],
+      ['<kbd>&minus;</kbd> <kbd>+</kbd> in the notes corner', 'notes text size (no hotkey – you type in there)'],
       ['double-click either bar', 'back to automatic size'],
       ['drag the preview strip', 'scroll it · click a thumbnail to jump'],
     ]],
@@ -4987,6 +4988,10 @@ ${columnsHtml}
 <aside id="notes-pane">
   <div id="notes-resizer" role="separator" aria-orientation="horizontal" title="Drag to resize notes · double-click to reset"></div>
   <textarea id="notes-content" rows="1" spellcheck="false" placeholder=""></textarea>
+  <div id="notes-zoom">
+    <button id="notes-zoom-out" type="button" title="Smaller notes text" aria-label="Smaller notes text">&minus;</button>
+    <button id="notes-zoom-in" type="button" title="Larger notes text" aria-label="Larger notes text">+</button>
+  </div>
 </aside>
 <div id="preview-strip"></div>
 <div id="preview-resizer" role="separator" title="Drag to resize the preview strip · double-click to reset"></div>
@@ -5190,11 +5195,13 @@ body[data-view=speaker].notes-sized #notes-content {
   border: 0;
   outline: 0;
   resize: none;
-  padding: 0.6rem 1rem;
+  /* Right padding reserves the corner for the two zoom buttons, so a long
+     note line does not run underneath them. */
+  padding: 0.6rem 3.2rem 0.6rem 1rem;
   background: transparent;
   color: var(--ink);
   font-family: var(--sans-font);
-  font-size: 1.15rem;
+  font-size: var(--notes-font, 1.15rem);
   line-height: 1.35;
   /* Box-sizing content so the textarea's scrollHeight calc is stable. */
   box-sizing: content-box;
@@ -5210,6 +5217,34 @@ body[data-view=speaker].notes-sized #notes-content {
   color: var(--ink-soft);
   font-style: italic;
 }
+/* Notes font zoom. Buttons only, no hotkey – see the runtime comment: this
+   is the surface the lecturer types into, and every free letter is already
+   a navigation command. Sits below the resizer's 8px hit strip so the two
+   affordances do not fight over the same pixels. */
+#notes-zoom {
+  position: absolute;
+  top: 7px; right: 8px;
+  display: flex;
+  gap: 3px;
+  z-index: 6;
+  opacity: 0.3;
+  transition: opacity 0.15s;
+}
+#notes-pane:hover #notes-zoom,
+#notes-zoom:focus-within { opacity: 1; }
+#notes-zoom button {
+  width: 20px; height: 20px;
+  padding: 0;
+  line-height: 1;
+  font-family: var(--sans-font);
+  font-size: 13px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+#notes-zoom button:hover { color: var(--ink); border-color: var(--ink-soft); }
 
 /* bottom: preview strip – horizontal scroll of all chunks, drag or
    wheel to pan, click to jump. The active slot is highlighted and
@@ -6323,6 +6358,41 @@ notesResizer?.addEventListener('dblclick', () => {
   try { localStorage.removeItem(NOTES_HEIGHT_KEY); } catch (e) {}
   clearNotesHeight();
   flashMode('notes height: auto');
+});
+
+// Font zoom for the notes pane. Buttons only, deliberately no hotkey: this
+// is the one surface the lecturer types into, and every free letter key is
+// already a navigation command that would fire mid-sentence. autoSizeNotes
+// reads the computed font-size, so the pane's auto height follows along.
+const NOTES_FONT_KEY = 'psi-slides:notes-font';
+const NOTES_FONT_BASE = 1.15;
+const NOTES_FONT_MIN = 0.8;
+const NOTES_FONT_MAX = 2.6;
+const NOTES_FONT_STEP = 0.15;
+let notesFontRem = NOTES_FONT_BASE;
+function applyNotesFont(rem) {
+  const clamped = Math.max(NOTES_FONT_MIN, Math.min(NOTES_FONT_MAX, rem));
+  notesFontRem = Math.round(clamped * 100) / 100;
+  document.documentElement.style.setProperty('--notes-font', notesFontRem + 'rem');
+  autoSizeNotes();
+}
+try {
+  const saved = parseFloat(localStorage.getItem(NOTES_FONT_KEY));
+  if (saved >= NOTES_FONT_MIN && saved <= NOTES_FONT_MAX) applyNotesFont(saved);
+} catch (e) {}
+function stepNotesFont(dir) {
+  applyNotesFont(notesFontRem + dir * NOTES_FONT_STEP);
+  try { localStorage.setItem(NOTES_FONT_KEY, String(notesFontRem)); } catch (e) {}
+  flashMode('notes text · ' + Math.round((notesFontRem / NOTES_FONT_BASE) * 100) + '%');
+}
+['notes-zoom-in', 'notes-zoom-out'].forEach((id, i) => {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  // Keep the caret where it is: a click that stole focus would blur the
+  // textarea, and on an untouched empty pane that collapses the row out
+  // from under the button being clicked.
+  btn.addEventListener('mousedown', (ev) => ev.preventDefault());
+  btn.addEventListener('click', () => stepNotesFont(i === 0 ? 1 : -1));
 });
 
 // Drag-to-resize for the preview strip, in both orientations. Two persisted
