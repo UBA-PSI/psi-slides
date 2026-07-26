@@ -187,7 +187,7 @@ Press `?` in either live view for the full on-screen reference. The ones you nee
 
 - `←` `→` columns, `↑` `↓` chunks, `Space` reveal next segment.
 - `Enter` / `1`–`9` open expansions, `Esc` backs out.
-- `O` overview, `T` table of contents, `/` search from anywhere – a hit list of every slide that mentions the word.
+- `O` overview (the letter, not zero – zero resets the zoom), `T` table of contents, `/` search from anywhere – a hit list of every slide that mentions the word.
 - `C` collapse, `F` font, `A` accent theme, `+` `-` `0` zoom.
 - `#` auto-fit: size every slide to the screen. `B` blanks the projection – the speaker window keeps working so you can change slide while the room sees black.
 - `S` spawn the speaker window, `P` open the print view.

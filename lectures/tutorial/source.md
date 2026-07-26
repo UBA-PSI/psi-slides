@@ -92,14 +92,14 @@ def anonymity_set(observations, senders):
 
 # Finding content {#finding}
 
-## example: Overview | `O` zooms out so you can see everything {.standard #overview}
+## example: Overview | `O` as in Overview zooms out so you can see everything {.standard #overview}
 
-**Press `O` now.** The stage zooms out to show every chunk at once in its column grid, and the slide you were on carries a selection outline.
+**Press `O` now** – the letter O, not the digit zero, which resets the zoom instead. The stage zooms out to show every chunk at once in its column grid, and the slide you were on carries a selection outline.
 
 - **Drag** to pan the board, **wheel** to zoom it.
 - **Click** a slide to go there – one click both selects it and leaves the board.
 - **Arrow keys** move the selection without landing, and the board follows, because the next pick is often off screen.
-- `O` or `Enter` **lands** on the selection; `Esc` leaves without moving.
+- `O` again or `Enter` **lands** on the selection; `Esc` leaves without moving.
 
 Overview is the fastest way to get oriented in an unfamiliar lecture: the typographic rhythm of principles, examples, and figures is visible at a glance. With a speaker connected, both windows enter, pan, zoom, and leave together.
 

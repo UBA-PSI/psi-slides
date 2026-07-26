@@ -1811,7 +1811,7 @@ function renderHelpOverlay(view) {
       ['<kbd>Esc</kbd>', 'step back out: figure, then overview, then expansion'],
     ]],
     ['Finding a slide', [
-      ['<kbd>O</kbd>', 'overview – the whole lecture on one board'],
+      ['<kbd>O</kbd>', 'overview – the whole lecture on one board (letter O, not zero)'],
       ['drag · wheel', 'pan the board · zoom the board'],
       ['click a slide', 'go there and leave the board'],
       ['<kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>', 'move the selection (the board follows)'],
@@ -1837,7 +1837,7 @@ function renderHelpOverlay(view) {
       ['<kbd>C</kbd>', 'collapse: what the room sees ↔ the full text'],
       ['<kbd>F</kbd>', 'font: serif → sans → mono'],
       ['<kbd>A</kbd>', 'theme: four light accents, two phosphor modes'],
-      ['<kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'text size (kept separately for each collapse mode)'],
+      ['<kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'text size, and zero resets it (kept separately for each collapse mode)'],
       ['<kbd>#</kbd>', 'auto-fit: size every slide to the screen, on or off'],
       ['<kbd>L</kbd>', 'slide numbers: stacked → in a row → off'],
       ['<kbd>B</kbd>', 'blank the projection – the speaker window keeps working, frozen or not'],
@@ -5296,8 +5296,10 @@ body[data-view=speaker].notes-sized #notes-content {
   outline: 0;
   resize: none;
   /* Right padding reserves the corner for the two zoom buttons, so a long
-     note line does not run underneath them. */
-  padding: 0.6rem 3.2rem 0.6rem 1rem;
+     note line does not run underneath them. In px, not rem: the buttons are
+     a fixed pixel size, and this padding has to clear them at any notes
+     font size the reader picks. */
+  padding: 0.6rem 88px 0.6rem 1rem;
   background: transparent;
   color: var(--ink);
   font-family: var(--sans-font);
@@ -5323,23 +5325,27 @@ body[data-view=speaker].notes-sized #notes-content {
    affordances do not fight over the same pixels. */
 #notes-zoom {
   position: absolute;
-  top: 7px; right: 8px;
+  top: 7px; right: 10px;
   display: flex;
-  gap: 3px;
+  gap: 5px;
   z-index: 6;
-  opacity: 0.3;
+  /* Never fully faded: mid-lecture you need to see the target before you
+     aim at it, and hover-to-reveal costs a second you do not have. */
+  opacity: 0.55;
   transition: opacity 0.15s;
 }
 #notes-pane:hover #notes-zoom,
 #notes-zoom:focus-within { opacity: 1; }
 #notes-zoom button {
-  width: 20px; height: 20px;
+  /* 32px square. These are pressed while talking to a room, so the target
+     has to be hittable without looking at it – 20px was a fiddly aim. */
+  width: 32px; height: 32px;
   padding: 0;
   line-height: 1;
   font-family: var(--sans-font);
-  font-size: 13px;
+  font-size: 18px;
   border: 1px solid var(--rule);
-  border-radius: 3px;
+  border-radius: 4px;
   background: var(--paper);
   color: var(--ink-soft);
   cursor: pointer;
