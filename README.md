@@ -119,6 +119,10 @@ Files are matched by name, with weight and style read off the suffix (`Literata-
 
 Five optional frontmatter keys pin how a lecture opens – `font`, `theme`, `collapse`, `auto-fit`, `slide-numbers`. A key that is present wins over the reader's stored preference; a key that is absent leaves it alone, so a lecture that pins nothing still follows whatever the reader last chose.
 
+**Video** uses the same shorthand as an image. `![](clip)` finds `assets/clip.mp4` and inlines it, up to a 12 MB per-file cap; over that, the build copies it to a `videos/` folder beside the output, plays it from there, and tells you the output now needs that folder. A written-out URL works too – `![](https://host/clip.mp4)` – and is still an ordinary `<video>`, so play, pause and seeking stay synchronised between the projection and the cockpit.
+
+Hosted embeds (YouTube, Vimeo) are deliberately not supported. They are iframes, so the audience machine would fetch from a third party mid-lecture, and YouTube's player refuses to run from a `file://` page at all. If you need one, `--serve` presents the deck over http, where it does work.
+
 Two more surfaces worth knowing apart: **notes** (`> note:`) are yours, written in advance, shown in the cockpit and in the handout. **Annotations** (`N` during a talk) are typed live, visible to the room, and `Shift-E` plus `--integrate-annotations` writes them back into `source.md` as permanent text.
 
 ## Writing lectures with an LLM assistant
@@ -213,6 +217,8 @@ Every tool in this space is good, and nearly all of them take Markdown, so “it
 ```bash
 node build.js <source.md>                    # build all four views
 node build.js <source.md> --watch            # live reload
+node build.js <source.md> --serve            # serve over http on loopback
+node build.js <source.md> --watch --serve    # both
 node build.js <source.md> --audience-only    # also --print-only, --print-notes-only, --speaker-only
 node build.js --new <slug>                   # scaffold a lecture
 

@@ -372,7 +372,13 @@ Clips are inlined like any other asset, up to a separate 12 MB per-file cap: a c
 
 **There is no separate fullscreen setting, on purpose.** The native player already has a fullscreen button, and how large the clip sits on the slide is the chunk's width class – exactly like a still figure. Clicking a clip does *not* zoom it into the figure card either, because that would fight the play button.
 
+**A clip can also live on a web server:** `![](https://host/clip.mp4)` works and stays an ordinary player, which matters more than it sounds – play, pause and seeking still synchronise between the two windows, which no YouTube or Vimeo embed can do.
+
+**Too large to inline?** The build copies the file into a `videos/` folder beside the output and plays it from there, and says so on the terminal. One companion folder to carry, instead of a path that only resolves on the machine that built it.
+
 **Play, pause and seeking are synced.** Operate the clip in the cockpit and the projection follows. Freeze the projection first and it does not, so you can check a clip before showing it.
+
+**Hosted embeds are not supported, and the reason is worth knowing.** A YouTube or Vimeo embed is an iframe: the audience machine fetches from a third party during your lecture, and you lose the play/pause sync entirely. YouTube also refuses to run at all from a `file://` page – it needs a real origin. If you truly need one, `node build.js <source.md> --serve` presents the lecture over `http://localhost`, where it works.
 
 ## example: Math | `$inline$` and `$$display$$` {.wide #math}
 

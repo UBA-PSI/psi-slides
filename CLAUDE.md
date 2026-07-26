@@ -54,6 +54,13 @@ node build.js <source.md> --integrate-annotations
 # moves each `> annot:` block under the matching chunk, removes the marker;
 # unresolved ids are parked in a trimmed marker block at EOF.
 
+# serve the built lecture over http on loopback. Everything works from
+# file:// except third-party embeds: a file:// page has the origin `null`
+# and YouTube's player refuses it (Error 153). Serve, and it plays.
+node build.js <source.md> --serve                 # build once, then serve
+node build.js <source.md> --serve --port 8080     # fixed port (default: free one)
+node build.js <source.md> --watch --serve         # live reload over http
+
 # static checks – run before committing
 node lint.js lectures/                         # all lectures
 node lint.js lectures/tutorial/source.md       # single file
@@ -164,6 +171,12 @@ Three things to keep in mind when touching this:
 ### Video
 
 A clip is a figure that moves, so it shares the `![](clip-id)` shorthand rather than getting a directive of its own: `VIDEO_EXTS` (`mp4`, `webm`, `m4v`, `mov`) are searched *after* the image extensions, so an id with both a poster and a clip still resolves to the still. The renderer emits `<figure class="figure-video"><video controls preload="metadata" playsinline>`.
+
+Three ways to reference one:
+
+- `![](clip-id)` – a file in `assets/`, inlined if under the cap.
+- `![](path/to/clip.mp4)` or `![](https://host/clip.mp4)` – a written-out path or URL. A **remote** clip is worth more than it looks: it is still a local `<video>`, so the play/pause/seek sync works unchanged, with no iframe and no provider SDK. That is exactly what a YouTube or Vimeo embed cannot give back.
+- Over the cap: **staged**. `stageVideo()` copies the file to `videos/` next to the output and emits `videos/<name>`; the build says so and says the output now needs that folder beside it. Copied, never moved, and skipped when the destination already matches by size and mtime so `--watch` does not re-copy 200 MB on every keystroke. Oversized *images* still hard-fail in `assertInlinable`, because for them there is no such fallback, only a broken figure later.
 
 Three decisions worth keeping:
 

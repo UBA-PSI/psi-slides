@@ -2210,7 +2210,10 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Drop <code>clip.mp4</code> into <code>assets/</code> and write <code>![](clip)</code></strong> – the same shorthand as an image. The build searches the video extensions after the image ones, so an id with both a poster and a clip still resolves to the still.</p>
 <p>Clips are inlined like any other asset, up to a separate 12 MB per-file cap: a clip is an order of magnitude heavier than a diagram, and the 2 MB image cap would reject every real one. Over the cap the build tells you the <code>ffmpeg</code> line that fixes it.</p>
 <p><strong>There is no separate fullscreen setting, on purpose.</strong> The native player already has a fullscreen button, and how large the clip sits on the slide is the chunk&#39;s width class – exactly like a still figure. Clicking a clip does <em>not</em> zoom it into the figure card either, because that would fight the play button.</p>
+<p><strong>A clip can also live on a web server:</strong> <code>![](https://host/clip.mp4)</code> works and stays an ordinary player, which matters more than it sounds – play, pause and seeking still synchronise between the two windows, which no YouTube or Vimeo embed can do.</p>
+<p><strong>Too large to inline?</strong> The build copies the file into a <code>videos/</code> folder beside the output and plays it from there, and says so on the terminal. One companion folder to carry, instead of a path that only resolves on the machine that built it.</p>
 <p><strong>Play, pause and seeking are synced.</strong> Operate the clip in the cockpit and the projection follows. Freeze the projection first and it does not, so you can check a clip before showing it.</p>
+<p><strong>Hosted embeds are not supported, and the reason is worth knowing.</strong> A YouTube or Vimeo embed is an iframe: the audience machine fetches from a third party during your lecture, and you lose the play/pause sync entirely. YouTube also refuses to run at all from a <code>file://</code> page – it needs a real origin. If you truly need one, <code>node build.js &lt;source.md&gt; --serve</code> presents the lecture over <code>http://localhost</code>, where it works.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="video">
@@ -3923,8 +3926,14 @@ if (helpOverlay) {
 // should not start playing because the lecturer previewed something.
 let applyingRemoteVideo = false;
 function videoByFigId(figId) {
-  const fig = document.querySelector('.figure-video[data-fig-id="' + CSS.escape(figId) + '"]');
-  return fig ? fig.querySelector('video') : null;
+  // Compared in JS rather than built into an attribute selector. A fig-id is
+  // now sometimes a full URL, and CSS.escape escapes for an *identifier*,
+  // not for a quoted attribute value – it happened to survive because CSS
+  // unescapes inside quotes, which is luck, not a contract.
+  for (const fig of document.querySelectorAll('.figure-video')) {
+    if (fig.dataset.figId === figId) return fig.querySelector('video');
+  }
+  return null;
 }
 function wireVideos() {
   document.querySelectorAll('.figure-video').forEach((fig) => {

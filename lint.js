@@ -455,11 +455,16 @@ function lintFile(filePath) {
       const cap = inlineCapFor(abs);
       if (size <= cap) continue;
       const mb = (size / 1024 / 1024).toFixed(2);
-      const fix = cap === MAX_INLINE_VIDEO_BYTES
-        ? 're-encode the clip smaller'
-        : 'run \`node build.js <source.md> --optimize-images\`';
-      add(i + 1, 'warn', 'oversized-asset',
-          `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so it stays an external path and the output is not self-contained – ${fix}`);
+      if (cap === MAX_INLINE_VIDEO_BYTES) {
+        // Video has a defined fallback: the build stages it into videos/
+        // beside the output. Worth saying, because it is the difference
+        // between a broken figure and one companion folder to carry.
+        add(i + 1, 'warn', 'oversized-asset',
+            `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so the build plays it from videos/ beside the output – keep that folder with the HTML, or re-encode the clip smaller`);
+      } else {
+        add(i + 1, 'warn', 'oversized-asset',
+            `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so it stays an external path and the output is not self-contained – run \`node build.js <source.md> --optimize-images\``);
+      }
     }
   });
 

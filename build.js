@@ -554,6 +554,53 @@ function katexStyleTag(html) {
   return `<style>\n${sheet.css}\n</style>`;
 }
 
+// ── staging clips that are too large to inline ──────────────────────
+//
+// A clip over the inline cap used to leave the same relative path it was
+// written with, which works on the machine that built it and breaks the
+// moment the HTML travels. There is no way to make a 200 MB lecture
+// recording self-contained, so instead of pretending, the build names a
+// companion folder and says so: oversized clips are copied to `videos/`
+// next to the output and played from there. One folder to carry alongside,
+// stated on the terminal rather than left for the author to discover in
+// front of a room.
+//
+// Copied, never moved: the source stays where the author put it.
+const VIDEO_STAGE_DIR = 'videos';
+const stagedVideos = new Map();   // abs source path -> relative emitted path
+
+function stageVideo(absPath) {
+  if (stagedVideos.has(absPath)) return stagedVideos.get(absPath);
+  const name = path.basename(absPath);
+  const destDir = path.join(currentSourceDir, VIDEO_STAGE_DIR);
+  const dest = path.join(destDir, name);
+  const rel = `${VIDEO_STAGE_DIR}/${name}`;
+  // Already living in videos/ – nothing to copy, just address it there.
+  if (path.resolve(absPath) === path.resolve(dest)) {
+    stagedVideos.set(absPath, { rel, copied: false, bytes: safeSize(absPath) });
+    return stagedVideos.get(absPath);
+  }
+  try {
+    fs.mkdirSync(destDir, { recursive: true });
+    const src = fs.statSync(absPath);
+    let need = true;
+    try {
+      const cur = fs.statSync(dest);
+      // Same size and no older than the source: treat as already staged.
+      // Keeps --watch from re-copying a large file on every keystroke.
+      need = !(cur.size === src.size && cur.mtimeMs >= src.mtimeMs);
+    } catch { /* not there yet */ }
+    if (need) fs.copyFileSync(absPath, dest);
+    stagedVideos.set(absPath, { rel, copied: need, bytes: src.size });
+  } catch (e) {
+    // Staging is a convenience; if it fails, fall back to the original
+    // relative path rather than failing the build over a copy.
+    stagedVideos.set(absPath, { rel: null, copied: false, bytes: 0, error: e.message });
+  }
+  return stagedVideos.get(absPath);
+}
+function safeSize(p) { try { return fs.statSync(p).size; } catch { return 0; } }
+
 // ── QR codes for link addresses ─────────────────────────────────────
 //
 // A URL shown on a projector is only useful if the room can capture it, and
@@ -856,6 +903,13 @@ marked.use({
           const cap = text ? `<figcaption>${alt}</figcaption>` : '';
           const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
           if (isVideoExt(absResolved)) {
+            // Not inlined (over the cap, or inlining off): stage it into
+            // videos/ so the output has one named companion folder rather
+            // than a path that only resolves where it was built.
+            if (!src.startsWith('data:')) {
+              const staged = stageVideo(absResolved);
+              if (staged.rel) src = staged.rel;
+            }
             // Native controls, deliberately: they carry play, seek, volume
             // and – the reason this needs no directive of its own – a
             // fullscreen button. How large the clip sits on the slide is the
@@ -886,6 +940,21 @@ marked.use({
       if (inlineAssetsEnabled && isRelative) {
         const inlined = toDataUri(path.resolve(currentSourceDir, href));
         if (inlined) src = inlined;
+      }
+      // A written-out path or URL ending in a video extension is a clip, not
+      // an image. Worth stating because the obvious reading of `![](x.mp4)`
+      // is "this is an image tag" and the result is a broken img with no
+      // error anywhere – which is exactly what it used to do.
+      //
+      // A remote clip is worth more than it looks: it is still a local
+      // <video> element, so the play/pause/seek sync between the two windows
+      // works unchanged, with no iframe and no provider SDK. That is the one
+      // thing a YouTube or Vimeo embed cannot give back.
+      if (/\.(?:mp4|webm|m4v|mov)(?:[?#]|$)/i.test(href)) {
+        const alt = escapeHtml(text || '');
+        const cap = text ? `<figcaption>${alt}</figcaption>` : '';
+        return `<figure class="figure-video" data-fig-id="${escapeHtml(href)}">` +
+          `<video src="${escapeHtml(src)}"${titleAttr} controls preload="metadata" playsinline></video>${cap}</figure>`;
       }
       return `<img src="${escapeHtml(src)}" alt="${escapeHtml(text || '')}"${titleAttr}>`;
     },
@@ -5166,8 +5235,14 @@ if (helpOverlay) {
 // should not start playing because the lecturer previewed something.
 let applyingRemoteVideo = false;
 function videoByFigId(figId) {
-  const fig = document.querySelector('.figure-video[data-fig-id="' + CSS.escape(figId) + '"]');
-  return fig ? fig.querySelector('video') : null;
+  // Compared in JS rather than built into an attribute selector. A fig-id is
+  // now sometimes a full URL, and CSS.escape escapes for an *identifier*,
+  // not for a quoted attribute value – it happened to survive because CSS
+  // unescapes inside quotes, which is luck, not a contract.
+  for (const fig of document.querySelectorAll('.figure-video')) {
+    if (fig.dataset.figId === figId) return fig.querySelector('video');
+  }
+  return null;
 }
 function wireVideos() {
   document.querySelectorAll('.figure-video').forEach((fig) => {
@@ -7923,7 +7998,10 @@ function buildOnce(absIn, only, opts = {}) {
   // the size cap is irrelevant and nothing is being promised.
   if (inlineAssetsEnabled) {
     if (!scan) scan = scanReferencedImages(src, outDir);
-    assertInlinable(scan.oversized, outDir);
+    // Oversized *images* still fail: there is no good answer for them, only
+    // a broken figure later. Oversized clips do have one – staging into
+    // videos/ – so they are handled rather than refused.
+    assertInlinable(scan.oversized.filter(o => !isVideoExt(o.abs)), outDir);
   }
   const lecture = parseLecture(src);
   const chunkCount = lecture.columns.reduce((n, c) => n + c.chunks.length, 0);
@@ -7940,6 +8018,7 @@ function buildOnce(absIn, only, opts = {}) {
     for (const n of fontEmbed.notes) console.log(`[fonts] ${n}`);
   }
   lastQrStats = { count: 0, bytes: 0 };
+  stagedVideos.clear();
   const renderOpts = { ...opts, fontEmbed };
 
   const targets = [
@@ -7954,6 +8033,19 @@ function buildOnce(absIn, only, opts = {}) {
     const p = path.join(outDir, `${name}.html`);
     fs.writeFileSync(p, render(lecture, renderOpts));
     written.push(path.relative(process.cwd(), p));
+  }
+  if (stagedVideos.size) {
+    const rows = [...stagedVideos.values()].filter(v => v.rel);
+    const mb = (rows.reduce((n, v) => n + v.bytes, 0) / 1024 / 1024).toFixed(1);
+    const copied = rows.filter(v => v.copied).length;
+    console.log(
+      `[video] ${rows.length} clip(s), ${mb} MB, are too large to inline and play from ` +
+      `${VIDEO_STAGE_DIR}/ instead${copied ? ` (${copied} copied there now)` : ' (already there)'}.\n` +
+      `        These outputs are NOT self-contained: keep the ${VIDEO_STAGE_DIR}/ folder beside the HTML when you share it.`
+    );
+    for (const v of stagedVideos.values()) {
+      if (v.error) console.warn(`[video] could not stage a clip: ${v.error}`);
+    }
   }
   if (lastQrStats.count) {
     console.log(`[qr] ${lastQrStats.count} link address(es) carry a QR code, ${Math.round(lastQrStats.bytes / 1024)} KB per live view.`);
@@ -8071,9 +8163,95 @@ function runNew(slug) {
   console.log(`Created ${rel} – run \`node build.js ${rel} --watch\` to start.`);
 }
 
+// ── local static server (--serve) ───────────────────────────────────
+//
+// Anyone who can build a lecture already has Node, so serving one over
+// http costs them nothing to gain. It is worth having for one specific
+// reason: a page opened from file:// has the origin `null` and sends no
+// Referer, and YouTube's embed refuses to play under those conditions
+// (Error 153) while the very same page served over http works. So a
+// lecture that genuinely needs a hosted embed can be presented from here.
+//
+// Bound to loopback only. This serves a directory off the author's disk;
+// it has no business being reachable from the lecture-hall network.
+const SERVE_MIME = {
+  html: 'text/html; charset=utf-8', css: 'text/css; charset=utf-8',
+  js: 'text/javascript; charset=utf-8', json: 'application/json',
+  svg: 'image/svg+xml', png: 'image/png', jpg: 'image/jpeg',
+  jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp',
+  mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm',
+  mov: 'video/quicktime', woff2: 'font/woff2', woff: 'font/woff',
+  ttf: 'font/ttf', otf: 'font/otf', md: 'text/plain; charset=utf-8',
+};
+
+async function runServe(rootDir, wantedPort) {
+  const http = await import('node:http');
+  const server = http.createServer((req, res) => {
+    let rel;
+    try { rel = decodeURIComponent(new URL(req.url, 'http://x').pathname); }
+    catch { res.writeHead(400); return res.end('bad request'); }
+    if (rel === '/') rel = '/audience.html';
+    // Resolve, then confirm the result is still inside the served root:
+    // without this, a request for /../../.ssh/id_rsa would be honoured.
+    const abs = path.resolve(rootDir, '.' + rel);
+    if (abs !== rootDir && !abs.startsWith(rootDir + path.sep)) {
+      res.writeHead(403); return res.end('forbidden');
+    }
+    let stat;
+    try { stat = fs.statSync(abs); } catch { res.writeHead(404); return res.end('not found'); }
+    if (stat.isDirectory()) { res.writeHead(404); return res.end('not found'); }
+
+    const type = SERVE_MIME[path.extname(abs).slice(1).toLowerCase()] || 'application/octet-stream';
+    // Range support is not optional here: Chrome asks for byte ranges when
+    // it seeks in a <video>, and a server that answers 200-with-everything
+    // makes the scrub bar unusable on a long recording.
+    const range = req.headers.range && /^bytes=(\d*)-(\d*)$/.exec(req.headers.range);
+    if (range) {
+      const size = stat.size;
+      let start = range[1] ? parseInt(range[1], 10) : 0;
+      let end = range[2] ? parseInt(range[2], 10) : size - 1;
+      if (Number.isNaN(start) || Number.isNaN(end) || start > end || start >= size) {
+        res.writeHead(416, { 'content-range': `bytes */${size}` });
+        return res.end();
+      }
+      end = Math.min(end, size - 1);
+      res.writeHead(206, {
+        'content-type': type,
+        'content-range': `bytes ${start}-${end}/${size}`,
+        'accept-ranges': 'bytes',
+        'content-length': end - start + 1,
+      });
+      return fs.createReadStream(abs, { start, end }).pipe(res);
+    }
+    res.writeHead(200, {
+      'content-type': type,
+      'content-length': stat.size,
+      'accept-ranges': 'bytes',
+      // The whole point of --watch is that a reload shows new bytes.
+      'cache-control': 'no-cache',
+    });
+    fs.createReadStream(abs).pipe(res);
+  });
+
+  await new Promise((resolve, reject) => {
+    server.on('error', reject);
+    server.listen(wantedPort || 0, '127.0.0.1', resolve);
+  });
+  const port = server.address().port;
+  const base = `http://localhost:${port}`;
+  console.log(`Serving ${path.relative(process.cwd(), rootDir) || '.'} on ${base}`);
+  for (const name of ['audience', 'speaker', 'print', 'print-notes']) {
+    if (fs.existsSync(path.join(rootDir, `${name}.html`))) {
+      console.log(`  ${base}/${name}.html`);
+    }
+  }
+  console.log('  (loopback only – Ctrl-C to stop)');
+  return server;
+}
+
 // Flags that consume the following argv token as their value, so it is not
 // mistaken for the source path.
-const VALUE_FLAGS = new Set(['--max-width']);
+const VALUE_FLAGS = new Set(['--max-width', '--port']);
 
 async function main() {
   const argv = process.argv.slice(2);
@@ -8119,7 +8297,7 @@ async function main() {
 
   if (!inputPath || flags.has('--help') || flags.has('-h')) {
     console.error('Usage:');
-    console.error('  node build.js <source.md> [--watch] [--audience-only|--print-only|--print-notes-only|--speaker-only]');
+    console.error('  node build.js <source.md> [--watch] [--serve [--port N]] [--audience-only|--print-only|--print-notes-only|--speaker-only]');
     console.error('                            [--inline-images|--no-inline-images]');
     console.error('  node build.js <source.md> --integrate-annotations');
     console.error('  node build.js <source.md> --optimize-images [--dry-run] [--all] [--max-width N]');
@@ -8176,16 +8354,25 @@ async function main() {
     process.exit(1);
   }
 
+  const portIdx = argv.indexOf('--port');
+  const servePort = portIdx >= 0 ? parseInt(argv[portIdx + 1], 10) || 0 : 0;
+
   if (flags.has('--watch')) {
     runWatch(absIn, only, opts).catch(err => {
       console.error(`Watch failed: ${err.message}`);
       process.exit(1);
     });
+    // Serving is layered on top of watching rather than instead of it, so
+    // --watch --serve gives live reload over http in one command.
+    if (flags.has('--serve')) {
+      await runServe(path.dirname(absIn), servePort);
+    }
     return;
   }
 
   const { written, shape } = buildOnce(absIn, only, opts);
   console.log(`Wrote ${written.join(', ')} (${shape})`);
+  if (flags.has('--serve')) await runServe(path.dirname(absIn), servePort);
 }
 
 main().catch(err => {
