@@ -11,7 +11,7 @@
     .head  { font-family: 'Inter Tight', sans-serif; font-size: 11px; fill: #6b6b72; font-variant-caps: all-small-caps; letter-spacing: 0.1em; }
   </style>
   <!-- async block -->
-  <text x="12" y="26" class="head">async — gather(a, b, c)</text>
+  <text x="12" y="26" class="head">async – gather(a, b, c)</text>
   <g>
     <rect x="90" y="36" width="140" height="14" class="bar-a"/>
     <rect x="90" y="56" width="140" height="14" class="bar-a"/>
@@ -23,7 +23,7 @@
   </g>
 
   <!-- sync block -->
-  <text x="12" y="136" class="head">sync — fetch(a); fetch(b); fetch(c)</text>
+  <text x="12" y="136" class="head">sync – fetch(a); fetch(b); fetch(c)</text>
   <g>
     <rect x="90" y="146" width="140" height="14" class="bar-s"/>
     <rect x="230" y="166" width="140" height="14" class="bar-s"/>

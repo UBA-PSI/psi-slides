@@ -275,6 +275,11 @@ first_https = next(u for u in urls if u.startswith("https://"))
 Use a generator when you feed the result straight into `sum`, `min`, `max`, `any`, `all`, or `next`. Use a list comprehension when you actually need to hold all values at once.
 :::
 
+> note: Write the for-loop version on the board first and let them convert it.
+> The nesting order trips people up: `for` clauses read left to right, the same
+> order they would be written as nested loops. Two levels is the limit worth
+> teaching; deeper than that, a loop is clearer and I say so.
+
 ## example: Exceptions | errors are values you catch and inspect {.standard #exceptions}
 
 **Exceptions are Python's error channel.** When something goes wrong, a function *raises* an exception; a caller further up the stack *catches* it with `try`/`except` and decides what to do.
@@ -502,7 +507,7 @@ The same three network calls. The same single thread. The **only difference** is
 
 ::: cols 2
 
-**A lot of the web is rendered by JavaScript in the browser.** `requests` and plain `urllib` see only the **HTML shell** – often just `<div id="app"></div>` plus a pile of script tags. Useful text, links, and titles never arrive.
+**A lot of the web is rendered by JavaScript in the browser.** `requests` and plain `urllib` **see only the HTML shell** – often just `<div id="app"></div>` plus a pile of script tags. Useful text, links, and titles never arrive.
 
 **Playwright drives a real browser** – Chromium, Firefox, or WebKit – over a debugging protocol. The page renders, scripts execute, the DOM settles, and then you query it. You see what a human sees.
 
@@ -511,6 +516,15 @@ The same three network calls. The same single thread. The **only difference** is
 **The cost is weight.** A browser is a hundred megabytes of binaries and a few hundred of RAM per instance. For a lecture scanner that is fine; for a production crawler you would measure first.
 
 :::
+
+::: margin
+`requests` is still the right tool for an API that answers in JSON. The
+browser is for pages meant to be looked at.
+:::
+
+> note: Show the difference live if the room is awake: open a JS-heavy site,
+> curl it, and let them find the missing text themselves. Ninety seconds, and
+> nobody asks again why a scanner needs a browser.
 
 ## example: Install the browser once | Playwright pins the build {.narrow #playwright-install}
 
