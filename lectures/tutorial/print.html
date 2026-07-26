@@ -408,7 +408,7 @@ pre.shiki .line { display: inline; }
 </style>
 
 </head>
-<body>
+<body data-slide-nums="vertical">
 <main>
 <section class="column column-anon">
 <article class="chunk chunk-title" data-chunk-num="1" id="title">
@@ -1046,6 +1046,26 @@ pre.shiki .line { display: inline; }
 <li><code>node lint.js lectures/</code> runs the static checks: unknown tags, unclosed directives, duplicate IDs, density budgets, reveal overuse, orphan columns, redundant figure captions. <code>--strict</code> makes warnings fail.</li>
 </ul>
 <p>A source file can silence one check with <code>&lt;!-- linter: ignore reveal-overuse, density --&gt;</code> anywhere in the body.</p>
+
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="view-defaults" data-chunk-num="35">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Pinning how a lecture opens</span> <span class="hd-sub">five optional frontmatter keys</span></h2>
+  <p><strong>A lecture can decide its own starting look instead of inheriting the reader&#39;s.</strong></p>
+<pre class="shiki github-light" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#6F42C1">---</span></span>
+<span class="line"><span style="color:#22863A">title</span><span style="color:#24292E">: </span><span style="color:#032F62">Anonymous Communication</span></span>
+<span class="line"><span style="color:#22863A">font</span><span style="color:#24292E">: </span><span style="color:#032F62">mono</span><span style="color:#6A737D">              # serif | sans | mono</span></span>
+<span class="line"><span style="color:#22863A">theme</span><span style="color:#24292E">: </span><span style="color:#032F62">terminal-green</span><span style="color:#6A737D">   # light-{red,teal,blue,orange} | terminal-{amber,green}</span></span>
+<span class="line"><span style="color:#22863A">collapse</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">          # topic-bold | none      – the C toggle</span></span>
+<span class="line"><span style="color:#22863A">auto-fit</span><span style="color:#24292E">: </span><span style="color:#005CC5">true</span><span style="color:#6A737D">          # true | false           – the # toggle</span></span>
+<span class="line"><span style="color:#22863A">slide-numbers</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">      # vertical | horizontal | off</span></span>
+<span class="line"><span style="color:#6F42C1">---</span></span></code></pre>
+<p><strong>The precedence rule is one sentence.</strong> A key that is present wins over the reader&#39;s stored preference; a key that is absent leaves that preference alone. So a lecture that pins nothing behaves exactly as it always did – font, theme and slide numbers follow the reader from lecture to lecture – while a lecture with a designed look gets it without asking anyone to press keys.</p>
+<p><code>slide-numbers</code> reaches the print views as well, since a document has no keyboard to cycle it with. An unknown value fails the build with the list of valid ones rather than being ignored, because a silently dropped setting looks exactly like a setting you forgot to write.</p>
 
   
   

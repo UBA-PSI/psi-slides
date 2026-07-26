@@ -445,4 +445,23 @@ A figure chunk plus a paragraph of interpretation is the other reliable case, an
 
 A source file can silence one check with `<!-- linter: ignore reveal-overuse, density -->` anywhere in the body.
 
+## example: Pinning how a lecture opens | five optional frontmatter keys {.wide #view-defaults}
+
+**A lecture can decide its own starting look instead of inheriting the reader's.**
+
+```yaml
+---
+title: Anonymous Communication
+font: mono              # serif | sans | mono
+theme: terminal-green   # light-{red,teal,blue,orange} | terminal-{amber,green}
+collapse: none          # topic-bold | none      – the C toggle
+auto-fit: true          # true | false           – the # toggle
+slide-numbers: off      # vertical | horizontal | off
+---
+```
+
+**The precedence rule is one sentence.** A key that is present wins over the reader's stored preference; a key that is absent leaves that preference alone. So a lecture that pins nothing behaves exactly as it always did – font, theme and slide numbers follow the reader from lecture to lecture – while a lecture with a designed look gets it without asking anyone to press keys.
+
+`slide-numbers` reaches the print views as well, since a document has no keyboard to cycle it with. An unknown value fails the build with the list of valid ones rather than being ignored, because a silently dropped setting looks exactly like a setting you forgot to write.
+
 > note: When finishing this tour with a first-timer, end by asking them what felt discoverable and what did not. Their first-impression friction is the most valuable feedback the tool will get.

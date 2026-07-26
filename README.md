@@ -24,7 +24,7 @@ You did not author two versions. You wrote the right-hand text and marked which 
 
 ![Speaker cockpit showing the scrubber, stage mirror, notes pane and preview strip](docs/img/speaker.png)
 
-**The overview board** (`O`). Zoom out to the whole lecture at once, drag to pan, `/` to search, `Enter` to land. In an unfamiliar lecture this is the fastest way to get oriented, because the typographic rhythm of principles, examples, and figures is visible at a glance.
+**The overview board** (`O`). Remember *Prezi*? Same idea, yet more constrained. Zoom out to the whole lecture at once, drag to pan, `/` to search, `Enter` to land. In an unfamiliar lecture this is the fastest way to get oriented, because the typographic rhythm of principles, examples, and figures is visible at a glance.
 
 ![Overview board showing three columns of chunks with one selected](docs/img/audience-overview.png)
 
@@ -86,11 +86,10 @@ course: advasp
 ## principle: Anonymity is a property of the set | not of the channel {.wide #anon-set}
 
 **Anonymity comes from the others doing the same thing.** A mix node that
-forwards exactly one message leaks it by timing alone – the attacker needs a
-clock, not cryptanalysis.
+forwards exactly one message leaks it by timing alone.
 
 The size of the anonymity set is therefore a property of the **traffic**, not
-of the protocol. That distinction survives into the exam question.
+of the protocol.
 
 > note: Ask the room for the smallest set they would trust. Answers cluster
 > around 100 and the reasoning is always worth two minutes.
@@ -104,6 +103,8 @@ The grammar is `## tag: Heading | Sub-heading {.width #id}`. Eight tags (`title`
 - **Stated**: a `::: slide` block *is* the screen, everything else is narration. Or `::: script`, the dual: the chunk is the screen and only the marked block is narration. Reach for these when the argument wants continuous prose that no first-sentence rule can carve up.
 
 Everything else is body-level directives: `---` on its own line splits a chunk into **reveal segments**; `::: expand <label>` hides detail behind a chevron; `::: cols 2` / `::: side` / `::: flip` shape internal layout; `::: margin` and `::: marginalia` place asides; `![](fig-id)` resolves against `assets/`; `$inline$` and `$$display$$` are **math**, rendered by KaTeX during the build. All of it is documented live in the tutorial.
+
+Five optional frontmatter keys pin how a lecture opens – `font`, `theme`, `collapse`, `auto-fit`, `slide-numbers`. A key that is present wins over the reader's stored preference; a key that is absent leaves it alone, so a lecture that pins nothing still follows whatever the reader last chose.
 
 Two more surfaces worth knowing apart: **notes** (`> note:`) are yours, written in advance, shown in the cockpit and in the handout. **Annotations** (`N` during a talk) are typed live, visible to the room, and `Shift-E` plus `--integrate-annotations` writes them back into `source.md` as permanent text.
 

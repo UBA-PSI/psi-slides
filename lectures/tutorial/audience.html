@@ -2230,6 +2230,33 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></div>
 </article>
+<article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="35">
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Pinning how a lecture opens</span> <span class="hd-sub">five optional frontmatter keys</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A lecture can decide its own starting look instead of inheriting the reader&#39;s.</strong></p>
+<pre class="shiki github-light" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#6F42C1">---</span></span>
+<span class="line"><span style="color:#22863A">title</span><span style="color:#24292E">: </span><span style="color:#032F62">Anonymous Communication</span></span>
+<span class="line"><span style="color:#22863A">font</span><span style="color:#24292E">: </span><span style="color:#032F62">mono</span><span style="color:#6A737D">              # serif | sans | mono</span></span>
+<span class="line"><span style="color:#22863A">theme</span><span style="color:#24292E">: </span><span style="color:#032F62">terminal-green</span><span style="color:#6A737D">   # light-{red,teal,blue,orange} | terminal-{amber,green}</span></span>
+<span class="line"><span style="color:#22863A">collapse</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">          # topic-bold | none      – the C toggle</span></span>
+<span class="line"><span style="color:#22863A">auto-fit</span><span style="color:#24292E">: </span><span style="color:#005CC5">true</span><span style="color:#6A737D">          # true | false           – the # toggle</span></span>
+<span class="line"><span style="color:#22863A">slide-numbers</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">      # vertical | horizontal | off</span></span>
+<span class="line"><span style="color:#6F42C1">---</span></span></code></pre>
+<p><strong>The precedence rule is one sentence.</strong> A key that is present wins over the reader&#39;s stored preference; a key that is absent leaves that preference alone. So a lecture that pins nothing behaves exactly as it always did – font, theme and slide numbers follow the reader from lecture to lecture – while a lecture with a designed look gets it without asking anyone to press keys.</p>
+<p><code>slide-numbers</code> reaches the print views as well, since a document has no keyboard to cycle it with. An unknown value fails the build with the list of valid ones rather than being ignored, because a silently dropped setting looks exactly like a setting you forgot to write.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="view-defaults">
+      <div class="annot-box-label">annotation · view-defaults</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></div>
+</article>
 </section>
   </div>
 </div>
@@ -2342,6 +2369,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </nav>
 <script>
 const LECTURE_TITLE = "psi-slides – a ten-step tour";
+const VIEW_DEFAULTS = {};
 
 const STORAGE_PREFIX = 'psi-slides:';
 const storageKey = (s) => STORAGE_PREFIX + LECTURE_TITLE + ':' + s;
@@ -2441,15 +2469,18 @@ document.querySelectorAll('.column').forEach((col, ci) => {
   });
 });
 
+// VIEW_DEFAULTS holds only the keys the author pinned in the frontmatter;
+// everything absent from it falls back to the built-in default here and, for
+// the three global preferences, to whatever the reader last chose.
 const state = {
   activeIdx: 0,
-  collapse: 'topic-bold',
+  collapse: VIEW_DEFAULTS.collapse || 'topic-bold',
   zoom: 1.35,
-  autoFit: false,        // # – refit the zoom on every slide, both modes
+  autoFit: !!VIEW_DEFAULTS.autoFit,   // # – refit the zoom on every slide, both modes
   blanked: false,
-  font: 'serif',          // serif | sans | mono (readable)
-  theme: 'light-red',     // light-{red,teal,blue,orange} | terminal-{amber,green}
-  slideNums: 'vertical',  // vertical | horizontal | off – L cycles
+  font: VIEW_DEFAULTS.font || 'serif',           // serif | sans | mono (readable)
+  theme: VIEW_DEFAULTS.theme || 'light-red',     // light-{red,teal,blue,orange} | terminal-{amber,green}
+  slideNums: VIEW_DEFAULTS.slideNums || 'vertical',  // vertical | horizontal | off – L cycles
 };
 const FONT_CYCLE = ['serif', 'sans', 'mono'];
 const SLIDE_NUM_MODES = ['vertical', 'horizontal', 'off'];
@@ -2522,19 +2553,22 @@ function loadPersisted() {
     const pos = localStorage.getItem(storageKey('activeIdx'));
     if (pos !== null) state.activeIdx = Math.max(0, Math.min(flatChunks.length - 1, parseInt(pos, 10) || 0));
   } catch (e) {}
-  // Font + theme are global (not per-lecture): shared across all lectures
-  // so the reading preference follows the user, not the source file.
+  // Font, theme and slide numbers are global (not per-lecture): shared
+  // across all lectures so the reading preference follows the user, not the
+  // source file. Unless this lecture pinned the key in its frontmatter, in
+  // which case the author's choice is the point and the stored preference
+  // stays out of the way.
   try {
     const f = localStorage.getItem('psi-slides:font');
-    if (f && FONT_CYCLE.includes(f)) state.font = f;
+    if (!VIEW_DEFAULTS.font && f && FONT_CYCLE.includes(f)) state.font = f;
   } catch (e) {}
   try {
     const t = localStorage.getItem('psi-slides:theme');
-    if (t && THEME_CYCLE.includes(t)) state.theme = t;
+    if (!VIEW_DEFAULTS.theme && t && THEME_CYCLE.includes(t)) state.theme = t;
   } catch (e) {}
   try {
     const n = localStorage.getItem('psi-slides:slide-nums');
-    if (n && SLIDE_NUM_MODES.includes(n)) state.slideNums = n;
+    if (!VIEW_DEFAULTS.slideNums && n && SLIDE_NUM_MODES.includes(n)) state.slideNums = n;
   } catch (e) {}
 }
 function saveAnnotations() {
@@ -4071,9 +4105,17 @@ wireTouchControls();
 applyRevealAll();
 applyState();
 // Two rAFs so fonts have a chance to settle before the first camera solve.
-requestAnimationFrame(() => requestAnimationFrame(() => focusCamera(true)));
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  // A lecture that opens with auto-fit has to fit its *first* slide too.
+  // jumpTo does this on every later move; nothing calls it at boot.
+  if (state.autoFit) fitZoomToChunk(2.2);
+  focusCamera(true);
+}));
 if (document.fonts && document.fonts.ready) {
-  document.fonts.ready.then(() => focusCamera(true));
+  document.fonts.ready.then(() => {
+    if (state.autoFit) fitZoomToChunk(2.2);
+    focusCamera(true);
+  });
 }
 
 </script>

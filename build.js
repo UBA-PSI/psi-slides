@@ -990,6 +990,55 @@ function lectureTitle(frontmatter) {
   return frontmatter.title || 'Untitled lecture';
 }
 
+// ── viewer defaults from frontmatter ─────────────────────────────────
+// An author can pin how a lecture opens: font, theme, collapse mode,
+// auto-fit, slide numbers. Precedence is deliberate and one sentence long:
+// a key that is present wins over the reader's stored preference, and a key
+// that is absent leaves that preference alone. So the default behaviour is
+// unchanged for the lectures that say nothing (font and theme keep
+// following the reader across lectures), and an author who has designed a
+// particular look gets it without having to ask the reader to press keys.
+const VIEW_DEFAULT_SPEC = [
+  ['font',          'font',      ['serif', 'sans', 'mono']],
+  ['theme',         'theme',     ['light-red', 'light-teal', 'light-blue', 'light-orange', 'terminal-amber', 'terminal-green']],
+  ['collapse',      'collapse',  ['topic-bold', 'none']],
+  ['auto-fit',      'autoFit',   ['true', 'false']],
+  ['slide-numbers', 'slideNums', ['vertical', 'horizontal', 'off']],
+];
+function viewDefaults(frontmatter = {}) {
+  const out = {};
+  for (const [fmKey, stateKey, allowed] of VIEW_DEFAULT_SPEC) {
+    if (!(fmKey in frontmatter)) continue;
+    const raw = String(frontmatter[fmKey]).trim();
+    if (!allowed.includes(raw)) {
+      // Hard-fail rather than ignore. A typo in a viewer default is silent
+      // by nature – the lecture still builds and still looks fine, it just
+      // looks like the author never set anything.
+      const err = new Error(
+        `Frontmatter: "${fmKey}: ${raw}" is not a value this key accepts.\n` +
+        `  Valid values for ${fmKey}: ${allowed.join(', ')}`
+      );
+      err.userFacing = true;
+      throw err;
+    }
+    out[stateKey] = stateKey === 'autoFit' ? raw === 'true' : raw;
+  }
+  return out;
+}
+// Body attributes for a live view, so the first paint already has the
+// author's font and theme. applyFontTheme() would correct them at boot, but
+// only after a visible flash of the built-in defaults.
+function viewBodyAttrs(defaults, extra = '') {
+  const parts = [
+    `data-collapse="${defaults.collapse || 'topic-bold'}"`,
+    extra,
+    `data-font="${defaults.font || 'serif'}"`,
+    `data-theme="${defaults.theme || 'light-red'}"`,
+    `data-slide-nums="${defaults.slideNums || 'vertical'}"`,
+  ].filter(Boolean);
+  return parts.join(' ');
+}
+
 function splitInfo(info = '') {
   return String(info).split('\n').map(l => l.trim()).filter(Boolean);
 }
@@ -1142,6 +1191,10 @@ function renderDocument(lecture, opts = {}) {
     .map(c => renderColumn(c, frontmatter, nextNum, chunkOpts)).join('\n');
 
   const titleSuffix = opts.withNotes ? 'print + notes' : 'print';
+  // Print has no keyboard, so the frontmatter is its only say over the
+  // slide-number markers. The other viewer defaults are live-view concepts
+  // (collapse, auto-fit) or already fixed here (print has its own type).
+  const printNums = viewDefaults(frontmatter).slideNums || 'vertical';
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1154,7 +1207,7 @@ ${PRINT_CSS}
 ${katexStyleTag(anonHtml + namedHtml)}
 ${reloadScript(opts.watchPort)}
 </head>
-<body>
+<body data-slide-nums="${printNums}">
 <main>
 ${anonHtml}
 ${toc}
@@ -1863,6 +1916,7 @@ function renderAudience(lecture, opts = {}) {
   const title = lectureTitle(frontmatter);
   const columnsHtml = renderColumnsHtml(columns, frontmatter);
   const titleJson = jsonForScript(title);
+  const defaults = viewDefaults(frontmatter);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1876,7 +1930,7 @@ ${AUDIENCE_CSS}
 ${katexStyleTag(columnsHtml)}
 ${reloadScript(opts.watchPort)}
 </head>
-<body data-collapse="topic-bold" data-font="serif" data-theme="light-red" data-slide-nums="vertical">
+<body ${viewBodyAttrs(defaults)}>
 <div id="stage-viewport">
   <div id="stage">
 ${columnsHtml}
@@ -1899,6 +1953,7 @@ ${BLANK_BADGE_HTML}
 ${renderTocNav(columns)}
 <script>
 const LECTURE_TITLE = ${titleJson};
+const VIEW_DEFAULTS = ${jsonForScript(defaults)};
 ${AUDIENCE_JS}
 </script>
 </body>
@@ -3316,15 +3371,18 @@ document.querySelectorAll('.column').forEach((col, ci) => {
   });
 });
 
+// VIEW_DEFAULTS holds only the keys the author pinned in the frontmatter;
+// everything absent from it falls back to the built-in default here and, for
+// the three global preferences, to whatever the reader last chose.
 const state = {
   activeIdx: 0,
-  collapse: 'topic-bold',
+  collapse: VIEW_DEFAULTS.collapse || 'topic-bold',
   zoom: 1.35,
-  autoFit: false,        // # – refit the zoom on every slide, both modes
+  autoFit: !!VIEW_DEFAULTS.autoFit,   // # – refit the zoom on every slide, both modes
   blanked: false,
-  font: 'serif',          // serif | sans | mono (readable)
-  theme: 'light-red',     // light-{red,teal,blue,orange} | terminal-{amber,green}
-  slideNums: 'vertical',  // vertical | horizontal | off – L cycles
+  font: VIEW_DEFAULTS.font || 'serif',           // serif | sans | mono (readable)
+  theme: VIEW_DEFAULTS.theme || 'light-red',     // light-{red,teal,blue,orange} | terminal-{amber,green}
+  slideNums: VIEW_DEFAULTS.slideNums || 'vertical',  // vertical | horizontal | off – L cycles
 };
 const FONT_CYCLE = ['serif', 'sans', 'mono'];
 const SLIDE_NUM_MODES = ['vertical', 'horizontal', 'off'];
@@ -3397,19 +3455,22 @@ function loadPersisted() {
     const pos = localStorage.getItem(storageKey('activeIdx'));
     if (pos !== null) state.activeIdx = Math.max(0, Math.min(flatChunks.length - 1, parseInt(pos, 10) || 0));
   } catch (e) {}
-  // Font + theme are global (not per-lecture): shared across all lectures
-  // so the reading preference follows the user, not the source file.
+  // Font, theme and slide numbers are global (not per-lecture): shared
+  // across all lectures so the reading preference follows the user, not the
+  // source file. Unless this lecture pinned the key in its frontmatter, in
+  // which case the author's choice is the point and the stored preference
+  // stays out of the way.
   try {
     const f = localStorage.getItem('psi-slides:font');
-    if (f && FONT_CYCLE.includes(f)) state.font = f;
+    if (!VIEW_DEFAULTS.font && f && FONT_CYCLE.includes(f)) state.font = f;
   } catch (e) {}
   try {
     const t = localStorage.getItem('psi-slides:theme');
-    if (t && THEME_CYCLE.includes(t)) state.theme = t;
+    if (!VIEW_DEFAULTS.theme && t && THEME_CYCLE.includes(t)) state.theme = t;
   } catch (e) {}
   try {
     const n = localStorage.getItem('psi-slides:slide-nums');
-    if (n && SLIDE_NUM_MODES.includes(n)) state.slideNums = n;
+    if (!VIEW_DEFAULTS.slideNums && n && SLIDE_NUM_MODES.includes(n)) state.slideNums = n;
   } catch (e) {}
 }
 function saveAnnotations() {
@@ -4946,9 +5007,17 @@ wireTouchControls();
 applyRevealAll();
 applyState();
 // Two rAFs so fonts have a chance to settle before the first camera solve.
-requestAnimationFrame(() => requestAnimationFrame(() => focusCamera(true)));
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  // A lecture that opens with auto-fit has to fit its *first* slide too.
+  // jumpTo does this on every later move; nothing calls it at boot.
+  if (state.autoFit) fitZoomToChunk(2.2);
+  focusCamera(true);
+}));
 if (document.fonts && document.fonts.ready) {
-  document.fonts.ready.then(() => focusCamera(true));
+  document.fonts.ready.then(() => {
+    if (state.autoFit) fitZoomToChunk(2.2);
+    focusCamera(true);
+  });
 }
 `;
 
@@ -4988,6 +5057,7 @@ function renderSpeaker(lecture, opts = {}) {
 
   const slug = frontmatter.lecture || frontmatter.course || '';
   const titleJson = jsonForScript(title);
+  const defaults = viewDefaults(frontmatter);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -5002,7 +5072,7 @@ ${SPEAKER_CSS}
 ${katexStyleTag(columnsHtml)}
 ${reloadScript(opts.watchPort)}
 </head>
-<body data-collapse="topic-bold" data-view="speaker" data-font="serif" data-theme="light-red" data-slide-nums="vertical">
+<body ${viewBodyAttrs(defaults, 'data-view="speaker"')}>
 <div id="scrubber">
 ${scrubberHtml}
 </div>
@@ -5047,6 +5117,7 @@ ${BLANK_BADGE_HTML}
 ${renderTocNav(columns)}
 <script>
 const LECTURE_TITLE = ${titleJson};
+const VIEW_DEFAULTS = ${jsonForScript(defaults)};
 ${AUDIENCE_JS}
 ${SPEAKER_JS}
 </script>

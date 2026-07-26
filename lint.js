@@ -31,6 +31,20 @@ const VALID_TAGS = new Set([
 
 const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
 
+// Mirrors VIEW_DEFAULT_SPEC in build.js: frontmatter keys that pin how a
+// lecture opens. The build hard-fails on a bad value, but a typo here is
+// otherwise invisible – the lecture still builds and still looks fine, it
+// just looks like the author never set anything – so the linter says it
+// first. Only top-level `key: value` lines are inspected, which is all this
+// zero-dep reader can see without a YAML parser.
+const VIEW_DEFAULTS = {
+  'font': ['serif', 'sans', 'mono'],
+  'theme': ['light-red', 'light-teal', 'light-blue', 'light-orange', 'terminal-amber', 'terminal-green'],
+  'collapse': ['topic-bold', 'none'],
+  'auto-fit': ['true', 'false'],
+  'slide-numbers': ['vertical', 'horizontal', 'off'],
+};
+
 // Mirrors build.js: the per-image inline cap, and the extension search order
 // used to resolve `![](fig-id)` shorthand. An asset over the cap is left as
 // an external path, which quietly breaks the single-file promise – the build
@@ -56,13 +70,13 @@ const REVEAL_PCT_WARN = 0.5;
 const ORPHAN_MIN = 2;
 
 function splitFrontmatter(src) {
-  if (!src.startsWith('---\n')) return { body: src, fmLines: 0 };
+  if (!src.startsWith('---\n')) return { body: src, fmLines: 0, header: '' };
   const end = src.indexOf('\n---\n', 4);
-  if (end === -1) return { body: src, fmLines: 0 };
+  if (end === -1) return { body: src, fmLines: 0, header: '' };
   const header = src.slice(4, end);
   const body = src.slice(end + 5);
   const fmLines = header.split('\n').length + 2;
-  return { body, fmLines };
+  return { body, fmLines, header };
 }
 
 function parseAttributeTail(text) {
@@ -92,7 +106,7 @@ function wordCountOf(lines) {
 function lintFile(filePath) {
   const src = fs.readFileSync(filePath, 'utf8');
   const ignores = parseIgnores(src);
-  const { body, fmLines } = splitFrontmatter(src);
+  const { body, fmLines, header } = splitFrontmatter(src);
   const lines = body.split('\n');
   const findings = [];
 
@@ -102,6 +116,23 @@ function lintFile(filePath) {
       file: filePath, line: fmLines + bodyLine, severity, rule, msg,
     });
   };
+  // Frontmatter findings carry their own line numbers, counted from the
+  // opening `---`, so they must not go through `add`'s fmLines offset.
+  const addFm = (fmLine, severity, rule, msg) => {
+    if (ignores.has(rule)) return;
+    findings.push({ file: filePath, line: fmLine, severity, rule, msg });
+  };
+
+  header.split('\n').forEach((raw, i) => {
+    const m = raw.match(/^([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
+    if (!m) return;
+    const allowed = VIEW_DEFAULTS[m[1]];
+    if (!allowed) return;
+    const value = m[2].trim().replace(/^["']|["']$/g, '');
+    if (!value || allowed.includes(value)) return;
+    addFm(i + 2, 'error', 'unknown-view-default',
+      `'${m[1]}: ${value}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
+  });
 
   const ids = new Map();
   const columns = [];
