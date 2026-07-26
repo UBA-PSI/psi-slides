@@ -392,6 +392,27 @@ Im Cockpit sitzt der Toast unter dem Scrubber (`top: calc(3vh + 14px)`), nicht a
 
 Nebenbei: der runde `?`-Button unten links ist in der Speaker-View ausgeblendet. Er lag auf der Uhr, und die Fußzeile hat zwei Zentimeter weiter einen beschrifteten `? help`.
 
+## Cockpit-Größen, Foliennummern, Frontmatter-Defaults
+
+**Der Preview-Strip lässt sich ziehen, in beiden Orientierungen.** Die Notizen-Pane konnte das längst, der Strip daneben klebte auf 22vh bzw. 18vw – im Vertikalmodus besonders schade, wo ein breiterer Strip der ganze Punkt ist. Höhe und Breite liegen unter **getrennten** Keys: wer von unten nach rechts umschaltet, will beide Formen so wiederfinden, wie er sie verlassen hat, und eine Zahl kann nicht beides bedeuten.
+
+Zwei Strukturpunkte, beide auf die harte Tour gelernt:
+
+- Der Griff ist ein **eigenes Grid-Item** in der Zelle des Strips, kein Kind des Strips. Der Strip ist ein Scroll-Container; ein Griff darin scrollt mit den Thumbnails weg.
+- Wer sich eine Zelle teilt, muss **explizit platziert** sein. Grid-Auto-Placement weicht einer belegten Zelle aus, statt sie zu überlagern – der auf `auto` stehende Strip wurde also in eine implizite zweite Spalte geschoben, die `grid-template-columns` nie deklariert hat, und das Cockpit rendere auf halber Breite. Sichtbar an der berechneten Spaltenliste: `488.555px 911.445px` statt einer Spur. Overlap ist eine Eigenschaft **beider** Beteiligten, nicht der Zelle.
+
+Dazu ein Fehler, den nur die Konsole gefangen hat: `previewDrag` gehörte schon dem Drag-to-Scroll des Strips, und eine doppelte `let`-Deklaration legt die **gesamte** Speaker-Runtime lahm – nicht nur das neue Feature. Umbenannt in `previewSizeDrag`. Merke: nach jeder Ergänzung in `SPEAKER_JS` einmal die Konsole lesen, ein Namenskonflikt sieht sonst aus wie „das Feature tut nichts".
+
+**Font-Zoom für die Notizen**, zwei Buttons in der Ecke, bewusst ohne Hotkey: die Notizen sind die eine Fläche, in die getippt wird, und jeder freie Buchstabe ist bereits ein Navigationsbefehl, der mitten im Satz feuern würde. `autoSizeNotes` misst gegen die berechnete Schriftgröße, die Auto-Höhe folgt also von allein. `mousedown` wird auf beiden Buttons unterdrückt – ein Klick, der den Fokus stiehlt, klappt eine unberührte leere Pane unter dem gerade gedrückten Button weg.
+
+**Foliennummern sind jetzt eine Einstellung.** Die gestapelten Ziffern in der Ecke sind ein bewusster Look und nicht jedermanns Sache; das für alle zu entscheiden war bei etwas rein Typografischem die falsche Wahl. `L` zykelt gestapelt → nebeneinander → aus, global gespeichert wie Font und Theme, im Snapshot mitgeführt.
+
+**Fünf Frontmatter-Keys pinnen, wie eine Vorlesung aufmacht**: `font`, `theme`, `collapse`, `auto-fit`, `slide-numbers`. Die Präzedenzregel ist ein Satz und das ganze Design: **ein gesetzter Key schlägt die gespeicherte Präferenz des Lesers, ein fehlender lässt sie in Ruhe.** Damit ändert sich für bestehende Lectures exakt nichts – Font und Theme folgen weiter dem Leser über Vorlesungen hinweg, was der Grund war, sie global zu speichern – und wer einen Look entworfen hat, bekommt ihn, ohne jemanden um Tastendrücke zu bitten.
+
+`slide-numbers` reicht bis in die Print-Views, weil ein Dokument keine Tastatur hat. Die Werte landen zur Build-Zeit im `<body>`-Tag statt erst von `applyFontTheme()` beim Boot korrigiert zu werden – sonst blitzen die eingebauten Defaults kurz auf.
+
+Ein unbekannter Wert **bricht den Build ab** (`userFacing`, kein Stacktrace) statt ignoriert zu werden. Begründung: ein stillschweigend verworfener Wert ist von einem nie geschriebenen nicht zu unterscheiden – die Vorlesung baut, sieht gut aus, und sieht dabei genau so aus, als hätte der Autor nichts eingestellt. `lint.js` spiegelt die Tabelle als `VIEW_DEFAULTS` und meldet `unknown-view-default` ebenfalls als Error; gleiche Duplizierungs-Abmachung wie bei `VALID_TAGS`.
+
 ## Was funktioniert
 
 - `node build.js <source.md>` – wie bisher, jetzt mit Shiki + Image-Resolution + Layouts.
@@ -426,6 +447,15 @@ Diese Punkte habe ich ohne Rückfrage entschieden:
 - **Mermaid ist weiterhin deferred.** Die beiden Figuren in python-intro waren bereits als ASCII (async-Timeline, scanner-pipeline) geschrieben – ich habe sie durch `![](…)` SVG-Figuren ersetzt, was das Image-Shorthand-Feature sauber demonstriert. Die ASCII-Version in einer `::: figure`-Chunk mit Pre wäre auch valide. Mermaid als *authored-in-source*-Pipeline (fenced ```mermaid ``` → headless render → inline SVG) bleibt offen.
 - **`--assign-ids` ist weiterhin nicht implementiert.** Der Linter meldet `missing-id`, aber der Autor muss die IDs noch selbst eintippen. Kleiner Commit falls die nächste Lecture viele neue Chunks erzeugt.
 - **Kein Linter-Hook im Build.** Wer gerade `build.js --watch` fährt, muss separat `lint.js` callen. Siehe offene Empfehlungen im vorigen Handoff.
+
+## Offene Zusagen (nicht vergessen)
+
+Zwei Doku-Aufgaben, die der Autor explizit vorgemerkt hat:
+
+- **Anti-Fit-Liste im README gegenlesen.** Die „When *not* to use this"-Liste stammt aus dem Docs-Brief und muss vom Autor durchgegangen werden – er ist der Einzige, der weiß, welche der Grenzen ihn in der Praxis wirklich getroffen haben. Bis dahin ist die Liste plausibel, aber nicht belegt.
+- **Abgrenzung zu Beamer und reveal.js.** Für die öffentliche Doku fehlt ein fairer Vergleich, ausdrücklich in beide Richtungen: wo psi-slides gewinnt und wo LaTeX Beamer, reveal.js, Quarto oder Marp die bessere Wahl sind. Der README hat aktuell nur einen kurzen Absatz.
+
+**KaTeX** ist inzwischen gebaut (siehe Math-Slice); der alte „deferred"-Vermerk unten ist historisch.
 
 ## Next Slice – Empfehlungen
 
