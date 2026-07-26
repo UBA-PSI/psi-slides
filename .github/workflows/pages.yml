@@ -43,8 +43,8 @@ jobs:
         run: |
           node build.js lectures/tutorial/source.md
           node build.js lectures/python-intro/source.md
-          # The short lecture the landing page's screenshots come from, so a
-          # reader can open the thing the pictures show.
+          # A 39-line lecture, published so a reader can take in one whole
+          # source at a glance. The screenshots come from python-intro.
           node build.js docs/site/example/source.md
 
       - name: Assemble the site

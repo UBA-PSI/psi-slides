@@ -4,74 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>psi-slides &ndash; live demo</title>
-<style>
-  :root {
-    --paper: oklch(0.98 0.00 0);
-    --ink: oklch(0.20 0.01 260);
-    --ink-soft: oklch(0.52 0.01 260);
-    --accent: oklch(0.42 0.13 25);
-    --rule: oklch(0.88 0.01 260);
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--paper);
-    color: var(--ink);
-    font-family: Iowan Old Style, Palatino, Georgia, serif;
-    font-size: 18px;
-    line-height: 1.55;
-  }
-  main { max-width: 46rem; margin: 0 auto; padding: 4rem 1.5rem 6rem; }
-  h1 { font-size: 2.4rem; line-height: 1.1; margin: 0 0 .4rem; letter-spacing: -0.01em; }
-  .tagline { color: var(--ink-soft); font-style: italic; margin: 0 0 2.5rem; }
-  h2 {
-    font-size: .78rem; text-transform: uppercase; letter-spacing: .12em;
-    font-family: ui-sans-serif, system-ui, sans-serif; font-weight: 600;
-    color: var(--ink-soft); margin: 3rem 0 1rem;
-    border-top: 1px solid var(--rule); padding-top: .9rem;
-  }
-  a { color: var(--accent); }
-  .views { list-style: none; padding: 0; margin: 0; display: grid; gap: 1.1rem; }
-  .views a.name { font-size: 1.15rem; font-weight: 600; text-decoration: none; }
-  .views a.name:hover { text-decoration: underline; }
-  .views p { margin: .15rem 0 0; color: var(--ink-soft); font-size: .95rem; }
-  .hint {
-    background: oklch(0.96 0.01 90); border-left: 3px solid var(--rule);
-    padding: .9rem 1.1rem; font-size: .95rem; margin: 2rem 0 0;
-  }
-  kbd {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em;
-    border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 4px;
-    padding: .05em .35em; background: var(--paper);
-  }
-  footer { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--rule);
-           font-size: .9rem; color: var(--ink-soft); }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper: oklch(0.18 0.01 260); --ink: oklch(0.92 0.01 260);
-      --ink-soft: oklch(0.65 0.01 260); --accent: oklch(0.72 0.12 25);
-      --rule: oklch(0.32 0.01 260);
-    }
-    .hint { background: oklch(0.22 0.01 90); }
-  }
-  figure.shot { margin: 0 0 1.6rem; }
-  figure.shot img { width: 100%; height: auto; display: block;
-    border: 1px solid var(--rule); border-radius: 3px; }
-  figure.shot figcaption { font-family: var(--sans); font-size: 0.82rem;
-    color: var(--ink-soft); margin-top: 0.4rem; }
-  .pair { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }
-  @media (max-width: 44rem) { .pair { grid-template-columns: 1fr; } }
-  table.views { border-collapse: collapse; width: 100%; font-family: var(--sans);
-    font-size: 0.86rem; margin: 1rem 0; }
-  table.views th, table.views td { border-bottom: 1px solid var(--rule);
-    padding: 0.4rem 0.5rem; text-align: left; }
-  table.views th { color: var(--ink-soft); font-weight: 600; }
-  table.views td.note { color: var(--ink-soft); border-bottom: 0; padding-top: 0.7rem; }
-  p.tiny { font-family: var(--sans); font-size: 0.82rem; color: var(--ink-soft); }
-  pre.snippet { font-family: var(--mono); font-size: 0.72rem; line-height: 1.5;
-    background: rgba(127,127,127,0.09); padding: 0.9rem 1rem; border-radius: 3px;
-    overflow-x: auto; }
-</style>
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
 <main>
@@ -81,96 +14,127 @@
 
   <h2>What it does</h2>
 
-  <p>Everything below comes from this one chunk of Markdown. Nothing here was
-  authored twice.</p>
+  <p>The screenshots below are all one slide of one real lecture &ndash; a 36-chunk
+  introduction to Python &ndash; and this is the Markdown it was written in. Two of
+  the four paragraphs are abridged here; nothing else is.</p>
 
-<pre class="snippet">## principle: Anonymity is a property of the set | not of the channel {.wide #anon-set}
+<pre><code>## free: Why Playwright | the modern web is rendered, not served {.wide #why-playwright}
 
-**Anonymity comes from the others doing the same thing.** A mix node that
-forwards exactly one message leaks it by timing alone: the attacker needs a
-clock, not cryptanalysis.
+::: cols 2
 
-The size of the anonymity set is therefore a property of the **traffic**, not
-of the protocol. Padding buys you set size; encryption alone buys you none.
+**A lot of the web is rendered by JavaScript in the browser.** `requests` and
+plain `urllib` **see only the HTML shell** &ndash; often just `&lt;div id="app"&gt;&lt;/div&gt;`
+plus a pile of script tags. Useful text, links, and titles never arrive.
 
-::: margin
-Pfitzmann and Hansen give the terminology this chapter follows.
+**Playwright drives a real browser** &ndash; Chromium, Firefox, or WebKit &ndash; over a
+debugging protocol. The page renders, scripts execute, the DOM settles, and
+then you query it. You see what a human sees.
+
+**For a link scanner this matters a lot.** …
+
+**The cost is weight.** …
+
 :::
 
-&gt; note: Ask the room for the smallest set they would trust. Answers cluster
-&gt; around 100, and the reasoning is always worth two minutes.</pre>
+::: margin
+`requests` is still the right tool for an API that answers in JSON. The
+browser is for pages meant to be looked at.
+:::
+
+&gt; note: Show the difference live if the room is awake: open a JS-heavy site,
+&gt; curl it, and let them find the missing text themselves.</code></pre>
 
   <div class="pair">
     <figure class="shot">
-      <img src="img/collapsed.png" alt="The slide as projected: heading, sub-heading, the first sentence of each paragraph, and the one bold phrase promoted out of the second.">
-      <figcaption>On the projector. The first sentence of each paragraph, plus
-      the phrases marked bold. Written once, abridged by rule.</figcaption>
+      <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>audience.html</b></div>
+      <img src="img/collapsed.webp" alt="The slide as projected: heading, sub-heading, the first sentence of each paragraph and the phrases marked bold, in one column.">
+      <figcaption><strong>On the projector.</strong> The first sentence of each
+      paragraph, plus the phrases marked bold. The columns fold to one, because
+      four abridged paragraphs do not balance.</figcaption>
     </figure>
     <figure class="shot">
-      <img src="img/full.png" alt="The same chunk with collapse off, showing both paragraphs in full.">
-      <figcaption>The same chunk with <kbd>C</kbd> pressed. The continuation
-      prose that the room never saw is the handout text.</figcaption>
+      <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>audience.html</b> &middot; C</div>
+      <img src="img/full.webp" alt="The same chunk with collapse switched off: all four paragraphs in full, laid out in two columns.">
+      <figcaption><strong>The same chunk, unabridged.</strong> One key gives the
+      room the continuation prose &ndash; the text that otherwise only the document
+      carries.</figcaption>
     </figure>
   </div>
 
   <figure class="shot">
-    <img src="img/cockpit.png" alt="The presenter cockpit: column scrubber, a mirror of the projected slide, the private speaker note below it, and a strip of upcoming slides.">
-    <figcaption>The cockpit, spawned with <kbd>S</kbd>. The
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>speaker.html</b></div>
+    <img src="img/cockpit.webp" alt="The presenter cockpit: a chapter scrubber across the top, a mirror of the projected slide, the private speaker note below it, a strip of neighbouring slides, and a footer with timer and key legend.">
+    <figcaption><strong>The cockpit</strong>, spawned with <kbd>S</kbd>. The
     <code>&gt; note:</code> from the source sits under the stage where only you
-    can read it; the strip shows what is coming. Both windows stay in step over
+    can read it, at a size you can set with the two buttons beside it; the strip
+    shows what is coming. Both windows stay in step over
     <code>postMessage</code>, with no server between them.</figcaption>
   </figure>
 
   <div class="pair">
     <figure class="shot">
-      <img src="img/overview.png" alt="The overview board: the whole lecture laid out as a grid of slides with one outlined.">
-      <figcaption>The overview board (<kbd>O</kbd>, the letter). Drag to pan,
-      <kbd>/</kbd> to search, <kbd>Enter</kbd> to land.</figcaption>
+      <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>audience.html</b> &middot; O</div>
+      <img src="img/overview.webp" alt="The overview board: the whole 36-chunk lecture laid out as a grid of readable slides, with the current one outlined.">
+      <figcaption><strong>The whole lecture at once.</strong> Not thumbnails
+      &ndash; the real slides, still legible. Drag to pan, <kbd>Enter</kbd> to
+      land.</figcaption>
     </figure>
     <figure class="shot">
-      <img src="img/handout.png" alt="The handout: the same chunk as flowing prose with the speaker note rendered as an aside beneath it.">
-      <figcaption><code>print-notes.html</code>: the same text as a document,
-      with the spoken note folded in under its chunk.</figcaption>
+      <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>audience.html</b> &middot; /</div>
+      <img src="img/search.webp" alt="The search panel over the slide: the query async, and five results, each with its tag, heading and the matching sentence.">
+      <figcaption><strong>Full-text search</strong>, from anywhere, mid-talk.
+      Each hit shows its kind, its heading, and the sentence the match sits
+      in.</figcaption>
     </figure>
   </div>
 
-  <h2>The four views</h2>
+  <figure class="shot">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>print-notes.html</b></div>
+    <img src="img/handout.webp" alt="The handout: the same chunk set as flowing justified prose with hyphenation, the margin note as an aside, and the speaker note in a tinted block beneath it.">
+    <figcaption><strong>The handout.</strong> The same source set as a document
+    &ndash; hyphenated, in a reading measure, with the spoken note folded in under
+    its chunk. <code>print.html</code> is the same page without the
+    notes.</figcaption>
+  </figure>
 
-  <p>Two lectures to open them from: the <strong>short example</strong> above
-  (39 lines of Markdown,
-  <a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">source</a>),
-  or the <strong>tutorial</strong>, a self-referential tour that explains the tool by being the
-  tool.</p>
+  <h2>Open them yourself</h2>
 
-  <table class="views">
-    <tr><th></th><th>Short example</th><th>Tutorial</th></tr>
+  <p>Three lectures are published here. <strong>python-intro</strong> is the one
+  above. The <strong>tutorial</strong> is a self-referential tour that explains
+  the tool by being the tool. The <strong>short example</strong> is 39 lines of
+  Markdown, if you want to read a whole source in one go
+  (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">source</a>).</p>
+
+  <table>
+    <tr><th></th><th>python-intro</th><th>Tutorial</th><th>Short example</th></tr>
     <tr><td>The projection</td>
-        <td><a href="example/audience.html">audience.html</a></td>
-        <td><a href="tutorial/audience.html">audience.html</a></td></tr>
+        <td><a href="python-intro/audience.html">audience</a></td>
+        <td><a href="tutorial/audience.html">audience</a></td>
+        <td><a href="example/audience.html">audience</a></td></tr>
     <tr><td>The cockpit</td>
-        <td><a href="example/speaker.html">speaker.html</a></td>
-        <td><a href="tutorial/speaker.html">speaker.html</a></td></tr>
+        <td><a href="python-intro/speaker.html">speaker</a></td>
+        <td><a href="tutorial/speaker.html">speaker</a></td>
+        <td><a href="example/speaker.html">speaker</a></td></tr>
     <tr><td>The document</td>
-        <td><a href="example/print.html">print.html</a></td>
-        <td><a href="tutorial/print.html">print.html</a></td></tr>
+        <td><a href="python-intro/print.html">print</a></td>
+        <td><a href="tutorial/print.html">print</a></td>
+        <td><a href="example/print.html">print</a></td></tr>
     <tr><td>With the notes</td>
-        <td><a href="example/print-notes.html">print-notes.html</a></td>
-        <td><a href="tutorial/print-notes.html">print-notes.html</a></td></tr>
-    <tr><td colspan="3" class="note">Also published: the 36-chunk
-        <a href="python-intro/audience.html">python-intro</a> lecture
-        (<a href="python-intro/print.html">document</a>).</td></tr>
+        <td><a href="python-intro/print-notes.html">print-notes</a></td>
+        <td><a href="tutorial/print-notes.html">print-notes</a></td>
+        <td><a href="example/print-notes.html">print-notes</a></td></tr>
   </table>
 
   <p class="tiny">Start with the projection. Arrow keys navigate,
   <kbd>Space</kbd> reveals, <kbd>C</kbd> toggles collapse, <kbd>O</kbd> (the letter, not zero)
-  opens the overview board, <kbd>?</kbd> lists everything. Opening the cockpit from a link shows
-  the layout but syncs with nothing &ndash; press <kbd>S</kbd> inside the projection to spawn a
-  connected one.</p>
+  opens the overview board, <kbd>/</kbd> searches, <kbd>?</kbd> lists everything. Opening the
+  cockpit from a link shows the layout but syncs with nothing &ndash; press <kbd>S</kbd> inside
+  the projection to spawn a connected one.</p>
 
   <div class="hint">
-    All four files are self-contained: CSS, JavaScript, images, the rendered maths and the
+    <p>All four files are self-contained: CSS, JavaScript, images, the rendered maths and the
     typefaces are all inlined. Nothing is fetched at run time, and they open just as happily
-    from <code>file://</code> as from this server.
+    from <code>file://</code> as from this server.</p>
   </div>
 
   <h2>Documentation</h2>
@@ -185,10 +149,10 @@ Pfitzmann and Hansen give the terminology this chapter follows.
   README explains the format, what the tool is good at, and what it is not.</p>
 
   <footer>
-    By <a href="https://herdom.net">Dominik Herrmann</a>,
+    <p>By <a href="https://herdom.net">Dominik Herrmann</a>,
     <a href="https://psi.uni-bamberg.de/">Privacy and Security in Information Systems</a>,
     University of Bamberg.<br>
-    Tooling MIT-licensed, lecture content CC&nbsp;BY-SA&nbsp;4.0. Rebuilt from source on every push.
+    Tooling MIT-licensed, lecture content CC&nbsp;BY-SA&nbsp;4.0. Rebuilt from source on every push.</p>
   </footer>
 </main>
 </body>
