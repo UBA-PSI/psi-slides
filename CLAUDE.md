@@ -186,7 +186,18 @@ Three decisions worth keeping:
 
 Play, pause and seek are **synced between the windows** (`type: 'video'`, addressed by `data-fig-id`, not by index, so reordering a chunk cannot mis-target it). Gated by the freeze flag like any other broadcast, so a lecturer can preview a clip on a frozen projection. `applyingRemoteVideo` suppresses the echo: applying a remote play fires a local `play` event that would otherwise bounce straight back.
 
-**Not built, and deliberately:** YouTube/Vimeo embeds. They are an `iframe`, which breaks the promise that an output fetches nothing at run time and makes the *audience* machine contact a third party mid-lecture. See the iframe investigation summarised in `HANDOFF.md`. If it is ever wanted, it should be an explicit author-declared directive, never the default meaning of a link or an asset.
+### Hosted embeds (`::: embed <url>`)
+
+Its own directive, never the meaning of a bare link or asset, because it is the single construct that makes an output fetch from a third party at run time. `parseEmbedUrl()` recognises YouTube and Vimeo (leniently: a bare `youtu.be/ID` or `vimeo.com/ID` is fine, which is what people paste) and normalises them to `youtube-nocookie.com/embed/…?enablejsapi=1` and `player.vimeo.com/video/…?dnt=1`; any other `https://` URL is framed as-is with no sync. `lint.js` mirrors that leniency exactly – a linter stricter than the build is worse than none.
+
+Four behaviours worth not breaking:
+
+- **The iframe is emitted with `data-src`, not `src`.** `updateEmbedLoading()` (called from `applyState`) sets it when the chunk becomes active and removes it on the way out. That is the privacy property – a lecture contacts a provider only for slides actually shown – and it is also the only reliable way to stop a cross-origin player when you navigate away.
+- **Play/pause syncs without any SDK.** Both providers speak a `postMessage` control protocol; YouTube's is the one its own IFrame API uses, unlocked by `enablejsapi=1` plus a `listening` handshake on the `widget` channel after load. Measured: `playerState` transitions and `currentTime` stream back. Gated by the freeze flag, echo-suppressed by `applyingRemoteEmbed`.
+- **Nothing autoplays**, on purpose.
+- **YouTube cannot work from `file://`** (origin `null`, no Referer → Error 153). `wireEmbeds()` replaces its frame with an instruction card pointing at `--serve` rather than letting the player render its own error in front of a room. Vimeo is unaffected; `EMBED_NEEDS_ORIGIN` is the table.
+
+The original address is always emitted as a real link under the frame: it is the fallback when the player will not run, it is what survives into a printed handout (the frame is `display: none` in `@media print`), and it earns a QR code from the existing link machinery for free.
 
 ### Link addresses and their QR codes
 

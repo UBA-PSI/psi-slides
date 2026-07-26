@@ -554,6 +554,91 @@ function katexStyleTag(html) {
   return `<style>\n${sheet.css}\n</style>`;
 }
 
+// ── hosted embeds (::: embed) ───────────────────────────────────────
+//
+// The one construct in the format that makes an output fetch from a third
+// party while the lecture is running. It is therefore its own directive and
+// never the meaning of a bare link or asset: an author who wants this says
+// so, and the build says what it costs.
+//
+// Two things make it more usable than a raw iframe, both measured:
+//
+//   1. Both providers speak a postMessage control protocol, so play, pause
+//      and seek sync between the projection and the cockpit exactly as a
+//      local <video> does – with no SDK bundled and no licence question.
+//      YouTube needs enablejsapi=1 for that; Vimeo needs nothing.
+//   2. YouTube refuses to play from a file:// page (origin `null`, no
+//      Referer → Error 153). Vimeo does not care. So the runtime swaps a
+//      YouTube embed for an instruction card when the deck was opened from
+//      disk, instead of leaving the room staring at a player error.
+const YT_ID = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/;
+const VIMEO_ID = /vimeo\.com\/(?:video\/)?(\d+)/;
+
+function parseEmbedUrl(raw) {
+  const url = String(raw).trim();
+  const yt = YT_ID.exec(url);
+  if (yt) {
+    // youtube-nocookie by default. It behaves identically and does not set
+    // profiling cookies until playback, which is the right default anywhere
+    // and not really optional in a privacy group's own teaching tool.
+    return {
+      provider: 'youtube',
+      id: yt[1],
+      src: `https://www.youtube-nocookie.com/embed/${yt[1]}?enablejsapi=1&rel=0&modestbranding=1`,
+      host: 'youtube-nocookie.com',
+      playsFromFile: false,
+    };
+  }
+  const vm = VIMEO_ID.exec(url);
+  if (vm) {
+    return {
+      provider: 'vimeo',
+      id: vm[1],
+      src: `https://player.vimeo.com/video/${vm[1]}?dnt=1`,
+      host: 'player.vimeo.com',
+      playsFromFile: true,
+    };
+  }
+  if (/^https:\/\//i.test(url)) {
+    // Any other https URL is framed as-is. No control protocol is assumed,
+    // so it gets no sync – it is an escape hatch, not a supported provider.
+    let host = url;
+    try { host = new URL(url).host; } catch { /* keep the raw string */ }
+    return { provider: 'generic', id: null, src: url, host, playsFromFile: true };
+  }
+  const err = new Error(
+    `::: embed needs an https URL, got "${url}".\n` +
+    `  Recognised: a YouTube or Vimeo link, or any other https:// address.`
+  );
+  err.userFacing = true;
+  throw err;
+}
+
+// Collected per build so the terminal can state the run-time dependency
+// once, with the hosts, rather than per occurrence.
+let embedsThisBuild = [];
+
+function renderEmbedOpen(rawUrl) {
+  const e = parseEmbedUrl(rawUrl);
+  embedsThisBuild.push(e);
+  const u = escapeHtml(rawUrl);
+  // The original address is emitted as a real link under the frame. It is
+  // the fallback when the frame cannot play, it gives the print views
+  // something that survives on paper, and it earns the URL a QR code from
+  // the existing link machinery for free.
+  return `<figure class="figure-embed" data-embed-provider="${e.provider}" data-embed-src="${escapeHtml(e.src)}" data-embed-url="${u}">` +
+    `<div class="embed-frame">` +
+    // data-src, not src: nothing is fetched until the chunk is actually
+    // reached (see updateEmbedLoading). That keeps a lecture from opening
+    // connections to a third party for slides nobody ever showed.
+    `<iframe data-src="${escapeHtml(e.src)}" allowfullscreen ` +
+    `allow="autoplay; fullscreen; encrypted-media; picture-in-picture" ` +
+    `referrerpolicy="strict-origin-when-cross-origin" title="Embedded video"></iframe>` +
+    `</div>` +
+    `<div class="embed-source"><a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a></div>` +
+    `<figcaption>`;
+}
+
 // ── staging clips that are too large to inline ──────────────────────
 //
 // A clip over the inline cap used to leave the same relative path it was
@@ -1266,6 +1351,17 @@ function parseLecture(src) {
         if (/^:::\s+marginalia\s*$/.test(line)) {
           target.push('', `<aside class="marginalia">`, '');
           layoutStack.push('</aside>');
+          continue;
+        }
+        // ::: embed <url> – a hosted player (YouTube, Vimeo). Deliberately
+        // its own directive and never the meaning of a bare link or asset:
+        // it is the one construct in the format that makes an output fetch
+        // from a third party at run time, so the author has to say it.
+        // Body lines become the caption.
+        const embedOpen = line.match(/^:::\s+embed\s+(\S+)\s*$/);
+        if (embedOpen) {
+          target.push('', renderEmbedOpen(embedOpen[1]), '');
+          layoutStack.push('</figcaption></figure>');
           continue;
         }
         // Explicit-slide mode (§4.5). These two are the escape hatch from
@@ -2034,6 +2130,17 @@ figure.figure-img { margin: 1rem 0; text-align: center; }
    loses the video, which nothing can help. */
 figure.figure-video { margin: 1rem 0; text-align: center; }
 figure.figure-video video { max-width: 100%; height: auto; }
+/* An embed in the reading copy: the frame still works in a browser, and the
+   address underneath is what survives on paper. */
+figure.figure-embed { margin: 1rem 0; text-align: center; }
+figure.figure-embed .embed-frame { aspect-ratio: 16 / 9; width: 100%; background: #eee; }
+figure.figure-embed .embed-frame iframe { width: 100%; height: 100%; border: 0; }
+figure.figure-embed .embed-source { font-family: var(--sans); font-size: 0.72rem; color: var(--ink-soft); margin-top: 0.3rem; overflow-wrap: anywhere; }
+@media print {
+  /* A frame prints as an empty rectangle; the address is the useful part. */
+  figure.figure-embed .embed-frame { display: none; }
+  figure.figure-embed .embed-source { font-size: 0.8rem; }
+}
 figure.figure-img img,
 figure.figure-img svg { max-width: 100%; height: auto; }
 figure.figure-img figcaption {
@@ -2922,6 +3029,60 @@ figure.figure-video {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+/* A hosted player. The frame keeps 16/9 rather than a fixed height so it
+   scales with the slide like everything else, and the address underneath is
+   the fallback: it is what the room reads when the frame cannot play, and
+   it carries a QR because the link machinery already gives every external
+   address one. */
+figure.figure-embed {
+  margin: 0.6em 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+.embed-frame {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 56vh;
+  background: oklch(0.12 0 0);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.embed-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+.embed-source {
+  font-family: var(--sans-font);
+  font-size: 0.62em;
+  margin-top: 0.35em;
+  opacity: 0.7;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.embed-source a { color: var(--ink-soft); }
+/* The instruction card that replaces a YouTube frame on a file:// deck. */
+.embed-blocked {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 56vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  text-align: center;
+  padding: 1em;
+  border: 2px dashed var(--rule);
+  border-radius: 3px;
+  font-family: var(--sans-font);
+  color: var(--ink-soft);
+}
+.embed-blocked strong { color: var(--ink); font-weight: 600; }
+.embed-blocked code {
+  font-family: var(--mono-font);
+  font-size: 0.85em;
+  color: var(--emph);
 }
 figure.figure-video video {
   max-width: 100%;
@@ -4352,6 +4513,7 @@ window.addEventListener('message', (ev) => {
     return;
   }
   if (m.type === 'video') { applyRemoteVideo(m); return; }
+  if (m.type === 'embed') { applyRemoteEmbed(m); return; }
   // Address overlay, outside the snapshot for the same reason as blank:
   // it is a command aimed at the projection, not shared navigation state.
   if (m.type === 'link-show') {
@@ -4546,6 +4708,7 @@ function applyState() {
   document.body.classList.toggle('blanked', state.blanked);
   applyBlankBadge();
   flatChunks.forEach((c, i) => c.el.classList.toggle('active', i === state.activeIdx));
+  updateEmbedLoading();
   viewHooks.onActiveChange();
   broadcastState();
 }
@@ -5277,6 +5440,128 @@ function applyRemoteVideo(m) {
   }
 }
 
+// ── hosted embeds ───────────────────────────────────────────────────
+// Two jobs. First, refuse to show a player that cannot work: YouTube needs
+// a real origin, and a deck opened from disk has none, so from file:// the
+// frame is replaced by an instruction card rather than left to render its
+// own Error 153 in front of a room. Vimeo has no such constraint.
+//
+// Second, keep the two windows together. Both providers speak a postMessage
+// control protocol – YouTube's is the one its own IFrame API uses, unlocked
+// by enablejsapi=1 – so play and pause travel between projection and
+// cockpit with no SDK loaded and no licence to honour.
+const EMBED_NEEDS_ORIGIN = { youtube: true, vimeo: false, generic: false };
+
+function embedCommand(frameWin, provider, action) {
+  if (!frameWin) return;
+  try {
+    if (provider === 'youtube') {
+      frameWin.postMessage(JSON.stringify({
+        event: 'command', func: action === 'play' ? 'playVideo' : 'pauseVideo', args: [],
+      }), '*');
+    } else if (provider === 'vimeo') {
+      frameWin.postMessage(JSON.stringify({ method: action === 'play' ? 'play' : 'pause' }), '*');
+    }
+  } catch (e) { /* a frame that is gone or refuses is not worth a throw */ }
+}
+
+function wireEmbeds() {
+  const onFile = location.protocol === 'file:';
+  document.querySelectorAll('.figure-embed').forEach((fig) => {
+    if (!(onFile && EMBED_NEEDS_ORIGIN[fig.dataset.embedProvider])) return;
+    // Swap the frame for an instruction card rather than let the player
+    // render its own Error 153 in front of a room.
+    const frame = fig.querySelector('.embed-frame');
+    if (!frame) return;
+    frame.className = 'embed-blocked';
+    frame.innerHTML =
+      '<strong>This player needs the lecture served over http.</strong>' +
+      '<div>A page opened from a file has no origin, and YouTube refuses to play without one.</div>' +
+      '<div><code>node build.js &lt;source.md&gt; --serve</code></div>' +
+      '<div>The address below works in any case.</div>';
+  });
+}
+
+// Load a hosted player only once its chunk is the one on screen, and drop it
+// again on the way out. Three reasons, in order of weight: a lecture must not
+// open connections to a third party for slides nobody showed; clearing the
+// src is also the only reliable way to stop a cross-origin player when you
+// move on, since it will happily keep playing behind you; and a deck with
+// several embeds otherwise pays for all of them at load.
+//
+// Nothing autoplays. Arriving at the slide gives you a loaded player waiting
+// on its play button - starting it is the lecturer's move, and the room
+// following is what the sync below is for.
+function updateEmbedLoading() {
+  const active = flatChunks[state.activeIdx];
+  document.querySelectorAll('.figure-embed').forEach((fig) => {
+    const ifr = fig.querySelector('iframe');
+    if (!ifr) return;                       // swapped for the instruction card
+    const isActive = !!active && active.el.contains(fig);
+    if (isActive) {
+      if (!ifr.getAttribute('src')) {
+        ifr.setAttribute('src', ifr.dataset.src);
+        // YouTube only reports state to a parent that has announced itself
+        // on the widget channel, and only once the document is up.
+        if (fig.dataset.embedProvider === 'youtube') {
+          ifr.addEventListener('load', () => setTimeout(() => {
+            try {
+              ifr.contentWindow.postMessage(
+                JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), '*');
+            } catch (e) {}
+          }, 300), { once: true });
+        }
+      }
+    } else if (ifr.getAttribute('src')) {
+      ifr.removeAttribute('src');
+    }
+  });
+}
+
+// Relay the lecturer's play/pause to the other window. There is no reliable
+// way to observe a click *inside* a cross-origin frame, so the cockpit sends
+// on the provider's own state events (YouTube) or player events (Vimeo).
+let applyingRemoteEmbed = false;
+function embedFigByUrl(url) {
+  for (const fig of document.querySelectorAll('.figure-embed')) {
+    if (fig.dataset.embedUrl === url) return fig;
+  }
+  return null;
+}
+window.addEventListener('message', (ev) => {
+  const o = String(ev.origin || '');
+  if (!/youtube|vimeo/.test(o)) return;
+  let d = ev.data;
+  try { if (typeof d === 'string') d = JSON.parse(d); } catch { return; }
+  if (!d || typeof d !== 'object') return;
+  // Which of our frames sent this?
+  let fig = null;
+  for (const f of document.querySelectorAll('.figure-embed')) {
+    const ifr = f.querySelector('iframe');
+    if (ifr && ifr.contentWindow === ev.source) { fig = f; break; }
+  }
+  if (!fig) return;
+  let action = null;
+  if (fig.dataset.embedProvider === 'youtube' && d.info && typeof d.info.playerState === 'number') {
+    if (d.info.playerState === 1) action = 'play';
+    else if (d.info.playerState === 2) action = 'pause';
+  } else if (fig.dataset.embedProvider === 'vimeo') {
+    if (d.event === 'play') action = 'play';
+    else if (d.event === 'pause') action = 'pause';
+  }
+  if (!action || applyingRemoteEmbed || !shouldBroadcast()) return;
+  sendToPeer({ type: 'embed', source: VIEW, url: fig.dataset.embedUrl, action });
+});
+function applyRemoteEmbed(m) {
+  const fig = embedFigByUrl(m.url);
+  if (!fig) return;
+  const ifr = fig.querySelector('iframe');
+  if (!ifr) return;
+  applyingRemoteEmbed = true;
+  try { embedCommand(ifr.contentWindow, fig.dataset.embedProvider, m.action); }
+  finally { setTimeout(() => { applyingRemoteEmbed = false; }, 400); }
+}
+
 // ── links ───────────────────────────────────────────────────────────
 // A plain click opens the link in a new tab of whichever window was
 // clicked. In the cockpit that is the lecturer checking a source, which is
@@ -5831,6 +6116,7 @@ applyFontTheme();
 document.querySelectorAll('.reveal-segment').forEach(seg => splitSentencesIn(seg));
 wireAnnotations();
 wireVideos();
+wireEmbeds();
 wireClicks();
 wireFigureClicks();
 wireTouchControls();
@@ -8003,6 +8289,9 @@ function buildOnce(absIn, only, opts = {}) {
     // videos/ – so they are handled rather than refused.
     assertInlinable(scan.oversized.filter(o => !isVideoExt(o.abs)), outDir);
   }
+  // Reset before parsing, not after: renderEmbedOpen fills this from inside
+  // parseLecture, so a reset further down wiped the very thing it collects.
+  embedsThisBuild = [];
   const lecture = parseLecture(src);
   const chunkCount = lecture.columns.reduce((n, c) => n + c.chunks.length, 0);
   const shape = `${lecture.columns.length} columns, ${chunkCount} chunks`;
@@ -8033,6 +8322,20 @@ function buildOnce(absIn, only, opts = {}) {
     const p = path.join(outDir, `${name}.html`);
     fs.writeFileSync(p, render(lecture, renderOpts));
     written.push(path.relative(process.cwd(), p));
+  }
+  if (embedsThisBuild.length) {
+    const hosts = [...new Set(embedsThisBuild.map(e => e.host))].join(', ');
+    console.log(
+      `[embed] ${embedsThisBuild.length} hosted player(s) from ${hosts}.\n` +
+      `        These outputs are NOT self-contained: the machine showing them contacts\n` +
+      `        that host while the lecture runs.`
+    );
+    if (embedsThisBuild.some(e => !e.playsFromFile)) {
+      console.log(
+        `        YouTube will not play from a file:// page (it needs a real origin).\n` +
+        `        Present with: node build.js <source.md> --serve`
+      );
+    }
   }
   if (stagedVideos.size) {
     const rows = [...stagedVideos.values()].filter(v => v.rel);

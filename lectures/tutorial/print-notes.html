@@ -389,6 +389,17 @@ figure.figure-img { margin: 1rem 0; text-align: center; }
    loses the video, which nothing can help. */
 figure.figure-video { margin: 1rem 0; text-align: center; }
 figure.figure-video video { max-width: 100%; height: auto; }
+/* An embed in the reading copy: the frame still works in a browser, and the
+   address underneath is what survives on paper. */
+figure.figure-embed { margin: 1rem 0; text-align: center; }
+figure.figure-embed .embed-frame { aspect-ratio: 16 / 9; width: 100%; background: #eee; }
+figure.figure-embed .embed-frame iframe { width: 100%; height: 100%; border: 0; }
+figure.figure-embed .embed-source { font-family: var(--sans); font-size: 0.72rem; color: var(--ink-soft); margin-top: 0.3rem; overflow-wrap: anywhere; }
+@media print {
+  /* A frame prints as an empty rectangle; the address is the useful part. */
+  figure.figure-embed .embed-frame { display: none; }
+  figure.figure-embed .embed-source { font-size: 0.8rem; }
+}
 figure.figure-img img,
 figure.figure-img svg { max-width: 100%; height: auto; }
 figure.figure-img figcaption {
@@ -1014,14 +1025,39 @@ pre.shiki .line { display: inline; }
 <p><strong>A clip can also live on a web server:</strong> <code>![](https://host/clip.mp4)</code> works and stays an ordinary player, which matters more than it sounds – play, pause and seeking still synchronise between the two windows, which no YouTube or Vimeo embed can do.</p>
 <p><strong>Too large to inline?</strong> The build copies the file into a <code>videos/</code> folder beside the output and plays it from there, and says so on the terminal. One companion folder to carry, instead of a path that only resolves on the machine that built it.</p>
 <p><strong>Play, pause and seeking are synced.</strong> Operate the clip in the cockpit and the projection follows. Freeze the projection first and it does not, so you can check a clip before showing it.</p>
-<p><strong>Hosted embeds are not supported, and the reason is worth knowing.</strong> A YouTube or Vimeo embed is an iframe: the audience machine fetches from a third party during your lecture, and you lose the play/pause sync entirely. YouTube also refuses to run at all from a <code>file://</code> page – it needs a real origin. If you truly need one, <code>node build.js &lt;source.md&gt; --serve</code> presents the lecture over <code>http://localhost</code>, where it works.</p>
 
   
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="math" data-chunk-num="29">
+<article class="chunk chunk-example width-wide" id="embed" data-chunk-num="29">
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Hosted players</span> <span class="hd-sub"><code>::: embed</code> for YouTube and Vimeo</span></h2>
+  <p><strong>A hosted player is its own directive, never the meaning of a bare link.</strong> It is the one construct in the format that makes an output fetch from a third party while the lecture is running, so the author says it out loud:</p>
+<pre class="shiki github-light" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#24292E">::: embed https://www.youtube.com/watch?v=aqz-KE-bpKQ</span></span>
+<span class="line"><span style="color:#24292E">Big Buck Bunny, Blender Foundation</span></span>
+<span class="line"><span style="color:#24292E">:::</span></span></code></pre>
+<p>The body line becomes the caption. A <code>youtu.be/…</code> or bare <code>vimeo.com/123</code> works too; anything else has to be a full <code>https://</code> address, and the build refuses what it does not recognise.</p>
+<p><strong>Four things happen that a raw iframe would not do for you.</strong></p>
+<ul>
+<li><strong>Nothing loads until you get there.</strong> The frame carries no <code>src</code> until its chunk is the one on screen, and loses it again when you leave. So a lecture contacts YouTube only for slides you actually showed, and a player cannot keep running behind your back on a slide you left.</li>
+<li><strong>Play and pause are synchronised.</strong> Both providers speak a control protocol over <code>postMessage</code>, so starting the clip in the cockpit starts it on the projection – the same behaviour as a local video, with no library loaded. Freeze the projection and it stays put.</li>
+<li><strong>Nothing autoplays.</strong> Arriving at the slide gives you a loaded player waiting on its button. Starting it is your move.</li>
+<li><strong>YouTube gets an honest card instead of an error.</strong> A page opened from a file has no origin, and YouTube refuses to play without one – you would otherwise get its own “Error 153” in front of the room. Opened from disk, the frame is replaced by a card telling you to serve the deck. Vimeo has no such restriction and plays either way.</li>
+</ul>
+<p><strong>To present with a YouTube embed, serve the lecture:</strong></p>
+<pre class="shiki github-light" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#6F42C1">node</span><span style="color:#032F62"> build.js</span><span style="color:#D73A49"> &#x3C;</span><span style="color:#032F62">source.m</span><span style="color:#24292E">d</span><span style="color:#D73A49">></span><span style="color:#005CC5"> --serve</span><span style="color:#6A737D">          # http://localhost, prints the URLs</span></span>
+<span class="line"><span style="color:#6F42C1">node</span><span style="color:#032F62"> build.js</span><span style="color:#D73A49"> &#x3C;</span><span style="color:#032F62">source.m</span><span style="color:#24292E">d</span><span style="color:#D73A49">></span><span style="color:#005CC5"> --watch</span><span style="color:#005CC5"> --serve</span><span style="color:#6A737D">  # and live reload while authoring</span></span></code></pre>
+<p><strong>The address is always printed under the frame</strong>, with a QR code on <code>Shift</code>-click, so the room can reach the video even when the player will not run. YouTube embeds use <code>youtube-nocookie.com</code>, and Vimeo gets <code>dnt=1</code>.</p>
+<p><strong>Weigh it before you use it.</strong> These outputs are no longer self-contained: the machine showing them – often the lecture hall&#39;s PC – contacts that host mid-lecture, with everything that implies. A clip in <code>assets/</code>, or an <code>.mp4</code> URL on your own web server, keeps the sync and asks nothing of anyone else. The build says which of the two you have chosen, every time.</p>
+
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="math" data-chunk-num="30">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Math</span> <span class="hd-sub"><code>$inline$</code> and <code>$$display$$</code></span></h2>
   <p><strong>Formulas are rendered by KaTeX during the build, so the output stays a single file with no runtime.</strong> Inline math sits in a sentence – the anonymity set <span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi></mrow><annotation encoding="application/x-tex">S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span></span></span></span></span> has size <span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">∣</mi><mi>S</mi><mi mathvariant="normal">∣</mi></mrow><annotation encoding="application/x-tex">|S|</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">∣</span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span><span class="mord">∣</span></span></span></span></span> – and display math takes its own block:</p>
@@ -1041,8 +1077,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="craft">
   <h1 class="column-heading">Writing chunks that work</h1>
-<article class="chunk chunk-principle width-standard" id="topic-sentence" data-chunk-num="30">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></span>
+<article class="chunk chunk-principle width-standard" id="topic-sentence" data-chunk-num="31">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></span>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The topic sentence is the slide</span> <span class="hd-sub">so write the opening line for the projector</span></h2>
   <p><strong>In derived mode the room reads your first sentences, so each one has to be a claim that survives without its paragraph.</strong> Everything after it is print.</p>
@@ -1056,8 +1092,8 @@ pre.shiki .line { display: inline; }
 </div>
 </aside>
 </article>
-<article class="chunk chunk-example width-wide" id="anti-patterns" data-chunk-num="31">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></span>
+<article class="chunk chunk-example width-wide" id="anti-patterns" data-chunk-num="32">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading">Four ways a chunk goes soft</h2>
   <p><strong>Most chunks that read badly on the projector fail in one of four ways</strong>, and each one is a single edit away from working.</p>
@@ -1084,8 +1120,8 @@ pre.shiki .line { display: inline; }
 </div>
 </aside>
 </article>
-<article class="chunk chunk-question width-standard" id="choose-mechanism" data-chunk-num="32">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></span>
+<article class="chunk chunk-question width-standard" id="choose-mechanism" data-chunk-num="33">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></span>
   <span class="chunk-label">question</span>
   <h2 class="chunk-heading">Derive it, or state it?</h2>
   <p><strong>Derive while the chunk is an argument of one to three paragraphs; state the slide once the argument wants continuous prose.</strong> Try the derivation first – if it keeps fighting you, that is the signal, not a failure.</p>
@@ -1098,8 +1134,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-exercise width-wide" id="squint-test" data-chunk-num="33">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></span>
+<article class="chunk chunk-exercise width-wide" id="squint-test" data-chunk-num="34">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></span>
   <span class="chunk-label">exercise</span>
   <h2 class="chunk-heading">The squint test</h2>
   <p><strong>Open your own lecture in the audience view, press <code>C</code> until it is collapsed, and walk it end to end without opening the source.</strong> Stop at every chunk you could not narrate from what is on the screen.</p>
@@ -1120,8 +1156,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="next">
   <h1 class="column-heading">Next steps</h1>
-<article class="chunk chunk-exercise width-wide" id="read-more" data-chunk-num="34">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></span>
+<article class="chunk chunk-exercise width-wide" id="read-more" data-chunk-num="35">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></span>
   <span class="chunk-label">exercise</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the artefacts that close the loop</span></h2>
   <p><strong>Close this tab and poke around the real lectures and docs.</strong> The tour covered the keys; the craft shows in authored content.</p>
@@ -1137,8 +1173,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-free width-standard" id="authoring" data-chunk-num="35">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></span>
+<article class="chunk chunk-free width-standard" id="authoring" data-chunk-num="36">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Authoring your own</span> <span class="hd-sub"><code>--new</code>, <code>--watch</code>, <code>lint.js</code></span></h2>
   <p><strong>Three CLI entries cover the full authoring loop:</strong></p>
@@ -1153,8 +1189,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="36">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></span>
+<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="37">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own type</span> <span class="hd-sub"><code>fonts/</code> plus a frontmatter block</span></h2>
   <p><strong>By default the type is named, not carried.</strong> The stylesheets ask for Literata, Inter Tight and JetBrains Mono and fall back to system faces where those are not installed – so a lecture opened on a strange machine keeps its layout and loses its face.</p>
@@ -1170,8 +1206,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="view-defaults" data-chunk-num="37">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></span>
+<article class="chunk chunk-example width-wide" id="view-defaults" data-chunk-num="38">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Pinning how a lecture opens</span> <span class="hd-sub">five optional frontmatter keys</span></h2>
   <p><strong>A lecture can decide its own starting look instead of inheriting the reader&#39;s.</strong></p>

@@ -477,6 +477,60 @@ figure.figure-video {
   flex-direction: column;
   align-items: center;
 }
+/* A hosted player. The frame keeps 16/9 rather than a fixed height so it
+   scales with the slide like everything else, and the address underneath is
+   the fallback: it is what the room reads when the frame cannot play, and
+   it carries a QR because the link machinery already gives every external
+   address one. */
+figure.figure-embed {
+  margin: 0.6em 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+.embed-frame {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 56vh;
+  background: oklch(0.12 0 0);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.embed-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+.embed-source {
+  font-family: var(--sans-font);
+  font-size: 0.62em;
+  margin-top: 0.35em;
+  opacity: 0.7;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.embed-source a { color: var(--ink-soft); }
+/* The instruction card that replaces a YouTube frame on a file:// deck. */
+.embed-blocked {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 56vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  text-align: center;
+  padding: 1em;
+  border: 2px dashed var(--rule);
+  border-radius: 3px;
+  font-family: var(--sans-font);
+  color: var(--ink-soft);
+}
+.embed-blocked strong { color: var(--ink); font-weight: 600; }
+.embed-blocked code {
+  font-family: var(--mono-font);
+  font-size: 0.85em;
+  color: var(--emph);
+}
 figure.figure-video video {
   max-width: 100%;
   max-height: 56vh;
@@ -2213,7 +2267,6 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 <p><strong>A clip can also live on a web server:</strong> <code>![](https://host/clip.mp4)</code> works and stays an ordinary player, which matters more than it sounds – play, pause and seeking still synchronise between the two windows, which no YouTube or Vimeo embed can do.</p>
 <p><strong>Too large to inline?</strong> The build copies the file into a <code>videos/</code> folder beside the output and plays it from there, and says so on the terminal. One companion folder to carry, instead of a path that only resolves on the machine that built it.</p>
 <p><strong>Play, pause and seeking are synced.</strong> Operate the clip in the cockpit and the projection follows. Freeze the projection first and it does not, so you can check a clip before showing it.</p>
-<p><strong>Hosted embeds are not supported, and the reason is worth knowing.</strong> A YouTube or Vimeo embed is an iframe: the audience machine fetches from a third party during your lecture, and you lose the play/pause sync entirely. YouTube also refuses to run at all from a <code>file://</code> page – it needs a real origin. If you truly need one, <code>node build.js &lt;source.md&gt; --serve</code> presents the lecture over <code>http://localhost</code>, where it works.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="video">
@@ -2226,7 +2279,40 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></div>
 </article>
-<article class="chunk chunk-example" id="math" data-chunk-id="math" data-tag="example" data-width="wide" data-chunk-num="29">
+<article class="chunk chunk-example" id="embed" data-chunk-id="embed" data-tag="example" data-width="wide" data-chunk-num="29">
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Hosted players</span> <span class="hd-sub"><code>::: embed</code> for YouTube and Vimeo</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A hosted player is its own directive, never the meaning of a bare link.</strong> It is the one construct in the format that makes an output fetch from a third party while the lecture is running, so the author says it out loud:</p>
+<pre class="shiki github-light" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#24292E">::: embed https://www.youtube.com/watch?v=aqz-KE-bpKQ</span></span>
+<span class="line"><span style="color:#24292E">Big Buck Bunny, Blender Foundation</span></span>
+<span class="line"><span style="color:#24292E">:::</span></span></code></pre>
+<p>The body line becomes the caption. A <code>youtu.be/…</code> or bare <code>vimeo.com/123</code> works too; anything else has to be a full <code>https://</code> address, and the build refuses what it does not recognise.</p>
+<p><strong>Four things happen that a raw iframe would not do for you.</strong></p>
+<ul>
+<li><strong>Nothing loads until you get there.</strong> The frame carries no <code>src</code> until its chunk is the one on screen, and loses it again when you leave. So a lecture contacts YouTube only for slides you actually showed, and a player cannot keep running behind your back on a slide you left.</li>
+<li><strong>Play and pause are synchronised.</strong> Both providers speak a control protocol over <code>postMessage</code>, so starting the clip in the cockpit starts it on the projection – the same behaviour as a local video, with no library loaded. Freeze the projection and it stays put.</li>
+<li><strong>Nothing autoplays.</strong> Arriving at the slide gives you a loaded player waiting on its button. Starting it is your move.</li>
+<li><strong>YouTube gets an honest card instead of an error.</strong> A page opened from a file has no origin, and YouTube refuses to play without one – you would otherwise get its own “Error 153” in front of the room. Opened from disk, the frame is replaced by a card telling you to serve the deck. Vimeo has no such restriction and plays either way.</li>
+</ul>
+<p><strong>To present with a YouTube embed, serve the lecture:</strong></p>
+<pre class="shiki github-light" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#6F42C1">node</span><span style="color:#032F62"> build.js</span><span style="color:#D73A49"> &#x3C;</span><span style="color:#032F62">source.m</span><span style="color:#24292E">d</span><span style="color:#D73A49">></span><span style="color:#005CC5"> --serve</span><span style="color:#6A737D">          # http://localhost, prints the URLs</span></span>
+<span class="line"><span style="color:#6F42C1">node</span><span style="color:#032F62"> build.js</span><span style="color:#D73A49"> &#x3C;</span><span style="color:#032F62">source.m</span><span style="color:#24292E">d</span><span style="color:#D73A49">></span><span style="color:#005CC5"> --watch</span><span style="color:#005CC5"> --serve</span><span style="color:#6A737D">  # and live reload while authoring</span></span></code></pre>
+<p><strong>The address is always printed under the frame</strong>, with a QR code on <code>Shift</code>-click, so the room can reach the video even when the player will not run. YouTube embeds use <code>youtube-nocookie.com</code>, and Vimeo gets <code>dnt=1</code>.</p>
+<p><strong>Weigh it before you use it.</strong> These outputs are no longer self-contained: the machine showing them – often the lecture hall&#39;s PC – contacts that host mid-lecture, with everything that implies. A clip in <code>assets/</code>, or an <code>.mp4</code> URL on your own web server, keeps the sync and asks nothing of anyone else. The build says which of the two you have chosen, every time.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="embed">
+      <div class="annot-box-label">annotation · embed</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></div>
+</article>
+<article class="chunk chunk-example" id="math" data-chunk-id="math" data-tag="example" data-width="wide" data-chunk-num="30">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Math</span> <span class="hd-sub"><code>$inline$</code> and <code>$$display$$</code></span></h2>
@@ -2245,7 +2331,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></div>
 </article>
 </section>
 <section class="column" data-col="8" id="craft">
@@ -2254,7 +2340,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     <h1 class="section-heading">Writing chunks that work</h1>
   </div>
 </article>
-<article class="chunk chunk-principle" id="topic-sentence" data-chunk-id="topic-sentence" data-tag="principle" data-width="standard" data-chunk-num="30">
+<article class="chunk chunk-principle" id="topic-sentence" data-chunk-id="topic-sentence" data-tag="principle" data-width="standard" data-chunk-num="31">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">The topic sentence is the slide</span> <span class="hd-sub">so write the opening line for the projector</span></h2>
@@ -2270,9 +2356,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></div>
 </article>
-<article class="chunk chunk-example" id="anti-patterns" data-chunk-id="anti-patterns" data-tag="example" data-width="wide" data-chunk-num="31">
+<article class="chunk chunk-example" id="anti-patterns" data-chunk-id="anti-patterns" data-tag="example" data-width="wide" data-chunk-num="32">
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Four ways a chunk goes soft</h2>
@@ -2301,9 +2387,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></div>
 </article>
-<article class="chunk chunk-question" id="choose-mechanism" data-chunk-id="choose-mechanism" data-tag="question" data-width="standard" data-chunk-num="32">
+<article class="chunk chunk-question" id="choose-mechanism" data-chunk-id="choose-mechanism" data-tag="question" data-width="standard" data-chunk-num="33">
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Derive it, or state it?</h2>
@@ -2326,9 +2412,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 <p>A figure chunk plus a paragraph of interpretation is the other reliable case, and there <code>::: script</code> around the interpretation is less typing than wrapping the slide half.</p>
 
     </aside>
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></div>
 </article>
-<article class="chunk chunk-exercise" id="squint-test" data-chunk-id="squint-test" data-tag="exercise" data-width="wide" data-chunk-num="33">
+<article class="chunk chunk-exercise" id="squint-test" data-chunk-id="squint-test" data-tag="exercise" data-width="wide" data-chunk-num="34">
   <div class="chunk-content">
     
     <h2 class="chunk-heading">The squint test</h2>
@@ -2348,7 +2434,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></div>
 </article>
 </section>
 <section class="column" data-col="9" id="next">
@@ -2357,7 +2443,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     <h1 class="section-heading">Next steps</h1>
   </div>
 </article>
-<article class="chunk chunk-exercise" id="read-more" data-chunk-id="read-more" data-tag="exercise" data-width="wide" data-chunk-num="34">
+<article class="chunk chunk-exercise" id="read-more" data-chunk-id="read-more" data-tag="exercise" data-width="wide" data-chunk-num="35">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the artefacts that close the loop</span></h2>
@@ -2379,9 +2465,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></div>
 </article>
-<article class="chunk chunk-free" id="authoring" data-chunk-id="authoring" data-tag="free" data-width="standard" data-chunk-num="35">
+<article class="chunk chunk-free" id="authoring" data-chunk-id="authoring" data-tag="free" data-width="standard" data-chunk-num="36">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Authoring your own</span> <span class="hd-sub"><code>--new</code>, <code>--watch</code>, <code>lint.js</code></span></h2>
@@ -2402,9 +2488,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></div>
 </article>
-<article class="chunk chunk-example" id="fonts" data-chunk-id="fonts" data-tag="example" data-width="wide" data-chunk-num="36">
+<article class="chunk chunk-example" id="fonts" data-chunk-id="fonts" data-tag="example" data-width="wide" data-chunk-num="37">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own type</span> <span class="hd-sub"><code>fonts/</code> plus a frontmatter block</span></h2>
@@ -2426,9 +2512,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></div>
 </article>
-<article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="37">
+<article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="38">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Pinning how a lecture opens</span> <span class="hd-sub">five optional frontmatter keys</span></h2>
@@ -2454,7 +2540,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></div>
 </article>
 </section>
   </div>
@@ -3043,6 +3129,7 @@ window.addEventListener('message', (ev) => {
     return;
   }
   if (m.type === 'video') { applyRemoteVideo(m); return; }
+  if (m.type === 'embed') { applyRemoteEmbed(m); return; }
   // Address overlay, outside the snapshot for the same reason as blank:
   // it is a command aimed at the projection, not shared navigation state.
   if (m.type === 'link-show') {
@@ -3237,6 +3324,7 @@ function applyState() {
   document.body.classList.toggle('blanked', state.blanked);
   applyBlankBadge();
   flatChunks.forEach((c, i) => c.el.classList.toggle('active', i === state.activeIdx));
+  updateEmbedLoading();
   viewHooks.onActiveChange();
   broadcastState();
 }
@@ -3968,6 +4056,128 @@ function applyRemoteVideo(m) {
   }
 }
 
+// ── hosted embeds ───────────────────────────────────────────────────
+// Two jobs. First, refuse to show a player that cannot work: YouTube needs
+// a real origin, and a deck opened from disk has none, so from file:// the
+// frame is replaced by an instruction card rather than left to render its
+// own Error 153 in front of a room. Vimeo has no such constraint.
+//
+// Second, keep the two windows together. Both providers speak a postMessage
+// control protocol – YouTube's is the one its own IFrame API uses, unlocked
+// by enablejsapi=1 – so play and pause travel between projection and
+// cockpit with no SDK loaded and no licence to honour.
+const EMBED_NEEDS_ORIGIN = { youtube: true, vimeo: false, generic: false };
+
+function embedCommand(frameWin, provider, action) {
+  if (!frameWin) return;
+  try {
+    if (provider === 'youtube') {
+      frameWin.postMessage(JSON.stringify({
+        event: 'command', func: action === 'play' ? 'playVideo' : 'pauseVideo', args: [],
+      }), '*');
+    } else if (provider === 'vimeo') {
+      frameWin.postMessage(JSON.stringify({ method: action === 'play' ? 'play' : 'pause' }), '*');
+    }
+  } catch (e) { /* a frame that is gone or refuses is not worth a throw */ }
+}
+
+function wireEmbeds() {
+  const onFile = location.protocol === 'file:';
+  document.querySelectorAll('.figure-embed').forEach((fig) => {
+    if (!(onFile && EMBED_NEEDS_ORIGIN[fig.dataset.embedProvider])) return;
+    // Swap the frame for an instruction card rather than let the player
+    // render its own Error 153 in front of a room.
+    const frame = fig.querySelector('.embed-frame');
+    if (!frame) return;
+    frame.className = 'embed-blocked';
+    frame.innerHTML =
+      '<strong>This player needs the lecture served over http.</strong>' +
+      '<div>A page opened from a file has no origin, and YouTube refuses to play without one.</div>' +
+      '<div><code>node build.js &lt;source.md&gt; --serve</code></div>' +
+      '<div>The address below works in any case.</div>';
+  });
+}
+
+// Load a hosted player only once its chunk is the one on screen, and drop it
+// again on the way out. Three reasons, in order of weight: a lecture must not
+// open connections to a third party for slides nobody showed; clearing the
+// src is also the only reliable way to stop a cross-origin player when you
+// move on, since it will happily keep playing behind you; and a deck with
+// several embeds otherwise pays for all of them at load.
+//
+// Nothing autoplays. Arriving at the slide gives you a loaded player waiting
+// on its play button - starting it is the lecturer's move, and the room
+// following is what the sync below is for.
+function updateEmbedLoading() {
+  const active = flatChunks[state.activeIdx];
+  document.querySelectorAll('.figure-embed').forEach((fig) => {
+    const ifr = fig.querySelector('iframe');
+    if (!ifr) return;                       // swapped for the instruction card
+    const isActive = !!active && active.el.contains(fig);
+    if (isActive) {
+      if (!ifr.getAttribute('src')) {
+        ifr.setAttribute('src', ifr.dataset.src);
+        // YouTube only reports state to a parent that has announced itself
+        // on the widget channel, and only once the document is up.
+        if (fig.dataset.embedProvider === 'youtube') {
+          ifr.addEventListener('load', () => setTimeout(() => {
+            try {
+              ifr.contentWindow.postMessage(
+                JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), '*');
+            } catch (e) {}
+          }, 300), { once: true });
+        }
+      }
+    } else if (ifr.getAttribute('src')) {
+      ifr.removeAttribute('src');
+    }
+  });
+}
+
+// Relay the lecturer's play/pause to the other window. There is no reliable
+// way to observe a click *inside* a cross-origin frame, so the cockpit sends
+// on the provider's own state events (YouTube) or player events (Vimeo).
+let applyingRemoteEmbed = false;
+function embedFigByUrl(url) {
+  for (const fig of document.querySelectorAll('.figure-embed')) {
+    if (fig.dataset.embedUrl === url) return fig;
+  }
+  return null;
+}
+window.addEventListener('message', (ev) => {
+  const o = String(ev.origin || '');
+  if (!/youtube|vimeo/.test(o)) return;
+  let d = ev.data;
+  try { if (typeof d === 'string') d = JSON.parse(d); } catch { return; }
+  if (!d || typeof d !== 'object') return;
+  // Which of our frames sent this?
+  let fig = null;
+  for (const f of document.querySelectorAll('.figure-embed')) {
+    const ifr = f.querySelector('iframe');
+    if (ifr && ifr.contentWindow === ev.source) { fig = f; break; }
+  }
+  if (!fig) return;
+  let action = null;
+  if (fig.dataset.embedProvider === 'youtube' && d.info && typeof d.info.playerState === 'number') {
+    if (d.info.playerState === 1) action = 'play';
+    else if (d.info.playerState === 2) action = 'pause';
+  } else if (fig.dataset.embedProvider === 'vimeo') {
+    if (d.event === 'play') action = 'play';
+    else if (d.event === 'pause') action = 'pause';
+  }
+  if (!action || applyingRemoteEmbed || !shouldBroadcast()) return;
+  sendToPeer({ type: 'embed', source: VIEW, url: fig.dataset.embedUrl, action });
+});
+function applyRemoteEmbed(m) {
+  const fig = embedFigByUrl(m.url);
+  if (!fig) return;
+  const ifr = fig.querySelector('iframe');
+  if (!ifr) return;
+  applyingRemoteEmbed = true;
+  try { embedCommand(ifr.contentWindow, fig.dataset.embedProvider, m.action); }
+  finally { setTimeout(() => { applyingRemoteEmbed = false; }, 400); }
+}
+
 // ── links ───────────────────────────────────────────────────────────
 // A plain click opens the link in a new tab of whichever window was
 // clicked. In the cockpit that is the lecturer checking a source, which is
@@ -4522,6 +4732,7 @@ applyFontTheme();
 document.querySelectorAll('.reveal-segment').forEach(seg => splitSentencesIn(seg));
 wireAnnotations();
 wireVideos();
+wireEmbeds();
 wireClicks();
 wireFigureClicks();
 wireTouchControls();

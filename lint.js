@@ -334,7 +334,25 @@ function lintFile(filePath) {
     const marginaliaOpen = /^:::\s+marginalia\s*$/.test(line);
     const slideOpen = /^:::\s+slide\s*$/.test(line);
     const scriptOpen = /^:::\s+script\s*$/.test(line);
-    if (colsOpen || sideOpen || marginaliaOpen || slideOpen || scriptOpen) {
+    // ::: embed <url> – a hosted player. Mirrors build.js; the value is
+    // checked there (it must be an https URL), so the linter only needs to
+    // know the directive exists and takes an argument.
+    const embedOpen = line.match(/^:::\s+embed\s+(\S+)\s*$/);
+    if (embedOpen) {
+      // Mirrors parseEmbedUrl in build.js, including its leniency: a bare
+      // youtu.be/ID or vimeo.com/ID is recognised without a scheme, because
+      // that is what people paste. Anything else has to be a real https URL.
+      // Kept deliberately in step - a linter that rejects what the build
+      // accepts is worse than no linter, since it is the pre-commit gate.
+      const v = embedOpen[1];
+      const known = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)[A-Za-z0-9_-]{6,}/.test(v)
+        || /vimeo\.com\/(?:video\/)?\d+/.test(v);
+      if (!known && !/^https:\/\//i.test(v)) {
+        add(ln, 'error', 'bad-embed-url',
+            `::: embed needs a YouTube or Vimeo link, or an https URL - got '${v}'`);
+      }
+    }
+    if (colsOpen || sideOpen || marginaliaOpen || slideOpen || scriptOpen || embedOpen) {
       if (!chunk) {
         add(ln, 'error', 'stray-directive',
             `::: layout directive outside any chunk`);
@@ -342,6 +360,7 @@ function lintFile(filePath) {
       const kind = colsOpen ? `cols ${colsOpen[1]}`
         : sideOpen ? 'side'
         : marginaliaOpen ? 'marginalia'
+        : embedOpen ? 'embed'
         : slideOpen ? 'slide' : 'script';
       if (slideOpen || scriptOpen) {
         // One explicit block of each kind per chunk. A second one would

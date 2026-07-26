@@ -121,7 +121,7 @@ Five optional frontmatter keys pin how a lecture opens – `font`, `theme`, `col
 
 **Video** uses the same shorthand as an image. `![](clip)` finds `assets/clip.mp4` and inlines it, up to a 12 MB per-file cap; over that, the build copies it to a `videos/` folder beside the output, plays it from there, and tells you the output now needs that folder. A written-out URL works too – `![](https://host/clip.mp4)` – and is still an ordinary `<video>`, so play, pause and seeking stay synchronised between the projection and the cockpit.
 
-Hosted embeds (YouTube, Vimeo) are deliberately not supported. They are iframes, so the audience machine would fetch from a third party mid-lecture, and YouTube's player refuses to run from a `file://` page at all. If you need one, `--serve` presents the deck over http, where it does work.
+**Hosted players** are a directive of their own, `::: embed <url>`, for YouTube and Vimeo. They are the one thing that makes an output fetch from a third party while you present, so the build says so every time. The frame loads only once its chunk is on screen and unloads when you leave it, nothing autoplays, and play/pause synchronise between projection and cockpit. YouTube additionally needs a real origin, so from a `file://` page it shows a card telling you to run `--serve`; the tutorial explains the whole thing.
 
 Two more surfaces worth knowing apart: **notes** (`> note:`) are yours, written in advance, shown in the cockpit and in the handout. **Annotations** (`N` during a talk) are typed live, visible to the room, and `Shift-E` plus `--integrate-annotations` writes them back into `source.md` as permanent text.
 
@@ -184,6 +184,7 @@ This is the section that will save you the most time. Each line is a real constr
 - **You need polls, quizzes, or any audience interaction.** Named and deferred in `PRD.md`.
 - **Your room's browser is old or locked down.** See [Requirements](#requirements) – the stylesheets use modern CSS with no fallbacks.
 - **You want a dependable dependency.** One `build.js` well past six thousand lines, no test suite, no releases, one maintainer, a format that still moves. It is used in earnest, but it is used by the person who wrote it.
+- **Nobody is going to speak.** If the artefact is a document that has to carry itself – a retrospective, a project report, something you send to the people who could not attend – then the cockpit and the collapse mechanism are machinery you will not use. That is the sibling project, [**psi-briefing**](https://github.com/UBA-PSI/psi-briefing): text-dense 16:9 slides in one self-contained HTML file, written as Markdown and laid out by inference from the shape of the content. The line between the two is simply whether anyone is talking.
 
 ## How it compares
 

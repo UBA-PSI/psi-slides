@@ -378,7 +378,35 @@ Clips are inlined like any other asset, up to a separate 12 MB per-file cap: a c
 
 **Play, pause and seeking are synced.** Operate the clip in the cockpit and the projection follows. Freeze the projection first and it does not, so you can check a clip before showing it.
 
-**Hosted embeds are not supported, and the reason is worth knowing.** A YouTube or Vimeo embed is an iframe: the audience machine fetches from a third party during your lecture, and you lose the play/pause sync entirely. YouTube also refuses to run at all from a `file://` page – it needs a real origin. If you truly need one, `node build.js <source.md> --serve` presents the lecture over `http://localhost`, where it works.
+## example: Hosted players | `::: embed` for YouTube and Vimeo {.wide #embed}
+
+**A hosted player is its own directive, never the meaning of a bare link.** It is the one construct in the format that makes an output fetch from a third party while the lecture is running, so the author says it out loud:
+
+```markdown
+::: embed https://www.youtube.com/watch?v=aqz-KE-bpKQ
+Big Buck Bunny, Blender Foundation
+:::
+```
+
+The body line becomes the caption. A `youtu.be/…` or bare `vimeo.com/123` works too; anything else has to be a full `https://` address, and the build refuses what it does not recognise.
+
+**Four things happen that a raw iframe would not do for you.**
+
+- **Nothing loads until you get there.** The frame carries no `src` until its chunk is the one on screen, and loses it again when you leave. So a lecture contacts YouTube only for slides you actually showed, and a player cannot keep running behind your back on a slide you left.
+- **Play and pause are synchronised.** Both providers speak a control protocol over `postMessage`, so starting the clip in the cockpit starts it on the projection – the same behaviour as a local video, with no library loaded. Freeze the projection and it stays put.
+- **Nothing autoplays.** Arriving at the slide gives you a loaded player waiting on its button. Starting it is your move.
+- **YouTube gets an honest card instead of an error.** A page opened from a file has no origin, and YouTube refuses to play without one – you would otherwise get its own “Error 153” in front of the room. Opened from disk, the frame is replaced by a card telling you to serve the deck. Vimeo has no such restriction and plays either way.
+
+**To present with a YouTube embed, serve the lecture:**
+
+```bash
+node build.js <source.md> --serve          # http://localhost, prints the URLs
+node build.js <source.md> --watch --serve  # and live reload while authoring
+```
+
+**The address is always printed under the frame**, with a QR code on `Shift`-click, so the room can reach the video even when the player will not run. YouTube embeds use `youtube-nocookie.com`, and Vimeo gets `dnt=1`.
+
+**Weigh it before you use it.** These outputs are no longer self-contained: the machine showing them – often the lecture hall's PC – contacts that host mid-lecture, with everything that implies. A clip in `assets/`, or an `.mp4` URL on your own web server, keeps the sync and asks nothing of anyone else. The build says which of the two you have chosen, every time.
 
 ## example: Math | `$inline$` and `$$display$$` {.wide #math}
 
