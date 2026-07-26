@@ -733,6 +733,4 @@ status=404 no-title                      https://example.com/oops
 
 :::
 
----
-
 > note: Close by asking each student which extension they will try first. That commitment turns the slide into homework.
