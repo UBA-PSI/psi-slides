@@ -120,13 +120,79 @@ main { max-width: 48rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
   border-radius: 2px;
 }
 
-nav.top {
-  font-size: 0.95rem;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--rule);
+/*
+ * The university bar, shared with psi-briefing so the chair's two tools frame
+ * their pages the same way. Sticky, because it is the only affiliation the
+ * page carries and a reader who has scrolled past the hero should still be
+ * able to see whose work this is.
+ *
+ * It is deliberately NOT aligned to the reading column: the bar frames the
+ * page rather than belonging to it, and running flush to both edges makes
+ * that read as a frame instead of as a failed alignment.
+ *
+ * Its own colours, not the page tokens. The bar is the same dark grey in
+ * light and dark mode – it is a constant, and a strip that changes with the
+ * scheme reads as part of the content.
+ */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: #3d3c3b;
+  color: #ffffff;
+  font-family: var(--sans);
 }
-nav.top a { color: var(--ink-soft); text-decoration: none; margin-right: 1.4rem; }
-nav.top a:hover { color: var(--accent); }
+.topbar-in { padding: 0.55rem 1.5rem; }
+.topbar-row { display: flex; align-items: center; gap: 1.1rem; }
+.topbar a { color: #ffffff; text-decoration: none; }
+.topbar a:hover { text-decoration: underline; }
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  white-space: nowrap;   /* the wordmark is the one thing that must not wrap */
+}
+.topbar-brand svg { height: 21px; width: 21px; flex: none; }
+/* Affiliation, then chair, then person: widest scope first, left to right. */
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  min-width: 0;
+  white-space: nowrap;
+}
+.topbar-right a { color: #d6d4d2; }
+.topbar-right a:hover { color: #ffffff; }
+.topbar-sep { color: #96938f; }
+/* Everything the reader navigates with, held at the right end. The auto
+   margin lives here, so dropping the links at narrow widths cannot pull the
+   rest back into the middle of the row. */
+.topbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.topbar-nav { display: none; }
+@media (min-width: 60rem) {
+  .topbar-nav { display: flex; gap: 1.1rem; font-size: 0.78rem; white-space: nowrap; }
+}
+/* Dropped in stages: the chair's name is the longest string in the bar and
+   the first thing that stops fitting; the person is the attribution that
+   matters, so it goes last. A sticky strip must never grow a second line. */
+@media (max-width: 56rem) {
+  .topbar-chair, .topbar-sep { display: none; }
+}
+@media (max-width: 40rem) {
+  .topbar-right { display: none; }
+  .topbar-in { padding: 0.5rem 1rem; }
+}
+/* Anchored headings have to clear the bar, or the browser parks them under it. */
+h2[id], h3[id] { scroll-margin-top: 4rem; }
 
 h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -0.02em; }
 .tagline, .lead { color: var(--ink-soft); margin: 0 0 3rem; font-size: 1.1rem; }

@@ -1,14 +1,15 @@
 # Changelog
 
 Notable changes per release. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
-versions follow [semantic versioning](https://semver.org/), with the caveat that
-while the major version is `0` the source format itself may still change.
+versions follow [semantic versioning](https://semver.org/). From 1.0.0 the
+**source format is the interface**: a change that stops an existing `source.md`
+from building the same way is a major version.
 
 ## [Unreleased]
 
 Nothing yet.
 
-## [0.1.0]
+## [1.0.0]
 
 First public release. psi-slides has carried a full semester of university
 teaching; everything below is in use rather than aspirational.
@@ -20,8 +21,11 @@ teaching; everything below is in use rather than aspirational.
   `print.html` (a reading document with cover and table of contents), and
   `print-notes.html` (the same document with `> note:` blocks folded in).
 - Everything is inlined: CSS, JavaScript, images, Shiki-highlighted code,
-  KaTeX-rendered maths, and – when the author supplies them – webfonts.
-  Nothing is fetched at run time; the files open from `file://`.
+  KaTeX-rendered maths, and the typefaces. Three families ship with the tool
+  and are embedded in every output (Literata, Inter Tight, JetBrains Mono, all
+  SIL OFL 1.1); an author's own fonts win per role, and `fonts: none` turns
+  the bundle off. Nothing is fetched at run time; the files open from
+  `file://`.
 - **Collapse**: the same prose is rendered at two densities. The projection
   shows the topic sentence plus promoted `**bold**` fragments; the document
   shows all of it. `::: slide` and `::: script` are the escape hatch when no
@@ -65,6 +69,10 @@ teaching; everything below is in use rather than aspirational.
   `--optimize-images`, `--integrate-annotations`, `--new`.
 - A skill at `.claude/skills/psi-slides-authoring/` for writing lectures with
   an LLM assistant.
+- A project site built from the same repository
+  ([uba-psi.github.io/psi-slides](https://uba-psi.github.io/psi-slides/)),
+  publishing three lectures in all four views so the tool can be tried before
+  anything is installed.
 
 ### Known limits
 
@@ -72,5 +80,5 @@ Read [When *not* to use this](README.md#when-not-to-use-this) and
 [the comparison](docs/comparison.md) before committing a semester to it.
 There is no test suite, one author, and the format is still moving.
 
-[Unreleased]: https://github.com/UBA-PSI/psi-slides/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/UBA-PSI/psi-slides/releases/tag/v0.1.0
+[Unreleased]: https://github.com/UBA-PSI/psi-slides/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/UBA-PSI/psi-slides/releases/tag/v1.0.0

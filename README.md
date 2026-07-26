@@ -4,9 +4,13 @@
 
 The problem it solves is drift. Most lecturers keep slides and a script as two documents, and after two semesters they disagree with each other. psi-slides makes them one text: the prose you write is the handout, and the *same* prose – abridged by a rule you control – is what the projector shows. Nothing is written twice, so nothing can fall out of sync.
 
-It is a build script, not an app. `node build.js source.md` writes four self-contained HTML files next to your source. Everything is inside the file: CSS, JavaScript, images, the maths, and – if you supply the files – the typefaces. Nothing is fetched at run time, from anywhere; open one in a browser with the network unplugged and it is complete. No server, no runtime, no cloud account, nothing to install on the lectern machine. Sharing your slides and/or the full manuscript with the audience is easy: send the file.
+It is a build script, not an app. `node build.js source.md` writes four self-contained HTML files next to your source. Everything is inside the file: CSS, JavaScript, images, the maths, and the typefaces – three families ship with the tool and are embedded in every output, so a lecture looks the same on a machine that has none of them installed. Nothing is fetched at run time, from anywhere; open one in a browser with the network unplugged and it is complete. No server, no runtime, no cloud account, nothing to install on the lectern machine. Sharing your slides and/or the full manuscript with the audience is easy: send the file.
 
 psi-slides has already carried a full semester of university teaching. Read [When *not* to use this](#when-not-to-use-this) before you invest in it.
+
+## → [Try it in your browser: uba-psi.github.io/psi-slides](https://uba-psi.github.io/psi-slides/)
+
+Three real lectures are published there in all four views, so you can present one with the arrow keys, press `S` for the cockpit and `O` for the overview board, and read the handout the same source produced &ndash; before installing anything.
 
 ---
 
@@ -34,16 +38,21 @@ You did not author two versions. You wrote the right-hand text and marked which 
 
 ## Quickstart
 
-Requires Node 20 or newer. Nothing else.
+Requires Node 20 or newer. Nothing else: no LaTeX, no Pandoc, no server, nothing installed globally.
 
 ```bash
-git clone https://github.com/UBA-PSI/psi-slides.git
+# the latest release, unpacked into psi-slides/
+curl -L https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.tar.gz \
+  | tar xz
 cd psi-slides
+
 npm install
 
 node build.js lectures/tutorial/source.md
 open lectures/tutorial/audience.html      # macOS; use xdg-open or your browser otherwise
 ```
+
+On Windows take the `.zip` from the [releases page](https://github.com/UBA-PSI/psi-slides/releases). A `git clone` works identically – the archive is that tree without the history, plus the three published lectures already built, so you can open one before running anything.
 
 That builds the self-referential tour: a lecture that teaches the tool *by being the tool*. Press `?` for the cheat sheet, `S` to spawn the cockpit, `O` for the overview, `C` for collapse. Its source, [`lectures/tutorial/source.md`](lectures/tutorial/source.md), is the authoring reference.
 
@@ -251,7 +260,7 @@ Press `?` in either live view for the full on-screen reference. The ones you nee
 - `S` spawn the speaker window, `P` open the print view.
 - `L` slide numbers: stacked, in a row, or off.
 
-Phase 1. The format is still moving and the version number is `0.1.0` for a reason. Two things are nevertheless safe to build on:
+From `1.0.0` the **source format is the interface**: a change that stops an existing `source.md` from building the same way is a major version. That is a promise about the format, not about the internals – `build.js` is one file and its insides are rearranged whenever it helps. Two consequences worth knowing:
 
 - **`{#id}` attributes are frozen once authored.** They anchor cross-references, TOC entries, sync snapshots, and `localStorage`. Renaming a heading is free; renumbering an ID is not.
 - **Generated HTML is disposable.** Rebuild it, do not commit it. The only tracked outputs are `lectures/tutorial/*.html`, so the tour can be browsed from the repository.

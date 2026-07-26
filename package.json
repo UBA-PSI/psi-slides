@@ -1,8 +1,8 @@
 {
   "name": "psi-slides",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "Lecture medium (see PRD.md). Phase-1 build pipeline.",
+  "description": "Write a lecture once in Markdown; build the projection, the presenter cockpit and two handouts as self-contained HTML.",
   "license": "MIT",
   "author": {
     "name": "Dominik Herrmann",
@@ -12,7 +12,7 @@
     "type": "git",
     "url": "git+https://github.com/UBA-PSI/psi-slides.git"
   },
-  "homepage": "https://github.com/UBA-PSI/psi-slides#readme",
+  "homepage": "https://uba-psi.github.io/psi-slides/",
   "bugs": {
     "url": "https://github.com/UBA-PSI/psi-slides/issues"
   },

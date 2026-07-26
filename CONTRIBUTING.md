@@ -1,9 +1,10 @@
 # Contributing
 
 Thank you for looking. Be aware of what this project is before you invest
-time in it: Phase 1, one author, no test suite, and a source format that is
-still moving. It is used for real teaching, which is why it is public, but it
-is not yet a stable base for other people's work.
+time in it: one author and no test suite. It is used for real teaching, which
+is why it is public. Since 1.0.0 the **source format** is stable – a change
+that stops an existing `source.md` from building the same way is a major
+version – but the code behind it is rearranged whenever that helps.
 
 ## The most useful thing you can send
 
@@ -48,6 +49,68 @@ particular:
 - **Do not commit generated HTML.** The one exception is
   `lectures/tutorial/*.html`, tracked so the tour is browsable from the
   repository; rebuild and commit those whenever the tutorial source changes.
+
+## Building and releasing
+
+Two GitHub Actions do the work, and both are driven by a push. Nothing is
+built or uploaded from a laptop, so the artefacts always come from the tagged
+tree rather than from whatever happened to be in someone's working directory.
+
+**Every push to `main` redeploys the project site.** `.github/workflows/pages.yml`
+lints, builds the three published lectures from source, assembles `_site` with
+`docs/site/build-site.js` and deploys it to GitHub Pages. Because the lectures
+are rebuilt rather than copied, that job is also a build check: a change that
+breaks the tutorial fails there. The `_site` directory is gitignored; to see
+the site locally:
+
+```bash
+node build.js lectures/tutorial/source.md
+node build.js lectures/python-intro/source.md
+node build.js docs/site/example/source.md
+node docs/site/build-site.js _site
+mkdir -p _site/tutorial _site/python-intro _site/example
+for l in tutorial python-intro; do
+  cp lectures/$l/{audience,speaker,print,print-notes}.html _site/$l/
+done
+cp docs/site/example/{audience,speaker,print,print-notes}.html _site/example/
+python3 -m http.server -d _site 8000
+```
+
+**A version tag publishes a release.** `.github/workflows/release.yml` fires on
+`v*`, and it refuses to publish if the tag disagrees with `package.json`, if
+the lint fails, or if the tracked tutorial HTML is not what the current source
+builds. Then it attaches two archives, `psi-slides.tar.gz` and
+`psi-slides.zip`. **Do not rename those assets**: the README and the site link
+`releases/latest/download/psi-slides.tar.gz`, which only resolves while the
+file is called exactly that.
+
+Each archive is the repository tree at the tag – sources, every lecture, the
+docs, the checked-in site fonts, `package.json` and the lockfile – plus the
+four built HTML views for all three published lectures, so a reader can open
+the tutorial straight out of the archive. Building their own still needs
+`npm install`; the renderer depends on marked, Shiki and KaTeX, and the
+archive does not pretend otherwise.
+
+Cutting a release:
+
+1. `node lint.js lectures/ docs/site/example/source.md` – clean.
+2. Rebuild the tutorial and commit `lectures/tutorial/*.html` if they moved.
+   The release job checks this and fails on a stale tour.
+3. Move the changelog's `## [Unreleased]` items into a new version section and
+   update the two link definitions at the bottom. The release notes are cut
+   from that section by heading, so the heading has to read `## [1.2.3]`.
+4. Bump `version` in `package.json` to match.
+5. Commit, then tag and push:
+
+```bash
+git tag -a v1.2.3 -m "psi-slides 1.2.3"
+git push origin main v1.2.3
+```
+
+Pushing `main` redeploys the site; pushing the tag publishes the release. If
+the release job fails, delete the tag on both sides (`git push --delete origin
+v1.2.3`), fix, and tag again – a partially published release is worse than a
+late one.
 
 ## Conventions
 

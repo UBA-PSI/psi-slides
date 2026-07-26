@@ -85,6 +85,34 @@ function renderMarkdown(md) {
   return marked.parse(md, { renderer });
 }
 
+// The university bar. One definition, injected into the hand-written landing
+// page and into every rendered page, because a bar that says who is
+// responsible for the site has to be on all of it. The mark is the
+// university's own outline, inlined: the page fetches nothing.
+const TOPBAR = `<nav class="topbar" aria-label="Universität Bamberg and site navigation">
+  <div class="topbar-in">
+    <div class="topbar-row">
+      <a class="topbar-brand" href="https://www.uni-bamberg.de/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 183 183" aria-hidden="true" focusable="false" style="fill-rule:evenodd;clip-rule:evenodd;stroke-miterlimit:11.3386"><circle cx="76.6" cy="106" r="36" style="fill:none;stroke:currentColor;stroke-width:19.84px"/><path d="M26.7,25.2C65.4,1.3 115.6,8.2 146.4,41.6C177.2,75 180.1,125.6 153.1,162.2" style="fill:none;fill-rule:nonzero;stroke:currentColor;stroke-width:19.84px"/><path d="M11.2,109.2C9.8,82.5 25,57.6 49.4,46.5C73.8,35.4 102.5,40.2 121.8,58.7C141.2,77.2 147.3,105.7 137.3,130.5C127.3,155.4 103.1,171.6 76.3,171.5" style="fill:none;fill-rule:nonzero;stroke:currentColor;stroke-width:19.84px"/></svg>
+        <span>Universität Bamberg</span>
+      </a>
+      <div class="topbar-right">
+        <a class="topbar-chair" href="https://psi.uni-bamberg.de/" target="_blank" rel="noopener">Chair of Privacy and Security in Information Systems</a>
+        <span class="topbar-sep">·</span>
+        <a href="https://psi.uni-bamberg.de/de/ueberuns/" target="_blank" rel="noopener">Prof. Dr. Dominik Herrmann</a>
+      </div>
+      <div class="topbar-actions">
+        <div class="topbar-nav">
+          <a href="index.html#open-them-yourself">Live lectures</a>
+          <a href="index.html#getting-started">Getting started</a>
+          <a href="comparison.html">Comparison</a>
+        </div>
+        <a href="https://github.com/UBA-PSI/psi-slides">GitHub</a>
+      </div>
+    </div>
+  </div>
+</nav>`;
+
 const SHELL = (title, lead, body) => `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -94,11 +122,7 @@ const SHELL = (title, lead, body) => `<!DOCTYPE html>
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
-<nav class="top">
-  <a href="index.html">psi-slides</a>
-  <a href="comparison.html">Comparison</a>
-  <a href="https://github.com/UBA-PSI/psi-slides">GitHub</a>
-</nav>
+${TOPBAR}
 <main>
 <h1>${title}</h1>
 <p class="lead">${lead}</p>
@@ -147,7 +171,16 @@ function main() {
     process.exit(1);
   }
   fs.mkdirSync(outDir, { recursive: true });
-  fs.copyFileSync(path.join(HERE, 'index.html'), path.join(outDir, 'index.html'));
+  // The landing page is hand-written and otherwise copied verbatim; the only
+  // thing built into it is the bar, so that its one definition covers every
+  // page. A missing marker is an error rather than a page that quietly ships
+  // without its affiliation.
+  const indexSrc = fs.readFileSync(path.join(HERE, 'index.html'), 'utf8');
+  const MARKER = '<!--topbar-->';
+  if (!indexSrc.includes(MARKER)) {
+    throw new Error(`docs/site/index.html has no ${MARKER} marker for the university bar`);
+  }
+  fs.writeFileSync(path.join(outDir, 'index.html'), indexSrc.replace(MARKER, TOPBAR));
   fs.copyFileSync(path.join(HERE, 'site.css'), path.join(outDir, 'site.css'));
   fs.copyFileSync(path.join(HERE, 'site.js'), path.join(outDir, 'site.js'));
   // Screenshots the landing page shows. Copied rather than referenced out of

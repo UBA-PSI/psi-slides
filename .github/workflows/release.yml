@@ -1,0 +1,128 @@
+# Publishes a GitHub Release when a version tag is pushed.
+#
+#   git tag -a v1.0.0 -m "psi-slides 1.0.0" && git push origin v1.0.0
+#
+# The two archives are what the README and the project site tell people to
+# download, so their names are load-bearing: the site links
+# releases/latest/download/psi-slides.tar.gz, which only resolves while the
+# asset is called exactly that. They unpack to a psi-slides/ directory,
+# because the instructions say `cd psi-slides` next.
+#
+# What is in them: the repository tree at the tag – build.js, lint.js, every
+# lecture source, docs/, the checked-in site fonts, LICENSE, package.json and
+# the lockfile – plus the four built HTML views for all three published
+# lectures. The built views are the reason to prefer the archive over a clone:
+# a reader can open the tutorial straight out of it, before installing
+# anything. Building their own still needs `npm install`, because the renderer
+# depends on marked, Shiki and KaTeX; the archive does not pretend otherwise.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # git archive needs the tagged tree, not a shallow tip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      # A tag that disagrees with package.json ships an archive whose own
+      # metadata contradicts the release it came from. Cheaper to catch here
+      # than to explain later.
+      - name: Check the tag against package.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "tag $GITHUB_REF_NAME does not match package.json version $pkg" >&2
+            exit 1
+          fi
+
+      # The same gate the Pages workflow runs. A release that does not lint is
+      # not a release.
+      - name: Lint
+        run: node lint.js lectures/ docs/site/example/source.md
+
+      - name: Build the published lectures
+        run: |
+          node build.js lectures/tutorial/source.md
+          node build.js lectures/python-intro/source.md
+          node build.js docs/site/example/source.md
+
+      # The tracked tutorial HTML is committed; a stale copy would ship a tour
+      # that does not match its own source.
+      - name: Check the tracked outputs are current
+        run: git diff --exit-code -- lectures/tutorial
+
+      - name: Stage the archive
+        run: |
+          mkdir -p dist/psi-slides
+          git archive HEAD | tar -x -C dist/psi-slides
+          for l in tutorial python-intro; do
+            cp lectures/$l/audience.html lectures/$l/speaker.html \
+               lectures/$l/print.html lectures/$l/print-notes.html \
+               dist/psi-slides/lectures/$l/
+          done
+          cp docs/site/example/audience.html docs/site/example/speaker.html \
+             docs/site/example/print.html docs/site/example/print-notes.html \
+             dist/psi-slides/docs/site/example/
+
+      - name: Pack
+        run: |
+          tar -czf psi-slides.tar.gz -C dist psi-slides
+          (cd dist && zip -qr ../psi-slides.zip psi-slides)
+          ls -lh psi-slides.tar.gz psi-slides.zip
+
+      # The changelog section for this version, so the release page says what
+      # changed without anyone retyping it. Falls back to GitHub's generated
+      # notes if the section is missing, rather than publishing an empty body.
+      - name: Extract the changelog section
+        id: notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { inside = 1; next }
+            inside && /^## \[/ { exit }
+            inside { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          if [ -s RELEASE_NOTES.md ]; then
+            echo "have_notes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_notes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # gh is preinstalled on the runner, so the release step pulls in no
+      # third-party action.
+      # Nothing from the event reaches a shell here: the tag name arrives as
+      # $GITHUB_REF_NAME and is quoted, and the one workflow value used in a
+      # condition is passed through env rather than interpolated into the
+      # script.
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HAVE_NOTES: ${{ steps.notes.outputs.have_notes }}
+        run: |
+          if [ "$HAVE_NOTES" = "true" ]; then
+            gh release create "$GITHUB_REF_NAME" \
+              --title "psi-slides ${GITHUB_REF_NAME#v}" \
+              --notes-file RELEASE_NOTES.md \
+              psi-slides.tar.gz psi-slides.zip
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --title "psi-slides ${GITHUB_REF_NAME#v}" \
+              --generate-notes \
+              psi-slides.tar.gz psi-slides.zip
+          fi
