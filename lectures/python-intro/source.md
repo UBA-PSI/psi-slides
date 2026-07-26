@@ -461,7 +461,7 @@ async def fetch():
     return 42
 
 x = fetch()           # not 42 – this is <coroutine object>
-x = await fetch()   # 42 â only inside async def
+x = await fetch()   # 42 – only inside async def
 x = asyncio.run(fetch())  # also 42, but starts its own loop
 ```
 
