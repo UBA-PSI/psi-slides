@@ -41,14 +41,35 @@
  * Full licence texts: fonts/iosevka-OFL.txt and the packages they ship in.
  */
 
+/*
+ * Colours. The soft ink is the one that matters for accessibility: it sets
+ * every caption, every window bar and the footer. At the lightness it used
+ * to have (0.48) it measured 6.2:1 against the paper and 5.3:1 against the
+ * window bar – so it passed WCAG 1.4.3, and the complaint about it was
+ * real anyway, because it carried that contrast at 0.72rem. The sizes moved
+ * up (see the type below) and this moved down with them, so the smallest
+ * text on the page now has headroom rather than a bare pass.
+ *
+ * Every pair below is measured, not eyeballed; the lowest in either scheme
+ * is 5.1:1.
+ */
 :root {
   --paper: oklch(0.98 0.00 0);
   --ink: oklch(0.20 0.01 260);
-  --ink-soft: oklch(0.48 0.01 260);
+  --ink-soft: oklch(0.43 0.01 260);
   --accent: oklch(0.42 0.13 25);
-  --rule: oklch(0.88 0.01 260);
-  --frame: oklch(0.93 0.01 260);
+  --rule: oklch(0.85 0.01 260);
+  --frame: oklch(0.92 0.01 260);
   --shot-bg: oklch(0.95 0.005 260);
+  --code-bg: oklch(0.945 0.005 260);
+  /* Syntax tokens for the Markdown sample. Each is picked for >= 4.5:1 on
+     --code-bg, not for looking like anyone's editor theme. */
+  --tok-head: oklch(0.42 0.14 25);
+  --tok-dir: oklch(0.44 0.14 265);
+  --tok-code: oklch(0.40 0.09 165);
+  /* The dimmed token still sets the `{.wide #id}` attribute tail, which is
+     content a reader has to be able to read, not decoration. */
+  --tok-punct: oklch(0.50 0.02 260);
   --sans: 'Inter Tight Var', 'Inter Tight', system-ui, -apple-system, sans-serif;
   --mono: 'Iosevka Web', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -56,12 +77,17 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --paper: oklch(0.18 0.01 260);
-    --ink: oklch(0.92 0.01 260);
-    --ink-soft: oklch(0.68 0.01 260);
-    --accent: oklch(0.74 0.12 25);
-    --rule: oklch(0.32 0.01 260);
+    --ink: oklch(0.94 0.01 260);
+    --ink-soft: oklch(0.74 0.01 260);
+    --accent: oklch(0.78 0.12 25);
+    --rule: oklch(0.36 0.01 260);
     --frame: oklch(0.28 0.01 260);
     --shot-bg: oklch(0.24 0.01 260);
+    --code-bg: oklch(0.23 0.01 260);
+    --tok-head: oklch(0.80 0.12 25);
+    --tok-dir: oklch(0.80 0.11 265);
+    --tok-code: oklch(0.82 0.10 165);
+    --tok-punct: oklch(0.64 0.02 260);
   }
 }
 
@@ -83,8 +109,19 @@ body {
 
 main { max-width: 48rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
 
+/*
+ * One visible focus ring for everything. The screenshots became buttons for
+ * the lightbox and the hero bar carries a two-state switch, so keyboard
+ * operability is not hypothetical here.
+ */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 nav.top {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--rule);
 }
@@ -105,28 +142,63 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
 .hero { padding: 1rem 0 0; }
 .hero .mark {
   font-family: var(--mono);
-  font-size: 0.9rem;
-  color: var(--ink-soft);
-  letter-spacing: 0.02em;
-  margin: 0 0 1.6rem;
-}
-.hero h1 { font-size: 3.1rem; max-width: 20ch; margin-bottom: 0.9rem; }
-.hero .promise { font-size: 1.22rem; max-width: 34rem; margin: 0 0 2.4rem; }
-/* The hero pair breaks out of the reading measure. Side by side inside a
-   48rem column each shot lands at a third of its captured size, and the
-   contrast the pair exists to show – four short lines against four full
-   paragraphs – stops being legible as text and reads as two grey blocks. */
-.hero .pair {
-  width: min(94vw, 66rem);
-  margin-left: 50%;
-  transform: translateX(-50%);
-  gap: 1.4rem;
-}
-.hero .shot-note {
   font-size: 0.95rem;
   color: var(--ink-soft);
+  letter-spacing: 0.02em;
+  margin: 0 0 1.2rem;
+}
+.hero .mark b { color: var(--ink); font-weight: 400; }
+/* What the thing *is*, said before the headline says what it is for. The
+   headline alone ("Write the lecture once") reads as a writing method; a
+   visitor should not have to infer from the screenshots that this is
+   presentation software. */
+.hero .what {
+  font-size: 1.05rem;
+  color: var(--ink);
+  margin: 0 0 0.9rem;
+  max-width: 34rem;
+  font-weight: 500;
+}
+.hero h1 { font-size: 3.1rem; max-width: 20ch; margin-bottom: 0.9rem; }
+.hero .promise { font-size: 1.22rem; max-width: 34rem; margin: 0 0 1.3rem; }
+.hero .extras {
+  font-size: 1rem;
+  color: var(--ink-soft);
+  max-width: 34rem;
+  margin: 0 0 1.8rem;
+}
+.hero .extras b { color: var(--ink); font-weight: 600; }
+
+.cta { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 0 0 2.4rem; }
+.cta a {
+  display: inline-block;
+  font-size: 1rem;
+  font-weight: 550;
+  text-decoration: none;
+  padding: 0.55rem 1.1rem;
+  border-radius: 6px;
+  border: 1px solid var(--ink);
+  min-height: 2.6rem;
+}
+.cta a.primary { background: var(--ink); color: var(--paper); }
+.cta a.secondary { color: var(--ink); }
+.cta a:hover { border-color: var(--accent); }
+/* `--paper` rather than a literal white: on the dark scheme the accent is a
+   light rose, and white-on-rose is the one pairing that fails there. */
+.cta a.primary:hover { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+.cta a.secondary:hover { color: var(--accent); }
+/* The hero pair breaks out of the reading measure (see the shared rule
+   further down): side by side inside a 48rem column each shot lands at a
+   third of its captured size, and the contrast the pair exists to show –
+   four short lines against four full paragraphs – stops being legible as
+   text and reads as two grey blocks. */
+.hero .pair { gap: 1.4rem; margin-bottom: 0; }
+.hero .shot-note {
+  font-size: 1rem;
+  color: var(--ink-soft);
   text-align: center;
-  margin: 0.2rem 0 3.4rem;
+  max-width: 52rem;
+  margin: 0.2rem auto 3.4rem;
 }
 .hero .shot-note b { color: var(--ink); font-weight: 600; }
 @media (max-width: 46rem) {
@@ -152,15 +224,16 @@ h3 { font-size: 1.15rem; font-weight: 650; margin: 2.2rem 0 0.5rem; }
 a { color: var(--accent); }
 p, li { max-width: 40rem; }
 
-code { font-family: var(--mono); font-size: 0.86em; }
+code { font-family: var(--mono); font-size: 0.92em; }
 pre {
   font-family: var(--mono);
   /* Iosevka is narrow, so it can carry a longer line than a normal mono at
-     the same size – but it also reads smaller. This is the size at which a
-     Markdown sample is meant to be read, not squinted at. */
-  font-size: 0.9rem;
+     the same size – but it also reads smaller, which is why this sits above
+     the 0.9rem that looked right in a specimen and read as fine print on the
+     page. A Markdown sample is meant to be read, not squinted at. */
+  font-size: 0.96rem;
   line-height: 1.6;
-  background: var(--shot-bg);
+  background: var(--code-bg);
   border: 1px solid var(--rule);
   padding: 1rem 1.1rem;
   border-radius: 4px;
@@ -168,9 +241,36 @@ pre {
 }
 pre code { font-size: inherit; }
 
+/*
+ * Tokens for the Markdown sample on the landing page. Marked up by hand in
+ * index.html rather than highlighted at run time: it is one snippet, a
+ * Markdown-with-psi-directives grammar has no off-the-shelf highlighter that
+ * knows what `::: cols 2` is, and a regex tokeniser in site.js would be more
+ * code than the snippet it colours.
+ */
+pre .t-head   { color: var(--tok-head); font-weight: 600; }
+pre .t-dir    { color: var(--tok-dir); }
+pre .t-code   { color: var(--tok-code); }
+pre .t-strong { font-weight: 700; }
+pre .t-note   { color: var(--ink-soft); font-style: italic; }
+pre .t-cmt    { color: var(--ink-soft); }
+pre .t-punct  { color: var(--tok-punct); }
+
+/*
+ * The shell blocks reuse those same variables rather than introducing a
+ * second palette: the command carries the heading colour because it is the
+ * thing you are meant to read first, options take the directive blue, and
+ * paths and URLs take the colour inline code already has. Adding a real
+ * highlighter here would mean a stock editor theme whose colours are chosen
+ * to look like an editor, not to clear 4.5:1 on this background.
+ */
+pre .t-cmd    { color: var(--tok-head); font-weight: 600; }
+pre .t-flag   { color: var(--tok-dir); }
+pre .t-path   { color: var(--tok-code); }
+
 kbd {
   font-family: var(--mono);
-  font-size: 0.82em;
+  font-size: 0.85em;
   border: 1px solid var(--rule);
   border-bottom-width: 2px;
   border-radius: 4px;
@@ -188,7 +288,7 @@ blockquote {
 table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   display: block;
   overflow-x: auto;
 }
@@ -206,7 +306,11 @@ hr + h2 { border-top: 0; padding-top: 0; margin-top: 1.6rem; }
  * read as more page, and the layout stops parsing.
  */
 figure.shot {
-  margin: 0 0 2rem;
+  /* Tight under the picture, generous under the caption: a caption that sits
+     equidistant between its own image and the next one attaches itself to
+     whichever the eye reaches first, which on a scrolling page is the wrong
+     one. Same reason `pre + p.tiny` is pulled up below. */
+  margin: 0 0 3.2rem;
   border: 1px solid var(--frame);
   border-radius: 7px;
   overflow: hidden;
@@ -216,9 +320,13 @@ figure.shot .bar {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.75rem;
+  /* The switch is taller than a line of the bar's own text, so without a
+     floor the two shots of a pair sit at different heights and the row
+     reads as a mistake. */
+  min-height: 2.55rem;
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   color: var(--ink-soft);
   background: var(--frame);
   border-bottom: 1px solid var(--rule);
@@ -235,23 +343,54 @@ figure.shot img {
 }
 figure.shot img:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 
-/* The bar doubles as a two-state switch on the hero's right-hand shot. */
-figure.shot .swap { display: inline-flex; gap: 0.1rem; }
+/*
+ * The bar doubles as a two-state switch on the hero's right-hand shot. It
+ * used to be two words in the bar's own grey, distinguishable from the file
+ * name beside them only by a faint background on the active one – so nobody
+ * pressed it. It is a segmented control now: its own framed group, a spoken
+ * label, and an active segment in full ink.
+ */
+figure.shot .swap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: auto;
+  padding: 0.15rem;
+  border: 1px solid var(--ink-soft);
+  border-radius: 6px;
+  background: var(--paper);
+}
+figure.shot .swap .swap-label {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  padding-left: 0.35rem;
+}
 figure.shot .swap button {
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   line-height: 1.5;
-  border: 0;
+  border: 1px solid transparent;
   background: none;
-  color: var(--ink-soft);
-  padding: 0.05rem 0.45rem;
-  border-radius: 3px;
+  color: var(--ink);
+  /* >= 24 px tall including the border, for WCAG 2.5.8 target size. */
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
   cursor: pointer;
 }
-figure.shot .swap button:hover { color: var(--accent); }
+figure.shot .swap button:hover { border-color: var(--accent); color: var(--accent); }
 figure.shot .swap button[aria-pressed="true"] {
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+figure.shot .swap button[aria-pressed="true"]:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--paper);
+}
+@media (max-width: 34rem) {
+  figure.shot .bar { flex-wrap: wrap; }
+  figure.shot .swap { margin-left: 0; }
 }
 
 /*
@@ -279,33 +418,53 @@ figure.shot .swap button[aria-pressed="true"] {
 }
 body.lightbox-open { overflow: hidden; }
 figure.shot figcaption {
-  font-size: 0.88rem;
+  font-size: 1rem;
   color: var(--ink-soft);
-  padding: 0.7rem 0.85rem 0.85rem;
-  max-width: none;
+  padding: 0.6rem 0.9rem 0.9rem;
+  max-width: 48rem;
 }
 figure.shot figcaption strong { color: var(--ink); font-weight: 650; }
 
-.pair { display: grid; gap: 1.2rem; grid-template-columns: 1fr 1fr; margin-bottom: 2rem; }
+.pair { display: grid; gap: 1.2rem; grid-template-columns: 1fr 1fr; margin-bottom: 3.2rem; }
 .pair figure.shot { margin-bottom: 0; }
 @media (max-width: 46rem) { .pair { grid-template-columns: 1fr; } }
 
+/*
+ * Screenshots break out of the reading measure. Prose wants 40rem or it
+ * stops being readable; a screenshot wants every pixel it can get, because
+ * the whole claim being made is that the projection is legible and the
+ * cockpit is a workspace, and neither survives being shrunk to a third.
+ * The two are set independently: the column stays narrow, the pictures
+ * bleed into the margin on both sides.
+ */
+main > figure.shot,
+main > .pair,
+.hero .pair {
+  width: min(94vw, 66rem);
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
 .hint {
   background: var(--shot-bg);
-  border-left: 3px solid var(--accent);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
   padding: 1rem 1.2rem;
-  font-size: 0.95rem;
+  font-size: 1rem;
   margin: 2rem 0 0;
 }
 .hint p { margin: 0; max-width: none; }
 
-p.tiny { font-size: 0.9rem; color: var(--ink-soft); }
+p.tiny { font-size: 0.95rem; color: var(--ink-soft); }
+/* A line that explains the block above it is a caption, so it sits close to
+   what it captions and keeps its distance from what follows. */
+pre + p.tiny { margin: 0.55rem 0 3rem; }
 
 footer {
   margin-top: 4rem;
   padding-top: 1.2rem;
   border-top: 1px solid var(--rule);
-  font-size: 0.88rem;
+  font-size: 0.95rem;
   color: var(--ink-soft);
 }
 footer p { max-width: none; }

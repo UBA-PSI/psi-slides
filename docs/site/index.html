@@ -9,11 +9,23 @@
 <body>
 <main>
   <div class="hero">
-    <p class="mark">psi-slides</p>
+    <p class="mark"><b>psi-slides</b> &middot; presentation software for lecturers</p>
     <h1>Write the lecture once.</h1>
-    <p class="promise">The projection, the printed script and your own stage directions
-    all come out of the same Markdown file &ndash; and stay in step because there is
-    nothing to keep in step.</p>
+    <p class="what">A Markdown file goes in. Four self-contained HTML files come out:
+    the <strong>projection</strong> for the room, a <strong>presenter cockpit</strong>
+    on your own screen, and <strong>two handouts</strong> &ndash; the script alone, and
+    the script with your notes.</p>
+    <p class="promise">They all come out of the same source, so they stay in step
+    because there is nothing to keep in step.</p>
+    <p class="extras">Opinionated about what a slide is, and well equipped for the
+    hour you spend in front of the room: <b>overview board</b>, <b>full-text search</b>,
+    <b>live annotation</b>, syntax highlighting, LaTeX maths, video, QR codes for every
+    link, a timer, and seven themes. No server, no runtime, no cloud.</p>
+
+    <div class="cta">
+      <a class="primary" href="#getting-started">Get started</a>
+      <a class="secondary" href="#open-them-yourself">Open a live lecture</a>
+    </div>
 
     <div class="pair">
       <figure class="shot">
@@ -23,7 +35,8 @@
       <figure class="shot">
         <div class="bar">
           <span class="dots"><i></i><i></i><i></i></span> <b>what the reader gets</b>
-          <span class="swap">
+          <span class="swap" role="group" aria-label="Choose which reader view to show">
+            <span class="swap-label" aria-hidden="true">show:</span>
             <button type="button" aria-pressed="true"
                     data-src="img/full.webp"
                     data-alt="The same chunk with collapse switched off: all four paragraphs in full, laid out in two columns.">on screen</button>
@@ -37,7 +50,8 @@
     </div>
     <p class="shot-note">The same four paragraphs, written once.
     <b>One keypress between the first two</b> &ndash; and the third is a different
-    file out of the same source. Click any picture to see it full size.</p>
+    file out of the same source: use the <b>show: on screen / in print</b> switch
+    in the right-hand bar to see it. Click any picture to view it full size.</p>
   </div>
 
   <h2>Every lecture has three kinds of text in it</h2>
@@ -63,32 +77,32 @@
   36-chunk introduction to Python &ndash; and this is the Markdown it was written in,
   with two of the four paragraphs shortened to fit on this page.</p>
 
-<pre><code>## free: Why Playwright | the modern web is rendered, not served {.wide #why-playwright}
+<pre><code><span class="t-head">## free: Why Playwright | the modern web is rendered, not served</span> <span class="t-punct">{.wide #why-playwright}</span>
 
-::: cols 2
+<span class="t-dir">::: cols 2</span>
 
-**A lot of the web is rendered by JavaScript in the browser.**
-**`requests` and plain `urllib` see only the HTML shell** &ndash; often just
-`&lt;div id="app"&gt;&lt;/div&gt;` plus a pile of script tags. Useful text, links, and
+<span class="t-punct">**</span><span class="t-strong">A lot of the web is rendered by JavaScript in the browser.</span><span class="t-punct">**</span>
+<span class="t-punct">**</span><span class="t-strong"><span class="t-code">`requests`</span> and plain <span class="t-code">`urllib`</span> see only the HTML shell</span><span class="t-punct">**</span> &ndash; often just
+<span class="t-code">`&lt;div id="app"&gt;&lt;/div&gt;`</span> plus a pile of script tags. Useful text, links, and
 titles never arrive.
 
-**Playwright drives a real browser** &ndash; Chromium, Firefox, or WebKit &ndash; over a
+<span class="t-punct">**</span><span class="t-strong">Playwright drives a real browser</span><span class="t-punct">**</span> &ndash; Chromium, Firefox, or WebKit &ndash; over a
 debugging protocol. The page renders, scripts execute, the DOM settles, and
 then you query it. You see what a human sees.
 
-**For a link scanner this matters a lot.** …
+<span class="t-punct">**</span><span class="t-strong">For a link scanner this matters a lot.</span><span class="t-punct">**</span> …
 
-**The cost is weight.** …
+<span class="t-punct">**</span><span class="t-strong">The cost is weight.</span><span class="t-punct">**</span> …
 
-:::
+<span class="t-dir">:::</span>
 
-::: margin
-`requests` is still the right tool for an API that answers in JSON. The
+<span class="t-dir">::: margin</span>
+<span class="t-code">`requests`</span> is still the right tool for an API that answers in JSON. The
 browser is for pages meant to be looked at.
-:::
+<span class="t-dir">:::</span>
 
-&gt; note: Show the difference live if the room is awake: open a JS-heavy site,
-&gt; curl it, and let them find the missing text themselves.</code></pre>
+<span class="t-note">&gt; note: Show the difference live if the room is awake: open a JS-heavy site,
+&gt; curl it, and let them find the missing text themselves.</span></code></pre>
 
   <p class="tiny">In the projection the columns fold to one, because four
   abridged paragraphs do not balance; the reading view keeps the two the author
@@ -131,7 +145,7 @@ browser is for pages meant to be looked at.
     adds the speaker notes and is yours.</figcaption>
   </figure>
 
-  <h2>Open them yourself</h2>
+  <h2 id="open-them-yourself">Open them yourself</h2>
 
   <p>Three lectures are published here. <strong>python-intro</strong> is the one
   above. The <strong>tutorial</strong> is a self-referential tour that explains
@@ -173,6 +187,50 @@ browser is for pages meant to be looked at.
     typefaces are all inlined. Nothing is fetched at run time, and they open just as happily
     from <code>file://</code> as from this server.</p>
   </div>
+
+  <h2 id="getting-started">Getting started</h2>
+
+  <p>You need <strong>Node 20 or newer</strong>, and nothing else: no LaTeX, no
+  Pandoc, no server, nothing installed globally. Download the release, unpack it,
+  and build the tutorial:</p>
+
+<pre><code><span class="t-cmt"># the latest release, unpacked into psi-slides/</span>
+<span class="t-cmd">curl</span> <span class="t-flag">-L</span> <span class="t-path">https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.tar.gz</span> <span class="t-punct">\</span>
+  <span class="t-punct">|</span> <span class="t-cmd">tar</span> <span class="t-flag">xz</span>
+<span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
+
+<span class="t-cmt"># the bundled typefaces and the handful of build dependencies</span>
+<span class="t-cmd">npm</span> install
+
+<span class="t-cmt"># build all four views next to source.md, then open the projection</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span>
+<span class="t-cmd">open</span> <span class="t-path">lectures/tutorial/audience.html</span>   <span class="t-cmt"># macOS; xdg-open or your browser elsewhere</span></code></pre>
+
+  <p class="tiny">On Windows take the <code>.zip</code> from the same
+  <a href="https://github.com/UBA-PSI/psi-slides/releases">releases page</a>. A
+  <code>git clone</code> of the repository works identically &ndash; the archive is
+  that tree without the history.</p>
+
+  <p>That builds the tutorial: a lecture that teaches the tool by being the tool.
+  Press <kbd>?</kbd> for the cheat sheet, <kbd>S</kbd> to spawn the cockpit. Its
+  <code>source.md</code> is the authoring reference, and the four files it produced
+  are yours to move, mail or upload &ndash; they carry everything they need.</p>
+
+  <h3>Then write your own</h3>
+
+<pre><code><span class="t-cmt"># scaffold a folder with valid frontmatter</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-flag">--new</span> my-lecture
+
+<span class="t-cmt"># rebuild on save, and reload every open tab over a WebSocket</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch</span>
+
+<span class="t-cmt"># chunk ids, word budgets, unclosed directives, oversized assets</span>
+<span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/my-lecture/source.md</span></code></pre>
+
+  <p>Keep the editor, the projection and the cockpit visible at once and
+  <code>--watch</code> pushes a reload to all of them on every save. When you are
+  done, the four HTML files beside your <code>source.md</code> are the deliverable.
+  Nothing else has to travel with them.</p>
 
   <h2>Documentation</h2>
   <ul>

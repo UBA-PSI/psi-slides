@@ -65,7 +65,20 @@ node build.js <source.md> --watch --serve         # live reload over http
 node lint.js lectures/                         # all lectures
 node lint.js lectures/tutorial/source.md       # single file
 node lint.js lectures/ --strict                # warnings → exit 2
+
+# project site (GitHub Pages)
+node docs/site/build-site.js _site              # assemble the site into _site/
+node docs/site/shoot.mjs                        # re-shoot its seven screenshots
+node docs/site/shoot.mjs cockpit search         # …or just some of them
 ```
+
+`shoot.mjs` drives `lectures/python-intro` (build it first) with `playwright-core`
+and writes `docs/site/img/*.webp`. Every shot is the same chunk in a different
+view, so they have to be taken the same way each time – a hand-taken set drifted
+in framing and shipped one figure at 860 px while the rest were 1440. It needs a
+Chromium (`$PSI_CHROME`, else the Playwright cache, else system Chrome) and
+`cwebp` or `magick` to encode. See the header comment for why the CLI
+screenshotter cannot do this job.
 
 A source file can silence specific lint warnings with an HTML comment anywhere in the body:
 

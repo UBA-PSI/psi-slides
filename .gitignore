@@ -13,6 +13,9 @@ lectures/*/videos/
 
 docs/site/example/*.html
 
+# shoot.mjs writes a PNG and encodes it to WebP; --keep-png leaves the PNG
+docs/site/img/*.png
+
 lectures/*/print.html
 lectures/*/print-notes.html
 lectures/*/audience.html
