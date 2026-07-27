@@ -520,9 +520,26 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
  * rest, the sentences stay sentences rather than becoming three tab stops
  * inside a paragraph, and nothing here is the only way to reach anything.
  */
-.tie { transition: color 160ms ease, box-shadow 160ms ease; }
-.tie.is-tied { color: var(--accent); box-shadow: inset 0 -0.1em 0 var(--accent); }
-.path { transition: opacity 200ms ease, background-color 200ms ease; }
+/* The clause has to look connected to something before anyone points at it.
+   Dotted rather than solid: over three lines of prose a solid rule reads as
+   an underlined sentence, which is emphasis, and these are not emphasised -
+   they are attached. Dotted goes solid and accent when the pair lights up,
+   so the resting state and the active state are the same mark twice. */
+.tie {
+  cursor: pointer;
+  text-decoration: underline dotted var(--ink-soft);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.24em;
+  transition: color 160ms ease, text-decoration-color 160ms ease;
+}
+.tie:hover,
+.tie.is-tied {
+  color: var(--accent);
+  text-decoration: underline solid var(--accent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.24em;
+}
+.path { cursor: pointer; transition: opacity 200ms ease, background-color 200ms ease; }
 /* Reserved at all times, so nothing shifts when the ground appears. */
 .path { padding: 0.5rem 0.6rem; border-radius: 8px; margin: -0.5rem -0.6rem; }
 .paths.is-tied .path { opacity: 0.3; }
