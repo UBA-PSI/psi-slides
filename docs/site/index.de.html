@@ -92,10 +92,10 @@
 
   <div class="kinds">
     <div class="kinds-prose">
-    <p>Da ist der Text, der <strong class="kind-cue" data-kind="slide">auf die Folie</strong> kommt, knapp genug,
-    dass man ihn aus der letzten Reihe lesen kann. Da ist <strong class="kind-cue" data-kind="script">das
+    <p>Da ist der Text, der <strong>auf die Folie</strong> kommt, knapp genug,
+    dass man ihn aus der letzten Reihe lesen kann. Da ist <strong>das
     Skript</strong> &ndash; die Sätze, die die Sache wirklich erklären und die in ein
-    Handout gehören statt an die Wand. Und da sind <strong class="kind-cue" data-kind="notes">die Notizen für einen
+    Handout gehören statt an die Wand. Und da sind <strong>die Notizen für einen
     selbst</strong>: erst die Gruppe fragen; das hier weglassen, wenn die Zeit
     knapp wird; das geht nicht raus.</p>
 
@@ -114,58 +114,119 @@
     </div>
 
     <div class="kinds-figure">
-      <div class="sheets" role="group" aria-label="Die drei Sorten Text, gezeichnet als drei Blätter">
-        <button type="button" class="sheet sheet-script" data-kind="script" aria-pressed="false">
-          <span class="sheet-tag">das Skript</span>
-          <svg viewBox="0 0 210 270" role="img" aria-label="Ein Skript: dieselben kurzen Zeilen, unter jeder drei Zeilen Fließtext, daneben eine Randnotiz.">
-            <rect x="0.5" y="0.5" width="209" height="269" rx="5" fill="var(--paper)" stroke="var(--frame)"/>
-            <rect x="20" y="22" width="104" height="7" rx="3" fill="var(--ink)"/>
-            <rect x="20" y="46" width="100" height="4.5" rx="2.25" fill="var(--accent)"/>
-            <rect x="20" y="57" width="118" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
-            <rect x="20" y="67" width="112" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
-            <rect x="20" y="77" width="96" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
-            <rect x="20" y="96" width="88" height="4.5" rx="2.25" fill="var(--accent)"/>
-            <rect x="20" y="107" width="116" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
-            <rect x="20" y="117" width="108" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
-            <rect x="20" y="127" width="90" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
-            <rect x="20" y="146" width="104" height="4.5" rx="2.25" fill="var(--accent)"/>
-            <rect x="20" y="157" width="118" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
-            <rect x="20" y="167" width="104" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
-            <rect x="20" y="177" width="86" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
-            <rect x="20" y="196" width="82" height="4.5" rx="2.25" fill="var(--accent)"/>
-            <rect x="20" y="207" width="110" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
-            <rect x="20" y="217" width="96" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
-            <rect x="20" y="227" width="72" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
-            <rect x="146" y="94" width="1" height="36" fill="var(--rule)"/>
-            <rect x="153" y="98" width="40" height="3" rx="1.5" fill="var(--ink-soft)" opacity="0.28"/>
-            <rect x="153" y="107" width="36" height="3" rx="1.5" fill="var(--ink-soft)" opacity="0.28"/>
-            <rect x="153" y="116" width="28" height="3" rx="1.5" fill="var(--ink-soft)" opacity="0.28"/>
-          </svg>
-        </button>
-        <button type="button" class="sheet sheet-slide" data-kind="slide" aria-pressed="false">
-          <span class="sheet-tag">die Folie</span>
-          <svg viewBox="0 0 320 180" role="img" aria-label="Eine Folie: eine Überschrift, eine Unterzeile und drei kurze Zeilen, der Rest des Blattes bleibt leer.">
-            <rect x="0.5" y="0.5" width="319" height="179" rx="6" fill="var(--paper)" stroke="var(--frame)"/>
-            <rect x="26" y="30" width="148" height="10" rx="3" fill="var(--ink)"/>
-            <rect x="26" y="47" width="94" height="5" rx="2.5" fill="var(--ink-soft)" opacity="0.5"/>
-            <rect x="26" y="74" width="212" height="7" rx="3.5" fill="var(--accent)"/>
-            <rect x="26" y="93" width="168" height="7" rx="3.5" fill="var(--accent)"/>
-            <rect x="26" y="112" width="192" height="7" rx="3.5" fill="var(--accent)"/>
-            <rect x="288" y="150" width="12" height="4" rx="2" fill="var(--ink-soft)" opacity="0.3"/>
-          </svg>
-        </button>
-        <button type="button" class="sheet sheet-notes" data-kind="notes" aria-pressed="false">
-          <span class="sheet-tag">die Notizen</span>
-          <svg viewBox="0 0 200 120" role="img" aria-label="Eine Notizkarte mit einer Zeile, die mit der Quellsyntax für eine Sprechnotiz beginnt.">
-            <rect x="0.5" y="0.5" width="199" height="119" rx="5" fill="var(--shot-bg)" stroke="var(--rule)"/>
-            <text x="18" y="35" font-size="15" fill="var(--ink-soft)">&gt; note:</text>
-            <rect x="18" y="50" width="150" height="4.5" rx="2.25" fill="var(--ink-soft)" opacity="0.42"/>
-            <rect x="18" y="64" width="128" height="4.5" rx="2.25" fill="var(--ink-soft)" opacity="0.42"/>
-            <rect x="18" y="78" width="96" height="4.5" rx="2.25" fill="var(--ink-soft)" opacity="0.42"/>
-          </svg>
-        </button>
+      <div class="paths">
+        <svg viewBox="0 0 448 20" aria-hidden="true" focusable="false">
+          <text x="150" y="13" text-anchor="middle" font-size="13" fill="var(--ink-soft)">die Folie</text>
+          <text x="275" y="13" text-anchor="middle" font-size="13" fill="var(--ink-soft)">das Handout</text>
+          <text x="384" y="13" text-anchor="middle" font-size="13" fill="var(--ink-soft)">die Notizen</text>
+        </svg>
+        <figure class="path">
+          <figcaption>alles auf die Folien</figcaption>
+          <svg viewBox="0 0 448 148" role="img" aria-label="Eine Datei speist eine Folie, und die ist von Rand zu Rand mit Fließtext gefüllt. Für Handout und Notizen ist kein Platz.">
+          <path d="M4 49a4 4 0 0 1 4-4h20l8 8v22a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="var(--paper)" stroke="var(--frame)"/>
+          <path d="M28 45v8h8" fill="none" stroke="var(--frame)"/>
+          <rect x="10" y="59" width="18" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
+          <rect x="10" y="65" width="20" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
+          <rect x="10" y="71" width="14" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
+          <path d="M36 62H62V124H150V92" fill="none" stroke="var(--rule)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="84" y="18" width="132" height="74" rx="4" fill="var(--paper)" stroke="var(--frame)"/>
+          <rect x="92" y="25" width="50" height="4" rx="2.0" fill="var(--ink)"/>
+          <rect x="92" y="34" width="116" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.62"/>
+          <rect x="92" y="39" width="112" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.62"/>
+          <rect x="92" y="44" width="116" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.62"/>
+          <rect x="92" y="49" width="108" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.62"/>
+          <rect x="92" y="54" width="116" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.62"/>
+          <rect x="92" y="59" width="114" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.62"/>
+          <rect x="92" y="64" width="104" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.62"/>
+          <rect x="92" y="69" width="116" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.62"/>
+          <rect x="92" y="74" width="110" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.62"/>
+          <rect x="92" y="79" width="116" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.62"/>
+          <rect x="92" y="84" width="96" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.62"/>
+          <rect x="232" y="6" width="86" height="104" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="5 5"/>
+          <rect x="332" y="30" width="104" height="52" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="5 5"/>
+        </svg>
+        </figure>
+        <figure class="path">
+          <figcaption>Folien, daneben ein Skript</figcaption>
+          <svg viewBox="0 0 448 148" role="img" aria-label="Zwei Dateien mit einer gerissenen Verbindung: die eine speist eine knappe Folie, die andere ein volles Handout. Für die Notizen ist weiterhin kein Platz.">
+          <path d="M4 18a4 4 0 0 1 4-4h20l8 8v22a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="var(--paper)" stroke="var(--frame)"/>
+          <path d="M28 14v8h8" fill="none" stroke="var(--frame)"/>
+          <rect x="10" y="28" width="18" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
+          <rect x="10" y="34" width="20" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
+          <rect x="10" y="40" width="14" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
+          <path d="M4 80a4 4 0 0 1 4-4h20l8 8v22a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="var(--paper)" stroke="var(--frame)"/>
+          <path d="M28 76v8h8" fill="none" stroke="var(--frame)"/>
+          <rect x="10" y="90" width="18" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
+          <rect x="10" y="96" width="20" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
+          <rect x="10" y="102" width="14" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
+          <path d="M20 50V56" fill="none" stroke="var(--ink-soft)" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/>
+          <path d="M26 70V76" fill="none" stroke="var(--ink-soft)" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/>
+          <path d="M15 60l10-4" fill="none" stroke="var(--ink-soft)" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/>
+          <path d="M21 68l10-4" fill="none" stroke="var(--ink-soft)" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/>
+          <path d="M36 31H62V124H150V92" fill="none" stroke="var(--rule)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M36 93H48V136H275V110" fill="none" stroke="var(--rule)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="84" y="18" width="132" height="74" rx="4" fill="var(--paper)" stroke="var(--frame)"/>
+          <rect x="96" y="30" width="58" height="5" rx="2.5" fill="var(--ink)"/>
+          <rect x="96" y="40" width="38" height="3" rx="1.5" fill="var(--ink-soft)" opacity="0.5"/>
+          <rect x="96" y="54" width="104" height="4" rx="2.0" fill="var(--accent)"/>
+          <rect x="96" y="65" width="82" height="4" rx="2.0" fill="var(--accent)"/>
+          <rect x="96" y="76" width="94" height="4" rx="2.0" fill="var(--accent)"/>
+          <rect x="232" y="6" width="86" height="104" rx="4" fill="var(--paper)" stroke="var(--frame)"/>
+          <rect x="241" y="15" width="44" height="4" rx="2.0" fill="var(--ink)"/>
+          <rect x="241" y="28" width="40" height="3.4" rx="1.7" fill="var(--accent)"/>
+          <rect x="241" y="35" width="60" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="241" y="41" width="54" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="241" y="50" width="34" height="3.4" rx="1.7" fill="var(--accent)"/>
+          <rect x="241" y="57" width="58" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="241" y="63" width="48" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="241" y="72" width="44" height="3.4" rx="1.7" fill="var(--accent)"/>
+          <rect x="241" y="79" width="62" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="241" y="85" width="50" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="241" y="94" width="32" height="3.4" rx="1.7" fill="var(--accent)"/>
+          <rect x="241" y="101" width="52" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="241" y="107" width="40" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="332" y="30" width="104" height="52" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="5 5"/>
+        </svg>
+        </figure>
+        <figure class="path path-fix">
+          <figcaption>psi-slides</figcaption>
+          <svg viewBox="0 0 448 148" role="img" aria-label="Eine Datei speist alle drei: die knappe Folie, das volle Handout und die Notizkarte.">
+          <path d="M4 49a4 4 0 0 1 4-4h20l8 8v22a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="var(--paper)" stroke="var(--frame)"/>
+          <path d="M28 45v8h8" fill="none" stroke="var(--frame)"/>
+          <rect x="10" y="59" width="18" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
+          <rect x="10" y="65" width="20" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
+          <rect x="10" y="71" width="14" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
+          <path d="M36 62H62V124H384" fill="none" stroke="var(--rule)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M150 124V92" fill="none" stroke="var(--rule)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M275 124V110" fill="none" stroke="var(--rule)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M384 124V82" fill="none" stroke="var(--rule)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="84" y="18" width="132" height="74" rx="4" fill="var(--paper)" stroke="var(--frame)"/>
+          <rect x="96" y="30" width="58" height="5" rx="2.5" fill="var(--ink)"/>
+          <rect x="96" y="40" width="38" height="3" rx="1.5" fill="var(--ink-soft)" opacity="0.5"/>
+          <rect x="96" y="54" width="104" height="4" rx="2.0" fill="var(--accent)"/>
+          <rect x="96" y="65" width="82" height="4" rx="2.0" fill="var(--accent)"/>
+          <rect x="96" y="76" width="94" height="4" rx="2.0" fill="var(--accent)"/>
+          <rect x="232" y="6" width="86" height="104" rx="4" fill="var(--paper)" stroke="var(--frame)"/>
+          <rect x="241" y="15" width="44" height="4" rx="2.0" fill="var(--ink)"/>
+          <rect x="241" y="28" width="40" height="3.4" rx="1.7" fill="var(--accent)"/>
+          <rect x="241" y="35" width="60" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="241" y="41" width="54" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="241" y="50" width="34" height="3.4" rx="1.7" fill="var(--accent)"/>
+          <rect x="241" y="57" width="58" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="241" y="63" width="48" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="241" y="72" width="44" height="3.4" rx="1.7" fill="var(--accent)"/>
+          <rect x="241" y="79" width="62" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="241" y="85" width="50" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="241" y="94" width="32" height="3.4" rx="1.7" fill="var(--accent)"/>
+          <rect x="241" y="101" width="52" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="241" y="107" width="40" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
+          <rect x="332" y="30" width="104" height="52" rx="4" fill="var(--shot-bg)" stroke="var(--rule)"/>
+          <text x="342" y="50" font-size="12" fill="var(--ink-soft)">&gt; note:</text>
+          <rect x="342" y="58" width="72" height="3" rx="1.5" fill="var(--ink-soft)" opacity="0.42"/>
+          <rect x="342" y="66" width="54" height="3" rx="1.5" fill="var(--ink-soft)" opacity="0.42"/>
+        </svg>
+        </figure>
       </div>
-      <p class="sheets-hint">Auf ein Blatt zeigen oder auf eine der drei Wendungen im Text, um es nach vorn zu holen.</p>
     </div>
   </div>
 

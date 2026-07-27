@@ -49,67 +49,14 @@
    * who has already chosen.
    */
 
-  /* ── the three sheets ──────────────────────────────────────────────────
-   * Two ways in, one state. The sheets are the operable control and carry
-   * the keyboard path; the three phrases in the prose are a shortcut for a
-   * pointer, and are deliberately not buttons - they are the sentence, and
-   * putting three tab stops inside a paragraph would make the sentence worse
-   * to read with a screen reader for a picture that repeats what it says.
-   *
-   * Hovering previews, clicking holds. Leaving a sheet falls back to whatever
-   * is held rather than to nothing, or a click would be undone by the mouse
-   * moving two pixels off the edge.
+  /* ── no script for the diagram ─────────────────────────────────────────
+   * The three kinds of text used to be an interactive stack: hover a sheet,
+   * it came forward. It needed a caption to explain the mechanic, which was
+   * the sign that the picture was carrying a gesture instead of an argument.
+   * The diagram that replaced it states the whole case at rest - three rows,
+   * three columns, what arrives and what has nowhere to go - so there is
+   * nothing here to wire up.
    */
-  (function sheets() {
-    var stack = document.querySelector('.sheets');
-    if (!stack) return;
-    var buttons = Array.prototype.slice.call(stack.querySelectorAll('.sheet'));
-    var cues = Array.prototype.slice.call(document.querySelectorAll('.kind-cue'));
-    var held = null;
-
-    function paint(kind) {
-      stack.classList.toggle('is-picked', !!kind);
-      buttons.forEach(function (b) {
-        var on = b.getAttribute('data-kind') === kind;
-        b.classList.toggle('is-on', on);
-        b.setAttribute('aria-pressed', String(on));
-      });
-      cues.forEach(function (c) {
-        c.classList.toggle('is-on', c.getAttribute('data-kind') === kind);
-      });
-    }
-    function preview(kind) { paint(kind || held); }
-
-    buttons.forEach(function (b) {
-      var kind = b.getAttribute('data-kind');
-      b.addEventListener('mouseenter', function () { preview(kind); });
-      b.addEventListener('mouseleave', function () { preview(null); });
-      b.addEventListener('focus', function () { preview(kind); });
-      b.addEventListener('blur', function () { preview(null); });
-      b.addEventListener('click', function () {
-        held = held === kind ? null : kind;
-        paint(held);
-      });
-    });
-    cues.forEach(function (c) {
-      var kind = c.getAttribute('data-kind');
-      c.addEventListener('mouseenter', function () { preview(kind); });
-      c.addEventListener('mouseleave', function () { preview(null); });
-    });
-
-    /* One nudge, the first time the stack is on screen, to say the pieces
-     * come apart. Once: a thing that moves every time you scroll past is a
-     * thing you end up scrolling past faster. */
-    var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
-    if ((still && still.matches) || !window.IntersectionObserver) return;
-    var io = new IntersectionObserver(function (entries) {
-      if (!entries.some(function (e) { return e.isIntersecting; })) return;
-      io.disconnect();
-      stack.classList.add('is-hinting');
-      setTimeout(function () { stack.classList.remove('is-hinting'); }, 1100);
-    }, { threshold: 0.4 });
-    io.observe(stack);
-  })();
 
   /* ── the narrow-width menu ─────────────────────────────────────────────
    * The <details> opens, closes, and is keyboard-operable on its own. Two
