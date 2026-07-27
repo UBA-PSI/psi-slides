@@ -503,6 +503,36 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
 .path-fix figcaption { color: var(--accent); }
 
 /*
+ * Tying the rows to the sentences they draw.
+ *
+ * This earns its place only because both halves now make the same argument.
+ * Pointing at "the slides take its job and fill up" raises the row where the
+ * slide is full; pointing at that row raises the sentence. The pair is the
+ * same claim in two notations, and the link is the thing a reader would
+ * otherwise have to assemble.
+ *
+ * Emphasis is by recession: the two rows that are not being asked about drop
+ * back, which reads as one row coming forward without anything having to
+ * move. The picked row also lifts to paper, the same inversion `.hint` uses
+ * inside a tinted band.
+ *
+ * Pointer only, and deliberately so. Everything is legible and complete at
+ * rest, the sentences stay sentences rather than becoming three tab stops
+ * inside a paragraph, and nothing here is the only way to reach anything.
+ */
+.tie { transition: color 160ms ease, box-shadow 160ms ease; }
+.tie.is-tied { color: var(--accent); box-shadow: inset 0 -0.1em 0 var(--accent); }
+.path { transition: opacity 200ms ease, background-color 200ms ease; }
+/* Reserved at all times, so nothing shifts when the ground appears. */
+.path { padding: 0.5rem 0.6rem; border-radius: 8px; margin: -0.5rem -0.6rem; }
+.paths.is-tied .path { opacity: 0.3; }
+.paths.is-tied .path.is-tied { opacity: 1; background: var(--paper); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tie, .path { transition: none; }
+}
+
+/*
  * Section headings carry the page. The first draft set them as small grey
  * uppercase eyebrows, which left the screenshots and the running text at
  * roughly the same visual weight and made the page hard to scan.

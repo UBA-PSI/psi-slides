@@ -49,14 +49,40 @@
    * who has already chosen.
    */
 
-  /* ── no script for the diagram ─────────────────────────────────────────
-   * The three kinds of text used to be an interactive stack: hover a sheet,
-   * it came forward. It needed a caption to explain the mechanic, which was
-   * the sign that the picture was carrying a gesture instead of an argument.
-   * The diagram that replaced it states the whole case at rest - three rows,
-   * three columns, what arrives and what has nowhere to go - so there is
-   * nothing here to wire up.
+  /* ── the diagram and the sentences it draws ────────────────────────────
+   * Each row of the diagram is one clause of the argument: the slide that
+   * fills up, the second document that stops matching, and psi-slides. Point
+   * at either notation and the other one answers.
+   *
+   * An earlier version of this section was an interactive stack of sheets
+   * that had to explain in a caption that hovering brought one forward. The
+   * difference is not the wiring, which is nearly the same: it is that the
+   * picture now says something, so connecting it to the sentence that says
+   * the same thing is worth a reader's attention. There is still no caption,
+   * because there is no mechanic to learn - the response is the explanation.
+   *
+   * Pointer only. Both halves are complete at rest, so nothing here is the
+   * sole route to anything, and the clauses stay clauses rather than becoming
+   * three tab stops in the middle of a paragraph.
    */
+  (function ties() {
+    var paths = document.querySelector('.paths');
+    if (!paths) return;
+    var rows = Array.prototype.slice.call(paths.querySelectorAll('.path'));
+    var clauses = Array.prototype.slice.call(document.querySelectorAll('.tie'));
+    if (!rows.length || !clauses.length) return;
+
+    function paint(key) {
+      paths.classList.toggle('is-tied', !!key);
+      rows.concat(clauses).forEach(function (el) {
+        el.classList.toggle('is-tied', !!key && el.getAttribute('data-tie') === key);
+      });
+    }
+    rows.concat(clauses).forEach(function (el) {
+      el.addEventListener('mouseenter', function () { paint(el.getAttribute('data-tie')); });
+      el.addEventListener('mouseleave', function () { paint(null); });
+    });
+  })();
 
   /* ── the narrow-width menu ─────────────────────────────────────────────
    * The <details> opens, closes, and is keyboard-operable on its own. Two

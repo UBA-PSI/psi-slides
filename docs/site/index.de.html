@@ -102,13 +102,13 @@
     <p>Die gängigen Programme, die zum Präsentieren verwendet werden, bieten
     Folien und ein Notizfeld. Für das Skript ist darin kein Platz vorgesehen, und
     ausgerechnet das ist der Teil, den Studierende am meisten wollen. Das Skript
-    nimmt dann einen von zwei Wegen. Entweder übernehmen die Folien seine Aufgabe
+    nimmt dann einen von zwei Wegen. <span class="tie" data-tie="1">Entweder übernehmen die Folien seine Aufgabe
     und werden so voll, dass sie aus der letzten Reihe niemand mehr lesen kann &ndash;
-    <em>Death by PowerPoint</em>. Oder das Skript steht in einem zweiten Dokument,
-    das ab der ersten Änderung nicht mehr zu den Folien passt.</p>
+    <em>Death by PowerPoint</em>.</span> <span class="tie" data-tie="2">Oder das Skript steht in einem zweiten Dokument,
+    das ab der ersten Änderung nicht mehr zu den Folien passt.</span></p>
 
-    <p>Mit psi-slides schreibt man jeden Absatz einmal und markiert den einen Satz,
-    der den Absatz trägt. Die Projektion bekommt nur diesen Satz, das Handout
+    <p><span class="tie" data-tie="3">Mit psi-slides schreibt man jeden Absatz einmal und markiert den einen Satz,
+    der den Absatz trägt.</span> Die Projektion bekommt nur diesen Satz, das Handout
     bekommt den ganzen Absatz, und die Zeilen hinter <code>&gt; note:</code> bleiben
     auf dem eigenen Bildschirm.</p>
     </div>
@@ -120,7 +120,7 @@
           <text x="275" y="13" text-anchor="middle" font-size="13" fill="var(--ink-soft)">das Handout</text>
           <text x="384" y="13" text-anchor="middle" font-size="13" fill="var(--ink-soft)">die Notizen</text>
         </svg>
-        <figure class="path">
+        <figure class="path" data-tie="1">
           <figcaption>alles auf die Folien</figcaption>
           <svg viewBox="0 0 448 148" role="img" aria-label="Eine Datei speist eine Folie, und die ist von Rand zu Rand mit Fließtext gefüllt. Für Handout und Notizen ist kein Platz.">
           <path d="M4 49a4 4 0 0 1 4-4h20l8 8v22a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="var(--paper)" stroke="var(--frame)"/>
@@ -146,7 +146,7 @@
           <rect x="332" y="30" width="104" height="52" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="5 5"/>
         </svg>
         </figure>
-        <figure class="path">
+        <figure class="path" data-tie="2">
           <figcaption>Folien, daneben ein Skript</figcaption>
           <svg viewBox="0 0 448 148" role="img" aria-label="Zwei Dateien mit einer gerissenen Verbindung: die eine speist eine knappe Folie, die andere ein volles Handout. Für die Notizen ist weiterhin kein Platz.">
           <path d="M4 18a4 4 0 0 1 4-4h20l8 8v22a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="var(--paper)" stroke="var(--frame)"/>
@@ -188,7 +188,7 @@
           <rect x="332" y="30" width="104" height="52" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="5 5"/>
         </svg>
         </figure>
-        <figure class="path path-fix">
+        <figure class="path path-fix" data-tie="3">
           <figcaption>psi-slides</figcaption>
           <svg viewBox="0 0 448 148" role="img" aria-label="Eine Datei speist alle drei: die knappe Folie, das volle Handout und die Notizkarte.">
           <path d="M4 49a4 4 0 0 1 4-4h20l8 8v22a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="var(--paper)" stroke="var(--frame)"/>
