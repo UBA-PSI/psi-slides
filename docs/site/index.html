@@ -382,27 +382,109 @@ browser is for pages meant to be looked at.
 
   <h2 id="getting-started">Getting started</h2>
 
-  <p>You need <strong>Node 20 or newer</strong>, which is what runs
-  <code>build.js</code>, and nothing else: no LaTeX, no Pandoc, no server, nothing
-  that has to be installed system-wide. Download the release, unpack it, and build
-  the tutorial &ndash; that is, turn its Markdown into the four HTML files:</p>
+  <p><strong><a href="https://github.com/UBA-PSI/psi-slides/releases/latest">Download
+  the latest release</a></strong> and unpack it. That folder is the whole tool, and
+  the three lectures listed above are already built inside it: open
+  <code>lectures/tutorial/audience.html</code> and the tour runs, with nothing
+  installed and nothing to set up.</p>
 
-<pre><code><span class="t-cmt"># the latest release, unpacked into psi-slides/</span>
-<span class="t-cmd">curl</span> <span class="t-flag">-L</span> <span class="t-path">https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.tar.gz</span> <span class="t-punct">\</span>
-  <span class="t-punct">|</span> <span class="t-cmd">tar</span> <span class="t-flag">xz</span>
-<span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
+  <p>Building a lecture of your own needs <strong>Node 20 or newer</strong>, which
+  is what runs <code>build.js</code>, and nothing else: no LaTeX, no Pandoc, no
+  server, nothing that has to be installed system-wide.</p>
 
-<span class="t-cmt"># the bundled typefaces and the handful of build dependencies</span>
+<pre><code><span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
+
+<span class="t-cmt"># once: the bundled typefaces and the handful of build dependencies</span>
 <span class="t-cmd">npm</span> install
 
 <span class="t-cmt"># build all four views next to source.md, then open the projection</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span>
 <span class="t-cmd">open</span> <span class="t-path">lectures/tutorial/audience.html</span>   <span class="t-cmt"># macOS; xdg-open or your browser elsewhere</span></code></pre>
 
+  <details class="setup">
+    <summary>If you have never installed Node or used a terminal</summary>
+    <div class="setup-body">
+      <p>This takes a Windows or macOS machine with nothing on it to a built copy
+      of the tutorial. Every command below was run as it is written, and the
+      output quoted is what came back.</p>
+
+      <h3>Install Node</h3>
+      <p>Open <a href="https://nodejs.org/">nodejs.org</a>. The button offers the
+      LTS build &ndash; the long-term support one &ndash; in the right file for the machine
+      you are on; take that download. On macOS you get a <code>.pkg</code>:
+      double-click it, click through the installer, give your password when it
+      asks. On Windows you get an <code>.msi</code>: double-click, accept the
+      defaults, and leave the checkbox about tools for native modules alone.
+      Nothing in psi-slides needs them.</p>
+      <p>If you already use a package manager, <code>brew install node</code> on
+      macOS and <code>winget install OpenJS.NodeJS.LTS</code> on Windows do the
+      same thing.</p>
+
+      <h3>Open a terminal</h3>
+      <p>On macOS press Command-Space, type <code>terminal</code>, press Return.
+      On Windows open the Start menu and type <code>terminal</code>: take Windows
+      Terminal if it appears, PowerShell otherwise. You get a window with a cursor
+      in it. You type one line, press Return, and it answers.</p>
+<pre><code>node --version</code></pre>
+      <p>The answer is a version number. Anything from v20 upwards works, and a
+      fresh LTS download is well above it. If you instead get <code>command not
+      found</code> or <code>is not recognized</code>, close the window and open a
+      new one: a terminal that was already running when you installed Node has not
+      seen it yet.</p>
+
+      <h3>Get the files</h3>
+      <p><strong><a href="https://github.com/UBA-PSI/psi-slides/releases/latest">Download
+      the latest release</a></strong> and unpack it, the way you would any other
+      download; double-clicking is enough on both systems. You get a folder called
+      <code>psi-slides</code>, and that folder is the whole tool. Put it somewhere
+      you can find again, because the terminal has to be pointed at it in a
+      moment.</p>
+      <p>On Windows, unpack the <code>.zip</code> rather than opening it by
+      double-click: Windows shows the contents of a ZIP as if it were a folder,
+      but commands cannot run inside it.</p>
+
+      <h3>Point the terminal at the folder</h3>
+<pre><code>cd psi-slides</code></pre>
+      <p>That line has to name where the folder actually is: on Windows, for
+      instance <code>cd C:\Users\you\Downloads\psi-slides</code>. Instead of
+      typing the path, type <code>cd</code> and a space, then drag the folder from
+      the file manager into the terminal window &ndash; the path writes itself.</p>
+
+      <h3>Fetch what the build uses</h3>
+<pre><code>npm install</code></pre>
+      <p>This runs once, in that folder, and takes a few seconds. It fetches the
+      typefaces psi-slides embeds into every lecture and the handful of packages
+      the renderer uses. All of it lands in a <code>node_modules</code> folder
+      beside <code>build.js</code>: nothing is installed system-wide, and nothing
+      is fetched again once a lecture is built.</p>
+
+      <h3>Build the tutorial</h3>
+<pre><code>node build.js lectures/tutorial/source.md</code></pre>
+      <p>The same line on Windows and macOS, forward slashes included: Node takes
+      them everywhere. It reports what it embedded &ndash; the images, the typefaces,
+      the QR codes, the rendered maths &ndash; and ends with what it wrote.</p>
+<pre><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (10 columns, 38 chunks)</code></pre>
+
+      <h3>Open it</h3>
+      <p>Double-click <code>lectures/tutorial/audience.html</code>. It opens in
+      your browser and that is all it needs: <kbd>?</kbd> lists the keys,
+      <kbd>S</kbd> opens the cockpit. Mail the file to somebody who has none of
+      this installed and it still works.</p>
+
+      <p class="tiny">Linux readers: you have all of these tools already.
+      Distribution packages are sometimes several versions behind, so
+      <code>node --version</code> is still worth running.</p>
+    </div>
+  </details>
+
   <p class="tiny">On Windows take the <code>.zip</code> from the same
   <a href="https://github.com/UBA-PSI/psi-slides/releases">releases page</a>. A
-  <code>git clone</code> of the repository works identically &ndash; the archive is
-  the same set of files without the version history.</p>
+  <code>git clone</code> of the repository works identically &ndash; the archive is the
+  same set of files without the version history. If you would rather not click at
+  all, one line does the download and the unpacking:</p>
+
+<pre><code><span class="t-cmd">curl</span> <span class="t-flag">-L</span> <span class="t-path">https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.tar.gz</span> <span class="t-punct">\</span>
+  <span class="t-punct">|</span> <span class="t-cmd">tar</span> <span class="t-flag">xz</span></code></pre>
 
   <p>That builds the tutorial: a lecture that teaches the tool by being the tool.
   Press <kbd>?</kbd> for the cheat sheet, <kbd>S</kbd> to open the cockpit. The

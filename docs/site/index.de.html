@@ -389,28 +389,114 @@ browser is for pages meant to be looked at.
 
   <h2 id="getting-started">Loslegen</h2>
 
-  <p>Man braucht <strong>Node 20 oder neuer</strong>, damit läuft
-  <code>build.js</code>, sonst nichts: kein LaTeX, kein Pandoc, keinen Server,
-  nichts, was systemweit installiert werden müsste. Release herunterladen,
-  auspacken und das Tutorial bauen, also sein Markdown in die vier HTML-Dateien
-  verwandeln:</p>
+  <p><strong><a href="https://github.com/UBA-PSI/psi-slides/releases/latest">Das
+  aktuelle Release herunterladen</a></strong> und auspacken. Dieser Ordner ist
+  das ganze Werkzeug, und die drei Vorlesungen von oben sind darin schon gebaut:
+  <code>lectures/tutorial/audience.html</code> öffnen, und die Tour läuft &ndash; ohne
+  Installation und ohne Einrichtung.</p>
 
-<pre><code><span class="t-cmt"># das aktuelle Release, ausgepackt nach psi-slides/</span>
-<span class="t-cmd">curl</span> <span class="t-flag">-L</span> <span class="t-path">https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.tar.gz</span> <span class="t-punct">\</span>
-  <span class="t-punct">|</span> <span class="t-cmd">tar</span> <span class="t-flag">xz</span>
-<span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
+  <p>Für eine eigene Vorlesung braucht man <strong>Node 20 oder neuer</strong>,
+  damit läuft <code>build.js</code>, sonst nichts: kein LaTeX, kein Pandoc,
+  keinen Server, nichts, was systemweit installiert werden müsste.</p>
 
-<span class="t-cmt"># die mitgelieferten Schriften und die wenigen Pakete, die der Bau braucht</span>
+<pre><code><span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
+
+<span class="t-cmt"># einmalig: die mitgelieferten Schriften und die wenigen Pakete für den Bau</span>
 <span class="t-cmd">npm</span> install
 
 <span class="t-cmt"># alle vier Ansichten neben source.md bauen, dann die Projektion öffnen</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span>
 <span class="t-cmd">open</span> <span class="t-path">lectures/tutorial/audience.html</span>   <span class="t-cmt"># macOS; sonst xdg-open oder der Browser</span></code></pre>
 
-  <p class="tiny">Unter Windows das <code>.zip</code> von derselben
+  <details class="setup">
+    <summary>Falls Node noch nie installiert wurde und das Terminal unbekannt ist</summary>
+    <div class="setup-body">
+      <p>Das führt von einem Windows- oder macOS-Rechner ohne alles zu einem
+      gebauten Tutorial. Jeder Befehl unten wurde genau so ausgeführt, wie er
+      dasteht, und die zitierte Ausgabe ist die, die zurückkam.</p>
+
+      <h3>Node installieren</h3>
+      <p><a href="https://nodejs.org/">nodejs.org</a> öffnen. Der Knopf bietet die
+      LTS-Version an &ndash; die mit langfristiger Pflege &ndash; in der passenden Datei für
+      den jeweiligen Rechner; diesen Download nehmen. Unter macOS kommt ein
+      <code>.pkg</code>: doppelklicken, durch den Installer klicken, das Passwort
+      eingeben, wenn danach gefragt wird. Unter Windows kommt ein
+      <code>.msi</code>: doppelklicken, die Vorgaben übernehmen und das Häkchen
+      für die Werkzeuge für native Module in Ruhe lassen. psi-slides braucht sie
+      nicht.</p>
+      <p>Wer schon einen Paketmanager benutzt: <code>brew install node</code>
+      unter macOS und <code>winget install OpenJS.NodeJS.LTS</code> unter Windows
+      tun dasselbe.</p>
+
+      <h3>Ein Terminal öffnen</h3>
+      <p>Unter macOS Command-Leertaste drücken, <code>terminal</code> tippen,
+      Return. Unter Windows das Startmenü öffnen und <code>terminal</code> tippen:
+      Windows Terminal nehmen, falls es erscheint, sonst PowerShell. Es kommt ein
+      Fenster mit einem Cursor darin. Man tippt eine Zeile, drückt Return, und es
+      antwortet.</p>
+<pre><code>node --version</code></pre>
+      <p>Die Antwort ist eine Versionsnummer. Alles ab v20 funktioniert, und ein
+      frischer LTS-Download liegt deutlich darüber. Kommt stattdessen
+      <code>command not found</code> oder <code>is not recognized</code>, das
+      Fenster schließen und ein neues öffnen: ein Terminal, das beim Installieren
+      von Node schon offen war, hat es noch nicht gesehen.</p>
+
+      <h3>Die Dateien holen</h3>
+      <p><strong><a href="https://github.com/UBA-PSI/psi-slides/releases/latest">Das
+      aktuelle Release herunterladen</a></strong> und auspacken wie jeden anderen
+      Download; auf beiden Systemen genügt ein Doppelklick. Es entsteht ein Ordner
+      namens <code>psi-slides</code>, und dieser Ordner ist das ganze Werkzeug. Ihn
+      irgendwo ablegen, wo er wiederzufinden ist, denn das Terminal muss gleich
+      darauf gerichtet werden.</p>
+      <p>Unter Windows die <code>.zip</code> wirklich auspacken und nicht per
+      Doppelklick öffnen: Windows zeigt den Inhalt eines ZIP-Archivs wie einen
+      Ordner an, aber darin lassen sich keine Befehle ausführen.</p>
+
+      <h3>Das Terminal auf den Ordner richten</h3>
+<pre><code>cd psi-slides</code></pre>
+      <p>Diese Zeile muss benennen, wo der Ordner tatsächlich liegt, unter Windows
+      also etwa <code>cd C:\Users\du\Downloads\psi-slides</code>. Statt den Pfad
+      zu tippen: <code>cd</code> und ein Leerzeichen eingeben und dann den Ordner
+      aus dem Dateimanager ins Terminalfenster ziehen &ndash; der Pfad schreibt sich
+      selbst.</p>
+
+      <h3>Holen, was der Bau braucht</h3>
+<pre><code>npm install</code></pre>
+      <p>Das läuft einmal, in diesem Ordner, und dauert ein paar Sekunden. Es holt
+      die Schriften, die psi-slides in jede Vorlesung einbettet, und die wenigen
+      Pakete, die der Renderer benutzt. Alles landet in einem Ordner
+      <code>node_modules</code> neben <code>build.js</code>: systemweit wird
+      nichts installiert, und wenn eine Vorlesung einmal gebaut ist, wird nichts
+      mehr nachgeladen.</p>
+
+      <h3>Das Tutorial bauen</h3>
+<pre><code>node build.js lectures/tutorial/source.md</code></pre>
+      <p>Dieselbe Zeile unter Windows und macOS, Schrägstriche eingeschlossen:
+      Node nimmt sie überall. Sie meldet, was eingebettet wurde &ndash; die Bilder, die
+      Schriften, die QR-Codes, die gesetzten Formeln &ndash; und endet damit, was
+      geschrieben wurde.</p>
+<pre><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (10 columns, 38 chunks)</code></pre>
+
+      <h3>Öffnen</h3>
+      <p><code>lectures/tutorial/audience.html</code> doppelklicken. Es öffnet sich
+      im Browser, und mehr braucht es nicht: <kbd>?</kbd> listet die Tasten,
+      <kbd>S</kbd> öffnet das Cockpit. Die Datei an jemanden mailen, der nichts
+      davon installiert hat, und sie funktioniert trotzdem.</p>
+
+      <p class="tiny">Für Linux: all diese Werkzeuge sind ohnehin da. Die Pakete
+      der Distributionen hängen manchmal mehrere Versionen hinterher, deshalb
+      lohnt sich <code>node --version</code> auch dort.</p>
+    </div>
+  </details>
+
+  <p class="tiny">Unter Windows die <code>.zip</code> von derselben
   <a href="https://github.com/UBA-PSI/psi-slides/releases">Release-Seite</a>
   nehmen. Ein <code>git clone</code> des Repositorys funktioniert genauso &ndash; das
-  Archiv enthält dieselben Dateien ohne die Versionsgeschichte.</p>
+  Archiv enthält dieselben Dateien ohne die Versionsgeschichte. Wer lieber gar
+  nicht klickt: eine Zeile lädt herunter und packt aus.</p>
+
+<pre><code><span class="t-cmd">curl</span> <span class="t-flag">-L</span> <span class="t-path">https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.tar.gz</span> <span class="t-punct">\</span>
+  <span class="t-punct">|</span> <span class="t-cmd">tar</span> <span class="t-flag">xz</span></code></pre>
 
   <p>Das baut das Tutorial: eine Vorlesung, die das Werkzeug erklärt, indem sie
   es benutzt. <kbd>?</kbd> zeigt die Tastenübersicht, <kbd>S</kbd> öffnet das

@@ -550,6 +550,48 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
 }
 
 /*
+ * The walkthrough for a machine with nothing on it.
+ *
+ * Closed by default, because opened it is longer than the section around it
+ * and a reader who already has a terminal would scroll past all of it to
+ * reach the next heading. A <details> rather than a script: the native marker
+ * already rotates, answers to the keyboard and prints open.
+ *
+ * The steps are numbered by CSS counter, and the numbers are information
+ * rather than ornament - this is a sequence where doing step four before
+ * step two leaves you in the wrong folder.
+ *
+ * It sits in a paper band, so the box is paper with a rule around it and the
+ * code blocks inside stay tinted. Tinting the box itself would put it within
+ * 0.005 lightness of its own `pre` blocks, the same collision the bands had
+ * to avoid.
+ */
+.setup {
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  margin: 1.6rem 0 2rem;
+}
+.setup > summary {
+  padding: 0.75rem 1.1rem;
+  cursor: pointer;
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+.setup[open] > summary { border-bottom: 1px solid var(--rule); }
+.setup-body { padding: 1.2rem 1.1rem 1.5rem; counter-reset: step; }
+/* The first heading already carries a top margin; the padding above it would
+   otherwise push the panel away from the summary it belongs to. */
+.setup-body > :first-child { margin-top: 0; }
+.setup-body h3 {
+  counter-increment: step;
+  font-size: 1.05rem;
+  margin: 1.9rem 0 0.5rem;
+}
+.setup-body h3::before { content: counter(step) ". "; color: var(--ink-soft); }
+.setup-body p { max-width: none; }
+.setup-body pre { font-size: 0.88rem; padding: 0.7rem 0.9rem; }
+
+/*
  * Section headings carry the page. The first draft set them as small grey
  * uppercase eyebrows, which left the screenshots and the running text at
  * roughly the same visual weight and made the page hard to scan.
@@ -576,7 +618,14 @@ h3 { font-size: 1.15rem; font-weight: 650; margin: 2.2rem 0 0.5rem; }
 a { color: var(--accent); }
 p, li { max-width: 40rem; }
 
-code { font-family: var(--mono); font-size: 0.92em; }
+/* Inline code has no spaces to break at, so a path or a winget invocation in
+   running prose pushes the page sideways on a phone. It breaks only when it
+   would otherwise overflow, which is the trade worth making: a command split
+   across two lines is readable, a page that scrolls horizontally is not.
+   Blocks are exempt - `pre` scrolls inside its own box, and breaking a
+   transcript would misquote it. */
+code { font-family: var(--mono); font-size: 0.92em; overflow-wrap: break-word; }
+pre code { overflow-wrap: normal; }
 pre {
   font-family: var(--mono);
   /* Iosevka is narrow, so it can carry a longer line than a normal mono at
