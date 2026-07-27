@@ -162,7 +162,15 @@ main { max-width: 48rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
   font-size: 0.78rem;
   min-width: 0;
   white-space: nowrap;
+  /* min-width:0 lets this shrink past its content, and nowrap text does not
+     wrap when it does – so without a clip it overflows the box and prints
+     straight through the nav links to its right. The breakpoints below keep
+     that from happening at any width this page is read at; these two lines
+     are the backstop for the ones nobody measured, and they degrade to a
+     truncated name rather than to two strings on top of each other. */
+  overflow: hidden;
 }
+.topbar-chair { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .topbar-right a { color: #d6d4d2; }
 .topbar-right a:hover { color: #ffffff; }
 .topbar-sep { color: #96938f; }
@@ -301,6 +309,15 @@ main { max-width: 48rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
    the first thing that stops fitting; the person is the attribution that
    matters, so it goes last. A sticky strip must never grow a second line. */
 @media (max-width: 56rem) {
+  .topbar-chair, .topbar-sep { display: none; }
+}
+/* The same drop again, one band higher. Above 60rem the row grows the section
+   links, and from there the whole bar needs 1050px in English and 1075px in
+   German – measured, with the chair name alone accounting for 354px of the
+   German figure. Between the two widths the chair name is what does not fit,
+   so it goes here too and comes back at 68rem. Without this the row does not
+   wrap and does not clip: the nowrap text simply runs through the nav links. */
+@media (min-width: 60rem) and (max-width: 68rem) {
   .topbar-chair, .topbar-sep { display: none; }
 }
 @media (max-width: 40rem) {
