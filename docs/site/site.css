@@ -107,7 +107,46 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/*
+ * Bands. The page is a single 8000px column, and on one flat background it
+ * reads as one undifferentiated wall: nothing tells the eye that a section
+ * has ended, so the whole length is present at once and the page looks like
+ * more work than it is.
+ *
+ * The tint is not alternated. It marks what a section IS: a tinted band is
+ * one you read (the argument, the invitation, the closing), a paper band is
+ * one you look at or work through (the screenshots, the commands). That
+ * happens to alternate here, which is luck, not the rule - if a section
+ * changes character the tint follows the character.
+ *
+ * Screenshots and code stay on paper for a reason beyond rhythm: their own
+ * chrome is `--shot-bg` and `--code-bg`, both within 0.035 lightness of the
+ * band, so a tinted band would dissolve the very frames that make a
+ * screenshot read as a window. Where a card cannot be moved out of a tinted
+ * band it inverts to paper instead (see `.band-read .hint`).
+ *
+ * `main` no longer holds the measure, because a band has to reach both
+ * edges of the viewport while its text stays at 48rem. The measure moved to
+ * `.wrap`, and the breakout rule below moved with it.
+ */
 main { max-width: 48rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
+/* Only the two landing pages are banded. The documentation pages come out of
+   build-site.js's shell, which has no bands and no wrap, and they keep the
+   measure on `main` exactly as before. */
+main.banded { max-width: none; padding: 0; }
+.wrap { max-width: 48rem; margin: 0 auto; padding: 0 1.5rem; }
+.band { padding: 4.5rem 0; }
+.band-read { background: var(--shot-bg); }
+/* Named rather than left to the default, so the two kinds of band are a pair
+   in the stylesheet the way they are a pair on the page. */
+.band-do { background: var(--paper); }
+/* Tinted band, tinted card: the hint would sit 0.005 lightness from its own
+   ground and disappear. Lifted to paper, it reads as a card either way. */
+.band-read .hint { background: var(--paper); }
+/* The hero carries its own opening space, and the university bar is directly
+   above it. */
+.band-hero { padding-top: 1.5rem; }
+.band-close { padding-bottom: 3rem; }
 
 /*
  * One visible focus ring for everything. The screenshots became buttons for
@@ -413,7 +452,15 @@ h2 {
   font-weight: 650;
   letter-spacing: -0.015em;
   color: var(--ink);
-  margin: 4rem 0 1.2rem;
+  margin: 0 0 1.2rem;
+}
+/* The rule draws a boundary the band has not already drawn. A heading that
+   opens its band has the band edge above it and needs no second line under
+   the first; a heading that follows something inside one band is the only
+   place left where a section starts without the ground changing colour, and
+   there it does the whole job. */
+.band > .wrap > h2 ~ h2 {
+  margin-top: 4rem;
   padding-top: 1.1rem;
   border-top: 2px solid var(--ink);
 }
@@ -635,8 +682,8 @@ figure.shot figcaption strong { color: var(--ink); font-weight: 650; }
  * The two are set independently: the column stays narrow, the pictures
  * bleed into the margin on both sides.
  */
-main > figure.shot,
-main > .pair,
+.wrap > figure.shot,
+.wrap > .pair,
 .hero .pair {
   width: min(94vw, 66rem);
   margin-left: 50%;
