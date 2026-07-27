@@ -339,10 +339,11 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
  * measure while the pictures broke out to 66rem, so the hero began 7.5rem to
  * the right of its own screenshots.
  *
- * `.promise` gave up its 1.22rem: at that size it outranked the paragraph
- * above it, so a reader scanning by size met it first and met "all four"
- * before anything had said four of what. In a column it is read in order and
- * needs no size to be found.
+ * There is one size of body text in the hero, and that is deliberate. The
+ * promise sentence used to be set at 1.22rem, larger than the paragraph above
+ * it, so a reader scanning by size met it first and met "all four" before
+ * anything had said four of what. Read in a column it needs no size to be
+ * found, and it has since folded back into the paragraph it belongs to.
  */
 .hero-in { width: min(94vw, 66rem); margin-left: 50%; transform: translateX(-50%); }
 .hero-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
