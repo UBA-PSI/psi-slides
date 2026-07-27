@@ -85,30 +85,90 @@
   </div>
 </section>
 
-<section class="band band-read">
+<section class="band band-read band-kinds">
  <div class="wrap">
 
   <h2>Jede Vorlesung besteht aus drei Sorten Text</h2>
 
-  <p>Da ist der Text, der <strong>auf die Folie</strong> kommt, knapp genug,
-  dass man ihn aus der letzten Reihe lesen kann. Da ist <strong>das
-  Skript</strong> &ndash; die Sätze, die die Sache wirklich erklären und die in ein
-  Handout gehören statt an die Wand. Und da sind <strong>die Notizen für einen
-  selbst</strong>: erst die Gruppe fragen; das hier weglassen, wenn die Zeit
-  knapp wird; das geht nicht raus.</p>
+  <div class="kinds">
+    <div class="kinds-prose">
+    <p>Da ist der Text, der <strong class="kind-cue" data-kind="slide">auf die Folie</strong> kommt, knapp genug,
+    dass man ihn aus der letzten Reihe lesen kann. Da ist <strong class="kind-cue" data-kind="script">das
+    Skript</strong> &ndash; die Sätze, die die Sache wirklich erklären und die in ein
+    Handout gehören statt an die Wand. Und da sind <strong class="kind-cue" data-kind="notes">die Notizen für einen
+    selbst</strong>: erst die Gruppe fragen; das hier weglassen, wenn die Zeit
+    knapp wird; das geht nicht raus.</p>
 
-  <p>Die gängigen Programme, die zum Präsentieren verwendet werden, bieten
-  Folien und ein Notizfeld. Für das Skript ist darin kein Platz vorgesehen, und
-  ausgerechnet das ist der Teil, den Studierende am meisten wollen. Das Skript
-  nimmt dann einen von zwei Wegen. Entweder übernehmen die Folien seine Aufgabe
-  und werden so voll, dass sie aus der letzten Reihe niemand mehr lesen kann &ndash;
-  <em>Death by PowerPoint</em>. Oder das Skript steht in einem zweiten Dokument,
-  das ab der ersten Änderung nicht mehr zu den Folien passt.</p>
+    <p>Die gängigen Programme, die zum Präsentieren verwendet werden, bieten
+    Folien und ein Notizfeld. Für das Skript ist darin kein Platz vorgesehen, und
+    ausgerechnet das ist der Teil, den Studierende am meisten wollen. Das Skript
+    nimmt dann einen von zwei Wegen. Entweder übernehmen die Folien seine Aufgabe
+    und werden so voll, dass sie aus der letzten Reihe niemand mehr lesen kann &ndash;
+    <em>Death by PowerPoint</em>. Oder das Skript steht in einem zweiten Dokument,
+    das ab der ersten Änderung nicht mehr zu den Folien passt.</p>
 
-  <p>Mit psi-slides schreibt man jeden Absatz einmal und markiert den einen Satz,
-  der den Absatz trägt. Die Projektion bekommt nur diesen Satz, das Handout
-  bekommt den ganzen Absatz, und die Zeilen hinter <code>&gt; note:</code> bleiben
-  auf dem eigenen Bildschirm.</p>
+    <p>Mit psi-slides schreibt man jeden Absatz einmal und markiert den einen Satz,
+    der den Absatz trägt. Die Projektion bekommt nur diesen Satz, das Handout
+    bekommt den ganzen Absatz, und die Zeilen hinter <code>&gt; note:</code> bleiben
+    auf dem eigenen Bildschirm.</p>
+    </div>
+
+    <div class="kinds-figure">
+      <div class="sheets" role="group" aria-label="Die drei Sorten Text, gezeichnet als drei Blätter">
+        <button type="button" class="sheet sheet-script" data-kind="script" aria-pressed="false">
+          <span class="sheet-tag">das Skript</span>
+          <svg viewBox="0 0 210 270" role="img" aria-label="Ein Skript: dieselben kurzen Zeilen, unter jeder drei Zeilen Fließtext, daneben eine Randnotiz.">
+            <rect x="0.5" y="0.5" width="209" height="269" rx="5" fill="var(--paper)" stroke="var(--frame)"/>
+            <rect x="20" y="22" width="104" height="7" rx="3" fill="var(--ink)"/>
+            <rect x="20" y="46" width="100" height="4.5" rx="2.25" fill="var(--accent)"/>
+            <rect x="20" y="57" width="118" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
+            <rect x="20" y="67" width="112" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
+            <rect x="20" y="77" width="96" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
+            <rect x="20" y="96" width="88" height="4.5" rx="2.25" fill="var(--accent)"/>
+            <rect x="20" y="107" width="116" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
+            <rect x="20" y="117" width="108" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
+            <rect x="20" y="127" width="90" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
+            <rect x="20" y="146" width="104" height="4.5" rx="2.25" fill="var(--accent)"/>
+            <rect x="20" y="157" width="118" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
+            <rect x="20" y="167" width="104" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
+            <rect x="20" y="177" width="86" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
+            <rect x="20" y="196" width="82" height="4.5" rx="2.25" fill="var(--accent)"/>
+            <rect x="20" y="207" width="110" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
+            <rect x="20" y="217" width="96" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
+            <rect x="20" y="227" width="72" height="3.5" rx="1.75" fill="var(--ink-soft)" opacity="0.34"/>
+            <rect x="146" y="94" width="1" height="36" fill="var(--rule)"/>
+            <rect x="153" y="98" width="40" height="3" rx="1.5" fill="var(--ink-soft)" opacity="0.28"/>
+            <rect x="153" y="107" width="36" height="3" rx="1.5" fill="var(--ink-soft)" opacity="0.28"/>
+            <rect x="153" y="116" width="28" height="3" rx="1.5" fill="var(--ink-soft)" opacity="0.28"/>
+          </svg>
+        </button>
+        <button type="button" class="sheet sheet-slide" data-kind="slide" aria-pressed="false">
+          <span class="sheet-tag">die Folie</span>
+          <svg viewBox="0 0 320 180" role="img" aria-label="Eine Folie: eine Überschrift, eine Unterzeile und drei kurze Zeilen, der Rest des Blattes bleibt leer.">
+            <rect x="0.5" y="0.5" width="319" height="179" rx="6" fill="var(--paper)" stroke="var(--frame)"/>
+            <rect x="26" y="30" width="148" height="10" rx="3" fill="var(--ink)"/>
+            <rect x="26" y="47" width="94" height="5" rx="2.5" fill="var(--ink-soft)" opacity="0.5"/>
+            <rect x="26" y="74" width="212" height="7" rx="3.5" fill="var(--accent)"/>
+            <rect x="26" y="93" width="168" height="7" rx="3.5" fill="var(--accent)"/>
+            <rect x="26" y="112" width="192" height="7" rx="3.5" fill="var(--accent)"/>
+            <rect x="288" y="150" width="12" height="4" rx="2" fill="var(--ink-soft)" opacity="0.3"/>
+          </svg>
+        </button>
+        <button type="button" class="sheet sheet-notes" data-kind="notes" aria-pressed="false">
+          <span class="sheet-tag">die Notizen</span>
+          <svg viewBox="0 0 200 120" role="img" aria-label="Eine Notizkarte mit einer Zeile, die mit der Quellsyntax für eine Sprechnotiz beginnt.">
+            <rect x="0.5" y="0.5" width="199" height="119" rx="5" fill="var(--shot-bg)" stroke="var(--rule)"/>
+            <text x="18" y="35" font-size="15" fill="var(--ink-soft)">&gt; note:</text>
+            <rect x="18" y="50" width="150" height="4.5" rx="2.25" fill="var(--ink-soft)" opacity="0.42"/>
+            <rect x="18" y="64" width="128" height="4.5" rx="2.25" fill="var(--ink-soft)" opacity="0.42"/>
+            <rect x="18" y="78" width="96" height="4.5" rx="2.25" fill="var(--ink-soft)" opacity="0.42"/>
+          </svg>
+        </button>
+      </div>
+      <p class="sheets-hint">Auf ein Blatt zeigen oder auf eine der drei Wendungen im Text, um es nach vorn zu holen.</p>
+    </div>
+  </div>
+
 
   </div>
 </section>

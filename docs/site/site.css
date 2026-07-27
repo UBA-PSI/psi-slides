@@ -443,6 +443,141 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
 }
 
 /*
+ * The three kinds of text, as three sheets.
+ *
+ * The section argues that a lecture contains three kinds of text and that the
+ * usual tools give you room for two. That is an argument about artefacts, so
+ * the artefacts are drawn: a slide with four lines on it, a script dense with
+ * prose, and a note card. Wireframes rather than screenshots, because the
+ * point is the shape of each thing, not its contents - and because the real
+ * screenshots are already three sections further down doing the other job.
+ *
+ * The drawings are truthful where it is cheap to be. The accent bars are the
+ * topic sentences, which is exactly what renders in the accent in the real
+ * views; the script's thin grey lines are the continuation prose that only
+ * the handout gets; the note card carries the literal `> note:` from the
+ * source. Somebody who reads the page and then builds a lecture should
+ * recognise all three.
+ *
+ * They overlap because the three kinds of text overlap in the source file.
+ * Lifting one pushes the others back, which is the one thing the picture can
+ * say that the prose has to spend a paragraph on.
+ */
+.kinds {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 3rem;
+  align-items: center;
+  width: min(94vw, 66rem);
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+.kinds-prose > p:first-child { margin-top: 0; }
+/* The heading belongs to the two columns under it, so it breaks out with
+   them. Left at the 48rem measure it started 144px inboard of its own
+   figure, which is the same two-left-edge fault the hero had. */
+.band-kinds > .wrap > h2 { width: min(94vw, 66rem); margin-left: 50%; transform: translateX(-50%); }
+
+/* Holds the stack and its hint together as one grid cell. min-width:0 because
+   a grid child defaults to min-content width and an SVG has opinions about
+   what that is. */
+.kinds-figure { min-width: 0; }
+.sheets {
+  position: relative;
+  width: 100%;
+  /* Percentage geometry throughout, so the whole stack scales with the
+     column instead of needing a breakpoint per sheet. */
+  aspect-ratio: 46 / 38;
+  margin: 0;
+}
+.sheet {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 220ms ease, opacity 220ms ease, filter 220ms ease;
+}
+.sheet svg { display: block; width: 100%; height: auto; overflow: visible; }
+/* The note card carries the literal source syntax, so it is set in the same
+   face the code blocks are. */
+.sheet svg text { font-family: var(--mono); }
+.sheet-script { left: 0; top: 1%; width: 39%; }
+.sheet-slide { left: 31%; top: 9%; width: 66%; }
+.sheet-notes { left: 12%; top: 62%; width: 43%; }
+/* The rotations are the whole reason this reads as three sheets on a desk
+   rather than three boxes in a diagram. Kept small: past about 6deg the
+   wireframes start to look like a stock illustration. */
+.sheet-script { transform: rotate(-3.2deg); z-index: 1; }
+.sheet-slide  { transform: rotate(1.4deg);  z-index: 2; }
+.sheet-notes  { transform: rotate(-5deg);   z-index: 3; }
+
+/* One sheet forward, the other two back. Driven by a class on the stack so
+   that hover, focus, click and hovering the phrase in the prose all arrive
+   at the same state instead of fighting each other. */
+.sheets.is-picked .sheet { opacity: 0.42; filter: saturate(0.25); }
+.sheets.is-picked .sheet.is-on { opacity: 1; filter: none; z-index: 4; }
+.sheets.is-picked .sheet-script.is-on { transform: rotate(-1.4deg) translateY(-8px) scale(1.045); }
+.sheets.is-picked .sheet-slide.is-on  { transform: rotate(0.6deg)  translateY(-8px) scale(1.045); }
+.sheets.is-picked .sheet-notes.is-on  { transform: rotate(-2.6deg) translateY(-8px) scale(1.045); }
+.sheet:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+
+/* The mono chip is the same device the screenshot bars use, so a labelled
+   drawing reads as part of the same family. */
+.sheet-tag {
+  position: absolute;
+  left: 0;
+  top: -1.55rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  transition: color 220ms ease;
+}
+.sheet.is-on .sheet-tag { color: var(--accent); }
+
+/* The phrases in the prose are the other half of the control. They are not
+   buttons: the sheets are the operable thing and carry the keyboard path.
+   These light up with them, and pointing at one is a shortcut. */
+.kind-cue { cursor: help; box-shadow: inset 0 -0.12em 0 var(--rule); transition: box-shadow 180ms ease, color 180ms ease; }
+.kind-cue.is-on { color: var(--accent); box-shadow: inset 0 -0.12em 0 var(--accent); }
+
+.sheets-hint {
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+  margin: 1.4rem 0 0;
+  max-width: none;
+}
+
+/* One nudge when the stack first comes into view: enough to say the pieces
+   are separable, not enough to be an animation. Staggered, so it reads as
+   three objects rather than one moving block. */
+@keyframes sheet-nudge {
+  40% { transform: var(--rest) translate(-5px, -5px); }
+}
+.sheets.is-hinting .sheet { animation: sheet-nudge 620ms ease-in-out; }
+.sheets.is-hinting .sheet-script { --rest: rotate(-3.2deg); animation-delay: 0ms; }
+.sheets.is-hinting .sheet-slide  { --rest: rotate(1.4deg);  animation-delay: 90ms; }
+.sheets.is-hinting .sheet-notes  { --rest: rotate(-5deg);   animation-delay: 180ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet { transition: opacity 220ms ease; }
+  .sheets.is-picked .sheet-script.is-on,
+  .sheets.is-picked .sheet-slide.is-on,
+  .sheets.is-picked .sheet-notes.is-on { transform: none; }
+  .sheets.is-hinting .sheet { animation: none; }
+  .kind-cue { transition: none; }
+}
+
+@media (max-width: 56rem) {
+  .kinds { grid-template-columns: 1fr; gap: 2.4rem; width: auto; margin-left: 0; transform: none; }
+  .sheets { max-width: 30rem; }
+}
+
+/*
  * Section headings carry the page. The first draft set them as small grey
  * uppercase eyebrows, which left the screenshots and the running text at
  * roughly the same visual weight and made the page hard to scan.
