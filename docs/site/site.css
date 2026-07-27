@@ -359,7 +359,38 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
   font-weight: 500;
 }
 .hero h1 { font-size: 3.1rem; max-width: 20ch; margin-bottom: 0.9rem; }
-.hero .promise { font-size: 1.22rem; max-width: 34rem; margin: 0 0 1.3rem; }
+.hero .promise { font-size: 1.05rem; max-width: 34rem; margin: 0 0 1.3rem; }
+/*
+ * The hero head sits on the same width and the same left edge as the pictures
+ * under it, and its prose runs in the same two columns. Stacked, it was tall
+ * enough that on a 1080p screen the pair below never came into view, which
+ * cost the page the one thing it is trying to show. Two columns halve that
+ * height; matching `.pair`'s grid exactly is what makes the split read as
+ * composition rather than as a paragraph that happened to wrap.
+ *
+ * It also settles a second left edge. The prose used to start at main's 48rem
+ * measure while the pictures broke out to 66rem, so the hero began 7.5rem to
+ * the right of its own screenshots.
+ *
+ * `.promise` gave up its 1.22rem: at that size it outranked the paragraph
+ * above it, so a reader scanning by size met it first and met "all four"
+ * before anything had said four of what. In a column it is read in order and
+ * needs no size to be found.
+ */
+.hero-in { width: min(94vw, 66rem); margin-left: 50%; transform: translateX(-50%); }
+.hero-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+.hero-col { display: flex; flex-direction: column; }
+/* Buttons to the foot of the column, so the two columns end on one line
+   however the prose falls. */
+.hero-col .cta { margin-top: auto; margin-bottom: 2rem; }
+@media (max-width: 46rem) {
+  .hero-cols { grid-template-columns: 1fr; }
+  .hero-col .cta { margin-top: 0.6rem; }
+  /* Stacked, there is no second column to line up with, and the breakout
+     would put the hero 12px from the edge while the article below it sits at
+     24px. Back into the normal flow, so the phone gets one left edge too. */
+  .hero-in { width: auto; margin-left: 0; transform: none; }
+}
 .hero .extras {
   font-size: 1rem;
   color: var(--ink-soft);
