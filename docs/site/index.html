@@ -15,16 +15,19 @@
   <div class="hero">
     <p class="mark"><b>psi-slides</b> &middot; presentation software for lecturers</p>
     <h1>Write the lecture once.</h1>
-    <p class="what">A Markdown file goes in. Four self-contained HTML files come out:
-    the <strong>projection</strong> for the room, a <strong>presenter cockpit</strong>
-    on your own screen, and <strong>two handouts</strong> &ndash; the script alone, and
-    the script with your notes.</p>
-    <p class="promise">They all come out of the same source, so they stay in step
-    because there is nothing to keep in step.</p>
-    <p class="extras">Opinionated about what a slide is, and well equipped for the
-    hour you spend in front of the room: <b>overview board</b>, <b>full-text search</b>,
-    <b>live annotation</b>, syntax highlighting, LaTeX maths, video, QR codes for every
-    link, a timer, and seven themes. No server, no runtime, no cloud.</p>
+    <p class="what">One plain-text file in Markdown goes in, and four HTML files
+    come out: the <strong>projection</strong> for the room, a <strong>presenter
+    cockpit</strong> on your own screen (the slide, your note for it, and what
+    comes next), and <strong>two handouts</strong> &ndash; the full text of the
+    lecture on its own, and the same text with your notes in it. Each of the four
+    carries everything it needs to open on its own.</p>
+    <p class="promise">All four come out of the same file, so they cannot drift
+    apart: there is nothing to keep in step.</p>
+    <p class="extras">How much text a slide carries is the format&rsquo;s decision,
+    not yours. For the hour in front of the room there is an <b>overview board</b>,
+    <b>full-text search</b>, <b>live annotation</b>, syntax highlighting, LaTeX
+    maths, video, a QR code for every link, a timer, and seven themes. No server
+    and no cloud: a browser opens the files.</p>
 
     <div class="cta">
       <a class="primary" href="#getting-started">Get started</a>
@@ -43,19 +46,20 @@
             <span class="swap-label" aria-hidden="true">show:</span>
             <button type="button" aria-pressed="true"
                     data-src="img/full.webp"
-                    data-alt="The same chunk with collapse switched off: all four paragraphs in full, laid out in two columns.">on screen</button>
+                    data-alt="The same slide with the shortening switched off: all four paragraphs in full, laid out in two columns.">on screen</button>
             <button type="button" aria-pressed="false"
                     data-src="img/printed.webp"
-                    data-alt="The same chunk in the print view: a document in a serif face, justified and hyphenated, with the margin note set as an aside.">in print</button>
+                    data-alt="The same text in the handout: a document in a serif face, justified and hyphenated, with the margin note set as an aside.">in print</button>
           </span>
         </div>
-        <img src="img/full.webp" alt="The same chunk with collapse switched off: all four paragraphs in full, laid out in two columns.">
+        <img src="img/full.webp" alt="The same slide with the shortening switched off: all four paragraphs in full, laid out in two columns.">
       </figure>
     </div>
     <p class="shot-note">The same four paragraphs, written once.
-    <b>One keypress between the first two pictures</b> &ndash; and the third is a different
-    file out of the same source: use the <b>show: on screen / in print</b> switch
-    in the right-hand bar to see it. Click any picture to view it full size.</p>
+    <b>One keypress separates the first two pictures</b>; the third is a different
+    file built from the same source, and the switch marked <b>show:</b> in the
+    second picture&rsquo;s title bar brings it up. Click any picture to see it full
+    size.</p>
   </div>
 
   <h2>Every lecture has three kinds of text in it</h2>
@@ -67,21 +71,24 @@
   ask the room first, skip this if you are short on time, do not send this out.</p>
 
   <p>The programs people present with give you slides and a notes field. Neither
-  is a place for the script, and the script is the part students want most. So it
-  goes one of two ways. Either the slides take its job and fill up until nobody
-  can read them from the back row, which is <em>death by PowerPoint</em>. Or it
-  lives in a second document that stops matching the slides the first time you
-  edit either one.</p>
+  is a place for the script, and the script is the part students want most. The
+  script then goes one of two ways. Either the slides take its job and fill up
+  until nobody can read them from the back row, which is <em>death by
+  PowerPoint</em>. Or the script lives in a second document that stops matching
+  the slides the first time you edit either one.</p>
 
-  <p>With psi-slides you write each paragraph once and mark the sentence that
-  carries it. The presentation gets only that sentence, the handout gets all of
-  it, and your <code>&gt; note:</code> lines stay on your screen.</p>
+  <p>With psi-slides you write each paragraph once and mark the one sentence that
+  carries the paragraph. The projection gets only that sentence, the handout gets
+  the whole paragraph, and your <code>&gt; note:</code> lines stay on your
+  screen.</p>
 
-  <h2>What it does</h2>
+  <h2>What psi-slides does</h2>
 
-  <p>The pictures above and below are all one slide of one real lecture &ndash; a
-  36-chunk introduction to Python &ndash; and this is the Markdown it was written in,
-  with two of the four paragraphs shortened to fit on this page.</p>
+  <p>This is the Markdown behind the slide in the pictures above. The lecture it
+  comes from is a real one, an introduction to Python built from 36 chunks &ndash; a
+  <strong>chunk</strong> is one heading with the text under it, and each chunk
+  becomes one slide. Two of the four paragraphs are shortened to fit this
+  page.</p>
 
 <pre><code><span class="t-head">## free: Why Playwright | the modern web is rendered, not served</span> <span class="t-punct">{.wide #why-playwright}</span>
 
@@ -110,18 +117,19 @@ browser is for pages meant to be looked at.
 <span class="t-note">&gt; note: Show the difference live if the room is awake: open a JS-heavy site,
 &gt; curl it, and let them find the missing text themselves.</span></code></pre>
 
-  <p class="tiny">In the projection the columns fold to one, because four
-  abridged paragraphs do not balance; the reading view keeps the two the author
-  wrote.</p>
+  <p class="tiny">In the projection the two columns fold into one, because four
+  abridged paragraphs do not balance. With the shortening switched off, and in
+  the handout, the author&rsquo;s two columns stay.</p>
 
   <figure class="shot">
     <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>speaker.html</b></div>
     <img src="img/cockpit.webp" alt="The presenter cockpit: a chapter scrubber across the top, a mirror of the projected slide, the private speaker note below it, a strip of neighbouring slides, and a footer with timer and key legend.">
-    <figcaption><strong>The cockpit</strong>, spawned with <kbd>S</kbd>. The
-    <code>&gt; note:</code> from the source sits under the stage where only you
-    can read it, at a size you can set with the two buttons beside it; the strip
-    shows what is coming. Both windows stay in step over
-    <code>postMessage</code>, with no server between them.</figcaption>
+    <figcaption><strong>The cockpit</strong>, opened with <kbd>S</kbd> from the
+    projection. The <code>&gt; note:</code> from the source sits under the
+    mirrored slide, where only you can read it, at a size you set with the two
+    buttons beside the note; the strip shows what is coming. The two windows keep
+    each other in step directly in the browser, with no server between
+    them.</figcaption>
   </figure>
 
   <div class="pair">
@@ -129,34 +137,36 @@ browser is for pages meant to be looked at.
       <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>audience.html</b> &middot; O</div>
       <img src="img/overview.webp" alt="The overview board: the whole 36-chunk lecture laid out as a grid of readable slides, with the current one outlined.">
       <figcaption><strong>The whole lecture at once.</strong> Not thumbnails
-      &ndash; the real slides, still legible. Drag to pan, <kbd>Enter</kbd> to
-      land.</figcaption>
+      &ndash; the real slides, still legible. Drag to move around the board,
+      <kbd>Enter</kbd> opens the slide you picked.</figcaption>
     </figure>
     <figure class="shot">
       <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>audience.html</b> &middot; /</div>
       <img src="img/search.webp" alt="The search panel over the slide: the query async, and five results, each with its tag, heading and the matching sentence.">
       <figcaption><strong>Full-text search</strong>, from anywhere, mid-talk.
-      Each hit shows its kind, its heading, and the sentence the match sits
-      in.</figcaption>
+      Each hit shows the kind of chunk, its heading, and the sentence the match
+      sits in.</figcaption>
     </figure>
   </div>
 
   <figure class="shot">
     <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>print-notes.html</b></div>
     <img src="img/handout.webp" alt="The handout: the same chunk set as flowing justified prose with hyphenation, the margin note as an aside, and the speaker note in a tinted block beneath it.">
-    <figcaption><strong>The lecturer's handout.</strong> The same source set as
-    a document &ndash; hyphenated, in a reading measure, with the speaker note folded
-    in under its chunk. There are two handouts: <code>print.html</code> carries
-    the script alone and is the one to hand out, <code>print-notes.html</code>
-    adds the speaker notes and is yours.</figcaption>
+    <figcaption><strong>The lecturer&rsquo;s handout.</strong> The same source set
+    as a document &ndash; hyphenated, at a line length made for reading, with the
+    speaker note folded in under its chunk. There are two handouts:
+    <code>print.html</code> carries the script alone and is the one to give the
+    students, <code>print-notes.html</code> adds the speaker notes and stays with
+    you.</figcaption>
   </figure>
 
-  <h2 id="open-them-yourself">Open them yourself</h2>
+  <h2 id="open-them-yourself">Open the lectures yourself</h2>
 
-  <p>Three lectures are published here. <strong>python-intro</strong> is the one
-  above. The <strong>tutorial</strong> is a self-referential tour that explains
-  the tool by being the tool. The <strong>short example</strong> is one section of
-  a first-year networking lecture, in German &ndash; 80 lines of Markdown, short
+  <p>Three lectures are published on this site. <strong>python-intro</strong> is
+  the one the pictures come from. The <strong>tutorial</strong> is a
+  self-referential tour that explains the tool by being the tool. Both are in
+  English. The <strong>short example</strong> is one section of a first-year
+  networking lecture, in German &ndash; 80 lines of Markdown, short
   enough to read end to end beside what it produces
   (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">source</a>,
   set from the <a href="https://inf.zone/lectures/8.5-netze/notes85/">lecture notes</a>
@@ -182,23 +192,27 @@ browser is for pages meant to be looked at.
         <td><a href="example/print-notes.html">print-notes</a></td></tr>
   </table>
 
-  <p class="tiny">Start with the projection. Arrow keys navigate,
-  <kbd>Space</kbd> reveals, <kbd>C</kbd> toggles collapse, <kbd>O</kbd> (the letter, not zero)
-  opens the overview board, <kbd>/</kbd> searches, <kbd>?</kbd> lists everything. Opening the
-  cockpit from a link shows the layout but syncs with nothing &ndash; press <kbd>S</kbd> inside
-  the projection to spawn a connected one.</p>
+  <p class="tiny">Start with the projection. Arrow keys move between slides,
+  <kbd>Space</kbd> brings in the next part of a slide, <kbd>C</kbd> switches
+  between the shortened text and the full text, <kbd>O</kbd> (the letter, not
+  zero) opens the overview board, <kbd>/</kbd> searches, <kbd>?</kbd> lists every
+  key. A cockpit opened from the table above shows the layout but is connected to
+  nothing &ndash; press <kbd>S</kbd> inside the projection to open one that follows
+  it.</p>
 
   <div class="hint">
-    <p>All four files are self-contained: CSS, JavaScript, images, the rendered maths and the
-    typefaces are all inlined. Nothing is fetched at run time, and they open just as happily
-    from <code>file://</code> as from this server.</p>
+    <p>All four files are self-contained: the styling, the scripts, the images, the
+    typeset maths and the typefaces all sit inside the HTML file itself. Nothing is
+    fetched at run time, and the files open just as happily from a folder on disk
+    (<code>file://</code>) as from this server.</p>
   </div>
 
   <h2 id="getting-started">Getting started</h2>
 
-  <p>You need <strong>Node 20 or newer</strong>, and nothing else: no LaTeX, no
-  Pandoc, no server, nothing installed globally. Download the release, unpack it,
-  and build the tutorial:</p>
+  <p>You need <strong>Node 20 or newer</strong>, which is what runs
+  <code>build.js</code>, and nothing else: no LaTeX, no Pandoc, no server, nothing
+  that has to be installed system-wide. Download the release, unpack it, and build
+  the tutorial &ndash; that is, turn its Markdown into the four HTML files:</p>
 
 <pre><code><span class="t-cmt"># the latest release, unpacked into psi-slides/</span>
 <span class="t-cmd">curl</span> <span class="t-flag">-L</span> <span class="t-path">https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.tar.gz</span> <span class="t-punct">\</span>
@@ -215,14 +229,15 @@ browser is for pages meant to be looked at.
   <p class="tiny">On Windows take the <code>.zip</code> from the same
   <a href="https://github.com/UBA-PSI/psi-slides/releases">releases page</a>. A
   <code>git clone</code> of the repository works identically &ndash; the archive is
-  that tree without the history.</p>
+  the same set of files without the version history.</p>
 
   <p>That builds the tutorial: a lecture that teaches the tool by being the tool.
-  Press <kbd>?</kbd> for the cheat sheet, <kbd>S</kbd> to spawn the cockpit. Its
-  <code>source.md</code> is the authoring reference, and the four files it produced
-  are yours to move, mail or upload &ndash; they carry everything they need.</p>
+  Press <kbd>?</kbd> for the cheat sheet, <kbd>S</kbd> to open the cockpit. The
+  tutorial&rsquo;s <code>source.md</code> is the reference for writing your own, and
+  the four files just built are yours to move, mail or upload &ndash; they carry
+  everything they need.</p>
 
-  <h3>Then write your own</h3>
+  <h3>Then write your own lecture</h3>
 
 <pre><code><span class="t-cmt"># scaffold a folder with valid frontmatter</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-flag">--new</span> my-lecture
@@ -234,10 +249,10 @@ browser is for pages meant to be looked at.
 <span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/my-lecture/source.md</span></code></pre>
 
   <p>Keep the editor, the projection and the cockpit visible at once:
-  <code>--watch</code> rebuilds on every save and reloads both browser windows
-  as soon as it is done. When you are
-  done, the four HTML files beside your <code>source.md</code> are the deliverable.
-  Nothing else has to travel with them.</p>
+  <code>--watch</code> rebuilds on every save and reloads both browser windows as
+  soon as the rebuild finishes. At the end, the four HTML files beside your
+  <code>source.md</code> are what you hand over. Nothing else has to travel with
+  them.</p>
 
   <h2>Documentation</h2>
   <ul>
@@ -248,7 +263,8 @@ browser is for pages meant to be looked at.
 
   <h2>Source</h2>
   <p><a href="https://github.com/UBA-PSI/psi-slides">github.com/UBA-PSI/psi-slides</a> &ndash; the
-  README explains the format, what the tool is good at, and what it is not.</p>
+  README explains the format, and says what the tool is good at and what it is not
+  good at.</p>
 
   <footer>
     <p>By <a href="https://herdom.net">Dominik Herrmann</a>,

@@ -15,19 +15,22 @@
   <div class="hero">
     <p class="mark"><b>psi-slides</b> &middot; Präsentationssoftware für Lehrende</p>
     <h1>Folien, Notizen und Handouts aus <em>einer</em> Datei.</h1>
-    <p class="what">Eine Markdown-Datei wird zu vier in sich geschlossenen
+    <p class="what">Eine einfache Textdatei in Markdown wird zu vier
     HTML-Dateien: der <strong>Projektion</strong> für den Raum, einem
-    <strong>Presenter-Cockpit</strong> auf dem eigenen Bildschirm und
-    <strong>zwei Handouts</strong> &ndash; dem Skript allein und dem Skript mit den
-    eigenen Notizen.</p>
-    <p class="promise">Alle vier entstehen aus derselben Quelle. Sie können
+    <strong>Presenter-Cockpit</strong> auf dem eigenen Bildschirm (die Folie, die
+    eigene Notiz dazu und was als Nächstes kommt) und <strong>zwei
+    Handouts</strong> &ndash; dem vollständigen Text der Vorlesung allein und
+    demselben Text mit den eigenen Notizen darin. Jede der vier Dateien bringt
+    alles mit, was sie braucht.</p>
+    <p class="promise">Alle vier entstehen aus derselben Datei. Sie können
     nicht auseinanderlaufen, weil es nichts gibt, was man synchron halten
     müsste.</p>
-    <p class="extras">Wie viel Text auf eine Folie passt, gibt das Format vor.
-    Für die Stunde im Hörsaal ist einiges eingebaut: <b>Übersichtstafel</b>,
-    <b>Volltextsuche</b>, <b>Live-Annotationen</b>, Syntaxhervorhebung,
-    LaTeX-Formeln, Video, QR-Codes für jeden Link, eine Uhr und sieben
-    Farbschemata. Kein Server, keine Laufzeitumgebung, keine Cloud.</p>
+    <p class="extras">Wie viel Text auf eine Folie passt, entscheidet das Format,
+    nicht man selbst. Für die Stunde im Hörsaal eingebaut sind
+    <b>Übersichtstafel</b>, <b>Volltextsuche</b>, <b>Live-Annotationen</b>,
+    Syntaxhervorhebung, LaTeX-Formeln, Video, ein QR-Code für jeden Link, eine Uhr
+    und sieben Farbschemata. Kein Server, keine Cloud: ein Browser öffnet die
+    Dateien.</p>
 
     <div class="cta">
       <a class="primary" href="#getting-started">Loslegen</a>
@@ -46,20 +49,20 @@
             <span class="swap-label" aria-hidden="true">zeigen:</span>
             <button type="button" aria-pressed="true"
                     data-src="../img/full.webp"
-                    data-alt="Derselbe Chunk ohne Kürzung: alle vier Absätze vollständig, in zwei Spalten.">am Bildschirm</button>
+                    data-alt="Dieselbe Folie ohne Kürzung: alle vier Absätze vollständig, in zwei Spalten.">am Bildschirm</button>
             <button type="button" aria-pressed="false"
                     data-src="../img/printed.webp"
-                    data-alt="Derselbe Chunk in der Druckansicht: ein Dokument in einer Serifenschrift, im Blocksatz mit Silbentrennung, die Randnotiz als Marginalie.">gedruckt</button>
+                    data-alt="Derselbe Text im Handout: ein Dokument in einer Serifenschrift, im Blocksatz mit Silbentrennung, die Randnotiz als Marginalie.">gedruckt</button>
           </span>
         </div>
-        <img src="../img/full.webp" alt="Derselbe Chunk ohne Kürzung: alle vier Absätze vollständig, in zwei Spalten.">
+        <img src="../img/full.webp" alt="Dieselbe Folie ohne Kürzung: alle vier Absätze vollständig, in zwei Spalten.">
       </figure>
     </div>
     <p class="shot-note">Dieselben vier Absätze, einmal geschrieben.
-    <b>Zwischen den ersten beiden Bildern liegt ein Tastendruck</b> &ndash; und das
-    dritte ist eine andere Datei aus derselben Quelle: der Schalter <b>zeigen: am Bildschirm
-    / gedruckt</b> in der rechten Leiste wechselt zu ihr. Ein Klick auf ein Bild öffnet
-    es in voller Größe.</p>
+    <b>Zwischen den ersten beiden Bildern liegt ein Tastendruck</b>; das dritte
+    ist eine andere Datei aus derselben Quelle, und der Schalter <b>zeigen:</b> in
+    der Titelzeile des zweiten Bildes holt sie hervor. Ein Klick auf ein Bild
+    öffnet es in voller Größe.</p>
   </div>
 
   <h2>Jede Vorlesung besteht aus drei Sorten Text</h2>
@@ -73,23 +76,24 @@
 
   <p>Die gängigen Programme, die zum Präsentieren verwendet werden, bieten
   Folien und ein Notizfeld. Für das Skript ist darin kein Platz vorgesehen, und
-  ausgerechnet das ist der Teil, den Studierende am meisten wollen. Es nimmt
-  dann einen von zwei Wegen. Entweder übernehmen die Folien seine Aufgabe und
-  werden so voll, dass sie aus der letzten Reihe niemand mehr lesen kann &ndash;
-  <em>Death by PowerPoint</em>. Oder es steht in einem zweiten Dokument, das ab
-  der ersten Änderung nicht mehr zu den Folien passt.</p>
+  ausgerechnet das ist der Teil, den Studierende am meisten wollen. Das Skript
+  nimmt dann einen von zwei Wegen. Entweder übernehmen die Folien seine Aufgabe
+  und werden so voll, dass sie aus der letzten Reihe niemand mehr lesen kann &ndash;
+  <em>Death by PowerPoint</em>. Oder das Skript steht in einem zweiten Dokument,
+  das ab der ersten Änderung nicht mehr zu den Folien passt.</p>
 
-  <p>Mit psi-slides schreibt man jeden Absatz einmal und markiert den Satz, der
-  ihn trägt. Die Präsentation bekommt nur diesen Satz, das Handout bekommt
-  alles, und die Zeilen hinter <code>&gt; note:</code> bleiben auf dem eigenen
-  Bildschirm.</p>
+  <p>Mit psi-slides schreibt man jeden Absatz einmal und markiert den einen Satz,
+  der den Absatz trägt. Die Projektion bekommt nur diesen Satz, das Handout
+  bekommt den ganzen Absatz, und die Zeilen hinter <code>&gt; note:</code> bleiben
+  auf dem eigenen Bildschirm.</p>
 
-  <h2>Was es tut</h2>
+  <h2>Was psi-slides tut</h2>
 
-  <p>Die Bilder oben und unten zeigen alle dieselbe Folie einer echten Vorlesung
-  &ndash; einer Python-Einführung aus 36 Chunks &ndash; und das hier ist das Markdown, in
-  dem sie steht. Zwei der vier Absätze sind gekürzt, damit der Ausschnitt auf
-  diese Seite passt; die Vorlesung selbst ist auf Englisch.</p>
+  <p>Das hier ist das Markdown hinter der Folie auf den Bildern oben. Die
+  Vorlesung, aus der sie stammt, ist eine echte: eine Python-Einführung aus 36
+  Chunks &ndash; ein <strong>Chunk</strong> ist eine Überschrift mit dem Text darunter,
+  und jeder Chunk wird zu einer Folie. Zwei der vier Absätze sind gekürzt, damit
+  der Ausschnitt auf diese Seite passt; die Vorlesung selbst ist auf Englisch.</p>
 
 <pre><code><span class="t-head">## free: Why Playwright | the modern web is rendered, not served</span> <span class="t-punct">{.wide #why-playwright}</span>
 
@@ -119,17 +123,18 @@ browser is for pages meant to be looked at.
 &gt; curl it, and let them find the missing text themselves.</span></code></pre>
 
   <p class="tiny">In der Projektion fallen die zwei Spalten zu einer zusammen,
-  weil sich vier gekürzte Absätze nicht ausbalancieren lassen; die Lesefassung
-  behält die beiden Spalten, die in der Quelle stehen.</p>
+  weil sich vier gekürzte Absätze nicht ausbalancieren lassen. Ohne Kürzung und
+  im Handout bleiben die beiden Spalten aus der Quelle erhalten.</p>
 
   <figure class="shot">
     <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>speaker.html</b></div>
     <img src="../img/cockpit.webp" alt="Das Presenter-Cockpit: oben eine Kapitelleiste, darunter eine Spiegelung der projizierten Folie, die private Sprechnotiz, ein Streifen mit den Nachbarfolien und eine Fußzeile mit Uhr und Tastenlegende.">
-    <figcaption><strong>Das Cockpit</strong>, mit <kbd>S</kbd> geöffnet. Die
-    <code>&gt; note:</code> aus der Quelle steht unter der gespiegelten Folie,
-    wo sie sonst niemand sieht, in einer Größe, die man mit den zwei Knöpfen
-    daneben einstellt; der Streifen zeigt, was kommt. Beide Fenster bleiben über
-    <code>postMessage</code> im Gleichschritt, ohne Server dazwischen.</figcaption>
+    <figcaption><strong>Das Cockpit</strong>, mit <kbd>S</kbd> aus der Projektion
+    geöffnet. Die <code>&gt; note:</code> aus der Quelle steht unter der
+    gespiegelten Folie, wo sie sonst niemand sieht, in einer Größe, die man mit
+    den zwei Knöpfen neben der Notiz einstellt; der Streifen zeigt, was kommt. Die
+    beiden Fenster halten sich direkt im Browser im Gleichschritt, ohne Server
+    dazwischen.</figcaption>
   </figure>
 
   <div class="pair">
@@ -154,16 +159,18 @@ browser is for pages meant to be looked at.
     <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>print-notes.html</b></div>
     <img src="../img/handout.webp" alt="Das Handout: derselbe Chunk als fließender Blocksatz mit Silbentrennung, die Randnotiz als Marginalie und die Sprechnotiz in einem getönten Block darunter.">
     <figcaption><strong>Das Handout der Lehrperson.</strong> Dieselbe Quelle als
-    Dokument gesetzt &ndash; mit Silbentrennung, in Lesebreite, und die Sprechnotiz
-    steht unter ihrem Chunk. Es gibt zwei Handouts: <code>print.html</code>
-    trägt nur das Skript und ist das zum Austeilen, <code>print-notes.html</code>
-    ergänzt die Sprechnotizen und bleibt bei einem selbst.</figcaption>
+    Dokument gesetzt &ndash; mit Silbentrennung, in einer Zeilenlänge zum Lesen, und
+    die Sprechnotiz steht unter ihrem Chunk. Es gibt zwei Handouts:
+    <code>print.html</code> trägt nur das Skript und ist das für die Studierenden,
+    <code>print-notes.html</code> ergänzt die Sprechnotizen und bleibt bei einem
+    selbst.</figcaption>
   </figure>
 
-  <h2 id="open-them-yourself">Selbst öffnen</h2>
+  <h2 id="open-them-yourself">Vorlesungen selbst öffnen</h2>
 
-  <p>Hier liegen drei Vorlesungen. <strong>python-intro</strong> ist die von
-  oben. Das <strong>Tutorial</strong> ist eine selbstbezügliche Tour, die das
+  <p>Auf dieser Seite liegen drei Vorlesungen. <strong>python-intro</strong> ist
+  die, aus der die Bilder stammen. Das <strong>Tutorial</strong> ist eine
+  selbstbezügliche Tour, die das
   Werkzeug erklärt, indem sie es benutzt. Beide sind auf Englisch. Das
   <strong>Kurzbeispiel</strong> ist ein Ausschnitt aus einer Netzwerk-Vorlesung
   im ersten Semester, auf Deutsch: 80 Zeilen Markdown, kurz genug, um sie ganz zu
@@ -194,24 +201,27 @@ browser is for pages meant to be looked at.
 
   <p class="tiny">Am besten mit der Projektion anfangen. Pfeiltasten blättern,
   <kbd>Leertaste</kbd> blendet den nächsten Abschnitt ein, <kbd>C</kbd> schaltet
-  die Kürzung um, <kbd>O</kbd> (der Buchstabe, nicht die Null) öffnet die
-  Übersichtstafel, <kbd>/</kbd> sucht, <kbd>?</kbd> listet alles auf. Wer das
-  Cockpit über den Link hier öffnet, sieht zwar das Layout, aber es ist mit
-  nichts verbunden; ein verbundenes Cockpit öffnet <kbd>S</kbd> in der
-  Projektion.</p>
+  zwischen gekürztem und vollem Text um, <kbd>O</kbd> (der Buchstabe, nicht die
+  Null) öffnet die Übersichtstafel, <kbd>/</kbd> sucht, <kbd>?</kbd> listet alle
+  Tasten auf. Ein Cockpit, das über die Tabelle oben geöffnet wird, zeigt zwar das
+  Layout, ist aber mit nichts verbunden; ein verbundenes Cockpit öffnet man mit
+  <kbd>S</kbd> in der Projektion.</p>
 
   <div class="hint">
-    <p>Alle vier Dateien sind in sich geschlossen: CSS, JavaScript, Bilder, die
-    gesetzten Formeln und die Schriften stecken darin. Zur Laufzeit wird nichts
-    nachgeladen, und sie lassen sich von <code>file://</code> genauso öffnen wie
-    von diesem Server.</p>
+    <p>Alle vier Dateien sind in sich geschlossen: die Gestaltung, die Skripte,
+    die Bilder, die gesetzten Formeln und die Schriften stecken in der HTML-Datei
+    selbst. Zur Laufzeit wird nichts nachgeladen, und die Dateien lassen sich aus
+    einem Ordner auf der Festplatte (<code>file://</code>) genauso öffnen wie von
+    diesem Server.</p>
   </div>
 
   <h2 id="getting-started">Loslegen</h2>
 
-  <p>Man braucht <strong>Node 20 oder neuer</strong>, sonst nichts: kein LaTeX,
-  kein Pandoc, keinen Server, nichts global Installiertes. Release herunterladen,
-  auspacken, Tutorial bauen:</p>
+  <p>Man braucht <strong>Node 20 oder neuer</strong>, damit läuft
+  <code>build.js</code>, sonst nichts: kein LaTeX, kein Pandoc, keinen Server,
+  nichts, was systemweit installiert werden müsste. Release herunterladen,
+  auspacken und das Tutorial bauen, also sein Markdown in die vier HTML-Dateien
+  verwandeln:</p>
 
 <pre><code><span class="t-cmt"># das aktuelle Release, ausgepackt nach psi-slides/</span>
 <span class="t-cmd">curl</span> <span class="t-flag">-L</span> <span class="t-path">https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.tar.gz</span> <span class="t-punct">\</span>
@@ -228,15 +238,16 @@ browser is for pages meant to be looked at.
   <p class="tiny">Unter Windows das <code>.zip</code> von derselben
   <a href="https://github.com/UBA-PSI/psi-slides/releases">Release-Seite</a>
   nehmen. Ein <code>git clone</code> des Repositorys funktioniert genauso &ndash; das
-  Archiv ist derselbe Baum ohne die Historie.</p>
+  Archiv enthält dieselben Dateien ohne die Versionsgeschichte.</p>
 
   <p>Das baut das Tutorial: eine Vorlesung, die das Werkzeug erklärt, indem sie
   es benutzt. <kbd>?</kbd> zeigt die Tastenübersicht, <kbd>S</kbd> öffnet das
-  Cockpit. Seine <code>source.md</code> ist die Referenz fürs Schreiben, und die
-  vier erzeugten Dateien kann man verschieben, mailen oder hochladen &ndash; sie
-  tragen alles bei sich, was sie brauchen.</p>
+  Cockpit. Die <code>source.md</code> des Tutorials ist die Referenz zum
+  Schreiben eigener Vorlesungen, und die vier eben gebauten Dateien kann man
+  verschieben, mailen oder hochladen &ndash; sie tragen alles bei sich, was sie
+  brauchen.</p>
 
-  <h3>Dann die eigene schreiben</h3>
+  <h3>Dann die eigene Vorlesung schreiben</h3>
 
 <pre><code><span class="t-cmt"># ein Verzeichnis mit gültigem Frontmatter anlegen</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-flag">--new</span> my-lecture
@@ -249,9 +260,9 @@ browser is for pages meant to be looked at.
 
   <p>Editor, Projektion und Cockpit nebeneinander offen halten:
   <code>--watch</code> baut bei jedem Speichern neu und lädt die beiden
-  Browserfenster sofort nach. Am Ende sind die vier
-  HTML-Dateien neben der <code>source.md</code> das Ergebnis. Mehr muss nicht
-  mitreisen.</p>
+  Browserfenster nach, sobald der Bau fertig ist. Am Ende sind die vier
+  HTML-Dateien neben der <code>source.md</code> das, was man weitergibt. Mehr muss
+  nicht mitreisen.</p>
 
   <h2>Dokumentation</h2>
   <ul>
