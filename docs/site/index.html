@@ -404,9 +404,8 @@ browser is for pages meant to be looked at.
   <details class="setup">
     <summary>If you have never installed Node or used a terminal</summary>
     <div class="setup-body">
-      <p>This takes a Windows or macOS machine with nothing on it to a built copy
-      of the tutorial. Every command below was run as it is written, and the
-      output quoted is what came back.</p>
+      <p>This takes a Windows or macOS machine with nothing installed on it to a
+      built copy of the tutorial.</p>
 
       <h3>Install Node</h3>
       <p>Open <a href="https://nodejs.org/">nodejs.org</a>. The button offers the
@@ -454,9 +453,9 @@ browser is for pages meant to be looked at.
 <pre><code>npm install</code></pre>
       <p>This runs once, in that folder, and takes a few seconds. It fetches the
       typefaces psi-slides embeds into every lecture and the handful of packages
-      the renderer uses. All of it lands in a <code>node_modules</code> folder
-      beside <code>build.js</code>: nothing is installed system-wide, and nothing
-      is fetched again once a lecture is built.</p>
+      the build uses. All of it lands in a <code>node_modules</code> folder beside
+      <code>build.js</code>: nothing is installed system-wide, and the lectures
+      you build fetch nothing when they are opened.</p>
 
       <h3>Build the tutorial</h3>
 <pre><code>node build.js lectures/tutorial/source.md</code></pre>

@@ -411,9 +411,8 @@ browser is for pages meant to be looked at.
   <details class="setup">
     <summary>Falls Node noch nie installiert wurde und das Terminal unbekannt ist</summary>
     <div class="setup-body">
-      <p>Das führt von einem Windows- oder macOS-Rechner ohne alles zu einem
-      gebauten Tutorial. Jeder Befehl unten wurde genau so ausgeführt, wie er
-      dasteht, und die zitierte Ausgabe ist die, die zurückkam.</p>
+      <p>Das führt von einem Windows- oder macOS-Rechner, auf dem nichts
+      installiert ist, zu einem gebauten Tutorial.</p>
 
       <h3>Node installieren</h3>
       <p><a href="https://nodejs.org/">nodejs.org</a> öffnen. Der Knopf bietet die
@@ -464,10 +463,10 @@ browser is for pages meant to be looked at.
 <pre><code>npm install</code></pre>
       <p>Das läuft einmal, in diesem Ordner, und dauert ein paar Sekunden. Es holt
       die Schriften, die psi-slides in jede Vorlesung einbettet, und die wenigen
-      Pakete, die der Renderer benutzt. Alles landet in einem Ordner
+      Pakete, die der Bau benutzt. Alles landet in einem Ordner
       <code>node_modules</code> neben <code>build.js</code>: systemweit wird
-      nichts installiert, und wenn eine Vorlesung einmal gebaut ist, wird nichts
-      mehr nachgeladen.</p>
+      nichts installiert, und die gebauten Vorlesungen laden beim Öffnen nichts
+      nach.</p>
 
       <h3>Das Tutorial bauen</h3>
 <pre><code>node build.js lectures/tutorial/source.md</code></pre>
