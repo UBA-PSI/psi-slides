@@ -206,42 +206,6 @@ main { max-width: 48rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
 .topbar-lang a:hover { color: #ffffff; text-decoration: none; background: #4d4c4a; }
 .topbar-lang a[aria-current] { color: #2a2a2e; background: #ffffff; }
 
-/*
- * The other-language hint. GitHub Pages serves static files and cannot do
- * content negotiation, so the alternative would be a script that redirects on
- * navigator.language. This offers instead of jumping: a shared link keeps
- * leading where it points, and a reader whose browser is set to one language
- * but reads another is not overruled. Shown once; the answer is remembered.
- */
-.langhint {
-  background: var(--shot-bg);
-  border-bottom: 1px solid var(--rule);
-  font-size: 0.92rem;
-}
-.langhint-in {
-  max-width: 48rem;
-  margin: 0 auto;
-  padding: 0.6rem 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-}
-.langhint p { margin: 0; max-width: none; }
-.langhint a { font-weight: 600; }
-.langhint button {
-  margin-left: auto;
-  flex: none;
-  border: 1px solid var(--rule);
-  background: var(--paper);
-  color: var(--ink-soft);
-  font: inherit;
-  font-size: 0.85rem;
-  line-height: 1;
-  padding: 0.35rem 0.6rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.langhint button:hover { color: var(--ink); border-color: var(--ink-soft); }
 
 /*
  * The narrow-width menu. A <details> rather than a scripted dropdown: it is
