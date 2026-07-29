@@ -745,6 +745,26 @@ figure.shot img {
 figure.shot img:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 
 /*
+ * The film sits in the same frame as the screenshots, for the same reason:
+ * it is a picture of the tool, not more page. It is a plain <video> with the
+ * browser's own controls and no player library – the file streams from the
+ * chair's server, so the page fetches nothing until someone presses play,
+ * and the poster underneath is a local WebP so the box has its height from
+ * the first paint and the layout never jumps.
+ *
+ * `aspect-ratio` rather than a height: the poster is 16:9 and so is the
+ * clip, and stating it keeps the frame the right shape even in the moment
+ * before the poster has decoded.
+ */
+figure.shot video {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  display: block;
+  background: var(--paper);
+}
+
+/*
  * The bar doubles as a two-state switch on the hero's right-hand shot. It
  * used to be two words in the bar's own grey, distinguishable from the file
  * name beside them only by a faint background on the active one – so nobody
