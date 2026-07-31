@@ -4800,6 +4800,42 @@ function isMathNode(el) {
     || el.classList.contains('math-display'));
 }
 
+// A period only ends the topic sentence when it plausibly ends a sentence.
+// Without the guards, "Kleinberg u. a. 2017" cuts the head short after "u."
+// and the collapsed slide shows a dangling abbreviation. Two cheap signals
+// cover the lecture corpus: a single letter or digit before the dot is an
+// abbreviation or ordinal ("u.", "z.", "B.", "8. April"), and a lowercase
+// continuation after it is no sentence start ("et al. 2017"). "!" and "?"
+// are never abbreviation marks and always end the sentence. The trade-off:
+// a sentence genuinely ending in a single character ("… um Faktor 3.") now
+// keeps its continuation in the head – a too-long topic sentence, which is
+// less broken than a truncated one.
+const SENTENCE_ABBREVS = new Set(['bzw','ca','vgl','etc','usw','engl','sog',
+  'inkl','zzgl','ggf','evtl','al','vs','resp','Nr','Dr','Prof','Abs','Art',
+  'Kap','Abb','Tab','Aufl','Hrsg','Mio','Mrd','ff','ebd','St']);
+function dotEndsSentence(before, after) {
+  const tok = (before.match(/([\\p{L}\\p{N}]+)$/u) || [])[1];
+  if (tok && (tok.length === 1 || SENTENCE_ABBREVS.has(tok))) return false;
+  if (/^\\p{Ll}/u.test(after)) return false;
+  return true;
+}
+function sentenceEndIn(text) {
+  const re = /[.!?](?=\\s)/g;
+  let m;
+  while ((m = re.exec(text))) {
+    if (text[m.index] !== '.') return m.index;
+    const after = text.slice(m.index + 1).replace(/^\\s+/, '');
+    if (dotEndsSentence(text.slice(0, m.index), after)) return m.index;
+  }
+  return -1;
+}
+function tailEndsSentence(text) {
+  const t = text.trimEnd();
+  if (!/[.!?]$/.test(t)) return false;
+  if (t.endsWith('.')) return dotEndsSentence(t.slice(0, -1), '');
+  return true;
+}
+
 function splitSentencesIn(root) {
   const wrapProse = (node) => {
     for (const k of [...node.childNodes]) {
@@ -4834,10 +4870,10 @@ function splitSentencesIn(root) {
     let mode = 'head';
     for (const k of [...p.childNodes]) {
       if (mode === 'head' && k.nodeType === 3) {
-        const m = k.nodeValue.match(/^([\\s\\S]*?[.!?])(\\s+[\\s\\S]*)$/);
-        if (m) {
-          head.appendChild(document.createTextNode(m[1]));
-          rest.appendChild(document.createTextNode(m[2]));
+        const idx = sentenceEndIn(k.nodeValue);
+        if (idx !== -1) {
+          head.appendChild(document.createTextNode(k.nodeValue.slice(0, idx + 1)));
+          rest.appendChild(document.createTextNode(k.nodeValue.slice(idx + 1)));
           mode = 'rest';
         } else head.appendChild(k.cloneNode(true));
       } else if (mode === 'head') {
@@ -4845,7 +4881,7 @@ function splitSentencesIn(root) {
         // KaTeX renders a hidden MathML copy alongside the visible HTML, so
         // a formula's textContent is not the text the reader sees and must
         // not be tested for a sentence-ending period.
-        if (k.nodeType === 1 && !isMathNode(k) && /[.!?]$/.test(k.textContent.trimEnd())) mode = 'rest';
+        if (k.nodeType === 1 && !isMathNode(k) && tailEndsSentence(k.textContent)) mode = 'rest';
       }
       else rest.appendChild(k.cloneNode(true));
     }

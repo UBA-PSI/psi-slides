@@ -7,7 +7,16 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- Sentence extraction no longer ends the topic sentence at an abbreviation
+  dot. „(Kleinberg u. a. 2017)“ used to cut the collapsed head short after
+  „u.“; a single letter or digit before the dot, a small German/English
+  abbreviation list (bzw., vgl., Dr., al., …), and a lowercase continuation
+  after the dot now all keep the sentence open. `!` and `?` are unaffected.
+  Trade-off: a sentence genuinely ending in a single character ("… um
+  Faktor 3.") now keeps its continuation in the head – a too-long topic
+  sentence rather than a truncated one.
 
 ## [1.0.0]
 
