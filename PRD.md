@@ -351,7 +351,7 @@ text why "here the anonymity breaks" right of log gap 0.8 -> log {.hand}
 step leak
   show log
 step collapse
-  move mix below sender gap 1
+  move mix to below sender gap 1
   emph leak
 :::
 ```
@@ -364,15 +364,19 @@ Grammar, in full:
 | `dot <name> "label" <placement> [r n]` | A circle – XOR nodes, junctions, small glyphs |
 | `image <name> <asset> <placement> [w n] [h n]` | A picture. `<asset>` resolves like `![](fig-id)`: `assets/<name>.{svg,png,…}`, a path, or an https URL |
 | `text <name> "label" <placement> [-> ref]` | Free text with no shape of its own; `-> ref` grows a leader line to whatever it comments on. `.left` / `.right` align it, and the anchor moves with them |
-| `edge <a> -> <b> ["label"] [via x,y …]` | An arrow. `<-` reverses it, `--` drops the head |
+| `edge <a> -> <b> ["label"] [via x,y …]` | An arrow. `<-` reverses it, `--` drops the head. One `via` carries every waypoint |
 | `container <name> ["label"] over a,b,c [pad n]` | A drawn box that fits itself around its members |
 | `align x\|y <edge> a,b,c` | Line up one coordinate: `left`/`center`/`right` on x, `top`/`middle`/`bottom` on y |
 | `spread x\|y a,…,z` | Equal spacing between centres; the first and last stay put |
-| `brace <name> over a,b [side] ["label"]` | A bracket spanning a subset, label outside |
-| `default <kind> [@tag] {classes} [w n] [h n]` | The base styling and size for that kind, optionally only for elements carrying a tag |
+| `brace <name> over a,b [side] ["label"] [pad n]` | A bracket spanning a subset, label outside |
+| `default <kind> [@tag] {classes} [options]` | The base styling and size for that kind, optionally only for elements carrying a tag. The options are exactly the ones that kind's own statement takes – `w`/`h` for a box, text or image, `r` for a dot, `pad` for a container or brace |
 | `step <name>` | Opens a step; the indented lines below it are its operations |
 
-**A coordinate is a number in grid cells, or another element's coordinate with an optional signed nudge:** `1.12`, `x0.cy`, `iv.left`, `mix.cx+0.2`. Both halves of a waypoint and of a coordinate endpoint take that form, so `edge iv -> x0 via iv.cx,x0.cy` reads as what it is – straight down from the IV, then across at the height of the XOR – and survives every change above it. Referring to the wrong axis (`.top` where an x belongs) is an error naming the three that fit.
+**A coordinate is a number in grid cells, or another element's coordinate with an optional signed nudge:** `1.12`, `x0.cy`, `iv.left`, `mix.cx+0.2`. **Every place a coordinate pair is accepted takes that same form** – `at X,Y`, `move … to X,Y`, a waypoint, an edge endpoint – so `edge iv -> x0 via iv.cx,x0.cy` reads as what it is (straight down from the IV, then across at the height of the XOR) and `box m at c1.cx,m0.cy` puts a box in a column without measuring it. Referring to the wrong axis (`.top` where an x belongs) is an error naming the three that fit, and a reference in a placement is a real dependency, so a circular one comes out as `placement cycle: …` rather than a plausible wrong picture.
+
+Because a coordinate is written `name.prop`, an **element name is letters, digits, `_` and `-`, starting with a letter**. A name with a dot in it would be indistinguishable from a coordinate; the build says so rather than resolving it one way in silence.
+
+A **comment line starts with `#`**.
 
 This exists because the alternative is measuring. Rebuilding the six example slides needed a browser open and three numbers read off the screen; every one of them is now a relation. A generated diagram has the same problem with no browser at all.
 
@@ -382,15 +386,15 @@ An edge endpoint may also be a bare coordinate – `edge a.left-0.8,a.cy -> a` i
 
 Placement is `at X,Y` in grid cells, a relation – `right of A`, `left of A`, `below A`, `above A`, each taking `gap <n>` and `align <edge>` – or `between A,B [frac <n>]`, which is the position PIC spells “1/2 way between A and B”. Any of them takes a trailing `offset dx,dy`. **The first element defaults to the origin**, so the common case – a box, and everything else relative to it – needs no coordinates at all. Every element after it has to say where it goes; silently stacking two elements on `0,0` is not a default anyone means.
 
-An element carries **tags** as well as an id and classes: `{#mix .tone-1 @crypto @phase2}`. Three sigils, three questions – `#` is identity, `.` is appearance, `@` is membership. A tag is addressable wherever a name is: `show @crypto` in a step, `container tee over @crypto`, `align middle @row2`. Membership lives on the element's own line, so adding an element to a set is a local edit and the order of declarations does not matter. There is no separate `group` statement; tags replace it, and one element can belong to as many sets as it likes.
+An element carries **tags** as well as an id and classes: `{#mix .tone-1 @crypto @phase2}`. Three sigils, three questions – `#` is identity, `.` is appearance, `@` is membership. A tag is addressable wherever a name is: `show @crypto` in a step, `container tee over @crypto`, `align y middle @row2`. Membership lives on the element's own line, so adding an element to a set is a local edit and the order of declarations does not matter. There is no separate `group` statement; tags replace it, and one element can belong to as many sets as it likes.
 
 **`align` and `spread` do not place an element, they take one coordinate of it from somewhere else.** The first element listed is the master and keeps its position; the rest follow. Both are modelled as an extra dependency plus a coordinate override inside the same topological walk, so there is still no solver and no second pass. `spread` distributes the interior members between the first and the last, on centres rather than on gaps – chained `right of … gap n` already gives equal *edge* gaps, and those are only the same thing when the elements are equally wide.
 
-This is what closes the commonest alignment failure: two columns built as separate `below … gap n` chains drift apart as soon as their captions differ in height, and a line drawn between two drifted elements runs a degree or two off the axis, which reads as a mistake. `align middle a, b` states the intent in one line. An element distributed by `spread` must not be what an endpoint is placed against – that is genuinely circular, and the build says `placement cycle: q → s → r → q` and names the line rather than drawing a plausible wrong answer.
+This is what closes the commonest alignment failure: two columns built as separate `below … gap n` chains drift apart as soon as their captions differ in height, and a line drawn between two drifted elements runs a degree or two off the axis, which reads as a mistake. `align y middle a, b` states the intent in one line. An element distributed by `spread` must not be what an endpoint is placed against – that is genuinely circular, and the build says `placement cycle: q → s → r → q` and names the line rather than drawing a plausible wrong answer.
 
 Anchors are addressable and chosen automatically otherwise: `mix.right`, `ret.br`, and `mix.right:0.3` to slide the attachment point along that edge. **The fraction is what keeps two arrows between the same pair of boxes from collapsing into a lens** – give them `0.3` and `0.7` and they are two parallel arrows rather than two bows over the same chord. There is deliberately no automatic fan-out of parallel edges: it would change an existing diagram silently, and the explicit form reads as what it is.
 
-Step operations are `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style`, `label`. Nothing else.
+Step operations are `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style`, `label`. Nothing else. A step operation takes a tag wherever it takes a name, with one exception the build refuses rather than draws: `move @tag to …` would give every member of the set the same placement and stack them on one point, so it is an error naming `move @tag by dx,dy`, which is what translating a set means. A class added by `style` **displaces** the one already in its slot, the same rule the `default` block follows – adding it alongside would leave two rules matching at equal specificity and let stylesheet order decide.
 
 `same as <element>` copies that element's width and height – “as wide as that one”, rather than a number repeated down the diagram. It copies geometry only; styling is what `default` is for.
 
@@ -406,8 +410,8 @@ Semantics that follow from the design, not from convenience:
 
 - **A step is one press of `Space`**, the same key that advances a reveal segment, because it is the same counter. A chunk that mixes prose reveals and diagram steps advances through both in document order.
 - **An element's position is a function of the step.** Layout is evaluated once per step, so an arrow between two boxes re-routes when either moves. This is the property no drawing-tool pipeline can offer.
-- **An edge is only as visible as the two things it connects.** Most edges therefore need no `show` at all.
-- **Print shows the union at the last position**, matching §4.6 – a handout is the finished picture. Live-only emphasis (`emph`, `dim`) is dropped there.
+- **Visibility runs downhill, and it is one rule with three faces.** An edge is only as visible as the two things it connects; a `container` or `brace` only as visible as its members, and it fits the ones that are on screen; a `text` that grew a leader only as visible as what it points at. So most of a diagram needs no `show` of its own – revealing the boxes reveals the arrows between them, the outline around them and the note beside them – and nothing is ever drawn pointing at, or wrapped around, something nobody can see.
+- **Print is the last beat**, with the live-only emphasis (`emph`, `dim`) stripped – a handout is the finished picture, not its first beat, and not the union of every beat either. `hide` is the author saying an element is gone by the end; reprinting it lays a withdrawn arrow across whatever took its place. Everything shown and never hidden is in the last beat anyway, so for a diagram that only builds up the two readings agree. The static attributes in the emitted SVG *are* that state, which is also why a view with no JavaScript shows the finished picture; the runtime widens the viewBox to hold every beat when it boots, so only the live views pay for the room an element needs to walk into.
 - **Motion is off under `prefers-reduced-motion`**; the steps still step, they just do not travel.
 - **A vector image follows the theme, a raster does not.** An SVG asset is spliced in as a nested `<svg>`, so it inherits `--ink` and `--paper` and re-colours with the `A` cycle, exactly like an inlined SVG figure. A raster is embedded as a `data:` URI and keeps its own colours in every theme. That is the trade, and it is the honest one: a photograph is a photograph in dark mode too.
 

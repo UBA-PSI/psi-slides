@@ -33,10 +33,11 @@ edge sobj.left-0.36,sobj.top-0.7 -> sobj.tl {.thick .accent}
 
 box  bo   "Buffer Overflow" below slab gap 0.75 align left {.accent @spatial}
 box  bor  "Buffer Overread" right of bo gap 0.22 same as bo {.accent @spatial}
-text scode "char buf[16];\nbuf[42];" below bor gap 0.28 align left {.mono .left @spatial}
+text scode "char buf[16];\nbuf[42];" below bo gap 0.28 align left {.mono .left @spatial}
 
-align x left tlab, slab
-align x left uaf, bo
+# Die beiden Spalten hängen schon über align left aneinander. Die Kästchen
+# rechts nicht: sie sitzen je 0.7 neben einem Wort, und "Temporal" ist ein
+# Zeichen länger als "Spatial".
 align x center tobj, sobj
 
 step temporal
@@ -45,7 +46,7 @@ step spatial
   show @spatial
 :::
 
-**Zwei Familien, dieselbe Form.** `align left` hält die beiden Blöcke bündig, obwohl der obere Code zweizeilig und der untere anders breit ist, und `same as` gibt den Paaren jeweils gleiche Kästen. Die Schritte adressieren `@temporal` und `@spatial` statt acht Namen.
+**Zwei Familien, dieselbe Form.** Das `align left` am Ende einer Platzierung hält jede `below`-Kette an ihrer linken Kante bündig, obwohl der obere Code zweizeilig und der untere anders breit ist, und `same as` gibt den Paaren jeweils gleiche Kästen. Die *Anweisung* `align x center tobj, sobj` ist etwas anderes: sie holt eine Koordinate von einem Meister, und hier ist sie nötig, weil die beiden Kästchen neben verschieden langen Wörtern hängen. Die Schritte adressieren `@temporal` und `@spatial` statt acht Namen.
 
 ## figure: Your first buffer overflow | ein konstruiertes Beispiel {.full #overflow}
 
@@ -78,7 +79,7 @@ edge sp -> buf.left
 edge bpl -> val.left
 align x center sp, bpl
 
-brace dir over buf,ret right "writing direction:\ntowards higher\naddresses" gap 0.28 {.muted}
+brace dir over buf,ret right "writing direction:\ntowards higher\naddresses" pad 0.28 {.muted}
 
 step overrun
   emph buf
@@ -163,9 +164,9 @@ default box @cipher {.tone-4}
 
 box iv0 "IV" at 0,0    w 0.5 {.tone-1}
 box n0  "0"  right of iv0 gap 0 w 0.42 {.tone-2}
-box iv1 "IV" right of n0 gap 0.42 same as iv0 {.tone-1}
+box iv1 "IV" right of n0 gap 1.0 same as iv0 {.tone-1}
 box n1  "1"  right of iv1 gap 0 same as n0 {.tone-2}
-box iv2 "IV" right of n1 gap 0.42 same as iv0 {.tone-1}
+box iv2 "IV" right of n1 gap 1.0 same as iv0 {.tone-1}
 box n2  "2"  right of iv2 gap 0 same as n0 {.tone-2}
 
 box e0 "Enc" between iv0,n0 offset 0,1.35 {@enc}
@@ -175,18 +176,18 @@ text ke0 "k" left of e0 gap 0.4 {@enc}
 text ke1 "k" left of e1 gap 0.4 {@enc}
 text ke2 "k" left of e2 gap 0.4 {@enc}
 
-box s0 "s_0" below e0 gap 0.6 w 0.95 {@stream}
+box s0 "s_0" below e0 gap 0.6 w 0.8 {@stream}
 box s1 "s_1" below e1 gap 0.6 same as s0 {@stream}
 box s2 "s_2" below e2 gap 0.6 same as s0 {@stream}
-dot p0 "+" below s0 gap 0.22 r 0.2 {@stream}
-dot p1 "+" below s1 gap 0.22 r 0.2 {@stream}
-dot p2 "+" below s2 gap 0.22 r 0.2 {@stream}
-box mm0 "m_0" below p0 gap 0.22 same as s0 {@msg}
-box mm1 "m_1" below p1 gap 0.22 same as s0 {@msg}
-box mm2 "m_2" below p2 gap 0.22 same as s0 {@msg}
-box cc0 "c_0" below mm0 gap 0.5 same as s0 {@cipher}
-box cc1 "c_1" below mm1 gap 0.5 same as s0 {@cipher}
-box cc2 "c_2" below mm2 gap 0.5 same as s0 {@cipher}
+dot x0 "+" below s0 gap 0.5 r 0.2 {@stream}
+dot x1 "+" below s1 gap 0.5 same as x0 {@stream}
+dot x2 "+" below s2 gap 0.5 same as x0 {@stream}
+box mm0 "m_0" left of x0 gap 0.45 w 0.55 {@msg}
+box mm1 "m_1" left of x1 gap 0.45 same as mm0 {@msg}
+box mm2 "m_2" left of x2 gap 0.45 same as mm0 {@msg}
+box cc0 "c_0" below x0 gap 0.5 same as s0 {@cipher}
+box cc1 "c_1" below x1 gap 0.5 same as s0 {@cipher}
+box cc2 "c_2" below x2 gap 0.5 same as s0 {@cipher}
 
 edge n0 -> e0 {@enc}
 edge n1 -> e1 {@enc}
@@ -194,11 +195,22 @@ edge n2 -> e2 {@enc}
 edge ke0 -> e0 {@enc}
 edge ke1 -> e1 {@enc}
 edge ke2 -> e2 {@enc}
-edge e0 -> s0 {@stream}
-edge e1 -> s1 {@stream}
-edge e2 -> s2 {@stream}
 
-edge mm0.left,mm0.bottom+0.22 -> mm2.right,mm0.bottom+0.22 {#rule .no-head .muted @cipher}
+# Diese neun brauchen kein eigenes @tag und kein show: eine Kante ist nur so
+# sichtbar wie ihre beiden Enden, also erscheint s->+ mit dem Schlüsselstrom,
+# m->+ mit der Nachricht und +->c mit dem Chiffrat.
+edge e0 -> s0
+edge e1 -> s1
+edge e2 -> s2
+edge s0 -> x0
+edge s1 -> x1
+edge s2 -> x2
+edge mm0 -> x0
+edge mm1 -> x1
+edge mm2 -> x2
+edge x0 -> cc0
+edge x1 -> cc1
+edge x2 -> cc2
 
 align y middle iv0, iv1, iv2
 align y middle e0, e1, e2
@@ -214,7 +226,7 @@ step cipher
   emph cc0, cc1, cc2
 :::
 
-**Die geteilten Kästen sind zwei Kästen mit `gap 0`.** IV und Zähler tragen verschiedene Tönungen und stehen bündig aneinander; `between iv0,n0 offset 0,1.35` setzt die `Enc`-Box unter die Mitte des Paares, statt sie gegen einen der beiden zu schätzen.
+**Die geteilten Kästen sind zwei Kästen mit `gap 0`.** IV und Zähler tragen verschiedene Tönungen und stehen bündig aneinander; `between iv0,n0 offset 0,1.35` setzt die `Enc`-Box unter die Mitte des Paares, statt sie gegen einen der beiden zu schätzen. Die zwölf Pfeile im unteren Teil tragen weder `@tag` noch `show`: **eine Kante ist nur so sichtbar wie ihre beiden Enden**, also kommt jede von selbst in dem Schritt, in dem ihr zweiter Endpunkt erscheint.
 
 # Identity and authentication
 
@@ -232,25 +244,29 @@ box  term   "Termination"   right of usage gap 0.62 same as create {.tone-1 .bol
 
 box  reg    "Registration"  below create gap 0.5 {@creation}
 text regc   "identity"      below reg gap 0.2 {@creation}
-text down1  "▼"             below regc gap 0.12 {@creation}
-box  prov   "Provisioning"  below down1 gap 0.12 {@creation}
+box  prov   "Provisioning"  below regc gap 0.62 {@creation}
 text provc  "issue credentials and\nprovide them to user"  below prov gap 0.2 {@creation}
-text down2  "▼"             below provc gap 0.12 {@creation}
-box  authz  "Authorization" below down2 gap 0.12 {@creation}
+box  authz  "Authorization" below provc gap 0.62 {@creation}
 text authzc "granting of rights\nby the authority"  below authz gap 0.2 {@creation}
 
 box  ident  "Identification" below usage gap 0.5 {@usage}
 text identc "claim identity with\nunique name"  below ident gap 0.2 {@usage}
-text down3  "▼"              below identc gap 0.12 {@usage}
-box  authn  "Authentication" below down3 gap 0.12 {@usage}
+box  authn  "Authentication" below identc gap 0.62 {@usage}
 text authnc "prove identity claim\nwith credentials"  below authn gap 0.2 {@usage}
-text down4  "▼"              below authnc gap 0.12 {@usage}
-box  acl    "Access Control" below down4 gap 0.12 {@usage}
+box  acl    "Access Control" below authnc gap 0.62 {@usage}
 text aclc   "granting of access\nby the system"  below acl gap 0.2 {@usage}
 
 align y middle reg, ident
 align y middle prov, authn
 align y middle authz, acl
+
+# Der Pfeil sitzt zwischen Bildunterschrift und nächstem Kasten – nicht in
+# der below-Kette, sonst schöbe ihn eine zweizeilige Unterschrift in den
+# Kasten, den align y middle gerade festgenagelt hat.
+text down1  "▼"  between regc,prov   {@creation}
+text down2  "▼"  between provc,authz {@creation}
+text down3  "▼"  between identc,authn {@usage}
+text down4  "▼"  between authnc,acl   {@usage}
 
 brace signup over reg,prov    right "Signup" {.muted}
 brace login  over ident,authn right "Login"  {.muted}
@@ -267,7 +283,7 @@ step self
   emph selfsv
 :::
 
-**Ohne `align middle` driften die beiden Spalten auseinander.** Sie sind getrennte `below`-Ketten, und die Bildunterschriften sind mal ein-, mal zweizeilig – drei Zeilen halten die Reihen bündig.
+**Ohne `align y middle` driften die beiden Spalten auseinander.** Sie sind getrennte `below`-Ketten, und die Bildunterschriften sind mal ein-, mal zweizeilig – drei Zeilen halten die Reihen bündig.
 
 ## figure: Message authentication | it is not about confidentiality {.full #mac}
 
@@ -316,7 +332,7 @@ box  a "Sender"
 box  b "Mix"        right of a gap 0.6
 box  c "Empfänger"  right of b gap 0.6
 dot  x "+"          below b gap 0.8
-text n "a free label, placed\nwherever it reads best"  right of c gap 0.7 -> x {.muted .small}
+text n "a free label, placed\nwherever it reads best"  right of x gap 0.85 -> x {.muted .small}
 edge a -> b "encrypted"
 edge b -> c "recoded"
 edge b -> x {.dashed}
@@ -335,8 +351,8 @@ box c "two"                     right of b gap 0.6
 box d "middling"                right of c gap 0.6
 
 box p "first"   below a gap 1.1
-box s "fourth"  right of p gap 3.0
-box q "second"  below p gap 0 h 0.8
+box s "fourth"  right of p gap 3.6
+box q "a considerably wider one"  below p gap 0 h 0.8
 box r "third"   below p gap 0 h 0.5
 align y middle p, q, r, s
 spread x p, q, r, s
@@ -344,7 +360,7 @@ spread x p, q, r, s
 edge a.left-0.8,a.cy -> a "from outside" {.muted}
 :::
 
-Oben gleiche *Kantenabstände*, unten gleiche *Mittelpunktabstände*. Der Pfeil links hat einen Endpunkt ohne Objekt – eine Koordinate statt eines unsichtbaren Ankers.
+Oben gleiche *Kantenabstände* – das gibt schon eine Kette aus `right of … gap n` her. Unten gleiche *Mittelpunktabstände*: `spread x` verteilt die inneren Elemente zwischen dem ersten und dem letzten, und weil der zweite Kasten viel breiter ist als seine Nachbarn, sind die Lücken links und rechts von ihm sichtbar kleiner. Das ist der Unterschied, den die beiden Reihen zeigen sollen. Der Pfeil links oben hat einen Endpunkt ohne Objekt – eine Koordinate statt eines unsichtbaren Ankers.
 
 ## figure: Containers and braces {.wide #grouping}
 
@@ -356,11 +372,41 @@ box r2 "Provisioning"  below r1 gap 0.55 same as r1
 box r3 "Authorization" below r2 gap 0.55 same as r1
 edge r1 -> r2
 edge r2 -> r3
-brace sign over r1,r2 right "Signup"
+brace sign over r1,r2 right "Signup" pad 0.62
 container life "Creation" over r1,r2,r3 pad 0.42 {.dashed}
 :::
 
-Ein `container` legt sich um seine Mitglieder und passt sich neu an, wenn sie sich bewegen. Eine `brace` überspannt eine Teilmenge und hängt ihr Label nach außen.
+Ein `container` legt sich um seine Mitglieder und passt sich neu an, wenn sie sich bewegen. Eine `brace` überspannt eine Teilmenge und hängt ihr Label nach außen. Beide messen ihren Abstand zum Inhalt mit demselben Wort, `pad` – die Klammer bekommt hier `0.62`, damit sie außerhalb der `0.42` des Containers zu liegen kommt.
+
+## figure: Steps that move {.wide #motion}
+
+::: diagram {unit=140x72}
+default box w 0.92
+default container pad 0.34
+
+box  cl "Client"  at 0,0
+box  sv "Server"  right of cl gap 2.9 same as cl
+box  px "Proxy"   below cl gap 1.05
+
+container zone "auf dem Weg" over cl,sv,px {.bare .tone-2}
+
+edge cl -> sv "HTTP" {#direct .both-heads}
+edge cl -> px {#up .dashed}
+edge px -> sv {#down .dashed}
+
+text note "der Kasten wandert,\ndie Pfeile folgen" below px gap 0.5 -> px {.hand .small}
+
+step erscheint
+  show px, up, down
+step dazwischen
+  hide direct
+  move px to between cl,sv
+  emph px
+:::
+
+**`move` ist der Grund, warum es diese Sprache gibt.** Der Proxy bekommt `move px to between cl,sv`, und weil das Layout pro Schritt neu ausgewertet wird, hängen die beiden gestrichelten Pfeile weiterhin an ihm, der Linien-Stummel des Labels zeigt weiter auf ihn, und der `container` fasst plötzlich eine Reihe statt zwei. `hide direct` nimmt den direkten Pfeil weg. `to` setzt eine Position, `by` verschiebt um einen Betrag – und **ein `move @tag to …` lehnt der Build ab**, weil es die ganze Menge auf einen Punkt legen würde; für eine Menge ist `by` gemeint.
+
+**Sichtbarkeit vererbt sich nach unten.** Weder der `container` noch die gestrichelten Pfeile noch das handschriftliche Label brauchen ein eigenes `show`: ein Pfeil ist nur so sichtbar wie seine Enden, ein `container` nur so sichtbar wie seine Mitglieder, und ein `text` mit Linien-Stummel nur so sichtbar wie das, worauf er zeigt.
 
 ## figure: A raster does not follow the theme {.standard #raster}
 

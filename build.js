@@ -1320,6 +1320,16 @@ const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'co
 const DG_ALIGN_X = new Set(['left', 'center', 'right']);
 const DG_ALIGN_Y = new Set(['top', 'middle', 'bottom']);
 const DG_DEFAULT_KINDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'container', 'brace']);
+// What `default <kind>` may set, per kind: exactly the geometric options that
+// kind's own statement accepts. Anything else used to parse and then do
+// nothing – `default box r 5` is not an error anyone can see, and a silent
+// no-op is the failure mode this DSL keeps closing.
+const DG_BRACE_SIDES = ['right', 'left', 'top', 'bottom'];
+const DG_KIND_OPTS = {
+  box: ['w', 'h'], text: ['w', 'h'], image: ['w', 'h'], dot: ['r'],
+  container: ['pad'], brace: ['pad'], edge: [],
+};
+const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid units
 
 let dgCounter = 0;             // per-build, reset in buildOnce
 
@@ -1587,9 +1597,12 @@ function dgParsePlacement(toks, k, errors, lineNo) {
   let place = null, next = k;
 
   if (t(k) === 'at') {
-    const parts = t(k + 1).split(',');
-    if (parts.length !== 2) { dgErr(errors, lineNo, `at expects X,Y – got "${t(k + 1)}"`); return [null, k + 2]; }
-    place = { kind: 'abs', x: dgNum(parts[0], errors, lineNo, 'at X'), y: dgNum(parts[1], errors, lineNo, 'at Y') };
+    // The same coordinate grammar as a waypoint or an edge endpoint, so
+    // `at c1.cx,m0.cy` works and means what it says. One grammar for every
+    // slot that holds a coordinate is worth more than the handful of lines
+    // it costs: the alternative is a rule the author has to remember about
+    // which slots are special.
+    place = { kind: 'abs', at: dgParsePair(t(k + 1), errors, lineNo, 'at') };
     next = k + 2;
   } else if (t(k) === 'between') {
     // `between a,b` is the position PIC spells "1/2 way between A and B",
@@ -1753,6 +1766,12 @@ function parseDiagramSource(body, headAttrs) {
 
   const claim = (id, kind, lineNo) => {
     if (!id) return;
+    // A name containing a dot would be indistinguishable from `elem.cx` in a
+    // coordinate, and one containing @ or # from a tag or an id token.
+    if (!/^[A-Za-z_][\w-]*$/.test(id)) {
+      dgErr(errors, lineNo, `"${id}" is not a usable name – letters, digits, _ and - only, starting with a letter`);
+      return;
+    }
     if (model.byId.has(id)) dgErr(errors, lineNo, `duplicate element id "${id}"`);
     else model.byId.set(id, kind);
   };
@@ -1795,9 +1814,8 @@ function parseDiagramSource(body, headAttrs) {
         } else if (verb === 'to') {
           // `move mix to 3,2` is the same thing as `at 3,2`, spelled the way
           // it reads out loud. Anything else is a relation.
-          if (rest[0] && /^-?[\d.]+,-?[\d.]+$/.test(rest[0].v)) {
-            const parts = rest[0].v.split(',');
-            op.to = { kind: 'abs', x: Number(parts[0]), y: Number(parts[1]) };
+          if (rest[0] && rest[0].v.includes(',') && rest[0].v !== ',') {
+            op.to = { kind: 'abs', at: dgParsePair(rest[0].v, errors, lineNo, 'move … to') };
           } else {
             const [place] = dgParsePlacement(rest, 0, errors, lineNo);
             if (!place) dgErr(errors, lineNo, `move ${op.target} to … needs "X,Y" or a relation (below / above / right of / left of)`);
@@ -1812,7 +1830,11 @@ function parseDiagramSource(body, headAttrs) {
     }
 
     if (!DG_KEYWORDS.has(head)) {
-      dgErr(errors, lineNo, `unknown statement "${head}" (known: ${[...DG_KEYWORDS].join(', ')}${step ? ', ' + [...DG_STEP_OPS].join(', ') : ''})`);
+      // `//` is what everyone reaches for first, and the generic complaint
+      // does not mention comments at all.
+      dgErr(errors, lineNo, trimmed.startsWith('//')
+        ? 'a comment line starts with # in a diagram, not //'
+        : `unknown statement "${head}" (known: ${[...DG_KEYWORDS].join(', ')}${step ? ', ' + [...DG_STEP_OPS].join(', ') : ''})`);
       continue;
     }
 
@@ -1865,13 +1887,23 @@ function parseDiagramSource(body, headAttrs) {
         dgErr(errors, lineNo, `a second "default ${kind}${tagTok ? ' @' + tagTok : ''}" – there can only be one per diagram (the first is on line ${slot.line})`);
         continue;
       }
-      const def = { kind, tag: tagTok, classes: attrs.classes, w: null, h: null, r: null, line: lineNo };
+      const def = { kind, tag: tagTok, classes: attrs.classes, w: null, h: null, r: null, pad: null, side: null, line: lineNo };
+      const opts = DG_KIND_OPTS[kind];
       const rest = body0.slice(tagTok ? 3 : 2);
       for (let k = 0; k < rest.length; k++) {
-        if (rest[k].v === 'w') { def.w = dgNum(rest[k + 1]?.v, errors, lineNo, 'w'); k++; }
-        else if (rest[k].v === 'h') { def.h = dgNum(rest[k + 1]?.v, errors, lineNo, 'h'); k++; }
-        else if (rest[k].v === 'r') { def.r = dgNum(rest[k + 1]?.v, errors, lineNo, 'r'); k++; }
-        else dgErr(errors, lineNo, `unexpected "${rest[k].v}" in default ${kind}`);
+        const key = rest[k].v;
+        if (kind === 'brace' && DG_BRACE_SIDES.includes(key)) { def.side = key; continue; }
+        if (opts.includes(key)) { def[key] = dgNum(rest[k + 1]?.v, errors, lineNo, key); k++; continue; }
+        // A wrong-kind option is the interesting case: say which kind it
+        // belongs to rather than repeating the list.
+        const owner = Object.keys(DG_KIND_OPTS).find(kk => DG_KIND_OPTS[kk].includes(key));
+        if (owner) {
+          dgErr(errors, lineNo, `default ${kind} has no "${key}" – that is a ${owner} option. `
+            + `default ${kind} takes ${opts.length ? opts.join(', ') + ' and ' : ''}a {…} attribute tail.`);
+          k++;   // its value, or the next word is reported as a second mistake
+        } else {
+          dgErr(errors, lineNo, `unexpected "${key}" in default ${kind}`);
+        }
       }
       if (tagTok) model.tagDefaults.push(def);
       else model.defaults[kind] = def;
@@ -1949,18 +1981,23 @@ function parseDiagramSource(body, headAttrs) {
       // goes – silently stacking two elements on 0,0 is not a default
       // anyone means.
       if (!node.place) {
-        if (model.nodes.length === 0) node.place = { kind: 'abs', x: 0, y: 0 };
+        if (model.nodes.length === 0) node.place = { kind: 'abs', at: [{ unit: 0 }, { unit: 0 }] };
         else dgErr(errors, lineNo, `${head} ${id} has no placement (at X,Y / below … / above … / right of … / left of … )`);
       }
       model.nodes.push(node);
       if (node.leader) {
         const leadId = `${id}--lead`;
         claim(leadId, 'edge', lineNo);
+        const to = dgParseRef(node.leader, errors, lineNo);
+        // Kept on the node as well: the label is only as visible as what it
+        // points at, and that check should not re-parse the reference once
+        // per element per step.
+        node.leaderRef = to.point ? null : to.ref;
         model.edges.push({
           kind: 'edge',
           id: leadId,
           from: { ref: id, anchor: null },
-          to: dgParseRef(node.leader, errors, lineNo),
+          to,
           label: '', classes: ['no-head', 'muted'], via: [], line: lineNo,
         });
       }
@@ -1986,10 +2023,21 @@ function parseDiagramSource(body, headAttrs) {
         via: [], line: lineNo,
       };
       if (body0[arrowAt].v === '--' && !edge.classes.includes('no-head')) edge.classes.push('no-head');
+      // Waypoints are introduced by `via`, once, and it is not optional: every
+      // other modifier in this grammar is a keyword followed by its values,
+      // and a bare `1,2` hanging off the end of an edge read like a typo even
+      // to the author who wrote it.
+      let seenVia = false;
       for (let k = arrowAt + 2; k < body0.length; k++) {
-        if (body0[k].v === 'via') continue;
-        if (!body0[k].v.includes(',')) {
-          dgErr(errors, lineNo, `unexpected "${body0[k].v}" in edge (waypoints are "via X,Y X,Y")`);
+        if (body0[k].v === 'via') {
+          if (seenVia) dgErr(errors, lineNo, `edge ${id}: one "via" carries every waypoint – "via X,Y X,Y"`);
+          seenVia = true;
+          continue;
+        }
+        if (!seenVia) {
+          dgErr(errors, lineNo, body0[k].v.includes(',')
+            ? `edge ${id}: a waypoint needs "via" in front of it – "via ${body0[k].v}"`
+            : `unexpected "${body0[k].v}" in edge ${id} (waypoints are "via X,Y X,Y")`);
           continue;
         }
         const p = dgParsePair(body0[k].v, errors, lineNo, 'a waypoint');
@@ -2007,28 +2055,25 @@ function parseDiagramSource(body, headAttrs) {
       if (overAt < 0) { dgErr(errors, lineNo, `${head} ${id} needs "over a,b,c"`); continue; }
       // `over a, b, c` tokenizes into several tokens; everything up to the
       // first trailing keyword is the member list.
-      const TRAIL = new Set(['pad', 'gap', 'right', 'left', 'top', 'bottom']);
+      const TRAIL = new Set(['pad', ...DG_BRACE_SIDES]);
       let mEnd = overAt + 1;
       while (mEnd < body0.length && !TRAIL.has(body0[mEnd].v)) mEnd++;
       const members = dgParseMembers(body0.slice(overAt + 1, mEnd).map(x => x.v).join(','));
       if (!members.length) { dgErr(errors, lineNo, `${head} ${id} lists no members`); continue; }
       const rest = body0.slice(mEnd);
-      const item = { kind: head, id, members, label: quoted[0] ?? '', classes: attrs.classes, tags: attrs.tags, pad: 0.18, line: lineNo };
-      if (head === 'brace') {
-        item.side = 'right';
-        for (let k = 0; k < rest.length; k++) {
-          if (['right', 'left', 'top', 'bottom'].includes(rest[k].v)) item.side = rest[k].v;
-          else if (rest[k].v === 'gap') { item.pad = dgNum(rest[k + 1]?.v, errors, lineNo, 'gap'); k++; }
-          else dgErr(errors, lineNo, `unexpected "${rest[k].v}" in brace ${id}`);
-        }
-        model.braces.push(item);
-      } else {
-        for (let k = 0; k < rest.length; k++) {
-          if (rest[k].v === 'pad') { item.pad = dgNum(rest[k + 1]?.v, errors, lineNo, 'pad'); k++; }
-          else dgErr(errors, lineNo, `unexpected "${rest[k].v}" in container ${id}`);
-        }
-        model.containers.push(item);
+      // `pad` on both, and it means the same thing on both: how far the
+      // outline sits from what it encloses. The brace used to spell it
+      // `gap`, which is the word for the distance between two *elements*
+      // everywhere else in the grammar.
+      const item = { kind: head, id, members, label: quoted[0] ?? '', classes: attrs.classes, tags: attrs.tags, pad: null, line: lineNo };
+      if (head === 'brace') item.side = null;
+      for (let k = 0; k < rest.length; k++) {
+        const key = rest[k].v;
+        if (head === 'brace' && DG_BRACE_SIDES.includes(key)) { item.side = key; continue; }
+        if (key === 'pad') { item.pad = dgNum(rest[k + 1]?.v, errors, lineNo, 'pad'); k++; continue; }
+        dgErr(errors, lineNo, `unexpected "${key}" in ${head} ${id}`);
       }
+      (head === 'brace' ? model.braces : model.containers).push(item);
       continue;
     }
   }
@@ -2067,6 +2112,35 @@ function parseDiagramSource(body, headAttrs) {
       dgErr(errors, d.line, `default ${d.kind} @${d.tag} – no element carries @${d.tag}`);
     }
   }
+  // An element carrying two tags that both default its kind has no
+  // order-independent answer, and the two halves of the resolution used to
+  // disagree about it: classes took the last declared, geometry the first.
+  // Refuse it rather than pick.
+  for (const el of [...model.nodes, ...model.containers, ...model.braces, ...model.edges]) {
+    const hits = model.tagDefaults.filter(d => d.kind === el.kind && (el.tags || []).includes(d.tag));
+    if (hits.length > 1) {
+      dgErr(errors, el.line, `${el.kind} ${el.id} carries @${hits.map(h => h.tag).join(' and @')}, `
+        + `and both have a "default ${el.kind}" (lines ${hits.map(h => h.line).join(', ')}) – `
+        + `which one wins would depend on their order, so say it on the element instead`);
+    }
+  }
+  // Containers and braces are fitted rather than sized, so `pad` (and the
+  // brace's side) never reach sizeOf's three-layer `pick`. Settle them here
+  // instead, by the same rule and in the same order – own line, then a tag
+  // default, then the kind default – so `default container pad 0.42` covers
+  // a diagram full of containers the way `default box w 1` covers its boxes.
+  for (const el of [...model.containers, ...model.braces]) {
+    const layer = (key) => {
+      if (el[key] != null) return el[key];
+      for (const d of model.tagDefaults) {
+        if (d.kind === el.kind && (el.tags || []).includes(d.tag) && d[key] != null) return d[key];
+      }
+      const kd = model.defaults[el.kind];
+      return kd && kd[key] != null ? kd[key] : null;
+    };
+    el.pad = layer('pad') ?? DG_PAD_DEFAULT;
+    if (el.kind === 'brace') el.side = layer('side') ?? 'right';
+  }
   const known = (id) => (id.startsWith('@') ? model.tags.has(id.slice(1)) : model.byId.has(id));
   const checkRef = (id, lineNo, what) => {
     if (!id || known(id)) return;
@@ -2082,7 +2156,8 @@ function parseDiagramSource(body, headAttrs) {
     dgErr(errors, lineNo, `${what} refers to "${id}", which is not defined${hint}`);
   };
   const refsOf = (place) => place?.kind === 'rel' ? [place.ref]
-    : place?.kind === 'between' ? place.refs.map(r => r.ref) : [];
+    : place?.kind === 'between' ? place.refs.map(r => r.ref)
+    : place?.kind === 'abs' ? dgPairRefs(place.at) : [];
   for (const n of model.nodes) {
     for (const r of refsOf(n.place)) checkRef(r, n.line, `${n.kind} ${n.id}`);
     if (n.sameAs) checkRef(n.sameAs, n.line, `${n.kind} ${n.id} (same as)`);
@@ -2105,6 +2180,16 @@ function parseDiagramSource(body, headAttrs) {
     for (const op of s.ops) {
       for (const target of (op.targets || (op.target ? [op.target] : []))) checkRef(target, op.line, `step ${s.name}`);
       for (const r of refsOf(op.to)) checkRef(r, op.line, `step ${s.name}`);
+      // `move @row to 3,2` gives every member of the set the same placement,
+      // which stacks them on one point – never what a set-wide move means.
+      // `by` is the one that translates a group, so name it.
+      if (op.op === 'move' && op.to && op.target && op.target.startsWith('@')) {
+        const members = model.tags.get(op.target.slice(1)) || [];
+        if (members.length > 1) {
+          dgErr(errors, op.line, `move ${op.target} to … would place all ${members.length} elements `
+            + `carrying ${op.target} at the same point. To translate a set, use "move ${op.target} by dx,dy".`);
+        }
+      }
     }
   }
 
@@ -2225,7 +2310,16 @@ function dgStateAt(model, k) {
         else if (op.op === 'hide') st.visible = false;
         else if (op.op === 'emph') { st.classes.delete('dim'); st.classes.add('emph'); }
         else if (op.op === 'calm') { st.classes.delete('emph'); st.classes.add('dim'); }
-        else if (op.op === 'style') for (const c of op.classes) st.classes.add(c);
+        // Same slot rule as the default block: a class added by `style`
+        // displaces the one already occupying its slot. Adding it alongside
+        // left `tone-4 tone-1` on the element, both rules matching at equal
+        // specificity, so stylesheet order decided the colour and the step
+        // could silently do nothing.
+        else if (op.op === 'style') for (const c of op.classes) {
+          const group = DG_CLASS_GROUPS.find(g => g.includes(c));
+          if (group) for (const other of group) st.classes.delete(other);
+          st.classes.add(c);
+        }
         else if (op.op === 'label') st.label = op.text;
         else if (op.op === 'move') {
           if (op.by) { st.shift = [st.shift[0] + op.by[0], st.shift[1] + op.by[1]]; }
@@ -2299,6 +2393,10 @@ function layoutDiagram(model, state, errors) {
     if (!place) return [];
     if (place.kind === 'rel') return [place.ref];
     if (place.kind === 'between') return place.refs.map(r => r.ref);
+    // An `at` may name other elements now, and unlike an edge a node is
+    // placed during the walk – so those references are real dependencies,
+    // and a circular one is caught by the same cycle detector.
+    if (place.kind === 'abs') return dgPairRefs(place.at);
     return [];
   };
   // The first element listed is the master; everybody else takes that one
@@ -2383,7 +2481,7 @@ function layoutDiagram(model, state, errors) {
       const place = st.place;
       let cx = 0, cy = 0;
       if (!place) { cx = 0; cy = 0; }
-      else if (place.kind === 'abs') { cx = place.x * uw; cy = place.y * uh; }
+      else if (place.kind === 'abs') { [cx, cy] = dgPairPx(place.at, boxes, uw, uh); }
       else if (place.kind === 'between') {
         const pts = place.refs.map(r => {
           const rb = boxes.get(r.ref);
@@ -2449,7 +2547,16 @@ function layoutDiagram(model, state, errors) {
     }
     const holder = contById.get(id) || braceById.get(id);
     if (!holder) continue;
-    const memberBoxes = holder.members.map(m => boxes.get(m)).filter(Boolean);
+    // Fit the members that are on screen, the same rule an edge follows:
+    // a container drawn around a box nobody can see yet is a slab of empty
+    // paper, and it is the re-fitting that makes `move` read as a member
+    // joining or leaving the set. All members hidden falls back to fitting
+    // them all – the holder is invisible at that beat anyway (see
+    // dgFrameDrawables), and a zero-extent box would poison the viewBox.
+    const allBoxes = holder.members.map(m => boxes.get(m)).filter(Boolean);
+    const shown = holder.members.filter(m => state.get(m) && state.get(m).visible)
+      .map(m => boxes.get(m)).filter(Boolean);
+    const memberBoxes = shown.length ? shown : allBoxes;
     if (!memberBoxes.length) { boxes.set(id, { x: 0, y: 0, w: 0, h: 0 }); continue; }
     const bb = dgUnion(memberBoxes);
     if (contById.has(id)) {
@@ -2548,6 +2655,14 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     const st = record(node);
     const b = boxes.get(node.id);
     if (!b) continue;
+    // A label that grew a leader is only as visible as what it points at –
+    // the third face of the same rule the edges and the holders follow. Its
+    // stub was already hidden with the target, and words hanging in empty
+    // space with the line to their subject missing read as a bug.
+    if (node.leaderRef) {
+      const target = state.get(node.leaderRef);
+      if (target && !target.visible) vis.set(node.id, 0);
+    }
     if (node.kind === 'box') {
       put(node, node.id + '--r', [b.x, b.y, b.w, b.h]);
       labelBox(node, st, b, false);
@@ -2561,8 +2676,14 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     }
   }
 
+  // A container or a brace is only as visible as the set it holds, for the
+  // same reason an edge is only as visible as its endpoints: an outline
+  // around nothing is never what the author meant, and making it the rule
+  // means a holder needs no `show` of its own.
+  const holdsSomething = (h) => h.members.some(m => state.get(m) && state.get(m).visible);
   for (const c of model.containers) {
     const st = record(c);
+    if (!holdsSomething(c)) vis.set(c.id, 0);
     const b = boxes.get(c.id);
     if (!b) continue;
     put(c, c.id + '--r', [b.x, b.y, b.w, b.h]);
@@ -2573,6 +2694,7 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
 
   for (const br of model.braces) {
     const st = record(br);
+    if (!holdsSomething(br)) vis.set(br.id, 0);
     const b = boxes.get(br.id);
     if (!b) continue;
     const pad = br.pad * uh, tick = DG_BRACE_TICK;
@@ -2835,47 +2957,67 @@ function renderDiagram(body, headAttrs, opts = {}) {
     ...model.nodes.filter(e => e.kind !== 'image').map(e => ({ e, kind: e.kind })),
   ];
 
-  // Print state: the union of everything the diagram ever shows, drawn
-  // where it last stood. Reveal collapses the same way in print (PRD §4.6)
-  // – a handout is the finished picture, not its first beat.
-  const printGeom = new Map(), printVis = new Map(), printCls = new Map(), printLab = new Map();
-  for (const f of frames) {
-    for (const [id, v] of f.vis) {
-      if (v > 0) {
-        printVis.set(id, 1);
-        // emph and dim are lecture-time acts, like the collapse mode – a
-        // handout that arrives with three arrows greyed out is reporting a
-        // moment in the talk, not the diagram.
-        printCls.set(id, String(f.cls.get(id) || '').split(/\s+/).filter(c => c && c !== 'emph' && c !== 'dim').join(' '));
-        if (f.lab.has(id)) printLab.set(id, f.lab.get(id));
-        for (const [gid, vec] of f.geom) {
-          if (gid === id || gid.startsWith(id + '--')) printGeom.set(gid, vec);
-        }
-      } else if (!printVis.has(id)) printVis.set(id, 0);
-    }
+  // Print state: the last beat, with the lecture-time emphasis stripped. A
+  // handout is the finished picture, not its first beat – and not the union
+  // of every beat either: `hide` is the author saying an element is gone by
+  // the end, so reprinting it lays a withdrawn arrow across whatever took
+  // its place. Everything shown and never hidden is in the last beat anyway,
+  // so this is the union for every diagram that only ever builds up.
+  const last = frames[frames.length - 1];
+  const printGeom = new Map(last.geom), printVis = new Map(), printCls = new Map(), printLab = new Map(last.lab);
+  for (const [id, v] of last.vis) {
+    // emph and dim are lecture-time acts, like the collapse mode – a handout
+    // that arrives with three arrows greyed out is reporting a moment in the
+    // talk, not the diagram. The opacity has to be recomputed from the
+    // stripped classes rather than carried over: taking the step's number
+    // kept a calmed element at 30% on paper, and pinning it to 1 threw away
+    // an author's own .ghost.
+    const stripped = String(last.cls.get(id) || '').split(/\s+/)
+      .filter(c => c && c !== 'emph' && c !== 'dim');
+    printVis.set(id, dgOpacity(v > 0, stripped));
+    printCls.set(id, stripped.join(' '));
   }
 
-  // The viewBox has to hold every frame, or a box that walks in from the
-  // side would be clipped for the whole of its journey.
-  const allBoxes = [];
+  // Two boxes, because the two media want opposite things. The live views
+  // need one that holds every frame, or a box walking in from the side is
+  // clipped for the whole of its journey and the picture jumps under the
+  // room's eyes. Print is a single still and wants the finished picture
+  // tight; given the union it prints a band of empty paper the height of
+  // wherever something started out.
+  //
+  // The static attribute is the print one, for the same reason the static
+  // element attributes are the print state: a view with no JavaScript shows
+  // the finished picture. The runtime widens it to the union on boot.
   const labelExt = new Map();
   for (const f of frames) for (const [k, v] of f.ext) labelExt.set(k, v);
-  for (const f of [...frames, { geom: printGeom }]) {
+  const extentsOf = (f, into, visible) => {
     for (const [gid, vec] of f.geom) {
-      if (gid.endsWith('--r') || gid.endsWith('--i')) allBoxes.push({ x: vec[0], y: vec[1], w: vec[2], h: vec[3] });
-      else if (gid.endsWith('--c')) allBoxes.push({ x: vec[0] - vec[2], y: vec[1] - vec[2], w: vec[2] * 2, h: vec[2] * 2 });
+      if (visible && !visible(gid)) continue;
+      if (gid.endsWith('--r') || gid.endsWith('--i')) into.push({ x: vec[0], y: vec[1], w: vec[2], h: vec[3] });
+      else if (gid.endsWith('--c')) into.push({ x: vec[0] - vec[2], y: vec[1] - vec[2], w: vec[2] * 2, h: vec[2] * 2 });
       else if (gid.endsWith('--l')) {
         const [lw, lh] = (f.ext && f.ext.get(gid)) || labelExt.get(gid) || [120, 28];
         // Anchored middle unless the element says otherwise, so half of it
         // sits either side; a start/end anchored one is covered generously.
-        allBoxes.push({ x: vec[0] - lw, y: vec[1] - lh / 2, w: lw * 2, h: lh });
+        into.push({ x: vec[0] - lw, y: vec[1] - lh / 2, w: lw * 2, h: lh });
       }
-      else for (let i = 0; i < vec.length; i += 2) allBoxes.push({ x: vec[i], y: vec[i + 1], w: 0, h: 0 });
+      else for (let i = 0; i < vec.length; i += 2) into.push({ x: vec[i], y: vec[i + 1], w: 0, h: 0 });
     }
-  }
-  const bb = allBoxes.length ? dgUnion(allBoxes) : { x: 0, y: 0, w: 100, h: 100 };
-  const vbX = bb.x - DG_MARGIN, vbY = bb.y - DG_MARGIN;
-  const vbW = Math.max(bb.w + 2 * DG_MARGIN, 1), vbH = Math.max(bb.h + 2 * DG_MARGIN, 1);
+  };
+  const liveBoxes = [];
+  for (const f of frames) extentsOf(f, liveBoxes);
+  const printBoxes = [];
+  // A drawable belongs to the element whose id it is prefixed with; the
+  // suffix after the last `--` names which drawable it is.
+  const ownerOf = (gid) => (gid.lastIndexOf('--') > 0 ? gid.slice(0, gid.lastIndexOf('--')) : gid);
+  extentsOf({ geom: printGeom, ext: last.ext }, printBoxes, (gid) => (printVis.get(ownerOf(gid)) ?? 1) > 0);
+  const boxFor = (list) => {
+    const bb = list.length ? dgUnion(list) : { x: 0, y: 0, w: 100, h: 100 };
+    return [bb.x - DG_MARGIN, bb.y - DG_MARGIN,
+      Math.max(bb.w + 2 * DG_MARGIN, 1), Math.max(bb.h + 2 * DG_MARGIN, 1)];
+  };
+  const [lvX, lvY, lvW, lvH] = boxFor(liveBoxes.concat(printBoxes));
+  const [vbX, vbY, vbW, vbH] = boxFor(printBoxes.length ? printBoxes : liveBoxes);
 
   const kinds = {};
   const anchorOf = new Map();
@@ -2961,8 +3103,10 @@ function renderDiagram(body, headAttrs, opts = {}) {
   // projector. The consequence is the useful one: `unit` sets only the
   // proportions inside the picture, and how large it lands is the chunk's
   // width class, exactly like every other figure.
+  const liveVb = `${lvX.toFixed(2)} ${lvY.toFixed(2)} ${lvW.toFixed(2)} ${lvH.toFixed(2)}`;
   const svg = `<svg id="${svgId}" class="psi-diagram" viewBox="${vbX.toFixed(2)} ${vbY.toFixed(2)} ${vbW.toFixed(2)} ${vbH.toFixed(2)}" `
     + `width="${DG_NOMINAL_W}" height="${Math.round(DG_NOMINAL_W * vbH / vbW)}" `
+    + (frameCount > 1 ? `data-live-viewbox="${liveVb}" data-live-ratio="${(lvH / lvW).toFixed(6)}" ` : '')
     + `data-steps="${frameCount}"${aria} preserveAspectRatio="xMidYMid meet">\n${svgBody}</svg>`;
   const script = frameCount > 1
     ? `<script type="application/json" class="psi-diagram-frames" data-for="${svgId}">`
@@ -3213,6 +3357,17 @@ function initDiagrams() {
     if (!svg) return;
     let data;
     try { data = JSON.parse(sc.textContent); } catch (e) { return; }
+    // The static viewBox is the print one – tight around the finished
+    // picture. A live view has to hold every frame instead, or an element
+    // that walks in from outside is clipped for the whole of its journey.
+    // Swapped here rather than emitted, so a view with no JavaScript keeps
+    // the still it is going to show.
+    if (svg.dataset.liveViewbox) {
+      svg.setAttribute('viewBox', svg.dataset.liveViewbox);
+      const w = Number(svg.getAttribute('width'));
+      const r = Number(svg.dataset.liveRatio);
+      if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
+    }
     const fig = svg.closest('.figure-diagram');
     const d = {
       svg, data, step: -1, raf: 0, cur: null, cache: {},

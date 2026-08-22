@@ -21,8 +21,8 @@ from building the same way is a major version.
   speaker window follows, the freeze gate applies, and a revisited chunk
   comes back fully stepped, all without new state. Free `text` can grow a
   leader line to whatever it comments on (`-> ref`), which is what makes
-  placement free without losing the connection. Print shows the union of
-  every step at its last position, minus the live-only emphasis. There is
+  placement free without losing the connection. Print shows the last beat,
+  minus the live-only emphasis. There is
   deliberately **no automatic layout and no constraint solver**: placement
   is a grid cell or a relation to a neighbour, resolved as a DAG, so a
   mistake names its line instead of shifting the picture. `lint.js`
@@ -105,6 +105,36 @@ from building the same way is a major version.
   anchored middle and lay half across the elements it spans; and the
   `::: side` composition of a code fence beside a diagram works, which is
   what carries the buffer-overflow slide.
+
+  A second review pass, with every doc snippet compiled and every example
+  slide re-shot, tightened the grammar where it had grown two ways of
+  saying one thing. `brace` measures its distance to its members with
+  `pad`, the word `container` already used – `gap` everywhere else in the
+  grammar is the distance between two *elements*. One coordinate grammar
+  now sits behind `at X,Y`, `move … to X,Y`, waypoints and endpoints
+  alike, so `box m at c1.cx,m0.cy` places a box in a column without
+  measuring it, and a reference there is a real dependency the cycle
+  detector sees. `via` is no longer optional in front of a waypoint, and
+  one `via` carries every one of them. `default <kind>` accepts exactly
+  the options that kind's own statement accepts, so `default box r 5` is
+  an error naming the kind it belongs to instead of a line that parses and
+  does nothing, and `default container pad` / `default brace pad …
+  <side>` now reach the elements they are about. An element name is
+  restricted to letters, digits, `_` and `-`, because a name with a dot in
+  it is indistinguishable from a coordinate.
+
+  Visibility became one rule with three faces: an edge is only as visible
+  as its endpoints, a `container` or `brace` only as visible as its
+  members (and it fits the ones on screen), and a `text` with a leader
+  only as visible as what it points at. Print became **the last beat**
+  rather than the union of every beat – reprinting a `hide`n element laid
+  a withdrawn arrow across whatever replaced it – and the emitted SVG now
+  carries the tight print viewBox statically, with the runtime widening it
+  to hold every beat on boot, so a stepped handout no longer prints a band
+  of empty paper the height of wherever something started out. A class
+  added by `style` displaces the one in its slot, the same rule `default`
+  follows. `move @tag to …` is refused, naming `move @tag by dx,dy`: `to`
+  would stack the whole set on one point.
 
   Development state: this is unreleased work on a branch, and the
   vocabulary is **experimental** – it may still change before it is

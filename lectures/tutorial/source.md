@@ -456,11 +456,13 @@ step blame
 
 **Placement is a grid cell or a relation to a neighbour** – `at 2,1`, or `right of mix gap 0.6`, or `below src gap 0 align left` for boxes that touch. The first element sits at the origin so a simple diagram needs no coordinates at all. There is no automatic layout, on purpose: where things go is usually part of what the picture is saying.
 
+**A coordinate can name another element's, with a signed nudge** – `at mix.cx,src.cy+0.4`, `via iv.cx,x0.cy`. Every slot that takes an `X,Y` pair takes that form, so a figure survives a change above it instead of needing three numbers read off a screen. Element names are letters, digits, `_` and `-`, because `mix.cx` has to be readable as one thing; a comment line starts with `#`.
+
 **`step` blocks make it move, and `Space` is the key.** Diagram steps are beats on the same counter as reveal segments, so they interleave with them in source order and the cockpit follows. The vocabulary is `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style` and `label`.
 
 **A moved box takes its arrows with it.** The layout is evaluated again for every step rather than nudged, so an edge that connects two elements re-routes whenever either end moves – which is the one thing a diagram exported from a drawing tool can never do.
 
-**An arrow is only as visible as what it connects**, so revealing boxes reveals the arrows between them and most edges need no `show` of their own. Free `text` can grow a leader line with `-> some-element`, which is how a label goes wherever it reads best without losing what it is about.
+**Visibility runs downhill.** An arrow is only as visible as the two things it connects, a `container` or `brace` only as visible as its members – and it fits the ones on screen – and a `text` that grew a leader only as visible as what it points at. So revealing the boxes reveals the arrows between them, the outline around them and the note beside them, and most of a diagram needs no `show` of its own. Free `text` grows that leader with `-> some-element`, which is how a label goes wherever it reads best without losing what it is about.
 
 **A picture can be an element too.** `image alice avatar-alice w 0.4` resolves the asset exactly like `![](fig-id)` does. An SVG is spliced in as a nested `<svg>`, so it inherits `--ink` and `--paper` and re-colours with the `A` theme cycle; a raster is embedded as a `data:` URI and keeps its own colours in every theme. That is the trade, and it is the honest one.
 

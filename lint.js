@@ -103,6 +103,13 @@ const DG_ALIGN_Y = new Set(['top', 'middle', 'bottom']);
 const DG_SCALAR_X = new Set(['cx', 'left', 'right']);
 const DG_SCALAR_Y = new Set(['cy', 'top', 'bottom']);
 const DG_DEFAULT_KINDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'container', 'brace']);
+// Mirrors DG_KIND_OPTS / DG_BRACE_SIDES in build.js – what `default <kind>`
+// may set is exactly what that kind's own statement accepts.
+const DG_BRACE_SIDES = ['right', 'left', 'top', 'bottom'];
+const DG_KIND_OPTS = {
+  box: ['w', 'h'], text: ['w', 'h'], image: ['w', 'h'], dot: ['r'],
+  container: ['pad'], brace: ['pad'], edge: [],
+};
 // Mirrors DG_CLASS_GROUPS in build.js. The build uses it to let an explicit
 // class displace a `default`; here it catches two members of one slot on the
 // same element, where the loser is decided by stylesheet order and nothing
@@ -169,16 +176,17 @@ function lintDiagram(block, add, fmLines) {
   const defined = new Map();     // name -> line
   const tags = new Set();        // every @tag any element carries
   const referenced = [];         // { name, ln, what }
+  const setMoves = [];           // `move @tag to …`, checked once tags are known
   let inStep = false;
 
   const attrsOf = (text, ln) => {
     const m = text.match(/\{([^}]*)\}/);
-    const out = { id: null, classes: [] };
+    const out = { id: null, classes: [], tags: [] };
     if (!m) return out;
     for (const tok of m[1].trim().split(/\s+/).filter(Boolean)) {
       if (tok.startsWith('#')) out.id = tok.slice(1);
       else if (tok.startsWith('@')) {
-        if (tok.length > 1) tags.add(tok.slice(1));
+        if (tok.length > 1) { tags.add(tok.slice(1)); out.tags.push(tok.slice(1)); }
         else add(ln, 'error', 'bad-diagram-attribute', 'an empty @tag means nothing');
       }
       else if (tok.startsWith('.')) {
@@ -202,6 +210,14 @@ function lintDiagram(block, add, fmLines) {
   };
   const define = (name, ln) => {
     if (!name) return;
+    // A name with a dot would be indistinguishable from `elem.cx` in a
+    // coordinate; one with @ or # from a tag or an id token. Mirrors claim()
+    // in build.js.
+    if (!/^[A-Za-z_][\w-]*$/.test(name)) {
+      add(ln, 'error', 'bad-diagram-name',
+          `'${name}' is not a usable name – letters, digits, _ and - only, starting with a letter`);
+      return;
+    }
     if (defined.has(name)) {
       add(ln, 'error', 'duplicate-diagram-id',
           `diagram element '${name}' already defined at line ${defined.get(name)}`);
@@ -266,11 +282,16 @@ function lintDiagram(block, add, fmLines) {
         }
       }
     }
-    if (name) referenced.push({ name, ln, what });
+    // `raw` as well as `name`: a stray `0.3` where a member was expected
+    // strips to `0`, and complaining about `0` sends the author looking for
+    // something that is not on the line.
+    if (name) referenced.push({ name, raw, ln, what });
   };
 
   let anonEdge = 0;
-  const defaulted = new Map();   // kind -> line, one per diagram
+  const defaulted = new Map();      // kind[@tag] -> line, one per diagram
+  const tagDefaults = new Map();   // kind -> Map(tag -> line)
+  const carries = [];              // { kind, name, tags, ln }
   for (const { text, ln } of block.lines) {
     const trimmed = text.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
@@ -316,7 +337,35 @@ function lintDiagram(block, add, fmLines) {
               `a second 'default ${kind}${tag ? ' ' + tag : ''}' – there can only be one per diagram (the first is on line ${defaulted.get(key)})`);
         } else {
           defaulted.set(key, ln + fmLines);
-          if (tag) referenced.push({ name: tag, ln, what: `default ${kind}` });
+          if (tag) {
+            referenced.push({ name: tag, ln, what: `default ${kind}` });
+            if (!tagDefaults.has(kind)) tagDefaults.set(kind, new Map());
+            tagDefaults.get(kind).set(tag.slice(1), ln + fmLines);
+          }
+        }
+        // An option belonging to another kind parses and then does nothing.
+        const opts = DG_KIND_OPTS[kind];
+        let inTail = false;
+        for (let k = tag ? 3 : 2; k < words.length; k++) {
+          const w = words[k];
+          // The {…} tail may sit anywhere on the line and may be several
+          // words; skip it rather than stopping, or an option written after
+          // it would go unchecked here while the build still refuses it.
+          if (inTail) { if (w.endsWith('}')) inTail = false; continue; }
+          if (w.startsWith('{')) { if (!w.endsWith('}')) inTail = true; continue; }
+          if (kind === 'brace' && DG_BRACE_SIDES.includes(w)) continue;
+          if (opts.includes(w)) { k++; continue; }
+          const owner = Object.keys(DG_KIND_OPTS).find(kk => DG_KIND_OPTS[kk].includes(w));
+          if (owner) {
+            add(ln, 'error', 'bad-diagram-default',
+                `default ${kind} has no '${w}' – that is a ${owner} option. `
+                + `default ${kind} takes ${opts.length ? opts.join(', ') + ' and ' : ''}a {…} attribute tail.`);
+            k++;
+          } else {
+            // A `default` line carries no quoted label, so every remaining
+            // word is either an option, its value, or junk.
+            add(ln, 'error', 'bad-diagram-default', `unexpected '${w}' in default ${kind}`);
+          }
         }
       }
       inStep = false;
@@ -324,6 +373,14 @@ function lintDiagram(block, add, fmLines) {
     }
     if (head === 'step') { inStep = true; continue; }
     if (inStep && DG_STEP_OPS.has(head)) {
+      if (head === 'move' && words[2] === 'to' && words[3] && words[3].includes(',')) {
+        referPair(words[3], ln, 'move … to');
+      }
+      // `move @row to …` gives every member the same placement, stacking the
+      // whole set on one point. The build refuses it; say so here too.
+      if (head === 'move' && words[1] && words[1].startsWith('@') && words[2] === 'to') {
+        setMoves.push({ tag: words[1], ln });
+      }
       const targets = words.slice(1).join(',').split(',').map(s => s.trim()).filter(Boolean);
       const stop = new Set(['to', 'by', 'gap', 'align', 'of', 'right', 'left', 'below', 'above', 'at']);
       for (const t of targets) {
@@ -334,18 +391,20 @@ function lintDiagram(block, add, fmLines) {
     }
     if (!DG_KEYWORDS.has(head)) {
       const known = [...DG_KEYWORDS, ...(inStep ? DG_STEP_OPS : [])].join(', ');
-      add(ln, 'error', 'unknown-diagram-statement',
-          `unknown diagram statement '${head}' – valid: ${known}`);
+      add(ln, 'error', 'unknown-diagram-statement', trimmed.startsWith('//')
+        ? 'a comment line starts with # in a diagram, not //'
+        : `unknown diagram statement '${head}' – valid: ${known}`);
       continue;
     }
     inStep = false;
 
     if (DG_DEFINES.has(head)) {
       define(words[1], ln);
+      if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: words[1], tags: attrs.tags, ln });
       const overAt = words.indexOf('over');
       if (overAt >= 0) {
         for (const m of words.slice(overAt + 1).join(',').split(',').map(s => s.trim()).filter(Boolean)) {
-          if (['pad', 'gap', 'right', 'left', 'top', 'bottom'].includes(m)) break;
+          if (m === 'pad' || DG_BRACE_SIDES.includes(m)) break;
           refer(m, ln, `${head} ${words[1]}`);
         }
       } else if (head === 'brace' || head === 'container' || head === 'group') {
@@ -354,6 +413,10 @@ function lintDiagram(block, add, fmLines) {
       for (let k = 2; k < words.length; k++) {
         if (words[k] === 'of' || words[k] === 'below' || words[k] === 'above') {
           refer(words[k + 1], ln, `${head} ${words[1]}`);
+        }
+        // `at c1.cx,m0.cy` – the same coordinate grammar as a waypoint.
+        if (words[k] === 'at' && words[k + 1] && words[k + 1].includes(',')) {
+          referPair(words[k + 1], ln, `${head} ${words[1]} at`);
         }
         if (words[k] === 'between') {
           const STOP = new Set(['frac', 'offset', 'w', 'h', 'r', '->']);
@@ -384,6 +447,7 @@ function lintDiagram(block, add, fmLines) {
     }
     if (head === 'edge') {
       define(attrs.id || `edge-${++anonEdge}`, ln);
+      if (attrs.tags.length) carries.push({ kind: 'edge', name: attrs.id || `edge-${anonEdge}`, tags: attrs.tags, ln });
       const arrowAt = words.findIndex(w => w === '->' || w === '<-' || w === '--');
       if (arrowAt < 1 || !words[arrowAt + 1]) {
         add(ln, 'error', 'diagram-bad-edge', 'edge needs an element on both sides of "->"');
@@ -391,14 +455,44 @@ function lintDiagram(block, add, fmLines) {
       }
       refer(words[arrowAt - 1], ln, 'edge');
       refer(words[arrowAt + 1], ln, 'edge');
+      let seenVia = false;
       for (let k = arrowAt + 2; k < words.length; k++) {
-        if (words[k] === 'via') continue;
-        if (words[k].includes(',')) referPair(words[k], ln, 'a waypoint');
+        if (words[k] === 'via') {
+          if (seenVia) add(ln, 'error', 'diagram-bad-edge', `edge: one 'via' carries every waypoint – 'via X,Y X,Y'`);
+          seenVia = true;
+          continue;
+        }
+        if (!words[k].includes(',')) continue;
+        if (!seenVia) {
+          add(ln, 'error', 'diagram-bad-edge', `a waypoint needs 'via' in front of it – 'via ${words[k]}'`);
+          continue;
+        }
+        referPair(words[k], ln, 'a waypoint');
       }
     }
   }
   if (inStep === false && block.lines.length === 0) {
     add(block.open, 'warn', 'empty-diagram', '::: diagram has no content');
+  }
+  const tagCount = new Map();
+  for (const c of carries) for (const t of c.tags) tagCount.set(t, (tagCount.get(t) || 0) + 1);
+  for (const mv of setMoves) {
+    const n = tagCount.get(mv.tag.slice(1)) || 0;
+    if (n > 1) {
+      add(mv.ln, 'error', 'diagram-set-move',
+          `move ${mv.tag} to … would place all ${n} elements carrying ${mv.tag} at the same point. `
+          + `To translate a set, use 'move ${mv.tag} by dx,dy'.`);
+    }
+  }
+  for (const c of carries) {
+    const table = tagDefaults.get(c.kind);
+    if (!table) continue;
+    const hits = c.tags.filter(t => table.has(t));
+    if (hits.length > 1) {
+      add(c.ln, 'error', 'ambiguous-diagram-default',
+          `${c.kind} ${c.name} carries @${hits.join(' and @')}, and both have a 'default ${c.kind}' `
+          + `(lines ${hits.map(t => table.get(t)).join(', ')}) – which one wins would depend on their order`);
+    }
   }
   for (const r of referenced) {
     if (r.name.startsWith('@')) {
@@ -413,7 +507,7 @@ function lintDiagram(block, add, fmLines) {
       const hint = DG_CLASSES.has(r.name)
         ? ` – '.${r.name}' is a class; a set you can address is written '@${r.name}'` : '';
       add(r.ln, 'error', 'unknown-diagram-ref',
-          `${r.what} refers to '${r.name}', which is not defined in this diagram${hint}`);
+          `${r.what} refers to '${r.raw ?? r.name}', which is not defined in this diagram${hint}`);
     }
   }
 }
