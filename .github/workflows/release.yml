@@ -8,7 +8,8 @@
 # asset is called exactly that. They unpack to a psi-slides/ directory,
 # because the instructions say `cd psi-slides` next.
 #
-# What is in them: the repository tree at the tag – build.js, lint.js, every
+# What is in them: the repository tree at the tag – build.js, diagram-core.mjs,
+# lint.js, every
 # lecture source, docs/, the checked-in site fonts, LICENSE, package.json and
 # the lockfile – plus the four built HTML views for all three published
 # lectures. The built views are the reason to prefer the archive over a clone:

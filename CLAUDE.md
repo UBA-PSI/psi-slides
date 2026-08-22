@@ -94,12 +94,17 @@ A source file can silence specific lint warnings with an HTML comment anywhere i
 
 ### Single-file build pipeline
 
-`build.js` holds the entire rendering stack: parser, three renderers, inlined audience/speaker runtime JS, inlined audience/speaker/print CSS, Shiki highlighter, image-shorthand resolver, WebSocket watch server, and the CLI. It is deliberately one file, and a large one – roughly two thirds of it is the embedded CSS and runtime JS, so the Node-side build logic is much smaller than the file size suggests. Navigate it by the `// ── section ──` banners:
+`build.js` holds the entire rendering stack: parser, three renderers, inlined audience/speaker runtime JS, inlined audience/speaker/print CSS, Shiki highlighter, image-shorthand resolver, WebSocket watch server, and the CLI. It is deliberately one file, and a large one – roughly two thirds of it is the embedded CSS and runtime JS, so the Node-side build logic is much smaller than the file size suggests.
+
+**`diagram-core.mjs` is the one documented exception**, and the reason is narrow: the graphical editor answers a drag by rewriting the source and re-running the compiler *in the browser*, so exactly one text has to compile a diagram in Node and in the page. Two copies of a 2,000-line compiler is not a duplication anyone can maintain. The file is pure JS with **zero imports and zero Node APIs**; the four leaves that were Node-only (asset resolution, aspect reading, the warning sink, `escapeHtml`) plus a fifth (`assetMarkup`, which splices a vector file inline) are injected by `createDiagramCompiler({…})`. build.js keeps those leaves, the diagram CSS and the step runtime. The move also *removes* a duplication: `lint.js` imports the vocabulary tables instead of mirroring thirteen of them by hand – tables only, never a function, or the whole compiler comes in behind it and the linter stops being runnable without the Markdown/Shiki stack. See `editor.md` §8.1.
+
+Navigate build.js by the `// ── section ──` banners:
 
 - `// ── syntax highlighting ──` – Shiki singleton + per-build highlight cache.
 - `// ── image shorthand resolution ──` – `![](fig-id)` → `assets/fig-id.{svg,png,jpg,jpeg,gif,webp}` (first match wins).
 - `// ── math (KaTeX, rendered at build time) ──` – `$inline$` / `$$display$$`, the per-build render cache, and the conditional stylesheet. Two things here are load-bearing: the family→class map is **parsed out of `katex.min.css`**, never hard-coded, so it survives a KaTeX upgrade; and the stylesheet is emitted only for views that actually contain a formula, because the inlined woff2 faces are 254 KB for the full set. The live views additionally carry `KATEX_TOGGLE_FAMS` (sans + typewriter, ~46 KB) so the maths can follow the `F` toggle; print passes no `fontToggle` flag and pays nothing extra.
 - `// ── marked renderer overrides ──` – custom `code` and `image` handlers on `marked`.
+- `// ── diagrams (::: diagram) ──` – what is left of the compiler here: `dgResolveImage`, `dgAspect`, `dgAssetMarkup`, `dgWarn`, and the `createDiagramCompiler` call that injects them. Followed by `// ── diagram CSS ──` and `// ── diagram runtime ──`, which are inlined like every other stylesheet and runtime in this file.
 - `// ── parsing ──` – `parseLecture()` and helpers (`parseTagPrefix`, `splitHeading`, `parseAttributeTail`).
 - `// ── rendering ──` + `// ── print CSS ──` – print (document) renderer.
 - `// ── audience rendering ──`, `// ── audience CSS ──`, `// ── audience runtime JS ──` – audience view, inlined as template strings. `renderHelpOverlay(view)` here generates the `?` cheat sheet for **both** live views from one data structure – edit labels there, not in the per-view HTML.
@@ -122,7 +127,9 @@ Design implications:
 
 ### lint.js is independent
 
-`lint.js` is a **zero-dep, standalone** linter. It deliberately does not import anything from `build.js`; it re-implements the parsing contract in ~350 lines and mirrors the constants (`VALID_TAGS`, `VALID_WIDTHS`, `DENSITY_BUDGET`). When you change the parser vocabulary in `build.js`, update `lint.js` in the same commit – the duplication is the price paid for keeping the linter runnable without the Markdown/Shiki stack.
+`lint.js` is a **zero-dep** linter – nothing from `node_modules`, so it runs as a pre-commit gate without the Markdown/Shiki stack. It deliberately does not import anything from `build.js`; it re-implements the parsing contract and mirrors the constants (`VALID_TAGS`, `VALID_WIDTHS`, `DENSITY_BUDGET`, `VIEW_DEFAULTS`). When you change the parser vocabulary in `build.js`, update `lint.js` in the same commit – the duplication is the price paid for keeping the linter runnable without the Markdown/Shiki stack.
+
+The **diagram vocabulary is the exception**: it is imported from `diagram-core.mjs`, which has no dependencies of its own, so importing it costs nothing this file was protecting and removes thirteen tables that had to change in two places. **Tables only.** A function from that module would pull the whole compiler in behind it.
 
 Checks enforced:
 
@@ -269,7 +276,7 @@ Consequences worth not breaking:
 - **`align` / `spread` name a set with a master.** Dragging the master should move the group; dragging a follower means either leaving the set (drop the name from the statement) or moving everyone. That is a UI decision, not a format one, but the statement form is what makes either answer a one-line edit.
 - **A tag default is shared.** Resizing one element that draws its width from `default box @dec w 0.48` should write an explicit `w` on that element rather than change the default – "just this one" is the safe reading of a drag. Changing the default has to be a deliberate act on the default's own line.
 
-`lint.js` mirrors `DG_KEYWORDS`, `DG_STEP_OPS` and `DG_CLASSES`, same contract as `VALID_TAGS` – change them in one commit. It also **captures the diagram body verbatim, ahead of the heading matchers but behind the fence tracker**: a diagram comment starts with `#`, and read as markdown that is a column heading – while a `::: diagram` inside a code fence is a syntax example and must not be compiled. Getting that order wrong made the linter fail any lecture that documented the directive, which is the tutorial the release job publishes. Its `oversized-asset` gate and `collectImageRefs` (for `--optimize-images`) both scan diagram `image` lines too, or the pre-commit gate would let through exactly what `assertInlinable` refuses.
+`lint.js` **imports** the diagram vocabulary from `diagram-core.mjs` rather than mirroring it – thirteen tables that used to have to change in two files in one commit. Tables only, never a function: a function would pull the whole compiler in behind it and the linter would stop being runnable without the Markdown/Shiki stack. It also **captures the diagram body verbatim, ahead of the heading matchers but behind the fence tracker**: a diagram comment starts with `#`, and read as markdown that is a column heading – while a `::: diagram` inside a code fence is a syntax example and must not be compiled. Getting that order wrong made the linter fail any lecture that documented the directive, which is the tutorial the release job publishes. Its `oversized-asset` gate and `collectImageRefs` (for `--optimize-images`) both scan diagram `image` lines too, or the pre-commit gate would let through exactly what `assertInlinable` refuses.
 
 ### Hosted embeds (`::: embed <url>`)
 

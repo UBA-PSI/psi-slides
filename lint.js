@@ -2,10 +2,18 @@
 /**
  * Lecture linter – static checks for source.md files.
  *
- * Stand-alone and zero-dep so it can evolve alongside build.js without
- * sharing state. Mirrors the parser's ground truth: VALID_TAGS,
- * VALID_WIDTHS, attribute-tail syntax, fence-aware reveal splits,
- * ::: directives.
+ * Zero-dep – nothing from node_modules – so it runs as a pre-commit gate
+ * without the Markdown/Shiki stack, and independent of build.js so the two
+ * can evolve without sharing state. It re-states the parser's ground truth
+ * rather than importing it: VALID_TAGS, VALID_WIDTHS, attribute-tail syntax,
+ * fence-aware reveal splits, ::: directives.
+ *
+ * The one exception is the diagram vocabulary, which comes from
+ * diagram-core.mjs. That module is pure JS with no dependencies of its own,
+ * so importing its *tables* costs this file nothing it was protecting, and it
+ * removes thirteen copies that had to change in two files in one commit. The
+ * rule there: tables only. A function would pull the whole compiler in behind
+ * it.
  *
  * Usage:
  *   node lint.js <source.md>
@@ -92,52 +100,19 @@ const DENSITY_BUDGET = {
   free: 250,
 };
 
-// Mirrors the diagram DSL in build.js. Same contract as VALID_TAGS: the
-// linter re-states the vocabulary rather than importing it, and the two
-// have to move in one commit. A linter that is stricter than the build is
-// worse than none, so this list is checked against DG_CLASSES / the
-// statement table there, not guessed at.
-const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'align', 'spread', 'default', 'step']);
-const DG_ALIGN_X = new Set(['left', 'center', 'right']);
-const DG_ALIGN_Y = new Set(['top', 'middle', 'bottom']);
-const DG_SCALAR_X = new Set(['cx', 'left', 'right']);
-const DG_SCALAR_Y = new Set(['cy', 'top', 'bottom']);
-const DG_DEFAULT_KINDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'container', 'brace']);
-// Mirrors DG_KIND_OPTS / DG_BRACE_SIDES in build.js – what `default <kind>`
-// may set is exactly what that kind's own statement accepts.
-const DG_BRACE_SIDES = ['right', 'left', 'top', 'bottom'];
-const DG_KIND_OPTS = {
-  box: ['w', 'h', 'pad'], text: ['w', 'h', 'pad'], image: ['w', 'h'], dot: ['r'],
-  container: ['pad'], brace: ['pad'], edge: [],
-};
-// Mirrors DG_CLASS_GROUPS in build.js. The build uses it to let an explicit
-// class displace a `default`; here it catches two members of one slot on the
-// same element, where the loser is decided by stylesheet order and nothing
-// on the page says so.
-const DG_CLASS_GROUPS = [
-  ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear'],
-  ['accent', 'muted'],
-  ['dashed', 'dotted'],
-  ['thick', 'bare'],
-  ['round', 'sharp'],
-  ['small', 'large'],
-  ['mono', 'serif', 'hand'],
-  ['fit', 'shrink'],
-  ['left', 'right'],
-];
-// Not one slot, but the pair is still a mistake with no visible cause:
-// .tone-4 fills with the accent and inverts its own label, so accent ink on
-// it is invisible. The stylesheet arbitrates in favour of the inversion; the
-// author should hear about it rather than wonder where the words went.
-const DG_CLASS_CLASHES = [['tone-4', 'accent']];
-const DG_STEP_OPS = new Set(['show', 'hide', 'move', 'emph', 'calm', 'style', 'label']);
-const DG_CLASSES = new Set([
-  'tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'accent', 'muted', 'ghost',
-  'dashed', 'dotted', 'thick', 'bare', 'round', 'sharp',
-  'mono', 'serif', 'hand', 'small', 'large', 'bold', 'fit', 'shrink', 'left', 'right',
-  'no-head', 'both-heads', 'emph', 'dim',
-]);
-const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container']);
+// The diagram vocabulary is *imported*, not mirrored. Thirteen tables used to
+// be written out again here and had to change in two files in one commit;
+// diagram-core.mjs is pure JS with zero dependencies of its own, so importing
+// them costs this file nothing it was protecting.
+//
+// The rule that still holds: **import only the tables.** A function from that
+// module would pull the whole compiler in behind it, and lint.js stays
+// runnable without the Markdown/Shiki stack precisely because it does not.
+import {
+  DG_KEYWORDS, DG_STEP_OPS, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES,
+  DG_KIND_OPTS, DG_BRACE_SIDES, DG_ALIGN_X, DG_ALIGN_Y, DG_SCALAR_X,
+  DG_SCALAR_Y, DG_DEFAULT_KINDS, DG_ANCHORS, DG_DEFINES,
+} from './diagram-core.mjs';
 
 const REVEAL_PCT_WARN = 0.5;
 const ORPHAN_MIN = 2;
@@ -309,7 +284,6 @@ function lintDiagram(block, add, fmLines, lectureTags) {
   };
   // Anchors (mix.right) and group names both resolve against the same
   // table, so a reference is only ever its part before the dot.
-  const ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 'tr', 'bl', 'br']);
   // `X,Y` where either side may be `elem.cy` or `elem.left-0.4`. Mirrors
   // dgParseCoord in build.js, including which scalars belong to which axis.
   const referPair = (tok, ln, what) => {
@@ -352,9 +326,9 @@ function lintDiagram(block, add, fmLines, lectureTags) {
     // element itself.
     const m = raw.match(/^[^.]*\.([a-z]+)(?::(.+))?$/);
     if (m) {
-      if (!ANCHORS.has(m[1])) {
+      if (!DG_ANCHORS.has(m[1])) {
         add(ln, 'error', 'unknown-diagram-anchor',
-            `unknown anchor '.${m[1]}' – valid: ${[...ANCHORS].map(a => '.' + a).join(', ')}`);
+            `unknown anchor '.${m[1]}' – valid: ${[...DG_ANCHORS].map(a => '.' + a).join(', ')}`);
       } else if (m[2] !== undefined) {
         const f = Number(m[2]);
         if (!Number.isFinite(f) || f < 0 || f > 1) {

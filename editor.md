@@ -1250,3 +1250,48 @@ Verified (§11.8's row for §3.3):
 default layers and `same as`, which is the compiler's job; the build
 hard-fails with the line. Same reasoning as the `fonts:` check, and it is
 recorded in `CLAUDE.md` so the next person does not add it.
+
+### Phase 1 – the seam · **done**
+
+`diagram-core.mjs`, 2,100 lines, pure JS, zero imports, zero Node APIs.
+`build.js` imports it for the build; `lint.js` imports its tables and has
+dropped every mirrored copy. build.js went 11,386 → 9,664 lines.
+
+**The plan said four injected leaves; there are five**, and the fifth is the
+one the plan itself implies. `resolveImage`, `imageAspect`, `warn` and
+`escapeHtml` came out as written. But `dgImageEl` also *splices a vector
+asset inline as a nested `<svg>`* so it re-colours with the theme, and that
+needs `inlineSvg()`, which needs the file. So the markup for a resolved asset
+is the leaf – `assetMarkup(node, id, geo)` – and what stays in the core is the
+part that is the same in both runtimes: where the picture goes, and the
+`dg-missing` rect when there is no asset. In the browser that leaf substitutes
+an id and a geometry into markup the build already emitted, which is also what
+will make phase 3's re-render byte-identical for figures with images.
+
+Two smaller seams the plan did not name:
+
+- **`dgCounter` moved inside the compiler**, with `resetCounter()` on the
+  returned object. It is the compiler's own id counter, and two compilers in
+  one process must not share it.
+- **`dgLectureTags` was a module global that `renderDiagram` wrote to.** It is
+  a *lecture* fact and the compiler sees one block, so it became
+  `opts.onCompile(model)` – a hook the caller passes. The editor will want
+  the model out of a compile too, so this is the general form rather than a
+  workaround.
+
+`DG_DEFINES` and `DG_CLASS_CLASHES` moved into the core as well: both were
+lint-only tables, and a lint-only copy of the vocabulary is the thing this
+phase exists to delete.
+
+Verified (§11.8's row for phase 1):
+
+- all three lectures built before and after, twelve HTML files compared:
+  **byte-identical**. That includes `lectures/diagrams`, which exercises every
+  construct in the grammar.
+- `docs/site/example/source.md` builds (the release job builds it too).
+- `node lint.js lectures/ --strict` clean, and a 20-error corpus produces the
+  same seventeen errors and one warning it did before, with the same line
+  numbers.
+- `release.yml` needs no change – it stages `git archive HEAD`, so a new
+  tracked file is in the tarball automatically. Its comment listing what is
+  in the archive was updated anyway.
