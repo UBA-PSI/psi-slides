@@ -530,7 +530,6 @@ pre.shiki .line { display: inline; }
 .psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
 .psi-diagram .muted text { fill: var(--ink-soft); }
-.psi-diagram .ghost { opacity: 0.45; }
 
 .psi-diagram .dashed > rect, .psi-diagram .dashed > circle, .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
 .psi-diagram .dotted > rect, .psi-diagram .dotted > circle, .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
@@ -544,11 +543,15 @@ pre.shiki .line { display: inline; }
    costs no extra font payload. */
 .psi-diagram .hand text { font-family: var(--dg-serif); font-style: italic; fill: var(--emph); }
 
+/* .ghost and .dim deliberately do NOT set opacity here. Visibility and the
+   two softening classes share one channel, and author CSS beats a
+   presentation attribute – so an element pinned at 0.45 by this stylesheet
+   could never be hidden, and its show step did nothing at all. Both the
+   emitter and the runtime resolve the channel once, in dgOpacity(). */
 /* emph / dim are what a step reaches for; both stay inside the palette */
 .psi-diagram .emph > rect, .psi-diagram .emph > circle { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
-.psi-diagram .dim { opacity: 0.3; }
 
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {
@@ -1200,7 +1203,7 @@ pre.shiki .line { display: inline; }
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Diagrams</span> <span class="hd-sub"><code>::: diagram</code> draws boxes and arrows from text</span></h2>
   <p><strong>A <code>::: diagram</code> block is a figure written in the source and compiled to inline SVG at build time.</strong> You name the pieces and say where they go; the arrows between them are computed.</p>
-<figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-72.00 -41.38 491.83 173.30" width="2000" height="705" data-steps="3" role="img" aria-label="Diagrams" preserveAspectRatio="xMidYMid meet">
+<figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-61.95 -41.38 556.48 173.68" width="2000" height="624" data-steps="3" role="img" aria-label="Diagrams" preserveAspectRatio="xMidYMid meet">
 <g id="dg1-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg1-edge-1--p" class="dg-stroke" d="M37.98 0.00L105.92 0.00" fill="none"/><path id="dg1-edge-1--h" class="dg-head" d="M113.57 0.00L104.57 3.96L104.57 -3.96Z"/><g id="dg1-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(75.78,-15.38)"><g id="dg1-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">encrypted</tspan></text></g></g></g>
 <g id="dg1-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg1-edge-2--p" class="dg-stroke" d="M167.57 0.00L235.53 0.00" fill="none"/><path id="dg1-edge-2--h" class="dg-head" d="M243.18 0.00L234.18 3.96L234.18 -3.96Z"/><g id="dg1-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(205.38,-15.38)"><g id="dg1-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">recoded</tspan></text></g></g></g>
 <g id="dg1-leak" data-base="dg-el dg-edge" class="dg-el dg-edge dashed"><path id="dg1-leak--p" class="dg-stroke" d="M140.57 18.38L140.57 75.52" fill="none"/><path id="dg1-leak--h" class="dg-head" d="M140.57 83.17L136.61 74.17L144.53 74.17Z"/></g>

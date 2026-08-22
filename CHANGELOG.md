@@ -71,6 +71,21 @@ from building the same way is a major version.
   keeps stepping while focused. How large it lands is the chunk's width
   class; `unit` sets only the proportions inside the picture.
 
+  Fixed before it ever shipped, from a review of the branch: a `label`
+  step never switched variants live (the runtime looked labels up by the
+  element id rather than the geometry key), a `.ghost` element could
+  never be hidden (author CSS beat the presentation attribute the runtime
+  set), hide-then-show started an element invisible, an unclosed
+  `::: diagram` silently swallowed the rest of the file, `align` and
+  `spread` accepted containers and edges and did nothing with them, a
+  `move` on a brace was a no-op, `--optimize-images` and the linter's
+  oversized-asset gate could not see diagram assets that the build now
+  hard-fails on, WebP and GIF images were laid out square, a diagram
+  inside a collapsed expansion contributed reveal beats that changed
+  nothing on the projection, a container's caption hung outside its own
+  border, a long label could draw outside the viewBox, `label @tag` was a
+  silent no-op, and one mistake was reported once per step.
+
   Development state: this is unreleased work on a branch, and the
   vocabulary is **experimental** – it may still change before it is
   frozen under the source-format contract, so it should carry that label

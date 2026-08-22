@@ -1437,6 +1437,16 @@ function dgResolveImage(ref) {
   return { abs: path.join(currentSourceDir, rel), href: rel, remote: false };
 }
 
+// One place decides how see-through an element is; the emitter and the
+// runtime both go through it.
+function dgOpacity(visible, classes) {
+  if (!visible) return 0;
+  const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
+  if (has('dim')) return 0.3;
+  if (has('ghost')) return 0.45;
+  return 1;
+}
+
 function dgFontFor(classes) {
   let size = DG_FONT;
   if (classes.has('small')) size = DG_FONT * 0.8;
@@ -1859,6 +1869,7 @@ function parseDiagramSource(body, headAttrs) {
         const leadId = `${id}--lead`;
         claim(leadId, 'edge', lineNo);
         model.edges.push({
+          kind: 'edge',
           id: leadId,
           from: { ref: id, anchor: null },
           to: dgParseRef(node.leader, errors, lineNo),
@@ -2047,12 +2058,20 @@ function dgStateAt(model, k) {
   // starting hidden. Collecting the tag string here left every one of them
   // visible from the opening beat, with the step then showing what was
   // already on screen.
-  const shownLater = new Set();
+  // An element starts hidden only when the *first* thing any step says about
+  // it is `show`. Treating every show target as initially hidden broke the
+  // hide-then-show shape: an element meant to be on screen from the opening
+  // beat and taken away later started invisible instead.
+  const firstMention = new Map();
   for (const s of model.steps) {
     for (const op of s.ops) {
-      if (op.op === 'show') for (const t of op.targets.flatMap(expand)) shownLater.add(t);
+      if (op.op !== 'show' && op.op !== 'hide') continue;
+      for (const t of op.targets.flatMap(expand)) {
+        if (!firstMention.has(t)) firstMention.set(t, op.op);
+      }
     }
   }
+  const shownLater = new Set([...firstMention].filter(([, op]) => op === 'show').map(([id]) => id));
   // The default block is the base, the element's own {…} is added on top.
   // Merged here rather than at parse time so a default declared anywhere in
   // the body still reaches every element of its kind.
@@ -2088,7 +2107,7 @@ function dgStateAt(model, k) {
         if (!st) continue;
         if (op.op === 'show') st.visible = true;
         else if (op.op === 'hide') st.visible = false;
-        else if (op.op === 'emph') st.classes.add('emph');
+        else if (op.op === 'emph') { st.classes.delete('dim'); st.classes.add('emph'); }
         else if (op.op === 'calm') { st.classes.delete('emph'); st.classes.add('dim'); }
         else if (op.op === 'style') for (const c of op.classes) st.classes.add(c);
         else if (op.op === 'label') st.label = op.text;
@@ -2167,7 +2186,17 @@ function layoutDiagram(model, state, errors) {
     if (!extraDeps.has(id)) extraDeps.set(id, []);
     extraDeps.get(id).push(on);
   };
+  // align and spread work by overriding a coordinate the node branch of the
+  // walk computes, so naming anything else has to be an error rather than a
+  // line that quietly does nothing.
+  const isNode = new Set(model.nodes.map(n => n.id));
+  const nodeOnly = (m, line, what) => {
+    if (isNode.has(m)) return true;
+    errors.push({ line, msg: `${what} names "${m}", which is not a box, dot, text or image – only those can be aligned or distributed` });
+    return false;
+  };
   for (const a of model.aligns) {
+    if (!a.members.every(m => nodeOnly(m, a.line, `align ${a.edge}`))) continue;
     const [master, ...rest] = a.members;
     const table = a.axis === 'x' ? alignX : alignY;
     for (const m of rest) {
@@ -2180,6 +2209,7 @@ function layoutDiagram(model, state, errors) {
     }
   }
   for (const s of model.spreads) {
+    if (!s.members.every(m => nodeOnly(m, s.line, `spread ${s.axis}`))) continue;
     const first = s.members[0], last = s.members[s.members.length - 1];
     s.members.slice(1, -1).forEach((m, i) => {
       if (spreadAt.has(m)) {
@@ -2308,7 +2338,10 @@ function layoutDiagram(model, state, errors) {
       });
       continue;
     }
-    boxes.set(id, bb);   // brace: the span it covers; offset applied at draw time
+    // brace: the span it covers, plus whatever a step shifted it by – the
+    // offset to the side is applied at draw time.
+    const bshift = state.get(id).shift;
+    boxes.set(id, { x: bb.x + bshift[0] * uw, y: bb.y + bshift[1] * uh, w: bb.w, h: bb.h });
   }
 
   return boxes;
@@ -2347,6 +2380,7 @@ function dgPolyPoint(pts, frac) {
 function dgFrameDrawables(model, state, boxes, labelIndex) {
   const [uw, uh] = model.unit;
   const geom = new Map();
+  const ext = new Map();     // label id -> measured [w, h], for the viewBox
   const vis = new Map();
   const cls = new Map();
   const lab = new Map();
@@ -2354,7 +2388,7 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
   const put = (el, drawId, vec) => geom.set(drawId, vec);
   const record = (el) => {
     const st = state.get(el.id);
-    vis.set(el.id, st.visible ? 1 : 0);
+    vis.set(el.id, dgOpacity(st.visible, st.classes));
     cls.set(el.id, [...st.classes].join(' '));
     const variants = labelIndex.get(el.id);
     if (variants) lab.set(el.id, Math.max(0, variants.indexOf(st.label)));
@@ -2369,6 +2403,12 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
   // centred in it.
   const labelBox = (el, st, box, freeText) => {
     if (!st.label) return;
+    // Record what the label actually measures, so the viewBox can hold it.
+    // Approximating every label as a fixed box let a long one draw outside
+    // the figure, where overflow: visible happily painted it over the prose.
+    const font = dgFontFor(st.classes);
+    const m = dgMeasure(st.label, font, st.classes.has('mono'));
+    ext.set(el.id + '--l', [m.w, m.h]);
     const x = !freeText ? box.x + box.w / 2
       : st.classes.has('left') ? box.x
       : st.classes.has('right') ? box.x + box.w
@@ -2502,7 +2542,7 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     }
   }
 
-  return { geom, vis, cls, lab };
+  return { geom, vis, cls, lab, ext };
 }
 
 // Every distinct label an element ever carries, so a `label` step is a
@@ -2518,9 +2558,13 @@ function dgLabelVariants(model) {
   for (const el of [...model.nodes, ...model.containers, ...model.braces, ...model.edges]) {
     if (el.label) add(el.id, el.label);
   }
+  const expand = (id) => (String(id).startsWith('@')
+    ? (model.tags.get(String(id).slice(1)) || []) : [id]);
   for (const s of model.steps) {
     for (const op of s.ops) {
-      if (op.op === 'label' && op.text) add(op.target, op.text);
+      // Tags expand here too, or `label @tag "…"` would index the tag itself
+      // and pre-render no variant for any of the elements carrying it.
+      if (op.op === 'label' && op.text) for (const t of expand(op.target)) add(t, op.text);
     }
   }
   return index;
@@ -2543,11 +2587,12 @@ function dgTspans(spans, font, baseline) {
   return out;
 }
 
-function dgTextEl(id, label, classes, extraClass) {
+function dgTextEl(id, label, classes, extraClass, anchorOverride) {
   const font = dgFontFor(classes);
   const mono = classes.has('mono');
   const m = dgMeasure(label, font, mono);
-  const anchor = classes.has('left') ? 'start' : classes.has('right') ? 'end' : 'middle';
+  const anchor = anchorOverride
+    || (classes.has('left') ? 'start' : classes.has('right') ? 'end' : 'middle');
   const lineH = font * DG_LINE_H;
   const top = -((m.count - 1) * lineH) / 2;
   let inner = '';
@@ -2631,7 +2676,15 @@ function renderDiagram(body, headAttrs, opts = {}) {
     const boxes = layoutDiagram(model, state, errors);
     frames.push(dgFrameDrawables(model, state, boxes, labelIndex));
   }
+  // Layout runs once per step against one errors array, so a single mistake
+  // was reported once per step. Deduplicate before speaking.
   if (errors.length) {
+    const seen = new Set();
+    for (let i = errors.length - 1; i >= 0; i--) {
+      const key = errors[i].line + '\u0000' + errors[i].msg;
+      if (seen.has(key)) errors.splice(i, 1);
+      else seen.add(key);
+    }
     const where = opts.where ? ` in ${opts.where}` : '';
     const err = new Error(
       `::: diagram${model.id ? ` #${model.id}` : ''}${where} has ${errors.length} problem(s):\n` +
@@ -2656,7 +2709,7 @@ function renderDiagram(body, headAttrs, opts = {}) {
   const printGeom = new Map(), printVis = new Map(), printCls = new Map(), printLab = new Map();
   for (const f of frames) {
     for (const [id, v] of f.vis) {
-      if (v) {
+      if (v > 0) {
         printVis.set(id, 1);
         // emph and dim are lecture-time acts, like the collapse mode – a
         // handout that arrives with three arrows greyed out is reporting a
@@ -2673,11 +2726,18 @@ function renderDiagram(body, headAttrs, opts = {}) {
   // The viewBox has to hold every frame, or a box that walks in from the
   // side would be clipped for the whole of its journey.
   const allBoxes = [];
+  const labelExt = new Map();
+  for (const f of frames) for (const [k, v] of f.ext) labelExt.set(k, v);
   for (const f of [...frames, { geom: printGeom }]) {
     for (const [gid, vec] of f.geom) {
       if (gid.endsWith('--r') || gid.endsWith('--i')) allBoxes.push({ x: vec[0], y: vec[1], w: vec[2], h: vec[3] });
       else if (gid.endsWith('--c')) allBoxes.push({ x: vec[0] - vec[2], y: vec[1] - vec[2], w: vec[2] * 2, h: vec[2] * 2 });
-      else if (gid.endsWith('--l')) allBoxes.push({ x: vec[0] - 60, y: vec[1] - 14, w: 120, h: 28 });
+      else if (gid.endsWith('--l')) {
+        const [lw, lh] = (f.ext && f.ext.get(gid)) || labelExt.get(gid) || [120, 28];
+        // Anchored middle unless the element says otherwise, so half of it
+        // sits either side; a start/end anchored one is covered generously.
+        allBoxes.push({ x: vec[0] - lw, y: vec[1] - lh / 2, w: lw * 2, h: lh });
+      }
       else for (let i = 0; i < vec.length; i += 2) allBoxes.push({ x: vec[i], y: vec[i + 1], w: 0, h: 0 });
     }
   }
@@ -2689,7 +2749,10 @@ function renderDiagram(body, headAttrs, opts = {}) {
   let svgBody = '';
   for (const { e, kind } of elements) {
     const st = printCls.get(e.id) ?? e.classes.join(' ');
-    const on = printVis.get(e.id) ? '' : ' opacity="0"';
+    // A style rather than the presentation attribute, for the same reason
+    // the runtime uses one: author CSS would otherwise win.
+    const op = printVis.get(e.id) || 0;
+    const on = op === 1 ? '' : ` style="opacity:${op}"`;
     let inner = '';
     const g = (suffix) => printGeom.get(e.id + suffix);
     if (kind === 'box' || kind === 'container') {
@@ -2723,7 +2786,11 @@ function renderDiagram(body, headAttrs, opts = {}) {
       const shown = (printLab.get(e.id) ?? 0) === i;
       const extra = (variants.length > 1 ? 'dg-variant' : '') + (shown ? '' : ' dg-off');
       inner += `<g id="${prefix}${e.id}--lw${i}" data-lab="${e.id}--l" class="dg-lwrap${extra ? ' ' + extra.trim() : ''}" transform="translate(${v[0].toFixed(2)},${v[1].toFixed(2)})">`
-        + dgTextEl(drawId, text, classes, kind === 'container' ? 'dg-caption' : '') + '</g>';
+        // A container's caption is positioned at its left edge, so it has to
+        // be drawn from there – anchored middle it hung half its own width
+        // outside the border it belongs to.
+        + dgTextEl(drawId, text, classes, kind === 'container' ? 'dg-caption' : '',
+                   kind === 'container' ? 'start' : null) + '</g>';
     });
     const base = `dg-el dg-${kind}`;
     svgBody += `<g id="${prefix}${e.id}" data-base="${base}" class="${base}${st ? ' ' + st : ''}"${on}>${inner}</g>\n`;
@@ -2854,7 +2921,6 @@ const DIAGRAM_CSS = `
 .psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
 .psi-diagram .muted text { fill: var(--ink-soft); }
-.psi-diagram .ghost { opacity: 0.45; }
 
 .psi-diagram .dashed > rect, .psi-diagram .dashed > circle, .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
 .psi-diagram .dotted > rect, .psi-diagram .dotted > circle, .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
@@ -2868,11 +2934,15 @@ const DIAGRAM_CSS = `
    costs no extra font payload. */
 .psi-diagram .hand text { font-family: var(--dg-serif); font-style: italic; fill: var(--emph); }
 
+/* .ghost and .dim deliberately do NOT set opacity here. Visibility and the
+   two softening classes share one channel, and author CSS beats a
+   presentation attribute – so an element pinned at 0.45 by this stylesheet
+   could never be hidden, and its show step did nothing at all. Both the
+   emitter and the runtime resolve the channel once, in dgOpacity(). */
 /* emph / dim are what a step reaches for; both stay inside the palette */
 .psi-diagram .emph > rect, .psi-diagram .emph > circle { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
-.psi-diagram .dim { opacity: 0.3; }
 
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {
@@ -2922,12 +2992,12 @@ function dgApplyDiscrete(d, frame) {
   for (const id in frame.vis) {
     const g = document.getElementById(d.data.p + id);
     if (!g) continue;
-    g.setAttribute('opacity', frame.vis[id] ? '1' : '0');
+    g.style.opacity = frame.vis[id];
     const base = g.dataset.base || '';
     const extra = frame.cls[id] || '';
     g.setAttribute('class', extra ? base + ' ' + extra : base);
     if (id in frame.lab) {
-      d.svg.querySelectorAll('[data-lab="' + id + '"]').forEach((w, i) => {
+      d.svg.querySelectorAll('[data-lab="' + id + '--l"]').forEach((w, i) => {
         w.classList.toggle('dg-off', i !== frame.lab[id]);
       });
     }
@@ -2961,7 +3031,7 @@ function dgRenderInto(root, d, step) {
   for (const id in frame.vis) {
     const g = root.querySelector('[id="' + d.data.p + id + '"]');
     if (!g) continue;
-    g.setAttribute('opacity', frame.vis[id] ? '1' : '0');
+    g.style.opacity = frame.vis[id];
     const base = g.dataset.base || '';
     const extra = frame.cls[id] || '';
     g.setAttribute('class', extra ? base + ' ' + extra : base);
@@ -3342,6 +3412,17 @@ function parseLecture(src) {
       if (currentExpansion) currentExpansion.lines.push(line);
       else bodyLines.push(line);
     }
+  }
+  if (diagramBlock) {
+    // Everything after the opener was read as diagram source, so the chunks
+    // below it simply vanished from all four outputs. Exiting 0 on that is
+    // the worst possible answer.
+    const err = new Error(
+      '::: diagram was never closed. Everything after it was read as diagram\n'
+      + 'source, so any chunk below it is missing from the output. Add a\n'
+      + 'closing ::: line.');
+    err.userFacing = true;
+    throw err;
   }
   flushChunk();
 
@@ -6783,6 +6864,10 @@ function chunkBeats(el) {
   const out = [];
   let segIdx = 0;
   el.querySelectorAll('.reveal-segment, svg.psi-diagram').forEach(node => {
+    // A diagram inside an expansion body is not on the projection, so its
+    // steps must not consume beats – Space would advance a counter and the
+    // room would see nothing happen.
+    if (node.closest('.exp-body, .chunk-expansion')) return;
     if (node.classList.contains('reveal-segment')) {
       if (segIdx++ > 0) out.push({ type: 'seg', el: node });
       return;
@@ -10300,6 +10385,26 @@ function imageSize(absPath) {
         pos += 2 + len;
       }
     }
+    // WebP – and it matters more than the others, because WebP is what this
+    // project's own --optimize-images produces. Three chunk shapes: VP8X
+    // (extended), VP8L (lossless) and VP8 (lossy).
+    if (head.subarray(0, 4).toString('latin1') === 'RIFF'
+        && head.subarray(8, 12).toString('latin1') === 'WEBP') {
+      const fourcc = head.subarray(12, 16).toString('latin1');
+      if (fourcc === 'VP8X') {
+        return { width: 1 + head.readUIntLE(24, 3), height: 1 + head.readUIntLE(27, 3) };
+      }
+      if (fourcc === 'VP8L' && head[20] === 0x2f) {
+        const bits = head.readUInt32LE(21);
+        return { width: 1 + (bits & 0x3fff), height: 1 + ((bits >> 14) & 0x3fff) };
+      }
+      if (fourcc === 'VP8 ') {
+        return { width: head.readUInt16LE(26) & 0x3fff, height: head.readUInt16LE(28) & 0x3fff };
+      }
+    }
+    if (head.subarray(0, 3).toString('latin1') === 'GIF') {
+      return { width: head.readUInt16LE(6), height: head.readUInt16LE(8) };
+    }
     return null;
   } catch (e) {
     return null;
@@ -10360,6 +10465,18 @@ function collectImageRefs(src, sourceDir) {
     }
     const abs = path.resolve(sourceDir, href);
     if (fs.existsSync(abs)) add(abs, href);
+  }
+  // Diagram images too, or the verb the oversized-asset failure tells the
+  // author to run answers "nothing to do" about the very file it refused.
+  for (const ref of collectDiagramImageRefs(src)) {
+    if (/^[a-z]+:/i.test(ref)) continue;
+    if (!ref.includes('/') && !path.extname(ref)) {
+      const rel = resolveFigId(ref);
+      if (rel) add(path.join(sourceDir, rel), null);
+      continue;
+    }
+    const abs = path.resolve(sourceDir, ref);
+    if (fs.existsSync(abs)) add(abs, ref);
   }
   return [...refs.values()];
 }

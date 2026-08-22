@@ -50,6 +50,25 @@ const VIEW_DEFAULTS = {
 // an external path, which quietly breaks the single-file promise – the build
 // warns, but the build scrolls, so the pre-commit gate should catch it too.
 // Kept here as plain fs.statSync so lint.js stays zero-dep.
+// Mirrors collectDiagramImageRefs in build.js: `image <name> <asset>` lines
+// inside a ::: diagram block reference assets exactly like ![](fig-id) does,
+// and the build hard-fails on an oversized one – so the pre-commit gate has
+// to find them too.
+function diagramImageRefs(src) {
+  const refs = [];
+  let inDiagram = false;
+  for (const line of String(src).split('\n')) {
+    if (!inDiagram) {
+      if (/^:::\s+diagram\b/.test(line)) inDiagram = true;
+      continue;
+    }
+    if (/^:::\s*$/.test(line)) { inDiagram = false; continue; }
+    const m = line.trim().match(/^image\s+\S+\s+(\S+)/);
+    if (m) refs.push(m[1]);
+  }
+  return refs;
+}
+
 const IMG_EXTS = ['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
 // Video shares the `![](clip-id)` shorthand and has its own, larger cap –
 // mirrors VIDEO_EXTS / MAX_INLINE_VIDEO_BYTES in build.js.
@@ -506,6 +525,17 @@ function lintFile(filePath) {
       }
       continue;
     }
+    if (/^```/.test(line)) {
+      inFence = !inFence;
+      if (chunk) chunkBody.push(line);
+      continue;
+    }
+    if (inFence) { if (chunk) chunkBody.push(line); continue; }
+
+    // Only now, with the fence settled: a ::: diagram inside a code fence is
+    // a syntax example, not a diagram. build.js guards the same way, and a
+    // linter that disagrees with the build is worse than none – this one
+    // failed any lecture that documented the directive.
     const diagramOpen = line.match(/^:::\s+diagram\s*(?:\{([^}]*)\})?\s*$/);
     if (diagramOpen) {
       if (!chunk) {
@@ -520,13 +550,6 @@ function lintFile(filePath) {
       diagram = { open: ln, lines: [] };
       continue;
     }
-
-    if (/^```/.test(line)) {
-      inFence = !inFence;
-      if (chunk) chunkBody.push(line);
-      continue;
-    }
-    if (inFence) { if (chunk) chunkBody.push(line); continue; }
 
     const h1 = line.match(/^#\s+(.*)$/);
     const h2 = line.match(/^##\s+(.*)$/);
@@ -740,9 +763,15 @@ function lintFile(filePath) {
   // the machine that built it and breaks wherever the HTML travels alone.
   const sourceDir = path.dirname(filePath);
   const seenAssets = new Set();
+  // `image <name> <asset>` inside a ::: diagram references an asset the same
+  // way; the build hard-fails on an oversized one, so this gate has to reach
+  // them or it lets through exactly what the build will refuse.
+  const diagramRefs = new Set(diagramImageRefs(body));
   lines.forEach((line, i) => {
-    for (const m of line.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) {
-      const href = m[1];
+    const hrefs = [...line.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)].map(m => m[1]);
+    const dm = line.trim().match(/^image\s+\S+\s+(\S+)/);
+    if (dm && diagramRefs.has(dm[1])) hrefs.push(dm[1]);
+    for (const href of hrefs) {
       if (/^[a-z]+:/i.test(href)) continue;
       let abs = null;
       if (!href.includes('/') && !path.extname(href)) {
