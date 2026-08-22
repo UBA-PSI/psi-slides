@@ -29,6 +29,12 @@ from building the same way is a major version.
   mirrors the vocabulary and reports unknown statements, unknown classes,
   duplicate names and dangling references.
 
+  Inside a label, `_sub` / `^sup` shift a run and `*accent*` / `~muted~`
+  colour one. Free `text` honours `.left` / `.right`, and its anchor
+  moves with them. A diagram is click-to-zoom like any other figure, and
+  keeps stepping while focused. How large it lands is the chunk's width
+  class; `unit` sets only the proportions inside the picture.
+
   Development state: this is unreleased work on a branch, and the
   vocabulary is **experimental** – it may still change before it is
   frozen under the source-format contract, so it should carry that label

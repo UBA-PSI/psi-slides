@@ -362,7 +362,7 @@ Grammar, in full:
 |---|---|
 | `box <name> "label" <placement> [w n] [h n]` | A rectangle that sizes itself to its label |
 | `dot <name> "label" <placement> [r n]` | A circle – XOR nodes, junctions, small glyphs |
-| `text <name> "label" <placement> [-> ref]` | Free text with no shape of its own; `-> ref` grows a leader line to whatever it comments on |
+| `text <name> "label" <placement> [-> ref]` | Free text with no shape of its own; `-> ref` grows a leader line to whatever it comments on. `.left` / `.right` align it, and the anchor moves with them |
 | `edge <a> -> <b> ["label"] [via x,y …]` | An arrow. `<-` reverses it, `--` drops the head |
 | `container <name> ["label"] over a,b,c [pad n]` | A drawn box that fits itself around its members |
 | `group <name> over a,b,c` | An undrawn set, for moving or hiding several at once |
@@ -372,6 +372,10 @@ Grammar, in full:
 Placement is `at X,Y` in grid cells, or a relation: `right of A`, `left of A`, `below A`, `above A`, each taking `gap <n>` and `align <edge>`. **The first element defaults to the origin**, so the common case – a box, and everything else relative to it – needs no coordinates at all. Every element after it has to say where it goes; silently stacking two elements on `0,0` is not a default anyone means. Anchors are addressable (`mix.right`, `ret.br`) and chosen automatically otherwise.
 
 Step operations are `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style`, `label`. Nothing else.
+
+Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run with the theme accent and `~muted~` greys it. An unmatched marker stays a literal character. This exists because a sentence with two colour changes otherwise needs one `text` element per run, chained with `right of` – unreadable as source, and re-sorted by hand every time a word changes.
+
+**How large a diagram lands is the chunk's width class, not the `unit` option.** `unit` sets the grid cell and therefore only the proportions inside the picture; the drawing then fills its chunk's measure the way any other figure does, capped so a tall one cannot push the prose off the slide. Put a small diagram in a `.standard` chunk and a dense one in `.full`.
 
 Semantics that follow from the design, not from convenience:
 

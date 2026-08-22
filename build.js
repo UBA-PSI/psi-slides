@@ -1238,6 +1238,9 @@ const DG_PAD_Y = 9;
 const DG_MIN_W = 54;           // a box never narrows past this
 const DG_HEAD = 9;             // arrowhead length, px
 const DG_MARGIN = 12;          // viewBox breathing room, px
+// Nominal intrinsic width. Deliberately wider than any chunk measure so
+// that max-width: 100% always binds – see the comment where it is emitted.
+const DG_NOMINAL_W = 2000;
 const DG_BRACE_TICK = 7;       // how far a brace's end ticks turn in, px
 const DG_DOT_R = 13;           // default radius of a `dot`
 
@@ -1297,23 +1300,37 @@ function dgCharW(ch) {
 // m_1, MAC_k. Full KaTeX is deliberately not wired in here: it emits HTML,
 // which inside an <svg> would mean a <foreignObject>, which would take the
 // label out of the SVG coordinate system the tween operates on.
+// `*accent*` and `~muted~` toggle a colour inside a label. Rebuilding a real
+// slide is what argued for them: one sentence with three colour changes
+// ("Security goals: integrity and authenticity but not non-repudiation")
+// otherwise needs six separate `text` elements chained with `right of`,
+// which is unreadable as source and re-flows badly the moment a word
+// changes. An unmatched marker is left as a literal character, so a lone
+// asterisk in a label is still just an asterisk.
 function dgSpans(text) {
   const out = [];
   let buf = '';
-  const flush = (shift) => { if (buf) { out.push({ t: buf, shift }); buf = ''; } };
+  let cls = '';
+  const flush = (shift) => { if (buf) { out.push({ t: buf, shift, cls }); buf = ''; } };
+  const closes = (marker, from) => text.indexOf(marker, from) >= 0;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
-    if ((ch === '_' || ch === '^') && i + 1 < text.length) {
+    if ((ch === '*' || ch === '~')) {
+      const want = ch === '*' ? 'em' : 'mu';
+      if (cls === want) { flush(0); cls = ''; continue; }
+      if (!cls && closes(ch, i + 1)) { flush(0); cls = want; continue; }
+      // no closing marker – a literal character
+    } else if ((ch === '_' || ch === '^') && i + 1 < text.length) {
       flush(0);
       const shift = ch === '_' ? -1 : 1;
       i++;
       if (text[i] === '{') {
         const end = text.indexOf('}', i);
         if (end < 0) { buf = ch; continue; }
-        out.push({ t: text.slice(i + 1, end), shift });
+        out.push({ t: text.slice(i + 1, end), shift, cls });
         i = end;
       } else {
-        out.push({ t: text[i], shift });
+        out.push({ t: text[i], shift, cls });
       }
       continue;
     }
@@ -1949,9 +1966,19 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     return st;
   };
 
-  const labelBox = (el, st, box) => {
+  // Where the label's origin sits has to match the text-anchor it will be
+  // rendered with, or the layout box and the drawn glyphs disagree: a
+  // `.left` label was positioned by its centre but drawn rightwards from
+  // that point, so it ran half its own width into whatever came next.
+  // Only free `text` honours .left/.right; a label inside a shape stays
+  // centred in it.
+  const labelBox = (el, st, box, freeText) => {
     if (!st.label) return;
-    put(el, el.id + '--l', [box.x + box.w / 2, box.y + box.h / 2]);
+    const x = !freeText ? box.x + box.w / 2
+      : st.classes.has('left') ? box.x
+      : st.classes.has('right') ? box.x + box.w
+      : box.x + box.w / 2;
+    put(el, el.id + '--l', [x, box.y + box.h / 2]);
   };
 
   for (const node of model.nodes) {
@@ -1960,12 +1987,12 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     if (!b) continue;
     if (node.kind === 'box') {
       put(node, node.id + '--r', [b.x, b.y, b.w, b.h]);
-      labelBox(node, st, b);
+      labelBox(node, st, b, false);
     } else if (node.kind === 'dot') {
       put(node, node.id + '--c', [b.x + b.w / 2, b.y + b.h / 2, b.w / 2]);
-      labelBox(node, st, b);
+      labelBox(node, st, b, false);
     } else {
-      labelBox(node, st, b);
+      labelBox(node, st, b, true);
     }
   }
 
@@ -2093,7 +2120,8 @@ function dgTspans(spans, font, baseline) {
     prev = shiftPx(sp.shift);
     const size = sp.shift ? ` font-size="${(font * 0.72).toFixed(2)}"` : '';
     const pos = first ? ` x="0" y="${baseline.toFixed(2)}"` : '';
-    out += `<tspan${pos}${dy ? ` dy="${dy.toFixed(2)}"` : ''}${size}>${escapeHtml(sp.t)}</tspan>`;
+    const cls = sp.cls ? ` class="dg-${sp.cls}"` : '';
+    out += `<tspan${pos}${dy ? ` dy="${dy.toFixed(2)}"` : ''}${size}${cls}>${escapeHtml(sp.t)}</tspan>`;
     first = false;
   }
   return out;
@@ -2242,7 +2270,24 @@ function renderDiagram(body, headAttrs, opts = {}) {
 
   const svgId = `${prefix}root`;
   const aria = opts.alt ? ` role="img" aria-label="${escapeHtml(opts.alt)}"` : ' role="img"';
+  // An intrinsic width/height as well as the viewBox, and both the presence
+  // and the *value* are load-bearing.
+  //
+  // Presence: a figure chunk centres its content with align-items, so the
+  // body column is shrink-to-fit and asks its child how wide it wants to
+  // be. An <img> answers with the file's pixel size; an <svg> carrying only
+  // a viewBox has no answer and falls back to the CSS default 300x150 –
+  // which is how a diagram came out postage-stamp sized on a full slide.
+  //
+  // Value: DG_NOMINAL_W rather than the viewBox width, so the answer is
+  // always larger than any column and max-width: 100% always binds. That
+  // makes the drawing fill its chunk's measure on every screen instead of
+  // sitting at a fixed pixel size that shrinks, relatively, on a big
+  // projector. The consequence is the useful one: `unit` sets only the
+  // proportions inside the picture, and how large it lands is the chunk's
+  // width class, exactly like every other figure.
   const svg = `<svg id="${svgId}" class="psi-diagram" viewBox="${vbX.toFixed(2)} ${vbY.toFixed(2)} ${vbW.toFixed(2)} ${vbH.toFixed(2)}" `
+    + `width="${DG_NOMINAL_W}" height="${Math.round(DG_NOMINAL_W * vbH / vbW)}" `
     + `data-steps="${frameCount}"${aria} preserveAspectRatio="xMidYMid meet">\n${svgBody}</svg>`;
   const script = frameCount > 1
     ? `<script type="application/json" class="psi-diagram-frames" data-for="${svgId}">`
@@ -2265,13 +2310,29 @@ const DIAGRAM_CSS = `
   --dg-sans: var(--sans-font, var(--sans));
   --dg-mono: var(--mono-font, var(--mono));
   --dg-serif: var(--body-font, var(--serif));
-  display: block; width: 100%; height: auto; overflow: visible;
-  /* A tall diagram must not push the chunk's prose off the projection.
-     preserveAspectRatio does the letterboxing; the figure just stops
-     growing. */
-  max-height: 52vh;
+  display: block; overflow: visible;
+  /* Deliberately the same numbers as figure.figure-img svg. A diagram is a
+     figure, and figures in this project are sized in viewport space, not
+     em space: the drawing has a natural size (its viewBox in px, so the
+     unit option is also the nominal on-slide scale), max-width shrinks it
+     when it is wider, and the vh cap keeps a tall one from overflowing the
+     slide. Diverging here would have made diagrams the one figure kind that
+     responds to the zoom key, which reads as a bug rather than a feature. */
+  max-width: 100%;
+  /* A little taller than figure.figure-img's 50vh. A photo shares the slide
+     with a caption and often arrives in portrait; a diagram is landscape and
+     is usually the whole point of the chunk, and at 50vh a wide one was
+     height-capped hard enough to leave a third of the measure empty beside
+     it. */
+  max-height: 62vh;
+  height: auto;
 }
-@media print { .psi-diagram { max-height: none; } }
+@media print {
+  .psi-diagram { max-height: none; }
+  /* A diagram is one picture; splitting it across a page break makes it
+     two useless halves. */
+  .figure-diagram { break-inside: avoid; page-break-inside: avoid; }
+}
 .psi-diagram .dg-el { transition: opacity 200ms ease; }
 .psi-diagram rect, .psi-diagram circle {
   fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
@@ -2280,6 +2341,9 @@ const DIAGRAM_CSS = `
 .psi-diagram .dg-head { fill: var(--ink); stroke: none; }
 .psi-diagram text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
 .psi-diagram .dg-mono { font-family: var(--dg-mono); }
+/* inline *accent* / ~muted~ inside a label */
+.psi-diagram tspan.dg-em { fill: var(--emph); }
+.psi-diagram tspan.dg-mu { fill: var(--ink-soft); }
 .psi-diagram .dg-off { display: none; }
 
 /* text elements carry no shape of their own */
@@ -5538,7 +5602,7 @@ viewport.addEventListener('scroll', resetViewportScroll);
 // would focus different elements the moment the selectors disagreed.
 // Display math is in the list because a formula on a projector is exactly
 // the thing a room asks to see bigger.
-const FOCUSABLE_SEL = 'figure.figure-img, .chunk-body pre, .chunk-body .math-display, .marginalia';
+const FOCUSABLE_SEL = 'figure.figure-img, figure.figure-diagram, .chunk-body pre, .chunk-body .math-display, .marginalia';
 
 // ── Slide-size sync ─────────────────────────────────────────────────
 // --slide-w / --slide-h hold the AUDIENCE window's pixel dimensions so

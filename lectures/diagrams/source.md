@@ -137,3 +137,85 @@ step pulled
 `move`, `show`, `hide`, `emph`, `style` and `label` are the whole step
 vocabulary. Nothing here is positioned by a solver – every coordinate is
 either a grid cell or a relation to a neighbour.
+
+# Rebuilt from real slides
+
+## figure: Identity lifecycle {.full #lifecycle}
+
+::: diagram {unit=176x56}
+box  create "Creation"      w 1.15 {.tone-1 .bold}
+text sep1   "▶"             right of create gap 0.2 {.muted .large}
+box  usage  "Usage"         right of sep1 gap 0.2 w 1.15 {.tone-1 .bold}
+text sep2   "▶"             right of usage gap 0.2 {.muted .large}
+box  term   "Termination"   right of sep2 gap 0.2 w 1.15 {.tone-1 .bold}
+
+box  reg    "Registration"  below create gap 0.5 w 1.15 {.tone-4}
+text regc   "identity"      below reg gap 0.2 {.small .muted}
+text down1  "▼"             below regc gap 0.12 {.muted}
+box  prov   "Provisioning"  below down1 gap 0.12 w 1.15 {.tone-4}
+text provc  "issue credentials and\nprovide them to user"  below prov gap 0.2 {.small .muted}
+text down2  "▼"             below provc gap 0.12 {.muted}
+box  authz  "Authorization" below down2 gap 0.12 w 1.15 {.tone-4}
+text authzc "granting of rights\nby the authority"  below authz gap 0.2 {.small .muted}
+
+box  ident  "Identification" below usage gap 0.5 w 1.15 {.tone-4}
+text identc "claim identity with\nunique name"  below ident gap 0.2 {.small .muted}
+text down3  "▼"             below identc gap 0.12 {.muted}
+box  authn  "Authentication" below down3 gap 0.12 w 1.15 {.tone-4}
+text authnc "prove identity claim\nwith credentials"  below authn gap 0.2 {.small .muted}
+text down4  "▼"             below authnc gap 0.12 {.muted}
+box  acl    "Access Control" below down4 gap 0.12 w 1.15 {.tone-4}
+text aclc   "granting of access\nby the system"  below acl gap 0.2 {.small .muted}
+
+brace signup over reg,prov  right "Signup" {.muted}
+brace login  over ident,authn right "Login" {.muted}
+
+text sep3   "▶"             below authzc gap 0.5 {.muted .large}
+box  selfsv "Self-services" right of sep3 gap 0.2 w 1.15 {.tone-4}
+
+step creation
+  show reg, regc, down1, prov, provc, down2, authz, authzc, signup
+step usage
+  show ident, identc, down3, authn, authnc, down4, acl, aclc, login
+step self
+  show sep3, selfsv
+  emph selfsv
+:::
+
+## figure: Message authentication {.full #mac}
+
+::: diagram {unit=150x62}
+box  alice "Alice"  {.round .tone-2}
+box  eve   "Eve"    right of alice gap 1.1 {.round .tone-3}
+box  bob   "Bob"    right of eve gap 1.1 {.round .tone-2}
+
+text kA "k" left of alice gap 0.18 {.mono .small}
+text kB "k" right of bob gap 0.18 {.mono .small}
+
+edge alice -> bob "M, T" via 1.18,0.8 2.36,0.8 {#wire}
+edge eve.right -> bob.left "M, T   replay"      via 2.05,-0.26 2.35,-0.26 {#replay .accent .small}
+edge eve.right -> bob.left "forgery   M_F, T_F" via 2.05,0.14 2.35,0.14 {#forge .accent .small}
+text def "defense?" above eve gap 0.35 {.hand .small}
+
+text macA "T = MAC_k(M)"           below alice gap 0.55 {.mono .small}
+text tagA "\"authentication tag\"" below macA gap 0.14 {.hand .small}
+
+text ver1 "Verify_k(M, T)"                 below bob gap 0.55 {.mono .small}
+text ver2 "T' = MAC_k(M)\nT' equals T ?"   below ver1 gap 0.5 {.mono .small}
+edge ver1 -- ver2 {.muted .dotted}
+text eg   "e.g."  below ver1 gap 0.14 align left {.small .muted}
+
+text goals "Security goals: *integrity*\nand *authenticity* but\n~not non-repudiation~" at 3.55,-1.05 {.left}
+
+step protocol
+  show macA, tagA, ver1, eg, ver2
+step attack
+  show eve, replay, forge, def
+  emph replay, forge
+:::
+
+**Der Farbwechsel mitten im Satz war der Auslöser für `*accent*` und `~muted~`.** „Security goals" brauchte im ersten Anlauf sechs `text`-Elemente, die mit `right of` aneinandergekettet waren – unlesbar als Quelltext und beim kleinsten Wortwechsel neu zu sortieren. Jetzt ist es ein Element.
+
+**Was noch fehlt:** `e.g.` neben dem senkrechten Verbinder ist relativ zu `ver1` platziert, weil es keinen Anker auf der Mitte einer Kante gibt.
+
+**Die Avatare fehlen ersatzlos.** Ein Diagramm kann keine Bilder aufnehmen, also stehen hier drei beschriftete Kästen, wo im Original gezeichnete Figuren sitzen. Das ist die deutlichste Lücke, die der Nachbau gezeigt hat.

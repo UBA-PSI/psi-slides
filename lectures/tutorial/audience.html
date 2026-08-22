@@ -1522,13 +1522,29 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   --dg-sans: var(--sans-font, var(--sans));
   --dg-mono: var(--mono-font, var(--mono));
   --dg-serif: var(--body-font, var(--serif));
-  display: block; width: 100%; height: auto; overflow: visible;
-  /* A tall diagram must not push the chunk's prose off the projection.
-     preserveAspectRatio does the letterboxing; the figure just stops
-     growing. */
-  max-height: 52vh;
+  display: block; overflow: visible;
+  /* Deliberately the same numbers as figure.figure-img svg. A diagram is a
+     figure, and figures in this project are sized in viewport space, not
+     em space: the drawing has a natural size (its viewBox in px, so the
+     unit option is also the nominal on-slide scale), max-width shrinks it
+     when it is wider, and the vh cap keeps a tall one from overflowing the
+     slide. Diverging here would have made diagrams the one figure kind that
+     responds to the zoom key, which reads as a bug rather than a feature. */
+  max-width: 100%;
+  /* A little taller than figure.figure-img's 50vh. A photo shares the slide
+     with a caption and often arrives in portrait; a diagram is landscape and
+     is usually the whole point of the chunk, and at 50vh a wide one was
+     height-capped hard enough to leave a third of the measure empty beside
+     it. */
+  max-height: 62vh;
+  height: auto;
 }
-@media print { .psi-diagram { max-height: none; } }
+@media print {
+  .psi-diagram { max-height: none; }
+  /* A diagram is one picture; splitting it across a page break makes it
+     two useless halves. */
+  .figure-diagram { break-inside: avoid; page-break-inside: avoid; }
+}
 .psi-diagram .dg-el { transition: opacity 200ms ease; }
 .psi-diagram rect, .psi-diagram circle {
   fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
@@ -1537,6 +1553,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 .psi-diagram .dg-head { fill: var(--ink); stroke: none; }
 .psi-diagram text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
 .psi-diagram .dg-mono { font-family: var(--dg-mono); }
+/* inline *accent* / ~muted~ inside a label */
+.psi-diagram tspan.dg-em { fill: var(--emph); }
+.psi-diagram tspan.dg-mu { fill: var(--ink-soft); }
 .psi-diagram .dg-off { display: none; }
 
 /* text elements carry no shape of their own */
@@ -2457,7 +2476,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Diagrams</span> <span class="hd-sub"><code>::: diagram</code> draws boxes and arrows from text</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A <code>::: diagram</code> block is a figure written in the source and compiled to inline SVG at build time.</strong> You name the pieces and say where they go; the arrows between them are computed.</p>
-<figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-72.00 -41.38 491.83 173.30" data-steps="3" role="img" aria-label="Diagrams" preserveAspectRatio="xMidYMid meet">
+<figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-72.00 -41.38 491.83 173.30" width="2000" height="705" data-steps="3" role="img" aria-label="Diagrams" preserveAspectRatio="xMidYMid meet">
 <g id="dg1-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg1-edge-1--p" class="dg-stroke" d="M37.98 0.00L105.92 0.00" fill="none"/><path id="dg1-edge-1--h" class="dg-head" d="M113.57 0.00L104.57 3.96L104.57 -3.96Z"/><g id="dg1-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(75.78,-15.38)"><g id="dg1-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">encrypted</tspan></text></g></g></g>
 <g id="dg1-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg1-edge-2--p" class="dg-stroke" d="M167.57 0.00L235.53 0.00" fill="none"/><path id="dg1-edge-2--h" class="dg-head" d="M243.18 0.00L234.18 3.96L234.18 -3.96Z"/><g id="dg1-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(205.38,-15.38)"><g id="dg1-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">recoded</tspan></text></g></g></g>
 <g id="dg1-leak" data-base="dg-el dg-edge" class="dg-el dg-edge dashed"><path id="dg1-leak--p" class="dg-stroke" d="M140.57 18.38L140.57 75.52" fill="none"/><path id="dg1-leak--h" class="dg-head" d="M140.57 83.17L136.61 74.17L144.53 74.17Z"/></g>
@@ -2849,8 +2868,11 @@ function dgApplyVec(el, kind, v) {
 
 function dgTargets(d, key) {
   if (d.cache[key]) return d.cache[key];
+  // Label wrappers are addressed by data-lab, not by id, because one
+  // element can carry several pre-rendered label variants. The attribute
+  // holds the full geometry key.
   const list = key.endsWith('--l')
-    ? [...d.svg.querySelectorAll('[data-lab="' + key.slice(0, -3) + '"]')]
+    ? [...d.svg.querySelectorAll('[data-lab="' + key + '"]')]
     : [document.getElementById(d.data.p + key)].filter(Boolean);
   d.cache[key] = list;
   return list;
@@ -3016,7 +3038,7 @@ viewport.addEventListener('scroll', resetViewportScroll);
 // would focus different elements the moment the selectors disagreed.
 // Display math is in the list because a formula on a projector is exactly
 // the thing a room asks to see bigger.
-const FOCUSABLE_SEL = 'figure.figure-img, .chunk-body pre, .chunk-body .math-display, .marginalia';
+const FOCUSABLE_SEL = 'figure.figure-img, figure.figure-diagram, .chunk-body pre, .chunk-body .math-display, .marginalia';
 
 // ── Slide-size sync ─────────────────────────────────────────────────
 // --slide-w / --slide-h hold the AUDIENCE window's pixel dimensions so
