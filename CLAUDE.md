@@ -326,6 +326,7 @@ Two things worth knowing before writing chunks, both learned the hard way:
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 tag vocabulary, §3 source format + parsing contract, §4 visual language, §7 view architecture. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
+- `editor.md` – **plan only, nothing implemented**: the graphical editor for `::: diagram`. Its §4 drag policy is the design; §5.1 proposes extracting the diagram compiler into `diagram-core.mjs` so it can run in Node and in the browser from one text, which would also let `lint.js` import the seven vocabulary tables it currently mirrors.
 - `HANDOFF.md` – slice-by-slice build diary in German/English mix. Latest sections describe current state and deliberate non-choices. Update when landing a substantial slice.
 - `README.md` – short public-facing intro.
 - `lectures/tutorial/source.md` – the canonical authoring reference (self-referential lecture). Build and open its `audience.html` to see every directive live.
