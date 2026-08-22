@@ -29,8 +29,8 @@ from building the same way is a major version.
   mirrors the vocabulary and reports unknown statements, unknown classes,
   duplicate names and dangling references.
 
-  `align <edge> a,b,c` lines up one coordinate (Figma's vocabulary:
-  left/center/right on x, top/middle/bottom on y) and `spread x|y a,…,z`
+  `align x|y <edge> a,b,c` lines up one coordinate (Figma's edge words,
+  with the axis stated: left/center/right on x, top/middle/bottom on y) and `spread x|y a,…,z`
   gives equal spacing between centres. Both are an extra dependency plus a
   coordinate override in the same topological walk – no solver, no second
   pass – and both name the line on a circular authoring instead of drawing
@@ -85,6 +85,19 @@ from building the same way is a major version.
   nothing on the projection, a container's caption hung outside its own
   border, a long label could draw outside the viewBox, `label @tag` was a
   silent no-op, and one mistake was reported once per step.
+
+  A coordinate may be another element's coordinate with an optional signed
+  nudge – `via iv.cx,x0.cy`, `edge a.left-0.8,a.cy -> a`. Rebuilding the
+  example slides had needed a browser open and three numbers read off the
+  screen; all three are now relations that survive a change above them
+  (verified: moving a row down by 48px moves the waypoint corner by
+  exactly 48px and the leg stays vertical). The nudge's shape is a promise
+  to the future editor: one signed term, no other operators, so a drag
+  rewrites one token instead of replacing the reference with an absolute.
+
+  `default <kind> @tag` refines a kind default for the elements carrying a
+  tag, resolving in three layers – kind, then tag, then the element's own
+  attributes.
 
   Rebuilding all six example slides from scratch found three more: a
   placement's `offset` was applied after `align` overrode the result, so

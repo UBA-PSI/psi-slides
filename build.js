@@ -1303,10 +1303,20 @@ const DG_CLASS_GROUPS = [
 ];
 
 const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 'tr', 'bl', 'br']);
+// Scalar coordinates of an element, for use where a single number would go.
+// `left`/`right` are x, `top`/`bottom` are y, `cx`/`cy` the centres. Naming
+// the wrong axis is an error rather than a silent transposition.
+const DG_SCALAR_X = new Set(['cx', 'left', 'right']);
+const DG_SCALAR_Y = new Set(['cy', 'top', 'bottom']);
+
 const DG_STEP_OPS = new Set(['show', 'hide', 'move', 'emph', 'calm', 'style', 'label']);
 const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'align', 'spread', 'default', 'step']);
-// Figma's and PowerPoint's vocabulary, because it is the one everybody
-// already has: left/center/right line up the x axis, top/middle/bottom the y.
+// Figma's and PowerPoint's edge words, but with the axis stated:
+// `align x center` / `align y middle`. Naming the axis costs one token and
+// removes a trap that caught its own author – "center" and "middle" are
+// near-synonyms in English, the axis is not in the word, and aligning the
+// wrong one is legal, silent, and moves a whole block into the next column.
+// It also matches `spread x|y`, which named its axis from the start.
 const DG_ALIGN_X = new Set(['left', 'center', 'right']);
 const DG_ALIGN_Y = new Set(['top', 'middle', 'bottom']);
 const DG_DEFAULT_KINDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'container', 'brace']);
@@ -1541,9 +1551,8 @@ function dgParseRef(tok, errors, lineNo) {
   // invisible anchor element: there is nothing to delete by accident, and a
   // graphical editor dragging that end rewrites two numbers on this line
   // instead of moving an object nobody can see.
-  if (/^-?[\d.]+,-?[\d.]+$/.test(tok)) {
-    const [x, y] = tok.split(',').map(Number);
-    return { ref: null, point: [x, y], anchor: null, frac: 0.5 };
+  if (tok.includes(',')) {
+    return { ref: null, point: dgParsePair(tok, errors, lineNo, 'an edge endpoint'), anchor: null, frac: 0.5 };
   }
   const dot = tok.indexOf('.');
   if (dot < 0) return { ref: tok, anchor: null, frac: 0.5 };
@@ -1649,6 +1658,72 @@ function dgParsePlacement(toks, k, errors, lineNo) {
   return [place, next];
 }
 
+// One component of a coordinate pair: a number in grid units, or an
+// element's coordinate with an optional signed nudge, also in grid units.
+//
+//   1.12        x0.cy        iv.left        mix.cx+0.2        d1.top-0.4
+//
+// The nudge is not decoration. It is what lets a graphical editor record a
+// drag *without* converting the reference back into an absolute number: it
+// rewrites one signed scalar in place and the relation survives. Everything
+// else about the grammar follows from that – one optional term, no other
+// operators, no nesting, so the token an editor has to replace is always
+// exactly one.
+function dgParseCoord(tok, axis, errors, lineNo, what) {
+  const raw = String(tok ?? '');
+  const m = raw.match(/^([A-Za-z_][\w-]*)\.([a-z]+)([+-][\d.]+)?$/);
+  if (!m) {
+    const n = Number(raw);
+    if (!Number.isFinite(n)) {
+      dgErr(errors, lineNo, `${what} expects a number or an element coordinate like "x0.cy", got "${raw}"`);
+      return { unit: 0 };
+    }
+    return { unit: n };
+  }
+  const [, ref, prop, nudge] = m;
+  const ok = axis === 'x' ? DG_SCALAR_X : DG_SCALAR_Y;
+  if (!ok.has(prop)) {
+    const other = axis === 'x' ? DG_SCALAR_Y : DG_SCALAR_X;
+    dgErr(errors, lineNo, other.has(prop)
+      ? `${what}: ".${prop}" is a ${axis === 'x' ? 'y' : 'x'} coordinate, and this slot is the ${axis}. Use ${[...ok].map(p => '.' + p).join(' / ')}.`
+      : `${what}: unknown coordinate ".${prop}" – use ${[...ok].map(p => '.' + p).join(' / ')}`);
+    return { unit: 0 };
+  }
+  return { ref, prop, nudge: nudge ? Number(nudge) : 0 };
+}
+
+// `X,Y` where either side may be a reference.
+function dgParsePair(tok, errors, lineNo, what) {
+  const parts = String(tok ?? '').split(',');
+  if (parts.length !== 2) {
+    dgErr(errors, lineNo, `${what} expects X,Y – got "${tok}"`);
+    return null;
+  }
+  return [
+    dgParseCoord(parts[0], 'x', errors, lineNo, what),
+    dgParseCoord(parts[1], 'y', errors, lineNo, what),
+  ];
+}
+
+// Resolved against the finished layout, so a reference costs no dependency
+// edge: every box is already placed by the time edges are drawn.
+function dgCoordPx(c, axis, boxes, uw, uh) {
+  const u = axis === 'x' ? uw : uh;
+  if (c.unit !== undefined) return c.unit * u;
+  const b = boxes.get(c.ref);
+  if (!b) return 0;
+  const v = c.prop === 'cx' ? b.x + b.w / 2
+    : c.prop === 'left' ? b.x
+    : c.prop === 'right' ? b.x + b.w
+    : c.prop === 'cy' ? b.y + b.h / 2
+    : c.prop === 'top' ? b.y
+    : b.y + b.h;
+  return v + c.nudge * u;
+}
+const dgPairPx = (p, boxes, uw, uh) =>
+  [dgCoordPx(p[0], 'x', boxes, uw, uh), dgCoordPx(p[1], 'y', boxes, uw, uh)];
+const dgPairRefs = (p) => (p || []).filter(c => c && c.ref).map(c => c.ref);
+
 function dgParseMembers(tok) {
   return String(tok).split(',').map(s => s.trim()).filter(Boolean);
 }
@@ -1665,6 +1740,7 @@ function parseDiagramSource(body, headAttrs) {
     aligns: [],
     spreads: [],
     defaults: {},
+    tagDefaults: [],
     byId: new Map(),
   };
 
@@ -1745,19 +1821,28 @@ function parseDiagramSource(body, headAttrs) {
     // override in the same topological walk, so there is still no solver and
     // still no second pass: the master is laid out first by construction.
     if (head === 'align' || head === 'spread') {
-      const what = t(1);
-      const members = dgParseMembers(body0.slice(2).map(x => x.v).join(','));
+      const axis = t(1);
+      if (axis !== 'x' && axis !== 'y') {
+        dgErr(errors, lineNo, `${head} expects an axis, x or y, got "${axis}"`);
+        continue;
+      }
       if (head === 'align') {
-        if (!DG_ALIGN_X.has(what) && !DG_ALIGN_Y.has(what)) {
-          dgErr(errors, lineNo, `align expects ${[...DG_ALIGN_X, ...DG_ALIGN_Y].join('/')}, got "${what}"`);
+        const edge = t(2);
+        const ok = axis === 'x' ? DG_ALIGN_X : DG_ALIGN_Y;
+        if (!ok.has(edge)) {
+          const other = axis === 'x' ? DG_ALIGN_Y : DG_ALIGN_X;
+          dgErr(errors, lineNo, other.has(edge)
+            ? `align x/y: "${edge}" is a ${axis === 'x' ? 'y' : 'x'} edge. On the ${axis} axis use ${[...ok].join('/')}.`
+            : `align ${axis} expects ${[...ok].join('/')}, got "${edge}"`);
           continue;
         }
-        if (members.length < 2) { dgErr(errors, lineNo, `align ${what} needs at least two elements`); continue; }
-        model.aligns.push({ edge: what, axis: DG_ALIGN_X.has(what) ? 'x' : 'y', members, line: lineNo });
+        const members = dgParseMembers(body0.slice(3).map(x => x.v).join(','));
+        if (members.length < 2) { dgErr(errors, lineNo, `align ${axis} ${edge} needs at least two elements`); continue; }
+        model.aligns.push({ edge, axis, members, line: lineNo });
       } else {
-        if (what !== 'x' && what !== 'y') { dgErr(errors, lineNo, `spread expects x or y, got "${what}"`); continue; }
-        if (members.length < 3) { dgErr(errors, lineNo, `spread ${what} needs at least three elements – the first and last stay put and the rest are distributed between them`); continue; }
-        model.spreads.push({ axis: what, members, line: lineNo });
+        const members = dgParseMembers(body0.slice(2).map(x => x.v).join(','));
+        if (members.length < 3) { dgErr(errors, lineNo, `spread ${axis} needs at least three elements – the first and last stay put and the rest are distributed between them`); continue; }
+        model.spreads.push({ axis, members, line: lineNo });
       }
       continue;
     }
@@ -1768,25 +1853,28 @@ function parseDiagramSource(body, headAttrs) {
         dgErr(errors, lineNo, `default expects one of ${[...DG_DEFAULT_KINDS].join(', ')}, got "${kind}"`);
         continue;
       }
-      // One per kind per diagram, and it applies to every element of that
-      // kind wherever it stands. Position-dependent defaults (DOT's model)
-      // are more expressive but make the source order-sensitive in a way
-      // that is invisible: move a declaration three lines up and it
-      // silently changes colour. A second `default` for the same kind is
-      // therefore an error rather than a redefinition.
-      if (model.defaults[kind]) {
-        dgErr(errors, lineNo, `a second "default ${kind}" – there can only be one per diagram (the first is on line ${model.defaults[kind].line})`);
+      // `default box @dec w 0.48` refines the kind default for the elements
+      // carrying that tag. One per (kind, tag) and one per bare kind, so the
+      // result never depends on the order of the declarations: an element's
+      // own attributes beat its tag default, which beats the kind default.
+      const tagTok = body0[2] && body0[2].v.startsWith('@') ? body0[2].v.slice(1) : null;
+      const slot = tagTok
+        ? model.tagDefaults.find(d => d.kind === kind && d.tag === tagTok)
+        : model.defaults[kind];
+      if (slot) {
+        dgErr(errors, lineNo, `a second "default ${kind}${tagTok ? ' @' + tagTok : ''}" – there can only be one per diagram (the first is on line ${slot.line})`);
         continue;
       }
-      const def = { classes: attrs.classes, w: null, h: null, r: null, line: lineNo };
-      const rest = body0.slice(2);
+      const def = { kind, tag: tagTok, classes: attrs.classes, w: null, h: null, r: null, line: lineNo };
+      const rest = body0.slice(tagTok ? 3 : 2);
       for (let k = 0; k < rest.length; k++) {
         if (rest[k].v === 'w') { def.w = dgNum(rest[k + 1]?.v, errors, lineNo, 'w'); k++; }
         else if (rest[k].v === 'h') { def.h = dgNum(rest[k + 1]?.v, errors, lineNo, 'h'); k++; }
         else if (rest[k].v === 'r') { def.r = dgNum(rest[k + 1]?.v, errors, lineNo, 'r'); k++; }
         else dgErr(errors, lineNo, `unexpected "${rest[k].v}" in default ${kind}`);
       }
-      model.defaults[kind] = def;
+      if (tagTok) model.tagDefaults.push(def);
+      else model.defaults[kind] = def;
       continue;
     }
 
@@ -1900,10 +1988,12 @@ function parseDiagramSource(body, headAttrs) {
       if (body0[arrowAt].v === '--' && !edge.classes.includes('no-head')) edge.classes.push('no-head');
       for (let k = arrowAt + 2; k < body0.length; k++) {
         if (body0[k].v === 'via') continue;
-        const parts = body0[k].v.split(',');
-        if (parts.length === 2) {
-          edge.via.push([dgNum(parts[0], errors, lineNo, 'via X'), dgNum(parts[1], errors, lineNo, 'via Y')]);
-        } else dgErr(errors, lineNo, `unexpected "${body0[k].v}" in edge (waypoints are "via X,Y X,Y")`);
+        if (!body0[k].v.includes(',')) {
+          dgErr(errors, lineNo, `unexpected "${body0[k].v}" in edge (waypoints are "via X,Y X,Y")`);
+          continue;
+        }
+        const p = dgParsePair(body0[k].v, errors, lineNo, 'a waypoint');
+        if (p) edge.via.push(p);
       }
       model.edges.push(edge);
       continue;
@@ -1970,8 +2060,13 @@ function parseDiagramSource(body, headAttrs) {
   });
   for (const h of model.containers) h.members = expandList(h.members, h.line, `container ${h.id}`);
   for (const h of model.braces) h.members = expandList(h.members, h.line, `brace ${h.id}`);
-  for (const h of model.aligns) h.members = expandList(h.members, h.line, `align ${h.edge}`);
+  for (const h of model.aligns) h.members = expandList(h.members, h.line, `align ${h.axis} ${h.edge}`);
   for (const h of model.spreads) h.members = expandList(h.members, h.line, `spread ${h.axis}`);
+  for (const d of model.tagDefaults) {
+    if (!model.tags.has(d.tag)) {
+      dgErr(errors, d.line, `default ${d.kind} @${d.tag} – no element carries @${d.tag}`);
+    }
+  }
   const known = (id) => (id.startsWith('@') ? model.tags.has(id.slice(1)) : model.byId.has(id));
   const checkRef = (id, lineNo, what) => {
     if (!id || known(id)) return;
@@ -1994,13 +2089,16 @@ function parseDiagramSource(body, headAttrs) {
   }
   for (const e of model.edges) {
     if (!e.from.point) checkRef(e.from.ref, e.line, `edge ${e.id}`);
+    else for (const r of dgPairRefs(e.from.point)) checkRef(r, e.line, `edge ${e.id}`);
     if (!e.to.point) checkRef(e.to.ref, e.line, `edge ${e.id}`);
+    else for (const r of dgPairRefs(e.to.point)) checkRef(r, e.line, `edge ${e.id}`);
+    for (const p of e.via) for (const r of dgPairRefs(p)) checkRef(r, e.line, `edge ${e.id} waypoint`);
   }
   for (const c of [...model.containers, ...model.braces]) {
     for (const m of c.members) checkRef(m, c.line, `${c.id}`);
   }
   for (const a of [...model.aligns, ...model.spreads]) {
-    const what = a.edge ? `align ${a.edge}` : `spread ${a.axis}`;
+    const what = a.edge ? `align ${a.axis} ${a.edge}` : `spread ${a.axis}`;
     for (const m of a.members) checkRef(m, a.line, what);
   }
   for (const s of model.steps) {
@@ -2075,15 +2173,33 @@ function dgStateAt(model, k) {
   // The default block is the base, the element's own {…} is added on top.
   // Merged here rather than at parse time so a default declared anywhere in
   // the body still reaches every element of its kind.
+  // Three layers, most specific last: the kind default, then the default
+  // for a tag the element carries, then its own {…}. Each layer's classes
+  // are dropped where a more specific layer already fills that slot.
+  const layersFor = (el) => {
+    const out = [];
+    if (model.defaults[el.kind]) out.push(model.defaults[el.kind]);
+    for (const d of model.tagDefaults) {
+      if (d.kind === el.kind && (el.tags || []).includes(d.tag)) out.push(d);
+    }
+    return out;
+  };
   const withDefaults = (el) => {
-    const d = model.defaults[el.kind];
-    if (!d) return new Set(el.classes);
-    const own = new Set(el.classes);
-    const base = d.classes.filter(c => {
-      const group = DG_CLASS_GROUPS.find(g => g.includes(c));
-      return !group || !group.some(x => own.has(x));
-    });
-    return new Set([...base, ...el.classes]);
+    const layers = layersFor(el);
+    if (!layers.length) return new Set(el.classes);
+    const acc = [];
+    const claimed = new Set();
+    // Walk most-specific first so a later (weaker) layer cannot displace it.
+    for (const cls of [...el.classes, ...layers.reverse().flatMap(l => l.classes)]) {
+      const group = DG_CLASS_GROUPS.find(g => g.includes(cls));
+      if (group) {
+        const key = group[0];
+        if (claimed.has(key)) continue;
+        claimed.add(key);
+      }
+      acc.push(cls);
+    }
+    return new Set(acc);
   };
   const state = new Map();
   const all = [...model.nodes, ...model.containers, ...model.braces];
@@ -2137,11 +2253,19 @@ function layoutDiagram(model, state, errors) {
       const ref = boxes.get(node.sameAs);
       if (ref) return { w: ref.w, h: ref.h };
     }
-    const d = model.defaults[node.kind] || {};
-    const nw = node.w != null ? node.w : d.w;
-    const nh = node.h != null ? node.h : d.h;
+    // Geometry follows the same three layers.
+    const pick = (key) => {
+      if (node[key] != null) return node[key];
+      for (const d of model.tagDefaults) {
+        if (d.kind === node.kind && (node.tags || []).includes(d.tag) && d[key] != null) return d[key];
+      }
+      const kd = model.defaults[node.kind];
+      return kd && kd[key] != null ? kd[key] : null;
+    };
+    const nw = pick('w');
+    const nh = pick('h');
     if (node.kind === 'dot') {
-      const nr = node.r != null ? node.r : d.r;
+      const nr = pick('r');
       const r = nr != null ? nr * uh : DG_DOT_R;
       return { w: 2 * r, h: 2 * r };
     }
@@ -2196,7 +2320,7 @@ function layoutDiagram(model, state, errors) {
     return false;
   };
   for (const a of model.aligns) {
-    if (!a.members.every(m => nodeOnly(m, a.line, `align ${a.edge}`))) continue;
+    if (!a.members.every(m => nodeOnly(m, a.line, `align ${a.axis} ${a.edge}`))) continue;
     const [master, ...rest] = a.members;
     const table = a.axis === 'x' ? alignX : alignY;
     for (const m of rest) {
@@ -2484,12 +2608,14 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     const ends = [e.from, e.to].filter(r => !r.point).map(r => state.get(r.ref));
     const st = record(e);
     if (ends.some(s => s && !s.visible)) vis.set(e.id, 0);
-    const endBox = (r) => r.point
-      ? { x: r.point[0] * uw, y: r.point[1] * uh, w: 0, h: 0 }
-      : boxes.get(r.ref);
+    const endBox = (r) => {
+      if (!r.point) return boxes.get(r.ref);
+      const [px, py] = dgPairPx(r.point, boxes, uw, uh);
+      return { x: px, y: py, w: 0, h: 0 };
+    };
     const fb = endBox(e.from), tb = endBox(e.to);
     if (!fb || !tb) continue;
-    const viaPx = e.via.map(([x, y]) => [x * uw, y * uh]);
+    const viaPx = e.via.map(p => dgPairPx(p, boxes, uw, uh));
     const towardFrom = viaPx[0] || [tb.x + tb.w / 2, tb.y + tb.h / 2];
     const towardTo = viaPx[viaPx.length - 1] || [fb.x + fb.w / 2, fb.y + fb.h / 2];
     const aFrom = e.from.anchor || dgAutoAnchor(fb, towardFrom);

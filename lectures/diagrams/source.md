@@ -21,7 +21,7 @@ default text {.small}
 
 text tlab "Temporal" at 0,0 {.left .large}
 box  tobj "object" right of tlab gap 0.7 w 0.62 {.tone-3}
-edge 0.62,-1.05 -> tobj.tl {.thick .muted}
+edge tobj.left-0.36,tobj.top-0.7 -> tobj.tl {.thick .muted}
 
 box  uaf  "Use After Free" below tlab gap 0.75 align left {@temporal}
 box  df   "Double free"    right of uaf gap 0.22 same as uaf {@temporal}
@@ -29,15 +29,15 @@ text tcode "free(ptr);\n*ptr;" below uaf gap 0.28 align left {.mono .left @tempo
 
 text slab "Spatial" below tcode gap 0.9 align left {.left .large}
 box  sobj "object" right of slab gap 0.7 w 0.62 {.tone-4}
-edge 0.62,2.60 -> sobj.tl {.thick .accent}
+edge sobj.left-0.36,sobj.top-0.7 -> sobj.tl {.thick .accent}
 
 box  bo   "Buffer Overflow" below slab gap 0.75 align left {.accent @spatial}
 box  bor  "Buffer Overread" right of bo gap 0.22 same as bo {.accent @spatial}
 text scode "char buf[16];\nbuf[42];" below bor gap 0.28 align left {.mono .left @spatial}
 
-align left tlab, slab
-align left uaf, bo
-align center tobj, sobj
+align x left tlab, slab
+align x left uaf, bo
+align x center tobj, sobj
 
 step temporal
   show @temporal
@@ -76,7 +76,7 @@ box sp  "SP" left of buf gap 0.55 w 0.3 {.tone-4}
 box bpl "BP" left of val gap 0.55 same as sp {.tone-4}
 edge sp -> buf.left
 edge bpl -> val.left
-align center sp, bpl
+align x center sp, bpl
 
 brace dir over buf,ret right "writing direction:\ntowards higher\naddresses" gap 0.28 {.muted}
 
@@ -97,6 +97,7 @@ step reached
 
 ::: diagram {unit=112x74}
 default box {.tone-3} w 0.82
+default box @dec {.round .tone-2} w 0.48
 default text {.mono}
 
 box iv "Rand. IV" at 0,0 {.tone-1}
@@ -104,9 +105,9 @@ box c0 "c_0" right of iv gap 0.3
 box c1 "c_1" right of c0 gap 0.3
 box c2 "c_2" right of c1 gap 0.3
 
-box d0 "Dec" below c0 gap 0.95 w 0.48 {.round .tone-2 @dec}
-box d1 "Dec" below c1 gap 0.95 same as d0 {.round .tone-2 @dec}
-box d2 "Dec" below c2 gap 0.95 same as d0 {.round .tone-2 @dec}
+box d0 "Dec" below c0 gap 0.95 {@dec}
+box d1 "Dec" below c1 gap 0.95 {@dec}
+box d2 "Dec" below c2 gap 0.95 {@dec}
 text k0 "k" left of d0 gap 0.3 {@dec}
 text k1 "k" left of d1 gap 0.3 {@dec}
 text k2 "k" left of d2 gap 0.3 {@dec}
@@ -130,14 +131,14 @@ edge d2 -> x2
 edge x0 -> m0
 edge x1 -> m1
 edge x2 -> m2
-edge iv -> x0 via 0,1.95    {#feed0}
-edge c0 -> x1 via 1.12,1.95 {#feed1}
-edge c1 -> x2 via 2.24,1.95 {#feed2}
+edge iv -> x0 via iv.cx,d0.bottom+0.28 {#feed0}
+edge c0 -> x1 via c0.cx,d0.bottom+0.28 {#feed1}
+edge c1 -> x2 via c1.cx,d0.bottom+0.28 {#feed2}
 
-align middle iv, c0, c1, c2
-align middle d0, d1, d2
-align middle x0, x1, x2
-align middle m0, m1, m2
+align y middle iv, c0, c1, c2
+align y middle d0, d1, d2
+align y middle x0, x1, x2
+align y middle m0, m1, m2
 
 step decrypt
   show @dec
@@ -155,6 +156,10 @@ Jeder `step` ist ein Druck auf `Space`. Die Verkettungspfeile haben je einen Weg
 
 ::: diagram {unit=104x66}
 default text {.mono}
+default box @enc {.round .tone-3}
+default box @stream {.tone-2}
+default box @msg {.tone-3}
+default box @cipher {.tone-4}
 
 box iv0 "IV" at 0,0    w 0.5 {.tone-1}
 box n0  "0"  right of iv0 gap 0 w 0.42 {.tone-2}
@@ -163,25 +168,25 @@ box n1  "1"  right of iv1 gap 0 same as n0 {.tone-2}
 box iv2 "IV" right of n1 gap 0.42 same as iv0 {.tone-1}
 box n2  "2"  right of iv2 gap 0 same as n0 {.tone-2}
 
-box e0 "Enc" between iv0,n0 offset 0,1.35 {.round .tone-3 @enc}
-box e1 "Enc" between iv1,n1 offset 0,1.35 same as e0 {.round .tone-3 @enc}
-box e2 "Enc" between iv2,n2 offset 0,1.35 same as e0 {.round .tone-3 @enc}
+box e0 "Enc" between iv0,n0 offset 0,1.35 {@enc}
+box e1 "Enc" between iv1,n1 offset 0,1.35 same as e0 {@enc}
+box e2 "Enc" between iv2,n2 offset 0,1.35 same as e0 {@enc}
 text ke0 "k" left of e0 gap 0.4 {@enc}
 text ke1 "k" left of e1 gap 0.4 {@enc}
 text ke2 "k" left of e2 gap 0.4 {@enc}
 
-box s0 "s_0" below e0 gap 0.6 w 0.95 {.tone-2 @stream}
-box s1 "s_1" below e1 gap 0.6 same as s0 {.tone-2 @stream}
-box s2 "s_2" below e2 gap 0.6 same as s0 {.tone-2 @stream}
+box s0 "s_0" below e0 gap 0.6 w 0.95 {@stream}
+box s1 "s_1" below e1 gap 0.6 same as s0 {@stream}
+box s2 "s_2" below e2 gap 0.6 same as s0 {@stream}
 dot p0 "+" below s0 gap 0.22 r 0.2 {@stream}
 dot p1 "+" below s1 gap 0.22 r 0.2 {@stream}
 dot p2 "+" below s2 gap 0.22 r 0.2 {@stream}
-box mm0 "m_0" below p0 gap 0.22 same as s0 {.tone-3 @msg}
-box mm1 "m_1" below p1 gap 0.22 same as s0 {.tone-3 @msg}
-box mm2 "m_2" below p2 gap 0.22 same as s0 {.tone-3 @msg}
-box cc0 "c_0" below mm0 gap 0.5 same as s0 {.tone-4 @cipher}
-box cc1 "c_1" below mm1 gap 0.5 same as s0 {.tone-4 @cipher}
-box cc2 "c_2" below mm2 gap 0.5 same as s0 {.tone-4 @cipher}
+box mm0 "m_0" below p0 gap 0.22 same as s0 {@msg}
+box mm1 "m_1" below p1 gap 0.22 same as s0 {@msg}
+box mm2 "m_2" below p2 gap 0.22 same as s0 {@msg}
+box cc0 "c_0" below mm0 gap 0.5 same as s0 {@cipher}
+box cc1 "c_1" below mm1 gap 0.5 same as s0 {@cipher}
+box cc2 "c_2" below mm2 gap 0.5 same as s0 {@cipher}
 
 edge n0 -> e0 {@enc}
 edge n1 -> e1 {@enc}
@@ -193,12 +198,12 @@ edge e0 -> s0 {@stream}
 edge e1 -> s1 {@stream}
 edge e2 -> s2 {@stream}
 
-edge -0.32,3.62 -> 3.02,3.62 {#rule .no-head .muted @cipher}
+edge mm0.left,mm0.bottom+0.22 -> mm2.right,mm0.bottom+0.22 {#rule .no-head .muted @cipher}
 
-align middle iv0, iv1, iv2
-align middle e0, e1, e2
-align middle s0, s1, s2
-align middle cc0, cc1, cc2
+align y middle iv0, iv1, iv2
+align y middle e0, e1, e2
+align y middle s0, s1, s2
+align y middle cc0, cc1, cc2
 
 step keystream
   show @enc, @stream
@@ -243,9 +248,9 @@ text down4  "▼"              below authnc gap 0.12 {@usage}
 box  acl    "Access Control" below down4 gap 0.12 {@usage}
 text aclc   "granting of access\nby the system"  below acl gap 0.2 {@usage}
 
-align middle reg, ident
-align middle prov, authn
-align middle authz, acl
+align y middle reg, ident
+align y middle prov, authn
+align y middle authz, acl
 
 brace signup over reg,prov    right "Signup" {.muted}
 brace login  over ident,authn right "Login"  {.muted}
@@ -270,7 +275,7 @@ step self
 image alice avatar-alice "Alice" w 0.42
 image eve   avatar-bob   "Eve"   right of alice gap 1.4 same as alice {.ghost @attack}
 image bob   avatar-bob   "Bob"   right of eve gap 1.4 same as alice
-align middle alice, eve, bob
+align y middle alice, eve, bob
 
 text nA "Alice" below alice gap 0.06 {.small}
 text nE "Eve"   below eve gap 0.06 {.small .muted @attack}
@@ -289,7 +294,7 @@ text ver1 "Verify_k(M, T)"                below nB gap 0.3 {.mono .small @proto}
 text ver2 "T' = MAC_k(M)\nT' equals T ?"  below ver1 gap 0.55 {.mono .small @proto}
 edge ver1 -- ver2 {#howto .muted .dotted @proto}
 text eg   "e.g." between ver1,ver2 offset -0.16,0 {.small .muted @proto}
-align middle macA, ver1
+align y middle macA, ver1
 
 text goals "Security goals: *integrity*\nand *authenticity* but\n~not non-repudiation~" at 3.55,-1.05 {.left}
 
@@ -333,10 +338,10 @@ box p "first"   below a gap 1.1
 box s "fourth"  right of p gap 3.0
 box q "second"  below p gap 0 h 0.8
 box r "third"   below p gap 0 h 0.5
-align middle p, q, r, s
+align y middle p, q, r, s
 spread x p, q, r, s
 
-edge -0.8,0 -> a "from outside" {.muted}
+edge a.left-0.8,a.cy -> a "from outside" {.muted}
 :::
 
 Oben gleiche *Kantenabstände*, unten gleiche *Mittelpunktabstände*. Der Pfeil links hat einen Endpunkt ohne Objekt – eine Koordinate statt eines unsichtbaren Ankers.

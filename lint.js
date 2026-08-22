@@ -98,7 +98,10 @@ const DENSITY_BUDGET = {
 // worse than none, so this list is checked against DG_CLASSES / the
 // statement table there, not guessed at.
 const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'align', 'spread', 'default', 'step']);
-const DG_ALIGN_EDGES = new Set(['left', 'center', 'right', 'top', 'middle', 'bottom']);
+const DG_ALIGN_X = new Set(['left', 'center', 'right']);
+const DG_ALIGN_Y = new Set(['top', 'middle', 'bottom']);
+const DG_SCALAR_X = new Set(['cx', 'left', 'right']);
+const DG_SCALAR_Y = new Set(['cy', 'top', 'bottom']);
 const DG_DEFAULT_KINDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'container', 'brace']);
 // Mirrors DG_CLASS_GROUPS in build.js. The build uses it to let an explicit
 // class displace a `default`; here it catches two members of one slot on the
@@ -207,12 +210,33 @@ function lintDiagram(block, add, fmLines) {
   // Anchors (mix.right) and group names both resolve against the same
   // table, so a reference is only ever its part before the dot.
   const ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 'tr', 'bl', 'br']);
+  // `X,Y` where either side may be `elem.cy` or `elem.left-0.4`. Mirrors
+  // dgParseCoord in build.js, including which scalars belong to which axis.
+  const referPair = (tok, ln, what) => {
+    const parts = String(tok).split(',');
+    if (parts.length !== 2) return;
+    parts.forEach((raw, i) => {
+      const m = raw.match(/^([A-Za-z_][\w-]*)\.([a-z]+)([+-][\d.]+)?$/);
+      if (!m) {
+        if (!Number.isFinite(Number(raw))) {
+          add(ln, 'error', 'bad-diagram-coordinate',
+              `${what} expects a number or an element coordinate like 'x0.cy', got '${raw}'`);
+        }
+        return;
+      }
+      const axis = i === 0 ? 'x' : 'y';
+      const ok = axis === 'x' ? DG_SCALAR_X : DG_SCALAR_Y;
+      if (!ok.has(m[2])) {
+        add(ln, 'error', 'bad-diagram-coordinate',
+            `${what}: '.${m[2]}' is not a ${axis} coordinate – use ${[...ok].map(p => '.' + p).join(' / ')}`);
+      }
+      referenced.push({ name: m[1], ln, what });
+    });
+  };
   const refer = (tok, ln, what) => {
     const raw = String(tok || '').replace(/,$/, '');
-    // A bare coordinate is a valid edge endpoint, not a name. The build
-    // accepts it, so the linter has to as well – a linter stricter than the
-    // build is worse than none, because it is the pre-commit gate.
-    if (/^-?[\d.]+,-?[\d.]+$/.test(raw)) return;
+    // A coordinate pair is a valid edge endpoint, not a name.
+    if (raw.includes(',')) { referPair(raw, ln, what); return; }
     // `.tone-1` where `@tone-1` was meant: the leading dot would otherwise
     // strip to an empty name and vanish.
     if (raw.startsWith('.')) {
@@ -256,18 +280,25 @@ function lintDiagram(block, add, fmLines) {
     const attrs = attrsOf(trimmed, ln);
 
     if (head === 'align' || head === 'spread') {
-      const what = words[1];
-      const members = words.slice(2).join(',').split(',').map(x => x.trim()).filter(Boolean);
-      if (head === 'align' && !DG_ALIGN_EDGES.has(what)) {
-        add(ln, 'error', 'bad-diagram-align',
-            `align expects ${[...DG_ALIGN_EDGES].join('/')}, got '${what || ''}'`);
-      } else if (head === 'spread' && what !== 'x' && what !== 'y') {
-        add(ln, 'error', 'bad-diagram-align', `spread expects x or y, got '${what || ''}'`);
-      } else if (members.length < (head === 'align' ? 2 : 3)) {
-        add(ln, 'error', 'bad-diagram-align',
-            `${head} ${what} needs at least ${head === 'align' ? 'two' : 'three'} elements`);
+      const axis = words[1];
+      const from = head === 'align' ? 3 : 2;
+      const members = words.slice(from).join(',').split(',').map(x => x.trim()).filter(Boolean);
+      if (axis !== 'x' && axis !== 'y') {
+        add(ln, 'error', 'bad-diagram-align', `${head} expects an axis, x or y, got '${axis || ''}'`);
+      } else if (head === 'align') {
+        const ok = axis === 'x' ? DG_ALIGN_X : DG_ALIGN_Y;
+        const other = axis === 'x' ? DG_ALIGN_Y : DG_ALIGN_X;
+        if (!ok.has(words[2])) {
+          add(ln, 'error', 'bad-diagram-align', other.has(words[2])
+            ? `align x/y: '${words[2]}' is a ${axis === 'x' ? 'y' : 'x'} edge. On the ${axis} axis use ${[...ok].join('/')}.`
+            : `align ${axis} expects ${[...ok].join('/')}, got '${words[2] || ''}'`);
+        } else if (members.length < 2) {
+          add(ln, 'error', 'bad-diagram-align', `align ${axis} ${words[2]} needs at least two elements`);
+        }
+      } else if (members.length < 3) {
+        add(ln, 'error', 'bad-diagram-align', `spread ${axis} needs at least three elements`);
       }
-      for (const m of members) refer(m, ln, `${head} ${what}`);
+      for (const m of members) refer(m, ln, `${head} ${axis}`);
       inStep = false;
       continue;
     }
@@ -277,11 +308,16 @@ function lintDiagram(block, add, fmLines) {
       if (!DG_DEFAULT_KINDS.has(kind)) {
         add(ln, 'error', 'unknown-diagram-default',
             `default expects one of ${[...DG_DEFAULT_KINDS].join(', ')}, got '${kind || ''}'`);
-      } else if (defaulted.has(kind)) {
-        add(ln, 'error', 'duplicate-diagram-default',
-            `a second 'default ${kind}' – there can only be one per diagram (the first is on line ${defaulted.get(kind)})`);
       } else {
-        defaulted.set(kind, ln + fmLines);
+        const tag = words[2] && words[2].startsWith('@') ? words[2] : '';
+        const key = kind + tag;
+        if (defaulted.has(key)) {
+          add(ln, 'error', 'duplicate-diagram-default',
+              `a second 'default ${kind}${tag ? ' ' + tag : ''}' – there can only be one per diagram (the first is on line ${defaulted.get(key)})`);
+        } else {
+          defaulted.set(key, ln + fmLines);
+          if (tag) referenced.push({ name: tag, ln, what: `default ${kind}` });
+        }
       }
       inStep = false;
       continue;
@@ -355,6 +391,10 @@ function lintDiagram(block, add, fmLines) {
       }
       refer(words[arrowAt - 1], ln, 'edge');
       refer(words[arrowAt + 1], ln, 'edge');
+      for (let k = arrowAt + 2; k < words.length; k++) {
+        if (words[k] === 'via') continue;
+        if (words[k].includes(',')) referPair(words[k], ln, 'a waypoint');
+      }
     }
   }
   if (inStep === false && block.lines.length === 0) {

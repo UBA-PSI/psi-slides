@@ -366,13 +366,19 @@ Grammar, in full:
 | `text <name> "label" <placement> [-> ref]` | Free text with no shape of its own; `-> ref` grows a leader line to whatever it comments on. `.left` / `.right` align it, and the anchor moves with them |
 | `edge <a> -> <b> ["label"] [via x,y …]` | An arrow. `<-` reverses it, `--` drops the head |
 | `container <name> ["label"] over a,b,c [pad n]` | A drawn box that fits itself around its members |
-| `align <edge> a,b,c` | Line up one coordinate: `left`/`center`/`right` on x, `top`/`middle`/`bottom` on y |
+| `align x\|y <edge> a,b,c` | Line up one coordinate: `left`/`center`/`right` on x, `top`/`middle`/`bottom` on y |
 | `spread x\|y a,…,z` | Equal spacing between centres; the first and last stay put |
 | `brace <name> over a,b [side] ["label"]` | A bracket spanning a subset, label outside |
-| `default <kind> {classes} [w n] [h n]` | The base styling and size for every element of that kind |
+| `default <kind> [@tag] {classes} [w n] [h n]` | The base styling and size for that kind, optionally only for elements carrying a tag |
 | `step <name>` | Opens a step; the indented lines below it are its operations |
 
-An edge endpoint may also be a bare coordinate – `edge -0.8,0 -> a` is an arrow arriving from outside the picture. Deliberately a literal rather than an invisible anchor element: there is nothing to delete by accident, and a graphical editor dragging that end rewrites two numbers on that line instead of moving an object nobody can see.
+**A coordinate is a number in grid cells, or another element's coordinate with an optional signed nudge:** `1.12`, `x0.cy`, `iv.left`, `mix.cx+0.2`. Both halves of a waypoint and of a coordinate endpoint take that form, so `edge iv -> x0 via iv.cx,x0.cy` reads as what it is – straight down from the IV, then across at the height of the XOR – and survives every change above it. Referring to the wrong axis (`.top` where an x belongs) is an error naming the three that fit.
+
+This exists because the alternative is measuring. Rebuilding the six example slides needed a browser open and three numbers read off the screen; every one of them is now a relation. A generated diagram has the same problem with no browser at all.
+
+**The nudge is one optional signed term, and its shape is a promise to the editor.** A graphical editor answering a drag must not replace a reference with an absolute number – that destroys the relation the author wrote. With the nudge in the grammar it rewrites exactly one token and the reference survives, which also means the token to replace is never ambiguous.
+
+An edge endpoint may also be a bare coordinate – `edge a.left-0.8,a.cy -> a` is an arrow arriving from outside the picture. Deliberately a literal rather than an invisible anchor element: there is nothing to delete by accident, and a graphical editor dragging that end rewrites two numbers on that line instead of moving an object nobody can see.
 
 Placement is `at X,Y` in grid cells, a relation – `right of A`, `left of A`, `below A`, `above A`, each taking `gap <n>` and `align <edge>` – or `between A,B [frac <n>]`, which is the position PIC spells “1/2 way between A and B”. Any of them takes a trailing `offset dx,dy`. **The first element defaults to the origin**, so the common case – a box, and everything else relative to it – needs no coordinates at all. Every element after it has to say where it goes; silently stacking two elements on `0,0` is not a default anyone means.
 
@@ -387,6 +393,8 @@ Anchors are addressable and chosen automatically otherwise: `mix.right`, `ret.br
 Step operations are `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style`, `label`. Nothing else.
 
 `same as <element>` copies that element's width and height – “as wide as that one”, rather than a number repeated down the diagram. It copies geometry only; styling is what `default` is for.
+
+`default box @dec {.round} w 0.48` refines the kind default for the elements carrying that tag. Three layers, most specific last: the kind default, then the tag default, then the element's own `{…}` – and each layer's classes are dropped where a more specific layer already fills that slot. One per kind and one per (kind, tag), so the result never depends on the order of the declarations, and a tag no element carries is an error rather than a line with no effect.
 
 **`default` applies to every element of its kind wherever it stands, and there can be only one per kind.** Position-dependent defaults – DOT's model, where a declaration affects only what follows – are more expressive and were rejected: they make the source order-sensitive in a way nothing on the page shows, so moving a declaration three lines up silently changes its colour. An element's own class **displaces** a default in the same slot rather than stacking with it: `.tone-1` on a box beats `default box {.tone-4}`, because otherwise both rules match at equal specificity and the one written later in the stylesheet wins, which is not a rule anyone can see. Two classes from the same slot on one element is a lint warning for the same reason.
 
