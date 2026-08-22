@@ -87,6 +87,7 @@ theme: terminal-green
 collapse: none
 auto-fit: true
 slide-numbers: off
+editor: both
 ---
 
 ## title: {#title}
@@ -124,7 +125,7 @@ Formal statement. $k \geq 2$ inline math.
 > note: Watch the room here — common confusion with l-diversity.
 ```
 
-**Viewer defaults.** Five optional frontmatter keys pin how a lecture *opens*: `font` (serif/sans/mono), `theme` (the six accent and phosphor names), `collapse` (topic-bold/none, the `C` toggle), `auto-fit` (true/false, the `#` toggle), `slide-numbers` (vertical/horizontal/off, the `L` toggle). Precedence is one sentence: **a key that is present wins over the reader's stored preference; a key that is absent leaves that preference alone.** Lectures that pin nothing therefore behave exactly as before – font, theme and slide numbers keep following the reader across lectures, which is the point of storing them globally – while an author who has designed a look gets it without asking anyone to press keys. `slide-numbers` reaches the print views too, since a document has no keyboard. An unknown value fails the build with the list of valid ones: a silently dropped setting is indistinguishable from a setting nobody wrote.
+**Viewer defaults.** Six optional frontmatter keys pin how a lecture *opens*: `font` (serif/sans/mono), `theme` (the six accent and phosphor names), `collapse` (topic-bold/none, the `C` toggle), `auto-fit` (true/false, the `#` toggle), `slide-numbers` (vertical/horizontal/off, the `L` toggle), and `editor` (both/speaker/none). The last is not a look but a payload – whether the live views carry the diagram editor – and it goes through the same machinery because the failure mode is the same: a typo would otherwise cost the lecture its editor without anything on the page saying so. Precedence is one sentence: **a key that is present wins over the reader's stored preference; a key that is absent leaves that preference alone.** Lectures that pin nothing therefore behave exactly as before – font, theme and slide numbers keep following the reader across lectures, which is the point of storing them globally – while an author who has designed a look gets it without asking anyone to press keys. `slide-numbers` reaches the print views too, since a document has no keyboard. An unknown value fails the build with the list of valid ones: a silently dropped setting is indistinguishable from a setting nobody wrote.
 
 **Rules:**
 - `# Heading` = column title.

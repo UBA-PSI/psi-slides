@@ -1372,3 +1372,65 @@ Verified:
 
 The two scripts are in the scratchpad (`spans-roundtrip.mjs`, `spans-edit.mjs`)
 and are the ones to re-run after touching the parser or the table.
+
+### Phase 3 – the read-only canvas · **done**
+
+The "one compiler, two runtimes" bet is cashed: **every figure in every
+lecture re-renders in the browser to a tree identical to the one the build
+emitted.** 11/11 in `lectures/diagrams`, 1/1 in the tutorial, in the audience
+and the speaker view.
+
+What landed:
+
+- **`editor:` in the frontmatter**, through `VIEW_DEFAULT_SPEC` and mirrored
+  in `lint.js`. `both` (default) · `speaker` · `none`. Verified in all three
+  modes: the payload appears in the audience view only under `both`, in the
+  speaker view under `both` and `speaker`, and never in print.
+- **`diagram-core.mjs` and `editor.mjs` are read from disk and inlined**, the
+  same way `bundledFaces()` reads woff2 out of `node_modules`. Two things the
+  wrapping gets right: the exports become one object by *scanning* for the
+  `export` keyword rather than a hand-written list that would go stale; and
+  `</script` is escaped, because the compiler emits a
+  `<script type="application/json">` payload and that sequence closes the
+  element regardless of what JavaScript thinks it is inside of.
+  **Reading them as text is also what makes them ordinary files**: a backtick
+  or a `\s` in `editor.mjs` means what it says, where the same character in
+  `AUDIENCE_JS` is a parse error or a silently broken regex (§11.6).
+- **Cost, measured: 132.7 KB** of core + editor, in an 840 KB audience view.
+  The plan estimated ~150 KB. A lecture with no diagram pays nothing – the
+  payload is gated on the rendered HTML containing one, the same rule the
+  KaTeX stylesheet follows.
+- `window.psiEditor` exposes `figures()`, `compile()`, `spanTable()` and
+  `selfTest()`.
+
+**The identity check earned its keep three times over.** None of these would
+have been visible by looking at the picture:
+
+1. **`aria-label` was missing** from the re-render. The build takes the
+   figure's accessible name from the chunk heading, which the browser has no
+   route to. Now in the payload.
+2. **The comparison itself was wrong.** The SVG in the page is not the SVG the
+   build wrote: the step runtime has already applied beat 0 to it and swapped
+   the print viewBox for the one that holds every beat, while the emitter's
+   static attributes are deliberately the *last* beat. So the check puts its
+   own re-render through the same runtime first. Without that it reported the
+   animation as a compiler difference. It also compares numbers as numbers –
+   the emitter writes `toFixed(2)` and the runtime writes
+   `Math.round(v * 100) / 100`, so `12.30` and `12.3` are one coordinate
+   written by two code paths.
+3. **A real defect in the image table**, and the interesting one. It was keyed
+   by asset reference with the markup baked in – and in `#mac`, `eve` and
+   `bob` share `avatar-bob` with different alt text, so `bob` came back
+   labelled "Eve". The accessible name is not a substring you can splice: it
+   is carried by a whole construct that is *absent* when there is none
+   (`role="img" aria-label="…"` on a spliced vector, `<title>…</title>` on a
+   raster). So the build now emits both shapes and the browser picks. That
+   keeps the knowledge of which construct carries the name next to
+   `inlineSvg()`, where it belongs, and keeps the table keyed by asset so the
+   editor can place a *new* image using an asset the lecture already carries.
+
+One thing the plan did not mention: **the speaker view clones whole chunks
+into its preview strip**, so a lecture with eleven figures carries twenty-two
+payload scripts, and because `getElementById` always answers with the
+original, every clone resolves to a figure already in the list. The workspace
+would have offered each figure twice. Deduplicated by the SVG element.

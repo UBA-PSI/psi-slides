@@ -51,6 +51,7 @@ const VIEW_DEFAULTS = {
   'collapse': ['topic-bold', 'none'],
   'auto-fit': ['true', 'false'],
   'slide-numbers': ['vertical', 'horizontal', 'off'],
+  'editor': ['both', 'speaker', 'none'],
 };
 
 // Mirrors build.js: the per-image inline cap, and the extension search order

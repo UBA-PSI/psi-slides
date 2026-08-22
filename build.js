@@ -1316,6 +1316,44 @@ function dgAssetMarkup(node, id, geo) {
 }
 
 
+// ── the compiler, inlined into the live views ───────────────────────
+// The editor re-runs this compiler in the browser, so the module's *text*
+// ships with the lecture. Read from disk rather than embedded in a template
+// literal, and that is not incidental: a raw backtick anywhere in an inlined
+// literal ends it, even inside a comment, and this file is 2,000 lines of
+// code full of them. Read as text, that whole class of trap disappears –
+// the same reason bundledFaces() reads woff2 out of node_modules.
+//
+// Two things the wrapping has to get right:
+//
+// - **`</script` has to be escaped.** The compiler emits a
+//   `<script type="application/json">` payload, so the sequence appears in a
+//   string literal – and inside an HTML <script> element it closes the
+//   element regardless of what JavaScript thinks it is inside of.
+// - **The exports become one object**, collected by scanning for the
+//   `export` keyword rather than listed by hand. A hand-written list is a
+//   second copy of the module's interface, and it would go stale the first
+//   time someone exports something new.
+const DIAGRAM_CORE_PATH = new URL('./diagram-core.mjs', import.meta.url);
+function diagramCoreScript() {
+  const text = fs.readFileSync(DIAGRAM_CORE_PATH, 'utf8');
+  const names = [...text.matchAll(/^export\s+(?:function|const|let)\s+([A-Za-z_$][\w$]*)/gm)]
+    .map(m => m[1]);
+  const plain = text
+    .replace(/^export\s+(function|const|let)\s/gm, '$1 ')
+    .replace(/<\/(script)/gi, '<\\/$1');
+  return `window.PSI_DG = (function () {\n${plain}\nreturn { ${names.join(', ')} };\n})();`;
+}
+let diagramCoreCache = null;
+const diagramCoreJs = () => (diagramCoreCache ??= diagramCoreScript());
+
+// The editor UI, same treatment and for the same reason: read as text, so a
+// backtick or a regex backslash in it means what it says.
+const EDITOR_JS_PATH = new URL('./editor.mjs', import.meta.url);
+let editorJsCache = null;
+const editorJs = () => (editorJsCache ??= fs.readFileSync(EDITOR_JS_PATH, 'utf8')
+  .replace(/<\/(script)/gi, '<\\/$1'));
+
 const dgCore = createDiagramCompiler({
   resolveImage: dgResolveImage,
   imageAspect: dgAspect,
@@ -2110,6 +2148,12 @@ const VIEW_DEFAULT_SPEC = [
   ['collapse',      'collapse',  ['topic-bold', 'none']],
   ['auto-fit',      'autoFit',   ['true', 'false']],
   ['slide-numbers', 'slideNums', ['vertical', 'horizontal', 'off']],
+  // Where the diagram editor ships. Not a look but a payload, so it follows
+  // `fonts: none` in spirit and the viewer-default machinery in mechanism –
+  // an unknown value fails the build rather than quietly costing the lecture
+  // its editor. `both` is the default; `speaker` keeps it out of the
+  // projection; `none` ships neither the compiler nor the UI.
+  ['editor',        'editor',    ['both', 'speaker', 'none']],
 ];
 function viewDefaults(frontmatter = {}) {
   const out = {};
@@ -3117,6 +3161,19 @@ function renderTocNav(columns) {
 </nav>`;
 }
 
+// Whether this lecture's live views carry the diagram editor, and therefore
+// the compiler's text. Two conditions, both cheap: the lecture has to contain
+// a diagram at all – the same rule the KaTeX stylesheet follows, which is
+// emitted only into views that contain a formula – and the author has to not
+// have declined it.
+function editorPayload(frontmatter, columnsHtml, view) {
+  const want = viewDefaults(frontmatter).editor || 'both';
+  if (want === 'none') return '';
+  if (want === 'speaker' && view !== 'speaker') return '';
+  if (!columnsHtml.includes('class="psi-diagram"')) return '';
+  return `<script>\n${diagramCoreJs()}\n${editorJs()}\n</script>`;
+}
+
 function renderAudience(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
   const title = lectureTitle(frontmatter);
@@ -3168,6 +3225,7 @@ const LINK_QR = ${jsonForScript(linkQrMap(columnsHtml))};
 ${DIAGRAM_JS}
 ${AUDIENCE_JS}
 </script>
+${editorPayload(frontmatter, columnsHtml, 'audience')}
 </body>
 </html>
 `;
@@ -7143,6 +7201,7 @@ ${DIAGRAM_JS}
 ${AUDIENCE_JS}
 ${SPEAKER_JS}
 </script>
+${editorPayload(frontmatter, columnsHtml, 'speaker')}
 </body>
 </html>
 `;

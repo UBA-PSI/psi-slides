@@ -2203,9 +2203,22 @@ export function createDiagramCompiler(env = {}) {
     const out = {};
     for (const n of model.nodes) {
       if (n.kind !== 'image' || !n.asset || out[n.src]) continue;
-      const probe = assetMarkup(n, '\u0000ID\u0000', '\u0000GEO\u0000');
-      if (!probe) continue;
-      out[n.src] = { markup: probe, aspect: n.aspect ?? null };
+      // Two probes, because the accessible name is not a substring the
+      // caller can splice: it is carried by a whole construct that is absent
+      // when there is none – `role="img" aria-label="…"` on a spliced vector,
+      // `<title>…</title>` on a raster. So the build produces both shapes and
+      // the browser picks, rather than the browser learning which attribute
+      // to delete. That knowledge lives with inlineSvg, and only there.
+      //
+      // Keyed by the asset reference, not by element id, so a *new* image
+      // the editor places can use an asset the lecture already carries. Two
+      // elements sharing one asset with different alt text is exactly the
+      // case that made this a placeholder rather than baked-in markup – the
+      // identity check found `bob` labelled "Eve".
+      const named = assetMarkup({ ...n, alt: '\u0000ALT\u0000' }, '\u0000ID\u0000', '\u0000GEO\u0000');
+      const bare = assetMarkup({ ...n, alt: '' }, '\u0000ID\u0000', '\u0000GEO\u0000');
+      if (!named) continue;
+      out[n.src] = { markup: named, bare, aspect: n.aspect ?? null };
     }
     return out;
   }
@@ -2245,7 +2258,11 @@ export function createDiagramCompiler(env = {}) {
       throw err;
     }
 
-    const prefix = `dg${++dgCounter}-`;
+    // The caller may pin the prefix. The browser does, because it is
+    // re-rendering a figure the build already named and the names have to
+    // agree – element ids are what the runtime, the sync protocol and the
+    // editor's own selection all address.
+    const prefix = opts.prefix || `dg${++dgCounter}-`;
     const elements = [
       ...model.containers.map(e => ({ e, kind: 'container' })),
       ...model.nodes.filter(e => e.kind === 'image').map(e => ({ e, kind: 'image' })),
@@ -2440,6 +2457,12 @@ export function createDiagramCompiler(env = {}) {
         range: opts.range || null,
         chunk: opts.chunk || null,
         width: opts.width || null,
+        // The figure's accessible name, which the build takes from the
+        // chunk heading. Carried here because the browser has no other way
+        // to it, and without it a re-render differs from the build's own
+        // SVG by exactly one attribute – which is how the identity check
+        // found it.
+        alt: opts.alt || '',
         images: imageTable(model),
       }).replace(/</g, '\\u003c') + '</script>';
     return `<figure class="figure-diagram">${svg}${hint}${script}${srcPayload}</figure>`;
