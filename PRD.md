@@ -368,6 +368,7 @@ Grammar, in full:
 | `container <name> ["label"] over a,b,c [pad n]` | A drawn box that fits itself around its members |
 | `group <name> over a,b,c` | An undrawn set, for moving or hiding several at once |
 | `brace <name> over a,b [side] ["label"]` | A bracket spanning a subset, label outside |
+| `default <kind> {classes} [w n] [h n]` | The base styling and size for every element of that kind |
 | `step <name>` | Opens a step; the indented lines below it are its operations |
 
 Placement is `at X,Y` in grid cells, a relation – `right of A`, `left of A`, `below A`, `above A`, each taking `gap <n>` and `align <edge>` – or `between A,B [frac <n>]`, which is the position PIC spells “1/2 way between A and B”. Any of them takes a trailing `offset dx,dy`. **The first element defaults to the origin**, so the common case – a box, and everything else relative to it – needs no coordinates at all. Every element after it has to say where it goes; silently stacking two elements on `0,0` is not a default anyone means.
@@ -375,6 +376,10 @@ Placement is `at X,Y` in grid cells, a relation – `right of A`, `left of A`, `
 Anchors are addressable and chosen automatically otherwise: `mix.right`, `ret.br`, and `mix.right:0.3` to slide the attachment point along that edge. **The fraction is what keeps two arrows between the same pair of boxes from collapsing into a lens** – give them `0.3` and `0.7` and they are two parallel arrows rather than two bows over the same chord. There is deliberately no automatic fan-out of parallel edges: it would change an existing diagram silently, and the explicit form reads as what it is.
 
 Step operations are `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style`, `label`. Nothing else.
+
+`same as <element>` copies that element's width and height – “as wide as that one”, rather than a number repeated down the diagram. It copies geometry only; styling is what `default` is for.
+
+**`default` applies to every element of its kind wherever it stands, and there can be only one per kind.** Position-dependent defaults – DOT's model, where a declaration affects only what follows – are more expressive and were rejected: they make the source order-sensitive in a way nothing on the page shows, so moving a declaration three lines up silently changes its colour. An element's own class **displaces** a default in the same slot rather than stacking with it: `.tone-1` on a box beats `default box {.tone-4}`, because otherwise both rules match at equal specificity and the one written later in the stylesheet wins, which is not a rule anyone can see. Two classes from the same slot on one element is a lint warning for the same reason.
 
 Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run with the theme accent and `~muted~` greys it. An unmatched marker stays a literal character. This exists because a sentence with two colour changes otherwise needs one `text` element per run, chained with `right of` – unreadable as source, and re-sorted by hand every time a word changes.
 

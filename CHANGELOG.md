@@ -29,6 +29,14 @@ from building the same way is a major version.
   mirrors the vocabulary and reports unknown statements, unknown classes,
   duplicate names and dangling references.
 
+  `default <kind> {classes} [w n] [h n]` sets the base styling and size
+  for every element of that kind – two lines replaced twelve repetitions
+  in the identity-lifecycle example. It is position-independent with one
+  per kind (DOT's position-dependent model makes the source
+  order-sensitive invisibly), and an element's own class **displaces** a
+  default in the same slot rather than stacking with it. `same as
+  <element>` copies another element's width and height.
+
   `image <name> <asset>` puts a picture in a diagram, resolved like the
   `![](fig-id)` shorthand. A vector asset is spliced as a nested `<svg>`
   and follows the `A` theme cycle; a raster is a `data:` URI and keeps

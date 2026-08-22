@@ -469,6 +469,8 @@ step blame
 
 Placement also takes `between a,b` – the point on the line joining two elements, which is what a separator glyph or a note beside a connector actually wants – and any placement accepts a trailing `offset dx,dy`. An anchor can carry a fraction: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes come out parallel instead of as a lens.
 
+Against repetition there are two more: `default box {.tone-4} w 1.15` sets the base for every box in the diagram, and `same as create` copies another element's width and height. A class on an element displaces a default in the same slot rather than stacking with it, so `{.tone-1}` on one box still wins.
+
 Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run and `~muted~` greys it. Classes come from a closed list – four `tone-*` fills mixed from the page's own inks, plus `dashed`, `dotted`, `thick`, `round`, `mono`, `hand`, `muted` and a few more – and `lint.js` rejects anything else, so a typo is a build error rather than an unstyled box.
 :::
 

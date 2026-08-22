@@ -1284,9 +1284,25 @@ const DG_CLASSES = new Set([
   // set by steps, but authorable as an initial state too
   'emph', 'dim',
 ]);
+// Classes that occupy the same slot. Needed only for the default block,
+// and it is what makes it behave the way anyone would expect: an element
+// that says .tone-1 must *displace* a `default box {.tone-4}`, not stack
+// with it. Stacking left both rules matching at equal specificity, so the
+// one written later in the stylesheet won and the author's explicit choice
+// silently lost.
+const DG_CLASS_GROUPS = [
+  ['tone-1', 'tone-2', 'tone-3', 'tone-4'],   // fill
+  ['accent', 'muted'],                        // ink
+  ['dashed', 'dotted'],                       // stroke pattern
+  ['round', 'sharp'],                         // corner
+  ['small', 'large'],                         // size
+  ['left', 'right'],                          // text alignment
+];
+
 const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 'tr', 'bl', 'br']);
 const DG_STEP_OPS = new Set(['show', 'hide', 'move', 'emph', 'calm', 'style', 'label']);
-const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'group', 'step']);
+const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'group', 'default', 'step']);
+const DG_DEFAULT_KINDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'container', 'brace']);
 
 let dgCounter = 0;             // per-build, reset in buildOnce
 
@@ -1610,6 +1626,7 @@ function parseDiagramSource(body, headAttrs) {
     containers: [],
     groups: [],
     steps: [],
+    defaults: {},
     byId: new Map(),
   };
 
@@ -1685,6 +1702,34 @@ function parseDiagramSource(body, headAttrs) {
       continue;
     }
 
+    if (head === 'default') {
+      const kind = t(1);
+      if (!DG_DEFAULT_KINDS.has(kind)) {
+        dgErr(errors, lineNo, `default expects one of ${[...DG_DEFAULT_KINDS].join(', ')}, got "${kind}"`);
+        continue;
+      }
+      // One per kind per diagram, and it applies to every element of that
+      // kind wherever it stands. Position-dependent defaults (DOT's model)
+      // are more expressive but make the source order-sensitive in a way
+      // that is invisible: move a declaration three lines up and it
+      // silently changes colour. A second `default` for the same kind is
+      // therefore an error rather than a redefinition.
+      if (model.defaults[kind]) {
+        dgErr(errors, lineNo, `a second "default ${kind}" – there can only be one per diagram (the first is on line ${model.defaults[kind].line})`);
+        continue;
+      }
+      const def = { classes: attrs.classes, w: null, h: null, r: null, line: lineNo };
+      const rest = body0.slice(2);
+      for (let k = 0; k < rest.length; k++) {
+        if (rest[k].v === 'w') { def.w = dgNum(rest[k + 1]?.v, errors, lineNo, 'w'); k++; }
+        else if (rest[k].v === 'h') { def.h = dgNum(rest[k + 1]?.v, errors, lineNo, 'h'); k++; }
+        else if (rest[k].v === 'r') { def.r = dgNum(rest[k + 1]?.v, errors, lineNo, 'r'); k++; }
+        else dgErr(errors, lineNo, `unexpected "${rest[k].v}" in default ${kind}`);
+      }
+      model.defaults[kind] = def;
+      continue;
+    }
+
     if (head === 'step') {
       const name = t(1) || `step-${model.steps.length + 1}`;
       step = { name, ops: [], line: lineNo };
@@ -1729,6 +1774,19 @@ function parseDiagramSource(body, headAttrs) {
           k += 2;
           continue;
         }
+        // `same as X` copies X's width and height. Geometry only: styling
+        // is what the `default` block is for, and one line covering every
+        // box beats a chain of `same as` through the diagram.
+        if (key === 'same') {
+          if (rest[k + 1]?.v !== 'as' || !rest[k + 2]) {
+            dgErr(errors, lineNo, `${head} ${id}: "same" must be written "same as <element>"`);
+            k += 2;
+            continue;
+          }
+          node.sameAs = rest[k + 2].v;
+          k += 3;
+          continue;
+        }
         if (key === 'w') { node.w = dgNum(rest[k + 1]?.v, errors, lineNo, 'w'); k += 2; continue; }
         if (key === 'h') { node.h = dgNum(rest[k + 1]?.v, errors, lineNo, 'h'); k += 2; continue; }
         if (key === 'r') { node.r = dgNum(rest[k + 1]?.v, errors, lineNo, 'r'); k += 2; continue; }
@@ -1769,6 +1827,7 @@ function parseDiagramSource(body, headAttrs) {
       const id = attrs.id || `edge-${++anonEdge}`;
       claim(id, 'edge', lineNo);
       const edge = {
+        kind: 'edge',
         id,
         from: dgParseRef(flip ? toTok : fromTok, errors, lineNo),
         to: dgParseRef(flip ? fromTok : toTok, errors, lineNo),
@@ -1803,7 +1862,7 @@ function parseDiagramSource(body, headAttrs) {
       if (!members.length) { dgErr(errors, lineNo, `${head} ${id} lists no members`); continue; }
       const rest = body0.slice(mEnd);
       if (head === 'group') { model.groups.push({ id, members, line: lineNo }); continue; }
-      const item = { id, members, label: quoted[0] ?? '', classes: attrs.classes, pad: 0.18, line: lineNo };
+      const item = { kind: head, id, members, label: quoted[0] ?? '', classes: attrs.classes, pad: 0.18, line: lineNo };
       if (head === 'brace') {
         item.side = 'right';
         for (let k = 0; k < rest.length; k++) {
@@ -1832,7 +1891,10 @@ function parseDiagramSource(body, headAttrs) {
   };
   const refsOf = (place) => place?.kind === 'rel' ? [place.ref]
     : place?.kind === 'between' ? place.refs.map(r => r.ref) : [];
-  for (const n of model.nodes) for (const r of refsOf(n.place)) checkRef(r, n.line, `${n.kind} ${n.id}`);
+  for (const n of model.nodes) {
+    for (const r of refsOf(n.place)) checkRef(r, n.line, `${n.kind} ${n.id}`);
+    if (n.sameAs) checkRef(n.sameAs, n.line, `${n.kind} ${n.id} (same as)`);
+  }
   for (const e of model.edges) { checkRef(e.from.ref, e.line, `edge ${e.id}`); checkRef(e.to.ref, e.line, `edge ${e.id}`); }
   for (const c of [...model.containers, ...model.braces, ...model.groups]) {
     for (const m of c.members) checkRef(m, c.line, `${c.id}`);
@@ -1897,19 +1959,32 @@ function dgStateAt(model, k) {
     const g = model.groups.find(x => x.id === id);
     return g ? g.members : [id];
   };
+  // The default block is the base, the element's own {…} is added on top.
+  // Merged here rather than at parse time so a default declared anywhere in
+  // the body still reaches every element of its kind.
+  const withDefaults = (el) => {
+    const d = model.defaults[el.kind];
+    if (!d) return new Set(el.classes);
+    const own = new Set(el.classes);
+    const base = d.classes.filter(c => {
+      const group = DG_CLASS_GROUPS.find(g => g.includes(c));
+      return !group || !group.some(x => own.has(x));
+    });
+    return new Set([...base, ...el.classes]);
+  };
   const state = new Map();
   const all = [...model.nodes, ...model.containers, ...model.braces];
   for (const el of all) {
     state.set(el.id, {
       visible: !shownLater.has(el.id),
-      classes: new Set(el.classes),
+      classes: withDefaults(el),
       label: el.label,
       place: el.place || null,
       shift: [0, 0],
     });
   }
   for (const e of model.edges) {
-    state.set(e.id, { visible: !shownLater.has(e.id), classes: new Set(e.classes), label: e.label, place: null, shift: [0, 0] });
+    state.set(e.id, { visible: !shownLater.has(e.id), classes: withDefaults(e), label: e.label, place: null, shift: [0, 0] });
   }
   for (let i = 0; i < k; i++) {
     for (const op of model.steps[i].ops) {
@@ -1943,13 +2018,23 @@ function layoutDiagram(model, state, errors) {
     const st = state.get(node.id);
     const classes = st.classes;
     const font = dgFontFor(classes);
+    // `same as X` wins over everything: it is the author saying "whatever
+    // that one turned out to be". X is laid out first – it is a dependency.
+    if (node.sameAs) {
+      const ref = boxes.get(node.sameAs);
+      if (ref) return { w: ref.w, h: ref.h };
+    }
+    const d = model.defaults[node.kind] || {};
+    const nw = node.w != null ? node.w : d.w;
+    const nh = node.h != null ? node.h : d.h;
     if (node.kind === 'dot') {
-      const r = node.r != null ? node.r * uh : DG_DOT_R;
+      const nr = node.r != null ? node.r : d.r;
+      const r = nr != null ? nr * uh : DG_DOT_R;
       return { w: 2 * r, h: 2 * r };
     }
     if (node.kind === 'image') {
-      const w = (node.w != null ? node.w : 1) * uw;
-      if (node.h != null) return { w, h: node.h * uh };
+      const w = (nw != null ? nw : 1) * uw;
+      if (nh != null) return { w, h: nh * uh };
       if (node.aspect) return { w, h: w * node.aspect };
       dgWarn(`image ${node.id}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
       return { w, h: w };
@@ -1958,13 +2043,13 @@ function layoutDiagram(model, state, errors) {
     if (node.kind === 'text') return { w: m.w, h: m.h };
     // An explicit w that cannot hold its own label overflows in silence –
     // right on the machine that drew it, wrong on the projector. Say so.
-    if (node.w != null && node.w * uw < m.w + 6) {
-      dgWarn(`box ${node.id} is ${node.w} units wide but its label needs about `
+    if (nw != null && nw * uw < m.w + 6) {
+      dgWarn(`box ${node.id} is ${nw} units wide but its label needs about `
         + `${((m.w + 2 * DG_PAD_X) / uw).toFixed(2)} – the text will overflow.`);
     }
     return {
-      w: node.w != null ? node.w * uw : Math.max(m.w + 2 * DG_PAD_X, DG_MIN_W),
-      h: node.h != null ? node.h * uh : m.h + 2 * DG_PAD_Y,
+      w: nw != null ? nw * uw : Math.max(m.w + 2 * DG_PAD_X, DG_MIN_W),
+      h: nh != null ? nh * uh : m.h + 2 * DG_PAD_Y,
     };
   };
 
@@ -1979,7 +2064,12 @@ function layoutDiagram(model, state, errors) {
     if (place.kind === 'between') return place.refs.map(r => r.ref);
     return [];
   };
-  for (const n of model.nodes) { kindOf.set(n.id, 'node'); deps.set(n.id, placeDeps(state.get(n.id).place)); }
+  for (const n of model.nodes) {
+    kindOf.set(n.id, 'node');
+    const d = placeDeps(state.get(n.id).place);
+    if (n.sameAs) d.push(n.sameAs);
+    deps.set(n.id, d);
+  }
   for (const g of model.groups) { kindOf.set(g.id, 'group'); deps.set(g.id, g.members.slice()); }
   for (const c of model.containers) { kindOf.set(c.id, 'container'); deps.set(c.id, c.members.slice()); }
   for (const b of model.braces) { kindOf.set(b.id, 'brace'); deps.set(b.id, b.members.slice()); }

@@ -143,35 +143,38 @@ either a grid cell or a relation to a neighbour.
 ## figure: Identity lifecycle {.full #lifecycle}
 
 ::: diagram {unit=176x56}
-box  create "Creation"      w 1.15 {.tone-1 .bold}
-text sep1   "▶"             right of create gap 0.2 {.muted .large}
-box  usage  "Usage"         right of sep1 gap 0.2 w 1.15 {.tone-1 .bold}
-text sep2   "▶"             right of usage gap 0.2 {.muted .large}
-box  term   "Termination"   right of sep2 gap 0.2 w 1.15 {.tone-1 .bold}
+default box  {.tone-4} w 1.15
+default text {.small .muted}
 
-box  reg    "Registration"  below create gap 0.5 w 1.15 {.tone-4}
-text regc   "identity"      below reg gap 0.2 {.small .muted}
-text down1  "▼"             below regc gap 0.12 {.muted}
-box  prov   "Provisioning"  below down1 gap 0.12 w 1.15 {.tone-4}
-text provc  "issue credentials and\nprovide them to user"  below prov gap 0.2 {.small .muted}
-text down2  "▼"             below provc gap 0.12 {.muted}
-box  authz  "Authorization" below down2 gap 0.12 w 1.15 {.tone-4}
-text authzc "granting of rights\nby the authority"  below authz gap 0.2 {.small .muted}
+box  create "Creation"      {.tone-1 .bold}
+text sep1   "▶"             between create,usage {.large}
+box  usage  "Usage"         right of create gap 0.62 same as create {.tone-1 .bold}
+text sep2   "▶"             between usage,term {.large}
+box  term   "Termination"   right of usage gap 0.62 same as create {.tone-1 .bold}
 
-box  ident  "Identification" below usage gap 0.5 w 1.15 {.tone-4}
-text identc "claim identity with\nunique name"  below ident gap 0.2 {.small .muted}
-text down3  "▼"             below identc gap 0.12 {.muted}
-box  authn  "Authentication" below down3 gap 0.12 w 1.15 {.tone-4}
-text authnc "prove identity claim\nwith credentials"  below authn gap 0.2 {.small .muted}
-text down4  "▼"             below authnc gap 0.12 {.muted}
-box  acl    "Access Control" below down4 gap 0.12 w 1.15 {.tone-4}
-text aclc   "granting of access\nby the system"  below acl gap 0.2 {.small .muted}
+box  reg    "Registration"  below create gap 0.5
+text regc   "identity"      below reg gap 0.2
+text down1  "▼"             below regc gap 0.12
+box  prov   "Provisioning"  below down1 gap 0.12
+text provc  "issue credentials and\nprovide them to user"  below prov gap 0.2
+text down2  "▼"             below provc gap 0.12
+box  authz  "Authorization" below down2 gap 0.12
+text authzc "granting of rights\nby the authority"  below authz gap 0.2
 
-brace signup over reg,prov  right "Signup" {.muted}
-brace login  over ident,authn right "Login" {.muted}
+box  ident  "Identification" below usage gap 0.5
+text identc "claim identity with\nunique name"  below ident gap 0.2
+text down3  "▼"              below identc gap 0.12
+box  authn  "Authentication" below down3 gap 0.12
+text authnc "prove identity claim\nwith credentials"  below authn gap 0.2
+text down4  "▼"              below authnc gap 0.12
+box  acl    "Access Control" below down4 gap 0.12
+text aclc   "granting of access\nby the system"  below acl gap 0.2
 
-text sep3   "▶"             below authzc gap 0.5 {.muted .large}
-box  selfsv "Self-services" right of sep3 gap 0.2 w 1.15 {.tone-4}
+brace signup over reg,prov    right "Signup" {.muted}
+brace login  over ident,authn right "Login"  {.muted}
+
+text sep3   "▶"              below authzc gap 0.5 {.large}
+box  selfsv "Self-services"  right of sep3 gap 0.2
 
 step creation
   show reg, regc, down1, prov, provc, down2, authz, authzc, signup
@@ -181,6 +184,12 @@ step self
   show sep3, selfsv
   emph selfsv
 :::
+
+**Zwei Zeilen `default` ersetzen zwölf Wiederholungen.** Vorher trug jeder der neun roten Kästen sein eigenes `{.tone-4}` und sein eigenes `w 1.15`, und jede Bildunterschrift ihr `{.small .muted}`. Jetzt steht das einmal oben, und nur die drei Kopfkästen sagen, dass sie anders sind.
+
+**`same as create`** hält die drei Kopfkästen auf einer Breite, ohne die Zahl zu wiederholen – der Kasten sagt „so breit wie jener", nicht „1.15 Einheiten", und wenn sich das Raster ändert, folgen alle drei.
+
+**`between create,usage`** setzt die Trenner-Glyphen wirklich in die Mitte. Vorher waren sie über einen Platzhalter gekettet, was etwas anderes behauptet – nämlich „hinter Creation" – und beim kleinsten Größenwechsel auseinanderfällt.
 
 ## figure: Message authentication {.full #mac}
 

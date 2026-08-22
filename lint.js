@@ -78,7 +78,20 @@ const DENSITY_BUDGET = {
 // have to move in one commit. A linter that is stricter than the build is
 // worse than none, so this list is checked against DG_CLASSES / the
 // statement table there, not guessed at.
-const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'group', 'step']);
+const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'group', 'default', 'step']);
+const DG_DEFAULT_KINDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'container', 'brace']);
+// Mirrors DG_CLASS_GROUPS in build.js. The build uses it to let an explicit
+// class displace a `default`; here it catches two members of one slot on the
+// same element, where the loser is decided by stylesheet order and nothing
+// on the page says so.
+const DG_CLASS_GROUPS = [
+  ['tone-1', 'tone-2', 'tone-3', 'tone-4'],
+  ['accent', 'muted'],
+  ['dashed', 'dotted'],
+  ['round', 'sharp'],
+  ['small', 'large'],
+  ['left', 'right'],
+];
 const DG_STEP_OPS = new Set(['show', 'hide', 'move', 'emph', 'calm', 'style', 'label']);
 const DG_CLASSES = new Set([
   'tone-1', 'tone-2', 'tone-3', 'tone-4', 'accent', 'muted', 'ghost',
@@ -150,6 +163,13 @@ function lintDiagram(block, add, fmLines) {
             `'${tok}' in {…} is neither #id nor .class`);
       }
     }
+    for (const group of DG_CLASS_GROUPS) {
+      const hit = group.filter(c => out.classes.includes(c));
+      if (hit.length > 1) {
+        add(ln, 'warn', 'conflicting-diagram-classes',
+            `.${hit.join(' and .')} are the same kind of thing – which one wins is decided by stylesheet order, not by this line`);
+      }
+    }
     return out;
   };
   const define = (name, ln) => {
@@ -188,6 +208,7 @@ function lintDiagram(block, add, fmLines) {
   };
 
   let anonEdge = 0;
+  const defaulted = new Map();   // kind -> line, one per diagram
   for (const { text, ln } of block.lines) {
     const trimmed = text.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
@@ -196,6 +217,20 @@ function lintDiagram(block, add, fmLines) {
     const head = words[0];
     const attrs = attrsOf(trimmed, ln);
 
+    if (head === 'default') {
+      const kind = words[1];
+      if (!DG_DEFAULT_KINDS.has(kind)) {
+        add(ln, 'error', 'unknown-diagram-default',
+            `default expects one of ${[...DG_DEFAULT_KINDS].join(', ')}, got '${kind || ''}'`);
+      } else if (defaulted.has(kind)) {
+        add(ln, 'error', 'duplicate-diagram-default',
+            `a second 'default ${kind}' – there can only be one per diagram (the first is on line ${defaulted.get(kind)})`);
+      } else {
+        defaulted.set(kind, ln + fmLines);
+      }
+      inStep = false;
+      continue;
+    }
     if (head === 'step') { inStep = true; continue; }
     if (inStep && DG_STEP_OPS.has(head)) {
       const targets = words.slice(1).join(',').split(',').map(s => s.trim()).filter(Boolean);
@@ -241,6 +276,12 @@ function lintDiagram(block, add, fmLines) {
           }
           for (const pn of parts) refer(pn, ln, `${head} ${words[1]}`);
           k = m - 1;
+        }
+        // `same as X` copies X's geometry, so X has to exist.
+        if (words[k] === 'same' && words[k + 1] === 'as') {
+          refer(words[k + 2], ln, `${head} ${words[1]} (same as)`);
+          k += 2;
+          continue;
         }
         // leader line: `text n "…" above c gap 1 -> leak`
         if (words[k] === '->') {
