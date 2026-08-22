@@ -7,6 +7,33 @@ Status: **plan only.** Nothing here is implemented. The grammar it edits is
 frozen enough to build against – three constructs in it exist specifically so
 this editor can answer a drag without destroying what the author wrote (§3).
 
+## 0. Where this lives, and what exists
+
+**Read this first or the rest will not make sense.** Measured, not remembered:
+
+- **`main` does not know `::: diagram` exists.** `git show origin/main:build.js
+  | grep -c renderDiagram` → **0**. The entire diagram feature – compiler,
+  runtime, CSS, the `lectures/diagrams` lecture, the linter's half – lives on
+  `claude/psi-slides-animated-infographics-eoe2yj`. Branch from `main` and
+  there is nothing here to build an editor for.
+- **This plan lives on `claude/psi-slides-diagram-editor`**, which branched
+  from that one. It is 15 commits ahead of `main` at 5,888 insertions.
+  **Work here**, or on a branch off here.
+- **`package.json` is still 1.0.0** and the changelog entry is under
+  `## [Unreleased]`. `CONTRIBUTING.md` § *Building and releasing* bumps the
+  version at release time, not during development, so there is nothing to bump.
+- **Do not merge to `main`.** That is itself a publication: `pages.yml` fires
+  on every push to `main` and redeploys the project site, and the tutorial –
+  which now carries a `#diagram` chunk – is one of the lectures it rebuilds and
+  publishes. The maintainer decides when that happens.
+- `npm install` once before anything, including before building a lecture from
+  a sibling content repo.
+- Sanity check that you are in the right place:
+  `node build.js lectures/diagrams/source.md && node lint.js lectures/ --strict`
+  should write four HTML files and report zero findings.
+
+Everything below assumes that state.
+
 ## 1. What it is for
 
 Two audiences, one editor.
@@ -317,6 +344,26 @@ And one that is new behaviour rather than a new option:
   compounds that: the chosen size will run slightly small. That is the safe
   direction – small still fits – and it is the price of having no browser at
   build time. Say it in the docs rather than discovering it in a lecture.
+
+Two traps in that list, both of which look like one-line changes and are not:
+
+- **A text background is not just a `<rect>`.** Emitting one changes the
+  element's extents, and the viewBox is computed from `ext` in
+  `dgFrameDrawables` – a label that was a bare glyph run is now a padded box,
+  so a text at the edge of a figure will change the frame. Emit the rect
+  *through* the same `ext` bookkeeping `labelBox()` already does rather than
+  beside it. And the CSS rule `.psi-diagram .dg-text rect { display: none }`
+  has to go or become conditional; today it is moot only because the emitter
+  never produced one.
+- **`.fit` and `same as` are ordered.** `sizeOf()` is documented as depending
+  "only on the element's own label and class, never on placement", which is
+  what lets sizes settle before the DAG walk. `.fit` needs the element's `w`,
+  which is fine – unless that `w` came from `same as X`, and then it needs X's
+  box, which `sizeOf` reads out of `boxes`. That already works because
+  `same as` is a dependency edge, but it means **`.fit` must be solved after
+  the `same as` copy, not before it**, and a `.fit` on an element with neither
+  `w` nor `same as` has nothing to fit and should say so rather than doing
+  nothing.
 
 Two tidy-ups while in there, both the same class of thing this grammar keeps
 closing:
@@ -876,7 +923,8 @@ touching a file.
 
 ### 11.1 Read first, in this order
 
-`PRD.md` §4.6a (the grammar, and the semantics that follow from it) ·
+§0 of this file (where the code actually is) · `PRD.md` §4.6a (the grammar,
+and the semantics that follow from it) ·
 `CLAUDE.md` § *Animated infographics* (every consequence worth not breaking,
 written as a list of traps) · this file · `speaker.md` §2 (state ownership, for
 §2.4) · `lectures/diagrams/source.md` (every construct, exercised).
@@ -956,6 +1004,15 @@ spanOf(elementId, attr)   // → {start, end}  – the token to replace
 `offset.y`, `at.x`, `at.y`, `at.x.nudge`, `at.y.nudge`, `label`, `classes`,
 `tags`, `same-as`, or `line` for the whole statement. Offsets are into the
 block body, not the file; the file offset is `range[0] + bodyOffset`.
+
+**`range[0]` needs care, and it is an easy off-by-N.** `parseLecture` walks
+lines and tracks no offsets at all today, and it reads its input from
+`matter(src)`, which has already **stripped the frontmatter** – so an offset
+into `content` is not an offset into `source.md`. Capture the frontmatter's
+byte length once (`src.length - content.length`, taken before parsing) and add
+it. Getting this wrong does not throw; it writes the patch into the wrong part
+of the file, which is exactly why the watch server re-reads and checks the
+range before splicing (§2.3).
 
 `dgTokenize` already walks each line character by character, so this is
 carrying an offset through rather than a second pass.
