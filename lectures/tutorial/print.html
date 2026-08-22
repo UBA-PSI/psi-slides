@@ -496,9 +496,6 @@ pre.shiki .line { display: inline; }
 .psi-diagram tspan.dg-mu { fill: var(--ink-soft); }
 .psi-diagram .dg-off { display: none; }
 
-/* text elements carry no shape of their own */
-.psi-diagram .dg-text rect { display: none; }
-
 /* containers are a frame around their members, never a filled panel */
 .psi-diagram .dg-container > rect { fill: none; stroke: var(--rule); stroke-width: 1.2; }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
@@ -520,7 +517,10 @@ pre.shiki .line { display: inline; }
 .psi-diagram .tone-4 > rect, .psi-diagram .tone-4 > circle {
   fill: var(--emph); stroke: var(--emph);
 }
-.psi-diagram .tone-4 text { fill: var(--paper); }
+/* .clear is a see-through interior. .bare removes the *stroke*, so without
+   this there was no way to draw a frame you can read through – which is
+   what an outline over an image or another element wants. */
+.psi-diagram .clear > rect, .psi-diagram .clear > circle { fill: none; }
 
 .psi-diagram .accent > rect, .psi-diagram .accent > circle { stroke: var(--emph); }
 .psi-diagram .accent .dg-stroke { stroke: var(--emph); }
@@ -531,6 +531,19 @@ pre.shiki .line { display: inline; }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
 .psi-diagram .muted text { fill: var(--ink-soft); }
 
+/* .tone-4 inverts its own label, and that has to win over .accent text:
+   accent ink on an accent fill is invisible, legal, and would otherwise be
+   decided by which rule was written later. lint.js warns on the pair. */
+.psi-diagram .tone-4 text, .psi-diagram .tone-4 tspan { fill: var(--paper); }
+
+/* A free text element draws a ground only where the author gave it a tone.
+   The rect is always the same drawable; these two rules are what make "a
+   box defaults to paper, a text defaults to see-through" one mechanism rather
+   than two. No stroke either way – a bordered label is a box, and there is
+   a statement for that. */
+.psi-diagram .dg-text > rect { stroke: none; }
+.psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4) > rect { fill: none; }
+
 .psi-diagram .dashed > rect, .psi-diagram .dashed > circle, .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
 .psi-diagram .dotted > rect, .psi-diagram .dotted > circle, .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
 .psi-diagram .thick > rect, .psi-diagram .thick > circle, .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
@@ -538,6 +551,11 @@ pre.shiki .line { display: inline; }
 .psi-diagram .round > rect { rx: 13px; }
 .psi-diagram .sharp > rect { rx: 0; }
 .psi-diagram .bold text { font-weight: 600; }
+/* the upright serif, for a label that wants the reading voice rather than
+   the diagram's. .hand is the same family forced italic and accented, which
+   is the annotation voice and a different thing – until .serif existed the
+   family was reachable only through it. */
+.psi-diagram .serif text { font-family: var(--dg-serif); }
 /* no handwriting face is bundled, so the annotation voice is the serif in
    italic – close enough to read as "written in beside the diagram", and it
    costs no extra font payload. */
@@ -1202,7 +1220,8 @@ pre.shiki .line { display: inline; }
 <p>Placement also takes <code>between a,b</code> – the point on the line joining two elements, which is what a separator glyph or a note beside a connector actually wants – and any placement accepts a trailing <code>offset dx,dy</code>. An anchor can carry a fraction: <code>mix.right:0.3</code> slides the attachment point along that edge, so two arrows between the same pair of boxes come out parallel instead of as a lens.</p>
 <p>Against repetition there are two more: <code>default box {.tone-4} w 1.15</code> sets the base for every box in the diagram (add a tag – <code>default box @dec w 0.48</code> – to refine it for one set), and <code>same as create</code> copies another element&#39;s width and height. The same <code>default</code> lines go in a <code>diagram-defaults:</code> frontmatter key when a whole lecture&#39;s figures should look like each other – then a block&#39;s own <code>default</code> overrides the lecture&#39;s for that one figure, and changing the house style is one edit rather than twelve.</p>
 <p>And against measuring: a coordinate may be another element&#39;s coordinate. <code>edge iv -&gt; x0 via iv.cx,x0.cy</code> means <em>straight down from the IV, then across at the height of the XOR</em>, and it stays true when anything above it moves. A signed nudge (<code>mix.cx+0.2</code>) shifts it without giving up the relation. A class on an element displaces a default in the same slot rather than stacking with it, so <code>{.tone-1}</code> on one box still wins.</p>
-<p>Inside a label, <code>_sub</code> and <code>^sup</code> shift a character or a <code>{group}</code>, <code>*accent*</code> colours a run and <code>~muted~</code> greys it. Classes come from a closed list – four <code>tone-*</code> fills mixed from the page&#39;s own inks, plus <code>dashed</code>, <code>dotted</code>, <code>thick</code>, <code>round</code>, <code>mono</code>, <code>hand</code>, <code>muted</code> and a few more – and <code>lint.js</code> rejects anything else, so a typo is a build error rather than an unstyled box.</p>
+<p>Inside a label, <code>_sub</code> and <code>^sup</code> shift a character or a <code>{group}</code>, <code>*accent*</code> colours a run and <code>~muted~</code> greys it. Classes come from a closed list – four <code>tone-*</code> fills mixed from the page&#39;s own inks plus <code>clear</code> for a see-through one, and <code>dashed</code>, <code>dotted</code>, <code>thick</code>, <code>round</code>, <code>mono</code>, <code>serif</code>, <code>hand</code>, <code>muted</code> and a few more – and <code>lint.js</code> rejects anything else, so a typo is a build error rather than an unstyled box. <strong>Every class occupies a slot</strong>, so <code>{.tone-1}</code> on one box displaces a <code>default box {.tone-4}</code> rather than stacking with it, and two members of one slot on one element is a lint warning.</p>
+<p>Two of them read the picture the other way round. <code>pad 0.3</code> sets how far a box&#39;s border sits from its own label – the same word <code>container</code> and <code>brace</code> already use – and <code>.fit</code> on a box with a given <code>w</code> sizes the <em>type</em> to fill the box instead of growing the box to the type, with <code>.shrink</code> for a label that may only ever get smaller. A free <code>text</code> that carries a tone draws its own ground, so a caption can sit on a panel without becoming a box.</p>
 
 </aside>
   

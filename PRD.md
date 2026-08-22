@@ -360,10 +360,10 @@ Grammar, in full:
 
 | Statement | Meaning |
 |---|---|
-| `box <name> "label" <placement> [w n] [h n]` | A rectangle that sizes itself to its label |
+| `box <name> "label" <placement> [w n] [h n] [pad n]` | A rectangle that sizes itself to its label – unless `.fit` / `.shrink`, where the type sizes itself to the box |
 | `dot <name> "label" <placement> [r n]` | A circle – XOR nodes, junctions, small glyphs |
 | `image <name> <asset> <placement> [w n] [h n]` | A picture. `<asset>` resolves like `![](fig-id)`: `assets/<name>.{svg,png,…}`, a path, or an https URL |
-| `text <name> "label" <placement> [-> ref]` | Free text with no shape of its own; `-> ref` grows a leader line to whatever it comments on. `.left` / `.right` align it, and the anchor moves with them |
+| `text <name> "label" <placement> [w n] [h n] [pad n] [-> ref]` | Free text with no shape of its own, unless it carries a tone, and then it draws its own ground; `-> ref` grows a leader line to whatever it comments on. `.left` / `.right` align it, and the anchor moves with them |
 | `edge <a> -> <b> ["label"] [via x,y …]` | An arrow. `<-` reverses it, `--` drops the head. One `via` carries every waypoint |
 | `container <name> ["label"] over a,b,c [pad n]` | A drawn box that fits itself around its members |
 | `align x\|y <edge> a,b,c` | Line up one coordinate: `left`/`center`/`right` on x, `top`/`middle`/`bottom` on y |
@@ -425,6 +425,18 @@ Scope before selector, because "closer to the element wins" is the model everywh
 The tag rule widens with the scope: **a block-level tag default must be used in its block; a lecture-level one must be used somewhere in the lecture.** One is written for one figure and the other for twelve, most of which will not carry `@dec` – but the build sees every diagram, so a typo in the frontmatter still fails rather than sitting there doing nothing. The block is validated even when no diagram uses it: anything but a `default` statement in there is an error naming the line.
 
 **`default` applies to every element of its kind wherever it stands, and there can be only one per kind.** Position-dependent defaults – DOT's model, where a declaration affects only what follows – are more expressive and were rejected: they make the source order-sensitive in a way nothing on the page shows, so moving a declaration three lines up silently changes its colour. An element's own class **displaces** a default in the same slot rather than stacking with it: `.tone-1` on a box beats `default box {.tone-4}`, because otherwise both rules match at equal specificity and the one written later in the stylesheet wins, which is not a rule anyone can see. Two classes from the same slot on one element is a lint warning for the same reason.
+
+The class vocabulary is a closed enumeration of 28 names, and every one of them occupies a **slot**: fill (`tone-1`…`tone-4`, `clear`), ink (`accent`, `muted`), stroke pattern (`dashed`, `dotted`), stroke weight (`thick`, `bare`), corner (`round`, `sharp`), size (`small`, `large`), family (`mono`, `serif`, `hand`), fit (`fit`, `shrink`), text alignment (`left`, `right`). Two members of one slot on one element is a lint warning; a class in a slot a `default` already filled displaces it rather than stacking.
+
+Four of those names answer needs the vocabulary could not express:
+
+- **`clear` is a see-through interior.** `bare` removes the *stroke*, so a frame you can read through – an outline over an image, a box marking a region – had no spelling at all.
+- **`serif` is the upright serif.** `hand` is the same family forced italic and accented, which is the annotation voice; until `serif` existed the family was reachable only through it.
+- **`fit` and `shrink` size the type to the box** instead of the box to the type. Both need the box to be given – `w n` or `same as X` – and an element with neither is an error rather than a line that does nothing. The chosen size is clamped to 0.6–1.5× of the element's base size, so a long label cannot become unreadable and a short one cannot become a poster. Be honest about the error term: label width here is *estimated* from a per-character table, tuned deliberately generous, and auto-fit compounds that, so the chosen size runs slightly small. That is the safe direction – small still fits – and it is the price of having no browser at build time.
+
+A **free `text` draws a ground when it carries a tone**, and a box is the same mechanism read the other way: one draws the measured label box padded, the other defaults to paper and opts out with `clear`. That is exactly how the two already looked, so nothing existing changes.
+
+**`pad` works on a box and a text as well as on a container and a brace**, and it is the same sentence in all four: how far the outline sits from what it encloses. One number in grid units, measured on the vertical unit for both axes – as the container's already was, or the same word would mean two distances depending on the statement it sat on. Without it the default stays an asymmetric px pair, because 13/9 is typographic taste rather than a point on the grid.
 
 Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run with the theme accent and `~muted~` greys it. An unmatched marker stays a literal character. This exists because a sentence with two colour changes otherwise needs one `text` element per run, chained with `right of` – unreadable as source, and re-sorted by hand every time a word changes.
 

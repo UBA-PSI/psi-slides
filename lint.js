@@ -107,7 +107,7 @@ const DG_DEFAULT_KINDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'contai
 // may set is exactly what that kind's own statement accepts.
 const DG_BRACE_SIDES = ['right', 'left', 'top', 'bottom'];
 const DG_KIND_OPTS = {
-  box: ['w', 'h'], text: ['w', 'h'], image: ['w', 'h'], dot: ['r'],
+  box: ['w', 'h', 'pad'], text: ['w', 'h', 'pad'], image: ['w', 'h'], dot: ['r'],
   container: ['pad'], brace: ['pad'], edge: [],
 };
 // Mirrors DG_CLASS_GROUPS in build.js. The build uses it to let an explicit
@@ -115,18 +115,26 @@ const DG_KIND_OPTS = {
 // same element, where the loser is decided by stylesheet order and nothing
 // on the page says so.
 const DG_CLASS_GROUPS = [
-  ['tone-1', 'tone-2', 'tone-3', 'tone-4'],
+  ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear'],
   ['accent', 'muted'],
   ['dashed', 'dotted'],
+  ['thick', 'bare'],
   ['round', 'sharp'],
   ['small', 'large'],
+  ['mono', 'serif', 'hand'],
+  ['fit', 'shrink'],
   ['left', 'right'],
 ];
+// Not one slot, but the pair is still a mistake with no visible cause:
+// .tone-4 fills with the accent and inverts its own label, so accent ink on
+// it is invisible. The stylesheet arbitrates in favour of the inversion; the
+// author should hear about it rather than wonder where the words went.
+const DG_CLASS_CLASHES = [['tone-4', 'accent']];
 const DG_STEP_OPS = new Set(['show', 'hide', 'move', 'emph', 'calm', 'style', 'label']);
 const DG_CLASSES = new Set([
-  'tone-1', 'tone-2', 'tone-3', 'tone-4', 'accent', 'muted', 'ghost',
+  'tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'accent', 'muted', 'ghost',
   'dashed', 'dotted', 'thick', 'bare', 'round', 'sharp',
-  'mono', 'hand', 'small', 'large', 'bold', 'left', 'right',
+  'mono', 'serif', 'hand', 'small', 'large', 'bold', 'fit', 'shrink', 'left', 'right',
   'no-head', 'both-heads', 'emph', 'dim',
 ]);
 const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container']);
@@ -273,6 +281,13 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       if (hit.length > 1) {
         add(ln, 'warn', 'conflicting-diagram-classes',
             `.${hit.join(' and .')} are the same kind of thing – which one wins is decided by stylesheet order, not by this line`);
+      }
+    }
+    for (const [a, b] of DG_CLASS_CLASHES) {
+      if (out.classes.includes(a) && out.classes.includes(b)) {
+        add(ln, 'warn', 'conflicting-diagram-classes',
+            `.${a} fills with the accent and inverts its own label, so .${b} ink on it is invisible – `
+            + `the inversion wins, and one of the two is doing nothing`);
       }
     }
     return out;

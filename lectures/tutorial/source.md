@@ -479,7 +479,9 @@ Against repetition there are two more: `default box {.tone-4} w 1.15` sets the b
 
 And against measuring: a coordinate may be another element's coordinate. `edge iv -> x0 via iv.cx,x0.cy` means *straight down from the IV, then across at the height of the XOR*, and it stays true when anything above it moves. A signed nudge (`mix.cx+0.2`) shifts it without giving up the relation. A class on an element displaces a default in the same slot rather than stacking with it, so `{.tone-1}` on one box still wins.
 
-Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run and `~muted~` greys it. Classes come from a closed list – four `tone-*` fills mixed from the page's own inks, plus `dashed`, `dotted`, `thick`, `round`, `mono`, `hand`, `muted` and a few more – and `lint.js` rejects anything else, so a typo is a build error rather than an unstyled box.
+Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run and `~muted~` greys it. Classes come from a closed list – four `tone-*` fills mixed from the page's own inks plus `clear` for a see-through one, and `dashed`, `dotted`, `thick`, `round`, `mono`, `serif`, `hand`, `muted` and a few more – and `lint.js` rejects anything else, so a typo is a build error rather than an unstyled box. **Every class occupies a slot**, so `{.tone-1}` on one box displaces a `default box {.tone-4}` rather than stacking with it, and two members of one slot on one element is a lint warning.
+
+Two of them read the picture the other way round. `pad 0.3` sets how far a box's border sits from its own label – the same word `container` and `brace` already use – and `.fit` on a box with a given `w` sizes the *type* to fill the box instead of growing the box to the type, with `.shrink` for a label that may only ever get smaller. A free `text` that carries a tone draws its own ground, so a caption can sit on a panel without becoming a box.
 :::
 
 > note: Print shows every element the diagram ever displays, at its last position, without the live-only `emph` and `dim` – the handout is the finished picture, the same rule reveal segments follow.

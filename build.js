@@ -1272,14 +1272,19 @@ const DG_DOT_R = 13;           // default radius of a `dot`
 // same rule VALID_TAGS follows, and for the same reason: a typo that only
 // costs you the styling is invisible until it is on a projector.
 const DG_CLASSES = new Set([
-  // fills
-  'tone-1', 'tone-2', 'tone-3', 'tone-4', 'accent', 'muted', 'ghost',
+  // fills. `.clear` is a see-through interior: `.bare` removes the *stroke*,
+  // so without it there was no way to draw a frame you can read through.
+  'tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'accent', 'muted', 'ghost',
   // strokes
   'dashed', 'dotted', 'thick', 'bare',
   // shape
   'round', 'sharp',
-  // type
-  'mono', 'hand', 'small', 'large', 'bold',
+  // type. `.serif` is the upright serif; `.hand` is the same family forced
+  // italic and accented, and until there was a plain one the family was
+  // reachable only through the annotation voice.
+  'mono', 'serif', 'hand', 'small', 'large', 'bold',
+  // type that fits the box it is in, rather than the box fitting the type
+  'fit', 'shrink',
   // text alignment (free `text` only)
   'left', 'right',
   // edges
@@ -1294,11 +1299,14 @@ const DG_CLASSES = new Set([
 // one written later in the stylesheet won and the author's explicit choice
 // silently lost.
 const DG_CLASS_GROUPS = [
-  ['tone-1', 'tone-2', 'tone-3', 'tone-4'],   // fill
+  ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear'],   // fill
   ['accent', 'muted'],                        // ink
   ['dashed', 'dotted'],                       // stroke pattern
+  ['thick', 'bare'],                          // stroke weight
   ['round', 'sharp'],                         // corner
   ['small', 'large'],                         // size
+  ['mono', 'serif', 'hand'],                  // family
+  ['fit', 'shrink'],                          // how type meets its box
   ['left', 'right'],                          // text alignment
 ];
 
@@ -1325,8 +1333,13 @@ const DG_DEFAULT_KINDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'contai
 // nothing – `default box r 5` is not an error anyone can see, and a silent
 // no-op is the failure mode this DSL keeps closing.
 const DG_BRACE_SIDES = ['right', 'left', 'top', 'bottom'];
+// `pad` on a box or a text is the same sentence it already is on a container
+// and a brace – how far the outline sits from what it encloses – so it needs
+// no keyword of its own. One number in grid units, and like the container's
+// it is measured in *uh* on both axes, or the same word would mean two
+// different distances depending on which statement it sat on.
 const DG_KIND_OPTS = {
-  box: ['w', 'h'], text: ['w', 'h'], image: ['w', 'h'], dot: ['r'],
+  box: ['w', 'h', 'pad'], text: ['w', 'h', 'pad'], image: ['w', 'h'], dot: ['r'],
   container: ['pad'], brace: ['pad'], edge: [],
 };
 const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid units
@@ -1476,6 +1489,54 @@ function dgFontFor(classes) {
   if (classes.has('small')) size = DG_FONT * 0.8;
   if (classes.has('large')) size = DG_FONT * 1.22;
   return size;
+}
+
+// How far a box's outline sits from its own label, in px. `pad` states it in
+// grid units and, like the container's, is measured in uh on both axes –
+// otherwise the same word would mean two distances depending on which
+// statement it sat on. Without it the default stays the asymmetric px pair,
+// because 13/9 is typographic taste rather than a point on the grid.
+function dgPadPx(pad, uh) {
+  return pad != null ? [pad * uh, pad * uh] : [DG_PAD_X, DG_PAD_Y];
+}
+
+// The size an element's label is actually set at.
+//
+// Normally that is the class-derived base size and the box grows to the
+// text. `.fit` reads the other way round – the box is given, and the type
+// takes the size that fills it – and `.shrink` is the same solve clamped so
+// it only ever scales down. dgMeasure is linear in the font size, so this is
+// a ratio rather than a search.
+//
+// Be honest about the error term: text width here is *estimated* from a
+// per-character table, tuned deliberately generous, and auto-fit compounds
+// that. The chosen size runs slightly small. That is the safe direction –
+// small still fits – and it is the price of having no browser at build time.
+function dgFitFont(label, classes, boxW, boxH, padX, padY) {
+  const base = dgFontFor(classes);
+  if (!classes.has('fit') && !classes.has('shrink')) return base;
+  const m = dgMeasure(label, base, classes.has('mono'));
+  if (!(m.w > 0) || !(m.h > 0)) return base;
+  const ratios = [];
+  if (boxW > 0) ratios.push(Math.max(0, boxW - 2 * padX) / m.w);
+  if (boxH > 0) ratios.push(Math.max(0, boxH - 2 * padY) / m.h);
+  if (!ratios.length) return base;
+  let k = Math.min(...ratios);
+  if (classes.has('shrink')) k = Math.min(1, k);
+  // Clamped so a long label cannot become unreadable and a short one cannot
+  // become a poster.
+  k = Math.max(0.6, Math.min(1.5, k));
+  return base * k;
+}
+
+// Whether an element paints a fill behind itself. A box does by default –
+// its ground is the paper – and a free `text` does not, so one mechanism
+// covers both: a text draws its measured label box only when the author
+// gives it a tone, and `.clear` is how a box opts out. That is exactly how
+// the two already look, so nothing existing changes.
+const DG_FILL_CLASSES = ['tone-1', 'tone-2', 'tone-3', 'tone-4'];
+function dgHasFill(classes) {
+  return DG_FILL_CLASSES.some(c => classes.has(c));
 }
 
 // ── diagram source parsing ──────────────────────────────────────────
@@ -2006,7 +2067,8 @@ function parseDiagramSource(body, headAttrs, base) {
       const node = {
         kind: head, id, label: isImage ? '' : (quoted[0] ?? ''),
         alt: isImage ? (quoted[0] ?? '') : '',
-        src, classes: attrs.classes, tags: attrs.tags, place: null, w: null, h: null, r: null, line: lineNo,
+        src, classes: attrs.classes, tags: attrs.tags, place: null,
+        w: null, h: null, r: null, pad: null, line: lineNo,
       };
       if (isImage && src) {
         const found = dgResolveImage(src);
@@ -2042,6 +2104,9 @@ function parseDiagramSource(body, headAttrs, base) {
         if (key === 'w') { node.w = dgNum(rest[k + 1]?.v, errors, lineNo, 'w'); k += 2; continue; }
         if (key === 'h') { node.h = dgNum(rest[k + 1]?.v, errors, lineNo, 'h'); k += 2; continue; }
         if (key === 'r') { node.r = dgNum(rest[k + 1]?.v, errors, lineNo, 'r'); k += 2; continue; }
+        if (key === 'pad' && DG_KIND_OPTS[head].includes('pad')) {
+          node.pad = dgNum(rest[k + 1]?.v, errors, lineNo, 'pad'); k += 2; continue;
+        }
         const [place, next] = dgParsePlacement(rest, k, errors, lineNo);
         if (place) { node.place = place; k = next; continue; }
         dgErr(errors, lineNo, `unexpected "${key}" in ${head} ${id}`);
@@ -2402,13 +2467,6 @@ function layoutDiagram(model, state, errors) {
   const sizeOf = (node) => {
     const st = state.get(node.id);
     const classes = st.classes;
-    const font = dgFontFor(classes);
-    // `same as X` wins over everything: it is the author saying "whatever
-    // that one turned out to be". X is laid out first – it is a dependency.
-    if (node.sameAs) {
-      const ref = boxes.get(node.sameAs);
-      if (ref) return { w: ref.w, h: ref.h };
-    }
     // Geometry follows the same layers, strongest first.
     const layers = dgDefaultLayers(model, node.kind, node.tags).reverse();
     const pick = (key) => {
@@ -2416,12 +2474,32 @@ function layoutDiagram(model, state, errors) {
       for (const d of layers) if (d[key] != null) return d[key];
       return null;
     };
+    const [padX, padY] = dgPadPx(pick('pad'), uh);
+    // `.fit` and `same as` are ordered. sizeOf otherwise depends only on the
+    // element's own label and class, which is what lets sizes settle before
+    // the DAG walk – but a fitted size needs the box, and a copied box is
+    // whatever X turned out to be. So the copy happens first and the fit is
+    // solved against the result. That works because `same as` is already a
+    // dependency edge, so X is laid out by the time we are here.
+    const fitted = (w, h) => (classes.has('fit') || classes.has('shrink')
+      ? dgFitFont(st.label, classes, w, h, padX, padY) : dgFontFor(classes));
+    if (node.sameAs) {
+      const ref = boxes.get(node.sameAs);
+      if (ref) return { w: ref.w, h: ref.h, font: fitted(ref.w, ref.h), padX, padY };
+    }
     const nw = pick('w');
     const nh = pick('h');
+    // Something to fit *into* is the whole premise, so an element with
+    // neither is a line that would otherwise quietly do nothing.
+    if ((classes.has('fit') || classes.has('shrink')) && nw == null && !node.sameAs) {
+      errors.push({ line: node.line, msg: `${node.kind} ${node.id}: `
+        + `.${classes.has('fit') ? 'fit' : 'shrink'} sizes the type to the box, so the box has to be `
+        + `given – add "w n" or "same as <element>"` });
+    }
     if (node.kind === 'dot') {
       const nr = pick('r');
       const r = nr != null ? nr * uh : DG_DOT_R;
-      return { w: 2 * r, h: 2 * r };
+      return { w: 2 * r, h: 2 * r, font: fitted(2 * r, 2 * r), padX, padY };
     }
     if (node.kind === 'image') {
       const w = (nw != null ? nw : 1) * uw;
@@ -2430,17 +2508,25 @@ function layoutDiagram(model, state, errors) {
       dgWarn(`image ${node.id}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
       return { w, h: w };
     }
+    const font = fitted(nw != null ? nw * uw : 0, nh != null ? nh * uh : 0);
     const m = dgMeasure(st.label, font, classes.has('mono'));
-    if (node.kind === 'text') return { w: m.w, h: m.h };
+    // A free `text` sizes itself to its label, and an explicit w or h says
+    // otherwise – which is what a `.fit` text needs, and what `w` on a text
+    // meant on paper long before it did anything.
+    if (node.kind === 'text') {
+      return { w: nw != null ? nw * uw : m.w, h: nh != null ? nh * uh : m.h, font, padX, padY };
+    }
     // An explicit w that cannot hold its own label overflows in silence –
     // right on the machine that drew it, wrong on the projector. Say so.
-    if (nw != null && nw * uw < m.w + 6) {
+    // A fitted label cannot: the size was chosen to make it fit.
+    if (nw != null && nw * uw < m.w + 6 && !classes.has('fit') && !classes.has('shrink')) {
       dgWarn(`box ${node.id} is ${nw} units wide but its label needs about `
-        + `${((m.w + 2 * DG_PAD_X) / uw).toFixed(2)} – the text will overflow.`);
+        + `${((m.w + 2 * padX) / uw).toFixed(2)} – the text will overflow.`);
     }
     return {
-      w: nw != null ? nw * uw : Math.max(m.w + 2 * DG_PAD_X, DG_MIN_W),
-      h: nh != null ? nh * uh : m.h + 2 * DG_PAD_Y,
+      w: nw != null ? nw * uw : Math.max(m.w + 2 * padX, DG_MIN_W),
+      h: nh != null ? nh * uh : m.h + 2 * padY,
+      font, padX, padY,
     };
   };
 
@@ -2537,7 +2623,7 @@ function layoutDiagram(model, state, errors) {
     const st = state.get(id);
     if (nodeById.has(id)) {
       const node = nodeById.get(id);
-      const { w, h } = sizeOf(node);
+      const { w, h, font, padX, padY } = sizeOf(node);
       const place = st.place;
       let cx = 0, cy = 0;
       if (!place) { cx = 0; cy = 0; }
@@ -2602,7 +2688,7 @@ function layoutDiagram(model, state, errors) {
       }
       cx += st.shift[0] * uw;
       cy += st.shift[1] * uh;
-      boxes.set(id, { x: cx - w / 2, y: cy - h / 2, w, h });
+      boxes.set(id, { x: cx - w / 2, y: cy - h / 2, w, h, font, padX, padY });
       continue;
     }
     const holder = contById.get(id) || braceById.get(id);
@@ -2676,6 +2762,24 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
   const geom = new Map();
   const ext = new Map();     // label id -> measured [w, h], for the viewBox
   const labelAnchor = new Map();   // element id -> text-anchor, where it is not middle
+  // element id -> [boxW, boxH, padX, padY] for a `.fit` / `.shrink` element,
+  // so the emitter can solve the size for each pre-rendered label variant
+  // rather than for the one that happens to be on screen.
+  const fits = new Map();
+  // A free `text` draws a ground only when it has a tone – but a `style`
+  // step can give it one, and a geometry key present in only some frames
+  // would leave the rect stranded in the others. So the rect is emitted in
+  // every frame of any text that carries a tone in *any* of them, and the
+  // class decides whether it paints.
+  const styleFilled = new Set();
+  for (const s of model.steps) {
+    for (const op of s.ops) {
+      if (op.op !== 'style' || !(op.classes || []).some(c => DG_FILL_CLASSES.includes(c))) continue;
+      for (const t of (op.targets || [])) {
+        for (const id of (t.startsWith('@') ? (model.tags.get(t.slice(1)) || []) : [t])) styleFilled.add(id);
+      }
+    }
+  }
   const vis = new Map();
   const cls = new Map();
   const lab = new Map();
@@ -2701,7 +2805,9 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     // Record what the label actually measures, so the viewBox can hold it.
     // Approximating every label as a fixed box let a long one draw outside
     // the figure, where overflow: visible happily painted it over the prose.
-    const font = dgFontFor(st.classes);
+    // The size comes off the laid-out box rather than from the classes:
+    // under `.fit` the two differ, and the viewBox has to hold what is drawn.
+    const font = box.font ?? dgFontFor(st.classes);
     const m = dgMeasure(st.label, font, st.classes.has('mono'));
     ext.set(el.id + '--l', [m.w, m.h]);
     const x = !freeText ? box.x + box.w / 2
@@ -2715,6 +2821,9 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     const st = record(node);
     const b = boxes.get(node.id);
     if (!b) continue;
+    if (st.classes.has('fit') || st.classes.has('shrink')) {
+      fits.set(node.id, [b.w, b.h, b.padX ?? DG_PAD_X, b.padY ?? DG_PAD_Y]);
+    }
     // A label that grew a leader is only as visible as what it points at –
     // the third face of the same rule the edges and the holders follow. Its
     // stub was already hidden with the target, and words hanging in empty
@@ -2732,6 +2841,15 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     } else if (node.kind === 'image') {
       put(node, node.id + '--i', [b.x, b.y, b.w, b.h]);
     } else {
+      // A free `text` draws a ground only when the author gave it one. The
+      // rect goes through `put` like any other drawable, so `extentsOf`
+      // counts it in the viewBox: a padded box at the edge of a figure is
+      // wider than the bare glyph run it replaced, and a frame computed from
+      // the label alone would clip it.
+      if (dgHasFill(st.classes) || styleFilled.has(node.id)) {
+        const px = b.padX ?? DG_PAD_X, py = b.padY ?? DG_PAD_Y;
+        put(node, node.id + '--r', [b.x - px, b.y - py, b.w + 2 * px, b.h + 2 * py]);
+      }
       labelBox(node, st, b, true);
     }
   }
@@ -2856,7 +2974,7 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     }
   }
 
-  return { geom, vis, cls, lab, ext, labelAnchor };
+  return { geom, vis, cls, lab, ext, labelAnchor, fits };
 }
 
 // Every distinct label an element ever carries, so a `label` step is a
@@ -2901,8 +3019,8 @@ function dgTspans(spans, font, baseline) {
   return out;
 }
 
-function dgTextEl(id, label, classes, extraClass, anchorOverride) {
-  const font = dgFontFor(classes);
+function dgTextEl(id, label, classes, extraClass, anchorOverride, fontPx) {
+  const font = fontPx || dgFontFor(classes);
   const mono = classes.has('mono');
   const m = dgMeasure(label, font, mono);
   const anchor = anchorOverride
@@ -3088,6 +3206,8 @@ function renderDiagram(body, headAttrs, opts = {}) {
   const kinds = {};
   const anchorOf = new Map();
   for (const f of frames) for (const [k, v] of f.labelAnchor) anchorOf.set(k, v);
+  const fitOf = new Map();
+  for (const f of frames) for (const [k, v] of f.fits) fitOf.set(k, v);
   let svgBody = '';
   for (const { e, kind } of elements) {
     const st = printCls.get(e.id) ?? e.classes.join(' ');
@@ -3118,6 +3238,14 @@ function renderDiagram(body, headAttrs, opts = {}) {
         const hv = g(suffix) || frames[0].geom.get(e.id + suffix) || [0, 0];
         inner += `<path id="${prefix}${e.id}${suffix}" class="dg-head" d="${dgPathD(hv)}Z"/>`;
       }
+    } else if (kind === 'text' && frames.some(f => f.geom.has(e.id + '--r'))) {
+      // The ground behind a free text, when it has one. Same drawable as a
+      // box's, so it tweens and themes identically; whether it paints is the
+      // fill class, which is how one mechanism covers "a box defaults to
+      // paper, a text defaults to see-through".
+      kinds[e.id + '--r'] = 'rect';
+      const v = g('--r') || frames[0].geom.get(e.id + '--r') || [0, 0, 0, 0];
+      inner += `<rect id="${prefix}${e.id}--r" x="${v[0].toFixed(2)}" y="${v[1].toFixed(2)}" width="${v[2].toFixed(2)}" height="${v[3].toFixed(2)}" rx="4"/>`;
     }
     const variants = labelIndex.get(e.id) || [];
     variants.forEach((text, i) => {
@@ -3131,8 +3259,12 @@ function renderDiagram(body, headAttrs, opts = {}) {
         // A container's caption is positioned at its left edge, so it has to
         // be drawn from there – anchored middle it hung half its own width
         // outside the border it belongs to.
+        // Under `.fit` every variant is solved for its own text: a `label`
+        // step swaps pre-rendered <g>s, so each one has to have been
+        // typeset at the size that makes *that* string fill the box.
         + dgTextEl(drawId, text, classes, kind === 'container' ? 'dg-caption' : '',
-                   kind === 'container' ? 'start' : (anchorOf.get(e.id) || null)) + '</g>';
+                   kind === 'container' ? 'start' : (anchorOf.get(e.id) || null),
+                   fitOf.has(e.id) ? dgFitFont(text, classes, ...fitOf.get(e.id)) : 0) + '</g>';
     });
     const base = `dg-el dg-${kind}`;
     svgBody += `<g id="${prefix}${e.id}" data-base="${base}" class="${base}${st ? ' ' + st : ''}"${on}>${inner}</g>\n`;
@@ -3231,9 +3363,6 @@ const DIAGRAM_CSS = `
 .psi-diagram tspan.dg-mu { fill: var(--ink-soft); }
 .psi-diagram .dg-off { display: none; }
 
-/* text elements carry no shape of their own */
-.psi-diagram .dg-text rect { display: none; }
-
 /* containers are a frame around their members, never a filled panel */
 .psi-diagram .dg-container > rect { fill: none; stroke: var(--rule); stroke-width: 1.2; }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
@@ -3255,7 +3384,10 @@ const DIAGRAM_CSS = `
 .psi-diagram .tone-4 > rect, .psi-diagram .tone-4 > circle {
   fill: var(--emph); stroke: var(--emph);
 }
-.psi-diagram .tone-4 text { fill: var(--paper); }
+/* .clear is a see-through interior. .bare removes the *stroke*, so without
+   this there was no way to draw a frame you can read through – which is
+   what an outline over an image or another element wants. */
+.psi-diagram .clear > rect, .psi-diagram .clear > circle { fill: none; }
 
 .psi-diagram .accent > rect, .psi-diagram .accent > circle { stroke: var(--emph); }
 .psi-diagram .accent .dg-stroke { stroke: var(--emph); }
@@ -3266,6 +3398,19 @@ const DIAGRAM_CSS = `
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
 .psi-diagram .muted text { fill: var(--ink-soft); }
 
+/* .tone-4 inverts its own label, and that has to win over .accent text:
+   accent ink on an accent fill is invisible, legal, and would otherwise be
+   decided by which rule was written later. lint.js warns on the pair. */
+.psi-diagram .tone-4 text, .psi-diagram .tone-4 tspan { fill: var(--paper); }
+
+/* A free text element draws a ground only where the author gave it a tone.
+   The rect is always the same drawable; these two rules are what make "a
+   box defaults to paper, a text defaults to see-through" one mechanism rather
+   than two. No stroke either way – a bordered label is a box, and there is
+   a statement for that. */
+.psi-diagram .dg-text > rect { stroke: none; }
+.psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4) > rect { fill: none; }
+
 .psi-diagram .dashed > rect, .psi-diagram .dashed > circle, .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
 .psi-diagram .dotted > rect, .psi-diagram .dotted > circle, .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
 .psi-diagram .thick > rect, .psi-diagram .thick > circle, .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
@@ -3273,6 +3418,11 @@ const DIAGRAM_CSS = `
 .psi-diagram .round > rect { rx: 13px; }
 .psi-diagram .sharp > rect { rx: 0; }
 .psi-diagram .bold text { font-weight: 600; }
+/* the upright serif, for a label that wants the reading voice rather than
+   the diagram's. .hand is the same family forced italic and accented, which
+   is the annotation voice and a different thing – until .serif existed the
+   family was reachable only through it. */
+.psi-diagram .serif text { font-family: var(--dg-serif); }
 /* no handwriting face is bundled, so the annotation voice is the serif in
    italic – close enough to read as "written in beside the diagram", and it
    costs no extra font payload. */

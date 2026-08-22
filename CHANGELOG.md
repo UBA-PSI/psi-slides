@@ -78,6 +78,24 @@ from building the same way is a major version.
   of boxes from collapsing into a lens; there is deliberately no
   automatic fan-out, because it would silently redraw existing diagrams.
 
+  Four more classes close the gaps the vocabulary could not spell.
+  `.clear` is a see-through interior – `.bare` removes the *stroke*, so a
+  frame you can read through had no spelling at all. `.serif` is the
+  upright serif; `.hand` is the same family forced italic and accented,
+  and until now the family was reachable only through that annotation
+  voice. `.fit` and `.shrink` size the type to the box instead of the box
+  to the type, clamped to 0.6–1.5× so a long label cannot become
+  unreadable and a short one cannot become a poster; both need the box to
+  be given (`w n` or `same as X`), and an element with neither is an error
+  rather than a line that does nothing. A free `text` now draws a ground
+  when it carries a tone, which is the same drawable a box uses read the
+  other way round, and `pad` works on a box and a text as well as on a
+  container and a brace – one word, one sentence, four statements. Every
+  class now belongs to a slot: `.thick`/`.bare` and `.mono`/`.serif`/`.hand`
+  used to stack with a `default` instead of displacing it. `.tone-4` with
+  `.accent` is accent ink on an accent fill; the inversion wins and
+  `lint.js` warns on the pair.
+
   Inside a label, `_sub` / `^sup` shift a run and `*accent*` / `~muted~`
   colour one. Free `text` honours `.left` / `.right`, and its anchor
   moves with them. A diagram is click-to-zoom like any other figure, and

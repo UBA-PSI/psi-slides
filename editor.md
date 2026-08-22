@@ -1186,3 +1186,67 @@ Verified (§11.8's row for §3.2, run, not asserted in prose):
 - all three lectures rebuild; `lectures/tutorial/*.html` unchanged by the
   refactor, which is what says the four-layer rewrite was behaviour-preserving
   for lectures that use none of it.
+
+### Phase 0b – the visual vocabulary, finished · **done**
+
+§3.3 in full: `.clear`, `.serif`, a ground behind free text, `pad` on boxes
+and texts, `.fit` / `.shrink`, and the two class-slot tidy-ups. 24 classes →
+28, and every one of them is now in a slot.
+
+The two traps §3.3 predicted were both real, and one more was not predicted:
+
+- **A text ground is not just a rect.** It changes the element's extents, so
+  it goes through `put()` like every other drawable and `extentsOf` counts it
+  in the viewBox. Emitting it beside the bookkeeping would clip a padded label
+  at the edge of a figure.
+  There is a third case the plan did not name: **a `style` step can add a
+  tone**, and a geometry key present in only some frames leaves the rect
+  stranded in the others – the runtime only writes the keys the target frame
+  carries. So the rect is emitted in every frame of any text that carries a
+  tone in *any* of them, and the class decides whether it paints. The two CSS
+  rules that make that work are `.dg-text > rect { stroke: none }` and a
+  `:not()` chain on the four tones for the fill; the old
+  `.dg-text rect { display: none }` is gone.
+- **`.fit` and `same as` are ordered.** Solved after the copy, which is safe
+  because `same as` is already a dependency edge. `dgFitFont` is a ratio, not
+  a search – `dgMeasure` is linear in the size – clamped to 0.6–1.5×.
+- **Not predicted: a `.fit` element's *label variants* each need their own
+  solve.** A `label` step swaps pre-rendered `<g>`s, so every variant has to
+  have been typeset at the size that makes *its* string fill the box. The
+  frame carries `fits: id → [w, h, padX, padY]` and the emitter re-solves per
+  variant.
+
+Two smaller decisions:
+
+- **`pad` is measured in `uh` on both axes**, matching what `container`
+  already did, rather than `uw` horizontally. The alternative would make one
+  word mean two distances depending on which statement it sat on.
+- **A `w` on a free `text` used to parse and do nothing.** `DG_KIND_OPTS`
+  listed it, `sizeOf` ignored it. `.fit` on a text needs it, so it now means
+  what it says – which is also the silent no-op this DSL keeps closing.
+
+Verified (§11.8's row for §3.3):
+
+- one figure carrying every new class, screenshotted in all seven themes at
+  1440×810: `.clear` shows the ground through it, `.tone-4` text stays legible
+  (black on the accent fill in every theme), `.serif` is upright and `.hand`
+  is still italic and accented.
+- `.fit` on a box with `w 1.5 h 0.55` emits `font-size="16.00"` against
+  `DG_FONT` 15; `.shrink` on the same box with a label that does not fit emits
+  `13.31`. Both labels measure inside their boxes.
+- `pad 0.3` at `unit=130x76`: rect 96.45 × 64.35 for a label measuring
+  50.85 × 18.75 – exactly `2 × 0.3 × 76` added on both axes.
+- `lint --strict` on `{.tone-4 .accent}` warns, and on `{.thick .bare}` too,
+  which is the new stroke-weight slot doing its job.
+- a box with `.fit` and no width fails the build naming the line.
+- all eleven diagrams in `lectures/diagrams` emit **byte-identical SVG**
+  before and after, and the tutorial's built HTML changes only in the
+  stylesheet. Nothing existing moved.
+- Playwright sweep over `lectures/diagrams/audience.html` in all seven
+  themes: no console errors.
+
+**Not done, deliberately:** `lint.js` does not mirror the
+"`.fit` needs a width" check. Deciding it means resolving `w` through four
+default layers and `same as`, which is the compiler's job; the build
+hard-fails with the line. Same reasoning as the `fonts:` check, and it is
+recorded in `CLAUDE.md` so the next person does not add it.
