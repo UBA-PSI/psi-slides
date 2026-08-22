@@ -30,7 +30,7 @@ the smallest span it can, and re-runs the same compiler the build runs. There
 is no second representation to drift, no export step that flattens relations
 into numbers, and no file the editor owns.
 
-## 2. The three decisions
+## 2. The four decisions
 
 ### 2.1 Where it ships
 
@@ -123,6 +123,37 @@ id, and the figure shows their version with a quiet "edited · revert" marker,
 plus "Copy source" to take it away. It never touches disk and never syncs to
 the speaker window.
 
+### 2.4 Both windows see the edit
+
+**An edit syncs.** Everything else on the slide does, and a diagram that
+differed between the projection and the cockpit would be the first divergence
+in the product.
+
+It follows the **video** precedent in `speaker.md`, not the state snapshot,
+and for the documented reason: `applyRemoteState` is a *full* apply, so folding
+an edit into the snapshot would drag the receiver's slide position along with
+it. So it is its own message – `{type: 'diagram-edit', id, source}` – addressed
+by the diagram's own id rather than by index, because reordering a chunk must
+not be able to mis-target it. That is the same lesson `data-fig-id` already
+carries for `video`. The receiver re-renders that one diagram in place. Echo
+suppression works like `applyingRemoteVideo`: applying a remote edit must not
+bounce straight back.
+
+**Gated by the freeze flag, like any other shared state.** Which also answers
+the "can I work unseen?" question without inventing anything: `V` already means
+*the room holds this slide while you move on*. Freeze, edit, unfreeze, and the
+room gets the finished figure. A **private editor mode is therefore not a
+separate feature** – it is the cockpit's existing freeze, and the editor should
+say so in a line of chrome ("the room is following" / "the room is frozen on
+beat 2") rather than growing a second concept for the same thing.
+
+Two things deliberately do **not** sync: a reader's `localStorage` edits in
+their own `audience.html` (there is no second window, and nothing to sync to),
+and the editor's *selection* and *frame* (§5). Which figure the author has
+selected, and whether they are previewing it in a column, is workspace state,
+not content. The room sees the picture change; it does not need to watch a
+handle move.
+
 ## 3. What the grammar already promises
 
 Three constructs state a *relation* rather than a number, and an editor that
@@ -194,6 +225,16 @@ Two deliberate divergences:
   tool → close the editor. Identical to the ladder on the slide (figure →
   overview → expansion), which is already documented in the help sheet.
 
+**The slide is keyboard-first; the editor is GUI-first.** That inversion is
+deliberate. On the slide a lecturer's hands are busy and their attention is on
+the room, so the keys are the interface and `?` is the manual. In the editor an
+author is exploring, and every mechanism below – tools, frames, zoom, moving
+between figures – **must have a visible control that does the same thing**,
+with its key printed on it. The keys are accelerators for people who already
+know; nothing is reachable only by knowing. The `?` sheet gains an editor
+section through `renderHelpOverlay()`, which already generates the cheat sheet
+for both live views from one data structure.
+
 **The modal owns the keyboard.** While the editor is open, the view's own
 handler is off entirely – no `C`ollapse, no `F`ont, no `A` theme, no `Space`
 advance. Otherwise every tool key would also do something to the lecture
@@ -249,13 +290,28 @@ Once the editor is open it stops being attached to one chunk and becomes a
 **figure workspace over the whole lecture**. Every diagram in the document is
 already in the DOM of a live view, so enumerating them costs nothing.
 
-- `[` and `]` – previous / next figure in source order.
+- `,` and `.` – previous / next figure in source order. **Not `[` and `]`:**
+  on a German layout those are `AltGr`-`8` and `AltGr`-`9`, which is not a
+  shortcut, it is a chord. `,` and `.` are unmodified keys next to each other
+  on QWERTZ and QWERTY alike, and they carry the step-back / step-forward
+  convention from video scrubbing. `PageUp` / `PageDown` do the same thing for
+  anyone who wants an unmistakable key.
 - `O` – the **figure board**: every figure in the lecture as a thumbnail, click
   to switch. Same idiom, same key, same mental model as the slide overview.
 - A **figure strip** along one edge, reusing the speaker view's preview strip
   wholesale: `Shift`-`V` flips it between the bottom edge and the right edge,
   drag the bar to resize, drag the strip to scroll, click a thumbnail to jump.
   That component exists and behaves the way a lecturer already expects.
+
+**Every one of those has a control you can see and click**, per §4: the strip
+carries ‹ › buttons and the figure's name, the board has its own button beside
+them, and the frame selector (§5) is a segmented control reading *Slide ·
+Column · Print* with the measured width under the active one. An author should
+be able to drive the whole workspace having read nothing – the keys are how it
+gets fast afterwards.
+
+The same rule covers the viewport: visible zoom out / in / fit-to-frame
+buttons showing the current percentage, next to `Space`-drag and the wheel.
 
 Leaving the editor returns the slide to whatever chunk you started on, not
 wherever you wandered. Editing five figures should not move the projection five
@@ -352,15 +408,82 @@ one call to that.
 ### 8.3 Structure
 
 A modal overlay holding: the live SVG (the compiler's own output, re-emitted
-after each edit); a selection layer drawn in viewBox coordinates so it survives
-zoom and auto-fit; the frame (§5); the toolbar and sidebar (§4); the figure
-strip (§6); a source pane; the status bar (§9); and undo/redo over **source
-text snapshots**, not over a model – cheap, exact, and it cannot desynchronise
-from what will be written.
+after each edit); a **guide layer** and a selection layer, both drawn in
+viewBox coordinates so they survive zoom and auto-fit; the frame (§5); the
+toolbar and sidebar (§4); the figure strip and its visible controls (§6); a
+one-way source pane; the status bar (§9.3); and undo/redo over **source text
+snapshots**, not over a model – cheap, exact, and it cannot desynchronise from
+what will be written.
 
-## 9. The drag policy
+The guide layer is worth keeping separate from the drawing for one practical
+reason: it is the only part of the editor that renders things the compiler
+does not know about (ticks, rulers, distance labels, a hairline through an
+`align` set). Keeping it out of the emitted SVG means the SVG stays exactly
+what the build would have produced, which is what phase 3 asserts.
+
+## 9. Guides, and the drag policy
 
 This is the design. Everything else is UI.
+
+### 9.1 A diagram is made of relations, so draw them
+
+The whole point of this grammar is that a figure is held together by
+relations rather than coordinates – and that structure is completely invisible
+in the rendered picture. Two boxes 0.55 apart look exactly like two boxes that
+happen to be 0.55 apart. The editor's first job, before it lets anyone drag
+anything, is to **make the tidiness visible**.
+
+**At rest, the selection shows what holds it.** Select `prov` and the editor
+draws a thin tick to `reg` labelled `gap 0.55`; select a member of an `align y
+middle` set and the shared axis runs as a hairline through every member with
+the master marked; select anything in a `spread x` and the equal centre
+distances appear as matched marks. A `same as` shows as a width bracket
+mirrored onto its source. These are quiet – hairlines in `--rule`, labels in
+`--ink-soft` – and they answer, without a click, *why is this here?*
+
+This is also how a refusal stops being a surprise. §9.3 says the editor
+declines to drag a follower along its constrained axis; if that axis is already
+drawn as a line through the set, the refusal is something the author saw coming
+rather than something the tool did to them.
+
+**A faint cell grid and rulers in grid units.** `unit=WxH` is the coordinate
+system every number in the block is written in, and it is currently something
+an author has to hold in their head. Show it: the grid at very low contrast
+behind the figure, ruler ticks in **cells, not pixels**, along the frame edges.
+`gap 0.55` then has somewhere to be read off.
+
+### 9.2 While dragging, guides propose the statement
+
+Snapping in a drawing tool aligns pixels. Here it does something better,
+because every snap target corresponds to a statement the grammar can write.
+As an element moves, candidates light up and the status bar (§9.3) shows the
+line each one would produce:
+
+| what lights up | what it would write |
+|---|---|
+| an edge of a neighbour, in a `below` / `right of` chain | `align left` … `align bottom` on the placement |
+| a round value on the cell grid | `gap 0.6` rather than `gap 0.5847` |
+| **the same gap a sibling already has** | the same number, so a column stays regular |
+| another element's centre or edge line | `at m0.cx,…` – a **ref coordinate** |
+| the line joining two elements | `between a,b`, and along it, `frac` |
+| equal spacing across three or more | an offer to replace the chain with `spread x` |
+
+The fourth row is the one that matters most. **Nobody types `at c1.cx,m0.cy`
+from a standing start** – it is the most valuable construct in the coordinate
+grammar and the least discoverable, and a guide that appears when you drag near
+another element's centre line is how it becomes usable at all. The guides are
+not decoration on top of the feature; for that feature they *are* the interface.
+
+Distances are shown live while dragging, in grid units, and a distance that
+matches a sibling's is called out the way a design tool calls out equal
+spacing – except that here the equality can be **written down** as `spread` or
+as a shared `gap`, instead of being a coincidence that survives until the next
+edit.
+
+Holding a modifier suspends all snapping, for the case where the author means
+0.5847.
+
+### 9.3 Which token a drag rewrites
 
 An element's position comes from exactly one placement expression, and the
 editor's job is to decide which token a drag belongs to:
@@ -424,47 +547,80 @@ compiler, two runtimes" bet early and cheaply.
 judgeable, it is pure read-only, and it is independently useful: an author can
 already ask "how does this look in a column?" without touching the figure.
 
-**Phase 5 – select, drag, resize.** The §9 policy table. Toolbar, sidebar,
-status bar, undo. Still no persistence – edits live in memory and "Copy source"
-is the only way out. Usable already.
+**Phase 5 – guides.** §9.1 and §9.2, still read-only: the cell grid, the rulers
+in grid units, and the relation overlay on a selection. It is the cheapest
+possible test of whether the relation model is legible to anyone but its
+author, and if it is not, that is worth knowing before a single drag is
+implemented. An author gets something useful out of it immediately: a figure
+whose structure they can finally see.
 
-**Phase 6 – create, wrap, delete.** The placers and the wrappers of §4, the
+**Phase 6 – select, drag, resize.** The §9.3 policy table, with §9.2's guides
+now proposing statements. Toolbar, sidebar, status bar, undo. Still no
+persistence – edits live in memory and "Copy source" is the only way out.
+Usable already.
+
+**Phase 7 – create, wrap, delete.** The placers and the wrappers of §4, the
 relation heuristic, `align`/`spread` as selection acts, the reference list on
 delete. "New figure…" producing a whole chunk.
 
-**Phase 7 – persistence.** Tier 1 (watch write-back, with the nonce and the
-`127.0.0.1` bind), then Tier 0 (`localStorage` for readers), Tier 2 (already
-there from phase 5), Tier 3 feature-detected.
+**Phase 8 – persistence and sync.** Tier 1 (watch write-back, with the nonce
+and the `127.0.0.1` bind), then §2.4's `diagram-edit` message and the row it
+adds to `speaker.md` §2, then Tier 0 (`localStorage` for readers). Tier 2 is
+already there from phase 6; Tier 3 is feature-detected. Sync belongs here and
+not earlier: it is only worth the protocol once an edit can outlive the tab.
 
-**Phase 8 – the workspace.** §6 figure switching and §7 copying. This is last
-because it is the only part that needs more than one figure in the editor's
-head at once, and because paste-with-closure wants delete-with-references (§6)
-to already exist.
+**Phase 9 – the workspace.** §6 figure switching and §7 copying. Late because
+it is the only part that needs more than one figure in the editor's head at
+once, and because paste-with-closure wants delete-with-references (phase 7) to
+already exist.
 
-**Phase 9 – steps.** A beat timeline. Selecting beat *k* shows that state;
+**Phase 10 – steps.** A beat timeline. Selecting beat *k* shows that state;
 dragging then writes a `move` op into step *k* rather than into the element's
 placement. This is a mode and it has to look like one – the one place where the
-same gesture means two different things.
+same gesture means two different things, and the one place §9's guides do not
+yet know what to draw.
 
-## 11. Open questions
+## 11. Settled, and still open
 
-- **Does the room ever see this?** The editor is in `audience.html`, which is
-  the projected view. The focus-card entry keeps it two gestures away, but a
-  lecturer editing on the projector will now happen. Fine, or should the
-  audience view's editor be read-only-plus-copy, with writing reserved for the
-  cockpit?
-- **Does an edit sync to the speaker window?** Everything else on the slide
-  does. A diagram edited in one window and not the other would be the first
-  divergence in the product. The freeze gate suggests the answer – a lecturer
-  should be able to edit a frozen projection – but the state-ownership matrix
-  in `speaker.md` §2 has no row for this yet.
-- **A shared preamble?** §7.2 carries defaults by copying them, which decays.
-  The durable fix is a lecture-level default block that several figures name –
-  say `::: diagram {unit=130x76 use=house}` against presets in the frontmatter.
-  It is *additive*, so it is not a breaking change, but it is grammar, and the
-  grammar wants to freeze. **Recommendation: defer.** Build §7.2 first and let
-  it show whether copying is actually enough; a preset that turns out to be
-  unnecessary is worse than a preset added a version later.
-- **Two-way source pane, or one-way?** Editing text and dragging simultaneously
-  is where round-tripping editors historically fall apart. One-way (canvas
-  writes, pane displays) is the safe opening move.
+Four questions this plan opened have been answered; they are recorded here
+rather than deleted, because the reasoning is what a later reader will want.
+
+- **Does the room ever see this? Yes, and that is fine.** Invoked from
+  `audience.html` the editor is on the projection, and a room watching a figure
+  get fixed is not a failure. There is no separate hidden mode to build,
+  because the cockpit already has one: `V` freezes the projection, and editing
+  while frozen *is* private editing (§2.4). The editor states which of the two
+  it is in, in one line of chrome.
+- **Does an edit sync? Yes.** As its own message, following the `video`
+  precedent rather than the state snapshot, addressed by diagram id, gated by
+  the freeze flag, echo-suppressed. `speaker.md` §2 gains the row. Full
+  reasoning in §2.4.
+- **Two-way source pane? One way, for now.** The canvas writes and the pane
+  displays with the changed token highlighted. Editing text *and* dragging at
+  the same time is where round-tripping editors historically come apart, and
+  the pane is worth having long before it is worth having twice. Making it
+  two-way later is additive: it needs a debounce, a parse-error state that does
+  not destroy the canvas, and a rule for what happens to a selection whose
+  element the author just deleted by typing.
+- **A shared preamble: sensible, still deferred.** §7.2 carries defaults by
+  copying them into each block, and that decays – change the look later and it
+  is twelve edits again. The durable fix is a lecture-level default that
+  several figures name, `::: diagram {unit=130x76 use=house}` against presets
+  in the frontmatter. It is *additive*, so it stays available after the grammar
+  freezes, which is exactly why it does not have to be decided now. **Build
+  §7.2 first.** The trigger for building the preamble is concrete: if an author
+  uses "apply these defaults to every figure" more than once on the same
+  lecture, copying has failed and the preset has earned its keyword.
+
+Genuinely open:
+
+- **What is a beat when you are editing?** §9's guides describe one still
+  picture. A stepped diagram has several, and dragging in beat 2 means
+  something different from dragging in beat 0 (§10, phase 9). The guides
+  probably need to show *both* – where the element is now and where it came
+  from – and that is a drawing problem this plan has not solved.
+- **How much of the closure is too much?** §7.1 pastes everything the selection
+  depends on. Select one box at the end of a `below` chain and you get the
+  whole chain. Correct, and possibly astonishing. The editor should show what
+  it is about to bring along before it pastes, but "show" is doing a lot of
+  work in that sentence.
