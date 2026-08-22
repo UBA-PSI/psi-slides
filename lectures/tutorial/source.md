@@ -465,7 +465,11 @@ step blame
 **A picture can be an element too.** `image alice avatar-alice w 0.4` resolves the asset exactly like `![](fig-id)` does. An SVG is spliced in as a nested `<svg>`, so it inherits `--ink` and `--paper` and re-colours with the `A` theme cycle; a raster is embedded as a `data:` URI and keeps its own colours in every theme. That is the trade, and it is the honest one.
 
 ::: expand The rest of the vocabulary
-`dot` is a circle for junctions and glyphs. `container … over a,b,c` draws a box that fits itself around its members and re-fits when they move; `group` is the same set without the box, for moving or hiding several things at once; `brace … over a,b right "Label"` is a bracket spanning a subset.
+`dot` is a circle for junctions and glyphs. `container … over a,b,c` draws a box that fits itself around its members and re-fits when they move; `brace … over a,b right "Label"` is a bracket spanning a subset.
+
+An element also carries **tags**: `{#mix .tone-1 @crypto}`. Three sigils, three questions – `#` is identity, `.` is appearance, `@` is membership – and a tag is addressable wherever a name is, so `show @crypto` in a step covers every element carrying it. Membership sits on the element's own line, so adding one to a set is a local edit.
+
+`align middle a, b, c` lines up one coordinate (`left`/`center`/`right` on x, `top`/`middle`/`bottom` on y) and `spread x a, …, z` gives equal spacing between centres. Both matter more than they sound: two columns built as separate `below` chains drift apart the moment their captions differ in height, and a line between two drifted boxes runs a degree off the axis and reads as a mistake.
 
 Placement also takes `between a,b` – the point on the line joining two elements, which is what a separator glyph or a note beside a connector actually wants – and any placement accepts a trailing `offset dx,dy`. An anchor can carry a fraction: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes come out parallel instead of as a lens.
 

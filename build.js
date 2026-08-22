@@ -1262,6 +1262,9 @@ const DG_MARGIN = 12;          // viewBox breathing room, px
 // Nominal intrinsic width. Deliberately wider than any chunk measure so
 // that max-width: 100% always binds – see the comment where it is emitted.
 const DG_NOMINAL_W = 2000;
+// How far off an axis a line may run before it reads as a mistake rather
+// than a direction. Anything genuinely diagonal is far outside this.
+const DG_SKEW_DEG = 4;
 const DG_BRACE_TICK = 7;       // how far a brace's end ticks turn in, px
 const DG_DOT_R = 13;           // default radius of a `dot`
 
@@ -1301,7 +1304,11 @@ const DG_CLASS_GROUPS = [
 
 const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 'tr', 'bl', 'br']);
 const DG_STEP_OPS = new Set(['show', 'hide', 'move', 'emph', 'calm', 'style', 'label']);
-const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'group', 'default', 'step']);
+const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'align', 'spread', 'default', 'step']);
+// Figma's and PowerPoint's vocabulary, because it is the one everybody
+// already has: left/center/right line up the x axis, top/middle/bottom the y.
+const DG_ALIGN_X = new Set(['left', 'center', 'right']);
+const DG_ALIGN_Y = new Set(['top', 'middle', 'bottom']);
 const DG_DEFAULT_KINDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'container', 'brace']);
 
 let dgCounter = 0;             // per-build, reset in buildOnce
@@ -1480,16 +1487,27 @@ function dgTokenize(line) {
   return out;
 }
 
+// Three sigils, three questions: # is identity, . is appearance, @ is
+// membership. Tags replace the earlier `group` statement, and the reason is
+// locality: adding an element to a group meant editing a `group` line
+// somewhere else in the file. A tag is a token on the element's own line, so
+// the edit is local, the order of declarations stops mattering, and one
+// element can belong to as many sets as it likes.
 function dgParseAttrs(raw, errors, lineNo) {
-  const out = { id: null, classes: [] };
+  const out = { id: null, classes: [], tags: [] };
   for (const tok of String(raw).trim().split(/\s+/).filter(Boolean)) {
     if (tok.startsWith('#')) out.id = tok.slice(1);
+    else if (tok.startsWith('@')) {
+      const tag = tok.slice(1);
+      if (!tag) dgErr(errors, lineNo, 'an empty @tag means nothing');
+      else out.tags.push(tag);
+    }
     else if (tok.startsWith('.')) {
       const cls = tok.slice(1);
       if (!DG_CLASSES.has(cls)) {
         dgErr(errors, lineNo, `unknown class .${cls} (known: ${[...DG_CLASSES].join(', ')})`);
       } else out.classes.push(cls);
-    } else dgErr(errors, lineNo, `attribute "${tok}" is neither #id nor .class`);
+    } else dgErr(errors, lineNo, `attribute "${tok}" is not #id, .class or @tag`);
   }
   return out;
 }
@@ -1508,6 +1526,15 @@ function dgNum(tok, errors, lineNo, what) {
 // pair of boxes from collapsing into a lens: give them 0.3 and 0.7 and they
 // are two parallel arrows instead of two bows over the same chord.
 function dgParseRef(tok, errors, lineNo) {
+  // `edge 2,1 -> mix` – an endpoint in empty space, for an arrow that comes
+  // in from outside the picture. Deliberately a literal rather than an
+  // invisible anchor element: there is nothing to delete by accident, and a
+  // graphical editor dragging that end rewrites two numbers on this line
+  // instead of moving an object nobody can see.
+  if (/^-?[\d.]+,-?[\d.]+$/.test(tok)) {
+    const [x, y] = tok.split(',').map(Number);
+    return { ref: null, point: [x, y], anchor: null, frac: 0.5 };
+  }
   const dot = tok.indexOf('.');
   if (dot < 0) return { ref: tok, anchor: null, frac: 0.5 };
   const ref = tok.slice(0, dot);
@@ -1624,8 +1651,9 @@ function parseDiagramSource(body, headAttrs) {
     edges: [],
     braces: [],
     containers: [],
-    groups: [],
     steps: [],
+    aligns: [],
+    spreads: [],
     defaults: {},
     byId: new Map(),
   };
@@ -1702,6 +1730,28 @@ function parseDiagramSource(body, headAttrs) {
       continue;
     }
 
+    // align / spread do not place an element, they take one coordinate of it
+    // from somewhere else. Modelled as an extra dependency plus a coordinate
+    // override in the same topological walk, so there is still no solver and
+    // still no second pass: the master is laid out first by construction.
+    if (head === 'align' || head === 'spread') {
+      const what = t(1);
+      const members = dgParseMembers(body0.slice(2).map(x => x.v).join(','));
+      if (head === 'align') {
+        if (!DG_ALIGN_X.has(what) && !DG_ALIGN_Y.has(what)) {
+          dgErr(errors, lineNo, `align expects ${[...DG_ALIGN_X, ...DG_ALIGN_Y].join('/')}, got "${what}"`);
+          continue;
+        }
+        if (members.length < 2) { dgErr(errors, lineNo, `align ${what} needs at least two elements`); continue; }
+        model.aligns.push({ edge: what, axis: DG_ALIGN_X.has(what) ? 'x' : 'y', members, line: lineNo });
+      } else {
+        if (what !== 'x' && what !== 'y') { dgErr(errors, lineNo, `spread expects x or y, got "${what}"`); continue; }
+        if (members.length < 3) { dgErr(errors, lineNo, `spread ${what} needs at least three elements – the first and last stay put and the rest are distributed between them`); continue; }
+        model.spreads.push({ axis: what, members, line: lineNo });
+      }
+      continue;
+    }
+
     if (head === 'default') {
       const kind = t(1);
       if (!DG_DEFAULT_KINDS.has(kind)) {
@@ -1754,7 +1804,7 @@ function parseDiagramSource(body, headAttrs) {
       const node = {
         kind: head, id, label: isImage ? '' : (quoted[0] ?? ''),
         alt: isImage ? (quoted[0] ?? '') : '',
-        src, classes: attrs.classes, place: null, w: null, h: null, r: null, line: lineNo,
+        src, classes: attrs.classes, tags: attrs.tags, place: null, w: null, h: null, r: null, line: lineNo,
       };
       if (isImage && src) {
         const found = dgResolveImage(src);
@@ -1833,6 +1883,7 @@ function parseDiagramSource(body, headAttrs) {
         to: dgParseRef(flip ? fromTok : toTok, errors, lineNo),
         label: quoted[0] ?? '',
         classes: attrs.classes.slice(),
+        tags: attrs.tags,
         via: [], line: lineNo,
       };
       if (body0[arrowAt].v === '--' && !edge.classes.includes('no-head')) edge.classes.push('no-head');
@@ -1847,7 +1898,7 @@ function parseDiagramSource(body, headAttrs) {
       continue;
     }
 
-    if (head === 'brace' || head === 'container' || head === 'group') {
+    if (head === 'brace' || head === 'container') {
       const id = t(1);
       if (!id) { dgErr(errors, lineNo, `${head} needs a name`); continue; }
       claim(id, head, lineNo);
@@ -1861,8 +1912,7 @@ function parseDiagramSource(body, headAttrs) {
       const members = dgParseMembers(body0.slice(overAt + 1, mEnd).map(x => x.v).join(','));
       if (!members.length) { dgErr(errors, lineNo, `${head} ${id} lists no members`); continue; }
       const rest = body0.slice(mEnd);
-      if (head === 'group') { model.groups.push({ id, members, line: lineNo }); continue; }
-      const item = { kind: head, id, members, label: quoted[0] ?? '', classes: attrs.classes, pad: 0.18, line: lineNo };
+      const item = { kind: head, id, members, label: quoted[0] ?? '', classes: attrs.classes, tags: attrs.tags, pad: 0.18, line: lineNo };
       if (head === 'brace') {
         item.side = 'right';
         for (let k = 0; k < rest.length; k++) {
@@ -1885,9 +1935,45 @@ function parseDiagramSource(body, headAttrs) {
   // Referential integrity. Every name an element points at has to exist –
   // a dangling reference is the one failure mode that would otherwise
   // render as "an arrow is mysteriously missing".
-  const known = (id) => model.byId.has(id) || model.groups.some(g => g.id === id);
+  // Every tag and who carries it. Built after parsing so a tag can be
+  // referenced before the element that carries it is declared – the whole
+  // point of moving membership onto the element's own line.
+  model.tags = new Map();
+  for (const el of [...model.nodes, ...model.containers, ...model.braces, ...model.edges]) {
+    for (const tag of (el.tags || [])) {
+      if (!model.tags.has(tag)) model.tags.set(tag, []);
+      model.tags.get(tag).push(el.id);
+    }
+  }
+  // A tag expands in declaration order wherever a member list is accepted.
+  // Expansion happens before the reference check below, so an unknown tag
+  // has to complain here or it would silently vanish into an empty list.
+  const expandList = (list, lineNo, what) => list.flatMap(m => {
+    if (!m.startsWith('@')) return [m];
+    const hit = model.tags.get(m.slice(1));
+    if (!hit || !hit.length) {
+      dgErr(errors, lineNo, `${what} refers to @${m.slice(1)}, which no element carries`);
+      return [];
+    }
+    return hit;
+  });
+  for (const h of model.containers) h.members = expandList(h.members, h.line, `container ${h.id}`);
+  for (const h of model.braces) h.members = expandList(h.members, h.line, `brace ${h.id}`);
+  for (const h of model.aligns) h.members = expandList(h.members, h.line, `align ${h.edge}`);
+  for (const h of model.spreads) h.members = expandList(h.members, h.line, `spread ${h.axis}`);
+  const known = (id) => (id.startsWith('@') ? model.tags.has(id.slice(1)) : model.byId.has(id));
   const checkRef = (id, lineNo, what) => {
-    if (id && !known(id)) dgErr(errors, lineNo, `${what} refers to "${id}", which is not defined`);
+    if (!id || known(id)) return;
+    if (id.startsWith('@')) {
+      dgErr(errors, lineNo, `${what} refers to @${id.slice(1)}, which no element carries`);
+      return;
+    }
+    // The commonest slip is reaching for a class where a tag was meant, so
+    // say that rather than the generic complaint.
+    const bare = id.startsWith('.') ? id.slice(1) : id;
+    const hint = DG_CLASSES.has(bare)
+      ? ` – ".${bare}" is a class; a set you can address is written "@${bare}"` : '';
+    dgErr(errors, lineNo, `${what} refers to "${id}", which is not defined${hint}`);
   };
   const refsOf = (place) => place?.kind === 'rel' ? [place.ref]
     : place?.kind === 'between' ? place.refs.map(r => r.ref) : [];
@@ -1895,9 +1981,16 @@ function parseDiagramSource(body, headAttrs) {
     for (const r of refsOf(n.place)) checkRef(r, n.line, `${n.kind} ${n.id}`);
     if (n.sameAs) checkRef(n.sameAs, n.line, `${n.kind} ${n.id} (same as)`);
   }
-  for (const e of model.edges) { checkRef(e.from.ref, e.line, `edge ${e.id}`); checkRef(e.to.ref, e.line, `edge ${e.id}`); }
-  for (const c of [...model.containers, ...model.braces, ...model.groups]) {
+  for (const e of model.edges) {
+    if (!e.from.point) checkRef(e.from.ref, e.line, `edge ${e.id}`);
+    if (!e.to.point) checkRef(e.to.ref, e.line, `edge ${e.id}`);
+  }
+  for (const c of [...model.containers, ...model.braces]) {
     for (const m of c.members) checkRef(m, c.line, `${c.id}`);
+  }
+  for (const a of [...model.aligns, ...model.spreads]) {
+    const what = a.edge ? `align ${a.edge}` : `spread ${a.axis}`;
+    for (const m of a.members) checkRef(m, a.line, what);
   }
   for (const s of model.steps) {
     for (const op of s.ops) {
@@ -1949,16 +2042,17 @@ function dgUnion(boxes) {
 // cumulative script over a copy, never a mutation of the model, so the
 // same model can be evaluated for every step independently.
 function dgStateAt(model, k) {
+  const expand = (id) => (id.startsWith('@') ? (model.tags.get(id.slice(1)) || []) : [id]);
+  // Expanded, not raw: a `show @creation` has to mark the *elements* as
+  // starting hidden. Collecting the tag string here left every one of them
+  // visible from the opening beat, with the step then showing what was
+  // already on screen.
   const shownLater = new Set();
   for (const s of model.steps) {
     for (const op of s.ops) {
-      if (op.op === 'show') for (const t of op.targets) shownLater.add(t);
+      if (op.op === 'show') for (const t of op.targets.flatMap(expand)) shownLater.add(t);
     }
   }
-  const expand = (id) => {
-    const g = model.groups.find(x => x.id === id);
-    return g ? g.members : [id];
-  };
   // The default block is the base, the element's own {…} is added on top.
   // Merged here rather than at parse time so a default declared anywhere in
   // the body still reaches every element of its kind.
@@ -2064,13 +2158,46 @@ function layoutDiagram(model, state, errors) {
     if (place.kind === 'between') return place.refs.map(r => r.ref);
     return [];
   };
+  // The first element listed is the master; everybody else takes that one
+  // coordinate from it. Being explicit about which one wins is what keeps
+  // this a DAG instead of a constraint system.
+  const alignX = new Map(), alignY = new Map(), spreadAt = new Map();
+  const extraDeps = new Map();
+  const addDep = (id, on) => {
+    if (!extraDeps.has(id)) extraDeps.set(id, []);
+    extraDeps.get(id).push(on);
+  };
+  for (const a of model.aligns) {
+    const [master, ...rest] = a.members;
+    const table = a.axis === 'x' ? alignX : alignY;
+    for (const m of rest) {
+      if (table.has(m)) {
+        errors.push({ line: a.line, msg: `"${m}" is already aligned on the ${a.axis} axis by another align statement` });
+        continue;
+      }
+      table.set(m, { edge: a.edge, master });
+      addDep(m, master);
+    }
+  }
+  for (const s of model.spreads) {
+    const first = s.members[0], last = s.members[s.members.length - 1];
+    s.members.slice(1, -1).forEach((m, i) => {
+      if (spreadAt.has(m)) {
+        errors.push({ line: s.line, msg: `"${m}" is already distributed by another spread statement` });
+        return;
+      }
+      spreadAt.set(m, { axis: s.axis, first, last, t: (i + 1) / (s.members.length - 1) });
+      addDep(m, first);
+      addDep(m, last);
+    });
+  }
   for (const n of model.nodes) {
     kindOf.set(n.id, 'node');
     const d = placeDeps(state.get(n.id).place);
     if (n.sameAs) d.push(n.sameAs);
+    for (const x of (extraDeps.get(n.id) || [])) d.push(x);
     deps.set(n.id, d);
   }
-  for (const g of model.groups) { kindOf.set(g.id, 'group'); deps.set(g.id, g.members.slice()); }
   for (const c of model.containers) { kindOf.set(c.id, 'container'); deps.set(c.id, c.members.slice()); }
   for (const b of model.braces) { kindOf.set(b.id, 'brace'); deps.set(b.id, b.members.slice()); }
 
@@ -2093,7 +2220,6 @@ function layoutDiagram(model, state, errors) {
   const nodeById = new Map(model.nodes.map(n => [n.id, n]));
   const contById = new Map(model.containers.map(c => [c.id, c]));
   const braceById = new Map(model.braces.map(b => [b.id, b]));
-  const groupById = new Map(model.groups.map(g => [g.id, g]));
 
   for (const id of order) {
     const st = state.get(id);
@@ -2132,18 +2258,43 @@ function layoutDiagram(model, state, errors) {
             : ref.x + ref.w / 2;
         }
       }
+      // align / spread override the placement-derived coordinate; offset and
+      // a step's `move … by` still apply on top, so a nudge survives them.
+      const ax = alignX.get(id);
+      if (ax) {
+        const m = boxes.get(ax.master);
+        if (m) cx = ax.edge === 'left' ? m.x + w / 2
+          : ax.edge === 'right' ? m.x + m.w - w / 2
+          : m.x + m.w / 2;
+      }
+      const ay = alignY.get(id);
+      if (ay) {
+        const m = boxes.get(ay.master);
+        if (m) cy = ay.edge === 'top' ? m.y + h / 2
+          : ay.edge === 'bottom' ? m.y + m.h - h / 2
+          : m.y + m.h / 2;
+      }
+      const sp = spreadAt.get(id);
+      if (sp) {
+        const a = boxes.get(sp.first), z = boxes.get(sp.last);
+        if (a && z) {
+          const ca = sp.axis === 'x' ? a.x + a.w / 2 : a.y + a.h / 2;
+          const cz = sp.axis === 'x' ? z.x + z.w / 2 : z.y + z.h / 2;
+          const v = ca + (cz - ca) * sp.t;
+          if (sp.axis === 'x') cx = v; else cy = v;
+        }
+      }
       if (place && place.offset) { cx += place.offset[0] * uw; cy += place.offset[1] * uh; }
       cx += st.shift[0] * uw;
       cy += st.shift[1] * uh;
       boxes.set(id, { x: cx - w / 2, y: cy - h / 2, w, h });
       continue;
     }
-    const holder = contById.get(id) || braceById.get(id) || groupById.get(id);
+    const holder = contById.get(id) || braceById.get(id);
     if (!holder) continue;
     const memberBoxes = holder.members.map(m => boxes.get(m)).filter(Boolean);
     if (!memberBoxes.length) { boxes.set(id, { x: 0, y: 0, w: 0, h: 0 }); continue; }
     const bb = dgUnion(memberBoxes);
-    if (groupById.has(id)) { boxes.set(id, bb); continue; }
     if (contById.has(id)) {
       const pad = holder.pad * uh;
       const labelH = holder.label ? dgFontFor(state.get(id).classes) * DG_LINE_H + 4 : 0;
@@ -2284,10 +2435,13 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     // arrow pointing at a box that has not appeared yet is never what the
     // author meant, and making it the rule means most edges need no `show`
     // of their own – revealing the boxes reveals the arrows between them.
-    const ends = [e.from.ref, e.to.ref].map(r => state.get(r));
+    const ends = [e.from, e.to].filter(r => !r.point).map(r => state.get(r.ref));
     const st = record(e);
     if (ends.some(s => s && !s.visible)) vis.set(e.id, 0);
-    const fb = boxes.get(e.from.ref), tb = boxes.get(e.to.ref);
+    const endBox = (r) => r.point
+      ? { x: r.point[0] * uw, y: r.point[1] * uh, w: 0, h: 0 }
+      : boxes.get(r.ref);
+    const fb = endBox(e.from), tb = endBox(e.to);
     if (!fb || !tb) continue;
     const viaPx = e.via.map(([x, y]) => [x * uw, y * uh]);
     const towardFrom = viaPx[0] || [tb.x + tb.w / 2, tb.y + tb.h / 2];
@@ -2310,6 +2464,22 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     if (headed) drawPts[drawPts.length - 1] = trim(pts[pts.length - 2], pts[pts.length - 1], DG_HEAD * 0.85);
     if (both) drawPts[0] = trim(pts[1], pts[0], DG_HEAD * 0.85);
     put(e, e.id + '--p', drawPts.flat());
+    // A line that is 2° off horizontal is almost never intent; it is two
+    // endpoints that were meant to line up and did not, and on a projection
+    // it reads as a mistake. Say so, and name the verb that fixes it.
+    for (let i = 1; i < pts.length; i++) {
+      const dx = pts[i][0] - pts[i - 1][0], dy = pts[i][1] - pts[i - 1][1];
+      if (!dx && !dy) continue;
+      const deg = Math.abs(Math.atan2(dy, dx) * 180 / Math.PI);
+      const off = Math.min(deg % 90, 90 - (deg % 90));
+      if (off > 0.05 && off < DG_SKEW_DEG) {
+        dgWarn(`edge ${e.id} runs ${off.toFixed(1)}° off the axis – its endpoints are probably `
+          + `meant to line up. Either "align" the two elements, or, if the edge uses a `
+          + `fractional anchor, give them the same height ("same as") – a fraction of two `
+          + `different heights lands at two different places.`);
+        break;
+      }
+    }
 
     const head = (tip, from) => {
       const dx = tip[0] - from[0], dy = tip[1] - from[1], len = Math.hypot(dx, dy) || 1;

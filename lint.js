@@ -78,7 +78,8 @@ const DENSITY_BUDGET = {
 // have to move in one commit. A linter that is stricter than the build is
 // worse than none, so this list is checked against DG_CLASSES / the
 // statement table there, not guessed at.
-const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'group', 'default', 'step']);
+const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'align', 'spread', 'default', 'step']);
+const DG_ALIGN_EDGES = new Set(['left', 'center', 'right', 'top', 'middle', 'bottom']);
 const DG_DEFAULT_KINDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'container', 'brace']);
 // Mirrors DG_CLASS_GROUPS in build.js. The build uses it to let an explicit
 // class displace a `default`; here it catches two members of one slot on the
@@ -99,7 +100,7 @@ const DG_CLASSES = new Set([
   'mono', 'hand', 'small', 'large', 'bold', 'left', 'right',
   'no-head', 'both-heads', 'emph', 'dim',
 ]);
-const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container', 'group']);
+const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container']);
 
 const REVEAL_PCT_WARN = 0.5;
 const ORPHAN_MIN = 2;
@@ -144,6 +145,7 @@ function wordCountOf(lines) {
 // mistakes that are invisible in the source and expensive on a projector.
 function lintDiagram(block, add, fmLines) {
   const defined = new Map();     // name -> line
+  const tags = new Set();        // every @tag any element carries
   const referenced = [];         // { name, ln, what }
   let inStep = false;
 
@@ -153,6 +155,10 @@ function lintDiagram(block, add, fmLines) {
     if (!m) return out;
     for (const tok of m[1].trim().split(/\s+/).filter(Boolean)) {
       if (tok.startsWith('#')) out.id = tok.slice(1);
+      else if (tok.startsWith('@')) {
+        if (tok.length > 1) tags.add(tok.slice(1));
+        else add(ln, 'error', 'bad-diagram-attribute', 'an empty @tag means nothing');
+      }
       else if (tok.startsWith('.')) {
         if (!DG_CLASSES.has(tok.slice(1))) {
           add(ln, 'error', 'unknown-diagram-class',
@@ -160,7 +166,7 @@ function lintDiagram(block, add, fmLines) {
         } else out.classes.push(tok.slice(1));
       } else {
         add(ln, 'error', 'bad-diagram-attribute',
-            `'${tok}' in {…} is neither #id nor .class`);
+            `'${tok}' in {…} is not #id, .class or @tag`);
       }
     }
     for (const group of DG_CLASS_GROUPS) {
@@ -184,6 +190,19 @@ function lintDiagram(block, add, fmLines) {
   const ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 'tr', 'bl', 'br']);
   const refer = (tok, ln, what) => {
     const raw = String(tok || '').replace(/,$/, '');
+    // A bare coordinate is a valid edge endpoint, not a name. The build
+    // accepts it, so the linter has to as well – a linter stricter than the
+    // build is worse than none, because it is the pre-commit gate.
+    if (/^-?[\d.]+,-?[\d.]+$/.test(raw)) return;
+    // `.tone-1` where `@tone-1` was meant: the leading dot would otherwise
+    // strip to an empty name and vanish.
+    if (raw.startsWith('.')) {
+      const cls = raw.slice(1);
+      add(ln, 'error', 'unknown-diagram-ref',
+          `${what} refers to '${raw}'`
+          + (DG_CLASSES.has(cls) ? ` – that is a class; a set you can address is written '@${cls}'` : ''));
+      return;
+    }
     const name = raw.split(/[.:]/)[0];
     // The anchor and its fraction are pure string checks, so the linter can
     // stay in step with the build on them even though it cannot resolve the
@@ -216,6 +235,23 @@ function lintDiagram(block, add, fmLines) {
     const words = noAttr.replace(/"[^"]*"/g, ' ').trim().split(/\s+/).filter(Boolean);
     const head = words[0];
     const attrs = attrsOf(trimmed, ln);
+
+    if (head === 'align' || head === 'spread') {
+      const what = words[1];
+      const members = words.slice(2).join(',').split(',').map(x => x.trim()).filter(Boolean);
+      if (head === 'align' && !DG_ALIGN_EDGES.has(what)) {
+        add(ln, 'error', 'bad-diagram-align',
+            `align expects ${[...DG_ALIGN_EDGES].join('/')}, got '${what || ''}'`);
+      } else if (head === 'spread' && what !== 'x' && what !== 'y') {
+        add(ln, 'error', 'bad-diagram-align', `spread expects x or y, got '${what || ''}'`);
+      } else if (members.length < (head === 'align' ? 2 : 3)) {
+        add(ln, 'error', 'bad-diagram-align',
+            `${head} ${what} needs at least ${head === 'align' ? 'two' : 'three'} elements`);
+      }
+      for (const m of members) refer(m, ln, `${head} ${what}`);
+      inStep = false;
+      continue;
+    }
 
     if (head === 'default') {
       const kind = words[1];
@@ -306,9 +342,19 @@ function lintDiagram(block, add, fmLines) {
     add(block.open, 'warn', 'empty-diagram', '::: diagram has no content');
   }
   for (const r of referenced) {
+    if (r.name.startsWith('@')) {
+      if (!tags.has(r.name.slice(1))) {
+        add(r.ln, 'error', 'unknown-diagram-tag',
+            `${r.what} refers to ${r.name}, which no element in this diagram carries`);
+      }
+      continue;
+    }
     if (!defined.has(r.name)) {
+      // Reaching for a class where a tag was meant is the commonest slip.
+      const hint = DG_CLASSES.has(r.name)
+        ? ` – '.${r.name}' is a class; a set you can address is written '@${r.name}'` : '';
       add(r.ln, 'error', 'unknown-diagram-ref',
-          `${r.what} refers to '${r.name}', which is not defined in this diagram`);
+          `${r.what} refers to '${r.name}', which is not defined in this diagram${hint}`);
     }
   }
 }

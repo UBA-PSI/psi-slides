@@ -29,6 +29,23 @@ from building the same way is a major version.
   mirrors the vocabulary and reports unknown statements, unknown classes,
   duplicate names and dangling references.
 
+  `align <edge> a,b,c` lines up one coordinate (Figma's vocabulary:
+  left/center/right on x, top/middle/bottom on y) and `spread x|y a,…,z`
+  gives equal spacing between centres. Both are an extra dependency plus a
+  coordinate override in the same topological walk – no solver, no second
+  pass – and both name the line on a circular authoring instead of drawing
+  a plausible wrong answer. They close the commonest alignment failure:
+  two columns built as separate `below` chains drift apart as soon as
+  their captions differ in height. The build now also warns when an edge
+  runs within a few degrees of an axis without being on it, which is what
+  that drift looks like once a line is drawn across it.
+
+  Tags (`@tag` in the attribute tail) replace the `group` statement.
+  Membership sits on the element's own line, so adding an element to a set
+  is a local edit and one element can belong to several sets. An edge
+  endpoint may be a bare coordinate (`edge -0.8,0 -> a`) for an arrow
+  arriving from outside the picture.
+
   `default <kind> {classes} [w n] [h n]` sets the base styling and size
   for every element of that kind – two lines replaced twelve repetitions
   in the identity-lifecycle example. It is position-independent with one

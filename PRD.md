@@ -366,12 +366,21 @@ Grammar, in full:
 | `text <name> "label" <placement> [-> ref]` | Free text with no shape of its own; `-> ref` grows a leader line to whatever it comments on. `.left` / `.right` align it, and the anchor moves with them |
 | `edge <a> -> <b> ["label"] [via x,y …]` | An arrow. `<-` reverses it, `--` drops the head |
 | `container <name> ["label"] over a,b,c [pad n]` | A drawn box that fits itself around its members |
-| `group <name> over a,b,c` | An undrawn set, for moving or hiding several at once |
+| `align <edge> a,b,c` | Line up one coordinate: `left`/`center`/`right` on x, `top`/`middle`/`bottom` on y |
+| `spread x\|y a,…,z` | Equal spacing between centres; the first and last stay put |
 | `brace <name> over a,b [side] ["label"]` | A bracket spanning a subset, label outside |
 | `default <kind> {classes} [w n] [h n]` | The base styling and size for every element of that kind |
 | `step <name>` | Opens a step; the indented lines below it are its operations |
 
+An edge endpoint may also be a bare coordinate – `edge -0.8,0 -> a` is an arrow arriving from outside the picture. Deliberately a literal rather than an invisible anchor element: there is nothing to delete by accident, and a graphical editor dragging that end rewrites two numbers on that line instead of moving an object nobody can see.
+
 Placement is `at X,Y` in grid cells, a relation – `right of A`, `left of A`, `below A`, `above A`, each taking `gap <n>` and `align <edge>` – or `between A,B [frac <n>]`, which is the position PIC spells “1/2 way between A and B”. Any of them takes a trailing `offset dx,dy`. **The first element defaults to the origin**, so the common case – a box, and everything else relative to it – needs no coordinates at all. Every element after it has to say where it goes; silently stacking two elements on `0,0` is not a default anyone means.
+
+An element carries **tags** as well as an id and classes: `{#mix .tone-1 @crypto @phase2}`. Three sigils, three questions – `#` is identity, `.` is appearance, `@` is membership. A tag is addressable wherever a name is: `show @crypto` in a step, `container tee over @crypto`, `align middle @row2`. Membership lives on the element's own line, so adding an element to a set is a local edit and the order of declarations does not matter. There is no separate `group` statement; tags replace it, and one element can belong to as many sets as it likes.
+
+**`align` and `spread` do not place an element, they take one coordinate of it from somewhere else.** The first element listed is the master and keeps its position; the rest follow. Both are modelled as an extra dependency plus a coordinate override inside the same topological walk, so there is still no solver and no second pass. `spread` distributes the interior members between the first and the last, on centres rather than on gaps – chained `right of … gap n` already gives equal *edge* gaps, and those are only the same thing when the elements are equally wide.
+
+This is what closes the commonest alignment failure: two columns built as separate `below … gap n` chains drift apart as soon as their captions differ in height, and a line drawn between two drifted elements runs a degree or two off the axis, which reads as a mistake. `align middle a, b` states the intent in one line. An element distributed by `spread` must not be what an endpoint is placed against – that is genuinely circular, and the build says `placement cycle: q → s → r → q` and names the line rather than drawing a plausible wrong answer.
 
 Anchors are addressable and chosen automatically otherwise: `mix.right`, `ret.br`, and `mix.right:0.3` to slide the attachment point along that edge. **The fraction is what keeps two arrows between the same pair of boxes from collapsing into a lens** – give them `0.3` and `0.7` and they are two parallel arrows rather than two bows over the same chord. There is deliberately no automatic fan-out of parallel edges: it would change an existing diagram silently, and the explicit form reads as what it is.
 

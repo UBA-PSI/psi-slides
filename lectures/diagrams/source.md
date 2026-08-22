@@ -152,23 +152,27 @@ box  usage  "Usage"         right of create gap 0.62 same as create {.tone-1 .bo
 text sep2   "▶"             between usage,term {.large}
 box  term   "Termination"   right of usage gap 0.62 same as create {.tone-1 .bold}
 
-box  reg    "Registration"  below create gap 0.5
-text regc   "identity"      below reg gap 0.2
-text down1  "▼"             below regc gap 0.12
-box  prov   "Provisioning"  below down1 gap 0.12
-text provc  "issue credentials and\nprovide them to user"  below prov gap 0.2
-text down2  "▼"             below provc gap 0.12
-box  authz  "Authorization" below down2 gap 0.12
-text authzc "granting of rights\nby the authority"  below authz gap 0.2
+box  reg    "Registration"  below create gap 0.5 {@creation}
+text regc   "identity"      below reg gap 0.2 {@creation}
+text down1  "▼"             below regc gap 0.12 {@creation}
+box  prov   "Provisioning"  below down1 gap 0.12 {@creation}
+text provc  "issue credentials and\nprovide them to user"  below prov gap 0.2 {@creation}
+text down2  "▼"             below provc gap 0.12 {@creation}
+box  authz  "Authorization" below down2 gap 0.12 {@creation}
+text authzc "granting of rights\nby the authority"  below authz gap 0.2 {@creation}
 
-box  ident  "Identification" below usage gap 0.5
-text identc "claim identity with\nunique name"  below ident gap 0.2
-text down3  "▼"              below identc gap 0.12
-box  authn  "Authentication" below down3 gap 0.12
-text authnc "prove identity claim\nwith credentials"  below authn gap 0.2
-text down4  "▼"              below authnc gap 0.12
-box  acl    "Access Control" below down4 gap 0.12
-text aclc   "granting of access\nby the system"  below acl gap 0.2
+box  ident  "Identification" below usage gap 0.5 {@usage}
+text identc "claim identity with\nunique name"  below ident gap 0.2 {@usage}
+text down3  "▼"              below identc gap 0.12 {@usage}
+box  authn  "Authentication" below down3 gap 0.12 {@usage}
+text authnc "prove identity claim\nwith credentials"  below authn gap 0.2 {@usage}
+text down4  "▼"              below authnc gap 0.12 {@usage}
+box  acl    "Access Control" below down4 gap 0.12 {@usage}
+text aclc   "granting of access\nby the system"  below acl gap 0.2 {@usage}
+
+align middle reg, ident
+align middle prov, authn
+align middle authz, acl
 
 brace signup over reg,prov    right "Signup" {.muted}
 brace login  over ident,authn right "Login"  {.muted}
@@ -177,9 +181,9 @@ text sep3   "▶"              below authzc gap 0.5 {.large}
 box  selfsv "Self-services"  right of sep3 gap 0.2
 
 step creation
-  show reg, regc, down1, prov, provc, down2, authz, authzc, signup
+  show @creation, signup
 step usage
-  show ident, identc, down3, authn, authnc, down4, acl, aclc, login
+  show @usage, login
 step self
   show sep3, selfsv
   emph selfsv
@@ -191,11 +195,38 @@ step self
 
 **`between create,usage`** setzt die Trenner-Glyphen wirklich in die Mitte. Vorher waren sie über einen Platzhalter gekettet, was etwas anderes behauptet – nämlich „hinter Creation" – und beim kleinsten Größenwechsel auseinanderfällt.
 
+## figure: Alignment {.wide #alignment}
+
+::: diagram {unit=140x70}
+default box {.tone-2}
+
+box a "one"                     at 0,0
+box b "a much longer label"     right of a gap 0.6
+box c "two"                     right of b gap 0.6
+box d "middling"                right of c gap 0.6
+
+box p "first"   below a gap 1.1
+box s "fourth"  right of p gap 3.0
+box q "second"  below p gap 0 h 0.8
+box r "third"   below p gap 0 h 0.5
+
+align middle p, q, r, s
+spread x p, q, r, s
+
+edge -0.8,0 -> a "from outside" {.muted}
+:::
+
+**Die obere Reihe ist gekettet, die untere ausgerichtet.** Oben setzt jedes `right of … gap 0.6` gleiche *Kantenabstände* – bei ungleich breiten Kästen heißt das ungleiche Mittelpunkte. Unten stehen nur `p` und `s` fest; `spread x` verteilt `q` und `r` auf gleiche Mittelpunktabstände dazwischen, und `align middle` legt alle vier trotz verschiedener Höhen auf eine Linie.
+
+**Verteilte Elemente dürfen nicht am Ende hängen, zwischen dem sie verteilt werden.** `s` relativ zu `r` zu setzen, während `spread` `r` zwischen `p` und `s` legt, ist zirkulär – der Build sagt genau das (`placement cycle: q → s → r → q`) und nennt die Zeile, statt eine plausible falsche Anordnung zu zeichnen. Das ist der Unterschied zu einem Solver.
+
+**`edge -0.8,0 -> a`** hat einen Endpunkt ohne Objekt. Das ist bewusst eine Koordinate statt eines unsichtbaren Ankers: es gibt nichts, was man versehentlich löschen kann, und ein Editor schreibt beim Ziehen zwei Zahlen in dieser Zeile um, statt ein Objekt zu bewegen, das niemand sieht.
+
 ## figure: Message authentication {.full #mac}
 
 ::: diagram {unit=150x60}
 image alice avatar-alice "Alice" w 0.42
-image eve   avatar-bob   "Eve"   right of alice gap 1.4 w 0.36 {.ghost}
+image eve   avatar-bob   "Eve"   right of alice gap 1.4 same as alice {.ghost}
 image bob   avatar-bob   "Bob"   right of eve gap 1.4 w 0.42
 
 text nA "Alice" below alice gap 0.06 {.small}
