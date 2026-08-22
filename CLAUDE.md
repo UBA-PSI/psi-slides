@@ -215,7 +215,11 @@ Play, pause and seek are **synced between the windows** (`type: 'video'`, addres
 
 ### Animated infographics (`::: diagram`)
 
-**Experimental for one minor cycle.** The vocabulary below is small on purpose and may still change before it is frozen under the 1.0 source-format contract; say so in the release notes until it is.
+**Development state, not in any release.** It lives on `claude/psi-slides-animated-infographics-eoe2yj`; `main`, `package.json` (still 1.0.0) and the published site know nothing about it. The changelog entry stays under `## [Unreleased]` – `CONTRIBUTING.md` § Building and releasing bumps the version at release time, not during development, so there is nothing to bump here.
+
+Note that **merging to `main` is itself a publication**: `pages.yml` fires on every push to `main` and redeploys the project site, and the tutorial – which now carries a `#diagram` chunk – is one of the lectures it rebuilds and publishes. So the tutorial chunk, not just a tag, is the thing to decide about before merging. `lectures/diagrams/` is only linted by that job, never built or published.
+
+Before it can ship, in rough order of how much each would hurt to discover late: the vocabulary needs a pass against three or four more real lecture diagrams (it has been exercised against two); text width is estimated rather than measured, so a dense layout can be a few percent off; and `::: diagram` becomes frozen source-format the moment it is in a tagged release, so **keep it marked experimental in the release notes for one minor cycle** if it ships before the editor exists.
 
 A boxes-and-arrows compiler. The source is a line-oriented DSL inside the lecture markdown, the output is one inline `<svg>` plus, when the author wrote steps, a payload of precomputed per-step geometries the live runtime tweens between. `renderDiagram()` is the entry point; the section is navigable by its own sub-banners between `// ── diagrams (::: diagram) ──` and `// ── parsing ──`.
 

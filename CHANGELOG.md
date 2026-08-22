@@ -29,8 +29,10 @@ from building the same way is a major version.
   mirrors the vocabulary and reports unknown statements, unknown classes,
   duplicate names and dangling references.
 
-  The vocabulary is **experimental for one minor cycle** and may still
-  change before it is frozen under the source-format contract.
+  Development state: this is unreleased work on a branch, and the
+  vocabulary is **experimental** – it may still change before it is
+  frozen under the source-format contract, so it should carry that label
+  in the notes of whichever release first includes it.
 
   See `PRD.md` §4.6a for the grammar and `lectures/diagrams/source.md` for
   a worked example of every construct.
