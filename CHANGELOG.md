@@ -86,6 +86,13 @@ from building the same way is a major version.
   border, a long label could draw outside the viewBox, `label @tag` was a
   silent no-op, and one mistake was reported once per step.
 
+  Rebuilding all six example slides from scratch found three more: a
+  placement's `offset` was applied after `align` overrode the result, so
+  an element that used both got the offset twice; a brace label was
+  anchored middle and lay half across the elements it spans; and the
+  `::: side` composition of a code fence beside a diagram works, which is
+  what carries the buffer-overflow slide.
+
   Development state: this is unreleased work on a branch, and the
   vocabulary is **experimental** – it may still change before it is
   frozen under the source-format contract, so it should carry that label

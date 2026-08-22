@@ -2288,8 +2288,12 @@ function layoutDiagram(model, state, errors) {
             : ref.x + ref.w / 2;
         }
       }
-      // align / spread override the placement-derived coordinate; offset and
-      // a step's `move … by` still apply on top, so a nudge survives them.
+      // The offset is part of the placement expression, so it lands before
+      // align/spread override the result – otherwise an element written as
+      // `between a,b offset 0,1.35` and then aligned got the offset twice,
+      // once through its own placement and once on top of the master's
+      // coordinate. A step's `move … by` is a later act and still survives.
+      if (place && place.offset) { cx += place.offset[0] * uw; cy += place.offset[1] * uh; }
       const ax = alignX.get(id);
       if (ax) {
         const m = boxes.get(ax.master);
@@ -2314,7 +2318,6 @@ function layoutDiagram(model, state, errors) {
           if (sp.axis === 'x') cx = v; else cy = v;
         }
       }
-      if (place && place.offset) { cx += place.offset[0] * uw; cy += place.offset[1] * uh; }
       cx += st.shift[0] * uw;
       cy += st.shift[1] * uh;
       boxes.set(id, { x: cx - w / 2, y: cy - h / 2, w, h });
@@ -2381,6 +2384,7 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
   const [uw, uh] = model.unit;
   const geom = new Map();
   const ext = new Map();     // label id -> measured [w, h], for the viewBox
+  const labelAnchor = new Map();   // element id -> text-anchor, where it is not middle
   const vis = new Map();
   const cls = new Map();
   const lab = new Map();
@@ -2448,15 +2452,17 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     const b = boxes.get(br.id);
     if (!b) continue;
     const pad = br.pad * uh, tick = DG_BRACE_TICK;
-    let pts, lp;
+    let pts, lp, lanchor = 'middle';
     if (br.side === 'right') {
       const x = b.x + b.w + pad;
       pts = [[x, b.y], [x + tick, b.y], [x + tick, b.y + b.h], [x, b.y + b.h]];
       lp = [x + tick + 8, b.y + b.h / 2];
+      lanchor = 'start';
     } else if (br.side === 'left') {
       const x = b.x - pad;
       pts = [[x, b.y], [x - tick, b.y], [x - tick, b.y + b.h], [x, b.y + b.h]];
       lp = [x - tick - 8, b.y + b.h / 2];
+      lanchor = 'end';
     } else if (br.side === 'top') {
       const y = b.y - pad;
       pts = [[b.x, y], [b.x, y - tick], [b.x + b.w, y - tick], [b.x + b.w, y]];
@@ -2467,7 +2473,7 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
       lp = [b.x + b.w / 2, y + tick + 9];
     }
     put(br, br.id + '--p', pts.flat());
-    if (st.label) put(br, br.id + '--l', lp);
+    if (st.label) { put(br, br.id + '--l', lp); labelAnchor.set(br.id, lanchor); }
   }
 
   for (const e of model.edges) {
@@ -2542,7 +2548,7 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     }
   }
 
-  return { geom, vis, cls, lab, ext };
+  return { geom, vis, cls, lab, ext, labelAnchor };
 }
 
 // Every distinct label an element ever carries, so a `label` step is a
@@ -2746,6 +2752,8 @@ function renderDiagram(body, headAttrs, opts = {}) {
   const vbW = Math.max(bb.w + 2 * DG_MARGIN, 1), vbH = Math.max(bb.h + 2 * DG_MARGIN, 1);
 
   const kinds = {};
+  const anchorOf = new Map();
+  for (const f of frames) for (const [k, v] of f.labelAnchor) anchorOf.set(k, v);
   let svgBody = '';
   for (const { e, kind } of elements) {
     const st = printCls.get(e.id) ?? e.classes.join(' ');
@@ -2790,7 +2798,7 @@ function renderDiagram(body, headAttrs, opts = {}) {
         // be drawn from there – anchored middle it hung half its own width
         // outside the border it belongs to.
         + dgTextEl(drawId, text, classes, kind === 'container' ? 'dg-caption' : '',
-                   kind === 'container' ? 'start' : null) + '</g>';
+                   kind === 'container' ? 'start' : (anchorOf.get(e.id) || null)) + '</g>';
     });
     const base = `dg-el dg-${kind}`;
     svgBody += `<g id="${prefix}${e.id}" data-base="${base}" class="${base}${st ? ' ' + st : ''}"${on}>${inner}</g>\n`;

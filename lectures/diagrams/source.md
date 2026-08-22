@@ -1,81 +1,122 @@
 ---
 title: Animated Infographics
-subtitle: "What ::: diagram can draw, and how it steps"
+subtitle: "Six real lecture slides, rebuilt in ::: diagram"
 author: Dominik Herrmann
 theme: dark
 collapse: none
 ---
 
-## title: Animated Infographics | Boxes, arrows and labels that move {#cover}
+## title: Animated Infographics | Six real slides, rebuilt from text {#cover}
 
-A diagram is written in the lecture source, laid out at build time, and
-stepped with the same key that advances a reveal.
+Every figure in this lecture is written in the lecture source, laid out at
+build time, and stepped with the same key that advances a reveal.
 
-# Drawing
+# Memory safety
 
-## figure: The pieces {.wide #primitives}
+## figure: Types of memory unsafety {.full #unsafety}
 
-::: diagram {unit=130x76}
-box  a "Sender"
-box  b "Mix"        right of a gap 0.6
-box  c "Empfänger"  right of b gap 0.6
-dot  x "+"          below b gap 0.8
-text n "a free label, placed\nwherever it reads best"  right of c gap 0.7 -> x {.muted .small}
+::: diagram {unit=150x52}
+default box  {.tone-2} w 1.05
+default text {.small}
 
-edge a -> b "encrypted"
-edge b -> c "recoded"
-edge b -> x {.dashed}
+text tlab "Temporal" at 0,0 {.left .large}
+box  tobj "object" right of tlab gap 0.7 w 0.62 {.tone-3}
+edge 0.62,-1.05 -> tobj.tl {.thick .muted}
+
+box  uaf  "Use After Free" below tlab gap 0.75 align left {@temporal}
+box  df   "Double free"    right of uaf gap 0.22 same as uaf {@temporal}
+text tcode "free(ptr);\n*ptr;" below uaf gap 0.28 align left {.mono .left @temporal}
+
+text slab "Spatial" below tcode gap 0.9 align left {.left .large}
+box  sobj "object" right of slab gap 0.7 w 0.62 {.tone-4}
+edge 0.62,2.60 -> sobj.tl {.thick .accent}
+
+box  bo   "Buffer Overflow" below slab gap 0.75 align left {.accent @spatial}
+box  bor  "Buffer Overread" right of bo gap 0.22 same as bo {.accent @spatial}
+text scode "char buf[16];\nbuf[42];" below bor gap 0.28 align left {.mono .left @spatial}
+
+align left tlab, slab
+align left uaf, bo
+align center tobj, sobj
+
+step temporal
+  show @temporal
+step spatial
+  show @spatial
 :::
 
-Boxes size themselves to their label, arrows attach to whichever edge
-faces the other element, and the free `text` element carries a line
-stub to whatever it comments on.
+**Zwei Familien, dieselbe Form.** `align left` hält die beiden Blöcke bündig, obwohl der obere Code zweizeilig und der untere anders breit ist, und `same as` gibt den Paaren jeweils gleiche Kästen. Die Schritte adressieren `@temporal` und `@spatial` statt acht Namen.
 
-## figure: Containers, groups and braces {.wide #grouping}
+## figure: Your first buffer overflow | ein konstruiertes Beispiel {.full #overflow}
 
-::: diagram {unit=130x76}
-box r1 "Registration"  at 0,0        {.tone-1}
-box r2 "Provisioning"  below r1 gap 0.55  {.tone-1}
-box r3 "Authorization" below r2 gap 0.55  {.tone-1}
+::: side
+```c
+int main(void) {
+  int  myvalue = 0x42;
+  char mystring[16];
 
-text t1 "identity"                     below r1 gap 0.12 {.small .muted}
-text t2 "issue credentials"            below r2 gap 0.12 {.small .muted}
+  scanf("%s", mystring);
 
-edge r1 -> r2
-edge r2 -> r3
+  if (myvalue == 0xdeadbeef)
+    printf("Success!\n");
+  else
+    printf("%x\n", myvalue);
+}
+```
+::: flip
+::: diagram {unit=150x52}
+default box {.tone-2 .sharp} w 1.5
 
-brace sign over r1,r2 right "Signup"
-container life "Creation" over r1,r2,r3 pad 0.42 {.dashed}
+box buf "Local variable: mystring\n(char[], 16 bytes)" at 0,0 h 1.5
+box val "Local variable: myvalue\n(integer, 4 bytes)" below buf gap 0 same as buf h 0.75
+box bp  "Stored base pointer" below val gap 0 same as val
+box ret "Return address"      below bp gap 0 same as val
+
+box sp  "SP" left of buf gap 0.55 w 0.3 {.tone-4}
+box bpl "BP" left of val gap 0.55 same as sp {.tone-4}
+edge sp -> buf.left
+edge bpl -> val.left
+align center sp, bpl
+
+brace dir over buf,ret right "writing direction:\ntowards higher\naddresses" gap 0.28 {.muted}
+
+step overrun
+  emph buf
+  style val,bp,ret {.dashed}
+step reached
+  emph ret
+  label ret "Return address (attacker's)"
+:::
 :::
 
-A `container` fits itself around its members and re-fits whenever they
-move. A `brace` spans a subset and hangs its label outside.
+**Der Code ist eine Markdown-Fence, das Bild daneben ein Diagramm.** `::: side` stellt beide nebeneinander; das Diagramm muss dafür nichts können. Innen halten `same as` und `gap 0` die vier Rahmen als einen Stapel zusammen, und die `brace` misst die Schreibrichtung über alle vier.
 
-# Stepping
+# Block ciphers
 
-## figure: CBC decryption, one step at a time {.full #cbc}
+## figure: Cipher Block Chaining, decryption {.full #cbc}
 
 ::: diagram {unit=112x74}
-box iv "Rand. IV" at 0,0        {.tone-1}
-box c0 "c_0"      right of iv gap 0.3 {.tone-3}
-box c1 "c_1"      right of c0 gap 0.3 {.tone-3}
-box c2 "c_2"      right of c1 gap 0.3 {.tone-3}
+default box {.tone-3} w 0.82
+default text {.mono}
 
-box d0 "Dec" at 1.15,1.7 {.round}
-box d1 "Dec" right of d0 gap 0.72 {.round}
-box d2 "Dec" right of d1 gap 0.72 {.round}
+box iv "Rand. IV" at 0,0 {.tone-1}
+box c0 "c_0" right of iv gap 0.3
+box c1 "c_1" right of c0 gap 0.3
+box c2 "c_2" right of c1 gap 0.3
 
-text k0 "k" left of d0 gap 0.42 {.mono}
-text k1 "k" left of d1 gap 0.42 {.mono}
-text k2 "k" left of d2 gap 0.42 {.mono}
+box d0 "Dec" below c0 gap 0.95 w 0.48 {.round .tone-2 @dec}
+box d1 "Dec" below c1 gap 0.95 same as d0 {.round .tone-2 @dec}
+box d2 "Dec" below c2 gap 0.95 same as d0 {.round .tone-2 @dec}
+text k0 "k" left of d0 gap 0.3 {@dec}
+text k1 "k" left of d1 gap 0.3 {@dec}
+text k2 "k" left of d2 gap 0.3 {@dec}
 
-dot x0 "+" below d0 gap 0.55
-dot x1 "+" below d1 gap 0.55
-dot x2 "+" below d2 gap 0.55
-
-box m0 "m_0" below x0 gap 0.55 {.tone-4}
-box m1 "m_1" below x1 gap 0.55 {.tone-4}
-box m2 "m_2" below x2 gap 0.55 {.tone-4}
+dot x0 "+" below d0 gap 0.55 {@xor}
+dot x1 "+" below d1 gap 0.55 {@xor}
+dot x2 "+" below d2 gap 0.55 {@xor}
+box m0 "m_0" below x0 gap 0.55 same as iv {.tone-4 @out}
+box m1 "m_1" below x1 gap 0.55 same as iv {.tone-4 @out}
+box m2 "m_2" below x2 gap 0.55 same as iv {.tone-4 @out}
 
 edge k0 -> d0
 edge k1 -> d1
@@ -89,56 +130,88 @@ edge d2 -> x2
 edge x0 -> m0
 edge x1 -> m1
 edge x2 -> m2
+edge iv -> x0 via 0,1.95    {#feed0}
+edge c0 -> x1 via 1.12,1.95 {#feed1}
+edge c1 -> x2 via 2.24,1.95 {#feed2}
 
-edge iv -> x0 via 0,1.32 {#feed0}
-edge c0 -> x1 via 1.28,1.32 {#feed1}
-edge c1 -> x2 via 2.48,1.32 {#feed2}
+align middle iv, c0, c1, c2
+align middle d0, d1, d2
+align middle x0, x1, x2
+align middle m0, m1, m2
 
 step decrypt
-  show d0, d1, d2, k0, k1, k2
+  show @dec
 step chain
-  show x0, x1, x2
+  show @xor
   emph feed0, feed1, feed2
 step recover
-  show m0, m1, m2
+  show @out
   calm feed0, feed1, feed2
 :::
 
-Each `step` is one press of `Space`. The chaining arrows are drawn with
-one waypoint each, which is all the routing these diagrams ever need.
+Jeder `step` ist ein Druck auf `Space`. Die Verkettungspfeile haben je einen Wegpunkt – mehr Routing brauchen diese Bilder nie.
 
-## figure: A stack frame that gets overrun {.wide #stack}
+## figure: Counter mode, encryption {.full #ctr}
 
-::: diagram {unit=150x54}
-box buf  "Local variable: mystring\n(char[], 16 bytes)" at 0,0 h 1.5 w 1.7 {.tone-1}
-box val  "Local variable: myvalue\n(integer, 4 bytes)" below buf gap 0 w 1.7 {.tone-1}
-box bp   "Stored base pointer"  below val gap 0 w 1.7 {.tone-1}
-box ret  "Return address"       below bp  gap 0 w 1.7 {.tone-1}
+::: diagram {unit=104x66}
+default text {.mono}
 
-box sp "SP" left of buf gap 0.5 {.tone-4 .sharp .small}
-box bpl "BP" left of val gap 0.5 {.tone-4 .sharp .small}
-edge sp -> buf
-edge bpl -> val
+box iv0 "IV" at 0,0    w 0.5 {.tone-1}
+box n0  "0"  right of iv0 gap 0 w 0.42 {.tone-2}
+box iv1 "IV" right of n0 gap 0.42 same as iv0 {.tone-1}
+box n1  "1"  right of iv1 gap 0 same as n0 {.tone-2}
+box iv2 "IV" right of n1 gap 0.42 same as iv0 {.tone-1}
+box n2  "2"  right of iv2 gap 0 same as n0 {.tone-2}
 
-text dir "writing direction:\ntowards higher\naddresses" right of val gap 0.55 {.small .muted}
-edge buf.tr -> ret.br via 2.05,0 2.05,2.4 {#down .muted}
+box e0 "Enc" between iv0,n0 offset 0,1.35 {.round .tone-3 @enc}
+box e1 "Enc" between iv1,n1 offset 0,1.35 same as e0 {.round .tone-3 @enc}
+box e2 "Enc" between iv2,n2 offset 0,1.35 same as e0 {.round .tone-3 @enc}
+text ke0 "k" left of e0 gap 0.4 {@enc}
+text ke1 "k" left of e1 gap 0.4 {@enc}
+text ke2 "k" left of e2 gap 0.4 {@enc}
 
-step overflow
-  emph buf
-  style val,bp,ret {.dashed}
-step reached
-  emph ret
-  label ret "Return address (attacker's)"
-step pulled
-  move sp to below bpl gap 2.2
-  move dir by 0.6,0
+box s0 "s_0" below e0 gap 0.6 w 0.95 {.tone-2 @stream}
+box s1 "s_1" below e1 gap 0.6 same as s0 {.tone-2 @stream}
+box s2 "s_2" below e2 gap 0.6 same as s0 {.tone-2 @stream}
+dot p0 "+" below s0 gap 0.22 r 0.2 {@stream}
+dot p1 "+" below s1 gap 0.22 r 0.2 {@stream}
+dot p2 "+" below s2 gap 0.22 r 0.2 {@stream}
+box mm0 "m_0" below p0 gap 0.22 same as s0 {.tone-3 @msg}
+box mm1 "m_1" below p1 gap 0.22 same as s0 {.tone-3 @msg}
+box mm2 "m_2" below p2 gap 0.22 same as s0 {.tone-3 @msg}
+box cc0 "c_0" below mm0 gap 0.5 same as s0 {.tone-4 @cipher}
+box cc1 "c_1" below mm1 gap 0.5 same as s0 {.tone-4 @cipher}
+box cc2 "c_2" below mm2 gap 0.5 same as s0 {.tone-4 @cipher}
+
+edge n0 -> e0 {@enc}
+edge n1 -> e1 {@enc}
+edge n2 -> e2 {@enc}
+edge ke0 -> e0 {@enc}
+edge ke1 -> e1 {@enc}
+edge ke2 -> e2 {@enc}
+edge e0 -> s0 {@stream}
+edge e1 -> s1 {@stream}
+edge e2 -> s2 {@stream}
+
+edge -0.32,3.62 -> 3.02,3.62 {#rule .no-head .muted @cipher}
+
+align middle iv0, iv1, iv2
+align middle e0, e1, e2
+align middle s0, s1, s2
+align middle cc0, cc1, cc2
+
+step keystream
+  show @enc, @stream
+step message
+  show @msg
+step cipher
+  show @cipher
+  emph cc0, cc1, cc2
 :::
 
-`move`, `show`, `hide`, `emph`, `style` and `label` are the whole step
-vocabulary. Nothing here is positioned by a solver – every coordinate is
-either a grid cell or a relation to a neighbour.
+**Die geteilten Kästen sind zwei Kästen mit `gap 0`.** IV und Zähler tragen verschiedene Tönungen und stehen bündig aneinander; `between iv0,n0 offset 0,1.35` setzt die `Enc`-Box unter die Mitte des Paares, statt sie gegen einen der beiden zu schätzen.
 
-# Rebuilt from real slides
+# Identity and authentication
 
 ## figure: Identity lifecycle {.full #lifecycle}
 
@@ -189,11 +262,62 @@ step self
   emph selfsv
 :::
 
-**Zwei Zeilen `default` ersetzen zwölf Wiederholungen.** Vorher trug jeder der neun roten Kästen sein eigenes `{.tone-4}` und sein eigenes `w 1.15`, und jede Bildunterschrift ihr `{.small .muted}`. Jetzt steht das einmal oben, und nur die drei Kopfkästen sagen, dass sie anders sind.
+**Ohne `align middle` driften die beiden Spalten auseinander.** Sie sind getrennte `below`-Ketten, und die Bildunterschriften sind mal ein-, mal zweizeilig – drei Zeilen halten die Reihen bündig.
 
-**`same as create`** hält die drei Kopfkästen auf einer Breite, ohne die Zahl zu wiederholen – der Kasten sagt „so breit wie jener", nicht „1.15 Einheiten", und wenn sich das Raster ändert, folgen alle drei.
+## figure: Message authentication | it is not about confidentiality {.full #mac}
 
-**`between create,usage`** setzt die Trenner-Glyphen wirklich in die Mitte. Vorher waren sie über einen Platzhalter gekettet, was etwas anderes behauptet – nämlich „hinter Creation" – und beim kleinsten Größenwechsel auseinanderfällt.
+::: diagram {unit=150x60}
+image alice avatar-alice "Alice" w 0.42
+image eve   avatar-bob   "Eve"   right of alice gap 1.4 same as alice {.ghost @attack}
+image bob   avatar-bob   "Bob"   right of eve gap 1.4 same as alice
+align middle alice, eve, bob
+
+text nA "Alice" below alice gap 0.06 {.small}
+text nE "Eve"   below eve gap 0.06 {.small .muted @attack}
+text nB "Bob"   below bob gap 0.06 {.small}
+text kA "k" left of alice gap 0.2 {.mono .small}
+text kB "k" right of bob gap 0.2 {.mono .small}
+
+edge alice -> bob "M, T" via 1.28,1.5 2.42,1.5 {#wire}
+edge eve.right:0.28 -> bob.left:0.28 "M, T   replay"      {#replay .accent .small @attack}
+edge eve.right:0.72 -> bob.left:0.72 "forgery   M_F, T_F" {#forge .accent .small @attack}
+text def "defense?" above eve gap 0.3 {.hand .small @attack}
+
+text macA "T = MAC_k(M)"            below nA gap 0.3 {.mono .small @proto}
+text tagA "\"authentication tag\""  below macA gap 0.14 {.hand .small @proto}
+text ver1 "Verify_k(M, T)"                below nB gap 0.3 {.mono .small @proto}
+text ver2 "T' = MAC_k(M)\nT' equals T ?"  below ver1 gap 0.55 {.mono .small @proto}
+edge ver1 -- ver2 {#howto .muted .dotted @proto}
+text eg   "e.g." between ver1,ver2 offset -0.16,0 {.small .muted @proto}
+align middle macA, ver1
+
+text goals "Security goals: *integrity*\nand *authenticity* but\n~not non-repudiation~" at 3.55,-1.05 {.left}
+
+step protocol
+  show @proto
+step attack
+  show @attack
+  emph replay, forge
+:::
+
+**Die Avatare sind Vektor-Assets und folgen dem Theme.** `image alice avatar-alice` löst gegen `assets/` auf wie `![](fig-id)`; eine SVG-Datei wird als verschachteltes `<svg>` eingesetzt und erbt `--ink` und `--paper`. Die beiden Angriffspfeile hängen an `eve.right:0.28` und `:0.72` – zwei parallele Pfeile statt zweier Bögen über derselben Sehne.
+
+# The vocabulary
+
+## figure: The pieces {.wide #primitives}
+
+::: diagram {unit=130x76}
+box  a "Sender"
+box  b "Mix"        right of a gap 0.6
+box  c "Empfänger"  right of b gap 0.6
+dot  x "+"          below b gap 0.8
+text n "a free label, placed\nwherever it reads best"  right of c gap 0.7 -> x {.muted .small}
+edge a -> b "encrypted"
+edge b -> c "recoded"
+edge b -> x {.dashed}
+:::
+
+`box`, `dot`, `text`, `image`, `edge`, `brace`, `container`, `align`, `spread`, `default`, `step` – elf Anweisungen, mehr nicht. Ein `text` bekommt mit `-> x` einen Linien-Stummel zu dem, worüber es spricht.
 
 ## figure: Alignment {.wide #alignment}
 
@@ -209,60 +333,29 @@ box p "first"   below a gap 1.1
 box s "fourth"  right of p gap 3.0
 box q "second"  below p gap 0 h 0.8
 box r "third"   below p gap 0 h 0.5
-
 align middle p, q, r, s
 spread x p, q, r, s
 
 edge -0.8,0 -> a "from outside" {.muted}
 :::
 
-**Die obere Reihe ist gekettet, die untere ausgerichtet.** Oben setzt jedes `right of … gap 0.6` gleiche *Kantenabstände* – bei ungleich breiten Kästen heißt das ungleiche Mittelpunkte. Unten stehen nur `p` und `s` fest; `spread x` verteilt `q` und `r` auf gleiche Mittelpunktabstände dazwischen, und `align middle` legt alle vier trotz verschiedener Höhen auf eine Linie.
+Oben gleiche *Kantenabstände*, unten gleiche *Mittelpunktabstände*. Der Pfeil links hat einen Endpunkt ohne Objekt – eine Koordinate statt eines unsichtbaren Ankers.
 
-**Verteilte Elemente dürfen nicht am Ende hängen, zwischen dem sie verteilt werden.** `s` relativ zu `r` zu setzen, während `spread` `r` zwischen `p` und `s` legt, ist zirkulär – der Build sagt genau das (`placement cycle: q → s → r → q`) und nennt die Zeile, statt eine plausible falsche Anordnung zu zeichnen. Das ist der Unterschied zu einem Solver.
+## figure: Containers and braces {.wide #grouping}
 
-**`edge -0.8,0 -> a`** hat einen Endpunkt ohne Objekt. Das ist bewusst eine Koordinate statt eines unsichtbaren Ankers: es gibt nichts, was man versehentlich löschen kann, und ein Editor schreibt beim Ziehen zwei Zahlen in dieser Zeile um, statt ein Objekt zu bewegen, das niemand sieht.
+::: diagram {unit=130x76}
+default box {.tone-1} w 1.0
 
-## figure: Message authentication {.full #mac}
-
-::: diagram {unit=150x60}
-image alice avatar-alice "Alice" w 0.42
-image eve   avatar-bob   "Eve"   right of alice gap 1.4 same as alice {.ghost}
-image bob   avatar-bob   "Bob"   right of eve gap 1.4 w 0.42
-
-text nA "Alice" below alice gap 0.06 {.small}
-text nE "Eve"   below eve gap 0.06 {.small .muted}
-text nB "Bob"   below bob gap 0.06 {.small}
-
-text kA "k" left of alice gap 0.2 {.mono .small}
-text kB "k" right of bob gap 0.2 {.mono .small}
-
-edge alice -> bob "M, T" via 1.28,1.5 2.42,1.5 {#wire}
-edge eve.right:0.28 -> bob.left:0.28 "M, T   replay"      {#replay .accent .small}
-edge eve.right:0.72 -> bob.left:0.72 "forgery   M_F, T_F" {#forge .accent .small}
-text def "defense?" above eve gap 0.3 {.hand .small}
-
-text macA "T = MAC_k(M)"            below nA gap 0.3 {.mono .small}
-text tagA "\"authentication tag\""  below macA gap 0.14 {.hand .small}
-
-text ver1 "Verify_k(M, T)"                below nB gap 0.3 {.mono .small}
-text ver2 "T' = MAC_k(M)\nT' equals T ?"  below ver1 gap 0.55 {.mono .small}
-edge ver1 -- ver2 {#howto .muted .dotted}
-text eg   "e.g." between ver1,ver2 offset -0.16,0 {.small .muted}
-
-text goals "Security goals: *integrity*\nand *authenticity* but\n~not non-repudiation~" at 3.5,-0.95 {.left}
-
-step protocol
-  show macA, tagA, ver1, howto, eg, ver2
-step attack
-  show eve, nE, replay, forge, def
-  emph replay, forge
+box r1 "Registration"  at 0,0
+box r2 "Provisioning"  below r1 gap 0.55 same as r1
+box r3 "Authorization" below r2 gap 0.55 same as r1
+edge r1 -> r2
+edge r2 -> r3
+brace sign over r1,r2 right "Signup"
+container life "Creation" over r1,r2,r3 pad 0.42 {.dashed}
 :::
 
-**Die Avatare sind jetzt echte Diagramm-Objekte.** `image alice avatar-alice w 0.42` löst gegen `assets/` auf wie das `![](fig-id)`-Kürzel. Eine SVG-Datei wird als verschachteltes `<svg>` eingesetzt und erbt damit `--ink` und `--paper` – die Figuren wechseln mit dem `A`-Theme mit. Ein Rasterbild kann das nicht und wird als `data:`-URI eingebettet; ein Foto ist in jedem Modus dasselbe Foto.
-
-**Die Linse ist weg.** Die beiden Angriffspfeile hängen jetzt an `eve.right:0.28` und `eve.right:0.72` statt beide an der Kantenmitte – zwei parallele Pfeile statt zweier Bögen über derselben Sehne.
-
-**`e.g.` sitzt per `between ver1,ver2 offset -0.16,0`** neben dem Verbinder, statt relativ zu einem Nachbarn geschätzt zu sein.
+Ein `container` legt sich um seine Mitglieder und passt sich neu an, wenn sie sich bewegen. Eine `brace` überspannt eine Teilmenge und hängt ihr Label nach außen.
 
 ## figure: A raster does not follow the theme {.standard #raster}
 
@@ -271,4 +364,4 @@ image swatch swatch w 0.6
 text  note "a raster keeps its own colours\nin every theme" right of swatch gap 0.35 -> swatch {.small .muted}
 :::
 
-Beim Zyklus durch die Themes mit `A` bleibt das Rasterfeld, wie es ist, während Kästen, Pfeile und Vektor-Figuren umfärben. Das ist der Preis für Pixel und war die Bedingung, unter der Bilder aufgenommen wurden.
+Beim Zyklus durch die Themes mit `A` bleibt das Rasterfeld, wie es ist, während Kästen, Pfeile und Vektor-Figuren umfärben. Das ist der Preis für Pixel.
