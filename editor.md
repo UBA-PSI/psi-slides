@@ -3,9 +3,11 @@
 Spec and build plan for the graphical editor for `::: diagram`. Companion to
 `PRD.md` §4.6a (the grammar) and `speaker.md` (the sync protocol it borrows).
 
-Status: **plan only.** Nothing here is implemented. The grammar it edits is
-frozen enough to build against – three constructs in it exist specifically so
-this editor can answer a drag without destroying what the author wrote (§3).
+Status: **under construction.** The grammar it edits is frozen enough to build
+against – three constructs in it exist specifically so this editor can answer a
+drag without destroying what the author wrote (§3). What is built and what is
+not is in **§13, the build log**, which is kept at the end of this file and is
+the thing to read before picking the work up again.
 
 ## 0. Where this lives, and what exists
 
@@ -1132,3 +1134,55 @@ the phase, then show a running prototype and choose from it.
   with no preview at all. If the honest answer is that no preview is needed
   because the undo is one keystroke, that is a fine answer and cheaper than
   every alternative.
+
+## 13. Build log
+
+Written while building, not afterwards. Each entry says what landed, what it
+cost, and what the next pair of hands needs to know that the plan above does
+not already say. The plan is the *what*; this is what actually happened.
+
+### Phase 0a – lecture-wide defaults · **done**
+
+`diagram-defaults:` in the frontmatter, exactly as §3.2 specifies. Four
+layers, scope before selector, and the lecture-level tag rule one scope wider
+than the block's.
+
+What it touched: `dgReadDefault()` (the `default` statement, factored out of
+`parseDiagramSource` so the frontmatter and the block cannot drift),
+`parseDiagramDefaults()`, `dgDefaultLayers()` – the one place the four-layer
+order is written down – and the three resolution sites that used to walk
+`model.tagDefaults` / `model.defaults` by hand (`withDefaults`, `sizeOf`'s
+`pick`, the container/brace `pad` settling). `lint.js` gained
+`lintDefaultStatement()` and `collectDiagramDefaults()`.
+
+Three things worth knowing:
+
+- **The three resolution sites had each written the layer order out
+  separately.** Adding a fourth layer to three hand-rolled loops is how they
+  would have disagreed; `dgDefaultLayers` exists for that reason and is what
+  the editor's provenance line (§7.2) will read.
+- **The lecture-wide tag rule needs evidence the compiler does not have.**
+  `renderDiagram` sees one block, so it cannot know whether `@dec` is used
+  somewhere else. `dgLectureTags` accumulates while the blocks compile and
+  `parseLecture` rules on it after the last chunk – which is also the only
+  reason that check is in `parseLecture` rather than beside the others.
+- **`lint.js` reads the key without YAML**, per §3.2: `collectDiagramDefaults`
+  scans for `diagram-defaults:` followed by `|` or `>` and takes what is
+  indented under it, dedenting by the first line's indentation. Fifteen lines,
+  still zero-dep.
+
+Verified (§11.8's row for §3.2, run, not asserted in prose):
+
+- a lecture whose `diagram-defaults` sets `w 1.0`, a block overriding with
+  `w 0.5`, an element overriding with `w 2.0`, plus a `@dec` tag default at
+  `w 0.4` → emitted widths 100 / 50 / 200 / 40 px at `unit=100x60`, and the
+  block's bare `default box` beating the lecture's `@dec` one (scope before
+  selector, both directions).
+- `default box @nobody` with no diagram carrying `@nobody` → build fails,
+  naming the line and listing the tags the lecture does use.
+- the same tag carried by a *different* diagram in the same lecture → builds.
+- `box a "hello"` inside the key → build fails naming the line.
+- all four in `lint.js` too, with the frontmatter line numbers right.
+- all three lectures rebuild; `lectures/tutorial/*.html` unchanged by the
+  refactor, which is what says the four-layer rewrite was behaviour-preserving
+  for lectures that use none of it.

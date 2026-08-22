@@ -1332,6 +1332,10 @@ const DG_KIND_OPTS = {
 const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid units
 
 let dgCounter = 0;             // per-build, reset in buildOnce
+// Every tag any diagram in the current lecture carries. Collected while the
+// blocks compile, ruled on once at the end of parseLecture – see the
+// lecture-level tag-default rule in renderDiagram.
+const dgLectureTags = new Set();
 
 function dgErr(errors, line, msg) { errors.push({ line, msg }); }
 
@@ -1741,7 +1745,103 @@ function dgParseMembers(tok) {
   return String(tok).split(',').map(s => s.trim()).filter(Boolean);
 }
 
-function parseDiagramSource(body, headAttrs) {
+// Every `default` layer that applies to one element, weakest first:
+//
+//   1. the lecture's  default <kind>
+//   2. the lecture's  default <kind> @tag
+//   3. the block's    default <kind>
+//   4. the block's    default <kind> @tag
+//
+// Scope before selector, because "closer to the element wins" is the model
+// everywhere else here: a block that says `default box {.tone-4}` means it,
+// even for an element the lecture tags @dec. The element's own attributes
+// are a fifth layer and are applied by the callers, which is where the
+// difference between classes (slot displacement) and geometry (first
+// non-null) lives.
+function dgDefaultLayers(model, kind, tags) {
+  const out = [];
+  const has = (t) => (tags || []).includes(t);
+  if (model.baseDefaults && model.baseDefaults[kind]) out.push(model.baseDefaults[kind]);
+  for (const d of (model.baseTagDefaults || [])) if (d.kind === kind && has(d.tag)) out.push(d);
+  if (model.defaults[kind]) out.push(model.defaults[kind]);
+  for (const d of model.tagDefaults) if (d.kind === kind && has(d.tag)) out.push(d);
+  return out;
+}
+
+// One `default …` statement, read into whichever layer is collecting them.
+// Factored out because the same statement is now legal in two places: inside
+// a block, and in the lecture's `diagram-defaults` frontmatter key. Two
+// parsers for one line is how the two would eventually disagree.
+function dgReadDefault(body0, attrs, lineNo, errors, layer, scope) {
+  const kind = body0[1] ? body0[1].v : '';
+  if (!DG_DEFAULT_KINDS.has(kind)) {
+    dgErr(errors, lineNo, `default expects one of ${[...DG_DEFAULT_KINDS].join(', ')}, got "${kind}"`);
+    return null;
+  }
+  // `default box @dec w 0.48` refines the kind default for the elements
+  // carrying that tag. One per (kind, tag) and one per bare kind, so the
+  // result never depends on the order of the declarations: an element's
+  // own attributes beat its tag default, which beats the kind default.
+  const tagTok = body0[2] && body0[2].v.startsWith('@') ? body0[2].v.slice(1) : null;
+  const slot = tagTok
+    ? layer.tagDefaults.find(d => d.kind === kind && d.tag === tagTok)
+    : layer.defaults[kind];
+  if (slot) {
+    dgErr(errors, lineNo, `a second "default ${kind}${tagTok ? ' @' + tagTok : ''}" – there can only be one per ${scope} (the first is on line ${slot.line})`);
+    return null;
+  }
+  const def = { kind, tag: tagTok, classes: attrs.classes, w: null, h: null, r: null, pad: null, side: null, line: lineNo };
+  const opts = DG_KIND_OPTS[kind];
+  const rest = body0.slice(tagTok ? 3 : 2);
+  for (let k = 0; k < rest.length; k++) {
+    const key = rest[k].v;
+    if (kind === 'brace' && DG_BRACE_SIDES.includes(key)) { def.side = key; continue; }
+    if (opts.includes(key)) { def[key] = dgNum(rest[k + 1]?.v, errors, lineNo, key); k++; continue; }
+    // A wrong-kind option is the interesting case: say which kind it
+    // belongs to rather than repeating the list.
+    const owner = Object.keys(DG_KIND_OPTS).find(kk => DG_KIND_OPTS[kk].includes(key));
+    if (owner) {
+      dgErr(errors, lineNo, `default ${kind} has no "${key}" – that is a ${owner} option. `
+        + `default ${kind} takes ${opts.length ? opts.join(', ') + ' and ' : ''}a {…} attribute tail.`);
+      k++;   // its value, or the next word is reported as a second mistake
+    } else {
+      dgErr(errors, lineNo, `unexpected "${key}" in default ${kind}`);
+    }
+  }
+  if (tagTok) layer.tagDefaults.push(def);
+  else layer.defaults[kind] = def;
+  return def;
+}
+
+// The lecture-wide layer: the `diagram-defaults:` frontmatter key, written
+// in the same language as the block's own `default` lines. Parsed once per
+// build and handed to every diagram as the base under its own defaults, so
+// "make these figures match" is one edit rather than twelve.
+//
+// Validated even when no diagram uses it: anything but a `default` statement
+// in there is an error naming the line, because a block that quietly does
+// nothing is the failure mode this grammar keeps closing.
+function parseDiagramDefaults(text) {
+  const errors = [];
+  const layer = { defaults: {}, tagDefaults: [] };
+  const lines = String(text ?? '').split('\n');
+  for (let n = 0; n < lines.length; n++) {
+    const trimmed = lines[n].trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const toks = dgTokenize(trimmed);
+    const attrTok = toks.find(x => x.attr);
+    const attrs = attrTok ? dgParseAttrs(attrTok.v, errors, n + 1) : { id: null, classes: [], tags: [] };
+    const body0 = toks.filter(x => !x.attr && !x.q);
+    if ((body0[0] ? body0[0].v : '') !== 'default') {
+      dgErr(errors, n + 1, `diagram-defaults holds "default …" statements only, got "${trimmed}"`);
+      continue;
+    }
+    dgReadDefault(body0, attrs, n + 1, errors, layer, 'lecture');
+  }
+  return { layer, errors };
+}
+
+function parseDiagramSource(body, headAttrs, base) {
   const errors = [];
   const model = {
     unit: DG_UNIT.slice(),
@@ -1754,8 +1854,16 @@ function parseDiagramSource(body, headAttrs) {
     spreads: [],
     defaults: {},
     tagDefaults: [],
+    // The lecture-wide layer (`diagram-defaults` in the frontmatter), under
+    // the block's own. Held separately rather than merged so the sidebar can
+    // still say which layer a resolved value came from, and so a block's
+    // `default box` means it – even for an element the lecture tags @dec.
+    baseDefaults: (base && base.defaults) || {},
+    baseTagDefaults: (base && base.tagDefaults) || [],
     byId: new Map(),
   };
+  const layer = { defaults: model.defaults, tagDefaults: model.tagDefaults };
+  const scopeWord = 'diagram';
 
   for (const tok of String(headAttrs || '').trim().split(/\s+/).filter(Boolean)) {
     const m = tok.match(/^unit=(\d+)x(\d+)$/);
@@ -1870,43 +1978,7 @@ function parseDiagramSource(body, headAttrs) {
     }
 
     if (head === 'default') {
-      const kind = t(1);
-      if (!DG_DEFAULT_KINDS.has(kind)) {
-        dgErr(errors, lineNo, `default expects one of ${[...DG_DEFAULT_KINDS].join(', ')}, got "${kind}"`);
-        continue;
-      }
-      // `default box @dec w 0.48` refines the kind default for the elements
-      // carrying that tag. One per (kind, tag) and one per bare kind, so the
-      // result never depends on the order of the declarations: an element's
-      // own attributes beat its tag default, which beats the kind default.
-      const tagTok = body0[2] && body0[2].v.startsWith('@') ? body0[2].v.slice(1) : null;
-      const slot = tagTok
-        ? model.tagDefaults.find(d => d.kind === kind && d.tag === tagTok)
-        : model.defaults[kind];
-      if (slot) {
-        dgErr(errors, lineNo, `a second "default ${kind}${tagTok ? ' @' + tagTok : ''}" – there can only be one per diagram (the first is on line ${slot.line})`);
-        continue;
-      }
-      const def = { kind, tag: tagTok, classes: attrs.classes, w: null, h: null, r: null, pad: null, side: null, line: lineNo };
-      const opts = DG_KIND_OPTS[kind];
-      const rest = body0.slice(tagTok ? 3 : 2);
-      for (let k = 0; k < rest.length; k++) {
-        const key = rest[k].v;
-        if (kind === 'brace' && DG_BRACE_SIDES.includes(key)) { def.side = key; continue; }
-        if (opts.includes(key)) { def[key] = dgNum(rest[k + 1]?.v, errors, lineNo, key); k++; continue; }
-        // A wrong-kind option is the interesting case: say which kind it
-        // belongs to rather than repeating the list.
-        const owner = Object.keys(DG_KIND_OPTS).find(kk => DG_KIND_OPTS[kk].includes(key));
-        if (owner) {
-          dgErr(errors, lineNo, `default ${kind} has no "${key}" – that is a ${owner} option. `
-            + `default ${kind} takes ${opts.length ? opts.join(', ') + ' and ' : ''}a {…} attribute tail.`);
-          k++;   // its value, or the next word is reported as a second mistake
-        } else {
-          dgErr(errors, lineNo, `unexpected "${key}" in default ${kind}`);
-        }
-      }
-      if (tagTok) model.tagDefaults.push(def);
-      else model.defaults[kind] = def;
+      dgReadDefault(body0, attrs, lineNo, errors, layer, scopeWord);
       continue;
     }
 
@@ -2130,13 +2202,11 @@ function parseDiagramSource(body, headAttrs) {
   // default, then the kind default – so `default container pad 0.42` covers
   // a diagram full of containers the way `default box w 1` covers its boxes.
   for (const el of [...model.containers, ...model.braces]) {
+    const layers = dgDefaultLayers(model, el.kind, el.tags).reverse();
     const layer = (key) => {
       if (el[key] != null) return el[key];
-      for (const d of model.tagDefaults) {
-        if (d.kind === el.kind && (el.tags || []).includes(d.tag) && d[key] != null) return d[key];
-      }
-      const kd = model.defaults[el.kind];
-      return kd && kd[key] != null ? kd[key] : null;
+      for (const d of layers) if (d[key] != null) return d[key];
+      return null;
     };
     el.pad = layer('pad') ?? DG_PAD_DEFAULT;
     if (el.kind === 'brace') el.side = layer('side') ?? 'right';
@@ -2261,16 +2331,8 @@ function dgStateAt(model, k) {
   // Three layers, most specific last: the kind default, then the default
   // for a tag the element carries, then its own {…}. Each layer's classes
   // are dropped where a more specific layer already fills that slot.
-  const layersFor = (el) => {
-    const out = [];
-    if (model.defaults[el.kind]) out.push(model.defaults[el.kind]);
-    for (const d of model.tagDefaults) {
-      if (d.kind === el.kind && (el.tags || []).includes(d.tag)) out.push(d);
-    }
-    return out;
-  };
   const withDefaults = (el) => {
-    const layers = layersFor(el);
+    const layers = dgDefaultLayers(model, el.kind, el.tags);
     if (!layers.length) return new Set(el.classes);
     const acc = [];
     const claimed = new Set();
@@ -2347,14 +2409,12 @@ function layoutDiagram(model, state, errors) {
       const ref = boxes.get(node.sameAs);
       if (ref) return { w: ref.w, h: ref.h };
     }
-    // Geometry follows the same three layers.
+    // Geometry follows the same layers, strongest first.
+    const layers = dgDefaultLayers(model, node.kind, node.tags).reverse();
     const pick = (key) => {
       if (node[key] != null) return node[key];
-      for (const d of model.tagDefaults) {
-        if (d.kind === node.kind && (node.tags || []).includes(d.tag) && d[key] != null) return d[key];
-      }
-      const kd = model.defaults[node.kind];
-      return kd && kd[key] != null ? kd[key] : null;
+      for (const d of layers) if (d[key] != null) return d[key];
+      return null;
     };
     const nw = pick('w');
     const nh = pick('h');
@@ -2921,7 +2981,13 @@ function dgPathD(nums) {
 // Compile one ::: diagram block into an inline <svg> plus, when it has
 // steps, the per-step geometry the live runtime tweens between.
 function renderDiagram(body, headAttrs, opts = {}) {
-  const { model, errors } = parseDiagramSource(body, headAttrs);
+  const { model, errors } = parseDiagramSource(body, headAttrs, opts.base);
+  // A lecture-level `default <kind> @tag` is written once for twelve
+  // diagrams and most of them will not carry the tag, so the block-level
+  // "no element carries @tag" error cannot apply to it. The rule is one
+  // scope wider instead – it has to be used *somewhere in the lecture* –
+  // and this is where the evidence is collected. parseLecture rules on it.
+  for (const tag of model.tags.keys()) dgLectureTags.add(tag);
   const labelIndex = dgLabelVariants(model);
   const frameCount = model.steps.length + 1;
   const frames = [];
@@ -3418,6 +3484,22 @@ function splitHeading(text) {
 
 function parseLecture(src) {
   const { data: frontmatter, content } = matter(src);
+  // The lecture-wide diagram layer, parsed once and handed to every block.
+  // Validated here rather than at the first diagram, because a lecture whose
+  // frontmatter is wrong should say so even when it has no diagram yet.
+  dgLectureTags.clear();
+  let diagramBase = null;
+  if (frontmatter['diagram-defaults'] != null) {
+    const { layer, errors } = parseDiagramDefaults(frontmatter['diagram-defaults']);
+    if (errors.length) {
+      const err = new Error(
+        `Frontmatter: diagram-defaults has ${errors.length} problem(s):\n`
+        + errors.map(e => `  line ${e.line} of the block: ${e.msg}`).join('\n'));
+      err.userFacing = true;
+      throw err;
+    }
+    diagramBase = layer;
+  }
   const columns = [];
   let currentColumn = null;
   let currentChunk = null;
@@ -3512,6 +3594,7 @@ function parseLecture(src) {
         target.push('', renderDiagram(diagramBlock.lines.join('\n'), diagramBlock.attrs, {
           where: currentChunk && currentChunk.id ? `chunk #${currentChunk.id}` : 'a chunk with no id',
           alt: currentChunk ? currentChunk.heading : '',
+          base: diagramBase,
         }), '');
         diagramBlock = null;
       } else {
@@ -3714,6 +3797,24 @@ function parseLecture(src) {
     throw err;
   }
   flushChunk();
+
+  // The lecture-level counterpart of the block's "no element carries @tag".
+  // The build has now seen every diagram, so it can say exactly this: a
+  // frontmatter default that targets a tag nothing in the lecture carries is
+  // a typo, and a typo that only costs you the styling is invisible.
+  if (diagramBase) {
+    const orphan = diagramBase.tagDefaults.filter(d => !dgLectureTags.has(d.tag));
+    if (orphan.length) {
+      const err = new Error(
+        'Frontmatter: diagram-defaults targets tags no diagram in this lecture carries:\n'
+        + orphan.map(d => `  line ${d.line}: default ${d.kind} @${d.tag}`).join('\n')
+        + (dgLectureTags.size
+          ? `\n  Tags this lecture does use: ${[...dgLectureTags].sort().map(t => '@' + t).join(', ')}`
+          : '\n  No diagram in this lecture carries any tag.'));
+      err.userFacing = true;
+      throw err;
+    }
+  }
 
   return { frontmatter, columns };
 }

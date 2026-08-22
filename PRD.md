@@ -400,6 +400,30 @@ Step operations are `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`
 
 `default box @dec {.round} w 0.48` refines the kind default for the elements carrying that tag. Three layers, most specific last: the kind default, then the tag default, then the element's own `{…}` – and each layer's classes are dropped where a more specific layer already fills that slot. One per kind and one per (kind, tag), so the result never depends on the order of the declarations, and a tag no element carries is an error rather than a line with no effect.
 
+**A lecture's figures should look like each other, so the same `default` statements can be written once for the whole lecture** – a `diagram-defaults` frontmatter key, in the same language:
+
+```yaml
+diagram-defaults: |
+  default box       {.tone-2} w 1.0
+  default text      {.small .muted}
+  default container pad 0.4
+  default box @dec  {.round} w 0.48
+```
+
+Repeating those lines in twelve blocks decays: change the look and it is twelve edits. Deliberately **not** a named-preset system (`use=house`) – a single lecture-wide set adds one key and one layer, where presets would add a keyword to the grammar, a lookup, a "no preset named …" error and another table for `lint.js` to mirror. If one lecture ever genuinely needs two visual families, presets stay additive and can be added then; until then the escape hatch is the one that already exists, a `default` line inside the block.
+
+**Precedence is one sentence: the nearer the declaration, the stronger it is, and in one place a tag beats the bare kind.** So four layers, most specific last:
+
+1. `diagram-defaults` – `default <kind>`
+2. `diagram-defaults` – `default <kind> @tag`
+3. the block's own `default <kind>`
+4. the block's own `default <kind> @tag`
+5. the element's own `{…}` and `w` / `h` / `r` / `pad`
+
+Scope before selector, because "closer to the element wins" is the model everywhere else here. A block that says `default box {.tone-4}` means it, even for an element the lecture tags `@dec`.
+
+The tag rule widens with the scope: **a block-level tag default must be used in its block; a lecture-level one must be used somewhere in the lecture.** One is written for one figure and the other for twelve, most of which will not carry `@dec` – but the build sees every diagram, so a typo in the frontmatter still fails rather than sitting there doing nothing. The block is validated even when no diagram uses it: anything but a `default` statement in there is an error naming the line.
+
 **`default` applies to every element of its kind wherever it stands, and there can be only one per kind.** Position-dependent defaults – DOT's model, where a declaration affects only what follows – are more expressive and were rejected: they make the source order-sensitive in a way nothing on the page shows, so moving a declaration three lines up silently changes its colour. An element's own class **displaces** a default in the same slot rather than stacking with it: `.tone-1` on a box beats `default box {.tone-4}`, because otherwise both rules match at equal specificity and the one written later in the stylesheet wins, which is not a rule anyone can see. Two classes from the same slot on one element is a lint warning for the same reason.
 
 Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run with the theme accent and `~muted~` greys it. An unmatched marker stays a literal character. This exists because a sentence with two colour changes otherwise needs one `text` element per run, chained with `right of` – unreadable as source, and re-sorted by hand every time a word changes.

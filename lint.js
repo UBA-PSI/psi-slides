@@ -168,11 +168,80 @@ function wordCountOf(lines) {
   return lines.join(' ').split(/\s+/).filter(Boolean).length;
 }
 
+// One `default …` line, checked the same way wherever it is written: inside
+// a block, or in the lecture's `diagram-defaults` frontmatter key. Mirrors
+// dgReadDefault in build.js – a linter stricter or laxer than the build is
+// worse than none, and there are now two places to get that wrong.
+function lintDefaultStatement(words, ln, add, ctx) {
+  const kind = words[1];
+  if (!DG_DEFAULT_KINDS.has(kind)) {
+    add(ln, 'error', 'unknown-diagram-default',
+        `default expects one of ${[...DG_DEFAULT_KINDS].join(', ')}, got '${kind || ''}'`);
+    return;
+  }
+  const tag = words[2] && words[2].startsWith('@') ? words[2] : '';
+  const key = kind + tag;
+  if (ctx.defaulted.has(key)) {
+    add(ln, 'error', 'duplicate-diagram-default',
+        `a second 'default ${kind}${tag ? ' ' + tag : ''}' – there can only be one per ${ctx.scope} (the first is on line ${ctx.defaulted.get(key)})`);
+  } else {
+    ctx.defaulted.set(key, ctx.reportLine);
+    if (tag && ctx.onTag) ctx.onTag(kind, tag);
+  }
+  // An option belonging to another kind parses and then does nothing.
+  const opts = DG_KIND_OPTS[kind];
+  let inTail = false;
+  for (let k = tag ? 3 : 2; k < words.length; k++) {
+    const w = words[k];
+    // The {…} tail may sit anywhere on the line and may be several
+    // words; skip it rather than stopping, or an option written after
+    // it would go unchecked here while the build still refuses it.
+    if (inTail) { if (w.endsWith('}')) inTail = false; continue; }
+    if (w.startsWith('{')) { if (!w.endsWith('}')) inTail = true; continue; }
+    if (kind === 'brace' && DG_BRACE_SIDES.includes(w)) continue;
+    if (opts.includes(w)) { k++; continue; }
+    const owner = Object.keys(DG_KIND_OPTS).find(kk => DG_KIND_OPTS[kk].includes(w));
+    if (owner) {
+      add(ln, 'error', 'bad-diagram-default',
+          `default ${kind} has no '${w}' – that is a ${owner} option. `
+          + `default ${kind} takes ${opts.length ? opts.join(', ') + ' and ' : ''}a {…} attribute tail.`);
+      k++;
+    } else {
+      // A `default` line carries no quoted label, so every remaining
+      // word is either an option, its value, or junk.
+      add(ln, 'error', 'bad-diagram-default', `unexpected '${w}' in default ${kind}`);
+    }
+  }
+}
+
+// The `diagram-defaults:` frontmatter key, without a YAML parser: after the
+// `|` (or `>`) the block is whatever is indented under it, which is fifteen
+// lines of scanning and keeps this file zero-dep. Returns the statements
+// with their line numbers counted from the opening `---`.
+function collectDiagramDefaults(header) {
+  const lines = header.split('\n');
+  const out = [];
+  let indent = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    if (indent < 0) {
+      if (/^diagram-defaults:[ \t]*[|>][-+]?[ \t]*$/.test(raw)) indent = 0;
+      continue;
+    }
+    if (!raw.trim()) { out.push({ text: '', ln: i + 2 }); continue; }
+    const lead = raw.length - raw.replace(/^[ \t]+/, '').length;
+    if (lead === 0) break;             // back at the top level: the block ended
+    if (indent === 0) indent = lead;
+    out.push({ text: raw.slice(indent), ln: i + 2 });
+  }
+  return out;
+}
+
 // Checks the diagram DSL without re-implementing its layout: unknown
 // statements, unknown classes, duplicate names and dangling references.
 // Everything geometric is the build's business – but these four are the
 // mistakes that are invisible in the source and expensive on a projector.
-function lintDiagram(block, add, fmLines) {
+function lintDiagram(block, add, fmLines, lectureTags) {
   const defined = new Map();     // name -> line
   const tags = new Set();        // every @tag any element carries
   const referenced = [];         // { name, ln, what }
@@ -325,49 +394,14 @@ function lintDiagram(block, add, fmLines) {
     }
 
     if (head === 'default') {
-      const kind = words[1];
-      if (!DG_DEFAULT_KINDS.has(kind)) {
-        add(ln, 'error', 'unknown-diagram-default',
-            `default expects one of ${[...DG_DEFAULT_KINDS].join(', ')}, got '${kind || ''}'`);
-      } else {
-        const tag = words[2] && words[2].startsWith('@') ? words[2] : '';
-        const key = kind + tag;
-        if (defaulted.has(key)) {
-          add(ln, 'error', 'duplicate-diagram-default',
-              `a second 'default ${kind}${tag ? ' ' + tag : ''}' – there can only be one per diagram (the first is on line ${defaulted.get(key)})`);
-        } else {
-          defaulted.set(key, ln + fmLines);
-          if (tag) {
-            referenced.push({ name: tag, ln, what: `default ${kind}` });
-            if (!tagDefaults.has(kind)) tagDefaults.set(kind, new Map());
-            tagDefaults.get(kind).set(tag.slice(1), ln + fmLines);
-          }
-        }
-        // An option belonging to another kind parses and then does nothing.
-        const opts = DG_KIND_OPTS[kind];
-        let inTail = false;
-        for (let k = tag ? 3 : 2; k < words.length; k++) {
-          const w = words[k];
-          // The {…} tail may sit anywhere on the line and may be several
-          // words; skip it rather than stopping, or an option written after
-          // it would go unchecked here while the build still refuses it.
-          if (inTail) { if (w.endsWith('}')) inTail = false; continue; }
-          if (w.startsWith('{')) { if (!w.endsWith('}')) inTail = true; continue; }
-          if (kind === 'brace' && DG_BRACE_SIDES.includes(w)) continue;
-          if (opts.includes(w)) { k++; continue; }
-          const owner = Object.keys(DG_KIND_OPTS).find(kk => DG_KIND_OPTS[kk].includes(w));
-          if (owner) {
-            add(ln, 'error', 'bad-diagram-default',
-                `default ${kind} has no '${w}' – that is a ${owner} option. `
-                + `default ${kind} takes ${opts.length ? opts.join(', ') + ' and ' : ''}a {…} attribute tail.`);
-            k++;
-          } else {
-            // A `default` line carries no quoted label, so every remaining
-            // word is either an option, its value, or junk.
-            add(ln, 'error', 'bad-diagram-default', `unexpected '${w}' in default ${kind}`);
-          }
-        }
-      }
+      lintDefaultStatement(words, ln, add, {
+        defaulted, scope: 'diagram', reportLine: ln + fmLines,
+        onTag: (kind, tag) => {
+          referenced.push({ name: tag, ln, what: `default ${kind}` });
+          if (!tagDefaults.has(kind)) tagDefaults.set(kind, new Map());
+          tagDefaults.get(kind).set(tag.slice(1), ln + fmLines);
+        },
+      });
       inStep = false;
       continue;
     }
@@ -510,6 +544,7 @@ function lintDiagram(block, add, fmLines) {
           `${r.what} refers to '${r.raw ?? r.name}', which is not defined in this diagram${hint}`);
     }
   }
+  if (lectureTags) for (const t of tags) lectureTags.add(t);
 }
 
 function lintFile(filePath) {
@@ -549,6 +584,41 @@ function lintFile(filePath) {
     addFm(i + 2, 'error', 'unknown-view-default',
       `'${m[1]}: ${value}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
   });
+
+  // The lecture-wide diagram layer. Its `default <kind> @tag` lines cannot be
+  // checked against one block – they are written once for every figure in the
+  // lecture – so the tags they target are collected here and ruled on after
+  // the whole file has been walked.
+  const lectureTags = new Set();
+  const fmTagDefaults = [];
+  {
+    const fmDefaulted = new Map();
+    for (const { text, ln } of collectDiagramDefaults(header)) {
+      const trimmed = text.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      for (const m of trimmed.matchAll(/\{([^}]*)\}/g)) {
+        for (const tok of m[1].trim().split(/\s+/).filter(Boolean)) {
+          if (tok.startsWith('.') && !DG_CLASSES.has(tok.slice(1))) {
+            addFm(ln, 'error', 'unknown-diagram-class',
+                  `unknown diagram class '${tok}' – valid: ${[...DG_CLASSES].map(c => '.' + c).join(', ')}`);
+          } else if (!tok.startsWith('.')) {
+            addFm(ln, 'error', 'bad-diagram-attribute',
+                  `'${tok}' in a diagram-defaults {…} tail is not a .class`);
+          }
+        }
+      }
+      const words = trimmed.replace(/"[^"]*"/g, ' ').trim().split(/\s+/).filter(Boolean);
+      if (words[0] !== 'default') {
+        addFm(ln, 'error', 'bad-diagram-defaults',
+              `diagram-defaults holds 'default …' statements only, got '${trimmed}'`);
+        continue;
+      }
+      lintDefaultStatement(words, ln, addFm, {
+        defaulted: fmDefaulted, scope: 'lecture', reportLine: ln,
+        onTag: (kind, tag) => fmTagDefaults.push({ kind, tag: tag.slice(1), ln }),
+      });
+    }
+  }
 
   const ids = new Map();
   const columns = [];
@@ -652,7 +722,7 @@ function lintFile(filePath) {
     // the chunks are.
     if (diagram) {
       if (/^:::\s*$/.test(line)) {
-        lintDiagram(diagram, add, fmLines);
+        lintDiagram(diagram, add, fmLines, lectureTags);
         diagram = null;
       } else {
         diagram.lines.push({ text: line, ln });
@@ -960,6 +1030,16 @@ function lintFile(filePath) {
       add(openLine, 'warn', 'unclosed-math',
           'display math opened with `$$` is never closed – everything after it renders as one formula');
     }
+  }
+
+  // The lecture-level counterpart of "no element carries @tag". A block-level
+  // tag default has to be used in its block; a lecture-level one has to be
+  // used somewhere in the lecture, and the whole file has now been walked.
+  for (const d of fmTagDefaults) {
+    if (lectureTags.has(d.tag)) continue;
+    addFm(d.ln, 'error', 'unknown-diagram-tag',
+      `diagram-defaults: 'default ${d.kind} @${d.tag}' – no diagram in this lecture carries @${d.tag}`
+      + (lectureTags.size ? ` (tags in use: ${[...lectureTags].sort().map(t => '@' + t).join(', ')})` : ''));
   }
 
   return findings;

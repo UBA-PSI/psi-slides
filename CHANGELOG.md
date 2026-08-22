@@ -54,6 +54,19 @@ from building the same way is a major version.
   default in the same slot rather than stacking with it. `same as
   <element>` copies another element's width and height.
 
+  The same statements can be written **once for the whole lecture** in a
+  `diagram-defaults` frontmatter key, so a series of figures looks like
+  itself without repeating four lines in every block – and changing the
+  look is one edit instead of twelve. Four layers now, most specific last:
+  the lecture's kind default, the lecture's tag default, the block's kind
+  default, the block's tag default, then the element's own attributes.
+  Scope before selector, because "closer to the element wins" is the model
+  everywhere else here. Anything but a `default` statement in the key is
+  an error naming the line even when no diagram uses it, and a
+  lecture-level `default <kind> @tag` has to be used somewhere in the
+  lecture – one scope wider than a block's, since it is written once for
+  twelve figures most of which will not carry the tag.
+
   `image <name> <asset>` puts a picture in a diagram, resolved like the
   `![](fig-id)` shorthand. A vector asset is spliced as a nested `<svg>`
   and follows the `A` theme cycle; a raster is a `data:` URI and keeps
