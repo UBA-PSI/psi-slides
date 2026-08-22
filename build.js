@@ -1759,14 +1759,35 @@ function parseLecture(src) {
     bodyLines = [];
   };
 
+  // Where each line starts in source.md, frontmatter included. A diagram
+  // block carries the byte range of its body into the output (§11.4 of
+  // editor.md), which is what the editor patches through the watch socket –
+  // and getting it wrong does not throw, it writes into the wrong part of
+  // the file. matter() hands back `content` with the frontmatter already
+  // stripped, so an offset into it is not an offset into the file; fmOffset
+  // is the difference, measured rather than assumed.
+  let fmOffset = src.length - content.length;
+  if (src.slice(fmOffset) !== content) {
+    const at = src.indexOf(content);
+    fmOffset = at >= 0 ? at : 0;
+  }
+  let lineAt = 0;
   for (const line of content.split('\n')) {
+    const lineStart = lineAt;
+    lineAt += line.length + 1;
     // A diagram body is its own little language, so it is captured
     // verbatim – ahead of the fence tracker, the note matcher and the
     // directive table. Nothing inside it is markdown.
     if (diagramBlock) {
       if (/^:::\s*$/.test(line)) {
         const target = currentExpansion ? currentExpansion.lines : bodyLines;
-        target.push('', renderDiagram(diagramBlock.lines.join('\n'), diagramBlock.attrs, {
+        const dgBody = diagramBlock.lines.join('\n');
+        target.push('', renderDiagram(dgBody, diagramBlock.attrs, {
+          // The block body's byte range in source.md. Emitted with the
+          // diagram so the editor can patch exactly those bytes back.
+          range: [diagramBlock.bodyAt, diagramBlock.bodyAt + dgBody.length],
+          chunk: currentChunk ? currentChunk.id : null,
+          width: currentChunk ? currentChunk.width : null,
           where: currentChunk && currentChunk.id ? `chunk #${currentChunk.id}` : 'a chunk with no id',
           alt: currentChunk ? currentChunk.heading : '',
           base: diagramBase,
@@ -1921,7 +1942,7 @@ function parseLecture(src) {
         // the body is not markdown and must not be parsed as any.
         const diagramOpen = line.match(/^:::\s+diagram\s*(?:\{([^}]*)\})?\s*$/);
         if (diagramOpen) {
-          diagramBlock = { attrs: diagramOpen[1] || '', lines: [] };
+          diagramBlock = { attrs: diagramOpen[1] || '', lines: [], bodyAt: fmOffset + lineAt };
           continue;
         }
         // Explicit-slide mode (§4.5). These two are the escape hatch from

@@ -318,7 +318,18 @@ export function dgHasFill(classes) {
 // an editor writing back into the source only ever rewrites the tokens it
 // changed.
 
-export function dgTokenize(line) {
+// `base` is the offset of this line inside the block body, so every token
+// carries `[s, e)` – where it sits in the *source*, not just what it says.
+// That is the whole of phase 2 of the editor: an edit is then "replace this
+// span with that text", the smallest rewrite that answers a drag, and the
+// relation the author wrote survives it. Carried through rather than added
+// as a second pass, because this loop already walks the line character by
+// character and a second walk is a second thing to get wrong.
+//
+// The spans cover the token *as written*: a quoted label includes its quotes
+// and an attribute tail includes its braces, so replacing the span with new
+// text of the same shape is always legal.
+export function dgTokenize(line, base = 0) {
   const out = [];
   let i = 0;
   while (i < line.length) {
@@ -335,20 +346,20 @@ export function dgTokenize(line) {
         }
         buf += line[j++];
       }
-      out.push({ q: true, v: buf });
+      out.push({ q: true, v: buf, s: base + i, e: base + Math.min(j + 1, line.length) });
       i = j + 1;
       continue;
     }
     if (ch === '{') {
       const end = line.indexOf('}', i);
-      if (end < 0) { out.push({ v: line.slice(i) }); break; }
-      out.push({ attr: true, v: line.slice(i + 1, end) });
+      if (end < 0) { out.push({ v: line.slice(i), s: base + i, e: base + line.length }); break; }
+      out.push({ attr: true, v: line.slice(i + 1, end), s: base + i, e: base + end + 1 });
       i = end + 1;
       continue;
     }
     let j = i;
     while (j < line.length && !/[\s"{]/.test(line[j])) j++;
-    out.push({ v: line.slice(i, j) });
+    out.push({ v: line.slice(i, j), s: base + i, e: base + j });
     i = j;
   }
   return out;
@@ -447,7 +458,12 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
     // connector actually wants. Chaining `right of` through a spacer works
     // but states the wrong thing: it says "after A" when the author means
     // "between A and B", and it comes apart the moment either box resizes.
-    const STOP = new Set(['frac', 'offset', 'w', 'h', 'r', '->']);
+    // Every token that can follow the member list, or one of them is read
+    // as a member name: `between a,b pad 0.3` on a text used to parse `pad`
+    // and `0.3` as two more elements and then complain that `0.3` is not
+    // an anchor. The list is the placement's own options plus every
+    // trailing option the element statements accept.
+    const STOP = new Set(['frac', 'offset', 'w', 'h', 'r', 'pad', 'same', '->']);
     let mEnd = k + 1;
     while (mEnd < toks.length && !STOP.has(toks[mEnd].v)) mEnd++;
     const refs = toks.slice(k + 1, mEnd).map(x => x.v).join(',')
@@ -504,6 +520,15 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
       continue;
     }
     break;
+  }
+  // Where the placement expression sits in the source. The editor needs the
+  // *end* of it: `gap`, `align`, `offset` and `frac` are options of this
+  // expression, and appending one to the end of the line puts it after
+  // `w`/`same as`, where the parser no longer reads it as part of the
+  // placement. Recorded here because this is the only code that knows how
+  // far the expression ran.
+  if (place && toks[k] && toks[next - 1]) {
+    place.span = [toks[k].s, toks[next - 1].e];
   }
   return [place, next];
 }
@@ -605,7 +630,7 @@ export function dgDefaultLayers(model, kind, tags) {
 // Factored out because the same statement is now legal in two places: inside
 // a block, and in the lecture's `diagram-defaults` frontmatter key. Two
 // parsers for one line is how the two would eventually disagree.
-export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope) {
+export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) {
   const kind = body0[1] ? body0[1].v : '';
   if (!DG_DEFAULT_KINDS.has(kind)) {
     dgErr(errors, lineNo, `default expects one of ${[...DG_DEFAULT_KINDS].join(', ')}, got "${kind}"`);
@@ -623,7 +648,7 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope) {
     dgErr(errors, lineNo, `a second "default ${kind}${tagTok ? ' @' + tagTok : ''}" – there can only be one per ${scope} (the first is on line ${slot.line})`);
     return null;
   }
-  const def = { kind, tag: tagTok, classes: attrs.classes, w: null, h: null, r: null, pad: null, side: null, line: lineNo };
+  const def = { kind, tag: tagTok, classes: attrs.classes, w: null, h: null, r: null, pad: null, side: null, line: lineNo, span };
   const opts = DG_KIND_OPTS[kind];
   const rest = body0.slice(tagTok ? 3 : 2);
   for (let k = 0; k < rest.length; k++) {
@@ -864,6 +889,268 @@ export function dgPathD(nums) {
 // Compile one ::: diagram block into an inline <svg> plus, when it has
 // steps, the per-step geometry the live runtime tweens between.
 
+
+// ── source spans ────────────────────────────────────────────────────
+// Given a compiled model and the block body it came from, answer one
+// question: **which characters do I replace to change this?**
+//
+// That is the whole interface between the editor's gestures and the source.
+// A drag decides that `gap` should be 0.62 instead of 0.55; `spanOf(id,
+// 'gap')` says where 0.55 is written, and the edit is a splice. Nothing else
+// in the source moves, so the relation the author wrote – `right of reg` –
+// survives a gesture that in a coordinate-based tool would have replaced it
+// with two numbers.
+//
+// The result is uniform whether or not the attribute is there yet:
+//
+//   { start, end, prefix, suffix, present, text }
+//
+// and applying it is always the same splice:
+//
+//   body.slice(0, start) + prefix + value + suffix + body.slice(end)
+//
+// For an attribute that is present, `prefix` and `suffix` are empty and
+// [start, end) is the token. For one that is absent, start === end is where
+// it should go and `prefix` carries the keyword. One shape, no branch at the
+// call site – which matters, because the call site is a drag handler and
+// every branch there is a place for the two cases to drift apart.
+
+const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'align'];
+
+// The x and y halves of a `dx,dy` token, and the signed nudge inside a
+// coordinate component. Sub-token arithmetic on the token's own text, because
+// a coordinate is one token by construction: `mix.cx+0.2` has no spaces in
+// it, which is exactly what makes it replaceable in one splice.
+function dgSplitPair(tok) {
+  const comma = tok.v.indexOf(',');
+  if (comma < 0) return null;
+  return {
+    x: { start: tok.s, end: tok.s + comma, text: tok.v.slice(0, comma) },
+    y: { start: tok.s + comma + 1, end: tok.e, text: tok.v.slice(comma + 1) },
+  };
+}
+
+// The `+0.2` in `mix.cx+0.2`, or the empty slot after `mix.cx` where one
+// would go. Null when the component is a bare number – there is no relation
+// to preserve there, so the editor rewrites the number itself.
+function dgNudgeSlot(part) {
+  const m = String(part.text).match(/^([A-Za-z_][\w-]*\.[a-z]+)([+-][\d.]+)?$/);
+  if (!m) return null;
+  if (m[2]) {
+    return { start: part.end - m[2].length, end: part.end, prefix: '', suffix: '',
+             present: true, text: m[2], value: m[2] };
+  }
+  const at = part.start + m[1].length;
+  return { start: at, end: at, prefix: '', suffix: '', present: false, text: '', value: '' };
+}
+
+export function createSpanTable(model, body) {
+  const src = String(body);
+  const byId = new Map();
+  for (const el of [...model.nodes, ...model.edges, ...model.containers, ...model.braces]) {
+    byId.set(el.id, el);
+  }
+
+  const toksOf = (el) => {
+    if (!el || !el.span) return [];
+    return dgTokenize(src.slice(el.span[0], el.span[1]), el.span[0]);
+  };
+
+  // Where a new trailing option goes. Before the attribute tail when there is
+  // one – appending after it is legal, since the tail is lifted out wherever
+  // it sits, but `box a "x" below b {.tone-1} gap 0.6` reads like a mistake
+  // and the author has to live in this file.
+  const tailInsert = (el, toks) => {
+    const attr = toks.find(x => x.attr);
+    if (!attr) return el.span[1];
+    // Just after the last non-space character before the tail, so the new
+    // option lands with one space either side however the author spaced the
+    // line. Assuming exactly one space ate a quote on a line written
+    // "label"{.cls} with no gap.
+    let at = attr.s;
+    while (at > el.span[0] && /\s/.test(src[at - 1])) at--;
+    return at;
+  };
+
+  // `gap`, `align`, `frac` and `offset` are options of the *placement
+  // expression*, not of the statement, so they have to go where that
+  // expression ends. Appending them to the end of the line puts them after
+  // `w 0.62` or `same as uaf`, and the parser stops reading placement
+  // options the moment it leaves the expression – the line then fails to
+  // build. Anything else (`w`, `h`, `r`, `pad`, `same as`) the statement
+  // accepts anywhere, so it goes before the attribute tail where it reads
+  // best.
+  const PLACEMENT_OPTS = new Set(['gap', 'align', 'frac', 'offset']);
+  const optionInsert = (el, toks, attr) => {
+    if (!PLACEMENT_OPTS.has(attr)) return tailInsert(el, toks);
+    // No span means the placement is the implicit origin the first element
+    // gets for free. There is nothing in the source to hang an option off,
+    // so the caller has to write the placement itself first – spanOf returns
+    // null and the editor asks for 'place'.
+    return el.place && el.place.span ? el.place.span[1] : null;
+  };
+
+  // `text` is always the raw source of the span, so applySpan(sp, sp.text)
+  // is the identity – which is the property the round-trip check asserts and
+  // the one an editor leans on when it rewrites a token it did not change.
+  // `value` is what the token *means*, which for a quoted label is the
+  // decoded string and for an attribute tail is what is between the braces.
+  // Conflating the two is how a label round-trips without its quotes.
+  const hit = (start, end, value) =>
+    ({ start, end, prefix: '', suffix: '', present: true, text: src.slice(start, end), value });
+  const gap = (at, prefix, suffix = '') =>
+    ({ start: at, end: at, prefix, suffix, present: false, text: '', value: '' });
+
+  function spanOf(id, attr) {
+    const el = byId.get(id);
+    if (!el || !el.span) return null;
+    const toks = toksOf(el);
+    const find = (word) => toks.findIndex(x => !x.q && !x.attr && x.v === word);
+
+    if (attr === 'line') return hit(el.span[0], el.span[1], src.slice(el.span[0], el.span[1]));
+
+    if (attr === 'label') {
+      const q = toks.find(x => x.q);
+      if (q) return hit(q.s, q.e, q.v);
+      // A label goes straight after the element's name, which is the second
+      // token of every statement that can carry one.
+      const at = toks[1] ? toks[1].e : el.span[1];
+      return gap(at, ' "', '"');
+    }
+
+    // The three attribute-tail questions all address the tail, and that is
+    // deliberate: `{#id .cls @tag}` is one token, order inside it is free,
+    // and an editor adding a tag rebuilds it from the model rather than
+    // splicing into the middle of it. Splitting the span three ways would
+    // buy a smaller diff and cost the guarantee that the result parses.
+    if (attr === 'classes' || attr === 'tags' || attr === 'id') {
+      const a = toks.find(x => x.attr);
+      if (a) return hit(a.s, a.e, a.v);
+      return gap(el.span[1], ' {', '}');
+    }
+
+    // The whole placement expression – `at 3,2`, `right of a gap 0.6`,
+    // `between a,b frac 0.3`. This is what a drag rewrites when it changes
+    // the *kind* of placement, and the only way to give the first element
+    // (which sits at the origin for free) a placement at all.
+    if (attr === 'place') {
+      const p = el.place;
+      if (p && p.span) return hit(p.span[0], p.span[1], src.slice(p.span[0], p.span[1]));
+      return gap(tailInsert(el, toks), ' ');
+    }
+
+    if (attr === 'same-as') {
+      const k = find('same');
+      if (k >= 0 && toks[k + 2]) return hit(toks[k + 2].s, toks[k + 2].e, toks[k + 2].v);
+      return gap(tailInsert(el, toks), ' same as ');
+    }
+
+    if (DG_KEYED_ATTRS.includes(attr)) {
+      const k = find(attr);
+      if (k >= 0 && toks[k + 1]) return hit(toks[k + 1].s, toks[k + 1].e, toks[k + 1].v);
+      const at = optionInsert(el, toks, attr);
+      return at == null ? null : gap(at, ` ${attr} `);
+    }
+
+    if (attr === 'offset' || attr === 'offset.x' || attr === 'offset.y') {
+      const k = find('offset');
+      if (k >= 0 && toks[k + 1]) {
+        const t = toks[k + 1];
+        if (attr === 'offset') return hit(t.s, t.e, t.v);
+        const parts = dgSplitPair(t);
+        if (!parts) return hit(t.s, t.e, t.v);
+        const half = attr === 'offset.x' ? parts.x : parts.y;
+        return hit(half.start, half.end, half.text);
+      }
+      const at = optionInsert(el, toks, 'offset');
+      if (at == null) return null;
+      if (attr === 'offset.x') return gap(at, ' offset ', ',0');
+      if (attr === 'offset.y') return gap(at, ' offset 0,');
+      return gap(at, ' offset ');
+    }
+
+    if (attr.startsWith('at')) {
+      const k = find('at');
+      if (k < 0 || !toks[k + 1]) return null;
+      const t = toks[k + 1];
+      if (attr === 'at') return hit(t.s, t.e, t.v);
+      const parts = dgSplitPair(t);
+      if (!parts) return null;
+      const half = attr.startsWith('at.x') ? parts.x : parts.y;
+      if (attr === 'at.x' || attr === 'at.y') return hit(half.start, half.end, half.text);
+      if (attr === 'at.x.nudge' || attr === 'at.y.nudge') return dgNudgeSlot(half);
+      return null;
+    }
+
+    return null;
+  }
+
+  // The statement that owns a coordinate the editor cannot move directly:
+  // `align y middle a, b, c` and `spread x a, …, z` are the two, and the
+  // refusal in §9.3 has to name the line rather than silently breaking the
+  // set. Returns the align/spread record, or null.
+  function constrainedBy(id, axis) {
+    for (const a of model.aligns) {
+      if (a.axis === axis && a.members.indexOf(id) > 0) return { kind: 'align', ...a };
+    }
+    for (const s of model.spreads) {
+      const k = s.members.indexOf(id);
+      if (s.axis === axis && k > 0 && k < s.members.length - 1) return { kind: 'spread', ...s };
+    }
+    return null;
+  }
+
+  // Every statement that names an element, for the reference list a delete
+  // owes the author (§9.3). Ids, not spans: what the author needs first is
+  // "three lines refer to this", and the lines are what they are shown.
+  function referencesTo(id) {
+    const out = [];
+    const note = (line, what) => out.push({ line, what });
+    for (const n of model.nodes) {
+      if (n.id === id) continue;
+      const p = n.place;
+      const refs = p && p.kind === 'rel' ? [p.ref]
+        : p && p.kind === 'between' ? p.refs.map(r => r.ref)
+        : p && p.kind === 'abs' ? dgPairRefs(p.at) : [];
+      if (refs.includes(id)) note(n.line, `${n.kind} ${n.id} is placed against it`);
+      if (n.sameAs === id) note(n.line, `${n.kind} ${n.id} takes its size from it (same as)`);
+    }
+    for (const e of model.edges) {
+      if (e.id === id) continue;
+      if ((!e.from.point && e.from.ref === id) || (!e.to.point && e.to.ref === id)) {
+        note(e.line, `edge ${e.id} ends on it`);
+      }
+    }
+    for (const c of [...model.containers, ...model.braces]) {
+      if (c.members.includes(id)) note(c.line, `${c.kind} ${c.id} holds it`);
+    }
+    for (const a of model.aligns) {
+      if (a.members.includes(id)) note(a.line, `align ${a.axis} ${a.edge}`);
+    }
+    for (const s of model.spreads) {
+      if (s.members.includes(id)) note(s.line, `spread ${s.axis}`);
+    }
+    for (const st of model.steps) {
+      for (const op of st.ops) {
+        const targets = op.targets || (op.target ? [op.target] : []);
+        if (targets.includes(id)) note(op.line, `step ${st.name}: ${op.op}`);
+      }
+    }
+    return out;
+  }
+
+  // Apply one span answer. Kept here rather than in the editor because the
+  // shape of the answer and the way it is applied are one decision, and a
+  // second implementation of this three-line splice is a second place for an
+  // off-by-one.
+  function applySpan(span, value) {
+    if (!span) return src;
+    return src.slice(0, span.start) + span.prefix + value + span.suffix + src.slice(span.end);
+  }
+
+  return { spanOf, applySpan, constrainedBy, referencesTo, elementIds: () => [...byId.keys()] };
+}
+
 // ── the injected leaves ─────────────────────────────────────────────
 // Four things the compiler needs that it cannot do itself, because they read
 // the disk or know about the page. Node passes its fs-based versions; the
@@ -949,12 +1236,20 @@ export function createDiagramCompiler(env = {}) {
     let step = null;
     let anonEdge = 0;
 
+    // Where each line starts inside the block body. The tokenizer is given
+    // the offset of the *trimmed* line, so every token's span points at the
+    // real source and an editor can replace it in place. `span` on a
+    // statement is the trimmed line itself – see createSpanTable.
+    let lineAt = 0;
     for (let n = 0; n < lines.length; n++) {
       const raw = lines[n];
       const lineNo = n + 1;
       const trimmed = raw.trim();
+      const indent = raw.length - raw.replace(/^\s+/, '').length;
+      const span = [lineAt + indent, lineAt + indent + trimmed.length];
+      lineAt += raw.length + 1;
       if (!trimmed || trimmed.startsWith('#')) continue;
-      const toks = dgTokenize(trimmed);
+      const toks = dgTokenize(trimmed, span[0]);
       const head = toks[0].v;
       const t = (i) => (toks[i] ? toks[i].v : '');
       const attrTok = toks.find(x => x.attr);
@@ -964,7 +1259,7 @@ export function createDiagramCompiler(env = {}) {
 
       // Inside a `step` block, everything indented is an operation on it.
       if (step && head !== 'step' && DG_STEP_OPS.has(head)) {
-        const op = { op: head, line: lineNo };
+        const op = { op: head, line: lineNo, span };
         if (head === 'show' || head === 'hide' || head === 'emph' || head === 'calm') {
           op.targets = dgParseMembers(body0.slice(1).map(x => x.v).join(','));
         } else if (head === 'style') {
@@ -1029,23 +1324,23 @@ export function createDiagramCompiler(env = {}) {
           }
           const members = dgParseMembers(body0.slice(3).map(x => x.v).join(','));
           if (members.length < 2) { dgErr(errors, lineNo, `align ${axis} ${edge} needs at least two elements`); continue; }
-          model.aligns.push({ edge, axis, members, line: lineNo });
+          model.aligns.push({ edge, axis, members, line: lineNo, span });
         } else {
           const members = dgParseMembers(body0.slice(2).map(x => x.v).join(','));
           if (members.length < 3) { dgErr(errors, lineNo, `spread ${axis} needs at least three elements – the first and last stay put and the rest are distributed between them`); continue; }
-          model.spreads.push({ axis, members, line: lineNo });
+          model.spreads.push({ axis, members, line: lineNo, span });
         }
         continue;
       }
 
       if (head === 'default') {
-        dgReadDefault(body0, attrs, lineNo, errors, layer, scopeWord);
+        dgReadDefault(body0, attrs, lineNo, errors, layer, scopeWord, span);
         continue;
       }
 
       if (head === 'step') {
         const name = t(1) || `step-${model.steps.length + 1}`;
-        step = { name, ops: [], line: lineNo };
+        step = { name, ops: [], line: lineNo, span };
         model.steps.push(step);
         continue;
       }
@@ -1062,13 +1357,18 @@ export function createDiagramCompiler(env = {}) {
         const isImage = head === 'image';
         const src = isImage ? t(2) : null;
         if (isImage && !src) dgErr(errors, lineNo, `image ${id} needs an asset (a fig-id, a path or a URL)`);
-        const rest = body0.slice(isImage ? 3 : 2).map(x => ({ v: x.v }));
+        // `s`/`e` are carried through: dgParsePlacement records where the
+        // placement expression ends, and an editor inserting `gap` or
+        // `offset` has to put it *there* rather than at the end of the
+        // line – a placement option after `w 0.62` is not part of the
+        // placement any more, and the build rejects it.
+        const rest = body0.slice(isImage ? 3 : 2).map(x => ({ v: x.v, s: x.s, e: x.e }));
         let k = 0;
         const node = {
           kind: head, id, label: isImage ? '' : (quoted[0] ?? ''),
           alt: isImage ? (quoted[0] ?? '') : '',
           src, classes: attrs.classes, tags: attrs.tags, place: null,
-          w: null, h: null, r: null, pad: null, line: lineNo,
+          w: null, h: null, r: null, pad: null, line: lineNo, span,
         };
         if (isImage && src) {
           const found = resolveImage(src);
@@ -1118,7 +1418,11 @@ export function createDiagramCompiler(env = {}) {
         // goes – silently stacking two elements on 0,0 is not a default
         // anyone means.
         if (!node.place) {
-          if (model.nodes.length === 0) node.place = { kind: 'abs', at: [{ unit: 0 }, { unit: 0 }] };
+          // `implicit` because nothing in the source says it: there is no
+          // span to rewrite, so an editor that wants to nudge this element
+          // has to write the placement out first. spanOf says so rather
+          // than handing back an insertion point that would not parse.
+          if (model.nodes.length === 0) node.place = { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] };
           else dgErr(errors, lineNo, `${head} ${id} has no placement (at X,Y / below … / above … / right of … / left of … )`);
         }
         model.nodes.push(node);
@@ -1135,7 +1439,7 @@ export function createDiagramCompiler(env = {}) {
             id: leadId,
             from: { ref: id, anchor: null },
             to,
-            label: '', classes: ['no-head', 'muted'], via: [], line: lineNo,
+            label: '', classes: ['no-head', 'muted'], via: [], line: lineNo, span,
           });
         }
         continue;
@@ -1157,7 +1461,7 @@ export function createDiagramCompiler(env = {}) {
           label: quoted[0] ?? '',
           classes: attrs.classes.slice(),
           tags: attrs.tags,
-          via: [], line: lineNo,
+          via: [], line: lineNo, span,
         };
         if (body0[arrowAt].v === '--' && !edge.classes.includes('no-head')) edge.classes.push('no-head');
         // Waypoints are introduced by `via`, once, and it is not optional: every
@@ -1202,7 +1506,7 @@ export function createDiagramCompiler(env = {}) {
         // outline sits from what it encloses. The brace used to spell it
         // `gap`, which is the word for the distance between two *elements*
         // everywhere else in the grammar.
-        const item = { kind: head, id, members, label: quoted[0] ?? '', classes: attrs.classes, tags: attrs.tags, pad: null, line: lineNo };
+        const item = { kind: head, id, members, label: quoted[0] ?? '', classes: attrs.classes, tags: attrs.tags, pad: null, line: lineNo, span };
         if (head === 'brace') item.side = null;
         for (let k = 0; k < rest.length; k++) {
           const key = rest[k].v;
@@ -1887,6 +2191,25 @@ export function createDiagramCompiler(env = {}) {
       || `<rect id="${id}" class="dg-missing"${geo}/>`;
   }
 
+  // What the browser needs to re-emit an image without a filesystem: for each
+  // asset the diagram references, the markup the build already produced, with
+  // the element id and the geometry lifted out as placeholders. Keyed by the
+  // asset reference rather than by element id, so the editor can also place a
+  // *new* image using an asset the lecture already carries.
+  //
+  // This is the browser half of the `assetMarkup` leaf, and building it from
+  // the same call the build makes is what keeps a re-render byte-identical.
+  function imageTable(model) {
+    const out = {};
+    for (const n of model.nodes) {
+      if (n.kind !== 'image' || !n.asset || out[n.src]) continue;
+      const probe = assetMarkup(n, '\u0000ID\u0000', '\u0000GEO\u0000');
+      if (!probe) continue;
+      out[n.src] = { markup: probe, aspect: n.aspect ?? null };
+    }
+    return out;
+  }
+
   function renderDiagram(body, headAttrs, opts = {}) {
     const { model, errors } = parseDiagramSource(body, headAttrs, opts.base);
     // A lecture-level `default <kind> @tag` is written once for twelve
@@ -2101,7 +2424,25 @@ export function createDiagramCompiler(env = {}) {
         + JSON.stringify(payload).replace(/</g, '\\u003c') + '</script>'
       : '';
     const hint = frameCount > 1 ? '<figcaption class="dg-hint"></figcaption>' : '';
-    return `<figure class="figure-diagram">${svg}${hint}${script}</figure>`;
+    // The block's own source, riding along with the picture it compiled to.
+    // The editor opens a figure by parsing this and re-running this same
+    // compiler; `range` is where those bytes live in source.md, which is what
+    // a write-back patches and what makes the whole round trip checkable.
+    //
+    // Emitted into print as well, and that is fine: a diagram body is a few
+    // hundred bytes to a couple of kilobytes, and stripping it per view would
+    // mean compiling every diagram twice. renderDiagram is called once, at
+    // parse time, and its HTML goes into all four views.
+    const srcPayload = `<script type="application/json" class="psi-diagram-source" data-for="${svgId}">`
+      + JSON.stringify({
+        body: String(body),
+        attrs: String(headAttrs || ''),
+        range: opts.range || null,
+        chunk: opts.chunk || null,
+        width: opts.width || null,
+        images: imageTable(model),
+      }).replace(/</g, '\\u003c') + '</script>';
+    return `<figure class="figure-diagram">${svg}${hint}${script}${srcPayload}</figure>`;
   }
 
 

@@ -1295,3 +1295,80 @@ Verified (§11.8's row for phase 1):
 - `release.yml` needs no change – it stages `git archive HEAD`, so a new
   tracked file is in the tarball automatically. Its comment listing what is
   in the archive was updated anyway.
+
+### Phase 2 – spans · **done**
+
+Every token now carries `[s, e)` into the block body, every statement carries
+the span of its own line, and `createSpanTable(model, body)` answers the one
+question the editor asks: **which characters do I replace to change this?**
+
+The answer has one shape whether or not the attribute is there yet:
+
+```js
+{ start, end, prefix, suffix, present, text, value }
+// applying it is always
+body.slice(0, start) + prefix + value + suffix + body.slice(end)
+```
+
+For a present attribute `[start, end)` is the token and prefix/suffix are
+empty; for an absent one `start === end` is where it goes and `prefix` carries
+the keyword. One shape, no branch at the call site – and the call site is a
+drag handler, where every branch is a place for the two cases to drift apart.
+
+`text` is always the **raw source** of the span, so `applySpan(sp, sp.text)`
+is the identity; `value` is what the token *means* (a decoded label, the
+contents of an attribute tail). Conflating the two is how a label round-trips
+without its quotes, which is exactly what the first run of the check found.
+
+The table also carries two things §9.3 needs and nothing else provides:
+`constrainedBy(id, axis)` – the `align`/`spread` statement that owns a
+coordinate, so the refusal can name the line – and `referencesTo(id)`, the
+list a delete owes the author.
+
+**The round-trip check found three real defects, and only one was a span bug.**
+
+1. **An inserted placement option at end-of-line does not parse.** `gap`,
+   `align`, `frac` and `offset` are options of the *placement expression*,
+   and the parser stops reading them the moment the expression ends. Append
+   ` offset 0.19,0` to `box tobj "object" right of tlab gap 0.7 w 0.62` and
+   the build says `unexpected "offset"`. So `dgParsePlacement` now records
+   `place.span`, and the table inserts a placement option **there** rather
+   than at the end of the line. This is the kind of thing that would have
+   shipped as "the editor sometimes writes a block that will not compile".
+2. **`between a,b pad 0.3` mis-parsed.** The member scan stopped at
+   `frac`/`offset`/`w`/`h`/`r`/`->` but not at `pad` or `same`, so `pad` and
+   `0.3` were read as two more member names and the error was
+   `unknown anchor .3 on "0"`. A pre-existing hole that phase 0b widened by
+   giving `text` a `pad`. Fixed in the STOP set.
+3. **The first element's placement is implicit.** It gets `at 0,0` for free
+   and there is nothing in the source to hang an option off, so a placement
+   option there had no insertion point. The placement is marked `implicit`
+   and `spanOf` returns **null** rather than an offset that would not parse;
+   the editor asks for `place` instead, which is the whole expression and is
+   what a drag rewrites when it changes the *kind* of placement anyway.
+
+Also landed here because it is the same deliverable: **the block's byte range
+in `source.md`**, and the payload that carries it into the page.
+`parseLecture` tracks line offsets and adds `fmOffset`, which is **measured,
+not assumed** – `matter()` strips the frontmatter, so an offset into `content`
+is not an offset into the file, and the plan's warning about that was worth
+heeding: getting it wrong does not throw, it writes into the wrong part of a
+source file. Each figure now carries
+`<script class="psi-diagram-source">{body, attrs, range, chunk, width,
+images}</script>`, and `images` is the browser half of the `assetMarkup` leaf:
+the markup the build already emitted, with the id and geometry lifted out as
+placeholders, keyed by asset reference so the editor can also place a *new*
+image using an asset the lecture already carries.
+
+Verified:
+
+- **2,564 spans across 12 blocks and 184 elements round-trip byte-identically.**
+- **707 edits applied through the table**: every numeric attribute replaced
+  with a new value where present and inserted where absent, then re-parsed –
+  all compile, and the model reads back exactly what was written.
+- all 12 emitted `range`s slice their block body out of `source.md` exactly.
+- all three lectures build, `lint --strict` clean. The payload costs 508 bytes
+  in the tutorial and 14.5 KB across the eleven figures of `lectures/diagrams`.
+
+The two scripts are in the scratchpad (`spans-roundtrip.mjs`, `spans-edit.mjs`)
+and are the ones to re-run after touching the parser or the table.
