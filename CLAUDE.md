@@ -41,6 +41,10 @@ node build.js <source.md> --optimize-images              # apply (assets >= 512 
 node build.js <source.md> --optimize-images --all        # every referenced raster
 node build.js <source.md> --optimize-images --max-width 2600   # also downscale
 
+# diagrams need no flag either: a ::: diagram block compiles to inline SVG
+# at build time, and its `step` blocks become beats on the reveal counter.
+# See "Animated infographics" below and lectures/diagrams/source.md.
+
 # math needs no flag: $inline$ and $$display$$ render via KaTeX during the
 # build. The KaTeX stylesheet plus the font families the formulas use are
 # inlined only into views that contain math; the build logs the payload.
@@ -209,6 +213,30 @@ Three decisions worth keeping:
 
 Play, pause and seek are **synced between the windows** (`type: 'video'`, addressed by `data-fig-id`, not by index, so reordering a chunk cannot mis-target it). Gated by the freeze flag like any other broadcast, so a lecturer can preview a clip on a frozen projection. `applyingRemoteVideo` suppresses the echo: applying a remote play fires a local `play` event that would otherwise bounce straight back.
 
+### Animated infographics (`::: diagram`)
+
+**Experimental for one minor cycle.** The vocabulary below is small on purpose and may still change before it is frozen under the 1.0 source-format contract; say so in the release notes until it is.
+
+A boxes-and-arrows compiler. The source is a line-oriented DSL inside the lecture markdown, the output is one inline `<svg>` plus, when the author wrote steps, a payload of precomputed per-step geometries the live runtime tweens between. `renderDiagram()` is the entry point; the section is navigable by its own sub-banners between `// ── diagrams (::: diagram) ──` and `// ── parsing ──`.
+
+Three decisions carry the design, and none of them should be traded away casually:
+
+- **No constraint solver.** Positions are expressions over a tiny algebra – a grid cell, an anchor on another element, an offset – so the dependency structure is a DAG resolved by one topological walk. Andrew Myers' [Constrain](https://github.com/andrewcmyers/constrain) is the reference for the other approach (Numeric.js least-squares over `align`/`equal`/`collinear`, rendered to canvas) and it is the right tool for *computed* layouts – tree rotations, sorting animations. It is the wrong tool here on three counts: canvas forfeits theme inheritance, text selection, search and print; a runtime solver is a dependency inside a file that is supposed to be self-contained; and solver failure is non-local – an over-constrained system renders plausibly wrong and reports a residual instead of a line number. `lint.js` can name the line.
+- **Layout runs once per step, at build time.** A step is not a transform applied to a finished picture, it is another evaluation of the same layout with different inputs. That is the whole reason an arrow stays attached to a box that walks away: the arrow never stored a coordinate, it stored "the right edge of `mix`". `dgStateAt(model, k)` builds the effective state after steps `0..k`; `layoutDiagram` resolves it; `dgFrameDrawables` reduces it to numbers.
+- **The runtime interpolates numbers and nothing else.** Every element reduces to one or two drawables, and a drawable is only ever a `rect`, a `circle`, a `path` or a block of `text` carrying a numeric vector. A transition is a lerp between two vectors, applied by setting attributes from `requestAnimationFrame`. This is also why **arrowheads are computed filled paths, not SVG `<marker>`s** – a marker will not rotate with a moving endpoint, and its fill would have to resolve through `context-stroke` to follow the theme.
+
+Consequences worth not breaking:
+
+- **Steps ride the existing reveal counter.** `chunkBeats(el)` walks the chunk in document order and returns the reveal segments after the first, plus one beat per diagram step. `revealed[chunkId]` stays the only state involved, so sync, the freeze gate, the backward-navigation rule ("a revisited chunk shows fully revealed"), and localStorage recovery all came for free. `countSegments` now returns *positions* (beats + 1), which is the convention `jumpTo` and `advanceReveal` were already written against. Document order also gets the interleaving right: a diagram inside segment 1 only advances once segment 1 is up.
+- **An edge is only as visible as its endpoints.** An arrow pointing at a box that has not appeared yet is never what the author meant, so most edges need no `show` of their own – revealing the boxes reveals the arrows between them.
+- **Print is the union, at the last position, without the emphasis.** Every element the diagram ever shows appears in the handout, drawn where it last stood – the same rule reveal segments follow (PRD §4.6). `emph` and `dim` are stripped: they are lecture-time acts, and a handout that arrives with three arrows greyed out is reporting a moment in the talk rather than the diagram. The static attributes in the emitted SVG *are* the print state, so a view with no JavaScript shows the finished picture rather than its opening beat.
+- **Label changes are pre-rendered variants, not text surgery.** A `label` step toggles between `<g>`s that were typeset at build time, which keeps every trace of typesetting out of the runtime.
+- **Text width is estimated, not measured.** There is no browser at build time, so `dgMeasure` uses a per-character advance table, tuned slightly generous (a box wider than its text reads as designed; narrower reads as broken). An explicit `w` that cannot hold its own label emits a `[diagram]` warning rather than overflowing in silence.
+- **`.hand` is the serif in italic**, because no handwriting face is bundled and adding one would cost payload in every output.
+- The four tones are `color-mix` over `--emph` and `--ink`, never fixed hues, so they stay inside whichever of the seven themes is active.
+
+`lint.js` mirrors `DG_KEYWORDS`, `DG_STEP_OPS` and `DG_CLASSES`, same contract as `VALID_TAGS` – change them in one commit. It also **captures the diagram body verbatim, ahead of the fence and heading matchers**: a diagram comment starts with `#`, and read as markdown that is a column heading. The build does the same, and the two must agree about where the chunks are.
+
 ### Hosted embeds (`::: embed <url>`)
 
 Its own directive, never the meaning of a bare link or asset, because it is the single construct that makes an output fetch from a third party at run time. `parseEmbedUrl()` recognises YouTube and Vimeo (leniently: a bare `youtu.be/ID` or `vimeo.com/ID` is fine, which is what people paste) and normalises them to `youtube-nocookie.com/embed/…?enablejsapi=1` and `player.vimeo.com/video/…?dnt=1`; any other `https://` URL is framed as-is with no sync. `lint.js` mirrors that leniency exactly – a linter stricter than the build is worse than none.
@@ -272,6 +300,7 @@ Two things worth knowing before writing chunks, both learned the hard way:
 - `HANDOFF.md` – slice-by-slice build diary in German/English mix. Latest sections describe current state and deliberate non-choices. Update when landing a substantial slice.
 - `README.md` – short public-facing intro.
 - `lectures/tutorial/source.md` – the canonical authoring reference (self-referential lecture). Build and open its `audience.html` to see every directive live.
+- `lectures/diagrams/source.md` – every `::: diagram` construct, including two of the stepped figures the feature was built for (CBC decryption, a stack frame being overrun).
 - `lectures/python-intro/source.md` – richest example of `::: cols`, `::: side`, and `::: marginalia` in combination, 36 chunks. It is also what the project site's screenshots come from, so a change to `#why-playwright` means re-running `docs/site/shoot.mjs`.
 - `docs/comparison.md` – how psi-slides differs from Beamer, reveal.js, Quarto, Marp and friends, in both directions. Published as a page on the site.
 

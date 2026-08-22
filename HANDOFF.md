@@ -4,6 +4,52 @@ Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als 
 
 Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
+## Diagram-Slice (`::: diagram` – animierte Infografiken)
+
+Auslöser: der Wunsch, Kästen-Pfeile-Labels-Diagramme aus früheren Vorlesungen (CBC-Schaubild, Stack-Frame beim Overflow, Identity-Lifecycle) nach psi-slides zu holen **und schrittweise zu animieren**. Die beiden naheliegenden Wege scheitern beide, und zwar an unterschiedlichen Stellen:
+
+- **Mermaid & Co.** entscheiden das Layout. Bei genau diesen Diagrammen *ist* die Anordnung das Argument (Stack in Adressreihenfolge, drei parallele Cipher-Blöcke), also ist Auto-Layout kein Dienst, sondern das Problem.
+- **Zeichenprogramm plus Layer** gibt freie Platzierung, kennt einen Pfeil aber nur als Linie. Bewegt sich ein Kasten, muss jeder Pfeil daran von Hand neu gezeichnet werden – pro Schritt. Layer können *reveal*, sie können nicht *re-route*.
+
+### Was von Constrain übernommen wurde und was nicht
+
+[Constrain](https://github.com/andrewcmyers/constrain) (Andrew Myers, Cornell, MIT) war die Referenz für den anderen Ansatz: deklarative Constraints (`align`, `equal`, `geq`, `collinear`, `distance`), gelöst von Numeric.js zur Laufzeit, gerendert auf `<canvas>`. Für *berechnete* Layouts (Baumrotationen, Quicksort-Animationen) ist das genau richtig.
+
+Übernommen wurde das **Frame-Modell**, und zwar als Umdeutung: `linear(frame, a, b)` sagt nicht „animiere von a nach b", sondern „diese Eigenschaft *ist* eine Funktion des Frames". Zusammen mit `drawAfter/drawBefore/drawBetween` (ein Element hat ein Frame-Intervall, keine imperative show/hide-Historie) ist das die Idee, die alles trägt.
+
+Nicht übernommen wurde der Solver, aus drei Gründen:
+1. Canvas verwirkt Theme-Inheritance, Textselektion, Suche und Print – also genau das, was `inlineSvg()` teuer aufgebaut hat.
+2. Ein Runtime-Solver ist eine Abhängigkeit in einer Datei, die self-contained sein soll.
+3. Solver-Fehler sind nicht lokal. Ein über- oder unterbestimmtes System rendert plausibel-falsch und meldet ein Residuum statt einer Zeilennummer. Das ist auch der Grund, warum ein Solver für LLM-generierte Diagramme der falsche Unterbau wäre.
+
+Stattdessen: Platzierung ist ein Ausdruck über einer winzigen Algebra (Rasterzelle, Anker an einem anderen Element, Offset) – ein **DAG, kein Gleichungssystem**, aufgelöst in einem topologischen Durchlauf. `lint.js` kann die Zeile nennen.
+
+### Architektur in einem Satz pro Stufe
+
+`parseDiagramSource` → Modell · `dgStateAt(model, k)` → Zustand nach Schritt k · `layoutDiagram` → Boxen · `dgFrameDrawables` → Zahlenvektoren · `renderDiagram` → ein inline `<svg>` plus Frame-Payload · `dgStep` im Runtime → Lerp zwischen zwei Vektoren per `requestAnimationFrame`.
+
+**Layout läuft einmal pro Schritt, zur Buildzeit.** Deshalb folgt ein Pfeil einem Kasten, der weggeht: der Pfeil hat nie eine Koordinate gespeichert, sondern „die rechte Kante von mix". Verifiziert am Stack-Diagramm – `move sp to below bpl gap 2.2` lässt den Pfeil auf einen anderen Anker umspringen.
+
+**Der Runtime interpoliert Zahlen und sonst nichts.** Jedes Element reduziert auf ein bis zwei Drawables, und ein Drawable ist nur `rect`, `circle`, `path` oder `text` mit einem Zahlenvektor. Deshalb sind **Pfeilspitzen berechnete gefüllte Paths, keine SVG-`<marker>`**: ein Marker dreht sich nicht mit einem wandernden Endpunkt, und seine Füllfarbe müsste über `context-stroke` ans Theme kommen.
+
+### Was sich in bestehendem Code geändert hat
+
+- `countSegments`/`applyReveal` arbeiten jetzt über **Beats** (`chunkBeats`): Reveal-Segmente ab dem zweiten plus ein Beat pro Diagramm-Schritt, in Dokumentreihenfolge. `revealed[chunkId]` bleibt der einzige Zustand – Sync, Freeze-Gate, Rückwärts-Regel und localStorage-Recovery kamen dadurch gratis. `countSegments` liefert *Positionen* (Beats + 1), was der Konvention entspricht, gegen die `jumpTo` und `advanceReveal` ohnehin geschrieben waren.
+- Speaker-Thumbnails: geklonte Diagramme müssen von Hand auf den letzten Frame gestellt werden (`dgRenderInto`), weil der Runtime Geometrie auf Attribute schreibt und `cloneNode` den aktuellen Schritt mitnimmt. PRD §4.6 verlangt „fully revealed" in den Previews.
+- `lint.js` fängt den Diagramm-Body **vor** Fence- und Heading-Matcher ab. Kein Optimierungsdetail: ein Diagramm-Kommentar beginnt mit `#`, und als Markdown gelesen ist das eine Column-Heading.
+
+### Bewusst nicht gebaut
+
+- **Kein Auto-Routing.** Gerade Linien plus manuelle Wegpunkte (`via x,y`). Auto-Routing ist die Tür, durch die Mermaids Layout-Problem zurückkommt.
+- **Kein Sequence-Modus** (`lane` / `msg` mit implizit weiterzählender y-Achse). Wäre die nächste offensichtliche Ergonomie-Stufe; erst bauen, wenn eine echte Vorlesung sie verlangt.
+- **Kein Drag-&-Drop-Editor.** Das ist der eigentlich geplante nächste Slice, und er legt zwei Anforderungen fest, die die DSL schon jetzt erfüllt: (a) der Parser braucht **Source-Spans**, damit ein Klick genau das angefasste Token ersetzt und Kommentare/Formatierung stehen bleiben – sonst sind die Diffs unbrauchbar, besonders wenn parallel ein LLM dieselbe Datei editiert; (b) der Editor braucht einen **Schritt-Selektor**, damit Ziehen in Schritt 2 ein `move` in genau diesen `step`-Block schreibt. Genau dann wird „Translation vorhandener Elemente" von etwas Getipptem zu etwas Offensichtlichem. Technisch fehlt nur die Gegenrichtung des `--watch`-WebSockets (Browser → Build → `source.md`), plus mtime-Konfliktprüfung.
+- **Keine Bilder und keine Code-Blöcke im Diagramm.** Beides steht in den Vorlagen (Avatare in der MAC-Folie, das C-Listing neben dem Stack-Frame); beides ist nachrüstbar, weil `image` und `code` nur weitere Drawable-Arten wären.
+- **Textbreite wird geschätzt, nicht gemessen** (`dgMeasure`, Per-Character-Advance-Tabelle, bewusst etwas großzügig). Ein explizites `w`, das sein eigenes Label nicht fasst, warnt beim Build.
+
+### Vertragsstatus
+
+Das Vokabular ist **für einen Minor-Zyklus als experimentell markiert**. Ab dem Moment, wo es eingefroren ist, kostet jede Umbenennung ein Major – bewusst klein gehalten (acht Statements, sieben Step-Operationen, geschlossene Klassenliste), damit es wenig zu bereuen gibt.
+
 ## Was in diesem Slice gebaut wurde
 
 ### 1. Shiki-Highlighting (build-time)

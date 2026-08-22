@@ -1516,6 +1516,88 @@ nav#toc button {
 nav#toc button:hover { color: var(--emph); }
 nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 
+
+.figure-diagram { margin: 0.7em 0; }
+.psi-diagram {
+  --dg-sans: var(--sans-font, var(--sans));
+  --dg-mono: var(--mono-font, var(--mono));
+  --dg-serif: var(--body-font, var(--serif));
+  display: block; width: 100%; height: auto; overflow: visible;
+  /* A tall diagram must not push the chunk's prose off the projection.
+     preserveAspectRatio does the letterboxing; the figure just stops
+     growing. */
+  max-height: 52vh;
+}
+@media print { .psi-diagram { max-height: none; } }
+.psi-diagram .dg-el { transition: opacity 200ms ease; }
+.psi-diagram rect, .psi-diagram circle {
+  fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
+}
+.psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
+.psi-diagram .dg-head { fill: var(--ink); stroke: none; }
+.psi-diagram text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
+.psi-diagram .dg-mono { font-family: var(--dg-mono); }
+.psi-diagram .dg-off { display: none; }
+
+/* text elements carry no shape of their own */
+.psi-diagram .dg-text rect { display: none; }
+
+/* containers are a frame around their members, never a filled panel */
+.psi-diagram .dg-container > rect { fill: none; stroke: var(--rule); stroke-width: 1.2; }
+.psi-diagram .dg-caption text { fill: var(--ink-soft); }
+
+/* braces have no fill and no head */
+.psi-diagram .dg-brace .dg-stroke { stroke: var(--rule); }
+
+/* ── tones ── four theme-safe fills, mixed from the page's own inks ── */
+.psi-diagram .tone-1 > rect, .psi-diagram .tone-1 > circle {
+  fill: color-mix(in oklab, var(--emph) 13%, var(--paper));
+  stroke: color-mix(in oklab, var(--emph) 60%, var(--ink));
+}
+.psi-diagram .tone-2 > rect, .psi-diagram .tone-2 > circle {
+  fill: color-mix(in oklab, var(--ink) 8%, var(--paper)); stroke: var(--ink);
+}
+.psi-diagram .tone-3 > rect, .psi-diagram .tone-3 > circle {
+  fill: color-mix(in oklab, var(--ink) 20%, var(--paper)); stroke: var(--ink);
+}
+.psi-diagram .tone-4 > rect, .psi-diagram .tone-4 > circle {
+  fill: var(--emph); stroke: var(--emph);
+}
+.psi-diagram .tone-4 text { fill: var(--paper); }
+
+.psi-diagram .accent > rect, .psi-diagram .accent > circle { stroke: var(--emph); }
+.psi-diagram .accent .dg-stroke { stroke: var(--emph); }
+.psi-diagram .accent .dg-head { fill: var(--emph); }
+.psi-diagram .accent text { fill: var(--emph); }
+.psi-diagram .muted > rect, .psi-diagram .muted > circle { stroke: var(--ink-soft); }
+.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); }
+.psi-diagram .muted .dg-head { fill: var(--ink-soft); }
+.psi-diagram .muted text { fill: var(--ink-soft); }
+.psi-diagram .ghost { opacity: 0.45; }
+
+.psi-diagram .dashed > rect, .psi-diagram .dashed > circle, .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
+.psi-diagram .dotted > rect, .psi-diagram .dotted > circle, .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
+.psi-diagram .thick > rect, .psi-diagram .thick > circle, .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
+.psi-diagram .bare > rect, .psi-diagram .bare > circle { stroke: none; }
+.psi-diagram .round > rect { rx: 13px; }
+.psi-diagram .sharp > rect { rx: 0; }
+.psi-diagram .bold text { font-weight: 600; }
+/* no handwriting face is bundled, so the annotation voice is the serif in
+   italic – close enough to read as "written in beside the diagram", and it
+   costs no extra font payload. */
+.psi-diagram .hand text { font-family: var(--dg-serif); font-style: italic; fill: var(--emph); }
+
+/* emph / dim are what a step reaches for; both stay inside the palette */
+.psi-diagram .emph > rect, .psi-diagram .emph > circle { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph .dg-head { fill: var(--emph); }
+.psi-diagram .dim { opacity: 0.3; }
+
+.dg-hint { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .psi-diagram .dg-el { transition: none; }
+}
+
 </style>
 <style>
 /* Bundled typefaces: Literata, Inter Tight and JetBrains Mono, each under
@@ -2370,6 +2452,47 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></div>
 </article>
+<article class="chunk chunk-example" id="diagram" data-chunk-id="diagram" data-tag="example" data-width="full" data-chunk-num="31">
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Diagrams</span> <span class="hd-sub"><code>::: diagram</code> draws boxes and arrows from text</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A <code>::: diagram</code> block is a figure written in the source and compiled to inline SVG at build time.</strong> You name the pieces and say where they go; the arrows between them are computed.</p>
+<figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-72.00 -41.38 491.83 173.30" data-steps="3" role="img" aria-label="Diagrams" preserveAspectRatio="xMidYMid meet">
+<g id="dg1-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg1-edge-1--p" class="dg-stroke" d="M37.98 0.00L105.92 0.00" fill="none"/><path id="dg1-edge-1--h" class="dg-head" d="M113.57 0.00L104.57 3.96L104.57 -3.96Z"/><g id="dg1-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(75.78,-15.38)"><g id="dg1-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">encrypted</tspan></text></g></g></g>
+<g id="dg1-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg1-edge-2--p" class="dg-stroke" d="M167.57 0.00L235.53 0.00" fill="none"/><path id="dg1-edge-2--h" class="dg-head" d="M243.18 0.00L234.18 3.96L234.18 -3.96Z"/><g id="dg1-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(205.38,-15.38)"><g id="dg1-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">recoded</tspan></text></g></g></g>
+<g id="dg1-leak" data-base="dg-el dg-edge" class="dg-el dg-edge dashed"><path id="dg1-leak--p" class="dg-stroke" d="M140.57 18.38L140.57 75.52" fill="none"/><path id="dg1-leak--h" class="dg-head" d="M140.57 83.17L136.61 74.17L144.53 74.17Z"/></g>
+<g id="dg1-why--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg1-why--lead--p" class="dg-stroke" d="M0.00 0.00" fill="none"/></g>
+<g id="dg1-src" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg1-src--r" x="-37.98" y="-18.38" width="75.95" height="36.75" rx="4"/><g id="dg1-src--lw0" data-lab="src--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg1-src--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sender</tspan></text></g></g></g>
+<g id="dg1-mix" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg1-mix--r" x="113.57" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="dg1-mix--lw0" data-lab="mix--l" class="dg-lwrap" transform="translate(140.57,0.00)"><g id="dg1-mix--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Mix</tspan></text></g></g></g>
+<g id="dg1-dst" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg1-dst--r" x="243.18" y="-18.38" width="105.65" height="36.75" rx="4"/><g id="dg1-dst--lw0" data-lab="dst--l" class="dg-lwrap" transform="translate(296.00,0.00)"><g id="dg1-dst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Empfänger</tspan></text></g></g></g>
+<g id="dg1-log" data-base="dg-el dg-box" class="dg-el dg-box dashed"><rect id="dg1-log--r" x="101.47" y="83.17" width="78.20" height="36.75" rx="4"/><g id="dg1-log--lw0" data-lab="log--l" class="dg-lwrap" transform="translate(140.57,101.55)"><g id="dg1-log--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Logfile</tspan></text></g></g></g>
+<g id="dg1-why" data-base="dg-el dg-text" class="dg-el dg-text hand"><g id="dg1-why--lw0" data-lab="why--l" class="dg-lwrap" transform="translate(347.83,101.55)"><g id="dg1-why--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">this is where</tspan><tspan x="0" y="14.48">the anonymity ends</tspan></text></g></g></g>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg1-root">{"p":"dg1-","n":3,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-1--l":"text","edge-2--p":"path","edge-2--h":"path","edge-2--l":"text","leak--p":"path","leak--h":"path","why--lead--p":"path","src--r":"rect","src--l":"text","mix--r":"rect","mix--l":"text","dst--r":"rect","dst--l":"text","log--r":"rect","log--l":"text","why--l":"text"},"names":["leak","blame"],"frames":[{"vis":{"src":1,"mix":1,"dst":1,"log":0,"why":1,"edge-1":1,"edge-2":1,"leak":0,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"","edge-2":"","leak":"dashed","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55],"why--l":[347.83,101.55],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"","edge-2":"","leak":"dashed","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55],"why--l":[347.83,101.55],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed emph","why":"hand","edge-1":"","edge-2":"","leak":"dashed emph","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55],"why--l":[347.83,101.55],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}}]}</script></figure>
+
+
+<p><strong>Placement is a grid cell or a relation to a neighbour</strong> – <code>at 2,1</code>, or <code>right of mix gap 0.6</code>, or <code>below src gap 0 align left</code> for boxes that touch. The first element sits at the origin so a simple diagram needs no coordinates at all. There is no automatic layout, on purpose: where things go is usually part of what the picture is saying.</p>
+<p><strong><code>step</code> blocks make it move, and <code>Space</code> is the key.</strong> Diagram steps are beats on the same counter as reveal segments, so they interleave with them in source order and the cockpit follows. The vocabulary is <code>show</code>, <code>hide</code>, <code>move … to</code>, <code>move … by</code>, <code>emph</code>, <code>calm</code>, <code>style</code> and <code>label</code>.</p>
+<p><strong>A moved box takes its arrows with it.</strong> The layout is evaluated again for every step rather than nudged, so an edge that connects two elements re-routes whenever either end moves – which is the one thing a diagram exported from a drawing tool can never do.</p>
+<p><strong>An arrow is only as visible as what it connects</strong>, so revealing boxes reveals the arrows between them and most edges need no <code>show</code> of their own. Free <code>text</code> can grow a leader line with <code>-&gt; some-element</code>, which is how a label goes wherever it reads best without losing what it is about.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="diagram">
+      <div class="annot-box-label">annotation · diagram</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  <div class="exps"><button class="exp-chev" type="button" data-exp="0">
+         <span>Exp</span>
+         <span class="caret">›</span>
+       </button></div>
+  <aside class="exp-body" data-exp-body="0">
+      <div class="tag-label">The rest of the vocabulary</div>
+      <p><code>dot</code> is a circle for junctions and glyphs. <code>container … over a,b,c</code> draws a box that fits itself around its members and re-fits when they move; <code>group</code> is the same set without the box, for moving or hiding several things at once; <code>brace … over a,b right &quot;Label&quot;</code> is a bracket spanning a subset. Classes come from a closed list – four <code>tone-*</code> fills mixed from the page&#39;s own inks, plus <code>dashed</code>, <code>dotted</code>, <code>thick</code>, <code>round</code>, <code>mono</code>, <code>hand</code>, <code>muted</code> and a few more – and <code>lint.js</code> rejects anything else, so a typo is a build error rather than an unstyled box.</p>
+
+    </aside>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></div>
+</article>
 </section>
 <section class="column" data-col="8" id="craft">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-chunk-id="craft-section">
@@ -2377,7 +2500,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     <h1 class="section-heading">Writing chunks that work</h1>
   </div>
 </article>
-<article class="chunk chunk-principle" id="topic-sentence" data-chunk-id="topic-sentence" data-tag="principle" data-width="standard" data-chunk-num="31">
+<article class="chunk chunk-principle" id="topic-sentence" data-chunk-id="topic-sentence" data-tag="principle" data-width="standard" data-chunk-num="32">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">The topic sentence is the slide</span> <span class="hd-sub">so write the opening line for the projector</span></h2>
@@ -2393,9 +2516,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></div>
 </article>
-<article class="chunk chunk-example" id="anti-patterns" data-chunk-id="anti-patterns" data-tag="example" data-width="wide" data-chunk-num="32">
+<article class="chunk chunk-example" id="anti-patterns" data-chunk-id="anti-patterns" data-tag="example" data-width="wide" data-chunk-num="33">
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Four ways a chunk goes soft</h2>
@@ -2424,9 +2547,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></div>
 </article>
-<article class="chunk chunk-question" id="choose-mechanism" data-chunk-id="choose-mechanism" data-tag="question" data-width="standard" data-chunk-num="33">
+<article class="chunk chunk-question" id="choose-mechanism" data-chunk-id="choose-mechanism" data-tag="question" data-width="standard" data-chunk-num="34">
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Derive it, or state it?</h2>
@@ -2449,9 +2572,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 <p>A figure chunk plus a paragraph of interpretation is the other reliable case, and there <code>::: script</code> around the interpretation is less typing than wrapping the slide half.</p>
 
     </aside>
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></div>
 </article>
-<article class="chunk chunk-exercise" id="squint-test" data-chunk-id="squint-test" data-tag="exercise" data-width="wide" data-chunk-num="34">
+<article class="chunk chunk-exercise" id="squint-test" data-chunk-id="squint-test" data-tag="exercise" data-width="wide" data-chunk-num="35">
   <div class="chunk-content">
     
     <h2 class="chunk-heading">The squint test</h2>
@@ -2471,7 +2594,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></div>
 </article>
 </section>
 <section class="column" data-col="9" id="next">
@@ -2480,7 +2603,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
     <h1 class="section-heading">Next steps</h1>
   </div>
 </article>
-<article class="chunk chunk-exercise" id="read-more" data-chunk-id="read-more" data-tag="exercise" data-width="wide" data-chunk-num="35">
+<article class="chunk chunk-exercise" id="read-more" data-chunk-id="read-more" data-tag="exercise" data-width="wide" data-chunk-num="36">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the artefacts that close the loop</span></h2>
@@ -2502,9 +2625,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></div>
 </article>
-<article class="chunk chunk-free" id="authoring" data-chunk-id="authoring" data-tag="free" data-width="standard" data-chunk-num="36">
+<article class="chunk chunk-free" id="authoring" data-chunk-id="authoring" data-tag="free" data-width="standard" data-chunk-num="37">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Authoring your own</span> <span class="hd-sub"><code>--new</code>, <code>--watch</code>, <code>lint.js</code></span></h2>
@@ -2525,9 +2648,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></div>
 </article>
-<article class="chunk chunk-example" id="fonts" data-chunk-id="fonts" data-tag="example" data-width="wide" data-chunk-num="37">
+<article class="chunk chunk-example" id="fonts" data-chunk-id="fonts" data-tag="example" data-width="wide" data-chunk-num="38">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own type</span> <span class="hd-sub"><code>fonts/</code> plus a frontmatter block</span></h2>
@@ -2549,9 +2672,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></div>
 </article>
-<article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="38">
+<article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="39">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Pinning how a lecture opens</span> <span class="hd-sub">five optional frontmatter keys</span></h2>
@@ -2577,7 +2700,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>9</i></div>
 </article>
 </section>
   </div>
@@ -2704,6 +2827,140 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 const LECTURE_TITLE = "psi-slides – a ten-step tour";
 const VIEW_DEFAULTS = {};
 const LINK_QR = {"https://psi.uni-bamberg.de/":"\u003Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 37 37\" shape-rendering=\"crispEdges\" role=\"img\" aria-label=\"QR code for this address\">\u003Crect width=\"37\" height=\"37\" fill=\"#fff\"/>\u003Cpath d=\"M4 4h7v1h-7zM12 4h2v1h-2zM17 4h3v1h-3zM21 4h2v1h-2zM26 4h7v1h-7zM4 5h1v1h-1zM10 5h1v1h-1zM12 5h3v1h-3zM17 5h3v1h-3zM21 5h1v1h-1zM23 5h2v1h-2zM26 5h1v1h-1zM32 5h1v1h-1zM4 6h1v1h-1zM6 6h3v1h-3zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM17 6h2v1h-2zM26 6h1v1h-1zM28 6h3v1h-3zM32 6h1v1h-1zM4 7h1v1h-1zM6 7h3v1h-3zM10 7h1v1h-1zM13 7h1v1h-1zM18 7h2v1h-2zM21 7h2v1h-2zM26 7h1v1h-1zM28 7h3v1h-3zM32 7h1v1h-1zM4 8h1v1h-1zM6 8h3v1h-3zM10 8h1v1h-1zM12 8h1v1h-1zM14 8h4v1h-4zM19 8h1v1h-1zM22 8h2v1h-2zM26 8h1v1h-1zM28 8h3v1h-3zM32 8h1v1h-1zM4 9h1v1h-1zM10 9h1v1h-1zM14 9h1v1h-1zM17 9h2v1h-2zM24 9h1v1h-1zM26 9h1v1h-1zM32 9h1v1h-1zM4 10h7v1h-7zM12 10h1v1h-1zM14 10h1v1h-1zM16 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM22 10h1v1h-1zM24 10h1v1h-1zM26 10h7v1h-7zM14 11h2v1h-2zM18 11h1v1h-1zM22 11h2v1h-2zM4 12h1v1h-1zM7 12h8v1h-8zM16 12h6v1h-6zM23 12h1v1h-1zM25 12h1v1h-1zM28 12h1v1h-1zM30 12h3v1h-3zM4 13h3v1h-3zM8 13h1v1h-1zM12 13h2v1h-2zM16 13h1v1h-1zM18 13h1v1h-1zM22 13h2v1h-2zM25 13h1v1h-1zM27 13h2v1h-2zM30 13h2v1h-2zM6 14h1v1h-1zM10 14h1v1h-1zM12 14h1v1h-1zM14 14h1v1h-1zM16 14h1v1h-1zM18 14h1v1h-1zM21 14h1v1h-1zM24 14h1v1h-1zM27 14h1v1h-1zM30 14h1v1h-1zM7 15h1v1h-1zM9 15h1v1h-1zM11 15h2v1h-2zM15 15h1v1h-1zM18 15h2v1h-2zM21 15h3v1h-3zM25 15h2v1h-2zM29 15h1v1h-1zM32 15h1v1h-1zM5 16h1v1h-1zM9 16h5v1h-5zM17 16h2v1h-2zM23 16h2v1h-2zM26 16h2v1h-2zM32 16h1v1h-1zM5 17h4v1h-4zM12 17h3v1h-3zM22 17h1v1h-1zM26 17h1v1h-1zM28 17h5v1h-5zM4 18h1v1h-1zM8 18h1v1h-1zM10 18h5v1h-5zM16 18h1v1h-1zM18 18h2v1h-2zM23 18h2v1h-2zM27 18h2v1h-2zM30 18h1v1h-1zM32 18h1v1h-1zM6 19h2v1h-2zM9 19h1v1h-1zM11 19h2v1h-2zM15 19h1v1h-1zM17 19h2v1h-2zM20 19h1v1h-1zM30 19h1v1h-1zM32 19h1v1h-1zM6 20h1v1h-1zM8 20h1v1h-1zM10 20h1v1h-1zM12 20h3v1h-3zM19 20h1v1h-1zM22 20h3v1h-3zM27 20h1v1h-1zM29 20h1v1h-1zM4 21h2v1h-2zM9 21h1v1h-1zM11 21h1v1h-1zM13 21h1v1h-1zM16 21h1v1h-1zM22 21h3v1h-3zM28 21h1v1h-1zM30 21h2v1h-2zM4 22h2v1h-2zM7 22h4v1h-4zM13 22h2v1h-2zM16 22h3v1h-3zM20 22h1v1h-1zM23 22h1v1h-1zM25 22h1v1h-1zM29 22h1v1h-1zM32 22h1v1h-1zM4 23h3v1h-3zM8 23h2v1h-2zM11 23h1v1h-1zM13 23h1v1h-1zM15 23h3v1h-3zM19 23h2v1h-2zM23 23h3v1h-3zM28 23h3v1h-3zM4 24h2v1h-2zM10 24h1v1h-1zM12 24h1v1h-1zM14 24h2v1h-2zM17 24h1v1h-1zM22 24h10v1h-10zM12 25h1v1h-1zM15 25h1v1h-1zM17 25h1v1h-1zM20 25h3v1h-3zM24 25h1v1h-1zM28 25h2v1h-2zM4 26h7v1h-7zM12 26h1v1h-1zM16 26h2v1h-2zM19 26h2v1h-2zM23 26h2v1h-2zM26 26h1v1h-1zM28 26h2v1h-2zM4 27h1v1h-1zM10 27h1v1h-1zM12 27h2v1h-2zM15 27h3v1h-3zM20 27h1v1h-1zM22 27h3v1h-3zM28 27h1v1h-1zM31 27h1v1h-1zM4 28h1v1h-1zM6 28h3v1h-3zM10 28h1v1h-1zM12 28h2v1h-2zM15 28h1v1h-1zM17 28h1v1h-1zM19 28h3v1h-3zM23 28h7v1h-7zM31 28h1v1h-1zM4 29h1v1h-1zM6 29h3v1h-3zM10 29h1v1h-1zM12 29h1v1h-1zM15 29h2v1h-2zM18 29h1v1h-1zM20 29h1v1h-1zM22 29h2v1h-2zM27 29h1v1h-1zM31 29h1v1h-1zM4 30h1v1h-1zM6 30h3v1h-3zM10 30h1v1h-1zM15 30h4v1h-4zM20 30h1v1h-1zM22 30h2v1h-2zM25 30h1v1h-1zM27 30h2v1h-2zM30 30h3v1h-3zM4 31h1v1h-1zM10 31h1v1h-1zM13 31h1v1h-1zM16 31h1v1h-1zM19 31h1v1h-1zM25 31h1v1h-1zM28 31h3v1h-3zM32 31h1v1h-1zM4 32h7v1h-7zM12 32h1v1h-1zM14 32h5v1h-5zM20 32h5v1h-5zM27 32h3v1h-3z\" fill=\"#000\"/>\u003C/svg>"};
+
+const DG_LIST = [];
+const DG_REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DG_DUR = 380;
+
+function dgApplyVec(el, kind, v) {
+  if (kind === 'rect') {
+    el.setAttribute('x', v[0]); el.setAttribute('y', v[1]);
+    el.setAttribute('width', Math.max(0, v[2])); el.setAttribute('height', Math.max(0, v[3]));
+  } else if (kind === 'circle') {
+    el.setAttribute('cx', v[0]); el.setAttribute('cy', v[1]); el.setAttribute('r', Math.max(0, v[2]));
+  } else if (kind === 'path') {
+    let d = '';
+    for (let i = 0; i < v.length; i += 2) d += (i ? 'L' : 'M') + v[i] + ' ' + v[i + 1];
+    el.setAttribute('d', d + (el.classList.contains('dg-head') ? 'Z' : ''));
+  } else {
+    el.setAttribute('transform', 'translate(' + v[0] + ',' + v[1] + ')');
+  }
+}
+
+function dgTargets(d, key) {
+  if (d.cache[key]) return d.cache[key];
+  const list = key.endsWith('--l')
+    ? [...d.svg.querySelectorAll('[data-lab="' + key.slice(0, -3) + '"]')]
+    : [document.getElementById(d.data.p + key)].filter(Boolean);
+  d.cache[key] = list;
+  return list;
+}
+
+// Discrete state – visibility, classes, which label variant is on – lands
+// at once. Only geometry is worth interpolating; a class that fades is a
+// class that is wrong for half the transition.
+function dgApplyDiscrete(d, frame) {
+  for (const id in frame.vis) {
+    const g = document.getElementById(d.data.p + id);
+    if (!g) continue;
+    g.setAttribute('opacity', frame.vis[id] ? '1' : '0');
+    const base = g.dataset.base || '';
+    const extra = frame.cls[id] || '';
+    g.setAttribute('class', extra ? base + ' ' + extra : base);
+    if (id in frame.lab) {
+      d.svg.querySelectorAll('[data-lab="' + id + '"]').forEach((w, i) => {
+        w.classList.toggle('dg-off', i !== frame.lab[id]);
+      });
+    }
+  }
+}
+
+function dgApplyGeom(d, from, to, f) {
+  const now = {};
+  for (const key in to) {
+    const b = to[key];
+    const a = from[key] || b;
+    const v = new Array(b.length);
+    for (let i = 0; i < b.length; i++) {
+      const av = a[i] === undefined ? b[i] : a[i];
+      v[i] = Math.round((av + (b[i] - av) * f) * 100) / 100;
+    }
+    now[key] = v;
+    const kind = d.data.kinds[key];
+    for (const el of dgTargets(d, key)) dgApplyVec(el, kind, v);
+  }
+  return now;
+}
+
+// Paint a frame into a copy of the diagram that is not the live one - the
+// speaker's preview thumbnails. Resolves ids inside the given root rather
+// than through getElementById, because a clone carries duplicate ids and
+// the document would hand back the original every time.
+function dgRenderInto(root, d, step) {
+  const frame = d.data.frames[Math.max(0, Math.min(d.data.n - 1, step))];
+  if (!frame) return;
+  for (const id in frame.vis) {
+    const g = root.querySelector('[id="' + d.data.p + id + '"]');
+    if (!g) continue;
+    g.setAttribute('opacity', frame.vis[id] ? '1' : '0');
+    const base = g.dataset.base || '';
+    const extra = frame.cls[id] || '';
+    g.setAttribute('class', extra ? base + ' ' + extra : base);
+    if (id in frame.lab) {
+      root.querySelectorAll('[data-lab="' + id + '--l"]').forEach((w, i) => {
+        w.classList.toggle('dg-off', i !== frame.lab[id]);
+      });
+    }
+  }
+  for (const key in frame.geom) {
+    const els = key.endsWith('--l')
+      ? [...root.querySelectorAll('[data-lab="' + key + '"]')]
+      : [root.querySelector('[id="' + d.data.p + key + '"]')].filter(Boolean);
+    for (const el of els) dgApplyVec(el, d.data.kinds[key], frame.geom[key]);
+  }
+}
+
+function dgStep(d, step, instant) {
+  step = Math.max(0, Math.min(d.data.n - 1, step | 0));
+  const frame = d.data.frames[step];
+  const same = d.step === step && d.cur;
+  d.step = step;
+  dgApplyDiscrete(d, frame);
+  if (d.hint) {
+    const next = d.data.names[step];
+    d.hint.textContent = next ? 'next: ' + next : '';
+  }
+  if (same) return;
+  const from = d.cur || frame.geom;
+  cancelAnimationFrame(d.raf);
+  if (instant || DG_REDUCED) { d.cur = dgApplyGeom(d, frame.geom, frame.geom, 1); return; }
+  const t0 = performance.now();
+  const tick = (now) => {
+    const f = Math.min(1, (now - t0) / DG_DUR);
+    const e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2;
+    d.cur = dgApplyGeom(d, from, frame.geom, e);
+    if (f < 1) d.raf = requestAnimationFrame(tick);
+  };
+  d.raf = requestAnimationFrame(tick);
+}
+
+function initDiagrams() {
+  document.querySelectorAll('script.psi-diagram-frames').forEach(sc => {
+    const svg = document.getElementById(sc.dataset.for);
+    if (!svg) return;
+    let data;
+    try { data = JSON.parse(sc.textContent); } catch (e) { return; }
+    const fig = svg.closest('.figure-diagram');
+    const d = {
+      svg, data, step: -1, raf: 0, cur: null, cache: {},
+      hint: fig ? fig.querySelector('.dg-hint') : null,
+    };
+    svg.psiDiagram = d;
+    DG_LIST.push(d);
+    dgStep(d, 0, true);
+  });
+}
+
 
 const STORAGE_PREFIX = 'psi-slides:';
 const storageKey = (s) => STORAGE_PREFIX + LECTURE_TITLE + ':' + s;
@@ -3337,6 +3594,42 @@ function isMathNode(el) {
     || el.classList.contains('math-display'));
 }
 
+// A period only ends the topic sentence when it plausibly ends a sentence.
+// Without the guards, "Kleinberg u. a. 2017" cuts the head short after "u."
+// and the collapsed slide shows a dangling abbreviation. Two cheap signals
+// cover the lecture corpus: a single letter or digit before the dot is an
+// abbreviation or ordinal ("u.", "z.", "B.", "8. April"), and a lowercase
+// continuation after it is no sentence start ("et al. 2017"). "!" and "?"
+// are never abbreviation marks and always end the sentence. The trade-off:
+// a sentence genuinely ending in a single character ("… um Faktor 3.") now
+// keeps its continuation in the head – a too-long topic sentence, which is
+// less broken than a truncated one.
+const SENTENCE_ABBREVS = new Set(['bzw','ca','vgl','etc','usw','engl','sog',
+  'inkl','zzgl','ggf','evtl','al','vs','resp','Nr','Dr','Prof','Abs','Art',
+  'Kap','Abb','Tab','Aufl','Hrsg','Mio','Mrd','ff','ebd','St']);
+function dotEndsSentence(before, after) {
+  const tok = (before.match(/([\p{L}\p{N}]+)$/u) || [])[1];
+  if (tok && (tok.length === 1 || SENTENCE_ABBREVS.has(tok))) return false;
+  if (/^\p{Ll}/u.test(after)) return false;
+  return true;
+}
+function sentenceEndIn(text) {
+  const re = /[.!?](?=\s)/g;
+  let m;
+  while ((m = re.exec(text))) {
+    if (text[m.index] !== '.') return m.index;
+    const after = text.slice(m.index + 1).replace(/^\s+/, '');
+    if (dotEndsSentence(text.slice(0, m.index), after)) return m.index;
+  }
+  return -1;
+}
+function tailEndsSentence(text) {
+  const t = text.trimEnd();
+  if (!/[.!?]$/.test(t)) return false;
+  if (t.endsWith('.')) return dotEndsSentence(t.slice(0, -1), '');
+  return true;
+}
+
 function splitSentencesIn(root) {
   const wrapProse = (node) => {
     for (const k of [...node.childNodes]) {
@@ -3371,10 +3664,10 @@ function splitSentencesIn(root) {
     let mode = 'head';
     for (const k of [...p.childNodes]) {
       if (mode === 'head' && k.nodeType === 3) {
-        const m = k.nodeValue.match(/^([\s\S]*?[.!?])(\s+[\s\S]*)$/);
-        if (m) {
-          head.appendChild(document.createTextNode(m[1]));
-          rest.appendChild(document.createTextNode(m[2]));
+        const idx = sentenceEndIn(k.nodeValue);
+        if (idx !== -1) {
+          head.appendChild(document.createTextNode(k.nodeValue.slice(0, idx + 1)));
+          rest.appendChild(document.createTextNode(k.nodeValue.slice(idx + 1)));
           mode = 'rest';
         } else head.appendChild(k.cloneNode(true));
       } else if (mode === 'head') {
@@ -3382,7 +3675,7 @@ function splitSentencesIn(root) {
         // KaTeX renders a hidden MathML copy alongside the visible HTML, so
         // a formula's textContent is not the text the reader sees and must
         // not be tested for a sentence-ending period.
-        if (k.nodeType === 1 && !isMathNode(k) && /[.!?]$/.test(k.textContent.trimEnd())) mode = 'rest';
+        if (k.nodeType === 1 && !isMathNode(k) && tailEndsSentence(k.textContent)) mode = 'rest';
       }
       else rest.appendChild(k.cloneNode(true));
     }
@@ -3418,21 +3711,61 @@ function applyState() {
   broadcastState();
 }
 
-function countSegments(el) {
-  return el.querySelectorAll('.reveal-segment').length;
-}
-function applyReveal(el, id) {
-  const segs = el.querySelectorAll('.reveal-segment');
-  const count = revealed[id] ?? (segs.length ? 1 : 0);
-  segs.forEach((s, i) => {
-    if (i < count) s.removeAttribute('data-hidden');
-    else s.setAttribute('data-hidden', '');
-    // Mark the one segment that Space or Down will bring up next. Only the
-    // speaker's stylesheet reacts to it, but the attribute is set in both
-    // views so the two DOMs stay identical.
-    if (i === count) s.setAttribute('data-next', '');
-    else s.removeAttribute('data-next');
+// A chunk's forward beats: the reveal segments after the first, plus one
+// per diagram step, in document order. Making diagram steps beats on the
+// existing counter rather than a mechanism of their own is what buys the
+// whole feature its sync, its backward-navigation rule, its freeze gating
+// and its localStorage recovery for free – revealed[chunkId] was already
+// all of that, and it is still the only state involved. Document order
+// also gets the interleaving right: a diagram inside segment 1 advances
+// only once segment 1 is up.
+function chunkBeats(el) {
+  const out = [];
+  let segIdx = 0;
+  el.querySelectorAll('.reveal-segment, svg.psi-diagram').forEach(node => {
+    if (node.classList.contains('reveal-segment')) {
+      if (segIdx++ > 0) out.push({ type: 'seg', el: node });
+      return;
+    }
+    const d = node.psiDiagram;
+    if (!d || d.data.n < 2) return;
+    for (let s = 1; s < d.data.n; s++) out.push({ type: 'diag', d, step: s });
   });
+  return out;
+}
+// Positions, not beats: 1 means "in the chunk, nothing advanced yet", which
+// is the convention jumpTo and advanceReveal were already written against.
+function countSegments(el) {
+  const beats = chunkBeats(el).length;
+  if (beats) return beats + 1;
+  return el.querySelector('.reveal-segment') ? 1 : 0;
+}
+function applyReveal(el, id, instant) {
+  const beats = chunkBeats(el);
+  const total = countSegments(el);
+  const consumed = Math.max(0, (revealed[id] ?? (total ? 1 : 0)) - 1);
+  const segs = el.querySelectorAll('.reveal-segment');
+  if (segs[0]) { segs[0].removeAttribute('data-hidden'); segs[0].removeAttribute('data-next'); }
+  const steps = new Map();
+  beats.forEach(b => { if (b.type === 'diag' && !steps.has(b.d)) steps.set(b.d, 0); });
+  beats.forEach((b, i) => {
+    const on = i < consumed;
+    if (b.type === 'seg') {
+      if (on) b.el.removeAttribute('data-hidden');
+      else b.el.setAttribute('data-hidden', '');
+      // Mark the one segment that Space or Down will bring up next. Only the
+      // speaker's stylesheet reacts to it, but the attribute is set in both
+      // views so the two DOMs stay identical.
+      if (i === consumed) b.el.setAttribute('data-next', '');
+      else b.el.removeAttribute('data-next');
+    } else if (on) {
+      steps.set(b.d, Math.max(steps.get(b.d) || 0, b.step));
+    }
+  });
+  // A chunk that is not on screen jumps rather than animates: applying the
+  // stored reveal state to forty chunks at boot must not start forty tweens.
+  const jump = instant || !el.classList.contains('active');
+  steps.forEach((step, d) => dgStep(d, step, jump));
 }
 function applyRevealAll() {
   flatChunks.forEach(c => applyReveal(c.el, c.id));
@@ -4952,6 +5285,7 @@ wireEmbeds();
 wireClicks();
 wireFigureClicks();
 wireTouchControls();
+initDiagrams();
 applyRevealAll();
 applyState();
 // Two rAFs so fonts have a chance to settle before the first camera solve.

@@ -189,7 +189,7 @@ This is the section that will save you the most time. Each line is a real constr
 
 - **You need `.pptx` or Keynote interop, or a corporate template.** There is no export path. The output is HTML; the only bridge to a slide deck is printing to PDF.
 - **A co-author needs a GUI.** The source is Markdown in a text editor and nothing else. If your collaborator will not edit a text file, this will not work for the two of you.
-- **You want builds, transitions, or animation.** Reveal segments uncover blocks of text in place. That is the whole animation model, on purpose.
+- **You want slide transitions, or motion for its own sake.** There are none, and there will be none. What exists is two deliberate mechanisms: reveal segments uncover blocks of text in place, and a `::: diagram` block can be stepped – elements appear, disappear, move, and the arrows between them re-route as they go. Both run on the same key. Neither will animate a slide change.
 - **You want the cockpit on a tablet and the slides on the projector.** Architecturally unsupported: the two windows sync through `window.postMessage` over the opener relationship, which means same machine, same browser, same profile. A network sync mode is deferred, not planned.
 - **You need more than KaTeX covers.** `$inline$` and `$$display$$` work and render at build time, but that is KaTeX, not LaTeX: no equation numbering or `\ref`, no `mhchem`, no TikZ. If your lecture is a mathematics lecture, check [KaTeX's supported functions](https://katex.org/docs/supported.html) before committing.
 - **You need polls, quizzes, or any audience interaction.** Named and deferred in `PRD.md`.

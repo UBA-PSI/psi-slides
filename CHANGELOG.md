@@ -7,6 +7,34 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+### Added
+
+- **`::: diagram` – animated infographics written in the lecture source.**
+  A line-oriented DSL for boxes, dots, free text, arrows, auto-fitting
+  containers, groups and braces, compiled to inline SVG at build time and
+  themed through the page's own custom properties, so a diagram re-inks
+  with the `A` cycle. `step` blocks show, hide, move, emphasise, restyle
+  and relabel elements; **layout is re-evaluated per step rather than
+  transformed**, so an arrow between two boxes re-routes when either one
+  moves – the thing no export from a drawing tool can do. Steps become
+  beats on the existing reveal counter, so `Space` advances them, the
+  speaker window follows, the freeze gate applies, and a revisited chunk
+  comes back fully stepped, all without new state. Free `text` can grow a
+  leader line to whatever it comments on (`-> ref`), which is what makes
+  placement free without losing the connection. Print shows the union of
+  every step at its last position, minus the live-only emphasis. There is
+  deliberately **no automatic layout and no constraint solver**: placement
+  is a grid cell or a relation to a neighbour, resolved as a DAG, so a
+  mistake names its line instead of shifting the picture. `lint.js`
+  mirrors the vocabulary and reports unknown statements, unknown classes,
+  duplicate names and dangling references.
+
+  The vocabulary is **experimental for one minor cycle** and may still
+  change before it is frozen under the source-format contract.
+
+  See `PRD.md` §4.6a for the grammar and `lectures/diagrams/source.md` for
+  a worked example of every construct.
+
 ### Fixed
 
 - Sentence extraction no longer ends the topic sentence at an abbreviation

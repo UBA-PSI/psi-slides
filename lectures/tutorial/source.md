@@ -432,6 +432,42 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 > note: A malformed formula does not fail the build – KaTeX renders it in red so a typo never blanks the projector mid-lecture. The terminal reports it instead, and `lint.js` warns about a `$$` you forgot to close.
 
+## example: Diagrams | `::: diagram` draws boxes and arrows from text {.full #diagram}
+
+**A `::: diagram` block is a figure written in the source and compiled to inline SVG at build time.** You name the pieces and say where they go; the arrows between them are computed.
+
+::: diagram {unit=126x72}
+box  src  "Sender"
+box  mix  "Mix"        right of src gap 0.6
+box  dst  "Empfänger"  right of mix gap 0.6
+box  log  "Logfile"    below mix gap 0.9  {.dashed}
+
+edge src -> mix "encrypted"
+edge mix -> dst "recoded"
+edge mix -> log {#leak .dashed}
+
+text why "this is where\nthe anonymity ends"  right of log gap 0.8 -> leak {.hand}
+
+step leak
+  show log
+step blame
+  emph leak, log
+:::
+
+**Placement is a grid cell or a relation to a neighbour** – `at 2,1`, or `right of mix gap 0.6`, or `below src gap 0 align left` for boxes that touch. The first element sits at the origin so a simple diagram needs no coordinates at all. There is no automatic layout, on purpose: where things go is usually part of what the picture is saying.
+
+**`step` blocks make it move, and `Space` is the key.** Diagram steps are beats on the same counter as reveal segments, so they interleave with them in source order and the cockpit follows. The vocabulary is `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style` and `label`.
+
+**A moved box takes its arrows with it.** The layout is evaluated again for every step rather than nudged, so an edge that connects two elements re-routes whenever either end moves – which is the one thing a diagram exported from a drawing tool can never do.
+
+**An arrow is only as visible as what it connects**, so revealing boxes reveals the arrows between them and most edges need no `show` of their own. Free `text` can grow a leader line with `-> some-element`, which is how a label goes wherever it reads best without losing what it is about.
+
+::: expand The rest of the vocabulary
+`dot` is a circle for junctions and glyphs. `container … over a,b,c` draws a box that fits itself around its members and re-fits when they move; `group` is the same set without the box, for moving or hiding several things at once; `brace … over a,b right "Label"` is a bracket spanning a subset. Classes come from a closed list – four `tone-*` fills mixed from the page's own inks, plus `dashed`, `dotted`, `thick`, `round`, `mono`, `hand`, `muted` and a few more – and `lint.js` rejects anything else, so a typo is a build error rather than an unstyled box.
+:::
+
+> note: Print shows every element the diagram ever displays, at its last position, without the live-only `emph` and `dim` – the handout is the finished picture, the same rule reveal segments follow.
+
 # Writing chunks that work {#craft}
 
 ## principle: The topic sentence is the slide | so write the opening line for the projector {.standard #topic-sentence}

@@ -1196,6 +1196,1293 @@ marked.use({
   ],
 });
 
+// ── diagrams (::: diagram) ──────────────────────────────────────────
+// A boxes-and-arrows compiler. The source is a line-oriented DSL in the
+// lecture markdown; the output is one inline <svg> plus, when the author
+// wrote steps, a payload of precomputed per-step geometries that the live
+// runtime tweens between.
+//
+// Three decisions carry the design:
+//
+// 1. **No constraint solver.** Positions are expressions over a tiny
+//    algebra – a grid cell, an anchor on another element, an offset – so
+//    the dependency structure is a DAG and resolves by one topological
+//    walk. A solver (Constrain, Cassowary) buys generality we do not need
+//    and pays for it with non-local failure: an over-constrained system
+//    renders plausibly-wrong and reports a residual rather than a line
+//    number. Here a mistake names its line.
+//
+// 2. **Layout runs once per step, at build time.** An animation is not a
+//    separate mechanism bolted onto a static picture; a step is just
+//    another evaluation of the same layout with different inputs. That is
+//    what makes an arrow follow a box that moved – the arrow never stored
+//    coordinates, it stored "the right edge of mix".
+//
+// 3. **The runtime interpolates numbers, nothing else.** No layout, no
+//    solver, no geometry in the browser. Every drawable reduces to one of
+//    four kinds (rect, circle, path, text) carrying a vector of numbers,
+//    and a step transition is a lerp between two vectors. That is why
+//    arrowheads are emitted as filled paths rather than SVG markers: a
+//    computed head rotates correctly when its endpoints move, and it
+//    sidesteps the marker/context-stroke colour question entirely.
+//
+// The static attributes in the emitted SVG hold the *print* state, so a
+// view with no JavaScript – print.html, print-notes.html, view-source –
+// shows the finished diagram rather than its opening step.
+
+const DG_UNIT = [120, 72];     // default grid cell, px
+const DG_FONT = 15;            // base label size, px
+const DG_LINE_H = 1.25;        // line height, multiples of font size
+const DG_PAD_X = 13;           // box padding, px
+const DG_PAD_Y = 9;
+const DG_MIN_W = 54;           // a box never narrows past this
+const DG_HEAD = 9;             // arrowhead length, px
+const DG_MARGIN = 12;          // viewBox breathing room, px
+const DG_BRACE_TICK = 7;       // how far a brace's end ticks turn in, px
+const DG_DOT_R = 13;           // default radius of a `dot`
+
+// Closed vocabulary. Unknown class is an error, not a silent no-op – the
+// same rule VALID_TAGS follows, and for the same reason: a typo that only
+// costs you the styling is invisible until it is on a projector.
+const DG_CLASSES = new Set([
+  // fills
+  'tone-1', 'tone-2', 'tone-3', 'tone-4', 'accent', 'muted', 'ghost',
+  // strokes
+  'dashed', 'dotted', 'thick', 'bare',
+  // shape
+  'round', 'sharp',
+  // type
+  'mono', 'hand', 'small', 'large', 'bold',
+  // text alignment (free `text` only)
+  'left', 'right',
+  // edges
+  'no-head', 'both-heads',
+  // set by steps, but authorable as an initial state too
+  'emph', 'dim',
+]);
+const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 'tr', 'bl', 'br']);
+const DG_STEP_OPS = new Set(['show', 'hide', 'move', 'emph', 'calm', 'style', 'label']);
+const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'edge', 'brace', 'container', 'group', 'step']);
+
+let dgCounter = 0;             // per-build, reset in buildOnce
+
+function dgErr(errors, line, msg) { errors.push({ line, msg }); }
+
+// Layout runs once per step, so the same complaint would otherwise be
+// printed once per frame. Reset per build alongside dgCounter.
+const dgWarned = new Set();
+function dgWarn(msg) {
+  if (dgWarned.has(msg)) return;
+  dgWarned.add(msg);
+  console.warn(`[diagram] ${msg}`);
+}
+
+// ── text metrics ────────────────────────────────────────────────────
+// There is no browser at build time, so label widths are estimated from a
+// per-character advance table. It is deliberately a little generous: a box
+// slightly wider than its text reads as designed, a box slightly narrower
+// reads as broken. `w` on the element overrides it whenever the estimate
+// is not good enough.
+const DG_NARROW = new Set([...'ijltI.,:;\'"`|!()[]{}/\\ -']);
+const DG_WIDE = new Set([...'mwMWQ@%']);
+function dgCharW(ch) {
+  if (DG_NARROW.has(ch)) return 0.34;
+  if (DG_WIDE.has(ch)) return 0.92;
+  if (ch >= 'A' && ch <= 'Z') return 0.68;
+  if (ch >= '0' && ch <= '9') return 0.56;
+  return 0.53;
+}
+
+// Labels carry `_sub` and `^sup` because these diagrams are full of c_0,
+// m_1, MAC_k. Full KaTeX is deliberately not wired in here: it emits HTML,
+// which inside an <svg> would mean a <foreignObject>, which would take the
+// label out of the SVG coordinate system the tween operates on.
+function dgSpans(text) {
+  const out = [];
+  let buf = '';
+  const flush = (shift) => { if (buf) { out.push({ t: buf, shift }); buf = ''; } };
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if ((ch === '_' || ch === '^') && i + 1 < text.length) {
+      flush(0);
+      const shift = ch === '_' ? -1 : 1;
+      i++;
+      if (text[i] === '{') {
+        const end = text.indexOf('}', i);
+        if (end < 0) { buf = ch; continue; }
+        out.push({ t: text.slice(i + 1, end), shift });
+        i = end;
+      } else {
+        out.push({ t: text[i], shift });
+      }
+      continue;
+    }
+    buf += ch;
+  }
+  flush(0);
+  return out;
+}
+
+function dgMeasure(label, fontPx, mono) {
+  const lines = String(label ?? '').split('\n');
+  let maxW = 0;
+  const laid = lines.map(ln => {
+    const spans = dgSpans(ln);
+    let w = 0;
+    for (const s of spans) {
+      const size = s.shift ? fontPx * 0.72 : fontPx;
+      for (const ch of s.t) w += (mono ? 0.6 : dgCharW(ch)) * size;
+    }
+    if (w > maxW) maxW = w;
+    return spans;
+  });
+  return { w: maxW, h: lines.length * fontPx * DG_LINE_H, lines: laid, count: lines.length };
+}
+
+function dgFontFor(classes) {
+  let size = DG_FONT;
+  if (classes.has('small')) size = DG_FONT * 0.8;
+  if (classes.has('large')) size = DG_FONT * 1.22;
+  return size;
+}
+
+// ── diagram source parsing ──────────────────────────────────────────
+// Line-oriented on purpose. Every statement fits on one line, every
+// reference is by name, and nothing is addressed by position – so a line
+// can be inserted, reordered or rewritten without touching any other, and
+// an editor writing back into the source only ever rewrites the tokens it
+// changed.
+
+function dgTokenize(line) {
+  const out = [];
+  let i = 0;
+  while (i < line.length) {
+    const ch = line[i];
+    if (/\s/.test(ch)) { i++; continue; }
+    if (ch === '"') {
+      let j = i + 1, buf = '';
+      while (j < line.length && line[j] !== '"') {
+        if (line[j] === '\\' && j + 1 < line.length) {
+          const nxt = line[j + 1];
+          buf += nxt === 'n' ? '\n' : nxt;
+          j += 2;
+          continue;
+        }
+        buf += line[j++];
+      }
+      out.push({ q: true, v: buf });
+      i = j + 1;
+      continue;
+    }
+    if (ch === '{') {
+      const end = line.indexOf('}', i);
+      if (end < 0) { out.push({ v: line.slice(i) }); break; }
+      out.push({ attr: true, v: line.slice(i + 1, end) });
+      i = end + 1;
+      continue;
+    }
+    let j = i;
+    while (j < line.length && !/[\s"{]/.test(line[j])) j++;
+    out.push({ v: line.slice(i, j) });
+    i = j;
+  }
+  return out;
+}
+
+function dgParseAttrs(raw, errors, lineNo) {
+  const out = { id: null, classes: [] };
+  for (const tok of String(raw).trim().split(/\s+/).filter(Boolean)) {
+    if (tok.startsWith('#')) out.id = tok.slice(1);
+    else if (tok.startsWith('.')) {
+      const cls = tok.slice(1);
+      if (!DG_CLASSES.has(cls)) {
+        dgErr(errors, lineNo, `unknown class .${cls} (known: ${[...DG_CLASSES].join(', ')})`);
+      } else out.classes.push(cls);
+    } else dgErr(errors, lineNo, `attribute "${tok}" is neither #id nor .class`);
+  }
+  return out;
+}
+
+function dgNum(tok, errors, lineNo, what) {
+  const n = Number(tok);
+  if (!Number.isFinite(n)) { dgErr(errors, lineNo, `${what} expects a number, got "${tok}"`); return 0; }
+  return n;
+}
+
+// `mix`, `mix.right`. An unknown anchor is an error rather than a silent
+// fallback to centre, because a diagram whose arrows all quietly meet in
+// the middle of a box is exactly the failure that looks like a layout bug.
+function dgParseRef(tok, errors, lineNo) {
+  const dot = tok.indexOf('.');
+  if (dot < 0) return { ref: tok, anchor: null };
+  const ref = tok.slice(0, dot), anchor = tok.slice(dot + 1);
+  if (!DG_ANCHORS.has(anchor)) {
+    dgErr(errors, lineNo, `unknown anchor .${anchor} on "${ref}" (known: ${[...DG_ANCHORS].join(', ')})`);
+    return { ref, anchor: null };
+  }
+  return { ref, anchor };
+}
+
+// Placement. Absolute is `at X,Y` in grid cells; everything else states a
+// relation to a named element. Relative is the intended common form – it
+// is what survives an edit elsewhere in the diagram, and it is the form a
+// language model gets right, because "below the mix" is a judgement it can
+// make and "does 3,2 collide with 3.4,1.8" is not.
+function dgParsePlacement(toks, k, errors, lineNo) {
+  const t = (n) => (toks[n] ? toks[n].v : '');
+  if (t(k) === 'at') {
+    const parts = t(k + 1).split(',');
+    if (parts.length !== 2) { dgErr(errors, lineNo, `at expects X,Y – got "${t(k + 1)}"`); return [null, k + 2]; }
+    return [{ kind: 'abs', x: dgNum(parts[0], errors, lineNo, 'at X'), y: dgNum(parts[1], errors, lineNo, 'at Y') }, k + 2];
+  }
+  let dir = null, next = k;
+  if (t(k) === 'right' && t(k + 1) === 'of') { dir = 'right'; next = k + 2; }
+  else if (t(k) === 'left' && t(k + 1) === 'of') { dir = 'left'; next = k + 2; }
+  else if (t(k) === 'below') { dir = 'below'; next = k + 1; }
+  else if (t(k) === 'above') { dir = 'above'; next = k + 1; }
+  if (!dir) return [null, k];
+  const ref = t(next);
+  if (!ref) { dgErr(errors, lineNo, `${dir} expects an element name`); return [null, next]; }
+  next++;
+  const rel = { kind: 'rel', dir, ref, gap: 0.25, align: 'center' };
+  while (next < toks.length) {
+    if (t(next) === 'gap') { rel.gap = dgNum(t(next + 1), errors, lineNo, 'gap'); next += 2; continue; }
+    if (t(next) === 'align') {
+      const a = t(next + 1);
+      const ok = dir === 'right' || dir === 'left'
+        ? ['top', 'middle', 'bottom'] : ['left', 'center', 'right'];
+      if (!ok.includes(a)) dgErr(errors, lineNo, `align ${a} is not one of ${ok.join('/')} for "${dir}"`);
+      else rel.align = a;
+      next += 2;
+      continue;
+    }
+    break;
+  }
+  return [rel, next];
+}
+
+function dgParseMembers(tok) {
+  return String(tok).split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function parseDiagramSource(body, headAttrs) {
+  const errors = [];
+  const model = {
+    unit: DG_UNIT.slice(),
+    nodes: [],       // box | dot | text
+    edges: [],
+    braces: [],
+    containers: [],
+    groups: [],
+    steps: [],
+    byId: new Map(),
+  };
+
+  for (const tok of String(headAttrs || '').trim().split(/\s+/).filter(Boolean)) {
+    const m = tok.match(/^unit=(\d+)x(\d+)$/);
+    if (m) { model.unit = [Number(m[1]), Number(m[2])]; continue; }
+    if (tok.startsWith('#')) { model.id = tok.slice(1); continue; }
+    dgErr(errors, 0, `unknown ::: diagram option "${tok}" (expected #id or unit=WxH)`);
+  }
+
+  const claim = (id, kind, lineNo) => {
+    if (!id) return;
+    if (model.byId.has(id)) dgErr(errors, lineNo, `duplicate element id "${id}"`);
+    else model.byId.set(id, kind);
+  };
+
+  const lines = String(body).split('\n');
+  let step = null;
+  let anonEdge = 0;
+
+  for (let n = 0; n < lines.length; n++) {
+    const raw = lines[n];
+    const lineNo = n + 1;
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const toks = dgTokenize(trimmed);
+    const head = toks[0].v;
+    const t = (i) => (toks[i] ? toks[i].v : '');
+    const attrTok = toks.find(x => x.attr);
+    const attrs = attrTok ? dgParseAttrs(attrTok.v, errors, lineNo) : { id: null, classes: [] };
+    const quoted = toks.filter(x => x.q).map(x => x.v);
+    const body0 = toks.filter(x => !x.attr && !x.q);
+
+    // Inside a `step` block, everything indented is an operation on it.
+    if (step && head !== 'step' && DG_STEP_OPS.has(head)) {
+      const op = { op: head, line: lineNo };
+      if (head === 'show' || head === 'hide' || head === 'emph' || head === 'calm') {
+        op.targets = dgParseMembers(body0.slice(1).map(x => x.v).join(','));
+      } else if (head === 'style') {
+        op.targets = dgParseMembers(body0.slice(1).map(x => x.v).join(','));
+        op.classes = attrs.classes;
+      } else if (head === 'label') {
+        op.target = t(1);
+        op.text = quoted[0] ?? '';
+      } else if (head === 'move') {
+        op.target = body0[1] ? body0[1].v : '';
+        const verb = body0[2] ? body0[2].v : '';
+        const rest = body0.slice(3);
+        if (verb === 'by') {
+          const parts = (rest[0] ? rest[0].v : '').split(',');
+          op.by = [dgNum(parts[0], errors, lineNo, 'move by dx'), dgNum(parts[1] ?? '0', errors, lineNo, 'move by dy')];
+        } else if (verb === 'to') {
+          // `move mix to 3,2` is the same thing as `at 3,2`, spelled the way
+          // it reads out loud. Anything else is a relation.
+          if (rest[0] && /^-?[\d.]+,-?[\d.]+$/.test(rest[0].v)) {
+            const parts = rest[0].v.split(',');
+            op.to = { kind: 'abs', x: Number(parts[0]), y: Number(parts[1]) };
+          } else {
+            const [place] = dgParsePlacement(rest, 0, errors, lineNo);
+            if (!place) dgErr(errors, lineNo, `move ${op.target} to … needs "X,Y" or a relation (below / above / right of / left of)`);
+            op.to = place;
+          }
+        } else {
+          dgErr(errors, lineNo, 'move expects "to" or "by" after the element name');
+        }
+      }
+      step.ops.push(op);
+      continue;
+    }
+
+    if (!DG_KEYWORDS.has(head)) {
+      dgErr(errors, lineNo, `unknown statement "${head}" (known: ${[...DG_KEYWORDS].join(', ')}${step ? ', ' + [...DG_STEP_OPS].join(', ') : ''})`);
+      continue;
+    }
+
+    if (head === 'step') {
+      const name = t(1) || `step-${model.steps.length + 1}`;
+      step = { name, ops: [], line: lineNo };
+      model.steps.push(step);
+      continue;
+    }
+    // A definition after the first step block ends step mode: definitions
+    // are the picture, steps are what happens to it.
+    step = null;
+
+    if (head === 'box' || head === 'dot' || head === 'text') {
+      const id = t(1);
+      if (!id) { dgErr(errors, lineNo, `${head} needs a name`); continue; }
+      claim(id, head, lineNo);
+      const rest = body0.slice(2).map(x => ({ v: x.v }));
+      let k = 0;
+      const node = {
+        kind: head, id, label: quoted[0] ?? '',
+        classes: attrs.classes, place: null, w: null, h: null, r: null, line: lineNo,
+      };
+      while (k < rest.length) {
+        const key = rest[k].v;
+        // A leader line: `text n "…" right of c gap 0.7 -> leak`. This is
+        // the escape from layout pressure – put the words where they read
+        // best and let a stub say what they are about. It is a tail on
+        // `text` rather than a keyword of its own so that any label can
+        // grow one, and so the vocabulary stays at eight statements.
+        if (key === '->') {
+          node.leader = rest[k + 1] ? rest[k + 1].v : '';
+          if (!node.leader) dgErr(errors, lineNo, `${head} ${id}: "->" needs an element to point at`);
+          k += 2;
+          continue;
+        }
+        if (key === 'w') { node.w = dgNum(rest[k + 1]?.v, errors, lineNo, 'w'); k += 2; continue; }
+        if (key === 'h') { node.h = dgNum(rest[k + 1]?.v, errors, lineNo, 'h'); k += 2; continue; }
+        if (key === 'r') { node.r = dgNum(rest[k + 1]?.v, errors, lineNo, 'r'); k += 2; continue; }
+        const [place, next] = dgParsePlacement(rest, k, errors, lineNo);
+        if (place) { node.place = place; k = next; continue; }
+        dgErr(errors, lineNo, `unexpected "${key}" in ${head} ${id}`);
+        k++;
+      }
+      // The first element anchors the diagram at the origin, so the common
+      // case of "a box, and then everything relative to it" needs no
+      // coordinates at all. Every element after it has to say where it
+      // goes – silently stacking two elements on 0,0 is not a default
+      // anyone means.
+      if (!node.place) {
+        if (model.nodes.length === 0) node.place = { kind: 'abs', x: 0, y: 0 };
+        else dgErr(errors, lineNo, `${head} ${id} has no placement (at X,Y / below … / above … / right of … / left of … )`);
+      }
+      model.nodes.push(node);
+      if (node.leader) {
+        const leadId = `${id}--lead`;
+        claim(leadId, 'edge', lineNo);
+        model.edges.push({
+          id: leadId,
+          from: { ref: id, anchor: null },
+          to: dgParseRef(node.leader, errors, lineNo),
+          label: '', classes: ['no-head', 'muted'], via: [], line: lineNo,
+        });
+      }
+      continue;
+    }
+
+    if (head === 'edge') {
+      const arrowAt = body0.findIndex(x => x.v === '->' || x.v === '<-' || x.v === '--');
+      if (arrowAt < 0) { dgErr(errors, lineNo, `edge needs "->" between two element names`); continue; }
+      const fromTok = body0[arrowAt - 1]?.v, toTok = body0[arrowAt + 1]?.v;
+      if (!fromTok || !toTok) { dgErr(errors, lineNo, `edge needs an element on both sides of "->"`); continue; }
+      const flip = body0[arrowAt].v === '<-';
+      const id = attrs.id || `edge-${++anonEdge}`;
+      claim(id, 'edge', lineNo);
+      const edge = {
+        id,
+        from: dgParseRef(flip ? toTok : fromTok, errors, lineNo),
+        to: dgParseRef(flip ? fromTok : toTok, errors, lineNo),
+        label: quoted[0] ?? '',
+        classes: attrs.classes.slice(),
+        via: [], line: lineNo,
+      };
+      if (body0[arrowAt].v === '--' && !edge.classes.includes('no-head')) edge.classes.push('no-head');
+      for (let k = arrowAt + 2; k < body0.length; k++) {
+        if (body0[k].v === 'via') continue;
+        const parts = body0[k].v.split(',');
+        if (parts.length === 2) {
+          edge.via.push([dgNum(parts[0], errors, lineNo, 'via X'), dgNum(parts[1], errors, lineNo, 'via Y')]);
+        } else dgErr(errors, lineNo, `unexpected "${body0[k].v}" in edge (waypoints are "via X,Y X,Y")`);
+      }
+      model.edges.push(edge);
+      continue;
+    }
+
+    if (head === 'brace' || head === 'container' || head === 'group') {
+      const id = t(1);
+      if (!id) { dgErr(errors, lineNo, `${head} needs a name`); continue; }
+      claim(id, head, lineNo);
+      const overAt = body0.findIndex(x => x.v === 'over');
+      if (overAt < 0) { dgErr(errors, lineNo, `${head} ${id} needs "over a,b,c"`); continue; }
+      // `over a, b, c` tokenizes into several tokens; everything up to the
+      // first trailing keyword is the member list.
+      const TRAIL = new Set(['pad', 'gap', 'right', 'left', 'top', 'bottom']);
+      let mEnd = overAt + 1;
+      while (mEnd < body0.length && !TRAIL.has(body0[mEnd].v)) mEnd++;
+      const members = dgParseMembers(body0.slice(overAt + 1, mEnd).map(x => x.v).join(','));
+      if (!members.length) { dgErr(errors, lineNo, `${head} ${id} lists no members`); continue; }
+      const rest = body0.slice(mEnd);
+      if (head === 'group') { model.groups.push({ id, members, line: lineNo }); continue; }
+      const item = { id, members, label: quoted[0] ?? '', classes: attrs.classes, pad: 0.18, line: lineNo };
+      if (head === 'brace') {
+        item.side = 'right';
+        for (let k = 0; k < rest.length; k++) {
+          if (['right', 'left', 'top', 'bottom'].includes(rest[k].v)) item.side = rest[k].v;
+          else if (rest[k].v === 'gap') { item.pad = dgNum(rest[k + 1]?.v, errors, lineNo, 'gap'); k++; }
+          else dgErr(errors, lineNo, `unexpected "${rest[k].v}" in brace ${id}`);
+        }
+        model.braces.push(item);
+      } else {
+        for (let k = 0; k < rest.length; k++) {
+          if (rest[k].v === 'pad') { item.pad = dgNum(rest[k + 1]?.v, errors, lineNo, 'pad'); k++; }
+          else dgErr(errors, lineNo, `unexpected "${rest[k].v}" in container ${id}`);
+        }
+        model.containers.push(item);
+      }
+      continue;
+    }
+  }
+
+  // Referential integrity. Every name an element points at has to exist –
+  // a dangling reference is the one failure mode that would otherwise
+  // render as "an arrow is mysteriously missing".
+  const known = (id) => model.byId.has(id) || model.groups.some(g => g.id === id);
+  const checkRef = (id, lineNo, what) => {
+    if (id && !known(id)) dgErr(errors, lineNo, `${what} refers to "${id}", which is not defined`);
+  };
+  for (const n of model.nodes) if (n.place?.kind === 'rel') checkRef(n.place.ref, n.line, `${n.kind} ${n.id}`);
+  for (const e of model.edges) { checkRef(e.from.ref, e.line, `edge ${e.id}`); checkRef(e.to.ref, e.line, `edge ${e.id}`); }
+  for (const c of [...model.containers, ...model.braces, ...model.groups]) {
+    for (const m of c.members) checkRef(m, c.line, `${c.id}`);
+  }
+  for (const s of model.steps) {
+    for (const op of s.ops) {
+      for (const target of (op.targets || (op.target ? [op.target] : []))) checkRef(target, op.line, `step ${s.name}`);
+      if (op.to?.kind === 'rel') checkRef(op.to.ref, op.line, `step ${s.name}`);
+    }
+  }
+
+  return { model, errors };
+}
+
+// ── diagram layout ──────────────────────────────────────────────────
+// One evaluation per step. Everything downstream of a moved element is
+// recomputed rather than transformed, which is the whole reason an arrow
+// between two boxes stays attached when one of them walks off: the arrow
+// never stored a coordinate, it stored "the right edge of mix".
+
+function dgAnchorPt(b, a) {
+  const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+  switch (a) {
+    case 'left': return [b.x, cy];
+    case 'right': return [b.x + b.w, cy];
+    case 'top': return [cx, b.y];
+    case 'bottom': return [cx, b.y + b.h];
+    case 'tl': return [b.x, b.y];
+    case 'tr': return [b.x + b.w, b.y];
+    case 'bl': return [b.x, b.y + b.h];
+    case 'br': return [b.x + b.w, b.y + b.h];
+    default: return [cx, cy];
+  }
+}
+
+function dgAutoAnchor(from, toward) {
+  const cx = from.x + from.w / 2, cy = from.y + from.h / 2;
+  const dx = toward[0] - cx, dy = toward[1] - cy;
+  if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? 'right' : 'left';
+  return dy >= 0 ? 'bottom' : 'top';
+}
+
+function dgUnion(boxes) {
+  const x0 = Math.min(...boxes.map(b => b.x));
+  const y0 = Math.min(...boxes.map(b => b.y));
+  const x1 = Math.max(...boxes.map(b => b.x + b.w));
+  const y1 = Math.max(...boxes.map(b => b.y + b.h));
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+// Effective per-element state after applying steps 0..k. Steps are a
+// cumulative script over a copy, never a mutation of the model, so the
+// same model can be evaluated for every step independently.
+function dgStateAt(model, k) {
+  const shownLater = new Set();
+  for (const s of model.steps) {
+    for (const op of s.ops) {
+      if (op.op === 'show') for (const t of op.targets) shownLater.add(t);
+    }
+  }
+  const expand = (id) => {
+    const g = model.groups.find(x => x.id === id);
+    return g ? g.members : [id];
+  };
+  const state = new Map();
+  const all = [...model.nodes, ...model.containers, ...model.braces];
+  for (const el of all) {
+    state.set(el.id, {
+      visible: !shownLater.has(el.id),
+      classes: new Set(el.classes),
+      label: el.label,
+      place: el.place || null,
+      shift: [0, 0],
+    });
+  }
+  for (const e of model.edges) {
+    state.set(e.id, { visible: !shownLater.has(e.id), classes: new Set(e.classes), label: e.label, place: null, shift: [0, 0] });
+  }
+  for (let i = 0; i < k; i++) {
+    for (const op of model.steps[i].ops) {
+      const targets = (op.targets || (op.target ? [op.target] : [])).flatMap(expand);
+      for (const id of targets) {
+        const st = state.get(id);
+        if (!st) continue;
+        if (op.op === 'show') st.visible = true;
+        else if (op.op === 'hide') st.visible = false;
+        else if (op.op === 'emph') st.classes.add('emph');
+        else if (op.op === 'calm') { st.classes.delete('emph'); st.classes.add('dim'); }
+        else if (op.op === 'style') for (const c of op.classes) st.classes.add(c);
+        else if (op.op === 'label') st.label = op.text;
+        else if (op.op === 'move') {
+          if (op.by) { st.shift = [st.shift[0] + op.by[0], st.shift[1] + op.by[1]]; }
+          else if (op.to) { st.place = op.to; st.shift = [0, 0]; }
+        }
+      }
+    }
+  }
+  return state;
+}
+
+function layoutDiagram(model, state, errors) {
+  const [uw, uh] = model.unit;
+  const boxes = new Map();   // id -> {x,y,w,h}
+
+  // Sizes first: they depend only on the element's own label and class,
+  // never on placement, so they can be settled before the DAG walk.
+  const sizeOf = (node) => {
+    const st = state.get(node.id);
+    const classes = st.classes;
+    const font = dgFontFor(classes);
+    if (node.kind === 'dot') {
+      const r = node.r != null ? node.r * uh : DG_DOT_R;
+      return { w: 2 * r, h: 2 * r };
+    }
+    const m = dgMeasure(st.label, font, classes.has('mono'));
+    if (node.kind === 'text') return { w: m.w, h: m.h };
+    // An explicit w that cannot hold its own label overflows in silence –
+    // right on the machine that drew it, wrong on the projector. Say so.
+    if (node.w != null && node.w * uw < m.w + 6) {
+      dgWarn(`box ${node.id} is ${node.w} units wide but its label needs about `
+        + `${((m.w + 2 * DG_PAD_X) / uw).toFixed(2)} – the text will overflow.`);
+    }
+    return {
+      w: node.w != null ? node.w * uw : Math.max(m.w + 2 * DG_PAD_X, DG_MIN_W),
+      h: node.h != null ? node.h * uh : m.h + 2 * DG_PAD_Y,
+    };
+  };
+
+  // Dependency graph. Nodes depend on whatever they are placed against;
+  // containers, braces and groups depend on their members.
+  const deps = new Map();
+  const order = [];
+  const kindOf = new Map();
+  for (const n of model.nodes) { kindOf.set(n.id, 'node'); deps.set(n.id, state.get(n.id).place?.kind === 'rel' ? [state.get(n.id).place.ref] : []); }
+  for (const g of model.groups) { kindOf.set(g.id, 'group'); deps.set(g.id, g.members.slice()); }
+  for (const c of model.containers) { kindOf.set(c.id, 'container'); deps.set(c.id, c.members.slice()); }
+  for (const b of model.braces) { kindOf.set(b.id, 'brace'); deps.set(b.id, b.members.slice()); }
+
+  const mark = new Map();
+  const visit = (id, trail) => {
+    if (mark.get(id) === 2) return;
+    if (mark.get(id) === 1) {
+      errors.push({ line: 0, msg: `placement cycle: ${[...trail, id].join(' → ')}` });
+      mark.set(id, 2);
+      return;
+    }
+    if (!deps.has(id)) return;
+    mark.set(id, 1);
+    for (const d of deps.get(id)) visit(d, [...trail, id]);
+    mark.set(id, 2);
+    order.push(id);
+  };
+  for (const id of deps.keys()) visit(id, []);
+
+  const nodeById = new Map(model.nodes.map(n => [n.id, n]));
+  const contById = new Map(model.containers.map(c => [c.id, c]));
+  const braceById = new Map(model.braces.map(b => [b.id, b]));
+  const groupById = new Map(model.groups.map(g => [g.id, g]));
+
+  for (const id of order) {
+    const st = state.get(id);
+    if (nodeById.has(id)) {
+      const node = nodeById.get(id);
+      const { w, h } = sizeOf(node);
+      const place = st.place;
+      let cx = 0, cy = 0;
+      if (!place) { cx = 0; cy = 0; }
+      else if (place.kind === 'abs') { cx = place.x * uw; cy = place.y * uh; }
+      else {
+        const ref = boxes.get(place.ref);
+        if (!ref) { cx = 0; cy = 0; }
+        else if (place.dir === 'right' || place.dir === 'left') {
+          cx = place.dir === 'right'
+            ? ref.x + ref.w + place.gap * uw + w / 2
+            : ref.x - place.gap * uw - w / 2;
+          cy = place.align === 'top' ? ref.y + h / 2
+            : place.align === 'bottom' ? ref.y + ref.h - h / 2
+            : ref.y + ref.h / 2;
+        } else {
+          cy = place.dir === 'below'
+            ? ref.y + ref.h + place.gap * uh + h / 2
+            : ref.y - place.gap * uh - h / 2;
+          cx = place.align === 'left' ? ref.x + w / 2
+            : place.align === 'right' ? ref.x + ref.w - w / 2
+            : ref.x + ref.w / 2;
+        }
+      }
+      cx += st.shift[0] * uw;
+      cy += st.shift[1] * uh;
+      boxes.set(id, { x: cx - w / 2, y: cy - h / 2, w, h });
+      continue;
+    }
+    const holder = contById.get(id) || braceById.get(id) || groupById.get(id);
+    if (!holder) continue;
+    const memberBoxes = holder.members.map(m => boxes.get(m)).filter(Boolean);
+    if (!memberBoxes.length) { boxes.set(id, { x: 0, y: 0, w: 0, h: 0 }); continue; }
+    const bb = dgUnion(memberBoxes);
+    if (groupById.has(id)) { boxes.set(id, bb); continue; }
+    if (contById.has(id)) {
+      const pad = holder.pad * uh;
+      const labelH = holder.label ? dgFontFor(state.get(id).classes) * DG_LINE_H + 4 : 0;
+      const shift = state.get(id).shift;
+      boxes.set(id, {
+        x: bb.x - pad + shift[0] * uw,
+        y: bb.y - pad - labelH + shift[1] * uh,
+        w: bb.w + 2 * pad,
+        h: bb.h + 2 * pad + labelH,
+        labelH,
+      });
+      continue;
+    }
+    boxes.set(id, bb);   // brace: the span it covers; offset applied at draw time
+  }
+
+  return boxes;
+}
+
+// ── diagram drawables ───────────────────────────────────────────────
+// Every semantic element reduces to one or two drawables, and a drawable
+// is only ever a rect, a circle, a path or a block of text carrying a
+// vector of numbers. That is the whole contract the runtime has to know:
+// interpolate the vectors, set the attributes. It is also why an arrowhead
+// is a computed filled path here rather than an SVG <marker> – a marker
+// would not rotate with a moving endpoint, and its fill would have to
+// resolve through context-stroke to follow the theme.
+
+function dgPolyPoint(pts, frac) {
+  let total = 0;
+  const segs = [];
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i][0] - pts[i - 1][0], dy = pts[i][1] - pts[i - 1][1];
+    const len = Math.hypot(dx, dy);
+    segs.push({ a: pts[i - 1], b: pts[i], len, dx, dy });
+    total += len;
+  }
+  if (!total) return { p: pts[0], dir: [1, 0] };
+  let want = total * frac;
+  for (const s of segs) {
+    if (want <= s.len || s === segs[segs.length - 1]) {
+      const t = s.len ? want / s.len : 0;
+      return { p: [s.a[0] + s.dx * t, s.a[1] + s.dy * t], dir: [s.dx / (s.len || 1), s.dy / (s.len || 1)] };
+    }
+    want -= s.len;
+  }
+  return { p: pts[pts.length - 1], dir: [1, 0] };
+}
+
+function dgFrameDrawables(model, state, boxes, labelIndex) {
+  const [uw, uh] = model.unit;
+  const geom = new Map();
+  const vis = new Map();
+  const cls = new Map();
+  const lab = new Map();
+
+  const put = (el, drawId, vec) => geom.set(drawId, vec);
+  const record = (el) => {
+    const st = state.get(el.id);
+    vis.set(el.id, st.visible ? 1 : 0);
+    cls.set(el.id, [...st.classes].join(' '));
+    const variants = labelIndex.get(el.id);
+    if (variants) lab.set(el.id, Math.max(0, variants.indexOf(st.label)));
+    return st;
+  };
+
+  const labelBox = (el, st, box) => {
+    if (!st.label) return;
+    put(el, el.id + '--l', [box.x + box.w / 2, box.y + box.h / 2]);
+  };
+
+  for (const node of model.nodes) {
+    const st = record(node);
+    const b = boxes.get(node.id);
+    if (!b) continue;
+    if (node.kind === 'box') {
+      put(node, node.id + '--r', [b.x, b.y, b.w, b.h]);
+      labelBox(node, st, b);
+    } else if (node.kind === 'dot') {
+      put(node, node.id + '--c', [b.x + b.w / 2, b.y + b.h / 2, b.w / 2]);
+      labelBox(node, st, b);
+    } else {
+      labelBox(node, st, b);
+    }
+  }
+
+  for (const c of model.containers) {
+    const st = record(c);
+    const b = boxes.get(c.id);
+    if (!b) continue;
+    put(c, c.id + '--r', [b.x, b.y, b.w, b.h]);
+    // A container's caption sits on its own top edge rather than inside
+    // the members' space, so adding a caption never reflows the contents.
+    if (st.label) put(c, c.id + '--l', [b.x + 10, b.y + (b.labelH || 0) / 2 + 1]);
+  }
+
+  for (const br of model.braces) {
+    const st = record(br);
+    const b = boxes.get(br.id);
+    if (!b) continue;
+    const pad = br.pad * uh, tick = DG_BRACE_TICK;
+    let pts, lp;
+    if (br.side === 'right') {
+      const x = b.x + b.w + pad;
+      pts = [[x, b.y], [x + tick, b.y], [x + tick, b.y + b.h], [x, b.y + b.h]];
+      lp = [x + tick + 8, b.y + b.h / 2];
+    } else if (br.side === 'left') {
+      const x = b.x - pad;
+      pts = [[x, b.y], [x - tick, b.y], [x - tick, b.y + b.h], [x, b.y + b.h]];
+      lp = [x - tick - 8, b.y + b.h / 2];
+    } else if (br.side === 'top') {
+      const y = b.y - pad;
+      pts = [[b.x, y], [b.x, y - tick], [b.x + b.w, y - tick], [b.x + b.w, y]];
+      lp = [b.x + b.w / 2, y - tick - 9];
+    } else {
+      const y = b.y + b.h + pad;
+      pts = [[b.x, y], [b.x, y + tick], [b.x + b.w, y + tick], [b.x + b.w, y]];
+      lp = [b.x + b.w / 2, y + tick + 9];
+    }
+    put(br, br.id + '--p', pts.flat());
+    if (st.label) put(br, br.id + '--l', lp);
+  }
+
+  for (const e of model.edges) {
+    // An edge is only ever as visible as the two things it connects. An
+    // arrow pointing at a box that has not appeared yet is never what the
+    // author meant, and making it the rule means most edges need no `show`
+    // of their own – revealing the boxes reveals the arrows between them.
+    const ends = [e.from.ref, e.to.ref].map(r => state.get(r));
+    const st = record(e);
+    if (ends.some(s => s && !s.visible)) vis.set(e.id, 0);
+    const fb = boxes.get(e.from.ref), tb = boxes.get(e.to.ref);
+    if (!fb || !tb) continue;
+    const viaPx = e.via.map(([x, y]) => [x * uw, y * uh]);
+    const towardFrom = viaPx[0] || [tb.x + tb.w / 2, tb.y + tb.h / 2];
+    const towardTo = viaPx[viaPx.length - 1] || [fb.x + fb.w / 2, fb.y + fb.h / 2];
+    const aFrom = e.from.anchor || dgAutoAnchor(fb, towardFrom);
+    const aTo = e.to.anchor || dgAutoAnchor(tb, towardTo);
+    const start = dgAnchorPt(fb, aFrom);
+    const end = dgAnchorPt(tb, aTo);
+    const pts = [start, ...viaPx, end];
+
+    const headed = !st.classes.has('no-head');
+    const both = st.classes.has('both-heads');
+    // Pull the stroke back from the tip so a thick head is not printed
+    // over by the line it terminates.
+    const trim = (a, b, by) => {
+      const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1;
+      return [b[0] - (dx / len) * by, b[1] - (dy / len) * by];
+    };
+    const drawPts = pts.map(p => p.slice());
+    if (headed) drawPts[drawPts.length - 1] = trim(pts[pts.length - 2], pts[pts.length - 1], DG_HEAD * 0.85);
+    if (both) drawPts[0] = trim(pts[1], pts[0], DG_HEAD * 0.85);
+    put(e, e.id + '--p', drawPts.flat());
+
+    const head = (tip, from) => {
+      const dx = tip[0] - from[0], dy = tip[1] - from[1], len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len, uy = dy / len, w = DG_HEAD * 0.44;
+      return [
+        tip[0], tip[1],
+        tip[0] - ux * DG_HEAD + -uy * w, tip[1] - uy * DG_HEAD + ux * w,
+        tip[0] - ux * DG_HEAD - -uy * w, tip[1] - uy * DG_HEAD - ux * w,
+      ];
+    };
+    if (headed) put(e, e.id + '--h', head(pts[pts.length - 1], pts[pts.length - 2]));
+    if (both) put(e, e.id + '--h2', head(pts[0], pts[1]));
+
+    if (st.label) {
+      const { p, dir } = dgPolyPoint(pts, 0.5);
+      const font = dgFontFor(st.classes);
+      const m = dgMeasure(st.label, font, st.classes.has('mono'));
+      const off = m.h / 2 + 6;
+      put(e, e.id + '--l', [p[0] + dir[1] * off, p[1] - dir[0] * off]);
+    }
+  }
+
+  return { geom, vis, cls, lab };
+}
+
+// Every distinct label an element ever carries, so a `label` step is a
+// visibility switch between pre-rendered variants instead of text surgery
+// in the browser. Keeps the runtime free of any typesetting code.
+function dgLabelVariants(model) {
+  const index = new Map();
+  const add = (id, text) => {
+    if (!index.has(id)) index.set(id, []);
+    const arr = index.get(id);
+    if (!arr.includes(text)) arr.push(text);
+  };
+  for (const el of [...model.nodes, ...model.containers, ...model.braces, ...model.edges]) {
+    if (el.label) add(el.id, el.label);
+  }
+  for (const s of model.steps) {
+    for (const op of s.ops) {
+      if (op.op === 'label' && op.text) add(op.target, op.text);
+    }
+  }
+  return index;
+}
+
+// ── diagram emission ────────────────────────────────────────────────
+
+function dgTspans(spans, font, baseline) {
+  const shiftPx = (s) => (s === -1 ? font * 0.26 : s === 1 ? font * -0.42 : 0);
+  let prev = 0, first = true, out = '';
+  for (const sp of spans) {
+    const dy = shiftPx(sp.shift) - prev;
+    prev = shiftPx(sp.shift);
+    const size = sp.shift ? ` font-size="${(font * 0.72).toFixed(2)}"` : '';
+    const pos = first ? ` x="0" y="${baseline.toFixed(2)}"` : '';
+    out += `<tspan${pos}${dy ? ` dy="${dy.toFixed(2)}"` : ''}${size}>${escapeHtml(sp.t)}</tspan>`;
+    first = false;
+  }
+  return out;
+}
+
+function dgTextEl(id, label, classes, extraClass) {
+  const font = dgFontFor(classes);
+  const mono = classes.has('mono');
+  const m = dgMeasure(label, font, mono);
+  const anchor = classes.has('left') ? 'start' : classes.has('right') ? 'end' : 'middle';
+  const lineH = font * DG_LINE_H;
+  const top = -((m.count - 1) * lineH) / 2;
+  let inner = '';
+  m.lines.forEach((spans, i) => {
+    inner += dgTspans(spans, font, top + i * lineH + font * 0.34);
+  });
+  return `<g id="${id}" class="dg-lbl${extraClass ? ' ' + extraClass : ''}">`
+    + `<text text-anchor="${anchor}" font-size="${font.toFixed(2)}"${mono ? ' class="dg-mono"' : ''}>${inner}</text></g>`;
+}
+
+function dgPathD(nums) {
+  let d = '';
+  for (let i = 0; i < nums.length; i += 2) {
+    d += (i ? 'L' : 'M') + nums[i].toFixed(2) + ' ' + nums[i + 1].toFixed(2);
+  }
+  return d;
+}
+
+// Compile one ::: diagram block into an inline <svg> plus, when it has
+// steps, the per-step geometry the live runtime tweens between.
+function renderDiagram(body, headAttrs, opts = {}) {
+  const { model, errors } = parseDiagramSource(body, headAttrs);
+  const labelIndex = dgLabelVariants(model);
+  const frameCount = model.steps.length + 1;
+  const frames = [];
+  for (let k = 0; k < frameCount; k++) {
+    const state = dgStateAt(model, k);
+    const boxes = layoutDiagram(model, state, errors);
+    frames.push(dgFrameDrawables(model, state, boxes, labelIndex));
+  }
+  if (errors.length) {
+    const where = opts.where ? ` in ${opts.where}` : '';
+    const err = new Error(
+      `::: diagram${model.id ? ` #${model.id}` : ''}${where} has ${errors.length} problem(s):\n` +
+      errors.map(e => `  ${e.line ? `line ${e.line} of the block: ` : ''}${e.msg}`).join('\n')
+    );
+    err.userFacing = true;
+    throw err;
+  }
+
+  const prefix = `dg${++dgCounter}-`;
+  const elements = [
+    ...model.containers.map(e => ({ e, kind: 'container' })),
+    ...model.braces.map(e => ({ e, kind: 'brace' })),
+    ...model.edges.map(e => ({ e, kind: 'edge' })),
+    ...model.nodes.map(e => ({ e, kind: e.kind })),
+  ];
+
+  // Print state: the union of everything the diagram ever shows, drawn
+  // where it last stood. Reveal collapses the same way in print (PRD §4.6)
+  // – a handout is the finished picture, not its first beat.
+  const printGeom = new Map(), printVis = new Map(), printCls = new Map(), printLab = new Map();
+  for (const f of frames) {
+    for (const [id, v] of f.vis) {
+      if (v) {
+        printVis.set(id, 1);
+        // emph and dim are lecture-time acts, like the collapse mode – a
+        // handout that arrives with three arrows greyed out is reporting a
+        // moment in the talk, not the diagram.
+        printCls.set(id, String(f.cls.get(id) || '').split(/\s+/).filter(c => c && c !== 'emph' && c !== 'dim').join(' '));
+        if (f.lab.has(id)) printLab.set(id, f.lab.get(id));
+        for (const [gid, vec] of f.geom) {
+          if (gid === id || gid.startsWith(id + '--')) printGeom.set(gid, vec);
+        }
+      } else if (!printVis.has(id)) printVis.set(id, 0);
+    }
+  }
+
+  // The viewBox has to hold every frame, or a box that walks in from the
+  // side would be clipped for the whole of its journey.
+  const allBoxes = [];
+  for (const f of [...frames, { geom: printGeom }]) {
+    for (const [gid, vec] of f.geom) {
+      if (gid.endsWith('--r')) allBoxes.push({ x: vec[0], y: vec[1], w: vec[2], h: vec[3] });
+      else if (gid.endsWith('--c')) allBoxes.push({ x: vec[0] - vec[2], y: vec[1] - vec[2], w: vec[2] * 2, h: vec[2] * 2 });
+      else if (gid.endsWith('--l')) allBoxes.push({ x: vec[0] - 60, y: vec[1] - 14, w: 120, h: 28 });
+      else for (let i = 0; i < vec.length; i += 2) allBoxes.push({ x: vec[i], y: vec[i + 1], w: 0, h: 0 });
+    }
+  }
+  const bb = allBoxes.length ? dgUnion(allBoxes) : { x: 0, y: 0, w: 100, h: 100 };
+  const vbX = bb.x - DG_MARGIN, vbY = bb.y - DG_MARGIN;
+  const vbW = Math.max(bb.w + 2 * DG_MARGIN, 1), vbH = Math.max(bb.h + 2 * DG_MARGIN, 1);
+
+  const kinds = {};
+  let svgBody = '';
+  for (const { e, kind } of elements) {
+    const st = printCls.get(e.id) ?? e.classes.join(' ');
+    const on = printVis.get(e.id) ? '' : ' opacity="0"';
+    let inner = '';
+    const g = (suffix) => printGeom.get(e.id + suffix);
+    if (kind === 'box' || kind === 'container') {
+      kinds[e.id + '--r'] = 'rect';
+      const v = g('--r') || [0, 0, 0, 0];
+      inner += `<rect id="${prefix}${e.id}--r" x="${v[0].toFixed(2)}" y="${v[1].toFixed(2)}" width="${v[2].toFixed(2)}" height="${v[3].toFixed(2)}" rx="4"/>`;
+    } else if (kind === 'dot') {
+      kinds[e.id + '--c'] = 'circle';
+      const v = g('--c') || [0, 0, 1];
+      inner += `<circle id="${prefix}${e.id}--c" cx="${v[0].toFixed(2)}" cy="${v[1].toFixed(2)}" r="${v[2].toFixed(2)}"/>`;
+    } else if (kind === 'edge' || kind === 'brace') {
+      kinds[e.id + '--p'] = 'path';
+      inner += `<path id="${prefix}${e.id}--p" class="dg-stroke" d="${dgPathD(g('--p') || [0, 0])}" fill="none"/>`;
+      for (const suffix of ['--h', '--h2']) {
+        if (!printGeom.has(e.id + suffix) && !frames.some(f => f.geom.has(e.id + suffix))) continue;
+        kinds[e.id + suffix] = 'path';
+        const hv = g(suffix) || frames[0].geom.get(e.id + suffix) || [0, 0];
+        inner += `<path id="${prefix}${e.id}${suffix}" class="dg-head" d="${dgPathD(hv)}Z"/>`;
+      }
+    }
+    const variants = labelIndex.get(e.id) || [];
+    variants.forEach((text, i) => {
+      const drawId = `${prefix}${e.id}--l${i}`;
+      kinds[e.id + '--l'] = 'text';
+      const classes = new Set(String(st).split(/\s+/).filter(Boolean));
+      const v = printGeom.get(e.id + '--l') || [0, 0];
+      const shown = (printLab.get(e.id) ?? 0) === i;
+      const extra = (variants.length > 1 ? 'dg-variant' : '') + (shown ? '' : ' dg-off');
+      inner += `<g id="${prefix}${e.id}--lw${i}" data-lab="${e.id}--l" class="dg-lwrap${extra ? ' ' + extra.trim() : ''}" transform="translate(${v[0].toFixed(2)},${v[1].toFixed(2)})">`
+        + dgTextEl(drawId, text, classes, kind === 'container' ? 'dg-caption' : '') + '</g>';
+    });
+    const base = `dg-el dg-${kind}`;
+    svgBody += `<g id="${prefix}${e.id}" data-base="${base}" class="${base}${st ? ' ' + st : ''}"${on}>${inner}</g>\n`;
+  }
+
+  const payload = {
+    p: prefix,
+    n: frameCount,
+    kinds,
+    names: model.steps.map(s => s.name),
+    frames: frames.map(f => ({
+      vis: Object.fromEntries(f.vis),
+      cls: Object.fromEntries(f.cls),
+      lab: Object.fromEntries(f.lab),
+      geom: Object.fromEntries([...f.geom].map(([k, v]) => [k, v.map(n => Math.round(n * 100) / 100)])),
+    })),
+  };
+
+  const svgId = `${prefix}root`;
+  const aria = opts.alt ? ` role="img" aria-label="${escapeHtml(opts.alt)}"` : ' role="img"';
+  const svg = `<svg id="${svgId}" class="psi-diagram" viewBox="${vbX.toFixed(2)} ${vbY.toFixed(2)} ${vbW.toFixed(2)} ${vbH.toFixed(2)}" `
+    + `data-steps="${frameCount}"${aria} preserveAspectRatio="xMidYMid meet">\n${svgBody}</svg>`;
+  const script = frameCount > 1
+    ? `<script type="application/json" class="psi-diagram-frames" data-for="${svgId}">`
+      + JSON.stringify(payload).replace(/</g, '\\u003c') + '</script>'
+    : '';
+  const hint = frameCount > 1 ? '<figcaption class="dg-hint"></figcaption>' : '';
+  return `<figure class="figure-diagram">${svg}${hint}${script}</figure>`;
+}
+
+// ── diagram CSS (shared by all four views) ──────────────────────────
+// Everything colours through the page's custom properties, so a diagram
+// re-inks with the A theme cycle exactly like an inlined SVG asset does.
+// The tones are color-mix over --emph and --ink rather than fixed hues:
+// four distinguishable fills that stay inside whichever theme is active,
+// instead of a palette imported from a slide deck that only worked on one
+// background.
+const DIAGRAM_CSS = `
+.figure-diagram { margin: 0.7em 0; }
+.psi-diagram {
+  --dg-sans: var(--sans-font, var(--sans));
+  --dg-mono: var(--mono-font, var(--mono));
+  --dg-serif: var(--body-font, var(--serif));
+  display: block; width: 100%; height: auto; overflow: visible;
+  /* A tall diagram must not push the chunk's prose off the projection.
+     preserveAspectRatio does the letterboxing; the figure just stops
+     growing. */
+  max-height: 52vh;
+}
+@media print { .psi-diagram { max-height: none; } }
+.psi-diagram .dg-el { transition: opacity 200ms ease; }
+.psi-diagram rect, .psi-diagram circle {
+  fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
+}
+.psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
+.psi-diagram .dg-head { fill: var(--ink); stroke: none; }
+.psi-diagram text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
+.psi-diagram .dg-mono { font-family: var(--dg-mono); }
+.psi-diagram .dg-off { display: none; }
+
+/* text elements carry no shape of their own */
+.psi-diagram .dg-text rect { display: none; }
+
+/* containers are a frame around their members, never a filled panel */
+.psi-diagram .dg-container > rect { fill: none; stroke: var(--rule); stroke-width: 1.2; }
+.psi-diagram .dg-caption text { fill: var(--ink-soft); }
+
+/* braces have no fill and no head */
+.psi-diagram .dg-brace .dg-stroke { stroke: var(--rule); }
+
+/* ── tones ── four theme-safe fills, mixed from the page's own inks ── */
+.psi-diagram .tone-1 > rect, .psi-diagram .tone-1 > circle {
+  fill: color-mix(in oklab, var(--emph) 13%, var(--paper));
+  stroke: color-mix(in oklab, var(--emph) 60%, var(--ink));
+}
+.psi-diagram .tone-2 > rect, .psi-diagram .tone-2 > circle {
+  fill: color-mix(in oklab, var(--ink) 8%, var(--paper)); stroke: var(--ink);
+}
+.psi-diagram .tone-3 > rect, .psi-diagram .tone-3 > circle {
+  fill: color-mix(in oklab, var(--ink) 20%, var(--paper)); stroke: var(--ink);
+}
+.psi-diagram .tone-4 > rect, .psi-diagram .tone-4 > circle {
+  fill: var(--emph); stroke: var(--emph);
+}
+.psi-diagram .tone-4 text { fill: var(--paper); }
+
+.psi-diagram .accent > rect, .psi-diagram .accent > circle { stroke: var(--emph); }
+.psi-diagram .accent .dg-stroke { stroke: var(--emph); }
+.psi-diagram .accent .dg-head { fill: var(--emph); }
+.psi-diagram .accent text { fill: var(--emph); }
+.psi-diagram .muted > rect, .psi-diagram .muted > circle { stroke: var(--ink-soft); }
+.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); }
+.psi-diagram .muted .dg-head { fill: var(--ink-soft); }
+.psi-diagram .muted text { fill: var(--ink-soft); }
+.psi-diagram .ghost { opacity: 0.45; }
+
+.psi-diagram .dashed > rect, .psi-diagram .dashed > circle, .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
+.psi-diagram .dotted > rect, .psi-diagram .dotted > circle, .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
+.psi-diagram .thick > rect, .psi-diagram .thick > circle, .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
+.psi-diagram .bare > rect, .psi-diagram .bare > circle { stroke: none; }
+.psi-diagram .round > rect { rx: 13px; }
+.psi-diagram .sharp > rect { rx: 0; }
+.psi-diagram .bold text { font-weight: 600; }
+/* no handwriting face is bundled, so the annotation voice is the serif in
+   italic – close enough to read as "written in beside the diagram", and it
+   costs no extra font payload. */
+.psi-diagram .hand text { font-family: var(--dg-serif); font-style: italic; fill: var(--emph); }
+
+/* emph / dim are what a step reaches for; both stay inside the palette */
+.psi-diagram .emph > rect, .psi-diagram .emph > circle { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph .dg-head { fill: var(--emph); }
+.psi-diagram .dim { opacity: 0.3; }
+
+.dg-hint { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .psi-diagram .dg-el { transition: none; }
+}
+`;
+
+// ── diagram runtime (inlined into the live views) ───────────────────
+// Interpolates the precomputed per-step vectors. There is no layout here
+// on purpose: the browser is handed numbers, not a model.
+const DIAGRAM_JS = `
+const DG_LIST = [];
+const DG_REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DG_DUR = 380;
+
+function dgApplyVec(el, kind, v) {
+  if (kind === 'rect') {
+    el.setAttribute('x', v[0]); el.setAttribute('y', v[1]);
+    el.setAttribute('width', Math.max(0, v[2])); el.setAttribute('height', Math.max(0, v[3]));
+  } else if (kind === 'circle') {
+    el.setAttribute('cx', v[0]); el.setAttribute('cy', v[1]); el.setAttribute('r', Math.max(0, v[2]));
+  } else if (kind === 'path') {
+    let d = '';
+    for (let i = 0; i < v.length; i += 2) d += (i ? 'L' : 'M') + v[i] + ' ' + v[i + 1];
+    el.setAttribute('d', d + (el.classList.contains('dg-head') ? 'Z' : ''));
+  } else {
+    el.setAttribute('transform', 'translate(' + v[0] + ',' + v[1] + ')');
+  }
+}
+
+function dgTargets(d, key) {
+  if (d.cache[key]) return d.cache[key];
+  // Label wrappers are addressed by data-lab, not by id, because one
+  // element can carry several pre-rendered label variants. The attribute
+  // holds the full geometry key.
+  const list = key.endsWith('--l')
+    ? [...d.svg.querySelectorAll('[data-lab="' + key + '"]')]
+    : [document.getElementById(d.data.p + key)].filter(Boolean);
+  d.cache[key] = list;
+  return list;
+}
+
+// Discrete state – visibility, classes, which label variant is on – lands
+// at once. Only geometry is worth interpolating; a class that fades is a
+// class that is wrong for half the transition.
+function dgApplyDiscrete(d, frame) {
+  for (const id in frame.vis) {
+    const g = document.getElementById(d.data.p + id);
+    if (!g) continue;
+    g.setAttribute('opacity', frame.vis[id] ? '1' : '0');
+    const base = g.dataset.base || '';
+    const extra = frame.cls[id] || '';
+    g.setAttribute('class', extra ? base + ' ' + extra : base);
+    if (id in frame.lab) {
+      d.svg.querySelectorAll('[data-lab="' + id + '"]').forEach((w, i) => {
+        w.classList.toggle('dg-off', i !== frame.lab[id]);
+      });
+    }
+  }
+}
+
+function dgApplyGeom(d, from, to, f) {
+  const now = {};
+  for (const key in to) {
+    const b = to[key];
+    const a = from[key] || b;
+    const v = new Array(b.length);
+    for (let i = 0; i < b.length; i++) {
+      const av = a[i] === undefined ? b[i] : a[i];
+      v[i] = Math.round((av + (b[i] - av) * f) * 100) / 100;
+    }
+    now[key] = v;
+    const kind = d.data.kinds[key];
+    for (const el of dgTargets(d, key)) dgApplyVec(el, kind, v);
+  }
+  return now;
+}
+
+// Paint a frame into a copy of the diagram that is not the live one - the
+// speaker's preview thumbnails. Resolves ids inside the given root rather
+// than through getElementById, because a clone carries duplicate ids and
+// the document would hand back the original every time.
+function dgRenderInto(root, d, step) {
+  const frame = d.data.frames[Math.max(0, Math.min(d.data.n - 1, step))];
+  if (!frame) return;
+  for (const id in frame.vis) {
+    const g = root.querySelector('[id="' + d.data.p + id + '"]');
+    if (!g) continue;
+    g.setAttribute('opacity', frame.vis[id] ? '1' : '0');
+    const base = g.dataset.base || '';
+    const extra = frame.cls[id] || '';
+    g.setAttribute('class', extra ? base + ' ' + extra : base);
+    if (id in frame.lab) {
+      root.querySelectorAll('[data-lab="' + id + '--l"]').forEach((w, i) => {
+        w.classList.toggle('dg-off', i !== frame.lab[id]);
+      });
+    }
+  }
+  for (const key in frame.geom) {
+    const els = key.endsWith('--l')
+      ? [...root.querySelectorAll('[data-lab="' + key + '"]')]
+      : [root.querySelector('[id="' + d.data.p + key + '"]')].filter(Boolean);
+    for (const el of els) dgApplyVec(el, d.data.kinds[key], frame.geom[key]);
+  }
+}
+
+function dgStep(d, step, instant) {
+  step = Math.max(0, Math.min(d.data.n - 1, step | 0));
+  const frame = d.data.frames[step];
+  const same = d.step === step && d.cur;
+  d.step = step;
+  dgApplyDiscrete(d, frame);
+  if (d.hint) {
+    const next = d.data.names[step];
+    d.hint.textContent = next ? 'next: ' + next : '';
+  }
+  if (same) return;
+  const from = d.cur || frame.geom;
+  cancelAnimationFrame(d.raf);
+  if (instant || DG_REDUCED) { d.cur = dgApplyGeom(d, frame.geom, frame.geom, 1); return; }
+  const t0 = performance.now();
+  const tick = (now) => {
+    const f = Math.min(1, (now - t0) / DG_DUR);
+    const e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2;
+    d.cur = dgApplyGeom(d, from, frame.geom, e);
+    if (f < 1) d.raf = requestAnimationFrame(tick);
+  };
+  d.raf = requestAnimationFrame(tick);
+}
+
+function initDiagrams() {
+  document.querySelectorAll('script.psi-diagram-frames').forEach(sc => {
+    const svg = document.getElementById(sc.dataset.for);
+    if (!svg) return;
+    let data;
+    try { data = JSON.parse(sc.textContent); } catch (e) { return; }
+    const fig = svg.closest('.figure-diagram');
+    const d = {
+      svg, data, step: -1, raf: 0, cur: null, cache: {},
+      hint: fig ? fig.querySelector('.dg-hint') : null,
+    };
+    svg.psiDiagram = d;
+    DG_LIST.push(d);
+    dgStep(d, 0, true);
+  });
+}
+`;
+
 // ── parsing ──────────────────────────────────────────────────────────
 
 function parseAttributeTail(text) {
@@ -1243,6 +2530,7 @@ function parseLecture(src) {
   let noteBlock = null;        // { lines: string[] } – current `> note:` block
   let pendingNotes = [];       // notes that appeared before a chunk, attach to the next one
   let annotBlock = null;       // { lines: string[] } – current `> annot:` block
+  let diagramBlock = null;     // { attrs, lines } while inside a ::: diagram block
   let pendingAnnotation = '';  // annotation that appeared before a chunk, attach to the next one
   let layoutStack = [];        // closing HTML tokens for open layout directives
 
@@ -1318,6 +2606,22 @@ function parseLecture(src) {
   };
 
   for (const line of content.split('\n')) {
+    // A diagram body is its own little language, so it is captured
+    // verbatim – ahead of the fence tracker, the note matcher and the
+    // directive table. Nothing inside it is markdown.
+    if (diagramBlock) {
+      if (/^:::\s*$/.test(line)) {
+        const target = currentExpansion ? currentExpansion.lines : bodyLines;
+        target.push('', renderDiagram(diagramBlock.lines.join('\n'), diagramBlock.attrs, {
+          where: currentChunk && currentChunk.id ? `chunk #${currentChunk.id}` : 'a chunk with no id',
+          alt: currentChunk ? currentChunk.heading : '',
+        }), '');
+        diagramBlock = null;
+      } else {
+        diagramBlock.lines.push(line);
+      }
+      continue;
+    }
     if (/^```/.test(line)) inFence = !inFence;
 
     if (!inFence) {
@@ -1453,6 +2757,15 @@ function parseLecture(src) {
         if (embedOpen) {
           target.push('', renderEmbedOpen(embedOpen[1]), '');
           layoutStack.push('</figcaption></figure>');
+          continue;
+        }
+        // ::: diagram – a boxes-and-arrows figure written in the diagram
+        // DSL and compiled to inline SVG at build time. Like ::: embed it
+        // earns its own directive rather than overloading a fence, because
+        // the body is not markdown and must not be parsed as any.
+        const diagramOpen = line.match(/^:::\s+diagram\s*(?:\{([^}]*)\})?\s*$/);
+        if (diagramOpen) {
+          diagramBlock = { attrs: diagramOpen[1] || '', lines: [] };
           continue;
         }
         // Explicit-slide mode (§4.5). These two are the escape hatch from
@@ -1819,6 +3132,7 @@ function renderDocument(lecture, opts = {}) {
 <title>${escapeHtml(title)} – ${titleSuffix}</title>
 <style>
 ${PRINT_CSS}
+${DIAGRAM_CSS}
 </style>
 ${fontStyleTag(opts.fontEmbed)}
 ${katexStyleTag(anonHtml + namedHtml)}
@@ -2612,6 +3926,7 @@ function renderAudience(lecture, opts = {}) {
 <title>${escapeHtml(title)} – lecture</title>
 <style>
 ${AUDIENCE_CSS}
+${DIAGRAM_CSS}
 </style>
 ${fontStyleTag(opts.fontEmbed)}
 ${katexStyleTag(columnsHtml, { fontToggle: true })}
@@ -2644,6 +3959,7 @@ ${renderTocNav(columns)}
 const LECTURE_TITLE = ${titleJson};
 const VIEW_DEFAULTS = ${jsonForScript(defaults)};
 const LINK_QR = ${jsonForScript(linkQrMap(columnsHtml))};
+${DIAGRAM_JS}
 ${AUDIENCE_JS}
 </script>
 </body>
@@ -4917,21 +6233,61 @@ function applyState() {
   broadcastState();
 }
 
-function countSegments(el) {
-  return el.querySelectorAll('.reveal-segment').length;
-}
-function applyReveal(el, id) {
-  const segs = el.querySelectorAll('.reveal-segment');
-  const count = revealed[id] ?? (segs.length ? 1 : 0);
-  segs.forEach((s, i) => {
-    if (i < count) s.removeAttribute('data-hidden');
-    else s.setAttribute('data-hidden', '');
-    // Mark the one segment that Space or Down will bring up next. Only the
-    // speaker's stylesheet reacts to it, but the attribute is set in both
-    // views so the two DOMs stay identical.
-    if (i === count) s.setAttribute('data-next', '');
-    else s.removeAttribute('data-next');
+// A chunk's forward beats: the reveal segments after the first, plus one
+// per diagram step, in document order. Making diagram steps beats on the
+// existing counter rather than a mechanism of their own is what buys the
+// whole feature its sync, its backward-navigation rule, its freeze gating
+// and its localStorage recovery for free – revealed[chunkId] was already
+// all of that, and it is still the only state involved. Document order
+// also gets the interleaving right: a diagram inside segment 1 advances
+// only once segment 1 is up.
+function chunkBeats(el) {
+  const out = [];
+  let segIdx = 0;
+  el.querySelectorAll('.reveal-segment, svg.psi-diagram').forEach(node => {
+    if (node.classList.contains('reveal-segment')) {
+      if (segIdx++ > 0) out.push({ type: 'seg', el: node });
+      return;
+    }
+    const d = node.psiDiagram;
+    if (!d || d.data.n < 2) return;
+    for (let s = 1; s < d.data.n; s++) out.push({ type: 'diag', d, step: s });
   });
+  return out;
+}
+// Positions, not beats: 1 means "in the chunk, nothing advanced yet", which
+// is the convention jumpTo and advanceReveal were already written against.
+function countSegments(el) {
+  const beats = chunkBeats(el).length;
+  if (beats) return beats + 1;
+  return el.querySelector('.reveal-segment') ? 1 : 0;
+}
+function applyReveal(el, id, instant) {
+  const beats = chunkBeats(el);
+  const total = countSegments(el);
+  const consumed = Math.max(0, (revealed[id] ?? (total ? 1 : 0)) - 1);
+  const segs = el.querySelectorAll('.reveal-segment');
+  if (segs[0]) { segs[0].removeAttribute('data-hidden'); segs[0].removeAttribute('data-next'); }
+  const steps = new Map();
+  beats.forEach(b => { if (b.type === 'diag' && !steps.has(b.d)) steps.set(b.d, 0); });
+  beats.forEach((b, i) => {
+    const on = i < consumed;
+    if (b.type === 'seg') {
+      if (on) b.el.removeAttribute('data-hidden');
+      else b.el.setAttribute('data-hidden', '');
+      // Mark the one segment that Space or Down will bring up next. Only the
+      // speaker's stylesheet reacts to it, but the attribute is set in both
+      // views so the two DOMs stay identical.
+      if (i === consumed) b.el.setAttribute('data-next', '');
+      else b.el.removeAttribute('data-next');
+    } else if (on) {
+      steps.set(b.d, Math.max(steps.get(b.d) || 0, b.step));
+    }
+  });
+  // A chunk that is not on screen jumps rather than animates: applying the
+  // stored reveal state to forty chunks at boot must not start forty tweens.
+  const jump = instant || !el.classList.contains('active');
+  steps.forEach((step, d) => dgStep(d, step, jump));
 }
 function applyRevealAll() {
   flatChunks.forEach(c => applyReveal(c.el, c.id));
@@ -6451,6 +7807,7 @@ wireEmbeds();
 wireClicks();
 wireFigureClicks();
 wireTouchControls();
+initDiagrams();
 applyRevealAll();
 applyState();
 // Two rAFs so fonts have a chance to settle before the first camera solve.
@@ -6516,6 +7873,7 @@ function renderSpeaker(lecture, opts = {}) {
 <title>${escapeHtml(title)} – speaker</title>
 <style>
 ${AUDIENCE_CSS}
+${DIAGRAM_CSS}
 ${SPEAKER_CSS}
 </style>
 ${fontStyleTag(opts.fontEmbed)}
@@ -6571,6 +7929,7 @@ ${renderTocNav(columns)}
 const LECTURE_TITLE = ${titleJson};
 const VIEW_DEFAULTS = ${jsonForScript(defaults)};
 const LINK_QR = ${jsonForScript(linkQrMap(columnsHtml))};
+${DIAGRAM_JS}
 ${AUDIENCE_JS}
 ${SPEAKER_JS}
 </script>
@@ -7054,6 +8413,21 @@ body[data-view=speaker] .reveal-segment[data-hidden][data-next]::after {
 /* Not on the overview board: at that scale the hatch is noise, and the
    board is for finding a slide, not for pacing one. */
 body[data-view=speaker].overview-mode .reveal-segment[data-hidden][data-next] { display: none; }
+
+/* A diagram step has no block to hatch the way a hidden reveal segment
+   does, so the cockpit gets the next step's name in words instead. Same
+   job as the hatch: tell the lecturer what the next Space will do. */
+body[data-view=speaker] .dg-hint {
+  display: block;
+  font-family: var(--sans-font);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  text-align: center;
+  margin-top: 0.35rem;
+}
+body[data-view=speaker] .chunk:not(.active) .dg-hint { visibility: hidden; }
+body[data-view=speaker].overview-mode .dg-hint { display: none; }
 
 /* Cockpit chrome on a dark theme – same reasoning as the dark-chrome block
    in AUDIENCE_CSS. The footer, its key crib and the export modal all carry
@@ -7786,6 +9160,15 @@ function populatePreviewStrip() {
     clone.classList.add('chunk-clone');
     clone.classList.remove('active', 'expanded', 'annot-visible', 'has-annot', 'overview-selected');
     clone.querySelectorAll('.reveal-segment').forEach(s => s.removeAttribute('data-hidden'));
+    // Thumbnails show slides fully revealed (PRD §4.6) so the speaker can
+    // see where each one lands. A cloned diagram carries whatever step the
+    // live one is on, because the runtime writes geometry onto attributes -
+    // so the clone has to be walked forward to its last frame by hand.
+    const liveDiagrams = entry.el.querySelectorAll('svg.psi-diagram');
+    clone.querySelectorAll('svg.psi-diagram').forEach((svg, i) => {
+      const d = liveDiagrams[i] && liveDiagrams[i].psiDiagram;
+      if (d) dgRenderInto(svg, d, d.data.n - 1);
+    });
     clone.querySelectorAll('.exps, .annot-box, .annot-add').forEach(n => n.remove());
     // Media never travels into a thumbnail. A cloned iframe carries the src
     // updateEmbedLoading just set, which would open a *second* live player
@@ -8597,6 +9980,8 @@ function buildOnce(absIn, only, opts = {}) {
   imgResolveCache.clear();
   dataUriCache.clear();
   inlineSvgCounter = 0;
+  dgCounter = 0;
+  dgWarned.clear();
   MATH_ERRORS.length = 0;
   lastKatexSheet = null;
   // Auto-inline decision when neither --inline-images nor --no-inline-images

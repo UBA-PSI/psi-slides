@@ -73,6 +73,21 @@ const DENSITY_BUDGET = {
   free: 250,
 };
 
+// Mirrors the diagram DSL in build.js. Same contract as VALID_TAGS: the
+// linter re-states the vocabulary rather than importing it, and the two
+// have to move in one commit. A linter that is stricter than the build is
+// worse than none, so this list is checked against DG_CLASSES / the
+// statement table there, not guessed at.
+const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'edge', 'brace', 'container', 'group', 'step']);
+const DG_STEP_OPS = new Set(['show', 'hide', 'move', 'emph', 'calm', 'style', 'label']);
+const DG_CLASSES = new Set([
+  'tone-1', 'tone-2', 'tone-3', 'tone-4', 'accent', 'muted', 'ghost',
+  'dashed', 'dotted', 'thick', 'bare', 'round', 'sharp',
+  'mono', 'hand', 'small', 'large', 'bold', 'left', 'right',
+  'no-head', 'both-heads', 'emph', 'dim',
+]);
+const DG_DEFINES = new Set(['box', 'dot', 'text', 'brace', 'container', 'group']);
+
 const REVEAL_PCT_WARN = 0.5;
 const ORPHAN_MIN = 2;
 
@@ -110,7 +125,121 @@ function wordCountOf(lines) {
   return lines.join(' ').split(/\s+/).filter(Boolean).length;
 }
 
+// Checks the diagram DSL without re-implementing its layout: unknown
+// statements, unknown classes, duplicate names and dangling references.
+// Everything geometric is the build's business – but these four are the
+// mistakes that are invisible in the source and expensive on a projector.
+function lintDiagram(block, add, fmLines) {
+  const defined = new Map();     // name -> line
+  const referenced = [];         // { name, ln, what }
+  let inStep = false;
+
+  const attrsOf = (text, ln) => {
+    const m = text.match(/\{([^}]*)\}/);
+    const out = { id: null, classes: [] };
+    if (!m) return out;
+    for (const tok of m[1].trim().split(/\s+/).filter(Boolean)) {
+      if (tok.startsWith('#')) out.id = tok.slice(1);
+      else if (tok.startsWith('.')) {
+        if (!DG_CLASSES.has(tok.slice(1))) {
+          add(ln, 'error', 'unknown-diagram-class',
+              `unknown diagram class '${tok}' – valid: ${[...DG_CLASSES].map(c => '.' + c).join(', ')}`);
+        } else out.classes.push(tok.slice(1));
+      } else {
+        add(ln, 'error', 'bad-diagram-attribute',
+            `'${tok}' in {…} is neither #id nor .class`);
+      }
+    }
+    return out;
+  };
+  const define = (name, ln) => {
+    if (!name) return;
+    if (defined.has(name)) {
+      add(ln, 'error', 'duplicate-diagram-id',
+          `diagram element '${name}' already defined at line ${defined.get(name)}`);
+    } else defined.set(name, ln + fmLines);
+  };
+  // Anchors (mix.right) and group names both resolve against the same
+  // table, so a reference is only ever its part before the dot.
+  const refer = (tok, ln, what) => {
+    const name = String(tok || '').split('.')[0].replace(/,$/, '');
+    if (name) referenced.push({ name, ln, what });
+  };
+
+  let anonEdge = 0;
+  for (const { text, ln } of block.lines) {
+    const trimmed = text.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const noAttr = trimmed.replace(/\{[^}]*\}/g, ' ');
+    const words = noAttr.replace(/"[^"]*"/g, ' ').trim().split(/\s+/).filter(Boolean);
+    const head = words[0];
+    const attrs = attrsOf(trimmed, ln);
+
+    if (head === 'step') { inStep = true; continue; }
+    if (inStep && DG_STEP_OPS.has(head)) {
+      const targets = words.slice(1).join(',').split(',').map(s => s.trim()).filter(Boolean);
+      const stop = new Set(['to', 'by', 'gap', 'align', 'of', 'right', 'left', 'below', 'above', 'at']);
+      for (const t of targets) {
+        if (stop.has(t) || /^-?[\d.]+(,-?[\d.]+)?$/.test(t)) break;
+        refer(t, ln, `step ${head}`);
+      }
+      continue;
+    }
+    if (!DG_KEYWORDS.has(head)) {
+      const known = [...DG_KEYWORDS, ...(inStep ? DG_STEP_OPS : [])].join(', ');
+      add(ln, 'error', 'unknown-diagram-statement',
+          `unknown diagram statement '${head}' – valid: ${known}`);
+      continue;
+    }
+    inStep = false;
+
+    if (DG_DEFINES.has(head)) {
+      define(words[1], ln);
+      const overAt = words.indexOf('over');
+      if (overAt >= 0) {
+        for (const m of words.slice(overAt + 1).join(',').split(',').map(s => s.trim()).filter(Boolean)) {
+          if (['pad', 'gap', 'right', 'left', 'top', 'bottom'].includes(m)) break;
+          refer(m, ln, `${head} ${words[1]}`);
+        }
+      } else if (head === 'brace' || head === 'container' || head === 'group') {
+        add(ln, 'error', 'diagram-missing-members', `${head} ${words[1] || ''} needs "over a,b,c"`);
+      }
+      for (let k = 2; k < words.length; k++) {
+        if (words[k] === 'of' || words[k] === 'below' || words[k] === 'above') {
+          refer(words[k + 1], ln, `${head} ${words[1]}`);
+        }
+        // leader line: `text n "…" above c gap 1 -> leak`
+        if (words[k] === '->') {
+          refer(words[k + 1], ln, `${head} ${words[1]} leader`);
+          define(`${words[1]}--lead`, ln);
+        }
+      }
+      continue;
+    }
+    if (head === 'edge') {
+      define(attrs.id || `edge-${++anonEdge}`, ln);
+      const arrowAt = words.findIndex(w => w === '->' || w === '<-' || w === '--');
+      if (arrowAt < 1 || !words[arrowAt + 1]) {
+        add(ln, 'error', 'diagram-bad-edge', 'edge needs an element on both sides of "->"');
+        continue;
+      }
+      refer(words[arrowAt - 1], ln, 'edge');
+      refer(words[arrowAt + 1], ln, 'edge');
+    }
+  }
+  if (inStep === false && block.lines.length === 0) {
+    add(block.open, 'warn', 'empty-diagram', '::: diagram has no content');
+  }
+  for (const r of referenced) {
+    if (!defined.has(r.name)) {
+      add(r.ln, 'error', 'unknown-diagram-ref',
+          `${r.what} refers to '${r.name}', which is not defined in this diagram`);
+    }
+  }
+}
+
 function lintFile(filePath) {
+  let diagram = null;   // { open, lines } while inside a ::: diagram block
   const src = fs.readFileSync(filePath, 'utf8');
   const ignores = parseIgnores(src);
   const { body, fmLines, header } = splitFrontmatter(src);
@@ -211,6 +340,14 @@ function lintFile(filePath) {
         }
       }
     }
+    // An unclosed ::: diagram swallows the rest of the file, headings and
+    // all, so this only ever fires from the final flush – which is exactly
+    // when the author needs to be told what ate their lecture.
+    if (diagram) {
+      add(diagram.open, 'error', 'unclosed-directive',
+          `::: diagram not closed – everything after line ${diagram.open} was read as diagram source`);
+      diagram = null;
+    }
     if (activeDirective) {
       add(activeDirective.line, 'error', 'unclosed-directive',
           `::: ${activeDirective.kind} not closed before next chunk or column`);
@@ -233,6 +370,35 @@ function lintFile(filePath) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const ln = i + 1;
+
+    // A ::: diagram body is captured verbatim, ahead of everything else.
+    // Not an optimisation: a diagram comment starts with '#', and read as
+    // markdown that is a column heading. The build takes the body verbatim
+    // too, so the linter has to as well or the two disagree about where
+    // the chunks are.
+    if (diagram) {
+      if (/^:::\s*$/.test(line)) {
+        lintDiagram(diagram, add, fmLines);
+        diagram = null;
+      } else {
+        diagram.lines.push({ text: line, ln });
+      }
+      continue;
+    }
+    const diagramOpen = line.match(/^:::\s+diagram\s*(?:\{([^}]*)\})?\s*$/);
+    if (diagramOpen) {
+      if (!chunk) {
+        add(ln, 'error', 'stray-directive', '::: diagram outside any chunk');
+      }
+      for (const tok of (diagramOpen[1] || '').trim().split(/\s+/).filter(Boolean)) {
+        if (!tok.startsWith('#') && !/^unit=\d+x\d+$/.test(tok)) {
+          add(ln, 'error', 'unknown-diagram-option',
+              `unknown ::: diagram option '${tok}' – expected #id or unit=WxH`);
+        }
+      }
+      diagram = { open: ln, lines: [] };
+      continue;
+    }
 
     if (/^```/.test(line)) {
       inFence = !inFence;

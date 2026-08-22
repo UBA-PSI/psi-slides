@@ -328,6 +328,61 @@ Semantics:
 
 Discipline: reveal is for the chunks where the *sequence* of ideas is the point – a definition that assembles itself, a numbered argument, a sketch that accumulates. Most chunks should be unsegmented. The linter (§9) warns if more than ~20% of chunks contain reveal separators, because at that point reveal has become the default mode and its dramatic effect is lost.
 
+### 4.6a Diagrams and their steps
+
+A `::: diagram` block is a boxes-and-arrows figure written in the lecture source and compiled to inline SVG at build time. It exists because the two obvious alternatives both fail the same lecture:
+
+- **Auto-layout tools (Mermaid, PlantUML)** decide where things go. For a diagram whose arrangement *is* the argument – a stack frame in address order, three parallel cipher blocks – the layout engine is the problem, not the service.
+- **A drawing tool (Excalidraw, Inkscape, Figma) plus layers** gives free placement but knows an arrow only as a line. Move a box and every arrow touching it has to be redrawn by hand, in every step. Layers can reveal; they cannot re-route.
+
+The DSL takes free placement from the second and connectivity from the first, and drops auto-layout:
+
+```markdown
+::: diagram {unit=130x76}
+box sender "Sender"
+box mix    "Mix"       right of sender gap 0.6
+box log    "Logfile"   below mix gap 0.8   {.dashed}
+
+edge sender -> mix "encrypted"
+edge mix -> log    {#leak .dashed}
+
+text why "here the anonymity breaks" right of log gap 0.8 -> log {.hand}
+
+step leak
+  show log
+step collapse
+  move mix below sender gap 1
+  emph leak
+:::
+```
+
+Grammar, in full:
+
+| Statement | Meaning |
+|---|---|
+| `box <name> "label" <placement> [w n] [h n]` | A rectangle that sizes itself to its label |
+| `dot <name> "label" <placement> [r n]` | A circle – XOR nodes, junctions, small glyphs |
+| `text <name> "label" <placement> [-> ref]` | Free text with no shape of its own; `-> ref` grows a leader line to whatever it comments on |
+| `edge <a> -> <b> ["label"] [via x,y …]` | An arrow. `<-` reverses it, `--` drops the head |
+| `container <name> ["label"] over a,b,c [pad n]` | A drawn box that fits itself around its members |
+| `group <name> over a,b,c` | An undrawn set, for moving or hiding several at once |
+| `brace <name> over a,b [side] ["label"]` | A bracket spanning a subset, label outside |
+| `step <name>` | Opens a step; the indented lines below it are its operations |
+
+Placement is `at X,Y` in grid cells, or a relation: `right of A`, `left of A`, `below A`, `above A`, each taking `gap <n>` and `align <edge>`. **The first element defaults to the origin**, so the common case – a box, and everything else relative to it – needs no coordinates at all. Every element after it has to say where it goes; silently stacking two elements on `0,0` is not a default anyone means. Anchors are addressable (`mix.right`, `ret.br`) and chosen automatically otherwise.
+
+Step operations are `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style`, `label`. Nothing else.
+
+Semantics that follow from the design, not from convenience:
+
+- **A step is one press of `Space`**, the same key that advances a reveal segment, because it is the same counter. A chunk that mixes prose reveals and diagram steps advances through both in document order.
+- **An element's position is a function of the step.** Layout is evaluated once per step, so an arrow between two boxes re-routes when either moves. This is the property no drawing-tool pipeline can offer.
+- **An edge is only as visible as the two things it connects.** Most edges therefore need no `show` at all.
+- **Print shows the union at the last position**, matching §4.6 – a handout is the finished picture. Live-only emphasis (`emph`, `dim`) is dropped there.
+- **Motion is off under `prefers-reduced-motion`**; the steps still step, they just do not travel.
+
+Discipline: the same as reveal. A diagram earns steps when the *sequence* is the teaching – a construction that assembles, an attack that walks through a structure. A diagram that appears whole is the normal case.
+
 ### 4.7 Discipline
 
 The 70/30 rule: roughly 70% of chunks use a quiet repeating vocabulary (body prose, standard width, `free` or `definition` tags). Roughly 30% take compositional risks (principle with thick rule, question centered large, figure with sketch, full-width chunk). Invert this and risk becomes the baseline; monotony returns through the opposite door. The playground's “anti-pattern” preset – every chunk widened, every tag promoted to `principle` – is the concrete visualization of this failure mode.

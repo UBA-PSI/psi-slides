@@ -454,6 +454,88 @@ pre.shiki .line { display: inline; }
   main { padding-top: 4rem; }
 }
 
+
+.figure-diagram { margin: 0.7em 0; }
+.psi-diagram {
+  --dg-sans: var(--sans-font, var(--sans));
+  --dg-mono: var(--mono-font, var(--mono));
+  --dg-serif: var(--body-font, var(--serif));
+  display: block; width: 100%; height: auto; overflow: visible;
+  /* A tall diagram must not push the chunk's prose off the projection.
+     preserveAspectRatio does the letterboxing; the figure just stops
+     growing. */
+  max-height: 52vh;
+}
+@media print { .psi-diagram { max-height: none; } }
+.psi-diagram .dg-el { transition: opacity 200ms ease; }
+.psi-diagram rect, .psi-diagram circle {
+  fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
+}
+.psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
+.psi-diagram .dg-head { fill: var(--ink); stroke: none; }
+.psi-diagram text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
+.psi-diagram .dg-mono { font-family: var(--dg-mono); }
+.psi-diagram .dg-off { display: none; }
+
+/* text elements carry no shape of their own */
+.psi-diagram .dg-text rect { display: none; }
+
+/* containers are a frame around their members, never a filled panel */
+.psi-diagram .dg-container > rect { fill: none; stroke: var(--rule); stroke-width: 1.2; }
+.psi-diagram .dg-caption text { fill: var(--ink-soft); }
+
+/* braces have no fill and no head */
+.psi-diagram .dg-brace .dg-stroke { stroke: var(--rule); }
+
+/* ── tones ── four theme-safe fills, mixed from the page's own inks ── */
+.psi-diagram .tone-1 > rect, .psi-diagram .tone-1 > circle {
+  fill: color-mix(in oklab, var(--emph) 13%, var(--paper));
+  stroke: color-mix(in oklab, var(--emph) 60%, var(--ink));
+}
+.psi-diagram .tone-2 > rect, .psi-diagram .tone-2 > circle {
+  fill: color-mix(in oklab, var(--ink) 8%, var(--paper)); stroke: var(--ink);
+}
+.psi-diagram .tone-3 > rect, .psi-diagram .tone-3 > circle {
+  fill: color-mix(in oklab, var(--ink) 20%, var(--paper)); stroke: var(--ink);
+}
+.psi-diagram .tone-4 > rect, .psi-diagram .tone-4 > circle {
+  fill: var(--emph); stroke: var(--emph);
+}
+.psi-diagram .tone-4 text { fill: var(--paper); }
+
+.psi-diagram .accent > rect, .psi-diagram .accent > circle { stroke: var(--emph); }
+.psi-diagram .accent .dg-stroke { stroke: var(--emph); }
+.psi-diagram .accent .dg-head { fill: var(--emph); }
+.psi-diagram .accent text { fill: var(--emph); }
+.psi-diagram .muted > rect, .psi-diagram .muted > circle { stroke: var(--ink-soft); }
+.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); }
+.psi-diagram .muted .dg-head { fill: var(--ink-soft); }
+.psi-diagram .muted text { fill: var(--ink-soft); }
+.psi-diagram .ghost { opacity: 0.45; }
+
+.psi-diagram .dashed > rect, .psi-diagram .dashed > circle, .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
+.psi-diagram .dotted > rect, .psi-diagram .dotted > circle, .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
+.psi-diagram .thick > rect, .psi-diagram .thick > circle, .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
+.psi-diagram .bare > rect, .psi-diagram .bare > circle { stroke: none; }
+.psi-diagram .round > rect { rx: 13px; }
+.psi-diagram .sharp > rect { rx: 0; }
+.psi-diagram .bold text { font-weight: 600; }
+/* no handwriting face is bundled, so the annotation voice is the serif in
+   italic – close enough to read as "written in beside the diagram", and it
+   costs no extra font payload. */
+.psi-diagram .hand text { font-family: var(--dg-serif); font-style: italic; fill: var(--emph); }
+
+/* emph / dim are what a step reaches for; both stay inside the palette */
+.psi-diagram .emph > rect, .psi-diagram .emph > circle { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph .dg-head { fill: var(--emph); }
+.psi-diagram .dim { opacity: 0.3; }
+
+.dg-hint { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .psi-diagram .dg-el { transition: none; }
+}
+
 </style>
 <style>
 /* Bundled typefaces: Literata, Inter Tight and JetBrains Mono, each under
@@ -1066,11 +1148,41 @@ pre.shiki .line { display: inline; }
   
   
 </article>
+<article class="chunk chunk-example width-full" id="diagram" data-chunk-num="31">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Diagrams</span> <span class="hd-sub"><code>::: diagram</code> draws boxes and arrows from text</span></h2>
+  <p><strong>A <code>::: diagram</code> block is a figure written in the source and compiled to inline SVG at build time.</strong> You name the pieces and say where they go; the arrows between them are computed.</p>
+<figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-72.00 -41.38 491.83 173.30" data-steps="3" role="img" aria-label="Diagrams" preserveAspectRatio="xMidYMid meet">
+<g id="dg1-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg1-edge-1--p" class="dg-stroke" d="M37.98 0.00L105.92 0.00" fill="none"/><path id="dg1-edge-1--h" class="dg-head" d="M113.57 0.00L104.57 3.96L104.57 -3.96Z"/><g id="dg1-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(75.78,-15.38)"><g id="dg1-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">encrypted</tspan></text></g></g></g>
+<g id="dg1-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg1-edge-2--p" class="dg-stroke" d="M167.57 0.00L235.53 0.00" fill="none"/><path id="dg1-edge-2--h" class="dg-head" d="M243.18 0.00L234.18 3.96L234.18 -3.96Z"/><g id="dg1-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(205.38,-15.38)"><g id="dg1-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">recoded</tspan></text></g></g></g>
+<g id="dg1-leak" data-base="dg-el dg-edge" class="dg-el dg-edge dashed"><path id="dg1-leak--p" class="dg-stroke" d="M140.57 18.38L140.57 75.52" fill="none"/><path id="dg1-leak--h" class="dg-head" d="M140.57 83.17L136.61 74.17L144.53 74.17Z"/></g>
+<g id="dg1-why--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg1-why--lead--p" class="dg-stroke" d="M0.00 0.00" fill="none"/></g>
+<g id="dg1-src" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg1-src--r" x="-37.98" y="-18.38" width="75.95" height="36.75" rx="4"/><g id="dg1-src--lw0" data-lab="src--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg1-src--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sender</tspan></text></g></g></g>
+<g id="dg1-mix" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg1-mix--r" x="113.57" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="dg1-mix--lw0" data-lab="mix--l" class="dg-lwrap" transform="translate(140.57,0.00)"><g id="dg1-mix--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Mix</tspan></text></g></g></g>
+<g id="dg1-dst" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg1-dst--r" x="243.18" y="-18.38" width="105.65" height="36.75" rx="4"/><g id="dg1-dst--lw0" data-lab="dst--l" class="dg-lwrap" transform="translate(296.00,0.00)"><g id="dg1-dst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Empfänger</tspan></text></g></g></g>
+<g id="dg1-log" data-base="dg-el dg-box" class="dg-el dg-box dashed"><rect id="dg1-log--r" x="101.47" y="83.17" width="78.20" height="36.75" rx="4"/><g id="dg1-log--lw0" data-lab="log--l" class="dg-lwrap" transform="translate(140.57,101.55)"><g id="dg1-log--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Logfile</tspan></text></g></g></g>
+<g id="dg1-why" data-base="dg-el dg-text" class="dg-el dg-text hand"><g id="dg1-why--lw0" data-lab="why--l" class="dg-lwrap" transform="translate(347.83,101.55)"><g id="dg1-why--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">this is where</tspan><tspan x="0" y="14.48">the anonymity ends</tspan></text></g></g></g>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg1-root">{"p":"dg1-","n":3,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-1--l":"text","edge-2--p":"path","edge-2--h":"path","edge-2--l":"text","leak--p":"path","leak--h":"path","why--lead--p":"path","src--r":"rect","src--l":"text","mix--r":"rect","mix--l":"text","dst--r":"rect","dst--l":"text","log--r":"rect","log--l":"text","why--l":"text"},"names":["leak","blame"],"frames":[{"vis":{"src":1,"mix":1,"dst":1,"log":0,"why":1,"edge-1":1,"edge-2":1,"leak":0,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"","edge-2":"","leak":"dashed","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55],"why--l":[347.83,101.55],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"","edge-2":"","leak":"dashed","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55],"why--l":[347.83,101.55],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed emph","why":"hand","edge-1":"","edge-2":"","leak":"dashed emph","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55],"why--l":[347.83,101.55],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}}]}</script></figure>
+
+
+<p><strong>Placement is a grid cell or a relation to a neighbour</strong> – <code>at 2,1</code>, or <code>right of mix gap 0.6</code>, or <code>below src gap 0 align left</code> for boxes that touch. The first element sits at the origin so a simple diagram needs no coordinates at all. There is no automatic layout, on purpose: where things go is usually part of what the picture is saying.</p>
+<p><strong><code>step</code> blocks make it move, and <code>Space</code> is the key.</strong> Diagram steps are beats on the same counter as reveal segments, so they interleave with them in source order and the cockpit follows. The vocabulary is <code>show</code>, <code>hide</code>, <code>move … to</code>, <code>move … by</code>, <code>emph</code>, <code>calm</code>, <code>style</code> and <code>label</code>.</p>
+<p><strong>A moved box takes its arrows with it.</strong> The layout is evaluated again for every step rather than nudged, so an edge that connects two elements re-routes whenever either end moves – which is the one thing a diagram exported from a drawing tool can never do.</p>
+<p><strong>An arrow is only as visible as what it connects</strong>, so revealing boxes reveals the arrows between them and most edges need no <code>show</code> of their own. Free <code>text</code> can grow a leader line with <code>-&gt; some-element</code>, which is how a label goes wherever it reads best without losing what it is about.</p>
+
+  <aside class="chunk-expansion chunk-expansion-expand" data-label="The rest of the vocabulary">
+<p><code>dot</code> is a circle for junctions and glyphs. <code>container … over a,b,c</code> draws a box that fits itself around its members and re-fits when they move; <code>group</code> is the same set without the box, for moving or hiding several things at once; <code>brace … over a,b right &quot;Label&quot;</code> is a bracket spanning a subset. Classes come from a closed list – four <code>tone-*</code> fills mixed from the page&#39;s own inks, plus <code>dashed</code>, <code>dotted</code>, <code>thick</code>, <code>round</code>, <code>mono</code>, <code>hand</code>, <code>muted</code> and a few more – and <code>lint.js</code> rejects anything else, so a typo is a build error rather than an unstyled box.</p>
+
+</aside>
+  
+  
+</article>
 </section>
 <section class="column" id="craft">
   <h1 class="column-heading">Writing chunks that work</h1>
-<article class="chunk chunk-principle width-standard" id="topic-sentence" data-chunk-num="31">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></span>
+<article class="chunk chunk-principle width-standard" id="topic-sentence" data-chunk-num="32">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></span>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The topic sentence is the slide</span> <span class="hd-sub">so write the opening line for the projector</span></h2>
   <p><strong>In derived mode the room reads your first sentences, so each one has to be a claim that survives without its paragraph.</strong> Everything after it is print.</p>
@@ -1080,8 +1192,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="anti-patterns" data-chunk-num="32">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></span>
+<article class="chunk chunk-example width-wide" id="anti-patterns" data-chunk-num="33">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading">Four ways a chunk goes soft</h2>
   <p><strong>Most chunks that read badly on the projector fail in one of four ways</strong>, and each one is a single edit away from working.</p>
@@ -1104,8 +1216,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-question width-standard" id="choose-mechanism" data-chunk-num="33">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></span>
+<article class="chunk chunk-question width-standard" id="choose-mechanism" data-chunk-num="34">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></span>
   <span class="chunk-label">question</span>
   <h2 class="chunk-heading">Derive it, or state it?</h2>
   <p><strong>Derive while the chunk is an argument of one to three paragraphs; state the slide once the argument wants continuous prose.</strong> Try the derivation first and switch when it keeps fighting you.</p>
@@ -1118,8 +1230,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-exercise width-wide" id="squint-test" data-chunk-num="34">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></span>
+<article class="chunk chunk-exercise width-wide" id="squint-test" data-chunk-num="35">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></span>
   <span class="chunk-label">exercise</span>
   <h2 class="chunk-heading">The squint test</h2>
   <p><strong>Open your own lecture in the audience view, press <code>C</code> until it is collapsed, and walk it end to end without opening the source.</strong> Stop at every chunk you could not narrate from what is on the screen.</p>
@@ -1136,8 +1248,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="next">
   <h1 class="column-heading">Next steps</h1>
-<article class="chunk chunk-exercise width-wide" id="read-more" data-chunk-num="35">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></span>
+<article class="chunk chunk-exercise width-wide" id="read-more" data-chunk-num="36">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></span>
   <span class="chunk-label">exercise</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the artefacts that close the loop</span></h2>
   <p><strong>The tour covered the keys. What it could not cover is the craft, which shows in authored content.</strong></p>
@@ -1153,8 +1265,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-free width-standard" id="authoring" data-chunk-num="36">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></span>
+<article class="chunk chunk-free width-standard" id="authoring" data-chunk-num="37">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Authoring your own</span> <span class="hd-sub"><code>--new</code>, <code>--watch</code>, <code>lint.js</code></span></h2>
   <p><strong>Three CLI entries cover the full authoring loop:</strong></p>
@@ -1169,8 +1281,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="37">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></span>
+<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="38">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own type</span> <span class="hd-sub"><code>fonts/</code> plus a frontmatter block</span></h2>
   <p><strong>Three typefaces ship with the tool and are embedded in every output:</strong> Literata, Inter Tight and JetBrains Mono, all under the SIL Open Font License, which permits it. Safari does not expose installed fonts to a page at all, so a deck that only <em>names</em> its typefaces gets whatever that browser decides. The bundle costs about 280 KB per file, and <code>fonts: none</code> turns it off.</p>
@@ -1186,8 +1298,8 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="view-defaults" data-chunk-num="38">
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></span>
+<article class="chunk chunk-example width-wide" id="view-defaults" data-chunk-num="39">
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>9</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Pinning how a lecture opens</span> <span class="hd-sub">five optional frontmatter keys</span></h2>
   <p><strong>A lecture can decide its own starting look instead of inheriting the reader&#39;s.</strong></p>
