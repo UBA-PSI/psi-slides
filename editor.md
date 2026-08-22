@@ -19,8 +19,9 @@ Two audiences, one editor.
   inside the output rather than as a separate tool.
 
 And one thing it is emphatically **not**: a drawing program. It has no
-freehand, no curves, no arbitrary colours, no font control. The class
-vocabulary is closed at 24 names and the editor exposes exactly those. Anything
+freehand, no curves, no arbitrary colours, no free font choice. The class
+vocabulary is a closed enumeration – 24 names today, 28 after §3.3 – and the
+editor exposes exactly those and nothing else. Anything
 it produces is a `::: diagram` block a human could have typed, in the same
 language, and anything a human typed it can open.
 
@@ -187,7 +188,7 @@ because it is the editor's contract):
   `default box @dec w 0.48` writes an explicit `w` on *that element* – "just
   this one" is the safe reading of a drag.
 
-### 3.2 The one thing it gains: lecture-wide defaults
+### 3.2 What it gains, one: lecture-wide defaults
 
 A lecture's figures should look like each other, and today the only way to say
 so is to repeat the same `default` lines in every block. That decays: change
@@ -259,6 +260,79 @@ Docs to update in the same commit, as always: `PRD.md` §4.6a, `CLAUDE.md`'s
 diagram section, `CHANGELOG.md` under `[Unreleased]`, and a line in the
 tutorial.
 
+### 3.3 The visual vocabulary, audited
+
+Several things the editor needs turn out to be in the grammar already, and it
+is worth saying which, because the answer to "can I do X?" is mostly *yes, the
+editor just has to offer a control for it.* Verified against the code, not from
+memory:
+
+| want | today | needed |
+|---|---|---|
+| a plain straight line | **already works**: `edge 0.4,1 -- 3,1` – both endpoints may be bare coordinates, and `--` drops the head | a tool |
+| solid / dashed / dotted | none / `.dashed` / `.dotted`, one class slot | a three-way control where "solid" means *remove both* |
+| accent or dimmed ink | `.accent` / `.muted` | a control |
+| square or rounded box | `.sharp` / `.round` | a control |
+| three font sizes | `.small` · none · `.large` – 0.8 / 1.0 / 1.22 of `DG_FONT` | a control |
+| monospace | `.mono` | a control |
+| box fill: canvas, light, medium, accent | the default is `fill: var(--paper)`, then `.tone-1` … `.tone-4`; `.tone-4` already inverts its own text to `--paper` | a swatch row |
+
+Four things are genuinely missing, and they are the grammar half of phase 0:
+
+- **A transparent fill.** The default is opaque paper and `.bare` removes the
+  *stroke*, not the fill, so there is no frame with a see-through interior.
+  **`.clear`**, into the existing fill slot: `['tone-1'…'tone-4', 'clear']`.
+- **An upright serif.** `--dg-serif` exists but is reachable only through
+  `.hand`, which also forces italic *and* the accent colour. **`.serif`**, plus
+  a new family slot `['mono', 'serif', 'hand']` – which also fixes a latent
+  conflict, since `.mono .hand` on one element fights today with nothing to
+  arbitrate.
+- **A background behind free text.** Confirmed by inspecting the output: a
+  `text` element emits no `<rect>` at all, so `{.tone-2}` on one does nothing.
+  The emitter should draw the measured label box, padded, whenever a `text`
+  carries a fill class. One mechanism, two defaults: a **box** defaults to
+  paper, a **text** defaults to `.clear`. That is exactly how they already
+  look, so nothing existing changes.
+- **Padding from the text to the border.** `DG_PAD_X = 13` / `DG_PAD_Y = 9` are
+  constants. This needs no new keyword: **`pad`** already means "how far the
+  outline sits from what it encloses" on `container` and `brace`, and box
+  padding is the same sentence. Extend `DG_KIND_OPTS`: `box: [w, h, pad]`,
+  `text: [w, h, pad]`. One number in grid units, uniform on both axes; the
+  *default* stays the asymmetric px pair, because 13/9 is typographic taste
+  rather than a scale.
+
+And one that is new behaviour rather than a new option:
+
+- **Type that fits the box.** Today the box sizes itself to the label. The
+  other two readings both need an explicit `w` (or `same as`) to be meaningful:
+  **`.fit`** picks the font size so the label fills the available box in both
+  directions, **`.shrink`** only ever scales down. Group `['fit', 'shrink']`;
+  neither, and the box grows to the text as now. `dgMeasure` already estimates
+  a width for a given size, so this is a solve for the size rather than new
+  machinery, clamped to 0.6–1.5× of the element's resolved base size so a long
+  label cannot become unreadable and a short one cannot become a poster.
+
+  **Be honest about the error term.** `CLAUDE.md` records that text width is
+  *estimated* from a per-character table, tuned deliberately generous. Auto-fit
+  compounds that: the chosen size will run slightly small. That is the safe
+  direction – small still fits – and it is the price of having no browser at
+  build time. Say it in the docs rather than discovering it in a lecture.
+
+Two tidy-ups while in there, both the same class of thing this grammar keeps
+closing:
+
+- `.bare` and `.thick` belong in a stroke-weight slot of their own. They are
+  not in any `DG_CLASS_GROUPS` row today, so a `default box {.thick}` and an
+  element's `{.bare}` stack instead of displacing.
+- `.tone-4` with `.accent` is accent ink on an accent fill: invisible, legal,
+  and decided by stylesheet order. The inversion rule has to win over
+  `.accent text`, and `lint.js` should warn on the pair – the same warning it
+  already gives for two classes from one slot.
+
+That is **four new classes** (24 → 28), two new group rows, one keyword
+extended to two more kinds, and one emitter change. No new statement, no free
+colour, nothing that opens the vocabulary. §1's promise survives.
+
 ## 4. Tools, and why the toolbar is not Excalidraw's
 
 Excalidraw's model is: pick a tool, draw a shape, the shape has coordinates.
@@ -274,7 +348,14 @@ shows up in one place immediately – **not every tool is a placer.**
 | `3` | `C` | dot | `dot <name> "…" <placement>` |
 | `4` | `T` | text | `text <name> "…" <placement>` |
 | `5` | `A` | edge | `edge <a> -> <b>` |
+| `9` | `L` | line | `edge <x,y> -- <x,y>` |
 | `8` | `I` | image | `image <name> <asset> <placement>` |
+
+`5` and `9` are one statement and one tool; what differs is the gesture. Drag
+between two elements and it writes `edge a -> b`; drag between two empty points
+and it writes `edge 0.4,1 -- 3,1`, which the grammar already accepts and which
+is how a plain straight line gets drawn. `9` exists so a line can *start on top
+of a box* without snapping to it – a real need, and otherwise unreachable.
 
 **Wrappers** act on what is already selected, because that is what their
 statements mean. There is nothing to draw:
@@ -314,7 +395,42 @@ Two deliberate divergences:
   tool → close the editor. Identical to the ladder on the slide (figure →
   overview → expansion), which is already documented in the help sheet.
 
-### 4.1 Every binding, in one place
+### 4.1 Tags are a first-class thing in the UI, or they are nothing
+
+Tags replaced `group` in the grammar, and the plan up to this point mentioned
+them twice in passing. That is a gap, because membership is the one piece of
+structure that is **completely invisible in the drawing** – an `align` set at
+least shares a coordinate you can see, but `@creation` looks like nothing at
+all until a step addresses it.
+
+Six places tags have to show up:
+
+- **In the sidebar**, as chips on the selection, add and remove inline. Adding
+  one to a multi-selection writes `@name` into every selected element's
+  attribute tail – which *is* the replacement for the old `group` statement,
+  now as a gesture instead of a line somewhere else in the file.
+- **As a legend**: every tag in the figure with its member count. Hover
+  highlights the members, click selects them. This is §9.1's principle applied
+  to membership rather than to geometry.
+- **Highlighted differently from an `align` set.** A tag is not geometric, so
+  it must not be drawn as a line: a tinted halo behind the members, or a
+  bracket in the margin. Borrowing the alignment treatment would say something
+  false about what the tag does.
+- **As the selection unit for steps** (phase 10). `show @creation` is how real
+  diagrams are stepped – the lifecycle figure addresses two tags instead of
+  fourteen names – so the step editor targets tags first and elements second.
+- **In the provenance line** (§7.2), because a tag default is one of the four
+  layers a resolved value can come from.
+- **Renamed everywhere at once.** Renaming a tag rewrites every `@name` in the
+  block plus every `default <kind> @name` that targets it. Mechanical, and safe
+  because element and tag names are now restricted to letters, digits, `_` and
+  `-`.
+
+One refusal worth building in: **the editor must not offer to delete a tag that
+a `default` still targets** without saying so, since the build's own rule is
+that a tag no element carries is an error. Offer to drop the default with it.
+
+### 4.2 Every binding, in one place
 
 Scattered bindings are how two of them end up meaning the same thing. This
 table is the single source of truth, and it is what feeds the `?` sheet through
@@ -325,6 +441,7 @@ the help sheet is generated from one data structure rather than written twice.
 |---|---|
 | `1` `V` | select |
 | `2` `R` · `3` `C` · `4` `T` · `5` `A` · `8` `I` | box · dot · text · edge · image |
+| `9` `L` | line: the edge tool with both endpoints forced to coordinates |
 | `6` · `7` | container · brace, over the selection |
 | `Q` | keep the current tool active instead of falling back to select |
 | `Esc` | deselect → back to select → close the editor |
@@ -686,11 +803,18 @@ Each phase is shippable on its own and verified the way this repo verifies
 things: a real figure rebuilt, before and after compared, no console errors in
 a browser sweep.
 
-**Phase 0 – lecture-wide defaults.** §3.2, on its own, before any of the
-editor. It is a self-contained grammar-and-build feature, it is what makes
-§7.2 one patch instead of twelve, and it wants to land while the diagram code
-is still the freshest thing in the file. *Worth doing whether or not the editor
-follows.*
+**Phase 0 – the grammar, finished.** §3.2 (lecture-wide defaults) and §3.3
+(`.clear`, `.serif`, a background behind free text, `pad` on boxes, `.fit` /
+`.shrink`, and the two class-slot tidy-ups), on their own, before any of the
+editor. Both are self-contained build features, both want to land while the
+diagram code is still the freshest thing in the file, and §3.3 in particular
+has to land **before** the editor rather than alongside it: an editor whose
+swatch row has a hole in it teaches the hole. *Worth doing whether or not the
+editor follows.*
+
+Do the two halves as two commits. §3.2 touches resolution order; §3.3 touches
+the emitter and the class tables. Bisecting a regression across both at once is
+the kind of afternoon this repo has already spent once.
 
 **Phase 1 – the seam.** Extract `diagram-core.mjs`; `build.js` imports it;
 `lint.js` imports its tables and drops all thirteen mirrored copies. No behaviour
@@ -761,7 +885,7 @@ written as a list of traps) · this file · `speaker.md` §2 (state ownership, f
 
 | file | what happens |
 |---|---|
-| `diagram-core.mjs` | **new.** The compiler, moved out of `build.js` verbatim. Pure JS, zero imports, zero Node APIs. |
+| `diagram-core.mjs` | **new.** The compiler, moved out of `build.js` verbatim – *after* phase 0, so the move is a pure move and §3.3's emitter change is not tangled into it. Pure JS, zero imports, zero Node APIs. |
 | `editor.mjs` | **new.** The editor UI. Inlined as text into the live views, like `AUDIENCE_JS` is today. |
 | `editor.css` or a `EDITOR_CSS` constant | **new.** Same treatment. |
 | `build.js` | imports `diagram-core.mjs`; reads both new files as text and inlines them; emits the per-diagram source payload; the `diagram-defaults` frontmatter key; the two-way watch socket. |
@@ -887,6 +1011,7 @@ Not "carefully" – these are the commands.
 | 9 | Paste the `#lifecycle` selection into an empty figure and assert the result **builds** – the closure is right exactly when the pasted block compiles with no dangling reference. Then paste it twice and assert the renames are distinct. |
 | 10 | Step through the CBC figure in the editor and assert each beat's geometry matches the frames payload the build emitted for that beat. |
 | §3.2 | A lecture whose `diagram-defaults` sets `w`, plus one block overriding it, plus one element overriding that: assert three different widths in the emitted SVG. A tag no diagram carries: assert the build fails. A tag *some* diagram carries: assert it does not. |
+| §3.3 | One figure using every new class, screenshotted in all seven themes – `.clear` must show what is behind it, `.tone-4` text must stay legible, `.serif` must not be italic. `.fit` on a box with an explicit `w`: assert the emitted `font-size` differs from `DG_FONT` and that the measured label still fits. `pad 0.3` on a box: assert the rect grew by `0.6 × unit` in both axes. `lint --strict` on `{.tone-4 .accent}`: assert the warning. |
 
 There is no test suite in this repo and this plan does not add one. The checks
 above are scripts under the scratchpad, run and reported, not committed.
