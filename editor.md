@@ -40,6 +40,15 @@ patterns exactly – the KaTeX stylesheet is emitted only into views that contai
 a formula, and `fonts: none` is how an author declines a payload they do not
 want.
 
+Concretely the key takes `both` (the default), `speaker`, `none`. It is a
+viewer-facing frontmatter key, so it goes through the machinery that already
+exists for those: add it to `VIEW_DEFAULT_SPEC` in `build.js` and to
+`VIEW_DEFAULTS` in `lint.js`, in one commit, and an unknown value then **fails
+the build** rather than being ignored – which is the rule that already applies
+to `theme` and `collapse`, and for the same reason. A typo here is otherwise
+invisible: the lecture still builds and still looks right, it has just quietly
+lost its editor.
+
 Cost, measured: the compiler section of `build.js` is **2164 lines / 100 KB**,
 of which the CSS and the step runtime (265 lines) already ship. So the compiler
 the editor needs is ~1900 lines / **~88 KB raw**, plus the editor UI itself –
@@ -98,6 +107,12 @@ Three things that must be true before this ships:
 - The server accepts a patch only if its range matches a `::: diagram` block
   the build actually emitted, and re-reads the file first, so a patch computed
   against a stale buffer is refused rather than applied at the wrong offset.
+  That refusal is also what makes two open tabs safe: whichever writes second
+  is working against a range that no longer exists, and gets told so instead of
+  corrupting the file.
+
+`--serve` needs no separate work – it is the same WebSocket, so `--watch
+--serve` gets write-back over http exactly as `--watch` does over `file://`.
 
 **Tier 2 – the clipboard.** Always available, every browser, `file://`
 included. Same idiom as `Shift`-`E`, which exports live annotations as a
@@ -154,7 +169,9 @@ selected, and whether they are previewing it in a column, is workspace state,
 not content. The room sees the picture change; it does not need to watch a
 handle move.
 
-## 3. What the grammar already promises
+## 3. The grammar
+
+### 3.1 What it already promises
 
 Three constructs state a *relation* rather than a number, and an editor that
 answers a drag by replacing them with absolutes destroys the thing they exist
@@ -169,6 +186,78 @@ because it is the editor's contract):
 - **A tag default is shared.** Resizing one element that draws its width from
   `default box @dec w 0.48` writes an explicit `w` on *that element* – "just
   this one" is the safe reading of a drag.
+
+### 3.2 The one thing it gains: lecture-wide defaults
+
+A lecture's figures should look like each other, and today the only way to say
+so is to repeat the same `default` lines in every block. That decays: change
+the look and it is twelve edits. **Build this before the editor**, because the
+editor's answer to "make these figures match" should be one patch, not twelve
+(§7.2), and because it is a small self-contained feature that the editor then
+gets to expose rather than work around.
+
+**A frontmatter key holding `default` statements, in the same language:**
+
+```yaml
+diagram-defaults: |
+  default box       {.tone-2} w 1.0
+  default text      {.small .muted}
+  default container pad 0.4
+  default box @dec  {.round} w 0.48
+```
+
+Deliberately **not** a named-preset system (`use=house`). A single lecture-wide
+set adds one frontmatter key and one layer; named presets would add a keyword
+to the diagram grammar, a lookup, a "no preset named …" error and another table
+for `lint.js` to mirror – and the grammar is meant to freeze. If one lecture
+ever genuinely needs two visual families, presets stay *additive* and can be
+added then. The escape hatch until then is the one that already exists: a
+`default` line inside the block overrides for that block.
+
+**Precedence, in one sentence: the nearer the declaration, the stronger it is,
+and in one place a tag beats the bare kind.** So four layers, most specific
+last:
+
+1. `diagram-defaults` – `default <kind>`
+2. `diagram-defaults` – `default <kind> @tag`
+3. the block's own `default <kind>`
+4. the block's own `default <kind> @tag`
+5. the element's own `{…}` and `w` / `h` / `r` / `pad`
+
+Scope before selector, because "closer to the element wins" is the model
+everywhere else here. A block that says `default box {.tone-4}` means it, even
+for an element the lecture tags `@dec`.
+
+Resolution mechanics do not change: `withDefaults()` still drops a class whose
+`DG_CLASS_GROUPS` slot a more specific layer already fills, and `pick()` still
+takes the most specific non-null geometry. Both simply gain a base layer.
+
+**One carve-out, and it is the interesting decision.** Today a `default box
+@tag` naming a tag no element carries is an error. A lecture-wide one cannot
+work that way – it is written once for twelve diagrams and most of them will
+not use `@dec`. So the rule becomes: **a block-level tag default must be used
+in its block; a lecture-level one must be used somewhere in the lecture.** The
+build sees every diagram, so it can check exactly that, and a typo in the
+frontmatter still fails rather than sitting there doing nothing. `lint.js` sees
+the whole file too, so it can mirror it.
+
+The block is also **validated even when no diagram uses it**: anything but a
+`default` statement in there is an error naming the line.
+
+**Plumbing is short.** `parseLecture(src)` already calls `matter(src)` itself,
+so the frontmatter is in hand at the one place `renderDiagram()` is invoked –
+nothing has to be threaded through `buildOnce`. Parse the block once per build
+with the same statement parser the DSL uses, hand the resulting layer to
+`parseDiagramSource`, and let it sit under `model.defaults` /
+`model.tagDefaults` as the base.
+
+**`lint.js` needs no YAML.** After `diagram-defaults: |` it collects the
+indented lines and runs the same `default`-statement checks it already has,
+which is roughly fifteen lines and keeps it zero-dep.
+
+Docs to update in the same commit, as always: `PRD.md` §4.6a, `CLAUDE.md`'s
+diagram section, `CHANGELOG.md` under `[Unreleased]`, and a line in the
+tutorial.
 
 ## 4. Tools, and why the toolbar is not Excalidraw's
 
@@ -224,6 +313,37 @@ Two deliberate divergences:
 - **`Esc` steps back out, one rung at a time**: deselect → back to the select
   tool → close the editor. Identical to the ladder on the slide (figure →
   overview → expansion), which is already documented in the help sheet.
+
+### 4.1 Every binding, in one place
+
+Scattered bindings are how two of them end up meaning the same thing. This
+table is the single source of truth, and it is what feeds the `?` sheet through
+`renderHelpOverlay()` – the same rule the rest of the product follows, where
+the help sheet is generated from one data structure rather than written twice.
+
+| key | does |
+|---|---|
+| `1` `V` | select |
+| `2` `R` · `3` `C` · `4` `T` · `5` `A` · `8` `I` | box · dot · text · edge · image |
+| `6` · `7` | container · brace, over the selection |
+| `Q` | keep the current tool active instead of falling back to select |
+| `Esc` | deselect → back to select → close the editor |
+| arrows · `Shift`-arrows | nudge the selection, fine · coarse |
+| `Delete` | delete, after listing what refers to it |
+| `Ctrl/Cmd`-`Z` · `Shift`-`Ctrl/Cmd`-`Z` | undo · redo |
+| `Ctrl/Cmd`-`A` · `Ctrl/Cmd`-`D` | select all · duplicate |
+| `Ctrl/Cmd`-`C` · `Ctrl/Cmd`-`V` · `Ctrl/Cmd`-`Shift`-`V` | copy · paste · paste in place (§7.1) |
+| `Ctrl/Cmd`-`S` | commit: write back on Tier 1, copy to the clipboard otherwise (§2.3) |
+| `Space`-drag · middle-drag · wheel | pan · pan · zoom |
+| `Ctrl/Cmd` **while dragging** | suspend snapping, for when 0.5847 is meant |
+| `F` | cycle the frame: slide → column → print (§5) |
+| `,` `.` · `PageUp` `PageDown` | previous / next figure (§6) |
+| `O` | the figure board |
+| `Shift`-`V` | flip the figure strip between the bottom and right edge |
+| `?` | the editor's section of the help sheet |
+
+`E` opens the editor from a focused figure; it is a slide binding, not an
+editor one, which is why it is not in this table.
 
 **The slide is keyboard-first; the editor is GUI-first.** That inversion is
 deliberate. On the slide a lecturer's hands are busy and their attention is on
@@ -347,20 +467,26 @@ Name collisions are renamed mechanically (`reg` → `reg2`) with every reference
 *inside the pasted set* rewritten. That is safe now precisely because element
 names were restricted to letters, digits, `_` and `-` in the last pass.
 
-### 7.2 Share the defaults, not the boxes
+### 7.2 Promote the defaults, do not copy them
 
 For a consistent look the thing worth carrying between figures is usually not
-the elements at all – it is the two or three `default` lines. So the editor
-gets that as its own act: **"apply these defaults to every figure in the
-lecture"**, which physically writes the same `default` block into each one.
+the elements at all – it is the two or three `default` lines. With §3.2 in
+place the editor's act for that is **"promote to the lecture defaults"**: one
+patch to the frontmatter, and every figure in the lecture follows.
 
-This is a refactoring, not a language feature, and the editor is exactly the
-tool that makes it safe: twelve blocks, one atomic patch, and the linter's
-duplicate-default check catches anything that was already there. It needs no
-grammar change, which matters because the grammar wants to freeze.
+That is why §3.2 comes first. Without it this act would have to write the same
+block into twelve places, which works once and rots on the second change.
 
-The honest weakness is that it decays – change the look later and you edit
-twelve places again. See §10.
+Two things the editor owes the author here, both of which fall out of having
+real layers rather than copies:
+
+- **Show provenance.** For any resolved value the sidebar says which layer it
+  came from – *"w 1.0 · from the lecture defaults"*, *"`.tone-1` · on this
+  element"*. Without that, four layers is a guessing game.
+- **Ask "just this one, or all of them?"** when the author changes a value that
+  currently comes from a shared layer. The safe default is still the one in
+  §3.1 – write it on the element – but promoting is now one click away instead
+  of an edit in a file the author is not looking at.
 
 ## 8. Architecture
 
@@ -383,9 +509,12 @@ precedent for reading a file at build time and embedding it is already there
 
 It also **removes** a documented duplication rather than adding one: `lint.js`
 is zero-dep and standalone by design, and `diagram-core.mjs` has zero
-dependencies of its own, so the linter can import the vocabulary tables
-(`DG_KEYWORDS`, `DG_STEP_OPS`, `DG_CLASSES`, `DG_CLASS_GROUPS`, `DG_KIND_OPTS`,
-`DG_ALIGN_X/Y`, `DG_SCALAR_X/Y`) instead of mirroring them by hand.
+dependencies of its own, so the linter can import the vocabulary tables instead
+of mirroring them by hand. **Counted, there are thirteen** – `DG_KEYWORDS`,
+`DG_STEP_OPS`, `DG_DEFINES`, `DG_CLASSES`, `DG_CLASS_GROUPS`, `DG_KIND_OPTS`,
+`DG_BRACE_SIDES`, `DG_ALIGN_X`, `DG_ALIGN_Y`, `DG_SCALAR_X`, `DG_SCALAR_Y`,
+`DG_DEFAULT_KINDS` and the anchor set – every one of which today has to be
+changed in two files in one commit or the linter and the build disagree.
 
 Four Node-only leaves have to come out of the core and be injected: image
 resolution (`fs`), aspect reading (`fs`), the `[diagram]` warning sink, and
@@ -402,10 +531,38 @@ than a new pass.
 
 The deliverable: given an element id and the name of one attribute (`gap`, `w`,
 `frac`, the x-component of `at`, the `align` word), return the exact span to
-replace, or the insertion point if the attribute is absent. Every edit in §9 is
-one call to that.
+replace, or the insertion point if the attribute is absent. Every edit in §9.3
+is one call to that. The signature and the full attribute list are in §11.5.
 
-### 8.3 Structure
+### 8.3 Three things it must not get wrong
+
+These are not design questions; they are places where the editor touches
+machinery the whole product depends on, and getting any of them wrong ships
+something that looks broken rather than something that looks unfinished.
+
+- **The chrome follows `data-mode`, never a theme name.** `applyFontTheme()`
+  sets `body[data-mode]` to `dark` or `light`, and every piece of chrome in
+  this product – help sheet, TOC, search panel, cockpit footer, export modal –
+  keys its overrides off that rather than off individual themes. Do the same
+  and the editor works in all seven themes including the two phosphor modes,
+  for free. Do not do it and it ships a near-white panel on a dark projection.
+  The canvas itself needs nothing: it is the compiler's own SVG, already
+  painted in `--ink` / `--paper` / `--rule`, and the guide layer uses the same
+  tokens.
+- **Opening the editor must not disturb `revealed[chunkId]`.** That counter is
+  the single piece of state the reveal, the sync, the freeze gate and the
+  localStorage recovery all share. So: the editor **opens at the beat that is
+  on screen**, its own beat navigation (phase 10) is editor state and writes
+  nothing back, and closing leaves the slide exactly where it was. A lecturer
+  who fixes a figure mid-talk must find the room's slide unchanged underneath.
+- **The focus card opens the editor; it does not become it.** Clicking a
+  diagram zooms it into the existing centred card, and the pencil there opens
+  the editor as its own overlay above it. Reusing the card as the canvas would
+  entangle the editor with `FOCUSABLE_SEL`, the pan/zoom of the card, and the
+  card's own sync – three things that already work and none of which the editor
+  wants to inherit.
+
+### 8.4 Structure
 
 A modal overlay holding: the live SVG (the compiler's own output, re-emitted
 after each edit); a **guide layer** and a selection layer, both drawn in
@@ -529,19 +686,27 @@ Each phase is shippable on its own and verified the way this repo verifies
 things: a real figure rebuilt, before and after compared, no console errors in
 a browser sweep.
 
+**Phase 0 – lecture-wide defaults.** §3.2, on its own, before any of the
+editor. It is a self-contained grammar-and-build feature, it is what makes
+§7.2 one patch instead of twelve, and it wants to land while the diagram code
+is still the freshest thing in the file. *Worth doing whether or not the editor
+follows.*
+
 **Phase 1 – the seam.** Extract `diagram-core.mjs`; `build.js` imports it;
-`lint.js` imports its tables and drops seven mirrored copies. No behaviour
+`lint.js` imports its tables and drops all thirteen mirrored copies. No behaviour
 change: all three lectures build byte-identically, `lint --strict` clean.
-*Worth doing whether or not the editor follows.*
+*Also worth doing whether or not the editor follows* – it removes a duplication
+that exists today.
 
 **Phase 2 – spans.** Every token carries `[start, end]`; add the span lookup.
 Verify by round-tripping: for every element in every example diagram, replace
 each attribute span with itself and assert the body is unchanged.
 
-**Phase 3 – read-only canvas.** Ship `diagram-core.mjs` into the live views
-behind the `editor:` key, re-render from source at boot, assert the result is
-identical to the build's own SVG. This cashes the whole risk of the "one
-compiler, two runtimes" bet early and cheaply.
+**Phase 3 – read-only canvas.** Ship `diagram-core.mjs` and the source payload
+(§11.4) into the live views behind the `editor:` key, re-render from source at
+boot, assert the result is identical to the build's own SVG (§11.8). This
+cashes the whole risk of the "one compiler, two runtimes" bet early and
+cheaply, and it is the phase to stop at if that bet turns out to be wrong.
 
 **Phase 4 – the frame.** §5, before any editing. It is what makes phase 5
 judgeable, it is pure read-only, and it is independently useful: an author can
@@ -580,7 +745,159 @@ placement. This is a mode and it has to look like one – the one place where th
 same gesture means two different things, and the one place §9's guides do not
 yet know what to draw.
 
-## 11. Settled, and still open
+## 11. For the implementer
+
+Everything above is the *what*. This is what a fresh pair of hands needs before
+touching a file.
+
+### 11.1 Read first, in this order
+
+`PRD.md` §4.6a (the grammar, and the semantics that follow from it) ·
+`CLAUDE.md` § *Animated infographics* (every consequence worth not breaking,
+written as a list of traps) · this file · `speaker.md` §2 (state ownership, for
+§2.4) · `lectures/diagrams/source.md` (every construct, exercised).
+
+### 11.2 Files
+
+| file | what happens |
+|---|---|
+| `diagram-core.mjs` | **new.** The compiler, moved out of `build.js` verbatim. Pure JS, zero imports, zero Node APIs. |
+| `editor.mjs` | **new.** The editor UI. Inlined as text into the live views, like `AUDIENCE_JS` is today. |
+| `editor.css` or a `EDITOR_CSS` constant | **new.** Same treatment. |
+| `build.js` | imports `diagram-core.mjs`; reads both new files as text and inlines them; emits the per-diagram source payload; the `diagram-defaults` frontmatter key; the two-way watch socket. |
+| `lint.js` | imports the vocabulary tables from `diagram-core.mjs`, drops its mirrors; gains the `diagram-defaults` checks. |
+| `speaker.md` | §2 gains the `diagram-edit` row. |
+| `PRD.md`, `CLAUDE.md`, `CHANGELOG.md`, tutorial | §3.2, then the editor itself. |
+
+Name things `dge*` in the editor (`dg*` is the compiler and is taken). Keep the
+`// ── section ──` banner convention; `editor.mjs` will want its own.
+
+### 11.3 The export surface of `diagram-core.mjs`
+
+It must run unchanged in Node and in the browser, so the four Node-only leaves
+come out and are injected by the caller:
+
+```js
+export function createDiagramCompiler({ resolveImage, imageAspect, warn, escapeHtml })
+```
+
+- `resolveImage(src)` – Node: the existing `fs`-based lookup. Browser: a table
+  emitted alongside the diagram, `id → {href, aspect}`, because the compiled
+  SVG has already resolved every asset.
+- `imageAspect(abs)` – same split.
+- `warn(msg)` – Node: `console.warn('[diagram] …')`. Browser: into the editor's
+  message area, so a `[diagram]` warning is something the author *sees*.
+- `escapeHtml(s)` – the one from `build.js`.
+
+Everything else is pure and exported directly: `DG_KEYWORDS`, `DG_STEP_OPS`,
+`DG_CLASSES`, `DG_CLASS_GROUPS`, `DG_KIND_OPTS`, `DG_BRACE_SIDES`,
+`DG_ALIGN_X`, `DG_ALIGN_Y`, `DG_SCALAR_X`, `DG_SCALAR_Y`, `DG_DEFAULT_KINDS`,
+`DG_ANCHORS`, `parseDiagramSource`, `dgStateAt`, `layoutDiagram`,
+`dgFrameDrawables`, `renderDiagram`.
+
+`lint.js` imports only the tables. That is what keeps it zero-dep: it must
+never reach for a function that pulls the rest of the compiler in behind it.
+
+### 11.4 Getting the source into the page
+
+The editor needs the original block text, and the workspace (§6) needs every
+block in the lecture. `renderDiagram()` is called **once**, at parse time, and
+its HTML goes into all four views, so the payload rides along with it:
+
+```html
+<script type="application/json" class="psi-diagram-source" data-for="dg3-root">
+  {"body": "...", "attrs": "unit=130x76", "chunk": "cbc", "width": "full",
+   "range": [4211, 4530], "images": {"alice": {"href": "data:…", "aspect": 1.4}}}
+</script>
+```
+
+`range` is the byte range in `source.md`, which is what Tier 1 patches (§2.3);
+it is also what makes the whole round-trip verifiable. It is emitted into print
+too, and that is fine – a diagram body is a few hundred bytes to a couple of
+kilobytes, and stripping it per view would mean rendering diagrams twice.
+
+The chunk's width class is already on the chunk as `data-width`; the editor
+reads it for the frame (§5) rather than being told.
+
+### 11.5 Span table
+
+Phase 2's deliverable, and the API every edit in §9.3 goes through:
+
+```js
+spanOf(elementId, attr)   // → {start, end}  – the token to replace
+                          // → {insertAt, prefix}  – if the attribute is absent
+```
+
+`attr` names one of: `gap`, `frac`, `w`, `h`, `r`, `pad`, `align`, `offset.x`,
+`offset.y`, `at.x`, `at.y`, `at.x.nudge`, `at.y.nudge`, `label`, `classes`,
+`tags`, `same-as`, or `line` for the whole statement. Offsets are into the
+block body, not the file; the file offset is `range[0] + bodyOffset`.
+
+`dgTokenize` already walks each line character by character, so this is
+carrying an offset through rather than a second pass.
+
+### 11.6 Things that will bite
+
+These are all documented in `CLAUDE.md`; they are repeated here because this
+phase writes ~150 KB of inlined JS and CSS and every one of them has already
+cost this project a debugging session:
+
+- **A raw backtick anywhere in an inlined template literal ends it** – even
+  inside a comment. Throws at parse time. If `editor.mjs` is read from disk as
+  text rather than embedded in a literal, this trap disappears, which is one
+  more argument for keeping it a real file.
+- **A regex backslash must be doubled inside a template literal.** Source
+  `/\s+/g` emits `/s+/g`, silently. It cost a search index once. `grep -F` the
+  built HTML for what was actually emitted.
+- **An unterminated `/*` in an inlined stylesheet swallows every rule to the
+  next `*/`.** `assertStylesheetsWellFormed()` runs on every `buildOnce`; add
+  the editor's CSS to it.
+- **Never discard stderr when verifying.** `node build.js … 2>&1 >/dev/null`
+  hides a `SyntaxError` and leaves the *previous* HTML on disk, so the browser
+  shows a stale build that looks like a change with no effect.
+- **`FOCUSABLE_SEL` stays a single constant.** The editor's entry point lives
+  in the focus card; audience and speaker resolve `figureIdx` against their own
+  DOM and will focus different elements the moment their selectors disagree.
+
+### 11.7 Behaviour under load and under error
+
+- **Re-layout during a drag is per-beat, not per-diagram.** `renderDiagram`
+  lays out once *per step*; a diagram with eight steps would otherwise do eight
+  layouts per `pointermove`. Lay out only the beat on screen while dragging;
+  re-run the whole thing on commit, which is also when the warnings refresh.
+- **A parse error must never blank the canvas.** While the source is
+  intermediate, keep the last good render on screen, mark the offending line in
+  the source pane, and disable the write-back button. The build's own error
+  shape (`errors: [{line, msg}]`) is already exactly what that needs.
+- **Undo is one snapshot per gesture**, not per frame: pointerdown captures,
+  pointerup commits. Snapshots are the whole block body, which for a couple of
+  kilobytes is not worth being cleverer about.
+
+### 11.8 How each phase is verified
+
+Not "carefully" – these are the commands.
+
+| phase | check |
+|---|---|
+| 1 | `node build.js lectures/*/source.md` for all three, then `git diff --stat` on the built HTML: **zero changes**. `node lint.js lectures/ --strict`. |
+| 2 | A script that, for every diagram in `lectures/`, replaces every span with itself and asserts the body is byte-identical. |
+| 3 | In a Playwright page, compare the editor's re-render against the SVG the build emitted, node by node. Any difference is the "two runtimes" bet failing, and it is cheaper to find here than anywhere later. |
+| 4–7 | Rebuild all three lectures, `lint --strict`, and a Playwright sweep asserting no console errors, as in the diagram work already committed. |
+| 8 | Two windows, one edit, assert the other re-renders; freeze, edit, assert it does not; unfreeze, assert it catches up. Patch with a stale range, assert refusal. |
+| 9 | Paste the `#lifecycle` selection into an empty figure and assert the result **builds** – the closure is right exactly when the pasted block compiles with no dangling reference. Then paste it twice and assert the renames are distinct. |
+| 10 | Step through the CBC figure in the editor and assert each beat's geometry matches the frames payload the build emitted for that beat. |
+| §3.2 | A lecture whose `diagram-defaults` sets `w`, plus one block overriding it, plus one element overriding that: assert three different widths in the emitted SVG. A tag no diagram carries: assert the build fails. A tag *some* diagram carries: assert it does not. |
+
+There is no test suite in this repo and this plan does not add one. The checks
+above are scripts under the scratchpad, run and reported, not committed.
+
+### 11.9 Not in scope
+
+Touch and pen input. Mobile layout. Collaborative editing. Editing the prose of
+a chunk. Any figure type other than `::: diagram` – images, video and embeds
+are not editable and their focus cards get no pencil. Undo across a reload.
+
+## 12. Settled, and still open
 
 Four questions this plan opened have been answered; they are recorded here
 rather than deleted, because the reasoning is what a later reader will want.
@@ -612,15 +929,24 @@ rather than deleted, because the reasoning is what a later reader will want.
   uses "apply these defaults to every figure" more than once on the same
   lecture, copying has failed and the preset has earned its keyword.
 
-Genuinely open:
+Two are left, and they are **deliberately not being decided on paper.** Both
+are drawing problems whose answers depend on what the thing feels like, and a
+prose proposal for either would be a guess dressed as a decision. Build up to
+the phase, then show a running prototype and choose from it.
 
-- **What is a beat when you are editing?** §9's guides describe one still
-  picture. A stepped diagram has several, and dragging in beat 2 means
-  something different from dragging in beat 0 (§10, phase 9). The guides
-  probably need to show *both* – where the element is now and where it came
-  from – and that is a drawing problem this plan has not solved.
-- **How much of the closure is too much?** §7.1 pastes everything the selection
-  depends on. Select one box at the end of a `below` chain and you get the
-  whole chain. Correct, and possibly astonishing. The editor should show what
-  it is about to bring along before it pastes, but "show" is doing a lot of
-  work in that sentence.
+- **What is a beat when you are editing?** (phase 10) §9's guides describe one
+  still picture. A stepped diagram has several, and dragging in beat 2 means
+  something different from dragging in beat 0. The guides probably need to show
+  both – where the element is now and where it came from – but "probably" is
+  doing the work there. **What the prototype must show:** the CBC figure at
+  beat 2, with one box mid-drag, in at least two candidate treatments (ghost of
+  the previous position vs. a motion path vs. neither), so the choice is made
+  by looking.
+- **How much of the closure is too much?** (phase 9) §7.1 pastes everything the
+  selection depends on. Select one box at the end of a `below` chain and you
+  get the whole chain – correct, and possibly astonishing. **What the prototype
+  must show:** the paste from `#lifecycle` into an empty figure, with whatever
+  preview of the closure the implementer thinks best, against the same paste
+  with no preview at all. If the honest answer is that no preview is needed
+  because the undo is one keystroke, that is a fine answer and cheaper than
+  every alternative.
