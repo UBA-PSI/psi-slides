@@ -78,7 +78,7 @@ const DENSITY_BUDGET = {
 // have to move in one commit. A linter that is stricter than the build is
 // worse than none, so this list is checked against DG_CLASSES / the
 // statement table there, not guessed at.
-const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'edge', 'brace', 'container', 'group', 'step']);
+const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'group', 'step']);
 const DG_STEP_OPS = new Set(['show', 'hide', 'move', 'emph', 'calm', 'style', 'label']);
 const DG_CLASSES = new Set([
   'tone-1', 'tone-2', 'tone-3', 'tone-4', 'accent', 'muted', 'ghost',
@@ -86,7 +86,7 @@ const DG_CLASSES = new Set([
   'mono', 'hand', 'small', 'large', 'bold', 'left', 'right',
   'no-head', 'both-heads', 'emph', 'dim',
 ]);
-const DG_DEFINES = new Set(['box', 'dot', 'text', 'brace', 'container', 'group']);
+const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container', 'group']);
 
 const REVEAL_PCT_WARN = 0.5;
 const ORPHAN_MIN = 2;
@@ -161,8 +161,29 @@ function lintDiagram(block, add, fmLines) {
   };
   // Anchors (mix.right) and group names both resolve against the same
   // table, so a reference is only ever its part before the dot.
+  const ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 'tr', 'bl', 'br']);
   const refer = (tok, ln, what) => {
-    const name = String(tok || '').split('.')[0].replace(/,$/, '');
+    const raw = String(tok || '').replace(/,$/, '');
+    const name = raw.split(/[.:]/)[0];
+    // The anchor and its fraction are pure string checks, so the linter can
+    // stay in step with the build on them even though it cannot resolve the
+    // element itself.
+    const m = raw.match(/^[^.]*\.([a-z]+)(?::(.+))?$/);
+    if (m) {
+      if (!ANCHORS.has(m[1])) {
+        add(ln, 'error', 'unknown-diagram-anchor',
+            `unknown anchor '.${m[1]}' – valid: ${[...ANCHORS].map(a => '.' + a).join(', ')}`);
+      } else if (m[2] !== undefined) {
+        const f = Number(m[2]);
+        if (!Number.isFinite(f) || f < 0 || f > 1) {
+          add(ln, 'error', 'bad-diagram-anchor-fraction',
+              `anchor fraction on '.${m[1]}' must be between 0 and 1, got '${m[2]}'`);
+        } else if (!['left', 'right', 'top', 'bottom'].includes(m[1])) {
+          add(ln, 'error', 'bad-diagram-anchor-fraction',
+              `a fraction only means something on .left/.right/.top/.bottom, not on .${m[1]}`);
+        }
+      }
+    }
     if (name) referenced.push({ name, ln, what });
   };
 
@@ -207,6 +228,19 @@ function lintDiagram(block, add, fmLines) {
       for (let k = 2; k < words.length; k++) {
         if (words[k] === 'of' || words[k] === 'below' || words[k] === 'above') {
           refer(words[k + 1], ln, `${head} ${words[1]}`);
+        }
+        if (words[k] === 'between') {
+          const STOP = new Set(['frac', 'offset', 'w', 'h', 'r', '->']);
+          let m = k + 1;
+          const names = [];
+          while (m < words.length && !STOP.has(words[m])) names.push(words[m++]);
+          const parts = names.join(',').split(',').map(x => x.trim()).filter(Boolean);
+          if (parts.length !== 2) {
+            add(ln, 'error', 'diagram-bad-between',
+                `between expects exactly two elements, got ${parts.length}`);
+          }
+          for (const pn of parts) refer(pn, ln, `${head} ${words[1]}`);
+          k = m - 1;
         }
         // leader line: `text n "…" above c gap 1 -> leak`
         if (words[k] === '->') {

@@ -29,6 +29,17 @@ from building the same way is a major version.
   mirrors the vocabulary and reports unknown statements, unknown classes,
   duplicate names and dangling references.
 
+  `image <name> <asset>` puts a picture in a diagram, resolved like the
+  `![](fig-id)` shorthand. A vector asset is spliced as a nested `<svg>`
+  and follows the `A` theme cycle; a raster is a `data:` URI and keeps
+  its own colours – the honest trade rather than a broken promise.
+  `between A,B [frac n]` positions an element on the line joining two
+  others, and any placement takes a trailing `offset dx,dy`. An anchor
+  takes a fraction (`mix.right:0.3`) that slides the attachment point
+  along that edge, which is what stops two arrows between the same pair
+  of boxes from collapsing into a lens; there is deliberately no
+  automatic fan-out, because it would silently redraw existing diagrams.
+
   Inside a label, `_sub` / `^sup` shift a run and `*accent*` / `~muted~`
   colour one. Free `text` honours `.left` / `.right`, and its anchor
   moves with them. A diagram is click-to-zoom like any other figure, and

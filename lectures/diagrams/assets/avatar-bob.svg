@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120">
+  <style>
+    svg { --_ink: var(--ink, #222); --_paper: var(--paper, #fff); }
+    .s { fill: none; stroke: var(--_ink); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+    .f { fill: var(--_paper); stroke: var(--_ink); stroke-width: 3.5; }
+    .d { fill: var(--_ink); }
+  </style>
+  <path class="f" d="M20 118c0-17 13-27 30-27s30 10 30 27z"/>
+  <circle class="f" cx="50" cy="46" r="24"/>
+  <path class="s" d="M28 36c5-13 13-20 22-20s17 7 22 20"/>
+  <circle class="s" cx="41" cy="48" r="7"/>
+  <circle class="s" cx="59" cy="48" r="7"/>
+  <path class="s" d="M48 48h4M34 46l-6-2M66 46l6-2"/>
+  <path class="s" d="M44 61h12"/>
+</svg>

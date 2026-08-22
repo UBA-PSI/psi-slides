@@ -462,8 +462,14 @@ step blame
 
 **An arrow is only as visible as what it connects**, so revealing boxes reveals the arrows between them and most edges need no `show` of their own. Free `text` can grow a leader line with `-> some-element`, which is how a label goes wherever it reads best without losing what it is about.
 
+**A picture can be an element too.** `image alice avatar-alice w 0.4` resolves the asset exactly like `![](fig-id)` does. An SVG is spliced in as a nested `<svg>`, so it inherits `--ink` and `--paper` and re-colours with the `A` theme cycle; a raster is embedded as a `data:` URI and keeps its own colours in every theme. That is the trade, and it is the honest one.
+
 ::: expand The rest of the vocabulary
-`dot` is a circle for junctions and glyphs. `container … over a,b,c` draws a box that fits itself around its members and re-fits when they move; `group` is the same set without the box, for moving or hiding several things at once; `brace … over a,b right "Label"` is a bracket spanning a subset. Classes come from a closed list – four `tone-*` fills mixed from the page's own inks, plus `dashed`, `dotted`, `thick`, `round`, `mono`, `hand`, `muted` and a few more – and `lint.js` rejects anything else, so a typo is a build error rather than an unstyled box.
+`dot` is a circle for junctions and glyphs. `container … over a,b,c` draws a box that fits itself around its members and re-fits when they move; `group` is the same set without the box, for moving or hiding several things at once; `brace … over a,b right "Label"` is a bracket spanning a subset.
+
+Placement also takes `between a,b` – the point on the line joining two elements, which is what a separator glyph or a note beside a connector actually wants – and any placement accepts a trailing `offset dx,dy`. An anchor can carry a fraction: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes come out parallel instead of as a lens.
+
+Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run and `~muted~` greys it. Classes come from a closed list – four `tone-*` fills mixed from the page's own inks, plus `dashed`, `dotted`, `thick`, `round`, `mono`, `hand`, `muted` and a few more – and `lint.js` rejects anything else, so a typo is a build error rather than an unstyled box.
 :::
 
 > note: Print shows every element the diagram ever displays, at its last position, without the live-only `emph` and `dim` – the handout is the finished picture, the same rule reveal segments follow.

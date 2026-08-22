@@ -362,6 +362,7 @@ Grammar, in full:
 |---|---|
 | `box <name> "label" <placement> [w n] [h n]` | A rectangle that sizes itself to its label |
 | `dot <name> "label" <placement> [r n]` | A circle – XOR nodes, junctions, small glyphs |
+| `image <name> <asset> <placement> [w n] [h n]` | A picture. `<asset>` resolves like `![](fig-id)`: `assets/<name>.{svg,png,…}`, a path, or an https URL |
 | `text <name> "label" <placement> [-> ref]` | Free text with no shape of its own; `-> ref` grows a leader line to whatever it comments on. `.left` / `.right` align it, and the anchor moves with them |
 | `edge <a> -> <b> ["label"] [via x,y …]` | An arrow. `<-` reverses it, `--` drops the head |
 | `container <name> ["label"] over a,b,c [pad n]` | A drawn box that fits itself around its members |
@@ -369,7 +370,9 @@ Grammar, in full:
 | `brace <name> over a,b [side] ["label"]` | A bracket spanning a subset, label outside |
 | `step <name>` | Opens a step; the indented lines below it are its operations |
 
-Placement is `at X,Y` in grid cells, or a relation: `right of A`, `left of A`, `below A`, `above A`, each taking `gap <n>` and `align <edge>`. **The first element defaults to the origin**, so the common case – a box, and everything else relative to it – needs no coordinates at all. Every element after it has to say where it goes; silently stacking two elements on `0,0` is not a default anyone means. Anchors are addressable (`mix.right`, `ret.br`) and chosen automatically otherwise.
+Placement is `at X,Y` in grid cells, a relation – `right of A`, `left of A`, `below A`, `above A`, each taking `gap <n>` and `align <edge>` – or `between A,B [frac <n>]`, which is the position PIC spells “1/2 way between A and B”. Any of them takes a trailing `offset dx,dy`. **The first element defaults to the origin**, so the common case – a box, and everything else relative to it – needs no coordinates at all. Every element after it has to say where it goes; silently stacking two elements on `0,0` is not a default anyone means.
+
+Anchors are addressable and chosen automatically otherwise: `mix.right`, `ret.br`, and `mix.right:0.3` to slide the attachment point along that edge. **The fraction is what keeps two arrows between the same pair of boxes from collapsing into a lens** – give them `0.3` and `0.7` and they are two parallel arrows rather than two bows over the same chord. There is deliberately no automatic fan-out of parallel edges: it would change an existing diagram silently, and the explicit form reads as what it is.
 
 Step operations are `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style`, `label`. Nothing else.
 
@@ -384,6 +387,7 @@ Semantics that follow from the design, not from convenience:
 - **An edge is only as visible as the two things it connects.** Most edges therefore need no `show` at all.
 - **Print shows the union at the last position**, matching §4.6 – a handout is the finished picture. Live-only emphasis (`emph`, `dim`) is dropped there.
 - **Motion is off under `prefers-reduced-motion`**; the steps still step, they just do not travel.
+- **A vector image follows the theme, a raster does not.** An SVG asset is spliced in as a nested `<svg>`, so it inherits `--ink` and `--paper` and re-colours with the `A` cycle, exactly like an inlined SVG figure. A raster is embedded as a `data:` URI and keeps its own colours in every theme. That is the trade, and it is the honest one: a photograph is a photograph in dark mode too.
 
 Discipline: the same as reveal. A diagram earns steps when the *sequence* is the teaching – a construction that assembles, an attack that walks through a structure. A diagram that appears whole is the normal case.
 

@@ -184,38 +184,51 @@ step self
 
 ## figure: Message authentication {.full #mac}
 
-::: diagram {unit=150x62}
-box  alice "Alice"  {.round .tone-2}
-box  eve   "Eve"    right of alice gap 1.1 {.round .tone-3}
-box  bob   "Bob"    right of eve gap 1.1 {.round .tone-2}
+::: diagram {unit=150x60}
+image alice avatar-alice "Alice" w 0.42
+image eve   avatar-bob   "Eve"   right of alice gap 1.4 w 0.36 {.ghost}
+image bob   avatar-bob   "Bob"   right of eve gap 1.4 w 0.42
 
-text kA "k" left of alice gap 0.18 {.mono .small}
-text kB "k" right of bob gap 0.18 {.mono .small}
+text nA "Alice" below alice gap 0.06 {.small}
+text nE "Eve"   below eve gap 0.06 {.small .muted}
+text nB "Bob"   below bob gap 0.06 {.small}
 
-edge alice -> bob "M, T" via 1.18,0.8 2.36,0.8 {#wire}
-edge eve.right -> bob.left "M, T   replay"      via 2.05,-0.26 2.35,-0.26 {#replay .accent .small}
-edge eve.right -> bob.left "forgery   M_F, T_F" via 2.05,0.14 2.35,0.14 {#forge .accent .small}
-text def "defense?" above eve gap 0.35 {.hand .small}
+text kA "k" left of alice gap 0.2 {.mono .small}
+text kB "k" right of bob gap 0.2 {.mono .small}
 
-text macA "T = MAC_k(M)"           below alice gap 0.55 {.mono .small}
-text tagA "\"authentication tag\"" below macA gap 0.14 {.hand .small}
+edge alice -> bob "M, T" via 1.28,1.5 2.42,1.5 {#wire}
+edge eve.right:0.28 -> bob.left:0.28 "M, T   replay"      {#replay .accent .small}
+edge eve.right:0.72 -> bob.left:0.72 "forgery   M_F, T_F" {#forge .accent .small}
+text def "defense?" above eve gap 0.3 {.hand .small}
 
-text ver1 "Verify_k(M, T)"                 below bob gap 0.55 {.mono .small}
-text ver2 "T' = MAC_k(M)\nT' equals T ?"   below ver1 gap 0.5 {.mono .small}
-edge ver1 -- ver2 {.muted .dotted}
-text eg   "e.g."  below ver1 gap 0.14 align left {.small .muted}
+text macA "T = MAC_k(M)"            below nA gap 0.3 {.mono .small}
+text tagA "\"authentication tag\""  below macA gap 0.14 {.hand .small}
 
-text goals "Security goals: *integrity*\nand *authenticity* but\n~not non-repudiation~" at 3.55,-1.05 {.left}
+text ver1 "Verify_k(M, T)"                below nB gap 0.3 {.mono .small}
+text ver2 "T' = MAC_k(M)\nT' equals T ?"  below ver1 gap 0.55 {.mono .small}
+edge ver1 -- ver2 {#howto .muted .dotted}
+text eg   "e.g." between ver1,ver2 offset -0.16,0 {.small .muted}
+
+text goals "Security goals: *integrity*\nand *authenticity* but\n~not non-repudiation~" at 3.5,-0.95 {.left}
 
 step protocol
-  show macA, tagA, ver1, eg, ver2
+  show macA, tagA, ver1, howto, eg, ver2
 step attack
-  show eve, replay, forge, def
+  show eve, nE, replay, forge, def
   emph replay, forge
 :::
 
-**Der Farbwechsel mitten im Satz war der Auslöser für `*accent*` und `~muted~`.** „Security goals" brauchte im ersten Anlauf sechs `text`-Elemente, die mit `right of` aneinandergekettet waren – unlesbar als Quelltext und beim kleinsten Wortwechsel neu zu sortieren. Jetzt ist es ein Element.
+**Die Avatare sind jetzt echte Diagramm-Objekte.** `image alice avatar-alice w 0.42` löst gegen `assets/` auf wie das `![](fig-id)`-Kürzel. Eine SVG-Datei wird als verschachteltes `<svg>` eingesetzt und erbt damit `--ink` und `--paper` – die Figuren wechseln mit dem `A`-Theme mit. Ein Rasterbild kann das nicht und wird als `data:`-URI eingebettet; ein Foto ist in jedem Modus dasselbe Foto.
 
-**Was noch fehlt:** `e.g.` neben dem senkrechten Verbinder ist relativ zu `ver1` platziert, weil es keinen Anker auf der Mitte einer Kante gibt.
+**Die Linse ist weg.** Die beiden Angriffspfeile hängen jetzt an `eve.right:0.28` und `eve.right:0.72` statt beide an der Kantenmitte – zwei parallele Pfeile statt zweier Bögen über derselben Sehne.
 
-**Die Avatare fehlen ersatzlos.** Ein Diagramm kann keine Bilder aufnehmen, also stehen hier drei beschriftete Kästen, wo im Original gezeichnete Figuren sitzen. Das ist die deutlichste Lücke, die der Nachbau gezeigt hat.
+**`e.g.` sitzt per `between ver1,ver2 offset -0.16,0`** neben dem Verbinder, statt relativ zu einem Nachbarn geschätzt zu sein.
+
+## figure: A raster does not follow the theme {.standard #raster}
+
+::: diagram {unit=150x60}
+image swatch swatch w 0.6
+text  note "a raster keeps its own colours\nin every theme" right of swatch gap 0.35 -> swatch {.small .muted}
+:::
+
+Beim Zyklus durch die Themes mit `A` bleibt das Rasterfeld, wie es ist, während Kästen, Pfeile und Vektor-Figuren umfärben. Das ist der Preis für Pixel und war die Bedingung, unter der Bilder aufgenommen wurden.

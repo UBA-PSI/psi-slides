@@ -321,11 +321,32 @@ function inlineSvg(absPath, { alt = '', title = '', extraClass = '' } = {}) {
 // AUTO_INLINE_BUDGET, the build inlines without an explicit flag. The
 // regex catches false positives in code blocks, but for a budget
 // heuristic that's fine – fence-aware scanning would be over-engineered.
+// Every asset the source refers to, whichever way it refers to it. The
+// diagram DSL is the second way and it is not markdown, so it needs its own
+// pass here: without it a diagram's images were invisible to the
+// auto-inline budget and to assertInlinable, which meant they silently
+// shipped as external paths and an oversized one never failed the build.
+function collectDiagramImageRefs(src) {
+  const refs = [];
+  let inDiagram = false;
+  for (const line of String(src).split('\n')) {
+    if (!inDiagram) {
+      if (/^:::\s+diagram\b/.test(line)) inDiagram = true;
+      continue;
+    }
+    if (/^:::\s*$/.test(line)) { inDiagram = false; continue; }
+    const m = line.trim().match(/^image\s+\S+\s+(\S+)/);
+    if (m) refs.push(m[1]);
+  }
+  return refs;
+}
+
 function scanReferencedImages(src, sourceDir) {
   const refs = new Set();
   for (const match of src.matchAll(/!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
     refs.add(match[1]);
   }
+  for (const ref of collectDiagramImageRefs(src)) refs.add(ref);
 
   let total = 0;
   let count = 0;
@@ -1265,7 +1286,7 @@ const DG_CLASSES = new Set([
 ]);
 const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 'tr', 'bl', 'br']);
 const DG_STEP_OPS = new Set(['show', 'hide', 'move', 'emph', 'calm', 'style', 'label']);
-const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'edge', 'brace', 'container', 'group', 'step']);
+const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'group', 'step']);
 
 let dgCounter = 0;             // per-build, reset in buildOnce
 
@@ -1356,6 +1377,43 @@ function dgMeasure(label, fontPx, mono) {
   return { w: maxW, h: lines.length * fontPx * DG_LINE_H, lines: laid, count: lines.length };
 }
 
+// Height-to-width of an asset, so an author can give `w` and let the other
+// dimension follow. SVG answers from its viewBox (or its width/height);
+// raster goes through the same zero-dep PNG/JPEG header reader the image
+// optimiser uses. Anything else has to say `h` itself.
+function dgAspect(absPath) {
+  if (!absPath) return null;
+  if (path.extname(absPath).toLowerCase() === '.svg') {
+    let text;
+    try { text = fs.readFileSync(absPath, 'utf8'); } catch { return null; }
+    const vb = text.match(/\bviewBox\s*=\s*["']\s*[-\d.eE]+\s+[-\d.eE]+\s+([-\d.eE]+)\s+([-\d.eE]+)/i);
+    if (vb) {
+      const w = Number(vb[1]), h = Number(vb[2]);
+      if (w > 0 && h > 0) return h / w;
+    }
+    const wa = text.match(/<svg\b[^>]*\bwidth\s*=\s*["']([\d.]+)/i);
+    const ha = text.match(/<svg\b[^>]*\bheight\s*=\s*["']([\d.]+)/i);
+    if (wa && ha && Number(wa[1]) > 0) return Number(ha[1]) / Number(wa[1]);
+    return null;
+  }
+  const size = imageSize(absPath);
+  return size && size.width > 0 ? size.height / size.width : null;
+}
+
+// Resolve a diagram image reference the same way the ![](fig-id) shorthand
+// does, so the two never disagree about where assets live.
+function dgResolveImage(ref) {
+  if (!currentSourceDir) return null;
+  if (/^(https?:)?\/\//i.test(ref)) return { abs: null, href: ref, remote: true };
+  const direct = ref.includes('/') || path.extname(ref)
+    ? path.join(currentSourceDir, ref) : null;
+  let rel = null;
+  if (direct && fs.existsSync(direct)) rel = ref;
+  else rel = resolveFigId(ref);
+  if (!rel) return null;
+  return { abs: path.join(currentSourceDir, rel), href: rel, remote: false };
+}
+
 function dgFontFor(classes) {
   let size = DG_FONT;
   if (classes.has('small')) size = DG_FONT * 0.8;
@@ -1429,15 +1487,32 @@ function dgNum(tok, errors, lineNo, what) {
 // `mix`, `mix.right`. An unknown anchor is an error rather than a silent
 // fallback to centre, because a diagram whose arrows all quietly meet in
 // the middle of a box is exactly the failure that looks like a layout bug.
+// `mix`, `mix.right`, `mix.right:0.3`. The fraction slides the attachment
+// point along that edge, and it is what keeps two arrows between the same
+// pair of boxes from collapsing into a lens: give them 0.3 and 0.7 and they
+// are two parallel arrows instead of two bows over the same chord.
 function dgParseRef(tok, errors, lineNo) {
   const dot = tok.indexOf('.');
-  if (dot < 0) return { ref: tok, anchor: null };
-  const ref = tok.slice(0, dot), anchor = tok.slice(dot + 1);
+  if (dot < 0) return { ref: tok, anchor: null, frac: 0.5 };
+  const ref = tok.slice(0, dot);
+  let anchor = tok.slice(dot + 1);
+  let frac = 0.5;
+  const colon = anchor.indexOf(':');
+  if (colon >= 0) {
+    const raw = anchor.slice(colon + 1);
+    anchor = anchor.slice(0, colon);
+    const f = Number(raw);
+    if (!Number.isFinite(f) || f < 0 || f > 1) {
+      dgErr(errors, lineNo, `anchor fraction on "${ref}.${anchor}" must be between 0 and 1, got "${raw}"`);
+    } else if (!['left', 'right', 'top', 'bottom'].includes(anchor)) {
+      dgErr(errors, lineNo, `a fraction only means something on .left/.right/.top/.bottom, not on .${anchor}`);
+    } else frac = f;
+  }
   if (!DG_ANCHORS.has(anchor)) {
     dgErr(errors, lineNo, `unknown anchor .${anchor} on "${ref}" (known: ${[...DG_ANCHORS].join(', ')})`);
-    return { ref, anchor: null };
+    return { ref, anchor: null, frac };
   }
-  return { ref, anchor };
+  return { ref, anchor, frac };
 }
 
 // Placement. Absolute is `at X,Y` in grid cells; everything else states a
@@ -1447,35 +1522,78 @@ function dgParseRef(tok, errors, lineNo) {
 // make and "does 3,2 collide with 3.4,1.8" is not.
 function dgParsePlacement(toks, k, errors, lineNo) {
   const t = (n) => (toks[n] ? toks[n].v : '');
+  let place = null, next = k;
+
   if (t(k) === 'at') {
     const parts = t(k + 1).split(',');
     if (parts.length !== 2) { dgErr(errors, lineNo, `at expects X,Y – got "${t(k + 1)}"`); return [null, k + 2]; }
-    return [{ kind: 'abs', x: dgNum(parts[0], errors, lineNo, 'at X'), y: dgNum(parts[1], errors, lineNo, 'at Y') }, k + 2];
+    place = { kind: 'abs', x: dgNum(parts[0], errors, lineNo, 'at X'), y: dgNum(parts[1], errors, lineNo, 'at Y') };
+    next = k + 2;
+  } else if (t(k) === 'between') {
+    // `between a,b` is the position PIC spells "1/2 way between A and B",
+    // and it is what a separator glyph, a bracket label or a note beside a
+    // connector actually wants. Chaining `right of` through a spacer works
+    // but states the wrong thing: it says "after A" when the author means
+    // "between A and B", and it comes apart the moment either box resizes.
+    const STOP = new Set(['frac', 'offset', 'w', 'h', 'r', '->']);
+    let mEnd = k + 1;
+    while (mEnd < toks.length && !STOP.has(toks[mEnd].v)) mEnd++;
+    const refs = toks.slice(k + 1, mEnd).map(x => x.v).join(',')
+      .split(',').map(s => s.trim()).filter(Boolean)
+      .map(r => dgParseRef(r, errors, lineNo));
+    if (refs.length !== 2) {
+      dgErr(errors, lineNo, `between expects exactly two elements, got ${refs.length}`);
+      return [null, mEnd];
+    }
+    place = { kind: 'between', refs, frac: 0.5 };
+    next = mEnd;
+  } else {
+    let dir = null;
+    if (t(k) === 'right' && t(k + 1) === 'of') { dir = 'right'; next = k + 2; }
+    else if (t(k) === 'left' && t(k + 1) === 'of') { dir = 'left'; next = k + 2; }
+    else if (t(k) === 'below') { dir = 'below'; next = k + 1; }
+    else if (t(k) === 'above') { dir = 'above'; next = k + 1; }
+    if (!dir) return [null, k];
+    const ref = t(next);
+    if (!ref) { dgErr(errors, lineNo, `${dir} expects an element name`); return [null, next]; }
+    next++;
+    place = { kind: 'rel', dir, ref, gap: 0.25, align: 'center' };
   }
-  let dir = null, next = k;
-  if (t(k) === 'right' && t(k + 1) === 'of') { dir = 'right'; next = k + 2; }
-  else if (t(k) === 'left' && t(k + 1) === 'of') { dir = 'left'; next = k + 2; }
-  else if (t(k) === 'below') { dir = 'below'; next = k + 1; }
-  else if (t(k) === 'above') { dir = 'above'; next = k + 1; }
-  if (!dir) return [null, k];
-  const ref = t(next);
-  if (!ref) { dgErr(errors, lineNo, `${dir} expects an element name`); return [null, next]; }
-  next++;
-  const rel = { kind: 'rel', dir, ref, gap: 0.25, align: 'center' };
+
+  // Trailing options, shared by every placement form. `offset` in
+  // particular is orthogonal on purpose: any position can be nudged
+  // without inventing a spacer element to hang it off.
   while (next < toks.length) {
-    if (t(next) === 'gap') { rel.gap = dgNum(t(next + 1), errors, lineNo, 'gap'); next += 2; continue; }
-    if (t(next) === 'align') {
+    const key = t(next);
+    if (key === 'gap' && place.kind === 'rel') {
+      place.gap = dgNum(t(next + 1), errors, lineNo, 'gap'); next += 2; continue;
+    }
+    if (key === 'align' && place.kind === 'rel') {
       const a = t(next + 1);
-      const ok = dir === 'right' || dir === 'left'
+      const ok = place.dir === 'right' || place.dir === 'left'
         ? ['top', 'middle', 'bottom'] : ['left', 'center', 'right'];
-      if (!ok.includes(a)) dgErr(errors, lineNo, `align ${a} is not one of ${ok.join('/')} for "${dir}"`);
-      else rel.align = a;
+      if (!ok.includes(a)) dgErr(errors, lineNo, `align ${a} is not one of ${ok.join('/')} for "${place.dir}"`);
+      else place.align = a;
+      next += 2;
+      continue;
+    }
+    if (key === 'frac' && place.kind === 'between') {
+      const f = dgNum(t(next + 1), errors, lineNo, 'frac');
+      if (f < 0 || f > 1) dgErr(errors, lineNo, `frac must be between 0 and 1, got ${f}`);
+      else place.frac = f;
+      next += 2;
+      continue;
+    }
+    if (key === 'offset') {
+      const parts = t(next + 1).split(',');
+      if (parts.length !== 2) { dgErr(errors, lineNo, `offset expects dx,dy – got "${t(next + 1)}"`); }
+      else place.offset = [dgNum(parts[0], errors, lineNo, 'offset dx'), dgNum(parts[1], errors, lineNo, 'offset dy')];
       next += 2;
       continue;
     }
     break;
   }
-  return [rel, next];
+  return [place, next];
 }
 
 function dgParseMembers(tok) {
@@ -1577,16 +1695,27 @@ function parseDiagramSource(body, headAttrs) {
     // are the picture, steps are what happens to it.
     step = null;
 
-    if (head === 'box' || head === 'dot' || head === 'text') {
+    if (head === 'box' || head === 'dot' || head === 'text' || head === 'image') {
       const id = t(1);
       if (!id) { dgErr(errors, lineNo, `${head} needs a name`); continue; }
       claim(id, head, lineNo);
-      const rest = body0.slice(2).map(x => ({ v: x.v }));
+      // `image` takes the asset reference in the slot where the others take
+      // their first placement token, so the rest of the line parses the same.
+      const isImage = head === 'image';
+      const src = isImage ? t(2) : null;
+      if (isImage && !src) dgErr(errors, lineNo, `image ${id} needs an asset (a fig-id, a path or a URL)`);
+      const rest = body0.slice(isImage ? 3 : 2).map(x => ({ v: x.v }));
       let k = 0;
       const node = {
-        kind: head, id, label: quoted[0] ?? '',
-        classes: attrs.classes, place: null, w: null, h: null, r: null, line: lineNo,
+        kind: head, id, label: isImage ? '' : (quoted[0] ?? ''),
+        alt: isImage ? (quoted[0] ?? '') : '',
+        src, classes: attrs.classes, place: null, w: null, h: null, r: null, line: lineNo,
       };
+      if (isImage && src) {
+        const found = dgResolveImage(src);
+        if (!found) dgErr(errors, lineNo, `image ${id}: cannot find "${src}" – expected assets/${src}.{svg,png,jpg,…}, a path, or an https URL`);
+        else { node.asset = found; node.aspect = found.abs ? dgAspect(found.abs) : null; }
+      }
       while (k < rest.length) {
         const key = rest[k].v;
         // A leader line: `text n "…" right of c gap 0.7 -> leak`. This is
@@ -1701,7 +1830,9 @@ function parseDiagramSource(body, headAttrs) {
   const checkRef = (id, lineNo, what) => {
     if (id && !known(id)) dgErr(errors, lineNo, `${what} refers to "${id}", which is not defined`);
   };
-  for (const n of model.nodes) if (n.place?.kind === 'rel') checkRef(n.place.ref, n.line, `${n.kind} ${n.id}`);
+  const refsOf = (place) => place?.kind === 'rel' ? [place.ref]
+    : place?.kind === 'between' ? place.refs.map(r => r.ref) : [];
+  for (const n of model.nodes) for (const r of refsOf(n.place)) checkRef(r, n.line, `${n.kind} ${n.id}`);
   for (const e of model.edges) { checkRef(e.from.ref, e.line, `edge ${e.id}`); checkRef(e.to.ref, e.line, `edge ${e.id}`); }
   for (const c of [...model.containers, ...model.braces, ...model.groups]) {
     for (const m of c.members) checkRef(m, c.line, `${c.id}`);
@@ -1709,7 +1840,7 @@ function parseDiagramSource(body, headAttrs) {
   for (const s of model.steps) {
     for (const op of s.ops) {
       for (const target of (op.targets || (op.target ? [op.target] : []))) checkRef(target, op.line, `step ${s.name}`);
-      if (op.to?.kind === 'rel') checkRef(op.to.ref, op.line, `step ${s.name}`);
+      for (const r of refsOf(op.to)) checkRef(r, op.line, `step ${s.name}`);
     }
   }
 
@@ -1722,13 +1853,13 @@ function parseDiagramSource(body, headAttrs) {
 // between two boxes stays attached when one of them walks off: the arrow
 // never stored a coordinate, it stored "the right edge of mix".
 
-function dgAnchorPt(b, a) {
+function dgAnchorPt(b, a, f = 0.5) {
   const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
   switch (a) {
-    case 'left': return [b.x, cy];
-    case 'right': return [b.x + b.w, cy];
-    case 'top': return [cx, b.y];
-    case 'bottom': return [cx, b.y + b.h];
+    case 'left': return [b.x, b.y + f * b.h];
+    case 'right': return [b.x + b.w, b.y + f * b.h];
+    case 'top': return [b.x + f * b.w, b.y];
+    case 'bottom': return [b.x + f * b.w, b.y + b.h];
     case 'tl': return [b.x, b.y];
     case 'tr': return [b.x + b.w, b.y];
     case 'bl': return [b.x, b.y + b.h];
@@ -1816,6 +1947,13 @@ function layoutDiagram(model, state, errors) {
       const r = node.r != null ? node.r * uh : DG_DOT_R;
       return { w: 2 * r, h: 2 * r };
     }
+    if (node.kind === 'image') {
+      const w = (node.w != null ? node.w : 1) * uw;
+      if (node.h != null) return { w, h: node.h * uh };
+      if (node.aspect) return { w, h: w * node.aspect };
+      dgWarn(`image ${node.id}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
+      return { w, h: w };
+    }
     const m = dgMeasure(st.label, font, classes.has('mono'));
     if (node.kind === 'text') return { w: m.w, h: m.h };
     // An explicit w that cannot hold its own label overflows in silence –
@@ -1835,7 +1973,13 @@ function layoutDiagram(model, state, errors) {
   const deps = new Map();
   const order = [];
   const kindOf = new Map();
-  for (const n of model.nodes) { kindOf.set(n.id, 'node'); deps.set(n.id, state.get(n.id).place?.kind === 'rel' ? [state.get(n.id).place.ref] : []); }
+  const placeDeps = (place) => {
+    if (!place) return [];
+    if (place.kind === 'rel') return [place.ref];
+    if (place.kind === 'between') return place.refs.map(r => r.ref);
+    return [];
+  };
+  for (const n of model.nodes) { kindOf.set(n.id, 'node'); deps.set(n.id, placeDeps(state.get(n.id).place)); }
   for (const g of model.groups) { kindOf.set(g.id, 'group'); deps.set(g.id, g.members.slice()); }
   for (const c of model.containers) { kindOf.set(c.id, 'container'); deps.set(c.id, c.members.slice()); }
   for (const b of model.braces) { kindOf.set(b.id, 'brace'); deps.set(b.id, b.members.slice()); }
@@ -1870,7 +2014,16 @@ function layoutDiagram(model, state, errors) {
       let cx = 0, cy = 0;
       if (!place) { cx = 0; cy = 0; }
       else if (place.kind === 'abs') { cx = place.x * uw; cy = place.y * uh; }
-      else {
+      else if (place.kind === 'between') {
+        const pts = place.refs.map(r => {
+          const rb = boxes.get(r.ref);
+          if (!rb) return [0, 0];
+          return r.anchor ? dgAnchorPt(rb, r.anchor, r.frac) : [rb.x + rb.w / 2, rb.y + rb.h / 2];
+        });
+        const f = place.frac;
+        cx = pts[0][0] + (pts[1][0] - pts[0][0]) * f;
+        cy = pts[0][1] + (pts[1][1] - pts[0][1]) * f;
+      } else {
         const ref = boxes.get(place.ref);
         if (!ref) { cx = 0; cy = 0; }
         else if (place.dir === 'right' || place.dir === 'left') {
@@ -1889,6 +2042,7 @@ function layoutDiagram(model, state, errors) {
             : ref.x + ref.w / 2;
         }
       }
+      if (place && place.offset) { cx += place.offset[0] * uw; cy += place.offset[1] * uh; }
       cx += st.shift[0] * uw;
       cy += st.shift[1] * uh;
       boxes.set(id, { x: cx - w / 2, y: cy - h / 2, w, h });
@@ -1991,6 +2145,8 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     } else if (node.kind === 'dot') {
       put(node, node.id + '--c', [b.x + b.w / 2, b.y + b.h / 2, b.w / 2]);
       labelBox(node, st, b, false);
+    } else if (node.kind === 'image') {
+      put(node, node.id + '--i', [b.x, b.y, b.w, b.h]);
     } else {
       labelBox(node, st, b, true);
     }
@@ -2048,8 +2204,8 @@ function dgFrameDrawables(model, state, boxes, labelIndex) {
     const towardTo = viaPx[viaPx.length - 1] || [fb.x + fb.w / 2, fb.y + fb.h / 2];
     const aFrom = e.from.anchor || dgAutoAnchor(fb, towardFrom);
     const aTo = e.to.anchor || dgAutoAnchor(tb, towardTo);
-    const start = dgAnchorPt(fb, aFrom);
-    const end = dgAnchorPt(tb, aTo);
+    const start = dgAnchorPt(fb, aFrom, e.from.frac ?? 0.5);
+    const end = dgAnchorPt(tb, aTo, e.to.frac ?? 0.5);
     const pts = [start, ...viaPx, end];
 
     const headed = !st.classes.has('no-head');
@@ -2142,6 +2298,59 @@ function dgTextEl(id, label, classes, extraClass) {
     + `<text text-anchor="${anchor}" font-size="${font.toFixed(2)}"${mono ? ' class="dg-mono"' : ''}>${inner}</text></g>`;
 }
 
+// A vector asset is spliced in as a nested <svg> rather than referenced
+// through <image href="data:…">, for the same reason inlineSvg() exists at
+// all: an <image> lives in an isolated document context and inherits none
+// of the page's custom properties, so it would not re-colour with the A
+// theme cycle. A nested <svg> is in the same document and does.
+//
+// A raster cannot follow the theme, and that is simply the trade: a
+// photograph is a photograph in every mode. It is inlined as a data: URI so
+// the output stays one file.
+function dgImageEl(node, prefix, v) {
+  const id = `${prefix}${node.id}--i`;
+  const [x, y, w, h] = v;
+  const geo = ` x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${Math.max(0, w).toFixed(2)}" height="${Math.max(0, h).toFixed(2)}"`;
+  const asset = node.asset;
+  if (!asset) return `<rect id="${id}" class="dg-missing"${geo}/>`;
+
+  if (asset.abs && path.extname(asset.abs).toLowerCase() === '.svg') {
+    let spliced = inlineSvg(asset.abs, { alt: node.alt });
+    if (spliced) {
+      // The root id inlineSvg assigned cannot simply be replaced with ours:
+      // it is also the anchor of the `@scope (svg#…)` wrapper around every
+      // <style> block in the file. Overwriting the attribute alone left the
+      // scope pointing at an id that no longer existed, which silently
+      // killed the whole stylesheet – a line drawing arrived with no lines.
+      // Rename the token everywhere instead.
+      const rootId = (spliced.match(/\bid="(psi-fig-\d+-root)"/) || [])[1];
+      if (rootId) spliced = spliced.split(rootId).join(id);
+      const tag = spliced.match(/^<svg\b([^>]*)>/i);
+      let attrs = tag ? tag[1] : '';
+      const vb = attrs.match(/\bviewBox\s*=\s*["'][^"']*["']/i);
+      const wAttr = attrs.match(/\bwidth\s*=\s*["']([\d.]+)[a-z%]*["']/i);
+      const hAttr = attrs.match(/\bheight\s*=\s*["']([\d.]+)[a-z%]*["']/i);
+      // The file's own width/height must go or they would fight the box the
+      // layout just computed for it.
+      attrs = attrs.replace(/\s(?:width|height|x|y)\s*=\s*["'][^"']*["']/gi, '');
+      // A file with no viewBox does not scale; synthesise one from its
+      // width/height so the nested viewport still fits the box.
+      const vbAttr = vb ? '' : (wAttr && hAttr ? ` viewBox="0 0 ${wAttr[1]} ${hAttr[1]}"` : '');
+      const body = spliced.slice(tag ? tag[0].length : 0);
+      return `<svg${attrs}${vbAttr}${geo} preserveAspectRatio="xMidYMid meet">${body}`;
+    }
+  }
+
+  let href = asset.remote ? asset.href : asset.href;
+  if (asset.abs && inlineAssetsEnabled) {
+    const uri = toDataUri(asset.abs);
+    if (uri) href = uri;
+    else dgWarn(`image ${node.id}: ${path.relative(process.cwd(), asset.abs)} is over the inline cap, so this output is no longer self-contained.`);
+  }
+  const alt = node.alt ? `<title>${escapeHtml(node.alt)}</title>` : '';
+  return `<image id="${id}"${geo} href="${escapeHtml(href)}" preserveAspectRatio="xMidYMid meet">${alt}</image>`;
+}
+
 function dgPathD(nums) {
   let d = '';
   for (let i = 0; i < nums.length; i += 2) {
@@ -2175,9 +2384,10 @@ function renderDiagram(body, headAttrs, opts = {}) {
   const prefix = `dg${++dgCounter}-`;
   const elements = [
     ...model.containers.map(e => ({ e, kind: 'container' })),
+    ...model.nodes.filter(e => e.kind === 'image').map(e => ({ e, kind: 'image' })),
     ...model.braces.map(e => ({ e, kind: 'brace' })),
     ...model.edges.map(e => ({ e, kind: 'edge' })),
-    ...model.nodes.map(e => ({ e, kind: e.kind })),
+    ...model.nodes.filter(e => e.kind !== 'image').map(e => ({ e, kind: e.kind })),
   ];
 
   // Print state: the union of everything the diagram ever shows, drawn
@@ -2205,7 +2415,7 @@ function renderDiagram(body, headAttrs, opts = {}) {
   const allBoxes = [];
   for (const f of [...frames, { geom: printGeom }]) {
     for (const [gid, vec] of f.geom) {
-      if (gid.endsWith('--r')) allBoxes.push({ x: vec[0], y: vec[1], w: vec[2], h: vec[3] });
+      if (gid.endsWith('--r') || gid.endsWith('--i')) allBoxes.push({ x: vec[0], y: vec[1], w: vec[2], h: vec[3] });
       else if (gid.endsWith('--c')) allBoxes.push({ x: vec[0] - vec[2], y: vec[1] - vec[2], w: vec[2] * 2, h: vec[2] * 2 });
       else if (gid.endsWith('--l')) allBoxes.push({ x: vec[0] - 60, y: vec[1] - 14, w: 120, h: 28 });
       else for (let i = 0; i < vec.length; i += 2) allBoxes.push({ x: vec[i], y: vec[i + 1], w: 0, h: 0 });
@@ -2230,6 +2440,10 @@ function renderDiagram(body, headAttrs, opts = {}) {
       kinds[e.id + '--c'] = 'circle';
       const v = g('--c') || [0, 0, 1];
       inner += `<circle id="${prefix}${e.id}--c" cx="${v[0].toFixed(2)}" cy="${v[1].toFixed(2)}" r="${v[2].toFixed(2)}"/>`;
+    } else if (kind === 'image') {
+      kinds[e.id + '--i'] = 'rect';
+      const v = g('--i') || [0, 0, 0, 0];
+      inner += dgImageEl(e, prefix, v);
     } else if (kind === 'edge' || kind === 'brace') {
       kinds[e.id + '--p'] = 'path';
       inner += `<path id="${prefix}${e.id}--p" class="dg-stroke" d="${dgPathD(g('--p') || [0, 0])}" fill="none"/>`;
