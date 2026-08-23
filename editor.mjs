@@ -2661,14 +2661,27 @@ function dgeSlotValue(slot) {
 
 function dgeSetSlot(slot, cls) {
   const names = slot.options.map((o) => o.cls).filter(Boolean);
-  const next = dgeApplySplices(DGE.selection.map((id) => {
+  const splices = [];
+  const widened = [];
+  for (const id of DGE.selection) {
     const el = dgeFind(id);
-    if (!el) return null;
+    if (!el) continue;
     const keep = (el.classes || []).filter((c) => !names.includes(c));
     if (cls) keep.push(cls);
-    return dgePlanTail(id, { classes: keep });
-  }));
-  if (next !== null) dgeSetSource(next);
+    if (cls === 'fit' || cls === 'shrink') {
+      const w = dgePlanFitWidth(id);
+      if (w) { splices.push(w); widened.push(id + ' w ' + w.value); }
+    }
+    const tail = dgePlanTail(id, { classes: keep });
+    if (tail) splices.push({ ...tail, seq: 1 });
+  }
+  const next = dgeApplySplices(splices);
+  if (next === null) return;
+  dgeSetSource(next);
+  if (widened.length && !(DGE.problems && DGE.problems.length)) {
+    dgeStatus('', 'wrote ' + widened.join(', ') + ' as well – .' + cls
+      + ' fits the type to the box, so the box has to say how wide it is.', false);
+  }
 }
 
 function dgeToggleTag(tag, add) {
@@ -2680,6 +2693,28 @@ function dgeToggleTag(tag, add) {
     return dgePlanTail(id, { tags: [...tags] });
   }));
   if (next !== null) dgeSetSource(next);
+}
+
+// `.fit` and `.shrink` size the type to the box, so the compiler requires the
+// box to be given - `w n` or `same as X` - and refuses otherwise. That error
+// is written for someone typing text, who would have to invent a number. In
+// the editor the box is on screen and its width is already known, so the only
+// sensible reading of the click is "fit the type to this box, the size it is
+// now". Writing that width is what makes the swatch a control rather than a
+// thing that beeps at you.
+function dgePlanFitWidth(id) {
+  const el = dgeFind(id);
+  const b = DGE.boxes.get(id);
+  if (!el || !b) return null;
+  if (el.w != null || el.sameAs) return null;
+  // Only where a width is an option at all: a dot is sized by `r`, and
+  // writing `w` on one would be a different kind of no-op.
+  if (!dgeKindOpts(el.kind).includes('w')) return null;
+  const sp = DGE.spans.spanOf(id, 'w');
+  if (!sp || sp.present) return null;
+  const { uw } = dgeUnits();
+  const value = dgeNum(dgeRound(b.w / uw, DGE_SNAP_CELL));
+  return { start: sp.start, end: sp.end, text: sp.prefix + value + sp.suffix, seq: 0, value };
 }
 
 // The attribute tail is one token and the order inside it is free, so the
@@ -2729,7 +2764,13 @@ function dgePlanTail(id, changes) {
 // middle of its own placement – or inside its quoted label, where it still
 // compiles and the corruption is silent all the way to source.md.
 function dgeApplySplices(list) {
-  const out = list.filter(Boolean).sort((a, b) => b.start - a.start);
+  // Descending by position, and `seq` breaks a tie. Two insertions can share
+  // an offset - a width and an attribute tail both go at the end of a line
+  // that has neither - and applying right to left means the one applied
+  // *first* ends up last in the text. Without the tie-break that order came
+  // from Array.sort's stability, which is not something to rest an edit on.
+  const out = list.filter(Boolean)
+    .sort((a, b) => (b.start - a.start) || ((b.seq || 0) - (a.seq || 0)));
   if (!out.length) return null;
   let next = DGE.source;
   for (const r of out) next = next.slice(0, r.start) + r.text + next.slice(r.end);
@@ -2766,12 +2807,12 @@ function dgeWriteAttr(id, attr, value, quoted) {
     dgeStatus('', `${attr} cannot be written on ${id} here – give it a placement first.`, true);
     return;
   }
-  dgeSnapshot();
+  let next;
   if (!value && sp.present && attr !== 'label') {
     let start = sp.start;
     const m = DGE.source.slice(0, start).match(new RegExp('\\s+' + attr + '\\s+$'));
     if (m) start -= m[0].length;
-    DGE.source = DGE.source.slice(0, start) + DGE.source.slice(sp.end);
+    next = DGE.source.slice(0, start) + DGE.source.slice(sp.end);
   } else {
     // An absent attribute's span carries the quotes in its prefix and suffix
     // – ' "' and '"' for a label – so quoting the value as well emits
@@ -2780,13 +2821,17 @@ function dgeWriteAttr(id, attr, value, quoted) {
     // covers the quotes that are already written.
     const body = quoted ? dgeQuote(value) : value;
     const text = sp.present && quoted ? '"' + body + '"' : body;
-    DGE.source = DGE.source.slice(0, sp.start)
+    next = DGE.source.slice(0, sp.start)
       + (sp.present ? '' : sp.prefix) + text + (sp.present ? '' : sp.suffix)
       + DGE.source.slice(sp.end);
   }
-  DGE.dirty = true;
-  dgeRecompile();
-  dgeAfterEdit();
+  // Through the one door, like every other structured write. These are the
+  // panel's text fields – the label, the geometry, an edge's endpoints – and
+  // an endpoint typed as a name that does not exist is the easiest way there
+  // is to stop a block compiling. Left standing, that also leaves the span
+  // table describing text that is gone, and the next edit splices at offsets
+  // that have moved.
+  dgeSetSource(next);
 }
 
 // Which of the five layers a resolved value came from. Without it, four

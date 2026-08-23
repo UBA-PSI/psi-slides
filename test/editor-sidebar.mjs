@@ -76,26 +76,57 @@ export async function run({ page, errors, report, walkTo, ed }) {
   ok(/\bdashed\b/.test(painted), 'clicking a swatch repaints the element', painted);
   note('painted: ' + painted);
 
-  // A refusal has to be a refusal, not a broken block. `.fit` on a box with
-  // neither `w` nor `same as` is a documented hard error - there is nothing to
-  // fit the type into - and the panel offers the swatch anyway, because
-  // whether it is legal depends on the element. So the act has to bounce: the
-  // source unchanged, the compiler's own sentence in the status bar. Leaving
-  // the block broken instead is what let the *next* click splice at offsets
-  // that had moved, because the span table is only rebuilt on a good compile.
-  const beforeFit = await lineB();
+  // `.fit` and `.shrink` size the type to the box, so the compiler insists the
+  // box be given - `w n` or `same as X`. That error is written for someone
+  // typing text, who would have to invent a number; here the box is on screen
+  // and its width is known, so the click writes it. A swatch you can press
+  // has to do something.
   await click('type fits the box', '.fit');
+  const fitted = await lineB();
   const note2 = await page.evaluate(() => (document.querySelector('#dge-statusnote') || {}).textContent || '');
-  ok(await lineB() === beforeFit, 'an illegal class leaves the source exactly as it was',
-    JSON.stringify(await lineB()));
-  ok(/\.fit/.test(note2) && /w n|same as/.test(note2),
-    'and the compiler says why, in the status bar', JSON.stringify(note2));
-  ok(/not applied/.test(note2), 'the message says the act was refused, not just why',
-    JSON.stringify(note2));
+  ok(/\bw [\d.]+/.test(fitted || '') && /\.fit/.test(fitted || ''),
+    '.fit writes the width it needs rather than refusing', fitted);
+  ok(/wrote/.test(note2) && /w [\d.]+/.test(note2),
+    'and says so, because it wrote more than the click asked for', JSON.stringify(note2));
+  ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());
+
+  // The revert is still the safety net, and an endpoint typed as a name that
+  // does not exist is the easiest way to reach it. Left standing, a broken
+  // block leaves the span table describing text that is gone and every later
+  // edit splices at offsets that have moved.
+  await page.evaluate(() => {
+    const row = [...document.querySelectorAll('#dge-side .dge-list button')]
+      .find(b => b.textContent.includes('encrypted'));
+    if (row) row.click();
+  });
+  await page.waitForTimeout(350);
+  ok(await ed.selection() === 'edge edge-1', 'an edge is selected', await ed.selection());
+  const edgeBefore = await ed.lineWith('"encrypted"');
+  await page.evaluate(() => {
+    const input = [...document.querySelectorAll('#dge-side .dge-num')]
+      .find(n => n.querySelector('span').textContent === 'to').querySelector('input');
+    input.value = 'nosuchbox';
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await page.waitForTimeout(450);
+  const note3 = await page.evaluate(() => (document.querySelector('#dge-statusnote') || {}).textContent || '');
+  ok(await ed.lineWith('"encrypted"') === edgeBefore,
+    'an endpoint that names nothing leaves the source exactly as it was',
+    JSON.stringify(await ed.lineWith('"encrypted"')));
+  ok(/not applied/.test(note3) && /nosuchbox/.test(note3),
+    'and the status says it was refused, and why', JSON.stringify(note3));
   // The compiler's sentence is about text that was rolled back, so a line
   // number would send the author to a line that no longer holds what it names.
-  ok(!/\bline \d/.test(note2), 'and it names no line, because that line is gone',
-    JSON.stringify(note2));
+  ok(!/\bline \d/.test(note3), 'and names no line, because that line is gone',
+    JSON.stringify(note3));
+  ok(!(await ed.problems()).includes('line '), 'the block is not left broken', await ed.problems());
+
+  // Back to the box for what follows.
+  await page.evaluate(() => {
+    const row = [...document.querySelectorAll('#dge-side .dge-list button')].find(b => b.textContent.includes('Mix'));
+    if (row) row.click();
+  });
+  await page.waitForTimeout(300);
   ok(!(await ed.problems()).includes('line '), 'the block is not left broken', await ed.problems());
 
   // Tags go through the same tail.
