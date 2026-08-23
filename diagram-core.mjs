@@ -1212,6 +1212,13 @@ export function createSpanTable(model, body) {
     // leader is editable through the stub; it is an aspect of the statement
     // that owns it, and spanOf says so by returning null.
     if (el.lead) continue;
+    // Same reason, one statement further along: a `bars`, `grid` or `plot`
+    // expands into elements no line of the source declares. They carry the
+    // statement's span, so handing it out under a column's name is how an
+    // editor comes to rewrite the whole chart while dragging one bar. The
+    // frame is the exception and keeps its span, because the frame *is* the
+    // statement: moving it moves the chart, which is what the drag means.
+    if (el.synth && el.synth !== el.id) continue;
     byId.set(el.id, el);
   }
 

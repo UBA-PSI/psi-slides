@@ -326,8 +326,19 @@ const DGE_SLOTS = [
     options: [{ cls: '', label: 'solid' }, { cls: 'dashed' }, { cls: 'dotted' }] },
   { key: 'weight', label: 'weight', kinds: null,
     options: [{ cls: '', label: 'normal' }, { cls: 'thick' }, { cls: 'bare' }] },
-  { key: 'corner', label: 'corner', kinds: ['box', 'container'],
-    options: [{ cls: '', label: 'default' }, { cls: 'round' }, { cls: 'sharp' }] },
+  // One slot, six outlines, because they are one slot in the grammar: a
+  // hexagon has no corner radius to argue about, so picking one has to
+  // displace whatever was there. A container is offered the two rectangles
+  // and will be refused the other four by the compiler - which is the same
+  // arrangement `.fit` has, and the status bar says why.
+  { key: 'corner', label: 'outline', kinds: ['box', 'container'],
+    options: [{ cls: '', label: 'default' }, { cls: 'round' }, { cls: 'sharp' },
+      { cls: 'hex' }, { cls: 'chevron', label: 'chev' }, { cls: 'chevron-left', label: 'chev-l' },
+      { cls: 'wedge' }] },
+  { key: 'reading', label: 'reading', kinds: ['box', 'text'],
+    options: [{ cls: '', label: 'across' }, { cls: 'turn', label: 'up' }] },
+  { key: 'curve', label: 'line shape', kinds: ['edge'],
+    options: [{ cls: '', label: 'straight' }, { cls: 'smooth', label: 'curved' }] },
   { key: 'size', label: 'type size', kinds: null,
     options: [{ cls: 'small' }, { cls: '', label: 'normal' }, { cls: 'large' }] },
   { key: 'family', label: 'family', kinds: null,
@@ -1589,6 +1600,16 @@ function dgeNearestEdge(pt) {
 // `edges: false` is for a gesture that is choosing an edge *endpoint*. An edge
 // cannot be one: layoutDiagram has no box for it, so the arrow pointed at it
 // would silently not be drawn at all.
+// What a click on this element should select. A `bars`, `grid` or `plot`
+// expands into elements no line of the source declares, so clicking one of
+// them and selecting it would hand the panel something it cannot edit - every
+// drag a silent no-op. The statement is what the gesture means, so that is
+// what it selects.
+function dgeOwnerOf(id) {
+  const el = dgeFind(id);
+  return el && el.synth && el.synth !== el.id ? el.synth : id;
+}
+
 function dgeHitTest(pt, opts) {
   if (!DGE.boxes) return null;
   const hits = [];
@@ -1596,7 +1617,7 @@ function dgeHitTest(pt, opts) {
     if (pt.x < b.x || pt.x > b.x + b.w || pt.y < b.y || pt.y > b.y + b.h) continue;
     const el = dgeFind(id);
     if (!el) continue;
-    hits.push({ id, area: b.w * b.h, el });
+    hits.push({ id: dgeOwnerOf(id), area: b.w * b.h, el });
   }
   hits.sort((a, b) => a.area - b.area);
   const box = hits[0] || null;
@@ -1606,7 +1627,8 @@ function dgeHitTest(pt, opts) {
   // or brace it runs through. Without the second half every edge inside a
   // container would be unreachable, which is most of them.
   const edge = dgeNearestEdge(pt);
-  if (edge && (!box || box.el.kind === 'container' || box.el.kind === 'brace')) return edge;
+  const edgeOwner = edge ? dgeOwnerOf(edge) : null;
+  if (edgeOwner && (!box || box.el.kind === 'container' || box.el.kind === 'brace')) return edgeOwner;
   return box ? box.id : null;
 }
 
@@ -2893,10 +2915,14 @@ function dgeElementList() {
   if (!DGE.model) return wrap;
   wrap.appendChild(dgeEl('h3', { text: 'elements' }));
   const list = dgeEl('div', { class: 'dge-list' });
-  const all = [...DGE.model.nodes, ...DGE.model.containers, ...DGE.model.braces,
-    // Leader stubs are not statements, so they are not rows. The arrow is
-    // visible in the text element's own line, as the `-> x` that made it.
-    ...DGE.model.edges.filter((e) => !e.lead)];
+  // Leader stubs are not statements, so they are not rows: the arrow is
+  // visible in the text element's own line, as the `-> x` that made it. The
+  // same holds for what a `bars`, `grid` or `plot` expands into - ninety-six
+  // rows for one statement, none of which can be edited on its own. The frame
+  // stays, because the frame is the statement.
+  const own = (e) => !e.lead && !(e.synth && e.synth !== e.id);
+  const all = [...DGE.model.nodes.filter(own), ...DGE.model.containers.filter(own),
+    ...DGE.model.braces.filter(own), ...DGE.model.edges.filter(own)];
   for (const el of all) {
     list.appendChild(dgeEl('button', {
       type: 'button', 'aria-pressed': String(DGE.selection.includes(el.id)),
