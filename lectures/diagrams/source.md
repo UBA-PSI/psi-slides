@@ -490,6 +490,33 @@ step exception
 
 **`cell` misst wie `pad` auf beiden Achsen in `uh`.** Eine Rasterzelle muss quadratisch sein, und eine Zahl, die quer `uw` und hoch `uh` bedeutete, gäbe Quadrate nur dort, wo die Einheit zufällig quadratisch ist.
 
+## figure: A frame to draw in {.full #plot}
+
+::: diagram {unit=150x58}
+plot roc "False positive rate" "True positive rate" at 0,0 w 2.2 h 1.7 x 0,1 y 0,1 step 0.2
+
+edge roc@0,roc@0 -> roc@1,roc@1 {#chance .muted .dashed .no-head}
+edge roc@0,roc@0 -> roc@1,roc@1 via roc@0.03,roc@0.45 roc@0.1,roc@0.72 roc@0.3,roc@0.9 roc@0.6,roc@0.97 {#good .smooth .accent .thick .no-head}
+edge roc@0,roc@0 -> roc@1,roc@1 via roc@0.15,roc@0.3 roc@0.4,roc@0.6 roc@0.7,roc@0.85 {#weak .smooth .no-head}
+
+# Auf der Linie, nicht daneben: der .paper-Grund ist nur dann etwas wert,
+# wenn er wirklich etwas ausstanzt.
+text nchance "chance" at roc@0.74,roc@0.74 pad 0.12 {.small .paper}
+# Und die Leitlinie greift die Kurve an ihrem rechten Ende ab, statt quer
+# durch das Feld zu laufen und dabei beide Kurven zu kreuzen.
+text ngood   "the one you want" right of roc gap 0.3 -> roc@0.86,roc@0.99 {.small .hand}
+
+step curves
+  show good, weak
+step judge
+  emph good
+  calm weak
+:::
+
+**Ein `plot` ist ein Rahmen zum Hineinzeichnen, keine Diagrammbibliothek.** Er legt Gitterlinien, Achsenbeschriftungen und die beiden Achsentitel an – und eine Umrechnung, sodass `roc@0.35` einen Wert in den Einheiten des Plots benennt. Aufgelöst wird der erst, wenn der Block ganz gelesen ist, und zwar in das gewöhnliche `roc.left+n`: deshalb darf ein Punkt einen Plot nennen, der weiter unten steht, und deshalb weiß das Layout von Plots nichts.
+
+**Die Kurven sind gewöhnliche Kanten.** `.smooth` zieht dieselben Wegpunkte als Kurve *durch* sie hindurch statt als Streckenzug – ein interpolierender Spline, damit ein Wegpunkt genau dort bleibt, wo er hingeschrieben wurde. Die Schiefe-Warnung schweigt hier, denn ihre Prämisse gilt nicht: bei einer Kurve sind zwei fast waagerechte Punkte die Form und nicht zwei Enden, die sich verfehlt haben.
+
 ## figure: A raster does not follow the theme {.standard #raster}
 
 ::: diagram {unit=150x60}

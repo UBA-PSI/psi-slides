@@ -121,7 +121,7 @@ import {
   DG_KEYWORDS, DG_STEP_OPS, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES,
   DG_KIND_OPTS, DG_BRACE_SIDES, DG_ALIGN_X, DG_ALIGN_Y, DG_SCALAR_X,
   DG_SCALAR_Y, DG_DEFAULT_KINDS, DG_ANCHORS, DG_DEFINES, DG_GRID_KINDS, DG_GRID_MAX,
-  dgBarName, dgTickName, dgBaseName, dgCellName,
+  DG_PLOT_MAX_TICKS, dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks,
 } from './diagram-core.mjs';
 
 const REVEAL_PCT_WARN = 0.5;
@@ -300,11 +300,20 @@ function lintDiagram(block, add, fmLines, lectureTags) {
     const parts = String(tok).split(',');
     if (parts.length !== 2) return;
     parts.forEach((raw, i) => {
+      // `roc@0.35` – a value in a plot's own units. The build turns it into an
+      // ordinary `roc.left+n` once the block is read; here it is just another
+      // reference to check, so the plot still has to exist.
+      const p = raw.match(/^([A-Za-z_][\w-]*)@(-?[\d.]+)$/);
+      if (p && Number.isFinite(Number(p[2]))) {
+        referenced.push({ name: p[1], ln, what });
+        return;
+      }
       const m = raw.match(/^([A-Za-z_][\w-]*)\.([a-z]+)([+-][\d.]+)?$/);
       if (!m) {
         if (!Number.isFinite(Number(raw))) {
           add(ln, 'error', 'bad-diagram-coordinate',
-              `${what} expects a number or an element coordinate like 'x0.cy', got '${raw}'`);
+              `${what} expects a number, an element coordinate like 'x0.cy', `
+              + `or a value in a plot like 'roc@0.35' – got '${raw}'`);
         }
         return;
       }
@@ -436,6 +445,48 @@ function lintDiagram(block, add, fmLines, lectureTags) {
     // compiler is done, and a `brace over f-0,f-1,f-2` is the whole point of
     // the naming - so unless this file registers those names too, every figure
     // built from a chart reports a dozen undefined references.
+    // `plot` declares a frame plus a gridline, a tick label and possibly an
+    // axis title per tick. Same reason as bars and grid: without registering
+    // them, `hide roc-gx-3` reads as a reference to nothing.
+    if (head === 'plot') {
+      const id = words[1];
+      define(id, ln);
+      if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: id, tags: attrs.tags, ln });
+      const num = (key, fallback) => {
+        const i = words.indexOf(key);
+        const v = i >= 0 ? Number(words[i + 1]) : NaN;
+        return Number.isFinite(v) ? v : fallback;
+      };
+      const range = (key, fallback) => {
+        const i = words.indexOf(key);
+        const parts = i >= 0 ? String(words[i + 1] ?? '').split(',').map(Number) : [];
+        return parts.length === 2 && parts.every(Number.isFinite) ? parts : fallback;
+      };
+      const xd = range('x', [0, 1]);
+      const yd = range('y', [0, 1]);
+      const st = num('step', (xd[1] - xd[0]) / 5);
+      const xt = dgPlotTicks(xd[0], xd[1], st);
+      const yt = dgPlotTicks(yd[0], yd[1], st);
+      if (!xt.length || !yt.length) {
+        add(ln, 'error', 'bad-diagram-plot', `plot ${id || ''}: step ${st} does not divide the `
+            + `ranges ${xd.join(',')} and ${yd.join(',')} into ticks`);
+      } else if (xt.length > DG_PLOT_MAX_TICKS || yt.length > DG_PLOT_MAX_TICKS) {
+        add(ln, 'error', 'bad-diagram-plot', `plot ${id}: ${Math.max(xt.length, yt.length)} ticks `
+            + `on one axis – at most ${DG_PLOT_MAX_TICKS}, past which the grid is a grey field`);
+      } else {
+        xt.forEach((_, i) => { define(dgPlotName(id, 'gx', i), ln); define(dgPlotName(id, 'xt', i), ln); });
+        yt.forEach((_, i) => { define(dgPlotName(id, 'gy', i), ln); define(dgPlotName(id, 'yt', i), ln); });
+      }
+      const strings = [...noAttr.matchAll(/"([^"]*)"/g)].map(m => m[1]);
+      if (strings[0]) define(dgPlotName(id, 'xl'), ln);
+      if (strings[1]) define(dgPlotName(id, 'yl'), ln);
+      for (let k = 2; k < words.length; k++) {
+        if (words[k] === 'of' || words[k] === 'below' || words[k] === 'above') refer(words[k + 1], ln, `plot ${id}`);
+        if (words[k] === 'at' && words[k + 1] && words[k + 1].includes(',')) referPair(words[k + 1], ln, `plot ${id} at`);
+      }
+      continue;
+    }
+
     if (head === 'bars' || head === 'grid') {
       const id = words[1];
       define(id, ln);

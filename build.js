@@ -28,7 +28,7 @@ import katex from 'katex';
 // and in the browser when the editor re-lays-out a figure after a drag.
 // Imported for the build; its *text* is also read and inlined into the live
 // views, the same way bundledFaces() reads woff2 out of node_modules.
-import { createDiagramCompiler, parseDiagramDefaults, dgShapeD } from './diagram-core.mjs';
+import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPathD } from './diagram-core.mjs';
 
 // KaTeX ships its stylesheet and fonts as plain files next to the module.
 // They are not importable as ESM, so resolve them the CommonJS way.
@@ -1541,6 +1541,8 @@ const DG_DUR = 380;
 // nobody would think to keep in step.
 const DG_SHAPES = { hex: 1, chevron: 1, 'chevron-left': 1, wedge: 1 };
 ${dgShapeD.toString()}
+${dgPathD.toString()}
+${dgSplineD.toString()}
 
 function dgApplyVec(el, kind, v) {
   if (kind === 'rect') {
@@ -1553,6 +1555,8 @@ function dgApplyVec(el, kind, v) {
     el.setAttribute('d', dgShapeD(kind, v[0], v[1], Math.max(0, v[2]), Math.max(0, v[3])));
   } else if (kind === 'circle') {
     el.setAttribute('cx', v[0]); el.setAttribute('cy', v[1]); el.setAttribute('r', Math.max(0, v[2]));
+  } else if (kind === 'spline') {
+    el.setAttribute('d', dgSplineD(v));
   } else if (kind === 'path') {
     let d = '';
     for (let i = 0; i < v.length; i += 2) d += (i ? 'L' : 'M') + v[i] + ' ' + v[i + 1];

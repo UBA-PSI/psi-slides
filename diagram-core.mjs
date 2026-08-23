@@ -108,8 +108,10 @@ export const DG_CLASSES = new Set([
   'fit', 'shrink',
   // text alignment (free `text` only)
   'left', 'right',
-  // edges
-  'no-head', 'both-heads',
+  // edges. `.smooth` draws the same waypoints as a curve through them
+  // rather than a run of segments – an interpolating spline, so a waypoint is
+  // still exactly where the author put it.
+  'no-head', 'both-heads', 'smooth',
   // set by steps, but authorable as an initial state too
   'emph', 'dim',
 ]);
@@ -220,7 +222,7 @@ export const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', '
 // branches on each keyword by name – but the linter needs the set, and a
 // second hand-written copy of the vocabulary is exactly what this module
 // exists to stop.
-export const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container', 'bars', 'grid']);
+export const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container', 'bars', 'grid', 'plot']);
 // Scalar coordinates of an element, for use where a single number would go.
 // `left`/`right` are x, `top`/`bottom` are y, `cx`/`cy` the centres. Naming
 // the wrong axis is an error rather than a silent transposition.
@@ -228,7 +230,7 @@ export const DG_SCALAR_X = new Set(['cx', 'left', 'right']);
 export const DG_SCALAR_Y = new Set(['cy', 'top', 'bottom']);
 
 export const DG_STEP_OPS = new Set(['show', 'hide', 'move', 'emph', 'calm', 'style', 'label']);
-export const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'bars', 'grid', 'align', 'spread', 'default', 'step']);
+export const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'bars', 'grid', 'plot', 'align', 'spread', 'default', 'step']);
 // What a `grid` may repeat. Not `text` – a grid of identical words is a
 // paragraph, and not `edge`, which has two ends rather than a cell.
 export const DG_GRID_KINDS = new Set(['box', 'dot', 'image']);
@@ -251,6 +253,58 @@ export const dgBarName = (id, i) => `${id}-${i}`;
 export const dgTickName = (id, i) => `${id}-tick-${i}`;
 export const dgBaseName = (id) => `${id}-base`;
 export const dgCellName = (id, c, r) => `${id}-${c}-${r}`;
+// `plot` expands into a frame, two runs of grid lines, two runs of tick
+// labels and up to two axis titles. Parts: gx gy xt yt xl yl.
+export const dgPlotName = (id, part, i) => (i === undefined ? `${id}-${part}` : `${id}-${part}-${i}`);
+
+// The tick values of one axis, low to high. Shared so the compiler and the
+// linter agree on how many there are, which is how many names exist.
+export function dgPlotTicks(lo, hi, step) {
+  const out = [];
+  if (!(step > 0) || !(hi > lo)) return out;
+  // Counted rather than accumulated: adding 0.2 eleven times lands on
+  // 1.0000000000000002 and prints a tick label nobody typed.
+  const n = Math.round((hi - lo) / step);
+  for (let i = 0; i <= n; i++) out.push(Math.round((lo + i * step) * 1e6) / 1e6);
+  return out;
+}
+export const DG_PLOT_MAX_TICKS = 40;
+
+// `roc@0.35` names a value in a plot's own units. It is resolved here, after
+// the whole block has been read, into the ordinary `<plot>.left+n` form – so
+// a point may name a plot declared further down, and the layout never learns
+// that plots exist. Everything below this line is the same coordinate the
+// grammar always had.
+export function dgResolvePlotCoords(model, plots, errors) {
+  const fix = (c, lineNo) => {
+    if (!c || c.data === undefined) return c;
+    const pl = plots.get(c.ref);
+    if (!pl) {
+      dgErr(errors, lineNo, `"${c.ref}@${c.data}" reads a value in the plot "${c.ref}", `
+        + (model.byId.has(c.ref)
+          ? `but ${c.ref} is a ${model.byId.get(c.ref)}, not a plot`
+          : `but no plot of that name is declared in this block`));
+      return { unit: 0 };
+    }
+    const [lo, hi] = c.axis === 'x' ? pl.xDomain : pl.yDomain;
+    const t = hi === lo ? 0 : (c.data - lo) / (hi - lo);
+    // y grows downward on the page and upward in the data, which is the one
+    // place a plot is not simply a box with lines in it.
+    return c.axis === 'x'
+      ? { ref: c.ref, prop: 'left', nudge: t * pl.w }
+      : { ref: c.ref, prop: 'bottom', nudge: -t * pl.h };
+  };
+  const pair = (p, lineNo) => { if (p) { p[0] = fix(p[0], lineNo); p[1] = fix(p[1], lineNo); } };
+  for (const n of model.nodes) if (n.place && n.place.kind === 'abs') pair(n.place.at, n.line);
+  for (const e of model.edges) {
+    for (const p of e.via) pair(p, e.line);
+    if (e.from && e.from.point) pair(e.from.point, e.line);
+    if (e.to && e.to.point) pair(e.to.point, e.line);
+  }
+  for (const s of model.steps) {
+    for (const op of s.ops) if (op.to && op.to.kind === 'abs') pair(op.to.at, op.line);
+  }
+}
 // Figma's and PowerPoint's edge words, but with the axis stated:
 // `align x center` / `align y middle`. Naming the axis costs one token and
 // removes a trap that caught its own author – "center" and "middle" are
@@ -277,7 +331,7 @@ export const DG_KIND_OPTS = {
   // they are statements that expand into element kinds, and the elements they
   // produce take their defaults from `default box` like any other box. The
   // table is here because the linter reads it to check option names.
-  bars: ['w', 'h', 'gap'], grid: ['cell', 'gap'],
+  bars: ['w', 'h', 'gap'], grid: ['cell', 'gap'], plot: ['w', 'h', 'step'],
 };
 export const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid units
 
@@ -669,11 +723,19 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
 // exactly one.
 export function dgParseCoord(tok, axis, errors, lineNo, what) {
   const raw = String(tok ?? '');
+  // `roc@0.35` – a value in a plot's own units. Still one token and still one
+  // reference, so an editor rewrites it the way it rewrites a nudge. It is
+  // turned into an ordinary `<plot>.left+n` by dgResolvePlotCoords once the
+  // block has been read, which is what lets it name a plot declared further
+  // down and costs the layout nothing.
+  const p = raw.match(/^([A-Za-z_][\w-]*)@(-?[\d.]+)$/);
+  if (p && Number.isFinite(Number(p[2]))) return { ref: p[1], data: Number(p[2]), axis };
   const m = raw.match(/^([A-Za-z_][\w-]*)\.([a-z]+)([+-][\d.]+)?$/);
   if (!m) {
     const n = Number(raw);
     if (!Number.isFinite(n)) {
-      dgErr(errors, lineNo, `${what} expects a number or an element coordinate like "x0.cy", got "${raw}"`);
+      dgErr(errors, lineNo, `${what} expects a number, an element coordinate like "x0.cy", `
+        + `or a value in a plot like "roc@0.35" – got "${raw}"`);
       return { unit: 0 };
     }
     return { unit: n };
@@ -1045,6 +1107,36 @@ export function dgPathD(nums) {
   let d = '';
   for (let i = 0; i < nums.length; i += 2) {
     d += (i ? 'L' : 'M') + nums[i].toFixed(2) + ' ' + nums[i + 1].toFixed(2);
+  }
+  return d;
+}
+
+// The same point vector, drawn as a curve through its points instead of a
+// run of straight segments. Catmull-Rom converted to cubic Béziers, which is
+// the interpolating spline - it passes *through* every waypoint, so an author
+// who puts a point somewhere gets the curve there, and `.smooth` never moves
+// a line off the thing it was attached to.
+//
+// Pure and stringified into the runtime beside dgShapeD, for the same reason:
+// the build draws the opening beat with it and the browser draws every later
+// one, and two copies of a curve routine would differ in the third decimal
+// and nobody would ever see why the line twitched on the first step.
+export function dgSplineD(v) {
+  const n = v.length / 2;
+  if (n < 3) return dgPathD(v);
+  const px = (i) => v[Math.max(0, Math.min(n - 1, i)) * 2];
+  const py = (i) => v[Math.max(0, Math.min(n - 1, i)) * 2 + 1];
+  const r = (x) => Math.round(x * 100) / 100;
+  let d = 'M' + r(px(0)) + ' ' + r(py(0));
+  for (let i = 0; i < n - 1; i++) {
+    // The classic uniform Catmull-Rom to Bézier conversion: the control
+    // points sit a sixth of the way along the neighbours' chord.
+    const c1x = px(i) + (px(i + 1) - px(i - 1)) / 6;
+    const c1y = py(i) + (py(i + 1) - py(i - 1)) / 6;
+    const c2x = px(i + 1) - (px(i + 2) - px(i)) / 6;
+    const c2y = py(i + 1) - (py(i + 2) - py(i)) / 6;
+    d += 'C' + r(c1x) + ' ' + r(c1y) + ' ' + r(c2x) + ' ' + r(c2y)
+      + ' ' + r(px(i + 1)) + ' ' + r(py(i + 1));
   }
   return d;
 }
@@ -1470,6 +1562,11 @@ export function createDiagramCompiler(env = {}) {
       else model.byId.set(id, kind);
     };
 
+    // Declared plots, for dgResolvePlotCoords. Filled while the block is
+    // read and consulted once at the end, which is what lets a point name a
+    // plot written further down.
+    const plots = new Map();
+
     const lines = String(body).split('\n');
     let step = null;
     let anonEdge = 0;
@@ -1611,6 +1708,128 @@ export function createDiagramCompiler(env = {}) {
       // another element's coordinate: every cell is placed against the frame
       // this statement also creates, which is a real dependency edge and goes
       // through the same topological walk as everything else.
+      // A cartesian frame: gridlines, ticks and axis titles, and a mapping so
+      // a point can be written in the plot's own units. Like bars and grid it
+      // expands into ordinary elements, so a curve through it is an ordinary
+      // edge with waypoints and `.smooth`.
+      //
+      // Deliberately small. No log scales, no automatic tick choice, no
+      // legend, no second y axis, no data series as a construct - this is a
+      // frame to draw in, not a charting library growing inside a
+      // boxes-and-arrows grammar.
+      if (head === 'plot') {
+        const id = t(1);
+        if (!id) { dgErr(errors, lineNo, 'plot needs a name'); continue; }
+        claim(id, 'plot', lineNo);
+        const strings = toks.filter(x => x.q).map(x => x.v);
+        const rest = body0.slice(2).map(x => ({ v: x.v, s: x.s, e: x.e }));
+        const o = { w: null, h: null, step: null, x: null, y: null, place: null };
+        let k = 0, bad = false;
+        while (k < rest.length) {
+          const key = rest[k].v;
+          if (key === 'w' || key === 'h' || key === 'step') {
+            o[key] = dgNum(rest[k + 1]?.v, errors, lineNo, `plot ${id} ${key}`); k += 2; continue;
+          }
+          if (key === 'x' || key === 'y') {
+            const parts = String(rest[k + 1]?.v ?? '').split(',');
+            if (parts.length !== 2) {
+              dgErr(errors, lineNo, `plot ${id} ${key} expects the range as lo,hi – got "${rest[k + 1]?.v ?? ''}"`);
+              bad = true;
+            } else {
+              o[key] = [dgNum(parts[0], errors, lineNo, `plot ${id} ${key} lo`),
+                dgNum(parts[1], errors, lineNo, `plot ${id} ${key} hi`)];
+            }
+            k += 2; continue;
+          }
+          const [place, next] = dgParsePlacement(rest, k, errors, lineNo);
+          if (place) { o.place = place; k = next; continue; }
+          dgErr(errors, lineNo, `unexpected "${key}" in plot ${id} – `
+            + 'this statement takes a placement, w, h, x lo,hi, y lo,hi and step');
+          bad = true; break;
+        }
+        if (bad) continue;
+        const W = o.w != null ? o.w : 2.4;
+        const H = o.h != null ? o.h : 1.8;
+        const xd = o.x || [0, 1];
+        const yd = o.y || [0, 1];
+        const step = o.step != null ? o.step : (xd[1] - xd[0]) / 5;
+        const xticks = dgPlotTicks(xd[0], xd[1], step);
+        const yticks = dgPlotTicks(yd[0], yd[1], step);
+        if (!xticks.length || !yticks.length) {
+          dgErr(errors, lineNo, `plot ${id}: step ${step} does not divide the ranges `
+            + `${xd.join(',')} and ${yd.join(',')} into ticks – step has to be positive and hi above lo`);
+          continue;
+        }
+        if (xticks.length > DG_PLOT_MAX_TICKS || yticks.length > DG_PLOT_MAX_TICKS) {
+          dgErr(errors, lineNo, `plot ${id}: ${Math.max(xticks.length, yticks.length)} ticks on one `
+            + `axis – at most ${DG_PLOT_MAX_TICKS}, past which the grid is a grey field`);
+          continue;
+        }
+        plots.set(id, { xDomain: xd, yDomain: yd, w: W, h: H });
+        const synthP = (el) => ({ ...el, synth: id, line: lineNo, span });
+        model.nodes.push(synthP({
+          kind: 'box', id, label: '', classes: ['bare', 'clear'], tags: attrs.tags,
+          place: (o.place || (model.nodes.length === 0
+            ? { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] }
+            : (dgErr(errors, lineNo, `plot ${id} has no placement (at X,Y / below … / right of … )`),
+              { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] }))),
+          w: W, h: H, r: null, pad: null, frame: true,
+        }));
+        const gridCls = ['muted', 'dotted', 'no-head'];
+        const atP = (xn, yn) => [{ ref: id, prop: 'left', nudge: xn }, { ref: id, prop: 'top', nudge: yn }];
+        xticks.forEach((v, i) => {
+          const fx = ((v - xd[0]) / (xd[1] - xd[0])) * W;
+          const gid = dgPlotName(id, 'gx', i);
+          claim(gid, 'edge', lineNo);
+          model.edges.push(synthP({
+            kind: 'edge', id: gid, from: { ref: null, point: atP(fx, 0), anchor: null, frac: 0.5 },
+            to: { ref: null, point: atP(fx, H), anchor: null, frac: 0.5 },
+            label: '', classes: gridCls, via: [],
+          }));
+          const tid = dgPlotName(id, 'xt', i);
+          claim(tid, 'text', lineNo);
+          model.nodes.push(synthP({
+            kind: 'text', id: tid, label: String(v), classes: ['small', 'muted'], tags: [],
+            place: { kind: 'abs', at: atP(fx, H + 0.2) }, w: null, h: null, r: null, pad: null,
+          }));
+        });
+        yticks.forEach((v, i) => {
+          const fy = H - ((v - yd[0]) / (yd[1] - yd[0])) * H;
+          const gid = dgPlotName(id, 'gy', i);
+          claim(gid, 'edge', lineNo);
+          model.edges.push(synthP({
+            kind: 'edge', id: gid, from: { ref: null, point: atP(0, fy), anchor: null, frac: 0.5 },
+            to: { ref: null, point: atP(W, fy), anchor: null, frac: 0.5 },
+            label: '', classes: gridCls, via: [],
+          }));
+          const tid = dgPlotName(id, 'yt', i);
+          claim(tid, 'text', lineNo);
+          model.nodes.push(synthP({
+            kind: 'text', id: tid, label: String(v), classes: ['small', 'muted', 'right'], tags: [],
+            place: { kind: 'abs', at: atP(-0.12, fy) }, w: null, h: null, r: null, pad: null,
+          }));
+        });
+        // The two axis titles are the statement's quoted strings, x first,
+        // the same "first string, then second" the other statements use.
+        if (strings[0]) {
+          const xl = dgPlotName(id, 'xl');
+          claim(xl, 'text', lineNo);
+          model.nodes.push(synthP({
+            kind: 'text', id: xl, label: strings[0], classes: ['small', 'bold'], tags: [],
+            place: { kind: 'abs', at: atP(W / 2, H + 0.55) }, w: null, h: null, r: null, pad: null,
+          }));
+        }
+        if (strings[1]) {
+          const yl = dgPlotName(id, 'yl');
+          claim(yl, 'text', lineNo);
+          model.nodes.push(synthP({
+            kind: 'text', id: yl, label: strings[1], classes: ['small', 'bold', 'turn'], tags: [],
+            place: { kind: 'abs', at: atP(-0.62, H / 2) }, w: null, h: null, r: null, pad: null,
+          }));
+        }
+        continue;
+      }
+
       if (head === 'bars' || head === 'grid') {
         const id = t(1);
         if (!id) { dgErr(errors, lineNo, `${head} needs a name`); continue; }
@@ -2044,6 +2263,11 @@ export function createDiagramCompiler(env = {}) {
     const refsOf = (place) => place?.kind === 'rel' ? [place.ref]
       : place?.kind === 'between' ? place.refs.map(r => r.ref)
       : place?.kind === 'abs' ? dgPairRefs(place.at) : [];
+    // A plot coordinate becomes an ordinary <plot>.left+n here, before
+    // anything below reads it – so the reference check, the dependency walk
+    // and the layout all see the coordinate grammar this compiler has always
+    // had, and none of them learns that plots exist.
+    dgResolvePlotCoords(model, plots, errors);
     for (const n of model.nodes) {
       for (const r of refsOf(n.place)) checkRef(r, n.line, `${n.kind} ${n.id}`);
       if (n.sameAs) checkRef(n.sameAs, n.line, `${n.kind} ${n.id} (same as)`);
@@ -2562,7 +2786,12 @@ export function createDiagramCompiler(env = {}) {
       // A line that is 2° off horizontal is almost never intent; it is two
       // endpoints that were meant to line up and did not, and on a projection
       // it reads as a mistake. Say so, and name the verb that fixes it.
-      for (let i = 1; i < pts.length; i++) {
+      //
+      // Not on a curve. There the points are not a run of lines at all - they
+      // are where the author wants the curve to pass - and a nearly-flat
+      // stretch of a ROC curve is the shape, not a slip.
+      const skewCheck = !st.classes.has('smooth');
+      for (let i = 1; skewCheck && i < pts.length; i++) {
         const dx = pts[i][0] - pts[i - 1][0], dy = pts[i][1] - pts[i - 1][1];
         if (!dx && !dy) continue;
         const deg = Math.abs(Math.atan2(dy, dx) * 180 / Math.PI);
@@ -2907,8 +3136,13 @@ export function createDiagramCompiler(env = {}) {
         const v = g('--i') || [0, 0, 0, 0];
         inner += dgImageEl(e, prefix, v);
       } else if (kind === 'edge' || kind === 'brace') {
-        kinds[e.id + '--p'] = 'path';
-        inner += `<path id="${prefix}${e.id}--p" class="dg-stroke" d="${dgPathD(g('--p') || [0, 0])}" fill="none"/>`;
+        // Like the outlines: one vector, two ways of joining it up. The
+        // choice is made here, once, so a `style` step cannot change it -
+        // and there is nothing a step could want from that anyway.
+        const curved = kind === 'edge' && ` ${st} `.includes(' smooth ');
+        const dOf = curved ? dgSplineD : dgPathD;
+        kinds[e.id + '--p'] = curved ? 'spline' : 'path';
+        inner += `<path id="${prefix}${e.id}--p" class="dg-stroke" d="${dOf(g('--p') || [0, 0])}" fill="none"/>`;
         for (const suffix of ['--h', '--h2']) {
           if (!printGeom.has(e.id + suffix) && !frames.some(f => f.geom.has(e.id + suffix))) continue;
           kinds[e.id + suffix] = 'path';
