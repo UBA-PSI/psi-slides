@@ -314,6 +314,26 @@
 /* Round, because it does something different from the square ones: a corner
    handle changes a size, an end handle changes what the statement refers to. */
 #dge-guides .dge-handle.dge-h-end { cursor: crosshair; }
+/* The four places a dragged element can be docked on whatever is under the
+   pointer. Quiet until one is under the pointer, because they appear over a
+   drawing that is still being read. */
+#dge-guides .dge-dock-host {
+  fill: none;
+  stroke: var(--emph);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.5;
+}
+#dge-guides .dge-dock {
+  fill: var(--paper);
+  stroke: var(--emph);
+  stroke-width: 1.2;
+  opacity: 0.55;
+}
+#dge-guides .dge-dock.dge-dock-on {
+  fill: var(--emph);
+  opacity: 1;
+}
 /* A waypoint moves a point, so it is square like the resize grips. Filled with
    the accent when it holds a reference: that one is not a pair of numbers, and
    a drag on it moves its nudge rather than replacing what it follows. */

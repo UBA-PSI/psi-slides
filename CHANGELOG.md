@@ -335,6 +335,24 @@ teaching; everything below is in use rather than aspirational.
   syncs to the other window as its own message, gated by the freeze flag – so
   freeze, fix the figure, unfreeze, and the room gets the finished picture.
 
+  **A relation can be re-pointed, not only stretched.** Four chips appear
+  around whatever the pointer is over while dragging, and releasing on one
+  docks the element to that side of that element – the placement is rewritten,
+  so it follows its new reference from then on. Dragging an element through
+  the thing it is measured from changes the side without leaving it. The
+  placement pane reads the relation back as the three things it says – kind,
+  reference, distance – and lets each be changed, including `between a,b`,
+  which no drag can express. The align and distribute acts are named the way
+  they would be looked for rather than the way the statement spells them.
+
+  **A label can sit somewhere other than the middle of its box.** `.left` /
+  `.right` place a horizontal run of text and `.top` / `.bottom` the block of
+  lines, measured against the element's own padding – as far that way as the
+  box allows, not on its border. A tall element with a short label is the case
+  they exist for. With more than one line the block moves rather than the
+  line, so `bottom` puts the *last* line on the inner edge. `.left` / `.right`
+  previously worked on a free `text` only.
+
   **An `align` or `spread` set can be left by dragging.** Pulling a follower
   against its shared axis holds it there, draws the axis, and says how much
   further to pull; half a cell past it, or with Alt held, the element is

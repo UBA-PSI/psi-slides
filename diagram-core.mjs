@@ -106,8 +106,14 @@ export const DG_CLASSES = new Set([
   'mono', 'serif', 'hand', 'small', 'large', 'bold',
   // type that fits the box it is in, rather than the box fitting the type
   'fit', 'shrink',
-  // text alignment (free `text` only)
-  'left', 'right',
+  // where the label sits in the space it has. `left` / `right` name an edge
+  // of a horizontal run of text; `top` / `bottom` an edge of the block of
+  // lines. Both mean "as far that way as the padding allows", not "on the
+  // border" - the padding is what the word `aligned` is measured against.
+  // Absent, a label is centred, which is right for almost every box; these
+  // are for the ones where it is not, a tall element with a short label most
+  // of all.
+  'left', 'right', 'top', 'bottom',
   // edges. `.smooth` draws the same waypoints as a curve through them
   // rather than a run of segments – an interpolating spline, so a waypoint is
   // still exactly where the author put it.
@@ -130,7 +136,8 @@ export const DG_CLASS_GROUPS = [
   ['small', 'large'],                         // size
   ['mono', 'serif', 'hand'],                  // family
   ['fit', 'shrink'],                          // how type meets its box
-  ['left', 'right'],                          // text alignment
+  ['left', 'right'],                          // text alignment, across
+  ['top', 'bottom'],                          // text alignment, down
 ];
 // Not one slot, but the pair is still a mistake with no visible cause:
 // .tone-4 fills with the accent and inverts its own label, so accent ink on
@@ -423,6 +430,22 @@ export function dgMeasure(label, fontPx, mono) {
 // dimension follow. SVG answers from its viewBox (or its width/height);
 // raster goes through the same zero-dep PNG/JPEG header reader the image
 // optimiser uses. Anything else has to say `h` itself.
+// Which side of its origin a label sits on. Asked by the emitter when it
+// writes `text-anchor` and by the extents when they reserve paper for it, and
+// those two must not disagree - a label reserved on the side it is not drawn
+// on is how figures came to sit off-centre in oversized frames. One function,
+// so there is one answer.
+//
+// A turned label reads bottom-to-top and is centred on its origin whichever
+// way, so the across-words have nothing to say about it.
+export function dgLabelAnchor(classes) {
+  const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
+  if (has('turn')) return 'middle';
+  if (has('left')) return 'start';
+  if (has('right')) return 'end';
+  return 'middle';
+}
+
 export function dgOpacity(visible, classes) {
   if (!visible) return 0;
   const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
@@ -2706,11 +2729,25 @@ export function createDiagramCompiler(env = {}) {
       // `.left` / `.right` have nothing to say about it – they name an edge of
       // a horizontal run of text.
       const turned = st.classes.has('turn');
-      const x = (!freeText || turned) ? box.x + box.w / 2
-        : st.classes.has('left') ? box.x
-        : st.classes.has('right') ? box.x + box.w
-        : box.x + box.w / 2;
-      put(el, el.id + '--l', [x, box.y + box.h / 2, turned ? DG_TURN_DEG : 0]);
+      // The padding is what "aligned" is measured against: `left` means as far
+      // left as this box allows, which is its own inner edge and not its
+      // border. A free `text` has no border to keep clear of, but its box was
+      // measured with the same padding, so the same number is right there too.
+      const padX = box.padX ?? DG_PAD_X;
+      const padY = box.padY ?? DG_PAD_Y;
+      const anchor = dgLabelAnchor(st.classes);
+      const x = anchor === 'start' ? box.x + padX
+        : anchor === 'end' ? box.x + box.w - padX
+          : box.x + box.w / 2;
+      // Vertically the origin stays the *centre of the block of lines*, so the
+      // emitter goes on laying them out around it and the recorded extent
+      // stays symmetric about it. Moving that centre is all `top` and `bottom`
+      // do - which is exactly why a bottom-aligned label of three lines puts
+      // its *last* line on the inner edge rather than its first.
+      const y = st.classes.has('top') ? box.y + padY + m.h / 2
+        : st.classes.has('bottom') ? box.y + box.h - padY - m.h / 2
+          : box.y + box.h / 2;
+      put(el, el.id + '--l', [x, y, turned ? DG_TURN_DEG : 0]);
     };
 
     for (const node of model.nodes) {
@@ -2924,7 +2961,7 @@ export function createDiagramCompiler(env = {}) {
     // viewBox was built from.
     const anchor = (classes.has('turn') && !anchorOverride) ? 'middle'
       : anchorOverride
-      || (classes.has('left') ? 'start' : classes.has('right') ? 'end' : 'middle');
+      || dgLabelAnchor(classes);
     const lineH = font * DG_LINE_H;
     const top = -((m.count - 1) * lineH) / 2;
     let inner = '';
@@ -3124,10 +3161,7 @@ export function createDiagramCompiler(env = {}) {
       if (kindOf.get(owner) === 'container') return 'start';
       const explicit = (f.labelAnchor && f.labelAnchor.get(owner)) || anchorOf.get(owner);
       if (explicit) return explicit;
-      const cs = ' ' + (((f.cls && f.cls.get(owner)) || '')) + ' ';
-      if (cs.includes(' left ')) return 'start';
-      if (cs.includes(' right ')) return 'end';
-      return 'middle';
+      return dgLabelAnchor(((f.cls && f.cls.get(owner)) || '').split(/\s+/));
     };
     const extentsOf = (f, into, visible) => {
       for (const [gid, vec] of f.geom) {

@@ -5985,6 +5985,26 @@ if (document.fonts && document.fonts.ready) {
 /* Round, because it does something different from the square ones: a corner
    handle changes a size, an end handle changes what the statement refers to. */
 #dge-guides .dge-handle.dge-h-end { cursor: crosshair; }
+/* The four places a dragged element can be docked on whatever is under the
+   pointer. Quiet until one is under the pointer, because they appear over a
+   drawing that is still being read. */
+#dge-guides .dge-dock-host {
+  fill: none;
+  stroke: var(--emph);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.5;
+}
+#dge-guides .dge-dock {
+  fill: var(--paper);
+  stroke: var(--emph);
+  stroke-width: 1.2;
+  opacity: 0.55;
+}
+#dge-guides .dge-dock.dge-dock-on {
+  fill: var(--emph);
+  opacity: 1;
+}
 /* A waypoint moves a point, so it is square like the resize grips. Filled with
    the accent when it holds a reference: that one is not a pair of numbers, and
    a drag on it moves its nudge rather than replacing what it follows. */
@@ -6595,8 +6615,14 @@ const DG_CLASSES = new Set([
   'mono', 'serif', 'hand', 'small', 'large', 'bold',
   // type that fits the box it is in, rather than the box fitting the type
   'fit', 'shrink',
-  // text alignment (free `text` only)
-  'left', 'right',
+  // where the label sits in the space it has. `left` / `right` name an edge
+  // of a horizontal run of text; `top` / `bottom` an edge of the block of
+  // lines. Both mean "as far that way as the padding allows", not "on the
+  // border" - the padding is what the word `aligned` is measured against.
+  // Absent, a label is centred, which is right for almost every box; these
+  // are for the ones where it is not, a tall element with a short label most
+  // of all.
+  'left', 'right', 'top', 'bottom',
   // edges. `.smooth` draws the same waypoints as a curve through them
   // rather than a run of segments – an interpolating spline, so a waypoint is
   // still exactly where the author put it.
@@ -6619,7 +6645,8 @@ const DG_CLASS_GROUPS = [
   ['small', 'large'],                         // size
   ['mono', 'serif', 'hand'],                  // family
   ['fit', 'shrink'],                          // how type meets its box
-  ['left', 'right'],                          // text alignment
+  ['left', 'right'],                          // text alignment, across
+  ['top', 'bottom'],                          // text alignment, down
 ];
 // Not one slot, but the pair is still a mistake with no visible cause:
 // .tone-4 fills with the accent and inverts its own label, so accent ink on
@@ -6912,6 +6939,22 @@ function dgMeasure(label, fontPx, mono) {
 // dimension follow. SVG answers from its viewBox (or its width/height);
 // raster goes through the same zero-dep PNG/JPEG header reader the image
 // optimiser uses. Anything else has to say `h` itself.
+// Which side of its origin a label sits on. Asked by the emitter when it
+// writes `text-anchor` and by the extents when they reserve paper for it, and
+// those two must not disagree - a label reserved on the side it is not drawn
+// on is how figures came to sit off-centre in oversized frames. One function,
+// so there is one answer.
+//
+// A turned label reads bottom-to-top and is centred on its origin whichever
+// way, so the across-words have nothing to say about it.
+function dgLabelAnchor(classes) {
+  const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
+  if (has('turn')) return 'middle';
+  if (has('left')) return 'start';
+  if (has('right')) return 'end';
+  return 'middle';
+}
+
 function dgOpacity(visible, classes) {
   if (!visible) return 0;
   const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
@@ -9195,11 +9238,25 @@ function createDiagramCompiler(env = {}) {
       // `.left` / `.right` have nothing to say about it – they name an edge of
       // a horizontal run of text.
       const turned = st.classes.has('turn');
-      const x = (!freeText || turned) ? box.x + box.w / 2
-        : st.classes.has('left') ? box.x
-        : st.classes.has('right') ? box.x + box.w
-        : box.x + box.w / 2;
-      put(el, el.id + '--l', [x, box.y + box.h / 2, turned ? DG_TURN_DEG : 0]);
+      // The padding is what "aligned" is measured against: `left` means as far
+      // left as this box allows, which is its own inner edge and not its
+      // border. A free `text` has no border to keep clear of, but its box was
+      // measured with the same padding, so the same number is right there too.
+      const padX = box.padX ?? DG_PAD_X;
+      const padY = box.padY ?? DG_PAD_Y;
+      const anchor = dgLabelAnchor(st.classes);
+      const x = anchor === 'start' ? box.x + padX
+        : anchor === 'end' ? box.x + box.w - padX
+          : box.x + box.w / 2;
+      // Vertically the origin stays the *centre of the block of lines*, so the
+      // emitter goes on laying them out around it and the recorded extent
+      // stays symmetric about it. Moving that centre is all `top` and `bottom`
+      // do - which is exactly why a bottom-aligned label of three lines puts
+      // its *last* line on the inner edge rather than its first.
+      const y = st.classes.has('top') ? box.y + padY + m.h / 2
+        : st.classes.has('bottom') ? box.y + box.h - padY - m.h / 2
+          : box.y + box.h / 2;
+      put(el, el.id + '--l', [x, y, turned ? DG_TURN_DEG : 0]);
     };
 
     for (const node of model.nodes) {
@@ -9413,7 +9470,7 @@ function createDiagramCompiler(env = {}) {
     // viewBox was built from.
     const anchor = (classes.has('turn') && !anchorOverride) ? 'middle'
       : anchorOverride
-      || (classes.has('left') ? 'start' : classes.has('right') ? 'end' : 'middle');
+      || dgLabelAnchor(classes);
     const lineH = font * DG_LINE_H;
     const top = -((m.count - 1) * lineH) / 2;
     let inner = '';
@@ -9613,10 +9670,7 @@ function createDiagramCompiler(env = {}) {
       if (kindOf.get(owner) === 'container') return 'start';
       const explicit = (f.labelAnchor && f.labelAnchor.get(owner)) || anchorOf.get(owner);
       if (explicit) return explicit;
-      const cs = ' ' + (((f.cls && f.cls.get(owner)) || '')) + ' ';
-      if (cs.includes(' left ')) return 'start';
-      if (cs.includes(' right ')) return 'end';
-      return 'middle';
+      return dgLabelAnchor(((f.cls && f.cls.get(owner)) || '').split(/\s+/));
     };
     const extentsOf = (f, into, visible) => {
       for (const [gid, vec] of f.geom) {
@@ -9836,7 +9890,7 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_TURN_DEG, dgShapeD, dgShapeOf, dgShapeInsetX, DG_ANCHORS, DG_DEFINES, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_OPS, DG_KEYWORDS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_BRACE_SIDES, DG_KIND_OPTS, DG_PAD_DEFAULT, dgErr, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, rejectShapeOn, readGridOpts, dgReadDefault, parseDiagramDefaults, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_TURN_DEG, dgShapeD, dgShapeOf, dgShapeInsetX, DG_ANCHORS, DG_DEFINES, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_OPS, DG_KEYWORDS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_BRACE_SIDES, DG_KIND_OPTS, DG_PAD_DEFAULT, dgErr, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, rejectShapeOn, readGridOpts, dgReadDefault, parseDiagramDefaults, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "";
 // The diagram editor.
@@ -10188,8 +10242,13 @@ const DGE_SLOTS = [
     options: [{ cls: '', label: 'no' }, { cls: 'fit' }, { cls: 'shrink' }] },
   { key: 'weightfont', label: 'text weight', kinds: null,
     options: [{ cls: '', label: 'regular' }, { cls: 'bold' }] },
-  { key: 'align', label: 'text align', kinds: ['text'],
+  // Both axes, and on a box as well as a free text: a tall element with a
+  // short label is the case these words exist for. Measured against the
+  // element's own padding, so `left` is as far left as that box allows.
+  { key: 'align', label: 'label across', kinds: ['box', 'text'],
     options: [{ cls: 'left' }, { cls: '', label: 'centre' }, { cls: 'right' }] },
+  { key: 'alignv', label: 'label down', kinds: ['box', 'text'],
+    options: [{ cls: 'top' }, { cls: '', label: 'middle' }, { cls: 'bottom' }] },
   { key: 'head', label: 'arrowheads', kinds: ['edge'],
     options: [{ cls: '', label: 'one' }, { cls: 'no-head', label: 'none' }, { cls: 'both-heads', label: 'both' }] },
   { key: 'softness', label: 'softness', kinds: null,
@@ -11003,6 +11062,8 @@ const DGE_SNAP_CELL = 0.05;      // round values on the cell grid
 // leaves the set. Half a cell: far enough that nudging one of a row of boxes
 // keeps the row, close enough that leaving is a gesture rather than a fight.
 const DGE_BREAK_CELL = 0.5;
+// The distance a freshly docked element keeps when it had none of its own.
+const DGE_DOCK_GAP = 0.4;
 const DGE_ALIGN_TOL = 0.06;      // how close counts as "on that edge", in cells
 
 function dgeRound(v, step) {
@@ -11671,6 +11732,77 @@ function dgeMoveSelection(ctx, dx, dy, opts) {
   return { next, plan: first, refusal };
 }
 
+// Four places to drop a dragged element on the thing under the pointer.
+//
+// Deliberately no modifier. Ctrl/Cmd already suspends snapping and Alt leaves
+// an align set; a third would be a lot to hold, and Shift means axis-constrain
+// in every drawing tool. The commitment here is *releasing on a chip*, which
+// nobody does by accident - so the gesture guards itself and stays reachable
+// with one hand.
+//
+// The host is found from the pointer, not from the dragged element, and its
+// geometry comes from the layout as it was at pointerdown. Both matter: the
+// element is moving under the preview, and the layout is re-solved on every
+// move, so anything read from the live state would slide about while it is
+// being aimed at.
+function dgeDockAt(ctx, id, pt) {
+  if (!ctx.boxes) return null;
+  const r = dgeGrabTolerance(13);     // chip radius, constant on screen
+  const off = dgeGrabTolerance(22);   // how far outside the edge it sits
+  const reach = off + r * 2;
+  let host = null, area = Infinity;
+  for (const [hid, b] of ctx.boxes) {
+    if (hid === id) continue;
+    const el = dgeFind(hid, ctx.model);
+    if (!el || el.kind === 'edge') continue;
+    // Expanded, so the chips stay live once the pointer has left the box to
+    // reach for one. Innermost wins, as everywhere else.
+    if (pt.x < b.x - reach || pt.x > b.x + b.w + reach) continue;
+    if (pt.y < b.y - reach || pt.y > b.y + b.h + reach) continue;
+    if (b.w * b.h < area) { area = b.w * b.h; host = { id: hid, b }; }
+  }
+  if (!host) return null;
+  const { b } = host;
+  const chips = [
+    { dir: 'left', x: b.x - off, y: b.y + b.h / 2 },
+    { dir: 'right', x: b.x + b.w + off, y: b.y + b.h / 2 },
+    { dir: 'above', x: b.x + b.w / 2, y: b.y - off },
+    { dir: 'below', x: b.x + b.w / 2, y: b.y + b.h + off },
+  ];
+  const chip = chips.find((c) => Math.abs(pt.x - c.x) <= r && Math.abs(pt.y - c.y) <= r) || null;
+  const out = { host: host.id, box: b, chips, r, chip: null };
+  if (!chip) return out;
+  // The distance is not what a chip is for. Measuring it from where the
+  // pointer happens to be gives a gap of nearly zero every time - the chip
+  // sits just outside the edge, and half the dragged element covers the rest -
+  // so the element would end up flush against the host, which nobody means by
+  // "dock it here". The chip says *which side*; the distance is whatever the
+  // element already kept, and dragging adjusts it afterwards.
+  const el = dgeFind(id, ctx.model);
+  const gap = (el && el.place && el.place.kind === 'rel' && el.place.gap != null)
+    ? el.place.gap : DGE_DOCK_GAP;
+  out.chip = chip.dir;
+  out.text = dgePlaceText(chip.dir, host.id, gap);
+  out.why = 'docks it ' + (chip.dir === 'left' || chip.dir === 'right' ? chip.dir + ' of ' : chip.dir + ' ')
+    + host.id + ' – release here and it follows ' + host.id + ' from now on';
+  return out;
+}
+
+function dgeDockNodes(dock) {
+  if (!dock) return [];
+  const out = [dgeEl('rect', {
+    class: 'dge-dock-host', x: dock.box.x - 2, y: dock.box.y - 2,
+    width: dock.box.w + 4, height: dock.box.h + 4, rx: 3,
+  })];
+  for (const c of dock.chips) {
+    out.push(dgeEl('rect', {
+      class: 'dge-dock' + (c.dir === dock.chip ? ' dge-dock-on' : ''),
+      x: c.x - dock.r, y: c.y - dock.r, width: dock.r * 2, height: dock.r * 2, rx: 2,
+    }));
+  }
+  return out;
+}
+
 function dgeStartMove(ev, pt0) {
   if (!DGE.selection.length) return;
   const id = DGE.selection[0];
@@ -11693,6 +11825,22 @@ function dgeStartMove(ev, pt0) {
       dgeStatus(step.line, `into step "${DGE.model.steps[DGE.beat - 1].name}" – the opening picture is untouched`);
       return;
     }
+    // Docking beats moving: while the pointer is on one of the four chips the
+    // preview shows the element already there, so the picture answers "what
+    // will this do" before the button comes up. Only a single selection - it
+    // is one placement expression, and four chips cannot say where three
+    // elements go.
+    const dock = DGE.selection.length === 1 ? dgeDockAt(ctx, id, pt) : null;
+    dgeSnapGuides = dgeDockNodes(dock);
+    if (dock && dock.chip) {
+      const plan = { edits: [{ attr: 'place', value: dock.text, why: dock.why }], refusals: [] };
+      DGE.strain = null;
+      last = plan;
+      DGE.source = dgeApplyEdits(ctx, id, plan.edits);
+      dgeRecompile();
+      dgeShowPlan(ctx, id, plan);
+      return;
+    }
     const res = dgeMoveSelection(ctx, dx, dy,
       { free: e.ctrlKey || e.metaKey, leave: e.altKey });
     last = {
@@ -11712,6 +11860,7 @@ function dgeStartMove(ev, pt0) {
     window.removeEventListener('pointermove', move);
     window.removeEventListener('pointerup', up);
     DGE.strain = null;
+    dgeSnapGuides = [];
     if (DGE.source !== ctx.source) {
       const done = DGE.source;
       DGE.source = ctx.source;
@@ -12550,30 +12699,61 @@ function dgeRenderSide() {
   }));
   side.appendChild(dgeEl('div', {}, [dgeEl('h3', { text: 'tags' }), chips]));
 
-  // Alignment acts, on the selection, with the master named.
+  // Acts on the selection. These were built long before the panel had room
+  // to say what they do: they were six buttons reading `x left` and `y top`,
+  // and a `spread x`, which is the statement's own spelling rather than the
+  // question anyone arrives with. Same statements, named the way they would
+  // be looked for.
   if (DGE.selection.length >= 2) {
-    const acts = dgeEl('div', { class: 'dge-chips' });
-    for (const [axis, edge] of [['x', 'left'], ['x', 'center'], ['x', 'right'],
-      ['y', 'top'], ['y', 'middle'], ['y', 'bottom']]) {
-      acts.appendChild(dgeEl('button', {
-        type: 'button', class: 'dge-btn', text: `${axis} ${edge}`,
-        title: `align ${axis} ${edge} – ${DGE.selection[0]} is the master and keeps its place`,
-        onclick: () => dgeAlign(axis, edge),
-      }));
+    const block = dgeEl('div', {}, [
+      dgeEl('h3', { text: 'line them up' }),
+      dgeEl('div', { class: 'dge-empty', text:
+        `${DGE.selection[0]} is the master – it keeps its place and the rest follow.` }),
+    ]);
+    for (const [axis, label, edges] of [
+      ['x', 'across', [['left', 'left edges'], ['center', 'centres'], ['right', 'right edges']]],
+      ['y', 'down', [['top', 'top edges'], ['middle', 'middles'], ['bottom', 'bottom edges']]],
+    ]) {
+      const row = dgeEl('div', { class: 'dge-chips' });
+      for (const [edge, text] of edges) {
+        row.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-btn', text,
+          title: `align ${axis} ${edge} ${DGE.selection.join(', ')}`,
+          onclick: () => dgeAlign(axis, edge),
+        }));
+      }
+      block.appendChild(dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: label }), row]));
     }
     if (DGE.selection.length >= 3) {
-      for (const axis of ['x', 'y']) {
-        acts.appendChild(dgeEl('button', {
-          type: 'button', class: 'dge-btn', text: 'spread ' + axis,
+      const row = dgeEl('div', { class: 'dge-chips' });
+      for (const [axis, text] of [['x', 'across'], ['y', 'down']]) {
+        row.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-btn', text,
+          title: `spread ${axis} – equal distance between centres. `
+            + `${DGE.selection[0]} and ${DGE.selection[DGE.selection.length - 1]} stay put.`,
           onclick: () => dgeSpread(axis),
         }));
       }
+      block.appendChild(dgeEl('div', { class: 'dge-slot' }, [
+        dgeEl('b', { text: 'even spacing' }), row]));
     }
-    side.appendChild(dgeEl('div', {}, [
-      dgeEl('h3', { text: 'line them up' }),
-      dgeEl('div', { class: 'dge-empty', text: `${DGE.selection[0]} is the master – it keeps its place and the rest follow.` }),
-      acts,
-    ]));
+    // `between a,b` has no gesture - nothing about dragging one box says
+    // "halfway between those two" - so it is a selection act, the same idiom
+    // container and brace already use. First selected is the one that moves.
+    if (DGE.selection.length === 3) {
+      const [who, a, z] = DGE.selection;
+      block.appendChild(dgeEl('div', { class: 'dge-slot' }, [
+        dgeEl('b', { text: 'halfway' }),
+        dgeEl('div', { class: 'dge-chips' }, [
+          dgeEl('button', {
+            type: 'button', class: 'dge-btn', text: `put ${who} between ${a} and ${z}`,
+            title: `between ${a},${z} – and it stays halfway when either of them moves`,
+            onclick: () => dgeWriteAttr(who, 'place', `between ${a},${z}`),
+          }),
+        ]),
+      ]));
+    }
+    side.appendChild(block);
   }
 
   side.appendChild(dgeTagLegend());
