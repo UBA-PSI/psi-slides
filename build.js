@@ -9621,6 +9621,17 @@ lecture: ${slug}
 Replace this paragraph with the opening prose of the lecture.
 
 > note: Speaker note for this chunk lives here.
+
+## figure: TODO – figure heading {.wide #intro-figure}
+
+::: diagram
+box a "A"
+:::
+
+A seed for the diagram editor: build this lecture, click the figure, and the
+button in the corner of the card opens it. The editor is bad at exactly the
+part a new figure needs – the chunk id, the heading, the caption prose – so
+those are text, and this is the two lines that give it something to open.
 `;
 }
 

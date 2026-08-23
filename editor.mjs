@@ -457,6 +457,7 @@ function dgeBuildChrome() {
       dgeEl('span', { id: 'dge-figpos' }),
       dgeEl('button', { type: 'button', class: 'dge-btn', 'data-act': 'next', title: 'next figure (. or PageDown)', text: '›', onclick: () => dgeGoFigure(1) }),
       dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-board-btn', title: 'the figure board', html: 'Board <kbd>O</kbd>', onclick: () => dgeToggleBoard() }),
+      dgeEl('button', { type: 'button', class: 'dge-btn', text: 'New figure…', title: 'put a whole figure chunk on the clipboard, for source.md', onclick: () => dgeNewFigure() }),
     ]),
     dgeEl('div', { class: 'dge-group' }, [dgeEl('span', { class: 'dge-cap', text: 'frame' }), seg]),
     dgeEl('div', { class: 'dge-group' }, [
@@ -493,6 +494,18 @@ function dgeBuildChrome() {
     dgeEl('span', { id: 'dge-counts' }),
   ]);
   const strip = dgeEl('section', { id: 'dge-strip', 'aria-label': 'Figures' });
+
+  tools.appendChild(dgeEl('hr', {}));
+  tools.appendChild(dgeEl('button', {
+    type: 'button', class: 'dge-btn dge-tool', id: 'dge-lock', 'aria-pressed': 'false',
+    title: 'keep the current tool active instead of falling back to select  (Q)',
+    onclick: () => { DGE.toolLocked = !DGE.toolLocked; dgeRenderTools(); },
+  }, [
+    dgeEl('svg', { viewBox: '0 0 15 15', 'aria-hidden': 'true' }, [
+      dgeEl('path', { d: 'M4 7V5a3.5 3.5 0 017 0v2M3 7h9v6H3z', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.2 }),
+    ]),
+    dgeEl('span', { text: 'Q' }),
+  ]));
 
   dgeRoot = dgeEl('div', {
     id: 'dge-root', role: 'dialog', 'aria-modal': 'true',
@@ -2169,6 +2182,11 @@ function dgeRenderTools() {
     b.setAttribute('aria-pressed', String(b.dataset.tool === DGE.tool));
     if (t && t.wrapper) b.disabled = DGE.selection.length < 1;
   });
+  // Locked is a state of the rail, so it is drawn on the rail. A mode
+  // announced once in the status bar is a mode nobody remembers being in.
+  rail.classList.toggle('dge-locked', DGE.toolLocked);
+  const lock = dgeQ('#dge-lock');
+  if (lock) lock.setAttribute('aria-pressed', String(DGE.toolLocked));
 }
 
 // The modal owns the keyboard. While the editor is open the view's own
@@ -2216,7 +2234,15 @@ function dgeKeydown(ev) {
 
   const key = k.toLowerCase();
   if (key === 'o') { ev.preventDefault(); dgeToggleBoard(); return; }
-  if (key === 'q') { ev.preventDefault(); DGE.toolLocked = !DGE.toolLocked; dgeStatus('', DGE.toolLocked ? 'tool locked – it stays active after each use' : 'tool unlocked – one shot, then back to select'); return; }
+  if (key === 'q') {
+    ev.preventDefault();
+    DGE.toolLocked = !DGE.toolLocked;
+    dgeRenderTools();
+    dgeStatus('', DGE.toolLocked
+      ? 'tool locked – it stays active after each use'
+      : 'tool unlocked – one shot, then back to select');
+    return;
+  }
   if (key === 'f') { ev.preventDefault(); dgeCycleFrame(ev.shiftKey); return; }
   if (key === 'v' && ev.shiftKey) {
     ev.preventDefault();
@@ -2604,6 +2630,25 @@ function dgeApplyRemoteEdit(m) {
   }
 }
 window.psiApplyDiagramEdit = dgeApplyRemoteEdit;
+
+// A whole chunk – heading, id, block – on the clipboard, for the case where
+// no text editor is open. A convenience, not the path: a graphical editor is
+// bad at exactly the part a new figure needs, and the chunk id in particular
+// is frozen once authored and is the anchor for cross-references, TOC
+// entries and sync snapshots.
+function dgeNewFigure() {
+  const taken = new Set(DGE_FIGURES.map((f) => f.chunk).filter(Boolean));
+  let id = 'figure-1';
+  for (let i = 1; taken.has(id); i++) id = 'figure-' + (i + 1);
+  const chunk = `## figure: TODO – heading {.wide #${id}}\n\n`
+    + '::: diagram\nbox a "A"\n:::\n';
+  const done = (ok) => dgeStatus(ok ? `## figure: TODO – heading {.wide #${id}}` : '', ok
+    ? 'a whole chunk is on the clipboard – paste it into source.md, rebuild, and it is here'
+    : 'could not reach the clipboard', !ok);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(chunk).then(() => done(true), () => done(false));
+  } else done(false);
+}
 
 function dgeHelp() {
   const help = document.getElementById('help-overlay');

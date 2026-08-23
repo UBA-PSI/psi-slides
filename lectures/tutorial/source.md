@@ -481,6 +481,8 @@ And against measuring: a coordinate may be another element's coordinate. `edge i
 
 Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run and `~muted~` greys it. Classes come from a closed list – four `tone-*` fills mixed from the page's own inks plus `clear` for a see-through one, and `dashed`, `dotted`, `thick`, `round`, `mono`, `serif`, `hand`, `muted` and a few more – and `lint.js` rejects anything else, so a typo is a build error rather than an unstyled box. **Every class occupies a slot**, so `{.tone-1}` on one box displaces a `default box {.tone-4}` rather than stacking with it, and two members of one slot on one element is a lint warning.
 
+**Click the figure, and the button in the corner of the card opens a graphical editor for it.** Drag a box and it rewrites one token – the `gap`, the `frac`, the signed nudge – never the relation the token sits in, so what you wrote survives what you dragged. The relations themselves are drawn while you work, which is the part a rendered diagram cannot show: two boxes 0.55 apart look exactly like two boxes that happen to be 0.55 apart. `editor: none` in the frontmatter ships the lecture without it.
+
 Two of them read the picture the other way round. `pad 0.3` sets how far a box's border sits from its own label – the same word `container` and `brace` already use – and `.fit` on a box with a given `w` sizes the *type* to fill the box instead of growing the box to the type, with `.shrink` for a label that may only ever get smaller. A free `text` that carries a tone draws its own ground, so a caption can sit on a panel without becoming a box.
 :::
 

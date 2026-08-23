@@ -686,3 +686,9 @@ body.dge-open #stage-viewport { filter: none; }
   stroke-dasharray: 2 4;
   opacity: 0.8;
 }
+
+/* The tool rail, locked. A mode announced once in the status bar is a mode
+   nobody remembers being in, so it is drawn where the mode lives. */
+#dge-tools.dge-locked .dge-tool[aria-pressed=true] {
+  box-shadow: inset 0 0 0 1px var(--emph);
+}

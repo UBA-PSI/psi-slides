@@ -3324,6 +3324,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <p>Against repetition there are two more: <code>default box {.tone-4} w 1.15</code> sets the base for every box in the diagram (add a tag – <code>default box @dec w 0.48</code> – to refine it for one set), and <code>same as create</code> copies another element&#39;s width and height. The same <code>default</code> lines go in a <code>diagram-defaults:</code> frontmatter key when a whole lecture&#39;s figures should look like each other – then a block&#39;s own <code>default</code> overrides the lecture&#39;s for that one figure, and changing the house style is one edit rather than twelve.</p>
 <p>And against measuring: a coordinate may be another element&#39;s coordinate. <code>edge iv -&gt; x0 via iv.cx,x0.cy</code> means <em>straight down from the IV, then across at the height of the XOR</em>, and it stays true when anything above it moves. A signed nudge (<code>mix.cx+0.2</code>) shifts it without giving up the relation. A class on an element displaces a default in the same slot rather than stacking with it, so <code>{.tone-1}</code> on one box still wins.</p>
 <p>Inside a label, <code>_sub</code> and <code>^sup</code> shift a character or a <code>{group}</code>, <code>*accent*</code> colours a run and <code>~muted~</code> greys it. Classes come from a closed list – four <code>tone-*</code> fills mixed from the page&#39;s own inks plus <code>clear</code> for a see-through one, and <code>dashed</code>, <code>dotted</code>, <code>thick</code>, <code>round</code>, <code>mono</code>, <code>serif</code>, <code>hand</code>, <code>muted</code> and a few more – and <code>lint.js</code> rejects anything else, so a typo is a build error rather than an unstyled box. <strong>Every class occupies a slot</strong>, so <code>{.tone-1}</code> on one box displaces a <code>default box {.tone-4}</code> rather than stacking with it, and two members of one slot on one element is a lint warning.</p>
+<p><strong>Click the figure, and the button in the corner of the card opens a graphical editor for it.</strong> Drag a box and it rewrites one token – the <code>gap</code>, the <code>frac</code>, the signed nudge – never the relation the token sits in, so what you wrote survives what you dragged. The relations themselves are drawn while you work, which is the part a rendered diagram cannot show: two boxes 0.55 apart look exactly like two boxes that happen to be 0.55 apart. <code>editor: none</code> in the frontmatter ships the lecture without it.</p>
 <p>Two of them read the picture the other way round. <code>pad 0.3</code> sets how far a box&#39;s border sits from its own label – the same word <code>container</code> and <code>brace</code> already use – and <code>.fit</code> on a box with a given <code>w</code> sizes the <em>type</em> to fill the box instead of growing the box to the type, with <code>.shrink</code> for a label that may only ever get smaller. A free <code>text</code> that carries a tone draws its own ground, so a caption can sit on a panel without becoming a box.</p>
 
     </aside>
@@ -7824,6 +7825,12 @@ body.dge-open #stage-viewport { filter: none; }
   opacity: 0.8;
 }
 
+/* The tool rail, locked. A mode announced once in the status bar is a mode
+   nobody remembers being in, so it is drawn where the mode lives. */
+#dge-tools.dge-locked .dge-tool[aria-pressed=true] {
+  box-shadow: inset 0 0 0 1px var(--emph);
+}
+
 </style>
 <script>
 window.PSI_DG = (function () {
@@ -10765,6 +10772,7 @@ function dgeBuildChrome() {
       dgeEl('span', { id: 'dge-figpos' }),
       dgeEl('button', { type: 'button', class: 'dge-btn', 'data-act': 'next', title: 'next figure (. or PageDown)', text: '›', onclick: () => dgeGoFigure(1) }),
       dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-board-btn', title: 'the figure board', html: 'Board <kbd>O</kbd>', onclick: () => dgeToggleBoard() }),
+      dgeEl('button', { type: 'button', class: 'dge-btn', text: 'New figure…', title: 'put a whole figure chunk on the clipboard, for source.md', onclick: () => dgeNewFigure() }),
     ]),
     dgeEl('div', { class: 'dge-group' }, [dgeEl('span', { class: 'dge-cap', text: 'frame' }), seg]),
     dgeEl('div', { class: 'dge-group' }, [
@@ -10801,6 +10809,18 @@ function dgeBuildChrome() {
     dgeEl('span', { id: 'dge-counts' }),
   ]);
   const strip = dgeEl('section', { id: 'dge-strip', 'aria-label': 'Figures' });
+
+  tools.appendChild(dgeEl('hr', {}));
+  tools.appendChild(dgeEl('button', {
+    type: 'button', class: 'dge-btn dge-tool', id: 'dge-lock', 'aria-pressed': 'false',
+    title: 'keep the current tool active instead of falling back to select  (Q)',
+    onclick: () => { DGE.toolLocked = !DGE.toolLocked; dgeRenderTools(); },
+  }, [
+    dgeEl('svg', { viewBox: '0 0 15 15', 'aria-hidden': 'true' }, [
+      dgeEl('path', { d: 'M4 7V5a3.5 3.5 0 017 0v2M3 7h9v6H3z', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.2 }),
+    ]),
+    dgeEl('span', { text: 'Q' }),
+  ]));
 
   dgeRoot = dgeEl('div', {
     id: 'dge-root', role: 'dialog', 'aria-modal': 'true',
@@ -12477,6 +12497,11 @@ function dgeRenderTools() {
     b.setAttribute('aria-pressed', String(b.dataset.tool === DGE.tool));
     if (t && t.wrapper) b.disabled = DGE.selection.length < 1;
   });
+  // Locked is a state of the rail, so it is drawn on the rail. A mode
+  // announced once in the status bar is a mode nobody remembers being in.
+  rail.classList.toggle('dge-locked', DGE.toolLocked);
+  const lock = dgeQ('#dge-lock');
+  if (lock) lock.setAttribute('aria-pressed', String(DGE.toolLocked));
 }
 
 // The modal owns the keyboard. While the editor is open the view's own
@@ -12524,7 +12549,15 @@ function dgeKeydown(ev) {
 
   const key = k.toLowerCase();
   if (key === 'o') { ev.preventDefault(); dgeToggleBoard(); return; }
-  if (key === 'q') { ev.preventDefault(); DGE.toolLocked = !DGE.toolLocked; dgeStatus('', DGE.toolLocked ? 'tool locked – it stays active after each use' : 'tool unlocked – one shot, then back to select'); return; }
+  if (key === 'q') {
+    ev.preventDefault();
+    DGE.toolLocked = !DGE.toolLocked;
+    dgeRenderTools();
+    dgeStatus('', DGE.toolLocked
+      ? 'tool locked – it stays active after each use'
+      : 'tool unlocked – one shot, then back to select');
+    return;
+  }
   if (key === 'f') { ev.preventDefault(); dgeCycleFrame(ev.shiftKey); return; }
   if (key === 'v' && ev.shiftKey) {
     ev.preventDefault();
@@ -12912,6 +12945,25 @@ function dgeApplyRemoteEdit(m) {
   }
 }
 window.psiApplyDiagramEdit = dgeApplyRemoteEdit;
+
+// A whole chunk – heading, id, block – on the clipboard, for the case where
+// no text editor is open. A convenience, not the path: a graphical editor is
+// bad at exactly the part a new figure needs, and the chunk id in particular
+// is frozen once authored and is the anchor for cross-references, TOC
+// entries and sync snapshots.
+function dgeNewFigure() {
+  const taken = new Set(DGE_FIGURES.map((f) => f.chunk).filter(Boolean));
+  let id = 'figure-1';
+  for (let i = 1; taken.has(id); i++) id = 'figure-' + (i + 1);
+  const chunk = `## figure: TODO – heading {.wide #${id}}\n\n`
+    + '::: diagram\nbox a "A"\n:::\n';
+  const done = (ok) => dgeStatus(ok ? `## figure: TODO – heading {.wide #${id}}` : '', ok
+    ? 'a whole chunk is on the clipboard – paste it into source.md, rebuild, and it is here'
+    : 'could not reach the clipboard', !ok);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(chunk).then(() => done(true), () => done(false));
+  } else done(false);
+}
 
 function dgeHelp() {
   const help = document.getElementById('help-overlay');
