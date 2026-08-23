@@ -6,7 +6,7 @@ Spec and build plan for the graphical editor for `::: diagram`. Companion to
 Status: **under construction.** The grammar it edits is frozen enough to build
 against – three constructs in it exist specifically so this editor can answer a
 drag without destroying what the author wrote (§3). What is built and what is
-not is in **§13, the build log**, which is kept at the end of this file and is
+not is in **§15, the build log**, which is kept at the end of this file and is
 the thing to read before picking the work up again.
 
 ## 0. Where this lives, and what exists
@@ -379,7 +379,7 @@ closing:
   already gives for two classes from one slot.
 
 That is **five new classes** (24 → 29, `.paper` joined them once the swatch
-row showed the hole – see §13), two new group rows, one keyword
+row showed the hole – see §15), two new group rows, one keyword
 extended to two more kinds, and one emitter change. No new statement, no free
 colour, nothing that opens the vocabulary. §1's promise survives.
 
@@ -913,7 +913,7 @@ it is the only part that needs more than one figure in the editor's head at
 once, and because paste-with-closure wants delete-with-references (phase 7) to
 already exist.
 
-**Phase 11 – bringing a picture in.** §15. Last, because it is the first
+**Phase 11 – bringing a picture in.** §14. Last, because it is the first
 feature that writes a file rather than a range of one.
 
 **Phase 10 – steps.** A beat timeline. Selecting beat *k* shows that state;
@@ -1120,7 +1120,7 @@ rather than deleted, because the reasoning is what a later reader will want.
 Two were left, and they were **deliberately not decided on paper.** Both are
 drawing problems whose answers depend on what the thing feels like, and a prose
 proposal for either would have been a guess dressed as a decision. Both phases
-are now built, so both can be answered from a running prototype – see §14.
+are now built, so both can be answered from a running prototype – see §13.
 
 - **What is a beat when you are editing?** (phase 10) §9's guides describe one
   still picture. A stepped diagram has several, and dragging in beat 2 means
@@ -1139,13 +1139,13 @@ are now built, so both can be answered from a running prototype – see §14.
   because the undo is one keystroke, that is a fine answer and cheaper than
   every alternative.
 
-## 14. The two open questions, answered from the prototype
+## 13. The two open questions, answered from the prototype
 
 Both are built, so both can be looked at rather than argued about. Two
 concrete proposals each, the recommendation first, and what would change my
 mind.
 
-### 14.1 What is a beat when you are editing?
+### 13.1 What is a beat when you are editing?
 
 **Built and shipped as-is: the mode is loud, and the guides show both.** At
 beat *k* the frame carries an accent outline, the status bar's rule turns
@@ -1187,7 +1187,7 @@ of it are the step's doing. That is the failure the whole mode exists to avoid.
 *through* each other, where two ghosts and two boxes read as four boxes. I did
 not find one in `lectures/diagrams`; if one turns up, B is already written.
 
-### 14.2 How much of the closure is too much?
+### 13.2 How much of the closure is too much?
 
 **Measured, not guessed.** Selecting `acl` – one box at the end of a `below`
 chain in `#lifecycle` – and copying gives a closure of **9 elements over 15
@@ -1230,19 +1230,19 @@ into the wrong figure and did not notice, because the closure was large enough
 to look like the figure had always been that way. B is the cheap fix and the
 halo already exists.
 
-## 15. Bringing a picture in · **built**
+## 14. Bringing a picture in · **built**
 
 Phase 11, and the first feature that writes a **file** rather than a range of
 one. That is a different permission with a different failure mode, which is why
 it came after everything else.
 
 Built as specified below, with three things the plan did not foresee. They are
-in §13 under *Phase 11*; the shortest of them: **`.paper` had to be invented on
+in §15 under *Phase 11*; the shortest of them: **`.paper` had to be invented on
 the way**, because the swatch row's first entry was the empty class, so
 "paper" meant "whatever a default says" and a free `text` could not have a
 ground at all – which is the entire reason to give a label one.
 
-### 15.1 What is there today, and why it is a dead end
+### 14.1 What is there today, and why it is a dead end
 
 The image placer takes `Object.keys(DGE.fig.images)[0]` – the first asset any
 diagram in the lecture happens to reference – with no chooser, and refuses
@@ -1254,7 +1254,7 @@ outright when there is none:
 So a figure cannot get its first picture from inside the editor at all, and a
 lecture with two assets can only ever place one of them.
 
-### 15.2 The constraint that shapes the whole feature
+### 14.2 The constraint that shapes the whole feature
 
 `image <name> <asset>` resolves **at build time**, against `assets/` beside
 `source.md`. A browser can read the bytes of a picked file; it cannot put them
@@ -1270,7 +1270,7 @@ browser, `file://` included. §2.3's Tier 3 caveats are about *writing* and
 about *persisting a handle*, and neither applies here. Worth saying, because
 the Tier 3 discussion makes the FSA API sound necessary and for this it is not.
 
-### 15.3 Under `--watch`, the loop closes
+### 14.3 Under `--watch`, the loop closes
 
 The editor reads the file and sends it on the socket that already carries
 patches: `{type: 'asset', nonce, name, bytes}`. The server writes
@@ -1298,7 +1298,7 @@ sanitised path is a path someone reasoned about wrongly:
   offering rename or replace.
 - The same nonce as `patch`, and the same 127.0.0.1 bind.
 
-### 15.4 Without a watch server, say so plainly
+### 14.4 Without a watch server, say so plainly
 
 The editor can show the picture at once from a blob URL, but the line it writes
 will not resolve at the next build. Do both of these rather than pretending:
@@ -1312,7 +1312,7 @@ will not resolve at the next build. Do both of these rather than pretending:
 Meanwhile the canvas shows the blob, carrying the same "not yet on disk" marker
 that Tier 0's reader edits use.
 
-### 15.5 What it must not do
+### 14.5 What it must not do
 
 **Never inline a `data:` URI into `source.md`.** The `image` statement takes a
 path or a URL and would probably swallow one, which is exactly what makes it
@@ -1322,7 +1322,7 @@ block is something a human could have typed. The build already inlines assets
 into the *output*; the source stays a reference. That separation is the reason
 `--no-inline-images` can exist at all.
 
-### 15.6 The picker, which is most of the value
+### 14.6 The picker, which is most of the value
 
 Even with no new file, the chooser is the missing part:
 
@@ -1332,7 +1332,7 @@ Even with no new file, the chooser is the missing part:
   the socket is two-way now, so this costs no payload and no build change;
 - the file picker as the last row.
 
-Which also retires the dead end in §15.1: "this lecture has no diagram image"
+Which also retires the dead end in §14.1: "this lecture has no diagram image"
 stops being a refusal and becomes the first row of a dialog.
 
 One line of honesty in that dialog, because it is the trade the docs already
@@ -1340,7 +1340,7 @@ make: **a vector asset follows the theme, a raster does not.** Picking an SVG
 gets a picture that re-inks with `A`; picking a PNG gets one that keeps its own
 colours in every theme. Say which one the author just picked.
 
-## 13. Build log
+## 15. Build log
 
 Written while building, not afterwards. Each entry says what landed, what it
 cost, and what the next pair of hands needs to know that the plan above does
@@ -1826,7 +1826,7 @@ Verified:
   This entry was stale; corrected in review.
 - **`Q` locks the tool but nothing draws the lock state** beyond the status
   line it prints.
-- ~~Placing a picture (§15).~~ **Built** – see *Phase 11* below.
+- ~~Placing a picture (§14).~~ **Built** – see *Phase 11* below.
 - ~~The demo lecture never learned the new vocabulary.~~ **Fixed**:
   `lectures/diagrams` now carries the lecture-wide `diagram-defaults`, `pad` on
   the stack frames in `#overflow`, `.paper` and `.serif` in `#mac`, and a
@@ -1835,7 +1835,7 @@ Verified:
 
 ### Phase 11 – bringing a picture in · **done**
 
-§15 as written, and three things it did not foresee.
+§14 as written, and three things it did not foresee.
 
 **`.paper` had to be invented.** The editor's fill row opened with
 `{ cls: '', label: 'paper' }` – the *empty* class. So "paper" meant "whatever a
@@ -1956,7 +1956,7 @@ of the above:
    `dg6-alice--i`, so any rename has to be one pass with a longest-first
    alternation, never a loop of replacements.
 
-**Payload, re-measured** now that the UI exists: 280 KB of compiler, UI and
+**Payload, re-measured** now that the UI exists: 295 KB of compiler, UI and
 chrome in the built page – the plan's ~150 KB was taken at phase 3, before
 there was a UI. Per figure, the source payload is 12.2 KB across the eleven
 figures of `lectures/diagrams`; the asset table is now its own element, so

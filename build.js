@@ -2127,7 +2127,10 @@ window.psiWatch = (() => {
     const id = ++seq;
     waiting.set(id, resolve);
     setTimeout(() => { if (waiting.has(id)) { waiting.delete(id); resolve({ ok: false, why: 'no answer from the watch server' }); } }, ms || 4000);
-    sock.send(JSON.stringify({ type, id, nonce: window.psiWatch.nonce, ...body }));
+    // Body first, protocol last – the same rule the server's reply follows,
+    // and for the same reason: a payload field named like a protocol one
+    // would otherwise silently take its place and the pairing would break.
+    sock.send(JSON.stringify({ ...body, type, id, nonce: window.psiWatch.nonce }));
   });
   return {
     nonce: ${JSON.stringify(nonce || '')},
