@@ -3137,10 +3137,11 @@ const SEARCH_PANEL_HTML = `<div id="search-panel" class="hidden" role="dialog" a
 function renderHelpOverlay(view, withEditor) {
   const shared = [
     ['Moving around', [
-      ['<kbd>←</kbd> <kbd>→</kbd>', 'previous / next column'],
-      ['<kbd>↑</kbd>', 'previous chunk'],
-      ['<kbd>↓</kbd> · <kbd>Space</kbd>', 'reveal the next segment, then on to the next chunk'],
-      ['<kbd>Enter</kbd> · <kbd>1</kbd>–<kbd>9</kbd>', 'open the first / n-th expansion'],
+      ['<kbd>Space</kbd> · <kbd>↓</kbd> · <kbd>Enter</kbd> · <kbd>PageDown</kbd>', 'forward: the next reveal or diagram step, then the next slide'],
+      ['<kbd>↑</kbd> · <kbd>PageUp</kbd> · <kbd>Backspace</kbd>', 'back: the reveal before it, then the slide before it'],
+      ['<kbd>→</kbd> <kbd>←</kbd>', 'the same pair – except on the first slide of a column, where they change column'],
+      ['the marks at the edge', '‹ › sideways changes column here · ⌄ forward leaves the column next'],
+      ['<kbd>1</kbd>–<kbd>9</kbd>', 'open the n-th expansion'],
       ['<kbd>Esc</kbd>', 'step back out: figure, then overview, then expansion'],
     ]],
     ['Finding a slide', [
@@ -3209,7 +3210,7 @@ function renderHelpOverlay(view, withEditor) {
     ['click a diagram, then <kbd>E</kbd>', 'open the editor on that figure – or the button in the corner of the card'],
     ['<kbd>1</kbd> <kbd>V</kbd>', 'select'],
     ['<kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> <kbd>5</kbd> <kbd>8</kbd>', 'box · dot · text · edge · image'],
-    ['<kbd>9</kbd>', 'a plain line – the edge tool with both ends forced to coordinates'],
+    ['<kbd>9</kbd>', 'a line with no arrowhead – both ends are plain coordinates, so it attaches to nothing'],
     ['<kbd>6</kbd> · <kbd>7</kbd>', 'container · brace, drawn around whatever is selected'],
     ['<kbd>Q</kbd>', 'keep the current tool instead of falling back to select'],
     ['drag · drag a handle', 'move it · resize it – the status bar shows the line it will write'],
@@ -3219,7 +3220,8 @@ function renderHelpOverlay(view, withEditor) {
     ['<kbd>Ctrl</kbd>-<kbd>Z</kbd> · <kbd>Shift</kbd>-<kbd>Ctrl</kbd>-<kbd>Z</kbd>', 'undo · redo'],
     ['<kbd>Ctrl</kbd>-<kbd>A</kbd> · <kbd>Ctrl</kbd>-<kbd>D</kbd>', 'select all · duplicate'],
     ['<kbd>Ctrl</kbd>-<kbd>C</kbd> · <kbd>Ctrl</kbd>-<kbd>V</kbd> · <kbd>Ctrl</kbd>-<kbd>Shift</kbd>-<kbd>V</kbd>', 'copy · paste · paste in place'],
-    ['<kbd>Ctrl</kbd>-<kbd>S</kbd>', 'copy the finished block to the clipboard'],
+    ['<kbd>Ctrl</kbd>-<kbd>S</kbd>', 'write the block back – into source.md while --watch runs, otherwise to the clipboard'],
+    ['<kbd>&lt;</kbd> <kbd>&gt;</kbd>', 'walk the diagram steps – a drag inside a step writes a move into that step'],
     ['<kbd>Space</kbd>-drag · middle-drag · wheel', 'pan · pan · zoom'],
     ['<kbd>F</kbd>', 'frame: slide → column → print, the three places the figure can land'],
     ['<kbd>,</kbd> <kbd>.</kbd> · <kbd>PageUp</kbd> <kbd>PageDown</kbd>', 'previous / next figure in the lecture'],
@@ -4661,6 +4663,36 @@ body[data-view=speaker] #laser-pointer { display: none; }
    The element doesn't exist in speaker.html. The CSS @media gate
    self-adapts: an iPad with a Magic Keyboard re-classifies as a fine
    pointer and the rail disappears. */
+/* Where the arrows will take you. Sits at the viewport edge, not on the
+   slide, so nothing in the author's layout moves for it; painted in
+   --ink-soft at a fifth of full strength, which reads as a compass on a
+   projection and disappears in a photograph of one. The two sideways marks
+   only ever appear on the first chunk of a column, which is the only place
+   the sideways keys change column; the one below appears when forward has
+   nothing left to reveal and will leave the column next. */
+#nav-hints span {
+  position: absolute;
+  color: var(--ink-soft);
+  opacity: 0;
+  font-size: 1.5em;
+  line-height: 1;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+}
+#nav-hints span[data-on] { opacity: 0.22; }
+#nav-hints span[data-hint=left]  { left: 0.5em;  top: 50%; transform: translateY(-50%); }
+#nav-hints span[data-hint=right] { right: 0.5em; top: 50%; transform: translateY(-50%); }
+#nav-hints span[data-hint=down]  { bottom: 0.15em; left: 50%; transform: translateX(-50%); }
+/* On the cockpit the mirror is scaled down, so the marks would be shrunk to
+   nothing beside chrome that is not. The speaker is also the person who has
+   to plan against them, so they are a little louder there. */
+body[data-view=speaker] #nav-hints span[data-on] { opacity: 0.45; }
+body:not([data-view=speaker]).blanked #nav-hints span,
+/* The board has its own 2D map and its own arrow meanings; a compass for the
+   slide keys would be pointing at the wrong thing. Done in CSS because
+   setOverviewMode does not always go through applyState. */
+body.overview-mode #nav-hints span { opacity: 0 !important; }
+
 #touch-controls { display: none; }
 @media (pointer: coarse) {
   #touch-controls {
@@ -5629,6 +5661,7 @@ function applyState() {
   applyBlankBadge();
   flatChunks.forEach((c, i) => c.el.classList.toggle('active', i === state.activeIdx));
   updateEmbedLoading();
+  updateNavHints();
   viewHooks.onActiveChange();
   broadcastState();
 }
@@ -6098,11 +6131,67 @@ function advanceReveal() {
   if (cur < segCount) {
     revealed[entry.id] = cur + 1;
     applyReveal(entry.el, entry.id);
+    updateNavHints();
     broadcastState();
     return true;
   }
   return false;
 }
+
+// The mirror of advanceReveal, and it costs nothing but the counter: every
+// beat's state is recomputed from revealed[id] on each applyReveal, and
+// dgStep renders any step in either direction. Reveal was forward-only
+// because the *keys* were, never because the mechanism was.
+function retreatReveal() {
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) return false;
+  const segCount = countSegments(entry.el);
+  const cur = revealed[entry.id] ?? (segCount ? 1 : 0);
+  if (cur > 1) {
+    revealed[entry.id] = cur - 1;
+    applyReveal(entry.el, entry.id);
+    updateNavHints();
+    broadcastState();
+    return true;
+  }
+  return false;
+}
+
+// One forward family and one backward family, the way a presentation tool is
+// expected to behave: perform the slide, then move to the next one. The
+// column exception below is the single thing psi-slides has that a linear
+// deck does not, and it is why the first chunk of a column says so on screen.
+function goForward() {
+  if (!advanceReveal()) nextChunk();
+}
+function goBack() {
+  if (!retreatReveal()) prevChunk();
+}
+
+// Where the columns begin and end, and – the part that has to be one fact
+// rather than two – whether there is actually a column that way. The key map
+// and the marks at the edge both read the same field, so they cannot disagree:
+// the first version tested only "is this the head of a column", which on the
+// head of the *last* column showed no mark (correctly) and still handed the
+// key to nextCol, whose fallback clamps to the end of the deck. One press of
+// the right arrow on the title slide of a single-column lecture skipped the
+// whole lecture.
+function markColumnEdges() {
+  const lastCol = flatChunks.length ? flatChunks[flatChunks.length - 1].colIdx : 0;
+  flatChunks.forEach((c, i) => {
+    const prev = flatChunks[i - 1], next = flatChunks[i + 1];
+    c.colFirst = !prev || prev.colIdx !== c.colIdx;
+    c.colLast = !next || next.colIdx !== c.colIdx;
+    c.sideways = {
+      left: c.colFirst && c.colIdx > 0,
+      right: c.colFirst && c.colIdx < lastCol,
+    };
+  });
+}
+const sideways = (i, dir) => {
+  const c = flatChunks[i];
+  return !!(c && c.sideways && c.sideways[dir]);
+};
 
 function nextChunk() {
   if (state.activeIdx + 1 >= flatChunks.length) return;
@@ -6815,25 +6904,35 @@ document.addEventListener('keydown', (e) => {
     }
   }
   switch (e.key) {
-    case 'ArrowRight': nextCol(); e.preventDefault(); break;
-    case 'ArrowLeft':  prevCol(); e.preventDefault(); break;
-    case 'ArrowUp':    prevChunk(); e.preventDefault(); break;
-    case 'ArrowDown':
-    case ' ': {
-      // Down and Space are the same key. Down used to skip straight to the
-      // next chunk, which meant walking a segmented slide with the arrows
-      // silently swallowed every reveal on it – and remembering to switch
-      // to Space for exactly those slides is the kind of thing that goes
-      // wrong in front of a room. Advance the reveal; once the chunk is
-      // fully out, fall through to the next one.
+    // Sideways is the column key only where a column can be entered from:
+    // its first chunk. Everywhere else it is the forward/backward pair, so
+    // the two keys under a lecturer's fingers do the same thing on every
+    // slide but the one where a second dimension exists. The first chunk of
+    // a column says so on screen (updateNavHints) rather than leaving the
+    // exception to be discovered by pressing it.
+    case 'ArrowRight': sideways(state.activeIdx, 'right') ? nextCol() : goForward(); e.preventDefault(); break;
+    case 'ArrowLeft':  sideways(state.activeIdx, 'left')  ? prevCol() : goBack();    e.preventDefault(); break;
+    // Down, Space, Enter and a presenter's forward button are one key, and
+    // Up, PageUp and Backspace are its mirror. Down used to skip straight to
+    // the next chunk, which meant walking a segmented slide with the arrows
+    // silently swallowed every reveal on it – and remembering to switch to
+    // Space for exactly those slides is the kind of thing that goes wrong in
+    // front of a room. It never swallows one now, in either direction.
+    case 'ArrowUp':
+    case 'PageUp':
+    case 'Backspace':
       if (overview) { e.preventDefault(); break; }
-      if (!advanceReveal()) nextChunk();
+      goBack(); e.preventDefault(); break;
+    case 'ArrowDown':
+    case 'PageDown':
+    case ' ': {
+      if (overview) { e.preventDefault(); break; }
+      goForward();
       e.preventDefault(); break;
     }
     case 'Enter': {
       if (overview) { toggleOverview(); e.preventDefault(); break; }
-      const entry = flatChunks[state.activeIdx];
-      if (entry && entry.el.querySelector('.exp-chev[data-exp="0"]')) toggleExp(state.activeIdx, 0);
+      goForward();
       e.preventDefault(); break;
     }
     case '1': case '2': case '3': case '4': case '5':
@@ -7147,6 +7246,53 @@ function panToElement(el) {
   focusCamera(false);
 }
 
+// ── where the arrows will take you ────────────────────────────────
+// Two facts about the current slide that the picture cannot carry and that
+// the keys otherwise only reveal by being pressed: this is the chunk where
+// sideways changes column, and this is the chunk where forward leaves the
+// column. Both are drawn at the viewport edge rather than on the slide, so
+// nothing in the author's layout moves, and both are quiet enough to sit on
+// a projection – they are a compass, not a control.
+function buildNavHints() {
+  const vp = document.getElementById('stage-viewport');
+  if (!vp || document.getElementById('nav-hints')) return;
+  const wrap = document.createElement('div');
+  wrap.id = 'nav-hints';
+  wrap.setAttribute('aria-hidden', 'true');
+  for (const dir of ['left', 'right', 'down']) {
+    const s = document.createElement('span');
+    s.dataset.hint = dir;
+    s.textContent = dir === 'down' ? '\u2304' : dir === 'left' ? '\u2039' : '\u203A';
+    wrap.appendChild(s);
+  }
+  vp.appendChild(wrap);
+}
+
+function updateNavHints() {
+  const wrap = document.getElementById('nav-hints');
+  if (!wrap) return;
+  const i = state.activeIdx;
+  const c = flatChunks[i];
+  const show = (dir, on) => {
+    const el = wrap.querySelector('[data-hint="' + dir + '"]');
+    if (el) el.toggleAttribute('data-on', !!on);
+  };
+  // Blanking darkens the audience stage only, so the cockpit is exactly where
+  // the marks are still wanted: the lecturer is navigating with the room dark.
+  if (!c || overview || (state.blanked && VIEW === 'audience')) {
+    show('left', false); show('right', false); show('down', false);
+    return;
+  }
+  // Sideways is the column key here, and only here – the same fact the key
+  // map reads, so a mark can never promise a move the key will not make.
+  show('left', c.sideways.left);
+  show('right', c.sideways.right);
+  // Forward leaves the column – but only once there is nothing left to
+  // reveal, because until then forward is still working on this slide.
+  const beatsLeft = (revealed[c.id] ?? (countSegments(c.el) ? 1 : 0)) < countSegments(c.el);
+  show('down', c.colLast && !beatsLeft && i + 1 < flatChunks.length);
+}
+
 // Touch control rail (audience only). The element is rendered only
 // in audience.html; speaker.html doesn't include it, so this no-ops
 // there. CSS hides the rail on fine-pointer devices.
@@ -7158,8 +7304,8 @@ function wireTouchControls() {
     if (!btn) return;
     e.stopPropagation();
     switch (btn.dataset.action) {
-      case 'prev':      prevChunk(); break;
-      case 'next':      if (!advanceReveal()) nextChunk(); break;
+      case 'prev':      goBack(); break;
+      case 'next':      goForward(); break;
       case 'overview':  toggleOverview(); break;
       case 'zoom-in':
         if (focusedFigure) setFigureScale(figureScale * 1.2);
@@ -7217,6 +7363,8 @@ wireEmbeds();
 wireClicks();
 wireFigureClicks();
 wireTouchControls();
+markColumnEdges();
+buildNavHints();
 initDiagrams();
 applyRevealAll();
 applyState();

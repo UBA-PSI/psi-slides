@@ -319,9 +319,10 @@ Second consequence, which is the punchline.
 
 Semantics:
 
-- **Forward navigation into the chunk.** Entering via `↓`, `→`, overview, or deep-link shows segment 0 only. Subsequent segments are hidden.
-- **`Space`** and **`↓`** (identical): advance to the next segment on the active chunk. When all segments are visible, either key passes through to “next chunk” navigation, so one key is the single forward key for a whole column. `↓` used to skip the reveals entirely, which meant navigating with the arrows silently swallowed every segmented slide.
-- **Backward navigation** (`↑`, `←`, or entering an earlier chunk from the overview): the target chunk is shown **fully revealed**. Reveal is a forward-only live-pacing mechanism; it does not need to be re-performed on revisit. The speaker coming back to answer a question sees everything they already showed.
+- **Forward navigation into the chunk.** Entering via a forward key, overview, or deep-link shows segment 0 only. Subsequent segments are hidden.
+- **Forward** – `Space`, `↓`, `Enter`, `PageDown`, and `→` (see §5 for the one place `→` means something else): advance to the next segment on the active chunk. When all segments are visible, any of them passes through to “next chunk” navigation, so one key is the single forward key for a whole lecture. `↓` used to skip the reveals entirely, which meant navigating with the arrows silently swallowed every segmented slide.
+- **Backward** – `↑`, `PageUp`, `Backspace`, and `←`: **take the last segment back**, and when the chunk is at its opening state, step to the previous chunk. Reveal is not a forward-only mechanism: a figure that assembles itself is often worth assembling twice, and a lecturer who has just finished building one and sees a puzzled room needs to be able to run it again without leaving the slide and coming back. The machinery was always symmetric – every beat's state is recomputed from the counter on each apply, and a diagram step renders in either direction – so this was a property of the key map rather than of the design.
+- **Entering an earlier chunk from anywhere else** (`↑` from a chunk at its opening state, the overview, a deep link): the target chunk is shown **fully revealed**. It does not need to be re-performed on revisit; the speaker coming back to answer a question sees everything they already showed, and `←` then walks back into it if they want to replay it.
 - **Camera.** Reveal never moves the camera. The slide stays framed; segments fade in place.
 - **Speaker view.** Only the currently-focused slide reflects live reveal state. The next-previews pane and any scrubber thumbnail always show slides **fully revealed**, so the speaker can see where each upcoming slide will land.
 - **Print view.** Reveal separators are invisible. Print always shows the full body in reading order.
@@ -465,13 +466,13 @@ Density budget per chunk: body text should occupy no more than ~12 line-heights 
 
 ## 5. Camera and navigation
 
-**Motion vocabulary:**
-- → (Right arrow or `L`): next column.
-- ← : previous column.
-- ↓ (Down arrow or `J`): next chunk in current column.
-- ↑ : previous chunk.
-- `Space` / `↓`: next reveal segment in current chunk (§4.6). When fully revealed, either passes through to next-chunk navigation. `↑` steps back a chunk and does not un-reveal.
-- `Enter` or click chevron: open the active chunk's expansion.
+**Motion vocabulary.** Two families, forward and backward, the way a presentation tool is expected to behave: perform the slide, then move to the next one. The column exception is the one thing this deck has that a linear one does not, and the slide says so rather than leaving it to be discovered by pressing a key.
+
+- **Forward** – `Space`, `↓`, `Enter`, `PageDown`: the next reveal segment or diagram step on this chunk (§4.6); when there is none left, the next chunk in reading order, crossing into the next column at the end of one.
+- **Backward** – `↑`, `PageUp`, `Backspace`: the segment or step before it; when the chunk is at its opening state, the previous chunk, crossing back into the previous column at the start of one.
+- **→ / ←** are that same pair, **except on the first chunk of a column where there is a column that way**, in which case they are next / previous column. Both halves matter. The first chunk is the only one a column can be entered at, so it is the only place a second dimension exists; and on the head of the *last* column there is no such dimension, so the key stays plain forward. Reading only the first half is a real bug rather than a nicety: the fallback in `nextCol` clamps to the end of the deck, so one press on the head of the last column skipped six slides, and on a single-column lecture it skipped the whole lecture. The key map and the marks below read the same field for exactly this reason.
+- **The marks at the viewport edge** say which of those two situations this is: `‹ ›` on the first chunk of a column, where sideways changes column; `⌄` when forward has nothing left to reveal and will leave the column next. Drawn at the edge rather than on the slide, quiet enough to sit on a projection, and absent on the overview board and behind a blanked screen.
+- Click the chevron to open the active chunk's expansion (`1`–`9` opens the n-th).
 - `1`–`9`: open the nth expansion on the active chunk.
 - `Esc`: collapse expansion, return to parent chunk. In overview, dismiss without moving.
 - `O`: toggle birds-eye overview (see below).

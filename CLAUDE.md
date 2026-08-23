@@ -74,6 +74,16 @@ node lint.js lectures/                         # all lectures
 node lint.js lectures/tutorial/source.md       # single file
 node lint.js lectures/ --strict                # warnings → exit 2
 
+# browser suite – the three things that only break in a built page: the
+# navigation model, the editor's handling of an edge, and the waypoint
+# round-trip. Builds and serves the lecture itself, so it never reports on
+# stale HTML. Needs a Chromium ($PSI_CHROME, the Playwright cache, or system
+# Chrome); ~30s. Run it after touching AUDIENCE_JS, the key map, editor.mjs
+# or createSpanTable. Not a unit-test suite: anything checkable without a
+# browser belongs in lint.js, where it runs on every commit.
+node test/run.mjs                              # all specs
+node test/run.mjs nav                          # specs whose name matches
+
 # project site (GitHub Pages)
 node docs/site/build-site.js _site              # assemble the site into _site/
 node docs/site/shoot.mjs                        # re-shoot its seven screenshots
@@ -242,7 +252,7 @@ Three decisions carry the design, and none of them should be traded away casuall
 
 Consequences worth not breaking:
 
-- **Steps ride the existing reveal counter.** `chunkBeats(el)` walks the chunk in document order and returns the reveal segments after the first, plus one beat per diagram step. `revealed[chunkId]` stays the only state involved, so sync, the freeze gate, the backward-navigation rule ("a revisited chunk shows fully revealed"), and localStorage recovery all came for free. `countSegments` now returns *positions* (beats + 1), which is the convention `jumpTo` and `advanceReveal` were already written against. Document order also gets the interleaving right: a diagram inside segment 1 only advances once segment 1 is up.
+- **Steps ride the existing reveal counter.** `chunkBeats(el)` walks the chunk in document order and returns the reveal segments after the first, plus one beat per diagram step. `revealed[chunkId]` stays the only state involved, so sync, the freeze gate, the backward-navigation rule ("a chunk *arrived at* from elsewhere shows fully revealed"), and localStorage recovery all came for free. `countSegments` now returns *positions* (beats + 1), which is the convention `jumpTo` and `advanceReveal` were already written against. **Stepping backwards costs nothing beyond the counter**: `applyReveal` recomputes every beat's state from `revealed[id]` on each call and `dgStep` renders any step in either direction, so `retreatReveal` is `advanceReveal` with the sign flipped. Reveal was forward-only in the *key map*, never in the mechanism – see PRD §4.6 and §5 for the two key families and the one column exception. Document order also gets the interleaving right: a diagram inside segment 1 only advances once segment 1 is up.
 - **Visibility runs downhill: one rule, three faces.** An edge is only as visible as its endpoints; a `container` / `brace` only as visible as its members, *and it fits the visible ones*; a `text` that grew a leader only as visible as what it points at. An arrow pointing at a box that has not appeared, an outline around nothing, or a note whose stub leads nowhere is never what the author meant, so most of a diagram needs no `show` of its own. All three resolve in `dgFrameDrawables` by writing 0 into `vis` after `record()`; the container's fit is in `layoutDiagram` and falls back to all members when none is visible, because a zero-extent box would poison the viewBox.
 - **Print is the last beat, without the emphasis – not the union.** It used to be the union of every beat, and that printed a `hide`n element on top of whatever replaced it. Everything shown and never hidden is in the last beat anyway, so the two readings differ only where the author said `hide`, and there the last beat is the one that means "the finished picture". `emph` and `dim` are stripped: they are lecture-time acts, and a handout that arrives with three arrows greyed out is reporting a moment in the talk rather than the diagram. The static attributes in the emitted SVG *are* the print state, so a view with no JavaScript shows the finished picture rather than its opening beat.
 - **Two viewBoxes, and the static one is print's.** Print wants the finished picture tight; a live view has to reserve room for every beat or an element walking in from outside is clipped for its whole journey. So the `viewBox` attribute is the print box and `data-live-viewbox` carries the union, which `initDiagrams` swaps in at boot (with `data-live-ratio` for the intrinsic height). Emitting the union statically printed a band of empty paper the height of wherever something started out.
