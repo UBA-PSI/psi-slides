@@ -44,6 +44,10 @@ node build.js <source.md> --optimize-images --max-width 2600   # also downscale
 # diagrams need no flag either: a ::: diagram block compiles to inline SVG
 # at build time, and its `step` blocks become beats on the reveal counter.
 # See "Animated infographics" below and lectures/diagrams/source.md.
+# The graphical editor for those blocks ships into the live views whenever
+# the lecture has one; `editor: none` in the frontmatter declines it, and
+# `editor: speaker` keeps it out of the projection. Click a diagram, then the
+# button in the corner of the focus card. Spec and build log: editor.md.
 
 # math needs no flag: $inline$ and $$display$$ render via KaTeX during the
 # build. The KaTeX stylesheet plus the font families the formulas use are
@@ -357,6 +361,7 @@ Two things worth knowing before writing chunks, both learned the hard way:
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 tag vocabulary, §3 source format + parsing contract, §4 visual language, §7 view architecture. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
+- `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§13, a build log written while building** – what landed, what it cost, and what bit. Read §13 first if you are picking the work up. §14 answers the two questions the plan deliberately left open, from the running prototype.
 - `editor.md` – **plan only, nothing implemented**: the graphical editor for `::: diagram`. §11 is the build brief (files, export surface, span API, per-phase verification, the inlining traps). §9 is the design: which token each drag rewrites, and the guides that draw the relations a rendered figure hides. §3.2 and §3.3 are **phase 0 and land before any editor work**: lecture-wide `diagram-defaults`, and the four gaps a visual editor exposes (`.clear`, `.serif`, a background behind free `text`, `pad` on boxes, `.fit`/`.shrink`) – 24 classes become 28. §3.3 also records what the grammar *already* covers, verified against the code, including that `edge 0.4,1 -- 3,1` is a plain straight line today. §8.1 proposes extracting the diagram compiler into `diagram-core.mjs` so it runs in Node and in the browser from one text, which would also let `lint.js` import the thirteen vocabulary tables it mirrors by hand today.
 - `HANDOFF.md` – slice-by-slice build diary in German/English mix. Latest sections describe current state and deliberate non-choices. Update when landing a substantial slice.
 - `README.md` – short public-facing intro.
