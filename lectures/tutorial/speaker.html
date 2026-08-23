@@ -1308,6 +1308,36 @@ body[data-view=speaker] #laser-pointer { display: none; }
    The element doesn't exist in speaker.html. The CSS @media gate
    self-adapts: an iPad with a Magic Keyboard re-classifies as a fine
    pointer and the rail disappears. */
+/* Where the arrows will take you. Sits at the viewport edge, not on the
+   slide, so nothing in the author's layout moves for it; painted in
+   --ink-soft at a fifth of full strength, which reads as a compass on a
+   projection and disappears in a photograph of one. The two sideways marks
+   only ever appear on the first chunk of a column, which is the only place
+   the sideways keys change column; the one below appears when forward has
+   nothing left to reveal and will leave the column next. */
+#nav-hints span {
+  position: absolute;
+  color: var(--ink-soft);
+  opacity: 0;
+  font-size: 1.5em;
+  line-height: 1;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+}
+#nav-hints span[data-on] { opacity: 0.22; }
+#nav-hints span[data-hint=left]  { left: 0.5em;  top: 50%; transform: translateY(-50%); }
+#nav-hints span[data-hint=right] { right: 0.5em; top: 50%; transform: translateY(-50%); }
+#nav-hints span[data-hint=down]  { bottom: 0.15em; left: 50%; transform: translateX(-50%); }
+/* On the cockpit the mirror is scaled down, so the marks would be shrunk to
+   nothing beside chrome that is not. The speaker is also the person who has
+   to plan against them, so they are a little louder there. */
+body[data-view=speaker] #nav-hints span[data-on] { opacity: 0.45; }
+body:not([data-view=speaker]).blanked #nav-hints span,
+/* The board has its own 2D map and its own arrow meanings; a compass for the
+   slide keys would be pointing at the wrong thing. Done in CSS because
+   setOverviewMode does not always go through applyState. */
+body.overview-mode #nav-hints span { opacity: 0 !important; }
+
 #touch-controls { display: none; }
 @media (pointer: coarse) {
   #touch-controls {
@@ -2572,7 +2602,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">What you&#39;re reading right now</span> <span class="hd-sub">is the audience view</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>You are in <code>audience.html</code>.</strong> It is the projector-facing view: one chunk occupies the slide, keyboard nav moves between chunks, and any speaker connected via postMessage mirrors state here in real time.</p>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>You are in <code>audience.html</code>.</strong> It is the projector-facing view: one chunk occupies the slide, the keyboard moves between chunks, and a speaker window, once you open one, mirrors everything here in real time.</p>
 <div class="cols cols-2">
 
 
@@ -2605,17 +2635,17 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <article class="chunk chunk-example" id="arrows" data-chunk-id="arrows" data-tag="example" data-width="standard" data-chunk-num="5">
   <div class="chunk-content">
     
-    <h2 class="chunk-heading has-sub"><span class="hd-main">Arrows and Space</span> <span class="hd-sub">navigate chunks, reveal segments</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Three key-families carry the whole live-talk navigation:</strong></p>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Forward and back</span> <span class="hd-sub">plus a sideways pair for columns</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Live navigation is two key families, forward and back, and a sideways pair that changes column.</strong></p>
 <ul>
-<li><code>←</code> <code>→</code> move between <strong>columns</strong> – the top-level sections headed <code># Name</code>.</li>
-<li><code>↑</code> moves back a <strong>chunk</strong>; each <code>## tag: …</code> is one chunk.</li>
-<li><code>↓</code> and <code>Space</code> are the same key: they reveal the next <strong>segment</strong>, and once a chunk is fully out, move on to the next one. A chunk splits into segments at standalone <code>---</code> lines. Try it now:</li>
+<li><strong>Forward</strong> is <code>Space</code>, <code>↓</code>, <code>Enter</code> or <code>PageDown</code>. It uncovers the next <strong>segment</strong> of the chunk you are on; once there is nothing left to uncover it moves to the next chunk, and at the end of a column it carries on into the next column.</li>
+<li><strong>Back</strong> is <code>↑</code>, <code>PageUp</code> or <code>Backspace</code>. It puts the last segment away again, and it leaves the chunk only once the chunk is back at its opening state.</li>
+<li><code>→</code> and <code>←</code> are that same pair, except on the <strong>first chunk of a column</strong>, where they mean next column and previous column. A <code># Name</code> heading starts a column; each <code>## tag: …</code> is one chunk. Press forward now:</li>
 </ul>
 </div>
-<div class="reveal-segment" data-seg="1" data-hidden><p><strong>Good – you just revealed a segment.</strong> In the source, a line with only <code>---</code> (outside a code fence) breaks the chunk body into reveal segments. The first is visible on entry; each <code>↓</code> or <code>Space</code> uncovers the next, and past the last, either key advances to the next chunk.</p>
-<p>The two keys behave identically on purpose. <code>↓</code> used to skip straight to the next chunk, which meant walking a lecture with the arrows silently swallowed every reveal on the way – and remembering to switch keys for exactly the segmented slides is the sort of thing that goes wrong in front of a room.</p>
-<p><strong>The cockpit shows you what comes next.</strong> With a speaker window open, look at this slide there: the segment the next keypress will reveal is already drawn in place, hatched and inside a dashed frame, so you can read ahead without the room seeing it. Only the immediately next one – the segments behind it stay hidden, or the preview would just be the whole chunk with decoration on top.</p>
+<div class="reveal-segment" data-seg="1" data-hidden><p><strong>Good – you just revealed a segment.</strong> In the source, a line with only <code>---</code> (outside a code fence) breaks the chunk body into reveal segments. The first is visible when you arrive; forward uncovers the next, back puts it away.</p>
+<p><strong>Faint marks at the edge of the slide flag the two exceptions.</strong> <code>‹ ›</code> appear only on a chunk where sideways changes column, and <code>⌄</code> appears only when the next forward press will leave the column. They are a compass rather than a control – there is nothing to click.</p>
+<p><strong>The cockpit shows you what comes next.</strong> With a speaker window open, look at this slide there: the segment the next forward press will reveal is already drawn in place, hatched and inside a dashed frame, so you can read ahead without the room seeing it. Only the immediately next one – the segments behind it stay hidden, or the preview would just be the whole chunk with decoration on top.</p>
 </div>
 <div class="reveal-segment" data-seg="2" data-hidden><p><strong>One more, to show chaining.</strong> Reveal lets you pace dense content during a live talk without dumping everything at once, and in print all segments render together as one flowing body.</p>
 </div></div>
@@ -2633,8 +2663,8 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <article class="chunk chunk-example" id="expand" data-chunk-id="expand" data-tag="example" data-width="wide" data-chunk-num="6">
   <div class="chunk-content">
     
-    <h2 class="chunk-heading has-sub"><span class="hd-main">Expansions</span> <span class="hd-sub"><code>Enter</code> and <code>1</code>-<code>9</code> open side asides</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Some chunks have extra detail tucked behind a chevron button.</strong> Click one, or press <code>Enter</code> for the first, or <code>1</code>…<code>9</code> for the N-th. This chunk has two expansions – try both.</p>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Expansions</span> <span class="hd-sub"><code>1</code>-<code>9</code> or the chevron open side asides</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Some chunks have extra detail tucked behind a chevron button.</strong> Click one, or press <code>1</code>…<code>9</code> for the n-th. This chunk has two expansions – try both.</p>
 <p><strong>Print collapses all expansions</strong> into block-quoted asides in source order, so the reading copy loses nothing.</p>
 </div></div>
     
@@ -2652,8 +2682,8 @@ body[data-view=speaker].preview-right #preview-resizer::after {
          <span class="caret">›</span>
        </button></div>
   <aside class="exp-body" data-exp-body="0">
-      <div class="tag-label">enter-and-digits</div>
-      <p><strong><code>Enter</code> opens the first expansion, digits open specific ones.</strong> This is expansion number 1. Press <code>Esc</code> to close, or <code>2</code> to switch to the second expansion directly – no need to close first.</p>
+      <div class="tag-label">digits-and-chevrons</div>
+      <p><strong>A digit opens the expansion with that number.</strong> This is expansion number 1. Press <code>Esc</code> to close, or <code>2</code> to switch to the second expansion directly – no need to close first. <code>Enter</code> does not open expansions; it is one of the forward keys.</p>
 <p>In source, an expansion is authored with <code>::: expand &lt;label&gt;</code> … <code>:::</code>. The label shows in the expanded pane header; the chevron button gets an abbreviation (<code>Exp</code> for unknown labels, <code>Ex</code> / <code>Ref</code> / <code>Fig</code> / <code>?</code> / <code>N.B.</code> / <code>!</code> for known families).</p>
 
     </aside>
@@ -2850,7 +2880,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
        </button></div>
   <aside class="exp-body" data-exp-body="0">
       <div class="tag-label">answer-in-practice</div>
-      <p><strong>In practice you will mix them inside one lecture.</strong> Principles and questions tend to be argument-shaped and do fine derived; long Befund or walkthrough chunks are usually easier to write with an explicit <code>::: slide</code>.</p>
+      <p><strong>In practice you will mix them inside one lecture.</strong> Principles and questions tend to be argument-shaped and do fine derived; a long finding or a walkthrough is usually easier to write with an explicit <code>::: slide</code>.</p>
 <p>The tag vocabulary is a good predictor: <code>principle</code> and <code>question</code> chunks are short enough that derivation rarely bites, while <code>example</code> and <code>free</code> chunks at the top of their density budget are where the explicit mode earns its keep.</p>
 
     </aside>
@@ -2904,7 +2934,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Try the vocabulary</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Open <code>lectures/tutorial/source.md</code> with <code>--watch</code> running and change three things.</strong> Every save rebuilds and reloads all open tabs over a WebSocket, so keep the audience, the speaker, and your editor visible at once.</p>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Open <code>lectures/tutorial/source.md</code> with <code>--watch</code> running and change three things.</strong> Every save rebuilds and reloads every open tab, so keep the audience, the speaker and your text editor visible at once.</p>
 <div class="cols cols-2">
 
 
@@ -2936,7 +2966,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Speaker view</span> <span class="hd-sub">the other window <code>S</code> spawned</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>The speaker view is the four-lane cockpit.</strong> Press <code>S</code> in this audience view if you have not already – it opens <code>speaker.html</code> as a popup, and both windows adopt each other as peers over <code>window.postMessage</code>.</p>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>The speaker view is the four-lane cockpit.</strong> Press <code>S</code> in this audience view if you have not already – it opens <code>speaker.html</code> as a popup, and from then on the two windows talk to each other directly, with no server in between.</p>
 <div class="cols cols-2">
 
 
@@ -2947,7 +2977,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <li><strong>Editable notes pane</strong> below the stage, collapsed when the chunk has no notes.</li>
 <li><strong>Preview strip</strong> of all chunks, scrollable and clickable.</li>
 </ul>
-<p><strong>Everything stays in sync.</strong> Chunk changes, reveal state, annotations, theme, font, zoom, expansion state, overview framing, figure focus, and the laser pointer all flow through postMessage snapshots. <code>V</code> freezes the projection when you want to read ahead without the room following, and thawing catches the room up to wherever you got to.</p>
+<p><strong>Everything stays in sync.</strong> Chunk changes, reveal state, annotations, theme, font, zoom, expansion state, overview framing, figure focus and the laser pointer all travel between the two windows. <code>V</code> freezes the projection when you want to read ahead without the room following, and unfreezing catches the room up to wherever you got to.</p>
 </div></div></div>
     
     <aside class="annot-box" data-annot-for="speaker-s">
@@ -2978,7 +3008,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 </div>
 
 
-<p>The notes pane starts at automatic height: one line when empty, up to three when it has content, collapsed entirely when the chunk has no notes at all. Once you drag it, the height becomes fixed and is remembered across lectures and reloads, which is usually what you want on a fixed lectern screen. The stage above it is a <code>1fr</code> grid row, so it gives up exactly the space the notes take and the audience mirror stays letterboxed at the projector&#39;s aspect ratio rather than distorting.</p>
+<p>The notes pane starts at automatic height: one line when empty, up to three when it has content, collapsed entirely when the chunk has no notes at all. Once you drag it, the height becomes fixed and is remembered across lectures and reloads, which is usually what you want on a fixed lectern screen. The stage above gives up exactly the space the notes take, so the audience mirror stays letterboxed at the projector&#39;s aspect ratio rather than stretching to fill.</p>
 <p>Vertical preview mode is worth trying on any screen with horizontal room to spare: the thumbnails get larger and their text becomes legible, which turns the strip from a position indicator into something you can actually read ahead in. Both the strip&#39;s height and its width are remembered separately, so flipping the orientation and flipping back returns each one to the size you gave it.</p>
 </div></div>
     
@@ -3001,11 +3031,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 
 
 <p><strong><code>N</code> (both views) is an annotation on the current chunk.</strong> A textarea appears under the chunk; whatever you type is mirrored keystroke-by-keystroke to the other view. Use it for live marginalia – a rule you want on screen, a question you captured from the room, a correction during a talk.</p>
-<p>Annotations persist in localStorage per lecture and travel with state snapshots. <code>Shift-E</code> on the speaker copies every live annotation as <code>&gt; annot:</code> Markdown to your clipboard; paste it under the matching chunk heading in <code>source.md</code>, run <code>node build.js &lt;source.md&gt; --integrate-annotations</code>, and the text becomes a permanent Presentation Note – prefilled into the audience textarea and rendered inline in print.</p>
+<p>Annotations are kept in the browser, per lecture, and travel to the other window as you type. <code>Shift-E</code> on the speaker copies every live annotation as <code>&gt; annot:</code> Markdown to your clipboard; paste it under the matching chunk heading in <code>source.md</code>, run <code>node build.js &lt;source.md&gt; --integrate-annotations</code>, and the text becomes a permanent Presentation Note – prefilled into the audience textarea and rendered inline in print.</p>
 </div><div class="side-b">
 
 
-<p><strong><code>Shift-N</code> (speaker only) opens the private notes pane</strong> below the slide. This is <em>your</em> memory aid, never mirrored. The pane is pre-filled from <code>&gt; note: …</code> lines in source; your in-talk edits override the source text and persist per chunk in localStorage.</p>
+<p><strong><code>Shift-N</code> (speaker only) opens the private notes pane</strong> below the slide. This is <em>your</em> memory aid, never mirrored. The pane is pre-filled from <code>&gt; note: …</code> lines in source; your in-talk edits override the source text and are kept in the browser, per chunk.</p>
 <p>If the pane is collapsed because this chunk has no notes, the corner <code>+ note</code> button on the stage does the same thing as <code>Shift-N</code>.</p>
 <p><code>print-notes.html</code> is the third home for the same text: the print document with every <code>&gt; note:</code> folded in under its chunk. That is the file to hand out when you want “what was on the slide, plus what the lecturer said”.</p>
 </div></div></div></div>
@@ -3210,7 +3240,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     <h2 class="chunk-heading has-sub"><span class="hd-main">Video</span> <span class="hd-sub">a clip is a figure that moves</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Drop <code>clip.mp4</code> into <code>assets/</code> and write <code>![](clip)</code></strong> – the same shorthand as an image. The build searches the video extensions after the image ones, so an id with both a poster and a clip still resolves to the still.</p>
 <p><figure class="figure-video" data-fig-id="reveal-demo"><video src="data:video/mp4;base64,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" controls preload="metadata" playsinline></video></figure></p>
-<p>That player is a real clip, inlined into this file: 34 KB, and it shows the three reveal stages of the <em>Arrows and Space</em> slide you walked through earlier. Press play; then look at the address bar and note that nothing was fetched.</p>
+<p>That player is a real clip, inlined into this file: 34 KB, and it shows the three reveal stages of the navigation slide you walked through earlier. Press play; then look at the address bar and note that nothing was fetched.</p>
 <p>Clips are inlined like any other asset, up to a separate 12 MB per-file cap: a clip is an order of magnitude heavier than a diagram, and the 2 MB image cap would reject every real one. Over the cap the build tells you the <code>ffmpeg</code> line that fixes it.</p>
 <p><strong>There is no separate fullscreen setting, on purpose.</strong> The native player already has a fullscreen button, and how large the clip sits on the slide is the chunk&#39;s width class – exactly like a still figure. Clicking a clip does <em>not</em> zoom it into the figure card either, because that would fight the play button.</p>
 <p><strong>A clip can also live on a web server:</strong> <code>![](https://host/clip.mp4)</code> works and stays an ordinary <code>&lt;video&gt;</code> element, so play, pause and seeking still synchronise between the two windows.</p>
@@ -3287,7 +3317,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Diagrams</span> <span class="hd-sub"><code>::: diagram</code> draws boxes and arrows from text</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A <code>::: diagram</code> block is a figure written in the source and compiled to inline SVG at build time.</strong> You name the pieces and say where they go; the arrows between them are computed.</p>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A <code>::: diagram</code> block is a figure written in the lecture source and drawn into the page as vector artwork at build time.</strong> You name the pieces and say where they go; the arrows between them are computed.</p>
 <figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-61.95 -41.38 556.48 173.68" width="2000" height="624" data-live-viewbox="-61.95 -41.38 556.48 173.68" data-live-ratio="0.312098" data-steps="3" role="img" aria-label="Diagrams" preserveAspectRatio="xMidYMid meet">
 <g id="dg1-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg1-edge-1--p" class="dg-stroke" d="M37.98 0.00L105.92 0.00" fill="none"/><path id="dg1-edge-1--h" class="dg-head" d="M113.57 0.00L104.57 3.96L104.57 -3.96Z"/><g id="dg1-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(75.78,-15.38)"><g id="dg1-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">encrypted</tspan></text></g></g></g>
 <g id="dg1-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg1-edge-2--p" class="dg-stroke" d="M167.57 0.00L235.53 0.00" fill="none"/><path id="dg1-edge-2--h" class="dg-head" d="M243.18 0.00L234.18 3.96L234.18 -3.96Z"/><g id="dg1-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(205.38,-15.38)"><g id="dg1-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">recoded</tspan></text></g></g></g>
@@ -3298,15 +3328,15 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <g id="dg1-dst" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg1-dst--r" x="243.18" y="-18.38" width="105.65" height="36.75" rx="4"/><g id="dg1-dst--lw0" data-lab="dst--l" class="dg-lwrap" transform="translate(296.00,0.00)"><g id="dg1-dst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Empfänger</tspan></text></g></g></g>
 <g id="dg1-log" data-base="dg-el dg-box" class="dg-el dg-box dashed"><rect id="dg1-log--r" x="101.47" y="83.17" width="78.20" height="36.75" rx="4"/><g id="dg1-log--lw0" data-lab="log--l" class="dg-lwrap" transform="translate(140.57,101.55)"><g id="dg1-log--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Logfile</tspan></text></g></g></g>
 <g id="dg1-why" data-base="dg-el dg-text" class="dg-el dg-text hand"><g id="dg1-why--lw0" data-lab="why--l" class="dg-lwrap" transform="translate(347.83,101.55)"><g id="dg1-why--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">this is where</tspan><tspan x="0" y="14.48">the anonymity ends</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg1-root">{"p":"dg1-","n":3,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-1--l":"text","edge-2--p":"path","edge-2--h":"path","edge-2--l":"text","leak--p":"path","leak--h":"path","why--lead--p":"path","src--r":"rect","src--l":"text","mix--r":"rect","mix--l":"text","dst--r":"rect","dst--l":"text","log--r":"rect","log--l":"text","why--l":"text"},"names":["leak","blame"],"frames":[{"vis":{"src":1,"mix":1,"dst":1,"log":0,"why":1,"edge-1":1,"edge-2":1,"leak":0,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"","edge-2":"","leak":"dashed","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55],"why--l":[347.83,101.55],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"","edge-2":"","leak":"dashed","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55],"why--l":[347.83,101.55],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed emph","why":"hand","edge-1":"","edge-2":"","leak":"dashed emph","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55],"why--l":[347.83,101.55],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  src  \"Sender\"\nbox  mix  \"Mix\"        right of src gap 0.6\nbox  dst  \"Empfänger\"  right of mix gap 0.6\nbox  log  \"Logfile\"    below mix gap 0.9  {.dashed}\n\nedge src -> mix \"encrypted\"\nedge mix -> dst \"recoded\"\nedge mix -> log {#leak .dashed}\n\ntext why \"this is where\\nthe anonymity ends\"  right of log gap 0.8 -> leak {.hand}\n\nstep leak\n  show log\nstep blame\n  emph leak, log","attrs":"unit=126x72","range":[35184,35563],"chunk":"diagram","width":"full","alt":"Diagrams"}</script></figure>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg1-root">{"p":"dg1-","n":3,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-1--l":"text","edge-2--p":"path","edge-2--h":"path","edge-2--l":"text","leak--p":"path","leak--h":"path","why--lead--p":"path","src--r":"rect","src--l":"text","mix--r":"rect","mix--l":"text","dst--r":"rect","dst--l":"text","log--r":"rect","log--l":"text","why--l":"text"},"names":["leak","blame"],"frames":[{"vis":{"src":1,"mix":1,"dst":1,"log":0,"why":1,"edge-1":1,"edge-2":1,"leak":0,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"","edge-2":"","leak":"dashed","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55],"why--l":[347.83,101.55],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"","edge-2":"","leak":"dashed","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55],"why--l":[347.83,101.55],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed emph","why":"hand","edge-1":"","edge-2":"","leak":"dashed emph","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55],"why--l":[347.83,101.55],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  src  \"Sender\"\nbox  mix  \"Mix\"        right of src gap 0.6\nbox  dst  \"Empfänger\"  right of mix gap 0.6\nbox  log  \"Logfile\"    below mix gap 0.9  {.dashed}\n\nedge src -> mix \"encrypted\"\nedge mix -> dst \"recoded\"\nedge mix -> log {#leak .dashed}\n\ntext why \"this is where\\nthe anonymity ends\"  right of log gap 0.8 -> leak {.hand}\n\nstep leak\n  show log\nstep blame\n  emph leak, log","attrs":"unit=126x72","range":[35469,35848],"chunk":"diagram","width":"full","alt":"Diagrams"}</script></figure>
 
 
 <p><strong>Placement is a grid cell or a relation to a neighbour</strong> – <code>at 2,1</code>, or <code>right of mix gap 0.6</code>, or <code>below src gap 0 align left</code> for boxes that touch. The first element sits at the origin so a simple diagram needs no coordinates at all. There is no automatic layout, on purpose: where things go is usually part of what the picture is saying.</p>
-<p><strong>A coordinate can name another element&#39;s, with a signed nudge</strong> – <code>at mix.cx,src.cy+0.4</code>, <code>via iv.cx,x0.cy</code>. Every slot that takes an <code>X,Y</code> pair takes that form, so a figure survives a change above it instead of needing three numbers read off a screen. Element names are letters, digits, <code>_</code> and <code>-</code>, because <code>mix.cx</code> has to be readable as one thing; a comment line starts with <code>#</code>.</p>
-<p><strong><code>step</code> blocks make it move, and <code>Space</code> is the key.</strong> Diagram steps are beats on the same counter as reveal segments, so they interleave with them in source order and the cockpit follows. The vocabulary is <code>show</code>, <code>hide</code>, <code>move … to</code>, <code>move … by</code>, <code>emph</code>, <code>calm</code>, <code>style</code> and <code>label</code>.</p>
+<p><strong>A coordinate can be another element&#39;s, plus or minus a little</strong> – <code>at mix.cx,src.cy+0.4</code>, <code>via iv.cx,x0.cy</code>. Every slot that takes an <code>X,Y</code> pair takes that form, so a figure survives a change above it instead of needing three numbers read off a screen. Element names are letters, digits, <code>_</code> and <code>-</code>, because <code>mix.cx</code> has to be readable as one thing; a comment line starts with <code>#</code>.</p>
+<p><strong><code>step</code> blocks make it move, and forward is the key.</strong> One step is one press of the same key that uncovers a reveal segment, so steps and segments interleave in the order you wrote them and the cockpit follows. The vocabulary is <code>show</code>, <code>hide</code>, <code>move … to</code>, <code>move … by</code>, <code>emph</code>, <code>calm</code>, <code>style</code> and <code>label</code>.</p>
 <p><strong>A moved box takes its arrows with it.</strong> The layout is evaluated again for every step rather than nudged, so an edge that connects two elements re-routes whenever either end moves – which is the one thing a diagram exported from a drawing tool can never do.</p>
-<p><strong>Visibility runs downhill.</strong> An arrow is only as visible as the two things it connects, a <code>container</code> or <code>brace</code> only as visible as its members – and it fits the ones on screen – and a <code>text</code> that grew a leader only as visible as what it points at. So revealing the boxes reveals the arrows between them, the outline around them and the note beside them, and most of a diagram needs no <code>show</code> of its own. Free <code>text</code> grows that leader with <code>-&gt; some-element</code>, which is how a label goes wherever it reads best without losing what it is about.</p>
-<p><strong>A picture can be an element too.</strong> <code>image alice avatar-alice w 0.4</code> resolves the asset exactly like <code>![](fig-id)</code> does. An SVG is spliced in as a nested <code>&lt;svg&gt;</code>, so it inherits <code>--ink</code> and <code>--paper</code> and re-colours with the <code>A</code> theme cycle; a raster is embedded as a <code>data:</code> URI and keeps its own colours in every theme. That is the trade, and it is the honest one.</p>
+<p><strong>Visibility runs downhill.</strong> An arrow is only as visible as the two things it connects; a <code>container</code> or <code>brace</code> only as visible as its members, and it fits the ones on screen; a <code>text</code> with a line drawn to something only as visible as the thing it points at. So revealing the boxes reveals the arrows between them, the outline around them and the note beside them, and most of a diagram needs no <code>show</code> of its own. A free <code>text</code> gets that line with <code>-&gt; some-element</code>, which is how a label goes wherever it reads best without losing what it is about.</p>
+<p><strong>A picture can be an element too.</strong> <code>image alice avatar-alice w 0.4</code> finds the file exactly like <code>![](fig-id)</code> does. An SVG is drawn into the page itself, so it inherits <code>--ink</code> and <code>--paper</code> and re-colours with the <code>A</code> theme cycle; a raster image is embedded as it is and keeps its own colours in every theme. That is the trade, and it is the honest one.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="diagram">
@@ -3322,14 +3352,14 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   <aside class="exp-body" data-exp-body="0">
       <div class="tag-label">The rest of the vocabulary</div>
       <p><code>dot</code> is a circle for junctions and glyphs. <code>container … over a,b,c</code> draws a box that fits itself around its members and re-fits when they move; <code>brace … over a,b right &quot;Label&quot;</code> is a bracket spanning a subset.</p>
-<p>An element also carries <strong>tags</strong>: <code>{#mix .tone-1 @crypto}</code>. Three sigils, three questions – <code>#</code> is identity, <code>.</code> is appearance, <code>@</code> is membership – and a tag is addressable wherever a name is, so <code>show @crypto</code> in a step covers every element carrying it. Membership sits on the element&#39;s own line, so adding one to a set is a local edit.</p>
-<p><code>align y middle a, b, c</code> lines up one coordinate – the axis is named because <code>center</code> and <code>middle</code> are near-synonyms and picking the wrong one is legal, silent and moves a whole block sideways – and <code>spread x a, …, z</code> gives equal spacing between centres. Both matter more than they sound: two columns built as separate <code>below</code> chains drift apart the moment their captions differ in height, and a line between two drifted boxes runs a degree off the axis and reads as a mistake.</p>
-<p>Placement also takes <code>between a,b</code> – the point on the line joining two elements, which is what a separator glyph or a note beside a connector actually wants – and any placement accepts a trailing <code>offset dx,dy</code>. An anchor can carry a fraction: <code>mix.right:0.3</code> slides the attachment point along that edge, so two arrows between the same pair of boxes come out parallel instead of as a lens.</p>
+<p>An element also carries <strong>tags</strong>: <code>{#mix .tone-1 @crypto}</code>. Three prefixes, three questions – <code>#</code> is identity, <code>.</code> is appearance, <code>@</code> is membership – and a tag can be written wherever a name can, so <code>show @crypto</code> in a step covers every element carrying it. Membership sits on the element&#39;s own line, so adding one to a set is a local edit.</p>
+<p><code>align y middle a, b, c</code> lines up one coordinate; the axis comes first because <code>center</code> and <code>middle</code> are near-synonyms, and picking the wrong one is legal, silent, and moves a whole block sideways. <code>spread x a, …, z</code> gives equal spacing between centres. Both matter more than they sound: two columns built as separate <code>below</code> chains drift apart the moment their captions differ in height, and a line between two drifted boxes runs a degree off the axis and reads as a mistake.</p>
+<p>Placement also takes <code>between a,b</code> – the point on the line joining two elements, which is what a separator glyph or a note beside a connector actually wants – and any placement accepts a trailing <code>offset dx,dy</code>. An anchor can carry a fraction: <code>mix.right:0.3</code> slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side instead of on top of each other.</p>
 <p>Against repetition there are two more: <code>default box {.tone-4} w 1.15</code> sets the base for every box in the diagram (add a tag – <code>default box @dec w 0.48</code> – to refine it for one set), and <code>same as create</code> copies another element&#39;s width and height. The same <code>default</code> lines go in a <code>diagram-defaults:</code> frontmatter key when a whole lecture&#39;s figures should look like each other – then a block&#39;s own <code>default</code> overrides the lecture&#39;s for that one figure, and changing the house style is one edit rather than twelve.</p>
-<p>And against measuring: a coordinate may be another element&#39;s coordinate. <code>edge iv -&gt; x0 via iv.cx,x0.cy</code> means <em>straight down from the IV, then across at the height of the XOR</em>, and it stays true when anything above it moves. A signed nudge (<code>mix.cx+0.2</code>) shifts it without giving up the relation. A class on an element displaces a default in the same slot rather than stacking with it, so <code>{.tone-1}</code> on one box still wins.</p>
+<p>And against measuring: a coordinate may be another element&#39;s coordinate. <code>edge iv -&gt; x0 via iv.cx,x0.cy</code> means <em>straight down from the IV, then across at the height of the XOR</em>, and it stays true when anything above it moves. Adding <code>+0.2</code> or <code>-0.2</code> (<code>mix.cx+0.2</code>) shifts it a little without giving up the relation.</p>
 <p>Inside a label, <code>_sub</code> and <code>^sup</code> shift a character or a <code>{group}</code>, <code>*accent*</code> colours a run and <code>~muted~</code> greys it. Classes come from a closed list – four <code>tone-*</code> fills mixed from the page&#39;s own inks plus <code>clear</code> for a see-through one, and <code>dashed</code>, <code>dotted</code>, <code>thick</code>, <code>round</code>, <code>mono</code>, <code>serif</code>, <code>hand</code>, <code>muted</code> and a few more – and <code>lint.js</code> rejects anything else, so a typo is a build error rather than an unstyled box. <strong>Every class occupies a slot</strong>, so <code>{.tone-1}</code> on one box displaces a <code>default box {.tone-4}</code> rather than stacking with it, and two members of one slot on one element is a lint warning.</p>
-<p><strong>Click the figure, and the button in the corner of the card opens a graphical editor for it.</strong> Drag a box and it rewrites one token – the <code>gap</code>, the <code>frac</code>, the signed nudge – never the relation the token sits in, so what you wrote survives what you dragged. The relations themselves are drawn while you work, which is the part a rendered diagram cannot show: two boxes 0.55 apart look exactly like two boxes that happen to be 0.55 apart. <code>editor: none</code> in the frontmatter ships the lecture without it.</p>
-<p>Two of them read the picture the other way round. <code>pad 0.3</code> sets how far a box&#39;s border sits from its own label – the same word <code>container</code> and <code>brace</code> already use – and <code>.fit</code> on a box with a given <code>w</code> sizes the <em>type</em> to fill the box instead of growing the box to the type, with <code>.shrink</code> for a label that may only ever get smaller. A free <code>text</code> that carries a tone draws its own ground, so a caption can sit on a panel without becoming a box.</p>
+<p><strong>Click the figure, and the button in the corner of the card opens a graphical editor for it.</strong> Drag a box and the editor rewrites one number – the <code>gap</code>, the fraction along a line, the nudge on a borrowed coordinate – and never the relation that number sits in, so what you wrote survives what you dragged. It also draws the relations while you work, which is the part a finished diagram cannot show you: a box written as <code>gap 0.55</code> from its neighbour looks exactly like a box that merely happens to sit 0.55 away. <code>editor: none</code> in the frontmatter ships the lecture without it.</p>
+<p>Two more options work from the box inwards rather than from the label outwards. <code>pad 0.3</code> sets how far a box&#39;s border sits from its own label – the same word <code>container</code> and <code>brace</code> already use – and <code>.fit</code> on a box with a given <code>w</code> sizes the <em>type</em> to fill the box instead of growing the box to the type, with <code>.shrink</code> for a label that may only ever get smaller. A free <code>text</code> that carries a tone draws its own background patch, so a caption can sit on a panel without becoming a box.</p>
 
     </aside>
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></div>
@@ -3518,15 +3548,16 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="39">
   <div class="chunk-content">
     
-    <h2 class="chunk-heading has-sub"><span class="hd-main">Pinning how a lecture opens</span> <span class="hd-sub">five optional frontmatter keys</span></h2>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Pinning how a lecture opens</span> <span class="hd-sub">six optional frontmatter keys</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A lecture can decide its own starting look instead of inheriting the reader&#39;s.</strong></p>
 <pre class="shiki github-light" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#6F42C1">---</span></span>
 <span class="line"><span style="color:#22863A">title</span><span style="color:#24292E">: </span><span style="color:#032F62">Anonymous Communication</span></span>
 <span class="line"><span style="color:#22863A">font</span><span style="color:#24292E">: </span><span style="color:#032F62">mono</span><span style="color:#6A737D">              # serif | sans | mono</span></span>
-<span class="line"><span style="color:#22863A">theme</span><span style="color:#24292E">: </span><span style="color:#032F62">terminal-green</span><span style="color:#6A737D">   # light-{red,teal,blue,orange} | terminal-{amber,green}</span></span>
+<span class="line"><span style="color:#22863A">theme</span><span style="color:#24292E">: </span><span style="color:#032F62">terminal-green</span><span style="color:#6A737D">   # light-{red,teal,blue,orange} | dark | terminal-{amber,green}</span></span>
 <span class="line"><span style="color:#22863A">collapse</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">          # topic-bold | none      – the C toggle</span></span>
 <span class="line"><span style="color:#22863A">auto-fit</span><span style="color:#24292E">: </span><span style="color:#005CC5">true</span><span style="color:#6A737D">          # true | false           – the # toggle</span></span>
 <span class="line"><span style="color:#22863A">slide-numbers</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">      # vertical | horizontal | off</span></span>
+<span class="line"><span style="color:#22863A">editor</span><span style="color:#24292E">: </span><span style="color:#032F62">speaker</span><span style="color:#6A737D">         # both | speaker | none  – who gets the diagram editor</span></span>
 <span class="line"><span style="color:#6F42C1">---</span></span></code></pre>
 <p><code>lang:</code> sits beside them and is a different kind of key: it names the document language (<code>en</code> by default, <code>de</code>, <code>de-DE</code>, <code>fr</code> …) and lands in the <code>lang</code> attribute of every view. The print views use it to pick a <strong>hyphenation dictionary</strong>, which is what lets a long German compound break instead of pushing a hole into the line. The live views deliberately do not hyphenate: a broken word on a projection reads badly.</p>
 <p><strong>The precedence rule is one sentence.</strong> A key that is present wins over the reader&#39;s stored preference; a key that is absent leaves that preference alone. So a lecture that pins nothing behaves exactly as it always did – font, theme and slide numbers follow the reader from lecture to lecture – while a lecture with a designed look gets it without asking anyone to press keys.</p>
@@ -3577,7 +3608,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <template data-notes-for="try-tags">Watch mode picks a free port and injects a reload snippet into each output; production builds get none, which is why the committed HTML has no WebSocket code in it.</template>
 <template data-notes-for="images">The verb deliberately does not downscale. The heavy files are usually already at slide resolution – the bytes are PNG being a poor fit for photographic content. And figure focus zooms to 8×, so a high-resolution diagram is high-resolution on purpose; `--max-width` is opt-in for genuine outliers.</template>
 <template data-notes-for="math">A malformed formula does not fail the build – KaTeX renders it in red so a typo never blanks the projector mid-lecture. The terminal reports it instead, and `lint.js` warns about a `$$` you forgot to close.</template>
-<template data-notes-for="diagram">Print shows every element the diagram ever displays, at its last position, without the live-only `emph` and `dim` – the handout is the finished picture, the same rule reveal segments follow.</template>
+<template data-notes-for="diagram">Print shows every element the diagram ever displays, at its last position, with nothing emphasised and nothing greyed out – the handout is the finished picture, the same rule reveal segments follow.</template>
 <template data-notes-for="topic-sentence">Present this chunk from the collapsed view while you say it. Nothing lands the argument faster than a slide that is visibly the same text the handout carries.</template>
 <template data-notes-for="anti-patterns">The recurring temptation is to fix a weak collapsed view by adding more bold. It is nearly always the wrong direction – fewer bolds and a stronger opening sentence is the fix.</template>
 <template data-notes-for="squint-test">This is worth doing once per lecture, ideally the day before. It doubles as a rehearsal, because reading the collapsed deck is very close to actually presenting it.</template>
@@ -3622,10 +3653,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     <section>
       <h3>Moving around</h3>
       <dl>
-        <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>previous / next column</dd>
-        <dt><kbd>↑</kbd></dt><dd>previous chunk</dd>
-        <dt><kbd>↓</kbd> · <kbd>Space</kbd></dt><dd>reveal the next segment, then on to the next chunk</dd>
-        <dt><kbd>Enter</kbd> · <kbd>1</kbd>–<kbd>9</kbd></dt><dd>open the first / n-th expansion</dd>
+        <dt><kbd>Space</kbd> · <kbd>↓</kbd> · <kbd>Enter</kbd> · <kbd>PageDown</kbd></dt><dd>forward: the next reveal or diagram step, then the next slide</dd>
+        <dt><kbd>↑</kbd> · <kbd>PageUp</kbd> · <kbd>Backspace</kbd></dt><dd>back: the reveal before it, then the slide before it</dd>
+        <dt><kbd>→</kbd> <kbd>←</kbd></dt><dd>the same pair – except on the first slide of a column, where they change column</dd>
+        <dt>the marks at the edge</dt><dd>‹ › sideways changes column here · ⌄ forward leaves the column next</dd>
+        <dt><kbd>1</kbd>–<kbd>9</kbd></dt><dd>open the n-th expansion</dd>
         <dt><kbd>Esc</kbd></dt><dd>step back out: figure, then overview, then expansion</dd>
       </dl>
     </section>
@@ -3683,7 +3715,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
         <dt>click a diagram, then <kbd>E</kbd></dt><dd>open the editor on that figure – or the button in the corner of the card</dd>
         <dt><kbd>1</kbd> <kbd>V</kbd></dt><dd>select</dd>
         <dt><kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> <kbd>5</kbd> <kbd>8</kbd></dt><dd>box · dot · text · edge · image</dd>
-        <dt><kbd>9</kbd></dt><dd>a plain line – the edge tool with both ends forced to coordinates</dd>
+        <dt><kbd>9</kbd></dt><dd>a line with no arrowhead – both ends are plain coordinates, so it attaches to nothing</dd>
         <dt><kbd>6</kbd> · <kbd>7</kbd></dt><dd>container · brace, drawn around whatever is selected</dd>
         <dt><kbd>Q</kbd></dt><dd>keep the current tool instead of falling back to select</dd>
         <dt>drag · drag a handle</dt><dd>move it · resize it – the status bar shows the line it will write</dd>
@@ -3693,7 +3725,8 @@ body[data-view=speaker].preview-right #preview-resizer::after {
         <dt><kbd>Ctrl</kbd>-<kbd>Z</kbd> · <kbd>Shift</kbd>-<kbd>Ctrl</kbd>-<kbd>Z</kbd></dt><dd>undo · redo</dd>
         <dt><kbd>Ctrl</kbd>-<kbd>A</kbd> · <kbd>Ctrl</kbd>-<kbd>D</kbd></dt><dd>select all · duplicate</dd>
         <dt><kbd>Ctrl</kbd>-<kbd>C</kbd> · <kbd>Ctrl</kbd>-<kbd>V</kbd> · <kbd>Ctrl</kbd>-<kbd>Shift</kbd>-<kbd>V</kbd></dt><dd>copy · paste · paste in place</dd>
-        <dt><kbd>Ctrl</kbd>-<kbd>S</kbd></dt><dd>copy the finished block to the clipboard</dd>
+        <dt><kbd>Ctrl</kbd>-<kbd>S</kbd></dt><dd>write the block back – into source.md while --watch runs, otherwise to the clipboard</dd>
+        <dt><kbd>&lt;</kbd> <kbd>&gt;</kbd></dt><dd>walk the diagram steps – a drag inside a step writes a move into that step</dd>
         <dt><kbd>Space</kbd>-drag · middle-drag · wheel</dt><dd>pan · pan · zoom</dd>
         <dt><kbd>F</kbd></dt><dd>frame: slide → column → print, the three places the figure can land</dd>
         <dt><kbd>,</kbd> <kbd>.</kbd> · <kbd>PageUp</kbd> <kbd>PageDown</kbd></dt><dd>previous / next figure in the lecture</dd>
@@ -4670,6 +4703,7 @@ function applyState() {
   applyBlankBadge();
   flatChunks.forEach((c, i) => c.el.classList.toggle('active', i === state.activeIdx));
   updateEmbedLoading();
+  updateNavHints();
   viewHooks.onActiveChange();
   broadcastState();
 }
@@ -5139,11 +5173,67 @@ function advanceReveal() {
   if (cur < segCount) {
     revealed[entry.id] = cur + 1;
     applyReveal(entry.el, entry.id);
+    updateNavHints();
     broadcastState();
     return true;
   }
   return false;
 }
+
+// The mirror of advanceReveal, and it costs nothing but the counter: every
+// beat's state is recomputed from revealed[id] on each applyReveal, and
+// dgStep renders any step in either direction. Reveal was forward-only
+// because the *keys* were, never because the mechanism was.
+function retreatReveal() {
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) return false;
+  const segCount = countSegments(entry.el);
+  const cur = revealed[entry.id] ?? (segCount ? 1 : 0);
+  if (cur > 1) {
+    revealed[entry.id] = cur - 1;
+    applyReveal(entry.el, entry.id);
+    updateNavHints();
+    broadcastState();
+    return true;
+  }
+  return false;
+}
+
+// One forward family and one backward family, the way a presentation tool is
+// expected to behave: perform the slide, then move to the next one. The
+// column exception below is the single thing psi-slides has that a linear
+// deck does not, and it is why the first chunk of a column says so on screen.
+function goForward() {
+  if (!advanceReveal()) nextChunk();
+}
+function goBack() {
+  if (!retreatReveal()) prevChunk();
+}
+
+// Where the columns begin and end, and – the part that has to be one fact
+// rather than two – whether there is actually a column that way. The key map
+// and the marks at the edge both read the same field, so they cannot disagree:
+// the first version tested only "is this the head of a column", which on the
+// head of the *last* column showed no mark (correctly) and still handed the
+// key to nextCol, whose fallback clamps to the end of the deck. One press of
+// the right arrow on the title slide of a single-column lecture skipped the
+// whole lecture.
+function markColumnEdges() {
+  const lastCol = flatChunks.length ? flatChunks[flatChunks.length - 1].colIdx : 0;
+  flatChunks.forEach((c, i) => {
+    const prev = flatChunks[i - 1], next = flatChunks[i + 1];
+    c.colFirst = !prev || prev.colIdx !== c.colIdx;
+    c.colLast = !next || next.colIdx !== c.colIdx;
+    c.sideways = {
+      left: c.colFirst && c.colIdx > 0,
+      right: c.colFirst && c.colIdx < lastCol,
+    };
+  });
+}
+const sideways = (i, dir) => {
+  const c = flatChunks[i];
+  return !!(c && c.sideways && c.sideways[dir]);
+};
 
 function nextChunk() {
   if (state.activeIdx + 1 >= flatChunks.length) return;
@@ -5856,25 +5946,35 @@ document.addEventListener('keydown', (e) => {
     }
   }
   switch (e.key) {
-    case 'ArrowRight': nextCol(); e.preventDefault(); break;
-    case 'ArrowLeft':  prevCol(); e.preventDefault(); break;
-    case 'ArrowUp':    prevChunk(); e.preventDefault(); break;
-    case 'ArrowDown':
-    case ' ': {
-      // Down and Space are the same key. Down used to skip straight to the
-      // next chunk, which meant walking a segmented slide with the arrows
-      // silently swallowed every reveal on it – and remembering to switch
-      // to Space for exactly those slides is the kind of thing that goes
-      // wrong in front of a room. Advance the reveal; once the chunk is
-      // fully out, fall through to the next one.
+    // Sideways is the column key only where a column can be entered from:
+    // its first chunk. Everywhere else it is the forward/backward pair, so
+    // the two keys under a lecturer's fingers do the same thing on every
+    // slide but the one where a second dimension exists. The first chunk of
+    // a column says so on screen (updateNavHints) rather than leaving the
+    // exception to be discovered by pressing it.
+    case 'ArrowRight': sideways(state.activeIdx, 'right') ? nextCol() : goForward(); e.preventDefault(); break;
+    case 'ArrowLeft':  sideways(state.activeIdx, 'left')  ? prevCol() : goBack();    e.preventDefault(); break;
+    // Down, Space, Enter and a presenter's forward button are one key, and
+    // Up, PageUp and Backspace are its mirror. Down used to skip straight to
+    // the next chunk, which meant walking a segmented slide with the arrows
+    // silently swallowed every reveal on it – and remembering to switch to
+    // Space for exactly those slides is the kind of thing that goes wrong in
+    // front of a room. It never swallows one now, in either direction.
+    case 'ArrowUp':
+    case 'PageUp':
+    case 'Backspace':
       if (overview) { e.preventDefault(); break; }
-      if (!advanceReveal()) nextChunk();
+      goBack(); e.preventDefault(); break;
+    case 'ArrowDown':
+    case 'PageDown':
+    case ' ': {
+      if (overview) { e.preventDefault(); break; }
+      goForward();
       e.preventDefault(); break;
     }
     case 'Enter': {
       if (overview) { toggleOverview(); e.preventDefault(); break; }
-      const entry = flatChunks[state.activeIdx];
-      if (entry && entry.el.querySelector('.exp-chev[data-exp="0"]')) toggleExp(state.activeIdx, 0);
+      goForward();
       e.preventDefault(); break;
     }
     case '1': case '2': case '3': case '4': case '5':
@@ -6188,6 +6288,53 @@ function panToElement(el) {
   focusCamera(false);
 }
 
+// ── where the arrows will take you ────────────────────────────────
+// Two facts about the current slide that the picture cannot carry and that
+// the keys otherwise only reveal by being pressed: this is the chunk where
+// sideways changes column, and this is the chunk where forward leaves the
+// column. Both are drawn at the viewport edge rather than on the slide, so
+// nothing in the author's layout moves, and both are quiet enough to sit on
+// a projection – they are a compass, not a control.
+function buildNavHints() {
+  const vp = document.getElementById('stage-viewport');
+  if (!vp || document.getElementById('nav-hints')) return;
+  const wrap = document.createElement('div');
+  wrap.id = 'nav-hints';
+  wrap.setAttribute('aria-hidden', 'true');
+  for (const dir of ['left', 'right', 'down']) {
+    const s = document.createElement('span');
+    s.dataset.hint = dir;
+    s.textContent = dir === 'down' ? '⌄' : dir === 'left' ? '‹' : '›';
+    wrap.appendChild(s);
+  }
+  vp.appendChild(wrap);
+}
+
+function updateNavHints() {
+  const wrap = document.getElementById('nav-hints');
+  if (!wrap) return;
+  const i = state.activeIdx;
+  const c = flatChunks[i];
+  const show = (dir, on) => {
+    const el = wrap.querySelector('[data-hint="' + dir + '"]');
+    if (el) el.toggleAttribute('data-on', !!on);
+  };
+  // Blanking darkens the audience stage only, so the cockpit is exactly where
+  // the marks are still wanted: the lecturer is navigating with the room dark.
+  if (!c || overview || (state.blanked && VIEW === 'audience')) {
+    show('left', false); show('right', false); show('down', false);
+    return;
+  }
+  // Sideways is the column key here, and only here – the same fact the key
+  // map reads, so a mark can never promise a move the key will not make.
+  show('left', c.sideways.left);
+  show('right', c.sideways.right);
+  // Forward leaves the column – but only once there is nothing left to
+  // reveal, because until then forward is still working on this slide.
+  const beatsLeft = (revealed[c.id] ?? (countSegments(c.el) ? 1 : 0)) < countSegments(c.el);
+  show('down', c.colLast && !beatsLeft && i + 1 < flatChunks.length);
+}
+
 // Touch control rail (audience only). The element is rendered only
 // in audience.html; speaker.html doesn't include it, so this no-ops
 // there. CSS hides the rail on fine-pointer devices.
@@ -6199,8 +6346,8 @@ function wireTouchControls() {
     if (!btn) return;
     e.stopPropagation();
     switch (btn.dataset.action) {
-      case 'prev':      prevChunk(); break;
-      case 'next':      if (!advanceReveal()) nextChunk(); break;
+      case 'prev':      goBack(); break;
+      case 'next':      goForward(); break;
       case 'overview':  toggleOverview(); break;
       case 'zoom-in':
         if (focusedFigure) setFigureScale(figureScale * 1.2);
@@ -6258,6 +6405,8 @@ wireEmbeds();
 wireClicks();
 wireFigureClicks();
 wireTouchControls();
+markColumnEdges();
+buildNavHints();
 initDiagrams();
 applyRevealAll();
 applyState();
@@ -7454,6 +7603,17 @@ sendToPeer({ type: 'hello', source: 'speaker' });
   stroke-width: 1.6;
 }
 #dge-guides .dge-sel-master { stroke-dasharray: none; }
+/* An edge has no box to outline, so the selection traces the line itself. Wide
+   and translucent, under the stroke rather than around it, so the arrow it
+   marks stays readable. */
+#dge-guides .dge-sel-path {
+  fill: none;
+  stroke: var(--emph);
+  stroke-width: 5;
+  stroke-opacity: 0.3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
 #dge-guides .dge-handle {
   fill: var(--paper);
   stroke: var(--emph);
@@ -7463,6 +7623,23 @@ sendToPeer({ type: 'hello', source: 'speaker' });
 }
 #dge-guides .dge-handle.dge-h-e, #dge-guides .dge-handle.dge-h-w { cursor: ew-resize; }
 #dge-guides .dge-handle.dge-h-n, #dge-guides .dge-handle.dge-h-s { cursor: ns-resize; }
+/* Round, because it does something different from the square ones: a corner
+   handle changes a size, an end handle changes what the statement refers to. */
+#dge-guides .dge-handle.dge-h-end { cursor: crosshair; }
+/* A waypoint moves a point, so it is square like the resize grips. Filled with
+   the accent when it holds a reference: that one is not a pair of numbers, and
+   a drag on it moves its nudge rather than replacing what it follows. */
+#dge-guides .dge-handle.dge-h-via { cursor: move; }
+#dge-guides .dge-handle.dge-h-via.dge-h-held { fill: var(--emph); }
+/* Where a waypoint can be added. Hollow and half the size, because it is an
+   offer rather than a thing that is there. */
+#dge-guides .dge-handle.dge-h-add {
+  fill: none;
+  stroke-dasharray: 2 2;
+  opacity: 0.55;
+  cursor: copy;
+}
+#dge-guides .dge-handle.dge-h-add:hover { opacity: 1; stroke-dasharray: none; }
 /* A tag is not geometric, so it must not be drawn as a line. A tinted halo
    behind the members says "these belong together" without saying anything
    false about where they are. */
@@ -7504,6 +7681,18 @@ sendToPeer({ type: 'hello', source: 'speaker' });
   color: var(--ink);
 }
 #dge-side textarea { resize: vertical; min-height: 3.2em; }
+/* Where a control needs a sentence rather than a label. Quiet enough that the
+   panel still reads as controls, not as documentation. */
+.dge-chip.dge-chip-held {
+  border-color: var(--emph);
+  color: color-mix(in oklab, var(--emph) 70%, var(--ink));
+}
+#dge-side .dge-hint {
+  margin-top: 0.3rem;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
 
 /* The geometry options that kind actually accepts - a dot offers r and never
    w - so the panel is a picture of DG_KIND_OPTS rather than a form with
@@ -8900,6 +9089,15 @@ function createSpanTable(model, body) {
   const src = String(body);
   const byId = new Map();
   for (const el of [...model.nodes, ...model.edges, ...model.containers, ...model.braces]) {
+    // A leader stub is deliberately absent. It carries the span of the `text`
+    // statement that produced it, so handing that span out under the stub's
+    // name is how an editor comes to rewrite a different element: `label`
+    // resolves to the text node's label, and the literal `->` on that line
+    // makes `from` resolve to whatever token happens to precede it – on
+    // `text n "…" right of x gap 0.85 -> x` that is the gap. Nothing about a
+    // leader is editable through the stub; it is an aspect of the statement
+    // that owns it, and spanOf says so by returning null.
+    if (el.lead) continue;
     byId.set(el.id, el);
   }
 
@@ -8965,9 +9163,30 @@ function createSpanTable(model, body) {
       const q = toks.find(x => x.q);
       if (q) return hit(q.s, q.e, q.v);
       // A label goes straight after the element's name, which is the second
-      // token of every statement that can carry one.
-      const at = toks[1] ? toks[1].e : el.span[1];
+      // token of every statement that can carry one – except an edge, whose
+      // second token is already an endpoint. `edge a "x" -> b` parses, because
+      // the endpoints are read off the tokens that are neither quoted nor an
+      // attribute tail, but it is not what anyone writes by hand. So an edge
+      // label goes where its other trailing options go.
+      const at = el.kind === 'edge' ? tailInsert(el, toks)
+        : (toks[1] ? toks[1].e : el.span[1]);
       return gap(at, ' "', '"');
+    }
+
+    // The two endpoints, and the arrow between them. Two traps here, and an
+    // editor that fell into either would retarget the wrong end of the line:
+    // `<-` swaps what the model calls `from` and `to`, so `from` is the token
+    // to the *right* of a reversed arrow; and the index has to run over the
+    // body tokens the parser itself reads, never over all of them, or the
+    // label in `edge a "x" -> b` is offered as the source endpoint.
+    if (attr === 'from' || attr === 'to' || attr === 'arrow') {
+      const body = toks.filter(x => !x.q && !x.attr);
+      const i = body.findIndex(x => x.v === '->' || x.v === '<-' || x.v === '--');
+      if (i < 0) return null;
+      if (attr === 'arrow') return hit(body[i].s, body[i].e, body[i].v);
+      const left = (attr === 'from') !== (body[i].v === '<-');
+      const t = body[left ? i - 1 : i + 1];
+      return t ? hit(t.s, t.e, t.v) : null;
     }
 
     // The three attribute-tail questions all address the tail, and that is
@@ -9019,6 +9238,41 @@ function createSpanTable(model, body) {
       if (attr === 'offset.x') return gap(at, ' offset ', ',0');
       if (attr === 'offset.y') return gap(at, ' offset 0,');
       return gap(at, ' offset ');
+    }
+
+    // Waypoints, addressed by index: `via.2`, `via.2.x`, `via.2.y` and the two
+    // nudge slots. Same shape as `at`, because it is the same coordinate
+    // grammar – one dgParsePair behind `at`, `move … to`, waypoints and
+    // endpoints, which is exactly what makes one editor gesture serve all of
+    // them. `via` on its own is the whole clause, keyword included, which is
+    // what inserting the first waypoint or removing the last one rewrites.
+    if (attr === 'via' || attr.startsWith('via.')) {
+      const body = toks.filter(x => !x.q && !x.attr);
+      const vi = body.findIndex(x => x.v === 'via');
+      if (attr === 'via') {
+        // The caller writes the whole clause, keyword included, in both cases.
+        // Letting the absent case supply `via ` in its prefix would mean the
+        // same value string is right for one and doubles the keyword for the
+        // other, which is the sort of asymmetry an editor discovers in front
+        // of a room.
+        if (vi < 0) return gap(tailInsert(el, toks), ' ');
+        return hit(body[vi].s, body[body.length - 1].e,
+          src.slice(body[vi].s, body[body.length - 1].e));
+      }
+      if (vi < 0) return null;
+      const rest = attr.slice(4);
+      const dot = rest.indexOf('.');
+      const k = Number(dot < 0 ? rest : rest.slice(0, dot));
+      const t = body[vi + 1 + k];
+      if (!Number.isInteger(k) || k < 0 || !t) return null;
+      const tail = dot < 0 ? '' : rest.slice(dot + 1);
+      if (!tail) return hit(t.s, t.e, t.v);
+      const parts = dgSplitPair(t);
+      if (!parts) return null;
+      const half = tail.startsWith('x') ? parts.x : parts.y;
+      if (tail === 'x' || tail === 'y') return hit(half.start, half.end, half.text);
+      if (tail === 'x.nudge' || tail === 'y.nudge') return dgNudgeSlot(half);
+      return null;
     }
 
     if (attr.startsWith('at')) {
@@ -9392,6 +9646,11 @@ function createDiagramCompiler(env = {}) {
           model.edges.push({
             kind: 'edge',
             id: leadId,
+            // Not a statement of its own. `span` is the *text* statement's,
+            // because that is the line this stub came from, and `lead` is how
+            // anything downstream knows not to treat the span as the stub's
+            // own to rewrite. See createSpanTable.
+            lead: true,
             from: { ref: id, anchor: null },
             to,
             label: '', classes: ['no-head', 'muted'], via: [], line: lineNo, span,
@@ -10813,7 +11072,7 @@ const DGE_TOOLS = [
   { id: 'line', keys: ['9', 'l'], label: 'line', icon: 'M2 12L13 4', drag: true },
   { id: 'image', keys: ['8', 'i'], label: 'image', icon: 'M2 3h11v9H2zM2 10l3.5-3 3 2.4L11 7l2 2', placer: true },
   { sep: true },
-  { id: 'container', keys: ['6'], label: 'group', icon: 'M2 2h11v11H2zM4.5 5h6v5h-6z', wrapper: true },
+  { id: 'container', keys: ['6'], label: 'container', icon: 'M2 2h11v11H2zM4.5 5h6v5h-6z', wrapper: true },
   { id: 'brace', keys: ['7'], label: 'brace', icon: 'M5 2c0 3-3 3-3 4.5C2 8 5 8 5 11M8 2h5M8 6.5h5M8 11h5', wrapper: true },
 ];
 
@@ -10838,6 +11097,7 @@ const DGE = {
   model: null,           // its model
   spans: null,           // createSpanTable over it
   boxes: null,           // id -> {x,y,w,h} at the beat on screen, in px
+  prefix: '',            // the compiler's id prefix inside the painted SVG
   beat: 0,               // which beat the canvas shows
   selection: [],         // element ids, first is the master for align/spread
   tool: 'select',
@@ -10978,6 +11238,10 @@ function dgeBuildChrome() {
     ]),
     dgeEl('span', { class: 'dge-spacer' }),
     dgeEl('span', { id: 'dge-room' }),
+    dgeEl('div', { class: 'dge-group' }, [
+      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-undo-btn', title: 'undo (⌘Z)', text: '↶', onclick: () => dgeUndo() }),
+      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-redo-btn', title: 'redo (⇧⌘Z)', text: '↷', onclick: () => dgeRedo() }),
+    ]),
     dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-file-btn', text: 'Open source.md…', title: 'write back straight into the file (Chromium only)', onclick: () => dgePickSourceFile() }),
     dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-revert-btn', text: 'Revert', title: 'discard your edits to this figure', onclick: () => dgeRevertLocal() }),
     dgeEl('button', { type: 'button', class: 'dge-btn dge-on', id: 'dge-copy-btn', html: 'Copy source <kbd>⌘S</kbd>', onclick: () => dgeCommit() }),
@@ -11157,6 +11421,11 @@ function dgePaintArt(html) {
   else if (svg.dataset.liveViewbox) svg.setAttribute('viewBox', svg.dataset.liveViewbox);
   svg.removeAttribute('width');
   svg.removeAttribute('height');
+  // The compiler prefixes every id inside the figure (dg3-mix, dg3-edge-1--p)
+  // and the root carries the prefix too, so keep it before overwriting the id.
+  // It is the only way back from a model id to the node the compiler drew for
+  // it, and searching by suffix instead would match my-edge-1--p for edge-1--p.
+  DGE.prefix = /root$/.test(svg.id || '') ? svg.id.replace(/root$/, '') : '';
   svg.id = 'dge-art-svg';
   // Paint the beat on screen into it, using the runtime the build already
   // ships – no second implementation of "what does step k look like".
@@ -11351,13 +11620,23 @@ function dgeDrawGuides() {
     g.appendChild(halo);
   }
 
-  // The selection, and what holds it.
+  // The selection, and what holds it. An edge gets its own line traced rather
+  // than a rectangle: it has no box to draw, and the box it would be given is
+  // mostly empty paper wherever the arrow runs diagonally.
   for (const id of DGE.selection) {
     const b = DGE.boxes.get(id);
-    if (!b) continue;
-    g.appendChild(dgeEl('rect', {
-      class: 'dge-sel', x: b.x - 3, y: b.y - 3, width: b.w + 6, height: b.h + 6, rx: 3,
-    }));
+    if (b) {
+      g.appendChild(dgeEl('rect', {
+        class: 'dge-sel', x: b.x - 3, y: b.y - 3, width: b.w + 6, height: b.h + 6, rx: 3,
+      }));
+      continue;
+    }
+    const pts = dgeEdgePts(id);
+    if (pts) {
+      g.appendChild(dgeEl('polyline', {
+        class: 'dge-sel-path', points: pts.map((q) => q.join(',')).join(' '),
+      }));
+    }
   }
   dgeDrawBeatGuides(g);
   if (DGE.selection.length === 1) dgeDrawRelations(g, DGE.selection[0]);
@@ -11483,11 +11762,53 @@ function dgeDrawRelations(g, id) {
   }
 }
 
-// Resize handles, on a box that can actually be resized.
+// Resize handles, on a box that can actually be resized – and, on an edge,
+// the two ends. Dragging one of those is the only gesture in the editor that
+// changes *what* a statement refers to rather than where something sits, which
+// is why it gets a different shape: a round grip, not a square corner.
 function dgeDrawHandles(g, id) {
   const el = dgeFind(id);
+  if (!el) return;
+  if (el.kind === 'edge') {
+    const pts = dgeEdgePts(id);
+    if (!pts) return;
+    // The drawn polyline is [start, ...waypoints, end], so waypoint k is
+    // pts[k+1] and no second geometry is needed to find it. Only the two ends
+    // are pulled back from their true position, to clear the arrowhead; the
+    // interior points are exact.
+    const via = el.via || [];
+    // A hollow dot at the middle of every segment: the only visible answer to
+    // "how do I make this arrow go around that box". Drawn first so a real
+    // waypoint sitting near a midpoint is the one you grab.
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2;
+      g.appendChild(dgeEl('circle', {
+        class: 'dge-handle dge-h-add', 'data-handle': 'add-' + i, 'data-id': id,
+        cx: mx, cy: my, r: 3.5,
+      }));
+    }
+    for (let k = 0; k < via.length && k + 1 < pts.length - 1; k++) {
+      const p = pts[k + 1], r = 4.5;
+      // Square, like the resize grips, because it moves a point; the round
+      // ones retarget. Hollowed differently again when it holds a reference,
+      // which is the thing a drag has to preserve rather than replace.
+      const held = (via[k] || []).some((c) => c && c.ref);
+      g.appendChild(dgeEl('rect', {
+        class: 'dge-handle dge-h-via' + (held ? ' dge-h-held' : ''),
+        'data-handle': 'via-' + k, 'data-id': id,
+        x: p[0] - r, y: p[1] - r, width: r * 2, height: r * 2, rx: 1,
+      }));
+    }
+    for (const [which, p] of [['from', pts[0]], ['to', pts[pts.length - 1]]]) {
+      g.appendChild(dgeEl('circle', {
+        class: 'dge-handle dge-h-end', 'data-handle': which, 'data-id': id,
+        cx: p[0], cy: p[1], r: 5,
+      }));
+    }
+    return;
+  }
   const b = DGE.boxes.get(id);
-  if (!el || !b || !DGE.model.nodes.some((n) => n.id === id)) return;
+  if (!b || !DGE.model.nodes.some((n) => n.id === id)) return;
   if (el.kind === 'image' || el.kind === 'dot' || el.kind === 'box' || el.kind === 'text') {
     const r = 4.5;
     const spots = [
@@ -11788,8 +12109,83 @@ function dgeRedo() {
 // Against the laid-out boxes rather than against the DOM: the boxes are what
 // the compiler computed, so a click resolves to the element the *source*
 // says is there. Innermost first, so a box inside a container wins.
+//
+// An edge is the exception, and it has to be: layoutDiagram never gives one a
+// box, because an edge is not placed – it is drawn between two things that
+// were. A bounding box would be the wrong shape anyway; what the author aims
+// at is the line, and for a diagonal arrow the box is mostly empty paper.
 
-function dgeHitTest(pt) {
+// The polyline the author is looking at, read off the painted SVG. Not a
+// second layout: the compiler wrote that `d` and the step runtime moved it, so
+// it is by construction the geometry on screen at this beat, and on a
+// pointermove a second dgFrameDrawables would re-measure every label in the
+// block to learn what the DOM already knows. Coupled to dgPathD, which emits
+// one M and a run of Ls and nothing else.
+function dgeEdgePts(id) {
+  const svg = dgeQ('#dge-art-svg');
+  if (!svg) return null;
+  // Scoped to the editor's own copy. The slide behind the modal holds the
+  // same figure with the same prefixed ids, and getElementById would answer
+  // with whichever of the two comes first in the document.
+  const path = svg.querySelector('[id="' + DGE.prefix + id + '--p"]');
+  const d = path && path.getAttribute('d');
+  if (!d) return null;
+  const nums = (d.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+  const pts = [];
+  for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1]]);
+  return pts.length >= 2 ? pts : null;
+}
+
+// Seven CSS pixels, in the diagram's own units, so a hairline is exactly as
+// easy to hit at 4x as at 1x.
+function dgeGrabTolerance(px = 7) {
+  const guides = dgeQ('#dge-guides');
+  const ctm = guides && guides.getScreenCTM();
+  const s = ctm ? Math.hypot(ctm.a, ctm.b) : 1;
+  return px / (s || 1);
+}
+
+function dgeSegDist(p, a, b) {
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const len2 = dx * dx + dy * dy;
+  const t = len2 ? Math.max(0, Math.min(1, ((p.x - a[0]) * dx + (p.y - a[1]) * dy) / len2)) : 0;
+  return Math.hypot(p.x - (a[0] + t * dx), p.y - (a[1] + t * dy));
+}
+
+// An arrow that is not on screen at this beat must not take a click on the
+// empty paper where it will later be. The painted group carries the resolved
+// number – dgOpacity writes it as an inline style and the step runtime sets
+// it – so this asks the drawing rather than resolving visibility a second
+// time. Boxes are deliberately not filtered this way: a hidden box still
+// occupies the area you clicked, where a hidden hairline occupies nothing.
+function dgeEdgeVisible(id) {
+  const svg = dgeQ('#dge-art-svg');
+  const g = svg && svg.querySelector('[id="' + DGE.prefix + id + '"]');
+  if (!g) return true;
+  return parseFloat(getComputedStyle(g).opacity || '1') > 0.02;
+}
+
+function dgeNearestEdge(pt) {
+  if (!DGE.model) return null;
+  let best = null, bestD = dgeGrabTolerance();
+  for (const e of DGE.model.edges) {
+    // A leader stub has no statement of its own – it belongs to the `text`
+    // line that grew it – so there is nothing for a selection to edit.
+    if (e.lead || !dgeEdgeVisible(e.id)) continue;
+    const pts = dgeEdgePts(e.id);
+    if (!pts) continue;
+    for (let i = 1; i < pts.length; i++) {
+      const d = dgeSegDist(pt, pts[i - 1], pts[i]);
+      if (d < bestD) { bestD = d; best = e.id; }
+    }
+  }
+  return best;
+}
+
+// `edges: false` is for a gesture that is choosing an edge *endpoint*. An edge
+// cannot be one: layoutDiagram has no box for it, so the arrow pointed at it
+// would silently not be drawn at all.
+function dgeHitTest(pt, opts) {
   if (!DGE.boxes) return null;
   const hits = [];
   for (const [id, b] of DGE.boxes) {
@@ -11798,9 +12194,16 @@ function dgeHitTest(pt) {
     if (!el) continue;
     hits.push({ id, area: b.w * b.h, el });
   }
-  if (!hits.length) return null;
   hits.sort((a, b) => a.area - b.area);
-  return hits[0].id;
+  const box = hits[0] || null;
+  if (opts && opts.edges === false) return box ? box.id : null;
+  // Reading order settles the ties, because it is what the author sees: a box
+  // wins over an arrow that crosses it, and an arrow wins over the container
+  // or brace it runs through. Without the second half every edge inside a
+  // container would be unreachable, which is most of them.
+  const edge = dgeNearestEdge(pt);
+  if (edge && (!box || box.el.kind === 'container' || box.el.kind === 'brace')) return edge;
+  return box ? box.id : null;
 }
 
 // ── canvas interaction ──────────────────────────────────────────────
@@ -11812,12 +12215,29 @@ function dgeWireCanvas(canvas, guides) {
     dgeZoomBy(k);
   }, { passive: false });
 
+  // A waypoint comes out the way it went in, at the same spot on the canvas.
+  // The sidebar carries the same act as a button, because a gesture nobody can
+  // see is not a control.
+  canvas.addEventListener('dblclick', (ev) => {
+    if (!DGE.open || DGE.boardOpen) return;
+    const h = ev.target.closest && ev.target.closest('[data-handle^="via-"]');
+    if (!h) return;
+    ev.preventDefault();
+    dgeRemoveWaypoint(h.dataset.id, Number(h.dataset.handle.slice(4)));
+  });
+
   canvas.addEventListener('pointerdown', (ev) => {
     if (!DGE.open || DGE.boardOpen) return;
     if (ev.button === 1 || DGE.spaceDown) return dgeStartPan(ev, canvas);
     const handle = ev.target.closest && ev.target.closest('[data-handle]');
     const pt = dgePointToDiagram(ev);
-    if (handle) return dgeStartResize(ev, handle.dataset.id, handle.dataset.handle);
+    if (handle) {
+      const h = handle.dataset.handle;
+      if (h === 'from' || h === 'to') return dgeStartEndpoint(ev, handle.dataset.id, h);
+      if (h.startsWith('via-')) return dgeStartWaypoint(ev, handle.dataset.id, Number(h.slice(4)));
+      if (h.startsWith('add-')) return dgeAddWaypoint(ev, handle.dataset.id, Number(h.slice(4)));
+      return dgeStartResize(ev, handle.dataset.id, h);
+    }
     if (DGE.tool === 'select') {
       const hit = dgeHitTest(pt);
       if (!hit) {
@@ -11987,6 +12407,186 @@ function dgeStartResize(ev, id, handle) {
   window.addEventListener('pointerup', up);
 }
 
+// Retargeting an endpoint. The gesture answers with a *name* wherever it can:
+// the whole value of this grammar is that an arrow stores "the right edge of
+// mix" rather than a pair of numbers, and an editor that answered a drag with
+// coordinates would destroy the very thing the construct exists for. A snapped
+// coordinate is the fallback for empty paper, and it is a construct the
+// grammar already has – `edge 2,1 -> mix`.
+//
+// Dropped back on the element it already names, the anchor the author wrote
+// survives. Moved to a different element, it does not: `.right` was chosen
+// against the old box and says nothing about where the arrow should meet the
+// new one, and dgAutoAnchor picks a better one than a stale hint would.
+function dgeStartEndpoint(ev, id, which) {
+  const ctx = dgeGestureBase();
+  const el = dgeFind(id, ctx.model);
+  if (!el) { dgeGestureEnd(); return; }
+  const here = el[which];
+  const far = which === 'from' ? el.to : el.from;
+  const pts0 = dgeEdgePts(id);
+  const anchorPt = pts0 ? (which === 'from' ? pts0[pts0.length - 1] : pts0[0]) : [0, 0];
+  const { uw, uh } = dgeUnits(ctx.model);
+  const preview = dgeEl('line', {
+    class: 'dge-snap', x1: anchorPt[0], y1: anchorPt[1], x2: anchorPt[0], y2: anchorPt[1],
+  });
+  dgeSnapGuides = [preview];
+  dgeDrawGuides();
+
+  const plan = (pt) => {
+    const hit = dgeHitTest(pt, { edges: false });
+    if (hit && !far.point && hit === far.ref) {
+      return { refuse: `both ends would sit on ${hit} – an edge needs two different things to run between.` };
+    }
+    if (hit) {
+      const keep = here.ref === hit && here.anchor;
+      const value = keep
+        ? hit + '.' + here.anchor + (here.frac !== 0.5 ? ':' + dgeNum(here.frac) : '')
+        : hit;
+      return { value, why: keep
+        ? `still ${value} – the anchor you wrote survives a drag back onto the same element`
+        : `${which} ${value} – the arrow re-routes whenever ${value} moves` };
+    }
+    const x = dgeNum(dgeRound(pt.x / uw, DGE_SNAP_CELL));
+    const y = dgeNum(dgeRound(pt.y / uh, DGE_SNAP_CELL));
+    return { value: `${x},${y}`, why: `${which} ${x},${y} – an endpoint in empty space, which stays put when things move` };
+  };
+
+  const move = (e) => {
+    const pt = dgePointToDiagram(e);
+    preview.setAttribute('x2', pt.x);
+    preview.setAttribute('y2', pt.y);
+    const p = plan(pt);
+    if (p.refuse) { DGE.source = ctx.source; dgeRecompile(); dgeStatus('', p.refuse, true); return; }
+    DGE.source = dgeApplyEdits(ctx, id, [{ attr: which, value: p.value, why: p.why }]);
+    dgeRecompile();
+    dgeShowPlan(ctx, id, { edits: [{ attr: which, why: p.why }], refusals: [] });
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    dgeSnapGuides = [];
+    if (DGE.source !== ctx.source) { const done = DGE.source; DGE.source = ctx.source; dgeSetSource(done); }
+    dgeGestureEnd();
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+}
+
+// Moving a waypoint. Per axis, and the axes are decided separately, because
+// `via iv.cx,d0.bottom+0.28` is half reference and half number – the x follows
+// a box and the y is a measured drop below another one. That mixture is the
+// normal case in a routed diagram, not an edge case.
+//
+// Where a component holds a reference the drag rewrites its **signed nudge**
+// and never the reference. editor.md calls this out as one of the three
+// constructs a graphical editor must round-trip: the nudge is one optional
+// signed term with no other operators and no nesting precisely so the token to
+// replace is always unambiguous. An editor that answered this drag with two
+// numbers would turn a diagram that re-routes itself into one that does not.
+function dgePlanWaypoint(ctx, id, k, dx, dy, free) {
+  const el = dgeFind(id, ctx.model);
+  const pair = el && (el.via || [])[k];
+  if (!pair) return { edits: [], refusals: [] };
+  const snap = (v) => (free ? v : dgeRound(v, DGE_SNAP_CELL));
+  const edits = [];
+  for (const [axis, i, delta] of [['x', 0, dx], ['y', 1, dy]]) {
+    if (!delta) continue;
+    const c = pair[i];
+    if (c && c.ref) {
+      const next = snap((c.nudge || 0) + delta);
+      edits.push({
+        attr: `via.${k}.${axis}.nudge`,
+        value: next === 0 ? '' : (next > 0 ? '+' : '') + dgeNum(next),
+        why: `keeps ${c.ref}.${c.prop}`,
+      });
+    } else {
+      edits.push({ attr: `via.${k}.${axis}`, value: dgeNum(snap((c ? c.unit : 0) + delta)) });
+    }
+  }
+  return { edits, refusals: [] };
+}
+
+function dgeStartWaypoint(ev, id, k) {
+  const pt0 = dgePointToDiagram(ev);
+  const ctx = dgeGestureBase();
+  const { uw, uh } = dgeUnits(ctx.model);
+  const move = (e) => {
+    const pt = dgePointToDiagram(e);
+    const plan = dgePlanWaypoint(ctx, id, k,
+      (pt.x - pt0.x) / uw, (pt.y - pt0.y) / uh, e.ctrlKey || e.metaKey);
+    DGE.source = dgeApplyEdits(ctx, id, plan.edits);
+    dgeRecompile();
+    dgeShowPlan(ctx, id, plan);
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    if (DGE.source !== ctx.source) { const done = DGE.source; DGE.source = ctx.source; dgeSetSource(done); }
+    dgeGestureEnd();
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+}
+
+// The whole `via` clause is rewritten for an insert or a remove, because the
+// waypoints are one space-separated run and adding to the middle of it is not
+// a token replacement. The coordinates that were already there are re-emitted
+// verbatim from their own spans, so a reference survives an insert next to it.
+function dgeViaWords(id) {
+  const el = dgeFind(id);
+  const out = [];
+  for (let i = 0; i < (el.via || []).length; i++) {
+    const sp = DGE.spans.spanOf(id, 'via.' + i);
+    out.push(sp && sp.present ? sp.text : '0,0');
+  }
+  return out;
+}
+
+function dgeWriteVia(id, words) {
+  const sp = DGE.spans.spanOf(id, 'via');
+  if (!sp) return;
+  const src = DGE.source;
+  if (!words.length) {
+    if (!sp.present) return;
+    // A removed clause leaves behind the space that separated it. The span
+    // starts *at* the keyword, so the drop path in dgeApplyEdits has no
+    // keyword in front of it to eat; take that run of spaces here, and
+    // nothing else. The first version tidied the whole block with a regex,
+    // which re-indented every step body, collapsed column-aligned
+    // declarations, and ate the double spaces inside quoted labels – all of
+    // it written straight back into the author's source.md.
+    let start = sp.start;
+    while (start > 0 && (src[start - 1] === ' ' || src[start - 1] === '\t')) start--;
+    dgeSetSource(src.slice(0, start) + src.slice(sp.end));
+    return;
+  }
+  dgeSetSource(src.slice(0, sp.start) + (sp.present ? '' : sp.prefix)
+    + 'via ' + words.join(' ')
+    + (sp.present ? '' : sp.suffix) + src.slice(sp.end));
+}
+
+// Inserting lands the new waypoint under the pointer and hands the gesture
+// straight to the move, so one press-drag-release both creates and places it.
+function dgeAddWaypoint(ev, id, seg) {
+  const pt = dgePointToDiagram(ev);
+  const { uw, uh } = dgeUnits();
+  const words = dgeViaWords(id);
+  words.splice(seg, 0,
+    `${dgeNum(dgeRound(pt.x / uw, DGE_SNAP_CELL))},${dgeNum(dgeRound(pt.y / uh, DGE_SNAP_CELL))}`);
+  dgeWriteVia(id, words);
+  if (DGE.problems && DGE.problems.length) return;
+  dgeStatus('', `waypoint ${seg + 1} of ${words.length} – drag it, or double-click it to take it out again.`, false);
+  dgeStartWaypoint(ev, id, seg);
+}
+
+function dgeRemoveWaypoint(id, k) {
+  const words = dgeViaWords(id);
+  if (k < 0 || k >= words.length) return;
+  words.splice(k, 1);
+  dgeWriteVia(id, words);
+}
+
 function dgeStartMarquee(ev, canvas) {
   const pt0 = dgePointToDiagram(ev);
   const rect = dgeEl('rect', { class: 'dge-snap', x: pt0.x, y: pt0.y, width: 0, height: 0 });
@@ -12132,7 +12732,7 @@ function dgeOpenAssetPicker(onPick) {
 
   const live = window.psiWatch && window.psiWatch.ready();
   if (!live) {
-    note.textContent = 'Without --watch the editor cannot put a file into assets/. Picking one writes an explicit path and tells you where to copy it.';
+    note.textContent = 'Without --watch running, the editor cannot put a file into assets/. Choose one anyway and it writes the path into the figure and tells you where to copy the file.';
     return;
   }
   window.psiWatch.assets().then((res) => {
@@ -12173,8 +12773,8 @@ function dgeCloseAssetPicker() {
 // A vector asset follows the theme and a raster does not. That is the trade
 // the docs already make; the author should hear it while picking, not later.
 const dgeAssetNote = (fileName) => (/\.svg$/i.test(fileName)
-  ? 'An SVG is spliced in as a nested <svg>, so it re-inks with the A theme cycle.'
-  : 'A raster is embedded as a data: URI and keeps its own colours in every theme.');
+  ? 'An SVG is drawn into the page itself, so it changes colour with the A theme key.'
+  : 'A raster image is embedded as it is, and keeps its own colours in every theme.');
 
 // The gap between "the file is on disk" and "this page knows about it".
 // The asset write does not rebuild, so the payload this page booted with
@@ -12268,7 +12868,10 @@ function dgeAppendLine(line) {
 }
 
 function dgeStartEdge(ev, pt0) {
-  const fromId = dgeHitTest(pt0);
+  // An endpoint is chosen with edges excluded, and it has to be: layoutDiagram
+  // gives an edge no box, so `edge feed0 -> x0` compiles, passes referential
+  // integrity, and then draws nothing at all. The arrow simply is not there.
+  const fromId = dgeHitTest(pt0, { edges: false });
   const preview = dgeEl('line', { class: 'dge-snap', x1: pt0.x, y1: pt0.y, x2: pt0.x, y2: pt0.y });
   dgeSnapGuides = [preview];
   dgeDrawGuides();
@@ -12277,7 +12880,7 @@ function dgeStartEdge(ev, pt0) {
     const pt = dgePointToDiagram(e);
     preview.setAttribute('x2', pt.x);
     preview.setAttribute('y2', pt.y);
-    const toId = dgeHitTest(pt);
+    const toId = dgeHitTest(pt, { edges: false });
     const a = DGE.tool === 'line' || !fromId
       ? `${dgeNum(dgeRound(pt0.x / uw, DGE_SNAP_CELL))},${dgeNum(dgeRound(pt0.y / uh, DGE_SNAP_CELL))}` : fromId;
     const b = DGE.tool === 'line' || !toId
@@ -12291,7 +12894,7 @@ function dgeStartEdge(ev, pt0) {
     window.removeEventListener('pointerup', up);
     dgeSnapGuides = [];
     const pt = dgePointToDiagram(e);
-    const toId = dgeHitTest(pt);
+    const toId = dgeHitTest(pt, { edges: false });
     const a = DGE.tool === 'line' || !fromId
       ? `${dgeNum(dgeRound(pt0.x / uw, DGE_SNAP_CELL))},${dgeNum(dgeRound(pt0.y / uh, DGE_SNAP_CELL))}` : fromId;
     const b = DGE.tool === 'line' || !toId
@@ -12326,7 +12929,7 @@ function dgeWrap(kind) {
 // the semantics for free.
 function dgeAlign(axis, edge) {
   if (DGE.selection.length < 2) {
-    dgeStatus('', 'align takes at least two elements, and the first one selected is the master.', true);
+    dgeStatus('', 'align takes at least two elements: the first one you select keeps its place, and the rest line up on it.', true);
     return;
   }
   dgeAppendLine(`align ${axis} ${edge} ${DGE.selection.join(', ')}`);
@@ -12420,7 +13023,8 @@ function dgeRenderSide() {
     side.appendChild(dgeEl('div', { class: 'dge-empty', html:
       'Nothing selected.<br><br>Click an element to see what holds it in place – '
       + 'the relations it was written with are drawn on the canvas.<br><br>'
-      + 'Pick a tool on the left to add one, or select two and use the alignment acts below.' }));
+      + 'Pick a tool on the left to add one, or select two elements and use the '
+      + '&ldquo;line them up&rdquo; buttons below.' }));
     side.appendChild(dgeTagLegend());
     side.appendChild(dgeElementList());
     side.appendChild(dgeSourcePane());
@@ -12434,15 +13038,97 @@ function dgeRenderSide() {
   ]);
   side.appendChild(head);
 
-  if (single && single.kind !== 'edge') {
-    // Label
+  if (single) {
+    // A label is multi-line. The tokenizer decodes \\n inside a quoted string
+    // to a real line break and the drawing typesets one line per break, so a
+    // single-line input could show the text but never type it. The textarea
+    // holds the *decoded* string – which is what spanOf hands back for a
+    // quoted token – and dgeQuote re-encodes it on the way to the source.
+    //
+    // Edges carry one too. Leaving them out of this field was a hole: the
+    // grammar has always read `edge a -> b "why"`, the compiler lays the text
+    // out along the line, and the only thing missing was the control.
     const sp = DGE.spans.spanOf(single.id, 'label');
-    const input = dgeEl('input', {
-      type: 'text', value: sp && sp.present ? sp.value : '',
+    const input = dgeEl('textarea', {
+      rows: 2, text: sp && sp.present ? sp.value : '',
       placeholder: 'label',
       onchange: (e) => dgeWriteAttr(single.id, 'label', e.target.value, true),
     });
-    side.appendChild(dgeEl('div', {}, [dgeEl('h3', { text: 'label' }), input]));
+    side.appendChild(dgeEl('div', {}, [
+      dgeEl('h3', { text: 'label' }), input,
+      dgeEl('div', { class: 'dge-hint', text: 'Enter breaks the line · ⌘S applies and writes back' }),
+    ]));
+  }
+
+  // What an edge runs between. This is the one thing in the grammar that names
+  // *other elements*, so the panel offers the names rather than coordinates,
+  // and says what a name buys – an arrow written against a box follows it.
+  if (single && single.kind === 'edge') {
+    const row = dgeEl('div', { class: 'dge-nums' });
+    for (const which of ['from', 'to']) {
+      const sp = DGE.spans.spanOf(single.id, which);
+      row.appendChild(dgeEl('label', { class: 'dge-num' }, [
+        dgeEl('span', { text: which }),
+        dgeEl('input', {
+          type: 'text', value: sp && sp.present ? sp.value : '',
+          placeholder: 'name or x,y',
+          onchange: (e) => {
+            const v = e.target.value.trim();
+            // Not the same as clearing an option. dgeWriteAttr's drop path
+            // would take the token out and leave "edge  -> b", which does not
+            // parse, and there is no keyword in front of an endpoint for it
+            // to eat either. Refuse, and put the field back.
+            if (!v) {
+              dgeStatus('', 'An edge needs something at both ends – an element name, or a coordinate like 1.5,2.', true);
+              dgeRenderSide();
+              return;
+            }
+            dgeWriteAttr(single.id, which, v);
+          },
+        }),
+      ]));
+    }
+    const swap = dgeEl('button', {
+      type: 'button', class: 'dge-btn', text: 'Swap ends',
+      title: 'point the arrow the other way',
+      onclick: () => dgeSwapEnds(single.id),
+    });
+    side.appendChild(dgeEl('div', {}, [
+      dgeEl('h3', { text: 'ends' }), row,
+      dgeEl('div', { class: 'dge-chips' }, [swap]),
+      dgeEl('div', { class: 'dge-hint', text:
+        'A name follows the element when it moves; x,y stays put. '
+        + 'Add an anchor with a dot – mix.right – and a fraction along it with a colon – mix.right:0.3.' }),
+    ]));
+
+    // Waypoints. Listed rather than only draggable, because how many there are
+    // and which of them holds a reference is not readable off the picture: a
+    // waypoint written iv.cx,d0.bottom+0.28 and one written 1.4,2.06 land in
+    // exactly the same place and behave completely differently afterwards.
+    const via = single.via || [];
+    const wrap = dgeEl('div', {});
+    wrap.appendChild(dgeEl('h3', { text: 'waypoints' }));
+    if (!via.length) {
+      wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
+        'None – the arrow runs straight. Drag one of the hollow dots on the line to bend it.' }));
+    } else {
+      const list = dgeEl('div', { class: 'dge-chips' });
+      via.forEach((pair, k) => {
+        const sp = DGE.spans.spanOf(single.id, 'via.' + k);
+        const held = pair.some((c) => c && c.ref);
+        list.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-chip' + (held ? ' dge-chip-held' : ''),
+          html: (sp && sp.present ? sp.text : '?') + '<span class="dge-x">×</span>',
+          title: held ? 'follows another element – dragging shifts it a little and keeps the reference. Click to remove.'
+            : 'a plain coordinate. Click to remove.',
+          onclick: () => dgeRemoveWaypoint(single.id, k),
+        }));
+      });
+      wrap.appendChild(list);
+      wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
+        'Drag a square on the line to move one, a hollow dot to add one, double-click a square to remove it.' }));
+    }
+    side.appendChild(wrap);
   }
 
   // Geometry: exactly the options that kind's own statement accepts.
@@ -12638,6 +13324,23 @@ function dgeApplySplices(list) {
 // A label as the DSL spells it. dgTokenize decodes a backslash escape and
 // turns `\n` into a newline, so a label typed with a quote or a line break
 // has to go back the same way or the statement ends mid-word.
+// Swap by exchanging the two endpoint tokens rather than by flipping the
+// arrow. Flipping reads smaller in the diff, but `--` has no direction to
+// flip and the edit would silently do nothing there – the failure this DSL
+// keeps closing. Exchanging the names means the same thing for all three.
+function dgeSwapEnds(id) {
+  const a = DGE.spans.spanOf(id, 'from');
+  const b = DGE.spans.spanOf(id, 'to');
+  if (!a || !b || !a.present || !b.present) return;
+  const first = a.start < b.start ? a : b;
+  const second = first === a ? b : a;
+  const firstVal = first === a ? b.text : a.text;
+  const secondVal = second === a ? b.text : a.text;
+  const src = DGE.source;
+  dgeSetSource(src.slice(0, first.start) + firstVal
+    + src.slice(first.end, second.start) + secondVal + src.slice(second.end));
+}
+
 function dgeQuote(v) {
   return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
@@ -12730,7 +13433,10 @@ function dgeElementList() {
   if (!DGE.model) return wrap;
   wrap.appendChild(dgeEl('h3', { text: 'elements' }));
   const list = dgeEl('div', { class: 'dge-list' });
-  const all = [...DGE.model.nodes, ...DGE.model.containers, ...DGE.model.braces, ...DGE.model.edges];
+  const all = [...DGE.model.nodes, ...DGE.model.containers, ...DGE.model.braces,
+    // Leader stubs are not statements, so they are not rows. The arrow is
+    // visible in the text element's own line, as the `-> x` that made it.
+    ...DGE.model.edges.filter((e) => !e.lead)];
   for (const el of all) {
     list.appendChild(dgeEl('button', {
       type: 'button', 'aria-pressed': String(DGE.selection.includes(el.id)),
@@ -12920,7 +13626,7 @@ function dgeRenderBeats() {
   const steps = DGE.model ? DGE.model.steps : [];
   if (!steps.length) { host.hidden = true; return; }
   host.hidden = false;
-  host.appendChild(dgeEl('span', { class: 'dge-cap', text: 'beat' }));
+  host.appendChild(dgeEl('span', { class: 'dge-cap', text: 'step' }));
   const chip = (k, label) => dgeEl('button', {
     type: 'button', class: 'dge-btn dge-beat', 'aria-pressed': String(k === DGE.beat),
     text: label, title: k === 0 ? 'the opening picture – a drag rewrites the placement'
@@ -13017,6 +13723,17 @@ function dgeKeydown(ev) {
   const tag = (ev.target.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea') {
     if (ev.key === 'Escape') ev.target.blur();
+    // A textarea keeps Enter for itself, so the only way out of a multi-line
+    // label is the commit key – and it has to mean here what it means
+    // everywhere else. Blur first: the field's change event fires inside that
+    // call, so the commit writes the text the author just typed rather than
+    // the text that was there before they started.
+    if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 's') {
+      ev.preventDefault();
+      ev.stopPropagation();
+      ev.target.blur();
+      dgeCommit();
+    }
     return;
   }
   const mod = ev.ctrlKey || ev.metaKey;
@@ -13570,7 +14287,7 @@ function dgeRenderAll() {
   if (counts && DGE.model) {
     counts.textContent = `${DGE.model.nodes.length + DGE.model.edges.length
       + DGE.model.containers.length + DGE.model.braces.length} elements`
-      + (DGE.model.steps.length ? ` · beat ${DGE.beat} of ${DGE.model.steps.length}` : '')
+      + (DGE.model.steps.length ? ` · step ${DGE.beat} of ${DGE.model.steps.length}` : '')
       + (DGE.dirty ? ' · edited' : '');
   }
   // One line of chrome saying which of the two situations this is. A private
@@ -13599,8 +14316,8 @@ function dgeRenderAll() {
       : DGE.fileHandle ? 'Write to ' + DGE.fileHandle.name + ' <kbd>⌘S</kbd>'
       : 'Copy source <kbd>⌘S</kbd>';
     copy.title = live
-      ? 'patch this block back into source.md through the --watch socket'
-      : DGE.fileHandle ? 'patch this block back into the file you opened'
+      ? 'write this block back into source.md, through the running --watch'
+      : DGE.fileHandle ? 'write this block back into the file you opened'
       : 'copy the whole ::: diagram block to the clipboard';
   }
   // Tier 3 is opportunistic and never load-bearing: offered where the
@@ -13615,6 +14332,20 @@ function dgeRenderAll() {
   // something other than what the author wrote.
   const revert = dgeQ('#dge-revert-btn');
   if (revert) revert.hidden = DGE.source === DGE.fig.body;
+  // Every mechanism in here has to have a visible control with its key printed
+  // on it – editor.md §4.2. Undo was the one that had only the key, and how
+  // deep the stack is is a thing the author can otherwise only find out by
+  // pressing it.
+  const undoBtn = dgeQ('#dge-undo-btn');
+  if (undoBtn) {
+    undoBtn.disabled = !DGE.undo.length;
+    undoBtn.title = DGE.undo.length ? `undo (⌘Z) – ${DGE.undo.length} change(s) back` : 'nothing to undo';
+  }
+  const redoBtn = dgeQ('#dge-redo-btn');
+  if (redoBtn) {
+    redoBtn.disabled = !DGE.redo.length;
+    redoBtn.title = DGE.redo.length ? `redo (⇧⌘Z) – ${DGE.redo.length} change(s) forward` : 'nothing to redo';
+  }
   dgeApplyFrame();
   dgeApplyView();
   dgeRenderTools();

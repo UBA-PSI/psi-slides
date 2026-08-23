@@ -4,19 +4,19 @@
 
 The problem it solves is drift. Most lecturers keep slides and a script as two documents, and after two semesters they disagree with each other. psi-slides makes them one text: the prose you write is the handout, and the *same* prose – abridged by a rule you control – is what the projector shows. Nothing is written twice, so nothing can fall out of sync.
 
-It is a build script, not an app. `node build.js source.md` writes four self-contained HTML files next to your source. Everything is inside the file: CSS, JavaScript, images, the maths, and the typefaces – three families ship with the tool and are embedded in every output, so a lecture looks the same on a machine that has none of them installed. Nothing is fetched at run time, from anywhere; open one in a browser with the network unplugged and it is complete. No server, no runtime, no cloud account, nothing to install on the lectern machine. Sharing your slides and/or the full manuscript with the audience is easy: send the file.
+It is a build script, not an app. `node build.js source.md` writes four self-contained HTML files next to your source. Everything is inside the file: CSS, JavaScript, images, the maths, and the typefaces – three families ship with the tool and are embedded in every output, so a lecture looks the same on a machine that has none of them installed. Nothing is fetched at run time, from anywhere; open one in a browser with the network unplugged and it is complete. No server, no runtime, no cloud account, nothing to install on the lectern machine. To give the audience the slides, or the full manuscript, you send them one file.
 
 psi-slides has already carried a full semester of university teaching. Read [When *not* to use this](#when-not-to-use-this) before you invest in it.
 
 ## → [Try it in your browser: uba-psi.github.io/psi-slides](https://uba-psi.github.io/psi-slides/)
 
-Three real lectures are published there in all four views, so you can present one with the arrow keys, press `S` for the cockpit and `O` for the overview board, and read the handout the same source produced &ndash; before installing anything.
+Three real lectures are published there in all four views. Walk one with the space bar, press `S` for the cockpit and `O` for the overview board, and read the handout the same source produced &ndash; before installing anything.
 
 ---
 
 ## What it looks like
 
-The core idea in two pictures. Same source, same chunk, one keypress apart – `C` toggles between a collapsed view with cues for presenting freely and the full manuscript text.
+The core idea in two pictures. A *chunk* is the unit psi-slides works in – roughly one slide's worth of text – and here is one chunk rendered twice from the same source. `C` toggles between the collapsed view, which is what the projector shows, and the full manuscript text.
 
 | Collapsed – what the projector shows | Full – the same chunk, unabridged |
 | --- | --- |
@@ -28,7 +28,7 @@ You did not author two versions. You wrote the right-hand text and marked which 
 
 ![Speaker cockpit showing the scrubber, stage mirror, notes pane and preview strip](docs/img/speaker.png)
 
-**The overview board** (`O`). Remember *Prezi*? Same idea, yet more constrained. Zoom out to the whole lecture at once, drag to pan, `/` to search, `Enter` to land. In an unfamiliar lecture this is the fastest way to get oriented, because the typographic rhythm of principles, examples, and figures is visible at a glance.
+**The overview board** (`O`). The one idea worth keeping from *Prezi*, and none of the rest of it: zoom out to the whole lecture at once, drag to pan, `/` to search, `Enter` to land. In a lecture you did not write yourself, the board is where you get oriented – the typographic rhythm of principles, examples and figures is visible at a glance.
 
 ![Overview board showing three columns of chunks with one selected](docs/img/audience-overview.png)
 
@@ -52,7 +52,7 @@ node build.js lectures/tutorial/source.md
 open lectures/tutorial/audience.html      # macOS; use xdg-open or your browser otherwise
 ```
 
-On Windows take the `.zip` from the [releases page](https://github.com/UBA-PSI/psi-slides/releases). A `git clone` works identically – the archive is that tree without the history, plus the three published lectures already built, so you can open one before running anything.
+On Windows take the `.zip` from the [releases page](https://github.com/UBA-PSI/psi-slides/releases). A `git clone` gives you the same thing: the archive is this repository without the history, plus the three published lectures already built, so you can open one before running anything.
 
 That builds the self-referential tour: a lecture that teaches the tool *by being the tool*. Press `?` for the cheat sheet, `S` to spawn the cockpit, `O` for the overview, `C` for collapse. Its source, [`lectures/tutorial/source.md`](lectures/tutorial/source.md), is the authoring reference.
 
@@ -64,7 +64,7 @@ node build.js lectures/my-lecture/source.md --watch   # live reload on every sav
 node lint.js lectures/my-lecture/source.md            # static checks
 ```
 
-`--watch` pushes a reload over a WebSocket to every open tab, so you can keep the editor, the audience view, and the cockpit visible at once.
+`--watch` reloads every open tab on every save, so you can keep your text editor, the audience view and the cockpit visible at once.
 
 ## The four views
 
@@ -73,7 +73,7 @@ All four come from one `source.md` and are written next to it.
 | File | What it is |
 | --- | --- |
 | `audience.html` | The projection. One chunk on the stage, camera pans between them, collapse on by default. |
-| `speaker.html` | The cockpit. Opens from the audience view with `S`; the two sync over `window.postMessage`. |
+| `speaker.html` | The cockpit. Opens from the audience view with `S`; the two windows then talk to each other directly, with no server in between. |
 | `print.html` | A reading document with a cover and a table of contents. All reveals shown, all expansions inlined. |
 | `print-notes.html` | The same document with `> note:` blocks folded in under their chunk. |
 
@@ -134,16 +134,16 @@ Five optional frontmatter keys pin how a lecture opens – `font`, `theme`, `col
 
 **Hosted players** are a directive of their own, `::: embed <url>`, for YouTube and Vimeo. They are the one thing that makes an output fetch from a third party while you present, so the build says so every time. The frame loads only once its chunk is on screen and unloads when you leave it, nothing autoplays, and play/pause synchronise between projection and cockpit. YouTube additionally needs a real origin, so from a `file://` page it shows a card telling you to run `--serve`; the tutorial explains the whole thing.
 
-Two more surfaces worth knowing apart: **notes** (`> note:`) are yours, written in advance, shown in the cockpit and in the handout. **Annotations** (`N` during a talk) are typed live, visible to the room, and `Shift-E` plus `--integrate-annotations` writes them back into `source.md` as permanent text.
+Two kinds of note are easy to confuse. A **note** (`> note:`) is yours, written in advance, shown in the cockpit and in the handout. An **annotation** (`N` during a talk) is typed live and the room sees it; `Shift-E` plus `--integrate-annotations` writes annotations back into `source.md` as permanent text.
 
 ## Writing lectures with an LLM assistant
 
-The format is a good fit for one. A lecture is plain Markdown with a small,
-closed grammar: eight tags, four widths, eight `:::` directives, one reveal
-separator. There is nothing to guess at and no binary format in the way, so a
-model that has been shown the rules produces sources that build and lint on the
-first pass. Diffs stay reviewable, because the unit of change is a paragraph of
-prose rather than a slide object.
+A lecture source is a good thing to hand a language model. It is plain
+Markdown with a small, closed grammar: eight tags, four widths, eight `:::`
+directives, one reveal separator. There is nothing to guess at and no binary
+format in the way, so a model that has been shown the rules produces sources
+that build and lint on the first pass. Diffs stay reviewable, because the unit
+of change is a paragraph of prose rather than a slide object.
 
 What still needs you: the argument, the examples, and the judgement about what
 belongs on the screen. A model is useful for turning a draft into chunks,
@@ -189,12 +189,12 @@ This is the section that will save you the most time. Each line is a real constr
 
 - **You need `.pptx` or Keynote interop, or a corporate template.** There is no export path. The output is HTML; the only bridge to a slide deck is printing to PDF.
 - **A co-author needs a GUI.** The source is Markdown in a text editor and nothing else. If your collaborator will not edit a text file, this will not work for the two of you.
-- **You want slide transitions, or motion for its own sake.** There are none, and there will be none. What exists is two deliberate mechanisms: reveal segments uncover blocks of text in place, and a `::: diagram` block can be stepped – elements appear, disappear, move, and the arrows between them re-route as they go. Both run on the same key. Neither will animate a slide change.
-- **You want the cockpit on a tablet and the slides on the projector.** Architecturally unsupported: the two windows sync through `window.postMessage` over the opener relationship, which means same machine, same browser, same profile. A network sync mode is deferred, not planned.
+- **You want slide transitions, or motion for its own sake.** There are none, and there will be none. What exists is two deliberate mechanisms: reveal segments uncover blocks of text in place, and a `::: diagram` block can be stepped – elements appear, disappear, move, and the arrows between them re-route as they go. Both run on the same key. Neither will animate a slide change. (`::: diagram` is in this repository but not in any tagged release yet; see [Documentation](#documentation).)
+- **You want the cockpit on a tablet and the slides on the projector.** The design rules it out: the cockpit is a window the audience view opened, and the two talk to each other as parent and popup, which means same machine, same browser, same profile. Syncing over a network is deferred, not planned.
 - **You need more than KaTeX covers.** `$inline$` and `$$display$$` work and render at build time, but that is KaTeX, not LaTeX: no equation numbering or `\ref`, no `mhchem`, no TikZ. If your lecture is a mathematics lecture, check [KaTeX's supported functions](https://katex.org/docs/supported.html) before committing.
 - **You need polls, quizzes, or any audience interaction.** Named and deferred in `PRD.md`.
 - **Your room's browser is old or locked down.** See [Requirements](#requirements) – the stylesheets use modern CSS with no fallbacks.
-- **You want a dependable dependency.** One `build.js` well past six thousand lines, no test suite, no releases, one maintainer, a format that still moves. It is used in earnest, but it is used by the person who wrote it.
+- **You want a dependable dependency.** One `build.js` over ten thousand lines, one maintainer, and a test suite that covers only what a browser can break. The source format is stable from 1.0.0; nothing behind it is promised. It is used in earnest, but it is used by the person who wrote it.
 - **Nobody is going to speak.** If the artefact is a document that has to carry itself – a retrospective, a project report, something you send to the people who could not attend – then the cockpit and the collapse mechanism are machinery you will not use. That is the sibling project, [**psi-briefing**](https://github.com/UBA-PSI/psi-briefing): text-dense 16:9 slides in one self-contained HTML file, written as Markdown and laid out by inference from the shape of the content. The line between the two is simply whether anyone is talking.
 
 ## How it compares
@@ -209,7 +209,7 @@ Every tool in this space is good, and nearly all of them take Markdown, so “it
 - **A current browser** to read. The stylesheets use `oklch()` colours, `:has()`, and `text-wrap: balance` with no fallbacks, which puts the floor at roughly **Chrome/Edge 114, Firefox 121, Safari 17.5**. Lectures with inline-styled SVG assets additionally need `@scope`: Chrome/Edge 118, Safari 17.4, Firefox 146. Development and real use are in Chrome; other browsers are untested rather than unsupported.
 - **`cwebp` or `magick`** on `PATH`, but only if you use `--optimize-images`. macOS `sips` cannot write WebP, so there is no zero-install fallback for that one command.
 - Image assets are inlined automatically when they total under 10 MB. A single asset over 2 MB fails the build rather than silently shipping an external path – `--optimize-images` converts the offenders to WebP, and `--no-inline-images` is the escape hatch.
-- Math is rendered at build time, which means the KaTeX fonts have to travel inside the HTML for it to stay `file://`-openable. Only the font families a lecture's formulas actually use are inlined – typically about 130 KB of the full 254 KB – and a lecture without math inlines none of it. The build prints what it did.
+- Math is rendered at build time, so the KaTeX fonts have to travel inside the HTML or the output stops opening from `file://`. Only the font families a lecture's formulas actually use are inlined – typically about 130 KB of the full 254 KB – and a lecture without math inlines none of it. The build prints what it did.
 
 ## Documentation
 
@@ -217,6 +217,8 @@ Every tool in this space is good, and nearly all of them take Markdown, so “it
 | --- | --- |
 | [`lectures/tutorial/source.md`](lectures/tutorial/source.md) | The authoring reference. Build it and read it as a lecture. |
 | [`lectures/python-intro/`](lectures/python-intro/) | The richest worked example – 36 chunks, the full layout vocabulary. |
+| [`lectures/diagrams/`](lectures/diagrams/) | Every `::: diagram` construct in one lecture, including six real lecture figures rebuilt from text. |
+| [`editor.md`](editor.md) | The graphical editor for `::: diagram` blocks: what it edits, what it refuses to edit, and why. |
 | [`docs/comparison.md`](docs/comparison.md) | Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, compared in both directions. |
 | [`PRD.md`](PRD.md) | Design rationale. Why four views, why this tag set, why collapse has two mechanisms and not four. |
 | [`speaker.md`](speaker.md) | The cockpit spec and the `postMessage` sync protocol – which fields travel, which stay local. |
@@ -225,6 +227,8 @@ Every tool in this space is good, and nearly all of them take Markdown, so “it
 | [`HANDOFF.md`](HANDOFF.md) | Build diary, slice by slice, including the decisions deliberately not taken. German. |
 | [`CLAUDE.md`](CLAUDE.md) | Repo conventions and a map of `build.js`. Useful to any contributor, not just to Claude. |
 | [`.claude/skills/psi-slides-authoring/`](.claude/skills/psi-slides-authoring/SKILL.md) | The authoring contract in one artefact, for handing to an LLM assistant. |
+
+**`::: diagram` and its editor are not in a tagged release yet.** They are in this repository and in the two rows above, and a lecture that uses them builds here; against a released psi-slides it will not. The same goes for the `editor:` frontmatter key, which decides whether the live views carry the editor at all.
 
 ## Command reference
 
@@ -252,13 +256,18 @@ The linter checks unknown tags and widths, duplicate or missing chunk IDs, unclo
 
 Press `?` in either live view for the full on-screen reference. The ones you need on day one:
 
-- `←` `→` columns, `↑` `↓` chunks, `Space` reveal next segment.
-- `Enter` / `1`–`9` open expansions, `Esc` backs out.
+- Forward is one key family: `Space`, `↓`, `Enter`, `PageDown`. It uncovers the next reveal segment or diagram step on the chunk you are on; once there is nothing left to uncover it moves to the next chunk, and at the end of a column it carries on into the next column.
+- Backward is the mirror: `↑`, `PageUp`, `Backspace`. It takes the last reveal back, and leaves the chunk only once the chunk is back at its opening state.
+- `→` and `←` are that same forward/backward pair, except on the first chunk of a column, where they mean next column and previous column. If there is no column that way, they stay forward and backward.
+- Faint marks at the edge of the slide flag the exceptions: `‹ ›` on a chunk where sideways changes column, `⌄` when the next forward press will leave the column.
+- `1`–`9` open expansions – so does clicking the chevron. `Esc` backs out.
 - `O` overview (the letter, not zero – zero resets the zoom), `T` table of contents, `/` search from anywhere – a hit list of every slide that mentions the word.
 - `C` collapse, `F` font, `A` accent theme, `+` `-` `0` zoom.
 - `#` auto-fit: size every slide to the screen. `B` blanks the projection – the speaker window keeps working so you can change slide while the room sees black.
 - `S` spawn the speaker window, `P` open the print view.
 - `L` slide numbers: stacked, in a row, or off.
+
+## What is stable and what is not
 
 From `1.0.0` the **source format is the interface**: a change that stops an existing `source.md` from building the same way is a major version. That is a promise about the format, not about the internals – `build.js` is one file and its insides are rearranged whenever it helps. Two consequences worth knowing:
 

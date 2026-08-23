@@ -37,9 +37,9 @@ box  bo   "Buffer Overflow" below slab gap 0.75 align left {.accent @spatial}
 box  bor  "Buffer Overread" right of bo gap 0.22 same as bo {.accent @spatial}
 text scode "char buf[16];\nbuf[42];" below bo gap 0.28 align left {.mono .left @spatial}
 
-# Die beiden Spalten hängen schon über align left aneinander. Die Kästchen
-# rechts nicht: sie sitzen je 0.7 neben einem Wort, und "Temporal" ist ein
-# Zeichen länger als "Spatial".
+# Die beiden Spalten hält das align left in den Platzierungen schon bündig.
+# Die Kästchen rechts nicht: sie sitzen je 0.7 neben einem Wort, und
+# "Temporal" ist ein Zeichen länger als "Spatial".
 align x center tobj, sobj
 
 step temporal
@@ -48,7 +48,7 @@ step spatial
   show @spatial
 :::
 
-**Zwei Familien, dieselbe Form.** Das `align left` am Ende einer Platzierung hält jede `below`-Kette an ihrer linken Kante bündig, obwohl der obere Code zweizeilig und der untere anders breit ist, und `same as` gibt den Paaren jeweils gleiche Kästen. Die *Anweisung* `align x center tobj, sobj` ist etwas anderes: sie holt eine Koordinate von einem Meister, und hier ist sie nötig, weil die beiden Kästchen neben verschieden langen Wörtern hängen. Die Schritte adressieren `@temporal` und `@spatial` statt acht Namen.
+**Zwei Familien, dieselbe Form.** Das `align left` am Ende einer Platzierung hält jede `below`-Kette an ihrer linken Kante bündig, obwohl der obere Code zweizeilig und der untere anders breit ist; `same as` gibt jedem Paar gleich große Kästen. Die *Anweisung* `align x center tobj, sobj` ist etwas anderes: sie übernimmt eine Koordinate vom zuerst genannten Element, und hier ist sie nötig, weil die beiden Kästchen neben verschieden langen Wörtern hängen. Die beiden Schritte sprechen `@temporal` und `@spatial` an, statt acht Namen einzeln aufzuzählen.
 
 ## figure: Your first buffer overflow | ein konstruiertes Beispiel {.full #overflow}
 
@@ -92,7 +92,7 @@ step reached
 :::
 :::
 
-**Der Code ist eine Markdown-Fence, das Bild daneben ein Diagramm.** `::: side` stellt beide nebeneinander; das Diagramm muss dafür nichts können. Innen halten `same as` und `gap 0` die vier Rahmen als einen Stapel zusammen, und die `brace` misst die Schreibrichtung über alle vier.
+**Links ein ganz normaler Markdown-Codeblock, rechts ein Diagramm.** `::: side` stellt beide nebeneinander; das Diagramm muss dafür nichts können. Innen halten `same as` und `gap 0` die vier Rahmen als einen Stapel zusammen, und die `brace` spannt sich über alle vier und schreibt die Schreibrichtung daneben.
 
 # Block ciphers
 
@@ -153,7 +153,7 @@ step recover
   calm feed0, feed1, feed2
 :::
 
-Jeder `step` ist ein Druck auf `Space`. Die Verkettungspfeile haben je einen Wegpunkt – mehr Routing brauchen diese Bilder nie.
+Jeder `step` ist ein Druck auf die Vorwärtstaste. Die Verkettungspfeile haben je einen Wegpunkt (`via`) – mehr Wegführung brauchen diese Bilder nie.
 
 ## figure: Counter mode, encryption {.full #ctr}
 
@@ -198,7 +198,7 @@ edge ke0 -> e0 {@enc}
 edge ke1 -> e1 {@enc}
 edge ke2 -> e2 {@enc}
 
-# Diese neun brauchen kein eigenes @tag und kein show: eine Kante ist nur so
+# Diese zwölf brauchen kein eigenes @tag und kein show: eine Kante ist nur so
 # sichtbar wie ihre beiden Enden, also erscheint s->+ mit dem Schlüsselstrom,
 # m->+ mit der Nachricht und +->c mit dem Chiffrat.
 edge e0 -> s0
@@ -262,9 +262,9 @@ align y middle reg, ident
 align y middle prov, authn
 align y middle authz, acl
 
-# Der Pfeil sitzt zwischen Bildunterschrift und nächstem Kasten – nicht in
-# der below-Kette, sonst schöbe ihn eine zweizeilige Unterschrift in den
-# Kasten, den align y middle gerade festgenagelt hat.
+# Der Pfeil sitzt zwischen Bildunterschrift und nächstem Kasten, gehört aber
+# nicht zur below-Kette: sonst schöbe ihn eine zweizeilige Unterschrift in
+# den Kasten hinein, den align y middle gerade festgehalten hat.
 text down1  "▼"  between regc,prov   {@creation}
 text down2  "▼"  between provc,authz {@creation}
 text down3  "▼"  between identc,authn {@usage}
@@ -285,7 +285,7 @@ step self
   emph selfsv
 :::
 
-**Ohne `align y middle` driften die beiden Spalten auseinander.** Sie sind getrennte `below`-Ketten, und die Bildunterschriften sind mal ein-, mal zweizeilig – drei Zeilen halten die Reihen bündig.
+**Ohne `align y middle` driften die beiden Spalten auseinander.** Sie sind getrennte `below`-Ketten, und die Bildunterschriften sind mal ein-, mal zweizeilig – drei `align`-Zeilen halten die Reihen bündig.
 
 ## figure: Message authentication | it is not about confidentiality {.full #mac}
 
@@ -323,7 +323,7 @@ step attack
   emph replay, forge
 :::
 
-**Die Avatare sind Vektor-Assets und folgen dem Theme.** `image alice avatar-alice` löst gegen `assets/` auf wie `![](fig-id)`; eine SVG-Datei wird als verschachteltes `<svg>` eingesetzt und erbt `--ink` und `--paper`. Die beiden Angriffspfeile hängen an `eve.right:0.28` und `:0.72` – zwei parallele Pfeile statt zweier Bögen über derselben Sehne.
+**Die Avatare sind Vektorgrafiken und folgen dem Theme.** `image alice avatar-alice` sucht die Datei in `assets/`, genau wie `![](fig-id)`; eine SVG-Datei wird als verschachteltes `<svg>` eingesetzt und erbt `--ink` und `--paper`. Die beiden Angriffspfeile setzen bei `eve.right:0.28` und `:0.72` an: Der Bruchteil hinter dem Doppelpunkt schiebt den Ansatzpunkt an der Kante entlang, und so laufen die beiden parallel, statt übereinanderzuliegen.
 
 # The vocabulary
 
@@ -340,7 +340,7 @@ edge b -> c "recoded"
 edge b -> x {.dashed}
 :::
 
-`box`, `dot`, `text`, `image`, `edge`, `brace`, `container`, `align`, `spread`, `default`, `step` – elf Anweisungen, mehr nicht. Ein `text` bekommt mit `-> x` einen Linien-Stummel zu dem, worüber es spricht.
+`box`, `dot`, `text`, `image`, `edge`, `brace`, `container`, `align`, `spread`, `default`, `step` – elf Anweisungen, mehr nicht. Ein `text` bekommt mit `-> x` eine kurze Linie zu dem, worüber er spricht.
 
 ## figure: Alignment {.wide #alignment}
 
@@ -362,7 +362,7 @@ spread x p, q, r, s
 edge a.left-0.8,a.cy -> a "from outside" {.muted}
 :::
 
-Oben gleiche *Kantenabstände* – das gibt schon eine Kette aus `right of … gap n` her. Unten gleiche *Mittelpunktabstände*: `spread x` verteilt die inneren Elemente zwischen dem ersten und dem letzten, und weil der zweite Kasten viel breiter ist als seine Nachbarn, sind die Lücken links und rechts von ihm sichtbar kleiner. Das ist der Unterschied, den die beiden Reihen zeigen sollen. Der Pfeil links oben hat einen Endpunkt ohne Objekt – eine Koordinate statt eines unsichtbaren Ankers.
+**Die beiden Reihen zeigen zwei verschiedene Arten von gleichmäßig.** Oben sind die *Kantenabstände* gleich – das gibt schon eine Kette aus `right of … gap n` her. Unten sind die *Mittelpunktabstände* gleich: `spread x` verteilt die inneren Elemente zwischen dem ersten und dem letzten, und weil der zweite Kasten viel breiter ist als seine Nachbarn, sind die Lücken links und rechts von ihm sichtbar kleiner. Der Pfeil links oben hat einen Endpunkt ohne Objekt – eine Koordinate statt eines unsichtbaren Ankers.
 
 ## figure: Containers and braces {.wide #grouping}
 
@@ -385,8 +385,8 @@ Ein `container` legt sich um seine Mitglieder und passt sich neu an, wenn sie si
 ::: diagram {unit=118x74}
 default box {.sharp} w 0.62 h 0.42
 
-# Every fill the vocabulary has, over a line, so `.clear` and `.paper` are
-# telling apart: one lets the rule through, the other knocks it out.
+# Every fill the vocabulary has, drawn over a line so that .clear and .paper
+# can be told apart: one lets the rule through, the other knocks it out.
 edge -0.45,0 -- 6.1,0 {.muted}
 box f1 "paper"  at 0,0    {.paper}
 box f2 "tone-1" right of f1 gap 0.28 same as f1 {.tone-1}
@@ -402,8 +402,8 @@ text t3 "serif" right of t2 gap 0.62 {.serif}
 text t4 "hand"  right of t3 gap 0.62 {.hand}
 text tl "family" left of t1 gap 0.72 {.muted}
 
-# One width, three answers. The box grows to the type, or the type shrinks to
-# the box, or it fills the box in both directions.
+# One width, three answers: leave the type as it is and let it run over the
+# border, shrink it until it fits, or let it fill the box in both directions.
 box g1 "a label that is too long" at 0,2.3 w 1.2 h 0.46
 box g2 "a label that is too long" right of g1 gap 0.34 same as g1 {.shrink}
 box g3 "short"                    right of g2 gap 0.34 same as g1 {.fit}
@@ -413,11 +413,11 @@ text n3 "fit"    below g3 gap 0.16 {.muted}
 text gl "type meets\nits box" left of g1 gap 0.5 {.muted .right}
 :::
 
-**Der Editor zeigt genau diese Reihen in seiner Seitenleiste.** Die Klassen sind eine geschlossene Aufzählung, keine freien Farben – jede Füllung mischt sich aus `--emph` und `--ink` über `--paper` und überlebt damit alle sieben Themes. `.paper` ist nicht der No-Op, nach dem es aussieht: Es ist die Voreinstellung einer Box, aber eine Box unter `default box {.tone-3}` kam ohne die Klasse nicht mehr dorthin zurück, und ein freier `text` konnte gar keinen Grund bekommen – und genau der ist es, der eine Linie hinter einer Beschriftung ausstanzt.
+**Der Editor zeigt genau diese Reihen in seiner Seitenleiste.** Die Klassen sind eine geschlossene Aufzählung, keine freien Farben – jede Füllung mischt sich aus `--emph` und `--ink` über `--paper` und überlebt damit alle sieben Themes. `.paper` sieht wirkungslos aus, ist es aber nicht: Es ist die Voreinstellung einer Box, doch unter `default box {.tone-3}` kommt eine Box ohne die Klasse nicht mehr dorthin zurück, und ein freier `text` bekäme sonst überhaupt keinen Hintergrund – und genau der ist es, der die Linie hinter einer Beschriftung ausstanzt.
 
-**Bei `w` und Schriftgröße gibt es drei Antworten, nicht zwei.** Ohne Angabe wächst der Kasten zur Schrift; `.shrink` verkleinert die Schrift, bis sie hineinpasst; `.fit` füllt den Kasten in beide Richtungen aus, auf 0.6–1.5× der Grundgröße geklemmt. Weil die Textbreite zur Buildzeit *geschätzt* wird – es gibt keinen Browser – fällt die gewählte Größe eine Spur zu klein aus. Das ist die sichere Richtung.
+**Wenn Schrift und Kasten nicht zusammenpassen, gibt es drei Antworten.** Ohne `w` wächst der Kasten zur Schrift. Bei festem `w` verkleinert `.shrink` die Schrift, bis sie hineinpasst, und `.fit` füllt den Kasten in beide Richtungen aus, begrenzt auf 0.6–1.5× der Grundgröße. Weil die Textbreite beim Bauen nur *geschätzt* wird – einen Browser gibt es dabei nicht –, fällt die gewählte Größe eine Spur zu klein aus. Das ist die sichere Richtung.
 
-**Der erste Kasten läuft absichtlich über, und der Build sagt das auch:** `box g1 is 1.2 units wide but its label needs about 1.55`. Diese Warnung beim Bauen dieser Vorlesung ist kein Defekt, sie ist die dritte Antwort – die, die man nicht will.
+**Der erste Kasten läuft absichtlich über, und der Build sagt das auch:** `box g1 is 1.2 units wide but its label needs about 1.55`. Das ist die Antwort, die man nicht will: ein festes `w`, das für die Beschriftung zu klein ist, und weder `.shrink` noch `.fit`. Die Warnung beim Bauen dieser Vorlesung ist deshalb kein Defekt.
 
 ## figure: Steps that move {.wide #motion}
 
@@ -444,9 +444,9 @@ step dazwischen
   emph px
 :::
 
-**`move` ist der Grund, warum es diese Sprache gibt.** Der Proxy bekommt `move px to between cl,sv`, und weil das Layout pro Schritt neu ausgewertet wird, hängen die beiden gestrichelten Pfeile weiterhin an ihm, der Linien-Stummel des Labels zeigt weiter auf ihn, und der `container` fasst plötzlich eine Reihe statt zwei. `hide direct` nimmt den direkten Pfeil weg. `to` setzt eine Position, `by` verschiebt um einen Betrag – und **ein `move @tag to …` lehnt der Build ab**, weil es die ganze Menge auf einen Punkt legen würde; für eine Menge ist `by` gemeint.
+**`move` ist der Grund, warum es diese Sprache gibt.** Der Proxy bekommt `move px to between cl,sv`, und weil das Layout pro Schritt neu ausgewertet wird, hängen die beiden gestrichelten Pfeile weiterhin an ihm, die kurze Linie am Label zeigt weiter auf ihn, und der `container` fasst plötzlich eine Reihe statt zwei. `hide direct` nimmt den direkten Pfeil weg. `to` setzt eine Position, `by` verschiebt um einen Betrag – und **ein `move @tag to …` lehnt der Build ab**, weil es die ganze Menge auf einen Punkt legen würde; für eine Menge ist `by` gemeint.
 
-**Sichtbarkeit vererbt sich nach unten.** Weder der `container` noch die gestrichelten Pfeile noch das handschriftliche Label brauchen ein eigenes `show`: ein Pfeil ist nur so sichtbar wie seine Enden, ein `container` nur so sichtbar wie seine Mitglieder, und ein `text` mit Linien-Stummel nur so sichtbar wie das, worauf er zeigt.
+**Sichtbarkeit vererbt sich nach unten.** Weder der `container` noch die gestrichelten Pfeile noch das handschriftliche Label brauchen ein eigenes `show`: ein Pfeil ist nur so sichtbar wie seine Enden, ein `container` nur so sichtbar wie seine Mitglieder, und ein `text` mit einer Linie nur so sichtbar wie das, worauf er zeigt.
 
 ## figure: A raster does not follow the theme {.standard #raster}
 
@@ -455,4 +455,4 @@ image swatch swatch w 0.6
 text  note "a raster keeps its own colours\nin every theme" right of swatch gap 0.35 -> swatch {.small .muted}
 :::
 
-Beim Zyklus durch die Themes mit `A` bleibt das Rasterfeld, wie es ist, während Kästen, Pfeile und Vektor-Figuren umfärben. Das ist der Preis für Pixel.
+Beim Durchschalten der Themes mit `A` bleibt das Rasterbild, wie es ist, während Kästen, Pfeile und Vektorgrafiken umfärben. Das ist der Preis für Pixel.

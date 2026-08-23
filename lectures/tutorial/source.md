@@ -30,7 +30,7 @@ The four outputs are self-contained: images are inlined, CSS and JavaScript are 
 
 ## free: What you're reading right now | is the audience view {.wide #audience-now}
 
-**You are in `audience.html`.** It is the projector-facing view: one chunk occupies the slide, keyboard nav moves between chunks, and any speaker connected via postMessage mirrors state here in real time.
+**You are in `audience.html`.** It is the projector-facing view: one chunk occupies the slide, the keyboard moves between chunks, and a speaker window, once you open one, mirrors everything here in real time.
 
 ::: cols 2
 
@@ -46,32 +46,32 @@ The four outputs are self-contained: images are inlined, CSS and JavaScript are 
 
 # Moving around {#moving}
 
-## example: Arrows and Space | navigate chunks, reveal segments {.standard #arrows}
+## example: Forward and back | plus a sideways pair for columns {.standard #arrows}
 
-**Three key-families carry the whole live-talk navigation:**
+**Live navigation is two key families, forward and back, and a sideways pair that changes column.**
 
-- `←` `→` move between **columns** – the top-level sections headed `# Name`.
-- `↑` moves back a **chunk**; each `## tag: …` is one chunk.
-- `↓` and `Space` are the same key: they reveal the next **segment**, and once a chunk is fully out, move on to the next one. A chunk splits into segments at standalone `---` lines. Try it now:
+- **Forward** is `Space`, `↓`, `Enter` or `PageDown`. It uncovers the next **segment** of the chunk you are on; once there is nothing left to uncover it moves to the next chunk, and at the end of a column it carries on into the next column.
+- **Back** is `↑`, `PageUp` or `Backspace`. It puts the last segment away again, and it leaves the chunk only once the chunk is back at its opening state.
+- `→` and `←` are that same pair, except on the **first chunk of a column**, where they mean next column and previous column. A `# Name` heading starts a column; each `## tag: …` is one chunk. Press forward now:
 
 ---
 
-**Good – you just revealed a segment.** In the source, a line with only `---` (outside a code fence) breaks the chunk body into reveal segments. The first is visible on entry; each `↓` or `Space` uncovers the next, and past the last, either key advances to the next chunk.
+**Good – you just revealed a segment.** In the source, a line with only `---` (outside a code fence) breaks the chunk body into reveal segments. The first is visible when you arrive; forward uncovers the next, back puts it away.
 
-The two keys behave identically on purpose. `↓` used to skip straight to the next chunk, which meant walking a lecture with the arrows silently swallowed every reveal on the way – and remembering to switch keys for exactly the segmented slides is the sort of thing that goes wrong in front of a room.
+**Faint marks at the edge of the slide flag the two exceptions.** `‹ ›` appear only on a chunk where sideways changes column, and `⌄` appears only when the next forward press will leave the column. They are a compass rather than a control – there is nothing to click.
 
-**The cockpit shows you what comes next.** With a speaker window open, look at this slide there: the segment the next keypress will reveal is already drawn in place, hatched and inside a dashed frame, so you can read ahead without the room seeing it. Only the immediately next one – the segments behind it stay hidden, or the preview would just be the whole chunk with decoration on top.
+**The cockpit shows you what comes next.** With a speaker window open, look at this slide there: the segment the next forward press will reveal is already drawn in place, hatched and inside a dashed frame, so you can read ahead without the room seeing it. Only the immediately next one – the segments behind it stay hidden, or the preview would just be the whole chunk with decoration on top.
 
 ---
 
 **One more, to show chaining.** Reveal lets you pace dense content during a live talk without dumping everything at once, and in print all segments render together as one flowing body.
 
-## example: Expansions | `Enter` and `1`-`9` open side asides {.wide #expand}
+## example: Expansions | `1`-`9` or the chevron open side asides {.wide #expand}
 
-**Some chunks have extra detail tucked behind a chevron button.** Click one, or press `Enter` for the first, or `1`…`9` for the N-th. This chunk has two expansions – try both.
+**Some chunks have extra detail tucked behind a chevron button.** Click one, or press `1`…`9` for the n-th. This chunk has two expansions – try both.
 
-::: expand enter-and-digits
-**`Enter` opens the first expansion, digits open specific ones.** This is expansion number 1. Press `Esc` to close, or `2` to switch to the second expansion directly – no need to close first.
+::: expand digits-and-chevrons
+**A digit opens the expansion with that number.** This is expansion number 1. Press `Esc` to close, or `2` to switch to the second expansion directly – no need to close first. `Enter` does not open expansions; it is one of the forward keys.
 
 In source, an expansion is authored with `::: expand <label>` … `:::`. The label shows in the expanded pane header; the chevron button gets an abbreviation (`Exp` for unknown labels, `Ex` / `Ref` / `Fig` / `?` / `N.B.` / `!` for known families).
 :::
@@ -170,7 +170,7 @@ Reach for `::: slide` when the slide wants to be tight bullets while the argumen
 **A `::: slide` block if there is one, otherwise everything outside `::: script`, otherwise the derived first-sentence-plus-bold.** Three rules, checked in that order, per chunk.
 
 ::: expand answer-in-practice
-**In practice you will mix them inside one lecture.** Principles and questions tend to be argument-shaped and do fine derived; long Befund or walkthrough chunks are usually easier to write with an explicit `::: slide`.
+**In practice you will mix them inside one lecture.** Principles and questions tend to be argument-shaped and do fine derived; a long finding or a walkthrough is usually easier to write with an explicit `::: slide`.
 
 The tag vocabulary is a good predictor: `principle` and `question` chunks are short enough that derivation rarely bites, while `example` and `free` chunks at the top of their density budget are where the explicit mode earns its keep.
 :::
@@ -193,7 +193,7 @@ Picking the wrong tag is not an error, and the linter will not tell you. It only
 
 ## exercise: Try the vocabulary {.wide #try-tags}
 
-**Open `lectures/tutorial/source.md` with `--watch` running and change three things.** Every save rebuilds and reloads all open tabs over a WebSocket, so keep the audience, the speaker, and your editor visible at once.
+**Open `lectures/tutorial/source.md` with `--watch` running and change three things.** Every save rebuilds and reloads every open tab, so keep the audience, the speaker and your text editor visible at once.
 
 ::: cols 2
 
@@ -209,7 +209,7 @@ Picking the wrong tag is not an error, and the linter will not tell you. It only
 
 ## free: Speaker view | the other window `S` spawned {.wide #speaker-s}
 
-**The speaker view is the four-lane cockpit.** Press `S` in this audience view if you have not already – it opens `speaker.html` as a popup, and both windows adopt each other as peers over `window.postMessage`.
+**The speaker view is the four-lane cockpit.** Press `S` in this audience view if you have not already – it opens `speaker.html` as a popup, and from then on the two windows talk to each other directly, with no server in between.
 
 ::: cols 2
 
@@ -220,7 +220,7 @@ Picking the wrong tag is not an error, and the linter will not tell you. It only
 - **Editable notes pane** below the stage, collapsed when the chunk has no notes.
 - **Preview strip** of all chunks, scrollable and clickable.
 
-**Everything stays in sync.** Chunk changes, reveal state, annotations, theme, font, zoom, expansion state, overview framing, figure focus, and the laser pointer all flow through postMessage snapshots. `V` freezes the projection when you want to read ahead without the room following, and thawing catches the room up to wherever you got to.
+**Everything stays in sync.** Chunk changes, reveal state, annotations, theme, font, zoom, expansion state, overview framing, figure focus and the laser pointer all travel between the two windows. `V` freezes the projection when you want to read ahead without the room following, and unfreezing catches the room up to wherever you got to.
 
 :::
 
@@ -237,7 +237,7 @@ Picking the wrong tag is not an error, and the linter will not tell you. It only
 
 :::
 
-The notes pane starts at automatic height: one line when empty, up to three when it has content, collapsed entirely when the chunk has no notes at all. Once you drag it, the height becomes fixed and is remembered across lectures and reloads, which is usually what you want on a fixed lectern screen. The stage above it is a `1fr` grid row, so it gives up exactly the space the notes take and the audience mirror stays letterboxed at the projector's aspect ratio rather than distorting.
+The notes pane starts at automatic height: one line when empty, up to three when it has content, collapsed entirely when the chunk has no notes at all. Once you drag it, the height becomes fixed and is remembered across lectures and reloads, which is usually what you want on a fixed lectern screen. The stage above gives up exactly the space the notes take, so the audience mirror stays letterboxed at the projector's aspect ratio rather than stretching to fill.
 
 Vertical preview mode is worth trying on any screen with horizontal room to spare: the thumbnails get larger and their text becomes legible, which turns the strip from a position indicator into something you can actually read ahead in. Both the strip's height and its width are remembered separately, so flipping the orientation and flipping back returns each one to the size you gave it.
 
@@ -249,13 +249,13 @@ Vertical preview mode is worth trying on any screen with horizontal room to spar
 
 **`N` (both views) is an annotation on the current chunk.** A textarea appears under the chunk; whatever you type is mirrored keystroke-by-keystroke to the other view. Use it for live marginalia – a rule you want on screen, a question you captured from the room, a correction during a talk.
 
-Annotations persist in localStorage per lecture and travel with state snapshots. `Shift-E` on the speaker copies every live annotation as `> annot:` Markdown to your clipboard; paste it under the matching chunk heading in `source.md`, run `node build.js <source.md> --integrate-annotations`, and the text becomes a permanent Presentation Note – prefilled into the audience textarea and rendered inline in print.
+Annotations are kept in the browser, per lecture, and travel to the other window as you type. `Shift-E` on the speaker copies every live annotation as `> annot:` Markdown to your clipboard; paste it under the matching chunk heading in `source.md`, run `node build.js <source.md> --integrate-annotations`, and the text becomes a permanent Presentation Note – prefilled into the audience textarea and rendered inline in print.
 
 > annot: The `> annot:` block you read here in print is the same mechanism exported from a previous run; the audience textarea above starts prefilled with this text.
 
 ::: flip
 
-**`Shift-N` (speaker only) opens the private notes pane** below the slide. This is *your* memory aid, never mirrored. The pane is pre-filled from `> note: …` lines in source; your in-talk edits override the source text and persist per chunk in localStorage.
+**`Shift-N` (speaker only) opens the private notes pane** below the slide. This is *your* memory aid, never mirrored. The pane is pre-filled from `> note: …` lines in source; your in-talk edits override the source text and are kept in the browser, per chunk.
 
 If the pane is collapsed because this chunk has no notes, the corner `+ note` button on the stage does the same thing as `Shift-N`.
 
@@ -374,7 +374,7 @@ Reach for `::: margin` when the supplementary content is short and trustworthy e
 
 ![](reveal-demo)
 
-That player is a real clip, inlined into this file: 34 KB, and it shows the three reveal stages of the *Arrows and Space* slide you walked through earlier. Press play; then look at the address bar and note that nothing was fetched.
+That player is a real clip, inlined into this file: 34 KB, and it shows the three reveal stages of the navigation slide you walked through earlier. Press play; then look at the address bar and note that nothing was fetched.
 
 Clips are inlined like any other asset, up to a separate 12 MB per-file cap: a clip is an order of magnitude heavier than a diagram, and the 2 MB image cap would reject every real one. Over the cap the build tells you the `ffmpeg` line that fixes it.
 
@@ -434,7 +434,7 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 ## example: Diagrams | `::: diagram` draws boxes and arrows from text {.full #diagram}
 
-**A `::: diagram` block is a figure written in the source and compiled to inline SVG at build time.** You name the pieces and say where they go; the arrows between them are computed.
+**A `::: diagram` block is a figure written in the lecture source and drawn into the page as vector artwork at build time.** You name the pieces and say where they go; the arrows between them are computed.
 
 ::: diagram {unit=126x72}
 box  src  "Sender"
@@ -456,37 +456,37 @@ step blame
 
 **Placement is a grid cell or a relation to a neighbour** – `at 2,1`, or `right of mix gap 0.6`, or `below src gap 0 align left` for boxes that touch. The first element sits at the origin so a simple diagram needs no coordinates at all. There is no automatic layout, on purpose: where things go is usually part of what the picture is saying.
 
-**A coordinate can name another element's, with a signed nudge** – `at mix.cx,src.cy+0.4`, `via iv.cx,x0.cy`. Every slot that takes an `X,Y` pair takes that form, so a figure survives a change above it instead of needing three numbers read off a screen. Element names are letters, digits, `_` and `-`, because `mix.cx` has to be readable as one thing; a comment line starts with `#`.
+**A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`, `via iv.cx,x0.cy`. Every slot that takes an `X,Y` pair takes that form, so a figure survives a change above it instead of needing three numbers read off a screen. Element names are letters, digits, `_` and `-`, because `mix.cx` has to be readable as one thing; a comment line starts with `#`.
 
-**`step` blocks make it move, and `Space` is the key.** Diagram steps are beats on the same counter as reveal segments, so they interleave with them in source order and the cockpit follows. The vocabulary is `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style` and `label`.
+**`step` blocks make it move, and forward is the key.** One step is one press of the same key that uncovers a reveal segment, so steps and segments interleave in the order you wrote them and the cockpit follows. The vocabulary is `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style` and `label`.
 
 **A moved box takes its arrows with it.** The layout is evaluated again for every step rather than nudged, so an edge that connects two elements re-routes whenever either end moves – which is the one thing a diagram exported from a drawing tool can never do.
 
-**Visibility runs downhill.** An arrow is only as visible as the two things it connects, a `container` or `brace` only as visible as its members – and it fits the ones on screen – and a `text` that grew a leader only as visible as what it points at. So revealing the boxes reveals the arrows between them, the outline around them and the note beside them, and most of a diagram needs no `show` of its own. Free `text` grows that leader with `-> some-element`, which is how a label goes wherever it reads best without losing what it is about.
+**Visibility runs downhill.** An arrow is only as visible as the two things it connects; a `container` or `brace` only as visible as its members, and it fits the ones on screen; a `text` with a line drawn to something only as visible as the thing it points at. So revealing the boxes reveals the arrows between them, the outline around them and the note beside them, and most of a diagram needs no `show` of its own. A free `text` gets that line with `-> some-element`, which is how a label goes wherever it reads best without losing what it is about.
 
-**A picture can be an element too.** `image alice avatar-alice w 0.4` resolves the asset exactly like `![](fig-id)` does. An SVG is spliced in as a nested `<svg>`, so it inherits `--ink` and `--paper` and re-colours with the `A` theme cycle; a raster is embedded as a `data:` URI and keeps its own colours in every theme. That is the trade, and it is the honest one.
+**A picture can be an element too.** `image alice avatar-alice w 0.4` finds the file exactly like `![](fig-id)` does. An SVG is drawn into the page itself, so it inherits `--ink` and `--paper` and re-colours with the `A` theme cycle; a raster image is embedded as it is and keeps its own colours in every theme. That is the trade, and it is the honest one.
 
 ::: expand The rest of the vocabulary
 `dot` is a circle for junctions and glyphs. `container … over a,b,c` draws a box that fits itself around its members and re-fits when they move; `brace … over a,b right "Label"` is a bracket spanning a subset.
 
-An element also carries **tags**: `{#mix .tone-1 @crypto}`. Three sigils, three questions – `#` is identity, `.` is appearance, `@` is membership – and a tag is addressable wherever a name is, so `show @crypto` in a step covers every element carrying it. Membership sits on the element's own line, so adding one to a set is a local edit.
+An element also carries **tags**: `{#mix .tone-1 @crypto}`. Three prefixes, three questions – `#` is identity, `.` is appearance, `@` is membership – and a tag can be written wherever a name can, so `show @crypto` in a step covers every element carrying it. Membership sits on the element's own line, so adding one to a set is a local edit.
 
-`align y middle a, b, c` lines up one coordinate – the axis is named because `center` and `middle` are near-synonyms and picking the wrong one is legal, silent and moves a whole block sideways – and `spread x a, …, z` gives equal spacing between centres. Both matter more than they sound: two columns built as separate `below` chains drift apart the moment their captions differ in height, and a line between two drifted boxes runs a degree off the axis and reads as a mistake.
+`align y middle a, b, c` lines up one coordinate; the axis comes first because `center` and `middle` are near-synonyms, and picking the wrong one is legal, silent, and moves a whole block sideways. `spread x a, …, z` gives equal spacing between centres. Both matter more than they sound: two columns built as separate `below` chains drift apart the moment their captions differ in height, and a line between two drifted boxes runs a degree off the axis and reads as a mistake.
 
-Placement also takes `between a,b` – the point on the line joining two elements, which is what a separator glyph or a note beside a connector actually wants – and any placement accepts a trailing `offset dx,dy`. An anchor can carry a fraction: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes come out parallel instead of as a lens.
+Placement also takes `between a,b` – the point on the line joining two elements, which is what a separator glyph or a note beside a connector actually wants – and any placement accepts a trailing `offset dx,dy`. An anchor can carry a fraction: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side instead of on top of each other.
 
 Against repetition there are two more: `default box {.tone-4} w 1.15` sets the base for every box in the diagram (add a tag – `default box @dec w 0.48` – to refine it for one set), and `same as create` copies another element's width and height. The same `default` lines go in a `diagram-defaults:` frontmatter key when a whole lecture's figures should look like each other – then a block's own `default` overrides the lecture's for that one figure, and changing the house style is one edit rather than twelve.
 
-And against measuring: a coordinate may be another element's coordinate. `edge iv -> x0 via iv.cx,x0.cy` means *straight down from the IV, then across at the height of the XOR*, and it stays true when anything above it moves. A signed nudge (`mix.cx+0.2`) shifts it without giving up the relation. A class on an element displaces a default in the same slot rather than stacking with it, so `{.tone-1}` on one box still wins.
+And against measuring: a coordinate may be another element's coordinate. `edge iv -> x0 via iv.cx,x0.cy` means *straight down from the IV, then across at the height of the XOR*, and it stays true when anything above it moves. Adding `+0.2` or `-0.2` (`mix.cx+0.2`) shifts it a little without giving up the relation.
 
 Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run and `~muted~` greys it. Classes come from a closed list – four `tone-*` fills mixed from the page's own inks plus `clear` for a see-through one, and `dashed`, `dotted`, `thick`, `round`, `mono`, `serif`, `hand`, `muted` and a few more – and `lint.js` rejects anything else, so a typo is a build error rather than an unstyled box. **Every class occupies a slot**, so `{.tone-1}` on one box displaces a `default box {.tone-4}` rather than stacking with it, and two members of one slot on one element is a lint warning.
 
-**Click the figure, and the button in the corner of the card opens a graphical editor for it.** Drag a box and it rewrites one token – the `gap`, the `frac`, the signed nudge – never the relation the token sits in, so what you wrote survives what you dragged. The relations themselves are drawn while you work, which is the part a rendered diagram cannot show: two boxes 0.55 apart look exactly like two boxes that happen to be 0.55 apart. `editor: none` in the frontmatter ships the lecture without it.
+**Click the figure, and the button in the corner of the card opens a graphical editor for it.** Drag a box and the editor rewrites one number – the `gap`, the fraction along a line, the nudge on a borrowed coordinate – and never the relation that number sits in, so what you wrote survives what you dragged. It also draws the relations while you work, which is the part a finished diagram cannot show you: a box written as `gap 0.55` from its neighbour looks exactly like a box that merely happens to sit 0.55 away. `editor: none` in the frontmatter ships the lecture without it.
 
-Two of them read the picture the other way round. `pad 0.3` sets how far a box's border sits from its own label – the same word `container` and `brace` already use – and `.fit` on a box with a given `w` sizes the *type* to fill the box instead of growing the box to the type, with `.shrink` for a label that may only ever get smaller. A free `text` that carries a tone draws its own ground, so a caption can sit on a panel without becoming a box.
+Two more options work from the box inwards rather than from the label outwards. `pad 0.3` sets how far a box's border sits from its own label – the same word `container` and `brace` already use – and `.fit` on a box with a given `w` sizes the *type* to fill the box instead of growing the box to the type, with `.shrink` for a label that may only ever get smaller. A free `text` that carries a tone draws its own background patch, so a caption can sit on a panel without becoming a box.
 :::
 
-> note: Print shows every element the diagram ever displays, at its last position, without the live-only `emph` and `dim` – the handout is the finished picture, the same rule reveal segments follow.
+> note: Print shows every element the diagram ever displays, at its last position, with nothing emphasised and nothing greyed out – the handout is the finished picture, the same rule reveal segments follow.
 
 # Writing chunks that work {#craft}
 
@@ -586,7 +586,7 @@ Files are matched by name and the suffix gives weight and style: `Literata-Regul
 
 **Check the licence first.** Embedding redistributes the font file. The SIL Open Font License and Apache-2.0 – which between them cover nearly all of Google Fonts – allow it; most commercial desktop licences do not, and want a separate webfont licence. The build prints a reminder and verifies nothing.
 
-## example: Pinning how a lecture opens | five optional frontmatter keys {.wide #view-defaults}
+## example: Pinning how a lecture opens | six optional frontmatter keys {.wide #view-defaults}
 
 **A lecture can decide its own starting look instead of inheriting the reader's.**
 
@@ -594,10 +594,11 @@ Files are matched by name and the suffix gives weight and style: `Literata-Regul
 ---
 title: Anonymous Communication
 font: mono              # serif | sans | mono
-theme: terminal-green   # light-{red,teal,blue,orange} | terminal-{amber,green}
+theme: terminal-green   # light-{red,teal,blue,orange} | dark | terminal-{amber,green}
 collapse: none          # topic-bold | none      – the C toggle
 auto-fit: true          # true | false           – the # toggle
 slide-numbers: off      # vertical | horizontal | off
+editor: speaker         # both | speaker | none  – who gets the diagram editor
 ---
 ```
 
