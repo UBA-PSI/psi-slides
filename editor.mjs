@@ -1179,6 +1179,46 @@ function dgeMainAxis(place) {
 // Everything a drag of one element by (dx, dy) grid cells would write, as a
 // list of {attr, value, why}. Returning the *edits* rather than applying
 // them is what lets the status bar show the line before the pointer is up.
+// A relation as the grammar spells it. `right of a`, `left of a`, but
+// `below a` and `above a` - the two vertical words take no "of".
+function dgePlaceText(dir, ref, gap) {
+  const word = (dir === 'right' || dir === 'left') ? dir + ' of' : dir;
+  return word + ' ' + ref + (gap == null ? '' : ' gap ' + dgeNum(gap));
+}
+
+const DGE_DIRS = ['left', 'right', 'above', 'below'];
+
+// Which side of the reference the element has been dragged to, and how far
+// its facing edge now sits from the reference's. Returns null while the
+// element is still on the side it already claims, so an ordinary drag keeps
+// writing `gap` and nothing else.
+function dgeRedock(ctx, id, place, dx, dy, snap) {
+  const b = ctx.boxes.get(id);
+  const ref = ctx.boxes.get(place.ref);
+  if (!b || !ref) return null;
+  const { uw, uh } = dgeUnits(ctx.model);
+  const cx = b.x + b.w / 2 + dx * uw;
+  const cy = b.y + b.h / 2 + dy * uh;
+  const vx = cx - (ref.x + ref.w / 2);
+  const vy = cy - (ref.y + ref.h / 2);
+  // The dominant axis decides, measured from centre to centre - the same
+  // question dgAutoAnchor asks about an edge's endpoint, and the same answer.
+  const dir = Math.abs(vx) >= Math.abs(vy)
+    ? (vx >= 0 ? 'right' : 'left')
+    : (vy >= 0 ? 'below' : 'above');
+  if (dir === place.dir) return null;
+  const gapPx = dir === 'right' ? (cx - b.w / 2) - (ref.x + ref.w)
+    : dir === 'left' ? ref.x - (cx + b.w / 2)
+      : dir === 'below' ? (cy - b.h / 2) - (ref.y + ref.h)
+        : ref.y - (cy + b.h / 2);
+  const gap = Math.max(0, snap(gapPx / ((dir === 'right' || dir === 'left') ? uw : uh)));
+  return {
+    text: dgePlaceText(dir, place.ref, gap),
+    why: 'docks it ' + (dir === 'right' || dir === 'left' ? dir + ' of ' : dir + ' ') + place.ref
+      + ' – the whole relation, not an offset',
+  };
+}
+
 function dgePlanDrag(ctx, id, dx, dy, opts) {
   const el = dgeFind(id, ctx.model);
   if (!el) return { edits: [], refusals: [] };
@@ -1291,13 +1331,31 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
   }
 
   // A relation. The main axis is the gap; the cross axis is an alignment
-  // edge if the drop lands near one, and an offset past a tolerance.
+  // edge if the drop lands near one, and an offset past a tolerance - unless
+  // the drag has carried the element past the edge it is measured from, in
+  // which case the *relation itself* is what changed.
   const main = dgeMainAxis(place);
   const mainDelta = main === 'x' ? dx : dy;
   const crossDelta = main === 'x' ? dy : dx;
   const sign = (place.dir === 'right' || place.dir === 'below') ? 1 : -1;
   const mainBlocked = main === 'x' ? xBlocked : yBlocked;
   const crossBlocked = main === 'x' ? yBlocked : xBlocked;
+
+  // Dragging a box that sits `below b` up past b's bottom edge used to stop
+  // dead at gap 0: the only thing a drag could say about a relation was how
+  // far apart, never which side. So an element could be re-docked to another
+  // side only by editing the text, which is the one thing this editor exists
+  // to spare people. Past the edge, the direction word follows the gesture.
+  //
+  // The threshold is the edge itself, which gives the hysteresis for free: to
+  // change sides you have to push the element right through the reference, so
+  // no ordinary nudge can flip it.
+  const flipped = mainDelta && !mainBlocked && !crossBlocked
+    ? dgeRedock(ctx, id, place, dx, dy, snap) : null;
+  if (flipped) {
+    edits.push({ attr: 'place', value: flipped.text, why: flipped.why });
+    return { edits, refusals, strain };
+  }
 
   if (mainDelta && !mainBlocked) {
     const next = Math.max(0, snap(place.gap + sign * mainDelta));
@@ -1454,8 +1512,12 @@ function dgeSnapshot() {
   DGE.redo.length = 0;
 }
 
+// Returns whether the edit stuck. A refusal rolls the source back and
+// recompiles, which leaves DGE.problems empty again - so a caller that wants
+// to say something about its own edit cannot tell from the state whether
+// there was one, and dgeSetSlot went on to report a width it had just undone.
 function dgeSetSource(next, opts) {
-  if (next === DGE.source) return;
+  if (next === DGE.source) return false;
   const before = DGE.source;
   const wasClean = !(DGE.problems && DGE.problems.length);
   const snapshotted = !opts || opts.snapshot !== false;
@@ -1487,9 +1549,10 @@ function dgeSetSource(next, opts) {
     // message names - "line 3: box c: .shrink …" while line 3 reads
     // `box c "Empfänger" right of b gap 0.6 {.thick}`.
     dgeStatus('', 'not applied · ' + why.msg, true);
-    return;
+    return false;
   }
   dgeAfterEdit();
+  return true;
 }
 
 // Everything a committed edit owes the world outside the canvas: the page
@@ -2565,6 +2628,17 @@ function dgeRenderSide() {
     side.appendChild(wrap);
   }
 
+  // Where it sits, as the three things a placement actually says: which kind
+  // of relation, what it is measured from, and how far. A drag can say how
+  // far and, since it learned to re-dock, which side - but which *element*
+  // and which *kind* were only ever reachable by editing the text, and they
+  // are the parts that carry the meaning. `between a,b` in particular has no
+  // gesture at all: nothing about dragging one box says "halfway between
+  // those two".
+  if (single && DGE.model.nodes.some((x) => x.id === single.id)) {
+    side.appendChild(dgePlacementPane(single));
+  }
+
   // Geometry: exactly the options that kind's own statement accepts.
   if (single) {
     const opts = dgeKindOpts(single.kind);
@@ -2699,8 +2773,12 @@ function dgeSetSlot(slot, cls) {
   }
   const next = dgeApplySplices(splices);
   if (next === null) return;
-  dgeSetSource(next);
-  if (widened.length && !(DGE.problems && DGE.problems.length)) {
+  const applied = dgeSetSource(next);
+  // Only if it stuck. A rolled-back edit leaves no problems behind, so the
+  // old guard passed and the author was told the editor had written a width
+  // that is not in the source - the opposite of what happened, on top of the
+  // compiler's own refusal.
+  if (applied && widened.length) {
     dgeStatus('', 'wrote ' + widened.join(', ') + ' as well – .' + cls
       + ' fits the type to the box, so the box has to say how wide it is.', false);
   }
@@ -2907,6 +2985,134 @@ function dgeTagLegend() {
     }));
   }
   wrap.appendChild(chips);
+  return wrap;
+}
+
+// The placement, as three answers rather than one opaque phrase.
+function dgePlacementPane(el) {
+  const wrap = dgeEl('div', {});
+  wrap.appendChild(dgeEl('h3', { text: 'placement' }));
+  const p = el.place;
+  const { uw, uh } = dgeUnits();
+  const b = DGE.boxes.get(el.id);
+  const others = [...DGE.model.nodes, ...DGE.model.containers, ...DGE.model.braces]
+    .map((x) => x.id).filter((x) => x !== el.id);
+  const write = (text, why) => {
+    dgeWriteAttr(el.id, 'place', text);
+    if (why && !(DGE.problems && DGE.problems.length)) dgeStatus('', why, false);
+  };
+  const here = () => (b
+    ? `${dgeNum(dgeRound((b.x + b.w / 2) / uw, DGE_SNAP_CELL))},${dgeNum(dgeRound((b.y + b.h / 2) / uh, DGE_SNAP_CELL))}`
+    : '0,0');
+
+  // The first element of a block sits at the origin for free and has no
+  // placement in the source at all, so there is no span to rewrite until one
+  // is written out. spanOf says so; the pane offers to do it.
+  if (!p || p.implicit) {
+    wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
+      'This element has no placement of its own – it sits where the block starts. '
+      + 'Give it one to say where it belongs.' }));
+    wrap.appendChild(dgeEl('div', { class: 'dge-chips' }, [
+      dgeEl('button', { type: 'button', class: 'dge-btn', text: 'at ' + here(),
+        onclick: () => write('at ' + here(), 'writes the placement out') }),
+      others.length ? dgeEl('button', { type: 'button', class: 'dge-btn', text: 'beside ' + others[0],
+        onclick: () => write(dgePlaceText('right', others[0], 0.6)) }) : null,
+    ]));
+    return wrap;
+  }
+
+  const kinds = dgeEl('div', { class: 'dge-chips' });
+  const kindOf = p.kind === 'rel' ? 'beside' : p.kind === 'between' ? 'between' : 'at';
+  for (const [key, label] of [['at', 'at x,y'], ['beside', 'beside'], ['between', 'between two']]) {
+    kinds.appendChild(dgeEl('button', {
+      type: 'button', class: 'dge-sw', 'aria-pressed': String(key === kindOf),
+      text: label,
+      title: key === 'at' ? 'a coordinate – it stays put when anything else moves'
+        : key === 'beside' ? 'measured from one element, so it follows when that element moves'
+          : 'halfway between two elements, and it stays halfway',
+      onclick: () => {
+        if (key === kindOf) return;
+        if (key === 'at') return write('at ' + here());
+        if (key === 'beside') {
+          const ref = (p.kind === 'between' && p.refs[0] && p.refs[0].ref) || others[0];
+          if (ref) write(dgePlaceText('right', ref, 0.6));
+          return;
+        }
+        const a = p.kind === 'rel' ? p.ref : others[0];
+        const rest = others.filter((x) => x !== a);
+        if (a && rest.length) write(`between ${a},${rest[0]}`);
+        else dgeStatus('', 'between needs two other elements to sit halfway along.', true);
+      },
+    }));
+  }
+  wrap.appendChild(dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'kind' }), kinds]));
+
+  if (p.kind === 'rel') {
+    const dirs = dgeEl('div', { class: 'dge-chips' });
+    for (const d of DGE_DIRS) {
+      dirs.appendChild(dgeEl('button', {
+        type: 'button', class: 'dge-sw', 'aria-pressed': String(d === p.dir),
+        text: d === 'right' || d === 'left' ? d + ' of' : d,
+        title: 'dock it ' + d + ' of ' + p.ref + ' – dragging it past that edge does the same',
+        onclick: () => { if (d !== p.dir) write(dgePlaceText(d, p.ref, p.gap)); },
+      }));
+    }
+    wrap.appendChild(dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'side' }), dirs]));
+    const row = dgeEl('div', { class: 'dge-nums' }, [
+      dgeEl('label', { class: 'dge-num' }, [
+        dgeEl('span', { text: 'of' }),
+        dgeEl('input', {
+          type: 'text', value: p.ref, list: 'dge-elids',
+          onchange: (e) => {
+            const v = e.target.value.trim();
+            if (v && v !== p.ref) write(dgePlaceText(p.dir, v, p.gap)); else dgeRenderSide();
+          },
+        }),
+      ]),
+      dgeEl('label', { class: 'dge-num' }, [
+        dgeEl('span', { text: 'gap' }),
+        dgeEl('input', {
+          type: 'text', value: dgeNum(p.gap),
+          onchange: (e) => write(dgePlaceText(p.dir, p.ref, Number(e.target.value) || 0)),
+        }),
+      ]),
+    ]);
+    wrap.appendChild(row);
+  } else if (p.kind === 'between') {
+    const row = dgeEl('div', { class: 'dge-nums' });
+    for (const i of [0, 1]) {
+      row.appendChild(dgeEl('label', { class: 'dge-num' }, [
+        dgeEl('span', { text: i ? 'and' : 'between' }),
+        dgeEl('input', {
+          type: 'text', value: (p.refs[i] || {}).ref || '', list: 'dge-elids',
+          onchange: (e) => {
+            const v = e.target.value.trim();
+            const a = i === 0 ? v : (p.refs[0] || {}).ref;
+            const z = i === 1 ? v : (p.refs[1] || {}).ref;
+            if (a && z) write(`between ${a},${z}` + (p.frac !== 0.5 ? ' frac ' + dgeNum(p.frac) : ''));
+            else dgeRenderSide();
+          },
+        }),
+      ]));
+    }
+    row.appendChild(dgeEl('label', { class: 'dge-num' }, [
+      dgeEl('span', { text: 'frac' }),
+      dgeEl('input', {
+        type: 'text', value: dgeNum(p.frac),
+        onchange: (e) => write(`between ${p.refs[0].ref},${p.refs[1].ref} frac ${dgeNum(Number(e.target.value) || 0)}`),
+      }),
+    ]));
+    wrap.appendChild(row);
+  }
+
+  // One list for every id in the block, so the reference fields complete
+  // rather than having to be remembered.
+  const dl = dgeEl('datalist', { id: 'dge-elids' });
+  for (const o of others) dl.appendChild(dgeEl('option', { value: o }));
+  wrap.appendChild(dl);
+  wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
+    'A relation follows what it is measured from. Drag past an edge to change '
+    + 'sides; change what it is measured from here.' }));
   return wrap;
 }
 

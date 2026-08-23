@@ -818,8 +818,8 @@ editor's job is to decide which token a drag belongs to:
 |---|---|---|
 | `at X,Y`, numeric | rewrite that number | rewrite that number |
 | `at X,Y` with `ref.prop` | rewrite the nudge (add one if absent) | same |
-| `right of A` / `left of A` | rewrite `gap` | snap to the nearest `align top/middle/bottom`; past a tolerance, write `offset 0,dy` |
-| `below A` / `above A` | rewrite `gap` | snap to `align left/center/right`; past a tolerance, `offset dx,0` |
+| `right of A` / `left of A` | rewrite `gap`, or **the direction word** once the drag has carried it past A | snap to the nearest `align top/middle/bottom`; past a tolerance, write `offset 0,dy` |
+| `below A` / `above A` | rewrite `gap`, or **the direction word** once the drag has carried it past A | snap to `align left/center/right`; past a tolerance, `offset dx,0` |
 | `between A,B` | rewrite `frac` | rewrite `offset` |
 | coordinate owned by `align x\|y` | – | hold, then leave the set |
 | coordinate owned by `spread x\|y` | – | hold, then leave the set |
@@ -847,6 +847,24 @@ Two consequences worth keeping. The hold is **not painted as an error** – a
 set doing its job is not a failure, and only a genuine refusal gets the error
 colour. And a diagonal drag against a held axis now reports both halves: it
 used to move x and say nothing at all about why y stayed where it was.
+
+**A drag can change which side, but not which element.** Push a box that sits
+`below b` up through b and the statement becomes `above b gap 0.4`: the
+dominant axis of the centre-to-centre vector picks the word, the same question
+`dgAutoAnchor` asks about an edge's endpoint. The threshold is the reference's
+own edge, which is the hysteresis for free - to change sides you have to drag
+the element right through the thing it is measured from, so no ordinary nudge
+can flip it. Before this the gap was clamped at zero and the drag simply stopped
+dead, which meant re-docking was only reachable by editing the text.
+
+Which *element* it is measured from, and which *kind* of relation it is, are
+controls rather than gestures, in the placement pane. Two reasons. Guessing a
+new reference from a drop position is a large semantic change made on a
+guess - the element the author meant is often not the nearest one. And
+`between a,b` has no gesture at all: nothing about dragging one box says
+"halfway between those two". The pane reads the placement back as the three
+things it says - kind, reference, distance - so it is also the answer to
+"what is holding this here", without having to read the source pane.
 
 Two more rules of the same shape:
 
@@ -2213,3 +2231,39 @@ wide ciphertext boxes and the narrow `Dec` boxes while a `k` sits in the same
 gutter. The columns had to move apart. `gap 0.3` became `0.75`, which is
 whitespace only if you think the gutter is empty – it is the channel, and the
 comment in the source says so.
+
+
+### Placement, as something you can change · **done**
+
+A relation is what this grammar is for - `below b gap 0.8` means the dot
+follows the Mix box wherever it goes - and until now a drag could only say
+*how far*. The gap was clamped at zero, so dragging the dot up through b's
+bottom edge stopped dead. Putting it above, or beside, or halfway between two
+other elements meant editing the text, which is the one thing the editor
+exists to spare people.
+
+Split by gesture, because the two halves want different ones.
+
+**Which side is a drag.** Past the reference's own edge the direction word
+follows the pointer, decided by the dominant axis of the centre-to-centre
+vector. The edge is the hysteresis: to change sides you have to drag the
+element right through the thing it is measured from. `dgeRedock` returns null
+while the element is still on the side it already claims, so an ordinary drag
+keeps writing `gap` and nothing else, and the whole placement expression is
+rewritten only when the relation itself changed - which also drops the `align`
+and `offset` that described the old axis.
+
+**Which element, and which kind, are controls.** The placement pane reads the
+relation back as the three things it says - kind, reference, distance - and
+lets each be changed. Guessing a new reference from where a drag was dropped
+is a large semantic change made on a guess, and the element the author meant
+is often not the nearest one; `between a,b` has no gesture at all, because
+nothing about dragging one box says "halfway between those two". The pane is
+also the answer to "what is holding this here" without reading the source.
+
+Two things it has to get right, both inherited rather than re-solved. A
+reference that names nothing is refused and the source put back, because
+dgeWriteAttr now goes through `dgeSetSource` like every other structured write.
+And the first element of a block has no placement in the source at all - it
+sits at the origin for free - so `spanOf` answers null; the pane says so and
+offers to write one out rather than showing fields that cannot be saved.

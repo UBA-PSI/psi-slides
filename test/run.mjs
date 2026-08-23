@@ -26,6 +26,7 @@ const SPECS = [
   './editor-leaders.mjs',
   './editor-align.mjs',
   './editor-sidebar.mjs',
+  './editor-placement.mjs',
   './editor-expanded.mjs',
   './figure-framing.mjs',
   './figure-framing-network.mjs',
