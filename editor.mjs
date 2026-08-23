@@ -1597,10 +1597,16 @@ function dgeSpread(axis) {
 // that will not compile.
 function dgeDelete() {
   if (!DGE.selection.length) return;
+  // Lines that name something being deleted, *excluding* the statements of
+  // the other elements in the same selection – deleting a and b together
+  // should not report b's own line as a reason not to delete a.
   const refs = [];
+  const seenLines = new Set();
+  for (const el of DGE.selection.map((x) => dgeFind(x))) if (el) seenLines.add(el.line);
   for (const id of DGE.selection) {
     for (const r of DGE.spans.referencesTo(id)) {
-      if (DGE.selection.includes(r.id)) continue;
+      if (r.from && DGE.selection.includes(r.from)) continue;
+      if (seenLines.has(r.line)) continue;
       refs.push(`line ${r.line}: ${r.what}`);
     }
   }
@@ -1620,9 +1626,12 @@ function dgeDelete() {
     for (const r of DGE.spans.referencesTo(id)) doomed.add(r.line);
   }
   const lines = DGE.source.split('\n').filter((_, i) => !doomed.has(i + 1));
+  const alsoGone = Math.max(0, doomed.size - seenLines.size);
   dgeSetSource(lines.join('\n'));
   dgeSelect([]);
-  dgeStatus('', `deleted ${what} and ${doomed.size - DGE.selection.length} line(s) that named ${DGE.selection.length > 1 ? 'them' : 'it'}`);
+  dgeStatus('', alsoGone
+    ? `deleted ${what} and ${alsoGone} line(s) that named ${DGE.selection.length > 1 ? 'them' : 'it'}`
+    : `deleted ${what}`);
 }
 
 function dgeDuplicate() {
@@ -1684,7 +1693,7 @@ function dgeRenderSide() {
     const input = dgeEl('input', {
       type: 'text', value: sp && sp.present ? sp.value : '',
       placeholder: 'label',
-      onchange: (e) => dgeWriteAttr(single.id, 'label', JSON.stringify(String(e.target.value)).slice(1, -1), true),
+      onchange: (e) => dgeWriteAttr(single.id, 'label', e.target.value, true),
     });
     side.appendChild(dgeEl('div', {}, [dgeEl('h3', { text: 'label' }), input]));
   }
@@ -1808,26 +1817,28 @@ function dgeSlotValue(slot) {
 function dgeSetSlot(slot, cls) {
   const names = slot.options.map((o) => o.cls).filter(Boolean);
   dgeSnapshot();
-  for (const id of DGE.selection) {
+  const splices = DGE.selection.map((id) => {
     const el = dgeFind(id);
-    if (!el) continue;
+    if (!el) return null;
     const keep = (el.classes || []).filter((c) => !names.includes(c));
     if (cls) keep.push(cls);
-    dgeWriteTail(id, { classes: keep });
-  }
+    return dgePlanTail(id, { classes: keep });
+  });
+  if (!dgeApplySplices(splices)) return;
   dgeRecompile();
   dgeAfterEdit();
 }
 
 function dgeToggleTag(tag, add) {
   dgeSnapshot();
-  for (const id of DGE.selection) {
+  const splices = DGE.selection.map((id) => {
     const el = dgeFind(id);
-    if (!el) continue;
+    if (!el) return null;
     const tags = new Set(el.tags || []);
     if (add) tags.add(tag); else tags.delete(tag);
-    dgeWriteTail(id, { tags: [...tags] });
-  }
+    return dgePlanTail(id, { tags: [...tags] });
+  });
+  if (!dgeApplySplices(splices)) return;
   dgeRecompile();
   dgeAfterEdit();
 }
@@ -1835,9 +1846,9 @@ function dgeToggleTag(tag, add) {
 // The attribute tail is one token and the order inside it is free, so the
 // editor rebuilds it from the model rather than splicing into the middle of
 // it. That is what guarantees the result parses.
-function dgeWriteTail(id, changes) {
+function dgePlanTail(id, changes) {
   const el = dgeFind(id);
-  if (!el) return;
+  if (!el) return null;
   const isEdge = el.kind === 'edge';
   const parts = [];
   const wantId = changes.id !== undefined ? changes.id : (isEdge && !/^edge-\d+$/.test(el.id) ? el.id : null);
@@ -1845,17 +1856,43 @@ function dgeWriteTail(id, changes) {
   for (const c of (changes.classes !== undefined ? changes.classes : el.classes || [])) parts.push('.' + c);
   for (const t of (changes.tags !== undefined ? changes.tags : el.tags || [])) parts.push('@' + t);
   const sp = DGE.spans.spanOf(id, 'classes');
-  if (!sp) return;
+  if (!sp) return null;
   if (!parts.length) {
-    if (!sp.present) return;
+    if (!sp.present) return null;
+    // Removing the tail takes the whitespace in front of it, or the line
+    // grows a double space every time the last class comes off.
     let start = sp.start;
     const m = DGE.source.slice(0, start).match(/\s+$/);
     if (m) start -= m[0].length;
-    DGE.source = DGE.source.slice(0, start) + DGE.source.slice(sp.end);
-  } else {
-    DGE.source = DGE.source.slice(0, sp.start) + sp.prefix + parts.join(' ') + sp.suffix + DGE.source.slice(sp.end);
+    return { start, end: sp.end, text: '' };
   }
+  return { start: sp.start, end: sp.end, text: sp.prefix + parts.join(' ') + sp.suffix };
+}
+
+// Apply a set of splices computed against the *current* source in one pass,
+// right to left so the earlier ones keep their offsets.
+//
+// This is why dgePlanTail plans rather than writes. A swatch click or a tag
+// change acts on the whole selection, and every span is an offset into the
+// source as it was: writing them one at a time moves the ground under the
+// ones that follow, and the second element's tail lands somewhere in the
+// middle of its own placement – or inside its quoted label, where it still
+// compiles and the corruption is silent all the way to source.md.
+function dgeApplySplices(list) {
+  const out = list.filter(Boolean).sort((a, b) => b.start - a.start);
+  if (!out.length) return false;
+  let next = DGE.source;
+  for (const r of out) next = next.slice(0, r.start) + r.text + next.slice(r.end);
+  DGE.source = next;
   DGE.dirty = true;
+  return true;
+}
+
+// A label as the DSL spells it. dgTokenize decodes a backslash escape and
+// turns `\n` into a newline, so a label typed with a quote or a line break
+// has to go back the same way or the statement ends mid-word.
+function dgeQuote(v) {
+  return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
 
 function dgeWriteAttr(id, attr, value, quoted) {
@@ -1871,7 +1908,13 @@ function dgeWriteAttr(id, attr, value, quoted) {
     if (m) start -= m[0].length;
     DGE.source = DGE.source.slice(0, start) + DGE.source.slice(sp.end);
   } else {
-    const text = quoted ? '"' + value + '"' : value;
+    // An absent attribute's span carries the quotes in its prefix and suffix
+    // – ' "' and '"' for a label – so quoting the value as well emits
+    // `box a ""Hi""`, which parses as an empty label followed by two junk
+    // tokens. Only a *present* span needs them, because there the span
+    // covers the quotes that are already written.
+    const body = quoted ? dgeQuote(value) : value;
+    const text = sp.present && quoted ? '"' + body + '"' : body;
     DGE.source = DGE.source.slice(0, sp.start)
       + (sp.present ? '' : sp.prefix) + text + (sp.present ? '' : sp.suffix)
       + DGE.source.slice(sp.end);
@@ -2362,6 +2405,44 @@ function dgeCopy() {
     `${lines.length} line(s) copied – the selection and everything it depends on`);
 }
 
+// Rename element names in a block, without touching what is inside a quoted
+// label. A regex over the raw text cannot tell the two apart: copying
+// `box mix "the mix of a and b"` into a figure that already has `mix` turned
+// the caption into "the mix2 of a2 and b". So this tokenizes each line and
+// rewrites only the tokens that can hold a *name* – bare tokens, and the
+// `#id` inside an attribute tail. A quoted token is never one of them.
+function dgeRenameIn(text, rename) {
+  const alt = [...rename.keys()]
+    .sort((a, b) => b.length - a.length)
+    .map((n) => n.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&'))
+    .join('|');
+  if (!alt) return text;
+  // A name is bounded by anything that cannot be part of one. Element names
+  // are letters, digits, _ and -, which is what makes this exact.
+  const re = new RegExp('(^|[^\\w-])(' + alt + ')(?![\\w-])', 'g');
+  const swap = (str) => str.replace(re, (m, pre, name) => pre + (rename.get(name) || name));
+  return text.split('\n').map((line) => {
+    const toks = window.PSI_DG.dgTokenize(line, 0);
+    const edits = [];
+    for (const t of toks) {
+      if (t.q) continue;                       // a label is not a name
+      if (t.attr) {
+        // Only the #id half of the tail: a .class is vocabulary and an @tag
+        // is a set, and neither is an element name.
+        const inner = t.v.replace(/#([A-Za-z_][\w-]*)/g, (m, n) => '#' + (rename.get(n) || n));
+        if (inner !== t.v) edits.push({ start: t.s + 1, end: t.e - 1, text: inner });
+        continue;
+      }
+      const next = swap(t.v);
+      if (next !== t.v) edits.push({ start: t.s, end: t.e, text: next });
+    }
+    edits.sort((a, b) => b.start - a.start);
+    let out = line;
+    for (const e of edits) out = out.slice(0, e.start) + e.text + out.slice(e.end);
+    return out;
+  }).join('\n');
+}
+
 function dgePaste(inPlace) {
   if (!DGE.clipboard) return;
   // Name collisions are renamed mechanically, with every reference *inside*
@@ -2373,9 +2454,7 @@ function dgePaste(inPlace) {
     if (!DGE.model.byId.has(name)) continue;
     rename.set(name, dgeFreshName(name));
   }
-  for (const [from, to] of rename) {
-    text = text.replace(new RegExp('(^|[\\s,"(])' + from + '(?=$|[\\s,.:>"])', 'gm'), '$1' + to);
-  }
+  if (rename.size) text = dgeRenameIn(text, rename);
   if (!inPlace) {
     // Ctrl-V drops the set where the pointer last was; Ctrl-Shift-V pastes
     // in place, keeping the coordinates it had – which is what makes a
@@ -2807,6 +2886,7 @@ window.psiEditor = {
   open: dgeOpen,
   close: dgeClose,
   commit: dgeCommit,
+  select: dgeSelect,
   setBeat: dgeSetBeat,
   boxesAt: (model, k) => DGE.fig.compiler.layoutDiagram(model, window.PSI_DG.dgStateAt(model, k), []),
   state: DGE,

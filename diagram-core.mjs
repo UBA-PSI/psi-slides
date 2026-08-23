@@ -1105,35 +1105,38 @@ export function createSpanTable(model, body) {
   // "three lines refer to this", and the lines are what they are shown.
   function referencesTo(id) {
     const out = [];
-    const note = (line, what) => out.push({ line, what });
+    // `from` is the element doing the referring. The caller needs it to drop
+    // the entries that are inside its own selection – without it a delete of
+    // two elements reports each as a reason not to delete the other.
+    const note = (line, what, from) => out.push({ line, what, from, id: from });
     for (const n of model.nodes) {
       if (n.id === id) continue;
       const p = n.place;
       const refs = p && p.kind === 'rel' ? [p.ref]
         : p && p.kind === 'between' ? p.refs.map(r => r.ref)
         : p && p.kind === 'abs' ? dgPairRefs(p.at) : [];
-      if (refs.includes(id)) note(n.line, `${n.kind} ${n.id} is placed against it`);
-      if (n.sameAs === id) note(n.line, `${n.kind} ${n.id} takes its size from it (same as)`);
+      if (refs.includes(id)) note(n.line, `${n.kind} ${n.id} is placed against it`, n.id);
+      if (n.sameAs === id) note(n.line, `${n.kind} ${n.id} takes its size from it (same as)`, n.id);
     }
     for (const e of model.edges) {
       if (e.id === id) continue;
       if ((!e.from.point && e.from.ref === id) || (!e.to.point && e.to.ref === id)) {
-        note(e.line, `edge ${e.id} ends on it`);
+        note(e.line, `edge ${e.id} ends on it`, e.id);
       }
     }
     for (const c of [...model.containers, ...model.braces]) {
-      if (c.members.includes(id)) note(c.line, `${c.kind} ${c.id} holds it`);
+      if (c.members.includes(id)) note(c.line, `${c.kind} ${c.id} holds it`, c.id);
     }
     for (const a of model.aligns) {
-      if (a.members.includes(id)) note(a.line, `align ${a.axis} ${a.edge}`);
+      if (a.members.includes(id)) note(a.line, `align ${a.axis} ${a.edge}`, null);
     }
     for (const s of model.spreads) {
-      if (s.members.includes(id)) note(s.line, `spread ${s.axis}`);
+      if (s.members.includes(id)) note(s.line, `spread ${s.axis}`, null);
     }
     for (const st of model.steps) {
       for (const op of st.ops) {
         const targets = op.targets || (op.target ? [op.target] : []);
-        if (targets.includes(id)) note(op.line, `step ${st.name}: ${op.op}`);
+        if (targets.includes(id)) note(op.line, `step ${st.name}: ${op.op}`, null);
       }
     }
     return out;
