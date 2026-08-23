@@ -1,8 +1,9 @@
 # Contributing
 
 Thank you for looking. Be aware of what this project is before you invest
-time in it: one author and no test suite. It is used for real teaching, which
-is why it is public. Since 1.0.0 the **source format** is stable – a change
+time in it: one author, and a test suite that covers only what a browser can
+break. It is used for real teaching, which is why it is public. Since 1.0.0
+the **source format** is stable – a change
 that stops an existing `source.md` from building the same way is a major
 version – but the code behind it is rearranged whenever that helps.
 
@@ -29,7 +30,23 @@ kinder to agree on the shape before you write the code.
 npm install
 node build.js lectures/tutorial/source.md   # build the self-referential tour
 node lint.js lectures/                      # must be clean before you commit
+node test/run.mjs                           # the browser suite, see below
 ```
+
+**`node lint.js lectures/` is the gate**, and `node test/run.mjs` is the
+safety net. The linter is zero-dependency and runs anywhere, so run it on every
+commit. The suite drives a built lecture in a headless Chromium and covers the
+three things that can only break in a built page: the navigation model, the
+diagram editor's treatment of an edge, and the waypoint round-trip. It builds
+and serves the lecture itself, so it never reports on stale HTML. It needs a
+browser (`$PSI_CHROME`, else the Playwright cache, else the system Google
+Chrome) and takes about half a minute. `node test/run.mjs nav` runs the specs
+whose name matches.
+
+Run it after touching `AUDIENCE_JS`, the key map, `editor.mjs`, or
+`createSpanTable`. It is not a unit-test suite and should not grow into one:
+anything checkable without a browser belongs in `lint.js`, where it runs on
+every commit instead of on the ones somebody remembered.
 
 Read [`CLAUDE.md`](CLAUDE.md) first. It is written for an assistant but it is
 the honest architecture guide: what lives where in `build.js`, which

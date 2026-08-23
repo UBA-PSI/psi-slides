@@ -21,7 +21,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "node build.js"
+    "build": "node build.js",
+    "lint": "node lint.js lectures/",
+    "test": "node test/run.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter-tight": "^5.3.0",
