@@ -90,6 +90,12 @@ export async function run({ page, errors, report, walkTo, ed }) {
     JSON.stringify(await lineB()));
   ok(/\.fit/.test(note2) && /w n|same as/.test(note2),
     'and the compiler says why, in the status bar', JSON.stringify(note2));
+  ok(/not applied/.test(note2), 'the message says the act was refused, not just why',
+    JSON.stringify(note2));
+  // The compiler's sentence is about text that was rolled back, so a line
+  // number would send the author to a line that no longer holds what it names.
+  ok(!/\bline \d/.test(note2), 'and it names no line, because that line is gone',
+    JSON.stringify(note2));
   ok(!(await ed.problems()).includes('line '), 'the block is not left broken', await ed.problems());
 
   // Tags go through the same tail.

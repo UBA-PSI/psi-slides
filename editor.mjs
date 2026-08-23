@@ -1470,7 +1470,12 @@ function dgeSetSource(next, opts) {
     DGE.source = before;
     if (snapshotted) DGE.undo.pop();
     dgeRecompile();
-    dgeStatus('', (why.line ? 'line ' + why.line + ': ' : '') + why.msg, true);
+    // Say what happened before saying why, and **name no line**. The
+    // compiler's sentence is about the text that was just rolled back, so a
+    // line number sends the author to a line that no longer contains what the
+    // message names - "line 3: box c: .shrink …" while line 3 reads
+    // `box c "Empfänger" right of b gap 0.6 {.thick}`.
+    dgeStatus('', 'not applied · ' + why.msg, true);
     return;
   }
   dgeAfterEdit();
