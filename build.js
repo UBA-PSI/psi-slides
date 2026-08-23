@@ -1621,6 +1621,11 @@ function dgStep(d, step, instant) {
   const same = d.step === step && d.cur;
   d.step = step;
   dgApplyDiscrete(d, frame);
+  // The focus card is a *clone* of the figure, ids and all, so every
+  // getElementById above reaches the hidden original and the card - the only
+  // thing the room can see - never moves. Paint it the same way the
+  // speaker's preview thumbnails are painted, by resolving inside that root.
+  dgMirrorIntoFocus(d, step);
   if (d.hint) {
     const next = d.data.names[step];
     d.hint.textContent = next ? 'next: ' + next : '';
@@ -1637,6 +1642,16 @@ function dgStep(d, step, instant) {
     if (f < 1) d.raf = requestAnimationFrame(tick);
   };
   d.raf = requestAnimationFrame(tick);
+}
+
+// Repaint whatever diagram is currently zoomed into the focus card. Cheap and
+// unconditional: one querySelector when nothing is focused.
+function dgMirrorIntoFocus(d, step) {
+  const card = document.querySelector('#figure-overlay .figure-focus-target');
+  if (!card) return;
+  const svg = card.querySelector('svg.psi-diagram');
+  if (!svg || svg.id !== d.svg.id) return;
+  dgRenderInto(svg, d, step);
 }
 
 function initDiagrams() {
@@ -7025,6 +7040,12 @@ function focusFigure(el) {
   document.body.classList.add('figure-focused');
   focusedFigure = clone;
   applyFigureTransform();
+  // A stepped diagram opens on the beat the slide is on, not on beat 0: the
+  // clone carries whatever the emitter wrote statically, which is the *last*
+  // beat. Same call the step runtime uses to keep it in sync from here on.
+  const live = el.querySelector('svg.psi-diagram');
+  const shown = clone.querySelector('svg.psi-diagram');
+  if (live && shown && live.psiDiagram) dgRenderInto(shown, live.psiDiagram, live.psiDiagram.step);
 }
 
 // Overlay pointerdown: drag pans the focused figure; a click without

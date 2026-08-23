@@ -3004,6 +3004,11 @@ function dgStep(d, step, instant) {
   const same = d.step === step && d.cur;
   d.step = step;
   dgApplyDiscrete(d, frame);
+  // The focus card is a *clone* of the figure, ids and all, so every
+  // getElementById above reaches the hidden original and the card - the only
+  // thing the room can see - never moves. Paint it the same way the
+  // speaker's preview thumbnails are painted, by resolving inside that root.
+  dgMirrorIntoFocus(d, step);
   if (d.hint) {
     const next = d.data.names[step];
     d.hint.textContent = next ? 'next: ' + next : '';
@@ -3020,6 +3025,16 @@ function dgStep(d, step, instant) {
     if (f < 1) d.raf = requestAnimationFrame(tick);
   };
   d.raf = requestAnimationFrame(tick);
+}
+
+// Repaint whatever diagram is currently zoomed into the focus card. Cheap and
+// unconditional: one querySelector when nothing is focused.
+function dgMirrorIntoFocus(d, step) {
+  const card = document.querySelector('#figure-overlay .figure-focus-target');
+  if (!card) return;
+  const svg = card.querySelector('svg.psi-diagram');
+  if (!svg || svg.id !== d.svg.id) return;
+  dgRenderInto(svg, d, step);
 }
 
 function initDiagrams() {
@@ -5250,6 +5265,12 @@ function focusFigure(el) {
   document.body.classList.add('figure-focused');
   focusedFigure = clone;
   applyFigureTransform();
+  // A stepped diagram opens on the beat the slide is on, not on beat 0: the
+  // clone carries whatever the emitter wrote statically, which is the *last*
+  // beat. Same call the step runtime uses to keep it in sync from here on.
+  const live = el.querySelector('svg.psi-diagram');
+  const shown = clone.querySelector('svg.psi-diagram');
+  if (live && shown && live.psiDiagram) dgRenderInto(shown, live.psiDiagram, live.psiDiagram.step);
 }
 
 // Overlay pointerdown: drag pans the focused figure; a click without
@@ -8691,6 +8712,10 @@ function dgeCompilerFor(images) {
 // the editor is open it stops being attached to the figure it was opened from.
 
 const DGE_FIGURES = [];
+// Step runtimes the editor created for figures that gained their first step
+// while it was open. They are held so `Space` on the slide underneath keeps
+// finding them; the build's own initDiagrams only ever runs at boot.
+const DGE_NEW_RUNTIMES = [];
 
 function dgeCollectFigures() {
   DGE_FIGURES.length = 0;
@@ -8720,12 +8745,22 @@ function dgeCollectFigures() {
       attrs: data.attrs,
       range: data.range,
       chunk: data.chunk,
+      // Which diagram this is inside its chunk, counted here rather than
+      // emitted: the payload is produced per block and does not know about
+      // its siblings.
+      nth: 0,
       width: data.width || 'standard',
       alt: data.alt || '',
       images: data.images || {},
       compiler: dgeCompilerFor(data.images),
     });
   });
+  const perChunk = new Map();
+  for (const f of DGE_FIGURES) {
+    const n = (perChunk.get(f.chunk) || 0) + 1;
+    perChunk.set(f.chunk, n);
+    f.nth = n;
+  }
   return DGE_FIGURES;
 }
 
@@ -10739,13 +10774,37 @@ function dgeShowPlan(ctx, id, plan) {
 // figure workspace over the whole lecture. Every one of these has a control
 // you can see and click; the keys are how it gets fast afterwards.
 
+// A thumbnail keeps every id it was given. Stripping them was meant to avoid
+// duplicates in the document, but a spliced vector asset's stylesheet is
+// wrapped in `@scope (svg#…)` anchored to exactly one of those ids – delete
+// it and the scope matches nothing, so the thumbnail arrives with no strokes
+// and no fills. That is the failure inlineSvg documents at length.
+//
+// Uniqueness is kept by *renaming* instead: one prefix per thumbnail, applied
+// to every id and to every reference that could point at one.
+let dgeThumbSeq = 0;
 function dgeThumbFor(fig) {
   const clone = fig.svg.cloneNode(true);
-  clone.removeAttribute('id');
   clone.removeAttribute('width');
   clone.removeAttribute('height');
-  clone.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
-  return clone;
+  const tag = 'dgt' + (++dgeThumbSeq) + '-';
+  const ids = new Set();
+  if (clone.id) ids.add(clone.id);
+  clone.querySelectorAll('[id]').forEach((n) => ids.add(n.id));
+  if (!ids.size) return clone;
+  // One pass with a longest-first alternation, never a loop of replacements.
+  // The ids in a diagram nest – `dg6-alice` is a prefix of `dg6-alice--i` –
+  // so a second pass rewrites what the first one just inserted, and the
+  // result was `dgt6-dgt6-dg6-alice--i`. A single `replace` never re-scans
+  // its own output, and the longest alternative wins at each position.
+  const alt = [...ids]
+    .sort((a, b) => b.length - a.length)
+    .map((id) => id.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&'))
+    .join('|');
+  const markup = clone.outerHTML.replace(new RegExp(alt, 'g'), (m) => tag + m);
+  const holder = document.createElement('div');
+  holder.innerHTML = markup;
+  return holder.firstElementChild || clone;
 }
 
 function dgeRenderStrip() {
@@ -11267,6 +11326,13 @@ async function dgeWriteToFile() {
     const w = await h.createWritable();
     await w.write(src.slice(0, a) + DGE.source + src.slice(b));
     await w.close();
+    // The block now lives at a different range and holds different bytes.
+    // Without this the *second* save of a session always failed, and failed
+    // with the wrong diagnosis – "source.md has changed since this page was
+    // built" when the only thing that changed was the author's own previous
+    // save. The watch tier escapes this only because it triggers a reload.
+    DGE.fig.range = [a, a + DGE.source.length];
+    DGE.fig.body = DGE.source;
     DGE.dirty = false;
     dgeStatus(DGE.status.line, `written to ${h.name} – rebuild to see it`);
   } catch (e) {
@@ -11286,8 +11352,14 @@ const DGE_STORE = 'psi-slides:diagram:';
 // Which figure to come back to after a write-back reloads the page.
 const DGE_REOPEN = 'psi-slides:diagram-editor-open';
 
+// Keyed by the chunk *and* which diagram inside it, because a chunk may hold
+// more than one and the chunk id alone put both on one shelf. `nth` is the
+// figure's position within its chunk, which is stable against a diagram being
+// added to a *different* chunk – unlike the build's global dg-N prefix, which
+// shifts the moment one is inserted earlier in the lecture.
 function dgeStoreKey(fig) {
-  return DGE_STORE + (fig.chunk || fig.prefix);
+  const base = fig.chunk || 'unnamed';
+  return DGE_STORE + base + (fig.nth ? '#' + fig.nth : '');
 }
 
 function dgeSaveLocal() {
@@ -11308,6 +11380,14 @@ function dgeRevertLocal() {
   DGE.source = DGE.fig.body;
   DGE.dirty = false;
   dgeRecompile();
+  // The page behind the editor, not only the canvas. Without this the slide
+  // kept showing the version that was just reverted away from – and in a
+  // two-window session the *peer* reverted correctly while the window that
+  // pressed the button did not, which is the one divergence the sync exists
+  // to prevent.
+  dgeApplyToPage(DGE.fig, DGE.source);
+  const marker = DGE.fig.figure && DGE.fig.figure.querySelector('.dge-edited');
+  if (marker) marker.remove();
   dgeBroadcastEdit();
   dgeStatus('', 'back to the figure as it was written');
 }
@@ -11333,15 +11413,37 @@ function dgeApplyToPage(fig, body) {
   }
   fig.svg.replaceWith(next);
   fig.svg = next;
-  if (live && payload) {
+  // The frames payload is what the step runtime reads, and initDiagrams
+  // found it by walking `script.psi-diagram-frames`. Leave the old one in
+  // place and a figure that just *gained* steps has none the runtime can
+  // see, while one that lost them keeps applying geometry from a picture
+  // that no longer exists. Replace it alongside the drawing.
+  const oldPayload = fig.figure
+    ? fig.figure.querySelector('script.psi-diagram-frames') : null;
+  if (payload) {
+    payload.dataset.for = next.id;
+    if (oldPayload) oldPayload.replaceWith(payload);
+    else fig.figure.appendChild(payload);
+  } else if (oldPayload) {
+    oldPayload.remove();
+  }
+  if (payload) {
     try {
-      live.data = JSON.parse(payload.textContent);
-      live.svg = next;
-      live.cache = {};
-      live.cur = null;
-      next.psiDiagram = live;
-      window.dgStep(live, live.step, true);
-    } catch (e) { /* a figure with no steps has no payload */ }
+      const data = JSON.parse(payload.textContent);
+      const d = live || { svg: next, step: 0, raf: 0, cur: null, cache: {},
+        hint: fig.figure ? fig.figure.querySelector('.dg-hint') : null };
+      d.data = data;
+      d.svg = next;
+      d.cache = {};
+      d.cur = null;
+      next.psiDiagram = d;
+      if (!live) DGE_NEW_RUNTIMES.push(d);
+      window.dgStep(d, Math.min(d.step, data.n - 1), true);
+    } catch (e) { /* a payload that will not parse is not worth a crash */ }
+  } else if (live) {
+    // No steps any more: nothing left to tween, and the static attributes
+    // the emitter wrote are already the finished picture.
+    next.psiDiagram = null;
   }
   return true;
 }
