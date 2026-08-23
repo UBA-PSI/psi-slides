@@ -28,7 +28,7 @@ import katex from 'katex';
 // and in the browser when the editor re-lays-out a figure after a drag.
 // Imported for the build; its *text* is also read and inlined into the live
 // views, the same way bundledFaces() reads woff2 out of node_modules.
-import { createDiagramCompiler, parseDiagramDefaults } from './diagram-core.mjs';
+import { createDiagramCompiler, parseDiagramDefaults, dgShapeD } from './diagram-core.mjs';
 
 // KaTeX ships its stylesheet and fonts as plain files next to the module.
 // They are not importable as ESM, so resolve them the CommonJS way.
@@ -1423,9 +1423,15 @@ const DIAGRAM_CSS = `
   .figure-diagram { break-inside: avoid; page-break-inside: avoid; }
 }
 .psi-diagram .dg-el { transition: opacity 200ms ease; }
-.psi-diagram rect, .psi-diagram circle {
+.psi-diagram rect, .psi-diagram circle, .psi-diagram .dg-shape {
   fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
 }
+/* A box whose outline is not a rectangle is a <path>, so every rule below
+   that paints a box has to name it too. They do it through :is(), which is
+   also why those selectors read shorter than they used to: the alternative
+   was a third copy of each one. The join is rounded so a chevron's nose is a
+   point rather than a miter spike. */
+.psi-diagram .dg-shape { stroke-linejoin: round; }
 .psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
 .psi-diagram .dg-head { fill: var(--ink); stroke: none; }
 .psi-diagram text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
@@ -1443,33 +1449,33 @@ const DIAGRAM_CSS = `
 .psi-diagram .dg-brace .dg-stroke { stroke: var(--rule); }
 
 /* ── tones ── four theme-safe fills, mixed from the page's own inks ── */
-.psi-diagram .tone-1 > rect, .psi-diagram .tone-1 > circle {
+.psi-diagram .tone-1 > :is(rect, circle, .dg-shape) {
   fill: color-mix(in oklab, var(--emph) 13%, var(--paper));
   stroke: color-mix(in oklab, var(--emph) 60%, var(--ink));
 }
-.psi-diagram .tone-2 > rect, .psi-diagram .tone-2 > circle {
+.psi-diagram .tone-2 > :is(rect, circle, .dg-shape) {
   fill: color-mix(in oklab, var(--ink) 8%, var(--paper)); stroke: var(--ink);
 }
-.psi-diagram .tone-3 > rect, .psi-diagram .tone-3 > circle {
+.psi-diagram .tone-3 > :is(rect, circle, .dg-shape) {
   fill: color-mix(in oklab, var(--ink) 20%, var(--paper)); stroke: var(--ink);
 }
-.psi-diagram .tone-4 > rect, .psi-diagram .tone-4 > circle {
+.psi-diagram .tone-4 > :is(rect, circle, .dg-shape) {
   fill: var(--emph); stroke: var(--emph);
 }
 /* .clear is a see-through interior. .bare removes the *stroke*, so without
    this there was no way to draw a frame you can read through – which is
    what an outline over an image or another element wants. */
-.psi-diagram .clear > rect, .psi-diagram .clear > circle { fill: none; }
+.psi-diagram .clear > :is(rect, circle, .dg-shape) { fill: none; }
 /* The canvas colour, named. A box already defaults to it, but a box under a
    tinted default block had no way back, and a free text could not have one at
    all. A label with a ground is how it knocks out a line running behind it. */
-.psi-diagram .paper > rect, .psi-diagram .paper > circle { fill: var(--paper); }
+.psi-diagram .paper > :is(rect, circle, .dg-shape) { fill: var(--paper); }
 
-.psi-diagram .accent > rect, .psi-diagram .accent > circle { stroke: var(--emph); }
+.psi-diagram .accent > :is(rect, circle, .dg-shape) { stroke: var(--emph); }
 .psi-diagram .accent .dg-stroke { stroke: var(--emph); }
 .psi-diagram .accent .dg-head { fill: var(--emph); }
 .psi-diagram .accent text { fill: var(--emph); }
-.psi-diagram .muted > rect, .psi-diagram .muted > circle { stroke: var(--ink-soft); }
+.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); }
 .psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
 .psi-diagram .muted text { fill: var(--ink-soft); }
@@ -1487,10 +1493,10 @@ const DIAGRAM_CSS = `
 .psi-diagram .dg-text > rect { stroke: none; }
 .psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
 
-.psi-diagram .dashed > rect, .psi-diagram .dashed > circle, .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
-.psi-diagram .dotted > rect, .psi-diagram .dotted > circle, .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
-.psi-diagram .thick > rect, .psi-diagram .thick > circle, .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
-.psi-diagram .bare > rect, .psi-diagram .bare > circle { stroke: none; }
+.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
+.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
+.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
+.psi-diagram .bare > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .round > rect { rx: 13px; }
 .psi-diagram .sharp > rect { rx: 0; }
 .psi-diagram .bold text { font-weight: 600; }
@@ -1510,7 +1516,7 @@ const DIAGRAM_CSS = `
    could never be hidden, and its show step did nothing at all. Both the
    emitter and the runtime resolve the channel once, in dgOpacity(). */
 /* emph / dim are what a step reaches for; both stay inside the palette */
-.psi-diagram .emph > rect, .psi-diagram .emph > circle { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
 
@@ -1528,10 +1534,23 @@ const DG_LIST = [];
 const DG_REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const DG_DUR = 380;
 
+// The one text that draws the non-rectangular outlines, lifted straight out
+// of diagram-core.mjs rather than transcribed. The build emits the opening
+// beat with this function and the runtime redraws every later beat with it,
+// so the two cannot drift; a hand copy here would be a second vocabulary
+// nobody would think to keep in step.
+const DG_SHAPES = { hex: 1, chevron: 1, 'chevron-left': 1, wedge: 1 };
+${dgShapeD.toString()}
+
 function dgApplyVec(el, kind, v) {
   if (kind === 'rect') {
     el.setAttribute('x', v[0]); el.setAttribute('y', v[1]);
     el.setAttribute('width', Math.max(0, v[2])); el.setAttribute('height', Math.max(0, v[3]));
+  } else if (DG_SHAPES[kind]) {
+    // Same four numbers a rect carries, joined into a different outline. That
+    // is the whole reason a hexagon costs nothing here: it tweens as a rect
+    // does, and only the last step – turning the vector into a path – differs.
+    el.setAttribute('d', dgShapeD(kind, v[0], v[1], Math.max(0, v[2]), Math.max(0, v[3])));
   } else if (kind === 'circle') {
     el.setAttribute('cx', v[0]); el.setAttribute('cy', v[1]); el.setAttribute('r', Math.max(0, v[2]));
   } else if (kind === 'path') {

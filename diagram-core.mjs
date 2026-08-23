@@ -90,8 +90,12 @@ export const DG_CLASSES = new Set([
   'tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper', 'accent', 'muted', 'ghost',
   // strokes
   'dashed', 'dotted', 'thick', 'bare',
-  // shape
-  'round', 'sharp',
+  // outline. `.round` / `.sharp` are the two rectangles; the other four are
+  // other outlines entirely, which is why they share the slot – a hexagon has
+  // no corner radius to argue about. All five are the same four numbers as a
+  // rect, drawn with a different `d`, so extents, viewBox and tweening are
+  // untouched. See dgShapeD.
+  'round', 'sharp', 'hex', 'chevron', 'chevron-left', 'wedge',
   // type. `.serif` is the upright serif; `.hand` is the same family forced
   // italic and accented, and until there was a plain one the family was
   // reachable only through the annotation voice.
@@ -116,7 +120,7 @@ export const DG_CLASS_GROUPS = [
   ['accent', 'muted'],                        // ink
   ['dashed', 'dotted'],                       // stroke pattern
   ['thick', 'bare'],                          // stroke weight
-  ['round', 'sharp'],                         // corner
+  ['round', 'sharp', 'hex', 'chevron', 'chevron-left', 'wedge'],   // outline
   ['small', 'large'],                         // size
   ['mono', 'serif', 'hand'],                  // family
   ['fit', 'shrink'],                          // how type meets its box
@@ -128,6 +132,73 @@ export const DG_CLASS_GROUPS = [
 // inversion rule is written after the accent one); the author should hear
 // about it rather than wonder where the words went.
 export const DG_CLASS_CLASHES = [['tone-4', 'accent']];
+
+// The outlines that are not a rectangle. A box carrying one of these is
+// emitted as a <path> instead of a <rect>, and the drawable kind recorded for
+// it is the shape name rather than 'rect'.
+//
+// The whole extension rests on one decision: the geometry vector stays
+// [x, y, w, h]. It is the same four numbers a rect has, so extentsOf still
+// reads the bounding box correctly, the viewBox is still right, and a step
+// that moves or resizes the element still tweens – the shape is only a
+// different way of joining those four numbers into a path. Anything that
+// needed its own point list would have needed its own everything.
+export const DG_SHAPE_CLASSES = new Set(['hex', 'chevron', 'chevron-left', 'wedge']);
+
+// Pure, importless, and stringified into the browser runtime by build.js, so
+// exactly one text draws these shapes at build time and at step time. Keep it
+// that way: a second copy would drift, and a shape that tweens to a slightly
+// different outline than it was emitted with is the kind of defect nobody
+// finds by looking.
+export function dgShapeD(shape, x, y, w, h) {
+  const n = (v) => Math.round(v * 100) / 100;
+  const poly = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + n(p[0]) + ' ' + n(p[1])).join('') + 'Z';
+  // How far the point or the bevel eats into the width. Tied to the height so
+  // a row of boxes of one height gets one consistent nose, and capped by the
+  // width so a very short box degenerates to a triangle rather than folding
+  // through itself.
+  const nose = Math.min(h * 0.5, w * 0.42);
+  const bevel = Math.min(h * 0.28, w * 0.34);
+  if (shape === 'hex') {
+    return poly([[x + bevel, y], [x + w - bevel, y], [x + w, y + h / 2],
+      [x + w - bevel, y + h], [x + bevel, y + h], [x, y + h / 2]]);
+  }
+  if (shape === 'chevron') {
+    return poly([[x, y], [x + w - nose, y], [x + w, y + h / 2],
+      [x + w - nose, y + h], [x, y + h]]);
+  }
+  if (shape === 'chevron-left') {
+    return poly([[x + w, y], [x + nose, y], [x, y + h / 2],
+      [x + nose, y + h], [x + w, y + h]]);
+  }
+  // wedge: a triangle standing on its point, which is how a size comparison
+  // reads – the area is the quantity and the tip is where it lands.
+  return poly([[x, y], [x + w, y], [x + w / 2, y + h]]);
+}
+
+// Which outline an element draws, from its resolved class set. Takes either a
+// Set or the space-separated string the emitter carries around.
+export function dgShapeOf(classes) {
+  const has = classes instanceof Set
+    ? (c) => classes.has(c)
+    : (c) => (' ' + String(classes || '') + ' ').includes(' ' + c + ' ');
+  for (const s of DG_SHAPE_CLASSES) if (has(s)) return s;
+  return '';
+}
+
+// Extra interior a shape needs beyond a rect's padding, so a label does not
+// run into the point or the bevel. Returned in px and only ever *added* to a
+// width the caller computed from the label – a box with an explicit `w` is the
+// author's business, and the too-narrow warning already covers it.
+//
+// Derived from the height alone, never from the width, because the width is
+// what this is being used to compute.
+export function dgShapeInsetX(shape, h) {
+  if (shape === 'hex') return Math.min(h * 0.28, 22) * 2;
+  if (shape === 'chevron' || shape === 'chevron-left') return Math.min(h * 0.5, 30);
+  if (shape === 'wedge') return h * 0.9;
+  return 0;
+}
 
 export const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 'tr', 'bl', 'br']);
 // The statements that bring an element into being, as opposed to arranging
@@ -641,6 +712,20 @@ export function dgDefaultLayers(model, kind, tags) {
 // Factored out because the same statement is now legal in two places: inside
 // a block, and in the lecture's `diagram-defaults` frontmatter key. Two
 // parsers for one line is how the two would eventually disagree.
+// Only a `box` draws an outline of its own. Anywhere else an outline class
+// resolves, emits its CSS and changes nothing at all – a `dot` is a circle, a
+// `text` has no border, a `container` is a frame around other people's boxes.
+// A silent no-op is the failure this grammar keeps closing, so say which
+// statement the class belongs on.
+export function rejectShapeOn(kindWord, classes, lineNo, errors) {
+  if (kindWord === 'box') return;
+  for (const c of classes || []) {
+    if (!DG_SHAPE_CLASSES.has(c)) continue;
+    dgErr(errors, lineNo, `.${c} is an outline, and only a box has one to shape – `
+      + `a ${kindWord} would keep its own and the class would do nothing.`);
+  }
+}
+
 export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) {
   const kind = body0[1] ? body0[1].v : '';
   if (!DG_DEFAULT_KINDS.has(kind)) {
@@ -651,6 +736,7 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) 
   // carrying that tag. One per (kind, tag) and one per bare kind, so the
   // result never depends on the order of the declarations: an element's
   // own attributes beat its tag default, which beats the kind default.
+  rejectShapeOn(kind, attrs.classes, lineNo, errors);
   const tagTok = body0[2] && body0[2].v.startsWith('@') ? body0[2].v.slice(1) : null;
   const slot = tagTok
     ? layer.tagDefaults.find(d => d.kind === kind && d.tag === tagTok)
@@ -1351,6 +1437,18 @@ export function createDiagramCompiler(env = {}) {
         } else if (head === 'style') {
           op.targets = dgParseMembers(body0.slice(1).map(x => x.v).join(','));
           op.classes = attrs.classes;
+          // The outline is chosen when the figure is emitted, because that is
+          // when the drawable kind – rect or path – is decided and written
+          // into the payload. A step cannot change it, and letting the line
+          // parse would leave exactly the silent no-op this grammar keeps
+          // closing: the class lands, the picture does not move.
+          for (const c of op.classes) {
+            if (DG_SHAPE_CLASSES.has(c)) {
+              dgErr(errors, lineNo, `style cannot change an outline: .${c} is fixed when the figure is `
+                + 'built, so a step has nothing to switch. Put it on the element, and if two beats really '
+                + 'need two outlines, draw two elements and show one at a time.');
+            }
+          }
         } else if (head === 'label') {
           op.target = t(1);
           op.text = quoted[0] ?? '';
@@ -1511,6 +1609,7 @@ export function createDiagramCompiler(env = {}) {
           if (model.nodes.length === 0) node.place = { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] };
           else dgErr(errors, lineNo, `${head} ${id} has no placement (at X,Y / below … / above … / right of … / left of … )`);
         }
+        rejectShapeOn(head, attrs.classes, lineNo, errors);
         model.nodes.push(node);
         if (node.leader) {
           const leadId = `${id}--lead`;
@@ -1597,6 +1696,7 @@ export function createDiagramCompiler(env = {}) {
         // outline sits from what it encloses. The brace used to spell it
         // `gap`, which is the word for the distance between two *elements*
         // everywhere else in the grammar.
+        rejectShapeOn(head, attrs.classes, lineNo, errors);
         const item = { kind: head, id, members, label: quoted[0] ?? '', classes: attrs.classes, tags: attrs.tags, pad: null, line: lineNo, span };
         if (head === 'brace') item.side = null;
         for (let k = 0; k < rest.length; k++) {
@@ -1791,9 +1891,16 @@ export function createDiagramCompiler(env = {}) {
         dgWarn(`box ${node.id} is ${nw} units wide but its label needs about `
           + `${((m.w + 2 * padX) / uw).toFixed(2)} – the text will overflow.`);
       }
+      const boxH = nh != null ? nh * uh : m.h + 2 * padY;
+      // A hexagon or a chevron has less usable interior than the rectangle
+      // that bounds it: the bevel and the point are inside the box. Widen the
+      // auto-computed width so the label clears them. Only the automatic case
+      // – an explicit `w` is the author's decision, and the too-narrow warning
+      // above already speaks for that one.
+      const inset = dgShapeInsetX(dgShapeOf(classes), boxH);
       return {
-        w: nw != null ? nw * uw : Math.max(m.w + 2 * padX, DG_MIN_W),
-        h: nh != null ? nh * uh : m.h + 2 * padY,
+        w: nw != null ? nw * uw : Math.max(m.w + 2 * padX + inset, DG_MIN_W),
+        h: boxH,
         font, padX, padY,
       };
     };
@@ -2505,9 +2612,20 @@ export function createDiagramCompiler(env = {}) {
       let inner = '';
       const g = (suffix) => printGeom.get(e.id + suffix);
       if (kind === 'box' || kind === 'container') {
-        kinds[e.id + '--r'] = 'rect';
         const v = g('--r') || [0, 0, 0, 0];
-        inner += `<rect id="${prefix}${e.id}--r" x="${v[0].toFixed(2)}" y="${v[1].toFixed(2)}" width="${v[2].toFixed(2)}" height="${v[3].toFixed(2)}" rx="4"/>`;
+        // The outline is decided once, here, from the resolved classes – and
+        // that is why a `style` step may not change it: the drawable kind is
+        // written into the payload at this moment, and a later frame that
+        // wanted a different one would have nothing to switch. The parser
+        // refuses that line rather than letting it be a silent no-op.
+        const shape = kind === 'box' ? dgShapeOf(st) : '';
+        if (shape) {
+          kinds[e.id + '--r'] = shape;
+          inner += `<path id="${prefix}${e.id}--r" class="dg-shape" d="${dgShapeD(shape, v[0], v[1], v[2], v[3])}"/>`;
+        } else {
+          kinds[e.id + '--r'] = 'rect';
+          inner += `<rect id="${prefix}${e.id}--r" x="${v[0].toFixed(2)}" y="${v[1].toFixed(2)}" width="${v[2].toFixed(2)}" height="${v[3].toFixed(2)}" rx="4"/>`;
+        }
       } else if (kind === 'dot') {
         kinds[e.id + '--c'] = 'circle';
         const v = g('--c') || [0, 0, 1];

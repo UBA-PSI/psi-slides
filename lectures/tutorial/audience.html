@@ -1576,9 +1576,15 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   .figure-diagram { break-inside: avoid; page-break-inside: avoid; }
 }
 .psi-diagram .dg-el { transition: opacity 200ms ease; }
-.psi-diagram rect, .psi-diagram circle {
+.psi-diagram rect, .psi-diagram circle, .psi-diagram .dg-shape {
   fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
 }
+/* A box whose outline is not a rectangle is a <path>, so every rule below
+   that paints a box has to name it too. They do it through :is(), which is
+   also why those selectors read shorter than they used to: the alternative
+   was a third copy of each one. The join is rounded so a chevron's nose is a
+   point rather than a miter spike. */
+.psi-diagram .dg-shape { stroke-linejoin: round; }
 .psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
 .psi-diagram .dg-head { fill: var(--ink); stroke: none; }
 .psi-diagram text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
@@ -1596,33 +1602,33 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 .psi-diagram .dg-brace .dg-stroke { stroke: var(--rule); }
 
 /* ── tones ── four theme-safe fills, mixed from the page's own inks ── */
-.psi-diagram .tone-1 > rect, .psi-diagram .tone-1 > circle {
+.psi-diagram .tone-1 > :is(rect, circle, .dg-shape) {
   fill: color-mix(in oklab, var(--emph) 13%, var(--paper));
   stroke: color-mix(in oklab, var(--emph) 60%, var(--ink));
 }
-.psi-diagram .tone-2 > rect, .psi-diagram .tone-2 > circle {
+.psi-diagram .tone-2 > :is(rect, circle, .dg-shape) {
   fill: color-mix(in oklab, var(--ink) 8%, var(--paper)); stroke: var(--ink);
 }
-.psi-diagram .tone-3 > rect, .psi-diagram .tone-3 > circle {
+.psi-diagram .tone-3 > :is(rect, circle, .dg-shape) {
   fill: color-mix(in oklab, var(--ink) 20%, var(--paper)); stroke: var(--ink);
 }
-.psi-diagram .tone-4 > rect, .psi-diagram .tone-4 > circle {
+.psi-diagram .tone-4 > :is(rect, circle, .dg-shape) {
   fill: var(--emph); stroke: var(--emph);
 }
 /* .clear is a see-through interior. .bare removes the *stroke*, so without
    this there was no way to draw a frame you can read through – which is
    what an outline over an image or another element wants. */
-.psi-diagram .clear > rect, .psi-diagram .clear > circle { fill: none; }
+.psi-diagram .clear > :is(rect, circle, .dg-shape) { fill: none; }
 /* The canvas colour, named. A box already defaults to it, but a box under a
    tinted default block had no way back, and a free text could not have one at
    all. A label with a ground is how it knocks out a line running behind it. */
-.psi-diagram .paper > rect, .psi-diagram .paper > circle { fill: var(--paper); }
+.psi-diagram .paper > :is(rect, circle, .dg-shape) { fill: var(--paper); }
 
-.psi-diagram .accent > rect, .psi-diagram .accent > circle { stroke: var(--emph); }
+.psi-diagram .accent > :is(rect, circle, .dg-shape) { stroke: var(--emph); }
 .psi-diagram .accent .dg-stroke { stroke: var(--emph); }
 .psi-diagram .accent .dg-head { fill: var(--emph); }
 .psi-diagram .accent text { fill: var(--emph); }
-.psi-diagram .muted > rect, .psi-diagram .muted > circle { stroke: var(--ink-soft); }
+.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); }
 .psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
 .psi-diagram .muted text { fill: var(--ink-soft); }
@@ -1640,10 +1646,10 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 .psi-diagram .dg-text > rect { stroke: none; }
 .psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
 
-.psi-diagram .dashed > rect, .psi-diagram .dashed > circle, .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
-.psi-diagram .dotted > rect, .psi-diagram .dotted > circle, .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
-.psi-diagram .thick > rect, .psi-diagram .thick > circle, .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
-.psi-diagram .bare > rect, .psi-diagram .bare > circle { stroke: none; }
+.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
+.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
+.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
+.psi-diagram .bare > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .round > rect { rx: 13px; }
 .psi-diagram .sharp > rect { rx: 0; }
 .psi-diagram .bold text { font-weight: 600; }
@@ -1663,7 +1669,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    could never be hidden, and its show step did nothing at all. Both the
    emitter and the runtime resolve the channel once, in dgOpacity(). */
 /* emph / dim are what a step reaches for; both stay inside the palette */
-.psi-diagram .emph > rect, .psi-diagram .emph > circle { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
 
@@ -2946,10 +2952,47 @@ const DG_LIST = [];
 const DG_REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const DG_DUR = 380;
 
+// The one text that draws the non-rectangular outlines, lifted straight out
+// of diagram-core.mjs rather than transcribed. The build emits the opening
+// beat with this function and the runtime redraws every later beat with it,
+// so the two cannot drift; a hand copy here would be a second vocabulary
+// nobody would think to keep in step.
+const DG_SHAPES = { hex: 1, chevron: 1, 'chevron-left': 1, wedge: 1 };
+function dgShapeD(shape, x, y, w, h) {
+  const n = (v) => Math.round(v * 100) / 100;
+  const poly = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + n(p[0]) + ' ' + n(p[1])).join('') + 'Z';
+  // How far the point or the bevel eats into the width. Tied to the height so
+  // a row of boxes of one height gets one consistent nose, and capped by the
+  // width so a very short box degenerates to a triangle rather than folding
+  // through itself.
+  const nose = Math.min(h * 0.5, w * 0.42);
+  const bevel = Math.min(h * 0.28, w * 0.34);
+  if (shape === 'hex') {
+    return poly([[x + bevel, y], [x + w - bevel, y], [x + w, y + h / 2],
+      [x + w - bevel, y + h], [x + bevel, y + h], [x, y + h / 2]]);
+  }
+  if (shape === 'chevron') {
+    return poly([[x, y], [x + w - nose, y], [x + w, y + h / 2],
+      [x + w - nose, y + h], [x, y + h]]);
+  }
+  if (shape === 'chevron-left') {
+    return poly([[x + w, y], [x + nose, y], [x, y + h / 2],
+      [x + nose, y + h], [x + w, y + h]]);
+  }
+  // wedge: a triangle standing on its point, which is how a size comparison
+  // reads – the area is the quantity and the tip is where it lands.
+  return poly([[x, y], [x + w, y], [x + w / 2, y + h]]);
+}
+
 function dgApplyVec(el, kind, v) {
   if (kind === 'rect') {
     el.setAttribute('x', v[0]); el.setAttribute('y', v[1]);
     el.setAttribute('width', Math.max(0, v[2])); el.setAttribute('height', Math.max(0, v[3]));
+  } else if (DG_SHAPES[kind]) {
+    // Same four numbers a rect carries, joined into a different outline. That
+    // is the whole reason a hexagon costs nothing here: it tweens as a rect
+    // does, and only the last step – turning the vector into a path – differs.
+    el.setAttribute('d', dgShapeD(kind, v[0], v[1], Math.max(0, v[2]), Math.max(0, v[3])));
   } else if (kind === 'circle') {
     el.setAttribute('cx', v[0]); el.setAttribute('cy', v[1]); el.setAttribute('r', Math.max(0, v[2]));
   } else if (kind === 'path') {
@@ -6496,8 +6539,12 @@ const DG_CLASSES = new Set([
   'tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper', 'accent', 'muted', 'ghost',
   // strokes
   'dashed', 'dotted', 'thick', 'bare',
-  // shape
-  'round', 'sharp',
+  // outline. `.round` / `.sharp` are the two rectangles; the other four are
+  // other outlines entirely, which is why they share the slot – a hexagon has
+  // no corner radius to argue about. All five are the same four numbers as a
+  // rect, drawn with a different `d`, so extents, viewBox and tweening are
+  // untouched. See dgShapeD.
+  'round', 'sharp', 'hex', 'chevron', 'chevron-left', 'wedge',
   // type. `.serif` is the upright serif; `.hand` is the same family forced
   // italic and accented, and until there was a plain one the family was
   // reachable only through the annotation voice.
@@ -6522,7 +6569,7 @@ const DG_CLASS_GROUPS = [
   ['accent', 'muted'],                        // ink
   ['dashed', 'dotted'],                       // stroke pattern
   ['thick', 'bare'],                          // stroke weight
-  ['round', 'sharp'],                         // corner
+  ['round', 'sharp', 'hex', 'chevron', 'chevron-left', 'wedge'],   // outline
   ['small', 'large'],                         // size
   ['mono', 'serif', 'hand'],                  // family
   ['fit', 'shrink'],                          // how type meets its box
@@ -6534,6 +6581,73 @@ const DG_CLASS_GROUPS = [
 // inversion rule is written after the accent one); the author should hear
 // about it rather than wonder where the words went.
 const DG_CLASS_CLASHES = [['tone-4', 'accent']];
+
+// The outlines that are not a rectangle. A box carrying one of these is
+// emitted as a <path> instead of a <rect>, and the drawable kind recorded for
+// it is the shape name rather than 'rect'.
+//
+// The whole extension rests on one decision: the geometry vector stays
+// [x, y, w, h]. It is the same four numbers a rect has, so extentsOf still
+// reads the bounding box correctly, the viewBox is still right, and a step
+// that moves or resizes the element still tweens – the shape is only a
+// different way of joining those four numbers into a path. Anything that
+// needed its own point list would have needed its own everything.
+const DG_SHAPE_CLASSES = new Set(['hex', 'chevron', 'chevron-left', 'wedge']);
+
+// Pure, importless, and stringified into the browser runtime by build.js, so
+// exactly one text draws these shapes at build time and at step time. Keep it
+// that way: a second copy would drift, and a shape that tweens to a slightly
+// different outline than it was emitted with is the kind of defect nobody
+// finds by looking.
+function dgShapeD(shape, x, y, w, h) {
+  const n = (v) => Math.round(v * 100) / 100;
+  const poly = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + n(p[0]) + ' ' + n(p[1])).join('') + 'Z';
+  // How far the point or the bevel eats into the width. Tied to the height so
+  // a row of boxes of one height gets one consistent nose, and capped by the
+  // width so a very short box degenerates to a triangle rather than folding
+  // through itself.
+  const nose = Math.min(h * 0.5, w * 0.42);
+  const bevel = Math.min(h * 0.28, w * 0.34);
+  if (shape === 'hex') {
+    return poly([[x + bevel, y], [x + w - bevel, y], [x + w, y + h / 2],
+      [x + w - bevel, y + h], [x + bevel, y + h], [x, y + h / 2]]);
+  }
+  if (shape === 'chevron') {
+    return poly([[x, y], [x + w - nose, y], [x + w, y + h / 2],
+      [x + w - nose, y + h], [x, y + h]]);
+  }
+  if (shape === 'chevron-left') {
+    return poly([[x + w, y], [x + nose, y], [x, y + h / 2],
+      [x + nose, y + h], [x + w, y + h]]);
+  }
+  // wedge: a triangle standing on its point, which is how a size comparison
+  // reads – the area is the quantity and the tip is where it lands.
+  return poly([[x, y], [x + w, y], [x + w / 2, y + h]]);
+}
+
+// Which outline an element draws, from its resolved class set. Takes either a
+// Set or the space-separated string the emitter carries around.
+function dgShapeOf(classes) {
+  const has = classes instanceof Set
+    ? (c) => classes.has(c)
+    : (c) => (' ' + String(classes || '') + ' ').includes(' ' + c + ' ');
+  for (const s of DG_SHAPE_CLASSES) if (has(s)) return s;
+  return '';
+}
+
+// Extra interior a shape needs beyond a rect's padding, so a label does not
+// run into the point or the bevel. Returned in px and only ever *added* to a
+// width the caller computed from the label – a box with an explicit `w` is the
+// author's business, and the too-narrow warning already covers it.
+//
+// Derived from the height alone, never from the width, because the width is
+// what this is being used to compute.
+function dgShapeInsetX(shape, h) {
+  if (shape === 'hex') return Math.min(h * 0.28, 22) * 2;
+  if (shape === 'chevron' || shape === 'chevron-left') return Math.min(h * 0.5, 30);
+  if (shape === 'wedge') return h * 0.9;
+  return 0;
+}
 
 const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 'tr', 'bl', 'br']);
 // The statements that bring an element into being, as opposed to arranging
@@ -7047,6 +7161,20 @@ function dgDefaultLayers(model, kind, tags) {
 // Factored out because the same statement is now legal in two places: inside
 // a block, and in the lecture's `diagram-defaults` frontmatter key. Two
 // parsers for one line is how the two would eventually disagree.
+// Only a `box` draws an outline of its own. Anywhere else an outline class
+// resolves, emits its CSS and changes nothing at all – a `dot` is a circle, a
+// `text` has no border, a `container` is a frame around other people's boxes.
+// A silent no-op is the failure this grammar keeps closing, so say which
+// statement the class belongs on.
+function rejectShapeOn(kindWord, classes, lineNo, errors) {
+  if (kindWord === 'box') return;
+  for (const c of classes || []) {
+    if (!DG_SHAPE_CLASSES.has(c)) continue;
+    dgErr(errors, lineNo, `.${c} is an outline, and only a box has one to shape – `
+      + `a ${kindWord} would keep its own and the class would do nothing.`);
+  }
+}
+
 function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) {
   const kind = body0[1] ? body0[1].v : '';
   if (!DG_DEFAULT_KINDS.has(kind)) {
@@ -7057,6 +7185,7 @@ function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) {
   // carrying that tag. One per (kind, tag) and one per bare kind, so the
   // result never depends on the order of the declarations: an element's
   // own attributes beat its tag default, which beats the kind default.
+  rejectShapeOn(kind, attrs.classes, lineNo, errors);
   const tagTok = body0[2] && body0[2].v.startsWith('@') ? body0[2].v.slice(1) : null;
   const slot = tagTok
     ? layer.tagDefaults.find(d => d.kind === kind && d.tag === tagTok)
@@ -7757,6 +7886,18 @@ function createDiagramCompiler(env = {}) {
         } else if (head === 'style') {
           op.targets = dgParseMembers(body0.slice(1).map(x => x.v).join(','));
           op.classes = attrs.classes;
+          // The outline is chosen when the figure is emitted, because that is
+          // when the drawable kind – rect or path – is decided and written
+          // into the payload. A step cannot change it, and letting the line
+          // parse would leave exactly the silent no-op this grammar keeps
+          // closing: the class lands, the picture does not move.
+          for (const c of op.classes) {
+            if (DG_SHAPE_CLASSES.has(c)) {
+              dgErr(errors, lineNo, `style cannot change an outline: .${c} is fixed when the figure is `
+                + 'built, so a step has nothing to switch. Put it on the element, and if two beats really '
+                + 'need two outlines, draw two elements and show one at a time.');
+            }
+          }
         } else if (head === 'label') {
           op.target = t(1);
           op.text = quoted[0] ?? '';
@@ -7917,6 +8058,7 @@ function createDiagramCompiler(env = {}) {
           if (model.nodes.length === 0) node.place = { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] };
           else dgErr(errors, lineNo, `${head} ${id} has no placement (at X,Y / below … / above … / right of … / left of … )`);
         }
+        rejectShapeOn(head, attrs.classes, lineNo, errors);
         model.nodes.push(node);
         if (node.leader) {
           const leadId = `${id}--lead`;
@@ -8003,6 +8145,7 @@ function createDiagramCompiler(env = {}) {
         // outline sits from what it encloses. The brace used to spell it
         // `gap`, which is the word for the distance between two *elements*
         // everywhere else in the grammar.
+        rejectShapeOn(head, attrs.classes, lineNo, errors);
         const item = { kind: head, id, members, label: quoted[0] ?? '', classes: attrs.classes, tags: attrs.tags, pad: null, line: lineNo, span };
         if (head === 'brace') item.side = null;
         for (let k = 0; k < rest.length; k++) {
@@ -8197,9 +8340,16 @@ function createDiagramCompiler(env = {}) {
         dgWarn(`box ${node.id} is ${nw} units wide but its label needs about `
           + `${((m.w + 2 * padX) / uw).toFixed(2)} – the text will overflow.`);
       }
+      const boxH = nh != null ? nh * uh : m.h + 2 * padY;
+      // A hexagon or a chevron has less usable interior than the rectangle
+      // that bounds it: the bevel and the point are inside the box. Widen the
+      // auto-computed width so the label clears them. Only the automatic case
+      // – an explicit `w` is the author's decision, and the too-narrow warning
+      // above already speaks for that one.
+      const inset = dgShapeInsetX(dgShapeOf(classes), boxH);
       return {
-        w: nw != null ? nw * uw : Math.max(m.w + 2 * padX, DG_MIN_W),
-        h: nh != null ? nh * uh : m.h + 2 * padY,
+        w: nw != null ? nw * uw : Math.max(m.w + 2 * padX + inset, DG_MIN_W),
+        h: boxH,
         font, padX, padY,
       };
     };
@@ -8911,9 +9061,20 @@ function createDiagramCompiler(env = {}) {
       let inner = '';
       const g = (suffix) => printGeom.get(e.id + suffix);
       if (kind === 'box' || kind === 'container') {
-        kinds[e.id + '--r'] = 'rect';
         const v = g('--r') || [0, 0, 0, 0];
-        inner += `<rect id="${prefix}${e.id}--r" x="${v[0].toFixed(2)}" y="${v[1].toFixed(2)}" width="${v[2].toFixed(2)}" height="${v[3].toFixed(2)}" rx="4"/>`;
+        // The outline is decided once, here, from the resolved classes – and
+        // that is why a `style` step may not change it: the drawable kind is
+        // written into the payload at this moment, and a later frame that
+        // wanted a different one would have nothing to switch. The parser
+        // refuses that line rather than letting it be a silent no-op.
+        const shape = kind === 'box' ? dgShapeOf(st) : '';
+        if (shape) {
+          kinds[e.id + '--r'] = shape;
+          inner += `<path id="${prefix}${e.id}--r" class="dg-shape" d="${dgShapeD(shape, v[0], v[1], v[2], v[3])}"/>`;
+        } else {
+          kinds[e.id + '--r'] = 'rect';
+          inner += `<rect id="${prefix}${e.id}--r" x="${v[0].toFixed(2)}" y="${v[1].toFixed(2)}" width="${v[2].toFixed(2)}" height="${v[3].toFixed(2)}" rx="4"/>`;
+        }
       } else if (kind === 'dot') {
         kinds[e.id + '--c'] = 'circle';
         const v = g('--c') || [0, 0, 1];
@@ -9045,7 +9206,7 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES, DG_ANCHORS, DG_DEFINES, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_OPS, DG_KEYWORDS, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_BRACE_SIDES, DG_KIND_OPTS, DG_PAD_DEFAULT, dgErr, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgReadDefault, parseDiagramDefaults, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, dgShapeD, dgShapeOf, dgShapeInsetX, DG_ANCHORS, DG_DEFINES, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_OPS, DG_KEYWORDS, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_BRACE_SIDES, DG_KIND_OPTS, DG_PAD_DEFAULT, dgErr, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, rejectShapeOn, dgReadDefault, parseDiagramDefaults, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "";
 // The diagram editor.
@@ -11711,14 +11872,27 @@ function dgeSlotValue(slot) {
 
 function dgeSetSlot(slot, cls) {
   const names = slot.options.map((o) => o.cls).filter(Boolean);
-  const next = dgeApplySplices(DGE.selection.map((id) => {
+  const splices = [];
+  const widened = [];
+  for (const id of DGE.selection) {
     const el = dgeFind(id);
-    if (!el) return null;
+    if (!el) continue;
     const keep = (el.classes || []).filter((c) => !names.includes(c));
     if (cls) keep.push(cls);
-    return dgePlanTail(id, { classes: keep });
-  }));
-  if (next !== null) dgeSetSource(next);
+    if (cls === 'fit' || cls === 'shrink') {
+      const w = dgePlanFitWidth(id);
+      if (w) { splices.push(w); widened.push(id + ' w ' + w.value); }
+    }
+    const tail = dgePlanTail(id, { classes: keep });
+    if (tail) splices.push({ ...tail, seq: 1 });
+  }
+  const next = dgeApplySplices(splices);
+  if (next === null) return;
+  dgeSetSource(next);
+  if (widened.length && !(DGE.problems && DGE.problems.length)) {
+    dgeStatus('', 'wrote ' + widened.join(', ') + ' as well – .' + cls
+      + ' fits the type to the box, so the box has to say how wide it is.', false);
+  }
 }
 
 function dgeToggleTag(tag, add) {
@@ -11730,6 +11904,28 @@ function dgeToggleTag(tag, add) {
     return dgePlanTail(id, { tags: [...tags] });
   }));
   if (next !== null) dgeSetSource(next);
+}
+
+// `.fit` and `.shrink` size the type to the box, so the compiler requires the
+// box to be given - `w n` or `same as X` - and refuses otherwise. That error
+// is written for someone typing text, who would have to invent a number. In
+// the editor the box is on screen and its width is already known, so the only
+// sensible reading of the click is "fit the type to this box, the size it is
+// now". Writing that width is what makes the swatch a control rather than a
+// thing that beeps at you.
+function dgePlanFitWidth(id) {
+  const el = dgeFind(id);
+  const b = DGE.boxes.get(id);
+  if (!el || !b) return null;
+  if (el.w != null || el.sameAs) return null;
+  // Only where a width is an option at all: a dot is sized by `r`, and
+  // writing `w` on one would be a different kind of no-op.
+  if (!dgeKindOpts(el.kind).includes('w')) return null;
+  const sp = DGE.spans.spanOf(id, 'w');
+  if (!sp || sp.present) return null;
+  const { uw } = dgeUnits();
+  const value = dgeNum(dgeRound(b.w / uw, DGE_SNAP_CELL));
+  return { start: sp.start, end: sp.end, text: sp.prefix + value + sp.suffix, seq: 0, value };
 }
 
 // The attribute tail is one token and the order inside it is free, so the
@@ -11779,7 +11975,13 @@ function dgePlanTail(id, changes) {
 // middle of its own placement – or inside its quoted label, where it still
 // compiles and the corruption is silent all the way to source.md.
 function dgeApplySplices(list) {
-  const out = list.filter(Boolean).sort((a, b) => b.start - a.start);
+  // Descending by position, and `seq` breaks a tie. Two insertions can share
+  // an offset - a width and an attribute tail both go at the end of a line
+  // that has neither - and applying right to left means the one applied
+  // *first* ends up last in the text. Without the tie-break that order came
+  // from Array.sort's stability, which is not something to rest an edit on.
+  const out = list.filter(Boolean)
+    .sort((a, b) => (b.start - a.start) || ((b.seq || 0) - (a.seq || 0)));
   if (!out.length) return null;
   let next = DGE.source;
   for (const r of out) next = next.slice(0, r.start) + r.text + next.slice(r.end);
