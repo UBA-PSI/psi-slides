@@ -3311,6 +3311,8 @@ function renderHelpOverlay(view, withEditor) {
     ['<kbd>6</kbd> · <kbd>7</kbd>', 'container · brace, drawn around whatever is selected'],
     ['<kbd>Q</kbd>', 'keep the current tool instead of falling back to select'],
     ['drag · drag a handle', 'move it · resize it – the status bar shows the line it will write'],
+    ['drag it over another element', 'four chips appear – release on one and it docks to that side of it, and follows it from then on'],
+    ['drag it through what it sits beside', 'changes which side of that element it is on'],
     ['arrows · <kbd>Shift</kbd>-arrows', 'nudge the selection, fine · coarse'],
     ['<kbd>Ctrl</kbd> while dragging', 'suspend snapping, for when 0.5847 is meant'],
     ['<kbd>Alt</kbd> while dragging', 'leave an align or spread set at once – or just pull half a cell clear of it'],

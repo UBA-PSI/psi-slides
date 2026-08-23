@@ -505,6 +505,7 @@ the help sheet is generated from one data structure rather than written twice.
 | `Ctrl/Cmd` **while dragging** | suspend snapping, for when 0.5847 is meant |
 | `Alt` **while dragging** | leave the `align` / `spread` set at once, without pulling clear of it |
 | double-click a waypoint | take it out of the edge's `via` clause |
+| drag over another element | four chips appear; release on one to dock this element to that side of it |
 | `F` | cycle the frame: slide → column → print (§5) |
 | `,` `.` · `PageUp` `PageDown` | previous / next figure (§6) |
 | `O` | the figure board |
@@ -2267,3 +2268,116 @@ dgeWriteAttr now goes through `dgeSetSource` like every other structured write.
 And the first element of a block has no placement in the source at all - it
 sits at the origin for free - so `spanOf` answers null; the pane says so and
 offers to write one out rather than showing fields that cannot be saved.
+
+
+### Four layout controls, and the one grammar change they needed · **done**
+
+Asked for together, so worth saying which of the four cost the language
+anything: one did.
+
+**Docking by drag.** Four chips around whatever the pointer is over; release
+on one and the placement is rewritten to `<side> of <that element>`. No
+modifier, and that is the design rather than an omission - `Ctrl/Cmd`
+suspends snapping, `Alt` leaves an align set, and `Shift` means
+axis-constrain in every drawing tool. Releasing *on a chip* is itself the
+commitment, so the gesture guards itself and stays one-handed. The preview
+shows the element already docked while the chip is armed, so the picture
+answers "what will this do" before the button comes up.
+
+Two things it has to read from the right place. The host is found from the
+**pointer**, not from the dragged element, and its geometry comes from
+`ctx.boxes` - the layout as it was at pointerdown. The element is moving under
+the preview and the layout is re-solved on every move, so anything read live
+slides about while it is being aimed at. And the chip decides the *side* only:
+measuring a distance from where the pointer happens to be gives nearly zero
+every time, because the chip sits just outside the edge and half the dragged
+element covers the rest. The element keeps the gap it already had.
+
+**Align, distribute and "between these two"** cost nothing at all. `align x|y
+<edge>` and `spread x|y` have been in the grammar from the start and the
+editor has had `dgeAlign` and `dgeSpread` for as long - they were six buttons
+reading `x left` and `y top`, which is the statement's own spelling rather
+than the question anyone arrives with, and they only appear with two elements
+selected. Renamed, grouped by axis, and `between a,b` added as a third
+selection act: it has no gesture, because nothing about dragging one box says
+"halfway between those two", and selection acts are the idiom `container`,
+`brace`, `align` and `spread` already use.
+
+**Label alignment is the grammar change**, and it is two classes: `.top` and
+`.bottom`. `.left` and `.right` already existed but only bit on a free `text`
+- on a box they were a latent bug, anchoring the label at the box centre and
+running it out of the box. Both pairs are measured against the element's own
+padding now, because that is what the word "aligned" means: as far that way as
+this box allows.
+
+The implementation is smaller than it sounds because the origin stays the
+centre of the block of lines and only that centre moves. So the emitter goes
+on laying the lines out around it, the recorded extent stays symmetric, and
+nothing downstream learns a new idea - and a bottom-aligned label of three
+lines puts its *last* line on the inner edge rather than its first, which is
+what anyone means by bottom.
+
+It did force one tidy-up. The question "which side of its origin does this
+label sit on" was being answered in two places - the emitter for `text-anchor`
+and `extentsOf` for the paper it reserves - and the new classes would have
+made it three. `dgLabelAnchor()` is the one answer now. Two copies of that
+question is exactly how figures came to sit off-centre in oversized frames a
+few commits ago, so a third was not on.
+
+
+### Thirteen review findings on the layout controls · **done**
+
+All real, and worth grouping by what they say about the change rather than
+listing them.
+
+**Four were one mistake: the dock did not use the hit test that already
+exists.** `dgeDockAt` re-implemented "innermost box under the pointer" and, in
+doing so, dropped everything `dgeHitTest` had learned. It offered chips while
+dragging an **edge, container or brace** – none of whose statements has a slot
+for a placement, so the release spliced `left of c gap 0.4` into a line that
+cannot hold it. It targeted a `grid`'s synthesised cells, so a hover wrote
+`left of g-2-1` while a click on the same pixel selected `g`. It offered hosts
+that close a **placement cycle** – a container over its own member, a box
+already placed against the dragged one. And it called `dgeFind` per candidate
+per pointermove, which rebuilds a spread of the whole model each time.
+
+The first three are gone by mapping through `dgeOwnerOf` and gating on the
+dragged element being a node, plus one reachability walk that refuses a host
+which can already reach the element. In each case the compiler *did* catch it
+and `dgeSetSource` reverted – but the preview lied for the whole of the drag,
+which is worse than a refusal: the author aimed at something that was never
+going to work.
+
+**One was the opposite of what the code said it was doing.** Insetting an
+aligned label by the padding is right for a shape and wrong for a free `text`:
+`sizeOf` gives a text the bare glyph run with no padding at all, so the inset
+pushed it 13px off its own box. On a `.paper` text, whose ground is drawn
+*outwards* from that box, `.left` came out flush against the right edge of its
+own ground – the alignment inverted rather than shifted. The `freeText`
+parameter that carries exactly this distinction had been dropped from the body
+while staying in the signature, and the comment above it still described the
+behaviour the change had removed. `test/figure-labels.mjs` measures both
+kinds, and was calibrated against the broken version first.
+
+**Two were the emit-once rule, which this change walked into twice.** A
+`.turn`ed label reads bottom-to-top, so the room it takes downwards is its
+measured *width* – `.bottom` used the upright height and put a firewall bar's
+label past its own border. And `text-anchor` is written once, from the last
+beat, while the origin is recomputed per beat: a `style` step that switched
+`.left` on would draw the label half its width off in every other beat. The
+grammar rejects that step now, for the same reason it rejects an outline class
+there.
+
+The rest were smaller: docking wrote an explicit `gap 0.25` where the author
+had written no gap at all; docking ignored `align`/`spread` membership, so a
+follower landed on its master while the status bar promised it now followed
+the host; the "halfway" act had no node gate and contradicted the subtitle
+printed above it; the `?` sheet never learned the one genuinely new gesture in
+the commit; and the prose in the new code used ASCII hyphens where the
+convention is en-dashes.
+
+Two notes for next time. The review found nothing by reading the diff alone –
+every finding is backed by a compile or an A/B against the base revision,
+which is what caught the ones where the picture was still plausible. And four
+of thirteen came from one duplicated function: `dgeHitTest` had accumulated
+three separate lessons, and re-writing its walk threw all three away at once.

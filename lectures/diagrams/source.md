@@ -477,6 +477,36 @@ step dazwischen
 
 **Sichtbarkeit vererbt sich nach unten.** Weder der `container` noch die gestrichelten Pfeile noch das handschriftliche Label brauchen ein eigenes `show`: ein Pfeil ist nur so sichtbar wie seine Enden, ein `container` nur so sichtbar wie seine Mitglieder, und ein `text` mit einer Linie nur so sichtbar wie das, worauf er zeigt.
 
+## figure: Where the words sit {.wide #justify}
+
+::: diagram {unit=126x86}
+default box {.sharp} w 0.66 h 0.72
+
+# Ein hoher Kasten mit kurzer Beschriftung ist der Fall, für den es diese
+# Wörter gibt. Ohne sie sitzt jede Zeile in der Mitte, was bei einem
+# Stack-Rahmen oder einer Matrixzeile das Falsche sagt.
+box  tl "top\nleft"                      at 0,0    {.top .left}
+box  tc "top"           right of tl gap 0.25       {.top}
+box  tr "top\nright"    right of tc gap 0.25       {.top .right}
+box  ml "left"          below tl gap 0.25          {.left}
+box  mc "centred"       right of ml gap 0.25
+box  mr "right"         right of mc gap 0.25       {.right}
+box  bl "bottom\nleft"  below ml gap 0.25          {.bottom .left}
+box  bc "bottom"        right of bl gap 0.25       {.bottom}
+box  br "bottom\nright" right of bc gap 0.25       {.bottom .right}
+
+# Ein freier `text` hat keinen Rand, von dem er Abstand halten müsste, und
+# deshalb auch kein Padding: seine Box *ist* der Zeilenblock. Die Wörter
+# richten ihn an seiner eigenen Kante aus, nicht an einer inneren. Die
+# Grundfläche macht das sichtbar – sie wird nach außen gezeichnet.
+text fl "frei, links"   below bl gap 0.3 {.left .small .paper}
+text fr "frei, rechts"  below br gap 0.3 {.right .small .paper}
+:::
+
+**`left` und `right` sagen, wo eine Zeile steht, `top` und `bottom`, wo der Block aus Zeilen steht.** Gemessen wird gegen das **Padding**, nicht gegen den Rand – `left` heißt „so weit nach links, wie dieser Kasten es zulässt". Ohne eines dieser Wörter sitzt die Beschriftung mittig, was für fast jeden Kasten richtig ist; die Wörter sind für die übrigen da, für einen hohen Kasten mit kurzer Beschriftung vor allem.
+
+Bei mehreren Zeilen bewegt sich der **Block**, nicht die einzelne Zeile. Deshalb setzt `bottom` bei zwei Zeilen die *letzte* auf die innere Kante und nicht die erste. `turn` schlägt beides: eine gedrehte Beschriftung liest von unten nach oben und ist auf ihrem Punkt zentriert, wie herum auch immer.
+
 ## figure: Two statements that expand {.full #expand}
 
 ::: diagram {unit=150x62}
