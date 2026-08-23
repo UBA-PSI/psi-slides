@@ -356,7 +356,7 @@ const DGE_TOOLS = [
   { id: 'line', keys: ['9', 'l'], label: 'line', icon: 'M2 12L13 4', drag: true },
   { id: 'image', keys: ['8', 'i'], label: 'image', icon: 'M2 3h11v9H2zM2 10l3.5-3 3 2.4L11 7l2 2', placer: true },
   { sep: true },
-  { id: 'container', keys: ['6'], label: 'group', icon: 'M2 2h11v11H2zM4.5 5h6v5h-6z', wrapper: true },
+  { id: 'container', keys: ['6'], label: 'container', icon: 'M2 2h11v11H2zM4.5 5h6v5h-6z', wrapper: true },
   { id: 'brace', keys: ['7'], label: 'brace', icon: 'M5 2c0 3-3 3-3 4.5C2 8 5 8 5 11M8 2h5M8 6.5h5M8 11h5', wrapper: true },
 ];
 
@@ -381,6 +381,7 @@ const DGE = {
   model: null,           // its model
   spans: null,           // createSpanTable over it
   boxes: null,           // id -> {x,y,w,h} at the beat on screen, in px
+  prefix: '',            // the compiler's id prefix inside the painted SVG
   beat: 0,               // which beat the canvas shows
   selection: [],         // element ids, first is the master for align/spread
   tool: 'select',
@@ -521,6 +522,10 @@ function dgeBuildChrome() {
     ]),
     dgeEl('span', { class: 'dge-spacer' }),
     dgeEl('span', { id: 'dge-room' }),
+    dgeEl('div', { class: 'dge-group' }, [
+      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-undo-btn', title: 'undo (⌘Z)', text: '↶', onclick: () => dgeUndo() }),
+      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-redo-btn', title: 'redo (⇧⌘Z)', text: '↷', onclick: () => dgeRedo() }),
+    ]),
     dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-file-btn', text: 'Open source.md…', title: 'write back straight into the file (Chromium only)', onclick: () => dgePickSourceFile() }),
     dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-revert-btn', text: 'Revert', title: 'discard your edits to this figure', onclick: () => dgeRevertLocal() }),
     dgeEl('button', { type: 'button', class: 'dge-btn dge-on', id: 'dge-copy-btn', html: 'Copy source <kbd>⌘S</kbd>', onclick: () => dgeCommit() }),
@@ -700,6 +705,11 @@ function dgePaintArt(html) {
   else if (svg.dataset.liveViewbox) svg.setAttribute('viewBox', svg.dataset.liveViewbox);
   svg.removeAttribute('width');
   svg.removeAttribute('height');
+  // The compiler prefixes every id inside the figure (dg3-mix, dg3-edge-1--p)
+  // and the root carries the prefix too, so keep it before overwriting the id.
+  // It is the only way back from a model id to the node the compiler drew for
+  // it, and searching by suffix instead would match my-edge-1--p for edge-1--p.
+  DGE.prefix = /root$/.test(svg.id || '') ? svg.id.replace(/root$/, '') : '';
   svg.id = 'dge-art-svg';
   // Paint the beat on screen into it, using the runtime the build already
   // ships – no second implementation of "what does step k look like".
@@ -894,13 +904,23 @@ function dgeDrawGuides() {
     g.appendChild(halo);
   }
 
-  // The selection, and what holds it.
+  // The selection, and what holds it. An edge gets its own line traced rather
+  // than a rectangle: it has no box to draw, and the box it would be given is
+  // mostly empty paper wherever the arrow runs diagonally.
   for (const id of DGE.selection) {
     const b = DGE.boxes.get(id);
-    if (!b) continue;
-    g.appendChild(dgeEl('rect', {
-      class: 'dge-sel', x: b.x - 3, y: b.y - 3, width: b.w + 6, height: b.h + 6, rx: 3,
-    }));
+    if (b) {
+      g.appendChild(dgeEl('rect', {
+        class: 'dge-sel', x: b.x - 3, y: b.y - 3, width: b.w + 6, height: b.h + 6, rx: 3,
+      }));
+      continue;
+    }
+    const pts = dgeEdgePts(id);
+    if (pts) {
+      g.appendChild(dgeEl('polyline', {
+        class: 'dge-sel-path', points: pts.map((q) => q.join(',')).join(' '),
+      }));
+    }
   }
   dgeDrawBeatGuides(g);
   if (DGE.selection.length === 1) dgeDrawRelations(g, DGE.selection[0]);
@@ -1026,11 +1046,53 @@ function dgeDrawRelations(g, id) {
   }
 }
 
-// Resize handles, on a box that can actually be resized.
+// Resize handles, on a box that can actually be resized – and, on an edge,
+// the two ends. Dragging one of those is the only gesture in the editor that
+// changes *what* a statement refers to rather than where something sits, which
+// is why it gets a different shape: a round grip, not a square corner.
 function dgeDrawHandles(g, id) {
   const el = dgeFind(id);
+  if (!el) return;
+  if (el.kind === 'edge') {
+    const pts = dgeEdgePts(id);
+    if (!pts) return;
+    // The drawn polyline is [start, ...waypoints, end], so waypoint k is
+    // pts[k+1] and no second geometry is needed to find it. Only the two ends
+    // are pulled back from their true position, to clear the arrowhead; the
+    // interior points are exact.
+    const via = el.via || [];
+    // A hollow dot at the middle of every segment: the only visible answer to
+    // "how do I make this arrow go around that box". Drawn first so a real
+    // waypoint sitting near a midpoint is the one you grab.
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2;
+      g.appendChild(dgeEl('circle', {
+        class: 'dge-handle dge-h-add', 'data-handle': 'add-' + i, 'data-id': id,
+        cx: mx, cy: my, r: 3.5,
+      }));
+    }
+    for (let k = 0; k < via.length && k + 1 < pts.length - 1; k++) {
+      const p = pts[k + 1], r = 4.5;
+      // Square, like the resize grips, because it moves a point; the round
+      // ones retarget. Hollowed differently again when it holds a reference,
+      // which is the thing a drag has to preserve rather than replace.
+      const held = (via[k] || []).some((c) => c && c.ref);
+      g.appendChild(dgeEl('rect', {
+        class: 'dge-handle dge-h-via' + (held ? ' dge-h-held' : ''),
+        'data-handle': 'via-' + k, 'data-id': id,
+        x: p[0] - r, y: p[1] - r, width: r * 2, height: r * 2, rx: 1,
+      }));
+    }
+    for (const [which, p] of [['from', pts[0]], ['to', pts[pts.length - 1]]]) {
+      g.appendChild(dgeEl('circle', {
+        class: 'dge-handle dge-h-end', 'data-handle': which, 'data-id': id,
+        cx: p[0], cy: p[1], r: 5,
+      }));
+    }
+    return;
+  }
   const b = DGE.boxes.get(id);
-  if (!el || !b || !DGE.model.nodes.some((n) => n.id === id)) return;
+  if (!b || !DGE.model.nodes.some((n) => n.id === id)) return;
   if (el.kind === 'image' || el.kind === 'dot' || el.kind === 'box' || el.kind === 'text') {
     const r = 4.5;
     const spots = [
@@ -1331,8 +1393,83 @@ function dgeRedo() {
 // Against the laid-out boxes rather than against the DOM: the boxes are what
 // the compiler computed, so a click resolves to the element the *source*
 // says is there. Innermost first, so a box inside a container wins.
+//
+// An edge is the exception, and it has to be: layoutDiagram never gives one a
+// box, because an edge is not placed – it is drawn between two things that
+// were. A bounding box would be the wrong shape anyway; what the author aims
+// at is the line, and for a diagonal arrow the box is mostly empty paper.
 
-function dgeHitTest(pt) {
+// The polyline the author is looking at, read off the painted SVG. Not a
+// second layout: the compiler wrote that `d` and the step runtime moved it, so
+// it is by construction the geometry on screen at this beat, and on a
+// pointermove a second dgFrameDrawables would re-measure every label in the
+// block to learn what the DOM already knows. Coupled to dgPathD, which emits
+// one M and a run of Ls and nothing else.
+function dgeEdgePts(id) {
+  const svg = dgeQ('#dge-art-svg');
+  if (!svg) return null;
+  // Scoped to the editor's own copy. The slide behind the modal holds the
+  // same figure with the same prefixed ids, and getElementById would answer
+  // with whichever of the two comes first in the document.
+  const path = svg.querySelector('[id="' + DGE.prefix + id + '--p"]');
+  const d = path && path.getAttribute('d');
+  if (!d) return null;
+  const nums = (d.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+  const pts = [];
+  for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1]]);
+  return pts.length >= 2 ? pts : null;
+}
+
+// Seven CSS pixels, in the diagram's own units, so a hairline is exactly as
+// easy to hit at 4x as at 1x.
+function dgeGrabTolerance(px = 7) {
+  const guides = dgeQ('#dge-guides');
+  const ctm = guides && guides.getScreenCTM();
+  const s = ctm ? Math.hypot(ctm.a, ctm.b) : 1;
+  return px / (s || 1);
+}
+
+function dgeSegDist(p, a, b) {
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const len2 = dx * dx + dy * dy;
+  const t = len2 ? Math.max(0, Math.min(1, ((p.x - a[0]) * dx + (p.y - a[1]) * dy) / len2)) : 0;
+  return Math.hypot(p.x - (a[0] + t * dx), p.y - (a[1] + t * dy));
+}
+
+// An arrow that is not on screen at this beat must not take a click on the
+// empty paper where it will later be. The painted group carries the resolved
+// number – dgOpacity writes it as an inline style and the step runtime sets
+// it – so this asks the drawing rather than resolving visibility a second
+// time. Boxes are deliberately not filtered this way: a hidden box still
+// occupies the area you clicked, where a hidden hairline occupies nothing.
+function dgeEdgeVisible(id) {
+  const svg = dgeQ('#dge-art-svg');
+  const g = svg && svg.querySelector('[id="' + DGE.prefix + id + '"]');
+  if (!g) return true;
+  return parseFloat(getComputedStyle(g).opacity || '1') > 0.02;
+}
+
+function dgeNearestEdge(pt) {
+  if (!DGE.model) return null;
+  let best = null, bestD = dgeGrabTolerance();
+  for (const e of DGE.model.edges) {
+    // A leader stub has no statement of its own – it belongs to the `text`
+    // line that grew it – so there is nothing for a selection to edit.
+    if (e.lead || !dgeEdgeVisible(e.id)) continue;
+    const pts = dgeEdgePts(e.id);
+    if (!pts) continue;
+    for (let i = 1; i < pts.length; i++) {
+      const d = dgeSegDist(pt, pts[i - 1], pts[i]);
+      if (d < bestD) { bestD = d; best = e.id; }
+    }
+  }
+  return best;
+}
+
+// `edges: false` is for a gesture that is choosing an edge *endpoint*. An edge
+// cannot be one: layoutDiagram has no box for it, so the arrow pointed at it
+// would silently not be drawn at all.
+function dgeHitTest(pt, opts) {
   if (!DGE.boxes) return null;
   const hits = [];
   for (const [id, b] of DGE.boxes) {
@@ -1341,9 +1478,16 @@ function dgeHitTest(pt) {
     if (!el) continue;
     hits.push({ id, area: b.w * b.h, el });
   }
-  if (!hits.length) return null;
   hits.sort((a, b) => a.area - b.area);
-  return hits[0].id;
+  const box = hits[0] || null;
+  if (opts && opts.edges === false) return box ? box.id : null;
+  // Reading order settles the ties, because it is what the author sees: a box
+  // wins over an arrow that crosses it, and an arrow wins over the container
+  // or brace it runs through. Without the second half every edge inside a
+  // container would be unreachable, which is most of them.
+  const edge = dgeNearestEdge(pt);
+  if (edge && (!box || box.el.kind === 'container' || box.el.kind === 'brace')) return edge;
+  return box ? box.id : null;
 }
 
 // ── canvas interaction ──────────────────────────────────────────────
@@ -1355,12 +1499,29 @@ function dgeWireCanvas(canvas, guides) {
     dgeZoomBy(k);
   }, { passive: false });
 
+  // A waypoint comes out the way it went in, at the same spot on the canvas.
+  // The sidebar carries the same act as a button, because a gesture nobody can
+  // see is not a control.
+  canvas.addEventListener('dblclick', (ev) => {
+    if (!DGE.open || DGE.boardOpen) return;
+    const h = ev.target.closest && ev.target.closest('[data-handle^="via-"]');
+    if (!h) return;
+    ev.preventDefault();
+    dgeRemoveWaypoint(h.dataset.id, Number(h.dataset.handle.slice(4)));
+  });
+
   canvas.addEventListener('pointerdown', (ev) => {
     if (!DGE.open || DGE.boardOpen) return;
     if (ev.button === 1 || DGE.spaceDown) return dgeStartPan(ev, canvas);
     const handle = ev.target.closest && ev.target.closest('[data-handle]');
     const pt = dgePointToDiagram(ev);
-    if (handle) return dgeStartResize(ev, handle.dataset.id, handle.dataset.handle);
+    if (handle) {
+      const h = handle.dataset.handle;
+      if (h === 'from' || h === 'to') return dgeStartEndpoint(ev, handle.dataset.id, h);
+      if (h.startsWith('via-')) return dgeStartWaypoint(ev, handle.dataset.id, Number(h.slice(4)));
+      if (h.startsWith('add-')) return dgeAddWaypoint(ev, handle.dataset.id, Number(h.slice(4)));
+      return dgeStartResize(ev, handle.dataset.id, h);
+    }
     if (DGE.tool === 'select') {
       const hit = dgeHitTest(pt);
       if (!hit) {
@@ -1530,6 +1691,186 @@ function dgeStartResize(ev, id, handle) {
   window.addEventListener('pointerup', up);
 }
 
+// Retargeting an endpoint. The gesture answers with a *name* wherever it can:
+// the whole value of this grammar is that an arrow stores "the right edge of
+// mix" rather than a pair of numbers, and an editor that answered a drag with
+// coordinates would destroy the very thing the construct exists for. A snapped
+// coordinate is the fallback for empty paper, and it is a construct the
+// grammar already has – `edge 2,1 -> mix`.
+//
+// Dropped back on the element it already names, the anchor the author wrote
+// survives. Moved to a different element, it does not: `.right` was chosen
+// against the old box and says nothing about where the arrow should meet the
+// new one, and dgAutoAnchor picks a better one than a stale hint would.
+function dgeStartEndpoint(ev, id, which) {
+  const ctx = dgeGestureBase();
+  const el = dgeFind(id, ctx.model);
+  if (!el) { dgeGestureEnd(); return; }
+  const here = el[which];
+  const far = which === 'from' ? el.to : el.from;
+  const pts0 = dgeEdgePts(id);
+  const anchorPt = pts0 ? (which === 'from' ? pts0[pts0.length - 1] : pts0[0]) : [0, 0];
+  const { uw, uh } = dgeUnits(ctx.model);
+  const preview = dgeEl('line', {
+    class: 'dge-snap', x1: anchorPt[0], y1: anchorPt[1], x2: anchorPt[0], y2: anchorPt[1],
+  });
+  dgeSnapGuides = [preview];
+  dgeDrawGuides();
+
+  const plan = (pt) => {
+    const hit = dgeHitTest(pt, { edges: false });
+    if (hit && !far.point && hit === far.ref) {
+      return { refuse: `both ends would sit on ${hit} – an edge needs two different things to run between.` };
+    }
+    if (hit) {
+      const keep = here.ref === hit && here.anchor;
+      const value = keep
+        ? hit + '.' + here.anchor + (here.frac !== 0.5 ? ':' + dgeNum(here.frac) : '')
+        : hit;
+      return { value, why: keep
+        ? `still ${value} – the anchor you wrote survives a drag back onto the same element`
+        : `${which} ${value} – the arrow re-routes whenever ${value} moves` };
+    }
+    const x = dgeNum(dgeRound(pt.x / uw, DGE_SNAP_CELL));
+    const y = dgeNum(dgeRound(pt.y / uh, DGE_SNAP_CELL));
+    return { value: `${x},${y}`, why: `${which} ${x},${y} – an endpoint in empty space, which stays put when things move` };
+  };
+
+  const move = (e) => {
+    const pt = dgePointToDiagram(e);
+    preview.setAttribute('x2', pt.x);
+    preview.setAttribute('y2', pt.y);
+    const p = plan(pt);
+    if (p.refuse) { DGE.source = ctx.source; dgeRecompile(); dgeStatus('', p.refuse, true); return; }
+    DGE.source = dgeApplyEdits(ctx, id, [{ attr: which, value: p.value, why: p.why }]);
+    dgeRecompile();
+    dgeShowPlan(ctx, id, { edits: [{ attr: which, why: p.why }], refusals: [] });
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    dgeSnapGuides = [];
+    if (DGE.source !== ctx.source) { const done = DGE.source; DGE.source = ctx.source; dgeSetSource(done); }
+    dgeGestureEnd();
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+}
+
+// Moving a waypoint. Per axis, and the axes are decided separately, because
+// `via iv.cx,d0.bottom+0.28` is half reference and half number – the x follows
+// a box and the y is a measured drop below another one. That mixture is the
+// normal case in a routed diagram, not an edge case.
+//
+// Where a component holds a reference the drag rewrites its **signed nudge**
+// and never the reference. editor.md calls this out as one of the three
+// constructs a graphical editor must round-trip: the nudge is one optional
+// signed term with no other operators and no nesting precisely so the token to
+// replace is always unambiguous. An editor that answered this drag with two
+// numbers would turn a diagram that re-routes itself into one that does not.
+function dgePlanWaypoint(ctx, id, k, dx, dy, free) {
+  const el = dgeFind(id, ctx.model);
+  const pair = el && (el.via || [])[k];
+  if (!pair) return { edits: [], refusals: [] };
+  const snap = (v) => (free ? v : dgeRound(v, DGE_SNAP_CELL));
+  const edits = [];
+  for (const [axis, i, delta] of [['x', 0, dx], ['y', 1, dy]]) {
+    if (!delta) continue;
+    const c = pair[i];
+    if (c && c.ref) {
+      const next = snap((c.nudge || 0) + delta);
+      edits.push({
+        attr: `via.${k}.${axis}.nudge`,
+        value: next === 0 ? '' : (next > 0 ? '+' : '') + dgeNum(next),
+        why: `keeps ${c.ref}.${c.prop}`,
+      });
+    } else {
+      edits.push({ attr: `via.${k}.${axis}`, value: dgeNum(snap((c ? c.unit : 0) + delta)) });
+    }
+  }
+  return { edits, refusals: [] };
+}
+
+function dgeStartWaypoint(ev, id, k) {
+  const pt0 = dgePointToDiagram(ev);
+  const ctx = dgeGestureBase();
+  const { uw, uh } = dgeUnits(ctx.model);
+  const move = (e) => {
+    const pt = dgePointToDiagram(e);
+    const plan = dgePlanWaypoint(ctx, id, k,
+      (pt.x - pt0.x) / uw, (pt.y - pt0.y) / uh, e.ctrlKey || e.metaKey);
+    DGE.source = dgeApplyEdits(ctx, id, plan.edits);
+    dgeRecompile();
+    dgeShowPlan(ctx, id, plan);
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    if (DGE.source !== ctx.source) { const done = DGE.source; DGE.source = ctx.source; dgeSetSource(done); }
+    dgeGestureEnd();
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+}
+
+// The whole `via` clause is rewritten for an insert or a remove, because the
+// waypoints are one space-separated run and adding to the middle of it is not
+// a token replacement. The coordinates that were already there are re-emitted
+// verbatim from their own spans, so a reference survives an insert next to it.
+function dgeViaWords(id) {
+  const el = dgeFind(id);
+  const out = [];
+  for (let i = 0; i < (el.via || []).length; i++) {
+    const sp = DGE.spans.spanOf(id, 'via.' + i);
+    out.push(sp && sp.present ? sp.text : '0,0');
+  }
+  return out;
+}
+
+function dgeWriteVia(id, words) {
+  const sp = DGE.spans.spanOf(id, 'via');
+  if (!sp) return;
+  const src = DGE.source;
+  if (!words.length) {
+    if (!sp.present) return;
+    // A removed clause leaves behind the space that separated it. The span
+    // starts *at* the keyword, so the drop path in dgeApplyEdits has no
+    // keyword in front of it to eat; take that run of spaces here, and
+    // nothing else. The first version tidied the whole block with a regex,
+    // which re-indented every step body, collapsed column-aligned
+    // declarations, and ate the double spaces inside quoted labels – all of
+    // it written straight back into the author's source.md.
+    let start = sp.start;
+    while (start > 0 && (src[start - 1] === ' ' || src[start - 1] === '\t')) start--;
+    dgeSetSource(src.slice(0, start) + src.slice(sp.end));
+    return;
+  }
+  dgeSetSource(src.slice(0, sp.start) + (sp.present ? '' : sp.prefix)
+    + 'via ' + words.join(' ')
+    + (sp.present ? '' : sp.suffix) + src.slice(sp.end));
+}
+
+// Inserting lands the new waypoint under the pointer and hands the gesture
+// straight to the move, so one press-drag-release both creates and places it.
+function dgeAddWaypoint(ev, id, seg) {
+  const pt = dgePointToDiagram(ev);
+  const { uw, uh } = dgeUnits();
+  const words = dgeViaWords(id);
+  words.splice(seg, 0,
+    `${dgeNum(dgeRound(pt.x / uw, DGE_SNAP_CELL))},${dgeNum(dgeRound(pt.y / uh, DGE_SNAP_CELL))}`);
+  dgeWriteVia(id, words);
+  if (DGE.problems && DGE.problems.length) return;
+  dgeStatus('', `waypoint ${seg + 1} of ${words.length} – drag it, or double-click it to take it out again.`, false);
+  dgeStartWaypoint(ev, id, seg);
+}
+
+function dgeRemoveWaypoint(id, k) {
+  const words = dgeViaWords(id);
+  if (k < 0 || k >= words.length) return;
+  words.splice(k, 1);
+  dgeWriteVia(id, words);
+}
+
 function dgeStartMarquee(ev, canvas) {
   const pt0 = dgePointToDiagram(ev);
   const rect = dgeEl('rect', { class: 'dge-snap', x: pt0.x, y: pt0.y, width: 0, height: 0 });
@@ -1675,7 +2016,7 @@ function dgeOpenAssetPicker(onPick) {
 
   const live = window.psiWatch && window.psiWatch.ready();
   if (!live) {
-    note.textContent = 'Without --watch the editor cannot put a file into assets/. Picking one writes an explicit path and tells you where to copy it.';
+    note.textContent = 'Without --watch running, the editor cannot put a file into assets/. Choose one anyway and it writes the path into the figure and tells you where to copy the file.';
     return;
   }
   window.psiWatch.assets().then((res) => {
@@ -1716,8 +2057,8 @@ function dgeCloseAssetPicker() {
 // A vector asset follows the theme and a raster does not. That is the trade
 // the docs already make; the author should hear it while picking, not later.
 const dgeAssetNote = (fileName) => (/\.svg$/i.test(fileName)
-  ? 'An SVG is spliced in as a nested <svg>, so it re-inks with the A theme cycle.'
-  : 'A raster is embedded as a data: URI and keeps its own colours in every theme.');
+  ? 'An SVG is drawn into the page itself, so it changes colour with the A theme key.'
+  : 'A raster image is embedded as it is, and keeps its own colours in every theme.');
 
 // The gap between "the file is on disk" and "this page knows about it".
 // The asset write does not rebuild, so the payload this page booted with
@@ -1811,7 +2152,10 @@ function dgeAppendLine(line) {
 }
 
 function dgeStartEdge(ev, pt0) {
-  const fromId = dgeHitTest(pt0);
+  // An endpoint is chosen with edges excluded, and it has to be: layoutDiagram
+  // gives an edge no box, so `edge feed0 -> x0` compiles, passes referential
+  // integrity, and then draws nothing at all. The arrow simply is not there.
+  const fromId = dgeHitTest(pt0, { edges: false });
   const preview = dgeEl('line', { class: 'dge-snap', x1: pt0.x, y1: pt0.y, x2: pt0.x, y2: pt0.y });
   dgeSnapGuides = [preview];
   dgeDrawGuides();
@@ -1820,7 +2164,7 @@ function dgeStartEdge(ev, pt0) {
     const pt = dgePointToDiagram(e);
     preview.setAttribute('x2', pt.x);
     preview.setAttribute('y2', pt.y);
-    const toId = dgeHitTest(pt);
+    const toId = dgeHitTest(pt, { edges: false });
     const a = DGE.tool === 'line' || !fromId
       ? `${dgeNum(dgeRound(pt0.x / uw, DGE_SNAP_CELL))},${dgeNum(dgeRound(pt0.y / uh, DGE_SNAP_CELL))}` : fromId;
     const b = DGE.tool === 'line' || !toId
@@ -1834,7 +2178,7 @@ function dgeStartEdge(ev, pt0) {
     window.removeEventListener('pointerup', up);
     dgeSnapGuides = [];
     const pt = dgePointToDiagram(e);
-    const toId = dgeHitTest(pt);
+    const toId = dgeHitTest(pt, { edges: false });
     const a = DGE.tool === 'line' || !fromId
       ? `${dgeNum(dgeRound(pt0.x / uw, DGE_SNAP_CELL))},${dgeNum(dgeRound(pt0.y / uh, DGE_SNAP_CELL))}` : fromId;
     const b = DGE.tool === 'line' || !toId
@@ -1869,7 +2213,7 @@ function dgeWrap(kind) {
 // the semantics for free.
 function dgeAlign(axis, edge) {
   if (DGE.selection.length < 2) {
-    dgeStatus('', 'align takes at least two elements, and the first one selected is the master.', true);
+    dgeStatus('', 'align takes at least two elements: the first one you select keeps its place, and the rest line up on it.', true);
     return;
   }
   dgeAppendLine(`align ${axis} ${edge} ${DGE.selection.join(', ')}`);
@@ -1963,7 +2307,8 @@ function dgeRenderSide() {
     side.appendChild(dgeEl('div', { class: 'dge-empty', html:
       'Nothing selected.<br><br>Click an element to see what holds it in place – '
       + 'the relations it was written with are drawn on the canvas.<br><br>'
-      + 'Pick a tool on the left to add one, or select two and use the alignment acts below.' }));
+      + 'Pick a tool on the left to add one, or select two elements and use the '
+      + '&ldquo;line them up&rdquo; buttons below.' }));
     side.appendChild(dgeTagLegend());
     side.appendChild(dgeElementList());
     side.appendChild(dgeSourcePane());
@@ -1977,15 +2322,97 @@ function dgeRenderSide() {
   ]);
   side.appendChild(head);
 
-  if (single && single.kind !== 'edge') {
-    // Label
+  if (single) {
+    // A label is multi-line. The tokenizer decodes \\n inside a quoted string
+    // to a real line break and the drawing typesets one line per break, so a
+    // single-line input could show the text but never type it. The textarea
+    // holds the *decoded* string – which is what spanOf hands back for a
+    // quoted token – and dgeQuote re-encodes it on the way to the source.
+    //
+    // Edges carry one too. Leaving them out of this field was a hole: the
+    // grammar has always read `edge a -> b "why"`, the compiler lays the text
+    // out along the line, and the only thing missing was the control.
     const sp = DGE.spans.spanOf(single.id, 'label');
-    const input = dgeEl('input', {
-      type: 'text', value: sp && sp.present ? sp.value : '',
+    const input = dgeEl('textarea', {
+      rows: 2, text: sp && sp.present ? sp.value : '',
       placeholder: 'label',
       onchange: (e) => dgeWriteAttr(single.id, 'label', e.target.value, true),
     });
-    side.appendChild(dgeEl('div', {}, [dgeEl('h3', { text: 'label' }), input]));
+    side.appendChild(dgeEl('div', {}, [
+      dgeEl('h3', { text: 'label' }), input,
+      dgeEl('div', { class: 'dge-hint', text: 'Enter breaks the line · ⌘S applies and writes back' }),
+    ]));
+  }
+
+  // What an edge runs between. This is the one thing in the grammar that names
+  // *other elements*, so the panel offers the names rather than coordinates,
+  // and says what a name buys – an arrow written against a box follows it.
+  if (single && single.kind === 'edge') {
+    const row = dgeEl('div', { class: 'dge-nums' });
+    for (const which of ['from', 'to']) {
+      const sp = DGE.spans.spanOf(single.id, which);
+      row.appendChild(dgeEl('label', { class: 'dge-num' }, [
+        dgeEl('span', { text: which }),
+        dgeEl('input', {
+          type: 'text', value: sp && sp.present ? sp.value : '',
+          placeholder: 'name or x,y',
+          onchange: (e) => {
+            const v = e.target.value.trim();
+            // Not the same as clearing an option. dgeWriteAttr's drop path
+            // would take the token out and leave "edge  -> b", which does not
+            // parse, and there is no keyword in front of an endpoint for it
+            // to eat either. Refuse, and put the field back.
+            if (!v) {
+              dgeStatus('', 'An edge needs something at both ends – an element name, or a coordinate like 1.5,2.', true);
+              dgeRenderSide();
+              return;
+            }
+            dgeWriteAttr(single.id, which, v);
+          },
+        }),
+      ]));
+    }
+    const swap = dgeEl('button', {
+      type: 'button', class: 'dge-btn', text: 'Swap ends',
+      title: 'point the arrow the other way',
+      onclick: () => dgeSwapEnds(single.id),
+    });
+    side.appendChild(dgeEl('div', {}, [
+      dgeEl('h3', { text: 'ends' }), row,
+      dgeEl('div', { class: 'dge-chips' }, [swap]),
+      dgeEl('div', { class: 'dge-hint', text:
+        'A name follows the element when it moves; x,y stays put. '
+        + 'Add an anchor with a dot – mix.right – and a fraction along it with a colon – mix.right:0.3.' }),
+    ]));
+
+    // Waypoints. Listed rather than only draggable, because how many there are
+    // and which of them holds a reference is not readable off the picture: a
+    // waypoint written iv.cx,d0.bottom+0.28 and one written 1.4,2.06 land in
+    // exactly the same place and behave completely differently afterwards.
+    const via = single.via || [];
+    const wrap = dgeEl('div', {});
+    wrap.appendChild(dgeEl('h3', { text: 'waypoints' }));
+    if (!via.length) {
+      wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
+        'None – the arrow runs straight. Drag one of the hollow dots on the line to bend it.' }));
+    } else {
+      const list = dgeEl('div', { class: 'dge-chips' });
+      via.forEach((pair, k) => {
+        const sp = DGE.spans.spanOf(single.id, 'via.' + k);
+        const held = pair.some((c) => c && c.ref);
+        list.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-chip' + (held ? ' dge-chip-held' : ''),
+          html: (sp && sp.present ? sp.text : '?') + '<span class="dge-x">×</span>',
+          title: held ? 'follows another element – dragging shifts it a little and keeps the reference. Click to remove.'
+            : 'a plain coordinate. Click to remove.',
+          onclick: () => dgeRemoveWaypoint(single.id, k),
+        }));
+      });
+      wrap.appendChild(list);
+      wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
+        'Drag a square on the line to move one, a hollow dot to add one, double-click a square to remove it.' }));
+    }
+    side.appendChild(wrap);
   }
 
   // Geometry: exactly the options that kind's own statement accepts.
@@ -2181,6 +2608,23 @@ function dgeApplySplices(list) {
 // A label as the DSL spells it. dgTokenize decodes a backslash escape and
 // turns `\n` into a newline, so a label typed with a quote or a line break
 // has to go back the same way or the statement ends mid-word.
+// Swap by exchanging the two endpoint tokens rather than by flipping the
+// arrow. Flipping reads smaller in the diff, but `--` has no direction to
+// flip and the edit would silently do nothing there – the failure this DSL
+// keeps closing. Exchanging the names means the same thing for all three.
+function dgeSwapEnds(id) {
+  const a = DGE.spans.spanOf(id, 'from');
+  const b = DGE.spans.spanOf(id, 'to');
+  if (!a || !b || !a.present || !b.present) return;
+  const first = a.start < b.start ? a : b;
+  const second = first === a ? b : a;
+  const firstVal = first === a ? b.text : a.text;
+  const secondVal = second === a ? b.text : a.text;
+  const src = DGE.source;
+  dgeSetSource(src.slice(0, first.start) + firstVal
+    + src.slice(first.end, second.start) + secondVal + src.slice(second.end));
+}
+
 function dgeQuote(v) {
   return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
@@ -2273,7 +2717,10 @@ function dgeElementList() {
   if (!DGE.model) return wrap;
   wrap.appendChild(dgeEl('h3', { text: 'elements' }));
   const list = dgeEl('div', { class: 'dge-list' });
-  const all = [...DGE.model.nodes, ...DGE.model.containers, ...DGE.model.braces, ...DGE.model.edges];
+  const all = [...DGE.model.nodes, ...DGE.model.containers, ...DGE.model.braces,
+    // Leader stubs are not statements, so they are not rows. The arrow is
+    // visible in the text element's own line, as the `-> x` that made it.
+    ...DGE.model.edges.filter((e) => !e.lead)];
   for (const el of all) {
     list.appendChild(dgeEl('button', {
       type: 'button', 'aria-pressed': String(DGE.selection.includes(el.id)),
@@ -2463,7 +2910,7 @@ function dgeRenderBeats() {
   const steps = DGE.model ? DGE.model.steps : [];
   if (!steps.length) { host.hidden = true; return; }
   host.hidden = false;
-  host.appendChild(dgeEl('span', { class: 'dge-cap', text: 'beat' }));
+  host.appendChild(dgeEl('span', { class: 'dge-cap', text: 'step' }));
   const chip = (k, label) => dgeEl('button', {
     type: 'button', class: 'dge-btn dge-beat', 'aria-pressed': String(k === DGE.beat),
     text: label, title: k === 0 ? 'the opening picture – a drag rewrites the placement'
@@ -2560,6 +3007,17 @@ function dgeKeydown(ev) {
   const tag = (ev.target.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea') {
     if (ev.key === 'Escape') ev.target.blur();
+    // A textarea keeps Enter for itself, so the only way out of a multi-line
+    // label is the commit key – and it has to mean here what it means
+    // everywhere else. Blur first: the field's change event fires inside that
+    // call, so the commit writes the text the author just typed rather than
+    // the text that was there before they started.
+    if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 's') {
+      ev.preventDefault();
+      ev.stopPropagation();
+      ev.target.blur();
+      dgeCommit();
+    }
     return;
   }
   const mod = ev.ctrlKey || ev.metaKey;
@@ -3113,7 +3571,7 @@ function dgeRenderAll() {
   if (counts && DGE.model) {
     counts.textContent = `${DGE.model.nodes.length + DGE.model.edges.length
       + DGE.model.containers.length + DGE.model.braces.length} elements`
-      + (DGE.model.steps.length ? ` · beat ${DGE.beat} of ${DGE.model.steps.length}` : '')
+      + (DGE.model.steps.length ? ` · step ${DGE.beat} of ${DGE.model.steps.length}` : '')
       + (DGE.dirty ? ' · edited' : '');
   }
   // One line of chrome saying which of the two situations this is. A private
@@ -3142,8 +3600,8 @@ function dgeRenderAll() {
       : DGE.fileHandle ? 'Write to ' + DGE.fileHandle.name + ' <kbd>⌘S</kbd>'
       : 'Copy source <kbd>⌘S</kbd>';
     copy.title = live
-      ? 'patch this block back into source.md through the --watch socket'
-      : DGE.fileHandle ? 'patch this block back into the file you opened'
+      ? 'write this block back into source.md, through the running --watch'
+      : DGE.fileHandle ? 'write this block back into the file you opened'
       : 'copy the whole ::: diagram block to the clipboard';
   }
   // Tier 3 is opportunistic and never load-bearing: offered where the
@@ -3158,6 +3616,20 @@ function dgeRenderAll() {
   // something other than what the author wrote.
   const revert = dgeQ('#dge-revert-btn');
   if (revert) revert.hidden = DGE.source === DGE.fig.body;
+  // Every mechanism in here has to have a visible control with its key printed
+  // on it – editor.md §4.2. Undo was the one that had only the key, and how
+  // deep the stack is is a thing the author can otherwise only find out by
+  // pressing it.
+  const undoBtn = dgeQ('#dge-undo-btn');
+  if (undoBtn) {
+    undoBtn.disabled = !DGE.undo.length;
+    undoBtn.title = DGE.undo.length ? `undo (⌘Z) – ${DGE.undo.length} change(s) back` : 'nothing to undo';
+  }
+  const redoBtn = dgeQ('#dge-redo-btn');
+  if (redoBtn) {
+    redoBtn.disabled = !DGE.redo.length;
+    redoBtn.title = DGE.redo.length ? `redo (⇧⌘Z) – ${DGE.redo.length} change(s) forward` : 'nothing to redo';
+  }
   dgeApplyFrame();
   dgeApplyView();
   dgeRenderTools();

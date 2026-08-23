@@ -959,6 +959,15 @@ export function createSpanTable(model, body) {
   const src = String(body);
   const byId = new Map();
   for (const el of [...model.nodes, ...model.edges, ...model.containers, ...model.braces]) {
+    // A leader stub is deliberately absent. It carries the span of the `text`
+    // statement that produced it, so handing that span out under the stub's
+    // name is how an editor comes to rewrite a different element: `label`
+    // resolves to the text node's label, and the literal `->` on that line
+    // makes `from` resolve to whatever token happens to precede it – on
+    // `text n "…" right of x gap 0.85 -> x` that is the gap. Nothing about a
+    // leader is editable through the stub; it is an aspect of the statement
+    // that owns it, and spanOf says so by returning null.
+    if (el.lead) continue;
     byId.set(el.id, el);
   }
 
@@ -1024,9 +1033,30 @@ export function createSpanTable(model, body) {
       const q = toks.find(x => x.q);
       if (q) return hit(q.s, q.e, q.v);
       // A label goes straight after the element's name, which is the second
-      // token of every statement that can carry one.
-      const at = toks[1] ? toks[1].e : el.span[1];
+      // token of every statement that can carry one – except an edge, whose
+      // second token is already an endpoint. `edge a "x" -> b` parses, because
+      // the endpoints are read off the tokens that are neither quoted nor an
+      // attribute tail, but it is not what anyone writes by hand. So an edge
+      // label goes where its other trailing options go.
+      const at = el.kind === 'edge' ? tailInsert(el, toks)
+        : (toks[1] ? toks[1].e : el.span[1]);
       return gap(at, ' "', '"');
+    }
+
+    // The two endpoints, and the arrow between them. Two traps here, and an
+    // editor that fell into either would retarget the wrong end of the line:
+    // `<-` swaps what the model calls `from` and `to`, so `from` is the token
+    // to the *right* of a reversed arrow; and the index has to run over the
+    // body tokens the parser itself reads, never over all of them, or the
+    // label in `edge a "x" -> b` is offered as the source endpoint.
+    if (attr === 'from' || attr === 'to' || attr === 'arrow') {
+      const body = toks.filter(x => !x.q && !x.attr);
+      const i = body.findIndex(x => x.v === '->' || x.v === '<-' || x.v === '--');
+      if (i < 0) return null;
+      if (attr === 'arrow') return hit(body[i].s, body[i].e, body[i].v);
+      const left = (attr === 'from') !== (body[i].v === '<-');
+      const t = body[left ? i - 1 : i + 1];
+      return t ? hit(t.s, t.e, t.v) : null;
     }
 
     // The three attribute-tail questions all address the tail, and that is
@@ -1078,6 +1108,41 @@ export function createSpanTable(model, body) {
       if (attr === 'offset.x') return gap(at, ' offset ', ',0');
       if (attr === 'offset.y') return gap(at, ' offset 0,');
       return gap(at, ' offset ');
+    }
+
+    // Waypoints, addressed by index: `via.2`, `via.2.x`, `via.2.y` and the two
+    // nudge slots. Same shape as `at`, because it is the same coordinate
+    // grammar – one dgParsePair behind `at`, `move … to`, waypoints and
+    // endpoints, which is exactly what makes one editor gesture serve all of
+    // them. `via` on its own is the whole clause, keyword included, which is
+    // what inserting the first waypoint or removing the last one rewrites.
+    if (attr === 'via' || attr.startsWith('via.')) {
+      const body = toks.filter(x => !x.q && !x.attr);
+      const vi = body.findIndex(x => x.v === 'via');
+      if (attr === 'via') {
+        // The caller writes the whole clause, keyword included, in both cases.
+        // Letting the absent case supply `via ` in its prefix would mean the
+        // same value string is right for one and doubles the keyword for the
+        // other, which is the sort of asymmetry an editor discovers in front
+        // of a room.
+        if (vi < 0) return gap(tailInsert(el, toks), ' ');
+        return hit(body[vi].s, body[body.length - 1].e,
+          src.slice(body[vi].s, body[body.length - 1].e));
+      }
+      if (vi < 0) return null;
+      const rest = attr.slice(4);
+      const dot = rest.indexOf('.');
+      const k = Number(dot < 0 ? rest : rest.slice(0, dot));
+      const t = body[vi + 1 + k];
+      if (!Number.isInteger(k) || k < 0 || !t) return null;
+      const tail = dot < 0 ? '' : rest.slice(dot + 1);
+      if (!tail) return hit(t.s, t.e, t.v);
+      const parts = dgSplitPair(t);
+      if (!parts) return null;
+      const half = tail.startsWith('x') ? parts.x : parts.y;
+      if (tail === 'x' || tail === 'y') return hit(half.start, half.end, half.text);
+      if (tail === 'x.nudge' || tail === 'y.nudge') return dgNudgeSlot(half);
+      return null;
     }
 
     if (attr.startsWith('at')) {
@@ -1451,6 +1516,11 @@ export function createDiagramCompiler(env = {}) {
           model.edges.push({
             kind: 'edge',
             id: leadId,
+            // Not a statement of its own. `span` is the *text* statement's,
+            // because that is the line this stub came from, and `lead` is how
+            // anything downstream knows not to treat the span as the stub's
+            // own to rewrite. See createSpanTable.
+            lead: true,
             from: { ref: id, anchor: null },
             to,
             label: '', classes: ['no-head', 'muted'], via: [], line: lineNo, span,

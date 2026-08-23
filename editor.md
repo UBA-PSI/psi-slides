@@ -1963,3 +1963,187 @@ figures of `lectures/diagrams`; the asset table is now its own element, so
 print and `editor: none` drop it entirely and a live view pays 2.7 KB rather
 than 4.9 KB (one copy of each asset's markup plus the range to cut for an
 element with no accessible name, instead of two full copies).
+
+
+### After using it – an arrow you could not point at · **done**
+
+Four gaps found by using the thing, all in the same corner of it: an edge was
+the one element the editor could name but not touch.
+
+**A label field that could not type a label.** The tokenizer decodes `\n`
+inside a quoted string to a real line break and the emitter typesets one line
+per break, so a two-line label has always been in the grammar. The sidebar
+offered a single-line `<input>`, which can show one and never write one. It is
+a `<textarea>` now, holding the *decoded* string – which is what `spanOf`
+hands back for a quoted token – with `dgeQuote` re-encoding on the way out.
+A textarea keeps `Enter` for itself, so `⌘S` had to start working from inside
+a field: it blurs first, because the field's `change` fires inside that call
+and a commit that ran before it would write the text as it was before the
+author started typing.
+
+**Edges had no label field at all.** They were excluded from that branch, and
+nothing but the exclusion was missing – the grammar reads `edge a -> b "why"`,
+the compiler places the text along the line. One trap on the way in: an
+absent label is inserted after the element's *name*, which is the second token
+of every statement that has one. An edge's second token is already an
+endpoint, so `edge a "x" -> b` is what that rule produced. It parses – the
+endpoints are read off the tokens that are neither quoted nor an attribute
+tail – but nobody writes it, and the author has to live in the file. An edge
+label goes where its other trailing options go.
+
+**An edge could not be clicked.** `dgeHitTest` walked `DGE.boxes`, and
+`layoutDiagram` never puts an edge in there, because an edge is not placed –
+it is drawn between two things that were. Giving it a bounding box would have
+been the wrong shape anyway: for a diagonal arrow that box is mostly empty
+paper. The polyline is read straight off the painted SVG instead, which is not
+a second layout – the compiler wrote that `d` and the step runtime moved it,
+so it is by construction the geometry on screen at this beat, and on a
+`pointermove` a second `dgFrameDrawables` would re-measure every label in the
+block to learn what the DOM already knows. Two things this depends on: the
+prefix has to be captured in `dgePaintArt` **before** the root id is
+overwritten (searching by suffix would match `my-edge-1--p` for `edge-1--p`),
+and the query has to be scoped to the editor's own SVG, because the slide
+behind the modal holds the same figure with the same prefixed ids.
+
+Reading order settles the ties, because it is what the author sees: a box wins
+over an arrow that crosses it, an arrow wins over the container or brace it
+runs through. Without the second half every edge inside a container would be
+unreachable, which is most of them.
+
+**An edge could not be retargeted.** The span table had no `from` / `to`, so
+there was nothing for a drag to rewrite. Two traps in adding them, and either
+one silently retargets the wrong end: `<-` swaps what the model calls `from`
+and `to`, so `from` is the token to the *right* of a reversed arrow; and the
+index has to run over the body tokens the parser itself reads, never over all
+of them, or the label in `edge a "x" -> b` is offered as the source endpoint.
+
+Dragging an end answers with a **name** wherever it can, which is the §2.4
+rule applied to the one construct that names *other elements*: an arrow stores
+"the right edge of `mix`", and an editor that answered a drag with coordinates
+would destroy the thing the construct exists for. A snapped coordinate is the
+fallback for empty paper, and it is a form the grammar already has. Dropped
+back on the element it already names, the anchor the author wrote survives;
+moved to a different element it does not, because `.right` was chosen against
+the old box and `dgAutoAnchor` picks better than a stale hint.
+
+**The one that would have shipped broken.** An edge is not a legal endpoint –
+`layoutDiagram` has no box for it, so `edge feed0 -> x0` parses, passes
+referential integrity, and then draws nothing at all. The moment hit testing
+learned about edges, the *edge tool* inherited it: starting a new arrow on top
+of an old one would have named it. `dgeHitTest(pt, { edges: false })` is for
+every caller that is choosing an endpoint, and there are four of them.
+
+**Swap ends exchanges the two names rather than flipping the arrow.** Flipping
+reads smaller in the diff and was the first version, but `--` has no direction
+to flip and the edit would have done nothing there – the silent no-op this DSL
+keeps closing.
+
+**Undo and redo grew buttons**, next to Revert, with the depth of each stack
+in the tooltip. §4.2's rule is that nothing is reachable only by knowing the
+key, and undo was the mechanism that had only the key.
+
+Verified by driving the built `audience.html` in Chromium rather than by
+reading: 22 assertions over the `#cbc` figure – the arrow selects on a click,
+grows two handles, takes a two-line label, is retargeted by a drag with its
+waypoint and label intact, undoes, redoes, swaps – plus the two regressions
+above, that a click on a box still selects the box and that the edge tool
+never names an arrow.
+
+
+### Waypoints · **done**
+
+An arrow you could select but whose route you still could not touch. The `via`
+clause is now three gestures on the canvas: a hollow dot at the middle of every
+segment inserts a waypoint and hands the gesture straight to the move, so one
+press-drag-release both creates and places it; a square moves an existing one;
+a double-click on the square, or the chip in the panel, takes it out.
+
+**The axes are decided separately, and that is the whole point.** A routed
+waypoint in a real figure is usually half reference and half number –
+`via iv.cx,d0.bottom+0.28` is "the horizontal centre of the IV box, and 0.28
+below the bottom of the decrypt box". Where a component holds a reference the
+drag rewrites its **signed nudge** and never the reference. §2.4 lists this as
+one of the three constructs a graphical editor has to round-trip, and the
+reason the nudge is one optional signed term with no other operators and no
+nesting is exactly that the token to replace is always unambiguous. An editor
+that answered this drag with two numbers would turn a diagram that re-routes
+itself into one that does not, which is the whole value of the format.
+
+The span table gained `via`, `via.<k>`, `via.<k>.<x|y>` and the two nudge slots
+– the same shape as `at`, because it is the same coordinate grammar behind
+both. Insert and remove rewrite the whole clause rather than a token, because
+the waypoints are one space-separated run; the coordinates already there are
+re-emitted verbatim from their own spans, so a reference survives an insert
+next to it.
+
+Two things that had to be got right:
+
+- **The absent `via` writes the keyword itself.** The first version put `via `
+  in the gap's prefix, which made the same value string correct for an edge
+  that already had waypoints and doubled the keyword for one that did not.
+  Both cases now take the whole clause.
+- **Removing the last waypoint leaves a space behind.** The span starts *at*
+  the keyword, so the drop path in `dgeApplyEdits` has no keyword in front of
+  it to eat. This file is the author's, so the removal tidies the line.
+
+The panel lists the waypoints rather than only letting them be dragged,
+because how many there are and which of them holds a reference is not readable
+off the picture: `iv.cx,d0.bottom+0.28` and `1.4,2.06` can land in exactly the
+same place and behave completely differently the moment anything moves.
+
+Verified in Chromium against the CBC figure's `feed0`, whose single waypoint
+holds a reference on *both* axes: dragging it rewrote both nudges and kept both
+references, an insert landed before it and left it intact, removal restored the
+line byte for byte, and taking the last one out left no double space.
+
+
+### What the review found · **done**
+
+Six defects, and the three that mattered all came from the same place: a
+construct that was safe while it was unreachable stopped being safe the moment
+something new could reach it.
+
+**A leader stub is not a statement, and now something could click one.** A
+`text n "…" -> x` grows a `<id>--lead` edge in `model.edges` so the visibility
+rule has something to hang on, and that edge carries the **text statement's**
+span, because it has no line of its own. Harmless while an edge could only be
+reached from the element list and had no label field. Once edges became
+clickable the panel bound to the wrong statement: the label field rewrote the
+*node's* label, and – worse – the literal `->` on the node's line made the new
+`from` span resolve to whatever token preceded it, which on
+`text n "…" right of x gap 0.85 -> x` is the gap. Typing an endpoint there
+produced `right of x gap b -> x`. Closed at the source: the stub is flagged
+`lead`, and `createSpanTable` leaves it out of its table entirely, so no span
+of it can be handed out under any name. The editor additionally skips it in
+hit testing and in the element list.
+
+**A whitespace tidy-up over the whole block.** Removing the last waypoint has
+to eat the space that separated the clause from what precedes it, because the
+`via` span starts *at* the keyword and the drop path in `dgeApplyEdits` has no
+keyword in front of it to find. The first version did that with a regex over
+every line of the block, which re-indented every step body, collapsed
+column-aligned declarations, and ate the double spaces inside quoted labels –
+all of it written straight back into the author's `source.md` over the watch
+socket. It now walks back from the span start over spaces and tabs and splices
+once. The spec asserts the strict version: exactly one line of the block may
+differ.
+
+**A mark that promised a move the key would not make.** `colFirst()` asked
+only whether a chunk heads a column, while `updateNavHints` correctly also
+asked whether a column exists in that direction. On the head of the last
+column the mark was therefore off and the key still called `nextCol`, whose
+fallback clamps to the end of the deck. Both now read one precomputed
+`sideways` field, which is the actual fix: two predicates for one fact is the
+bug, and the asymmetry only showed up on the one chunk nobody tests by hand.
+
+Three smaller ones: an arrow hidden at the current beat was still hit-testable,
+so a click on empty paper could select something invisible (boxes are
+deliberately left alone – a hidden box still occupies the area you clicked,
+where a hidden hairline occupies nothing); the nav marks vanished from the
+**cockpit** while the projection was blanked, because `.blanked` goes on the
+body in both views and the rule was not scoped the way every other blanking
+rule is; and clearing an endpoint field wrote `edge  -> b`, which does not
+parse, so the panel refuses instead.
+
+Each of the four with a real failure mode now has a spec in `test/`, including
+one on the speaker view for the blanking rule.

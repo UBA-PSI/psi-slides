@@ -291,6 +291,17 @@
   stroke-width: 1.6;
 }
 #dge-guides .dge-sel-master { stroke-dasharray: none; }
+/* An edge has no box to outline, so the selection traces the line itself. Wide
+   and translucent, under the stroke rather than around it, so the arrow it
+   marks stays readable. */
+#dge-guides .dge-sel-path {
+  fill: none;
+  stroke: var(--emph);
+  stroke-width: 5;
+  stroke-opacity: 0.3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
 #dge-guides .dge-handle {
   fill: var(--paper);
   stroke: var(--emph);
@@ -300,6 +311,23 @@
 }
 #dge-guides .dge-handle.dge-h-e, #dge-guides .dge-handle.dge-h-w { cursor: ew-resize; }
 #dge-guides .dge-handle.dge-h-n, #dge-guides .dge-handle.dge-h-s { cursor: ns-resize; }
+/* Round, because it does something different from the square ones: a corner
+   handle changes a size, an end handle changes what the statement refers to. */
+#dge-guides .dge-handle.dge-h-end { cursor: crosshair; }
+/* A waypoint moves a point, so it is square like the resize grips. Filled with
+   the accent when it holds a reference: that one is not a pair of numbers, and
+   a drag on it moves its nudge rather than replacing what it follows. */
+#dge-guides .dge-handle.dge-h-via { cursor: move; }
+#dge-guides .dge-handle.dge-h-via.dge-h-held { fill: var(--emph); }
+/* Where a waypoint can be added. Hollow and half the size, because it is an
+   offer rather than a thing that is there. */
+#dge-guides .dge-handle.dge-h-add {
+  fill: none;
+  stroke-dasharray: 2 2;
+  opacity: 0.55;
+  cursor: copy;
+}
+#dge-guides .dge-handle.dge-h-add:hover { opacity: 1; stroke-dasharray: none; }
 /* A tag is not geometric, so it must not be drawn as a line. A tinted halo
    behind the members says "these belong together" without saying anything
    false about where they are. */
@@ -341,6 +369,18 @@
   color: var(--ink);
 }
 #dge-side textarea { resize: vertical; min-height: 3.2em; }
+/* Where a control needs a sentence rather than a label. Quiet enough that the
+   panel still reads as controls, not as documentation. */
+.dge-chip.dge-chip-held {
+  border-color: var(--emph);
+  color: color-mix(in oklab, var(--emph) 70%, var(--ink));
+}
+#dge-side .dge-hint {
+  margin-top: 0.3rem;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
 
 /* The geometry options that kind actually accepts - a dot offers r and never
    w - so the panel is a picture of DG_KIND_OPTS rather than a form with
