@@ -2447,7 +2447,20 @@ export function createDiagramCompiler(env = {}) {
         if (gid.endsWith('--r') || gid.endsWith('--i')) into.push({ x: vec[0], y: vec[1], w: vec[2], h: vec[3] });
         else if (gid.endsWith('--c')) into.push({ x: vec[0] - vec[2], y: vec[1] - vec[2], w: vec[2] * 2, h: vec[2] * 2 });
         else if (gid.endsWith('--l')) {
-          const [lw, lh] = (f.ext && f.ext.get(gid)) || labelExt.get(gid) || [120, 28];
+          // A label with no measured width is a defect in this file, not
+          // something an author can cause: the four places that position one
+          // (labelBox, the container caption, the brace label, the edge
+          // label) each record it. The fallback used to be silent, and that
+          // is exactly how three of those four went years without recording
+          // anything and reserved a flat 120px of paper each. Say it out loud
+          // so a fifth site cannot repeat it.
+          let ext2 = (f.ext && f.ext.get(gid)) || labelExt.get(gid);
+          if (!ext2) {
+            dgWarn(`internal: no measured width for ${gid}; the frame around this `
+              + 'figure is a guess. Every place that positions a label has to record its size.');
+            ext2 = [120, 28];
+          }
+          const [lw, lh] = ext2;
           const a = anchorFor(ownerOf(gid), f);
           const x = a === 'start' ? vec[0] : a === 'end' ? vec[0] - lw : vec[0] - lw / 2;
           into.push({ x, y: vec[1] - lh / 2, w: lw, h: lh });

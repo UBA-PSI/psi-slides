@@ -15,6 +15,24 @@
  * Deliberately no test framework. The project has no runtime dependencies
  * worth the name and two devDependencies; a third for describe/it would buy
  * a nicer report and cost more than it is worth at this size.
+ *
+ * Writing a spec here - four things learned the hard way:
+ *
+ *  - **Assert on the source text the editor produced, never on the picture.**
+ *    The editor's contract is that it rewrites the smallest span it can and
+ *    re-runs the compiler, so a drag that produced the right picture from the
+ *    wrong statement is a failure - and on a screenshot it looks fine.
+ *  - **Derive the expectation from the line, do not pin a lecture's
+ *    coordinates.** Specs written against `via iv.cx,d0.bottom+0.28` all broke
+ *    the day that figure was redrawn, and not one of them had found a real
+ *    problem. Read the clause, count the waypoints, assert that the references
+ *    survived.
+ *  - **The editor opens at the last beat.** Above beat 0 a drag means "write a
+ *    `move` into this step" and leaves the placement alone, so a spec about
+ *    placement has to call `ed.beat(0)` out loud.
+ *  - **Use `restart()`, not `page.reload()`.** A reload restores the last
+ *    active chunk from localStorage, so where a spec lands depends on where
+ *    its previous section finished.
  */
 import fs from 'node:fs';
 import http from 'node:http';

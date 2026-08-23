@@ -43,8 +43,10 @@ browser (`$PSI_CHROME`, else the Playwright cache, else the system Google
 Chrome) and takes about half a minute. `node test/run.mjs nav` runs the specs
 whose name matches.
 
-Run it after touching `AUDIENCE_JS`, the key map, `editor.mjs`, or
-`createSpanTable`. It is not a unit-test suite and should not grow into one:
+Run it after touching `AUDIENCE_JS`, the key map, `editor.mjs`,
+`createSpanTable`, or anything that decides a diagram's `viewBox`. The header
+of `test/harness.mjs` says how to write a spec that will not need rewriting
+the next time a lecture is redrawn. It is not a unit-test suite and should not grow into one:
 anything checkable without a browser belongs in `lint.js`, where it runs on
 every commit instead of on the ones somebody remembered.
 

@@ -1356,39 +1356,50 @@ function dgePlanResize(ctx, id, dw, dh, handle) {
   return { edits, refusals: [] };
 }
 
-// Apply a plan to the source. One splice per edit, applied right to left so
-// the earlier spans keep their offsets.
-function dgeApplyEdits(ctx, id, edits) {
-  if (!edits.length) return ctx.source;
-  const table = ctx.spans;
-  const resolved = [];
+// One edit to one splice against the text as it was at pointerdown. Kept as
+// its own function because two callers need it and used to carry a copy each:
+// dgeApplyEdits for a single element, dgeMoveSelection for a whole selection.
+// Adding the `raw` case meant editing both, which is the reason to stop.
+function dgeResolveEdits(ctx, id, edits, into) {
   for (const e of edits) {
     // An edit to somebody else's line. Leaving a shared axis rewrites the
     // align or spread statement, which is not an attribute of the element
     // being dragged and has no entry in its span table.
-    if (e.raw) { resolved.push({ start: e.raw[0], end: e.raw[1], text: e.value }); continue; }
-    const sp = table.spanOf(id, e.attr === 'same-as' ? 'same-as' : e.attr);
+    if (e.raw) { into.push({ start: e.raw[0], end: e.raw[1], text: e.value }); continue; }
+    const sp = ctx.spans.spanOf(id, e.attr === 'same-as' ? 'same-as' : e.attr);
     if (!sp) continue;
     if (e.drop || e.value === '') {
       // Removing an attribute means removing its keyword too, and the run of
       // whitespace in front of it – or the line grows a double space every
       // time something is dropped.
       if (!sp.present) continue;
-      let start = sp.start, end = sp.end;
+      let start = sp.start;
       const before = ctx.source.slice(0, start);
       const m = e.attr === 'same-as'
         ? before.match(/\s+same\s+as\s+$/)
         : before.match(new RegExp('\\s+' + e.attr.replace('.', '\\.') + '\\s+$'));
       if (m) start -= m[0].length;
-      resolved.push({ start, end, text: '' });
+      into.push({ start, end: sp.end, text: '' });
       continue;
     }
-    resolved.push({ start: sp.start, end: sp.end, text: sp.prefix + e.value + sp.suffix });
+    into.push({ start: sp.start, end: sp.end, text: sp.prefix + e.value + sp.suffix });
   }
-  resolved.sort((a, b) => b.start - a.start);
-  let out = ctx.source;
-  for (const r of resolved) out = out.slice(0, r.start) + r.text + out.slice(r.end);
+  return into;
+}
+
+// Right to left, so the earlier spans keep the offsets they were measured at.
+function dgeSplice(source, splices) {
+  let out = source;
+  for (const r of [...splices].sort((a, b) => b.start - a.start)) {
+    out = out.slice(0, r.start) + r.text + out.slice(r.end);
+  }
   return out;
+}
+
+// Apply a plan to the source.
+function dgeApplyEdits(ctx, id, edits) {
+  if (!edits.length) return ctx.source;
+  return dgeSplice(ctx.source, dgeResolveEdits(ctx, id, edits, []));
 }
 
 // The align/spread statement without one of its members, written the way the
@@ -1687,31 +1698,12 @@ function dgeMoveSelection(ctx, dx, dy, opts) {
     if (!plan.edits.length) continue;
     parts.push({ id, edits: plan.edits });
   }
-  // dgeApplyEdits resolves spans against ctx, so the edits of every element
-  // are offsets into the same text; applying them one element at a time
-  // would move the ground under the ones that follow.
+  // Every element's spans are offsets into the same text, so they are
+  // resolved together and spliced once. Applying one element at a time would
+  // move the ground under the ones that follow.
   const splices = [];
-  for (const { id, edits } of parts) {
-    for (const e of edits) {
-      if (e.raw) { splices.push({ start: e.raw[0], end: e.raw[1], text: e.value }); continue; }
-      const sp = ctx.spans.spanOf(id, e.attr === 'same-as' ? 'same-as' : e.attr);
-      if (!sp) continue;
-      if (e.drop || e.value === '') {
-        if (!sp.present) continue;
-        let start = sp.start;
-        const before = ctx.source.slice(0, start);
-        const m = e.attr === 'same-as'
-          ? before.match(/\s+same\s+as\s+$/)
-          : before.match(new RegExp('\\s+' + e.attr.replace('.', '\\.') + '\\s+$'));
-        if (m) start -= m[0].length;
-        splices.push({ start, end: sp.end, text: '' });
-        continue;
-      }
-      splices.push({ start: sp.start, end: sp.end, text: sp.prefix + e.value + sp.suffix });
-    }
-  }
-  splices.sort((a, b) => b.start - a.start);
-  for (const r of splices) next = next.slice(0, r.start) + r.text + next.slice(r.end);
+  for (const { id, edits } of parts) dgeResolveEdits(ctx, id, edits, splices);
+  next = dgeSplice(next, splices);
   return { next, plan: first, refusal };
 }
 
