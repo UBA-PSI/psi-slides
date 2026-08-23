@@ -193,7 +193,8 @@ function lintDefaultStatement(words, ln, add, ctx) {
     if (w.startsWith('{')) { if (!w.endsWith('}')) inTail = true; continue; }
     if (kind === 'brace' && DG_BRACE_SIDES.includes(w)) continue;
     if (opts.includes(w)) { k++; continue; }
-    const owner = Object.keys(DG_KIND_OPTS).find(kk => DG_KIND_OPTS[kk].includes(w));
+    // Only kinds a `default` can name - see the same line in diagram-core.
+    const owner = [...DG_DEFAULT_KINDS].find(kk => (DG_KIND_OPTS[kk] || []).includes(w));
     if (owner) {
       add(ln, 'error', 'bad-diagram-default',
           `default ${kind} has no '${w}' – that is a ${owner} option. `
@@ -501,8 +502,11 @@ function lintDiagram(block, add, fmLines, lectureTags) {
         for (let i = 0; i < n; i++) define(dgBarName(id, i), ln);
         if (strings[1] !== undefined) {
           const ticks = strings[1].trim().split(/\s+/).filter(Boolean);
+          // An error, because the build makes it one. A linter laxer than the
+          // build is the worse of the two directions to be wrong in: the
+          // pre-commit gate passes and the build then refuses.
           if (ticks.length !== n) {
-            add(ln, 'warn', 'bad-diagram-bars', `bars ${id}: ${ticks.length} tick label(s) for `
+            add(ln, 'error', 'bad-diagram-bars', `bars ${id}: ${ticks.length} tick label(s) for `
                 + `${n} column(s) – the second string is split on spaces, one label per column`);
           }
           for (let i = 0; i < Math.min(ticks.length, n); i++) define(dgTickName(id, i), ln);

@@ -22,8 +22,11 @@ from building the same way is a major version.
 - **`bars`, `grid` and `plot`.** A column chart, a rectangular field of
   markers, and a cartesian frame with gridlines, ticks and axis titles. All
   three expand into ordinary elements, so a `brace` spans three columns of a
-  chart and a `style` step tints one cell of a grid with no new vocabulary.
-  Inside a `plot`, `roc@0.35` names a value in the plot's own units.
+  chart and a `style` step tints one cell of a grid with no new vocabulary,
+  and a step naming the statement reaches everything it produced. Inside a
+  `plot`, `roc@0.35` names a value in the plot's own units. The spacing
+  inside one of these statements is `space`; `gap` keeps the one meaning it
+  has everywhere else, the distance between two elements.
 - **`.smooth` draws an edge as a curve through its waypoints**, for the
   figures where a line is a measurement rather than a connection.
 - **`figure-design.md`** – how to lay a figure out so a room reads it: ten

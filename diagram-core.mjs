@@ -265,6 +265,10 @@ export function dgPlotTicks(lo, hi, step) {
   // Counted rather than accumulated: adding 0.2 eleven times lands on
   // 1.0000000000000002 and prints a tick label nobody typed.
   const n = Math.round((hi - lo) / step);
+  // The caller's error says a step that does not divide the range is refused,
+  // and it has to be true: rounding up instead drew a gridline and a tick
+  // label outside the frame and inflated the viewBox to hold them.
+  if (Math.abs(n * step - (hi - lo)) > 1e-9) return [];
   for (let i = 0; i <= n; i++) out.push(Math.round((lo + i * step) * 1e6) / 1e6);
   return out;
 }
@@ -331,7 +335,7 @@ export const DG_KIND_OPTS = {
   // they are statements that expand into element kinds, and the elements they
   // produce take their defaults from `default box` like any other box. The
   // table is here because the linter reads it to check option names.
-  bars: ['w', 'h', 'gap'], grid: ['cell', 'gap'], plot: ['w', 'h', 'step'],
+  bars: ['w', 'h', 'space'], grid: ['cell', 'space'], plot: ['w', 'h', 'step'],
 };
 export const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid units
 
@@ -835,8 +839,14 @@ export function rejectShapeOn(kindWord, classes, lineNo, errors) {
 // and a second copy would be the place the two drifted apart.
 export function readGridOpts(head, id, rest0, lineNo, errors) {
   const rest = rest0.map(x => ({ v: x.v, s: x.s, e: x.e }));
-  const out = { place: null, w: null, h: null, cell: null, gap: null };
-  const allowed = head === 'bars' ? ['w', 'h', 'gap'] : ['cell', 'gap'];
+  const out = { place: null, w: null, h: null, cell: null, space: null };
+  // `space`, not `gap`. Everywhere else in this grammar `gap` is the distance
+  // between two *elements*, and a placement on this very line uses it in
+  // exactly that sense - so a bare `gap` here meant one thing written before
+  // the placement and the other after it, with no error either way and a
+  // fivefold difference in the drawing. The distance between repetitions
+  // inside one statement is a different measurement and gets its own word.
+  const allowed = head === 'bars' ? ['w', 'h', 'space'] : ['cell', 'space'];
   let k = 0;
   while (k < rest.length) {
     const key = rest[k].v;
@@ -882,7 +892,11 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) 
     if (opts.includes(key)) { def[key] = dgNum(rest[k + 1]?.v, errors, lineNo, key); k++; continue; }
     // A wrong-kind option is the interesting case: say which kind it
     // belongs to rather than repeating the list.
-    const owner = Object.keys(DG_KIND_OPTS).find(kk => DG_KIND_OPTS[kk].includes(key));
+    // Only kinds a `default` can actually name. `bars`, `grid` and `plot`
+    // have entries in the table because the option names are checked against
+    // it, but they are statements rather than kinds - advising the author to
+    // write `default bars` would send them at a line the parser refuses.
+    const owner = [...DG_DEFAULT_KINDS].find(kk => (DG_KIND_OPTS[kk] || []).includes(key));
     if (owner) {
       dgErr(errors, lineNo, `default ${kind} has no "${key}" – that is a ${owner} option. `
         + `default ${kind} takes ${opts.length ? opts.join(', ') + ' and ' : ''}a {…} attribute tail.`);
@@ -964,7 +978,14 @@ export function dgUnion(boxes) {
 // cumulative script over a copy, never a mutation of the model, so the
 // same model can be evaluated for every step independently.
 export function dgStateAt(model, k) {
-  const expand = (id) => (id.startsWith('@') ? (model.tags.get(id.slice(1)) || []) : [id]);
+  // A tag names a set, and so does the name of a `bars`, `grid` or `plot`:
+  // it is the only name the author was given for the chart, so `hide f` has
+  // to take the columns with it and `emph f` has to reach them. Not for
+  // `move` and `label`, which mean the frame - the members are placed against
+  // its edges, so moving it moves them, and it carries no label to swap.
+  const members = (id) => model.expands.get(id) || [];
+  const expand = (id) => (id.startsWith('@') ? (model.tags.get(id.slice(1)) || [])
+    : [id, ...members(id)]);
   // Expanded, not raw: a `show @creation` has to mark the *elements* as
   // starting hidden. Collecting the tag string here left every one of them
   // visible from the opening beat, with the step then showing what was
@@ -1022,7 +1043,9 @@ export function dgStateAt(model, k) {
   }
   for (let i = 0; i < k; i++) {
     for (const op of model.steps[i].ops) {
-      const targets = (op.targets || (op.target ? [op.target] : [])).flatMap(expand);
+      const whole = op.op !== 'move' && op.op !== 'label';
+      const targets = (op.targets || (op.target ? [op.target] : []))
+        .flatMap(whole ? expand : (id) => (id.startsWith('@') ? (model.tags.get(id.slice(1)) || []) : [id]));
       for (const id of targets) {
         const st = state.get(id);
         if (!st) continue;
@@ -1043,6 +1066,11 @@ export function dgStateAt(model, k) {
           const group = DG_CLASS_GROUPS.find(g => g.includes(c));
           if (group) for (const other of group) st.classes.delete(other);
           st.classes.add(c);
+          // Writing one of the two by hand takes it back from the lecture:
+          // `style x {.dim}` describes the drawing, so print keeps it even if
+          // an earlier `emph`/`calm` had marked the element. Without this the
+          // mark never cleared and the later, deliberate class was stripped.
+          if (c === 'emph' || c === 'dim') st.stepEmph = false;
         }
         else if (op.op === 'label') st.label = op.text;
         else if (op.op === 'move') {
@@ -1508,7 +1536,10 @@ export function createSpanTable(model, body) {
 //                          something the author sees rather than something
 //                          buried in a console nobody has open.
 //   escapeHtml(s)       the one from build.js.
-//   assetMarkup(node, id, geo) -> the <svg>/<image> element for a resolved
+//   resetAssets() -> optional. Called at the start of every renderDiagram,
+//     so an environment that shares an asset between instances can scope the
+//     sharing to one figure.
+//   assetMarkup(node, id, geo, opts) -> the <svg>/<image> element for a resolved
 //                          asset. This is the fifth leaf and the plan named
 //                          four; it exists because splicing a vector asset
 //                          inline (so it re-colours with the theme) needs
@@ -1768,7 +1799,8 @@ export function createDiagramCompiler(env = {}) {
         const yticks = dgPlotTicks(yd[0], yd[1], step);
         if (!xticks.length || !yticks.length) {
           dgErr(errors, lineNo, `plot ${id}: step ${step} does not divide the ranges `
-            + `${xd.join(',')} and ${yd.join(',')} into ticks – step has to be positive and hi above lo`);
+            + `${xd.join(',')} and ${yd.join(',')} into whole ticks – it has to be positive, hi has `
+            + 'to be above lo, and the span has to be a whole number of steps');
           continue;
         }
         if (xticks.length > DG_PLOT_MAX_TICKS || yticks.length > DG_PLOT_MAX_TICKS) {
@@ -1845,7 +1877,9 @@ export function createDiagramCompiler(env = {}) {
         const id = t(1);
         if (!id) { dgErr(errors, lineNo, `${head} needs a name`); continue; }
         claim(id, head, lineNo);
-        rejectShapeOn('box', attrs.classes, lineNo, errors);
+        // `bars` and `plot` only ever draw boxes; a `grid` draws whatever its
+        // kind word says, and an outline on a grid of dots did nothing at all.
+        rejectShapeOn(head === 'grid' ? (t(2) || 'box') : 'box', attrs.classes, lineNo, errors);
         const qToks = toks.filter(x => x.q);
         // A synthetic element carries the statement's own span so an error
         // names the line that wrote it, and `synth` so anything that rewrites
@@ -1899,7 +1933,7 @@ export function createDiagramCompiler(env = {}) {
           // sentence the word already is everywhere else in this grammar. It
           // was briefly a fraction of the column here, which is exactly the
           // kind of second meaning for one word this DSL keeps refusing.
-          const gapU = opts.gap != null ? opts.gap : cell * 0.25;
+          const gapU = opts.space != null ? opts.space : cell * 0.25;
           const barW = Math.max(cell - gapU, cell * 0.15);
 
           // The frame is a real box, sized and placed the way the statement
@@ -1990,7 +2024,7 @@ export function createDiagramCompiler(env = {}) {
         // squares only where the unit happened to be square. Everything below
         // works in grid units, so the horizontal ones are converted once.
         const cellU = opts.cell != null ? opts.cell : 0.25;
-        const gapU = opts.gap != null ? opts.gap : cellU * 0.25;
+        const gapU = opts.space != null ? opts.space : cellU * 0.25;
         const toX = model.unit[1] / model.unit[0];
         const cellX = cellU * toX, gapX = gapU * toX;
         const pitchX = cellX + gapX, pitchY = cellU + gapU;
@@ -2274,6 +2308,16 @@ export function createDiagramCompiler(env = {}) {
     const refsOf = (place) => place?.kind === 'rel' ? [place.ref]
       : place?.kind === 'between' ? place.refs.map(r => r.ref)
       : place?.kind === 'abs' ? dgPairRefs(place.at) : [];
+    // What each expanding statement produced, so a step naming the statement
+    // can reach it. Built from `synth` rather than collected in the three
+    // branches, so a fourth expanding statement gets this for nothing.
+    model.expands = new Map();
+    for (const el of [...model.nodes, ...model.edges]) {
+      if (!el.synth || el.synth === el.id) continue;
+      if (!model.expands.has(el.synth)) model.expands.set(el.synth, []);
+      model.expands.get(el.synth).push(el.id);
+    }
+
     // A plot coordinate becomes an ordinary <plot>.left+n here, before
     // anything below reads it – so the reference check, the dependency walk
     // and the layout all see the coordinate grammar this compiler has always
@@ -2873,7 +2917,13 @@ export function createDiagramCompiler(env = {}) {
     const font = fontPx || dgFontFor(classes);
     const mono = classes.has('mono');
     const m = dgMeasure(label, font, mono);
-    const anchor = anchorOverride
+    // A turned label is positioned and measured as centred on its origin -
+    // `.left` / `.right` name an edge of a horizontal run of text and have
+    // nothing to say about one read bottom-to-top. Drawing it anchored while
+    // reserving it centred put the glyphs a full label length off the box the
+    // viewBox was built from.
+    const anchor = (classes.has('turn') && !anchorOverride) ? 'middle'
+      : anchorOverride
       || (classes.has('left') ? 'start' : classes.has('right') ? 'end' : 'middle');
     const lineH = font * DG_LINE_H;
     const top = -((m.count - 1) * lineH) / 2;
@@ -2940,8 +2990,14 @@ export function createDiagramCompiler(env = {}) {
       // elements sharing one asset with different alt text is exactly the
       // case that made this a placeholder rather than baked-in markup – the
       // identity check found `bob` labelled "Eve".
-      const named = assetMarkup({ ...n, alt: '\u0000ALT\u0000' }, '\u0000ID\u0000', '\u0000GEO\u0000');
-      const bare = assetMarkup({ ...n, alt: '' }, '\u0000ID\u0000', '\u0000GEO\u0000');
+      // `standalone`: this markup is handed to the browser to re-emit an
+      // image with, and the browser replaces the whole <svg> when it does. A
+      // shared <symbol> would be defined in the very element being replaced,
+      // so the payload has to carry the drawing itself rather than a pointer
+      // at one. Without this the first commit from the editor emptied every
+      // vector image in the figure and reported nothing.
+      const named = assetMarkup({ ...n, alt: '\u0000ALT\u0000' }, '\u0000ID\u0000', '\u0000GEO\u0000', { standalone: true });
+      const bare = assetMarkup({ ...n, alt: '' }, '\u0000ID\u0000', '\u0000GEO\u0000', { standalone: true });
       if (!named) continue;
       // One copy, not two. The markup is the whole asset – a data: URI or a
       // spliced vector file – so shipping both shapes doubled the heaviest
@@ -2964,6 +3020,11 @@ export function createDiagramCompiler(env = {}) {
   }
 
   function renderDiagram(body, headAttrs, opts = {}) {
+    // One figure is one document as far as anything downstream is concerned:
+    // the focus card clones it, the speaker's preview strip clones it, the
+    // editor replaces it. So a <symbol> may only be shared *within* a figure -
+    // shared across two, the second one breaks the moment either is moved.
+    if (env.resetAssets) env.resetAssets();
     const { model, errors } = parseDiagramSource(body, headAttrs, opts.base);
     // A lecture-level `default <kind> @tag` is written once for twelve
     // diagrams and most of them will not carry the tag, so the block-level

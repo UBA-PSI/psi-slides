@@ -1300,14 +1300,14 @@ function dgSharableSvg(spliced) {
   return !/<style[\s>]/i.test(spliced) && !/url\(#|href="#|xlink:href="#/i.test(spliced);
 }
 
-function dgAssetMarkup(node, id, geo) {
+function dgAssetMarkup(node, id, geo, opts = {}) {
   const asset = node.asset;
 
   if (asset.abs && path.extname(asset.abs).toLowerCase() === '.svg') {
     // Already shared with an earlier instance: nothing to splice, just point
     // at it. The accessible name stays on the instance, because that is where
     // the picture actually is.
-    const shared = dgSymbols.get(asset.abs);
+    const shared = opts.standalone ? null : dgSymbols.get(asset.abs);
     if (shared && shared.emitted) {
       const alt = node.alt ? ` role="img" aria-label="${escapeHtml(node.alt)}"` : '';
       return `<use id="${id}" href="#${shared.id}"${geo}${alt}/>`;
@@ -1339,7 +1339,7 @@ function dgAssetMarkup(node, id, geo) {
       // file referenced ninety-six times costs one copy plus ninety-six
       // pointers. `preserveAspectRatio` sits on the symbol, where it belongs:
       // it is a property of the drawing, not of where the drawing is put.
-      if (dgSharableSvg(spliced)) {
+      if (!opts.standalone && dgSharableSvg(spliced)) {
         const sym = { id: `psi-sym-${++dgSymbolCounter}`, emitted: true };
         dgSymbols.set(asset.abs, sym);
         const alt = node.alt ? ` role="img" aria-label="${escapeHtml(node.alt)}"` : '';
@@ -1420,6 +1420,10 @@ const dgCore = createDiagramCompiler({
   warn: dgWarn,
   escapeHtml: (s) => escapeHtml(s),
   assetMarkup: dgAssetMarkup,
+  // Sharing is scoped to one figure. Anything wider and a figure stops being
+  // self-contained, which every consumer here assumes: the focus card clones
+  // it, the speaker's preview strip clones it, the editor replaces it.
+  resetAssets: () => { dgSymbols.clear(); },
 });
 const { parseDiagramSource, layoutDiagram, dgFrameDrawables, renderDiagram } = dgCore;
 
@@ -9673,7 +9677,6 @@ function buildOnce(absIn, only, opts = {}) {
   // every document that references it. Reset here, with everything else that
   // is per build, or a --watch rebuild would keep pointing at symbols the
   // previous pass emitted.
-  dgSymbols.clear();
   dgSymbolCounter = 0;
   dgCore.resetCounter();
   dgWarned.clear();

@@ -1392,7 +1392,7 @@ edge cmp@0.01,cmp@0.6 -> cmp@1,cmp@0.03 via cmp@0.1,cmp@0.4 cmp@0.25,cmp@0.26 cm
 # Nadeln der Folie – die Aussage ist der Kontrast, nicht die Anzahl.
 # .tone-4 ist die einzige volle Füllung, die es gibt, und sie mischt sich aus
 # --emph: eine 6 px schmale Nadel mit bloßem Strich bliebe innen leer.
-bars sus "20,14,55,10,8,45,12,88,9,62,7,6,10,5,18,4,6,5,3,4,3,2,3,2" at cmp@0.5,cmp@0.425 w 3.1 h 1.275 gap 0.085 {.tone-4 .bare @sus}
+bars sus "20,14,55,10,8,45,12,88,9,62,7,6,10,5,18,4,6,5,3,4,3,2,3,2" at cmp@0.5,cmp@0.425 w 3.1 h 1.275 space 0.085 {.tone-4 .bare @sus}
 
 text ls "/" above sus-2 gap 0.06 {@sus}
 text lr "r" above sus-5 gap 0.06 {@sus}
@@ -1481,9 +1481,9 @@ und der Sensor schlägt Alarm, sobald $\chi^2 > t$ ist. Welcher Wert für $t$ da
 ::: diagram {unit=132x62}
 text ds "Labeled dataset (e.g., by DARPA/Lincoln Labs)" at 0,0 {.left}
 text lben "benign traffic" below ds gap 0.34 align left {.left}
-grid gben box 6x1 right of lben gap 0.35 cell 0.16 gap 0.09 {.tone-2 .sharp}
+grid gben box 6x1 right of lben gap 0.35 cell 0.16 space 0.09 {.tone-2 .sharp}
 text latt "attack traffic" below lben gap 0.3 align left {.left}
-grid gatt box 4x1 right of latt gap 0.35 cell 0.16 gap 0.09 {.accent .sharp}
+grid gatt box 4x1 right of latt gap 0.35 cell 0.16 space 0.09 {.accent .sharp}
 align x left gben, gatt
 
 # Die 2×2-Matrix. Die Angriffszeile trägt die Akzentfarbe, die Normalzeile
@@ -1499,10 +1499,10 @@ text head "REACTION OF IDS" above calert gap 0.32 align left {.bold .left @matri
 text rowa "attack" left of tp gap 0.24 {.turn .small @matrix}
 text rown "normal" left of fp gap 0.24 {.turn .small @matrix}
 
-grid mtp box 3x1 at tp.cx,tp.bottom-0.16 cell 0.16 gap 0.09 {.accent .sharp @marks}
-grid mfn box 1x1 at fn.cx,fn.bottom-0.16 cell 0.16 gap 0.09 {.accent .sharp @marks}
-grid mfp box 2x1 at fp.cx,fp.top+0.16 cell 0.16 gap 0.09 {.tone-2 .sharp @marks}
-grid mtn box 4x1 at tn.cx,tn.top+0.16 cell 0.16 gap 0.09 {.tone-2 .sharp @marks}
+grid mtp box 3x1 at tp.cx,tp.bottom-0.16 cell 0.16 space 0.09 {.accent .sharp @marks}
+grid mfn box 1x1 at fn.cx,fn.bottom-0.16 cell 0.16 space 0.09 {.accent .sharp @marks}
+grid mfp box 2x1 at fp.cx,fp.top+0.16 cell 0.16 space 0.09 {.tone-2 .sharp @marks}
+grid mtn box 4x1 at tn.cx,tn.top+0.16 cell 0.16 space 0.09 {.tone-2 .sharp @marks}
 
 # Der Schwellwert steht senkrecht auf der Spaltengrenze und trifft den
 # Doppelpfeil, über den er verschoben wird; das "t" bekommt einen eigenen
@@ -1595,10 +1595,10 @@ step question
 # 96 Gesichter aus vier Rastern statt aus 96 Zeilen: die Regel ist je Raster
 # eine Zeile, die Ausnahme ist ein eigenes Raster. Das Asset wird nur einmal
 # eingebettet, egal wie oft es vorkommt.
-grid sickp image face-bad 7x1 at 0,0 cell 0.3 gap 0.08 {@tp}
-grid sickn image face-ok 1x1 right of sickp gap 0.08 cell 0.3 gap 0.08 {@fn}
-grid well image face-ok 7x11 below sickp gap 0.32 align left cell 0.3 gap 0.08 {@wellneg}
-grid fpos image face-bad 1x11 right of well gap 0.08 align top cell 0.3 gap 0.08 {@fpos}
+grid sickp image face-bad 7x1 at 0,0 cell 0.3 space 0.08 {@tp}
+grid sickn image face-ok 1x1 right of sickp gap 0.08 cell 0.3 space 0.08 {@fn}
+grid well image face-ok 7x11 below sickp gap 0.32 align left cell 0.3 space 0.08 {@wellneg}
+grid fpos image face-bad 1x11 right of well gap 0.08 align top cell 0.3 space 0.08 {@fpos}
 
 container zsick "" over sickp,sickn pad 0.09 {.accent .sharp}
 container zwell "" over well,fpos pad 0.09 {.sharp}
