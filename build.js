@@ -3237,8 +3237,19 @@ function editorPayload(frontmatter, columnsHtml, view) {
   if (want === 'none') return '';
   if (want === 'speaker' && view !== 'speaker') return '';
   if (!columnsHtml.includes('class="psi-diagram"')) return '';
+  // The lecture-wide `default` layer, as text, parsed in the browser by the
+  // same function the build uses. It is the same for every figure, so it is
+  // emitted once here rather than repeated in each figure's payload – and
+  // without it the in-browser compiler resolves a *different* four-layer
+  // stack than the build did, which is a differently-styled figure and, for
+  // an element whose `w` comes from a lecture default, a block that does not
+  // compile at all.
+  const base = frontmatter['diagram-defaults'] != null
+    ? String(frontmatter['diagram-defaults']) : '';
   return `<style>\n${editorCss()}\n</style>\n`
-    + `<script>\n${diagramCoreJs()}\n${editorJs()}\n</script>`;
+    + `<script>\n${diagramCoreJs()}\n`
+    + `window.PSI_DG_DEFAULTS = ${jsonForScript(base)};\n`
+    + `${editorJs()}\n</script>`;
 }
 
 function renderAudience(lecture, opts = {}) {

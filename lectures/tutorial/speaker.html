@@ -10316,6 +10316,7 @@ function createDiagramCompiler(env = {}) {
 
 return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES, DG_ANCHORS, DG_DEFINES, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_OPS, DG_KEYWORDS, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_BRACE_SIDES, DG_KIND_OPTS, DG_PAD_DEFAULT, dgErr, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgReadDefault, parseDiagramDefaults, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, createSpanTable, createDiagramCompiler };
 })();
+window.PSI_DG_DEFAULTS = "";
 // The diagram editor.
 //
 // Read editor.md first – this file is the *what*, that file is the why. The
@@ -10362,6 +10363,25 @@ function dgeEscapeHtml(s = '') {
 
 // One compiler per figure, because the image table is per figure. Cheap:
 // createDiagramCompiler closes over five functions and a counter.
+// The lecture-wide `default` layer, parsed once from the text the build
+// emitted. Every figure in the lecture resolves against it, exactly as the
+// build did – four layers, scope before selector – so the editor's picture
+// and the build's picture are the same picture.
+let dgeBaseLayer;
+function dgeBase() {
+  if (dgeBaseLayer !== undefined) return dgeBaseLayer;
+  const text = window.PSI_DG_DEFAULTS;
+  dgeBaseLayer = null;
+  if (text) {
+    const { layer, errors } = window.PSI_DG.parseDiagramDefaults(text);
+    // The build already refused a bad block, so an error here means the two
+    // parsers disagree – worth saying rather than silently ignoring.
+    if (errors.length) DGE_WARNINGS.push('diagram-defaults: ' + errors[0].msg);
+    else dgeBaseLayer = layer;
+  }
+  return dgeBaseLayer;
+}
+
 function dgeCompilerFor(images) {
   const table = images || {};
   return window.PSI_DG.createDiagramCompiler({
@@ -10444,13 +10464,14 @@ function dgeCompile(fig, body) {
   const out = { source: src, ok: false, html: '', errors: [], warnings: [], model: null };
   const before = DGE_WARNINGS.length;
   try {
-    const res = fig.compiler.parseDiagramSource(src, fig.attrs);
+    const base = dgeBase();
+    const res = fig.compiler.parseDiagramSource(src, fig.attrs, base);
     out.model = res.model;
     if (res.errors.length) {
       out.errors = dgeDedupe(res.errors);
       return out;
     }
-    out.html = fig.compiler.renderDiagram(src, fig.attrs, { prefix: fig.prefix, alt: fig.alt });
+    out.html = fig.compiler.renderDiagram(src, fig.attrs, { prefix: fig.prefix, alt: fig.alt, base });
     out.ok = true;
   } catch (err) {
     out.errors = dgeErrorsFrom(err);
@@ -12791,7 +12812,7 @@ function dgePaste(inPlace) {
       const base = anchors[names[0]];
       const dx = pt.x / uw - base[0];
       const dy = pt.y / uh - base[1];
-      const parsed = DGE.fig.compiler.parseDiagramSource(text, DGE.fig.attrs);
+      const parsed = DGE.fig.compiler.parseDiagramSource(text, DGE.fig.attrs, dgeBase());
       const table = window.PSI_DG.createSpanTable(parsed.model, text);
       const edits = [];
       for (const from of names) {
@@ -13199,7 +13220,7 @@ window.psiEditor = {
   compile: dgeCompile,
   selfTest: dgeSelfTest,
   spanTable: (fig, body) => window.PSI_DG.createSpanTable(
-    fig.compiler.parseDiagramSource(body === undefined ? fig.body : body, fig.attrs).model,
+    fig.compiler.parseDiagramSource(body === undefined ? fig.body : body, fig.attrs, dgeBase()).model,
     body === undefined ? fig.body : body),
   open: dgeOpen,
   close: dgeClose,
