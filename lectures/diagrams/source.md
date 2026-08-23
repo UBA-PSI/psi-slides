@@ -384,9 +384,14 @@ edge r1 -> r2
 edge r2 -> r3
 brace sign over r1,r2 right "Signup" pad 0.62
 container life "Creation" over r1,r2,r3 pad 0.42 {.dashed}
+# Dieselbe Klasse wie auf einer Kastenbeschriftung. Eine Klammer, die drei
+# Zeilen überspannt, hat für ihr Wort längs mehr Platz als quer.
+brace whole over r1,r2,r3 left "the whole thing" pad 0.5 {.turn .muted}
 :::
 
 Ein `container` legt sich um seine Mitglieder und passt sich neu an, wenn sie sich bewegen. Eine `brace` überspannt eine Teilmenge und hängt ihr Label nach außen. Beide messen ihren Abstand zum Inhalt mit demselben Wort, `pad` – die Klammer bekommt hier `0.62`, damit sie außerhalb der `0.42` des Containers zu liegen kommt.
+
+**`.turn` gilt für jede Beschriftung, nicht nur für die eines Kastens.** Die linke Klammer liest von unten nach oben, und dieselbe Klasse tut dasselbe an einer Container-Überschrift und an einem Kantenlabel. Das war eine Zeitlang nur an einer der vier Stellen wahr, die eine Beschriftung setzen – an den anderen dreien löste die Klasse auf, gab ihr CSS aus und drehte nichts.
 
 ## figure: The look of a thing {.full #look}
 

@@ -69,6 +69,16 @@ export async function run({ page, errors, report, walkTo, ed }) {
   ok(!/\bpoint\b/.test(cleared || ''), 'and "default" takes the option back off', cleared);
   ok(cleared === before, 'leaving the line exactly as it was', JSON.stringify(cleared));
 
+  // And clicking it again is a no-op, not a refusal. Writing an option with
+  // no value - a bare `point` - is what the compiler would reject, so the
+  // author got a red message for clicking the option already selected.
+  await clickSlot(page, 'aim', 'default');
+  ok(!(await ed.problems()).includes('line '), 'clicking it twice changes nothing',
+    await ed.problems());
+  const note2 = await page.evaluate(() =>
+    (document.querySelector('#dge-statusnote') || {}).textContent || '');
+  ok(!/not applied/.test(note2), 'and says nothing was refused', JSON.stringify(note2));
+
   // A rectangle has no point, so it is not offered one.
   await page.evaluate(() => {
     const row = [...document.querySelectorAll('#dge-side .dge-list button')]

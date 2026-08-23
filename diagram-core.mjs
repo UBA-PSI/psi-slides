@@ -173,6 +173,12 @@ export const DG_POINT_DIRS = new Set(['up', 'down', 'left', 'right']);
 // shapes reuse the rect's four numbers: everything downstream already knows
 // how to carry, interpolate and apply a vector.
 export const DG_TURN_DEG = -90;
+// The angle for a resolved class set, and the only place the four sites that
+// position a label ask the question. Three of them used to skip it entirely -
+// a `.turn` on a container caption, a brace label or an edge label resolved,
+// emitted its CSS and rotated nothing, which is exactly the silent no-op this
+// grammar keeps closing.
+export const dgTurnOf = (classes) => (classes && classes.has && classes.has('turn') ? DG_TURN_DEG : 0);
 
 // Pure, importless, and stringified into the browser runtime by build.js, so
 // exactly one text draws these shapes at build time and at step time. Keep it
@@ -2047,6 +2053,18 @@ export function createDiagramCompiler(env = {}) {
             dgErr(errors, lineNo, `bars ${id}: no values in "${valsTok.v}" – expected numbers separated by commas`);
             continue;
           }
+          // A column below zero would be drawn with a negative height, which
+          // is not a rectangle at all: the browser skips the element and the
+          // gap where it should be sits outside the frame, because the
+          // viewBox was computed from a box the drawing never contained.
+          // This grammar has no axis to hang a negative value off, so the
+          // honest answer is to refuse it rather than to draw something.
+          const below = values.findIndex(v => v < 0);
+          if (below >= 0) {
+            dgErr(errors, lineNo, `bars ${id}: value ${values[below]} is below zero, and a column `
+              + 'is measured up from the baseline – there is nothing for it to hang from');
+            continue;
+          }
           const max = Math.max(...values);
           if (!(max > 0)) {
             dgErr(errors, lineNo, `bars ${id}: at least one value has to be greater than zero, `
@@ -2873,12 +2891,12 @@ export function createDiagramCompiler(env = {}) {
       // A turned label is centred on its origin whichever way it reads, so
       // `.left` / `.right` have nothing to say about it – they name an edge of
       // a horizontal run of text.
-      const turned = st.classes.has('turn');
+      const turned = dgTurnOf(st.classes) !== 0;
       const x = (!freeText || turned) ? box.x + box.w / 2
         : st.classes.has('left') ? box.x
         : st.classes.has('right') ? box.x + box.w
         : box.x + box.w / 2;
-      put(el, el.id + '--l', [x, box.y + box.h / 2, turned ? DG_TURN_DEG : 0]);
+      put(el, el.id + '--l', [x, box.y + box.h / 2, dgTurnOf(st.classes)]);
     };
 
     for (const node of model.nodes) {
@@ -2939,7 +2957,7 @@ export function createDiagramCompiler(env = {}) {
         // empty margins came from.
         const cm = dgMeasure(st.label, dgFontFor(st.classes), st.classes.has('mono'));
         ext.set(c.id + '--l', [cm.w, cm.h]);
-        put(c, c.id + '--l', [b.x + 10, b.y + (b.labelH || 0) / 2 + 1]);
+        put(c, c.id + '--l', [b.x + 10, b.y + (b.labelH || 0) / 2 + 1, dgTurnOf(st.classes)]);
       }
     }
 
@@ -2973,8 +2991,10 @@ export function createDiagramCompiler(env = {}) {
       if (st.label) {
         const bm = dgMeasure(st.label, dgFontFor(st.classes), st.classes.has('mono'));
         ext.set(br.id + '--l', [bm.w, bm.h]);
-        put(br, br.id + '--l', lp);
-        labelAnchor.set(br.id, lanchor);
+        put(br, br.id + '--l', [lp[0], lp[1], dgTurnOf(st.classes)]);
+        // A turned label is centred on its origin whichever side it sits on,
+        // so the side's own anchor no longer describes it.
+        labelAnchor.set(br.id, dgTurnOf(st.classes) ? 'middle' : lanchor);
       }
     }
 
@@ -3054,7 +3074,7 @@ export function createDiagramCompiler(env = {}) {
         const m = dgMeasure(st.label, font, st.classes.has('mono'));
         const off = m.h / 2 + 6;
         ext.set(e.id + '--l', [m.w, m.h]);
-        put(e, e.id + '--l', [p[0] + dir[1] * off, p[1] - dir[0] * off]);
+        put(e, e.id + '--l', [p[0] + dir[1] * off, p[1] - dir[0] * off, dgTurnOf(st.classes)]);
       }
     }
 
@@ -3090,7 +3110,11 @@ export function createDiagramCompiler(env = {}) {
     // nothing to say about one read bottom-to-top. Drawing it anchored while
     // reserving it centred put the glyphs a full label length off the box the
     // viewBox was built from.
-    const anchor = (classes.has('turn') && !anchorOverride) ? 'middle'
+    // Turned wins over every other answer, including the one a container
+    // caption or a brace side supplies: extentsOf reserves a turned label as
+    // centred, and a drawn anchor that disagreed with the reserved one is how
+    // a label ends up half outside the frame it was measured into.
+    const anchor = classes.has('turn') ? 'middle'
       : anchorOverride
       || (classes.has('left') ? 'start' : classes.has('right') ? 'end' : 'middle');
     const lineH = font * DG_LINE_H;

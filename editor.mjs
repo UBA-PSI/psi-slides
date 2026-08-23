@@ -1549,6 +1549,12 @@ function dgeSetSource(next, opts) {
   const before = DGE.source;
   const wasClean = !(DGE.problems && DGE.problems.length);
   const snapshotted = !opts || opts.snapshot !== false;
+  // Captured for the rollback below. An edit that was refused has to leave no
+  // trace at all: the footer said "edited" over source that is byte-identical
+  // to what was opened, and dgeSnapshot cleared a redo the author could still
+  // have wanted, for a change that never happened.
+  const wasDirty = DGE.dirty;
+  const hadRedo = DGE.redo ? DGE.redo.slice() : [];
   if (snapshotted) dgeSnapshot();
   DGE.source = next;
   DGE.dirty = true;
@@ -1570,6 +1576,8 @@ function dgeSetSource(next, opts) {
     const why = DGE.problems[0];
     DGE.source = before;
     if (snapshotted) DGE.undo.pop();
+    DGE.dirty = wasDirty;
+    if (DGE.redo) DGE.redo.splice(0, DGE.redo.length, ...hadRedo);
     dgeRecompile();
     // Say what happened before saying why, and **name no line**. The
     // compiler's sentence is about the text that was just rolled back, so a
@@ -1811,8 +1819,15 @@ function dgeStartPan(ev, canvas) {
 // 60px drag came out as `gap 8.45`: the two disagreed by however much the
 // preview had already rewritten.
 function dgeGestureBase() {
+  // And *stop*. Saying the table is stale and then handing it out anyway is
+  // the very state this check exists to catch: DGE.spans describes the last
+  // text that compiled, DGE.source is the text on screen, so every splice the
+  // drag plans lands at an offset that has moved. That is how two more
+  // gestures turned an attribute tail into `{.a}.b}.c}` while the canvas never
+  // changed, because the block never compiled again.
   if (DGE.spansFor !== DGE.source) {
     dgeStatus('', 'This block does not compile, so there is nothing to drag against – undo, or fix the line the message names.', true);
+    return null;
   }
   dgeInGesture = true;
   const svg = dgeQ('#dge-art-svg');
@@ -1862,6 +1877,7 @@ function dgeStartMove(ev, pt0) {
   if (!DGE.selection.length) return;
   const id = DGE.selection[0];
   const ctx = dgeGestureBase();
+  if (!ctx) return;
   const { uw, uh } = dgeUnits(ctx.model);
   let last = null;
   const move = (e) => {
@@ -1914,6 +1930,7 @@ function dgeStartMove(ev, pt0) {
 function dgeStartResize(ev, id, handle) {
   const pt0 = dgePointToDiagram(ev);
   const ctx = dgeGestureBase();
+  if (!ctx) return;
   const { uw, uh } = dgeUnits(ctx.model);
   const move = (e) => {
     const pt = dgePointToDiagram(e);
@@ -1945,6 +1962,7 @@ function dgeStartResize(ev, id, handle) {
 // new one, and dgAutoAnchor picks a better one than a stale hint would.
 function dgeStartEndpoint(ev, id, which) {
   const ctx = dgeGestureBase();
+  if (!ctx) return;
   const el = dgeFind(id, ctx.model);
   if (!el) { dgeGestureEnd(); return; }
   const here = el[which];
@@ -2035,6 +2053,7 @@ function dgePlanWaypoint(ctx, id, k, dx, dy, free) {
 function dgeStartWaypoint(ev, id, k) {
   const pt0 = dgePointToDiagram(ev);
   const ctx = dgeGestureBase();
+  if (!ctx) return;
   const { uw, uh } = dgeUnits(ctx.model);
   const move = (e) => {
     const pt = dgePointToDiagram(e);
@@ -2983,6 +3002,11 @@ function dgeWriteAttr(id, attr, value, quoted) {
     dgeStatus('', `${attr} cannot be written on ${id} here – give it a placement first.`, true);
     return;
   }
+  // Nothing to clear. Without this the insert branch below writes the
+  // keyword with no value after it - ` point ` - which the compiler refuses,
+  // so clicking the already-selected "default" swatch answered a no-op click
+  // with a red refusal.
+  if (!value && !sp.present && attr !== 'label') return;
   let next;
   if (!value && sp.present && attr !== 'label') {
     let start = sp.start;
@@ -3048,10 +3072,14 @@ function dgeStepPane() {
       does.appendChild(dgeEl('button', {
         type: 'button', class: 'dge-chip' + (DGE.selection.includes(id) ? ' dge-chip-held' : ''),
         html: dgeEscapeHtml(id) + '<span class="dge-verb">' + verb + '</span>',
-        title: 'select ' + id,
+        title: 'select ' + dgeOwnerOf(id),
         onmouseenter: () => { DGE.hoverId = id; dgeDrawGuides(); },
         onmouseleave: () => { DGE.hoverId = null; dgeDrawGuides(); },
-        onclick: () => dgeSelect([id]),
+        // Through the owner, like the hit test and the element list. A beat
+        // changes `f-2` because `show f` named the chart, and selecting the
+        // column would open a panel with nothing in it: an expanded element
+        // has no line of source, so every field answers "cannot be written".
+        onclick: () => dgeSelect([dgeOwnerOf(id)]),
       }));
     }
   }
@@ -3163,9 +3191,14 @@ function dgeDataPane(el) {
       }),
     ]));
   }
+  // The mismatch line only where there is a mismatch to have. Labels are
+  // optional - the field's own hint says "or leave empty" and the compiler
+  // agrees - so a chart with none was being told its zero labels had to match
+  // its twelve values.
+  const nums = counts.map((c) => Number(c.split(': ')[1]));
+  const mismatch = counts.length === 2 && nums[1] > 0 && nums[0] !== nums[1];
   const hint = counts.length
-    ? counts.join(' · ') + (counts.length === 2 && counts[0].split(': ')[1] !== counts[1].split(': ')[1]
-      ? ' — these have to match' : '')
+    ? counts.join(' · ') + (mismatch ? ' — these have to match' : '')
     : fields.map((f) => f.hint)[0];
   wrap.appendChild(dgeEl('div', { class: 'dge-hint', text: hint }));
   return wrap;
@@ -3867,6 +3900,7 @@ function dgeNudge(key, coarse) {
   const dx = key === 'ArrowLeft' ? -step : key === 'ArrowRight' ? step : 0;
   const dy = key === 'ArrowUp' ? -step : key === 'ArrowDown' ? step : 0;
   const ctx = dgeGestureBase();
+  if (!ctx) return;
   const res = dgeMoveSelection(ctx, dx, dy, {});
   if (res.next !== ctx.source) dgeSetSource(res.next);
   // A nudge is a whole gesture in one keypress, so it has to release what a
