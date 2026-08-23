@@ -812,3 +812,39 @@ body[data-mode=dark] #dge-assets-inner,
 body[data-mode=dark] .dge-asset { background: color-mix(in oklab, var(--paper) 86%, #fff 14%); }
 .dge-asset-thumb { display: block; width: 100%; height: 3.4rem; }
 .dge-asset-thumb > svg, .dge-asset-thumb > img { width: 100%; height: 100%; object-fit: contain; }
+
+/* A data field holds a list or a title, not a number, so it gets the width of
+   the panel instead of the four characters a `w` needs. Same row machinery
+   either way - one class, so a pane can mix them. */
+.dge-num-wide { flex: 1 1 100%; }
+.dge-num-wide input { width: 100%; flex: 1; }
+
+/* ── what a beat changes ────────────────────────────────────────────
+   The mark is on the drawing, not only in the panel: a step's ops do not say
+   which elements a beat is about - `show @attack` is one line and nine
+   elements - and without this the only way to find out was to press Space and
+   watch. Dashed so it cannot be mistaken for an outline the figure has, and
+   `appears`/`goes` get the accent because they are the two that change what
+   is on the slide at all. */
+.dge-changed { fill: none; stroke-width: 1.6; stroke-dasharray: 5 3; pointer-events: none; }
+.dge-changed-appears,
+.dge-changed-goes { stroke: var(--emph); }
+.dge-changed-emphasised,
+.dge-changed-calmed,
+.dge-changed-restyled,
+.dge-changed-relabelled,
+.dge-changed-moves { stroke: var(--ink-soft); }
+.dge-changed-tag {
+  fill: var(--emph);
+  font-family: var(--mono-font);
+  font-size: 11px;
+  pointer-events: none;
+}
+/* The verb beside a name in the step list, so the list reads as a sentence
+   rather than as two columns. */
+.dge-verb {
+  margin-left: 0.4em;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+.dge-beat-add { margin-left: 0.5rem; }

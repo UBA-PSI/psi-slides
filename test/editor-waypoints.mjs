@@ -97,7 +97,7 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
 
   // ── and removing, from the panel ──
   const removeFirstChip = () => page.evaluate(() => {
-    const chips = [...document.querySelectorAll('#dge-side .dge-chip')].filter(c => c.textContent.includes(','));
+    const chips = [...document.querySelectorAll('#dge-side .dge-chip-via')];
     if (chips[0]) chips[0].click();
   });
   const wholeBefore = (await ed.source()).split('\n');

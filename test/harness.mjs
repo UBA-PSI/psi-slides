@@ -202,8 +202,11 @@ export function editorHelpers(page) {
     (document.querySelector('#dge-source') || {}).textContent || '');
   const lineWith = async (needle) =>
     (await source()).split('\n').find(l => l.includes(needle));
+  // The head of the *selection* pane by name, not the first h3 in the panel.
+  // The step pane sits above it whenever a beat is standing, and "this step"
+  // is not what is selected.
   const selection = () => page.evaluate(() =>
-    ((document.querySelector('#dge-side h3') || {}).textContent || '').trim());
+    ((document.querySelector('#dge-side .dge-sel-head') || {}).textContent || '').trim());
 
   // A point that is genuinely on the stroke. A bounding-box centre is not:
   // for a diagonal or dog-legged arrow it is usually empty paper, which is

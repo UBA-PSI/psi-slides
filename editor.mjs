@@ -2544,6 +2544,11 @@ function dgeRenderSide() {
   if (!side || !DGE.model) return;
   side.replaceChildren();
 
+  // The beat first, and above the empty-selection branch: it describes the
+  // step rather than an element, so "nothing selected" is exactly the moment
+  // an author most needs to be told what this beat is for.
+  if (DGE.beat) side.appendChild(dgeStepPane());
+
   if (!DGE.selection.length) {
     side.appendChild(dgeEl('div', { class: 'dge-empty', html:
       'Nothing selected.<br><br>Click an element to see what holds it in place – '
@@ -2559,7 +2564,7 @@ function dgeRenderSide() {
   const single = DGE.selection.length === 1 ? dgeFind(DGE.selection[0]) : null;
 
   const head = dgeEl('div', {}, [
-    dgeEl('h3', { text: single ? `${single.kind} ${single.id}` : `${DGE.selection.length} selected` }),
+    dgeEl('h3', { class: 'dge-sel-head', text: single ? `${single.kind} ${single.id}` : `${DGE.selection.length} selected` }),
   ]);
   side.appendChild(head);
 
@@ -2647,7 +2652,11 @@ function dgeRenderSide() {
         const sp = DGE.spans.spanOf(single.id, 'via.' + k);
         const held = pair.some((c) => c && c.ref);
         list.appendChild(dgeEl('button', {
-          type: 'button', class: 'dge-chip' + (held ? ' dge-chip-held' : ''),
+          // A class of its own, because "the chips in the panel" is not a set:
+          // waypoints, tags and a step's ops all render as chips, and a
+          // selector that says only `.dge-chip` picks whichever pane happens
+          // to come first in the DOM.
+          type: 'button', class: 'dge-chip dge-chip-via' + (held ? ' dge-chip-held' : ''),
           html: (sp && sp.present ? sp.text : '?') + '<span class="dge-x">×</span>',
           title: held ? 'follows another element – dragging shifts it a little and keeps the reference. Click to remove.'
             : 'a plain coordinate. Click to remove.',
@@ -2671,6 +2680,14 @@ function dgeRenderSide() {
   if (single && DGE.model.nodes.some((x) => x.id === single.id)) {
     side.appendChild(dgePlacementPane(single));
   }
+
+  // The tokens a statement identifies by position rather than by a keyword:
+  // a chart's values, a grid's shape and cell kind, a plot's axis titles, an
+  // image's asset. Named fields rather than "the second string on the line",
+  // because that is the only form in which they are learnable - and each one
+  // says what it counts, so a values/labels mismatch is visible here instead
+  // of arriving later as a compiler error.
+  if (single) side.appendChild(dgeDataPane(single));
 
   // Which way a pointed outline aims, offered only where there is a point to
   // aim. `none` takes the option back off the line and the shape returns to
@@ -2991,6 +3008,167 @@ function dgeWriteAttr(id, attr, value, quoted) {
   // table describing text that is gone, and the next edit splices at offsets
   // that have moved.
   dgeSetSource(next);
+}
+
+// The beat you are standing on: what it is called, what it does, and the four
+// acts that make up almost every step anyone writes.
+//
+// `style`, `label` and `move` are deliberately not buttons here. Each already
+// has a control that means the same thing in context – a swatch, the label
+// field, a drag – and a second way to reach them would be a second thing to
+// learn for nothing.
+function dgeStepPane() {
+  const k = DGE.beat - 1;
+  const step = DGE.model.steps[k];
+  const wrap = dgeEl('div', {});
+  if (!step) return wrap;
+
+  wrap.appendChild(dgeEl('h3', { text: 'this step' }));
+  wrap.appendChild(dgeEl('div', { class: 'dge-nums' }, [
+    dgeEl('label', { class: 'dge-num dge-num-wide' }, [
+      dgeEl('span', { text: 'name' }),
+      dgeEl('input', {
+        type: 'text', value: step.name,
+        title: 'shown on the beat bar, and in the speaker’s next-up hint',
+        onchange: (e) => dgeRenameStep(k, e.target.value),
+      }),
+    ]),
+  ]));
+
+  // What the beat does, resolved rather than read off the source – a `show
+  // @attack` is one op and nine elements, and the nine are what the room
+  // sees. Clicking one selects it.
+  const changes = dgeStepChanges(DGE.beat);
+  const does = dgeEl('div', { class: 'dge-chips' });
+  if (!changes.size) {
+    does.appendChild(dgeEl('span', { class: 'dge-hint', text:
+      'Nothing changes here yet. Select an element and use a button below.' }));
+  } else {
+    for (const [id, verb] of changes) {
+      does.appendChild(dgeEl('button', {
+        type: 'button', class: 'dge-chip' + (DGE.selection.includes(id) ? ' dge-chip-held' : ''),
+        html: dgeEscapeHtml(id) + '<span class="dge-verb">' + verb + '</span>',
+        title: 'select ' + id,
+        onmouseenter: () => { DGE.hoverId = id; dgeDrawGuides(); },
+        onmouseleave: () => { DGE.hoverId = null; dgeDrawGuides(); },
+        onclick: () => dgeSelect([id]),
+      }));
+    }
+  }
+  wrap.appendChild(does);
+
+  // The acts, on the selection.
+  const acts = dgeEl('div', { class: 'dge-chips' });
+  const sel = DGE.selection.slice();
+  for (const [op, why] of [['show', 'bring in'], ['hide', 'take away'],
+    ['emph', 'emphasise'], ['calm', 'push back']]) {
+    acts.appendChild(dgeEl('button', {
+      type: 'button', class: 'dge-chip', text: op,
+      disabled: !sel.length,
+      title: sel.length ? why + ' ' + sel.join(', ') + ' in this step'
+        : 'select an element first',
+      onclick: () => dgeAddStepOp(op, sel),
+    }));
+  }
+  wrap.appendChild(acts);
+
+  // The ops as written, so what the source says and what the beat does can be
+  // compared – they are not the same list, and that is the point.
+  if (step.ops.length) {
+    const list = dgeEl('div', { class: 'dge-chips' });
+    step.ops.forEach((op, i) => {
+      list.appendChild(dgeEl('button', {
+        type: 'button', class: 'dge-chip',
+        html: dgeEscapeHtml(DGE.source.slice(op.span[0], op.span[1])) + '<span class="dge-x">×</span>',
+        title: 'remove this line from the step',
+        onclick: () => dgeRemoveStepOp(i),
+      }));
+    });
+    wrap.appendChild(dgeEl('div', { class: 'dge-hint', text: 'written here:' }));
+    wrap.appendChild(list);
+  }
+
+  wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
+    'A drag at this beat writes a move into the step rather than changing where '
+    + 'the element is placed. Restyle and relabel with the controls below.' }));
+  return wrap;
+}
+
+// The positional tokens, per statement, as named fields. Each entry is the
+// span name, the word the panel shows, and a hint - and `count`, where the
+// value is a list whose length has to agree with another one. That number is
+// the whole point of the pane: `bars` with twelve values and eleven labels is
+// a hard error at build time, and the only way to see it coming is to be told
+// both counts while typing.
+const DGE_DATA_FIELDS = {
+  bars: [
+    { key: 'values', label: 'values', hint: 'numbers separated by commas · one per column',
+      count: (v) => v.split(',').filter((s) => s.trim()).length },
+    { key: 'ticks', label: 'labels', hint: 'separated by spaces · one per column, or leave empty',
+      count: (v) => v.trim().split(/\s+/).filter(Boolean).length },
+  ],
+  grid: [
+    { key: 'shape', label: 'shape', hint: 'columns × rows, written 8x12' },
+    { key: 'cellkind', label: 'cell', hint: 'box, dot or image' },
+    { key: 'asset', label: 'asset', hint: 'the drawing each cell repeats' },
+  ],
+  plot: [
+    { key: 'xtitle', label: 'x axis', hint: 'the title under the horizontal axis' },
+    { key: 'ytitle', label: 'y axis', hint: 'the title beside the vertical axis' },
+  ],
+};
+
+function dgeDataPane(el) {
+  const wrap = dgeEl('div', {});
+  const fields = el.frame ? DGE_DATA_FIELDS[el.frame]
+    : (el.kind === 'image' ? [{ key: 'asset', label: 'asset', hint: 'the file this image draws' }] : null);
+  if (!fields) return wrap;
+
+  const rows = [];
+  const counts = [];
+  for (const f of fields) {
+    const sp = DGE.spans.spanOf(el.id, f.key);
+    // A field with no span is one this statement does not have - a `grid` of
+    // boxes has no asset - so it is absent rather than empty. An empty box
+    // the author cannot fill is worse than no box.
+    if (!sp) continue;
+    if (f.count) counts.push(f.label + ': ' + f.count(sp.present ? sp.value : ''));
+    const quoted = f.key === 'values' || f.key === 'ticks'
+      || f.key === 'xtitle' || f.key === 'ytitle';
+    rows.push(dgeEl('label', { class: 'dge-num dge-num-wide' }, [
+      dgeEl('span', { text: f.label }),
+      dgeEl('input', {
+        type: 'text', value: sp.present ? sp.value : '',
+        placeholder: sp.present ? '' : 'none yet',
+        title: f.hint,
+        onchange: (e) => dgeWriteAttr(el.id, f.key, e.target.value.trim(), quoted),
+      }),
+    ]));
+  }
+  if (!rows.length) return wrap;
+
+  wrap.appendChild(dgeEl('h3', { text: 'data' }));
+  wrap.appendChild(dgeEl('div', { class: 'dge-nums' }, rows));
+  // The asset picker, where there is an asset. Reused rather than rebuilt:
+  // it is the one control that knows which references will still resolve
+  // after the next build, and that is the hard part of naming a file.
+  if (fields.some((f) => f.key === 'asset') && DGE.spans.spanOf(el.id, 'asset')) {
+    wrap.appendChild(dgeEl('div', { class: 'dge-chips' }, [
+      dgeEl('button', {
+        type: 'button', class: 'dge-chip', text: 'Pick a file…',
+        onclick: () => dgeOpenAssetPicker((asset) => {
+          dgeWriteAttr(el.id, 'asset', asset.ref);
+          if (asset.note) dgeStatus('', asset.note, false);
+        }),
+      }),
+    ]));
+  }
+  const hint = counts.length
+    ? counts.join(' · ') + (counts.length === 2 && counts[0].split(': ')[1] !== counts[1].split(': ')[1]
+      ? ' — these have to match' : '')
+    : fields.map((f) => f.hint)[0];
+  wrap.appendChild(dgeEl('div', { class: 'dge-hint', text: hint }));
+  return wrap;
 }
 
 // Which of the five layers a resolved value came from. Without it, four
@@ -3381,8 +3559,11 @@ function dgeRenderBeats() {
   if (!host) return;
   host.replaceChildren();
   const steps = DGE.model ? DGE.model.steps : [];
-  if (!steps.length) { host.hidden = true; return; }
-  host.hidden = false;
+  // Shown even with no steps at all, because the way to get a first one is
+  // the button on this bar. Hiding it was what made "the editor cannot add a
+  // step" true: there was nowhere to ask.
+  host.hidden = !DGE.model;
+  if (!DGE.model) return;
   host.appendChild(dgeEl('span', { class: 'dge-cap', text: 'step' }));
   const chip = (k, label) => dgeEl('button', {
     type: 'button', class: 'dge-btn dge-beat', 'aria-pressed': String(k === DGE.beat),
@@ -3392,11 +3573,74 @@ function dgeRenderBeats() {
   });
   host.appendChild(chip(0, 'start'));
   steps.forEach((s, i) => host.appendChild(chip(i + 1, s.name)));
+  host.appendChild(dgeEl('button', {
+    type: 'button', class: 'dge-btn dge-beat-add',
+    text: '+ step', title: 'add a beat at the end and stand on it',
+    onclick: () => dgeAddStep(),
+  }));
+}
+
+// A new step goes at the end, which is where a beat is almost always added -
+// a figure is built up - and standing on it afterwards is the whole point:
+// every control that writes into a step writes into the one you are on.
+function dgeAddStep() {
+  const n = (DGE.model ? DGE.model.steps.length : 0) + 1;
+  const taken = new Set((DGE.model ? DGE.model.steps : []).map((s) => s.name));
+  let name = 'step-' + n;
+  for (let i = n; taken.has(name); i++) name = 'step-' + (i + 1);
+  const src = DGE.source.replace(/\s*$/, '');
+  dgeSetSource(src + '\nstep ' + name + '\n');
+  // After the recompile, not before: the beat only exists once it parses.
+  if (DGE.model && DGE.model.steps.length >= n) dgeSetBeat(DGE.model.steps.length);
 }
 
 // Dragging at a beat writes into the step, not into the placement. One
 // `move … by` op per element per step: a second drag adds to the one that is
 // already there rather than stacking two, which would be legal and unreadable.
+// Writing an op into the step the beat is standing on. Same placement rule
+// `dgeStepMove` uses – after the step's last op, or straight after the `step`
+// line when it has none – so the source reads in the order the ops run.
+function dgeAddStepOp(op, ids) {
+  const step = DGE.model && DGE.model.steps[DGE.beat - 1];
+  if (!step || !ids.length) return;
+  const indent = (DGE.source.split('\n')[step.line] || '  ').match(/^\s*/)[0] || '  ';
+  const at = step.ops.length ? step.ops[step.ops.length - 1].span[1] : step.span[1];
+  const text = `${op} ${ids.join(', ')}`;
+  dgeSetSource(DGE.source.slice(0, at) + '\n' + indent + text + DGE.source.slice(at));
+  dgeStatus(text, 'written into step “' + step.name + '”');
+}
+
+function dgeRemoveStepOp(k) {
+  const step = DGE.model && DGE.model.steps[DGE.beat - 1];
+  const op = step && step.ops[k];
+  if (!op) return;
+  // Take the newline and indent in front of it too, or the step grows a blank
+  // line every time an op comes off.
+  let start = op.span[0];
+  const lead = DGE.source.slice(0, start).match(/\n[ \t]*$/);
+  if (lead) start -= lead[0].length;
+  dgeSetSource(DGE.source.slice(0, start) + DGE.source.slice(op.span[1]));
+}
+
+// A step's name is the token after the keyword. Renaming is a splice inside
+// the statement's own span, like every other structured edit here.
+function dgeRenameStep(k, name) {
+  const step = DGE.model && DGE.model.steps[k];
+  if (!step) return;
+  const clean = String(name).trim().replace(/\s+/g, '-');
+  if (!/^[A-Za-z_][\w-]*$/.test(clean)) {
+    dgeStatus('', 'A step name is letters, digits, _ and - , starting with a letter.', true);
+    return;
+  }
+  const text = DGE.source.slice(step.span[0], step.span[1]);
+  const m = text.match(/^(\s*step\s+)(\S+)/);
+  const next = m
+    ? DGE.source.slice(0, step.span[0]) + m[1] + clean + DGE.source.slice(step.span[0] + m[0].length)
+    // `step` with no name at all: the parser gave it one, so write it out.
+    : DGE.source.slice(0, step.span[1]) + ' ' + clean + DGE.source.slice(step.span[1]);
+  dgeSetSource(next);
+}
+
 function dgeStepMove(ctx, id, dx, dy) {
   const step = ctx.model.steps[DGE.beat - 1];
   if (!step) return null;
@@ -3418,6 +3662,44 @@ function dgeStepMove(ctx, id, dx, dy) {
   return { start: last, end: last, text: '\n' + indent + text, line: text };
 }
 
+// ── what a step actually does ───────────────────────────────────────
+//
+// A step is a list of ops, and reading it tells you what the author *wrote*.
+// It does not tell you what the beat *does*, and the two differ constantly:
+// `show @attack` names one tag and brings in nine elements, an edge appears
+// because both its ends did, a container appears because its members did. So
+// the answer is a diff of the resolved state either side of the beat, not a
+// reading of the source.
+//
+// This is what makes a step legible on the canvas: without it the only way to
+// find out what a beat changes is to press Space and watch.
+const DGE_VERBS = [
+  ['appears', (a, b) => !a.visible && b.visible],
+  ['goes', (a, b) => a.visible && !b.visible],
+  ['emphasised', (a, b) => !a.classes.has('emph') && b.classes.has('emph')],
+  ['calmed', (a, b) => !a.classes.has('dim') && b.classes.has('dim')],
+  ['relabelled', (a, b) => a.label !== b.label],
+  ['moves', (a, b) => a.shift[0] !== b.shift[0] || a.shift[1] !== b.shift[1] || a.place !== b.place],
+  ['restyled', (a, b) => [...b.classes].join(' ') !== [...a.classes].join(' ')],
+];
+
+function dgeStepChanges(beat) {
+  const out = new Map();
+  if (!DGE.model || !beat || beat > DGE.model.steps.length) return out;
+  const before = window.PSI_DG.dgStateAt(DGE.model, beat - 1);
+  const after = window.PSI_DG.dgStateAt(DGE.model, beat);
+  for (const [id, b] of after) {
+    const a = before.get(id);
+    if (!a) continue;
+    // First verb that fits, not all of them: an element that appears has
+    // every class it will ever have "gained", and listing that as a restyle
+    // as well says nothing.
+    const verb = DGE_VERBS.find(([, test]) => test(a, b));
+    if (verb) out.set(id, verb[0]);
+  }
+  return out;
+}
+
 // At a beat, the guides have to show both where the element is now and where
 // it came from, or a `move` is invisible until you press Space. Two
 // treatments, and which one ships is the open question in §12 – both are
@@ -3426,6 +3708,26 @@ function dgeDrawBeatGuides(g) {
   if (!DGE.beat || !DGE.model || !DGE.model.steps.length) return;
   const prev = dgeBoxesAt(DGE.model, DGE.beat - 1);
   const style = DGE.beatGuide || 'both';
+
+  // Which elements this beat is *about*, marked on the drawing. A step's ops
+  // do not answer that – `show @attack` is one line and nine elements – and
+  // without the mark the only way to find out was to press Space and watch
+  // for what moved. Drawn under the motion guides below so a moving element
+  // gets both.
+  for (const [id, verb] of dgeStepChanges(DGE.beat)) {
+    const b = DGE.boxes.get(id);
+    if (!b) continue;
+    const pad = 3;
+    g.appendChild(dgeEl('rect', {
+      class: 'dge-changed dge-changed-' + verb,
+      x: b.x - pad, y: b.y - pad, width: b.w + pad * 2, height: b.h + pad * 2, rx: 4,
+    }));
+    if (DGE.hoverId === id) {
+      g.appendChild(dgeEl('text', {
+        class: 'dge-changed-tag', x: b.x, y: b.y - pad - 4, text: verb,
+      }));
+    }
+  }
   for (const [id, now] of DGE.boxes) {
     const was = prev.get(id);
     if (!was) continue;

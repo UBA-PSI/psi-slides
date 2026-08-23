@@ -29,6 +29,7 @@ const SPECS = [
   './editor-placement.mjs',
   './editor-expanded.mjs',
   './editor-aim.mjs',
+  './editor-steps.mjs',
   './figure-framing.mjs',
   './figure-framing-network.mjs',
 ];

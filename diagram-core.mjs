@@ -1266,6 +1266,12 @@ const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'align', 'point', '
   // the options the expanding statements take on their own line
   'space', 'cell', 'step'];
 
+// Tokens with no keyword in front of them, named so an editor can reach them
+// anyway. Every one is required by its statement, so it is always present –
+// there is no "where would it go if it were not there" to answer, which is
+// what separates them from the keyed list above.
+export const DG_POSITIONAL = ['values', 'ticks', 'xtitle', 'ytitle', 'cellkind', 'shape', 'asset'];
+
 // The x and y halves of a `dx,dy` token, and the signed nudge inside a
 // coordinate component. Sub-token arithmetic on the token's own text, because
 // a coordinate is one token by construction: `mix.cx+0.2` has no spaces in
@@ -1449,6 +1455,61 @@ export function createSpanTable(model, body) {
       if (k >= 0 && toks[k + 1]) return hit(toks[k + 1].s, toks[k + 1].e, toks[k + 1].v);
       const at = optionInsert(el, toks, attr);
       return at == null ? null : gap(at, ` ${attr} `);
+    }
+
+    // ── the tokens that have no keyword ──────────────────────────────
+    //
+    // A `bars`'s values, a `grid`'s shape, a `plot`'s axis titles: these are
+    // defined by *where* they sit on the line rather than by a word in front
+    // of them, so `find(attr)` has nothing to look for. They still get names,
+    // and the rule that resolves each one lives here – which keeps the whole
+    // interface "ask for a name, get a span", and leaves every caller
+    // unchanged.
+    //
+    // All of them are required by their statement, so there is no absent
+    // case: a span here is either the token or null, never an insertion
+    // point. That is the difference from a keyed option and the reason these
+    // could not simply join the list above.
+    if (DG_POSITIONAL.includes(attr)) {
+      const quoted = toks.filter(x => x.q);
+      const bare = toks.filter(x => !x.q && !x.attr);
+      const one = (t) => (t ? hit(t.s, t.e, t.v) : null);
+      // A quoted slot that is *not* there yet still needs a place to go, or
+      // the panel can show a chart's labels and never let anyone add them.
+      // The insertion carries the quotes in its prefix and suffix, which is
+      // the same shape a label's absent span already had.
+      const after = (t, pre = ' "', suf = '"') => (t ? gap(t.e, pre, suf) : null);
+      // Quoted slots, by statement. The n-th string means a different thing
+      // on each of the three, which is exactly why they are named.
+      if (attr === 'values') return el.frame === 'bars' ? one(quoted[0]) : null;
+      if (attr === 'ticks') {
+        if (el.frame !== 'bars') return null;
+        return quoted[1] ? one(quoted[1]) : after(quoted[0]);
+      }
+      if (attr === 'xtitle') {
+        if (el.frame !== 'plot') return null;
+        return quoted[0] ? one(quoted[0]) : after(bare[1]);
+      }
+      if (attr === 'ytitle') {
+        if (el.frame !== 'plot') return null;
+        if (quoted[1]) return one(quoted[1]);
+        // Positional means positional: a y title with no x title in front of
+        // it would be read as the x title, so writing one writes both.
+        return quoted[0] ? after(quoted[0]) : after(bare[1], ' "" "');
+      }
+      // The one positional token that is not on an expanding statement:
+      // `image <name> <asset>`, third bare token. Answered before the grid
+      // rules below, or the guard there would swallow it.
+      if (attr === 'asset' && el.kind === 'image' && !el.frame) return one(bare[2]);
+      // `grid <name> <kind> [asset] CxR`: the kind is always the third bare
+      // token, the shape is the first that looks like one, and the asset is
+      // whatever sits between them.
+      if (el.frame !== 'grid') return null;
+      if (attr === 'cellkind') return one(bare[2]);
+      const shapeAt = bare.findIndex(t => /^\d+x\d+$/.test(t.v));
+      if (attr === 'shape') return shapeAt < 0 ? null : one(bare[shapeAt]);
+      if (attr === 'asset') return shapeAt === 4 ? one(bare[3]) : null;
+      return null;
     }
 
     if (attr === 'offset' || attr === 'offset.x' || attr === 'offset.y') {
