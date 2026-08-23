@@ -10710,11 +10710,15 @@ function dgeEl(tag, attrs, kids) {
 }
 
 const dgeQ = (sel) => document.querySelector(sel);
+// A number as the DSL spells it: no trailing zeros, but only ever *after* a
+// decimal point. Trimming unconditionally ate the zeros of integers – 10
+// became 1 – which is invisible at the default two places, where the dot
+// survives, and wrong on the rulers, which ask for none.
 const dgeNum = (n, places) => {
   const v = Number(n);
   if (!Number.isFinite(v)) return '0';
   const s = v.toFixed(places === undefined ? 2 : places);
-  return s.replace(/\.?0+$/, '') || '0';
+  return s.includes('.') ? (s.replace(/0+$/, '').replace(/\.$/, '') || '0') : s;
 };
 
 // ── the frame (editor.md §5) ────────────────────────────────────────
@@ -11688,6 +11692,54 @@ function dgeGestureEnd() {
   dgeRecompile();
 }
 
+// Move everything that is selected, not just the first thing. The marquee,
+// Ctrl-A, the selection rectangles and the help sheet all present a
+// multi-selection as one movable unit; moving only selection[0] left the
+// others behind with their outlines still drawn.
+//
+// Each element is planned separately against the same base, because each has
+// its own placement and the §9.3 policy is per placement – one may rewrite a
+// `gap`, its neighbour a nudge, and a third may refuse the axis outright.
+// The splices are then applied together, right to left.
+function dgeMoveSelection(ctx, dx, dy, opts) {
+  let next = ctx.source;
+  let first = null;
+  let refusal = null;
+  const parts = [];
+  for (const id of DGE.selection) {
+    const plan = dgePlanDrag(ctx, id, dx, dy, opts);
+    if (!first) first = plan;
+    if (!refusal && plan.refusals.length) refusal = plan.refusals[0];
+    if (!plan.edits.length) continue;
+    parts.push({ id, edits: plan.edits });
+  }
+  // dgeApplyEdits resolves spans against ctx, so the edits of every element
+  // are offsets into the same text; applying them one element at a time
+  // would move the ground under the ones that follow.
+  const splices = [];
+  for (const { id, edits } of parts) {
+    for (const e of edits) {
+      const sp = ctx.spans.spanOf(id, e.attr === 'same-as' ? 'same-as' : e.attr);
+      if (!sp) continue;
+      if (e.drop || e.value === '') {
+        if (!sp.present) continue;
+        let start = sp.start;
+        const before = ctx.source.slice(0, start);
+        const m = e.attr === 'same-as'
+          ? before.match(/\s+same\s+as\s+$/)
+          : before.match(new RegExp('\\s+' + e.attr.replace('.', '\\.') + '\\s+$'));
+        if (m) start -= m[0].length;
+        splices.push({ start, end: sp.end, text: '' });
+        continue;
+      }
+      splices.push({ start: sp.start, end: sp.end, text: sp.prefix + e.value + sp.suffix });
+    }
+  }
+  splices.sort((a, b) => b.start - a.start);
+  for (const r of splices) next = next.slice(0, r.start) + r.text + next.slice(r.end);
+  return { next, plan: first, refusal };
+}
+
 function dgeStartMove(ev, pt0) {
   if (!DGE.selection.length) return;
   const id = DGE.selection[0];
@@ -11710,11 +11762,11 @@ function dgeStartMove(ev, pt0) {
       dgeStatus(step.line, `into step "${DGE.model.steps[DGE.beat - 1].name}" – the opening picture is untouched`);
       return;
     }
-    const plan = dgePlanDrag(ctx, id, dx, dy, { free: e.ctrlKey || e.metaKey });
-    last = plan;
-    DGE.source = dgeApplyEdits(ctx, id, plan.edits);
+    const res = dgeMoveSelection(ctx, dx, dy, { free: e.ctrlKey || e.metaKey });
+    last = { edits: res.plan ? res.plan.edits : [], refusals: res.refusal ? [res.refusal] : [] };
+    DGE.source = res.next;
     dgeRecompile();
-    dgeShowPlan(ctx, id, plan);
+    if (res.plan) dgeShowPlan(ctx, id, res.plan);
   };
   const up = () => {
     window.removeEventListener('pointermove', move);
@@ -12468,8 +12520,13 @@ function dgeGoFigure(step) {
 // says so, and the beat strip is always visible on a figure that has steps.
 
 function dgeSetBeat(k) {
+  // While the source is intermediate there is no model and no last good
+  // render, and stepping the beats then threw and wedged the editor. The
+  // beat still moves – it is editor state – and the canvas catches up on the
+  // next compile that succeeds.
   const steps = DGE.model ? DGE.model.steps.length : 0;
   DGE.beat = Math.max(0, Math.min(steps, k));
+  if (!DGE.model || !DGE.compiled) { dgeRenderAll(); return; }
   DGE.boxes = dgeBoxesAt(DGE.model, DGE.beat);
   dgePaintArt(DGE.compiled.html);
   dgeApplyFrame();
@@ -12652,12 +12709,16 @@ function dgeNudge(key, coarse) {
   const step = coarse ? 0.25 : 0.05;
   const dx = key === 'ArrowLeft' ? -step : key === 'ArrowRight' ? step : 0;
   const dy = key === 'ArrowUp' ? -step : key === 'ArrowDown' ? step : 0;
-  const id = DGE.selection[0];
   const ctx = dgeGestureBase();
-  const plan = dgePlanDrag(ctx, id, dx, dy, {});
-  if (!plan.edits.length) { if (plan.refusals.length) dgeStatus('', plan.refusals[0], true); return; }
-  dgeSetSource(dgeApplyEdits(ctx, id, plan.edits));
-  dgeShowPlan(ctx, id, plan);
+  const res = dgeMoveSelection(ctx, dx, dy, {});
+  if (res.next !== ctx.source) dgeSetSource(res.next);
+  // A nudge is a whole gesture in one keypress, so it has to release what a
+  // gesture pins. Without this one arrow key froze the canvas viewBox for
+  // the rest of the session – including across figure switches – and any
+  // element that moved outside that box was clipped off the canvas.
+  dgeGestureEnd();
+  if (res.plan) dgeShowPlan(ctx, DGE.selection[0], res.plan);
+  if (res.refusal) dgeNote(res.refusal, true);
 }
 
 // ── copy, paste, commit (editor.md §2.3, §7.1) ──────────────────────
