@@ -419,9 +419,21 @@ text n1 "no"     below g1 gap 0.16 {.muted}
 text n2 "shrink" below g2 gap 0.16 {.muted}
 text n3 "fit"    below g3 gap 0.16 {.muted}
 text gl "type meets\nits box" left of g1 gap 0.5 {.muted .right}
+
+# Die vier Umrisse, die kein Rechteck sind, und die eine Leserichtung, die
+# nicht waagerecht ist. Beide gehören hierher, weil das der Katalog ist, den
+# die Seitenleiste des Editors spiegelt.
+box  s1 "hex"      at 0,3.5 w 0.66 h 0.42 {.hex .tone-2}
+box  s2 "chevron"  right of s1 gap 0.3 same as s1 {.chevron .tone-2}
+box  s3 "left"     right of s2 gap 0.3 same as s1 {.chevron-left .tone-2}
+box  s4 ""         right of s3 gap 0.3 w 0.42 h 0.42 {.wedge .tone-4}
+box  s5 "turn"     right of s4 gap 0.45 h 0.62 {.tone-2 .turn}
+text sl "outline, and\nreading direction" left of s1 gap 0.5 {.muted .right}
 :::
 
-**Der Editor zeigt genau diese Reihen in seiner Seitenleiste.** Die Klassen sind eine geschlossene Aufzählung, keine freien Farben – jede Füllung mischt sich aus `--emph` und `--ink` über `--paper` und überlebt damit alle sieben Themes. `.paper` sieht wirkungslos aus, ist es aber nicht: Es ist die Voreinstellung einer Box, doch unter `default box {.tone-3}` kommt eine Box ohne die Klasse nicht mehr dorthin zurück, und ein freier `text` bekäme sonst überhaupt keinen Hintergrund – und genau der ist es, der die Linie hinter einer Beschriftung ausstanzt.
+**Der Editor zeigt genau diese Reihen in seiner Seitenleiste.** Die Klassen sind eine geschlossene Aufzählung, keine freien Farben – jede Füllung mischt sich aus `--emph` und `--ink` über `--paper` und überlebt damit alle sieben Themes.
+
+**Die untere Reihe sind die vier Umrisse, die kein Rechteck sind, und `.turn`.** Sie teilen sich einen Slot mit `.round` und `.sharp`, weil ein Sechseck keinen Eckenradius hat, über den sich streiten ließe – und sie kosten nichts, weil sie dieselben vier Zahlen zeichnen wie ein Rechteck, nur zu einem anderen Pfad verbunden. `.turn` liest die Beschriftung von unten nach oben; ein hoher schmaler Kasten hat für ein Wort nur längs Platz, und die Alternative ist ein Buchstabe pro Zeile. `.paper` sieht wirkungslos aus, ist es aber nicht: Es ist die Voreinstellung einer Box, doch unter `default box {.tone-3}` kommt eine Box ohne die Klasse nicht mehr dorthin zurück, und ein freier `text` bekäme sonst überhaupt keinen Hintergrund – und genau der ist es, der die Linie hinter einer Beschriftung ausstanzt.
 
 **Wenn Schrift und Kasten nicht zusammenpassen, gibt es drei Antworten.** Ohne `w` wächst der Kasten zur Schrift. Bei festem `w` verkleinert `.shrink` die Schrift, bis sie hineinpasst, und `.fit` füllt den Kasten in beide Richtungen aus, begrenzt auf 0.6–1.5× der Grundgröße. Weil die Textbreite beim Bauen nur *geschätzt* wird – einen Browser gibt es dabei nicht –, fällt die gewählte Größe eine Spur zu klein aus. Das ist die sichere Richtung.
 

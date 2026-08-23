@@ -96,6 +96,10 @@ export const DG_CLASSES = new Set([
   // rect, drawn with a different `d`, so extents, viewBox and tweening are
   // untouched. See dgShapeD.
   'round', 'sharp', 'hex', 'chevron', 'chevron-left', 'wedge',
+  // `.turn` reads the label bottom-to-top. Not decoration: a tall narrow
+  // element (a firewall bar, a matrix row, a y axis) has room for a word only
+  // along its long side, and the alternative is one letter per line.
+  'turn',
   // type. `.serif` is the upright serif; `.hand` is the same family forced
   // italic and accented, and until there was a plain one the family was
   // reachable only through the annotation voice.
@@ -144,6 +148,16 @@ export const DG_CLASS_CLASHES = [['tone-4', 'accent']];
 // different way of joining those four numbers into a path. Anything that
 // needed its own point list would have needed its own everything.
 export const DG_SHAPE_CLASSES = new Set(['hex', 'chevron', 'chevron-left', 'wedge']);
+
+// How far `.turn` turns a label, in degrees, and it is negative because SVG
+// rotates clockwise: -90 leaves the words reading bottom-to-top, which is the
+// convention for a y axis and for the name written up the side of a bar.
+//
+// The angle travels as a third number on the label's own geometry vector
+// rather than as a class the runtime has to look up, for the same reason the
+// shapes reuse the rect's four numbers: everything downstream already knows
+// how to carry, interpolate and apply a vector.
+export const DG_TURN_DEG = -90;
 
 // Pure, importless, and stringified into the browser runtime by build.js, so
 // exactly one text draws these shapes at build time and at step time. Keep it
@@ -1877,7 +1891,11 @@ export function createDiagramCompiler(env = {}) {
         return { w, h: w };
       }
       const font = fitted(nw != null ? nw * uw : 0, nh != null ? nh * uh : 0);
-      const m = dgMeasure(st.label, font, classes.has('mono'));
+      const m0 = dgMeasure(st.label, font, classes.has('mono'));
+      // A label read bottom-to-top needs its measurements the other way round.
+      // Everything below asks "how much room does the label want" and gets the
+      // right answer for free once the two are swapped here.
+      const m = classes.has('turn') ? { w: m0.h, h: m0.w } : m0;
       // A free `text` sizes itself to its label, and an explicit w or h says
       // otherwise – which is what a `.fit` text needs, and what `w` on a text
       // meant on paper long before it did anything.
@@ -2155,11 +2173,15 @@ export function createDiagramCompiler(env = {}) {
       const font = box.font ?? dgFontFor(st.classes);
       const m = dgMeasure(st.label, font, st.classes.has('mono'));
       ext.set(el.id + '--l', [m.w, m.h]);
-      const x = !freeText ? box.x + box.w / 2
+      // A turned label is centred on its origin whichever way it reads, so
+      // `.left` / `.right` have nothing to say about it – they name an edge of
+      // a horizontal run of text.
+      const turned = st.classes.has('turn');
+      const x = (!freeText || turned) ? box.x + box.w / 2
         : st.classes.has('left') ? box.x
         : st.classes.has('right') ? box.x + box.w
         : box.x + box.w / 2;
-      put(el, el.id + '--l', [x, box.y + box.h / 2]);
+      put(el, el.id + '--l', [x, box.y + box.h / 2, turned ? DG_TURN_DEG : 0]);
     };
 
     for (const node of model.nodes) {
@@ -2574,8 +2596,16 @@ export function createDiagramCompiler(env = {}) {
               + 'figure is a guess. Every place that positions a label has to record its size.');
             ext2 = [120, 28];
           }
-          const [lw, lh] = ext2;
-          const a = anchorFor(ownerOf(gid), f);
+          // A turned label occupies its own measurements the other way round,
+          // and it is centred on its origin on both axes. Reserving the
+          // upright box for it is not a cosmetic error: a word of any length
+          // set up the side of a bar would reserve that length horizontally
+          // and almost none of it vertically, so the figure would be framed
+          // around a box that is nowhere near what the browser paints.
+          const owner = ownerOf(gid);
+          const turned = (vec[2] || 0) !== 0;
+          const [lw, lh] = turned ? [ext2[1], ext2[0]] : ext2;
+          const a = turned ? 'middle' : anchorFor(owner, f);
           const x = a === 'start' ? vec[0] : a === 'end' ? vec[0] - lw : vec[0] - lw / 2;
           into.push({ x, y: vec[1] - lh / 2, w: lw, h: lh });
         }
@@ -2660,7 +2690,10 @@ export function createDiagramCompiler(env = {}) {
         const v = printGeom.get(e.id + '--l') || [0, 0];
         const shown = (printLab.get(e.id) ?? 0) === i;
         const extra = (variants.length > 1 ? 'dg-variant' : '') + (shown ? '' : ' dg-off');
-        inner += `<g id="${prefix}${e.id}--lw${i}" data-lab="${e.id}--l" class="dg-lwrap${extra ? ' ' + extra.trim() : ''}" transform="translate(${v[0].toFixed(2)},${v[1].toFixed(2)})">`
+        // The turn rides on the vector, so the opening beat is written the
+        // same way every later beat is applied – see dgApplyVec.
+        const turn = v[2] ? ` rotate(${v[2]})` : '';
+        inner += `<g id="${prefix}${e.id}--lw${i}" data-lab="${e.id}--l" class="dg-lwrap${extra ? ' ' + extra.trim() : ''}" transform="translate(${v[0].toFixed(2)},${v[1].toFixed(2)})${turn}">`
           // A container's caption is positioned at its left edge, so it has to
           // be drawn from there – anchored middle it hung half its own width
           // outside the border it belongs to.

@@ -1558,7 +1558,11 @@ function dgApplyVec(el, kind, v) {
     for (let i = 0; i < v.length; i += 2) d += (i ? 'L' : 'M') + v[i] + ' ' + v[i + 1];
     el.setAttribute('d', d + (el.classList.contains('dg-head') ? 'Z' : ''));
   } else {
-    el.setAttribute('transform', 'translate(' + v[0] + ',' + v[1] + ')');
+    // A label. The optional third number is the turn, so a rotated one is
+    // carried, interpolated and applied by the very same machinery that moves
+    // an upright one - no class lookup at step time, no second code path.
+    el.setAttribute('transform', 'translate(' + v[0] + ',' + v[1] + ')'
+      + (v[2] ? ' rotate(' + v[2] + ')' : ''));
   }
 }
 
