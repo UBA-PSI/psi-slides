@@ -1434,3 +1434,96 @@ into its preview strip**, so a lecture with eleven figures carries twenty-two
 payload scripts, and because `getElementById` always answers with the
 original, every clone resolves to a figure already in the list. The workspace
 would have offered each figure twice. Deduplicated by the SVG element.
+
+### Phases 4–7 – the frame, the guides, the drag, the acts · **done**
+
+`editor.mjs` (≈2,300 lines) and `editor.css`, both read from disk and inlined
+like the compiler. The editor opens from the focus card's own button or `E`,
+and everything in §4.2 is bound.
+
+**Phase 4, the frame.** Computed, not chosen. `#dge-frame` is a real
+destination – the chunk's own width class at the *measured* em of a live
+`.chunk`, so it moves with the zoom key and with auto-fit – and the drawing
+inside carries the same `max-width: 100%` and `max-height: 62vh` the live
+views apply, with the cap lifted in the print frame. Two things it says out
+loud that are otherwise invisible until you look at the built page: the
+measure under the frame (*full · 72em*) and, when the height cap binds first,
+*height-capped at 62vh, so 39% of the measure stays empty beside it*.
+
+**Phase 5, the guides.** A faint cell grid and rulers in *cells*, the origin
+axes, and – on a selection – the relations that hold it: the `gap` drawn
+between the two facing edges and labelled, the alignment edge as a hairline
+through both elements, `between` as the line joining its two references with
+`frac`, a ref coordinate as the line it refers to, an `align` set's shared
+axis running through every member, a `spread` set's equal centre distances as
+matched marks, and `same as` as a width bracket mirrored onto its source.
+Tags get a tinted halo instead of a line, because a tag is not geometric and
+drawing it like an alignment would say something false about it.
+
+**Phase 6, the drag.** The §9.3 table, implemented as `dgePlanDrag(ctx, id,
+dx, dy)` returning *edits* rather than applying them – which is what lets the
+status bar show the line before the pointer is up. Refusals name the line:
+*"y comes from `align y middle` on line 40. Drag iv to move the row, or drop
+c1 from that line."*
+
+**Phase 7, the acts.** Placers write a statement, and the placement heuristic
+proposes a relation over a coordinate: dropped beside an existing element it
+writes `left of b gap 0.05`, not `at 3.2,1`. Wrappers act on the selection and
+are disabled until there is one. `align`/`spread` are selection acts with the
+first-selected as master, said in the sidebar. Delete lists what refers to the
+element and removes those lines too, so the block still compiles.
+
+**Four defects the browser found, all of them in the interaction rather than
+in the compiler.** None would have shown up in a unit test:
+
+1. **The gesture planned against its own preview.** `dgeStartMove` rebuilt the
+   span table from the *previewed* model while measuring offsets into the
+   *base* text. The two disagreed by however much the preview had already
+   rewritten, so a 60px drag came out as `gap 8.45`. Fixed by capturing
+   `{source, model, boxes, spans}` once at pointerdown and planning against
+   that – `dgeGestureBase()`.
+2. **The picture reflowed under the pointer.** Even with the base pinned, each
+   preview recompiled and the figure's viewBox grew with the gap, so the next
+   `pointermove` measured its delta against a different mapping. Compounding
+   again, and the wrong *feel* besides: a picture that rescales under your
+   hand is not one you can aim at. The viewBox is now pinned for the duration
+   of a gesture.
+3. **Zoom as a transform put the figure off-centre.** A transform does not
+   change the layout box, so at 100% a 72em frame is wider than the canvas,
+   the grid clamps the overflowing item to the start edge instead of centring
+   it, and the scaled figure sat well off to the right. Zoom is now the
+   frame's *size*; pan stays a transform, which is exactly the thing that
+   should not affect layout.
+4. **The entry point hung the tab.** The pencil button was appended into the
+   `#figure-overlay` subtree its own `MutationObserver` was watching, so
+   inserting it was a mutation, which re-ran the sync, which inserted it
+   again. It lives on `document.body` now – it is `position: fixed` either
+   way.
+
+Two smaller ones: the guide layer was pinned to the frame rather than to the
+drawing, so it was offset by the frame's padding; and `frozen` / `state` are
+top-level `let`/`const` in a classic script and therefore **not** properties
+of `window` – the room indicator reads the cockpit's own `#freeze-btn`
+instead, which is the state made visible anyway.
+
+Verified in a real browser, all on `lectures/diagrams`:
+
+- **the drag**: `box c1 "c_1" right of c0 gap 0.3` → `gap 0.8` for a 60px
+  drag, which is the measured 0.49 cells at that zoom; the `align y middle`
+  refusal fires on the cross axis and names line 40 while the main axis still
+  moves.
+- **the acts**: place a box (writes `box b2 "box" left of b gap 0.05` – a
+  relation, not a coordinate), wrap three in a container, delete it, undo it
+  back, cycle the frame, step to the next figure, open the board (11 cards).
+  Zero problems reported at every step.
+- **the modal owns the keyboard**: with the editor open, `Space` `C` `F` `A`
+  `↓` `B` leave the active chunk, the revealed count, the theme, the font, the
+  collapse mode and the blank state *identical*, while `F` cycles the editor's
+  frame.
+- **the entry point**: focus a figure → the button appears → `E` and the
+  button both open the editor on that figure; `Esc` closes it.
+- **all seven themes**, screenshotted with the editor open: the chrome follows
+  `data-mode`, so the two phosphor modes came free.
+- the phase-3 identity check still passes (11/11), all spans still round-trip,
+  all 707 span edits still re-parse, all three lectures build, `lint --strict`
+  clean.

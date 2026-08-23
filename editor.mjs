@@ -255,6 +255,2118 @@ function dgeSelfTest() {
   return report;
 }
 
+
+// ── vocabulary, as the sidebar shows it ─────────────────────────────
+// The class vocabulary is a closed enumeration and the editor exposes
+// exactly those names and nothing else – no freehand, no arbitrary colours,
+// no free font choice. Grouped by the slot each occupies, because that is
+// what the swatch row *is*: one choice per slot, and picking one displaces
+// whatever was there.
+
+const DGE_SLOTS = [
+  { key: 'fill', label: 'fill', kinds: ['box', 'dot', 'text', 'container'],
+    options: [
+      { cls: '', label: 'paper', fill: '' },
+      { cls: 'tone-1', fill: 'tone-1' }, { cls: 'tone-2', fill: 'tone-2' },
+      { cls: 'tone-3', fill: 'tone-3' }, { cls: 'tone-4', fill: 'tone-4' },
+      { cls: 'clear', fill: 'clear' },
+    ] },
+  { key: 'ink', label: 'ink', kinds: null,
+    options: [{ cls: '', label: 'ink' }, { cls: 'accent' }, { cls: 'muted' }] },
+  { key: 'stroke', label: 'line', kinds: null,
+    options: [{ cls: '', label: 'solid' }, { cls: 'dashed' }, { cls: 'dotted' }] },
+  { key: 'weight', label: 'weight', kinds: null,
+    options: [{ cls: '', label: 'normal' }, { cls: 'thick' }, { cls: 'bare' }] },
+  { key: 'corner', label: 'corner', kinds: ['box', 'container'],
+    options: [{ cls: '', label: 'default' }, { cls: 'round' }, { cls: 'sharp' }] },
+  { key: 'size', label: 'type size', kinds: null,
+    options: [{ cls: 'small' }, { cls: '', label: 'normal' }, { cls: 'large' }] },
+  { key: 'family', label: 'family', kinds: null,
+    options: [{ cls: '', label: 'sans' }, { cls: 'mono' }, { cls: 'serif' }, { cls: 'hand' }] },
+  { key: 'fitting', label: 'type fits the box', kinds: ['box', 'text'],
+    options: [{ cls: '', label: 'no' }, { cls: 'fit' }, { cls: 'shrink' }] },
+  { key: 'weightfont', label: 'text weight', kinds: null,
+    options: [{ cls: '', label: 'regular' }, { cls: 'bold' }] },
+  { key: 'align', label: 'text align', kinds: ['text'],
+    options: [{ cls: 'left' }, { cls: '', label: 'centre' }, { cls: 'right' }] },
+  { key: 'head', label: 'arrowheads', kinds: ['edge'],
+    options: [{ cls: '', label: 'one' }, { cls: 'no-head', label: 'none' }, { cls: 'both-heads', label: 'both' }] },
+  { key: 'softness', label: 'softness', kinds: null,
+    options: [{ cls: '', label: 'full' }, { cls: 'ghost' }, { cls: 'dim' }, { cls: 'emph' }] },
+];
+
+// The tools. Placers put a new element somewhere; wrappers act on what is
+// already selected, because that is what their statements mean. There is
+// nothing to draw for a container – select three boxes and press 6.
+const DGE_TOOLS = [
+  { id: 'select', keys: ['1', 'v'], label: 'select', icon: 'M3 2l9 6-3.6 1L11 12l-1.6 1-2.5-3L4 13z' },
+  { id: 'box', keys: ['2', 'r'], label: 'box', icon: 'M2 4h11v7H2z', placer: true },
+  { id: 'dot', keys: ['3', 'c'], label: 'dot', icon: 'M7.5 3.2a4.3 4.3 0 100 8.6 4.3 4.3 0 000-8.6z', placer: true },
+  { id: 'text', keys: ['4', 't'], label: 'text', icon: 'M2 3h11v2h-4.5v8h-2V5H2z', placer: true },
+  { id: 'edge', keys: ['5', 'a'], label: 'edge', icon: 'M2 12L13 4M13 4l-4 .3M13 4l-.3 4', drag: true },
+  { id: 'line', keys: ['9', 'l'], label: 'line', icon: 'M2 12L13 4', drag: true },
+  { id: 'image', keys: ['8', 'i'], label: 'image', icon: 'M2 3h11v9H2zM2 10l3.5-3 3 2.4L11 7l2 2', placer: true },
+  { sep: true },
+  { id: 'container', keys: ['6'], label: 'group', icon: 'M2 2h11v11H2zM4.5 5h6v5h-6z', wrapper: true },
+  { id: 'brace', keys: ['7'], label: 'brace', icon: 'M5 2c0 3-3 3-3 4.5C2 8 5 8 5 11M8 2h5M8 6.5h5M8 11h5', wrapper: true },
+];
+
+// What `default <kind>` and each statement accept, mirrored from the
+// compiler's own table so the panel can never offer a field the build would
+// reject. Imported, not re-stated – that is the whole point of the tables
+// being exported.
+function dgeKindOpts(kind) {
+  return (window.PSI_DG.DG_KIND_OPTS[kind] || []).slice();
+}
+
+// ── editor state ────────────────────────────────────────────────────
+// Deliberately small, and deliberately *not* a model of the diagram. The
+// diagram is the source text; this is what the author is doing to it.
+
+const DGE = {
+  open: false,
+  fig: null,             // the figure being edited
+  index: 0,              // its position in DGE_FIGURES
+  source: '',            // the current block body – the only thing that matters
+  compiled: null,        // last successful compile, kept when a parse fails
+  model: null,           // its model
+  spans: null,           // createSpanTable over it
+  boxes: null,           // id -> {x,y,w,h} at the beat on screen, in px
+  beat: 0,               // which beat the canvas shows
+  selection: [],         // element ids, first is the master for align/spread
+  tool: 'select',
+  toolLocked: false,
+  frame: 'slide',
+  zoom: 1,
+  pan: { x: 0, y: 0 },
+  stripRight: false,
+  boardOpen: false,
+  undo: [],              // whole-body snapshots, one per gesture
+  redo: [],
+  clipboard: null,
+  dirty: false,
+  status: { line: '', note: '', bad: false },
+};
+
+const DGE_MAX_UNDO = 120;
+
+// ── small DOM helpers ───────────────────────────────────────────────
+
+function dgeEl(tag, attrs, kids) {
+  const el = tag === 'svg' || tag === 'g' || tag === 'rect' || tag === 'line'
+    || tag === 'circle' || tag === 'path' || tag === 'text' || tag === 'polyline'
+    ? document.createElementNS('http://www.w3.org/2000/svg', tag)
+    : document.createElement(tag);
+  for (const k in (attrs || {})) {
+    const v = attrs[k];
+    if (v === null || v === undefined || v === false) continue;
+    if (k === 'class') el.setAttribute('class', v);
+    else if (k === 'text') el.textContent = v;
+    else if (k === 'html') el.innerHTML = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : String(v));
+  }
+  for (const kid of (kids || [])) if (kid) el.appendChild(kid);
+  return el;
+}
+
+const dgeQ = (sel) => document.querySelector(sel);
+const dgeNum = (n, places) => {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '0';
+  const s = v.toFixed(places === undefined ? 2 : places);
+  return s.replace(/\.?0+$/, '') || '0';
+};
+
+// ── the frame (editor.md §5) ────────────────────────────────────────
+// You cannot judge a figure without knowing how large it lands, and in this
+// project that is not a property of the figure: `unit=WxH` sets only the grid
+// cell and therefore the proportions inside the picture, while how large it
+// arrives is the chunk's width class. An editor that let you pick an
+// arbitrary canvas size would be lying to you.
+//
+// So the frames are computed, not chosen, and they are real destinations.
+// Switching between them changes nothing in the source.
+
+const DGE_FRAME_EM = {
+  // the chunk's own width class, from AUDIENCE_CSS
+  slide: { narrow: 28, standard: 36, wide: 52, full: 72 },
+  // one pane of a ::: side or a ::: cols 2 at that class – just under half
+  // the chunk in every class, and the portrait case: a .full pane is 35em
+  // against the slide's 72em, and at .standard it is 17em. This is the one
+  // place a landscape figure quietly stops working.
+  column: { narrow: 13, standard: 17, wide: 25, full: 35 },
+  // the document measure, where the 62vh cap does not apply at all
+  print: { narrow: 28, standard: 36, wide: 52, full: 72 },
+};
+
+// The em base is the chunk's own font size, measured from the live document
+// rather than assumed: it moves with the zoom key and with auto-fit.
+function dgeEmPx() {
+  const chunk = document.querySelector('.chunk');
+  if (!chunk) return 16;
+  const px = parseFloat(getComputedStyle(chunk).fontSize);
+  return Number.isFinite(px) && px > 0 ? px : 16;
+}
+
+function dgeFrameMetrics() {
+  const width = DGE.fig ? DGE.fig.width : 'standard';
+  const em = DGE_FRAME_EM[DGE.frame][width] || 36;
+  const px = em * dgeEmPx();
+  // .psi-diagram is capped at 62vh in the live views and at nothing in
+  // print. A figure that hits the cap leaves a band of the measure empty
+  // beside it, and that is invisible until you look at the built page.
+  const capPx = DGE.frame === 'print' ? Infinity : window.innerHeight * 0.62;
+  return { em, px, capPx, width };
+}
+
+// ── the overlay ─────────────────────────────────────────────────────
+
+let dgeRoot = null;
+
+function dgeBuildChrome() {
+  if (dgeRoot) return dgeRoot;
+
+  const tools = dgeEl('nav', { id: 'dge-tools', 'aria-label': 'Tools' });
+  for (const t of DGE_TOOLS) {
+    if (t.sep) { tools.appendChild(dgeEl('hr', {})); continue; }
+    const icon = dgeEl('svg', { viewBox: '0 0 15 15', 'aria-hidden': 'true' }, [
+      dgeEl('path', { d: t.icon, fill: t.id === 'select' || t.id === 'box' || t.id === 'dot' || t.id === 'text' || t.id === 'image' || t.id === 'container' ? 'currentColor' : 'none', stroke: 'currentColor', 'stroke-width': 1.2, 'fill-opacity': t.id === 'box' || t.id === 'image' || t.id === 'container' ? 0.12 : 1 }),
+    ]);
+    const btn = dgeEl('button', {
+      type: 'button', class: 'dge-btn dge-tool', 'data-tool': t.id,
+      title: `${t.label}  (${t.keys.map(k => k.toUpperCase()).join(' or ')})`,
+      'aria-pressed': 'false',
+      onclick: () => dgePickTool(t.id),
+    }, [icon, dgeEl('span', { text: t.keys[0].toUpperCase() })]);
+    tools.appendChild(btn);
+  }
+
+  const seg = dgeEl('div', { class: 'dge-seg', id: 'dge-frames', role: 'group', 'aria-label': 'Frame' });
+  for (const f of ['slide', 'column', 'print']) {
+    seg.appendChild(dgeEl('button', {
+      type: 'button', 'data-frame': f, 'aria-pressed': String(f === DGE.frame),
+      onclick: () => dgeSetFrame(f),
+    }, [document.createTextNode(f[0].toUpperCase() + f.slice(1)), dgeEl('i', { text: '' })]));
+  }
+
+  const top = dgeEl('header', { id: 'dge-top' }, [
+    dgeEl('span', { class: 'dge-name', id: 'dge-name' }),
+    dgeEl('div', { class: 'dge-group' }, [
+      dgeEl('button', { type: 'button', class: 'dge-btn', 'data-act': 'prev', title: 'previous figure (, or PageUp)', text: '‹', onclick: () => dgeGoFigure(-1) }),
+      dgeEl('span', { id: 'dge-figpos' }),
+      dgeEl('button', { type: 'button', class: 'dge-btn', 'data-act': 'next', title: 'next figure (. or PageDown)', text: '›', onclick: () => dgeGoFigure(1) }),
+      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-board-btn', title: 'the figure board', html: 'Board <kbd>O</kbd>', onclick: () => dgeToggleBoard() }),
+    ]),
+    dgeEl('div', { class: 'dge-group' }, [dgeEl('span', { class: 'dge-cap', text: 'frame' }), seg]),
+    dgeEl('div', { class: 'dge-group' }, [
+      dgeEl('button', { type: 'button', class: 'dge-btn', text: '−', title: 'zoom out', onclick: () => dgeZoomBy(1 / 1.2) }),
+      dgeEl('span', { id: 'dge-zoom' }),
+      dgeEl('button', { type: 'button', class: 'dge-btn', text: '+', title: 'zoom in', onclick: () => dgeZoomBy(1.2) }),
+      dgeEl('button', { type: 'button', class: 'dge-btn', text: 'Fit', title: 'fit the frame in the canvas', onclick: () => dgeZoomFit() }),
+    ]),
+    dgeEl('span', { class: 'dge-spacer' }),
+    dgeEl('span', { id: 'dge-room' }),
+    dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-copy-btn', html: 'Copy source <kbd>⌘S</kbd>', onclick: () => dgeCommit() }),
+    dgeEl('button', { type: 'button', class: 'dge-btn', html: 'Close <kbd>Esc</kbd>', onclick: () => dgeClose() }),
+  ]);
+
+  // The guide layer is a sibling of the drawing *inside* #dge-art, not of the
+  // frame: the frame has padding, so guides pinned to it would be offset by
+  // that padding from the picture they annotate. Sharing the drawing's own
+  // box and its viewBox is what makes a guide drawn at 3.2,1 land at 3.2,1.
+  const guides = dgeEl('svg', { id: 'dge-guides', 'aria-hidden': 'true' });
+  const art = dgeEl('div', { id: 'dge-art' }, [guides]);
+  const frame = dgeEl('div', { id: 'dge-frame' }, [art]);
+  const stage = dgeEl('div', { id: 'dge-stage' }, [frame]);
+  const board = dgeEl('div', { id: 'dge-board', hidden: true });
+  const canvas = dgeEl('main', { id: 'dge-canvas' }, [stage, board]);
+
+  const side = dgeEl('aside', { id: 'dge-side' });
+  const status = dgeEl('footer', { id: 'dge-status' }, [
+    dgeEl('span', { class: 'dge-line', id: 'dge-statusline' }),
+    dgeEl('span', { class: 'dge-note', id: 'dge-statusnote' }),
+    dgeEl('span', { class: 'dge-spacer' }),
+    dgeEl('span', { id: 'dge-counts' }),
+  ]);
+  const strip = dgeEl('section', { id: 'dge-strip', 'aria-label': 'Figures' });
+
+  dgeRoot = dgeEl('div', {
+    id: 'dge-root', role: 'dialog', 'aria-modal': 'true',
+    'aria-label': 'Diagram editor', hidden: true,
+  }, [top, tools, canvas, side, status, strip]);
+  document.body.appendChild(dgeRoot);
+
+  dgeWireCanvas(canvas, guides);
+  return dgeRoot;
+}
+
+// ── open, close, render ─────────────────────────────────────────────
+
+function dgeOpen(figOrIndex) {
+  const figs = dgeCollectFigures();
+  if (!figs.length) return false;
+  let index = 0;
+  if (typeof figOrIndex === 'number') index = figOrIndex;
+  else if (figOrIndex) index = Math.max(0, figs.indexOf(figOrIndex));
+  dgeBuildChrome();
+  DGE.open = true;
+  // Nothing to restore on the way out. The workspace moves between figures
+  // inside the editor and never touches the lecture's own position, so
+  // editing five figures does not move the projection five times – and
+  // `revealed[chunkId]`, which the reveal, the sync, the freeze gate and the
+  // localStorage recovery all share, is never written to at all.
+  // Shown *before* the figure is fitted: every measurement fit needs -
+  // the canvas box, the frame box - is zero while the overlay is hidden, so
+  // fitting first sizes the figure against nothing and lands at 100%.
+  dgeRoot.hidden = false;
+  document.body.classList.add('dge-open');
+  dgeLoadFigure(index, true);
+  requestAnimationFrame(() => dgeZoomFit());
+  dgeRoot.focus?.();
+  return true;
+}
+
+function dgeClose() {
+  if (!DGE.open) return;
+  DGE.open = false;
+  dgeRoot.hidden = true;
+  document.body.classList.remove('dge-open');
+  DGE.boardOpen = false;
+}
+
+function dgeLoadFigure(index, resetView) {
+  const figs = DGE_FIGURES;
+  DGE.index = Math.max(0, Math.min(figs.length - 1, index));
+  DGE.fig = figs[DGE.index];
+  DGE.source = DGE.fig.body;
+  DGE.selection = [];
+  DGE.undo = [];
+  DGE.redo = [];
+  DGE.dirty = false;
+  // The editor opens at the beat that is on screen. `revealed[chunkId]` is
+  // the single piece of state the reveal, the sync, the freeze gate and the
+  // localStorage recovery all share, and the editor writes nothing back to
+  // it: a lecturer who fixes a figure mid-talk has to find the room's slide
+  // unchanged underneath.
+  const live = DGE.fig.svg.psiDiagram;
+  DGE.beat = live ? live.step : 0;
+  if (resetView !== false) { DGE.zoom = 1; DGE.pan = { x: 0, y: 0 }; }
+  DGE.frame = 'slide';
+  dgeRecompile();
+  dgeZoomFit();
+  dgeRenderStrip();
+}
+
+// Recompile the current source and repaint everything that depends on it.
+// A parse error never blanks the canvas: the last good render stays on
+// screen, the offending line is marked in the source pane, and the commit
+// button is disabled. While the author is mid-edit an intermediate state is
+// normal, not exceptional.
+function dgeRecompile() {
+  const res = dgeCompile(DGE.fig, DGE.source);
+  DGE.problems = res.errors.length ? res.errors : [];
+  DGE.warnings = res.warnings || [];
+  if (res.ok) {
+    DGE.compiled = res;
+    DGE.model = res.model;
+    DGE.spans = window.PSI_DG.createSpanTable(res.model, DGE.source);
+    DGE.boxes = dgeBoxesAt(res.model, DGE.beat);
+    dgePaintArt(res.html);
+    // A selection whose element the author just deleted by typing has to go.
+    DGE.selection = DGE.selection.filter((id) => DGE.boxes.has(id) || dgeFind(id));
+  }
+  dgeRenderAll();
+}
+
+// The geometry of every element at one beat, in the diagram's own px space.
+// Re-laying out only the beat on screen is deliberate: renderDiagram lays out
+// once *per step*, so a diagram with eight steps would do eight layouts per
+// pointermove. The whole thing re-runs on commit, which is also when the
+// warnings refresh.
+function dgeBoxesAt(model, beat) {
+  const errors = [];
+  const state = window.PSI_DG.dgStateAt(model, Math.max(0, Math.min(model.steps.length, beat)));
+  return DGE.fig.compiler.layoutDiagram(model, state, errors);
+}
+
+function dgePaintArt(html) {
+  const art = dgeQ('#dge-art');
+  const holder = document.createElement('div');
+  holder.innerHTML = html;
+  const fig = holder.querySelector('figure');
+  const svg = holder.querySelector('svg.psi-diagram');
+  if (!svg) return;
+  // The canvas shows the beat the author is on, so the live viewBox – the
+  // one that holds every beat – is the right one here for the same reason it
+  // is right in the live views: an element walking in from outside must not
+  // be clipped for the whole of its journey.
+  // While a gesture is in flight the viewBox is pinned to what it was when
+  // the pointer went down. Otherwise the figure grows as `gap` grows, the
+  // whole drawing rescales under the pointer, and the next pointermove
+  // measures its delta against a different mapping – which compounds: a 60px
+  // drag came out as a gap of 8.45. It is also the wrong *feel*; a picture
+  // that rescales under your hand is not a picture you can aim at.
+  if (DGE.pinnedViewBox) svg.setAttribute('viewBox', DGE.pinnedViewBox);
+  else if (svg.dataset.liveViewbox) svg.setAttribute('viewBox', svg.dataset.liveViewbox);
+  svg.removeAttribute('width');
+  svg.removeAttribute('height');
+  svg.id = 'dge-art-svg';
+  // Paint the beat on screen into it, using the runtime the build already
+  // ships – no second implementation of "what does step k look like".
+  const payload = fig ? fig.querySelector('script.psi-diagram-frames') : null;
+  if (payload) {
+    try {
+      const data = JSON.parse(payload.textContent);
+      window.dgRenderInto(svg, { data, svg }, DGE.beat);
+    } catch (e) { /* a diagram with no steps has no payload */ }
+  }
+  const guides = dgeQ('#dge-guides');
+  art.replaceChildren(svg, guides);
+  guides.setAttribute('viewBox', svg.getAttribute('viewBox'));
+  guides.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+}
+
+// ── layout of the canvas: frame, zoom, fit ──────────────────────────
+
+function dgeApplyFrame() {
+  const m = dgeFrameMetrics();
+  const frame = dgeQ('#dge-frame');
+  const art = dgeQ('#dge-art');
+  const svg = dgeQ('#dge-art-svg');
+  if (!frame || !svg) return;
+  frame.style.width = (m.px * DGE.zoom) + 'px';
+  frame.style.padding = (14 * DGE.zoom) + 'px';
+  art.style.width = '100%';
+  // Reproduce what .psi-diagram actually does at the destination: fill the
+  // measure, and be capped in height in the live views but not in print.
+  svg.style.maxWidth = '100%';
+  svg.style.width = '100%';
+  svg.style.height = 'auto';
+  svg.style.maxHeight = m.capPx === Infinity ? 'none' : (m.capPx * DGE.zoom) + 'px';
+  const vb = (svg.getAttribute('viewBox') || '0 0 1 1').split(/\s+/).map(Number);
+  const ratio = vb[3] / (vb[2] || 1);
+  const natural = (m.px - 28) * ratio;
+  const capped = m.capPx !== Infinity && natural > m.capPx;
+  let note = `${m.width} · ${m.em}em`;
+  if (capped) {
+    // Say it while the author can still fix it. This is invisible until you
+    // look at the built page: a third of the measure stays empty beside the
+    // drawing, because the height cap bound before the width did.
+    note += ` · height-capped at 62vh, so ${Math.round(100 - 100 * (m.capPx / natural))}% of the measure stays empty beside it`;
+  }
+  frame.dataset.measure = note;
+  frame.classList.toggle('dge-capped', capped);
+  dgeQ('#dge-frames').querySelectorAll('button').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.dataset.frame === DGE.frame));
+    const em = DGE_FRAME_EM[b.dataset.frame][m.width];
+    b.querySelector('i').textContent = b.dataset.frame === 'print' ? em + 'em' : em + 'em';
+  });
+}
+
+// Zoom changes the frame's *size*, not a transform on it. A transform does
+// not change the layout box, so at zoom 1 a 72em frame is wider than the
+// canvas, the grid clamps the overflowing item to the start edge instead of
+// centring it, and the scaled figure then sits well off to the right. Pan
+// stays a transform, because pan is exactly a thing that should not affect
+// layout.
+function dgeApplyView() {
+  const stage = dgeQ('#dge-stage');
+  if (!stage) return;
+  stage.style.transform = `translate(${DGE.pan.x}px, ${DGE.pan.y}px)`;
+  dgeApplyFrame();
+  const z = dgeQ('#dge-zoom');
+  if (z) z.textContent = Math.round(DGE.zoom * 100) + '%';
+}
+
+function dgeSetFrame(name) {
+  DGE.frame = name;
+  dgeApplyFrame();
+  dgeZoomFit();
+  dgeDrawGuides();
+}
+
+function dgeCycleFrame(back) {
+  const order = ['slide', 'column', 'print'];
+  const i = order.indexOf(DGE.frame);
+  dgeSetFrame(order[(i + (back ? order.length - 1 : 1)) % order.length]);
+}
+
+function dgeZoomBy(k) {
+  DGE.zoom = Math.max(0.15, Math.min(8, DGE.zoom * k));
+  dgeApplyView();
+  dgeDrawGuides();
+}
+
+function dgeZoomFit() {
+  dgeApplyFrame();
+  const canvas = dgeQ('#dge-canvas');
+  const frame = dgeQ('#dge-frame');
+  if (!canvas || !frame) return;
+  DGE.zoom = 1;
+  DGE.pan = { x: 0, y: 0 };
+  dgeApplyView();
+  const cb = canvas.getBoundingClientRect();
+  const fb = frame.getBoundingClientRect();
+  if (!fb.width || !fb.height) return;
+  const k = Math.min((cb.width - 70) / fb.width, (cb.height - 80) / fb.height);
+  DGE.zoom = Math.max(0.15, Math.min(4, k));
+  dgeApplyView();
+  dgeDrawGuides();
+}
+
+// Pointer position in the diagram's own coordinate space – the one every
+// number in the block is written in. getScreenCTM does the whole transform
+// chain, so zoom, pan and the frame's own scaling are all accounted for.
+function dgePointToDiagram(ev) {
+  const guides = dgeQ('#dge-guides');
+  const ctm = guides.getScreenCTM();
+  if (!ctm) return { x: 0, y: 0 };
+  const pt = guides.ownerSVGElement ? null : null;
+  const inv = ctm.inverse();
+  const p = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(inv);
+  return { x: p.x, y: p.y };
+}
+
+// px -> grid cells, which is what the author writes. `unit` is the whole
+// coordinate system of the block and is currently something they have to
+// hold in their head; the rulers and every readout here are in cells.
+function dgeUnits(model) {
+  const u = ((model || DGE.model) && (model || DGE.model).unit) || [120, 72];
+  return { uw: u[0], uh: u[1] };
+}
+
+// ── guides (editor.md §9.1) ─────────────────────────────────────────
+// A diagram is made of relations, so draw them. The whole point of this
+// grammar is that a figure is held together by relations rather than
+// coordinates – and that structure is completely invisible in the rendered
+// picture. Two boxes 0.55 apart look exactly like two boxes that happen to
+// be 0.55 apart. The editor's first job, before it lets anyone drag
+// anything, is to make the tidiness visible.
+//
+// This is also how a refusal stops being a surprise: §9.3 declines to drag a
+// follower along its constrained axis, and if that axis is already drawn as
+// a line through the set, the refusal is something the author saw coming.
+
+let dgeSnapGuides = [];   // live during a drag, cleared on pointerup
+
+function dgeDrawGuides() {
+  const g = dgeQ('#dge-guides');
+  if (!g || !DGE.model) return;
+  g.replaceChildren();
+  const { uw, uh } = dgeUnits();
+  const vb = (g.getAttribute('viewBox') || '0 0 1 1').split(/\s+/).map(Number);
+  const [vx, vy, vw, vh] = vb;
+
+  // A faint cell grid, at very low contrast, behind the figure. `unit=WxH`
+  // is the coordinate system every number in the block is written in, and
+  // `gap 0.55` needs somewhere to be read off.
+  const grid = dgeEl('g', { class: 'dge-cell' });
+  const x0 = Math.floor(vx / uw) * uw, y0 = Math.floor(vy / uh) * uh;
+  for (let x = x0; x <= vx + vw; x += uw) {
+    grid.appendChild(dgeEl('line', { x1: x, y1: vy, x2: x, y2: vy + vh }));
+  }
+  for (let y = y0; y <= vy + vh; y += uh) {
+    grid.appendChild(dgeEl('line', { x1: vx, y1: y, x2: vx + vw, y2: y }));
+  }
+  g.appendChild(grid);
+  // The origin, which is where the first element sits for free.
+  g.appendChild(dgeEl('g', { class: 'dge-axis' }, [
+    dgeEl('line', { x1: vx, y1: 0, x2: vx + vw, y2: 0 }),
+    dgeEl('line', { x1: 0, y1: vy, x2: 0, y2: vy + vh }),
+  ]));
+
+  // Rulers in cells, not pixels, along the top and left edges.
+  const ruler = dgeEl('g', { class: 'dge-tick' });
+  for (let x = x0; x <= vx + vw; x += uw) {
+    ruler.appendChild(dgeEl('line', { x1: x, y1: vy, x2: x, y2: vy + 7 }));
+    ruler.appendChild(dgeEl('text', {
+      class: 'dge-ruler-label', x: x + 3, y: vy + 14, text: dgeNum(x / uw, 0),
+    }));
+  }
+  for (let y = y0; y <= vy + vh; y += uh) {
+    ruler.appendChild(dgeEl('line', { x1: vx, y1: y, x2: vx + 7, y2: y }));
+    ruler.appendChild(dgeEl('text', {
+      class: 'dge-ruler-label', x: vx + 3, y: y - 3, text: dgeNum(y / uh, 0),
+    }));
+  }
+  g.appendChild(ruler);
+
+  // Tag membership: a tinted halo behind the members. A tag is not
+  // geometric, so it must not be drawn as a line – borrowing the alignment
+  // treatment would say something false about what the tag does.
+  if (DGE.hoverTag) {
+    const halo = dgeEl('g', { class: 'dge-taghalo' });
+    for (const id of (DGE.model.tags.get(DGE.hoverTag) || [])) {
+      const b = DGE.boxes.get(id);
+      if (!b) continue;
+      halo.appendChild(dgeEl('rect', {
+        x: b.x - 7, y: b.y - 7, width: b.w + 14, height: b.h + 14, rx: 8,
+      }));
+    }
+    g.appendChild(halo);
+  }
+
+  // The selection, and what holds it.
+  for (const id of DGE.selection) {
+    const b = DGE.boxes.get(id);
+    if (!b) continue;
+    g.appendChild(dgeEl('rect', {
+      class: 'dge-sel', x: b.x - 3, y: b.y - 3, width: b.w + 6, height: b.h + 6, rx: 3,
+    }));
+  }
+  if (DGE.selection.length === 1) dgeDrawRelations(g, DGE.selection[0]);
+  if (DGE.selection.length === 1 && DGE.tool === 'select') dgeDrawHandles(g, DGE.selection[0]);
+
+  for (const node of dgeSnapGuides) g.appendChild(node);
+}
+
+// At rest, the selection shows what holds it: the placement it was written
+// with, the sets it belongs to, the width it copies. Quiet – hairlines in
+// --rule, labels in --ink-soft – and they answer, without a click, *why is
+// this here?*
+function dgeDrawRelations(g, id) {
+  const el = dgeFind(id);
+  const b = DGE.boxes.get(id);
+  if (!el || !b) return;
+  const { uw, uh } = dgeUnits();
+  const mid = (x) => x.x + x.w / 2;
+  const midY = (x) => x.y + x.h / 2;
+  const label = (x, y, text) => g.appendChild(dgeEl('text', { class: 'dge-rel-label', x, y, text }));
+  const tick = (x1, y1, x2, y2, strong) =>
+    g.appendChild(dgeEl('line', { class: strong ? 'dge-rel-strong' : 'dge-rel', x1, y1, x2, y2 }));
+
+  const p = el.place;
+  if (p && p.kind === 'rel') {
+    const ref = DGE.boxes.get(p.ref);
+    if (ref) {
+      // The gap itself, drawn between the two facing edges and labelled with
+      // the number that is written on the line.
+      if (p.dir === 'right' || p.dir === 'left') {
+        const y = midY(b);
+        const from = p.dir === 'right' ? ref.x + ref.w : ref.x;
+        tick(from, y, p.dir === 'right' ? b.x : b.x + b.w, y, true);
+        label((from + (p.dir === 'right' ? b.x : b.x + b.w)) / 2 - 12, y - 5, 'gap ' + dgeNum(p.gap));
+      } else {
+        const x = mid(b);
+        const from = p.dir === 'below' ? ref.y + ref.h : ref.y;
+        tick(x, from, x, p.dir === 'below' ? b.y : b.y + b.h, true);
+        label(x + 5, (from + (p.dir === 'below' ? b.y : b.y + b.h)) / 2, 'gap ' + dgeNum(p.gap));
+      }
+      // The alignment edge the placement carries, as a hairline through both.
+      const a = p.align;
+      if (p.dir === 'right' || p.dir === 'left') {
+        const ay = a === 'top' ? ref.y : a === 'bottom' ? ref.y + ref.h : midY(ref);
+        tick(Math.min(ref.x, b.x) - 10, ay, Math.max(ref.x + ref.w, b.x + b.w) + 10, ay);
+      } else {
+        const ax = a === 'left' ? ref.x : a === 'right' ? ref.x + ref.w : mid(ref);
+        tick(ax, Math.min(ref.y, b.y) - 10, ax, Math.max(ref.y + ref.h, b.y + b.h) + 10);
+      }
+    }
+  } else if (p && p.kind === 'between') {
+    const a = DGE.boxes.get(p.refs[0].ref), z = DGE.boxes.get(p.refs[1].ref);
+    if (a && z) {
+      tick(mid(a), midY(a), mid(z), midY(z), true);
+      label(mid(b) + 6, midY(b) - 6, 'frac ' + dgeNum(p.frac));
+    }
+  } else if (p && p.kind === 'abs' && !p.implicit) {
+    // A ref coordinate is the most valuable construct in the grammar and the
+    // least discoverable. Where one is in play, draw the line it refers to.
+    for (const [i, c] of (p.at || []).entries()) {
+      if (!c || !c.ref) continue;
+      const rb = DGE.boxes.get(c.ref);
+      if (!rb) continue;
+      if (i === 0) {
+        const x = c.prop === 'left' ? rb.x : c.prop === 'right' ? rb.x + rb.w : mid(rb);
+        tick(x, Math.min(rb.y, b.y) - 12, x, Math.max(rb.y + rb.h, b.y + b.h) + 12);
+        label(x + 4, Math.min(rb.y, b.y) - 15, c.ref + '.' + c.prop + (c.nudge ? (c.nudge > 0 ? '+' : '') + dgeNum(c.nudge) : ''));
+      } else {
+        const y = c.prop === 'top' ? rb.y : c.prop === 'bottom' ? rb.y + rb.h : midY(rb);
+        tick(Math.min(rb.x, b.x) - 12, y, Math.max(rb.x + rb.w, b.x + b.w) + 12, y);
+        label(Math.max(rb.x + rb.w, b.x + b.w) + 15, y - 4, c.ref + '.' + c.prop + (c.nudge ? (c.nudge > 0 ? '+' : '') + dgeNum(c.nudge) : ''));
+      }
+    }
+  }
+
+  // The sets. A shared axis runs as a hairline through every member with the
+  // master marked, so "that coordinate is not this element's to move" is
+  // something you can see before you try.
+  for (const a of DGE.model.aligns) {
+    if (!a.members.includes(id)) continue;
+    const boxes = a.members.map((m) => DGE.boxes.get(m)).filter(Boolean);
+    if (!boxes.length) continue;
+    const master = DGE.boxes.get(a.members[0]);
+    if (!master) continue;
+    if (a.axis === 'x') {
+      const x = a.edge === 'left' ? master.x : a.edge === 'right' ? master.x + master.w : mid(master);
+      const ys = boxes.flatMap((q) => [q.y, q.y + q.h]);
+      tick(x, Math.min(...ys) - 14, x, Math.max(...ys) + 14);
+      label(x + 4, Math.min(...ys) - 17, 'align x ' + a.edge);
+    } else {
+      const y = a.edge === 'top' ? master.y : a.edge === 'bottom' ? master.y + master.h : midY(master);
+      const xs = boxes.flatMap((q) => [q.x, q.x + q.w]);
+      tick(Math.min(...xs) - 14, y, Math.max(...xs) + 14, y);
+      label(Math.max(...xs) + 17, y - 4, 'align y ' + a.edge);
+    }
+  }
+  for (const s of DGE.model.spreads) {
+    if (!s.members.includes(id)) continue;
+    const boxes = s.members.map((m) => DGE.boxes.get(m)).filter(Boolean);
+    if (boxes.length < 2) continue;
+    // Equal centre distances as matched marks, which is what `spread` means.
+    for (let i = 1; i < boxes.length; i++) {
+      const a = boxes[i - 1], z = boxes[i];
+      if (s.axis === 'x') {
+        const y = Math.min(...boxes.map((q) => q.y)) - 12;
+        tick(mid(a), y, mid(z), y);
+        label((mid(a) + mid(z)) / 2 - 6, y - 4, '=');
+      } else {
+        const x = Math.min(...boxes.map((q) => q.x)) - 12;
+        tick(x, midY(a), x, midY(z));
+        label(x - 12, (midY(a) + midY(z)) / 2, '=');
+      }
+    }
+  }
+  // `same as` as a width bracket mirrored onto its source.
+  if (el.sameAs) {
+    const src = DGE.boxes.get(el.sameAs);
+    if (src) {
+      tick(src.x, src.y - 9, src.x + src.w, src.y - 9);
+      tick(b.x, b.y - 9, b.x + b.w, b.y - 9);
+      label(src.x + src.w / 2 - 20, src.y - 13, 'same as');
+    }
+  }
+}
+
+// Resize handles, on a box that can actually be resized.
+function dgeDrawHandles(g, id) {
+  const el = dgeFind(id);
+  const b = DGE.boxes.get(id);
+  if (!el || !b || !DGE.model.nodes.some((n) => n.id === id)) return;
+  if (el.kind === 'image' || el.kind === 'dot' || el.kind === 'box' || el.kind === 'text') {
+    const r = 4.5;
+    const spots = [
+      ['se', b.x + b.w, b.y + b.h], ['e', b.x + b.w, b.y + b.h / 2],
+      ['s', b.x + b.w / 2, b.y + b.h],
+    ];
+    for (const [dir, x, y] of spots) {
+      g.appendChild(dgeEl('rect', {
+        class: 'dge-handle dge-h-' + dir, 'data-handle': dir, 'data-id': id,
+        x: x - r, y: y - r, width: r * 2, height: r * 2, rx: 1,
+      }));
+    }
+  }
+}
+
+function dgeFind(id, model) {
+  const m = model || DGE.model;
+  if (!m) return null;
+  return [...m.nodes, ...m.edges, ...m.containers, ...m.braces]
+    .find((e) => e.id === id) || null;
+}
+
+// ── which token a drag rewrites (editor.md §9.3) ────────────────────
+// An element's position comes from exactly one placement expression, and the
+// editor's job is to decide which token a drag belongs to. The table:
+//
+//   at X,Y numeric      main axis: that number        cross: that number
+//   at X,Y with ref     the nudge (add one if absent) same
+//   right/left of A     gap                           align, then offset
+//   below/above A       gap                           align, then offset
+//   between A,B         frac                          offset
+//   owned by align x|y  –                             –
+//   owned by spread x|y –                             –
+//
+// The last two rows are the interesting ones. That axis is not the
+// element's to move, and the editor says so rather than silently breaking
+// the set.
+
+const DGE_SNAP_CELL = 0.05;      // round values on the cell grid
+const DGE_ALIGN_TOL = 0.06;      // how close counts as "on that edge", in cells
+
+function dgeRound(v, step) {
+  return Math.round(v / step) * step;
+}
+
+// Which axis a `rel` placement owns. `right of` puts the gap on x and the
+// alignment on y; `below` the other way round.
+function dgeMainAxis(place) {
+  if (!place) return null;
+  if (place.kind !== 'rel') return null;
+  return (place.dir === 'right' || place.dir === 'left') ? 'x' : 'y';
+}
+
+// Everything a drag of one element by (dx, dy) grid cells would write, as a
+// list of {attr, value, why}. Returning the *edits* rather than applying
+// them is what lets the status bar show the line before the pointer is up.
+function dgePlanDrag(ctx, id, dx, dy, opts) {
+  const el = dgeFind(id, ctx.model);
+  if (!el) return { edits: [], refusals: [] };
+  const place = el.place;
+  const edits = [];
+  const refusals = [];
+  const free = opts && opts.free;      // Ctrl/Cmd held: no snapping
+  const snap = (v) => (free ? v : dgeRound(v, DGE_SNAP_CELL));
+
+  // A coordinate owned by a set is not this element's to move. Name the line
+  // and say what to do instead, rather than silently breaking the set.
+  const blocked = (axis) => {
+    const owner = ctx.spans.constrainedBy(id, axis);
+    if (!owner) return false;
+    const master = owner.members[0];
+    refusals.push(owner.kind === 'align'
+      ? `${axis} comes from "align ${owner.axis} ${owner.edge}" on line ${owner.line}. `
+        + `Drag ${master} to move the row, or drop ${id} from that line.`
+      : `${axis} comes from "spread ${owner.axis}" on line ${owner.line}. `
+        + `Drag ${owner.members[0]} or ${owner.members[owner.members.length - 1]} to move the set.`);
+    return true;
+  };
+  const xBlocked = dx !== 0 && blocked('x');
+  const yBlocked = dy !== 0 && blocked('y');
+
+  if (!place || place.implicit) {
+    // Nothing in the source to rewrite. The first element sits at the origin
+    // for free; giving it a position means writing the placement out.
+    const at = `at ${dgeNum(snap(dx))},${dgeNum(snap(dy))}`;
+    edits.push({ attr: 'place', value: at, why: 'writes the placement out' });
+    return { edits, refusals };
+  }
+
+  if (place.kind === 'abs') {
+    const parts = place.at || [];
+    const axes = [['x', 0, dx, xBlocked], ['y', 1, dy, yBlocked]];
+    for (const [axis, i, delta, isBlocked] of axes) {
+      if (!delta || isBlocked) continue;
+      const c = parts[i];
+      if (c && c.ref) {
+        // A reference with a signed nudge. Rewrite the nudge, never the
+        // reference: that is the whole reason the nudge is in the grammar.
+        const next = snap((c.nudge || 0) + delta);
+        edits.push({
+          attr: `at.${axis}.nudge`,
+          value: next === 0 ? '' : (next > 0 ? '+' : '') + dgeNum(next),
+          why: `keeps ${c.ref}.${c.prop}`,
+          whole: next === 0 ? null : undefined,
+        });
+      } else {
+        edits.push({ attr: `at.${axis}`, value: dgeNum(snap((c ? c.unit : 0) + delta)) });
+      }
+    }
+    return { edits, refusals };
+  }
+
+  if (place.kind === 'between') {
+    // Along the line joining the two, `frac`; off it, `offset`.
+    const a = ctx.boxes.get(place.refs[0].ref), z = ctx.boxes.get(place.refs[1].ref);
+    const { uw, uh } = dgeUnits(ctx.model);
+    if (a && z) {
+      const vx = (z.x + z.w / 2) - (a.x + a.w / 2), vy = (z.y + z.h / 2) - (a.y + a.h / 2);
+      const len2 = vx * vx + vy * vy;
+      if (len2 > 0) {
+        const along = ((dx * uw) * vx + (dy * uh) * vy) / len2;
+        const next = Math.max(0, Math.min(1, snap(place.frac + along)));
+        if (Math.abs(along) > 1e-6 && !xBlocked && !yBlocked) {
+          edits.push({ attr: 'frac', value: dgeNum(next) });
+        }
+        // The perpendicular component becomes the offset, which is
+        // orthogonal to every placement on purpose.
+        const px = (dx * uw) - along * vx, py = (dy * uh) - along * vy;
+        if (Math.abs(px) > 0.5 || Math.abs(py) > 0.5) {
+          const off = place.offset || [0, 0];
+          edits.push({ attr: 'offset', value: `${dgeNum(snap(off[0] + px / uw))},${dgeNum(snap(off[1] + py / uh))}` });
+        }
+      }
+    }
+    return { edits, refusals };
+  }
+
+  // A relation. The main axis is the gap; the cross axis is an alignment
+  // edge if the drop lands near one, and an offset past a tolerance.
+  const main = dgeMainAxis(place);
+  const mainDelta = main === 'x' ? dx : dy;
+  const crossDelta = main === 'x' ? dy : dx;
+  const sign = (place.dir === 'right' || place.dir === 'below') ? 1 : -1;
+  const mainBlocked = main === 'x' ? xBlocked : yBlocked;
+  const crossBlocked = main === 'x' ? yBlocked : xBlocked;
+
+  if (mainDelta && !mainBlocked) {
+    const next = Math.max(0, snap(place.gap + sign * mainDelta));
+    edits.push({ attr: 'gap', value: dgeNum(next) });
+  }
+  if (crossDelta && !crossBlocked) {
+    const ref = ctx.boxes.get(place.ref);
+    const b = ctx.boxes.get(id);
+    const { uw, uh } = dgeUnits(ctx.model);
+    const u = main === 'x' ? uh : uw;
+    const words = main === 'x' ? ['top', 'middle', 'bottom'] : ['left', 'center', 'right'];
+    let matched = null;
+    if (ref && b) {
+      // Where would each alignment word put this element's centre? Whichever
+      // is within tolerance of where the pointer dropped it, wins – and that
+      // is the guide that proposes the statement.
+      const want = (main === 'x' ? b.y + b.h / 2 : b.x + b.w / 2) + crossDelta * u;
+      const cands = main === 'x'
+        ? [['top', ref.y + b.h / 2], ['middle', ref.y + ref.h / 2], ['bottom', ref.y + ref.h - b.h / 2]]
+        : [['left', ref.x + b.w / 2], ['center', ref.x + ref.w / 2], ['right', ref.x + ref.w - b.w / 2]];
+      for (const [word, at] of cands) {
+        if (Math.abs(at - want) <= DGE_ALIGN_TOL * u) { matched = word; break; }
+      }
+    }
+    if (matched && !free) {
+      if (matched !== place.align) edits.push({ attr: 'align', value: matched, why: 'snapped to the edge' });
+      // Landing on an alignment word means the offset it had on that axis is
+      // no longer wanted; clearing it is what makes the snap actually snap.
+      if (place.offset && (main === 'x' ? place.offset[1] : place.offset[0])) {
+        edits.push({
+          attr: 'offset',
+          value: main === 'x' ? `${dgeNum(place.offset[0])},0` : `0,${dgeNum(place.offset[1])}`,
+        });
+      }
+    } else {
+      const off = place.offset || [0, 0];
+      const nx = main === 'x' ? off[0] : snap(off[0] + crossDelta);
+      const ny = main === 'x' ? snap(off[1] + crossDelta) : off[1];
+      edits.push({ attr: 'offset', value: `${dgeNum(nx)},${dgeNum(ny)}` });
+    }
+  }
+  if (!words0(edits) && (xBlocked || yBlocked)) return { edits: [], refusals };
+  return { edits, refusals };
+}
+
+const words0 = (a) => a.length > 0;
+
+// Resizing. Dropping `same as` is the same reading as the tag default: a
+// drag means "just this one".
+function dgePlanResize(ctx, id, dw, dh, handle) {
+  const el = dgeFind(id, ctx.model);
+  const b = ctx.boxes.get(id);
+  if (!el || !b) return { edits: [], refusals: [] };
+  const { uw, uh } = dgeUnits(ctx.model);
+  const edits = [];
+  if (el.kind === 'dot') {
+    const next = Math.max(0.02, dgeRound((b.w / 2 + dw * uw / 2) / uh, DGE_SNAP_CELL));
+    edits.push({ attr: 'r', value: dgeNum(next) });
+    return { edits, refusals: [] };
+  }
+  if (el.sameAs) {
+    edits.push({ attr: 'same-as', value: '', drop: true, why: `"just this one" – drops "same as ${el.sameAs}"` });
+  }
+  if (handle !== 's') {
+    edits.push({ attr: 'w', value: dgeNum(Math.max(0.05, dgeRound(b.w / uw + dw, DGE_SNAP_CELL))) });
+  }
+  if (handle !== 'e') {
+    edits.push({ attr: 'h', value: dgeNum(Math.max(0.05, dgeRound(b.h / uh + dh, DGE_SNAP_CELL))) });
+  }
+  return { edits, refusals: [] };
+}
+
+// Apply a plan to the source. One splice per edit, applied right to left so
+// the earlier spans keep their offsets.
+function dgeApplyEdits(ctx, id, edits) {
+  if (!edits.length) return ctx.source;
+  const table = ctx.spans;
+  const resolved = [];
+  for (const e of edits) {
+    const sp = table.spanOf(id, e.attr === 'same-as' ? 'same-as' : e.attr);
+    if (!sp) continue;
+    if (e.drop || e.value === '') {
+      // Removing an attribute means removing its keyword too, and the run of
+      // whitespace in front of it – or the line grows a double space every
+      // time something is dropped.
+      if (!sp.present) continue;
+      let start = sp.start, end = sp.end;
+      const before = ctx.source.slice(0, start);
+      const m = e.attr === 'same-as'
+        ? before.match(/\s+same\s+as\s+$/)
+        : before.match(new RegExp('\\s+' + e.attr.replace('.', '\\.') + '\\s+$'));
+      if (m) start -= m[0].length;
+      resolved.push({ start, end, text: '' });
+      continue;
+    }
+    resolved.push({ start: sp.start, end: sp.end, text: sp.prefix + e.value + sp.suffix });
+  }
+  resolved.sort((a, b) => b.start - a.start);
+  let out = ctx.source;
+  for (const r of resolved) out = out.slice(0, r.start) + r.text + out.slice(r.end);
+  return out;
+}
+
+// ── undo, and committing a gesture ──────────────────────────────────
+// Snapshots of the whole block body, one per gesture: pointerdown captures,
+// pointerup commits. Cheap for a couple of kilobytes, exact, and it cannot
+// desynchronise from what will be written – which a model-level undo can.
+
+function dgeSnapshot() {
+  DGE.undo.push(DGE.source);
+  if (DGE.undo.length > DGE_MAX_UNDO) DGE.undo.shift();
+  DGE.redo.length = 0;
+}
+
+function dgeSetSource(next, opts) {
+  if (next === DGE.source) return;
+  if (!opts || opts.snapshot !== false) dgeSnapshot();
+  DGE.source = next;
+  DGE.dirty = true;
+  dgeRecompile();
+}
+
+function dgeUndo() {
+  if (!DGE.undo.length) return;
+  DGE.redo.push(DGE.source);
+  DGE.source = DGE.undo.pop();
+  DGE.dirty = true;
+  dgeRecompile();
+}
+
+function dgeRedo() {
+  if (!DGE.redo.length) return;
+  DGE.undo.push(DGE.source);
+  DGE.source = DGE.redo.pop();
+  DGE.dirty = true;
+  dgeRecompile();
+}
+
+// ── hit testing ─────────────────────────────────────────────────────
+// Against the laid-out boxes rather than against the DOM: the boxes are what
+// the compiler computed, so a click resolves to the element the *source*
+// says is there. Innermost first, so a box inside a container wins.
+
+function dgeHitTest(pt) {
+  if (!DGE.boxes) return null;
+  const hits = [];
+  for (const [id, b] of DGE.boxes) {
+    if (pt.x < b.x || pt.x > b.x + b.w || pt.y < b.y || pt.y > b.y + b.h) continue;
+    const el = dgeFind(id);
+    if (!el) continue;
+    const st = DGE.model ? null : null;
+    hits.push({ id, area: b.w * b.h, el });
+  }
+  if (!hits.length) return null;
+  hits.sort((a, b) => a.area - b.area);
+  return hits[0].id;
+}
+
+// ── canvas interaction ──────────────────────────────────────────────
+
+function dgeWireCanvas(canvas, guides) {
+  canvas.addEventListener('wheel', (ev) => {
+    ev.preventDefault();
+    const k = ev.deltaY < 0 ? 1.12 : 1 / 1.12;
+    dgeZoomBy(k);
+  }, { passive: false });
+
+  canvas.addEventListener('pointerdown', (ev) => {
+    if (!DGE.open || DGE.boardOpen) return;
+    if (ev.button === 1 || DGE.spaceDown) return dgeStartPan(ev, canvas);
+    const handle = ev.target.closest && ev.target.closest('[data-handle]');
+    const pt = dgePointToDiagram(ev);
+    if (handle) return dgeStartResize(ev, handle.dataset.id, handle.dataset.handle);
+    if (DGE.tool === 'select') {
+      const hit = dgeHitTest(pt);
+      if (!hit) {
+        if (!ev.shiftKey) dgeSelect([]);
+        return dgeStartMarquee(ev, canvas);
+      }
+      if (ev.shiftKey) dgeSelect(DGE.selection.includes(hit)
+        ? DGE.selection.filter((x) => x !== hit) : [...DGE.selection, hit]);
+      else if (!DGE.selection.includes(hit)) dgeSelect([hit]);
+      return dgeStartMove(ev, pt);
+    }
+    if (DGE.tool === 'edge' || DGE.tool === 'line') return dgeStartEdge(ev, pt);
+    return dgePlace(DGE.tool, pt);
+  });
+}
+
+function dgeStartPan(ev, canvas) {
+  const start = { x: ev.clientX, y: ev.clientY, px: DGE.pan.x, py: DGE.pan.y };
+  canvas.classList.add('dge-panning');
+  const move = (e) => {
+    DGE.pan = { x: start.px + (e.clientX - start.x), y: start.py + (e.clientY - start.y) };
+    dgeApplyView();
+  };
+  const up = () => {
+    canvas.classList.remove('dge-panning');
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+}
+
+// A drag is one gesture: pointerdown captures the source, pointermove
+// previews the plan in the status bar and repaints, pointerup commits. The
+// status bar always shows the line the editor is about to write, which is
+// what makes every drag legible as a diff.
+// A gesture plans against the state it started from – the source, the model,
+// the boxes and the span table as they were at pointerdown – and never
+// against the preview it has been painting. Re-deriving the spans from the
+// *previewed* model while measuring offsets into the *base* text is how a
+// 60px drag came out as `gap 8.45`: the two disagreed by however much the
+// preview had already rewritten.
+function dgeGestureBase() {
+  const svg = dgeQ('#dge-art-svg');
+  if (svg) DGE.pinnedViewBox = svg.getAttribute('viewBox');
+  return { source: DGE.source, model: DGE.model, boxes: DGE.boxes, spans: DGE.spans };
+}
+
+// Let the frame settle again once the gesture is over, and re-fit if the
+// figure has outgrown it.
+function dgeGestureEnd() {
+  DGE.pinnedViewBox = null;
+  dgeRecompile();
+}
+
+function dgeStartMove(ev, pt0) {
+  if (!DGE.selection.length) return;
+  const id = DGE.selection[0];
+  const ctx = dgeGestureBase();
+  const { uw, uh } = dgeUnits(ctx.model);
+  let last = null;
+  const move = (e) => {
+    const pt = dgePointToDiagram(e);
+    const dx = (pt.x - pt0.x) / uw, dy = (pt.y - pt0.y) / uh;
+    if (Math.abs(dx) < 0.005 && Math.abs(dy) < 0.005) return;
+    const plan = dgePlanDrag(ctx, id, dx, dy, { free: e.ctrlKey || e.metaKey });
+    last = plan;
+    DGE.source = dgeApplyEdits(ctx, id, plan.edits);
+    dgeRecompile();
+    dgeShowPlan(ctx, id, plan);
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    if (DGE.source !== ctx.source) {
+      const done = DGE.source;
+      DGE.source = ctx.source;
+      dgeSetSource(done);
+    }
+    dgeGestureEnd();
+    if (last && last.refusals.length) dgeNote(last.refusals[0], true);
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+}
+
+function dgeStartResize(ev, id, handle) {
+  const pt0 = dgePointToDiagram(ev);
+  const ctx = dgeGestureBase();
+  const { uw, uh } = dgeUnits(ctx.model);
+  const move = (e) => {
+    const pt = dgePointToDiagram(e);
+    const plan = dgePlanResize(ctx, id, (pt.x - pt0.x) / uw, (pt.y - pt0.y) / uh, handle);
+    DGE.source = dgeApplyEdits(ctx, id, plan.edits);
+    dgeRecompile();
+    dgeShowPlan(ctx, id, plan);
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    if (DGE.source !== ctx.source) { const done = DGE.source; DGE.source = ctx.source; dgeSetSource(done); }
+    dgeGestureEnd();
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+}
+
+function dgeStartMarquee(ev, canvas) {
+  const pt0 = dgePointToDiagram(ev);
+  const rect = dgeEl('rect', { class: 'dge-snap', x: pt0.x, y: pt0.y, width: 0, height: 0 });
+  dgeSnapGuides = [rect];
+  dgeDrawGuides();
+  const move = (e) => {
+    const pt = dgePointToDiagram(e);
+    rect.setAttribute('x', Math.min(pt0.x, pt.x));
+    rect.setAttribute('y', Math.min(pt0.y, pt.y));
+    rect.setAttribute('width', Math.abs(pt.x - pt0.x));
+    rect.setAttribute('height', Math.abs(pt.y - pt0.y));
+    const box = {
+      x: Math.min(pt0.x, pt.x), y: Math.min(pt0.y, pt.y),
+      w: Math.abs(pt.x - pt0.x), h: Math.abs(pt.y - pt0.y),
+    };
+    const inside = [];
+    for (const [id, b] of DGE.boxes) {
+      if (b.x >= box.x && b.y >= box.y && b.x + b.w <= box.x + box.w && b.y + b.h <= box.y + box.h) inside.push(id);
+    }
+    DGE.selection = inside;
+    dgeRenderSide();
+    dgeDrawGuides();
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    dgeSnapGuides = [];
+    dgeDrawGuides();
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+}
+
+// ── placing and wrapping (editor.md §4, §7) ─────────────────────────
+// Not every tool is a placer. Excalidraw's model is: pick a tool, draw a
+// shape, the shape has coordinates. Ours is: pick a tool, and the editor
+// writes a *statement* – and `container over a,b,c` has nothing to draw.
+
+function dgeFreshName(stem) {
+  const taken = new Set(DGE.model ? [...DGE.model.byId.keys()] : []);
+  if (!taken.has(stem)) return stem;
+  for (let i = 2; i < 999; i++) if (!taken.has(stem + i)) return stem + i;
+  return stem + Date.now();
+}
+
+// Creating an element does not write `at X,Y` if it can avoid it. Dropped
+// roughly axis-aligned beside an existing element, within a tolerance, the
+// editor proposes `right of A gap 0.6` – which is the form that survives an
+// edit elsewhere in the diagram.
+function dgeProposePlacement(pt) {
+  const { uw, uh } = dgeUnits();
+  let best = null;
+  for (const [id, b] of (DGE.boxes || [])) {
+    if (!DGE.model.nodes.some((n) => n.id === id)) continue;
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    const cands = [
+      ['right', pt.x - (b.x + b.w), Math.abs(pt.y - cy) / uh, (pt.x - (b.x + b.w)) / uw],
+      ['left', b.x - pt.x, Math.abs(pt.y - cy) / uh, (b.x - pt.x) / uw],
+      ['below', pt.y - (b.y + b.h), Math.abs(pt.x - cx) / uw, (pt.y - (b.y + b.h)) / uh],
+      ['above', b.y - pt.y, Math.abs(pt.x - cx) / uw, (b.y - pt.y) / uh],
+    ];
+    for (const [dir, along, off, gap] of cands) {
+      if (along < 0 || gap > 2.2 || off > 0.55) continue;
+      const score = off + Math.abs(gap) * 0.15;
+      if (!best || score < best.score) {
+        best = { score, text: `${dir === 'right' || dir === 'left' ? dir + ' of' : dir} ${id} gap ${dgeNum(Math.max(0, dgeRound(gap, DGE_SNAP_CELL)))}` };
+      }
+    }
+  }
+  if (best) return best.text;
+  return `at ${dgeNum(dgeRound(pt.x / uw, DGE_SNAP_CELL))},${dgeNum(dgeRound(pt.y / uh, DGE_SNAP_CELL))}`;
+}
+
+function dgePlace(tool, pt) {
+  const name = dgeFreshName({ box: 'b', dot: 'd', text: 't', image: 'img' }[tool] || 'e');
+  const place = dgeProposePlacement(pt);
+  let line;
+  if (tool === 'image') {
+    const refs = Object.keys(DGE.fig.images || {});
+    if (!refs.length) {
+      dgeStatus('', 'This lecture has no diagram image to place. Add one with an `image` line first.', true);
+      return;
+    }
+    line = `image ${name} ${refs[0]} ${place} w 1`;
+  } else {
+    line = `${tool} ${name} "${tool}" ${place}`;
+  }
+  dgeAppendLine(line);
+  dgeSelect([name]);
+  if (!DGE.toolLocked) dgePickTool('select');
+}
+
+// A new statement goes after the last definition rather than at the end of
+// the block: `step` blocks are the tail of the file, and a definition after
+// the first step ends step mode – appending there would silently swallow
+// every step that followed.
+function dgeAppendLine(line) {
+  const lines = DGE.source.split('\n');
+  let at = lines.length;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (/^\s*step\b/.test(lines[i])) at = i;
+  }
+  lines.splice(at, 0, line);
+  dgeSetSource(lines.join('\n'));
+  dgeStatus(line, 'written');
+}
+
+function dgeStartEdge(ev, pt0) {
+  const fromId = dgeHitTest(pt0);
+  const preview = dgeEl('line', { class: 'dge-snap', x1: pt0.x, y1: pt0.y, x2: pt0.x, y2: pt0.y });
+  dgeSnapGuides = [preview];
+  dgeDrawGuides();
+  const { uw, uh } = dgeUnits();
+  const move = (e) => {
+    const pt = dgePointToDiagram(e);
+    preview.setAttribute('x2', pt.x);
+    preview.setAttribute('y2', pt.y);
+    const toId = dgeHitTest(pt);
+    const a = DGE.tool === 'line' || !fromId
+      ? `${dgeNum(dgeRound(pt0.x / uw, DGE_SNAP_CELL))},${dgeNum(dgeRound(pt0.y / uh, DGE_SNAP_CELL))}` : fromId;
+    const b = DGE.tool === 'line' || !toId
+      ? `${dgeNum(dgeRound(pt.x / uw, DGE_SNAP_CELL))},${dgeNum(dgeRound(pt.y / uh, DGE_SNAP_CELL))}` : toId;
+    dgeStatus(`edge ${a} ${DGE.tool === 'line' ? '--' : '->'} ${b}`, DGE.tool === 'line'
+      ? 'a plain line: both endpoints are coordinates, so it does not snap to a box'
+      : (fromId && toId ? 'an arrow between two elements – it re-routes when either moves' : 'an endpoint in empty space'));
+  };
+  const up = (e) => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    dgeSnapGuides = [];
+    const pt = dgePointToDiagram(e);
+    const toId = dgeHitTest(pt);
+    const a = DGE.tool === 'line' || !fromId
+      ? `${dgeNum(dgeRound(pt0.x / uw, DGE_SNAP_CELL))},${dgeNum(dgeRound(pt0.y / uh, DGE_SNAP_CELL))}` : fromId;
+    const b = DGE.tool === 'line' || !toId
+      ? `${dgeNum(dgeRound(pt.x / uw, DGE_SNAP_CELL))},${dgeNum(dgeRound(pt.y / uh, DGE_SNAP_CELL))}` : toId;
+    if (a === b) { dgeDrawGuides(); return; }
+    dgeAppendLine(`edge ${a} ${DGE.tool === 'line' ? '--' : '->'} ${b}`);
+    if (!DGE.toolLocked) dgePickTool('select');
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+}
+
+// Wrappers act on what is already selected, because that is what their
+// statements mean. Select three boxes, press 6, get an outline around them –
+// a better gesture than drawing a rectangle and hoping it contains the right
+// things, and the only one that can produce the statement the grammar has.
+function dgeWrap(kind) {
+  if (DGE.selection.length < 1) {
+    dgeStatus('', `${kind} goes over a selection – select the elements first, then press ${kind === 'container' ? '6' : '7'}.`, true);
+    return;
+  }
+  const name = dgeFreshName(kind === 'container' ? 'grp' : 'br');
+  const members = DGE.selection.join(',');
+  dgeAppendLine(kind === 'container'
+    ? `container ${name} over ${members}`
+    : `brace ${name} over ${members} right ""`);
+  dgeSelect([name]);
+}
+
+// align / spread are selection acts too, and the first element selected is
+// the master – which is exactly what the statement means, so the UI teaches
+// the semantics for free.
+function dgeAlign(axis, edge) {
+  if (DGE.selection.length < 2) {
+    dgeStatus('', 'align takes at least two elements, and the first one selected is the master.', true);
+    return;
+  }
+  dgeAppendLine(`align ${axis} ${edge} ${DGE.selection.join(', ')}`);
+}
+
+function dgeSpread(axis) {
+  if (DGE.selection.length < 3) {
+    dgeStatus('', 'spread needs at least three: the first and last stay put and the rest are distributed between them.', true);
+    return;
+  }
+  dgeAppendLine(`spread ${axis} ${DGE.selection.join(', ')}`);
+}
+
+// Deleting lists what else refers to the element rather than leaving a block
+// that will not compile.
+function dgeDelete() {
+  if (!DGE.selection.length) return;
+  const refs = [];
+  for (const id of DGE.selection) {
+    for (const r of DGE.spans.referencesTo(id)) {
+      if (DGE.selection.includes(r.id)) continue;
+      refs.push(`line ${r.line}: ${r.what}`);
+    }
+  }
+  const what = DGE.selection.join(', ');
+  if (refs.length && !window.confirm(
+    `Delete ${what}?\n\n${refs.length} other line(s) name ${DGE.selection.length > 1 ? 'them' : 'it'}:\n`
+    + refs.slice(0, 8).join('\n')
+    + (refs.length > 8 ? `\n… and ${refs.length - 8} more` : '')
+    + '\n\nDeleting only these lines leaves the block unable to compile; the lines above have to go too.\n\n'
+    + 'OK deletes the element and every line that names it.')) return;
+  // Delete the statements themselves and every line that names them, which
+  // is what keeps the block compiling.
+  const doomed = new Set();
+  for (const id of DGE.selection) {
+    const el = dgeFind(id);
+    if (el && el.span) doomed.add(el.line);
+    for (const r of DGE.spans.referencesTo(id)) doomed.add(r.line);
+  }
+  const lines = DGE.source.split('\n').filter((_, i) => !doomed.has(i + 1));
+  dgeSetSource(lines.join('\n'));
+  dgeSelect([]);
+  dgeStatus('', `deleted ${what} and ${doomed.size - DGE.selection.length} line(s) that named ${DGE.selection.length > 1 ? 'them' : 'it'}`);
+}
+
+function dgeDuplicate() {
+  if (DGE.selection.length !== 1) return;
+  const el = dgeFind(DGE.selection[0]);
+  if (!el || !el.span) return;
+  const line = DGE.source.slice(el.span[0], el.span[1]);
+  const name = dgeFreshName(el.id);
+  // Rename only the element's own name token – the second word of the
+  // statement – so every reference inside the line survives.
+  const toks = window.PSI_DG.dgTokenize(line, 0);
+  if (!toks[1]) return;
+  const renamed = line.slice(0, toks[1].s) + name + line.slice(toks[1].e);
+  const placed = /\b(at|right of|left of|below|above|between)\b/.test(renamed)
+    ? renamed : renamed + ' right of ' + el.id + ' gap 0.3';
+  dgeAppendLine(placed);
+  dgeSelect([name]);
+}
+
+// ── the sidebar ─────────────────────────────────────────────────────
+// The *selection*: the closed class vocabulary as swatches, the geometry
+// options that kind actually accepts, the label, the tags, and an element
+// list that doubles as the "what refers to what" view. Distinct from the
+// toolbar, which is acts and is transient.
+
+function dgeSelect(ids) {
+  DGE.selection = ids.slice();
+  dgeRenderSide();
+  dgeDrawGuides();
+  dgeRenderTools();
+}
+
+function dgeRenderSide() {
+  const side = dgeQ('#dge-side');
+  if (!side || !DGE.model) return;
+  side.replaceChildren();
+
+  if (!DGE.selection.length) {
+    side.appendChild(dgeEl('div', { class: 'dge-empty', html:
+      'Nothing selected.<br><br>Click an element to see what holds it in place – '
+      + 'the relations it was written with are drawn on the canvas.<br><br>'
+      + 'Pick a tool on the left to add one, or select two and use the alignment acts below.' }));
+    side.appendChild(dgeTagLegend());
+    side.appendChild(dgeElementList());
+    side.appendChild(dgeSourcePane());
+    return;
+  }
+
+  const single = DGE.selection.length === 1 ? dgeFind(DGE.selection[0]) : null;
+
+  const head = dgeEl('div', {}, [
+    dgeEl('h3', { text: single ? `${single.kind} ${single.id}` : `${DGE.selection.length} selected` }),
+  ]);
+  side.appendChild(head);
+
+  if (single && single.kind !== 'edge') {
+    // Label
+    const sp = DGE.spans.spanOf(single.id, 'label');
+    const input = dgeEl('input', {
+      type: 'text', value: sp && sp.present ? sp.value : '',
+      placeholder: 'label',
+      onchange: (e) => dgeWriteAttr(single.id, 'label', JSON.stringify(String(e.target.value)).slice(1, -1), true),
+    });
+    side.appendChild(dgeEl('div', {}, [dgeEl('h3', { text: 'label' }), input]));
+  }
+
+  // Geometry: exactly the options that kind's own statement accepts.
+  if (single) {
+    const opts = dgeKindOpts(single.kind);
+    if (opts.length) {
+      const row = dgeEl('div', { class: 'dge-nums' });
+      for (const key of opts) {
+        const span = DGE.spans.spanOf(single.id, key);
+        const resolved = dgeResolve(single, key);
+        row.appendChild(dgeEl('label', { class: 'dge-num' }, [
+          dgeEl('span', { text: key }),
+          dgeEl('input', {
+            type: 'text',
+            value: span && span.present ? span.value : '',
+            placeholder: resolved.value === null ? 'auto' : dgeNum(resolved.value),
+            onchange: (e) => dgeWriteAttr(single.id, key, e.target.value.trim()),
+          }),
+        ]));
+      }
+      side.appendChild(dgeEl('div', {}, [dgeEl('h3', { text: 'size' }), row,
+        dgeProvenance(single, opts)]));
+    }
+  }
+
+  // The closed class vocabulary, one row per slot.
+  const slots = dgeEl('div', {});
+  slots.appendChild(dgeEl('h3', { text: 'look' }));
+  const kinds = new Set(DGE.selection.map((id) => (dgeFind(id) || {}).kind));
+  for (const slot of DGE_SLOTS) {
+    if (slot.kinds && ![...kinds].some((k) => slot.kinds.includes(k))) continue;
+    const current = dgeSlotValue(slot);
+    const row = dgeEl('div', { class: 'dge-swatches' });
+    for (const opt of slot.options) {
+      row.appendChild(dgeEl('button', {
+        type: 'button', class: 'dge-sw',
+        'data-fill': opt.fill === undefined ? null : (opt.fill || 'none'),
+        'aria-pressed': String(current === opt.cls),
+        title: opt.cls ? '.' + opt.cls : 'none of this slot',
+        text: opt.fill !== undefined ? '' : (opt.label || opt.cls),
+        onclick: () => dgeSetSlot(slot, opt.cls),
+      }));
+    }
+    slots.appendChild(dgeEl('div', { class: 'dge-slot' }, [
+      dgeEl('b', { text: slot.label }), row,
+    ]));
+  }
+  side.appendChild(slots);
+
+  // Tags. Membership is the one piece of structure that is completely
+  // invisible in the drawing, so it is a first-class control here.
+  const chips = dgeEl('div', { class: 'dge-chips' });
+  const mine = new Set();
+  for (const id of DGE.selection) for (const t of (dgeFind(id) || {}).tags || []) mine.add(t);
+  for (const t of mine) {
+    chips.appendChild(dgeEl('button', {
+      type: 'button', class: 'dge-chip', html: '@' + t + '<span class="dge-x">×</span>',
+      title: 'remove @' + t + ' from the selection',
+      onmouseenter: () => { DGE.hoverTag = t; dgeDrawGuides(); },
+      onmouseleave: () => { DGE.hoverTag = null; dgeDrawGuides(); },
+      onclick: () => dgeToggleTag(t, false),
+    }));
+  }
+  chips.appendChild(dgeEl('button', {
+    type: 'button', class: 'dge-chip', text: '+ tag',
+    onclick: () => {
+      const name = window.prompt('Add a tag to the selection (letters, digits, _ and -):');
+      if (name && /^[A-Za-z_][\w-]*$/.test(name)) dgeToggleTag(name, true);
+    },
+  }));
+  side.appendChild(dgeEl('div', {}, [dgeEl('h3', { text: 'tags' }), chips]));
+
+  // Alignment acts, on the selection, with the master named.
+  if (DGE.selection.length >= 2) {
+    const acts = dgeEl('div', { class: 'dge-chips' });
+    for (const [axis, edge] of [['x', 'left'], ['x', 'center'], ['x', 'right'],
+      ['y', 'top'], ['y', 'middle'], ['y', 'bottom']]) {
+      acts.appendChild(dgeEl('button', {
+        type: 'button', class: 'dge-btn', text: `${axis} ${edge}`,
+        title: `align ${axis} ${edge} – ${DGE.selection[0]} is the master and keeps its place`,
+        onclick: () => dgeAlign(axis, edge),
+      }));
+    }
+    if (DGE.selection.length >= 3) {
+      for (const axis of ['x', 'y']) {
+        acts.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-btn', text: 'spread ' + axis,
+          onclick: () => dgeSpread(axis),
+        }));
+      }
+    }
+    side.appendChild(dgeEl('div', {}, [
+      dgeEl('h3', { text: 'line them up' }),
+      dgeEl('div', { class: 'dge-empty', text: `${DGE.selection[0]} is the master – it keeps its place and the rest follow.` }),
+      acts,
+    ]));
+  }
+
+  side.appendChild(dgeTagLegend());
+  side.appendChild(dgeElementList());
+  side.appendChild(dgeSourcePane());
+}
+
+// Which class of a slot the selection carries. Mixed selections show none
+// pressed rather than lying about a shared value.
+function dgeSlotValue(slot) {
+  const names = slot.options.map((o) => o.cls).filter(Boolean);
+  let found;
+  for (const id of DGE.selection) {
+    const el = dgeFind(id);
+    if (!el) continue;
+    const hit = (el.classes || []).find((c) => names.includes(c)) || '';
+    if (found === undefined) found = hit;
+    else if (found !== hit) return null;
+  }
+  return found === undefined ? null : found;
+}
+
+function dgeSetSlot(slot, cls) {
+  const names = slot.options.map((o) => o.cls).filter(Boolean);
+  dgeSnapshot();
+  for (const id of DGE.selection) {
+    const el = dgeFind(id);
+    if (!el) continue;
+    const keep = (el.classes || []).filter((c) => !names.includes(c));
+    if (cls) keep.push(cls);
+    dgeWriteTail(id, { classes: keep });
+  }
+  dgeRecompile();
+}
+
+function dgeToggleTag(tag, add) {
+  dgeSnapshot();
+  for (const id of DGE.selection) {
+    const el = dgeFind(id);
+    if (!el) continue;
+    const tags = new Set(el.tags || []);
+    if (add) tags.add(tag); else tags.delete(tag);
+    dgeWriteTail(id, { tags: [...tags] });
+  }
+  dgeRecompile();
+}
+
+// The attribute tail is one token and the order inside it is free, so the
+// editor rebuilds it from the model rather than splicing into the middle of
+// it. That is what guarantees the result parses.
+function dgeWriteTail(id, changes) {
+  const el = dgeFind(id);
+  if (!el) return;
+  const isEdge = el.kind === 'edge';
+  const parts = [];
+  const wantId = changes.id !== undefined ? changes.id : (isEdge && !/^edge-\d+$/.test(el.id) ? el.id : null);
+  if (wantId) parts.push('#' + wantId);
+  for (const c of (changes.classes !== undefined ? changes.classes : el.classes || [])) parts.push('.' + c);
+  for (const t of (changes.tags !== undefined ? changes.tags : el.tags || [])) parts.push('@' + t);
+  const sp = DGE.spans.spanOf(id, 'classes');
+  if (!sp) return;
+  if (!parts.length) {
+    if (!sp.present) return;
+    let start = sp.start;
+    const m = DGE.source.slice(0, start).match(/\s+$/);
+    if (m) start -= m[0].length;
+    DGE.source = DGE.source.slice(0, start) + DGE.source.slice(sp.end);
+  } else {
+    DGE.source = DGE.source.slice(0, sp.start) + sp.prefix + parts.join(' ') + sp.suffix + DGE.source.slice(sp.end);
+  }
+  DGE.dirty = true;
+}
+
+function dgeWriteAttr(id, attr, value, quoted) {
+  const sp = DGE.spans.spanOf(id, attr);
+  if (!sp) {
+    dgeStatus('', `${attr} cannot be written on ${id} here – give it a placement first.`, true);
+    return;
+  }
+  dgeSnapshot();
+  if (!value && sp.present && attr !== 'label') {
+    let start = sp.start;
+    const m = DGE.source.slice(0, start).match(new RegExp('\\s+' + attr + '\\s+$'));
+    if (m) start -= m[0].length;
+    DGE.source = DGE.source.slice(0, start) + DGE.source.slice(sp.end);
+  } else {
+    const text = quoted ? '"' + value + '"' : value;
+    DGE.source = DGE.source.slice(0, sp.start)
+      + (sp.present ? '' : sp.prefix) + text + (sp.present ? '' : sp.suffix)
+      + DGE.source.slice(sp.end);
+  }
+  DGE.dirty = true;
+  dgeRecompile();
+}
+
+// Which of the five layers a resolved value came from. Without it, four
+// layers is a guessing game – and the safe answer to changing one is still
+// "write it on the element", with promoting one click away.
+function dgeResolve(el, key) {
+  if (el[key] != null) return { value: el[key], from: 'this element' };
+  const layers = window.PSI_DG.dgDefaultLayers(DGE.model, el.kind, el.tags).reverse();
+  for (const d of layers) {
+    if (d[key] == null) continue;
+    const lecture = (DGE.model.baseTagDefaults || []).includes(d)
+      || Object.values(DGE.model.baseDefaults || {}).includes(d);
+    return {
+      value: d[key],
+      from: (lecture ? 'the lecture defaults' : 'this block') + (d.tag ? ` · default ${d.kind} @${d.tag}` : ` · default ${d.kind}`),
+    };
+  }
+  return { value: null, from: null };
+}
+
+function dgeProvenance(el, keys) {
+  const rows = dgeEl('div', {});
+  for (const key of keys) {
+    const r = dgeResolve(el, key);
+    if (r.value === null || r.from === 'this element') continue;
+    rows.appendChild(dgeEl('div', {
+      class: 'dge-from dge-inherited',
+      text: `${key} ${dgeNum(r.value)} · from ${r.from}`,
+    }));
+  }
+  return rows;
+}
+
+// A legend of every tag in the figure with its member count. Hover
+// highlights the members, click selects them – §9.1's principle applied to
+// membership rather than to geometry.
+function dgeTagLegend() {
+  const wrap = dgeEl('div', {});
+  const tags = DGE.model ? [...DGE.model.tags.entries()] : [];
+  if (!tags.length) return wrap;
+  wrap.appendChild(dgeEl('h3', { text: 'tags in this figure' }));
+  const chips = dgeEl('div', { class: 'dge-chips' });
+  for (const [tag, members] of tags) {
+    chips.appendChild(dgeEl('button', {
+      type: 'button', class: 'dge-chip',
+      html: '@' + tag + '<span class="dge-chip-count">' + members.length + '</span>',
+      title: 'select the ' + members.length + ' element(s) carrying @' + tag,
+      onmouseenter: () => { DGE.hoverTag = tag; dgeDrawGuides(); },
+      onmouseleave: () => { DGE.hoverTag = null; dgeDrawGuides(); },
+      onclick: () => dgeSelect(members.slice()),
+    }));
+  }
+  wrap.appendChild(chips);
+  return wrap;
+}
+
+function dgeElementList() {
+  const wrap = dgeEl('div', {});
+  if (!DGE.model) return wrap;
+  wrap.appendChild(dgeEl('h3', { text: 'elements' }));
+  const list = dgeEl('div', { class: 'dge-list' });
+  const all = [...DGE.model.nodes, ...DGE.model.containers, ...DGE.model.braces, ...DGE.model.edges];
+  for (const el of all) {
+    list.appendChild(dgeEl('button', {
+      type: 'button', 'aria-pressed': String(DGE.selection.includes(el.id)),
+      onclick: (e) => dgeSelect(e.shiftKey ? [...DGE.selection, el.id] : [el.id]),
+    }, [
+      dgeEl('span', { class: 'dge-kind', text: el.kind }),
+      dgeEl('span', { class: 'dge-nm', text: el.id }),
+      dgeEl('span', { class: 'dge-from', text: el.label ? '"' + el.label.split('\n')[0] + '"' : '' }),
+    ]));
+  }
+  wrap.appendChild(list);
+  return wrap;
+}
+
+// One way, for now: the canvas writes and the pane displays, with the
+// changed token highlighted. Editing text *and* dragging at the same time is
+// where round-tripping editors historically come apart.
+function dgeSourcePane() {
+  const wrap = dgeEl('div', {});
+  wrap.appendChild(dgeEl('h3', { text: 'source' }));
+  const pane = dgeEl('div', { id: 'dge-source' });
+  const errLines = new Set((DGE.problems || []).map((p) => p.line).filter(Boolean));
+  DGE.source.split('\n').forEach((line, i) => {
+    const sel = DGE.selection.some((id) => {
+      const el = dgeFind(id);
+      return el && el.line === i + 1;
+    });
+    const row = dgeEl('span', {
+      class: errLines.has(i + 1) ? 'dge-errline' : null,
+      text: line + '\n',
+    });
+    if (sel) {
+      const mark = dgeEl('mark', { text: line });
+      row.replaceChildren(mark, document.createTextNode('\n'));
+    }
+    pane.appendChild(row);
+  });
+  wrap.appendChild(pane);
+  if ((DGE.problems || []).length || (DGE.warnings || []).length) {
+    const box = dgeEl('div', { class: 'dge-problems' });
+    for (const p of DGE.problems || []) {
+      box.appendChild(dgeEl('div', { text: (p.line ? 'line ' + p.line + ': ' : '') + p.msg }));
+    }
+    for (const w of DGE.warnings || []) {
+      box.appendChild(dgeEl('div', { class: 'dge-warn', text: w }));
+    }
+    wrap.appendChild(box);
+  }
+  return wrap;
+}
+
+// ── the status bar ──────────────────────────────────────────────────
+
+// Leave the line alone and speak only in the note. Used where the line is
+// the thing the author just wrote and the note is a caveat about it – on
+// pointerup after a partly-refused drag, for instance, where clearing the
+// line would throw away the one thing worth reading.
+function dgeNote(note, bad) {
+  dgeStatus(DGE.status.line, note, bad);
+}
+
+function dgeStatus(line, note, bad) {
+  DGE.status = { line: line || '', note: note || '', bad: !!bad };
+  const l = dgeQ('#dge-statusline');
+  const n = dgeQ('#dge-statusnote');
+  if (l) l.textContent = DGE.status.line;
+  if (n) {
+    n.textContent = DGE.status.note;
+    n.className = 'dge-note' + (bad ? ' dge-bad' : '');
+  }
+}
+
+// The line the editor is about to write, with the changed token marked.
+function dgeShowPlan(ctx, id, plan) {
+  if (plan.refusals.length && !plan.edits.length) {
+    dgeStatus('', plan.refusals[0], true);
+    return;
+  }
+  const el = dgeFind(id);
+  const line = el && el.span ? DGE.source.slice(el.span[0], el.span[1]) : '';
+  const why = plan.edits.map((e) => e.why).filter(Boolean)[0]
+    || plan.edits.map((e) => e.attr).join(' · ');
+  dgeStatus(line, why, false);
+}
+
+// ── the figure strip and the board (editor.md §6) ───────────────────
+// Once the editor is open it stops being attached to one chunk and becomes a
+// figure workspace over the whole lecture. Every one of these has a control
+// you can see and click; the keys are how it gets fast afterwards.
+
+function dgeThumbFor(fig) {
+  const clone = fig.svg.cloneNode(true);
+  clone.removeAttribute('id');
+  clone.removeAttribute('width');
+  clone.removeAttribute('height');
+  clone.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+  return clone;
+}
+
+function dgeRenderStrip() {
+  const strip = dgeQ('#dge-strip');
+  if (!strip) return;
+  strip.replaceChildren();
+  DGE_FIGURES.forEach((fig, i) => {
+    strip.appendChild(dgeEl('button', {
+      type: 'button', class: 'dge-thumb', 'aria-current': String(i === DGE.index),
+      onclick: () => dgeGoTo(i),
+    }, [dgeThumbFor(fig), dgeEl('b', { text: fig.chunk || 'figure ' + (i + 1) })]));
+  });
+}
+
+function dgeToggleBoard(force) {
+  DGE.boardOpen = force === undefined ? !DGE.boardOpen : force;
+  const board = dgeQ('#dge-board');
+  board.hidden = !DGE.boardOpen;
+  if (!DGE.boardOpen) return;
+  board.replaceChildren();
+  DGE_FIGURES.forEach((fig, i) => {
+    board.appendChild(dgeEl('button', {
+      type: 'button', class: 'dge-card', 'aria-current': String(i === DGE.index),
+      onclick: () => { dgeToggleBoard(false); dgeGoTo(i); },
+    }, [dgeThumbFor(fig), dgeEl('b', { text: fig.chunk || 'figure ' + (i + 1) })]));
+  });
+}
+
+function dgeGoTo(i) {
+  if (i === DGE.index) return;
+  dgeLoadFigure(i);
+}
+
+function dgeGoFigure(step) {
+  const n = DGE_FIGURES.length;
+  if (!n) return;
+  dgeGoTo((DGE.index + step + n) % n);
+}
+
+// ── tools and keys ──────────────────────────────────────────────────
+
+function dgePickTool(id) {
+  const t = DGE_TOOLS.find((x) => x.id === id);
+  if (t && t.wrapper) { dgeWrap(id); return; }
+  DGE.tool = id;
+  dgeRenderTools();
+  const canvas = dgeQ('#dge-canvas');
+  canvas.classList.toggle('dge-placing', id !== 'select');
+}
+
+function dgeRenderTools() {
+  const rail = dgeQ('#dge-tools');
+  if (!rail) return;
+  rail.querySelectorAll('.dge-tool').forEach((b) => {
+    const t = DGE_TOOLS.find((x) => x.id === b.dataset.tool);
+    b.setAttribute('aria-pressed', String(b.dataset.tool === DGE.tool));
+    if (t && t.wrapper) b.disabled = DGE.selection.length < 1;
+  });
+}
+
+// The modal owns the keyboard. While the editor is open the view's own
+// handler is off entirely – no C, no F, no A, no Space – or every tool key
+// would also do something to the lecture underneath. A hard requirement,
+// not a nicety.
+function dgeKeydown(ev) {
+  if (!DGE.open) return;
+  const tag = (ev.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea') {
+    if (ev.key === 'Escape') ev.target.blur();
+    return;
+  }
+  const mod = ev.ctrlKey || ev.metaKey;
+  const k = ev.key;
+  ev.stopPropagation();
+
+  if (mod) {
+    if (k.toLowerCase() === 'z') { ev.preventDefault(); ev.shiftKey ? dgeRedo() : dgeUndo(); return; }
+    if (k.toLowerCase() === 'a') { ev.preventDefault(); dgeSelect([...DGE.boxes.keys()]); return; }
+    if (k.toLowerCase() === 'd') { ev.preventDefault(); dgeDuplicate(); return; }
+    if (k.toLowerCase() === 'c') { ev.preventDefault(); dgeCopy(); return; }
+    if (k.toLowerCase() === 'v') { ev.preventDefault(); dgePaste(ev.shiftKey); return; }
+    if (k.toLowerCase() === 's') { ev.preventDefault(); dgeCommit(); return; }
+    return;
+  }
+  if (k === ' ') { DGE.spaceDown = true; dgeQ('#dge-canvas').classList.add('dge-pannable'); ev.preventDefault(); return; }
+  if (k === 'Escape') {
+    ev.preventDefault();
+    // One rung at a time, identical to the ladder on the slide.
+    if (DGE.boardOpen) return dgeToggleBoard(false);
+    if (DGE.selection.length) return dgeSelect([]);
+    if (DGE.tool !== 'select') return dgePickTool('select');
+    return dgeClose();
+  }
+  if (k === 'Delete' || k === 'Backspace') { ev.preventDefault(); dgeDelete(); return; }
+  if (k.startsWith('Arrow')) { ev.preventDefault(); dgeNudge(k, ev.shiftKey); return; }
+  if (k === ',' || k === 'PageUp') { ev.preventDefault(); dgeGoFigure(-1); return; }
+  if (k === '.' || k === 'PageDown') { ev.preventDefault(); dgeGoFigure(1); return; }
+  if (k === '?') { ev.preventDefault(); dgeHelp(); return; }
+
+  const key = k.toLowerCase();
+  if (key === 'o') { ev.preventDefault(); dgeToggleBoard(); return; }
+  if (key === 'q') { ev.preventDefault(); DGE.toolLocked = !DGE.toolLocked; dgeStatus('', DGE.toolLocked ? 'tool locked – it stays active after each use' : 'tool unlocked – one shot, then back to select'); return; }
+  if (key === 'f') { ev.preventDefault(); dgeCycleFrame(ev.shiftKey); return; }
+  if (key === 'v' && ev.shiftKey) {
+    ev.preventDefault();
+    DGE.stripRight = !DGE.stripRight;
+    dgeRoot.classList.toggle('dge-strip-right', DGE.stripRight);
+    dgeZoomFit();
+    return;
+  }
+  const tool = DGE_TOOLS.find((t) => !t.sep && t.keys.includes(key));
+  if (tool) { ev.preventDefault(); dgePickTool(tool.id); return; }
+}
+
+function dgeKeyup(ev) {
+  if (ev.key === ' ') {
+    DGE.spaceDown = false;
+    const c = dgeQ('#dge-canvas');
+    if (c) c.classList.remove('dge-pannable');
+  }
+}
+
+// A nudge writes into the same token a drag would, so the arrows are precise
+// drags rather than a second mechanism.
+function dgeNudge(key, coarse) {
+  if (!DGE.selection.length) return;
+  const step = coarse ? 0.25 : 0.05;
+  const dx = key === 'ArrowLeft' ? -step : key === 'ArrowRight' ? step : 0;
+  const dy = key === 'ArrowUp' ? -step : key === 'ArrowDown' ? step : 0;
+  const id = DGE.selection[0];
+  const ctx = dgeGestureBase();
+  const plan = dgePlanDrag(ctx, id, dx, dy, {});
+  if (!plan.edits.length) { if (plan.refusals.length) dgeStatus('', plan.refusals[0], true); return; }
+  dgeSetSource(dgeApplyEdits(ctx, id, plan.edits));
+  dgeShowPlan(ctx, id, plan);
+}
+
+// ── copy, paste, commit (editor.md §2.3, §7.1) ──────────────────────
+
+// Paste the dependency closure. Naively this is impossible in a relational
+// grammar – the selected lines refer to elements that do not exist in the
+// target, and converting those relations to absolute coordinates is
+// precisely what the grammar exists to avoid. So the editor pastes
+// everything the selection depends on instead.
+function dgeClosureOf(ids) {
+  const want = new Set(ids);
+  const add = (id) => { if (id && DGE.model.byId.has(id) && !want.has(id)) { want.add(id); grow = true; } };
+  let grow = true;
+  while (grow) {
+    grow = false;
+    for (const id of [...want]) {
+      const el = dgeFind(id);
+      if (!el) continue;
+      const p = el.place;
+      if (p && p.kind === 'rel') add(p.ref);
+      if (p && p.kind === 'between') for (const r of p.refs) add(r.ref);
+      if (p && p.kind === 'abs') for (const c of (p.at || [])) if (c && c.ref) add(c.ref);
+      if (el.sameAs) add(el.sameAs);
+      if (el.kind === 'edge') { if (!el.from.point) add(el.from.ref); if (!el.to.point) add(el.to.ref); }
+      if (el.members) for (const m of el.members) add(m);
+      // The master of any align/spread the selection is part of: without it
+      // the statement lands with a name that is not there.
+      for (const a of [...DGE.model.aligns, ...DGE.model.spreads]) {
+        if (a.members.includes(id)) add(a.members[0]);
+      }
+    }
+  }
+  return want;
+}
+
+function dgeCopy() {
+  if (!DGE.selection.length || !DGE.model) return;
+  const want = dgeClosureOf(DGE.selection);
+  const lines = [];
+  const seen = new Set();
+  for (const el of [...DGE.model.nodes, ...DGE.model.edges, ...DGE.model.containers, ...DGE.model.braces]) {
+    if (!want.has(el.id) || seen.has(el.line)) continue;
+    seen.add(el.line);
+    lines.push({ line: el.line, text: DGE.source.slice(el.span[0], el.span[1]) });
+  }
+  for (const a of [...DGE.model.aligns, ...DGE.model.spreads]) {
+    if (a.members.every((m) => want.has(m)) && !seen.has(a.line)) {
+      seen.add(a.line);
+      lines.push({ line: a.line, text: DGE.source.slice(a.span[0], a.span[1]) });
+    }
+  }
+  // The `default <kind> @tag` blocks the selection's tags actually use.
+  const tags = new Set();
+  for (const id of want) for (const t of (dgeFind(id) || {}).tags || []) tags.add(t);
+  for (const d of DGE.model.tagDefaults) {
+    if (tags.has(d.tag) && d.span && !seen.has(d.line)) {
+      seen.add(d.line);
+      lines.push({ line: d.line, text: DGE.source.slice(d.span[0], d.span[1]) });
+    }
+  }
+  lines.sort((a, b) => a.line - b.line);
+  DGE.clipboard = {
+    names: [...want],
+    roots: DGE.selection.slice(),
+    text: lines.map((l) => l.text).join('\n'),
+  };
+  dgeStatus(DGE.clipboard.text.split('\n')[0] + (lines.length > 1 ? ' …' : ''),
+    `${lines.length} line(s) copied – the selection and everything it depends on`);
+}
+
+function dgePaste(inPlace) {
+  if (!DGE.clipboard) return;
+  // Name collisions are renamed mechanically, with every reference *inside*
+  // the pasted set rewritten. Safe because element names are letters,
+  // digits, _ and - only.
+  let text = DGE.clipboard.text;
+  const rename = new Map();
+  for (const name of DGE.clipboard.names) {
+    if (!DGE.model.byId.has(name)) continue;
+    rename.set(name, dgeFreshName(name));
+  }
+  for (const [from, to] of rename) {
+    text = text.replace(new RegExp('(^|[\\s,"(])' + from + '(?=$|[\\s,.:>"])', 'gm'), '$1' + to);
+  }
+  if (!inPlace) {
+    // Ctrl-V drops the root where the pointer last was; Shift-Ctrl-V pastes
+    // in place, keeping the `at X,Y` it had – which is what makes a series
+    // of figures line up.
+    const pt = DGE.lastPoint || { x: 0, y: 0 };
+    const { uw, uh } = dgeUnits();
+    const root = rename.get(DGE.clipboard.roots[0]) || DGE.clipboard.roots[0];
+    const at = `at ${dgeNum(dgeRound(pt.x / uw, DGE_SNAP_CELL))},${dgeNum(dgeRound(pt.y / uh, DGE_SNAP_CELL))}`;
+    text = text.replace(new RegExp('^(\\s*\\w+\\s+' + root + '\\b.*?)( at [^\\s]+| (?:right|left) of \\w+| (?:below|above) \\w+)', 'm'), '$1 ' + at);
+  }
+  const lines = DGE.source.split('\n');
+  let at = lines.length;
+  for (let i = lines.length - 1; i >= 0; i--) if (/^\s*step\b/.test(lines[i])) at = i;
+  lines.splice(at, 0, ...text.split('\n'));
+  dgeSetSource(lines.join('\n'));
+  dgeSelect(DGE.clipboard.roots.map((r) => rename.get(r) || r));
+  dgeStatus('', `pasted ${text.split('\n').length} line(s)${rename.size ? `, ${rename.size} renamed to avoid a collision` : ''}`);
+}
+
+// Tier 2 of editor.md §2.3: the clipboard. Always available, every browser,
+// file:// included – the same idiom as Shift-E, which exports live
+// annotations as a snippet to paste back into source.md.
+function dgeCommit() {
+  if (DGE.problems && DGE.problems.length) {
+    dgeStatus('', 'The block does not compile – fix the problems below before copying it back.', true);
+    return;
+  }
+  const block = '::: diagram' + (DGE.fig.attrs ? ' {' + DGE.fig.attrs + '}' : '') + '\n'
+    + DGE.source + '\n:::';
+  const done = (ok) => dgeStatus('', ok
+    ? 'copied – paste it over the ::: diagram block in source.md'
+    : 'could not reach the clipboard; select the source pane and copy by hand', !ok);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(block).then(() => done(true), () => done(false));
+  } else {
+    done(false);
+  }
+}
+
+function dgeHelp() {
+  const help = document.getElementById('help-overlay');
+  if (help) help.classList.toggle('hidden');
+}
+
+// ── painting the chrome ─────────────────────────────────────────────
+
+function dgeRenderAll() {
+  if (!DGE.open) return;
+  const name = dgeQ('#dge-name');
+  if (name) name.textContent = DGE.fig.chunk ? '#' + DGE.fig.chunk : 'figure ' + (DGE.index + 1);
+  const pos = dgeQ('#dge-figpos');
+  if (pos) pos.textContent = `${DGE.index + 1} / ${DGE_FIGURES.length}`;
+  const counts = dgeQ('#dge-counts');
+  if (counts && DGE.model) {
+    counts.textContent = `${DGE.model.nodes.length + DGE.model.edges.length
+      + DGE.model.containers.length + DGE.model.braces.length} elements`
+      + (DGE.model.steps.length ? ` · beat ${DGE.beat} of ${DGE.model.steps.length}` : '')
+      + (DGE.dirty ? ' · edited' : '');
+  }
+  // One line of chrome saying which of the two situations this is. A private
+  // editor mode is not a separate feature – it is the cockpit's existing
+  // freeze, and saying so beats growing a second concept for the same thing.
+  const room = dgeQ('#dge-room');
+  if (room) {
+    // Read off the cockpit's own control rather than a variable: `frozen` is
+    // a top-level `let` in a classic script, which is not a property of
+    // window, and the button is the state made visible anyway.
+    const btn = document.getElementById('freeze-btn');
+    const frozen = !!(btn && btn.getAttribute('aria-pressed') === 'true');
+    const isSpeaker = document.body.dataset.view === 'speaker';
+    room.textContent = isSpeaker
+      ? (frozen ? 'the room is frozen – it will not see this until you unfreeze' : 'the room is following')
+      : 'this window is the projection';
+    room.className = isSpeaker && frozen ? 'dge-frozen' : 'dge-live';
+  }
+  const copy = dgeQ('#dge-copy-btn');
+  if (copy) copy.disabled = !!(DGE.problems && DGE.problems.length);
+  dgeApplyFrame();
+  dgeApplyView();
+  dgeRenderTools();
+  dgeRenderSide();
+  dgeDrawGuides();
+  const strip = dgeQ('#dge-strip');
+  if (strip) strip.querySelectorAll('.dge-thumb').forEach((b, i) => {
+    b.setAttribute('aria-current', String(i === DGE.index));
+  });
+}
+
+// ── the entry point ─────────────────────────────────────────────────
+// The focus card opens the editor; it does not become it. Clicking a diagram
+// already zooms it into the existing centred card, and the pencil there
+// opens the editor as its own overlay above it. Reusing the card as the
+// canvas would entangle the editor with FOCUSABLE_SEL, the card's pan/zoom
+// and its own sync – three things that already work and none of which the
+// editor wants to inherit.
+
+function dgeFigureForNode(node) {
+  const svg = node && node.querySelector ? node.querySelector('svg.psi-diagram') : null;
+  if (!svg) return -1;
+  const id = svg.id || '';
+  const figs = dgeCollectFigures();
+  // The focus card is a *clone*, so its svg carries the same id as the
+  // original. Match on that rather than on identity.
+  return figs.findIndex((f) => f.svg.id === id);
+}
+
+function dgeMountEntryPoint() {
+  const overlay = document.getElementById('figure-overlay');
+  if (!overlay) return;
+  const sync = () => {
+    const card = overlay.querySelector('.figure-focus-target');
+    const existing = document.querySelector('.dge-pencil');
+    if (existing) existing.remove();
+    if (!card || !card.classList.contains('figure-diagram')) return;
+    if (dgeFigureForNode(card) < 0) return;
+    const btn = dgeEl('button', {
+      type: 'button', class: 'dge-btn dge-pencil',
+      html: 'Edit this figure <kbd>E</kbd>',
+      title: 'open the diagram editor',
+      onclick: (e) => { e.stopPropagation(); dgeOpenFromCard(); },
+    });
+    // Appended to the body, not to the overlay. It is position: fixed
+    // either way, and putting it inside the subtree the observer watches
+    // makes its own insertion a mutation – which re-runs sync, which
+    // inserts it again. That loop hangs the tab and then kills it.
+    document.body.appendChild(btn);
+  };
+  new MutationObserver(sync).observe(overlay, { childList: true });
+  sync();
+}
+
+function dgeOpenFromCard() {
+  const overlay = document.getElementById('figure-overlay');
+  const card = overlay ? overlay.querySelector('.figure-focus-target') : null;
+  const i = dgeFigureForNode(card);
+  if (i < 0) return false;
+  return dgeOpen(i);
+}
+
+// `E` is a slide binding, not an editor one: it opens the editor from a
+// focused figure and does nothing otherwise. Captured, so it reaches the
+// editor before the view's own handler and cannot advance the lecture.
+function dgeMountKeys() {
+  window.addEventListener('keydown', (ev) => {
+    if (DGE.open) return dgeKeydown(ev);
+    if (ev.key !== 'e' && ev.key !== 'E') return;
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    const t = (ev.target.tagName || '').toLowerCase();
+    if (t === 'input' || t === 'textarea') return;
+    if (!document.body.classList.contains('figure-focused')) return;
+    if (dgeOpenFromCard()) { ev.preventDefault(); ev.stopPropagation(); }
+  }, true);
+  window.addEventListener('keyup', dgeKeyup, true);
+  window.addEventListener('pointermove', (ev) => {
+    if (DGE.open && !DGE.boardOpen) DGE.lastPoint = dgePointToDiagram(ev);
+  });
+}
+
 // ── boot ────────────────────────────────────────────────────────────
 
 window.psiEditor = {
@@ -264,10 +2376,19 @@ window.psiEditor = {
   spanTable: (fig, body) => window.PSI_DG.createSpanTable(
     fig.compiler.parseDiagramSource(body === undefined ? fig.body : body, fig.attrs).model,
     body === undefined ? fig.body : body),
+  open: dgeOpen,
+  close: dgeClose,
+  state: DGE,
 };
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', dgeCollectFigures, { once: true });
-} else {
+function dgeBoot() {
   dgeCollectFigures();
+  dgeMountEntryPoint();
+  dgeMountKeys();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', dgeBoot, { once: true });
+} else {
+  dgeBoot();
 }

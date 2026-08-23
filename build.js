@@ -1347,12 +1347,15 @@ function diagramCoreScript() {
 let diagramCoreCache = null;
 const diagramCoreJs = () => (diagramCoreCache ??= diagramCoreScript());
 
-// The editor UI, same treatment and for the same reason: read as text, so a
-// backtick or a regex backslash in it means what it says.
+// The editor UI and its chrome, same treatment and for the same reason: read
+// as text, so a backtick or a regex backslash in it means what it says.
 const EDITOR_JS_PATH = new URL('./editor.mjs', import.meta.url);
+const EDITOR_CSS_PATH = new URL('./editor.css', import.meta.url);
 let editorJsCache = null;
 const editorJs = () => (editorJsCache ??= fs.readFileSync(EDITOR_JS_PATH, 'utf8')
   .replace(/<\/(script)/gi, '<\\/$1'));
+let editorCssCache = null;
+const editorCss = () => (editorCssCache ??= fs.readFileSync(EDITOR_CSS_PATH, 'utf8'));
 
 const dgCore = createDiagramCompiler({
   resolveImage: dgResolveImage,
@@ -3047,7 +3050,7 @@ const SEARCH_PANEL_HTML = `<div id="search-panel" class="hidden" role="dialog" a
 // does V do". Mouse gestures are listed alongside the keys – several of the
 // most useful ones (resize the notes pane, click a figure to zoom, drag to
 // pan) have no key at all and were previously undiscoverable.
-function renderHelpOverlay(view) {
+function renderHelpOverlay(view, withEditor) {
   const shared = [
     ['Moving around', [
       ['<kbd>←</kbd> <kbd>→</kbd>', 'previous / next column'],
@@ -3115,14 +3118,39 @@ function renderHelpOverlay(view) {
       ['move the mouse over the stage', 'laser pointer on the projector'],
     ]],
   ];
+  // The editor's own section, from the one table in editor.md §4.2. Emitted
+  // only where the editor ships, so a lecture without diagrams does not
+  // advertise a modal it does not carry.
+  const editorKeys = ['The diagram editor', [
+    ['click a diagram, then <kbd>E</kbd>', 'open the editor on that figure – or the button in the corner of the card'],
+    ['<kbd>1</kbd> <kbd>V</kbd>', 'select'],
+    ['<kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> <kbd>5</kbd> <kbd>8</kbd>', 'box · dot · text · edge · image'],
+    ['<kbd>9</kbd>', 'a plain line – the edge tool with both ends forced to coordinates'],
+    ['<kbd>6</kbd> · <kbd>7</kbd>', 'container · brace, drawn around whatever is selected'],
+    ['<kbd>Q</kbd>', 'keep the current tool instead of falling back to select'],
+    ['drag · drag a handle', 'move it · resize it – the status bar shows the line it will write'],
+    ['arrows · <kbd>Shift</kbd>-arrows', 'nudge the selection, fine · coarse'],
+    ['<kbd>Ctrl</kbd> while dragging', 'suspend snapping, for when 0.5847 is meant'],
+    ['<kbd>Delete</kbd>', 'delete, after listing what refers to it'],
+    ['<kbd>Ctrl</kbd>-<kbd>Z</kbd> · <kbd>Shift</kbd>-<kbd>Ctrl</kbd>-<kbd>Z</kbd>', 'undo · redo'],
+    ['<kbd>Ctrl</kbd>-<kbd>A</kbd> · <kbd>Ctrl</kbd>-<kbd>D</kbd>', 'select all · duplicate'],
+    ['<kbd>Ctrl</kbd>-<kbd>C</kbd> · <kbd>Ctrl</kbd>-<kbd>V</kbd> · <kbd>Ctrl</kbd>-<kbd>Shift</kbd>-<kbd>V</kbd>', 'copy · paste · paste in place'],
+    ['<kbd>Ctrl</kbd>-<kbd>S</kbd>', 'copy the finished block to the clipboard'],
+    ['<kbd>Space</kbd>-drag · middle-drag · wheel', 'pan · pan · zoom'],
+    ['<kbd>F</kbd>', 'frame: slide → column → print, the three places the figure can land'],
+    ['<kbd>,</kbd> <kbd>.</kbd> · <kbd>PageUp</kbd> <kbd>PageDown</kbd>', 'previous / next figure in the lecture'],
+    ['<kbd>O</kbd>', 'the figure board'],
+    ['<kbd>Shift</kbd>-<kbd>V</kbd>', 'flip the figure strip between the bottom and the right edge'],
+    ['<kbd>Esc</kbd>', 'step back out: deselect, then the select tool, then close'],
+  ]];
   const otherWindows = ['The other windows', [
     ...(view === 'speaker' ? [] : [['<kbd>S</kbd>', 'open the speaker cockpit – both windows then stay in sync']]),
     ['<kbd>P</kbd>', 'open the print view in a new tab'],
     ['<kbd>?</kbd>', 'this panel'],
   ]];
   const groups = view === 'speaker'
-    ? [...speakerOnly, ...shared, otherWindows]
-    : [...shared, otherWindows];
+    ? [...speakerOnly, ...shared, ...(withEditor ? [editorKeys] : []), otherWindows]
+    : [...shared, ...(withEditor ? [editorKeys] : []), otherWindows];
 
   // Both columns are static author-written HTML (kbd markup and en-dashes),
   // never user content, so they go through verbatim.
@@ -3171,7 +3199,8 @@ function editorPayload(frontmatter, columnsHtml, view) {
   if (want === 'none') return '';
   if (want === 'speaker' && view !== 'speaker') return '';
   if (!columnsHtml.includes('class="psi-diagram"')) return '';
-  return `<script>\n${diagramCoreJs()}\n${editorJs()}\n</script>`;
+  return `<style>\n${editorCss()}\n</style>\n`
+    + `<script>\n${diagramCoreJs()}\n${editorJs()}\n</script>`;
 }
 
 function renderAudience(lecture, opts = {}) {
@@ -3211,7 +3240,7 @@ ${columnsHtml}
   <button type="button" data-action="zoom-out" aria-label="Zoom out">−</button>
   <button type="button" data-action="zoom-in" aria-label="Zoom in">+</button>
 </nav>
-${renderHelpOverlay('audience')}
+${renderHelpOverlay('audience', !!editorPayload(frontmatter, columnsHtml, 'audience'))}
 <div id="mode-badge"></div>
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
@@ -7185,7 +7214,7 @@ ${columnsHtml}
 <div id="note-templates">
 ${noteTemplates.join('\n')}
 </div>
-${renderHelpOverlay('speaker')}
+${renderHelpOverlay('speaker', !!editorPayload(frontmatter, columnsHtml, 'speaker'))}
 <div id="mode-badge"></div>
 <div id="center-toast" role="status" aria-live="polite"></div>
 ${OVERVIEW_BADGE_HTML}
@@ -9245,7 +9274,10 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
 // from every output, which is how a whole collapse-mode rule once shipped
 // broken. Cheap to check, so check it on every build.
 function assertStylesheetsWellFormed() {
-  const sheets = { AUDIENCE_CSS, SPEAKER_CSS, PRINT_CSS };
+  // editor.css is a real file rather than a constant, and it goes through
+  // this check for exactly the same reason the constants do: an unterminated
+  // comment silently drops every rule to the next one.
+  const sheets = { AUDIENCE_CSS, SPEAKER_CSS, PRINT_CSS, 'editor.css': editorCss() };
   for (const [name, css] of Object.entries(sheets)) {
     if (typeof css !== 'string') continue;
     const opens = (css.match(/\/\*/g) || []).length;

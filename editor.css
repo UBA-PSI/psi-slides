@@ -1,0 +1,636 @@
+/* The diagram editor's chrome.
+ *
+ * Read from disk and inlined, like editor.mjs. The unterminated-comment trap
+ * assertStylesheetsWellFormed() exists for still applies here, so this file
+ * goes through that check too.
+ *
+ * Two rules carry the whole look, and both are the product's own:
+ *
+ * 1. **Everything colours through the page's custom properties.** --paper,
+ *    --ink, --ink-soft, --rule, --emph. The editor therefore works in all
+ *    seven themes for free, and the canvas needs nothing at all: it is the
+ *    compiler's own SVG, already painted in those tokens.
+ * 2. **Chrome keys off body[data-mode], never a theme name.** applyFontTheme()
+ *    sets it to dark or light, and every other panel in this product - help
+ *    sheet, TOC, search, cockpit footer, export modal - already does this.
+ *    Do it and the two phosphor modes come free; do not and this ships a
+ *    near-white panel on a dark projection.
+ *
+ * The measurements are the speaker cockpit's: 11px sans chrome, 1px --rule
+ * borders, 3px radii, small-caps labels at 0.14em tracking.
+ */
+
+/* ── the modal ────────────────────────────────────────────────────── */
+
+#dge-root {
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 18rem;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "top    top    top"
+    "tools  canvas side"
+    "status status status"
+    "strip  strip  strip";
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans-font);
+  font-size: 11px;
+  user-select: none;
+}
+#dge-root[hidden] { display: none; }
+
+/* The strip down the right edge instead of along the bottom (Shift-V), the
+   same flip the cockpit's preview strip already offers and in the same key. */
+#dge-root.dge-strip-right {
+  grid-template-columns: auto minmax(0, 1fr) 18rem auto;
+  grid-template-areas:
+    "top    top    top    top"
+    "tools  canvas side   strip"
+    "status status status status";
+}
+
+/* ── the top bar ──────────────────────────────────────────────────── */
+
+#dge-top {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 0.45rem 0.8rem;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-soft);
+}
+#dge-top .dge-name {
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 12px;
+  max-width: 22rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#dge-top .dge-spacer { flex: 1; }
+
+.dge-group {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.dge-group > .dge-cap {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-right: 0.15rem;
+}
+
+/* ── buttons ──────────────────────────────────────────────────────── */
+/* One button treatment for the whole editor. The cockpit footer's, so a
+   lecturer who has used one has used the other. */
+
+.dge-btn {
+  font: inherit;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: oklch(0.97 0 0);
+  color: var(--ink);
+  cursor: pointer;
+}
+.dge-btn:hover { background: oklch(0.93 0 0); }
+.dge-btn:disabled { opacity: 0.4; cursor: default; }
+.dge-btn:disabled:hover { background: oklch(0.97 0 0); }
+.dge-btn[aria-pressed=true],
+.dge-btn.dge-on {
+  border-color: var(--emph);
+  background: color-mix(in oklab, var(--emph) 16%, var(--paper));
+  color: var(--ink);
+}
+/* Every control prints its own key. The slide is keyboard-first; the editor
+   is GUI-first, and the keys are accelerators for people who already know -
+   nothing here is reachable only by knowing. */
+.dge-btn kbd {
+  font-family: var(--mono-font);
+  font-size: 0.85em;
+  opacity: 0.55;
+  margin-left: 0.35em;
+}
+
+/* A segmented control: frame, in the top bar. */
+.dge-seg {
+  display: inline-flex;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.dge-seg button {
+  font: inherit;
+  border: 0;
+  border-right: 1px solid var(--rule);
+  background: oklch(0.97 0 0);
+  color: var(--ink);
+  padding: 2px 9px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.25;
+}
+.dge-seg button:last-child { border-right: 0; }
+.dge-seg button:hover { background: oklch(0.93 0 0); }
+.dge-seg button[aria-pressed=true] {
+  background: color-mix(in oklab, var(--emph) 16%, var(--paper));
+}
+.dge-seg button i {
+  font-style: normal;
+  font-size: 0.85em;
+  font-family: var(--mono-font);
+  color: var(--ink-soft);
+}
+
+/* Whether the room is watching. Not a second concept: it is the cockpit's
+   own freeze, said out loud, because "can I work unseen?" is answered by V
+   and by nothing else. */
+#dge-room {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+#dge-room.dge-live { color: oklch(0.55 0.16 30); }
+#dge-room.dge-frozen { color: oklch(0.55 0.16 150); }
+
+/* ── the tool rail ────────────────────────────────────────────────── */
+
+#dge-tools {
+  grid-area: tools;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.6rem 0.5rem;
+  border-right: 1px solid var(--rule);
+  align-content: start;
+}
+#dge-tools .dge-tool {
+  width: 2.6rem;
+  height: 2.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 0;
+}
+#dge-tools .dge-tool svg { width: 15px; height: 15px; }
+#dge-tools .dge-tool span {
+  font-size: 8px;
+  font-family: var(--mono-font);
+  opacity: 0.6;
+}
+#dge-tools .dge-tool kbd { display: none; }
+#dge-tools hr {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 0.3rem 0.2rem;
+}
+/* A wrapper acts on the selection, so it is unusable until there is one.
+   Saying that with the disabled state teaches the semantics: there is
+   nothing to draw, there is something to select first. */
+#dge-tools .dge-tool:disabled span { opacity: 0.35; }
+
+/* ── the canvas ───────────────────────────────────────────────────── */
+
+#dge-canvas {
+  grid-area: canvas;
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--ink) 6%, var(--paper));
+  display: grid;
+  place-items: center;
+  cursor: default;
+}
+#dge-canvas.dge-panning { cursor: grabbing; }
+#dge-canvas.dge-pannable { cursor: grab; }
+#dge-canvas.dge-placing { cursor: crosshair; }
+
+/* The frame is a real destination, not a canvas size: the chunk's own width
+   class in a 16:9 view, one pane of a ::: side at that class, or the print
+   measure where the height cap does not apply. Switching frames changes
+   nothing in the source - it is a preview of where the same block lands. */
+#dge-stage {
+  position: relative;
+  transform-origin: center center;
+}
+#dge-frame {
+  position: relative;
+  background: var(--paper);
+  box-shadow: 0 1px 12px oklch(0 0 0 / 0.18);
+  outline: 1px solid var(--rule);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#dge-frame::after {
+  content: attr(data-measure);
+  position: absolute;
+  left: 0;
+  bottom: -1.35rem;
+  font-size: 10px;
+  font-family: var(--mono-font);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+#dge-art { position: relative; display: block; width: 100%; }
+#dge-art svg.psi-diagram { display: block; max-width: 100%; height: auto; }
+
+/* The guide layer sits exactly on the drawing and shares its viewBox, so a
+   guide drawn at 3.2,1 is at 3.2,1 in the figure. Kept out of the emitted
+   SVG on purpose: that SVG stays exactly what the build would have
+   produced, which is what the identity check asserts. */
+#dge-guides {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+#dge-guides * { vector-effect: non-scaling-stroke; }
+#dge-guides .dge-cell { stroke: var(--rule); stroke-width: 0.5; opacity: 0.4; fill: none; }
+#dge-guides .dge-axis { stroke: var(--rule); stroke-width: 1; opacity: 0.75; }
+#dge-guides .dge-tick { stroke: var(--ink-soft); stroke-width: 1; opacity: 0.5; }
+#dge-guides .dge-ruler-label {
+  fill: var(--ink-soft);
+  font-family: var(--mono-font);
+  font-size: 9px;
+  opacity: 0.75;
+}
+/* At rest, the selection shows what holds it: a relation drawn as a
+   hairline, its statement named beside it. This is the editor's first job,
+   before it lets anyone drag anything - two boxes 0.55 apart look exactly
+   like two boxes that happen to be 0.55 apart. */
+#dge-guides .dge-rel { stroke: var(--rule); stroke-width: 1.2; fill: none; }
+#dge-guides .dge-rel-strong { stroke: var(--emph); stroke-width: 1.4; fill: none; }
+#dge-guides .dge-rel-label {
+  fill: var(--ink-soft);
+  font-family: var(--mono-font);
+  font-size: 10px;
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+#dge-guides .dge-snap { stroke: var(--emph); stroke-width: 1.2; stroke-dasharray: 4 3; fill: none; }
+#dge-guides .dge-sel {
+  fill: none;
+  stroke: var(--emph);
+  stroke-width: 1.6;
+}
+#dge-guides .dge-sel-master { stroke-dasharray: none; }
+#dge-guides .dge-handle {
+  fill: var(--paper);
+  stroke: var(--emph);
+  stroke-width: 1.4;
+  pointer-events: all;
+  cursor: nwse-resize;
+}
+#dge-guides .dge-handle.dge-h-e, #dge-guides .dge-handle.dge-h-w { cursor: ew-resize; }
+#dge-guides .dge-handle.dge-h-n, #dge-guides .dge-handle.dge-h-s { cursor: ns-resize; }
+/* A tag is not geometric, so it must not be drawn as a line. A tinted halo
+   behind the members says "these belong together" without saying anything
+   false about where they are. */
+#dge-guides .dge-taghalo {
+  fill: color-mix(in oklab, var(--emph) 20%, transparent);
+  stroke: none;
+}
+
+/* ── the sidebar ──────────────────────────────────────────────────── */
+
+#dge-side {
+  grid-area: side;
+  border-left: 1px solid var(--rule);
+  overflow-y: auto;
+  padding: 0.7rem 0.75rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+#dge-side h3 {
+  margin: 0 0 0.35rem;
+  font-size: 10px;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+#dge-side .dge-empty { color: var(--ink-soft); line-height: 1.5; }
+#dge-side label { display: block; margin-bottom: 0.3rem; }
+#dge-side input[type=text],
+#dge-side textarea {
+  width: 100%;
+  font: inherit;
+  font-family: var(--mono-font);
+  padding: 3px 5px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+}
+#dge-side textarea { resize: vertical; min-height: 3.2em; }
+
+/* The geometry options that kind actually accepts - a dot offers r and never
+   w - so the panel is a picture of DG_KIND_OPTS rather than a form with
+   fields that do nothing. */
+.dge-nums { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.dge-num { display: flex; align-items: center; gap: 0.25rem; }
+.dge-num span { font-family: var(--mono-font); color: var(--ink-soft); }
+.dge-num input {
+  width: 4.2rem;
+  font: inherit;
+  font-family: var(--mono-font);
+  padding: 2px 4px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+}
+/* Which of the five layers a value came from. Without it, four layers is a
+   guessing game. */
+.dge-from {
+  font-size: 9.5px;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+.dge-from.dge-inherited { color: color-mix(in oklab, var(--emph) 60%, var(--ink-soft)); }
+
+/* The closed class vocabulary as swatches, one row per slot. The editor
+   exposes exactly these and nothing else - no freehand, no arbitrary
+   colours, no free font choice. */
+.dge-slot { margin-bottom: 0.45rem; }
+.dge-slot > b {
+  display: block;
+  font-weight: 400;
+  font-size: 9.5px;
+  color: var(--ink-soft);
+  margin-bottom: 0.2rem;
+}
+.dge-swatches { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.dge-sw {
+  font: inherit;
+  min-width: 1.9rem;
+  padding: 1px 5px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  line-height: 1.6;
+}
+.dge-sw:hover { border-color: var(--ink-soft); }
+.dge-sw[aria-pressed=true] {
+  border-color: var(--emph);
+  box-shadow: inset 0 0 0 1px var(--emph);
+}
+/* The fill swatches show the fill. A row of words would be a legend; a row
+   of the actual tones is the thing itself. */
+.dge-sw[data-fill] { width: 1.9rem; height: 1.25rem; }
+.dge-sw[data-fill=tone-1] { background: color-mix(in oklab, var(--emph) 13%, var(--paper)); }
+.dge-sw[data-fill=tone-2] { background: color-mix(in oklab, var(--ink) 8%, var(--paper)); }
+.dge-sw[data-fill=tone-3] { background: color-mix(in oklab, var(--ink) 20%, var(--paper)); }
+.dge-sw[data-fill=tone-4] { background: var(--emph); }
+.dge-sw[data-fill=clear] {
+  background:
+    linear-gradient(45deg, transparent 46%, var(--rule) 46%, var(--rule) 54%, transparent 54%);
+}
+
+/* Tags: membership is the one piece of structure that is completely
+   invisible in the drawing, so it is chips on the selection and a legend
+   with counts underneath. */
+.dge-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; align-items: center; }
+.dge-chip {
+  font: inherit;
+  font-family: var(--mono-font);
+  padding: 1px 6px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--emph) 10%, var(--paper));
+  color: var(--ink);
+  cursor: pointer;
+}
+.dge-chip:hover { border-color: var(--emph); }
+.dge-chip .dge-x { opacity: 0.5; margin-left: 0.3em; }
+.dge-chip-count { color: var(--ink-soft); margin-left: 0.35em; }
+
+/* The element list doubles as the "what refers to what" view. */
+.dge-list { display: flex; flex-direction: column; gap: 1px; max-height: 14rem; overflow-y: auto; }
+.dge-list button {
+  font: inherit;
+  text-align: left;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--ink);
+  padding: 2px 5px;
+  cursor: pointer;
+  display: flex;
+  gap: 0.4rem;
+}
+.dge-list button:hover { background: color-mix(in oklab, var(--ink) 7%, var(--paper)); }
+.dge-list button[aria-pressed=true] { background: color-mix(in oklab, var(--emph) 16%, var(--paper)); }
+.dge-list .dge-kind {
+  font-family: var(--mono-font);
+  color: var(--ink-soft);
+  min-width: 4.2rem;
+}
+.dge-list .dge-nm { font-family: var(--mono-font); }
+
+/* ── the status bar ───────────────────────────────────────────────── */
+/* Always shows the line the editor is about to write. That is worth more
+   than it sounds: it makes every drag legible as a diff, it is how the
+   author keeps trusting the tool, and in a lecture tool it means a student
+   learns the language by dragging things. */
+
+#dge-status {
+  grid-area: status;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.35rem 0.8rem;
+  border-top: 1px solid var(--rule);
+  min-height: 1.9rem;
+  color: var(--ink-soft);
+}
+#dge-status .dge-line {
+  font-family: var(--mono-font);
+  color: var(--ink);
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#dge-status .dge-line ins {
+  text-decoration: none;
+  background: color-mix(in oklab, var(--emph) 22%, var(--paper));
+  border-radius: 2px;
+  padding: 0 2px;
+}
+#dge-status .dge-note { font-style: italic; }
+#dge-status .dge-bad { color: oklch(0.55 0.18 25); font-style: normal; }
+#dge-status .dge-spacer { flex: 1; }
+
+/* ── the figure strip ─────────────────────────────────────────────── */
+
+#dge-strip {
+  grid-area: strip;
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.45rem 0.8rem;
+  border-top: 1px solid var(--rule);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+#dge-root.dge-strip-right #dge-strip {
+  flex-direction: column;
+  border-top: 0;
+  border-left: 1px solid var(--rule);
+  overflow-x: hidden;
+  overflow-y: auto;
+  width: 11rem;
+}
+#dge-strip .dge-thumb {
+  flex: 0 0 auto;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  padding: 3px;
+  cursor: pointer;
+  width: 8.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: stretch;
+}
+#dge-strip .dge-thumb[aria-current=true] { border-color: var(--emph); box-shadow: inset 0 0 0 1px var(--emph); }
+#dge-strip .dge-thumb svg { width: 100%; height: 3.2rem; display: block; }
+#dge-strip .dge-thumb b {
+  font-weight: 400;
+  font-size: 9.5px;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── the figure board (O) ─────────────────────────────────────────── */
+/* Same idiom, same key, same mental model as the slide overview. */
+
+#dge-board {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: color-mix(in oklab, var(--ink) 10%, var(--paper));
+  overflow-y: auto;
+  padding: 1.2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 0.9rem;
+  align-content: start;
+}
+#dge-board[hidden] { display: none; }
+#dge-board .dge-card {
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--paper);
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+#dge-board .dge-card[aria-current=true] { border-color: var(--emph); box-shadow: inset 0 0 0 1px var(--emph); }
+#dge-board .dge-card svg { width: 100%; height: 6.5rem; display: block; }
+#dge-board .dge-card b { font-weight: 400; color: var(--ink-soft); }
+
+/* ── the source pane ──────────────────────────────────────────────── */
+/* One way, for now: the canvas writes and the pane displays, with the
+   changed token highlighted. Editing text *and* dragging at the same time is
+   where round-tripping editors historically come apart. */
+
+#dge-source {
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 13rem;
+  overflow-y: auto;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.4rem 0.5rem;
+  background: color-mix(in oklab, var(--ink) 3%, var(--paper));
+  user-select: text;
+}
+#dge-source mark {
+  background: color-mix(in oklab, var(--emph) 26%, var(--paper));
+  color: var(--ink);
+  border-radius: 2px;
+}
+#dge-source .dge-errline {
+  display: block;
+  background: color-mix(in oklab, oklch(0.55 0.18 25) 16%, transparent);
+  border-radius: 2px;
+}
+
+/* Problems the build would report, said while the author can still fix
+   them. A parse error never blanks the canvas: the last good render stays
+   on screen and the write-back is disabled instead. */
+.dge-problems { display: flex; flex-direction: column; gap: 0.2rem; }
+.dge-problems div { color: oklch(0.5 0.17 25); line-height: 1.4; }
+.dge-problems div.dge-warn { color: color-mix(in oklab, var(--ink) 55%, oklch(0.6 0.13 70)); }
+
+/* ── dark chrome ──────────────────────────────────────────────────── */
+/* Keyed off data-mode, never a theme name - so the two phosphor modes and
+   any dark theme added later are covered without new selectors. */
+
+body[data-mode=dark] .dge-btn,
+body[data-mode=dark] .dge-seg button {
+  background: var(--paper-warm);
+  color: var(--ink);
+}
+body[data-mode=dark] .dge-btn:hover,
+body[data-mode=dark] .dge-seg button:hover {
+  background: oklch(from var(--paper) calc(l + 0.12) c h);
+}
+body[data-mode=dark] .dge-btn:disabled:hover { background: var(--paper-warm); }
+body[data-mode=dark] .dge-btn[aria-pressed=true],
+body[data-mode=dark] .dge-btn.dge-on,
+body[data-mode=dark] .dge-seg button[aria-pressed=true] {
+  background: color-mix(in oklab, var(--emph) 26%, var(--paper));
+}
+body[data-mode=dark] #dge-frame { box-shadow: 0 1px 14px oklch(0 0 0 / 0.55); }
+
+/* The slide underneath keeps running; the editor is simply on top of it.
+   Nothing about the lecture's state changes while it is open - in
+   particular revealed[chunkId], which the reveal, the sync, the freeze gate
+   and the localStorage recovery all share. */
+body.dge-open #stage-viewport { filter: none; }
+
+/* ── the entry point ──────────────────────────────────────────────── */
+/* Inside the focus card, not a bare key. The audience view is what a room is
+   looking at, and a modal editor must not be one fat-fingered keystroke
+   away: focus the figure, then edit it. Two gestures is the right price. */
+
+.dge-pencil {
+  position: fixed;
+  right: 1.4rem;
+  bottom: 1.4rem;
+  z-index: 60;
+  font-family: var(--sans-font);
+  font-size: 12px;
+  padding: 5px 12px;
+  box-shadow: 0 1px 8px oklch(0 0 0 / 0.2);
+}
