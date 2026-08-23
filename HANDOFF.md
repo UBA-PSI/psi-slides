@@ -4,6 +4,59 @@ Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als 
 
 Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
+## Slice: 36 echte Folien, und was dabei an der Sprache fehlte
+
+Auslöser war ein Auftrag, keine Feature-Idee: 36 Folien aus zwei
+PowerPoint-Decks (IntroSP Network Security I und II) als `::: diagram`
+nachbauen, Inhalt wörtlich, Anordnung frei. 21 davon gingen mit dem
+vorhandenen Vokabular. Die übrigen 15 scheiterten nicht an 15 Sonderfällen,
+sondern an vier wiederkehrenden Lücken – gedrehte Beschriftung (9 Folien),
+Chevron/Sechseck/Dreieck (9), Säulendiagramm (3), Achsen mit Kurven (3).
+
+**Die eine Idee, die alle fünf Erweiterungen trägt: denselben Zahlenvektor
+anders zeichnen.** Ein Sechseck ist die vier Zahlen eines Rechtecks mit einem
+anderen `d`; eine gedrehte Beschriftung ist `[x,y]` plus Winkel; eine glatte
+Kurve ist derselbe Wegpunkt-Vektor durch Catmull-Rom. Dadurch blieben
+`extentsOf`, die viewBox-Rechnung und das Tweening unangetastet – der Satz
+„the runtime interpolates numbers and nothing else" hat gehalten.
+
+`bars`, `grid` und `plot` gehen weiter: sie **expandieren beim Parsen** zu
+gewöhnlichen Boxen, Texten und Kanten. Nichts stromabwärts lernt eine neue
+Element-Art, deshalb überspannt `brace over f-0,f-1,f-2` drei Säulen ohne
+eine Zeile Sonderbehandlung. Möglich ist das nur, weil `at f.left+0.4` auf
+einem Knoten schon eine echte Abhängigkeit war.
+
+Was dabei zusätzlich aufgefallen ist und mitrepariert wurde:
+
+- `.psi-diagram rect, .psi-diagram circle` und `.psi-diagram text` hatten
+  keinen Kind-Kombinator und reichten **in eingebettete Assets hinein**. CSS
+  schlägt Präsentationsattribute, also wurden fremde Zeichnungen in
+  Papierfarbe übermalt. Die Avatare in `lectures/diagrams` zeigen seither zum
+  ersten Mal ihre Augen.
+- Beim Nachziehen dieser Selektoren auf `:is(rect, circle, .dg-shape)` habe
+  ich die Spezifität um eine Klasse angehoben und damit `.dg-text > rect
+  { stroke: none }` überstimmt – ein `.paper`-Textgrund bekam einen Rahmen.
+  Behoben, indem **jede** Regel, die das eigene Drawable eines Elements malt,
+  dieselbe Selektorform benutzt; die relative Reihenfolge stimmt dann wieder.
+- Der Druck strippte `emph`/`dim` unbedingt. Ein vom **Autor** geschriebenes
+  `{.dim}` ist aber eine Aussage über die Zeichnung, kein Moment im Vortrag.
+  Jetzt merkt sich der Zustand, wer es gesetzt hat.
+- Eine Säule ohne Beschriftung warnte, ihre Beschriftung laufe über.
+
+**`figure-design.md`** ist der zweite Ertrag und vielleicht der haltbarere:
+zehn Gestaltregeln mit Falsch/Richtig-Paaren in echter Syntax, die
+Tonzuordnung, die Vier-Takt-Dramaturgie und eine abarbeitbare Checkliste. Die
+sechs Kapitel wurden parallel dagegen geschrieben; alle 36 Figuren bauen
+warnungsfrei und sitzen innerhalb von 3,5 % mittig in ihrem Rahmen.
+
+Zwei Dinge, die dabei über den Werkzeugkasten gelernt wurden: ein
+Vektor-Asset lag bisher pro Fundstelle einmal in der Ausgabe (96 Gesichter
+wären ein Viertel Megabyte gewesen) – geteilt wird jetzt über `<symbol>`/`<use>`,
+aber **nur** bei Dateien ohne `<style>` und ohne interne Id-Verweise, weil ein
+`<use>` ein Shadow-Clone ist und der `@scope`-Anker nicht hineinreicht. Und
+`test/figure-framing.mjs` nannte genau eine Vorlesung, weshalb jeder der sechs
+Autoren die Messung von Hand nachbaute; sie ist jetzt auf beide gerichtet.
+
 ## Diagram-Slice (`::: diagram` – animierte Infografiken)
 
 Auslöser: der Wunsch, Kästen-Pfeile-Labels-Diagramme aus früheren Vorlesungen (CBC-Schaubild, Stack-Frame beim Overflow, Identity-Lifecycle) nach psi-slides zu holen **und schrittweise zu animieren**. Die beiden naheliegenden Wege scheitern beide, und zwar an unterschiedlichen Stellen:
