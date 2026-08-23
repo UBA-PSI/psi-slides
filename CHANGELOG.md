@@ -203,6 +203,44 @@ teaching; everything below is in use rather than aspirational.
   SIL OFL 1.1); an author's own fonts win per role, and `fonts: none` turns
   the bundle off. Nothing is fetched at run time; the files open from
   `file://`.
+
+- **A graphical editor for `::: diagram`.** Click a diagram to focus it, then
+  the button in the corner or `E`. It parses the block, records where every
+  token sits, answers a drag by rewriting the smallest span it can, and
+  re-runs the same compiler the build runs – so there is no second
+  representation to drift, no export step that flattens relations into
+  numbers, and no file the editor owns. Everything it produces is a block a
+  human could have typed.
+
+  The canvas is a **frame**, not a canvas size: the chunk's own width class
+  on a slide, one pane of a `::: side` at that class, or the print measure
+  where the height cap does not apply. Switching between them changes nothing
+  in the source. It says out loud two things that are otherwise invisible
+  until you look at the built page – the measure the figure lands in, and how
+  much of it stays empty when the 62vh cap binds first.
+
+  Because a figure here is held together by *relations* rather than
+  coordinates, and that structure is completely invisible in the picture, the
+  editor draws it: the `gap` between two facing edges with its number, the
+  alignment edge as a hairline through both elements, `between` as the line
+  joining its references, a ref coordinate as the line it refers to, an
+  `align` set's shared axis through every member, a `spread` set's equal
+  distances as matched marks, `same as` as a width bracket. A drag then
+  rewrites exactly one token – the `gap`, the `frac`, the signed nudge – and
+  a coordinate that belongs to an `align` or `spread` set is refused **by
+  name**: *"y comes from align y middle on line 40. Drag iv to move the row,
+  or drop c1 from that line."* The status bar always shows the line it is
+  about to write.
+
+  Where an edit goes, in four tiers: the `--watch` socket, now two-way, which
+  patches the block straight back into `source.md`; the clipboard; File
+  System Access where the browser has it; and `localStorage` for a reader
+  whose `audience.html` is a build artefact, with a visible way back. An edit
+  syncs to the other window as its own message, gated by the freeze flag – so
+  freeze, fix the figure, unfreeze, and the room gets the finished picture.
+
+  Off with `editor: none` in the frontmatter; `editor: speaker` keeps it out
+  of the projection. A lecture with no diagram pays nothing.
 - **Collapse**: the same prose is rendered at two densities. The projection
   shows the topic sentence plus promoted `**bold**` fragments; the document
   shows all of it. `::: slide` and `::: script` are the escape hatch when no

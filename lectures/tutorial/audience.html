@@ -3563,6 +3563,17 @@ window.addEventListener('message', (ev) => {
     return;
   }
   if (m.type === 'video') { applyRemoteVideo(m); return; }
+  // A diagram the other window edited. Its own message rather than a field
+  // of the snapshot, following the video precedent and for the same reason:
+  // applyRemoteState is a *full* apply, so folding an edit into the snapshot
+  // would drag the receiver's slide position along with it.
+  // Addressed by the diagram's own id, never by index, so reordering a chunk
+  // cannot mis-target it – the lesson data-fig-id already carries for video.
+  // Gated by the freeze flag on the sending side, like any shared state.
+  if (m.type === 'diagram-edit') {
+    if (window.psiApplyDiagramEdit) window.psiApplyDiagramEdit(m);
+    return;
+  }
   if (m.type === 'embed') { applyRemoteEmbed(m); return; }
   // Address overlay, outside the snapshot for the same reason as blank:
   // it is a command aimed at the projection, not shared navigation state.
@@ -6033,6 +6044,58 @@ body.dge-open #stage-viewport { filter: none; }
   font-size: 12px;
   padding: 5px 12px;
   box-shadow: 0 1px 8px oklch(0 0 0 / 0.2);
+}
+
+/* A reader's own version of a figure, marked on the figure itself. Their
+   audience.html is a build artefact – gitignored, regenerated – so the edit
+   lives on the same shelf as revealed[] and the theme preference, and the
+   way back has to be visible without opening the editor again. */
+.dge-edited {
+  font-family: var(--sans-font);
+  font-size: 0.62em;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  text-align: center;
+  margin-top: 0.3em;
+}
+.dge-edited button {
+  font: inherit;
+  border: 0;
+  background: none;
+  color: var(--emph);
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+@media print { .dge-edited { display: none; } }
+
+/* ── beats ────────────────────────────────────────────────────────── */
+/* Dragging in beat 2 writes a `move` into step 2, where dragging in beat 0
+   rewrites the element's placement. That is the one place in this editor
+   where the same gesture means two things, so it has to look like a mode. */
+
+#dge-beats { gap: 0.25rem; }
+#dge-beats[hidden] { display: none; }
+.dge-beat { font-family: var(--mono-font); }
+#dge-root.dge-in-step #dge-frame {
+  outline: 2px solid color-mix(in oklab, var(--emph) 55%, var(--paper));
+}
+#dge-root.dge-in-step #dge-status { border-top-color: var(--emph); }
+
+/* Where it was at the beat before, and the way it travelled. Both are drawn
+   for now – §12 of editor.md is deciding between them by looking. */
+#dge-guides .dge-ghost {
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.55;
+}
+#dge-guides .dge-motion {
+  stroke: var(--emph);
+  stroke-width: 1.2;
+  stroke-dasharray: 2 4;
+  opacity: 0.8;
 }
 
 </style>
@@ -8986,7 +9049,9 @@ function dgeBuildChrome() {
     ]),
     dgeEl('span', { class: 'dge-spacer' }),
     dgeEl('span', { id: 'dge-room' }),
-    dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-copy-btn', html: 'Copy source <kbd>⌘S</kbd>', onclick: () => dgeCommit() }),
+    dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-file-btn', text: 'Open source.md…', title: 'write back straight into the file (Chromium only)', onclick: () => dgePickSourceFile() }),
+    dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-revert-btn', text: 'Revert', title: 'discard your edits to this figure', onclick: () => dgeRevertLocal() }),
+    dgeEl('button', { type: 'button', class: 'dge-btn dge-on', id: 'dge-copy-btn', html: 'Copy source <kbd>⌘S</kbd>', onclick: () => dgeCommit() }),
     dgeEl('button', { type: 'button', class: 'dge-btn', html: 'Close <kbd>Esc</kbd>', onclick: () => dgeClose() }),
   ]);
 
@@ -9003,6 +9068,7 @@ function dgeBuildChrome() {
 
   const side = dgeEl('aside', { id: 'dge-side' });
   const status = dgeEl('footer', { id: 'dge-status' }, [
+    dgeEl('span', { class: 'dge-group', id: 'dge-beats', hidden: true }),
     dgeEl('span', { class: 'dge-line', id: 'dge-statusline' }),
     dgeEl('span', { class: 'dge-note', id: 'dge-statusnote' }),
     dgeEl('span', { class: 'dge-spacer' }),
@@ -9048,6 +9114,7 @@ function dgeOpen(figOrIndex) {
 
 function dgeClose() {
   if (!DGE.open) return;
+  try { sessionStorage.removeItem(DGE_REOPEN); } catch (e) {}
   DGE.open = false;
   dgeRoot.hidden = true;
   document.body.classList.remove('dge-open');
@@ -9058,7 +9125,8 @@ function dgeLoadFigure(index, resetView) {
   const figs = DGE_FIGURES;
   DGE.index = Math.max(0, Math.min(figs.length - 1, index));
   DGE.fig = figs[DGE.index];
-  DGE.source = DGE.fig.body;
+  const kept = dgeLoadLocal(DGE.fig);
+  DGE.source = kept === null ? DGE.fig.body : kept;
   DGE.selection = [];
   DGE.undo = [];
   DGE.redo = [];
@@ -9090,6 +9158,7 @@ function dgeRecompile() {
     DGE.compiled = res;
     DGE.model = res.model;
     DGE.spans = window.PSI_DG.createSpanTable(res.model, DGE.source);
+    DGE.beat = Math.max(0, Math.min(res.model.steps.length, DGE.beat));
     DGE.boxes = dgeBoxesAt(res.model, DGE.beat);
     dgePaintArt(res.html);
     // A selection whose element the author just deleted by typing has to go.
@@ -9334,6 +9403,7 @@ function dgeDrawGuides() {
       class: 'dge-sel', x: b.x - 3, y: b.y - 3, width: b.w + 6, height: b.h + 6, rx: 3,
     }));
   }
+  dgeDrawBeatGuides(g);
   if (DGE.selection.length === 1) dgeDrawRelations(g, DGE.selection[0]);
   if (DGE.selection.length === 1 && DGE.tool === 'select') dgeDrawHandles(g, DGE.selection[0]);
 
@@ -9727,6 +9797,17 @@ function dgeSetSource(next, opts) {
   DGE.source = next;
   DGE.dirty = true;
   dgeRecompile();
+  dgeAfterEdit();
+}
+
+// Everything a committed edit owes the world outside the canvas: the page
+// itself repainted so the change survives leaving the editor, the reader's
+// shelf updated, and the other window told.
+function dgeAfterEdit() {
+  if (!DGE.fig || (DGE.problems && DGE.problems.length)) return;
+  dgeApplyToPage(DGE.fig, DGE.source);
+  dgeSaveLocal();
+  dgeBroadcastEdit();
 }
 
 function dgeUndo() {
@@ -9735,6 +9816,7 @@ function dgeUndo() {
   DGE.source = DGE.undo.pop();
   DGE.dirty = true;
   dgeRecompile();
+  dgeAfterEdit();
 }
 
 function dgeRedo() {
@@ -9743,6 +9825,7 @@ function dgeRedo() {
   DGE.source = DGE.redo.pop();
   DGE.dirty = true;
   dgeRecompile();
+  dgeAfterEdit();
 }
 
 // ── hit testing ─────────────────────────────────────────────────────
@@ -9845,6 +9928,18 @@ function dgeStartMove(ev, pt0) {
     const pt = dgePointToDiagram(e);
     const dx = (pt.x - pt0.x) / uw, dy = (pt.y - pt0.y) / uh;
     if (Math.abs(dx) < 0.005 && Math.abs(dy) < 0.005) return;
+    if (DGE.beat > 0) {
+      // In a beat, the same drag means something else: the element's
+      // placement is the opening picture and must not move, so this writes
+      // a `move` into the step instead.
+      const step = dgeStepMove(ctx, id, dx, dy);
+      if (!step) return;
+      DGE.source = ctx.source.slice(0, step.start) + step.text + ctx.source.slice(step.end);
+      last = { edits: [{ attr: 'move' }], refusals: [] };
+      dgeRecompile();
+      dgeStatus(step.line, `into step "${DGE.model.steps[DGE.beat - 1].name}" – the opening picture is untouched`);
+      return;
+    }
     const plan = dgePlanDrag(ctx, id, dx, dy, { free: e.ctrlKey || e.metaKey });
     last = plan;
     DGE.source = dgeApplyEdits(ctx, id, plan.edits);
@@ -10290,6 +10385,7 @@ function dgeSetSlot(slot, cls) {
     dgeWriteTail(id, { classes: keep });
   }
   dgeRecompile();
+  dgeAfterEdit();
 }
 
 function dgeToggleTag(tag, add) {
@@ -10302,6 +10398,7 @@ function dgeToggleTag(tag, add) {
     dgeWriteTail(id, { tags: [...tags] });
   }
   dgeRecompile();
+  dgeAfterEdit();
 }
 
 // The attribute tail is one token and the order inside it is free, so the
@@ -10350,6 +10447,7 @@ function dgeWriteAttr(id, attr, value, quoted) {
   }
   DGE.dirty = true;
   dgeRecompile();
+  dgeAfterEdit();
 }
 
 // Which of the five layers a resolved value came from. Without it, four
@@ -10548,6 +10646,92 @@ function dgeGoFigure(step) {
   dgeGoTo((DGE.index + step + n) % n);
 }
 
+// ── beats (editor.md §10) ───────────────────────────────────────────
+// A stepped diagram has several pictures, and dragging in beat 2 means
+// something different from dragging in beat 0: at beat 0 a drag rewrites the
+// element's *placement*, and at beat k it writes a `move` op into step k.
+// That is the one place in this editor where the same gesture means two
+// things, so it has to look like a mode – the canvas says so, the status bar
+// says so, and the beat strip is always visible on a figure that has steps.
+
+function dgeSetBeat(k) {
+  const steps = DGE.model ? DGE.model.steps.length : 0;
+  DGE.beat = Math.max(0, Math.min(steps, k));
+  DGE.boxes = dgeBoxesAt(DGE.model, DGE.beat);
+  dgePaintArt(DGE.compiled.html);
+  dgeApplyFrame();
+  dgeRenderAll();
+}
+
+function dgeRenderBeats() {
+  const host = dgeQ('#dge-beats');
+  if (!host) return;
+  host.replaceChildren();
+  const steps = DGE.model ? DGE.model.steps : [];
+  if (!steps.length) { host.hidden = true; return; }
+  host.hidden = false;
+  host.appendChild(dgeEl('span', { class: 'dge-cap', text: 'beat' }));
+  const chip = (k, label) => dgeEl('button', {
+    type: 'button', class: 'dge-btn dge-beat', 'aria-pressed': String(k === DGE.beat),
+    text: label, title: k === 0 ? 'the opening picture – a drag rewrites the placement'
+      : `after step "${steps[k - 1].name}" – a drag writes a move into that step`,
+    onclick: () => dgeSetBeat(k),
+  });
+  host.appendChild(chip(0, 'start'));
+  steps.forEach((s, i) => host.appendChild(chip(i + 1, s.name)));
+}
+
+// Dragging at a beat writes into the step, not into the placement. One
+// `move … by` op per element per step: a second drag adds to the one that is
+// already there rather than stacking two, which would be legal and unreadable.
+function dgeStepMove(ctx, id, dx, dy) {
+  const step = ctx.model.steps[DGE.beat - 1];
+  if (!step) return null;
+  const snap = (v) => dgeRound(v, DGE_SNAP_CELL);
+  const existing = step.ops.find((o) => o.op === 'move' && o.target === id && o.by);
+  const indent = (ctx.source.split('\n')[step.line] || '  ').match(/^\s*/)[0] || '  ';
+  if (existing) {
+    const next = [snap(existing.by[0] + dx), snap(existing.by[1] + dy)];
+    return {
+      start: existing.span[0], end: existing.span[1],
+      text: `move ${id} by ${dgeNum(next[0])},${dgeNum(next[1])}`,
+      line: `move ${id} by ${dgeNum(next[0])},${dgeNum(next[1])}`,
+    };
+  }
+  // After the last op of the step, or straight after the `step` line when it
+  // has none yet.
+  const last = step.ops.length ? step.ops[step.ops.length - 1].span[1] : step.span[1];
+  const text = `move ${id} by ${dgeNum(snap(dx))},${dgeNum(snap(dy))}`;
+  return { start: last, end: last, text: '\n' + indent + text, line: text };
+}
+
+// At a beat, the guides have to show both where the element is now and where
+// it came from, or a `move` is invisible until you press Space. Two
+// treatments, and which one ships is the open question in §12 – both are
+// drawn so the choice can be made by looking rather than on paper.
+function dgeDrawBeatGuides(g) {
+  if (!DGE.beat || !DGE.model || !DGE.model.steps.length) return;
+  const prev = dgeBoxesAt(DGE.model, DGE.beat - 1);
+  const style = DGE.beatGuide || 'both';
+  for (const [id, now] of DGE.boxes) {
+    const was = prev.get(id);
+    if (!was) continue;
+    if (Math.abs(was.x - now.x) < 0.5 && Math.abs(was.y - now.y) < 0.5) continue;
+    if (style === 'ghost' || style === 'both') {
+      g.appendChild(dgeEl('rect', {
+        class: 'dge-ghost', x: was.x, y: was.y, width: was.w, height: was.h, rx: 3,
+      }));
+    }
+    if (style === 'path' || style === 'both') {
+      g.appendChild(dgeEl('line', {
+        class: 'dge-motion',
+        x1: was.x + was.w / 2, y1: was.y + was.h / 2,
+        x2: now.x + now.w / 2, y2: now.y + now.h / 2,
+      }));
+    }
+  }
+}
+
 // ── tools and keys ──────────────────────────────────────────────────
 
 function dgePickTool(id) {
@@ -10604,6 +10788,10 @@ function dgeKeydown(ev) {
   }
   if (k === 'Delete' || k === 'Backspace') { ev.preventDefault(); dgeDelete(); return; }
   if (k.startsWith('Arrow')) { ev.preventDefault(); dgeNudge(k, ev.shiftKey); return; }
+  // `<` and `>` are Shift of the figure keys, which is the right relation:
+  // a beat is a step *within* the figure the other pair moves between.
+  if (k === '<') { ev.preventDefault(); dgeSetBeat(DGE.beat - 1); return; }
+  if (k === '>') { ev.preventDefault(); dgeSetBeat(DGE.beat + 1); return; }
   if (k === ',' || k === 'PageUp') { ev.preventDefault(); dgeGoFigure(-1); return; }
   if (k === '.' || k === 'PageDown') { ev.preventDefault(); dgeGoFigure(1); return; }
   if (k === '?') { ev.preventDefault(); dgeHelp(); return; }
@@ -10705,9 +10893,25 @@ function dgeCopy() {
     }
   }
   lines.sort((a, b) => a.line - b.line);
+  // Where the pasted set is anchored. A relation inside the set survives a
+  // paste untouched – that is the whole point of pasting the closure – so
+  // the only positions the paste has to decide are the ones nothing in the
+  // set is placed against: the elements whose own placement is an absolute
+  // coordinate, or the implicit origin the first element gets for free.
+  // Recorded in cells, from the boxes as laid out here.
+  const { uw, uh } = dgeUnits();
+  const anchors = {};
+  for (const id of want) {
+    const el = dgeFind(id);
+    const b = DGE.boxes.get(id);
+    if (!el || !b || !el.place) continue;
+    if (!(el.place.implicit || (el.place.kind === 'abs' && (el.place.at || []).every((c) => c && !c.ref)))) continue;
+    anchors[id] = [(b.x + b.w / 2) / uw, (b.y + b.h / 2) / uh];
+  }
   DGE.clipboard = {
     names: [...want],
     roots: DGE.selection.slice(),
+    anchors,
     text: lines.map((l) => l.text).join('\n'),
   };
   dgeStatus(DGE.clipboard.text.split('\n')[0] + (lines.length > 1 ? ' …' : ''),
@@ -10729,14 +10933,37 @@ function dgePaste(inPlace) {
     text = text.replace(new RegExp('(^|[\\s,"(])' + from + '(?=$|[\\s,.:>"])', 'gm'), '$1' + to);
   }
   if (!inPlace) {
-    // Ctrl-V drops the root where the pointer last was; Shift-Ctrl-V pastes
-    // in place, keeping the `at X,Y` it had – which is what makes a series
-    // of figures line up.
+    // Ctrl-V drops the set where the pointer last was; Ctrl-Shift-V pastes
+    // in place, keeping the coordinates it had – which is what makes a
+    // series of figures line up.
+    //
+    // Re-rooting goes through the span table, not through a regex on the
+    // text. Two things a regex got wrong here and this cannot: an anchor
+    // whose placement is the *implicit* origin has nothing to replace and
+    // needs one written, and a lazy pattern happily matched the placement of
+    // some other line and left its `gap` behind as a syntax error.
     const pt = DGE.lastPoint || { x: 0, y: 0 };
     const { uw, uh } = dgeUnits();
-    const root = rename.get(DGE.clipboard.roots[0]) || DGE.clipboard.roots[0];
-    const at = `at ${dgeNum(dgeRound(pt.x / uw, DGE_SNAP_CELL))},${dgeNum(dgeRound(pt.y / uh, DGE_SNAP_CELL))}`;
-    text = text.replace(new RegExp('^(\\s*\\w+\\s+' + root + '\\b.*?)( at [^\\s]+| (?:right|left) of \\w+| (?:below|above) \\w+)', 'm'), '$1 ' + at);
+    const anchors = DGE.clipboard.anchors || {};
+    const names = Object.keys(anchors);
+    if (names.length) {
+      const base = anchors[names[0]];
+      const dx = pt.x / uw - base[0];
+      const dy = pt.y / uh - base[1];
+      const parsed = DGE.fig.compiler.parseDiagramSource(text, DGE.fig.attrs);
+      const table = window.PSI_DG.createSpanTable(parsed.model, text);
+      const edits = [];
+      for (const from of names) {
+        const to = rename.get(from) || from;
+        const sp = table.spanOf(to, 'place');
+        if (!sp) continue;
+        const at = `at ${dgeNum(dgeRound(anchors[from][0] + dx, DGE_SNAP_CELL))},`
+          + `${dgeNum(dgeRound(anchors[from][1] + dy, DGE_SNAP_CELL))}`;
+        edits.push({ start: sp.start, end: sp.end, text: sp.prefix + at + sp.suffix });
+      }
+      edits.sort((a, b) => b.start - a.start);
+      for (const e of edits) text = text.slice(0, e.start) + e.text + text.slice(e.end);
+    }
   }
   const lines = DGE.source.split('\n');
   let at = lines.length;
@@ -10747,17 +10974,59 @@ function dgePaste(inPlace) {
   dgeStatus('', `pasted ${text.split('\n').length} line(s)${rename.size ? `, ${rename.size} renamed to avoid a collision` : ''}`);
 }
 
-// Tier 2 of editor.md §2.3: the clipboard. Always available, every browser,
-// file:// included – the same idiom as Shift-E, which exports live
-// annotations as a snippet to paste back into source.md.
+// ── where an edit goes (editor.md §2.3) ─────────────────────────────
+// Four tiers, tried in order. Every one of them writes the *block body* and
+// nothing else, so source.md stays the single source of truth and the editor
+// never owns a parallel copy.
+
+function dgeBlockText() {
+  return '::: diagram' + (DGE.fig.attrs ? ' {' + DGE.fig.attrs + '}' : '') + '\n'
+    + DGE.source + '\n:::';
+}
+
 function dgeCommit() {
   if (DGE.problems && DGE.problems.length) {
-    dgeStatus('', 'The block does not compile – fix the problems below before copying it back.', true);
+    dgeStatus(DGE.status.line, 'The block does not compile – fix the problems below before writing it back.', true);
     return;
   }
-  const block = '::: diagram' + (DGE.fig.attrs ? ' {' + DGE.fig.attrs + '}' : '') + '\n'
-    + DGE.source + '\n:::';
-  const done = (ok) => dgeStatus('', ok
+  // Tier 1 – the watch socket. The author's loop, and the cheapest of the
+  // four: the server splices the byte range into source.md, fs.watch fires,
+  // the normal rebuild runs, every tab reloads.
+  if (window.psiWatch && window.psiWatch.ready() && DGE.fig.range) {
+    dgeStatus(DGE.status.line, 'writing back to source.md…');
+    // The write triggers a rebuild, which reloads every open tab – including
+    // this one, with the editor in it. Leave a note for the next boot so the
+    // author lands back on the figure they were working on instead of on a
+    // slide. sessionStorage, not localStorage: this belongs to the reload,
+    // not to the reader.
+    try { sessionStorage.setItem(DGE_REOPEN, DGE.fig.chunk || String(DGE.index)); } catch (e) {}
+    window.psiWatch.patch(DGE.fig.range, DGE.source, DGE.fig.body).then((res) => {
+      if (res.ok) {
+        DGE.dirty = false;
+        dgeStatus(DGE.status.line, 'written to source.md – the rebuild will reload this page');
+      } else {
+        try { sessionStorage.removeItem(DGE_REOPEN); } catch (e) {}
+        dgeStatus(DGE.status.line, res.why + ' · falling back to the clipboard', true);
+        dgeCopyBlock();
+      }
+    });
+    return;
+  }
+  // Tier 3 – File System Access, opportunistically. Feature-detected, never
+  // load-bearing: Firefox and Safari have neither function, and persisting
+  // the handle across reloads goes through IndexedDB under an opaque
+  // file:// origin, which is the ground BroadcastChannel already fails on.
+  // So: "pick the file every session", not "remember my source.md".
+  if (DGE.fileHandle) { dgeWriteToFile(); return; }
+  dgeCopyBlock();
+}
+
+// Tier 2 – the clipboard. Always available, every browser, file:// included,
+// and the same idiom as Shift-E, which exports live annotations as a snippet
+// to paste back into source.md.
+function dgeCopyBlock() {
+  const block = dgeBlockText();
+  const done = (ok) => dgeStatus(DGE.status.line, ok
     ? 'copied – paste it over the ::: diagram block in source.md'
     : 'could not reach the clipboard; select the source pane and copy by hand', !ok);
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -10766,6 +11035,157 @@ function dgeCommit() {
     done(false);
   }
 }
+
+const dgeCanPickFile = () => typeof window.showOpenFilePicker === 'function';
+
+async function dgePickSourceFile() {
+  if (!dgeCanPickFile()) return;
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      multiple: false,
+      types: [{ description: 'Lecture source', accept: { 'text/markdown': ['.md'] } }],
+    });
+    DGE.fileHandle = handle;
+    dgeStatus('', `${handle.name} is open – writing back goes there until this tab is reloaded`);
+    dgeRenderAll();
+  } catch (e) {
+    // AbortError is the author closing the picker, which is not a problem.
+    if (e && e.name !== 'AbortError') dgeStatus('', 'could not open that file: ' + e.message, true);
+  }
+}
+
+async function dgeWriteToFile() {
+  const h = DGE.fileHandle;
+  if (!h || !DGE.fig.range) return dgeCopyBlock();
+  try {
+    const src = await (await h.getFile()).text();
+    // The same three checks the watch server makes, for the same reason: a
+    // range computed against a stale file must be refused, not applied at
+    // the wrong offset.
+    const [a, b] = DGE.fig.range;
+    if (src.slice(a, b) !== DGE.fig.body) {
+      dgeStatus(DGE.status.line, `${h.name} has changed since this page was built – reload it and try again`, true);
+      return;
+    }
+    const w = await h.createWritable();
+    await w.write(src.slice(0, a) + DGE.source + src.slice(b));
+    await w.close();
+    DGE.dirty = false;
+    dgeStatus(DGE.status.line, `written to ${h.name} – rebuild to see it`);
+  } catch (e) {
+    dgeStatus(DGE.status.line, 'could not write that file: ' + e.message + ' · falling back to the clipboard', true);
+    dgeCopyBlock();
+  }
+}
+
+// ── Tier 0, for the reader ──────────────────────────────────────────
+// A student's edit has nowhere to go: their audience.html is a build
+// artefact, gitignored, regenerated. So it goes on the same shelf as
+// revealed[] and the theme preference, keyed by chunk id, and the figure
+// shows their version with a quiet marker. It never touches disk and never
+// syncs to the speaker window – there is no second window to sync to.
+
+const DGE_STORE = 'psi-slides:diagram:';
+// Which figure to come back to after a write-back reloads the page.
+const DGE_REOPEN = 'psi-slides:diagram-editor-open';
+
+function dgeStoreKey(fig) {
+  return DGE_STORE + (fig.chunk || fig.prefix);
+}
+
+function dgeSaveLocal() {
+  if (!DGE.fig) return;
+  try {
+    if (DGE.source === DGE.fig.body) localStorage.removeItem(dgeStoreKey(DGE.fig));
+    else localStorage.setItem(dgeStoreKey(DGE.fig), DGE.source);
+  } catch (e) { /* private mode, or a storage policy – not worth a message */ }
+}
+
+function dgeLoadLocal(fig) {
+  try { return localStorage.getItem(dgeStoreKey(fig)); } catch (e) { return null; }
+}
+
+function dgeRevertLocal() {
+  if (!DGE.fig) return;
+  try { localStorage.removeItem(dgeStoreKey(DGE.fig)); } catch (e) {}
+  DGE.source = DGE.fig.body;
+  DGE.dirty = false;
+  dgeRecompile();
+  dgeBroadcastEdit();
+  dgeStatus('', 'back to the figure as it was written');
+}
+
+// Repaint a figure *in the page* from an edited body, so a reader's change
+// survives leaving the editor, and so a synced edit lands in the other
+// window. The live runtime's own data is rebuilt with it, or the next Space
+// would tween back to the geometry of the old picture.
+function dgeApplyToPage(fig, body) {
+  const res = dgeCompile(fig, body);
+  if (!res.ok) return false;
+  const holder = document.createElement('div');
+  holder.innerHTML = res.html;
+  const next = holder.querySelector('svg.psi-diagram');
+  const payload = holder.querySelector('script.psi-diagram-frames');
+  if (!next) return false;
+  const live = fig.svg.psiDiagram;
+  if (next.dataset.liveViewbox) {
+    next.setAttribute('viewBox', next.dataset.liveViewbox);
+    const w = Number(next.getAttribute('width'));
+    const r = Number(next.dataset.liveRatio);
+    if (w && r) next.setAttribute('height', String(Math.round(w * r)));
+  }
+  fig.svg.replaceWith(next);
+  fig.svg = next;
+  if (live && payload) {
+    try {
+      live.data = JSON.parse(payload.textContent);
+      live.svg = next;
+      live.cache = {};
+      live.cur = null;
+      next.psiDiagram = live;
+      window.dgStep(live, live.step, true);
+    } catch (e) { /* a figure with no steps has no payload */ }
+  }
+  return true;
+}
+
+// ── sync (editor.md §2.4) ───────────────────────────────────────────
+// An edit syncs. Everything else on the slide does, and a diagram that
+// differed between the projection and the cockpit would be the first
+// divergence in the product.
+//
+// It follows the *video* precedent rather than the state snapshot, and for
+// the documented reason: applyRemoteState is a full apply, so folding an
+// edit into the snapshot would drag the receiver's slide position along with
+// it. So it is its own message, addressed by the diagram's id rather than by
+// index – reordering a chunk must not be able to mis-target it – gated by
+// the freeze flag like any other shared state, and echo-suppressed.
+
+let dgeApplyingRemote = false;
+
+function dgeBroadcastEdit() {
+  if (dgeApplyingRemote || !DGE.fig) return;
+  if (typeof sendToPeer !== 'function' || typeof shouldBroadcast !== 'function') return;
+  if (!shouldBroadcast()) return;
+  sendToPeer({ type: 'diagram-edit', id: DGE.fig.svg.id, source: DGE.source });
+}
+
+function dgeApplyRemoteEdit(m) {
+  const figs = DGE_FIGURES.length ? DGE_FIGURES : dgeCollectFigures();
+  const fig = figs.find((f) => f.svg.id === m.id);
+  if (!fig) return;
+  dgeApplyingRemote = true;
+  try {
+    dgeApplyToPage(fig, m.source);
+    if (DGE.open && DGE.fig === fig) {
+      DGE.source = m.source;
+      dgeRecompile();
+    }
+  } finally {
+    setTimeout(() => { dgeApplyingRemote = false; }, 0);
+  }
+}
+window.psiApplyDiagramEdit = dgeApplyRemoteEdit;
 
 function dgeHelp() {
   const help = document.getElementById('help-overlay');
@@ -10803,13 +11223,39 @@ function dgeRenderAll() {
       : 'this window is the projection';
     room.className = isSpeaker && frozen ? 'dge-frozen' : 'dge-live';
   }
+  // The commit button names the tier it will actually use, so "where does
+  // this go?" is answered before it is pressed rather than after.
   const copy = dgeQ('#dge-copy-btn');
-  if (copy) copy.disabled = !!(DGE.problems && DGE.problems.length);
+  if (copy) {
+    copy.disabled = !!(DGE.problems && DGE.problems.length);
+    const live = window.psiWatch && window.psiWatch.ready() && DGE.fig.range;
+    copy.innerHTML = live ? 'Write to source.md <kbd>⌘S</kbd>'
+      : DGE.fileHandle ? 'Write to ' + DGE.fileHandle.name + ' <kbd>⌘S</kbd>'
+      : 'Copy source <kbd>⌘S</kbd>';
+    copy.title = live
+      ? 'patch this block back into source.md through the --watch socket'
+      : DGE.fileHandle ? 'patch this block back into the file you opened'
+      : 'copy the whole ::: diagram block to the clipboard';
+  }
+  // Tier 3 is opportunistic and never load-bearing: offered where the
+  // picker exists and there is no watch socket already doing the job.
+  const fileBtn = dgeQ('#dge-file-btn');
+  if (fileBtn) {
+    const useful = dgeCanPickFile() && !(window.psiWatch && window.psiWatch.ready());
+    fileBtn.hidden = !useful || !!DGE.fileHandle;
+  }
+  // A reader's edits live in localStorage and nowhere else, so the way back
+  // has to be visible. Shown only when this figure is actually showing
+  // something other than what the author wrote.
+  const revert = dgeQ('#dge-revert-btn');
+  if (revert) revert.hidden = DGE.source === DGE.fig.body;
   dgeApplyFrame();
   dgeApplyView();
   dgeRenderTools();
+  dgeRenderBeats();
   dgeRenderSide();
   dgeDrawGuides();
+  dgeRoot.classList.toggle('dge-in-step', DGE.beat > 0);
   const strip = dgeQ('#dge-strip');
   if (strip) strip.querySelectorAll('.dge-thumb').forEach((b, i) => {
     b.setAttribute('aria-current', String(i === DGE.index));
@@ -10897,13 +11343,50 @@ window.psiEditor = {
     body === undefined ? fig.body : body),
   open: dgeOpen,
   close: dgeClose,
+  commit: dgeCommit,
+  setBeat: dgeSetBeat,
+  boxesAt: (model, k) => DGE.fig.compiler.layoutDiagram(model, window.PSI_DG.dgStateAt(model, k), []),
   state: DGE,
 };
 
+// A reader's kept edits, applied to the page at boot so they survive a
+// reload without the editor being open, each with a quiet marker saying the
+// figure is not the one the author wrote.
+function dgeRestoreLocal() {
+  for (const fig of DGE_FIGURES) {
+    const kept = dgeLoadLocal(fig);
+    if (kept === null || kept === fig.body) continue;
+    if (!dgeApplyToPage(fig, kept)) continue;
+    const holder = fig.figure;
+    if (!holder || holder.querySelector('.dge-edited')) continue;
+    holder.appendChild(dgeEl('div', { class: 'dge-edited' }, [
+      document.createTextNode('edited · '),
+      dgeEl('button', {
+        type: 'button', text: 'revert',
+        onclick: (e) => {
+          e.stopPropagation();
+          try { localStorage.removeItem(dgeStoreKey(fig)); } catch (err) {}
+          dgeApplyToPage(fig, fig.body);
+          e.target.parentNode.remove();
+        },
+      }),
+    ]));
+  }
+}
+
 function dgeBoot() {
   dgeCollectFigures();
+  dgeRestoreLocal();
   dgeMountEntryPoint();
   dgeMountKeys();
+  // Come back to the figure a write-back reloaded away from. Consumed on
+  // read, so a later manual reload lands on the slide as it should.
+  let back = null;
+  try { back = sessionStorage.getItem(DGE_REOPEN); sessionStorage.removeItem(DGE_REOPEN); } catch (e) {}
+  if (back !== null && DGE_FIGURES.length) {
+    const i = DGE_FIGURES.findIndex((f) => f.chunk === back);
+    dgeOpen(i >= 0 ? i : Number(back) || 0);
+  }
 }
 
 if (document.readyState === 'loading') {

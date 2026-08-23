@@ -36,6 +36,16 @@ Four message types deliberately bypass the freeze gate, because all four are com
 - `slide-ref` – the audience window's dimensions after a resize (§3).
 - `link-show` / `link-hide` – the address overlay, below.
 
+**Three message types travel outside the snapshot but are still gated**, because they are shared state that simply must not be folded into a full apply: `video`, `embed` and `diagram-edit`. `applyRemoteState` is a *full* apply, so a snapshot sent to carry one of these would drag the receiver's slide position along with it. Each is addressed by the thing's own identity rather than by index – `data-fig-id` for a clip, the diagram's own id for an edit – so reordering a chunk cannot mis-target one, and each is echo-suppressed, because applying a remote change fires the local event that would otherwise bounce straight back.
+
+| type | payload | who sends it |
+|---|---|---|
+| `video` | `{figId, action, time}` | either, on play / pause / seek |
+| `embed` | `{figId, action, time}` | either, on a player transition |
+| `diagram-edit` | `{id, source}` | either, on every committed edit in the diagram editor |
+
+`diagram-edit` carries the **block body**, not a diff: a diagram body is a few hundred bytes to a couple of kilobytes, and the receiver re-runs the same compiler over it. That is what makes freeze work the way a lecturer expects – freeze, fix the figure, unfreeze, and the room gets the finished picture, because the receiver simply never saw the intermediate states. A private editing mode is therefore not a separate feature; it is `V`, and the editor says which of the two it is in, in one line of chrome.
+
 **Links.** A plain click opens the link in a new tab of the window that was clicked; the renderer puts `target="_blank"` on external links, so the deck itself never navigates away. `Shift`-click instead shows the **address** on both screens, set large and with a **QR code**, and `Esc`, a click, or the next slide clears it on both. The address is itself a link, so clicking it opens the page in that window while leaving the overlay up for the room.
 
 The QR is generated at build time, one per external address found in the rendered HTML, and shipped as an SVG map keyed by URL – so there is no encoder in the browser and a lecture without links pays nothing. It keeps a white ground on every theme, because scanners cope badly with inverted codes and the white card doubles as the quiet zone the spec requires. The encoder is a dependency (`qrcode-generator`, MIT, no dependencies of its own) rather than hand-rolled Reed-Solomon: an error in that maths produces codes that scan to the wrong string and look perfectly correct to the eye.
@@ -255,5 +265,5 @@ All confirmed before implementation starts:
 3. `window.postMessage` wiring on **both** outputs (peer adoption from inbound messages; audience stashes the spawn return value, speaker uses `window.opener`). Audience sends state; speaker receives + applies. Hello/reply handshake.
 4. Speaker → audience direction. Freeze toggle (originally a push toggle plus a `.` force-push; see §2).
 5. Timer + crash-recovery localStorage.
-6. Smoke test: open both tabs, nav in audience, verify speaker mirrors. Nav in speaker, verify audience mirrors. Freeze, verify the room holds while the speaker moves; thaw, verify the room catches up; `B` while frozen, verify the projection still blanks.
+6. Smoke test: open both tabs, nav in audience, verify speaker mirrors. Nav in speaker, verify audience mirrors. Freeze, verify the room holds while the speaker moves; thaw, verify the room catches up; `B` while frozen, verify the projection still blanks. With a diagram on screen: edit it in the cockpit and verify the projection follows, freeze and edit and verify it does not, thaw and verify it catches up.
 7. Commit.

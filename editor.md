@@ -1113,10 +1113,10 @@ rather than deleted, because the reasoning is what a later reader will want.
   uses "apply these defaults to every figure" more than once on the same
   lecture, copying has failed and the preset has earned its keyword.
 
-Two are left, and they are **deliberately not being decided on paper.** Both
-are drawing problems whose answers depend on what the thing feels like, and a
-prose proposal for either would be a guess dressed as a decision. Build up to
-the phase, then show a running prototype and choose from it.
+Two were left, and they were **deliberately not decided on paper.** Both are
+drawing problems whose answers depend on what the thing feels like, and a prose
+proposal for either would have been a guess dressed as a decision. Both phases
+are now built, so both can be answered from a running prototype – see §14.
 
 - **What is a beat when you are editing?** (phase 10) §9's guides describe one
   still picture. A stepped diagram has several, and dragging in beat 2 means
@@ -1134,6 +1134,97 @@ the phase, then show a running prototype and choose from it.
   with no preview at all. If the honest answer is that no preview is needed
   because the undo is one keystroke, that is a fine answer and cheaper than
   every alternative.
+
+## 14. The two open questions, answered from the prototype
+
+Both are built, so both can be looked at rather than argued about. Two
+concrete proposals each, the recommendation first, and what would change my
+mind.
+
+### 14.1 What is a beat when you are editing?
+
+**Built and shipped as-is: the mode is loud, and the guides show both.** At
+beat *k* the frame carries an accent outline, the status bar's rule turns
+accent, the beat strip is always visible on a stepped figure, and a drag
+writes `move <id> by dx,dy` into step *k* while saying so in the status bar –
+*"into step "chain" – the opening picture is untouched"*. The element that
+moved gets a **dashed ghost** at its beat-*k*−1 position and a **dotted motion
+path** from that ghost's centre to its own. Both treatments are drawn together
+because the prototype had to show both; which of the three survives is the
+decision below, and `DGE.beatGuide` (`'ghost'` / `'path'` / `'both'`) switches
+between them in one line.
+
+Looking at it on the CBC figure at beat 2, with `m1` dragged 0.35 × 0.5:
+
+**Proposal A – ghost only. Recommended.** The dashed outline says *this is
+where it was* in the vocabulary the diagram already uses for a soft edge, it
+sits exactly where the eye will next look when Space runs the step backwards,
+and it costs one rect per moved element. What the motion path adds over it is
+the *direction*, and the direction is already unambiguous from two rectangles
+and a step that only ever plays forwards. On the CBC figure the paths also
+cross three arrows and one container border, which is a lot of ink for a fact
+you can read off the ghost. Concretely: default `DGE.beatGuide = 'ghost'`, drop
+`.dge-motion`, keep the class for a figure that ever needs it.
+
+**Proposal B – ghost plus path, but only for the element under the pointer.**
+Keeps the direction cue where it is actually being used – during a drag – and
+takes it away from every *other* element the step happens to move, which is
+where the clutter comes from. One extra condition in `dgeDrawBeatGuides`:
+draw the path only when `id` is in `DGE.selection`. This is the right answer if
+the maintainer, looking at a figure where a step moves five elements at once
+(`#lifecycle` beat 2 is the case), finds the ghosts alone ambiguous about which
+ghost belongs to which box.
+
+**Rejected: neither.** A `move` is genuinely invisible without one of the two –
+the picture at beat 2 is just a picture, and nothing on screen says which parts
+of it are the step's doing. That is the failure the whole mode exists to avoid.
+
+**What would change my mind about A:** a figure whose step moves elements
+*through* each other, where two ghosts and two boxes read as four boxes. I did
+not find one in `lectures/diagrams`; if one turns up, B is already written.
+
+### 14.2 How much of the closure is too much?
+
+**Measured, not guessed.** Selecting `acl` – one box at the end of a `below`
+chain in `#lifecycle` – and copying gives a closure of **9 elements over 15
+lines**: the whole chain, its `container`, and the `default … @tag` block its
+tags use. Pasted into a figure with one box, it compiles. Pasted twice, it
+compiles again and the 25 names are distinct.
+
+So the closure *is* astonishing – nine elements from selecting one – and the
+question is only whether that needs a preview.
+
+**Proposal A – no preview, name the number. Recommended.** The status bar
+already says what happened: *"15 line(s) copied – the selection and everything
+it depends on"*, and on paste *"pasted 15 line(s), 9 renamed to avoid a
+collision"*. Undo is one keystroke and one snapshot. A preview would be a modal
+in the middle of a two-keystroke gesture, and the thing it would show – nine
+outlines – is exactly what the canvas shows a tenth of a second later anyway.
+This is the answer §12 hoped for, and it is cheaper than every alternative.
+**It is what is built.**
+
+**Proposal B – highlight the closure on copy, for as long as it stays on the
+clipboard.** Not a modal and not a step in the gesture: the moment
+`Ctrl`-`C` lands, the elements that came along but were not selected get the
+tag-halo treatment (a tinted ground, already implemented, already meaning
+"these belong together"), and it fades when the selection changes. The author
+sees the extra eight without being asked a question, and nothing blocks. Ten
+lines: keep `DGE.clipboard.names` in the guide layer's draw and give the
+non-selected members `.dge-taghalo` at half opacity.
+
+I would build B if the *paste* were the surprising half, but it is not – the
+paste lands where the pointer is and is immediately visible. The surprise is on
+the **copy**, which is where B puts its answer, and A puts a sentence. Both are
+honest; A is already there and costs nothing.
+
+**Rejected: asking.** "Also copy the 8 elements this depends on? [Yes] [No]"
+has no useful No: without them the pasted block does not compile, so the
+question is a dialog with one answer.
+
+**What would change my mind about A:** an author reporting that they pasted
+into the wrong figure and did not notice, because the closure was large enough
+to look like the figure had always been that way. B is the cheap fix and the
+halo already exists.
 
 ## 13. Build log
 
@@ -1527,3 +1618,95 @@ Verified in a real browser, all on `lectures/diagrams`:
 - the phase-3 identity check still passes (11/11), all spans still round-trip,
   all 707 span edits still re-parse, all three lectures build, `lint --strict`
   clean.
+
+### Phases 8–10 – persistence, sync, the workspace, the beats · **done**
+
+**Phase 8, where an edit goes.** Four tiers, tried in order.
+
+*Tier 1, the watch socket*, now two-way. The three preconditions §2.3 asks
+for are all in place – the server binds to `127.0.0.1`, a per-build nonce is
+required on every patch, and a patch is refused unless the range is one a
+`::: diagram` block actually occupied *and* the bytes there still match what
+that block compiled from. **A fourth check turned out to be needed.** The
+plan's reasoning – "whichever writes second is working against a range that
+no longer exists" – holds only when an edit changes the block's *length*. Two
+tabs each nudging a `gap` leave the length identical, the range still exists,
+and the second write silently takes the first one's change with it. So the
+patch also carries the bytes the *page* believes are there, and the server
+compares them. Measured: tab 1's edit survives, tab 2 is told *"another window
+has already edited this figure"*, and the file is untouched by the refusal.
+
+One thing the plan did not anticipate: **the write-back reloads the page,
+which takes the editor with it.** The author presses ⌘S and the modal
+vanishes. The editor now leaves a note in `sessionStorage` and comes back on
+the same figure – consumed on read, so a later manual reload lands on the
+slide as it should.
+
+*Tier 3, File System Access*, is built and feature-detected: an "Open
+source.md…" button appears where the picker exists and there is no watch
+socket already doing the job, and writing goes through the same three checks.
+Not load-bearing, exactly as §2.3 says.
+
+*Tier 0, the reader's shelf.* `localStorage` keyed by chunk id, restored at
+boot and applied to the page itself so the edit survives a reload without the
+editor being open, with a quiet *edited · revert* under the figure. Never
+synced – there is no second window to sync to.
+
+**Sync.** `{type:'diagram-edit', id, source}`, its own message following the
+`video` precedent, addressed by the diagram's id, gated by the freeze flag,
+echo-suppressed. `speaker.md` §2 gains the row and the smoke test. Measured
+in two real windows: the room follows a nudge in the cockpit, freeze holds it
+still while the cockpit moves on, and thawing catches it up.
+
+**Phase 9, the workspace**, is mostly the chrome built in 4–7 – the strip, the
+board, `,` / `.`, `Shift`-`V`. The interesting half is the paste, and §11.8's
+check found **two real bugs, both in the re-rooting**:
+
+- the root's placement was rewritten with a regex over the pasted text, and a
+  lazy pattern happily matched *another* line's placement, leaving its `gap`
+  behind as a syntax error;
+- an element whose placement is the **implicit** origin has nothing to
+  replace, so the regex did nothing and the pasted block had a box with no
+  placement.
+
+Both are gone because the re-rooting now goes through `createSpanTable` over
+the *pasted text* – parse it, ask for the anchor's `place` span, splice. It
+also re-roots **every** anchor rather than only the selection's root, shifted
+by one delta, so a multi-anchor closure keeps its shape.
+
+**Phase 10, the beats.** A beat strip on any stepped figure, `<` and `>` to
+step it (Shift of the figure keys, which is the right relation: a beat is a
+step *within* the figure the other pair moves between). At beat *k* a drag
+writes `move <id> by dx,dy` into step *k* and leaves the element's placement
+alone; a second drag adds to the op that is already there rather than stacking
+two. The mode is loud – accent outline on the frame, accent rule on the status
+bar – because it is the one place the same gesture means two things.
+
+Verified:
+
+- **every beat's geometry matches the build's own frames payload**, worst
+  disagreement 0.005 px across all four beats of `#cbc` (that is the payload's
+  own rounding).
+- a drag at beat 2 writes `move m1 by 0.35,0.5` into the step; the `box m1`
+  line is byte-identical afterwards and the block compiles.
+- the watch loop end to end: patch accepted, `source.md` rewritten with the
+  frontmatter and the prose after the figure untouched, rebuild, reload,
+  editor back on the same figure.
+- all three refusals, each leaving the file untouched.
+- Tier 0 round trip: edit, reload, marker, revert, shelf cleared.
+- the paste from `#lifecycle` into a one-box figure compiles; twice, and the
+  25 names are distinct.
+- the full sweep still green: three lectures build, `lint --strict` clean,
+  2,564 spans round-trip, 707 span edits re-parse, the phase-3 identity check
+  11/11, no console errors.
+
+### What is not built
+
+- **Two-way source pane.** §12 settled it as one-way for now and it is
+  one-way: the canvas writes and the pane displays. Making it two-way is
+  additive and the reasons to wait are in §12.
+- **`node build.js --new <slug>` does not yet scaffold an empty figure
+  chunk** (§2.2), and the editor's "New figure…" clipboard convenience is not
+  built. Both are small; neither is on the path of anything else.
+- **`Q` locks the tool but nothing draws the lock state** beyond the status
+  line it prints.

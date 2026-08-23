@@ -634,3 +634,55 @@ body.dge-open #stage-viewport { filter: none; }
   padding: 5px 12px;
   box-shadow: 0 1px 8px oklch(0 0 0 / 0.2);
 }
+
+/* A reader's own version of a figure, marked on the figure itself. Their
+   audience.html is a build artefact – gitignored, regenerated – so the edit
+   lives on the same shelf as revealed[] and the theme preference, and the
+   way back has to be visible without opening the editor again. */
+.dge-edited {
+  font-family: var(--sans-font);
+  font-size: 0.62em;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  text-align: center;
+  margin-top: 0.3em;
+}
+.dge-edited button {
+  font: inherit;
+  border: 0;
+  background: none;
+  color: var(--emph);
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+@media print { .dge-edited { display: none; } }
+
+/* ── beats ────────────────────────────────────────────────────────── */
+/* Dragging in beat 2 writes a `move` into step 2, where dragging in beat 0
+   rewrites the element's placement. That is the one place in this editor
+   where the same gesture means two things, so it has to look like a mode. */
+
+#dge-beats { gap: 0.25rem; }
+#dge-beats[hidden] { display: none; }
+.dge-beat { font-family: var(--mono-font); }
+#dge-root.dge-in-step #dge-frame {
+  outline: 2px solid color-mix(in oklab, var(--emph) 55%, var(--paper));
+}
+#dge-root.dge-in-step #dge-status { border-top-color: var(--emph); }
+
+/* Where it was at the beat before, and the way it travelled. Both are drawn
+   for now – §12 of editor.md is deciding between them by looking. */
+#dge-guides .dge-ghost {
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.55;
+}
+#dge-guides .dge-motion {
+  stroke: var(--emph);
+  stroke-width: 1.2;
+  stroke-dasharray: 2 4;
+  opacity: 0.8;
+}

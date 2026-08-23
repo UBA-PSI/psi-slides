@@ -18,6 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
+import crypto from 'node:crypto';
 import matter from 'gray-matter';
 import { marked } from 'marked';
 import { createHighlighter } from 'shiki';
@@ -1366,6 +1367,11 @@ const dgCore = createDiagramCompiler({
 });
 const { parseDiagramSource, layoutDiagram, dgFrameDrawables, renderDiagram } = dgCore;
 
+// Every `::: diagram` block the last build emitted: its byte range in
+// source.md and the body it compiled from. The watch server checks a patch
+// against this before touching the file – see runWatch.
+const dgEmittedBlocks = [];
+
 // Every tag any diagram in the current lecture carries. Collected while the
 // blocks compile, ruled on once at the end of parseLecture – see the
 // lecture-level tag-default rule there.
@@ -1704,6 +1710,7 @@ function parseLecture(src) {
   // Validated here rather than at the first diagram, because a lecture whose
   // frontmatter is wrong should say so even when it has no diagram yet.
   dgLectureTags.clear();
+  dgEmittedBlocks.length = 0;
   let diagramBase = null;
   if (frontmatter['diagram-defaults'] != null) {
     const { layer, errors } = parseDiagramDefaults(frontmatter['diagram-defaults']);
@@ -1823,6 +1830,11 @@ function parseLecture(src) {
       if (/^:::\s*$/.test(line)) {
         const target = currentExpansion ? currentExpansion.lines : bodyLines;
         const dgBody = diagramBlock.lines.join('\n');
+        dgEmittedBlocks.push({
+          range: [diagramBlock.bodyAt, diagramBlock.bodyAt + dgBody.length],
+          body: dgBody,
+          chunk: currentChunk ? currentChunk.id : null,
+        });
         target.push('', renderDiagram(dgBody, diagramBlock.attrs, {
           // The block body's byte range in source.md. Emitted with the
           // diagram so the editor can patch exactly those bytes back.
@@ -2063,16 +2075,42 @@ function parseLecture(src) {
 // into each renderer; a non-null port emits this <script> just before
 // </head>. Production builds receive opts.watchPort = null and the
 // renderers emit nothing, keeping the output a static file.
-function reloadScript(port) {
+function reloadScript(port, nonce) {
   if (!port) return '';
+  // Two-way now. The reload half is unchanged; the other half is what the
+  // diagram editor writes back through, and it is deliberately the *same*
+  // socket: source.md stays the single source of truth, the normal rebuild
+  // runs on the write, and every open tab reloads.
   return `<script>
-(() => {
+window.psiWatch = (() => {
+  let sock = null;
+  let seq = 0;
+  const waiting = new Map();
   const connect = () => {
-    const ws = new WebSocket('ws://localhost:${port}');
-    ws.addEventListener('message', e => { if (e.data === 'reload') location.reload(); });
-    ws.addEventListener('close', () => setTimeout(connect, 500));
+    const ws = new WebSocket('ws://127.0.0.1:${port}');
+    sock = ws;
+    ws.addEventListener('message', e => {
+      if (e.data === 'reload') { location.reload(); return; }
+      let m; try { m = JSON.parse(e.data); } catch (err) { return; }
+      if (m && m.type === 'patch-result' && waiting.has(m.id)) {
+        waiting.get(m.id)(m);
+        waiting.delete(m.id);
+      }
+    });
+    ws.addEventListener('close', () => { sock = null; setTimeout(connect, 500); });
   };
   connect();
+  return {
+    nonce: ${JSON.stringify(nonce || '')},
+    ready: () => !!(sock && sock.readyState === 1),
+    patch: (range, text, was) => new Promise((resolve) => {
+      if (!sock || sock.readyState !== 1) return resolve({ ok: false, why: 'the watch socket is not connected' });
+      const id = ++seq;
+      waiting.set(id, resolve);
+      setTimeout(() => { if (waiting.has(id)) { waiting.delete(id); resolve({ ok: false, why: 'no answer from the watch server' }); } }, 4000);
+      sock.send(JSON.stringify({ type: 'patch', id, nonce: window.psiWatch.nonce, range, text, was }));
+    }),
+  };
 })();
 </script>`;
 }
@@ -2389,7 +2427,7 @@ ${DIAGRAM_CSS}
 </style>
 ${fontStyleTag(opts.fontEmbed)}
 ${katexStyleTag(anonHtml + namedHtml)}
-${reloadScript(opts.watchPort)}
+${reloadScript(opts.watchPort, opts.watchNonce)}
 </head>
 <body data-slide-nums="${printNums}">
 <main>
@@ -3222,7 +3260,7 @@ ${DIAGRAM_CSS}
 </style>
 ${fontStyleTag(opts.fontEmbed)}
 ${katexStyleTag(columnsHtml, { fontToggle: true })}
-${reloadScript(opts.watchPort)}
+${reloadScript(opts.watchPort, opts.watchNonce)}
 </head>
 <body ${viewBodyAttrs(defaults)}>
 ${themeBootScript(defaults)}
@@ -5290,6 +5328,17 @@ window.addEventListener('message', (ev) => {
     return;
   }
   if (m.type === 'video') { applyRemoteVideo(m); return; }
+  // A diagram the other window edited. Its own message rather than a field
+  // of the snapshot, following the video precedent and for the same reason:
+  // applyRemoteState is a *full* apply, so folding an edit into the snapshot
+  // would drag the receiver's slide position along with it.
+  // Addressed by the diagram's own id, never by index, so reordering a chunk
+  // cannot mis-target it – the lesson data-fig-id already carries for video.
+  // Gated by the freeze flag on the sending side, like any shared state.
+  if (m.type === 'diagram-edit') {
+    if (window.psiApplyDiagramEdit) window.psiApplyDiagramEdit(m);
+    return;
+  }
   if (m.type === 'embed') { applyRemoteEmbed(m); return; }
   // Address overlay, outside the snapshot for the same reason as blank:
   // it is a command aimed at the projection, not shared navigation state.
@@ -7175,7 +7224,7 @@ ${SPEAKER_CSS}
 </style>
 ${fontStyleTag(opts.fontEmbed)}
 ${katexStyleTag(columnsHtml, { fontToggle: true })}
-${reloadScript(opts.watchPort)}
+${reloadScript(opts.watchPort, opts.watchNonce)}
 </head>
 <body ${viewBodyAttrs(defaults, 'data-view="speaker"')}>
 ${themeBootScript(defaults)}
@@ -9462,10 +9511,16 @@ function buildOnce(absIn, only, opts = {}) {
 // the open browser tabs.
 async function runWatch(absIn, only, baseOpts = {}) {
   const { WebSocketServer } = await import('ws');
-  const wss = new WebSocketServer({ port: 0 });
+  // Loopback, explicitly. Omitting `host` listens on every interface, which
+  // for a one-way reload socket was merely untidy and for a socket that can
+  // write to the author's disk is not.
+  const wss = new WebSocketServer({ port: 0, host: '127.0.0.1' });
   await new Promise(resolve => wss.on('listening', resolve));
   const port = wss.address().port;
-  const opts = { ...baseOpts, watchPort: port };
+  // A per-build secret, required on every patch. Without it any page in the
+  // browser that guessed the port could write to source.md.
+  let nonce = crypto.randomBytes(16).toString('hex');
+  const opts = { ...baseOpts, watchPort: port, watchNonce: nonce };
 
   const broadcast = (msg) => {
     for (const client of wss.clients) {
@@ -9482,6 +9537,53 @@ async function runWatch(absIn, only, baseOpts = {}) {
       console.error(`[${label}] build failed: ${err.message}`);
     }
   };
+
+  // Write-back from the editor. Three things have to be true before a patch
+  // touches the file, and the third is what makes two open tabs safe:
+  //
+  //  - the nonce matches this build's,
+  //  - the range is one a `::: diagram` block of the last build actually
+  //    occupied,
+  //  - and the bytes still there are the bytes that block compiled from.
+  //
+  // The file is re-read for that last check, so a patch computed against a
+  // stale buffer is refused rather than applied at the wrong offset. Whoever
+  // writes second is working against a range that no longer exists and gets
+  // told so instead of corrupting the source.
+  wss.on('connection', (sock) => {
+    sock.on('message', (raw) => {
+      let msg;
+      try { msg = JSON.parse(String(raw)); } catch { return; }
+      if (!msg || msg.type !== 'patch') return;
+      const reply = (ok, why) => sock.send(JSON.stringify({ type: 'patch-result', id: msg.id, ok, why }));
+      if (msg.nonce !== nonce) return reply(false, 'this page is from an older build – reload it and try again');
+      const range = Array.isArray(msg.range) ? msg.range : null;
+      if (!range || typeof msg.text !== 'string') return reply(false, 'malformed patch');
+      const hit = dgEmittedBlocks.find(b => b.range[0] === range[0] && b.range[1] === range[1]);
+      if (!hit) return reply(false, 'that is not a ::: diagram block this build emitted');
+      let src;
+      try { src = fs.readFileSync(absIn, 'utf8'); } catch (e) { return reply(false, 'cannot read the source: ' + e.message); }
+      const there = src.slice(range[0], range[1]);
+      if (there !== hit.body) {
+        return reply(false, 'source.md has changed since this build – reload the page and try again');
+      }
+      // And the bytes the *page* believes are there. The check above only
+      // proves the file still matches the last build; this one is what makes
+      // two open tabs safe when an edit happens to keep the block's length,
+      // where the range would otherwise still exist and the second write
+      // would silently take the first one's change with it.
+      if (typeof msg.was === 'string' && msg.was !== there) {
+        return reply(false, 'another window has already edited this figure – reload the page and try again');
+      }
+      try {
+        fs.writeFileSync(absIn, src.slice(0, range[0]) + msg.text + src.slice(range[1]), 'utf8');
+      } catch (e) { return reply(false, 'cannot write the source: ' + e.message); }
+      console.log(`[patch] ${path.relative(process.cwd(), absIn)} – ${hit.chunk ? '#' + hit.chunk : 'a diagram'}, ${msg.text.length - hit.body.length >= 0 ? '+' : ''}${msg.text.length - hit.body.length} bytes`);
+      reply(true, '');
+      // fs.watch fires on the write and the normal rebuild follows, so the
+      // editor never owns a parallel copy of anything.
+    });
+  });
 
   rebuild('initial');
   console.log(`Watching ${path.relative(process.cwd(), absIn)} – live-reload active (open the HTML files in Chrome)`);
