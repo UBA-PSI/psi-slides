@@ -692,3 +692,10 @@ body.dge-open #stage-viewport { filter: none; }
 #dge-tools.dge-locked .dge-tool[aria-pressed=true] {
   box-shadow: inset 0 0 0 1px var(--emph);
 }
+
+/* The help sheet has to sit above the editor, not under it. #help-overlay is
+   at z-index 60 and the modal at 240, so `?` inside the editor un-hid a panel
+   nobody could see and left it toggled on – and it is exactly the sheet whose
+   editor section renderHelpOverlay was extended to carry. Raised only while
+   the modal is open, so the slide's own stacking is untouched. */
+body.dge-open #help-overlay { z-index: 260; }

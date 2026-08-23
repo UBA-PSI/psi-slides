@@ -83,7 +83,11 @@ function dgeCompilerFor(images) {
       // The accessible name is not a substring to splice – it is carried by
       // a construct that is absent when there is none – so the build ships
       // both shapes and this picks. See imageTable in diagram-core.mjs.
-      const markup = node.alt ? hit.markup : (hit.bare || hit.markup);
+      // One stored shape plus the range to cut out when there is no
+      // accessible name – see imageTable in diagram-core.mjs.
+      const markup = node.alt || !hit.drop
+        ? hit.markup
+        : hit.markup.slice(0, hit.drop[0]) + hit.markup.slice(hit.drop[0] + hit.drop[1]);
       return markup
         .split(DGE_ID_SLOT).join(id)
         .split(DGE_GEO_SLOT).join(geo)
@@ -118,6 +122,12 @@ function dgeCollectFigures() {
     seen.add(svg);
     let data;
     try { data = JSON.parse(sc.textContent); } catch (e) { return; }
+    // The asset table travels separately, so a view that does not ship the
+    // editor can drop it. Absent is normal – most figures have no image.
+    const assetsEl = document.querySelector(
+      'script.psi-diagram-assets[data-for="' + sc.dataset.for + '"]');
+    let images = {};
+    if (assetsEl) { try { images = JSON.parse(assetsEl.textContent); } catch (e) {} }
     const chunkEl = svg.closest('[id]');
     DGE_FIGURES.push({
       svg,
@@ -137,8 +147,8 @@ function dgeCollectFigures() {
       nth: 0,
       width: data.width || 'standard',
       alt: data.alt || '',
-      images: data.images || {},
-      compiler: dgeCompilerFor(data.images),
+      images,
+      compiler: dgeCompilerFor(images),
     });
   });
   const perChunk = new Map();
@@ -619,6 +629,12 @@ function dgeLoadFigure(index, resetView) {
 // screen, the offending line is marked in the source pane, and the commit
 // button is disabled. While the author is mid-edit an intermediate state is
 // normal, not exceptional.
+// True while a pointer gesture is in flight. The sidebar rebuilds an element
+// list and the whole source pane, and none of it changes between two
+// pointermove events – the guides and the status bar carry the feedback. On a
+// figure with fifty elements the difference is visible.
+let dgeInGesture = false;
+
 function dgeRecompile() {
   const res = dgeCompile(DGE.fig, DGE.source);
   DGE.problems = res.errors.length ? res.errors : [];
@@ -633,6 +649,7 @@ function dgeRecompile() {
     // A selection whose element the author just deleted by typing has to go.
     DGE.selection = DGE.selection.filter((id) => DGE.boxes.has(id) || dgeFind(id));
   }
+  if (dgeInGesture) { dgeApplyFrame(); dgeDrawGuides(); return; }
   dgeRenderAll();
 }
 
@@ -713,7 +730,6 @@ function dgeApplyFrame() {
     note += ` · height-capped at 62vh, so ${Math.round(100 - 100 * (m.capPx / natural))}% of the measure stays empty beside it`;
   }
   frame.dataset.measure = note;
-  frame.classList.toggle('dge-capped', capped);
   dgeQ('#dge-frames').querySelectorAll('button').forEach((b) => {
     b.setAttribute('aria-pressed', String(b.dataset.frame === DGE.frame));
     const em = DGE_FRAME_EM[b.dataset.frame][m.width];
@@ -779,7 +795,6 @@ function dgePointToDiagram(ev) {
   const guides = dgeQ('#dge-guides');
   const ctm = guides.getScreenCTM();
   if (!ctm) return { x: 0, y: 0 };
-  const pt = guides.ownerSVGElement ? null : null;
   const inv = ctm.inverse();
   const p = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(inv);
   return { x: p.x, y: p.y };
@@ -1309,7 +1324,6 @@ function dgeHitTest(pt) {
     if (pt.x < b.x || pt.x > b.x + b.w || pt.y < b.y || pt.y > b.y + b.h) continue;
     const el = dgeFind(id);
     if (!el) continue;
-    const st = DGE.model ? null : null;
     hits.push({ id, area: b.w * b.h, el });
   }
   if (!hits.length) return null;
@@ -1375,6 +1389,7 @@ function dgeStartPan(ev, canvas) {
 // 60px drag came out as `gap 8.45`: the two disagreed by however much the
 // preview had already rewritten.
 function dgeGestureBase() {
+  dgeInGesture = true;
   const svg = dgeQ('#dge-art-svg');
   if (svg) DGE.pinnedViewBox = svg.getAttribute('viewBox');
   return { source: DGE.source, model: DGE.model, boxes: DGE.boxes, spans: DGE.spans };
@@ -1383,6 +1398,7 @@ function dgeGestureBase() {
 // Let the frame settle again once the gesture is over, and re-fit if the
 // figure has outgrown it.
 function dgeGestureEnd() {
+  dgeInGesture = false;
   DGE.pinnedViewBox = null;
   dgeRecompile();
 }

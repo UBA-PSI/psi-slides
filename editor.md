@@ -1710,3 +1710,95 @@ Verified:
   built. Both are small; neither is on the path of anything else.
 - **`Q` locks the tool but nothing draws the lock state** beyond the status
   line it prints.
+
+### After the review · **done**
+
+A code review of the branch found fifteen things. Two did not survive
+checking, thirteen were real, and one of the thirteen predates the editor
+entirely. What follows is what changed and, where it matters, why the
+verification that was already in place did not catch it.
+
+**Rejected, with evidence:**
+
+- *"The buttons are invisible in the dark themes."* `editor.css` carries a
+  `body[data-mode=dark]` block covering `.dge-btn` and `.dge-seg button`, and
+  the seven-theme screenshots show them rendering correctly. The reviewer
+  counted one `data-mode` rule; there are six.
+- *"The guide layer is offset from the drawing when the height cap binds."*
+  Measured on `#cbc` in the slide frame, where the cap does bind: the guide
+  layer says the centre of `c1` is at (708, 259) and the browser painted it at
+  (708, 259). The reasoning assumed the SVG's width shrinks when `max-height`
+  clamps it, which it would with an auto width – but the width is explicitly
+  `100%`, so both layers letterbox identically inside the same box.
+
+**The four that could corrupt a source file**, all invisible because the
+result still compiled: a tail rewrite over a multi-selection used span offsets
+from the pre-edit text and wrote the second element's tail into the middle of
+its own placement and the third's inside its quoted label; giving a label to
+an element that had none emitted `""Hi""`; the paste rename rewrote words
+*inside* labels; and delete reported the other selected element as a reason
+not to delete this one. See the commit for each.
+
+**The one that made the editor draw a different picture than the build.** The
+lecture-wide `diagram-defaults` layer never reached the browser, so the
+in-browser compiler resolved four layers where the build resolved five. Worth
+recording why phase 3's identity check missed it: **the check was right and
+the corpus was too small** – none of the three lectures in the repo uses
+`diagram-defaults`. The fixture that reproduces it, for anyone re-running the
+check:
+
+```markdown
+---
+title: Lecture defaults
+diagram-defaults: |
+  default box {.tone-3} w 1.1
+  default box @dec {.round} w 0.5
+  default text {.small}
+---
+## title: Lecture defaults {#cover}
+## figure: Styled by the lecture {.full #styled}
+::: diagram {unit=130x76}
+box a "Alpha"
+box b "Beta" right of a gap 0.4 {@dec}
+text n "a note" below a gap 0.5
+:::
+## figure: A fit that needs the lecture width {.full #fitted}
+::: diagram {unit=130x76}
+box f "fits the box" {.fit}
+:::
+```
+
+Before the fix: `#styled` differed in every coordinate and `#fitted` did not
+compile at all, because `.fit` needs a width and the lecture's was gone.
+After: 2/2. **Run the identity check against this as well as the three
+lectures.**
+
+**The one that predates the editor.** A focused diagram never animated. The
+focus card is a clone of the figure, ids and all, so every `getElementById` in
+the step runtime reached the hidden original while the card – the only thing
+the room can see – stood still. `dgStep` now mirrors into the card with
+`dgRenderInto`, which is the same call the speaker's preview thumbnails use
+and exists precisely because a clone cannot be addressed by id.
+
+**Three lessons worth carrying forward**, because each explains a whole class
+of the above:
+
+1. **A span is an offset into the text as it was.** Every place that writes
+   more than one of them has to plan first and splice right to left. That was
+   already true of `dgeApplyEdits`; it is now true of the tail writes and of
+   moving a multi-selection, which is where the bugs were.
+2. **A clone cannot be addressed by id.** The focus card and the strip
+   thumbnails are both clones, and both were broken by it in opposite
+   directions – one reached the wrong element, the other had its ids stripped
+   and lost the `@scope` anchor a spliced asset's stylesheet hangs on.
+3. **An id in a diagram is a prefix of other ids.** `dg6-alice` sits inside
+   `dg6-alice--i`, so any rename has to be one pass with a longest-first
+   alternation, never a loop of replacements.
+
+**Payload, re-measured** now that the UI exists: 280 KB of compiler, UI and
+chrome in the built page – the plan's ~150 KB was taken at phase 3, before
+there was a UI. Per figure, the source payload is 12.2 KB across the eleven
+figures of `lectures/diagrams`; the asset table is now its own element, so
+print and `editor: none` drop it entirely and a live view pays 2.7 KB rather
+than 4.9 KB (one copy of each asset's markup plus the range to cut for an
+element with no accessible name, instead of two full copies).

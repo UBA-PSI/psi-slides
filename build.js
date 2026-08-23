@@ -2409,6 +2409,20 @@ function renderToc(columns) {
 </nav>`;
 }
 
+// The per-figure asset table is the only heavy part of the diagram payload
+// and the only part that is no use without the editor: it is the markup for
+// every image the figure holds, which for an inlined raster is the whole
+// data: URI a second time. Print never has an editor, and neither does a
+// live view of a lecture that declined one, so both drop it.
+//
+// A regex on a well-known element rather than surgery inside the JSON: the
+// class name is the contract, and the script has no nested markup to trip on
+// because the emitter escapes every `<` in it.
+function stripDiagramAssets(html) {
+  return html.replace(
+    /<script type="application\/json" class="psi-diagram-assets"[^>]*>[^<]*<\/script>/g, '');
+}
+
 function renderDocument(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
   const title = lectureTitle(frontmatter);
@@ -2420,10 +2434,10 @@ function renderDocument(lecture, opts = {}) {
   // Title / anon columns render above the TOC (cover page first),
   // named columns render after (body of the document).
   const chunkOpts = { withNotes: !!opts.withNotes };
-  const anonHtml = columns.filter(c => !c.heading)
-    .map(c => renderColumn(c, frontmatter, nextNum, chunkOpts)).join('\n');
-  const namedHtml = columns.filter(c => c.heading)
-    .map(c => renderColumn(c, frontmatter, nextNum, chunkOpts)).join('\n');
+  const anonHtml = stripDiagramAssets(columns.filter(c => !c.heading)
+    .map(c => renderColumn(c, frontmatter, nextNum, chunkOpts)).join('\n'));
+  const namedHtml = stripDiagramAssets(columns.filter(c => c.heading)
+    .map(c => renderColumn(c, frontmatter, nextNum, chunkOpts)).join('\n'));
 
   const titleSuffix = opts.withNotes ? 'print + notes' : 'print';
   // Print has no keyboard, so the frontmatter is its only say over the
@@ -3270,7 +3284,8 @@ function editorPayload(frontmatter, columnsHtml, view) {
 function renderAudience(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
   const title = lectureTitle(frontmatter);
-  const columnsHtml = renderColumnsHtml(columns, frontmatter);
+  let columnsHtml = renderColumnsHtml(columns, frontmatter);
+  if (!editorPayload(frontmatter, columnsHtml, 'audience')) columnsHtml = stripDiagramAssets(columnsHtml);
   const titleJson = jsonForScript(title);
   const defaults = viewDefaults(frontmatter);
 
@@ -7210,7 +7225,8 @@ if (document.fonts && document.fonts.ready) {
 function renderSpeaker(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
   const title = lectureTitle(frontmatter);
-  const columnsHtml = renderColumnsHtml(columns, frontmatter);
+  let columnsHtml = renderColumnsHtml(columns, frontmatter);
+  if (!editorPayload(frontmatter, columnsHtml, 'speaker')) columnsHtml = stripDiagramAssets(columnsHtml);
 
   // Speaker-source notes are emitted as <template> fragments holding
   // the *raw* note text (joined with blank lines between blocks). The

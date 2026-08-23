@@ -2221,7 +2221,22 @@ export function createDiagramCompiler(env = {}) {
       const named = assetMarkup({ ...n, alt: '\u0000ALT\u0000' }, '\u0000ID\u0000', '\u0000GEO\u0000');
       const bare = assetMarkup({ ...n, alt: '' }, '\u0000ID\u0000', '\u0000GEO\u0000');
       if (!named) continue;
-      out[n.src] = { markup: named, bare, aspect: n.aspect ?? null };
+      // One copy, not two. The markup is the whole asset – a data: URI or a
+      // spliced vector file – so shipping both shapes doubled the heaviest
+      // thing in the payload for the sake of one construct that is present
+      // or absent. Store the named shape plus the range to cut out for an
+      // element with no accessible name, computed from the common prefix
+      // and suffix of the two.
+      let a = 0;
+      while (a < named.length && a < bare.length && named[a] === bare[a]) a++;
+      let z = 0;
+      while (z < named.length - a && z < bare.length - a
+             && named[named.length - 1 - z] === bare[bare.length - 1 - z]) z++;
+      out[n.src] = {
+        markup: named,
+        drop: [a, named.length - z - a],
+        aspect: n.aspect ?? null,
+      };
     }
     return out;
   }
@@ -2466,9 +2481,16 @@ export function createDiagramCompiler(env = {}) {
         // SVG by exactly one attribute – which is how the identity check
         // found it.
         alt: opts.alt || '',
-        images: imageTable(model),
       }).replace(/</g, '\\u003c') + '</script>';
-    return `<figure class="figure-diagram">${svg}${hint}${script}${srcPayload}</figure>`;
+    // The asset table is its own element, because it is the only heavy part
+    // and the only part a view that does not ship the editor has no use for.
+    // Print and `editor: none` strip it; see stripDiagramAssets in build.js.
+    const assets = imageTable(model);
+    const assetPayload = Object.keys(assets).length
+      ? `<script type="application/json" class="psi-diagram-assets" data-for="${svgId}">`
+        + JSON.stringify(assets).replace(/</g, '\\u003c') + '</script>'
+      : '';
+    return `<figure class="figure-diagram">${svg}${hint}${script}${srcPayload}${assetPayload}</figure>`;
   }
 
 
