@@ -291,16 +291,22 @@ Work down this list. It is written so it can be checked mechanically.
 Knowing the walls saves the time spent walking into them.
 
 - **No free colours.** Four tones, plus `.accent` and `.muted`. If you need a
-  fifth distinction, use shape (`.hex`, `.chevron`) or family (`.mono`,
+  fifth distinction, use shape (`.hex`, `.chevron`, `.wedge`, `.cross`, aimed
+  with `point`) or family (`.mono`,
   `.serif`) instead - and ask first whether the figure is doing too much.
 - **No automatic routing.** Edges are straight segments through the waypoints
   you write. Nothing steps around a box for you, and nothing fans out parallel
   edges - that is what the `:0.3` / `:0.7` fractions are for.
 - **No automatic line breaking.** A label breaks where you write `\n`, and
   nowhere else.
-- **No shadows, no gradients, no z-order control.** Drawing order is fixed:
-  containers, images, braces, edges, then boxes, dots and texts.
-- **No arbitrary rotation.** `.turn` is 90°, and that is the whole feature.
+- **No shadows and no gradients.** Drawing order is fixed too – containers,
+  images, braces, edges, then boxes, dots and texts – with one way out:
+  `.front` on an edge moves it in front of the boxes. That is right for an
+  axis and wrong for an arrow, which should be covered by the box it arrives
+  at, so it is opt-in.
+- **No arbitrary rotation.** `.turn` turns a label 90°, and `point` aims a
+  chevron or a wedge at one of the four compass directions. Nothing rotates to
+  an arbitrary angle.
 - **No cylinder, no cloud, no polygon of your own.** The outlines are the
   rectangle, the circle, the hexagon, the two chevrons and the wedge. A database
   is a `.round` box in the tone you gave storage; a cloud is a box labelled

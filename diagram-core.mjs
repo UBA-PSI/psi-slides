@@ -95,7 +95,7 @@ export const DG_CLASSES = new Set([
   // no corner radius to argue about. All five are the same four numbers as a
   // rect, drawn with a different `d`, so extents, viewBox and tweening are
   // untouched. See dgShapeD.
-  'round', 'sharp', 'hex', 'chevron', 'chevron-left', 'wedge',
+  'round', 'sharp', 'hex', 'chevron', 'wedge', 'cross',
   // `.turn` reads the label bottom-to-top. Not decoration: a tall narrow
   // element (a firewall bar, a matrix row, a y axis) has room for a word only
   // along its long side, and the alternative is one letter per line.
@@ -110,8 +110,13 @@ export const DG_CLASSES = new Set([
   'left', 'right',
   // edges. `.smooth` draws the same waypoints as a curve through them
   // rather than a run of segments – an interpolating spline, so a waypoint is
-  // still exactly where the author put it.
-  'no-head', 'both-heads', 'smooth',
+  // still exactly where the author put it. `.front` moves a line in front of
+  // the boxes: drawing order is otherwise fixed, and it is right for an arrow
+  // (a box should cover the line arriving at it) and wrong for an axis, which
+  // came out as stubs showing in the gaps between the columns it ruled.
+  // Called `.front` and not `.over`, because `over` is already the keyword
+  // that gives a container its members.
+  'no-head', 'both-heads', 'smooth', 'front',
   // set by steps, but authorable as an initial state too
   'emph', 'dim',
 ]);
@@ -126,7 +131,7 @@ export const DG_CLASS_GROUPS = [
   ['accent', 'muted'],                        // ink
   ['dashed', 'dotted'],                       // stroke pattern
   ['thick', 'bare'],                          // stroke weight
-  ['round', 'sharp', 'hex', 'chevron', 'chevron-left', 'wedge'],   // outline
+  ['round', 'sharp', 'hex', 'chevron', 'wedge', 'cross'],   // outline
   ['small', 'large'],                         // size
   ['mono', 'serif', 'hand'],                  // family
   ['fit', 'shrink'],                          // how type meets its box
@@ -149,7 +154,15 @@ export const DG_CLASS_CLASHES = [['tone-4', 'accent']];
 // that moves or resizes the element still tweens – the shape is only a
 // different way of joining those four numbers into a path. Anything that
 // needed its own point list would have needed its own everything.
-export const DG_SHAPE_CLASSES = new Set(['hex', 'chevron', 'chevron-left', 'wedge']);
+export const DG_SHAPE_CLASSES = new Set(['hex', 'chevron', 'wedge', 'cross']);
+// Which outlines have a point to aim, and where it may aim. `point` is an
+// option rather than four more class names per shape: a chevron aimed up is
+// the same shape aimed differently, and spelling that as its own class grows
+// the vocabulary by one word per shape per direction. It also replaced
+// `.chevron-left`, so the closed list came out one word shorter than it went
+// in while covering eight orientations instead of three.
+export const DG_POINTED = new Set(['chevron', 'wedge']);
+export const DG_POINT_DIRS = new Set(['up', 'down', 'left', 'right']);
 
 // How far `.turn` turns a label, in degrees, and it is negative because SVG
 // rotates clockwise: -90 leaves the words reading bottom-to-top, which is the
@@ -167,29 +180,56 @@ export const DG_TURN_DEG = -90;
 // different outline than it was emitted with is the kind of defect nobody
 // finds by looking.
 export function dgShapeD(shape, x, y, w, h) {
+  // The direction rides on the shape name (`chevron:up`), so the drawable
+  // still carries four numbers and the runtime still looks a shape up by one
+  // string. Rotating the finished points would have been the obvious move and
+  // is the wrong one: a w-by-h box turned ninety degrees is an h-by-w box, and
+  // the footprint the layout computed has to stay exactly what it was. Each
+  // direction is drawn inside the box it was given.
+  const [kind, dir] = String(shape).split(':');
   const n = (v) => Math.round(v * 100) / 100;
   const poly = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + n(p[0]) + ' ' + n(p[1])).join('') + 'Z';
-  // How far the point or the bevel eats into the width. Tied to the height so
-  // a row of boxes of one height gets one consistent nose, and capped by the
-  // width so a very short box degenerates to a triangle rather than folding
-  // through itself.
-  const nose = Math.min(h * 0.5, w * 0.42);
+  // How far the point eats into the box along the axis it points down. Tied to
+  // the cross-axis so a row of boxes of one height gets one consistent nose,
+  // and capped by its own axis so a very short box degenerates to a triangle
+  // rather than folding through itself.
+  const noseX = Math.min(h * 0.5, w * 0.42);
+  const noseY = Math.min(w * 0.5, h * 0.42);
   const bevel = Math.min(h * 0.28, w * 0.34);
-  if (shape === 'hex') {
-    return poly([[x + bevel, y], [x + w - bevel, y], [x + w, y + h / 2],
-      [x + w - bevel, y + h], [x + bevel, y + h], [x, y + h / 2]]);
+  const r = x + w, b = y + h, mx = x + w / 2, my = y + h / 2;
+  if (kind === 'hex') {
+    return poly([[x + bevel, y], [r - bevel, y], [r, my],
+      [r - bevel, b], [x + bevel, b], [x, my]]);
   }
-  if (shape === 'chevron') {
-    return poly([[x, y], [x + w - nose, y], [x + w, y + h / 2],
-      [x + w - nose, y + h], [x, y + h]]);
+  if (kind === 'chevron') {
+    if (dir === 'left') return poly([[r, y], [x + noseX, y], [x, my], [x + noseX, b], [r, b]]);
+    if (dir === 'up') return poly([[x, b], [x, y + noseY], [mx, y], [r, y + noseY], [r, b]]);
+    if (dir === 'down') return poly([[x, y], [x, b - noseY], [mx, b], [r, b - noseY], [r, y]]);
+    return poly([[x, y], [r - noseX, y], [r, my], [r - noseX, b], [x, b]]);
   }
-  if (shape === 'chevron-left') {
-    return poly([[x + w, y], [x + nose, y], [x, y + h / 2],
-      [x + nose, y + h], [x + w, y + h]]);
+  if (kind === 'cross') {
+    // A plus rather than a saltire. At marker size a saltire reads as two
+    // gridlines crossing; the arms of a plus stay on the axes the reader is
+    // already following.
+    const t = Math.min(w, h) * 0.34, hx = t / 2;
+    return poly([[mx - hx, y], [mx + hx, y], [mx + hx, my - hx], [r, my - hx],
+      [r, my + hx], [mx + hx, my + hx], [mx + hx, b], [mx - hx, b],
+      [mx - hx, my + hx], [x, my + hx], [x, my - hx], [mx - hx, my - hx]]);
   }
   // wedge: a triangle standing on its point, which is how a size comparison
   // reads – the area is the quantity and the tip is where it lands.
-  return poly([[x, y], [x + w, y], [x + w / 2, y + h]]);
+  if (dir === 'up') return poly([[x, b], [r, b], [mx, y]]);
+  if (dir === 'left') return poly([[r, y], [r, b], [x, my]]);
+  if (dir === 'right') return poly([[x, y], [x, b], [r, my]]);
+  return poly([[x, y], [r, y], [mx, b]]);
+}
+
+// The outline and the direction as one token, which is the form dgShapeD and
+// the drawable kind both take. `chevron` on its own still means the default
+// direction, so nothing that never says `point` changes.
+export function dgShapeName(classes, dir) {
+  const kind = dgShapeOf(classes);
+  return kind && dir ? kind + ':' + dir : kind;
 }
 
 // Which outline an element draws, from its resolved class set. Takes either a
@@ -210,9 +250,24 @@ export function dgShapeOf(classes) {
 // Derived from the height alone, never from the width, because the width is
 // what this is being used to compute.
 export function dgShapeInsetX(shape, h) {
-  if (shape === 'hex') return Math.min(h * 0.28, 22) * 2;
-  if (shape === 'chevron' || shape === 'chevron-left') return Math.min(h * 0.5, 30);
-  if (shape === 'wedge') return h * 0.9;
+  const [kind, dir] = String(shape).split(':');
+  // A point that aims up or down eats height, not width, so it asks nothing
+  // of the horizontal measure and dgShapeInsetY answers for it instead.
+  const vertical = dir === 'up' || dir === 'down';
+  if (kind === 'hex') return Math.min(h * 0.28, 22) * 2;
+  if (kind === 'chevron') return vertical ? 0 : Math.min(h * 0.5, 30);
+  if (kind === 'wedge') return vertical || !dir ? h * 0.9 : 0;
+  if (kind === 'cross') return h * 1.1;
+  return 0;
+}
+
+// The same question on the other axis, driven by the label's own height
+// because the box height is what it is being used to compute.
+export function dgShapeInsetY(shape, labelH) {
+  const [kind, dir] = String(shape).split(':');
+  if (dir !== 'up' && dir !== 'down') return 0;
+  if (kind === 'chevron') return Math.min(labelH * 0.9, 26);
+  if (kind === 'wedge') return labelH * 0.9;
   return 0;
 }
 
@@ -1978,7 +2033,9 @@ export function createDiagramCompiler(env = {}) {
           model.edges.push(synth({
             kind: 'edge', id: dgBaseName(id), synth: id,
             from: { ref: id, anchor: 'bl' }, to: { ref: id, anchor: 'br' },
-            label: '', classes: ['no-head', 'muted'], via: [],
+            // In front, because it is the chart's axis and not an arrow into
+            // one of the columns. Behind them it showed only in the gaps.
+            label: '', classes: ['no-head', 'muted', 'front'], via: [],
           }));
           continue;
         }
@@ -2103,6 +2160,21 @@ export function createDiagramCompiler(env = {}) {
             }
             node.sameAs = rest[k + 2].v;
             k += 3;
+            continue;
+          }
+          // Which way a pointed outline aims. An option and not a class, so a
+          // chevron aimed up does not need a class name of its own – and a
+          // `point` on a shape with no point, or on no shape at all, is an
+          // error rather than a word that sits there doing nothing.
+          if (key === 'point') {
+            const dir = rest[k + 1] ? rest[k + 1].v : '';
+            if (!DG_POINT_DIRS.has(dir)) {
+              dgErr(errors, lineNo, `${head} ${id}: point expects `
+                + `${[...DG_POINT_DIRS].join(' / ')}, got "${dir}"`);
+            } else {
+              node.point = dir;
+            }
+            k += 2;
             continue;
           }
           if (key === 'w') { node.w = dgNum(rest[k + 1]?.v, errors, lineNo, 'w'); k += 2; continue; }
@@ -2308,6 +2380,25 @@ export function createDiagramCompiler(env = {}) {
     const refsOf = (place) => place?.kind === 'rel' ? [place.ref]
       : place?.kind === 'between' ? place.refs.map(r => r.ref)
       : place?.kind === 'abs' ? dgPairRefs(place.at) : [];
+    // `point` aims an outline, so it needs the outline – and the outline can
+    // come from a `default` block declared further down the file. Checked
+    // here rather than on the statement's own line for exactly that reason:
+    // on the line, `default box {.chevron}` plus `point up` would have been
+    // refused for having no shape to aim.
+    for (const n of model.nodes) {
+      if (!n.point) continue;
+      const cls = new Set(n.classes);
+      for (const layer of dgDefaultLayers(model, n.kind, n.tags)) {
+        for (const c of layer.classes) if (DG_SHAPE_CLASSES.has(c)) cls.add(c);
+      }
+      const kind = dgShapeOf(cls);
+      if (!DG_POINTED.has(kind)) {
+        dgErr(errors, n.line, `${n.kind} ${n.id}: "point" aims an outline that has a point, and `
+          + `${kind ? '.' + kind + ' has none' : 'this element has no outline'} – it applies to `
+          + `${[...DG_POINTED].map(k => '.' + k).join(' and ')}`);
+      }
+    }
+
     // What each expanding statement produced, so a step naming the statement
     // can reach it. Built from `synth` rather than collected in the three
     // branches, so a fourth expanding statement gets this for nothing.
@@ -2433,13 +2524,16 @@ export function createDiagramCompiler(env = {}) {
         dgWarn(`box ${node.id} is ${nw} units wide but its label needs about `
           + `${((m.w + 2 * padX) / uw).toFixed(2)} – the text will overflow.`);
       }
-      const boxH = nh != null ? nh * uh : m.h + 2 * padY;
       // A hexagon or a chevron has less usable interior than the rectangle
-      // that bounds it: the bevel and the point are inside the box. Widen the
-      // auto-computed width so the label clears them. Only the automatic case
-      // – an explicit `w` is the author's decision, and the too-narrow warning
-      // above already speaks for that one.
-      const inset = dgShapeInsetX(dgShapeOf(classes), boxH);
+      // that bounds it: the bevel and the point are inside the box. Grow the
+      // auto-computed size so the label clears them, on whichever axis the
+      // point actually eats into. Only the automatic case – an explicit `w`
+      // or `h` is the author's decision, and the too-narrow warning above
+      // already speaks for that one.
+      const outline = dgShapeName(classes, node.point);
+      const boxH = nh != null ? nh * uh
+        : m.h + 2 * padY + dgShapeInsetY(outline, m.h);
+      const inset = dgShapeInsetX(outline, boxH);
       return {
         w: nw != null ? nw * uw : Math.max(m.w + 2 * padX + inset, DG_MIN_W),
         h: boxH,
@@ -3064,12 +3158,18 @@ export function createDiagramCompiler(env = {}) {
     // agree – element ids are what the runtime, the sync protocol and the
     // editor's own selection all address.
     const prefix = opts.prefix || `dg${++dgCounter}-`;
+    // Drawing order is fixed, and `.front` is the one way out of it. Read off
+    // the resolved classes rather than the authored ones, so a `default edge
+    // {.front}` counts too.
+    const lastCls = frames[frames.length - 1].cls;
+    const inFront = (e) => ` ${lastCls.get(e.id) || ''} `.includes(' front ');
     const elements = [
       ...model.containers.map(e => ({ e, kind: 'container' })),
       ...model.nodes.filter(e => e.kind === 'image').map(e => ({ e, kind: 'image' })),
       ...model.braces.map(e => ({ e, kind: 'brace' })),
-      ...model.edges.map(e => ({ e, kind: 'edge' })),
+      ...model.edges.filter(e => !inFront(e)).map(e => ({ e, kind: 'edge' })),
       ...model.nodes.filter(e => e.kind !== 'image').map(e => ({ e, kind: e.kind })),
+      ...model.edges.filter(inFront).map(e => ({ e, kind: 'edge' })),
     ];
 
     // Print state: the last beat, with the lecture-time emphasis stripped. A
@@ -3200,7 +3300,7 @@ export function createDiagramCompiler(env = {}) {
         // written into the payload at this moment, and a later frame that
         // wanted a different one would have nothing to switch. The parser
         // refuses that line rather than letting it be a silent no-op.
-        const shape = kind === 'box' ? dgShapeOf(st) : '';
+        const shape = kind === 'box' ? dgShapeName(st, e.point) : '';
         if (shape) {
           kinds[e.id + '--r'] = shape;
           inner += `<path id="${prefix}${e.id}--r" class="dg-shape" d="${dgShapeD(shape, v[0], v[1], v[2], v[3])}"/>`;

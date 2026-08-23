@@ -1607,7 +1607,9 @@ const DG_DUR = 380;
 // beat with this function and the runtime redraws every later beat with it,
 // so the two cannot drift; a hand copy here would be a second vocabulary
 // nobody would think to keep in step.
-const DG_SHAPES = { hex: 1, chevron: 1, 'chevron-left': 1, wedge: 1 };
+// Keyed by the outline alone; a drawable kind may carry a direction after a
+// colon (\`chevron:up\`), which dgShapeD reads and this lookup must not.
+const DG_SHAPES = { hex: 1, chevron: 1, wedge: 1, cross: 1 };
 ${dgShapeD.toString()}
 ${dgPathD.toString()}
 ${dgSplineD.toString()}
@@ -1616,7 +1618,7 @@ function dgApplyVec(el, kind, v) {
   if (kind === 'rect') {
     el.setAttribute('x', v[0]); el.setAttribute('y', v[1]);
     el.setAttribute('width', Math.max(0, v[2])); el.setAttribute('height', Math.max(0, v[3]));
-  } else if (DG_SHAPES[kind]) {
+  } else if (DG_SHAPES[String(kind).split(':')[0]]) {
     // Same four numbers a rect carries, joined into a different outline. That
     // is the whole reason a hexagon costs nothing here: it tweens as a rect
     // does, and only the last step – turning the vector into a path – differs.

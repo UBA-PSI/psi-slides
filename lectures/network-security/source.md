@@ -517,7 +517,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 # Der Tippfehler der Vorlage bleibt stehen: im Code links heißt es
 # print('Connected by', add) statt addr.
 # Die Blockpfeile der Folie sind .chevron (Spitze rechts, Client -> Server)
-# und .chevron-left (Server -> Client); die kursiven Variablen schreibt man
+# und .chevron point left (Server -> Client); die kursiven Variablen schreibt man
 # als *c* und *s*, der Compiler setzt sie in den Akzent.
 default box {.tone-3} w 2.35 h 0.5
 
@@ -525,7 +525,7 @@ text cl "Client" at -1.175,-0.75 {.left}
 text sv "Server" at 1.175,-0.75 {.right}
 
 box syn  "SYN seq=*c*"               at 0,0 {.chevron}
-box sa   "SYN+ACK seq=*s* ack=*c*+1" below syn gap 0.22 {.chevron-left @two}
+box sa   "SYN+ACK seq=*s* ack=*c*+1" below syn gap 0.22 point left {.chevron @two}
 box ack  "ACK seq=*c*+1 ack=*s*+1"   below sa gap 0.22 {.chevron @three}
 box data "DATA"                      below ack gap 0.62 {.chevron .tone-4 @data}
 
@@ -557,7 +557,7 @@ text st "*State:* Src IP/port, Dst IP/port,\nmax segment size (MSS)" at 0,0 {.le
 
 text obs "Observation:" below st gap 0.7 align left {.left @obs}
 
-box sa  "SYN+ACK seq=*e*  ack=*c*+1" below obs gap 0.35 align left w 2.35 h 0.5 {.chevron-left .tone-3 @obs}
+box sa  "SYN+ACK seq=*e*  ack=*c*+1" below obs gap 0.35 align left w 2.35 h 0.5 point left {.chevron .tone-3 @obs}
 box ack "ACK seq=*c*+1 ack=*e*+1"    below sa gap 0.28 align left same as sa {.chevron .tone-3 @obs}
 
 text q "How to encode state in\nseq/ack (len: 32 bits)." below ack gap 0.7 align left {.left @ask}
@@ -593,7 +593,7 @@ box cert "Certificate(s)"                                           below sh gap
 box sig  "Signature over ClientHello,\nServerHello, and Certificate" below cert gap 0 align left {@srv}
 box mac  "MAC over ClientHello,\nServerHello, Certificate,\nand Signature" below sig gap 0 align left {@srv}
 
-box  a2 "" left of cert gap 0.4 align top w 0.8 h 0.42 {.chevron-left @srv}
+box  a2 "" left of cert gap 0.4 align top w 0.8 h 0.42 point left {.chevron @srv}
 text vf "Verify certificate\nVerify signature\nCompute secret = DH(c, S)\nDerive keys = KDF(secret)\nVerify MAC" left of a2 gap 0.4 align top {.left @done}
 
 step hello
@@ -705,8 +705,8 @@ text v6b "github.com\nwww.github.com" right of l6b gap 0.3 align top {.left}
 text l7 "Extension\nCritical" below l6b gap 0.4 align right {.right .muted}
 text v7 "Certificate Policies ( 2.5.29.32 )\nNO" right of l7 gap 0.3 align top {.left}
 
-box ca  "no signing of other keys!" right of v2b gap 1.1 align top h 0.85 {.chevron-left .tone-4 @ca}
-box dom "domain(s)"                 right of v6b gap 1.1 align top h 0.85 {.chevron-left .tone-4 @dom}
+box ca  "no signing of other keys!" right of v2b gap 1.1 align top h 0.85 point left {.chevron .tone-4 @ca}
+box dom "domain(s)"                 right of v6b gap 1.1 align top h 0.85 point left {.chevron .tone-4 @dom}
 
 step no-ca
   show @ca
@@ -1147,10 +1147,10 @@ box ws  "webserver"                  right of lfw gap 0.42 w 0.86 {.tone-3 @prox
 box ls  "ssh server\non localhost"   right of ws gap 0.42 same as uc {.tone-3 @proxy}
 text ip "92.1.1.5:443"               below ws gap 0.28 {.muted @proxy}
 
-edge lc  -- pt  {@proxy}
+edge lc  -- pt {@proxy}
 edge pt  -- lfw {#lin @proxy}
-edge lfw -- ws  {#lout @proxy}
-edge ws  -- ls  {@proxy}
+edge lfw -- ws {#lout @proxy}
+edge ws  -- ls {@proxy}
 
 step dpi
   emph ufw
@@ -1488,10 +1488,19 @@ align x left gben, gatt
 
 # Die 2×2-Matrix. Die Angriffszeile trägt die Akzentfarbe, die Normalzeile
 # den Ton für legitimen Verkehr – dieselbe Zuordnung wie überall sonst.
-box tp "TP" below latt gap 1.25 align left w 1.15 h 0.85 {.accent @matrix}
-box fn "FN" right of tp gap 0 same as tp {.accent @matrix}
-box fp "FP" below tp gap 0 same as tp {.tone-2 @matrix}
-box tn "TN" right of fp gap 0 same as tp {.tone-2 @matrix}
+box tp "" below latt gap 1.25 align left w 1.15 h 0.85 {.accent @matrix}
+box fn "" right of tp gap 0 same as tp {.accent @matrix}
+box fp "" below tp gap 0 same as tp {.tone-2 @matrix}
+box tn "" right of fp gap 0 same as tp {.tone-2 @matrix}
+
+# Das Kürzel und seine Marker gehören zusammen und werden deshalb *als Paar*
+# in der Mitte des Feldes ausgerichtet. Als Beschriftung der Box säße das
+# Kürzel exakt mittig und die Marker müssten sich darunter an den Rand
+# drängen – zwei Dinge, die eins meinen, an zwei verschiedenen Bezugslinien.
+text ltp "TP" at tp.cx,tp.cy-0.11 {.accent @matrix}
+text lfn "FN" at fn.cx,fn.cy-0.11 {.accent @matrix}
+text lfp "FP" at fp.cx,fp.cy-0.11 {@matrix}
+text ltn "TN" at tn.cx,tn.cy-0.11 {@matrix}
 
 text calert "alert" above tp gap 0.3 align left {.left @matrix}
 text cnoalert "no alert" above fn gap 0.3 align left offset 0.12,0 {.left @matrix}
@@ -1499,10 +1508,10 @@ text head "REACTION OF IDS" above calert gap 0.32 align left {.bold .left @matri
 text rowa "attack" left of tp gap 0.24 {.turn .small @matrix}
 text rown "normal" left of fp gap 0.24 {.turn .small @matrix}
 
-grid mtp box 3x1 at tp.cx,tp.bottom-0.16 cell 0.16 space 0.09 {.accent .sharp @marks}
-grid mfn box 1x1 at fn.cx,fn.bottom-0.16 cell 0.16 space 0.09 {.accent .sharp @marks}
-grid mfp box 2x1 at fp.cx,fp.top+0.16 cell 0.16 space 0.09 {.tone-2 .sharp @marks}
-grid mtn box 4x1 at tn.cx,tn.top+0.16 cell 0.16 space 0.09 {.tone-2 .sharp @marks}
+grid mtp box 3x1 at tp.cx,tp.cy+0.19 cell 0.16 space 0.09 {.accent .sharp @marks}
+grid mfn box 1x1 at fn.cx,fn.cy+0.19 cell 0.16 space 0.09 {.accent .sharp @marks}
+grid mfp box 2x1 at fp.cx,fp.cy+0.19 cell 0.16 space 0.09 {.tone-2 .sharp @marks}
+grid mtn box 4x1 at tn.cx,tn.cy+0.19 cell 0.16 space 0.09 {.tone-2 .sharp @marks}
 
 # Der Schwellwert steht senkrecht auf der Spaltengrenze und trifft den
 # Doppelpfeil, über den er verschoben wird; das "t" bekommt einen eigenen

@@ -332,9 +332,12 @@ const DGE_SLOTS = [
   // and will be refused the other four by the compiler - which is the same
   // arrangement `.fit` has, and the status bar says why.
   { key: 'corner', label: 'outline', kinds: ['box', 'container'],
+    // Which way a chevron or a wedge aims is the `point` option, not a class,
+    // so the panel cannot set it yet - it writes classes and tags. Picking the
+    // outline here and aiming it in the source is the current split.
     options: [{ cls: '', label: 'default' }, { cls: 'round' }, { cls: 'sharp' },
-      { cls: 'hex' }, { cls: 'chevron', label: 'chev' }, { cls: 'chevron-left', label: 'chev-l' },
-      { cls: 'wedge' }] },
+      { cls: 'hex' }, { cls: 'chevron', label: 'chev' },
+      { cls: 'wedge' }, { cls: 'cross' }] },
   { key: 'reading', label: 'reading', kinds: ['box', 'text'],
     options: [{ cls: '', label: 'across' }, { cls: 'turn', label: 'up' }] },
   { key: 'curve', label: 'line shape', kinds: ['edge'],

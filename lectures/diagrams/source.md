@@ -5,7 +5,7 @@ author: Dominik Herrmann
 theme: dark
 collapse: none
 diagram-defaults: |
-  default text      {.small}
+  default text {.small}
   default container pad 0.34
 ---
 
@@ -243,10 +243,10 @@ step cipher
 ## figure: Identity lifecycle {.full #lifecycle}
 
 ::: diagram {unit=176x56}
-default box  {.tone-4} w 1.15
+default box {.tone-4} w 1.15
 default text {.small .muted}
 
-box  create "Creation"      {.tone-1 .bold}
+box  create "Creation" {.tone-1 .bold}
 text sep1   "▶"             between create,usage {.large}
 box  usage  "Usage"         right of create gap 0.62 same as create {.tone-1 .bold}
 text sep2   "▶"             between usage,term {.large}
@@ -273,13 +273,13 @@ align y middle authz, acl
 # Der Pfeil sitzt zwischen Bildunterschrift und nächstem Kasten, gehört aber
 # nicht zur below-Kette: sonst schöbe ihn eine zweizeilige Unterschrift in
 # den Kasten hinein, den align y middle gerade festgehalten hat.
-text down1  "▼"  between regc,prov   {@creation}
+text down1  "▼"  between regc,prov {@creation}
 text down2  "▼"  between provc,authz {@creation}
 text down3  "▼"  between identc,authn {@usage}
-text down4  "▼"  between authnc,acl   {@usage}
+text down4  "▼"  between authnc,acl {@usage}
 
 brace signup over reg,prov    right "Signup" {.muted}
-brace login  over ident,authn right "Login"  {.muted}
+brace login  over ident,authn right "Login" {.muted}
 
 text sep3   "▶"              below authzc gap 0.5 {.large}
 box  selfsv "Self-services"  right of sep3 gap 0.2
@@ -310,7 +310,7 @@ text kA "k" left of alice gap 0.2 {.mono .small}
 text kB "k" right of bob gap 0.2 {.mono .small}
 
 edge alice -> bob "M, T" via 1.28,1.5 2.42,1.5 {#wire}
-edge eve.right:0.28 -> bob.left:0.28 "M, T   replay"      {#replay .accent .small @attack}
+edge eve.right:0.28 -> bob.left:0.28 "M, T   replay" {#replay .accent .small @attack}
 edge eve.right:0.72 -> bob.left:0.72 "forgery   M_F, T_F" {#forge .accent .small @attack}
 text def "defense?" above eve gap 0.3 {.hand .small @attack}
 
@@ -396,7 +396,7 @@ default box {.sharp} w 0.62 h 0.42
 # Every fill the vocabulary has, drawn over a line so that .clear and .paper
 # can be told apart: one lets the rule through, the other knocks it out.
 edge -0.45,0 -- 6.1,0 {.muted}
-box f1 "paper"  at 0,0    {.paper}
+box f1 "paper"  at 0,0 {.paper}
 box f2 "tone-1" right of f1 gap 0.28 same as f1 {.tone-1}
 box f3 "tone-2" right of f2 gap 0.28 same as f1 {.tone-2}
 box f4 "tone-3" right of f3 gap 0.28 same as f1 {.tone-3}
@@ -425,15 +425,19 @@ text gl "type meets\nits box" left of g1 gap 0.5 {.muted .right}
 # die Seitenleiste des Editors spiegelt.
 box  s1 "hex"      at 0,3.5 w 0.66 h 0.42 {.hex .tone-2}
 box  s2 "chevron"  right of s1 gap 0.3 same as s1 {.chevron .tone-2}
-box  s3 "left"     right of s2 gap 0.3 same as s1 {.chevron-left .tone-2}
+box  s3 "left"     right of s2 gap 0.3 same as s1 point left {.chevron .tone-2}
 box  s4 ""         right of s3 gap 0.3 w 0.42 h 0.42 {.wedge .tone-4}
-box  s5 "turn"     right of s4 gap 0.45 h 0.62 {.tone-2 .turn}
+box  s5 ""         right of s4 gap 0.22 same as s4 point up {.wedge .tone-4}
+box  s6 ""         right of s5 gap 0.22 same as s4 {.cross .accent}
+box  s7 "turn"     right of s6 gap 0.45 h 0.62 {.tone-2 .turn}
 text sl "outline, and\nreading direction" left of s1 gap 0.5 {.muted .right}
 :::
 
 **Der Editor zeigt genau diese Reihen in seiner Seitenleiste.** Die Klassen sind eine geschlossene Aufzählung, keine freien Farben – jede Füllung mischt sich aus `--emph` und `--ink` über `--paper` und überlebt damit alle sieben Themes.
 
-**Die untere Reihe sind die vier Umrisse, die kein Rechteck sind, und `.turn`.** Sie teilen sich einen Slot mit `.round` und `.sharp`, weil ein Sechseck keinen Eckenradius hat, über den sich streiten ließe – und sie kosten nichts, weil sie dieselben vier Zahlen zeichnen wie ein Rechteck, nur zu einem anderen Pfad verbunden. `.turn` liest die Beschriftung von unten nach oben; ein hoher schmaler Kasten hat für ein Wort nur längs Platz, und die Alternative ist ein Buchstabe pro Zeile. `.paper` sieht wirkungslos aus, ist es aber nicht: Es ist die Voreinstellung einer Box, doch unter `default box {.tone-3}` kommt eine Box ohne die Klasse nicht mehr dorthin zurück, und ein freier `text` bekäme sonst überhaupt keinen Hintergrund – und genau der ist es, der die Linie hinter einer Beschriftung ausstanzt.
+**Die untere Reihe sind die vier Umrisse, die kein Rechteck sind, und `.turn`.** Sie teilen sich einen Slot mit `.round` und `.sharp`, weil ein Sechseck keinen Eckenradius hat, über den sich streiten ließe – und sie kosten nichts, weil sie dieselben vier Zahlen zeichnen wie ein Rechteck, nur zu einem anderen Pfad verbunden. `.turn` liest die Beschriftung von unten nach oben; ein hoher schmaler Kasten hat für ein Wort nur längs Platz, und die Alternative ist ein Buchstabe pro Zeile.
+
+**Wohin ein Umriss zeigt, sagt die Option `point`, nicht der Klassenname.** `{.chevron} point left` statt einer eigenen Klasse `.chevron-left`: ein Chevron nach oben ist dieselbe Form, anders ausgerichtet, und für jede Form mal jede Richtung ein Wort würde die geschlossene Liste vervierfachen. `point` gilt für `.chevron` und `.wedge`; auf einer Form ohne Spitze ist es ein Fehler und kein wirkungsloses Wort. `.paper` sieht wirkungslos aus, ist es aber nicht: Es ist die Voreinstellung einer Box, doch unter `default box {.tone-3}` kommt eine Box ohne die Klasse nicht mehr dorthin zurück, und ein freier `text` bekäme sonst überhaupt keinen Hintergrund – und genau der ist es, der die Linie hinter einer Beschriftung ausstanzt.
 
 **Wenn Schrift und Kasten nicht zusammenpassen, gibt es drei Antworten.** Ohne `w` wächst der Kasten zur Schrift. Bei festem `w` verkleinert `.shrink` die Schrift, bis sie hineinpasst, und `.fit` füllt den Kasten in beide Richtungen aus, begrenzt auf 0.6–1.5× der Grundgröße. Weil die Textbreite beim Bauen nur *geschätzt* wird – einen Browser gibt es dabei nicht –, fällt die gewählte Größe eine Spur zu klein aus. Das ist die sichere Richtung.
 

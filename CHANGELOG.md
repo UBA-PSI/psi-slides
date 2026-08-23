@@ -9,10 +9,12 @@ from building the same way is a major version.
 
 ### Added
 
-- **`::: diagram` draws four more outlines.** `.hex`, `.chevron`,
-  `.chevron-left` and `.wedge` join `.round` and `.sharp` in one slot – a
-  protocol message that is an arrow, an IDS sensor that is a hexagon, a size
-  comparison that is a triangle. They cost nothing: a shape is the same four
+- **`::: diagram` draws four more outlines.** `.hex`, `.chevron`, `.wedge`
+  and `.cross` join `.round` and `.sharp` in one slot – a protocol message
+  that is an arrow, an IDS sensor that is a hexagon, a size comparison that is
+  a triangle, a scatter marker. `point up|down|left|right` aims the ones that
+  have a point, so eight orientations cost one option rather than eight class
+  names. They cost nothing: a shape is the same four
   numbers a rectangle carries, joined into a different path, so the frame, the
   viewBox and the tween are untouched. An outline class on any other kind, or
   inside a `style` step, is an error rather than a silent no-op.
