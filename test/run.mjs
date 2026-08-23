@@ -25,6 +25,7 @@ const SPECS = [
   './editor-waypoints.mjs',
   './editor-leaders.mjs',
   './editor-align.mjs',
+  './figure-framing.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

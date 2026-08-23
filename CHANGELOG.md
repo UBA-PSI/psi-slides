@@ -36,6 +36,18 @@ from building the same way is a major version.
   `Enter` used to open the first expansion; it is a forward key now, and
   `1`–`9` (or clicking the chevron) still opens expansions.
 
+- **Figures sit square in their own frame.** A diagram's `viewBox` is built
+  from what the compiler reserves for each drawable, and two things made it
+  much larger than the drawing: a label reserved a full label-width on *each*
+  side of its origin, and container captions, brace labels and edge labels
+  never recorded a width at all, falling back to a hardcoded 120 whatever
+  their text said. A figure whose outermost element was a caption therefore
+  sat off to one side of an oversized box with an unexplained empty margin
+  beside it – up to 122px on a figure 480px wide. Eight of the twelve figures
+  in `lectures/diagrams` now land exactly on the margin on both sides; what is
+  left is the deliberate generosity of the text-width estimate, which is about
+  11% on the bundled faces and never clips.
+
 ### Added
 
 - **`::: diagram` – animated infographics written in the lecture source.**

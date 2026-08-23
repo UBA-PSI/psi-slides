@@ -2098,7 +2098,16 @@ export function createDiagramCompiler(env = {}) {
       put(c, c.id + '--r', [b.x, b.y, b.w, b.h]);
       // A container's caption sits on its own top edge rather than inside
       // the members' space, so adding a caption never reflows the contents.
-      if (st.label) put(c, c.id + '--l', [b.x + 10, b.y + (b.labelH || 0) / 2 + 1]);
+      if (st.label) {
+        // Measure it, like every other label. Three of the four places that
+        // position a label used to skip this, and extentsOf then fell back to
+        // a hardcoded [120, 28] - so a caption of any length at all reserved
+        // exactly 120px of paper beside the figure, which is where the wide
+        // empty margins came from.
+        const cm = dgMeasure(st.label, dgFontFor(st.classes), st.classes.has('mono'));
+        ext.set(c.id + '--l', [cm.w, cm.h]);
+        put(c, c.id + '--l', [b.x + 10, b.y + (b.labelH || 0) / 2 + 1]);
+      }
     }
 
     for (const br of model.braces) {
@@ -2128,7 +2137,12 @@ export function createDiagramCompiler(env = {}) {
         lp = [b.x + b.w / 2, y + tick + 9];
       }
       put(br, br.id + '--p', pts.flat());
-      if (st.label) { put(br, br.id + '--l', lp); labelAnchor.set(br.id, lanchor); }
+      if (st.label) {
+        const bm = dgMeasure(st.label, dgFontFor(st.classes), st.classes.has('mono'));
+        ext.set(br.id + '--l', [bm.w, bm.h]);
+        put(br, br.id + '--l', lp);
+        labelAnchor.set(br.id, lanchor);
+      }
     }
 
     for (const e of model.edges) {
@@ -2201,6 +2215,7 @@ export function createDiagramCompiler(env = {}) {
         const font = dgFontFor(st.classes);
         const m = dgMeasure(st.label, font, st.classes.has('mono'));
         const off = m.h / 2 + 6;
+        ext.set(e.id + '--l', [m.w, m.h]);
         put(e, e.id + '--l', [p[0] + dir[1] * off, p[1] - dir[0] * off]);
       }
     }
@@ -2403,6 +2418,29 @@ export function createDiagramCompiler(env = {}) {
     // the finished picture. The runtime widens it to the union on boot.
     const labelExt = new Map();
     for (const f of frames) for (const [k, v] of f.ext) labelExt.set(k, v);
+    // A drawable belongs to the element whose id it is prefixed with; the
+    // suffix after the last `--` names which drawable it is.
+    const ownerOf = (gid) => (gid.lastIndexOf('--') > 0 ? gid.slice(0, gid.lastIndexOf('--')) : gid);
+    const kindOf = new Map(elements.map(({ e, kind }) => [e.id, kind]));
+    const anchorOf = new Map();
+    for (const f of frames) for (const [k, v] of f.labelAnchor) anchorOf.set(k, v);
+    // The extent of a label has to describe what the emitter will draw, so it
+    // answers the anchor question exactly the way dgTextEl does. This used to
+    // reserve a full label width on *each* side of the origin - a box twice
+    // as wide as any label can be - which is where the odd empty margins came
+    // from: a figure whose outermost element was a caption reserved half that
+    // caption's width of paper beyond it and then sat off-centre inside its
+    // own frame. Measured on lectures/diagrams before the fix: up to 110px on
+    // one side of a figure only 480px wide.
+    const anchorFor = (owner, f) => {
+      if (kindOf.get(owner) === 'container') return 'start';
+      const explicit = (f.labelAnchor && f.labelAnchor.get(owner)) || anchorOf.get(owner);
+      if (explicit) return explicit;
+      const cs = ' ' + (((f.cls && f.cls.get(owner)) || '')) + ' ';
+      if (cs.includes(' left ')) return 'start';
+      if (cs.includes(' right ')) return 'end';
+      return 'middle';
+    };
     const extentsOf = (f, into, visible) => {
       for (const [gid, vec] of f.geom) {
         if (visible && !visible(gid)) continue;
@@ -2410,9 +2448,9 @@ export function createDiagramCompiler(env = {}) {
         else if (gid.endsWith('--c')) into.push({ x: vec[0] - vec[2], y: vec[1] - vec[2], w: vec[2] * 2, h: vec[2] * 2 });
         else if (gid.endsWith('--l')) {
           const [lw, lh] = (f.ext && f.ext.get(gid)) || labelExt.get(gid) || [120, 28];
-          // Anchored middle unless the element says otherwise, so half of it
-          // sits either side; a start/end anchored one is covered generously.
-          into.push({ x: vec[0] - lw, y: vec[1] - lh / 2, w: lw * 2, h: lh });
+          const a = anchorFor(ownerOf(gid), f);
+          const x = a === 'start' ? vec[0] : a === 'end' ? vec[0] - lw : vec[0] - lw / 2;
+          into.push({ x, y: vec[1] - lh / 2, w: lw, h: lh });
         }
         else for (let i = 0; i < vec.length; i += 2) into.push({ x: vec[i], y: vec[i + 1], w: 0, h: 0 });
       }
@@ -2420,10 +2458,12 @@ export function createDiagramCompiler(env = {}) {
     const liveBoxes = [];
     for (const f of frames) extentsOf(f, liveBoxes);
     const printBoxes = [];
-    // A drawable belongs to the element whose id it is prefixed with; the
-    // suffix after the last `--` names which drawable it is.
-    const ownerOf = (gid) => (gid.lastIndexOf('--') > 0 ? gid.slice(0, gid.lastIndexOf('--')) : gid);
-    extentsOf({ geom: printGeom, ext: last.ext }, printBoxes, (gid) => (printVis.get(ownerOf(gid)) ?? 1) > 0);
+    // printCls, not last.cls: anchorFor reads the classes to decide which side
+    // of its origin a label occupies, and a pass handed no classes at all
+    // silently treats every label as centred - which under-reserves a `.right`
+    // one by half its width and clips it off the edge of the paper.
+    extentsOf({ geom: printGeom, ext: last.ext, cls: printCls, labelAnchor: last.labelAnchor },
+      printBoxes, (gid) => (printVis.get(ownerOf(gid)) ?? 1) > 0);
     const boxFor = (list) => {
       const bb = list.length ? dgUnion(list) : { x: 0, y: 0, w: 100, h: 100 };
       return [bb.x - DG_MARGIN, bb.y - DG_MARGIN,
@@ -2433,8 +2473,6 @@ export function createDiagramCompiler(env = {}) {
     const [vbX, vbY, vbW, vbH] = boxFor(printBoxes.length ? printBoxes : liveBoxes);
 
     const kinds = {};
-    const anchorOf = new Map();
-    for (const f of frames) for (const [k, v] of f.labelAnchor) anchorOf.set(k, v);
     const fitOf = new Map();
     for (const f of frames) for (const [k, v] of f.fits) fitOf.set(k, v);
     let svgBody = '';
