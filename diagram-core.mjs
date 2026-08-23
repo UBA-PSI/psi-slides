@@ -1064,6 +1064,13 @@ export function createSpanTable(model, body) {
     // and an editor adding a tag rebuilds it from the model rather than
     // splicing into the middle of it. Splitting the span three ways would
     // buy a smaller diff and cost the guarantee that the result parses.
+    //
+    // **The braces belong to the span, not to the value.** `text` is
+    // `{.a .b}` and `value` is `.a .b`, so applySpan(sp, sp.value) is not the
+    // identity - the caller has to put the braces back. The absent case below
+    // hands them over in prefix/suffix; the present case cannot, because they
+    // are already inside the range being replaced. Getting this wrong is not
+    // a small diff: the result does not parse.
     if (attr === 'classes' || attr === 'tags' || attr === 'id') {
       const a = toks.find(x => x.attr);
       if (a) return hit(a.s, a.e, a.v);

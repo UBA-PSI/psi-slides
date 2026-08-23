@@ -25,6 +25,7 @@ const SPECS = [
   './editor-waypoints.mjs',
   './editor-leaders.mjs',
   './editor-align.mjs',
+  './editor-sidebar.mjs',
   './figure-framing.mjs',
 ];
 

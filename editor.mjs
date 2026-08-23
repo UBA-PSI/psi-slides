@@ -380,6 +380,7 @@ const DGE = {
   compiled: null,        // last successful compile, kept when a parse fails
   model: null,           // its model
   spans: null,           // createSpanTable over it
+  spansFor: null,        // the source text that table describes
   boxes: null,           // id -> {x,y,w,h} at the beat on screen, in px
   prefix: '',            // the compiler's id prefix inside the painted SVG
   beat: 0,               // which beat the canvas shows
@@ -664,6 +665,11 @@ function dgeRecompile() {
     DGE.compiled = res;
     DGE.model = res.model;
     DGE.spans = window.PSI_DG.createSpanTable(res.model, DGE.source);
+    // What the table describes. dgeSetSource refuses to leave the block
+    // broken, so this should always equal DGE.source - and if some path ever
+    // gets round that, a gesture planned against the stale table would splice
+    // at offsets that have moved. Cheaper to notice than to debug.
+    DGE.spansFor = DGE.source;
     DGE.beat = Math.max(0, Math.min(res.model.steps.length, DGE.beat));
     DGE.boxes = dgeBoxesAt(res.model, DGE.beat);
     dgePaintArt(res.html);
@@ -1439,10 +1445,34 @@ function dgeSnapshot() {
 
 function dgeSetSource(next, opts) {
   if (next === DGE.source) return;
-  if (!opts || opts.snapshot !== false) dgeSnapshot();
+  const before = DGE.source;
+  const wasClean = !(DGE.problems && DGE.problems.length);
+  const snapshotted = !opts || opts.snapshot !== false;
+  if (snapshotted) dgeSnapshot();
   DGE.source = next;
   DGE.dirty = true;
   dgeRecompile();
+  // A structured edit that stops the block compiling is a refusal, not a
+  // state to leave anyone in. Two reasons, and the second is the serious one.
+  //
+  // The panel is not a text editor: every act it offers is a legal act or an
+  // illegal one, so a result that does not parse means the compiler has an
+  // objection the author should read, not source they now have to repair.
+  //
+  // And the span table is only rebuilt on a *successful* compile, so a block
+  // left broken leaves DGE.spans describing text that no longer exists. Every
+  // following edit is then spliced at offsets that have moved: clicking two
+  // more swatches turned a tail into `{.a}.b}.c}`, and because the block never
+  // compiled again the canvas never changed - the panel looked like it was
+  // doing nothing while it took the source apart.
+  if (wasClean && DGE.problems.length && !(opts && opts.allowBroken)) {
+    const why = DGE.problems[0];
+    DGE.source = before;
+    if (snapshotted) DGE.undo.pop();
+    dgeRecompile();
+    dgeStatus('', (why.line ? 'line ' + why.line + ': ' : '') + why.msg, true);
+    return;
+  }
   dgeAfterEdit();
 }
 
@@ -1663,6 +1693,9 @@ function dgeStartPan(ev, canvas) {
 // 60px drag came out as `gap 8.45`: the two disagreed by however much the
 // preview had already rewritten.
 function dgeGestureBase() {
+  if (DGE.spansFor !== DGE.source) {
+    dgeStatus('', 'This block does not compile, so there is nothing to drag against – undo, or fix the line the message names.', true);
+  }
   dgeInGesture = true;
   const svg = dgeQ('#dge-art-svg');
   if (svg) DGE.pinnedViewBox = svg.getAttribute('viewBox');
@@ -2623,31 +2656,25 @@ function dgeSlotValue(slot) {
 
 function dgeSetSlot(slot, cls) {
   const names = slot.options.map((o) => o.cls).filter(Boolean);
-  dgeSnapshot();
-  const splices = DGE.selection.map((id) => {
+  const next = dgeApplySplices(DGE.selection.map((id) => {
     const el = dgeFind(id);
     if (!el) return null;
     const keep = (el.classes || []).filter((c) => !names.includes(c));
     if (cls) keep.push(cls);
     return dgePlanTail(id, { classes: keep });
-  });
-  if (!dgeApplySplices(splices)) return;
-  dgeRecompile();
-  dgeAfterEdit();
+  }));
+  if (next !== null) dgeSetSource(next);
 }
 
 function dgeToggleTag(tag, add) {
-  dgeSnapshot();
-  const splices = DGE.selection.map((id) => {
+  const next = dgeApplySplices(DGE.selection.map((id) => {
     const el = dgeFind(id);
     if (!el) return null;
     const tags = new Set(el.tags || []);
     if (add) tags.add(tag); else tags.delete(tag);
     return dgePlanTail(id, { tags: [...tags] });
-  });
-  if (!dgeApplySplices(splices)) return;
-  dgeRecompile();
-  dgeAfterEdit();
+  }));
+  if (next !== null) dgeSetSource(next);
 }
 
 // The attribute tail is one token and the order inside it is free, so the
@@ -2673,11 +2700,22 @@ function dgePlanTail(id, changes) {
     if (m) start -= m[0].length;
     return { start, end: sp.end, text: '' };
   }
-  return { start: sp.start, end: sp.end, text: sp.prefix + parts.join(' ') + sp.suffix };
+  // The braces are the caller's to write. An absent tail carries them in the
+  // span's prefix and suffix; a *present* one has empty affixes and a span
+  // that covers `{...}` while its value is only what is between them - so
+  // writing the value back over the span drops them, and the second click on
+  // any swatch turned `{.dashed}` into a bare `.dashed .dim`. That does not
+  // parse, so the block kept its last good compile and the panel looked like
+  // it was doing nothing at all while it corrupted the source underneath.
+  const open = sp.present ? '{' : sp.prefix;
+  const close = sp.present ? '}' : sp.suffix;
+  return { start: sp.start, end: sp.end, text: open + parts.join(' ') + close };
 }
 
-// Apply a set of splices computed against the *current* source in one pass,
-// right to left so the earlier ones keep their offsets.
+// Splice a set of edits computed against the *current* source in one pass,
+// right to left so the earlier ones keep their offsets. Returns the text
+// rather than installing it, so every structured write lands through
+// dgeSetSource and gets the refusal check with it.
 //
 // This is why dgePlanTail plans rather than writes. A swatch click or a tag
 // change acts on the whole selection, and every span is an offset into the
@@ -2687,12 +2725,10 @@ function dgePlanTail(id, changes) {
 // compiles and the corruption is silent all the way to source.md.
 function dgeApplySplices(list) {
   const out = list.filter(Boolean).sort((a, b) => b.start - a.start);
-  if (!out.length) return false;
+  if (!out.length) return null;
   let next = DGE.source;
   for (const r of out) next = next.slice(0, r.start) + r.text + next.slice(r.end);
-  DGE.source = next;
-  DGE.dirty = true;
-  return true;
+  return next;
 }
 
 // A label as the DSL spells it. dgTokenize decodes a backslash escape and
