@@ -7517,8 +7517,12 @@ function dgStateAt(model, k) {
         if (!st) continue;
         if (op.op === 'show') st.visible = true;
         else if (op.op === 'hide') st.visible = false;
-        else if (op.op === 'emph') { st.classes.delete('dim'); st.classes.add('emph'); }
-        else if (op.op === 'calm') { st.classes.delete('emph'); st.classes.add('dim'); }
+        // Which of the two set it matters at print time. `emph` and `calm`
+        // are lecture-time acts and a handout should not report them; an
+        // author who wrote {.dim} on an element, or restyled it with a
+        // `style` step, is describing the drawing and print has to keep it.
+        else if (op.op === 'emph') { st.classes.delete('dim'); st.classes.add('emph'); st.stepEmph = true; }
+        else if (op.op === 'calm') { st.classes.delete('emph'); st.classes.add('dim'); st.stepEmph = true; }
         // Same slot rule as the default block: a class added by `style`
         // displaces the one already occupying its slot. Adding it alongside
         // left `tone-4 tone-1` on the element, both rules matching at equal
@@ -9091,6 +9095,10 @@ function createDiagramCompiler(env = {}) {
     // so the emitter can solve the size for each pre-rendered label variant
     // rather than for the one that happens to be on screen.
     const fits = new Map();
+    // Whose emphasis it is. `emph` and `calm` are lecture-time acts and a
+    // handout should not report them; an author's own {.dim}, or one a
+    // `style` step wrote, describes the drawing and print keeps it.
+    const stepEmph = new Set();
     // A free `text` draws a ground only when it has a tone – but a `style`
     // step can give it one, and a geometry key present in only some frames
     // would leave the rect stranded in the others. So the rect is emitted in
@@ -9114,6 +9122,7 @@ function createDiagramCompiler(env = {}) {
       const st = state.get(el.id);
       vis.set(el.id, dgOpacity(st.visible, st.classes));
       cls.set(el.id, [...st.classes].join(' '));
+      if (st.stepEmph) stepEmph.add(el.id);
       const variants = labelIndex.get(el.id);
       if (variants) lab.set(el.id, Math.max(0, variants.indexOf(st.label)));
       return st;
@@ -9323,7 +9332,7 @@ function createDiagramCompiler(env = {}) {
       }
     }
 
-    return { geom, vis, cls, lab, ext, labelAnchor, fits };
+    return { geom, vis, cls, lab, ext, labelAnchor, fits, stepEmph };
   }
 
   // Every distinct label an element ever carries, so a `label` step is a
@@ -9503,8 +9512,9 @@ function createDiagramCompiler(env = {}) {
       // stripped classes rather than carried over: taking the step's number
       // kept a calmed element at 30% on paper, and pinning it to 1 threw away
       // an author's own .ghost.
+      const byStep = last.stepEmph.has(id);
       const stripped = String(last.cls.get(id) || '').split(/\s+/)
-        .filter(c => c && c !== 'emph' && c !== 'dim');
+        .filter(c => c && !(byStep && (c === 'emph' || c === 'dim')));
       printVis.set(id, dgOpacity(v > 0, stripped));
       printCls.set(id, stripped.join(' '));
     }
