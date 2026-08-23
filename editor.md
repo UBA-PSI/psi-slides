@@ -912,6 +912,9 @@ it is the only part that needs more than one figure in the editor's head at
 once, and because paste-with-closure wants delete-with-references (phase 7) to
 already exist.
 
+**Phase 11 – bringing a picture in.** §15. Last, because it is the first
+feature that writes a file rather than a range of one.
+
 **Phase 10 – steps.** A beat timeline. Selecting beat *k* shows that state;
 dragging then writes a `move` op into step *k* rather than into the element's
 placement. This is a mode and it has to look like one – the one place where the
@@ -1225,6 +1228,110 @@ question is a dialog with one answer.
 into the wrong figure and did not notice, because the closure was large enough
 to look like the figure had always been that way. B is the cheap fix and the
 halo already exists.
+
+## 15. Bringing a picture in
+
+Phase 11, and the first feature that writes a **file** rather than a range of
+one. That is a different permission with a different failure mode, which is why
+it comes after everything else.
+
+### 15.1 What is there today, and why it is a dead end
+
+The image placer takes `Object.keys(DGE.fig.images)[0]` – the first asset any
+diagram in the lecture happens to reference – with no chooser, and refuses
+outright when there is none:
+
+> *This lecture has no diagram image to place. Add one with an `image` line
+> first.*
+
+So a figure cannot get its first picture from inside the editor at all, and a
+lecture with two assets can only ever place one of them.
+
+### 15.2 The constraint that shapes the whole feature
+
+`image <name> <asset>` resolves **at build time**, against `assets/` beside
+`source.md`. A browser can read the bytes of a picked file; it cannot put them
+where the next build will look. **A picker that only reads is a promise the
+medium cannot keep** – the canvas would show the picture and the next rebuild
+would show a missing figure.
+
+So the design is not "add a file dialog". It is: *what happens to the bytes.*
+
+**The primitive is `<input type="file">`, not File System Access.** For
+*reading* a picked file, a plain file input has always been enough – every
+browser, `file://` included. §2.3's Tier 3 caveats are about *writing* and
+about *persisting a handle*, and neither applies here. Worth saying, because
+the Tier 3 discussion makes the FSA API sound necessary and for this it is not.
+
+### 15.3 Under `--watch`, the loop closes
+
+The editor reads the file and sends it on the socket that already carries
+patches: `{type: 'asset', nonce, name, bytes}`. The server writes
+`assets/<name>.<ext>` beside `source.md`, and *then* the editor sends the
+`patch` that adds `image <id> <name> <placement> w 1`.
+
+**That order is load-bearing and easy to get backwards.** `fs.watch` is on
+`source.md`, so writing the asset alone rebuilds nothing; the patch is what
+kicks the build, and by then the file has to be on disk or the rebuild fails on
+an asset it cannot find.
+
+Five refusals on the server, all refusals rather than sanitisation, because a
+sanitised path is a path someone reasoned about wrongly:
+
+- The destination is always `assets/` beside the source. A `name` containing a
+  path separator or `..` is **refused**, not cleaned.
+- The extension must be one the resolver already searches – `svg`, `png`,
+  `jpg`, `jpeg`, `gif`, `webp`.
+- Over the 2 MB inline cap, refuse **in the dialog**. `assertInlinable()` would
+  hard-fail the very next build, and failing the build an author is watching is
+  a worse experience than declining the file. Name `--optimize-images` in the
+  message; it converts to WebP q92 and measured 12–18% of the original on real
+  lecture assets.
+- An existing `assets/<name>` that differs is never silently overwritten: ask,
+  offering rename or replace.
+- The same nonce as `patch`, and the same 127.0.0.1 bind.
+
+### 15.4 Without a watch server, say so plainly
+
+The editor can show the picture at once from a blob URL, but the line it writes
+will not resolve at the next build. Do both of these rather than pretending:
+
+- Write `image <id> assets/<filename> <placement>` – an **explicit path**,
+  which the grammar already accepts – and say: *"copy `<filename>` into
+  `assets/` beside source.md; the line is already correct."*
+- Where `showSaveFilePicker` exists, offer to save it into `assets/` in one
+  step. Feature-detected, never required.
+
+Meanwhile the canvas shows the blob, carrying the same "not yet on disk" marker
+that Tier 0's reader edits use.
+
+### 15.5 What it must not do
+
+**Never inline a `data:` URI into `source.md`.** The `image` statement takes a
+path or a URL and would probably swallow one, which is exactly what makes it
+tempting. A 40 KB base64 blob in a lecture source is unreadable, undiffable,
+and breaks the property the whole editor is built on – that a `::: diagram`
+block is something a human could have typed. The build already inlines assets
+into the *output*; the source stays a reference. That separation is the reason
+`--no-inline-images` can exist at all.
+
+### 15.6 The picker, which is most of the value
+
+Even with no new file, the chooser is the missing part:
+
+- every asset the payload already carries, with a preview, since those bytes
+  are inlined already;
+- under `--watch`, **every file in `assets/`**, listed by asking the server –
+  the socket is two-way now, so this costs no payload and no build change;
+- the file picker as the last row.
+
+Which also retires the dead end in §15.1: "this lecture has no diagram image"
+stops being a refusal and becomes the first row of a dialog.
+
+One line of honesty in that dialog, because it is the trade the docs already
+make: **a vector asset follows the theme, a raster does not.** Picking an SVG
+gets a picture that re-inks with `A`; picking a PNG gets one that keeps its own
+colours in every theme. Say which one the author just picked.
 
 ## 13. Build log
 
@@ -1705,11 +1812,23 @@ Verified:
 - **Two-way source pane.** §12 settled it as one-way for now and it is
   one-way: the canvas writes and the pane displays. Making it two-way is
   additive and the reasons to wait are in §12.
-- **`node build.js --new <slug>` does not yet scaffold an empty figure
-  chunk** (§2.2), and the editor's "New figure…" clipboard convenience is not
-  built. Both are small; neither is on the path of anything else.
+- ~~`node build.js --new <slug>` does not yet scaffold an empty figure chunk
+  (§2.2), and the editor's "New figure…" clipboard convenience is not built.~~
+  **Both landed later in the branch** – `build.js` scaffolds a
+  `## figure: TODO` chunk and `editor.mjs` carries the "New figure…" button.
+  This entry was stale; corrected in review.
 - **`Q` locks the tool but nothing draws the lock state** beyond the status
   line it prints.
+- **Placing a picture** (§15). The image placer takes the first asset the
+  lecture happens to reference, with no chooser, and refuses when there is
+  none – so a figure cannot get its first picture from inside the editor.
+- **The demo lecture never learned the new vocabulary.**
+  `lectures/diagrams/source.md` is untouched by this branch, so `.clear`,
+  `.serif`, `pad` on a box or text, and a background behind free `text` are
+  demonstrated **nowhere** – while `CLAUDE.md` and §11.1 both still describe
+  that file as "every construct". Counted: `.clear` 0 uses, `.serif` 0,
+  `pad` on box/text 0. `.fit`, `.shrink` and `diagram-defaults` appear once
+  each, in the tutorial only.
 
 ### After the review · **done**
 

@@ -365,7 +365,7 @@ Two things worth knowing before writing chunks, both learned the hard way:
 - `HANDOFF.md` – slice-by-slice build diary in German/English mix. Latest sections describe current state and deliberate non-choices. Update when landing a substantial slice.
 - `README.md` – short public-facing intro.
 - `lectures/tutorial/source.md` – the canonical authoring reference (self-referential lecture). Build and open its `audience.html` to see every directive live.
-- `lectures/diagrams/source.md` – every `::: diagram` construct, including two of the stepped figures the feature was built for (CBC decryption, a stack frame being overrun).
+- `lectures/diagrams/source.md` – the `::: diagram` constructs, including two of the stepped figures the feature was built for (CBC decryption, a stack frame being overrun). **Not currently every construct**: the vocabulary added for the editor (`.clear`, `.serif`, `pad` on a box or text, a background behind free `text`) is demonstrated in no lecture, and `.fit` / `.shrink` / `diagram-defaults` only in the tutorial. See `editor.md` §13, *What is not built*.
 - `lectures/python-intro/source.md` – richest example of `::: cols`, `::: side`, and `::: marginalia` in combination, 36 chunks. It is also what the project site's screenshots come from, so a change to `#why-playwright` means re-running `docs/site/shoot.mjs`.
 - `docs/comparison.md` – how psi-slides differs from Beamer, reveal.js, Quarto, Marp and friends, in both directions. Published as a page on the site.
 
