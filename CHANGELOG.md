@@ -7,6 +7,29 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+### Added
+
+- **`::: diagram` draws four more outlines.** `.hex`, `.chevron`,
+  `.chevron-left` and `.wedge` join `.round` and `.sharp` in one slot – a
+  protocol message that is an arrow, an IDS sensor that is a hexagon, a size
+  comparison that is a triangle. They cost nothing: a shape is the same four
+  numbers a rectangle carries, joined into a different path, so the frame, the
+  viewBox and the tween are untouched. An outline class on any other kind, or
+  inside a `style` step, is an error rather than a silent no-op.
+- **`.turn` reads a label bottom-to-top.** For a tall narrow element that has
+  room for a word only along its long side: a firewall bar, a confusion-matrix
+  row, an axis title.
+- **`bars`, `grid` and `plot`.** A column chart, a rectangular field of
+  markers, and a cartesian frame with gridlines, ticks and axis titles. All
+  three expand into ordinary elements, so a `brace` spans three columns of a
+  chart and a `style` step tints one cell of a grid with no new vocabulary.
+  Inside a `plot`, `roc@0.35` names a value in the plot's own units.
+- **`.smooth` draws an edge as a curve through its waypoints**, for the
+  figures where a line is a measurement rather than a connection.
+- **`figure-design.md`** – how to lay a figure out so a room reads it: ten
+  rules with a wrong/right pair each, the tone-to-role table, the four-beat
+  step order, and a checklist to work down before a figure is finished.
+
 ### Changed
 
 - **Navigation follows one forward key and one backward key.** `Space`, `↓`,
