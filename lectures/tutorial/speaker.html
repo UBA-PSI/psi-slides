@@ -1576,7 +1576,13 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   .figure-diagram { break-inside: avoid; page-break-inside: avoid; }
 }
 .psi-diagram .dg-el { transition: opacity 200ms ease; }
-.psi-diagram rect, .psi-diagram circle, .psi-diagram .dg-shape {
+/* Direct children of an element group, never descendants. A rect or a
+   circle deeper than that belongs to an embedded asset, and this rule would
+   paint it the canvas colour over the file's own answer - CSS beats a
+   presentation attribute, so a style-free line drawing came out white on
+   white. The tone rules below always used the child combinator; this one and
+   the text rule did not, which is why the two of them were the leak. */
+.psi-diagram .dg-el > rect, .psi-diagram .dg-el > circle, .psi-diagram .dg-el > .dg-shape {
   fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
 }
 /* A box whose outline is not a rectangle is a <path>, so every rule below
@@ -1587,7 +1593,9 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 .psi-diagram .dg-shape { stroke-linejoin: round; }
 .psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
 .psi-diagram .dg-head { fill: var(--ink); stroke: none; }
-.psi-diagram text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
+/* Same reason: a diagram's own labels live inside a .dg-lbl wrapper, and
+   type inside an embedded drawing is the drawing's business. */
+.psi-diagram .dg-lbl text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
 .psi-diagram .dg-mono { font-family: var(--dg-mono); }
 /* inline *accent* / ~muted~ inside a label */
 .psi-diagram tspan.dg-em { fill: var(--emph); }

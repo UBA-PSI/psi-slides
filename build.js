@@ -1276,10 +1276,42 @@ function dgResolveImage(ref) {
 // The `assetMarkup` leaf injected into diagram-core: the <svg> or <image>
 // element for an asset that has been resolved on disk. Everything in here
 // reads a file, which is exactly why it is on this side of the seam.
+// A vector asset that appears more than once is embedded once as a <symbol>
+// and referenced with <use>. Without this, every `image` statement splices a
+// full copy of the file: two avatars in one figure is untidy, a grid of 96
+// faces is a quarter of a megabyte across the four views.
+//
+// The first instance of a sharable file carries the definition and points at
+// it; every later one is a pointer. So a file used once costs the <symbol>
+// wrapper and nothing else, and no counting pass is needed to decide.
+//
+// Keyed by absolute path and reset per build, because ids have to be unique
+// within one page and a symbol is only useful within the document it sits in.
+const dgSymbols = new Map();   // abs path -> { id, emitted }
+let dgSymbolCounter = 0;
+
+// Not every file can be shared. A <use> instance is a shadow clone, and an
+// asset that carries its own <style> block or internal id references cannot
+// be relied on to keep them across that boundary - which is the failure the
+// comment below describes, an illustration arriving with no lines, and it is
+// invisible until someone looks at the slide. So sharing is offered only to
+// files that have neither, and everything else keeps the copy it had.
+function dgSharableSvg(spliced) {
+  return !/<style[\s>]/i.test(spliced) && !/url\(#|href="#|xlink:href="#/i.test(spliced);
+}
+
 function dgAssetMarkup(node, id, geo) {
   const asset = node.asset;
 
   if (asset.abs && path.extname(asset.abs).toLowerCase() === '.svg') {
+    // Already shared with an earlier instance: nothing to splice, just point
+    // at it. The accessible name stays on the instance, because that is where
+    // the picture actually is.
+    const shared = dgSymbols.get(asset.abs);
+    if (shared && shared.emitted) {
+      const alt = node.alt ? ` role="img" aria-label="${escapeHtml(node.alt)}"` : '';
+      return `<use id="${id}" href="#${shared.id}"${geo}${alt}/>`;
+    }
     let spliced = inlineSvg(asset.abs, { alt: node.alt });
     if (spliced) {
       // The root id inlineSvg assigned cannot simply be replaced with ours:
@@ -1302,6 +1334,30 @@ function dgAssetMarkup(node, id, geo) {
       // width/height so the nested viewport still fits the box.
       const vbAttr = vb ? '' : (wAttr && hAttr ? ` viewBox="0 0 ${wAttr[1]} ${hAttr[1]}"` : '');
       const body = spliced.slice(tag ? tag[0].length : 0);
+      // The first instance of a sharable file carries the definition and uses
+      // it, so a file referenced once costs exactly what it did before and a
+      // file referenced ninety-six times costs one copy plus ninety-six
+      // pointers. `preserveAspectRatio` sits on the symbol, where it belongs:
+      // it is a property of the drawing, not of where the drawing is put.
+      if (dgSharableSvg(spliced)) {
+        const sym = { id: `psi-sym-${++dgSymbolCounter}`, emitted: true };
+        dgSymbols.set(asset.abs, sym);
+        const alt = node.alt ? ` role="img" aria-label="${escapeHtml(node.alt)}"` : '';
+        // The root's own id, role and label have to come off. This element is
+        // no longer the picture on the slide - it is the definition every
+        // instance points at - and leaving the id on would give the document
+        // two elements answering to the first instance's name.
+        const symAttrs = attrs.replace(/\s(?:id|role|aria-label)\s*=\s*"[^"]*"/gi, '');
+        // `body` still carries the file's own closing </svg> – the branch
+        // below relies on that, because it opens an <svg> and never closes
+        // one. A <symbol> has to close itself, so the tag comes off here.
+        // Left in, it closed the diagram's own <svg> instead: the HTML parser
+        // took every element after it out of the drawing and dropped it in
+        // the <figure>, and the figure rendered as an empty box.
+        const symBody = body.replace(/<\/svg>\s*$/i, '');
+        return `<defs><symbol id="${sym.id}"${symAttrs}${vbAttr} preserveAspectRatio="xMidYMid meet">${symBody}</symbol></defs>`
+          + `<use id="${id}" href="#${sym.id}"${geo}${alt}/>`;
+      }
       return `<svg${attrs}${vbAttr}${geo} preserveAspectRatio="xMidYMid meet">${body}`;
     }
   }
@@ -1423,7 +1479,13 @@ const DIAGRAM_CSS = `
   .figure-diagram { break-inside: avoid; page-break-inside: avoid; }
 }
 .psi-diagram .dg-el { transition: opacity 200ms ease; }
-.psi-diagram rect, .psi-diagram circle, .psi-diagram .dg-shape {
+/* Direct children of an element group, never descendants. A rect or a
+   circle deeper than that belongs to an embedded asset, and this rule would
+   paint it the canvas colour over the file's own answer - CSS beats a
+   presentation attribute, so a style-free line drawing came out white on
+   white. The tone rules below always used the child combinator; this one and
+   the text rule did not, which is why the two of them were the leak. */
+.psi-diagram .dg-el > rect, .psi-diagram .dg-el > circle, .psi-diagram .dg-el > .dg-shape {
   fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
 }
 /* A box whose outline is not a rectangle is a <path>, so every rule below
@@ -1434,7 +1496,9 @@ const DIAGRAM_CSS = `
 .psi-diagram .dg-shape { stroke-linejoin: round; }
 .psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
 .psi-diagram .dg-head { fill: var(--ink); stroke: none; }
-.psi-diagram text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
+/* Same reason: a diagram's own labels live inside a .dg-lbl wrapper, and
+   type inside an embedded drawing is the drawing's business. */
+.psi-diagram .dg-lbl text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
 .psi-diagram .dg-mono { font-family: var(--dg-mono); }
 /* inline *accent* / ~muted~ inside a label */
 .psi-diagram tspan.dg-em { fill: var(--emph); }
@@ -9604,6 +9668,13 @@ function buildOnce(absIn, only, opts = {}) {
   imgResolveCache.clear();
   dataUriCache.clear();
   inlineSvgCounter = 0;
+  // Diagrams are compiled once per build and the same markup goes into all
+  // four views, so a symbol defined during that one compile is present in
+  // every document that references it. Reset here, with everything else that
+  // is per build, or a --watch rebuild would keep pointing at symbols the
+  // previous pass emitted.
+  dgSymbols.clear();
+  dgSymbolCounter = 0;
   dgCore.resetCounter();
   dgWarned.clear();
   dgLectureTags.clear();
