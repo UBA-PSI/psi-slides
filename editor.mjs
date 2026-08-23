@@ -1842,7 +1842,7 @@ function dgeMoveSelection(ctx, dx, dy, opts) {
 // Deliberately no modifier. Ctrl/Cmd already suspends snapping and Alt leaves
 // an align set; a third would be a lot to hold, and Shift means axis-constrain
 // in every drawing tool. The commitment here is *releasing on a chip*, which
-// nobody does by accident - so the gesture guards itself and stays reachable
+// nobody does by accident – so the gesture guards itself and stays reachable
 // with one hand.
 //
 // The host is found from the pointer, not from the dragged element, and its
@@ -1850,21 +1850,53 @@ function dgeMoveSelection(ctx, dx, dy, opts) {
 // element is moving under the preview, and the layout is re-solved on every
 // move, so anything read from the live state would slide about while it is
 // being aimed at.
+// Would docking on this host close a loop? The compiler answers
+// `placement cycle: …` and dgeSetSource puts the edit back, but by then the
+// author has aimed at a chip that was never going to work, and the preview
+// lied to them while they did. Cheaper not to offer it: a host that can
+// already reach the dragged element – through its own placement, a `same as`,
+// or by holding it – is not a host.
+function dgeReaches(model, from, target, seen) {
+  if (from === target) return true;
+  if (!from || seen.has(from)) return false;
+  seen.add(from);
+  const el = dgeFind(from, model);
+  if (!el) return false;
+  const next = [];
+  const p = el.place;
+  if (p && p.kind === 'rel') next.push(p.ref);
+  else if (p && p.kind === 'between') for (const r of p.refs || []) next.push(r.ref);
+  else if (p && p.kind === 'abs') for (const c of (p.at || [])) if (c && c.ref) next.push(c.ref);
+  if (el.sameAs) next.push(el.sameAs);
+  for (const m of el.members || []) next.push(m);
+  return next.some((x) => dgeReaches(model, x, target, seen));
+}
+
 function dgeDockAt(ctx, id, pt) {
-  if (!ctx.boxes) return null;
+  // Only a node's statement can carry a placement. An edge, container or
+  // brace has no slot for one, so the chip would promise a dock and the
+  // release would splice `left of c gap 0.4` into a line that cannot hold it.
+  // dgePlacementPane is gated the same way; this used to not be.
+  if (!ctx.boxes || !ctx.model.nodes.some((x) => x.id === id)) return null;
   const r = dgeGrabTolerance(13);     // chip radius, constant on screen
   const off = dgeGrabTolerance(22);   // how far outside the edge it sits
   const reach = off + r * 2;
   let host = null, area = Infinity;
   for (const [hid, b] of ctx.boxes) {
-    if (hid === id) continue;
-    const el = dgeFind(hid, ctx.model);
+    // Through the owner, like dgeHitTest: a `bars`, `grid` or `plot` expands
+    // into elements no line of the source declares, so the cell under the
+    // pointer has to answer with the statement that made it. Without this a
+    // hover wrote `left of g-2-1` while a click on the same pixel selected g.
+    const owner = dgeOwnerOf(hid);
+    if (owner === id) continue;
+    const el = dgeFind(owner, ctx.model);
     if (!el || el.kind === 'edge') continue;
+    if (dgeReaches(ctx.model, owner, id, new Set())) continue;
     // Expanded, so the chips stay live once the pointer has left the box to
     // reach for one. Innermost wins, as everywhere else.
     if (pt.x < b.x - reach || pt.x > b.x + b.w + reach) continue;
     if (pt.y < b.y - reach || pt.y > b.y + b.h + reach) continue;
-    if (b.w * b.h < area) { area = b.w * b.h; host = { id: hid, b }; }
+    if (b.w * b.h < area) { area = b.w * b.h; host = { id: owner, b }; }
   }
   if (!host) return null;
   const { b } = host;
@@ -1878,16 +1910,31 @@ function dgeDockAt(ctx, id, pt) {
   const out = { host: host.id, box: b, chips, r, chip: null };
   if (!chip) return out;
   // The distance is not what a chip is for. Measuring it from where the
-  // pointer happens to be gives a gap of nearly zero every time - the chip
+  // pointer happens to be gives a gap of nearly zero every time – the chip
   // sits just outside the edge, and half the dragged element covers the rest -
   // so the element would end up flush against the host, which nobody means by
   // "dock it here". The chip says *which side*; the distance is whatever the
   // element already kept, and dragging adjusts it afterwards.
+  // Keep the distance the element already kept – but only if the author
+  // actually wrote one. Every `rel` placement carries a default gap, so
+  // testing the model would re-emit 0.25 as an explicit token on a line that
+  // never had it, in an editor whose whole design is rewriting the smallest
+  // span it can.
+  const written = ctx.spans.spanOf(id, 'gap');
   const el = dgeFind(id, ctx.model);
-  const gap = (el && el.place && el.place.kind === 'rel' && el.place.gap != null)
+  const gap = (written && written.present && el && el.place && el.place.kind === 'rel')
     ? el.place.gap : DGE_DOCK_GAP;
   out.chip = chip.dir;
   out.text = dgePlaceText(chip.dir, host.id, gap);
+  // A relation cannot win an axis a set already owns: the align would keep
+  // overriding it and the element would land on the master instead of beside
+  // the host it was dropped on, while the status bar promised otherwise.
+  // Docking is explicit enough to mean leaving the set.
+  out.leaves = [];
+  for (const axis of ['x', 'y']) {
+    const owner = ctx.spans.constrainedBy(id, axis);
+    if (owner) out.leaves.push(owner);
+  }
   out.why = 'docks it ' + (chip.dir === 'left' || chip.dir === 'right' ? chip.dir + ' of ' : chip.dir + ' ')
     + host.id + ' – release here and it follows ' + host.id + ' from now on';
   return out;
@@ -1932,15 +1979,29 @@ function dgeStartMove(ev, pt0) {
     }
     // Docking beats moving: while the pointer is on one of the four chips the
     // preview shows the element already there, so the picture answers "what
-    // will this do" before the button comes up. Only a single selection - it
+    // will this do" before the button comes up. Only a single selection – it
     // is one placement expression, and four chips cannot say where three
     // elements go.
     const dock = DGE.selection.length === 1 ? dgeDockAt(ctx, id, pt) : null;
     dgeSnapGuides = dgeDockNodes(dock);
     if (dock && dock.chip) {
-      const plan = { edits: [{ attr: 'place', value: dock.text, why: dock.why }], refusals: [] };
+      const edits = [{ attr: 'place', value: dock.text, why: dock.why }];
+      for (const owner of dock.leaves) {
+        const rest = owner.members.filter((m) => m !== id);
+        const text = dgeStatementText(owner, rest);
+        edits.push(text === null
+          ? { raw: dgeLineRange(ctx.source, owner.span), value: '' }
+          : { raw: owner.span, value: text });
+      }
+      const plan = {
+        edits,
+        refusals: [],
+        why: dock.leaves.length ? dock.why + ', and leaves the set on line '
+          + dock.leaves.map((o) => o.line).join(' and ') : dock.why,
+      };
       DGE.strain = null;
       last = plan;
+      plan.edits[0].why = plan.why;
       DGE.source = dgeApplyEdits(ctx, id, plan.edits);
       dgeRecompile();
       dgeShowPlan(ctx, id, plan);
@@ -2725,7 +2786,7 @@ function dgeRenderSide() {
 
   // Where it sits, as the three things a placement actually says: which kind
   // of relation, what it is measured from, and how far. A drag can say how
-  // far and, since it learned to re-dock, which side - but which *element*
+  // far and, since it learned to re-dock, which side – but which *element*
   // and which *kind* were only ever reachable by editing the text, and they
   // are the parts that carry the meaning. `between a,b` in particular has no
   // gesture at all: nothing about dragging one box says "halfway between
@@ -2842,19 +2903,28 @@ function dgeRenderSide() {
       block.appendChild(dgeEl('div', { class: 'dge-slot' }, [
         dgeEl('b', { text: 'even spacing' }), row]));
     }
-    // `between a,b` has no gesture - nothing about dragging one box says
-    // "halfway between those two" - so it is a selection act, the same idiom
+    // `between a,b` has no gesture – nothing about dragging one box says
+    // "halfway between those two" – so it is a selection act, the same idiom
     // container and brace already use. First selected is the one that moves.
-    if (DGE.selection.length === 3) {
+    // Only a node's statement can hold a placement, so only a node can be put
+    // halfway. And note the reversal: everywhere else in this block the first
+    // selected keeps its place, here it is the one that moves – the subtitle
+    // above says the opposite, so this row says its own piece.
+    if (DGE.selection.length === 3 && DGE.model.nodes.some((x) => x.id === DGE.selection[0])) {
       const [who, a, z] = DGE.selection;
       block.appendChild(dgeEl('div', { class: 'dge-slot' }, [
         dgeEl('b', { text: 'halfway' }),
-        dgeEl('div', { class: 'dge-chips' }, [
-          dgeEl('button', {
-            type: 'button', class: 'dge-btn', text: `put ${who} between ${a} and ${z}`,
-            title: `between ${a},${z} – and it stays halfway when either of them moves`,
-            onclick: () => dgeWriteAttr(who, 'place', `between ${a},${z}`),
-          }),
+        dgeEl('div', {}, [
+          dgeEl('div', { class: 'dge-chips' }, [
+            dgeEl('button', {
+              type: 'button', class: 'dge-btn', text: `put ${who} between ${a} and ${z}`,
+              title: `between ${a},${z} – and it stays halfway when either of them moves`,
+              onclick: () => dgeWriteAttr(who, 'place', `between ${a},${z}`),
+            }),
+          ]),
+          dgeEl('div', { class: 'dge-hint', text:
+            `This one moves ${who} – the other two stay where they are. `
+            + 'Select the one to move first.' }),
         ]),
       ]));
     }

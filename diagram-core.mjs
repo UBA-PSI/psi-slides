@@ -109,7 +109,7 @@ export const DG_CLASSES = new Set([
   // where the label sits in the space it has. `left` / `right` name an edge
   // of a horizontal run of text; `top` / `bottom` an edge of the block of
   // lines. Both mean "as far that way as the padding allows", not "on the
-  // border" - the padding is what the word `aligned` is measured against.
+  // border" – the padding is what the word `aligned` is measured against.
   // Absent, a label is centred, which is right for almost every box; these
   // are for the ones where it is not, a tall element with a short label most
   // of all.
@@ -432,12 +432,15 @@ export function dgMeasure(label, fontPx, mono) {
 // optimiser uses. Anything else has to say `h` itself.
 // Which side of its origin a label sits on. Asked by the emitter when it
 // writes `text-anchor` and by the extents when they reserve paper for it, and
-// those two must not disagree - a label reserved on the side it is not drawn
-// on is how figures came to sit off-centre in oversized frames. One function,
+// those two must not disagree. One function,
 // so there is one answer.
 //
 // A turned label reads bottom-to-top and is centred on its origin whichever
 // way, so the across-words have nothing to say about it.
+//
+// The two copies this replaced disagreed once already – a label reserved on
+// the side it is not drawn on is how figures came to sit off-centre inside
+// oversized frames.
 export function dgLabelAnchor(classes) {
   const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
   if (has('turn')) return 'middle';
@@ -1665,6 +1668,19 @@ export function createDiagramCompiler(env = {}) {
         } else if (head === 'style') {
           op.targets = dgParseMembers(body0.slice(1).map(x => x.v).join(','));
           op.classes = attrs.classes;
+          // Where a label sits is decided once, at emit: `text-anchor` is an
+          // attribute of the element the build writes, and the runtime only
+          // ever sets numbers. A step that switched `.left` on would move the
+          // origin per beat while the anchor stayed put, so the label would be
+          // drawn half its own width off in every other beat – silently, and
+          // only on the beats the author was not looking at.
+          for (const c of op.classes) {
+            if (c === 'left' || c === 'right' || c === 'top' || c === 'bottom') {
+              dgErr(errors, lineNo, `.${c} places the label, and where a label sits is `
+                + `settled when the figure is built – a step cannot move it. `
+                + `Put it on the element itself.`);
+            }
+          }
           // The outline is chosen when the figure is emitted, because that is
           // when the drawable kind – rect or path – is decided and written
           // into the payload. A step cannot change it, and letting the line
@@ -2713,8 +2729,9 @@ export function createDiagramCompiler(env = {}) {
     // rendered with, or the layout box and the drawn glyphs disagree: a
     // `.left` label was positioned by its centre but drawn rightwards from
     // that point, so it ran half its own width into whatever came next.
-    // Only free `text` honours .left/.right; a label inside a shape stays
-    // centred in it.
+    // Every kind honours the four alignment words now. What still differs is
+    // what "as far that way as it allows" measures against: a shape's inner
+    // edge, and a free text's own extent, because it has no padding.
     const labelBox = (el, st, box, freeText) => {
       if (!st.label) return;
       // Record what the label actually measures, so the viewBox can hold it.
@@ -2730,11 +2747,17 @@ export function createDiagramCompiler(env = {}) {
       // a horizontal run of text.
       const turned = st.classes.has('turn');
       // The padding is what "aligned" is measured against: `left` means as far
-      // left as this box allows, which is its own inner edge and not its
-      // border. A free `text` has no border to keep clear of, but its box was
-      // measured with the same padding, so the same number is right there too.
-      const padX = box.padX ?? DG_PAD_X;
-      const padY = box.padY ?? DG_PAD_Y;
+      // left as this *shape* allows, which is its inner edge and not its
+      // border.
+      //
+      // A free `text` has neither. sizeOf gives it the bare glyph run – no
+      // padding at all – so insetting it would push the label off its own box
+      // by 13px, and on a `.paper` text, whose ground is drawn *outwards* from
+      // that box, `.left` came out flush against the right edge of its own
+      // ground. That is what the freeText flag has always been for; it was
+      // dropped here and had to come back.
+      const padX = freeText ? 0 : (box.padX ?? DG_PAD_X);
+      const padY = freeText ? 0 : (box.padY ?? DG_PAD_Y);
       const anchor = dgLabelAnchor(st.classes);
       const x = anchor === 'start' ? box.x + padX
         : anchor === 'end' ? box.x + box.w - padX
@@ -2742,10 +2765,14 @@ export function createDiagramCompiler(env = {}) {
       // Vertically the origin stays the *centre of the block of lines*, so the
       // emitter goes on laying them out around it and the recorded extent
       // stays symmetric about it. Moving that centre is all `top` and `bottom`
-      // do - which is exactly why a bottom-aligned label of three lines puts
+      // do – which is exactly why a bottom-aligned label of three lines puts
       // its *last* line on the inner edge rather than its first.
-      const y = st.classes.has('top') ? box.y + padY + m.h / 2
-        : st.classes.has('bottom') ? box.y + box.h - padY - m.h / 2
+      // A turned label reads bottom-to-top, so the room it takes downwards is
+      // its measured *width*. Using the upright height put a tall firewall bar's
+      // label 13px past its own border.
+      const down = turned ? m.w : m.h;
+      const y = st.classes.has('top') ? box.y + padY + down / 2
+        : st.classes.has('bottom') ? box.y + box.h - padY - down / 2
           : box.y + box.h / 2;
       put(el, el.id + '--l', [x, y, turned ? DG_TURN_DEG : 0]);
     };

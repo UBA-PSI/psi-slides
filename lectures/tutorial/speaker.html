@@ -3733,6 +3733,8 @@ body[data-view=speaker].preview-right #preview-resizer::after {
         <dt><kbd>6</kbd> · <kbd>7</kbd></dt><dd>container · brace, drawn around whatever is selected</dd>
         <dt><kbd>Q</kbd></dt><dd>keep the current tool instead of falling back to select</dd>
         <dt>drag · drag a handle</dt><dd>move it · resize it – the status bar shows the line it will write</dd>
+        <dt>drag it over another element</dt><dd>four chips appear – release on one and it docks to that side of it, and follows it from then on</dd>
+        <dt>drag it through what it sits beside</dt><dd>changes which side of that element it is on</dd>
         <dt>arrows · <kbd>Shift</kbd>-arrows</dt><dd>nudge the selection, fine · coarse</dd>
         <dt><kbd>Ctrl</kbd> while dragging</dt><dd>suspend snapping, for when 0.5847 is meant</dd>
         <dt><kbd>Alt</kbd> while dragging</dt><dd>leave an align or spread set at once – or just pull half a cell clear of it</dd>
@@ -8344,7 +8346,7 @@ const DG_CLASSES = new Set([
   // where the label sits in the space it has. `left` / `right` name an edge
   // of a horizontal run of text; `top` / `bottom` an edge of the block of
   // lines. Both mean "as far that way as the padding allows", not "on the
-  // border" - the padding is what the word `aligned` is measured against.
+  // border" – the padding is what the word `aligned` is measured against.
   // Absent, a label is centred, which is right for almost every box; these
   // are for the ones where it is not, a tall element with a short label most
   // of all.
@@ -8667,12 +8669,15 @@ function dgMeasure(label, fontPx, mono) {
 // optimiser uses. Anything else has to say `h` itself.
 // Which side of its origin a label sits on. Asked by the emitter when it
 // writes `text-anchor` and by the extents when they reserve paper for it, and
-// those two must not disagree - a label reserved on the side it is not drawn
-// on is how figures came to sit off-centre in oversized frames. One function,
+// those two must not disagree. One function,
 // so there is one answer.
 //
 // A turned label reads bottom-to-top and is centred on its origin whichever
 // way, so the across-words have nothing to say about it.
+//
+// The two copies this replaced disagreed once already – a label reserved on
+// the side it is not drawn on is how figures came to sit off-centre inside
+// oversized frames.
 function dgLabelAnchor(classes) {
   const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
   if (has('turn')) return 'middle';
@@ -9900,6 +9905,19 @@ function createDiagramCompiler(env = {}) {
         } else if (head === 'style') {
           op.targets = dgParseMembers(body0.slice(1).map(x => x.v).join(','));
           op.classes = attrs.classes;
+          // Where a label sits is decided once, at emit: `text-anchor` is an
+          // attribute of the element the build writes, and the runtime only
+          // ever sets numbers. A step that switched `.left` on would move the
+          // origin per beat while the anchor stayed put, so the label would be
+          // drawn half its own width off in every other beat – silently, and
+          // only on the beats the author was not looking at.
+          for (const c of op.classes) {
+            if (c === 'left' || c === 'right' || c === 'top' || c === 'bottom') {
+              dgErr(errors, lineNo, `.${c} places the label, and where a label sits is `
+                + `settled when the figure is built – a step cannot move it. `
+                + `Put it on the element itself.`);
+            }
+          }
           // The outline is chosen when the figure is emitted, because that is
           // when the drawable kind – rect or path – is decided and written
           // into the payload. A step cannot change it, and letting the line
@@ -10948,8 +10966,9 @@ function createDiagramCompiler(env = {}) {
     // rendered with, or the layout box and the drawn glyphs disagree: a
     // `.left` label was positioned by its centre but drawn rightwards from
     // that point, so it ran half its own width into whatever came next.
-    // Only free `text` honours .left/.right; a label inside a shape stays
-    // centred in it.
+    // Every kind honours the four alignment words now. What still differs is
+    // what "as far that way as it allows" measures against: a shape's inner
+    // edge, and a free text's own extent, because it has no padding.
     const labelBox = (el, st, box, freeText) => {
       if (!st.label) return;
       // Record what the label actually measures, so the viewBox can hold it.
@@ -10965,11 +10984,17 @@ function createDiagramCompiler(env = {}) {
       // a horizontal run of text.
       const turned = st.classes.has('turn');
       // The padding is what "aligned" is measured against: `left` means as far
-      // left as this box allows, which is its own inner edge and not its
-      // border. A free `text` has no border to keep clear of, but its box was
-      // measured with the same padding, so the same number is right there too.
-      const padX = box.padX ?? DG_PAD_X;
-      const padY = box.padY ?? DG_PAD_Y;
+      // left as this *shape* allows, which is its inner edge and not its
+      // border.
+      //
+      // A free `text` has neither. sizeOf gives it the bare glyph run – no
+      // padding at all – so insetting it would push the label off its own box
+      // by 13px, and on a `.paper` text, whose ground is drawn *outwards* from
+      // that box, `.left` came out flush against the right edge of its own
+      // ground. That is what the freeText flag has always been for; it was
+      // dropped here and had to come back.
+      const padX = freeText ? 0 : (box.padX ?? DG_PAD_X);
+      const padY = freeText ? 0 : (box.padY ?? DG_PAD_Y);
       const anchor = dgLabelAnchor(st.classes);
       const x = anchor === 'start' ? box.x + padX
         : anchor === 'end' ? box.x + box.w - padX
@@ -10977,10 +11002,14 @@ function createDiagramCompiler(env = {}) {
       // Vertically the origin stays the *centre of the block of lines*, so the
       // emitter goes on laying them out around it and the recorded extent
       // stays symmetric about it. Moving that centre is all `top` and `bottom`
-      // do - which is exactly why a bottom-aligned label of three lines puts
+      // do – which is exactly why a bottom-aligned label of three lines puts
       // its *last* line on the inner edge rather than its first.
-      const y = st.classes.has('top') ? box.y + padY + m.h / 2
-        : st.classes.has('bottom') ? box.y + box.h - padY - m.h / 2
+      // A turned label reads bottom-to-top, so the room it takes downwards is
+      // its measured *width*. Using the upright height put a tall firewall bar's
+      // label 13px past its own border.
+      const down = turned ? m.w : m.h;
+      const y = st.classes.has('top') ? box.y + padY + down / 2
+        : st.classes.has('bottom') ? box.y + box.h - padY - down / 2
           : box.y + box.h / 2;
       put(el, el.id + '--l', [x, y, turned ? DG_TURN_DEG : 0]);
     };
@@ -13463,7 +13492,7 @@ function dgeMoveSelection(ctx, dx, dy, opts) {
 // Deliberately no modifier. Ctrl/Cmd already suspends snapping and Alt leaves
 // an align set; a third would be a lot to hold, and Shift means axis-constrain
 // in every drawing tool. The commitment here is *releasing on a chip*, which
-// nobody does by accident - so the gesture guards itself and stays reachable
+// nobody does by accident – so the gesture guards itself and stays reachable
 // with one hand.
 //
 // The host is found from the pointer, not from the dragged element, and its
@@ -13471,21 +13500,53 @@ function dgeMoveSelection(ctx, dx, dy, opts) {
 // element is moving under the preview, and the layout is re-solved on every
 // move, so anything read from the live state would slide about while it is
 // being aimed at.
+// Would docking on this host close a loop? The compiler answers
+// `placement cycle: …` and dgeSetSource puts the edit back, but by then the
+// author has aimed at a chip that was never going to work, and the preview
+// lied to them while they did. Cheaper not to offer it: a host that can
+// already reach the dragged element – through its own placement, a `same as`,
+// or by holding it – is not a host.
+function dgeReaches(model, from, target, seen) {
+  if (from === target) return true;
+  if (!from || seen.has(from)) return false;
+  seen.add(from);
+  const el = dgeFind(from, model);
+  if (!el) return false;
+  const next = [];
+  const p = el.place;
+  if (p && p.kind === 'rel') next.push(p.ref);
+  else if (p && p.kind === 'between') for (const r of p.refs || []) next.push(r.ref);
+  else if (p && p.kind === 'abs') for (const c of (p.at || [])) if (c && c.ref) next.push(c.ref);
+  if (el.sameAs) next.push(el.sameAs);
+  for (const m of el.members || []) next.push(m);
+  return next.some((x) => dgeReaches(model, x, target, seen));
+}
+
 function dgeDockAt(ctx, id, pt) {
-  if (!ctx.boxes) return null;
+  // Only a node's statement can carry a placement. An edge, container or
+  // brace has no slot for one, so the chip would promise a dock and the
+  // release would splice `left of c gap 0.4` into a line that cannot hold it.
+  // dgePlacementPane is gated the same way; this used to not be.
+  if (!ctx.boxes || !ctx.model.nodes.some((x) => x.id === id)) return null;
   const r = dgeGrabTolerance(13);     // chip radius, constant on screen
   const off = dgeGrabTolerance(22);   // how far outside the edge it sits
   const reach = off + r * 2;
   let host = null, area = Infinity;
   for (const [hid, b] of ctx.boxes) {
-    if (hid === id) continue;
-    const el = dgeFind(hid, ctx.model);
+    // Through the owner, like dgeHitTest: a `bars`, `grid` or `plot` expands
+    // into elements no line of the source declares, so the cell under the
+    // pointer has to answer with the statement that made it. Without this a
+    // hover wrote `left of g-2-1` while a click on the same pixel selected g.
+    const owner = dgeOwnerOf(hid);
+    if (owner === id) continue;
+    const el = dgeFind(owner, ctx.model);
     if (!el || el.kind === 'edge') continue;
+    if (dgeReaches(ctx.model, owner, id, new Set())) continue;
     // Expanded, so the chips stay live once the pointer has left the box to
     // reach for one. Innermost wins, as everywhere else.
     if (pt.x < b.x - reach || pt.x > b.x + b.w + reach) continue;
     if (pt.y < b.y - reach || pt.y > b.y + b.h + reach) continue;
-    if (b.w * b.h < area) { area = b.w * b.h; host = { id: hid, b }; }
+    if (b.w * b.h < area) { area = b.w * b.h; host = { id: owner, b }; }
   }
   if (!host) return null;
   const { b } = host;
@@ -13499,16 +13560,31 @@ function dgeDockAt(ctx, id, pt) {
   const out = { host: host.id, box: b, chips, r, chip: null };
   if (!chip) return out;
   // The distance is not what a chip is for. Measuring it from where the
-  // pointer happens to be gives a gap of nearly zero every time - the chip
+  // pointer happens to be gives a gap of nearly zero every time – the chip
   // sits just outside the edge, and half the dragged element covers the rest -
   // so the element would end up flush against the host, which nobody means by
   // "dock it here". The chip says *which side*; the distance is whatever the
   // element already kept, and dragging adjusts it afterwards.
+  // Keep the distance the element already kept – but only if the author
+  // actually wrote one. Every `rel` placement carries a default gap, so
+  // testing the model would re-emit 0.25 as an explicit token on a line that
+  // never had it, in an editor whose whole design is rewriting the smallest
+  // span it can.
+  const written = ctx.spans.spanOf(id, 'gap');
   const el = dgeFind(id, ctx.model);
-  const gap = (el && el.place && el.place.kind === 'rel' && el.place.gap != null)
+  const gap = (written && written.present && el && el.place && el.place.kind === 'rel')
     ? el.place.gap : DGE_DOCK_GAP;
   out.chip = chip.dir;
   out.text = dgePlaceText(chip.dir, host.id, gap);
+  // A relation cannot win an axis a set already owns: the align would keep
+  // overriding it and the element would land on the master instead of beside
+  // the host it was dropped on, while the status bar promised otherwise.
+  // Docking is explicit enough to mean leaving the set.
+  out.leaves = [];
+  for (const axis of ['x', 'y']) {
+    const owner = ctx.spans.constrainedBy(id, axis);
+    if (owner) out.leaves.push(owner);
+  }
   out.why = 'docks it ' + (chip.dir === 'left' || chip.dir === 'right' ? chip.dir + ' of ' : chip.dir + ' ')
     + host.id + ' – release here and it follows ' + host.id + ' from now on';
   return out;
@@ -13553,15 +13629,29 @@ function dgeStartMove(ev, pt0) {
     }
     // Docking beats moving: while the pointer is on one of the four chips the
     // preview shows the element already there, so the picture answers "what
-    // will this do" before the button comes up. Only a single selection - it
+    // will this do" before the button comes up. Only a single selection – it
     // is one placement expression, and four chips cannot say where three
     // elements go.
     const dock = DGE.selection.length === 1 ? dgeDockAt(ctx, id, pt) : null;
     dgeSnapGuides = dgeDockNodes(dock);
     if (dock && dock.chip) {
-      const plan = { edits: [{ attr: 'place', value: dock.text, why: dock.why }], refusals: [] };
+      const edits = [{ attr: 'place', value: dock.text, why: dock.why }];
+      for (const owner of dock.leaves) {
+        const rest = owner.members.filter((m) => m !== id);
+        const text = dgeStatementText(owner, rest);
+        edits.push(text === null
+          ? { raw: dgeLineRange(ctx.source, owner.span), value: '' }
+          : { raw: owner.span, value: text });
+      }
+      const plan = {
+        edits,
+        refusals: [],
+        why: dock.leaves.length ? dock.why + ', and leaves the set on line '
+          + dock.leaves.map((o) => o.line).join(' and ') : dock.why,
+      };
       DGE.strain = null;
       last = plan;
+      plan.edits[0].why = plan.why;
       DGE.source = dgeApplyEdits(ctx, id, plan.edits);
       dgeRecompile();
       dgeShowPlan(ctx, id, plan);
@@ -14346,7 +14436,7 @@ function dgeRenderSide() {
 
   // Where it sits, as the three things a placement actually says: which kind
   // of relation, what it is measured from, and how far. A drag can say how
-  // far and, since it learned to re-dock, which side - but which *element*
+  // far and, since it learned to re-dock, which side – but which *element*
   // and which *kind* were only ever reachable by editing the text, and they
   // are the parts that carry the meaning. `between a,b` in particular has no
   // gesture at all: nothing about dragging one box says "halfway between
@@ -14463,19 +14553,28 @@ function dgeRenderSide() {
       block.appendChild(dgeEl('div', { class: 'dge-slot' }, [
         dgeEl('b', { text: 'even spacing' }), row]));
     }
-    // `between a,b` has no gesture - nothing about dragging one box says
-    // "halfway between those two" - so it is a selection act, the same idiom
+    // `between a,b` has no gesture – nothing about dragging one box says
+    // "halfway between those two" – so it is a selection act, the same idiom
     // container and brace already use. First selected is the one that moves.
-    if (DGE.selection.length === 3) {
+    // Only a node's statement can hold a placement, so only a node can be put
+    // halfway. And note the reversal: everywhere else in this block the first
+    // selected keeps its place, here it is the one that moves – the subtitle
+    // above says the opposite, so this row says its own piece.
+    if (DGE.selection.length === 3 && DGE.model.nodes.some((x) => x.id === DGE.selection[0])) {
       const [who, a, z] = DGE.selection;
       block.appendChild(dgeEl('div', { class: 'dge-slot' }, [
         dgeEl('b', { text: 'halfway' }),
-        dgeEl('div', { class: 'dge-chips' }, [
-          dgeEl('button', {
-            type: 'button', class: 'dge-btn', text: `put ${who} between ${a} and ${z}`,
-            title: `between ${a},${z} – and it stays halfway when either of them moves`,
-            onclick: () => dgeWriteAttr(who, 'place', `between ${a},${z}`),
-          }),
+        dgeEl('div', {}, [
+          dgeEl('div', { class: 'dge-chips' }, [
+            dgeEl('button', {
+              type: 'button', class: 'dge-btn', text: `put ${who} between ${a} and ${z}`,
+              title: `between ${a},${z} – and it stays halfway when either of them moves`,
+              onclick: () => dgeWriteAttr(who, 'place', `between ${a},${z}`),
+            }),
+          ]),
+          dgeEl('div', { class: 'dge-hint', text:
+            `This one moves ${who} – the other two stay where they are. `
+            + 'Select the one to move first.' }),
         ]),
       ]));
     }

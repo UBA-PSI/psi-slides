@@ -485,6 +485,13 @@ box  mr "right"         right of mc gap 0.25       {.right}
 box  bl "bottom\nleft"  below ml gap 0.25          {.bottom .left}
 box  bc "bottom"        right of bl gap 0.25       {.bottom}
 box  br "bottom\nright" right of bc gap 0.25       {.bottom .right}
+
+# Ein freier `text` hat keinen Rand, von dem er Abstand halten müsste, und
+# deshalb auch kein Padding: seine Box *ist* der Zeilenblock. Die Wörter
+# richten ihn an seiner eigenen Kante aus, nicht an einer inneren. Die
+# Grundfläche macht das sichtbar – sie wird nach außen gezeichnet.
+text fl "frei, links"   below bl gap 0.3 {.left .small .paper}
+text fr "frei, rechts"  below br gap 0.3 {.right .small .paper}
 :::
 
 **`left` und `right` sagen, wo eine Zeile steht, `top` und `bottom`, wo der Block aus Zeilen steht.** Gemessen wird gegen das **Padding**, nicht gegen den Rand – `left` heißt „so weit nach links, wie dieser Kasten es zulässt". Ohne eines dieser Wörter sitzt die Beschriftung mittig, was für fast jeden Kasten richtig ist; die Wörter sind für die übrigen da, für einen hohen Kasten mit kurzer Beschriftung vor allem.

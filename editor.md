@@ -2323,3 +2323,61 @@ and `extentsOf` for the paper it reserves - and the new classes would have
 made it three. `dgLabelAnchor()` is the one answer now. Two copies of that
 question is exactly how figures came to sit off-centre in oversized frames a
 few commits ago, so a third was not on.
+
+
+### Thirteen review findings on the layout controls · **done**
+
+All real, and worth grouping by what they say about the change rather than
+listing them.
+
+**Four were one mistake: the dock did not use the hit test that already
+exists.** `dgeDockAt` re-implemented "innermost box under the pointer" and, in
+doing so, dropped everything `dgeHitTest` had learned. It offered chips while
+dragging an **edge, container or brace** – none of whose statements has a slot
+for a placement, so the release spliced `left of c gap 0.4` into a line that
+cannot hold it. It targeted a `grid`'s synthesised cells, so a hover wrote
+`left of g-2-1` while a click on the same pixel selected `g`. It offered hosts
+that close a **placement cycle** – a container over its own member, a box
+already placed against the dragged one. And it called `dgeFind` per candidate
+per pointermove, which rebuilds a spread of the whole model each time.
+
+The first three are gone by mapping through `dgeOwnerOf` and gating on the
+dragged element being a node, plus one reachability walk that refuses a host
+which can already reach the element. In each case the compiler *did* catch it
+and `dgeSetSource` reverted – but the preview lied for the whole of the drag,
+which is worse than a refusal: the author aimed at something that was never
+going to work.
+
+**One was the opposite of what the code said it was doing.** Insetting an
+aligned label by the padding is right for a shape and wrong for a free `text`:
+`sizeOf` gives a text the bare glyph run with no padding at all, so the inset
+pushed it 13px off its own box. On a `.paper` text, whose ground is drawn
+*outwards* from that box, `.left` came out flush against the right edge of its
+own ground – the alignment inverted rather than shifted. The `freeText`
+parameter that carries exactly this distinction had been dropped from the body
+while staying in the signature, and the comment above it still described the
+behaviour the change had removed. `test/figure-labels.mjs` measures both
+kinds, and was calibrated against the broken version first.
+
+**Two were the emit-once rule, which this change walked into twice.** A
+`.turn`ed label reads bottom-to-top, so the room it takes downwards is its
+measured *width* – `.bottom` used the upright height and put a firewall bar's
+label past its own border. And `text-anchor` is written once, from the last
+beat, while the origin is recomputed per beat: a `style` step that switched
+`.left` on would draw the label half its width off in every other beat. The
+grammar rejects that step now, for the same reason it rejects an outline class
+there.
+
+The rest were smaller: docking wrote an explicit `gap 0.25` where the author
+had written no gap at all; docking ignored `align`/`spread` membership, so a
+follower landed on its master while the status bar promised it now followed
+the host; the "halfway" act had no node gate and contradicted the subtitle
+printed above it; the `?` sheet never learned the one genuinely new gesture in
+the commit; and the prose in the new code used ASCII hyphens where the
+convention is en-dashes.
+
+Two notes for next time. The review found nothing by reading the diff alone –
+every finding is backed by a compile or an A/B against the base revision,
+which is what caught the ones where the picture was still plausible. And four
+of thirteen came from one duplicated function: `dgeHitTest` had accumulated
+three separate lessons, and re-writing its walk threw all three away at once.

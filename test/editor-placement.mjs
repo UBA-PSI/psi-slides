@@ -1,8 +1,8 @@
 /*
  * Which element a thing is measured from, and on which side.
  *
- * A relation is the whole point of this grammar - `below b gap 0.8` means the
- * dot follows the Mix box wherever it goes - but until now a drag could only
+ * A relation is the whole point of this grammar – `below b gap 0.8` means the
+ * dot follows the Mix box wherever it goes – but until now a drag could only
  * say *how far*. The gap was clamped at zero, so dragging the dot up past b's
  * bottom edge stopped dead: to put it above, or beside, or halfway between two
  * other elements, you had to edit the text. That is the one thing this editor
