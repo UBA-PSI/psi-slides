@@ -7,6 +7,35 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+### Changed
+
+- **Navigation follows one forward key and one backward key.** `Space`, `↓`,
+  `Enter` and `PageDown` advance the reveal or diagram step on the slide and,
+  when there is none left, move to the next chunk – across column boundaries,
+  so a whole lecture is one key. `↑`, `PageUp` and `Backspace` are the exact
+  mirror: **they take a reveal back**, and only leave the chunk once it is at
+  its opening state. `→` / `←` are that same pair *except on the first chunk
+  of a column*, where they change column – the only chunk where a second
+  dimension exists to move in.
+
+  Reveal used to be forward-only, on the reasoning that a revisited slide
+  should simply show everything. That is still what happens when you arrive
+  at a chunk from somewhere else, but it is the wrong answer while you are
+  standing on the slide: a figure that assembles itself is often worth
+  assembling twice, and there was no way to run it again without leaving and
+  coming back. The mechanism was always symmetric; only the keys were not.
+
+  Presenter remotes work now – `PageUp`/`PageDown` were unbound, so a
+  clicker's back button did nothing at all.
+
+  Two marks at the edge of the viewport say which situation the current slide
+  is in: `‹ ›` where sideways changes column, `⌄` where forward will leave the
+  column next. Quiet enough for a projection, absent on the overview board and
+  behind a blanked screen.
+
+  `Enter` used to open the first expansion; it is a forward key now, and
+  `1`–`9` (or clicking the chevron) still opens expansions.
+
 ### Added
 
 - **`::: diagram` – animated infographics written in the lecture source.**
@@ -267,6 +296,23 @@ teaching; everything below is in use rather than aspirational.
   whose `audience.html` is a build artefact, with a visible way back. An edit
   syncs to the other window as its own message, gated by the freeze flag – so
   freeze, fix the figure, unfreeze, and the room gets the finished picture.
+
+  **Waypoints are draggable.** A hollow dot at the middle of every segment
+  adds one, a square moves one, and a double-click or the chip in the panel
+  takes one out. Where a waypoint holds a reference – `via iv.cx,d0.bottom+0.28`,
+  which is how a routed arrow stays attached to the boxes it runs past – the
+  drag rewrites the **signed nudge** on each component and never the
+  reference. Each axis is decided separately, because half reference and half
+  number is the normal case in a routed figure.
+
+  An **arrow is a first-class object** in it, which took some doing: an edge
+  has no box, because it is not placed – it is drawn between two things that
+  were. Clicking one hits the line itself, a box wins over an arrow crossing
+  it and an arrow wins over the container it runs through, and the selection
+  traces the line rather than boxing it. Dragging either end retargets it,
+  and answers with a **name** wherever it can – the arrow keeps following the
+  box it now points at, instead of being frozen to the coordinates the drag
+  happened to end on. Labels are multi-line, on edges as well as boxes.
 
   Off with `editor: none` in the frontmatter; `editor: speaker` keeps it out
   of the projection. A lecture with no diagram pays nothing.
