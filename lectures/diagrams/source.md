@@ -4,6 +4,9 @@ subtitle: "Six real lecture slides, rebuilt in ::: diagram"
 author: Dominik Herrmann
 theme: dark
 collapse: none
+diagram-defaults: |
+  default text      {.small}
+  default container pad 0.34
 ---
 
 ## title: Animated Infographics | Six real slides, rebuilt from text {#cover}
@@ -16,8 +19,7 @@ build time, and stepped with the same key that advances a reveal.
 ## figure: Types of memory unsafety {.full #unsafety}
 
 ::: diagram {unit=150x52}
-default box  {.tone-2} w 1.05
-default text {.small}
+default box {.tone-2} w 1.05
 
 text tlab "Temporal" at 0,0 {.left .large}
 box  tobj "object" right of tlab gap 0.7 w 0.62 {.tone-3}
@@ -66,7 +68,7 @@ int main(void) {
 ```
 ::: flip
 ::: diagram {unit=150x52}
-default box {.tone-2 .sharp} w 1.5
+default box {.tone-2 .sharp} w 1.5 pad 0.16
 
 box buf "Local variable: mystring\n(char[], 16 bytes)" at 0,0 h 1.5
 box val "Local variable: myvalue\n(integer, 4 bytes)" below buf gap 0 same as buf h 0.75
@@ -309,10 +311,10 @@ text tagA "\"authentication tag\""  below macA gap 0.14 {.hand .small @proto}
 text ver1 "Verify_k(M, T)"                below nB gap 0.3 {.mono .small @proto}
 text ver2 "T' = MAC_k(M)\nT' equals T ?"  below ver1 gap 0.55 {.mono .small @proto}
 edge ver1 -- ver2 {#howto .muted .dotted @proto}
-text eg   "e.g." between ver1,ver2 offset -0.16,0 {.small .muted @proto}
+text eg   "e.g." between ver1,ver2 pad 0.12 {.paper .muted @proto}
 align y middle macA, ver1
 
-text goals "Security goals: *integrity*\nand *authenticity* but\n~not non-repudiation~" at 3.55,-1.05 {.left}
+text goals "Security goals: *integrity*\nand *authenticity* but\n~not non-repudiation~" at 3.55,-1.05 {.left .serif}
 
 step protocol
   show @proto
@@ -378,11 +380,49 @@ container life "Creation" over r1,r2,r3 pad 0.42 {.dashed}
 
 Ein `container` legt sich um seine Mitglieder und passt sich neu an, wenn sie sich bewegen. Eine `brace` überspannt eine Teilmenge und hängt ihr Label nach außen. Beide messen ihren Abstand zum Inhalt mit demselben Wort, `pad` – die Klammer bekommt hier `0.62`, damit sie außerhalb der `0.42` des Containers zu liegen kommt.
 
+## figure: The look of a thing {.full #look}
+
+::: diagram {unit=118x74}
+default box {.sharp} w 0.62 h 0.42
+
+# Every fill the vocabulary has, over a line, so `.clear` and `.paper` are
+# telling apart: one lets the rule through, the other knocks it out.
+edge -0.45,0 -- 6.1,0 {.muted}
+box f1 "paper"  at 0,0    {.paper}
+box f2 "tone-1" right of f1 gap 0.28 same as f1 {.tone-1}
+box f3 "tone-2" right of f2 gap 0.28 same as f1 {.tone-2}
+box f4 "tone-3" right of f3 gap 0.28 same as f1 {.tone-3}
+box f5 "tone-4" right of f4 gap 0.28 same as f1 {.tone-4}
+box f6 "clear"  right of f5 gap 0.28 same as f1 {.clear}
+text fl "fill" left of f1 gap 0.5 {.muted}
+
+text t1 "sans"  at 0.31,1.25
+text t2 "mono"  right of t1 gap 0.62 {.mono}
+text t3 "serif" right of t2 gap 0.62 {.serif}
+text t4 "hand"  right of t3 gap 0.62 {.hand}
+text tl "family" left of t1 gap 0.72 {.muted}
+
+# One width, three answers. The box grows to the type, or the type shrinks to
+# the box, or it fills the box in both directions.
+box g1 "a label that is too long" at 0,2.3 w 1.2 h 0.46
+box g2 "a label that is too long" right of g1 gap 0.34 same as g1 {.shrink}
+box g3 "short"                    right of g2 gap 0.34 same as g1 {.fit}
+text n1 "no"     below g1 gap 0.16 {.muted}
+text n2 "shrink" below g2 gap 0.16 {.muted}
+text n3 "fit"    below g3 gap 0.16 {.muted}
+text gl "type meets\nits box" left of g1 gap 0.5 {.muted .right}
+:::
+
+**Der Editor zeigt genau diese Reihen in seiner Seitenleiste.** Die Klassen sind eine geschlossene Aufzählung, keine freien Farben – jede Füllung mischt sich aus `--emph` und `--ink` über `--paper` und überlebt damit alle sieben Themes. `.paper` ist nicht der No-Op, nach dem es aussieht: Es ist die Voreinstellung einer Box, aber eine Box unter `default box {.tone-3}` kam ohne die Klasse nicht mehr dorthin zurück, und ein freier `text` konnte gar keinen Grund bekommen – und genau der ist es, der eine Linie hinter einer Beschriftung ausstanzt.
+
+**Bei `w` und Schriftgröße gibt es drei Antworten, nicht zwei.** Ohne Angabe wächst der Kasten zur Schrift; `.shrink` verkleinert die Schrift, bis sie hineinpasst; `.fit` füllt den Kasten in beide Richtungen aus, auf 0.6–1.5× der Grundgröße geklemmt. Weil die Textbreite zur Buildzeit *geschätzt* wird – es gibt keinen Browser – fällt die gewählte Größe eine Spur zu klein aus. Das ist die sichere Richtung.
+
+**Der erste Kasten läuft absichtlich über, und der Build sagt das auch:** `box g1 is 1.2 units wide but its label needs about 1.55`. Diese Warnung beim Bauen dieser Vorlesung ist kein Defekt, sie ist die dritte Antwort – die, die man nicht will.
+
 ## figure: Steps that move {.wide #motion}
 
 ::: diagram {unit=140x72}
 default box w 0.92
-default container pad 0.34
 
 box  cl "Client"  at 0,0
 box  sv "Server"  right of cl gap 2.9 same as cl

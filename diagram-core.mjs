@@ -82,7 +82,12 @@ export const DG_DOT_R = 13;           // default radius of a `dot`
 export const DG_CLASSES = new Set([
   // fills. `.clear` is a see-through interior: `.bare` removes the *stroke*,
   // so without it there was no way to draw a frame you can read through.
-  'tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'accent', 'muted', 'ghost',
+  // `.paper` is the canvas colour, and it is not the no-op it looks like:
+  // it is a box's default, but a box under `default box {.tone-3}` had no
+  // way back to it, and a free `text` could not have one at all – which is
+  // the whole reason to give a label a ground, so it can knock out a line
+  // running behind it.
+  'tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper', 'accent', 'muted', 'ghost',
   // strokes
   'dashed', 'dotted', 'thick', 'bare',
   // shape
@@ -107,7 +112,7 @@ export const DG_CLASSES = new Set([
 // one written later in the stylesheet won and the author's explicit choice
 // silently lost.
 export const DG_CLASS_GROUPS = [
-  ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear'],   // fill
+  ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper'],   // fill
   ['accent', 'muted'],                        // ink
   ['dashed', 'dotted'],                       // stroke pattern
   ['thick', 'bare'],                          // stroke weight
@@ -304,9 +309,15 @@ export function dgFitFont(label, classes, boxW, boxH, padX, padY) {
 // Whether an element paints a fill behind itself. A box does by default –
 // its ground is the paper – and a free `text` does not, so one mechanism
 // covers both: a text draws its measured label box only when the author
-// gives it a tone, and `.clear` is how a box opts out. That is exactly how
+// gives it a fill, and `.clear` is how a box opts out. That is exactly how
 // the two already look, so nothing existing changes.
-export const DG_FILL_CLASSES = ['tone-1', 'tone-2', 'tone-3', 'tone-4'];
+//
+// `.paper` counts as a fill here even though it is a box's default, because
+// on a text it is the whole point: a ground in the canvas colour is what
+// knocks out a line running behind a label. Leaving it out of this list was
+// a hole – the class resolved, the CSS was emitted, and no rect was drawn
+// for it to colour.
+export const DG_FILL_CLASSES = ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'paper'];
 export function dgHasFill(classes) {
   return DG_FILL_CLASSES.some(c => classes.has(c));
 }

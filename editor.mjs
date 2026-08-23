@@ -310,7 +310,12 @@ function dgeSelfTest() {
 const DGE_SLOTS = [
   { key: 'fill', label: 'fill', kinds: ['box', 'dot', 'text', 'container'],
     options: [
-      { cls: '', label: 'paper', fill: '' },
+      // Two swatches that can look alike and are not: the first is "whatever
+      // a default says", the second names the canvas colour. Without the
+      // second, a box under `default box {.tone-3}` had no way back to paper
+      // and a free text could not have a ground at all.
+      { cls: '', label: 'default', fill: '' },
+      { cls: 'paper', fill: '' },
       { cls: 'tone-1', fill: 'tone-1' }, { cls: 'tone-2', fill: 'tone-2' },
       { cls: 'tone-3', fill: 'tone-3' }, { cls: 'tone-4', fill: 'tone-4' },
       { cls: 'clear', fill: 'clear' },
@@ -531,7 +536,17 @@ function dgeBuildChrome() {
   const frame = dgeEl('div', { id: 'dge-frame' }, [art]);
   const stage = dgeEl('div', { id: 'dge-stage' }, [frame]);
   const board = dgeEl('div', { id: 'dge-board', hidden: true });
-  const canvas = dgeEl('main', { id: 'dge-canvas' }, [stage, board]);
+  const assets = dgeEl('div', { id: 'dge-assets', hidden: true }, [
+    dgeEl('div', { id: 'dge-assets-inner' }, [
+      dgeEl('header', {}, [
+        dgeEl('b', { text: 'Place a picture' }),
+        dgeEl('button', { type: 'button', class: 'dge-btn', text: 'Cancel', onclick: () => dgeCloseAssetPicker() }),
+      ]),
+      dgeEl('div', { id: 'dge-assets-list' }),
+      dgeEl('p', { id: 'dge-assets-note' }),
+    ]),
+  ]);
+  const canvas = dgeEl('main', { id: 'dge-canvas' }, [stage, board, assets]);
 
   const side = dgeEl('aside', { id: 'dge-side' });
   const status = dgeEl('footer', { id: 'dge-status' }, [
@@ -1593,18 +1608,191 @@ function dgePlace(tool, pt) {
   const place = dgeProposePlacement(pt);
   let line;
   if (tool === 'image') {
-    const refs = Object.keys(DGE.fig.images || {});
-    if (!refs.length) {
-      dgeStatus('', 'This lecture has no diagram image to place. Add one with an `image` line first.', true);
-      return;
-    }
-    line = `image ${name} ${refs[0]} ${place} w 1`;
+    // Asynchronous, so the placement is captured now and used when the
+    // picker resolves: `pt` is where the author clicked, not where the
+    // pointer happens to be several seconds later.
+    dgeOpenAssetPicker((asset) => {
+      dgeAppendLine(`image ${name} ${asset.ref} ${place} w 1`);
+      dgeSelect([name]);
+      if (asset.note) dgeStatus('', asset.note, false);
+    });
+    if (!DGE.toolLocked) dgePickTool('select');
+    return;
   } else {
     line = `${tool} ${name} "${tool}" ${place}`;
   }
   dgeAppendLine(line);
   dgeSelect([name]);
   if (!DGE.toolLocked) dgePickTool('select');
+}
+
+// ── the asset picker ────────────────────────────────────────────────
+// `image <name> <asset>` resolves at *build* time, against assets/ beside
+// source.md. A browser can read a picked file's bytes; it cannot put them
+// where the next build will look. So the dialog is not the feature – what
+// happens to the bytes is, and that differs by tier.
+//
+// Three sources, in order of how sure we are the reference will still
+// resolve after the next build: assets this lecture already inlines, then
+// everything in assets/ (only knowable with a watch socket), then a file
+// from the machine.
+
+const DGE_IMG_EXTS = ['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
+
+function dgeOpenAssetPicker(onPick) {
+  const box = dgeQ('#dge-assets');
+  const list = dgeQ('#dge-assets-list');
+  const note = dgeQ('#dge-assets-note');
+  const inlined = DGE.fig.images || {};
+  box.hidden = false;
+  note.textContent = '';
+  list.replaceChildren();
+
+  const choose = (ref, extra) => { dgeCloseAssetPicker(); onPick({ ref, ...(extra || {}) }); };
+  const row = (ref, sub, entry) => dgeEl('button', {
+    type: 'button', class: 'dge-asset', onclick: () => choose(ref),
+  }, [
+    dgeAssetThumb(entry),
+    dgeEl('b', { text: ref }),
+    dgeEl('i', { text: sub }),
+  ]);
+
+  const seen = new Set();
+  for (const ref of Object.keys(inlined)) {
+    seen.add(ref);
+    list.appendChild(row(ref, 'in this lecture', inlined[ref]));
+  }
+
+  // The file row is always last and always present: it is what makes an
+  // empty assets/ a first step rather than a dead end.
+  const file = dgeEl('input', { type: 'file', accept: DGE_IMG_EXTS.map(e => '.' + e).join(','), hidden: true });
+  file.addEventListener('change', () => { if (file.files[0]) dgeTakeFile(file.files[0], choose, note); });
+  list.appendChild(dgeEl('button', {
+    type: 'button', class: 'dge-asset dge-asset-file', onclick: () => file.click(),
+  }, [dgeEl('span', { class: 'dge-asset-blank', text: '+' }), dgeEl('b', { text: 'Choose a file…' }),
+      dgeEl('i', { text: DGE_IMG_EXTS.join(' · ') })]));
+  list.appendChild(file);
+
+  const live = window.psiWatch && window.psiWatch.ready();
+  if (!live) {
+    note.textContent = 'Without --watch the editor cannot put a file into assets/. Picking one writes an explicit path and tells you where to copy it.';
+    return;
+  }
+  window.psiWatch.assets().then((res) => {
+    if (!res.ok || !res.assets) return;
+    const extra = res.assets.filter(a => !seen.has(a.id));
+    if (!extra.length) return;
+    const anchor = list.querySelector('.dge-asset-file');
+    for (const a of extra) {
+      list.insertBefore(row(a.id, `assets/${a.file} · ${Math.round(a.bytes / 1024)} KB`, null), anchor);
+    }
+  });
+}
+
+// A thumbnail out of the markup the build already emitted. The stored shape
+// carries the slots the compiler fills in – an id and the geometry – so a
+// preview substitutes something harmless into both and lets the outer box
+// do the sizing. A file that is only on disk has no markup and gets a
+// placeholder; the build is what resolves it, not the browser.
+function dgeAssetThumb(entry) {
+  const markup = entry && entry.markup;
+  if (!markup) return dgeEl('span', { class: 'dge-asset-blank', text: '?' });
+  const uid = 'dge-pick-' + (dgeAssetThumbSeq++);
+  const filled = markup
+    .split(DGE_ID_SLOT).join(uid)
+    .split(DGE_GEO_SLOT).join('width="100%" height="100%" x="0" y="0"')
+    .split(DGE_ALT_SLOT).join('');
+  const host = dgeEl('span', { class: 'dge-asset-thumb' });
+  host.innerHTML = filled;
+  return host;
+}
+let dgeAssetThumbSeq = 0;
+
+function dgeCloseAssetPicker() {
+  const box = dgeQ('#dge-assets');
+  if (box) box.hidden = true;
+}
+
+// A vector asset follows the theme and a raster does not. That is the trade
+// the docs already make; the author should hear it while picking, not later.
+const dgeAssetNote = (fileName) => (/\.svg$/i.test(fileName)
+  ? 'An SVG is spliced in as a nested <svg>, so it re-inks with the A theme cycle.'
+  : 'A raster is embedded as a data: URI and keeps its own colours in every theme.');
+
+// The gap between "the file is on disk" and "this page knows about it".
+// The asset write does not rebuild, so the payload this page booted with
+// still has no entry for the new reference and the in-browser compiler would
+// refuse the line the editor is about to write. So register it here: enough
+// for `resolveImage` to answer yes and for the layout to reserve the right
+// shape. `markup` stays empty on purpose – the real thing is hundreds of
+// lines of someone else's SVG and there is no re-deriving it here, so the
+// canvas shows an empty slot for the second before the rebuild fills it.
+function dgeRegisterPending(id, file, dataUrl) {
+  return new Promise((resolve) => {
+    const done = (aspect) => {
+      DGE.fig.images = DGE.fig.images || {};
+      DGE.fig.images[id] = { aspect: aspect || 1, markup: '', pending: true };
+      resolve();
+    };
+    if (/\.svg$/i.test(file)) {
+      // The viewBox is the only honest source of proportion for a vector.
+      try {
+        const svg = atob(String(dataUrl).split(',')[1] || '');
+        const vb = svg.match(/viewBox\s*=\s*["']\s*[-\d.]+\s+[-\d.]+\s+([\d.]+)\s+([\d.]+)/i);
+        return done(vb ? Number(vb[2]) / Number(vb[1]) : 1);
+      } catch (e) { return done(1); }
+    }
+    const probe = new Image();
+    probe.onload = () => done(probe.naturalHeight / probe.naturalWidth || 1);
+    probe.onerror = () => done(1);
+    probe.src = dataUrl;
+  });
+}
+
+function dgeTakeFile(f, choose, note) {
+  const name = f.name.replace(/[^A-Za-z0-9._-]/g, '-');
+  const id = name.replace(/\.[^.]+$/, '');
+  const reader = new FileReader();
+  reader.onload = () => {
+    const b64 = String(reader.result).split(',')[1] || '';
+    const live = window.psiWatch && window.psiWatch.ready();
+    if (!live) {
+      // The grammar takes a path as well as an id, so the line the editor
+      // writes is already correct – it just needs the file to arrive.
+      choose(`assets/${name}`, { note: `Copy ${f.name} into assets/ beside source.md; the line is already written. ` + dgeAssetNote(name) });
+      return;
+    }
+    note.textContent = 'Writing ' + name + '…';
+    window.psiWatch.putAsset(name, b64, false).then((res) => {
+      if (res.ok && res.unchanged) {
+        // Already there, byte for byte. Nothing was written; the reference
+        // is simply one the build can already resolve.
+        return dgeRegisterPending(id, name, String(reader.result))
+          .then(() => choose(id, { note: dgeAssetNote(name) }));
+      }
+      if (!res.ok && res.exists) {
+        note.textContent = res.why;
+        note.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-btn', text: 'Replace it',
+          onclick: () => window.psiWatch.putAsset(name, b64, true).then((r2) => {
+            if (!r2.ok) { note.textContent = r2.why; return; }
+            dgeRegisterPending(id, name, String(reader.result))
+              .then(() => choose(id, { note: dgeAssetNote(name) + ' It appears on the next build.' }));
+          }),
+        }));
+        return;
+      }
+      if (!res.ok) { note.textContent = res.why; return; }
+      // The asset write does not rebuild – fs.watch is on source.md. The
+      // patch that adds this line is what kicks the build, and by then the
+      // file is on disk. Hence: write first, place second, never the other
+      // way round.
+      dgeRegisterPending(id, name, String(reader.result)).then(() => {
+        choose(id, { note: dgeAssetNote(name) + ' It appears on the next build.' });
+      });
+    });
+  };
+  reader.readAsDataURL(f);
 }
 
 // A new statement goes after the last definition rather than at the end of
@@ -2391,6 +2579,7 @@ function dgeKeydown(ev) {
   if (k === 'Escape') {
     ev.preventDefault();
     // One rung at a time, identical to the ladder on the slide.
+    if (!dgeQ('#dge-assets').hidden) return dgeCloseAssetPicker();
     if (DGE.boardOpen) return dgeToggleBoard(false);
     if (DGE.selection.length) return dgeSelect([]);
     if (DGE.tool !== 'select') return dgePickTool('select');

@@ -49,7 +49,7 @@ Two audiences, one editor.
 
 And one thing it is emphatically **not**: a drawing program. It has no
 freehand, no curves, no arbitrary colours, no free font choice. The class
-vocabulary is a closed enumeration – 24 names today, 28 after §3.3 – and the
+vocabulary is a closed enumeration – 29 names – and the
 editor exposes exactly those and nothing else. Anything
 it produces is a `::: diagram` block a human could have typed, in the same
 language, and anything a human typed it can open.
@@ -378,7 +378,8 @@ closing:
   `.accent text`, and `lint.js` should warn on the pair – the same warning it
   already gives for two classes from one slot.
 
-That is **four new classes** (24 → 28), two new group rows, one keyword
+That is **five new classes** (24 → 29, `.paper` joined them once the swatch
+row showed the hole – see §13), two new group rows, one keyword
 extended to two more kinds, and one emitter change. No new statement, no free
 colour, nothing that opens the vocabulary. §1's promise survives.
 
@@ -1229,11 +1230,17 @@ into the wrong figure and did not notice, because the closure was large enough
 to look like the figure had always been that way. B is the cheap fix and the
 halo already exists.
 
-## 15. Bringing a picture in
+## 15. Bringing a picture in · **built**
 
 Phase 11, and the first feature that writes a **file** rather than a range of
 one. That is a different permission with a different failure mode, which is why
-it comes after everything else.
+it came after everything else.
+
+Built as specified below, with three things the plan did not foresee. They are
+in §13 under *Phase 11*; the shortest of them: **`.paper` had to be invented on
+the way**, because the swatch row's first entry was the empty class, so
+"paper" meant "whatever a default says" and a free `text` could not have a
+ground at all – which is the entire reason to give a label one.
 
 ### 15.1 What is there today, and why it is a dead end
 
@@ -1819,16 +1826,51 @@ Verified:
   This entry was stale; corrected in review.
 - **`Q` locks the tool but nothing draws the lock state** beyond the status
   line it prints.
-- **Placing a picture** (§15). The image placer takes the first asset the
-  lecture happens to reference, with no chooser, and refuses when there is
-  none – so a figure cannot get its first picture from inside the editor.
-- **The demo lecture never learned the new vocabulary.**
-  `lectures/diagrams/source.md` is untouched by this branch, so `.clear`,
-  `.serif`, `pad` on a box or text, and a background behind free `text` are
-  demonstrated **nowhere** – while `CLAUDE.md` and §11.1 both still describe
-  that file as "every construct". Counted: `.clear` 0 uses, `.serif` 0,
-  `pad` on box/text 0. `.fit`, `.shrink` and `diagram-defaults` appear once
-  each, in the tutorial only.
+- ~~Placing a picture (§15).~~ **Built** – see *Phase 11* below.
+- ~~The demo lecture never learned the new vocabulary.~~ **Fixed**:
+  `lectures/diagrams` now carries the lecture-wide `diagram-defaults`, `pad` on
+  the stack frames in `#overflow`, `.paper` and `.serif` in `#mac`, and a
+  `#look` chunk that shows every fill, every family and the three answers to
+  "how does type meet its box".
+
+### Phase 11 – bringing a picture in · **done**
+
+§15 as written, and three things it did not foresee.
+
+**`.paper` had to be invented.** The editor's fill row opened with
+`{ cls: '', label: 'paper' }` – the *empty* class. So "paper" meant "whatever a
+default says": a box under `default box {.tone-3}` could not get back to the
+canvas colour, and a free `text` could not have a ground at all, which is the
+whole reason to give a label one (it is what knocks out a line running behind
+it). Fixed by naming it: `.paper` joins the fill slot, the row shows *default*
+and *paper* as two separate swatches because they are two different statements,
+and `DG_FILL_CLASSES` had to learn it too – without that the class resolved,
+the CSS was emitted, and no rect was drawn for it to colour. 24 classes became
+29, not 28. The `#mac` figure's "e.g." now sits centred on its dotted leader
+instead of dodging sideways.
+
+**The reply spread its payload over its own protocol.** `reply(ok, why, extra)`
+built `{ type, id: msg.id, ok, why, ...extra }`, and an asset reply carries the
+asset's own `id` – which overwrote the message id the client pairs on. The
+write succeeded, the promise never resolved, the picker sat open. Payload
+first, protocol last.
+
+**A file on disk is not a file this page knows about.** The asset write
+deliberately does not rebuild (fs.watch is on source.md), so between the write
+and the commit the page's payload has no entry for the new reference and the
+in-browser compiler refused the very line the editor had just written: *"the
+block does not compile"*. `dgeRegisterPending()` closes the gap – enough of an
+entry for `resolveImage` to answer yes, with the aspect read from the SVG's
+viewBox or the raster's natural size, and `markup: ''` so the canvas shows an
+empty slot for the second before the rebuild fills it. Verified end to end: a
+file that was never in `assets/` reaches `assets/newlogo.svg`, the line reaches
+`source.md`, and the rebuild draws it.
+
+**Also found while there:** `lint.js` was stricter than the build. Its `between`
+scan terminated on `frac offset w h r ->` and not on `pad`, `gap`, `align` or
+`same`, so `text eg "e.g." between ver1,ver2 pad 0.12` was three lint errors on
+a file the build accepts. A linter stricter than the build is worse than none –
+it is the pre-commit gate.
 
 ### After the review · **done**
 

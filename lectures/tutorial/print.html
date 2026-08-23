@@ -521,6 +521,10 @@ pre.shiki .line { display: inline; }
    this there was no way to draw a frame you can read through – which is
    what an outline over an image or another element wants. */
 .psi-diagram .clear > rect, .psi-diagram .clear > circle { fill: none; }
+/* The canvas colour, named. A box already defaults to it, but a box under a
+   tinted default block had no way back, and a free text could not have one at
+   all. A label with a ground is how it knocks out a line running behind it. */
+.psi-diagram .paper > rect, .psi-diagram .paper > circle { fill: var(--paper); }
 
 .psi-diagram .accent > rect, .psi-diagram .accent > circle { stroke: var(--emph); }
 .psi-diagram .accent .dg-stroke { stroke: var(--emph); }
@@ -542,7 +546,7 @@ pre.shiki .line { display: inline; }
    than two. No stroke either way – a bordered label is a box, and there is
    a statement for that. */
 .psi-diagram .dg-text > rect { stroke: none; }
-.psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4) > rect { fill: none; }
+.psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
 
 .psi-diagram .dashed > rect, .psi-diagram .dashed > circle, .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
 .psi-diagram .dotted > rect, .psi-diagram .dotted > circle, .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }

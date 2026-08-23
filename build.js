@@ -1460,6 +1460,10 @@ const DIAGRAM_CSS = `
    this there was no way to draw a frame you can read through – which is
    what an outline over an image or another element wants. */
 .psi-diagram .clear > rect, .psi-diagram .clear > circle { fill: none; }
+/* The canvas colour, named. A box already defaults to it, but a box under a
+   tinted default block had no way back, and a free text could not have one at
+   all. A label with a ground is how it knocks out a line running behind it. */
+.psi-diagram .paper > rect, .psi-diagram .paper > circle { fill: var(--paper); }
 
 .psi-diagram .accent > rect, .psi-diagram .accent > circle { stroke: var(--emph); }
 .psi-diagram .accent .dg-stroke { stroke: var(--emph); }
@@ -1481,7 +1485,7 @@ const DIAGRAM_CSS = `
    than two. No stroke either way – a bordered label is a box, and there is
    a statement for that. */
 .psi-diagram .dg-text > rect { stroke: none; }
-.psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4) > rect { fill: none; }
+.psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
 
 .psi-diagram .dashed > rect, .psi-diagram .dashed > circle, .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
 .psi-diagram .dotted > rect, .psi-diagram .dotted > circle, .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
@@ -2107,7 +2111,10 @@ window.psiWatch = (() => {
     ws.addEventListener('message', e => {
       if (e.data === 'reload') { location.reload(); return; }
       let m; try { m = JSON.parse(e.data); } catch (err) { return; }
-      if (m && m.type === 'patch-result' && waiting.has(m.id)) {
+      // Any *-result carrying an id we are waiting on. The patch protocol
+      // was the first; the asset ones ride the same pairing rather than
+      // growing a second mechanism beside it.
+      if (m && typeof m.type === 'string' && m.type.endsWith('-result') && waiting.has(m.id)) {
         waiting.get(m.id)(m);
         waiting.delete(m.id);
       }
@@ -2115,16 +2122,23 @@ window.psiWatch = (() => {
     ws.addEventListener('close', () => { sock = null; setTimeout(connect, 500); });
   };
   connect();
+  const ask = (type, body, ms) => new Promise((resolve) => {
+    if (!sock || sock.readyState !== 1) return resolve({ ok: false, why: 'the watch socket is not connected' });
+    const id = ++seq;
+    waiting.set(id, resolve);
+    setTimeout(() => { if (waiting.has(id)) { waiting.delete(id); resolve({ ok: false, why: 'no answer from the watch server' }); } }, ms || 4000);
+    sock.send(JSON.stringify({ type, id, nonce: window.psiWatch.nonce, ...body }));
+  });
   return {
     nonce: ${JSON.stringify(nonce || '')},
     ready: () => !!(sock && sock.readyState === 1),
-    patch: (range, text, was) => new Promise((resolve) => {
-      if (!sock || sock.readyState !== 1) return resolve({ ok: false, why: 'the watch socket is not connected' });
-      const id = ++seq;
-      waiting.set(id, resolve);
-      setTimeout(() => { if (waiting.has(id)) { waiting.delete(id); resolve({ ok: false, why: 'no answer from the watch server' }); } }, 4000);
-      sock.send(JSON.stringify({ type: 'patch', id, nonce: window.psiWatch.nonce, range, text, was }));
-    }),
+    patch: (range, text, was) => ask('patch', { range, text, was }),
+    // Everything in assets/ beside source.md, so the picker can offer files
+    // no diagram references yet. Costs no payload: the socket is already here.
+    assets: () => ask('assets', {}),
+    // Bytes in, a file in assets/ out. Base64 because the socket is JSON.
+    // Larger timeout: this one writes.
+    putAsset: (name, dataB64, replace) => ask('asset', { name, data: dataB64, replace }, 15000),
   };
 })();
 </script>`;
@@ -9602,9 +9616,76 @@ async function runWatch(absIn, only, baseOpts = {}) {
     sock.on('message', (raw) => {
       let msg;
       try { msg = JSON.parse(String(raw)); } catch { return; }
-      if (!msg || msg.type !== 'patch') return;
-      const reply = (ok, why) => sock.send(JSON.stringify({ type: 'patch-result', id: msg.id, ok, why }));
+      if (!msg || (msg.type !== 'patch' && msg.type !== 'assets' && msg.type !== 'asset')) return;
+      // `extra` first, so a payload field can never shadow a protocol one.
+      // It could: an asset reply carries the asset's own `id`, and spreading
+      // it last overwrote the message id the client pairs on – the write
+      // succeeded, the promise never resolved, and the picker sat there.
+      const reply = (ok, why, extra) => sock.send(JSON.stringify({ ...extra, type: msg.type + '-result', id: msg.id, ok, why }));
       if (msg.nonce !== nonce) return reply(false, 'this page is from an older build – reload it and try again');
+
+      const assetDir = path.join(path.dirname(absIn), 'assets');
+
+      // Everything in assets/ the resolver would find, so the editor's
+      // picker can offer a file no diagram references yet. Names only – the
+      // bytes stay on disk until the build inlines them.
+      if (msg.type === 'assets') {
+        let names = [];
+        try {
+          names = fs.readdirSync(assetDir)
+            .filter(f => IMG_EXTS.includes(path.extname(f).slice(1).toLowerCase()))
+            .map(f => {
+              const st = fs.statSync(path.join(assetDir, f));
+              return { file: f, id: f.replace(/\.[^.]+$/, ''), bytes: st.size };
+            })
+            .sort((a, b) => a.id.localeCompare(b.id));
+        } catch (e) { /* no assets/ yet is not an error, it is an empty list */ }
+        return reply(true, '', { assets: names });
+      }
+
+      // A file, into assets/ beside source.md. Five refusals rather than five
+      // sanitisations: a cleaned-up path is a path somebody reasoned about
+      // wrongly, and this is the one message that writes somewhere the author
+      // did not name.
+      if (msg.type === 'asset') {
+        const name = String(msg.name || '');
+        if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name) || name.includes('..')) {
+          return reply(false, `"${name}" is not a usable file name – letters, digits, dot, dash and underscore, and no path separators`);
+        }
+        const ext = path.extname(name).slice(1).toLowerCase();
+        if (!IMG_EXTS.includes(ext)) {
+          return reply(false, `psi-slides resolves ${IMG_EXTS.join(', ')} – not ".${ext}"`);
+        }
+        let bytes;
+        try { bytes = Buffer.from(String(msg.data || ''), 'base64'); }
+        catch { return reply(false, 'the file did not arrive intact'); }
+        if (!bytes.length) return reply(false, 'the file is empty');
+        // Refuse here rather than let assertInlinable hard-fail the very next
+        // rebuild – failing the build an author is watching is worse than
+        // declining the file while they can still do something about it.
+        if (bytes.length > MAX_INLINE_BYTES) {
+          return reply(false, `${(bytes.length / 1024 / 1024).toFixed(1)} MB is over the ${MAX_INLINE_BYTES / 1024 / 1024} MB inline cap, and the next build would refuse it. `
+            + 'Shrink it first – "node build.js <source.md> --optimize-images" converts to WebP q92, which measured 12-18% of the original on real lecture assets.');
+        }
+        const dest = path.join(assetDir, name);
+        if (fs.existsSync(dest) && !msg.replace) {
+          const same = (() => { try { return fs.readFileSync(dest).equals(bytes); } catch { return false; } })();
+          if (!same) return reply(false, `assets/${name} already exists and is a different file`, { exists: true });
+          return reply(true, '', { file: name, id: name.replace(/\.[^.]+$/, ''), unchanged: true });
+        }
+        try {
+          fs.mkdirSync(assetDir, { recursive: true });
+          fs.writeFileSync(dest, bytes);
+        } catch (e) { return reply(false, 'cannot write the asset: ' + e.message); }
+        console.log(`[asset] assets/${name} (${bytes.length < 1024 ? bytes.length + ' B' : (bytes.length / 1024).toFixed(0) + ' KB'})`);
+        // Deliberately no rebuild here. fs.watch is on source.md, so writing
+        // the asset alone changes nothing on screen – the `patch` that adds
+        // the `image` line is what kicks the build, and by then the file is
+        // on disk. Sending them the other way round fails the rebuild on an
+        // asset it cannot find.
+        return reply(true, '', { file: name, id: name.replace(/\.[^.]+$/, '') });
+      }
+
       const range = Array.isArray(msg.range) ? msg.range : null;
       if (!range || typeof msg.text !== 'string') return reply(false, 'malformed patch');
       const hit = dgEmittedBlocks.find(b => b.range[0] === range[0] && b.range[1] === range[1]);

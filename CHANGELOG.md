@@ -167,6 +167,35 @@ from building the same way is a major version.
   follows. `move @tag to …` is refused, naming `move @tag by dx,dy`: `to`
   would stack the whole set on one point.
 
+  **Placing a picture from inside the editor.** The image tool took the
+  first asset the lecture happened to reference, with no chooser, and
+  refused outright when there was none, so a figure could not get its
+  first picture from the editor at all. It now opens a picker over three
+  sources: the assets this lecture already inlines, everything in
+  `assets/` (asked from the watch server, so it costs no payload), and a
+  file from the machine. Under `--watch` the whole loop closes: the bytes
+  go over the socket that already carries patches, the server writes
+  `assets/<name>` with five refusals rather than five sanitisations, and
+  *then* the `image` line is placed – that order matters, because
+  `fs.watch` is on `source.md` and the patch is what kicks the build.
+  Without a watch server it writes an explicit `assets/<file>` path, which
+  the grammar already accepts, and says where to copy the file. Never a
+  `data:` URI in `source.md`. The primitive is a plain file input, not the
+  File System Access API: for *reading* a picked file that has always been
+  enough, in every browser and from `file://`.
+
+  `.paper` is a 29th class, invented while building that picker. The fill
+  swatch row opened with the *empty* class labelled "paper", so it meant
+  "whatever a default says" – a box under `default box {.tone-3}` had no
+  way back to the canvas colour, and a free `text` could not have a ground
+  at all, which is the whole reason to give a label one: it is what knocks
+  out a line running behind it.
+
+  `lint.js` was stricter than the build, which for the pre-commit gate is
+  worse than not linting: its `between` scan did not terminate on `pad`,
+  `gap`, `align` or `same`, so a placement with any of them read their
+  values as members.
+
   Development state: this is unreleased work on a branch, and the
   vocabulary is **experimental** – it may still change before it is
   frozen under the source-format contract, so it should carry that label

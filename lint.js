@@ -443,7 +443,10 @@ function lintDiagram(block, add, fmLines, lectureTags) {
           referPair(words[k + 1], ln, `${head} ${words[1]} at`);
         }
         if (words[k] === 'between') {
-          const STOP = new Set(['frac', 'offset', 'w', 'h', 'r', '->']);
+          // Every trailing option that can follow a placement, or the scan
+          // swallows one as a member. `pad` joined the list when boxes and
+          // free text gained it, and the linter went stricter than the build.
+          const STOP = new Set(['frac', 'offset', 'gap', 'align', 'w', 'h', 'r', 'pad', 'same', '->']);
           let m = k + 1;
           const names = [];
           while (m < words.length && !STOP.has(words[m])) names.push(words[m++]);

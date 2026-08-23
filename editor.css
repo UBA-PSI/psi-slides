@@ -699,3 +699,76 @@ body.dge-open #stage-viewport { filter: none; }
    editor section renderHelpOverlay was extended to carry. Raised only while
    the modal is open, so the slide's own stacking is untouched. */
 body.dge-open #help-overlay { z-index: 260; }
+
+/* ── the asset picker (editor.md §15) ────────────────────────────────
+   Same ground as the figure board, because it is the same kind of act:
+   a full-canvas overlay you pick one thing out of and leave. */
+#dge-assets {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklab, var(--paper) 88%, transparent);
+  backdrop-filter: blur(2px);
+}
+#dge-assets[hidden] { display: none; }
+#dge-assets-inner {
+  width: min(46rem, 88%);
+  max-height: 82%;
+  overflow: auto;
+  padding: 1rem 1.1rem 1.2rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.18);
+}
+#dge-assets-inner header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.8rem;
+}
+#dge-assets-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.6rem;
+}
+.dge-asset {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.6rem 0.4rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--paper);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+.dge-asset:hover { border-color: var(--emph); }
+.dge-asset img { width: 100%; height: 3.4rem; object-fit: contain; }
+.dge-asset-blank {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 3.4rem;
+  color: var(--ink-soft);
+  font-size: 1.4rem;
+}
+.dge-asset b { font-weight: 500; font-size: 0.86rem; word-break: break-all; }
+.dge-asset i { font-style: normal; font-size: 0.74rem; color: var(--ink-soft); }
+.dge-asset-file { border-style: dashed; }
+#dge-assets-note {
+  margin: 0.9rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+#dge-assets-note .dge-btn { margin-left: 0.5rem; }
+body[data-mode=dark] #dge-assets-inner,
+body[data-mode=dark] .dge-asset { background: color-mix(in oklab, var(--paper) 86%, #fff 14%); }
+.dge-asset-thumb { display: block; width: 100%; height: 3.4rem; }
+.dge-asset-thumb > svg, .dge-asset-thumb > img { width: 100%; height: 100%; object-fit: contain; }
