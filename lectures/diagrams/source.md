@@ -468,6 +468,28 @@ step dazwischen
 
 **Sichtbarkeit vererbt sich nach unten.** Weder der `container` noch die gestrichelten Pfeile noch das handschriftliche Label brauchen ein eigenes `show`: ein Pfeil ist nur so sichtbar wie seine Enden, ein `container` nur so sichtbar wie seine Mitglieder, und ein `text` mit einer Linie nur so sichtbar wie das, worauf er zeigt.
 
+## figure: Two statements that expand {.full #expand}
+
+::: diagram {unit=150x62}
+bars f "20,19,17,12,11,10,9,9,8,7,6,5" at 0,0 w 2.4 h 1.0 {.tone-3 .bare}
+brace b1 over f-0,f-1,f-2 bottom "Bin 1" pad 0.4 {.muted}
+brace b2 over f-3,f-4,f-5,f-6,f-7 bottom "Bin 2" pad 0.4 {.muted}
+brace b3 over f-8,f-9,f-10,f-11 bottom "Bin 3" pad 0.4 {.muted}
+
+grid g dot 8x6 right of f gap 0.9 cell 0.13 gap 0.06 {.tone-2}
+text gl "8 × 6" below g gap 0.3 {.small .muted}
+
+step bins
+  show b1, b2, b3
+step exception
+  style g-7-0, g-7-1, g-7-2 {.tone-4}
+  emph f-0, f-1, f-2
+:::
+
+**Beide Anweisungen erzeugen gewöhnliche Elemente, und nur deshalb sind sie billig.** `bars` wird beim Parsen zu einer Box je Säule (`f-0` … `f-11`), einer Grundlinie und – wenn eine zweite Zeichenkette dasteht – einem Text je Beschriftung; `grid` zu einer Zelle je Feld (`g-<spalte>-<zeile>`). Damit muss nichts dahinter etwas Neues lernen: Die `brace` überspannt drei Säulen, weil drei Säulen drei ganz normale Kästen sind, und ein `style`-Schritt färbt drei Zellen, weil es Kästen sind. Möglich ist das, weil eine Koordinate die eines anderen Elements sein darf – jede Zelle steht an der Kante des Rahmens, den dieselbe Anweisung anlegt.
+
+**`cell` misst wie `pad` auf beiden Achsen in `uh`.** Eine Rasterzelle muss quadratisch sein, und eine Zahl, die quer `uw` und hoch `uh` bedeutete, gäbe Quadrate nur dort, wo die Einheit zufällig quadratisch ist.
+
 ## figure: A raster does not follow the theme {.standard #raster}
 
 ::: diagram {unit=150x60}

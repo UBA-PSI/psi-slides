@@ -109,10 +109,19 @@ const DENSITY_BUDGET = {
 // The rule that still holds: **import only the tables.** A function from that
 // module would pull the whole compiler in behind it, and lint.js stays
 // runnable without the Markdown/Shiki stack precisely because it does not.
+//
+// The four dg*Name helpers are the one bend in that rule, and they are still
+// a table: what `bars` and `grid` call the elements they expand into, indexed
+// rather than listed. This file has to agree with the compiler exactly - a
+// `brace over f-0,f-1,f-2` names elements no line of the source declares -
+// and writing the scheme out twice is the duplication importing the tables
+// was meant to end. They are one-liners with no dependencies of their own,
+// so nothing comes in behind them.
 import {
   DG_KEYWORDS, DG_STEP_OPS, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES,
   DG_KIND_OPTS, DG_BRACE_SIDES, DG_ALIGN_X, DG_ALIGN_Y, DG_SCALAR_X,
-  DG_SCALAR_Y, DG_DEFAULT_KINDS, DG_ANCHORS, DG_DEFINES,
+  DG_SCALAR_Y, DG_DEFAULT_KINDS, DG_ANCHORS, DG_DEFINES, DG_GRID_KINDS, DG_GRID_MAX,
+  dgBarName, dgTickName, dgBaseName, dgCellName,
 } from './diagram-core.mjs';
 
 const REVEAL_PCT_WARN = 0.5;
@@ -421,6 +430,61 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       continue;
     }
     inStep = false;
+
+    // `bars` and `grid` are the two statements that declare more than one
+    // name. Everything they expand into is an ordinary element by the time the
+    // compiler is done, and a `brace over f-0,f-1,f-2` is the whole point of
+    // the naming - so unless this file registers those names too, every figure
+    // built from a chart reports a dozen undefined references.
+    if (head === 'bars' || head === 'grid') {
+      const id = words[1];
+      define(id, ln);
+      if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: id, tags: attrs.tags, ln });
+      const strings = [...noAttr.matchAll(/"([^"]*)"/g)].map(m => m[1]);
+      if (head === 'bars') {
+        const n = (strings[0] || '').split(',').map(s => s.trim()).filter(Boolean).length;
+        if (!n) {
+          add(ln, 'error', 'bad-diagram-bars',
+              `bars ${id || ''} needs its values as one string, e.g. "18,17,15,11"`);
+        }
+        for (let i = 0; i < n; i++) define(dgBarName(id, i), ln);
+        if (strings[1] !== undefined) {
+          const ticks = strings[1].trim().split(/\s+/).filter(Boolean);
+          if (ticks.length !== n) {
+            add(ln, 'warn', 'bad-diagram-bars', `bars ${id}: ${ticks.length} tick label(s) for `
+                + `${n} column(s) – the second string is split on spaces, one label per column`);
+          }
+          for (let i = 0; i < Math.min(ticks.length, n); i++) define(dgTickName(id, i), ln);
+        }
+        define(dgBaseName(id), ln);
+      } else {
+        const kindWord = words[2];
+        if (!DG_GRID_KINDS.has(kindWord)) {
+          add(ln, 'error', 'bad-diagram-grid', `grid ${id || ''}: expected one of `
+              + `${[...DG_GRID_KINDS].join(', ')} after the name, got '${kindWord || ''}'`);
+        }
+        const dims = words.map(w => /^(\d+)x(\d+)$/.exec(w)).find(Boolean);
+        if (!dims) {
+          add(ln, 'error', 'bad-diagram-grid',
+              `grid ${id || ''}: expected the shape as CxR (columns by rows)`);
+        } else if (+dims[1] * +dims[2] > DG_GRID_MAX || +dims[1] < 1 || +dims[2] < 1) {
+          add(ln, 'error', 'bad-diagram-grid', `grid ${id}: ${dims[1]}x${dims[2]} is `
+              + `${+dims[1] * +dims[2]} cells – between 1 and ${DG_GRID_MAX}, above which a `
+              + 'picture stops being countable anyway');
+        } else {
+          for (let r = 0; r < +dims[2]; r++) {
+            for (let c = 0; c < +dims[1]; c++) define(dgCellName(id, c, r), ln);
+          }
+        }
+      }
+      // The placement is the ordinary grammar, so the ordinary reference
+      // checks apply to it.
+      for (let k = 2; k < words.length; k++) {
+        if (words[k] === 'of' || words[k] === 'below' || words[k] === 'above') refer(words[k + 1], ln, `${head} ${id}`);
+        if (words[k] === 'at' && words[k + 1] && words[k + 1].includes(',')) referPair(words[k + 1], ln, `${head} ${id} at`);
+      }
+      continue;
+    }
 
     if (DG_DEFINES.has(head)) {
       define(words[1], ln);

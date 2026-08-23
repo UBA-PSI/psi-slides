@@ -220,7 +220,7 @@ export const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', '
 // branches on each keyword by name – but the linter needs the set, and a
 // second hand-written copy of the vocabulary is exactly what this module
 // exists to stop.
-export const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container']);
+export const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container', 'bars', 'grid']);
 // Scalar coordinates of an element, for use where a single number would go.
 // `left`/`right` are x, `top`/`bottom` are y, `cx`/`cy` the centres. Naming
 // the wrong axis is an error rather than a silent transposition.
@@ -228,7 +228,29 @@ export const DG_SCALAR_X = new Set(['cx', 'left', 'right']);
 export const DG_SCALAR_Y = new Set(['cy', 'top', 'bottom']);
 
 export const DG_STEP_OPS = new Set(['show', 'hide', 'move', 'emph', 'calm', 'style', 'label']);
-export const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'align', 'spread', 'default', 'step']);
+export const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'bars', 'grid', 'align', 'spread', 'default', 'step']);
+// What a `grid` may repeat. Not `text` – a grid of identical words is a
+// paragraph, and not `edge`, which has two ends rather than a cell.
+export const DG_GRID_KINDS = new Set(['box', 'dot', 'image']);
+// A picture whose argument is "count the exceptions" stops making that
+// argument long before this, and a runaway number here would be N elements
+// through every step of the layout.
+export const DG_GRID_MAX = 400;
+// What a `bars` or a `grid` calls the elements it expands into. Four
+// one-line functions rather than four sentences of prose, because both the
+// compiler and lint.js have to agree on them exactly: the linter checks that
+// `brace over f-0,f-1,f-2` names things that exist, and it re-implements the
+// parsing contract rather than importing the compiler.
+//
+// This is the one place that rule bends. `lint.js` takes tables from this
+// module and never a function, so that the whole compiler cannot come in
+// behind one - but a naming scheme *is* a table, one that happens to be
+// parameterised by an index, and writing it out twice is precisely the
+// two-files-one-commit duplication importing the tables was meant to end.
+export const dgBarName = (id, i) => `${id}-${i}`;
+export const dgTickName = (id, i) => `${id}-tick-${i}`;
+export const dgBaseName = (id) => `${id}-base`;
+export const dgCellName = (id, c, r) => `${id}-${c}-${r}`;
 // Figma's and PowerPoint's edge words, but with the axis stated:
 // `align x center` / `align y middle`. Naming the axis costs one token and
 // removes a trap that caught its own author – "center" and "middle" are
@@ -251,6 +273,11 @@ export const DG_BRACE_SIDES = ['right', 'left', 'top', 'bottom'];
 export const DG_KIND_OPTS = {
   box: ['w', 'h', 'pad'], text: ['w', 'h', 'pad'], image: ['w', 'h'], dot: ['r'],
   container: ['pad'], brace: ['pad'], edge: [],
+  // Not reachable from a `default` block – these two are not element kinds,
+  // they are statements that expand into element kinds, and the elements they
+  // produce take their defaults from `default box` like any other box. The
+  // table is here because the linter reads it to check option names.
+  bars: ['w', 'h', 'gap'], grid: ['cell', 'gap'],
 };
 export const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid units
 
@@ -738,6 +765,31 @@ export function rejectShapeOn(kindWord, classes, lineNo, errors) {
     dgErr(errors, lineNo, `.${c} is an outline, and only a box has one to shape – `
       + `a ${kindWord} would keep its own and the class would do nothing.`);
   }
+}
+
+// What a `bars` or a `grid` may say after its shape: a placement, like every
+// other statement, plus the two or three numbers that size it. Kept in one
+// reader because the two statements differ only in which numbers they accept,
+// and a second copy would be the place the two drifted apart.
+export function readGridOpts(head, id, rest0, lineNo, errors) {
+  const rest = rest0.map(x => ({ v: x.v, s: x.s, e: x.e }));
+  const out = { place: null, w: null, h: null, cell: null, gap: null };
+  const allowed = head === 'bars' ? ['w', 'h', 'gap'] : ['cell', 'gap'];
+  let k = 0;
+  while (k < rest.length) {
+    const key = rest[k].v;
+    if (allowed.includes(key)) {
+      out[key] = dgNum(rest[k + 1]?.v, errors, lineNo, `${head} ${id} ${key}`);
+      k += 2;
+      continue;
+    }
+    const [place, next] = dgParsePlacement(rest, k, errors, lineNo);
+    if (place) { out.place = place; k = next; continue; }
+    dgErr(errors, lineNo, `unexpected "${key}" in ${head} ${id} – `
+      + `this statement takes a placement and ${allowed.join(' / ')}`);
+    return null;
+  }
+  return out;
 }
 
 export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) {
@@ -1545,6 +1597,196 @@ export function createDiagramCompiler(env = {}) {
       // A definition after the first step block ends step mode: definitions
       // are the picture, steps are what happens to it.
       step = null;
+
+      // ── bars / grid ──────────────────────────────────────────────────
+      //
+      // Both expand, here at parse time, into ordinary boxes, texts and
+      // edges. Nothing downstream learns a new element kind: layout, extents,
+      // the viewBox, visibility inheritance, steps, the linter and the editor
+      // all keep working on the elements they already understand, and a
+      // `brace over f-0,f-1,f-2` groups three columns of a chart without one
+      // line of special handling anywhere.
+      //
+      // What makes the expansion possible at all is that an `at` may name
+      // another element's coordinate: every cell is placed against the frame
+      // this statement also creates, which is a real dependency edge and goes
+      // through the same topological walk as everything else.
+      if (head === 'bars' || head === 'grid') {
+        const id = t(1);
+        if (!id) { dgErr(errors, lineNo, `${head} needs a name`); continue; }
+        claim(id, head, lineNo);
+        rejectShapeOn('box', attrs.classes, lineNo, errors);
+        const qToks = toks.filter(x => x.q);
+        // A synthetic element carries the statement's own span so an error
+        // names the line that wrote it, and `synth` so anything that rewrites
+        // source – the editor above all – knows there is no line of its own
+        // to rewrite. Same contract the leader stub follows with `lead`.
+        const synth = (el) => ({ ...el, synth: id, line: lineNo, span });
+        // The same courtesy every other statement gets: the first element in a
+        // block anchors the drawing at the origin, so a figure that is only a
+        // chart needs no coordinates at all.
+        const framePlace = (place) => {
+          if (place) return place;
+          if (model.nodes.length === 0) return { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] };
+          dgErr(errors, lineNo, `${head} ${id} has no placement (at X,Y / below … / above … / right of … / left of … )`);
+          return { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] };
+        };
+        // A column with rounded corners is not a column. The class is only
+        // added where the author claimed no outline of their own, or the
+        // element would carry two of one slot and stylesheet order - not the
+        // author - would decide which one showed.
+        const squared = (cls) => (cls.some(c => c === 'round' || c === 'sharp' || DG_SHAPE_CLASSES.has(c))
+          ? cls : ['sharp', ...cls]);
+        const at = (xn, yn) => ({
+          kind: 'abs',
+          at: [{ ref: id, prop: 'left', nudge: xn }, { ref: id, prop: 'top', nudge: yn }],
+        });
+
+        if (head === 'bars') {
+          const valsTok = qToks[0];
+          if (!valsTok) {
+            dgErr(errors, lineNo, `bars ${id} needs its values as one string, e.g. "18,17,15,11"`);
+            continue;
+          }
+          const values = valsTok.v.split(',').map(s => s.trim()).filter(s => s !== '')
+            .map(s => dgNum(s, errors, lineNo, `bars ${id} value`));
+          if (!values.length) {
+            dgErr(errors, lineNo, `bars ${id}: no values in "${valsTok.v}" – expected numbers separated by commas`);
+            continue;
+          }
+          const max = Math.max(...values);
+          if (!(max > 0)) {
+            dgErr(errors, lineNo, `bars ${id}: at least one value has to be greater than zero, `
+              + 'or every column would have no height and the chart no scale');
+            continue;
+          }
+          const opts = readGridOpts(head, id, body0.slice(2), lineNo, errors);
+          if (!opts) continue;
+          const W = opts.w != null ? opts.w : values.length * 0.22;
+          const H = opts.h != null ? opts.h : 1;
+          const cell = W / values.length;
+          // `gap` is the space between two columns, in grid units – the same
+          // sentence the word already is everywhere else in this grammar. It
+          // was briefly a fraction of the column here, which is exactly the
+          // kind of second meaning for one word this DSL keeps refusing.
+          const gapU = opts.gap != null ? opts.gap : cell * 0.25;
+          const barW = Math.max(cell - gapU, cell * 0.15);
+
+          // The frame is a real box, sized and placed the way the statement
+          // says, and invisible unless the author tints it. Everything else
+          // hangs off its edges, so moving the statement moves the chart.
+          model.nodes.push(synth({
+            kind: 'box', id, label: '', classes: ['bare', 'clear'], tags: attrs.tags,
+            place: framePlace(opts.place), w: W, h: H, r: null, pad: null, frame: true,
+          }));
+          values.forEach((v, i) => {
+            const bh = (v / max) * H;
+            claim(dgBarName(id, i), 'box', lineNo);
+            model.nodes.push(synth({
+              kind: 'box', id: dgBarName(id, i), label: '', classes: squared(attrs.classes), tags: attrs.tags,
+              place: at(cell * i + cell / 2, H - bh / 2),
+              w: barW, h: bh, r: null, pad: null,
+            }));
+          });
+          // The tick strip is one text per column, placed against the frame
+          // rather than under its own column: the columns have different
+          // heights and `below` would step the labels up and down with them.
+          const tickTok = qToks[1];
+          if (tickTok) {
+            const ticks = tickTok.v.trim().split(/\s+/);
+            if (ticks.length !== values.length) {
+              dgErr(errors, lineNo, `bars ${id}: ${ticks.length} tick label(s) for ${values.length} `
+                + 'column(s) – the second string is split on spaces, one label per column');
+            }
+            ticks.forEach((tk, i) => {
+              if (i >= values.length) return;
+              claim(dgTickName(id, i), 'text', lineNo);
+              model.nodes.push(synth({
+                kind: 'text', id: dgTickName(id, i), label: tk, classes: ['small', 'muted'], tags: attrs.tags,
+                place: at(cell * i + cell / 2, H + 0.18),
+                w: null, h: null, r: null, pad: null,
+              }));
+            });
+          }
+          // The baseline is what makes a row of rectangles read as a chart.
+          // An author who does not want it writes `hide <name>-base`.
+          claim(dgBaseName(id), 'edge', lineNo);
+          model.edges.push(synth({
+            kind: 'edge', id: dgBaseName(id), synth: id,
+            from: { ref: id, anchor: 'bl' }, to: { ref: id, anchor: 'br' },
+            label: '', classes: ['no-head', 'muted'], via: [],
+          }));
+          continue;
+        }
+
+        // grid: C×R cells of one size, for the pictures whose argument is
+        // that you can count the exceptions. Written out by hand these are
+        // longer than every other figure in a lecture put together.
+        const kindWord = t(2);
+        if (!DG_GRID_KINDS.has(kindWord)) {
+          dgErr(errors, lineNo, `grid ${id}: expected one of ${[...DG_GRID_KINDS].join(', ')} `
+            + `after the name, got "${kindWord || ''}"`);
+          continue;
+        }
+        const isImg = kindWord === 'image';
+        const src = isImg ? t(3) : null;
+        if (isImg && !src) { dgErr(errors, lineNo, `grid ${id}: image needs an asset`); continue; }
+        let asset = null, aspect = null;
+        if (isImg) {
+          asset = resolveImage(src);
+          if (!asset) {
+            dgErr(errors, lineNo, `grid ${id}: cannot find "${src}" – expected assets/${src}.{svg,png,jpg,…}, a path, or an https URL`);
+            continue;
+          }
+          aspect = asset.abs ? imageAspect(asset.abs) : null;
+        }
+        const dimsAt = isImg ? 4 : 3;
+        const dims = /^(\d+)x(\d+)$/.exec(t(dimsAt) || '');
+        if (!dims) {
+          dgErr(errors, lineNo, `grid ${id}: expected the shape as CxR (columns by rows), got "${t(dimsAt) || ''}"`);
+          continue;
+        }
+        const cols = +dims[1], rows = +dims[2];
+        if (cols < 1 || rows < 1 || cols * rows > DG_GRID_MAX) {
+          dgErr(errors, lineNo, `grid ${id}: ${cols}x${rows} is ${cols * rows} cells – `
+            + `between 1 and ${DG_GRID_MAX}, above which a picture stops being countable anyway`);
+          continue;
+        }
+        const opts = readGridOpts(head, id, body0.slice(dimsAt + 1), lineNo, errors);
+        if (!opts) continue;
+        // `cell` and `gap` are measured in *uh* on both axes, the same
+        // decision `pad` made and for the same reason: a grid cell has to be
+        // square, and one number that meant uw across and uh down would give
+        // squares only where the unit happened to be square. Everything below
+        // works in grid units, so the horizontal ones are converted once.
+        const cellU = opts.cell != null ? opts.cell : 0.25;
+        const gapU = opts.gap != null ? opts.gap : cellU * 0.25;
+        const toX = model.unit[1] / model.unit[0];
+        const cellX = cellU * toX, gapX = gapU * toX;
+        const pitchX = cellX + gapX, pitchY = cellU + gapU;
+        model.nodes.push(synth({
+          kind: 'box', id, label: '', classes: ['bare', 'clear'], tags: attrs.tags,
+          place: framePlace(opts.place), w: cols * pitchX - gapX, h: rows * pitchY - gapU,
+          r: null, pad: null, frame: true,
+        }));
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const cid = dgCellName(id, c, r);
+            claim(cid, kindWord, lineNo);
+            const cellNode = synth({
+              kind: kindWord, id: cid, label: '', alt: '', classes: attrs.classes, tags: attrs.tags,
+              place: at(c * pitchX + cellX / 2, r * pitchY + cellU / 2),
+              w: kindWord === 'dot' ? null : cellX,
+              h: kindWord === 'dot' ? null : cellU,
+              r: kindWord === 'dot' ? cellU / 2 : null,
+              pad: null,
+            });
+            if (isImg) { cellNode.src = src; cellNode.asset = asset; cellNode.aspect = aspect; }
+            model.nodes.push(cellNode);
+          }
+        }
+        continue;
+      }
 
       if (head === 'box' || head === 'dot' || head === 'text' || head === 'image') {
         const id = t(1);
