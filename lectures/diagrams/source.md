@@ -104,9 +104,13 @@ default box @dec {.round .tone-2} w 0.48
 default text {.mono}
 
 box iv "Rand. IV" at 0,0 {.tone-1}
-box c0 "c_0" right of iv gap 0.3
-box c1 "c_1" right of c0 gap 0.3
-box c2 "c_2" right of c1 gap 0.3
+# Die Spalten stehen weiter auseinander, als die Kästen es bräuchten. Der
+# Zwischenraum ist kein Weißraum, sondern der Kanal, in dem die Verkettung
+# nach unten läuft – bei gap 0.3 blieb dafür nichts übrig, was die Linie
+# entweder durch den Dec-Kasten oder über die Schlüssel-Beschriftung zwang.
+box c0 "c_0" right of iv gap 0.75
+box c1 "c_1" right of c0 gap 0.75
+box c2 "c_2" right of c1 gap 0.75
 
 box d0 "Dec" below c0 gap 0.95 {@dec}
 box d1 "Dec" below c1 gap 0.95 {@dec}
@@ -134,9 +138,13 @@ edge d2 -> x2
 edge x0 -> m0
 edge x1 -> m1
 edge x2 -> m2
-edge iv -> x0 via iv.cx,d0.bottom+0.28 {#feed0}
-edge c0 -> x1 via c0.cx,d0.bottom+0.28 {#feed1}
-edge c1 -> x2 via c1.cx,d0.bottom+0.28 {#feed2}
+# Die Verkettung verlässt den Chiffrat-Kasten seitlich und läuft in der Lücke
+# zwischen den Spalten nach unten. Geradewegs nach unten wäre kürzer und
+# falsch: der Dec-Kasten steht genau darunter, die Linie liefe mitten
+# hindurch und legte sich über den Pfeil, der wirklich hineinführt.
+edge iv -> x0 via iv.right+0.2,iv.cy iv.right+0.2,d0.bottom+0.28 {#feed0}
+edge c0 -> x1 via c0.right+0.2,c0.cy c0.right+0.2,d0.bottom+0.28 {#feed1}
+edge c1 -> x2 via c1.right+0.2,c1.cy c1.right+0.2,d0.bottom+0.28 {#feed2}
 
 align y middle iv, c0, c1, c2
 align y middle d0, d1, d2

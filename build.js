@@ -3216,6 +3216,8 @@ function renderHelpOverlay(view, withEditor) {
     ['drag · drag a handle', 'move it · resize it – the status bar shows the line it will write'],
     ['arrows · <kbd>Shift</kbd>-arrows', 'nudge the selection, fine · coarse'],
     ['<kbd>Ctrl</kbd> while dragging', 'suspend snapping, for when 0.5847 is meant'],
+    ['<kbd>Alt</kbd> while dragging', 'leave an align or spread set at once – or just pull half a cell clear of it'],
+    ['double-click a waypoint', 'take it off the arrow – the hollow dots on the line put one back'],
     ['<kbd>Delete</kbd>', 'delete, after listing what refers to it'],
     ['<kbd>Ctrl</kbd>-<kbd>Z</kbd> · <kbd>Shift</kbd>-<kbd>Ctrl</kbd>-<kbd>Z</kbd>', 'undo · redo'],
     ['<kbd>Ctrl</kbd>-<kbd>A</kbd> · <kbd>Ctrl</kbd>-<kbd>D</kbd>', 'select all · duplicate'],

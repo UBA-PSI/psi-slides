@@ -61,8 +61,14 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   note('after : ' + after);
   ok(/^edge c2 -> x0/.test((after || '').trim()),
     'dragging the from-handle onto c2 rewrites the endpoint by name', after);
-  ok((after || '').includes('via iv.cx,d0.bottom+0.28'),
-    'the waypoint on the line survives untouched', after);
+  // Derived from the line rather than written out: pinning a spec to a
+  // lecture's exact coordinates makes it fail every time the figure is
+  // redrawn, which says nothing about the editor. The property is that
+  // retargeting one end leaves the route alone.
+  const viaOf = (l) => ((l || '').match(/ via [^{]*/) || [''])[0].trim();
+  ok(!!viaOf(before) && viaOf(after) === viaOf(before),
+    'the waypoints on the line survive untouched',
+    JSON.stringify(viaOf(before)) + ' -> ' + JSON.stringify(viaOf(after)));
   ok((after || '').includes('"erste Zeile\\nzweite Zeile"'), 'so does the label', after);
 
   // ── undo, redo, swap ──

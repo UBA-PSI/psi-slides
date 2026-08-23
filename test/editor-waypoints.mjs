@@ -26,12 +26,19 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   const before = await ed.lineWith('#feed0');
   note('before : ' + before);
 
+  // Counted off the line rather than written out, so redrawing the figure
+  // does not make the spec wrong about the editor.
+  const viaWords = (l) => ((l || '').match(/ via ([^{]*)/) || [null, ''])[1].trim().split(/\s+/).filter(Boolean);
+  const held = viaWords(before).filter(w => /[A-Za-z_][\w-]*\.[a-z]+/.test(w));
+  const want = viaWords(before).length;
+  note(want + ' waypoint(s), ' + held.length + ' of them holding a reference');
+
   const nVia = () => page.locator('#dge-guides .dge-h-via').count();
-  ok(await nVia() === 1, 'one waypoint handle', String(await nVia()));
-  ok(await page.locator('#dge-guides .dge-h-via.dge-h-held').count() === 1,
-    'marked as holding a reference');
-  ok(await page.locator('#dge-guides .dge-h-add').count() === 2,
-    'a hollow add-dot on each of the two segments',
+  ok(await nVia() === want, 'a handle on every waypoint', String(await nVia()));
+  ok(await page.locator('#dge-guides .dge-h-via.dge-h-held').count() === held.length,
+    'and the ones holding a reference are marked as such');
+  ok(await page.locator('#dge-guides .dge-h-add').count() === want + 1,
+    'a hollow add-dot on every segment',
     String(await page.locator('#dge-guides .dge-h-add').count()));
   const headings = await page.evaluate(() =>
     [...document.querySelectorAll('#dge-side h3')].map(h => h.textContent));
@@ -41,10 +48,17 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   await ed.drag(await ed.centreOf('#dge-guides .dge-h-via'), 70, 45);
   const moved = await ed.lineWith('#feed0');
   note('moved  : ' + moved);
-  ok(/via iv\.cx[+-][\d.]+,d0\.bottom[+-][\d.]+/.test(moved || ''),
-    'a drag rewrites both nudges and keeps iv.cx and d0.bottom', moved);
-  ok(!/via [\d.]+,[\d.]+/.test(moved || ''),
-    'it did not collapse the reference into a pair of numbers', moved);
+  ok(moved !== before, 'the drag wrote something', moved);
+  // The references are the assertion. Every name.prop the waypoint held has
+  // to still be there, and none of them may have become a bare number.
+  const refName = (w) => (w.match(/[A-Za-z_][\w-]*\.[a-z]+/g) || []);
+  const kept = refName(viaWords(before).join(' '));
+  const now = refName(viaWords(moved).join(' '));
+  ok(kept.length > 0 && kept.every(r => now.includes(r)),
+    'every reference the waypoints held is still there',
+    JSON.stringify(kept) + ' -> ' + JSON.stringify(now));
+  ok(/[A-Za-z_][\w-]*\.[a-z]+[+-][\d.]+/.test(moved || ''),
+    'and the drag landed in a signed nudge rather than replacing one', moved);
 
   // ── inserting, and what must survive it ──
   const addDot = await page.evaluate(() => {
@@ -55,23 +69,42 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   await ed.drag(addDot, -60, -40, 10);
   const added = await ed.lineWith('#feed0');
   note('added  : ' + added);
-  ok(/via [-\d.]+,[-\d.]+ iv\.cx/.test(added || ''),
-    'the new waypoint lands first and the reference one is re-emitted verbatim', added);
-  ok(await nVia() === 2, 'two waypoint handles now', String(await nVia()));
+  const wordsAdded = viaWords(added);
+  ok(wordsAdded.length === want + 1, 'one more waypoint than before',
+    JSON.stringify(wordsAdded));
+  ok(/^-?[\d.]+,-?[\d.]+$/.test(wordsAdded[0] || ''),
+    'the new one lands first, as a plain coordinate', JSON.stringify(wordsAdded[0]));
+  ok(wordsAdded.slice(1).join(' ') === viaWords(moved).join(' '),
+    'and every waypoint that was already there is re-emitted verbatim',
+    JSON.stringify(wordsAdded.slice(1)) + ' vs ' + JSON.stringify(viaWords(moved)));
+  ok(await nVia() === want + 1, 'with a handle each', String(await nVia()));
 
-  // ── and removing ──
+  // ── removing, on the canvas ──
+  // The double-click has to be recognised from position and time. The first
+  // click ends a zero-length drag whose gestureEnd repaints the guide layer,
+  // so the second lands on a different node carrying the same id: a dblclick
+  // listener fires on their common ancestor instead, and the browser resets
+  // pointerdown's own click counter. Both looked like working controls and
+  // neither ever fired - which is how this shipped with no way at all to take
+  // a waypoint off the canvas.
+  const firstVia = await ed.centreOf('#dge-guides .dge-h-via');
+  await page.mouse.dblclick(firstVia.x, firstVia.y);
+  await page.waitForTimeout(450);
+  ok(await nVia() === want, 'a double-click on a waypoint takes it out again',
+    String(await nVia()) + ' handles, line: ' + (await ed.lineWith('#feed0')));
+  ok(await ed.lineWith('#feed0') === moved,
+    'and the line is back to what it was before the insert', await ed.lineWith('#feed0'));
+
+  // ── and removing, from the panel ──
   const removeFirstChip = () => page.evaluate(() => {
     const chips = [...document.querySelectorAll('#dge-side .dge-chip')].filter(c => c.textContent.includes(','));
     if (chips[0]) chips[0].click();
   });
-  await removeFirstChip();
-  await page.waitForTimeout(400);
-  ok(await ed.lineWith('#feed0') === moved,
-    'removing it restores the line exactly', await ed.lineWith('#feed0'));
-
   const wholeBefore = (await ed.source()).split('\n');
-  await removeFirstChip();
-  await page.waitForTimeout(400);
+  for (let i = 0; i < 8 && (await ed.lineWith('#feed0') || '').includes(' via '); i++) {
+    await removeFirstChip();
+    await page.waitForTimeout(350);
+  }
   const bare = await ed.lineWith('#feed0');
   note('bare   : ' + bare);
   ok(!!bare && !bare.includes('via'), 'removing the last one takes the clause with it', bare);

@@ -3721,6 +3721,8 @@ body[data-view=speaker].preview-right #preview-resizer::after {
         <dt>drag · drag a handle</dt><dd>move it · resize it – the status bar shows the line it will write</dd>
         <dt>arrows · <kbd>Shift</kbd>-arrows</dt><dd>nudge the selection, fine · coarse</dd>
         <dt><kbd>Ctrl</kbd> while dragging</dt><dd>suspend snapping, for when 0.5847 is meant</dd>
+        <dt><kbd>Alt</kbd> while dragging</dt><dd>leave an align or spread set at once – or just pull half a cell clear of it</dd>
+        <dt>double-click a waypoint</dt><dd>take it off the arrow – the hollow dots on the line put one back</dd>
         <dt><kbd>Delete</kbd></dt><dd>delete, after listing what refers to it</dd>
         <dt><kbd>Ctrl</kbd>-<kbd>Z</kbd> · <kbd>Shift</kbd>-<kbd>Ctrl</kbd>-<kbd>Z</kbd></dt><dd>undo · redo</dd>
         <dt><kbd>Ctrl</kbd>-<kbd>A</kbd> · <kbd>Ctrl</kbd>-<kbd>D</kbd></dt><dd>select all · duplicate</dd>
@@ -11100,6 +11102,7 @@ const DGE = {
   prefix: '',            // the compiler's id prefix inside the painted SVG
   beat: 0,               // which beat the canvas shows
   selection: [],         // element ids, first is the master for align/spread
+  strain: null,          // the shared axis a drag is currently pushing against
   tool: 'select',
   toolLocked: false,
   frame: 'slide',
@@ -11715,39 +11718,47 @@ function dgeDrawRelations(g, id) {
   // The sets. A shared axis runs as a hairline through every member with the
   // master marked, so "that coordinate is not this element's to move" is
   // something you can see before you try.
+  // While a drag is pushing against a shared axis, that axis is the answer to
+  // what the author is trying to do, so it stops being a hairline and says
+  // how much further they have to pull to leave it.
+  const strained = (rec) => !!(DGE.strain && DGE.strain.owner && DGE.strain.owner.line === rec.line);
+  const pullNote = ' · pull ' + (DGE.strain ? dgeNum(DGE.strain.need) : '') + ' more or hold Alt';
   for (const a of DGE.model.aligns) {
     if (!a.members.includes(id)) continue;
     const boxes = a.members.map((m) => DGE.boxes.get(m)).filter(Boolean);
     if (!boxes.length) continue;
     const master = DGE.boxes.get(a.members[0]);
     if (!master) continue;
+    const hot = strained(a);
+    const cap = 'align ' + a.axis + ' ' + a.edge + (hot ? pullNote : '');
     if (a.axis === 'x') {
       const x = a.edge === 'left' ? master.x : a.edge === 'right' ? master.x + master.w : mid(master);
       const ys = boxes.flatMap((q) => [q.y, q.y + q.h]);
-      tick(x, Math.min(...ys) - 14, x, Math.max(...ys) + 14);
-      label(x + 4, Math.min(...ys) - 17, 'align x ' + a.edge);
+      tick(x, Math.min(...ys) - 14, x, Math.max(...ys) + 14, hot);
+      label(x + 4, Math.min(...ys) - 17, cap);
     } else {
       const y = a.edge === 'top' ? master.y : a.edge === 'bottom' ? master.y + master.h : midY(master);
       const xs = boxes.flatMap((q) => [q.x, q.x + q.w]);
-      tick(Math.min(...xs) - 14, y, Math.max(...xs) + 14, y);
-      label(Math.max(...xs) + 17, y - 4, 'align y ' + a.edge);
+      tick(Math.min(...xs) - 14, y, Math.max(...xs) + 14, y, hot);
+      label(Math.max(...xs) + 17, y - 4, cap);
     }
   }
   for (const s of DGE.model.spreads) {
     if (!s.members.includes(id)) continue;
     const boxes = s.members.map((m) => DGE.boxes.get(m)).filter(Boolean);
     if (boxes.length < 2) continue;
+    const hotSpread = strained(s);
     // Equal centre distances as matched marks, which is what `spread` means.
     for (let i = 1; i < boxes.length; i++) {
       const a = boxes[i - 1], z = boxes[i];
       if (s.axis === 'x') {
         const y = Math.min(...boxes.map((q) => q.y)) - 12;
-        tick(mid(a), y, mid(z), y);
-        label((mid(a) + mid(z)) / 2 - 6, y - 4, '=');
+        tick(mid(a), y, mid(z), y, hotSpread);
+        label((mid(a) + mid(z)) / 2 - 6, y - 4, i === 1 && hotSpread ? '=' + pullNote : '=');
       } else {
         const x = Math.min(...boxes.map((q) => q.x)) - 12;
-        tick(x, midY(a), x, midY(z));
-        label(x - 12, (midY(a) + midY(z)) / 2, '=');
+        tick(x, midY(a), x, midY(z), hotSpread);
+        label(x - 12, (midY(a) + midY(z)) / 2, i === 1 && hotSpread ? '=' + pullNote : '=');
       }
     }
   }
@@ -11848,6 +11859,10 @@ function dgeFind(id, model) {
 // the set.
 
 const DGE_SNAP_CELL = 0.05;      // round values on the cell grid
+// How far a follower has to be pulled against its shared axis before it
+// leaves the set. Half a cell: far enough that nudging one of a row of boxes
+// keeps the row, close enough that leaving is a gesture rather than a fight.
+const DGE_BREAK_CELL = 0.5;
 const DGE_ALIGN_TOL = 0.06;      // how close counts as "on that edge", in cells
 
 function dgeRound(v, step) {
@@ -11872,30 +11887,60 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
   const edits = [];
   const refusals = [];
   const free = opts && opts.free;      // Ctrl/Cmd held: no snapping
+  const leave = opts && opts.leave;    // Alt held: leave the set at once
   const snap = (v) => (free ? v : dgeRound(v, DGE_SNAP_CELL));
+  let strain = null;
 
-  // A coordinate owned by a set is not this element's to move. Name the line
-  // and say what to do instead, rather than silently breaking the set.
-  const blocked = (axis) => {
+  // A coordinate owned by a set is not this element's to move - until the
+  // author insists. Pulling a follower against its shared axis holds it on
+  // the axis, draws the axis it is held by, and says how much further to pull;
+  // past DGE_BREAK_CELL, or with Alt held, it drops the element from the
+  // statement and the drag goes through.
+  //
+  // This used to be a flat refusal naming the line and telling the author to
+  // go and make that edit by hand. The information was right and the answer
+  // was wrong: a set you cannot leave by dragging is a set the canvas cannot
+  // express, and "drop bob from that line" is precisely the edit the editor
+  // exists to make. The threshold is what keeps the set from dissolving under
+  // an ordinary nudge - leaving has to be something you meant.
+  const held = (axis, delta) => {
     const owner = ctx.spans.constrainedBy(id, axis);
     if (!owner) return false;
-    const master = owner.members[0];
-    refusals.push(owner.kind === 'align'
-      ? `${axis} comes from "align ${owner.axis} ${owner.edge}" on line ${owner.line}. `
-        + `Drag ${master} to move the row, or drop ${id} from that line.`
-      : `${axis} comes from "spread ${owner.axis}" on line ${owner.line}. `
-        + `Drag ${owner.members[0]} or ${owner.members[owner.members.length - 1]} to move the set.`);
-    return true;
+    const past = Math.abs(delta) - DGE_BREAK_CELL;
+    if (past < 0 && !leave) {
+      const master = owner.members[0];
+      strain = { axis, owner, need: -past };
+      refusals.push(owner.kind === 'align'
+        ? `${axis} is held by "align ${owner.axis} ${owner.edge}" on line ${owner.line}. `
+          + `Pull ${dgeNum(-past)} further, or hold Alt, to drop ${id} from it – `
+          + `or drag ${master} to move the whole row.`
+        : `${axis} is held by "spread ${owner.axis}" on line ${owner.line}. `
+          + `Pull ${dgeNum(-past)} further, or hold Alt, to drop ${id} from it – `
+          + `or drag ${owner.members[0]} or ${owner.members[owner.members.length - 1]} to move the set.`);
+      return true;
+    }
+    const rest = owner.members.filter((m) => m !== id);
+    const text = dgeStatementText(owner, rest);
+    edits.push(text === null
+      ? {
+        raw: dgeLineRange(ctx.source, owner.span), value: '',
+        why: `takes line ${owner.line} away – ${owner.kind} needs ${owner.kind === 'align' ? 'two' : 'three'}`,
+      }
+      : {
+        raw: owner.span, value: text,
+        why: `drops ${id} from ${owner.kind} on line ${owner.line}`,
+      });
+    return false;
   };
-  const xBlocked = dx !== 0 && blocked('x');
-  const yBlocked = dy !== 0 && blocked('y');
+  const xBlocked = dx !== 0 && held('x', dx);
+  const yBlocked = dy !== 0 && held('y', dy);
 
   if (!place || place.implicit) {
     // Nothing in the source to rewrite. The first element sits at the origin
     // for free; giving it a position means writing the placement out.
     const at = `at ${dgeNum(snap(dx))},${dgeNum(snap(dy))}`;
     edits.push({ attr: 'place', value: at, why: 'writes the placement out' });
-    return { edits, refusals };
+    return { edits, refusals, strain };
   }
 
   if (place.kind === 'abs') {
@@ -11918,7 +11963,7 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
         edits.push({ attr: `at.${axis}`, value: dgeNum(snap((c ? c.unit : 0) + delta)) });
       }
     }
-    return { edits, refusals };
+    return { edits, refusals, strain };
   }
 
   if (place.kind === 'between') {
@@ -11943,7 +11988,7 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
         }
       }
     }
-    return { edits, refusals };
+    return { edits, refusals, strain };
   }
 
   // A relation. The main axis is the gap; the cross axis is an alignment
@@ -11995,8 +12040,11 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
       edits.push({ attr: 'offset', value: `${dgeNum(nx)},${dgeNum(ny)}` });
     }
   }
-  if (!words0(edits) && (xBlocked || yBlocked)) return { edits: [], refusals };
-  return { edits, refusals };
+  // Held on the only axis this drag was about: nothing to write, and the
+  // strain has to travel with the answer or the status bar paints a set doing
+  // its job as an error.
+  if (!words0(edits) && (xBlocked || yBlocked)) return { edits: [], refusals, strain };
+  return { edits, refusals, strain };
 }
 
 const words0 = (a) => a.length > 0;
@@ -12033,6 +12081,10 @@ function dgeApplyEdits(ctx, id, edits) {
   const table = ctx.spans;
   const resolved = [];
   for (const e of edits) {
+    // An edit to somebody else's line. Leaving a shared axis rewrites the
+    // align or spread statement, which is not an attribute of the element
+    // being dragged and has no entry in its span table.
+    if (e.raw) { resolved.push({ start: e.raw[0], end: e.raw[1], text: e.value }); continue; }
     const sp = table.spanOf(id, e.attr === 'same-as' ? 'same-as' : e.attr);
     if (!sp) continue;
     if (e.drop || e.value === '') {
@@ -12055,6 +12107,30 @@ function dgeApplyEdits(ctx, id, edits) {
   let out = ctx.source;
   for (const r of resolved) out = out.slice(0, r.start) + r.text + out.slice(r.end);
   return out;
+}
+
+// The align/spread statement without one of its members, written the way the
+// grammar spells it. Regenerated rather than spliced: the member list is a
+// comma-separated run and taking one out of the middle is not a token
+// replacement. Returns null when what is left is too short to be a statement
+// at all, which is the caller's signal to take the whole line away.
+function dgeStatementText(owner, members) {
+  const min = owner.kind === 'align' ? 2 : 3;
+  if (members.length < min) return null;
+  return owner.kind === 'align'
+    ? `align ${owner.axis} ${owner.edge} ${members.join(', ')}`
+    : `spread ${owner.axis} ${members.join(', ')}`;
+}
+
+// A statement's whole line, indentation and closing newline included, for
+// when the statement itself has to go.
+function dgeLineRange(src, span) {
+  let a = span[0];
+  while (a > 0 && src[a - 1] !== '\n') a--;
+  let b = span[1];
+  while (b < src.length && src[b] !== '\n') b++;
+  if (b < src.length) b++;
+  return [a, b];
 }
 
 // ── undo, and committing a gesture ──────────────────────────────────
@@ -12208,23 +12284,31 @@ function dgeHitTest(pt, opts) {
 
 // ── canvas interaction ──────────────────────────────────────────────
 
+// A double-click on a handle cannot be recognised the two obvious ways. The
+// first click ends a zero-length drag, whose gestureEnd repaints the guide
+// layer - so the second click lands on a *different DOM node* carrying the
+// same id, which means a dblclick listener fires on their common ancestor
+// instead, and the browser resets pointerdown's own click counter to 1.
+// Both looked like working controls and neither ever fired.
+//
+// Position and time survive the repaint, so that is what this asks.
+let dgeLastTap = null;
+function dgeIsSecondTap(key, ev) {
+  const t = ev.timeStamp || 0;
+  const again = !!dgeLastTap && dgeLastTap.key === key
+    && t - dgeLastTap.t < 450
+    && Math.abs(ev.clientX - dgeLastTap.x) < 6
+    && Math.abs(ev.clientY - dgeLastTap.y) < 6;
+  dgeLastTap = again ? null : { key, t, x: ev.clientX, y: ev.clientY };
+  return again;
+}
+
 function dgeWireCanvas(canvas, guides) {
   canvas.addEventListener('wheel', (ev) => {
     ev.preventDefault();
     const k = ev.deltaY < 0 ? 1.12 : 1 / 1.12;
     dgeZoomBy(k);
   }, { passive: false });
-
-  // A waypoint comes out the way it went in, at the same spot on the canvas.
-  // The sidebar carries the same act as a button, because a gesture nobody can
-  // see is not a control.
-  canvas.addEventListener('dblclick', (ev) => {
-    if (!DGE.open || DGE.boardOpen) return;
-    const h = ev.target.closest && ev.target.closest('[data-handle^="via-"]');
-    if (!h) return;
-    ev.preventDefault();
-    dgeRemoveWaypoint(h.dataset.id, Number(h.dataset.handle.slice(4)));
-  });
 
   canvas.addEventListener('pointerdown', (ev) => {
     if (!DGE.open || DGE.boardOpen) return;
@@ -12233,6 +12317,11 @@ function dgeWireCanvas(canvas, guides) {
     const pt = dgePointToDiagram(ev);
     if (handle) {
       const h = handle.dataset.handle;
+      // A waypoint comes out the way it went in, at the same spot.
+      if (h.startsWith('via-') && dgeIsSecondTap(handle.dataset.id + '/' + h, ev)) {
+        ev.preventDefault();
+        return dgeRemoveWaypoint(handle.dataset.id, Number(h.slice(4)));
+      }
       if (h === 'from' || h === 'to') return dgeStartEndpoint(ev, handle.dataset.id, h);
       if (h.startsWith('via-')) return dgeStartWaypoint(ev, handle.dataset.id, Number(h.slice(4)));
       if (h.startsWith('add-')) return dgeAddWaypoint(ev, handle.dataset.id, Number(h.slice(4)));
@@ -12322,6 +12411,7 @@ function dgeMoveSelection(ctx, dx, dy, opts) {
   const splices = [];
   for (const { id, edits } of parts) {
     for (const e of edits) {
+      if (e.raw) { splices.push({ start: e.raw[0], end: e.raw[1], text: e.value }); continue; }
       const sp = ctx.spans.spanOf(id, e.attr === 'same-as' ? 'same-as' : e.attr);
       if (!sp) continue;
       if (e.drop || e.value === '') {
@@ -12365,8 +12455,17 @@ function dgeStartMove(ev, pt0) {
       dgeStatus(step.line, `into step "${DGE.model.steps[DGE.beat - 1].name}" – the opening picture is untouched`);
       return;
     }
-    const res = dgeMoveSelection(ctx, dx, dy, { free: e.ctrlKey || e.metaKey });
-    last = { edits: res.plan ? res.plan.edits : [], refusals: res.refusal ? [res.refusal] : [] };
+    const res = dgeMoveSelection(ctx, dx, dy,
+      { free: e.ctrlKey || e.metaKey, leave: e.altKey });
+    last = {
+      edits: res.plan ? res.plan.edits : [],
+      refusals: res.refusal ? [res.refusal] : [],
+      soft: !!(res.plan && res.plan.strain),
+    };
+    // The axis an element is being held on is drawn while the drag pushes
+    // against it, so "why will this not move" is answered on the canvas
+    // rather than only in the status bar.
+    DGE.strain = res.plan ? res.plan.strain : null;
     DGE.source = res.next;
     dgeRecompile();
     if (res.plan) dgeShowPlan(ctx, id, res.plan);
@@ -12374,6 +12473,7 @@ function dgeStartMove(ev, pt0) {
   const up = () => {
     window.removeEventListener('pointermove', move);
     window.removeEventListener('pointerup', up);
+    DGE.strain = null;
     if (DGE.source !== ctx.source) {
       const done = DGE.source;
       DGE.source = ctx.source;
@@ -13511,15 +13611,21 @@ function dgeStatus(line, note, bad) {
 
 // The line the editor is about to write, with the changed token marked.
 function dgeShowPlan(ctx, id, plan) {
+  // Being held on a shared axis is not a failure, it is the set doing its
+  // job, so it is not painted as one. Only a genuine refusal is.
+  const soft = !!(plan.soft || plan.strain);
   if (plan.refusals.length && !plan.edits.length) {
-    dgeStatus('', plan.refusals[0], true);
+    dgeStatus('', plan.refusals[0], !soft);
     return;
   }
   const el = dgeFind(id);
   const line = el && el.span ? DGE.source.slice(el.span[0], el.span[1]) : '';
   const why = plan.edits.map((e) => e.why).filter(Boolean)[0]
     || plan.edits.map((e) => e.attr).join(' · ');
-  dgeStatus(line, why, false);
+  // One axis moving does not make the other one's answer uninteresting: a
+  // diagonal drag against a held axis used to move x and say nothing at all
+  // about why y stayed where it was.
+  dgeStatus(line, plan.refusals.length ? why + ' · ' + plan.refusals[0] : why, false);
 }
 
 // ── the figure strip and the board (editor.md §6) ───────────────────

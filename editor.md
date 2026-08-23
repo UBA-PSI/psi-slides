@@ -503,6 +503,8 @@ the help sheet is generated from one data structure rather than written twice.
 | `Ctrl/Cmd`-`S` | commit: write back on Tier 1, copy to the clipboard otherwise (§2.3) |
 | `Space`-drag · middle-drag · wheel | pan · pan · zoom |
 | `Ctrl/Cmd` **while dragging** | suspend snapping, for when 0.5847 is meant |
+| `Alt` **while dragging** | leave the `align` / `spread` set at once, without pulling clear of it |
+| double-click a waypoint | take it out of the edge's `via` clause |
 | `F` | cycle the frame: slide → column → print (§5) |
 | `,` `.` · `PageUp` `PageDown` | previous / next figure (§6) |
 | `O` | the figure board |
@@ -819,15 +821,32 @@ editor's job is to decide which token a drag belongs to:
 | `right of A` / `left of A` | rewrite `gap` | snap to the nearest `align top/middle/bottom`; past a tolerance, write `offset 0,dy` |
 | `below A` / `above A` | rewrite `gap` | snap to `align left/center/right`; past a tolerance, `offset dx,0` |
 | `between A,B` | rewrite `frac` | rewrite `offset` |
-| coordinate owned by `align x\|y` | – | – |
-| coordinate owned by `spread x\|y` | – | – |
+| coordinate owned by `align x\|y` | – | hold, then leave the set |
+| coordinate owned by `spread x\|y` | – | hold, then leave the set |
 
 The last two rows are the interesting ones. That axis is not the element's to
-move, and the editor must **say so rather than silently break the set**:
-dragging a follower on its constrained axis shows an inline note naming the
-line – *"y comes from `align y middle` on line 12. Drag `reg` to move the row,
-or drop `ident` from that line."* Dragging the master moves everyone, which is
+move – **until the author insists.** Dragging a follower against its shared
+axis holds it on the axis, draws the axis it is held by, and names the way
+out: *"y is held by `align y middle` on line 12. Pull 0.31 further, or hold
+Alt, to drop `ident` from it – or drag `reg` to move the whole row."* Past
+`DGE_BREAK_CELL` (half a cell), or with Alt held, the element is **dropped
+from the statement** and the drag goes through; if what is left is too short
+to be a statement, the line goes with it.
+
+This started life as a flat refusal that named the line and told the author to
+go and make that edit by hand. The information was right and the answer was
+wrong on two counts. A set you cannot leave by dragging is a set the canvas
+cannot express, so the only way out was the text – which is the thing this
+editor exists to spare people. And "drop `ident` from that line" is *precisely*
+the edit it should be making. The threshold is what keeps the trade honest:
+without it a row of boxes dissolves under an ordinary nudge, so leaving has to
+be something you meant. Dragging the master still moves everyone, which is
 what the statement means.
+
+Two consequences worth keeping. The hold is **not painted as an error** – a
+set doing its job is not a failure, and only a genuine refusal gets the error
+colour. And a diagonal drag against a held axis now reports both halves: it
+used to move x and say nothing at all about why y stayed where it was.
 
 Two more rules of the same shape:
 
@@ -2147,3 +2166,50 @@ parse, so the panel refuses instead.
 
 Each of the four with a real failure mode now has a spec in `test/`, including
 one on the speaker view for the blanking rule.
+
+
+### Three things found by using it · **done**
+
+**A waypoint could not be taken off the canvas at all.** Double-click did
+nothing, and neither did any modifier. The listener was there and had never
+fired once: the first click ends a zero-length drag, whose `dgeGestureEnd`
+repaints the guide layer, so the second click lands on a *different DOM node*
+carrying the same id. A `dblclick` listener therefore fires on the two nodes'
+common ancestor, and `closest('[data-handle]')` finds nothing. Switching to
+`pointerdown`'s own click counter did not help either – the browser resets
+`ev.detail` for the same reason. It is recognised from **position and time**
+now, which are the only two things about the gesture that survive the repaint.
+
+Worth generalising: any control living in a layer that is rebuilt on every
+recompile cannot rely on event identity across two events. The guide layer is
+exactly that.
+
+**An `align` set could not be left by dragging.** See §9.3, rewritten. The
+short version: the refusal was replaced by a hold you can pull out of, and the
+edit it used to ask the author to go and make by hand is now the edit it
+makes. One trap in the wiring – `dgePlanDrag` has an early exit for "held on
+the only axis this drag was about", and a plan that leaves by that door has to
+carry the strain with it or the status bar paints the hold as an error. The
+spec asserts the absence of the error class, because that is the difference
+between a mechanism explaining itself and a mechanism complaining.
+
+Leaving a set writes somebody else's line, which the edit machinery had no
+shape for: every edit was an attribute of the element being dragged. Edits may
+now carry a `raw` span. Both apply paths needed it – `dgeApplyEdits` and the
+one inside `dgeMoveSelection`, which is a second copy of the same splice loop
+and should probably not be.
+
+**The CBC figure's chaining arrows were drawn wrong**, and this one is a
+lecture bug rather than an editor bug. Each ran straight down from the
+ciphertext box, through the `Dec` box below it, laying itself over the white
+arrow that really does feed that box – so the picture said the ciphertext goes
+into the decryption on that path, which is the opposite of what CBC does.
+
+The fix is a routing channel, and the interesting part is that it could not be
+had by moving the line alone. Leaving the box sideways and running down the
+gutter put the line on top of the `k` labels; the channel between a `k` and
+its `Dec` is exactly the width of that gap; and no vertical fits between the
+wide ciphertext boxes and the narrow `Dec` boxes while a `k` sits in the same
+gutter. The columns had to move apart. `gap 0.3` became `0.75`, which is
+whitespace only if you think the gutter is empty – it is the channel, and the
+comment in the source says so.

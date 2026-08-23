@@ -297,6 +297,13 @@ teaching; everything below is in use rather than aspirational.
   syncs to the other window as its own message, gated by the freeze flag – so
   freeze, fix the figure, unfreeze, and the room gets the finished picture.
 
+  **An `align` or `spread` set can be left by dragging.** Pulling a follower
+  against its shared axis holds it there, draws the axis, and says how much
+  further to pull; half a cell past it, or with Alt held, the element is
+  dropped from the statement and the drag goes through. It used to be a flat
+  refusal telling the author to go and edit that line by hand – which is the
+  edit the editor exists to make, and the only way out of a set was the text.
+
   **Waypoints are draggable.** A hollow dot at the middle of every segment
   adds one, a square moves one, and a double-click or the chip in the panel
   takes one out. Where a waypoint holds a reference – `via iv.cx,d0.bottom+0.28`,

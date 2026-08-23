@@ -223,8 +223,19 @@ export function editorHelpers(page) {
     await page.waitForTimeout(380);
   };
 
+  // Which beat the canvas shows. It matters to more than the picture: at a
+  // beat above zero a drag means "write a move into this step" and leaves the
+  // placement alone, so a spec about placement has to say beat 0 out loud.
+  const beat = async (k) => {
+    await page.evaluate((i) => {
+      const b = [...document.querySelectorAll('#dge-beats .dge-beat')];
+      if (b[i]) b[i].click();
+    }, k);
+    await page.waitForTimeout(350);
+  };
+
   const problems = () => page.evaluate(() =>
     (document.querySelector('.dge-problems') || {}).textContent || '');
 
-  return { open, source, lineWith, selection, pointOnPath, clickPath, centreOf, drag, problems };
+  return { open, beat, source, lineWith, selection, pointOnPath, clickPath, centreOf, drag, problems };
 }
