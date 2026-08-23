@@ -1506,7 +1506,7 @@ const DIAGRAM_CSS = `
 .psi-diagram .dg-off { display: none; }
 
 /* containers are a frame around their members, never a filled panel */
-.psi-diagram .dg-container > rect { fill: none; stroke: var(--rule); stroke-width: 1.2; }
+.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: var(--rule); stroke-width: 1.2; }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
 
 /* braces have no fill and no head */
@@ -1554,8 +1554,8 @@ const DIAGRAM_CSS = `
    box defaults to paper, a text defaults to see-through" one mechanism rather
    than two. No stroke either way – a bordered label is a box, and there is
    a statement for that. */
-.psi-diagram .dg-text > rect { stroke: none; }
-.psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
+.psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
+.psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > :is(rect, circle, .dg-shape) { fill: none; }
 
 .psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
 .psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }

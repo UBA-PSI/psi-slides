@@ -2382,7 +2382,10 @@ export function createDiagramCompiler(env = {}) {
       // An explicit w that cannot hold its own label overflows in silence –
       // right on the machine that drew it, wrong on the projector. Say so.
       // A fitted label cannot: the size was chosen to make it fit.
-      if (nw != null && nw * uw < m.w + 6 && !classes.has('fit') && !classes.has('shrink')) {
+      // A label there is not is a label that cannot overflow. Without this a
+      // thin column of a `bars` – which carries no text at all – reported that
+      // its text was about to run over the edge.
+      if (st.label && nw != null && nw * uw < m.w + 6 && !classes.has('fit') && !classes.has('shrink')) {
         dgWarn(`box ${node.id} is ${nw} units wide but its label needs about `
           + `${((m.w + 2 * padX) / uw).toFixed(2)} – the text will overflow.`);
       }

@@ -392,6 +392,7 @@ Two things worth knowing before writing chunks, both learned the hard way:
 - `README.md` – short public-facing intro.
 - `lectures/tutorial/source.md` – the canonical authoring reference (self-referential lecture). Build and open its `audience.html` to see every directive live.
 - `lectures/diagrams/source.md` – every `::: diagram` construct, including two of the stepped figures the feature was built for (CBC decryption, a stack frame being overrun). Its `#look` chunk is the reference for the class vocabulary: every fill, every family, and the three answers to how type meets its box. The lecture-wide `diagram-defaults` block is in its frontmatter.
+- `lectures/network-security/source.md` – **thirty-six real lecture slides rebuilt as figures**, and the reason the outlines, `.turn`, `bars`, `grid`, `plot` and `.smooth` exist. Rebuilt from two PowerPoint decks with the wording kept verbatim (original typos included, each marked in a `#` comment) and the arrangement redrawn. Read it for what the vocabulary looks like at scale; `figure-design.md` is the rules it was built against. Linted by CI, never built or published, like `lectures/diagrams/`.
 - `lectures/python-intro/source.md` – richest example of `::: cols`, `::: side`, and `::: marginalia` in combination, 36 chunks. It is also what the project site's screenshots come from, so a change to `#why-playwright` means re-running `docs/site/shoot.mjs`.
 - `docs/comparison.md` – how psi-slides differs from Beamer, reveal.js, Quarto, Marp and friends, in both directions. Published as a page on the site.
 

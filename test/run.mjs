@@ -28,6 +28,7 @@ const SPECS = [
   './editor-sidebar.mjs',
   './editor-expanded.mjs',
   './figure-framing.mjs',
+  './figure-framing-network.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));
