@@ -35,48 +35,6 @@ from building the same way is a major version.
   rules with a wrong/right pair each, the tone-to-role table, the four-beat
   step order, and a checklist to work down before a figure is finished.
 
-### Changed
-
-- **Navigation follows one forward key and one backward key.** `Space`, `↓`,
-  `Enter` and `PageDown` advance the reveal or diagram step on the slide and,
-  when there is none left, move to the next chunk – across column boundaries,
-  so a whole lecture is one key. `↑`, `PageUp` and `Backspace` are the exact
-  mirror: **they take a reveal back**, and only leave the chunk once it is at
-  its opening state. `→` / `←` are that same pair *except on the first chunk
-  of a column*, where they change column – the only chunk where a second
-  dimension exists to move in.
-
-  Reveal used to be forward-only, on the reasoning that a revisited slide
-  should simply show everything. That is still what happens when you arrive
-  at a chunk from somewhere else, but it is the wrong answer while you are
-  standing on the slide: a figure that assembles itself is often worth
-  assembling twice, and there was no way to run it again without leaving and
-  coming back. The mechanism was always symmetric; only the keys were not.
-
-  Presenter remotes work now – `PageUp`/`PageDown` were unbound, so a
-  clicker's back button did nothing at all.
-
-  Two marks at the edge of the viewport say which situation the current slide
-  is in: `‹ ›` where sideways changes column, `⌄` where forward will leave the
-  column next. Quiet enough for a projection, absent on the overview board and
-  behind a blanked screen.
-
-  `Enter` used to open the first expansion; it is a forward key now, and
-  `1`–`9` (or clicking the chevron) still opens expansions.
-
-- **Figures sit square in their own frame.** A diagram's `viewBox` is built
-  from what the compiler reserves for each drawable, and two things made it
-  much larger than the drawing: a label reserved a full label-width on *each*
-  side of its origin, and container captions, brace labels and edge labels
-  never recorded a width at all, falling back to a hardcoded 120 whatever
-  their text said. A figure whose outermost element was a caption therefore
-  sat off to one side of an oversized box with an unexplained empty margin
-  beside it – up to 122px on a figure 480px wide. Eight of the twelve figures
-  in `lectures/diagrams` now land exactly on the margin on both sides; what is
-  left is the deliberate generosity of the text-width estimate, which is about
-  11% on the bundled faces and never clips.
-
-### Added
 
 - **`::: diagram` – animated infographics written in the lecture source.**
   A line-oriented DSL for boxes, dots, free text, arrows, auto-fitting
@@ -273,35 +231,6 @@ from building the same way is a major version.
   See `PRD.md` §4.6a for the grammar and `lectures/diagrams/source.md` for
   a worked example of every construct.
 
-### Fixed
-
-- Sentence extraction no longer ends the topic sentence at an abbreviation
-  dot. „(Kleinberg u. a. 2017)“ used to cut the collapsed head short after
-  „u.“; a single letter or digit before the dot, a small German/English
-  abbreviation list (bzw., vgl., Dr., al., …), and a lowercase continuation
-  after the dot now all keep the sentence open. `!` and `?` are unaffected.
-  Trade-off: a sentence genuinely ending in a single character ("… um
-  Faktor 3.") now keeps its continuation in the head – a too-long topic
-  sentence rather than a truncated one.
-
-## [1.0.0]
-
-First public release. psi-slides has carried a full semester of university
-teaching; everything below is in use rather than aspirational.
-
-### The medium
-
-- One Markdown `source.md` per lecture builds **four self-contained HTML views**:
-  `audience.html` (the projection), `speaker.html` (the presenter cockpit),
-  `print.html` (a reading document with cover and table of contents), and
-  `print-notes.html` (the same document with `> note:` blocks folded in).
-- Everything is inlined: CSS, JavaScript, images, Shiki-highlighted code,
-  KaTeX-rendered maths, and the typefaces. Three families ship with the tool
-  and are embedded in every output (Literata, Inter Tight, JetBrains Mono, all
-  SIL OFL 1.1); an author's own fonts win per role, and `fonts: none` turns
-  the bundle off. Nothing is fetched at run time; the files open from
-  `file://`.
-
 - **A graphical editor for `::: diagram`.** Click a diagram to focus it, then
   the button in the corner or `E`. It parses the block, records where every
   token sits, answers a drag by rewriting the smallest span it can, and
@@ -355,6 +284,13 @@ teaching; everything below is in use rather than aspirational.
   line, so `bottom` puts the *last* line on the inner edge. `.left` / `.right`
   previously worked on a free `text` only.
 
+  Written where it cannot act, one of those words is now an error rather than
+  a class that resolves and moves nothing. A container's caption is placed on
+  its own top border and a brace's label beside the spine, so none of the four
+  applies to either. An edge carries its label at the middle of the line, so
+  `.top` and `.bottom` have nothing to move there, while `.left` and `.right`
+  still decide which side of that midpoint the words start from.
+
   **An `align` or `spread` set can be left by dragging.** Pulling a follower
   against its shared axis holds it there, draws the axis, and says how much
   further to pull; half a cell past it, or with Alt held, the element is
@@ -381,6 +317,76 @@ teaching; everything below is in use rather than aspirational.
 
   Off with `editor: none` in the frontmatter; `editor: speaker` keeps it out
   of the projection. A lecture with no diagram pays nothing.
+
+### Changed
+
+- **Navigation follows one forward key and one backward key.** `Space`, `↓`,
+  `Enter` and `PageDown` advance the reveal or diagram step on the slide and,
+  when there is none left, move to the next chunk – across column boundaries,
+  so a whole lecture is one key. `↑`, `PageUp` and `Backspace` are the exact
+  mirror: **they take a reveal back**, and only leave the chunk once it is at
+  its opening state. `→` / `←` are that same pair *except on the first chunk
+  of a column*, where they change column – the only chunk where a second
+  dimension exists to move in.
+
+  Reveal used to be forward-only, on the reasoning that a revisited slide
+  should simply show everything. That is still what happens when you arrive
+  at a chunk from somewhere else, but it is the wrong answer while you are
+  standing on the slide: a figure that assembles itself is often worth
+  assembling twice, and there was no way to run it again without leaving and
+  coming back. The mechanism was always symmetric; only the keys were not.
+
+  Presenter remotes work now – `PageUp`/`PageDown` were unbound, so a
+  clicker's back button did nothing at all.
+
+  Two marks at the edge of the viewport say which situation the current slide
+  is in: `‹ ›` where sideways changes column, `⌄` where forward will leave the
+  column next. Quiet enough for a projection, absent on the overview board and
+  behind a blanked screen.
+
+  `Enter` used to open the first expansion; it is a forward key now, and
+  `1`–`9` (or clicking the chevron) still opens expansions.
+
+- **Figures sit square in their own frame.** A diagram's `viewBox` is built
+  from what the compiler reserves for each drawable, and two things made it
+  much larger than the drawing: a label reserved a full label-width on *each*
+  side of its origin, and container captions, brace labels and edge labels
+  never recorded a width at all, falling back to a hardcoded 120 whatever
+  their text said. A figure whose outermost element was a caption therefore
+  sat off to one side of an oversized box with an unexplained empty margin
+  beside it – up to 122px on a figure 480px wide. Eight of the twelve figures
+  in `lectures/diagrams` now land exactly on the margin on both sides; what is
+  left is the deliberate generosity of the text-width estimate, which is about
+  11% on the bundled faces and never clips.
+
+### Fixed
+
+- Sentence extraction no longer ends the topic sentence at an abbreviation
+  dot. „(Kleinberg u. a. 2017)“ used to cut the collapsed head short after
+  „u.“; a single letter or digit before the dot, a small German/English
+  abbreviation list (bzw., vgl., Dr., al., …), and a lowercase continuation
+  after the dot now all keep the sentence open. `!` and `?` are unaffected.
+  Trade-off: a sentence genuinely ending in a single character ("… um
+  Faktor 3.") now keeps its continuation in the head – a too-long topic
+  sentence rather than a truncated one.
+
+## [1.0.0]
+
+First public release. psi-slides has carried a full semester of university
+teaching; everything below is in use rather than aspirational.
+
+### The medium
+
+- One Markdown `source.md` per lecture builds **four self-contained HTML views**:
+  `audience.html` (the projection), `speaker.html` (the presenter cockpit),
+  `print.html` (a reading document with cover and table of contents), and
+  `print-notes.html` (the same document with `> note:` blocks folded in).
+- Everything is inlined: CSS, JavaScript, images, Shiki-highlighted code,
+  KaTeX-rendered maths, and the typefaces. Three families ship with the tool
+  and are embedded in every output (Literata, Inter Tight, JetBrains Mono, all
+  SIL OFL 1.1); an author's own fonts win per role, and `fonts: none` turns
+  the bundle off. Nothing is fetched at run time; the files open from
+  `file://`.
 - **Collapse**: the same prose is rendered at two densities. The projection
   shows the topic sentence plus promoted `**bold**` fragments; the document
   shows all of it. `::: slide` and `::: script` are the escape hatch when no

@@ -4,6 +4,42 @@ Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als 
 
 Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
+## Editor-Slice und der Merge zweier paralleler Zweige
+
+Zwei Sessions haben ein paar Stunden lang am selben Compiler gearbeitet, und
+beide haben ihn erweitert: hier die Formen, die Drehung, `bars`/`grid`/`plot`
+und die Vorlesung, drüben die Layout-Steuerung im Editor – Platzierungs-Pane,
+Ausrichten und Verteilen als Auswahl-Akte, Wegpunkte am Griff, und die
+Beschriftungs-Ausrichtung als Klassen. Gemerged auf den Branch, von dem beide
+ausgegangen sind.
+
+**Der Merge wurde gegen die Ausgabe verifiziert, nicht gegen den Diff.** Jede
+Figur beider Vorlesungen wurde vor und nach dem Merge emittiert, die
+Instanz-Präfixe normalisiert und gehasht: 36 von 36 Netzwerk-Figuren
+byte-identisch, in `lectures/diagrams` nichts verloren – jede Figur stimmt mit
+mindestens einem der beiden Elternstände überein, keine mit keinem. Das ist
+die Messung, die ein Merge braucht, bei dem beide Seiten denselben Emitter
+angefasst haben; ein sauberer `git merge` sagt darüber nichts.
+
+**Was der Editor jetzt zusätzlich kann**, und warum es überhaupt eine Frage
+war: er schrieb Klassen und Positionen, aber die Optionen mit Schlüsselwort
+(`gap`, `w`, `pad`, `point`, `space`, …) und die reinen Datenfelder von `bars`
+und `plot` waren nur über den Quelltext erreichbar. Jetzt trägt die
+Seitenleiste eine Zeile pro Slot, ein Datenfeld pro Frame-Statement und einen
+Schritt-Pane, der Schritte anlegt, Ops hinzufügt und wegnimmt und markiert,
+welche Elemente der aktuelle Takt anfasst. Eine Falle dabei: `spanOf(id,
+'label')` gab auf einer `bars`-Zeile das erste zitierte Token zurück, also die
+Werte – ein Tastendruck im Label-Feld hätte die Diagrammdaten überschrieben.
+Frames haben deshalb keine Label-Span und kein Label-Feld.
+
+**Und die Lektion dieses Worktrees, angewendet auf die neuen Features:** eine
+Klasse, die auflöst und nichts tut, ist ein Fehler. Die vier
+Ausrichtungswörter wurden nur dort geehrt, wo `labelBox` die Beschriftung
+setzt; auf Container, Brace und Kante liefen fünf der acht Kombinationen stumm
+ins Leere. Erst an der emittierten SVG gemessen, dann `rejectAlignOn()`
+davorgesetzt und die zwei Swatch-Reihen im Editor auf genau die Arten
+beschränkt, die der Compiler zulässt.
+
 ## Slice: 36 echte Folien, und was dabei an der Sprache fehlte
 
 Auslöser war ein Auftrag, keine Feature-Idee: 36 Folien aus zwei
