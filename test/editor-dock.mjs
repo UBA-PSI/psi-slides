@@ -107,7 +107,7 @@ export async function run({ page, errors, report, walkTo, ed }) {
   // ── an edge has nowhere to put a placement, so it gets no chips ──
   // Its statement has no slot for one: the release would splice
   // `left of c gap 0.4` into a line that cannot hold it, the block would stop
-  // compiling and the edit would be reverted - after the chip had promised it.
+  // compiling and the edit would be reverted – after the chip had promised it.
   await page.evaluate(() => {
     const row = [...document.querySelectorAll('#dge-side .dge-list button')]
       .find(b => b.textContent.includes('encrypted'));

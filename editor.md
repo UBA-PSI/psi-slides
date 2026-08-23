@@ -853,7 +853,7 @@ used to move x and say nothing at all about why y stayed where it was.
 `below b` up through b and the statement becomes `above b gap 0.4`: the
 dominant axis of the centre-to-centre vector picks the word, the same question
 `dgAutoAnchor` asks about an edge's endpoint. The threshold is the reference's
-own edge, which is the hysteresis for free - to change sides you have to drag
+own edge, which is the hysteresis for free – to change sides you have to drag
 the element right through the thing it is measured from, so no ordinary nudge
 can flip it. Before this the gap was clamped at zero and the drag simply stopped
 dead, which meant re-docking was only reachable by editing the text.
@@ -861,10 +861,10 @@ dead, which meant re-docking was only reachable by editing the text.
 Which *element* it is measured from, and which *kind* of relation it is, are
 controls rather than gestures, in the placement pane. Two reasons. Guessing a
 new reference from a drop position is a large semantic change made on a
-guess - the element the author meant is often not the nearest one. And
+guess – the element the author meant is often not the nearest one. And
 `between a,b` has no gesture at all: nothing about dragging one box says
 "halfway between those two". The pane reads the placement back as the three
-things it says - kind, reference, distance - so it is also the answer to
+things it says – kind, reference, distance – so it is also the answer to
 "what is holding this here", without having to read the source pane.
 
 Two more rules of the same shape:
@@ -2236,8 +2236,8 @@ comment in the source says so.
 
 ### Placement, as something you can change · **done**
 
-A relation is what this grammar is for - `below b gap 0.8` means the dot
-follows the Mix box wherever it goes - and until now a drag could only say
+A relation is what this grammar is for – `below b gap 0.8` means the dot
+follows the Mix box wherever it goes – and until now a drag could only say
 *how far*. The gap was clamped at zero, so dragging the dot up through b's
 bottom edge stopped dead. Putting it above, or beside, or halfway between two
 other elements meant editing the text, which is the one thing the editor
@@ -2251,11 +2251,11 @@ vector. The edge is the hysteresis: to change sides you have to drag the
 element right through the thing it is measured from. `dgeRedock` returns null
 while the element is still on the side it already claims, so an ordinary drag
 keeps writing `gap` and nothing else, and the whole placement expression is
-rewritten only when the relation itself changed - which also drops the `align`
+rewritten only when the relation itself changed – which also drops the `align`
 and `offset` that described the old axis.
 
 **Which element, and which kind, are controls.** The placement pane reads the
-relation back as the three things it says - kind, reference, distance - and
+relation back as the three things it says – kind, reference, distance – and
 lets each be changed. Guessing a new reference from where a drag was dropped
 is a large semantic change made on a guess, and the element the author meant
 is often not the nearest one; `between a,b` has no gesture at all, because
@@ -2265,8 +2265,8 @@ also the answer to "what is holding this here" without reading the source.
 Two things it has to get right, both inherited rather than re-solved. A
 reference that names nothing is refused and the source put back, because
 dgeWriteAttr now goes through `dgeSetSource` like every other structured write.
-And the first element of a block has no placement in the source at all - it
-sits at the origin for free - so `spanOf` answers null; the pane says so and
+And the first element of a block has no placement in the source at all – it
+sits at the origin for free – so `spanOf` answers null; the pane says so and
 offers to write one out rather than showing fields that cannot be saved.
 
 
@@ -2277,7 +2277,7 @@ anything: one did.
 
 **Docking by drag.** Four chips around whatever the pointer is over; release
 on one and the placement is rewritten to `<side> of <that element>`. No
-modifier, and that is the design rather than an omission - `Ctrl/Cmd`
+modifier, and that is the design rather than an omission – `Ctrl/Cmd`
 suspends snapping, `Alt` leaves an align set, and `Shift` means
 axis-constrain in every drawing tool. Releasing *on a chip* is itself the
 commitment, so the gesture guards itself and stays one-handed. The preview
@@ -2286,7 +2286,7 @@ answers "what will this do" before the button comes up.
 
 Two things it has to read from the right place. The host is found from the
 **pointer**, not from the dragged element, and its geometry comes from
-`ctx.boxes` - the layout as it was at pointerdown. The element is moving under
+`ctx.boxes` – the layout as it was at pointerdown. The element is moving under
 the preview and the layout is re-solved on every move, so anything read live
 slides about while it is being aimed at. And the chip decides the *side* only:
 measuring a distance from where the pointer happens to be gives nearly zero
@@ -2295,7 +2295,7 @@ element covers the rest. The element keeps the gap it already had.
 
 **Align, distribute and "between these two"** cost nothing at all. `align x|y
 <edge>` and `spread x|y` have been in the grammar from the start and the
-editor has had `dgeAlign` and `dgeSpread` for as long - they were six buttons
+editor has had `dgeAlign` and `dgeSpread` for as long – they were six buttons
 reading `x left` and `y top`, which is the statement's own spelling rather
 than the question anyone arrives with, and they only appear with two elements
 selected. Renamed, grouped by axis, and `between a,b` added as a third
@@ -2305,7 +2305,7 @@ selection act: it has no gesture, because nothing about dragging one box says
 
 **Label alignment is the grammar change**, and it is two classes: `.top` and
 `.bottom`. `.left` and `.right` already existed but only bit on a free `text`
-- on a box they were a latent bug, anchoring the label at the box centre and
+– on a box they were a latent bug, anchoring the label at the box centre and
 running it out of the box. Both pairs are measured against the element's own
 padding now, because that is what the word "aligned" means: as far that way as
 this box allows.
@@ -2313,16 +2313,30 @@ this box allows.
 The implementation is smaller than it sounds because the origin stays the
 centre of the block of lines and only that centre moves. So the emitter goes
 on laying the lines out around it, the recorded extent stays symmetric, and
-nothing downstream learns a new idea - and a bottom-aligned label of three
+nothing downstream learns a new idea – and a bottom-aligned label of three
 lines puts its *last* line on the inner edge rather than its first, which is
 what anyone means by bottom.
 
 It did force one tidy-up. The question "which side of its origin does this
-label sit on" was being answered in two places - the emitter for `text-anchor`
-and `extentsOf` for the paper it reserves - and the new classes would have
+label sit on" was being answered in two places – the emitter for `text-anchor`
+and `extentsOf` for the paper it reserves – and the new classes would have
 made it three. `dgLabelAnchor()` is the one answer now. Two copies of that
 question is exactly how figures came to sit off-centre in oversized frames a
 few commits ago, so a third was not on.
+
+One thing the change left open, and the merge with the outlines line closed:
+the four words were only honoured where a label is placed by `labelBox`. Three
+kinds place theirs by their own statement instead – a container's caption on
+its own top border, a brace's beside the spine, an edge's at the middle of the
+line. On a container or a brace that leaves nothing for any of the four to
+move; on an edge, `.left` and `.right` still reach the label through the
+anchor, and only `.top` and `.bottom` are inert. Measured on the emitted SVG:
+`.left` moved a node label and an edge label and no other, `.top` a node label
+alone. `rejectAlignOn()` refuses the five
+that cannot act, the editor's two swatch rows carry only the kinds that can, and
+`test/figure-labels.mjs` asserts both halves. It is the same rule the outline
+classes already follow, and the same reason: a class that resolves and does
+nothing is the failure this grammar keeps closing.
 
 
 ### Thirteen review findings on the layout controls · **done**

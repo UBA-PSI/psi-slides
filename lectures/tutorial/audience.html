@@ -6749,7 +6749,7 @@ const DG_POINT_DIRS = new Set(['up', 'down', 'left', 'right']);
 // how to carry, interpolate and apply a vector.
 const DG_TURN_DEG = -90;
 // The angle for a resolved class set, and the only place the four sites that
-// position a label ask the question. Three of them used to skip it entirely -
+// position a label ask the question. Three of them used to skip it entirely –
 // a `.turn` on a container caption, a brace label or an edge label resolved,
 // emitted its CSS and rotated nothing, which is exactly the silent no-op this
 // grammar keeps closing.
@@ -6882,7 +6882,7 @@ const DG_GRID_MAX = 400;
 //
 // This is the one place that rule bends. `lint.js` takes tables from this
 // module and never a function, so that the whole compiler cannot come in
-// behind one - but a naming scheme *is* a table, one that happens to be
+// behind one – but a naming scheme *is* a table, one that happens to be
 // parameterised by an index, and writing it out twice is precisely the
 // two-files-one-commit duplication importing the tables was meant to end.
 const dgBarName = (id, i) => `${id}-${i}`;
@@ -7488,6 +7488,38 @@ function rejectShapeOn(kindWord, classes, lineNo, errors) {
   }
 }
 
+// The same rule as rejectShapeOn, one statement further along. `left`,
+// `right`, `top` and `bottom` place a label inside the room its element gives
+// it, and three kinds give it none: a container's caption is pinned to its own
+// top border, a brace's label sits beside the spine on the side the brace was
+// given, and an edge's label is carried at the midpoint of the line. Measured
+// on the emitted SVG before this existed: `.left` moved a node label and an
+// edge label and nothing else; `.top` moved a node label alone. The other five
+// combinations of the two axes with the four kinds resolved, emitted their CSS
+// and moved nothing.
+//
+// Down is the axis a container, a brace and an edge each own outright, so
+// `top`/`bottom` never reach any of the three; across, an edge label really is
+// anchored by the word and keeps it.
+const DG_ALIGN_ACROSS = ['left', 'right'];
+const DG_ALIGN_DOWN = ['top', 'bottom'];
+function rejectAlignOn(kindWord, classes, lineNo, errors) {
+  const holder = kindWord === 'container' || kindWord === 'brace';
+  if (!holder && kindWord !== 'edge') return;
+  const why = {
+    container: 'a container\'s caption sits on its own top border',
+    brace: 'a brace\'s label sits beside the spine, on the side the brace was given',
+    edge: 'an edge\'s label is carried at the middle of the line',
+  }[kindWord];
+  for (const c of classes || []) {
+    const across = DG_ALIGN_ACROSS.includes(c);
+    if (!across && !DG_ALIGN_DOWN.includes(c)) continue;
+    if (kindWord === 'edge' && across) continue;   // this one the anchor honours
+    dgErr(errors, lineNo, `.${c} places a label in the room its element gives it, and `
+      + `${why} – the class would resolve and move nothing.`);
+  }
+}
+
 // What a `bars` or a `grid` may say after its shape: a placement, like every
 // other statement, plus the two or three numbers that size it. Kept in one
 // reader because the two statements differ only in which numbers they accept,
@@ -7497,7 +7529,7 @@ function readGridOpts(head, id, rest0, lineNo, errors) {
   const out = { place: null, w: null, h: null, cell: null, space: null };
   // `space`, not `gap`. Everywhere else in this grammar `gap` is the distance
   // between two *elements*, and a placement on this very line uses it in
-  // exactly that sense - so a bare `gap` here meant one thing written before
+  // exactly that sense – so a bare `gap` here meant one thing written before
   // the placement and the other after it, with no error either way and a
   // fivefold difference in the drawing. The distance between repetitions
   // inside one statement is a different measurement and gets its own word.
@@ -7530,6 +7562,7 @@ function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) {
   // result never depends on the order of the declarations: an element's
   // own attributes beat its tag default, which beats the kind default.
   rejectShapeOn(kind, attrs.classes, lineNo, errors);
+  rejectAlignOn(kind, attrs.classes, lineNo, errors);
   const tagTok = body0[2] && body0[2].v.startsWith('@') ? body0[2].v.slice(1) : null;
   const slot = tagTok
     ? layer.tagDefaults.find(d => d.kind === kind && d.tag === tagTok)
@@ -7549,7 +7582,7 @@ function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) {
     // belongs to rather than repeating the list.
     // Only kinds a `default` can actually name. `bars`, `grid` and `plot`
     // have entries in the table because the option names are checked against
-    // it, but they are statements rather than kinds - advising the author to
+    // it, but they are statements rather than kinds – advising the author to
     // write `default bars` would send them at a line the parser refuses.
     const owner = [...DG_DEFAULT_KINDS].find(kk => (DG_KIND_OPTS[kk] || []).includes(key));
     if (owner) {
@@ -7636,7 +7669,7 @@ function dgStateAt(model, k) {
   // A tag names a set, and so does the name of a `bars`, `grid` or `plot`:
   // it is the only name the author was given for the chart, so `hide f` has
   // to take the columns with it and `emph f` has to reach them. Not for
-  // `move` and `label`, which mean the frame - the members are placed against
+  // `move` and `label`, which mean the frame – the members are placed against
   // its edges, so moving it moves them, and it carries no label to swap.
   const members = (id) => model.expands.get(id) || [];
   const expand = (id) => (id.startsWith('@') ? (model.tags.get(id.slice(1)) || [])
@@ -7800,7 +7833,7 @@ function dgPathD(nums) {
 
 // The same point vector, drawn as a curve through its points instead of a
 // run of straight segments. Catmull-Rom converted to cubic Béziers, which is
-// the interpolating spline - it passes *through* every waypoint, so an author
+// the interpolating spline – it passes *through* every waypoint, so an author
 // who puts a point somewhere gets the curve there, and `.smooth` never moves
 // a line off the thing it was attached to.
 //
@@ -8024,7 +8057,7 @@ function createSpanTable(model, body) {
     //
     // **The braces belong to the span, not to the value.** `text` is
     // `{.a .b}` and `value` is `.a .b`, so applySpan(sp, sp.value) is not the
-    // identity - the caller has to put the braces back. The absent case below
+    // identity – the caller has to put the braces back. The absent case below
     // hands them over in prefix/suffix; the present case cannot, because they
     // are already inside the range being replaced. Getting this wrong is not
     // a small diff: the result does not parse.
@@ -8498,7 +8531,7 @@ function createDiagramCompiler(env = {}) {
       // edge with waypoints and `.smooth`.
       //
       // Deliberately small. No log scales, no automatic tick choice, no
-      // legend, no second y axis, no data series as a construct - this is a
+      // legend, no second y axis, no data series as a construct – this is a
       // frame to draw in, not a charting library growing inside a
       // boxes-and-arrows grammar.
       if (head === 'plot') {
@@ -8639,8 +8672,8 @@ function createDiagramCompiler(env = {}) {
         };
         // A column with rounded corners is not a column. The class is only
         // added where the author claimed no outline of their own, or the
-        // element would carry two of one slot and stylesheet order - not the
-        // author - would decide which one showed.
+        // element would carry two of one slot and stylesheet order – not the
+        // author – would decide which one showed.
         const squared = (cls) => (cls.some(c => c === 'round' || c === 'sharp' || DG_SHAPE_CLASSES.has(c))
           ? cls : ['sharp', ...cls]);
         const at = (xn, yn) => ({
@@ -8934,6 +8967,7 @@ function createDiagramCompiler(env = {}) {
         const flip = body0[arrowAt].v === '<-';
         const id = attrs.id || `edge-${++anonEdge}`;
         claim(id, 'edge', lineNo);
+        rejectAlignOn('edge', attrs.classes, lineNo, errors);
         const edge = {
           kind: 'edge',
           id,
@@ -8988,6 +9022,7 @@ function createDiagramCompiler(env = {}) {
         // `gap`, which is the word for the distance between two *elements*
         // everywhere else in the grammar.
         rejectShapeOn(head, attrs.classes, lineNo, errors);
+        rejectAlignOn(head, attrs.classes, lineNo, errors);
         const item = { kind: head, id, members, label: quoted[0] ?? '', classes: attrs.classes, tags: attrs.tags, pad: null, line: lineNo, span };
         if (head === 'brace') item.side = null;
         for (let k = 0; k < rest.length; k++) {
@@ -9584,7 +9619,7 @@ function createDiagramCompiler(env = {}) {
       if (st.label) {
         // Measure it, like every other label. Three of the four places that
         // position a label used to skip this, and extentsOf then fell back to
-        // a hardcoded [120, 28] - so a caption of any length at all reserved
+        // a hardcoded [120, 28] – so a caption of any length at all reserved
         // exactly 120px of paper beside the figure, which is where the wide
         // empty margins came from.
         const cm = dgMeasure(st.label, dgFontFor(st.classes), st.classes.has('mono'));
@@ -9670,8 +9705,8 @@ function createDiagramCompiler(env = {}) {
       // endpoints that were meant to line up and did not, and on a projection
       // it reads as a mistake. Say so, and name the verb that fixes it.
       //
-      // Not on a curve. There the points are not a run of lines at all - they
-      // are where the author wants the curve to pass - and a nearly-flat
+      // Not on a curve. There the points are not a run of lines at all – they
+      // are where the author wants the curve to pass – and a nearly-flat
       // stretch of a ROC curve is the shape, not a slip.
       const skewCheck = !st.classes.has('smooth');
       for (let i = 1; skewCheck && i < pts.length; i++) {
@@ -9737,7 +9772,7 @@ function createDiagramCompiler(env = {}) {
     const font = fontPx || dgFontFor(classes);
     const mono = classes.has('mono');
     const m = dgMeasure(label, font, mono);
-    // A turned label is positioned and measured as centred on its origin -
+    // A turned label is positioned and measured as centred on its origin –
     // `.left` / `.right` name an edge of a horizontal run of text and have
     // nothing to say about one read bottom-to-top. Drawing it anchored while
     // reserving it centred put the glyphs a full label length off the box the
@@ -9846,7 +9881,7 @@ function createDiagramCompiler(env = {}) {
   function renderDiagram(body, headAttrs, opts = {}) {
     // One figure is one document as far as anything downstream is concerned:
     // the focus card clones it, the speaker's preview strip clones it, the
-    // editor replaces it. So a <symbol> may only be shared *within* a figure -
+    // editor replaces it. So a <symbol> may only be shared *within* a figure –
     // shared across two, the second one breaks the moment either is moved.
     if (env.resetAssets) env.resetAssets();
     const { model, errors } = parseDiagramSource(body, headAttrs, opts.base);
@@ -9944,8 +9979,8 @@ function createDiagramCompiler(env = {}) {
     for (const f of frames) for (const [k, v] of f.labelAnchor) anchorOf.set(k, v);
     // The extent of a label has to describe what the emitter will draw, so it
     // answers the anchor question exactly the way dgTextEl does. This used to
-    // reserve a full label width on *each* side of the origin - a box twice
-    // as wide as any label can be - which is where the odd empty margins came
+    // reserve a full label width on *each* side of the origin – a box twice
+    // as wide as any label can be – which is where the odd empty margins came
     // from: a figure whose outermost element was a caption reserved half that
     // caption's width of paper beyond it and then sat off-centre inside its
     // own frame. Measured on lectures/diagrams before the fix: up to 110px on
@@ -9996,7 +10031,7 @@ function createDiagramCompiler(env = {}) {
     const printBoxes = [];
     // printCls, not last.cls: anchorFor reads the classes to decide which side
     // of its origin a label occupies, and a pass handed no classes at all
-    // silently treats every label as centred - which under-reserves a `.right`
+    // silently treats every label as centred – which under-reserves a `.right`
     // one by half its width and clips it off the edge of the paper.
     extentsOf({ geom: printGeom, ext: last.ext, cls: printCls, labelAnchor: last.labelAnchor },
       printBoxes, (gid) => (printVis.get(ownerOf(gid)) ?? 1) > 0);
@@ -10045,7 +10080,7 @@ function createDiagramCompiler(env = {}) {
         inner += dgImageEl(e, prefix, v);
       } else if (kind === 'edge' || kind === 'brace') {
         // Like the outlines: one vector, two ways of joining it up. The
-        // choice is made here, once, so a `style` step cannot change it -
+        // choice is made here, once, so a `style` step cannot change it –
         // and there is nothing a step could want from that anyway.
         const curved = kind === 'edge' && ` ${st} `.includes(' smooth ');
         const dOf = curved ? dgSplineD : dgPathD;
@@ -10174,7 +10209,7 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_OPS, DG_KEYWORDS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_BRACE_SIDES, DG_KIND_OPTS, DG_PAD_DEFAULT, dgErr, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, rejectShapeOn, readGridOpts, dgReadDefault, parseDiagramDefaults, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_OPS, DG_KEYWORDS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_BRACE_SIDES, DG_KIND_OPTS, DG_PAD_DEFAULT, dgErr, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, rejectShapeOn, rejectAlignOn, readGridOpts, dgReadDefault, parseDiagramDefaults, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "";
 // The diagram editor.
@@ -10508,11 +10543,11 @@ const DGE_SLOTS = [
   // One slot, six outlines, because they are one slot in the grammar: a
   // hexagon has no corner radius to argue about, so picking one has to
   // displace whatever was there. A container is offered the two rectangles
-  // and will be refused the other four by the compiler - which is the same
+  // and will be refused the other four by the compiler – which is the same
   // arrangement `.fit` has, and the status bar says why.
   { key: 'corner', label: 'outline', kinds: ['box', 'container'],
     // Which way a chevron or a wedge aims is the `point` option, not a class,
-    // so the panel cannot set it yet - it writes classes and tags. Picking the
+    // so the panel cannot set it yet – it writes classes and tags. Picking the
     // outline here and aiming it in the source is the current split.
     options: [{ cls: '', label: 'default' }, { cls: 'round' }, { cls: 'sharp' },
       { cls: 'hex' }, { cls: 'chevron', label: 'chev' },
@@ -10537,9 +10572,15 @@ const DGE_SLOTS = [
   // Both axes, and on a box as well as a free text: a tall element with a
   // short label is the case these words exist for. Measured against the
   // element's own padding, so `left` is as far left as that box allows.
-  { key: 'align', label: 'label across', kinds: ['box', 'text'],
+  // The kinds are exactly the ones the compiler lets the word act on, and the
+  // two rows differ because the kinds do. A `dot` has a label and takes both.
+  // An edge label is anchored by the across-words and carried at the middle of
+  // its line whatever the down-words say, so it is on one row and not the
+  // other. A container's caption and a brace's label are pinned by their own
+  // statement, so neither row offers them and the compiler refuses both.
+  { key: 'align', label: 'label across', kinds: ['box', 'dot', 'text', 'edge'],
     options: [{ cls: 'left' }, { cls: '', label: 'centre' }, { cls: 'right' }] },
-  { key: 'alignv', label: 'label down', kinds: ['box', 'text'],
+  { key: 'alignv', label: 'label down', kinds: ['box', 'dot', 'text'],
     options: [{ cls: 'top' }, { cls: '', label: 'middle' }, { cls: 'bottom' }] },
   { key: 'head', label: 'arrowheads', kinds: ['edge'],
     options: [{ cls: '', label: 'one' }, { cls: 'no-head', label: 'none' }, { cls: 'both-heads', label: 'both' }] },
@@ -10825,8 +10866,8 @@ function dgeOpen(figOrIndex) {
   // editing five figures does not move the projection five times – and
   // `revealed[chunkId]`, which the reveal, the sync, the freeze gate and the
   // localStorage recovery all share, is never written to at all.
-  // Shown *before* the figure is fitted: every measurement fit needs -
-  // the canvas box, the frame box - is zero while the overlay is hidden, so
+  // Shown *before* the figure is fitted: every measurement fit needs –
+  // the canvas box, the frame box – is zero while the overlay is hidden, so
   // fitting first sizes the figure against nothing and lands at 100%.
   dgeRoot.hidden = false;
   document.body.classList.add('dge-open');
@@ -10889,7 +10930,7 @@ function dgeRecompile() {
     DGE.model = res.model;
     DGE.spans = window.PSI_DG.createSpanTable(res.model, DGE.source);
     // What the table describes. dgeSetSource refuses to leave the block
-    // broken, so this should always equal DGE.source - and if some path ever
+    // broken, so this should always equal DGE.source – and if some path ever
     // gets round that, a gesture planned against the stale table would splice
     // at offsets that have moved. Cheaper to notice than to debug.
     DGE.spansFor = DGE.source;
@@ -11415,7 +11456,7 @@ function dgeRedock(ctx, id, place, dx, dy, snap) {
   const cy = b.y + b.h / 2 + dy * uh;
   const vx = cx - (ref.x + ref.w / 2);
   const vy = cy - (ref.y + ref.h / 2);
-  // The dominant axis decides, measured from centre to centre - the same
+  // The dominant axis decides, measured from centre to centre – the same
   // question dgAutoAnchor asks about an edge's endpoint, and the same answer.
   const dir = Math.abs(vx) >= Math.abs(vy)
     ? (vx >= 0 ? 'right' : 'left')
@@ -11444,7 +11485,7 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
   const snap = (v) => (free ? v : dgeRound(v, DGE_SNAP_CELL));
   let strain = null;
 
-  // A coordinate owned by a set is not this element's to move - until the
+  // A coordinate owned by a set is not this element's to move – until the
   // author insists. Pulling a follower against its shared axis holds it on
   // the axis, draws the axis it is held by, and says how much further to pull;
   // past DGE_BREAK_CELL, or with Alt held, it drops the element from the
@@ -11455,7 +11496,7 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
   // was wrong: a set you cannot leave by dragging is a set the canvas cannot
   // express, and "drop bob from that line" is precisely the edit the editor
   // exists to make. The threshold is what keeps the set from dissolving under
-  // an ordinary nudge - leaving has to be something you meant.
+  // an ordinary nudge – leaving has to be something you meant.
   const held = (axis, delta) => {
     const owner = ctx.spans.constrainedBy(id, axis);
     if (!owner) return false;
@@ -11545,7 +11586,7 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
   }
 
   // A relation. The main axis is the gap; the cross axis is an alignment
-  // edge if the drop lands near one, and an offset past a tolerance - unless
+  // edge if the drop lands near one, and an offset past a tolerance – unless
   // the drag has carried the element past the edge it is measured from, in
   // which case the *relation itself* is what changed.
   const main = dgeMainAxis(place);
@@ -11727,7 +11768,7 @@ function dgeSnapshot() {
 }
 
 // Returns whether the edit stuck. A refusal rolls the source back and
-// recompiles, which leaves DGE.problems empty again - so a caller that wants
+// recompiles, which leaves DGE.problems empty again – so a caller that wants
 // to say something about its own edit cannot tell from the state whether
 // there was one, and dgeSetSlot went on to report a width it had just undone.
 function dgeSetSource(next, opts) {
@@ -11756,7 +11797,7 @@ function dgeSetSource(next, opts) {
   // left broken leaves DGE.spans describing text that no longer exists. Every
   // following edit is then spliced at offsets that have moved: clicking two
   // more swatches turned a tail into `{.a}.b}.c}`, and because the block never
-  // compiled again the canvas never changed - the panel looked like it was
+  // compiled again the canvas never changed – the panel looked like it was
   // doing nothing while it took the source apart.
   if (wasClean && DGE.problems.length && !(opts && opts.allowBroken)) {
     const why = DGE.problems[0];
@@ -11768,7 +11809,7 @@ function dgeSetSource(next, opts) {
     // Say what happened before saying why, and **name no line**. The
     // compiler's sentence is about the text that was just rolled back, so a
     // line number sends the author to a line that no longer contains what the
-    // message names - "line 3: box c: .shrink …" while line 3 reads
+    // message names – "line 3: box c: .shrink …" while line 3 reads
     // `box c "Empfänger" right of b gap 0.6 {.thick}`.
     dgeStatus('', 'not applied · ' + why.msg, true);
     return false;
@@ -11887,7 +11928,7 @@ function dgeNearestEdge(pt) {
 // would silently not be drawn at all.
 // What a click on this element should select. A `bars`, `grid` or `plot`
 // expands into elements no line of the source declares, so clicking one of
-// them and selecting it would hand the panel something it cannot edit - every
+// them and selecting it would hand the panel something it cannot edit – every
 // drag a silent no-op. The statement is what the gesture means, so that is
 // what it selects.
 function dgeOwnerOf(id) {
@@ -11921,7 +11962,7 @@ function dgeHitTest(pt, opts) {
 
 // A double-click on a handle cannot be recognised the two obvious ways. The
 // first click ends a zero-length drag, whose gestureEnd repaints the guide
-// layer - so the second click lands on a *different DOM node* carrying the
+// layer – so the second click lands on a *different DOM node* carrying the
 // same id, which means a dblclick listener fires on their common ancestor
 // instead, and the browser resets pointerdown's own click counter to 1.
 // Both looked like working controls and neither ever fired.
@@ -12133,7 +12174,7 @@ function dgeDockAt(ctx, id, pt) {
   if (!chip) return out;
   // The distance is not what a chip is for. Measuring it from where the
   // pointer happens to be gives a gap of nearly zero every time – the chip
-  // sits just outside the edge, and half the dragged element covers the rest -
+  // sits just outside the edge, and half the dragged element covers the rest –
   // so the element would end up flush against the host, which nobody means by
   // "dock it here". The chip says *which side*; the distance is whatever the
   // element already kept, and dragging adjusts it afterwards.
@@ -13038,7 +13079,7 @@ function dgeRenderSide() {
   // The tokens a statement identifies by position rather than by a keyword:
   // a chart's values, a grid's shape and cell kind, a plot's axis titles, an
   // image's asset. Named fields rather than "the second string on the line",
-  // because that is the only form in which they are learnable - and each one
+  // because that is the only form in which they are learnable – and each one
   // says what it counts, so a values/labels mismatch is visible here instead
   // of arriving later as a compiler error.
   if (single) side.appendChild(dgeDataPane(single));
@@ -13246,7 +13287,7 @@ function dgeSetSlot(slot, cls) {
   const applied = dgeSetSource(next);
   // Only if it stuck. A rolled-back edit leaves no problems behind, so the
   // old guard passed and the author was told the editor had written a width
-  // that is not in the source - the opposite of what happened, on top of the
+  // that is not in the source – the opposite of what happened, on top of the
   // compiler's own refusal.
   if (applied && widened.length) {
     dgeStatus('', 'wrote ' + widened.join(', ') + ' as well – .' + cls
@@ -13312,7 +13353,7 @@ function dgePlanTail(id, changes) {
   }
   // The braces are the caller's to write. An absent tail carries them in the
   // span's prefix and suffix; a *present* one has empty affixes and a span
-  // that covers `{...}` while its value is only what is between them - so
+  // that covers `{...}` while its value is only what is between them – so
   // writing the value back over the span drops them, and the second click on
   // any swatch turned `{.dashed}` into a bare `.dashed .dim`. That does not
   // parse, so the block kept its last good compile and the panel looked like
@@ -13335,8 +13376,8 @@ function dgePlanTail(id, changes) {
 // compiles and the corruption is silent all the way to source.md.
 function dgeApplySplices(list) {
   // Descending by position, and `seq` breaks a tie. Two insertions can share
-  // an offset - a width and an attribute tail both go at the end of a line
-  // that has neither - and applying right to left means the one applied
+  // an offset – a width and an attribute tail both go at the end of a line
+  // that has neither – and applying right to left means the one applied
   // *first* ends up last in the text. Without the tie-break that order came
   // from Array.sort's stability, which is not something to rest an edit on.
   const out = list.filter(Boolean)
@@ -13498,7 +13539,7 @@ function dgeStepPane() {
 }
 
 // The positional tokens, per statement, as named fields. Each entry is the
-// span name, the word the panel shows, and a hint - and `count`, where the
+// span name, the word the panel shows, and a hint – and `count`, where the
 // value is a list whose length has to agree with another one. That number is
 // the whole point of the pane: `bars` with twelve values and eleven labels is
 // a hard error at build time, and the only way to see it coming is to be told
@@ -13531,8 +13572,8 @@ function dgeDataPane(el) {
   const counts = [];
   for (const f of fields) {
     const sp = DGE.spans.spanOf(el.id, f.key);
-    // A field with no span is one this statement does not have - a `grid` of
-    // boxes has no asset - so it is absent rather than empty. An empty box
+    // A field with no span is one this statement does not have – a `grid` of
+    // boxes has no asset – so it is absent rather than empty. An empty box
     // the author cannot fill is worse than no box.
     if (!sp) continue;
     if (f.count) counts.push(f.label + ': ' + f.count(sp.present ? sp.value : ''));
@@ -13567,13 +13608,13 @@ function dgeDataPane(el) {
     ]));
   }
   // The mismatch line only where there is a mismatch to have. Labels are
-  // optional - the field's own hint says "or leave empty" and the compiler
-  // agrees - so a chart with none was being told its zero labels had to match
+  // optional – the field's own hint says "or leave empty" and the compiler
+  // agrees – so a chart with none was being told its zero labels had to match
   // its twelve values.
   const nums = counts.map((c) => Number(c.split(': ')[1]));
   const mismatch = counts.length === 2 && nums[1] > 0 && nums[0] !== nums[1];
   const hint = counts.length
-    ? counts.join(' · ') + (mismatch ? ' — these have to match' : '')
+    ? counts.join(' · ') + (mismatch ? ' – these have to match' : '')
     : fields.map((f) => f.hint)[0];
   wrap.appendChild(dgeEl('div', { class: 'dge-hint', text: hint }));
   return wrap;
@@ -13768,7 +13809,7 @@ function dgeElementList() {
   const list = dgeEl('div', { class: 'dge-list' });
   // Leader stubs are not statements, so they are not rows: the arrow is
   // visible in the text element's own line, as the `-> x` that made it. The
-  // same holds for what a `bars`, `grid` or `plot` expands into - ninety-six
+  // same holds for what a `bars`, `grid` or `plot` expands into – ninety-six
   // rows for one statement, none of which can be edited on its own. The frame
   // stays, because the frame is the statement.
   const own = (e) => !e.lead && !(e.synth && e.synth !== e.id);
@@ -13988,8 +14029,8 @@ function dgeRenderBeats() {
   }));
 }
 
-// A new step goes at the end, which is where a beat is almost always added -
-// a figure is built up - and standing on it afterwards is the whole point:
+// A new step goes at the end, which is where a beat is almost always added –
+// a figure is built up – and standing on it afterwards is the whole point:
 // every control that writes into a step writes into the one you are on.
 function dgeAddStep() {
   const n = (DGE.model ? DGE.model.steps.length : 0) + 1;
@@ -14413,7 +14454,7 @@ function dgePaste(inPlace) {
   if (!DGE.clipboard) return;
   // Name collisions are renamed mechanically, with every reference *inside*
   // the pasted set rewritten. Safe because element names are letters,
-  // digits, _ and - only.
+  // digits, _ and – only.
   let text = DGE.clipboard.text;
   const rename = new Map();
   for (const name of DGE.clipboard.names) {

@@ -2,7 +2,7 @@
  * Aiming an outline, and the options a statement actually takes.
  *
  * Two things the panel used to be unable to say, both of them options rather
- * than classes — which is the whole reason they were missing, since the panel
+ * than classes – which is the whole reason they were missing, since the panel
  * grew up writing classes and tags.
  *
  * `point` aims a chevron or a wedge. It is offered only where there is a
@@ -11,7 +11,7 @@
  *
  * And a `bars`, `grid` or `plot` frame is a box to the layout but not a `box`
  * line: offering `pad` there would write a word its statement rejects, and
- * `space` — which it does take — would never be offered at all. The size row
+ * `space` – which it does take – would never be offered at all. The size row
  * now reads the options off the statement.
  */
 export const name = 'editor · aiming, and a statement’s own options';
@@ -70,7 +70,7 @@ export async function run({ page, errors, report, walkTo, ed }) {
   ok(cleared === before, 'leaving the line exactly as it was', JSON.stringify(cleared));
 
   // And clicking it again is a no-op, not a refusal. Writing an option with
-  // no value - a bare `point` - is what the compiler would reject, so the
+  // no value – a bare `point` - is what the compiler would reject, so the
   // author got a red message for clicking the option already selected.
   await clickSlot(page, 'aim', 'default');
   ok(!(await ed.problems()).includes('line '), 'clicking it twice changes nothing',

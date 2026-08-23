@@ -181,7 +181,7 @@ export const DG_POINT_DIRS = new Set(['up', 'down', 'left', 'right']);
 // how to carry, interpolate and apply a vector.
 export const DG_TURN_DEG = -90;
 // The angle for a resolved class set, and the only place the four sites that
-// position a label ask the question. Three of them used to skip it entirely -
+// position a label ask the question. Three of them used to skip it entirely –
 // a `.turn` on a container caption, a brace label or an edge label resolved,
 // emitted its CSS and rotated nothing, which is exactly the silent no-op this
 // grammar keeps closing.
@@ -314,7 +314,7 @@ export const DG_GRID_MAX = 400;
 //
 // This is the one place that rule bends. `lint.js` takes tables from this
 // module and never a function, so that the whole compiler cannot come in
-// behind one - but a naming scheme *is* a table, one that happens to be
+// behind one – but a naming scheme *is* a table, one that happens to be
 // parameterised by an index, and writing it out twice is precisely the
 // two-files-one-commit duplication importing the tables was meant to end.
 export const dgBarName = (id, i) => `${id}-${i}`;
@@ -920,6 +920,38 @@ export function rejectShapeOn(kindWord, classes, lineNo, errors) {
   }
 }
 
+// The same rule as rejectShapeOn, one statement further along. `left`,
+// `right`, `top` and `bottom` place a label inside the room its element gives
+// it, and three kinds give it none: a container's caption is pinned to its own
+// top border, a brace's label sits beside the spine on the side the brace was
+// given, and an edge's label is carried at the midpoint of the line. Measured
+// on the emitted SVG before this existed: `.left` moved a node label and an
+// edge label and nothing else; `.top` moved a node label alone. The other five
+// combinations of the two axes with the four kinds resolved, emitted their CSS
+// and moved nothing.
+//
+// Down is the axis a container, a brace and an edge each own outright, so
+// `top`/`bottom` never reach any of the three; across, an edge label really is
+// anchored by the word and keeps it.
+const DG_ALIGN_ACROSS = ['left', 'right'];
+const DG_ALIGN_DOWN = ['top', 'bottom'];
+export function rejectAlignOn(kindWord, classes, lineNo, errors) {
+  const holder = kindWord === 'container' || kindWord === 'brace';
+  if (!holder && kindWord !== 'edge') return;
+  const why = {
+    container: 'a container\'s caption sits on its own top border',
+    brace: 'a brace\'s label sits beside the spine, on the side the brace was given',
+    edge: 'an edge\'s label is carried at the middle of the line',
+  }[kindWord];
+  for (const c of classes || []) {
+    const across = DG_ALIGN_ACROSS.includes(c);
+    if (!across && !DG_ALIGN_DOWN.includes(c)) continue;
+    if (kindWord === 'edge' && across) continue;   // this one the anchor honours
+    dgErr(errors, lineNo, `.${c} places a label in the room its element gives it, and `
+      + `${why} – the class would resolve and move nothing.`);
+  }
+}
+
 // What a `bars` or a `grid` may say after its shape: a placement, like every
 // other statement, plus the two or three numbers that size it. Kept in one
 // reader because the two statements differ only in which numbers they accept,
@@ -929,7 +961,7 @@ export function readGridOpts(head, id, rest0, lineNo, errors) {
   const out = { place: null, w: null, h: null, cell: null, space: null };
   // `space`, not `gap`. Everywhere else in this grammar `gap` is the distance
   // between two *elements*, and a placement on this very line uses it in
-  // exactly that sense - so a bare `gap` here meant one thing written before
+  // exactly that sense – so a bare `gap` here meant one thing written before
   // the placement and the other after it, with no error either way and a
   // fivefold difference in the drawing. The distance between repetitions
   // inside one statement is a different measurement and gets its own word.
@@ -962,6 +994,7 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) 
   // result never depends on the order of the declarations: an element's
   // own attributes beat its tag default, which beats the kind default.
   rejectShapeOn(kind, attrs.classes, lineNo, errors);
+  rejectAlignOn(kind, attrs.classes, lineNo, errors);
   const tagTok = body0[2] && body0[2].v.startsWith('@') ? body0[2].v.slice(1) : null;
   const slot = tagTok
     ? layer.tagDefaults.find(d => d.kind === kind && d.tag === tagTok)
@@ -981,7 +1014,7 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) 
     // belongs to rather than repeating the list.
     // Only kinds a `default` can actually name. `bars`, `grid` and `plot`
     // have entries in the table because the option names are checked against
-    // it, but they are statements rather than kinds - advising the author to
+    // it, but they are statements rather than kinds – advising the author to
     // write `default bars` would send them at a line the parser refuses.
     const owner = [...DG_DEFAULT_KINDS].find(kk => (DG_KIND_OPTS[kk] || []).includes(key));
     if (owner) {
@@ -1068,7 +1101,7 @@ export function dgStateAt(model, k) {
   // A tag names a set, and so does the name of a `bars`, `grid` or `plot`:
   // it is the only name the author was given for the chart, so `hide f` has
   // to take the columns with it and `emph f` has to reach them. Not for
-  // `move` and `label`, which mean the frame - the members are placed against
+  // `move` and `label`, which mean the frame – the members are placed against
   // its edges, so moving it moves them, and it carries no label to swap.
   const members = (id) => model.expands.get(id) || [];
   const expand = (id) => (id.startsWith('@') ? (model.tags.get(id.slice(1)) || [])
@@ -1232,7 +1265,7 @@ export function dgPathD(nums) {
 
 // The same point vector, drawn as a curve through its points instead of a
 // run of straight segments. Catmull-Rom converted to cubic Béziers, which is
-// the interpolating spline - it passes *through* every waypoint, so an author
+// the interpolating spline – it passes *through* every waypoint, so an author
 // who puts a point somewhere gets the curve there, and `.smooth` never moves
 // a line off the thing it was attached to.
 //
@@ -1456,7 +1489,7 @@ export function createSpanTable(model, body) {
     //
     // **The braces belong to the span, not to the value.** `text` is
     // `{.a .b}` and `value` is `.a .b`, so applySpan(sp, sp.value) is not the
-    // identity - the caller has to put the braces back. The absent case below
+    // identity – the caller has to put the braces back. The absent case below
     // hands them over in prefix/suffix; the present case cannot, because they
     // are already inside the range being replaced. Getting this wrong is not
     // a small diff: the result does not parse.
@@ -1930,7 +1963,7 @@ export function createDiagramCompiler(env = {}) {
       // edge with waypoints and `.smooth`.
       //
       // Deliberately small. No log scales, no automatic tick choice, no
-      // legend, no second y axis, no data series as a construct - this is a
+      // legend, no second y axis, no data series as a construct – this is a
       // frame to draw in, not a charting library growing inside a
       // boxes-and-arrows grammar.
       if (head === 'plot') {
@@ -2071,8 +2104,8 @@ export function createDiagramCompiler(env = {}) {
         };
         // A column with rounded corners is not a column. The class is only
         // added where the author claimed no outline of their own, or the
-        // element would carry two of one slot and stylesheet order - not the
-        // author - would decide which one showed.
+        // element would carry two of one slot and stylesheet order – not the
+        // author – would decide which one showed.
         const squared = (cls) => (cls.some(c => c === 'round' || c === 'sharp' || DG_SHAPE_CLASSES.has(c))
           ? cls : ['sharp', ...cls]);
         const at = (xn, yn) => ({
@@ -2366,6 +2399,7 @@ export function createDiagramCompiler(env = {}) {
         const flip = body0[arrowAt].v === '<-';
         const id = attrs.id || `edge-${++anonEdge}`;
         claim(id, 'edge', lineNo);
+        rejectAlignOn('edge', attrs.classes, lineNo, errors);
         const edge = {
           kind: 'edge',
           id,
@@ -2420,6 +2454,7 @@ export function createDiagramCompiler(env = {}) {
         // `gap`, which is the word for the distance between two *elements*
         // everywhere else in the grammar.
         rejectShapeOn(head, attrs.classes, lineNo, errors);
+        rejectAlignOn(head, attrs.classes, lineNo, errors);
         const item = { kind: head, id, members, label: quoted[0] ?? '', classes: attrs.classes, tags: attrs.tags, pad: null, line: lineNo, span };
         if (head === 'brace') item.side = null;
         for (let k = 0; k < rest.length; k++) {
@@ -3016,7 +3051,7 @@ export function createDiagramCompiler(env = {}) {
       if (st.label) {
         // Measure it, like every other label. Three of the four places that
         // position a label used to skip this, and extentsOf then fell back to
-        // a hardcoded [120, 28] - so a caption of any length at all reserved
+        // a hardcoded [120, 28] – so a caption of any length at all reserved
         // exactly 120px of paper beside the figure, which is where the wide
         // empty margins came from.
         const cm = dgMeasure(st.label, dgFontFor(st.classes), st.classes.has('mono'));
@@ -3102,8 +3137,8 @@ export function createDiagramCompiler(env = {}) {
       // endpoints that were meant to line up and did not, and on a projection
       // it reads as a mistake. Say so, and name the verb that fixes it.
       //
-      // Not on a curve. There the points are not a run of lines at all - they
-      // are where the author wants the curve to pass - and a nearly-flat
+      // Not on a curve. There the points are not a run of lines at all – they
+      // are where the author wants the curve to pass – and a nearly-flat
       // stretch of a ROC curve is the shape, not a slip.
       const skewCheck = !st.classes.has('smooth');
       for (let i = 1; skewCheck && i < pts.length; i++) {
@@ -3169,7 +3204,7 @@ export function createDiagramCompiler(env = {}) {
     const font = fontPx || dgFontFor(classes);
     const mono = classes.has('mono');
     const m = dgMeasure(label, font, mono);
-    // A turned label is positioned and measured as centred on its origin -
+    // A turned label is positioned and measured as centred on its origin –
     // `.left` / `.right` name an edge of a horizontal run of text and have
     // nothing to say about one read bottom-to-top. Drawing it anchored while
     // reserving it centred put the glyphs a full label length off the box the
@@ -3278,7 +3313,7 @@ export function createDiagramCompiler(env = {}) {
   function renderDiagram(body, headAttrs, opts = {}) {
     // One figure is one document as far as anything downstream is concerned:
     // the focus card clones it, the speaker's preview strip clones it, the
-    // editor replaces it. So a <symbol> may only be shared *within* a figure -
+    // editor replaces it. So a <symbol> may only be shared *within* a figure –
     // shared across two, the second one breaks the moment either is moved.
     if (env.resetAssets) env.resetAssets();
     const { model, errors } = parseDiagramSource(body, headAttrs, opts.base);
@@ -3376,8 +3411,8 @@ export function createDiagramCompiler(env = {}) {
     for (const f of frames) for (const [k, v] of f.labelAnchor) anchorOf.set(k, v);
     // The extent of a label has to describe what the emitter will draw, so it
     // answers the anchor question exactly the way dgTextEl does. This used to
-    // reserve a full label width on *each* side of the origin - a box twice
-    // as wide as any label can be - which is where the odd empty margins came
+    // reserve a full label width on *each* side of the origin – a box twice
+    // as wide as any label can be – which is where the odd empty margins came
     // from: a figure whose outermost element was a caption reserved half that
     // caption's width of paper beyond it and then sat off-centre inside its
     // own frame. Measured on lectures/diagrams before the fix: up to 110px on
@@ -3428,7 +3463,7 @@ export function createDiagramCompiler(env = {}) {
     const printBoxes = [];
     // printCls, not last.cls: anchorFor reads the classes to decide which side
     // of its origin a label occupies, and a pass handed no classes at all
-    // silently treats every label as centred - which under-reserves a `.right`
+    // silently treats every label as centred – which under-reserves a `.right`
     // one by half its width and clips it off the edge of the paper.
     extentsOf({ geom: printGeom, ext: last.ext, cls: printCls, labelAnchor: last.labelAnchor },
       printBoxes, (gid) => (printVis.get(ownerOf(gid)) ?? 1) > 0);
@@ -3477,7 +3512,7 @@ export function createDiagramCompiler(env = {}) {
         inner += dgImageEl(e, prefix, v);
       } else if (kind === 'edge' || kind === 'brace') {
         // Like the outlines: one vector, two ways of joining it up. The
-        // choice is made here, once, so a `style` step cannot change it -
+        // choice is made here, once, so a `style` step cannot change it –
         // and there is nothing a step could want from that anyway.
         const curved = kind === 'edge' && ` ${st} `.includes(' smooth ');
         const dOf = curved ? dgSplineD : dgPathD;

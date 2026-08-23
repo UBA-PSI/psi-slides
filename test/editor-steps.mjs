@@ -3,7 +3,7 @@
  *
  * Two things the panel could not say. It could stand on a beat and it could
  * write a `move` into one by dragging, but there was no way to add a step, no
- * way to add any other op, and — the one that cost the most — no way to see
+ * way to add any other op, and – the one that cost the most – no way to see
  * which elements a beat is about without pressing Space and watching.
  *
  * That last one is not a reading of the source. `show @xor` is one line and

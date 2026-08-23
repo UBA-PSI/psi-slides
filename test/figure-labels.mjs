@@ -5,7 +5,7 @@
  * differs by kind: a shape's inner edge, and a free text's own extent, because
  * sizeOf gives a free text the bare glyph run with no padding at all. Insetting
  * both by the same number pushed every aligned free text 13px off its own box,
- * and on a `.paper` text - whose ground is drawn outwards from that box -
+ * and on a `.paper` text – whose ground is drawn outwards from that box –
  * `left` came out flush against the right edge of its own ground.
  *
  * Two figures' worth of labels are measured against their own shapes, so the
@@ -66,7 +66,7 @@ export async function run({ page, errors, report, walkTo }) {
   // Against the ground, which a `.paper` text draws *outwards* from its box.
   // The direction is the assertion, not a coordinate: a left-aligned label has
   // to be nearer its left edge than its right. Inset by a padding the text
-  // does not have, `.left` came out nearer the right - the alignment inverted
+  // does not have, `.left` came out nearer the right – the alignment inverted
   // rather than shifted, which is why this is worth a spec of its own.
   ok(fl && fl.left < fl.right, 'a left-aligned free text is nearer its left edge',
     JSON.stringify(fl));
@@ -74,6 +74,45 @@ export async function run({ page, errors, report, walkTo }) {
     JSON.stringify(fr));
   ok(fl && fr && Math.abs(fl.left - fr.right) < 1.5,
     'and the two mirror each other exactly', JSON.stringify([fl, fr]));
+
+  // ── and where the word cannot act, it is refused ──
+  //
+  // Three kinds place their label by their own statement: a container's
+  // caption on its own top border, a brace's beside the spine, an edge's at
+  // the middle of the line. Written there, an alignment word used to resolve,
+  // emit its CSS and move nothing – measured on the emitted SVG, `.left` moved
+  // a node label and an edge label and no other, `.top` moved a node label
+  // alone. A silent no-op is the failure this grammar keeps closing, so the
+  // five combinations that cannot act are errors now.
+  //
+  // Compiled through the page's own compiler rather than against a lecture,
+  // because a lecture cannot hold a line that does not build.
+  const verdicts = await page.evaluate(() => {
+    const compile = (line) => {
+      const c = window.PSI_DG.createDiagramCompiler({
+        resolveImage: () => null, imageAspect: () => 1, warn: () => {},
+        escapeHtml: (s) => String(s), assetMarkup: () => '',
+      });
+      const src = ['box a "x" at 0,0', 'box b "y" below a gap 0.4', line].join('\n');
+      return c.parseDiagramSource(src, '').errors.length > 0;
+    };
+    return {
+      containerAcross: compile('container k "cap" over a,b {.left}'),
+      containerDown: compile('container k "cap" over a,b {.top}'),
+      braceAcross: compile('brace r "lab" over a,b right {.right}'),
+      braceDown: compile('brace r "lab" over a,b right {.bottom}'),
+      edgeDown: compile('edge a -- b "e" {.top}'),
+      edgeAcross: compile('edge a -- b "e" {.left}'),
+      nodeAcross: compile('box c "z" right of a gap 0.5 {.left}'),
+      nodeDown: compile('box c "z" right of a gap 0.5 {.bottom}'),
+    };
+  });
+  note('refused: ' + Object.entries(verdicts).filter(([, v]) => v).map(([k]) => k).join(' '));
+  ok(verdicts.containerAcross && verdicts.containerDown
+     && verdicts.braceAcross && verdicts.braceDown && verdicts.edgeDown,
+    'the five combinations that could not act are refused', JSON.stringify(verdicts));
+  ok(!verdicts.edgeAcross && !verdicts.nodeAcross && !verdicts.nodeDown,
+    'and the three that do act are still allowed', JSON.stringify(verdicts));
 
   ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

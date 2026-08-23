@@ -66,7 +66,7 @@ it needs no `show` of its own and no maintenance when the figure changes.
 **Do:** draw an `edge` when two things are actually connected. When you only
 want to point at something, use a leader: `-> target` on a `text`.
 
-**Why:** uniform connectedness is the strongest grouping cue of all - stronger
+**Why:** uniform connectedness is the strongest grouping cue of all – stronger
 than proximity, stronger than colour. An arrow used as a pointing finger claims
 a relationship that is not there, and the room will look for it.
 
@@ -90,7 +90,7 @@ and do not reuse a tone for a second meaning in the same figure.
 the same tone are claimed to be the same *kind* of thing, and the claim is made
 across the whole figure whether you meant it or not.
 
-The assignment used by `lectures/network-security` - a good default for any
+The assignment used by `lectures/network-security` – a good default for any
 security lecture:
 
 | Class | Means |
@@ -148,12 +148,36 @@ text lbl "10.1.1.0/24" between sw,rt pad 0.12 {.paper .small}
 This is also why `.paper` exists as a class at all: a box already defaults to it,
 but a free `text` has no ground until you ask for one.
 
+**And where the label sits inside its own room is four more words.** `.left`,
+`.right`, `.top` and `.bottom` mean "as far that way as this element allows" –
+its inner edge, not its border. A tall element with a short label is what they
+are for: without them the word floats in the middle of a bar with empty space
+above and below it.
+
+```
+# wrong: the label floats in the middle of a tall panel
+box zone "TRUSTED" at 0,0 w 1.2 h 2.4 {.tone-2}
+
+# right: it sits at the top, where the eye enters the shape
+box zone "TRUSTED" at 0,0 w 1.2 h 2.4 {.tone-2 .top}
+```
+
+They combine with `.turn`, which is how a firewall bar gets a label at all: the
+word reads up the bar, and `.top` decides which end it starts from.
+
+With more than one line they move the *block*, so `.bottom` puts the last line
+on the inner edge. They apply to a box, a dot and a free text; an edge label
+takes `.left` / `.right` only, since it is carried at the middle of its line.
+A container's caption and a brace's label are placed by their own statement, so
+writing one of the four words there is an error rather than a class that
+quietly does nothing.
+
 ## 7. Run edges on axes, and bend them once
 
 **Do:** keep edges horizontal or vertical. When one has to get around something,
 give it one waypoint, not three. Let crossings happen at right angles.
 
-**Why:** good continuation - the eye follows a line through a junction and gives
+**Why:** good continuation – the eye follows a line through a junction and gives
 up at a corner. Each bend is a place a reader has to re-acquire the line.
 
 The build helps: an edge more than a fraction off an axis but less than 4° off
@@ -170,13 +194,13 @@ edge c0 -> x1 via c0.right+0.2,c0.cy c0.right+0.2,x1.cy
 
 Note what the right-hand version does *not* do: it does not write coordinates.
 Both waypoints are expressions over other elements, so the route survives the
-figure being redrawn - and because the second one takes its height from the
+figure being redrawn – and because the second one takes its height from the
 target, the final approach is exactly horizontal by construction rather than by
 arithmetic you would have to redo.
 
 ## 8. End an edge on an anchor, never inside a box
 
-**Do:** name the side the arrow should arrive at - `b.left`, `b.top` - whenever
+**Do:** name the side the arrow should arrive at – `b.left`, `b.top` – whenever
 the automatic choice is wrong. Separate two edges between the same pair with a
 fraction along the side.
 
@@ -198,7 +222,7 @@ edge eve.right:0.7 -> bob.left:0.7 "forgery" {.accent}
 
 The `same as` is load-bearing, and leaving it out is how this rule is usually
 got wrong: a fraction of two *different* heights lands at two different places,
-so the pair comes out very slightly skewed. The build says so by name - it is
+so the pair comes out very slightly skewed. The build says so by name – it is
 one of the two things the 4°-off-axis warning is written for.
 
 If an edge must pass *over* something on its way, put a `.paper` label at the
@@ -210,7 +234,7 @@ crossing, or reroute. Do not leave two lines fused at a junction.
 a compromised host does not need a biohazard symbol, a person does not need a
 face unless the figure is about people.
 
-**Why:** Prägnanz - vision settles on the simplest reading available. Every mark
+**Why:** Prägnanz – vision settles on the simplest reading available. Every mark
 you add is a mark someone has to rule out.
 
 Before you add an element, ask which beat it belongs to. If the answer is "none",
@@ -226,7 +250,7 @@ imported from a slide deck works on exactly one background. And a shadow is a
 depth cue in a drawing that has no depth: it adds a second edge to every shape
 and buys nothing. The vocabulary has none, and that is not an oversight.
 
-`.turn` is for a label that has no room to be horizontal - a firewall bar, a
+`.turn` is for a label that has no room to be horizontal – a firewall bar, a
 matrix row, an axis title. It is not a way to make a figure look busy.
 
 ---
@@ -269,7 +293,7 @@ Work down this list. It is written so it can be checked mechanically.
 2. `node build.js <source.md>` prints no `[diagram]` warning, or the source
    carries a comment saying why the remaining one is deliberate.
 3. No edge runs at a slight angle. (The build says so; do not silence it by
-   nudging - align the elements.)
+   nudging – align the elements.)
 4. Every label that overlaps a line or a fill has a fill class of its own.
 5. Every arrowhead lands on a border, none inside a box, none two-on-a-line.
 6. No tone carries two meanings in one figure, and none contradicts the table
@@ -293,10 +317,10 @@ Knowing the walls saves the time spent walking into them.
 - **No free colours.** Four tones, plus `.accent` and `.muted`. If you need a
   fifth distinction, use shape (`.hex`, `.chevron`, `.wedge`, `.cross`, aimed
   with `point`) or family (`.mono`,
-  `.serif`) instead - and ask first whether the figure is doing too much.
+  `.serif`) instead – and ask first whether the figure is doing too much.
 - **No automatic routing.** Edges are straight segments through the waypoints
   you write. Nothing steps around a box for you, and nothing fans out parallel
-  edges - that is what the `:0.3` / `:0.7` fractions are for.
+  edges – that is what the `:0.3` / `:0.7` fractions are for.
 - **No automatic line breaking.** A label breaks where you write `\n`, and
   nowhere else.
 - **No shadows and no gradients.** Drawing order is fixed too – containers,
@@ -313,7 +337,7 @@ Knowing the walls saves the time spent walking into them.
   `Internet`. If a shape is genuinely load-bearing, it is an SVG asset and
   `image` places it.
 - **Text width is estimated, not measured.** There is no browser at build time,
-  so the estimate is tuned slightly generous - a box a little wider than its
+  so the estimate is tuned slightly generous – a box a little wider than its
   text reads as designed, a box narrower reads as broken. Where it matters,
   give an explicit `w`.
 - **No constraint solver.** Positions are expressions over other positions,

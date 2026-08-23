@@ -122,7 +122,7 @@ Formal statement. $k \geq 2$ inline math.
   └─────┴─────┴─────┘
 :::
 
-> note: Watch the room here — common confusion with l-diversity.
+> note: Watch the room here – common confusion with l-diversity.
 ```
 
 **Viewer defaults.** Six optional frontmatter keys pin how a lecture *opens*: `font` (serif/sans/mono), `theme` (the six accent and phosphor names), `collapse` (topic-bold/none, the `C` toggle), `auto-fit` (true/false, the `#` toggle), `slide-numbers` (vertical/horizontal/off, the `L` toggle), and `editor` (both/speaker/none). The last is not a look but a payload – whether the live views carry the diagram editor – and it goes through the same machinery because the failure mode is the same: a typo would otherwise cost the lecture its editor without anything on the page saying so. Precedence is one sentence: **a key that is present wins over the reader's stored preference; a key that is absent leaves that preference alone.** Lectures that pin nothing therefore behave exactly as before – font, theme and slide numbers keep following the reader across lectures, which is the point of storing them globally – while an author who has designed a look gets it without asking anyone to press keys. `slide-numbers` reaches the print views too, since a document has no keyboard. An unknown value fails the build with the list of valid ones: a silently dropped setting is indistinguishable from a setting nobody wrote.
@@ -211,7 +211,7 @@ This anchors the entire scale to the projector's vertical resolution, keeping th
 OKLCH palette, uchu-inspired, deliberately restrained. Calibrated for projector-distance readability (values observed from authoring sessions):
 
 ```css
---ink:        oklch(0.20 0.01 260);   /* body text — calibrated for back-of-room legibility */
+--ink:        oklch(0.20 0.01 260);   /* body text – calibrated for back-of-room legibility */
 --ink-soft:   oklch(0.62 0.01 260);   /* marginalia, captions, dimmed non-active chunks */
 --paper:      oklch(0.98 0.00 0);     /* background */
 --paper-warm: oklch(0.96 0.01 90);    /* dimmed background for unfocused surfaces */

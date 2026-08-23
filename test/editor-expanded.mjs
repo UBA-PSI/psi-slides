@@ -8,7 +8,7 @@
  * rewrites the whole chart while the author thinks they are nudging one bar.
  *
  * So they are absent from the span table, absent from the element list, and a
- * click on one selects the statement instead - which is what the gesture
+ * click on one selects the statement instead – which is what the gesture
  * means anyway, because the frame is the statement and moving it moves the
  * chart.
  *
