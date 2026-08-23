@@ -390,7 +390,7 @@ export const DG_KIND_OPTS = {
   // they are statements that expand into element kinds, and the elements they
   // produce take their defaults from `default box` like any other box. The
   // table is here because the linter reads it to check option names.
-  bars: ['w', 'h', 'space'], grid: ['cell', 'space'], plot: ['w', 'h', 'step'],
+  bars: ['w', 'h', 'space'], grid: ['cell', 'space'], plot: ['w', 'h', 'step', 'x', 'y'],
 };
 export const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid units
 
@@ -1257,7 +1257,14 @@ export function dgSplineD(v) {
 // call site – which matters, because the call site is a drag handler and
 // every branch there is a place for the two cases to drift apart.
 
-const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'align'];
+// `keyword value` options an editor can find and rewrite in place. `point`
+// is here for the same reason the rest are: it is written on the element's
+// own line, so a control that sets it has to be able to say where it goes and
+// where it would go if it were not there yet. Its value is a word rather than
+// a number, which this shape does not care about.
+const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'align', 'point', 'x', 'y',
+  // the options the expanding statements take on their own line
+  'space', 'cell', 'step'];
 
 // The x and y halves of a `dx,dy` token, and the signed nudge inside a
 // coordinate component. Sub-token arithmetic on the token's own text, because
@@ -1368,6 +1375,12 @@ export function createSpanTable(model, body) {
     if (attr === 'line') return hit(el.span[0], el.span[1], src.slice(el.span[0], el.span[1]));
 
     if (attr === 'label') {
+      // A `bars`, `grid` or `plot` frame has no label, and the first quoted
+      // token on its line is not one either: on a `bars` it is the values, on
+      // a `plot` the x axis title. Handing that back under the name `label`
+      // is how a panel's label field comes to overwrite a chart's data with
+      // whatever someone typed.
+      if (el.frame) return null;
       const q = toks.find(x => x.q);
       if (q) return hit(q.s, q.e, q.v);
       // A label goes straight after the element's name, which is the second
@@ -1871,7 +1884,7 @@ export function createDiagramCompiler(env = {}) {
             ? { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] }
             : (dgErr(errors, lineNo, `plot ${id} has no placement (at X,Y / below … / right of … )`),
               { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] }))),
-          w: W, h: H, r: null, pad: null, frame: true,
+          w: W, h: H, r: null, pad: null, frame: head,
         }));
         const gridCls = ['muted', 'dotted', 'no-head'];
         const atP = (xn, yn) => [{ ref: id, prop: 'left', nudge: xn }, { ref: id, prop: 'top', nudge: yn }];
@@ -1996,7 +2009,7 @@ export function createDiagramCompiler(env = {}) {
           // hangs off its edges, so moving the statement moves the chart.
           model.nodes.push(synth({
             kind: 'box', id, label: '', classes: ['bare', 'clear'], tags: attrs.tags,
-            place: framePlace(opts.place), w: W, h: H, r: null, pad: null, frame: true,
+            place: framePlace(opts.place), w: W, h: H, r: null, pad: null, frame: head,
           }));
           values.forEach((v, i) => {
             const bh = (v / max) * H;
@@ -2088,7 +2101,7 @@ export function createDiagramCompiler(env = {}) {
         model.nodes.push(synth({
           kind: 'box', id, label: '', classes: ['bare', 'clear'], tags: attrs.tags,
           place: framePlace(opts.place), w: cols * pitchX - gapX, h: rows * pitchY - gapU,
-          r: null, pad: null, frame: true,
+          r: null, pad: null, frame: head,
         }));
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {

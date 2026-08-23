@@ -8626,7 +8626,7 @@ const DG_KIND_OPTS = {
   // they are statements that expand into element kinds, and the elements they
   // produce take their defaults from `default box` like any other box. The
   // table is here because the linter reads it to check option names.
-  bars: ['w', 'h', 'space'], grid: ['cell', 'space'], plot: ['w', 'h', 'step'],
+  bars: ['w', 'h', 'space'], grid: ['cell', 'space'], plot: ['w', 'h', 'step', 'x', 'y'],
 };
 const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid units
 
@@ -9493,7 +9493,14 @@ function dgSplineD(v) {
 // call site – which matters, because the call site is a drag handler and
 // every branch there is a place for the two cases to drift apart.
 
-const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'align'];
+// `keyword value` options an editor can find and rewrite in place. `point`
+// is here for the same reason the rest are: it is written on the element's
+// own line, so a control that sets it has to be able to say where it goes and
+// where it would go if it were not there yet. Its value is a word rather than
+// a number, which this shape does not care about.
+const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'align', 'point', 'x', 'y',
+  // the options the expanding statements take on their own line
+  'space', 'cell', 'step'];
 
 // The x and y halves of a `dx,dy` token, and the signed nudge inside a
 // coordinate component. Sub-token arithmetic on the token's own text, because
@@ -9604,6 +9611,12 @@ function createSpanTable(model, body) {
     if (attr === 'line') return hit(el.span[0], el.span[1], src.slice(el.span[0], el.span[1]));
 
     if (attr === 'label') {
+      // A `bars`, `grid` or `plot` frame has no label, and the first quoted
+      // token on its line is not one either: on a `bars` it is the values, on
+      // a `plot` the x axis title. Handing that back under the name `label`
+      // is how a panel's label field comes to overwrite a chart's data with
+      // whatever someone typed.
+      if (el.frame) return null;
       const q = toks.find(x => x.q);
       if (q) return hit(q.s, q.e, q.v);
       // A label goes straight after the element's name, which is the second
@@ -10107,7 +10120,7 @@ function createDiagramCompiler(env = {}) {
             ? { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] }
             : (dgErr(errors, lineNo, `plot ${id} has no placement (at X,Y / below … / right of … )`),
               { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] }))),
-          w: W, h: H, r: null, pad: null, frame: true,
+          w: W, h: H, r: null, pad: null, frame: head,
         }));
         const gridCls = ['muted', 'dotted', 'no-head'];
         const atP = (xn, yn) => [{ ref: id, prop: 'left', nudge: xn }, { ref: id, prop: 'top', nudge: yn }];
@@ -10232,7 +10245,7 @@ function createDiagramCompiler(env = {}) {
           // hangs off its edges, so moving the statement moves the chart.
           model.nodes.push(synth({
             kind: 'box', id, label: '', classes: ['bare', 'clear'], tags: attrs.tags,
-            place: framePlace(opts.place), w: W, h: H, r: null, pad: null, frame: true,
+            place: framePlace(opts.place), w: W, h: H, r: null, pad: null, frame: head,
           }));
           values.forEach((v, i) => {
             const bh = (v / max) * H;
@@ -10324,7 +10337,7 @@ function createDiagramCompiler(env = {}) {
         model.nodes.push(synth({
           kind: 'box', id, label: '', classes: ['bare', 'clear'], tags: attrs.tags,
           place: framePlace(opts.place), w: cols * pitchX - gapX, h: rows * pitchY - gapU,
-          r: null, pad: null, frame: true,
+          r: null, pad: null, frame: head,
         }));
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
@@ -12030,6 +12043,11 @@ const DGE_SLOTS = [
     options: [{ cls: '', label: 'across' }, { cls: 'turn', label: 'up' }] },
   { key: 'curve', label: 'line shape', kinds: ['edge'],
     options: [{ cls: '', label: 'straight' }, { cls: 'smooth', label: 'curved' }] },
+  // Drawing order is otherwise fixed. Right for an arrow, which a box should
+  // cover where it arrives; wrong for an axis, which showed only in the gaps
+  // between the columns it ruled.
+  { key: 'depth', label: 'depth', kinds: ['edge'],
+    options: [{ cls: '', label: 'behind boxes' }, { cls: 'front', label: 'in front' }] },
   { key: 'size', label: 'type size', kinds: null,
     options: [{ cls: 'small' }, { cls: '', label: 'normal' }, { cls: 'large' }] },
   { key: 'family', label: 'family', kinds: null,
@@ -12066,8 +12084,28 @@ const DGE_TOOLS = [
 // compiler's own table so the panel can never offer a field the build would
 // reject. Imported, not re-stated – that is the whole point of the tables
 // being exported.
-function dgeKindOpts(kind) {
-  return (window.PSI_DG.DG_KIND_OPTS[kind] || []).slice();
+// What the element's own *statement* accepts, which is not always what its
+// kind accepts. A `bars`, `grid` or `plot` frame is a box as far as the layout
+// is concerned, but the line that wrote it is not a `box` line: offering `pad`
+// there would write a word that statement refuses, and `space` would never be
+// offered at all.
+function dgeKindOpts(elOrKind) {
+  const el = typeof elOrKind === 'string' ? null : elOrKind;
+  const key = el ? (el.frame || el.kind) : elOrKind;
+  return (window.PSI_DG.DG_KIND_OPTS[key] || []).slice();
+}
+
+// Which way a pointed outline aims. Its own control rather than a text field
+// in the size row: the value is one of four words, and the row above it that
+// picks the outline is exactly the same shape.
+function dgeAimOf(el) {
+  if (!el) return null;
+  const cls = new Set(el.classes || []);
+  for (const layer of window.PSI_DG.dgDefaultLayers(DGE.model, el.kind, el.tags)) {
+    for (const c of layer.classes) if (window.PSI_DG.DG_SHAPE_CLASSES.has(c)) cls.add(c);
+  }
+  const kind = window.PSI_DG.dgShapeOf(cls);
+  return window.PSI_DG.DG_POINTED.has(kind) ? kind : null;
 }
 
 // ── editor state ────────────────────────────────────────────────────
@@ -14236,16 +14274,21 @@ function dgeRenderSide() {
     // Edges carry one too. Leaving them out of this field was a hole: the
     // grammar has always read `edge a -> b "why"`, the compiler lays the text
     // out along the line, and the only thing missing was the control.
+    // No span, no field. That is a `bars`, `grid` or `plot` frame, which has
+    // no label at all – and whose first quoted token is its values or an axis
+    // title, so a field here would have edited those under the wrong name.
     const sp = DGE.spans.spanOf(single.id, 'label');
-    const input = dgeEl('textarea', {
-      rows: 2, text: sp && sp.present ? sp.value : '',
-      placeholder: 'label',
-      onchange: (e) => dgeWriteAttr(single.id, 'label', e.target.value, true),
-    });
-    side.appendChild(dgeEl('div', {}, [
-      dgeEl('h3', { text: 'label' }), input,
-      dgeEl('div', { class: 'dge-hint', text: 'Enter breaks the line · ⌘S applies and writes back' }),
-    ]));
+    if (sp) {
+      const input = dgeEl('textarea', {
+        rows: 2, text: sp.present ? sp.value : '',
+        placeholder: 'label',
+        onchange: (e) => dgeWriteAttr(single.id, 'label', e.target.value, true),
+      });
+      side.appendChild(dgeEl('div', {}, [
+        dgeEl('h3', { text: 'label' }), input,
+        dgeEl('div', { class: 'dge-hint', text: 'Enter breaks the line · ⌘S applies and writes back' }),
+      ]));
+    }
   }
 
   // What an edge runs between. This is the one thing in the grammar that names
@@ -14330,9 +14373,35 @@ function dgeRenderSide() {
     side.appendChild(dgePlacementPane(single));
   }
 
-  // Geometry: exactly the options that kind's own statement accepts.
+  // Which way a pointed outline aims, offered only where there is a point to
+  // aim. `none` takes the option back off the line and the shape returns to
+  // its default direction.
   if (single) {
-    const opts = dgeKindOpts(single.kind);
+    const aimable = dgeAimOf(single);
+    if (aimable) {
+      const dirs = [...window.PSI_DG.DG_POINT_DIRS];
+      const row = dgeEl('div', { class: 'dge-swatches' });
+      for (const dir of ['', ...dirs]) {
+        row.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-sw',
+          'aria-pressed': String((single.point || '') === dir),
+          title: dir ? 'point ' + dir : 'the outline’s own direction',
+          text: dir || 'default',
+          onclick: () => dgeWriteAttr(single.id, 'point', dir),
+        }));
+      }
+      side.appendChild(dgeEl('div', {}, [
+        dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'aim' }), row]),
+        dgeEl('div', { class: 'dge-hint', text:
+          'Which way the .' + aimable + ' points. An option on the line, not a class, '
+          + 'so one word covers every direction.' }),
+      ]));
+    }
+  }
+
+  // Geometry: exactly the options that element's own statement accepts.
+  if (single) {
+    const opts = dgeKindOpts(single);
     if (opts.length) {
       const row = dgeEl('div', { class: 'dge-nums' });
       for (const key of opts) {
@@ -14500,7 +14569,7 @@ function dgePlanFitWidth(id) {
   if (el.w != null || el.sameAs) return null;
   // Only where a width is an option at all: a dot is sized by `r`, and
   // writing `w` on one would be a different kind of no-op.
-  if (!dgeKindOpts(el.kind).includes('w')) return null;
+  if (!dgeKindOpts(el).includes("w")) return null;
   const sp = DGE.spans.spanOf(id, 'w');
   if (!sp || sp.present) return null;
   const { uw } = dgeUnits();
