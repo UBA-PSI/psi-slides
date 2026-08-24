@@ -35,5 +35,9 @@ lectures/*/speaker.html
 !lectures/tutorial/audience.html
 !lectures/tutorial/speaker.html
 
+# scratch scripts a screenshot or coverage run leaves behind
+.psi-*.mjs
+.beats-tmp.mjs
+
 # playwright smoke-test scratch
 .playwright-mcp/
