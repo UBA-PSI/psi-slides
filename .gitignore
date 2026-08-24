@@ -16,6 +16,14 @@ docs/site/example/*.html
 # shoot.mjs writes a PNG and encodes it to WebP; --keep-png leaves the PNG
 docs/site/img/*.png
 
+# the artifact's figure lecture is compiled by docs/artifact/refresh-figures.mjs,
+# which splices the emitted SVG into the page – the built views are scratch
+docs/artifact/figure-rules/print.html
+docs/artifact/figure-rules/audience.html
+docs/artifact/figure-rules/print-notes.html
+docs/artifact/figure-rules/speaker.html
+docs/artifact/figure-rules/.runtime-probe.mjs
+
 lectures/*/print.html
 lectures/*/print-notes.html
 lectures/*/audience.html

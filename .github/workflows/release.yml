@@ -55,7 +55,7 @@ jobs:
       # The same gate the Pages workflow runs. A release that does not lint is
       # not a release.
       - name: Lint
-        run: node lint.js lectures/ docs/site/example/source.md
+        run: node lint.js lectures/ docs/site/example/source.md docs/artifact/figure-rules/source.md
 
       - name: Build the published lectures
         run: |

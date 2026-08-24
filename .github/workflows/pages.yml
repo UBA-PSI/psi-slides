@@ -37,7 +37,7 @@ jobs:
       - run: npm ci
 
       - name: Lint the lectures
-        run: node lint.js lectures/
+        run: node lint.js lectures/ docs/artifact/figure-rules/source.md
 
       - name: Build the lectures
         run: |
