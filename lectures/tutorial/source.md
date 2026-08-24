@@ -463,32 +463,32 @@ kind  name  label   placement              options  tail
 
 **Inside the tail, three prefixes answer three questions** – `.tone-2` is a class (how it looks), `@crypto` a tag (which set it belongs to), and `#leak`, as on the `edge` line above, a name for the statements that have no name slot of their own. The name is how later lines refer to the element and is never drawn; the label is what the room reads, and `""` is a legal empty one.
 
-**Placement is a grid cell or a relation to a neighbour** – `at 2,1`, or `right of mix gap 0.6`, or `below src gap 0 align left` for boxes that touch. The first element sits at the origin so a simple diagram needs no coordinates at all. There is no automatic layout, on purpose: where things go is usually part of what the picture is saying.
+**Placement is a grid cell or a relation to a neighbour** – `at 2,1`, or `right of mix gap 0.6`, or `below src gap 0 align left` for boxes that touch. The first element sits at the origin so a simple diagram needs no coordinates at all. There is no automatic layout: every element sits where you put it.
 
-**A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`, `via iv.cx,x0.cy`. Every slot that takes an `X,Y` pair takes that form, so a figure survives a change above it instead of needing three numbers read off a screen. Element names are letters, digits, `_` and `-`, because `mix.cx` has to be readable as one thing; a comment line starts with `#`.
+**A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`, `via iv.cx,x0.cy`. Every slot that takes an `X,Y` pair takes that form, so moving one element does not mean re-typing the coordinates of everything placed against it. Element names are letters, digits, `_` and `-`, because `mix.cx` has to be readable as one thing; a comment line starts with `#`.
 
-**`step` blocks make it move, and forward is the key.** One step is one press of the same key that uncovers a reveal segment, so steps and segments interleave in the order you wrote them and the cockpit follows. The vocabulary is `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style` and `label`.
+**`step` blocks make a figure move.** One step is one press of the same key that uncovers a reveal segment, so steps and segments interleave in the order you wrote them and the cockpit follows. The vocabulary is `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style` and `label`.
 
-**A moved box takes its arrows with it.** The layout is evaluated again for every step rather than nudged, so an edge that connects two elements re-routes whenever either end moves – which is the one thing a diagram exported from a drawing tool can never do.
+**A moved box takes its arrows with it.** The layout is evaluated again for every step rather than nudged, so an edge that connects two elements re-routes whenever either end moves.
 
 **Visibility runs downhill.** An arrow is only as visible as the two things it connects; a `container` or `brace` only as visible as its members, and it fits the ones on screen; a `text` with a line drawn to something only as visible as the thing it points at. So revealing the boxes reveals the arrows between them, the outline around them and the note beside them, and most of a diagram needs no `show` of its own. A free `text` gets that line with `-> some-element`, which is how a label goes wherever it reads best without losing what it is about.
 
-**A picture can be an element too.** `image alice avatar-alice w 0.4` finds the file exactly like `![](fig-id)` does. An SVG is drawn into the page itself, so it inherits `--ink` and `--paper` and re-colours with the `A` theme cycle; a raster image is embedded as it is and keeps its own colours in every theme. That is the trade, and it is the honest one.
+**A picture can be an element too.** `image alice avatar-alice w 0.4` finds the file exactly like `![](fig-id)` does. An SVG is drawn into the page itself, so it inherits `--ink` and `--paper` and re-colours with the `A` theme cycle; a raster image is embedded as it is and keeps its own colours in every theme.
 
 ::: expand The rest of the vocabulary
 `dot` is a circle for junctions and glyphs. `container … over a,b,c` draws a box that fits itself around its members and re-fits when they move; `brace … over a,b right "Label"` is a bracket spanning a subset.
 
-A **tag** can be written wherever a name can, so `show @crypto` in a step covers every element carrying it. Membership sits on the element's own line, which makes adding one to a set a local edit rather than a trip to a list somewhere else in the file.
+A **tag** can be written wherever a name can, so `show @crypto` in a step covers every element carrying it. Membership sits on the element's own line, so adding an element to a set is a one-line edit.
 
-Placement also takes `between a,b` – the point on the line joining two elements, which is what a separator glyph or a note beside a connector actually wants – and any placement accepts a trailing `offset dx,dy`. An anchor can carry a fraction: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side instead of on top of each other.
+Placement also takes `between a,b` – the point on the line joining two elements, which is where a separator glyph or a note beside a connector goes – and any placement accepts a trailing `offset dx,dy`. An anchor can carry a fraction: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side instead of on top of each other.
 
-Against repetition there are two more: `default box {.tone-4} w 1.15` sets the base for every box in the diagram (add a tag – `default box @dec w 0.48` – to refine it for one set), and `same as create` copies another element's width and height. The same `default` lines go in a `diagram-defaults:` frontmatter key when a whole lecture's figures should look like each other – then a block's own `default` overrides the lecture's for that one figure, and changing the house style is one edit rather than twelve.
+Against repetition there are two more: `default box {.tone-4} w 1.15` sets the base for every box in the diagram (add a tag – `default box @dec w 0.48` – to refine it for one set), and `same as create` copies another element's width and height. The same `default` lines go in a `diagram-defaults:` frontmatter key when a whole lecture's figures should look like each other – then a block's own `default` overrides the lecture's for that one figure, and changing the house style is one edit.
 
 And against measuring: a coordinate may be another element's coordinate. `edge iv -> x0 via iv.cx,x0.cy` means *straight down from the IV, then across at the height of the XOR*, and it stays true when anything above it moves. Adding `+0.2` or `-0.2` (`mix.cx+0.2`) shifts it a little without giving up the relation.
 
 Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run and `~muted~` greys it.
 
-**Click the figure, and the button in the corner of the card opens a graphical editor for it.** Drag a box and the editor rewrites one number – the `gap`, the fraction along a line, the nudge on a borrowed coordinate – and never the relation that number sits in, so what you wrote survives what you dragged. It also draws the relations while you work, which is the part a finished diagram cannot show you: a box written as `gap 0.55` from its neighbour looks exactly like a box that merely happens to sit 0.55 away. `editor: none` in the frontmatter ships the lecture without it.
+**Click the figure, and the button in the corner of the card opens a graphical editor for it.** Drag a box and the editor rewrites one number – the `gap`, the fraction along a line, the nudge on a borrowed coordinate – and never the relation that number sits in. It also draws the relations while you work, which is the part a finished diagram cannot show you: a box written as `gap 0.55` from its neighbour looks exactly like a box that merely happens to sit 0.55 away. `editor: none` in the frontmatter ships the lecture without it.
 
 Two more options work from the box inwards rather than from the label outwards. `pad 0.3` sets how far a box's border sits from its own label – the same word `container` and `brace` already use – and `.fit` on a box with a given `w` sizes the *type* to fill the box instead of growing the box to the type, with `.shrink` for a label that may only ever get smaller. A free `text` that carries a tone draws its own background patch, so a caption can sit on a panel without becoming a box.
 :::
@@ -497,7 +497,7 @@ Two more options work from the box inwards rather than from the label outwards. 
 
 ## example: Looks, and lining things up | the class slots, `align` and `spread` {.full #diagram-classes}
 
-**How an element looks comes from a closed list of classes, and ten groups of them are slots that hold one class at a time.** So `{.tone-1}` on a box *displaces* a `default box {.tone-4}` rather than stacking with it – which is what anyone expects, and not what a stylesheet does on its own.
+**How an element looks comes from a fixed list of classes, and ten groups of them are slots that hold one class at a time.** So `{.tone-1}` on a box *displaces* a `default box {.tone-4}` rather than stacking with it.
 
 ::: diagram {unit=112x82}
 default box {.sharp} w 0.62 h 0.42 pad 0.12
@@ -561,7 +561,7 @@ text wl "where the words sit" below w2 gap 0.28 {.small .muted}
 align x right fl, ol, sl, tw, gl
 :::
 
-**Every row of that sheet is one slot.** Two of them hold a pair that belongs together – stroke pattern beside stroke weight, and the words that place a label across beside the ones that place it down – and the two ink classes have no row at all, because they are at work over the whole sheet: `.accent` on the cross, `.muted` on every caption. **Thirty-eight names in all, and `lint.js` refuses anything else** – a typo is a build error, not a box that comes out unstyled.
+**Every row of that sheet is one slot.** Three of them hold a pair that belongs together – stroke pattern beside stroke weight, family beside size, and the words that place a label across beside the ones that place it down – and the two ink classes have no row at all, because they are at work over the whole sheet: `.accent` on the cross, `.muted` on every caption. **Thirty-eight names in all, and `lint.js` refuses anything else** – a typo is a build error, not a box that comes out unstyled.
 
 **`align` means two different things, and where it sits on the line tells you which.** At the end of a placement it takes one word: `below src gap 0 align left` keeps the new box's left edge flush with `src`. On a line of its own it is a statement – `align y middle a, b, c` gives `b` and `c` the vertical centre of `a`, the first name being the one the others follow.
 
@@ -569,21 +569,21 @@ align x right fl, ol, sl, tw, gl
 
 ::: expand The rest of the class list, and where the two statements refuse
 
-The other nine class names belong to no slot and stack freely: `.bold` and `.ghost` for a heavier label and a barely-there element, `.turn` for a label read bottom-to-top up the side of something tall and narrow, `.no-head` `.both-heads` `.smooth` `.front` for edges, and `.emph` `.dim`, which are also what a step sets when it says `emph` or `calm`. Two members of one slot on one element is a lint warning; `.paper` is the one that earns its keep quietly, because a label filled with the page colour knocks a hole in a line running behind it.
+The other nine class names belong to no slot and stack freely: `.bold` and `.ghost` for a heavier label and a barely-there element, `.turn` for a label read bottom-to-top up the side of something tall and narrow, `.no-head` `.both-heads` `.smooth` `.front` for edges, and `.emph` `.dim`, which are also what a step sets when it says `emph` or `calm`. Two members of one slot on one element is a lint warning; `.paper` fills a label with the page colour, which knocks a hole in a line running behind it.
 
-Which way a pointed outline aims is the `point` option – `up`, `down`, `left`, `right` – rather than four more class names per shape, and writing it on an outline that has no point is an error rather than a word that quietly does nothing. The same principle runs through the whole vocabulary: `.fit` on a box with no width to fit into is refused, and so is an outline class on anything but a `box`.
+Which way a pointed outline aims is the `point` option – `up`, `down`, `left`, `right` – rather than four more class names per shape, and writing it on an outline that has no point is an error. So is `.fit` on a box with no width to fit into, and so is an outline class on anything but a `box`.
 
-`align` and `spread` both work on boxes, dots, texts and images only, because they override a coordinate that only those four compute for themselves; naming an edge, a container or a brace is an error. `align` names its axis first – `x` takes `left`/`center`/`right`, `y` takes `top`/`middle`/`bottom` – because `center` and `middle` are near-synonyms and picking the wrong one would otherwise be legal, silent, and enough to move a whole block sideways. `spread` needs at least three elements; `align` needs two.
+`align` and `spread` both work on boxes, dots, texts and images only, because they override a coordinate that only those four compute for themselves; naming an edge, a container or a brace is an error. `align` names its axis first – `x` takes `left`/`center`/`right`, `y` takes `top`/`middle`/`bottom` – because `center` and `middle` are near-synonyms, and picking the wrong one would otherwise move a whole block sideways with no error. `spread` needs at least three elements; `align` needs two.
 
 :::
 
-> note: Both statements earn more than they sound like. Two columns built as separate `below` chains drift apart the moment their captions differ in height, and a line between two drifted boxes runs a degree off the axis and reads to the room as a mistake – the build warns about exactly that.
+> note: Two columns built as separate `below` chains drift apart the moment their captions differ in height, and a line between two drifted boxes runs a degree off the axis and reads to the room as a mistake – the build warns about exactly that.
 >
 > The sheet is the reference table, and it stays on screen when the prose around it collapses – so this is a chunk to present from the collapsed view. Press `A` a few times while it is up: the four tones are mixed from the page's own ink and accent rather than being fixed hues, so the whole sheet re-colours with the theme instead of bringing its own palette.
 
 ## example: Charts, without a chart library | `bars`, `grid` and `plot` {.full #diagram-charts}
 
-**Three statements draw data, and each one expands at parse time into the boxes, texts and edges the rest of the compiler already understands.** `bars` becomes one box per column plus a baseline, `grid` one per cell, `plot` a frame of gridlines, ticks and two axis titles.
+**Three statements draw data, and each one expands into ordinary boxes, texts and edges before anything is drawn.** `bars` becomes one box per column plus a baseline, `grid` one per cell, `plot` a frame of gridlines, ticks and two axis titles.
 
 ::: diagram {unit=148x64}
 bars wc "18,16,15,12,11,9,8,7,6,5,4,3" at 0,0 w 2.3 h 1.05 space 0.06 {.tone-3}
@@ -602,7 +602,7 @@ step figures
   style ch-1-0, ch-4-2, ch-6-3, ch-0-4 {.tone-4}
 :::
 
-**That is why a `brace` spans three columns and a `style` step tints three cells with no special handling anywhere** – they are ordinary boxes, named after the statement they came out of: `wc-0`, `wc-1`, … for the columns and `ch-1-0`, `ch-4-2`, … for the cells. The budget line is an ordinary edge between two coordinates read off the chart's own frame, `.front` because otherwise the columns cover it and it shows only in the gaps. The spacing *inside* these statements is `space`, never `gap`: the placement on the same line already uses that word for the distance to another element.
+**A `brace` spans three of the columns and a `style` step tints four of the cells, because both are ordinary boxes** – named after the statement they came out of: `wc-0`, `wc-1`, … for the columns and `ch-1-0`, `ch-4-2`, … for the cells. The budget line is an ordinary edge between two coordinates read off the chart's own frame, `.front` because otherwise the columns cover it and it shows only in the gaps. The spacing *inside* these statements is `space`, never `gap`: the placement on the same line already uses that word for the distance to another element.
 
 ::: diagram {unit=150x54}
 plot pace "minutes into the talk" "chunks covered" at 0,0 w 2.7 h 1.15 x 0,60 y 0,40 step 10
@@ -621,13 +621,13 @@ step lesson
   calm even
 :::
 
-**A `plot` is a frame to draw in, not a charting library.** It takes the two ranges and one tick `step`, and it registers a mapping, so `pace@26` names a value in the plot's own units anywhere a coordinate goes – in a waypoint, in an `at`, at the end of a leader. **The curves are ordinary edges.** `.smooth` draws the same waypoints as a spline *through* them rather than as a chain of straight segments, `.no-head` takes the arrowhead off, and the two steps bring the second curve in and then `emph` it while the reference line is `calm`ed.
+**A `plot` draws the frame and the scale, and nothing else.** It takes the two ranges and one tick `step`, after which `pace@26` names a value in the plot's own units anywhere a coordinate goes – in a waypoint, in an `at`, at the end of a leader. **The curves are ordinary edges.** `.smooth` draws the same waypoints as a spline *through* them rather than as a chain of straight segments, `.no-head` takes the arrowhead off, and the two steps bring the second curve in and then `emph` it while the reference line is `calm`ed.
 
-> note: The numbers in both figures are made up, which is the honest way to use a frame like this in a tutorial. `plot` deliberately has no log scale, no automatic tick choice, no legend and no series construct: everything it draws is an element you could have written by hand, and everything you draw on it is an element it has never heard of.
+> note: The numbers in both figures are made up. `plot` has no log scale, no automatic tick choice, no legend and no series of its own: everything it draws is an element you could have written by hand.
 
 ## example: A figure that moves | `hide`, `calm`, and a box that walks into the wire {.full #diagram-steps}
 
-**A stepped figure is an argument in beats – the stage, the disturbance, the cut, and what it costs.** Press forward four times.
+**A stepped figure is an argument in beats – the stage, the disturbance, the cut, and what it costs.** Press forward three times.
 
 ::: diagram {unit=138x70}
 default box {.tone-2} w 1.25 h 0.5
@@ -663,9 +663,9 @@ step damage
   calm net
 :::
 
-**Not one line of that figure stores a coordinate, which is why nothing comes apart when the middle box walks in.** `move eve to between alice,bob` states a position, `move alice by -0.5,0` shifts one by an amount, and the layout is evaluated again for every beat – so the two honest ends step aside, the `container` re-fits around them, and the arrows are drawn where their endpoints have ended up. `hide` takes the direct wire away, `calm` is the opposite of `emph`, and `label` swaps in a wording that was typeset at build time.
+**Every element after the first is placed against another one, which is why nothing comes apart when the middle box walks in.** `move eve to between alice,bob` states a position, `move alice by -0.5,0` shifts one by an amount, and the layout is evaluated again for every beat – so Alice and Bob step aside, the `container` re-fits around them, and the arrows are drawn where their endpoints have ended up. `hide` takes the direct wire away, `calm` is the opposite of `emph`, and `label` swaps in a wording that was typeset at build time.
 
-**Only Eve and the three red arrows carry a `show`.** The handwritten caption arrives with her because it wears the same `@attack` tag; the arrows arrive because both of their endpoints did. The pair running to Bob leaves Eve's right edge at `:0.2` and `:0.8` – a fraction along a side is how two arrows between the same two boxes run parallel instead of on top of each other – and `.top` / `.bottom` put one label above its line and the other below.
+**Two tags do all the revealing: `@attack` and `@cut`.** `show @attack` brings Eve in and the handwritten caption with her, because both lines carry that tag; `show @cut` brings the three arrows through her a beat later. The pair running to Bob leaves Eve's right edge at `:0.2` and `:0.8` – a fraction along a side is how two arrows between the same two boxes run parallel instead of on top of each other – and `.top` / `.bottom` put one label above its line and the other below.
 
 # Writing chunks that work {#craft}
 
