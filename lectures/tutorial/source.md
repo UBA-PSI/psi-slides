@@ -499,22 +499,73 @@ Two more options work from the box inwards rather than from the label outwards. 
 
 **How an element looks comes from a closed list of classes, and ten groups of them are slots that hold one class at a time.** So `{.tone-1}` on a box *displaces* a `default box {.tone-4}` rather than stacking with it – which is what anyone expects, and not what a stylesheet does on its own.
 
-- **fill** – `.tone-1` `.tone-2` `.tone-3` `.tone-4`, `.clear` for none, `.paper` for the page colour
-- **ink** – `.accent`, `.muted`
-- **stroke pattern** – `.dashed`, `.dotted`
-- **stroke weight** – `.thick`, `.bare` for no outline at all
-- **outline** – `.round`, `.sharp`, and `.hex` `.chevron` `.wedge` `.cross`
-- **size** – `.small`, `.large`
-- **family** – `.mono`, `.serif`, `.hand`
-- **fitting** – `.fit` sizes the type to a width you gave, `.shrink` only shrinks
-- **label across** – `.left`, `.right`
-- **label down** – `.top`, `.bottom`
+::: diagram {unit=112x82}
+default box {.sharp} w 0.62 h 0.42 pad 0.12
 
-**Thirty-eight names in all, and `lint.js` refuses anything else** – a typo is a build error, not a box that comes out unstyled.
+# The fills sit across a rule, so that .clear and .paper can be told apart:
+# one lets the line through, the other knocks a hole in it.
+edge -0.55,0 -- 4.85,0 {.muted}
+box f1 "paper"  at 0,0 {.paper}
+box f2 "tone-1" right of f1 gap 0.24 same as f1 {.tone-1}
+box f3 "tone-2" right of f2 gap 0.24 same as f1 {.tone-2}
+box f4 "tone-3" right of f3 gap 0.24 same as f1 {.tone-3}
+box f5 "tone-4" right of f4 gap 0.24 same as f1 {.tone-4}
+box f6 "clear"  right of f5 gap 0.24 same as f1 {.clear}
+text fl "fill" left of f1 gap 0.5 {.muted .right}
+
+box o1 "round"   at 0,1.1 {.round .tone-2}
+box o2 "sharp"   right of o1 gap 0.24 same as o1 {.tone-2}
+box o3 "hex"     right of o2 gap 0.24 same as o1 {.hex .tone-2}
+box o4 "chevron" right of o3 gap 0.24 w 0.78 h 0.42 point right {.chevron .tone-2}
+box o5 ""        right of o4 gap 0.3 w 0.42 h 0.42 point up {.wedge .tone-4}
+box o6 ""        right of o5 gap 0.3 same as o5 {.cross .accent}
+text o5n "wedge" below o5 gap 0.16 {.small .muted}
+text o6n "cross" below o6 gap 0.16 {.small .muted}
+text ol "outline" left of o1 gap 0.5 {.muted .right}
+
+box s1 "dashed" at 0,2.25 {.dashed .clear}
+box s2 "dotted" right of s1 gap 0.24 same as s1 {.dotted .clear}
+box s3 "thick"  right of s2 gap 0.24 same as s1 {.thick .clear}
+box s4 "bare"   right of s3 gap 0.24 same as s1 {.bare .clear}
+box s5 "ghost"  right of s4 gap 0.24 same as s1 {.ghost .tone-2}
+box s6 "dim"    right of s5 gap 0.24 same as s1 {.dim .tone-2}
+text sl "stroke,\nand presence" left of s1 gap 0.5 {.muted .right}
+
+# Only the two ends of this row are placed. The five between them are named
+# in the order they should stand in and get equal centre distances, which is
+# what a row of seven specimens of seven different widths wants.
+text t1 "sans"  at 0.3,3.2
+text t7 "bold"  right of t1 gap 4.0 {.bold}
+text t2 "mono"  right of t1 gap 0.4 {.mono}
+text t3 "serif" right of t1 gap 0.4 {.serif}
+text t4 "hand"  right of t1 gap 0.4 {.hand}
+text t5 "small" right of t1 gap 0.4 {.small}
+text t6 "large" right of t1 gap 0.4 {.large}
+text tw "family,\nand size" left of t1 gap 0.62 {.muted .right}
+spread x t1, t2, t3, t4, t5, t6, t7
+
+box g1 "a label that is too long" at 0,4.2 w 1.2 h 0.5 {.shrink .clear}
+box g2 "short" right of g1 gap 0.28 same as g1 {.fit .clear}
+text n1 "shrink" below g1 gap 0.14 {.small .muted}
+text n2 "fit"    below g2 gap 0.14 {.small .muted}
+text gl "type meets\nits box" left of g1 gap 0.5 {.muted .right}
+
+box w1 "top\nleft"     right of g2 gap 0.55 w 0.56 h 0.74 {.clear .top .left}
+box w2 "centred"       right of w1 gap 0.2 same as w1 {.clear}
+box w3 "bottom\nright" right of w2 gap 0.2 same as w1 {.clear .bottom .right}
+box w4 "turn"          right of w3 gap 0.2 w 0.34 h 0.74 {.tone-2 .turn}
+text wl "where the words sit" below w2 gap 0.28 {.small .muted}
+
+# Five labels hanging off rows of five different lengths: the statement gives
+# them all the right edge of the first one.
+align x right fl, ol, sl, tw, gl
+:::
+
+**Every row of that sheet is one slot.** Two of them hold a pair that belongs together – stroke pattern beside stroke weight, and the words that place a label across beside the ones that place it down – and the two ink classes have no row at all, because they are at work over the whole sheet: `.accent` on the cross, `.muted` on every caption. **Thirty-eight names in all, and `lint.js` refuses anything else** – a typo is a build error, not a box that comes out unstyled.
 
 **`align` means two different things, and where it sits on the line tells you which.** At the end of a placement it takes one word: `below src gap 0 align left` keeps the new box's left edge flush with `src`. On a line of its own it is a statement – `align y middle a, b, c` gives `b` and `c` the vertical centre of `a`, the first name being the one the others follow.
 
-**`spread x a, b, c, d` distributes a set evenly** – first and last stay put, everything between gets equal spacing between centres.
+**`spread x a, b, c, d` distributes a set evenly** – first and last stay put, everything between gets equal spacing between centres. **Both are at work in the sheet above**: one `align x right` gives the five row labels the right edge of the first, and `spread x` puts the five middle words of the family row between `sans` and `bold`, which are the only two that were placed at all.
 
 ::: expand The rest of the class list, and where the two statements refuse
 
@@ -528,7 +579,93 @@ Which way a pointed outline aims is the `point` option – `up`, `down`, `left`,
 
 > note: Both statements earn more than they sound like. Two columns built as separate `below` chains drift apart the moment their captions differ in height, and a line between two drifted boxes runs a degree off the axis and reads to the room as a mistake – the build warns about exactly that.
 >
-> The class list is worth showing from the collapsed view: it is a reference table, and a room reading it wants the words, not the paragraph around them. If someone asks where the colours come from, the four tones are mixed from the page's own ink and accent rather than being fixed hues, which is why a figure follows the `A` theme cycle instead of bringing its own palette.
+> The sheet is the reference table, and it stays on screen when the prose around it collapses – so this is a chunk to present from the collapsed view. Press `A` a few times while it is up: the four tones are mixed from the page's own ink and accent rather than being fixed hues, so the whole sheet re-colours with the theme instead of bringing its own palette.
+
+## example: Charts, without a chart library | `bars`, `grid` and `plot` {.full #diagram-charts}
+
+**Three statements draw data, and each one expands at parse time into the boxes, texts and edges the rest of the compiler already understands.** `bars` becomes one box per column plus a baseline, `grid` one per cell, `plot` a frame of gridlines, ticks and two axis titles.
+
+::: diagram {unit=148x64}
+bars wc "18,16,15,12,11,9,8,7,6,5,4,3" at 0,0 w 2.3 h 1.05 space 0.06 {.tone-3}
+brace long over wc-0,wc-1,wc-2 bottom "the three to rewrite" pad 0.45 {.small .muted}
+# In front, or the columns cover the line and it shows only in the gaps.
+edge wc.left,wc.top+0.3 -- wc.right,wc.top+0.3 {#lim .accent .dashed .front}
+text limn "budget" at wc.right-0.28,wc.top+0.1 {.small .accent}
+text wcn "words per chunk" above wc gap 0.3 align left {.small .muted .left}
+
+grid ch dot 8x5 right of wc gap 0.75 cell 0.15 space 0.07 {.tone-2}
+text chn "one dot per chunk,\ntinted where a figure lives" below ch gap 0.3 align left {.small .muted .left}
+
+step over
+  emph wc-0, wc-1, wc-2
+step figures
+  style ch-1-0, ch-4-2, ch-6-3, ch-0-4 {.tone-4}
+:::
+
+**That is why a `brace` spans three columns and a `style` step tints three cells with no special handling anywhere** – they are ordinary boxes, named after the statement they came out of: `wc-0`, `wc-1`, … for the columns and `ch-1-0`, `ch-4-2`, … for the cells. The budget line is an ordinary edge between two coordinates read off the chart's own frame, `.front` because otherwise the columns cover it and it shows only in the gaps. The spacing *inside* these statements is `space`, never `gap`: the placement on the same line already uses that word for the distance to another element.
+
+::: diagram {unit=150x54}
+plot pace "minutes into the talk" "chunks covered" at 0,0 w 2.7 h 1.15 x 0,60 y 0,40 step 10
+edge pace@0,pace@0 -> pace@60,pace@40 {#even .muted .dashed .no-head}
+edge pace@0,pace@0 -> pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {#real .smooth .accent .thick .no-head}
+dot  mark "" at pace@26,pace@12 r 0.08 {.accent}
+text evenn "even pace" at pace@50,pace@33 pad 0.12 {.small .paper}
+# Die Leitlinie greift die Kurve an einem Punkt ab, statt quer durchs Feld zu
+# laufen und dabei beide Kurven zu kreuzen.
+text realn "the first third\nalways runs long" at pace@22,pace@31 pad 0.12 -> mark {.small .hand .paper}
+
+step real
+  show real, mark
+step lesson
+  emph real
+  calm even
+:::
+
+**A `plot` is a frame to draw in, not a charting library.** It takes the two ranges and one tick `step`, and it registers a mapping, so `pace@26` names a value in the plot's own units anywhere a coordinate goes – in a waypoint, in an `at`, at the end of a leader. **The curves are ordinary edges.** `.smooth` draws the same waypoints as a spline *through* them rather than as a chain of straight segments, `.no-head` takes the arrowhead off, and the two steps bring the second curve in and then `emph` it while the reference line is `calm`ed.
+
+> note: The numbers in both figures are made up, which is the honest way to use a frame like this in a tutorial. `plot` deliberately has no log scale, no automatic tick choice, no legend and no series construct: everything it draws is an element you could have written by hand, and everything you draw on it is an element it has never heard of.
+
+## example: A figure that moves | `hide`, `calm`, and a box that walks into the wire {.full #diagram-steps}
+
+**A stepped figure is an argument in beats – the stage, the disturbance, the cut, and what it costs.** Press forward four times.
+
+::: diagram {unit=138x70}
+default box {.tone-2} w 1.25 h 0.5
+
+box alice "Alice" at 0,0
+box bob   "Bob"   right of alice gap 3.2 same as alice
+edge alice -> bob "M" {#wire .both-heads}
+container net "one wire, two honest ends" over alice,bob pad 0.5 {.dashed .muted}
+
+box eve "Eve" between alice,bob offset 0,-1.7 same as alice {.tone-4 @attack}
+text note "no cipher is broken here –\nshe just stands in the middle" below alice gap 1.05 align left -> eve.cx,eve.bottom {.hand .small @attack}
+
+# Eine Ecke ist so adressierbar wie eine Kante: .tl .tr .bl .br, dazu .center.
+# Für eine diagonale Verbindung trifft die Ecke, was die Seite verfehlt.
+edge alice.br -> eve.tl {#in .accent @cut}
+edge eve.right:0.2 -> bob.left:0.2 "M"  {#fwd .accent .top @cut}
+edge eve.right:0.8 -> bob.left:0.8 "M′" {#edit .accent .bottom @cut}
+
+step spot
+  show @attack
+step cut
+  hide wire
+# `to` setzt eine Position, `by` verschiebt um einen Betrag – und weil das
+# Layout pro Schritt neu ausgewertet wird, passt sich der Container an.
+  move eve to between alice,bob
+  move alice by -0.5,0
+  move bob by 0.5,0
+  show @cut
+  emph eve
+step damage
+  label eve "Eve rewrites M"
+  style edit {.dashed}
+  calm net
+:::
+
+**Not one line of that figure stores a coordinate, which is why nothing comes apart when the middle box walks in.** `move eve to between alice,bob` states a position, `move alice by -0.5,0` shifts one by an amount, and the layout is evaluated again for every beat – so the two honest ends step aside, the `container` re-fits around them, and the arrows are drawn where their endpoints have ended up. `hide` takes the direct wire away, `calm` is the opposite of `emph`, and `label` swaps in a wording that was typeset at build time.
+
+**Only Eve and the three red arrows carry a `show`.** The handwritten caption arrives with her because it wears the same `@attack` tag; the arrows arrive because both of their endpoints did. The pair running to Bob leaves Eve's right edge at `:0.2` and `:0.8` – a fraction along a side is how two arrows between the same two boxes run parallel instead of on top of each other – and `.top` / `.bottom` put one label above its line and the other below.
 
 # Writing chunks that work {#craft}
 
