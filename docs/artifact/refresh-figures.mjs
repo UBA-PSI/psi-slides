@@ -123,7 +123,17 @@ function svgFor(html, chunkId, prefix) {
   const svg = html.slice(a, b + 6);
   const m = svg.match(/id="([a-z0-9]+)-root"/);
   if (!m) throw new Error('figure in #' + chunkId + ' carries no root id');
-  return { svg: svg.split(m[1] + '-').join(prefix + '-'), old: m[1] };
+  // Two families of id have to be renamed, not one. The element ids are
+  // numbered per document; the <symbol> an embedded picture is defined in is
+  // numbered per *figure*, so two figures out of the same build both call
+  // theirs psi-sym-1. Lifted into one page, the second figure's <use> resolves
+  // against the first figure's symbol - which is how the base-rate figure came
+  // to show a smiling face where its own file draws a frown, with a correct
+  // reference pointing at a correct symbol belonging to somebody else.
+  return {
+    svg: svg.split(m[1] + '-').join(prefix + '-').split('psi-sym-').join(prefix + '-sym-'),
+    old: m[1],
+  };
 }
 
 function payloadFor(html, oldPrefix, prefix) {
@@ -333,10 +343,16 @@ page = replaceBetween(page, '<script id="psi-dg-runtime">', '</script><!--/runti
 say('  runtime ' + runtime.length + ' bytes, parses');
 
 // ── the guard the whole thing exists for ─────────────────────────────────
-const roots = [...page.matchAll(/<svg id="([a-z0-9-]+)-root"/g)].map((m) => m[1]);
-const dupes = roots.filter((r, i) => roots.indexOf(r) !== i);
-if (dupes.length) throw new Error('duplicate figure ids after splice: ' + [...new Set(dupes)].join(', '));
-say('  ' + roots.length + ' figures, all ids unique');
+// Every id in the page, not only the figure roots. The root check passed for
+// a whole commit while two figures shared a <symbol> id, because the thing
+// that collided was not a root.
+const allIds = [...page.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+const dupes = [...new Set(allIds.filter((r, i) => allIds.indexOf(r) !== i))];
+if (dupes.length) {
+  throw new Error('duplicate ids after splice (' + dupes.length + '): ' + dupes.slice(0, 8).join(', '));
+}
+const roots = allIds.filter((i) => /-root$/.test(i));
+say('  ' + roots.length + ' figures, ' + allIds.length + ' ids, all unique');
 
 if (CHECK) {
   say(page === was ? '\nup to date' : '\nDRIFT: the page does not match a fresh build');
