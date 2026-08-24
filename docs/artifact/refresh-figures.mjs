@@ -187,6 +187,19 @@ for (const id of BASICS) {
 }
 say('  ' + BASICS.length + ' tutorial steps, additions marked by diff');
 
+// ── the wrong/right pairs show their own source ──────────────────────────
+// Hand-copied until the day the drawings were compiled and the listings were
+// not: rule 8 gained a `.bottom` and a shorter box, the picture changed and
+// the text beside it went on describing the version before.
+const PAIRS = ['r1w', 'r1r', 'r2w', 'r2r', 'r3w', 'r3r',
+  'r6aw', 'r6ar', 'r6bw', 'r6br', 'r7w', 'r7r', 'r8w', 'r8r'];
+for (const id of PAIRS) {
+  page = replaceBetween(page, '<pre data-pairsrc="' + id + '">', '</pre>',
+    hl(diagramBlock(lectureMd, id).split('\n').filter((l) => !/^\s*#/.test(l) && l !== ':::' && !l.startsWith(':::')).join('\n')),
+    'pair source ' + id);
+}
+say('  ' + PAIRS.length + ' wrong/right listings refreshed from the lecture');
+
 for (const { chunk, prefix } of DEMOS) {
   const { svg, old } = svgFor(live, chunk, prefix);
   const payload = payloadFor(live, old, prefix);

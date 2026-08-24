@@ -3246,7 +3246,11 @@ export function createDiagramCompiler(env = {}) {
         // vertical one - and the other way round again when the label is
         // turned. Using the height for all four put a 90px label straddling
         // the vertical line it belonged to.
-        const off = ((vertical !== turned) ? m.w : m.h) / 2 + 6;
+        // The measured box carries the line's leading, so half of it already
+        // clears the glyphs; the constant is the visible gap on top of that.
+        // At 6 the label sat about 0.7 of its own type size off the line,
+        // which reads as a stray word rather than as this line's label.
+        const off = ((vertical !== turned) ? m.w : m.h) / 2 + 2;
         // Which side of the line the label sits on. The offset runs along the
         // line's normal, so the pair of words that can pick a side is the pair
         // lying across the line: top/bottom on a mostly horizontal edge,

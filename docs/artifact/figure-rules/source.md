@@ -130,7 +130,7 @@ edge c0 -> x1 via c0.left-0.4,c0.cy c0.left-0.4,x1.cy
 ## figure: 8 wrong | two arrows on one line, two labels on one word {.full #r8w}
 
 ::: diagram {unit=150x52}
-box  eve "Eve" at 0,0 h 1.8 {.accent}
+box  eve "Eve" at 0,0 h 1.05 {.accent}
 box  bob "Bob" right of eve gap 2.2 same as eve {.tone-2}
 edge eve -> bob "replay"
 edge eve -> bob "forgery"
@@ -139,14 +139,14 @@ edge eve -> bob "forgery"
 ## figure: 8 right | the fraction slides the attachment along the side {.full #r8r}
 
 ::: diagram {unit=150x52}
-# An edge label is carried above its line, and the compiler has no way yet to
-# put one below. So the height is what separates them: at h 1.15 "forgery"
-# sat in the gap between the two lines and could be read as belonging to
-# either. h 1.8 puts each label nearer its own line than the other.
-box  eve "Eve" at 0,0 h 1.8 {.accent}
+# Each label sits on the outside of its own line: replay above the upper one,
+# forgery below the lower one. Without that, both are carried above their
+# line, forgery lands in the gap between the two, and the only way to keep
+# them apart is to push the boxes far taller than the figure needs.
+box  eve "Eve" at 0,0 h 1.05 {.accent}
 box  bob "Bob" right of eve gap 2.2 same as eve {.tone-2}
 edge eve.right:0.3 -> bob.left:0.3 "replay"  {.accent}
-edge eve.right:0.7 -> bob.left:0.7 "forgery" {.accent}
+edge eve.right:0.7 -> bob.left:0.7 "forgery" {.accent .bottom}
 :::
 
 ## figure: the seven fills, mixed from the page's own inks {.full #tones}
