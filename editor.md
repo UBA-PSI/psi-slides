@@ -2395,3 +2395,61 @@ every finding is backed by a compile or an A/B against the base revision,
 which is what caught the ones where the picture was still plausible. And four
 of thirteen came from one duplicated function: `dgeHitTest` had accumulated
 three separate lessons, and re-writing its walk threw all three away at once.
+
+### The whole-branch review, editor's share · **done**
+
+A second review ran over the merged branch, and eleven of its thirty
+findings landed here. The pattern behind most of them is worth writing down:
+the editor is honest about the edits it *refuses* and was careless about the
+edits it *reported* – three separate places claimed success for work that had
+been rolled back. The asset picker said "written" for a line the in-page
+compiler had just refused (two of its three insert paths never registered the
+asset, so the reference could not resolve until the next build); dgeAppendLine
+said "written" unconditionally; and a failed watch rebuild was visible only
+in the terminal while the page sat on the old build and the next write-back
+was refused with advice – reload – that could not help. All three say what
+actually happened now, and the watch server broadcasts a build-failed message
+the status line shows.
+
+The sync kept two promises it had only documented. An edit committed while
+the projection is frozen is queued per figure and flushed when `toggleFreeze`
+goes back to live – the cockpit's own status line already said "it will not
+see this until you unfreeze", and now that sentence is a description rather
+than an apology. And a received edit is persisted the way a local one is
+(dgeSaveLocal's rule, applied in dgeApplyRemoteEdit): without that, reopening
+the editor on the peer's window loaded the pre-edit source, and the next
+committed gesture broadcast original-plus-delta – silently reverting the
+other window's work everywhere, which is the one divergence the sync exists
+to prevent. `editor: speaker` needed a third piece: the projection ships no
+compiler, so the edit message now carries the compiled figure and a shared
+`dgSwapFigure` in the diagram runtime applies it – the same function the
+editor itself uses, so the two paths cannot drift, and it refreshes the
+focus-card clone, which used to keep the pre-edit drawing on the very screen
+the room was watching.
+
+The gestures got four corrections of the same shape as the grammar's own
+no-op rule. Dragging a container or brace planned an `at` their statements
+refuse – and because a selection commits as one splice, Ctrl-A-and-move was
+reverted whole in any figure containing a container; they contribute nothing
+now and say why only when grabbed alone. A drag at a beat moved only
+`selection[0]`. A resize handle on a `grid` spliced `w`/`h` into a statement
+that takes `cell` – it scales the cell now, which says the same thing in the
+word the statement accepts. And the arrowheads row edited the `no-head`
+*class* on an edge whose headlessness came from the `--` token: picking
+"both" produced one reversed head, and every tail rebuild wrote `.no-head`
+into the line. The parser marks the derived class (`autoClasses`), tail
+rebuilds skip it, and the row rewrites the arrow token itself.
+
+Two were plain input handling: `Number(value) || 0` turned a typo in the gap
+or frac field into 0, and no gesture listened for `pointercancel`, so an
+alt-tab mid-drag left the listeners armed and the next click anywhere
+committed a preview the author had abandoned. One wiring (`dgeWireGesture`)
+carries all seven gestures now: up commits, cancel aborts.
+
+And one crossed the seam into the span table: `spanOf` found a keyed option
+by scanning every bare token for the word, so an element *named* `w` – or a
+placement that references one – was taken for the width keyword, and a panel
+edit spliced over the wrong token. In `lectures/diagrams` that was not
+hypothetical: the CBC figure's `dot x` answered `x.x` with its own name. Two
+guards close it: positions 0 and 1 are never keywords, and neither is a token
+in a reference slot.

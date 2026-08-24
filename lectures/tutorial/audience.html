@@ -2969,7 +2969,10 @@ const DG_DUR = 380;
 // nobody would think to keep in step.
 // Keyed by the outline alone; a drawable kind may carry a direction after a
 // colon (`chevron:up`), which dgShapeD reads and this lookup must not.
-const DG_SHAPES = { hex: 1, chevron: 1, wedge: 1, cross: 1 };
+// Interpolated from DG_SHAPE_CLASSES rather than spelled out – a fifth
+// outline added to the table would otherwise draw at build time and be
+// unknown to the very runtime that has to move it.
+const DG_SHAPES = {"hex":1,"chevron":1,"wedge":1,"cross":1};
 function dgShapeD(shape, x, y, w, h) {
   // The direction rides on the shape name (`chevron:up`), so the drawable
   // still carries four numbers and the runtime still looks a shape up by one
@@ -3172,6 +3175,86 @@ function dgStep(d, step, instant) {
   d.raf = requestAnimationFrame(tick);
 }
 
+// Swap one diagram for a freshly compiled copy of itself – the DOM half of
+// an applied edit. Shared: the editor calls it after compiling in this
+// window, and the diagram-edit receiver in a view that ships no editor
+// (editor: speaker) calls it with the markup the cockpit sent along. One
+// text, or the two swap paths would drift.
+function dgSwapFigure(oldSvg, html) {
+  const holder = document.createElement('div');
+  holder.innerHTML = html;
+  // Belt and braces for the remote path: the compiler never emits an event
+  // handler, an executable script or a javascript: URL, so anything of the
+  // kind in incoming markup is not a figure – scrub it rather than let it
+  // run. innerHTML does not execute script elements, but an on* attribute
+  // on a parsed element fires the moment it is in the document.
+  holder.querySelectorAll('script:not([type="application/json"])').forEach((s) => s.remove());
+  holder.querySelectorAll('*').forEach((el) => {
+    for (const a of [...el.attributes]) {
+      const n = a.name.toLowerCase();
+      const v = String(a.value || '').trim().toLowerCase();
+      if (n.indexOf('on') === 0 || v.indexOf('javascript:') === 0) el.removeAttribute(a.name);
+    }
+  });
+  const next = holder.querySelector('svg.psi-diagram');
+  const payload = holder.querySelector('script.psi-diagram-frames');
+  if (!next) return null;
+  const live = oldSvg.psiDiagram;
+  if (next.dataset.liveViewbox) {
+    next.setAttribute('viewBox', next.dataset.liveViewbox);
+    const w = Number(next.getAttribute('width'));
+    const r = Number(next.dataset.liveRatio);
+    if (w && r) next.setAttribute('height', String(Math.round(w * r)));
+  }
+  const figure = oldSvg.closest('.figure-diagram');
+  oldSvg.replaceWith(next);
+  // The frames payload is what the step runtime reads. Replace it alongside
+  // the drawing, or a figure that just gained steps has none the runtime can
+  // see, while one that lost them keeps applying geometry from a picture
+  // that no longer exists.
+  const oldPayload = figure ? figure.querySelector('script.psi-diagram-frames') : null;
+  if (payload) {
+    payload.dataset.for = next.id;
+    if (oldPayload) oldPayload.replaceWith(payload);
+    else if (figure) figure.appendChild(payload);
+  } else if (oldPayload) {
+    oldPayload.remove();
+  }
+  let d = null;
+  if (payload) {
+    try {
+      const data = JSON.parse(payload.textContent);
+      d = live || { svg: next, step: 0, raf: 0, cur: null, cache: {},
+        hint: figure ? figure.querySelector('.dg-hint') : null };
+      d.data = data;
+      d.svg = next;
+      d.cache = {};
+      d.cur = null;
+      next.psiDiagram = d;
+      if (!live) DG_LIST.push(d);
+      dgStep(d, Math.min(d.step, data.n - 1), true);
+    } catch (e) { d = null; }
+  } else if (live) {
+    // No steps any more: nothing left to tween, and the static attributes
+    // the emitter wrote are already the finished picture.
+    next.psiDiagram = null;
+  }
+  // The focus card holds a clone, ids and all, and it is what the room is
+  // actually looking at while a figure is zoomed – the very state an edit
+  // is usually made in. dgMirrorIntoFocus can only repaint ids that
+  // survived the edit, so a structural change replaces the clone whole.
+  const card = document.querySelector('#figure-overlay .figure-focus-target');
+  if (card) {
+    const shown = card.querySelector('svg.psi-diagram');
+    if (shown && shown.id === next.id) {
+      const clone = next.cloneNode(true);
+      shown.replaceWith(clone);
+      if (d) dgRenderInto(clone, d, d.step);
+    }
+  }
+  return next;
+}
+
 // Repaint whatever diagram is currently zoomed into the focus card. Cheap and
 // unconditional: one querySelector when nothing is focused.
 function dgMirrorIntoFocus(d, step) {
@@ -3206,7 +3289,15 @@ function initDiagrams() {
     };
     svg.psiDiagram = d;
     DG_LIST.push(d);
-    dgStep(d, 0, true);
+    // A diagram inside an expansion consumes no beats – chunkBeats skips
+    // expansion bodies, or Space would advance a counter while the room
+    // sees nothing move – so nothing ever steps it. Rewinding it to its
+    // opening beat therefore left it half-drawn for good, while print, with
+    // no JavaScript at all, showed the finished picture. Where no beat can
+    // reach, the finished picture is the one to show. Same selector as
+    // chunkBeats, so the two answers cannot disagree.
+    const beatless = svg.closest('.exp-body, .chunk-expansion');
+    dgStep(d, beatless ? d.data.n - 1 : 0, true);
   });
 }
 
@@ -3732,7 +3823,16 @@ window.addEventListener('message', (ev) => {
   // cannot mis-target it – the lesson data-fig-id already carries for video.
   // Gated by the freeze flag on the sending side, like any shared state.
   if (m.type === 'diagram-edit') {
+    // The editor's own apply where the view ships one; otherwise the
+    // compiled markup the cockpit sent along. That second path is what makes
+    // editor: speaker honest: the projection carries no compiler, and it
+    // used to drop every edit here in silence while the cockpit said the
+    // room was following.
     if (window.psiApplyDiagramEdit) window.psiApplyDiagramEdit(m);
+    else if (m.html) {
+      const target = document.getElementById(m.id);
+      if (target) dgSwapFigure(target, m.html);
+    }
     return;
   }
   if (m.type === 'embed') { applyRemoteEmbed(m); return; }
@@ -6859,6 +6959,14 @@ const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 't
 // second hand-written copy of the vocabulary is exactly what this module
 // exists to stop.
 const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container', 'bars', 'grid', 'plot']);
+// Names an element cannot have, and it is a computed table rather than a
+// list: the live runtime keys plain objects by element id (a frame's vis /
+// cls / geom straight from JSON, the target cache, the kinds map), so an id
+// that already means something on every JavaScript object – `constructor`,
+// `toString`, `__proto__` – reads a function out of the prototype where the
+// runtime expected its own entry, and the diagram breaks at step time with
+// nothing at build time to say why. Refused at parse instead.
+const DG_RESERVED_IDS = new Set(Object.getOwnPropertyNames(Object.prototype));
 // Scalar coordinates of an element, for use where a single number would go.
 // `left`/`right` are x, `top`/`bottom` are y, `cx`/`cy` the centres. Naming
 // the wrong axis is an error rather than a silent transposition.
@@ -7298,8 +7406,15 @@ function dgParsePlacement(toks, k, errors, lineNo) {
     // as a member name: `between a,b pad 0.3` on a text used to parse `pad`
     // and `0.3` as two more elements and then complain that `0.3` is not
     // an anchor. The list is the placement's own options plus every
-    // trailing option the element statements accept.
-    const STOP = new Set(['frac', 'offset', 'w', 'h', 'r', 'pad', 'same', '->']);
+    // trailing option the element statements accept – *derived* from
+    // DG_KIND_OPTS rather than spelled out, because the spelled-out list
+    // predated `point`, `space`, `cell`, `step`, `x` and `y`, and each of
+    // those written after a `between` was read as a member name and refused
+    // with "expects exactly two elements". An order-sensitive refusal of
+    // valid syntax is the invisible kind of failure this grammar keeps
+    // closing; a derived set cannot drift the same way again.
+    const STOP = new Set(['frac', 'offset', 'gap', 'align', 'same', '->', 'point',
+      ...Object.values(DG_KIND_OPTS).flat()]);
     let mEnd = k + 1;
     while (mEnd < toks.length && !STOP.has(toks[mEnd].v)) mEnd++;
     const refs = toks.slice(k + 1, mEnd).map(x => x.v).join(',')
@@ -7391,8 +7506,13 @@ function dgParseCoord(tok, axis, errors, lineNo, what) {
   if (p && Number.isFinite(Number(p[2]))) return { ref: p[1], data: Number(p[2]), axis };
   const m = raw.match(/^([A-Za-z_][\w-]*)\.([a-z]+)([+-][\d.]+)?$/);
   if (!m) {
+    // A plain decimal, spelled out. Number() alone let two things through
+    // that no author means: Number('') is 0, so the empty half of "at 3,"
+    // silently placed the element on an axis origin, and Number('0x10') is
+    // 16. A grammar whose stated rule is closing silent failures cannot
+    // have its most basic literal be one.
     const n = Number(raw);
-    if (!Number.isFinite(n)) {
+    if (!/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(raw) || !Number.isFinite(n)) {
       dgErr(errors, lineNo, `${what} expects a number, an element coordinate like "x0.cy", `
         + `or a value in a plot like "roc@0.35" – got "${raw}"`);
       return { unit: 0 };
@@ -7533,7 +7653,10 @@ function readGridOpts(head, id, rest0, lineNo, errors) {
   // the placement and the other after it, with no error either way and a
   // fivefold difference in the drawing. The distance between repetitions
   // inside one statement is a different measurement and gets its own word.
-  const allowed = head === 'bars' ? ['w', 'h', 'space'] : ['cell', 'space'];
+  // From DG_KIND_OPTS, not spelled out again: the editor's panel and the
+  // linter both read that table, and a second copy here is the one that
+  // would drift.
+  const allowed = DG_KIND_OPTS[head];
   let k = 0;
   while (k < rest.length) {
     const key = rest[k].v;
@@ -8009,7 +8132,20 @@ function createSpanTable(model, body) {
     const el = byId.get(id);
     if (!el || !el.span) return null;
     const toks = toksOf(el);
-    const find = (word) => toks.findIndex(x => !x.q && !x.attr && x.v === word);
+    // An option keyword is found by its word, and the word alone is not
+    // enough: `w`, `h`, `x`, `y`, `gap`, `pad` are all natural element
+    // names, and nothing forbids them. On `box e "East" right of w gap 1`
+    // a bare scan took the reference `w` for the width keyword and a panel
+    // resize spliced the new width over the `gap` that followed it – a
+    // structured edit corrupting the very line it was asked to preserve.
+    // Two guards close that: the kind word and the element's own name
+    // (positions 0 and 1) are never keywords, and neither is a token that
+    // sits in a reference slot – right after the word that introduces one,
+    // or after a comma-carrying member of an `over`/`between` list.
+    const REF_INTRO = new Set(['of', 'below', 'above', 'as', 'over', 'between', '->', '<-', '--']);
+    const find = (word) => toks.findIndex((x, i) => i >= 2 && !x.q && !x.attr && x.v === word
+      && !(toks[i - 1] && !toks[i - 1].q && !toks[i - 1].attr
+        && (REF_INTRO.has(toks[i - 1].v) || toks[i - 1].v.endsWith(','))));
 
     if (attr === 'line') return hit(el.span[0], el.span[1], src.slice(el.span[0], el.span[1]));
 
@@ -8287,7 +8423,7 @@ function createSpanTable(model, body) {
 // the disk or know about the page. Node passes its fs-based versions; the
 // browser passes lookups into a table the build emitted beside the diagram.
 //
-//   resolveImage(ref)   -> {abs, href, remote} | null
+//   resolveImage(ref)   -> {abs, href, remote} | {video, href} | null
 //                          Node: the assets/ lookup ![](fig-id) already uses.
 //                          Browser: the asset is already resolved – the
 //                          compiled SVG carries the data URI – so this is a
@@ -8360,6 +8496,14 @@ function createDiagramCompiler(env = {}) {
       // coordinate, and one containing @ or # from a tag or an id token.
       if (!/^[A-Za-z_][\w-]*$/.test(id)) {
         dgErr(errors, lineNo, `"${id}" is not a usable name – letters, digits, _ and - only, starting with a letter`);
+        return;
+      }
+      // See DG_RESERVED_IDS: these names read prototype members out of the
+      // runtime's plain-object frame tables, and the failure would surface
+      // at step time in the browser with nothing here to explain it.
+      if (DG_RESERVED_IDS.has(id)) {
+        dgErr(errors, lineNo, `"${id}" is reserved – it already names a property every JavaScript object has, `
+          + `and the step runtime keys its tables by element id. Pick another name.`);
         return;
       }
       if (model.byId.has(id)) dgErr(errors, lineNo, `duplicate element id "${id}"`);
@@ -8791,6 +8935,11 @@ function createDiagramCompiler(env = {}) {
             dgErr(errors, lineNo, `grid ${id}: cannot find "${src}" – expected assets/${src}.{svg,png,jpg,…}, a path, or an https URL`);
             continue;
           }
+          if (asset.video) {
+            dgErr(errors, lineNo, `grid ${id}: "${asset.href}" is a clip, and a diagram draws stills – `
+              + `an SVG image element cannot play video. Put the clip in the chunk body as ![](clip-id).`);
+            continue;
+          }
           aspect = asset.abs ? imageAspect(asset.abs) : null;
         }
         const dimsAt = isImg ? 4 : 3;
@@ -8866,7 +9015,10 @@ function createDiagramCompiler(env = {}) {
         if (isImage && src) {
           const found = resolveImage(src);
           if (!found) dgErr(errors, lineNo, `image ${id}: cannot find "${src}" – expected assets/${src}.{svg,png,jpg,…}, a path, or an https URL`);
-          else { node.asset = found; node.aspect = found.abs ? imageAspect(found.abs) : null; }
+          else if (found.video) {
+            dgErr(errors, lineNo, `image ${id}: "${found.href}" is a clip, and a diagram draws stills – `
+              + `an SVG image element cannot play video. Put the clip in the chunk body as ![](clip-id).`);
+          } else { node.asset = found; node.aspect = found.abs ? imageAspect(found.abs) : null; }
         }
         while (k < rest.length) {
           const key = rest[k].v;
@@ -8978,7 +9130,17 @@ function createDiagramCompiler(env = {}) {
           tags: attrs.tags,
           via: [], line: lineNo, span,
         };
-        if (body0[arrowAt].v === '--' && !edge.classes.includes('no-head')) edge.classes.push('no-head');
+        // `--` means headless, expressed through the same class the emitter
+        // already reads – but the injection is *derived from the arrow
+        // token*, not authored, and `autoClasses` says so. Without the mark
+        // the editor rebuilt attribute tails from `classes` and wrote
+        // `.no-head` into every `--` line it touched, and its arrowheads
+        // row edited a class the author never wrote instead of the token
+        // that actually carries the meaning.
+        if (body0[arrowAt].v === '--' && !edge.classes.includes('no-head')) {
+          edge.classes.push('no-head');
+          edge.autoClasses = ['no-head'];
+        }
         // Waypoints are introduced by `via`, once, and it is not optional: every
         // other modifier in this grammar is a keyword followed by its values,
         // and a bare `1,2` hanging off the end of an edge read like a typo even
@@ -9233,7 +9395,10 @@ function createDiagramCompiler(env = {}) {
         const w = (nw != null ? nw : 1) * uw;
         if (nh != null) return { w, h: nh * uh };
         if (node.aspect) return { w, h: w * node.aspect };
-        dgWarn(`image ${node.id}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
+        // Only when the asset resolved at all: an unresolved (or refused)
+        // one already has an error naming the real problem, and a warning
+        // about proportions on top of it points the author the wrong way.
+        if (node.asset) dgWarn(`image ${node.id}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
         return { w, h: w };
       }
       const font = fitted(nw != null ? nw * uw : 0, nh != null ? nh * uh : 0);
@@ -10209,9 +10374,10 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_OPS, DG_KEYWORDS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_BRACE_SIDES, DG_KIND_OPTS, DG_PAD_DEFAULT, dgErr, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, rejectShapeOn, rejectAlignOn, readGridOpts, dgReadDefault, parseDiagramDefaults, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_RESERVED_IDS, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_OPS, DG_KEYWORDS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_BRACE_SIDES, DG_KIND_OPTS, DG_PAD_DEFAULT, dgErr, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, rejectShapeOn, rejectAlignOn, readGridOpts, dgReadDefault, parseDiagramDefaults, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "";
+window.PSI_DG_EDIT_HTML = false;
 // The diagram editor.
 //
 // Read editor.md first – this file is the *what*, that file is the why. The
@@ -10316,10 +10482,6 @@ function dgeCompilerFor(images) {
 // the editor is open it stops being attached to the figure it was opened from.
 
 const DGE_FIGURES = [];
-// Step runtimes the editor created for figures that gained their first step
-// while it was open. They are held so `Space` on the slide underneath keeps
-// finding them; the build's own initDiagrams only ever runs at boot.
-const DGE_NEW_RUNTIMES = [];
 
 function dgeCollectFigures() {
   DGE_FIGURES.length = 0;
@@ -11485,6 +11647,21 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
   const snap = (v) => (free ? v : dgeRound(v, DGE_SNAP_CELL));
   let strain = null;
 
+  // Only a node's statement can hold a placement. A container or brace
+  // follows its members and an edge its endpoints – planning `at x,y` for
+  // one spliced a token their statements refuse, and because a selection is
+  // committed as one splice, Ctrl-A-and-move was reverted whole in any
+  // figure that contained a container. They contribute nothing instead, and
+  // say so only when they are what was actually grabbed.
+  if (!['box', 'dot', 'text', 'image'].includes(el.kind)) {
+    if (DGE.selection.length <= 1) {
+      refusals.push(el.kind === 'edge'
+        ? `an edge follows its endpoints – drag those, and it re-routes.`
+        : `a ${el.kind} follows its members – drag those, and it re-fits.`);
+    }
+    return { edits: [], refusals, strain };
+  }
+
   // A coordinate owned by a set is not this element's to move – until the
   // author insists. Pulling a follower against its shared axis holds it on
   // the axis, draws the axis it is held by, and says how much further to pull;
@@ -11674,6 +11851,19 @@ function dgePlanResize(ctx, id, dw, dh, handle) {
     edits.push({ attr: 'r', value: dgeNum(next) });
     return { edits, refusals: [] };
   }
+  // A grid is sized by its cell – the statement refuses `w` and `h`, so the
+  // handle used to splice two words the compiler then rejected and the whole
+  // drag was reverted. Scaling the cell says the same thing in the word the
+  // statement takes; `space` follows its default, or keeps the author's.
+  if (el.frame === 'grid') {
+    const sp = ctx.spans.spanOf(id, 'cell');
+    const cur = sp && sp.present ? Number(sp.value) : 0.25;
+    const w0 = b.w / uw, h0 = b.h / uh;
+    const scale = handle === 's' ? (h0 + dh) / h0 : (w0 + dw) / w0;
+    const next = Math.max(0.02, dgeRound(cur * scale, 0.01));
+    if (next !== cur) edits.push({ attr: 'cell', value: dgeNum(next), why: 'a grid is sized by its cell' });
+    return { edits, refusals: [] };
+  }
   if (el.sameAs) {
     edits.push({ attr: 'same-as', value: '', drop: true, why: `"just this one" – drops "same as ${el.sameAs}"` });
   }
@@ -11860,8 +12050,8 @@ function dgeRedo() {
 // second layout: the compiler wrote that `d` and the step runtime moved it, so
 // it is by construction the geometry on screen at this beat, and on a
 // pointermove a second dgFrameDrawables would re-measure every label in the
-// block to learn what the DOM already knows. Coupled to dgPathD, which emits
-// one M and a run of Ls and nothing else.
+// block to learn what the DOM already knows. Coupled to dgPathD and
+// dgSplineD, the two texts that ever write this attribute.
 function dgeEdgePts(id) {
   const svg = dgeQ('#dge-art-svg');
   if (!svg) return null;
@@ -11871,9 +12061,21 @@ function dgeEdgePts(id) {
   const path = svg.querySelector('[id="' + DGE.prefix + id + '--p"]');
   const d = path && path.getAttribute('d');
   if (!d) return null;
-  const nums = (d.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+  // Per command, not pairwise over every number: a `.smooth` edge is the
+  // same waypoint vector drawn as Béziers, and each C carries two control
+  // points before its anchor. Read pairwise, those control points became
+  // "waypoints" and every handle on a curved edge sat beside the line it
+  // claimed to hold. The anchors – M's pair, L's pairs, each C's last pair –
+  // are the polyline the author wrote.
   const pts = [];
-  for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1]]);
+  for (const m of d.matchAll(/([MLC])([^MLCZ]+)/g)) {
+    const nums = (m[2].match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+    if (m[1] === 'C') {
+      for (let i = 4; i + 1 < nums.length; i += 6) pts.push([nums[i], nums[i + 1]]);
+    } else {
+      for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1]]);
+    }
+  }
   return pts.length >= 2 ? pts : null;
 }
 
@@ -12019,6 +12221,35 @@ function dgeWireCanvas(canvas, guides) {
   });
 }
 
+// The browser can take a pointer away mid-gesture – alt-tab, a system
+// gesture, a stylus leaving range – and it says so with pointercancel, not
+// pointerup. Ignoring it left the move/up listeners armed, so the *next*
+// pointerup anywhere committed a preview the author had abandoned. One
+// wiring for every gesture: up commits, cancel aborts.
+function dgeWireGesture(move, up, abort) {
+  const off = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onCancel);
+  };
+  const onUp = (e) => { off(); up(e); };
+  const onCancel = () => { off(); (abort || up)(); };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onCancel);
+}
+
+// What a cancelled *editing* gesture leaves behind: the source as it was at
+// pointerdown, painted again. dgeGestureEnd recompiles, so putting the bytes
+// back is the whole job.
+function dgeAbortEdit(ctx) {
+  DGE.strain = null;
+  dgeSnapGuides = [];
+  if (ctx && DGE.source !== ctx.source) DGE.source = ctx.source;
+  dgeGestureEnd();
+  dgeDrawGuides();
+}
+
 function dgeStartPan(ev, canvas) {
   const start = { x: ev.clientX, y: ev.clientY, px: DGE.pan.x, py: DGE.pan.y };
   canvas.classList.add('dge-panning');
@@ -12028,11 +12259,8 @@ function dgeStartPan(ev, canvas) {
   };
   const up = () => {
     canvas.classList.remove('dge-panning');
-    window.removeEventListener('pointermove', move);
-    window.removeEventListener('pointerup', up);
   };
-  window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', up);
+  dgeWireGesture(move, up, up);
 }
 
 // A drag is one gesture: pointerdown captures the source, pointermove
@@ -12232,13 +12460,24 @@ function dgeStartMove(ev, pt0) {
     if (DGE.beat > 0) {
       // In a beat, the same drag means something else: the element's
       // placement is the opening picture and must not move, so this writes
-      // a `move` into the step instead.
-      const step = dgeStepMove(ctx, id, dx, dy);
-      if (!step) return;
-      DGE.source = ctx.source.slice(0, step.start) + step.text + ctx.source.slice(step.end);
+      // a `move` into the step instead. The whole selection, not the grabbed
+      // element alone – a marquee dragged at a beat used to move only what
+      // the pointer happened to be on. Nodes only: an edge or a container
+      // follows what it is attached to, in a step as everywhere else.
+      const ids = (DGE.selection.includes(id) ? DGE.selection : [id]).filter((sid) => {
+        const e = dgeFind(sid, ctx.model);
+        return e && ['box', 'dot', 'text', 'image'].includes(e.kind);
+      });
+      const plans = ids.map((sid) => dgeStepMove(ctx, sid, dx, dy)).filter(Boolean);
+      if (!plans.length) return;
+      plans.sort((a, b) => b.start - a.start);
+      let next = ctx.source;
+      for (const st of plans) next = next.slice(0, st.start) + st.text + next.slice(st.end);
+      DGE.source = next;
       last = { edits: [{ attr: 'move' }], refusals: [] };
       dgeRecompile();
-      dgeStatus(step.line, `into step "${DGE.model.steps[DGE.beat - 1].name}" – the opening picture is untouched`);
+      const line = plans.length === 1 ? plans[0].line : `${plans.length} move ops`;
+      dgeStatus(line, `into step "${DGE.model.steps[DGE.beat - 1].name}" – the opening picture is untouched`);
       return;
     }
     // Docking beats moving: while the pointer is on one of the four chips the
@@ -12287,8 +12526,6 @@ function dgeStartMove(ev, pt0) {
     if (res.plan) dgeShowPlan(ctx, id, res.plan);
   };
   const up = () => {
-    window.removeEventListener('pointermove', move);
-    window.removeEventListener('pointerup', up);
     DGE.strain = null;
     dgeSnapGuides = [];
     if (DGE.source !== ctx.source) {
@@ -12299,8 +12536,7 @@ function dgeStartMove(ev, pt0) {
     dgeGestureEnd();
     if (last && last.refusals.length) dgeNote(last.refusals[0], true);
   };
-  window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', up);
+  dgeWireGesture(move, up, () => dgeAbortEdit(ctx));
 }
 
 function dgeStartResize(ev, id, handle) {
@@ -12316,13 +12552,10 @@ function dgeStartResize(ev, id, handle) {
     dgeShowPlan(ctx, id, plan);
   };
   const up = () => {
-    window.removeEventListener('pointermove', move);
-    window.removeEventListener('pointerup', up);
     if (DGE.source !== ctx.source) { const done = DGE.source; DGE.source = ctx.source; dgeSetSource(done); }
     dgeGestureEnd();
   };
-  window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', up);
+  dgeWireGesture(move, up, () => dgeAbortEdit(ctx));
 }
 
 // Retargeting an endpoint. The gesture answers with a *name* wherever it can:
@@ -12382,14 +12615,11 @@ function dgeStartEndpoint(ev, id, which) {
     dgeShowPlan(ctx, id, { edits: [{ attr: which, why: p.why }], refusals: [] });
   };
   const up = () => {
-    window.removeEventListener('pointermove', move);
-    window.removeEventListener('pointerup', up);
     dgeSnapGuides = [];
     if (DGE.source !== ctx.source) { const done = DGE.source; DGE.source = ctx.source; dgeSetSource(done); }
     dgeGestureEnd();
   };
-  window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', up);
+  dgeWireGesture(move, up, () => dgeAbortEdit(ctx));
 }
 
 // Moving a waypoint. Per axis, and the axes are decided separately, because
@@ -12440,13 +12670,10 @@ function dgeStartWaypoint(ev, id, k) {
     dgeShowPlan(ctx, id, plan);
   };
   const up = () => {
-    window.removeEventListener('pointermove', move);
-    window.removeEventListener('pointerup', up);
     if (DGE.source !== ctx.source) { const done = DGE.source; DGE.source = ctx.source; dgeSetSource(done); }
     dgeGestureEnd();
   };
-  window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', up);
+  dgeWireGesture(move, up, () => dgeAbortEdit(ctx));
 }
 
 // The whole `via` clause is rewritten for an insert or a remove, because the
@@ -12531,13 +12758,10 @@ function dgeStartMarquee(ev, canvas) {
     dgeDrawGuides();
   };
   const up = () => {
-    window.removeEventListener('pointermove', move);
-    window.removeEventListener('pointerup', up);
     dgeSnapGuides = [];
     dgeDrawGuides();
   };
-  window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', up);
+  dgeWireGesture(move, up, () => { dgeSnapGuides = []; dgeDrawGuides(); });
 }
 
 // ── placing and wrapping (editor.md §4, §7) ─────────────────────────
@@ -12661,7 +12885,19 @@ function dgeOpenAssetPicker(onPick) {
     if (!extra.length) return;
     const anchor = list.querySelector('.dge-asset-file');
     for (const a of extra) {
-      list.insertBefore(row(a.id, `assets/${a.file} · ${Math.round(a.bytes / 1024)} KB`, null), anchor);
+      // A file the server listed is not in this page's asset table – the
+      // page was built before anything referenced it. Register it as
+      // pending, exactly like a freshly uploaded file, or the in-browser
+      // compiler refuses the line the pick is about to write and the picker
+      // reports a placement that was in fact rolled back.
+      const pick = () => {
+        DGE.fig.images = DGE.fig.images || {};
+        if (!DGE.fig.images[a.id]) DGE.fig.images[a.id] = { aspect: 1, markup: '', pending: true };
+        choose(a.id, { note: dgeAssetNote(a.file) + ' It appears on the next build.' });
+      };
+      const btn = row(a.id, `assets/${a.file} · ${Math.round(a.bytes / 1024)} KB`, null);
+      btn.onclick = pick;
+      list.insertBefore(btn, anchor);
     }
   });
 }
@@ -12735,8 +12971,12 @@ function dgeTakeFile(f, choose, note) {
     const live = window.psiWatch && window.psiWatch.ready();
     if (!live) {
       // The grammar takes a path as well as an id, so the line the editor
-      // writes is already correct – it just needs the file to arrive.
-      choose(`assets/${name}`, { note: `Copy ${f.name} into assets/ beside source.md; the line is already written. ` + dgeAssetNote(name) });
+      // writes is already correct – it just needs the file to arrive. The
+      // in-browser compiler needs the reference registered first, though, or
+      // it refuses that very line and the "already written" claim is false.
+      dgeRegisterPending(`assets/${name}`, name, String(reader.result)).then(() => {
+        choose(`assets/${name}`, { note: `Copy ${f.name} into assets/ beside source.md; the line is already written. ` + dgeAssetNote(name) });
+      });
       return;
     }
     note.textContent = 'Writing ' + name + '…';
@@ -12783,8 +13023,10 @@ function dgeAppendLine(line) {
     if (/^\s*step\b/.test(lines[i])) at = i;
   }
   lines.splice(at, 0, line);
-  dgeSetSource(lines.join('\n'));
-  dgeStatus(line, 'written');
+  // Only say "written" when it stuck – dgeSetSource reverts a line the
+  // compiler refuses and has already named the problem in the status bar,
+  // and overwriting that with a success message was a lie on top of it.
+  if (dgeSetSource(lines.join('\n'))) dgeStatus(line, 'written');
 }
 
 function dgeStartEdge(ev, pt0) {
@@ -12810,8 +13052,6 @@ function dgeStartEdge(ev, pt0) {
       : (fromId && toId ? 'an arrow between two elements – it re-routes when either moves' : 'an endpoint in empty space'));
   };
   const up = (e) => {
-    window.removeEventListener('pointermove', move);
-    window.removeEventListener('pointerup', up);
     dgeSnapGuides = [];
     const pt = dgePointToDiagram(e);
     const toId = dgeHitTest(pt, { edges: false });
@@ -12823,8 +13063,7 @@ function dgeStartEdge(ev, pt0) {
     dgeAppendLine(`edge ${a} ${DGE.tool === 'line' ? '--' : '->'} ${b}`);
     if (!DGE.toolLocked) dgePickTool('select');
   };
-  window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', up);
+  dgeWireGesture(move, up, () => { dgeSnapGuides = []; dgeDrawGuides(); });
 }
 
 // Wrappers act on what is already selected, because that is what their
@@ -13273,6 +13512,26 @@ function dgeSetSlot(slot, cls) {
   for (const id of DGE.selection) {
     const el = dgeFind(id);
     if (!el) continue;
+    // Arrowheads are the arrow token's business, not a class's. `--` IS
+    // "none", so the row rewrites the token – picking "none" writes `--`,
+    // picking "one" or "both" restores `->` – and only `.both-heads` is a
+    // class at all. Editing the class alone left `--` in the line, the
+    // parser re-derived `no-head` on top of `.both-heads`, and "both" came
+    // out as one reversed head.
+    if (slot.key === 'head') {
+      if (el.kind !== 'edge') continue;
+      const arrowSp = DGE.spans.spanOf(id, 'arrow');
+      const cur = arrowSp && arrowSp.present ? arrowSp.value : '->';
+      const want = cls === 'no-head' ? '--' : (cur === '--' ? '->' : cur);
+      if (arrowSp && arrowSp.present && want !== cur) {
+        splices.push({ start: arrowSp.start, end: arrowSp.end, text: want, seq: 0 });
+      }
+      const keep = (el.classes || []).filter((c) => !names.includes(c));
+      if (cls === 'both-heads') keep.push(cls);
+      const tail = dgePlanTail(id, { classes: keep });
+      if (tail) splices.push({ ...tail, seq: 1 });
+      continue;
+    }
     const keep = (el.classes || []).filter((c) => !names.includes(c));
     if (cls) keep.push(cls);
     if (cls === 'fit' || cls === 'shrink') {
@@ -13338,7 +13597,14 @@ function dgePlanTail(id, changes) {
   const parts = [];
   const wantId = changes.id !== undefined ? changes.id : (isEdge && !/^edge-\d+$/.test(el.id) ? el.id : null);
   if (wantId) parts.push('#' + wantId);
-  for (const c of (changes.classes !== undefined ? changes.classes : el.classes || [])) parts.push('.' + c);
+  // A class the parser derived from the statement itself – `no-head` on a
+  // `--` edge – is not the author's and must not be written back: every tail
+  // rebuild on such a line used to grow a `.no-head` the arrow token already
+  // says.
+  const auto = new Set(el.autoClasses || []);
+  for (const c of (changes.classes !== undefined ? changes.classes : el.classes || [])) {
+    if (!auto.has(c)) parts.push('.' + c);
+  }
   for (const t of (changes.tags !== undefined ? changes.tags : el.tags || [])) parts.push('@' + t);
   const sp = DGE.spans.spanOf(id, 'classes');
   if (!sp) return null;
@@ -13759,7 +14025,17 @@ function dgePlacementPane(el) {
         dgeEl('span', { text: 'gap' }),
         dgeEl('input', {
           type: 'text', value: dgeNum(p.gap),
-          onchange: (e) => write(dgePlaceText(p.dir, p.ref, Number(e.target.value) || 0)),
+          // Refuse what is not a number instead of silently writing 0 –
+          // `Number('0.,4') || 0` collapsed a typo into "no gap at all".
+          onchange: (e) => {
+            const n = Number(e.target.value.trim());
+            if (!e.target.value.trim() || !Number.isFinite(n)) {
+              dgeStatus('', `"${e.target.value}" is not a number – the gap keeps its ${dgeNum(p.gap)}.`, true);
+              dgeRenderSide();
+              return;
+            }
+            write(dgePlaceText(p.dir, p.ref, n));
+          },
         }),
       ]),
     ]);
@@ -13785,7 +14061,16 @@ function dgePlacementPane(el) {
       dgeEl('span', { text: 'frac' }),
       dgeEl('input', {
         type: 'text', value: dgeNum(p.frac),
-        onchange: (e) => write(`between ${p.refs[0].ref},${p.refs[1].ref} frac ${dgeNum(Number(e.target.value) || 0)}`),
+        // Same refusal as the gap field: a typo is not the number 0.
+        onchange: (e) => {
+          const n = Number(e.target.value.trim());
+          if (!e.target.value.trim() || !Number.isFinite(n)) {
+            dgeStatus('', `"${e.target.value}" is not a number – frac keeps its ${dgeNum(p.frac)}.`, true);
+            dgeRenderSide();
+            return;
+          }
+          write(`between ${p.refs[0].ref},${p.refs[1].ref} frac ${dgeNum(n)}`);
+        },
       }),
     ]));
     wrap.appendChild(row);
@@ -14668,57 +14953,16 @@ function dgeRevertLocal() {
 
 // Repaint a figure *in the page* from an edited body, so a reader's change
 // survives leaving the editor, and so a synced edit lands in the other
-// window. The live runtime's own data is rebuilt with it, or the next Space
-// would tween back to the geometry of the old picture.
+// window. The DOM half – swapping the drawing, its frames payload, the step
+// runtime and the focus-card clone – is dgSwapFigure in the shared diagram
+// runtime, one text with the no-editor receiver's path so the two cannot
+// drift. What stays here is the compile.
 function dgeApplyToPage(fig, body) {
   const res = dgeCompile(fig, body);
   if (!res.ok) return false;
-  const holder = document.createElement('div');
-  holder.innerHTML = res.html;
-  const next = holder.querySelector('svg.psi-diagram');
-  const payload = holder.querySelector('script.psi-diagram-frames');
+  const next = window.dgSwapFigure(fig.svg, res.html);
   if (!next) return false;
-  const live = fig.svg.psiDiagram;
-  if (next.dataset.liveViewbox) {
-    next.setAttribute('viewBox', next.dataset.liveViewbox);
-    const w = Number(next.getAttribute('width'));
-    const r = Number(next.dataset.liveRatio);
-    if (w && r) next.setAttribute('height', String(Math.round(w * r)));
-  }
-  fig.svg.replaceWith(next);
   fig.svg = next;
-  // The frames payload is what the step runtime reads, and initDiagrams
-  // found it by walking `script.psi-diagram-frames`. Leave the old one in
-  // place and a figure that just *gained* steps has none the runtime can
-  // see, while one that lost them keeps applying geometry from a picture
-  // that no longer exists. Replace it alongside the drawing.
-  const oldPayload = fig.figure
-    ? fig.figure.querySelector('script.psi-diagram-frames') : null;
-  if (payload) {
-    payload.dataset.for = next.id;
-    if (oldPayload) oldPayload.replaceWith(payload);
-    else fig.figure.appendChild(payload);
-  } else if (oldPayload) {
-    oldPayload.remove();
-  }
-  if (payload) {
-    try {
-      const data = JSON.parse(payload.textContent);
-      const d = live || { svg: next, step: 0, raf: 0, cur: null, cache: {},
-        hint: fig.figure ? fig.figure.querySelector('.dg-hint') : null };
-      d.data = data;
-      d.svg = next;
-      d.cache = {};
-      d.cur = null;
-      next.psiDiagram = d;
-      if (!live) DGE_NEW_RUNTIMES.push(d);
-      window.dgStep(d, Math.min(d.step, data.n - 1), true);
-    } catch (e) { /* a payload that will not parse is not worth a crash */ }
-  } else if (live) {
-    // No steps any more: nothing left to tween, and the static attributes
-    // the emitter wrote are already the finished picture.
-    next.psiDiagram = null;
-  }
   return true;
 }
 
@@ -14736,12 +14980,51 @@ function dgeApplyToPage(fig, body) {
 
 let dgeApplyingRemote = false;
 
+// Edits made while the projection is frozen, latest source per figure. Held
+// back rather than dropped: speaker.md promises "unfreeze, and the room gets
+// the finished picture", and until this queue existed the thaw sent only the
+// navigation snapshot – the room kept the old figure until some later edit
+// happened to be committed while live.
+const dgePendingEdits = new Map();
+
+function dgeEditMessage(fig, source) {
+  const msg = { type: 'diagram-edit', id: fig.svg.id, source };
+  // When the peer ships no compiler (editor: speaker), the edit travels as
+  // compiled markup too – dgSwapFigure on the other side applies it.
+  if (window.PSI_DG_EDIT_HTML) {
+    const res = dgeCompile(fig, source);
+    if (res.ok) msg.html = res.html;
+  }
+  return msg;
+}
+
 function dgeBroadcastEdit() {
   if (dgeApplyingRemote || !DGE.fig) return;
   if (typeof sendToPeer !== 'function' || typeof shouldBroadcast !== 'function') return;
-  if (!shouldBroadcast()) return;
-  sendToPeer({ type: 'diagram-edit', id: DGE.fig.svg.id, source: DGE.source });
+  if (!shouldBroadcast()) {
+    dgePendingEdits.set(DGE.fig.svg.id, { fig: DGE.fig, source: DGE.source });
+    return;
+  }
+  dgePendingEdits.delete(DGE.fig.svg.id);
+  sendToPeer(dgeEditMessage(DGE.fig, DGE.source));
 }
+
+// Called by toggleFreeze on the way back to live – the moment the held-back
+// edits are owed to the room.
+window.psiEditorThaw = () => {
+  if (typeof sendToPeer !== 'function') return;
+  for (const { fig, source } of dgePendingEdits.values()) {
+    sendToPeer(dgeEditMessage(fig, source));
+  }
+  dgePendingEdits.clear();
+};
+
+// The watch server says so when a rebuild fails – a deleted asset, a syntax
+// error made in a text editor beside this one. The status line is the one
+// place an author working in here actually looks.
+window.psiWatchBuildFailed = (why) => {
+  if (DGE.open) dgeStatus('', 'the rebuild failed: ' + why, true);
+};
 
 function dgeApplyRemoteEdit(m) {
   const figs = DGE_FIGURES.length ? DGE_FIGURES : dgeCollectFigures();
@@ -14750,6 +15033,14 @@ function dgeApplyRemoteEdit(m) {
   dgeApplyingRemote = true;
   try {
     dgeApplyToPage(fig, m.source);
+    // Persist the way a local edit persists (dgeSaveLocal's rule), or the
+    // edit lives only in the DOM: reopening the editor on this figure loaded
+    // the pre-edit source, and the next committed gesture broadcast
+    // original-plus-delta – silently reverting the peer's edit everywhere.
+    try {
+      if (m.source === fig.body) localStorage.removeItem(dgeStoreKey(fig));
+      else localStorage.setItem(dgeStoreKey(fig), m.source);
+    } catch (e) { /* private mode, or a storage policy – same tolerance as dgeSaveLocal */ }
     if (DGE.open && DGE.fig === fig) {
       DGE.source = m.source;
       dgeRecompile();

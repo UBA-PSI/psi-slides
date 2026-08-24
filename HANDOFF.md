@@ -4,6 +4,43 @@ Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als 
 
 Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
+## Review-Slice: dreißig Befunde über den ganzen Branch
+
+Ein Multi-Agent-Review über den gemergten Branch, jeder Befund einzeln
+empirisch verifiziert, dreißig behoben. Der schwerste war destruktiv:
+`--optimize-images` schrieb nur Markdown-Referenzen um, eine
+`image assets/pfad.png`-Zeile in einem Diagramm zeigte danach auf eine
+Datei, die das Kommando selbst gelöscht hatte. Drei Cluster dahinter:
+
+- **Der Live-Edit-Sync hielt drei dokumentierte Versprechen nicht** –
+  Edit im Freeze wurde verworfen statt beim Auftauen nachgeliefert, ein
+  empfangener Edit nirgends persistiert (die nächste Geste revertierte ihn
+  auf beiden Fenstern), und bei `editor: speaker` verwarf die Projektion
+  jeden Edit stumm, weil sie keinen Compiler trägt. Jetzt: Queue + Flush in
+  `toggleFreeze`, Persistenz nach der dgeSaveLocal-Regel, und die Nachricht
+  trägt das kompilierte Markup; `dgSwapFigure` in der Diagramm-Runtime ist
+  die eine Tauschfunktion für beide Pfade und zieht die Fokus-Karte nach.
+- **Lint und Compiler widersprachen sich in beide Richtungen** – strenger
+  (geschweifte Klammern in Labels), laxer (kind-gated Refusals, `point`,
+  reservierte Ids, @tags auf default/step-Zeilen). `rejectShapeOn` /
+  `rejectAlignOn` werden jetzt importiert; CI lintet die Diagramm-
+  Vorlesungen nur und baut sie nie, also war „laxer" der gefährliche Fall.
+- **Parser-Löcher der Sorte, die die DSL selbst schließt** – `at 3,` war
+  still 0, `between …` fraß die neuen Optionen als Member, `constructor`
+  als Id brach die Runtime zur Laufzeit, ein Video hinter `image` baute
+  eine leere Figur, und `spanOf` hielt Elemente namens `w`/`x` für
+  Options-Keywords (im CBC-Beispiel real: `dot x`).
+
+Dazu: Print ohne die 346 KB toter JSON-Payloads, gestepptes Diagramm im
+`::: expand` zeigt das fertige Bild statt des ersten Beats, `DIAGRAM_CSS`
+im Stylesheet-Guard, ein Chromium pro Suite-Lauf statt pro Spec (122 s
+statt ~8 min unter Last), und in `lectures/network-security` trug #ns-b57
+die Werte der *Trainings*-Verteilung – die anomale Verteilung war
+deckungsgleich mit der, von der sie abweichen soll. b55/b57 teilen jetzt
+einen Wertesatz, dessen Bins exakt auf die Folienzahlen 43/36/21 summieren.
+Validiert wie beim Merge: alle Figuren beider Vorlesungen gehasht, nur die
+zwei bewusst geänderten weichen ab; Suite 220/220.
+
 ## Editor-Slice und der Merge zweier paralleler Zweige
 
 Zwei Sessions haben ein paar Stunden lang am selben Compiler gearbeitet, und

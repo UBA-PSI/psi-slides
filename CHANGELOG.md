@@ -361,6 +361,97 @@ from building the same way is a major version.
 
 ### Fixed
 
+- **A review of the whole branch, and thirty findings closed.** The ones a
+  user could meet, grouped:
+
+  `--optimize-images` rewrote only markdown-style `](path)` references, so
+  an explicit path in a `::: diagram` image statement kept pointing at the
+  original the command had just converted and deleted – the next build
+  failed on a file the tool itself removed. Both spellings are rewritten
+  now, fence-aware, and a conversion whose reference cannot be found is
+  said out loud instead of reported as done. The reference collectors are
+  fence-aware too, and they read a `grid … image` asset – a fenced syntax
+  example can no longer get a real file converted, and an oversized grid
+  asset no longer slips past the gate.
+
+  Three promises of the live-edit sync are kept now instead of documented:
+  an edit committed while the projection is frozen is held back and
+  delivered on thaw ("unfreeze, and the room gets the finished picture");
+  a received edit is persisted the way a local one is, so reopening the
+  editor no longer loads pre-edit source whose next gesture silently
+  reverted the peer's work everywhere; and under `editor: speaker` the
+  cockpit sends the compiled figure along with the source, so a projection
+  that ships no compiler applies the edit instead of dropping it in
+  silence. The zoomed focus card – the thing the room is actually looking
+  at – now follows a structural edit too; it used to keep the pre-edit
+  drawing until refocused. The DOM half of all of this is one shared
+  function (`dgSwapFigure`), so the editor's path and the no-editor path
+  cannot drift.
+
+  The linter agreed with the compiler in neither direction. Stricter: a
+  quoted label containing braces (`"H = {0,1}^n"`) was read as an attribute
+  tail and refused – set notation in exactly the lectures this vocabulary
+  was built for. Laxer: the kind-gated class refusals, the `point` checks
+  and the reserved-id rule were not mirrored, and a `@tag` on a `default`
+  or `step` line counted as carried – so a lecture that is linted by CI but
+  never built could merge green and fail every later build. The refusal
+  functions are imported from `diagram-core.mjs` now, the same bend the
+  naming scheme already made: they are the rule, and a second spelling of
+  it here is how the gate came to disagree.
+
+  Parser holes of the kind this grammar keeps closing: `at 3,` placed an
+  element at 0 instead of erroring (`Number('')` is 0, and `0x10` was 16);
+  `between a,b point right` consumed the newer options as member names and
+  refused valid syntax order-sensitively – the stop list is derived from
+  `DG_KIND_OPTS` now, so it cannot drift again; an element named
+  `constructor` or `toString` broke the step runtime's frame tables at
+  show time with nothing at build time to say why (refused at parse, in
+  both compiler and linter); and a diagram `image` that resolved to a video
+  file built without complaint and rendered an empty box – a clip is
+  refused with the construct that works, `![](clip-id)` in the chunk body.
+
+  In the editor: the span table took an element named `w`, `h`, `x` or
+  `gap` – all natural diagram names – for the option keyword and spliced
+  panel edits over the wrong token, up to and including a label; dragging a
+  container or brace planned an `at` their statements refuse and reverted
+  the whole multi-selection with it; a drag at a beat moved only the
+  element under the pointer, not the selection; a resize handle on a `grid`
+  spliced `w`/`h` into a statement that takes `cell`; waypoint handles on a
+  `.smooth` edge sat on Bézier control points instead of the author's
+  waypoints; the arrowheads row edited a class the parser had derived from
+  `--`, so "both" produced one reversed head and every tail rebuild wrote
+  `.no-head` into the line – the row rewrites the arrow token itself now;
+  a non-numeric gap or frac was written as 0 instead of refused; a
+  cancelled pointer (alt-tab, a system gesture) left the drag listeners
+  armed so the next click committed an abandoned preview; and two of the
+  asset picker's three insert paths appended a line the in-page compiler
+  then refused, while the status said "written" – all three register the
+  asset first, and "written" is only said when it stuck. A failed watch
+  rebuild now reaches the page and the editor's status line; it used to be
+  visible only in the terminal while the next write-back was refused with
+  advice that could not help.
+
+  And the payloads: print carried every figure's step frames and editor
+  source as JSON no consumer ever parses – 346 KB of the network-security
+  print file – and ships none of it now. A stepped diagram inside an
+  `::: expand` was stuck on its opening beat in the live views (its steps
+  consume no beats, and nothing ever advanced it); where no beat can
+  reach, the finished picture is shown, which is what print always did.
+  `DIAGRAM_CSS` is covered by `assertStylesheetsWellFormed` like every
+  other inlined sheet, the runtime's outline table is interpolated from
+  `DG_SHAPE_CLASSES` instead of hand-copied, and the browser suite starts
+  one Chromium for the whole run instead of one per spec.
+
+  In `lectures/network-security`: #ns-b57's "anomalous payload
+  distribution" carried the values of #ns-b56's *training* distribution,
+  so the histogram was congruent with the one it is supposed to deviate
+  from; it and #ns-b55 now share one set of values for the one packet they
+  both show, and the bins sum exactly to the slide's printed counts
+  43 / 36 / 21. Two miscounts in the German commentary (ten packets, not
+  twelve; one intermediate in the drawn `github.com` chain) and the
+  diagrams lecture's statement count (fourteen, not eleven) match their
+  figures again.
+
 - Sentence extraction no longer ends the topic sentence at an abbreviation
   dot. „(Kleinberg u. a. 2017)“ used to cut the collapsed head short after
   „u.“; a single letter or digit before the dot, a small German/English
