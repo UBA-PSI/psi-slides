@@ -15,12 +15,15 @@ the thing to read before picking the work up again.
 
 - **`main` does not know `::: diagram` exists.** `git show origin/main:build.js
   | grep -c renderDiagram` → **0**. The entire diagram feature – compiler,
-  runtime, CSS, the `lectures/diagrams` lecture, the linter's half – lives on
-  `claude/psi-slides-animated-infographics-eoe2yj`. Branch from `main` and
-  there is nothing here to build an editor for.
-- **This plan lives on `claude/psi-slides-diagram-editor`**, which branched
-  from that one. It is 15 commits ahead of `main` at 5,888 insertions.
-  **Work here**, or on a branch off here.
+  runtime, CSS, the `lectures/diagrams` lecture, the linter's half – has never
+  been on `main`. Branch from `main` and there is nothing here to build an
+  editor for.
+- **The work now lives on `claude/network-security-figures`**, which carries
+  the compiler, this editor and the figure lectures together. The two branches
+  this plan was originally written against –
+  `claude/psi-slides-animated-infographics-eoe2yj` and
+  `claude/psi-slides-diagram-editor` – have both been folded into it and are
+  history. **Work there**, or on a branch off it.
 - **`package.json` is still 1.0.0** and the changelog entry is under
   `## [Unreleased]`. `CONTRIBUTING.md` § *Building and releasing* bumps the
   version at release time, not during development, so there is nothing to bump.
@@ -1996,8 +1999,11 @@ of the above:
 
 **Payload, re-measured** now that the UI exists: 295 KB of compiler, UI and
 chrome in the built page – the plan's ~150 KB was taken at phase 3, before
-there was a UI. Per figure, the source payload is 12.2 KB across the eleven
-figures of `lectures/diagrams`; the asset table is now its own element, so
+there was a UI. *(Superseded: after the docking, alignment, step-pane and
+layout-control slices the same measurement – `lectures/diagrams` built as it
+stands, minus the same lecture built with `editor: none` – is ~440 KB.)* Per
+figure, the source payload is 12.2 KB across the eleven figures of
+`lectures/diagrams`; the asset table is now its own element, so
 print and `editor: none` drop it entirely and a live view pays 2.7 KB rather
 than 4.9 KB (one copy of each asset's markup plus the range to cut for an
 element with no accessible name, instead of two full copies).

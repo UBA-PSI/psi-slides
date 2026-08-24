@@ -55,9 +55,10 @@ const VIEW_DEFAULTS = {
 };
 
 // Mirrors build.js: the per-image inline cap, and the extension search order
-// used to resolve `![](fig-id)` shorthand. An asset over the cap is left as
-// an external path, which quietly breaks the single-file promise – the build
-// warns, but the build scrolls, so the pre-commit gate should catch it too.
+// used to resolve `![](fig-id)` shorthand. An asset over the cap fails the
+// build (`assertInlinable`), because shipping it as an external path quietly
+// breaks the single-file promise – so this warning is the earlier, cheaper
+// notice, not the only one.
 // Kept here as plain fs.statSync so lint.js stays zero-dep.
 // Mirrors collectDiagramImageRefs in build.js: `image <name> <asset>` lines
 // inside a ::: diagram block reference assets exactly like ![](fig-id) does,

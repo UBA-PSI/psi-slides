@@ -76,13 +76,17 @@ node lint.js lectures/                         # all lectures
 node lint.js lectures/tutorial/source.md       # single file
 node lint.js lectures/ --strict                # warnings → exit 2
 
-# browser suite – the three things that only break in a built page: the
-# navigation model, the editor's handling of an edge, and the waypoint
-# round-trip. Builds and serves the lecture itself, so it never reports on
-# stale HTML. Needs a Chromium ($PSI_CHROME, the Playwright cache, or system
-# Chrome); ~30s. Run it after touching AUDIENCE_JS, the key map, editor.mjs
-# or createSpanTable. Not a unit-test suite: anything checkable without a
-# browser belongs in lint.js, where it runs on every commit.
+# browser suite – the things that only break in a built page, in four
+# families: the navigation model (nav, nav-cockpit), the editor's gestures and
+# panel (editor-*), and the two that measure the emitted SVG – figure-framing,
+# which catches a drawing sitting off-centre in an oversized frame, and
+# figure-labels, which asserts both halves of the alignment rule. Fifteen
+# specs, ~220 assertions. Builds and serves the lectures itself, so it never
+# reports on stale HTML, and launches one Chromium for the whole run
+# ($PSI_CHROME, the Playwright cache, or system Chrome); ~2 min. Run it after
+# touching AUDIENCE_JS, the key map, editor.mjs, createSpanTable, or anything
+# that moves a label or an extent. Not a unit-test suite: anything checkable
+# without a browser belongs in lint.js, where it runs on every commit.
 node test/run.mjs                              # all specs
 node test/run.mjs nav                          # specs whose name matches
 
@@ -112,7 +116,7 @@ A source file can silence specific lint warnings with an HTML comment anywhere i
 
 `build.js` holds the entire rendering stack: parser, three renderers, inlined audience/speaker runtime JS, inlined audience/speaker/print CSS, Shiki highlighter, image-shorthand resolver, WebSocket watch server, and the CLI. It is deliberately one file, and a large one – roughly two thirds of it is the embedded CSS and runtime JS, so the Node-side build logic is much smaller than the file size suggests.
 
-**`diagram-core.mjs` is the one documented exception**, and the reason is narrow: the graphical editor answers a drag by rewriting the source and re-running the compiler *in the browser*, so exactly one text has to compile a diagram in Node and in the page. Two copies of a 2,000-line compiler is not a duplication anyone can maintain. The file is pure JS with **zero imports and zero Node APIs**; the four leaves that were Node-only (asset resolution, aspect reading, the warning sink, `escapeHtml`) plus a fifth (`assetMarkup`, which splices a vector file inline) are injected by `createDiagramCompiler({…})`. build.js keeps those leaves, the diagram CSS and the step runtime. The move also *removes* a duplication: `lint.js` imports the vocabulary tables instead of mirroring thirteen of them by hand – tables only, never a function, or the whole compiler comes in behind it and the linter stops being runnable without the Markdown/Shiki stack. See `editor.md` §8.1.
+**`diagram-core.mjs` is the one documented exception**, and the reason is narrow: the graphical editor answers a drag by rewriting the source and re-running the compiler *in the browser*, so exactly one text has to compile a diagram in Node and in the page. Two copies of a 3,700-line compiler is not a duplication anyone can maintain. The file is pure JS with **zero imports and zero Node APIs**; the four leaves that were Node-only (asset resolution, aspect reading, the warning sink, `escapeHtml`) plus a fifth (`assetMarkup`, which splices a vector file inline) are injected by `createDiagramCompiler({…})`. build.js keeps those leaves, the diagram CSS and the step runtime. The move also *removes* a duplication: `lint.js` imports the vocabulary tables instead of mirroring twenty-one of them by hand – tables only, never a function, or the whole compiler comes in behind it and the linter stops being runnable without the Markdown/Shiki stack. See `editor.md` §8.1.
 
 Navigate build.js by the `// ── section ──` banners:
 
@@ -145,7 +149,7 @@ Design implications:
 
 `lint.js` is a **zero-dep** linter – nothing from `node_modules`, so it runs as a pre-commit gate without the Markdown/Shiki stack. It deliberately does not import anything from `build.js`; it re-implements the parsing contract and mirrors the constants (`VALID_TAGS`, `VALID_WIDTHS`, `DENSITY_BUDGET`, `VIEW_DEFAULTS`). When you change the parser vocabulary in `build.js`, update `lint.js` in the same commit – the duplication is the price paid for keeping the linter runnable without the Markdown/Shiki stack.
 
-The **diagram vocabulary is the exception**: it is imported from `diagram-core.mjs`, which has no dependencies of its own, so importing it costs nothing this file was protecting and removes thirteen tables that had to change in two places. **Tables only.** A function from that module would pull the whole compiler in behind it.
+The **diagram vocabulary is the exception**: it is imported from `diagram-core.mjs`, which has no dependencies of its own, so importing it costs nothing this file was protecting and removes twenty-one tables that had to change in two places. **Tables only.** A function from that module would pull the whole compiler in behind it.
 
 Checks enforced:
 
@@ -239,7 +243,7 @@ Play, pause and seek are **synced between the windows** (`type: 'video'`, addres
 
 ### Animated infographics (`::: diagram`)
 
-**Development state, not in any release.** It lives on `claude/psi-slides-animated-infographics-eoe2yj`; `main`, `package.json` (still 1.0.0) and the published site know nothing about it. The changelog entry stays under `## [Unreleased]` – `CONTRIBUTING.md` § Building and releasing bumps the version at release time, not during development, so there is nothing to bump here.
+**Development state, not in any release.** It lives on `claude/network-security-figures`, which carries the diagram compiler, the editor and the figure work together; `main`, `package.json` (still 1.0.0) and the published site know nothing about it. The changelog entry stays under `## [Unreleased]` – `CONTRIBUTING.md` § Building and releasing bumps the version at release time, not during development, so there is nothing to bump here.
 
 Note that **merging to `main` is itself a publication**: `pages.yml` fires on every push to `main` and redeploys the project site, and the tutorial – which now carries a `#diagram` chunk – is one of the lectures it rebuilds and publishes. So the tutorial chunk, not just a tag, is the thing to decide about before merging. `lectures/diagrams/` is only linted by that job, never built or published.
 
@@ -311,13 +315,13 @@ Consequences worth not breaking:
 - **`align` / `spread` name a set with a master.** Dragging the master should move the group; dragging a follower means either leaving the set (drop the name from the statement) or moving everyone. That is a UI decision, not a format one, but the statement form is what makes either answer a one-line edit.
 - **A tag default is shared.** Resizing one element that draws its width from `default box @dec w 0.48` should write an explicit `w` on that element rather than change the default – "just this one" is the safe reading of a drag. Changing the default has to be a deliberate act on the default's own line.
 
-`lint.js` **imports** the diagram vocabulary from `diagram-core.mjs` rather than mirroring it – thirteen tables that used to have to change in two files in one commit. Tables only, never a function: a function would pull the whole compiler in behind it and the linter would stop being runnable without the Markdown/Shiki stack. It also **captures the diagram body verbatim, ahead of the heading matchers but behind the fence tracker**: a diagram comment starts with `#`, and read as markdown that is a column heading – while a `::: diagram` inside a code fence is a syntax example and must not be compiled. Getting that order wrong made the linter fail any lecture that documented the directive, which is the tutorial the release job publishes. Its `oversized-asset` gate and `collectImageRefs` (for `--optimize-images`) both scan diagram `image` lines too, or the pre-commit gate would let through exactly what `assertInlinable` refuses.
+`lint.js` **imports** the diagram vocabulary from `diagram-core.mjs` rather than mirroring it – twenty-one tables that used to have to change in two files in one commit. Tables only, never a function: a function would pull the whole compiler in behind it and the linter would stop being runnable without the Markdown/Shiki stack. It also **captures the diagram body verbatim, ahead of the heading matchers but behind the fence tracker**: a diagram comment starts with `#`, and read as markdown that is a column heading – while a `::: diagram` inside a code fence is a syntax example and must not be compiled. Getting that order wrong made the linter fail any lecture that documented the directive, which is the tutorial the release job publishes. Its `oversized-asset` gate and `collectImageRefs` (for `--optimize-images`) both scan diagram `image` lines too, or the pre-commit gate would let through exactly what `assertInlinable` refuses.
 
 ### The diagram editor (`editor.mjs`, `editor.css`)
 
-**Development state, like `::: diagram` itself.** The spec, the build plan and a running build log are in `editor.md`; §13 there is the thing to read before picking the work up. What follows is only the part a change to this repo has to not break.
+**Development state, like `::: diagram` itself.** The spec, the build plan and a running build log are in `editor.md`; §15 there is the thing to read before picking the work up. What follows is only the part a change to this repo has to not break.
 
-Ships into the live views whenever the lecture contains a diagram, gated by the `editor:` frontmatter key (`both` / `speaker` / `none`). **Measured in the built page: 295 KB** of compiler, UI and chrome, on top of the 276 KB of fonts. (The plan's estimate of ~150 KB was taken at phase 3, before the UI existed; the asset picker added the last 15 KB.) A lecture with no diagram pays nothing, and each figure additionally carries its own source – a couple of hundred bytes to a couple of kilobytes – plus, only in a view that ships the editor, the markup for any image it holds.
+Ships into the live views whenever the lecture contains a diagram, gated by the `editor:` frontmatter key (`both` / `speaker` / `none`). **Measured in the built page: ~440 KB** of compiler, UI and chrome, on top of the 276 KB of fonts – the difference between building `lectures/diagrams` as it stands and building it with `editor: none`. (The plan's estimate of ~150 KB was taken at phase 3, before the UI existed, and the 295 KB re-measurement before the docking, alignment, step-pane and layout-control slices.) A lecture with no diagram pays nothing, and each figure additionally carries its own source – a couple of hundred bytes to a couple of kilobytes – plus, only in a view that ships the editor, the markup for any image it holds.
 
 - **It edits source text, not a model.** It parses the block, records where every token sits, answers a drag by rewriting the smallest span it can, and re-runs the same compiler the build runs. There is no second representation to drift and no file the editor owns. `createSpanTable()` in `diagram-core.mjs` is the whole interface between a gesture and the source.
 - **The panel reads its controls off the *statement*, not off the kind.** A `bars`, `grid` or `plot` frame is a `box` as far as the layout is concerned, so `dgeKindOpts` keyed on `el.kind` offered it `pad` – a word its statement refuses – and never offered `space`, which it takes. The frame carries `frame: <statement>` for exactly this. The same distinction closed a live trap: `spanOf(id, 'label')` returns the first quoted token, which on a `bars` line is *the values*, so the panel's label field was one keystroke from overwriting a chart's data under a name that gave no warning. A frame now has no label span and no label field.
@@ -399,7 +403,7 @@ Two things worth knowing before writing chunks, both learned the hard way:
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 tag vocabulary, §3 source format + parsing contract, §4 visual language, §7 view architecture. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
-- `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§13, a build log written while building** – what landed, what it cost, and what bit. Read §13 first if you are picking the work up. §14 answers the two questions the plan deliberately left open, from the running prototype.
+- `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan deliberately left open, from the running prototype, and §14 is how a picture gets into a figure.
 - `figure-design.md` – **how to lay out a `::: diagram` so a room reads it**, as instructions rather than principles: ten rules with a wrong/right pair each in real syntax, the tone-to-role table, the four-beat step order, and a checklist to work down before a figure is finished. Written for a person and a language model equally. Read it before authoring figures; the grammar itself is below under *Animated infographics*.
 - `HANDOFF.md` – slice-by-slice build diary in German/English mix. Latest sections describe current state and deliberate non-choices. Update when landing a substantial slice.
 - `README.md` – short public-facing intro.

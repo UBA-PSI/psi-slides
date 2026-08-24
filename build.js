@@ -412,9 +412,8 @@ function scanReferencedImages(src, sourceDir) {
 function assertInlinable(oversized, sourceDir) {
   if (!oversized.length) return;
   const lines = [
-    `${oversized.length} asset(s) exceed the per-file inline cap (${MAX_INLINE_BYTES / 1024 / 1024} MB for images,`,
-    `${MAX_INLINE_VIDEO_BYTES / 1024 / 1024} MB for video), so they would be left as`,
-    `external paths and this output would not be self-contained:`,
+    `${oversized.length} asset(s) exceed the ${MAX_INLINE_BYTES / 1024 / 1024} MB per-image inline cap, so they would be`,
+    `left as external paths and this output would not be self-contained:`,
     '',
   ];
   for (const o of oversized) {

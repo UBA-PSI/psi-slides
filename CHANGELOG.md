@@ -35,7 +35,6 @@ from building the same way is a major version.
   rules with a wrong/right pair each, the tone-to-role table, the four-beat
   step order, and a checklist to work down before a figure is finished.
 
-
 - **`::: diagram` – animated infographics written in the lecture source.**
   A line-oriented DSL for boxes, dots, free text, arrows, auto-fitting
   containers, groups and braces, compiled to inline SVG at build time and
