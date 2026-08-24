@@ -12,7 +12,7 @@ must not be edited in the HTML.
 | | |
 |---|---|
 | `figures-you-write.html` | the page |
-| `figure-rules/source.md` | a psi-slides lecture whose only job is to be compiled: the twenty-three figures the page teaches with, including two that step |
+| `figure-rules/source.md` | a psi-slides lecture whose only job is to be compiled: the thirty figures the page teaches with, including two that step |
 | `refresh-figures.mjs` | rebuilds that lecture and puts every generated region back into the page |
 
 ## What the script owns
@@ -27,17 +27,28 @@ node docs/artifact/refresh-figures.mjs --check   # report drift, write nothing (
 
 It replaces, keyed by markers in the HTML:
 
-- **Twenty-one still figures** &ndash; the six tutorial steps, the wrong/right
-  pairs and the tone row, taken from a `--print-only` build.
-- **Two figures that step** &ndash; drawing, per-beat geometry, the list of beat
-  names under it and its source, taken from an `--audience-only` build, which is
-  the only pass that emits the geometry.
-- **The diagram runtime**, inside `<script id="psi-dg-runtime">`, copied
-  unchanged from the same build. The page steps its figures with the code a
-  projected lecture ships rather than a second implementation that could
-  disagree with it.
-- **Fifteen gallery sources**, read out of `lectures/network-security/source.md`,
-  with the line count shown in each card.
+- **Twenty-eight still figures** &ndash; the six tutorial steps, the fourteen
+  wrong/right drawings, the tone row and the seven advanced specimens, taken
+  from a `--print-only` build.
+- **Twenty-one listings** &ndash; six tutorial steps (with the lines each step
+  adds marked by diffing it against the one before), fourteen wrong/right
+  halves, and seven specimens. Each is the block its drawing was compiled from,
+  so the two cannot disagree.
+- **Two figures that step** &ndash; drawing, per-beat geometry, the list of
+  beat names under it and its listing, from an `--audience-only` build, which
+  is the only pass that emits the geometry.
+- **Fifteen gallery figures**, their fifteen listings and their fifteen beat
+  rails, read out of `lectures/network-security/source.md`. The line count
+  shown in each card comes from the same read.
+- **The diagram runtime**, inside `<script id="psi-dg-runtime">`, and **the
+  compiler's stylesheet**, both copied unchanged from the same build. The page
+  draws and steps with the code a projected lecture ships rather than a second
+  copy that could disagree with it &ndash; and the stylesheet was a hand-made
+  copy once, which is how `.mono` labels went on rendering in the wrong face
+  here for a commit after the rule causing it had been fixed.
+- **The anatomy diagram** at the top, drawn from the code line it annotates.
+  Hand-counted, its brackets were one to four columns too wide and the error
+  accumulated along the line.
 
 Everything else &ndash; prose, layout, CSS, and the short script under the
 runtime that wires up the buttons &ndash; is hand-written and safe to edit.

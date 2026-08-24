@@ -368,6 +368,13 @@ from building the same way is a major version.
 
 ### Fixed
 
+- **A coordinate pair written as a single anchor crashed the build.**
+  `dot m at c.center` was reported correctly by the parser and then laid out
+  anyway, and the compiler died on the null pair with a TypeError. The author
+  saw a stack trace where every other mistake in this language names its line.
+  A pair that failed to parse is placed at the origin now, so the layout
+  finishes and the message gets out.
+
 - **`.muted` and `.dim` were hard to tell apart.** They answer different
   questions - scaffolding versus temporarily out of the way - but a lighter
   grey alone read as "slightly faint" either way. `.muted` is now drawn
