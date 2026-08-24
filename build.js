@@ -28,7 +28,7 @@ import katex from 'katex';
 // and in the browser when the editor re-lays-out a figure after a drag.
 // Imported for the build; its *text* is also read and inlined into the live
 // views, the same way bundledFaces() reads woff2 out of node_modules.
-import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPathD } from './diagram-core.mjs';
+import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPathD, DG_SHAPE_CLASSES } from './diagram-core.mjs';
 
 // KaTeX ships its stylesheet and fonts as plain files next to the module.
 // They are not importable as ESM, so resolve them the CommonJS way.
@@ -336,13 +336,23 @@ function inlineSvg(absPath, { alt = '', title = '', extraClass = '' } = {}) {
 function collectDiagramImageRefs(src) {
   const refs = [];
   let inDiagram = false;
+  let inFence = false;
   for (const line of String(src).split('\n')) {
+    // Fence-aware, like the block matchers in parseLecture and lintDiagram:
+    // a ::: diagram inside a code fence is a syntax example, and collecting
+    // its image lines converted (and with --optimize-images deleted) files
+    // the lecture never actually references.
+    if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; continue; }
+    if (inFence) continue;
     if (!inDiagram) {
       if (/^:::\s+diagram\b/.test(line)) inDiagram = true;
       continue;
     }
     if (/^:::\s*$/.test(line)) { inDiagram = false; continue; }
-    const m = line.trim().match(/^image\s+\S+\s+(\S+)/);
+    // `image <name> <asset>`, and a grid of images – `grid <name> image
+    // <asset> CxR` – which carries its asset one token further along.
+    const m = line.trim().match(/^image\s+\S+\s+(\S+)/)
+      || line.trim().match(/^grid\s+\S+\s+image\s+(\S+)/);
     if (m) refs.push(m[1]);
   }
   return refs;
@@ -1260,13 +1270,23 @@ function dgAspect(absPath) {
 // does, so the two never disagree about where assets live.
 function dgResolveImage(ref) {
   if (!currentSourceDir) return null;
-  if (/^(https?:)?\/\//i.test(ref)) return { abs: null, href: ref, remote: true };
+  // A clip is not a still. resolveFigId searches VIDEO_EXTS after the image
+  // extensions – right for the ![](clip-id) shorthand, wrong here: an SVG
+  // <image> element cannot play video, so the figure built without a word
+  // of complaint and rendered an empty box (with the whole clip inlined as
+  // a dead data: URI when it fit the cap). The compiler turns this flag
+  // into an error that names the working construct.
+  const isVideo = (p) => VIDEO_EXTS.includes(path.extname(p).slice(1).toLowerCase());
+  if (/^(https?:)?\/\//i.test(ref)) {
+    return isVideo(ref) ? { video: true, href: ref } : { abs: null, href: ref, remote: true };
+  }
   const direct = ref.includes('/') || path.extname(ref)
     ? path.join(currentSourceDir, ref) : null;
   let rel = null;
   if (direct && fs.existsSync(direct)) rel = ref;
   else rel = resolveFigId(ref);
   if (!rel) return null;
+  if (isVideo(rel)) return { video: true, href: rel };
   return { abs: path.join(currentSourceDir, rel), href: rel, remote: false };
 }
 
@@ -1609,7 +1629,10 @@ const DG_DUR = 380;
 // nobody would think to keep in step.
 // Keyed by the outline alone; a drawable kind may carry a direction after a
 // colon (\`chevron:up\`), which dgShapeD reads and this lookup must not.
-const DG_SHAPES = { hex: 1, chevron: 1, wedge: 1, cross: 1 };
+// Interpolated from DG_SHAPE_CLASSES rather than spelled out – a fifth
+// outline added to the table would otherwise draw at build time and be
+// unknown to the very runtime that has to move it.
+const DG_SHAPES = ${JSON.stringify(Object.fromEntries([...DG_SHAPE_CLASSES].map(c => [c, 1])))};
 ${dgShapeD.toString()}
 ${dgPathD.toString()}
 ${dgSplineD.toString()}
@@ -1745,6 +1768,86 @@ function dgStep(d, step, instant) {
   d.raf = requestAnimationFrame(tick);
 }
 
+// Swap one diagram for a freshly compiled copy of itself – the DOM half of
+// an applied edit. Shared: the editor calls it after compiling in this
+// window, and the diagram-edit receiver in a view that ships no editor
+// (editor: speaker) calls it with the markup the cockpit sent along. One
+// text, or the two swap paths would drift.
+function dgSwapFigure(oldSvg, html) {
+  const holder = document.createElement('div');
+  holder.innerHTML = html;
+  // Belt and braces for the remote path: the compiler never emits an event
+  // handler, an executable script or a javascript: URL, so anything of the
+  // kind in incoming markup is not a figure – scrub it rather than let it
+  // run. innerHTML does not execute script elements, but an on* attribute
+  // on a parsed element fires the moment it is in the document.
+  holder.querySelectorAll('script:not([type="application/json"])').forEach((s) => s.remove());
+  holder.querySelectorAll('*').forEach((el) => {
+    for (const a of [...el.attributes]) {
+      const n = a.name.toLowerCase();
+      const v = String(a.value || '').trim().toLowerCase();
+      if (n.indexOf('on') === 0 || v.indexOf('javascript:') === 0) el.removeAttribute(a.name);
+    }
+  });
+  const next = holder.querySelector('svg.psi-diagram');
+  const payload = holder.querySelector('script.psi-diagram-frames');
+  if (!next) return null;
+  const live = oldSvg.psiDiagram;
+  if (next.dataset.liveViewbox) {
+    next.setAttribute('viewBox', next.dataset.liveViewbox);
+    const w = Number(next.getAttribute('width'));
+    const r = Number(next.dataset.liveRatio);
+    if (w && r) next.setAttribute('height', String(Math.round(w * r)));
+  }
+  const figure = oldSvg.closest('.figure-diagram');
+  oldSvg.replaceWith(next);
+  // The frames payload is what the step runtime reads. Replace it alongside
+  // the drawing, or a figure that just gained steps has none the runtime can
+  // see, while one that lost them keeps applying geometry from a picture
+  // that no longer exists.
+  const oldPayload = figure ? figure.querySelector('script.psi-diagram-frames') : null;
+  if (payload) {
+    payload.dataset.for = next.id;
+    if (oldPayload) oldPayload.replaceWith(payload);
+    else if (figure) figure.appendChild(payload);
+  } else if (oldPayload) {
+    oldPayload.remove();
+  }
+  let d = null;
+  if (payload) {
+    try {
+      const data = JSON.parse(payload.textContent);
+      d = live || { svg: next, step: 0, raf: 0, cur: null, cache: {},
+        hint: figure ? figure.querySelector('.dg-hint') : null };
+      d.data = data;
+      d.svg = next;
+      d.cache = {};
+      d.cur = null;
+      next.psiDiagram = d;
+      if (!live) DG_LIST.push(d);
+      dgStep(d, Math.min(d.step, data.n - 1), true);
+    } catch (e) { d = null; }
+  } else if (live) {
+    // No steps any more: nothing left to tween, and the static attributes
+    // the emitter wrote are already the finished picture.
+    next.psiDiagram = null;
+  }
+  // The focus card holds a clone, ids and all, and it is what the room is
+  // actually looking at while a figure is zoomed – the very state an edit
+  // is usually made in. dgMirrorIntoFocus can only repaint ids that
+  // survived the edit, so a structural change replaces the clone whole.
+  const card = document.querySelector('#figure-overlay .figure-focus-target');
+  if (card) {
+    const shown = card.querySelector('svg.psi-diagram');
+    if (shown && shown.id === next.id) {
+      const clone = next.cloneNode(true);
+      shown.replaceWith(clone);
+      if (d) dgRenderInto(clone, d, d.step);
+    }
+  }
+  return next;
+}
+
 // Repaint whatever diagram is currently zoomed into the focus card. Cheap and
 // unconditional: one querySelector when nothing is focused.
 function dgMirrorIntoFocus(d, step) {
@@ -1779,7 +1882,15 @@ function initDiagrams() {
     };
     svg.psiDiagram = d;
     DG_LIST.push(d);
-    dgStep(d, 0, true);
+    // A diagram inside an expansion consumes no beats – chunkBeats skips
+    // expansion bodies, or Space would advance a counter while the room
+    // sees nothing move – so nothing ever steps it. Rewinding it to its
+    // opening beat therefore left it half-drawn for good, while print, with
+    // no JavaScript at all, showed the finished picture. Where no beat can
+    // reach, the finished picture is the one to show. Same selector as
+    // chunkBeats, so the two answers cannot disagree.
+    const beatless = svg.closest('.exp-body, .chunk-expansion');
+    dgStep(d, beatless ? d.data.n - 1 : 0, true);
   });
 }
 `;
@@ -2208,6 +2319,14 @@ window.psiWatch = (() => {
     ws.addEventListener('message', e => {
       if (e.data === 'reload') { location.reload(); return; }
       let m; try { m = JSON.parse(e.data); } catch (err) { return; }
+      // The server could not rebuild – a deleted asset, a syntax error made
+      // in a text editor. Surfaced to whoever can show it (the diagram
+      // editor's status line); without this the page sat on the old build in
+      // silence and the next write-back failed with unhelpful advice.
+      if (m && m.type === 'build-failed') {
+        if (window.psiWatchBuildFailed) window.psiWatchBuildFailed(m.why || 'the rebuild failed');
+        return;
+      }
       // Any *-result carrying an id we are waiting on. The patch protocol
       // was the first; the asset ones ride the same pairing rather than
       // growing a second mechanism beside it.
@@ -2537,6 +2656,16 @@ function stripDiagramAssets(html) {
     /<script type="application\/json" class="psi-diagram-assets"[^>]*>[^<]*<\/script>/g, '');
 }
 
+// Print goes further: it ships no JavaScript at all, so the step frames and
+// the editor's source payload are dead weight beside the asset table – no
+// consumer ever reads them there. Measured on lectures/network-security
+// before this existed: 346 KB of a 1.26 MB print file, all of it JSON that
+// nothing would ever parse.
+function stripDiagramPayloads(html) {
+  return stripDiagramAssets(html).replace(
+    /<script type="application\/json" class="psi-diagram-(?:frames|source)"[^>]*>[^<]*<\/script>/g, '');
+}
+
 function renderDocument(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
   const title = lectureTitle(frontmatter);
@@ -2548,9 +2677,9 @@ function renderDocument(lecture, opts = {}) {
   // Title / anon columns render above the TOC (cover page first),
   // named columns render after (body of the document).
   const chunkOpts = { withNotes: !!opts.withNotes };
-  const anonHtml = stripDiagramAssets(columns.filter(c => !c.heading)
+  const anonHtml = stripDiagramPayloads(columns.filter(c => !c.heading)
     .map(c => renderColumn(c, frontmatter, nextNum, chunkOpts)).join('\n'));
-  const namedHtml = stripDiagramAssets(columns.filter(c => c.heading)
+  const namedHtml = stripDiagramPayloads(columns.filter(c => c.heading)
     .map(c => renderColumn(c, frontmatter, nextNum, chunkOpts)).join('\n'));
 
   const titleSuffix = opts.withNotes ? 'print + notes' : 'print';
@@ -3395,9 +3524,14 @@ function editorPayload(frontmatter, columnsHtml, view) {
   // compile at all.
   const base = frontmatter['diagram-defaults'] != null
     ? String(frontmatter['diagram-defaults']) : '';
+  // Only the cockpit of an `editor: speaker` lecture has a peer without a
+  // compiler, and only then does an edit have to travel as compiled markup
+  // as well as source – see the diagram-edit receiver's fallback.
+  const peerNeedsHtml = want === 'speaker' && view === 'speaker';
   return `<style>\n${editorCss()}\n</style>\n`
     + `<script>\n${diagramCoreJs()}\n`
     + `window.PSI_DG_DEFAULTS = ${jsonForScript(base)};\n`
+    + `window.PSI_DG_EDIT_HTML = ${peerNeedsHtml};\n`
     + `${editorJs()}\n</script>`;
 }
 
@@ -5527,7 +5661,16 @@ window.addEventListener('message', (ev) => {
   // cannot mis-target it – the lesson data-fig-id already carries for video.
   // Gated by the freeze flag on the sending side, like any shared state.
   if (m.type === 'diagram-edit') {
+    // The editor's own apply where the view ships one; otherwise the
+    // compiled markup the cockpit sent along. That second path is what makes
+    // editor: speaker honest: the projection carries no compiler, and it
+    // used to drop every edit here in silence while the cockpit said the
+    // room was following.
     if (window.psiApplyDiagramEdit) window.psiApplyDiagramEdit(m);
+    else if (m.html) {
+      const target = document.getElementById(m.id);
+      if (target) dgSwapFigure(target, m.html);
+    }
     return;
   }
   if (m.type === 'embed') { applyRemoteEmbed(m); return; }
@@ -8405,6 +8548,10 @@ function toggleFreeze() {
   // land on would look like it did nothing at all.
   if (!frozen && !isApplyingRemote) {
     sendToPeer({ type: 'state', source: VIEW, payload: snapshot() });
+    // Edits made while frozen were held back, not dropped: the editor kept
+    // the latest source per figure, and thawing is when the room gets the
+    // finished picture – the exact promise the freeze workflow makes.
+    if (window.psiEditorThaw) window.psiEditorThaw();
   }
   flashMode(frozen
     ? 'projection frozen · the room holds this slide'
@@ -9597,8 +9744,25 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
     fs.rmSync(ref.absPath, { force: true });
     for (const explicit of ref.explicitRefs) {
       const replacement = explicit.replace(/\.[^.]+$/, '.webp');
-      sourceEdits.push({ from: explicit, to: replacement });
-      src = src.split(`](${explicit})`).join(`](${replacement})`);
+      const beforeSrc = src;
+      // Both spellings of a reference – the markdown `](path)` form and the
+      // bare token a ::: diagram `image` statement carries. Rewriting only
+      // the markdown form deleted an original a diagram still pointed at
+      // and then reported the rewrite as done: the next build failed on a
+      // file this very command had removed. Fence-aware, line by line,
+      // because a path inside a code fence is documentation, not a
+      // reference – the same rule the collector follows.
+      const esc = explicit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      let fence = false;
+      src = src.split('\n').map((line) => {
+        if (/^\s*(```|~~~)/.test(line)) { fence = !fence; return line; }
+        if (fence) return line;
+        return line.split(`](${explicit})`).join(`](${replacement})`)
+          .replace(new RegExp(`(^|[\\s(])${esc}(?=[\\s)]|$)`, 'g'),
+            (m0, pre) => pre + replacement);
+      }).join('\n');
+      if (src !== beforeSrc) sourceEdits.push({ from: explicit, to: replacement });
+      else console.log(`  [warn] ${explicit} was converted but no reference in ${path.basename(absIn)} matched – check the file by hand.`);
     }
   }
 
@@ -9640,7 +9804,10 @@ function assertStylesheetsWellFormed() {
   // editor.css is a real file rather than a constant, and it goes through
   // this check for exactly the same reason the constants do: an unterminated
   // comment silently drops every rule to the next one.
-  const sheets = { AUDIENCE_CSS, SPEAKER_CSS, PRINT_CSS, 'editor.css': editorCss() };
+  // DIAGRAM_CSS ships into all four views and was the one inlined
+  // stylesheet this guard did not cover – the exact gap the guard exists
+  // to close.
+  const sheets = { AUDIENCE_CSS, SPEAKER_CSS, PRINT_CSS, DIAGRAM_CSS, 'editor.css': editorCss() };
   for (const [name, css] of Object.entries(sheets)) {
     if (typeof css !== 'string') continue;
     const opens = (css.match(/\/\*/g) || []).length;
@@ -9848,13 +10015,22 @@ async function runWatch(absIn, only, baseOpts = {}) {
     }
   };
 
+  // The last rebuild's failure, if any. A failed rebuild used to be visible
+  // only in the terminal: the open pages kept the old build silently, and
+  // the next write-back was refused with "reload the page and try again" –
+  // advice that cannot help while the build is broken. The pages are told,
+  // and the refusal below names the real problem.
+  let lastBuildError = null;
   const rebuild = (label) => {
     try {
       const { written, shape } = buildOnce(absIn, only, opts);
+      lastBuildError = null;
       console.log(`[${label}] ${written.join(', ')} (${shape})`);
       broadcast('reload');
     } catch (err) {
+      lastBuildError = err.message;
       console.error(`[${label}] build failed: ${err.message}`);
+      broadcast(JSON.stringify({ type: 'build-failed', why: err.message }));
     }
   };
 
@@ -9952,7 +10128,9 @@ async function runWatch(absIn, only, baseOpts = {}) {
       try { src = fs.readFileSync(absIn, 'utf8'); } catch (e) { return reply(false, 'cannot read the source: ' + e.message); }
       const there = src.slice(range[0], range[1]);
       if (there !== hit.body) {
-        return reply(false, 'source.md has changed since this build – reload the page and try again');
+        return reply(false, lastBuildError
+          ? `the last rebuild failed (${lastBuildError}) – fix that first; reloading alone cannot help`
+          : 'source.md has changed since this build – reload the page and try again');
       }
       // And the bytes the *page* believes are there. The check above only
       // proves the file still matches the last build; this one is what makes
