@@ -348,7 +348,7 @@ edge b -> c "recoded"
 edge b -> x {.dashed}
 :::
 
-`box`, `dot`, `text`, `image`, `edge`, `brace`, `container`, `align`, `spread`, `default`, `step` – elf Anweisungen, mehr nicht. Ein `text` bekommt mit `-> x` eine kurze Linie zu dem, worüber er spricht.
+`box`, `dot`, `text`, `image`, `edge`, `brace`, `container`, `bars`, `grid`, `plot`, `align`, `spread`, `default`, `step` – vierzehn Anweisungen, mehr nicht. Ein `text` bekommt mit `-> x` eine kurze Linie zu dem, worüber er spricht.
 
 ## figure: Alignment {.wide #alignment}
 

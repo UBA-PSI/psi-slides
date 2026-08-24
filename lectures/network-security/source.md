@@ -649,7 +649,7 @@ step real
   emph d2
 :::
 
-**Vertrauen hat einen Anfang, und der liegt auf dem eigenen Rechner.** Browser und Betriebssystem bringen einen Speicher mit Wurzelzertifikaten mit; alles Weitere hängt über Signaturen daran. Jedes Glied der Kette signiert das nächste, bis unten das Zertifikat des Servers steht. Rechts dieselbe Kette, wie ein Zertifikatsbetrachter sie für `github.com` auflistet – zwei Zwischenstufen sind dort die Regel, nicht die Ausnahme.
+**Vertrauen hat einen Anfang, und der liegt auf dem eigenen Rechner.** Browser und Betriebssystem bringen einen Speicher mit Wurzelzertifikaten mit; alles Weitere hängt über Signaturen daran. Jedes Glied der Kette signiert das nächste, bis unten das Zertifikat des Servers steht. Rechts dieselbe Kette, wie ein Zertifikatsbetrachter sie für `github.com` auflistet – Zwischenstufen sind die Regel, nicht die Ausnahme: hier ist es eine, im Schema links sind es zwei.
 
 ## figure: Certificates are stored in a X.509 (v3) data structure. {.standard #ns-a45}
 
@@ -1374,8 +1374,10 @@ step rest
 ::: diagram {unit=150x58}
 # Die Zeichenkette unter den Säulen ist wörtlich von der Folie, gesperrt
 # gesetzt: "t / p r e n . ; l m o b". Der zweite String wird an Leerzeichen
-# geteilt, also eine Beschriftung je Säule.
-bars obs "20,17,16,12,11,11,10,9,9,8,8,8" "t / p r e n . ; l m o b" at 0,0 w 3.1 h 0.85 {.tone-3 .bare}
+# geteilt, also eine Beschriftung je Säule. Die Werte sind so gewählt, dass
+# die Bins auf #ns-b57 – dasselbe Paket, dieselben Säulen – exakt die dort
+# wörtlich übernommenen Zählungen 43 / 36 / 21 ergeben.
+bars obs "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 3.1 h 0.85 {.tone-3 .bare}
 
 text hcmp "Comparison with normal behavior" below obs gap 0.62 align left {.left}
 
@@ -1449,7 +1451,12 @@ step weights
 ## figure: Detection at Runtime {.full #ns-b57}
 
 ::: diagram {unit=150x56}
-bars g "20,19,17,12,11,10,9,9,8,7,6,5" "t / p r e n . ; l m o b" at 0,0 w 2.5 h 0.9 {.tone-3 .bare}
+# Dieselben Werte wie die beobachtete Verteilung auf #ns-b55 – es ist
+# dasselbe Paket – und die Bins summieren exakt auf die Zahlen der Folie:
+# 20+12+11 = 43, 10+9+9+8 = 36, 8+7+6 = 21. Vorher standen hier die Werte
+# der *Trainingsverteilung* von #ns-b56, womit die anomale Verteilung
+# deckungsgleich mit der war, von der sie abweichen soll.
+bars g "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 2.5 h 0.9 {.tone-3 .bare}
 text cap "Anomalous payload\ndistribution" above g gap 0.16 align right {.right}
 
 brace b1 over g-0,g-1,g-2 bottom "Bin 1" pad 0.45 {.muted @bins}
@@ -1530,7 +1537,7 @@ step threshold
   emph thr
 :::
 
-**Die vier Felder sind kein Vokabular, sondern eine Auszählung.** Zwölf beschriftete Pakete laufen durch den Sensor: von den vier Angriffen erkennt er drei (TP) und verpasst einen (FN), von den sechs harmlosen Paketen meldet er zwei fälschlich (FP). Daraus werden die beiden Kennzahlen, die den Rest des Kapitels tragen – TP rate 0.75 und FP rate 0.33. Der Schwellwert $t$ ist der Strich zwischen den Spalten: schiebt man ihn, wandern Pakete von rechts nach links, und beide Raten steigen zugleich.
+**Die vier Felder sind kein Vokabular, sondern eine Auszählung.** Zehn beschriftete Pakete laufen durch den Sensor: von den vier Angriffen erkennt er drei (TP) und verpasst einen (FN), von den sechs harmlosen Paketen meldet er zwei fälschlich (FP). Daraus werden die beiden Kennzahlen, die den Rest des Kapitels tragen – TP rate 0.75 und FP rate 0.33. Der Schwellwert $t$ ist der Strich zwischen den Spalten: schiebt man ihn, wandern Pakete von rechts nach links, und beide Raten steigen zugleich.
 
 ## figure: Receiver operating characteristic (ROC) curves {.full #ns-b60}
 
