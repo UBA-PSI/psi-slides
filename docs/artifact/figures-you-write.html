@@ -541,14 +541,14 @@ footer .paths b { color: var(--ink); font-weight: 500; }
   <div class="anatomy">
     <h3>How a line is put together</h3>
     <p class="measure">Every statement has the same shape. Not every slot is filled every time &ndash; most lines use three or four of them &ndash; but they always come in this order.</p>
-    <pre class="anat"><span class="kw">box</span>   sw   <span class="cl">"Switch"</span>   <span class="kw">right of</span> a <span class="kw">gap</span> 0.4   <span class="kw">w</span> 1.2   <span class="cl">{.tone-1 #main @net}</span>
-<span class="an">└┬┘   ┬    └──┬───┘   └───────┬────────┘   └─┬─┘   └────────┬─────────┘
- │    │       │               │              │              └── tail: classes, an id, tags
- │    │       │               │              └── options: size, padding, routing
- │    │       │               └── placement: where it goes, relative to something else
- │    │       └── label: what the reader sees. Optional, and "" is a legal empty one
- │    └── name: how later lines refer to this element. Never drawn
- └── statement: what kind of thing this is</span></pre>
+    <pre class="anat"> <span class="kw">box</span>   sw   <span class="cl">"Switch"</span>   <span class="kw">right of</span> a <span class="kw">gap</span> 0.4   <span class="kw">w</span> 1.2   <span class="cl">{.tone-1 #main @net}</span>
+<span class="an">└─┬─┘ └┬─┘ └───┬────┘ └────────┬─────────┘ └──┬──┘ └─────────┬──────────┘
+  │    │       │               │              │              └── tail: classes, an id, tags
+  │    │       │               │              └── options: size, padding, routing
+  │    │       │               └── placement: where it goes, relative to something else
+  │    │       └── label: what the reader sees. Optional, and "" is a legal empty one
+  │    └── name: how later lines refer to this element. Never drawn
+  └── statement: what kind of thing this is</span></pre>
     <p class="measure">Placement is the slot that makes the rest work. Only the first element in a figure gives a position outright; everything after it is placed against something already there, so the figure is a chain of relations rather than a list of coordinates. That is what lets a drawing survive being rearranged, and it is also why an arrangement that refers back to itself is reported as an error on the line that caused it.</p>
 
     <h4 class="quirk-head">Eight things the shape above does not tell you</h4>
@@ -2512,7 +2512,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 <span class="kw">text</span> tlbl <span class="cl">"t"</span> <span class="kw">at</span> a1.cx+0.37,a1.top-0.45 <span class="kw">pad</span> 0.12 <span class="cl">{.paper .hand @thr}</span>
 <span class="kw">edge</span> tlbl.cx,tlbl.bottom -- tlbl.cx,b1.bottom+0.7 <span class="cl">{#thr .thick @thr}</span>
 
-<span class="cm"># Die 2x2-Matrix. Die Angriffszeile trägt die Akzentfarbe, die Normalzeile</span>
+<span class="cm"># Die 2×2-Matrix. Die Angriffszeile trägt die Akzentfarbe, die Normalzeile</span>
 <span class="cm"># den Ton für legitimen Verkehr – dieselbe Zuordnung wie überall sonst.</span>
 <span class="cm"># Die Spalten stehen wie die Achse darüber: links von t kein Alarm, rechts</span>
 <span class="cm"># Alarm. Deshalb sitzt FN links neben TP und nicht umgekehrt.</span>
@@ -2534,7 +2534,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 <span class="kw">text</span> rates <span class="cl">"TP rate: 0.75 / FP rate: 0.33"</span> <span class="kw">at</span> tp.right+2.1,fn.bottom-0.25 <span class="cl">{.bold @thr}</span>
 
 <span class="cm"># Der Merksatz gehört zum letzten Beat und damit auch auf das Handout: der</span>
-<span class="cm"># Ausdruck, den die Folie danach als ROC-Kurve zeichnet.</span>
+<span class="cm"># Zusammenhang, den die Folie danach als ROC-Kurve zeichnet.</span>
 <span class="kw">text</span> tnote <span class="cl">"moving t moves both rates"</span> <span class="kw">at</span> rates.cx,rates.bottom+0.6 <span class="cl">{.hand}</span>
 
 <span class="st">step</span> threshold
