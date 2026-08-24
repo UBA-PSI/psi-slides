@@ -16,7 +16,7 @@
  * failures, which is the right split: a check that can run without a browser
  * should.
  */
-import { buildLecture, serve, openDeck, editorHelpers, createReport, ROOT } from './harness.mjs';
+import { buildLecture, serve, openDeck, closeBrowser, editorHelpers, createReport, ROOT } from './harness.mjs';
 
 const SPECS = [
   './nav.mjs',
@@ -69,10 +69,11 @@ for (const spec of specs) {
     crashed++;
     console.log('  ✗ spec threw: ' + (e && e.message ? e.message : e));
   } finally {
-    await deck.browser.close();
+    await deck.close();
   }
 }
 
+await closeBrowser();
 for (const { server } of servers.values()) server.close();
 
 const failed = report.failures.length + crashed;

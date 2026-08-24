@@ -116,15 +116,26 @@ export function createReport() {
 }
 
 // ── driving a built deck ────────────────────────────────────────────
+// One Chromium for the whole run. Launching cost ~1.5s per spec and the
+// suite pays it fifteen times over; a browser context gives each spec the
+// same isolation (fresh localStorage, fresh windows) for a few milliseconds.
+let sharedBrowser = null;
+export async function closeBrowser() {
+  if (sharedBrowser) { const b = sharedBrowser; sharedBrowser = null; await b.close(); }
+}
+
 export async function openDeck(port, view = 'audience', viewport = { width: 1440, height: 900 }) {
-  const browser = await chromium.launch({ executablePath: findChrome(), headless: true });
-  const page = await browser.newPage({ viewport });
+  sharedBrowser ??= await chromium.launch({ executablePath: findChrome(), headless: true });
+  const context = await sharedBrowser.newContext({ viewport });
+  const page = await context.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto(`http://127.0.0.1:${port}/${view}.html`, { waitUntil: 'load' });
   await page.waitForTimeout(700);
-  return { browser, page, errors, ...deckHelpers(page) };
+  // `close` shuts this spec's context; the browser itself lives until
+  // closeBrowser() at the end of the run.
+  return { page, errors, close: () => context.close(), ...deckHelpers(page) };
 }
 
 function deckHelpers(page) {
