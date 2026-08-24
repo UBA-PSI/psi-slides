@@ -278,3 +278,50 @@ step interpose
   move px to between cl,sv
   emph px
 :::
+
+# Beyond the basics
+
+## figure: sp1 outlines {.full #sp1}
+
+::: diagram {unit=150x52}
+box a "SYN seq=c"       at 0,0 {.chevron .tone-3}
+box b "SYN+ACK ack=c+1" below a point left {.chevron}
+box c "IDS"             right of a {.hex .tone-1}
+box d ""                below c {.wedge .tone-4}
+box e ""                right of d point up {.wedge}
+box f ""                right of e {.cross .accent}
+:::
+
+## figure: sp2 a turned label {.full #sp2}
+
+::: diagram {unit=150x52}
+box  fw "FIREWALL" at 0,0 h 1.5 {.tone-4 .turn}
+box  sw "SWITCH"   right of fw gap 0.7
+edge fw -> sw.left
+text ax "True Positive Rate" left of fw {.turn}
+:::
+
+## figure: sp3 a chart that is still boxes {.full #sp3}
+
+::: diagram {unit=150x52}
+bars f "20,19,17,12,11,10,9,9,8,7,6,5" ". i e 0 l o 1 / a 3 5 M" at 0,0 w 2.2 h 0.9 {.tone-3 .bare}
+brace b1 over f-0,f-1,f-2 bottom "Bin 1"
+brace b2 over f-3,f-4,f-5,f-6,f-7 bottom "Bin 2"
+:::
+
+## figure: sp4 a frame and a curve through its points {.full #sp4}
+
+::: diagram {unit=150x52}
+plot roc "False positive rate" "True positive rate" at 0,0 w 1.9 h 1.5 x 0,1 y 0,1 step 0.2
+edge roc@0,roc@0 -> roc@1,roc@1 {.muted .dashed}
+edge roc@0,roc@0 -> roc@1,roc@1 via roc@0.03,roc@0.45 roc@0.1,roc@0.72 roc@0.3,roc@0.9 {.smooth .accent}
+dot  m1 at roc@0.1,roc@0.72 {.accent}
+box  m2 "" at roc@0.35,roc@0.95 {.cross .tone-3}
+:::
+
+## figure: sp5 one drawing, however often it appears {.full #sp5}
+
+::: diagram {unit=150x52}
+grid g image face-ok 8x3 at 0,0 cell 0.26 space 0.09
+text n "one file, twenty-four times" right of g
+:::

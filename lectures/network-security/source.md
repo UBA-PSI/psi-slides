@@ -1677,10 +1677,20 @@ image lego face-ok below legb gap 0.35 same as legb
 text tlego "test negative (you feel safe)" right of lego gap 0.2 {.left}
 text ask "Should you be?" below tlego gap 0.55 align left {.hand @ask}
 
-step positives
-  calm @wellneg
+# Die Beats bauen die Argumentation auf, statt sie wegzudimmen. Vorher hiess
+# der erste "positives" und liess den einen uebersehenen Kranken hell stehen,
+# und der zweite hiess "alarms" und loeschte die Krankenzeile ganz - am Ende
+# leuchteten nur die *falschen* Alarme, also genau das Gegenteil des Namens.
+step detected
+  emph @tp
+  calm @fn, @wellneg, @fpos
+step flagged
+  emph @fpos
+  calm @tp
 step alarms
-  calm @tp, @fn
+  emph @tp, @fpos
+  calm @fn, @wellneg
+  label rates "TP rate: 87.5% FP rate: 12.5%\nactually sick: 8.3%\n18 alarms, 7 of them real: 39%"
 step worried
   show @ask
 :::

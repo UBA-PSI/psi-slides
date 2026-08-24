@@ -46,8 +46,13 @@ const CHECK = process.argv.includes('--check');
 // The opening section builds one figure a line at a time, so its chunks are
 // cumulative: each is the previous one plus what that step introduces.
 const BASICS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'];
+// The advanced specimens. Their listings were written by hand beside compiled
+// drawings until one of them lost the two lines that draw a marker and a point
+// visible in its own figure.
+const SPECS = ['sp1', 'sp2', 'sp3', 'sp4', 'sp5'];
 const STILLS = [
   ...BASICS,
+  ...SPECS,
   'r1w', 'r1r', 'r2w', 'r2r', 'r3w', 'r3r',
   'r6aw', 'r6ar', 'r6bw', 'r6br', 'r7w', 'r7r', 'r8w', 'r8r',
   'tones',
@@ -187,7 +192,7 @@ const lectureMd = fs.readFileSync(LECTURE, 'utf8');
 // Counting columns by hand put every bracket one to four characters too wide,
 // and the error accumulated along the line, so the last one sat four columns
 // right of the token it pointed at. Generated, it cannot.
-const ANAT_CODE = ' box   sw   "Switch"   right of a gap 0.4   w 1.2   {.tone-1 #main @net}';
+const ANAT_CODE = 'box   sw   "Switch"   right of a gap 0.4   w 1.2   {.tone-1 #main @net}';
 const ANAT_GROUPS = [
   ['box', 'statement: what kind of thing this is'],
   ['sw', 'name: how later lines refer to this element. Never drawn'],
@@ -209,31 +214,28 @@ function anatomy() {
     while (row.length < col) row.push(' ');
     for (let i = 0; i < str.length; i++) row[col + i] = str[i];
   };
-  const brace = [];
-  for (const sp of spans) {
-    // A bracket reaches one column past its group at each end. The corner
-    // glyphs draw their ink in half a cell - the lower-left corner in the
-    // right half of its cell, the lower-right in the left half - so a bracket
-    // laid exactly on the group's columns paints half a character narrow and
-    // half a character right of it. Columns that measure correct, and an
-    // alignment that reads wrong: this is why the code line is indented.
-    const a = sp.a - 1;
-    const b = sp.b + 1;
-    const w = b - a + 1;
-    if (w < 3) put(brace, sp.tick, '\u252c');
-    else {
-      put(brace, a, '\u2514' + '\u2500'.repeat(w - 2) + '\u2518');
-      put(brace, sp.tick, '\u252c');
-    }
-  }
-  // Deepest first, so no leader crosses a label that is not its own.
+
+  // ASCII only, and that is the whole point. The box-drawing characters this
+  // used to be made of are not in the mono face - measured at 7.129px against
+  // its own 7.105 - so they arrive from whatever fallback the reader's machine
+  // picks, and the drift depends on the machine. It measured within a pixel
+  // here and ran tens of pixels out on the author's screen. Underscore, pipe,
+  // hyphen and apostrophe are in every mono face there is.
+  const rule = [];
+  for (const sp of spans) put(rule, sp.a, '_'.repeat(sp.b - sp.a + 1));
+
   const order = [...spans].reverse();
   const rows = order.map((sp, i) => {
     const row = [];
-    for (const t of order.slice(i + 1)) put(row, t.tick, '\u2502');
-    put(row, sp.tick, '\u2514\u2500\u2500 ' + sp.label);
+    for (const t of order.slice(i + 1)) put(row, t.tick, '|');
+    put(row, sp.tick, "'-- " + sp.label);
     return row.join('').replace(/\s+$/, '');
   });
+  // one row of bare stems between the rule and the first label, so the rule
+  // and the leaders do not touch
+  const stems = [];
+  for (const sp of spans) put(stems, sp.tick, '|');
+
   const esc = (t) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   const code = esc(ANAT_CODE)
     .replace('box', '<span class="kw">box</span>')
@@ -242,16 +244,22 @@ function anatomy() {
     .replace(' gap ', ' <span class="kw">gap</span> ')
     .replace('w 1.2', '<span class="kw">w</span> 1.2')
     .replace('{.tone-1 #main @net}', '<span class="cl">{.tone-1 #main @net}</span>');
-  // The bracket row must sit under its own tokens, and that is checkable.
-  const plain = brace.join('').replace(/\s+$/, '');
+
+  const ruleStr = rule.join('').replace(/\s+$/, '');
   for (const sp of spans) {
-    const seg = plain.slice(sp.a - 1, sp.b + 2);
-    const w = sp.b - sp.a + 3;
-    const ok = w < 3 ? seg.indexOf('\u252c') >= 0
-      : seg[0] === '\u2514' && seg[seg.length - 1] === '\u2518' && seg.indexOf('\u252c') >= 0;
-    if (!ok) throw new Error('anatomy: bracket for "' + ANAT_CODE.slice(sp.a, sp.b + 1) + '" is misaligned');
+    const seg = ruleStr.slice(sp.a, sp.b + 1);
+    if (seg !== '_'.repeat(sp.b - sp.a + 1)) {
+      throw new Error('anatomy: rule under "' + ANAT_CODE.slice(sp.a, sp.b + 1) + '" is wrong');
+    }
+    if (ruleStr[sp.a - 1] === '_' || ruleStr[sp.b + 1] === '_') {
+      throw new Error('anatomy: rule under "' + ANAT_CODE.slice(sp.a, sp.b + 1) + '" runs into its neighbour');
+    }
   }
-  return code + '\n<span class="an">' + esc(plain) + '\n' + rows.map(esc).join('\n') + '</span>';
+  if (/[^\x20-\x7e]/.test(ruleStr + stems.join('') + rows.join(''))) {
+    throw new Error('anatomy: the drawing must be ASCII, or it will not stay aligned');
+  }
+  return code + '\n<span class="an">' + esc(ruleStr) + '\n'
+    + esc(stems.join('').replace(/\s+$/, '')) + '\n' + rows.map(esc).join('\n') + '</span>';
 }
 page = replaceBetween(page, '<pre class="anat">', '</pre>', anatomy(), 'anatomy diagram');
 say('  anatomy diagram drawn from its own code line');
@@ -310,6 +318,13 @@ for (const { chunk, prefix } of DEMOS) {
 
   say('  ' + chunk + ': ' + data.n + ' beats [' + data.names.join(', ') + '], rail and source in step');
 }
+
+for (const id of SPECS) {
+  page = replaceBetween(page, '<pre data-specsrc="' + id + '">', '</pre><!--/specsrc-->',
+    hl(diagramBlock(lectureMd, id).split('\n').filter((l) => !/^\s*#/.test(l) && !l.startsWith(':::')).join('\n')),
+    'specimen source ' + id);
+}
+say('  ' + SPECS.length + ' advanced listings refreshed from the lecture');
 
 // ── the gallery: the figures themselves, then their source ───────────────
 // These were screenshots for a while, which meant they showed whatever the
