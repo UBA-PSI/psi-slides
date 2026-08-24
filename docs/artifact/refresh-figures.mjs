@@ -73,7 +73,11 @@ const STEP_OPS = /^(\s*)(step|show|hide|move|emph|calm|style|label)\b/;
 
 function hl(src) {
   const held = [];
-  const park = (s) => ' ' + (held.push(s) - 1) + ' ';
+  // The placeholder has to be something the source cannot contain. It was
+  // ' N ' - a space, an index, a space - which `gap 0 same as tp` matches
+  // exactly, so every listing with a bare number in it had a span from
+  // somewhere else spliced into the middle of a word.
+  const park = (s) => '\u0000' + (held.push(s) - 1) + '\u0000';
   return src.split('\n').map((line) => {
     const esc = line.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
     if (/^\s*#/.test(line)) return '<span class="cm">' + esc + '</span>';
@@ -84,7 +88,7 @@ function hl(src) {
     // weight rather than the keyword colour every placement word carries
     t = t.replace(STEP_OPS, (m, sp2, op) => sp2 + '<span class="st">' + op + '</span>');
     t = t.replace(KW, (m) => '<span class="kw">' + m + '</span>');
-    return t.replace(/ (\d+) /g, (_, i) => held[+i]);
+    return t.replace(/\u0000(\d+)\u0000/g, (_, i) => held[+i]);
   }).join('\n');
 }
 
@@ -230,19 +234,45 @@ for (const { chunk, prefix } of DEMOS) {
 // could not reach them, and one did not: `.mono` labels went on rendering in
 // the sans face in the gallery long after the rule was corrected. They are
 // compiled figures now, so they follow this page's theme and cannot go stale.
-build('--print-only', NETSEC);
-const netsecHtml = fs.readFileSync(path.join(ROOT, 'lectures/network-security/print.html'), 'utf8');
+// The live build, not the print one: it is the only pass that emits the
+// per-beat geometry, and its static attributes are still the print state, so
+// a card that is never opened shows the finished picture exactly as before.
+build('--audience-only', NETSEC);
+const netsecHtml = fs.readFileSync(path.join(ROOT, 'lectures/network-security/audience.html'), 'utf8');
 const netsec = fs.readFileSync(NETSEC, 'utf8');
 const slugs = [...page.matchAll(/<pre data-cardsrc="([a-z0-9-]+)">/g)].map((m) => m[1]);
 
 let gal = 0;
+let stepped = 0;
 for (const slug of slugs) {
-  const { svg } = svgFor(netsecHtml, slug, 'gal' + slug.replace(/-/g, ''));
+  const pre = 'gal' + slug.replace(/-/g, '');
+  const { svg, old } = svgFor(netsecHtml, slug, pre);
+  let payload = payloadFor(netsecHtml, old, pre) || '';
+  let names = [];
+  if (payload) {
+    const data = JSON.parse(payload.slice(payload.indexOf('>') + 1, payload.lastIndexOf('</script>')));
+    names = data.names || [];
+    // A different class from the one initDiagrams() looks for. These figures
+    // must stay at the last beat until a reader opens the card: registering
+    // them at load would swap in the viewBox that holds every beat and rewind
+    // them to the first, so fifteen finished pictures would become fifteen
+    // half-drawn ones for no reason the reader asked for.
+    payload = payload.replace('class="psi-diagram-frames"', 'class="psi-card-frames"');
+    stepped++;
+  }
   page = replaceBetween(page, '<div class="shot" data-shot="' + slug + '">', '</div><!--/shot-->',
-    svg, 'gallery figure ' + slug);
+    svg + payload, 'gallery figure ' + slug);
+
+  const bar = names.length
+    ? ['opening', ...names].map((nm, i) =>
+        '\n          <li><button type="button">' + (i === 0 ? '' : '<b>' + i + '</b> ')
+        + nm.replace(/[&<>]/g, '') + '</button></li>').join('')
+    : '';
+  page = replaceBetween(page, '<ol class="rail" data-cardrail="' + slug + '">', '</ol><!--/cardrail-->',
+    bar + '\n        ', 'card rail ' + slug);
   gal++;
 }
-say('  ' + gal + ' gallery figures compiled from lectures/network-security');
+say('  ' + gal + ' gallery figures compiled, ' + stepped + ' of them with beats');
 
 for (const slug of slugs) {
   const block = diagramBlock(netsec, slug);
