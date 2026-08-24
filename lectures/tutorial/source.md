@@ -454,6 +454,15 @@ step blame
   emph leak, log
 :::
 
+**Every line has the same six slots, and they always come in this order** – most lines fill three or four of them:
+
+```text
+box   mix   "Mix"   right of src gap 0.6   w 1.2    {.tone-2 @crypto}
+kind  name  label   placement              options  tail
+```
+
+**Inside the tail, three prefixes answer three questions** – `.tone-2` is a class (how it looks), `@crypto` a tag (which set it belongs to), and `#leak`, as on the `edge` line above, a name for the statements that have no name slot of their own. The name is how later lines refer to the element and is never drawn; the label is what the room reads, and `""` is a legal empty one.
+
 **Placement is a grid cell or a relation to a neighbour** – `at 2,1`, or `right of mix gap 0.6`, or `below src gap 0 align left` for boxes that touch. The first element sits at the origin so a simple diagram needs no coordinates at all. There is no automatic layout, on purpose: where things go is usually part of what the picture is saying.
 
 **A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`, `via iv.cx,x0.cy`. Every slot that takes an `X,Y` pair takes that form, so a figure survives a change above it instead of needing three numbers read off a screen. Element names are letters, digits, `_` and `-`, because `mix.cx` has to be readable as one thing; a comment line starts with `#`.
@@ -469,9 +478,7 @@ step blame
 ::: expand The rest of the vocabulary
 `dot` is a circle for junctions and glyphs. `container … over a,b,c` draws a box that fits itself around its members and re-fits when they move; `brace … over a,b right "Label"` is a bracket spanning a subset.
 
-An element also carries **tags**: `{#mix .tone-1 @crypto}`. Three prefixes, three questions – `#` is identity, `.` is appearance, `@` is membership – and a tag can be written wherever a name can, so `show @crypto` in a step covers every element carrying it. Membership sits on the element's own line, so adding one to a set is a local edit.
-
-`align y middle a, b, c` lines up one coordinate; the axis comes first because `center` and `middle` are near-synonyms, and picking the wrong one is legal, silent, and moves a whole block sideways. `spread x a, …, z` gives equal spacing between centres. Both matter more than they sound: two columns built as separate `below` chains drift apart the moment their captions differ in height, and a line between two drifted boxes runs a degree off the axis and reads as a mistake.
+A **tag** can be written wherever a name can, so `show @crypto` in a step covers every element carrying it. Membership sits on the element's own line, which makes adding one to a set a local edit rather than a trip to a list somewhere else in the file.
 
 Placement also takes `between a,b` – the point on the line joining two elements, which is what a separator glyph or a note beside a connector actually wants – and any placement accepts a trailing `offset dx,dy`. An anchor can carry a fraction: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side instead of on top of each other.
 
@@ -479,7 +486,7 @@ Against repetition there are two more: `default box {.tone-4} w 1.15` sets the b
 
 And against measuring: a coordinate may be another element's coordinate. `edge iv -> x0 via iv.cx,x0.cy` means *straight down from the IV, then across at the height of the XOR*, and it stays true when anything above it moves. Adding `+0.2` or `-0.2` (`mix.cx+0.2`) shifts it a little without giving up the relation.
 
-Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run and `~muted~` greys it. Classes come from a closed list – four `tone-*` fills mixed from the page's own inks plus `clear` for a see-through one, and `dashed`, `dotted`, `thick`, `round`, `mono`, `serif`, `hand`, `muted` and a few more – and `lint.js` rejects anything else, so a typo is a build error rather than an unstyled box. **Every class occupies a slot**, so `{.tone-1}` on one box displaces a `default box {.tone-4}` rather than stacking with it, and two members of one slot on one element is a lint warning.
+Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run and `~muted~` greys it.
 
 **Click the figure, and the button in the corner of the card opens a graphical editor for it.** Drag a box and the editor rewrites one number – the `gap`, the fraction along a line, the nudge on a borrowed coordinate – and never the relation that number sits in, so what you wrote survives what you dragged. It also draws the relations while you work, which is the part a finished diagram cannot show you: a box written as `gap 0.55` from its neighbour looks exactly like a box that merely happens to sit 0.55 away. `editor: none` in the frontmatter ships the lecture without it.
 
@@ -487,6 +494,41 @@ Two more options work from the box inwards rather than from the label outwards. 
 :::
 
 > note: Print shows every element the diagram ever displays, at its last position, with nothing emphasised and nothing greyed out – the handout is the finished picture, the same rule reveal segments follow.
+
+## example: Looks, and lining things up | the class slots, `align` and `spread` {.full #diagram-classes}
+
+**How an element looks comes from a closed list of classes, and ten groups of them are slots that hold one class at a time.** So `{.tone-1}` on a box *displaces* a `default box {.tone-4}` rather than stacking with it – which is what anyone expects, and not what a stylesheet does on its own.
+
+- **fill** – `.tone-1` `.tone-2` `.tone-3` `.tone-4`, `.clear` for none, `.paper` for the page colour
+- **ink** – `.accent`, `.muted`
+- **stroke pattern** – `.dashed`, `.dotted`
+- **stroke weight** – `.thick`, `.bare` for no outline at all
+- **outline** – `.round`, `.sharp`, and `.hex` `.chevron` `.wedge` `.cross`
+- **size** – `.small`, `.large`
+- **family** – `.mono`, `.serif`, `.hand`
+- **fitting** – `.fit` sizes the type to a width you gave, `.shrink` only shrinks
+- **label across** – `.left`, `.right`
+- **label down** – `.top`, `.bottom`
+
+**Thirty-eight names in all, and `lint.js` refuses anything else** – a typo is a build error, not a box that comes out unstyled.
+
+**`align` means two different things, and where it sits on the line tells you which.** At the end of a placement it takes one word: `below src gap 0 align left` keeps the new box's left edge flush with `src`. On a line of its own it is a statement – `align y middle a, b, c` gives `b` and `c` the vertical centre of `a`, the first name being the one the others follow.
+
+**`spread x a, b, c, d` distributes a set evenly** – first and last stay put, everything between gets equal spacing between centres.
+
+::: expand The rest of the class list, and where the two statements refuse
+
+The other nine class names belong to no slot and stack freely: `.bold` and `.ghost` for a heavier label and a barely-there element, `.turn` for a label read bottom-to-top up the side of something tall and narrow, `.no-head` `.both-heads` `.smooth` `.front` for edges, and `.emph` `.dim`, which are also what a step sets when it says `emph` or `calm`. Two members of one slot on one element is a lint warning; `.paper` is the one that earns its keep quietly, because a label filled with the page colour knocks a hole in a line running behind it.
+
+Which way a pointed outline aims is the `point` option – `up`, `down`, `left`, `right` – rather than four more class names per shape, and writing it on an outline that has no point is an error rather than a word that quietly does nothing. The same principle runs through the whole vocabulary: `.fit` on a box with no width to fit into is refused, and so is an outline class on anything but a `box`.
+
+`align` and `spread` both work on boxes, dots, texts and images only, because they override a coordinate that only those four compute for themselves; naming an edge, a container or a brace is an error. `align` names its axis first – `x` takes `left`/`center`/`right`, `y` takes `top`/`middle`/`bottom` – because `center` and `middle` are near-synonyms and picking the wrong one would otherwise be legal, silent, and enough to move a whole block sideways. `spread` needs at least three elements; `align` needs two.
+
+:::
+
+> note: Both statements earn more than they sound like. Two columns built as separate `below` chains drift apart the moment their captions differ in height, and a line between two drifted boxes runs a degree off the axis and reads to the room as a mistake – the build warns about exactly that.
+>
+> The class list is worth showing from the collapsed view: it is a reference table, and a room reading it wants the words, not the paragraph around them. If someone asks where the colours come from, the four tones are mixed from the page's own ink and accent rather than being fixed hues, which is why a figure follows the `A` theme cycle instead of bringing its own palette.
 
 # Writing chunks that work {#craft}
 

@@ -1596,14 +1596,25 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 /* Same reason: a diagram's own labels live inside a .dg-lbl wrapper, and
    type inside an embedded drawing is the drawing's business. */
 .psi-diagram .dg-lbl text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
-.psi-diagram .dg-mono { font-family: var(--dg-mono); }
+/* .dg-mono sits on the <text> itself, so this rule is (0,2,0) while the
+   .dg-lbl text rule above it is (0,2,1) - the label rule won and .mono
+   resolved, emitted its class and changed nothing. Measured before the fix:
+   eight i's and eight W's in a .mono label came out 22.8px and 109.1px wide,
+   which is the sans. The family classes are now all written the same way,
+   matching on the wrapper and reaching the text, so they tie with the label
+   rule and win on source order like .serif and .hand always did. */
+.psi-diagram .mono text, .psi-diagram .dg-mono { font-family: var(--dg-mono); }
 /* inline *accent* / ~muted~ inside a label */
 .psi-diagram tspan.dg-em { fill: var(--emph); }
 .psi-diagram tspan.dg-mu { fill: var(--ink-soft); }
 .psi-diagram .dg-off { display: none; }
 
 /* containers are a frame around their members, never a filled panel */
-.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: var(--rule); stroke-width: 1.2; }
+/* --rule is the hairline between two cells of a table; a container is a
+   trust boundary, a segment, a machine - it has to read as a statement.
+   Dashed at that weight it was barely visible on a shaded ground, which
+   is exactly where these are usually drawn. */
+.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); stroke-width: 1.3; }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
 
 /* braces have no fill and no head */
@@ -1636,8 +1647,14 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 .psi-diagram .accent .dg-stroke { stroke: var(--emph); }
 .psi-diagram .accent .dg-head { fill: var(--emph); }
 .psi-diagram .accent text { fill: var(--emph); }
-.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); }
-.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); }
+/* .muted and .dim answer different questions and were hard to tell apart,
+   because a lighter grey alone reads as "slightly faint" rather than as a
+   different kind of thing. .muted is scaffolding - an axis, a leader, a zone
+   outline - and scaffolding is drawn thinner as well as lighter. .dim is the
+   other axis entirely: full colour at a third of the strength, which is what
+   the calm step operation reaches for when a beat moves on. */
+.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); stroke-width: 1.05; }
+.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); stroke-width: 1.05; }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
 .psi-diagram .muted text { fill: var(--ink-soft); }
 
@@ -2494,7 +2511,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     </div>
 <div class="col-entry" data-col-idx="7">
       <button class="col-btn" type="button">Authoring layouts</button>
-      <div class="dots"><span class="dot" data-col-idx="7" data-chunk-idx="0"></span><span class="dot" data-col-idx="7" data-chunk-idx="1"></span><span class="dot" data-col-idx="7" data-chunk-idx="2"></span><span class="dot" data-col-idx="7" data-chunk-idx="3"></span><span class="dot" data-col-idx="7" data-chunk-idx="4"></span><span class="dot" data-col-idx="7" data-chunk-idx="5"></span><span class="dot" data-col-idx="7" data-chunk-idx="6"></span><span class="dot" data-col-idx="7" data-chunk-idx="7"></span><span class="dot" data-col-idx="7" data-chunk-idx="8"></span><span class="dot" data-col-idx="7" data-chunk-idx="9"></span></div>
+      <div class="dots"><span class="dot" data-col-idx="7" data-chunk-idx="0"></span><span class="dot" data-col-idx="7" data-chunk-idx="1"></span><span class="dot" data-col-idx="7" data-chunk-idx="2"></span><span class="dot" data-col-idx="7" data-chunk-idx="3"></span><span class="dot" data-col-idx="7" data-chunk-idx="4"></span><span class="dot" data-col-idx="7" data-chunk-idx="5"></span><span class="dot" data-col-idx="7" data-chunk-idx="6"></span><span class="dot" data-col-idx="7" data-chunk-idx="7"></span><span class="dot" data-col-idx="7" data-chunk-idx="8"></span><span class="dot" data-col-idx="7" data-chunk-idx="9"></span><span class="dot" data-col-idx="7" data-chunk-idx="10"></span></div>
     </div>
 <div class="col-entry" data-col-idx="8">
       <button class="col-btn" type="button">Writing chunks that work</button>
@@ -3332,9 +3349,9 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Diagrams</span> <span class="hd-sub"><code>::: diagram</code> draws boxes and arrows from text</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A <code>::: diagram</code> block is a figure written in the lecture source and drawn into the page as vector artwork at build time.</strong> You name the pieces and say where they go; the arrows between them are computed.</p>
-<figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-49.98 -36.75 477.15 169.05" width="2000" height="709" data-live-viewbox="-49.98 -36.75 477.15 169.05" data-live-ratio="0.354291" data-steps="3" role="img" aria-label="Diagrams" preserveAspectRatio="xMidYMid meet">
-<g id="dg1-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg1-edge-1--p" class="dg-stroke" d="M37.98 0.00L105.92 0.00" fill="none"/><path id="dg1-edge-1--h" class="dg-head" d="M113.57 0.00L104.57 3.96L104.57 -3.96Z"/><g id="dg1-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(75.78,-15.38)"><g id="dg1-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">encrypted</tspan></text></g></g></g>
-<g id="dg1-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg1-edge-2--p" class="dg-stroke" d="M167.57 0.00L235.53 0.00" fill="none"/><path id="dg1-edge-2--h" class="dg-head" d="M243.18 0.00L234.18 3.96L234.18 -3.96Z"/><g id="dg1-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(205.38,-15.38)"><g id="dg1-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">recoded</tspan></text></g></g></g>
+<figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-49.98 -57.73 477.15 190.03" width="2000" height="797" data-live-viewbox="-49.98 -57.73 477.15 190.03" data-live-ratio="0.398250" data-steps="3" role="img" aria-label="Diagrams" preserveAspectRatio="xMidYMid meet">
+<g id="dg1-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg1-edge-1--p" class="dg-stroke" d="M37.98 0.00L105.92 0.00" fill="none"/><path id="dg1-edge-1--h" class="dg-head" d="M113.57 0.00L104.57 3.96L104.57 -3.96Z"/><g id="dg1-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(75.78,-36.35)"><g id="dg1-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">encrypted</tspan></text></g></g></g>
+<g id="dg1-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg1-edge-2--p" class="dg-stroke" d="M167.57 0.00L235.53 0.00" fill="none"/><path id="dg1-edge-2--h" class="dg-head" d="M243.18 0.00L234.18 3.96L234.18 -3.96Z"/><g id="dg1-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(205.38,-29.83)"><g id="dg1-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">recoded</tspan></text></g></g></g>
 <g id="dg1-leak" data-base="dg-el dg-edge" class="dg-el dg-edge dashed"><path id="dg1-leak--p" class="dg-stroke" d="M140.57 18.38L140.57 75.52" fill="none"/><path id="dg1-leak--h" class="dg-head" d="M140.57 83.17L136.61 74.17L144.53 74.17Z"/></g>
 <g id="dg1-why--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg1-why--lead--p" class="dg-stroke" d="M0.00 0.00" fill="none"/></g>
 <g id="dg1-src" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg1-src--r" x="-37.98" y="-18.38" width="75.95" height="36.75" rx="4"/><g id="dg1-src--lw0" data-lab="src--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg1-src--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sender</tspan></text></g></g></g>
@@ -3342,9 +3359,13 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <g id="dg1-dst" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg1-dst--r" x="243.18" y="-18.38" width="105.65" height="36.75" rx="4"/><g id="dg1-dst--lw0" data-lab="dst--l" class="dg-lwrap" transform="translate(296.00,0.00)"><g id="dg1-dst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Empfänger</tspan></text></g></g></g>
 <g id="dg1-log" data-base="dg-el dg-box" class="dg-el dg-box dashed"><rect id="dg1-log--r" x="101.47" y="83.17" width="78.20" height="36.75" rx="4"/><g id="dg1-log--lw0" data-lab="log--l" class="dg-lwrap" transform="translate(140.57,101.55)"><g id="dg1-log--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Logfile</tspan></text></g></g></g>
 <g id="dg1-why" data-base="dg-el dg-text" class="dg-el dg-text hand"><g id="dg1-why--lw0" data-lab="why--l" class="dg-lwrap" transform="translate(347.83,101.55)"><g id="dg1-why--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">this is where</tspan><tspan x="0" y="14.48">the anonymity ends</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg1-root">{"p":"dg1-","n":3,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-1--l":"text","edge-2--p":"path","edge-2--h":"path","edge-2--l":"text","leak--p":"path","leak--h":"path","why--lead--p":"path","src--r":"rect","src--l":"text","mix--r":"rect","mix--l":"text","dst--r":"rect","dst--l":"text","log--r":"rect","log--l":"text","why--l":"text"},"names":["leak","blame"],"frames":[{"vis":{"src":1,"mix":1,"dst":1,"log":0,"why":1,"edge-1":1,"edge-2":1,"leak":0,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"","edge-2":"","leak":"dashed","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55,0],"why--l":[347.83,101.55,0],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37,0],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37,0],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"","edge-2":"","leak":"dashed","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55,0],"why--l":[347.83,101.55,0],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37,0],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37,0],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed emph","why":"hand","edge-1":"","edge-2":"","leak":"dashed emph","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55,0],"why--l":[347.83,101.55,0],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-15.37,0],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-15.37,0],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  src  \"Sender\"\nbox  mix  \"Mix\"        right of src gap 0.6\nbox  dst  \"Empfänger\"  right of mix gap 0.6\nbox  log  \"Logfile\"    below mix gap 0.9  {.dashed}\n\nedge src -> mix \"encrypted\"\nedge mix -> dst \"recoded\"\nedge mix -> log {#leak .dashed}\n\ntext why \"this is where\\nthe anonymity ends\"  right of log gap 0.8 -> leak {.hand}\n\nstep leak\n  show log\nstep blame\n  emph leak, log","attrs":"unit=126x72","range":[35469,35848],"chunk":"diagram","width":"full","alt":"Diagrams"}</script></figure>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg1-root">{"p":"dg1-","n":3,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-1--l":"text","edge-2--p":"path","edge-2--h":"path","edge-2--l":"text","leak--p":"path","leak--h":"path","why--lead--p":"path","src--r":"rect","src--l":"text","mix--r":"rect","mix--l":"text","dst--r":"rect","dst--l":"text","log--r":"rect","log--l":"text","why--l":"text"},"names":["leak","blame"],"frames":[{"vis":{"src":1,"mix":1,"dst":1,"log":0,"why":1,"edge-1":1,"edge-2":1,"leak":0,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"","edge-2":"","leak":"dashed","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55,0],"why--l":[347.83,101.55,0],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-36.35,0],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-29.83,0],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"","edge-2":"","leak":"dashed","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55,0],"why--l":[347.83,101.55,0],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-36.35,0],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-29.83,0],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed emph","why":"hand","edge-1":"","edge-2":"","leak":"dashed emph","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-37.98,-18.37,75.95,36.75],"src--l":[0,0,0],"mix--r":[113.57,-18.37,54,36.75],"mix--l":[140.57,0,0],"dst--r":[243.18,-18.37,105.65,36.75],"dst--l":[296,0,0],"log--r":[101.47,83.18,78.2,36.75],"log--l":[140.57,101.55,0],"why--l":[347.83,101.55,0],"edge-1--p":[37.98,0,105.92,0],"edge-1--h":[113.57,0,104.57,3.96,104.57,-3.96],"edge-1--l":[75.78,-36.35,0],"edge-2--p":[167.58,0,235.53,0],"edge-2--h":[243.18,0,234.18,3.96,234.18,-3.96],"edge-2--l":[205.38,-29.83,0],"leak--p":[140.57,18.38,140.57,75.52],"leak--h":[140.57,83.18,136.61,74.18,144.54,74.18]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  src  \"Sender\"\nbox  mix  \"Mix\"        right of src gap 0.6\nbox  dst  \"Empfänger\"  right of mix gap 0.6\nbox  log  \"Logfile\"    below mix gap 0.9  {.dashed}\n\nedge src -> mix \"encrypted\"\nedge mix -> dst \"recoded\"\nedge mix -> log {#leak .dashed}\n\ntext why \"this is where\\nthe anonymity ends\"  right of log gap 0.8 -> leak {.hand}\n\nstep leak\n  show log\nstep blame\n  emph leak, log","attrs":"unit=126x72","range":[35469,35848],"chunk":"diagram","width":"full","alt":"Diagrams"}</script></figure>
 
 
+<p><strong>Every line has the same six slots, and they always come in this order</strong> – most lines fill three or four of them:</p>
+<pre class="shiki github-light" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span>box   mix   "Mix"   right of src gap 0.6   w 1.2    {.tone-2 @crypto}</span></span>
+<span class="line"><span>kind  name  label   placement              options  tail</span></span></code></pre>
+<p><strong>Inside the tail, three prefixes answer three questions</strong> – <code>.tone-2</code> is a class (how it looks), <code>@crypto</code> a tag (which set it belongs to), and <code>#leak</code>, as on the <code>edge</code> line above, a name for the statements that have no name slot of their own. The name is how later lines refer to the element and is never drawn; the label is what the room reads, and <code>&quot;&quot;</code> is a legal empty one.</p>
 <p><strong>Placement is a grid cell or a relation to a neighbour</strong> – <code>at 2,1</code>, or <code>right of mix gap 0.6</code>, or <code>below src gap 0 align left</code> for boxes that touch. The first element sits at the origin so a simple diagram needs no coordinates at all. There is no automatic layout, on purpose: where things go is usually part of what the picture is saying.</p>
 <p><strong>A coordinate can be another element&#39;s, plus or minus a little</strong> – <code>at mix.cx,src.cy+0.4</code>, <code>via iv.cx,x0.cy</code>. Every slot that takes an <code>X,Y</code> pair takes that form, so a figure survives a change above it instead of needing three numbers read off a screen. Element names are letters, digits, <code>_</code> and <code>-</code>, because <code>mix.cx</code> has to be readable as one thing; a comment line starts with <code>#</code>.</p>
 <p><strong><code>step</code> blocks make it move, and forward is the key.</strong> One step is one press of the same key that uncovers a reveal segment, so steps and segments interleave in the order you wrote them and the cockpit follows. The vocabulary is <code>show</code>, <code>hide</code>, <code>move … to</code>, <code>move … by</code>, <code>emph</code>, <code>calm</code>, <code>style</code> and <code>label</code>.</p>
@@ -3366,17 +3387,57 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   <aside class="exp-body" data-exp-body="0">
       <div class="tag-label">The rest of the vocabulary</div>
       <p><code>dot</code> is a circle for junctions and glyphs. <code>container … over a,b,c</code> draws a box that fits itself around its members and re-fits when they move; <code>brace … over a,b right &quot;Label&quot;</code> is a bracket spanning a subset.</p>
-<p>An element also carries <strong>tags</strong>: <code>{#mix .tone-1 @crypto}</code>. Three prefixes, three questions – <code>#</code> is identity, <code>.</code> is appearance, <code>@</code> is membership – and a tag can be written wherever a name can, so <code>show @crypto</code> in a step covers every element carrying it. Membership sits on the element&#39;s own line, so adding one to a set is a local edit.</p>
-<p><code>align y middle a, b, c</code> lines up one coordinate; the axis comes first because <code>center</code> and <code>middle</code> are near-synonyms, and picking the wrong one is legal, silent, and moves a whole block sideways. <code>spread x a, …, z</code> gives equal spacing between centres. Both matter more than they sound: two columns built as separate <code>below</code> chains drift apart the moment their captions differ in height, and a line between two drifted boxes runs a degree off the axis and reads as a mistake.</p>
+<p>A <strong>tag</strong> can be written wherever a name can, so <code>show @crypto</code> in a step covers every element carrying it. Membership sits on the element&#39;s own line, which makes adding one to a set a local edit rather than a trip to a list somewhere else in the file.</p>
 <p>Placement also takes <code>between a,b</code> – the point on the line joining two elements, which is what a separator glyph or a note beside a connector actually wants – and any placement accepts a trailing <code>offset dx,dy</code>. An anchor can carry a fraction: <code>mix.right:0.3</code> slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side instead of on top of each other.</p>
 <p>Against repetition there are two more: <code>default box {.tone-4} w 1.15</code> sets the base for every box in the diagram (add a tag – <code>default box @dec w 0.48</code> – to refine it for one set), and <code>same as create</code> copies another element&#39;s width and height. The same <code>default</code> lines go in a <code>diagram-defaults:</code> frontmatter key when a whole lecture&#39;s figures should look like each other – then a block&#39;s own <code>default</code> overrides the lecture&#39;s for that one figure, and changing the house style is one edit rather than twelve.</p>
 <p>And against measuring: a coordinate may be another element&#39;s coordinate. <code>edge iv -&gt; x0 via iv.cx,x0.cy</code> means <em>straight down from the IV, then across at the height of the XOR</em>, and it stays true when anything above it moves. Adding <code>+0.2</code> or <code>-0.2</code> (<code>mix.cx+0.2</code>) shifts it a little without giving up the relation.</p>
-<p>Inside a label, <code>_sub</code> and <code>^sup</code> shift a character or a <code>{group}</code>, <code>*accent*</code> colours a run and <code>~muted~</code> greys it. Classes come from a closed list – four <code>tone-*</code> fills mixed from the page&#39;s own inks plus <code>clear</code> for a see-through one, and <code>dashed</code>, <code>dotted</code>, <code>thick</code>, <code>round</code>, <code>mono</code>, <code>serif</code>, <code>hand</code>, <code>muted</code> and a few more – and <code>lint.js</code> rejects anything else, so a typo is a build error rather than an unstyled box. <strong>Every class occupies a slot</strong>, so <code>{.tone-1}</code> on one box displaces a <code>default box {.tone-4}</code> rather than stacking with it, and two members of one slot on one element is a lint warning.</p>
+<p>Inside a label, <code>_sub</code> and <code>^sup</code> shift a character or a <code>{group}</code>, <code>*accent*</code> colours a run and <code>~muted~</code> greys it.</p>
 <p><strong>Click the figure, and the button in the corner of the card opens a graphical editor for it.</strong> Drag a box and the editor rewrites one number – the <code>gap</code>, the fraction along a line, the nudge on a borrowed coordinate – and never the relation that number sits in, so what you wrote survives what you dragged. It also draws the relations while you work, which is the part a finished diagram cannot show you: a box written as <code>gap 0.55</code> from its neighbour looks exactly like a box that merely happens to sit 0.55 away. <code>editor: none</code> in the frontmatter ships the lecture without it.</p>
 <p>Two more options work from the box inwards rather than from the label outwards. <code>pad 0.3</code> sets how far a box&#39;s border sits from its own label – the same word <code>container</code> and <code>brace</code> already use – and <code>.fit</code> on a box with a given <code>w</code> sizes the <em>type</em> to fill the box instead of growing the box to the type, with <code>.shrink</code> for a label that may only ever get smaller. A free <code>text</code> that carries a tone draws its own background patch, so a caption can sit on a panel without becoming a box.</p>
 
     </aside>
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></div>
+</article>
+<article class="chunk chunk-example" id="diagram-classes" data-chunk-id="diagram-classes" data-tag="example" data-width="full" data-chunk-num="32">
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Looks, and lining things up</span> <span class="hd-sub">the class slots, <code>align</code> and <code>spread</code></span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>How an element looks comes from a closed list of classes, and ten groups of them are slots that hold one class at a time.</strong> So <code>{.tone-1}</code> on a box <em>displaces</em> a <code>default box {.tone-4}</code> rather than stacking with it – which is what anyone expects, and not what a stylesheet does on its own.</p>
+<ul>
+<li><strong>fill</strong> – <code>.tone-1</code> <code>.tone-2</code> <code>.tone-3</code> <code>.tone-4</code>, <code>.clear</code> for none, <code>.paper</code> for the page colour</li>
+<li><strong>ink</strong> – <code>.accent</code>, <code>.muted</code></li>
+<li><strong>stroke pattern</strong> – <code>.dashed</code>, <code>.dotted</code></li>
+<li><strong>stroke weight</strong> – <code>.thick</code>, <code>.bare</code> for no outline at all</li>
+<li><strong>outline</strong> – <code>.round</code>, <code>.sharp</code>, and <code>.hex</code> <code>.chevron</code> <code>.wedge</code> <code>.cross</code></li>
+<li><strong>size</strong> – <code>.small</code>, <code>.large</code></li>
+<li><strong>family</strong> – <code>.mono</code>, <code>.serif</code>, <code>.hand</code></li>
+<li><strong>fitting</strong> – <code>.fit</code> sizes the type to a width you gave, <code>.shrink</code> only shrinks</li>
+<li><strong>label across</strong> – <code>.left</code>, <code>.right</code></li>
+<li><strong>label down</strong> – <code>.top</code>, <code>.bottom</code></li>
+</ul>
+<p><strong>Thirty-eight names in all, and <code>lint.js</code> refuses anything else</strong> – a typo is a build error, not a box that comes out unstyled.</p>
+<p><strong><code>align</code> means two different things, and where it sits on the line tells you which.</strong> At the end of a placement it takes one word: <code>below src gap 0 align left</code> keeps the new box&#39;s left edge flush with <code>src</code>. On a line of its own it is a statement – <code>align y middle a, b, c</code> gives <code>b</code> and <code>c</code> the vertical centre of <code>a</code>, the first name being the one the others follow.</p>
+<p><strong><code>spread x a, b, c, d</code> distributes a set evenly</strong> – first and last stay put, everything between gets equal spacing between centres.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="diagram-classes">
+      <div class="annot-box-label">annotation · diagram-classes</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  <div class="exps"><button class="exp-chev" type="button" data-exp="0">
+         <span>Exp</span>
+         <span class="caret">›</span>
+       </button></div>
+  <aside class="exp-body" data-exp-body="0">
+      <div class="tag-label">The rest of the class list, and where the two statements refuse</div>
+      <p>The other nine class names belong to no slot and stack freely: <code>.bold</code> and <code>.ghost</code> for a heavier label and a barely-there element, <code>.turn</code> for a label read bottom-to-top up the side of something tall and narrow, <code>.no-head</code> <code>.both-heads</code> <code>.smooth</code> <code>.front</code> for edges, and <code>.emph</code> <code>.dim</code>, which are also what a step sets when it says <code>emph</code> or <code>calm</code>. Two members of one slot on one element is a lint warning; <code>.paper</code> is the one that earns its keep quietly, because a label filled with the page colour knocks a hole in a line running behind it.</p>
+<p>Which way a pointed outline aims is the <code>point</code> option – <code>up</code>, <code>down</code>, <code>left</code>, <code>right</code> – rather than four more class names per shape, and writing it on an outline that has no point is an error rather than a word that quietly does nothing. The same principle runs through the whole vocabulary: <code>.fit</code> on a box with no width to fit into is refused, and so is an outline class on anything but a <code>box</code>.</p>
+<p><code>align</code> and <code>spread</code> both work on boxes, dots, texts and images only, because they override a coordinate that only those four compute for themselves; naming an edge, a container or a brace is an error. <code>align</code> names its axis first – <code>x</code> takes <code>left</code>/<code>center</code>/<code>right</code>, <code>y</code> takes <code>top</code>/<code>middle</code>/<code>bottom</code> – because <code>center</code> and <code>middle</code> are near-synonyms and picking the wrong one would otherwise be legal, silent, and enough to move a whole block sideways. <code>spread</code> needs at least three elements; <code>align</code> needs two.</p>
+
+    </aside>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></div>
 </article>
 </section>
 <section class="column" data-col="8" id="craft">
@@ -3385,7 +3446,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     <h1 class="section-heading">Writing chunks that work</h1>
   </div>
 </article>
-<article class="chunk chunk-principle" id="topic-sentence" data-chunk-id="topic-sentence" data-tag="principle" data-width="standard" data-chunk-num="32">
+<article class="chunk chunk-principle" id="topic-sentence" data-chunk-id="topic-sentence" data-tag="principle" data-width="standard" data-chunk-num="33">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">The topic sentence is the slide</span> <span class="hd-sub">so write the opening line for the projector</span></h2>
@@ -3401,9 +3462,9 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></div>
 </article>
-<article class="chunk chunk-example" id="anti-patterns" data-chunk-id="anti-patterns" data-tag="example" data-width="wide" data-chunk-num="33">
+<article class="chunk chunk-example" id="anti-patterns" data-chunk-id="anti-patterns" data-tag="example" data-width="wide" data-chunk-num="34">
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Four ways a chunk goes soft</h2>
@@ -3432,9 +3493,9 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></div>
 </article>
-<article class="chunk chunk-question" id="choose-mechanism" data-chunk-id="choose-mechanism" data-tag="question" data-width="standard" data-chunk-num="34">
+<article class="chunk chunk-question" id="choose-mechanism" data-chunk-id="choose-mechanism" data-tag="question" data-width="standard" data-chunk-num="35">
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Derive it, or state it?</h2>
@@ -3457,9 +3518,9 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <p>A figure chunk plus a paragraph of interpretation is the other reliable case, and there <code>::: script</code> around the interpretation is less typing than wrapping the slide half.</p>
 
     </aside>
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></div>
 </article>
-<article class="chunk chunk-exercise" id="squint-test" data-chunk-id="squint-test" data-tag="exercise" data-width="wide" data-chunk-num="35">
+<article class="chunk chunk-exercise" id="squint-test" data-chunk-id="squint-test" data-tag="exercise" data-width="wide" data-chunk-num="36">
   <div class="chunk-content">
     
     <h2 class="chunk-heading">The squint test</h2>
@@ -3479,7 +3540,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></div>
 </article>
 </section>
 <section class="column" data-col="9" id="next">
@@ -3488,7 +3549,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     <h1 class="section-heading">Next steps</h1>
   </div>
 </article>
-<article class="chunk chunk-exercise" id="read-more" data-chunk-id="read-more" data-tag="exercise" data-width="wide" data-chunk-num="36">
+<article class="chunk chunk-exercise" id="read-more" data-chunk-id="read-more" data-tag="exercise" data-width="wide" data-chunk-num="37">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the artefacts that close the loop</span></h2>
@@ -3510,9 +3571,9 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></div>
 </article>
-<article class="chunk chunk-free" id="authoring" data-chunk-id="authoring" data-tag="free" data-width="standard" data-chunk-num="37">
+<article class="chunk chunk-free" id="authoring" data-chunk-id="authoring" data-tag="free" data-width="standard" data-chunk-num="38">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Authoring your own</span> <span class="hd-sub"><code>--new</code>, <code>--watch</code>, <code>lint.js</code></span></h2>
@@ -3533,9 +3594,9 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></div>
 </article>
-<article class="chunk chunk-example" id="fonts" data-chunk-id="fonts" data-tag="example" data-width="wide" data-chunk-num="38">
+<article class="chunk chunk-example" id="fonts" data-chunk-id="fonts" data-tag="example" data-width="wide" data-chunk-num="39">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own type</span> <span class="hd-sub"><code>fonts/</code> plus a frontmatter block</span></h2>
@@ -3557,9 +3618,9 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>9</i></div>
 </article>
-<article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="39">
+<article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="40">
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Pinning how a lecture opens</span> <span class="hd-sub">six optional frontmatter keys</span></h2>
@@ -3586,7 +3647,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>9</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>0</i></div>
 </article>
 </section>
     </div>
@@ -3623,6 +3684,9 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <template data-notes-for="images">The verb deliberately does not downscale. The heavy files are usually already at slide resolution – the bytes are PNG being a poor fit for photographic content. And figure focus zooms to 8×, so a high-resolution diagram is high-resolution on purpose; `--max-width` is opt-in for genuine outliers.</template>
 <template data-notes-for="math">A malformed formula does not fail the build – KaTeX renders it in red so a typo never blanks the projector mid-lecture. The terminal reports it instead, and `lint.js` warns about a `$$` you forgot to close.</template>
 <template data-notes-for="diagram">Print shows every element the diagram ever displays, at its last position, with nothing emphasised and nothing greyed out – the handout is the finished picture, the same rule reveal segments follow.</template>
+<template data-notes-for="diagram-classes">Both statements earn more than they sound like. Two columns built as separate `below` chains drift apart the moment their captions differ in height, and a line between two drifted boxes runs a degree off the axis and reads to the room as a mistake – the build warns about exactly that.
+
+The class list is worth showing from the collapsed view: it is a reference table, and a room reading it wants the words, not the paragraph around them. If someone asks where the colours come from, the four tones are mixed from the page's own ink and accent rather than being fixed hues, which is why a figure follows the `A` theme cycle instead of bringing its own palette.</template>
 <template data-notes-for="topic-sentence">Present this chunk from the collapsed view while you say it. Nothing lands the argument faster than a slide that is visibly the same text the handout carries.</template>
 <template data-notes-for="anti-patterns">The recurring temptation is to fix a weak collapsed view by adding more bold. It is nearly always the wrong direction – fewer bolds and a stronger opening sentence is the fix.</template>
 <template data-notes-for="squint-test">This is worth doing once per lecture, ideally the day before. It doubles as a rehearsal, because reading the collapsed deck is very close to actually presenting it.</template>
@@ -9361,10 +9425,13 @@ function rejectAlignOn(kindWord, classes, lineNo, errors) {
     brace: 'a brace\'s label sits beside the spine, on the side the brace was given',
     edge: 'an edge\'s label is carried at the middle of the line',
   }[kindWord];
+  // On an edge all four now name a side of the line, so none of them is
+  // refused here. Which pair can pick a side depends on the edge's direction,
+  // and that is not known until it has been routed, so the check for naming
+  // the pair that runs along the line lives in the layout instead.
+  if (kindWord === 'edge') return;
   for (const c of classes || []) {
-    const across = DG_ALIGN_ACROSS.includes(c);
-    if (!across && !DG_ALIGN_DOWN.includes(c)) continue;
-    if (kindWord === 'edge' && across) continue;   // this one the anchor honours
+    if (!DG_ALIGN_ACROSS.includes(c) && !DG_ALIGN_DOWN.includes(c)) continue;
     dgErr(errors, lineNo, `.${c} places a label in the room its element gives it, and `
       + `${why} – the class would resolve and move nothing.`);
   }
@@ -11634,9 +11701,48 @@ function createDiagramCompiler(env = {}) {
         const { p, dir } = dgPolyPoint(pts, 0.5);
         const font = dgFontFor(st.classes);
         const m = dgMeasure(st.label, font, st.classes.has('mono'));
-        const off = m.h / 2 + 6;
-        ext.set(e.id + '--l', [m.w, m.h]);
-        put(e, e.id + '--l', [p[0] + dir[1] * off, p[1] - dir[0] * off, dgTurnOf(st.classes)]);
+        const turned = dgTurnOf(st.classes);
+        const vertical = Math.abs(dir[1]) > Math.abs(dir[0]);
+        // The gap has to clear whatever the label measures *along the normal*,
+        // which is its height beside a horizontal line and its width beside a
+        // vertical one - and the other way round again when the label is
+        // turned. Using the height for all four put a 90px label straddling
+        // the vertical line it belonged to.
+        // The measured box carries the line's leading, so half of it already
+        // clears the glyphs; the constant is the visible gap on top of that.
+        // At 6 the label sat about 0.7 of its own type size off the line,
+        // which reads as a stray word rather than as this line's label.
+        const off = ((vertical !== turned) ? m.w : m.h) / 2 + 2;
+        // Which side of the line the label sits on. The offset runs along the
+        // line's normal, so the pair of words that can pick a side is the pair
+        // lying across the line: top/bottom on a mostly horizontal edge,
+        // left/right on a mostly vertical one. The other pair would run along
+        // the line and could not move the label, so it is reported instead of
+        // ignored. This cannot join the parse-time gate with the other
+        // alignment checks, because which pair applies is not known until the
+        // edge has been routed.
+        // The normal, turned so the positive side is the same side of the page
+        // whichever way the edge travels. Without this a right-to-left arrow
+        // put its label below the line while every left-to-right one put it
+        // above, purely because of the order its two ends were named.
+        let nx = dir[1];
+        let ny = -dir[0];
+        if (vertical ? nx < 0 : ny > 0) { nx = -nx; ny = -ny; }
+        const side = vertical
+          ? (st.classes.has('left') ? -1 : 1)
+          : (st.classes.has('bottom') ? -1 : 1);
+        for (const c of (vertical ? ['top', 'bottom'] : ['left', 'right'])) {
+          if (!st.classes.has(c)) continue;
+          dgWarn(`edge ${e.id}: .${c} names a direction this edge runs along, so it cannot `
+            + `move the label. The edge is ${vertical ? 'vertical' : 'horizontal'} - `
+            + `use ${vertical ? '.left or .right' : '.top or .bottom'}.`);
+        }
+        // The side is in the coordinate now, so the anchor must stay centred.
+        // Left as it was, dgLabelAnchor read the same .left that chose the
+        // side and shifted the text back across the line it had just cleared.
+        labelAnchor.set(e.id, 'middle');
+        ext.set(e.id + '--l', turned ? [m.h, m.w] : [m.w, m.h]);
+        put(e, e.id + '--l', [p[0] + nx * off * side, p[1] + ny * off * side, turned]);
       }
     }
 
