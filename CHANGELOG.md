@@ -360,6 +360,18 @@ from building the same way is a major version.
 
 ### Fixed
 
+- **`.mono` never applied to a diagram label.** The class resolved, emitted
+  its marker on the `<text>` element, and changed nothing: the rule that
+  styles it is one class less specific than the rule that sets the label
+  family, so the label rule won. Measured before the fix, eight `i`s and
+  eight `W`s in a `.mono` label came out 22.8px and 109.1px wide, which is
+  the sans face. The three family classes are now all written the same way.
+- **A `container` outline was drawn in the faintest line colour on the page**
+  (`--rule`, which elsewhere separates two cells of a table). Dashed at that
+  weight it was close to invisible on a shaded background, which is where a
+  trust boundary or a network segment is usually drawn. It now strokes at a
+  mix of the text and background colours, so it still follows the theme.
+
 - **A review of the whole branch, and thirty findings closed.** The ones a
   user could meet, grouped:
 

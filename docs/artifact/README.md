@@ -1,82 +1,73 @@
-# The published artifact
+# figures-you-write.html
 
-`thirty-six-figures.html` is the page behind
-<https://claude.ai/code/artifact/ac8a45da-b35f-4c56-a289-dee703cfab78>.
-It is a hand-written page that embeds machine-made parts, and this folder
-holds everything needed to rebuild those parts and republish it.
+A standalone page that teaches `::: diagram`, the figure language described in
+CLAUDE.md under *Animated infographics*. Open it in a browser; it needs no
+server and fetches nothing but its two Google Fonts stylesheets.
 
-## What is in it
+It is written by hand, but several regions of it are produced by a script and
+must not be edited in the HTML.
+
+## What is in this folder
 
 | | |
 |---|---|
-| `thirty-six-figures.html` | the page itself |
-| `figure-rules/source.md` | a psi-slides lecture whose only job is to be compiled: seventeen figures the page argues the layout rules with, plus two stepped demos |
-| `refresh-figures.mjs` | rebuilds that lecture and splices every machine-made region back into the page |
+| `figures-you-write.html` | the page |
+| `figure-rules/source.md` | a psi-slides lecture whose only job is to be compiled: the twenty-three figures the page teaches with, including two that step |
+| `refresh-figures.mjs` | rebuilds that lecture and puts every generated region back into the page |
 
-## The file is a body, not a document
+## What the script owns
 
-It starts at `<title>` and ends at the last `</div>`: no `<!doctype>`, no
-`<html>`, no `<head>`, no `<body>`. The publishing step wraps it. A browser
-opens it from disk perfectly well &ndash; the parser creates the missing
-elements &ndash; so it is still previewable with `open`, but do not "fix" the
-missing wrapper. Adding one would nest a second `<html>` inside the published
-frame.
-
-## What is machine-made, and must not be hand-edited
-
-`refresh-figures.mjs` owns these, keyed by markers in the HTML:
-
-- **Seventeen still figures** &ndash; the wrong/right pairs and the tone row,
-  lifted from a `--print-only` build of `figure-rules/`.
-- **Two stepped demos** &ndash; figure, per-beat geometry payload, beat rail
-  and source, lifted from an `--audience-only` build, which is the only pass
-  that emits the payload.
-- **The diagram runtime** in `<script id="psi-dg-runtime">`, lifted verbatim
-  from the same build. The page steps its demos with the runtime a projected
-  lecture ships, rather than a reimplementation that could disagree with it.
-- **Fifteen gallery card sources**, read out of
-  `lectures/network-security/source.md`, with the line count in each card's
-  summary.
+Run it after any change to the lecture, to `build.js`, or to
+`lectures/network-security/source.md`:
 
 ```bash
 node docs/artifact/refresh-figures.mjs           # rebuild and splice
 node docs/artifact/refresh-figures.mjs --check   # report drift, write nothing (exit 1 on drift)
 ```
 
-Everything else in the file &ndash; prose, layout, CSS, the driver script
-under the runtime &ndash; is written by hand and safe to edit.
+It replaces, keyed by markers in the HTML:
 
-## Two failure modes worth knowing before you touch it
+- **Twenty-one still figures** &ndash; the six tutorial steps, the wrong/right
+  pairs and the tone row, taken from a `--print-only` build.
+- **Two figures that step** &ndash; drawing, per-beat geometry, the list of beat
+  names under it and its source, taken from an `--audience-only` build, which is
+  the only pass that emits the geometry.
+- **The diagram runtime**, inside `<script id="psi-dg-runtime">`, copied
+  unchanged from the same build. The page steps its figures with the code a
+  projected lecture ships rather than a second implementation that could
+  disagree with it.
+- **Fifteen gallery sources**, read out of `lectures/network-security/source.md`,
+  with the line count shown in each card.
 
-- **A broken runtime looks like a design decision.** The static attributes in
-  an emitted diagram *are* its print state, which is the last beat. So a
-  runtime that never ran shows every figure finished, with no error anywhere:
-  it reads as a deliberate choice rather than a bug. The first version of the
-  lift cut the runtime out of the built page by line number, and adding two
-  chunks to the lecture moved it by one line. `refresh-figures.mjs` now finds
-  it between markers and runs `node --check` over the slice before writing it.
-- **Duplicate ids silently empty a drawing.** The compiler numbers figures per
-  document (`dg1`, `dg2`, …), so ids lifted from two builds collide, and every
-  `url(#…)` in the second copy then resolves against the first one's element.
-  Each figure is re-prefixed from its chunk id, and the script refuses to
-  write a page whose figure ids are not unique.
+Everything else &ndash; prose, layout, CSS, and the short script under the
+runtime that wires up the buttons &ndash; is hand-written and safe to edit.
 
-## Republishing
+The chunk ids in the lecture are what the script looks figures up by: `#b1`,
+`#r1w`, `#tones`, `#beats-demo`, and so on. Rename one in the lecture without
+renaming it in `refresh-figures.mjs` and the run stops with an error, which is
+what it is meant to do.
 
-The page is published from a Claude Code session with the Artifact tool,
-passing the existing URL so it updates in place rather than creating a second
-artifact. Keep the `<title>` and the favicon stable across republishes: readers
-find the page in a gallery by both.
+## Two ways this breaks quietly, and the checks that catch them
 
-## The lecture is a lecture, not a fixture
+**A runtime that never ran looks like a design decision.** The attributes
+written into a finished diagram describe its last beat, because that is what a
+printed copy shows. So a page whose runtime failed to load displays every figure
+complete, with nothing in the console and nothing out of place. The first
+version of the lift cut the runtime out of the built page by line number; adding
+two chunks to the lecture moved it down one line and the slice ended in the
+middle of a function. `refresh-figures.mjs` now finds the runtime between
+markers and runs `node --check` over it before writing it into the page.
 
-`figure-rules/source.md` builds and lints like any other. That is the point:
-a compiler change that would break the page's figures breaks them there first,
-where `node lint.js` and the `[diagram]` warnings can say so. Its built
-outputs are gitignored; rebuild with the refresh script rather than committing
-them.
+**Two figures with the same id leave one of them blank.** The compiler numbers
+figures per document, so figures taken from two separate builds collide, and
+every internal reference in the second copy then resolves against the first
+one's element. Each figure is given a new prefix from its chunk id, and the
+script refuses to write a page whose figure ids are not unique.
 
-**The chunk ids are the contract.** `refresh-figures.mjs` looks figures up by
-`#r1w`, `#r8r`, `#tones`, `#beats-demo`, `#move-demo`. Renaming one in the
-lecture without renaming it in the script fails the run loudly, which is the
-intended behaviour.
+## The lecture is a real lecture
+
+`figure-rules/source.md` builds and lints like any other, and CI lints it. A
+change to the compiler that would spoil the page's figures therefore fails
+there first, where `node lint.js` and the build's own `[diagram]` warnings can
+name the line. Its built views are gitignored; run the refresh script rather
+than committing them.

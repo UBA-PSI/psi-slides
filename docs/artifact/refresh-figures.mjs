@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Rebuilds every compiled figure in docs/artifact/thirty-six-figures.html
+ * Rebuilds every compiled figure in docs/artifact/figures-you-write.html
  * from docs/artifact/figure-rules/source.md.
  *
  *   node docs/artifact/refresh-figures.mjs            # rebuild and splice
@@ -38,12 +38,16 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../..');
 const LECTURE = path.join(HERE, 'figure-rules/source.md');
-const PAGE = path.join(HERE, 'thirty-six-figures.html');
+const PAGE = path.join(HERE, 'figures-you-write.html');
 const CHECK = process.argv.includes('--check');
 
 // The chunk ids are the contract with the lecture. Renaming one there without
 // renaming it here is the one edit that breaks this quietly.
+// The opening section builds one figure a line at a time, so its chunks are
+// cumulative: each is the previous one plus what that step introduces.
+const BASICS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'];
 const STILLS = [
+  ...BASICS,
   'r1w', 'r1r', 'r2w', 'r2r', 'r3w', 'r3r',
   'r6aw', 'r6ar', 'r6bw', 'r6br', 'r7w', 'r7r', 'r8w', 'r8r',
   'tones',
@@ -164,6 +168,25 @@ say('  ' + n + ' still figures spliced');
 // the stepped demos come from the live pass, which is the only one that
 // emits the per-beat geometry the runtime interpolates between
 const lectureMd = fs.readFileSync(LECTURE, 'utf8');
+
+// ── the opening tutorial: each step's source, with what it added marked ──
+// Diffed against the previous chunk rather than annotated by hand, so a line
+// edited in step 4 is marked in step 4 without anyone remembering to say so.
+let prevLines = [];
+for (const id of BASICS) {
+  const block = diagramBlock(lectureMd, id);
+  const lines = block.split('\n');
+  const before = new Set(prevLines);
+  const marked = lines.map((l) => {
+    const painted = hl(l);
+    return before.has(l) || l.trim() === '' ? painted : '<span class="add">' + painted + '</span>';
+  }).join('\n');
+  page = replaceBetween(page, '<pre data-basicsrc="' + id + '">', '</pre><!--/basicsrc-->',
+    marked, 'basics ' + id);
+  prevLines = lines;
+}
+say('  ' + BASICS.length + ' tutorial steps, additions marked by diff');
+
 for (const { chunk, prefix } of DEMOS) {
   const { svg, old } = svgFor(live, chunk, prefix);
   const payload = payloadFor(live, old, prefix);

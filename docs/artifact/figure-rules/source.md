@@ -130,7 +130,7 @@ edge c0 -> x1 via c0.left-0.4,c0.cy c0.left-0.4,x1.cy
 ## figure: 8 wrong | two arrows on one line, two labels on one word {.full #r8w}
 
 ::: diagram {unit=150x52}
-box  eve "Eve" at 0,0 h 1.15 {.accent}
+box  eve "Eve" at 0,0 h 1.8 {.accent}
 box  bob "Bob" right of eve gap 2.2 same as eve {.tone-2}
 edge eve -> bob "replay"
 edge eve -> bob "forgery"
@@ -139,10 +139,11 @@ edge eve -> bob "forgery"
 ## figure: 8 right | the fraction slides the attachment along the side {.full #r8r}
 
 ::: diagram {unit=150x52}
-# h 1.15 rather than the 0.75 this started at: at the shorter height the two
-# labels sat close enough to crowd each other, which is the failure the
-# wrong-hand version is meant to own.
-box  eve "Eve" at 0,0 h 1.15 {.accent}
+# An edge label is carried above its line, and the compiler has no way yet to
+# put one below. So the height is what separates them: at h 1.15 "forgery"
+# sat in the gap between the two lines and could be read as belonging to
+# either. h 1.8 puts each label nearer its own line than the other.
+box  eve "Eve" at 0,0 h 1.8 {.accent}
 box  bob "Bob" right of eve gap 2.2 same as eve {.tone-2}
 edge eve.right:0.3 -> bob.left:0.3 "replay"  {.accent}
 edge eve.right:0.7 -> bob.left:0.7 "forgery" {.accent}
@@ -158,6 +159,66 @@ box t4 "tone-4" right of t3 gap 0.16 same as t1 {.tone-4}
 box ac "accent" right of t4 gap 0.16 same as t1 {.accent}
 box dm "dim"    right of ac gap 0.16 same as t1 {.dim}
 box mu "muted"  right of dm gap 0.16 same as t1 {.muted}
+:::
+
+# Basics
+
+## figure: b1 two boxes {.full #b1}
+
+::: diagram {unit=170x56}
+box cl "Client" at 0,0
+box sv "Server" right of cl gap 1.4
+:::
+
+## figure: b2 an edge {.full #b2}
+
+::: diagram {unit=170x56}
+box cl "Client" at 0,0
+box sv "Server" right of cl gap 1.4
+edge cl -> sv
+:::
+
+## figure: b3 placement is an expression {.full #b3}
+
+::: diagram {unit=170x56}
+box cl "Client" at 0,0
+box sv "Server" right of cl gap 1.4
+edge cl -> sv
+box log "Log" below sv gap 0.9
+edge sv -> log
+:::
+
+## figure: b4 the attribute tail {.full #b4}
+
+::: diagram {unit=170x56}
+box cl "Client" at 0,0 {.tone-2}
+box sv "Server" right of cl gap 1.4 {.tone-1}
+edge cl -> sv
+box log "Log" below sv gap 0.9 {.tone-3}
+edge sv -> log
+:::
+
+## figure: b5 words that are not a box {.full #b5}
+
+::: diagram {unit=170x56}
+box cl "Client" at 0,0 {.tone-2}
+box sv "Server" right of cl gap 1.4 {.tone-1}
+edge cl -> sv
+box log "Log" below sv gap 0.9 {.tone-3}
+edge sv -> log
+text n "TLS ends here" right of sv gap 1.2 -> sv {.small .muted}
+:::
+
+## figure: b6 an outline around a part of it {.full #b6}
+
+::: diagram {unit=170x56}
+box cl "Client" at 0,0 {.tone-2}
+box sv "Server" right of cl gap 1.4 {.tone-1}
+edge cl -> sv
+box log "Log" below sv gap 0.9 {.tone-3}
+edge sv -> log
+text n "TLS ends here" right of sv gap 1.2 -> sv {.small .muted}
+container dmz "DMZ" over sv,log pad 0.4 {.dashed .muted}
 :::
 
 # Steps and tags

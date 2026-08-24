@@ -1522,14 +1522,25 @@ const DIAGRAM_CSS = `
 /* Same reason: a diagram's own labels live inside a .dg-lbl wrapper, and
    type inside an embedded drawing is the drawing's business. */
 .psi-diagram .dg-lbl text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
-.psi-diagram .dg-mono { font-family: var(--dg-mono); }
+/* .dg-mono sits on the <text> itself, so this rule is (0,2,0) while the
+   .dg-lbl text rule above it is (0,2,1) - the label rule won and .mono
+   resolved, emitted its class and changed nothing. Measured before the fix:
+   eight i's and eight W's in a .mono label came out 22.8px and 109.1px wide,
+   which is the sans. The family classes are now all written the same way,
+   matching on the wrapper and reaching the text, so they tie with the label
+   rule and win on source order like .serif and .hand always did. */
+.psi-diagram .mono text, .psi-diagram .dg-mono { font-family: var(--dg-mono); }
 /* inline *accent* / ~muted~ inside a label */
 .psi-diagram tspan.dg-em { fill: var(--emph); }
 .psi-diagram tspan.dg-mu { fill: var(--ink-soft); }
 .psi-diagram .dg-off { display: none; }
 
 /* containers are a frame around their members, never a filled panel */
-.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: var(--rule); stroke-width: 1.2; }
+/* --rule is the hairline between two cells of a table; a container is a
+   trust boundary, a segment, a machine - it has to read as a statement.
+   Dashed at that weight it was barely visible on a shaded ground, which
+   is exactly where these are usually drawn. */
+.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); stroke-width: 1.3; }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
 
 /* braces have no fill and no head */
