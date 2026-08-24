@@ -49,7 +49,7 @@ const BASICS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'];
 // The advanced specimens. Their listings were written by hand beside compiled
 // drawings until one of them lost the two lines that draw a marker and a point
 // visible in its own figure.
-const SPECS = ['sp1', 'sp2', 'sp3', 'sp4', 'sp5'];
+const SPECS = ['sp1', 'sp2', 'sp3', 'sp4', 'sp5', 'sp6', 'sp7'];
 const STILLS = [
   ...BASICS,
   ...SPECS,
@@ -93,8 +93,15 @@ function hl(src) {
     // weight rather than the keyword colour every placement word carries
     t = t.replace(STEP_OPS, (m, sp2, op) => sp2 + '<span class="st">' + op + '</span>');
     t = t.replace(KW, (m) => '<span class="kw">' + m + '</span>');
-    return t.replace(/\u0000(\d+)\u0000/g, (_, i) => held[+i]);
-  }).join('\n');
+    // Each source line is its own block, so a hanging indent hangs per line.
+    // Set on the <pre> instead, text-indent outdents only the first physical
+    // line of the whole listing and indents every other one, which makes a
+    // wrapped continuation indistinguishable from the next statement.
+    return '<span class="srcln">' + t.replace(/\u0000(\d+)\u0000/g, (_, i) => held[+i]) + '</span>';
+    // Joined with nothing: each line is a block now, so the newline that used
+    // to separate them would render as a second break and leave a blank line
+    // after every statement.
+  }).join('');
 }
 
 // ── the ::: diagram block belonging to a chunk, verbatim ─────────────────

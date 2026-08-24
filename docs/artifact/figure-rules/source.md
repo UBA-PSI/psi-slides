@@ -325,3 +325,25 @@ box  m2 "" at roc@0.35,roc@0.95 {.cross .tone-3}
 grid g image face-ok 8x3 at 0,0 cell 0.26 space 0.09
 text n "one file, twenty-four times" right of g
 :::
+
+## figure: sp6 evenly spaced by one line {.full #sp6}
+
+::: diagram {unit=150x52}
+box a "a" at 0,0 w 0.5 h 0.5 {.tone-1}
+box b "b" at 0.75,0 w 0.5 h 0.5 {.tone-2}
+box c "c" at 1.15,0 w 0.5 h 0.5 {.tone-3}
+box d "d" at 2.7,0 w 0.5 h 0.5 {.tone-4}
+spread x a, b, c, d
+:::
+
+## figure: sp7 type that fits, and a line over the top {.full #sp7}
+
+::: diagram {unit=150x52}
+box a "FIT" at 0,0 w 1.7 h 0.55 {.fit .tone-2}
+box b "this one is far too long to fit" below a gap 0.45 same as a {.shrink .tone-2}
+box c "" right of a gap 1.0 w 0.9 h 1.0 {.tone-1}
+dot m at c.cx,c.cy r 0.09 {.accent}
+edge a.tr -> c.tl {.both-heads .muted}
+edge b.br -> c.center {.muted}
+edge c.left-0.55,c.cy -> c.right+0.45,c.cy {.front .accent .no-head}
+:::

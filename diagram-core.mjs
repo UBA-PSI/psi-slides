@@ -891,8 +891,15 @@ export function dgCoordPx(c, axis, boxes, uw, uh) {
     : b.y + b.h;
   return v + c.nudge * u;
 }
-export const dgPairPx = (p, boxes, uw, uh) =>
-  [dgCoordPx(p[0], 'x', boxes, uw, uh), dgCoordPx(p[1], 'y', boxes, uw, uh)];
+// A pair that failed to parse is null, and dgParsePair has already recorded
+// why with its line number. Laying out from it anyway threw a TypeError deep
+// in the compiler, which reached the author as a stack trace instead of the
+// sentence naming the line - `dot m at c.center` (a pair written as a single
+// anchor) crashed the build rather than being reported. Placing it at the
+// origin lets the layout finish so the real message gets out.
+export const dgPairPx = (p, boxes, uw, uh) => (p
+  ? [dgCoordPx(p[0], 'x', boxes, uw, uh), dgCoordPx(p[1], 'y', boxes, uw, uh)]
+  : [0, 0]);
 export const dgPairRefs = (p) => (p || []).filter(c => c && c.ref).map(c => c.ref);
 
 export function dgParseMembers(tok) {
