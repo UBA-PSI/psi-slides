@@ -1485,59 +1485,105 @@ und der Sensor schlägt Alarm, sobald $\chi^2 > t$ ist. Welcher Wert für $t$ da
 
 ## figure: Reaction of IDS {.full #ns-b59}
 
-::: diagram {unit=132x62}
+::: diagram {unit=62x62}
+# Die zehn beschrifteten Pakete liegen auf einer Achse: waagerecht der
+# Anomaliewert, den der Sensor ausrechnet (das Chi-Quadrat der Folie davor),
+# senkrecht die wahre Klasse. Erst dadurch kann der Schwellwert überhaupt
+# etwas trennen – in der Fassung davor standen die Marker als Block
+# nebeneinander, und der Strich lief an ihnen vorbei statt hindurch.
+# Die Einheit ist quadratisch, damit ein Paketkasten quadratisch wird.
 text ds "Labeled dataset (e.g., by DARPA/Lincoln Labs)" at 0,0 {.left}
-text lben "benign traffic" below ds gap 0.34 align left {.left}
-grid gben box 6x1 right of lben gap 0.35 cell 0.16 space 0.09 {.tone-2 .sharp}
-text latt "attack traffic" below lben gap 0.3 align left {.left}
-grid gatt box 4x1 right of latt gap 0.35 cell 0.16 space 0.09 {.accent .sharp}
-align x left gben, gatt
+
+text latt "attack traffic" below ds gap 1.0 align left {.left}
+text lben "benign traffic" below latt gap 0.5 align left {.left}
+
+# Rasterplatz zu Rasterplatz sind 0.74, ein Kasten misst 0.42: der
+# Zwischenraum ist damit dreiviertel so breit wie ein Kasten, und der
+# Schwellwert passt sichtbar dazwischen, ohne einen zu berühren. Die
+# Reihenfolge ist die Sortierung nach Anomaliewert – Angriffe liegen im
+# Mittel höher, überlappen aber, und genau diese Überlappung ist das Thema.
+# Rasterplätze: benign 0,1,2,3,5,7 – attack 4,6,8,9.
+box b1 "" right of lben gap 0.55 w 0.42 h 0.42 {.tone-2 .sharp}
+box b2 "" right of b1 gap 0.32 same as b1 {.tone-2 .sharp}
+box b3 "" right of b2 gap 0.32 same as b1 {.tone-2 .sharp}
+box b4 "" right of b3 gap 0.32 same as b1 {.tone-2 .sharp}
+box b5 "" right of b4 gap 1.06 same as b1 {.tone-2 .sharp}
+box b6 "" right of b5 gap 1.06 same as b1 {.tone-2 .sharp}
+
+box a1 "" at b1.cx+2.96,latt.cy same as b1 {.accent .sharp}
+box a2 "" right of a1 gap 1.06 same as b1 {.accent .sharp}
+box a3 "" right of a2 gap 1.06 same as b1 {.accent .sharp}
+box a4 "" right of a3 gap 0.32 same as b1 {.accent .sharp}
+
+edge b1.left-0.5,b1.bottom+0.7 -> a4.right+0.6,b1.bottom+0.7 {#axis .muted}
+text axn "anomaly score" at b1.cx+3.33,b1.bottom+1.12 {.muted}
+text lno "no alert" at b1.cx+0.37,b1.bottom+0.34 {.muted}
+text lal "alert" at a4.cx-0.37,b1.bottom+0.34 {.muted}
+
+# Der Schwellwert selbst ist die Beschriftung, und die Linie hängt an ihr:
+# ein Schritt verschiebt "t", das Layout wird neu ausgewertet, und der Strich
+# folgt. Der Doppelpfeil der alten Fassung, der sagen sollte, dass der Strich
+# beweglich ist, ist damit überflüssig – jetzt bewegt er sich.
+text tlbl "t" at a1.cx+0.37,a1.top-0.45 pad 0.12 {.paper .hand @thr}
+edge tlbl.cx,tlbl.bottom -- tlbl.cx,b1.bottom+0.7 {#thr .thick @thr}
 
 # Die 2×2-Matrix. Die Angriffszeile trägt die Akzentfarbe, die Normalzeile
 # den Ton für legitimen Verkehr – dieselbe Zuordnung wie überall sonst.
-box tp "" below latt gap 1.25 align left w 1.15 h 0.85 {.accent @matrix}
-box fn "" right of tp gap 0 same as tp {.accent @matrix}
-box fp "" below tp gap 0 same as tp {.tone-2 @matrix}
-box tn "" right of fp gap 0 same as tp {.tone-2 @matrix}
+# Die Spalten stehen wie die Achse darüber: links von t kein Alarm, rechts
+# Alarm. Deshalb sitzt FN links neben TP und nicht umgekehrt.
+box fn "FN" at ds.left+1.2,b1.bottom+3.05 w 1.3 h 0.9 {.accent}
+box tp "TP" right of fn gap 0 same as fn {.accent}
+box tn "TN" below fn gap 0 same as fn {.tone-2}
+box fp "FP" right of tn gap 0 same as fn {.tone-2}
 
-# Das Kürzel und seine Marker gehören zusammen und werden deshalb *als Paar*
-# in der Mitte des Feldes ausgerichtet. Als Beschriftung der Box säße das
-# Kürzel exakt mittig und die Marker müssten sich darunter an den Rand
-# drängen – zwei Dinge, die eins meinen, an zwei verschiedenen Bezugslinien.
-text ltp "TP" at tp.cx,tp.cy-0.11 {.accent @matrix}
-text lfn "FN" at fn.cx,fn.cy-0.11 {.accent @matrix}
-text lfp "FP" at fp.cx,fp.cy-0.11 {@matrix}
-text ltn "TN" at tn.cx,tn.cy-0.11 {@matrix}
+# Die Zahl steht in der Beschriftung des Feldes und nicht als Reihe kleiner
+# Marker daneben: sie ändert sich in jedem Beat, und ein "label"-Schritt
+# tauscht dafür eine zur Bauzeit gesetzte Variante ein. Abzählen von vier
+# Quadraten aus der letzten Reihe des Hörsaals dauert länger als Lesen.
+text cno "no alert" above fn gap 0.28
+text cal "alert" above tp gap 0.28
+text head "REACTION OF IDS" above cno gap 0.3 align left {.bold .left}
+text rowa "attack" left of fn gap 0.24 {.turn}
+text rown "normal" left of tn gap 0.24 {.turn}
 
-text calert "alert" above tp gap 0.3 align left {.left @matrix}
-text cnoalert "no alert" above fn gap 0.3 align left offset 0.12,0 {.left @matrix}
-text head "REACTION OF IDS" above calert gap 0.32 align left {.bold .left @matrix}
-text rowa "attack" left of tp gap 0.24 {.turn .small @matrix}
-text rown "normal" left of fp gap 0.24 {.turn .small @matrix}
+text rates "TP rate: 0.75 / FP rate: 0.33" at tp.right+2.1,fn.bottom-0.25 {.bold @thr}
 
-grid mtp box 3x1 at tp.cx,tp.cy+0.19 cell 0.16 space 0.09 {.accent .sharp @marks}
-grid mfn box 1x1 at fn.cx,fn.cy+0.19 cell 0.16 space 0.09 {.accent .sharp @marks}
-grid mfp box 2x1 at fp.cx,fp.cy+0.19 cell 0.16 space 0.09 {.tone-2 .sharp @marks}
-grid mtn box 4x1 at tn.cx,tn.cy+0.19 cell 0.16 space 0.09 {.tone-2 .sharp @marks}
+# Der Merksatz gehört zum letzten Beat und damit auch auf das Handout: der
+# Zusammenhang, den die Folie danach als ROC-Kurve zeichnet.
+text tnote "moving t moves both rates" at rates.cx,rates.bottom+0.6 {.hand}
 
-# Der Schwellwert steht senkrecht auf der Spaltengrenze und trifft den
-# Doppelpfeil, über den er verschoben wird; das "t" bekommt einen eigenen
-# Grund und stanzt die Kreuzung aus.
-edge tp.right,tp.top-0.62 -- tp.right,fp.bottom+0.5 {#thr .thick @thr}
-edge tp.left,fp.bottom+0.5 -> fn.right,fp.bottom+0.5 {#sweep .both-heads .muted @thr}
-text tlbl "t" at tp.right,fp.bottom+0.5 pad 0.12 {.paper .hand @thr}
-text rates "TP rate: 0.75 / FP rate: 0.33" below fp gap 0.95 align left {.left @thr}
-
-step matrix
-  show @matrix
-step outcome
-  show @marks
 step threshold
   show @thr
   emph thr
+  label fn "FN\n1"
+  label tp "TP\n3"
+  label tn "TN\n4"
+  label fp "FP\n2"
+step stricter
+  move tlbl by 2.22,0
+  label fn "FN\n2"
+  label tp "TP\n2"
+  label tn "TN\n6"
+  label fp "FP\n0"
+  label rates "TP rate: 0.50 / FP rate: 0.00"
+step lenient
+  move tlbl by -4.44,0
+  label fn "FN\n0"
+  label tp "TP\n4"
+  label tn "TN\n2"
+  label fp "FP\n4"
+  label rates "TP rate: 1.00 / FP rate: 0.67"
+step tradeoff
+  move tlbl by 2.22,0
+  show tnote
+  label fn "FN\n1"
+  label tp "TP\n3"
+  label tn "TN\n4"
+  label fp "FP\n2"
+  label rates "TP rate: 0.75 / FP rate: 0.33"
 :::
 
-**Die vier Felder sind kein Vokabular, sondern eine Auszählung.** Zehn beschriftete Pakete laufen durch den Sensor: von den vier Angriffen erkennt er drei (TP) und verpasst einen (FN), von den sechs harmlosen Paketen meldet er zwei fälschlich (FP). Daraus werden die beiden Kennzahlen, die den Rest des Kapitels tragen – TP rate 0.75 und FP rate 0.33. Der Schwellwert $t$ ist der Strich zwischen den Spalten: schiebt man ihn, wandern Pakete von rechts nach links, und beide Raten steigen zugleich.
+**Die vier Felder sind kein Vokabular, sondern eine Auszählung.** Zehn beschriftete Pakete laufen durch den Sensor, aufgereiht nach dem Anomaliewert, den er ihnen gibt; $t$ ist der Strich auf dieser Achse, und alles rechts davon meldet er als Alarm. Steht $t$ in der Mitte, erkennt er von den vier Angriffen drei (TP) und verpasst einen (FN), von den sechs harmlosen Paketen meldet er zwei fälschlich (FP) – das sind die beiden Kennzahlen, die den Rest des Kapitels tragen: TP rate 0.75 und FP rate 0.33. Schiebt man $t$ nach rechts, schweigt der Sensor öfter und beide Raten fallen (0.50 und 0.00); schiebt man ihn nach links, steigen beide (1.00 und 0.67). Kein Wert von $t$ senkt die eine, ohne die andere mitzunehmen.
 
 ## figure: Receiver operating characteristic (ROC) curves {.full #ns-b60}
 
