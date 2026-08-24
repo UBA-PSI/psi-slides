@@ -66,13 +66,23 @@ const VIEW_DEFAULTS = {
 function diagramImageRefs(src) {
   const refs = [];
   let inDiagram = false;
+  let inFence = false;
   for (const line of String(src).split('\n')) {
+    // Fence-aware, like the block matchers in parseLecture and lintDiagram:
+    // a ::: diagram inside a code fence is a syntax example, and collecting
+    // its image lines converted (and with --optimize-images deleted) files
+    // the lecture never actually references.
+    if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; continue; }
+    if (inFence) continue;
     if (!inDiagram) {
       if (/^:::\s+diagram\b/.test(line)) inDiagram = true;
       continue;
     }
     if (/^:::\s*$/.test(line)) { inDiagram = false; continue; }
-    const m = line.trim().match(/^image\s+\S+\s+(\S+)/);
+    // `image <name> <asset>`, and a grid of images – `grid <name> image
+    // <asset> CxR` – which carries its asset one token further along.
+    const m = line.trim().match(/^image\s+\S+\s+(\S+)/)
+      || line.trim().match(/^grid\s+\S+\s+image\s+(\S+)/);
     if (m) refs.push(m[1]);
   }
   return refs;
@@ -110,18 +120,24 @@ const DENSITY_BUDGET = {
 // module would pull the whole compiler in behind it, and lint.js stays
 // runnable without the Markdown/Shiki stack precisely because it does not.
 //
-// The four dg*Name helpers are the one bend in that rule, and they are still
-// a table: what `bars` and `grid` call the elements they expand into, indexed
-// rather than listed. This file has to agree with the compiler exactly - a
-// `brace over f-0,f-1,f-2` names elements no line of the source declares -
+// The dg*Name helpers bend that rule, and they are still a table: what
+// `bars` and `grid` call the elements they expand into, indexed rather than
+// listed. This file has to agree with the compiler exactly – a
+// `brace over f-0,f-1,f-2` names elements no line of the source declares –
 // and writing the scheme out twice is the duplication importing the tables
-// was meant to end. They are one-liners with no dependencies of their own,
-// so nothing comes in behind them.
+// was meant to end. `rejectShapeOn` and `rejectAlignOn` ride the same bend
+// for the same reason: they ARE the rule for which class may sit on which
+// kind, and a second spelling of it here is how this gate came to pass
+// lines the build refuses – lectures/network-security is linted by CI but
+// never built, so such a line merged green and failed every later build.
+// All of them are one-liners over the tables, with nothing behind them.
 import {
   DG_KEYWORDS, DG_STEP_OPS, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES,
   DG_KIND_OPTS, DG_BRACE_SIDES, DG_ALIGN_X, DG_ALIGN_Y, DG_SCALAR_X,
   DG_SCALAR_Y, DG_DEFAULT_KINDS, DG_ANCHORS, DG_DEFINES, DG_GRID_KINDS, DG_GRID_MAX,
-  DG_PLOT_MAX_TICKS, dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks,
+  DG_PLOT_MAX_TICKS, DG_POINT_DIRS, DG_POINTED, DG_SHAPE_CLASSES, DG_RESERVED_IDS,
+  dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks,
+  rejectShapeOn, rejectAlignOn,
 } from './diagram-core.mjs';
 
 const REVEAL_PCT_WARN = 0.5;
@@ -242,14 +258,18 @@ function lintDiagram(block, add, fmLines, lectureTags) {
   const setMoves = [];           // `move @tag to …`, checked once tags are known
   let inStep = false;
 
-  const attrsOf = (text, ln) => {
+  // `carries` is false on a `default` or `step` line: a tag written there is
+  // a *use*, and the compiler's lecture-tag rule still wants some element to
+  // carry it – registering it here as carried let exactly that omission
+  // through the gate.
+  const attrsOf = (text, ln, carries = true) => {
     const m = text.match(/\{([^}]*)\}/);
     const out = { id: null, classes: [], tags: [] };
     if (!m) return out;
     for (const tok of m[1].trim().split(/\s+/).filter(Boolean)) {
       if (tok.startsWith('#')) out.id = tok.slice(1);
       else if (tok.startsWith('@')) {
-        if (tok.length > 1) { tags.add(tok.slice(1)); out.tags.push(tok.slice(1)); }
+        if (tok.length > 1) { if (carries) tags.add(tok.slice(1)); out.tags.push(tok.slice(1)); }
         else add(ln, 'error', 'bad-diagram-attribute', 'an empty @tag means nothing');
       }
       else if (tok.startsWith('.')) {
@@ -286,6 +306,12 @@ function lintDiagram(block, add, fmLines, lectureTags) {
     if (!/^[A-Za-z_][\w-]*$/.test(name)) {
       add(ln, 'error', 'bad-diagram-name',
           `'${name}' is not a usable name – letters, digits, _ and - only, starting with a letter`);
+      return;
+    }
+    if (DG_RESERVED_IDS.has(name)) {
+      add(ln, 'error', 'bad-diagram-name',
+          `'${name}' is reserved – it already names a property every JavaScript object has, `
+          + 'and the step runtime keys its tables by element id');
       return;
     }
     if (defined.has(name)) {
@@ -373,10 +399,51 @@ function lintDiagram(block, add, fmLines, lectureTags) {
   for (const { text, ln } of block.lines) {
     const trimmed = text.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
-    const noAttr = trimmed.replace(/\{[^}]*\}/g, ' ');
-    const words = noAttr.replace(/"[^"]*"/g, ' ').trim().split(/\s+/).filter(Boolean);
+    // Quotes first, then the tail: a quoted label may itself contain braces
+    // (`"H = {0,1}^n"` is ordinary set notation), and matching the tail on
+    // the raw line read that label as an attribute tail – this gate then
+    // refused source the build accepts, which is the one direction a linter
+    // must never be wrong in.
+    const noQuoted = trimmed.replace(/"(?:\\.|[^"\\])*"/g, ' ');
+    const words = noQuoted.replace(/\{[^}]*\}/g, ' ').trim().split(/\s+/).filter(Boolean);
     const head = words[0];
-    const attrs = attrsOf(trimmed, ln);
+    const attrs = attrsOf(noQuoted, ln, head !== 'default' && head !== 'step');
+
+    // The kind-gated class refusals, called exactly the way the compiler
+    // calls them rather than re-stated. dgErr pushes {line, msg}; relabel
+    // into this file's report.
+    {
+      const gate = [];
+      if (head === 'bars' || head === 'grid') {
+        rejectShapeOn(head === 'grid' ? (words[2] || 'box') : 'box', attrs.classes, ln, gate);
+      } else if (head === 'edge') {
+        rejectAlignOn('edge', attrs.classes, ln, gate);
+      } else if (head === 'container' || head === 'brace') {
+        rejectShapeOn(head, attrs.classes, ln, gate);
+        rejectAlignOn(head, attrs.classes, ln, gate);
+      } else if (head === 'dot' || head === 'text' || head === 'image') {
+        rejectShapeOn(head, attrs.classes, ln, gate);
+      } else if (head === 'default' && words[1]) {
+        rejectShapeOn(words[1], attrs.classes, ln, gate);
+        rejectAlignOn(words[1], attrs.classes, ln, gate);
+      }
+      // `point` aims an outline. The direction is a closed list, and an
+      // outline the line itself declares either has a point or has not –
+      // both answerable here. One that could only come from a default layer
+      // is left to the build, the same restraint the `.fit` check shows.
+      const pi = words.indexOf('point');
+      if (pi > 0 && DG_KEYWORDS.has(head)) {
+        const dir = words[pi + 1] || '';
+        if (!DG_POINT_DIRS.has(dir)) {
+          gate.push({ line: ln, msg: `point expects ${[...DG_POINT_DIRS].join(' / ')}, got "${dir}"` });
+        }
+        const own = attrs.classes.find((c) => DG_SHAPE_CLASSES.has(c));
+        if (own && !DG_POINTED.has(own)) {
+          gate.push({ line: ln, msg: `"point" aims an outline that has a point, and .${own} has none` });
+        }
+      }
+      for (const e of gate) add(e.line, 'error', 'diagram-class-on-kind', e.msg);
+    }
 
     if (head === 'align' || head === 'spread') {
       const axis = words[1];
@@ -478,7 +545,7 @@ function lintDiagram(block, add, fmLines, lectureTags) {
         xt.forEach((_, i) => { define(dgPlotName(id, 'gx', i), ln); define(dgPlotName(id, 'xt', i), ln); });
         yt.forEach((_, i) => { define(dgPlotName(id, 'gy', i), ln); define(dgPlotName(id, 'yt', i), ln); });
       }
-      const strings = [...noAttr.matchAll(/"([^"]*)"/g)].map(m => m[1]);
+      const strings = [...trimmed.matchAll(/"([^"]*)"/g)].map(m => m[1]);
       if (strings[0]) define(dgPlotName(id, 'xl'), ln);
       if (strings[1]) define(dgPlotName(id, 'yl'), ln);
       for (let k = 2; k < words.length; k++) {
@@ -492,7 +559,7 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       const id = words[1];
       define(id, ln);
       if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: id, tags: attrs.tags, ln });
-      const strings = [...noAttr.matchAll(/"([^"]*)"/g)].map(m => m[1]);
+      const strings = [...trimmed.matchAll(/"([^"]*)"/g)].map(m => m[1]);
       if (head === 'bars') {
         const n = (strings[0] || '').split(',').map(s => s.trim()).filter(Boolean).length;
         if (!n) {

@@ -291,6 +291,14 @@ export const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', '
 // second hand-written copy of the vocabulary is exactly what this module
 // exists to stop.
 export const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container', 'bars', 'grid', 'plot']);
+// Names an element cannot have, and it is a computed table rather than a
+// list: the live runtime keys plain objects by element id (a frame's vis /
+// cls / geom straight from JSON, the target cache, the kinds map), so an id
+// that already means something on every JavaScript object – `constructor`,
+// `toString`, `__proto__` – reads a function out of the prototype where the
+// runtime expected its own entry, and the diagram breaks at step time with
+// nothing at build time to say why. Refused at parse instead.
+export const DG_RESERVED_IDS = new Set(Object.getOwnPropertyNames(Object.prototype));
 // Scalar coordinates of an element, for use where a single number would go.
 // `left`/`right` are x, `top`/`bottom` are y, `cx`/`cy` the centres. Naming
 // the wrong axis is an error rather than a silent transposition.
@@ -730,8 +738,15 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
     // as a member name: `between a,b pad 0.3` on a text used to parse `pad`
     // and `0.3` as two more elements and then complain that `0.3` is not
     // an anchor. The list is the placement's own options plus every
-    // trailing option the element statements accept.
-    const STOP = new Set(['frac', 'offset', 'w', 'h', 'r', 'pad', 'same', '->']);
+    // trailing option the element statements accept – *derived* from
+    // DG_KIND_OPTS rather than spelled out, because the spelled-out list
+    // predated `point`, `space`, `cell`, `step`, `x` and `y`, and each of
+    // those written after a `between` was read as a member name and refused
+    // with "expects exactly two elements". An order-sensitive refusal of
+    // valid syntax is the invisible kind of failure this grammar keeps
+    // closing; a derived set cannot drift the same way again.
+    const STOP = new Set(['frac', 'offset', 'gap', 'align', 'same', '->', 'point',
+      ...Object.values(DG_KIND_OPTS).flat()]);
     let mEnd = k + 1;
     while (mEnd < toks.length && !STOP.has(toks[mEnd].v)) mEnd++;
     const refs = toks.slice(k + 1, mEnd).map(x => x.v).join(',')
@@ -823,8 +838,13 @@ export function dgParseCoord(tok, axis, errors, lineNo, what) {
   if (p && Number.isFinite(Number(p[2]))) return { ref: p[1], data: Number(p[2]), axis };
   const m = raw.match(/^([A-Za-z_][\w-]*)\.([a-z]+)([+-][\d.]+)?$/);
   if (!m) {
+    // A plain decimal, spelled out. Number() alone let two things through
+    // that no author means: Number('') is 0, so the empty half of "at 3,"
+    // silently placed the element on an axis origin, and Number('0x10') is
+    // 16. A grammar whose stated rule is closing silent failures cannot
+    // have its most basic literal be one.
     const n = Number(raw);
-    if (!Number.isFinite(n)) {
+    if (!/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(raw) || !Number.isFinite(n)) {
       dgErr(errors, lineNo, `${what} expects a number, an element coordinate like "x0.cy", `
         + `or a value in a plot like "roc@0.35" – got "${raw}"`);
       return { unit: 0 };
@@ -965,7 +985,10 @@ export function readGridOpts(head, id, rest0, lineNo, errors) {
   // the placement and the other after it, with no error either way and a
   // fivefold difference in the drawing. The distance between repetitions
   // inside one statement is a different measurement and gets its own word.
-  const allowed = head === 'bars' ? ['w', 'h', 'space'] : ['cell', 'space'];
+  // From DG_KIND_OPTS, not spelled out again: the editor's panel and the
+  // linter both read that table, and a second copy here is the one that
+  // would drift.
+  const allowed = DG_KIND_OPTS[head];
   let k = 0;
   while (k < rest.length) {
     const key = rest[k].v;
@@ -1441,7 +1464,20 @@ export function createSpanTable(model, body) {
     const el = byId.get(id);
     if (!el || !el.span) return null;
     const toks = toksOf(el);
-    const find = (word) => toks.findIndex(x => !x.q && !x.attr && x.v === word);
+    // An option keyword is found by its word, and the word alone is not
+    // enough: `w`, `h`, `x`, `y`, `gap`, `pad` are all natural element
+    // names, and nothing forbids them. On `box e "East" right of w gap 1`
+    // a bare scan took the reference `w` for the width keyword and a panel
+    // resize spliced the new width over the `gap` that followed it – a
+    // structured edit corrupting the very line it was asked to preserve.
+    // Two guards close that: the kind word and the element's own name
+    // (positions 0 and 1) are never keywords, and neither is a token that
+    // sits in a reference slot – right after the word that introduces one,
+    // or after a comma-carrying member of an `over`/`between` list.
+    const REF_INTRO = new Set(['of', 'below', 'above', 'as', 'over', 'between', '->', '<-', '--']);
+    const find = (word) => toks.findIndex((x, i) => i >= 2 && !x.q && !x.attr && x.v === word
+      && !(toks[i - 1] && !toks[i - 1].q && !toks[i - 1].attr
+        && (REF_INTRO.has(toks[i - 1].v) || toks[i - 1].v.endsWith(','))));
 
     if (attr === 'line') return hit(el.span[0], el.span[1], src.slice(el.span[0], el.span[1]));
 
@@ -1719,7 +1755,7 @@ export function createSpanTable(model, body) {
 // the disk or know about the page. Node passes its fs-based versions; the
 // browser passes lookups into a table the build emitted beside the diagram.
 //
-//   resolveImage(ref)   -> {abs, href, remote} | null
+//   resolveImage(ref)   -> {abs, href, remote} | {video, href} | null
 //                          Node: the assets/ lookup ![](fig-id) already uses.
 //                          Browser: the asset is already resolved – the
 //                          compiled SVG carries the data URI – so this is a
@@ -1792,6 +1828,14 @@ export function createDiagramCompiler(env = {}) {
       // coordinate, and one containing @ or # from a tag or an id token.
       if (!/^[A-Za-z_][\w-]*$/.test(id)) {
         dgErr(errors, lineNo, `"${id}" is not a usable name – letters, digits, _ and - only, starting with a letter`);
+        return;
+      }
+      // See DG_RESERVED_IDS: these names read prototype members out of the
+      // runtime's plain-object frame tables, and the failure would surface
+      // at step time in the browser with nothing here to explain it.
+      if (DG_RESERVED_IDS.has(id)) {
+        dgErr(errors, lineNo, `"${id}" is reserved – it already names a property every JavaScript object has, `
+          + `and the step runtime keys its tables by element id. Pick another name.`);
         return;
       }
       if (model.byId.has(id)) dgErr(errors, lineNo, `duplicate element id "${id}"`);
@@ -2223,6 +2267,11 @@ export function createDiagramCompiler(env = {}) {
             dgErr(errors, lineNo, `grid ${id}: cannot find "${src}" – expected assets/${src}.{svg,png,jpg,…}, a path, or an https URL`);
             continue;
           }
+          if (asset.video) {
+            dgErr(errors, lineNo, `grid ${id}: "${asset.href}" is a clip, and a diagram draws stills – `
+              + `an SVG image element cannot play video. Put the clip in the chunk body as ![](clip-id).`);
+            continue;
+          }
           aspect = asset.abs ? imageAspect(asset.abs) : null;
         }
         const dimsAt = isImg ? 4 : 3;
@@ -2298,7 +2347,10 @@ export function createDiagramCompiler(env = {}) {
         if (isImage && src) {
           const found = resolveImage(src);
           if (!found) dgErr(errors, lineNo, `image ${id}: cannot find "${src}" – expected assets/${src}.{svg,png,jpg,…}, a path, or an https URL`);
-          else { node.asset = found; node.aspect = found.abs ? imageAspect(found.abs) : null; }
+          else if (found.video) {
+            dgErr(errors, lineNo, `image ${id}: "${found.href}" is a clip, and a diagram draws stills – `
+              + `an SVG image element cannot play video. Put the clip in the chunk body as ![](clip-id).`);
+          } else { node.asset = found; node.aspect = found.abs ? imageAspect(found.abs) : null; }
         }
         while (k < rest.length) {
           const key = rest[k].v;
@@ -2410,7 +2462,17 @@ export function createDiagramCompiler(env = {}) {
           tags: attrs.tags,
           via: [], line: lineNo, span,
         };
-        if (body0[arrowAt].v === '--' && !edge.classes.includes('no-head')) edge.classes.push('no-head');
+        // `--` means headless, expressed through the same class the emitter
+        // already reads – but the injection is *derived from the arrow
+        // token*, not authored, and `autoClasses` says so. Without the mark
+        // the editor rebuilt attribute tails from `classes` and wrote
+        // `.no-head` into every `--` line it touched, and its arrowheads
+        // row edited a class the author never wrote instead of the token
+        // that actually carries the meaning.
+        if (body0[arrowAt].v === '--' && !edge.classes.includes('no-head')) {
+          edge.classes.push('no-head');
+          edge.autoClasses = ['no-head'];
+        }
         // Waypoints are introduced by `via`, once, and it is not optional: every
         // other modifier in this grammar is a keyword followed by its values,
         // and a bare `1,2` hanging off the end of an edge read like a typo even
@@ -2665,7 +2727,10 @@ export function createDiagramCompiler(env = {}) {
         const w = (nw != null ? nw : 1) * uw;
         if (nh != null) return { w, h: nh * uh };
         if (node.aspect) return { w, h: w * node.aspect };
-        dgWarn(`image ${node.id}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
+        // Only when the asset resolved at all: an unresolved (or refused)
+        // one already has an error naming the real problem, and a warning
+        // about proportions on top of it points the author the wrong way.
+        if (node.asset) dgWarn(`image ${node.id}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
         return { w, h: w };
       }
       const font = fitted(nw != null ? nw * uw : 0, nh != null ? nh * uh : 0);

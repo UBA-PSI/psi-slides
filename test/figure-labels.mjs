@@ -114,5 +114,40 @@ export async function run({ page, errors, report, walkTo }) {
   ok(!verdicts.edgeAcross && !verdicts.nodeAcross && !verdicts.nodeDown,
     'and the three that do act are still allowed', JSON.stringify(verdicts));
 
+  // ── the review's parser holes, closed and pinned ──
+  //
+  // Each of these was a silent failure or an order-sensitive refusal: a
+  // half-empty coordinate parsed as 0, an id that shadows Object.prototype
+  // broke the runtime's frame tables at step time, `point` written after a
+  // `between` was consumed as a member name, and the span table took an
+  // element named `w` for the width keyword and let a panel edit splice
+  // over the wrong token.
+  const holes = await page.evaluate(() => {
+    const mk = () => window.PSI_DG.createDiagramCompiler({
+      resolveImage: () => null, imageAspect: () => 1, warn: () => {},
+      escapeHtml: (s) => String(s), assetMarkup: () => '',
+    });
+    const errs = (src) => mk().parseDiagramSource(src, '').errors.length;
+    const spanProbe = () => {
+      const src = 'box w "West" at 0,0\nbox e "East" right of w gap 1';
+      const { model } = mk().parseDiagramSource(src, '');
+      const t = window.PSI_DG.createSpanTable(model, src);
+      const misW = t.spanOf('e', 'w');            // must not hit the reference
+      const own = t.spanOf('w', 'w');             // must not hit the element's own name
+      return !(misW && misW.present) && !(own && own.present);
+    };
+    return {
+      halfCoord: errs('box a "x" at 3,') > 0,
+      hexLiteral: errs('box a "x" at 0x10,1') > 0,
+      reservedId: errs('box constructor "x" at 0,0') > 0,
+      betweenPoint: errs('box a "x" at 0,0\nbox b "y" at 2,0\nbox c "go" between a,b point right {.chevron}') === 0,
+      spanGuard: spanProbe(),
+    };
+  });
+  ok(holes.halfCoord && holes.hexLiteral, 'a half-empty or hex coordinate is an error, not a silent 0', JSON.stringify(holes));
+  ok(holes.reservedId, 'an id that shadows Object.prototype is refused', JSON.stringify(holes));
+  ok(holes.betweenPoint, 'the newer options may follow a between placement', JSON.stringify(holes));
+  ok(holes.spanGuard, 'spanOf never mistakes a name or reference for an option keyword', JSON.stringify(holes));
+
   ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }
