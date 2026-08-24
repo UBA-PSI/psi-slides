@@ -166,8 +166,12 @@ They combine with `.turn`, which is how a firewall bar gets a label at all: the
 word reads up the bar, and `.top` decides which end it starts from.
 
 With more than one line they move the *block*, so `.bottom` puts the last line
-on the inner edge. They apply to a box, a dot and a free text; an edge label
-takes `.left` / `.right` only, since it is carried at the middle of its line.
+on the inner edge. They apply to a box, a dot and a free text. On an **edge**
+all four name which side of the line the label sits on: `.top` / `.bottom`
+beside a horizontal edge, `.left` / `.right` beside a vertical one, and
+`.turn` stands the words on end beside it. Which pair applies depends on the
+direction the edge ended up running, so naming the pair that runs *along* it
+is a build warning rather than a parse error.
 A container's caption and a brace's label are placed by their own statement, so
 writing one of the four words there is an error rather than a class that
 quietly does nothing.

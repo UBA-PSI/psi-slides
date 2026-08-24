@@ -9,6 +9,14 @@ from building the same way is a major version.
 
 ### Added
 
+- **An edge label can sit on either side of its line.** All four alignment
+  words now name a side: `.top` / `.bottom` beside a horizontal edge,
+  `.left` / `.right` beside a vertical one, and `.turn` stands the words on
+  end beside it. Two parallel edges can therefore carry a label each without
+  the reader having to guess which line the lower one belongs to. Which pair
+  applies depends on the direction the edge ended up running, so naming the
+  pair that runs along it is a build warning rather than a parse error.
+
 - **`::: diagram` draws four more outlines.** `.hex`, `.chevron`, `.wedge`
   and `.cross` join `.round` and `.sharp` in one slot – a protocol message
   that is an arrow, an IDS sensor that is a hexagon, a size comparison that is
@@ -359,6 +367,12 @@ from building the same way is a major version.
   11% on the bundled faces and never clips.
 
 ### Fixed
+
+- **`.muted` and `.dim` were hard to tell apart.** They answer different
+  questions - scaffolding versus temporarily out of the way - but a lighter
+  grey alone read as "slightly faint" either way. `.muted` is now drawn
+  thinner as well as lighter, which is what supporting apparatus should look
+  like; `.dim` is unchanged at a third of full strength.
 
 - **`.mono` never applied to a diagram label.** The class resolved, emitted
   its marker on the `<text>` element, and changed nothing: the rule that

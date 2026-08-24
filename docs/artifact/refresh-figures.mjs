@@ -103,8 +103,8 @@ function diagramBlock(md, chunkId) {
 }
 
 // ── build ────────────────────────────────────────────────────────────────
-function build(flag) {
-  execFileSync('node', [path.join(ROOT, 'build.js'), LECTURE, flag], {
+function build(flag, src = LECTURE) {
+  execFileSync('node', [path.join(ROOT, 'build.js'), src, flag], {
     cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'],
   });
 }
@@ -211,9 +211,26 @@ for (const { chunk, prefix } of DEMOS) {
   say('  ' + chunk + ': ' + data.n + ' beats [' + data.names.join(', ') + '], rail and source in step');
 }
 
-// ── the gallery cards carry the source of the lecture they came from ─────
+// ── the gallery: the figures themselves, then their source ───────────────
+// These were screenshots for a while, which meant they showed whatever the
+// compiler did on the day the screenshot was taken. A fix to the compiler
+// could not reach them, and one did not: `.mono` labels went on rendering in
+// the sans face in the gallery long after the rule was corrected. They are
+// compiled figures now, so they follow this page's theme and cannot go stale.
+build('--print-only', NETSEC);
+const netsecHtml = fs.readFileSync(path.join(ROOT, 'lectures/network-security/print.html'), 'utf8');
 const netsec = fs.readFileSync(NETSEC, 'utf8');
 const slugs = [...page.matchAll(/<pre data-cardsrc="([a-z0-9-]+)">/g)].map((m) => m[1]);
+
+let gal = 0;
+for (const slug of slugs) {
+  const { svg } = svgFor(netsecHtml, slug, 'gal' + slug.replace(/-/g, ''));
+  page = replaceBetween(page, '<div class="shot" data-shot="' + slug + '">', '</div><!--/shot-->',
+    svg, 'gallery figure ' + slug);
+  gal++;
+}
+say('  ' + gal + ' gallery figures compiled from lectures/network-security');
+
 for (const slug of slugs) {
   const block = diagramBlock(netsec, slug);
   page = replaceBetween(page, '<pre data-cardsrc="' + slug + '">', '</pre>',
@@ -226,6 +243,21 @@ for (const slug of slugs) {
   page = page.slice(0, lnAt) + '<span class="ln">' + block.split('\n').length + ' lines' + page.slice(lnEnd);
 }
 say('  ' + slugs.length + ' gallery card sources refreshed from lectures/network-security');
+
+// ── the compiler's own stylesheet ────────────────────────────────────────
+// This was a hand-made copy for a while, and it drifted the first time the
+// stylesheet was corrected: `.mono` labels kept rendering in the sans face
+// here for a whole commit after the rule that caused it had been fixed in
+// build.js. It is lifted from the same build as everything else now.
+const CSS_START = '.figure-diagram { margin: 0.7em 0; }';
+const CSS_END = '@media (prefers-reduced-motion: reduce) {\n  .psi-diagram .dg-el { transition: none; }\n}';
+const ca = live.indexOf(CSS_START);
+const cb = live.indexOf(CSS_END, ca);
+if (ca < 0 || cb < 0) throw new Error('diagram stylesheet not found in the built view');
+const dgCss = live.slice(ca, cb + CSS_END.length);
+if (!/\.psi-diagram \.dg-lbl text/.test(dgCss)) throw new Error('stylesheet slice looks wrong');
+page = replaceBetween(page, '/* dg-css-start */', '/* dg-css-end */', '\n' + dgCss + '\n', 'diagram stylesheet');
+say('  diagram stylesheet ' + dgCss.length + ' bytes, lifted');
 
 // The runtime, verbatim, found by marker and syntax-checked before it is
 // written. initDiagrams is the last function in the block, and the only line

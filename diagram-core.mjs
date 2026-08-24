@@ -963,10 +963,13 @@ export function rejectAlignOn(kindWord, classes, lineNo, errors) {
     brace: 'a brace\'s label sits beside the spine, on the side the brace was given',
     edge: 'an edge\'s label is carried at the middle of the line',
   }[kindWord];
+  // On an edge all four now name a side of the line, so none of them is
+  // refused here. Which pair can pick a side depends on the edge's direction,
+  // and that is not known until it has been routed, so the check for naming
+  // the pair that runs along the line lives in the layout instead.
+  if (kindWord === 'edge') return;
   for (const c of classes || []) {
-    const across = DG_ALIGN_ACROSS.includes(c);
-    if (!across && !DG_ALIGN_DOWN.includes(c)) continue;
-    if (kindWord === 'edge' && across) continue;   // this one the anchor honours
+    if (!DG_ALIGN_ACROSS.includes(c) && !DG_ALIGN_DOWN.includes(c)) continue;
     dgErr(errors, lineNo, `.${c} places a label in the room its element gives it, and `
       + `${why} – the class would resolve and move nothing.`);
   }
@@ -3236,9 +3239,44 @@ export function createDiagramCompiler(env = {}) {
         const { p, dir } = dgPolyPoint(pts, 0.5);
         const font = dgFontFor(st.classes);
         const m = dgMeasure(st.label, font, st.classes.has('mono'));
-        const off = m.h / 2 + 6;
-        ext.set(e.id + '--l', [m.w, m.h]);
-        put(e, e.id + '--l', [p[0] + dir[1] * off, p[1] - dir[0] * off, dgTurnOf(st.classes)]);
+        const turned = dgTurnOf(st.classes);
+        const vertical = Math.abs(dir[1]) > Math.abs(dir[0]);
+        // The gap has to clear whatever the label measures *along the normal*,
+        // which is its height beside a horizontal line and its width beside a
+        // vertical one - and the other way round again when the label is
+        // turned. Using the height for all four put a 90px label straddling
+        // the vertical line it belonged to.
+        const off = ((vertical !== turned) ? m.w : m.h) / 2 + 6;
+        // Which side of the line the label sits on. The offset runs along the
+        // line's normal, so the pair of words that can pick a side is the pair
+        // lying across the line: top/bottom on a mostly horizontal edge,
+        // left/right on a mostly vertical one. The other pair would run along
+        // the line and could not move the label, so it is reported instead of
+        // ignored. This cannot join the parse-time gate with the other
+        // alignment checks, because which pair applies is not known until the
+        // edge has been routed.
+        // The normal, turned so the positive side is the same side of the page
+        // whichever way the edge travels. Without this a right-to-left arrow
+        // put its label below the line while every left-to-right one put it
+        // above, purely because of the order its two ends were named.
+        let nx = dir[1];
+        let ny = -dir[0];
+        if (vertical ? nx < 0 : ny > 0) { nx = -nx; ny = -ny; }
+        const side = vertical
+          ? (st.classes.has('left') ? -1 : 1)
+          : (st.classes.has('bottom') ? -1 : 1);
+        for (const c of (vertical ? ['top', 'bottom'] : ['left', 'right'])) {
+          if (!st.classes.has(c)) continue;
+          dgWarn(`edge ${e.id}: .${c} names a direction this edge runs along, so it cannot `
+            + `move the label. The edge is ${vertical ? 'vertical' : 'horizontal'} - `
+            + `use ${vertical ? '.left or .right' : '.top or .bottom'}.`);
+        }
+        // The side is in the coordinate now, so the anchor must stay centred.
+        // Left as it was, dgLabelAnchor read the same .left that chose the
+        // side and shifted the text back across the line it had just cleared.
+        labelAnchor.set(e.id, 'middle');
+        ext.set(e.id + '--l', turned ? [m.h, m.w] : [m.w, m.h]);
+        put(e, e.id + '--l', [p[0] + nx * off * side, p[1] + ny * off * side, turned]);
       }
     }
 

@@ -109,10 +109,14 @@ export async function run({ page, errors, report, walkTo }) {
   });
   note('refused: ' + Object.entries(verdicts).filter(([, v]) => v).map(([k]) => k).join(' '));
   ok(verdicts.containerAcross && verdicts.containerDown
-     && verdicts.braceAcross && verdicts.braceDown && verdicts.edgeDown,
-    'the five combinations that could not act are refused', JSON.stringify(verdicts));
-  ok(!verdicts.edgeAcross && !verdicts.nodeAcross && !verdicts.nodeDown,
-    'and the three that do act are still allowed', JSON.stringify(verdicts));
+     && verdicts.braceAcross && verdicts.braceDown,
+    'the four combinations that could not act are refused', JSON.stringify(verdicts));
+  // All four words now name a side of an edge's line: top/bottom across a
+  // horizontal one, left/right across a vertical one. Which pair applies is
+  // only known once the edge is routed, so naming the other pair is a build
+  // warning rather than a parse error, and neither is refused here.
+  ok(!verdicts.edgeAcross && !verdicts.edgeDown && !verdicts.nodeAcross && !verdicts.nodeDown,
+    'and the four that do act are still allowed', JSON.stringify(verdicts));
 
   // ── the review's parser holes, closed and pinned ──
   //
