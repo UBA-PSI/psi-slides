@@ -43,6 +43,16 @@ It replaces, keyed by markers in the HTML:
 - **Fifteen gallery figures**, their fifteen listings and their fifteen beat
   rails, read out of `lectures/network-security/source.md`. The line count
   shown in each card comes from the same read.
+- **Six webfaces** &ndash; Literata, IBM Plex Sans and JetBrains Mono, upright
+  and italic, read out of `node_modules/@fontsource-variable/` and embedded as
+  `data:` URIs, 372 KB of base64. The page fetched them from Google Fonts
+  before, which is one request telling a third party who reads the
+  documentation of a tool whose whole promise is that its outputs fetch nothing
+  at run time. All three are SIL OFL 1.1, which permits the embedding and wants
+  the notice to travel along; the notice is emitted above the `@font-face`
+  rules. **The `-wght-` file, never the `-opsz-` one**: Literata ships both,
+  and the optical size axis is what made a 74px heading arrive as a Didone
+  while the lectures showed a text face.
 - **The diagram runtime**, inside `<script id="psi-dg-runtime">`, and **the
   compiler's stylesheet**, both copied unchanged from the same build. The page
   draws and steps with the code a projected lecture ships rather than a second

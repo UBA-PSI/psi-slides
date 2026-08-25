@@ -184,6 +184,48 @@ function replaceBetween(page, open, close, body, what) {
   return page.slice(0, a + open.length) + body + page.slice(b);
 }
 
+// ── webfonts, embedded ───────────────────────────────────────────────────
+// The page fetched its three families from Google Fonts, which is one request
+// to a third party telling them who reads the documentation of a tool whose
+// whole promise is that its own outputs fetch nothing at run time. The same
+// reasoning the project site already follows, and the same three families
+// build.js bundles into every lecture - read out of node_modules rather than
+// checked in, for the same reason bundledFaces() does: the packages carry
+// their own licence files and npm install is required anyway.
+//
+// All three are SIL OFL 1.1, which grants permission to "use, study, copy,
+// merge, embed, modify" and requires the notice to travel with the bytes.
+//
+// The wght file, never the opsz one. Literata ships both, and the optical
+// size axis is what made a 74px heading arrive as a Didone while the lectures
+// showed a text face - see the font-optical-sizing note on the headings.
+const PAGE_FONTS = [
+  ['Literata',      'literata',      'literata-latin-wght'],
+  ['IBM Plex Sans', 'ibm-plex-sans', 'ibm-plex-sans-latin-wght'],
+  ['JetBrains Mono','jetbrains-mono','jetbrains-mono-latin-wght'],
+];
+const OFL = `/* Literata, IBM Plex Sans and JetBrains Mono, each under the SIL Open
+   Font License 1.1 (https://openfontlicense.org). The licence permits this
+   embedding and requires the notice to travel with it. Full text:
+   node_modules/@fontsource-variable/<family>/LICENSE */`;
+
+function pageFontCss() {
+  const out = [OFL];
+  let bytes = 0;
+  for (const [family, pkg, stem] of PAGE_FONTS) {
+    for (const style of ['normal', 'italic']) {
+      const file = path.join(ROOT, 'node_modules/@fontsource-variable', pkg, 'files', stem + '-' + style + '.woff2');
+      if (!fs.existsSync(file)) throw new Error('font missing, run npm install: ' + file);
+      const b64 = fs.readFileSync(file).toString('base64');
+      bytes += b64.length;
+      out.push('@font-face{font-family:\'' + family + "';font-style:" + style +
+        ';font-weight:100 900;font-display:block;src:url(data:font/woff2;base64,' +
+        b64 + ") format('woff2')}");
+    }
+  }
+  return { css: out.join('\n'), bytes };
+}
+
 // ── run ──────────────────────────────────────────────────────────────────
 say('building ' + path.relative(ROOT, LECTURE));
 build('--print-only');
@@ -429,6 +471,10 @@ const dgCss = live.slice(ca, cb + CSS_END.length);
 if (!/\.psi-diagram \.dg-lbl text/.test(dgCss)) throw new Error('stylesheet slice looks wrong');
 page = replaceBetween(page, '/* dg-css-start */', '/* dg-css-end */', '\n' + dgCss + '\n', 'diagram stylesheet');
 say('  diagram stylesheet ' + dgCss.length + ' bytes, lifted');
+
+const pf = pageFontCss();
+page = replaceBetween(page, '/* fonts-start */', '/* fonts-end */', '\n' + pf.css + '\n', 'webfonts');
+say('  6 webfaces embedded, ' + Math.round(pf.bytes / 1024) + ' KB base64 (OFL-1.1)');
 
 // The runtime, verbatim, found by marker and syntax-checked before it is
 // written. initDiagrams is the last function in the block, and the only line
