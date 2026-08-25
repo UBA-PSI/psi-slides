@@ -460,6 +460,36 @@ dot  m1 at roc@0.1,roc@0.72 r 0.1 {.accent}
 box  m2 "" at roc@0.35,roc@0.95 w 0.09 h 0.26 {.cross .tone-3}
 :::
 
+## figure: sp4b the same two numbers, said the two ways {.full #sp4b}
+
+::: diagram {unit=150x52}
+# The same width, the other dimension said the two ways. w and h count grid
+# cells and a cell here is 150 by 52, so w 1.9 h 1.5 is 285 by 78 - two
+# numbers that look nearly square drawing something almost four times wider
+# than tall. aspect states the proportion the room sees instead.
+# Bottoms aligned rather than centres, so the two frames are compared from
+# the one edge they have in common.
+plot bad "" "" at 0,0 w 1.9 h 1.5 x 0,1 y 0,1 step 0.5
+text nb "w 1.9  h 1.5" below bad gap 0.4 {.small .muted}
+plot good "" "" right of bad gap 1.0 align bottom w 1.9 aspect 1:1 x 0,1 y 0,1 step 0.5
+text ng "w 1.9  aspect 1:1" below good gap 0.4 {.small .muted}
+:::
+
+## figure: sp4c three frames that match to the pixel {.full #sp4c}
+
+::: diagram {unit=150x52}
+# The second and third charts take their frame from the first, so the three
+# can be read against one another and, on paper, laid over one another.
+# `same as` is answered as the line is read - which is why the chart being
+# copied has to stand above the ones copying it.
+bars w1 "18,24,31,9" "M T W T" at 0,0 w 1.5 aspect 3:2 {.tone-3}
+text c1 "week 1" below w1 gap 0.35 {.small .muted}
+bars w2 "22,19,31,14" "M T W T" right of w1 gap 0.6 same as w1 {.tone-3}
+text c2 "week 2" below w2 gap 0.35 {.small .muted}
+bars w3 "9,12,7,31" "M T W T" right of w2 gap 0.6 same as w1 {.tone-3}
+text c3 "week 3" below w3 gap 0.35 {.small .muted}
+:::
+
 ## figure: sp5 one drawing, however often it appears {.full #sp5}
 
 ::: diagram {unit=150x52}
@@ -490,6 +520,18 @@ box c2 "c" right of b2 gap 0.2 same as c1 {.tone-3}
 box d2 "d" below d1 gap 0.55 same as d1 {.tone-4}
 spread x a2, b2, c2, d2
 text w2 "after spread x" right of d2 gap 0.4 {.small .muted}
+:::
+
+## figure: sp11 the cycle a spread can create {.full #sp11}
+
+::: diagram {unit=150x52}
+# The error message, drawn. `d right of c` makes d wait for c; a spread over
+# all four pins the two ends and moves everything between, so c waits for d.
+# The build names the loop rather than drawing something plausible.
+box c "c" at 0,0 w 0.75 h 0.6 {.tone-1}
+box d "d" right of c gap 2.0 same as c {.tone-4}
+edge c.top -> d.top via c.cx,c.top-0.7 d.cx,d.top-0.7 "d right of c" {.top .small .muted}
+edge d.bottom -> c.bottom via d.cx,d.bottom+0.7 c.cx,c.bottom+0.7 "spread pins d, so c waits for it" {.bottom .small .accent}
 :::
 
 ## figure: sp7 type that fits, and a line over the top {.full #sp7}
@@ -637,6 +679,9 @@ edge rt -- i2 {.elbow .muted}
 # own column headings and fills in under them. The closing beat is what a
 # printed copy gets, which is why the argument ends on the answers rather
 # than on whichever row happened to be lit when the lecture stopped.
+# The last row is written cell by cell on purpose: a beat reaches one cell as
+# readily as a whole row, so t-2-4 arrives on its own beat and is emphasised
+# there. Column first, row second, and row 0 is the heading.
 table t "Layer | Forgery | Countermeasure" at 0,0 col 1.15,1.55,1.7 h 0.44 {.clear .bare .left}
 "Link | ARP spoofing | Dynamic ARP inspection"
 "Network | IP source spoofing | Ingress filtering (BCP 38)"
@@ -650,7 +695,10 @@ step so-can-the-network-layer
 step and-the-transport-layer
   show @t-row-3
 step and-the-application-layer
-  show @t-row-4
+  show t-0-4, t-1-4
+step the-answer-to-that-one-is-a-standard
+  show t-2-4
+  emph t-2-4
 step every-one-of-them-has-an-answer
   style @t-col-2 {.tone-2}
 :::

@@ -27,12 +27,12 @@ node docs/artifact/refresh-figures.mjs --check   # report drift, write nothing (
 
 It replaces, keyed by markers in the HTML:
 
-- **Forty still figures** &ndash; the six tutorial steps, the twenty
-  wrong/right drawings, the tone row, the ten advanced specimens and the three
-  worked arrangements, taken from a `--print-only` build.
-- **Thirty-nine listings** &ndash; six tutorial steps (with the lines each step
+- **Forty-three still figures** &ndash; the six tutorial steps, the twenty
+  wrong/right drawings, the tone row, the thirteen advanced specimens and the
+  three worked arrangements, taken from a `--print-only` build.
+- **Forty-two listings** &ndash; six tutorial steps (with the lines each step
   adds marked by diffing it against the one before), twenty wrong/right
-  halves, ten specimens and three arrangements. Each is the block its drawing
+  halves, thirteen specimens and three arrangements. Each is the block its drawing
   was compiled from, so the two cannot disagree. The specimens are stripped of
   their comments and their fence; the three arrangements keep both, because the
   page says they are real source in the number of lines shown, and half a block

@@ -49,7 +49,11 @@ const BASICS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'];
 // The advanced specimens. Their listings were written by hand beside compiled
 // drawings until one of them lost the two lines that draw a marker and a point
 // visible in its own figure.
-const SPECS = ['sp1', 'sp2', 'sp3', 'sp10', 'sp8', 'sp9', 'sp4', 'sp5', 'sp6', 'sp7'];
+// sp4b/sp4c and sp11 are the two rows that used to be paragraphs four to six
+// of #sp4 and paragraph three of #sp6: one column of prose a screen and a half
+// tall beside one small plot. A claim about what a chart's proportions are, or
+// about a dependency that cannot be written, is a drawing like any other.
+const SPECS = ['sp1', 'sp2', 'sp3', 'sp10', 'sp8', 'sp9', 'sp4', 'sp4b', 'sp4c', 'sp5', 'sp6', 'sp11', 'sp7'];
 // The four arrangements a lecture keeps asking for. Their listings keep their
 // comments and their fence, unlike the specimens above: the page says they are
 // real source in the number of lines shown, and half a block is not that.
