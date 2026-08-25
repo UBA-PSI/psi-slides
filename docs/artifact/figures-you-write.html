@@ -6,7 +6,7 @@
 <title>Figures You Write</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 
 <style>
 /* ── tokens ───────────────────────────────────────────────────────────
@@ -18,18 +18,40 @@
 :root {
   --paper:    #f6f7f5;
   --ink:      #14171c;
-  --ink-soft: #5a6472;
+  --ink-soft: #485160;
   --rule:     #dcded9;
   --emph:     #0f5d57;
   --panel:    #eceee9;
   --shade:    #e3e6e0;
-  --no:       #b0402a;
+  --no:       #8e301b;
   --no-wash:  #f7ece8;
   --yes-wash: #e6efec;
 
-  --serif: 'Newsreader', Georgia, serif;
+  /* The three families psi-slides bundles into every built lecture
+     (BUNDLED_FONTS in build.js), named here so a figure lifted out of a
+     real build lands on the page in the face it was drawn in. The diagram
+     stylesheet below resolves --dg-serif / --dg-sans / --dg-mono through
+     these three, so the drawings follow the page rather than a second list. */
+  --serif: 'Literata', Georgia, serif;
   --sans:  'IBM Plex Sans', system-ui, sans-serif;
-  --mono:  'IBM Plex Mono', ui-monospace, monospace;
+  --mono:  'JetBrains Mono', ui-monospace, monospace;
+
+  /* ── the type ramp ────────────────────────────────────────────────
+     Six sizes, so a selector picks one off a list instead of inventing a
+     number. Everything smaller than --t-small is a label; --t-code is the
+     floor for anything a reader is meant to read a line of. */
+  --t-micro: 0.78rem;   /* 12.5px - eyebrows, slugs, tab labels */
+  --t-mini:  0.86rem;   /* 13.8px - table headings, the footer's paths */
+  --t-code:  0.8125rem; /* 13px   - every listing on the page */
+  --t-small: 0.975rem;  /* 15.6px - captions inside cards and grids */
+  --t-body:  1.0625rem; /* 17px   - secondary prose */
+  --t-lead:  1.125rem;  /* 18px   - the reading size */
+
+  /* The measure, stated as the number of characters that actually land on
+     a line. A 'ch' is the width of a zero and this sans averages about two
+     thirds of that per letter, so the 66ch this page used to set was ninety
+     characters wide - half again past what a reader tracks comfortably. */
+  --measure: 52ch;
 }
 :root:not([data-theme="light"]) {
   color-scheme: light dark;
@@ -38,7 +60,7 @@
   :root:not([data-theme="light"]) {
     --paper:    #14171a;
     --ink:      #e9ebe6;
-    --ink-soft: #939ba5;
+    --ink-soft: #a2aab4;
     --rule:     #2a2f35;
     --emph:     #4fb3a6;
     --panel:    #1b1f23;
@@ -51,7 +73,7 @@
 :root[data-theme="dark"] {
   --paper:    #14171a;
   --ink:      #e9ebe6;
-  --ink-soft: #939ba5;
+  --ink-soft: #a2aab4;
   --rule:     #2a2f35;
   --emph:     #4fb3a6;
   --panel:    #1b1f23;
@@ -66,27 +88,39 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--sans);
-  font-size: 17px;
-  line-height: 1.6;
+  font-size: var(--t-lead);
+  line-height: 1.65;
   margin: 0;
   -webkit-font-smoothing: antialiased;
 }
 .wrap { max-width: 1180px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 56px); }
-.measure { max-width: 66ch; }
+.measure { max-width: var(--measure); }
 
 h1, h2, h3 { font-family: var(--serif); font-weight: 400; text-wrap: balance; margin: 0; }
 h1 { font-size: clamp(2.6rem, 7vw, 4.6rem); line-height: 1.02; letter-spacing: -0.015em; }
 h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); line-height: 1.12; letter-spacing: -0.01em; }
-h3 { font-size: 1.16rem; line-height: 1.3; }
+h3 { font-size: 1.3rem; line-height: 1.28; }
+/* A heading obeys the measure too. Most of them are three words and never
+   reach it; the one that ran to a hundred and nine characters is the reason
+   the cap is written down. */
+h2, h3 { max-width: var(--measure); }
 p { margin: 0; }
+
+/* The secondary voice, wherever it is used. It was defined twice, once under
+   .rule and once under .prelude, and the seven of these that sit under a
+   stepped demo belong to neither - so they took the full width of the page
+   and ran to about a hundred and fifty characters a line. */
+.why { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; margin-top: 9px; max-width: var(--measure); }
+.why.after { margin-top: 16px; }
+.why b { color: var(--ink); font-weight: 500; }
 a { color: var(--emph); text-decoration-thickness: 1px; text-underline-offset: 2px; }
 a:focus-visible, button:focus-visible { outline: 2px solid var(--emph); outline-offset: 3px; border-radius: 2px; }
 code { font-family: var(--mono); font-size: 0.9em; }
 
 .eyebrow {
   font-family: var(--mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.14em;
+  font-size: var(--t-micro);
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
@@ -94,12 +128,12 @@ code { font-family: var(--mono); font-size: 0.9em; }
 /* ── masthead ─────────────────────────────────────────────────────── */
 header.top { padding: clamp(52px, 9vw, 104px) 0 0; }
 .top .stack { display: flex; flex-direction: column; gap: 22px; }
-.lede { font-size: clamp(1.1rem, 2vw, 1.32rem); line-height: 1.5; color: var(--ink); max-width: 60ch; }
+.lede { font-size: clamp(1.16rem, 2vw, 1.42rem); line-height: 1.5; color: var(--ink); max-width: 46ch; }
 .lede em { font-style: italic; font-family: var(--serif); }
 
 .tally {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
   gap: 1px;
   background: var(--rule);
   border: 1px solid var(--rule);
@@ -114,7 +148,7 @@ header.top { padding: clamp(52px, 9vw, 104px) 0 0; }
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.tally span { display: block; margin-top: 6px; font-size: 0.78rem; color: var(--ink-soft); line-height: 1.35; }
+.tally span { display: block; margin-top: 7px; font-size: var(--t-mini); color: var(--ink-soft); line-height: 1.4; }
 
 /* ── sections ─────────────────────────────────────────────────────── */
 section { padding: clamp(56px, 9vw, 100px) 0 0; }
@@ -132,11 +166,11 @@ section { padding: clamp(56px, 9vw, 100px) 0 0; }
 .spec .said { border-right: 1px solid var(--rule); display: flex; flex-direction: column; gap: 14px; }
 .spec .drawn { display: flex; align-items: center; justify-content: center; background: var(--paper); }
 .spec .drawn .psi-diagram { width: 100%; height: auto; max-height: 260px; }
-.spec h3 + p { color: var(--ink-soft); font-size: 0.94rem; }
+.spec h3 + p { color: var(--ink-soft); font-size: var(--t-body); }
 .spec pre {
   font-family: var(--mono);
-  font-size: 0.775rem;
-  line-height: 1.65;
+  font-size: var(--t-code);
+  line-height: 1.6;
   margin: 0;
   overflow-x: auto;
   color: var(--ink);
@@ -148,9 +182,15 @@ section { padding: clamp(56px, 9vw, 100px) 0 0; }
 .spec pre .srcln, .side pre .srcln, figure.card pre .srcln, .demo-src .srcln {
   display: block; padding-left: 2.4em; text-indent: -2.4em;
 }
+/* A blank line in a diagram block is the author's own break - it is what
+   separates the drawing from the steps that move it. Each source line is
+   emitted as its own block-level span, and an empty block box is zero
+   pixels tall, so every one of those breaks was silently dropped and the
+   longest listings arrived as a single wall of source. */
+pre .srcln:empty::before { content: "\00a0"; }
 .spec pre .kw { color: var(--emph); }
 .spec pre .cl { color: var(--ink-soft); }
-.spec pre .cm { color: var(--ink-soft); font-style: italic; opacity: 0.78; }
+.spec pre .cm { color: var(--ink-soft); font-style: italic; }
 .spec pre .st { color: var(--ink); font-weight: 500; }
 /* Lines this step introduced. The wash is drawn with a spread shadow so
    it hugs the text without taking part in the layout of a <pre>. */
@@ -177,8 +217,8 @@ figure.card { margin: 0; background: var(--paper); display: flex; flex-direction
 figure.card .shot { background: var(--paper); padding: 18px; display: flex; flex: 1; align-items: center; justify-content: center; min-height: 172px; }
 figure.card .shot .psi-diagram { width: 100%; height: auto; max-height: 210px; }
 figure.card figcaption { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 5px; }
-figure.card .slug { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em; color: var(--emph); }
-figure.card .name { font-size: 0.9rem; line-height: 1.35; }
+figure.card .slug { font-family: var(--mono); font-size: var(--t-micro); letter-spacing: 0.06em; color: var(--emph); }
+figure.card .name { font-size: var(--t-small); line-height: 1.4; }
 
 /* Each card carries the source it was compiled from. <details> rather than a
    script: it works with no JS, the keyboard opens it, and find-in-page reaches
@@ -187,24 +227,24 @@ figure.card .name { font-size: 0.9rem; line-height: 1.35; }
 figure.card details.src { border-top: 1px solid var(--rule); }
 figure.card details.src > summary {
   list-style: none; cursor: pointer;
-  font-family: var(--mono); font-size: 0.69rem; letter-spacing: 0.07em;
+  font-family: var(--mono); font-size: var(--t-micro); letter-spacing: 0.07em;
   padding: 10px 18px; color: var(--ink-soft);
   display: flex; align-items: center; gap: 10px;
 }
 figure.card details.src > summary::-webkit-details-marker { display: none; }
-figure.card details.src > summary .ln { margin-left: auto; opacity: 0.72; }
+figure.card details.src > summary .ln { margin-left: auto; opacity: 0.85; }
 figure.card details.src > summary::after { content: "+"; width: 9px; text-align: center; }
 figure.card details.src[open] > summary::after { content: "\2013"; }
 figure.card details.src > summary:hover { color: var(--emph); background: var(--panel); }
 figure.card details.src > summary:focus-visible { outline: 2px solid var(--emph); outline-offset: -2px; }
 figure.card details.src pre {
-  font-family: var(--mono); font-size: 0.675rem; line-height: 1.62;
-  margin: 0; padding: 13px 18px 16px; max-height: 340px; overflow: auto;
+  font-family: var(--mono); font-size: var(--t-code); line-height: 1.6;
+  margin: 0; padding: 14px 18px 18px; max-height: 340px; overflow: auto;
   white-space: pre-wrap; border-top: 1px solid var(--rule); color: var(--ink);
 }
 figure.card details.src pre .kw { color: var(--emph); }
 figure.card details.src pre .cl { color: var(--ink-soft); }
-figure.card details.src pre .cm { color: var(--ink-soft); font-style: italic; opacity: 0.78; }
+figure.card details.src pre .cm { color: var(--ink-soft); font-style: italic; }
 /* An open card takes the whole row. A 300px column truncates almost every
    line of this DSL, and horizontal scrolling per line is not reading. The
    pre keeps its own overflow, so where :has() is unsupported the source is
@@ -225,8 +265,8 @@ figure.card:has(details.src[open]) details.src pre { max-height: 460px; }
 .rule { background: var(--paper); padding: 26px clamp(18px, 2.6vw, 30px) 30px; display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 20px; align-items: start; }
 .rule .n { font-family: var(--serif); font-size: 2rem; line-height: 0.86; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .rule h3 { margin-bottom: 9px; }
-.rule .do { max-width: 62ch; }
-.rule .why { color: var(--ink-soft); font-size: 0.92rem; line-height: 1.55; margin-top: 8px; max-width: 68ch; }
+.rule .do { max-width: var(--measure); }
+.rule .why { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; margin-top: 9px; max-width: var(--measure); }
 .rule .why.after { margin-top: 16px; }
 .rule .why b { color: var(--ink); font-weight: 500; }
 
@@ -235,15 +275,15 @@ figure.card:has(details.src[open]) details.src pre { max-height: 460px; }
    is what to settle before writing one. */
 .prelude { margin-top: 40px; background: var(--paper); border: 1px solid var(--rule); border-top: 3px solid var(--ink); padding: 26px clamp(18px, 2.6vw, 30px) 30px; }
 .prelude h3 { margin-bottom: 9px; }
-.prelude .do { max-width: 62ch; }
-.prelude .why { color: var(--ink-soft); font-size: 0.92rem; line-height: 1.55; margin-top: 8px; max-width: 68ch; }
+.prelude .do { max-width: var(--measure); }
+.prelude .why { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; margin-top: 9px; max-width: var(--measure); }
 .prelude .why.after { margin-top: 16px; }
 .prelude .why b { color: var(--ink); font-weight: 500; }
-.prelude .quote { color: var(--ink); font-family: var(--serif); font-size: 1.02rem; line-height: 1.45; margin-top: 14px; max-width: 60ch; border-left: 2px solid var(--emph); padding-left: 16px; }
-.prelude .quote cite { display: block; margin-top: 6px; font-family: var(--mono); font-size: 0.7rem; font-style: normal; letter-spacing: 0.06em; color: var(--ink-soft); }
-.prelude ol.ask { margin: 16px 0 0; padding: 0; max-width: 68ch; list-style: none; counter-reset: ask; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 9px 30px; }
-.prelude ol.ask li { position: relative; padding-left: 26px; font-size: 0.92rem; line-height: 1.45; }
-.prelude ol.ask li::before { counter-increment: ask; content: counter(ask); position: absolute; left: 0; top: 2px; font-family: var(--mono); font-size: 0.72rem; color: var(--emph); font-variant-numeric: tabular-nums; }
+.prelude .quote { color: var(--ink); font-family: var(--serif); font-size: 1.2rem; line-height: 1.5; margin-top: 16px; max-width: 44ch; border-left: 2px solid var(--emph); padding-left: 18px; }
+.prelude .quote cite { display: block; margin-top: 8px; font-family: var(--mono); font-size: var(--t-micro); font-style: normal; letter-spacing: 0.06em; color: var(--ink-soft); }
+.prelude ol.ask { margin: 18px 0 0; padding: 0; max-width: 76ch; list-style: none; counter-reset: ask; display: grid; grid-template-columns: repeat(auto-fit, minmax(272px, 1fr)); gap: 11px 34px; }
+.prelude ol.ask li { position: relative; padding-left: 28px; font-size: var(--t-body); line-height: 1.5; }
+.prelude ol.ask li::before { counter-increment: ask; content: counter(ask); position: absolute; left: 0; top: 3px; font-family: var(--mono); font-size: var(--t-micro); color: var(--emph); font-variant-numeric: tabular-nums; }
 
 /* wrong on the left, right on the right, each showing its own source and
    what that source compiled to. The stripe carries the verdict, so the pair
@@ -255,7 +295,7 @@ figure.card:has(details.src[open]) details.src pre { max-height: 460px; }
 .side.plain .tag { color: var(--ink-soft); }
 .side.no { border-top-color: var(--no); }
 .side.yes { border-top-color: var(--emph); }
-.side .tag { font-family: var(--mono); font-size: 0.7rem; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; padding: 10px 14px 9px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; gap: 8px; }
+.side .tag { font-family: var(--mono); font-size: var(--t-micro); font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; padding: 10px 14px 9px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; gap: 8px; }
 /* The mark carries the verdict at a glance; the word carries it for anyone
    who cannot separate the two hues. Never colour alone. */
 .side .tag::before { font-size: 0.85rem; line-height: 1; }
@@ -265,7 +305,7 @@ figure.card:has(details.src[open]) details.src pre { max-height: 460px; }
 .side.yes .tag::before { content: "\2713"; }
 .side .draw { background: var(--paper); padding: 16px; display: flex; align-items: center; justify-content: center; flex: 1; min-height: 84px; }
 .side .draw .psi-diagram { width: 100%; height: auto; max-height: 190px; }
-.side pre { font-family: var(--mono); font-size: 0.72rem; line-height: 1.62; margin: 0; padding: 12px 14px 14px; overflow-x: auto; white-space: pre-wrap; border-top: 1px solid var(--rule); }
+.side pre { font-family: var(--mono); font-size: var(--t-code); line-height: 1.6; margin: 0; padding: 13px 15px 15px; overflow-x: auto; white-space: pre-wrap; border-top: 1px solid var(--rule); }
 .side .tag + pre { border-top: 0; }
 .side pre .kw { color: var(--emph); }
 .side pre .cl { color: var(--ink-soft); }
@@ -280,18 +320,56 @@ figure.card:has(details.src[open]) details.src pre { max-height: 460px; }
    that holds it and the overflow would never come into play. */
 .tones:has(table.roles) { overflow-x: auto; min-width: 0; }
 .rule > div { min-width: 0; }
-table.roles { min-width: 34rem; }
+table.roles { min-width: 46rem; }
 .tones .swatch { background: var(--paper); padding: 16px clamp(14px, 2vw, 22px); }
 .tones .swatch .psi-diagram { width: 100%; height: auto; }
-table.roles { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+/* The last column is prose, and at the full width of the page it ran to a
+   hundred characters a line - so the table is capped where that column
+   reads at roughly the measure the rest of the page keeps. min-width
+   above is the other end of the same question, for a phone. */
+table.roles { width: 100%; border-collapse: collapse; font-size: var(--t-body); }
 table.roles tr.ungrouped td { color: var(--ink-soft); }
-table.roles tr.divider td { border-top: 2px solid var(--rule); color: var(--ink-soft); font-size: 0.86rem; padding-top: 14px; }
-table.roles th, table.roles td { text-align: left; padding: 9px clamp(14px, 2vw, 22px); border-top: 1px solid var(--rule); vertical-align: baseline; }
-table.roles th { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); font-weight: 400; }
-table.roles td:first-child { font-family: var(--mono); font-size: 0.79rem; color: var(--emph); white-space: nowrap; }
-table.roles td code { color: var(--emph); font-size: 0.78rem; white-space: nowrap; }
+/* The one cell the column caps cannot reach: it spans all three, so it takes
+   the table's full width and ran to 108 characters - the longest text run left
+   on the page. A measure of its own, since there is no column to inherit. */
+table.roles tr.divider td { border-top: 2px solid var(--rule); color: var(--ink-soft); font-size: var(--t-small); padding-top: 15px; }
+table.roles th, table.roles td { text-align: left; padding: 10px clamp(14px, 2vw, 22px); border-top: 1px solid var(--rule); vertical-align: baseline; }
+table.roles th { font-family: var(--mono); font-size: var(--t-micro); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); font-weight: 400; }
+table.roles td:first-child { font-family: var(--mono); font-size: var(--t-mini); color: var(--emph); white-space: nowrap; }
+table.roles td code { color: var(--emph); font-size: var(--t-mini); white-space: nowrap; }
 table.roles td:nth-child(2) { line-height: 1.9; }
 table.roles td:last-child { color: var(--ink-soft); }
+/* The last column is prose and takes whatever the others leave, which on the
+   two-column tone table was the best part of nine hundred pixels - a hundred
+   and seven characters a line, against the seventy the rest of the page
+   reads at. A max-width on a td is only a hint to the automatic algorithm
+   and moved it by six characters, so the columns are stated instead. The
+   two-column table has one fewer column to give the width to, so it is
+   capped narrower; :has() is how the stylesheet tells them apart. */
+table.roles { table-layout: fixed; }
+table.roles th:first-child { width: 10rem; }
+table.roles th:nth-child(2):not(:last-child) { width: 12.5rem; }
+/* The cap goes on the bordered box, not on the table inside it, or the frame
+   is drawn a third wider than the thing it frames. The two-column table has
+   one fewer column to give the width to, so it stops sooner. */
+.tones { max-width: 63rem; }
+.tones:not(:has(th:nth-child(3))) { max-width: 48rem; }
+/* On a phone the table is at its min-width and scrolling, so every column
+   the two name columns keep is one the description does not have - and a
+   description squeezed to fifty pixels makes rows six lines tall for text
+   nobody can see without scrolling. The first column is nowrap, so 9rem is
+   the floor: "stroke pattern" plus its padding. */
+@media (max-width: 620px) {
+  table.roles th:first-child { width: 9rem; }
+  table.roles th:nth-child(2):not(:last-child) { width: 10rem; }
+}
+/* The divider row is a single td spanning the table, so td:first-child above
+   has already made it nowrap - and it is a sentence, not a name. A cell that
+   spans every column takes every column's width, and neither max-width nor a
+   ch measure reaches into a fixed table layout; the padding does, and a
+   percentage of the table is the one form of it that survives the table
+   being narrower on a phone. */
+table.roles tr.divider td { white-space: normal; padding-right: 40%; }
 
 /* A card's bar only appears once its figure has been wired, so a reader is
    never offered a control that does nothing. */
@@ -304,17 +382,17 @@ figure.card details.src .card-bar + pre { border-top: 1px solid var(--rule); }
 .anatomy h3 { margin-bottom: 8px; }
 .anatomy .measure { margin-bottom: 20px; }
 pre.anat {
-  font-family: var(--mono); font-size: 0.74rem; line-height: 1.55; margin: 0 0 22px;
+  font-family: var(--mono); font-size: var(--t-code); line-height: 1.6; margin: 0 0 22px;
   padding: 20px clamp(14px, 2vw, 24px); overflow-x: auto; white-space: pre;
   background: var(--panel); border: 1px solid var(--rule); color: var(--ink);
 }
 pre.anat .kw { color: var(--emph); }
 pre.anat .cl { color: var(--ink-soft); }
 pre.anat .an { color: var(--ink-soft); }
-.quirk-head { font-family: var(--serif); font-size: 1.16rem; font-weight: 400; margin: 30px 0 0; }
+.quirk-head { font-family: var(--serif); font-size: 1.3rem; font-weight: 400; margin: 32px 0 0; }
 .walls.quirks { margin-top: 18px; gap: 22px 40px; }
-.walls.quirks h4 { font-family: var(--sans); font-size: 0.9rem; font-weight: 500; letter-spacing: 0; }
-.walls.quirks h4 code { font-size: 0.86rem; }
+.walls.quirks h4 { font-family: var(--sans); font-size: var(--t-body); font-weight: 500; letter-spacing: 0; }
+.walls.quirks h4 code { font-size: 0.9em; }
 
 /* ── the two live demos ───────────────────────────────────────────────
    The figure, a bar to walk its beats, and the source that produced it.
@@ -322,12 +400,12 @@ pre.anat .an { color: var(--ink-soft); }
    docs/artifact/refresh-figures.mjs rather than reimplemented here. */
 .demo { margin-top: 44px; }
 .demo h3 { margin-bottom: 8px; }
-.demo .demo-lede { color: var(--ink-soft); font-size: 0.95rem; margin-bottom: 18px; }
+.demo .demo-lede { color: var(--ink-soft); font-size: var(--t-body); margin-bottom: 18px; }
 .demo-stage { background: var(--paper); border: 1px solid var(--rule); padding: clamp(16px, 2.4vw, 28px); display: flex; justify-content: center; }
 .demo-stage .psi-diagram { width: 100%; height: auto; max-height: 340px; }
 .demo-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px solid var(--rule); border-top: 0; padding: 10px 12px; }
 .db {
-  font: 500 0.74rem/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase;
+  font: 500 var(--t-micro)/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--ink); background: var(--paper); border: 1px solid var(--rule);
   padding: 7px 11px; cursor: pointer; min-width: 34px;
 }
@@ -336,7 +414,7 @@ pre.anat .an { color: var(--ink-soft); }
 .db:focus-visible { outline: 2px solid var(--emph); outline-offset: 2px; }
 .rail { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0 auto 0 4px; padding: 0; counter-reset: beat -1; }
 .rail button {
-  font: 0.7rem/1 var(--mono); letter-spacing: 0.05em; color: var(--ink-soft);
+  font: var(--t-micro)/1 var(--mono); letter-spacing: 0.05em; color: var(--ink-soft);
   background: none; border: 0; border-bottom: 2px solid transparent;
   padding: 5px 6px 4px; cursor: pointer;
 }
@@ -344,32 +422,37 @@ pre.anat .an { color: var(--ink-soft); }
 .rail button:focus-visible { outline: 2px solid var(--emph); outline-offset: 1px; }
 .rail li[aria-current="true"] button { color: var(--ink); border-bottom-color: var(--emph); }
 .demo-src {
-  font-family: var(--mono); font-size: 0.7rem; line-height: 1.62; margin: 0;
-  padding: 14px clamp(14px, 2vw, 20px) 16px; overflow-x: auto; white-space: pre-wrap;
-  border: 1px solid var(--rule); border-top: 0; color: var(--ink);
+  font-family: var(--mono); font-size: var(--t-code); line-height: 1.6; margin: 0;
+  padding: 15px clamp(14px, 2vw, 20px) 17px; border: 1px solid var(--rule);
+  border-top: 0; color: var(--ink);
+  /* The longest line in the three demo sources is 97 characters, which at
+     this size fits the full column - so these are the one listing on the
+     page with room to stand unwrapped. Below that width they scroll inside
+     their own box, which is what the narrow columns cannot do. */
+  overflow-x: auto; white-space: pre;
 }
 .demo-src .kw { color: var(--emph); }
 .demo-src .cl { color: var(--ink-soft); }
-.demo-src .cm { color: var(--ink-soft); font-style: italic; opacity: 0.78; }
+.demo-src .cm { color: var(--ink-soft); font-style: italic; }
 .demo-src .st { color: var(--ink); font-weight: 500; }
 @media (max-width: 620px) { .rail { width: 100%; order: 3; margin-left: 0; } }
 
 /* ── beats, checklist, walls ───────────────────────────────────────── */
-.beats { margin-top: 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(216px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.beats { margin-top: 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(244px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
 .beat { background: var(--paper); padding: 20px clamp(16px, 2vw, 22px) 24px; display: flex; flex-direction: column; gap: 7px; }
-.beat .b { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.11em; text-transform: uppercase; color: var(--emph); }
-.beat h4 { font-family: var(--serif); font-size: 1.08rem; font-weight: 400; margin: 0; line-height: 1.25; }
-.beat p { font-size: 0.88rem; line-height: 1.5; color: var(--ink-soft); }
+.beat .b { font-family: var(--mono); font-size: var(--t-micro); letter-spacing: 0.11em; text-transform: uppercase; color: var(--emph); }
+.beat h4 { font-family: var(--serif); font-size: 1.2rem; font-weight: 400; margin: 0; line-height: 1.25; }
+.beat p { font-size: var(--t-small); line-height: 1.55; color: var(--ink-soft); }
 
 .checks { margin-top: 34px; border-top: 1px solid var(--rule); counter-reset: chk; }
-.checks li { list-style: none; border-bottom: 1px solid var(--rule); padding: 13px 0 13px 44px; position: relative; font-size: 0.93rem; line-height: 1.5; }
-.checks li::before { counter-increment: chk; content: counter(chk, decimal-leading-zero); position: absolute; left: 0; top: 14px; font-family: var(--mono); font-size: 0.72rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.checks li { list-style: none; border-bottom: 1px solid var(--rule); padding: 14px 0 14px 46px; position: relative; font-size: var(--t-body); line-height: 1.55; }
+.checks li::before { counter-increment: chk; content: counter(chk, decimal-leading-zero); position: absolute; left: 0; top: 16px; font-family: var(--mono); font-size: var(--t-micro); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .checks ol { margin: 0; padding: 0; }
 .checks code { color: var(--emph); }
 
-.walls { margin-top: 34px; display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 26px 40px; }
-.wall h4 { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.05em; font-weight: 500; margin: 0 0 6px; color: var(--ink); }
-.wall p { font-size: 0.89rem; line-height: 1.5; color: var(--ink-soft); }
+.walls { margin-top: 34px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px 44px; }
+.wall h4 { font-family: var(--mono); font-size: var(--t-mini); letter-spacing: 0.04em; font-weight: 500; margin: 0 0 7px; color: var(--ink); }
+.wall p { font-size: var(--t-small); line-height: 1.55; color: var(--ink-soft); }
 
 @media (max-width: 760px) {
   .pair { grid-template-columns: 1fr; }
@@ -379,7 +462,7 @@ pre.anat .an { color: var(--ink-soft); }
 
 /* ── footer ───────────────────────────────────────────────────────── */
 footer { margin-top: clamp(56px, 9vw, 100px); border-top: 1px solid var(--ink); padding: 22px 0 72px; }
-footer .paths { font-family: var(--mono); font-size: 0.79rem; line-height: 1.9; color: var(--ink-soft); }
+footer .paths { font-family: var(--mono); font-size: var(--t-mini); line-height: 1.9; color: var(--ink-soft); }
 footer .paths b { color: var(--ink); font-weight: 500; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
