@@ -92,7 +92,12 @@ function hl(src) {
   const park = (s) => '\u0000' + (held.push(s) - 1) + '\u0000';
   return src.split('\n').map((line) => {
     const esc = line.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-    if (/^\s*#/.test(line)) return '<span class="cm">' + esc + '</span>';
+    // A comment is a line like any other, so it carries `srcln` like any
+    // other. It did not: the lines are joined with nothing because `srcln` is
+    // `display: block` and supplies its own break, so a bare inline `cm` had
+    // nothing separating it from the line before, and a run of comment lines
+    // arrived as one paragraph with the hashes buried in it.
+    if (/^\s*#/.test(line)) return '<span class="srcln cm">' + esc + '</span>';
     let t = esc;
     t = t.replace(/"[^"]*"/g, (m) => park('<span class="cl">' + m + '</span>'));
     t = t.replace(/\{[^}]*\}/g, (m) => park('<span class="cl">' + m + '</span>'));
@@ -289,7 +294,11 @@ for (const id of BASICS) {
   const marked = lines.map((l) => {
     const painted = hl(l);
     return before.has(l) || l.trim() === '' ? painted : '<span class="add">' + painted + '</span>';
-  }).join('\n');
+    // Joined with nothing, for the reason hl() is: every line comes back as a
+    // `srcln`, which is `display: block` and brings its own break, so a
+    // newline here is a second one. It was one, and these six listings came
+    // out double-spaced with the `add` wash painted down the blank lines.
+  }).join('');
   page = replaceBetween(page, '<pre data-basicsrc="' + id + '">', '</pre><!--/basicsrc-->',
     marked, 'basics ' + id);
   prevLines = lines;
