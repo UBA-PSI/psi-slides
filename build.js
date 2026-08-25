@@ -49,7 +49,20 @@ const SHIKI_LANGS = [
   'python', 'bash', 'shell', 'javascript', 'typescript',
   'html', 'css', 'c', 'json', 'yaml', 'markdown', 'sql', 'toml', 'diff', 'text',
 ];
+// Two themes, not one. A single light theme was correct on paper and unusable
+// on the dark reading theme: measured against that theme's --paper (#0e0f12),
+// github-light put plain identifiers at 1.31:1 and strings at 1.45:1, so a
+// C block read as keywords floating over invisible names. Shiki's dual-theme
+// output keeps the light colour as the inline `color` – so every token in the
+// four light themes and in print keeps the exact hex it had – and carries the
+// dark one as a `--shiki-dark` custom property the dark rule in AUDIENCE_CSS
+// switches to. github-dark-default is the same family as the light theme, so
+// a token keeps its role; its worst token on our paper measures 6.23:1.
+// Dual-theme mode does split a few tokens into more spans than single-theme
+// mode did (it has to reconcile two tokenizations), so the print markup is
+// not byte-identical even though every colour in it is.
 const SHIKI_THEME = 'github-light';
+const SHIKI_THEME_DARK = 'github-dark-default';
 const LANG_ALIAS = {
   py: 'python', sh: 'bash', zsh: 'bash',
   js: 'javascript', ts: 'typescript', md: 'markdown', cc: 'c', h: 'c',
@@ -63,7 +76,7 @@ let loadedLangs = null; // Set of languages Shiki has tokenizers for
 const highlightCache = new Map();
 async function initHighlighter() {
   if (highlighter) return;
-  highlighter = await createHighlighter({ themes: [SHIKI_THEME], langs: SHIKI_LANGS });
+  highlighter = await createHighlighter({ themes: [SHIKI_THEME, SHIKI_THEME_DARK], langs: SHIKI_LANGS });
   loadedLangs = new Set(highlighter.getLoadedLanguages());
 }
 function highlightCode(code, lang) {
@@ -73,7 +86,16 @@ function highlightCode(code, lang) {
   const key = useLang + '::' + code;
   if (highlightCache.has(key)) return highlightCache.get(key);
   let html;
-  try { html = highlighter.codeToHtml(code, { lang: useLang, theme: SHIKI_THEME }); }
+  // defaultColor: 'light' is load-bearing – it keeps the light colour in the
+  // `color` property, so a view with no stylesheet (or print) shows exactly
+  // what it showed before, and the dark theme rides along as a variable.
+  try {
+    html = highlighter.codeToHtml(code, {
+      lang: useLang,
+      themes: { light: SHIKI_THEME, dark: SHIKI_THEME_DARK },
+      defaultColor: 'light',
+    });
+  }
   catch (e) { html = null; }
   highlightCache.set(key, html);
   return html;
@@ -2713,6 +2735,20 @@ function stripDiagramPayloads(html) {
     /<script type="application\/json" class="psi-diagram-(?:frames|source)"[^>]*>[^<]*<\/script>/g, '');
 }
 
+// Shiki emits both palettes on every token: the light one as the inline
+// color, the dark one as a --shiki-dark custom property beside it. Print
+// has no themes at all – no data-theme, no theme cycle, no stylesheet that
+// reads the variable – so in print that second colour is a few bytes per
+// token that nothing can ever consume. Measured on lectures/python-intro,
+// the code-heaviest lecture in the repo: 23 KB of a 525 KB print file.
+// Rewrites only the inside of a start tag, so a code fence that happens to
+// quote the property name is text content and stays untouched.
+function stripDarkTokenColors(html) {
+  return html.replace(/<(?:pre|span)\b[^>]*>/g, tag => tag
+    .replace(/--shiki-dark(?:-bg)?:#[0-9a-fA-F]{3,8};?/g, '')
+    .replace(/style="([^"]*);"/, 'style="$1"'));
+}
+
 function renderDocument(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
   const title = lectureTitle(frontmatter);
@@ -2724,9 +2760,10 @@ function renderDocument(lecture, opts = {}) {
   // Title / anon columns render above the TOC (cover page first),
   // named columns render after (body of the document).
   const chunkOpts = { withNotes: !!opts.withNotes };
-  const anonHtml = stripDiagramPayloads(columns.filter(c => !c.heading)
+  const forPrint = (html) => stripDarkTokenColors(stripDiagramPayloads(html));
+  const anonHtml = forPrint(columns.filter(c => !c.heading)
     .map(c => renderColumn(c, frontmatter, nextNum, chunkOpts)).join('\n'));
-  const namedHtml = stripDiagramPayloads(columns.filter(c => c.heading)
+  const namedHtml = forPrint(columns.filter(c => c.heading)
     .map(c => renderColumn(c, frontmatter, nextNum, chunkOpts)).join('\n'));
 
   const titleSuffix = opts.withNotes ? 'print + notes' : 'print';
@@ -3772,14 +3809,35 @@ body[data-theme=terminal-green] {
   --emph:       oklch(0.92 0.24 145);
 }
 
+/* A dark reading theme switches shiki to its dark palette. Every token
+   carries both colours: the light one as the inline color property, the dark one
+   as the --shiki-dark custom property beside it, so this rule is the whole
+   switch and no second copy of the code is shipped. Keyed on data-mode, so
+   a further dark reading theme inherits it; the terminal modes are cut out
+   by name because for them a single phosphor tone is the point, and their
+   own suppression below would otherwise be arguing with this one over which
+   !important came last. Scoped to pre.shiki rather than to .chunk-body, so
+   a code block lifted into the focus overlay keeps its colours. */
+body[data-mode=dark]:not([data-theme^=terminal]) pre.shiki,
+body[data-mode=dark]:not([data-theme^=terminal]) pre.shiki span {
+  color: var(--shiki-dark) !important;
+}
+
 /* In terminal modes, neutralise shiki's baked-in token colors so the
    code reads in a single phosphor tone. The !important is necessary
    because shiki emits inline style="color:#..." per span. Fonts stay
-   mono regardless of the body font choice. */
-body[data-theme^=terminal] .chunk-body pre.shiki,
-body[data-theme^=terminal] .chunk-body pre.shiki *,
-body[data-theme^=terminal] .exp-body pre.shiki,
-body[data-theme^=terminal] .exp-body pre.shiki * {
+   mono regardless of the body font choice.
+
+   Scoped to pre.shiki rather than to .chunk-body and .exp-body, for the
+   same reason the dark rule above is: those two miss the focus overlay,
+   which is where a code block goes when it is clicked. Measured there
+   before this changed: the plain-identifier tone came through as
+   github-light's #24292e on #0b0401 paper, 1.09:1, which is a code block
+   that vanishes the moment a lecturer zooms into it. The overlay's own
+   background rule carries an id and outranks the transparent here, so it
+   keeps --paper and only the ink is neutralised. */
+body[data-theme^=terminal] pre.shiki,
+body[data-theme^=terminal] pre.shiki * {
   color: var(--ink) !important;
   background: transparent !important;
 }
