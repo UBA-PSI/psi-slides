@@ -60,13 +60,14 @@ jobs:
       - name: Build the published lectures
         run: |
           node build.js lectures/tutorial/source.md
+          node build.js lectures/diagrams/source.md
           node build.js lectures/python-intro/source.md
           node build.js docs/site/example/source.md
 
-      # The tracked tutorial HTML is committed; a stale copy would ship a tour
-      # that does not match its own source.
+      # The tutorial and diagram HTML is committed; a stale copy would ship a
+      # tour, or a construct reference, that does not match its own source.
       - name: Check the tracked outputs are current
-        run: git diff --exit-code -- lectures/tutorial
+        run: git diff --exit-code -- lectures/tutorial lectures/diagrams
 
       - name: Stage the archive
         run: |
