@@ -82,6 +82,13 @@ export const DG_BRACE_TICK = 7;       // how far a brace's end ticks turn in, px
 // 0.18 * 72 = 12.96, so the default unit is unchanged to the pixel.
 export const DG_DOT_R = 0.18;
 
+// How far a leader stub stands off the words it leaves. Every other edge
+// leaves a box with a border, so the stroke ending on the border reads as
+// attached; a free `text` is a run of glyphs and the same line arrived
+// touching the letters. Grid units, and applied at the text end only - the
+// pointing end has to keep meeting its target exactly.
+export const DG_LEAD_GAP = 0.11;
+
 // Closed vocabulary. Unknown class is an error, not a silent no-op – the
 // same rule VALID_TAGS follows, and for the same reason: a typo that only
 // costs you the styling is invisible until it is on a projector.
@@ -1229,8 +1236,16 @@ export function dgEdgeRoute(e, classes, boxes, uw, uh) {
     const [px, py] = dgPairPx(r.point, boxes, uw, uh);
     return { x: px, y: py, w: 0, h: 0 };
   };
-  const fb = endBox(e.from), tb = endBox(e.to);
-  if (!fb || !tb) return null;
+  const fb0 = endBox(e.from), tb = endBox(e.to);
+  if (!fb0 || !tb) return null;
+  // A leader stands off the words rather than touching them. Inflating the
+  // box it leaves - rather than shortening the finished line - keeps the
+  // standoff correct whichever side dgAutoAnchor picks, and costs the
+  // caller nothing: dgAnchorPt does the rest.
+  const lg = e.lead ? DG_LEAD_GAP * uh : 0;
+  const fb = lg
+    ? { x: fb0.x - lg, y: fb0.y - lg, w: fb0.w + 2 * lg, h: fb0.h + 2 * lg }
+    : fb0;
   const viaPx = e.via.map(p => dgPairPx(p, boxes, uw, uh));
   const towardFrom = viaPx[0] || [tb.x + tb.w / 2, tb.y + tb.h / 2];
   const towardTo = viaPx[viaPx.length - 1] || [fb.x + fb.w / 2, fb.y + fb.h / 2];

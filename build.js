@@ -1477,7 +1477,12 @@ const DIAGRAM_CSS = `
 .psi-diagram {
   --dg-sans: var(--sans-font, var(--sans));
   --dg-mono: var(--mono-font, var(--mono));
-  --dg-serif: var(--body-font, var(--serif));
+  /* the serif FAMILY, not the reading voice: --body-font is what the F
+     toggle rewrites, so naming it here made .serif and .hand follow the
+     reader's font choice and collapse onto the sans the diagram already
+     defaults to. Print was never affected - it defines no --body-font and
+     fell through to --serif. Parallel to --dg-sans / --dg-mono above. */
+  --dg-serif: var(--serif-stack, var(--serif));
   display: block; overflow: visible;
   /* Deliberately the same numbers as figure.figure-img svg. A diagram is a
      figure, and figures in this project are sized in viewport space, not
