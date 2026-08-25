@@ -7,7 +7,7 @@
  *   node docs/artifact/refresh-figures.mjs --check    # report drift, write nothing
  *
  * The artifact is a hand-written page that embeds machine-made parts: the
- * seventeen still figures the rules are argued with, the two stepped demos,
+ * still figures the rules are argued with, the stepped demos,
  * and the diagram runtime that steps them. Those parts are not authored here
  * and must never be edited here - they are lifted out of a real build of the
  * lecture next door, so a change to the compiler reaches the page by running
@@ -49,17 +49,24 @@ const BASICS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'];
 // The advanced specimens. Their listings were written by hand beside compiled
 // drawings until one of them lost the two lines that draw a marker and a point
 // visible in its own figure.
-const SPECS = ['sp1', 'sp2', 'sp3', 'sp4', 'sp5', 'sp6', 'sp7'];
+const SPECS = ['sp1', 'sp2', 'sp3', 'sp10', 'sp8', 'sp9', 'sp4', 'sp5', 'sp6', 'sp7'];
+// The four arrangements a lecture keeps asking for. Their listings keep their
+// comments and their fence, unlike the specimens above: the page says they are
+// real source in the number of lines shown, and half a block is not that.
+const SHAPES = ['fc', 'swim', 'tree'];
 const STILLS = [
   ...BASICS,
   ...SPECS,
+  ...SHAPES,
   'r1w', 'r1r', 'r2w', 'r2r', 'r3w', 'r3r',
-  'r6aw', 'r6ar', 'r6bw', 'r6br', 'r7w', 'r7r', 'r8w', 'r8r',
+  'r6aw', 'r6ar', 'r6c', 'r6bw', 'r6br', 'r7w', 'r7r', 'r8w', 'r8r', 'r8s',
+  'r11w', 'r11r', 'r14w', 'r14r',
   'tones',
 ];
 const DEMOS = [
   { chunk: 'beats-demo', prefix: 'dgbeat' },
   { chunk: 'move-demo', prefix: 'dgmove' },
+  { chunk: 'table-demo', prefix: 'dgtable' },
 ];
 
 const RT_START = 'const DG_LIST = [];';
@@ -73,7 +80,7 @@ const say = (s) => process.stdout.write(s + '\n');
 // keyword can never be painted inside a label. A comment is a line whose
 // first non-space character is '#', and it has to win over everything else
 // or a word inside one stops reading as a comment.
-const KW = /\b(box|edge|text|container|brace|dot|image|bars|grid|plot|align|spread|default|same as|right of|left of|below|above|between|over|via|point|at|gap|pad|space|offset)\b/g;
+const KW = /\b(box|edge|text|container|brace|dot|image|bars|grid|plot|table|lanes|align|spread|default|same as|series of|stacked|right of|left of|below|above|between|over|via|point|at|gap|pad|space|col|offset)\b/g;
 const STEP_OPS = /^(\s*)(step|show|hide|move|emph|calm|style|label)\b/;
 
 function hl(src) {
@@ -294,7 +301,8 @@ say('  ' + BASICS.length + ' tutorial steps, additions marked by diff');
 // not: rule 8 gained a `.bottom` and a shorter box, the picture changed and
 // the text beside it went on describing the version before.
 const PAIRS = ['r1w', 'r1r', 'r2w', 'r2r', 'r3w', 'r3r',
-  'r6aw', 'r6ar', 'r6bw', 'r6br', 'r7w', 'r7r', 'r8w', 'r8r'];
+  'r6aw', 'r6ar', 'r6c', 'r6bw', 'r6br', 'r7w', 'r7r', 'r8w', 'r8r', 'r8s',
+  'r11w', 'r11r', 'r14w', 'r14r'];
 for (const id of PAIRS) {
   page = replaceBetween(page, '<pre data-pairsrc="' + id + '">', '</pre>',
     hl(diagramBlock(lectureMd, id).split('\n').filter((l) => !/^\s*#/.test(l) && l !== ':::' && !l.startsWith(':::')).join('\n')),
@@ -332,6 +340,12 @@ for (const id of SPECS) {
     'specimen source ' + id);
 }
 say('  ' + SPECS.length + ' advanced listings refreshed from the lecture');
+
+for (const id of SHAPES) {
+  page = replaceBetween(page, '<pre data-specsrc="' + id + '">', '</pre><!--/specsrc-->',
+    hl(diagramBlock(lectureMd, id)), 'shape source ' + id);
+}
+say('  ' + SHAPES.length + ' whole-block listings refreshed from the lecture');
 
 // ── the gallery: the figures themselves, then their source ───────────────
 // These were screenshots for a while, which meant they showed whatever the

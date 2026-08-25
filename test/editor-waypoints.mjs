@@ -66,7 +66,13 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
       .find(n => n.dataset.handle === 'add-0').getBoundingClientRect();
     return { x: d.x + d.width / 2, y: d.y + d.height / 2 };
   });
+  // Ctrl held, because this section is about the *insert*. Inserting hands
+  // the gesture straight to the move, and a move that lands on a neighbour's
+  // line now names it (editor-drag-guides covers that) – which would be a
+  // true fact about a different gesture standing in the way of this one.
+  await page.keyboard.down('Control');
   await ed.drag(addDot, -60, -40, 10);
+  await page.keyboard.up('Control');
   const added = await ed.lineWith('#feed0');
   note('added  : ' + added);
   const wordsAdded = viaWords(added);
@@ -128,5 +134,70 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   ok(!!bare && !/ {2}/.test(bare), 'and leaves no double space behind', JSON.stringify(bare));
 
   ok(!(await ed.problems()).includes('line '), 'the block still compiles', await ed.problems());
+
+  // ── a grip is a control, so it is the same size whatever the zoom ──
+  //
+  // The handles were constants in diagram units, which means they grew and
+  // shrank with the zoom: at 4x a waypoint square covered a quarter of the
+  // figure, and on a wide diagram at its fit zoom it was a speck. Measured in
+  // screen pixels now, the way dgeDockAt has always sized its chips.
+  const gripPx = () => page.evaluate(() => {
+    const n = document.querySelector('#dge-guides .dge-h-end');
+    if (!n) return null;
+    const r = n.getBoundingClientRect();
+    return Math.round(r.width * 10) / 10;
+  });
+  const gripUnits = () => page.evaluate(() => {
+    const n = document.querySelector('#dge-guides .dge-h-end');
+    return n ? Math.round(Number(n.getAttribute('r')) * 100) / 100 : null;
+  });
+  await ed.clickPath('#dge-art-svg [id$="feed0--p"]', 0.5);
+  const px1 = await gripPx();
+  const u1 = await gripUnits();
+  await page.evaluate(() => dgeZoomBy(2));
+  await page.waitForTimeout(300);
+  const px2 = await gripPx();
+  const u2 = await gripUnits();
+  note(`endpoint grip: ${px1}px / ${u1}u at 1x, ${px2}px / ${u2}u at 2x`);
+  ok(px1 !== null && Math.abs(px1 - px2) < 1.5,
+    'an endpoint grip is the same size on screen at either zoom', `${px1} vs ${px2}`);
+  ok(u1 !== null && u2 !== null && u2 < u1 * 0.75,
+    'which means it is a different number of diagram units', `${u1} vs ${u2}`);
+
+  // And the rule that follows from it: a grip sits centred on the edge it
+  // resizes, so on anything only a few grips across it covers the whole
+  // element and every pointerdown lands on a handle. Such an element could be
+  // resized and never moved; below that size it has no handles and the panel's
+  // own `r` or `w` field is the way.
+  await page.evaluate(() => { DGE.zoom = 1; dgeApplyView(); dgeDrawGuides(); });
+  await page.waitForTimeout(250);
+  const smallest = await page.evaluate(() => {
+    let best = null;
+    for (const [id, b] of DGE.boxes) {
+      const el = dgeFind(id);
+      if (!el || !['box', 'dot', 'text', 'image'].includes(el.kind)) continue;
+      if (!best || b.w * b.h < best.area) best = { id, area: b.w * b.h };
+    }
+    return best && best.id;
+  });
+  const handlesOn = (id) => page.evaluate((i) => {
+    dgeSelect([i]);
+    return document.querySelectorAll('#dge-guides [data-id="' + i + '"]').length;
+  }, smallest);
+  await page.waitForTimeout(250);
+  const zoomedIn = await page.evaluate(async (i) => {
+    DGE.zoom = 4; dgeApplyView(); dgeSelect([i]);
+    return document.querySelectorAll('#dge-guides [data-id="' + i + '"]').length;
+  }, smallest);
+  const zoomedOut = await page.evaluate((i) => {
+    DGE.zoom = 0.4; dgeApplyView(); dgeSelect([i]);
+    return document.querySelectorAll('#dge-guides [data-id="' + i + '"]').length;
+  }, smallest);
+  note(`${smallest}: ${zoomedIn} handle(s) at 4x, ${zoomedOut} at 0.4x`);
+  ok(zoomedIn === 3, 'the smallest element has its three grips when there is room',
+    String(zoomedIn));
+  ok(zoomedOut === 0, 'and none when they would cover it', String(zoomedOut));
+  await page.evaluate(() => { DGE.zoom = 1; dgeApplyView(); dgeDrawGuides(); });
+
   ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

@@ -149,5 +149,107 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   ok(await page.locator('#dge-root').count() > 0, 'and the editor is still open');
 
   ok(!(await ed.problems()).includes('line '), 'the block still compiles', await ed.problems());
+
+  // ── which side of the line the label sits on ──
+  //
+  // On an edge the four alignment words do not place a label inside a box,
+  // they pick a side of the line – and only the pair lying *across* the routed
+  // line can pick one. The other pair runs along it, moves nothing, and comes
+  // back as a build warning. The panel offered `.left` / `.right` on every edge
+  // and `.top` / `.bottom` on none, so on a horizontal arrow both rows were
+  // wrong at once: two swatches that could only warn, and the two that act
+  // missing altogether.
+  //
+  // #swimlane is the subject because it carries both orientations – the two
+  // elbows read vertical where their label would sit, the handover between
+  // them reads horizontal – and the expectation is derived from the drawing
+  // rather than written out, so redrawing the figure cannot make the spec
+  // wrong about the editor.
+  await page.evaluate(() => dgeClose());
+  await page.waitForTimeout(400);
+  await walkTo('swimlane');
+  ok(await ed.open('swimlane'), 'the editor is open on #swimlane');
+  await ed.beat(0);
+
+  const rowOf = (slot) => page.evaluate((sl) => {
+    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+      .find((x) => x.querySelector('b') && x.querySelector('b').textContent === sl);
+    return s ? [...s.querySelectorAll('.dge-sw')].map((b) => b.title) : null;
+  }, slot);
+  const runsVertical = (id) => page.evaluate((i) => {
+    const pts = dgeEdgePts(i);
+    if (!pts) return null;
+    const { dir } = window.PSI_DG.dgPolyPoint(pts, 0.5);
+    return Math.abs(dir[1]) > Math.abs(dir[0]);
+  }, id);
+
+  const edgeIds = await page.evaluate(() => DGE.model.edges.filter(e => !e.lead).map(e => e.id));
+  let bothWays = 0;
+  for (const id of edgeIds) {
+    await page.evaluate((i) => dgeSelect([i]), id);
+    await page.waitForTimeout(220);
+    const vertical = await runsVertical(id);
+    const across = await rowOf('label across');
+    const down = await rowOf('label down');
+    note(id + (vertical ? ' vertical' : ' horizontal')
+      + ' · across ' + (across ? across.join(',') : '(absent)')
+      + ' · down ' + (down ? down.join(',') : '(absent)'));
+    if (vertical === null) continue;
+    bothWays += vertical ? 1 : 2;
+    ok(!!across === vertical,
+      id + ': .left/.right offered only where the line runs across them', String(!!across));
+    ok(!!down === !vertical,
+      id + ': .top/.bottom offered only where the line runs across them', String(!!down));
+  }
+  ok(bothWays >= 3, 'the figure exercised both orientations', String(bothWays));
+
+  // The control: the pair the panel now hides is the pair the compiler warns
+  // about. Written straight into the source, because the panel will not offer
+  // it – which is the point.
+  const horizontal = [];
+  for (const id of edgeIds) if ((await runsVertical(id)) === false) horizontal.push(id);
+  const warning = await page.evaluate((i) => {
+    const el = dgeFind(i);
+    const src = DGE.source;
+    const line = src.slice(el.span[0], el.span[1]);
+    const next = src.slice(0, el.span[0])
+      + line.replace(/\{/, '{.left ') + src.slice(el.span[1]);
+    dgeSetSource(next);
+    const w = (DGE.warnings || []).slice();
+    return w;
+  }, horizontal[0]);
+  ok(warning.some((w) => /runs along/.test(w)),
+    'and writing the hidden pair by hand is exactly the warning it hides',
+    JSON.stringify(warning));
+
+  // …and that is exactly when the row has to come back. A word that cannot act
+  // on this edge is still written on it, and a row that hid itself would leave
+  // no way to take it off – which is worse than showing the swatch that is
+  // pressed with the compiler's warning beside it.
+  await page.evaluate((i) => dgeSelect([i]), horizontal[0]);
+  await page.waitForTimeout(250);
+  const backAgain = await rowOf('label across');
+  ok(!!backAgain, 'a word the edge cannot use still gets its row back',
+    backAgain ? backAgain.join(',') : '(absent)');
+  await page.evaluate(() => {
+    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+      .find((x) => x.querySelector('b').textContent === 'label across');
+    const b = s && [...s.querySelectorAll('.dge-sw')].find((x) => x.title === 'none of this slot');
+    if (b) b.click();
+  });
+  await page.waitForTimeout(400);
+  await page.evaluate((i) => dgeSelect([i]), horizontal[0]);
+  await page.waitForTimeout(250);
+  ok((await rowOf('label across')) === null,
+    'and once it is off, the row is gone again', JSON.stringify(await rowOf('label across')));
+  ok(!(await page.evaluate(() => (DGE.warnings || []).join(' '))).includes('runs along'),
+    'with the warning gone with it');
+
+  await page.keyboard.press('Control+z');
+  await page.waitForTimeout(300);
+  await page.keyboard.press('Control+z');
+  await page.waitForTimeout(300);
+
+  ok(!(await ed.problems()).includes('line '), 'the block compiles at the end', await ed.problems());
   ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

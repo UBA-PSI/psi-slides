@@ -348,6 +348,20 @@
   cursor: copy;
 }
 #dge-guides .dge-handle.dge-h-add:hover { opacity: 1; stroke-dasharray: none; }
+/* A neighbour guide: the line a snap would write down (editor.md 9.2). Drawn
+   in the same register as every other guide here - a hairline in --rule with
+   its label in --ink-soft - because it is a statement being proposed rather
+   than an act being confirmed, and the accent in this layer is reserved for
+   the things that are already happening: the selection, the strained align
+   axis, the armed dock chip. Dashed, because a relation that is not written
+   down yet should not look like one that is. */
+#dge-guides .dge-nb {
+  stroke: var(--rule);
+  stroke-width: 1.2;
+  stroke-dasharray: 5 3;
+  fill: none;
+}
+#dge-guides .dge-nb-label { fill: var(--ink-soft); }
 /* A tag is not geometric, so it must not be drawn as a line. A tinted halo
    behind the members says "these belong together" without saying anything
    false about where they are. */
@@ -854,6 +868,16 @@ body[data-mode=dark] .dge-asset { background: color-mix(in oklab, var(--paper) 8
 .dge-changed-restyled,
 .dge-changed-relabelled,
 .dge-changed-moves { stroke: var(--ink-soft); }
+/* An element that came in behind something else – an edge with its ends, an
+   outline with its members – gets the accent too, because it did change what
+   is on the slide, but at a finer dash: the author wrote no line for it, and
+   the mark should read as a consequence rather than as an instruction. */
+.dge-changed-comes-with-its-ends,
+.dge-changed-goes-with-its-ends { stroke: var(--emph); stroke-dasharray: 2 3; }
+/* An edge has no layout box, so its mark is the line itself rather than a
+   frame around it. The base rule already sets fill: none; this is the
+   round joins that keep a traced polyline from growing spikes at a corner. */
+polyline.dge-changed { stroke-linejoin: round; stroke-linecap: round; }
 .dge-changed-tag {
   fill: var(--emph);
   font-family: var(--mono-font);

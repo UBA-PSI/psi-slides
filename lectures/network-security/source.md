@@ -1197,7 +1197,7 @@ container react "REACTIVE MEASURES" over al,ids,im pad 0.5 {.dashed .muted}
 # Der rote, um 30° gedrehte Schriftzug der Vorlage lässt sich nicht drehen.
 # Statt dessen eine dicke Kante, die von außen durch die Fuge der Mauer
 # stößt, und das Wort waagerecht daneben.
-edge intr pt.right+0.1,-0.95 -> pt.right+0.1,1.0 {#intr .thick .accent @in}
+edge pt.right+0.1,-0.95 -> pt.right+0.1,1.0 {#intr .thick .accent @in}
 text intrl "INTRUDER" above aa gap 0.62 {.accent .bold @in}
 
 step breach
@@ -1222,8 +1222,8 @@ default box {.tone-1}
 dot ext ""         at 0,0 r 0.07 {.muted}
 box fw "FIREWALL"  right of ext gap 1.6 w 0.34 h 1.55 {.turn}
 box sw "SWITCH"    right of fw gap 1.6 w 0.85 h 0.44
-edge w1 ext -- fw.left
-edge w2 fw.right -- sw.left
+edge ext -- fw.left {#w1}
+edge fw.right -- sw.left {#w2}
 
 # Die Sensoren sitzen auf der Leitung, nicht daneben.
 box n1 "NIDS" between ext,fw w 0.7 h 0.44 {.hex .tone-4 @nids}
@@ -1235,15 +1235,15 @@ box n2 "NIDS" between fw,sw same as n1 {.hex .tone-4 @nids}
 box d2 "desktop" above sw gap 1.25 w 0.6 h 0.44 {.tone-2 @hosts}
 box d1 "desktop" left of d2 gap 0.6 same as d2 {.tone-2 @hosts}
 text dlab "desktops" left of d1 gap 0.5 -> d1 {.muted @hosts}
-edge k2 d2.bottom -- sw.top {@hosts}
-edge k1 d1.bottom -- sw.cx,d1.bottom+0.42 via d1.cx,d1.bottom+0.42 {@hosts}
+edge d2.bottom -- sw.top {#k2 @hosts}
+edge d1.bottom -- sw.cx,d1.bottom+0.42 via d1.cx,d1.bottom+0.42 {#k1 @hosts}
 
 # Zwei Server. Der Zylinder der Vorlage ist eine .round-Box im Serverton.
 box web "Web server" below n1 gap 1.3 w 1.0 h 0.5 {.round .tone-3 @hosts}
 box db  "DB server"  below sw gap 1.3 offset -1.9,0 same as web {.round .tone-3 @hosts}
 align y middle web, db
-edge wl web.top -- web.cx,ext.cy {@hosts}
-edge dl db.right -- sw.bottom via sw.cx,db.cy {@hosts}
+edge web.top -- web.cx,ext.cy {#wl @hosts}
+edge db.right -- sw.bottom via sw.cx,db.cy {#dl @hosts}
 box n3 "NIDS" right of db gap 0.5 same as n1 {.hex .tone-4 @nids}
 
 box h1 "HIDS" above d1  gap 0.5  same as n1 {.hex .tone-4 @hids}
@@ -1270,8 +1270,8 @@ step hids
 box inp "Input"            at 0,0 w 1.5 h 0.5 {.tone-3}
 box de  "Decision\nEngine" below inp gap 0.75 w 1.7 h 0.95 {.hex .tone-4}
 box rea "Reaction"         below de gap 0.75 w 1.5 h 0.5 {.tone-3}
-edge f1 inp -> de
-edge f2 de -> rea
+edge inp -> de {#f1}
+edge de -> rea {#f2}
 
 text nb "network-based" right of inp gap 0.62 offset 0,-0.2 {.left @src}
 text hb "host-based"    below nb gap 0.16 align left {.left @src}
@@ -1345,9 +1345,9 @@ text as "knowledge about\nbenign activities" at 2.65,0.8
 dot  s1 ""   at 0.45,2.1 r 0.13 {.tone-4}
 dot  s2 ""   at 1.25,2.1 r 0.13 {.tone-4}
 box  bl ""   at 2.65,2.3 w 1.35 h 1.1 {.round .tone-4}
-edge e1 ms -> s1 {.muted}
-edge e2 ms -> s2 {.muted}
-edge e3 as -> bl {.muted}
+edge ms -> s1 {#e1 .muted}
+edge ms -> s2 {#e2 .muted}
+edge as -> bl {#e3 .muted}
 
 text mt "anything else:\nno misuse alert" at 0.85,4.6
 text an "anything else:\nanomaly alert"   at 2.65,4.6

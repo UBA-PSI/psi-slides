@@ -147,5 +147,75 @@ export async function run({ page, errors, report, walkTo, ed }) {
   ok(src.length === 8, 'the block still has its eight statements, one per line',
     String(src.length) + ': ' + JSON.stringify(src));
 
+  // ── the one word that moves a brace, and the two fields that shared a name ──
+  //
+  // `brace b over a,z right "…"` says which side of its members the brace
+  // stands on. A bare word off a closed list, so createSpanTable has no entry
+  // for it – and with no span there was no control at all, which left the
+  // option that decides where a brace *is* reachable only by typing.
+  await page.evaluate(() => dgeClose());
+  await page.waitForTimeout(400);
+  await walkTo('expand');
+  ok(await ed.open('expand'), 'the editor is open on #expand');
+  await ed.beat(0);
+
+  const pickRow = async (name) => {
+    await page.evaluate((n) => {
+      const row = [...document.querySelectorAll('#dge-side .dge-list button .dge-nm')]
+        .find((b) => b.textContent === n);
+      if (row) row.closest('button').click();
+    }, name);
+    await page.waitForTimeout(320);
+  };
+  const sideRow = () => page.evaluate(() => {
+    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+      .find((x) => x.querySelector('b') && x.querySelector('b').textContent === 'side');
+    if (!s) return null;
+    return [...s.querySelectorAll('.dge-sw')].map((b) =>
+      b.textContent + (b.getAttribute('aria-pressed') === 'true' ? '*' : ''));
+  });
+  const clickSide = async (text) => {
+    await page.evaluate((t) => {
+      const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+        .find((x) => x.querySelector('b') && x.querySelector('b').textContent === 'side');
+      const b = s && [...s.querySelectorAll('.dge-sw')].find((x) => x.textContent === t);
+      if (b) b.click();
+    }, text);
+    await page.waitForTimeout(420);
+  };
+
+  await pickRow('b1');
+  ok(await ed.selection() === 'brace b1', 'a brace is selected', await ed.selection());
+  const sides = await sideRow();
+  note('side row: ' + (sides ? sides.join(' ') : '(absent)'));
+  ok(!!sides && sides.length === 5, 'the panel offers the four sides and a default',
+    sides ? sides.join(' ') : '(absent)');
+  ok(!!sides && sides.includes('bottom*'), 'with the one the source says pressed',
+    sides ? sides.join(' ') : '(absent)');
+
+  const braceLine = () => ed.lineWith('"Bin 1"');
+  await clickSide('right');
+  ok(/over \S+ right /.test((await braceLine()) || ''),
+    'clicking a side writes it after the members', await braceLine());
+  ok(!(await ed.problems()).includes('line '), 'and the block parses', await ed.problems());
+  await clickSide('default');
+  const bare2 = await braceLine();
+  ok(!/ (right|left|top|bottom) /.test(bare2 || ''),
+    'the default swatch takes the word off again', bare2);
+  ok(!/ {2}/.test(bare2 || ''), 'and leaves no double space behind', JSON.stringify(bare2));
+  ok(!(await ed.problems()).includes('line '), 'and that parses too', await ed.problems());
+
+  // Two fields under one word in one panel is a coin toss over which is being
+  // edited, and a `grid` had exactly that: what each cell draws and how wide
+  // one is were both called `cell`. Typing 0.2 into the first wrote it over
+  // `dot` and came back as the compiler's refusal.
+  await pickRow('g');
+  const names = await page.evaluate(() =>
+    [...document.querySelectorAll('#dge-side .dge-num span')].map((x) => x.textContent));
+  note('fields: ' + names.join(' '));
+  const dupes = names.filter((n, i) => names.indexOf(n) !== i);
+  ok(dupes.length === 0, 'no two fields in one panel answer to the same word',
+    dupes.join(' ') || '(none)');
+
   ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

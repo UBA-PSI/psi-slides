@@ -64,4 +64,65 @@ export async function run({ page, errors, report, walkTo, ed }) {
   ok(after !== before && /\.tone-1/.test(after || ''),
     'and a swatch rewrites that one line', JSON.stringify(after));
   ok(!(await ed.problems()).includes('line '), 'the block still parses', await ed.problems());
+
+  // ── the two selection paths that do not go through the hit test ──
+  //
+  // A click resolves through dgeOwnerOf and always has. Two other controls
+  // reach the same elements and did not: the marquee reads DGE.boxes straight,
+  // and the tag legend lists the tags a `table` generates over its own cells.
+  // Either one put ids into the selection that no line of the source declares,
+  // and the panel that opened on one had a field for everything and somewhere
+  // to write nothing – a dead panel where a click had just worked.
+  await page.evaluate(() => dgeClose());
+  await page.waitForTimeout(400);
+  await walkTo('table');
+  ok(await ed.open('table'), 'the editor is open on #table');
+  await ed.beat(0);
+
+  // Read off the model rather than written out: a synthetic element carries
+  // the span of the statement that made it, which is exactly why it must not
+  // be selectable.
+  const synthetic = () => page.evaluate(() => DGE.selection.filter((id) => {
+    const el = dgeFind(id);
+    return el && el.synth && el.synth !== el.id;
+  }));
+
+  const tags = await page.evaluate(() => [...DGE.model.tags.keys()]);
+  note('tags the table generates: ' + tags.join(' '));
+  const rowTag = tags.find((t) => /-row-1$/.test(t));
+  ok(!!rowTag, 'a table generates a tag per row', tags.join(' '));
+  const clicked = await page.evaluate((t) => {
+    const b = [...document.querySelectorAll('#dge-side .dge-chip')]
+      .find((x) => (x.title || '').endsWith('@' + t));
+    if (!b) return false;
+    b.click();
+    return true;
+  }, rowTag);
+  ok(clicked, 'the legend offers it');
+  await page.waitForTimeout(350);
+  ok((await synthetic()).length === 0,
+    'selecting a generated row tag selects no cell', (await synthetic()).join(' '));
+  ok(await ed.selection() === 'box t',
+    'it selects the statement that drew them', await ed.selection());
+
+  // The marquee, over the whole table and a margin either side.
+  const box = await page.evaluate(() => {
+    const b = DGE.boxes.get('t');
+    const m = document.querySelector('#dge-guides').getScreenCTM();
+    const at = (x, y) => ({ x: x * m.a + y * m.c + m.e, y: x * m.b + y * m.d + m.f });
+    return { a: at(b.x - 30, b.y - 30), z: at(b.x + b.w + 30, b.y + b.h + 30) };
+  });
+  await page.mouse.move(box.a.x, box.a.y);
+  await page.mouse.down();
+  await page.mouse.move(box.z.x, box.z.y, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+  const picked = await page.evaluate(() => DGE.selection.slice());
+  note('marquee picked: ' + picked.join(' '));
+  ok(picked.includes('t'), 'a marquee over the table picks the statement', picked.join(' '));
+  ok((await synthetic()).length === 0,
+    'and none of the cells it drew', (await synthetic()).join(' '));
+
+  ok(!(await ed.problems()).includes('line '), 'the block still compiles', await ed.problems());
+  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

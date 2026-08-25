@@ -729,6 +729,87 @@ Fix ist `resetViewportScroll()` neben der `viewport`-Deklaration: ein `scroll`-L
 
 `shoot.mjs` läuft weiterhin über Pfeiltasten zum Ziel-Chunk statt über das Fragment, und behauptet vor jeder Aufnahme, dass der Chunk wirklich im Viewport liegt. Nicht mehr nötig, aber der Weg, den auch ein Vortragender nimmt – und eine Assertion gegen einen Pfad, der schon einmal falsch war, ist billig.
 
+## Figuren-Slice: zwei Defekte, fünf Ergänzungen, und ein Editor, der die Regel nicht aussprach
+
+Ausgelöst durch eine Durchsicht von `docs/artifact/figures-you-write.html` –
+sechzehn Punkte, davon vier „das stimmt so nicht", der Rest Lücken in der
+Sprache. Zwei davon waren echte Defekte, und beide gehören zu derselben
+Familie wie die stillen No-ops, die dieses Repo laufend schließt: **ein Wert,
+der aussieht wie das eine und getypt ist wie das andere.**
+
+- `dgTurnOf()` antwortet in *Grad* (`0` oder `-90`), verglichen wurde gegen
+  einen Boolean. `false !== 0` ist in JS immer wahr, also räumte **jedes**
+  Kantenlabel seine eigene *Breite* frei statt seiner Höhe – auf einer
+  waagerechten Kante also einen Abstand proportional zur Wortlänge. Genau
+  darum lagen `replay` und `forgery` zwischen denselben zwei Kästen auf
+  verschiedener Höhe. `turnDeg` (die Zahl, die als dritte Komponente im
+  Geometrievektor mitfährt) und `turned` (der Boolean) sind jetzt getrennt.
+- `DG_DOT_R` war die einzige Länge im Layout in rohen Pixeln, während die
+  Autoren-Option `r` in Grid-Einheiten zählt. Ein blanker `dot` folgte damit
+  als Einziges nicht dem `unit=` des Blocks, und je kleiner die Einheit, desto
+  fetter der Punkt: ein Plot-Marker kam höher heraus als die Zelle, in der er
+  einen Punkt markierte. Jetzt `0.18` Grid-Einheiten, und `0.18 * 72 = 12.96`,
+  also ist die Standardeinheit auf das Pixel genau unverändert.
+
+Fünf Ergänzungen, alle nach demselben Muster wie `bars`/`grid`/`plot`: **beim
+Parsen in Elemente expandieren, die es schon gibt.** Nichts weiter unten in
+der Kette lernt eine neue Elementart, also spannt eine `brace` weiterhin über
+zwei Zeilen einer Tabelle und ein `style`-Step färbt eine Zelle ohne
+Sonderbehandlung irgendwo.
+
+- **`table`** – ein Raster beschrifteter Zellen. Kopfzeile als ein an `|`
+  geteilter String, Datenzeilen als blanke Strings auf den Zeilen darunter.
+  Jede Zelle trägt zwei **generierte Tags**, `@t-row-2` und `@t-col-0`, und
+  genau die verdienen dem Statement seinen Platz: eine Zeile pro Beat ist
+  damit eine Zeile Quelltext statt einer Liste von Zellnamen, die man von Hand
+  mit der Tabelle synchron halten muss.
+- **`lanes`** – gleich breite Bänder mit gedrehten Namen an der linken Seite.
+  Bewusst **kein** `container`: ein Container passt sich seinen Mitgliedern an,
+  also kämen Bänder mit unterschiedlich vielen Elementen an beiden Enden
+  ausgefranst heraus, was das Gegenteil einer Swimlane ist.
+- **`bars … series of <chart> [stacked]`** – ein zweites `bars`-Statement legt
+  sich in den Rahmen des ersten. Es verweigert `w`, `h`, `space`, eine
+  Platzierung und eine Tick-Leiste namentlich, weil die alle dem Diagramm
+  gehören, dem es beitritt. Als eigenes Statement geschrieben und nicht in den
+  Werte-String gefaltet, aus zwei Gründen: **jede Serie hat so ihren eigenen
+  Attribut-Tail**, und die generierten Namen bleiben flach (`f-0`, `g-0`)
+  statt bedingt zweistufig zu werden. Dazu `emph 1,3` / `calm 4` auf jeder
+  `bars`-Zeile, die Spaltenindizes nehmen – vorher konnte eine Spalte erst ab
+  Beat 1 hervorgehoben werden und nie im Eröffnungsbild.
+- **`.diamond`** – der Umriss, den ein Raum seit der Schule als „hier wird
+  gefragt" liest. Der einzige, der *beide* Achsen frisst, und zwar im
+  Verhältnis zum Label statt zur anderen Achse: der breiteste Platz in einer
+  Raute ist ein Streifen halbe Breite mal halbe Höhe durch die Mitte, also
+  braucht ein Label, das in ein Rechteck passt, eine Raute doppelter Breite
+  und doppelter Höhe. Kurze Wörter.
+- **`.elbow`** – ein eigener Slot mit `.smooth` („wie eine Linie gezeichnet
+  wird") und die einzige Stelle, an der die Engine eine Koordinate aufs Papier
+  setzt, die niemand geschrieben hat. Bewusst so eng gefasst, dass daraus kein
+  Router werden kann: eine Wende hinaus, eine hinein, die Schiene immer auf
+  halber Strecke, auf der Achse, auf der die Enden weiter auseinander liegen,
+  und keine Option, sie zu verschieben. Gemessen wird zwischen den beiden
+  *zugewandten Seiten*, nicht zwischen den Mittelpunkten – und genau das
+  verdient die Klasse, weil mehrere Kinder eines Elternknotens dann auf
+  derselben Linie wenden und der Satz als eine Klammer liest.
+
+Dazu zwei Dinge, die vorher stille No-ops waren. **`.paper` auf einer Kante**
+löste auf, gab seine Klasse aus und zeichnete nichts; jetzt bekommt das
+Kantenlabel einen Grund, sitzt ohne Seitenangabe *auf* der Linie und stanzt
+sie aus, mit `.top`/`.bottom`/`.left`/`.right` daneben. Und **`show edge-1`**
+parste, kam durch die Referenzprüfung, schrieb `state.visible` – und wurde
+danach von der Downhill-Regel weggeworfen. Ein explizites `show`/`hide`
+überschreibt die Regel jetzt in beide Richtungen, für diesen Beat und jeden
+danach.
+
+**Beim Bauen ist eine ältere Falle aufgeflogen.** Sobald `edge` eine Option
+hat (`pad`), wird gefährlich, dass nur das Token *direkt* vor dem Pfeil als
+Endpunkt gelesen wird: `edge pad 0.1 a -> b` parste und ließ die Zahl fallen.
+Die neue Prüfung darauf fand sofort **zwölf Kanten in
+`lectures/network-security`**, die seit jeher einen Namen trugen, den der
+Compiler verworfen hat (`edge w1 ext -- fw.left`). Sie sind zu `{#w1}`
+geworden statt gelöscht – der Autor meinte sie ja. Merke: `2>&1` beim Prüfen,
+sonst sieht ein harter Build-Fehler aus wie ein sauberer Lauf.
+
 ## Gaps / Bekannte Limits
 
 - **Code-Blöcke in `::: side` können überlaufen.** Mit `white-space: pre` und langer URL (z.B. `curl -LsSf https://astral.sh/uv/install.sh | sh`) clippt der Pre am Pane-Rand rechts. Horizontal-Scroll-Bar greift, aber unschön auf dem Projektor. Workaround: kurze Commands in `::: side`, lange Commands in `::: cols` oder single-column. Möglicher Fix: `white-space: pre-wrap` innerhalb von `.side pre` – aber das bricht Code-Einrückung. Akzeptiert.

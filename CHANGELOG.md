@@ -17,15 +17,23 @@ from building the same way is a major version.
   applies depends on the direction the edge ended up running, so naming the
   pair that runs along it is a build warning rather than a parse error.
 
-- **`::: diagram` draws four more outlines.** `.hex`, `.chevron`, `.wedge`
-  and `.cross` join `.round` and `.sharp` in one slot – a protocol message
-  that is an arrow, an IDS sensor that is a hexagon, a size comparison that is
-  a triangle, a scatter marker. `point up|down|left|right` aims the ones that
-  have a point, so eight orientations cost one option rather than eight class
-  names. They cost nothing: a shape is the same four
-  numbers a rectangle carries, joined into a different path, so the frame, the
+- **`::: diagram` draws five more outlines.** `.hex`, `.diamond`, `.chevron`,
+  `.wedge` and `.cross` join `.round` and `.sharp` in one slot – a protocol
+  message that is an arrow, an IDS sensor that is a hexagon, a size comparison
+  that is a triangle, a scatter marker, and the diamond a room has been trained
+  since school to read as the question a flowchart asks. `point up|down|left|right` aims the two
+  that have a point, so eight orientations cost one option rather than eight
+  class names. They cost nothing downstream: a shape is the same four numbers
+  a rectangle carries, joined into a different path, so the extents, the
   viewBox and the tween are untouched. An outline class on any other kind, or
   inside a `style` step, is an error rather than a silent no-op.
+
+  The diamond is the one that eats **both** axes, and in proportion to its
+  label rather than to the other axis: the widest room a diamond offers is a
+  strip half its width by half its height through its centre, so a label that
+  fits a rectangle needs a diamond twice as wide and twice as tall. Keep a
+  diamond's label to two or three words, or the decision arrives at four times
+  the area of the boxes it sits between and takes the figure over.
 - **`.turn` reads a label bottom-to-top.** For a tall narrow element that has
   room for a word only along its long side: a firewall bar, a confusion-matrix
   row, an axis title.
@@ -39,9 +47,85 @@ from building the same way is a major version.
   has everywhere else, the distance between two elements.
 - **`.smooth` draws an edge as a curve through its waypoints**, for the
   figures where a line is a measurement rather than a connection.
+- **A bar chart can run sideways, and a chart can say what shape it is.**
+  `horizontal` on a `bars` line turns the columns into bars: lengths from a
+  shared left edge, categories stacked downwards, the tick strip a right-aligned
+  column down the left margin and the baseline standing on the left. It is not a
+  variant of the same picture - a reader ranks lengths more reliably than
+  heights, and a category called "DNS cache poisoning" cannot be written under
+  an upright column at all. Which is why a tick string containing `|` is now
+  split on that rather than on spaces, so a row label may be a phrase; the same
+  mark already separates a `table` row and a `lanes` name.
+
+  `aspect W:H` on a `bars` or a `plot` states the proportion the reader sees.
+  It exists because `w` and `h` are counts of *grid cells* and a grid cell is
+  not square: at `unit=150x52` a plot written `w 1.9 h 1.5` arrives 285 pixels
+  by 78, and nothing on the line hints at it. Write `aspect 4:3`, `aspect 1:1`,
+  or one bare number meaning that many wide to one tall, and the build works
+  the other dimension out. Giving `w`, `h` and `aspect` together is an error.
+- **`same as <chart>` sizes a `plot` or a `bars` from another one**, for the
+  row of comparable frames a shared baseline needs. It is answered while the
+  line is read rather than during layout, because a chart's gridlines, ticks
+  and columns are placed from its own dimensions at parse time - so the chart
+  being copied has to be written above the one copying it, and the build says
+  which of declared-below, not-a-chart or not-there went wrong.
+- **An edge can be placed against, like anything else.** `text n "…" above w1
+  gap 0.2`, `at w1.cx,w1.cy` - the box a coordinate reads is the bounding box
+  of the route. A coordinate could name a box, a dot, a text or an image and
+  never an edge, not by design but because edges were routed after the walk
+  that places everything else; the omission bit in the wrong direction, because
+  a phrase describing a wire then had to be pinned to one of the boxes at
+  either end and drifted off its line on the next edit. Raising two boxes from
+  `h 3.0` to `h 4.2` moves a box-anchored label from 13.5px off its wire to
+  22.3px; a wire-anchored one stays where it was put. `dgEdgeRoute()` is now the
+  one text that works out a route, called by the layout and by the emitter, so
+  the two cannot disagree.
+- **`table` and `lanes`.** A grid of labelled cells, and a set of equal bands
+  with their names turned down the side. Both expand at parse time into
+  ordinary boxes and texts, exactly as `bars`, `grid` and `plot` do, so a
+  `brace` spans two rows of a table and a `style` step tints one cell with no
+  new vocabulary anywhere downstream. They exist because the hand-built
+  versions are the ones that cannot be maintained: six rows of three cost
+  twenty-one declarations and a chain of `below` references to re-aim whenever
+  a row is inserted. A table's heading is one string split on `|` and its body
+  is the run of bare quoted strings beneath it; every cell carries two
+  generated tags, `@t-row-2` and `@t-col-0`, so lighting a row per beat is one
+  line of source. `lanes` is deliberately **not** a container: a container fits
+  its members, so bands holding different numbers of things come out ragged at
+  both ends, which is the opposite of what a swimlane means.
+- **A `bars` chart can carry more than one run of columns.**
+  `bars g "…" series of f` joins the first chart's frame rather than drawing
+  its own – plain, it stands beside the runs before it and the cell is shared
+  out, so a grouped chart takes exactly the paper a single one did; `stacked`,
+  it sits on the run before it and the scale becomes the tallest stack. It is
+  its own statement rather than a second values string so that each series has
+  its own attribute tail: a series is a thing with a colour and a name, and one
+  tail per series is how it gets one. A series refuses `w`, `h`, `space`, a
+  placement and a tick strip by name, because all five belong to the chart it
+  joined. `emph 1,3` and `calm 4` on any `bars` line take column indices and
+  mean on the line what they already mean in a step, so a chart can *arrive*
+  with one column singled out instead of only from beat 1 onwards.
+- **`.elbow` routes an edge with one turn out and one turn in.** A rail halfway
+  across the gap, on whichever axis the two ends are further apart, with both
+  anchors forced onto that axis – the two waypoints every tree edge used to be
+  written with by hand, said in one word. The rail is measured between the two
+  *faces* rather than the two centres, which is what makes several connectors
+  out of one parent share a rail and read as a single bracket. Bounded on
+  purpose: it looks at nothing else in the figure, nothing steps around an
+  obstacle, and there is no option to move the rail; `.elbow` together with
+  `via` is an error rather than a preference the build guesses at.
+- **An edge's label can carry a ground.** A fill class on an `edge` draws a
+  rect behind the label on the same terms a free `text`'s ground is drawn, and
+  `pad` is now a legal `edge` option. With no side named the label sits **on**
+  the line and knocks it out behind the words, which is what a sequence number
+  or a port wants; with `.top`, `.bottom`, `.left` or `.right` it clears the
+  line and carries the ground with it. Before this, `.paper` on an edge
+  resolved, emitted its class and drew nothing.
 - **`figure-design.md`** – how to lay a figure out so a room reads it: ten
-  rules with a wrong/right pair each, the tone-to-role table, the four-beat
-  step order, and a checklist to work down before a figure is finished.
+  rules with a wrong/right pair each, the tone-to-role table, the four
+  arrangements a lecture keeps asking for (flowchart, swimlane, tree, table)
+  with the construction fact each one turns on, the four-beat step order, and a
+  checklist to work down before a figure is finished.
 
 - **`::: diagram` – animated infographics written in the lecture source.**
   A line-oriented DSL for boxes, dots, free text, arrows, auto-fitting
@@ -367,6 +451,63 @@ from building the same way is a major version.
   11% on the bundled faces and never clips.
 
 ### Fixed
+
+- **Two messages named a name that exists but is not usable yet as one that
+  does not exist.** A `plot` line that failed on a later option is still
+  *registered* under its name, so reading a value out of it reported that
+  "q is a plot, not a plot"; it now points at the line carrying the real
+  error, and says it once per name instead of once per coordinate. A
+  `same as` naming a chart declared three lines lower said it named nothing
+  in the block.
+- **A bare `.cross` box is square.** It was 66 by 37 - the minimum box width
+  against one line of type - so a plus sign came out with arms of two different
+  lengths, which reads as a stretched shape rather than as a marker. Squared
+  where the size is decided rather than where the path is drawn, because the
+  footprint the layout reserves has to be the footprint that is drawn.
+- **A label beside a vertical edge had half the clearance of one beside a
+  horizontal edge.** The measured box carries the line's leading along its
+  height and nothing along its width, so the same constant bought 3.9px of air
+  in one direction and 2px in the other - and optically a gap across a line of
+  text needs more, not less. The missing leading is added back where the
+  measurement does not carry it.
+- **A grounded label beside a line laid its ground back across the line.** The
+  offset cleared the glyphs and not the ground, so the rect painted out the one
+  thing the offset existed to keep visible.
+- **`emph` on a `.tone-4` element was invisible** - an accent stroke on an
+  accent fill. It is an ink ring now, checked in all seven themes.
+- **A `bars … series of` line was not editable at all.** It is the one statement
+  that produces no element carrying its own name, so it had no span-table entry;
+  that looked like a decision and was an accident.
+
+- **Every edge label cleared its own width, whichever way its line ran.** The
+  gap between a label and its line has to clear what the words measure *across*
+  the line – their height beside a horizontal one, their width beside a
+  vertical one – and the test that decided which compared an angle in degrees
+  against a boolean. `false !== 0` is true whatever the line does, so a
+  horizontal edge pushed its label off by half the label's length. It is why
+  two arrows between one pair of boxes carried their labels at two different
+  heights, each proportional to how long its own word was. The number and the
+  boolean are separate values now.
+
+- **A bare `dot` was the one thing in a diagram that ignored `unit=`.** Its
+  default radius was 13 raw pixels while the `r` an author writes is in grid
+  units, so the smaller the unit, the fatter an unsized dot came out relative
+  to everything around it – a marker inside a plot arrived taller than the cell
+  it marked a point in. It is 0.18 grid units now, measured against the same
+  height every other clearance is; at the default unit that is 12.96 px, so
+  existing figures are unchanged to the pixel.
+
+- **`show` or `hide` naming an edge, a container, a brace or an annotated text
+  did nothing.** Those four take their visibility from what they are attached
+  to – an edge from its two ends, an outline from its members, a note from what
+  its leader points at – and that rule was applied *after* the step had had its
+  say, so a `show` on one of them parsed, passed the reference check, wrote the
+  state and was then thrown away. The downhill rule is now the default and an
+  explicit `show` or `hide` overrides it, which is what makes an arrow that has
+  to arrive a beat after both its ends expressible at all. A container shown by
+  name also fits its whole set rather than the visible part of it: an outline
+  drawn around some of what it says it holds is the same mistake read the other
+  way.
 
 - **A coordinate pair written as a single anchor crashed the build.**
   `dot m at c.center` was reported correctly by the parser and then laid out

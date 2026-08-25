@@ -52,7 +52,7 @@ Two audiences, one editor.
 
 And one thing it is emphatically **not**: a drawing program. It has no
 freehand, no curves, no arbitrary colours, no free font choice. The class
-vocabulary is a closed enumeration – 29 names – and the
+vocabulary is a closed enumeration – 40 names, 32 of them in eleven slots – and the
 editor exposes exactly those and nothing else. Anything
 it produces is a `::: diagram` block a human could have typed, in the same
 language, and anything a human typed it can open.
@@ -813,6 +813,78 @@ edit.
 Holding a modifier suspends all snapping, for the case where the author means
 0.5847.
 
+#### 9.2a What of that is built, measured rather than assumed
+
+§9.2 is the design and it is ahead of the code, so here is the difference,
+checked by driving the built editor over ninety-nine figures in four lectures
+rather than by reading it.
+
+**Built, and working on every construct:** the selection's own relation ticks,
+redrawn live during a drag so a `gap 0.55` label counts up to `0.85` under the
+pointer; the strained `align` / `spread` axis, drawn through the set with the
+master marked and labelled with what it would take to break out (*"pull 0.29
+more or hold Alt"*); the four docking chips; the endpoint preview on an edge;
+the marquee. Snapping is the 0.05-cell grid plus the three alignment words on a
+placement's cross axis, and `Ctrl` / `Cmd` suspends it – measured on one drag as
+0.79 free against 0.85 snapped.
+
+**Also built, and this is the part §9.2 was written for:** the four
+neighbour guides. Each proposes a *statement*, and is drawn only when it is what
+the editor is about to write.
+
+| what lights up | what it writes |
+|---|---|
+| another element's centre or edge line | `at ver2.left,def.top` – a ref coordinate, on one axis or both |
+| the same gap a sibling already has | that gap's number exactly, marked on the sibling that has it |
+| the line joining two elements | `between n1,g1`, and along it `frac` |
+| equal spacing across three or more | appends `spread y a, b, c` |
+
+Two rules hold that together and are worth not losing. **The candidate lines are
+exactly `DG_SCALAR_X` / `DG_SCALAR_Y` on other elements, matched against the
+dragged element's centre**, because that is where `at X,Y` puts it – "left edges
+flush" is deliberately not offered, since writing it means `at m0.left+<half my
+width>`, a number that dies on the next resize. And **a snap that lands the
+element back where it started still writes**, because the author asked for the
+relation, not for the displacement; without that the status bar named `sw.cy`
+and the source kept a bare `0`.
+
+Priority is *how much of the drag the guide explains, then how little source it
+rewrites*: both axes as a ref coordinate, then `between`, then one axis as a ref
+coordinate, then a sibling's gap, then `spread`, then the pre-existing align
+word and the 0.05 grid. The winner claims its axes and anything that would move
+a claimed axis is dropped – which is also how two candidates on *different* axes
+combine into `at c1.cx,m0.cy`, the construct §9.2 calls the least discoverable
+in the grammar.
+
+Measured on the densest figure in the tree (`ns-b63`, 110 boxes), the whole
+`pointermove` handler runs 6.15 ms against 6.24 ms before; `dgeGuideSnap` alone
+is 3–9 µs. The per-gesture caches on `ctx` are what keep it there.
+
+**Built since, and the reason is one sentence:** the guide layer is a property
+of *dragging*, not of one gesture. It was help that arrived at beat 0 while
+moving and nowhere else, and inconsistent help is worse than none - an author
+learns "dragging writes my relations for me", it silently stops holding, and
+they go back to typing. Every drag that can produce a relation now offers one,
+and each gesture has exactly one relation-shaped answer in the grammar:
+
+| gesture | what it writes |
+|---|---|
+| move at a beat | the same four guides, as `move x to <relation>` |
+| resize, edge handle | the number a sibling already carries, bracketed on that sibling |
+| resize, corner handle | `same as X`, when both dimensions land on one element together |
+| waypoint | `via A.p,<n>` - a bare component becomes a reference, per axis |
+| endpoint | already docks to a name; a drop inside a plot keeps the plot's units |
+
+The split between the two resize handles is the one decision worth keeping.
+`same as` copies *both* dimensions, so offering it from a width-only drag would
+change the height as well - a semantic jump the author did not ask for. The
+grammar has no "w equals A's w" relation, so an edge handle can only offer a
+number, and `same as` belongs to the corner, which is already about both axes.
+
+**One row a beat cannot offer: `spread`.** It has no step form, so writing one
+would change the *opening* picture from inside a gesture that promises not to.
+Every other guide has one, because `move … to` takes any placement.
+
 ### 9.3 Which token a drag rewrites
 
 An element's position comes from exactly one placement expression, and the
@@ -874,7 +946,11 @@ Two more rules of the same shape:
 
 - **Resizing an element that says `same as X`** drops the `same as` and writes
   explicit `w`/`h`. Same reading as the tag default: a drag means "just this
-  one".
+  one". The corner handle is the way back: dragged until both dimensions land
+  on another element together, it writes `same as X` and says so. So the two
+  directions are symmetric and neither is a trap - a drag out of a size
+  relation is one gesture, and a drag back into one is the same gesture with a
+  guide under it.
 - **Creating an element** does not write `at X,Y` if it can avoid it. Dropped
   roughly axis-aligned beside an existing element, within a tolerance, the
   editor proposes `right of A gap 0.6`; otherwise `at X,Y`.
@@ -1013,6 +1089,17 @@ Everything else is pure and exported directly: `DG_KEYWORDS`, `DG_STEP_OPS`,
 `DG_ALIGN_X`, `DG_ALIGN_Y`, `DG_SCALAR_X`, `DG_SCALAR_Y`, `DG_DEFAULT_KINDS`,
 `DG_ANCHORS`, `parseDiagramSource`, `dgStateAt`, `layoutDiagram`,
 `dgFrameDrawables`, `renderDiagram`.
+
+Three more tables joined that list once the expanding statements arrived, and
+the panel reads all three rather than hard-coding what a statement takes:
+`DG_SHAPE_CLASSES` and `DG_POINTED` (which outlines exist and which of them
+have a point to aim), `DG_LIST_OPTS` (options whose value is a comma list –
+`col`, `emph`, `calm` – so a single-number parser must not read one) and
+`DG_BARE_OPTS` (bare closed words a statement accepts, `{bars: ['stacked']}`).
+So do the generated-name helpers, which are the one place the compiler and
+anything reading its output have to agree exactly: `dgBarName`, `dgTickName`,
+`dgBaseName`, `dgCellName`, `dgPlotName`, `dgRowTag`, `dgColTag`,
+`dgLaneName`, `dgLaneCapName`.
 
 `lint.js` imports only the tables. That is what keeps it zero-dep: it must
 never reach for a function that pulls the rest of the compiler in behind it.
@@ -2459,3 +2546,220 @@ edit spliced over the wrong token. In `lectures/diagrams` that was not
 hypothetical: the CBC figure's `dot x` answered `x.x` with its own name. Two
 guards close it: positions 0 and 1 are never keywords, and neither is a token
 in a reference slot.
+
+### The visibility rule, and five statements the panel had not met · **done**
+
+Two separate jobs that landed together, because both are the same complaint:
+the editor knew things about a figure that it never said out loud.
+
+**The rule that decides what is on screen was legible nowhere.** An edge is
+only as visible as its two ends, a container as its members, a note as what
+it points at – and a beat that reveals a tag reveals all three without naming
+any of them. The step pane got that wrong in a way that was hard to notice,
+because it was wrong in the direction of *saying less than the truth*:
+`dgeStepChanges` diffs `dgStateAt`, and `dgStateAt` has never known the rule.
+Measured on `lectures/diagrams` `#cbc`, whose second beat is exactly
+`show @xor`, the pane listed six elements for a beat that puts nine on the
+slide. The three it dropped were the three arrows into the XOR nodes, which
+are the point of that beat.
+
+The resolved answer was already in the room and being thrown away:
+`dgePaintArt` parses the frames payload to hand it to the runtime and then
+drops it. It is kept now, and a second pass over `frames[k].vis` supplies a
+verb – *comes with its ends*, *goes with its ends* – for anything whose
+resolved visibility crosses at the beat and which the state diff had nothing
+to say about. Precedence runs the other way from the obvious one: a verb the
+diff produced came from a line the author wrote and keeps its chip, or an
+explicit `emph feed0, feed1, feed2` reads as a line doing nothing. The rule
+fills the silence, it does not talk over the source.
+
+The drawing had a matching hole with a plainer cause: `layoutDiagram` has no
+box for an edge, so `dgeDrawBeatGuides` skipped every edge it was asked to
+mark – including one a step named outright. It traces the painted line with a
+polyline instead, at a finer dash than the accented mark a named element
+gets, because "arrived behind something else" is a consequence rather than an
+instruction. And the edge panel now says the rule in the same sentence the
+drag refusal has always used, which is the first place in the editor it is
+written down at all.
+
+**The compiler changed underneath one of the editor's own no-ops while this
+was being built.** `show edge-1` used to parse, pass the reference check,
+write the state and then be discarded by the downhill clamp – so the pane's
+show chip, which never consulted the kind, could produce a line that did
+nothing *and* a chip asserting the opposite. Naming the element now overrides
+the rule in both directions, so the chip means what it says and no gate was
+needed.
+
+**Then five statements the panel had not met.** `.diamond` and `.elbow`
+joined the swatch rows, and both needed the rows to learn a distinction they
+had not had: an option can be narrower than its slot. The five non-rect
+outlines are refused on a container, so the panel had been offering four
+clicks that could only come back as a refusal; `.elbow` is refused beside
+`via`, so it is hidden on an edge that carries one. Filtering is display
+only – the slot still knows every member, so a hand-written `.diamond` is
+still displaced when another outline is picked.
+
+`col`, `emph` and `calm` are the first options whose value is a list, and
+they arrived in the size row as **dead fields**: `DG_KEYED_ATTRS` does not
+carry them, so `spanOf` answered null and every keystroke came back as "give
+it a placement first". A shim answers for `DG_LIST_OPTS` keys and defers to
+`spanOf` for everything else, so the day those three names join the keyed
+table it goes dark and can be deleted.
+
+Three gestures were broken rather than missing, and all three silently. A
+`table`'s `h` is one *row* and a `lanes`'s is one *lane*, but the resize
+handle is on the frame – dragging the south edge of a four-row table wrote
+the whole stack's height into the word that means one row. An elbow paints
+three segments, so it grew three "add a waypoint" dots, every one of which
+could only produce the compiler's refusal. And a `bars … series of` is the
+one expanding statement that draws no frame, so its name resolved to no
+element: clicking a column selected it and the next recompile dropped the
+selection again, which reads as a dead click. It has a panel branch of its
+own now, and a sentence saying the geometry belongs to the chart it joined.
+
+`test/editor-steps.mjs` pinned the six-element count that was wrong; it pins
+nine now, and asserts one of them carries the downhill verb.
+
+### Every construct, driven rather than read · **done**
+
+The question was narrow and the answer was not: can the editor display, select,
+edit and drag *every* construct the language has, and do the guides and the
+snapping behave for all of them? Answering it meant driving the built editor
+over ninety-nine figures in four lectures, plus a planner sweep that flags the
+silent-no-op signature directly – a gesture that plans edits, splices nothing
+and refuses nothing. Ten defects came out, and eight of them are one shape: a
+control that was there, looked live, and could not act.
+
+**Two of them made the panel go dead after a click that had just worked.** A
+marquee reads `DGE.boxes`, which holds every generated element, so dragging a
+box over a twelve-column chart selected fifty ids – forty-six of them synthetic,
+none of them with a span. Clicking a table's `@t-row-1` chip did the same with
+three cells. Every field then answered "cannot be written" and every swatch did
+nothing. Selection resolves through the owner now, and dedupes: fifty become
+four, three become one.
+
+**The edge label rows were wrong in both directions at once.** `.left` /
+`.right` were offered on every edge, and on a horizontal one that is exactly the
+compiler's *"names a direction this edge runs along, so it cannot move the
+label"* warning; `.top` / `.bottom`, which do act there, were offered on no edge
+at all. Which pair can act is only knowable once the line is routed, so each row
+now asks the routed midpoint – the same `dgPolyPoint(pts, 0.5)` the compiler
+asks – and offers the pair that crosses the line, plus whatever the line already
+carries so it stays removable.
+
+**A plot coordinate could not be dragged, and the status bar said it had been.**
+`dgResolvePlotCoords` spends `roc@0.35` into `roc.left+n` before the model
+exists, so a drag planned a nudge, `spanOf` found nothing to rewrite, the edit
+was dropped, and the status line reported success. The delta is converted back
+through the plot's own scale now and the value rewritten in the units the author
+wrote (`roc@0.35` → `roc@0.41`), on placements and on waypoints. The backstop
+matters as much as the fix: a gesture that plans edits and writes none now says
+so instead of claiming it worked.
+
+The rest are smaller and the same family. A `grid` showed two fields both
+labelled `cell`, so typing a width into the first wrote it over the word that
+says what a cell draws. A brace's `side` – the one word that moves a brace
+bodily – had no control at all. Clearing a plot's x-axis title promoted the y
+title into its slot, silently, on a figure that went on compiling. `at` had no
+field, which left a borrowed coordinate and a plot value typeable nowhere. The
+resize grips were constants in diagram units, so on a plot point at high zoom
+they covered the element and every pointerdown resized it, which is why such a
+point could never be moved. And the step pane's *"restyle and relabel with the
+controls below"* read as "these write into this step" when they write on the
+element's own line.
+
+Six spec files grew to hold them, all against figures already in
+`lectures/diagrams` rather than invented ones: 225 assertions became 281.
+
+Two things were known-missing rather than broken. Both are built now, and the
+entry below is what they cost.
+
+
+### The guides that propose a statement, and a series that can be edited · **done**
+
+§9.2 has always said what snapping should be here: *in a drawing tool it aligns
+pixels; here every snap target corresponds to a statement the grammar can
+write.* The middle four rows of its table were the part that did not exist, and
+the fourth of them is the one the section calls the row that matters most –
+**nobody types `at c1.cx,m0.cy` from a standing start.** It is the most valuable
+construct in the coordinate grammar and the least discoverable, and a guide that
+appears when a drag reaches another element's centre line is how it becomes
+usable at all. §9.2a lists what the four write and how they are ranked.
+
+Two decisions inside them are worth keeping. **The candidate lines are the
+scalar coordinates of other elements matched against the dragged element's
+centre**, because that is where `at X,Y` puts it – "left edges flush" looks like
+the obvious fifth guide and is a trap, because writing it means
+`at m0.left+<half my width>`, a number that stops being true the moment either
+box is resized. And **a snap that puts the element back exactly where it started
+still writes the relation.** That came out of driving it: the delta was zero, the
+edit was skipped, the status bar named `sw.cy` and the source kept a bare `0`.
+The author asked for the relation, not for the displacement.
+
+The cost is nothing anyone will feel. On the densest figure in the tree the
+whole `pointermove` handler moved from 6.24 ms to 6.15 ms, inside run-to-run
+noise; the guide code alone is 3 to 9 microseconds. The recompile dominates, as
+it always did, and the per-gesture caches keep the candidate walk O(n).
+
+**The `series of` half was a smaller thing wearing a bigger disguise.** A
+`bars … series of f` line draws columns into a frame it does not own, so it is
+the one statement that produces no element carrying its own name – and the span
+table keys off exactly that. It therefore had no entry, and nothing on the line
+could be edited: values, classes, tags, `stacked`, all text-only. That reads as a
+deliberate restriction and was an accident of how the table is built.
+`model.statements` in `diagram-core.mjs` now holds one record per such statement
+and `spanOf` walks it, plus generic support for a **bare word** off
+`DG_BARE_OPTS`, which makes `stacked` a token when present and an insertion point
+when absent – one shape, so it is a control rather than two branches at the call
+site.
+
+The panel offers the values, the grouping as a two-way swatch row (`side by
+side` / `stacked`, named on both sides because "not stacked" is the other
+reading rather than nothing), `emph` / `calm`, the class vocabulary rendered
+*for a box* since a column is one, and the tags. It goes on refusing `w`, `h`,
+`space`, a placement and a tick strip, which belong to the chart it joined.
+`series of <chart>` itself stays a text edit: it is the middle of the statement
+rather than a trailing option, and the question an author actually arrives with –
+*which chart is this in* – is answered by the panel's sentence and its "Select"
+chip.
+
+Two specs were added, `editor-guides` and `editor-series`, and the suite went
+from 281 assertions to 356.
+### One gesture, one guide, one sentence · **done**
+
+The last entry built the neighbour guides for the move gesture at beat 0. This
+one is the consistency pass, and the reason it was worth a pass of its own is
+that the failure was not a missing feature. A guide layer that helps while you
+move and goes quiet while you resize teaches an author that dragging writes
+their relations for them, and then withdraws the lesson without saying so -
+**inconsistent help is worse than none**, because they stop trusting the model
+they built and go back to typing. §9.2a lists what each gesture now offers.
+
+Two decisions carry it. **The token a drag rewrites is the editor's problem,
+not the author's**: at beat 0 a snap lands in the placement, at beat *k* in a
+`move x to …`, and the guide says the same sentence either way. And **`same as`
+belongs to the corner handle alone** - it copies both dimensions, so offering
+it from a width-only drag would silently change the height, and the grammar has
+no "w equals A's w" to offer instead. The edge handle copies a number a sibling
+already carries, which is the gap guide's rule one axis over.
+
+**The edge-box feature landed underneath this work and broke two assumptions in
+it**, both worth recording because both were reasonable until the day they were
+not. `dgeDrawGuides` read "no layout box means this is a line", so once every
+edge had a box a selected arrow was marked with a rectangle. And `dgeHitTest`
+sorts candidates by area to let a small element win inside a large one - a
+straight edge's box has *zero* area, so it sorted in front of everything and
+won every click inside its bounding rectangle, which also silently defeated the
+`{ edges: false }` guarantee `dgeStartEdge` leans on. Both now ask
+`el.kind === 'edge'` rather than inferring it from the absence of geometry.
+
+Two consequences of that feature needed a ruling rather than a fix. **A marquee
+still does not sweep edges up**: a marquee means "move these together", an edge
+is the one thing that cannot be moved, and including them would put an element
+that refuses into most selections. **A guide proposes an edge as a host only
+when the author named it.** An anonymous `edge-3` is a *positional* name -
+insert an edge above it and the name moves to another line, taking anything
+placed against it somewhere else without a word. `named` on the model edge is
+what tells the two apart, and the guide waits for an `{#id}`.
+
+The suite went from 356 assertions to 449.

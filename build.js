@@ -1597,6 +1597,20 @@ const DIAGRAM_CSS = `
 .psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > :is(rect, circle, .dg-shape) { fill: none; }
 
+/* An edge's label gets the same ground on the same terms: a fill class draws
+   it, no fill class draws nothing. No stroke - a bordered label on a line is
+   a box, and there is a statement for that - and no dash, which the .dashed
+   rule above would otherwise put around the ground of a dashed edge's label.
+   Written after the tone rules on purpose: they set a stroke at the same
+   specificity, so source order is what decides. */
+.psi-diagram .dg-edge > rect { stroke: none; }
+/* And no fill unless a tone asked for one. An SVG rect with no fill property
+   is black, and this one is emitted in every frame of any edge that is ever
+   given a tone - so without this rule an edge whose label gains a ground in
+   beat 3 draws a black slab across its own line in beats 1 and 2. Exactly the
+   rule the free text's ground already needs, for exactly the same reason. */
+.psi-diagram .dg-edge:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
+
 .psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
 .psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
 .psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
@@ -1623,6 +1637,14 @@ const DIAGRAM_CSS = `
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
+/* .tone-4 fills with the accent, so an emphasis stroke in the accent lands
+   invisibly on it: emph on such a box resolved, set its width and changed
+   nothing on screen - the silent no-op again, arriving through the stylesheet
+   rather than through the grammar. Inverted the way .tone-4's own label
+   already is, and for the same reason. Higher specificity than the rule above,
+   so source order does not decide it. (No backticks in here: this whole
+   stylesheet is a template literal, and one would end it.) */
+.psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape) { stroke: var(--ink); }
 
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {

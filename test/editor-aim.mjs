@@ -116,5 +116,38 @@ export async function run({ page, errors, report, walkTo, ed }) {
     [...document.querySelectorAll('#dge-side h3')].some((h) => h.textContent === 'label'));
   ok(!labelled, 'and offers no label field, because the frame has none', String(labelled));
 
+  // An option whose value is a comma list, not a number. `emph 1,3` singles
+  // out two columns from the opening picture, and the field has to write the
+  // whole list: a number field would have kept the 1 and dropped the 3, which
+  // parses, draws, and is not what anyone typed.
+  const bars = () => ed.lineWith('bars f');
+  const barsWas = await bars();
+  ok(!/\bemph\b/.test(barsWas || ''), 'the chart says nothing about emphasis yet', barsWas);
+  const typed = await page.evaluate(() => {
+    const lab = [...document.querySelectorAll('#dge-side .dge-num')]
+      .find((x) => x.querySelector('span').textContent === 'emph');
+    if (!lab) return false;
+    const i = lab.querySelector('input');
+    // With the spaces a hand would type them: the tokenizer splits on those,
+    // and the second half would come back as an unexpected word.
+    i.value = '0, 2';
+    i.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  });
+  ok(typed, 'the panel offers a field for it');
+  await page.waitForTimeout(500);
+  ok(/\bemph 0,2\b/.test((await bars()) || ''), 'typing a list writes the whole list', await bars());
+  ok(!(await ed.problems()).includes('line '), 'the block still parses', await ed.problems());
+
+  await page.evaluate(() => {
+    const lab = [...document.querySelectorAll('#dge-side .dge-num')]
+      .find((x) => x.querySelector('span').textContent === 'emph');
+    const i = lab && lab.querySelector('input');
+    if (i) { i.value = ''; i.dispatchEvent(new Event('change', { bubbles: true })); }
+  });
+  await page.waitForTimeout(500);
+  ok((await bars()) === barsWas, 'and clearing it leaves the line exactly as it was',
+    JSON.stringify(await bars()));
+
   ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

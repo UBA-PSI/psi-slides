@@ -31,6 +31,10 @@ const does = (page) => page.evaluate(() => {
   return row ? [...row.querySelectorAll('.dge-chip')].map((c) => c.textContent.trim()) : [];
 });
 
+// The status line after such an edit has to name the step it did *not* write
+// into, or "the opening picture" is a phrase with nothing to hold it down.
+const DGE_STEP_NAME_HINT = 'not into step';
+
 export async function run({ page, errors, report, walkTo, ed }) {
   const { ok, note } = report;
 
@@ -41,14 +45,22 @@ export async function run({ page, errors, report, walkTo, ed }) {
   const original = await page.evaluate(() => DGE.source);
 
   // Beat 2 of #cbc is `show @xor` plus `emph feed0, feed1, feed2`: two lines.
+  // Nine elements, and the gap between two and nine is the whole point. Three
+  // are the tag's members; three are the chaining arrows the author named, and
+  // they are also arriving; the last three are the arrows into x0, x1 and x2,
+  // which no line mentions at all and which come in because both their ends
+  // did. That last group is the downhill rule, and it was six here until the
+  // pane learned to read the resolved frames rather than only the ops.
   await ed.beat(2);
   const effects = await does(page);
   note('beat 2 does: ' + (effects || []).join(' · '));
-  ok(effects && effects.length === 6,
+  ok(effects && effects.length === 9,
     'the beat lists every element it changes, not every line it was written with',
     JSON.stringify(effects));
-  ok(effects.some((t) => /appears/.test(t)) && effects.some((t) => /emphasised/.test(t)),
-    'and says what happens to each', JSON.stringify(effects));
+  ok(effects.some((t) => /appears/.test(t)) && effects.some((t) => /emphasised/.test(t))
+    && effects.some((t) => /comes with its ends/.test(t)),
+    'and says what happens to each, the author’s own verb first',
+    JSON.stringify(effects));
 
   const written = await chips(page, 'written here:');
   ok(written.length === 2, 'while the source shows its two lines', JSON.stringify(written));
@@ -72,7 +84,7 @@ export async function run({ page, errors, report, walkTo, ed }) {
   ok(!(await ed.problems()).includes('line '), 'the block still parses', await ed.problems());
 
   const grew = await does(page);
-  ok(grew.length === 7, 'and the beat now changes one more element', String(grew.length));
+  ok(grew.length === 10, 'and the beat now changes one more element', String(grew.length));
 
   // And off again, from the list of what is written.
   await page.evaluate(() => {
@@ -96,6 +108,43 @@ export async function run({ page, errors, report, walkTo, ed }) {
   const after = (await ed.source()).match(/^\s*step\b/gm).length;
   ok(after === before + 1, 'the add button writes a step', before + ' -> ' + after);
   ok(!(await ed.problems()).includes('line '), 'and the block still parses', await ed.problems());
+
+  // ── what the mode does not cover, said out loud ──
+  //
+  // The drag is the only gesture that knows about the beat. The swatches and
+  // the label field write on the element's own line, which is the opening
+  // picture – and the pane used to end with "Restyle and relabel with the
+  // controls below", which reads as a promise that they wrote into the step.
+  // Where a later step styles the same element the click then visibly does
+  // nothing, which is the worst way to learn otherwise.
+  await ed.beat(2);
+  await page.evaluate(() => {
+    const row = [...document.querySelectorAll('#dge-side .dge-list button .dge-nm')]
+      .find((x) => x.textContent === 'm0');
+    if (row) row.closest('button').click();
+  });
+  await page.waitForTimeout(320);
+  const stepsBefore = (await ed.source()).match(/^\s*style\b/gm) || [];
+  const m0Before = await ed.lineWith(' m0 ');
+  await page.evaluate(() => {
+    const slot = [...document.querySelectorAll('#dge-side .dge-slot')]
+      .find((x) => x.querySelector('b') && x.querySelector('b').textContent === 'fill');
+    const b = slot && [...slot.querySelectorAll('.dge-sw')].find((x) => x.title === '.tone-1');
+    if (b) b.click();
+  });
+  await page.waitForTimeout(500);
+  const stepsAfter = (await ed.source()).match(/^\s*style\b/gm) || [];
+  const m0After = await ed.lineWith(' m0 ');
+  const said = await page.evaluate(() => (document.querySelector('#dge-statusnote') || {}).textContent || '');
+  note('status: ' + said);
+  ok(stepsAfter.length === stepsBefore.length,
+    'a swatch at a beat writes no style op', stepsBefore.length + ' -> ' + stepsAfter.length);
+  ok(m0After !== m0Before && /\.tone-1/.test(m0After || ''),
+    'it edits the element’s own line', m0After);
+  ok(/opening picture/.test(said) && new RegExp(DGE_STEP_NAME_HINT).test(said),
+    'and the status says where the edit went', JSON.stringify(said));
+  await page.keyboard.press('Control+z');
+  await page.waitForTimeout(400);
 
   await page.evaluate((s) => dgeSetSource(s), original);
   await page.waitForTimeout(400);

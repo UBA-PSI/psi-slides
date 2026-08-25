@@ -243,14 +243,19 @@ step cipher
 ## figure: Identity lifecycle {.full #lifecycle}
 
 ::: diagram {unit=176x56}
-default box {.tone-4} w 1.15
+default box {.tone-3} w 1.15
 default text {.small .muted}
 
-box  create "Creation" {.tone-1 .bold}
+# Die Phasenzeile trägt schon einen eigenen Ton, also braucht sie kein Fett
+# dazu: Fett hebt *ein* Element hervor, es kennzeichnet keine Gattung. Und der
+# Grundton ist der mittlere, nicht der satteste – neun kräftig gefüllte Kästen
+# nebeneinander lassen dem `emph` im letzten Takt nichts, wovon es sich abheben
+# könnte.
+box  create "Creation" {.tone-1}
 text sep1   "▶"             between create,usage {.large}
-box  usage  "Usage"         right of create gap 0.62 same as create {.tone-1 .bold}
+box  usage  "Usage"         right of create gap 0.62 same as create {.tone-1}
 text sep2   "▶"             between usage,term {.large}
-box  term   "Termination"   right of usage gap 0.62 same as create {.tone-1 .bold}
+box  term   "Termination"   right of usage gap 0.62 same as create {.tone-1}
 
 box  reg    "Registration"  below create gap 0.5 {@creation}
 text regc   "identity"      below reg gap 0.2 {@creation}
@@ -282,7 +287,7 @@ brace signup over reg,prov    right "Signup" {.muted}
 brace login  over ident,authn right "Login" {.muted}
 
 text sep3   "▶"              below authzc gap 0.5 {.large}
-box  selfsv "Self-services"  right of sep3 gap 0.2
+box  selfsv "Self-services"  right of sep3 gap 0.2 {.tone-4}
 
 step creation
   show @creation, signup
@@ -342,13 +347,15 @@ box  a "Sender"
 box  b "Mix"        right of a gap 0.6
 box  c "Empfänger"  right of b gap 0.6
 dot  x "+"          below b gap 0.8
-text n "a free label, placed\nwherever it reads best"  right of x gap 0.85 -> x {.muted .small}
+text n "a free label, placed\nwherever it reads best"  right of x gap 0.85 -> x {.muted .small .left}
 edge a -> b "encrypted"
 edge b -> c "recoded"
 edge b -> x {.dashed}
 :::
 
-`box`, `dot`, `text`, `image`, `edge`, `brace`, `container`, `bars`, `grid`, `plot`, `align`, `spread`, `default`, `step` – vierzehn Anweisungen, mehr nicht. Ein `text` bekommt mit `-> x` eine kurze Linie zu dem, worüber er spricht.
+`box`, `dot`, `text`, `image`, `edge`, `brace`, `container`, `bars`, `grid`, `plot`, `table`, `lanes`, `align`, `spread`, `default`, `step` – sechzehn Anweisungen, mehr nicht. Ein `text` bekommt mit `-> x` eine kurze Linie zu dem, worüber er spricht.
+
+**Alles darin ist in Rastereinheiten gemessen, auch das, was keine Beschriftung hat.** Der `dot` in der Mitte hat kein `r` und misst deshalb 0.18 Einheiten, keine feste Pixelzahl. Der Unterschied fällt erst auf, wenn ein Block sein `unit=` ändert: Eine Pixelangabe bliebe liegen, während alle Kästen um sie herum größer werden.
 
 ## figure: Alignment {.wide #alignment}
 
@@ -391,7 +398,9 @@ brace whole over r1,r2,r3 left "the whole thing" pad 0.5 {.turn .muted}
 
 Ein `container` legt sich um seine Mitglieder und passt sich neu an, wenn sie sich bewegen. Eine `brace` überspannt eine Teilmenge und hängt ihr Label nach außen. Beide messen ihren Abstand zum Inhalt mit demselben Wort, `pad` – die Klammer bekommt hier `0.62`, damit sie außerhalb der `0.42` des Containers zu liegen kommt.
 
-**`.turn` gilt für jede Beschriftung, nicht nur für die eines Kastens.** Die linke Klammer liest von unten nach oben, und dieselbe Klasse tut dasselbe an einer Container-Überschrift und an einem Kantenlabel. Das war eine Zeitlang nur an einer der vier Stellen wahr, die eine Beschriftung setzen – an den anderen dreien löste die Klasse auf, gab ihr CSS aus und drehte nichts.
+**Genau deshalb sind Schwimmbahnen kein `container`.** Ein Container misst sich an dem, was er hält; drei Bahnen, in denen verschieden viele Dinge liegen, kommen so an beiden Enden verschieden lang heraus. Ein Schwimmbahn-Diagramm behauptet aber das Gegenteil: Die Bänder sind gleich lang, und ungleich ist nur, was darin passiert. Dafür ist `lanes` da – gleich breite Bänder, die von ihrem Inhalt nichts wissen wollen. Die Figur dazu steht weiter unten unter *Three roles, one incident*.
+
+**`.turn` gilt für jede Beschriftung, nicht nur für die eines Kastens.** Die linke Klammer liest von unten nach oben, und dieselbe Klasse tut dasselbe an einer Container-Überschrift und an einem Kantenlabel – an allen vier Stellen also, an denen überhaupt eine Beschriftung gesetzt wird.
 
 ## figure: The look of a thing {.full #look}
 
@@ -425,24 +434,34 @@ text n2 "shrink" below g2 gap 0.16 {.muted}
 text n3 "fit"    below g3 gap 0.16 {.muted}
 text gl "type meets\nits box" left of g1 gap 0.5 {.muted .right}
 
-# Die vier Umrisse, die kein Rechteck sind, und die eine Leserichtung, die
+# Die fünf Umrisse, die kein Rechteck sind, und die eine Leserichtung, die
 # nicht waagerecht ist. Beide gehören hierher, weil das der Katalog ist, den
 # die Seitenleiste des Editors spiegelt.
 box  s1 "hex"      at 0,3.5 w 0.66 h 0.42 {.hex .tone-2}
 box  s2 "chevron"  right of s1 gap 0.3 same as s1 {.chevron .tone-2}
 box  s3 "left"     right of s2 gap 0.3 same as s1 point left {.chevron .tone-2}
-box  s4 ""         right of s3 gap 0.3 w 0.42 h 0.42 {.wedge .tone-4}
-box  s5 ""         right of s4 gap 0.22 same as s4 point up {.wedge .tone-4}
-box  s6 ""         right of s5 gap 0.22 same as s4 {.cross .accent}
-box  s7 "turn"     right of s6 gap 0.45 h 0.62 {.tone-2 .turn}
+box  s4 ""         right of s3 gap 0.26 w 0.4 h 0.42 {.diamond .tone-2}
+box  s5 ""         right of s4 gap 0.22 w 0.42 h 0.42 {.wedge .tone-4}
+box  s6 ""         right of s5 gap 0.22 same as s5 point up {.wedge .tone-4}
+# Ein Kreuz ohne eigenes w kommt quadratisch heraus – hier gibt ihm aber die
+# Blockvoreinstellung eines, also stehen beide Zahlen da. Dass sie so ungleich
+# aussehen und dasselbe meinen, ist der Punkt: 0.264 mal 118 ist 0.42 mal 74.
+box  s7 ""         right of s6 gap 0.22 {.cross .accent}
+box  s8 "turn"     right of s7 gap 0.4 h 0.62 {.tone-2 .turn}
 text sl "outline, and\nreading direction" left of s1 gap 0.5 {.muted .right}
 :::
 
 **Der Editor zeigt genau diese Reihen in seiner Seitenleiste.** Die Klassen sind eine geschlossene Aufzählung, keine freien Farben – jede Füllung mischt sich aus `--emph` und `--ink` über `--paper` und überlebt damit alle sieben Themes.
 
-**Die untere Reihe sind die vier Umrisse, die kein Rechteck sind, und `.turn`.** Sie teilen sich einen Slot mit `.round` und `.sharp`, weil ein Sechseck keinen Eckenradius hat, über den sich streiten ließe – und sie kosten nichts, weil sie dieselben vier Zahlen zeichnen wie ein Rechteck, nur zu einem anderen Pfad verbunden. `.turn` liest die Beschriftung von unten nach oben; ein hoher schmaler Kasten hat für ein Wort nur längs Platz, und die Alternative ist ein Buchstabe pro Zeile.
+**`.paper` in der oberen Reihe sieht wirkungslos aus und ist es nicht.** Es ist zwar die Voreinstellung einer Box, aber unter einem `default box {.tone-3}` findet eine Box ohne diese Klasse nicht mehr dorthin zurück, und ein freier `text` bekommt ohne sie überhaupt keinen Hintergrund – der ist es, der die Linie hinter einer Beschriftung ausstanzt.
 
-**Wohin ein Umriss zeigt, sagt die Option `point`, nicht der Klassenname.** `{.chevron} point left` statt einer eigenen Klasse `.chevron-left`: ein Chevron nach oben ist dieselbe Form, anders ausgerichtet, und für jede Form mal jede Richtung ein Wort würde die geschlossene Liste vervierfachen. `point` gilt für `.chevron` und `.wedge`; auf einer Form ohne Spitze ist es ein Fehler und kein wirkungsloses Wort. `.paper` sieht wirkungslos aus, ist es aber nicht: Es ist die Voreinstellung einer Box, doch unter `default box {.tone-3}` kommt eine Box ohne die Klasse nicht mehr dorthin zurück, und ein freier `text` bekäme sonst überhaupt keinen Hintergrund – und genau der ist es, der die Linie hinter einer Beschriftung ausstanzt.
+**Die untere Reihe sind die fünf Umrisse, die kein Rechteck sind, und `.turn`.** Sie teilen sich einen Slot mit `.round` und `.sharp` – eine Gruppe von Klassen, von denen immer nur eine gelten kann –, weil ein Sechseck keinen Eckenradius hat, über den sich streiten ließe; gezeichnet werden dieselben vier Zahlen wie bei einem Rechteck, nur zu einem anderen Pfad verbunden. `.turn` liest die Beschriftung von unten nach oben; ein hoher schmaler Kasten hat für ein Wort nur längs Platz, und die Alternative ist ein Buchstabe pro Zeile.
+
+**Ein `.cross` ohne eigenes `w` kommt quadratisch heraus, auch unter einer Blockvoreinstellung.** Ein Pluszeichen mit zwei verschieden langen Armen ist keines: Ohne diese Ausnahme bekäme das Kreuz die Mindestbreite, die eine Zeile Schrift verlangt, und käme damit auf 66 mal 37 Pixel – eine gedehnte Form statt eines Zeichens. Das `default box … w 0.62` dieser Reihe gilt für die Rechtecke darin, und ein Kreuz ist keines, also geht es daran vorbei – dieselbe Ausnahme, die `bars` beim Umriss macht. Ein auf der eigenen Zeile ausgeschriebenes `w` gewinnt weiterhin, denn das ist eine Aussage über dieses eine Element.
+
+**`.diamond` ist der eine Umriss, der beide Achsen frisst.** Der breiteste Platz, den eine Raute anbietet, ist ein Streifen von halber Breite und halber Höhe durch ihre Mitte – der Build bemisst sie deshalb auf das Doppelte dessen, was ein Rechteck für dieselbe Zeichenkette bräuchte, und zwar in beiden Richtungen. Ein Satz in einer Raute kommt damit auf die vierfache Fläche der Kästen daneben und nimmt das Bild ein; zwei, drei Wörter sind das Maß, und die Erläuterung gehört in eine Notiz nebenan. Die Raute in dieser Reihe trägt aus demselben Grund gar keine Beschriftung – die beschriftete steht im Flussdiagramm weiter unten. `.hex` sagt „hier wird gefragt“ ebenfalls; die Raute sagt darüber hinaus, dass es auf zwei Arten weitergeht, und darauf ist ein Raum seit der Schule trainiert.
+
+**Wohin ein Umriss zeigt, sagt die Option `point`, nicht der Klassenname.** `{.chevron} point left` statt einer eigenen Klasse `.chevron-left`: ein Chevron nach oben ist dieselbe Form, anders ausgerichtet, und für jede Form mal jede Richtung ein Wort würde die geschlossene Liste vervierfachen. `point` gilt für `.chevron` und `.wedge`; auf einer Form ohne Spitze lehnt der Build es ab, statt es zu überlesen.
 
 **Wenn Schrift und Kasten nicht zusammenpassen, gibt es drei Antworten.** Ohne `w` wächst der Kasten zur Schrift. Bei festem `w` verkleinert `.shrink` die Schrift, bis sie hineinpasst, und `.fit` füllt den Kasten in beide Richtungen aus, begrenzt auf 0.6–1.5× der Grundgröße. Weil die Textbreite beim Bauen nur *geschätzt* wird – einen Browser gibt es dabei nicht –, fällt die gewählte Größe eine Spur zu klein aus. Das ist die sichere Richtung.
 
@@ -466,16 +485,18 @@ edge px -> sv {#down .dashed}
 text note "der Kasten wandert,\ndie Pfeile folgen" below px gap 0.5 -> px {.hand .small}
 
 step erscheint
-  show px, up, down
+  show px
 step dazwischen
   hide direct
   move px to between cl,sv
   emph px
 :::
 
-**`move` ist der Grund, warum es diese Sprache gibt.** Der Proxy bekommt `move px to between cl,sv`, und weil das Layout pro Schritt neu ausgewertet wird, hängen die beiden gestrichelten Pfeile weiterhin an ihm, die kurze Linie am Label zeigt weiter auf ihn, und der `container` fasst plötzlich eine Reihe statt zwei. `hide direct` nimmt den direkten Pfeil weg. `to` setzt eine Position, `by` verschiebt um einen Betrag – und **ein `move @tag to …` lehnt der Build ab**, weil es die ganze Menge auf einen Punkt legen würde; für eine Menge ist `by` gemeint.
+**`move` verschiebt ein Element, und alles, was daran hängt, geht mit.** Der Proxy bekommt `move px to between cl,sv`, und weil das Layout pro Schritt neu ausgewertet wird, hängen die beiden gestrichelten Pfeile weiterhin an ihm, die kurze Linie am Label zeigt weiter auf ihn, und der `container` fasst plötzlich eine Reihe statt zwei. `hide direct` nimmt den direkten Pfeil weg. `to` setzt eine Position, `by` verschiebt um einen Betrag – und **ein `move @tag to …` lehnt der Build ab**, weil es die ganze Menge auf einen Punkt legen würde; für eine Menge ist `by` gemeint.
 
-**Sichtbarkeit vererbt sich nach unten.** Weder der `container` noch die gestrichelten Pfeile noch das handschriftliche Label brauchen ein eigenes `show`: ein Pfeil ist nur so sichtbar wie seine Enden, ein `container` nur so sichtbar wie seine Mitglieder, und ein `text` mit einer Linie nur so sichtbar wie das, worauf er zeigt.
+**Was an etwas Unsichtbarem hängt, bleibt selbst unsichtbar.** Weder der `container` noch die gestrichelten Pfeile noch das handschriftliche Label brauchen deshalb ein eigenes `show`: Ein Pfeil ist nur so sichtbar wie seine Enden, ein `container` nur so sichtbar wie seine Mitglieder, und ein `text` mit einer Linie nur so sichtbar wie das, worauf er zeigt. Der erste Schritt sagt `show px` und nichts weiter – die beiden gestrichelten Pfeile kommen mit dem Proxy von selbst.
+
+**Wer ein Element beim Namen nennt, setzt diese Regel außer Kraft, und zwar in beide Richtungen.** `hide direct` nimmt den direkten Pfeil weg, obwohl beide Enden weiter dastehen; ein ausgeschriebenes `show` holt umgekehrt etwas auf den Schirm, dessen Quelle noch fehlt – ein Umriss etwa, der um seine ganze Menge stehen soll, bevor die Menge beisammen ist (die Figur dazu ist der Baum unter *Leaves first, and the brackets follow*). Beides gilt ab dem Takt, in dem es steht, und für jeden danach. Ausgeschrieben gehört es nur dorthin, wo die Regel das Falsche sagt. Wer auf jedes Element ein `show` schreibt, hat eine Figur, die beim nächsten ergänzten Element unvollständig bleibt: Das Element steht im Block, kein Schritt nennt es, und es erscheint nie.
 
 ## figure: Where the words sit {.wide #justify}
 
@@ -503,11 +524,11 @@ text fl "frei, links"   below bl gap 0.3 {.left .small .paper}
 text fr "frei, rechts"  below br gap 0.3 {.right .small .paper}
 :::
 
-**`left` und `right` sagen, wo eine Zeile steht, `top` und `bottom`, wo der Block aus Zeilen steht.** Gemessen wird gegen das **Padding**, nicht gegen den Rand – `left` heißt „so weit nach links, wie dieser Kasten es zulässt". Ohne eines dieser Wörter sitzt die Beschriftung mittig, was für fast jeden Kasten richtig ist; die Wörter sind für die übrigen da, für einen hohen Kasten mit kurzer Beschriftung vor allem.
+**`left` und `right` sagen, wo eine Zeile steht, `top` und `bottom`, wo der Block aus Zeilen steht.** Gemessen wird gegen das **Padding**, nicht gegen den Rand – `left` heißt „so weit nach links, wie dieser Kasten es zulässt“. Ohne eines dieser Wörter sitzt die Beschriftung mittig, was für fast jeden Kasten richtig ist; die Wörter sind für die übrigen da, für einen hohen Kasten mit kurzer Beschriftung vor allem.
 
 Bei mehreren Zeilen bewegt sich der **Block**, nicht die einzelne Zeile. Deshalb setzt `bottom` bei zwei Zeilen die *letzte* auf die innere Kante und nicht die erste. `turn` schlägt beides: eine gedrehte Beschriftung liest von unten nach oben und ist auf ihrem Punkt zentriert, wie herum auch immer.
 
-## figure: Two statements that expand {.full #expand}
+## figure: Five statements that expand {.full #expand}
 
 ::: diagram {unit=150x62}
 bars f "20,19,17,12,11,10,9,9,8,7,6,5" at 0,0 w 2.4 h 1.0 {.tone-3 .bare}
@@ -525,27 +546,86 @@ step exception
   emph f-0, f-1, f-2
 :::
 
-**Beide Anweisungen erzeugen gewöhnliche Elemente, und nur deshalb sind sie billig.** `bars` wird beim Parsen zu einer Box je Säule (`f-0` … `f-11`), einer Grundlinie und – wenn eine zweite Zeichenkette dasteht – einem Text je Beschriftung; `grid` zu einer Zelle je Feld (`g-<spalte>-<zeile>`). Damit muss nichts dahinter etwas Neues lernen: Die `brace` überspannt drei Säulen, weil drei Säulen drei ganz normale Kästen sind, und ein `style`-Schritt färbt drei Zellen, weil es Kästen sind. Möglich ist das, weil eine Koordinate die eines anderen Elements sein darf – jede Zelle steht an der Kante des Rahmens, den dieselbe Anweisung anlegt.
+**Fünf Anweisungen erzeugen beim Parsen gewöhnliche Elemente.** `bars` wird zu einer Box je Säule (`f-0` … `f-11`), einer Grundlinie und – wenn eine zweite Zeichenkette dasteht – einem Text je Beschriftung; `grid` zu einer Zelle je Feld (`g-<spalte>-<zeile>`); `plot` zu einem Rahmen mit Gitterlinien und Achsen, `table` zu einer Box je Zelle, `lanes` zu einem Band je Bahn. Alles Weitere behandelt das Ergebnis wie jedes andere Element: Die `brace` überspannt drei Säulen, weil drei Säulen drei ganz normale Kästen sind, und ein `style`-Schritt färbt drei Zellen, weil es Kästen sind. Möglich ist das, weil eine Koordinate die eines anderen Elements sein darf – jede Zelle steht an der Kante des Rahmens, den dieselbe Anweisung anlegt. Die drei übrigen stehen weiter hinten: `plot` zwei Figuren später, `table` und `lanes` unter *Four arrangements*.
 
-**`cell` misst wie `pad` auf beiden Achsen in `uh`.** Eine Rasterzelle muss quadratisch sein, und eine Zahl, die quer `uw` und hoch `uh` bedeutete, gäbe Quadrate nur dort, wo die Einheit zufällig quadratisch ist.
+**Auch eine Kante ist etwas, an dem sich eine Koordinate ablesen lässt.** `w1.cx`, `w1.cy`, `above w1 gap 0.2`: Was dabei gelesen wird, ist der Hüllrahmen der Leitung. Das zählt, sobald ein Satz die Leitung beschreibt statt eines ihrer Enden. Am Kasten festgemacht hält so ein Satz seinen Abstand zum Kasten und verliert ihn zur Linie, sobald sich ein Bruchteil oder eine Höhe ändert – gewarnt wird dabei nicht. Eine Kante hat keinen Namen, bis man ihr mit `{#w1}` einen gibt. Wer im Kreis herum platziert – ein Element gegen eine Kante, die selbst an ihm hängt –, bekommt `placement cycle` mit der Zeilennummer.
 
-**Der Abstand *innerhalb* dieser Anweisungen heißt `space`, nicht `gap`.** Auf derselben Zeile steht eine Platzierung, und die benutzt `gap` bereits für den Abstand zu einem anderen Element – ein Wort für beides hieß, dass dieselben zwei Wörter vor und nach der Platzierung Zeichnungen im Verhältnis fünf zu eins ergaben, ohne Fehlermeldung in die eine oder andere Richtung.
+**`cell` zählt auf beiden Achsen in der Höhe einer Rastereinheit, genau wie `pad`.** Ein Feld des `grid` soll quadratisch sein; eine Zahl, die quer die Breite und hoch die Höhe der Rastereinheit meinte, ergäbe Quadrate nur dort, wo die Einheit selbst quadratisch ist.
+
+**Der Abstand *innerhalb* dieser Anweisungen heißt `space`, nicht `gap`.** Auf derselben Zeile steht eine Platzierung, und dort bedeutet `gap` den Abstand zu einem anderen Element. Der Abstand zwischen zwei Säulen ist etwas anderes und heißt deshalb anders.
+
+## figure: A second run of columns {.full #series}
+
+::: diagram {unit=150x64}
+# Dieselben acht Zahlen, zweimal gezeichnet. Die zweite Zeile legt keinen
+# eigenen Rahmen an, sie tritt dem ersten bei – und die Spalten des ersten
+# werden dafür schmaler, damit das Paar den Platz einer einzelnen einnimmt.
+bars a  "12,15,19,24" "Q1 Q2 Q3 Q4" at 0,0 w 1.9 h 1.05 emph 3 calm 0 {.tone-2}
+bars a2 "9,11,10,21"  series of a emph 3 calm 0 {.tone-3}
+text an "side by side" below a gap 0.55 {.muted}
+
+bars b  "12,15,19,24" "Q1 Q2 Q3 Q4" right of a gap 1.5 w 1.9 h 1.05 emph 3 calm 0 {.tone-2}
+bars b2 "9,11,10,21"  series of b stacked emph 3 calm 0 {.tone-3}
+text bn "stacked" below b gap 0.55 {.muted}
+
+text y1 "2023" at a.left+0.32,a.top-0.34 pad 0.12 {.tone-2}
+text y2 "2024" right of y1 gap 0.24 pad 0.12 {.tone-3}
+:::
+
+**`series of a` heißt: dieselben Spalten, ein zweiter Lauf.** Die zweite `bars`-Zeile bekommt keinen Rahmen, keine Grundlinie und keine Beschriftungsleiste – die gehören alle dem Rahmen, dem sie beitritt, und wer sie trotzdem hinschreibt, bekommt einen Fehler. Eine Platzierung nimmt sie aus demselben Grund nicht an. Was sie mitbringt, sind ihre Werte, ihre Klassen und – wie jede andere `bars`-Zeile auch – die beiden Wörter, die Spalten schon vom ersten Takt an auszeichnen.
+
+**Der Unterschied zwischen den beiden Bildern ist ein Wort, und er ändert die Skala.** Ohne `stacked` stellt sich der zweite Lauf *neben* den ersten, und die Zelle einer Spalte wird unter beiden aufgeteilt; mit `stacked` stellt er sich *darauf*, und der Maßstab ist nicht mehr der höchste Einzelwert, sondern der höchste Stapel. Rechts sind dieselben Zahlen deshalb flacher als links, obwohl kein Wert sich geändert hat. Welche der beiden Lesarten man will, ist eine inhaltliche Frage: nebeneinander vergleicht die Jahre, gestapelt zählt sie zusammen.
+
+**`emph 3 calm 0` steht auf der Anweisung, nicht in einem Schritt.** Q4 ist das, worum es geht, und Q1 wurde erst ab Februar gezählt – beides gilt, sobald das Bild da ist. Als Schritt geschrieben wäre das Erste, was der Raum sieht, vier gleichwertige Quartale, und die Aussage entstünde erst auf Tastendruck. Beide Wörter nehmen Spaltennummern, ab 0 gezählt; eine Nummer, für die es keine Säule gibt, lehnt der Build ab.
+
+## figure: Columns laid flat | dieselben sechs Zahlen, zweimal {.full #flat}
+
+::: diagram {unit=150x54}
+# Links und rechts stehen dieselben Werte. Links sind die Kategorien so breit,
+# wie eine Säule breit ist, also stehen dort Nummern und die Namen müssten
+# woanders stehen; rechts sind sie die Achse. Dieselbe emph-Spalte in beiden
+# Bildern, damit man sieht, dass es dieselben Zahlen sind.
+bars up "41,33,22,14,9,6" "1 2 3 4 5 6" at 0,0 w 1.25 h 2.0 emph 3 {.tone-3}
+text upn "the names go elsewhere" below up gap 0.55 {.small .muted}
+
+bars inc "41,33,22,14,9,6" "Phishing | Ransomware | Credential stuffing | DNS cache poisoning | Supply-chain compromise | Insider misuse" right of up gap 1.7 horizontal w 1.8 h 2.0 emph 3 {.tone-3}
+text incn "the names are the axis" below inc gap 0.55 {.small .muted}
+:::
+
+**`horizontal` legt die Säulen um: die Balken laufen nach rechts, die Kategorien stapeln sich nach unten.** Es steht als einzelnes Wort auf der `bars`-Zeile, genau wie `stacked`. Die Beschriftungsleiste wird dabei zu einer rechtsbündigen Spalte im linken Rand – jedes Wort nach seiner eigenen gemessenen Breite gesetzt, damit die rechten Kanten eine Linie bilden –, und die Grundlinie steht senkrecht links, statt waagerecht unten zu liegen. Die Zahlen sind erfunden.
+
+**Quer sind die Größenverhältnisse besser zu lesen.** Alle Balken beginnen an derselben senkrechten Kante, und das Auge vergleicht Längen von einer gemeinsamen Startlinie aus zuverlässiger als Höhen über einem gemeinsamen Boden – links muss man die Säulenoberkanten der Reihe nach ansteuern, rechts liest man die Rangfolge in einem Blick ab. Dazu kommt, dass eine absteigend sortierte Reihe von Balken von selbst wie eine Rangliste aussieht.
+
+**Und erst quer ist überhaupt Platz für die Namen.** Eine Kategorie, die „DNS cache poisoning“ heißt, lässt sich unter eine aufrechte Säule nicht schreiben; links stehen deshalb Nummern, und der Raum schlägt in einer Legende nach, die es hier gar nicht gibt. Möglich macht das die zweite Zeichenkette: **enthält sie einen `|`, wird an dem geteilt statt an Leerzeichen**, und ein Etikett darf so viele Wörter haben, wie es braucht. `|` trennt schon die Zellen einer `table`-Zeile und die Namen einer `lanes`-Liste.
 
 ## figure: A frame to draw in {.full #plot}
 
 ::: diagram {unit=150x58}
-plot roc "False positive rate" "True positive rate" at 0,0 w 2.2 h 1.7 x 0,1 y 0,1 step 0.2
+# Eine ROC-Kurve gehört ins Quadrat: beide Achsen tragen dieselbe Einheit, und
+# die Diagonale muss unter 45° laufen, sonst behauptet das Bild eine Steigung,
+# die es nicht gibt. `w` und `h` geben das nicht her – hier stünden 2.2 und
+# 5.69 nebeneinander und sähen nach allem anderen als nach einem Quadrat aus.
+plot roc "False positive rate" "True positive rate" at 0,0 w 2.2 aspect 1:1 x 0,1 y 0,1 step 0.2
 
 edge roc@0,roc@0 -> roc@1,roc@1 {#chance .muted .dashed .no-head}
 edge roc@0,roc@0 -> roc@1,roc@1 via roc@0.03,roc@0.45 roc@0.1,roc@0.72 roc@0.3,roc@0.9 roc@0.6,roc@0.97 {#good .smooth .accent .thick .no-head}
-edge roc@0,roc@0 -> roc@1,roc@1 via roc@0.15,roc@0.3 roc@0.4,roc@0.6 roc@0.7,roc@0.85 {#weak .smooth .no-head}
+# Ein Kantenlabel neben der Linie, und der Grund fährt mit: Er stanzt die
+# Diagonale und die Gitterlinien aus, die unter der Kurve durchlaufen. pad 0
+# ist hier nicht Sparsamkeit – der Grund ist Label plus pad, und mit dem
+# üblichen pad deckte er die Linie wieder zu, von der .right ihn gerade
+# weggerückt hat. Im Quadrat steigt die Kurve in ihrer Mitte steiler als sie
+# läuft, also gilt hier das senkrechte Wortpaar; flach gezogen war es .bottom.
+edge roc@0,roc@0 -> roc@1,roc@1 via roc@0.15,roc@0.3 roc@0.4,roc@0.6 roc@0.7,roc@0.85 "weaker" pad 0.08 {#weak .smooth .no-head .right .paper .small}
 
 # Auf der Linie, nicht daneben: der .paper-Grund ist nur dann etwas wert,
 # wenn er wirklich etwas ausstanzt.
 text nchance "chance" at roc@0.74,roc@0.74 pad 0.12 {.small .paper}
 # Und die Leitlinie greift die Kurve an ihrem rechten Ende ab, statt quer
-# durch das Feld zu laufen und dabei beide Kurven zu kreuzen.
-text ngood   "the one you want" right of roc gap 0.3 -> roc@0.86,roc@0.99 {.small .hand}
+# durch das Feld zu laufen und dabei beide Kurven zu kreuzen. Im Quadrat
+# reicht dafür ein „rechts daneben“ nicht mehr: die Mitte der rechten Kante
+# liegt jetzt tief genug, dass die Leitlinie von dort aus die Diagonale
+# schnitte. Die Höhe kommt deshalb aus den Einheiten des Plots selbst.
+text ngood   "the one you want" at roc.right+0.6,roc@0.93 -> roc@0.86,roc@0.99 {.small .hand}
 
 step curves
   show good, weak
@@ -554,15 +634,186 @@ step judge
   calm weak
 :::
 
-**Ein `plot` ist ein Rahmen zum Hineinzeichnen, keine Diagrammbibliothek.** Er legt Gitterlinien, Achsenbeschriftungen und die beiden Achsentitel an – und eine Umrechnung, sodass `roc@0.35` einen Wert in den Einheiten des Plots benennt. Aufgelöst wird der erst, wenn der Block ganz gelesen ist, und zwar in das gewöhnliche `roc.left+n`: deshalb darf ein Punkt einen Plot nennen, der weiter unten steht, und deshalb weiß das Layout von Plots nichts.
+**Ein `plot` ist ein Rahmen zum Hineinzeichnen, keine Diagrammbibliothek.** Er legt Gitterlinien, Achsenbeschriftungen und die beiden Achsentitel an – und eine Umrechnung, sodass `roc@0.35` einen Wert in den Einheiten des Plots benennt. Aufgelöst wird die erst, wenn der Block ganz gelesen ist, und zwar in das gewöhnliche `roc.left+n`; ein Punkt darf deshalb einen Plot nennen, der weiter unten steht.
+
+**`w` und `h` sind in Rastereinheiten gemessen, und eine Rasterzelle ist nicht quadratisch – das ist die Falle.** Bei `unit=150x58` kommt ein `plot … w 1.9 h 1.5` als 285 mal 87 Pixel heraus: die beiden Zahlen liegen um ein Viertel auseinander, das Bild um mehr als das Dreifache. **`aspect W:H` sagt stattdessen das Verhältnis, das der Leser wirklich sieht**, und der Build rechnet die fehlende der beiden Zahlen aus. Diese ROC-Kurve steht deshalb auf `aspect 1:1` und ist quadratisch, wie es sich für zwei Achsen mit derselben Einheit gehört – die Zufallsdiagonale läuft unter 45°, und das ist die einzige Steigung, bei der sie das sagt, was sie heißt. Erlaubt sind `4:3`, `1:1` oder eine einzelne Zahl („so viel breit wie hoch“); `w`, `h` und `aspect` zusammen sind ein Fehler, weil sonst zwei Angaben dastünden, die sich widersprechen können. Auf `bars` gilt dasselbe Wort und dieselbe Regel.
 
 **Die Kurven sind gewöhnliche Kanten.** `.smooth` zieht dieselben Wegpunkte als Kurve *durch* sie hindurch statt als Streckenzug – ein interpolierender Spline, damit ein Wegpunkt genau dort bleibt, wo er hingeschrieben wurde. Die Schiefe-Warnung schweigt hier, denn ihre Prämisse gilt nicht: bei einer Kurve sind zwei fast waagerechte Punkte die Form und nicht zwei Enden, die sich verfehlt haben.
+
+**„weaker“ ist ein Kantenlabel *neben* der Linie, und der Grund fährt mit.** Eine Füllklasse an einer Kante zeichnet einen Grund hinter das Label; ohne eines der Wörter `.top`, `.bottom`, `.left`, `.right` bleibt es auf der Linie und stanzt sie aus – so wie das Flussdiagramm weiter unten es mit „yes“ und „no“ macht. Mit einem davon rückt es weg und nimmt den Grund mit. Für den Namen einer Kurve ist das die einzige Wahl: auf der Linie stanzte er genau das aus, was er benennt. Zu tun hat der Grund hier trotzdem etwas, denn unter der Kurve laufen die Diagonale und zwei Gitterlinien durch.
+
+**Das Wort ist kurz, und das ist hier keine Geschmacksfrage.** Weggerückt wird entlang der Normalen *in der Mitte* der Kurve, aber die Kurve steigt weiter – also läuft ein langes Label an seinen Enden in die eigene Linie zurück, statt neben ihr zu bleiben. Neben einer waagerechten oder senkrechten Kante stellt sich die Frage nicht, und dort darf das Label so lang sein, wie es sein muss.
+
+## figure: One size, two frames | zwei Plots, die sich vergleichen lassen {.full #sameframe}
+
+::: diagram {unit=150x54}
+# Zwei Rahmen, die verglichen werden sollen. Der linke schreibt seine Größe
+# hin, der rechte zeigt darauf. Die graue Kurve ist in beiden dieselbe: Sie
+# ist der Bezug, gegen den beide Standorte gelesen werden.
+plot pa "week" "alerts, site A" at 0,0 w 1.4 aspect 4:3 x 0,8 y 0,8 step 2
+plot pb "week" "alerts, site B" right of pa gap 1.15 same as pa x 0,8 y 0,8 step 2
+
+edge pa@0,pa@2 -> pa@8,pa@6.4 via pa@2,pa@3 pa@4,pa@4.4 pa@6,pa@5.6 {#ra .smooth .no-head .muted .thick}
+edge pb@0,pb@2 -> pb@8,pb@6.4 via pb@2,pb@3 pb@4,pb@4.4 pb@6,pb@5.6 {#rb .smooth .no-head .muted .thick}
+edge pa@0,pa@3.2 -> pa@8,pa@2.4 via pa@2,pa@2.6 pa@4,pa@1.8 pa@6,pa@2.2 {#sa .smooth .no-head .accent}
+edge pb@0,pb@3.2 -> pb@8,pb@7.6 via pb@2,pb@4.4 pb@4,pb@5.2 pb@6,pb@6.8 {#sb .smooth .no-head .accent}
+:::
+
+**`same as` auf einer `plot`- oder `bars`-Zeile übernimmt den ganzen Rahmen.** Der rechte Plot schreibt keine eigene Größe hin, sondern zeigt auf den linken, und die beiden Bilder sind damit auf den Pixel gleich groß. Zwei Bilder, die verglichen werden sollen, muss der Blick in Gedanken übereinanderlegen können; zwei Rahmen, die sich um eine Haaresbreite unterscheiden, geben das nicht her.
+
+**Kopiert wird beim Lesen der Zeile, nicht beim Layout – anders als bei einem Kasten.** Gitterlinien, Achsenbeschriftungen und Säulen werden aus `w` und `h` gesetzt, sobald die Zeile gelesen ist; eine Größe, die erst später ankäme, verschöbe den Rahmen und ließe alles darin stehen. Die Anweisung, von der kopiert wird, muss deshalb **über** der stehen, die kopiert, und der Build benennt, was schiefging: ein Name, der erst weiter unten steht, einer, der auf etwas anderes als `plot` oder `bars` zeigt, oder einer, den es im Block gar nicht gibt. Zusammen mit `w`, `h` oder `aspect` ist `same as` ein Fehler, und auf einer `series of`-Zeile ebenfalls: Eine Serie zeichnet in einem Rahmen, den sie nicht anlegt.
+
+**Gleich große Rahmen sind noch kein gemeinsamer Maßstab.** `x` und `y` stehen auf jeder `plot`-Zeile für sich, und niemand prüft, ob zwei Rahmen dieselben Bereiche tragen – oben stehen sie deshalb zweimal ausgeschrieben da, und das ist die Stelle, die man vor dem Abgeben noch einmal liest. Bei `bars` gibt es nicht einmal einen Bereich zum Hinschreiben: Jede `bars`-Anweisung skaliert auf ihren eigenen höchsten Wert, zwei gleich große Rahmen können also Säulen enthalten, die sich nicht vergleichen lassen.
 
 ## figure: A raster does not follow the theme {.standard #raster}
 
 ::: diagram {unit=150x60}
 image swatch swatch w 0.6
-text  note "a raster keeps its own colours\nin every theme" right of swatch gap 0.35 -> swatch {.small .muted}
+text  note "a raster keeps its own colours\nin every theme" right of swatch gap 0.35 -> swatch {.small .muted .left}
 :::
 
 Beim Durchschalten der Themes mit `A` bleibt das Rasterbild, wie es ist, während Kästen, Pfeile und Vektorgrafiken umfärben. Das ist der Preis für Pixel.
+
+# Four arrangements
+
+## figure: The road straight down | a flowchart {.wide #flowchart}
+
+::: diagram {unit=132x70}
+default box {.tone-2}
+
+# Die Hauptstraße läuft geradewegs nach unten, jeder Zweig geht seitlich ab:
+# Wer der senkrechten Linie folgt, folgt dem Fall, der durchgeht. Die beiden
+# Rauten bekommen kein w. Ein festes w hilft hier auch niemandem: Die
+# Zu-eng-Warnung misst gegen das Rechteck, nicht gegen den halb so breiten
+# Streifen, den eine Raute wirklich anbietet.
+# Man würde diese Figur gar nicht zeichnen: ein Ablauf aus Bedingungen und
+# Zuweisungen liest sich als Pseudocode schneller als als Flussdiagramm. Sie
+# steht hier für die *Form*, nicht als Empfehlung für diesen Inhalt.
+box  pkt  "Packet arrives"          at 0,0 w 1.4 {.tone-3}
+box  d1   "Known flow?"             below pkt gap 0.45 {.diamond .tone-1}
+box  d2   "Rule permits?"           below d1 gap 0.45 {.diamond .tone-1}
+box  fwd  "Forward"                 below d2 gap 0.45 w 1.4
+box  fast "Forward,\nno rule check" right of d1 gap 0.7 w 1.4
+box  drop "Drop"                    right of d2 gap 0.7 w 1.4 {.tone-4}
+text note "state table,\nper five-tuple" left of d1 gap 0.6 -> d1 {.muted .right}
+
+# Die beiden Rauten sind verschieden breit, also enden ihre Zweige an
+# verschiedenen Stellen. Das align holt die zweite Spalte wieder bündig.
+align x left fast, drop
+
+edge pkt -> d1
+edge d1 -> d2   "no"  {.paper}
+edge d1 -> fast "yes" {.paper}
+edge d2 -> fwd  "yes" {.paper}
+edge d2 -> drop "no"  {.paper}
+:::
+
+**Die Raute ist der Umriss, den ein Raum nicht erklärt bekommen muss.** Er hat ihn in der Schule gelernt: Hier wird gefragt, und es geht auf zwei Arten weiter. Bezahlt wird das mit Platz. Der breiteste Streifen, den eine Raute anbietet, ist halb so breit und halb so hoch wie sie selbst, also bemisst der Build sie auf das Doppelte – zwei, drei Wörter, und die Erläuterung steht in einer Notiz daneben, so wie hier links. Ein ganzer Satz in einer Raute käme auf die vierfache Fläche der Kästen ringsum und wäre das Bild.
+
+**Die vier Beschriftungen sitzen *auf* der Linie, und das ist eine Entscheidung, keine Voreinstellung.** Eine Füllklasse an einer Kante zeichnet einen Grund hinter das Label; steht keines der Wörter `.top`, `.bottom`, `.left`, `.right` dabei, bleibt es auf der Linie und stanzt sie hinter sich aus. Das ist die richtige Form für ein Wort, das die Linie *benennt* – „yes“, „no“, eine Portnummer, ein Nachrichtentyp –, so wie ein Straßenschild zur Straße gehört und die Straße links und rechts daran vorbeiläuft. Ein Satz, der beschreibt, was auf der Linie *unterwegs* ist, gehört daneben: Die Schwimmbahnen nebenan machen das so, und die ROC-Kurven weiter oben nehmen den Grund dabei mit. Beides in einer Figur zu mischen heißt, dass der Raum jedes Label erst einsortieren muss, bevor er eines lesen kann – deshalb ist hier alles auf der Linie.
+
+## figure: Three roles, one incident | a swimlane {.full #swimlane}
+
+::: diagram {unit=118x72}
+# lanes zeichnet den Rahmen, die Bänder und die gedrehten Namen davor. Was in
+# den Bändern liegt, wird wie überall sonst einzeln platziert – gegen die
+# Mitte eines Bandes (swim-1.cy) und gegen den Rahmen (swim.left+n).
+lanes swim "User | SOC | IT ops" at 0,0 w 7.25 h 1.0 {.muted}
+
+box rep  "Phishing mail\nreported" at swim.left+0.8,swim-0.cy w 1.4 {.tone-2}
+box tri  "Triage"                  at swim.left+2.9,swim-1.cy w 1.0 {.tone-1}
+box hunt "Who else\ngot it?"       at swim.left+4.85,swim-1.cy w 1.2 {.tone-1}
+box blk  "Sender blocked"          at swim.left+6.35,swim-2.cy w 1.4 {.tone-4}
+
+# Jede Übergabe wechselt das Band, und dafür ist .elbow da: eine gerade Linie
+# von hier nach dort liefe schräg durch ein Band, das sie nie betritt.
+edge rep -> tri {.elbow}
+edge tri -> hunt "same sender" {.top .small}
+edge hunt -> blk {.elbow}
+
+step meldung
+  show rep
+step untersuchung
+  show tri, hunt
+step antwort
+  show blk
+:::
+
+**Bahnen sind gleich lang, ihr Inhalt ist es nicht – deshalb sind sie kein `container`.** Ein Container misst sich an dem, was er hält; drei Bänder mit unterschiedlich vielen Kästen kämen so an beiden Enden verschieden weit heraus, und ausgerechnet das ist die eine Aussage, die ein Schwimmbahn-Diagramm nicht machen darf. `lanes` legt den Rahmen an, teilt ihn in gleich hohe Bänder und schreibt die Namen gedreht vor die linke Kante; die Bänder sind `.clear`, damit alles darin über ihnen liest. Eine Zeitachse braucht es nicht: Sie ist die Leserichtung.
+
+**Jede Übergabe wechselt das Band, und `.elbow` ist die Linienführung dafür.** Die Klasse zeichnet zwei Wegpunkte selbst – eine Schiene auf halbem Weg durch die Lücke, auf der Achse, auf der die beiden Enden weiter auseinanderliegen –, statt dass man denselben doppelten Knick pro Kante von Hand hinschreibt. Eine gerade Linie täte etwas anderes: Sie liefe schräg durch ein Band, das sie gar nicht betritt, und der Raum liest sie als Beteiligung.
+
+**Das eine Kantenlabel steht *neben* der Linie, nicht darauf.** „same sender“ beschreibt, was auf der Linie unterwegs ist, und ein Satz mit einem Strich mittendrin wird als zwei Bruchstücke gelesen, bevor er als Satz gelesen wird. `.top` hebt ihn über die Linie; an einer senkrechten Kante wären es `.left` und `.right`, und welches Paar gilt, weiß man erst, wenn die Kante geführt ist – deshalb ist das falsche Paar eine Warnung beim Bauen statt eines Fehlers beim Parsen. Weggerückt wird um das, was die Beschriftung *quer zur Linie* misst: neben einer waagerechten Kante ihre Höhe, neben einer senkrechten ihre Breite – dort mit einem Zuschlag, weil ein Spalt quer zu einer Zeile Schrift mehr Luft braucht als über ihr. Einen Grund braucht dieses Label nicht: Unter ihm liegt nur Bandfläche. Was ein Grund tut und wie groß er sein darf, steht bei den ROC-Kurven weiter oben.
+
+## figure: Leaves first, and the brackets follow | a tree {.full #tree}
+
+::: diagram {unit=112x96}
+default box {.tone-2} w 1.35
+
+# Die Blätter sind die Fixpunkte, denn um sie geht es. Jede Ebene darüber
+# sitzt zwischen ihren eigenen Kindern: ein Blatt verschieben, und alles
+# darüber zentriert sich neu, ohne dass eine zweite Zeile davon weiß.
+box l1 "www.example.org"  at 0,0 {.tone-3 @leaves}
+box l2 "mail.example.org" right of l1 gap 0.18 same as l1 {.tone-3 @leaves}
+# Die Lücke zwischen den beiden Teilbäumen ist viermal die Lücke innerhalb
+# eines Teilbaums. Damit sind es zwei Gruppen, bevor jemand ein Wort liest.
+box l3 "shop.example.com" right of l2 gap 0.7 same as l1 {.tone-3 @leaves}
+box l4 "vpn.example.com"  right of l3 gap 0.18 same as l1 {.tone-3 @leaves}
+
+box i1 "Issuing CA A" between l1,l2 offset 0,-2.2 w 1.2 {@issuers}
+box i2 "Issuing CA B" between l3,l4 offset 0,-2.2 w 1.2 {@issuers}
+box rt "Root CA"      between i1,i2 offset 0,-2.2 w 1.2 {.tone-1}
+
+edge rt -- i1 {.elbow .muted}
+edge rt -- i2 {.elbow .muted}
+edge i1 -- l1 {.elbow .muted}
+edge i1 -- l2 {.elbow .muted}
+edge i2 -- l3 {.elbow .muted}
+edge i2 -- l4 {.elbow .muted}
+
+container scope "what A is answerable for" over i1,l1,l2 pad 0.24 {.dashed .muted}
+
+step delegation
+  show @issuers, scope
+step certificates
+  show @leaves
+:::
+
+**Ein Baum wird von den Blättern her gebaut.** Sie sind die Fixpunkte – um sie geht es –, und jede Ebene darüber steht `between` ihren eigenen Kindern mit einem `offset` nach oben. Andersherum ginge es nicht: `align x center rt, i1, i2` reicht die Koordinate des *ersten* genannten Elements an die übrigen weiter, würde also nicht die Wurzel über ihre Kinder setzen, sondern beide Kinder auf die Mittellinie der Wurzel stapeln.
+
+**Die Klammern sind sechsmal dasselbe Wort.** `.elbow` verlässt das eine Ende auf der Achse, auf der die beiden weiter auseinanderliegen, läuft eine Schiene auf halbem Weg durch die Lücke und kommt auf derselben Achse wieder an; die beiden Ansatzpunkte werden dafür auf diese Achse gezwungen, was immer die automatische Wahl sonst genommen hätte. Gemessen wird die Schiene zwischen den *zugewandten Kanten* der beiden Elemente, nicht zwischen ihren Mittelpunkten – deshalb liegt sie für beide Kinder einer Ausstellerin auf derselben Linie, und das Paar liest sich als eine Klammer statt als zwei Verbinder. Von Hand wären das zwölf Wegpunkte, die jedes Mal neu gerechnet werden müssten, wenn eine Ebene ihren Abstand ändert. Wer die Schiene woanders haben will, schreibt `via`; beides auf einer Zeile ist ein Fehler. Einen Slot teilt sich `.elbow` mit `.smooth`: Wie eine Linie gezeichnet wird, ist eine Frage mit genau einer Antwort.
+
+**Der gestrichelte Kasten steht um die ganze Menge, bevor die Menge beisammen ist.** Er ist im selben Takt ausgeschrieben wie die Ausstellerinnen (`show @issuers, scope`), obwohl seine beiden anderen Mitglieder erst einen Takt später kommen. Ohne das ausgeschriebene `show` gilt die übliche Regel: Ein Umriss ist nur so sichtbar wie seine Mitglieder und passt sich denen an, die man sieht – er wäre erst um die Ausstellerin allein gewachsen und dann nach unten aufgegangen. Wer ihn beim Namen nennt, bekommt beides: die Sichtbarkeit *und* die volle Ausdehnung. Das ist der Sinn der Ausnahme; für den Normalfall ist sie ausdrücklich nicht gedacht.
+
+## figure: One line per row | a table {.full #table}
+
+::: diagram {unit=150x54}
+# Die Kopfzeile ist eine Zeichenkette, an | zerlegt; die Datenzeilen sind die
+# bloßen Zeichenketten darunter. Jede Zelle ist eine gewöhnliche Box und
+# trägt zwei erzeugte Tags, @t-row-N und @t-col-N.
+table t "Attack | Layer | Countermeasure" at 0,0 col 1.0,0.45,1.35 h 0.42 {.clear .bare .left}
+  "ARP spoofing | 2 | Dynamic ARP Inspection"
+  "SYN flooding | 4 | SYN cookies"
+  "DNS spoofing | 7 | DNSSEC"
+  "TLS stripping | 7 | HSTS"
+
+edge t.left,t-0-0.bottom -- t.right,t-0-0.bottom {#rule .muted .no-head .front}
+
+step link-layer
+  style @t-row-1 {.tone-4}
+step transport
+  style @t-row-1 {.clear}
+  style @t-row-2 {.tone-4}
+step application
+  style @t-row-2 {.clear}
+  style @t-row-3, @t-row-4 {.tone-4}
+step every-one-has-an-answer
+  style @t-row-3, @t-row-4 {.clear}
+  style @t-col-2 {.tone-2}
+:::
+
+**Fünf Zeilen mal drei Spalten sind fünfzehn Kästen, jeder mit eigenem Namen, eigener Breite und eigener Platzierung – und einer `below`-Kette, die man beim Einfügen einer Zeile neu ausrichtet.** `table` schreibt sie: Die Kopfzeile ist eine Zeichenkette, an `|` zerlegt, die Datenzeilen sind die bloßen Zeichenketten darunter, `col` gibt eine Breite je Spalte und `h` die Höhe einer Zeile. Der Attributschwanz `{.clear .bare .left}` landet auf den **Zellen**, nicht auf dem Rahmen – deshalb ist eine Tabelle hier ein Satzspiegel und kein Gitter aus Kästchen. Der Strich unter der Kopfzeile ist eine gewöhnliche Kante zwischen zwei Koordinaten, die je zur Hälfte vom Rahmen und von der ersten Zelle kommen.
+
+**Jede Zelle trägt zwei erzeugte Tags, `@t-row-N` und `@t-col-N`.** Damit ist eine Zeile ein Takt und eine Spalte ein Takt, je eine Zeile Quelltext – wo sonst je Takt drei Zellennamen stünden, die von Hand mit der Tabelle Schritt halten müssten. Zeile 0 ist die Kopfzeile, gezählt wird also ab 1, wenn man Daten meint.
+
+**Der letzte Takt ist der, der auf dem Handout landet.** Eine Figur, die eine Zeile nach der anderen hervorhebt und dann aufhört, kommt mit der letzten Zeile leuchtend aus dem Drucker und berichtet damit von einem Moment im Vortrag statt von der Tabelle. Hier nimmt ein vierter Takt die Hervorhebung wieder ab und tönt stattdessen die Spalte mit den Gegenmaßnahmen – das Bild, das ohne Vortrag etwas sagt. Dass es einen Takt kostet, ist der Grund, warum `emph` und `calm` das nicht brauchen: Die beiden sind Vortragshandlungen, und der Druck streift sie ohnehin ab.

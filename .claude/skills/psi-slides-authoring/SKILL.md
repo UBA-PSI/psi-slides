@@ -402,6 +402,26 @@ Right
 
 The first closer ends `side`, the second ends `expand`.
 
+### Two more directives this skill does not cover
+
+`::: diagram` and `::: embed` are also `:::` blocks, and neither is a layout
+wrapper or an aside: each compiles to something of its own.
+
+- **`::: diagram`** is a figure written as text - named boxes, arrows,
+  containers, charts, tables and swimlanes, laid out at build time and steppable
+  on the same key that advances a reveal segment. It has its own grammar,
+  sixteen statements and forty classes, and two documents: `figure-design.md`
+  for how to lay one out so a room can read it, and the `#diagram` chunks of
+  `lectures/tutorial/source.md` for the vocabulary. Read one of those before
+  writing a block; do not guess at the syntax from a nearby example.
+- **`::: embed <url>`** frames a hosted player, YouTube or Vimeo. It is the one
+  construct that makes an output fetch from a third party while the lecture is
+  being given, so reach for it only when a local clip - `![](clip-id)` - will
+  not do.
+
+Neither is in a tagged release yet. A lecture using them builds from this
+repository and not against a released psi-slides.
+
 ## Viewer defaults in frontmatter
 
 Five optional keys pin how the lecture opens. A key that is present wins over

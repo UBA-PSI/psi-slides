@@ -1,0 +1,248 @@
+/*
+ * The neighbour guides (editor.md §9.2).
+ *
+ * Snapping in a drawing tool aligns pixels. Here every snap target
+ * corresponds to a statement the grammar can write, so the thing to assert is
+ * never where the element landed – it is **what got written down**. A drag
+ * that put the box in the right place by writing a number is a failure of
+ * exactly the kind this feature exists to close, and on a screenshot it looks
+ * perfect.
+ *
+ * So each of the four sections below checks the same three things: the guide
+ * appeared on the canvas, the status bar named the statement before the button
+ * came up, and the source afterwards carries the *relation* rather than the
+ * number it resolves to.
+ *
+ * Drags are given in cells, not pixels, and converted through the canvas CTM –
+ * the figures are laid out in grid units and the editor's zoom is fitted to
+ * the frame, so a spec written in screen pixels would be measuring the
+ * viewport.
+ */
+export const name = 'editor · neighbour guides';
+export const lecture = 'diagrams';
+export const view = 'audience';
+
+export async function run({ page, errors, report, walkTo, ed }) {
+  const { ok, note } = report;
+
+  const marks = () => page.locator('#dge-guides .dge-nb').count();
+  const labels = () => page.evaluate(() =>
+    [...document.querySelectorAll('#dge-guides .dge-nb-label')].map((t) => t.textContent));
+  const statusNote = () => page.evaluate(() =>
+    (document.querySelector('#dge-statusnote') || {}).textContent || '');
+  const statusLine = () => page.evaluate(() =>
+    (document.querySelector('#dge-statusline') || {}).textContent || '');
+  // Screen pixels per grid cell, off the canvas transform. Everything below is
+  // expressed in cells, which is the unit the source is written in.
+  const cellPx = () => page.evaluate(() => {
+    const m = document.querySelector('#dge-art-svg').getScreenCTM();
+    return { x: m.a * DGE.model.unit[0], y: m.d * DGE.model.unit[1] };
+  });
+  const pick = async (id) => {
+    const c = await ed.centreOf(`#dge-art-svg [id$="-${id}"]`);
+    await page.mouse.click(c.x, c.y);
+    await page.waitForTimeout(320);
+    return ed.selection();
+  };
+  // Drag by cells, and report what the canvas and the status bar said while
+  // the button was still down – the panel is not re-rendered during a gesture,
+  // so the preview is read where the editor puts it.
+  const dragCells = async (id, dx, dy, mods = {}) => {
+    const c = await ed.centreOf(`#dge-art-svg [id$="-${id}"]`);
+    const u = await cellPx();
+    if (mods.ctrl) await page.keyboard.down('Control');
+    await page.mouse.move(c.x, c.y);
+    await page.mouse.down();
+    await page.mouse.move(c.x + dx * u.x, c.y + dy * u.y, { steps: 16 });
+    await page.waitForTimeout(220);
+    const seen = { n: await marks(), labels: await labels(),
+      note: await statusNote(), line: await statusLine() };
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+    if (mods.ctrl) await page.keyboard.up('Control');
+    return seen;
+  };
+
+  // Out of the modal and on to the next figure. Two presses: the first drops
+  // the selection, the second closes the editor – and the deck cannot be
+  // walked until it has, because while the modal is up it owns the keyboard.
+  const leave = async () => {
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(280);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(450);
+  };
+
+  let seen;
+
+  // The sections run in the order the figures sit in the lecture rather than
+  // the order §9.2 lists the rows: forward is the only direction walkTo goes,
+  // and a spec that walked backwards would be testing the harness.
+
+  // ── equal spacing across three or more ──
+  // The one candidate that writes a *statement* rather than a token, so it is
+  // held to a third of the others' radius: a spread makes the element a
+  // follower, and that has to be aimed at rather than stumbled into.
+  await walkTo('unsafety');
+  ok(await ed.open('unsafety'), 'the editor is open on #unsafety');
+  await ed.beat(0);
+  ok(await pick('df') === 'box df', 'a box in the middle of a run is selected', await ed.selection());
+  ok(!(await ed.lineWith('spread ')), 'and the block has no spread statement yet');
+
+  seen = await dragCells('df', -0.3, 0.5);
+  note('labels : ' + JSON.stringify(seen.labels));
+  note('status : ' + seen.note);
+  ok(seen.labels.filter((t) => t === '=').length >= 2,
+    'the matched marks appear between the centres', JSON.stringify(seen.labels));
+  ok(/^spread [xy] /.test(seen.note),
+    'and the status bar names the statement it would write', seen.note);
+  const spread = await ed.lineWith('spread ');
+  note('written: ' + spread);
+  ok(/^spread [xy] \w+, \w+, \w+/.test((spread || '').trim()),
+    'which is what the block gains – three or more names, the ends as anchors', spread);
+  const dfAfter = await ed.lineWith('box  df');
+  note('df     : ' + dfAfter);
+  ok(!/offset/.test(dfAfter || ''),
+    'and no offset is left on the line for the spread to override', dfAfter);
+  ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());
+
+  await leave();
+
+  // ── another element's centre or edge line -> a ref coordinate ──
+  // §9.2 calls this the row that matters most, because nobody types
+  // `at c1.cx,m0.cy` from a standing start. #mac's "Security goals" note is
+  // the case it is written for: a free label at 3.55,-1.05, held by nothing.
+  await walkTo('mac');
+  ok(await ed.open('mac'), 'the editor is open on #mac');
+  await ed.beat(0);
+  ok(await pick('goals') === 'text goals', 'the free label is selected', await ed.selection());
+  const before = await ed.lineWith('text goals');
+  ok(/at 3\.55,-1\.05/.test(before || ''), 'and starts on two bare numbers', before);
+
+  seen = await dragCells('goals', -0.3, -0.2);
+  note('labels : ' + JSON.stringify(seen.labels));
+  note('status : ' + seen.note);
+  ok(seen.n === 2, 'two guides light up, one per axis', String(seen.n));
+  ok(seen.labels.some((t) => /^\w+\.(cx|left|right)$/.test(t))
+    && seen.labels.some((t) => /^\w+\.(cy|top|bottom)$/.test(t)),
+  'each names the line it would write', JSON.stringify(seen.labels));
+  ok(/–/.test(seen.note) && seen.labels.every((t) => seen.note.includes(t)),
+    'and the status bar names both before the button comes up', seen.note);
+  ok(/at \w+\.\w+,\w+\.\w+/.test(seen.line),
+    'while the line it is about to write is already a ref coordinate', seen.line);
+
+  const after = await ed.lineWith('text goals');
+  note('after  : ' + after);
+  ok(/ at [a-z]\w*\.(cx|left|right),[a-z]\w*\.(cy|top|bottom) /.test(after || ''),
+    'the source carries the relation, not the number it resolves to', after);
+  ok(!/at [\d.-]+,/.test(after || ''), 'and no coordinate survived as a bare number', after);
+  ok(await marks() === 0, 'the guides are gone once the button is up');
+  ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());
+
+  // The reference has to survive the *next* drag, or the guide would be a
+  // one-shot: §9.3 rewrites the nudge, never the reference.
+  seen = await dragCells('goals', 0.45, 0);
+  const nudged = await ed.lineWith('text goals');
+  note('nudged : ' + nudged);
+  ok(/at [a-z]\w*\.(cx|left|right)[+-][\d.]+,/.test(nudged || ''),
+    'a further drag moves the nudge and keeps the reference', nudged);
+
+  // And coming back onto the line takes the nudge off again.
+  seen = await dragCells('goals', -0.45, 0);
+  const back = await ed.lineWith('text goals');
+  note('back   : ' + back);
+  ok(/at [a-z]\w*\.(cx|left|right),/.test(back || '') && !/[+-][\d.]+,/.test(back || ''),
+    'and coming back onto the line takes the nudge away again', back);
+
+  // Ctrl/Cmd suspends these exactly as it suspends the grid.
+  seen = await dragCells('goals', 0.09, 0, { ctrl: true });
+  ok(seen.n === 0, 'Ctrl suspends them – nothing lights up', String(seen.n));
+  const freed = await ed.lineWith('text goals');
+  note('ctrl   : ' + freed);
+  ok(/at [a-z]\w*\.\w+[+-][\d.]+,/.test(freed || ''),
+    'and the drag goes through as an ordinary nudge', freed);
+
+  await leave();
+
+  // ── the same gap a sibling already has ──
+  // #look is the figure to do this on, because its gaps are 0.28, 0.34, 0.62,
+  // 0.72 – none of them on the 0.05 grid. A number the grid snap could also
+  // have produced would prove nothing.
+  await walkTo('look');
+  ok(await ed.open('look'), 'the editor is open on #look');
+  await ed.beat(0);
+  ok(await pick('tl') === 'text tl', 'the family label is selected', await ed.selection());
+  const gapBefore = await ed.lineWith('text tl');
+  ok(/gap 0\.72/.test(gapBefore || ''), 'and starts at gap 0.72', gapBefore);
+
+  seen = await dragCells('tl', 0.1, 0);
+  note('labels : ' + JSON.stringify(seen.labels));
+  note('status : ' + seen.note);
+  ok(seen.n >= 1, 'the sibling gap lights up', String(seen.n));
+  ok(seen.labels.some((t) => t === 'gap 0.62'),
+    'marked on the sibling that already has it', JSON.stringify(seen.labels));
+  ok(/the same gap \w+ has/.test(seen.note), 'and the status bar says whose', seen.note);
+  const gapAfter = await ed.lineWith('text tl');
+  note('after  : ' + gapAfter);
+  ok(/gap 0\.62\b/.test(gapAfter || ''),
+    'the gap lands on the sibling’s number exactly – 0.62 is not on the 0.05 grid', gapAfter);
+  ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());
+
+  // ── the line joining two elements ──
+  // The proposal is `between a,b`, and along it a `frac`. Only for an element
+  // that has no relation to lose: `at x,y` says nothing about what holds it,
+  // so proposing one costs nothing.
+  ok(await pick('s1') === 'box s1', 'the outline row’s first box is selected', await ed.selection());
+  const betweenBefore = await ed.lineWith('box  s1');
+  ok(/ at 0,3\.5/.test(betweenBefore || ''), 'and starts on two bare numbers', betweenBefore);
+
+  seen = await dragCells('s1', 0, -0.8);
+  note('labels : ' + JSON.stringify(seen.labels));
+  note('status : ' + seen.note);
+  ok(seen.n >= 2, 'the joining line and the point on it are drawn', String(seen.n));
+  ok(seen.labels.some((t) => /^between \w+,\w+ frac [\d.]+$/.test(t)),
+    'labelled with the statement it would write', JSON.stringify(seen.labels));
+  ok(/^between \w+,\w+/.test(seen.note), 'which the status bar says too', seen.note);
+  const betweenAfter = await ed.lineWith('box  s1');
+  note('after  : ' + betweenAfter);
+  ok(/ between [a-z]\w*,[a-z]\w*( frac [\d.]+)? /.test(betweenAfter || ''),
+    'and the placement becomes the relation, with a frac along it', betweenAfter);
+  ok(!/ at [\d.-]/.test(betweenAfter || ''), 'the two numbers are gone', betweenAfter);
+  ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());
+
+  // A relation is not swapped out on a guess. An element written `right of a`
+  // already says what holds it, and changing which *kind* of placement it has
+  // is a control in the placement pane (§9.3), not a gesture – so no `between`
+  // is ever proposed for one, however close the drop lands to a joining line.
+  ok(await pick('t2') === 'text t2', 'a relation-placed element is selected', await ed.selection());
+  seen = await dragCells('t2', -0.2, -0.6);
+  const kept = await ed.lineWith('text t2');
+  note('kept   : ' + kept);
+  // A drag may still re-dock it – that is the direction word following the
+  // gesture (§9.3), and it keeps the relation. What it must never do is
+  // replace the relation with a `between` nobody asked for.
+  ok(!/between/.test(kept || '') && /\b(right of|left of|below|above)\b/.test(kept || ''),
+    'dragging one that already has a relation never proposes between', kept);
+
+  // The case that looks like a no-op and is not. `g1` already stands on f1's
+  // centre line, so a small drag on that axis snaps it back to where it
+  // started – the *number* does not move and the *text* becomes `f1.cx`,
+  // which is the whole trade this feature exists to make. Skipping the edit
+  // because the delta came out zero left the status bar naming a line the
+  // source never got.
+  ok(await pick('g1') === 'box g1', 'a box already standing on a line is selected',
+    await ed.selection());
+  const coincidence = await ed.lineWith('box g1');
+  ok(/ at 0,2\.3 /.test(coincidence || ''), 'and it is written as a bare 0', coincidence);
+  seen = await dragCells('g1', 0.06, 0);
+  note('labels : ' + JSON.stringify(seen.labels));
+  ok(seen.labels.some((t) => /^\w+\.cx$/.test(t)),
+    'the line it was already on lights up', JSON.stringify(seen.labels));
+  const written = await ed.lineWith('box g1');
+  note('written: ' + written);
+  ok(/ at [a-z]\w*\.cx,2\.3 /.test(written || ''),
+    'and the coincidence is written down as the relation it was all along', written);
+
+
+  ok(errors.length === 0, 'no page errors', errors.join(' | '));
+}

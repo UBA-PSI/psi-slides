@@ -217,7 +217,9 @@ Every tool in this space is good, and nearly all of them take Markdown, so “it
 | --- | --- |
 | [`lectures/tutorial/source.md`](lectures/tutorial/source.md) | The authoring reference. Build it and read it as a lecture. |
 | [`lectures/python-intro/`](lectures/python-intro/) | The richest worked example – 36 chunks, the full layout vocabulary. |
-| [`lectures/diagrams/`](lectures/diagrams/) | Every `::: diagram` construct in one lecture, including six real lecture figures rebuilt from text. |
+| [`lectures/diagrams/`](lectures/diagrams/) | Every `::: diagram` construct in one lecture, real lecture figures among them. |
+| [`figure-design.md`](figure-design.md) | How to lay out a `::: diagram` so a room can read it. Rules with a wrong and a right version each, in real syntax, and a checklist. |
+| [`docs/artifact/`](docs/artifact/) | A standalone page that teaches the figure language from nothing, with every drawing on it compiled by the build rather than redrawn. |
 | [`editor.md`](editor.md) | The graphical editor for `::: diagram` blocks: what it edits, what it refuses to edit, and why. |
 | [`docs/comparison.md`](docs/comparison.md) | Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, compared in both directions. |
 | [`PRD.md`](PRD.md) | Design rationale. Why four views, why this tag set, why collapse has two mechanisms and not four. |
@@ -228,7 +230,7 @@ Every tool in this space is good, and nearly all of them take Markdown, so “it
 | [`CLAUDE.md`](CLAUDE.md) | Repo conventions and a map of `build.js`. Useful to any contributor, not just to Claude. |
 | [`.claude/skills/psi-slides-authoring/`](.claude/skills/psi-slides-authoring/SKILL.md) | The authoring contract in one artefact, for handing to an LLM assistant. |
 
-**`::: diagram` and its editor are not in a tagged release yet.** They are in this repository and in the two rows above, and a lecture that uses them builds here; against a released psi-slides it will not. The same goes for the `editor:` frontmatter key, which decides whether the live views carry the editor at all.
+**`::: diagram` and its editor are not in a tagged release yet.** They are in this repository and in the four rows above, and a lecture that uses them builds here; against a released psi-slides it will not. The same goes for the `editor:` frontmatter key, which decides whether the live views carry the editor at all.
 
 ## Command reference
 

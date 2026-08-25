@@ -122,9 +122,9 @@ const DENSITY_BUDGET = {
 // runnable without the Markdown/Shiki stack precisely because it does not.
 //
 // The dg*Name helpers bend that rule, and they are still a table: what
-// `bars` and `grid` call the elements they expand into, indexed rather than
-// listed. This file has to agree with the compiler exactly – a
-// `brace over f-0,f-1,f-2` names elements no line of the source declares –
+// `bars`, `grid`, `table` and `lanes` call the elements they expand into,
+// indexed rather than listed. This file has to agree with the compiler
+// exactly – a `brace over f-0,f-1,f-2` names elements no line declares –
 // and writing the scheme out twice is the duplication importing the tables
 // was meant to end. `rejectShapeOn` and `rejectAlignOn` ride the same bend
 // for the same reason: they ARE the rule for which class may sit on which
@@ -138,6 +138,7 @@ import {
   DG_SCALAR_Y, DG_DEFAULT_KINDS, DG_ANCHORS, DG_DEFINES, DG_GRID_KINDS, DG_GRID_MAX,
   DG_PLOT_MAX_TICKS, DG_POINT_DIRS, DG_POINTED, DG_SHAPE_CLASSES, DG_RESERVED_IDS,
   dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks,
+  dgRowTag, dgColTag, dgLaneName, dgLaneCapName,
   rejectShapeOn, rejectAlignOn,
 } from './diagram-core.mjs';
 
@@ -165,10 +166,20 @@ function parseAttributeTail(text) {
   return out;
 }
 
+// A file that *documents* this directive must not thereby *use* it. The scan
+// was over the raw source, so the tutorial's own sentence explaining the syntax
+// - inside backticks, as an example - silenced `density` and `reveal-overuse`
+// for the tutorial, lecture-wide and permanently. A check nobody can see being
+// switched off is worse than a check that is missing, because the report still
+// says the file is clean. Code fences and inline code spans are blanked before
+// the scan, which is the same reading a Markdown renderer gives them.
 function parseIgnores(src) {
   const set = new Set();
+  const prose = String(src)
+    .replace(/^```[\s\S]*?^```/gm, '')
+    .replace(/`[^`\n]*`/g, '');
   const re = /<!--\s*linter:\s*ignore\s+([^>]+?)\s*-->/g;
-  for (const m of src.matchAll(re)) {
+  for (const m of prose.matchAll(re)) {
     for (const tok of m[1].split(/[,\s]+/).filter(Boolean)) set.add(tok);
   }
   return set;
@@ -394,10 +405,33 @@ function lintDiagram(block, add, fmLines, lectureTags) {
   };
 
   let anonEdge = 0;
+  // Charts declared so far in this block, in order. `same as` on a `plot` or a
+  // `bars` is answered while the line is read, so it can only copy a chart
+  // above it - and that is decidable from the line order alone, which means it
+  // has to be decided here too. CI lints this repo's two development lectures
+  // and never builds them, so a check the build makes and the linter does not
+  // is a line that merges green and fails every later build.
+  const chartsAbove = new Set();
+  const chartSameAs = (kind, id, words, ln) => {
+    const at = words.indexOf('same');
+    if (at < 1 || words[at + 1] !== 'as') return;
+    const name = words[at + 2];
+    if (!name || chartsAbove.has(name)) return;
+    add(ln, 'error', 'diagram-bad-chart', `${kind} ${id}: "same as ${name}" names no chart `
+        + 'above it. A chart is sized when its own line is read, so it can only copy one it '
+        + 'has already seen.');
+  };
   const defaulted = new Map();      // kind[@tag] -> line, one per diagram
   const tagDefaults = new Map();   // kind -> Map(tag -> line)
   const carries = [];              // { kind, name, tags, ln }
-  for (const { text, ln } of block.lines) {
+  // Lines a `table` has already read as its own rows. It is the one statement
+  // besides `step` that takes continuation lines, and they are bare quoted
+  // strings – read as statements they would each report a keyword that is a
+  // quotation mark. The build skips them the same way, off the same count.
+  let rowsRead = 0;
+  for (let n = 0; n < block.lines.length; n++) {
+    const { text, ln } = block.lines[n];
+    if (n < rowsRead) continue;
     const trimmed = text.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
     // Quotes first, then the tail: a quoted label may itself contain braces
@@ -502,9 +536,19 @@ function lintDiagram(block, add, fmLines, lectureTags) {
     }
     if (!DG_KEYWORDS.has(head)) {
       const known = [...DG_KEYWORDS, ...(inStep ? DG_STEP_OPS : [])].join(', ');
+      // A line of nothing but a quoted string leaves no word to name, and it
+      // is now the likeliest way to arrive here: it is a table row that lost
+      // its table, which is what a blank line in the middle of a run of rows
+      // makes of every row under it. Name the row rather than 'undefined',
+      // the way the build names it.
+      const stray = words.length === 0 && (trimmed.match(/^"([^"]*)"/) || [])[1];
       add(ln, 'error', 'unknown-diagram-statement', trimmed.startsWith('//')
         ? 'a comment line starts with # in a diagram, not //'
-        : `unknown diagram statement '${head}' – valid: ${known}`);
+        : stray
+          ? `unknown diagram statement '${stray}' – a bare quoted string is a table row, and a `
+            + `table's rows are the lines directly under it with nothing else on them, `
+            + 'up to the first blank line'
+          : `unknown diagram statement '${head}' – valid: ${known}`);
       continue;
     }
     inStep = false;
@@ -520,6 +564,8 @@ function lintDiagram(block, add, fmLines, lectureTags) {
     if (head === 'plot') {
       const id = words[1];
       define(id, ln);
+      chartSameAs('plot', id, words, ln);
+      chartsAbove.add(id);
       if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: id, tags: attrs.tags, ln });
       const num = (key, fallback) => {
         const i = words.indexOf(key);
@@ -562,24 +608,65 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: id, tags: attrs.tags, ln });
       const strings = [...trimmed.matchAll(/"([^"]*)"/g)].map(m => m[1]);
       if (head === 'bars') {
-        const n = (strings[0] || '').split(',').map(s => s.trim()).filter(Boolean).length;
-        if (!n) {
+        const cols = (strings[0] || '').split(',').map(s => s.trim()).filter(Boolean).length;
+        if (!cols) {
           add(ln, 'error', 'bad-diagram-bars',
               `bars ${id || ''} needs its values as one string, e.g. "18,17,15,11"`);
         }
-        for (let i = 0; i < n; i++) define(dgBarName(id, i), ln);
+        for (let i = 0; i < cols; i++) define(dgBarName(id, i), ln);
+        // `series of <chart>` is a run of columns inside somebody else's
+        // frame, so it declares columns and nothing else – no ticks, no
+        // baseline. Registering a `<id>-base` for one would let `hide g-base`
+        // through a gate the build then refuses.
+        const isSeries = words.some((w, i) => w === 'series' && words[i + 1] === 'of');
+        // A series draws in a frame it does not own, so it has no size to set
+        // and the build refuses `same as` on it; a frame `bars` takes it the
+        // way a `plot` does.
+        if (!isSeries) { chartSameAs('bars', id, words, ln); chartsAbove.add(id); }
         if (strings[1] !== undefined) {
-          const ticks = strings[1].trim().split(/\s+/).filter(Boolean);
-          // An error, because the build makes it one. A linter laxer than the
-          // build is the worse of the two directions to be wrong in: the
-          // pre-commit gate passes and the build then refuses.
-          if (ticks.length !== n) {
-            add(ln, 'error', 'bad-diagram-bars', `bars ${id}: ${ticks.length} tick label(s) for `
-                + `${n} column(s) – the second string is split on spaces, one label per column`);
+          if (isSeries) {
+            add(ln, 'error', 'bad-diagram-bars', `bars ${id}: the tick strip belongs to the chart `
+                + 'this series joined – one label per column, and a series shares its columns '
+                + 'rather than adding any');
+          } else {
+            // Split on a pipe when there is one, on spaces otherwise – the
+            // same two lines the compiler runs. A flat chart labels its rows
+            // with phrases, and those cannot be written with a space-split at
+            // all; `|` is the mark a table row and a lanes list already use.
+            const piped = strings[1].includes('|');
+            // Exactly the compiler's two lines, empty parts and all: filtering
+            // them here would count "a | | b" as two labels where the build
+            // counts three, which makes the gate stricter on one input and
+            // laxer on another.
+            const ticks = piped
+              ? strings[1].split('|').map(s => s.trim())
+              : strings[1].trim().split(/\s+/).filter(Boolean);
+            // An error, because the build makes it one. A linter laxer than the
+            // build is the worse of the two directions to be wrong in: the
+            // pre-commit gate passes and the build then refuses.
+            if (ticks.length !== cols) {
+              add(ln, 'error', 'bad-diagram-bars', `bars ${id}: ${ticks.length} tick label(s) for `
+                  + `${cols} column(s) – the second string is split on ${piped ? '"|"' : 'spaces'}, `
+                  + 'one label per column');
+            }
+            for (let i = 0; i < Math.min(ticks.length, cols); i++) define(dgTickName(id, i), ln);
           }
-          for (let i = 0; i < Math.min(ticks.length, n); i++) define(dgTickName(id, i), ln);
         }
-        define(dgBaseName(id), ln);
+        if (!isSeries) define(dgBaseName(id), ln);
+        // `emph 1,3` and `calm 0` name columns by number, and the count is on
+        // the same line, so a number past the end is answerable here. The
+        // build refuses it rather than marking nothing.
+        for (const word of ['emph', 'calm']) {
+          const at = words.indexOf(word);
+          if (at < 2) continue;
+          for (const ix of String(words[at + 1] ?? '').split(',').map(s => s.trim()).filter(s => s !== '')) {
+            const v = Number(ix);
+            if (!Number.isFinite(v) || v < 0 || v >= cols) {
+              add(ln, 'error', 'bad-diagram-bars', `bars ${id}: "${word} ${ix}" names no column – `
+                  + `this chart has ${cols}, numbered 0 to ${cols - 1}`);
+            }
+          }
+        }
       } else {
         const kindWord = words[2];
         if (!DG_GRID_KINDS.has(kindWord)) {
@@ -602,6 +689,112 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       }
       // The placement is the ordinary grammar, so the ordinary reference
       // checks apply to it.
+      for (let k = 2; k < words.length; k++) {
+        if (words[k] === 'of' || words[k] === 'below' || words[k] === 'above') refer(words[k + 1], ln, `${head} ${id}`);
+        if (words[k] === 'at' && words[k + 1] && words[k + 1].includes(',')) referPair(words[k + 1], ln, `${head} ${id} at`);
+      }
+      continue;
+    }
+
+    // `table` and `lanes` expand at parse time the way bars, grid and plot do,
+    // so they need the same treatment for the same reason: a `brace over
+    // t-0-1,t-0-2` names cells no line of the source declares, and a table
+    // additionally generates two tags per cell – the whole point of the
+    // statement, since `show @t-row-2` is the one-line beat that twelve
+    // hand-named boxes could not be.
+    if (head === 'table' || head === 'lanes') {
+      const id = words[1];
+      // Named first, because every cell and every band is named after it: a
+      // nameless statement would otherwise declare a dozen elements all
+      // called 'undefined-<c>-<r>'.
+      if (!id) {
+        add(ln, 'error', 'bad-diagram-name', `${head} needs a name`);
+        continue;
+      }
+      define(id, ln);
+      // A row is one string split on `|`, because a row of a table is one
+      // sentence with three parts. Commas already separate a value list and
+      // the halves of a coordinate.
+      const cellsOf = (s) => String(s).split('|').map(x => x.trim());
+      // Read the way the tokenizer reads a quoted token, escapes and all, and
+      // including an unterminated one – that takes the rest of the line rather
+      // than being an error, and a gate stricter than the build is worse than
+      // no gate.
+      const quoted = (s) => {
+        const m = String(s).match(/"((?:\\[\s\S]|[^"\\])*)"?/);
+        return m && m[1].replace(/\\([\s\S])/g, (_, c) => (c === 'n' ? '\n' : c));
+      };
+      // Not `!first`: an empty string is a heading row of one nameless
+      // column, which is what the build reads it as too.
+      const first = quoted(trimmed);
+      if (first === null) {
+        add(ln, 'error', head === 'table' ? 'bad-diagram-table' : 'bad-diagram-lanes', head === 'table'
+          ? `table ${id} needs its heading row as one string, e.g. "Attack | Layer | Countermeasure"`
+          : `lanes ${id} needs its lane names as one string, e.g. "User | SOC | IT ops"`);
+        continue;
+      }
+      const heads = cellsOf(first);
+      // Every element either statement expands into carries the statement's
+      // own tags, so one entry per generated element is what makes the
+      // set-move count agree with the build's. The kind is the kind the
+      // element ends up being – a cell is a box, a lane caption a text –
+      // because that is what a `default <kind> @tag` is matched against.
+      const carry = (name, kind, extra = []) => {
+        const t = [...attrs.tags, ...extra];
+        if (t.length) carries.push({ kind, name, tags: t, ln });
+      };
+      carry(id, 'box');
+      if (head === 'lanes') {
+        heads.forEach((name, i) => {
+          define(dgLaneName(id, i), ln);
+          carry(dgLaneName(id, i), 'box');
+          // A band with no name gets no caption, so nothing declares that name.
+          if (!name) return;
+          define(dgLaneCapName(id, i), ln);
+          carry(dgLaneCapName(id, i), 'text');
+        });
+      } else {
+        // The rows are the run of bare quoted strings under the statement,
+        // read here exactly as the build reads them: a blank line ends the
+        // run, a comment inside it is passed over, and the first line that is
+        // not one quoted string ends it too.
+        const rows = [];
+        for (let m = n + 1; m < block.lines.length; m++) {
+          const rt = block.lines[m].text.trim();
+          if (!rt) break;
+          if (rt.startsWith('#')) continue;
+          if (!/^"(?:\\[\s\S]|[^"\\])*"?$/.test(rt)) break;
+          rows.push({ cells: cellsOf(quoted(rt)), ln: block.lines[m].ln });
+          rowsRead = m + 1;
+        }
+        const colAt = words.indexOf('col');
+        const widths = colAt > 1
+          ? String(words[colAt + 1] ?? '').split(',').map(s => s.trim()).filter(s => s !== '')
+          : null;
+        if (widths && widths.length !== heads.length) {
+          add(ln, 'error', 'bad-diagram-table', `table ${id}: ${widths.length} width(s) in "col" for `
+              + `${heads.length} column(s) – one number per column, separated by commas`);
+        }
+        // Errors, both of them, because the build makes them errors: a row
+        // whose parts do not line up with the heading has a cell the table has
+        // no column for, and it is decidable from the two lines alone.
+        for (const r of rows) {
+          if (r.cells.length !== heads.length) {
+            add(r.ln, 'error', 'bad-diagram-table', `table ${id}: this row has ${r.cells.length} `
+                + `cell(s) and the heading has ${heads.length} – rows are split on "|", one part `
+                + 'per column');
+          }
+        }
+        [heads, ...rows.map(r => r.cells)].forEach((cells, r) => {
+          cells.forEach((_, c) => {
+            if (c >= heads.length) return;
+            define(dgCellName(id, c, r), ln);
+            tags.add(dgRowTag(id, r));
+            tags.add(dgColTag(id, c));
+            carry(dgCellName(id, c, r), 'box', [dgRowTag(id, r), dgColTag(id, c)]);
+          });
+        });
+      }
       for (let k = 2; k < words.length; k++) {
         if (words[k] === 'of' || words[k] === 'below' || words[k] === 'above') refer(words[k + 1], ln, `${head} ${id}`);
         if (words[k] === 'at' && words[k + 1] && words[k + 1].includes(',')) referPair(words[k + 1], ln, `${head} ${id} at`);
@@ -667,9 +860,20 @@ function lintDiagram(block, add, fmLines, lectureTags) {
         add(ln, 'error', 'diagram-bad-edge', 'edge needs an element on both sides of "->"');
         continue;
       }
+      // Only the token immediately before the arrow is an endpoint, so anything
+      // earlier is dropped by the build – it refuses the line, and a linter that
+      // passed it would be the laxer of the two, which is how a line merges
+      // green and fails every later build. `edge w1 a -> b` reads as naming the
+      // edge and does not: an edge is named `{#w1}` in its tail.
+      if (arrowAt > 2) {
+        add(ln, 'error', 'diagram-bad-edge', `unexpected '${words.slice(1, arrowAt - 1).join(' ')}' `
+            + `before the arrow in an edge – an edge is 'edge <from> -> <to>', and its options `
+            + `come after the second end. To name it, write {#name} in the tail.`);
+      }
       refer(words[arrowAt - 1], ln, 'edge');
       refer(words[arrowAt + 1], ln, 'edge');
       let seenVia = false;
+      let waypoints = 0;
       for (let k = arrowAt + 2; k < words.length; k++) {
         if (words[k] === 'via') {
           if (seenVia) add(ln, 'error', 'diagram-bad-edge', `edge: one 'via' carries every waypoint – 'via X,Y X,Y'`);
@@ -681,7 +885,18 @@ function lintDiagram(block, add, fmLines, lectureTags) {
           add(ln, 'error', 'diagram-bad-edge', `a waypoint needs 'via' in front of it – 'via ${words[k]}'`);
           continue;
         }
+        waypoints++;
         referPair(words[k], ln, 'a waypoint');
+      }
+      // Both halves are on this one line, so the build's refusal is decidable
+      // here – and it is worth saying early, because the two constructs answer
+      // the same question and one of them is silently doing nothing.
+      // The class has to be written on the line for it to count: one arriving
+      // from a `default edge` layer is the build's to resolve, the same
+      // restraint the `.fit` check shows.
+      if (attrs.classes.includes('elbow') && waypoints) {
+        add(ln, 'error', 'diagram-bad-edge', `edge: .elbow draws its own two waypoints, so it `
+            + `cannot also carry 'via'. Drop one – .elbow for the halfway rail, 'via' to say where.`);
       }
     }
   }
