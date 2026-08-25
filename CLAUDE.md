@@ -191,7 +191,7 @@ A chunk can opt out of that derivation with `::: slide` (this block is the scree
 
 ### Bundled and embedded webfonts
 
-**Three families ship with the tool and are embedded in every output**: Literata, Inter Tight, JetBrains Mono, as variable `wght` latin subsets, upright and italic – 276 KB for all six faces. All three are SIL OFL 1.1, which permits redistribution and embedding; `OFL_NOTICE` puts the required notice in the emitted stylesheet.
+**Three families ship with the tool and are embedded in every output**: Literata, IBM Plex Sans, JetBrains Mono, as variable `wght` latin subsets, upright and italic – 279 KB for all six faces. All three are SIL OFL 1.1, which permits redistribution and embedding; `OFL_NOTICE` puts the required notice in the emitted stylesheet.
 
 This is a correctness fix, not polish. **Safari does not expose locally installed fonts to a page**, as an anti-fingerprinting measure, so the old name-only stacks resolved to Georgia and system-ui there no matter what the lecturer had installed. `fonts: none` in the frontmatter turns the bundle off for an author who would rather ship a smaller file.
 
@@ -208,7 +208,7 @@ An author opts in by dropping files into `fonts/` beside `source.md` and naming 
 ```yaml
 fonts:
   serif: Literata
-  sans: Inter Tight
+  sans: IBM Plex Sans
   mono: JetBrains Mono
 ```
 

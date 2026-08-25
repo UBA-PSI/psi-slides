@@ -113,14 +113,14 @@ The grammar is `## tag: Heading | Sub-heading {.width #id}`. Eight tags (`title`
 
 Everything else is body-level directives: `---` on its own line splits a chunk into **reveal segments**; `::: expand <label>` hides detail behind a chevron; `::: cols 2` / `::: side` / `::: flip` shape internal layout; `::: margin` and `::: marginalia` place asides; `![](fig-id)` resolves against `assets/`; `$inline$` and `$$display$$` are **math**, rendered by KaTeX during the build. All of it is documented live in the tutorial.
 
-**Typefaces travel with the file.** Three families ship with the tool and are embedded in every output: Literata, Inter Tight and JetBrains Mono, all under the SIL Open Font License, which permits exactly this. That is not decoration – Safari does not expose locally installed fonts to a page at all, as an anti-fingerprinting measure, so a deck that merely *names* its typefaces gets whatever the browser feels like there. The bundle costs about 280 KB per file; `fonts: none` in the frontmatter turns it off.
+**Typefaces travel with the file.** Three families ship with the tool and are embedded in every output: Literata, IBM Plex Sans and JetBrains Mono, all under the SIL Open Font License, which permits exactly this. That is not decoration – Safari does not expose locally installed fonts to a page at all, as an anti-fingerprinting measure, so a deck that merely *names* its typefaces gets whatever the browser feels like there. The bundle costs about 280 KB per file; `fonts: none` in the frontmatter turns it off.
 
 To use your own instead, drop the files into `fonts/` beside your source and name the families:
 
 ```yaml
 fonts:
   serif: Literata
-  sans: Inter Tight
+  sans: IBM Plex Sans
   mono: JetBrains Mono
 ```
 

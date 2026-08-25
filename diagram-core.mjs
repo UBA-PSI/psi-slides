@@ -507,12 +507,20 @@ export function dgErr(errors, line, msg) { errors.push({ line, msg }); }
 // is not good enough.
 export const DG_NARROW = new Set([...'ijltI.,:;\'"`|!()[]{}/\\ -']);
 export const DG_WIDE = new Set([...'mwMWQ@%']);
+// Calibrated against the bundled sans by measuring every character of each
+// group in a browser at 100px and keeping the generosity the table had before.
+// The numbers moved when the sans changed from Inter Tight to IBM Plex Sans,
+// and not evenly: Plex's narrow forms are 13.5% wider and its digits 9.7%,
+// which is most of what makes it easier to read and all of what made the old
+// table too tight. Left alone, labels-that-outgrow-their-box went from 1 in 25
+// to 5 in 25 on real lecture strings. Re-measure this table if the sans
+// changes again - scratch/table.mjs in the build log shows how.
 export function dgCharW(ch) {
-  if (DG_NARROW.has(ch)) return 0.34;
-  if (DG_WIDE.has(ch)) return 0.92;
+  if (DG_NARROW.has(ch)) return 0.39;
+  if (DG_WIDE.has(ch)) return 0.95;
   if (ch >= 'A' && ch <= 'Z') return 0.68;
-  if (ch >= '0' && ch <= '9') return 0.56;
-  return 0.53;
+  if (ch >= '0' && ch <= '9') return 0.61;
+  return 0.54;
 }
 
 // Labels carry `_sub` and `^sup` because these diagrams are full of c_0,

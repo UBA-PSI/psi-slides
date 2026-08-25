@@ -612,7 +612,7 @@ edge blk -> ntf {.elbow}
 # midpoint of what it signs. Move a leaf and the two ranks above it re-centre
 # with no other line touched. The connectors carry no arrowheads: a signature
 # has a direction, but drawing it turns an org chart into a dataflow.
-box l1 "www.example.org"  at 0,0 w 1.5 h 0.72 {.tone-2}
+box l1 "www.example.org"  at 0,0 w 1.7 h 0.72 {.tone-2}
 box l2 "mail.example.org" right of l1 gap 0.2 same as l1 {.tone-2}
 box l3 "vpn.example.net"  right of l2 gap 0.5 same as l1 {.tone-2}
 box i1 "Issuing CA A" between l1,l2 offset 0,-1.5 same as l1 {.tone-1}

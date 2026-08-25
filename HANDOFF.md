@@ -259,7 +259,7 @@ Drei Korrekturen aus dem Review nach dem ersten Bau:
 
 Nach dem Polish kamen drei Wünsche: konfigurierbare Schrift/Akzent, leichterer Bold, und zwei Speaker-View-Bugs.
 
-1. **Font-Cycle (F)** – drei Reading-Faces über `body[data-font]`: `serif` (Literata, Default), `sans` (Inter Tight, projektorfreundlich), `mono` (iA Writer Duo/Quattro falls installiert, sonst JetBrains Mono als Fallback). Persistiert global in `localStorage` (key `psi-slides:font`, nicht per-lecture – Reading-Preferenz folgt dem User), wird über `cycleFont` in das State-Snapshot geschrieben und per postMessage gespiegelt. Shift-F geht rückwärts.
+1. **Font-Cycle (F)** – drei Reading-Faces über `body[data-font]`: `serif` (Literata, Default), `sans` (IBM Plex Sans, projektorfreundlich), `mono` (iA Writer Duo/Quattro falls installiert, sonst JetBrains Mono als Fallback). Persistiert global in `localStorage` (key `psi-slides:font`, nicht per-lecture – Reading-Preferenz folgt dem User), wird über `cycleFont` in das State-Snapshot geschrieben und per postMessage gespiegelt. Shift-F geht rückwärts.
 
 2. **Theme-Cycle (A)** – sechs Akzent/Terminal-Varianten über `body[data-theme]`: `light-{red,teal,blue,orange}` (tauschen nur `--emph`), plus `terminal-{amber,green}` (dark-paper + phosphor-ink). In Terminal-Modes werden Shiki-Token-Farben via `color: var(--ink) !important` plattgeschlagen, damit Code in einer Phosphor-Tonität liest; Inline-Code bekommt `--emph`. Persistiert in `psi-slides:theme`, Default `light-red`.
 
@@ -594,7 +594,7 @@ Ein unbekannter Wert **bricht den Build ab** (`userFacing`, kein Stacktrace) sta
 ```yaml
 fonts:
   serif: Literata
-  sans: Inter Tight
+  sans: IBM Plex Sans
   mono: JetBrains Mono
 ```
 

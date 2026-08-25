@@ -832,10 +832,14 @@ function linkQrMap(html) {
 const BUNDLED_FONTS = [
   { role: 'serif', family: 'Literata', pkg: '@fontsource-variable/literata',
     files: { normal: 'literata-latin-wght-normal.woff2', italic: 'literata-latin-wght-italic.woff2' } },
-  // Inter Tight, not Inter: it is what the stacks already ask for first, and
-  // it happens to be the smaller of the two.
-  { role: 'sans', family: 'Inter Tight', pkg: '@fontsource-variable/inter-tight',
-    files: { normal: 'inter-tight-latin-wght-normal.woff2', italic: 'inter-tight-latin-wght-italic.woff2' } },
+  // IBM Plex Sans, replacing Inter Tight. Tight is the condensed cut of Inter,
+  // and the saved width is paid for in letter spacing that reads cramped on a
+  // screen - worst exactly where the text is already small, in figure labels.
+  // Plex's narrow forms (i l j t) are 13.5% wider and its digits 9.7%, which is
+  // what separates 1 from I from l at a distance. dgCharW in diagram-core.mjs
+  // is calibrated to this face; changing it means re-measuring that table.
+  { role: 'sans', family: 'IBM Plex Sans', pkg: '@fontsource-variable/ibm-plex-sans',
+    files: { normal: 'ibm-plex-sans-latin-wght-normal.woff2', italic: 'ibm-plex-sans-latin-wght-italic.woff2' } },
   { role: 'mono', family: 'JetBrains Mono', pkg: '@fontsource-variable/jetbrains-mono',
     files: { normal: 'jetbrains-mono-latin-wght-normal.woff2', italic: 'jetbrains-mono-latin-wght-italic.woff2' } },
 ];
@@ -873,7 +877,7 @@ function bundledFaces() {
 // ── embedded webfonts ───────────────────────────────────────────────
 //
 // Everything else in an output file is self-contained; type was not. The
-// CSS shipped bare family stacks – Literata, Inter Tight, JetBrains Mono –
+// CSS shipped bare family stacks – Literata, IBM Plex Sans, JetBrains Mono –
 // which resolve only on a machine where those are *installed*, and quietly
 // fall through to Georgia / system-ui / Menlo everywhere else. A lecture
 // mailed to a colleague kept its layout and its figures and lost its face.
@@ -883,7 +887,7 @@ function bundledFaces() {
 //
 //   fonts:
 //     serif: Literata
-//     sans: Inter Tight
+//     sans: IBM Plex Sans
 //     mono: JetBrains Mono
 //
 // Licensing is the author's call and cannot be checked here, so the build
@@ -906,7 +910,7 @@ const FONT_WEIGHT_NAMES = {
 // build would otherwise have emitted. One source of truth, two consumers.
 const FONT_STACK_TAILS = {
   serif: `'Literata', 'Source Serif 4', Georgia, serif`,
-  sans: `'Inter Tight', 'Inter', system-ui, -apple-system, sans-serif`,
+  sans: `'IBM Plex Sans', 'Inter', system-ui, -apple-system, sans-serif`,
   mono: `'JetBrains Mono', ui-monospace, Menlo, monospace`,
 };
 // Which CSS custom properties each role feeds. Audience and print use
@@ -1053,7 +1057,7 @@ function collectEmbeddedFonts(frontmatter = {}, srcDir) {
 }
 
 const OFL_NOTICE =
-  '/* Bundled typefaces: Literata, Inter Tight and JetBrains Mono, each under\n' +
+  '/* Bundled typefaces: Literata, IBM Plex Sans and JetBrains Mono, each under\n' +
   '   SIL Open Font License 1.1 (https://openfontlicense.org). The licence\n' +
   '   permits this embedding and requires the notice to travel with it.\n' +
   '   Full text: node_modules/@fontsource-variable/<family>/LICENSE */';
@@ -2769,7 +2773,7 @@ const PRINT_CSS = `
      embedded, so these resolve even where the machine has nothing installed
      and even in Safari, which does not expose installed fonts to a page. */
   --serif: 'Literata', 'Source Serif 4', Georgia, serif;
-  --sans: 'Inter Tight', 'Inter', system-ui, sans-serif;
+  --sans: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', Menlo, monospace;
 }
 
@@ -2791,6 +2795,13 @@ body { margin: 0; }
 main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
 
 h1, h2, h3 { font-weight: 500; letter-spacing: -0.01em; break-after: avoid; page-break-after: avoid; }
+/* A heading is a phrase, so a greedy line breaker leaving one word alone on
+   the second line is always wrong; balance evens the lines instead. Prose is
+   not balanced - a paragraph wants its measure kept and only its last line
+   protected, which is what pretty does. Both degrade to nothing where the
+   browser does not know the value, so neither needs a fallback. */
+h1, h2, h3, h4, .chunk-heading, .hd-sub, .section-heading, figcaption { text-wrap: balance; }
+p, li, dd { text-wrap: pretty; }
 p { margin: 0.4em 0 0.9em; orphans: 3; widows: 3; }
 
 /* Hyphenation. Only in the document views: a hyphenated word on a
@@ -4610,6 +4621,26 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
 /* collapse modes (§4.5) – applied per reveal-segment.
    Two states only: 'none' (show everything) and 'topic-bold'
    (topic sentence + promoted bold fragments). */
+/* A collapsed slide line is a phrase, not a paragraph: what is on screen is
+   the topic sentence plus the promoted bold fragments, each a clause or two.
+   Measured on the tutorial and the diagram lecture before this rule, second
+   lines ran at 8-30% of the first - one or two words stranded under a full
+   line. balance evens them. It is scoped to the collapsed mode on purpose:
+   in the reading mode the same paragraph is prose again, and prose wants
+   pretty (protect the last line) rather than balance (even every line).
+   The bold fragments are already display:block below, so the rule reaches
+   them directly; the topic sentence is balanced through its own p. */
+[data-collapse=topic-bold] .reveal-segment p,
+[data-collapse=topic-bold] .reveal-segment li,
+[data-collapse=topic-bold] .reveal-segment .sentence-rest strong { text-wrap: balance; }
+
+/* Headings are phrases in every mode, so they balance whatever the collapse
+   setting is - and unlike the slide lines they are the same in the live views
+   and on paper. Measured on the tutorial at 1100px, the cover subtitle was
+   the last runt left after the rule above. */
+h1, h2, h3, h4, .chunk-heading, .hd-sub, .section-heading, figcaption,
+.tag-label, #toc-panel li { text-wrap: balance; }
+
 [data-collapse=topic-bold] .reveal-segment .sentence-rest .prose { display: none; }
 [data-collapse=topic-bold] .reveal-segment .sentence-rest strong {
   display: block;
