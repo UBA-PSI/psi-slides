@@ -1095,11 +1095,14 @@ the panel reads all three rather than hard-coding what a statement takes:
 `DG_SHAPE_CLASSES` and `DG_POINTED` (which outlines exist and which of them
 have a point to aim), `DG_LIST_OPTS` (options whose value is a comma list –
 `col`, `emph`, `calm` – so a single-number parser must not read one) and
-`DG_BARE_OPTS` (bare closed words a statement accepts, `{bars: ['stacked']}`).
+`DG_BARE_OPTS` (bare closed words a statement accepts, `{bars: ['stacked',
+'horizontal'], sequence: ['unnumbered']}`).
 So do the generated-name helpers, which are the one place the compiler and
 anything reading its output have to agree exactly: `dgBarName`, `dgTickName`,
 `dgBaseName`, `dgCellName`, `dgPlotName`, `dgRowTag`, `dgColTag`,
-`dgLaneName`, `dgLaneCapName`.
+`dgLaneName`, `dgLaneCapName`, and a `sequence`'s ten: `dgLifeName`,
+`dgMsgName`, `dgMsgNumName`, `dgMsgSubName`, `dgNoteName`, `dgMsgTag`,
+`dgMsgsTag`, `dgNotesTag`, `dgActorsTag`, `dgLivesTag`.
 
 `lint.js` imports only the tables. That is what keeps it zero-dep: it must
 never reach for a function that pulls the rest of the compiler in behind it.

@@ -408,12 +408,17 @@ The first closer ends `side`, the second ends `expand`.
 wrapper or an aside: each compiles to something of its own.
 
 - **`::: diagram`** is a figure written as text - named boxes, arrows,
-  containers, charts, tables and swimlanes, laid out at build time and steppable
-  on the same key that advances a reveal segment. It has its own grammar,
-  sixteen statements and forty classes, and two documents: `figure-design.md`
-  for how to lay one out so a room can read it, and the `#diagram` chunks of
-  `lectures/tutorial/source.md` for the vocabulary. Read one of those before
-  writing a block; do not guess at the syntax from a nearby example.
+  containers, charts, tables, swimlanes and sequence diagrams, laid out at build
+  time and steppable on the same key that advances a reveal segment. It has its
+  own grammar, seventeen statements and forty classes, and two documents:
+  `figure-design.md` for how to lay one out so a room can read it, and the
+  `#diagram` chunks of `lectures/tutorial/source.md` for the vocabulary. Read one
+  of those before writing a block; do not guess at the syntax from a nearby
+  example. Two of those statements are the ones authors pick the wrong one of:
+  `lanes` puts who down the side and lets the reading direction carry the time,
+  `sequence` puts who across the top and makes the vertical axis the time
+  itself - steps parcelled out to the people responsible for them is the first,
+  messages passing between them is the second.
 - **`::: embed <url>`** frames a hosted player, YouTube or Vimeo. It is the one
   construct that makes an output fetch from a third party while the lecture is
   being given, so reach for it only when a local clip - `![](clip-id)` - will

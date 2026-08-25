@@ -702,3 +702,66 @@ step the-answer-to-that-one-is-a-standard
 step every-one-of-them-has-an-answer
   style @t-col-2 {.tone-2}
 :::
+
+## figure: a protocol {.full #seq}
+
+::: diagram {unit=140x44}
+# Three shapes of line and nothing else: an actor, a message between two
+# names, and a note standing on a lifeline. What the statement decides is the
+# vertical rhythm - every band is as tall as what stands in it - so inserting
+# a message is inserting a line.
+sequence x at 0,0 space 0.34
+  actor c "Client"
+  actor p "Proxy"
+  actor s "Server"
+  c -> p "CONNECT server:443"
+  p -> s "TCP handshake"
+  p -> p "note the destination" "host, time, byte counts"
+  c <- p "200 Connection established" {.dashed}
+  c -- s "encrypted tunnel, end to end" space 0.9
+  note c,s "the proxy forwards bytes\nand reads none of them" {.tone-2}
+:::
+
+## figure: a protocol, one phase at a time {.full #seq-demo}
+
+::: diagram {unit=150x40}
+# The actors are lines of their own because each needs a name later lines can
+# hold on to and an attribute tail of its own. Everything under them is a
+# message - an arrow between two names - or a note.
+sequence wa at 0,0
+  actor u  "User"
+  actor br "Browser"
+  actor au "Authenticator" {.tone-3}
+  actor rp "Relying Party"
+
+  u  -> br "clicks Create passkey"
+  br -> rp "request registration options"
+  br <- rp "registration options" "challenge · rp.id · user.id · algs" {.dashed}
+  br -> au "CTAP authenticatorMakeCredential" "clientDataHash · rp.id · user · algs"
+  note br,au "CTAP runs over USB, NFC or BLE"
+  au -> u  "prompt: PIN or biometric"
+  u  -> au "user verified locally"
+  note au "generate key pair\nbind to SHA-256(rp.id)\nstore privately · emit publicly"
+  au -> br "attestation object" "authData (public key, cred ID) · signature" {.dashed}
+  br -> rp "attestationObject + clientDataJSON" "clientDataJSON carries challenge · origin"
+  rp -> rp "verify signature · check origin"
+
+# Two annotations the statement knows nothing about, hung off generated
+# names: a brace over three messages and a note beside one of them. A beat
+# can show or emphasise either one exactly as it would a box.
+brace ctap over wa-3,wa-4,wa-5 pad 0.3 "on the device, over CTAP" left {.small .turn}
+text fresh "the challenge is what makes it fresh" right of wa-2 gap 0.5 {.small .hand} -> wa-2
+
+step in-the-browser
+  emph @br-msgs
+step on-the-device
+  calm @br-msgs
+  emph @au-msgs
+  emph au
+step back-to-the-relying-party
+  calm @au-msgs
+  calm au
+  emph @wa-msg-7, @wa-msg-8
+step the-whole-registration
+  calm @wa-msgs
+:::

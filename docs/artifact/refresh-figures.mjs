@@ -54,10 +54,12 @@ const BASICS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'];
 // tall beside one small plot. A claim about what a chart's proportions are, or
 // about a dependency that cannot be written, is a drawing like any other.
 const SPECS = ['sp1', 'sp2', 'sp3', 'sp10', 'sp8', 'sp9', 'sp4', 'sp4b', 'sp4c', 'sp5', 'sp6', 'sp11', 'sp7'];
-// The four arrangements a lecture keeps asking for. Their listings keep their
-// comments and their fence, unlike the specimens above: the page says they are
-// real source in the number of lines shown, and half a block is not that.
-const SHAPES = ['fc', 'swim', 'tree'];
+// The still arrangements a lecture keeps asking for; the table and the stepped
+// protocol are in DEMOS instead, because both are argued a beat at a time.
+// Their listings keep their comments and their fence, unlike the specimens
+// above: the page says they are real source in the number of lines shown, and
+// half a block is not that.
+const SHAPES = ['fc', 'swim', 'tree', 'seq'];
 const STILLS = [
   ...BASICS,
   ...SPECS,
@@ -71,6 +73,7 @@ const DEMOS = [
   { chunk: 'beats-demo', prefix: 'dgbeat' },
   { chunk: 'move-demo', prefix: 'dgmove' },
   { chunk: 'table-demo', prefix: 'dgtable' },
+  { chunk: 'seq-demo', prefix: 'dgseq' },
 ];
 
 const RT_START = 'const DG_LIST = [];';
@@ -84,7 +87,7 @@ const say = (s) => process.stdout.write(s + '\n');
 // keyword can never be painted inside a label. A comment is a line whose
 // first non-space character is '#', and it has to win over everything else
 // or a word inside one stops reading as a comment.
-const KW = /\b(box|edge|text|container|brace|dot|image|bars|grid|plot|table|lanes|align|spread|default|same as|series of|stacked|right of|left of|below|above|between|over|via|point|at|gap|pad|space|col|offset)\b/g;
+const KW = /\b(box|edge|text|container|brace|dot|image|bars|grid|plot|table|lanes|sequence|actor|note|align|spread|default|same as|series of|stacked|right of|left of|below|above|between|over|via|point|at|gap|pad|space|col|offset)\b/g;
 const STEP_OPS = /^(\s*)(step|show|hide|move|emph|calm|style|label)\b/;
 
 function hl(src) {

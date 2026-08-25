@@ -643,8 +643,8 @@ text n1 "state table, per five-tuple" right of d1 gap 0.5 -> d1 {.small .muted}
 edge, contents placed against a band's own centre (`swim-1.cy`) with the
 left-to-right order carrying the time. Ask before writing one whether the figure
 shows *steps parcelled out to the people responsible for them* or *messages
-passing between them*. If it is the second it is a `sequence`, where the same
-two axes carry the same two questions the other way round. Do not build a
+passing between them*. If it is the second it is a `sequence`, where who runs
+across the top and time runs down the page. Do not build a
 swimlane out of `container`s – a container fits its members, so bands holding
 different numbers of things come out ragged at both ends, which is the opposite
 of what a swimlane means. Every hand-off crosses a band, which is what `.elbow`
@@ -724,20 +724,17 @@ print keeps it, while `emph` and `calm` are lecture-time acts that print strips.
 is only for the room can be an `emph` and needs no closing beat; one written as
 a tone needs the beat that takes it off again.
 
-**A protocol** is `sequence`, and it is the other half of the pair `lanes`
-belongs to: the same two axes carrying the same two questions, swapped. Here who
-is across the top, one lifeline per actor, and time *is* the vertical axis; in a
-swimlane who runs down the side and time is only the reading direction. Steps
-distributed over roles is the swimlane, messages passing between parties is
-this. The one thing to understand about it is what it does *not* do. It owns the
-vertical rhythm and nothing else: it stacks a band per entry, each as tall as
-what stands in it, so a note pushes the messages under it down instead of
-cutting into their labels. Everything else it answers by being
-addressable. Every head keeps the name its `actor` line gives it, every lifeline
-is `<actor>-life`, every message is `<seq>-N` counting from 0, and the tags
-`@<seq>-msg-N`, `@<seq>-msgs`, `@<actor>-msgs`, `@<seq>-notes` name the sets. So
-the annotation a real protocol slide always ends up needing is an ordinary line
-hung off an ordinary name, not a word the statement had to grow.
+**A protocol** is `sequence`: who is across the top, one lifeline per actor, and
+time *is* the vertical axis. That is the half of the pair `lanes` does not
+cover, where who runs down the side and time is only the reading direction.
+**It owns the vertical rhythm and nothing else**: it stacks a band per entry,
+each as tall as what stands in it, so a note pushes the messages under it down
+instead of cutting into their labels. Everything else it answers by giving every
+part it draws a name you can write. Every head keeps the name its `actor` line
+gives it, every lifeline is `<actor>-life`, every message is `<seq>-N` counting
+from 0, and the tags `@<seq>-msg-N`, `@<seq>-msgs`, `@<actor>-msgs`,
+`@<seq>-notes` name the sets. So the annotation a real protocol slide always
+ends up needing is an ordinary line of source hung off an ordinary name.
 
 ```
 # wrong: a note the sequence cannot see, positioned by hand against a coordinate
@@ -767,9 +764,9 @@ brace stands on the left, or it runs back over the number column.
 **Break a long protocol into phases with `space` on the entry that opens one.**
 `space 0.9` on a message or a note is the air above *that* band, and two or
 three of them turn fifteen undifferentiated rows into three groups a room can
-hold. A blank line in the source does nothing to the drawing, deliberately –
-the entry run reads straight through it, so the source stays free to be laid
-out for a reader of the text.
+hold. A blank line in the source does nothing to the drawing: the statement
+reads straight through it, so the lines stay free to be grouped for whoever
+reads the source.
 
 ```
 # wrong: fifteen messages at one rhythm, and the room has nowhere to rest

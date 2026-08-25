@@ -131,12 +131,31 @@ from building the same way is a major version.
 
   Everything it draws has a name – `wa-3` for a message, `au-life` for a
   lifeline, `wa-note-0`, plus the tags `@wa-msgs`, `@au-msgs`, `@wa-msg-3` – so
-  an annotation the construct knows nothing about is an ordinary line. There is
-  deliberately no `alt` / `else`: a `container` with a caption already encloses
-  and names a group of messages, and a word freezes at the next release.
+  an annotation the construct knows nothing about is an ordinary line of source.
+  There is no `alt` / `else`: a `container` with a caption already encloses and
+  names a group of messages, and a word freezes at the next release.
 
-  Message labels carry a paper ground by default, because a lifeline crosses
-  every one of them. `.clear` takes it off, a written `.tone-n` replaces it.
+  Message labels carry a paper ground by default, and sit beside the line
+  rather than on it, because a lifeline crosses every one of them and an edge
+  reads a fill with no side named as "knock the line out behind the words".
+  `.clear` takes the ground off, a written `.tone-n` replaces it. The numbers
+  are drawn unless the line says `unnumbered`, because the visible number and
+  the generated tag carry the same index: `@wa-msg-3` is the arrow the room
+  reads as 4.
+
+  `lanes` and `sequence` are the two statements authors pick the wrong one of,
+  and they are one pair with the axes swapped: `lanes` puts who down the side
+  and lets the reading direction carry the time, `sequence` puts who across the
+  top and makes the vertical axis the time itself.
+
+  The editor reaches all of it. A `sequence` is the one expanding statement
+  whose entries are lines the author typed, so `actor`, `note` and message
+  lines are selectable and their labels, classes and tails editable in the
+  panel, which reads its controls off the entry statement rather than off the
+  box and the edge the entry expands into. A lifeline, a message number and a
+  message's second line own no text of their own and stay with the statement;
+  the frame no longer swallows a click aimed at a message crossing it; and
+  `unnumbered` is a checkbox.
 - **An edge's label can carry a ground.** A fill class on an `edge` draws a
   rect behind the label on the same terms a free `text`'s ground is drawn, and
   `pad` is now a legal `edge` option. With no side named the label sits **on**
@@ -145,10 +164,10 @@ from building the same way is a major version.
   line and carries the ground with it. Before this, `.paper` on an edge
   resolved, emitted its class and drew nothing.
 - **`figure-design.md`** – how to lay a figure out so a room reads it: ten
-  rules with a wrong/right pair each, the tone-to-role table, the four
-  arrangements a lecture keeps asking for (flowchart, swimlane, tree, table)
-  with the construction fact each one turns on, the four-beat step order, and a
-  checklist to work down before a figure is finished.
+  rules with a wrong/right pair each, the tone-to-role table, the five
+  arrangements a lecture keeps asking for (flowchart, swimlane, tree, table,
+  protocol) with the construction fact each one turns on, the four-beat step
+  order, and a checklist to work down before a figure is finished.
 
 - **`::: diagram` – animated infographics written in the lecture source.**
   A line-oriented DSL for boxes, dots, free text, arrows, auto-fitting

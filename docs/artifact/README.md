@@ -12,7 +12,7 @@ must not be edited in the HTML.
 | | |
 |---|---|
 | `figures-you-write.html` | the page |
-| `figure-rules/source.md` | a psi-slides lecture whose only job is to be compiled: every figure the page teaches with, including three that step |
+| `figure-rules/source.md` | a psi-slides lecture whose only job is to be compiled: every figure the page teaches with, including four that step |
 | `refresh-figures.mjs` | rebuilds that lecture and puts every generated region back into the page |
 
 ## What the script owns
@@ -27,17 +27,17 @@ node docs/artifact/refresh-figures.mjs --check   # report drift, write nothing (
 
 It replaces, keyed by markers in the HTML:
 
-- **Forty-three still figures** &ndash; the six tutorial steps, the twenty
+- **Forty-four still figures** &ndash; the six tutorial steps, the twenty
   wrong/right drawings, the tone row, the thirteen advanced specimens and the
-  three worked arrangements, taken from a `--print-only` build.
-- **Forty-two listings** &ndash; six tutorial steps (with the lines each step
+  four still arrangements, taken from a `--print-only` build.
+- **Forty-three listings** &ndash; six tutorial steps (with the lines each step
   adds marked by diffing it against the one before), twenty wrong/right
-  halves, thirteen specimens and three arrangements. Each is the block its drawing
+  halves, thirteen specimens and four arrangements. Each is the block its drawing
   was compiled from, so the two cannot disagree. The specimens are stripped of
-  their comments and their fence; the three arrangements keep both, because the
+  their comments and their fence; the four arrangements keep both, because the
   page says they are real source in the number of lines shown, and half a block
   is not that.
-- **Three figures that step** &ndash; drawing, per-beat geometry, the list of
+- **Four figures that step** &ndash; drawing, per-beat geometry, the list of
   beat names under it and its listing, from an `--audience-only` build, which
   is the only pass that emits the geometry.
 - **Fifteen gallery figures**, their fifteen listings and their fifteen beat
@@ -67,7 +67,7 @@ Everything else &ndash; prose, layout, CSS, and the short script under the
 runtime that wires up the buttons &ndash; is hand-written and safe to edit.
 
 The chunk ids in the lecture are what the script looks figures up by: `#b1`,
-`#r1w`, `#tones`, `#beats-demo`, `#table-demo`, and so on. Rename one in the lecture without
+`#r1w`, `#tones`, `#beats-demo`, `#table-demo`, `#seq-demo`, and so on. Rename one in the lecture without
 renaming it in `refresh-figures.mjs` and the run stops with an error, which is
 what it is meant to do.
 
