@@ -588,7 +588,6 @@ pre.shiki .line { display: inline; }
    box defaults to paper, a text defaults to see-through" one mechanism rather
    than two. No stroke either way – a bordered label is a box, and there is
    a statement for that. */
-.psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > :is(rect, circle, .dg-shape) { fill: none; }
 
 /* An edge's label gets the same ground on the same terms: a fill class draws
@@ -597,7 +596,6 @@ pre.shiki .line { display: inline; }
    rule above would otherwise put around the ground of a dashed edge's label.
    Written after the tone rules on purpose: they set a stroke at the same
    specificity, so source order is what decides. */
-.psi-diagram .dg-edge > rect { stroke: none; }
 /* And no fill unless a tone asked for one. An SVG rect with no fill property
    is black, and this one is emitted in every frame of any edge that is ever
    given a tone - so without this rule an edge whose label gains a ground in
@@ -639,6 +637,17 @@ pre.shiki .line { display: inline; }
    so source order does not decide it. (No backticks in here: this whole
    stylesheet is a template literal, and one would end it.) */
 .psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape) { stroke: var(--ink); }
+
+/* A label's ground is never stroked, and this is where that has to be said.
+   It was written up with the two rules that create the ground, above the
+   tone rules that stroke - and .emph and .accent both set a stroke on the
+   same child selector at the very same specificity, so source order decided
+   it and they won. The result was a box drawn around a label the moment a step
+   emphasised it: on a sequence, where every message label now carries a
+   ground, emph @wa-msg-8 framed the words instead of thickening the arrow.
+   A bordered label is a box, and there is a statement for that. */
+.psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
+.psi-diagram .dg-edge > rect { stroke: none; }
 
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {
@@ -1290,7 +1299,7 @@ pre.shiki .line { display: inline; }
   <aside class="chunk-expansion chunk-expansion-expand" data-label="The rest of the vocabulary">
 <p><code>dot</code> is a circle for junctions and glyphs. <code>container … over a,b,c</code> draws a box that fits itself around its members and re-fits when they move; <code>brace … over a,b right &quot;Label&quot;</code> is a bracket spanning a subset.</p>
 <p><code>table</code> and <code>lanes</code> expand into ordinary boxes the way <code>bars</code> and <code>grid</code> do. <code>table t &quot;Attack | Layer | Countermeasure&quot;</code> reads its rows off the quoted lines under it, names every cell <code>t-&lt;column&gt;-&lt;row&gt;</code> with the heading as row 0, and tags each one <code>@t-row-2</code> and <code>@t-col-0</code> – so lighting one row per beat is one line of source rather than a list of names to keep in step with the table above it. <code>lanes swim &quot;User | SOC | IT ops&quot;</code> draws bands of equal width with turned captions, which is the one thing a <code>container</code> cannot do: a container fits its members, so lanes holding different numbers of things come out ragged at both ends.</p>
-<p><code>sequence</code> draws a protocol down the page: <code>actor u &quot;User&quot;</code> lines for the columns, then <code>u -&gt; br &quot;click …&quot;</code> for the messages and <code>note au &quot;…&quot;</code> for the boxes that sit on a lifeline. It owns the vertical rhythm and nothing else – every entry states the height it needs and the statement stacks them, so a note pushes the messages under it down instead of cutting into their labels, and inserting a message is one line instead of thirteen. A message <em>is</em> an edge, so <code>{.dashed}</code> is a reply and <code>--</code> is a line without a head; <code>x -&gt; x</code> loops out of a lifeline and back for a local action. Everything a heavily annotated protocol slide needs after that comes from the names it generates – <code>wa-3</code> is the fourth message, <code>au-life</code> the authenticator&#39;s lifeline, <code>@wa-msg-3</code> and <code>@au-msgs</code> and <code>@wa-notes</code> the sets – so a <code>brace over wa-3,wa-4,wa-5</code> or a <code>text … -&gt; wa-2</code> is an ordinary line.</p>
+<p><code>sequence</code> draws a protocol down the page: <code>actor u &quot;User&quot;</code> lines for the columns, then <code>u -&gt; br &quot;click …&quot;</code> for the messages and <code>note au &quot;…&quot;</code> for the boxes that sit on a lifeline. It owns the vertical rhythm and nothing else – every entry states the height it needs and the statement stacks them, so a note pushes the messages under it down instead of cutting into their labels, and inserting a message is one line instead of thirteen. A message <em>is</em> an edge, so <code>{.dashed}</code> is a reply and <code>--</code> is a line without a head; <code>x -&gt; x</code> loops out of a lifeline and back for a local action. Everything a heavily annotated protocol slide needs after that comes from the names it generates – <code>wa-3</code> is the fourth message, <code>au-life</code> the authenticator&#39;s lifeline, <code>@wa-msg-3</code> and <code>@au-msgs</code> and <code>@wa-notes</code> the sets – so a <code>brace over wa-3,wa-4,wa-5</code> or a <code>text … -&gt; wa-2</code> is an ordinary line. Message labels bring their own paper ground, because a lifeline crosses every one of them, and <code>space 0.9</code> on a message or a note is the air above that one band – which is how a long protocol is broken into phases.</p>
 <p>A <strong>tag</strong> can be written wherever a name can, so <code>show @crypto</code> in a step covers every element carrying it. Membership sits on the element&#39;s own line, so adding an element to a set is a one-line edit.</p>
 <p>Placement also takes <code>between a,b</code> – the point on the line joining two elements, which is where a separator glyph or a note beside a connector goes – and any placement accepts a trailing <code>offset dx,dy</code>. An anchor can carry a fraction: <code>mix.right:0.3</code> slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side instead of on top of each other.</p>
 <p>Against repetition there are two more: <code>default box {.tone-4} w 1.15</code> sets the base for every box in the diagram (add a tag – <code>default box @dec w 0.48</code> – to refine it for one set), and <code>same as create</code> copies another element&#39;s width and height. The same <code>default</code> lines go in a <code>diagram-defaults:</code> frontmatter key when a whole lecture&#39;s figures should look like each other – then a block&#39;s own <code>default</code> overrides the lecture&#39;s for that one figure, and changing the house style is one edit.</p>

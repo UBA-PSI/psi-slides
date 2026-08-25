@@ -498,6 +498,11 @@
 .dge-chip:hover { border-color: var(--emph); }
 .dge-chip .dge-x { opacity: 0.5; margin-left: 0.3em; }
 .dge-chip-count { color: var(--ink-soft); margin-left: 0.35em; }
+/* The way back from an entry to the statement that stacked it. A chip rather
+   than a link because it is a selection act like every other chip here, and a
+   class of its own because that is what keeps a selector aimed at one pane -
+   this one is navigation, and unlike a waypoint or a tag it removes nothing. */
+.dge-chip-owner { color: var(--ink-soft); border-style: dashed; }
 
 /* The element list doubles as the "what refers to what" view. */
 .dge-list { display: flex; flex-direction: column; gap: 1px; max-height: 14rem; overflow-y: auto; }

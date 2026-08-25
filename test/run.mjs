@@ -35,6 +35,7 @@ const SPECS = [
   './editor-expanded.mjs',
   './editor-aim.mjs',
   './editor-steps.mjs',
+  './editor-sequence.mjs',
   './figure-labels.mjs',
   './figure-sequence.mjs',
   './figure-framing.mjs',

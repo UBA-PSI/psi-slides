@@ -1625,7 +1625,6 @@ const DIAGRAM_CSS = `
    box defaults to paper, a text defaults to see-through" one mechanism rather
    than two. No stroke either way – a bordered label is a box, and there is
    a statement for that. */
-.psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > :is(rect, circle, .dg-shape) { fill: none; }
 
 /* An edge's label gets the same ground on the same terms: a fill class draws
@@ -1634,7 +1633,6 @@ const DIAGRAM_CSS = `
    rule above would otherwise put around the ground of a dashed edge's label.
    Written after the tone rules on purpose: they set a stroke at the same
    specificity, so source order is what decides. */
-.psi-diagram .dg-edge > rect { stroke: none; }
 /* And no fill unless a tone asked for one. An SVG rect with no fill property
    is black, and this one is emitted in every frame of any edge that is ever
    given a tone - so without this rule an edge whose label gains a ground in
@@ -1676,6 +1674,17 @@ const DIAGRAM_CSS = `
    so source order does not decide it. (No backticks in here: this whole
    stylesheet is a template literal, and one would end it.) */
 .psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape) { stroke: var(--ink); }
+
+/* A label's ground is never stroked, and this is where that has to be said.
+   It was written up with the two rules that create the ground, above the
+   tone rules that stroke - and .emph and .accent both set a stroke on the
+   same child selector at the very same specificity, so source order decided
+   it and they won. The result was a box drawn around a label the moment a step
+   emphasised it: on a sequence, where every message label now carries a
+   ground, emph @wa-msg-8 framed the words instead of thickening the arrow.
+   A bordered label is a box, and there is a statement for that. */
+.psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
+.psi-diagram .dg-edge > rect { stroke: none; }
 
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {

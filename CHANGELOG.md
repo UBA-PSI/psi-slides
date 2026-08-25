@@ -114,6 +114,29 @@ from building the same way is a major version.
   purpose: it looks at nothing else in the figure, nothing steps around an
   obstacle, and there is no option to move the rail; `.elbow` together with
   `via` is an error rather than a preference the build guesses at.
+- **`sequence` draws a protocol down the page.** A row of actor heads, a
+  lifeline under each, numbered messages between them and notes on a lifeline,
+  written as three shapes of line: `actor u "User"`, `note b "…"`, and
+  `u -> br "label" ["second line"]`. It expands at parse time into the boxes,
+  texts and edges the language already had, so a `brace` spans three messages
+  and a `step` reaches one by name with no new vocabulary anywhere.
+
+  The statement owns exactly one thing – the vertical rhythm. Written out by
+  hand every message carries a y coordinate of its own, so inserting one in the
+  middle means moving everything under it, renumbering, and re-guessing how far
+  the lifelines run: measured at thirteen edits against one line. Every entry
+  states the height it needs and the statement stacks the bands, so a note
+  pushes what follows it down. `space n` on a `note` or a message line sets that
+  one band's own gap, which is how a dense protocol is broken into phases.
+
+  Everything it draws has a name – `wa-3` for a message, `au-life` for a
+  lifeline, `wa-note-0`, plus the tags `@wa-msgs`, `@au-msgs`, `@wa-msg-3` – so
+  an annotation the construct knows nothing about is an ordinary line. There is
+  deliberately no `alt` / `else`: a `container` with a caption already encloses
+  and names a group of messages, and a word freezes at the next release.
+
+  Message labels carry a paper ground by default, because a lifeline crosses
+  every one of them. `.clear` takes it off, a written `.tone-n` replaces it.
 - **An edge's label can carry a ground.** A fill class on an `edge` draws a
   rect behind the label on the same terms a free `text`'s ground is drawn, and
   `pad` is now a legal `edge` option. With no side named the label sits **on**

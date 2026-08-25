@@ -466,7 +466,12 @@ const DGE_TOOLS = [
 // `space` or `col` would never be offered at all.
 function dgeKindOpts(elOrKind) {
   const el = typeof elOrKind === 'string' ? null : elOrKind;
-  const key = el ? (el.frame || el.kind) : elOrKind;
+  // `entry` for the same reason `frame` is here: a sequence's `actor`, `note`
+  // and message lines are statements of their own, and the box and the edge
+  // they expand into take w / h / pad, which those lines refuse. Offering a
+  // control whose only outcome is a compiler refusal is not offering a
+  // control.
+  const key = el ? (el.frame || el.entry || el.kind) : elOrKind;
   return (window.PSI_DG.DG_KIND_OPTS[key] || []).slice();
 }
 
@@ -2307,6 +2312,20 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
   const place = el.place;
   const edits = [];
   const refusals = [];
+  // A sequence entry has no placement of its own. The statement owns the
+  // vertical rhythm - that is the whole of what it owns - and the line the
+  // author wrote carries a label and an attribute tail and nothing a drag
+  // could rewrite. Said before the kind check below, or a message would get
+  // the generic "an edge follows its endpoints", which is true of every edge
+  // and useless about this one.
+  if (el.entry) {
+    if (DGE.selection.length <= 1) {
+      refusals.push(`a sequence stacks its ${el.entry}s on its own rhythm, so this line holds `
+        + `no placement - drag ${el.synth} to move the whole figure, or set space on the line `
+        + 'to change the gap above this one.');
+    }
+    return { edits: [], refusals, strain };
+  }
   const free = opts && opts.free;      // Ctrl/Cmd held: no snapping
   const leave = opts && opts.leave;    // Alt held: leave the set at once
   const snap = (v) => (free ? v : dgeRound(v, DGE_SNAP_CELL));
@@ -2922,7 +2941,12 @@ function dgeNearestEdge(pt) {
 // what it selects.
 function dgeOwnerOf(id) {
   const el = dgeFind(id);
-  return el && el.synth && el.synth !== el.id ? el.synth : id;
+  // A sequence's entries are the exception: each was written on a line of its
+  // own, so clicking one selects it rather than the statement that stacked it.
+  // Everything else an expanding statement draws – a chart column, a table
+  // cell, a lifeline – selects the statement, because that is the only text
+  // there is to edit.
+  return el && el.synth && el.synth !== el.id && !el.entry ? el.synth : id;
 }
 
 // The other direction, and only interesting where it disagrees with dgeFind:
@@ -2961,9 +2985,17 @@ function dgeHitTest(pt, opts) {
   // wins over an arrow that crosses it, and an arrow wins over the container
   // or brace it runs through. Without the second half every edge inside a
   // container would be unreachable, which is most of them.
+  //
+  // A statement's frame counts as a holder here, and that is what a sequence
+  // needs: its frame is a .bare .clear box the size of the whole figure, so
+  // it enclosed every message and won every click meant for one. The clause
+  // is written as "an arrow that is not this frame's own", so a chart's
+  // baseline still selects the chart – it belongs to the frame, and clicking
+  // a part of a statement means the statement.
   const edge = dgeNearestEdge(pt);
   const edgeOwner = edge ? dgeOwnerOf(edge) : null;
-  if (edgeOwner && (!box || box.el.kind === 'container' || box.el.kind === 'brace')) return edgeOwner;
+  if (edgeOwner && (!box || box.el.kind === 'container' || box.el.kind === 'brace'
+    || (box.el.frame && edgeOwner !== box.id))) return edgeOwner;
   return box ? box.id : null;
 }
 
@@ -4372,8 +4404,26 @@ function dgeRenderSide() {
   }
 
   const head = dgeEl('div', {}, [
-    dgeEl('h3', { class: 'dge-sel-head', text: single ? `${single.kind} ${single.id}` : `${DGE.selection.length} selected` }),
+    dgeEl('h3', { class: 'dge-sel-head',
+      text: single ? `${single.entry || single.kind} ${single.id}` : `${DGE.selection.length} selected` }),
   ]);
+  // The way back to the statement. Clicking an entry used to select the whole
+  // sequence, which is how its own options were reached; now that a click
+  // lands on the entry, the frame carries w / h / space / unnumbered and
+  // nothing on the canvas selects it, because it is drawn .bare .clear and
+  // has no ink to hit. Its own class, per the rule chips follow: waypoints,
+  // tags and a step's ops all render as .dge-chip, and a selector naming only
+  // that picks whichever pane comes first in the DOM.
+  if (single && single.entry && dgeFind(single.synth)) {
+    head.appendChild(dgeEl('div', { class: 'dge-chips' }, [
+      dgeEl('button', {
+        type: 'button', class: 'dge-chip dge-chip-owner',
+        text: 'part of sequence ' + single.synth,
+        title: 'select the statement – its own rhythm, size and numbering live there',
+        onclick: () => dgeSelect([single.synth]),
+      }),
+    ]));
+  }
   side.appendChild(head);
 
   if (single) {
@@ -4439,9 +4489,11 @@ function dgeRenderSide() {
     side.appendChild(dgeEl('div', {}, [
       dgeEl('h3', { text: 'ends' }), row,
       dgeEl('div', { class: 'dge-chips' }, [swap]),
-      dgeEl('div', { class: 'dge-hint', text:
-        'A name follows the element when it moves; x,y stays put. '
-        + 'Add an anchor with a dot – mix.right – and a fraction along it with a colon – mix.right:0.3.' }),
+      dgeEl('div', { class: 'dge-hint', text: single.entry
+        ? 'A message runs between two actors of this sequence, by the names their actor lines '
+          + 'give them. A coordinate here is not one of them and the line will not compile.'
+        : 'A name follows the element when it moves; x,y stays put. '
+          + 'Add an anchor with a dot – mix.right – and a fraction along it with a colon – mix.right:0.3.' }),
       // The rule was legible nowhere in the editor: it is not in the panel, and
       // the drawing cannot show it, because an edge that follows its ends looks
       // exactly like an edge someone remembered to write a show for.
@@ -4454,8 +4506,12 @@ function dgeRenderSide() {
     // and which of them holds a reference is not readable off the picture: a
     // waypoint written iv.cx,d0.bottom+0.28 and one written 1.4,2.06 land in
     // exactly the same place and behave completely differently afterwards.
-    const via = single.via || [];
+    // Not on a sequence message. Its waypoints are the loop a self-message
+    // draws, generated by the statement, and the line has nowhere to write a
+    // `via` - so every chip here would have been a click the compiler refuses.
+    const via = single.entry ? null : (single.via || []);
     const wrap = dgeEl('div', {});
+    if (via) {
     wrap.appendChild(dgeEl('h3', { text: 'waypoints' }));
     if (!via.length) {
       wrap.appendChild(dgeEl('div', { class: 'dge-hint', text: dgeCurveOf(single) === 'elbow'
@@ -4484,6 +4540,7 @@ function dgeRenderSide() {
       wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
         'Drag a square on the line to move one, a hollow dot to add one, double-click a square to remove it.' }));
     }
+    }
     side.appendChild(wrap);
   }
 
@@ -4494,7 +4551,7 @@ function dgeRenderSide() {
   // are the parts that carry the meaning. `between a,b` in particular has no
   // gesture at all: nothing about dragging one box says "halfway between
   // those two".
-  if (single && DGE.model.nodes.some((x) => x.id === single.id)) {
+  if (single && !single.entry && DGE.model.nodes.some((x) => x.id === single.id)) {
     side.appendChild(dgePlacementPane(single));
   }
 
@@ -4509,7 +4566,7 @@ function dgeRenderSide() {
   // Which way a pointed outline aims, offered only where there is a point to
   // aim. `none` takes the option back off the line and the shape returns to
   // its default direction.
-  if (single) {
+  if (single && !single.entry) {
     const aimable = dgeAimOf(single);
     if (aimable) {
       const dirs = [...window.PSI_DG.DG_POINT_DIRS];
@@ -4528,6 +4585,30 @@ function dgeRenderSide() {
         dgeEl('div', { class: 'dge-hint', text:
           'Which way the .' + aimable + ' points. An option on the line, not a class, '
           + 'so one word covers every direction.' }),
+      ]));
+    }
+  }
+
+  // The one bare word a sequence's own statement reads. A closed list of one,
+  // so it is the checkbox `stacked` on a series already is: present as a token
+  // or absent as an insertion point, and nothing to type.
+  if (single && single.frame === 'sequence') {
+    const sp = dgeSpanOf(single.id, 'unnumbered');
+    if (sp) {
+      const row = dgeEl('div', { class: 'dge-swatches' });
+      for (const [word, label] of [['', 'numbered'], ['unnumbered', 'no numbers']]) {
+        row.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-sw',
+          'aria-pressed': String((sp.present ? 'unnumbered' : '') === word),
+          text: label,
+          onclick: () => dgeWriteAttr(single.id, 'unnumbered', word),
+        }));
+      }
+      side.appendChild(dgeEl('div', {}, [
+        dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'numbering' }), row]),
+        dgeEl('div', { class: 'dge-hint', text:
+          'The column of numbers left of the frame. The number in the drawing and the index in '
+          + 'the tag are the same number, so message 4 is the one @' + single.id + '-msg-3 names.' }),
       ]));
     }
   }
@@ -5186,6 +5267,16 @@ const DGE_DATA_FIELDS = {
       empty: 'refuse' },
     { key: 'asset', label: 'asset', hint: 'the drawing each cell repeats', empty: 'refuse' },
   ],
+  // A sequence message's second, smaller line. It is a data field rather than
+  // a second label field because that is what it is positionally: the first
+  // quoted string on the line is the label and `label` already resolves to it,
+  // so two textareas both reading "label" would have been a coin toss over
+  // which string an edit landed in - the trap a bars line taught.
+  message: [
+    { key: 'sub', label: 'second line',
+      hint: 'the smaller line under the arrow – the payload, where the label is the name',
+      empty: 'drop' },
+  ],
   plot: [
     { key: 'xtitle', label: 'x axis', hint: 'the title under the horizontal axis',
       empty: (el) => ((DGE.spans.spanOf(el.id, 'ytitle') || {}).present ? 'blank' : 'drop') },
@@ -5237,7 +5328,7 @@ const DGE_DATA_SHAPE = {
 
 function dgeDataPane(el) {
   const wrap = dgeEl('div', {});
-  const fields = (el.frame ? DGE_DATA_FIELDS[el.frame]
+  const fields = (el.frame || el.entry ? DGE_DATA_FIELDS[el.frame || el.entry]
     : (el.kind === 'image'
       ? [{ key: 'asset', label: 'asset', hint: 'the file this image draws', empty: 'refuse' }]
       : null)) || [];
@@ -5257,7 +5348,7 @@ function dgeDataPane(el) {
     if (!sp) continue;
     if (f.count) counts.push(f.label + ': ' + f.count(sp.present ? sp.value : ''));
     const quoted = f.key === 'values' || f.key === 'ticks'
-      || f.key === 'xtitle' || f.key === 'ytitle';
+      || f.key === 'xtitle' || f.key === 'ytitle' || f.key === 'sub';
     rows.push(dgeEl('label', { class: 'dge-num dge-num-wide' }, [
       dgeEl('span', { text: f.label }),
       dgeEl('input', {

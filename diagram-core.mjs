@@ -160,8 +160,13 @@ export const DG_CLASSES = new Set([
 // with it. Stacking left both rules matching at equal specificity, so the
 // one written later in the stylesheet won and the author's explicit choice
 // silently lost.
+// The fill slot, named because a statement that supplies a ground of its own
+// has to ask whether the author already claimed the slot – `.clear` is not a
+// fill (dgHasFill says so) but it is an answer to the same question, and a
+// default that stacked on top of it would paint the thing the author took off.
+export const DG_FILL_SLOT = ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper'];
 export const DG_CLASS_GROUPS = [
-  ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper'],   // fill
+  DG_FILL_SLOT,                               // fill
   ['accent', 'muted'],                        // ink
   ['dashed', 'dotted'],                       // stroke pattern
   ['thick', 'bare'],                          // stroke weight
@@ -472,6 +477,13 @@ export const DG_SEQ_NUM = 0.34;      // the number column, outside the frame's l
 export const DG_SEQ_TAIL = 0.3;      // how far a lifeline runs past the last entry
 export const DG_SEQ_SELF_W = 0.28;   // how far a self-message loops out
 export const DG_SEQ_SELF_H = 0.42;   // and how far down it comes back
+// How far a message label's ground reaches past its own words. A lifeline
+// crosses every label in the figure – that is what a lifeline is – so the
+// ground is not an option here but the default, and what it has to do is
+// knock the dashes out from behind the words and nothing more. The box
+// padding a `pad` would otherwise resolve to is 13 by 9, which on a label
+// standing beside a line reads as a slab; this is the visible margin.
+export const DG_SEQ_GROUND = 0.1;
 // `plot` expands into a frame, two runs of grid lines, two runs of tick
 // labels and up to two axis titles. Parts: gx gy xt yt xl yl.
 export const dgPlotName = (id, part, i) => (i === undefined ? `${id}-${part}` : `${id}-${part}-${i}`);
@@ -585,6 +597,14 @@ export const DG_KIND_OPTS = {
   // and it is `space` rather than `gap` for the reason it is everywhere else –
   // `gap` on this very line is the distance to another element.
   sequence: ['w', 'h', 'space'],
+  // A sequence's three entries, which are statements of their own on lines of
+  // their own – so the panel reads its controls off them rather than off the
+  // `box` and the `edge` they expand into, which take `w`, `h` and `pad` and
+  // would offer three words the entry line refuses. `space` is the air above
+  // this entry, overriding the statement's rhythm for one band: the way a
+  // dense protocol is broken into phases. An actor has no band above it, so
+  // it takes nothing.
+  actor: [], note: ['space'], message: ['space'],
 };
 // Options whose value is a comma list rather than one number. `col 1.5,0.9,1.9`
 // is one width per column, and reading it with dgNum would report the whole
@@ -1671,7 +1691,13 @@ const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'align', 'point', '
 // anyway. Every one is required by its statement, so it is always present –
 // there is no "where would it go if it were not there" to answer, which is
 // what separates them from the keyed list above.
-export const DG_POSITIONAL = ['values', 'ticks', 'xtitle', 'ytitle', 'cellkind', 'shape', 'asset'];
+export const DG_POSITIONAL = ['values', 'ticks', 'xtitle', 'ytitle', 'cellkind', 'shape', 'asset',
+  // A sequence message's second, smaller line: the second quoted string on the
+  // line, where the first is the label. It is named here rather than left to
+  // the source pane because `label` already resolves to the first string, and
+  // a field that silently edited the wrong one of two strings on one line is
+  // the trap a `bars` line taught.
+  'sub'];
 
 // The x and y halves of a `dx,dy` token, and the signed nudge inside a
 // coordinate component. Sub-token arithmetic on the token's own text, because
@@ -1720,7 +1746,14 @@ export function createSpanTable(model, body) {
     // editor comes to rewrite the whole chart while dragging one bar. The
     // frame is the exception and keeps its span, because the frame *is* the
     // statement: moving it moves the chart, which is what the drag means.
-    if (el.synth && el.synth !== el.id) continue;
+    // A sequence's three entries are the exception, and `entry` is what
+    // marks them: each was written on a line of its own, carrying a label and
+    // an attribute tail that are nobody else's, so the span it holds is that
+    // line. The elements around them are not – a lifeline, a message number
+    // and a second line own no text on the line that produced them, and
+    // handing one the line's span is how a panel comes to write the actor's
+    // label under the lifeline's name.
+    if (el.synth && el.synth !== el.id && !el.entry) continue;
     byId.set(el.id, el);
   }
 
@@ -1854,6 +1887,11 @@ export function createSpanTable(model, body) {
     // the *kind* of placement, and the only way to give the first element
     // (which sits at the origin for free) a placement at all.
     if (attr === 'place') {
+      // A sequence entry has none to give. The statement lays its entries out
+      // on its own rhythm and the line the author wrote carries no placement
+      // expression – so an insertion point here would offer a control whose
+      // only possible outcome is the compiler refusing the line.
+      if (el.entry) return null;
       const p = el.place;
       if (p && p.span) return hit(p.span[0], p.span[1], src.slice(p.span[0], p.span[1]));
       return gap(tailInsert(el, toks), ' ');
@@ -1903,7 +1941,11 @@ export function createSpanTable(model, body) {
       const val = at >= 0 && bare[at + 1] && bare[at + 1].v === 'of' ? bare[at + 2] : null;
       return val ? hit(val.s, val.e, val.v) : null;
     }
-    if ((DG_BARE_OPTS[el.kind] || []).includes(attr)) {
+    // Off the *statement*, not the kind: a `sequence` frame is a box as far as
+    // the layout is concerned, and `unnumbered` is a word only its own
+    // statement reads. Keyed on the kind, the frame's one bare word had no
+    // span at all and no control could be offered for it.
+    if ((DG_BARE_OPTS[el.frame || el.kind] || []).includes(attr)) {
       const at = toks.find(x => !x.q && !x.attr && x.v === attr);
       if (at) return { start: at.s, end: at.e, prefix: '', suffix: '', present: true, text: attr, value: attr };
       const ins = tailInsert(el, toks);
@@ -1920,6 +1962,10 @@ export function createSpanTable(model, body) {
       const after = (t, pre = ' "', suf = '"') => (t ? gap(t.e, pre, suf) : null);
       // Quoted slots, by statement. The n-th string means a different thing
       // on each of the three, which is exactly why they are named.
+      if (attr === 'sub') {
+        if (el.entry !== 'message') return null;
+        return quoted[1] ? one(quoted[1]) : after(quoted[0]);
+      }
       if (attr === 'values') return el.frame === 'bars' ? one(quoted[0]) : null;
       if (attr === 'ticks') {
         if (el.frame !== 'bars') return null;
@@ -2651,16 +2697,31 @@ export function createDiagramCompiler(env = {}) {
         // real diagrams this was measured against is written. What ends the
         // run is the first line that is not an entry, and that is decidable
         // from the line alone: `actor`, `note`, or an arrow between two names.
+        //
+        // Each entry is tokenized at its *own* offset in the block body, not
+        // at zero. That is what makes an entry editable: the elements a
+        // statement expands into normally carry the statement's span, which is
+        // why createSpanTable hands none of them out – rewriting a column
+        // would rewrite the whole chart. Here every entry is a line of its
+        // own, with a label and an attribute tail written by hand on it, so
+        // the span it carries is that line and a panel edit lands where the
+        // author put the words. See `entry` below.
         const entries = [];
         let lastAt = n;
+        let entryAt = lineAt;          // start of line n+1; lineAt is already past n
         for (let m = n + 1; m < lines.length; m++) {
-          const line = lines[m].trim();
+          const rawE = lines[m];
+          const eAt = entryAt;
+          entryAt += rawE.length + 1;
+          const line = rawE.trim();
           if (!line || line.startsWith('#')) continue;
-          const et = dgTokenize(line, 0);
+          const eIndent = rawE.length - rawE.replace(/^\s+/, '').length;
+          const eSpan = [eAt + eIndent, eAt + eIndent + line.length];
+          const et = dgTokenize(line, eSpan[0]);
           const eb = et.filter(x => !x.attr && !x.q).map(x => x.v);
           const aAt = eb.findIndex(v => DG_SEQ_ARROWS.has(v));
           if (!DG_SEQ_ENTRIES.has(eb[0]) && aAt < 0) break;
-          entries.push({ toks: et, bare: eb, arrowAt: aAt, ln: m + 1 });
+          entries.push({ toks: et, bare: eb, arrowAt: aAt, ln: m + 1, span: eSpan });
           lastAt = m;
         }
         rowsRead = lastAt + 1;
@@ -2678,11 +2739,42 @@ export function createDiagramCompiler(env = {}) {
         const actors = [];
         const byName = new Map();
         const seq = [];
+        // `space n` on an entry line: the air above *this* band, overriding
+        // the statement's rhythm for one gap. It is what breaks a dense
+        // protocol into phases, and it is spelled `space` for the reason the
+        // statement's own is – inside one statement `gap` already means the
+        // distance to another element. A blank line cannot do this job: the
+        // run deliberately reads through blank lines, so every real sequence
+        // measured already had them separating its actors from its messages,
+        // and giving them a height would have moved every one of those
+        // figures without anyone writing anything.
+        //
+        // Found by its word, and the word alone is not enough: nothing forbids
+        // an actor called `space`, and `a -> space "x"` would then have had its
+        // *endpoint* read as the option and the label as the number. Two
+        // guards, the same pair `spanOf` uses for the keyed options: the
+        // statement word and the name after it are never the keyword, and
+        // neither is a token beside an arrow.
+        const readEntrySpace = (e) => {
+          const k = e.bare.findIndex((v, i) => v === 'space' && i > 1
+            && !DG_SEQ_ARROWS.has(e.bare[i - 1] || '')
+            && !DG_SEQ_ARROWS.has(e.bare[i + 1] || ''));
+          if (k < 0) return { bare: e.bare, space: null, present: false };
+          const v = dgNum(e.bare[k + 1], errors, e.ln, `sequence ${id} entry space`);
+          if (v != null && v < 0) {
+            dgErr(errors, e.ln, `space ${e.bare[k + 1]}: space is the air above an entry, so it `
+              + 'cannot be negative – a band pulled into the one above it draws one label '
+              + 'through another. Reorder the entries instead.');
+          }
+          return { bare: [...e.bare.slice(0, k), ...e.bare.slice(k + 2)],
+            space: v != null && v >= 0 ? v : null, present: true };
+        };
         for (const e of entries) {
           const aTok = e.toks.find(x => x.attr);
           const ea = aTok ? dgParseAttrs(aTok.v, errors, e.ln) : { id: null, classes: [], tags: [] };
           const eq = e.toks.filter(x => x.q).map(x => x.v);
-          const eb = e.bare;
+          const es = readEntrySpace(e);
+          const eb = es.bare;
           if (eb[0] === 'actor') {
             const aid = eb[1];
             if (!aid) { dgErr(errors, e.ln, 'actor needs a name and a label – actor u "User"'); continue; }
@@ -2695,9 +2787,19 @@ export function createDiagramCompiler(env = {}) {
                 + 'an actor is `actor <name> "<label>"` and an attribute tail');
             }
             if (eq[0] === undefined) dgErr(errors, e.ln, `actor ${aid} needs a label – actor ${aid} "User"`);
+            // Refused rather than read and dropped. The heads are one row
+            // across the top of the figure and there is no band above them
+            // for the number to describe, so `space` here is the silent
+            // no-op this grammar keeps closing.
+            if (es.present) {
+              dgErr(errors, e.ln, `actor ${aid} has no "space" – the heads are one row and the air `
+                + 'above them is the sequence\'s own. `space` belongs on a note or a message, '
+                + 'where it is the gap above that band.');
+            }
             claim(aid, 'box', e.ln);
             byName.set(aid, actors.length);
-            actors.push({ id: aid, label: eq[0] ?? '', classes: ea.classes, tags: ea.tags, ln: e.ln });
+            actors.push({ id: aid, label: eq[0] ?? '', classes: ea.classes, tags: ea.tags,
+              ln: e.ln, span: e.span });
             continue;
           }
           if (eb[0] === 'note') {
@@ -2718,10 +2820,10 @@ export function createDiagramCompiler(env = {}) {
                 + 'so several lines are one string.');
             }
             seq.push({ type: 'note', on, label: eq[0] ?? '', classes: ea.classes,
-              tags: ea.tags, own: ea.id, ln: e.ln });
+              tags: ea.tags, own: ea.id, ln: e.ln, span: e.span, space: es.space });
             continue;
           }
-          const aAt = e.arrowAt;
+          const aAt = eb.findIndex(v => DG_SEQ_ARROWS.has(v));
           const fromTok = eb[aAt - 1], toTok = eb[aAt + 1];
           if (!fromTok || !toTok) {
             dgErr(errors, e.ln, `a message needs an actor on both sides of "${eb[aAt]}"`);
@@ -2742,9 +2844,33 @@ export function createDiagramCompiler(env = {}) {
               + 'A second line breaks at \\n, so several lines of it are still one string.');
           }
           const flip = eb[aAt] === '<-';
+          // Two classes the author did not write, and both are here rather
+          // than at emit because the band above has to reserve exactly what
+          // the emitter will draw.
+          //
+          // A **side**, because a message label sits beside its line and never
+          // on it. With none of the four alignment words the edge emitter
+          // reads a fill as "put the words on the line and knock it out behind
+          // them", and a label as wide as its own arrow then swallowed the
+          // arrow whole – `{.paper}` on a message drew text and nothing else.
+          // Which pair names a side depends on how the line runs, so a
+          // self-message (a loop, read vertically at its middle) takes the
+          // across-pair and every other message the down-pair.
+          //
+          // A **ground**, because a lifeline crosses every label in the
+          // figure. That is not an exception the author should have to
+          // notice; it is what a lifeline is. So the default is `.paper` and
+          // `.clear` is how one opts out – the same pair of readings a box
+          // already has, and the fill slot is what makes a written `.tone-2`
+          // displace it rather than stack with it.
+          const mcls = [...ea.classes];
+          const self = fromTok === toTok;
+          const across = self ? DG_ALIGN_ACROSS : DG_ALIGN_DOWN;
+          if (!across.some(c => mcls.includes(c))) mcls.push(self ? 'right' : 'top');
+          if (!DG_FILL_SLOT.some(c => mcls.includes(c))) mcls.push('paper');
           seq.push({ type: 'msg', from: flip ? toTok : fromTok, to: flip ? fromTok : toTok,
             headless: eb[aAt] === '--', label: eq[0] ?? '', sub: eq[1] ?? '',
-            classes: ea.classes, tags: ea.tags, own: ea.id, ln: e.ln });
+            classes: mcls, tags: ea.tags, own: ea.id, ln: e.ln, span: e.span, space: es.space });
         }
         if (!actors.length) {
           dgErr(errors, lineNo, `sequence ${id} declares no actors – put \`actor <name> "<label>"\` `
@@ -2778,40 +2904,58 @@ export function createDiagramCompiler(env = {}) {
         // with `space` between. This is the whole statement.
         const space = (opts.space != null ? opts.space : DG_SEQ_SPACE) * uh;
         const [, padY] = dgPadPx(null, uh);
-        // One rhythm unit under the heads before the first band. Starting flush
-        // put the first message's label against the bottom of its own head box,
-        // which is the one place in the figure where two different things share
-        // an edge.
-        let cy = headH + space;
+        const ground = DG_SEQ_GROUND * uh;
+        // The gap is written *before* each band rather than after it, which is
+        // the same rhythm read the other way round and is what lets one entry
+        // state its own. One rhythm unit under the heads comes for free that
+        // way: starting flush put the first message's label against the bottom
+        // of its own head box, which is the one place in the figure where two
+        // different things share an edge.
+        let cy = headH;
         let mi = 0, ni = 0;
         const plan = [];
         for (const it of seq) {
+          cy += it.space != null ? it.space * uh : space;
           const cs = setOf(it.classes);
           const font = dgFontFor(cs);
           const m = dgMeasure(it.label, font, cs.has('mono'));
           if (it.type === 'note') {
             const h = m.h + 2 * padY;
             plan.push({ it, y: cy + h / 2, h, j: ni++ });
-            cy += h + space;
+            cy += h;
             continue;
           }
           const self = it.from === it.to;
-          // What the edge emitter will actually do with the label: with no
-          // fill it sits clear of the line by half its height plus two, with
-          // one it sits on the line and knocks it out. A band that reserves
-          // the other case is a guessed rhythm again.
-          const above = self ? 4 : (dgHasFill(cs) ? m.h / 2 + padY : m.h + 2);
+          // What the edge emitter will actually do with the label. It is
+          // always beside the line here, because the expansion writes a side
+          // above – so the band reserves the words, the two-pixel gap and, on
+          // the far side of them, the ground. A band that reserves the other
+          // case is a guessed rhythm again.
+          const grounded = dgHasFill(cs);
+          const above = self ? 4 : m.h + 2 + (grounded ? 2 * ground : 0);
           // A self-message loops out and comes back, and its label stands
           // beside the loop rather than over a line – so the loop has to be at
           // least as deep as the words are tall.
           const loop = self ? Math.max(DG_SEQ_SELF_H * uh, m.h + 6) : 0;
           const subH = it.sub ? dgMeasure(it.sub, font * 0.8, cs.has('mono')).h : 0;
-          plan.push({ it, y: cy + above, loop, subH, i: mi++ });
-          cy += above + loop + (it.sub ? subH + 4 : 0) + space;
+          // The second line carries the same ground as the label above it, so
+          // it has to clear the arrow by its own ground and not by its glyphs:
+          // laid four pixels under the line, the rect would have been painted
+          // across the very arrow it belongs to.
+          const subGap = 4 + (grounded ? ground : 0);
+          plan.push({ it, y: cy + above, loop, subH, subGap, i: mi++ });
+          cy += above + loop + (it.sub ? subH + subGap + (grounded ? ground : 0) : 0);
         }
-        const bottom = (plan.length ? cy - space : cy) + DG_SEQ_TAIL * uh;
+        const bottom = (plan.length ? cy : cy + space) + DG_SEQ_TAIL * uh;
 
-        const synthAt = (el, ln) => ({ ...el, synth: id, line: ln, span });
+        // Every element a sequence expands into carries the *statement's*
+        // span, because that is what a drag on it should rewrite – except the
+        // three that were written on lines of their own, which carry theirs.
+        // `entry` is what says which is which: createSpanTable hands out a
+        // span for those and the editor selects them, where a lifeline, a
+        // number or a second line owns no text on its line and stays out.
+        const synthAt = (el, ln, entry, sp) =>
+          ({ ...el, synth: id, line: ln, span: sp || span, ...(entry ? { entry } : {}) });
         const at = (xn, yn) => ({
           kind: 'abs',
           at: [{ ref: id, prop: 'left', nudge: xn }, { ref: id, prop: 'top', nudge: yn }],
@@ -2836,7 +2980,7 @@ export function createDiagramCompiler(env = {}) {
             tags: [...seqTags, ...(a.tags || []), dgActorsTag(id)],
             place: at(xOf(i) / uw, (headH / 2) / uh),
             w: boxW / uw, h: headH / uh, r: null, pad: null,
-          }, a.ln));
+          }, a.ln, 'actor', a.span));
           claim(dgLifeName(a.id), 'edge', a.ln);
           model.edges.push(synthAt({
             kind: 'edge', id: dgLifeName(a.id),
@@ -2867,7 +3011,7 @@ export function createDiagramCompiler(env = {}) {
               // banner, and a long one between two near columns unreadable.
               place: at(((xOf(on[0]) + xOf(on[on.length - 1])) / 2) / uw, p.y / uh),
               w: null, h: p.h / uh, r: null, pad: null,
-            }, it.ln));
+            }, it.ln, 'note', it.span));
             continue;
           }
           const fi = idxOf(it.from, it.ln, 'message'), ti = idxOf(it.to, it.ln, 'message');
@@ -2892,8 +3036,13 @@ export function createDiagramCompiler(env = {}) {
             // and every message that touches this actor.
             tags: [...seqTags, ...(it.tags || []), tag, dgMsgsTag(id), dgMsgsTag(actors[fi].id),
               ...(ti === fi ? [] : [dgMsgsTag(actors[ti].id)])],
-            via, pad: null, named: !!it.own,
-          }, it.ln));
+            // The ground's own clearance, in grid units like every other
+            // length here. It resolves through `pad` because that is the word
+            // an edge label's ground already reads, and it is written on the
+            // element rather than left to the default so a knockout behind two
+            // words is a knockout and not a slab.
+            via, pad: DG_SEQ_GROUND, named: !!it.own,
+          }, it.ln, 'message', it.span));
           if (!opts.unnumbered) {
             const numId = dgMsgNumName(id, p.i);
             claim(numId, 'text', it.ln);
@@ -2916,11 +3065,17 @@ export function createDiagramCompiler(env = {}) {
                 + dgMeasure(it.sub, dgFontFor(setOf(it.classes)) * 0.8,
                   setOf(it.classes).has('mono')).w / 2 + 8
               : (x0 + x1) / 2;
+            // The second line crosses the lifelines exactly as the label
+            // does, so it carries the label's ground – the same fill, so the
+            // two read as one caption, and nothing at all where the author
+            // took the ground off with `.clear`.
+            const subFill = it.classes.find(c => DG_FILL_CLASSES.includes(c));
             model.nodes.push(synthAt({
               kind: 'text', id: sid, label: it.sub,
-              classes: ['small', 'muted'], tags: [...seqTags, tag],
-              place: at(subX / uw, (p.y + p.loop + p.subH / 2 + 4) / uh),
-              w: null, h: null, r: null, pad: null,
+              classes: ['small', 'muted', ...(subFill ? [subFill] : [])],
+              tags: [...seqTags, tag],
+              place: at(subX / uw, (p.y + p.loop + p.subH / 2 + p.subGap) / uh),
+              w: null, h: null, r: null, pad: subFill ? DG_SEQ_GROUND : null,
             }, it.ln));
           }
         }

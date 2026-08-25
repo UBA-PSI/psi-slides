@@ -267,6 +267,12 @@ and carries the ground with them.
   "only after the handshake", "dropped silently", "plaintext". A phrase with a
   line through it is read as two fragments before it is read as a sentence.
 
+A `sequence` message is the one place you do not make this choice: its label is
+a phrase, it always sits beside the line, and it always carries a ground,
+because a lifeline crosses every label in such a figure. Write `.clear` to take
+the ground off and `{.tone-2}` to colour it; writing `.paper` says what is
+already true.
+
 ```
 # wrong: one convention for the tokens and another for the phrases, in one
 # figure – the reader has to decide what kind each label is before reading it
@@ -635,11 +641,15 @@ text n1 "state table, per five-tuple" right of d1 gap 0.5 -> d1 {.small .muted}
 
 **A swimlane** is `lanes`: equal bands, `.turn`ed captions outside the left
 edge, contents placed against a band's own centre (`swim-1.cy`) with the
-left-to-right order carrying the time. Do not build one out of `container`s –
-a container fits its members, so bands holding different numbers of things come
-out ragged at both ends, which is the opposite of what a swimlane means. Every
-hand-off crosses a band, which is what `.elbow` is for: a straight line from one
-band to the next reads as a diagonal through a band it never enters.
+left-to-right order carrying the time. Ask before writing one whether the figure
+shows *steps parcelled out to the people responsible for them* or *messages
+passing between them*. If it is the second it is a `sequence`, where the same
+two axes carry the same two questions the other way round. Do not build a
+swimlane out of `container`s – a container fits its members, so bands holding
+different numbers of things come out ragged at both ends, which is the opposite
+of what a swimlane means. Every hand-off crosses a band, which is what `.elbow`
+is for: a straight line from one band to the next reads as a diagonal through a
+band it never enters.
 
 ```
 # right: three bands, and nothing has to say what the time axis is
@@ -714,10 +724,15 @@ print keeps it, while `emph` and `calm` are lecture-time acts that print strips.
 is only for the room can be an `emph` and needs no closing beat; one written as
 a tone needs the beat that takes it off again.
 
-**A protocol** is `sequence`, and the one thing to understand about it is what
-it does *not* do. It owns the vertical rhythm and nothing else: it stacks a band
-per entry, each as tall as what stands in it, so a note pushes the messages under
-it down instead of cutting into their labels. Everything else it answers by being
+**A protocol** is `sequence`, and it is the other half of the pair `lanes`
+belongs to: the same two axes carrying the same two questions, swapped. Here who
+is across the top, one lifeline per actor, and time *is* the vertical axis; in a
+swimlane who runs down the side and time is only the reading direction. Steps
+distributed over roles is the swimlane, messages passing between parties is
+this. The one thing to understand about it is what it does *not* do. It owns the
+vertical rhythm and nothing else: it stacks a band per entry, each as tall as
+what stands in it, so a note pushes the messages under it down instead of
+cutting into their labels. Everything else it answers by being
 addressable. Every head keeps the name its `actor` line gives it, every lifeline
 is `<actor>-life`, every message is `<seq>-N` counting from 0, and the tags
 `@<seq>-msg-N`, `@<seq>-msgs`, `@<actor>-msgs`, `@<seq>-notes` name the sets. So
@@ -743,8 +758,28 @@ number, a `note au "…"` is a standing fact about that lifeline and takes none.
 **Payload detail belongs in a message's second string, not in a note under it** –
 the second string is set smaller under the arrow and moves with it, where a note
 is a band of its own and pushes the whole figure taller for something that is a
-footnote to one line. A brace's label goes `.turn`ed when the brace stands on the
-left, or it runs back over the number column.
+footnote to one line. The two strings have fixed roles and no word swaps them:
+the first is the message's **name** and goes over the arrow, the second is its
+**payload** and goes under it. If what you have written wants to be the other
+way round, it is usually two messages. A brace's label goes `.turn`ed when the
+brace stands on the left, or it runs back over the number column.
+
+**Break a long protocol into phases with `space` on the entry that opens one.**
+`space 0.9` on a message or a note is the air above *that* band, and two or
+three of them turn fifteen undifferentiated rows into three groups a room can
+hold. A blank line in the source does nothing to the drawing, deliberately –
+the entry run reads straight through it, so the source stays free to be laid
+out for a reader of the text.
+
+```
+# wrong: fifteen messages at one rhythm, and the room has nowhere to rest
+rp -> br "session cookie"
+u  -> br "later: click 'Sign in'"
+
+# right: the second phase is announced by the paper around it
+rp -> br "session cookie"
+u  -> br "later: click 'Sign in'" space 0.9
+```
 
 ---
 
@@ -946,9 +981,10 @@ Work down this list. It is written so it can be checked mechanically.
     rectangle would need, so a sentence in one is a shape four times the area of
     its neighbours.
 11. Nothing is hand-built that a statement writes: a grid of labelled cells is
-    `table`, equal bands with names down the side are `lanes`, columns whose
-    heights are numbers are `bars`, and one turn out and one turn in is
-    `.elbow`. Twelve hand-named boxes are twelve things to keep in step.
+    `table`, equal bands with names down the side are `lanes`, messages between
+    lifelines down the page are `sequence`, columns whose heights are numbers
+    are `bars`, and one turn out and one turn in is `.elbow`. Twelve hand-named
+    boxes are twelve things to keep in step.
 12. Every chart says its shape with `aspect`, not with `w` and `h`. A grid cell
     is not square, so those two do not describe the proportion anyone sees. A
     row of charts meant to be read against one another takes its frame from the

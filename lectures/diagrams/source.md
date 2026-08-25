@@ -880,12 +880,16 @@ sequence x at 0,0 unnumbered space 0.34
   p -> s "TCP handshake"
   p -> p "note the destination" "host, time, byte counts"
   c <- p "200 Connection established" {.dashed}
-  c -- s "encrypted tunnel, end to end"
+  c -- s "encrypted tunnel, end to end" space 0.9
   note c,s "the proxy forwards bytes\nand reads none of them" {.tone-2}
 :::
 
 **Vier Formen, und keine davon ist eine eigene Pfeilart.** `->` und `<-` sind dieselbe Nachricht, einmal von links und einmal von rechts benannt – wer die Antwort dort schreibt, wo der Empfänger steht, liest die Spalte hinunter statt hin und her. `--` ist eine Linie ohne Kopf, also eine Beziehung ohne Richtung. Gestrichelt wird nichts davon von einem eigenen Wort, sondern von `{.dashed}` – der Attributschwanz einer Nachrichtenzeile ist der einer Kante, weil eine Nachricht eine Kante *ist*.
 
 **Eine Selbstnachricht ist der übliche Weg, eine örtliche Handlung in den Ablauf zu setzen**, und sie schleift aus der Lebenslinie heraus und wieder hinein. Ihre Beschriftung steht neben der Schleife, ihre zweite Zeile darunter. Eine Notiz zwischen zwei Namen steht in der Mitte zwischen deren Lebenslinien und ist so breit wie ihr eigener Text – nicht so breit wie die Spanne, sonst wird aus drei Wörtern ein Banner. Sie bricht an `\n`, was den Grund erspart, aus dem in Mermaid-Quellen dieselbe Notiz dreimal untereinander steht.
+
+**`space` auf einer Eintragszeile ist die Luft über genau diesem Band.** Der Tunnel unten steht mit `space 0.9` merklich abgesetzt vom Aufbau darüber – zwei oder drei solcher Lücken gliedern einen langen Ablauf in Abschnitte, die ein Raum sich merken kann. Eine Leerzeile im Quelltext tut das bewusst nicht: Der Eintragslauf liest über sie hinweg, damit die Quelle für den lesbar bleiben darf, der sie schreibt. Auf einer `actor`-Zeile ist `space` ein Fehler, denn über den Köpfen gibt es kein Band.
+
+**Jede Nachrichtenbeschriftung bringt ihren eigenen Grund mit.** Eine Lebenslinie kreuzt jede Beschriftung im Bild – das ist kein Sonderfall, sondern das, was eine Lebenslinie ist –, also wird der Grund voreingestellt gezeichnet und die gestrichelte Linie hinter den Wörtern ausgespart. `{.clear}` nimmt ihn weg, `{.tone-2}` färbt ihn. Die kleinere zweite Zeile bekommt denselben Grund, die Nummern links keinen: Sie stehen außerhalb des Rahmens und kreuzen nichts.
 
 **`unnumbered` nimmt die Zahlenspalte weg.** Sie ist sonst da, weil die zweite der beiden Handbearbeitungen das Umnummerieren war und weil die Zahl im Bild und der Index im Tag dieselbe Zahl sind: `@x-msg-3` ist der Pfeil, den der Raum als 4 liest. Wo ein Ablauf so kurz ist, dass niemand auf eine Nummer zeigt, ist die Spalte nur Papier.

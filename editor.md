@@ -2763,3 +2763,60 @@ placed against it somewhere else without a word. `named` on the model edge is
 what tells the two apart, and the guide waits for an `{#id}`.
 
 The suite went from 356 assertions to 449.
+
+### A sequence's entries, and the ground the labels needed · **done**
+
+`sequence` landed with no editor support at all – `grep -c sequence editor.mjs`
+answered 0 – and the reason it looked like a decision is that it half worked:
+clicking a message selected the *statement*, because `dgeOwnerOf` hands every
+synthesized element back to the thing that drew it. For a chart column that is
+right, and it is right for exactly one reason: the column names no line of the
+source, so an edit against its name would rewrite the whole chart. **A sequence
+is the one expanding statement whose entries are lines.** `actor u "User"`,
+`note b "…"`, `u -> br "…"` each carry a label and an attribute tail the author
+typed, so there is a span to rewrite and it is that line.
+
+So the work was to tell the two apart rather than to add a mode. Each entry is
+now tokenized at its own offset in the block body and carries `entry:
+'actor' | 'note' | 'message'`, and three places read that word:
+`createSpanTable` lets those three into the table, `dgeOwnerOf` stops
+redirecting them, and `dgeKindOpts` reads its controls off the entry statement
+instead of off the `box` and the `edge` they expand into – which take `w`, `h`
+and `pad`, three words those lines refuse.
+
+**What is deliberately not selectable is the more interesting half.** A
+lifeline, a message number and a second line own no text on the line that
+produced them. Handing one of them that line's span is precisely how a panel
+comes to write the actor's label under the lifeline's name – the trap
+`spanOf(id, 'label')` on a `bars` line already taught, one statement along. They
+stay with the statement. The second line is still editable, as a *positional*
+field on the message (`sub`, the second quoted token), because that is what it
+is: `label` already resolves to the first string, and two textareas both reading
+"label" would have been a coin toss over which string an edit landed in.
+
+Three smaller things fell out of doing it:
+
+- **The frame swallowed every click.** A sequence's frame is a `.bare .clear`
+  box the size of the whole figure, and `dgeHitTest` lets a box beat an arrow
+  crossing it. That rule already had an exception for a container and a brace –
+  "an arrow wins over the holder it runs through" – and a statement's frame is a
+  holder by the same reading. The clause is written as *an arrow that is not
+  this frame's own*, so a chart's baseline still selects its chart.
+- **`unnumbered` had no control anywhere**, because the bare-option lookup was
+  keyed on `el.kind` – a frame is a `box` – rather than on the statement. Same
+  fix as `dgeKindOpts`, one line, and the frame gets the checkbox `stacked`
+  already is on a series.
+- **An entry cannot be dragged**, and `dgePlanDrag` now says so in its own
+  words instead of letting a message fall through to "an edge follows its
+  endpoints", which is true of every edge and useless about this one.
+
+The other half of the entry was not an editor problem at all but showed up the
+moment the panel could reach it: **a message label had no ground, so every
+lifeline in the figure ran through the words**, and `{.paper}` – the construct
+that exists for exactly this – made it worse rather than better, swallowing the
+whole arrow. The edge emitter reads a fill with no side as "put the words *on*
+the line", so the fix is that the expansion writes the side as well as the
+ground, and writes both by default because a lifeline crossing a label is not an
+exception. `CLAUDE.md` carries the detail.
+
+The suite went from 449 assertions to 493.

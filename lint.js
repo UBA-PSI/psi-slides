@@ -754,8 +754,36 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       const known = new Set();
       const msgs = [];
       const notes = [];
+      // `space n` on an entry line: the air above that one band. Read here for
+      // the reason every other word of this grammar is – a gate that reported
+      // it as an unexpected token would be stricter than the build, which is
+      // the one thing worse than no gate. Stripped off the word list before
+      // the stray check, exactly as the compiler strips it.
+      const readSpace = (e) => {
+        // Found by its word, with the same two guards the build uses: the
+        // statement word and the name after it are never the keyword, and
+        // neither is a token beside an arrow. Nothing forbids an actor called
+        // `space`.
+        const k = e.w.findIndex((v, i) => v === 'space' && i > 1
+          && !DG_SEQ_ARROWS.has(e.w[i - 1] || '')
+          && !DG_SEQ_ARROWS.has(e.w[i + 1] || ''));
+        if (k < 0) return { w: e.w, present: false };
+        const v = e.w[k + 1];
+        if (v === undefined || !/^-?\d*\.?\d+$/.test(v)) {
+          add(e.ln, 'error', 'bad-diagram-sequence',
+            `sequence ${id} entry space expects a number, got '${v ?? ''}'`);
+        } else if (Number(v) < 0) {
+          add(e.ln, 'error', 'bad-diagram-sequence', `space ${v}: space is the air above an `
+              + 'entry, so it cannot be negative – a band pulled into the one above it draws '
+              + 'one label through another. Reorder the entries instead.');
+        }
+        return { w: [...e.w.slice(0, k), ...e.w.slice(k + 2)], present: true };
+      };
       for (const e of entries) {
         const ea = attrsOf(e.nq, e.ln, true);
+        const es = readSpace(e);
+        e.w = es.w;
+        e.aAt = e.w.findIndex(v => DG_SEQ_ARROWS.has(v));
         if (e.w[0] === 'actor') {
           const aid = e.w[1];
           if (!aid) {
@@ -769,6 +797,11 @@ function lintDiagram(block, add, fmLines, lectureTags) {
           if (e.w.length > 2) {
             add(e.ln, 'error', 'bad-diagram-sequence', `unexpected '${e.w.slice(2).join(' ')}' in `
                 + `actor ${aid} – an actor is \`actor <name> "<label>"\` and an attribute tail`);
+          }
+          if (es.present) {
+            add(e.ln, 'error', 'bad-diagram-sequence', `actor ${aid} has no 'space' – the heads `
+                + 'are one row and the air above them is the sequence\'s own. `space` belongs on '
+                + 'a note or a message, where it is the gap above that band.');
           }
           define(aid, e.ln);
           carry(aid, 'box', [...ea.tags, dgActorsTag(id)]);

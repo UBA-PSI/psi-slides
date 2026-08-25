@@ -1714,7 +1714,6 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    box defaults to paper, a text defaults to see-through" one mechanism rather
    than two. No stroke either way – a bordered label is a box, and there is
    a statement for that. */
-.psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > :is(rect, circle, .dg-shape) { fill: none; }
 
 /* An edge's label gets the same ground on the same terms: a fill class draws
@@ -1723,7 +1722,6 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    rule above would otherwise put around the ground of a dashed edge's label.
    Written after the tone rules on purpose: they set a stroke at the same
    specificity, so source order is what decides. */
-.psi-diagram .dg-edge > rect { stroke: none; }
 /* And no fill unless a tone asked for one. An SVG rect with no fill property
    is black, and this one is emitted in every frame of any edge that is ever
    given a tone - so without this rule an edge whose label gains a ground in
@@ -1765,6 +1763,17 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    so source order does not decide it. (No backticks in here: this whole
    stylesheet is a template literal, and one would end it.) */
 .psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape) { stroke: var(--ink); }
+
+/* A label's ground is never stroked, and this is where that has to be said.
+   It was written up with the two rules that create the ground, above the
+   tone rules that stroke - and .emph and .accent both set a stroke on the
+   same child selector at the very same specificity, so source order decided
+   it and they won. The result was a box drawn around a label the moment a step
+   emphasised it: on a sequence, where every message label now carries a
+   ground, emph @wa-msg-8 framed the words instead of thickening the arrow.
+   A bordered label is a box, and there is a statement for that. */
+.psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
+.psi-diagram .dg-edge > rect { stroke: none; }
 
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {
@@ -2883,44 +2892,44 @@ build time, and stepped with the same key that advances a reveal.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Ein Ablauf von oben nach unten</span> <span class="hd-sub">a sequence</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure class="figure-diagram"><svg id="dg23-root" class="psi-diagram" viewBox="-454.66 -275.65 1036.38 551.30" width="2000" height="1064" data-live-viewbox="-454.66 -275.65 1036.38 551.30" data-live-ratio="0.531945" data-steps="5" role="img" aria-label="Ein Ablauf von oben nach unten" preserveAspectRatio="xMidYMid meet">
-<g id="dg23-ctap" data-base="dg-el dg-brace" class="dg-el dg-brace small turn"><path id="dg23-ctap--p" class="dg-stroke" d="M-303.00 -89.70L-310.00 -89.70L-310.00 33.95L-303.00 33.95" fill="none"/><g id="dg23-ctap--lw0" data-lab="ctap--l" class="dg-lwrap" transform="translate(-318.00,-27.88) rotate(-90)"><g id="dg23-ctap--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">auf dem Gerät, über CTAP</tspan></text></g></g></g>
-<g id="dg23-u-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg23-u-life--p" class="dg-stroke" d="M-291.00 -226.90L-291.00 263.65" fill="none"/></g>
-<g id="dg23-br-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg23-br-life--p" class="dg-stroke" d="M-97.00 -226.90L-97.00 263.65" fill="none"/></g>
-<g id="dg23-au-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg23-au-life--p" class="dg-stroke" d="M97.00 -226.90L97.00 263.65" fill="none"/></g>
-<g id="dg23-rp-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg23-rp-life--p" class="dg-stroke" d="M291.00 -226.90L291.00 263.65" fill="none"/></g>
-<g id="dg23-wa-0" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg23-wa-0--p" class="dg-stroke" d="M-291.00 -197.35L-104.65 -197.35" fill="none"/><path id="dg23-wa-0--h" class="dg-head" d="M-97.00 -197.35L-106.00 -193.39L-106.00 -201.31Z"/><g id="dg23-wa-0--lw0" data-lab="wa-0--l" class="dg-lwrap" transform="translate(-194.00,-208.73)"><g id="dg23-wa-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">click &quot;Create passkey&quot;</tspan></text></g></g></g>
-<g id="dg23-wa-1" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg23-wa-1--p" class="dg-stroke" d="M-97.00 -167.80L283.35 -167.80" fill="none"/><path id="dg23-wa-1--h" class="dg-head" d="M291.00 -167.80L282.00 -163.84L282.00 -171.76Z"/><g id="dg23-wa-1--lw0" data-lab="wa-1--l" class="dg-lwrap" transform="translate(97.00,-179.18)"><g id="dg23-wa-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request registration options</tspan></text></g></g></g>
-<g id="dg23-wa-2" data-base="dg-el dg-edge" class="dg-el dg-edge dashed"><path id="dg23-wa-2--p" class="dg-stroke" d="M291.00 -138.25L-89.35 -138.25" fill="none"/><path id="dg23-wa-2--h" class="dg-head" d="M-97.00 -138.25L-88.00 -142.21L-88.00 -134.29Z"/><g id="dg23-wa-2--lw0" data-lab="wa-2--l" class="dg-lwrap" transform="translate(97.00,-149.63)"><g id="dg23-wa-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">registration options</tspan></text></g></g></g>
-<g id="dg23-wa-3" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg23-wa-3--p" class="dg-stroke" d="M-97.00 -89.70L89.35 -89.70" fill="none"/><path id="dg23-wa-3--h" class="dg-head" d="M97.00 -89.70L88.00 -85.74L88.00 -93.66Z"/><g id="dg23-wa-3--lw0" data-lab="wa-3--l" class="dg-lwrap" transform="translate(0.00,-101.08)"><g id="dg23-wa-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">CTAP authenticatorMakeCredential</tspan></text></g></g></g>
-<g id="dg23-wa-4" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg23-wa-4--p" class="dg-stroke" d="M97.00 4.40L-283.35 4.40" fill="none"/><path id="dg23-wa-4--h" class="dg-head" d="M-291.00 4.40L-282.00 0.44L-282.00 8.36Z"/><g id="dg23-wa-4--lw0" data-lab="wa-4--l" class="dg-lwrap" transform="translate(-97.00,-6.98)"><g id="dg23-wa-4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">prompt: PIN or biometric</tspan></text></g></g></g>
-<g id="dg23-wa-5" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg23-wa-5--p" class="dg-stroke" d="M-291.00 33.95L89.35 33.95" fill="none"/><path id="dg23-wa-5--h" class="dg-head" d="M97.00 33.95L88.00 37.91L88.00 29.99Z"/><g id="dg23-wa-5--lw0" data-lab="wa-5--l" class="dg-lwrap" transform="translate(-97.00,22.57)"><g id="dg23-wa-5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">user verified locally</tspan></text></g></g></g>
-<g id="dg23-wa-6" data-base="dg-el dg-edge" class="dg-el dg-edge dashed"><path id="dg23-wa-6--p" class="dg-stroke" d="M97.00 146.55L-89.35 146.55" fill="none"/><path id="dg23-wa-6--h" class="dg-head" d="M-97.00 146.55L-88.00 142.59L-88.00 150.51Z"/><g id="dg23-wa-6--lw0" data-lab="wa-6--l" class="dg-lwrap" transform="translate(0.00,135.18)"><g id="dg23-wa-6--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">attestation object</tspan></text></g></g></g>
-<g id="dg23-wa-7" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg23-wa-7--p" class="dg-stroke" d="M-97.00 195.10L283.35 195.10" fill="none"/><path id="dg23-wa-7--h" class="dg-head" d="M291.00 195.10L282.00 199.06L282.00 191.14Z"/><g id="dg23-wa-7--lw0" data-lab="wa-7--l" class="dg-lwrap" transform="translate(97.00,183.73)"><g id="dg23-wa-7--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">attestationObject + clientDataJSON</tspan></text></g></g></g>
-<g id="dg23-wa-8" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg23-wa-8--p" class="dg-stroke" d="M291.00 226.90L333.00 226.90L333.00 251.65L298.65 251.65" fill="none"/><path id="dg23-wa-8--h" class="dg-head" d="M291.00 251.65L300.00 247.69L300.00 255.61Z"/><g id="dg23-wa-8--lw0" data-lab="wa-8--l" class="dg-lwrap" transform="translate(454.30,239.28)"><g id="dg23-wa-8--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">verify signature · check origin</tspan></text></g></g></g>
-<g id="dg23-fresh--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg23-fresh--lead--p" class="dg-stroke" d="M361.60 -138.25L291.00 -138.25" fill="none"/></g>
-<g id="dg23-wa" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg23-wa--r" x="-388.00" y="-263.65" width="776.00" height="527.30" rx="4"/></g>
-<g id="dg23-u" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg23-u--r" x="-354.25" y="-263.65" width="126.50" height="36.75" rx="4"/><g id="dg23-u--lw0" data-lab="u--l" class="dg-lwrap" transform="translate(-291.00,-245.28)"><g id="dg23-u--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">User</tspan></text></g></g></g>
-<g id="dg23-br" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg23-br--r" x="-160.25" y="-263.65" width="126.50" height="36.75" rx="4"/><g id="dg23-br--lw0" data-lab="br--l" class="dg-lwrap" transform="translate(-97.00,-245.28)"><g id="dg23-br--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Browser</tspan></text></g></g></g>
-<g id="dg23-au" data-base="dg-el dg-box" class="dg-el dg-box round tone-3"><rect id="dg23-au--r" x="33.75" y="-263.65" width="126.50" height="36.75" rx="4"/><g id="dg23-au--lw0" data-lab="au--l" class="dg-lwrap" transform="translate(97.00,-245.28)"><g id="dg23-au--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Authenticator</tspan></text></g></g></g>
-<g id="dg23-rp" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg23-rp--r" x="227.75" y="-263.65" width="126.50" height="36.75" rx="4"/><g id="dg23-rp--lw0" data-lab="rp--l" class="dg-lwrap" transform="translate(291.00,-245.28)"><g id="dg23-rp--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Relying Party</tspan></text></g></g></g>
-<g id="dg23-wa-n-0" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-0--lw0" data-lab="wa-n-0--l" class="dg-lwrap" transform="translate(-439.00,-197.35)"><g id="dg23-wa-n-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">1</tspan></text></g></g></g>
-<g id="dg23-wa-n-1" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-1--lw0" data-lab="wa-n-1--l" class="dg-lwrap" transform="translate(-439.00,-167.80)"><g id="dg23-wa-n-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">2</tspan></text></g></g></g>
-<g id="dg23-wa-n-2" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-2--lw0" data-lab="wa-n-2--l" class="dg-lwrap" transform="translate(-439.00,-138.25)"><g id="dg23-wa-n-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">3</tspan></text></g></g></g>
-<g id="dg23-wa-sub-2" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-sub-2--lw0" data-lab="wa-sub-2--l" class="dg-lwrap" transform="translate(97.00,-126.75)"><g id="dg23-wa-sub-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">challenge · rp.id · user.id · algs</tspan></text></g></g></g>
-<g id="dg23-wa-n-3" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-3--lw0" data-lab="wa-n-3--l" class="dg-lwrap" transform="translate(-439.00,-89.70)"><g id="dg23-wa-n-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">4</tspan></text></g></g></g>
-<g id="dg23-wa-sub-3" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-sub-3--lw0" data-lab="wa-sub-3--l" class="dg-lwrap" transform="translate(0.00,-78.20)"><g id="dg23-wa-sub-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">clientDataHash · rp.id · user · algs</tspan></text></g></g></g>
-<g id="dg23-wa-note-0" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg23-wa-note-0--r" x="-140.27" y="-61.90" width="280.55" height="36.75" rx="4"/><g id="dg23-wa-note-0--lw0" data-lab="wa-note-0--l" class="dg-lwrap" transform="translate(0.00,-43.53)"><g id="dg23-wa-note-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">CTAP runs over USB, NFC or BLE</tspan></text></g></g></g>
-<g id="dg23-wa-n-4" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-4--lw0" data-lab="wa-n-4--l" class="dg-lwrap" transform="translate(-439.00,4.40)"><g id="dg23-wa-n-4--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">5</tspan></text></g></g></g>
-<g id="dg23-wa-n-5" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-5--lw0" data-lab="wa-n-5--l" class="dg-lwrap" transform="translate(-439.00,33.95)"><g id="dg23-wa-n-5--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">6</tspan></text></g></g></g>
-<g id="dg23-wa-note-1" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg23-wa-note-1--r" x="-30.00" y="42.75" width="254.00" height="74.25" rx="4"/><g id="dg23-wa-note-1--lw0" data-lab="wa-note-1--l" class="dg-lwrap" transform="translate(97.00,79.88)"><g id="dg23-wa-note-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-13.65">generate key pair</tspan><tspan x="0" y="5.10">bind to SHA-256(rp.id)</tspan><tspan x="0" y="23.85">store privately · emit publicly</tspan></text></g></g></g>
-<g id="dg23-wa-n-6" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-6--lw0" data-lab="wa-n-6--l" class="dg-lwrap" transform="translate(-439.00,146.55)"><g id="dg23-wa-n-6--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">7</tspan></text></g></g></g>
-<g id="dg23-wa-sub-6" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-sub-6--lw0" data-lab="wa-sub-6--l" class="dg-lwrap" transform="translate(0.00,158.05)"><g id="dg23-wa-sub-6--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">authData (public key, cred ID) · signature</tspan></text></g></g></g>
-<g id="dg23-wa-n-7" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-7--lw0" data-lab="wa-n-7--l" class="dg-lwrap" transform="translate(-439.00,195.10)"><g id="dg23-wa-n-7--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">8</tspan></text></g></g></g>
-<g id="dg23-wa-sub-7" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-sub-7--lw0" data-lab="wa-sub-7--l" class="dg-lwrap" transform="translate(97.00,206.60)"><g id="dg23-wa-sub-7--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">clientDataJSON carries challenge · origin</tspan></text></g></g></g>
-<g id="dg23-wa-n-8" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-8--lw0" data-lab="wa-n-8--l" class="dg-lwrap" transform="translate(-439.00,239.28)"><g id="dg23-wa-n-8--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">9</tspan></text></g></g></g>
-<g id="dg23-fresh" data-base="dg-el dg-text" class="dg-el dg-text small hand"><g id="dg23-fresh--lw0" data-lab="fresh--l" class="dg-lwrap" transform="translate(451.74,-138.25)"><g id="dg23-fresh--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">die Challenge ist die Frische</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg23-root">{"p":"dg23-","n":5,"kinds":{"ctap--p":"path","ctap--l":"text","u-life--p":"path","br-life--p":"path","au-life--p":"path","rp-life--p":"path","wa-0--p":"path","wa-0--h":"path","wa-0--l":"text","wa-1--p":"path","wa-1--h":"path","wa-1--l":"text","wa-2--p":"path","wa-2--h":"path","wa-2--l":"text","wa-3--p":"path","wa-3--h":"path","wa-3--l":"text","wa-4--p":"path","wa-4--h":"path","wa-4--l":"text","wa-5--p":"path","wa-5--h":"path","wa-5--l":"text","wa-6--p":"path","wa-6--h":"path","wa-6--l":"text","wa-7--p":"path","wa-7--h":"path","wa-7--l":"text","wa-8--p":"path","wa-8--h":"path","wa-8--l":"text","fresh--lead--p":"path","wa--r":"rect","u--r":"rect","u--l":"text","br--r":"rect","br--l":"text","au--r":"rect","au--l":"text","rp--r":"rect","rp--l":"text","wa-n-0--l":"text","wa-n-1--l":"text","wa-n-2--l":"text","wa-sub-2--l":"text","wa-n-3--l":"text","wa-sub-3--l":"text","wa-note-0--r":"rect","wa-note-0--l":"text","wa-n-4--l":"text","wa-n-5--l":"text","wa-note-1--r":"rect","wa-note-1--l":"text","wa-n-6--l":"text","wa-sub-6--l":"text","wa-n-7--l":"text","wa-sub-7--l":"text","wa-n-8--l":"text","fresh--l":"text"},"names":["im-browser","auf-dem-gerät","zurück-zur-partei","alles"],"frames":[{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":1,"wa-2":1,"wa-3":1,"wa-4":1,"wa-5":1,"wa-6":1,"wa-7":1,"wa-8":1,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted","wa-n-3":"small muted","wa-sub-3":"small muted","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted","wa-n-7":"small muted","wa-sub-7":"small muted","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"","wa-1":"","wa-2":"dashed","wa-3":"","wa-4":"","wa-5":"","wa-6":"dashed","wa-7":"","wa-8":"","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-263.65,776,527.3],"u--r":[-354.25,-263.65,126.5,36.75],"u--l":[-291,-245.28,0],"br--r":[-160.25,-263.65,126.5,36.75],"br--l":[-97,-245.28,0],"au--r":[33.75,-263.65,126.5,36.75],"au--l":[97,-245.28,0],"rp--r":[227.75,-263.65,126.5,36.75],"rp--l":[291,-245.28,0],"wa-n-0--l":[-439,-197.35,0],"wa-n-1--l":[-439,-167.8,0],"wa-n-2--l":[-439,-138.25,0],"wa-sub-2--l":[97,-126.75,0],"wa-n-3--l":[-439,-89.7,0],"wa-sub-3--l":[0,-78.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.53,0],"wa-n-4--l":[-439,4.4,0],"wa-n-5--l":[-439,33.95,0],"wa-note-1--r":[-30,42.75,254,74.25],"wa-note-1--l":[97,79.88,0],"wa-n-6--l":[-439,146.55,0],"wa-sub-6--l":[0,158.05,0],"wa-n-7--l":[-439,195.1,0],"wa-sub-7--l":[97,206.6,0],"wa-n-8--l":[-439,239.28,0],"fresh--l":[451.74,-138.25,0],"ctap--p":[-303,-89.7,-310,-89.7,-310,33.95,-303,33.95],"ctap--l":[-318,-27.88,-90],"u-life--p":[-291,-226.9,-291,263.65],"br-life--p":[-97,-226.9,-97,263.65],"au-life--p":[97,-226.9,97,263.65],"rp-life--p":[291,-226.9,291,263.65],"wa-0--p":[-291,-197.35,-104.65,-197.35],"wa-0--h":[-97,-197.35,-106,-193.39,-106,-201.31],"wa-0--l":[-194,-208.73,0],"wa-1--p":[-97,-167.8,283.35,-167.8],"wa-1--h":[291,-167.8,282,-163.84,282,-171.76],"wa-1--l":[97,-179.18,0],"wa-2--p":[291,-138.25,-89.35,-138.25],"wa-2--h":[-97,-138.25,-88,-142.21,-88,-134.29],"wa-2--l":[97,-149.63,0],"wa-3--p":[-97,-89.7,89.35,-89.7],"wa-3--h":[97,-89.7,88,-85.74,88,-93.66],"wa-3--l":[0,-101.08,0],"wa-4--p":[97,4.4,-283.35,4.4],"wa-4--h":[-291,4.4,-282,0.44,-282,8.36],"wa-4--l":[-97,-6.98,0],"wa-5--p":[-291,33.95,89.35,33.95],"wa-5--h":[97,33.95,88,37.91,88,29.99],"wa-5--l":[-97,22.57,0],"wa-6--p":[97,146.55,-89.35,146.55],"wa-6--h":[-97,146.55,-88,142.59,-88,150.51],"wa-6--l":[0,135.18,0],"wa-7--p":[-97,195.1,283.35,195.1],"wa-7--h":[291,195.1,282,199.06,282,191.14],"wa-7--l":[97,183.73,0],"wa-8--p":[291,226.9,333,226.9,333,251.65,298.65,251.65],"wa-8--h":[291,251.65,300,247.69,300,255.61],"wa-8--l":[454.3,239.28,0],"fresh--lead--p":[361.6,-138.25,291,-138.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":1,"wa-2":1,"wa-3":1,"wa-4":1,"wa-5":1,"wa-6":1,"wa-7":1,"wa-8":1,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted","wa-n-3":"small muted","wa-sub-3":"small muted","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted","wa-n-7":"small muted","wa-sub-7":"small muted","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"emph","wa-1":"emph","wa-2":"dashed emph","wa-3":"emph","wa-4":"","wa-5":"","wa-6":"dashed emph","wa-7":"emph","wa-8":"","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-263.65,776,527.3],"u--r":[-354.25,-263.65,126.5,36.75],"u--l":[-291,-245.28,0],"br--r":[-160.25,-263.65,126.5,36.75],"br--l":[-97,-245.28,0],"au--r":[33.75,-263.65,126.5,36.75],"au--l":[97,-245.28,0],"rp--r":[227.75,-263.65,126.5,36.75],"rp--l":[291,-245.28,0],"wa-n-0--l":[-439,-197.35,0],"wa-n-1--l":[-439,-167.8,0],"wa-n-2--l":[-439,-138.25,0],"wa-sub-2--l":[97,-126.75,0],"wa-n-3--l":[-439,-89.7,0],"wa-sub-3--l":[0,-78.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.53,0],"wa-n-4--l":[-439,4.4,0],"wa-n-5--l":[-439,33.95,0],"wa-note-1--r":[-30,42.75,254,74.25],"wa-note-1--l":[97,79.88,0],"wa-n-6--l":[-439,146.55,0],"wa-sub-6--l":[0,158.05,0],"wa-n-7--l":[-439,195.1,0],"wa-sub-7--l":[97,206.6,0],"wa-n-8--l":[-439,239.28,0],"fresh--l":[451.74,-138.25,0],"ctap--p":[-303,-89.7,-310,-89.7,-310,33.95,-303,33.95],"ctap--l":[-318,-27.88,-90],"u-life--p":[-291,-226.9,-291,263.65],"br-life--p":[-97,-226.9,-97,263.65],"au-life--p":[97,-226.9,97,263.65],"rp-life--p":[291,-226.9,291,263.65],"wa-0--p":[-291,-197.35,-104.65,-197.35],"wa-0--h":[-97,-197.35,-106,-193.39,-106,-201.31],"wa-0--l":[-194,-208.73,0],"wa-1--p":[-97,-167.8,283.35,-167.8],"wa-1--h":[291,-167.8,282,-163.84,282,-171.76],"wa-1--l":[97,-179.18,0],"wa-2--p":[291,-138.25,-89.35,-138.25],"wa-2--h":[-97,-138.25,-88,-142.21,-88,-134.29],"wa-2--l":[97,-149.63,0],"wa-3--p":[-97,-89.7,89.35,-89.7],"wa-3--h":[97,-89.7,88,-85.74,88,-93.66],"wa-3--l":[0,-101.08,0],"wa-4--p":[97,4.4,-283.35,4.4],"wa-4--h":[-291,4.4,-282,0.44,-282,8.36],"wa-4--l":[-97,-6.98,0],"wa-5--p":[-291,33.95,89.35,33.95],"wa-5--h":[97,33.95,88,37.91,88,29.99],"wa-5--l":[-97,22.57,0],"wa-6--p":[97,146.55,-89.35,146.55],"wa-6--h":[-97,146.55,-88,142.59,-88,150.51],"wa-6--l":[0,135.18,0],"wa-7--p":[-97,195.1,283.35,195.1],"wa-7--h":[291,195.1,282,199.06,282,191.14],"wa-7--l":[97,183.73,0],"wa-8--p":[291,226.9,333,226.9,333,251.65,298.65,251.65],"wa-8--h":[291,251.65,300,247.69,300,255.61],"wa-8--l":[454.3,239.28,0],"fresh--lead--p":[361.6,-138.25,291,-138.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":0.3,"wa-1":0.3,"wa-2":0.3,"wa-3":1,"wa-4":1,"wa-5":1,"wa-6":1,"wa-7":0.3,"wa-8":1,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3 emph","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted","wa-n-3":"small muted","wa-sub-3":"small muted","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted","wa-n-7":"small muted","wa-sub-7":"small muted","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"dim","wa-1":"dim","wa-2":"dashed dim","wa-3":"emph","wa-4":"emph","wa-5":"emph","wa-6":"dashed emph","wa-7":"dim","wa-8":"","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-263.65,776,527.3],"u--r":[-354.25,-263.65,126.5,36.75],"u--l":[-291,-245.28,0],"br--r":[-160.25,-263.65,126.5,36.75],"br--l":[-97,-245.28,0],"au--r":[33.75,-263.65,126.5,36.75],"au--l":[97,-245.28,0],"rp--r":[227.75,-263.65,126.5,36.75],"rp--l":[291,-245.28,0],"wa-n-0--l":[-439,-197.35,0],"wa-n-1--l":[-439,-167.8,0],"wa-n-2--l":[-439,-138.25,0],"wa-sub-2--l":[97,-126.75,0],"wa-n-3--l":[-439,-89.7,0],"wa-sub-3--l":[0,-78.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.53,0],"wa-n-4--l":[-439,4.4,0],"wa-n-5--l":[-439,33.95,0],"wa-note-1--r":[-30,42.75,254,74.25],"wa-note-1--l":[97,79.88,0],"wa-n-6--l":[-439,146.55,0],"wa-sub-6--l":[0,158.05,0],"wa-n-7--l":[-439,195.1,0],"wa-sub-7--l":[97,206.6,0],"wa-n-8--l":[-439,239.28,0],"fresh--l":[451.74,-138.25,0],"ctap--p":[-303,-89.7,-310,-89.7,-310,33.95,-303,33.95],"ctap--l":[-318,-27.88,-90],"u-life--p":[-291,-226.9,-291,263.65],"br-life--p":[-97,-226.9,-97,263.65],"au-life--p":[97,-226.9,97,263.65],"rp-life--p":[291,-226.9,291,263.65],"wa-0--p":[-291,-197.35,-104.65,-197.35],"wa-0--h":[-97,-197.35,-106,-193.39,-106,-201.31],"wa-0--l":[-194,-208.73,0],"wa-1--p":[-97,-167.8,283.35,-167.8],"wa-1--h":[291,-167.8,282,-163.84,282,-171.76],"wa-1--l":[97,-179.18,0],"wa-2--p":[291,-138.25,-89.35,-138.25],"wa-2--h":[-97,-138.25,-88,-142.21,-88,-134.29],"wa-2--l":[97,-149.63,0],"wa-3--p":[-97,-89.7,89.35,-89.7],"wa-3--h":[97,-89.7,88,-85.74,88,-93.66],"wa-3--l":[0,-101.08,0],"wa-4--p":[97,4.4,-283.35,4.4],"wa-4--h":[-291,4.4,-282,0.44,-282,8.36],"wa-4--l":[-97,-6.98,0],"wa-5--p":[-291,33.95,89.35,33.95],"wa-5--h":[97,33.95,88,37.91,88,29.99],"wa-5--l":[-97,22.57,0],"wa-6--p":[97,146.55,-89.35,146.55],"wa-6--h":[-97,146.55,-88,142.59,-88,150.51],"wa-6--l":[0,135.18,0],"wa-7--p":[-97,195.1,283.35,195.1],"wa-7--h":[291,195.1,282,199.06,282,191.14],"wa-7--l":[97,183.73,0],"wa-8--p":[291,226.9,333,226.9,333,251.65,298.65,251.65],"wa-8--h":[291,251.65,300,247.69,300,255.61],"wa-8--l":[454.3,239.28,0],"fresh--lead--p":[361.6,-138.25,291,-138.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":0.3,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":0.3,"wa-1":0.3,"wa-2":0.3,"wa-3":0.3,"wa-4":0.3,"wa-5":0.3,"wa-6":0.3,"wa-7":1,"wa-8":1,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3 dim","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted","wa-n-3":"small muted","wa-sub-3":"small muted","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted","wa-n-7":"small muted emph","wa-sub-7":"small muted emph","wa-n-8":"small muted emph","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"dim","wa-1":"dim","wa-2":"dashed dim","wa-3":"dim","wa-4":"dim","wa-5":"dim","wa-6":"dashed dim","wa-7":"emph","wa-8":"emph","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-263.65,776,527.3],"u--r":[-354.25,-263.65,126.5,36.75],"u--l":[-291,-245.28,0],"br--r":[-160.25,-263.65,126.5,36.75],"br--l":[-97,-245.28,0],"au--r":[33.75,-263.65,126.5,36.75],"au--l":[97,-245.28,0],"rp--r":[227.75,-263.65,126.5,36.75],"rp--l":[291,-245.28,0],"wa-n-0--l":[-439,-197.35,0],"wa-n-1--l":[-439,-167.8,0],"wa-n-2--l":[-439,-138.25,0],"wa-sub-2--l":[97,-126.75,0],"wa-n-3--l":[-439,-89.7,0],"wa-sub-3--l":[0,-78.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.53,0],"wa-n-4--l":[-439,4.4,0],"wa-n-5--l":[-439,33.95,0],"wa-note-1--r":[-30,42.75,254,74.25],"wa-note-1--l":[97,79.88,0],"wa-n-6--l":[-439,146.55,0],"wa-sub-6--l":[0,158.05,0],"wa-n-7--l":[-439,195.1,0],"wa-sub-7--l":[97,206.6,0],"wa-n-8--l":[-439,239.28,0],"fresh--l":[451.74,-138.25,0],"ctap--p":[-303,-89.7,-310,-89.7,-310,33.95,-303,33.95],"ctap--l":[-318,-27.88,-90],"u-life--p":[-291,-226.9,-291,263.65],"br-life--p":[-97,-226.9,-97,263.65],"au-life--p":[97,-226.9,97,263.65],"rp-life--p":[291,-226.9,291,263.65],"wa-0--p":[-291,-197.35,-104.65,-197.35],"wa-0--h":[-97,-197.35,-106,-193.39,-106,-201.31],"wa-0--l":[-194,-208.73,0],"wa-1--p":[-97,-167.8,283.35,-167.8],"wa-1--h":[291,-167.8,282,-163.84,282,-171.76],"wa-1--l":[97,-179.18,0],"wa-2--p":[291,-138.25,-89.35,-138.25],"wa-2--h":[-97,-138.25,-88,-142.21,-88,-134.29],"wa-2--l":[97,-149.63,0],"wa-3--p":[-97,-89.7,89.35,-89.7],"wa-3--h":[97,-89.7,88,-85.74,88,-93.66],"wa-3--l":[0,-101.08,0],"wa-4--p":[97,4.4,-283.35,4.4],"wa-4--h":[-291,4.4,-282,0.44,-282,8.36],"wa-4--l":[-97,-6.98,0],"wa-5--p":[-291,33.95,89.35,33.95],"wa-5--h":[97,33.95,88,37.91,88,29.99],"wa-5--l":[-97,22.57,0],"wa-6--p":[97,146.55,-89.35,146.55],"wa-6--h":[-97,146.55,-88,142.59,-88,150.51],"wa-6--l":[0,135.18,0],"wa-7--p":[-97,195.1,283.35,195.1],"wa-7--h":[291,195.1,282,199.06,282,191.14],"wa-7--l":[97,183.73,0],"wa-8--p":[291,226.9,333,226.9,333,251.65,298.65,251.65],"wa-8--h":[291,251.65,300,247.69,300,255.61],"wa-8--l":[454.3,239.28,0],"fresh--lead--p":[361.6,-138.25,291,-138.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":0.3,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":0.3,"wa-1":0.3,"wa-2":0.3,"wa-3":0.3,"wa-4":0.3,"wa-5":0.3,"wa-6":0.3,"wa-7":0.3,"wa-8":0.3,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3 dim","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted","wa-n-3":"small muted","wa-sub-3":"small muted","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted","wa-n-7":"small muted emph","wa-sub-7":"small muted emph","wa-n-8":"small muted emph","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"dim","wa-1":"dim","wa-2":"dashed dim","wa-3":"dim","wa-4":"dim","wa-5":"dim","wa-6":"dashed dim","wa-7":"dim","wa-8":"dim","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-263.65,776,527.3],"u--r":[-354.25,-263.65,126.5,36.75],"u--l":[-291,-245.28,0],"br--r":[-160.25,-263.65,126.5,36.75],"br--l":[-97,-245.28,0],"au--r":[33.75,-263.65,126.5,36.75],"au--l":[97,-245.28,0],"rp--r":[227.75,-263.65,126.5,36.75],"rp--l":[291,-245.28,0],"wa-n-0--l":[-439,-197.35,0],"wa-n-1--l":[-439,-167.8,0],"wa-n-2--l":[-439,-138.25,0],"wa-sub-2--l":[97,-126.75,0],"wa-n-3--l":[-439,-89.7,0],"wa-sub-3--l":[0,-78.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.53,0],"wa-n-4--l":[-439,4.4,0],"wa-n-5--l":[-439,33.95,0],"wa-note-1--r":[-30,42.75,254,74.25],"wa-note-1--l":[97,79.88,0],"wa-n-6--l":[-439,146.55,0],"wa-sub-6--l":[0,158.05,0],"wa-n-7--l":[-439,195.1,0],"wa-sub-7--l":[97,206.6,0],"wa-n-8--l":[-439,239.28,0],"fresh--l":[451.74,-138.25,0],"ctap--p":[-303,-89.7,-310,-89.7,-310,33.95,-303,33.95],"ctap--l":[-318,-27.88,-90],"u-life--p":[-291,-226.9,-291,263.65],"br-life--p":[-97,-226.9,-97,263.65],"au-life--p":[97,-226.9,97,263.65],"rp-life--p":[291,-226.9,291,263.65],"wa-0--p":[-291,-197.35,-104.65,-197.35],"wa-0--h":[-97,-197.35,-106,-193.39,-106,-201.31],"wa-0--l":[-194,-208.73,0],"wa-1--p":[-97,-167.8,283.35,-167.8],"wa-1--h":[291,-167.8,282,-163.84,282,-171.76],"wa-1--l":[97,-179.18,0],"wa-2--p":[291,-138.25,-89.35,-138.25],"wa-2--h":[-97,-138.25,-88,-142.21,-88,-134.29],"wa-2--l":[97,-149.63,0],"wa-3--p":[-97,-89.7,89.35,-89.7],"wa-3--h":[97,-89.7,88,-85.74,88,-93.66],"wa-3--l":[0,-101.08,0],"wa-4--p":[97,4.4,-283.35,4.4],"wa-4--h":[-291,4.4,-282,0.44,-282,8.36],"wa-4--l":[-97,-6.98,0],"wa-5--p":[-291,33.95,89.35,33.95],"wa-5--h":[97,33.95,88,37.91,88,29.99],"wa-5--l":[-97,22.57,0],"wa-6--p":[97,146.55,-89.35,146.55],"wa-6--h":[-97,146.55,-88,142.59,-88,150.51],"wa-6--l":[0,135.18,0],"wa-7--p":[-97,195.1,283.35,195.1],"wa-7--h":[291,195.1,282,199.06,282,191.14],"wa-7--l":[97,183.73,0],"wa-8--p":[291,226.9,333,226.9,333,251.65,298.65,251.65],"wa-8--h":[291,251.65,300,247.69,300,255.61],"wa-8--l":[454.3,239.28,0],"fresh--lead--p":[361.6,-138.25,291,-138.25]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg23-root">{"body":"# Die Beteiligten sind eigene Zeilen, weil jeder einen Namen zum Anfassen\n# und einen eigenen Attributschwanz braucht. Alles darunter ist eine\n# Nachricht (Pfeil zwischen zwei Namen) oder eine Notiz.\nsequence wa at 0,0\n  actor u  \"User\"\n  actor br \"Browser\"\n  actor au \"Authenticator\" {.tone-3}\n  actor rp \"Relying Party\"\n\n  u  -> br \"click \\\"Create passkey\\\"\"\n  br -> rp \"request registration options\"\n  br \u003c- rp \"registration options\" \"challenge · rp.id · user.id · algs\" {.dashed}\n  br -> au \"CTAP authenticatorMakeCredential\" \"clientDataHash · rp.id · user · algs\"\n  note br,au \"CTAP runs over USB, NFC or BLE\"\n  au -> u  \"prompt: PIN or biometric\"\n  u  -> au \"user verified locally\"\n  note au \"generate key pair\\nbind to SHA-256(rp.id)\\nstore privately · emit publicly\"\n  au -> br \"attestation object\" \"authData (public key, cred ID) · signature\" {.dashed}\n  br -> rp \"attestationObject + clientDataJSON\" \"clientDataJSON carries challenge · origin\"\n  rp -> rp \"verify signature · check origin\"\n\n# Zwei Anmerkungen, die das Konstrukt nicht kennt: gewöhnliche Zeilen an\n# erzeugten Namen. Ein Takt kann sie zeigen wie jedes andere Element.\nbrace ctap over wa-3,wa-4,wa-5 pad 0.3 \"auf dem Gerät, über CTAP\" left {.small .turn}\ntext fresh \"die Challenge ist die Frische\" right of wa-2 gap 0.5 {.small .hand} -> wa-2\n\nstep im-browser\n  emph @br-msgs\nstep auf-dem-gerät\n  calm @br-msgs\n  emph @au-msgs\n  emph au\nstep zurück-zur-partei\n  calm @au-msgs\n  calm au\n  emph @wa-msg-7, @wa-msg-8\nstep alles\n  calm @wa-msgs","attrs":"unit=150x40","range":[53704,55218],"chunk":"sequence","width":"full","alt":"Ein Ablauf von oben nach unten"}</script></figure>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure class="figure-diagram"><svg id="dg23-root" class="psi-diagram" viewBox="-454.66 -323.65 1044.38 647.30" width="2000" height="1240" data-live-viewbox="-454.66 -323.65 1044.38 647.30" data-live-ratio="0.619791" data-steps="5" role="img" aria-label="Ein Ablauf von oben nach unten" preserveAspectRatio="xMidYMid meet">
+<g id="dg23-ctap" data-base="dg-el dg-brace" class="dg-el dg-brace small turn"><path id="dg23-ctap--p" class="dg-stroke" d="M-303.00 -97.70L-310.00 -97.70L-310.00 49.95L-303.00 49.95" fill="none"/><g id="dg23-ctap--lw0" data-lab="ctap--l" class="dg-lwrap" transform="translate(-318.00,-23.87) rotate(-90)"><g id="dg23-ctap--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">auf dem Gerät, über CTAP</tspan></text></g></g></g>
+<g id="dg23-u-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg23-u-life--p" class="dg-stroke" d="M-291.00 -274.90L-291.00 311.65" fill="none"/></g>
+<g id="dg23-br-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg23-br-life--p" class="dg-stroke" d="M-97.00 -274.90L-97.00 311.65" fill="none"/></g>
+<g id="dg23-au-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg23-au-life--p" class="dg-stroke" d="M97.00 -274.90L97.00 311.65" fill="none"/></g>
+<g id="dg23-rp-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg23-rp-life--p" class="dg-stroke" d="M291.00 -274.90L291.00 311.65" fill="none"/></g>
+<g id="dg23-wa-0" data-base="dg-el dg-edge" class="dg-el dg-edge top paper"><path id="dg23-wa-0--p" class="dg-stroke" d="M-291.00 -237.35L-104.65 -237.35" fill="none"/><path id="dg23-wa-0--h" class="dg-head" d="M-97.00 -237.35L-106.00 -233.39L-106.00 -241.31Z"/><rect id="dg23-wa-0--r" x="-280.27" y="-266.10" width="172.55" height="26.75" rx="4"/><g id="dg23-wa-0--lw0" data-lab="wa-0--l" class="dg-lwrap" transform="translate(-194.00,-252.72)"><g id="dg23-wa-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">click &quot;Create passkey&quot;</tspan></text></g></g></g>
+<g id="dg23-wa-1" data-base="dg-el dg-edge" class="dg-el dg-edge top paper"><path id="dg23-wa-1--p" class="dg-stroke" d="M-97.00 -199.80L283.35 -199.80" fill="none"/><path id="dg23-wa-1--h" class="dg-head" d="M291.00 -199.80L282.00 -195.84L282.00 -203.76Z"/><rect id="dg23-wa-1--r" x="-10.27" y="-228.55" width="214.55" height="26.75" rx="4"/><g id="dg23-wa-1--lw0" data-lab="wa-1--l" class="dg-lwrap" transform="translate(97.00,-215.17)"><g id="dg23-wa-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request registration options</tspan></text></g></g></g>
+<g id="dg23-wa-2" data-base="dg-el dg-edge" class="dg-el dg-edge dashed top paper"><path id="dg23-wa-2--p" class="dg-stroke" d="M291.00 -162.25L-89.35 -162.25" fill="none"/><path id="dg23-wa-2--h" class="dg-head" d="M-97.00 -162.25L-88.00 -166.21L-88.00 -158.29Z"/><rect id="dg23-wa-2--r" x="19.88" y="-191.00" width="154.25" height="26.75" rx="4"/><g id="dg23-wa-2--lw0" data-lab="wa-2--l" class="dg-lwrap" transform="translate(97.00,-177.63)"><g id="dg23-wa-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">registration options</tspan></text></g></g></g>
+<g id="dg23-wa-3" data-base="dg-el dg-edge" class="dg-el dg-edge top paper"><path id="dg23-wa-3--p" class="dg-stroke" d="M-97.00 -97.70L89.35 -97.70" fill="none"/><path id="dg23-wa-3--h" class="dg-head" d="M97.00 -97.70L88.00 -93.74L88.00 -101.66Z"/><rect id="dg23-wa-3--r" x="-132.92" y="-126.45" width="265.85" height="26.75" rx="4"/><g id="dg23-wa-3--lw0" data-lab="wa-3--l" class="dg-lwrap" transform="translate(0.00,-113.07)"><g id="dg23-wa-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">CTAP authenticatorMakeCredential</tspan></text></g></g></g>
+<g id="dg23-wa-4" data-base="dg-el dg-edge" class="dg-el dg-edge top paper"><path id="dg23-wa-4--p" class="dg-stroke" d="M97.00 12.40L-283.35 12.40" fill="none"/><path id="dg23-wa-4--h" class="dg-head" d="M-291.00 12.40L-282.00 8.44L-282.00 16.36Z"/><rect id="dg23-wa-4--r" x="-196.32" y="-16.35" width="198.65" height="26.75" rx="4"/><g id="dg23-wa-4--lw0" data-lab="wa-4--l" class="dg-lwrap" transform="translate(-97.00,-2.97)"><g id="dg23-wa-4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">prompt: PIN or biometric</tspan></text></g></g></g>
+<g id="dg23-wa-5" data-base="dg-el dg-edge" class="dg-el dg-edge top paper"><path id="dg23-wa-5--p" class="dg-stroke" d="M-291.00 49.95L89.35 49.95" fill="none"/><path id="dg23-wa-5--h" class="dg-head" d="M97.00 49.95L88.00 53.91L88.00 45.99Z"/><rect id="dg23-wa-5--r" x="-178.17" y="21.20" width="162.35" height="26.75" rx="4"/><g id="dg23-wa-5--lw0" data-lab="wa-5--l" class="dg-lwrap" transform="translate(-97.00,34.58)"><g id="dg23-wa-5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">user verified locally</tspan></text></g></g></g>
+<g id="dg23-wa-6" data-base="dg-el dg-edge" class="dg-el dg-edge dashed top paper"><path id="dg23-wa-6--p" class="dg-stroke" d="M97.00 170.55L-89.35 170.55" fill="none"/><path id="dg23-wa-6--h" class="dg-head" d="M-97.00 170.55L-88.00 166.59L-88.00 174.51Z"/><rect id="dg23-wa-6--r" x="-67.90" y="141.80" width="135.80" height="26.75" rx="4"/><g id="dg23-wa-6--lw0" data-lab="wa-6--l" class="dg-lwrap" transform="translate(0.00,155.18)"><g id="dg23-wa-6--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">attestation object</tspan></text></g></g></g>
+<g id="dg23-wa-7" data-base="dg-el dg-edge" class="dg-el dg-edge top paper"><path id="dg23-wa-7--p" class="dg-stroke" d="M-97.00 235.10L283.35 235.10" fill="none"/><path id="dg23-wa-7--h" class="dg-head" d="M291.00 235.10L282.00 239.06L282.00 231.14Z"/><rect id="dg23-wa-7--r" x="-36.37" y="206.35" width="266.75" height="26.75" rx="4"/><g id="dg23-wa-7--lw0" data-lab="wa-7--l" class="dg-lwrap" transform="translate(97.00,219.73)"><g id="dg23-wa-7--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">attestationObject + clientDataJSON</tspan></text></g></g></g>
+<g id="dg23-wa-8" data-base="dg-el dg-edge" class="dg-el dg-edge right paper"><path id="dg23-wa-8--p" class="dg-stroke" d="M291.00 274.90L333.00 274.90L333.00 299.65L298.65 299.65" fill="none"/><path id="dg23-wa-8--h" class="dg-head" d="M291.00 299.65L300.00 295.69L300.00 303.61Z"/><rect id="dg23-wa-8--r" x="338.88" y="273.90" width="238.85" height="26.75" rx="4"/><g id="dg23-wa-8--lw0" data-lab="wa-8--l" class="dg-lwrap" transform="translate(458.30,287.27)"><g id="dg23-wa-8--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">verify signature · check origin</tspan></text></g></g></g>
+<g id="dg23-fresh--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg23-fresh--lead--p" class="dg-stroke" d="M361.60 -162.25L291.00 -162.25" fill="none"/></g>
+<g id="dg23-wa" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg23-wa--r" x="-388.00" y="-311.65" width="776.00" height="623.30" rx="4"/></g>
+<g id="dg23-u" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg23-u--r" x="-354.25" y="-311.65" width="126.50" height="36.75" rx="4"/><g id="dg23-u--lw0" data-lab="u--l" class="dg-lwrap" transform="translate(-291.00,-293.27)"><g id="dg23-u--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">User</tspan></text></g></g></g>
+<g id="dg23-br" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg23-br--r" x="-160.25" y="-311.65" width="126.50" height="36.75" rx="4"/><g id="dg23-br--lw0" data-lab="br--l" class="dg-lwrap" transform="translate(-97.00,-293.27)"><g id="dg23-br--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Browser</tspan></text></g></g></g>
+<g id="dg23-au" data-base="dg-el dg-box" class="dg-el dg-box round tone-3"><rect id="dg23-au--r" x="33.75" y="-311.65" width="126.50" height="36.75" rx="4"/><g id="dg23-au--lw0" data-lab="au--l" class="dg-lwrap" transform="translate(97.00,-293.27)"><g id="dg23-au--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Authenticator</tspan></text></g></g></g>
+<g id="dg23-rp" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg23-rp--r" x="227.75" y="-311.65" width="126.50" height="36.75" rx="4"/><g id="dg23-rp--lw0" data-lab="rp--l" class="dg-lwrap" transform="translate(291.00,-293.27)"><g id="dg23-rp--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Relying Party</tspan></text></g></g></g>
+<g id="dg23-wa-n-0" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-0--lw0" data-lab="wa-n-0--l" class="dg-lwrap" transform="translate(-439.00,-237.35)"><g id="dg23-wa-n-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">1</tspan></text></g></g></g>
+<g id="dg23-wa-n-1" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-1--lw0" data-lab="wa-n-1--l" class="dg-lwrap" transform="translate(-439.00,-199.80)"><g id="dg23-wa-n-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">2</tspan></text></g></g></g>
+<g id="dg23-wa-n-2" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-2--lw0" data-lab="wa-n-2--l" class="dg-lwrap" transform="translate(-439.00,-162.25)"><g id="dg23-wa-n-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">3</tspan></text></g></g></g>
+<g id="dg23-wa-sub-2" data-base="dg-el dg-text" class="dg-el dg-text small muted paper"><rect id="dg23-wa-sub-2--r" x="-5.46" y="-158.25" width="204.92" height="23.00" rx="4"/><g id="dg23-wa-sub-2--lw0" data-lab="wa-sub-2--l" class="dg-lwrap" transform="translate(97.00,-146.75)"><g id="dg23-wa-sub-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">challenge · rp.id · user.id · algs</tspan></text></g></g></g>
+<g id="dg23-wa-n-3" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-3--lw0" data-lab="wa-n-3--l" class="dg-lwrap" transform="translate(-439.00,-97.70)"><g id="dg23-wa-n-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">4</tspan></text></g></g></g>
+<g id="dg23-wa-sub-3" data-base="dg-el dg-text" class="dg-el dg-text small muted paper"><rect id="dg23-wa-sub-3--r" x="-110.62" y="-93.70" width="221.24" height="23.00" rx="4"/><g id="dg23-wa-sub-3--lw0" data-lab="wa-sub-3--l" class="dg-lwrap" transform="translate(0.00,-82.20)"><g id="dg23-wa-sub-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">clientDataHash · rp.id · user · algs</tspan></text></g></g></g>
+<g id="dg23-wa-note-0" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg23-wa-note-0--r" x="-140.27" y="-61.90" width="280.55" height="36.75" rx="4"/><g id="dg23-wa-note-0--lw0" data-lab="wa-note-0--l" class="dg-lwrap" transform="translate(0.00,-43.52)"><g id="dg23-wa-note-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">CTAP runs over USB, NFC or BLE</tspan></text></g></g></g>
+<g id="dg23-wa-n-4" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-4--lw0" data-lab="wa-n-4--l" class="dg-lwrap" transform="translate(-439.00,12.40)"><g id="dg23-wa-n-4--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">5</tspan></text></g></g></g>
+<g id="dg23-wa-n-5" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-5--lw0" data-lab="wa-n-5--l" class="dg-lwrap" transform="translate(-439.00,49.95)"><g id="dg23-wa-n-5--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">6</tspan></text></g></g></g>
+<g id="dg23-wa-note-1" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg23-wa-note-1--r" x="-30.00" y="58.75" width="254.00" height="74.25" rx="4"/><g id="dg23-wa-note-1--lw0" data-lab="wa-note-1--l" class="dg-lwrap" transform="translate(97.00,95.88)"><g id="dg23-wa-note-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-13.65">generate key pair</tspan><tspan x="0" y="5.10">bind to SHA-256(rp.id)</tspan><tspan x="0" y="23.85">store privately · emit publicly</tspan></text></g></g></g>
+<g id="dg23-wa-n-6" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-6--lw0" data-lab="wa-n-6--l" class="dg-lwrap" transform="translate(-439.00,170.55)"><g id="dg23-wa-n-6--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">7</tspan></text></g></g></g>
+<g id="dg23-wa-sub-6" data-base="dg-el dg-text" class="dg-el dg-text small muted paper"><rect id="dg23-wa-sub-6--r" x="-127.36" y="174.55" width="254.72" height="23.00" rx="4"/><g id="dg23-wa-sub-6--lw0" data-lab="wa-sub-6--l" class="dg-lwrap" transform="translate(0.00,186.05)"><g id="dg23-wa-sub-6--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">authData (public key, cred ID) · signature</tspan></text></g></g></g>
+<g id="dg23-wa-n-7" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-7--lw0" data-lab="wa-n-7--l" class="dg-lwrap" transform="translate(-439.00,235.10)"><g id="dg23-wa-n-7--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">8</tspan></text></g></g></g>
+<g id="dg23-wa-sub-7" data-base="dg-el dg-text" class="dg-el dg-text small muted paper"><rect id="dg23-wa-sub-7--r" x="-32.34" y="239.10" width="258.68" height="23.00" rx="4"/><g id="dg23-wa-sub-7--lw0" data-lab="wa-sub-7--l" class="dg-lwrap" transform="translate(97.00,250.60)"><g id="dg23-wa-sub-7--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">clientDataJSON carries challenge · origin</tspan></text></g></g></g>
+<g id="dg23-wa-n-8" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-8--lw0" data-lab="wa-n-8--l" class="dg-lwrap" transform="translate(-439.00,287.27)"><g id="dg23-wa-n-8--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">9</tspan></text></g></g></g>
+<g id="dg23-fresh" data-base="dg-el dg-text" class="dg-el dg-text small hand"><g id="dg23-fresh--lw0" data-lab="fresh--l" class="dg-lwrap" transform="translate(451.74,-162.25)"><g id="dg23-fresh--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">die Challenge ist die Frische</tspan></text></g></g></g>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg23-root">{"p":"dg23-","n":5,"kinds":{"ctap--p":"path","ctap--l":"text","u-life--p":"path","br-life--p":"path","au-life--p":"path","rp-life--p":"path","wa-0--p":"path","wa-0--h":"path","wa-0--r":"rect","wa-0--l":"text","wa-1--p":"path","wa-1--h":"path","wa-1--r":"rect","wa-1--l":"text","wa-2--p":"path","wa-2--h":"path","wa-2--r":"rect","wa-2--l":"text","wa-3--p":"path","wa-3--h":"path","wa-3--r":"rect","wa-3--l":"text","wa-4--p":"path","wa-4--h":"path","wa-4--r":"rect","wa-4--l":"text","wa-5--p":"path","wa-5--h":"path","wa-5--r":"rect","wa-5--l":"text","wa-6--p":"path","wa-6--h":"path","wa-6--r":"rect","wa-6--l":"text","wa-7--p":"path","wa-7--h":"path","wa-7--r":"rect","wa-7--l":"text","wa-8--p":"path","wa-8--h":"path","wa-8--r":"rect","wa-8--l":"text","fresh--lead--p":"path","wa--r":"rect","u--r":"rect","u--l":"text","br--r":"rect","br--l":"text","au--r":"rect","au--l":"text","rp--r":"rect","rp--l":"text","wa-n-0--l":"text","wa-n-1--l":"text","wa-n-2--l":"text","wa-sub-2--r":"rect","wa-sub-2--l":"text","wa-n-3--l":"text","wa-sub-3--r":"rect","wa-sub-3--l":"text","wa-note-0--r":"rect","wa-note-0--l":"text","wa-n-4--l":"text","wa-n-5--l":"text","wa-note-1--r":"rect","wa-note-1--l":"text","wa-n-6--l":"text","wa-sub-6--r":"rect","wa-sub-6--l":"text","wa-n-7--l":"text","wa-sub-7--r":"rect","wa-sub-7--l":"text","wa-n-8--l":"text","fresh--l":"text"},"names":["im-browser","auf-dem-gerät","zurück-zur-partei","alles"],"frames":[{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":1,"wa-2":1,"wa-3":1,"wa-4":1,"wa-5":1,"wa-6":1,"wa-7":1,"wa-8":1,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted paper","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"top paper","wa-1":"top paper","wa-2":"dashed top paper","wa-3":"top paper","wa-4":"top paper","wa-5":"top paper","wa-6":"dashed top paper","wa-7":"top paper","wa-8":"right paper","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[451.74,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-280.27,-266.1,172.55,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[361.6,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":1,"wa-2":1,"wa-3":1,"wa-4":1,"wa-5":1,"wa-6":1,"wa-7":1,"wa-8":1,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted paper","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"top paper emph","wa-1":"top paper emph","wa-2":"dashed top paper emph","wa-3":"top paper emph","wa-4":"top paper","wa-5":"top paper","wa-6":"dashed top paper emph","wa-7":"top paper emph","wa-8":"right paper","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[451.74,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-280.27,-266.1,172.55,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[361.6,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":0.3,"wa-1":0.3,"wa-2":0.3,"wa-3":1,"wa-4":1,"wa-5":1,"wa-6":1,"wa-7":0.3,"wa-8":1,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3 emph","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted paper","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"top paper dim","wa-1":"top paper dim","wa-2":"dashed top paper dim","wa-3":"top paper emph","wa-4":"top paper emph","wa-5":"top paper emph","wa-6":"dashed top paper emph","wa-7":"top paper dim","wa-8":"right paper","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[451.74,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-280.27,-266.1,172.55,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[361.6,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":0.3,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":0.3,"wa-1":0.3,"wa-2":0.3,"wa-3":0.3,"wa-4":0.3,"wa-5":0.3,"wa-6":0.3,"wa-7":1,"wa-8":1,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3 dim","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted paper","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted emph","wa-sub-7":"small muted paper emph","wa-n-8":"small muted emph","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"top paper dim","wa-1":"top paper dim","wa-2":"dashed top paper dim","wa-3":"top paper dim","wa-4":"top paper dim","wa-5":"top paper dim","wa-6":"dashed top paper dim","wa-7":"top paper emph","wa-8":"right paper emph","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[451.74,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-280.27,-266.1,172.55,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[361.6,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":0.3,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":0.3,"wa-1":0.3,"wa-2":0.3,"wa-3":0.3,"wa-4":0.3,"wa-5":0.3,"wa-6":0.3,"wa-7":0.3,"wa-8":0.3,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3 dim","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted paper","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted emph","wa-sub-7":"small muted paper emph","wa-n-8":"small muted emph","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"top paper dim","wa-1":"top paper dim","wa-2":"dashed top paper dim","wa-3":"top paper dim","wa-4":"top paper dim","wa-5":"top paper dim","wa-6":"dashed top paper dim","wa-7":"top paper dim","wa-8":"right paper dim","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[451.74,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-280.27,-266.1,172.55,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[361.6,-162.25,291,-162.25]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg23-root">{"body":"# Die Beteiligten sind eigene Zeilen, weil jeder einen Namen zum Anfassen\n# und einen eigenen Attributschwanz braucht. Alles darunter ist eine\n# Nachricht (Pfeil zwischen zwei Namen) oder eine Notiz.\nsequence wa at 0,0\n  actor u  \"User\"\n  actor br \"Browser\"\n  actor au \"Authenticator\" {.tone-3}\n  actor rp \"Relying Party\"\n\n  u  -> br \"click \\\"Create passkey\\\"\"\n  br -> rp \"request registration options\"\n  br \u003c- rp \"registration options\" \"challenge · rp.id · user.id · algs\" {.dashed}\n  br -> au \"CTAP authenticatorMakeCredential\" \"clientDataHash · rp.id · user · algs\"\n  note br,au \"CTAP runs over USB, NFC or BLE\"\n  au -> u  \"prompt: PIN or biometric\"\n  u  -> au \"user verified locally\"\n  note au \"generate key pair\\nbind to SHA-256(rp.id)\\nstore privately · emit publicly\"\n  au -> br \"attestation object\" \"authData (public key, cred ID) · signature\" {.dashed}\n  br -> rp \"attestationObject + clientDataJSON\" \"clientDataJSON carries challenge · origin\"\n  rp -> rp \"verify signature · check origin\"\n\n# Zwei Anmerkungen, die das Konstrukt nicht kennt: gewöhnliche Zeilen an\n# erzeugten Namen. Ein Takt kann sie zeigen wie jedes andere Element.\nbrace ctap over wa-3,wa-4,wa-5 pad 0.3 \"auf dem Gerät, über CTAP\" left {.small .turn}\ntext fresh \"die Challenge ist die Frische\" right of wa-2 gap 0.5 {.small .hand} -> wa-2\n\nstep im-browser\n  emph @br-msgs\nstep auf-dem-gerät\n  calm @br-msgs\n  emph @au-msgs\n  emph au\nstep zurück-zur-partei\n  calm @au-msgs\n  calm au\n  emph @wa-msg-7, @wa-msg-8\nstep alles\n  calm @wa-msgs","attrs":"unit=150x40","range":[53704,55218],"chunk":"sequence","width":"full","alt":"Ein Ablauf von oben nach unten"}</script></figure>
 
 
 <p><strong>Ein Protokoll ist die eine Zeichnung, die eine Vorlesung immer wieder braucht, und die von Hand am schnellsten unhaltbar wird.</strong> Ausgeschrieben trägt jede Nachricht ihre eigene y-Koordinate: Eine Nachricht in der Mitte einzufügen heißt, alle darunter zu verschieben, alle Nummern neu zu vergeben und die Länge jeder Lebenslinie neu zu raten – dreizehn Bearbeitungen für eine Zeile Inhalt, gemessen an genau diesem Bild. Und ein Notizkasten, der höher ausfällt als der geratene Abstand, schneidet still in die Beschriftung darunter.</p>
@@ -2943,26 +2952,28 @@ build time, and stepped with the same key that advances a reveal.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Was eine Nachricht sonst sein kann</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure class="figure-diagram"><svg id="dg24-root" class="psi-diagram" viewBox="-221.55 -174.98 443.10 349.96" width="2000" height="1580" data-steps="1" role="img" aria-label="Was eine Nachricht sonst sein kann" preserveAspectRatio="xMidYMid meet">
-<g id="dg24-c-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg24-c-life--p" class="dg-stroke" d="M-139.70 -126.23L-139.70 162.98" fill="none"/></g>
-<g id="dg24-p-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg24-p-life--p" class="dg-stroke" d="M0.00 -126.23L0.00 162.98" fill="none"/></g>
-<g id="dg24-s-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg24-s-life--p" class="dg-stroke" d="M139.70 -126.23L139.70 162.98" fill="none"/></g>
-<g id="dg24-x-0" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg24-x-0--p" class="dg-stroke" d="M-139.70 -90.52L-7.65 -90.52" fill="none"/><path id="dg24-x-0--h" class="dg-head" d="M0.00 -90.52L-9.00 -86.56L-9.00 -94.48Z"/><g id="dg24-x-0--lw0" data-lab="x-0--l" class="dg-lwrap" transform="translate(-69.85,-101.90)"><g id="dg24-x-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">CONNECT server:443</tspan></text></g></g></g>
-<g id="dg24-x-1" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg24-x-1--p" class="dg-stroke" d="M0.00 -54.81L132.05 -54.81" fill="none"/><path id="dg24-x-1--h" class="dg-head" d="M139.70 -54.81L130.70 -50.85L130.70 -58.77Z"/><g id="dg24-x-1--lw0" data-lab="x-1--l" class="dg-lwrap" transform="translate(69.85,-66.19)"><g id="dg24-x-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">TCP handshake</tspan></text></g></g></g>
-<g id="dg24-x-2" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="dg24-x-2--p" class="dg-stroke" d="M0.00 -35.85L39.20 -35.85L39.20 -11.10L7.65 -11.10" fill="none"/><path id="dg24-x-2--h" class="dg-head" d="M0.00 -11.10L9.00 -15.06L9.00 -7.14Z"/><g id="dg24-x-2--lw0" data-lab="x-2--l" class="dg-lwrap" transform="translate(117.07,-23.48)"><g id="dg24-x-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">note the destination</tspan></text></g></g></g>
-<g id="dg24-x-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed"><path id="dg24-x-3--p" class="dg-stroke" d="M0.00 43.61L-132.05 43.61" fill="none"/><path id="dg24-x-3--h" class="dg-head" d="M-139.70 43.61L-130.70 39.65L-130.70 47.57Z"/><g id="dg24-x-3--lw0" data-lab="x-3--l" class="dg-lwrap" transform="translate(-69.85,32.23)"><g id="dg24-x-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">200 Connection established</tspan></text></g></g></g>
-<g id="dg24-x-4" data-base="dg-el dg-edge" class="dg-el dg-edge no-head"><path id="dg24-x-4--p" class="dg-stroke" d="M-139.70 79.32L139.70 79.32" fill="none"/><g id="dg24-x-4--lw0" data-lab="x-4--l" class="dg-lwrap" transform="translate(0.00,67.94)"><g id="dg24-x-4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">encrypted tunnel, end to end</tspan></text></g></g></g>
-<g id="dg24-x" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg24-x--r" x="-209.55" y="-162.98" width="419.10" height="325.96" rx="4"/></g>
-<g id="dg24-c" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg24-c--r" x="-178.05" y="-162.98" width="76.70" height="36.75" rx="4"/><g id="dg24-c--lw0" data-lab="c--l" class="dg-lwrap" transform="translate(-139.70,-144.61)"><g id="dg24-c--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Client</tspan></text></g></g></g>
-<g id="dg24-p" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg24-p--r" x="-38.35" y="-162.98" width="76.70" height="36.75" rx="4"/><g id="dg24-p--lw0" data-lab="p--l" class="dg-lwrap" transform="translate(0.00,-144.61)"><g id="dg24-p--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Proxy</tspan></text></g></g></g>
-<g id="dg24-s" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg24-s--r" x="101.35" y="-162.98" width="76.70" height="36.75" rx="4"/><g id="dg24-s--lw0" data-lab="s--l" class="dg-lwrap" transform="translate(139.70,-144.61)"><g id="dg24-s--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Server</tspan></text></g></g></g>
-<g id="dg24-x-sub-2" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg24-x-sub-2--lw0" data-lab="x-sub-2--l" class="dg-lwrap" transform="translate(115.18,0.40)"><g id="dg24-x-sub-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">host, time, byte counts</tspan></text></g></g></g>
-<g id="dg24-x-note-0" data-base="dg-el dg-box" class="dg-el dg-box round tone-2"><rect id="dg24-x-note-0--r" x="-107.65" y="94.28" width="215.30" height="55.50" rx="4"/><g id="dg24-x-note-0--lw0" data-lab="x-note-0--l" class="dg-lwrap" transform="translate(0.00,122.03)"><g id="dg24-x-note-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">the proxy forwards bytes</tspan><tspan x="0" y="14.48">and reads none of them</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg24-root">{"body":"sequence x at 0,0 unnumbered space 0.34\n  actor c \"Client\"\n  actor p \"Proxy\"\n  actor s \"Server\"\n  c -> p \"CONNECT server:443\"\n  p -> s \"TCP handshake\"\n  p -> p \"note the destination\" \"host, time, byte counts\"\n  c \u003c- p \"200 Connection established\" {.dashed}\n  c -- s \"encrypted tunnel, end to end\"\n  note c,s \"the proxy forwards bytes\\nand reads none of them\" {.tone-2}","attrs":"unit=140x44","range":[57402,57770],"chunk":"seqmore","width":"wide","alt":"Was eine Nachricht sonst sein kann"}</script></figure>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure class="figure-diagram"><svg id="dg24-root" class="psi-diagram" viewBox="-221.55 -209.30 443.10 418.60" width="2000" height="1889" data-steps="1" role="img" aria-label="Was eine Nachricht sonst sein kann" preserveAspectRatio="xMidYMid meet">
+<g id="dg24-c-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg24-c-life--p" class="dg-stroke" d="M-139.70 -160.55L-139.70 197.30" fill="none"/></g>
+<g id="dg24-p-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg24-p-life--p" class="dg-stroke" d="M0.00 -160.55L0.00 197.30" fill="none"/></g>
+<g id="dg24-s-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg24-s-life--p" class="dg-stroke" d="M139.70 -160.55L139.70 197.30" fill="none"/></g>
+<g id="dg24-x-0" data-base="dg-el dg-edge" class="dg-el dg-edge top paper"><path id="dg24-x-0--p" class="dg-stroke" d="M-139.70 -116.04L-7.65 -116.04" fill="none"/><path id="dg24-x-0--h" class="dg-head" d="M0.00 -116.04L-9.00 -112.08L-9.00 -120.00Z"/><rect id="dg24-x-0--r" x="-153.82" y="-145.59" width="167.95" height="27.55" rx="4"/><g id="dg24-x-0--lw0" data-lab="x-0--l" class="dg-lwrap" transform="translate(-69.85,-131.81)"><g id="dg24-x-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">CONNECT server:443</tspan></text></g></g></g>
+<g id="dg24-x-1" data-base="dg-el dg-edge" class="dg-el dg-edge top paper"><path id="dg24-x-1--p" class="dg-stroke" d="M0.00 -71.53L132.05 -71.53" fill="none"/><path id="dg24-x-1--h" class="dg-head" d="M139.70 -71.53L130.70 -67.57L130.70 -75.49Z"/><rect id="dg24-x-1--r" x="10.78" y="-101.08" width="118.15" height="27.55" rx="4"/><g id="dg24-x-1--lw0" data-lab="x-1--l" class="dg-lwrap" transform="translate(69.85,-87.30)"><g id="dg24-x-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">TCP handshake</tspan></text></g></g></g>
+<g id="dg24-x-2" data-base="dg-el dg-edge" class="dg-el dg-edge right paper"><path id="dg24-x-2--p" class="dg-stroke" d="M0.00 -52.57L39.20 -52.57L39.20 -27.82L7.65 -27.82" fill="none"/><path id="dg24-x-2--h" class="dg-head" d="M0.00 -27.82L9.00 -31.78L9.00 -23.86Z"/><rect id="dg24-x-2--r" x="45.07" y="-53.97" width="152.80" height="27.55" rx="4"/><g id="dg24-x-2--lw0" data-lab="x-2--l" class="dg-lwrap" transform="translate(121.47,-40.19)"><g id="dg24-x-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">note the destination</tspan></text></g></g></g>
+<g id="dg24-x-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed top paper"><path id="dg24-x-3--p" class="dg-stroke" d="M0.00 44.49L-132.05 44.49" fill="none"/><path id="dg24-x-3--h" class="dg-head" d="M-139.70 44.49L-130.70 40.53L-130.70 48.45Z"/><rect id="dg24-x-3--r" x="-174.30" y="14.94" width="208.90" height="27.55" rx="4"/><g id="dg24-x-3--lw0" data-lab="x-3--l" class="dg-lwrap" transform="translate(-69.85,28.72)"><g id="dg24-x-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">200 Connection established</tspan></text></g></g></g>
+<g id="dg24-x-4" data-base="dg-el dg-edge" class="dg-el dg-edge top paper no-head"><path id="dg24-x-4--p" class="dg-stroke" d="M-139.70 113.64L139.70 113.64" fill="none"/><rect id="dg24-x-4--r" x="-107.67" y="84.09" width="215.35" height="27.55" rx="4"/><g id="dg24-x-4--lw0" data-lab="x-4--l" class="dg-lwrap" transform="translate(0.00,97.87)"><g id="dg24-x-4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">encrypted tunnel, end to end</tspan></text></g></g></g>
+<g id="dg24-x" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg24-x--r" x="-209.55" y="-197.30" width="419.10" height="394.60" rx="4"/></g>
+<g id="dg24-c" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg24-c--r" x="-178.05" y="-197.30" width="76.70" height="36.75" rx="4"/><g id="dg24-c--lw0" data-lab="c--l" class="dg-lwrap" transform="translate(-139.70,-178.92)"><g id="dg24-c--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Client</tspan></text></g></g></g>
+<g id="dg24-p" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg24-p--r" x="-38.35" y="-197.30" width="76.70" height="36.75" rx="4"/><g id="dg24-p--lw0" data-lab="p--l" class="dg-lwrap" transform="translate(0.00,-178.92)"><g id="dg24-p--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Proxy</tspan></text></g></g></g>
+<g id="dg24-s" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="dg24-s--r" x="101.35" y="-197.30" width="76.70" height="36.75" rx="4"/><g id="dg24-s--lw0" data-lab="s--l" class="dg-lwrap" transform="translate(139.70,-178.92)"><g id="dg24-s--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Server</tspan></text></g></g></g>
+<g id="dg24-x-sub-2" data-base="dg-el dg-text" class="dg-el dg-text small muted paper"><rect id="dg24-x-sub-2--r" x="42.80" y="-23.82" width="144.76" height="23.80" rx="4"/><g id="dg24-x-sub-2--lw0" data-lab="x-sub-2--l" class="dg-lwrap" transform="translate(115.18,-11.92)"><g id="dg24-x-sub-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">host, time, byte counts</tspan></text></g></g></g>
+<g id="dg24-x-note-0" data-base="dg-el dg-box" class="dg-el dg-box round tone-2"><rect id="dg24-x-note-0--r" x="-107.65" y="128.60" width="215.30" height="55.50" rx="4"/><g id="dg24-x-note-0--lw0" data-lab="x-note-0--l" class="dg-lwrap" transform="translate(0.00,156.35)"><g id="dg24-x-note-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">the proxy forwards bytes</tspan><tspan x="0" y="14.48">and reads none of them</tspan></text></g></g></g>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg24-root">{"body":"sequence x at 0,0 unnumbered space 0.34\n  actor c \"Client\"\n  actor p \"Proxy\"\n  actor s \"Server\"\n  c -> p \"CONNECT server:443\"\n  p -> s \"TCP handshake\"\n  p -> p \"note the destination\" \"host, time, byte counts\"\n  c \u003c- p \"200 Connection established\" {.dashed}\n  c -- s \"encrypted tunnel, end to end\" space 0.9\n  note c,s \"the proxy forwards bytes\\nand reads none of them\" {.tone-2}","attrs":"unit=140x44","range":[57402,57780],"chunk":"seqmore","width":"wide","alt":"Was eine Nachricht sonst sein kann"}</script></figure>
 
 
 <p><strong>Vier Formen, und keine davon ist eine eigene Pfeilart.</strong> <code>-&gt;</code> und <code>&lt;-</code> sind dieselbe Nachricht, einmal von links und einmal von rechts benannt – wer die Antwort dort schreibt, wo der Empfänger steht, liest die Spalte hinunter statt hin und her. <code>--</code> ist eine Linie ohne Kopf, also eine Beziehung ohne Richtung. Gestrichelt wird nichts davon von einem eigenen Wort, sondern von <code>{.dashed}</code> – der Attributschwanz einer Nachrichtenzeile ist der einer Kante, weil eine Nachricht eine Kante <em>ist</em>.</p>
 <p><strong>Eine Selbstnachricht ist der übliche Weg, eine örtliche Handlung in den Ablauf zu setzen</strong>, und sie schleift aus der Lebenslinie heraus und wieder hinein. Ihre Beschriftung steht neben der Schleife, ihre zweite Zeile darunter. Eine Notiz zwischen zwei Namen steht in der Mitte zwischen deren Lebenslinien und ist so breit wie ihr eigener Text – nicht so breit wie die Spanne, sonst wird aus drei Wörtern ein Banner. Sie bricht an <code>\n</code>, was den Grund erspart, aus dem in Mermaid-Quellen dieselbe Notiz dreimal untereinander steht.</p>
+<p><strong><code>space</code> auf einer Eintragszeile ist die Luft über genau diesem Band.</strong> Der Tunnel unten steht mit <code>space 0.9</code> merklich abgesetzt vom Aufbau darüber – zwei oder drei solcher Lücken gliedern einen langen Ablauf in Abschnitte, die ein Raum sich merken kann. Eine Leerzeile im Quelltext tut das bewusst nicht: Der Eintragslauf liest über sie hinweg, damit die Quelle für den lesbar bleiben darf, der sie schreibt. Auf einer <code>actor</code>-Zeile ist <code>space</code> ein Fehler, denn über den Köpfen gibt es kein Band.</p>
+<p><strong>Jede Nachrichtenbeschriftung bringt ihren eigenen Grund mit.</strong> Eine Lebenslinie kreuzt jede Beschriftung im Bild – das ist kein Sonderfall, sondern das, was eine Lebenslinie ist –, also wird der Grund voreingestellt gezeichnet und die gestrichelte Linie hinter den Wörtern ausgespart. <code>{.clear}</code> nimmt ihn weg, <code>{.tone-2}</code> färbt ihn. Die kleinere zweite Zeile bekommt denselben Grund, die Nummern links keinen: Sie stehen außerhalb des Rahmens und kreuzen nichts.</p>
 <p><strong><code>unnumbered</code> nimmt die Zahlenspalte weg.</strong> Sie ist sonst da, weil die zweite der beiden Handbearbeitungen das Umnummerieren war und weil die Zahl im Bild und der Index im Tag dieselbe Zahl sind: <code>@x-msg-3</code> ist der Pfeil, den der Raum als 4 liest. Wo ein Ablauf so kurz ist, dass niemand auf eine Nummer zeigt, ist die Spalte nur Papier.</p>
 </div></div>
     
@@ -6466,6 +6477,11 @@ if (document.fonts && document.fonts.ready) {
 .dge-chip:hover { border-color: var(--emph); }
 .dge-chip .dge-x { opacity: 0.5; margin-left: 0.3em; }
 .dge-chip-count { color: var(--ink-soft); margin-left: 0.35em; }
+/* The way back from an entry to the statement that stacked it. A chip rather
+   than a link because it is a selection act like every other chip here, and a
+   class of its own because that is what keeps a selector aimed at one pane -
+   this one is navigation, and unlike a waypoint or a tag it removes nothing. */
+.dge-chip-owner { color: var(--ink-soft); border-style: dashed; }
 
 /* The element list doubles as the "what refers to what" view. */
 .dge-list { display: flex; flex-direction: column; gap: 1px; max-height: 14rem; overflow-y: auto; }
@@ -7026,8 +7042,13 @@ const DG_CLASSES = new Set([
 // with it. Stacking left both rules matching at equal specificity, so the
 // one written later in the stylesheet won and the author's explicit choice
 // silently lost.
+// The fill slot, named because a statement that supplies a ground of its own
+// has to ask whether the author already claimed the slot – `.clear` is not a
+// fill (dgHasFill says so) but it is an answer to the same question, and a
+// default that stacked on top of it would paint the thing the author took off.
+const DG_FILL_SLOT = ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper'];
 const DG_CLASS_GROUPS = [
-  ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper'],   // fill
+  DG_FILL_SLOT,                               // fill
   ['accent', 'muted'],                        // ink
   ['dashed', 'dotted'],                       // stroke pattern
   ['thick', 'bare'],                          // stroke weight
@@ -7338,6 +7359,13 @@ const DG_SEQ_NUM = 0.34;      // the number column, outside the frame's left
 const DG_SEQ_TAIL = 0.3;      // how far a lifeline runs past the last entry
 const DG_SEQ_SELF_W = 0.28;   // how far a self-message loops out
 const DG_SEQ_SELF_H = 0.42;   // and how far down it comes back
+// How far a message label's ground reaches past its own words. A lifeline
+// crosses every label in the figure – that is what a lifeline is – so the
+// ground is not an option here but the default, and what it has to do is
+// knock the dashes out from behind the words and nothing more. The box
+// padding a `pad` would otherwise resolve to is 13 by 9, which on a label
+// standing beside a line reads as a slab; this is the visible margin.
+const DG_SEQ_GROUND = 0.1;
 // `plot` expands into a frame, two runs of grid lines, two runs of tick
 // labels and up to two axis titles. Parts: gx gy xt yt xl yl.
 const dgPlotName = (id, part, i) => (i === undefined ? `${id}-${part}` : `${id}-${part}-${i}`);
@@ -7451,6 +7479,14 @@ const DG_KIND_OPTS = {
   // and it is `space` rather than `gap` for the reason it is everywhere else –
   // `gap` on this very line is the distance to another element.
   sequence: ['w', 'h', 'space'],
+  // A sequence's three entries, which are statements of their own on lines of
+  // their own – so the panel reads its controls off them rather than off the
+  // `box` and the `edge` they expand into, which take `w`, `h` and `pad` and
+  // would offer three words the entry line refuses. `space` is the air above
+  // this entry, overriding the statement's rhythm for one band: the way a
+  // dense protocol is broken into phases. An actor has no band above it, so
+  // it takes nothing.
+  actor: [], note: ['space'], message: ['space'],
 };
 // Options whose value is a comma list rather than one number. `col 1.5,0.9,1.9`
 // is one width per column, and reading it with dgNum would report the whole
@@ -8537,7 +8573,13 @@ const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'align', 'point', '
 // anyway. Every one is required by its statement, so it is always present –
 // there is no "where would it go if it were not there" to answer, which is
 // what separates them from the keyed list above.
-const DG_POSITIONAL = ['values', 'ticks', 'xtitle', 'ytitle', 'cellkind', 'shape', 'asset'];
+const DG_POSITIONAL = ['values', 'ticks', 'xtitle', 'ytitle', 'cellkind', 'shape', 'asset',
+  // A sequence message's second, smaller line: the second quoted string on the
+  // line, where the first is the label. It is named here rather than left to
+  // the source pane because `label` already resolves to the first string, and
+  // a field that silently edited the wrong one of two strings on one line is
+  // the trap a `bars` line taught.
+  'sub'];
 
 // The x and y halves of a `dx,dy` token, and the signed nudge inside a
 // coordinate component. Sub-token arithmetic on the token's own text, because
@@ -8586,7 +8628,14 @@ function createSpanTable(model, body) {
     // editor comes to rewrite the whole chart while dragging one bar. The
     // frame is the exception and keeps its span, because the frame *is* the
     // statement: moving it moves the chart, which is what the drag means.
-    if (el.synth && el.synth !== el.id) continue;
+    // A sequence's three entries are the exception, and `entry` is what
+    // marks them: each was written on a line of its own, carrying a label and
+    // an attribute tail that are nobody else's, so the span it holds is that
+    // line. The elements around them are not – a lifeline, a message number
+    // and a second line own no text on the line that produced them, and
+    // handing one the line's span is how a panel comes to write the actor's
+    // label under the lifeline's name.
+    if (el.synth && el.synth !== el.id && !el.entry) continue;
     byId.set(el.id, el);
   }
 
@@ -8720,6 +8769,11 @@ function createSpanTable(model, body) {
     // the *kind* of placement, and the only way to give the first element
     // (which sits at the origin for free) a placement at all.
     if (attr === 'place') {
+      // A sequence entry has none to give. The statement lays its entries out
+      // on its own rhythm and the line the author wrote carries no placement
+      // expression – so an insertion point here would offer a control whose
+      // only possible outcome is the compiler refusing the line.
+      if (el.entry) return null;
       const p = el.place;
       if (p && p.span) return hit(p.span[0], p.span[1], src.slice(p.span[0], p.span[1]));
       return gap(tailInsert(el, toks), ' ');
@@ -8769,7 +8823,11 @@ function createSpanTable(model, body) {
       const val = at >= 0 && bare[at + 1] && bare[at + 1].v === 'of' ? bare[at + 2] : null;
       return val ? hit(val.s, val.e, val.v) : null;
     }
-    if ((DG_BARE_OPTS[el.kind] || []).includes(attr)) {
+    // Off the *statement*, not the kind: a `sequence` frame is a box as far as
+    // the layout is concerned, and `unnumbered` is a word only its own
+    // statement reads. Keyed on the kind, the frame's one bare word had no
+    // span at all and no control could be offered for it.
+    if ((DG_BARE_OPTS[el.frame || el.kind] || []).includes(attr)) {
       const at = toks.find(x => !x.q && !x.attr && x.v === attr);
       if (at) return { start: at.s, end: at.e, prefix: '', suffix: '', present: true, text: attr, value: attr };
       const ins = tailInsert(el, toks);
@@ -8786,6 +8844,10 @@ function createSpanTable(model, body) {
       const after = (t, pre = ' "', suf = '"') => (t ? gap(t.e, pre, suf) : null);
       // Quoted slots, by statement. The n-th string means a different thing
       // on each of the three, which is exactly why they are named.
+      if (attr === 'sub') {
+        if (el.entry !== 'message') return null;
+        return quoted[1] ? one(quoted[1]) : after(quoted[0]);
+      }
       if (attr === 'values') return el.frame === 'bars' ? one(quoted[0]) : null;
       if (attr === 'ticks') {
         if (el.frame !== 'bars') return null;
@@ -9517,16 +9579,31 @@ function createDiagramCompiler(env = {}) {
         // real diagrams this was measured against is written. What ends the
         // run is the first line that is not an entry, and that is decidable
         // from the line alone: `actor`, `note`, or an arrow between two names.
+        //
+        // Each entry is tokenized at its *own* offset in the block body, not
+        // at zero. That is what makes an entry editable: the elements a
+        // statement expands into normally carry the statement's span, which is
+        // why createSpanTable hands none of them out – rewriting a column
+        // would rewrite the whole chart. Here every entry is a line of its
+        // own, with a label and an attribute tail written by hand on it, so
+        // the span it carries is that line and a panel edit lands where the
+        // author put the words. See `entry` below.
         const entries = [];
         let lastAt = n;
+        let entryAt = lineAt;          // start of line n+1; lineAt is already past n
         for (let m = n + 1; m < lines.length; m++) {
-          const line = lines[m].trim();
+          const rawE = lines[m];
+          const eAt = entryAt;
+          entryAt += rawE.length + 1;
+          const line = rawE.trim();
           if (!line || line.startsWith('#')) continue;
-          const et = dgTokenize(line, 0);
+          const eIndent = rawE.length - rawE.replace(/^\s+/, '').length;
+          const eSpan = [eAt + eIndent, eAt + eIndent + line.length];
+          const et = dgTokenize(line, eSpan[0]);
           const eb = et.filter(x => !x.attr && !x.q).map(x => x.v);
           const aAt = eb.findIndex(v => DG_SEQ_ARROWS.has(v));
           if (!DG_SEQ_ENTRIES.has(eb[0]) && aAt < 0) break;
-          entries.push({ toks: et, bare: eb, arrowAt: aAt, ln: m + 1 });
+          entries.push({ toks: et, bare: eb, arrowAt: aAt, ln: m + 1, span: eSpan });
           lastAt = m;
         }
         rowsRead = lastAt + 1;
@@ -9544,11 +9621,42 @@ function createDiagramCompiler(env = {}) {
         const actors = [];
         const byName = new Map();
         const seq = [];
+        // `space n` on an entry line: the air above *this* band, overriding
+        // the statement's rhythm for one gap. It is what breaks a dense
+        // protocol into phases, and it is spelled `space` for the reason the
+        // statement's own is – inside one statement `gap` already means the
+        // distance to another element. A blank line cannot do this job: the
+        // run deliberately reads through blank lines, so every real sequence
+        // measured already had them separating its actors from its messages,
+        // and giving them a height would have moved every one of those
+        // figures without anyone writing anything.
+        //
+        // Found by its word, and the word alone is not enough: nothing forbids
+        // an actor called `space`, and `a -> space "x"` would then have had its
+        // *endpoint* read as the option and the label as the number. Two
+        // guards, the same pair `spanOf` uses for the keyed options: the
+        // statement word and the name after it are never the keyword, and
+        // neither is a token beside an arrow.
+        const readEntrySpace = (e) => {
+          const k = e.bare.findIndex((v, i) => v === 'space' && i > 1
+            && !DG_SEQ_ARROWS.has(e.bare[i - 1] || '')
+            && !DG_SEQ_ARROWS.has(e.bare[i + 1] || ''));
+          if (k < 0) return { bare: e.bare, space: null, present: false };
+          const v = dgNum(e.bare[k + 1], errors, e.ln, `sequence ${id} entry space`);
+          if (v != null && v < 0) {
+            dgErr(errors, e.ln, `space ${e.bare[k + 1]}: space is the air above an entry, so it `
+              + 'cannot be negative – a band pulled into the one above it draws one label '
+              + 'through another. Reorder the entries instead.');
+          }
+          return { bare: [...e.bare.slice(0, k), ...e.bare.slice(k + 2)],
+            space: v != null && v >= 0 ? v : null, present: true };
+        };
         for (const e of entries) {
           const aTok = e.toks.find(x => x.attr);
           const ea = aTok ? dgParseAttrs(aTok.v, errors, e.ln) : { id: null, classes: [], tags: [] };
           const eq = e.toks.filter(x => x.q).map(x => x.v);
-          const eb = e.bare;
+          const es = readEntrySpace(e);
+          const eb = es.bare;
           if (eb[0] === 'actor') {
             const aid = eb[1];
             if (!aid) { dgErr(errors, e.ln, 'actor needs a name and a label – actor u "User"'); continue; }
@@ -9561,9 +9669,19 @@ function createDiagramCompiler(env = {}) {
                 + 'an actor is `actor <name> "<label>"` and an attribute tail');
             }
             if (eq[0] === undefined) dgErr(errors, e.ln, `actor ${aid} needs a label – actor ${aid} "User"`);
+            // Refused rather than read and dropped. The heads are one row
+            // across the top of the figure and there is no band above them
+            // for the number to describe, so `space` here is the silent
+            // no-op this grammar keeps closing.
+            if (es.present) {
+              dgErr(errors, e.ln, `actor ${aid} has no "space" – the heads are one row and the air `
+                + 'above them is the sequence\'s own. `space` belongs on a note or a message, '
+                + 'where it is the gap above that band.');
+            }
             claim(aid, 'box', e.ln);
             byName.set(aid, actors.length);
-            actors.push({ id: aid, label: eq[0] ?? '', classes: ea.classes, tags: ea.tags, ln: e.ln });
+            actors.push({ id: aid, label: eq[0] ?? '', classes: ea.classes, tags: ea.tags,
+              ln: e.ln, span: e.span });
             continue;
           }
           if (eb[0] === 'note') {
@@ -9584,10 +9702,10 @@ function createDiagramCompiler(env = {}) {
                 + 'so several lines are one string.');
             }
             seq.push({ type: 'note', on, label: eq[0] ?? '', classes: ea.classes,
-              tags: ea.tags, own: ea.id, ln: e.ln });
+              tags: ea.tags, own: ea.id, ln: e.ln, span: e.span, space: es.space });
             continue;
           }
-          const aAt = e.arrowAt;
+          const aAt = eb.findIndex(v => DG_SEQ_ARROWS.has(v));
           const fromTok = eb[aAt - 1], toTok = eb[aAt + 1];
           if (!fromTok || !toTok) {
             dgErr(errors, e.ln, `a message needs an actor on both sides of "${eb[aAt]}"`);
@@ -9608,9 +9726,33 @@ function createDiagramCompiler(env = {}) {
               + 'A second line breaks at \\n, so several lines of it are still one string.');
           }
           const flip = eb[aAt] === '<-';
+          // Two classes the author did not write, and both are here rather
+          // than at emit because the band above has to reserve exactly what
+          // the emitter will draw.
+          //
+          // A **side**, because a message label sits beside its line and never
+          // on it. With none of the four alignment words the edge emitter
+          // reads a fill as "put the words on the line and knock it out behind
+          // them", and a label as wide as its own arrow then swallowed the
+          // arrow whole – `{.paper}` on a message drew text and nothing else.
+          // Which pair names a side depends on how the line runs, so a
+          // self-message (a loop, read vertically at its middle) takes the
+          // across-pair and every other message the down-pair.
+          //
+          // A **ground**, because a lifeline crosses every label in the
+          // figure. That is not an exception the author should have to
+          // notice; it is what a lifeline is. So the default is `.paper` and
+          // `.clear` is how one opts out – the same pair of readings a box
+          // already has, and the fill slot is what makes a written `.tone-2`
+          // displace it rather than stack with it.
+          const mcls = [...ea.classes];
+          const self = fromTok === toTok;
+          const across = self ? DG_ALIGN_ACROSS : DG_ALIGN_DOWN;
+          if (!across.some(c => mcls.includes(c))) mcls.push(self ? 'right' : 'top');
+          if (!DG_FILL_SLOT.some(c => mcls.includes(c))) mcls.push('paper');
           seq.push({ type: 'msg', from: flip ? toTok : fromTok, to: flip ? fromTok : toTok,
             headless: eb[aAt] === '--', label: eq[0] ?? '', sub: eq[1] ?? '',
-            classes: ea.classes, tags: ea.tags, own: ea.id, ln: e.ln });
+            classes: mcls, tags: ea.tags, own: ea.id, ln: e.ln, span: e.span, space: es.space });
         }
         if (!actors.length) {
           dgErr(errors, lineNo, `sequence ${id} declares no actors – put \`actor <name> "<label>"\` `
@@ -9644,40 +9786,58 @@ function createDiagramCompiler(env = {}) {
         // with `space` between. This is the whole statement.
         const space = (opts.space != null ? opts.space : DG_SEQ_SPACE) * uh;
         const [, padY] = dgPadPx(null, uh);
-        // One rhythm unit under the heads before the first band. Starting flush
-        // put the first message's label against the bottom of its own head box,
-        // which is the one place in the figure where two different things share
-        // an edge.
-        let cy = headH + space;
+        const ground = DG_SEQ_GROUND * uh;
+        // The gap is written *before* each band rather than after it, which is
+        // the same rhythm read the other way round and is what lets one entry
+        // state its own. One rhythm unit under the heads comes for free that
+        // way: starting flush put the first message's label against the bottom
+        // of its own head box, which is the one place in the figure where two
+        // different things share an edge.
+        let cy = headH;
         let mi = 0, ni = 0;
         const plan = [];
         for (const it of seq) {
+          cy += it.space != null ? it.space * uh : space;
           const cs = setOf(it.classes);
           const font = dgFontFor(cs);
           const m = dgMeasure(it.label, font, cs.has('mono'));
           if (it.type === 'note') {
             const h = m.h + 2 * padY;
             plan.push({ it, y: cy + h / 2, h, j: ni++ });
-            cy += h + space;
+            cy += h;
             continue;
           }
           const self = it.from === it.to;
-          // What the edge emitter will actually do with the label: with no
-          // fill it sits clear of the line by half its height plus two, with
-          // one it sits on the line and knocks it out. A band that reserves
-          // the other case is a guessed rhythm again.
-          const above = self ? 4 : (dgHasFill(cs) ? m.h / 2 + padY : m.h + 2);
+          // What the edge emitter will actually do with the label. It is
+          // always beside the line here, because the expansion writes a side
+          // above – so the band reserves the words, the two-pixel gap and, on
+          // the far side of them, the ground. A band that reserves the other
+          // case is a guessed rhythm again.
+          const grounded = dgHasFill(cs);
+          const above = self ? 4 : m.h + 2 + (grounded ? 2 * ground : 0);
           // A self-message loops out and comes back, and its label stands
           // beside the loop rather than over a line – so the loop has to be at
           // least as deep as the words are tall.
           const loop = self ? Math.max(DG_SEQ_SELF_H * uh, m.h + 6) : 0;
           const subH = it.sub ? dgMeasure(it.sub, font * 0.8, cs.has('mono')).h : 0;
-          plan.push({ it, y: cy + above, loop, subH, i: mi++ });
-          cy += above + loop + (it.sub ? subH + 4 : 0) + space;
+          // The second line carries the same ground as the label above it, so
+          // it has to clear the arrow by its own ground and not by its glyphs:
+          // laid four pixels under the line, the rect would have been painted
+          // across the very arrow it belongs to.
+          const subGap = 4 + (grounded ? ground : 0);
+          plan.push({ it, y: cy + above, loop, subH, subGap, i: mi++ });
+          cy += above + loop + (it.sub ? subH + subGap + (grounded ? ground : 0) : 0);
         }
-        const bottom = (plan.length ? cy - space : cy) + DG_SEQ_TAIL * uh;
+        const bottom = (plan.length ? cy : cy + space) + DG_SEQ_TAIL * uh;
 
-        const synthAt = (el, ln) => ({ ...el, synth: id, line: ln, span });
+        // Every element a sequence expands into carries the *statement's*
+        // span, because that is what a drag on it should rewrite – except the
+        // three that were written on lines of their own, which carry theirs.
+        // `entry` is what says which is which: createSpanTable hands out a
+        // span for those and the editor selects them, where a lifeline, a
+        // number or a second line owns no text on its line and stays out.
+        const synthAt = (el, ln, entry, sp) =>
+          ({ ...el, synth: id, line: ln, span: sp || span, ...(entry ? { entry } : {}) });
         const at = (xn, yn) => ({
           kind: 'abs',
           at: [{ ref: id, prop: 'left', nudge: xn }, { ref: id, prop: 'top', nudge: yn }],
@@ -9702,7 +9862,7 @@ function createDiagramCompiler(env = {}) {
             tags: [...seqTags, ...(a.tags || []), dgActorsTag(id)],
             place: at(xOf(i) / uw, (headH / 2) / uh),
             w: boxW / uw, h: headH / uh, r: null, pad: null,
-          }, a.ln));
+          }, a.ln, 'actor', a.span));
           claim(dgLifeName(a.id), 'edge', a.ln);
           model.edges.push(synthAt({
             kind: 'edge', id: dgLifeName(a.id),
@@ -9733,7 +9893,7 @@ function createDiagramCompiler(env = {}) {
               // banner, and a long one between two near columns unreadable.
               place: at(((xOf(on[0]) + xOf(on[on.length - 1])) / 2) / uw, p.y / uh),
               w: null, h: p.h / uh, r: null, pad: null,
-            }, it.ln));
+            }, it.ln, 'note', it.span));
             continue;
           }
           const fi = idxOf(it.from, it.ln, 'message'), ti = idxOf(it.to, it.ln, 'message');
@@ -9758,8 +9918,13 @@ function createDiagramCompiler(env = {}) {
             // and every message that touches this actor.
             tags: [...seqTags, ...(it.tags || []), tag, dgMsgsTag(id), dgMsgsTag(actors[fi].id),
               ...(ti === fi ? [] : [dgMsgsTag(actors[ti].id)])],
-            via, pad: null, named: !!it.own,
-          }, it.ln));
+            // The ground's own clearance, in grid units like every other
+            // length here. It resolves through `pad` because that is the word
+            // an edge label's ground already reads, and it is written on the
+            // element rather than left to the default so a knockout behind two
+            // words is a knockout and not a slab.
+            via, pad: DG_SEQ_GROUND, named: !!it.own,
+          }, it.ln, 'message', it.span));
           if (!opts.unnumbered) {
             const numId = dgMsgNumName(id, p.i);
             claim(numId, 'text', it.ln);
@@ -9782,11 +9947,17 @@ function createDiagramCompiler(env = {}) {
                 + dgMeasure(it.sub, dgFontFor(setOf(it.classes)) * 0.8,
                   setOf(it.classes).has('mono')).w / 2 + 8
               : (x0 + x1) / 2;
+            // The second line crosses the lifelines exactly as the label
+            // does, so it carries the label's ground – the same fill, so the
+            // two read as one caption, and nothing at all where the author
+            // took the ground off with `.clear`.
+            const subFill = it.classes.find(c => DG_FILL_CLASSES.includes(c));
             model.nodes.push(synthAt({
               kind: 'text', id: sid, label: it.sub,
-              classes: ['small', 'muted'], tags: [...seqTags, tag],
-              place: at(subX / uw, (p.y + p.loop + p.subH / 2 + 4) / uh),
-              w: null, h: null, r: null, pad: null,
+              classes: ['small', 'muted', ...(subFill ? [subFill] : [])],
+              tags: [...seqTags, tag],
+              place: at(subX / uw, (p.y + p.loop + p.subH / 2 + p.subGap) / uh),
+              w: null, h: null, r: null, pad: subFill ? DG_SEQ_GROUND : null,
             }, it.ln));
           }
         }
@@ -11876,7 +12047,7 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_RESERVED_IDS, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_BRACE_SIDES, DG_KIND_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, dgErr, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, rejectShapeOn, rejectAlignOn, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_CLASS_GROUPS, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_RESERVED_IDS, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_BRACE_SIDES, DG_KIND_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, dgErr, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, rejectShapeOn, rejectAlignOn, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "default text {.small}\ndefault container pad 0.34\n";
 window.PSI_DG_EDIT_HTML = false;
@@ -12348,7 +12519,12 @@ const DGE_TOOLS = [
 // `space` or `col` would never be offered at all.
 function dgeKindOpts(elOrKind) {
   const el = typeof elOrKind === 'string' ? null : elOrKind;
-  const key = el ? (el.frame || el.kind) : elOrKind;
+  // `entry` for the same reason `frame` is here: a sequence's `actor`, `note`
+  // and message lines are statements of their own, and the box and the edge
+  // they expand into take w / h / pad, which those lines refuse. Offering a
+  // control whose only outcome is a compiler refusal is not offering a
+  // control.
+  const key = el ? (el.frame || el.entry || el.kind) : elOrKind;
   return (window.PSI_DG.DG_KIND_OPTS[key] || []).slice();
 }
 
@@ -14189,6 +14365,20 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
   const place = el.place;
   const edits = [];
   const refusals = [];
+  // A sequence entry has no placement of its own. The statement owns the
+  // vertical rhythm - that is the whole of what it owns - and the line the
+  // author wrote carries a label and an attribute tail and nothing a drag
+  // could rewrite. Said before the kind check below, or a message would get
+  // the generic "an edge follows its endpoints", which is true of every edge
+  // and useless about this one.
+  if (el.entry) {
+    if (DGE.selection.length <= 1) {
+      refusals.push(`a sequence stacks its ${el.entry}s on its own rhythm, so this line holds `
+        + `no placement - drag ${el.synth} to move the whole figure, or set space on the line `
+        + 'to change the gap above this one.');
+    }
+    return { edits: [], refusals, strain };
+  }
   const free = opts && opts.free;      // Ctrl/Cmd held: no snapping
   const leave = opts && opts.leave;    // Alt held: leave the set at once
   const snap = (v) => (free ? v : dgeRound(v, DGE_SNAP_CELL));
@@ -14804,7 +14994,12 @@ function dgeNearestEdge(pt) {
 // what it selects.
 function dgeOwnerOf(id) {
   const el = dgeFind(id);
-  return el && el.synth && el.synth !== el.id ? el.synth : id;
+  // A sequence's entries are the exception: each was written on a line of its
+  // own, so clicking one selects it rather than the statement that stacked it.
+  // Everything else an expanding statement draws – a chart column, a table
+  // cell, a lifeline – selects the statement, because that is the only text
+  // there is to edit.
+  return el && el.synth && el.synth !== el.id && !el.entry ? el.synth : id;
 }
 
 // The other direction, and only interesting where it disagrees with dgeFind:
@@ -14843,9 +15038,17 @@ function dgeHitTest(pt, opts) {
   // wins over an arrow that crosses it, and an arrow wins over the container
   // or brace it runs through. Without the second half every edge inside a
   // container would be unreachable, which is most of them.
+  //
+  // A statement's frame counts as a holder here, and that is what a sequence
+  // needs: its frame is a .bare .clear box the size of the whole figure, so
+  // it enclosed every message and won every click meant for one. The clause
+  // is written as "an arrow that is not this frame's own", so a chart's
+  // baseline still selects the chart – it belongs to the frame, and clicking
+  // a part of a statement means the statement.
   const edge = dgeNearestEdge(pt);
   const edgeOwner = edge ? dgeOwnerOf(edge) : null;
-  if (edgeOwner && (!box || box.el.kind === 'container' || box.el.kind === 'brace')) return edgeOwner;
+  if (edgeOwner && (!box || box.el.kind === 'container' || box.el.kind === 'brace'
+    || (box.el.frame && edgeOwner !== box.id))) return edgeOwner;
   return box ? box.id : null;
 }
 
@@ -16254,8 +16457,26 @@ function dgeRenderSide() {
   }
 
   const head = dgeEl('div', {}, [
-    dgeEl('h3', { class: 'dge-sel-head', text: single ? `${single.kind} ${single.id}` : `${DGE.selection.length} selected` }),
+    dgeEl('h3', { class: 'dge-sel-head',
+      text: single ? `${single.entry || single.kind} ${single.id}` : `${DGE.selection.length} selected` }),
   ]);
+  // The way back to the statement. Clicking an entry used to select the whole
+  // sequence, which is how its own options were reached; now that a click
+  // lands on the entry, the frame carries w / h / space / unnumbered and
+  // nothing on the canvas selects it, because it is drawn .bare .clear and
+  // has no ink to hit. Its own class, per the rule chips follow: waypoints,
+  // tags and a step's ops all render as .dge-chip, and a selector naming only
+  // that picks whichever pane comes first in the DOM.
+  if (single && single.entry && dgeFind(single.synth)) {
+    head.appendChild(dgeEl('div', { class: 'dge-chips' }, [
+      dgeEl('button', {
+        type: 'button', class: 'dge-chip dge-chip-owner',
+        text: 'part of sequence ' + single.synth,
+        title: 'select the statement – its own rhythm, size and numbering live there',
+        onclick: () => dgeSelect([single.synth]),
+      }),
+    ]));
+  }
   side.appendChild(head);
 
   if (single) {
@@ -16321,9 +16542,11 @@ function dgeRenderSide() {
     side.appendChild(dgeEl('div', {}, [
       dgeEl('h3', { text: 'ends' }), row,
       dgeEl('div', { class: 'dge-chips' }, [swap]),
-      dgeEl('div', { class: 'dge-hint', text:
-        'A name follows the element when it moves; x,y stays put. '
-        + 'Add an anchor with a dot – mix.right – and a fraction along it with a colon – mix.right:0.3.' }),
+      dgeEl('div', { class: 'dge-hint', text: single.entry
+        ? 'A message runs between two actors of this sequence, by the names their actor lines '
+          + 'give them. A coordinate here is not one of them and the line will not compile.'
+        : 'A name follows the element when it moves; x,y stays put. '
+          + 'Add an anchor with a dot – mix.right – and a fraction along it with a colon – mix.right:0.3.' }),
       // The rule was legible nowhere in the editor: it is not in the panel, and
       // the drawing cannot show it, because an edge that follows its ends looks
       // exactly like an edge someone remembered to write a show for.
@@ -16336,8 +16559,12 @@ function dgeRenderSide() {
     // and which of them holds a reference is not readable off the picture: a
     // waypoint written iv.cx,d0.bottom+0.28 and one written 1.4,2.06 land in
     // exactly the same place and behave completely differently afterwards.
-    const via = single.via || [];
+    // Not on a sequence message. Its waypoints are the loop a self-message
+    // draws, generated by the statement, and the line has nowhere to write a
+    // `via` - so every chip here would have been a click the compiler refuses.
+    const via = single.entry ? null : (single.via || []);
     const wrap = dgeEl('div', {});
+    if (via) {
     wrap.appendChild(dgeEl('h3', { text: 'waypoints' }));
     if (!via.length) {
       wrap.appendChild(dgeEl('div', { class: 'dge-hint', text: dgeCurveOf(single) === 'elbow'
@@ -16366,6 +16593,7 @@ function dgeRenderSide() {
       wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
         'Drag a square on the line to move one, a hollow dot to add one, double-click a square to remove it.' }));
     }
+    }
     side.appendChild(wrap);
   }
 
@@ -16376,7 +16604,7 @@ function dgeRenderSide() {
   // are the parts that carry the meaning. `between a,b` in particular has no
   // gesture at all: nothing about dragging one box says "halfway between
   // those two".
-  if (single && DGE.model.nodes.some((x) => x.id === single.id)) {
+  if (single && !single.entry && DGE.model.nodes.some((x) => x.id === single.id)) {
     side.appendChild(dgePlacementPane(single));
   }
 
@@ -16391,7 +16619,7 @@ function dgeRenderSide() {
   // Which way a pointed outline aims, offered only where there is a point to
   // aim. `none` takes the option back off the line and the shape returns to
   // its default direction.
-  if (single) {
+  if (single && !single.entry) {
     const aimable = dgeAimOf(single);
     if (aimable) {
       const dirs = [...window.PSI_DG.DG_POINT_DIRS];
@@ -16410,6 +16638,30 @@ function dgeRenderSide() {
         dgeEl('div', { class: 'dge-hint', text:
           'Which way the .' + aimable + ' points. An option on the line, not a class, '
           + 'so one word covers every direction.' }),
+      ]));
+    }
+  }
+
+  // The one bare word a sequence's own statement reads. A closed list of one,
+  // so it is the checkbox `stacked` on a series already is: present as a token
+  // or absent as an insertion point, and nothing to type.
+  if (single && single.frame === 'sequence') {
+    const sp = dgeSpanOf(single.id, 'unnumbered');
+    if (sp) {
+      const row = dgeEl('div', { class: 'dge-swatches' });
+      for (const [word, label] of [['', 'numbered'], ['unnumbered', 'no numbers']]) {
+        row.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-sw',
+          'aria-pressed': String((sp.present ? 'unnumbered' : '') === word),
+          text: label,
+          onclick: () => dgeWriteAttr(single.id, 'unnumbered', word),
+        }));
+      }
+      side.appendChild(dgeEl('div', {}, [
+        dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'numbering' }), row]),
+        dgeEl('div', { class: 'dge-hint', text:
+          'The column of numbers left of the frame. The number in the drawing and the index in '
+          + 'the tag are the same number, so message 4 is the one @' + single.id + '-msg-3 names.' }),
       ]));
     }
   }
@@ -17068,6 +17320,16 @@ const DGE_DATA_FIELDS = {
       empty: 'refuse' },
     { key: 'asset', label: 'asset', hint: 'the drawing each cell repeats', empty: 'refuse' },
   ],
+  // A sequence message's second, smaller line. It is a data field rather than
+  // a second label field because that is what it is positionally: the first
+  // quoted string on the line is the label and `label` already resolves to it,
+  // so two textareas both reading "label" would have been a coin toss over
+  // which string an edit landed in - the trap a bars line taught.
+  message: [
+    { key: 'sub', label: 'second line',
+      hint: 'the smaller line under the arrow – the payload, where the label is the name',
+      empty: 'drop' },
+  ],
   plot: [
     { key: 'xtitle', label: 'x axis', hint: 'the title under the horizontal axis',
       empty: (el) => ((DGE.spans.spanOf(el.id, 'ytitle') || {}).present ? 'blank' : 'drop') },
@@ -17119,7 +17381,7 @@ const DGE_DATA_SHAPE = {
 
 function dgeDataPane(el) {
   const wrap = dgeEl('div', {});
-  const fields = (el.frame ? DGE_DATA_FIELDS[el.frame]
+  const fields = (el.frame || el.entry ? DGE_DATA_FIELDS[el.frame || el.entry]
     : (el.kind === 'image'
       ? [{ key: 'asset', label: 'asset', hint: 'the file this image draws', empty: 'refuse' }]
       : null)) || [];
@@ -17139,7 +17401,7 @@ function dgeDataPane(el) {
     if (!sp) continue;
     if (f.count) counts.push(f.label + ': ' + f.count(sp.present ? sp.value : ''));
     const quoted = f.key === 'values' || f.key === 'ticks'
-      || f.key === 'xtitle' || f.key === 'ytitle';
+      || f.key === 'xtitle' || f.key === 'ytitle' || f.key === 'sub';
     rows.push(dgeEl('label', { class: 'dge-num dge-num-wide' }, [
       dgeEl('span', { text: f.label }),
       dgeEl('input', {

@@ -1714,7 +1714,6 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    box defaults to paper, a text defaults to see-through" one mechanism rather
    than two. No stroke either way – a bordered label is a box, and there is
    a statement for that. */
-.psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > :is(rect, circle, .dg-shape) { fill: none; }
 
 /* An edge's label gets the same ground on the same terms: a fill class draws
@@ -1723,7 +1722,6 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    rule above would otherwise put around the ground of a dashed edge's label.
    Written after the tone rules on purpose: they set a stroke at the same
    specificity, so source order is what decides. */
-.psi-diagram .dg-edge > rect { stroke: none; }
 /* And no fill unless a tone asked for one. An SVG rect with no fill property
    is black, and this one is emitted in every frame of any edge that is ever
    given a tone - so without this rule an edge whose label gains a ground in
@@ -1765,6 +1763,17 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    so source order does not decide it. (No backticks in here: this whole
    stylesheet is a template literal, and one would end it.) */
 .psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape) { stroke: var(--ink); }
+
+/* A label's ground is never stroked, and this is where that has to be said.
+   It was written up with the two rules that create the ground, above the
+   tone rules that stroke - and .emph and .accent both set a stroke on the
+   same child selector at the very same specificity, so source order decided
+   it and they won. The result was a box drawn around a label the moment a step
+   emphasised it: on a sequence, where every message label now carries a
+   ground, emph @wa-msg-8 framed the words instead of thickening the arrow.
+   A bordered label is a box, and there is a statement for that. */
+.psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
+.psi-diagram .dg-edge > rect { stroke: none; }
 
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {
@@ -3457,7 +3466,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
       <div class="tag-label">The rest of the vocabulary</div>
       <p><code>dot</code> is a circle for junctions and glyphs. <code>container … over a,b,c</code> draws a box that fits itself around its members and re-fits when they move; <code>brace … over a,b right &quot;Label&quot;</code> is a bracket spanning a subset.</p>
 <p><code>table</code> and <code>lanes</code> expand into ordinary boxes the way <code>bars</code> and <code>grid</code> do. <code>table t &quot;Attack | Layer | Countermeasure&quot;</code> reads its rows off the quoted lines under it, names every cell <code>t-&lt;column&gt;-&lt;row&gt;</code> with the heading as row 0, and tags each one <code>@t-row-2</code> and <code>@t-col-0</code> – so lighting one row per beat is one line of source rather than a list of names to keep in step with the table above it. <code>lanes swim &quot;User | SOC | IT ops&quot;</code> draws bands of equal width with turned captions, which is the one thing a <code>container</code> cannot do: a container fits its members, so lanes holding different numbers of things come out ragged at both ends.</p>
-<p><code>sequence</code> draws a protocol down the page: <code>actor u &quot;User&quot;</code> lines for the columns, then <code>u -&gt; br &quot;click …&quot;</code> for the messages and <code>note au &quot;…&quot;</code> for the boxes that sit on a lifeline. It owns the vertical rhythm and nothing else – every entry states the height it needs and the statement stacks them, so a note pushes the messages under it down instead of cutting into their labels, and inserting a message is one line instead of thirteen. A message <em>is</em> an edge, so <code>{.dashed}</code> is a reply and <code>--</code> is a line without a head; <code>x -&gt; x</code> loops out of a lifeline and back for a local action. Everything a heavily annotated protocol slide needs after that comes from the names it generates – <code>wa-3</code> is the fourth message, <code>au-life</code> the authenticator&#39;s lifeline, <code>@wa-msg-3</code> and <code>@au-msgs</code> and <code>@wa-notes</code> the sets – so a <code>brace over wa-3,wa-4,wa-5</code> or a <code>text … -&gt; wa-2</code> is an ordinary line.</p>
+<p><code>sequence</code> draws a protocol down the page: <code>actor u &quot;User&quot;</code> lines for the columns, then <code>u -&gt; br &quot;click …&quot;</code> for the messages and <code>note au &quot;…&quot;</code> for the boxes that sit on a lifeline. It owns the vertical rhythm and nothing else – every entry states the height it needs and the statement stacks them, so a note pushes the messages under it down instead of cutting into their labels, and inserting a message is one line instead of thirteen. A message <em>is</em> an edge, so <code>{.dashed}</code> is a reply and <code>--</code> is a line without a head; <code>x -&gt; x</code> loops out of a lifeline and back for a local action. Everything a heavily annotated protocol slide needs after that comes from the names it generates – <code>wa-3</code> is the fourth message, <code>au-life</code> the authenticator&#39;s lifeline, <code>@wa-msg-3</code> and <code>@au-msgs</code> and <code>@wa-notes</code> the sets – so a <code>brace over wa-3,wa-4,wa-5</code> or a <code>text … -&gt; wa-2</code> is an ordinary line. Message labels bring their own paper ground, because a lifeline crosses every one of them, and <code>space 0.9</code> on a message or a note is the air above that one band – which is how a long protocol is broken into phases.</p>
 <p>A <strong>tag</strong> can be written wherever a name can, so <code>show @crypto</code> in a step covers every element carrying it. Membership sits on the element&#39;s own line, so adding an element to a set is a one-line edit.</p>
 <p>Placement also takes <code>between a,b</code> – the point on the line joining two elements, which is where a separator glyph or a note beside a connector goes – and any placement accepts a trailing <code>offset dx,dy</code>. An anchor can carry a fraction: <code>mix.right:0.3</code> slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side instead of on top of each other.</p>
 <p>Against repetition there are two more: <code>default box {.tone-4} w 1.15</code> sets the base for every box in the diagram (add a tag – <code>default box @dec w 0.48</code> – to refine it for one set), and <code>same as create</code> copies another element&#39;s width and height. The same <code>default</code> lines go in a <code>diagram-defaults:</code> frontmatter key when a whole lecture&#39;s figures should look like each other – then a block&#39;s own <code>default</code> overrides the lecture&#39;s for that one figure, and changing the house style is one edit.</p>
@@ -3520,7 +3529,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <g id="dg2-w3" data-base="dg-el dg-box" class="dg-el dg-box clear bottom right sharp"><rect id="dg2-w3--r" x="464.80" y="314.06" width="62.72" height="60.68" rx="4"/><g id="dg2-w3--lw0" data-lab="w3--l" class="dg-lwrap" transform="translate(517.68,346.15)"><g id="dg2-w3--l0" class="dg-lbl"><text text-anchor="end" font-size="15.00"><tspan x="0" y="-4.27">bottom</tspan><tspan x="0" y="14.48">right</tspan></text></g></g></g>
 <g id="dg2-w4" data-base="dg-el dg-box" class="dg-el dg-box tone-2 turn sharp"><rect id="dg2-w4--r" x="549.92" y="314.06" width="38.08" height="60.68" rx="4"/><g id="dg2-w4--lw0" data-lab="w4--l" class="dg-lwrap" transform="translate(568.96,344.40) rotate(-90)"><g id="dg2-w4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">turn</tspan></text></g></g></g>
 <g id="dg2-wl" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg2-wl--lw0" data-lab="wl--l" class="dg-lwrap" transform="translate(411.04,405.20)"><g id="dg2-wl--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">where the words sit</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"default box {.sharp} w 0.62 h 0.42 pad 0.12\n\n# The fills sit across a rule, so that .clear and .paper can be told apart:\n# one lets the line through, the other knocks a hole in it.\nedge -0.55,0 -- 4.85,0 {.muted}\nbox f1 \"paper\"  at 0,0 {.paper}\nbox f2 \"tone-1\" right of f1 gap 0.24 same as f1 {.tone-1}\nbox f3 \"tone-2\" right of f2 gap 0.24 same as f1 {.tone-2}\nbox f4 \"tone-3\" right of f3 gap 0.24 same as f1 {.tone-3}\nbox f5 \"tone-4\" right of f4 gap 0.24 same as f1 {.tone-4}\nbox f6 \"clear\"  right of f5 gap 0.24 same as f1 {.clear}\ntext fl \"fill\" left of f1 gap 0.5 {.muted .right}\n\nbox o1 \"round\"   at 0,1.1 {.round .tone-2}\nbox o2 \"sharp\"   right of o1 gap 0.24 same as o1 {.tone-2}\nbox o3 \"hex\"     right of o2 gap 0.24 same as o1 {.hex .tone-2}\nbox o4 \"chevron\" right of o3 gap 0.24 w 0.78 h 0.42 point right {.chevron .tone-2}\nbox o5 \"\"        right of o4 gap 0.3 w 0.42 h 0.42 point up {.wedge .tone-4}\n# A cross squares itself past this row's `default box … w`, the same way a\n# bars column ignores an inherited outline: the default is about the\n# rectangles in the block, and a plus sign is not one of them.\nbox o6 \"\"        right of o5 gap 0.3 {.cross .accent}\n# A diamond is sized at twice what its label would need in a rectangle, so it\n# is shown empty here like the wedge and the cross rather than made to hold\n# the word \"diamond\" and doubling the width of the whole row.\nbox o7 \"\"        right of o6 gap 0.3 w 0.5 h 0.42 {.diamond .tone-2}\ntext o5n \"wedge\" below o5 gap 0.16 {.small .muted}\ntext o6n \"cross\" below o6 gap 0.16 {.small .muted}\ntext o7n \"diamond\" below o7 gap 0.16 {.small .muted}\ntext ol \"outline\" left of o1 gap 0.5 {.muted .right}\n\nbox s1 \"dashed\" at 0,2.25 {.dashed .clear}\nbox s2 \"dotted\" right of s1 gap 0.24 same as s1 {.dotted .clear}\nbox s3 \"thick\"  right of s2 gap 0.24 same as s1 {.thick .clear}\nbox s4 \"bare\"   right of s3 gap 0.24 same as s1 {.bare .clear}\nbox s5 \"ghost\"  right of s4 gap 0.24 same as s1 {.ghost .tone-2}\nbox s6 \"dim\"    right of s5 gap 0.24 same as s1 {.dim .tone-2}\ntext sl \"stroke,\\nand presence\" left of s1 gap 0.5 {.muted .right}\n\n# Only the two ends of this row are placed. The five between them are named\n# in the order they should stand in and get equal centre distances, which is\n# what a row of seven specimens of seven different widths wants.\ntext t1 \"sans\"  at 0.3,3.2\ntext t7 \"bold\"  right of t1 gap 4.0 {.bold}\ntext t2 \"mono\"  right of t1 gap 0.4 {.mono}\ntext t3 \"serif\" right of t1 gap 0.4 {.serif}\ntext t4 \"hand\"  right of t1 gap 0.4 {.hand}\ntext t5 \"small\" right of t1 gap 0.4 {.small}\ntext t6 \"large\" right of t1 gap 0.4 {.large}\ntext tw \"family,\\nand size\" left of t1 gap 0.62 {.muted .right}\nspread x t1, t2, t3, t4, t5, t6, t7\n\nbox g1 \"a label that is too long\" at 0,4.2 w 1.2 h 0.5 {.shrink .clear}\nbox g2 \"short\" right of g1 gap 0.28 same as g1 {.fit .clear}\ntext n1 \"shrink\" below g1 gap 0.14 {.small .muted}\ntext n2 \"fit\"    below g2 gap 0.14 {.small .muted}\ntext gl \"type meets\\nits box\" left of g1 gap 0.5 {.muted .right}\n\nbox w1 \"top\\nleft\"     right of g2 gap 0.55 w 0.56 h 0.74 {.clear .top .left}\nbox w2 \"centred\"       right of w1 gap 0.2 same as w1 {.clear}\nbox w3 \"bottom\\nright\" right of w2 gap 0.2 same as w1 {.clear .bottom .right}\nbox w4 \"turn\"          right of w3 gap 0.2 w 0.34 h 0.74 {.tone-2 .turn}\ntext wl \"where the words sit\" below w2 gap 0.28 {.small .muted}\n\n# Five labels hanging off rows of five different lengths: the statement gives\n# them all the right edge of the first one.\nalign x right fl, ol, sl, tw, gl","attrs":"unit=112x82","range":[45329,48851],"chunk":"diagram-classes","width":"full","alt":"Looks, and lining things up"}</script></figure>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"default box {.sharp} w 0.62 h 0.42 pad 0.12\n\n# The fills sit across a rule, so that .clear and .paper can be told apart:\n# one lets the line through, the other knocks a hole in it.\nedge -0.55,0 -- 4.85,0 {.muted}\nbox f1 \"paper\"  at 0,0 {.paper}\nbox f2 \"tone-1\" right of f1 gap 0.24 same as f1 {.tone-1}\nbox f3 \"tone-2\" right of f2 gap 0.24 same as f1 {.tone-2}\nbox f4 \"tone-3\" right of f3 gap 0.24 same as f1 {.tone-3}\nbox f5 \"tone-4\" right of f4 gap 0.24 same as f1 {.tone-4}\nbox f6 \"clear\"  right of f5 gap 0.24 same as f1 {.clear}\ntext fl \"fill\" left of f1 gap 0.5 {.muted .right}\n\nbox o1 \"round\"   at 0,1.1 {.round .tone-2}\nbox o2 \"sharp\"   right of o1 gap 0.24 same as o1 {.tone-2}\nbox o3 \"hex\"     right of o2 gap 0.24 same as o1 {.hex .tone-2}\nbox o4 \"chevron\" right of o3 gap 0.24 w 0.78 h 0.42 point right {.chevron .tone-2}\nbox o5 \"\"        right of o4 gap 0.3 w 0.42 h 0.42 point up {.wedge .tone-4}\n# A cross squares itself past this row's `default box … w`, the same way a\n# bars column ignores an inherited outline: the default is about the\n# rectangles in the block, and a plus sign is not one of them.\nbox o6 \"\"        right of o5 gap 0.3 {.cross .accent}\n# A diamond is sized at twice what its label would need in a rectangle, so it\n# is shown empty here like the wedge and the cross rather than made to hold\n# the word \"diamond\" and doubling the width of the whole row.\nbox o7 \"\"        right of o6 gap 0.3 w 0.5 h 0.42 {.diamond .tone-2}\ntext o5n \"wedge\" below o5 gap 0.16 {.small .muted}\ntext o6n \"cross\" below o6 gap 0.16 {.small .muted}\ntext o7n \"diamond\" below o7 gap 0.16 {.small .muted}\ntext ol \"outline\" left of o1 gap 0.5 {.muted .right}\n\nbox s1 \"dashed\" at 0,2.25 {.dashed .clear}\nbox s2 \"dotted\" right of s1 gap 0.24 same as s1 {.dotted .clear}\nbox s3 \"thick\"  right of s2 gap 0.24 same as s1 {.thick .clear}\nbox s4 \"bare\"   right of s3 gap 0.24 same as s1 {.bare .clear}\nbox s5 \"ghost\"  right of s4 gap 0.24 same as s1 {.ghost .tone-2}\nbox s6 \"dim\"    right of s5 gap 0.24 same as s1 {.dim .tone-2}\ntext sl \"stroke,\\nand presence\" left of s1 gap 0.5 {.muted .right}\n\n# Only the two ends of this row are placed. The five between them are named\n# in the order they should stand in and get equal centre distances, which is\n# what a row of seven specimens of seven different widths wants.\ntext t1 \"sans\"  at 0.3,3.2\ntext t7 \"bold\"  right of t1 gap 4.0 {.bold}\ntext t2 \"mono\"  right of t1 gap 0.4 {.mono}\ntext t3 \"serif\" right of t1 gap 0.4 {.serif}\ntext t4 \"hand\"  right of t1 gap 0.4 {.hand}\ntext t5 \"small\" right of t1 gap 0.4 {.small}\ntext t6 \"large\" right of t1 gap 0.4 {.large}\ntext tw \"family,\\nand size\" left of t1 gap 0.62 {.muted .right}\nspread x t1, t2, t3, t4, t5, t6, t7\n\nbox g1 \"a label that is too long\" at 0,4.2 w 1.2 h 0.5 {.shrink .clear}\nbox g2 \"short\" right of g1 gap 0.28 same as g1 {.fit .clear}\ntext n1 \"shrink\" below g1 gap 0.14 {.small .muted}\ntext n2 \"fit\"    below g2 gap 0.14 {.small .muted}\ntext gl \"type meets\\nits box\" left of g1 gap 0.5 {.muted .right}\n\nbox w1 \"top\\nleft\"     right of g2 gap 0.55 w 0.56 h 0.74 {.clear .top .left}\nbox w2 \"centred\"       right of w1 gap 0.2 same as w1 {.clear}\nbox w3 \"bottom\\nright\" right of w2 gap 0.2 same as w1 {.clear .bottom .right}\nbox w4 \"turn\"          right of w3 gap 0.2 w 0.34 h 0.74 {.tone-2 .turn}\ntext wl \"where the words sit\" below w2 gap 0.28 {.small .muted}\n\n# Five labels hanging off rows of five different lengths: the statement gives\n# them all the right edge of the first one.\nalign x right fl, ol, sl, tw, gl","attrs":"unit=112x82","range":[45544,49066],"chunk":"diagram-classes","width":"full","alt":"Looks, and lining things up"}</script></figure>
 
 
 <p><strong>Every row of that sheet holds at least one slot.</strong> Three of them hold more than one, where the slots belong together – stroke pattern beside stroke weight beside the two retreats, <code>.ghost</code> and <code>.dim</code>; family beside size; and the words that place a label across beside the ones that place it down – and the two ink classes have no row at all, because they are at work over the whole sheet: <code>.accent</code> on the cross, <code>.muted</code> on every caption. <strong>Forty names in all, and <code>lint.js</code> refuses anything else</strong> – a typo is a build error, not a box that comes out unstyled.</p>
@@ -3614,7 +3623,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <g id="dg3-chn" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg3-chn--lw0" data-lab="chn--l" class="dg-lwrap" transform="translate(281.20,67.16)"><g id="dg3-chn--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">one dot per chunk,</tspan><tspan x="0" y="11.58">tinted where a figure lives</tspan></text></g></g></g>
 <g id="dg3-wc-base" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted front"><path id="dg3-wc-base--p" class="dg-stroke" d="M-170.20 33.60L170.20 33.60" fill="none"/></g>
 <g id="dg3-lim" data-base="dg-el dg-edge" class="dg-el dg-edge accent dashed front no-head"><path id="dg3-lim--p" class="dg-stroke" d="M-170.20 -14.40L170.20 -14.40" fill="none"/></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg3-root">{"p":"dg3-","n":3,"kinds":{"long--p":"path","long--l":"text","wc--r":"rect","wc-0--r":"rect","wc-1--r":"rect","wc-2--r":"rect","wc-3--r":"rect","wc-4--r":"rect","wc-5--r":"rect","wc-6--r":"rect","wc-7--r":"rect","wc-8--r":"rect","wc-9--r":"rect","wc-10--r":"rect","wc-11--r":"rect","limn--l":"text","wcn--l":"text","ch--r":"rect","ch-0-0--c":"circle","ch-1-0--c":"circle","ch-2-0--c":"circle","ch-3-0--c":"circle","ch-4-0--c":"circle","ch-5-0--c":"circle","ch-6-0--c":"circle","ch-7-0--c":"circle","ch-0-1--c":"circle","ch-1-1--c":"circle","ch-2-1--c":"circle","ch-3-1--c":"circle","ch-4-1--c":"circle","ch-5-1--c":"circle","ch-6-1--c":"circle","ch-7-1--c":"circle","ch-0-2--c":"circle","ch-1-2--c":"circle","ch-2-2--c":"circle","ch-3-2--c":"circle","ch-4-2--c":"circle","ch-5-2--c":"circle","ch-6-2--c":"circle","ch-7-2--c":"circle","ch-0-3--c":"circle","ch-1-3--c":"circle","ch-2-3--c":"circle","ch-3-3--c":"circle","ch-4-3--c":"circle","ch-5-3--c":"circle","ch-6-3--c":"circle","ch-7-3--c":"circle","ch-0-4--c":"circle","ch-1-4--c":"circle","ch-2-4--c":"circle","ch-3-4--c":"circle","ch-4-4--c":"circle","ch-5-4--c":"circle","ch-6-4--c":"circle","ch-7-4--c":"circle","chn--l":"text","wc-base--p":"path","lim--p":"path"},"names":["over","figures"],"frames":[{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp tone-3","wc-1":"sharp tone-3","wc-2":"sharp tone-3","wc-3":"sharp tone-3","wc-4":"sharp tone-3","wc-5":"sharp tone-3","wc-6":"sharp tone-3","wc-7":"sharp tone-3","wc-8":"sharp tone-3","wc-9":"sharp tone-3","wc-10":"sharp tone-3","wc-11":"sharp tone-3","limn":"small accent","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-2","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-2","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-2","ch-7-3":"tone-2","ch-0-4":"tone-2","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"accent dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-165.76,-33.6,19.49,67.2],"wc-1--r":[-137.39,-26.13,19.49,59.73],"wc-2--r":[-109.03,-22.4,19.49,56],"wc-3--r":[-80.66,-11.2,19.49,44.8],"wc-4--r":[-52.29,-7.47,19.49,41.07],"wc-5--r":[-23.93,0,19.49,33.6],"wc-6--r":[4.44,3.73,19.49,29.87],"wc-7--r":[32.81,7.47,19.49,26.13],"wc-8--r":[61.17,11.2,19.49,22.4],"wc-9--r":[89.54,14.93,19.49,18.67],"wc-10--r":[117.91,18.67,19.49,14.93],"wc-11--r":[146.27,22.4,19.49,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[281.2,-32.96,108.16,65.92],"ch-0-0--c":[286,-28.16,4.8],"ch-1-0--c":[300.08,-28.16,4.8],"ch-2-0--c":[314.16,-28.16,4.8],"ch-3-0--c":[328.24,-28.16,4.8],"ch-4-0--c":[342.32,-28.16,4.8],"ch-5-0--c":[356.4,-28.16,4.8],"ch-6-0--c":[370.48,-28.16,4.8],"ch-7-0--c":[384.56,-28.16,4.8],"ch-0-1--c":[286,-14.08,4.8],"ch-1-1--c":[300.08,-14.08,4.8],"ch-2-1--c":[314.16,-14.08,4.8],"ch-3-1--c":[328.24,-14.08,4.8],"ch-4-1--c":[342.32,-14.08,4.8],"ch-5-1--c":[356.4,-14.08,4.8],"ch-6-1--c":[370.48,-14.08,4.8],"ch-7-1--c":[384.56,-14.08,4.8],"ch-0-2--c":[286,0,4.8],"ch-1-2--c":[300.08,0,4.8],"ch-2-2--c":[314.16,0,4.8],"ch-3-2--c":[328.24,0,4.8],"ch-4-2--c":[342.32,0,4.8],"ch-5-2--c":[356.4,0,4.8],"ch-6-2--c":[370.48,0,4.8],"ch-7-2--c":[384.56,0,4.8],"ch-0-3--c":[286,14.08,4.8],"ch-1-3--c":[300.08,14.08,4.8],"ch-2-3--c":[314.16,14.08,4.8],"ch-3-3--c":[328.24,14.08,4.8],"ch-4-3--c":[342.32,14.08,4.8],"ch-5-3--c":[356.4,14.08,4.8],"ch-6-3--c":[370.48,14.08,4.8],"ch-7-3--c":[384.56,14.08,4.8],"ch-0-4--c":[286,28.16,4.8],"ch-1-4--c":[300.08,28.16,4.8],"ch-2-4--c":[314.16,28.16,4.8],"ch-3-4--c":[328.24,28.16,4.8],"ch-4-4--c":[342.32,28.16,4.8],"ch-5-4--c":[356.4,28.16,4.8],"ch-6-4--c":[370.48,28.16,4.8],"ch-7-4--c":[384.56,28.16,4.8],"chn--l":[281.2,67.16,0],"long--p":[-165.76,62.4,-165.76,69.4,-89.54,69.4,-89.54,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4]}},{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp tone-3 emph","wc-1":"sharp tone-3 emph","wc-2":"sharp tone-3 emph","wc-3":"sharp tone-3","wc-4":"sharp tone-3","wc-5":"sharp tone-3","wc-6":"sharp tone-3","wc-7":"sharp tone-3","wc-8":"sharp tone-3","wc-9":"sharp tone-3","wc-10":"sharp tone-3","wc-11":"sharp tone-3","limn":"small accent","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-2","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-2","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-2","ch-7-3":"tone-2","ch-0-4":"tone-2","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"accent dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-165.76,-33.6,19.49,67.2],"wc-1--r":[-137.39,-26.13,19.49,59.73],"wc-2--r":[-109.03,-22.4,19.49,56],"wc-3--r":[-80.66,-11.2,19.49,44.8],"wc-4--r":[-52.29,-7.47,19.49,41.07],"wc-5--r":[-23.93,0,19.49,33.6],"wc-6--r":[4.44,3.73,19.49,29.87],"wc-7--r":[32.81,7.47,19.49,26.13],"wc-8--r":[61.17,11.2,19.49,22.4],"wc-9--r":[89.54,14.93,19.49,18.67],"wc-10--r":[117.91,18.67,19.49,14.93],"wc-11--r":[146.27,22.4,19.49,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[281.2,-32.96,108.16,65.92],"ch-0-0--c":[286,-28.16,4.8],"ch-1-0--c":[300.08,-28.16,4.8],"ch-2-0--c":[314.16,-28.16,4.8],"ch-3-0--c":[328.24,-28.16,4.8],"ch-4-0--c":[342.32,-28.16,4.8],"ch-5-0--c":[356.4,-28.16,4.8],"ch-6-0--c":[370.48,-28.16,4.8],"ch-7-0--c":[384.56,-28.16,4.8],"ch-0-1--c":[286,-14.08,4.8],"ch-1-1--c":[300.08,-14.08,4.8],"ch-2-1--c":[314.16,-14.08,4.8],"ch-3-1--c":[328.24,-14.08,4.8],"ch-4-1--c":[342.32,-14.08,4.8],"ch-5-1--c":[356.4,-14.08,4.8],"ch-6-1--c":[370.48,-14.08,4.8],"ch-7-1--c":[384.56,-14.08,4.8],"ch-0-2--c":[286,0,4.8],"ch-1-2--c":[300.08,0,4.8],"ch-2-2--c":[314.16,0,4.8],"ch-3-2--c":[328.24,0,4.8],"ch-4-2--c":[342.32,0,4.8],"ch-5-2--c":[356.4,0,4.8],"ch-6-2--c":[370.48,0,4.8],"ch-7-2--c":[384.56,0,4.8],"ch-0-3--c":[286,14.08,4.8],"ch-1-3--c":[300.08,14.08,4.8],"ch-2-3--c":[314.16,14.08,4.8],"ch-3-3--c":[328.24,14.08,4.8],"ch-4-3--c":[342.32,14.08,4.8],"ch-5-3--c":[356.4,14.08,4.8],"ch-6-3--c":[370.48,14.08,4.8],"ch-7-3--c":[384.56,14.08,4.8],"ch-0-4--c":[286,28.16,4.8],"ch-1-4--c":[300.08,28.16,4.8],"ch-2-4--c":[314.16,28.16,4.8],"ch-3-4--c":[328.24,28.16,4.8],"ch-4-4--c":[342.32,28.16,4.8],"ch-5-4--c":[356.4,28.16,4.8],"ch-6-4--c":[370.48,28.16,4.8],"ch-7-4--c":[384.56,28.16,4.8],"chn--l":[281.2,67.16,0],"long--p":[-165.76,62.4,-165.76,69.4,-89.54,69.4,-89.54,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4]}},{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp tone-3 emph","wc-1":"sharp tone-3 emph","wc-2":"sharp tone-3 emph","wc-3":"sharp tone-3","wc-4":"sharp tone-3","wc-5":"sharp tone-3","wc-6":"sharp tone-3","wc-7":"sharp tone-3","wc-8":"sharp tone-3","wc-9":"sharp tone-3","wc-10":"sharp tone-3","wc-11":"sharp tone-3","limn":"small accent","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-4","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-4","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-4","ch-7-3":"tone-2","ch-0-4":"tone-4","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"accent dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-165.76,-33.6,19.49,67.2],"wc-1--r":[-137.39,-26.13,19.49,59.73],"wc-2--r":[-109.03,-22.4,19.49,56],"wc-3--r":[-80.66,-11.2,19.49,44.8],"wc-4--r":[-52.29,-7.47,19.49,41.07],"wc-5--r":[-23.93,0,19.49,33.6],"wc-6--r":[4.44,3.73,19.49,29.87],"wc-7--r":[32.81,7.47,19.49,26.13],"wc-8--r":[61.17,11.2,19.49,22.4],"wc-9--r":[89.54,14.93,19.49,18.67],"wc-10--r":[117.91,18.67,19.49,14.93],"wc-11--r":[146.27,22.4,19.49,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[281.2,-32.96,108.16,65.92],"ch-0-0--c":[286,-28.16,4.8],"ch-1-0--c":[300.08,-28.16,4.8],"ch-2-0--c":[314.16,-28.16,4.8],"ch-3-0--c":[328.24,-28.16,4.8],"ch-4-0--c":[342.32,-28.16,4.8],"ch-5-0--c":[356.4,-28.16,4.8],"ch-6-0--c":[370.48,-28.16,4.8],"ch-7-0--c":[384.56,-28.16,4.8],"ch-0-1--c":[286,-14.08,4.8],"ch-1-1--c":[300.08,-14.08,4.8],"ch-2-1--c":[314.16,-14.08,4.8],"ch-3-1--c":[328.24,-14.08,4.8],"ch-4-1--c":[342.32,-14.08,4.8],"ch-5-1--c":[356.4,-14.08,4.8],"ch-6-1--c":[370.48,-14.08,4.8],"ch-7-1--c":[384.56,-14.08,4.8],"ch-0-2--c":[286,0,4.8],"ch-1-2--c":[300.08,0,4.8],"ch-2-2--c":[314.16,0,4.8],"ch-3-2--c":[328.24,0,4.8],"ch-4-2--c":[342.32,0,4.8],"ch-5-2--c":[356.4,0,4.8],"ch-6-2--c":[370.48,0,4.8],"ch-7-2--c":[384.56,0,4.8],"ch-0-3--c":[286,14.08,4.8],"ch-1-3--c":[300.08,14.08,4.8],"ch-2-3--c":[314.16,14.08,4.8],"ch-3-3--c":[328.24,14.08,4.8],"ch-4-3--c":[342.32,14.08,4.8],"ch-5-3--c":[356.4,14.08,4.8],"ch-6-3--c":[370.48,14.08,4.8],"ch-7-3--c":[384.56,14.08,4.8],"ch-0-4--c":[286,28.16,4.8],"ch-1-4--c":[300.08,28.16,4.8],"ch-2-4--c":[314.16,28.16,4.8],"ch-3-4--c":[328.24,28.16,4.8],"ch-4-4--c":[342.32,28.16,4.8],"ch-5-4--c":[356.4,28.16,4.8],"ch-6-4--c":[370.48,28.16,4.8],"ch-7-4--c":[384.56,28.16,4.8],"chn--l":[281.2,67.16,0],"long--p":[-165.76,62.4,-165.76,69.4,-89.54,69.4,-89.54,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"bars wc \"18,16,15,12,11,9,8,7,6,5,4,3\" at 0,0 w 2.3 h 1.05 space 0.06 {.tone-3}\nbrace long over wc-0,wc-1,wc-2 bottom \"the three to rewrite\" pad 0.45 {.small .muted}\n# In front, or the columns cover the line and it shows only in the gaps.\nedge wc.left,wc.top+0.3 -- wc.right,wc.top+0.3 {#lim .accent .dashed .front}\ntext limn \"budget\" at wc.right-0.28,wc.top+0.1 {.small .accent}\ntext wcn \"words per chunk\" above wc gap 0.3 align left {.small .muted .left}\n\ngrid ch dot 8x5 right of wc gap 0.75 cell 0.15 space 0.07 {.tone-2}\ntext chn \"one dot per chunk,\\ntinted where a figure lives\" below ch gap 0.3 align left {.small .muted .left}\n\nstep over\n  emph wc-0, wc-1, wc-2\nstep figures\n  style ch-1-0, ch-4-2, ch-6-3, ch-0-4 {.tone-4}","attrs":"unit=148x64","range":[53724,54455],"chunk":"diagram-charts","width":"full","alt":"Charts, without a chart library"}</script></figure>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg3-root">{"p":"dg3-","n":3,"kinds":{"long--p":"path","long--l":"text","wc--r":"rect","wc-0--r":"rect","wc-1--r":"rect","wc-2--r":"rect","wc-3--r":"rect","wc-4--r":"rect","wc-5--r":"rect","wc-6--r":"rect","wc-7--r":"rect","wc-8--r":"rect","wc-9--r":"rect","wc-10--r":"rect","wc-11--r":"rect","limn--l":"text","wcn--l":"text","ch--r":"rect","ch-0-0--c":"circle","ch-1-0--c":"circle","ch-2-0--c":"circle","ch-3-0--c":"circle","ch-4-0--c":"circle","ch-5-0--c":"circle","ch-6-0--c":"circle","ch-7-0--c":"circle","ch-0-1--c":"circle","ch-1-1--c":"circle","ch-2-1--c":"circle","ch-3-1--c":"circle","ch-4-1--c":"circle","ch-5-1--c":"circle","ch-6-1--c":"circle","ch-7-1--c":"circle","ch-0-2--c":"circle","ch-1-2--c":"circle","ch-2-2--c":"circle","ch-3-2--c":"circle","ch-4-2--c":"circle","ch-5-2--c":"circle","ch-6-2--c":"circle","ch-7-2--c":"circle","ch-0-3--c":"circle","ch-1-3--c":"circle","ch-2-3--c":"circle","ch-3-3--c":"circle","ch-4-3--c":"circle","ch-5-3--c":"circle","ch-6-3--c":"circle","ch-7-3--c":"circle","ch-0-4--c":"circle","ch-1-4--c":"circle","ch-2-4--c":"circle","ch-3-4--c":"circle","ch-4-4--c":"circle","ch-5-4--c":"circle","ch-6-4--c":"circle","ch-7-4--c":"circle","chn--l":"text","wc-base--p":"path","lim--p":"path"},"names":["over","figures"],"frames":[{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp tone-3","wc-1":"sharp tone-3","wc-2":"sharp tone-3","wc-3":"sharp tone-3","wc-4":"sharp tone-3","wc-5":"sharp tone-3","wc-6":"sharp tone-3","wc-7":"sharp tone-3","wc-8":"sharp tone-3","wc-9":"sharp tone-3","wc-10":"sharp tone-3","wc-11":"sharp tone-3","limn":"small accent","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-2","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-2","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-2","ch-7-3":"tone-2","ch-0-4":"tone-2","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"accent dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-165.76,-33.6,19.49,67.2],"wc-1--r":[-137.39,-26.13,19.49,59.73],"wc-2--r":[-109.03,-22.4,19.49,56],"wc-3--r":[-80.66,-11.2,19.49,44.8],"wc-4--r":[-52.29,-7.47,19.49,41.07],"wc-5--r":[-23.93,0,19.49,33.6],"wc-6--r":[4.44,3.73,19.49,29.87],"wc-7--r":[32.81,7.47,19.49,26.13],"wc-8--r":[61.17,11.2,19.49,22.4],"wc-9--r":[89.54,14.93,19.49,18.67],"wc-10--r":[117.91,18.67,19.49,14.93],"wc-11--r":[146.27,22.4,19.49,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[281.2,-32.96,108.16,65.92],"ch-0-0--c":[286,-28.16,4.8],"ch-1-0--c":[300.08,-28.16,4.8],"ch-2-0--c":[314.16,-28.16,4.8],"ch-3-0--c":[328.24,-28.16,4.8],"ch-4-0--c":[342.32,-28.16,4.8],"ch-5-0--c":[356.4,-28.16,4.8],"ch-6-0--c":[370.48,-28.16,4.8],"ch-7-0--c":[384.56,-28.16,4.8],"ch-0-1--c":[286,-14.08,4.8],"ch-1-1--c":[300.08,-14.08,4.8],"ch-2-1--c":[314.16,-14.08,4.8],"ch-3-1--c":[328.24,-14.08,4.8],"ch-4-1--c":[342.32,-14.08,4.8],"ch-5-1--c":[356.4,-14.08,4.8],"ch-6-1--c":[370.48,-14.08,4.8],"ch-7-1--c":[384.56,-14.08,4.8],"ch-0-2--c":[286,0,4.8],"ch-1-2--c":[300.08,0,4.8],"ch-2-2--c":[314.16,0,4.8],"ch-3-2--c":[328.24,0,4.8],"ch-4-2--c":[342.32,0,4.8],"ch-5-2--c":[356.4,0,4.8],"ch-6-2--c":[370.48,0,4.8],"ch-7-2--c":[384.56,0,4.8],"ch-0-3--c":[286,14.08,4.8],"ch-1-3--c":[300.08,14.08,4.8],"ch-2-3--c":[314.16,14.08,4.8],"ch-3-3--c":[328.24,14.08,4.8],"ch-4-3--c":[342.32,14.08,4.8],"ch-5-3--c":[356.4,14.08,4.8],"ch-6-3--c":[370.48,14.08,4.8],"ch-7-3--c":[384.56,14.08,4.8],"ch-0-4--c":[286,28.16,4.8],"ch-1-4--c":[300.08,28.16,4.8],"ch-2-4--c":[314.16,28.16,4.8],"ch-3-4--c":[328.24,28.16,4.8],"ch-4-4--c":[342.32,28.16,4.8],"ch-5-4--c":[356.4,28.16,4.8],"ch-6-4--c":[370.48,28.16,4.8],"ch-7-4--c":[384.56,28.16,4.8],"chn--l":[281.2,67.16,0],"long--p":[-165.76,62.4,-165.76,69.4,-89.54,69.4,-89.54,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4]}},{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp tone-3 emph","wc-1":"sharp tone-3 emph","wc-2":"sharp tone-3 emph","wc-3":"sharp tone-3","wc-4":"sharp tone-3","wc-5":"sharp tone-3","wc-6":"sharp tone-3","wc-7":"sharp tone-3","wc-8":"sharp tone-3","wc-9":"sharp tone-3","wc-10":"sharp tone-3","wc-11":"sharp tone-3","limn":"small accent","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-2","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-2","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-2","ch-7-3":"tone-2","ch-0-4":"tone-2","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"accent dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-165.76,-33.6,19.49,67.2],"wc-1--r":[-137.39,-26.13,19.49,59.73],"wc-2--r":[-109.03,-22.4,19.49,56],"wc-3--r":[-80.66,-11.2,19.49,44.8],"wc-4--r":[-52.29,-7.47,19.49,41.07],"wc-5--r":[-23.93,0,19.49,33.6],"wc-6--r":[4.44,3.73,19.49,29.87],"wc-7--r":[32.81,7.47,19.49,26.13],"wc-8--r":[61.17,11.2,19.49,22.4],"wc-9--r":[89.54,14.93,19.49,18.67],"wc-10--r":[117.91,18.67,19.49,14.93],"wc-11--r":[146.27,22.4,19.49,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[281.2,-32.96,108.16,65.92],"ch-0-0--c":[286,-28.16,4.8],"ch-1-0--c":[300.08,-28.16,4.8],"ch-2-0--c":[314.16,-28.16,4.8],"ch-3-0--c":[328.24,-28.16,4.8],"ch-4-0--c":[342.32,-28.16,4.8],"ch-5-0--c":[356.4,-28.16,4.8],"ch-6-0--c":[370.48,-28.16,4.8],"ch-7-0--c":[384.56,-28.16,4.8],"ch-0-1--c":[286,-14.08,4.8],"ch-1-1--c":[300.08,-14.08,4.8],"ch-2-1--c":[314.16,-14.08,4.8],"ch-3-1--c":[328.24,-14.08,4.8],"ch-4-1--c":[342.32,-14.08,4.8],"ch-5-1--c":[356.4,-14.08,4.8],"ch-6-1--c":[370.48,-14.08,4.8],"ch-7-1--c":[384.56,-14.08,4.8],"ch-0-2--c":[286,0,4.8],"ch-1-2--c":[300.08,0,4.8],"ch-2-2--c":[314.16,0,4.8],"ch-3-2--c":[328.24,0,4.8],"ch-4-2--c":[342.32,0,4.8],"ch-5-2--c":[356.4,0,4.8],"ch-6-2--c":[370.48,0,4.8],"ch-7-2--c":[384.56,0,4.8],"ch-0-3--c":[286,14.08,4.8],"ch-1-3--c":[300.08,14.08,4.8],"ch-2-3--c":[314.16,14.08,4.8],"ch-3-3--c":[328.24,14.08,4.8],"ch-4-3--c":[342.32,14.08,4.8],"ch-5-3--c":[356.4,14.08,4.8],"ch-6-3--c":[370.48,14.08,4.8],"ch-7-3--c":[384.56,14.08,4.8],"ch-0-4--c":[286,28.16,4.8],"ch-1-4--c":[300.08,28.16,4.8],"ch-2-4--c":[314.16,28.16,4.8],"ch-3-4--c":[328.24,28.16,4.8],"ch-4-4--c":[342.32,28.16,4.8],"ch-5-4--c":[356.4,28.16,4.8],"ch-6-4--c":[370.48,28.16,4.8],"ch-7-4--c":[384.56,28.16,4.8],"chn--l":[281.2,67.16,0],"long--p":[-165.76,62.4,-165.76,69.4,-89.54,69.4,-89.54,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4]}},{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp tone-3 emph","wc-1":"sharp tone-3 emph","wc-2":"sharp tone-3 emph","wc-3":"sharp tone-3","wc-4":"sharp tone-3","wc-5":"sharp tone-3","wc-6":"sharp tone-3","wc-7":"sharp tone-3","wc-8":"sharp tone-3","wc-9":"sharp tone-3","wc-10":"sharp tone-3","wc-11":"sharp tone-3","limn":"small accent","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-4","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-4","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-4","ch-7-3":"tone-2","ch-0-4":"tone-4","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"accent dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-165.76,-33.6,19.49,67.2],"wc-1--r":[-137.39,-26.13,19.49,59.73],"wc-2--r":[-109.03,-22.4,19.49,56],"wc-3--r":[-80.66,-11.2,19.49,44.8],"wc-4--r":[-52.29,-7.47,19.49,41.07],"wc-5--r":[-23.93,0,19.49,33.6],"wc-6--r":[4.44,3.73,19.49,29.87],"wc-7--r":[32.81,7.47,19.49,26.13],"wc-8--r":[61.17,11.2,19.49,22.4],"wc-9--r":[89.54,14.93,19.49,18.67],"wc-10--r":[117.91,18.67,19.49,14.93],"wc-11--r":[146.27,22.4,19.49,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[281.2,-32.96,108.16,65.92],"ch-0-0--c":[286,-28.16,4.8],"ch-1-0--c":[300.08,-28.16,4.8],"ch-2-0--c":[314.16,-28.16,4.8],"ch-3-0--c":[328.24,-28.16,4.8],"ch-4-0--c":[342.32,-28.16,4.8],"ch-5-0--c":[356.4,-28.16,4.8],"ch-6-0--c":[370.48,-28.16,4.8],"ch-7-0--c":[384.56,-28.16,4.8],"ch-0-1--c":[286,-14.08,4.8],"ch-1-1--c":[300.08,-14.08,4.8],"ch-2-1--c":[314.16,-14.08,4.8],"ch-3-1--c":[328.24,-14.08,4.8],"ch-4-1--c":[342.32,-14.08,4.8],"ch-5-1--c":[356.4,-14.08,4.8],"ch-6-1--c":[370.48,-14.08,4.8],"ch-7-1--c":[384.56,-14.08,4.8],"ch-0-2--c":[286,0,4.8],"ch-1-2--c":[300.08,0,4.8],"ch-2-2--c":[314.16,0,4.8],"ch-3-2--c":[328.24,0,4.8],"ch-4-2--c":[342.32,0,4.8],"ch-5-2--c":[356.4,0,4.8],"ch-6-2--c":[370.48,0,4.8],"ch-7-2--c":[384.56,0,4.8],"ch-0-3--c":[286,14.08,4.8],"ch-1-3--c":[300.08,14.08,4.8],"ch-2-3--c":[314.16,14.08,4.8],"ch-3-3--c":[328.24,14.08,4.8],"ch-4-3--c":[342.32,14.08,4.8],"ch-5-3--c":[356.4,14.08,4.8],"ch-6-3--c":[370.48,14.08,4.8],"ch-7-3--c":[384.56,14.08,4.8],"ch-0-4--c":[286,28.16,4.8],"ch-1-4--c":[300.08,28.16,4.8],"ch-2-4--c":[314.16,28.16,4.8],"ch-3-4--c":[328.24,28.16,4.8],"ch-4-4--c":[342.32,28.16,4.8],"ch-5-4--c":[356.4,28.16,4.8],"ch-6-4--c":[370.48,28.16,4.8],"ch-7-4--c":[384.56,28.16,4.8],"chn--l":[281.2,67.16,0],"long--p":[-165.76,62.4,-165.76,69.4,-89.54,69.4,-89.54,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"bars wc \"18,16,15,12,11,9,8,7,6,5,4,3\" at 0,0 w 2.3 h 1.05 space 0.06 {.tone-3}\nbrace long over wc-0,wc-1,wc-2 bottom \"the three to rewrite\" pad 0.45 {.small .muted}\n# In front, or the columns cover the line and it shows only in the gaps.\nedge wc.left,wc.top+0.3 -- wc.right,wc.top+0.3 {#lim .accent .dashed .front}\ntext limn \"budget\" at wc.right-0.28,wc.top+0.1 {.small .accent}\ntext wcn \"words per chunk\" above wc gap 0.3 align left {.small .muted .left}\n\ngrid ch dot 8x5 right of wc gap 0.75 cell 0.15 space 0.07 {.tone-2}\ntext chn \"one dot per chunk,\\ntinted where a figure lives\" below ch gap 0.3 align left {.small .muted .left}\n\nstep over\n  emph wc-0, wc-1, wc-2\nstep figures\n  style ch-1-0, ch-4-2, ch-6-3, ch-0-4 {.tone-4}","attrs":"unit=148x64","range":[53939,54670],"chunk":"diagram-charts","width":"full","alt":"Charts, without a chart library"}</script></figure>
 
 
 <p><strong>A <code>brace</code> spans three of the columns and a <code>style</code> step tints four of the cells, because both are ordinary boxes</strong> – named after the statement they came out of: <code>wc-0</code>, <code>wc-1</code>, … for the columns and <code>ch-1-0</code>, <code>ch-4-2</code>, … for the cells. The budget line is an ordinary edge between two coordinates read off the chart&#39;s own frame, <code>.front</code> because otherwise the columns cover it and it shows only in the gaps. The spacing <em>inside</em> these statements is <code>space</code>, never <code>gap</code>: the placement on the same line already uses that word for the distance to another element.</p>
@@ -3632,7 +3641,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <g id="dg4-hour-tick-3" data-base="dg-el dg-text" class="dg-el dg-text small muted right"><g id="dg4-hour-tick-3--lw0" data-lab="hour-tick-3--l" class="dg-lwrap" transform="translate(-136.50,23.44)"><g id="dg4-hour-tick-3--l0" class="dg-lbl"><text text-anchor="end" font-size="12.00"><tspan x="0" y="4.08">fighting the tooling</tspan></text></g></g></g>
 <g id="dg4-hourn" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg4-hourn--lw0" data-lab="hourn--l" class="dg-lwrap" transform="translate(0.00,63.75)"><g id="dg4-hourn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">minutes, in the hour before a lecture</tspan></text></g></g></g>
 <g id="dg4-hour-base" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted front"><path id="dg4-hour-base--p" class="dg-stroke" d="M-127.50 -31.25L-127.50 31.25" fill="none"/></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"bars hour \"31,24,18,9\" \"writing the prose | drawing the figures | fixing one wording | fighting the tooling\" at 0,0 horizontal w 1.7 h 1.25 emph 1 {.tone-2}\ntext hourn \"minutes, in the hour before a lecture\" below hour gap 0.5 {.small .muted}","attrs":"unit=150x50","range":[56501,56743],"chunk":"diagram-charts","width":"full","alt":"Charts, without a chart library"}</script></figure>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"bars hour \"31,24,18,9\" \"writing the prose | drawing the figures | fixing one wording | fighting the tooling\" at 0,0 horizontal w 1.7 h 1.25 emph 1 {.tone-2}\ntext hourn \"minutes, in the hour before a lecture\" below hour gap 0.5 {.small .muted}","attrs":"unit=150x50","range":[56716,56958],"chunk":"diagram-charts","width":"full","alt":"Charts, without a chart library"}</script></figure>
 
 
 <p><strong><code>w</code> and <code>h</code> are grid units, and a grid cell is not square – so the two numbers do not describe the shape on the page.</strong> At the <code>unit=150x54</code> of the figure below, a plot written <code>w 1.9 h 1.5</code> lands 285px by 81px, which is nothing like 1.9 by 1.5. <code>aspect 4:3</code>, <code>aspect 1:1</code>, or one bare number meaning that many wide to one tall, states the proportion the reader actually sees and lets the build work the other number out. Both <code>bars</code> and <code>plot</code> take it, and giving <code>w</code>, <code>h</code> and <code>aspect</code> together is an error: two of the three would have to lose, and nothing on the line says which.</p>
@@ -3670,7 +3679,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <g id="dg5-mark" data-base="dg-el dg-dot" class="dg-el dg-dot accent"><circle id="dg5-mark--c" cx="-27.00" cy="40.50" r="4.32"/></g>
 <g id="dg5-evenn" data-base="dg-el dg-text" class="dg-el dg-text small paper"><rect id="dg5-evenn--r" x="100.26" y="-79.79" width="69.48" height="27.96" rx="4"/><g id="dg5-evenn--lw0" data-lab="evenn--l" class="dg-lwrap" transform="translate(135.00,-65.81)"><g id="dg5-evenn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">even pace</tspan></text></g></g></g>
 <g id="dg5-realn" data-base="dg-el dg-text" class="dg-el dg-text small hand paper"><rect id="dg5-realn--r" x="-111.18" y="-77.17" width="114.36" height="42.96" rx="4"/><g id="dg5-realn--lw0" data-lab="realn--l" class="dg-lwrap" transform="translate(-54.00,-55.69)"><g id="dg5-realn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="-3.42">the first third</tspan><tspan x="0" y="11.58">always runs long</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg5-root">{"p":"dg5-","n":3,"kinds":{"pace-gx-0--p":"path","pace-gx-1--p":"path","pace-gx-2--p":"path","pace-gx-3--p":"path","pace-gx-4--p":"path","pace-gx-5--p":"path","pace-gx-6--p":"path","pace-gy-0--p":"path","pace-gy-1--p":"path","pace-gy-2--p":"path","pace-gy-3--p":"path","pace-gy-4--p":"path","even--p":"path","real--p":"spline","realn--lead--p":"path","pace--r":"rect","pace-xt-0--l":"text","pace-xt-1--l":"text","pace-xt-2--l":"text","pace-xt-3--l":"text","pace-xt-4--l":"text","pace-xt-5--l":"text","pace-xt-6--l":"text","pace-yt-0--l":"text","pace-yt-1--l":"text","pace-yt-2--l":"text","pace-yt-3--l":"text","pace-yt-4--l":"text","pace-xl--l":"text","pace-yl--l":"text","mark--c":"circle","evenn--r":"rect","evenn--l":"text","realn--r":"rect","realn--l":"text"},"names":["real","lesson"],"frames":[{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":0,"evenn":1,"realn":0,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":0,"realn--lead":0},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":0.3,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head dim","real":"smooth accent thick no-head emph","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg5-root">{"body":"plot pace \"minutes into the talk\" \"chunks covered\" at 0,0 w 2.7 aspect 2:1 x 0,60 y 0,40 step 10\nedge pace@0,pace@0 -> pace@60,pace@40 {#even .muted .dashed .no-head}\nedge pace@0,pace@0 -> pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {#real .smooth .accent .thick .no-head}\ndot  mark \"\" at pace@26,pace@12 r 0.08 {.accent}\ntext evenn \"even pace\" at pace@50,pace@33 pad 0.12 {.small .paper}\n# Die Leitlinie greift die Kurve an einem Punkt ab, statt quer durchs Feld zu\n# laufen und dabei beide Kurven zu kreuzen.\ntext realn \"the first third\\nalways runs long\" at pace@22,pace@31 pad 0.12 -> mark {.small .hand .paper}\n\nstep real\n  show real, mark\nstep lesson\n  emph real\n  calm even","attrs":"unit=150x54","range":[57360,58079],"chunk":"diagram-charts","width":"full","alt":"Charts, without a chart library"}</script></figure>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg5-root">{"p":"dg5-","n":3,"kinds":{"pace-gx-0--p":"path","pace-gx-1--p":"path","pace-gx-2--p":"path","pace-gx-3--p":"path","pace-gx-4--p":"path","pace-gx-5--p":"path","pace-gx-6--p":"path","pace-gy-0--p":"path","pace-gy-1--p":"path","pace-gy-2--p":"path","pace-gy-3--p":"path","pace-gy-4--p":"path","even--p":"path","real--p":"spline","realn--lead--p":"path","pace--r":"rect","pace-xt-0--l":"text","pace-xt-1--l":"text","pace-xt-2--l":"text","pace-xt-3--l":"text","pace-xt-4--l":"text","pace-xt-5--l":"text","pace-xt-6--l":"text","pace-yt-0--l":"text","pace-yt-1--l":"text","pace-yt-2--l":"text","pace-yt-3--l":"text","pace-yt-4--l":"text","pace-xl--l":"text","pace-yl--l":"text","mark--c":"circle","evenn--r":"rect","evenn--l":"text","realn--r":"rect","realn--l":"text"},"names":["real","lesson"],"frames":[{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":0,"evenn":1,"realn":0,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":0,"realn--lead":0},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":0.3,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head dim","real":"smooth accent thick no-head emph","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg5-root">{"body":"plot pace \"minutes into the talk\" \"chunks covered\" at 0,0 w 2.7 aspect 2:1 x 0,60 y 0,40 step 10\nedge pace@0,pace@0 -> pace@60,pace@40 {#even .muted .dashed .no-head}\nedge pace@0,pace@0 -> pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {#real .smooth .accent .thick .no-head}\ndot  mark \"\" at pace@26,pace@12 r 0.08 {.accent}\ntext evenn \"even pace\" at pace@50,pace@33 pad 0.12 {.small .paper}\n# Die Leitlinie greift die Kurve an einem Punkt ab, statt quer durchs Feld zu\n# laufen und dabei beide Kurven zu kreuzen.\ntext realn \"the first third\\nalways runs long\" at pace@22,pace@31 pad 0.12 -> mark {.small .hand .paper}\n\nstep real\n  show real, mark\nstep lesson\n  emph real\n  calm even","attrs":"unit=150x54","range":[57575,58294],"chunk":"diagram-charts","width":"full","alt":"Charts, without a chart library"}</script></figure>
 
 
 <p><strong>A <code>plot</code> draws the frame and the scale, and nothing else.</strong> It takes the two ranges and one tick <code>step</code>, after which <code>pace@26</code> names a value in the plot&#39;s own units anywhere a coordinate goes – in a waypoint, in an <code>at</code>, at the end of a leader. <strong>The curves are ordinary edges.</strong> <code>.smooth</code> draws the same waypoints as a spline <em>through</em> them rather than as a chain of straight segments, <code>.no-head</code> takes the arrowhead off, and the two steps bring the second curve in and then <code>emph</code> it while the reference line is <code>calm</code>ed.</p>
@@ -3703,7 +3712,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <g id="dg6-bob" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg6-bob--r" x="527.85" y="-17.50" width="172.50" height="35.00" rx="4"/><g id="dg6-bob--lw0" data-lab="bob--l" class="dg-lwrap" transform="translate(614.10,0.00)"><g id="dg6-bob--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
 <g id="dg6-eve" data-base="dg-el dg-box" class="dg-el dg-box tone-4"><rect id="dg6-eve--r" x="186.30" y="-17.50" width="172.50" height="35.00" rx="4"/><g id="dg6-eve--lw0" data-lab="eve--l" class="dg-lwrap dg-variant dg-off" transform="translate(272.55,0.00)"><g id="dg6-eve--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g><g id="dg6-eve--lw1" data-lab="eve--l" class="dg-lwrap dg-variant" transform="translate(272.55,0.00)"><g id="dg6-eve--l1" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve rewrites M</tspan></text></g></g></g>
 <g id="dg6-note" data-base="dg-el dg-text" class="dg-el dg-text hand small"><g id="dg6-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(-69.63,106.00)"><g id="dg6-note--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="-3.42">no cipher is broken here –</tspan><tspan x="0" y="11.58">she just stands in the middle</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg6-root">{"p":"dg6-","n":4,"kinds":{"net--r":"rect","net--l":"text","wire--p":"path","wire--h":"path","wire--h2":"path","wire--l":"text","note--lead--p":"path","in--p":"path","in--h":"path","fwd--p":"path","fwd--h":"path","fwd--l":"text","edit--p":"path","edit--h":"path","edit--l":"text","alice--r":"rect","alice--l":"text","bob--r":"rect","bob--l":"text","eve--r":"rect","eve--l":"text","note--l":"text"},"names":["spot","cut","damage"],"frames":[{"vis":{"alice":1,"bob":1,"eve":0,"note":0,"net":1,"wire":1,"note--lead":0,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent","fwd":"accent top","edit":"accent bottom"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-86.25,-17.5,172.5,35],"alice--l":[0,0,0],"bob--r":[527.85,-17.5,172.5,35],"bob--l":[614.1,0,0],"eve--r":[220.8,-136.5,172.5,35],"eve--l":[307.05,-119,0],"note--l":[-0.63,106,0],"net--r":[-121.25,-75.25,856.6,127.75],"net--l":[-111.25,-62.87,0],"wire--p":[93.9,0,520.2,0],"wire--h":[527.85,0,518.85,3.96,518.85,-3.96],"wire--h2":[86.25,0,95.25,-3.96,95.25,3.96],"wire--l":[307.05,-11.37,0],"note--lead--p":[92.69,106,307.05,-101.5],"in--p":[86.25,17.5,215.77,-130.74],"in--h":[220.8,-136.5,217.86,-127.12,211.9,-132.33],"fwd--p":[393.3,-129.5,522.12,-15.57],"fwd--h":[527.85,-10.5,518.48,-13.5,523.73,-19.43],"fwd--l":[468.11,-78.52,0],"edit--p":[393.3,-108.5,522.12,5.43],"edit--h":[527.85,10.5,518.48,7.5,523.73,1.57],"edit--l":[453.04,-40.48,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":1,"note--lead":1,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent","fwd":"accent top","edit":"accent bottom"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-86.25,-17.5,172.5,35],"alice--l":[0,0,0],"bob--r":[527.85,-17.5,172.5,35],"bob--l":[614.1,0,0],"eve--r":[220.8,-136.5,172.5,35],"eve--l":[307.05,-119,0],"note--l":[-0.63,106,0],"net--r":[-121.25,-75.25,856.6,127.75],"net--l":[-111.25,-62.87,0],"wire--p":[93.9,0,520.2,0],"wire--h":[527.85,0,518.85,3.96,518.85,-3.96],"wire--h2":[86.25,0,95.25,-3.96,95.25,3.96],"wire--l":[307.05,-11.37,0],"note--lead--p":[92.69,106,307.05,-101.5],"in--p":[86.25,17.5,215.77,-130.74],"in--h":[220.8,-136.5,217.86,-127.12,211.9,-132.33],"fwd--p":[393.3,-129.5,522.12,-15.57],"fwd--h":[527.85,-10.5,518.48,-13.5,523.73,-19.43],"fwd--l":[468.11,-78.52,0],"edit--p":[393.3,-108.5,522.12,5.43],"edit--h":[527.85,10.5,518.48,7.5,523.73,1.57],"edit--l":[453.04,-40.48,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent","fwd":"accent top","edit":"accent bottom"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-155.25,-17.5,172.5,35],"alice--l":[-69,0,0],"bob--r":[527.85,-17.5,172.5,35],"bob--l":[614.1,0,0],"eve--r":[186.3,-17.5,172.5,35],"eve--l":[272.55,0,0],"note--l":[-69.63,106,0],"net--r":[-190.25,-75.25,925.6,127.75],"net--l":[-180.25,-62.87,0],"wire--p":[24.9,0,520.2,0],"wire--h":[527.85,0,518.85,3.96,518.85,-3.96],"wire--h2":[17.25,0,26.25,-3.96,26.25,3.96],"wire--l":[272.55,-11.37,0],"note--lead--p":[23.69,106,272.55,17.5],"in--p":[17.25,17.5,178.81,-15.95],"in--h":[186.3,-17.5,178.29,-11.8,176.68,-19.55],"fwd--p":[358.8,-10.5,520.2,-10.5],"fwd--h":[527.85,-10.5,518.85,-6.54,518.85,-14.46],"fwd--l":[443.33,-21.87,0],"edit--p":[358.8,10.5,520.2,10.5],"edit--h":[527.85,10.5,518.85,14.46,518.85,6.54],"edit--l":[443.33,21.88,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":0.3,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted dim","wire":"both-heads","note--lead":"no-head muted","in":"accent","fwd":"accent top","edit":"accent bottom dashed"},"lab":{"alice":0,"bob":0,"eve":1,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-155.25,-17.5,172.5,35],"alice--l":[-69,0,0],"bob--r":[527.85,-17.5,172.5,35],"bob--l":[614.1,0,0],"eve--r":[186.3,-17.5,172.5,35],"eve--l":[272.55,0,0],"note--l":[-69.63,106,0],"net--r":[-190.25,-75.25,925.6,127.75],"net--l":[-180.25,-62.87,0],"wire--p":[24.9,0,520.2,0],"wire--h":[527.85,0,518.85,3.96,518.85,-3.96],"wire--h2":[17.25,0,26.25,-3.96,26.25,3.96],"wire--l":[272.55,-11.37,0],"note--lead--p":[23.69,106,272.55,17.5],"in--p":[17.25,17.5,178.81,-15.95],"in--h":[186.3,-17.5,178.29,-11.8,176.68,-19.55],"fwd--p":[358.8,-10.5,520.2,-10.5],"fwd--h":[527.85,-10.5,518.85,-6.54,518.85,-14.46],"fwd--l":[443.33,-21.87,0],"edit--p":[358.8,10.5,520.2,10.5],"edit--h":[527.85,10.5,518.85,14.46,518.85,6.54],"edit--l":[443.33,21.88,0]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg6-root">{"body":"default box {.tone-2} w 1.25 h 0.5\n\nbox alice \"Alice\" at 0,0\nbox bob   \"Bob\"   right of alice gap 3.2 same as alice\nedge alice -> bob \"M\" {#wire .both-heads}\ncontainer net \"one wire, two honest ends\" over alice,bob pad 0.5 {.dashed .muted}\n\nbox eve \"Eve\" between alice,bob offset 0,-1.7 same as alice {.tone-4 @attack}\ntext note \"no cipher is broken here –\\nshe just stands in the middle\" below alice gap 1.05 align left -> eve.cx,eve.bottom {.hand .small @attack}\n\n# Eine Ecke ist so adressierbar wie eine Kante: .tl .tr .bl .br, dazu .center.\n# Für eine diagonale Verbindung trifft die Ecke, was die Seite verfehlt.\nedge alice.br -> eve.tl {#in .accent @cut}\nedge eve.right:0.2 -> bob.left:0.2 \"M\"  {#fwd .accent .top @cut}\nedge eve.right:0.8 -> bob.left:0.8 \"M′\" {#edit .accent .bottom @cut}\n\nstep spot\n  show @attack\nstep cut\n  hide wire\n# `to` setzt eine Position, `by` verschiebt um einen Betrag – und weil das\n# Layout pro Schritt neu ausgewertet wird, passt sich der Container an.\n  move eve to between alice,bob\n  move alice by -0.5,0\n  move bob by 0.5,0\n  show @cut\n  emph eve\nstep damage\n  label eve \"Eve rewrites M\"\n  style edit {.dashed}\n  calm net","attrs":"unit=138x70","range":[59630,60791],"chunk":"diagram-steps","width":"full","alt":"A figure that moves"}</script></figure>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg6-root">{"p":"dg6-","n":4,"kinds":{"net--r":"rect","net--l":"text","wire--p":"path","wire--h":"path","wire--h2":"path","wire--l":"text","note--lead--p":"path","in--p":"path","in--h":"path","fwd--p":"path","fwd--h":"path","fwd--l":"text","edit--p":"path","edit--h":"path","edit--l":"text","alice--r":"rect","alice--l":"text","bob--r":"rect","bob--l":"text","eve--r":"rect","eve--l":"text","note--l":"text"},"names":["spot","cut","damage"],"frames":[{"vis":{"alice":1,"bob":1,"eve":0,"note":0,"net":1,"wire":1,"note--lead":0,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent","fwd":"accent top","edit":"accent bottom"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-86.25,-17.5,172.5,35],"alice--l":[0,0,0],"bob--r":[527.85,-17.5,172.5,35],"bob--l":[614.1,0,0],"eve--r":[220.8,-136.5,172.5,35],"eve--l":[307.05,-119,0],"note--l":[-0.63,106,0],"net--r":[-121.25,-75.25,856.6,127.75],"net--l":[-111.25,-62.87,0],"wire--p":[93.9,0,520.2,0],"wire--h":[527.85,0,518.85,3.96,518.85,-3.96],"wire--h2":[86.25,0,95.25,-3.96,95.25,3.96],"wire--l":[307.05,-11.37,0],"note--lead--p":[92.69,106,307.05,-101.5],"in--p":[86.25,17.5,215.77,-130.74],"in--h":[220.8,-136.5,217.86,-127.12,211.9,-132.33],"fwd--p":[393.3,-129.5,522.12,-15.57],"fwd--h":[527.85,-10.5,518.48,-13.5,523.73,-19.43],"fwd--l":[468.11,-78.52,0],"edit--p":[393.3,-108.5,522.12,5.43],"edit--h":[527.85,10.5,518.48,7.5,523.73,1.57],"edit--l":[453.04,-40.48,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":1,"note--lead":1,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent","fwd":"accent top","edit":"accent bottom"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-86.25,-17.5,172.5,35],"alice--l":[0,0,0],"bob--r":[527.85,-17.5,172.5,35],"bob--l":[614.1,0,0],"eve--r":[220.8,-136.5,172.5,35],"eve--l":[307.05,-119,0],"note--l":[-0.63,106,0],"net--r":[-121.25,-75.25,856.6,127.75],"net--l":[-111.25,-62.87,0],"wire--p":[93.9,0,520.2,0],"wire--h":[527.85,0,518.85,3.96,518.85,-3.96],"wire--h2":[86.25,0,95.25,-3.96,95.25,3.96],"wire--l":[307.05,-11.37,0],"note--lead--p":[92.69,106,307.05,-101.5],"in--p":[86.25,17.5,215.77,-130.74],"in--h":[220.8,-136.5,217.86,-127.12,211.9,-132.33],"fwd--p":[393.3,-129.5,522.12,-15.57],"fwd--h":[527.85,-10.5,518.48,-13.5,523.73,-19.43],"fwd--l":[468.11,-78.52,0],"edit--p":[393.3,-108.5,522.12,5.43],"edit--h":[527.85,10.5,518.48,7.5,523.73,1.57],"edit--l":[453.04,-40.48,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent","fwd":"accent top","edit":"accent bottom"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-155.25,-17.5,172.5,35],"alice--l":[-69,0,0],"bob--r":[527.85,-17.5,172.5,35],"bob--l":[614.1,0,0],"eve--r":[186.3,-17.5,172.5,35],"eve--l":[272.55,0,0],"note--l":[-69.63,106,0],"net--r":[-190.25,-75.25,925.6,127.75],"net--l":[-180.25,-62.87,0],"wire--p":[24.9,0,520.2,0],"wire--h":[527.85,0,518.85,3.96,518.85,-3.96],"wire--h2":[17.25,0,26.25,-3.96,26.25,3.96],"wire--l":[272.55,-11.37,0],"note--lead--p":[23.69,106,272.55,17.5],"in--p":[17.25,17.5,178.81,-15.95],"in--h":[186.3,-17.5,178.29,-11.8,176.68,-19.55],"fwd--p":[358.8,-10.5,520.2,-10.5],"fwd--h":[527.85,-10.5,518.85,-6.54,518.85,-14.46],"fwd--l":[443.33,-21.87,0],"edit--p":[358.8,10.5,520.2,10.5],"edit--h":[527.85,10.5,518.85,14.46,518.85,6.54],"edit--l":[443.33,21.88,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":0.3,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted dim","wire":"both-heads","note--lead":"no-head muted","in":"accent","fwd":"accent top","edit":"accent bottom dashed"},"lab":{"alice":0,"bob":0,"eve":1,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-155.25,-17.5,172.5,35],"alice--l":[-69,0,0],"bob--r":[527.85,-17.5,172.5,35],"bob--l":[614.1,0,0],"eve--r":[186.3,-17.5,172.5,35],"eve--l":[272.55,0,0],"note--l":[-69.63,106,0],"net--r":[-190.25,-75.25,925.6,127.75],"net--l":[-180.25,-62.87,0],"wire--p":[24.9,0,520.2,0],"wire--h":[527.85,0,518.85,3.96,518.85,-3.96],"wire--h2":[17.25,0,26.25,-3.96,26.25,3.96],"wire--l":[272.55,-11.37,0],"note--lead--p":[23.69,106,272.55,17.5],"in--p":[17.25,17.5,178.81,-15.95],"in--h":[186.3,-17.5,178.29,-11.8,176.68,-19.55],"fwd--p":[358.8,-10.5,520.2,-10.5],"fwd--h":[527.85,-10.5,518.85,-6.54,518.85,-14.46],"fwd--l":[443.33,-21.87,0],"edit--p":[358.8,10.5,520.2,10.5],"edit--h":[527.85,10.5,518.85,14.46,518.85,6.54],"edit--l":[443.33,21.88,0]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg6-root">{"body":"default box {.tone-2} w 1.25 h 0.5\n\nbox alice \"Alice\" at 0,0\nbox bob   \"Bob\"   right of alice gap 3.2 same as alice\nedge alice -> bob \"M\" {#wire .both-heads}\ncontainer net \"one wire, two honest ends\" over alice,bob pad 0.5 {.dashed .muted}\n\nbox eve \"Eve\" between alice,bob offset 0,-1.7 same as alice {.tone-4 @attack}\ntext note \"no cipher is broken here –\\nshe just stands in the middle\" below alice gap 1.05 align left -> eve.cx,eve.bottom {.hand .small @attack}\n\n# Eine Ecke ist so adressierbar wie eine Kante: .tl .tr .bl .br, dazu .center.\n# Für eine diagonale Verbindung trifft die Ecke, was die Seite verfehlt.\nedge alice.br -> eve.tl {#in .accent @cut}\nedge eve.right:0.2 -> bob.left:0.2 \"M\"  {#fwd .accent .top @cut}\nedge eve.right:0.8 -> bob.left:0.8 \"M′\" {#edit .accent .bottom @cut}\n\nstep spot\n  show @attack\nstep cut\n  hide wire\n# `to` setzt eine Position, `by` verschiebt um einen Betrag – und weil das\n# Layout pro Schritt neu ausgewertet wird, passt sich der Container an.\n  move eve to between alice,bob\n  move alice by -0.5,0\n  move bob by 0.5,0\n  show @cut\n  emph eve\nstep damage\n  label eve \"Eve rewrites M\"\n  style edit {.dashed}\n  calm net","attrs":"unit=138x70","range":[59845,61006],"chunk":"diagram-steps","width":"full","alt":"A figure that moves"}</script></figure>
 
 
 <p><strong>Every element after the first is placed against another one, which is why nothing comes apart when the middle box walks in.</strong> <code>move eve to between alice,bob</code> states a position, <code>move alice by -0.5,0</code> shifts one by an amount, and the layout is evaluated again for every beat – so Alice and Bob step aside, the <code>container</code> re-fits around them, and the arrows are drawn where their endpoints have ended up. <code>hide</code> takes the direct wire away, <code>calm</code> is the opposite of <code>emph</code>, and <code>label</code> swaps in a wording that was typeset at build time.</p>
@@ -8371,6 +8380,11 @@ sendToPeer({ type: 'hello', source: 'speaker' });
 .dge-chip:hover { border-color: var(--emph); }
 .dge-chip .dge-x { opacity: 0.5; margin-left: 0.3em; }
 .dge-chip-count { color: var(--ink-soft); margin-left: 0.35em; }
+/* The way back from an entry to the statement that stacked it. A chip rather
+   than a link because it is a selection act like every other chip here, and a
+   class of its own because that is what keeps a selector aimed at one pane -
+   this one is navigation, and unlike a waypoint or a tag it removes nothing. */
+.dge-chip-owner { color: var(--ink-soft); border-style: dashed; }
 
 /* The element list doubles as the "what refers to what" view. */
 .dge-list { display: flex; flex-direction: column; gap: 1px; max-height: 14rem; overflow-y: auto; }
@@ -8931,8 +8945,13 @@ const DG_CLASSES = new Set([
 // with it. Stacking left both rules matching at equal specificity, so the
 // one written later in the stylesheet won and the author's explicit choice
 // silently lost.
+// The fill slot, named because a statement that supplies a ground of its own
+// has to ask whether the author already claimed the slot – `.clear` is not a
+// fill (dgHasFill says so) but it is an answer to the same question, and a
+// default that stacked on top of it would paint the thing the author took off.
+const DG_FILL_SLOT = ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper'];
 const DG_CLASS_GROUPS = [
-  ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper'],   // fill
+  DG_FILL_SLOT,                               // fill
   ['accent', 'muted'],                        // ink
   ['dashed', 'dotted'],                       // stroke pattern
   ['thick', 'bare'],                          // stroke weight
@@ -9243,6 +9262,13 @@ const DG_SEQ_NUM = 0.34;      // the number column, outside the frame's left
 const DG_SEQ_TAIL = 0.3;      // how far a lifeline runs past the last entry
 const DG_SEQ_SELF_W = 0.28;   // how far a self-message loops out
 const DG_SEQ_SELF_H = 0.42;   // and how far down it comes back
+// How far a message label's ground reaches past its own words. A lifeline
+// crosses every label in the figure – that is what a lifeline is – so the
+// ground is not an option here but the default, and what it has to do is
+// knock the dashes out from behind the words and nothing more. The box
+// padding a `pad` would otherwise resolve to is 13 by 9, which on a label
+// standing beside a line reads as a slab; this is the visible margin.
+const DG_SEQ_GROUND = 0.1;
 // `plot` expands into a frame, two runs of grid lines, two runs of tick
 // labels and up to two axis titles. Parts: gx gy xt yt xl yl.
 const dgPlotName = (id, part, i) => (i === undefined ? `${id}-${part}` : `${id}-${part}-${i}`);
@@ -9356,6 +9382,14 @@ const DG_KIND_OPTS = {
   // and it is `space` rather than `gap` for the reason it is everywhere else –
   // `gap` on this very line is the distance to another element.
   sequence: ['w', 'h', 'space'],
+  // A sequence's three entries, which are statements of their own on lines of
+  // their own – so the panel reads its controls off them rather than off the
+  // `box` and the `edge` they expand into, which take `w`, `h` and `pad` and
+  // would offer three words the entry line refuses. `space` is the air above
+  // this entry, overriding the statement's rhythm for one band: the way a
+  // dense protocol is broken into phases. An actor has no band above it, so
+  // it takes nothing.
+  actor: [], note: ['space'], message: ['space'],
 };
 // Options whose value is a comma list rather than one number. `col 1.5,0.9,1.9`
 // is one width per column, and reading it with dgNum would report the whole
@@ -10442,7 +10476,13 @@ const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'align', 'point', '
 // anyway. Every one is required by its statement, so it is always present –
 // there is no "where would it go if it were not there" to answer, which is
 // what separates them from the keyed list above.
-const DG_POSITIONAL = ['values', 'ticks', 'xtitle', 'ytitle', 'cellkind', 'shape', 'asset'];
+const DG_POSITIONAL = ['values', 'ticks', 'xtitle', 'ytitle', 'cellkind', 'shape', 'asset',
+  // A sequence message's second, smaller line: the second quoted string on the
+  // line, where the first is the label. It is named here rather than left to
+  // the source pane because `label` already resolves to the first string, and
+  // a field that silently edited the wrong one of two strings on one line is
+  // the trap a `bars` line taught.
+  'sub'];
 
 // The x and y halves of a `dx,dy` token, and the signed nudge inside a
 // coordinate component. Sub-token arithmetic on the token's own text, because
@@ -10491,7 +10531,14 @@ function createSpanTable(model, body) {
     // editor comes to rewrite the whole chart while dragging one bar. The
     // frame is the exception and keeps its span, because the frame *is* the
     // statement: moving it moves the chart, which is what the drag means.
-    if (el.synth && el.synth !== el.id) continue;
+    // A sequence's three entries are the exception, and `entry` is what
+    // marks them: each was written on a line of its own, carrying a label and
+    // an attribute tail that are nobody else's, so the span it holds is that
+    // line. The elements around them are not – a lifeline, a message number
+    // and a second line own no text on the line that produced them, and
+    // handing one the line's span is how a panel comes to write the actor's
+    // label under the lifeline's name.
+    if (el.synth && el.synth !== el.id && !el.entry) continue;
     byId.set(el.id, el);
   }
 
@@ -10625,6 +10672,11 @@ function createSpanTable(model, body) {
     // the *kind* of placement, and the only way to give the first element
     // (which sits at the origin for free) a placement at all.
     if (attr === 'place') {
+      // A sequence entry has none to give. The statement lays its entries out
+      // on its own rhythm and the line the author wrote carries no placement
+      // expression – so an insertion point here would offer a control whose
+      // only possible outcome is the compiler refusing the line.
+      if (el.entry) return null;
       const p = el.place;
       if (p && p.span) return hit(p.span[0], p.span[1], src.slice(p.span[0], p.span[1]));
       return gap(tailInsert(el, toks), ' ');
@@ -10674,7 +10726,11 @@ function createSpanTable(model, body) {
       const val = at >= 0 && bare[at + 1] && bare[at + 1].v === 'of' ? bare[at + 2] : null;
       return val ? hit(val.s, val.e, val.v) : null;
     }
-    if ((DG_BARE_OPTS[el.kind] || []).includes(attr)) {
+    // Off the *statement*, not the kind: a `sequence` frame is a box as far as
+    // the layout is concerned, and `unnumbered` is a word only its own
+    // statement reads. Keyed on the kind, the frame's one bare word had no
+    // span at all and no control could be offered for it.
+    if ((DG_BARE_OPTS[el.frame || el.kind] || []).includes(attr)) {
       const at = toks.find(x => !x.q && !x.attr && x.v === attr);
       if (at) return { start: at.s, end: at.e, prefix: '', suffix: '', present: true, text: attr, value: attr };
       const ins = tailInsert(el, toks);
@@ -10691,6 +10747,10 @@ function createSpanTable(model, body) {
       const after = (t, pre = ' "', suf = '"') => (t ? gap(t.e, pre, suf) : null);
       // Quoted slots, by statement. The n-th string means a different thing
       // on each of the three, which is exactly why they are named.
+      if (attr === 'sub') {
+        if (el.entry !== 'message') return null;
+        return quoted[1] ? one(quoted[1]) : after(quoted[0]);
+      }
       if (attr === 'values') return el.frame === 'bars' ? one(quoted[0]) : null;
       if (attr === 'ticks') {
         if (el.frame !== 'bars') return null;
@@ -11422,16 +11482,31 @@ function createDiagramCompiler(env = {}) {
         // real diagrams this was measured against is written. What ends the
         // run is the first line that is not an entry, and that is decidable
         // from the line alone: `actor`, `note`, or an arrow between two names.
+        //
+        // Each entry is tokenized at its *own* offset in the block body, not
+        // at zero. That is what makes an entry editable: the elements a
+        // statement expands into normally carry the statement's span, which is
+        // why createSpanTable hands none of them out – rewriting a column
+        // would rewrite the whole chart. Here every entry is a line of its
+        // own, with a label and an attribute tail written by hand on it, so
+        // the span it carries is that line and a panel edit lands where the
+        // author put the words. See `entry` below.
         const entries = [];
         let lastAt = n;
+        let entryAt = lineAt;          // start of line n+1; lineAt is already past n
         for (let m = n + 1; m < lines.length; m++) {
-          const line = lines[m].trim();
+          const rawE = lines[m];
+          const eAt = entryAt;
+          entryAt += rawE.length + 1;
+          const line = rawE.trim();
           if (!line || line.startsWith('#')) continue;
-          const et = dgTokenize(line, 0);
+          const eIndent = rawE.length - rawE.replace(/^\s+/, '').length;
+          const eSpan = [eAt + eIndent, eAt + eIndent + line.length];
+          const et = dgTokenize(line, eSpan[0]);
           const eb = et.filter(x => !x.attr && !x.q).map(x => x.v);
           const aAt = eb.findIndex(v => DG_SEQ_ARROWS.has(v));
           if (!DG_SEQ_ENTRIES.has(eb[0]) && aAt < 0) break;
-          entries.push({ toks: et, bare: eb, arrowAt: aAt, ln: m + 1 });
+          entries.push({ toks: et, bare: eb, arrowAt: aAt, ln: m + 1, span: eSpan });
           lastAt = m;
         }
         rowsRead = lastAt + 1;
@@ -11449,11 +11524,42 @@ function createDiagramCompiler(env = {}) {
         const actors = [];
         const byName = new Map();
         const seq = [];
+        // `space n` on an entry line: the air above *this* band, overriding
+        // the statement's rhythm for one gap. It is what breaks a dense
+        // protocol into phases, and it is spelled `space` for the reason the
+        // statement's own is – inside one statement `gap` already means the
+        // distance to another element. A blank line cannot do this job: the
+        // run deliberately reads through blank lines, so every real sequence
+        // measured already had them separating its actors from its messages,
+        // and giving them a height would have moved every one of those
+        // figures without anyone writing anything.
+        //
+        // Found by its word, and the word alone is not enough: nothing forbids
+        // an actor called `space`, and `a -> space "x"` would then have had its
+        // *endpoint* read as the option and the label as the number. Two
+        // guards, the same pair `spanOf` uses for the keyed options: the
+        // statement word and the name after it are never the keyword, and
+        // neither is a token beside an arrow.
+        const readEntrySpace = (e) => {
+          const k = e.bare.findIndex((v, i) => v === 'space' && i > 1
+            && !DG_SEQ_ARROWS.has(e.bare[i - 1] || '')
+            && !DG_SEQ_ARROWS.has(e.bare[i + 1] || ''));
+          if (k < 0) return { bare: e.bare, space: null, present: false };
+          const v = dgNum(e.bare[k + 1], errors, e.ln, `sequence ${id} entry space`);
+          if (v != null && v < 0) {
+            dgErr(errors, e.ln, `space ${e.bare[k + 1]}: space is the air above an entry, so it `
+              + 'cannot be negative – a band pulled into the one above it draws one label '
+              + 'through another. Reorder the entries instead.');
+          }
+          return { bare: [...e.bare.slice(0, k), ...e.bare.slice(k + 2)],
+            space: v != null && v >= 0 ? v : null, present: true };
+        };
         for (const e of entries) {
           const aTok = e.toks.find(x => x.attr);
           const ea = aTok ? dgParseAttrs(aTok.v, errors, e.ln) : { id: null, classes: [], tags: [] };
           const eq = e.toks.filter(x => x.q).map(x => x.v);
-          const eb = e.bare;
+          const es = readEntrySpace(e);
+          const eb = es.bare;
           if (eb[0] === 'actor') {
             const aid = eb[1];
             if (!aid) { dgErr(errors, e.ln, 'actor needs a name and a label – actor u "User"'); continue; }
@@ -11466,9 +11572,19 @@ function createDiagramCompiler(env = {}) {
                 + 'an actor is `actor <name> "<label>"` and an attribute tail');
             }
             if (eq[0] === undefined) dgErr(errors, e.ln, `actor ${aid} needs a label – actor ${aid} "User"`);
+            // Refused rather than read and dropped. The heads are one row
+            // across the top of the figure and there is no band above them
+            // for the number to describe, so `space` here is the silent
+            // no-op this grammar keeps closing.
+            if (es.present) {
+              dgErr(errors, e.ln, `actor ${aid} has no "space" – the heads are one row and the air `
+                + 'above them is the sequence\'s own. `space` belongs on a note or a message, '
+                + 'where it is the gap above that band.');
+            }
             claim(aid, 'box', e.ln);
             byName.set(aid, actors.length);
-            actors.push({ id: aid, label: eq[0] ?? '', classes: ea.classes, tags: ea.tags, ln: e.ln });
+            actors.push({ id: aid, label: eq[0] ?? '', classes: ea.classes, tags: ea.tags,
+              ln: e.ln, span: e.span });
             continue;
           }
           if (eb[0] === 'note') {
@@ -11489,10 +11605,10 @@ function createDiagramCompiler(env = {}) {
                 + 'so several lines are one string.');
             }
             seq.push({ type: 'note', on, label: eq[0] ?? '', classes: ea.classes,
-              tags: ea.tags, own: ea.id, ln: e.ln });
+              tags: ea.tags, own: ea.id, ln: e.ln, span: e.span, space: es.space });
             continue;
           }
-          const aAt = e.arrowAt;
+          const aAt = eb.findIndex(v => DG_SEQ_ARROWS.has(v));
           const fromTok = eb[aAt - 1], toTok = eb[aAt + 1];
           if (!fromTok || !toTok) {
             dgErr(errors, e.ln, `a message needs an actor on both sides of "${eb[aAt]}"`);
@@ -11513,9 +11629,33 @@ function createDiagramCompiler(env = {}) {
               + 'A second line breaks at \\n, so several lines of it are still one string.');
           }
           const flip = eb[aAt] === '<-';
+          // Two classes the author did not write, and both are here rather
+          // than at emit because the band above has to reserve exactly what
+          // the emitter will draw.
+          //
+          // A **side**, because a message label sits beside its line and never
+          // on it. With none of the four alignment words the edge emitter
+          // reads a fill as "put the words on the line and knock it out behind
+          // them", and a label as wide as its own arrow then swallowed the
+          // arrow whole – `{.paper}` on a message drew text and nothing else.
+          // Which pair names a side depends on how the line runs, so a
+          // self-message (a loop, read vertically at its middle) takes the
+          // across-pair and every other message the down-pair.
+          //
+          // A **ground**, because a lifeline crosses every label in the
+          // figure. That is not an exception the author should have to
+          // notice; it is what a lifeline is. So the default is `.paper` and
+          // `.clear` is how one opts out – the same pair of readings a box
+          // already has, and the fill slot is what makes a written `.tone-2`
+          // displace it rather than stack with it.
+          const mcls = [...ea.classes];
+          const self = fromTok === toTok;
+          const across = self ? DG_ALIGN_ACROSS : DG_ALIGN_DOWN;
+          if (!across.some(c => mcls.includes(c))) mcls.push(self ? 'right' : 'top');
+          if (!DG_FILL_SLOT.some(c => mcls.includes(c))) mcls.push('paper');
           seq.push({ type: 'msg', from: flip ? toTok : fromTok, to: flip ? fromTok : toTok,
             headless: eb[aAt] === '--', label: eq[0] ?? '', sub: eq[1] ?? '',
-            classes: ea.classes, tags: ea.tags, own: ea.id, ln: e.ln });
+            classes: mcls, tags: ea.tags, own: ea.id, ln: e.ln, span: e.span, space: es.space });
         }
         if (!actors.length) {
           dgErr(errors, lineNo, `sequence ${id} declares no actors – put \`actor <name> "<label>"\` `
@@ -11549,40 +11689,58 @@ function createDiagramCompiler(env = {}) {
         // with `space` between. This is the whole statement.
         const space = (opts.space != null ? opts.space : DG_SEQ_SPACE) * uh;
         const [, padY] = dgPadPx(null, uh);
-        // One rhythm unit under the heads before the first band. Starting flush
-        // put the first message's label against the bottom of its own head box,
-        // which is the one place in the figure where two different things share
-        // an edge.
-        let cy = headH + space;
+        const ground = DG_SEQ_GROUND * uh;
+        // The gap is written *before* each band rather than after it, which is
+        // the same rhythm read the other way round and is what lets one entry
+        // state its own. One rhythm unit under the heads comes for free that
+        // way: starting flush put the first message's label against the bottom
+        // of its own head box, which is the one place in the figure where two
+        // different things share an edge.
+        let cy = headH;
         let mi = 0, ni = 0;
         const plan = [];
         for (const it of seq) {
+          cy += it.space != null ? it.space * uh : space;
           const cs = setOf(it.classes);
           const font = dgFontFor(cs);
           const m = dgMeasure(it.label, font, cs.has('mono'));
           if (it.type === 'note') {
             const h = m.h + 2 * padY;
             plan.push({ it, y: cy + h / 2, h, j: ni++ });
-            cy += h + space;
+            cy += h;
             continue;
           }
           const self = it.from === it.to;
-          // What the edge emitter will actually do with the label: with no
-          // fill it sits clear of the line by half its height plus two, with
-          // one it sits on the line and knocks it out. A band that reserves
-          // the other case is a guessed rhythm again.
-          const above = self ? 4 : (dgHasFill(cs) ? m.h / 2 + padY : m.h + 2);
+          // What the edge emitter will actually do with the label. It is
+          // always beside the line here, because the expansion writes a side
+          // above – so the band reserves the words, the two-pixel gap and, on
+          // the far side of them, the ground. A band that reserves the other
+          // case is a guessed rhythm again.
+          const grounded = dgHasFill(cs);
+          const above = self ? 4 : m.h + 2 + (grounded ? 2 * ground : 0);
           // A self-message loops out and comes back, and its label stands
           // beside the loop rather than over a line – so the loop has to be at
           // least as deep as the words are tall.
           const loop = self ? Math.max(DG_SEQ_SELF_H * uh, m.h + 6) : 0;
           const subH = it.sub ? dgMeasure(it.sub, font * 0.8, cs.has('mono')).h : 0;
-          plan.push({ it, y: cy + above, loop, subH, i: mi++ });
-          cy += above + loop + (it.sub ? subH + 4 : 0) + space;
+          // The second line carries the same ground as the label above it, so
+          // it has to clear the arrow by its own ground and not by its glyphs:
+          // laid four pixels under the line, the rect would have been painted
+          // across the very arrow it belongs to.
+          const subGap = 4 + (grounded ? ground : 0);
+          plan.push({ it, y: cy + above, loop, subH, subGap, i: mi++ });
+          cy += above + loop + (it.sub ? subH + subGap + (grounded ? ground : 0) : 0);
         }
-        const bottom = (plan.length ? cy - space : cy) + DG_SEQ_TAIL * uh;
+        const bottom = (plan.length ? cy : cy + space) + DG_SEQ_TAIL * uh;
 
-        const synthAt = (el, ln) => ({ ...el, synth: id, line: ln, span });
+        // Every element a sequence expands into carries the *statement's*
+        // span, because that is what a drag on it should rewrite – except the
+        // three that were written on lines of their own, which carry theirs.
+        // `entry` is what says which is which: createSpanTable hands out a
+        // span for those and the editor selects them, where a lifeline, a
+        // number or a second line owns no text on its line and stays out.
+        const synthAt = (el, ln, entry, sp) =>
+          ({ ...el, synth: id, line: ln, span: sp || span, ...(entry ? { entry } : {}) });
         const at = (xn, yn) => ({
           kind: 'abs',
           at: [{ ref: id, prop: 'left', nudge: xn }, { ref: id, prop: 'top', nudge: yn }],
@@ -11607,7 +11765,7 @@ function createDiagramCompiler(env = {}) {
             tags: [...seqTags, ...(a.tags || []), dgActorsTag(id)],
             place: at(xOf(i) / uw, (headH / 2) / uh),
             w: boxW / uw, h: headH / uh, r: null, pad: null,
-          }, a.ln));
+          }, a.ln, 'actor', a.span));
           claim(dgLifeName(a.id), 'edge', a.ln);
           model.edges.push(synthAt({
             kind: 'edge', id: dgLifeName(a.id),
@@ -11638,7 +11796,7 @@ function createDiagramCompiler(env = {}) {
               // banner, and a long one between two near columns unreadable.
               place: at(((xOf(on[0]) + xOf(on[on.length - 1])) / 2) / uw, p.y / uh),
               w: null, h: p.h / uh, r: null, pad: null,
-            }, it.ln));
+            }, it.ln, 'note', it.span));
             continue;
           }
           const fi = idxOf(it.from, it.ln, 'message'), ti = idxOf(it.to, it.ln, 'message');
@@ -11663,8 +11821,13 @@ function createDiagramCompiler(env = {}) {
             // and every message that touches this actor.
             tags: [...seqTags, ...(it.tags || []), tag, dgMsgsTag(id), dgMsgsTag(actors[fi].id),
               ...(ti === fi ? [] : [dgMsgsTag(actors[ti].id)])],
-            via, pad: null, named: !!it.own,
-          }, it.ln));
+            // The ground's own clearance, in grid units like every other
+            // length here. It resolves through `pad` because that is the word
+            // an edge label's ground already reads, and it is written on the
+            // element rather than left to the default so a knockout behind two
+            // words is a knockout and not a slab.
+            via, pad: DG_SEQ_GROUND, named: !!it.own,
+          }, it.ln, 'message', it.span));
           if (!opts.unnumbered) {
             const numId = dgMsgNumName(id, p.i);
             claim(numId, 'text', it.ln);
@@ -11687,11 +11850,17 @@ function createDiagramCompiler(env = {}) {
                 + dgMeasure(it.sub, dgFontFor(setOf(it.classes)) * 0.8,
                   setOf(it.classes).has('mono')).w / 2 + 8
               : (x0 + x1) / 2;
+            // The second line crosses the lifelines exactly as the label
+            // does, so it carries the label's ground – the same fill, so the
+            // two read as one caption, and nothing at all where the author
+            // took the ground off with `.clear`.
+            const subFill = it.classes.find(c => DG_FILL_CLASSES.includes(c));
             model.nodes.push(synthAt({
               kind: 'text', id: sid, label: it.sub,
-              classes: ['small', 'muted'], tags: [...seqTags, tag],
-              place: at(subX / uw, (p.y + p.loop + p.subH / 2 + 4) / uh),
-              w: null, h: null, r: null, pad: null,
+              classes: ['small', 'muted', ...(subFill ? [subFill] : [])],
+              tags: [...seqTags, tag],
+              place: at(subX / uw, (p.y + p.loop + p.subH / 2 + p.subGap) / uh),
+              w: null, h: null, r: null, pad: subFill ? DG_SEQ_GROUND : null,
             }, it.ln));
           }
         }
@@ -13781,7 +13950,7 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_RESERVED_IDS, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_BRACE_SIDES, DG_KIND_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, dgErr, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, rejectShapeOn, rejectAlignOn, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_CLASS_GROUPS, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_RESERVED_IDS, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_BRACE_SIDES, DG_KIND_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, dgErr, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, rejectShapeOn, rejectAlignOn, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "";
 window.PSI_DG_EDIT_HTML = false;
@@ -14253,7 +14422,12 @@ const DGE_TOOLS = [
 // `space` or `col` would never be offered at all.
 function dgeKindOpts(elOrKind) {
   const el = typeof elOrKind === 'string' ? null : elOrKind;
-  const key = el ? (el.frame || el.kind) : elOrKind;
+  // `entry` for the same reason `frame` is here: a sequence's `actor`, `note`
+  // and message lines are statements of their own, and the box and the edge
+  // they expand into take w / h / pad, which those lines refuse. Offering a
+  // control whose only outcome is a compiler refusal is not offering a
+  // control.
+  const key = el ? (el.frame || el.entry || el.kind) : elOrKind;
   return (window.PSI_DG.DG_KIND_OPTS[key] || []).slice();
 }
 
@@ -16094,6 +16268,20 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
   const place = el.place;
   const edits = [];
   const refusals = [];
+  // A sequence entry has no placement of its own. The statement owns the
+  // vertical rhythm - that is the whole of what it owns - and the line the
+  // author wrote carries a label and an attribute tail and nothing a drag
+  // could rewrite. Said before the kind check below, or a message would get
+  // the generic "an edge follows its endpoints", which is true of every edge
+  // and useless about this one.
+  if (el.entry) {
+    if (DGE.selection.length <= 1) {
+      refusals.push(`a sequence stacks its ${el.entry}s on its own rhythm, so this line holds `
+        + `no placement - drag ${el.synth} to move the whole figure, or set space on the line `
+        + 'to change the gap above this one.');
+    }
+    return { edits: [], refusals, strain };
+  }
   const free = opts && opts.free;      // Ctrl/Cmd held: no snapping
   const leave = opts && opts.leave;    // Alt held: leave the set at once
   const snap = (v) => (free ? v : dgeRound(v, DGE_SNAP_CELL));
@@ -16709,7 +16897,12 @@ function dgeNearestEdge(pt) {
 // what it selects.
 function dgeOwnerOf(id) {
   const el = dgeFind(id);
-  return el && el.synth && el.synth !== el.id ? el.synth : id;
+  // A sequence's entries are the exception: each was written on a line of its
+  // own, so clicking one selects it rather than the statement that stacked it.
+  // Everything else an expanding statement draws – a chart column, a table
+  // cell, a lifeline – selects the statement, because that is the only text
+  // there is to edit.
+  return el && el.synth && el.synth !== el.id && !el.entry ? el.synth : id;
 }
 
 // The other direction, and only interesting where it disagrees with dgeFind:
@@ -16748,9 +16941,17 @@ function dgeHitTest(pt, opts) {
   // wins over an arrow that crosses it, and an arrow wins over the container
   // or brace it runs through. Without the second half every edge inside a
   // container would be unreachable, which is most of them.
+  //
+  // A statement's frame counts as a holder here, and that is what a sequence
+  // needs: its frame is a .bare .clear box the size of the whole figure, so
+  // it enclosed every message and won every click meant for one. The clause
+  // is written as "an arrow that is not this frame's own", so a chart's
+  // baseline still selects the chart – it belongs to the frame, and clicking
+  // a part of a statement means the statement.
   const edge = dgeNearestEdge(pt);
   const edgeOwner = edge ? dgeOwnerOf(edge) : null;
-  if (edgeOwner && (!box || box.el.kind === 'container' || box.el.kind === 'brace')) return edgeOwner;
+  if (edgeOwner && (!box || box.el.kind === 'container' || box.el.kind === 'brace'
+    || (box.el.frame && edgeOwner !== box.id))) return edgeOwner;
   return box ? box.id : null;
 }
 
@@ -18159,8 +18360,26 @@ function dgeRenderSide() {
   }
 
   const head = dgeEl('div', {}, [
-    dgeEl('h3', { class: 'dge-sel-head', text: single ? `${single.kind} ${single.id}` : `${DGE.selection.length} selected` }),
+    dgeEl('h3', { class: 'dge-sel-head',
+      text: single ? `${single.entry || single.kind} ${single.id}` : `${DGE.selection.length} selected` }),
   ]);
+  // The way back to the statement. Clicking an entry used to select the whole
+  // sequence, which is how its own options were reached; now that a click
+  // lands on the entry, the frame carries w / h / space / unnumbered and
+  // nothing on the canvas selects it, because it is drawn .bare .clear and
+  // has no ink to hit. Its own class, per the rule chips follow: waypoints,
+  // tags and a step's ops all render as .dge-chip, and a selector naming only
+  // that picks whichever pane comes first in the DOM.
+  if (single && single.entry && dgeFind(single.synth)) {
+    head.appendChild(dgeEl('div', { class: 'dge-chips' }, [
+      dgeEl('button', {
+        type: 'button', class: 'dge-chip dge-chip-owner',
+        text: 'part of sequence ' + single.synth,
+        title: 'select the statement – its own rhythm, size and numbering live there',
+        onclick: () => dgeSelect([single.synth]),
+      }),
+    ]));
+  }
   side.appendChild(head);
 
   if (single) {
@@ -18226,9 +18445,11 @@ function dgeRenderSide() {
     side.appendChild(dgeEl('div', {}, [
       dgeEl('h3', { text: 'ends' }), row,
       dgeEl('div', { class: 'dge-chips' }, [swap]),
-      dgeEl('div', { class: 'dge-hint', text:
-        'A name follows the element when it moves; x,y stays put. '
-        + 'Add an anchor with a dot – mix.right – and a fraction along it with a colon – mix.right:0.3.' }),
+      dgeEl('div', { class: 'dge-hint', text: single.entry
+        ? 'A message runs between two actors of this sequence, by the names their actor lines '
+          + 'give them. A coordinate here is not one of them and the line will not compile.'
+        : 'A name follows the element when it moves; x,y stays put. '
+          + 'Add an anchor with a dot – mix.right – and a fraction along it with a colon – mix.right:0.3.' }),
       // The rule was legible nowhere in the editor: it is not in the panel, and
       // the drawing cannot show it, because an edge that follows its ends looks
       // exactly like an edge someone remembered to write a show for.
@@ -18241,8 +18462,12 @@ function dgeRenderSide() {
     // and which of them holds a reference is not readable off the picture: a
     // waypoint written iv.cx,d0.bottom+0.28 and one written 1.4,2.06 land in
     // exactly the same place and behave completely differently afterwards.
-    const via = single.via || [];
+    // Not on a sequence message. Its waypoints are the loop a self-message
+    // draws, generated by the statement, and the line has nowhere to write a
+    // `via` - so every chip here would have been a click the compiler refuses.
+    const via = single.entry ? null : (single.via || []);
     const wrap = dgeEl('div', {});
+    if (via) {
     wrap.appendChild(dgeEl('h3', { text: 'waypoints' }));
     if (!via.length) {
       wrap.appendChild(dgeEl('div', { class: 'dge-hint', text: dgeCurveOf(single) === 'elbow'
@@ -18271,6 +18496,7 @@ function dgeRenderSide() {
       wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
         'Drag a square on the line to move one, a hollow dot to add one, double-click a square to remove it.' }));
     }
+    }
     side.appendChild(wrap);
   }
 
@@ -18281,7 +18507,7 @@ function dgeRenderSide() {
   // are the parts that carry the meaning. `between a,b` in particular has no
   // gesture at all: nothing about dragging one box says "halfway between
   // those two".
-  if (single && DGE.model.nodes.some((x) => x.id === single.id)) {
+  if (single && !single.entry && DGE.model.nodes.some((x) => x.id === single.id)) {
     side.appendChild(dgePlacementPane(single));
   }
 
@@ -18296,7 +18522,7 @@ function dgeRenderSide() {
   // Which way a pointed outline aims, offered only where there is a point to
   // aim. `none` takes the option back off the line and the shape returns to
   // its default direction.
-  if (single) {
+  if (single && !single.entry) {
     const aimable = dgeAimOf(single);
     if (aimable) {
       const dirs = [...window.PSI_DG.DG_POINT_DIRS];
@@ -18315,6 +18541,30 @@ function dgeRenderSide() {
         dgeEl('div', { class: 'dge-hint', text:
           'Which way the .' + aimable + ' points. An option on the line, not a class, '
           + 'so one word covers every direction.' }),
+      ]));
+    }
+  }
+
+  // The one bare word a sequence's own statement reads. A closed list of one,
+  // so it is the checkbox `stacked` on a series already is: present as a token
+  // or absent as an insertion point, and nothing to type.
+  if (single && single.frame === 'sequence') {
+    const sp = dgeSpanOf(single.id, 'unnumbered');
+    if (sp) {
+      const row = dgeEl('div', { class: 'dge-swatches' });
+      for (const [word, label] of [['', 'numbered'], ['unnumbered', 'no numbers']]) {
+        row.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-sw',
+          'aria-pressed': String((sp.present ? 'unnumbered' : '') === word),
+          text: label,
+          onclick: () => dgeWriteAttr(single.id, 'unnumbered', word),
+        }));
+      }
+      side.appendChild(dgeEl('div', {}, [
+        dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'numbering' }), row]),
+        dgeEl('div', { class: 'dge-hint', text:
+          'The column of numbers left of the frame. The number in the drawing and the index in '
+          + 'the tag are the same number, so message 4 is the one @' + single.id + '-msg-3 names.' }),
       ]));
     }
   }
@@ -18973,6 +19223,16 @@ const DGE_DATA_FIELDS = {
       empty: 'refuse' },
     { key: 'asset', label: 'asset', hint: 'the drawing each cell repeats', empty: 'refuse' },
   ],
+  // A sequence message's second, smaller line. It is a data field rather than
+  // a second label field because that is what it is positionally: the first
+  // quoted string on the line is the label and `label` already resolves to it,
+  // so two textareas both reading "label" would have been a coin toss over
+  // which string an edit landed in - the trap a bars line taught.
+  message: [
+    { key: 'sub', label: 'second line',
+      hint: 'the smaller line under the arrow – the payload, where the label is the name',
+      empty: 'drop' },
+  ],
   plot: [
     { key: 'xtitle', label: 'x axis', hint: 'the title under the horizontal axis',
       empty: (el) => ((DGE.spans.spanOf(el.id, 'ytitle') || {}).present ? 'blank' : 'drop') },
@@ -19024,7 +19284,7 @@ const DGE_DATA_SHAPE = {
 
 function dgeDataPane(el) {
   const wrap = dgeEl('div', {});
-  const fields = (el.frame ? DGE_DATA_FIELDS[el.frame]
+  const fields = (el.frame || el.entry ? DGE_DATA_FIELDS[el.frame || el.entry]
     : (el.kind === 'image'
       ? [{ key: 'asset', label: 'asset', hint: 'the file this image draws', empty: 'refuse' }]
       : null)) || [];
@@ -19044,7 +19304,7 @@ function dgeDataPane(el) {
     if (!sp) continue;
     if (f.count) counts.push(f.label + ': ' + f.count(sp.present ? sp.value : ''));
     const quoted = f.key === 'values' || f.key === 'ticks'
-      || f.key === 'xtitle' || f.key === 'ytitle';
+      || f.key === 'xtitle' || f.key === 'ytitle' || f.key === 'sub';
     rows.push(dgeEl('label', { class: 'dge-num dge-num-wide' }, [
       dgeEl('span', { text: f.label }),
       dgeEl('input', {
