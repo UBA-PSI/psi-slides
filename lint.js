@@ -139,6 +139,9 @@ import {
   DG_PLOT_MAX_TICKS, DG_POINT_DIRS, DG_POINTED, DG_SHAPE_CLASSES, DG_RESERVED_IDS,
   dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks,
   dgRowTag, dgColTag, dgLaneName, dgLaneCapName,
+  DG_SEQ_ENTRIES, DG_SEQ_ARROWS,
+  dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName,
+  dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag,
   rejectShapeOn, rejectAlignOn,
 } from './diagram-core.mjs';
 
@@ -544,13 +547,24 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       // makes of every row under it. Name the row rather than 'undefined',
       // the way the build names it.
       const stray = words.length === 0 && (trimmed.match(/^"([^"]*)"/) || [])[1];
+      // The same trap one statement along. A sequence's entries are `actor`,
+      // `note` and `a -> b`, none of which means anything on its own, and the
+      // run ends at the first line that is not one of the three – so an entry
+      // with a typo in it silently ends the run and every entry after it
+      // arrives here. Name what it is rather than reporting a keyword nobody
+      // wrote, the way the table's rows are named above.
+      const orphan = DG_SEQ_ENTRIES.has(head) || words.some(w => DG_SEQ_ARROWS.has(w));
       add(ln, 'error', 'unknown-diagram-statement', trimmed.startsWith('//')
         ? 'a comment line starts with # in a diagram, not //'
         : stray
           ? `unknown diagram statement '${stray}' – a bare quoted string is a table row, and a `
             + `table's rows are the lines directly under it with nothing else on them, `
             + 'up to the first blank line'
-          : `unknown diagram statement '${head}' – valid: ${known}`);
+          : orphan
+            ? `'${head}' only means something inside a sequence – \`actor\`, \`note\` and `
+              + '`a -> b` are a sequence\'s entries, and the run of them ends at the first line '
+              + 'that is not one of the three. Check the line above this one.'
+            : `unknown diagram statement '${head}' – valid: ${known}`);
       continue;
     }
     inStep = false;
@@ -691,6 +705,160 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       }
       // The placement is the ordinary grammar, so the ordinary reference
       // checks apply to it.
+      for (let k = 2; k < words.length; k++) {
+        if (words[k] === 'of' || words[k] === 'below' || words[k] === 'above') refer(words[k + 1], ln, `${head} ${id}`);
+        if (words[k] === 'at' && words[k + 1] && words[k + 1].includes(',')) referPair(words[k + 1], ln, `${head} ${id} at`);
+      }
+      continue;
+    }
+
+    // `sequence` is the third statement that reads the lines under it, and it
+    // reads them for the reason the other two do: the frame's height is a
+    // function of what stands in it. One thing has to be mirrored exactly or
+    // this gate goes out of step with the build – a blank line does *not* end
+    // the run. What ends it is the first line that is not an entry, and that
+    // is decidable from the line alone: `actor`, `note`, or an arrow between
+    // two names.
+    //
+    // Everything the statement expands into is declared here for the reason a
+    // table's cells are: `brace over wa-4,wa-7` and `text … -> wa-3` are the
+    // whole point of the construct, and a gate that did not know those names
+    // would refuse every figure that used it.
+    if (head === 'sequence') {
+      const id = words[1];
+      if (!id) {
+        add(ln, 'error', 'bad-diagram-name', 'sequence needs a name');
+        continue;
+      }
+      define(id, ln);
+      const carry = (name, kind, extra = []) => {
+        const t = [...attrs.tags, ...extra];
+        if (t.length) carries.push({ kind, name, tags: t, ln });
+      };
+      carry(id, 'box');
+      const entries = [];
+      let lastAt = n;
+      for (let m = n + 1; m < block.lines.length; m++) {
+        const raw = block.lines[m].text.trim();
+        if (!raw || raw.startsWith('#')) continue;
+        const nq = raw.replace(/"(?:\\.|[^"\\])*"/g, ' ');
+        const w = nq.replace(/\{[^}]*\}/g, ' ').trim().split(/\s+/).filter(Boolean);
+        const aAt = w.findIndex(v => DG_SEQ_ARROWS.has(v));
+        if (!DG_SEQ_ENTRIES.has(w[0]) && aAt < 0) break;
+        entries.push({ w, aAt, nq, ln: block.lines[m].ln });
+        lastAt = m;
+      }
+      rowsRead = lastAt + 1;
+
+      const actors = [];
+      const known = new Set();
+      const msgs = [];
+      const notes = [];
+      for (const e of entries) {
+        const ea = attrsOf(e.nq, e.ln, true);
+        if (e.w[0] === 'actor') {
+          const aid = e.w[1];
+          if (!aid) {
+            add(e.ln, 'error', 'bad-diagram-sequence', 'actor needs a name and a label – actor u "User"');
+            continue;
+          }
+          if (ea.id) {
+            add(e.ln, 'error', 'bad-diagram-sequence', `actor ${aid} is named by the word after `
+                + `'actor', so '#${ea.id}' in the tail is a second name – drop one`);
+          }
+          if (e.w.length > 2) {
+            add(e.ln, 'error', 'bad-diagram-sequence', `unexpected '${e.w.slice(2).join(' ')}' in `
+                + `actor ${aid} – an actor is \`actor <name> "<label>"\` and an attribute tail`);
+          }
+          define(aid, e.ln);
+          carry(aid, 'box', [...ea.tags, dgActorsTag(id)]);
+          define(dgLifeName(aid), e.ln);
+          carry(dgLifeName(aid), 'edge', [dgLivesTag(id)]);
+          actors.push(aid);
+          known.add(aid);
+          continue;
+        }
+        if (e.w[0] === 'note') {
+          const on = String(e.w[1] ?? '').split(',').map(s => s.trim()).filter(Boolean);
+          if (!on.length) {
+            add(e.ln, 'error', 'bad-diagram-sequence', 'note needs the lifeline it stands on – '
+                + '`note <actor> "…"`, or `note <actor>,<actor> "…"` to centre it between two');
+            continue;
+          }
+          if (on.length > 2) {
+            add(e.ln, 'error', 'bad-diagram-sequence', `note ${on.join(',')}: a note stands on one `
+                + `lifeline or between two, got ${on.length}`);
+            continue;
+          }
+          if (e.w.length > 2) {
+            add(e.ln, 'error', 'bad-diagram-sequence', `unexpected '${e.w.slice(2).join(' ')}' in `
+                + `note ${on.join(',')} – a note is \`note <actor> "<text>"\` and an attribute tail. `
+                + 'A note breaks at \\n, so several lines are one string.');
+          }
+          notes.push({ on, ln: e.ln, own: ea.id, tags: ea.tags });
+          continue;
+        }
+        const from = e.w[e.aAt - 1], to = e.w[e.aAt + 1];
+        if (!from || !to) {
+          add(e.ln, 'error', 'bad-diagram-sequence', `a message needs an actor on both sides of '${e.w[e.aAt]}'`);
+          continue;
+        }
+        const stray = [...e.w.slice(0, Math.max(0, e.aAt - 1)), ...e.w.slice(e.aAt + 2)];
+        if (stray.length) {
+          add(e.ln, 'error', 'bad-diagram-sequence', `unexpected '${stray.join(' ')}' in the message `
+              + `${from} ${e.w[e.aAt]} ${to} – a message is \`<actor> -> <actor> "<label>"\`, `
+              + 'optionally a second, smaller string under it, then an attribute tail');
+        }
+        // Two quoted strings is a label and the smaller line under it; the
+        // build reads no more, so a third is a string the drawing would take
+        // and never paint.
+        const quoted = (block.lines.find(l => l.ln === e.ln).text.match(/"(?:\\.|[^"\\])*"/g) || []);
+        if (quoted.length > 2) {
+          add(e.ln, 'error', 'bad-diagram-sequence', `the message ${from} ${e.w[e.aAt]} ${to} carries `
+              + `${quoted.length} strings – a message takes its label and, under it, one smaller `
+              + 'second line. A second line breaks at \\n, so several lines of it are still one string.');
+        }
+        msgs.push({ from, to, ln: e.ln, own: ea.id, tags: ea.tags, sub: quoted.length > 1 });
+      }
+      if (!actors.length) {
+        add(ln, 'error', 'bad-diagram-sequence', `sequence ${id} declares no actors – put `
+            + '`actor <name> "<label>"` lines directly under it, one per column');
+      }
+      const isActor = (name, eln, what) => {
+        if (known.has(name)) return true;
+        add(eln, 'error', 'bad-diagram-sequence', `${what}: '${name}' is not an actor of `
+            + `sequence ${id} – this sequence has ${actors.join(', ')}`);
+        return false;
+      };
+      // The generated names, and the tags that are the reason the statement
+      // stays small: a message per beat, every message of one actor, every
+      // note, every head, every lifeline.
+      const unnumbered = words.includes('unnumbered');
+      msgs.forEach((m, i) => {
+        const ends = [m.from, ...(m.to === m.from ? [] : [m.to])];
+        const ok = ends.every(x => isActor(x, m.ln, 'message'));
+        define(m.own || dgMsgName(id, i), m.ln);
+        tags.add(dgMsgTag(id, i));
+        tags.add(dgMsgsTag(id));
+        if (ok) for (const x of ends) tags.add(dgMsgsTag(x));
+        carry(m.own || dgMsgName(id, i), 'edge',
+          [...m.tags, dgMsgTag(id, i), dgMsgsTag(id), ...(ok ? ends.map(dgMsgsTag) : [])]);
+        if (!unnumbered) {
+          define(dgMsgNumName(id, i), m.ln);
+          carry(dgMsgNumName(id, i), 'text', [dgMsgTag(id, i)]);
+        }
+        if (m.sub) {
+          define(dgMsgSubName(id, i), m.ln);
+          carry(dgMsgSubName(id, i), 'text', [dgMsgTag(id, i)]);
+        }
+      });
+      notes.forEach((nt, j) => {
+        nt.on.forEach(x => isActor(x, nt.ln, 'note'));
+        define(nt.own || dgNoteName(id, j), nt.ln);
+        tags.add(dgNotesTag(id));
+        carry(nt.own || dgNoteName(id, j), 'box', [...nt.tags, dgNotesTag(id)]);
+      });
+      if (actors.length) { tags.add(dgActorsTag(id)); tags.add(dgLivesTag(id)); }
       for (let k = 2; k < words.length; k++) {
         if (words[k] === 'of' || words[k] === 'below' || words[k] === 'above') refer(words[k + 1], ln, `${head} ${id}`);
         if (words[k] === 'at' && words[k + 1] && words[k + 1].includes(',')) referPair(words[k + 1], ln, `${head} ${id} at`);

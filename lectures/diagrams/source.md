@@ -817,3 +817,75 @@ step every-one-has-an-answer
 **Jede Zelle trägt zwei erzeugte Tags, `@t-row-N` und `@t-col-N`.** Damit ist eine Zeile ein Takt und eine Spalte ein Takt, je eine Zeile Quelltext – wo sonst je Takt drei Zellennamen stünden, die von Hand mit der Tabelle Schritt halten müssten. Zeile 0 ist die Kopfzeile, gezählt wird also ab 1, wenn man Daten meint.
 
 **Der letzte Takt ist der, der auf dem Handout landet.** Eine Figur, die eine Zeile nach der anderen hervorhebt und dann aufhört, kommt mit der letzten Zeile leuchtend aus dem Drucker und berichtet damit von einem Moment im Vortrag statt von der Tabelle. Hier nimmt ein vierter Takt die Hervorhebung wieder ab und tönt stattdessen die Spalte mit den Gegenmaßnahmen – das Bild, das ohne Vortrag etwas sagt. Dass es einen Takt kostet, ist der Grund, warum `emph` und `calm` das nicht brauchen: Die beiden sind Vortragshandlungen, und der Druck streift sie ohnehin ab.
+
+## figure: Ein Ablauf von oben nach unten | a sequence {.full #sequence}
+
+::: diagram {unit=150x40}
+# Die Beteiligten sind eigene Zeilen, weil jeder einen Namen zum Anfassen
+# und einen eigenen Attributschwanz braucht. Alles darunter ist eine
+# Nachricht (Pfeil zwischen zwei Namen) oder eine Notiz.
+sequence wa at 0,0
+  actor u  "User"
+  actor br "Browser"
+  actor au "Authenticator" {.tone-3}
+  actor rp "Relying Party"
+
+  u  -> br "click \"Create passkey\""
+  br -> rp "request registration options"
+  br <- rp "registration options" "challenge · rp.id · user.id · algs" {.dashed}
+  br -> au "CTAP authenticatorMakeCredential" "clientDataHash · rp.id · user · algs"
+  note br,au "CTAP runs over USB, NFC or BLE"
+  au -> u  "prompt: PIN or biometric"
+  u  -> au "user verified locally"
+  note au "generate key pair\nbind to SHA-256(rp.id)\nstore privately · emit publicly"
+  au -> br "attestation object" "authData (public key, cred ID) · signature" {.dashed}
+  br -> rp "attestationObject + clientDataJSON" "clientDataJSON carries challenge · origin"
+  rp -> rp "verify signature · check origin"
+
+# Zwei Anmerkungen, die das Konstrukt nicht kennt: gewöhnliche Zeilen an
+# erzeugten Namen. Ein Takt kann sie zeigen wie jedes andere Element.
+brace ctap over wa-3,wa-4,wa-5 pad 0.3 "auf dem Gerät, über CTAP" left {.small .turn}
+text fresh "die Challenge ist die Frische" right of wa-2 gap 0.5 {.small .hand} -> wa-2
+
+step im-browser
+  emph @br-msgs
+step auf-dem-gerät
+  calm @br-msgs
+  emph @au-msgs
+  emph au
+step zurück-zur-partei
+  calm @au-msgs
+  calm au
+  emph @wa-msg-7, @wa-msg-8
+step alles
+  calm @wa-msgs
+:::
+
+**Ein Protokoll ist die eine Zeichnung, die eine Vorlesung immer wieder braucht, und die von Hand am schnellsten unhaltbar wird.** Ausgeschrieben trägt jede Nachricht ihre eigene y-Koordinate: Eine Nachricht in der Mitte einzufügen heißt, alle darunter zu verschieben, alle Nummern neu zu vergeben und die Länge jeder Lebenslinie neu zu raten – dreizehn Bearbeitungen für eine Zeile Inhalt, gemessen an genau diesem Bild. Und ein Notizkasten, der höher ausfällt als der geratene Abstand, schneidet still in die Beschriftung darunter.
+
+**`sequence` besitzt deshalb genau eine Sache: den senkrechten Rhythmus.** Jeder Eintrag sagt, wie hoch er ist – eine Nachricht so hoch wie ihre Beschriftung, eine Notiz so hoch wie ihr Text –, und die Anweisung stapelt sie. Ein Kasten schiebt mit, was unter ihm steht, und eine eingefügte Zeile ist eine eingefügte Zeile. Quer misst sie sich genauso selbst: Alle Köpfe sind so breit wie die breiteste Beschriftung, damit eine Reihe von Gleichrangigen nicht ausgefranst dasteht. `w`, `h` und `space` sind Übersteuerungen, die im Regelfall niemand schreibt.
+
+**Alles andere beantwortet sie nicht mit Vokabular, sondern mit Adressierbarkeit.** Jeder Kopf behält den Namen, den die `actor`-Zeile ihm gibt; jede Lebenslinie heißt `<actor>-life`, jede Nachricht `wa-N` (von 0 gezählt, die Nummer im Bild ist `N+1`), ihre Nummer `wa-n-N`, ihre kleinere zweite Zeile `wa-sub-N`, jede Notiz `wa-note-N`. Dazu Tags für die Mengen: `@wa-msg-N` für eine Nachricht samt Nummer und zweiter Zeile, `@wa-msgs` für alle, `@au-msgs` für alle, die den Authenticator berühren, `@wa-notes`, `@wa-actors`, `@wa-lives`. Die Klammer und die handschriftliche Anmerkung oben sind deshalb gewöhnliche Zeilen, die an `wa-3` und `wa-2` andocken – das Konstrukt weiß von beiden nichts.
+
+**Es gibt bewusst kein `alt` / `else`.** Eine Gruppe von Nachschriften zu umschließen und zu benennen ist, was `container … pad n` schon zeichnet, und im gemessenen Bestand wollte es eines von neun Bildern. Ein Wort, das mit der ersten Veröffentlichung einfriert, verdient mehr als einen Fall.
+
+## figure: Was eine Nachricht sonst sein kann {.wide #seqmore}
+
+::: diagram {unit=140x44}
+sequence x at 0,0 unnumbered space 0.34
+  actor c "Client"
+  actor p "Proxy"
+  actor s "Server"
+  c -> p "CONNECT server:443"
+  p -> s "TCP handshake"
+  p -> p "note the destination" "host, time, byte counts"
+  c <- p "200 Connection established" {.dashed}
+  c -- s "encrypted tunnel, end to end"
+  note c,s "the proxy forwards bytes\nand reads none of them" {.tone-2}
+:::
+
+**Vier Formen, und keine davon ist eine eigene Pfeilart.** `->` und `<-` sind dieselbe Nachricht, einmal von links und einmal von rechts benannt – wer die Antwort dort schreibt, wo der Empfänger steht, liest die Spalte hinunter statt hin und her. `--` ist eine Linie ohne Kopf, also eine Beziehung ohne Richtung. Gestrichelt wird nichts davon von einem eigenen Wort, sondern von `{.dashed}` – der Attributschwanz einer Nachrichtenzeile ist der einer Kante, weil eine Nachricht eine Kante *ist*.
+
+**Eine Selbstnachricht ist der übliche Weg, eine örtliche Handlung in den Ablauf zu setzen**, und sie schleift aus der Lebenslinie heraus und wieder hinein. Ihre Beschriftung steht neben der Schleife, ihre zweite Zeile darunter. Eine Notiz zwischen zwei Namen steht in der Mitte zwischen deren Lebenslinien und ist so breit wie ihr eigener Text – nicht so breit wie die Spanne, sonst wird aus drei Wörtern ein Banner. Sie bricht an `\n`, was den Grund erspart, aus dem in Mermaid-Quellen dieselbe Notiz dreimal untereinander steht.
+
+**`unnumbered` nimmt die Zahlenspalte weg.** Sie ist sonst da, weil die zweite der beiden Handbearbeitungen das Umnummerieren war und weil die Zahl im Bild und der Index im Tag dieselbe Zahl sind: `@x-msg-3` ist der Pfeil, den der Raum als 4 liest. Wo ein Ablauf so kurz ist, dass niemand auf eine Nummer zeigt, ist die Spalte nur Papier.

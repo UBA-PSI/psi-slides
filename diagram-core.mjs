@@ -365,7 +365,7 @@ export const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', '
 // branches on each keyword by name – but the linter needs the set, and a
 // second hand-written copy of the vocabulary is exactly what this module
 // exists to stop.
-export const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes']);
+export const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence']);
 // Names an element cannot have, and it is a computed table rather than a
 // list: the live runtime keys plain objects by element id (a frame's vis /
 // cls / geom straight from JSON, the target cache, the kinds map), so an id
@@ -381,7 +381,13 @@ export const DG_SCALAR_X = new Set(['cx', 'left', 'right']);
 export const DG_SCALAR_Y = new Set(['cy', 'top', 'bottom']);
 
 export const DG_STEP_OPS = new Set(['show', 'hide', 'move', 'emph', 'calm', 'style', 'label']);
-export const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'align', 'spread', 'default', 'step']);
+export const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence', 'align', 'spread', 'default', 'step']);
+// The three shapes a line inside a `sequence` may take. They are not
+// statements – they mean nothing anywhere else – so they stay out of
+// DG_KEYWORDS and a stray one is reported as what it is: an entry that lost
+// its sequence. The linter says exactly that.
+export const DG_SEQ_ENTRIES = new Set(['actor', 'note']);
+export const DG_SEQ_ARROWS = new Set(['->', '<-', '--']);
 // What a `grid` may repeat. Not `text` – a grid of identical words is a
 // paragraph, and not `edge`, which has two ends rather than a cell.
 export const DG_GRID_KINDS = new Set(['box', 'dot', 'image']);
@@ -422,6 +428,50 @@ export const DG_LANE_H = 1.0;
 export const DG_LANE_W = 4;
 // How far a lane's turned caption sits outside the band, in grid units.
 export const DG_LANE_CAP = 0.3;
+
+// ── what a `sequence` calls the elements it expands into ────────────────
+//
+// These are not an implementation detail, they are the statement's public
+// half. `sequence` deliberately owns one thing – the vertical rhythm – and
+// answers every other wish by being *addressable*: an `at` may name another
+// element's coordinate and an edge has a box in layoutDiagram, so an
+// annotation dropped into the middle of a protocol is an ordinary line,
+//
+//   text n "replayed" right of wa-3 gap 0.3 -> wa-3
+//   brace over wa-4,wa-7 "inside the tunnel" left
+//   container c over wa-2,wa-3,wa-4 pad 0.3 "cross-device"
+//
+// and needs no vocabulary of its own. That only works if the names are
+// guaranteed, so they are written down here, exported, mirrored by lint.js
+// and documented in CLAUDE.md. Same bend of the tables-only rule the table's
+// cell names ride: a naming scheme is a table indexed rather than listed, and
+// the compiler and the linter have to agree on it exactly.
+//
+// An actor's head keeps the id the author gave it on its own `actor` line, so
+// there is nothing generated to look up for the commonest reference of all.
+export const dgLifeName = (actorId) => `${actorId}-life`;
+// Message i, 0-based; the number the room reads is i+1. The two indices agree
+// on purpose, so `@wa-msg-3` is the arrow labelled 4 and a step block can be
+// written without counting lines.
+export const dgMsgName = (id, i) => `${id}-${i}`;
+export const dgMsgNumName = (id, i) => `${id}-n-${i}`;
+export const dgMsgSubName = (id, i) => `${id}-sub-${i}`;
+export const dgNoteName = (id, j) => `${id}-note-${j}`;
+export const dgMsgTag = (id, i) => `${id}-msg-${i}`;
+// Sets. `dgMsgsTag` is used at two scopes and means the same sentence at
+// both: on the sequence's name it is every message in the figure, on an
+// actor's name it is every message that touches that actor.
+export const dgMsgsTag = (id) => `${id}-msgs`;
+export const dgNotesTag = (id) => `${id}-notes`;
+export const dgActorsTag = (id) => `${id}-actors`;
+export const dgLivesTag = (id) => `${id}-lives`;
+// All in grid units, like every other length in this layout.
+export const DG_SEQ_SPACE = 0.22;    // between one entry's band and the next
+export const DG_SEQ_GAP = 0.45;      // between two actor heads
+export const DG_SEQ_NUM = 0.34;      // the number column, outside the frame's left
+export const DG_SEQ_TAIL = 0.3;      // how far a lifeline runs past the last entry
+export const DG_SEQ_SELF_W = 0.28;   // how far a self-message loops out
+export const DG_SEQ_SELF_H = 0.42;   // and how far down it comes back
 // `plot` expands into a frame, two runs of grid lines, two runs of tick
 // labels and up to two axis titles. Parts: gx gy xt yt xl yl.
 export const dgPlotName = (id, part, i) => (i === undefined ? `${id}-${part}` : `${id}-${part}-${i}`);
@@ -527,6 +577,14 @@ export const DG_KIND_OPTS = {
   bars: ['w', 'h', 'space', 'emph', 'calm', 'aspect'], grid: ['cell', 'space'],
   plot: ['w', 'h', 'step', 'x', 'y', 'aspect'],
   table: ['w', 'h', 'space', 'col'], lanes: ['w', 'h'],
+  // A sequence sizes itself from its own type: the heads are as wide as the
+  // widest actor name and as tall as the tallest, and every band is as tall as
+  // what stands in it. So all three numbers are overrides and none is normally
+  // written. `w` is the whole frame, which the actors divide into equal
+  // columns; `h` is the height of one head; `space` is the vertical rhythm,
+  // and it is `space` rather than `gap` for the reason it is everywhere else –
+  // `gap` on this very line is the distance to another element.
+  sequence: ['w', 'h', 'space'],
 };
 // Options whose value is a comma list rather than one number. `col 1.5,0.9,1.9`
 // is one width per column, and reading it with dgNum would report the whole
@@ -1117,7 +1175,14 @@ export function rejectAlignOn(kindWord, classes, lineNo, errors) {
 // `bottom` already has. `series of X` says whose frame this run of columns
 // belongs to; `stacked` says it piles onto what came before instead of
 // standing beside it.
-export const DG_BARE_OPTS = { bars: ['stacked', 'horizontal'] };
+// `unnumbered` takes the number column away. The numbers are on by default,
+// and that is the one place this statement overrules mermaid: renumbering by
+// hand is the second of the two edits that made the hand-built version
+// unmaintainable, and a construct that owns the rhythm and then leaves the
+// counting to the author has given back half of what it is for. The number and
+// the generated tag carry the same index, so `@wa-msg-3` is the arrow the room
+// sees labelled 4.
+export const DG_BARE_OPTS = { bars: ['stacked', 'horizontal'], sequence: ['unnumbered'] };
 // Options whose value is a ratio, `W:H`, rather than a number. `w` and `h` are
 // in *grid units*, and a grid cell is not square - at `unit=150x52` a plot
 // written `w 1.9 h 1.5` lands 285px by 78px, which is nobody's idea of 1.9 by
@@ -1137,7 +1202,8 @@ export function dgParseRatio(tok) {
 export function readGridOpts(head, id, rest0, lineNo, errors) {
   const rest = rest0.map(x => ({ v: x.v, s: x.s, e: x.e }));
   const out = { place: null, w: null, h: null, cell: null, space: null, col: null, emph: null,
-    calm: null, series: null, stacked: false, horizontal: false, aspect: null, sameAs: null };
+    calm: null, series: null, stacked: false, horizontal: false, unnumbered: false,
+    aspect: null, sameAs: null };
   // `space`, not `gap`. Everywhere else in this grammar `gap` is the distance
   // between two *elements*, and a placement on this very line uses it in
   // exactly that sense – so a bare `gap` here meant one thing written before
@@ -2317,9 +2383,19 @@ export function createDiagramCompiler(env = {}) {
       if (!DG_KEYWORDS.has(head)) {
         // `//` is what everyone reaches for first, and the generic complaint
         // does not mention comments at all.
+        // An entry that lost its sequence. The run of them ends at the first
+        // line that is not one of the three shapes, so a typo in the middle
+        // sends every line after it here, where the generic complaint reports
+        // a keyword nobody wrote – "unknown statement br".
+        const orphan = DG_SEQ_ENTRIES.has(head)
+          || body0.some(x => DG_SEQ_ARROWS.has(x.v));
         dgErr(errors, lineNo, trimmed.startsWith('//')
           ? 'a comment line starts with # in a diagram, not //'
-          : `unknown statement "${head}" (known: ${[...DG_KEYWORDS].join(', ')}${step ? ', ' + [...DG_STEP_OPS].join(', ') : ''})`);
+          : orphan
+            ? `"${head}" only means something inside a sequence – "actor", "note" and "a -> b" are `
+              + 'a sequence\'s entries, and the run of them ends at the first line that is not one '
+              + 'of the three. Check the line above this one.'
+            : `unknown statement "${head}" (known: ${[...DG_KEYWORDS].join(', ')}${step ? ', ' + [...DG_STEP_OPS].join(', ') : ''})`);
         continue;
       }
 
@@ -2514,6 +2590,340 @@ export function createDiagramCompiler(env = {}) {
             }));
           });
         });
+        continue;
+      }
+
+      // ── sequence ─────────────────────────────────────────────────────
+      //
+      // A protocol read down the page: a row of actors, a lifeline under each,
+      // and numbered messages between them. Like table and lanes it expands
+      // here, at parse time, into ordinary boxes, texts and edges – nothing
+      // downstream learns that sequences exist.
+      //
+      // It owns exactly one thing, and only because it is the one thing an
+      // author cannot keep by hand: the vertical rhythm. Written out element
+      // by element, every message carries a y coordinate of its own, so
+      // inserting one in the middle means moving every message under it,
+      // renumbering all of them and re-guessing how far the lifelines run –
+      // thirteen edits for one line of content, measured. And a note box
+      // taller than the guessed step cuts silently into the label beneath it,
+      // which is what the hand-built version of the figure below actually did.
+      // Here every entry states the height it needs and the statement stacks
+      // them, so a note pushes what follows it down and an insertion is one
+      // line.
+      //
+      // Everything else it answers by being *addressable* rather than by
+      // growing words: every head, lifeline, message, number, second line and
+      // note has a documented generated name and the sets have tags, so an
+      // annotation dropped into the middle of a protocol is an ordinary
+      // `text … right of wa-3 -> wa-3` or `brace over wa-4,wa-7`. See the
+      // dg*Name helpers at the top of this file. That is also why there is no
+      // `alt` / `else`: a group of messages is what `container … pad n` with a
+      // caption already draws, and it was one figure in nine that wanted it.
+      if (head === 'sequence') {
+        const id = t(1);
+        if (!id) { dgErr(errors, lineNo, 'sequence needs a name'); continue; }
+        claim(id, 'sequence', lineNo);
+        rejectShapeOn('box', attrs.classes, lineNo, errors);
+        const opts = readGridOpts(head, id, body0.slice(2), lineNo, errors);
+        const [uw, uh] = model.unit;
+        // Rounded, unlike a table's cells: a sequence's heads are the one row
+        // of boxes in this grammar that stands for people and systems rather
+        // than for data, and the author's own outline class still wins.
+        const outlined = (cls) => (cls.some(c => c === 'round' || c === 'sharp' || DG_SHAPE_CLASSES.has(c))
+          ? cls : ['round', ...cls]);
+        const framePlace = (place) => {
+          if (place) return place;
+          if (model.nodes.length === 0) return { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] };
+          dgErr(errors, lineNo, `sequence ${id} has no placement (at X,Y / below … / above … / right of … / left of … )`);
+          return { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] };
+        };
+
+        // The run of entry lines under the statement, read here rather than by
+        // the loop for the reason a table's rows are: the frame's height is a
+        // function of what stands in it, and the frame is placed before any of
+        // it. The third lookahead in this parser, and the last one that should
+        // ever be needed – all three are the same problem.
+        //
+        // Unlike a table's rows, a blank line does *not* end the run. A table
+        // is a solid block by nature; a protocol runs to fifteen lines and its
+        // phases want air between them, which is how every one of the nine
+        // real diagrams this was measured against is written. What ends the
+        // run is the first line that is not an entry, and that is decidable
+        // from the line alone: `actor`, `note`, or an arrow between two names.
+        const entries = [];
+        let lastAt = n;
+        for (let m = n + 1; m < lines.length; m++) {
+          const line = lines[m].trim();
+          if (!line || line.startsWith('#')) continue;
+          const et = dgTokenize(line, 0);
+          const eb = et.filter(x => !x.attr && !x.q).map(x => x.v);
+          const aAt = eb.findIndex(v => DG_SEQ_ARROWS.has(v));
+          if (!DG_SEQ_ENTRIES.has(eb[0]) && aAt < 0) break;
+          entries.push({ toks: et, bare: eb, arrowAt: aAt, ln: m + 1 });
+          lastAt = m;
+        }
+        rowsRead = lastAt + 1;
+        // Only now. A refused option used to return before the run was read,
+        // and every entry under it then arrived at the unknown-statement gate
+        // as an orphan – one mistake, four complaints, and three of them about
+        // lines that are perfectly good. lint.js reads the run whatever the
+        // options say, so this is also what keeps the two counts equal.
+        if (!opts) continue;
+
+        // Actors and the run of things that happen, in document order. An
+        // `actor` line may sit anywhere in the run – the column order is the
+        // order of the actor lines, and a message may name one declared below
+        // it, the same latitude a tag has.
+        const actors = [];
+        const byName = new Map();
+        const seq = [];
+        for (const e of entries) {
+          const aTok = e.toks.find(x => x.attr);
+          const ea = aTok ? dgParseAttrs(aTok.v, errors, e.ln) : { id: null, classes: [], tags: [] };
+          const eq = e.toks.filter(x => x.q).map(x => x.v);
+          const eb = e.bare;
+          if (eb[0] === 'actor') {
+            const aid = eb[1];
+            if (!aid) { dgErr(errors, e.ln, 'actor needs a name and a label – actor u "User"'); continue; }
+            if (ea.id) {
+              dgErr(errors, e.ln, `actor ${aid} is named by the word after "actor", so "#${ea.id}" `
+                + 'in the tail is a second name – drop one');
+            }
+            if (eb.length > 2) {
+              dgErr(errors, e.ln, `unexpected "${eb.slice(2).join(' ')}" in actor ${aid} – `
+                + 'an actor is `actor <name> "<label>"` and an attribute tail');
+            }
+            if (eq[0] === undefined) dgErr(errors, e.ln, `actor ${aid} needs a label – actor ${aid} "User"`);
+            claim(aid, 'box', e.ln);
+            byName.set(aid, actors.length);
+            actors.push({ id: aid, label: eq[0] ?? '', classes: ea.classes, tags: ea.tags, ln: e.ln });
+            continue;
+          }
+          if (eb[0] === 'note') {
+            const on = String(eb[1] ?? '').split(',').map(s => s.trim()).filter(Boolean);
+            if (!on.length) {
+              dgErr(errors, e.ln, 'note needs the lifeline it stands on – `note <actor> "…"`, or '
+                + '`note <actor>,<actor> "…"` to centre it between two');
+              continue;
+            }
+            if (on.length > 2) {
+              dgErr(errors, e.ln, `note ${on.join(',')}: a note stands on one lifeline or between two, `
+                + `got ${on.length}`);
+              continue;
+            }
+            if (eb.length > 2) {
+              dgErr(errors, e.ln, `unexpected "${eb.slice(2).join(' ')}" in note ${on.join(',')} – `
+                + 'a note is `note <actor> "<text>"` and an attribute tail. A note breaks at \\n, '
+                + 'so several lines are one string.');
+            }
+            seq.push({ type: 'note', on, label: eq[0] ?? '', classes: ea.classes,
+              tags: ea.tags, own: ea.id, ln: e.ln });
+            continue;
+          }
+          const aAt = e.arrowAt;
+          const fromTok = eb[aAt - 1], toTok = eb[aAt + 1];
+          if (!fromTok || !toTok) {
+            dgErr(errors, e.ln, `a message needs an actor on both sides of "${eb[aAt]}"`);
+            continue;
+          }
+          const stray = [...eb.slice(0, Math.max(0, aAt - 1)), ...eb.slice(aAt + 2)];
+          if (stray.length) {
+            dgErr(errors, e.ln, `unexpected "${stray.join(' ')}" in the message ${fromTok} ${eb[aAt]} ${toTok} – `
+              + 'a message is `<actor> -> <actor> "<label>"`, optionally a second, smaller string '
+              + 'under it, then an attribute tail');
+          }
+          // Two strings is a label and the smaller line under it. A third is
+          // a string the drawing would take and never paint, which is the
+          // silent no-op this grammar keeps closing.
+          if (eq.length > 2) {
+            dgErr(errors, e.ln, `the message ${fromTok} ${eb[aAt]} ${toTok} carries ${eq.length} strings – `
+              + 'a message takes its label and, under it, one smaller second line. '
+              + 'A second line breaks at \\n, so several lines of it are still one string.');
+          }
+          const flip = eb[aAt] === '<-';
+          seq.push({ type: 'msg', from: flip ? toTok : fromTok, to: flip ? fromTok : toTok,
+            headless: eb[aAt] === '--', label: eq[0] ?? '', sub: eq[1] ?? '',
+            classes: ea.classes, tags: ea.tags, own: ea.id, ln: e.ln });
+        }
+        if (!actors.length) {
+          dgErr(errors, lineNo, `sequence ${id} declares no actors – put \`actor <name> "<label>"\` `
+            + 'lines directly under it, one per column');
+          continue;
+        }
+        const idxOf = (name, ln, what) => {
+          if (byName.has(name)) return byName.get(name);
+          dgErr(errors, ln, `${what}: "${name}" is not an actor of sequence ${id} – `
+            + `this sequence has ${actors.map(a => a.id).join(', ')}`);
+          return -1;
+        };
+
+        // Across: the heads are all one width, because a row of peers drawn
+        // ragged reads as an accident, and that width is the widest label plus
+        // its padding – so the common case states no number at all. `w` sets
+        // the whole frame instead and the columns divide it evenly.
+        const setOf = (c) => new Set(c);
+        const headM = actors.map(a => {
+          const cs = setOf([...attrs.classes, ...a.classes]);
+          return dgMeasure(a.label, dgFontFor(cs), cs.has('mono'));
+        });
+        const headW = Math.max(DG_MIN_W, Math.max(...headM.map(m => m.w)) + 2 * DG_PAD_X);
+        const headH = opts.h != null ? opts.h * uh
+          : Math.max(...headM.map(m => m.h)) + 2 * DG_PAD_Y;
+        const pitch = opts.w != null ? (opts.w * uw) / actors.length : headW + DG_SEQ_GAP * uw;
+        const boxW = Math.max(DG_MIN_W, pitch - DG_SEQ_GAP * uw);
+        const xOf = (i) => pitch * (i + 0.5);
+
+        // Down: one band per entry, each as tall as what stands in it, stacked
+        // with `space` between. This is the whole statement.
+        const space = (opts.space != null ? opts.space : DG_SEQ_SPACE) * uh;
+        const [, padY] = dgPadPx(null, uh);
+        // One rhythm unit under the heads before the first band. Starting flush
+        // put the first message's label against the bottom of its own head box,
+        // which is the one place in the figure where two different things share
+        // an edge.
+        let cy = headH + space;
+        let mi = 0, ni = 0;
+        const plan = [];
+        for (const it of seq) {
+          const cs = setOf(it.classes);
+          const font = dgFontFor(cs);
+          const m = dgMeasure(it.label, font, cs.has('mono'));
+          if (it.type === 'note') {
+            const h = m.h + 2 * padY;
+            plan.push({ it, y: cy + h / 2, h, j: ni++ });
+            cy += h + space;
+            continue;
+          }
+          const self = it.from === it.to;
+          // What the edge emitter will actually do with the label: with no
+          // fill it sits clear of the line by half its height plus two, with
+          // one it sits on the line and knocks it out. A band that reserves
+          // the other case is a guessed rhythm again.
+          const above = self ? 4 : (dgHasFill(cs) ? m.h / 2 + padY : m.h + 2);
+          // A self-message loops out and comes back, and its label stands
+          // beside the loop rather than over a line – so the loop has to be at
+          // least as deep as the words are tall.
+          const loop = self ? Math.max(DG_SEQ_SELF_H * uh, m.h + 6) : 0;
+          const subH = it.sub ? dgMeasure(it.sub, font * 0.8, cs.has('mono')).h : 0;
+          plan.push({ it, y: cy + above, loop, subH, i: mi++ });
+          cy += above + loop + (it.sub ? subH + 4 : 0) + space;
+        }
+        const bottom = (plan.length ? cy - space : cy) + DG_SEQ_TAIL * uh;
+
+        const synthAt = (el, ln) => ({ ...el, synth: id, line: ln, span });
+        const at = (xn, yn) => ({
+          kind: 'abs',
+          at: [{ ref: id, prop: 'left', nudge: xn }, { ref: id, prop: 'top', nudge: yn }],
+        });
+        const pt = (xpx, ypx) => [{ ref: id, prop: 'left', nudge: xpx / uw },
+          { ref: id, prop: 'top', nudge: ypx / uh }];
+        const end = (xpx, ypx) => ({ ref: null, anchor: null, frac: 0.5, point: pt(xpx, ypx) });
+        const seqTags = attrs.tags || [];
+
+        model.nodes.push(synthAt({
+          kind: 'box', id, label: '', classes: ['bare', 'clear'], tags: attrs.tags,
+          place: framePlace(opts.place), w: (pitch * actors.length) / uw, h: bottom / uh,
+          r: null, pad: null, frame: head,
+        }, lineNo));
+        actors.forEach((a, i) => {
+          model.nodes.push(synthAt({
+            kind: 'box', id: a.id, label: a.label,
+            // The statement's own tail lands on the heads, which is where
+            // `table` puts it (on the cells) and `lanes` puts it (on the
+            // bands): the repeated element the author would want to tint.
+            classes: outlined([...attrs.classes, ...a.classes]),
+            tags: [...seqTags, ...(a.tags || []), dgActorsTag(id)],
+            place: at(xOf(i) / uw, (headH / 2) / uh),
+            w: boxW / uw, h: headH / uh, r: null, pad: null,
+          }, a.ln));
+          claim(dgLifeName(a.id), 'edge', a.ln);
+          model.edges.push(synthAt({
+            kind: 'edge', id: dgLifeName(a.id),
+            // The head end is the *element*, not a point, so visibility runs
+            // downhill the way it does everywhere else: hiding an actor takes
+            // its lifeline with it, and no clamp had to learn about sequences.
+            from: { ref: a.id, anchor: 'bottom', frac: 0.5 },
+            to: end(xOf(i), bottom),
+            label: '', classes: ['dashed', 'muted', 'no-head'],
+            tags: [...seqTags, dgLivesTag(id)], via: [], pad: null, named: false,
+          }, a.ln));
+        });
+
+        for (const p of plan) {
+          const it = p.it;
+          if (it.type === 'note') {
+            const on = it.on.map(nm => idxOf(nm, it.ln, 'note'));
+            if (on.some(k => k < 0)) continue;
+            const nid = it.own || dgNoteName(id, p.j);
+            claim(nid, 'box', it.ln);
+            model.nodes.push(synthAt({
+              kind: 'box', id: nid, label: it.label,
+              classes: outlined([...it.classes]),
+              tags: [...seqTags, ...(it.tags || []), dgNotesTag(id)],
+              // Centred on the one lifeline, or between the two named. Sized
+              // to its own words rather than stretched across the span: a
+              // three-word note between two far columns would otherwise be a
+              // banner, and a long one between two near columns unreadable.
+              place: at(((xOf(on[0]) + xOf(on[on.length - 1])) / 2) / uw, p.y / uh),
+              w: null, h: p.h / uh, r: null, pad: null,
+            }, it.ln));
+            continue;
+          }
+          const fi = idxOf(it.from, it.ln, 'message'), ti = idxOf(it.to, it.ln, 'message');
+          if (fi < 0 || ti < 0) continue;
+          const mid = it.own || dgMsgName(id, p.i);
+          claim(mid, 'edge', it.ln);
+          const tag = dgMsgTag(id, p.i);
+          const cls = [...it.classes];
+          if (it.headless && !cls.includes('no-head')) cls.push('no-head');
+          const x0 = xOf(fi), x1 = xOf(ti);
+          const via = [];
+          let to = end(x1, p.y);
+          if (fi === ti) {
+            const dx = DG_SEQ_SELF_W * uw;
+            via.push(pt(x0 + dx, p.y), pt(x0 + dx, p.y + p.loop));
+            to = end(x0, p.y + p.loop);
+          }
+          model.edges.push(synthAt({
+            kind: 'edge', id: mid, from: end(x0, p.y), to,
+            label: it.label, classes: cls,
+            // Two scopes of the same sentence: every message in the figure,
+            // and every message that touches this actor.
+            tags: [...seqTags, ...(it.tags || []), tag, dgMsgsTag(id), dgMsgsTag(actors[fi].id),
+              ...(ti === fi ? [] : [dgMsgsTag(actors[ti].id)])],
+            via, pad: null, named: !!it.own,
+          }, it.ln));
+          if (!opts.unnumbered) {
+            const numId = dgMsgNumName(id, p.i);
+            claim(numId, 'text', it.ln);
+            model.nodes.push(synthAt({
+              kind: 'text', id: numId, label: String(p.i + 1),
+              classes: ['small', 'muted'], tags: [...seqTags, tag],
+              place: at(-DG_SEQ_NUM, (p.y + p.loop / 2) / uh),
+              w: null, h: null, r: null, pad: null,
+            }, it.ln));
+          }
+          if (it.sub) {
+            const sid = dgMsgSubName(id, p.i);
+            claim(sid, 'text', it.ln);
+            // Under the middle of the arrow – except on a self-message, where
+            // there is no arrow to be under: the label stands to the right of
+            // the loop, so the second line follows it there. Centred on the
+            // loop instead, it ran back across the lifelines to the left of it.
+            const subX = fi === ti
+              ? x0 + DG_SEQ_SELF_W * uw
+                + dgMeasure(it.sub, dgFontFor(setOf(it.classes)) * 0.8,
+                  setOf(it.classes).has('mono')).w / 2 + 8
+              : (x0 + x1) / 2;
+            model.nodes.push(synthAt({
+              kind: 'text', id: sid, label: it.sub,
+              classes: ['small', 'muted'], tags: [...seqTags, tag],
+              place: at(subX / uw, (p.y + p.loop + p.subH / 2 + 4) / uh),
+              w: null, h: null, r: null, pad: null,
+            }, it.ln));
+          }
+        }
         continue;
       }
 

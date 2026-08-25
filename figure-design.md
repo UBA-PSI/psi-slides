@@ -609,10 +609,10 @@ instead.
 
 ---
 
-## Four arrangements a lecture keeps asking for
+## Five arrangements a lecture keeps asking for
 
-Most lecture figures are one of four shapes. Three of them have a statement or a
-class that writes them outright, and each of the four turns on one construction
+Most lecture figures are one of five shapes. Four of them have a statement or a
+class that writes them outright, and each of the five turns on one construction
 fact that is not obvious from the grammar.
 
 **A flowchart** runs its main road straight down and lets every branch leave
@@ -713,6 +713,38 @@ handout shows: a tone a `style` step puts on a row describes the drawing, so
 print keeps it, while `emph` and `calm` are lecture-time acts that print strips. So a highlight that
 is only for the room can be an `emph` and needs no closing beat; one written as
 a tone needs the beat that takes it off again.
+
+**A protocol** is `sequence`, and the one thing to understand about it is what
+it does *not* do. It owns the vertical rhythm and nothing else: it stacks a band
+per entry, each as tall as what stands in it, so a note pushes the messages under
+it down instead of cutting into their labels. Everything else it answers by being
+addressable. Every head keeps the name its `actor` line gives it, every lifeline
+is `<actor>-life`, every message is `<seq>-N` counting from 0, and the tags
+`@<seq>-msg-N`, `@<seq>-msgs`, `@<actor>-msgs`, `@<seq>-notes` name the sets. So
+the annotation a real protocol slide always ends up needing is an ordinary line
+hung off an ordinary name, not a word the statement had to grow.
+
+```
+# wrong: a note the sequence cannot see, positioned by hand against a coordinate
+#        that moves the moment a message is inserted above it
+text n "die Challenge ist die Frische" at 4.2,2.6 {.small}
+
+# right: hung off the message it is about, and it follows when the figure moves
+text n "die Challenge ist die Frische" right of wa-2 gap 0.5 {.small .hand} -> wa-2
+brace ctap over wa-3,wa-4,wa-5 pad 0.3 "auf dem Gerät, über CTAP" left {.small .turn}
+```
+
+Three things a protocol figure gets wrong often enough to name. **A response is
+`{.dashed}`, not a second kind of arrow** – a message *is* an edge, so it takes
+the edge's classes, and dashed against solid is the distinction the room already
+reads. **A local action is a self-message or a note, and the two are not
+interchangeable**: `au -> au "sign"` is one step in the sequence and takes a
+number, a `note au "…"` is a standing fact about that lifeline and takes none.
+**Payload detail belongs in a message's second string, not in a note under it** –
+the second string is set smaller under the arrow and moves with it, where a note
+is a band of its own and pushes the whole figure taller for something that is a
+footnote to one line. A brace's label goes `.turn`ed when the brace stands on the
+left, or it runs back over the number column.
 
 ---
 
