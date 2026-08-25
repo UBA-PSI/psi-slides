@@ -28,7 +28,7 @@ You did not author two versions. You wrote the right-hand text and marked which 
 
 ![Speaker cockpit showing the scrubber, stage mirror, notes pane and preview strip](docs/img/speaker.png)
 
-**The overview board** (`O`). The one idea worth keeping from *Prezi*, and none of the rest of it: zoom out to the whole lecture at once, drag to pan, `/` to search, `Enter` to land. In a lecture you did not write yourself, the board is where you get oriented – the typographic rhythm of principles, examples and figures is visible at a glance.
+**The overview board** (`O`), borrowed from *Prezi*: zoom out to the whole lecture at once, drag to pan, `/` to search, `Enter` to land. In a lecture you did not write yourself, the board is where you get oriented – the typographic rhythm of principles, examples and figures is visible at a glance.
 
 ![Overview board showing three columns of chunks with one selected](docs/img/audience-overview.png)
 
@@ -108,14 +108,14 @@ The grammar is `## tag: Heading | Sub-heading {.width #id}`. Eight tags (`title`
 
 **What lands on the slide** is decided per chunk, by one of two mechanisms:
 
-- **Derived** (the default): the first sentence of every paragraph, plus any `**bold**` fragments. Costs nothing to author, and imposes a real discipline – every paragraph has to open with a claim that stands alone.
+- **Derived** (the default): the first sentence of every paragraph, plus any `**bold**` fragments. It imposes a real discipline – every paragraph has to open with a claim that stands alone.
 - **Stated**: a `::: slide` block *is* the screen, everything else is narration. Or `::: script`, the dual: the chunk is the screen and only the marked block is narration. Reach for these when the argument wants continuous prose that no first-sentence rule can carve up.
 
 Everything else is body-level directives: `---` on its own line splits a chunk into **reveal segments**; `::: expand <label>` hides detail behind a chevron; `::: cols 2` / `::: side` / `::: flip` shape internal layout; `::: margin` and `::: marginalia` place asides; `![](fig-id)` resolves against `assets/`; `$inline$` and `$$display$$` are **math**, rendered by KaTeX during the build. All of it is documented live in the tutorial.
 
-**Figures are written, not drawn.** `::: diagram` is a small boxes-and-arrows language compiled to inline SVG at build time: elements are named and placed against one another rather than on a canvas, arrows stay attached to boxes that move, and a figure's steps ride the same key the reveal segments do. Six statements write those boxes, texts and edges for you rather than adding a new kind of thing to draw: a column chart, a repeated cell grid, a cartesian frame, a table of labelled cells, a set of swimlanes, and `sequence`, which draws a protocol down the page &ndash; one lifeline per actor, numbered messages between them, notes and self-messages. Every part `sequence` draws keeps a name, so an annotation hung off a message is an ordinary line of source and you are not held to what `sequence` itself can draw. [`figure-design.md`](figure-design.md) is how to lay one out and [`docs/artifact/`](docs/artifact/) teaches the language from nothing. Not in a tagged release yet.
+**Figures are written, not drawn.** `::: diagram` is a small boxes-and-arrows language compiled to inline SVG at build time: elements are named and placed against one another rather than on a canvas, arrows stay attached to boxes that move, and a figure's steps ride the same key the reveal segments do. Six statements write those boxes, texts and edges for you: a column chart, a repeated cell grid, a cartesian frame, a table of labelled cells, a set of swimlanes, and `sequence`, which draws a protocol down the page &ndash; one lifeline per actor, numbered messages between them, notes and self-messages. Every part `sequence` draws keeps a name, so an annotation hung off a message is an ordinary line of source and you are not held to what `sequence` itself can draw. [`figure-design.md`](figure-design.md) is how to lay one out and [`docs/artifact/`](docs/artifact/) teaches the language from nothing. Not in a tagged release yet.
 
-**Typefaces travel with the file.** Three families ship with the tool and are embedded in every output: Literata, IBM Plex Sans and JetBrains Mono, all under the SIL Open Font License, which permits exactly this. That is not decoration – Safari does not expose locally installed fonts to a page at all, as an anti-fingerprinting measure, so a deck that merely *names* its typefaces gets whatever the browser feels like there. The bundle costs about 280 KB per file; `fonts: none` in the frontmatter turns it off.
+**Typefaces travel with the file.** Three families ship with the tool and are embedded in every output: Literata, IBM Plex Sans and JetBrains Mono, all under the SIL Open Font License, which permits exactly this. Safari does not expose locally installed fonts to a page at all, as an anti-fingerprinting measure, so a deck that merely *names* its typefaces gets whatever the browser feels like there. The bundle costs about 280 KB per file; `fonts: none` in the frontmatter turns it off.
 
 To use your own instead, drop the files into `fonts/` beside your source and name the families:
 
@@ -187,11 +187,11 @@ speaker state; say so up front, because no check will catch it.
 
 ## When *not* to use this
 
-This is the section that will save you the most time. Each line is a real constraint, not a disclaimer.
+This is the section that will save you the most time.
 
 - **You need `.pptx` or Keynote interop, or a corporate template.** There is no export path. The output is HTML; the only bridge to a slide deck is printing to PDF.
 - **A co-author needs a GUI.** The source is Markdown in a text editor and nothing else. If your collaborator will not edit a text file, this will not work for the two of you.
-- **You want slide transitions, or motion for its own sake.** There are none, and there will be none. What exists is two deliberate mechanisms: reveal segments uncover blocks of text in place, and a `::: diagram` block can be stepped – elements appear, disappear, move, and the arrows between them re-route as they go. Both run on the same key. Neither will animate a slide change. (`::: diagram` is in this repository but not in any tagged release yet; see [Documentation](#documentation).)
+- **You want slide transitions, or motion for its own sake.** There are none, and there will be none. What exists is two mechanisms: reveal segments uncover blocks of text in place, and a `::: diagram` block can be stepped – elements appear, disappear, move, and the arrows between them re-route as they go. Both run on the same key. Neither will animate a slide change. (`::: diagram` is in this repository but not in any tagged release yet; see [Documentation](#documentation).)
 - **You want the cockpit on a tablet and the slides on the projector.** The design rules it out: the cockpit is a window the audience view opened, and the two talk to each other as parent and popup, which means same machine, same browser, same profile. Syncing over a network is deferred, not planned.
 - **You need more than KaTeX covers.** `$inline$` and `$$display$$` work and render at build time, but that is KaTeX, not LaTeX: no equation numbering or `\ref`, no `mhchem`, no TikZ. If your lecture is a mathematics lecture, check [KaTeX's supported functions](https://katex.org/docs/supported.html) before committing.
 - **You need polls, quizzes, or any audience interaction.** Named and deferred in `PRD.md`.
@@ -201,7 +201,7 @@ This is the section that will save you the most time. Each line is a real constr
 
 ## How it compares
 
-Every tool in this space is good, and nearly all of them take Markdown, so “it uses Markdown” is not a reason to pick this one. The honest differentiator is a combination: one text rendered at two densities, a presenter cockpit that needs no server, and a prose handout – all from a single source and all in files that fetch nothing at run time. [Beamer](https://ctan.org/pkg/beamer) beats it on math, citations and sheer durability; [Quarto](https://quarto.org/) is broader and better supported; [reveal.js](https://revealjs.com/), [Marp](https://marp.app/) and [Slidev](https://sli.dev/) are better at being slide decks; PowerPoint wins the moment a colleague has to edit your file.
+Every tool in this space is good, and nearly all of them take Markdown, so “it uses Markdown” is not a reason to pick this one. The differentiator is a combination: one text rendered at two densities, a presenter cockpit that needs no server, and a prose handout – all from a single source and all in files that fetch nothing at run time. [Beamer](https://ctan.org/pkg/beamer) beats it on math, citations and sheer durability; [Quarto](https://quarto.org/) is broader and better supported; [reveal.js](https://revealjs.com/), [Marp](https://marp.app/) and [Slidev](https://sli.dev/) are better at being slide decks; PowerPoint wins the moment a colleague has to edit your file.
 
 **[docs/comparison.md](docs/comparison.md)** is the long version: nine alternatives across twenty dimensions, including the ones psi-slides loses on.
 

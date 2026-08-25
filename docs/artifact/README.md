@@ -68,8 +68,7 @@ runtime that wires up the buttons &ndash; is hand-written and safe to edit.
 
 The chunk ids in the lecture are what the script looks figures up by: `#b1`,
 `#r1w`, `#tones`, `#beats-demo`, `#table-demo`, `#seq-demo`, and so on. Rename one in the lecture without
-renaming it in `refresh-figures.mjs` and the run stops with an error, which is
-what it is meant to do.
+renaming it in `refresh-figures.mjs` and the run stops with an error.
 
 ## Two ways this breaks quietly, and the checks that catch them
 

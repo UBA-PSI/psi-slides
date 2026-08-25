@@ -1012,7 +1012,7 @@ Work down this list. It is written so it can be checked mechanically.
 
 ---
 
-## What this grammar deliberately cannot do
+## What this grammar cannot do
 
 Knowing the walls saves the time spent walking into them.
 

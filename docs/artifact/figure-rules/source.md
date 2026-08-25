@@ -14,9 +14,9 @@ a wrong/right pair from `figure-design.md`, cut down to the fewest elements that
 still make the point, and `docs/artifact/refresh-figures.mjs` lifts the emitted
 SVG out of the build and into `docs/artifact/figures-you-write.html`.
 
-Keeping it as a lecture rather than a fixture is what makes it honest: the
-drawings in the artifact are produced by the same compiler a real lecture runs,
-so a change to the compiler that would break them breaks them *here* first.
+The drawings in the artifact are produced by the same compiler a real lecture
+runs, so a change to the compiler that would break them breaks them *here*
+first.
 
 The chunk ids are the contract with the refresh script. Do not rename them.
 
@@ -506,7 +506,7 @@ text n "one file, twenty-four times" right of g
 # statement equalises the distances between *centres*, and against boxes of
 # one width there would be nothing to see that equal gaps do not already do.
 # The last box of the lower row is placed under its own copy above rather
-# than after c2, and that is not tidiness: spread pins the two ends and moves
+# than after c2: spread pins the two ends and moves
 # everything between them, so an end placed against one of the movers is a
 # placement cycle the build refuses by name.
 box a1 "a" at 0,0 w 0.7 h 0.5 {.tone-1}
@@ -679,7 +679,7 @@ edge rt -- i2 {.elbow .muted}
 # own column headings and fills in under them. The closing beat is what a
 # printed copy gets, which is why the argument ends on the answers rather
 # than on whichever row happened to be lit when the lecture stopped.
-# The last row is written cell by cell on purpose: a beat reaches one cell as
+# The last row is written cell by cell: a beat reaches one cell as
 # readily as a whole row, so t-2-4 arrives on its own beat and is emphasised
 # there. Column first, row second, and row 0 is the heading.
 table t "Layer | Forgery | Countermeasure" at 0,0 col 1.15,1.55,1.7 h 0.44 {.clear .bare .left}

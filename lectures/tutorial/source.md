@@ -154,7 +154,7 @@ It is the tool for the case where you remember a topic but not where it sits. It
 
 The mechanism costs nothing to author and it keeps print and screen in one text. It also imposes a real constraint: every paragraph has to open with a sentence that works as a standalone claim, and the **bold fragments have to read as bullets on their own**. Continuation prose is print-only.
 
-That constraint is the right trade for argument-shaped chunks. It fights you when the chunk wants continuous explanation, which is what the next chunk is for.
+Argument-shaped chunks live with that constraint easily. It fights you when the chunk wants continuous explanation, which is what the next chunk is for.
 
 > note: If the collapsed version of a chunk reads as a pile of cryptic one-word bullets, the fix is almost always fewer bolds and a stronger first sentence, not a different mode.
 
@@ -172,7 +172,7 @@ You are reading the projector version of this chunk right now: the bullets above
 
 Reach for `::: slide` when the slide wants to be tight bullets while the argument wants to be prose. Reach for `::: script` when the chunk is already slide-shaped and you only want to park a paragraph of narration next to it. A chunk may carry both, in which case the slide block wins and everything outside it is narration. Chunks with neither block keep behaving exactly as `#derived-mode` does, which is why no existing lecture changed when this landed.
 
-> note: The lint density budget only counts the on-screen half. Narration is deliberately unbudgeted – writing it freely is the entire point of the explicit mode.
+> note: The lint density budget only counts the on-screen half. Narration is unbudgeted, so you can write as much of it as the argument needs.
 
 ## question: Which mode does a chunk use? {.narrow #which-mode}
 
@@ -181,7 +181,7 @@ Reach for `::: slide` when the slide wants to be tight bullets while the argumen
 ::: expand answer-in-practice
 **In practice you will mix them inside one lecture.** Principles and questions tend to be argument-shaped and do fine derived; a long finding or a walkthrough is usually easier to write with an explicit `::: slide`.
 
-The tag vocabulary is a good predictor: `principle` and `question` chunks are short enough that derivation rarely bites, while `example` and `free` chunks at the top of their density budget are where the explicit mode earns its keep.
+The tag vocabulary is a good predictor: `principle` and `question` chunks are short enough that derivation rarely bites, while `example` and `free` chunks at the top of their density budget are where the explicit mode is usually the shorter route.
 :::
 
 # The chunk vocabulary {#vocabulary}
@@ -375,7 +375,7 @@ Reach for `::: margin` when the supplementary content is short and trustworthy e
 
 **A file over the 2 MB per-image cap fails the build.** Inlining it is impossible, and shipping it as an external path would quietly break the single-file promise: correct on your machine, broken figure wherever the HTML travels without its assets folder. `node build.js <source.md> --optimize-images` converts the offenders to WebP in place, which on real lecture assets lands at 12 to 18 percent of the original with no visible loss. `--no-inline-images` is the escape hatch if you actually want external paths.
 
-> note: The verb deliberately does not downscale. The heavy files are usually already at slide resolution – the bytes are PNG being a poor fit for photographic content. And figure focus zooms to 8×, so a high-resolution diagram is high-resolution on purpose; `--max-width` is opt-in for genuine outliers.
+> note: The verb does not downscale. The heavy files are usually already at slide resolution – the bytes are PNG being a poor fit for photographic content. And figure focus zooms to 8×, so the extra pixels in a diagram are ones the room gets to see; `--max-width` is opt-in for genuine outliers.
 
 ## example: Video | a clip is a figure that moves {.wide #video}
 
@@ -387,7 +387,7 @@ That player is a real clip, inlined into this file: 34 KB, and it shows the thre
 
 Clips are inlined like any other asset, up to a separate 12 MB per-file cap: a clip is an order of magnitude heavier than a diagram, and the 2 MB image cap would reject every real one. Over the cap the build tells you the `ffmpeg` line that fixes it.
 
-**There is no separate fullscreen setting, on purpose.** The native player already has a fullscreen button, and how large the clip sits on the slide is the chunk's width class – exactly like a still figure. Clicking a clip does *not* zoom it into the figure card either, because that would fight the play button.
+**There is no separate fullscreen setting.** The native player already has a fullscreen button, and how large the clip sits on the slide is the chunk's width class – exactly like a still figure. Clicking a clip does *not* zoom it into the figure card either, because that would fight the play button.
 
 **A clip can also live on a web server:** `![](https://host/clip.mp4)` works and stays an ordinary `<video>` element, so play, pause and seeking still synchronise between the two windows.
 
@@ -741,7 +741,7 @@ When several parallel items pile up inside one paragraph, use a real Markdown li
 **Derive while the chunk is an argument of one to three paragraphs; state the slide once the argument wants continuous prose.** Try the derivation first and switch when it keeps fighting you.
 
 ::: expand tag-as-predictor
-**The tag is a decent predictor.** `principle` and `question` chunks are short enough that the first-sentence rule rarely bites. `example` and `free` chunks near their density budget are where `::: slide` earns its keep, because those are the ones carrying a walkthrough or a finding rather than a claim.
+**The tag is a decent predictor.** `principle` and `question` chunks are short enough that the first-sentence rule rarely bites. `example` and `free` chunks near their density budget are where `::: slide` is worth reaching for, because those are the ones carrying a walkthrough or a finding rather than a claim.
 
 A figure chunk plus a paragraph of interpretation is the other reliable case, and there `::: script` around the interpretation is less typing than wrapping the slide half.
 :::
@@ -821,7 +821,7 @@ editor: speaker         # both | speaker | none  – who gets the diagram editor
 ---
 ```
 
-`lang:` sits beside them and is a different kind of key: it names the document language (`en` by default, `de`, `de-DE`, `fr` …) and lands in the `lang` attribute of every view. The print views use it to pick a **hyphenation dictionary**, which is what lets a long German compound break instead of pushing a hole into the line. The live views deliberately do not hyphenate: a broken word on a projection reads badly.
+`lang:` sits beside them and is a different kind of key: it names the document language (`en` by default, `de`, `de-DE`, `fr` …) and lands in the `lang` attribute of every view. The print views use it to pick a **hyphenation dictionary**, which is what lets a long German compound break instead of pushing a hole into the line. The live views do not hyphenate: a broken word on a projection reads badly.
 
 **The precedence rule is one sentence.** A key that is present wins over the reader's stored preference; a key that is absent leaves that preference alone. So a lecture that pins nothing behaves exactly as it always did – font, theme and slide numbers follow the reader from lecture to lecture – while a lecture with a designed look gets it without asking anyone to press keys.
 

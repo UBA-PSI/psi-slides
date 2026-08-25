@@ -344,7 +344,7 @@ for md in here.glob("**/*.md"):
     print(md.relative_to(here))
 ```
 
-**Cross-platform correctness comes for free.** `Path` normalizes slashes and drive letters so the same code runs on Linux, macOS, and Windows without `os.path.join` gymnastics.
+**Cross-platform correctness costs no extra code.** `Path` normalizes slashes and drive letters so the same code runs on Linux, macOS, and Windows without `os.path.join` gymnastics.
 
 ## example: urllib.parse | URL surgery without regex {.wide #urllib-parse}
 
@@ -424,7 +424,7 @@ print(r)
 
 :::
 
-## example: argparse | --help for free, in three lines {.standard #argparse}
+## example: argparse | --help you never wrote, in three lines {.standard #argparse}
 
 **`argparse` turns a list of argument descriptions into a full CLI.** Help text, type coercion, default values, error messages – all generated from `add_argument` calls.
 
@@ -490,7 +490,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-**Three one-second sleeps, total runtime: about one second.** That is the whole point of async I/O.
+**Three one-second sleeps, total runtime: about one second.** The three waits overlapped instead of queueing up behind each other.
 
 ::: expand gather-vs-taskgroup
 **Since Python 3.11, `asyncio.TaskGroup` is the preferred alternative to `gather`.** It uses `async with` to guarantee that all tasks either complete or are cancelled – no task leaks on error.
@@ -703,7 +703,7 @@ Each omission is deliberate: the 80-line target leaves room for exactly one “h
 python scanner.py https://example.com --max 10
 ```
 
-**The output is deliberately `grep`-friendly.** One line per page, flags first, URL last. Pipe it into `grep -v '^ok'` to see only the pages that have a problem.
+**The output is `grep`-friendly.** One line per page, flags first, URL last. Pipe it into `grep -v '^ok'` to see only the pages that have a problem.
 
 ```
 ok                                       https://example.com/
@@ -715,7 +715,7 @@ status=404 no-title                      https://example.com/oops
 
 ## principle: Small scripts beat big frameworks | if you understand them end-to-end {.standard #small-scripts-principle}
 
-**A fifty-line script you understand is worth more than a five-hundred-line framework you do not.** The whole point of this lecture was that the bar for “real tool” is much lower than the ecosystem suggests. Standard library plus one dependency plus type hints plus `asyncio.run` – that is a real tool.
+**A fifty-line script you understand is worth more than a five-hundred-line framework you do not.** The bar for a “real tool” is much lower than the ecosystem suggests. Standard library plus one dependency plus type hints plus `asyncio.run` – that is a real tool.
 
 ## exercise: Extend the scanner | pick one, or two if you're bored {.wide #exercise-extend}
 

@@ -465,7 +465,7 @@ text sl "outline, and\nreading direction" left of s1 gap 0.5 {.muted .right}
 
 **Wenn Schrift und Kasten nicht zusammenpassen, gibt es drei Antworten.** Ohne `w` wächst der Kasten zur Schrift. Bei festem `w` verkleinert `.shrink` die Schrift, bis sie hineinpasst, und `.fit` füllt den Kasten in beide Richtungen aus, begrenzt auf 0.6–1.5× der Grundgröße. Weil die Textbreite beim Bauen nur *geschätzt* wird – einen Browser gibt es dabei nicht –, fällt die gewählte Größe eine Spur zu klein aus. Das ist die sichere Richtung.
 
-**Der erste Kasten läuft absichtlich über, und der Build sagt das auch:** `box g1 is 1.2 units wide but its label needs about 1.64`. Das ist die Antwort, die man nicht will: ein festes `w`, das für die Beschriftung zu klein ist, und weder `.shrink` noch `.fit`. Die Warnung beim Bauen dieser Vorlesung ist deshalb kein Defekt.
+**Der erste Kasten läuft absichtlich über, und der Build sagt das auch:** `box g1 is 1.2 units wide but its label needs about 1.64`. Das ist die Antwort, die man nicht will: ein festes `w`, das für die Beschriftung zu klein ist, und weder `.shrink` noch `.fit`. Es ist die eine Warnung, mit der diese Vorlesung baut.
 
 ## figure: Steps that move {.wide #motion}
 

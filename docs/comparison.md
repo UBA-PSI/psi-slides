@@ -47,11 +47,11 @@ What that combination costs is set out at the end, and it is not cheap.
 
 ### Slides and script: one document or two
 
-This is the claim the project exists for, so it deserves the harshest test.
+This is the claim the project exists for.
 
 Beamer has `\note{}`; Quarto, Marp, reveal.js and Slidev all have speaker-note syntax; PowerPoint has a notes pane; Deckset marks notes with a leading `^`. In every one of them, the note and the slide are two pieces of text that happen to live in one file. Write the slide as three bullets and the argument as a paragraph underneath, and you now maintain both. Two semesters later they disagree, which is exactly the failure this project is named after.
 
-psi-slides inverts it: the paragraph *is* the slide. The collapsed view is derived when the page loads, by a DOM walker in the browser (`splitSentencesIn`), not by a second authoring pass. Honestly, the consequences:
+psi-slides inverts it: the paragraph *is* the slide. The collapsed view is derived when the page loads, by a DOM walker in the browser (`splitSentencesIn`), not by a second authoring pass. The consequences:
 
 - It imposes a real discipline. Every paragraph must open with a sentence that stands alone, because that sentence is what the room sees. Some authors find this clarifying, some find it a straitjacket. It is not optional; it is the format.
 - It does not suit every argument, which is why `::: slide` and `::: script` exist as escape hatches (PRD §4.5). If you reach for them constantly, the format is fighting you.
@@ -83,7 +83,7 @@ Quarto is the closest in spirit, because it renders slides and a document from o
 
 **Obsidian and Logseq** render the note in the app against your vault. The core features produce no distributable artefact at all.
 
-The cross-cutting finding is worth stating plainly, because it is the clearest thing psi-slides has: among the HTML tools, **only Quarto ships a genuine single-file option, and even that excludes the maths runtime by default**.
+The cross-cutting finding: among the HTML tools, **only Quarto ships a genuine single-file option, and even that excludes the maths runtime by default**.
 
 ### The projector: aspect ratio, resolution, reflow
 
@@ -91,17 +91,17 @@ Every other tool here is a fixed canvas that gets scaled. Beamer's frame is 4:3 
 
 psi-slides has no canvas. The audience slide *is* the browser window: the runtime writes `window.innerWidth` and `window.innerHeight` into `--slide-w` and `--slide-h`, refreshes them on resize, and computes every internal size, including type, from those. Text reflows at any window shape. There is no `transform: scale()` on text anywhere; the camera translates only. Zoom (`+`, `-`, `0`) is a type-scale multiplier, and `#` turns on auto-fit, which measures each slide's rendered height and walks the zoom in steps until it fits.
 
-Two honest qualifications. First, reflow means the slide you rehearsed is not pixel-identical to the one in the room; a fixed canvas is predictable in a way this is not, and for a design where an element must land in an exact spot, the fixed canvas is the better model. Second, the mismatch between the two windows is solved by rendering the speaker's mirror at the *audience* window's dimensions and transforming it down into its pane, which preserves wrap and laser-pointer coordinates exactly. That only works because the two windows talk to each other.
+Two qualifications. First, reflow means the slide you rehearsed is not pixel-identical to the one in the room; a fixed canvas is predictable in a way this is not, and for a design where an element must land in an exact spot, the fixed canvas is the better model. Second, the mismatch between the two windows is solved by rendering the speaker's mirror at the *audience* window's dimensions and transforming it down into its pane, which preserves wrap and laser-pointer coordinates exactly. That only works because the two windows talk to each other.
 
 ### The speaker view
 
 psi-slides ships a cockpit: a column scrubber, a live mirror of the projection, the `> note:` text for the current chunk, and a strip of upcoming chunks rendered fully revealed. On top of that: a freeze toggle (`V`) that holds the room on the current slide while you read ahead and resyncs on thaw, a `B` blank that reaches the projector even while frozen, a laser pointer driven by the mouse over the mirror, a timer, and `localStorage` crash recovery. Full protocol in [`speaker.md`](../speaker.md).
 
-The architectural cost is severe and worth stating plainly: the two windows sync via `window.postMessage` over the opener relationship, which means **same machine, same browser, same profile**. No tablet remote, no second-device mode, no network sync. This follows from the `file://` requirement, because Chrome gives every file-loaded document its own opaque origin, so `BroadcastChannel` cannot cross tabs.
+The architectural cost is severe: the two windows sync via `window.postMessage` over the opener relationship, which means **same machine, same browser, same profile**. No tablet remote, no second-device mode, no network sync. This follows from the `file://` requirement, because Chrome gives every file-loaded document its own opaque origin, so `BroadcastChannel` cannot cross tabs.
 
 For comparison:
 
-- **reveal.js** has a speaker view on `S` with next-slide preview, notes, a timer and pacing. Its documentation states that when used locally, the feature requires reveal.js to run from a local web server. That constraint propagates to **Quarto**, which uses the same mechanism. This is the sharpest single contrast with psi-slides, whose cockpit is designed for exactly the case reveal.js excludes.
+- **reveal.js** has a speaker view on `S` with next-slide preview, notes, a timer and pacing. Its documentation states that when used locally, the feature requires reveal.js to run from a local web server. That constraint propagates to **Quarto**, which uses the same mechanism.
 - **Slidev** has the richest presenter mode of the Markdown tools: a `/presenter` route with switchable layouts, a screen-mirror capture mode, camera and recording. Remote sync is a dev-server feature; whether the built static output syncs two windows with no server was *(not verified)*.
 - **Marp** has a bespoke presenter window on `p` with notes and an overview; its own documentation warns that it may be unavailable when requirements are not met. The transport mechanism and `file://` behaviour were *(not verified)*.
 - **Beamer** has no console of its own. You either build a two-up notes PDF with `\setbeameroption{show notes on second screen}`, or you use `pdfpc`, which is excellent (notes, a timer that warns on overrun, next-slide, pointer and spotlight, freehand drawing, blanking) but is one more program to install at the lectern.
@@ -124,7 +124,7 @@ And there is no PDF export path other than the browser's print dialogue. There i
 
 KaTeX, rendered at build time. `$inline$` and `$$display$$` are parsed as `marked` extensions, so a dollar sign inside a code span is not a delimiter. The output includes KaTeX's MathML, and the woff2 faces are inlined only into views that actually contain a formula.
 
-Honestly placed: this is well above PowerPoint's equation editor, and far above Google Slides, which has no native equation support at all. It is below Beamer, and that is not a close call. KaTeX is a subset of LaTeX maths: no equation numbering with `\ref`, no `mhchem`, no TikZ, no macro packages of your own. If you teach a mathematics course, read [KaTeX's supported functions](https://katex.org/docs/supported.html) before committing. Beamer also has BibTeX and biblatex; psi-slides has no citation system, no bibliography, no `\cite`, and nothing planned.
+This is well above PowerPoint's equation editor, and far above Google Slides, which has no native equation support at all. It is below Beamer, and that is not a close call. KaTeX is a subset of LaTeX maths: no equation numbering with `\ref`, no `mhchem`, no TikZ, no macro packages of your own. If you teach a mathematics course, read [KaTeX's supported functions](https://katex.org/docs/supported.html) before committing. Beamer also has BibTeX and biblatex; psi-slides has no citation system, no bibliography, no `\cite`, and nothing planned.
 
 Among the Markdown tools the differences are smaller than they look. Marp defaults to MathJax and renders at build time; Slidev uses KaTeX at build time; reveal.js and Quarto render in the browser at run time, from a CDN by default. Build-time rendering is why psi-slides has no formula flash and no runtime dependency, which is a small, real advantage over the run-time renderers, and irrelevant next to Beamer's expressive power.
 
@@ -132,17 +132,17 @@ Among the Markdown tools the differences are smaller than they look. Marp defaul
 
 Images use a shorthand, `![](fig-id)`, resolved against `assets/` across `svg`, `png`, `jpg`, `jpeg`, `gif` and `webp`. Inlined SVGs get their internal ids namespaced so several on a page cannot collide, get `role="img"` and an `aria-label` from the alt text, and inherit the page's colour custom properties, so a diagram drawn with `var(--ink)` re-colours when the reader cycles themes. Clicking a figure, a diagram, a code block, display maths or a marginalia block zooms it, and the speaker can drive that zoom on the projector from the cockpit.
 
-There is also a diagram DSL, `::: diagram`, compiled to inline SVG at build time: named boxes, dots, free text with leader lines, arrows with waypoints, auto-fitting containers and braces, seven outlines, and six statements that expand into those – a column chart, a repeated cell grid, a cartesian frame, a table of labelled cells, a set of swimlanes and a protocol run down the page. It differs from the Mermaid family in one deliberate way – **it does no automatic layout.** You place elements on a grid or relative to each other, and the tool routes the arrows between them. That trade is the point: Mermaid decides where things go, which is a service for an org chart and an obstacle for a diagram whose arrangement is the argument. Because layout is re-evaluated per step rather than transformed, arrows stay attached to boxes that move.
+There is also a diagram DSL, `::: diagram`, compiled to inline SVG at build time: named boxes, dots, free text with leader lines, arrows with waypoints, auto-fitting containers and braces, seven outlines, and six statements that expand into those – a column chart, a repeated cell grid, a cartesian frame, a table of labelled cells, a set of swimlanes and a protocol run down the page. It differs from the Mermaid family in one deliberate way – **it does no automatic layout.** You place elements on a grid or relative to each other, and the tool routes the arrows between them. Mermaid decides where things go, which is a service for an org chart and an obstacle for a diagram whose arrangement is the argument. Because layout is re-evaluated per step rather than transformed, arrows stay attached to boxes that move.
 
 The sequence diagram is where that difference is easiest to see, because it is the drawing people reach for Mermaid to get. `sequence` writes one: actor heads, a lifeline under each, numbered messages between them, notes, self-messages. What it lays out is the vertical rhythm and nothing else – each band is as tall as what stands in it – and every part it draws keeps a name, so a brace over three messages or an aside pinned to one of them is an ordinary line of the same language. Mermaid's `sequenceDiagram` is more compact for the plain case and has `alt`/`loop`/`par` blocks this does not; against that, a Mermaid figure cannot be annotated from outside or stepped through beat by beat in the lecture it sits in.
 
-One class bends that rule and is drawn narrow so it cannot grow: `.elbow` gives an edge a right-angled route with its turn halfway across the gap, which is the two waypoints every tree connector was otherwise written with by hand. It looks at nothing else in the figure, so nothing steps around an obstacle for you, and the rail has no option to move it.
+One class bends that rule: `.elbow` gives an edge a right-angled route with its turn halfway across the gap, which is the two waypoints every tree connector was otherwise written with by hand. It looks at nothing else in the figure, so nothing steps around an obstacle for you, and the rail has no option to move it.
 
 What is still missing is a diagram pipeline that *computes* anything. The chart statements draw numbers you have written into the source, one comma-separated string per series; nothing reads a file, runs a query or evaluates an expression. No PlantUML, no TikZ, no executable plotting, no Mermaid input. Quarto, Slidev and Marp all render Mermaid from fenced blocks, Deckset added Mermaid theming and Pikchr in 2026, and Quarto goes much further with executable R, Python and Julia cells that produce figures at render time. **If your figures are computed from data, Quarto is the better tool and it is not close.**
 
 ### Fonts and typographic control
 
-An opinionated tool can be genuinely better than a general one here, and psi-slides is unusually deliberate: a chunk-tag vocabulary that sets treatment, four width classes on the internal measure, an OKLCH palette, and a documented list of ornaments the design refuses (PRD §10). Fonts embed from a `fonts/` directory in woff2, woff, ttf or otf, with weight and style read off the filename; naming a family with no matching file fails the build rather than falling back silently.
+An opinionated tool can be genuinely better than a general one here. psi-slides has a chunk-tag vocabulary that sets treatment, four width classes on the internal measure, an OKLCH palette, and a documented list of ornaments the design refuses (PRD §10). Fonts embed from a `fonts/` directory in woff2, woff, ttf or otf, with weight and style read off the filename; naming a family with no matching file fails the build rather than falling back silently.
 
 The flip side is that there is exactly one design and no template gallery. You get the project's taste. Beamer has many themes and most universities ship an official one; PowerPoint, Keynote and Google Slides have vast template markets; reveal.js, Marp and Slidev all have theme ecosystems and Marp themes are plain CSS. Deckset is an interesting middle case: it has 25 or so built-in themes but custom theming is style commands layered on those built-ins rather than authoring a theme from scratch. If your faculty requires a corporate slide master, psi-slides cannot give you one, and there is no export path to a tool that can.
 
@@ -150,7 +150,7 @@ On embedding: it redistributes the font file. SIL OFL and Apache-2.0 permit it, 
 
 ### Code
 
-Shiki at build time, with TextMate grammars, so highlighting is exact and no highlighter loads at run time. The compiled-in language list is deliberately small (`python`, `bash`, `shell`, `javascript`, `typescript`, `html`, `css`, `c`, `json`, `yaml`, `markdown`, `sql`, `toml`, `diff`, `text`). Adding one is a single line in `SHIKI_LANGS`, but it *is* an edit to the build script rather than a configuration option, which is a real limitation if you teach Rust or Haskell today.
+Shiki at build time, with TextMate grammars, so highlighting is exact and no highlighter loads at run time. The compiled-in language list is small (`python`, `bash`, `shell`, `javascript`, `typescript`, `html`, `css`, `c`, `json`, `yaml`, `markdown`, `sql`, `toml`, `diff`, `text`). Adding one is a single line in `SHIKI_LANGS`, but it *is* an edit to the build script rather than a configuration option, which is a real limitation if you teach Rust or Haskell today.
 
 Slidev also uses Shiki, and adds line-highlight syntax, Monaco editors in slides and animated code transitions, which is more than psi-slides offers for teaching code. reveal.js uses highlight.js at run time with stepped line highlighting; Marp uses highlight.js at build time; Quarto uses Pandoc's Skylighting with 140-plus languages, adaptive themes and progressive line highlighting. Beamer uses `listings` (pure TeX, weaker lexers) or `minted`; the familiar complaint that `minted` requires `--shell-escape` and a separate Pygments install is out of date on current TeX Live, which treats minted's own helper as a trusted executable. PowerPoint, Keynote and Google Slides have no code highlighting at all.
 
@@ -160,7 +160,7 @@ psi-slides has two mechanisms, and they share one key. A line of `---` inside a 
 
 Beamer's overlays are still richer for text. reveal.js has fragments with effects and ordering, plus auto-animate between slides. Slidev has `v-click` with relative and absolute ordinals and animation presets. Quarto has `incremental`, `. . .` pauses and progressive code-line highlighting. Marp is the weakest of the group: its only mechanism is a fragmented list, and only when you use particular bullet markers. PowerPoint's Morph and Keynote's Magic Move are in a different league and always will be.
 
-Video: psi-slides has none. Raw HTML passes through the Markdown renderer, so you can write a `<video>` tag, but nothing except images is inlined, so the file stops being self-contained the moment you do. Video is genuinely in tension with a single-file design at realistic sizes; this is a gap, not a considered feature. reveal.js has video backgrounds, Quarto has a video shortcode, and both handle this properly.
+Video: a clip is written `![](clip-id)` like a still, and play, pause and seek are synced between the projection and the cockpit. Under 12 MB it is inlined and the file stays self-contained; over that it is copied to a `videos/` folder that then has to travel with the output, which is the tension between video and a single file showing through. reveal.js has video backgrounds, which psi-slides does not.
 
 Interactivity is likewise absent: no polls, no quizzes, no widgets. Slidev is the opposite pole, since a slide can be a Vue component and therefore anything at all, and Quarto has Observable JS natively.
 
@@ -170,7 +170,7 @@ Two separate surfaces, which is unusual enough to name. `Shift-N` opens private 
 
 The competitive picture is closer than this project used to assume. **Quarto ships a chalkboard** (`B` and `C`) with pre-recorded drawings. **Slidev has a built-in drawing layer** with a persistence option, so drawings can survive the session rather than evaporating. **PowerPoint** ink can be kept after the show and becomes editable objects. **pdfpc** lets you draw over a Beamer PDF. **reveal.js** needs a third-party plugin; **Marp** declined to add one.
 
-So the differentiator is narrower than “live annotation”: it is that psi-slides annotations are *prose that merges back into the source text*. The corresponding weakness is blunt: psi-slides annotations are typed text only. No pen, no highlighter, no freehand, nothing you can do with a stylus. For marking up a diagram live, Slidev, Quarto's chalkboard, PowerPoint and pdfpc all beat it outright.
+So the differentiator is narrower than “live annotation”: it is that psi-slides annotations are *prose that merges back into the source text*. The corresponding weakness: psi-slides annotations are typed text only. No pen, no highlighter, no freehand, nothing you can do with a stylus. For marking up a diagram live, Slidev, Quarto's chalkboard, PowerPoint and pdfpc all beat it outright.
 
 ### Finding your way around
 
@@ -184,7 +184,7 @@ One thing psi-slides does not have: URL deep links. `PRD.md` describes `?c=chunk
 
 The presenting machine needs a current browser and nothing else. No Node, no server, no installation, no account, no network. Files come off a USB stick and open.
 
-This is the strongest practical argument for the tool, and only a Beamer PDF matches it. Applications (PowerPoint, Keynote, Deckset) need the application. Google Slides needs connectivity or a pre-arranged offline setup. reveal.js, Marp, Slidev and Quarto outputs are browser-openable, but whether a given build opens from `file://` with no network depends on how it was exported, and reveal.js's speaker view explicitly does not work that way.
+Only a Beamer PDF asks as little of the lectern machine. Applications (PowerPoint, Keynote, Deckset) need the application. Google Slides needs connectivity or a pre-arranged offline setup. reveal.js, Marp, Slidev and Quarto outputs are browser-openable, but whether a given build opens from `file://` with no network depends on how it was exported, and reveal.js's speaker view explicitly does not work that way.
 
 The browser floor is a real counterweight, though. The stylesheets use `oklch()`, `:has()` and `text-wrap: balance` with no fallbacks, putting the floor around Chrome 114, Firefox 121 and Safari 17.5, plus `@scope` for lectures with internally styled SVGs. A locked-down lectern machine with an old browser will render this badly, and a PDF would not have cared. Development and real use are in Chrome; other browsers are untested rather than unsupported.
 
@@ -210,17 +210,17 @@ The failure mode to watch, which no checker catches: models renumber `{#id}` att
 
 ### Accessibility
 
-Honest summary: a structural advantage and no audit.
+A structural advantage and no audit.
 
 The advantage is that the outputs are HTML. `print.html` and `print-notes.html` are semantic documents with headings, a `nav` table of contents, `figure` elements, alt text carried onto inlined SVGs, and KaTeX's MathML in the output. That is a far better starting point for a screen reader than a slide deck. It is also worth knowing, and is under-known, that an accessible **Beamer** PDF is not currently achievable: the LaTeX tagging project can produce tagged PDF, but the `beamer` class is not compatible with it, and the experimental `ltx-talk` class is the intended replacement.
 
-The honest side: no accessibility audit has been done on psi-slides. There is no `prefers-reduced-motion` handling for the camera animation, the live views are keyboard surfaces built for a lecturer rather than tested with assistive technology, and nobody has run a screen reader over the audience view. PowerPoint ships an accessibility checker and a reading-order pane, which is an entire workflow this project does not have, and Quarto made PDF accessibility a headline feature of a recent release.
+No accessibility audit has been done on psi-slides. There is no `prefers-reduced-motion` handling for the camera animation, the live views are keyboard surfaces built for a lecturer rather than tested with assistive technology, and nobody has run a screen reader over the audience view. PowerPoint ships an accessibility checker and a reading-order pane, which is an entire workflow this project does not have, and Quarto made PDF accessibility a headline feature of a recent release.
 
 ### Longevity and archivability
 
 Added because a lecture is a multi-year asset, and none of the feature comparisons capture it.
 
-A PDF from 2005 opens today, which is a strong argument for Beamer. A `.pptx` from 2005 opens today too, in the same application family. Self-contained HTML should age well, since browsers are conservative about breaking the web, but psi-slides deliberately uses modern CSS with no fallbacks, so today's output leans on features that were new recently. The mitigation is that the *source* is Markdown and will outlive all of this: outputs are disposable and regenerated by design, which is also why they are gitignored. A tool whose source is a proprietary format offers no such fallback.
+A PDF from 2005 opens today, which is a strong argument for Beamer. A `.pptx` from 2005 opens today too, in the same application family. Self-contained HTML should age well, since browsers are conservative about breaking the web, but psi-slides uses modern CSS with no fallbacks, so today's output leans on features that were new recently. The mitigation is that the *source* is Markdown and will outlive all of this: outputs are disposable and regenerated by design, which is also why they are gitignored. A tool whose source is a proprietary format offers no such fallback.
 
 ### Privacy and institutional constraints
 
@@ -258,11 +258,11 @@ The reference implementation of HTML slides and the ancestor of half this list. 
 
 It is better than psi-slides at being a slide deck and it is not close. Where it differs in kind is the layout model: reveal scales a fixed 960×700 canvas, which is the exact failure mode `PRD.md` §6 was written against. Text rescales as a unit rather than rewrapping, so a narrow or low-resolution screen gets the same layout, smaller.
 
-Two further contrasts are worth knowing before you choose it for a lecture rather than a talk. The default output is a directory, with no bundling option and some themes fetching fonts from a CDN. And the speaker view requires a local web server, in the documentation's own words, which is precisely the situation psi-slides was built to avoid. Nor does it give you a reading document: notes are a presenter sidecar, not a second artefact for students.
+Two further contrasts are worth knowing before you choose it for a lecture rather than a talk. The default output is a directory, with no bundling option and some themes fetching fonts from a CDN. And the speaker view requires a local web server, in the documentation's own words. Nor does it give you a reading document: notes are a presenter sidecar, not a second artefact for students.
 
 ### Quarto
 
-The closest tool in spirit, considerably broader, and the honest recommendation for a large class of users.
+The closest tool in spirit, considerably broader, and the recommendation for a large class of users.
 
 Quarto renders reveal.js slides, HTML documents, PDF (via LaTeX or a bundled Typst), docx, books and websites from one `.qmd`, with executable R, Python and Julia cells, LaTeX-grade maths, citations, cross-references, Mermaid, a built-in chalkboard for annotating live, Skylighting for code, an `embed-resources` single-file mode, and a company behind it. If your figures come from data, or you want a course website or a book alongside the slides, use Quarto. It is a better-engineered and better-supported product than this one.
 
@@ -300,7 +300,7 @@ The limits: macOS only, PDF, PNG and JPEG output with **no HTML export at all**,
 
 Worth a mention because many lecturers already write in these tools and reasonably ask whether the notes can be the deck.
 
-The honest answer is that the built-in modes are viewers, not deck producers. Obsidian's core Slides plugin splits a note on `---` and presents it fullscreen with arrow-key navigation; the documentation describes no export, no PDF and no speaker notes. Logseq's presentation mode drives reveal.js from a block tree, and community reports say most reveal features work except speaker view and print *(community source, not official documentation)*. Community plugins go further: the maintained `slides-extended` plugin for Obsidian adds themes, annotations and export to standalone HTML and PDF; a third-party Logseq plugin adds export too, but it is paid and caps free users at ten slides.
+The built-in modes are viewers, not deck producers. Obsidian's core Slides plugin splits a note on `---` and presents it fullscreen with arrow-key navigation; the documentation describes no export, no PDF and no speaker notes. Logseq's presentation mode drives reveal.js from a block tree, and community reports say most reveal features work except speaker view and print *(community source, not official documentation)*. Community plugins go further: the maintained `slides-extended` plugin for Obsidian adds themes, annotations and export to standalone HTML and PDF; a third-party Logseq plugin adds export too, but it is paid and caps free users at ten slides.
 
 If you want a distributable artefact, a presenter console or a handout, you will end up outside these tools.
 
@@ -310,13 +310,13 @@ If you want a distributable artefact, a presenter console or a handout, you will
 
 **remark, impress.js and their descendants.** Older HTML slide libraries. They still work; the ecosystem has largely consolidated around reveal.js and the tools built on it.
 
-**Prezi.** Mentioned because the psi-slides overview board is deliberately in its debt, and because the failure mode is instructive: unconstrained zoom and pan on an infinite canvas produced a generation of unnavigable talks. The overview here is a fixed grid of columns, zoomable but not composable, on purpose.
+**Prezi.** Mentioned because the psi-slides overview board is in its debt, and because the failure mode is instructive: unconstrained zoom and pan on an infinite canvas produced a generation of unnavigable talks. The overview here is a fixed grid of columns, zoomable but not composable.
 
 ---
 
 ## Where psi-slides loses
 
-Collected in one place, without hedging.
+Collected in one place.
 
 1. **It is a young project with a bus factor of one.** Version `0.1.0`, one author, 132 commits, no test suite, no releases, no changelog, no plugin API, no community, and a format still in motion. CI runs a linter and builds the tutorial; that is the whole safety net. Every other tool here is a safer bet on this axis and several are far safer.
 2. **Maths and citations.** KaTeX is a subset of LaTeX and there is no bibliography support at all. Beamer wins outright; Quarto and Pandoc-to-Beamer win outright.

@@ -160,7 +160,7 @@ Stattdessen: Platzierung ist ein Ausdruck über einer winzigen Algebra (Rasterze
 
 ### Was sich in bestehendem Code geändert hat
 
-- `countSegments`/`applyReveal` arbeiten jetzt über **Beats** (`chunkBeats`): Reveal-Segmente ab dem zweiten plus ein Beat pro Diagramm-Schritt, in Dokumentreihenfolge. `revealed[chunkId]` bleibt der einzige Zustand – Sync, Freeze-Gate, Rückwärts-Regel und localStorage-Recovery kamen dadurch gratis. `countSegments` liefert *Positionen* (Beats + 1), was der Konvention entspricht, gegen die `jumpTo` und `advanceReveal` ohnehin geschrieben waren.
+- `countSegments`/`applyReveal` arbeiten jetzt über **Beats** (`chunkBeats`): Reveal-Segmente ab dem zweiten plus ein Beat pro Diagramm-Schritt, in Dokumentreihenfolge. `revealed[chunkId]` bleibt der einzige Zustand – Sync, Freeze-Gate, Rückwärts-Regel und localStorage-Recovery brauchten deshalb keine Änderung. `countSegments` liefert *Positionen* (Beats + 1), was der Konvention entspricht, gegen die `jumpTo` und `advanceReveal` ohnehin geschrieben waren.
 - Speaker-Thumbnails: geklonte Diagramme müssen von Hand auf den letzten Frame gestellt werden (`dgRenderInto`), weil der Runtime Geometrie auf Attribute schreibt und `cloneNode` den aktuellen Schritt mitnimmt. PRD §4.6 verlangt „fully revealed" in den Previews.
 - `lint.js` fängt den Diagramm-Body **vor** Fence- und Heading-Matcher ab. Kein Optimierungsdetail: ein Diagramm-Kommentar beginnt mit `#`, und als Markdown gelesen ist das eine Column-Heading.
 
@@ -784,13 +784,13 @@ Sonderbehandlung irgendwo.
   und doppelter Höhe. Kurze Wörter.
 - **`.elbow`** – ein eigener Slot mit `.smooth` („wie eine Linie gezeichnet
   wird") und die einzige Stelle, an der die Engine eine Koordinate aufs Papier
-  setzt, die niemand geschrieben hat. Bewusst so eng gefasst, dass daraus kein
+  setzt, die niemand geschrieben hat. So eng gefasst, dass daraus kein
   Router werden kann: eine Wende hinaus, eine hinein, die Schiene immer auf
   halber Strecke, auf der Achse, auf der die Enden weiter auseinander liegen,
   und keine Option, sie zu verschieben. Gemessen wird zwischen den beiden
-  *zugewandten Seiten*, nicht zwischen den Mittelpunkten – und genau das
-  verdient die Klasse, weil mehrere Kinder eines Elternknotens dann auf
-  derselben Linie wenden und der Satz als eine Klammer liest.
+  *zugewandten Seiten*, nicht zwischen den Mittelpunkten – dadurch wenden
+  mehrere Kinder eines Elternknotens auf derselben Linie und der Satz liest
+  als eine Klammer.
 
 Dazu zwei Dinge, die vorher stille No-ops waren. **`.paper` auf einer Kante**
 löste auf, gab seine Klasse aus und zeichnete nichts; jetzt bekommt das

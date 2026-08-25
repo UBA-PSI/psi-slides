@@ -110,9 +110,9 @@ from building the same way is a major version.
   anchors forced onto that axis – the two waypoints every tree edge used to be
   written with by hand, said in one word. The rail is measured between the two
   *faces* rather than the two centres, which is what makes several connectors
-  out of one parent share a rail and read as a single bracket. Bounded on
-  purpose: it looks at nothing else in the figure, nothing steps around an
-  obstacle, and there is no option to move the rail; `.elbow` together with
+  out of one parent share a rail and read as a single bracket. Bounded: it
+  looks at nothing else in the figure, nothing steps around an obstacle, and
+  there is no option to move the rail; `.elbow` together with
   `via` is an error rather than a preference the build guesses at.
 - **`sequence` draws a protocol down the page.** A row of actor heads, a
   lifeline under each, numbered messages between them and notes on a lifeline,
@@ -176,14 +176,13 @@ from building the same way is a major version.
   with the `A` cycle. `step` blocks show, hide, move, emphasise, restyle
   and relabel elements; **layout is re-evaluated per step rather than
   transformed**, so an arrow between two boxes re-routes when either one
-  moves – the thing no export from a drawing tool can do. Steps become
-  beats on the existing reveal counter, so `Space` advances them, the
-  speaker window follows, the freeze gate applies, and a revisited chunk
-  comes back fully stepped, all without new state. Free `text` can grow a
-  leader line to whatever it comments on (`-> ref`), which is what makes
-  placement free without losing the connection. Print shows the last beat,
-  minus the live-only emphasis. There is
-  deliberately **no automatic layout and no constraint solver**: placement
+  moves. Steps become beats on the existing reveal counter, so `Space`
+  advances them, the speaker window follows, the freeze gate applies, and a
+  revisited chunk comes back fully stepped, all without new state. Free
+  `text` can grow a leader line to whatever it comments on (`-> ref`), which
+  is what makes placement free without losing the connection. Print shows the
+  last beat, minus the live-only emphasis. There is **no automatic layout and
+  no constraint solver**: placement
   is a grid cell or a relation to a neighbour, resolved as a DAG, so a
   mistake names its line instead of shifting the picture. `lint.js`
   mirrors the vocabulary and reports unknown statements, unknown classes,
@@ -230,13 +229,12 @@ from building the same way is a major version.
   `image <name> <asset>` puts a picture in a diagram, resolved like the
   `![](fig-id)` shorthand. A vector asset is spliced as a nested `<svg>`
   and follows the `A` theme cycle; a raster is a `data:` URI and keeps
-  its own colours – the honest trade rather than a broken promise.
-  `between A,B [frac n]` positions an element on the line joining two
-  others, and any placement takes a trailing `offset dx,dy`. An anchor
-  takes a fraction (`mix.right:0.3`) that slides the attachment point
+  its own colours. `between A,B [frac n]` positions an element on the line
+  joining two others, and any placement takes a trailing `offset dx,dy`. An
+  anchor takes a fraction (`mix.right:0.3`) that slides the attachment point
   along that edge, which is what stops two arrows between the same pair
-  of boxes from collapsing into a lens; there is deliberately no
-  automatic fan-out, because it would silently redraw existing diagrams.
+  of boxes from collapsing into a lens; there is no automatic fan-out,
+  because it would silently redraw existing diagrams.
 
   Four more classes close the gaps the vocabulary could not spell.
   `.clear` is a see-through interior – `.bare` removes the *stroke*, so a
@@ -348,8 +346,7 @@ from building the same way is a major version.
   swatch row opened with the *empty* class labelled "paper", so it meant
   "whatever a default says" – a box under `default box {.tone-3}` had no
   way back to the canvas colour, and a free `text` could not have a ground
-  at all, which is the whole reason to give a label one: it is what knocks
-  out a line running behind it.
+  at all – a ground is what knocks out a line running behind it.
 
   `lint.js` was stricter than the build, which for the pre-commit gate is
   worse than not linting: its `between` scan did not terminate on `pad`,
@@ -428,8 +425,8 @@ from building the same way is a major version.
   against its shared axis holds it there, draws the axis, and says how much
   further to pull; half a cell past it, or with Alt held, the element is
   dropped from the statement and the drag goes through. It used to be a flat
-  refusal telling the author to go and edit that line by hand – which is the
-  edit the editor exists to make, and the only way out of a set was the text.
+  refusal telling the author to go and edit that line by hand, and the only
+  way out of a set was the text.
 
   **Waypoints are draggable.** A hollow dot at the middle of every segment
   adds one, a square moves one, and a double-click or the chip in the panel
@@ -439,7 +436,7 @@ from building the same way is a major version.
   reference. Each axis is decided separately, because half reference and half
   number is the normal case in a routed figure.
 
-  An **arrow is a first-class object** in it, which took some doing: an edge
+  An **arrow is a first-class object** in it: an edge
   has no box, because it is not placed – it is drawn between two things that
   were. Clicking one hits the line itself, a box wins over an arrow crossing
   it and an arrow wins over the container it runs through, and the selection
@@ -489,7 +486,7 @@ from building the same way is a major version.
   sat off to one side of an oversized box with an unexplained empty margin
   beside it – up to 122px on a figure 480px wide. Eight of the twelve figures
   in `lectures/diagrams` now land exactly on the margin on both sides; what is
-  left is the deliberate generosity of the text-width estimate, which is about
+  left is the generosity of the text-width estimate, which is about
   11% on the bundled faces and never clips.
 
 ### Fixed
@@ -614,7 +611,7 @@ from building the same way is a major version.
   naming scheme already made: they are the rule, and a second spelling of
   it here is how the gate came to disagree.
 
-  Parser holes of the kind this grammar keeps closing: `at 3,` placed an
+  Parser holes of the kind this grammar refuses: `at 3,` placed an
   element at 0 instead of erroring (`Number('')` is 0, and `0x10` was 16);
   `between a,b point right` consumed the newer options as member names and
   refused valid syntax order-sensitively – the stop list is derived from

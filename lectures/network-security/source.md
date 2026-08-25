@@ -88,7 +88,7 @@ step surface
   emph ldns, larp
 :::
 
-**Ein Name allein trägt kein Paket.** Zwischen dem, was ein Mensch eintippt, und dem, was eine Netzkarte adressieren kann, liegen zwei Übersetzungen: DNS macht aus dem Namen eine IP-Adresse, ARP aus der IP-Adresse eine MAC-Adresse. Beide sind hier absichtlich gleich gezeichnet, denn es ist zweimal dieselbe Bauform – eine Frage, eine Antwort, kein Beweis. Der letzte Schritt färbt genau die beiden Protokollnamen ein: Sie sind die Angriffsfläche, nicht die Adressen. Die ausführliche Erklärung steht im Video zu den Netzgrundlagen.
+**Ein Name allein trägt kein Paket.** Zwischen dem, was ein Mensch eintippt, und dem, was eine Netzkarte adressieren kann, liegen zwei Übersetzungen: DNS macht aus dem Namen eine IP-Adresse, ARP aus der IP-Adresse eine MAC-Adresse. Beide sind hier gleich gezeichnet, denn es ist zweimal dieselbe Bauform – eine Frage, eine Antwort, kein Beweis. Der letzte Schritt färbt genau die beiden Protokollnamen ein: Sie sind die Angriffsfläche, nicht die Adressen. Die ausführliche Erklärung steht im Video zu den Netzgrundlagen.
 
 ## figure: ARP Cache Poisoning | allows A to eavesdrop on communication between local network devices {.full #ns-a10}
 
@@ -1178,7 +1178,7 @@ default box {.tone-1} w 1.15 h 0.66
 
 # Die fünf proaktiven Maßnahmen sind die Mauer selbst: eine Reihe ohne Fuge,
 # bis auf die eine, durch die der Eindringling kommt. Die Halbkreisbögen der
-# Vorlage sind Dekoration und fehlen hier absichtlich.
+# Vorlage sind Dekoration und fehlen hier.
 box fw "Firewall"                         at 0,0
 box cr "Cryptography"                     right of fw gap 0 same as fw
 box su "Security\nUpdates"                right of cr gap 0 same as fw

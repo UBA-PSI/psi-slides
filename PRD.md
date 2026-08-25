@@ -37,7 +37,7 @@ These are the commitments. Everything downstream is subordinate.
 
 1. **Slide size.** Each chunk is rendered as a slide of `width = 100vw` and `min-height = var(--slide-min, 40vh)` – large enough to own the viewport but small enough that short chunks (e.g. a `question` or a `free`-narration transition) auto-size to their content and leave room for neighbor peek. Internal text column width is determined by the chunk's width class: `narrow = 28em`, `standard = 36em`, `wide = 52em`, `full = 72em`. Width classes control *content layout inside the slide*, not the frame.
 2. **Column X.** Columns are placed left-to-right, separated by `column-gap = 8vw`. Because each slide is viewport-wide, this gap is always enough to fully isolate the neighboring column from the active one.
-3. **Chunk Y within a column.** Slides stack top-to-bottom with `chunk-gap` – a tunable CSS custom property (default `4vh`, range `0vh`–`25vh`). Small values create a “flow” feel with neighboring slides peeking during transitions; large values enforce full slide isolation. The gap is a deliberate design knob, not a fixed rule.
+3. **Chunk Y within a column.** Slides stack top-to-bottom with `chunk-gap` – a tunable CSS custom property (default `4vh`, range `0vh`–`25vh`). Small values create a “flow” feel with neighboring slides peeking during transitions; large values enforce full slide isolation.
 4. **Camera.** The camera **translates only**; there is no `transform: scale()` at the camera level. On chunk change, the stage translates to place the active slide centered in the viewport. On annotation activation, the camera offsets right so the slide's left edge lands around viewport-X = 55%, revealing the annotation box on the left.
 5. **Expansions.** When a chevron is clicked, the parent slide's internal CSS grid switches to a two-column layout (content left, expansion right). The slide frame itself doesn't move. Expansions do **not** nest – a `::: expand` cannot contain another (enforced by the parser and linter).
 6. **Neighbor behavior.** Three modes, spec-configurable: `dim` (neighbors always at reduced opacity – currently ~`calc(1 - dim * 0.96)` ≈ 4%), `fade-after-settle` (neighbors briefly visible during the camera transition, then fade to `0` after the camera lands – gives continuity during motion, isolation at rest), `hidden` (always fully transparent). Default: **`dim`** – calibrated authoring runs found constant peek preferable to motion-only peek.
@@ -49,7 +49,7 @@ This algorithm is pure: same source → same slide positions → same camera tar
 
 ### 2.1 Structural tag vocabulary
 
-The `## tag: Heading` prefix marks the chunk's structural role. This list is **exhaustive** – an unknown tag is a build error (§9), not a custom extension point. Adding a tag is a deliberate spec change, because each tag has visual treatment in the CSS and reading-order implications in the print view.
+The `## tag: Heading` prefix marks the chunk's structural role. This list is **exhaustive** – an unknown tag is a build error (§9), not a custom extension point. Adding a tag is a spec change, because each tag has visual treatment in the CSS and reading-order implications in the print view.
 
 | Tag | Use |
 |---|---|
@@ -60,7 +60,7 @@ The `## tag: Heading` prefix marks the chunk's structural role. This list is **e
 | `question` | A posed question, often paired with an `::: expand` answer. |
 | `figure` | A visual-dominant chunk (image, diagram, ASCII sketch). Usually `.wide` or `.full`. |
 | `exercise` | Student-facing task. Rendered with the exercise marginalia treatment in print. |
-| `free` | Uncategorized narration. No rule above – intentionally typographically quiet. |
+| `free` | Uncategorized narration. No rule above – typographically quiet. |
 
 Tag is optional on a chunk; omitting `tag:` is equivalent to `free:`.
 
@@ -208,7 +208,7 @@ This anchors the entire scale to the projector's vertical resolution, keeping th
 
 ### 4.3 Color
 
-OKLCH palette, uchu-inspired, deliberately restrained. Calibrated for projector-distance readability (values observed from authoring sessions):
+OKLCH palette, uchu-inspired, restrained. Calibrated for projector-distance readability (values observed from authoring sessions):
 
 ```css
 --ink:        oklch(0.20 0.01 260);   /* body text – calibrated for back-of-room legibility */
@@ -230,7 +230,7 @@ Because each slide fills the viewport and shares one frame, visual variability l
 1. **Width class** → internal text-column max-width (`narrow 22em / standard 36em / wide 52em / full 72em`). A narrow chunk floats a tight column in whitespace; a full chunk fills the slide.
 2. **Alignment** (`data-align="left" | "center" | "right"`) → where the text column sits within the slide horizontally. Left-anchored chunks feel like running prose; right-anchored feel like a closing remark.
 3. **Per-tag treatment** – the canonical compositional vocabulary:
-   - `title`: lecture cover. `title` in `display` size; below it `presenter` in `lg`; below that a multiline `info` block in `sm` soft ink (date, location, course code, URL, any extra line). Left-aligned. Vertically placed so the whole block sits in the lower-left third of the slide – deliberately *not* centered. Centered cover slides look institutional and dead; lower-left-third gives asymmetric weight and reads as intentional. Content is pulled from frontmatter; a non-empty chunk body overrides the `info` lines.
+   - `title`: lecture cover. `title` in `display` size; below it `presenter` in `lg`; below that a multiline `info` block in `sm` soft ink (date, location, course code, URL, any extra line). Left-aligned. Vertically placed so the whole block sits in the lower-left third of the slide – *not* centered. Centered cover slides look institutional and dead; lower-left-third gives asymmetric weight and reads as intentional. Content is pulled from frontmatter; a non-empty chunk body overrides the `info` lines.
    - `principle`: thick rule above, larger body (1.2× zoom), larger heading. Pull-quote feel.
    - `definition`: hairline rule above, math blocks centered, tight body. Academic feel.
    - `question`: centered, heading huge (2.4× zoom), body small + soft. Pause feel.
@@ -287,7 +287,7 @@ model decides the size …
 :::
 ```
 
-Precedence, highest first: a `::: slide` block is the slide; otherwise everything outside `::: script` is the slide; otherwise `topic-bold` applies as before. Rule 1 wins, so a chunk may carry both blocks. Consequences by design:
+Precedence, highest first: a `::: slide` block is the slide; otherwise everything outside `::: script` is the slide; otherwise `topic-bold` applies as before. Rule 1 wins, so a chunk may carry both blocks. Consequences:
 
 - **Per-chunk, not per-lecture.** Mixed decks work, and every existing lecture keeps behaving exactly as it did – the derivation is the fallback, not the deprecated path.
 - **No new mode in the `C` cycle.** `none` still shows everything in source order; `topic-bold` still means “what the room sees”. The author's markup, not a global switch, decides which half that is.
@@ -295,7 +295,7 @@ Precedence, highest first: a `::: slide` block is the slide; otherwise everythin
 - **The blocks nest.** A `::: slide` inside a `::: side` pane or a `::: cols` flow works: the wrapper stays visible because it contains the slide block, and only the wrapper's other content is hidden.
 - **The unit is the reveal segment, not the chunk.** A chunk whose segment 0 carries a `::: slide` and whose segment 1 does not gets explicit treatment for the first and the derived treatment for the second.
 - **Print keeps both halves** in source order, with the slide block marked by a hairline rule. The reading copy is the union; only the projector is the selection.
-- **Density budgets (lint) apply to the on-screen half only.** Narration is deliberately unbudgeted – writing it freely is the entire point.
+- **Density budgets (lint) apply to the on-screen half only.** Narration is deliberately unbudgeted.
 
 **Collapse composes with progressive reveal (§4.6).** Each reveal segment is independently filtered by the active collapse mode. In `topic-bold` with three reveal segments, advancing reveal shows the topic sentence and bold phrases of segment 1, then segment 2, then segment 3 – never the full body unless collapse is toggled to `none`. Explicit blocks compose the same way: a `::: slide` inside segment 2 becomes visible when segment 2 does.
 
@@ -377,15 +377,16 @@ Grammar, in full:
 | `plot <name> ["x title"] ["y title"] <placement> [w n] [h n] [aspect W:H] [x lo,hi] [y lo,hi] [step n]` | A cartesian frame to draw in, and a mapping so `roc@0.35` names a value in its own units |
 | `table <name> "head \| head" <placement> [col a,b,c] [h n] [space n]` | A grid of labelled cells. The body rows are bare quoted strings on the lines beneath it |
 | `lanes <name> "one \| two \| three" <placement> [w n] [h n]` | Bands of equal width with turned captions outside the left edge |
+| `sequence <name> <placement> [w n] [h n] [space n] [unnumbered]` | A protocol running down the page. Its entries are the indented lines beneath it: `actor <name> "label"`, `a -> b "label" ["second line"]`, and `note <a>[,<b>] "label"`. The statement sets the vertical rhythm and nothing else, so a note pushes what follows it down |
 | `step <name>` | Opens a step; the indented lines below it are its operations |
 
-**Five of those statements draw nothing of their own: they expand, at parse time, into ordinary boxes, texts and edges.** `bars`, `grid`, `plot`, `table` and `lanes` are shorthand, not element kinds, and that is the whole design. Nothing downstream learns about them – so `brace over f-0,f-1,f-2` spans three columns of a chart, a `style` step tints one cell of a table, and the visibility rule, the tween, the viewBox and the linter all keep working on the elements they already understand. What makes the expansion possible is that an `at` may name another element's coordinate: every column, cell and band is placed against a frame the same statement creates, through the ordinary dependency walk.
+**Five of those statements draw nothing of their own: they expand, at parse time, into ordinary boxes, texts and edges.** `bars`, `grid`, `plot`, `table` and `lanes` are shorthand, not element kinds. Nothing downstream learns about them – so `brace over f-0,f-1,f-2` spans three columns of a chart, a `style` step tints one cell of a table, and the visibility rule, the tween, the viewBox and the linter all keep working on the elements they already understand. What makes the expansion possible is that an `at` may name another element's coordinate: every column, cell and band is placed against a frame the same statement creates, through the ordinary dependency walk.
 
 The bar for adding one is the same each time, and it is not expressiveness: **the hand-built version has to be the thing that cannot be maintained.** A table of six rows by three columns costs twenty-one hand-named boxes and a chain of relative placements that has to be re-aimed whenever a row is inserted, which is the edit a diff and a reviewer both handle worst. A swimlane's bands cannot be `container`s at all, because a container fits its members and bands holding different numbers of things then come out ragged at both ends. A flowchart and a tree need no statement of their own – they are boxes and edges arranged, and `figure-design.md` shows each of them in a dozen lines. A sequence of messages passed the bar and `sequence` was added on the same test: the old grammar drew the picture already, in 41 lines and with no warning, and what justified the statement was what it cost to *change* it. Inserting one message in the middle of the hand-built version meant rewriting thirteen lines – five numbers, five vertical positions and four lifeline lengths – because nothing but the author was keeping the vertical rhythm. It is one line now.
 
 **A coordinate is a number in grid cells, or another element's coordinate with an optional signed nudge:** `1.12`, `x0.cy`, `iv.left`, `mix.cx+0.2`. **Every place a coordinate pair is accepted takes that same form** – `at X,Y`, `move … to X,Y`, a waypoint, an edge endpoint – so `edge iv -> x0 via iv.cx,x0.cy` reads as what it is (straight down from the IV, then across at the height of the XOR) and `box m at c1.cx,m0.cy` puts a box in a column without measuring it. Referring to the wrong axis (`.top` where an x belongs) is an error naming the three that fit, and a reference in a placement is a real dependency, so a circular one comes out as `placement cycle: …` rather than a plausible wrong picture.
 
-**An edge is addressable like anything else.** `w1.cx`, `w1.cy`, `above w1 gap 0.2` – the box a coordinate reads is the bounding box of the route. This matters for one thing above all: a phrase that describes a wire belongs to the wire, and pinning it to one of the boxes at either end is the failure this whole grammar exists to prevent. It keeps its distance from the box and loses it from the line as soon as a fraction or a height changes, and nothing says so. An edge's dependencies are its two ends and its waypoints, all already in the layout walk, so it joins the same topological sort and a genuine circle is reported as `placement cycle` naming the line.
+**An edge is addressable like anything else.** `w1.cx`, `w1.cy`, `above w1 gap 0.2` – the box a coordinate reads is the bounding box of the route. This matters for one thing above all: a phrase that describes a wire belongs to the wire. Pinned to one of the boxes at either end, it keeps its distance from the box and loses it from the line as soon as a fraction or a height changes, and nothing says so. An edge's dependencies are its two ends and its waypoints, all already in the layout walk, so it joins the same topological sort and a genuine circle is reported as `placement cycle` naming the line.
 
 Because a coordinate is written `name.prop`, an **element name is letters, digits, `_` and `-`, starting with a letter**. A name with a dot in it would be indistinguishable from a coordinate; the build says so rather than resolving it one way in silence.
 
@@ -393,9 +394,9 @@ A **comment line starts with `#`**.
 
 This exists because the alternative is measuring. Rebuilding the six example slides needed a browser open and three numbers read off the screen; every one of them is now a relation. A generated diagram has the same problem with no browser at all.
 
-**The nudge is one optional signed term, and its shape is a promise to the editor.** A graphical editor answering a drag must not replace a reference with an absolute number – that destroys the relation the author wrote. With the nudge in the grammar it rewrites exactly one token and the reference survives, which also means the token to replace is never ambiguous.
+**The nudge is one optional signed term.** A graphical editor answering a drag must not replace a reference with an absolute number – that destroys the relation the author wrote. With the nudge in the grammar it rewrites exactly one token and the reference survives, which also means the token to replace is never ambiguous.
 
-An edge endpoint may also be a bare coordinate – `edge a.left-0.8,a.cy -> a` is an arrow arriving from outside the picture. Deliberately a literal rather than an invisible anchor element: there is nothing to delete by accident, and a graphical editor dragging that end rewrites two numbers on that line instead of moving an object nobody can see.
+An edge endpoint may also be a bare coordinate – `edge a.left-0.8,a.cy -> a` is an arrow arriving from outside the picture. A literal rather than an invisible anchor element: there is nothing to delete by accident, and a graphical editor dragging that end rewrites two numbers on that line instead of moving an object nobody can see.
 
 Placement is `at X,Y` in grid cells, a relation – `right of A`, `left of A`, `below A`, `above A`, each taking `gap <n>` and `align <edge>` – or `between A,B [frac <n>]`, which is the position PIC spells “1/2 way between A and B”. Any of them takes a trailing `offset dx,dy`. **The first element defaults to the origin**, so the common case – a box, and everything else relative to it – needs no coordinates at all. Every element after it has to say where it goes; silently stacking two elements on `0,0` is not a default anyone means.
 
@@ -405,9 +406,9 @@ An element carries **tags** as well as an id and classes: `{#mix .tone-1 @crypto
 
 This is what closes the commonest alignment failure: two columns built as separate `below … gap n` chains drift apart as soon as their captions differ in height, and a line drawn between two drifted elements runs a degree or two off the axis, which reads as a mistake. `align y middle a, b` states the intent in one line. An element distributed by `spread` must not be what an endpoint is placed against – that is genuinely circular, and the build says `placement cycle: q → s → r → q` and names the line rather than drawing a plausible wrong answer.
 
-Anchors are addressable and chosen automatically otherwise: `mix.right`, `ret.br`, and `mix.right:0.3` to slide the attachment point along that edge. **The fraction is what keeps two arrows between the same pair of boxes from collapsing into a lens** – give them `0.3` and `0.7` and they are two parallel arrows rather than two bows over the same chord. There is deliberately no automatic fan-out of parallel edges: it would change an existing diagram silently, and the explicit form reads as what it is.
+Anchors are addressable and chosen automatically otherwise: `mix.right`, `ret.br`, and `mix.right:0.3` to slide the attachment point along that edge. **The fraction is what keeps two arrows between the same pair of boxes from collapsing into a lens** – give them `0.3` and `0.7` and they are two parallel arrows rather than two bows over the same chord. There is deliberately no automatic fan-out of parallel edges: it would change an existing diagram silently.
 
-**Routing is the author's, with one bounded exception.** An edge is straight segments through the waypoints written for it; nothing steps around a box. `.elbow` is the exception and it is drawn narrow enough that it cannot grow into a router: it turns once out and once in, the rail sits halfway across the gap on whichever axis the two ends are further apart, it looks at nothing else in the figure, and there is no option to move it. The rail is measured between the two elements' facing sides rather than between their centres, which is the detail that earns it – several children of one parent then turn on the same line and the set reads as one bracket, which is what a tree is made of. Writing `.elbow` and `via` on one edge is an error rather than a preference the build guesses at. The moment the rail becomes configurable this stops being a class and starts being a router, so it does not become configurable.
+**Routing is the author's, with one bounded exception.** An edge is straight segments through the waypoints written for it; nothing steps around a box. `.elbow` is the exception: it turns once out and once in, the rail sits halfway across the gap on whichever axis the two ends are further apart, it looks at nothing else in the figure, and there is no option to move it. The rail is measured between the two elements' facing sides rather than between their centres, so several children of one parent turn on the same line and the set reads as one bracket, which is what a tree is made of. Writing `.elbow` and `via` on one edge is an error rather than a preference the build guesses at.
 
 Step operations are `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style`, `label`. Nothing else. A step operation takes a tag wherever it takes a name, with one exception the build refuses rather than draws: `move @tag to …` would give every member of the set the same placement and stack them on one point, so it is an error naming `move @tag by dx,dy`, which is what translating a set means. A class added by `style` **displaces** the one already in its slot, the same rule the `default` block follows – adding it alongside would leave two rules matching at equal specificity and let stylesheet order decide.
 
@@ -425,7 +426,7 @@ diagram-defaults: |
   default box @dec  {.round} w 0.48
 ```
 
-Repeating those lines in twelve blocks decays: change the look and it is twelve edits. Deliberately **not** a named-preset system (`use=house`) – a single lecture-wide set adds one key and one layer, where presets would add a keyword to the grammar, a lookup, a "no preset named …" error and another table for `lint.js` to mirror. If one lecture ever genuinely needs two visual families, presets stay additive and can be added then; until then the escape hatch is the one that already exists, a `default` line inside the block.
+Repeating those lines in twelve blocks decays: change the look and it is twelve edits. **Not** a named-preset system (`use=house`) – a single lecture-wide set adds one key and one layer, where presets would add a keyword to the grammar, a lookup, a "no preset named …" error and another table for `lint.js` to mirror. If one lecture ever genuinely needs two visual families, presets stay additive and can be added then; until then the escape hatch is the one that already exists, a `default` line inside the block.
 
 **Precedence is one sentence: the nearer the declaration, the stronger it is, and in one place a tag beats the bare kind.** So four layers, most specific last:
 
@@ -446,33 +447,33 @@ The class vocabulary is a closed enumeration of 40 names. Thirty-two of them occ
 Four of those names answer needs the vocabulary could not express:
 
 - **`clear` is a see-through interior.** `bare` removes the *stroke*, so a frame you can read through – an outline over an image, a box marking a region – had no spelling at all.
-- **`paper` is the canvas colour, named**, and it is not the no-op it looks like. It is a box's default, but a box under `default box {.tone-3}` had no way back to it, and a free `text` could not have a ground at all – which is the whole reason to give a label one, so it can knock out a line running behind it.
+- **`paper` is the canvas colour, named.** It is a box's default, but a box under `default box {.tone-3}` had no way back to it, and a free `text` could not have a ground at all – which is the reason to give a label one, so it can knock out a line running behind it.
 - **`serif` is the upright serif.** `hand` is the same family forced italic and accented, which is the annotation voice; until `serif` existed the family was reachable only through it.
-- **`fit` and `shrink` size the type to the box** instead of the box to the type. Both need the box to be given – `w n` or `same as X` – and an element with neither is an error rather than a line that does nothing. The chosen size is clamped to 0.6–1.5× of the element's base size, so a long label cannot become unreadable and a short one cannot become a poster. Be honest about the error term: label width here is *estimated* from a per-character table, tuned deliberately generous, and auto-fit compounds that, so the chosen size runs slightly small. That is the safe direction – small still fits – and it is the price of having no browser at build time.
+- **`fit` and `shrink` size the type to the box** instead of the box to the type. Both need the box to be given – `w n` or `same as X` – and an element with neither is an error rather than a line that does nothing. The chosen size is clamped to 0.6–1.5× of the element's base size, so a long label cannot become unreadable and a short one cannot become a poster. The error term: label width here is *estimated* from a per-character table, tuned deliberately generous, and auto-fit compounds that, so the chosen size runs slightly small. That is the safe direction – small still fits – and it is the price of having no browser at build time.
 
-A **free `text` draws a ground when it carries a fill**, and a box is the same mechanism read the other way: one draws the measured label box padded, the other defaults to paper and opts out with `clear`. `paper` counts as a fill for this, which is the point of having it. That is exactly how the two already looked, so nothing existing changes.
+A **free `text` draws a ground when it carries a fill**, and a box is the same mechanism read the other way: one draws the measured label box padded, the other defaults to paper and opts out with `clear`. `paper` counts as a fill for this. That is exactly how the two already looked, so nothing existing changes.
 
-**An edge's label reads the same rule, and gains one thing from it a free `text` cannot have.** A fill class on an `edge` draws the same ground behind its label, and with none of `.top` / `.bottom` / `.left` / `.right` the words then sit *on* the line and knock it out; naming a side lifts them clear and carries the ground with them. What that buys over a `text` placed `between` two boxes is that the label is held at the middle of the *route*, so it stays there when the route bends or either end moves. Which of the two placements to use is a convention rather than a rule, and the reading that works is on-the-line for a token that identifies the line – a sequence number, a port, a message type – and beside it for a phrase describing what travels along it.
+**An edge's label reads the same rule.** A fill class on an `edge` draws the same ground behind its label, and with none of `.top` / `.bottom` / `.left` / `.right` the words then sit *on* the line and knock it out; naming a side lifts them clear and carries the ground with them. What that buys over a `text` placed `between` two boxes is that the label is held at the middle of the *route*, so it stays there when the route bends or either end moves. Which of the two placements to use is a convention rather than a rule, and the reading that works is on-the-line for a token that identifies the line – a sequence number, a port, a message type – and beside it for a phrase describing what travels along it.
 
 **`pad` works on a box and a text as well as on a container and a brace**, and it is the same sentence in all four: how far the outline sits from what it encloses. One number in grid units, measured on the vertical unit for both axes – as the container's already was, or the same word would mean two distances depending on the statement it sat on. Without it the default stays an asymmetric px pair, because 13/9 is typographic taste rather than a point on the grid.
 
 Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run with the theme accent and `~muted~` greys it. An unmatched marker stays a literal character. This exists because a sentence with two colour changes otherwise needs one `text` element per run, chained with `right of` – unreadable as source, and re-sorted by hand every time a word changes.
 
-**A grid cell is not square, so `w` and `h` are a poor way to say what shape something is.** They are counts of grid cells, and at `unit=150x52` a plot written `w 1.9 h 1.5` lands 285px by 78px – nothing on that line hints at it, and it is the one place where the coordinate system leaks into a decision the author is making about the *picture*. `aspect W:H` on a `bars` or a `plot` states the proportion the reader sees and lets the build work the other number out. It is deliberately the only dimension in the grammar expressed in page terms rather than grid terms, and it is expressed that way because the grid is exactly what obscures it. Giving `w`, `h` and `aspect` together is refused: two ways of stating one number is two ways of stating different ones. `same as <chart>` is the third way, for the row of comparable frames the shared-baseline advice asks for, and it is the one place `same as` is answered while the line is read rather than during layout - a chart's contents are positioned from its own dimensions at parse time, so a size arriving later would move the frame and leave the gridlines behind it.
+**A grid cell is not square, so `w` and `h` are a poor way to say what shape something is.** They are counts of grid cells, and at `unit=150x52` a plot written `w 1.9 h 1.5` lands 285px by 78px – nothing on that line hints at it, and it is the one place where the coordinate system leaks into a decision the author is making about the *picture*. `aspect W:H` on a `bars` or a `plot` states the proportion the reader sees and lets the build work the other number out. It is the only dimension in the grammar expressed in page terms rather than grid terms, and it is expressed that way because the grid is exactly what obscures it. Giving `w`, `h` and `aspect` together is refused: two ways of stating one number is two ways of stating different ones. `same as <chart>` is the third way, for the row of comparable frames the shared-baseline advice asks for, and it is the one place `same as` is answered while the line is read rather than during layout - a chart's contents are positioned from its own dimensions at parse time, so a size arriving later would move the frame and leave the gridlines behind it.
 
-**A bar chart runs sideways with `horizontal`, and that is often the better reading**, not a variant of the same picture: a reader ranks lengths from a shared left edge more reliably than heights from a shared floor, and a category called "DNS cache poisoning" cannot be written under an upright column at all. One expansion serves both orientations, so a series, a `brace` over three bars, `emph` by column index and the tween all work unchanged; what swaps is the tick strip, which becomes a right-aligned column down the left margin, and the baseline, which stands on the left. A tick string containing `|` is split on that rather than on spaces, which is what lets those row labels be phrases – the same mark that separates a `table` row and a `lanes` name.
+**A bar chart runs sideways with `horizontal`, and that is often the better reading**: a reader ranks lengths from a shared left edge more reliably than heights from a shared floor, and a category called "DNS cache poisoning" cannot be written under an upright column at all. One expansion serves both orientations, so a series, a `brace` over three bars, `emph` by column index and the tween all work unchanged; what swaps is the tick strip, which becomes a right-aligned column down the left margin, and the baseline, which stands on the left. A tick string containing `|` is split on that rather than on spaces, which is what lets those row labels be phrases – the same mark that separates a `table` row and a `lanes` name.
 
 **How large a diagram lands is the chunk's width class, not the `unit` option.** `unit` sets the grid cell and therefore only the proportions inside the picture; the drawing then fills its chunk's measure the way any other figure does, capped so a tall one cannot push the prose off the slide. Put a small diagram in a `.standard` chunk and a dense one in `.full`.
 
 Semantics that follow from the design, not from convenience:
 
 - **A step is one press of `Space`**, the same key that advances a reveal segment, because it is the same counter. A chunk that mixes prose reveals and diagram steps advances through both in document order.
-- **An element's position is a function of the step.** Layout is evaluated once per step, so an arrow between two boxes re-routes when either moves. This is the property no drawing-tool pipeline can offer.
+- **An element's position is a function of the step.** Layout is evaluated once per step, so an arrow between two boxes re-routes when either moves.
 - **Visibility runs downhill, and it is one rule with three faces.** An edge is only as visible as the two things it connects; a `container` or `brace` only as visible as its members, and it fits the ones that are on screen; a `text` that grew a leader only as visible as what it points at. So most of a diagram needs no `show` of its own – revealing the boxes reveals the arrows between them, the outline around them and the note beside them – and nothing is ever drawn pointing at, or wrapped around, something nobody can see.
-- **It is a default, and naming the element overrides it.** A `show` or a `hide` that names an edge, a container or a brace outright wins over the rule, in both directions and for that beat and every beat after it – so a wire that has to be on the slide before either of its ends, or one that has to come away while both ends stay, is one line rather than an impossibility. This is not a second mechanism: `show edge-1` already parsed and already wrote the state, and the rule then threw the answer away, which is the silent no-op this grammar keeps closing. Where no step says anything about an element, the rule decides, which is the case for nearly every line of nearly every figure.
+- **It is a default, and naming the element overrides it.** A `show` or a `hide` that names an edge, a container or a brace outright wins over the rule, in both directions and for that beat and every beat after it – so a wire that has to be on the slide before either of its ends, or one that has to come away while both ends stay, is one line rather than an impossibility. This is not a second mechanism: `show edge-1` already parsed and already wrote the state, and the rule then threw the answer away. Where no step says anything about an element, the rule decides, which is the case for nearly every line of nearly every figure.
 - **Print is the last beat**, with the live-only emphasis (`emph`, `dim`) stripped – a handout is the finished picture, not its first beat, and not the union of every beat either. `hide` is the author saying an element is gone by the end; reprinting it lays a withdrawn arrow across whatever took its place. Everything shown and never hidden is in the last beat anyway, so for a diagram that only builds up the two readings agree. The static attributes in the emitted SVG *are* that state, which is also why a view with no JavaScript shows the finished picture; the runtime widens the viewBox to hold every beat when it boots, so only the live views pay for the room an element needs to walk into.
 - **Motion is off under `prefers-reduced-motion`**; the steps still step, they just do not travel.
-- **A vector image follows the theme, a raster does not.** An SVG asset is spliced in as a nested `<svg>`, so it inherits `--ink` and `--paper` and re-colours with the `A` cycle, exactly like an inlined SVG figure. A raster is embedded as a `data:` URI and keeps its own colours in every theme. That is the trade, and it is the honest one: a photograph is a photograph in dark mode too.
+- **A vector image follows the theme, a raster does not.** An SVG asset is spliced in as a nested `<svg>`, so it inherits `--ink` and `--paper` and re-colours with the `A` cycle, exactly like an inlined SVG figure. A raster is embedded as a `data:` URI and keeps its own colours in every theme – a photograph is a photograph in dark mode too.
 
 Discipline: the same as reveal. A diagram earns steps when the *sequence* is the teaching – a construction that assembles, an attack that walks through a structure. A diagram that appears whole is the normal case.
 
@@ -486,7 +487,7 @@ Density budget per chunk: body text should occupy no more than ~12 line-heights 
 
 ## 5. Camera and navigation
 
-**Motion vocabulary.** Two families, forward and backward, the way a presentation tool is expected to behave: perform the slide, then move to the next one. The column exception is the one thing this deck has that a linear one does not, and the slide says so rather than leaving it to be discovered by pressing a key.
+**Motion vocabulary.** Two families, forward and backward, the way a presentation tool is expected to behave: perform the slide, then move to the next one. The column exception is where this differs from a linear deck, and the slide says so rather than leaving it to be discovered by pressing a key.
 
 - **Forward** – `Space`, `↓`, `Enter`, `PageDown`: the next reveal segment or diagram step on this chunk (§4.6); when there is none left, the next chunk in reading order, crossing into the next column at the end of one.
 - **Backward** – `↑`, `PageUp`, `Backspace`: the segment or step before it; when the chunk is at its opening state, the previous chunk, crossing back into the previous column at the start of one.
@@ -565,7 +566,7 @@ The scrubber (see controls below) also shows all thumbnails fully revealed. Reve
 - Timer: elapsed lecture time, discretely shown.
 - Sketch slots: editable textarea for any sketch slot the current chunk contains. Typing here updates the audience view live.
 
-**Persistence:** current chunk ID, timer state, and sketch slot contents persist to `localStorage` per lecture file every 5 seconds. On crash or accidental close, reopening restores position. A small but genuine safety feature for live teaching.
+**Persistence:** current chunk ID, timer state, and sketch slot contents persist to `localStorage` per lecture file every 5 seconds. On crash or accidental close, reopening restores position.
 
 ### 7.1 Annotation slot UX (in-viewport)
 
@@ -695,7 +696,7 @@ These are as important as the positive rules. They are the failure modes.
 
 Deliverable: one real lecture taught in the new medium.
 
-**Scope reduction vs. full spec.** Phase 0 deliberately ships a *subset* of the source format and skips the build pipeline. Authors stick to this subset so that the eventual §9 build can ingest Phase 0 sources unchanged:
+**Scope reduction vs. full spec.** Phase 0 ships a *subset* of the source format and skips the build pipeline. Authors stick to this subset so that the eventual §9 build can ingest Phase 0 sources unchanged:
 
 - Single HTML + single JS file, no Node build script.
 - Hand-author Markdown with hand-written IDs and explicit `{.width-class}` attributes just this once.
@@ -756,7 +757,7 @@ The goal of Phase 1 is to retire every “temporarily” in Phase 0 **and** clos
 
 ---
 
-## 12. Open questions – things this spec deliberately does not decide
+## 12. Open questions – things this spec does not decide
 
 These are the things I'd flag as genuinely underspecified rather than just deferred. Worth thinking about before they bite.
 

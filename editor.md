@@ -425,7 +425,7 @@ it is the only one that can produce the statement the grammar has.
 **`align` and `spread` are also selection acts**, on the toolbar rather than
 behind a drag. Select, click "align y middle", and the editor writes `align y
 middle a, b, c`. **The first element selected is the master** – which is
-exactly what the statement means, so the UI teaches the semantics for free.
+exactly what the statement means, so the UI teaches the semantics.
 
 Excalidraw-compatible where it does not collide:
 
@@ -717,8 +717,8 @@ something that looks broken rather than something that looks unfinished.
   sets `body[data-mode]` to `dark` or `light`, and every piece of chrome in
   this product – help sheet, TOC, search panel, cockpit footer, export modal –
   keys its overrides off that rather than off individual themes. Do the same
-  and the editor works in all seven themes including the two phosphor modes,
-  for free. Do not do it and it ships a near-white panel on a dark projection.
+  and the editor works in all seven themes including the two phosphor modes.
+  Do not do it and it ships a near-white panel on a dark projection.
   The canvas itself needs nothing: it is the compiler's own SVG, already
   painted in `--ink` / `--paper` / `--rule`, and the guide layer uses the same
   tokens.
@@ -912,12 +912,11 @@ to be a statement, the line goes with it.
 This started life as a flat refusal that named the line and told the author to
 go and make that edit by hand. The information was right and the answer was
 wrong on two counts. A set you cannot leave by dragging is a set the canvas
-cannot express, so the only way out was the text – which is the thing this
-editor exists to spare people. And "drop `ident` from that line" is *precisely*
-the edit it should be making. The threshold is what keeps the trade honest:
-without it a row of boxes dissolves under an ordinary nudge, so leaving has to
-be something you meant. Dragging the master still moves everyone, which is
-what the statement means.
+cannot express, so the only way out was the text. And "drop `ident` from that
+line" is *precisely* the edit it should be making. The threshold is what keeps
+the trade honest: without it a row of boxes dissolves under an ordinary nudge,
+so leaving has to be something you meant. Dragging the master still moves
+everyone, which is what the statement means.
 
 Two consequences worth keeping. The hold is **not painted as an error** – a
 set doing its job is not a failure, and only a genuine refusal gets the error
@@ -928,7 +927,7 @@ used to move x and say nothing at all about why y stayed where it was.
 `below b` up through b and the statement becomes `above b gap 0.4`: the
 dominant axis of the centre-to-centre vector picks the word, the same question
 `dgAutoAnchor` asks about an edge's endpoint. The threshold is the reference's
-own edge, which is the hysteresis for free – to change sides you have to drag
+own edge, which is the hysteresis – to change sides you have to drag
 the element right through the thing it is measured from, so no ordinary nudge
 can flip it. Before this the gap was clamped at zero and the drag simply stopped
 dead, which meant re-docking was only reachable by editing the text.
@@ -1246,7 +1245,7 @@ rather than deleted, because the reasoning is what a later reader will want.
   freezes, which is exactly why it does not have to be decided now. **Build
   §7.2 first.** The trigger for building the preamble is concrete: if an author
   uses "apply these defaults to every figure" more than once on the same
-  lecture, copying has failed and the preset has earned its keyword.
+  lecture, copying has failed and the preset is worth a keyword.
 
 Two were left, and they were **deliberately not decided on paper.** Both are
 drawing problems whose answers depend on what the thing feels like, and a prose
@@ -1453,7 +1452,7 @@ block is something a human could have typed. The build already inlines assets
 into the *output*; the source stays a reference. That separation is the reason
 `--no-inline-images` can exist at all.
 
-### 14.6 The picker, which is most of the value
+### 14.6 The picker
 
 Even with no new file, the chooser is the missing part:
 
@@ -1559,7 +1558,7 @@ Two smaller decisions:
   word mean two distances depending on which statement it sat on.
 - **A `w` on a free `text` used to parse and do nothing.** `DG_KIND_OPTS`
   listed it, `sizeOf` ignored it. `.fit` on a text needs it, so it now means
-  what it says – which is also the silent no-op this DSL keeps closing.
+  what it says, instead of being a silent no-op.
 
 Verified (§11.8's row for §3.3):
 
@@ -1676,8 +1675,8 @@ list a delete owes the author.
    `0.3` were read as two more member names and the error was
    `unknown anchor .3 on "0"`. A pre-existing hole that phase 0b widened by
    giving `text` a `pad`. Fixed in the STOP set.
-3. **The first element's placement is implicit.** It gets `at 0,0` for free
-   and there is nothing in the source to hang an option off, so a placement
+3. **The first element's placement is implicit.** It gets `at 0,0` without
+   anything in the source to hang an option off, so a placement
    option there had no insertion point. The placement is marked `implicit`
    and `spanOf` returns **null** rather than an offset that would not parse;
    the editor asks for `place` instead, which is the whole expression and is
@@ -2169,8 +2168,7 @@ every caller that is choosing an endpoint, and there are four of them.
 
 **Swap ends exchanges the two names rather than flipping the arrow.** Flipping
 reads smaller in the diff and was the first version, but `--` has no direction
-to flip and the edit would have done nothing there – the silent no-op this DSL
-keeps closing.
+to flip and the edit would have done nothing there, which is a silent no-op.
 
 **Undo and redo grew buttons**, next to Revert, with the depth of each stack
 in the tooltip. §4.2's rule is that nothing is reachable only by knowing the
@@ -2192,7 +2190,7 @@ segment inserts a waypoint and hands the gesture straight to the move, so one
 press-drag-release both creates and places it; a square moves an existing one;
 a double-click on the square, or the chip in the panel, takes it out.
 
-**The axes are decided separately, and that is the whole point.** A routed
+**The axes are decided separately.** A routed
 waypoint in a real figure is usually half reference and half number –
 `via iv.cx,d0.bottom+0.28` is "the horizontal centre of the IV box, and 0.28
 below the bottom of the decrypt box". Where a component holds a reference the
@@ -2201,7 +2199,7 @@ one of the three constructs a graphical editor has to round-trip, and the
 reason the nudge is one optional signed term with no other operators and no
 nesting is exactly that the token to replace is always unambiguous. An editor
 that answered this drag with two numbers would turn a diagram that re-routes
-itself into one that does not, which is the whole value of the format.
+itself into one that does not.
 
 The span table gained `via`, `via.<k>`, `via.<k>.<x|y>` and the two nudge slots
 – the same shape as `at`, because it is the same coordinate grammar behind
@@ -2320,7 +2318,7 @@ ciphertext box, through the `Dec` box below it, laying itself over the white
 arrow that really does feed that box – so the picture said the ciphertext goes
 into the decryption on that path, which is the opposite of what CBC does.
 
-The fix is a routing channel, and the interesting part is that it could not be
+The fix is a routing channel, and it could not be
 had by moving the line alone. Leaving the box sideways and running down the
 gutter put the line on top of the `k` labels; the channel between a `k` and
 its `Dec` is exactly the width of that gap; and no vertical fits between the
@@ -2362,7 +2360,7 @@ Two things it has to get right, both inherited rather than re-solved. A
 reference that names nothing is refused and the source put back, because
 dgeWriteAttr now goes through `dgeSetSource` like every other structured write.
 And the first element of a block has no placement in the source at all – it
-sits at the origin for free – so `spanOf` answers null; the pane says so and
+sits at the origin implicitly – so `spanOf` answers null; the pane says so and
 offers to write one out rather than showing fields that cannot be saved.
 
 
@@ -2432,7 +2430,7 @@ alone. `rejectAlignOn()` refuses the five
 that cannot act, the editor's two swatch rows carry only the kinds that can, and
 `test/figure-labels.mjs` asserts both halves. It is the same rule the outline
 classes already follow, and the same reason: a class that resolves and does
-nothing is the failure this grammar keeps closing.
+nothing is the failure this grammar refuses.
 
 
 ### Thirteen review findings on the layout controls · **done**
@@ -2787,7 +2785,7 @@ redirecting them, and `dgeKindOpts` reads its controls off the entry statement
 instead of off the `box` and the `edge` they expand into – which take `w`, `h`
 and `pad`, three words those lines refuse.
 
-**What is deliberately not selectable is the more interesting half.** A
+**What is deliberately not selectable.** A
 lifeline, a message number and a second line own no text on the line that
 produced them. Handing one of them that line's span is precisely how a panel
 comes to write the actor's label under the lifeline's name – the trap
