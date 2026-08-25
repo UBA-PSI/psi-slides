@@ -100,7 +100,7 @@ export const DG_CLASSES = new Set([
   // way back to it, and a free `text` could not have one at all – which is
   // the whole reason to give a label a ground, so it can knock out a line
   // running behind it.
-  'tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper', 'accent', 'muted', 'ghost',
+  'tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper', 'accent', 'muted',
   // strokes
   'dashed', 'dotted', 'thick', 'bare',
   // outline. `.round` / `.sharp` are the two rectangles; the other four are
@@ -147,8 +147,12 @@ export const DG_CLASSES = new Set([
   // An edge that needs its rail somewhere else writes `via`, and saying both
   // is an error rather than a silent preference.
   'no-head', 'both-heads', 'smooth', 'elbow', 'front',
-  // set by steps, but authorable as an initial state too
-  'emph', 'dim',
+  // prominence. `.emph` and `.dim` are what a step sets when it says `emph`
+  // or `calm`, and both are authorable as an initial state too. `.ghost` is
+  // the softer of the two retreats and belongs here rather than with the
+  // fills it used to be listed among: it paints nothing, it sets the same
+  // opacity `.dim` does, one notch back.
+  'emph', 'dim', 'ghost',
 ]);
 // Classes that occupy the same slot. Needed only for the default block,
 // and it is what makes it behave the way anyone would expect: an element
@@ -168,13 +172,48 @@ export const DG_CLASS_GROUPS = [
   ['fit', 'shrink'],                          // how type meets its box
   ['left', 'right'],                          // text alignment, across
   ['top', 'bottom'],                          // text alignment, down
+  // prominence – how much of the room's attention an element is asking for.
+  // `.emph` and `.dim` are opposites, and `.dim` and `.ghost` are two
+  // settings of one number: dgOpacity() resolves all three, and it reads
+  // `.dim` before `.ghost`, so the pair on one element left `.ghost`
+  // resolving, emitting its class and moving nothing. The slot is what makes
+  // a default behave here the way it does everywhere else: `default box
+  // {.dim}` under an element's own `{.emph}` used to stack, and the element
+  // came out with an emphasis stroke drawn at 30% – the author's explicit
+  // choice silently losing to the default, which is the exact failure the
+  // table exists to prevent.
+  ['emph', 'dim', 'ghost'],                   // prominence
+  // arrowheads – which ends of a line carry one. The emitter read the two as
+  // independent booleans, so the pair drew the opposite of one of them: no
+  // head at the end, a head at the *start*, and the stroke pulled back there
+  // to make room for it. `headed` is derived from `both` now, so one channel
+  // is resolved once, the way dgOpacity() resolves prominence.
+  ['no-head', 'both-heads'],                  // arrowheads
 ];
-// Not one slot, but the pair is still a mistake with no visible cause:
-// .tone-4 fills with the accent and inverts its own label, so accent ink on
-// it is invisible. The stylesheet arbitrates in favour of the inversion (the
-// inversion rule is written after the accent one); the author should hear
-// about it rather than wonder where the words went.
-export const DG_CLASS_CLASHES = [['tone-4', 'accent']];
+// Pairs that are not one slot – they act on different channels, so a shared
+// slot would be a lie – but where one of the two still ends up doing nothing
+// and nothing on the page says why. The build draws something defensible; the
+// point of the table is that the author hears about it rather than wondering
+// where the words went. Each row carries its own reason, because the reasons
+// have nothing in common but the shape of the failure.
+export const DG_CLASS_CLASHES = [
+  // The stylesheet arbitrates in favour of the inversion – that rule is
+  // written after the accent one, at higher specificity.
+  ['tone-4', 'accent',
+    '.tone-4 fills with the accent and inverts its own label, so .accent ink on it is '
+    + 'invisible – the inversion wins, and one of the two is doing nothing'],
+  // dgLabelAnchor() answers `turn` first and returns, so the across-pair never
+  // reaches its own branch. Only the across-pair: `.top` / `.bottom` still
+  // move a turned label, along the axis its words read up.
+  ['turn', 'left',
+    '.turn centres the label on its origin whichever way it reads, so .left has nothing '
+    + 'to align – it resolves, emits its CSS and moves nothing. .top and .bottom do still '
+    + 'move a turned label'],
+  ['turn', 'right',
+    '.turn centres the label on its origin whichever way it reads, so .right has nothing '
+    + 'to align – it resolves, emits its CSS and moves nothing. .top and .bottom do still '
+    + 'move a turned label'],
+];
 
 // The outlines that are not a rectangle. A box carrying one of these is
 // emitted as a <path> instead of a <rect>, and the drawable kind recorded for
@@ -3926,8 +3965,17 @@ export function createDiagramCompiler(env = {}) {
       const pts = dgEdgeRoute(e, st.classes, boxes, uw, uh);
       if (!pts) continue;
 
-      const headed = !st.classes.has('no-head');
+      // One channel, resolved once – the same shape dgOpacity() gives
+      // prominence. Read as two independent booleans, `.no-head .both-heads`
+      // drew the opposite of the first: no head at the end, one at the start,
+      // and the stroke trimmed back there to clear a head the author had said
+      // not to draw. `--` reaches here the same way, because it injects
+      // `no-head` as an autoClass, so `edge a -- b {.both-heads}` was that
+      // broken pair without the author writing either class twice. The written
+      // `.both-heads` is the more specific statement, so it wins: it says
+      // which ends carry a head, and `no-head` has nothing left to say.
       const both = st.classes.has('both-heads');
+      const headed = both || !st.classes.has('no-head');
       // Pull the stroke back from the tip so a thick head is not printed
       // over by the line it terminates.
       const trim = (a, b, by) => {

@@ -297,15 +297,17 @@ function lintDiagram(block, add, fmLines, lectureTags) {
     for (const group of DG_CLASS_GROUPS) {
       const hit = group.filter(c => out.classes.includes(c));
       if (hit.length > 1) {
+        // Deliberately not "stylesheet order decides": that is true of the
+        // slots that compete for a CSS property and false of the two that do
+        // not. Prominence is resolved in dgOpacity(), arrowheads in the
+        // emitter. What holds for all thirteen is that the line does not say.
         add(ln, 'warn', 'conflicting-diagram-classes',
-            `.${hit.join(' and .')} are the same kind of thing – which one wins is decided by stylesheet order, not by this line`);
+            `.${hit.join(' and .')} are the same kind of thing – which one the drawing takes is not decided by this line`);
       }
     }
-    for (const [a, b] of DG_CLASS_CLASHES) {
+    for (const [a, b, why] of DG_CLASS_CLASHES) {
       if (out.classes.includes(a) && out.classes.includes(b)) {
-        add(ln, 'warn', 'conflicting-diagram-classes',
-            `.${a} fills with the accent and inverts its own label, so .${b} ink on it is invisible – `
-            + `the inversion wins, and one of the two is doing nothing`);
+        add(ln, 'warn', 'conflicting-diagram-classes', why);
       }
     }
     return out;

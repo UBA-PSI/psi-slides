@@ -156,7 +156,10 @@ security lecture:
 
 Two tones from the same slot on one element is a conflict the linter reports. A **slot** is a group of classes that answer one question - which fill, which outline, which typeface - and an element takes one class from each.
 `.tone-4` with `.accent` is not a slot conflict but is still a mistake: the fill
-is the accent, so accent ink on it is invisible.
+is the accent, so accent ink on it is invisible. `.turn` with `.left` or
+`.right` is the other one the linter names: a turned label is centred on its
+origin across the direction it reads, so those two have nothing left to align.
+`.top` and `.bottom` do still move a turned label.
 
 **Which of them may cover a large area is a separate question.** Strong colour
 belongs on small marks, thin lines and small areas, weak colour on large ones

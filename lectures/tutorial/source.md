@@ -512,7 +512,7 @@ Two more options work from the box inwards rather than from the label outwards. 
 
 ## example: Looks, and lining things up | the class slots, `align` and `spread` {.full #diagram-classes}
 
-**How an element looks comes from a fixed list of classes, and eleven groups of them are slots that hold one class at a time.** So `{.tone-1}` on a box *displaces* a `default box {.tone-4}` rather than stacking with it.
+**How an element looks comes from a fixed list of classes, and thirteen groups of them are slots that hold one class at a time.** So `{.tone-1}` on a box *displaces* a `default box {.tone-4}` rather than stacking with it.
 
 ::: diagram {unit=112x82}
 default box {.sharp} w 0.62 h 0.42 pad 0.12
@@ -584,7 +584,7 @@ text wl "where the words sit" below w2 gap 0.28 {.small .muted}
 align x right fl, ol, sl, tw, gl
 :::
 
-**Every row of that sheet is one slot.** Three of them hold a pair that belongs together – stroke pattern beside stroke weight, family beside size, and the words that place a label across beside the ones that place it down – and the two ink classes have no row at all, because they are at work over the whole sheet: `.accent` on the cross, `.muted` on every caption. **Forty names in all, and `lint.js` refuses anything else** – a typo is a build error, not a box that comes out unstyled.
+**Every row of that sheet holds at least one slot.** Three of them hold more than one, where the slots belong together – stroke pattern beside stroke weight beside the two retreats, `.ghost` and `.dim`; family beside size; and the words that place a label across beside the ones that place it down – and the two ink classes have no row at all, because they are at work over the whole sheet: `.accent` on the cross, `.muted` on every caption. **Forty names in all, and `lint.js` refuses anything else** – a typo is a build error, not a box that comes out unstyled.
 
 **`align` means two different things, and where it sits on the line tells you which.** At the end of a placement it takes one word: `below src gap 0 align left` keeps the new box's left edge flush with `src`. On a line of its own it is a statement – `align y middle a, b, c` gives `b` and `c` the vertical centre of `a`, the first name being the one the others follow.
 
@@ -592,7 +592,9 @@ align x right fl, ol, sl, tw, gl
 
 ::: expand The rest of the class list, and where the two statements refuse
 
-The other eight class names belong to no slot and stack freely: `.bold` and `.ghost` for a heavier label and a barely-there element, `.turn` for a label read bottom-to-top up the side of something tall and narrow, `.no-head` `.both-heads` `.front` for edges, and `.emph` `.dim`, which are also what a step sets when it says `emph` or `calm`. The eleventh slot is how a line is drawn: `.smooth` bends the waypoints you wrote into a curve through them, `.elbow` works out a right-angled route with its turn halfway across the gap and needs no waypoints at all. Two members of one slot on one element is a lint warning; `.paper` fills a label with the page colour, which knocks a hole in a line running behind it.
+Only three class names belong to no slot and stack freely: `.bold` for a heavier label, `.turn` for a label read bottom-to-top up the side of something tall and narrow, and `.front` for a line drawn over the boxes rather than under them. Two slots the sheet has no row for at all belong to edges: how a line is drawn – `.smooth` bends the waypoints you wrote into a curve through them, `.elbow` works out a right-angled route with its turn halfway across the gap and needs no waypoints at all – and which of its ends carries an arrowhead, `.no-head` or `.both-heads`. The third is prominence, how much of the room's attention an element asks for: the sheet's stroke row shows the two retreats, `.ghost` and `.dim`, and the slot's third name is `.emph`. Those last two are also what a step sets when it says `emph` or `calm`. Two members of one slot on one element is a lint warning; `.paper` fills a label with the page colour, which knocks a hole in a line running behind it.
+
+Two pairs are not one slot – they act on different things – and are still a warning, because one of the two ends up doing nothing: `.tone-4` with `.accent`, where the fill already *is* the accent, and `.turn` with `.left` or `.right`, where a label standing on end is centred across the direction it reads and has nothing left to align. `.top` and `.bottom` do still move a turned label.
 
 Which way a pointed outline aims is the `point` option – `up`, `down`, `left`, `right` – rather than four more class names per shape, and writing it on an outline that has no point is an error. So is `.fit` on a box with no width to fit into, and so is an outline class on anything but a `box`. A `.cross` given no `w` of its own comes out square, because a plus with arms of two different lengths is not one – and it does so past a `default box … w` as well, the same exception `bars` makes for an inherited outline. A `w` written on the element's own line still wins, because that one is a statement about that element.
 
