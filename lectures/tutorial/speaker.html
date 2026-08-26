@@ -21082,9 +21082,16 @@ const DGE_DATA_FIELDS = {
     { key: 'values', label: 'values', hint: 'numbers separated by commas · one per column',
       empty: 'refuse',
       count: (v) => v.split(',').filter((s) => s.trim()).length },
-    { key: 'ticks', label: 'labels', hint: 'separated by spaces · one per column, or leave empty',
+    // Split on "|" when there is one, on spaces otherwise - the compiler's own
+    // rule (see the tick strip in diagram-core), and the only way a flat
+    // chart's row labels can be phrases. Counting on spaces alone reported
+    // "labels: 6" for the three-phrase strip the docs recommend, which is
+    // exactly the mismatch this count exists to make visible while typing.
+    { key: 'ticks', label: 'labels',
+      hint: 'separated by spaces, or by | when a label is a phrase · one per column, or leave empty',
       empty: 'drop',
-      count: (v) => v.trim().split(/\s+/).filter(Boolean).length },
+      count: (v) => (v.includes('|') ? v.split('|') : v.trim().split(/\s+/))
+        .filter((x) => x.trim()).length },
   ],
   grid: [
     { key: 'shape', label: 'shape', hint: 'columns × rows, written 8x12', empty: 'refuse' },

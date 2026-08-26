@@ -1,6 +1,6 @@
 # psi-slides
 
-**Write a lecture once, in one Markdown file. Get four artefacts out of it: the projection for the room, a presenter cockpit, a reading document, and a handout with the spoken notes folded in.**
+**Write a lecture once, in one Markdown file. Get four files out of it: the projection for the room, a presenter cockpit, a reading document, and a handout with the spoken notes folded in.**
 
 The problem it solves is drift. Most lecturers keep slides and a script as two documents, and after two semesters they disagree with each other. psi-slides makes them one text: the prose you write is the handout, and the *same* prose – abridged by a rule you control – is what the projector shows. Nothing is written twice, so nothing can fall out of sync.
 
@@ -109,11 +109,11 @@ The grammar is `## tag: Heading | Sub-heading {.width #id}`. Eight tags (`title`
 **What lands on the slide** is decided per chunk, by one of two mechanisms:
 
 - **Derived** (the default): the first sentence of every paragraph, plus any `**bold**` fragments. It imposes a real discipline – every paragraph has to open with a claim that stands alone.
-- **Stated**: a `::: slide` block *is* the screen, everything else is narration. Or `::: script`, the dual: the chunk is the screen and only the marked block is narration. Reach for these when the argument wants continuous prose that no first-sentence rule can carve up.
+- **Stated**: a `::: slide` block *is* the screen, everything else is narration. Or `::: script`, the other way round: the chunk is the screen and only the marked block is narration. Reach for these when the argument wants continuous prose that no first-sentence rule can carve up.
 
 Everything else is body-level directives: `---` on its own line splits a chunk into **reveal segments**; `::: expand <label>` hides detail behind a chevron; `::: cols 2` / `::: side` / `::: flip` shape internal layout; `::: margin` and `::: marginalia` place asides; `![](fig-id)` resolves against `assets/`; `$inline$` and `$$display$$` are **math**, rendered by KaTeX during the build. All of it is documented live in the tutorial.
 
-**Figures are written, not drawn.** `::: diagram` is a small boxes-and-arrows language compiled to inline SVG at build time: elements are named and placed against one another rather than on a canvas, arrows stay attached to boxes that move, and a figure's steps ride the same key the reveal segments do. Some statements write those boxes, texts and edges for you: a column chart, a repeated cell grid, a cartesian frame, a table of labelled cells, a set of swimlanes, and `sequence`, which draws a protocol down the page &ndash; one lifeline per actor, numbered messages between them, notes and self-messages. Every part `sequence` draws keeps a name, so an annotation hung off a message is an ordinary line of source and you are not held to what `sequence` itself can draw. [`figure-design.md`](figure-design.md) is how to lay one out and [`docs/artifact/`](docs/artifact/) teaches the language from nothing. Not in a tagged release yet.
+**Figures are written, not drawn.** `::: diagram` is a small boxes-and-arrows language compiled to inline SVG at build time: elements are named and placed against one another rather than on a canvas, arrows stay attached to boxes that move, and a figure's steps ride the same key the reveal segments do. Some statements write those boxes, texts and edges for you: a column chart, a repeated cell grid, a cartesian frame, a table of labelled cells, a set of swimlanes, and `sequence`, which draws a protocol down the page &ndash; one lifeline per actor, numbered messages between them, notes and self-messages. Every part `sequence` draws keeps a name, so an annotation hung off a message is an ordinary line of source and you are not held to what `sequence` itself can draw. [`figure-design.md`](figure-design.md) is how to lay one out and [`docs/artifact/`](docs/artifact/) teaches the language from nothing. None of `::: diagram` is in a tagged release yet.
 
 **Typefaces travel with the file.** Three families ship with the tool and are embedded in every output: Literata, IBM Plex Sans and JetBrains Mono, all under the SIL Open Font License, which permits exactly this. Safari does not expose locally installed fonts to a page at all, as an anti-fingerprinting measure, so a deck that merely *names* its typefaces gets whatever the browser feels like there. The bundle costs about 280 KB per file; `fonts: none` in the frontmatter turns it off.
 
@@ -130,7 +130,7 @@ Files are matched by name, with weight and style read off the suffix (`Literata-
 
 > **Check the licence before you embed.** Embedding redistributes the font file. The SIL Open Font License and Apache-2.0 – between them nearly every family on Google Fonts – permit this; most commercial *desktop* licences do not, and require a separate webfont licence. psi-slides prints a reminder and makes no attempt to verify anything. It is your call and your responsibility.
 
-Five optional frontmatter keys pin how a lecture opens – `font`, `theme`, `collapse`, `auto-fit`, `slide-numbers`. A key that is present wins over the reader's stored preference; a key that is absent leaves it alone, so a lecture that pins nothing still follows whatever the reader last chose.
+Six optional frontmatter keys pin how a lecture opens – `font`, `theme`, `collapse`, `auto-fit`, `slide-numbers`, `editor`. A key that is present wins over the reader's stored preference; a key that is absent leaves it alone, so a lecture that pins nothing still follows whatever the reader last chose.
 
 **Video** uses the same shorthand as an image. `![](clip)` finds `assets/clip.mp4` and inlines it, up to a 12 MB per-file cap; over that, the build copies it to a `videos/` folder beside the output, plays it from there, and tells you the output now needs that folder. A written-out URL works too – `![](https://host/clip.mp4)` – and is still an ordinary `<video>`, so play, pause and seeking stay synchronised between the projection and the cockpit.
 
