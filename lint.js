@@ -389,7 +389,11 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
     // build is worse than none.
     return out;
   };
-  const define = (name, ln) => {
+  // What each name draws, so a `style` step can be answered about the classes
+  // it writes. The compiler knows this from the model; this file has to be
+  // told at each declaration, which is why `define` takes it.
+  const kindOf = new Map();
+  const define = (name, ln, kind) => {
     if (!name) return;
     // A name with a dot would be indistinguishable from `elem.cx` in a
     // coordinate; one with @ or # from a tag or an id token. Mirrors claim()
@@ -399,6 +403,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
           `'${name}' is not a usable name – letters, digits, _ and - only, starting with a letter`);
       return;
     }
+    if (kind) kindOf.set(name, kind);
     if (DG_RESERVED_IDS.has(name)) {
       add(ln, 'error', 'bad-diagram-name',
           `'${name}' is reserved – it already names a property every JavaScript object has, `
@@ -627,6 +632,24 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   const defaulted = new Map();      // kind[@tag] -> line, one per diagram
   const tagDefaults = new Map();   // kind -> Map(tag -> line)
   const carries = [];              // { kind, name, tags, ln }
+  // Whether a line states where its element goes, matched **positionally**:
+  // `point` takes `left` and `right`, so a line-wide test reads
+  // `box b "B" point left` as placed. `right` and `left` are a placement only
+  // in front of their `of`, and every other intro word only in front of an
+  // operand.
+  const hasPlacement = (words) => words.some((w, i) => (w === 'right' || w === 'left'
+    ? words[i + 1] === 'of'
+    : DG_PLACE_INTRO.has(w) && !!words[i + 1]));
+  // The chart a `bars` line joins, or null. The *pair*, because a chart may be
+  // named `series`.
+  const seriesOf = (words) => {
+    const at = words.findIndex((w, i) => w === 'series' && words[i + 1] === 'of');
+    return at < 0 ? null : (words[at + 2] || '');
+  };
+  // Which kind words the class table can answer about. A `bars` or a `plot`
+  // frame is registered as the box it draws, so nothing else needs excluding.
+  const DG_CLASS_KINDS_OK = new Set(['box', 'dot', 'text', 'image', 'edge', 'container', 'brace']);
+  const styled = [];               // { classes, removed, targets, ln } per `style` op
   // Lines a `table` has already read as its own rows. It is the one statement
   // besides `step` that takes continuation lines, and they are bare quoted
   // strings – read as statements they would each report a keyword that is a
@@ -764,6 +787,15 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         const gate = [];
         rejectStepClass(attrs.classes, attrs.removedClasses, ln, gate);
         for (const g of gate) add(ln, 'error', 'diagram-step-fixed-class', g.msg);
+        // The *kind* gate as well, deferred to the end of the block. A step
+        // may name an element declared below it and a tag whose members are,
+        // so the answer does not exist yet on this line - which is the same
+        // reason `model.tags` is built after parsing. Without it a step was
+        // the one position the class table did not reach: `style a
+        // {.no-head}` on a box is refused by the build and was clean here,
+        // in both signs and through a tag.
+        styled.push({ classes: attrs.classes, removed: attrs.removedClasses, ln,
+          targets: words.slice(1).join(',').split(',').map(x => x.trim()).filter(Boolean) });
       }
       if (head === 'move' && words[2] === 'to' && words[3] && words[3].includes(',')) {
         referPair(words[3], ln, 'move … to');
@@ -832,11 +864,9 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
     // their `of`, and every other intro word only in front of an operand –
     // which also settles an element named `above` arriving as a leader target.
     if (DG_PLACED_HEADS.has(head)) {
-      const placed = words.some((w, i) => (w === 'right' || w === 'left'
-        ? words[i + 1] === 'of'
-        : DG_PLACE_INTRO.has(w) && !!words[i + 1]));
+      const placed = hasPlacement(words);
       // The *pair*, not the word: a chart may be named `series`.
-      const series = head === 'bars' && words.some((w, i) => w === 'series' && words[i + 1] === 'of');
+      const series = head === 'bars' && seriesOf(words) !== null;
       // A statement with no name never reached the placement check in the
       // build either - it reports the missing name and pushes nothing, so it
       // is not the block's first node and it is not asked where it goes.
@@ -856,7 +886,12 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
     // them, `hide roc-gx-3` reads as a reference to nothing.
     if (head === 'plot') {
       const id = words[1];
-      define(id, ln);
+      // The build reads whatever token follows the head as the name and
+      // refuses the line when there is none. `table`, `lanes` and `sequence`
+      // said so here already; these did not, so `box` on a line of its own
+      // was refused by the build and passed by this file.
+      if (!id) { add(ln, 'error', 'bad-diagram-name', 'plot needs a name'); continue; }
+      define(id, ln, 'box');
       // A plot's frame, gridlines and ticks each take their look from the
       // statement, so a class in the tail reached nothing at all - parsed,
       // validated and dropped. The build refuses it now, and a gate that
@@ -896,12 +931,12 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         add(ln, 'error', 'bad-diagram-plot', `plot ${id}: ${Math.max(xt.length, yt.length)} ticks `
             + `on one axis – at most ${DG_PLOT_MAX_TICKS}, past which the grid is a grey field`);
       } else {
-        xt.forEach((_, i) => { define(dgPlotName(id, 'gx', i), ln); define(dgPlotName(id, 'xt', i), ln); });
-        yt.forEach((_, i) => { define(dgPlotName(id, 'gy', i), ln); define(dgPlotName(id, 'yt', i), ln); });
+        xt.forEach((_, i) => { define(dgPlotName(id, 'gx', i), ln, 'edge'); define(dgPlotName(id, 'xt', i), ln, 'text'); });
+        yt.forEach((_, i) => { define(dgPlotName(id, 'gy', i), ln, 'edge'); define(dgPlotName(id, 'yt', i), ln, 'text'); });
       }
       const strings = [...trimmed.matchAll(/"([^"]*)"/g)].map(m => m[1]);
-      if (strings[0]) define(dgPlotName(id, 'xl'), ln);
-      if (strings[1]) define(dgPlotName(id, 'yl'), ln);
+      if (strings[0]) define(dgPlotName(id, 'xl'), ln, 'text');
+      if (strings[1]) define(dgPlotName(id, 'yl'), ln, 'text');
       for (let k = 2; k < words.length; k++) {
         if (words[k] === 'of' || words[k] === 'below' || words[k] === 'above') refer(words[k + 1], ln, `plot ${id}`);
         if (words[k] === 'at' && words[k + 1] && words[k + 1].includes(',')) referPair(words[k + 1], ln, `plot ${id} at`);
@@ -911,7 +946,9 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
 
     if (head === 'bars' || head === 'grid') {
       const id = words[1];
-      define(id, ln);
+      if (!id) { add(ln, 'error', 'bad-diagram-name', `${head} needs a name`); continue; }
+      // The frame of a chart is a box, whatever it repeats inside itself.
+      define(id, ln, 'box');
       if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: id, tags: attrs.tags, ln });
       const strings = [...trimmed.matchAll(/"([^"]*)"/g)].map(m => m[1]);
       // Narrow, for the reason the `table … h` check above is narrow: the
@@ -928,12 +965,32 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
           add(ln, 'error', 'bad-diagram-bars',
               `bars ${id || ''} needs its values as one string, e.g. "18,17,15,11"`);
         }
-        for (let i = 0; i < cols; i++) define(dgBarName(id, i), ln);
+        for (let i = 0; i < cols; i++) define(dgBarName(id, i), ln, 'box');
         // `series of <chart>` is a run of columns inside somebody else's
         // frame, so it declares columns and nothing else – no ticks, no
         // baseline. Registering a `<id>-base` for one would let `hide g-base`
         // through a gate the build then refuses.
-        const isSeries = words.some((w, i) => w === 'series' && words[i + 1] === 'of');
+        const joined = seriesOf(words);
+        const isSeries = joined !== null;
+        // Everything a series does not own. The frame, the scale, the ticks
+        // and the baseline belong to the chart it joined, so a number for any
+        // of them is one the drawing ignores – which is what the build says,
+        // and what this file used to pass. All of it is on the line.
+        if (isSeries) {
+          for (const owned of ['w', 'h', 'space']) {
+            if (words.includes(owned)) {
+              add(ln, 'error', 'bad-diagram-bars', `bars ${id}: "${owned}" belongs to ${joined}, `
+                  + 'the chart this series joined – a series draws columns in a frame it does not own');
+            }
+          }
+          if (hasPlacement(words)) {
+            add(ln, 'error', 'bad-diagram-bars', `bars ${id}: a series is placed by the chart it `
+                + `joined, so it takes no placement of its own – it is "series of ${joined}" and nothing more`);
+          }
+        } else if (words.includes('stacked')) {
+          add(ln, 'error', 'bad-diagram-bars', `bars ${id}: "stacked" says what this series stands `
+              + 'on, so it needs a series to stand on – write it on a "series of <chart>" line');
+        }
         // A series draws in a frame it does not own, so it has no size to set
         // and the build refuses `same as` on it; a frame `bars` takes it the
         // way a `plot` does.
@@ -964,10 +1021,10 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
                   + `${cols} column(s) – the second string is split on ${piped ? '"|"' : 'spaces'}, `
                   + 'one label per column');
             }
-            for (let i = 0; i < Math.min(ticks.length, cols); i++) define(dgTickName(id, i), ln);
+            for (let i = 0; i < Math.min(ticks.length, cols); i++) define(dgTickName(id, i), ln, 'text');
           }
         }
-        if (!isSeries) define(dgBaseName(id), ln);
+        if (!isSeries) define(dgBaseName(id), ln, 'edge');
         // `emph 1,3` and `calm 0` name columns by number, and the count is on
         // the same line, so a number past the end is answerable here. The
         // build refuses it rather than marking nothing.
@@ -998,7 +1055,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
               + 'picture stops being countable anyway');
         } else {
           for (let r = 0; r < +dims[2]; r++) {
-            for (let c = 0; c < +dims[1]; c++) define(dgCellName(id, c, r), ln);
+            for (let c = 0; c < +dims[1]; c++) define(dgCellName(id, c, r), ln, words[2] || 'box');
           }
         }
       }
@@ -1029,7 +1086,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         add(ln, 'error', 'bad-diagram-name', 'sequence needs a name');
         continue;
       }
-      define(id, ln);
+      define(id, ln, 'box');
       if (words.includes('h')) {
         add(ln, 'error', 'bad-diagram-sequence', `sequence ${id}: 'header' is the height of one `
             + "actor head, and it is what 'h' used to mean here – write 'header <n>'. On every "
@@ -1123,9 +1180,9 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
                 + 'are one row and the air above them is the sequence\'s own. `space` belongs on '
                 + 'a note or a message, where it is the gap above that band.');
           }
-          define(aid, e.ln);
+          define(aid, e.ln, 'box');
           carry(aid, 'box', [...ea.tags, dgActorsTag(id)]);
-          define(dgLifeName(aid), e.ln);
+          define(dgLifeName(aid), e.ln, 'edge');
           carry(dgLifeName(aid), 'edge', [dgLivesTag(id)]);
           actors.push(aid);
           known.add(aid);
@@ -1198,24 +1255,24 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       msgs.forEach((m, i) => {
         const ends = [m.from, ...(m.to === m.from ? [] : [m.to])];
         const ok = ends.every(x => isActor(x, m.ln, 'message'));
-        define(m.own || dgMsgName(id, i), m.ln);
+        define(m.own || dgMsgName(id, i), m.ln, 'edge');
         tags.add(dgMsgTag(id, i));
         tags.add(dgMsgsTag(id));
         if (ok) for (const x of ends) tags.add(dgMsgsTag(x));
         carry(m.own || dgMsgName(id, i), 'edge',
           [...m.tags, dgMsgTag(id, i), dgMsgsTag(id), ...(ok ? ends.map(dgMsgsTag) : [])]);
         if (!unnumbered) {
-          define(dgMsgNumName(id, i), m.ln);
+          define(dgMsgNumName(id, i), m.ln, 'text');
           carry(dgMsgNumName(id, i), 'text', [dgMsgTag(id, i)]);
         }
         if (m.sub) {
-          define(dgMsgSubName(id, i), m.ln);
+          define(dgMsgSubName(id, i), m.ln, 'text');
           carry(dgMsgSubName(id, i), 'text', [dgMsgTag(id, i)]);
         }
       });
       notes.forEach((nt, j) => {
         nt.on.forEach(x => isActor(x, nt.ln, 'note'));
-        define(nt.own || dgNoteName(id, j), nt.ln);
+        define(nt.own || dgNoteName(id, j), nt.ln, 'box');
         tags.add(dgNotesTag(id));
         carry(nt.own || dgNoteName(id, j), 'box', [...nt.tags, dgNotesTag(id)]);
       });
@@ -1242,7 +1299,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         add(ln, 'error', 'bad-diagram-name', `${head} needs a name`);
         continue;
       }
-      define(id, ln);
+      define(id, ln, 'box');
       // A row is one string split on `|`, because a row of a table is one
       // sentence with three parts. Commas already separate a value list and
       // the halves of a coordinate.
@@ -1293,11 +1350,11 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       carry(id, 'box');
       if (head === 'lanes') {
         heads.forEach((name, i) => {
-          define(dgLaneName(id, i), ln);
+          define(dgLaneName(id, i), ln, 'box');
           carry(dgLaneName(id, i), 'box');
           // A band with no name gets no caption, so nothing declares that name.
           if (!name) return;
-          define(dgLaneCapName(id, i), ln);
+          define(dgLaneCapName(id, i), ln, 'text');
           carry(dgLaneCapName(id, i), 'text');
         });
       } else {
@@ -1335,7 +1392,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         [heads, ...rows.map(r => r.cells)].forEach((cells, r) => {
           cells.forEach((_, c) => {
             if (c >= heads.length) return;
-            define(dgCellName(id, c, r), ln);
+            define(dgCellName(id, c, r), ln, 'box');
             tags.add(dgRowTag(id, r));
             tags.add(dgColTag(id, c));
             carry(dgCellName(id, c, r), 'box', [dgRowTag(id, r), dgColTag(id, c)]);
@@ -1350,7 +1407,8 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
     }
 
     if (DG_DEFINES.has(head)) {
-      define(words[1], ln);
+      if (!words[1]) { add(ln, 'error', 'bad-diagram-name', `${head} needs a name`); continue; }
+      define(words[1], ln, head);
       if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: words[1], tags: attrs.tags, ln });
 
       // A container and a brace hold a member list and place nothing, so they
@@ -1451,7 +1509,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         // leader line: `text n "…" above c gap 1 -- leak`
         if (words[k] === '->' || words[k] === '--') {
           refer(words[k + 1], ln, `${head} ${words[1]} leader`);
-          define(`${words[1]}--lead`, ln);
+          define(`${words[1]}--lead`, ln, 'edge');
         }
       }
       continue;
@@ -1464,7 +1522,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       const eArrowAt = words.findIndex(w => DG_EDGE_ARROWS.has(w));
       const eNamed = eArrowAt === 3 ? words[1] : null;
       const edgeId = eNamed || `edge-${++anonEdge}`;
-      define(edgeId, ln);
+      define(edgeId, ln, 'edge');
       if (attrs.tags.length) carries.push({ kind: 'edge', name: edgeId, tags: attrs.tags, ln });
       const arrowAt = eArrowAt;
       // Three answers where there used to be one. The author usually *did*
@@ -1562,6 +1620,27 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       add(mv.ln, 'error', 'diagram-set-move',
           `move ${mv.tag} to … would place all ${n} elements carrying ${mv.tag} at the same point. `
           + `To translate a set, use 'move ${mv.tag} by dx,dy'.`);
+    }
+  }
+  // The kind gate on a `style` step, now that every name and tag is known. A
+  // tag expands to its members and **one bad member fails the statement**,
+  // which is the compiler's rule: a set that cannot all take the same act is
+  // the wrong set, and saying so is the point. A member whose kind this file
+  // never learned is skipped rather than guessed at – silence is the safe
+  // direction for a linter, a wrong refusal is not.
+  const styleKinds = (t) => (t.startsWith('@')
+    ? carries.filter(c => c.tags.includes(t.slice(1))).map(c => ({ name: c.name, kind: c.kind }))
+    : [{ name: t, kind: kindOf.get(t) }]);
+  for (const st of styled) {
+    const seen = new Set();
+    for (const t of st.targets) {
+      for (const m of styleKinds(t)) {
+        if (!m.kind || !DG_CLASS_KINDS_OK.has(m.kind) || seen.has(m.name)) continue;
+        seen.add(m.name);
+        const gate = [];
+        rejectClassOn(m.kind, st.classes, st.ln, gate, `${m.kind} ${m.name}`, st.removed);
+        for (const g of gate) add(st.ln, 'error', 'diagram-class-on-kind', g.msg);
+      }
     }
   }
   for (const c of carries) {

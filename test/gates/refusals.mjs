@@ -20,12 +20,13 @@
  * gate is the other direction, and three of the expectations in this list were
  * caught out by the grammar moving under them rather than by a bug.
  *
- * And it is agreement **over these fixtures**, which is not the same sentence
- * as agreement over the language. Three lax-direction gaps are known and open
- * at the time of writing – the other options on a `series of` line, the kind
- * gate inside a `style` step, and a statement with no name – each recorded in
- * `todo-revision-review.md` with a reproducing line. A fixture added here for
- * any of them fails until the linter learns it, which is the right way round.
+ * The name is still a claim about these fixtures rather than about the whole
+ * language – no finite list can say more – so the way to keep it honest is to
+ * add a fixture the moment anybody finds a line the two treat differently.
+ * The last three came from an adversarial pass over the linter: the options a
+ * `series of` line does not own, the kind gate inside a `style` step, and a
+ * statement with no name. Each was the lax direction, each is a fixture here
+ * now, and each failed here first.
  *
  * What this gate proves is agreement, not meaning: a fixture marked
  * `accept: true` says both sides let the line through, never that the drawing
@@ -39,7 +40,7 @@
 import { render, lintAll } from './harness.mjs';
 import { DG_KEYWORDS, DG_PLACED_HEADS, DG_PLACE_INTRO } from '../../diagram-core.mjs';
 
-export const name = 'build and lint agree on every refusal these fixtures state';
+export const name = 'build and lint agree on every refusal';
 
 // Two preambles, because the fixtures were written against two. `PAIR` is
 // enough for anything about one line; `QUAD` gives a second row, which the
@@ -49,6 +50,8 @@ const QUAD = 'box a "A" at 0,0\nbox c "C" at 2,0\nbox p "P" at 0,1\nbox q "Q" at
 // A sequence written as a prefix and a suffix, so a fixture can hang a tail on
 // the statement line and still have the entries that make it a sequence.
 const SEQ = 'sequence s at 0,0';
+// A chart with room for a second run of columns in its frame.
+const SERIES = 'bars f "1,2" at 0,0 w 2 h 1\n';
 const SEQ_BODY = '\n  actor u "U"\n  actor r "R"\n  u -> r "m"';
 
 // `accept: true` means both sides must let it through. Anything else must be
@@ -220,6 +223,41 @@ const FIXTURES = [
   { item: 5, name: 'a bad word on a box default', body: 'default box point sideways\n' + PAIR + 'box b "B" below a gap 1 {.chevron}' },
   { item: 5, name: 'a number where the word list is', body: 'default edge side 3\n' + PAIR + 'edge a -> c "m"' },
   { item: 5, accept: true, name: 'a number-valued default beside it', body: 'default edge pad 0.2\n' + PAIR + 'edge a -> c "m"' },
+
+  // ── the three gaps an adversarial pass found, now fixtures ────────
+  // All three were the lax direction – the build refuses, the linter was
+  // silent – which is the one that merges green and fails every later build.
+  //
+  // A series draws columns in a frame it does not own, so the frame, the
+  // scale, the ticks and the placement all belong to the chart it joined.
+  { item: 2, name: 'a series with a placement', body: SERIES + 'bars g "3,4" series of f at 1,1' },
+  { item: 2, name: 'a series placed against its own chart', body: SERIES + 'bars g "3,4" series of f right of f' },
+  { item: 2, name: 'a series with a width', body: SERIES + 'bars g "3,4" series of f w 2' },
+  { item: 2, name: 'a series with a height', body: SERIES + 'bars g "3,4" series of f h 2' },
+  { item: 2, name: 'a series with its own spacing', body: SERIES + 'bars g "3,4" series of f space 0.5' },
+  { item: 2, name: 'stacked with nothing to stand on', body: SERIES + 'bars g "3,4" at 2,0 w 2 h 1 stacked' },
+  { item: 2, accept: true, name: 'a series and nothing more', body: SERIES + 'bars g "3,4" series of f' },
+  { item: 2, accept: true, name: 'a stacked series with a tail', body: SERIES + 'bars g "3,4" series of f stacked {.tone-2}' },
+
+  // A `style` step was the one position the class table did not reach here,
+  // and a tag expands to its members, so one bad member fails the statement.
+  { item: 12, name: 'a head class styled onto a box', body: PAIR + 'step s\n  style a {.no-head}' },
+  { item: 12, name: 'a head class removed from a box in a step', body: PAIR + 'step s\n  style a {!no-head}' },
+  { item: 12, name: 'an outline styled onto a text', body: PAIR + 'text t "x" below a gap 1\nstep s\n  style t {.hex}' },
+  {
+    item: 12, name: 'a head class styled onto a tag of boxes',
+    body: 'sequence q at 0,0\n  actor u "U"\n  actor r "R"\n  u -- r "m"\nstep s\n  style @q-actors {.both-heads}',
+  },
+  { item: 12, accept: true, name: 'a head class styled onto an edge', body: PAIR + 'edge e1 a -> c\nstep s\n  style e1 {.no-head}' },
+  { item: 12, accept: true, name: 'a prominence styled onto a box', body: PAIR + 'step s\n  style a {.dim}' },
+
+  // The build reads the token after the head as the name and refuses the line
+  // when there is none.
+  { item: 2, name: 'a box with no name', body: PAIR + 'box' },
+  { item: 2, name: 'a container with no name', body: PAIR + 'container' },
+  { item: 2, name: 'a chart with no name', body: PAIR + 'bars' },
+  { item: 2, name: 'a plot with no name', body: PAIR + 'plot' },
+  { item: 2, name: 'a name that is only a tail', body: PAIR + 'box {.dim}' },
 
   // ── item 12: the kind gate on an expanding statement's own tail ───
   // Its tail lands on what the statement draws – a table's cells, a lane's

@@ -1038,27 +1038,36 @@ an over-correction.
 Two verification agents were run against the finished work, told to refute it
 rather than confirm it. One found the measurement defect above, which is fixed.
 Between them they also found three lax-direction gaps – the build refuses, the
-linter is silent – and none of them is closed here. They are recorded as
-fixtures-in-waiting because a finding with a reproducing line is most of the
-work of fixing it:
+linter is silent, which is the direction that merges green and fails every
+later build. All three are closed, each with fixtures on both sides:
 
-1. **A `series of` line's other refusals.** The placement check exempts the
-   whole line, and nothing else in `lint.js` looks at it, so `bars g "3,4"
-   series of f at 1,1` – and the same line carrying `w`, `h`, `space` or a tick
-   strip – is refused by the build and passed by the linter. Five refusals.
-2. **The kind gate inside a `style` step.** `lint.js` runs `rejectStepClass`
-   on a step's classes and never `rejectClassOn`, and never expands a tag to
-   its members – so `style a {.no-head}` on a **box** is refused by the build
-   and clean here, in both signs and through a tag.
-3. **A statement with no name.** `box` on a line of its own is refused by the
-   build and unreported here. The placement check deliberately stays quiet on
-   it – the missing name is the causal diagnostic and the placement is not –
-   but nothing else speaks.
+1. **A `series of` line's other refusals.** The placement exemption covers the
+   whole line and nothing else in `lint.js` looked at it, so `bars g "3,4"
+   series of f at 1,1` – and the same line carrying `w`, `h` or `space` – was
+   refused by the build and passed here. (The tick strip was already caught.)
+   The mirror goes with it: `stacked` on a line that joins no series. The
+   placement predicate is one text now, shared with the check below, because
+   the positional reading is the part that is easy to get wrong twice.
+2. **The kind gate inside a `style` step.** It ran `rejectStepClass` and never
+   `rejectClassOn`, so a step was the one position the class table did not
+   reach: `style a {.no-head}` on a **box** was clean here, in both signs and
+   through a tag. It is answered **after the block is read**, because a step
+   may name an element declared below it and a tag whose members are – the
+   same reason `model.tags` is built after parsing. That needed `lint.js` to
+   know what each name draws, so `define()` records a kind, including for
+   every generated name: a bar column is a box, a lifeline is an edge, a
+   message number is a text. A tag expands to its members and one bad member
+   fails the statement, which is the compiler's own rule. A member whose kind
+   this file never learned is skipped rather than guessed at.
+3. **A statement with no name.** `box` on a line of its own was refused by the
+   build and unreported here; `table`, `lanes` and `sequence` already said so,
+   the other nine did not. The placement check deliberately stays quiet on
+   such a line – the missing name is the causal diagnostic and the placement
+   is not – so this is what speaks instead.
 
-So the honest form of this gate's claim is the one its header now makes:
-**build and lint agree on every refusal these 136 fixtures state**, which is
-not the same sentence as "on every refusal in the language". The pending
-ledger is empty and that is a fact about the ledger.
+The gate is at **160 fixtures, 160 agree, 0 pending**. Its name is a claim
+about the fixtures rather than about the language, and no finite list can say
+more; what keeps it honest is that all three of these failed there first.
 
 ### One thing left open, stated rather than closed
 
@@ -1088,8 +1097,8 @@ doing it as one deliberate pass rather than two patches.
 
 ## Verification at close
 
-- `npm run gate` – **361 passed, 0 failed, 0 pending** (0.3 s), against 161 with
-  one pending at `718e383`. Five gates: 136 refusal/acceptance fixtures that
+- `npm run gate` – **380 passed, 0 failed, 0 pending** (0.3 s), against 161 with
+  one pending at `718e383`. Five gates: 160 refusal/acceptance fixtures that
   build and lint must agree on plus the two placement tables checked against
   the compiler, 21 constructs, 41 semantic assertions, 116 corpus blocks, 133
   step-class assertions.
@@ -1139,11 +1148,9 @@ Do not close this file again until:
 6. **There is nothing left to distinguish.** The pending ledger is empty
    because the disagreement it recorded is fixed, not because the wording
    changed. Each gate's header now says what it proves and what it does not –
-   and the refusals gate's name says *these fixtures*, because an adversarial
-   pass found three more lax-direction gaps that no fixture states. They are
-   listed above with reproducing lines. A gate that claimed the language
-   rather than its fixtures would be making the same overstatement this
-   finding was about.
+   and the three further lax-direction gaps an adversarial pass found are
+   closed rather than listed: the options a `series of` line does not own, the
+   kind gate inside a `style` step, and a statement with no name.
 7. **Yes.** `revision-implementation.md` points at `test/gates/` and marks the
    scratch programs as unavailable history; the editor comment states the
    prominence *slot* rather than two of its three words; the duplicated
