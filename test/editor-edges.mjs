@@ -41,13 +41,13 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   await page.fill('#dge-side textarea', 'erste Zeile\nzweite Zeile');
   await page.locator('#dge-side textarea').blur();
   await page.waitForTimeout(400);
-  let line = await ed.lineWith('#feed0');
+  let line = await ed.lineWith('edge feed0 ');
   ok(/"erste Zeile\\nzweite Zeile"/.test(line || ''),
     'a newline typed in the field lands as \\n in the source', line);
   ok(!(await page.locator('#dge-undo-btn').isDisabled()), 'undo enables once something changed');
 
   // ── retargeting an end answers with a name, not with coordinates ──
-  const before = await ed.lineWith('#feed0');
+  const before = await ed.lineWith('edge feed0 ');
   note('before: ' + before);
   const handle = await page.evaluate(() => {
     const h = [...document.querySelectorAll('#dge-guides .dge-h-end')]
@@ -57,9 +57,9 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
              to: { x: t.x + t.width / 2, y: t.y + t.height / 2 } };
   });
   await ed.drag(handle.from, handle.to.x - handle.from.x, handle.to.y - handle.from.y);
-  const after = await ed.lineWith('#feed0');
+  const after = await ed.lineWith('edge feed0 ');
   note('after : ' + after);
-  ok(/^edge c2 -> x0/.test((after || '').trim()),
+  ok(/^edge feed0 c2 -> x0/.test((after || '').trim()),
     'dragging the from-handle onto c2 rewrites the endpoint by name', after);
   // Derived from the line rather than written out: pinning a spec to a
   // lecture's exact coordinates makes it fail every time the figure is
@@ -74,24 +74,24 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   // ── undo, redo, swap ──
   await page.click('#dge-undo-btn');
   await page.waitForTimeout(400);
-  ok(await ed.lineWith('#feed0') === before, 'the undo button restores the previous source',
-    await ed.lineWith('#feed0'));
+  ok(await ed.lineWith('edge feed0 ') === before, 'the undo button restores the previous source',
+    await ed.lineWith('edge feed0 '));
   ok(!(await page.locator('#dge-redo-btn').isDisabled()), 'redo enables after an undo');
   await page.click('#dge-redo-btn');
   await page.waitForTimeout(400);
-  ok(await ed.lineWith('#feed0') === after, 'and redo puts it back');
+  ok(await ed.lineWith('edge feed0 ') === after, 'and redo puts it back');
 
   await page.evaluate(() =>
     [...document.querySelectorAll('#dge-side button')].find(b => b.textContent.includes('Swap ends')).click());
   await page.waitForTimeout(400);
-  ok(/^edge x0 -> c2/.test((await ed.lineWith('#feed0') || '').trim()),
-    'Swap ends exchanges the two names', await ed.lineWith('#feed0'));
+  ok(/^edge feed0 x0 -> c2/.test((await ed.lineWith('edge feed0 ') || '').trim()),
+    'Swap ends exchanges the two names', await ed.lineWith('edge feed0 '));
 
   // An empty endpoint is not "no endpoint". dgeWriteAttr's drop path would
   // take the token out and leave "edge  -> b", which does not parse - and
   // unlike a keyed option there is no keyword in front of it to eat, so the
   // panel has to refuse rather than write.
-  const intact = await ed.lineWith('#feed0');
+  const intact = await ed.lineWith('edge feed0 ');
   await page.evaluate(() => {
     const input = [...document.querySelectorAll('#dge-side .dge-num')]
       .find(n => n.querySelector('span').textContent === 'from').querySelector('input');
@@ -99,8 +99,8 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
     input.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await page.waitForTimeout(400);
-  ok(await ed.lineWith('#feed0') === intact,
-    'clearing an endpoint field is refused rather than written', await ed.lineWith('#feed0'));
+  ok(await ed.lineWith('edge feed0 ') === intact,
+    'clearing an endpoint field is refused rather than written', await ed.lineWith('edge feed0 '));
 
   // ── the two regressions teaching the hit test about lines could cause ──
   const box = await ed.centreOf('#dge-art-svg [id$="d1--r"]');
@@ -152,13 +152,18 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
 
   // ── which side of the line the label sits on ──
   //
-  // On an edge the four alignment words do not place a label inside a box,
-  // they pick a side of the line – and only the pair lying *across* the routed
-  // line can pick one. The other pair runs along it, moves nothing, and comes
-  // back as a build warning. The panel offered `.left` / `.right` on every edge
-  // and `.top` / `.bottom` on none, so on a horizontal arrow both rows were
-  // wrong at once: two swatches that could only warn, and the two that act
-  // missing altogether.
+  // It is the `side` option now, not the four alignment classes. Those place a
+  // label inside a box's own padding and are two independent channels there;
+  // on an edge they named one thing – which side of the routed line the label
+  // sits on – so the same four words meant two geometries chosen by kind, and
+  // `{.top .left}` on an edge was writable although an edge has one side to
+  // pick. The panel carried the scar: it offered `.left` / `.right` on every
+  // edge and `.top` / `.bottom` on none, so on a horizontal arrow both rows
+  // were wrong at once.
+  //
+  // Only the pair lying *across* the routed line can pick a side; the other
+  // pair runs along it, moves nothing, and comes back as a build warning. So
+  // the row offers that pair and `default`, and nothing else.
   //
   // #swimlane is the subject because it carries both orientations – the two
   // elbows read vertical where their label would sit, the handover between
@@ -174,7 +179,7 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   const rowOf = (slot) => page.evaluate((sl) => {
     const s = [...document.querySelectorAll('#dge-side .dge-slot')]
       .find((x) => x.querySelector('b') && x.querySelector('b').textContent === sl);
-    return s ? [...s.querySelectorAll('.dge-sw')].map((b) => b.title) : null;
+    return s ? [...s.querySelectorAll('.dge-sw')].map((b) => b.textContent) : null;
   }, slot);
   const runsVertical = (id) => page.evaluate((i) => {
     const pts = dgeEdgePts(i);
@@ -189,59 +194,82 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
     await page.evaluate((i) => dgeSelect([i]), id);
     await page.waitForTimeout(220);
     const vertical = await runsVertical(id);
-    const across = await rowOf('label across');
-    const down = await rowOf('label down');
+    const sides = await rowOf('side');
     note(id + (vertical ? ' vertical' : ' horizontal')
-      + ' · across ' + (across ? across.join(',') : '(absent)')
-      + ' · down ' + (down ? down.join(',') : '(absent)'));
+      + ' · side ' + (sides ? sides.join(',') : '(absent)'));
     if (vertical === null) continue;
     bothWays += vertical ? 1 : 2;
-    ok(!!across === vertical,
-      id + ': .left/.right offered only where the line runs across them', String(!!across));
-    ok(!!down === !vertical,
-      id + ': .top/.bottom offered only where the line runs across them', String(!!down));
+    ok(!!sides && sides.length === 3,
+      id + ': the row offers default and the pair that can act',
+      sides ? sides.join(',') : '(absent)');
+    const want = vertical ? ['default', 'left', 'right'] : ['default', 'top', 'bottom'];
+    ok(!!sides && want.every((w) => sides.includes(w)),
+      id + ': and it is the pair lying across the line', JSON.stringify(sides));
   }
   ok(bothWays >= 3, 'the figure exercised both orientations', String(bothWays));
 
-  // The control: the pair the panel now hides is the pair the compiler warns
-  // about. Written straight into the source, because the panel will not offer
-  // it – which is the point.
+  // The two alignment rows are gone from an edge altogether. They were never a
+  // choice the compiler would honour twice, and one of the pairs it did honour
+  // meant something else entirely on the box in the row above.
+  await page.evaluate((i) => dgeSelect([i]), edgeIds[0]);
+  await page.waitForTimeout(220);
+  ok((await rowOf('label across')) === null && (await rowOf('label down')) === null,
+    'and the alignment rows are not offered on an edge at all',
+    JSON.stringify([await rowOf('label across'), await rowOf('label down')]));
+
+  // Writing a side and taking it off again, through the row.
   const horizontal = [];
   for (const id of edgeIds) if ((await runsVertical(id)) === false) horizontal.push(id);
+  ok(horizontal.length > 0, 'the figure has a horizontal edge to write on');
+  const target = horizontal[0];
+  const lineOf = () => page.evaluate((i) => {
+    const el = dgeFind(i);
+    return el ? DGE.source.slice(el.span[0], el.span[1]) : null;
+  }, target);
+  const clickSideSw = (text) => page.evaluate((t) => {
+    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+      .find((x) => x.querySelector('b') && x.querySelector('b').textContent === 'side');
+    const b = s && [...s.querySelectorAll('.dge-sw')].find((x) => x.textContent === t);
+    if (b) b.click();
+  }, text);
+
+  await page.evaluate((i) => dgeSelect([i]), target);
+  await page.waitForTimeout(250);
+  await clickSideSw('bottom');
+  await page.waitForTimeout(420);
+  note('wrote  : ' + (await lineOf()));
+  ok(/\bside bottom\b/.test((await lineOf()) || ''),
+    'clicking a side writes the keyword and the word', await lineOf());
+  ok(!(await ed.problems()).includes('line '), 'and the block parses', await ed.problems());
+
+  await page.evaluate((i) => dgeSelect([i]), target);
+  await page.waitForTimeout(250);
+  await clickSideSw('default');
+  await page.waitForTimeout(420);
+  note('cleared: ' + (await lineOf()));
+  ok(!/\bside\b/.test((await lineOf()) || ''), 'and default takes it back off', await lineOf());
+  ok(!/ {2}/.test((await lineOf()) || ''), 'leaving no double space behind',
+    JSON.stringify(await lineOf()));
+
+  // The control: the pair the row hides is the pair the compiler warns about,
+  // and a word that cannot act is still removable – `default` is in the row
+  // whatever else is, so nothing has to be shown that could only warn.
   const warning = await page.evaluate((i) => {
     const el = dgeFind(i);
     const src = DGE.source;
     const line = src.slice(el.span[0], el.span[1]);
-    const next = src.slice(0, el.span[0])
-      + line.replace(/\{/, '{.left ') + src.slice(el.span[1]);
-    dgeSetSource(next);
-    const w = (DGE.warnings || []).slice();
-    return w;
-  }, horizontal[0]);
+    dgeSetSource(src.slice(0, el.span[0]) + line + ' side left' + src.slice(el.span[1]));
+    return (DGE.warnings || []).slice();
+  }, target);
   ok(warning.some((w) => /runs along/.test(w)),
-    'and writing the hidden pair by hand is exactly the warning it hides',
+    'and writing the hidden word by hand is exactly the warning the row hides',
     JSON.stringify(warning));
-
-  // …and that is exactly when the row has to come back. A word that cannot act
-  // on this edge is still written on it, and a row that hid itself would leave
-  // no way to take it off – which is worse than showing the swatch that is
-  // pressed with the compiler's warning beside it.
-  await page.evaluate((i) => dgeSelect([i]), horizontal[0]);
+  await page.evaluate((i) => dgeSelect([i]), target);
   await page.waitForTimeout(250);
-  const backAgain = await rowOf('label across');
-  ok(!!backAgain, 'a word the edge cannot use still gets its row back',
-    backAgain ? backAgain.join(',') : '(absent)');
-  await page.evaluate(() => {
-    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
-      .find((x) => x.querySelector('b').textContent === 'label across');
-    const b = s && [...s.querySelectorAll('.dge-sw')].find((x) => x.title === 'none of this slot');
-    if (b) b.click();
-  });
-  await page.waitForTimeout(400);
-  await page.evaluate((i) => dgeSelect([i]), horizontal[0]);
-  await page.waitForTimeout(250);
-  ok((await rowOf('label across')) === null,
-    'and once it is off, the row is gone again', JSON.stringify(await rowOf('label across')));
+  await clickSideSw('default');
+  await page.waitForTimeout(420);
+  ok(!/\bside\b/.test((await lineOf()) || ''),
+    'and the row takes off a word it would never have offered', await lineOf());
   ok(!(await page.evaluate(() => (DGE.warnings || []).join(' '))).includes('runs along'),
     'with the warning gone with it');
 

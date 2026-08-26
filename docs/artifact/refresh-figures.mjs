@@ -99,8 +99,12 @@ const say = (s) => process.stdout.write(s + '\n');
 // keyword can never be painted inside a label. A comment is a line whose
 // first non-space character is '#', and it has to win over everything else
 // or a word inside one stops reading as a comment.
-const KW = /\b(box|edge|text|container|brace|dot|image|bars|grid|plot|table|lanes|sequence|actor|note|align|spread|default|same as|series of|stacked|right of|left of|below|above|between|over|via|point|at|gap|pad|space|col|offset)\b/g;
-const STEP_OPS = /^(\s*)(step|show|hide|move|emph|calm|style|label)\b/;
+const KW = /\b(box|edge|text|container|brace|dot|image|bars|grid|plot|table|lanes|sequence|actor|note|align|spread|default|same as|series of|stacked|right of|left of|below|above|between|over|via|point|at|gap|pad|space|col|row|band|header|tick|side|flush|offset)\b/g;
+// The prominence verbs are the prominence classes, which is the whole of item
+// 1: `calm` was a fourth name for a state the class list already had, and
+// `ghost` was reachable as a class and not as a step. Keep this list equal to
+// DG_STEP_OPS - a verb missing here is silently unpainted in every listing.
+const STEP_OPS = /^(\s*)(step|show|hide|move|emph|dim|ghost|style|label)\b/;
 
 function hl(src) {
   const held = [];
@@ -272,14 +276,14 @@ const lectureMd = fs.readFileSync(LECTURE, 'utf8');
 // Counting columns by hand put every bracket one to four characters too wide,
 // and the error accumulated along the line, so the last one sat four columns
 // right of the token it pointed at. Generated, it cannot.
-const ANAT_CODE = 'box   sw   "Switch"   right of a gap 0.4   w 1.2   {.tone-1 #main @net}';
+const ANAT_CODE = 'box   sw   "Switch"   right of a gap 1.15   w 1.2   {.tone-1 @net}';
 const ANAT_GROUPS = [
   ['box', 'statement: what kind of thing this is'],
   ['sw', 'name: how later lines refer to this element. Never drawn'],
   ['"Switch"', 'label: what the reader sees. Optional, and "" is a legal empty one'],
-  ['right of a gap 0.4', 'placement: where it goes, relative to something else'],
+  ['right of a gap 1.15', 'placement: where it goes, relative to something else'],
   ['w 1.2', 'options: size, padding, routing'],
-  ['{.tone-1 #main @net}', 'tail: classes, an id, tags'],
+  ['{.tone-1 @net}', 'tail: classes and tags'],
 ];
 
 function anatomy() {
@@ -323,7 +327,7 @@ function anatomy() {
     .replace('right of', '<span class="kw">right of</span>')
     .replace(' gap ', ' <span class="kw">gap</span> ')
     .replace('w 1.2', '<span class="kw">w</span> 1.2')
-    .replace('{.tone-1 #main @net}', '<span class="cl">{.tone-1 #main @net}</span>');
+    .replace('{.tone-1 @net}', '<span class="cl">{.tone-1 @net}</span>');
 
   const ruleStr = rule.join('').replace(/\s+$/, '');
   for (const sp of spans) {

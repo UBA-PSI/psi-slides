@@ -703,7 +703,7 @@ character by character, so it is a matter of carrying the offset through rather
 than a new pass.
 
 The deliverable: given an element id and the name of one attribute (`gap`, `w`,
-`frac`, the x-component of `at`, the `align` word), return the exact span to
+`frac`, the x-component of `at`, the `flush` word), return the exact span to
 replace, or the insertion point if the attribute is absent. Every edit in §9.3
 is one call to that. The signature and the full attribute list are in §11.5.
 
@@ -791,7 +791,7 @@ line each one would produce:
 
 | what lights up | what it would write |
 |---|---|
-| an edge of a neighbour, in a `below` / `right of` chain | `align left` … `align bottom` on the placement |
+| an edge of a neighbour, in a `below` / `right of` chain | `flush left` … `flush bottom` on the placement |
 | a round value on the cell grid | `gap 0.6` rather than `gap 0.5847` |
 | **the same gap a sibling already has** | the same number, so a column stays regular |
 | another element's centre or edge line | `at m0.cx,…` – a **ref coordinate** |
@@ -894,8 +894,8 @@ editor's job is to decide which token a drag belongs to:
 |---|---|---|
 | `at X,Y`, numeric | rewrite that number | rewrite that number |
 | `at X,Y` with `ref.prop` | rewrite the nudge (add one if absent) | same |
-| `right of A` / `left of A` | rewrite `gap`, or **the direction word** once the drag has carried it past A | snap to the nearest `align top/middle/bottom`; past a tolerance, write `offset 0,dy` |
-| `below A` / `above A` | rewrite `gap`, or **the direction word** once the drag has carried it past A | snap to `align left/center/right`; past a tolerance, `offset dx,0` |
+| `right of A` / `left of A` | rewrite `gap`, or **the direction word** once the drag has carried it past A | snap to the nearest `flush top/middle/bottom`; past a tolerance, write `offset 0,dy` |
+| `below A` / `above A` | rewrite `gap`, or **the direction word** once the drag has carried it past A | snap to `flush left/middle/right`; past a tolerance, `offset dx,0` |
 | `between A,B` | rewrite `frac` | rewrite `offset` |
 | coordinate owned by `align x\|y` | – | hold, then leave the set |
 | coordinate owned by `spread x\|y` | – | hold, then leave the set |
@@ -961,7 +961,7 @@ the DSL by dragging things.
 
 **Deleting** an element lists what else refers to it rather than leaving a
 block that will not compile – *"`mix` is named by 3 lines: edge on 7, `align x
-center` on 14, `show` on 19. Delete all four?"*
+middle` on 14, `show` on 19. Delete all four?"*
 
 ## 10. Phases
 
@@ -1068,11 +1068,11 @@ Name things `dge*` in the editor (`dg*` is the compiler and is taken). Keep the
 
 ### 11.3 The export surface of `diagram-core.mjs`
 
-It must run unchanged in Node and in the browser, so the four Node-only leaves
-come out and are injected by the caller:
+It must run unchanged in Node and in the browser, so the Node-only leaves come
+out and are injected by the caller:
 
 ```js
-export function createDiagramCompiler({ resolveImage, imageAspect, warn, escapeHtml })
+export function createDiagramCompiler({ resolveImage, imageAspect, warn, escapeHtml, assetMarkup })
 ```
 
 - `resolveImage(src)` – Node: the existing `fs`-based lookup. Browser: a table
@@ -1082,18 +1082,30 @@ export function createDiagramCompiler({ resolveImage, imageAspect, warn, escapeH
 - `warn(msg)` – Node: `console.warn('[diagram] …')`. Browser: into the editor's
   message area, so a `[diagram]` warning is something the author *sees*.
 - `escapeHtml(s)` – the one from `build.js`.
+- `assetMarkup(...)` – splices a vector file inline. The fifth leaf, added with
+  `image`; it was four when this section was written.
 
 Everything else is pure and exported directly: `DG_KEYWORDS`, `DG_STEP_OPS`,
-`DG_CLASSES`, `DG_CLASS_GROUPS`, `DG_KIND_OPTS`, `DG_BRACE_SIDES`,
-`DG_ALIGN_X`, `DG_ALIGN_Y`, `DG_SCALAR_X`, `DG_SCALAR_Y`, `DG_DEFAULT_KINDS`,
-`DG_ANCHORS`, `parseDiagramSource`, `dgStateAt`, `layoutDiagram`,
-`dgFrameDrawables`, `renderDiagram`.
+`DG_CLASSES`, `DG_CLASS_GROUPS`, `DG_PROMINENCE`, `DG_CLASS_KINDS`,
+`DG_KIND_OPTS`, `DG_SIDES`, `DG_BRACE_SIDES`, `DG_EDGE_ARROWS`,
+`DG_ARROW_CLASS`, `DG_HEAD_CLASSES`, `DG_ALIGN_X`, `DG_ALIGN_Y`,
+`DG_SCALAR_X`, `DG_SCALAR_Y`, `DG_DEFAULT_KINDS`, `DG_ANCHORS`,
+`DG_STEP_NAME`, `DG_PHASES` and `dgStateAt`. The four that need the injected
+leaves – `parseDiagramSource`, `layoutDiagram`, `dgFrameDrawables` and
+`renderDiagram` – come back on the object `createDiagramCompiler` returns.
+
+`DG_CLASS_KINDS` is the one to reach for when a control could produce a
+refusal: it says which kinds each class can act on, so a swatch row can be
+filtered to the kinds the compiler allows rather than offering a click that
+only ever comes back as an error. `DG_ARROW_CLASS` is the same thing for the
+arrowheads row, which writes the **token** rather than a class, because a head
+class is legal only inside a `style` step.
 
 Three more tables joined that list once the expanding statements arrived, and
 the panel reads all three rather than hard-coding what a statement takes:
 `DG_SHAPE_CLASSES` and `DG_POINTED` (which outlines exist and which of them
 have a point to aim), `DG_LIST_OPTS` (options whose value is a comma list –
-`col`, `emph`, `calm` – so a single-number parser must not read one) and
+`col` plus the three prominence words – so a single-number parser must not read one) and
 `DG_BARE_OPTS` (bare closed words a statement accepts, `{bars: ['stacked',
 'horizontal'], sequence: ['unnumbered']}`).
 So do the generated-name helpers, which are the one place the compiler and
@@ -1136,7 +1148,7 @@ spanOf(elementId, attr)   // → {start, end}  – the token to replace
                           // → {insertAt, prefix}  – if the attribute is absent
 ```
 
-`attr` names one of: `gap`, `frac`, `w`, `h`, `r`, `pad`, `align`, `offset.x`,
+`attr` names one of: `gap`, `frac`, `w`, `h`, `r`, `pad`, `flush`, `side`, `offset.x`,
 `offset.y`, `at.x`, `at.y`, `at.x.nudge`, `at.y.nudge`, `label`, `classes`,
 `tags`, `same-as`, or `line` for the whole statement. Offsets are into the
 block body, not the file; the file offset is `range[0] + bodyOffset`.
@@ -1555,7 +1567,10 @@ Two smaller decisions:
 
 - **`pad` is measured in `uh` on both axes**, matching what `container`
   already did, rather than `uw` horizontally. The alternative would make one
-  word mean two distances depending on which statement it sat on.
+  word mean two distances depending on which statement it sat on. That is now
+  the general rule for every clearance in the grammar, `gap` and `space`
+  included: a number that *addresses* the grid is axis-keyed, a number that
+  states a clearance is square with one row as its ruler.
 - **A `w` on a free `text` used to parse and do nothing.** `DG_KIND_OPTS`
   listed it, `sizeOf` ignored it. `.fit` on a text needs it, so it now means
   what it says, instead of being a silent no-op.
@@ -1663,7 +1678,7 @@ list a delete owes the author.
 **The round-trip check found three real defects, and only one was a span bug.**
 
 1. **An inserted placement option at end-of-line does not parse.** `gap`,
-   `align`, `frac` and `offset` are options of the *placement expression*,
+   `flush`, `frac` and `offset` are options of the *placement expression*,
    and the parser stops reading them the moment the expression ends. Append
    ` offset 0.19,0` to `box tobj "object" right of tlab gap 0.7 w 0.62` and
    the build says `unexpected "offset"`. So `dgParsePlacement` now records
@@ -2821,3 +2836,87 @@ ground, and writes both by default because a lifeline crossing a label is not an
 exception. `CLAUDE.md` carries the detail.
 
 The suite went from 449 assertions to 493.
+
+### The grammar revision, and what it cost the panel · **in progress**
+
+`revision-proposal.md` re-cut the figure language, and the editor is the second
+consumer of every table it touched. Most of the work was not editing the panel
+at all: `DG_KIND_OPTS`, `DG_CLASS_GROUPS`, `DG_PROMINENCE` and `DG_KEYED_ATTRS`
+are read out of `diagram-core.mjs` at run time, so a keyword that moved inside
+one of them moved in the panel with no line written here. `tick` on a `plot`,
+`row` on a `table`, `band` on `lanes` and `header` on a `sequence` all arrived
+that way. That is the payoff of §8.1's rule, measured: the option rows are
+generated from the table rather than restated.
+
+What did need writing, in order of how much of it there was:
+
+- **`flush`, and the centre word.** The cross-axis guide proposes the statement
+  it is about to write, so it holds the four words itself; they are `flush
+  left` … `flush bottom` now, and the two lists share their middle entry
+  because the centre of an axis is one word on both axes. It had been `center`
+  on x and `middle` on y – an axis-conditioned spelling that the parser's own
+  internal default then contradicted, defaulting every direction to `center`,
+  which on a vertical placement is a value the language refused.
+- **The arrowheads row rewrites the token, not a class.** It already had to,
+  for a different reason: `--` injected `.no-head` into `el.classes` and every
+  tail rebuild wrote the derived class back into the line. Now that all four
+  tokens seed a class and a head class is refused in a tail outright, the row
+  has only one thing it *can* write, which is simpler than the state it
+  replaced. `<->` is a fourth setting rather than a second boolean.
+- **Prominence is one row over `DG_PROMINENCE`** rather than an `emph` button
+  and a `calm` button: one channel, four states, the fourth being the unnamed
+  normal – which the panel reaches by writing `{!emph}` rather than by having
+  no word for it. A hardcoded pair used to report "calmed" for `.dim`, a fourth
+  name for a channel that now has three.
+- **`{!class}` split one swatch into two acts that were never the same act.**
+  Deleting a class from a tail says *"let the default decide"*; the base swatch
+  means *"the look with nothing in this slot"*, and before the mark there was
+  no way to write the second – so clicking the base swatch on an element under
+  `default box {.dim}` did nothing visible. The base swatch writes the negation
+  now and an explicit *inherit* option writes nothing, which is the same
+  distinction the grammar draws. Choosing any swatch in a row also drops that
+  row's own removals, because every swatch replaces the element's whole say
+  about that slot.
+- **The removal also reaches the class list the panel reads back.** `spanOf`
+  and the tail rebuilder both had to learn that a tail holds two kinds of class
+  token, or a round trip through the panel dropped every `!class` an author had
+  typed.
+
+**What is outstanding, and it is the thing to pick up first.** `gap` is square
+now, measured in `uh` on both axes, and three expressions in this file still
+divide a horizontal gap by `uw`: the drag that writes a `gap` (`dgePlanDrag`),
+the sibling-gap guide that reads one back, and the `' gap 0.3'` this file
+hardcodes when it places a renamed element. The first two make a horizontal
+drag write a number about 2.9 times too small at the corpus median unit, which
+looks like a snapping bug and is a ruler bug; the third puts a new element
+closer than it used to. A comment at the sibling-gap guide still reads *"in
+cells, which is what a gap is"*, which is now half true – a gap is in cells, but
+always the row's. Fix the ruler in one place and thread it, rather than
+patching three call sites.
+
+- **A named edge is a name before the from-token now.** The guide that offers
+  an edge as a docking host still waits for the author to have named it – an
+  anonymous `edge-3` is a *positional* name and moves when a line is inserted
+  above it – but what it waits for is `edge wire p -> q` rather than a `{#id}`
+  in the tail. `named` on the model edge is unchanged; only the spelling it
+  reports moved.
+
+**`side` got a swatch row, and it is the shape `point` set.** A closed word
+list is a row of swatches wherever this panel meets one, and `side` was the
+only word in the grammar that moves an element bodily with no control at all –
+a brace's spine had to be typed. On a brace all four words are offered; on an
+edge only the pair lying *across* the routed line, because the other pair moves
+nothing and comes back as a build warning, and a control that can only produce
+one is not a control. `default` stays in the row whatever else is, so a word
+already written that cannot act is still removable by clicking.
+
+**A beat can now say "take it off", which is what a swatch row standing on a
+beat had needed all along.** Clicking the base swatch while a beat is selected
+writes `style x {!dashed}` into that step – before the mark there was nothing
+for it to write, so the click was a no-op on precisely the beats where turning
+something off is the act. A prominence swatch writes the verb instead
+(`dim x`), because `dim x` and `style x {.dim}` are the same act one line
+shorter, and the same click on the base swatch writes `style x {!dim}`. The
+step pane needed nothing: it shows a beat by what it *does* (`dgeStepChanges`),
+diffing the resolved state either side, so a removal reads correctly there for
+free.

@@ -132,9 +132,15 @@ const DENSITY_BUDGET = {
 // lines the build refuses – lectures/network-security is linted by CI but
 // never built, so such a line merged green and failed every later build.
 // All of them are one-liners over the tables, with nothing behind them.
+//
+// `dgTakes` rides the same bend, and for the sharpest version of the same
+// reason: it is one function over DG_KIND_OPTS plus a table of the forms
+// that have no keyword to list, and its whole purpose is that the compiler
+// and this gate cannot print two different accounts of what a statement
+// accepts. Restating it here would be the drift it exists to prevent.
 import {
-  DG_KEYWORDS, DG_STEP_OPS, DG_CLASSES, DG_CLASS_GROUPS, DG_CLASS_CLASHES,
-  DG_KIND_OPTS, DG_BRACE_SIDES, DG_ALIGN_X, DG_ALIGN_Y, DG_SCALAR_X,
+  DG_KEYWORDS, DG_STEP_OPS, DG_CLASSES,
+  DG_KIND_OPTS, DG_BRACE_SIDES, DG_SIDES, DG_ALIGN_X, DG_ALIGN_Y, DG_SCALAR_X,
   DG_SCALAR_Y, DG_DEFAULT_KINDS, DG_ANCHORS, DG_DEFINES, DG_GRID_KINDS, DG_GRID_MAX,
   DG_PLOT_MAX_TICKS, DG_POINT_DIRS, DG_POINTED, DG_SHAPE_CLASSES, DG_RESERVED_IDS,
   dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks,
@@ -142,11 +148,36 @@ import {
   DG_SEQ_ENTRIES, DG_SEQ_ARROWS,
   dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName,
   dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag,
-  rejectShapeOn, rejectAlignOn,
+  DG_EDGE_ARROWS, DG_STEP_NAME,
+  rejectShapeOn, rejectAlignOn, rejectHeadClassIn, rejectSlotPair, dgTakes, dgArticle,
 } from './diagram-core.mjs';
 
 const REVEAL_PCT_WARN = 0.5;
 const ORPHAN_MIN = 2;
+
+// One sentence per statement, and then it stops. Until now this file had no
+// option check at all on the seven statements a newcomer meets first, so
+// `box c "C" rightof a gap 1` produced no finding here: it passed the
+// pre-commit gate and failed every later build. That is the exact trap
+// CLAUDE.md records for `rejectShapeOn`, and it bites the same way, because
+// CI lints lectures/network-security and lectures/diagrams without ever
+// building them.
+//
+// Single quotes rather than the compiler's double ones, the way every other
+// message in this file is written; the *list* is the part that must not
+// differ, and that comes from dgTakes.
+const dgUnexpectedMsg = (head, id, tok) =>
+  `unexpected '${tok}' in ${head}${id ? ` ${id}` : ''} – ${dgTakes(head)}`;
+
+// Every token that can follow a `between` member list. Derived from
+// DG_KIND_OPTS rather than written out, because the written-out copy
+// predated `point`, `space`, `cell`, `step`, `x` and `y` – each of those
+// written after a `between` was read here as a third member and refused as
+// 'expects exactly two elements' on a line the build accepts, which is the
+// one direction a gate must never be wrong in. A derived set cannot drift
+// the same way again.
+const DG_PLACE_STOP = new Set(['frac', 'offset', 'gap', 'flush', 'same', '--', '->', 'point',
+  ...Object.values(DG_KIND_OPTS).flat()]);
 
 function splitFrontmatter(src) {
   if (!src.startsWith('---\n')) return { body: src, fmLines: 0, header: '' };
@@ -222,13 +253,17 @@ function lintDefaultStatement(words, ln, add, ctx) {
     // it would go unchecked here while the build still refuses it.
     if (inTail) { if (w.endsWith('}')) inTail = false; continue; }
     if (w.startsWith('{')) { if (!w.endsWith('}')) inTail = true; continue; }
-    if (kind === 'brace' && DG_BRACE_SIDES.includes(w)) continue;
+    if (kind === 'brace' && DG_BRACE_SIDES.includes(w)) {
+      add(ln, 'error', 'bad-diagram-default', `default brace: which side the spine sits on `
+          + `is written 'side ${w}' – a bare '${w}' is one of the four words that also place a label.`);
+      break;
+    }
     if (opts.includes(w)) { k++; continue; }
     // Only kinds a `default` can name - see the same line in diagram-core.
     const owner = [...DG_DEFAULT_KINDS].find(kk => (DG_KIND_OPTS[kk] || []).includes(w));
     if (owner) {
       add(ln, 'error', 'bad-diagram-default',
-          `default ${kind} has no '${w}' – that is a ${owner} option. `
+          `default ${kind} has no '${w}' – that is ${dgArticle(owner)} ${owner} option. `
           + `default ${kind} takes ${opts.length ? opts.join(', ') + ' and ' : ''}a {…} attribute tail.`);
       k++;
     } else {
@@ -279,13 +314,31 @@ function lintDiagram(block, add, fmLines, lectureTags) {
   // through the gate.
   const attrsOf = (text, ln, carries = true) => {
     const m = text.match(/\{([^}]*)\}/);
-    const out = { id: null, classes: [], tags: [] };
+    const out = { id: null, classes: [], removedClasses: [], tags: [] };
     if (!m) return out;
     for (const tok of m[1].trim().split(/\s+/).filter(Boolean)) {
-      if (tok.startsWith('#')) out.id = tok.slice(1);
+      // `{#id}` is gone from the language: an element's name goes in front.
+      if (tok.startsWith('#')) {
+        add(ln, 'error', 'bad-diagram-attribute', `'${tok}' – an element's name goes in front, `
+            + 'not in the tail. On a box, dot, text, image, container, brace or a chart it is the '
+            + 'word after the statement; on an edge or a sequence message it is an optional word '
+            + `before the arrow's first endpoint, as in 'edge ${tok.slice(1) || 'name'} a -> b'.`);
+      }
       else if (tok.startsWith('@')) {
         if (tok.length > 1) { if (carries) tags.add(tok.slice(1)); out.tags.push(tok.slice(1)); }
         else add(ln, 'error', 'bad-diagram-attribute', 'an empty @tag means nothing');
+      }
+      // `!class` removes that exact class – from a `default` layer, or from
+      // the beat before it inside a `style` step. Additive syntax, so the only
+      // thing to check here is the name and the two ways one tail can
+      // contradict itself.
+      else if (tok.startsWith('!')) {
+        if (!DG_CLASSES.has(tok.slice(1))) {
+          add(ln, 'error', 'unknown-diagram-class',
+              `unknown diagram class '${tok}' – valid: ${[...DG_CLASSES].map(c => '!' + c).join(', ')}`);
+        } else if (out.removedClasses.includes(tok.slice(1))) {
+          add(ln, 'error', 'bad-diagram-attribute', `'${tok}' is written twice – one removal says it`);
+        } else out.removedClasses.push(tok.slice(1));
       }
       else if (tok.startsWith('.')) {
         if (!DG_CLASSES.has(tok.slice(1))) {
@@ -294,25 +347,25 @@ function lintDiagram(block, add, fmLines, lectureTags) {
         } else out.classes.push(tok.slice(1));
       } else {
         add(ln, 'error', 'bad-diagram-attribute',
-            `'${tok}' in {…} is not #id, .class or @tag`);
+            `'${tok}' in {…} is not #id, .class, !class or @tag`);
       }
     }
-    for (const group of DG_CLASS_GROUPS) {
-      const hit = group.filter(c => out.classes.includes(c));
-      if (hit.length > 1) {
-        // Deliberately not "stylesheet order decides": that is true of the
-        // slots that compete for a CSS property and false of the two that do
-        // not. Prominence is resolved in dgOpacity(), arrowheads in the
-        // emitter. What holds for all thirteen is that the line does not say.
-        add(ln, 'warn', 'conflicting-diagram-classes',
-            `.${hit.join(' and .')} are the same kind of thing – which one the drawing takes is not decided by this line`);
+    for (const c of out.removedClasses) {
+      if (out.classes.includes(c)) {
+        add(ln, 'error', 'bad-diagram-attribute', `'.${c}' and '!${c}' are both written – `
+            + 'one tail cannot both add and remove a class. Keep one.');
       }
     }
-    for (const [a, b, why] of DG_CLASS_CLASHES) {
-      if (out.classes.includes(a) && out.classes.includes(b)) {
-        add(ln, 'warn', 'conflicting-diagram-classes', why);
-      }
-    }
+    // The same-slot pair and the clash rows are both the compiler's now, and
+    // for two different reasons. A pair from one slot is an **error** raised by
+    // rejectSlotPair, decidable from the tail alone and mirrored there rather
+    // than here, so this file cannot print a second, different account of it.
+    // A clash row is a **warning**, and it has to be beat-aware – `{.tone-4
+    // .accent}` with a later `style x {.clear}` is a working figure, where the
+    // accent ink is inert while the fill is there and becomes the ink the
+    // moment the fill is taken away – which needs the resolved state at each
+    // beat and is therefore the compiler's job. A linter stricter than the
+    // build is worse than none.
     return out;
   };
   const define = (name, ln) => {
@@ -365,7 +418,7 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       const ok = axis === 'x' ? DG_SCALAR_X : DG_SCALAR_Y;
       if (!ok.has(m[2])) {
         add(ln, 'error', 'bad-diagram-coordinate',
-            `${what}: '.${m[2]}' is not a ${axis} coordinate – use ${[...ok].map(p => '.' + p).join(' / ')}`);
+            `${what}: '.${m[2]}' is not ${dgArticle(axis)} ${axis} coordinate – use ${[...ok].map(p => '.' + p).join(' / ')}`);
       }
       referenced.push({ name: m[1], ln, what });
     });
@@ -407,6 +460,130 @@ function lintDiagram(block, add, fmLines, lectureTags) {
     // strips to `0`, and complaining about `0` sends the author looking for
     // something that is not on the line.
     if (name) referenced.push({ name, raw, ln, what });
+  };
+
+  // Mirrors dgParsePlacement token for token, and says only what that
+  // function says: the two near-misses an author produces by generalising
+  // from one cardinal placement to the next. Two of the four take a
+  // preposition and two refuse it, which follows English and is not itself
+  // the defect – the defect was that `above of a` bound `of` as the element
+  // *name*, so the author was told their reference did not exist and nothing
+  // named the word that was actually in the wrong place, and the mirror slip
+  // `right a` read as though `right` were not a word in the language.
+  // Everything else it consumes in silence: the reference and member checks
+  // further down are the ones that speak about those tokens.
+  //
+  // Returns { next, place, attempted }. `attempted` means a placement was
+  // recognised and refused, and the statement stops there rather than adding
+  // a second sentence about tokens it has already lost its grip on.
+  const readPlacement = (words, k, ln) => {
+    const t = (i) => (words[i] === undefined ? '' : words[i]);
+    let place = null, next = k;
+    if (t(k) === 'at') { place = 'abs'; next = k + 2; }
+    else if (t(k) === 'between') {
+      let mEnd = k + 1;
+      while (mEnd < words.length && !DG_PLACE_STOP.has(words[mEnd])) mEnd++;
+      const refs = words.slice(k + 1, mEnd).join(',').split(',').map(s => s.trim()).filter(Boolean);
+      if (refs.length !== 2) {
+        add(ln, 'error', 'diagram-bad-between',
+            `between expects exactly two elements, got ${refs.length}`);
+        return { next: mEnd, place: null, attempted: true };
+      }
+      place = 'between';
+      next = mEnd;
+    } else {
+      let dir = null;
+      // Checked *before* the direction is bound, or `above` binds happily and
+      // swallows `of` as the element name – which is the misparse.
+      if ((t(k) === 'above' || t(k) === 'below') && t(k + 1) === 'of') {
+        add(ln, 'error', 'bad-diagram-placement', `'${t(k)}' takes the element name directly – `
+            + `write '${t(k)} ${t(k + 2) || 'X'}', not '${t(k)} of ${t(k + 2) || 'X'}'`);
+        return { next: k, place: null, attempted: true };
+      }
+      if (t(k) === 'right' && t(k + 1) === 'of') { dir = 'right'; next = k + 2; }
+      else if (t(k) === 'left' && t(k + 1) === 'of') { dir = 'left'; next = k + 2; }
+      else if (t(k) === 'below') { dir = 'below'; next = k + 1; }
+      else if (t(k) === 'above') { dir = 'above'; next = k + 1; }
+      if (!dir && (t(k) === 'right' || t(k) === 'left') && t(k + 1) && t(k + 1) !== 'of') {
+        add(ln, 'error', 'bad-diagram-placement',
+            `'${t(k)}' is written '${t(k)} of' – write '${t(k)} of ${t(k + 1)}'`);
+        return { next: k, place: null, attempted: true };
+      }
+      if (!dir) return { next: k, place: null, attempted: false };
+      if (!t(next)) {
+        add(ln, 'error', 'bad-diagram-placement', `${dir} expects an element name`);
+        return { next, place: null, attempted: true };
+      }
+      next++;
+      place = 'rel';
+    }
+    // Trailing options, shared by every placement form and each legal on
+    // only some of them: a `gap` after an `at` is not part of the placement,
+    // and the statement meets it as an unreadable token of its own.
+    while (next < words.length) {
+      const key = words[next];
+      if ((key === 'gap' || key === 'flush') && place === 'rel') { next += 2; continue; }
+      // Named rather than reported as an unknown token: `align` is still a
+      // word in the language, just not this one, and it is what an author who
+      // learned the old spelling will type.
+      if (key === 'align' && place === 'rel') {
+        add(ln, 'error', 'diagram-unexpected-token', `'align' on a placement is written 'flush' – `
+            + `write 'flush ${words[next + 1] || 'middle'}'. 'align' on a line of its own is the `
+            + 'statement that gives a set of elements one shared coordinate.');
+        return { next, place, attempted: true };
+      }
+      if (key === 'frac' && place === 'between') { next += 2; continue; }
+      if (key === 'offset') { next += 2; continue; }
+      break;
+    }
+    return { next, place, attempted: false };
+  };
+
+  // The token walk behind the sentence above, for `box`, `dot`, `text` and
+  // `image`. It is a lookup in DG_KIND_OPTS rather than a second
+  // readGridOpts – and gating `w`, `h`, `r` and `point` on that table is not
+  // strictness this file invented: ungated they parsed on every node kind
+  // and drew nothing (`w` on a dot, `r` on a box), which is the silent no-op
+  // the compiler has now closed. A gate that still passed them would be the
+  // laxer of the two, which is how a line merges green and fails every later
+  // build.
+  //
+  // Returns how far the statement got. Everything past that point is a token
+  // the compiler never read, so the reference scan stops there too – without
+  // it `box b "B" above of a` answers the one true sentence *and* the bogus
+  // 'refers to "of"' that item 8 exists to remove.
+  const scanNodeOpts = (head, id, words, from, ln) => {
+    const opts = DG_KIND_OPTS[head] || [];
+    let k = from;
+    while (k < words.length) {
+      const key = words[k];
+      if (key === '->' || key === '--') { k += 2; continue; }
+      if (key === 'same') {
+        if (words[k + 1] !== 'as' || words[k + 2] === undefined) {
+          add(ln, 'error', 'diagram-unexpected-token',
+              `${head} ${id}: 'same' must be written 'same as <element>'`);
+        }
+        k += (words[k + 1] === 'as' && words[k + 2] !== undefined) ? 3 : 2;
+        continue;
+      }
+      if (['w', 'h', 'r', 'pad', 'point'].includes(key) && opts.includes(key)) { k += 2; continue; }
+      // A leader takes the edge's own tokens and means the same by them:
+      // `--` is the plain stub, `->` one that points. `<-` and `<->` are
+      // refused, because a leader names one operand and the words are always
+      // the other end.
+      if (key === '<-' || key === '<->') {
+        add(ln, 'error', 'diagram-unexpected-token', `${head} ${id}: a leader points at one thing `
+            + `and the words are always the other end, so '${key}' has nothing to reverse – `
+            + `write '--' for a plain stub or '->' for one that points.`);
+        return k;
+      }
+      const pl = readPlacement(words, k, ln);
+      if (pl.attempted) return k;
+      if (pl.place) { k = pl.next; continue; }
+      add(ln, 'error', 'diagram-unexpected-token', dgUnexpectedMsg(head, id, key));
+      return k;
+    }
+    return words.length;
   };
 
   let anonEdge = 0;
@@ -455,17 +632,21 @@ function lintDiagram(block, add, fmLines, lectureTags) {
     {
       const gate = [];
       if (head === 'bars' || head === 'grid') {
-        rejectShapeOn(head === 'grid' ? (words[2] || 'box') : 'box', attrs.classes, ln, gate);
+        rejectShapeOn(head === 'grid' ? (words[2] || 'box') : 'box', attrs.classes, ln, gate, attrs.removedClasses);
       } else if (head === 'edge') {
-        rejectAlignOn('edge', attrs.classes, ln, gate);
+        rejectAlignOn('edge', attrs.classes, ln, gate, attrs.removedClasses);
+        rejectHeadClassIn('tail', attrs.classes, ln, gate);
+      } else if (head === 'box') {
+        rejectShapeOn('box', attrs.classes, ln, gate, attrs.removedClasses);
       } else if (head === 'container' || head === 'brace') {
-        rejectShapeOn(head, attrs.classes, ln, gate);
+        rejectShapeOn(head, attrs.classes, ln, gate, attrs.removedClasses);
         rejectAlignOn(head, attrs.classes, ln, gate);
       } else if (head === 'dot' || head === 'text' || head === 'image') {
-        rejectShapeOn(head, attrs.classes, ln, gate);
+        rejectShapeOn(head, attrs.classes, ln, gate, attrs.removedClasses);
       } else if (head === 'default' && words[1]) {
-        rejectShapeOn(words[1], attrs.classes, ln, gate);
+        rejectShapeOn(words[1], attrs.classes, ln, gate, attrs.removedClasses);
         rejectAlignOn(words[1], attrs.classes, ln, gate);
+        if (words[1] === 'edge') rejectHeadClassIn('default', attrs.classes, ln, gate);
       }
       // `point` aims an outline. The direction is a closed list, and an
       // outline the line itself declares either has a point or has not –
@@ -496,7 +677,7 @@ function lintDiagram(block, add, fmLines, lectureTags) {
         const other = axis === 'x' ? DG_ALIGN_Y : DG_ALIGN_X;
         if (!ok.has(words[2])) {
           add(ln, 'error', 'bad-diagram-align', other.has(words[2])
-            ? `align x/y: '${words[2]}' is a ${axis === 'x' ? 'y' : 'x'} edge. On the ${axis} axis use ${[...ok].join('/')}.`
+            ? `align x/y: '${words[2]}' is ${dgArticle(axis === 'x' ? 'y' : 'x')} ${axis === 'x' ? 'y' : 'x'} edge. On the ${axis} axis use ${[...ok].join('/')}.`
             : `align ${axis} expects ${[...ok].join('/')}, got '${words[2] || ''}'`);
         } else if (members.length < 2) {
           add(ln, 'error', 'bad-diagram-align', `align ${axis} ${words[2]} needs at least two elements`);
@@ -521,7 +702,25 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       inStep = false;
       continue;
     }
-    if (head === 'step') { inStep = true; continue; }
+    // A `step` takes its name from the token after the keyword and used to
+    // ignore everything else on the line, so `step my name` compiled, made a
+    // step called `my`, and dropped `name` with no error and no warning. Both
+    // halves are decidable from the line: a step name is an identifier that
+    // later lines and the editor's beat navigation both address, and the rule
+    // for it is imported rather than paraphrased so the two cannot disagree.
+    if (head === 'step') {
+      if (words[1] && !DG_STEP_NAME.test(words[1])) {
+        add(ln, 'error', 'bad-diagram-step', `'${words[1]}' is not a step name – a step name `
+            + 'starts with a letter or an underscore and then takes letters, digits, '
+            + 'underscores or hyphens');
+      }
+      if (words.length > 2) {
+        add(ln, 'error', 'bad-diagram-step', `unexpected '${words[2]}' in step ${words[1]} – `
+            + 'a step takes one name, and its operations go on the lines beneath it');
+      }
+      inStep = true;
+      continue;
+    }
     if (inStep && DG_STEP_OPS.has(head)) {
       if (head === 'move' && words[2] === 'to' && words[3] && words[3].includes(',')) {
         referPair(words[3], ln, 'move … to');
@@ -595,7 +794,11 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       };
       const xd = range('x', [0, 1]);
       const yd = range('y', [0, 1]);
-      const st = num('step', (xd[1] - xd[0]) / 5);
+      if (words.includes('step')) {
+        add(ln, 'error', 'bad-diagram-plot', `plot ${id || ''}: the tick interval is 'tick', not `
+            + "'step' – 'step' opens a beat.");
+      }
+      const st = num('tick', (xd[1] - xd[0]) / 5);
       const xt = dgPlotTicks(xd[0], xd[1], st);
       const yt = dgPlotTicks(yd[0], yd[1], st);
       if (!xt.length || !yt.length) {
@@ -623,6 +826,14 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       define(id, ln);
       if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: id, tags: attrs.tags, ln });
       const strings = [...trimmed.matchAll(/"([^"]*)"/g)].map(m => m[1]);
+      // Narrow, for the reason the `table … h` check above is narrow: the
+      // expanding statements have no general option check in either file, and
+      // this is the one word a migrating author types. `calm` is deleted from
+      // the language – the verb for `.dim` is `dim`, in all three positions.
+      if (head === 'bars' && words.includes('calm')) {
+        add(ln, 'error', 'bad-diagram-bars', `bars ${id}: 'calm' is gone – the three prominence `
+            + "words are the same in a class, in a step and here: 'emph', 'dim', 'ghost'.");
+      }
       if (head === 'bars') {
         const cols = (strings[0] || '').split(',').map(s => s.trim()).filter(Boolean).length;
         if (!cols) {
@@ -731,6 +942,11 @@ function lintDiagram(block, add, fmLines, lectureTags) {
         continue;
       }
       define(id, ln);
+      if (words.includes('h')) {
+        add(ln, 'error', 'bad-diagram-sequence', `sequence ${id}: 'header' is the height of one `
+            + "actor head, and it is what 'h' used to mean here – write 'header <n>'. On every "
+            + "other statement 'h' is the whole element, which is why it is not this one.");
+      }
       const carry = (name, kind, extra = []) => {
         const t = [...attrs.tags, ...extra];
         if (t.length) carries.push({ kind, name, tags: t, ln });
@@ -836,7 +1052,15 @@ function lintDiagram(block, add, fmLines, lectureTags) {
           add(e.ln, 'error', 'bad-diagram-sequence', `a message needs an actor on both sides of '${e.w[e.aAt]}'`);
           continue;
         }
-        const stray = [...e.w.slice(0, Math.max(0, e.aAt - 1)), ...e.w.slice(e.aAt + 2)];
+        // The same one sentence an `edge` follows since item 9: the token
+        // before the arrow is the from-actor, an optional token before *that*
+        // is the message's own name. `{#id}` is gone from the language, so this
+        // is the only way a message gets a name a brace or an `at` can address.
+        // No collision rule of its own: the only way the name slot can be
+        // wrong is that the name is not available, and `define` answers that
+        // with the sentence every other statement gets.
+        const ownName = e.aAt === 2 ? e.w[0] : null;
+        const stray = [...e.w.slice(0, Math.max(0, e.aAt - (ownName ? 2 : 1))), ...e.w.slice(e.aAt + 2)];
         if (stray.length) {
           add(e.ln, 'error', 'bad-diagram-sequence', `unexpected '${stray.join(' ')}' in the message `
               + `${from} ${e.w[e.aAt]} ${to} – a message is \`<actor> -> <actor> "<label>"\`, `
@@ -851,7 +1075,7 @@ function lintDiagram(block, add, fmLines, lectureTags) {
               + `${quoted.length} strings – a message takes its label and, under it, one smaller `
               + 'second line. A second line breaks at \\n, so several lines of it are still one string.');
         }
-        msgs.push({ from, to, ln: e.ln, own: ea.id, tags: ea.tags, sub: quoted.length > 1 });
+        msgs.push({ from, to, ln: e.ln, own: ownName, tags: ea.tags, sub: quoted.length > 1 });
       }
       if (!actors.length) {
         add(ln, 'error', 'bad-diagram-sequence', `sequence ${id} declares no actors – put `
@@ -936,6 +1160,22 @@ function lintDiagram(block, add, fmLines, lectureTags) {
           : `lanes ${id} needs its lane names as one string, e.g. "User | SOC | IT ops"`);
         continue;
       }
+      // Two narrow checks rather than a second readGridOpts. Neither file
+      // checks an unknown option name on an expanding statement – CLAUDE.md
+      // records that asymmetry as deliberate, and the build names the line –
+      // but these two are the exact slips a migrating author makes, and both
+      // are decidable from the line alone.
+      if (words.includes('h')) {
+        const per = head === 'table' ? 'row' : 'band';
+        add(ln, 'error', head === 'table' ? 'bad-diagram-table' : 'bad-diagram-lanes',
+            `${head} ${id}: '${per}' is the height of one ${head === 'table' ? 'row' : 'band'}, `
+            + `and it is what 'h' used to mean here – write '${per} <n>'. On every other `
+            + "statement 'h' is the whole element, which is why it is not this one.");
+      }
+      if (head === 'table' && words.includes('w') && words.includes('col')) {
+        add(ln, 'error', 'bad-diagram-table', `table ${id}: 'col' gives each column its own width, `
+            + "so 'w' – which divides one total equally – says the same thing a second way. Drop one.");
+      }
       const heads = cellsOf(first);
       // Every element either statement expands into carries the statement's
       // own tags, so one entry per generated element is what makes the
@@ -1008,16 +1248,70 @@ function lintDiagram(block, add, fmLines, lectureTags) {
     if (DG_DEFINES.has(head)) {
       define(words[1], ln);
       if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: words[1], tags: attrs.tags, ln });
-      const overAt = words.indexOf('over');
-      if (overAt >= 0) {
-        for (const m of words.slice(overAt + 1).join(',').split(',').map(s => s.trim()).filter(Boolean)) {
-          if (m === 'pad' || DG_BRACE_SIDES.includes(m)) break;
-          refer(m, ln, `${head} ${words[1]}`);
+
+      // A container and a brace hold a member list and place nothing, so they
+      // share none of the node grammar below and get their own two checks.
+      if (head === 'brace' || head === 'container') {
+        const id = words[1] || '';
+        const overAt = words.indexOf('over');
+        if (overAt < 0) {
+          add(ln, 'error', 'diagram-missing-members', `${head} ${id} needs "over a,b,c"`);
+          continue;
         }
-      } else if (head === 'brace' || head === 'container' || head === 'group') {
-        add(ln, 'error', 'diagram-missing-members', `${head} ${words[1] || ''} needs "over a,b,c"`);
+        // **The member run ends where the commas stop.** A member list is
+        // comma-separated, so it continues only while the previous token ended
+        // with a comma or the next begins with one. Scanning instead to the
+        // first token in a fixed set of four words – which is what this file
+        // did, mirroring the old compiler – meant any token *not* in that set
+        // was swallowed as a member name, so a mistyped or wrong-statement
+        // option became an element and the author was told, twice, that a
+        // reference they never wrote was undefined. The `brace` case was the
+        // sharpest, because `pad` on a brace was renamed *from* `gap`: the one
+        // word an author is likeliest to write there was the word the
+        // statement answered worst.
+        let mEnd = overAt + 1;
+        while (mEnd < words.length) {
+          if (mEnd === overAt + 1) { mEnd++; continue; }
+          if (!words[mEnd - 1].endsWith(',') && !words[mEnd].startsWith(',')) break;
+          mEnd++;
+        }
+        const members = words.slice(overAt + 1, mEnd).join(',')
+          .split(',').map(s => s.trim()).filter(Boolean);
+        if (!members.length) {
+          add(ln, 'error', 'diagram-missing-members', `${head} ${id} lists no members`);
+          continue;
+        }
+        for (const m of members) refer(m, ln, `${head} ${id}`);
+        for (let k = mEnd; k < words.length; k++) {
+          // `side <word>` – a keyed option like `pad`, since item 22. A bare
+          // side word was the last positional option in the statement grammar
+          // and is now an error naming the keyword.
+          if (head === 'brace' && words[k] === 'side') {
+            if (!DG_BRACE_SIDES.includes(words[k + 1])) {
+              add(ln, 'error', 'diagram-unexpected-token', `brace ${id}: side expects `
+                  + `${DG_BRACE_SIDES.join(' / ')}, got '${words[k + 1] ?? ''}'`);
+            }
+            k++;
+            continue;
+          }
+          if (head === 'brace' && DG_BRACE_SIDES.includes(words[k])) {
+            add(ln, 'error', 'diagram-unexpected-token', `brace ${id}: which side the spine sits `
+                + `on is written 'side ${words[k]}' – a bare '${words[k]}' is one of the four `
+                + 'words that also place a label.');
+            break;
+          }
+          if (words[k] === 'pad') { k++; continue; }
+          add(ln, 'error', 'diagram-unexpected-token', dgUnexpectedMsg(head, id, words[k]));
+          break;
+        }
+        continue;
       }
-      for (let k = 2; k < words.length; k++) {
+
+      // `image` carries its asset in the slot the others use for their first
+      // placement token, so the rest of the line reads the same from one
+      // token further along.
+      const readTo = scanNodeOpts(head, words[1], words, head === 'image' ? 3 : 2, ln);
+      for (let k = 2; k < readTo; k++) {
         if (words[k] === 'of' || words[k] === 'below' || words[k] === 'above') {
           refer(words[k + 1], ln, `${head} ${words[1]}`);
         }
@@ -1027,12 +1321,15 @@ function lintDiagram(block, add, fmLines, lectureTags) {
         }
         if (words[k] === 'between') {
           // Every trailing option that can follow a placement, or the scan
-          // swallows one as a member. `pad` joined the list when boxes and
-          // free text gained it, and the linter went stricter than the build.
-          const STOP = new Set(['frac', 'offset', 'gap', 'align', 'w', 'h', 'r', 'pad', 'same', '->']);
+          // swallows one as a member. Written out, the list went stale twice –
+          // `pad` when boxes and free text gained it, `point` when outlines
+          // did – and each time this gate refused a line the build accepts.
+          // DG_PLACE_STOP is derived from DG_KIND_OPTS for that reason.
+          // Bounded by `readTo` for the same reason the loop is: past there
+          // the statement stopped, and a token it never read is not a member.
           let m = k + 1;
           const names = [];
-          while (m < words.length && !STOP.has(words[m])) names.push(words[m++]);
+          while (m < readTo && !DG_PLACE_STOP.has(words[m])) names.push(words[m++]);
           const parts = names.join(',').split(',').map(x => x.trim()).filter(Boolean);
           if (parts.length !== 2) {
             add(ln, 'error', 'diagram-bad-between',
@@ -1047,8 +1344,8 @@ function lintDiagram(block, add, fmLines, lectureTags) {
           k += 2;
           continue;
         }
-        // leader line: `text n "…" above c gap 1 -> leak`
-        if (words[k] === '->') {
+        // leader line: `text n "…" above c gap 1 -- leak`
+        if (words[k] === '->' || words[k] === '--') {
           refer(words[k + 1], ln, `${head} ${words[1]} leader`);
           define(`${words[1]}--lead`, ln);
         }
@@ -1056,11 +1353,37 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       continue;
     }
     if (head === 'edge') {
-      define(attrs.id || `edge-${++anonEdge}`, ln);
-      if (attrs.tags.length) carries.push({ kind: 'edge', name: attrs.id || `edge-${anonEdge}`, tags: attrs.tags, ln });
-      const arrowAt = words.findIndex(w => w === '->' || w === '<-' || w === '--');
-      if (arrowAt < 1 || !words[arrowAt + 1]) {
-        add(ln, 'error', 'diagram-bad-edge', 'edge needs an element on both sides of "->"');
+      // The token immediately before the arrow is the from-endpoint; an
+      // optional token before *that* is the element's name. `{#id}` is gone
+      // from the language, so an edge names itself in front like every other
+      // statement rather than after its options.
+      const eArrowAt = words.findIndex(w => DG_EDGE_ARROWS.has(w));
+      const eNamed = eArrowAt === 3 ? words[1] : null;
+      const edgeId = eNamed || `edge-${++anonEdge}`;
+      define(edgeId, ln);
+      if (attrs.tags.length) carries.push({ kind: 'edge', name: edgeId, tags: attrs.tags, ln });
+      const arrowAt = eArrowAt;
+      // Three answers where there used to be one. The author usually *did*
+      // write the arrow and what is missing is a space on each side – `edge
+      // p->q` tokenizes to two words, so the distinction is one test, and the
+      // old sentence told them to add a token they had already typed. When
+      // there is genuinely no arrow the shape of the statement is what to
+      // say. And an `edge` with nothing before its arrow used to read the
+      // keyword `edge` itself as the from-endpoint and then report that
+      // 'edge' is not defined – the same misparse as `above of a`, and worse,
+      // because nothing else in the output contradicted it.
+      if (arrowAt < 0) {
+        const glued = words.some(w => w !== 'edge' && [...DG_EDGE_ARROWS].some(a => w.includes(a)));
+        const respaced = words.slice(1).map(w => [...DG_EDGE_ARROWS]
+          .reduce((v, a) => v.split(a).join(` ${a} `), w)).join(' ').replace(/\s+/g, ' ').trim();
+        add(ln, 'error', 'diagram-bad-edge', glued
+          ? `edge: the arrow needs a space on each side – write it as 'edge ${respaced}'`
+          : `an edge is 'edge <from> -> <to>' – the arrow may be ${[...DG_EDGE_ARROWS].join(', ')}`);
+        continue;
+      }
+      if (arrowAt === 1 || !words[arrowAt - 1] || !words[arrowAt + 1] || words[arrowAt - 1] === 'edge') {
+        add(ln, 'error', 'diagram-bad-edge',
+            `edge needs an element on both sides of '${words[arrowAt]}'`);
         continue;
       }
       // Only the token immediately before the arrow is an endpoint, so anything
@@ -1068,10 +1391,10 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       // passed it would be the laxer of the two, which is how a line merges
       // green and fails every later build. `edge w1 a -> b` reads as naming the
       // edge and does not: an edge is named `{#w1}` in its tail.
-      if (arrowAt > 2) {
+      if (arrowAt > 3) {
         add(ln, 'error', 'diagram-bad-edge', `unexpected '${words.slice(1, arrowAt - 1).join(' ')}' `
-            + `before the arrow in an edge – an edge is 'edge <from> -> <to>', and its options `
-            + `come after the second end. To name it, write {#name} in the tail.`);
+            + `before the arrow in an edge – an edge is 'edge [name] <from> -> <to>', and its `
+            + 'options come after the second end.');
       }
       refer(words[arrowAt - 1], ln, 'edge');
       refer(words[arrowAt + 1], ln, 'edge');
@@ -1083,11 +1406,32 @@ function lintDiagram(block, add, fmLines, lectureTags) {
           seenVia = true;
           continue;
         }
-        if (!words[k].includes(',')) continue;
-        if (!seenVia) {
-          add(ln, 'error', 'diagram-bad-edge', `a waypoint needs 'via' in front of it – 'via ${words[k]}'`);
+        // `side <word>` – which side of the routed line the label sits on.
+        // It was the four alignment classes, which on a box, dot or free text
+        // place the label inside the element's own padding; one pair of words
+        // meant two geometries chosen by kind.
+        if (words[k] === 'side') {
+          if (!DG_SIDES.includes(words[k + 1])) {
+            add(ln, 'error', 'diagram-bad-edge', `edge ${edgeId}: side expects `
+                + `${DG_SIDES.join(' / ')}, got '${words[k + 1] ?? ''}'`);
+          }
+          k++;
           continue;
         }
+        // `pad` is the same sentence here it is on a box: how far the outline
+        // sits from what it encloses, which on an edge is the label's ground.
+        if (words[k] === 'pad') { k++; continue; }
+        // A token before any `via` is not a waypoint, so it is either one
+        // written without its keyword or a word this statement does not take.
+        // Skipping it, which is what this loop used to do, let `edge a -> b
+        // gap 0.3` through a gate the build refuses.
+        if (!seenVia) {
+          add(ln, 'error', 'diagram-bad-edge', words[k].includes(',')
+            ? `a waypoint needs 'via' in front of it – 'via ${words[k]}'`
+            : dgUnexpectedMsg('edge', edgeId, words[k]));
+          break;
+        }
+        if (!words[k].includes(',')) continue;
         waypoints++;
         referPair(words[k], ln, 'a waypoint');
       }

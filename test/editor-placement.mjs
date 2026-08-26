@@ -124,7 +124,7 @@ export async function run({ page, errors, report, walkTo, ed }) {
 
   // The waypoints first, at the beat where the curve is up: same reading, and
   // the same bug, one construct along.
-  const goodLine = () => ed.lineWith('#good');
+  const goodLine = () => ed.lineWith('edge good ');
   const viaBefore = await goodLine();
   const plotWaypoints = (l) => ((l || '').match(/@[\d.]+/g) || []);
   note('curve : ' + viaBefore);

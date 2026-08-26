@@ -146,5 +146,114 @@ export async function run({ page, errors, report, walkTo, ed }) {
   ok(await ed.selection() === 'box wa',
     'the owner chip is the way back to the statement', await ed.selection());
 
+  // ── a generated name must not become authored ─────────────────────
+  //
+  // `wa-1` is *positional*: it counts messages, so inserting one above it
+  // makes it something else. Anything the panel writes that pins it into the
+  // source turns a name the statement owns into a name the author now owns,
+  // and every later edit has to keep it true. `{#id}` used to be the way that
+  // happened; now the risk is the leading name slot, and the rule the panel
+  // follows is the compiler's `named` flag rather than the shape of the id.
+  const nameField = () => page.evaluate(() => {
+    const h = [...document.querySelectorAll('#dge-side h3')]
+      .find((x) => x.textContent.trim() === 'name');
+    const i = h && h.parentElement.querySelector('input');
+    return i ? { value: i.value, placeholder: i.getAttribute('placeholder') || '' } : null;
+  });
+  const setName = async (v) => {
+    await page.evaluate((val) => {
+      const h = [...document.querySelectorAll('#dge-side h3')]
+        .find((x) => x.textContent.trim() === 'name');
+      const i = h && h.parentElement.querySelector('input');
+      if (!i) return;
+      i.value = val;
+      i.dispatchEvent(new Event('change', { bubbles: true }));
+    }, v);
+    await page.waitForTimeout(430);
+  };
+
+  ok(await ed.clickPath(`${g('wa-1')} path.dg-stroke`), 'message 2 again');
+  ok(await ed.selection() === 'message wa-1', 'the message is selected', await ed.selection());
+  const idField = await nameField();
+  note('name field: ' + JSON.stringify(idField));
+  ok(!!idField && idField.value === '' && idField.placeholder === 'wa-1',
+    'an anonymous message shows its generated id as a placeholder and nothing as a value',
+    JSON.stringify(idField));
+
+  // A tail edit, which is the act that used to pin a name into the line.
+  await page.evaluate(() => {
+    const b = [...document.querySelectorAll('#dge-side .dge-chip')].find((x) => x.textContent.includes('+ tag'));
+    if (b) { window.prompt = () => 'probe'; b.click(); }
+  });
+  await page.waitForTimeout(430);
+  let seqMsg = await ed.lineWith('request registration options');
+  note('after a tag: ' + seqMsg);
+  ok(/@probe/.test(seqMsg || ''), 'the tag lands in the tail', seqMsg);
+  ok(/^\s*br\s+->\s+rp\b/.test(seqMsg || ''),
+    'and no name token appears in front of the first endpoint', seqMsg);
+  ok(!(await ed.problems()).includes('line '), 'the block compiles', await ed.problems());
+
+  // Naming it is the author's act, and it is one insertion in the slot the
+  // span table points at.
+  await setName('reqopts');
+  seqMsg = await ed.lineWith('request registration options');
+  note('named     : ' + seqMsg);
+  ok(/^\s*reqopts\s+br\s+->\s+rp\b/.test(seqMsg || ''),
+    'typing a name writes it in front of the from-token', seqMsg);
+  ok(await ed.selection() === 'message reqopts', 'and the selection follows it',
+    await ed.selection());
+  ok(!(await ed.problems()).includes('line '), 'the block compiles', await ed.problems());
+
+  await setName('reqopt2');
+  seqMsg = await ed.lineWith('request registration options');
+  ok(/^\s*reqopt2\s+br\s+->\s+rp\b/.test(seqMsg || ''), 'and renaming rewrites that token', seqMsg);
+
+  await setName('');
+  seqMsg = await ed.lineWith('request registration options');
+  ok(/^\s*br\s+->\s+rp\b/.test(seqMsg || ''),
+    'clearing an optional name takes the token off again', seqMsg);
+  ok(!/ {2}br/.test((seqMsg || '').replace(/^\s+/, ' ')),
+    'and leaves no double space behind', JSON.stringify(seqMsg));
+  ok(!(await ed.problems()).includes('line '), 'the block compiles', await ed.problems());
+
+  // ── a rename is one edit, declaration and references together ─────
+  //
+  // #seqmore is the figure that needs it: the brace is hung off the message's
+  // own name precisely because a generated one would wander. Renaming the
+  // message has to take the brace with it or the block stops compiling – which
+  // is the thing a text editor gets wrong and this control exists to get right.
+  await page.evaluate(() => dgeClose());
+  await page.waitForTimeout(400);
+  await walkTo('seqmore');
+  ok(await ed.open('seqmore'), 'the editor is open on #seqmore');
+  await ed.beat(0);
+  ok(await ed.clickPath('#dge-art-svg [id$="-tunnel"] path.dg-stroke'),
+    'the named message is on the canvas');
+  ok(await ed.selection() === 'message tunnel', 'and selects as itself', await ed.selection());
+  const named = await nameField();
+  ok(!!named && named.value === 'tunnel',
+    'a named message shows its own name as the value', JSON.stringify(named));
+
+  await setName('payload');
+  const msg2 = await ed.lineWith('encrypted tunnel');
+  const braceLine = await ed.lineWith('brace tun');
+  note('message: ' + msg2 + '\n    brace  : ' + braceLine);
+  ok(/^\s*payload\s+c\s+--\s+s\b/.test(msg2 || ''), 'the declaration is rewritten', msg2);
+  ok(/\bover payload\b/.test(braceLine || ''),
+    'and so is the line that names it, in the same edit', braceLine);
+  ok(/"encrypted tunnel, end to end"/.test(msg2 || ''),
+    'while the word inside the quoted label is left alone', msg2);
+  ok(!(await ed.problems()).includes('line '), 'the block compiles', await ed.problems());
+
+  // The three refusals, none of which touches the source.
+  const beforeBad = await ed.source();
+  await setName('c');
+  ok(await ed.source() === beforeBad, 'a name already taken is refused', await ed.lineWith('c --'));
+  await setName('2fast');
+  ok(await ed.source() === beforeBad, 'and so is one the grammar would not accept');
+  await setName('constructor');
+  ok(await ed.source() === beforeBad, 'and so is one that shadows Object.prototype');
+  ok(!(await ed.problems()).includes('line '), 'and the block was never broken', await ed.problems());
+
   ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

@@ -81,9 +81,11 @@ renaming it in `refresh-figures.mjs` and the run stops with an error.
 ## Two ways this breaks quietly, and the checks that catch them
 
 **A runtime that never ran looks like a design decision.** The attributes
-written into a finished diagram describe its last beat, because that is what a
-printed copy shows. So a page whose runtime failed to load displays every figure
-complete, with nothing in the console and nothing out of place. The first
+written into a finished diagram describe its last beat &ndash; carrying, in the
+one slot that differs, the prominence each element opened with rather than the
+prominence a beat lent it &ndash; because that is what a printed copy shows. So a
+page whose runtime failed to load displays every figure complete, with nothing
+in the console and nothing out of place. The first
 version of the lift cut the runtime out of the built page by line number; adding
 two chunks to the lecture moved it down one line and the slice ended in the
 middle of a function. `refresh-figures.mjs` now finds the runtime between

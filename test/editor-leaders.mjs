@@ -26,7 +26,12 @@ export async function run({ page, errors, report, walkTo, ed }) {
 
   const textLine = await ed.lineWith('a free label');
   note('the text statement: ' + textLine);
-  ok(/-> x/.test(textLine || ''), 'it really does carry a leader', textLine);
+  // `--` and not `->`. The leader takes the edge's own tokens now and means
+  // the same by them: `--` is the plain stub the corpus writes 29 times out of
+  // 29, `->` is a leader that points and draws a head. It used to be `->` for
+  // the plain one, drawing no head, with `--` refused – one token, two meanings
+  // chosen by which statement it sat on.
+  ok(/ -- x/.test(textLine || ''), 'it really does carry a leader', textLine);
 
   // The stub is drawn, so it has a path in the canvas and a clickable line.
   const hasStub = await page.evaluate(() =>
@@ -57,5 +62,83 @@ export async function run({ page, errors, report, walkTo, ed }) {
     JSON.stringify(whole.split('\n').filter(l => l.startsWith('box'))));
 
   ok(!(await ed.problems()).includes('line '), 'the block still compiles', await ed.problems());
+
+  // ── the leader's own token, as a control ──────────────────────────
+  //
+  // `--` and `->` mean on a leader what they mean on an edge, so a leader that
+  // points is expressible – and the panel is where it has to be expressible
+  // from, because the token has no element of its own to select. The row is
+  // hidden unless *every* selected element has a leader, it acts on all of
+  // them in one transaction, and it writes through the recorded span rather
+  // than by looking for arrow-shaped text: this block holds three edges and a
+  // label with a `\n` in it, all of which a regex would have found.
+  const leaderRow = () => page.evaluate(() => {
+    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+      .find((x) => x.querySelector('b') && x.querySelector('b').textContent === 'leader');
+    if (!s) return null;
+    return [...s.querySelectorAll('.dge-sw')].map((b) =>
+      b.textContent + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')
+      + (b.disabled ? '!' : ''));
+  });
+  const clickLeader = async (text) => {
+    await page.evaluate((t) => {
+      const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+        .find((x) => x.querySelector('b') && x.querySelector('b').textContent === 'leader');
+      const b = s && [...s.querySelectorAll('.dge-sw')].find((x) => x.textContent === t);
+      if (b) b.click();
+    }, text);
+    await page.waitForTimeout(420);
+  };
+  const pickRow = async (name) => {
+    await page.evaluate((n) => {
+      const row = [...document.querySelectorAll('#dge-side .dge-list button .dge-nm')]
+        .find((b) => b.textContent === n);
+      if (row) row.closest('button').click();
+    }, name);
+    await page.waitForTimeout(320);
+  };
+
+  await ed.beat(0);
+  await pickRow('n');
+  ok(await ed.selection() === 'text n', 'the annotated text is selected', await ed.selection());
+  const row0 = await leaderRow();
+  note('leader row: ' + (row0 ? row0.join(' ') : '(absent)'));
+  ok(!!row0 && row0.length === 2, 'the row offers two choices and not four – a leader has a '
+    + 'fixed subject, so <- and <-> have nothing to say', row0 ? row0.join(' ') : '(absent)');
+  ok(!!row0 && row0.includes('plain*'), 'with the one the source writes pressed',
+    row0 ? row0.join(' ') : '(absent)');
+
+  const edgesBefore = (await ed.source()).split('\n').filter((l) => /^edge /.test(l));
+  const stubClass = () => page.evaluate(() => {
+    const g = document.querySelector('#dge-art-svg [id$="n--lead"]');
+    return g ? (g.getAttribute('class') || '') : '(not found)';
+  });
+  ok(/\bno-head\b/.test(await stubClass()), 'and the stub is drawn without one', await stubClass());
+
+  await clickLeader('points');
+  const pointed = await ed.lineWith('a free label');
+  ok(/ -> x/.test(pointed || ''), 'clicking "points" rewrites the leader token', pointed);
+  ok(!(await ed.problems()).includes('line '), 'and the block compiles', await ed.problems());
+  ok(/\bone-head\b/.test(await stubClass()), 'and the stub now draws a head', await stubClass());
+
+  // The three `edge` statements in this block carry the same tokens, and the
+  // label carries a quoted one nowhere near them. One transaction, one span.
+  ok(JSON.stringify((await ed.source()).split('\n').filter((l) => /^edge /.test(l)))
+    === JSON.stringify(edgesBefore), 'and no edge statement in the block moved',
+    JSON.stringify((await ed.source()).split('\n').filter((l) => /^edge /.test(l))));
+
+  await clickLeader('plain');
+  ok(/ -- x/.test((await ed.lineWith('a free label')) || ''), 'and back again',
+    await ed.lineWith('a free label'));
+  ok(!(await ed.problems()).includes('line '), 'still compiling', await ed.problems());
+
+  // Hidden, not disabled, for a selection that is not all leaders: the row
+  // acts on every selected line at once, so a mixed one would be a click that
+  // means something for half of it.
+  await page.evaluate(() => dgeSelect(['n', 'b']));
+  await page.waitForTimeout(320);
+  ok((await leaderRow()) === null, 'a selection holding something with no leader gets no row',
+    JSON.stringify(await leaderRow()));
+
   ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

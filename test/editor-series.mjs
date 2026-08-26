@@ -139,17 +139,26 @@ export async function run({ page, errors, report, walkTo, ed }) {
   ok(!/stacked/.test(line || ''), 'and it takes the word off again', line);
   ok(!/  series of a  /.test(line || ''), 'without leaving a double space behind', line);
 
-  // ── emph and calm, the two lists ──
+  // ── the prominence lists: one dial, three words, the same three
+  // everywhere. `calm` used to be the second of them – a name with no class
+  // behind it, and `ghost` had no field at all. ──
   ok(await numField('emph', '1,2'), 'the emph field is there');
   await page.waitForTimeout(400);
   line = await ed.lineWith('bars a2');
   note('emph   : ' + line);
   ok(/emph 1,2\b/.test(line || ''), 'and writes the whole list', line);
-  ok(await numField('calm', ''), 'and calm can be cleared');
+  ok(await numField('dim', ''), 'and dim can be cleared');
   await page.waitForTimeout(400);
   line = await ed.lineWith('bars a2');
-  note('calm   : ' + line);
-  ok(!/calm/.test(line || ''), 'which takes the keyword with it', line);
+  note('dim    : ' + line);
+  ok(!/\bdim\b/.test(line || ''), 'which takes the keyword with it', line);
+  ok(await numField('ghost', '0'), 'and ghost, which the pair never offered');
+  await page.waitForTimeout(400);
+  line = await ed.lineWith('bars a2');
+  note('ghost  : ' + line);
+  ok(/\bghost 0\b/.test(line || ''), 'is a field of its own now', line);
+  ok(await numField('ghost', ''), 'and clears the same way');
+  await page.waitForTimeout(400);
 
   // ── the class tail, offered for a box, because a column is one ──
   ok(await swatch('.tone-1'), 'a fill swatch is offered');

@@ -165,27 +165,39 @@ export async function run({ page, errors, report, walkTo, ed }) {
   await leave();
 
   // ── the same gap a sibling already has ──
-  // #look is the figure to do this on, because its gaps are 0.28, 0.34, 0.62,
-  // 0.72 – none of them on the 0.05 grid. A number the grid snap could also
-  // have produced would prove nothing.
+  // #look is the figure to do this on because its row labels sit at gaps of
+  // their own beside three rows of siblings, so there is always another gap in
+  // reach. **The number is read off the guide's own label rather than written
+  // out here**, and then looked for in the source on a line that is not this
+  // one: the property is that the drag lands on a number a sibling already
+  // carries, not that it lands on any particular number. Pinning it to a
+  // constant made the spec a statement about the lecture – when #look was
+  // rebuilt the gaps moved, and a passing editor started failing.
   await walkTo('look');
   ok(await ed.open('look'), 'the editor is open on #look');
   await ed.beat(0);
   ok(await pick('tl') === 'text tl', 'the family label is selected', await ed.selection());
   const gapBefore = await ed.lineWith('text tl');
-  ok(/gap 0\.72/.test(gapBefore || ''), 'and starts at gap 0.72', gapBefore);
+  const gapOf = (l) => ((l || '').match(/ gap ([\d.]+)/) || [])[1] || null;
+  ok(!!gapOf(gapBefore), 'and it is held by a gap of its own', gapBefore);
 
   seen = await dragCells('tl', 0.1, 0);
   note('labels : ' + JSON.stringify(seen.labels));
   note('status : ' + seen.note);
   ok(seen.n >= 1, 'the sibling gap lights up', String(seen.n));
-  ok(seen.labels.some((t) => t === 'gap 0.62'),
-    'marked on the sibling that already has it', JSON.stringify(seen.labels));
+  const marked = ((seen.labels.find((t) => /^gap [\d.]+$/.test(t)) || '').match(/[\d.]+/) || [])[0];
+  ok(!!marked && marked !== gapOf(gapBefore),
+    'marked on the sibling that already has it, and it is not this element’s own number',
+    JSON.stringify(seen.labels));
   ok(/the same gap \w+ has/.test(seen.note), 'and the status bar says whose', seen.note);
   const gapAfter = await ed.lineWith('text tl');
   note('after  : ' + gapAfter);
-  ok(/gap 0\.62\b/.test(gapAfter || ''),
-    'the gap lands on the sibling’s number exactly – 0.62 is not on the 0.05 grid', gapAfter);
+  ok(gapOf(gapAfter) === marked,
+    'the gap lands on exactly the number the guide named', gapAfter + ' vs ' + marked);
+  const alsoCarried = await page.evaluate((g) => DGE.source.split('\n')
+    .filter((l) => !/^text tl\b/.test(l.trim()) && l.includes(' gap ' + g)).length, marked);
+  ok(alsoCarried > 0,
+    'and it really is a number some other line in the block carries', String(alsoCarried));
   ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());
 
   // ── the line joining two elements ──

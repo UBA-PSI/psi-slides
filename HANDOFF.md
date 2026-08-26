@@ -22,9 +22,11 @@ Datei, die das Kommando selbst gelöscht hatte. Drei Cluster dahinter:
   die eine Tauschfunktion für beide Pfade und zieht die Fokus-Karte nach.
 - **Lint und Compiler widersprachen sich in beide Richtungen** – strenger
   (geschweifte Klammern in Labels), laxer (kind-gated Refusals, `point`,
-  reservierte Ids, @tags auf default/step-Zeilen). `rejectShapeOn` /
-  `rejectAlignOn` werden jetzt importiert; CI lintet die Diagramm-
-  Vorlesungen nur und baut sie nie, also war „laxer" der gefährliche Fall.
+  reservierte Ids, @tags auf default/step-Zeilen). Die Refusal-Funktionen werden jetzt
+  importiert (heute `rejectClassOn` und `rejectSlotPair`, mit
+  `rejectShapeOn` / `rejectAlignOn` als Einzeiler davor); CI lintet die
+  Diagramm-Vorlesungen nur und baut sie nie, also war „laxer" der
+  gefährliche Fall.
 - **Parser-Löcher der Sorte, die die DSL selbst schließt** – `at 3,` war
   still 0, `between …` fraß die neuen Optionen als Member, `constructor`
   als Id brach die Runtime zur Laufzeit, ein Video hinter `image` baute
@@ -113,7 +115,10 @@ Was dabei zusätzlich aufgefallen ist und mitrepariert wurde:
   dieselbe Selektorform benutzt; die relative Reihenfolge stimmt dann wieder.
 - Der Druck strippte `emph`/`dim` unbedingt. Ein vom **Autor** geschriebenes
   `{.dim}` ist aber eine Aussage über die Zeichnung, kein Moment im Vortrag.
-  Jetzt merkt sich der Zustand, wer es gesetzt hat.
+  Damals über ein Provenienz-Flag gelöst – inzwischen ersetzt, siehe die
+  Vokabular-Revision weiter unten: Der Druck nimmt die Prominenz eines
+  Elements aus dem **Eröffnungstakt**, also aus der Zeile des Elements
+  selbst.
 - Eine Säule ohne Beschriftung warnte, ihre Beschriftung laufe über.
 
 **`figure-design.md`** ist der zweite Ertrag und vielleicht der haltbarere:
@@ -773,7 +778,7 @@ Sonderbehandlung irgendwo.
   gehören, dem es beitritt. Als eigenes Statement geschrieben und nicht in den
   Werte-String gefaltet, aus zwei Gründen: **jede Serie hat so ihren eigenen
   Attribut-Tail**, und die generierten Namen bleiben flach (`f-0`, `g-0`)
-  statt bedingt zweistufig zu werden. Dazu `emph 1,3` / `calm 4` auf jeder
+  statt bedingt zweistufig zu werden. Dazu `emph 1,3` / `dim 4` / `ghost 0` auf jeder
   `bars`-Zeile, die Spaltenindizes nehmen – vorher konnte eine Spalte erst ab
   Beat 1 hervorgehoben werden und nie im Eröffnungsbild.
 - **`.diamond`** – der Umriss, den ein Raum seit der Schule als „hier wird
@@ -808,7 +813,82 @@ Die neue Prüfung darauf fand sofort **zwölf Kanten in
 `lectures/network-security`**, die seit jeher einen Namen trugen, den der
 Compiler verworfen hat (`edge w1 ext -- fw.left`). Sie sind zu `{#w1}`
 geworden statt gelöscht – der Autor meinte sie ja. Merke: `2>&1` beim Prüfen,
-sonst sieht ein harter Build-Fehler aus wie ein sauberer Lauf.
+sonst sieht ein harter Build-Fehler aus wie ein sauberer Lauf. (Die
+Namensfrage hat die Vokabular-Revision unten noch einmal aufgemacht und
+anders beantwortet: Der Name steht jetzt **vor** dem From-Token, genau in dem
+Slot, den diese zwölf Zeilen die ganze Zeit benutzt haben.)
+
+## Vokabular-Revision: ein Wort, eine Bedeutung – und das Umgekehrte
+
+`revision-proposal.md`, umgesetzt und in `revision-implementation.md`
+protokolliert. Der Anlass war nicht Ästhetik, sondern eine Zählung: Vier
+Wortpaare hatten je zwei Bedeutungen und drei Kanäle hatten je zwei
+Schreibweisen. Beides kostet an derselben Stelle – jemand (ein Mensch, ein
+Sprachmodell, der Editor) muss den Unterschied einzeln lernen.
+
+Was sich am Quelltext ändert, kurz:
+
+- `align` in einer Platzierung heißt **`flush`**; die *Anweisung* behält
+  `align`. Das Mittelwort ist auf beiden Achsen **`middle`**; `center` bleibt
+  als Anker.
+- Der Tick-Abstand eines `plot` heißt **`tick`**, nicht `step` – `step` ist
+  die Anweisung, die einen Takt aufmacht.
+- `h` heißt **`row`** auf `table`, **`band`** auf `lanes`, **`header`** auf
+  `sequence`, weil es dort die Höhe *einer* Zeile/Bahn/Kopfbox war und nicht
+  die des Ganzen. `w` auf einer `table` ist jetzt der Rahmen.
+- Die Seite einer `brace` und die Seite eines Kantenlabels sind beide
+  **`side <wort>`**. Die vier Ausrichtungsklassen gelten nur noch da, wo sie
+  ein Label *innerhalb* eines Elements setzen.
+- `calm` ist weg. Prominenz ist **ein Kanal mit drei Namen in drei
+  Positionen**: Klasse (`{.dim}`), Schrittverb (`dim a`), `bars`-Option
+  (`dim 0,2`). `ghost` hat damit endlich ein Verb.
+- `{#id}` ist weg. Der Name eines Elements steht vorn; `edge` und eine
+  `sequence`-Nachricht nehmen ihn optional **vor** dem From-Token.
+- **`{!klasse}` nimmt eine Klasse weg** – im Tail, im `default`, im `style`.
+  Zwei Figuren im Korpus sind ohne das Zeichen nicht ehrlich schreibbar, und
+  beide wurden von anderen Prüfungen gefunden, nicht für das Zeichen erfunden.
+- Vier Pfeiltoken, `-- -> <- <->`, und **jedes setzt eine Kopfklasse**.
+  Vorher setzte `->` gar nichts, der Kopf kam als Zeichen-Default – also
+  entschied die Reihenfolge, welches Token gewinnt. Kopfklassen sind im Tail
+  und im `default edge` jetzt verboten und nur in einem `style`-Schritt
+  erlaubt.
+- Ein Leader auf `text`/`image` nimmt **`--`** (schlicht) und **`->`**
+  (zeigend). Vorher hieß dasselbe Token auf einer Kante „Kopf" und auf einem
+  Text „kein Kopf".
+- **`gap` ist quadratisch**, gemessen in `uh`, wie jede andere Freistellung.
+  Über den Korpus gemessen war `gap 1` quer im Median **2,9-mal** so weit wie
+  `gap 1` längs – ohne dass irgendetwas in der Quelle das sagt. `space` auf
+  `bars` und `table` genauso. Die Regel dahinter: *Eine Zahl, die das Raster
+  adressiert, ist achsengebunden; eine Zahl, die einen Abstand freistellt,
+  ist quadratisch, und ihr Maß ist eine Zeile.*
+- Der Druck nimmt die Prominenz eines Elements aus dem **Eröffnungstakt**.
+  Ein Satz: *Eine Prominenzklasse auf der Zeile eines Elements gehört zur
+  Zeichnung und steht im Handout; eine Prominenz, die ein `step` setzt, ist
+  eine Vortragshandlung und steht nicht drin.*
+- Eine Klasse ist auf einer Art genau dann erlaubt, wenn diese Art etwas
+  malt, das sie erreichen kann (`DG_CLASS_KINDS` + `rejectClassOn`), und zwei
+  Klassen aus einem Slot in einem Tail sind ein **Fehler**. Die Art-Prüfung
+  läuft zuerst, sonst bekommt eine Kante mit zwei Umrissklassen die Antwort
+  „ein Element hat einen Umriss", was von einer Kante falsch ist.
+- Probleme tragen eine **Phase** und werden nach Phase sortiert, nie nach
+  Zeile. Ein Syntaxfehler *erzeugt* hängende Referenzen, umgekehrt nie – also
+  ist die Ursache immer in der früheren Phase. Für den Editor ist das der
+  ganze Unterschied: Der zeigt genau ein Problem an.
+
+Zwei Dinge, die beim Migrieren wehtaten und die man wissen sollte. Erstens:
+**Eine Migration braucht ein Invariant, das nicht „der Quelltext sieht richtig
+aus" ist.** Zwei Rewrites haben beim Token-Entfernen Whitespace kollabiert –
+und zwar bis **in Anführungszeichen hinein**, aus `"M, T   replay"` wurde
+`"M, T replay"`. Der Diff sah korrekt aus, der Build lief, `lint.js` war
+sauber, die Zeichnung war eine Zeichnung. Gefunden hat es nur ein Snapshot des
+gedruckten SVG, der sich um ein `<tspan>` unterschied. Seitdem zählt ein
+zweites Gate jede Zeichenkette pro Zeile vorher/nachher.
+
+Zweitens: **Der Korpus ist vier Dateien, nicht drei.** Das Proposal hat
+`lectures/tutorial` übersehen – sechs kompilierte Blöcke, und ausgerechnet die
+eine Vorlesung, die `pages.yml` bei jedem Push auf `main` baut und
+veröffentlicht. Eine Migration, die sie auslässt, liefert ein Tutorial aus,
+das der Sprache widerspricht, die es unterrichtet.
 
 ## Gaps / Bekannte Limits
 

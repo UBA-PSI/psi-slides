@@ -46,6 +46,16 @@ jobs:
           # A 39-line lecture, published so a reader can take in one whole
           # source at a glance. The screenshots come from python-intro.
           node build.js docs/site/example/source.md
+          # Built although they are not published, because they are linted.
+          # A line the build refuses and the linter passes merges green and
+          # fails every later build - and the two lectures that were linted
+          # and never built are the two largest bodies of real figures in the
+          # repository. `lint.js` is deliberately the laxer of the pair (it
+          # computes no geometry and cannot expand a tag), so linting alone is
+          # not a gate on anything the compiler decides.
+          node build.js lectures/network-security/source.md
+          node build.js lectures/diagrams/source.md
+          node build.js docs/artifact/figure-rules/source.md
 
       - name: Assemble the site
         run: |

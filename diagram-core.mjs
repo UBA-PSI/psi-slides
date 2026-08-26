@@ -146,12 +146,19 @@ export const DG_CLASSES = new Set([
   // the two waypoints every tree edge was written with by hand, said once.
   // An edge that needs its rail somewhere else writes `via`, and saying both
   // is an error rather than a silent preference.
-  'no-head', 'both-heads', 'smooth', 'elbow', 'front',
-  // prominence. `.emph` and `.dim` are what a step sets when it says `emph`
-  // or `calm`, and both are authorable as an initial state too. `.ghost` is
-  // the softer of the two retreats and belongs here rather than with the
-  // fills it used to be listed among: it paints nothing, it sets the same
-  // opacity `.dim` does, one notch back.
+  // The three arrowhead states. **An author does not normally write one of
+  // these**: the arrow token states the head, and one of the three is seeded
+  // from it, so a head class on an element's own tail or in a `default edge`
+  // block is refused. They exist because a token cannot be re-run in a beat,
+  // and a `style` step genuinely does change arrowheads – which is why the
+  // slot survives and only its scope narrowed. See DG_ARROW_CLASS.
+  'no-head', 'one-head', 'both-heads', 'smooth', 'elbow', 'front',
+  // prominence – one channel, and these three names are also the three verbs a
+  // `step` has for it and the three words a `bars` line takes. `.ghost`
+  // belongs here rather than with the fills it used to be listed among: it
+  // paints nothing, it sets the same opacity `.dim` does, one notch back. The
+  // fourth state is the absence of all three and has no name on purpose;
+  // `{!emph}` is how one comes off. See DG_PROMINENCE.
   'emph', 'dim', 'ghost',
 ]);
 // Classes that occupy the same slot. Needed only for the default block,
@@ -165,6 +172,12 @@ export const DG_CLASSES = new Set([
 // fill (dgHasFill says so) but it is an answer to the same question, and a
 // default that stacked on top of it would paint the thing the author took off.
 export const DG_FILL_SLOT = ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper'];
+// Prominence – how much of a room's attention an element is asking for. One
+// channel, four visual states: an unnamed normal plus these three. This *is*
+// the prominence slot in DG_CLASS_GROUPS, and it is also the step-verb list and
+// the words a `bars` line takes, so learning one teaches the other. Returning
+// to the unnamed normal is `{!emph}` / `{!dim}` / `{!ghost}`, not a fourth word.
+export const DG_PROMINENCE = ['emph', 'dim', 'ghost'];
 export const DG_CLASS_GROUPS = [
   DG_FILL_SLOT,                               // fill
   ['accent', 'muted'],                        // ink
@@ -187,13 +200,22 @@ export const DG_CLASS_GROUPS = [
   // came out with an emphasis stroke drawn at 30% – the author's explicit
   // choice silently losing to the default, which is the exact failure the
   // table exists to prevent.
-  ['emph', 'dim', 'ghost'],                   // prominence
-  // arrowheads – which ends of a line carry one. The emitter read the two as
+  DG_PROMINENCE,                              // prominence
+  // arrowheads – which ends of a line carry one. Two things were wrong here
+  // and the second was hidden by the first. The emitter read the members as
   // independent booleans, so the pair drew the opposite of one of them: no
   // head at the end, a head at the *start*, and the stroke pulled back there
-  // to make room for it. `headed` is derived from `both` now, so one channel
+  // to make room for it. `headed` is derived from `both` now, so the channel
   // is resolved once, the way dgOpacity() resolves prominence.
-  ['no-head', 'both-heads'],                  // arrowheads
+  //
+  // Three members for three states. Two members for three states is what made
+  // this channel incoherent: `->` seeded *nothing at all* – the head arrived as
+  // the drawn default – so precedence depended on which token was written, and
+  // `default edge {.no-head}` beat a written `->` while a written `--` beat
+  // `default edge {.both-heads}`. Every token seeds a class now, so every edge
+  // states this channel explicitly and no default can ever win: which is why a
+  // head class in a `default edge` block is refused rather than ranked.
+  ['no-head', 'one-head', 'both-heads'],      // arrowheads
 ];
 // Pairs that are not one slot – they act on different channels, so a shared
 // slot would be a lie – but where one of the two still ends up doing nothing
@@ -385,14 +407,62 @@ export const DG_RESERVED_IDS = new Set(Object.getOwnPropertyNames(Object.prototy
 export const DG_SCALAR_X = new Set(['cx', 'left', 'right']);
 export const DG_SCALAR_Y = new Set(['cy', 'top', 'bottom']);
 
-export const DG_STEP_OPS = new Set(['show', 'hide', 'move', 'emph', 'calm', 'style', 'label']);
+// What a `step` may be called. Exported because the editor's rename field
+// imports it rather than paraphrasing it – the two used to state the rule
+// separately and only the panel stated it at all.
+export const DG_STEP_NAME = /^[A-Za-z_][\w-]*$/;
+// The step verbs. Prominence is spliced in from DG_PROMINENCE rather than
+// listed, because the three words *are* the class list: `emph` sets `.emph`,
+// `dim` sets `.dim`, `ghost` sets `.ghost`, and the same three name columns on
+// a `bars` line. Before this the verb for `.dim` was `calm` – a word that
+// existed nowhere else in the grammar, had no class behind it, and was not
+// derivable from anything a reader had already learned – and `.ghost` had no
+// verb at all, so a beat could reach it only through `style`.
+export const DG_STEP_OPS = new Set(['show', 'hide', 'move', ...DG_PROMINENCE, 'style', 'label']);
 export const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence', 'align', 'spread', 'default', 'step']);
 // The three shapes a line inside a `sequence` may take. They are not
 // statements – they mean nothing anywhere else – so they stay out of
 // DG_KEYWORDS and a stray one is reported as what it is: an entry that lost
 // its sequence. The linter says exactly that.
 export const DG_SEQ_ENTRIES = new Set(['actor', 'note']);
-export const DG_SEQ_ARROWS = new Set(['->', '<-', '--']);
+// The arrow tokens, in one table per site that takes one. An `edge` and a
+// `sequence` message must agree – CLAUDE.md's rule is that a message *is* an
+// edge, so nothing about arrow styles is new vocabulary there – and the `text`
+// / `image` leader takes a stated subset, because it names one operand rather
+// than two.
+export const DG_EDGE_ARROWS = new Set(['->', '<-', '--', '<->']);
+// Which head state each token states. The arrow token is the one class channel
+// every edge is *forced* to speak on – it is the operand separator, so no edge
+// can be written without one – and that single fact settles all three scopes:
+// the element's own tail refuses a head class because the token already said
+// it, a `default edge` block refuses one because there is nothing left to
+// default, and a `style` step is the only place one may be written, because a
+// token cannot be re-run in a beat.
+export const DG_ARROW_CLASS = { '--': 'no-head', '->': 'one-head', '<-': 'one-head', '<->': 'both-heads' };
+export const DG_HEAD_CLASSES = ['no-head', 'one-head', 'both-heads'];
+// Refuse a head class where it can only duplicate or fail to arrive. Reads the
+// **written tail**, never the resolved class set – load-bearing, because the
+// arrow token injects one of the three into `edge.classes` after the tail has
+// been parsed, so a resolved-set check would refuse every edge in the corpus.
+export function rejectHeadClassIn(where, classes, lineNo, errors) {
+  for (const c of classes || []) {
+    if (!DG_HEAD_CLASSES.includes(c)) continue;
+    dgErr(errors, lineNo, where === 'default'
+      ? `.${c} in a "default edge" block can never act – every edge carries an arrow token, `
+        + 'and the token states which ends have a head. There is nothing left for a default '
+        + 'to say. Write the token you want on the edges themselves.'
+      : `.${c} says what the arrow token already said – write "--" for no head, "->" or "<-" `
+        + 'for one, "<->" for a head at each end. The class is how a `style` step changes it '
+        + 'in a beat, which is the one place a token cannot be re-run.', 'semantic');
+  }
+}
+// The same four on a message, because a message *is* an edge – so nothing about
+// arrow styles is new vocabulary there. Adding `<->` here is also a diagnostics
+// fix and not only a vocabulary one: a token this sub-grammar does not know
+// drops the line out of the entry run, and the run's own recovery message then
+// fires on every line beneath it, so one guessable token cost three errors,
+// none of which contained the string it was about.
+export const DG_SEQ_ARROWS = new Set(['->', '<-', '--', '<->']);
 // What a `grid` may repeat. Not `text` – a grid of identical words is a
 // paragraph, and not `edge`, which has two ends rather than a cell.
 export const DG_GRID_KINDS = new Set(['box', 'dot', 'image']);
@@ -532,7 +602,7 @@ export function dgResolvePlotCoords(model, plots, errors) {
           + (kind === 'plot'
             ? `but the plot statement for ${c.ref} did not compile – fix the error on its own line first`
             : kind
-              ? `but ${c.ref} is a ${kind}, not a plot`
+              ? `but ${c.ref} is ${dgArticle(kind)} ${kind}, not a plot`
               : `but no plot of that name is declared in this block`));
       }
       return { unit: 0 };
@@ -562,33 +632,79 @@ export function dgResolvePlotCoords(model, plots, errors) {
 // near-synonyms in English, the axis is not in the word, and aligning the
 // wrong one is legal, silent, and moves a whole block into the next column.
 // It also matches `spread x|y`, which named its axis from the start.
-export const DG_ALIGN_X = new Set(['left', 'center', 'right']);
+// One centre word on both axes, and it is `middle`. The split was `center` on
+// x and `middle` on y, with a design comment defending it – but the axis is
+// named on the line (`align x …`) and the *word* encoded it a second time, so
+// the redundancy bought nothing and was then enforced as an error: `align x
+// middle` was refused although nothing about it is ambiguous. `middle` rather
+// than `center` because it is already 6x more common in the corpus, and because
+// it sidesteps the center/centre question in a repo whose prose, comments and
+// editor labels are en-GB.
+//
+// `center` stays in DG_ANCHORS. `q.center` is the direct, learnable name for
+// the centre of one element and it is a different grammatical slot; removing a
+// familiar spelling for internal vocabulary purity would make ordinary source
+// harder to read.
+export const DG_ALIGN_X = new Set(['left', 'middle', 'right']);
 export const DG_ALIGN_Y = new Set(['top', 'middle', 'bottom']);
 export const DG_DEFAULT_KINDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'container', 'brace']);
 // What `default <kind>` may set, per kind: exactly the geometric options that
 // kind's own statement accepts. Anything else used to parse and then do
 // nothing – `default box r 5` is not an error anyone can see, and a silent
 // no-op is the failure mode this DSL keeps closing.
-export const DG_BRACE_SIDES = ['right', 'left', 'top', 'bottom'];
+// The four sides, shared by a brace's spine and an edge's label, because they
+// are one concept: which side of the thing the label or the spine sits on.
+export const DG_SIDES = ['right', 'left', 'top', 'bottom'];
+export const DG_BRACE_SIDES = DG_SIDES;
 // `pad` on a box or a text is the same sentence it already is on a container
 // and a brace – how far the outline sits from what it encloses – so it needs
 // no keyword of its own. One number in grid units, and like the container's
 // it is measured in *uh* on both axes, or the same word would mean two
 // different distances depending on which statement it sat on.
 export const DG_KIND_OPTS = {
-  box: ['w', 'h', 'pad'], text: ['w', 'h', 'pad'], image: ['w', 'h'], dot: ['r'],
-  container: ['pad'], brace: ['pad'], edge: ['pad'],
+  box: ['w', 'h', 'pad', 'point'], text: ['w', 'h', 'pad'], image: ['w', 'h'], dot: ['r'],
+  container: ['pad'],
+  // `side <word>` rather than a bare positional word. It was the last bare
+  // option in the statement grammar – a lone `left` among keyed options, whose
+  // position on the line was free, and one of the same four words item 5 is
+  // separating. `side` is also what an edge's label now takes, and the two are
+  // one concept: which side of the thing the label or the spine sits on.
+  brace: ['pad', 'side'],
+  // `side` names which side of the routed line the label sits on. It was the
+  // four alignment *classes*, which on a `box`, `dot` or free `text` place the
+  // label inside the element's own padding and are two independent channels –
+  // so the same four words meant two geometries chosen by kind, and `{.top
+  // .left}` on an edge was writable although an edge has one side to pick.
+  // This follows the precedent `point` set: a chevron aimed up is the same
+  // shape aimed differently, and a class per shape per direction would
+  // quadruple a closed list.
+  edge: ['pad', 'side'],
   // Not reachable from a `default` block – these two are not element kinds,
   // they are statements that expand into element kinds, and the elements they
   // produce take their defaults from `default box` like any other box. The
   // table is here because the linter reads it to check option names.
-  // `emph` and `calm` here take a list of column numbers, and they mean on
-  // the line what they already mean in a step. Without them a column could be
-  // singled out from beat 1 onwards and never in the opening picture, which is
-  // exactly where a chart usually wants one column to stand out.
-  bars: ['w', 'h', 'space', 'emph', 'calm', 'aspect'], grid: ['cell', 'space'],
-  plot: ['w', 'h', 'step', 'x', 'y', 'aspect'],
-  table: ['w', 'h', 'space', 'col'], lanes: ['w', 'h'],
+  // The three prominence words here take a list of column numbers, and they
+  // mean on the line what they already mean in a step and in a class. Without
+  // them a column could be singled out from beat 1 onwards and never in the
+  // opening picture, which is exactly where a chart usually wants one.
+  bars: ['w', 'h', 'space', ...DG_PROMINENCE, 'aspect'], grid: ['cell', 'space'],
+  // `tick 0.2` reads as "a tick every 0.2", which is what it does. It was
+  // `step`, which is also the statement that opens a beat – one word, two
+  // grammatical roles, and the worse pair of the three this revision unpicked,
+  // because the roles are not two parts of speech but a *statement* and an
+  // *option*: a reader scanning a block for its beats had to know that a `step`
+  // mid-line on a `plot` was not one. `tick` and not `ticks` because the value
+  // is an interval rather than a count.
+  plot: ['w', 'h', 'tick', 'x', 'y', 'aspect'],
+  // `row`, `band` and `header` rather than `h`. On a box, a text, an image, a
+  // `bars` and a `plot`, `h` is the element's height; on these three it was the
+  // height of **one** row, band or actor head, so an author reading `h` as "how
+  // tall" was wrong by a factor of the row count – silently, and in the
+  // direction that still draws a plausible picture. The per-unit number keeps
+  // the property these three statements exist for (insert a row and nothing
+  // else moves) and now says its own unit. `header` and not `head`, because a
+  // sequence is full of arrowheads.
+  table: ['w', 'row', 'space', 'col'], lanes: ['w', 'band'],
   // A sequence sizes itself from its own type: the heads are as wide as the
   // widest actor name and as tall as the tallest, and every band is as tall as
   // what stands in it. So all three numbers are overrides and none is normally
@@ -596,7 +712,7 @@ export const DG_KIND_OPTS = {
   // columns; `h` is the height of one head; `space` is the vertical rhythm,
   // and it is `space` rather than `gap` for the reason it is everywhere else –
   // `gap` on this very line is the distance to another element.
-  sequence: ['w', 'h', 'space'],
+  sequence: ['w', 'header', 'space'],
   // A sequence's three entries, which are statements of their own on lines of
   // their own – so the panel reads its controls off them rather than off the
   // `box` and the `edge` they expand into, which take `w`, `h` and `pad` and
@@ -604,15 +720,42 @@ export const DG_KIND_OPTS = {
   // this entry, overriding the statement's rhythm for one band: the way a
   // dense protocol is broken into phases. An actor has no band above it, so
   // it takes nothing.
-  actor: [], note: ['space'], message: ['space'],
+  actor: [], note: ['space'], message: ['space', 'side'],
 };
 // Options whose value is a comma list rather than one number. `col 1.5,0.9,1.9`
 // is one width per column, and reading it with dgNum would report the whole
 // string as "not a number" instead of saying which column is wrong.
-export const DG_LIST_OPTS = new Set(['col', 'emph', 'calm']);
+export const DG_LIST_OPTS = new Set(['col', ...DG_PROMINENCE]);
 export const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid units
 
-export function dgErr(errors, line, msg) { errors.push({ line, msg }); }
+// Which pass a problem came from, in causal order. A syntax failure can
+// *manufacture* a dangling reference – `above of a` binds `of` as a name, a
+// container's member scan swallows a mistyped option, an `edge` with nothing
+// before its arrow reads the keyword as an endpoint – and the reverse never
+// happens, because a name that is merely absent cannot break a line's shape.
+// So the cause is always in the earlier phase, and reporting in that order is
+// a statement about causality rather than a preference.
+//
+// **Nothing sorts by line.** A line number is not evidence about cause, and
+// sorting by it puts the manufactured symptom first whenever the statement
+// that manufactured it sits further down the block. Within a phase the sort
+// is stable, so push order survives – and push order already means "the
+// parser met this one first".
+//
+// This matters far more to the editor than to a terminal. `dgeSetSource`
+// rolls a refused edit back and shows `problems[0]` and nothing else, so
+// whichever problem lands first *is* the whole message a panel user gets.
+export const DG_PHASES = ['syntax', 'reference', 'semantic', 'layout'];
+export function dgErr(errors, line, msg, phase = 'syntax') { errors.push({ line, msg, phase }); }
+// Stable-sort a problem list into phase order. Exported because lint.js
+// reports the same problems from its own mirrored parser.
+export function dgSortProblems(errors) {
+  const rank = (e) => {
+    const i = DG_PHASES.indexOf(e.phase || 'syntax');
+    return i < 0 ? 0 : i;
+  };
+  return errors.sort((a, b) => rank(a) - rank(b));
+}
 
 // Layout runs once per step, so the same complaint would otherwise be
 // printed once per frame. Reset per build alongside dgCounter.
@@ -853,20 +996,61 @@ export function dgTokenize(line, base = 0) {
 // the edit is local, the order of declarations stops mattering, and one
 // element can belong to as many sets as it likes.
 export function dgParseAttrs(raw, errors, lineNo) {
-  const out = { id: null, classes: [], tags: [] };
+  const out = { classes: [], removedClasses: [], tags: [] };
   for (const tok of String(raw).trim().split(/\s+/).filter(Boolean)) {
-    if (tok.startsWith('#')) out.id = tok.slice(1);
+    // `{#id}` is gone. An element's name is the second token of its statement
+    // on every kind, and an `edge` or a `sequence` message takes an optional
+    // name in the slot *before* the from-token. The tail put the name last,
+    // after the options, which is where neither a reader nor a language model
+    // looks for it – and on the fifteen statements that did not honour it the
+    // id parsed, validated as a legal tail and was thrown away without a word,
+    // so `box a "A" {#zz}` followed by `text t "n" right of zz` reported that
+    // `zz` was not defined: a message about the reference for a defect in the
+    // definition.
+    if (tok.startsWith('#')) {
+      dgErr(errors, lineNo, `"${tok}" – an element's name goes in front, not in the tail. `
+        + 'On a box, dot, text, image, container, brace or a chart it is the word after the '
+        + `statement; on an edge or a sequence message it is an optional word before the arrow's `
+        + `first endpoint, as in "edge ${tok.slice(1) || 'name'} a -> b".`);
+    }
     else if (tok.startsWith('@')) {
       const tag = tok.slice(1);
       if (!tag) dgErr(errors, lineNo, 'an empty @tag means nothing');
       else out.tags.push(tag);
+    }
+    // `!class` removes that exact class. A step could only ever *add* one, and
+    // many slots express their base state as the absence of every member –
+    // normal prominence, a solid stroke, regular size and family – so a beat
+    // could leave that state and never return, and an element could not opt out
+    // of a `default box {.dim}` on its own line either. One mark closes both,
+    // where a named neutral per slot would have been a word per look.
+    //
+    // It removes the **exact name**, not the slot: `!dim` does not clear
+    // `.ghost`, and a later layer may add `.dim` back. That is what keeps the
+    // mark predictable without inventing a second, hidden slot grammar.
+    else if (tok.startsWith('!')) {
+      const cls = tok.slice(1);
+      if (!DG_CLASSES.has(cls)) {
+        dgErr(errors, lineNo, `unknown class !${cls} (known: ${[...DG_CLASSES].join(', ')})`);
+      } else if (out.removedClasses.includes(cls)) {
+        dgErr(errors, lineNo, `!${cls} is written twice – one removal says it`);
+      } else out.removedClasses.push(cls);
     }
     else if (tok.startsWith('.')) {
       const cls = tok.slice(1);
       if (!DG_CLASSES.has(cls)) {
         dgErr(errors, lineNo, `unknown class .${cls} (known: ${[...DG_CLASSES].join(', ')})`);
       } else out.classes.push(cls);
-    } else dgErr(errors, lineNo, `attribute "${tok}" is not #id, .class or @tag`);
+    } else dgErr(errors, lineNo, `attribute "${tok}" is not #id, .class, !class or @tag`);
+  }
+  // Adding and removing the same class in one tail is two answers to one
+  // question, and there is no order that makes it mean something: resolution
+  // always removes first and then adds, so the removal could only ever be dead.
+  for (const c of out.removedClasses) {
+    if (out.classes.includes(c)) {
+      dgErr(errors, lineNo, `.${c} and !${c} are both written – one tail cannot both `
+        + 'add and remove a class. Keep one.', 'semantic');
+    }
   }
   return out;
 }
@@ -959,21 +1143,41 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
       .map(r => dgParseRef(r, errors, lineNo));
     if (refs.length !== 2) {
       dgErr(errors, lineNo, `between expects exactly two elements, got ${refs.length}`);
-      return [null, mEnd];
+      return [null, mEnd, true];
     }
     place = { kind: 'between', refs, frac: 0.5 };
     next = mEnd;
   } else {
     let dir = null;
+    // Checked *before* the direction is bound, because `above` binds happily
+    // and would swallow `of` as the element name – which is the misparse.
+    if ((t(k) === 'above' || t(k) === 'below') && t(k + 1) === 'of') {
+      dgErr(errors, lineNo, `"${t(k)}" takes the element name directly – `
+        + `write "${t(k)} ${t(k + 2) || 'X'}", not "${t(k)} of ${t(k + 2) || 'X'}"`);
+      return [null, k, true];
+    }
     if (t(k) === 'right' && t(k + 1) === 'of') { dir = 'right'; next = k + 2; }
     else if (t(k) === 'left' && t(k + 1) === 'of') { dir = 'left'; next = k + 2; }
     else if (t(k) === 'below') { dir = 'below'; next = k + 1; }
     else if (t(k) === 'above') { dir = 'above'; next = k + 1; }
-    if (!dir) return [null, k];
+    // The two near-misses, each on an exact token match so neither is a guess.
+    // Two of the four cardinal placements take a preposition and two refuse
+    // it; that asymmetry follows English and is not itself the defect. The
+    // defect is what happened when someone generalised from one line to the
+    // next: `above of a` bound `of` as the element *name*, so the author who
+    // over-generalised was told, fourth in a list of four problems, that their
+    // reference did not exist – and nothing in any of the four sentences
+    // mentioned the word `of` at all. The mirror slip, `right a`, read as
+    // though `right` were not a word in the language.
+    if (!dir && (t(k) === 'right' || t(k) === 'left') && t(k + 1) && t(k + 1) !== 'of') {
+      dgErr(errors, lineNo, `"${t(k)}" is written "${t(k)} of" – write "${t(k)} of ${t(k + 1)}"`);
+      return [null, k, true];
+    }
+    if (!dir) return [null, k, false];
     const ref = t(next);
-    if (!ref) { dgErr(errors, lineNo, `${dir} expects an element name`); return [null, next]; }
+    if (!ref) { dgErr(errors, lineNo, `${dir} expects an element name`); return [null, next, true]; }
     next++;
-    place = { kind: 'rel', dir, ref, gap: 0.25, align: 'center' };
+    place = { kind: 'rel', dir, ref, gap: 0.25, align: 'middle' };
   }
 
   // Trailing options, shared by every placement form. `offset` in
@@ -984,12 +1188,34 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
     if (key === 'gap' && place.kind === 'rel') {
       place.gap = dgNum(t(next + 1), errors, lineNo, 'gap'); next += 2; continue;
     }
-    if (key === 'align' && place.kind === 'rel') {
+    // `flush`, not `align`. The token `align` introduced two unrelated
+    // constructs: on a line of its own a statement giving a set of elements one
+    // shared coordinate, and inside a placement an option naming which
+    // cross-axis edge of the reference the new element lines up with. Both
+    // could appear on one line with two `top`s meaning different things.
+    //
+    // `flush` because it is the word the prose already reaches for when it
+    // explains this option, and because it is a poor name for the statement
+    // ("flush these five boxes" is not English) – so the two cannot swap names
+    // by accident. The mirror answer, keeping `align` on the option and
+    // renaming the statement, is cheaper and was declined: "align" is the *set*
+    // operation in every drawing tool anyone has used.
+    if (key === 'flush' && place.kind === 'rel') {
       const a = t(next + 1);
       const ok = place.dir === 'right' || place.dir === 'left'
-        ? ['top', 'middle', 'bottom'] : ['left', 'center', 'right'];
-      if (!ok.includes(a)) dgErr(errors, lineNo, `align ${a} is not one of ${ok.join('/')} for "${place.dir}"`);
+        ? ['top', 'middle', 'bottom'] : ['left', 'middle', 'right'];
+      if (!ok.includes(a)) dgErr(errors, lineNo, `flush ${a} is not one of ${ok.join(' / ')} for "${place.dir}"`);
       else place.align = a;
+      next += 2;
+      continue;
+    }
+    // Named rather than left to the generated sentence: the old spelling is
+    // exactly what an author who learned it will type, and `align` is still a
+    // word in the language – just not this one.
+    if (key === 'align' && place.kind === 'rel') {
+      dgErr(errors, lineNo, `"align" on a placement is written "flush" – write `
+        + `"flush ${t(next + 1) || 'middle'}". "align" on a line of its own is the statement `
+        + 'that gives a set of elements one shared coordinate.');
       next += 2;
       continue;
     }
@@ -1061,7 +1287,7 @@ export function dgParseCoord(tok, axis, errors, lineNo, what) {
   if (!ok.has(prop)) {
     const other = axis === 'x' ? DG_SCALAR_Y : DG_SCALAR_X;
     dgErr(errors, lineNo, other.has(prop)
-      ? `${what}: ".${prop}" is a ${axis === 'x' ? 'y' : 'x'} coordinate, and this slot is the ${axis}. Use ${[...ok].map(p => '.' + p).join(' / ')}.`
+      ? `${what}: ".${prop}" is ${dgArticle(axis === 'x' ? 'y' : 'x')} ${axis === 'x' ? 'y' : 'x'} coordinate, and this slot is the ${axis}. Use ${[...ok].map(p => '.' + p).join(' / ')}.`
       : `${what}: unknown coordinate ".${prop}" – use ${[...ok].map(p => '.' + p).join(' / ')}`);
     return { unit: 0 };
   }
@@ -1138,53 +1364,161 @@ export function dgDefaultLayers(model, kind, tags) {
 // Factored out because the same statement is now legal in two places: inside
 // a block, and in the lecture's `diagram-defaults` frontmatter key. Two
 // parsers for one line is how the two would eventually disagree.
-// Only a `box` draws an outline of its own. Anywhere else an outline class
-// resolves, emits its CSS and changes nothing at all – a `dot` is a circle, a
-// `text` has no border, a `container` is a frame around other people's boxes.
-// A silent no-op is the failure this grammar keeps closing, so say which
-// statement the class belongs on.
-export function rejectShapeOn(kindWord, classes, lineNo, errors) {
-  if (kindWord === 'box') return;
-  for (const c of classes || []) {
-    if (!DG_SHAPE_CLASSES.has(c)) continue;
-    dgErr(errors, lineNo, `.${c} is an outline, and only a box has one to shape – `
-      + `a ${kindWord} would keep its own and the class would do nothing.`);
+//
+// ── which class is legal on which kind ───────────────────────────────
+//
+// **A word is legal on a statement exactly when that statement draws something
+// the word can reach. Where it can reach nothing, it is an error naming the
+// statements it belongs on. Where it can reach something that this particular
+// figure has not given it, it is legal, and the drawing is the author's
+// business.**
+//
+// Before this table the grammar refused about a third of what it could not
+// honour and accepted the rest in silence: a class written on a kind whose
+// drawing has nothing for it to reach parsed, validated, was emitted into the
+// SVG's `class` attribute, reached no rule that could paint, and was reported
+// nowhere. The corpus proves it was a real trap rather than a theoretical one –
+// the author of this compiler wrote such a class **eleven times** in
+// `lectures/network-security`, all of them `text … {.bare}`, which cannot act
+// because `.bare` names shape children and a free text's ground is un-stroked
+// unconditionally.
+//
+// Two same-shaped cases used to land on opposite sides for no stated reason:
+// `box a "A" {.fit}` with no width was an error and `edge p -> q {.smooth}`
+// with no `via` was silent. They are in sibling slots. The rule above settles
+// both: `.fit` with nothing to fit into stays an error, `.smooth` with no `via`
+// stays legal because a later `via` makes it act, and `.smooth` on a *box* –
+// which no `via` can ever rescue – becomes the error its sibling already was.
+//
+// Almost every entry is a fact about the **grammar**, decidable from the kind
+// word with no reference to DIAGRAM_CSS, because the kind decides which
+// drawables the group holds: an `image` group holds one `<image>` and nothing
+// else, a `brace` holds one stroke path, a free `text` holds a label and a rect
+// only when it is filled. The handful that are genuinely stylesheet facts –
+// `.bare` on a free text, a brace or an edge – are a *stated rule of the
+// language* rather than a look, and freezing them here writes down a decision
+// already made instead of promising an effect the CSS cannot deliver.
+//
+// A positive `.class` and a negative `!class` are legal on exactly the same
+// kinds: negation is not an escape hatch for a class a kind can never carry.
+export const DG_CLASS_KINDS = (() => {
+  const t = {};
+  const put = (kinds, classes) => { for (const c of classes) t[c] = kinds; };
+  put(['box'], ['hex', 'diamond', 'chevron', 'wedge', 'cross']);
+  put(['box', 'dot', 'container', 'brace', 'edge'], ['dashed', 'dotted', 'thick']);
+  put(['box', 'dot', 'container'], ['bare']);
+  put(['box', 'dot', 'text', 'container', 'edge'], DG_FILL_SLOT);
+  put(['box', 'dot', 'text', 'container', 'brace', 'edge'],
+    ['accent', 'muted', 'turn', 'mono', 'serif', 'hand', 'small', 'large', 'bold']);
+  // The edge reading of these four moved to the `side` option (item 5d), so on
+  // an edge they are refused rather than meaning a second geometry.
+  put(['box', 'dot', 'text'], ['left', 'right', 'top', 'bottom']);
+  put(['box', 'dot', 'container', 'brace', 'edge'], ['emph']);
+  put(['box', 'dot', 'text', 'image', 'container', 'brace', 'edge'], ['dim', 'ghost']);
+  put(['box', 'text'], ['fit', 'shrink']);
+  put(['box', 'text', 'container', 'edge'], ['round', 'sharp']);
+  put(['edge'], [...DG_HEAD_CLASSES, 'smooth', 'elbow', 'front']);
+  return t;
+})();
+// What each class group answers, so a refusal can name the question rather than
+// only the word.
+const DG_CLASS_WHAT = {
+  hex: 'an outline', diamond: 'an outline', chevron: 'an outline', wedge: 'an outline',
+  cross: 'an outline', round: 'an outline', sharp: 'an outline',
+  dashed: 'a stroke pattern', dotted: 'a stroke pattern',
+  thick: 'a stroke weight', bare: 'a stroke weight',
+  left: 'a label alignment', right: 'a label alignment',
+  top: 'a label alignment', bottom: 'a label alignment',
+  fit: 'a way for type to meet its box', shrink: 'a way for type to meet its box',
+  smooth: 'how a line is drawn', elbow: 'how a line is drawn',
+  front: 'a drawing order', 'no-head': 'an arrowhead state',
+  'one-head': 'an arrowhead state', 'both-heads': 'an arrowhead state',
+};
+// One gate, replacing rejectShapeOn and rejectAlignOn, at the sites those two
+// occupied. `written` is the tail as the author typed it, never the resolved
+// set: an arrow token injects a head class after the tail is parsed.
+// What each DG_CLASS_GROUPS slot answers, so a same-slot pair can be refused
+// by naming the question rather than only the two words. Keyed by the slot's
+// first member, which is how DG_CLASS_GROUPS is addressed everywhere else.
+export const DG_SLOT_NAMES = {
+  'tone-1': 'a fill', accent: 'an ink', dashed: 'a stroke pattern',
+  thick: 'a stroke weight', round: 'an outline', small: 'a type size',
+  mono: 'a family', smooth: 'how a line is drawn', fit: 'how type meets its box',
+  left: 'a label alignment across', top: 'a label alignment down',
+  emph: 'a prominence', 'no-head': 'an arrowhead state',
+};
+// **Two classes from one slot in one attribute tail is an error.** Both used to
+// survive parsing, both landed on the element and both were emitted, so which
+// one the reader saw was decided by stylesheet order – and the *lint* message
+// about it asserted something untrue, that "which one the drawing takes is not
+// decided by this line", which on an edge carrying two outline classes was
+// wrong twice over because neither was ever taken.
+//
+// It reads the **written tail**, never the resolved class set. That is
+// load-bearing: an arrow token injects a head class into `edge.classes` after
+// the tail is parsed, so `edge a -- b` plus a written `.no-head` must be
+// answered by the scope rule and not by this one.
+//
+// The kind gate must run **before** this, or a shape class on an edge is
+// answered "an element has one outline", which is false of an edge.
+export function rejectSlotPair(classes, lineNo, errors) {
+  for (const group of DG_CLASS_GROUPS) {
+    const hit = (classes || []).filter(c => group.includes(c));
+    if (hit.length < 2) continue;
+    const what = DG_SLOT_NAMES[group[0]] || 'one setting';
+    dgErr(errors, lineNo, `.${hit[0]} and .${hit[1]} are both ${what}, and an element has one – `
+      + 'the line gives two answers to one question. Keep one.', 'semantic');
   }
 }
-
-// The same rule as rejectShapeOn, one statement further along. `left`,
-// `right`, `top` and `bottom` place a label inside the room its element gives
-// it, and three kinds give it none: a container's caption is pinned to its own
-// top border, a brace's label sits beside the spine on the side the brace was
-// given, and an edge's label is carried at the midpoint of the line. Measured
-// on the emitted SVG before this existed: `.left` moved a node label and an
-// edge label and nothing else; `.top` moved a node label alone. The other five
-// combinations of the two axes with the four kinds resolved, emitted their CSS
-// and moved nothing.
-//
-// Down is the axis a container, a brace and an edge each own outright, so
-// `top`/`bottom` never reach any of the three; across, an edge label really is
-// anchored by the word and keeps it.
-const DG_ALIGN_ACROSS = ['left', 'right'];
-const DG_ALIGN_DOWN = ['top', 'bottom'];
-export function rejectAlignOn(kindWord, classes, lineNo, errors) {
-  const holder = kindWord === 'container' || kindWord === 'brace';
-  if (!holder && kindWord !== 'edge') return;
-  const why = {
-    container: 'a container\'s caption sits on its own top border',
-    brace: 'a brace\'s label sits beside the spine, on the side the brace was given',
-    edge: 'an edge\'s label is carried at the middle of the line',
-  }[kindWord];
-  // On an edge all four now name a side of the line, so none of them is
-  // refused here. Which pair can pick a side depends on the edge's direction,
-  // and that is not known until it has been routed, so the check for naming
-  // the pair that runs along the line lives in the layout instead.
-  if (kindWord === 'edge') return;
-  for (const c of classes || []) {
-    if (!DG_ALIGN_ACROSS.includes(c) && !DG_ALIGN_DOWN.includes(c)) continue;
-    dgErr(errors, lineNo, `.${c} places a label in the room its element gives it, and `
-      + `${why} – the class would resolve and move nothing.`);
+// `removed` is the tail's `!class` list, checked against exactly the same table
+// as the positive one. Without it the mark was an **escape hatch past the kind
+// gate**: `edge a -> b {.hex}` was refused and `edge a -> b {!hex}` compiled
+// clean, which is the silence this whole cluster exists to remove, reachable by
+// typing one character differently. Negation says "not this look"; on a kind
+// that could never have had the look it says nothing, and saying nothing is the
+// thing being refused.
+export function rejectClassOn(kindWord, classes, lineNo, errors, what = '', removed = null) {
+  for (const c of removed || []) {
+    const kinds = DG_CLASS_KINDS[c];
+    if (!kinds || kinds.includes(kindWord)) continue;
+    dgErr(errors, lineNo, `!${c} takes off a class ${dgArticle(kindWord)} ${kindWord} can never `
+      + `carry${what ? ` (${what})` : ''} – ${DG_CLASS_WHAT[c] ? `.${c} is ${DG_CLASS_WHAT[c]} and ` : ''}`
+      + `it belongs on ${kinds.length === 1
+        ? `${dgArticle(kinds[0])} ${kinds[0]}`
+        : `${kinds.slice(0, -1).map(k => dgArticle(k) + ' ' + k).join(', ')} or `
+          + `${dgArticle(kinds[kinds.length - 1])} ${kinds[kinds.length - 1]}`}.`, 'semantic');
   }
+  const survivors = [];
+  for (const c of classes || []) {
+    const kinds = DG_CLASS_KINDS[c];
+    if (!kinds || kinds.includes(kindWord)) { survivors.push(c); continue; }
+    const role = DG_CLASS_WHAT[c] ? `.${c} is ${DG_CLASS_WHAT[c]}` : `.${c}`;
+    dgErr(errors, lineNo, `${role}, and ${dgArticle(kindWord)} ${kindWord} has nothing to draw it `
+      + `with${what ? ` (${what})` : ''} – it belongs on ${kinds.length === 1
+        ? `${dgArticle(kinds[0])} ${kinds[0]}`
+        : `${kinds.slice(0, -1).map(k => dgArticle(k) + ' ' + k).join(', ')} or `
+          + `${dgArticle(kinds[kinds.length - 1])} ${kinds[kinds.length - 1]}`}.`, 'semantic');
+  }
+  // **The kind gate runs first, and the slot check only on what survived it.**
+  // Both orders "work"; only this one is true. `edge p -> q {.hex .diamond}`
+  // answered the other way round says "an element has one outline", which is
+  // false of an edge – an edge has none, which is what the gate above just
+  // said. Answering a question the line never asked is the failure this whole
+  // cluster exists to remove, so it must not be reintroduced by an ordering.
+  rejectSlotPair(survivors, lineNo, errors);
+}
+// "a edge", "a image", "a x coordinate" – the same bug in three functions
+// across two files, all of them user-facing. One helper answers it and every
+// site calls it, including two that are currently safe only by accident,
+// because `box` and `dot` happen to win a table search.
+export function dgArticle(word) {
+  return /^[aeiou]/i.test(String(word)) ? 'an' : 'a';
+}
+export function rejectShapeOn(kindWord, classes, lineNo, errors, removed = null) {
+  rejectClassOn(kindWord, classes, lineNo, errors, '', removed);
+}
+export function rejectAlignOn(kindWord, classes, lineNo, errors, removed = null) {
+  rejectClassOn(kindWord, classes, lineNo, errors, '', removed);
 }
 
 // What a `bars` or a `grid` may say after its shape: a placement, like every
@@ -1219,10 +1553,66 @@ export function dgParseRatio(tok) {
   if (m && +t > 0) return +t;
   return null;
 }
+// ── what a statement takes, said once ────────────────────────────────
+// A statement that met a token it could not read used to complain about that
+// token and keep going, so every remaining token earned a complaint of its own
+// and the missing placement earned one more: five problems for one typo. The
+// six expanding statements already answered a bad option with a single
+// sentence listing what they accept; the seven a newcomer meets first said
+// only "unexpected X", which names the mistake and never the repair.
+//
+// This is that sentence, generated for every statement out of DG_KIND_OPTS
+// plus the non-keyword forms below, so there is one text and it cannot drift
+// from the table the panel and the linter both read.
+//
+// It matters most to the editor, which shows exactly one problem: after this
+// the one sentence it can display is the statement's own vocabulary written
+// out – the panel's option row rendered as prose for whoever is not using the
+// panel.
+export const DG_PLACEMENT_LONG = 'at X,Y / above X / below X / right of X / left of X / between X,Y';
+export const DG_PLACEMENT_SHORT = 'at / above / below / right of / left of / between';
+// The forms that have no keyword to list, per statement. Everything else in a
+// statement's vocabulary is a word in DG_KIND_OPTS.
+const DG_EXTRA_FORMS = {
+  box: ['"same as X"', 'a leader "-- X" or "-> X"'],
+  text: ['"same as X"', 'a leader "-- X" or "-> X"'],
+  dot: ['"same as X"', 'a leader "-- X" or "-> X"'],
+  image: ['"same as X"', 'a leader "-- X" or "-> X"'],
+  edge: ['waypoints "via X,Y X,Y"'],
+  container: ['"over a,b,c"'],
+  brace: ['"over a,b,c"'],
+  bars: ['"same as <chart>"', '"series of <chart>"'],
+  plot: ['"same as <chart>"'],
+};
+// The three statements that place nothing: an edge is defined by its two ends,
+// and a container and a brace fit whatever they are given to hold.
+const DG_NO_PLACEMENT = new Set(['edge', 'container', 'brace', 'actor', 'note', 'message']);
+export function dgTakes(head) {
+  const parts = [];
+  if (!DG_NO_PLACEMENT.has(head)) parts.push(`a placement (${DG_PLACEMENT_SHORT})`);
+  parts.push(...(DG_EXTRA_FORMS[head] || []));
+  const words = [...(DG_KIND_OPTS[head] || []), ...(DG_BARE_OPTS[head] || [])];
+  if (words.length) parts.push(words.join(' / '));
+  if (!parts.length) return `${head} takes nothing after its name`;
+  const last = parts.pop();
+  return `this statement takes ${parts.length ? parts.join(', ') + ' and ' : ''}${last}`;
+}
+export function dgUnexpected(head, id, tok) {
+  return `unexpected "${tok}" in ${head}${id ? ` ${id}` : ''} – ${dgTakes(head)}`;
+}
+// The consequence a statement that stopped reading must not also report. A
+// `box` with the placement simply left out never breaks, so it reads its whole
+// line and this is its *first* problem; a `box` that stopped at a typo has not
+// finished looking for one and must stay quiet about it.
+export function dgNoPlacement(head, id) {
+  return `${head} ${id} has no placement (${DG_PLACEMENT_LONG})`;
+}
+
 export function readGridOpts(head, id, rest0, lineNo, errors) {
   const rest = rest0.map(x => ({ v: x.v, s: x.s, e: x.e }));
-  const out = { place: null, w: null, h: null, cell: null, space: null, col: null, emph: null,
-    calm: null, series: null, stacked: false, horizontal: false, unnumbered: false,
+  const out = { place: null, w: null, h: null, row: null, band: null, header: null, tick: null,
+    cell: null, space: null, col: null, emph: null,
+    dim: null, ghost: null, series: null, stacked: false, horizontal: false, unnumbered: false,
     aspect: null, sameAs: null };
   // `space`, not `gap`. Everywhere else in this grammar `gap` is the distance
   // between two *elements*, and a placement on this very line uses it in
@@ -1268,8 +1658,19 @@ export function readGridOpts(head, id, rest0, lineNo, errors) {
     }
     const [place, next] = dgParsePlacement(rest, k, errors, lineNo);
     if (place) { out.place = place; k = next; continue; }
-    dgErr(errors, lineNo, `unexpected "${key}" in ${head} ${id} – `
-      + `this statement takes a placement${head === 'bars' ? ', "same as <chart>"' : ''} and ${allowed.join(' / ')}`);
+    // Named rather than left to the generated sentence, for item 30's reason:
+    // the old spelling is what an author who learned it will type, and on these
+    // three statements it used to mean something – one row, one band, one head
+    // – so silence here would read as "this statement has no height at all".
+    const perUnit = { table: 'row', lanes: 'band', sequence: 'header' }[head];
+    if (key === 'h' && perUnit) {
+      dgErr(errors, lineNo, `${head} ${id}: "${perUnit}" is the height of one `
+        + `${{ row: 'row', band: 'band', header: 'actor head' }[perUnit]}, and it is what "h" `
+        + `used to mean here – write "${perUnit} ${rest[k + 1]?.v ?? 'n'}". `
+        + `On every other statement "h" is the whole element, which is why it is not this one.`);
+      return null;
+    }
+    dgErr(errors, lineNo, dgUnexpected(head, id, key));
     return null;
   }
   return out;
@@ -1285,8 +1686,9 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) 
   // carrying that tag. One per (kind, tag) and one per bare kind, so the
   // result never depends on the order of the declarations: an element's
   // own attributes beat its tag default, which beats the kind default.
-  rejectShapeOn(kind, attrs.classes, lineNo, errors);
+  rejectShapeOn(kind, attrs.classes, lineNo, errors, attrs.removedClasses);
   rejectAlignOn(kind, attrs.classes, lineNo, errors);
+  if (kind === 'edge') rejectHeadClassIn('default', attrs.classes, lineNo, errors);
   const tagTok = body0[2] && body0[2].v.startsWith('@') ? body0[2].v.slice(1) : null;
   const slot = tagTok
     ? layer.tagDefaults.find(d => d.kind === kind && d.tag === tagTok)
@@ -1295,12 +1697,19 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) 
     dgErr(errors, lineNo, `a second "default ${kind}${tagTok ? ' @' + tagTok : ''}" – there can only be one per ${scope} (the first is on line ${slot.line})`);
     return null;
   }
-  const def = { kind, tag: tagTok, classes: attrs.classes, w: null, h: null, r: null, pad: null, side: null, line: lineNo, span };
+  const def = { kind, tag: tagTok, classes: attrs.classes, removedClasses: attrs.removedClasses || [], w: null, h: null, r: null, pad: null, side: null, line: lineNo, span };
   const opts = DG_KIND_OPTS[kind];
   const rest = body0.slice(tagTok ? 3 : 2);
   for (let k = 0; k < rest.length; k++) {
     const key = rest[k].v;
-    if (kind === 'brace' && DG_BRACE_SIDES.includes(key)) { def.side = key; continue; }
+    if (kind === 'brace' && key === 'side') {
+      const w = rest[k + 1]?.v;
+      if (!DG_BRACE_SIDES.includes(w)) {
+        dgErr(errors, lineNo, `default brace: side expects ${DG_BRACE_SIDES.join(' / ')}, got "${w ?? ''}"`);
+      } else def.side = w;
+      k++;
+      continue;
+    }
     if (opts.includes(key)) { def[key] = dgNum(rest[k + 1]?.v, errors, lineNo, key); k++; continue; }
     // A wrong-kind option is the interesting case: say which kind it
     // belongs to rather than repeating the list.
@@ -1310,7 +1719,7 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) 
     // write `default bars` would send them at a line the parser refuses.
     const owner = [...DG_DEFAULT_KINDS].find(kk => (DG_KIND_OPTS[kk] || []).includes(key));
     if (owner) {
-      dgErr(errors, lineNo, `default ${kind} has no "${key}" – that is a ${owner} option. `
+      dgErr(errors, lineNo, `default ${kind} has no "${key}" – that is ${dgArticle(owner)} ${owner} option. `
         + `default ${kind} takes ${opts.length ? opts.join(', ') + ' and ' : ''}a {…} attribute tail.`);
       k++;   // its value, or the next word is reported as a second mistake
     } else {
@@ -1339,7 +1748,9 @@ export function parseDiagramDefaults(text) {
     if (!trimmed || trimmed.startsWith('#')) continue;
     const toks = dgTokenize(trimmed);
     const attrTok = toks.find(x => x.attr);
-    const attrs = attrTok ? dgParseAttrs(attrTok.v, errors, n + 1) : { id: null, classes: [], tags: [] };
+    const attrs = attrTok ? dgParseAttrs(attrTok.v, errors, n + 1)
+      : { classes: [], removedClasses: [], tags: [] };
+
     const body0 = toks.filter(x => !x.attr && !x.q);
     if ((body0[0] ? body0[0].v : '') !== 'default') {
       dgErr(errors, n + 1, `diagram-defaults holds "default …" statements only, got "${trimmed}"`);
@@ -1476,22 +1887,37 @@ export function dgStateAt(model, k) {
   // Three layers, most specific last: the kind default, then the default
   // for a tag the element carries, then its own {…}. Each layer's classes
   // are dropped where a more specific layer already fills that slot.
+  // Layers resolve **weak to strong**: the lecture's defaults, the block's, the
+  // element's own tail. At each layer the removals delete those exact names
+  // from what has accumulated, and each positive class then displaces the
+  // current member of its slot and is added.
+  //
+  // It used to walk most-specific-*first* and skip a class whose slot was
+  // already claimed, which gives the same answer for positives alone – but it
+  // has no place to put a removal, because at the moment a `!dim` is read the
+  // `.dim` it cancels has not been added yet. Weak-to-strong is the order the
+  // layers actually mean, and it is what `{!class}` needs to be a declarative
+  // override rather than a parser-time deletion.
   const withDefaults = (el) => {
-    const layers = dgDefaultLayers(model, el.kind, el.tags);
-    if (!layers.length) return new Set(el.classes);
-    const acc = [];
-    const claimed = new Set();
-    // Walk most-specific first so a later (weaker) layer cannot displace it.
-    for (const cls of [...el.classes, ...layers.reverse().flatMap(l => l.classes)]) {
-      const group = DG_CLASS_GROUPS.find(g => g.includes(cls));
-      if (group) {
-        const key = group[0];
-        if (claimed.has(key)) continue;
-        claimed.add(key);
+    // class -> the index of the strongest layer that added it. Resolution is
+    // weak to strong; the *emitted order* is strongest first, which is the
+    // order this walked in before removals existed. Class order in a `class`
+    // attribute decides nothing – CSS arbitrates by selector, not by position –
+    // so the emitter has no business changing it as a side effect of a fix
+    // somewhere else, and keeping it stable is what lets a corpus snapshot
+    // stay a usable signal.
+    const from = new Map();
+    const layers = [...dgDefaultLayers(model, el.kind, el.tags), el];
+    layers.forEach((layer, i) => {
+      for (const cls of (layer.removedClasses || [])) from.delete(cls);
+      for (const cls of (layer.classes || [])) {
+        const group = DG_CLASS_GROUPS.find(g => g.includes(cls));
+        if (group) for (const other of group) if (other !== cls) from.delete(other);
+        from.delete(cls);
+        from.set(cls, i);
       }
-      acc.push(cls);
-    }
-    return new Set(acc);
+    });
+    return new Set([...from].sort((a, b) => b[1] - a[1]).map(([cls]) => cls));
   };
   const state = new Map();
   const all = [...model.nodes, ...model.containers, ...model.braces];
@@ -1527,26 +1953,29 @@ export function dgStateAt(model, k) {
         // is explicit, so a figure with no steps inherits as it always did.
         if (op.op === 'show') { st.visible = true; st.visExplicit = true; }
         else if (op.op === 'hide') { st.visible = false; st.visExplicit = true; }
-        // Which of the two set it matters at print time. `emph` and `calm`
-        // are lecture-time acts and a handout should not report them; an
-        // author who wrote {.dim} on an element, or restyled it with a
-        // `style` step, is describing the drawing and print has to keep it.
-        else if (op.op === 'emph') { st.classes.delete('dim'); st.classes.add('emph'); st.stepEmph = true; }
-        else if (op.op === 'calm') { st.classes.delete('emph'); st.classes.add('dim'); st.stepEmph = true; }
+        // One branch for the whole channel: the verb names the class it sets
+        // and displaces the other two, which is what a slot means everywhere
+        // else in this grammar. `style x {.dim}` is the longhand and is exactly
+        // the same act – see the print pass, where the two are byte-identical.
+        else if (DG_PROMINENCE.includes(op.op)) {
+          for (const other of DG_PROMINENCE) if (other !== op.op) st.classes.delete(other);
+          st.classes.add(op.op);
+        }
         // Same slot rule as the default block: a class added by `style`
         // displaces the one already occupying its slot. Adding it alongside
         // left `tone-4 tone-1` on the element, both rules matching at equal
         // specificity, so stylesheet order decided the colour and the step
         // could silently do nothing.
-        else if (op.op === 'style') for (const c of op.classes) {
-          const group = DG_CLASS_GROUPS.find(g => g.includes(c));
-          if (group) for (const other of group) st.classes.delete(other);
-          st.classes.add(c);
-          // Writing one of the two by hand takes it back from the lecture:
-          // `style x {.dim}` describes the drawing, so print keeps it even if
-          // an earlier `emph`/`calm` had marked the element. Without this the
-          // mark never cleared and the later, deliberate class was stripped.
-          if (c === 'emph' || c === 'dim') st.stepEmph = false;
+        else if (op.op === 'style') {
+          // Removals first, then additions – the same order every layer
+          // resolves in, so `style e {!dashed}` at beat 2 and `style e
+          // {.dashed}` at beat 4 compose the way an author reads them.
+          for (const c of (op.removed || [])) st.classes.delete(c);
+          for (const c of op.classes) {
+            const group = DG_CLASS_GROUPS.find(g => g.includes(c));
+            if (group) for (const other of group) st.classes.delete(other);
+            st.classes.add(c);
+          }
         }
         else if (op.op === 'label') st.label = op.text;
         else if (op.op === 'move') {
@@ -1683,9 +2112,17 @@ export function dgSplineD(v) {
 // own line, so a control that sets it has to be able to say where it goes and
 // where it would go if it were not there yet. Its value is a word rather than
 // a number, which this shape does not care about.
-const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'align', 'point', 'x', 'y',
+//
+// `aspect`, `col` and the three prominence words joined the list because the
+// editor had shimmed around their absence: `aspect` was a panel field that
+// showed `auto` on a chart whose line literally read `aspect 4:3` and answered
+// every keystroke with a sentence about placements. The value being `4:3`
+// rather than a number is exactly what this shape does not care about – it
+// already carries `point`, whose value is a word.
+const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'flush', 'point', 'side', 'x', 'y',
+  'aspect', 'col', ...DG_PROMINENCE,
   // the options the expanding statements take on their own line
-  'space', 'cell', 'step'];
+  'space', 'cell', 'tick', 'row', 'band', 'header'];
 
 // Tokens with no keyword in front of them, named so an editor can reach them
 // anyway. Every one is required by its statement, so it is always present –
@@ -1786,7 +2223,7 @@ export function createSpanTable(model, body) {
   // build. Anything else (`w`, `h`, `r`, `pad`, `same as`) the statement
   // accepts anywhere, so it goes before the attribute tail where it reads
   // best.
-  const PLACEMENT_OPTS = new Set(['gap', 'align', 'frac', 'offset']);
+  const PLACEMENT_OPTS = new Set(['gap', 'flush', 'frac', 'offset']);
   const optionInsert = (el, toks, attr) => {
     if (!PLACEMENT_OPTS.has(attr)) return tailInsert(el, toks);
     // No span means the placement is the implicit origin the first element
@@ -1821,7 +2258,7 @@ export function createSpanTable(model, body) {
     // (positions 0 and 1) are never keywords, and neither is a token that
     // sits in a reference slot – right after the word that introduces one,
     // or after a comma-carrying member of an `over`/`between` list.
-    const REF_INTRO = new Set(['of', 'below', 'above', 'as', 'over', 'between', '->', '<-', '--']);
+    const REF_INTRO = new Set(['of', 'below', 'above', 'as', 'over', 'between', ...DG_EDGE_ARROWS]);
     const find = (word) => toks.findIndex((x, i) => i >= 2 && !x.q && !x.attr && x.v === word
       && !(toks[i - 1] && !toks[i - 1].q && !toks[i - 1].attr
         && (REF_INTRO.has(toks[i - 1].v) || toks[i - 1].v.endsWith(','))));
@@ -1854,9 +2291,22 @@ export function createSpanTable(model, body) {
     // to the *right* of a reversed arrow; and the index has to run over the
     // body tokens the parser itself reads, never over all of them, or the
     // label in `edge a "x" -> b` is offered as the source endpoint.
+    // **A leader's token.** `text n "…" right of c gap 0.7 -- leak` – the token
+    // means on a `text` or an `image` what it means on an edge, so a control for
+    // it needs to say where it is written. The leader itself is deliberately not
+    // in the span table as an *element*: it carries the `text` statement's span
+    // because it is an aspect of that statement rather than something with a
+    // name of its own. That is why this is an attribute of the node.
+    if (attr === 'leaderArrow' || attr === 'leaderTarget') {
+      const body = toks.filter(x => !x.attr && !x.q);
+      const i = body.findIndex(x => x.v === '--' || x.v === '->');
+      if (i < 0) return null;
+      const tk = attr === 'leaderArrow' ? body[i] : body[i + 1];
+      return tk ? hit(tk.s, tk.e, tk.v) : null;
+    }
     if (attr === 'from' || attr === 'to' || attr === 'arrow') {
       const body = toks.filter(x => !x.q && !x.attr);
-      const i = body.findIndex(x => x.v === '->' || x.v === '<-' || x.v === '--');
+      const i = body.findIndex(x => DG_EDGE_ARROWS.has(x.v));
       if (i < 0) return null;
       if (attr === 'arrow') return hit(body[i].s, body[i].e, body[i].v);
       const left = (attr === 'from') !== (body[i].v === '<-');
@@ -1876,10 +2326,37 @@ export function createSpanTable(model, body) {
     // hands them over in prefix/suffix; the present case cannot, because they
     // are already inside the range being replaced. Getting this wrong is not
     // a small diff: the result does not parse.
-    if (attr === 'classes' || attr === 'tags' || attr === 'id') {
+    // `id` is deliberately absent: `{#id}` is gone from the language, and an
+    // element's name is a token of its own – see the `name` branch below. The
+    // tail holds classes, removals and tags, which is why the three still
+    // share one span.
+    if (attr === 'classes' || attr === 'tags' || attr === 'removedClasses') {
       const a = toks.find(x => x.attr);
       if (a) return hit(a.s, a.e, a.v);
       return gap(el.span[1], ' {', '}');
+    }
+    // **The element's name.** On every statement whose second token is the
+    // name, that token. On an `edge` or a `sequence` message it is the
+    // optional slot before the from-token: present, it is that token; absent,
+    // an insertion point immediately before the from-token, which is what
+    // lets the panel offer a name field on a kind that has never had one.
+    if (attr === 'name') {
+      const arrowAt = toks.findIndex(x => !x.attr && !x.q && DG_EDGE_ARROWS.has(x.v));
+      if (el.kind === 'edge' && arrowAt > 0) {
+        const bare = toks.filter(x => !x.attr && !x.q);
+        const fromIdx = bare.findIndex(x => x === toks[arrowAt]) - 1;
+        const from = bare[fromIdx];
+        // Named when there is a token before the from-token that is not the
+        // statement keyword. `el.named` is the model's own answer and is what
+        // the panel should trust; this only has to find the text.
+        if (el.named && fromIdx > 0 && bare[fromIdx - 1].v !== 'edge') {
+          const n = bare[fromIdx - 1];
+          return hit(n.s, n.e, n.v);
+        }
+        return gap(from.s, '', ' ');
+      }
+      const second = toks.filter(x => !x.attr && !x.q)[1];
+      return second ? hit(second.s, second.e, second.v) : null;
     }
 
     // The whole placement expression – `at 3,2`, `right of a gap 0.6`,
@@ -2213,24 +2690,31 @@ export function createDiagramCompiler(env = {}) {
       dgErr(errors, 0, `unknown ::: diagram option "${tok}" (expected #id or unit=WxH)`);
     }
 
+    // Returns whether the name is now this element's. A caller that would go on
+    // to build an element under a name it did not get can use that: pushing one
+    // anyway leaves two elements answering to one id, and the layout then
+    // reports something nobody wrote - `edge a c -> c` where `a` is a box came
+    // out as `duplicate element id "a"` *and* `placement cycle: a → c → a`,
+    // the second manufactured entirely by the first.
     const claim = (id, kind, lineNo) => {
-      if (!id) return;
+      if (!id) return false;
       // A name containing a dot would be indistinguishable from `elem.cx` in a
       // coordinate, and one containing @ or # from a tag or an id token.
       if (!/^[A-Za-z_][\w-]*$/.test(id)) {
         dgErr(errors, lineNo, `"${id}" is not a usable name – letters, digits, _ and - only, starting with a letter`);
-        return;
+        return false;
       }
       // See DG_RESERVED_IDS: these names read prototype members out of the
       // runtime's plain-object frame tables, and the failure would surface
       // at step time in the browser with nothing here to explain it.
       if (DG_RESERVED_IDS.has(id)) {
         dgErr(errors, lineNo, `"${id}" is reserved – it already names a property every JavaScript object has, `
-          + `and the step runtime keys its tables by element id. Pick another name.`);
-        return;
+          + `and the step runtime keys its tables by element id. Pick another name.`, 'semantic');
+        return false;
       }
-      if (model.byId.has(id)) dgErr(errors, lineNo, `duplicate element id "${id}"`);
-      else model.byId.set(id, kind);
+      if (model.byId.has(id)) { dgErr(errors, lineNo, `duplicate element id "${id}"`); return false; }
+      model.byId.set(id, kind);
+      return true;
     };
 
     // Declared plots, for dgResolvePlotCoords. Filled while the block is
@@ -2288,7 +2772,7 @@ export function createDiagramCompiler(env = {}) {
         + (kind === 'plot' || kind === 'bars'
           ? `names a chart declared below it. A chart is sized when its own line is read, so it can only copy one it has already seen - move ${name} above ${id2}.`
           : kind
-            ? `names a ${kind}, and a chart can only take its size from another chart. Give it w and h, or an aspect.`
+            ? `names ${dgArticle(kind)} ${kind}, and a chart can only take its size from another chart. Give it w and h, or an aspect.`
             : `names nothing in this block.`));
       return null;
     };
@@ -2318,7 +2802,7 @@ export function createDiagramCompiler(env = {}) {
       if (opts2.aspect == null) return [opts2.w != null ? opts2.w : defW, opts2.h != null ? opts2.h : defH];
       if (opts2.w != null && opts2.h != null) {
         dgErr(errors, lineNo2, `${head2} ${id2}: "aspect" works out the height from the width, `
-          + 'so giving w and h as well says the same thing twice – drop one of the three');
+          + 'so giving w and h as well says the same thing twice – drop one of the three', 'semantic');
       }
       const [uw2, uh2] = model.unit;
       if (opts2.w != null || opts2.h == null) {
@@ -2361,18 +2845,27 @@ export function createDiagramCompiler(env = {}) {
       const head = toks[0].v;
       const t = (i) => (toks[i] ? toks[i].v : '');
       const attrTok = toks.find(x => x.attr);
-      const attrs = attrTok ? dgParseAttrs(attrTok.v, errors, lineNo) : { id: null, classes: [] };
+      const attrs = attrTok ? dgParseAttrs(attrTok.v, errors, lineNo) : { classes: [], removedClasses: [], tags: [] };
       const quoted = toks.filter(x => x.q).map(x => x.v);
       const body0 = toks.filter(x => !x.attr && !x.q);
 
       // Inside a `step` block, everything indented is an operation on it.
       if (step && head !== 'step' && DG_STEP_OPS.has(head)) {
         const op = { op: head, line: lineNo, span };
-        if (head === 'show' || head === 'hide' || head === 'emph' || head === 'calm') {
+        if (head === 'show' || head === 'hide' || DG_PROMINENCE.includes(head)) {
           op.targets = dgParseMembers(body0.slice(1).map(x => x.v).join(','));
         } else if (head === 'style') {
           op.targets = dgParseMembers(body0.slice(1).map(x => x.v).join(','));
           op.classes = attrs.classes;
+          op.removed = attrs.removedClasses || [];
+          // `style a {}` and `style a` with no tail at all were both accepted
+          // and both did nothing, silently – which is the failure this grammar
+          // keeps closing, and it is the shape an author reaches for when what
+          // they wanted was a removal.
+          if (!op.classes.length && !op.removed.length) {
+            dgErr(errors, lineNo, `style ${op.targets.join(', ')} says nothing – give it `
+              + 'classes to add ({.dashed}) or to remove ({!dashed})');
+          }
           // Where a label sits is decided once, at emit: `text-anchor` is an
           // attribute of the element the build writes, and the runtime only
           // ever sets numbers. A step that switched `.left` on would move the
@@ -2414,8 +2907,8 @@ export function createDiagramCompiler(env = {}) {
             if (rest[0] && rest[0].v.includes(',') && rest[0].v !== ',') {
               op.to = { kind: 'abs', at: dgParsePair(rest[0].v, errors, lineNo, 'move … to') };
             } else {
-              const [place] = dgParsePlacement(rest, 0, errors, lineNo);
-              if (!place) dgErr(errors, lineNo, `move ${op.target} to … needs "X,Y" or a relation (below / above / right of / left of)`);
+              const [place, , attempted] = dgParsePlacement(rest, 0, errors, lineNo);
+              if (!place && !attempted) dgErr(errors, lineNo, `move ${op.target} to … needs "X,Y" or a relation (below / above / right of / left of)`);
               op.to = place;
             }
           } else {
@@ -2460,9 +2953,12 @@ export function createDiagramCompiler(env = {}) {
           const ok = axis === 'x' ? DG_ALIGN_X : DG_ALIGN_Y;
           if (!ok.has(edge)) {
             const other = axis === 'x' ? DG_ALIGN_Y : DG_ALIGN_X;
-            dgErr(errors, lineNo, other.has(edge)
-              ? `align x/y: "${edge}" is a ${axis === 'x' ? 'y' : 'x'} edge. On the ${axis} axis use ${[...ok].join('/')}.`
-              : `align ${axis} expects ${[...ok].join('/')}, got "${edge}"`);
+            dgErr(errors, lineNo, edge === 'center'
+              ? 'the centre of an axis is "middle" on both – write "align ' + axis + ' middle". '
+                + '"center" is still an anchor, as in "a.center", which is a different slot.'
+              : other.has(edge)
+                ? `align x/y: "${edge}" is ${dgArticle(axis === 'x' ? 'y' : 'x')} ${axis === 'x' ? 'y' : 'x'} edge. On the ${axis} axis use ${[...ok].join(' / ')}.`
+                : `align ${axis} expects ${[...ok].join(' / ')}, got "${edge}"`);
             continue;
           }
           const members = dgParseMembers(body0.slice(3).map(x => x.v).join(','));
@@ -2483,6 +2979,21 @@ export function createDiagramCompiler(env = {}) {
 
       if (head === 'step') {
         const name = t(1) || `step-${model.steps.length + 1}`;
+        // A step took its name from the token after the keyword and ignored
+        // everything else on the line, so `step my name` compiled, produced a
+        // step called `my`, and discarded `name` with no error and no warning.
+        // The editor knew this was wrong and applied an identifier rule of its
+        // own; the compiler had none, so a name typed in the panel was checked
+        // and the same name written in the source was not. Both rules live
+        // here now.
+        if (t(1) && !DG_STEP_NAME.test(name)) {
+          dgErr(errors, lineNo, `"${name}" is not a step name – a step name starts with a letter `
+            + 'or an underscore and then takes letters, digits, underscores or hyphens');
+        }
+        if (body0.length > 2) {
+          dgErr(errors, lineNo, `unexpected "${body0[2].v}" in step ${name} – a step takes one name, `
+            + 'and its operations go on the lines beneath it');
+        }
         step = { name, ops: [], line: lineNo, span };
         model.steps.push(step);
         continue;
@@ -2514,7 +3025,7 @@ export function createDiagramCompiler(env = {}) {
         const id = t(1);
         if (!id) { dgErr(errors, lineNo, `${head} needs a name`); continue; }
         claim(id, head, lineNo);
-        rejectShapeOn('box', attrs.classes, lineNo, errors);
+        rejectShapeOn('box', attrs.classes, lineNo, errors, attrs.removedClasses);
         const qToks = toks.filter(x => x.q);
         const synth = (el) => ({ ...el, synth: id, line: lineNo, span });
         const framePlace = (place) => {
@@ -2545,7 +3056,7 @@ export function createDiagramCompiler(env = {}) {
         if (!opts) continue;
 
         if (head === 'lanes') {
-          const laneH = opts.h ?? DG_LANE_H;
+          const laneH = opts.band ?? DG_LANE_H;
           const bandW = opts.w ?? DG_LANE_W;
           model.nodes.push(synth({
             kind: 'box', id, label: '', classes: ['bare', 'clear'], tags: attrs.tags,
@@ -2591,8 +3102,26 @@ export function createDiagramCompiler(env = {}) {
           rowsRead = m + 1;
         }
         const body = rows.filter(Boolean);
+        const space = opts.space ?? 0;
+        // `col` states one width per column and `w` states the total to be
+        // divided equally – the same quantity said two ways. Both present, the
+        // compiler read `col` and dropped `w` without a word. `bars` and `plot`
+        // refuse the same over-specification and this did not, which is the
+        // whole of item 13a.
+        if (opts.col && opts.col.length && opts.w != null) {
+          dgErr(errors, lineNo, `table ${id}: "col" gives each column its own width, so "w" – `
+            + 'which divides one total equally – says the same thing a second way. Drop one.',
+          'semantic');
+          continue;
+        }
+        // And `w` is the **frame**, so it means on a table what it means on a
+        // box. It used to be the sum of the *column* widths, so `w 4` and
+        // `w 4 space 0.5` drew two different frames and the one number an
+        // author reads as "how wide is this table" stopped being that number
+        // the moment `space` was set.
         const cols = opts.col && opts.col.length ? opts.col
-          : heads.map(() => (opts.w != null ? opts.w / heads.length : DG_COL_W));
+          : heads.map(() => (opts.w != null
+            ? (opts.w - space * (heads.length - 1)) / heads.length : DG_COL_W));
         if (opts.col && opts.col.length !== heads.length) {
           dgErr(errors, lineNo, `table ${id}: ${opts.col.length} width(s) in "col" for ${heads.length} `
             + 'column(s) – one number per column, separated by commas');
@@ -2604,16 +3133,24 @@ export function createDiagramCompiler(env = {}) {
               + `has ${heads.length} – rows are split on "|", one part per column`);
           }
         }
-        const rowH = opts.h ?? DG_ROW_H;
-        const space = opts.space ?? 0;
+        const rowH = opts.row ?? DG_ROW_H;
         const all = [heads, ...body.map(r => r.cells)];
-        const totalW = cols.reduce((a, b) => a + b, 0) + space * (cols.length - 1);
+        // `space` on a table converted the way `grid` converts it, and for the
+        // sentence `grid`'s own comment already gives: one number that meant
+        // `uw` across and `uh` down produces two distances in the same drawing –
+        // measured at unit=150x52, 30.0 px between two columns and 10.4 px
+        // between two rows. A table is the one construct whose whole promise is
+        // regularity, and its single spacing control was irregular by
+        // construction. `grid` and `table` are read side by side and only one
+        // carried the conversion.
+        const spaceX = space * (model.unit[1] / model.unit[0]);
+        const totalW = cols.reduce((a, b) => a + b, 0) + spaceX * (cols.length - 1);
         const totalH = all.length * rowH + space * (all.length - 1);
         model.nodes.push(synth({
           kind: 'box', id, label: '', classes: ['bare', 'clear'], tags: attrs.tags,
           place: framePlace(opts.place), w: totalW, h: totalH, r: null, pad: null, frame: head,
         }));
-        const xOf = (c) => cols.slice(0, c).reduce((a, b) => a + b, 0) + space * c;
+        const xOf = (c) => cols.slice(0, c).reduce((a, b) => a + b, 0) + spaceX * c;
         all.forEach((cells, r) => {
           cells.forEach((text, c) => {
             if (c >= cols.length) return;
@@ -2670,7 +3207,7 @@ export function createDiagramCompiler(env = {}) {
         const id = t(1);
         if (!id) { dgErr(errors, lineNo, 'sequence needs a name'); continue; }
         claim(id, 'sequence', lineNo);
-        rejectShapeOn('box', attrs.classes, lineNo, errors);
+        rejectShapeOn('box', attrs.classes, lineNo, errors, attrs.removedClasses);
         const opts = readGridOpts(head, id, body0.slice(2), lineNo, errors);
         const [uw, uh] = model.unit;
         // Rounded, unlike a table's cells: a sequence's heads are the one row
@@ -2755,33 +3292,58 @@ export function createDiagramCompiler(env = {}) {
         // guards, the same pair `spanOf` uses for the keyed options: the
         // statement word and the name after it are never the keyword, and
         // neither is a token beside an arrow.
+        // Find one `keyword value` pair on an entry line and lift it out of the
+        // bare-word list, so the stray check below sees only what is left. The
+        // two guards are the ones the whole sub-grammar needs: the statement
+        // word and the name after it are never a keyword, and neither is a
+        // token beside an arrow – nothing forbids an actor called `space`.
+        const takeEntryOpt = (bare, word) => {
+          const k = bare.findIndex((v, i) => v === word && i > 1
+            && !DG_SEQ_ARROWS.has(bare[i - 1] || '')
+            && !DG_SEQ_ARROWS.has(bare[i + 1] || ''));
+          if (k < 0) return { bare, value: null, present: false };
+          return { bare: [...bare.slice(0, k), ...bare.slice(k + 2)],
+            value: bare[k + 1], present: true };
+        };
         const readEntrySpace = (e) => {
-          const k = e.bare.findIndex((v, i) => v === 'space' && i > 1
-            && !DG_SEQ_ARROWS.has(e.bare[i - 1] || '')
-            && !DG_SEQ_ARROWS.has(e.bare[i + 1] || ''));
-          if (k < 0) return { bare: e.bare, space: null, present: false };
-          const v = dgNum(e.bare[k + 1], errors, e.ln, `sequence ${id} entry space`);
+          const t = takeEntryOpt(e.bare, 'space');
+          if (!t.present) return { bare: e.bare, space: null, side: null, present: false };
+          const v = dgNum(t.value, errors, e.ln, `sequence ${id} entry space`);
           if (v != null && v < 0) {
-            dgErr(errors, e.ln, `space ${e.bare[k + 1]}: space is the air above an entry, so it `
+            dgErr(errors, e.ln, `space ${t.value}: space is the air above an entry, so it `
               + 'cannot be negative – a band pulled into the one above it draws one label '
               + 'through another. Reorder the entries instead.');
           }
-          return { bare: [...e.bare.slice(0, k), ...e.bare.slice(k + 2)],
-            space: v != null && v >= 0 ? v : null, present: true };
+          return { bare: t.bare, space: v != null && v >= 0 ? v : null, present: true };
+        };
+        // Which side of its arrow a message's label sits on. The expansion
+        // chooses one by default – a lifeline crosses every label in the
+        // figure, so a message that did not pick a side had its whole arrow
+        // swallowed by its own ground – and this is how an author overrides it.
+        // It used to be done by writing one of the four alignment classes,
+        // which displaced the injected one; item 5(d) makes it the same word an
+        // ordinary edge takes.
+        const readEntrySide = (e, bare) => {
+          const t = takeEntryOpt(bare, 'side');
+          if (!t.present) return { bare, side: null };
+          if (!DG_SIDES.includes(t.value)) {
+            dgErr(errors, e.ln, `sequence ${id}: side expects ${DG_SIDES.join(' / ')}, `
+              + `got "${t.value ?? ''}"`);
+            return { bare: t.bare, side: null };
+          }
+          return { bare: t.bare, side: t.value };
         };
         for (const e of entries) {
           const aTok = e.toks.find(x => x.attr);
-          const ea = aTok ? dgParseAttrs(aTok.v, errors, e.ln) : { id: null, classes: [], tags: [] };
+          const ea = aTok ? dgParseAttrs(aTok.v, errors, e.ln) : { classes: [], removedClasses: [], tags: [] };
+          rejectSlotPair(ea.classes, e.ln, errors);
           const eq = e.toks.filter(x => x.q).map(x => x.v);
           const es = readEntrySpace(e);
-          const eb = es.bare;
+          const eside = readEntrySide(e, es.bare);
+          const eb = eside.bare;
           if (eb[0] === 'actor') {
             const aid = eb[1];
             if (!aid) { dgErr(errors, e.ln, 'actor needs a name and a label – actor u "User"'); continue; }
-            if (ea.id) {
-              dgErr(errors, e.ln, `actor ${aid} is named by the word after "actor", so "#${ea.id}" `
-                + 'in the tail is a second name – drop one');
-            }
             if (eb.length > 2) {
               dgErr(errors, e.ln, `unexpected "${eb.slice(2).join(' ')}" in actor ${aid} – `
                 + 'an actor is `actor <name> "<label>"` and an attribute tail');
@@ -2820,7 +3382,7 @@ export function createDiagramCompiler(env = {}) {
                 + 'so several lines are one string.');
             }
             seq.push({ type: 'note', on, label: eq[0] ?? '', classes: ea.classes,
-              tags: ea.tags, own: ea.id, ln: e.ln, span: e.span, space: es.space });
+              tags: ea.tags, own: null, ln: e.ln, span: e.span, space: es.space });
             continue;
           }
           const aAt = eb.findIndex(v => DG_SEQ_ARROWS.has(v));
@@ -2829,7 +3391,19 @@ export function createDiagramCompiler(env = {}) {
             dgErr(errors, e.ln, `a message needs an actor on both sides of "${eb[aAt]}"`);
             continue;
           }
-          const stray = [...eb.slice(0, Math.max(0, aAt - 1)), ...eb.slice(aAt + 2)];
+          // The same one sentence an `edge` follows: the token before the arrow
+          // is the from-actor, an optional token before *that* is the message's
+          // own name. Zero of the corpus's messages are named, so this half of
+          // item 9 is capability added rather than source moved - the construct
+          // reference could not show a named message at all before it.
+          //
+          // No collision rule of its own, for the reason the `edge` branch has
+          // none: the only way the slot can be wrong is that the name is not
+          // available, and `claim` says so in the sentence every other
+          // statement gets.
+          const ownName = aAt === 2 ? eb[0] : null;
+          // Everything before the from-token that is not the optional name.
+          const stray = [...eb.slice(0, Math.max(0, aAt - (ownName ? 2 : 1))), ...eb.slice(aAt + 2)];
           if (stray.length) {
             dgErr(errors, e.ln, `unexpected "${stray.join(' ')}" in the message ${fromTok} ${eb[aAt]} ${toTok} – `
               + 'a message is `<actor> -> <actor> "<label>"`, optionally a second, smaller string '
@@ -2865,12 +3439,21 @@ export function createDiagramCompiler(env = {}) {
           // displace it rather than stack with it.
           const mcls = [...ea.classes];
           const self = fromTok === toTok;
-          const across = self ? DG_ALIGN_ACROSS : DG_ALIGN_DOWN;
-          if (!across.some(c => mcls.includes(c))) mcls.push(self ? 'right' : 'top');
+          // The side is *set on the edge record*, with an author's own `side`
+          // winning – the same shape `space n` already has. It used to be
+          // injected as a class an author could displace, which was a second
+          // way of saying what `side` now says once.
+          //
+          // A message needs a side at all because the edge emitter reads a fill
+          // with no side as "put the words *on* the line and knock it out
+          // behind them", so `{.paper}` on a message swallowed the whole arrow.
+          // `.top` on an ordinary message, `.right` on a self-message, whose
+          // loop is read as vertical at its middle.
           if (!DG_FILL_SLOT.some(c => mcls.includes(c))) mcls.push('paper');
           seq.push({ type: 'msg', from: flip ? toTok : fromTok, to: flip ? fromTok : toTok,
             headless: eb[aAt] === '--', label: eq[0] ?? '', sub: eq[1] ?? '',
-            classes: mcls, tags: ea.tags, own: ea.id, ln: e.ln, span: e.span, space: es.space });
+            side: eside.side || (self ? 'right' : 'top'),
+            classes: mcls, tags: ea.tags, own: ownName, ln: e.ln, span: e.span, space: es.space });
         }
         if (!actors.length) {
           dgErr(errors, lineNo, `sequence ${id} declares no actors – put \`actor <name> "<label>"\` `
@@ -2894,7 +3477,7 @@ export function createDiagramCompiler(env = {}) {
           return dgMeasure(a.label, dgFontFor(cs), cs.has('mono'));
         });
         const headW = Math.max(DG_MIN_W, Math.max(...headM.map(m => m.w)) + 2 * DG_PAD_X);
-        const headH = opts.h != null ? opts.h * uh
+        const headH = opts.header != null ? opts.header * uh
           : Math.max(...headM.map(m => m.h)) + 2 * DG_PAD_Y;
         const pitch = opts.w != null ? (opts.w * uw) / actors.length : headW + DG_SEQ_GAP * uw;
         const boxW = Math.max(DG_MIN_W, pitch - DG_SEQ_GAP * uw);
@@ -3041,7 +3624,7 @@ export function createDiagramCompiler(env = {}) {
             // an edge label's ground already reads, and it is written on the
             // element rather than left to the default so a knockout behind two
             // words is a knockout and not a slab.
-            via, pad: DG_SEQ_GROUND, named: !!it.own,
+            via, pad: DG_SEQ_GROUND, side: it.side, named: !!it.own,
           }, it.ln, 'message', it.span));
           if (!opts.unnumbered) {
             const numId = dgMsgNumName(id, p.i);
@@ -3124,8 +3707,15 @@ export function createDiagramCompiler(env = {}) {
             k += 2;
             continue;
           }
-          if (key === 'w' || key === 'h' || key === 'step') {
+          if (key === 'w' || key === 'h' || key === 'tick') {
             o[key] = dgNum(rest[k + 1]?.v, errors, lineNo, `plot ${id} ${key}`); k += 2; continue;
+          }
+          // Named rather than left to the generated sentence, because the old
+          // spelling is exactly what an author who learned it will type.
+          if (key === 'step') {
+            dgErr(errors, lineNo, `plot ${id}: the tick interval is "tick", not "step" – `
+              + '"step" opens a beat. Write "tick ' + (rest[k + 1]?.v ?? 'n') + '".');
+            bad = true; break;
           }
           if (key === 'same' && rest[k + 1]?.v === 'as') {
             o.sameAs = rest[k + 2] ? rest[k + 2].v : '';
@@ -3144,8 +3734,7 @@ export function createDiagramCompiler(env = {}) {
           }
           const [place, next] = dgParsePlacement(rest, k, errors, lineNo);
           if (place) { o.place = place; k = next; continue; }
-          dgErr(errors, lineNo, `unexpected "${key}" in plot ${id} – `
-            + 'this statement takes a placement, w, h, aspect W:H, same as <chart>, x lo,hi, y lo,hi and step');
+          dgErr(errors, lineNo, dgUnexpected('plot', id, key));
           bad = true; break;
         }
         if (bad) continue;
@@ -3165,7 +3754,7 @@ export function createDiagramCompiler(env = {}) {
         const [W, H] = applyAspect('plot', id, o, lineNo, 2.4, 1.8);
         const xd = o.x || [0, 1];
         const yd = o.y || [0, 1];
-        const step = o.step != null ? o.step : (xd[1] - xd[0]) / 5;
+        const step = o.tick != null ? o.tick : (xd[1] - xd[0]) / 5;
         const xticks = dgPlotTicks(xd[0], xd[1], step);
         const yticks = dgPlotTicks(yd[0], yd[1], step);
         if (!xticks.length || !yticks.length) {
@@ -3251,7 +3840,7 @@ export function createDiagramCompiler(env = {}) {
         claim(id, head, lineNo);
         // `bars` and `plot` only ever draw boxes; a `grid` draws whatever its
         // kind word says, and an outline on a grid of dots did nothing at all.
-        rejectShapeOn(head === 'grid' ? (t(2) || 'box') : 'box', attrs.classes, lineNo, errors);
+        rejectShapeOn(head === 'grid' ? (t(2) || 'box') : 'box', attrs.classes, lineNo, errors, attrs.removedClasses);
         const qToks = toks.filter(x => x.q);
         // A synthetic element carries the statement's own span so an error
         // names the line that wrote it, and `synth` so anything that rewrites
@@ -3382,7 +3971,17 @@ export function createDiagramCompiler(env = {}) {
           // same sentence the word already is everywhere else in this grammar.
           // It was briefly a fraction of the column here, which is exactly the
           // kind of second meaning for one word this DSL keeps refusing.
-          const gapU = geo ? geo.gapU : (opts.space != null ? opts.space * (flat ? uh : uw) : cell * 0.25);
+          // Square, in `uh`, like every other clearance. It used to be
+          // multiplied by the cell's width upright and its height flat, so
+          // **adding the word `horizontal` to an existing `bars` line silently
+          // rescaled its column spacing** – 30.0 px between columns upright and
+          // 10.4 px flat at unit=150x52, with the two words on the same line and
+          // nothing between them to suggest a connection. `horizontal` is
+          // documented as a *reading* of the same chart, and every other number
+          // on the line survives the flip because the expansion works in px
+          // along two named axes for exactly that reason. `space` was the one
+          // that did not.
+          const gapU = geo ? geo.gapU : (opts.space != null ? opts.space * uh : cell * 0.25);
           // With one series this is the whole cell less its gap, exactly what
           // it always was. With several it is that width shared out, so a
           // grouped chart occupies the same paper a single one did.
@@ -3414,7 +4013,9 @@ export function createDiagramCompiler(env = {}) {
             }
             return out;
           };
-          const marked = markSet(opts.emph, 'emph'), calmed = markSet(opts.calm, 'calm');
+          // One set per prominence word, read off the same table the verbs and
+          // the classes come from, so a fourth setting would need no code here.
+          const marks = Object.fromEntries(DG_PROMINENCE.map(w => [w, markSet(opts[w], w)]));
           // Placed against the frame the series belongs to, never against its
           // own name: that is the whole reason a second series needs nothing
           // but a reference to the first.
@@ -3430,7 +4031,7 @@ export function createDiagramCompiler(env = {}) {
             model.nodes.push(synth({
               kind: 'box', id: dgBarName(id, i), label: '',
               classes: squared([...attrs.classes,
-                ...(marked.has(i) ? ['emph'] : []), ...(calmed.has(i) ? ['dim'] : [])]),
+                ...DG_PROMINENCE.filter(w => marks[w].has(i))]),
               tags: attrs.tags,
               // Upright, a column grows up from the baseline, so its centre is
               // measured back from the frame's bottom. Flat, it grows right
@@ -3449,13 +4050,13 @@ export function createDiagramCompiler(env = {}) {
           });
           if (opts.series) {
             // Enough for the span table to re-tokenize the line and find the
-            // values, the classes, the tags, `stacked`, `emph` and `calm`.
+            // values, the classes, the tags, `stacked` and the prominence words.
             // `frame` marks it a chart statement, which is what keeps a panel
             // from offering a label field: on a bars line the first quoted
             // token is the data.
             model.statements.push({
               kind: 'bars', frame: 'bars', id, series: opts.series,
-              classes: attrs.classes, tags: attrs.tags, place: null,
+              classes: attrs.classes, removedClasses: attrs.removedClasses, tags: attrs.tags, place: null,
               line: lineNo, span,
             });
             continue;
@@ -3539,7 +4140,7 @@ export function createDiagramCompiler(env = {}) {
         if (isImg) {
           asset = resolveImage(src);
           if (!asset) {
-            dgErr(errors, lineNo, `grid ${id}: cannot find "${src}" – expected assets/${src}.{svg,png,jpg,…}, a path, or an https URL`);
+            dgErr(errors, lineNo, `grid ${id}: cannot find "${src}" – expected assets/${src}.{svg,png,jpg,…}, a path, or an https URL`, 'reference');
             continue;
           }
           if (asset.video) {
@@ -3583,7 +4184,7 @@ export function createDiagramCompiler(env = {}) {
             const cid = dgCellName(id, c, r);
             claim(cid, kindWord, lineNo);
             const cellNode = synth({
-              kind: kindWord, id: cid, label: '', alt: '', classes: attrs.classes, tags: attrs.tags,
+              kind: kindWord, id: cid, label: '', alt: '', classes: attrs.classes, removedClasses: attrs.removedClasses, tags: attrs.tags,
               place: at(c * pitchX + cellX / 2, r * pitchY + cellU / 2),
               w: kindWord === 'dot' ? null : cellX,
               h: kindWord === 'dot' ? null : cellU,
@@ -3613,15 +4214,21 @@ export function createDiagramCompiler(env = {}) {
         // placement any more, and the build rejects it.
         const rest = body0.slice(isImage ? 3 : 2).map(x => ({ v: x.v, s: x.s, e: x.e }));
         let k = 0;
+        // Whether the statement gave up part-way through its own line. The
+        // `has no placement` consequence is suppressed for a statement that
+        // stopped early, and only then – it keys on "the parser stopped
+        // reading", never on "an error happened", so a `box` that reads its
+        // whole line and genuinely has no placement still says so.
+        let stopped = false;
         const node = {
           kind: head, id, label: isImage ? '' : (quoted[0] ?? ''),
           alt: isImage ? (quoted[0] ?? '') : '',
-          src, classes: attrs.classes, tags: attrs.tags, place: null,
+          src, classes: attrs.classes, removedClasses: attrs.removedClasses, tags: attrs.tags, place: null,
           w: null, h: null, r: null, pad: null, line: lineNo, span,
         };
         if (isImage && src) {
           const found = resolveImage(src);
-          if (!found) dgErr(errors, lineNo, `image ${id}: cannot find "${src}" – expected assets/${src}.{svg,png,jpg,…}, a path, or an https URL`);
+          if (!found) dgErr(errors, lineNo, `image ${id}: cannot find "${src}" – expected assets/${src}.{svg,png,jpg,…}, a path, or an https URL`, 'reference');
           else if (found.video) {
             dgErr(errors, lineNo, `image ${id}: "${found.href}" is a clip, and a diagram draws stills – `
               + `an SVG image element cannot play video. Put the clip in the chunk body as ![](clip-id).`);
@@ -3633,12 +4240,34 @@ export function createDiagramCompiler(env = {}) {
           // the escape from layout pressure – put the words where they read
           // best and let a stub say what they are about. It is a tail on
           // `text` rather than a keyword of its own so that any label can
-          // grow one, and so the vocabulary stays at eight statements.
-          if (key === '->') {
+          // grow one, without the statement list growing to carry it.
+          // A leader line: `text n "…" right of c gap 0.7 -- leak`. This is the
+          // escape from layout pressure – put the words where they read best
+          // and let a stub say what they are about.
+          //
+          // **The token means here what it means on an edge.** It used to be
+          // written `->` and drew no head, so one token meant *a head* on an
+          // edge and *no head* on a text, and `--`, the token that actually
+          // describes what a leader draws, was refused there. Now `--` is the
+          // plain stub – which is what all 29 leaders in the corpus were – and
+          // `->` is a leader that points, which did not exist before.
+          //
+          // `<-` and `<->` are refused, and for a stated reason rather than as
+          // an exception: a leader names one operand, not two, so `<-` has
+          // nothing to reverse and `<->` would put a head on the words.
+          if (key === '--' || key === '->') {
             node.leader = rest[k + 1] ? rest[k + 1].v : '';
-            if (!node.leader) dgErr(errors, lineNo, `${head} ${id}: "->" needs an element to point at`);
+            node.leaderArrow = key;
+            if (!node.leader) dgErr(errors, lineNo, `${head} ${id}: "${key}" needs an element to point at`);
             k += 2;
             continue;
+          }
+          if (key === '<-' || key === '<->') {
+            dgErr(errors, lineNo, `${head} ${id}: a leader points at one thing and the words are `
+              + `always the other end, so "${key}" has nothing to reverse – write "--" for a plain `
+              + 'stub or "->" for one that points.');
+            stopped = true;
+            break;
           }
           // `same as X` copies X's width and height. Geometry only: styling
           // is what the `default` block is for, and one line covering every
@@ -3657,7 +4286,7 @@ export function createDiagramCompiler(env = {}) {
           // chevron aimed up does not need a class name of its own – and a
           // `point` on a shape with no point, or on no shape at all, is an
           // error rather than a word that sits there doing nothing.
-          if (key === 'point') {
+          if (key === 'point' && DG_KIND_OPTS[head].includes('point')) {
             const dir = rest[k + 1] ? rest[k + 1].v : '';
             if (!DG_POINT_DIRS.has(dir)) {
               dgErr(errors, lineNo, `${head} ${id}: point expects `
@@ -3668,16 +4297,34 @@ export function createDiagramCompiler(env = {}) {
             k += 2;
             continue;
           }
-          if (key === 'w') { node.w = dgNum(rest[k + 1]?.v, errors, lineNo, 'w'); k += 2; continue; }
-          if (key === 'h') { node.h = dgNum(rest[k + 1]?.v, errors, lineNo, 'h'); k += 2; continue; }
-          if (key === 'r') { node.r = dgNum(rest[k + 1]?.v, errors, lineNo, 'r'); k += 2; continue; }
+          // `w`, `h` and `r` are gated on DG_KIND_OPTS the way `pad` already
+          // was. Ungated they parsed on every node kind and drew nothing –
+          // `w` on a `dot`, `r` on a `box` – which is the exact silent no-op
+          // CLAUDE.md records as *fixed* for the `default` block and left
+          // standing on the statement that block defaults. Afterwards the
+          // table is the vocabulary of the statement as well as of its
+          // default, so a statement can no longer be laxer than its own
+          // default block.
+          if ((key === 'w' || key === 'h' || key === 'r') && DG_KIND_OPTS[head].includes(key)) {
+            node[key] = dgNum(rest[k + 1]?.v, errors, lineNo, key); k += 2; continue;
+          }
           if (key === 'pad' && DG_KIND_OPTS[head].includes('pad')) {
             node.pad = dgNum(rest[k + 1]?.v, errors, lineNo, 'pad'); k += 2; continue;
           }
-          const [place, next] = dgParsePlacement(rest, k, errors, lineNo);
+          const [place, next, attempted] = dgParsePlacement(rest, k, errors, lineNo);
           if (place) { node.place = place; k = next; continue; }
-          dgErr(errors, lineNo, `unexpected "${key}" in ${head} ${id}`);
-          k++;
+          // A placement that was *attempted* and failed has already said why
+          // (item 8's two near-miss checks), so the statement stops without
+          // adding a second sentence about the same tokens.
+          if (attempted) { stopped = true; break; }
+          dgErr(errors, lineNo, dgUnexpected(head, id, key));
+          // One sentence per statement. `readGridOpts` has always returned on
+          // its first bad option, which is why the six expanding statements
+          // report once; this is that policy, applied to the seven statements
+          // a newcomer meets first. Everything after an unreadable token is a
+          // guess about a line whose structure is already lost.
+          stopped = true;
+          break;
         }
         // The first element anchors the diagram at the origin, so the common
         // case of "a box, and then everything relative to it" needs no
@@ -3690,9 +4337,9 @@ export function createDiagramCompiler(env = {}) {
           // has to write the placement out first. spanOf says so rather
           // than handing back an insertion point that would not parse.
           if (model.nodes.length === 0) node.place = { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] };
-          else dgErr(errors, lineNo, `${head} ${id} has no placement (at X,Y / below … / above … / right of … / left of … )`);
+          else if (!stopped) dgErr(errors, lineNo, dgNoPlacement(head, id));
         }
-        rejectShapeOn(head, attrs.classes, lineNo, errors);
+        rejectShapeOn(head, attrs.classes, lineNo, errors, attrs.removedClasses);
         model.nodes.push(node);
         if (node.leader) {
           const leadId = `${id}--lead`;
@@ -3712,25 +4359,77 @@ export function createDiagramCompiler(env = {}) {
             lead: true,
             from: { ref: id, anchor: null },
             to,
-            label: '', classes: ['no-head', 'muted'], via: [], line: lineNo, span,
+            label: '',
+            // The leader's own token seeds its head class, exactly as an
+            // edge's does – one channel, one rule, whichever statement it is
+            // written on.
+            classes: [DG_ARROW_CLASS[node.leaderArrow] || 'no-head', 'muted'],
+            via: [], line: lineNo, span,
           });
         }
         continue;
       }
 
       if (head === 'edge') {
-        const arrowAt = body0.findIndex(x => x.v === '->' || x.v === '<-' || x.v === '--');
-        if (arrowAt < 0) { dgErr(errors, lineNo, `edge needs "->" between two element names`); continue; }
-        const fromTok = body0[arrowAt - 1]?.v, toTok = body0[arrowAt + 1]?.v;
-        if (!fromTok || !toTok) { dgErr(errors, lineNo, `edge needs an element on both sides of "->"`); continue; }
-        // Only the token immediately before the arrow is an endpoint, so
-        // anything earlier was being read and dropped without a word. That was
-        // harmless while an edge had no options at all; it stopped being
-        // harmless the moment `pad` existed, because `edge pad 0.1 a -> b`
-        // then parsed, drew, and ignored the number.
-        if (arrowAt > 2) {
+        const arrowAt = body0.findIndex(x => DG_EDGE_ARROWS.has(x.v));
+        if (arrowAt < 0) {
+          // The author usually *did* write the arrow; what is missing is a
+          // space on each side. `edge p->q` tokenizes to ["edge", "p->q"], so
+          // the distinction is one test, and the old single message told them
+          // to add a token they had already typed. Requiring the spaces is
+          // right and stays: every other option in this grammar is
+          // space-separated, and splitting a token on `--` would break any
+          // element id that contains one.
+          const glued = body0.some(x => x.v !== 'edge' && [...DG_EDGE_ARROWS].some(a => x.v.includes(a)));
+          // The repair is spelled out on the author's own tokens, so the
+          // sentence says what to type rather than what shape an edge has.
+          const respaced = body0.slice(1).map(x => [...DG_EDGE_ARROWS]
+            .reduce((v, a) => v.split(a).join(` ${a} `), x.v)).join(' ').replace(/\s+/g, ' ').trim();
+          dgErr(errors, lineNo, glued
+            ? `edge: the arrow needs a space on each side – write it as "edge ${respaced}"`
+            : `an edge is "edge [name] <from> -> <to>" – the arrow may be ${[...DG_EDGE_ARROWS].join(', ')}`);
+          continue;
+        }
+        const fromTok = arrowAt === 0 ? '' : body0[arrowAt - 1]?.v, toTok = body0[arrowAt + 1]?.v;
+        // An `edge` with nothing before its arrow used to read the keyword
+        // `edge` itself as the from-endpoint and then report that "edge" is not
+        // defined – the same class of failure as `above of a`, and worse,
+        // because there is no `unexpected` sentence anywhere in the output to
+        // contradict it.
+        if (arrowAt === 1 || !fromTok || !toTok || fromTok === 'edge') {
+          dgErr(errors, lineNo, `edge needs an element on both sides of "${body0[arrowAt].v}"`);
+          continue;
+        }
+        // **The token immediately before the arrow is the from-endpoint; an
+        // optional token before *that* is the element's name.** One sentence,
+        // and unambiguous by counting rather than by lookahead: every endpoint
+        // form is exactly one token – `p`, `p.top`, `p.right:0.3`, `0,0` alike.
+        // The slot was free, because two tokens before the arrow used to be a
+        // hard error, so no existing line changes meaning; only the arity of
+        // that error moved.
+        //
+        // Anonymous stays exactly as short as it was. A mandatory placeholder
+        // (`edge - p -> q`) was declined for that reason: 177 of 264 edges and
+        // every message in the corpus are anonymous, and each would have had to
+        // carry a token that says nothing.
+        let named = false;
+        let id = '';
+        if (arrowAt === 3) {
+          const cand = body0[1].v;
+          // A name the author wrote, which `claim` below either grants or
+          // refuses. There is no separate "two element names before the arrow"
+          // rule: the only way `edge X Y -> Z` can be wrong is that X is not
+          // available, and "duplicate element id X" is exactly that sentence -
+          // the same one every other statement gets. What the line *meant* -
+          // a name that collides, or a stray token that happens to be a name -
+          // is not decidable here, and guessing between them was one rule to
+          // state, one more to discriminate with, and two ways to be wrong.
+          named = true;
+          id = cand;
+        } else if (arrowAt > 3) {
           dgErr(errors, lineNo, `unexpected "${body0.slice(1, arrowAt - 1).map(x => x.v).join(' ')}" before the arrow `
-            + 'in an edge – an edge is "edge <from> -> <to>", and its options come after the second end');
+            + 'in an edge – an edge is "edge [name] <from> -> <to>", and its options come after the second end');
+          continue;
         }
         const flip = body0[arrowAt].v === '<-';
         // Whether the author named it, which is not the same question as
@@ -3739,10 +4438,13 @@ export function createDiagramCompiler(env = {}) {
         // line. That is fine while nothing refers to it, and it stopped being
         // fine when an edge became something a coordinate can name - so anything
         // that offers to write `at edge-3.cy` has to know the difference.
-        const named = !!attrs.id;
-        const id = attrs.id || `edge-${++anonEdge}`;
-        claim(id, 'edge', lineNo);
-        rejectAlignOn('edge', attrs.classes, lineNo, errors);
+        if (!named) id = `edge-${++anonEdge}`;
+        // An edge that did not get its name is not built. Anything downstream
+        // would be a second element answering to somebody else's id, and the
+        // layout's report on that is a fiction.
+        if (!claim(id, 'edge', lineNo)) continue;
+        rejectAlignOn('edge', attrs.classes, lineNo, errors, attrs.removedClasses);
+        rejectHeadClassIn('tail', attrs.classes, lineNo, errors);
         const edge = {
           kind: 'edge',
           id,
@@ -3750,19 +4452,28 @@ export function createDiagramCompiler(env = {}) {
           to: dgParseRef(flip ? fromTok : toTok, errors, lineNo),
           label: quoted[0] ?? '',
           classes: attrs.classes.slice(),
+          removedClasses: (attrs.removedClasses || []).slice(),
           tags: attrs.tags,
-          via: [], pad: null, named, line: lineNo, span,
+          via: [], pad: null, side: null, named, line: lineNo, span,
         };
-        // `--` means headless, expressed through the same class the emitter
-        // already reads – but the injection is *derived from the arrow
-        // token*, not authored, and `autoClasses` says so. Without the mark
-        // the editor rebuilt attribute tails from `classes` and wrote
-        // `.no-head` into every `--` line it touched, and its arrowheads
-        // row edited a class the author never wrote instead of the token
-        // that actually carries the meaning.
-        if (body0[arrowAt].v === '--' && !edge.classes.includes('no-head')) {
-          edge.classes.push('no-head');
-          edge.autoClasses = ['no-head'];
+        // **Every token seeds a class**, expressed through the same three the
+        // emitter reads – but the injection is *derived from the arrow token*,
+        // not authored, and `autoClasses` says so. Without the mark the editor
+        // rebuilt attribute tails from `classes` and wrote the class into every
+        // line it touched, and its arrowheads row edited a class the author
+        // never wrote instead of the token that carries the meaning.
+        //
+        //   --    .no-head      no head
+        //   -> <- .one-head     one head
+        //   <->   .both-heads   a head at each end
+        //
+        // Before this, `->` seeded nothing: the head was the drawn default, so
+        // the channel had two names for three states and precedence fell out of
+        // which token happened to be written. See DG_CLASS_GROUPS.
+        const seeded = DG_ARROW_CLASS[body0[arrowAt].v];
+        if (seeded && !edge.classes.includes(seeded)) {
+          edge.classes.push(seeded);
+          edge.autoClasses = [seeded];
         }
         // Waypoints are introduced by `via`, once, and it is not optional: every
         // other modifier in this grammar is a keyword followed by its values,
@@ -3783,18 +4494,26 @@ export function createDiagramCompiler(env = {}) {
             k++;
             continue;
           }
+          if (body0[k].v === 'side') {
+            const w = body0[k + 1]?.v;
+            if (!DG_SIDES.includes(w)) {
+              dgErr(errors, lineNo, `edge ${id}: side expects ${DG_SIDES.join(' / ')}, got "${w ?? ''}"`);
+            } else edge.side = w;
+            k++;
+            continue;
+          }
           if (!seenVia) {
             dgErr(errors, lineNo, body0[k].v.includes(',')
               ? `edge ${id}: a waypoint needs "via" in front of it – "via ${body0[k].v}"`
-              : `unexpected "${body0[k].v}" in edge ${id} (waypoints are "via X,Y X,Y")`);
-            continue;
+              : dgUnexpected('edge', id, body0[k].v));
+            break;
           }
           const p = dgParsePair(body0[k].v, errors, lineNo, 'a waypoint');
           if (p) edge.via.push(p);
         }
         if (edge.classes.includes('elbow') && edge.via.length) {
           dgErr(errors, lineNo, `edge ${id}: .elbow draws its own two waypoints, so it cannot `
-            + `also carry "via". Drop one – .elbow for the halfway rail, "via" to say where.`);
+            + `also carry "via". Drop one – .elbow for the halfway rail, "via" to say where.`, 'semantic');
         }
         model.edges.push(edge);
         continue;
@@ -3806,11 +4525,23 @@ export function createDiagramCompiler(env = {}) {
         claim(id, head, lineNo);
         const overAt = body0.findIndex(x => x.v === 'over');
         if (overAt < 0) { dgErr(errors, lineNo, `${head} ${id} needs "over a,b,c"`); continue; }
-        // `over a, b, c` tokenizes into several tokens; everything up to the
-        // first trailing keyword is the member list.
-        const TRAIL = new Set(['pad', ...DG_BRACE_SIDES]);
+        // **The member run ends where the commas stop.** A member list is
+        // comma-separated, so it continues only while the previous token ended
+        // with a comma or the next begins with one. Scanning instead to the
+        // first token in a fixed trailing set meant any token *not* in that set
+        // was swallowed as a member name, so a mistyped or wrong-statement
+        // option became an element – and the author was told their reference
+        // was undefined, twice, with nothing anywhere in the output naming the
+        // token. The `brace` case was the sharpest, because `pad` on a brace
+        // was renamed *from* `gap`: the one word an author is most likely to
+        // write there was the word the statement answered worst.
         let mEnd = overAt + 1;
-        while (mEnd < body0.length && !TRAIL.has(body0[mEnd].v)) mEnd++;
+        while (mEnd < body0.length) {
+          const prev = body0[mEnd - 1].v, here = body0[mEnd].v;
+          if (mEnd === overAt + 1) { mEnd++; continue; }
+          if (!prev.endsWith(',') && !here.startsWith(',')) break;
+          mEnd++;
+        }
         const members = dgParseMembers(body0.slice(overAt + 1, mEnd).map(x => x.v).join(','));
         if (!members.length) { dgErr(errors, lineNo, `${head} ${id} lists no members`); continue; }
         const rest = body0.slice(mEnd);
@@ -3818,15 +4549,30 @@ export function createDiagramCompiler(env = {}) {
         // outline sits from what it encloses. The brace used to spell it
         // `gap`, which is the word for the distance between two *elements*
         // everywhere else in the grammar.
-        rejectShapeOn(head, attrs.classes, lineNo, errors);
+        rejectShapeOn(head, attrs.classes, lineNo, errors, attrs.removedClasses);
         rejectAlignOn(head, attrs.classes, lineNo, errors);
-        const item = { kind: head, id, members, label: quoted[0] ?? '', classes: attrs.classes, tags: attrs.tags, pad: null, line: lineNo, span };
+        const item = { kind: head, id, members, label: quoted[0] ?? '', classes: attrs.classes, removedClasses: attrs.removedClasses, tags: attrs.tags, pad: null, line: lineNo, span };
         if (head === 'brace') item.side = null;
         for (let k = 0; k < rest.length; k++) {
           const key = rest[k].v;
-          if (head === 'brace' && DG_BRACE_SIDES.includes(key)) { item.side = key; continue; }
+          if (head === 'brace' && key === 'side') {
+            const w = rest[k + 1]?.v;
+            if (!DG_BRACE_SIDES.includes(w)) {
+              dgErr(errors, lineNo, `brace ${id}: side expects ${DG_BRACE_SIDES.join(' / ')}, got "${w ?? ''}"`);
+            } else item.side = w;
+            k++;
+            continue;
+          }
+          // Named rather than left to the generated sentence: the bare word is
+          // what every brace in the corpus was written with.
+          if (head === 'brace' && DG_BRACE_SIDES.includes(key)) {
+            dgErr(errors, lineNo, `brace ${id}: which side the spine sits on is written `
+              + `"side ${key}" – a bare "${key}" is one of the four words that also place a label.`);
+            break;
+          }
           if (key === 'pad') { item.pad = dgNum(rest[k + 1]?.v, errors, lineNo, 'pad'); k++; continue; }
-          dgErr(errors, lineNo, `unexpected "${key}" in ${head} ${id}`);
+          dgErr(errors, lineNo, dgUnexpected(head, id, key));
+          break;
         }
         (head === 'brace' ? model.braces : model.containers).push(item);
         continue;
@@ -3853,7 +4599,7 @@ export function createDiagramCompiler(env = {}) {
       if (!m.startsWith('@')) return [m];
       const hit = model.tags.get(m.slice(1));
       if (!hit || !hit.length) {
-        dgErr(errors, lineNo, `${what} refers to @${m.slice(1)}, which no element carries`);
+        dgErr(errors, lineNo, `${what} refers to @${m.slice(1)}, which no element carries`, 'reference');
         return [];
       }
       return hit;
@@ -3864,7 +4610,7 @@ export function createDiagramCompiler(env = {}) {
     for (const h of model.spreads) h.members = expandList(h.members, h.line, `spread ${h.axis}`);
     for (const d of model.tagDefaults) {
       if (!model.tags.has(d.tag)) {
-        dgErr(errors, d.line, `default ${d.kind} @${d.tag} – no element carries @${d.tag}`);
+        dgErr(errors, d.line, `default ${d.kind} @${d.tag} – no element carries @${d.tag}`, 'reference');
       }
     }
     // An element carrying two tags that both default its kind has no
@@ -3898,7 +4644,7 @@ export function createDiagramCompiler(env = {}) {
     const checkRef = (id, lineNo, what) => {
       if (!id || known(id)) return;
       if (id.startsWith('@')) {
-        dgErr(errors, lineNo, `${what} refers to @${id.slice(1)}, which no element carries`);
+        dgErr(errors, lineNo, `${what} refers to @${id.slice(1)}, which no element carries`, 'reference');
         return;
       }
       // The commonest slip is reaching for a class where a tag was meant, so
@@ -3906,7 +4652,7 @@ export function createDiagramCompiler(env = {}) {
       const bare = id.startsWith('.') ? id.slice(1) : id;
       const hint = DG_CLASSES.has(bare)
         ? ` – ".${bare}" is a class; a set you can address is written "@${bare}"` : '';
-      dgErr(errors, lineNo, `${what} refers to "${id}", which is not defined${hint}`);
+      dgErr(errors, lineNo, `${what} refers to "${id}", which is not defined${hint}`, 'reference');
     };
     const refsOf = (place) => place?.kind === 'rel' ? [place.ref]
       : place?.kind === 'between' ? place.refs.map(r => r.ref)
@@ -3926,7 +4672,7 @@ export function createDiagramCompiler(env = {}) {
       if (!DG_POINTED.has(kind)) {
         dgErr(errors, n.line, `${n.kind} ${n.id}: "point" aims an outline that has a point, and `
           + `${kind ? '.' + kind + ' has none' : 'this element has no outline'} – it applies to `
-          + `${[...DG_POINTED].map(k => '.' + k).join(' and ')}`);
+          + `${[...DG_POINTED].map(k => '.' + k).join(' and ')}`, 'semantic');
       }
     }
 
@@ -3967,6 +4713,27 @@ export function createDiagramCompiler(env = {}) {
       for (const op of s.ops) {
         for (const target of (op.targets || (op.target ? [op.target] : []))) checkRef(target, op.line, `step ${s.name}`);
         for (const r of refsOf(op.to)) checkRef(r, op.line, `step ${s.name}`);
+        // **A tag expands to its members, so a kind-gated class named in a step
+        // can reach a member that cannot take it.** Written on a plain line the
+        // class is refused; arriving through a tag it used to be silent, and
+        // silent *there* is harder to see than on a plain line, not easier.
+        //
+        // One bad member fails the statement, naming the member and its kind –
+        // not a per-member filter. A set that cannot all take the same act is
+        // the wrong set, and saying so is the whole point of the rule; it also
+        // keeps `dgStateAt`'s tag expansion free of a kind-aware branch.
+        if (op.op === 'style' && ((op.classes || []).length || (op.removed || []).length)) {
+          for (const target of (op.targets || [])) {
+            const members = target.startsWith('@')
+              ? (model.tags.get(target.slice(1)) || []) : [target];
+            for (const m of members) {
+              const kind = model.byId.get(m);
+              if (!kind) continue;
+              rejectClassOn(kind, op.classes, op.line, errors,
+                target.startsWith('@') ? `${m} carries ${target}` : '', op.removed);
+            }
+          }
+        }
         // `move @row to 3,2` gives every member of the set the same placement,
         // which stacks them on one point – never what a set-wide move means.
         // `by` is the one that translates a group, so name it.
@@ -3974,7 +4741,7 @@ export function createDiagramCompiler(env = {}) {
           const members = model.tags.get(op.target.slice(1)) || [];
           if (members.length > 1) {
             dgErr(errors, op.line, `move ${op.target} to … would place all ${members.length} elements `
-              + `carrying ${op.target} at the same point. To translate a set, use "move ${op.target} by dx,dy".`);
+              + `carrying ${op.target} at the same point. To translate a set, use "move ${op.target} by dx,dy".`, 'semantic');
           }
         }
       }
@@ -4017,7 +4784,7 @@ export function createDiagramCompiler(env = {}) {
       // Something to fit *into* is the whole premise, so an element with
       // neither is a line that would otherwise quietly do nothing.
       if ((classes.has('fit') || classes.has('shrink')) && nw == null && !node.sameAs) {
-        errors.push({ line: node.line, msg: `${node.kind} ${node.id}: `
+        errors.push({ phase: 'semantic', line: node.line, msg: `${node.kind} ${node.id}: `
           + `.${classes.has('fit') ? 'fit' : 'shrink'} sizes the type to the box, so the box has to be `
           + `given – add "w n" or "same as <element>"` });
       }
@@ -4122,7 +4889,7 @@ export function createDiagramCompiler(env = {}) {
     const isNode = new Set(model.nodes.map(n => n.id));
     const nodeOnly = (m, line, what) => {
       if (isNode.has(m)) return true;
-      errors.push({ line, msg: `${what} names "${m}", which is not a box, dot, text or image – only those can be aligned or distributed` });
+      errors.push({ phase: 'semantic', line, msg: `${what} names "${m}", which is not a box, dot, text or image – only those can be aligned or distributed` });
       return false;
     };
     for (const a of model.aligns) {
@@ -4131,7 +4898,7 @@ export function createDiagramCompiler(env = {}) {
       const table = a.axis === 'x' ? alignX : alignY;
       for (const m of rest) {
         if (table.has(m)) {
-          errors.push({ line: a.line, msg: `"${m}" is already aligned on the ${a.axis} axis by another align statement` });
+          errors.push({ phase: 'semantic', line: a.line, msg: `"${m}" is already aligned on the ${a.axis} axis by another align statement` });
           continue;
         }
         table.set(m, { edge: a.edge, master });
@@ -4143,7 +4910,7 @@ export function createDiagramCompiler(env = {}) {
       const first = s.members[0], last = s.members[s.members.length - 1];
       s.members.slice(1, -1).forEach((m, i) => {
         if (spreadAt.has(m)) {
-          errors.push({ line: s.line, msg: `"${m}" is already distributed by another spread statement` });
+          errors.push({ phase: 'semantic', line: s.line, msg: `"${m}" is already distributed by another spread statement` });
           return;
         }
         spreadAt.set(m, { axis: s.axis, first, last, t: (i + 1) / (s.members.length - 1) });
@@ -4183,7 +4950,7 @@ export function createDiagramCompiler(env = {}) {
     const visit = (id, trail) => {
       if (mark.get(id) === 2) return;
       if (mark.get(id) === 1) {
-        errors.push({ line: 0, msg: `placement cycle: ${[...trail, id].join(' → ')}` });
+        errors.push({ phase: 'layout', line: 0, msg: `placement cycle: ${[...trail, id].join(' → ')}` });
         mark.set(id, 2);
         return;
       }
@@ -4234,10 +5001,31 @@ export function createDiagramCompiler(env = {}) {
         } else {
           const ref = boxes.get(place.ref);
           if (!ref) { cx = 0; cy = 0; }
+          // **`gap` is square, and its ruler is one row.** A number that
+          // *addresses* the grid is axis-keyed – a cell has a width and a
+          // height, and `at`, `w`, `h`, `offset`, a waypoint and every nudge
+          // are addresses. A number that states a *clearance* is square. `gap`
+          // was the one clearance in the language that was not: multiplied by
+          // the cell's width across and its height down, so the same number on
+          // two adjacent lines drew two distances with nothing in the source to
+          // say so. Measured over the corpus, `gap 1` across was on median
+          // **2.9 times** `gap 1` down, which silently breaks the first rule
+          // the artifact page teaches – even gaps say nothing, uneven gaps mean
+          // something.
+          //
+          // `uh` and not `uw`, the mean, or a new unit, for three reasons that
+          // were already true here: `pad` on a box, text, container, brace and
+          // edge, `cell` and `space` on a grid, DG_DOT_R, DG_LEAD_GAP and the
+          // four sequence rhythm constants are every one of them measured
+          // against `uh` today, so `gap` was the outlier rather than the rule;
+          // `uw` would contradict `pad`, the word an author reaches for on the
+          // next line; and a dedicated unit adds a fence word nobody would set,
+          // when the author already writes `unit=150x52` and the clearance
+          // ruler is its second number, visible in the source.
           else if (place.dir === 'right' || place.dir === 'left') {
             cx = place.dir === 'right'
-              ? ref.x + ref.w + place.gap * uw + w / 2
-              : ref.x - place.gap * uw - w / 2;
+              ? ref.x + ref.w + place.gap * uh + w / 2
+              : ref.x - place.gap * uh - w / 2;
             cy = place.align === 'top' ? ref.y + h / 2
               : place.align === 'bottom' ? ref.y + ref.h - h / 2
               : ref.y + ref.h / 2;
@@ -4335,10 +5123,6 @@ export function createDiagramCompiler(env = {}) {
     // so the emitter can solve the size for each pre-rendered label variant
     // rather than for the one that happens to be on screen.
     const fits = new Map();
-    // Whose emphasis it is. `emph` and `calm` are lecture-time acts and a
-    // handout should not report them; an author's own {.dim}, or one a
-    // `style` step wrote, describes the drawing and print keeps it.
-    const stepEmph = new Set();
     // A free `text` – and an edge's label – draws a ground only when it has a
     // tone, but a `style` step can give it one, and a geometry key present in
     // only some frames would leave the rect stranded in the others. So the
@@ -4362,7 +5146,6 @@ export function createDiagramCompiler(env = {}) {
       const st = state.get(el.id);
       vis.set(el.id, dgOpacity(st.visible, st.classes));
       cls.set(el.id, [...st.classes].join(' '));
-      if (st.stepEmph) stepEmph.add(el.id);
       const variants = labelIndex.get(el.id);
       if (variants) lab.set(el.id, Math.max(0, variants.indexOf(st.label)));
       return st;
@@ -4541,6 +5324,7 @@ export function createDiagramCompiler(env = {}) {
       // which ends carry a head, and `no-head` has nothing left to say.
       const both = st.classes.has('both-heads');
       const headed = both || !st.classes.has('no-head');
+
       // Pull the stroke back from the tip so a thick head is not printed
       // over by the line it terminates.
       const trim = (a, b, by) => {
@@ -4621,8 +5405,14 @@ export function createDiagramCompiler(env = {}) {
         // Only the pair lying *across* the line can pick a side; the other two
         // are warned about below and move nothing, so a fill written with one
         // of them still leaves the words on the line rather than half off it.
-        const aside = (vertical ? ['left', 'right'] : ['top', 'bottom'])
-          .some(c => st.classes.has(c));
+        // `side` resolves through the same four default layers, and
+        // explicitly, for the same reason `pad` does: an edge never goes near
+        // sizeOf, which is where `pick` lives, so `default edge side bottom`
+        // would otherwise parse, sit in the model and move nothing.
+        const sideLayers = dgDefaultLayers(model, 'edge', e.tags).reverse();
+        let eSide = e.side;
+        if (eSide == null) for (const d of sideLayers) if (d.side != null) { eSide = d.side; break; }
+        const aside = !!eSide && (vertical ? ['left', 'right'] : ['top', 'bottom']).includes(eSide);
         // This beat's classes, not "ever filled": a `style` step that adds a
         // tone should move the words onto the line in the same beat it paints
         // the ground under them, and both numbers are in the frame, so the
@@ -4660,14 +5450,16 @@ export function createDiagramCompiler(env = {}) {
         let nx = dir[1];
         let ny = -dir[0];
         if (vertical ? nx < 0 : ny > 0) { nx = -nx; ny = -ny; }
-        const side = vertical
-          ? (st.classes.has('left') ? -1 : 1)
-          : (st.classes.has('bottom') ? -1 : 1);
-        for (const c of (vertical ? ['top', 'bottom'] : ['left', 'right'])) {
-          if (!st.classes.has(c)) continue;
-          dgWarn(`edge ${e.id}: .${c} names a direction this edge runs along, so it cannot `
-            + `move the label. The edge is ${vertical ? 'vertical' : 'horizontal'} - `
-            + `use ${vertical ? '.left or .right' : '.top or .bottom'}.`);
+        // The pair that can pick a side is the pair lying *across* the line:
+        // top/bottom on a mostly horizontal edge, left/right on a mostly
+        // vertical one. Which pair that is depends on the route, so it is only
+        // decidable after the edge has been routed - which is why naming the
+        // other pair is a warning here rather than a refusal at parse time.
+        const side = vertical ? (eSide === 'left' ? -1 : 1) : (eSide === 'bottom' ? -1 : 1);
+        if (eSide && (vertical ? ['top', 'bottom'] : ['left', 'right']).includes(eSide)) {
+          dgWarn(`edge ${e.id}: side ${eSide} names a direction this edge runs along, so it cannot `
+            + `move the label. The edge is ${vertical ? 'vertical' : 'horizontal'} – `
+            + `use side ${vertical ? 'left or side right' : 'top or side bottom'}.`);
         }
         // The side is in the coordinate now, so the anchor must stay centred.
         // Left as it was, dgLabelAnchor read the same .left that chose the
@@ -4692,7 +5484,7 @@ export function createDiagramCompiler(env = {}) {
       }
     }
 
-    return { geom, vis, cls, lab, ext, labelAnchor, fits, stepEmph };
+    return { geom, vis, cls, lab, ext, labelAnchor, fits };
   }
 
   // Every distinct label an element ever carries, so a `label` step is a
@@ -4842,10 +5634,30 @@ export function createDiagramCompiler(env = {}) {
     const labelIndex = dgLabelVariants(model);
     const frameCount = model.steps.length + 1;
     const frames = [];
+    const states = [];
     for (let k = 0; k < frameCount; k++) {
       const state = dgStateAt(model, k);
+      states.push(state);
       const boxes = layoutDiagram(model, state, errors);
       frames.push(dgFrameDrawables(model, state, boxes, labelIndex));
+    }
+    // A DG_CLASS_CLASHES row is a **warning**, and it is the compiler's alone,
+    // because deciding it correctly needs the resolved state at every beat.
+    // The two tables are not one defect: a same-slot pair can never become
+    // useful at any beat and is an error, while a clash row is authorable on
+    // purpose – `{.tone-4 .accent}` with `style x {.clear}` at beat 1 gives an
+    // accent that is inert while the fill is there and becomes the ink the
+    // moment the fill is taken away. So the warning fires only where the pair
+    // is live in **every** beat, which is the only reading under which one of
+    // the two is definitely doing nothing.
+    for (const [a, b, why] of DG_CLASS_CLASHES) {
+      const ids = new Set();
+      for (const st of states[0].keys()) ids.add(st);
+      for (const id of ids) {
+        if (states.every(st => st.get(id) && st.get(id).classes.has(a) && st.get(id).classes.has(b))) {
+          dgWarn(`${id}: ${why}`);
+        }
+      }
     }
     // Layout runs once per step against one errors array, so a single mistake
     // was reported once per step. Deduplicate before speaking.
@@ -4856,6 +5668,10 @@ export function createDiagramCompiler(env = {}) {
         if (seen.has(key)) errors.splice(i, 1);
         else seen.add(key);
       }
+      // Phase order, never line order. See DG_PHASES: the cause is in the
+      // earlier phase, and the one consumer that shows a single sentence
+      // needs that sentence to be the cause.
+      dgSortProblems(errors);
       const where = opts.where ? ` in ${opts.where}` : '';
       const err = new Error(
         `::: diagram${model.id ? ` #${model.id}` : ''}${where} has ${errors.length} problem(s):\n` +
@@ -4892,16 +5708,53 @@ export function createDiagramCompiler(env = {}) {
     // so this is the union for every diagram that only ever builds up.
     const last = frames[frames.length - 1];
     const printGeom = new Map(last.geom), printVis = new Map(), printCls = new Map(), printLab = new Map(last.lab);
+    // **Print's prominence for an element is the prominence it carries at the
+    // opening beat.** Everything else about the print pass is unchanged – still
+    // the last beat, still not the union, still keeping tones, labels and
+    // visibility from the last beat. Only the prominence slot comes from
+    // frame 0.
+    //
+    // The intention was always right and stated in CLAUDE.md: emphasis is a
+    // lecture-time act, and a handout that arrives with three arrows greyed out
+    // reports a moment in the talk rather than the drawing. But it was
+    // implemented as a *provenance* flag – set by the verb, cleared by the
+    // class – rather than as anything a reader could see, so `emph a` and
+    // `style a {.emph}` were identical on screen and different on paper with
+    // nothing in the source to say so. The same flag was recorded per
+    // *element* rather than per class, so any prominence verb naming an element
+    // stripped a `{.dim}` the author had written on the element's own line and
+    // never touched in a step: an element declared to be background came out of
+    // the printer as foreground.
+    //
+    // The rule that replaces it is readable off the source, with no flag and no
+    // provenance:
+    //
+    //   A prominence class on an element's own line is part of the drawing and
+    //   appears in the handout. A prominence set inside a `step` is a
+    //   lecture-time act and does not.
+    //
+    // It is also what figure-design.md already tells authors to do for the
+    // opening state of a chart – *"Emphasis a figure opens with belongs on the
+    // statement, not in step 1"* – so the print rule stops being a second thing
+    // to learn and becomes the consequence of a rule the craft doc already
+    // gives. Returning to normal at a later beat is `{!emph}`, not a fourth
+    // word: see dgParseAttrs.
+    const open = frames[0];
     for (const [id, v] of last.vis) {
-      // emph and dim are lecture-time acts, like the collapse mode – a handout
-      // that arrives with three arrows greyed out is reporting a moment in the
-      // talk, not the diagram. The opacity has to be recomputed from the
-      // stripped classes rather than carried over: taking the step's number
-      // kept a calmed element at 30% on paper, and pinning it to 1 threw away
-      // an author's own .ghost.
-      const byStep = last.stepEmph.has(id);
-      const stripped = String(last.cls.get(id) || '').split(/\s+/)
-        .filter(c => c && !(byStep && (c === 'emph' || c === 'dim')));
+      const opening = String(open.cls.get(id) || '').split(/\s+/).filter(Boolean);
+      const carried = opening.find(c => DG_PROMINENCE.includes(c));
+      const lastCls = String(last.cls.get(id) || '').split(/\s+/).filter(Boolean);
+      // Substituted in place rather than stripped and appended, so a figure
+      // whose prominence does not change does not have its class attribute
+      // reordered. Where the last beat carries none and the opening one does,
+      // the class goes back at the index it holds in the opening beat.
+      const stripped = [];
+      let put = false;
+      for (const c of lastCls) {
+        if (!DG_PROMINENCE.includes(c)) { stripped.push(c); continue; }
+        if (carried && !put) { stripped.push(carried); put = true; }
+      }
+      if (carried && !put) stripped.splice(Math.min(opening.indexOf(carried), stripped.length), 0, carried);
       printVis.set(id, dgOpacity(v > 0, stripped));
       printCls.set(id, stripped.join(' '));
     }
@@ -5036,8 +5889,27 @@ export function createDiagramCompiler(env = {}) {
         for (const suffix of ['--h', '--h2']) {
           if (!printGeom.has(e.id + suffix) && !frames.some(f => f.geom.has(e.id + suffix))) continue;
           kinds[e.id + suffix] = 'path';
+          // The union half of this guard is deliberate and stays: the live
+          // runtime needs the DOM node to exist so a later beat can bring the
+          // head back, which is the same reason the edge's ground rect below
+          // is emitted whenever *any* frame carries it.
+          //
+          // What it must not do is *draw* it. `printGeom` is the last beat, and
+          // "print is the last beat, without the emphasis – not the union" is
+          // the stated rule; for arrowheads it was still the union, so a step
+          // that removed a head left print with the last beat's line and the
+          // opening beat's head – an arrowhead sitting on an endpoint that was
+          // never shortened to receive it. The ground rect is rescued by a
+          // `fill: none` CSS guard; the head has no equivalent, and in print
+          // there is no runtime to correct it.
+          //
+          // So: keep the node, hide it in the print state, using the same
+          // inline-opacity channel dgOpacity() already writes visibility
+          // through. The runtime overwrites it on the first beat that has one.
+          const inPrint = printGeom.has(e.id + suffix);
           const hv = g(suffix) || frames[0].geom.get(e.id + suffix) || [0, 0];
-          inner += `<path id="${prefix}${e.id}${suffix}" class="dg-head" d="${dgPathD(hv)}Z"/>`;
+          inner += `<path id="${prefix}${e.id}${suffix}" class="dg-head" d="${dgPathD(hv)}Z"`
+            + `${inPrint ? '' : ' style="opacity:0"'}/>`;
         }
         // The ground behind an edge's label, when it has one. The same
         // drawable a free text's ground is, emitted after the line and the

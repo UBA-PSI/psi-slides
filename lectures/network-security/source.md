@@ -43,11 +43,11 @@ box pl "Payload"          right of sh gap 0 same as fh {.paper}
 # senkrecht bleiben und keine über der nächsten liegt. Sie zeigen auf die
 # Oberkante, nicht auf den Kasten: eine Leitlinie zur Mitte endete mitten
 # in der Beschriftung des Kastens.
-text lmac "Ethernet source\nand destination\naddresses*"       above fh gap 0.5 -> fh.cx,fh.top {.muted @l1}
-text lip  "IP source\nand destination\naddresses"              above dh gap 1.7 -> dh.cx,dh.top {.muted @l2}
-text lprt "source and\ndestination ports\n(if TCP/UDP is used)" above sh gap 2.9 -> sh.cx,sh.top {.muted @l3}
+text lmac "Ethernet source\nand destination\naddresses*"       above fh gap 0.5 -- fh.cx,fh.top {.muted @l1}
+text lip  "IP source\nand destination\naddresses"              above dh gap 1.7 -- dh.cx,dh.top {.muted @l2}
+text lprt "source and\ndestination ports\n(if TCP/UDP is used)" above sh gap 2.9 -- sh.cx,sh.top {.muted @l3}
 
-text foot "*also called MAC addresses (media access control)" below fh gap 0.85 align left {.left .muted}
+text foot "*also called MAC addresses (media access control)" below fh gap 0.85 flush left {.left .muted}
 
 step ethernet
   show @l1
@@ -70,14 +70,14 @@ default box {.tone-3 .sharp} w 1.15 h 0.6
 box dn  "domain name" at 0,0
 box ip1 "IP address"  below dn gap 0.5 offset 1.5,0 {@dns}
 edge dn.bottom -- ip1.left via dn.cx,ip1.cy {.muted}
-text ldns "DNS" left of ip1 gap 0.34 pad 0.14 {.paper .bare .bold @dns}
+text ldns "DNS" left of ip1 gap 1.15 pad 0.14 {.paper .bold @dns}
 
 # Der Abstand innerhalb eines Paares ist 0.5, der zwischen den Paaren 1.15 –
 # gut Faktor zwei, damit die Gruppierung vor der Beschriftung ankommt.
 box ip2 "IP address"  below ip1 gap 1.15 offset -1.5,0
 box mac "MAC address" below ip2 gap 0.5 offset 1.5,0 {@arp}
 edge ip2.bottom -- mac.left via ip2.cx,mac.cy {.muted}
-text larp "ARP" left of mac gap 0.34 pad 0.14 {.paper .bare .bold @arp}
+text larp "ARP" left of mac gap 1.15 pad 0.14 {.paper .bold @arp}
 
 step dns
   show @dns
@@ -94,14 +94,14 @@ step surface
 
 ::: diagram {unit=170x50}
 box sw "Ethernet\nSwitch" at 0,0 w 1.0 h 0.9 {.tone-1}
-box gw "Default\nGateway" right of sw gap 0.34 same as sw {.tone-1}
+box gw "Default\nGateway" right of sw gap 1.15 same as sw {.tone-1}
 edge sw -- gw {.muted}
 container dev "" over sw,gw pad 0.3 {.muted}
 
 box a "A" above sw gap 0.55 offset -0.32,0 w 0.21 h 0.7 {.tone-2 @hosts}
 box b "B" above sw gap 1.1  offset  0.22,0 same as a {.tone-2 @hosts}
-edge a.bottom -- a.cx,sw.top {#awire .muted}
-edge b.bottom -- b.cx,sw.top {#bwire .muted}
+edge awire a.bottom -- a.cx,sw.top {.muted}
+edge bwire b.bottom -- b.cx,sw.top {.muted}
 
 text amac "aa:aa:aa:00:01:02" above a gap 0.25 offset -0.55,0 {.mono .muted @hosts}
 text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" above b gap 0.3 {.mono .muted @hosts}
@@ -117,7 +117,7 @@ step forwarding
 step poisoning
   style a {.accent .paper}
   emph a, awire
-  calm bwire, sw
+  dim bwire, sw
 :::
 
 **Ein Switch ist keine Sicherheitsmaßnahme, sondern eine Optimierung.** Er merkt sich, hinter welchem Port welche MAC-Adresse sitzt, und schickt einen Rahmen nur dorthin; dass A den Verkehr von B nicht sieht, ist ein Nebeneffekt dieser Sparsamkeit. ARP Cache Poisoning greift genau diese Zuordnung an: A behauptet unaufgefordert, die MAC-Adresse zu einer fremden IP zu besitzen, und der Verkehr landet fortan bei A. Der letzte Beat färbt deshalb A und seine Leitung ein und nimmt die Betonung vom Normalfall wieder weg.
@@ -131,17 +131,17 @@ step poisoning
 box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
 box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
 box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.dim}
-edge a.bottom -- a.cx,sw.top {#awire .muted}
-edge b.bottom -- b.cx,sw.top {#bwire .muted}
+edge awire a.bottom -- a.cx,sw.top {.muted}
+edge bwire b.bottom -- b.cx,sw.top {.muted}
 
 box rt  "Router" at 2.30,0 w 0.72 h 0.9 {.tone-1 @net}
 box res "" above rt gap 1.6 w 0.2 h 0.7 {.tone-1 @net}
 box web "" below rt gap 1.75 same as res {.tone-2 @net}
 align y middle b, res
-edge sw -- rt {#trunk .muted}
-edge res.bottom -- rt.top {#rwire .muted}
-edge rt.bottom -- web.top {#uplink .muted}
-text brk "//" between rt,web pad 0.12 {.paper .bare .muted @net}
+edge trunk sw -- rt {.muted}
+edge rwire res.bottom -- rt.top {.muted}
+edge uplink rt.bottom -- web.top {.muted}
+text brk "//" between rt,web pad 0.12 {.paper .muted @net}
 
 text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" above b gap 0.3 {.mono .muted}
 text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.3 {.muted}
@@ -161,7 +161,7 @@ step knows
   emph res, sw
 step wants
   emph web
-  calm res, sw
+  dim res, sw
 :::
 
 **Die Bühne für die nächsten drei Figuren.** Links das Heimnetz, rechts das Internet, dazwischen eine gepunktete Grenze, die nichts verbindet, sondern trennt – deshalb ist sie eine kopflose Kante zwischen zwei Koordinaten und hängt an keinem Element. B kennt zwei Adressen auswendig: die des Standardgateways und die des DNS-Resolvers seines Providers. Alles Weitere muss B erfragen, und genau dort setzen die folgenden Angriffe an. Das Bruchzeichen auf der Leitung zum Webserver sagt, dass zwischen Router und Ziel noch viel Netz liegt, das die Zeichnung nicht zeigt.
@@ -173,20 +173,20 @@ step wants
 box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
 box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
 box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.accent}
-edge a.bottom -- a.cx,sw.top {#awire .muted}
-edge b.bottom -- b.cx,sw.top {#bwire .muted}
+edge awire a.bottom -- a.cx,sw.top {.muted}
+edge bwire b.bottom -- b.cx,sw.top {.muted}
 
 box rt  "Router" at 2.30,0 w 0.72 h 0.9 {.tone-1}
 box res "" above rt gap 1.6 w 0.2 h 0.7 {.tone-1}
 box web "" below rt gap 1.75 same as res {.tone-2}
 align y middle b, res
-edge sw -- rt {#trunk .muted}
-edge res.bottom -- rt.top {#rwire .muted}
-edge rt.bottom -- web.top {#uplink .muted}
-text brk "//" between rt,web pad 0.12 {.paper .bare .muted}
+edge trunk sw -- rt {.muted}
+edge rwire res.bottom -- rt.top {.muted}
+edge uplink rt.bottom -- web.top {.muted}
+text brk "//" between rt,web pad 0.12 {.paper .muted}
 
-box awb "" left of web gap 1.55 same as web {.accent @evil}
-box e   "" left of awb gap 0.67 same as web {.dim}
+box awb "" left of web gap 5.45 same as web {.accent @evil}
+box e   "" left of awb gap 2.35 same as web {.dim}
 edge e -- awb {.muted}
 edge awb -- web {.muted}
 
@@ -199,8 +199,8 @@ text awbl "Attacker's Webserver\n“example.com”\n66.9.9.6" below awb gap 0.28
 # Die gefälschte Antwort läuft auf derselben Leitung wie B's Anschluss, also
 # tritt sie an deren Stelle: bwire geht weg, forged kommt – nie beide, statt
 # zweier Linien übereinander.
-edge b.cx,sw.top -> b.bottom {#forged .accent}
-text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .bare .accent .mono @spoof}
+edge forged b.cx,sw.top -> b.bottom {.accent}
+text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .accent .mono @spoof}
 
 edge rt.left-0.52,resl.top-0.3 -- e.cx-0.45,gwl.bottom+0.28 via rt.left-0.52,gwl.bottom+0.28 {.dotted .muted}
 
@@ -209,7 +209,7 @@ step query
 step spoof
   hide bwire
   show forged, @spoof
-  calm trunk, rwire
+  dim trunk, rwire
 step redirect
   show @evil
   emph awb
@@ -224,20 +224,20 @@ step redirect
 box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
 box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
 box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.accent}
-edge a.bottom -- a.cx,sw.top {#awire .muted}
-edge b.bottom -- b.cx,sw.top {#bwire .muted}
+edge awire a.bottom -- a.cx,sw.top {.muted}
+edge bwire b.bottom -- b.cx,sw.top {.muted}
 
 box rt  "Router" at 2.30,0 w 0.72 h 0.9 {.tone-1}
 box res "" above rt gap 1.6 w 0.2 h 0.7 {.tone-1}
 box web "" below rt gap 1.75 same as res {.tone-2}
 align y middle b, res
-edge sw -- rt {#trunk .muted}
-edge res.bottom -- rt.top {#rwire .muted}
-edge rt.bottom -- web.top {#uplink .muted}
-text brk "//" between rt,web pad 0.12 {.paper .bare .muted}
+edge trunk sw -- rt {.muted}
+edge rwire res.bottom -- rt.top {.muted}
+edge uplink rt.bottom -- web.top {.muted}
+text brk "//" between rt,web pad 0.12 {.paper .muted}
 
-box awb "" left of web gap 1.55 same as web {.accent}
-box e   "" left of awb gap 0.67 same as web {.dim}
+box awb "" left of web gap 5.45 same as web {.accent}
+box e   "" left of awb gap 2.35 same as web {.dim}
 edge e -- awb {.muted}
 edge awb -- web {.muted}
 
@@ -247,14 +247,14 @@ text resl "DNS Resolver\nof ISP" above res gap 0.28 {.muted}
 text webl "Webserver\nexample.com\n80.5.5.3" below web gap 0.28 {.muted}
 text awbl "Attacker's Webserver\n“example.com”\n66.9.9.6" below awb gap 0.28 {.muted}
 
-edge b.cx,sw.top -> b.bottom {#forged .accent}
-text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .bare .accent .mono @spoof}
+edge forged b.cx,sw.top -> b.bottom {.accent}
+text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .accent .mono @spoof}
 
 # „on-patch“ ist der Tippfehler der Originalfolie und bleibt wörtlich stehen.
 # Auf der Folie ist die Frage ein umrandeter Kasten; hier ist sie eine
 # Anmerkung mit Leitlinie auf A – ein Kasten in der Topologie sähe aus wie
 # ein Gerät. Sie steht neben A, damit die Leitlinie waagerecht bleibt.
-text ask "Can A also become\non-patch attacker?" left of a gap 0.5 -> a.left,a.cy {.accent @ask}
+text ask "Can A also become\non-patch attacker?" left of a gap 1.75 -- a.left,a.cy {.accent @ask}
 
 edge rt.left-0.52,resl.top-0.3 -- e.cx-0.45,gwl.bottom+0.28 via rt.left-0.52,gwl.bottom+0.28 {.dotted .muted}
 
@@ -262,7 +262,7 @@ step path
   emph rwire, trunk, bwire
 step intercept
   style bwire {.dashed}
-  calm rwire, trunk
+  dim rwire, trunk
 step inject
   hide bwire
   show forged, @spoof
@@ -281,20 +281,20 @@ step question
 box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
 box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
 box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.dim}
-edge a.bottom -- a.cx,sw.top {#awire .muted}
-edge b.bottom -- b.cx,sw.top {#bwire .muted}
+edge awire a.bottom -- a.cx,sw.top {.muted}
+edge bwire b.bottom -- b.cx,sw.top {.muted}
 
 box rt  "Router" at 2.30,0 w 0.72 h 0.9 {.tone-1}
 box res "" above rt gap 1.6 w 0.2 h 0.7 {.tone-1}
 box web "" below rt gap 1.75 same as res {.tone-2}
 align y middle b, res
-edge sw -- rt {#trunk .muted}
-edge res.bottom -- rt.top {#rwire .muted}
-edge rt.bottom -- web.top {#uplink .muted}
-text brk "//" between rt,web pad 0.12 {.paper .bare .muted}
+edge trunk sw -- rt {.muted}
+edge rwire res.bottom -- rt.top {.muted}
+edge uplink rt.bottom -- web.top {.muted}
+text brk "//" between rt,web pad 0.12 {.paper .muted}
 
-box awb "" left of web gap 1.55 same as web {.accent}
-box e   "" left of awb gap 0.67 same as web {.dim}
+box awb "" left of web gap 5.45 same as web {.accent}
+box e   "" left of awb gap 2.35 same as web {.dim}
 edge e -- awb {.muted}
 edge awb -- web {.muted}
 
@@ -304,10 +304,10 @@ text resl "DNS Resolver\nof ISP" above res gap 0.28 {.muted}
 text webl "Webserver\nexample.com\n80.5.5.3" below web gap 0.28 {.muted}
 text awbl "Attacker's Webserver\n“example.com”\n66.9.9.6" below awb gap 0.28 {.muted}
 
-edge b.cx,sw.top -> b.bottom {#forged .accent}
-text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .bare .accent .mono @spoof}
-edge res.cx,rt.top -> res.bottom {#poison .accent}
-text poisonl "“example.com\nis 66.9.9.6”" between rt,res pad 0.14 {.paper .bare .accent .mono @cache}
+edge forged b.cx,sw.top -> b.bottom {.accent}
+text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .accent .mono @spoof}
+edge poison res.cx,rt.top -> res.bottom {.accent}
+text poisonl "“example.com\nis 66.9.9.6”" between rt,res pad 0.14 {.paper .accent .mono @cache}
 
 edge rt.left-0.52,resl.top-0.3 -- e.cx-0.45,gwl.bottom+0.28 via rt.left-0.52,gwl.bottom+0.28 {.dotted .muted}
 
@@ -318,7 +318,7 @@ step offpath
 step race
   hide bwire
   show forged, @spoof
-  calm e
+  dim e
 step cache
   hide rwire
   show poison, @cache
@@ -338,7 +338,7 @@ step cache
 # Alle Beschriftungen stehen wörtlich wie auf der Folie.
 default box {.accent} w 0.44 h 0.3
 
-box vic "Victim" at 0,0 w 1.05 h 0.62 {.tone-4}
+box vic "Victim" at 0,0 w 1.05 h 0.62 {.tone-4 !accent}
 
 box n1 "" at -2.6,-1.5 {@bots}
 box n2 "" at -1.0,-2.2 {@bots}
@@ -352,16 +352,16 @@ box n8 "" at -2.8,0.8 {@bots}
 # Acht Pfeile auf einen Kasten sind hier genau die Aussage, deshalb kein
 # Wegpunkt und kein Umweg. Der Bruchteil hinter dem Anker verteilt die
 # Spitzen über die Kanten, statt drei davon auf denselben Punkt zu legen.
-edge n1 -> vic.left:0.25 {#f1 .accent @flood}
-edge n2 -> vic.top:0.35 {#f2 .accent @flood}
-edge n3 -> vic.top:0.65 {#f3 .accent @flood}
-edge n4 -> vic.right:0.25 {#f4 .accent @flood}
-edge n5 -> vic.right:0.6 {#f5 .accent @flood}
-edge n6 -> vic.bottom:0.65 {#f6 .accent @flood}
-edge n7 -> vic.bottom:0.35 {#f7 .accent @flood}
-edge n8 -> vic.left:0.7 {#f8 .accent @flood}
+edge f1 n1 -> vic.left:0.25 {.accent @flood}
+edge f2 n2 -> vic.top:0.35 {.accent @flood}
+edge f3 n3 -> vic.top:0.65 {.accent @flood}
+edge f4 n4 -> vic.right:0.25 {.accent @flood}
+edge f5 n5 -> vic.right:0.6 {.accent @flood}
+edge f6 n6 -> vic.bottom:0.65 {.accent @flood}
+edge f7 n7 -> vic.bottom:0.35 {.accent @flood}
+edge f8 n8 -> vic.left:0.7 {.accent @flood}
 
-text bn "*Botnet* of\ninfected hosts" above n4 gap 0.45 -> n4 {.small}
+text bn "*Botnet* of\ninfected hosts" above n4 gap 0.45 -- n4 {.small}
 
 text note1 "Victim (and ISPs) cannot filter the DDoS\ntraffic as it resembles legitimate traffic." at -3.3,2.95 {.left .muted @conc}
 text note2 "Bots send requests using their actual\nIP address, i.e., do not use IP Spoofing." at 0.35,2.95 {.left .muted @conc}
@@ -373,7 +373,7 @@ step flood
   emph vic
 step unfilterable
   show @conc
-  calm @flood
+  dim @flood
 :::
 
 **Das Opfer steht still, der Rest kommt von überall.** Die Karte der Vorlage ist durch einen Ring verstreuter Bots ersetzt – *verteilt* war die Aussage, der Kontinent nie. Der erste Takt stellt das Botnetz hin, der zweite lässt es feuern, der dritte zieht die Folgerung, die der Vortrag ohnehin sprechen muss. Weil die Bots ihre echten Adressen benutzen, sieht der Verkehr aus wie Verkehr.
@@ -388,7 +388,7 @@ step unfilterable
 # "proto-cols" mitten im Wort, weil ihr Rahmen zu Ende war.
 default box {.accent} w 0.44 h 0.34
 
-box vic "Victim" at 0,0 w 1.05 h 0.62 {.tone-4}
+box vic "Victim" at 0,0 w 1.05 h 0.62 {.tone-4 !accent}
 
 box q1 "?" at -2.6,-1.5 {.dashed @fake}
 box q2 "?" at -1.0,-2.2 {.dashed @fake}
@@ -408,13 +408,13 @@ edge q6 -> vic.bottom:0.65 {.accent @spoofed}
 edge q7 -> vic.bottom:0.35 {.accent @spoofed}
 edge q8 -> vic.left:0.7 {.accent @spoofed}
 
-text fs "Faked sources" right of q5 gap 0.45 -> q5 {@fake}
+text fs "Faked sources" right of q5 gap 0.6 -- q5 {@fake}
 
 box atk "Attacker" at -4.3,2.6 w 0.95 h 0.55 {@real}
-edge atk -> vic.bl {#real-traffic .accent .thick @real}
+edge real-traffic atk -> vic.bl {.accent .thick @real}
 # Die Beschriftung sitzt auf der Linie, nicht daneben, und .paper stanzt sie
 # dafür aus – sonst lesen sich Linie und Wort als ein Muster.
-text tr "Traffic of the DoS attack" between atk,vic pad 0.14 {.paper .bare .accent @real}
+text tr "Traffic of the DoS attack" between atk,vic pad 0.14 {.paper .accent @real}
 text loc "Attacker’s real location\nis unknown (IP spoofing)." below atk gap 0.4 {.muted @real}
 
 box why "Faking Src IP possible for\nconnectionless protocols,\ne.g., ICMP (“ping”) or\nprotocols using UDP (DNS, NTP)" at 5.05,-1.7 w 2.8 h 1.2 {.clear @fake}
@@ -430,7 +430,7 @@ step spoofed
   emph vic
 step mitigation
   show @conc
-  calm @spoofed
+  dim @spoofed
 :::
 
 **Ohne Botnetz, dafür mit gefälschter Absenderadresse.** Der Angreifer sitzt einmal im Bild, sein Verkehr trägt aber acht fremde Quellen – das ist der ganze Trick, und die gestrichelten Umrisse sagen, dass an diesen Quellen nichts echt ist. Der letzte Takt nimmt die Pfeile zurück und stellt die Gegenmaßnahme daneben. Sie ist seit BCP 38 bekannt und wird trotzdem nicht flächendeckend umgesetzt, weil sie dem filternden Provider selbst nichts einbringt.
@@ -464,7 +464,7 @@ Example: Spamhouse  (75 Gbps)
 # Die beiden Dreiecke sind der Größenvergleich: die Fläche ist die Menge, die
 # Spitze zeigt, wo sie ankommt. 37 Bytes hin, 1194 zurück.
 text intro "For some protocols (e.g., DNS or\nNTP) the response can become\nmuch larger than the request." at -2.3,-1.35 {.left}
-text amp "*Amplification factor:* ratio of\nresponse and request size." below intro gap 0.45 align left {.left}
+text amp "*Amplification factor:* ratio of\nresponse and request size." below intro gap 0.45 flush left {.left}
 
 text atk "Attacker" at 0.4,-1.5 {.accent}
 box  req "" below atk gap 0.3 w 0.34 h 0.3 {.wedge .tone-3 @small}
@@ -472,8 +472,8 @@ text srv "Server" below req gap 0.3 {@small}
 box  res "" below srv gap 0.3 w 0.66 h 0.58 {.wedge .tone-3 @big}
 text victim "Victim" below res gap 0.3 {@big}
 
-text lreq "Small request with\nSrc IP of victim" left of req gap 0.5 {.right @small}
-text lres "Large response with\nDst IP of victim" left of res gap 0.45 {.right @big}
+text lreq "Small request with\nSrc IP of victim" left of req gap 1.05 {.right @small}
+text lres "Large response with\nDst IP of victim" left of res gap 0.95 {.right @big}
 
 text open "Attack possible due to liberally\noperated DNS/NTP servers." at -2.3,1.95 {.left .muted @open}
 
@@ -540,7 +540,7 @@ step data
   emph data
 step state
   show @why
-  calm data
+  dim data
 :::
 :::
 
@@ -555,12 +555,12 @@ step state
 # sie steht.
 text st "*State:* Src IP/port, Dst IP/port,\nmax segment size (MSS)" at 0,0 {.left}
 
-text obs "Observation:" below st gap 0.7 align left {.left @obs}
+text obs "Observation:" below st gap 0.7 flush left {.left @obs}
 
-box sa  "SYN+ACK seq=*e*  ack=*c*+1" below obs gap 0.35 align left w 2.35 h 0.5 point left {.chevron .tone-3 @obs}
-box ack "ACK seq=*c*+1 ack=*e*+1"    below sa gap 0.28 align left same as sa {.chevron .tone-3 @obs}
+box sa  "SYN+ACK seq=*e*  ack=*c*+1" below obs gap 0.35 flush left w 2.35 h 0.5 point left {.chevron .tone-3 @obs}
+box ack "ACK seq=*c*+1 ack=*e*+1"    below sa gap 0.28 flush left same as sa {.chevron .tone-3 @obs}
 
-text q "How to encode state in\nseq/ack (len: 32 bits)." below ack gap 0.7 align left {.left @ask}
+text q "How to encode state in\nseq/ack (len: 32 bits)." below ack gap 0.7 flush left {.left @ask}
 
 step observation
   show @obs
@@ -580,21 +580,21 @@ step encode
 default box {.tone-3} w 2.3
 
 text cl "Client" at 0,0 {.large .muted}
-text c1 "Generate DH key pair (c, C)" right of cl gap 0.5 {.left}
-box  ch "ClientHello\n– Supported ciphersuites\n– Public key C" below c1 gap 0.5 align left {@hello}
+text c1 "Generate DH key pair (c, C)" right of cl gap 1.3 {.left}
+box  ch "ClientHello\n– Supported ciphersuites\n– Public key C" below c1 gap 0.5 flush left {@hello}
 
-box  a1 "" right of ch gap 0.4 align top w 0.8 h 0.42 {.chevron @hello}
-text s1 "Generate DH key pair (s, S)\nCompute secret = DH(s, C)\nDerive keys = KDF(secret)" right of a1 gap 0.4 align top {.left @hello}
+box  a1 "" right of ch gap 1.05 flush top w 0.8 h 0.42 {.chevron @hello}
+text s1 "Generate DH key pair (s, S)\nCompute secret = DH(s, C)\nDerive keys = KDF(secret)" right of a1 gap 1.05 flush top {.left @hello}
 text sv "Server" above s1 gap 0.5 {.large .muted}
 align y middle cl, sv
 
-box sh   "ServerHello\n– Selected ciphersuite\n– Public key S"      below s1 gap 0.5 align left {@srv}
-box cert "Certificate(s)"                                           below sh gap 0 align left {@srv}
-box sig  "Signature over ClientHello,\nServerHello, and Certificate" below cert gap 0 align left {@srv}
-box mac  "MAC over ClientHello,\nServerHello, Certificate,\nand Signature" below sig gap 0 align left {@srv}
+box sh   "ServerHello\n– Selected ciphersuite\n– Public key S"      below s1 gap 0.5 flush left {@srv}
+box cert "Certificate(s)"                                           below sh gap 0 flush left {@srv}
+box sig  "Signature over ClientHello,\nServerHello, and Certificate" below cert gap 0 flush left {@srv}
+box mac  "MAC over ClientHello,\nServerHello, Certificate,\nand Signature" below sig gap 0 flush left {@srv}
 
-box  a2 "" left of cert gap 0.4 align top w 0.8 h 0.42 point left {.chevron @srv}
-text vf "Verify certificate\nVerify signature\nCompute secret = DH(c, S)\nDerive keys = KDF(secret)\nVerify MAC" left of a2 gap 0.4 align top {.left @done}
+box  a2 "" left of cert gap 1.05 flush top w 0.8 h 0.42 point left {.chevron @srv}
+text vf "Verify certificate\nVerify signature\nCompute secret = DH(c, S)\nDerive keys = KDF(secret)\nVerify MAC" left of a2 gap 1.05 flush top {.left @done}
 
 step hello
   show @hello
@@ -613,12 +613,12 @@ step verify
 default box {.tone-3} w 1.55
 
 box  os "Browser/OS" at 0,0 {.tone-1}
-text st "Store with trusted\ncertificates" right of os gap 0.35 {.left .muted}
+text st "Store with trusted\ncertificates" right of os gap 0.85 {.left .muted}
 
-box  r0 "Certificate\nof a Root CA"            below os gap 0.5 align left offset 0.55,0
-box  r1 "Certificate of an\nintermediate CA"   below r0 gap 0.5 align left offset 0.55,0
-box  r2 "Cert. of another\nintermediate CA"    below r1 gap 0.5 align left offset 0.55,0
-box  r3 "Certificate\nof server"               below r2 gap 0.5 align left offset 0.55,0 {.tone-4}
+box  r0 "Certificate\nof a Root CA"            below os gap 0.5 flush left offset 0.55,0
+box  r1 "Certificate of an\nintermediate CA"   below r0 gap 0.5 flush left offset 0.55,0
+box  r2 "Cert. of another\nintermediate CA"    below r1 gap 0.5 flush left offset 0.55,0
+box  r3 "Certificate\nof server"               below r2 gap 0.5 flush left offset 0.55,0 {.tone-4}
 
 # Die Treppe: senkrecht aus der Unterkante heraus, in der Gasse links vom
 # nächsten Kasten nach unten, dann waagerecht auf dessen linke Kante. Der
@@ -635,8 +635,8 @@ text n2 "Signs" at r1.left+0.2,r2.cy {.right}
 text n3 "Signs" at r2.left+0.2,r3.cy {.right}
 
 box  d0 "DigiCert High Assurance EV Root CA"     at 5.7,2.30 w 2.6 h 0.42 {@real}
-box  d1 "DigiCert SHA2 High Assurance Server CA" below d0 gap 0.5 align left offset 0.3,0 same as d0 {@real}
-box  d2 "github.com"                             below d1 gap 0.5 align left offset 0.3,0 same as d0 {.tone-4 @real}
+box  d1 "DigiCert SHA2 High Assurance Server CA" below d0 gap 0.5 flush left offset 0.3,0 same as d0 {@real}
+box  d2 "github.com"                             below d1 gap 0.5 flush left offset 0.3,0 same as d0 {.tone-4 @real}
 edge d0.left+0.2,d0.bottom -> d1.left via d0.left+0.2,d1.cy {.muted @real}
 edge d1.left+0.2,d1.bottom -> d2.left via d1.left+0.2,d2.cy {.muted @real}
 
@@ -657,9 +657,9 @@ step real
 default box {.tone-3} w 2.6 pad 0.3
 
 box f1 "X.509 version\nSerial number\nSignature algorithm\nValid from/until\nIssuer Name\n*Subject Name*\n*Public Key*" at 0,0
-box f2 "Issuer ID\nSubject ID"  below f1 gap 0 align left {@v2}
-box f3 "*Optional Extensions*"  below f2 gap 0 align left {@v3}
-box f4 "Digital Signature"      below f3 gap 0 align left {.tone-4 .bold @sig}
+box f2 "Issuer ID\nSubject ID"  below f1 gap 0 flush left {@v2}
+box f3 "*Optional Extensions*"  below f2 gap 0 flush left {@v3}
+box f4 "Digital Signature"      below f3 gap 0 flush left {.tone-4 .bold @sig}
 
 step identifiers
   show @v2
@@ -678,41 +678,41 @@ step signature
 default text {.small}
 
 text l1 "Extension\nCritical\nUsage" at 0,0 {.right .muted}
-text v1 "Key Usage ( 2.5.29.15 )\nYES\nDigital Signature, Key Encipherment" right of l1 gap 0.3 align top {.left}
+text v1 "Key Usage ( 2.5.29.15 )\nYES\nDigital Signature, Key Encipherment" right of l1 gap 1.5 flush top {.left}
 
-text l2 "Extension\nCritical" below l1 gap 0.4 align right {.right .muted}
-text v2 "Basic Constraints ( 2.5.29.19 )\nYES" right of l2 gap 0.3 align top {.left}
-text l2b "Certificate Authority" below l2 gap 0 align right {.right .muted}
-text v2b "NO" right of l2b gap 0.3 align top {.left}
+text l2 "Extension\nCritical" below l1 gap 0.4 flush right {.right .muted}
+text v2 "Basic Constraints ( 2.5.29.19 )\nYES" right of l2 gap 1.5 flush top {.left}
+text l2b "Certificate Authority" below l2 gap 0 flush right {.right .muted}
+text v2b "NO" right of l2b gap 1.5 flush top {.left}
 
-text l3 "Extension\nCritical\nPurpose #1\nPurpose #2" below l2b gap 0.4 align right {.right .muted}
-text v3 "Extended Key Usage ( 2.5.29.37 )\nNO\nServer Authentication ( 1.3.6.1.5.5.7.3.1 )\nClient Authentication ( 1.3.6.1.5.5.7.3.2 )" right of l3 gap 0.3 align top {.left}
+text l3 "Extension\nCritical\nPurpose #1\nPurpose #2" below l2b gap 0.4 flush right {.right .muted}
+text v3 "Extended Key Usage ( 2.5.29.37 )\nNO\nServer Authentication ( 1.3.6.1.5.5.7.3.1 )\nClient Authentication ( 1.3.6.1.5.5.7.3.2 )" right of l3 gap 1.5 flush top {.left}
 
 # Die vierte, leere Zeile ist Absicht: der Wert daneben ist vierzeilig, und
 # ohne sie misst die nächste Gruppe ihren Abstand von einer Beschriftung,
 # die drei Zeilen höher endet – der Gruppenabstand verschwände.
-text l4 "Extension\nCritical\nKey ID\n " below l3 gap 0.4 align right {.right .muted}
-text v4 "Subject Key Identifier ( 2.5.29.14 )\nNO\n63 02 D2 5D 02 5F F7 8D D5 5A 12 9E 76 11 36 96\n86 2C 8A 48" right of l4 gap 0.3 align top {.left}
+text l4 "Extension\nCritical\nKey ID\n " below l3 gap 0.4 flush right {.right .muted}
+text v4 "Subject Key Identifier ( 2.5.29.14 )\nNO\n63 02 D2 5D 02 5F F7 8D D5 5A 12 9E 76 11 36 96\n86 2C 8A 48" right of l4 gap 1.5 flush top {.left}
 
-text l5 "Extension\nCritical\nKey ID\n " below l4 gap 0.4 align right {.right .muted}
-text v5 "Authority Key Identifier ( 2.5.29.35 )\nNO\n51 68 FF 90 AF 02 07 75 3C CC D9 65 64 62 A2\n12 B8 59 72 3B" right of l5 gap 0.3 align top {.left}
+text l5 "Extension\nCritical\nKey ID\n " below l4 gap 0.4 flush right {.right .muted}
+text v5 "Authority Key Identifier ( 2.5.29.35 )\nNO\n51 68 FF 90 AF 02 07 75 3C CC D9 65 64 62 A2\n12 B8 59 72 3B" right of l5 gap 1.5 flush top {.left}
 
-text l6 "Extension\nCritical" below l5 gap 0.4 align right {.right .muted}
-text v6 "Subject Alternative Name ( 2.5.29.17 )\nNO" right of l6 gap 0.3 align top {.left}
-text l6b "DNS Name\nDNS Name" below l6 gap 0 align right {.right .muted}
-text v6b "github.com\nwww.github.com" right of l6b gap 0.3 align top {.left}
+text l6 "Extension\nCritical" below l5 gap 0.4 flush right {.right .muted}
+text v6 "Subject Alternative Name ( 2.5.29.17 )\nNO" right of l6 gap 1.5 flush top {.left}
+text l6b "DNS Name\nDNS Name" below l6 gap 0 flush right {.right .muted}
+text v6b "github.com\nwww.github.com" right of l6b gap 1.5 flush top {.left}
 
-text l7 "Extension\nCritical" below l6b gap 0.4 align right {.right .muted}
-text v7 "Certificate Policies ( 2.5.29.32 )\nNO" right of l7 gap 0.3 align top {.left}
+text l7 "Extension\nCritical" below l6b gap 0.4 flush right {.right .muted}
+text v7 "Certificate Policies ( 2.5.29.32 )\nNO" right of l7 gap 1.5 flush top {.left}
 
-box ca  "no signing of other keys!" right of v2b gap 1.1 align top h 0.85 point left {.chevron .tone-4 @ca}
-box dom "domain(s)"                 right of v6b gap 1.1 align top h 0.85 point left {.chevron .tone-4 @dom}
+box ca  "no signing of other keys!" right of v2b gap 5.5 flush top h 0.85 point left {.chevron .tone-4 @ca}
+box dom "domain(s)"                 right of v6b gap 5.5 flush top h 0.85 point left {.chevron .tone-4 @dom}
 
 step no-ca
   show @ca
   emph l2b, v2b
 step domains
-  calm l2b, v2b
+  dim l2b, v2b
   show @dom
   emph l6b, v6b
 :::
@@ -771,8 +771,8 @@ box  sv "Server"   at 5.4,0 same as br {.tone-2}
 text ss "sslstrip" at 2.7,0 {.turn .accent @mitm}
 # Die beiden Schrägstriche sind der Schnitt in der Leitung. Sie laufen rund
 # 7 Grad aus der Senkrechten und damit weit außerhalb der Schiefe-Warnung.
-edge 2.40,-1.0 -- 2.15,1.0 {.muted .no-head @mitm}
-edge 3.25,-1.0 -- 3.00,1.0 {.muted .no-head @mitm}
+edge 2.40,-1.0 -- 2.15,1.0 {.muted @mitm}
+edge 3.25,-1.0 -- 3.00,1.0 {.muted @mitm}
 
 box  q1 "HTTP"  at 1.05,-0.72 w 0.75 h 0.3 {.accent @plain}
 edge q1 -> 2.20,q1.cy {.accent @plain}
@@ -790,7 +790,7 @@ step downgrade
   show @plain
   emph q1, r1
 step relay
-  calm q1, r1
+  dim q1, r1
   show @tls
 :::
 
@@ -865,7 +865,7 @@ container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,pub,dmz,tru {.muted}
 # Die gestrichelte Zonentrennung ist eine kopflose Kante zwischen zwei
 # Koordinaten. Sie läuft durch fw2 – Kästen werden nach den Kanten
 # gezeichnet und decken sie dort ab, genau wie in der Vorlage.
-edge fw2.cx,perim.top -- fw2.cx,perim.bottom {#zsep .dashed .muted @zone}
+edge zsep fw2.cx,perim.top -- fw2.cx,perim.bottom {.dashed .muted @zone}
 
 step zones
   show @zone
@@ -873,7 +873,7 @@ step exposed
   style web {.tone-4}
   emph web, fw1
 step trusted
-  calm web, fw1
+  dim web, fw1
   emph fw2
 :::
 
@@ -919,19 +919,18 @@ text seg "segmented net" at 4.85,2.75 {@net}
 
 container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,seg {.muted}
 
-edge fw2.cx,perim.top -- fw2.cx,perim.bottom {#zsep .dashed .muted}
+edge zsep fw2.cx,perim.top -- fw2.cx,perim.bottom {.dashed .muted}
 
 step perimeter
   emph fw1, fw2
 step segments
   show @seg
-  calm fw1, fw2
-  style fw1, fw2 {.dim}
+  dim fw1, fw2
   style fwd, fws {.tone-4}
   emph fwd, fws
 step contained
   show @net
-  calm fwd, fws
+  dim fwd, fws
 :::
 
 **Dieselbe Zeichnung, zwei Filter mehr – und die stehen nicht mehr am Rand.** Eine Firewall am Perimeter hilft nur gegen den, der noch draußen ist. Wer erst einmal auf einem Desktop sitzt, bewegt sich sonst ungebremst zu Datenbank- und Fileserver weiter, und genau davon lebt Ransomware. Die Segmentierung zieht die Filter ins Netz hinein, sodass jeder Sprung zwischen Segmenten wieder an einer Regel vorbei muss.
@@ -976,15 +975,15 @@ edge fs.top -- sw.bottom via fs.cx,1.0 sw.cx,1.0
 
 container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,hfw {.muted}
 
-edge fw2.cx,perim.top -- fw2.cx,perim.bottom {#zsep .dashed .muted}
+edge zsep fw2.cx,perim.top -- fw2.cx,perim.bottom {.dashed .muted}
 
 text mail "Mail" at 2.17,3.7 {.left .large @ask}
-text want "wants to connect to mail.gmail.com" below mail gap 0.26 align left {.left @ask}
-box  once "Once" below want gap 0.32 align left w 0.6 {@ask}
-text anyc "Any connection"        below once gap 0.32 align left {.left @ask}
-text only "Only domain gmail.com" below anyc gap 0.24 align left {.left .bold @ask}
+text want "wants to connect to mail.gmail.com" below mail gap 0.26 flush left {.left @ask}
+box  once "Once" below want gap 0.32 flush left w 0.6 {@ask}
+text anyc "Any connection"        below once gap 0.32 flush left {.left @ask}
+text only "Only domain gmail.com" below anyc gap 0.24 flush left {.left .bold @ask}
 box  allow "Allow" below only gap 0.4 w 0.62 {@ask}
-box  deny  "Deny…" left of allow gap 0.2 same as allow {@ask}
+box  deny  "Deny…" left of allow gap 0.35 same as allow {@ask}
 align x right want, allow
 container dlg "" over mail,want,once,anyc,only,deny,allow {.round .muted @ask}
 
@@ -998,10 +997,10 @@ step host
   style hfw {.tone-4}
   emph hfw
 step application
-  calm hfw
+  dim hfw
   emph mail, want
 step decide
-  calm mail, want
+  dim mail, want
   style deny {.tone-4}
   emph deny
 :::
@@ -1031,19 +1030,19 @@ box  sc  "ssh\nclient"  below wb gap 0.7 w 0.8 {@tunnel}
 text lpf "local port fwd" below sc gap 0.3 {.muted}
 container lh "" over wb,sc,lpf {.dashed .muted}
 
-box  ss  "ssh\nserver"  right of sc gap 1.9 same as sc {.tone-3 @tunnel}
+box  ss  "ssh\nserver"  right of sc gap 3.55 same as sc {.tone-3 @tunnel}
 box  ws  "web\nserver"  above ss gap 0.7 same as wb {.tone-3}
 text ip  "92.1.1.5"     below ss gap 0.3 {.muted}
 container rh "" over ws,ss,ip {.dashed .muted}
 
 box  ss2 "ssh\nserver" below ip gap 0.85 same as sc {.tone-3 @second}
-text ip2 "44.11.1.4"   left of ss2 gap 0.2 {.muted @second}
+text ip2 "44.11.1.4"   left of ss2 gap 0.35 {.muted @second}
 
 # Der Browser spricht den lokal geöffneten Port an, der Tunnel trägt die
 # Verbindung durch, und am anderen Ende geht sie an den Webserver oder an
 # einen dritten Rechner weiter.
 edge wb -> sc
-edge sc -- ss {#tun .thick}
+edge tun sc -- ss {.thick}
 edge ss -> ws
 # Seitlich in den Kanal rechts neben dem Rechner und dann hinunter – gerade
 # nach unten liefe die Kante mitten durch die Beschriftung "92.1.1.5".
@@ -1053,7 +1052,7 @@ step tunnel
   style @tunnel {.tone-4}
   emph tun
 step forward
-  calm tun
+  dim tun
   emph ws
 step further
   show @second
@@ -1088,15 +1087,15 @@ Proxy-Connection: close
 # im Bild. Die Beschriftungen "ssh client" und "ssh server" stehen wie
 # im Original zweizeilig; das ist ein Umbruch, kein anderer Wortlaut.
 box sc  "ssh\nclient"      at 0,0 w 0.66 {.tone-2}
-box htc "htc"              right of sc gap 0.34 w 0.5 {.tone-1 @relay}
-box fwp "firewall\nproxy"  right of htc gap 0.34 w 0.8 {.tone-1}
-box hts "hts"              right of fwp gap 0.34 same as htc {.tone-1 @relay}
-box ss  "ssh\nserver"      right of hts gap 0.34 same as sc {.tone-3}
+box htc "htc"              right of sc gap 0.25 w 0.5 {.tone-1 @relay}
+box fwp "firewall\nproxy"  right of htc gap 0.25 w 0.8 {.tone-1}
+box hts "hts"              right of fwp gap 0.25 same as htc {.tone-1 @relay}
+box ss  "ssh\nserver"      right of hts gap 0.25 same as sc {.tone-3}
 text vm "vm1.cloud.com:80" below hts gap 0.28 {.muted @relay}
 
 edge sc  -- htc
-edge htc -- fwp {#in}
-edge fwp -- hts {#out}
+edge in htc -- fwp
+edge out fwp -- hts
 edge hts -- ss
 
 step relay
@@ -1105,7 +1104,7 @@ step relay
 step wrapped
   emph in, out
 step through
-  calm in, out
+  dim in, out
   emph fwp
 :::
 :::
@@ -1132,24 +1131,24 @@ ssh […] 92.1.1.5
 # die beiden Aufkleber der Vorlage sind Beiwerk und fehlen – dass es oben
 # nicht durchgeht, sagt die Lücke hinter der Firewall.
 box uc  "ssh client\nconnect to 443" at 0,0 w 1.1 {.tone-2}
-box ufw "firewall\nwith DPI"         right of uc gap 0.42 w 0.82 {.tone-1}
-box us  "ssh server\non port 443"    right of ufw gap 0.42 same as uc {.tone-3}
+box ufw "firewall\nwith DPI"         right of uc gap 0.5 w 0.82 {.tone-1}
+box us  "ssh server\non port 443"    right of ufw gap 0.5 same as uc {.tone-3}
 edge uc  -- ufw
-edge ufw -- us {#reach}
+edge reach ufw -- us
 
 # Die untere Kette wird von der Firewall aus nach beiden Seiten aufgebaut,
 # damit die beiden "firewall with DPI" genau übereinanderstehen: es ist
 # dieselbe Firewall, zweimal gezeichnet.
 box lfw "firewall\nwith DPI"         below ufw gap 1.1 same as ufw {.tone-1 @proxy}
-box pt  "proxy-\ntunnel"             left of lfw gap 0.42 w 0.68 {.tone-2 @proxy}
-box lc  "ssh client"                 left of pt gap 0.42 same as uc {.tone-2 @proxy}
-box ws  "webserver"                  right of lfw gap 0.42 w 0.86 {.tone-3 @proxy}
-box ls  "ssh server\non localhost"   right of ws gap 0.42 same as uc {.tone-3 @proxy}
+box pt  "proxy-\ntunnel"             left of lfw gap 0.5 w 0.68 {.tone-2 @proxy}
+box lc  "ssh client"                 left of pt gap 0.5 same as uc {.tone-2 @proxy}
+box ws  "webserver"                  right of lfw gap 0.5 w 0.86 {.tone-3 @proxy}
+box ls  "ssh server\non localhost"   right of ws gap 0.5 same as uc {.tone-3 @proxy}
 text ip "92.1.1.5:443"               below ws gap 0.28 {.muted @proxy}
 
 edge lc  -- pt {@proxy}
-edge pt  -- lfw {#lin @proxy}
-edge lfw -- ws {#lout @proxy}
+edge lin pt -- lfw {@proxy}
+edge lout lfw -- ws {@proxy}
 edge ws  -- ls {@proxy}
 
 step dpi
@@ -1162,8 +1161,8 @@ step tls
   emph lin, lout
   style pt, ws {.tone-4}
 step futile
-  calm lin, lout
-  calm ufw
+  dim lin, lout
+  dim ufw
 :::
 :::
 
@@ -1183,7 +1182,7 @@ box fw "Firewall"                         at 0,0
 box cr "Cryptography"                     right of fw gap 0 same as fw
 box su "Security\nUpdates"                right of cr gap 0 same as fw
 box pt "Penetration\nTests"               right of su gap 0 same as fw
-box aa "Authentication &\nAccess Control" right of pt gap 0.2 w 1.55 h 0.66
+box aa "Authentication &\nAccess Control" right of pt gap 0.3 w 1.55 h 0.66
 text plab "EXAMPLES OF\nPROACTIVE MEASURES" above cr gap 0.5 {.muted}
 
 # Was übrig bleibt, wenn die Mauer passiert ist.
@@ -1197,7 +1196,7 @@ container react "REACTIVE MEASURES" over al,ids,im pad 0.5 {.dashed .muted}
 # Der rote, um 30° gedrehte Schriftzug der Vorlage lässt sich nicht drehen.
 # Statt dessen eine dicke Kante, die von außen durch die Fuge der Mauer
 # stößt, und das Wort waagerecht daneben.
-edge pt.right+0.1,-0.95 -> pt.right+0.1,1.0 {#intr .thick .accent @in}
+edge intr pt.right+0.1,-0.95 -> pt.right+0.1,1.0 {.thick .accent @in}
 text intrl "INTRUDER" above aa gap 0.62 {.accent .bold @in}
 
 step breach
@@ -1205,7 +1204,7 @@ step breach
   emph intr
 step reactive
   show @inner
-  calm intr
+  dim intr
 step detect
   emph ids
 :::
@@ -1220,10 +1219,10 @@ default box {.tone-1}
 # Das Rückgrat: Uplink, Firewall, Switch. Der hellblaue Vollflächen-
 # Hintergrund der Vorlage entfällt; akzentuiert werden die Sensoren.
 dot ext ""         at 0,0 r 0.07 {.muted}
-box fw "FIREWALL"  right of ext gap 1.6 w 0.34 h 1.55 {.turn}
-box sw "SWITCH"    right of fw gap 1.6 w 0.85 h 0.44
-edge ext -- fw.left {#w1}
-edge fw.right -- sw.left {#w2}
+box fw "FIREWALL"  right of ext gap 3.85 w 0.34 h 1.55 {.turn}
+box sw "SWITCH"    right of fw gap 3.85 w 0.85 h 0.44
+edge w1 ext -- fw.left
+edge w2 fw.right -- sw.left
 
 # Die Sensoren sitzen auf der Leitung, nicht daneben.
 box n1 "NIDS" between ext,fw w 0.7 h 0.44 {.hex .tone-4 @nids}
@@ -1233,18 +1232,18 @@ box n2 "NIDS" between fw,sw same as n1 {.hex .tone-4 @nids}
 # Beschriftet wie in #ns-b04, nicht leer: ein Kasten ohne Wort liest sich als
 # Fehler, und die beiden Figuren zeigen dasselbe Netz.
 box d2 "desktop" above sw gap 1.25 w 0.6 h 0.44 {.tone-2 @hosts}
-box d1 "desktop" left of d2 gap 0.6 same as d2 {.tone-2 @hosts}
-text dlab "desktops" left of d1 gap 0.5 -> d1 {.muted @hosts}
-edge d2.bottom -- sw.top {#k2 @hosts}
-edge d1.bottom -- sw.cx,d1.bottom+0.42 via d1.cx,d1.bottom+0.42 {#k1 @hosts}
+box d1 "desktop" left of d2 gap 1.45 same as d2 {.tone-2 @hosts}
+text dlab "desktops" left of d1 gap 1.2 -- d1 {.muted @hosts}
+edge k2 d2.bottom -- sw.top {@hosts}
+edge k1 d1.bottom -- sw.cx,d1.bottom+0.42 via d1.cx,d1.bottom+0.42 {@hosts}
 
 # Zwei Server. Der Zylinder der Vorlage ist eine .round-Box im Serverton.
 box web "Web server" below n1 gap 1.3 w 1.0 h 0.5 {.round .tone-3 @hosts}
 box db  "DB server"  below sw gap 1.3 offset -1.9,0 same as web {.round .tone-3 @hosts}
 align y middle web, db
-edge web.top -- web.cx,ext.cy {#wl @hosts}
-edge db.right -- sw.bottom via sw.cx,db.cy {#dl @hosts}
-box n3 "NIDS" right of db gap 0.5 same as n1 {.hex .tone-4 @nids}
+edge wl web.top -- web.cx,ext.cy {@hosts}
+edge dl db.right -- sw.bottom via sw.cx,db.cy {@hosts}
+box n3 "NIDS" right of db gap 1.2 same as n1 {.hex .tone-4 @nids}
 
 box h1 "HIDS" above d1  gap 0.5  same as n1 {.hex .tone-4 @hids}
 box h2 "HIDS" above d2  gap 0.5  same as n1 {.hex .tone-4 @hids}
@@ -1270,12 +1269,12 @@ step hids
 box inp "Input"            at 0,0 w 1.5 h 0.5 {.tone-3}
 box de  "Decision\nEngine" below inp gap 0.75 w 1.7 h 0.95 {.hex .tone-4}
 box rea "Reaction"         below de gap 0.75 w 1.5 h 0.5 {.tone-3}
-edge inp -> de {#f1}
-edge de -> rea {#f2}
+edge f1 inp -> de
+edge f2 de -> rea
 
-text nb "network-based" right of inp gap 0.62 offset 0,-0.2 {.left @src}
-text hb "host-based"    below nb gap 0.16 align left {.left @src}
-brace kinds over nb,hb left "" pad 0.3 {.muted @src}
+text nb "network-based" right of inp gap 1.6 offset 0,-0.2 {.left @src}
+text hb "host-based"    below nb gap 0.16 flush left {.left @src}
+brace kinds over nb,hb side left "" pad 0.3 {.muted @src}
 
 step engine
   show de
@@ -1302,19 +1301,19 @@ box rno "NORMAL" left of fp gap 0 same as rat {.turn .clear .small}
 
 text cal "alert"    above tp gap 0.3
 text cno "no alert" above fn gap 0.3
-brace hdr over cal,cno top "REACTION OF IDS" pad 0.3 {.muted}
+brace hdr over cal,cno side top "REACTION OF IDS" pad 0.3 {.muted}
 
-text miss "missed\nattack" right of fn gap 0.5 -> fn {.hand}
-text fa   "false alarm"    below fp gap 0.5 -> fp {.hand}
+text miss "missed\nattack" right of fn gap 1.25 -- fn {.hand}
+text fa   "false alarm"    below fp gap 0.5 -- fp {.hand}
 
 step correct
   emph tp, tn
 step missed
-  calm tp, tn
+  dim tp, tn
   emph fn
   show miss
 step alarm
-  calm fn
+  dim fn
   emph fp
   show fa
 :::
@@ -1345,9 +1344,9 @@ text as "knowledge about\nbenign activities" at 2.65,0.8
 dot  s1 ""   at 0.45,2.1 r 0.13 {.tone-4}
 dot  s2 ""   at 1.25,2.1 r 0.13 {.tone-4}
 box  bl ""   at 2.65,2.3 w 1.35 h 1.1 {.round .tone-4}
-edge ms -> s1 {#e1 .muted}
-edge ms -> s2 {#e2 .muted}
-edge as -> bl {#e3 .muted}
+edge e1 ms -> s1 {.muted}
+edge e2 ms -> s2 {.muted}
+edge e3 as -> bl {.muted}
 
 text mt "anything else:\nno misuse alert" at 0.85,4.6
 text an "anything else:\nanomaly alert"   at 2.65,4.6
@@ -1379,15 +1378,15 @@ step rest
 # wörtlich übernommenen Zählungen 43 / 36 / 21 ergeben.
 bars obs "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 3.1 h 0.85 {.tone-3 .bare}
 
-text hcmp "Comparison with normal behavior" below obs gap 0.62 align left {.left}
+text hcmp "Comparison with normal behavior" below obs gap 0.62 flush left {.left}
 
 # Der Rahmen ist auf beiden Achsen normiert: waagerecht der Rang des Zeichens,
 # senkrecht seine relative Häufigkeit. Die Folie beschriftet nur die Waagerechte,
 # und zwar mit der Zeichenkette selbst – die steht deshalb als Achsentitel da.
-plot cmp ".ie0lo1/a35M6rckn()tW…" below hcmp gap 0.5 align left w 3.1 h 1.5 x 0,1 y 0,1 step 0.5
+plot cmp ".ie0lo1/a35M6rckn()tW…" below hcmp gap 0.5 flush left w 3.1 h 1.5 x 0,1 y 0,1 tick 0.5
 
 # Das Normalverhalten läuft als glatte Kurve durch seine Wegpunkte.
-edge cmp@0.01,cmp@0.6 -> cmp@1,cmp@0.03 via cmp@0.1,cmp@0.4 cmp@0.25,cmp@0.26 cmp@0.45,cmp@0.15 cmp@0.7,cmp@0.07 {#normal .smooth .thick .no-head}
+edge normal cmp@0.01,cmp@0.6 -- cmp@1,cmp@0.03 via cmp@0.1,cmp@0.4 cmp@0.25,cmp@0.26 cmp@0.45,cmp@0.15 cmp@0.7,cmp@0.07 {.smooth .thick}
 
 # Die Nadeln des verdächtigen Pakets: eine zweite Säulenreihe, die auf der
 # Grundlinie des plots steht und ihn in der Breite ausfüllt. 24 statt der ~40
@@ -1406,7 +1405,7 @@ text lp "p" above sus-9 gap 0.06 {@sus}
 text nnorm "normal behavior" at cmp@0.66,cmp@0.42 pad 0.12 {.paper}
 text nsus  "suspicious packet" at cmp@0.62,cmp@0.86 pad 0.12 {.paper .hand @sus}
 
-text ask "Suitable distance metric?" below cmp gap 0.92 align left {.hand @ask}
+text ask "Suitable distance metric?" below cmp gap 0.92 flush left {.hand @ask}
 
 step normal
   show normal, nnorm
@@ -1415,7 +1414,7 @@ step suspicious
   emph @sus
 step metric
   show @ask
-  calm normal
+  dim normal
 :::
 
 **Ein Paket bringt seine eigene Zeichenverteilung mit.** Oben steht, was in der Nutzlast tatsächlich gezählt wurde; unten liegt dieselbe Zählung über dem, was an diesem Dienst normal ist. Die roten Nadeln stehen dort, wo das beobachtete Paket weit über der Referenz liegt – das Auge sieht den Ausreißer, bevor irgendeine Kennzahl berechnet ist. Bleibt die Frage, die die Folie stellt: welches Abstandsmaß macht aus diesem Bild eine Zahl?
@@ -1424,11 +1423,11 @@ step metric
 
 ::: diagram {unit=150x56}
 bars f "20,19,17,12,11,10,9,9,8,7,6,5" ". i e 0 l o 1 / a 3 5 M" at 0,0 w 2.5 h 0.9 {.tone-3 .bare}
-text cap "Char. freq. distribution for\nnormal payloads" above f gap 0.16 align right {.right}
+text cap "Char. freq. distribution for\nnormal payloads" above f gap 0.16 flush right {.right}
 
-brace b1 over f-0,f-1,f-2 bottom "Bin 1" pad 0.45 {.muted @bins}
-brace b2 over f-3,f-4,f-5,f-6 bottom "Bin 2" pad 0.45 {.muted @bins}
-brace b3 over f-7,f-8,f-9 bottom "Bin 3" pad 0.45 {.muted @bins}
+brace b1 over f-0,f-1,f-2 side bottom "Bin 1" pad 0.45 {.muted @bins}
+brace b2 over f-3,f-4,f-5,f-6 side bottom "Bin 2" pad 0.45 {.muted @bins}
+brace b3 over f-7,f-8,f-9 side bottom "Bin 3" pad 0.45 {.muted @bins}
 text bd "…" at f.right+0.3,f.bottom+0.78 {.muted @bins}
 
 # Die Gewichte stehen unter den Bin-Namen, nicht unter der Klammer: die
@@ -1457,11 +1456,11 @@ step weights
 # der *Trainingsverteilung* von #ns-b56, womit die anomale Verteilung
 # deckungsgleich mit der war, von der sie abweichen soll.
 bars g "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 2.5 h 0.9 {.tone-3 .bare}
-text cap "Anomalous payload\ndistribution" above g gap 0.16 align right {.right}
+text cap "Anomalous payload\ndistribution" above g gap 0.16 flush right {.right}
 
-brace b1 over g-0,g-1,g-2 bottom "Bin 1" pad 0.45 {.muted @bins}
-brace b2 over g-3,g-4,g-5,g-6 bottom "Bin 2" pad 0.45 {.muted @bins}
-brace b3 over g-7,g-8,g-9 bottom "Bin 3" pad 0.45 {.muted @bins}
+brace b1 over g-0,g-1,g-2 side bottom "Bin 1" pad 0.45 {.muted @bins}
+brace b2 over g-3,g-4,g-5,g-6 side bottom "Bin 2" pad 0.45 {.muted @bins}
+brace b3 over g-7,g-8,g-9 side bottom "Bin 3" pad 0.45 {.muted @bins}
 text bd "…" at g.right+0.3,g.bottom+0.78 {.muted @bins}
 
 text o1 "43" at b1.cx,g.bottom+1.12 {@counts}
@@ -1494,8 +1493,8 @@ und der Sensor schlägt Alarm, sobald $\chi^2 > t$ ist. Welcher Wert für $t$ da
 # Die Einheit ist quadratisch, damit ein Paketkasten quadratisch wird.
 text ds "Labeled dataset (e.g., by DARPA/Lincoln Labs)" at 0,0 {.left}
 
-text latt "attack traffic" below ds gap 1.0 align left {.left}
-text lben "benign traffic" below latt gap 0.5 align left {.left}
+text latt "attack traffic" below ds gap 1.0 flush left {.left}
+text lben "benign traffic" below latt gap 0.5 flush left {.left}
 
 # Rasterplatz zu Rasterplatz sind 0.74, ein Kasten misst 0.42: der
 # Zwischenraum ist damit dreiviertel so breit wie ein Kasten, und der
@@ -1504,18 +1503,18 @@ text lben "benign traffic" below latt gap 0.5 align left {.left}
 # Mittel höher, überlappen aber, und genau diese Überlappung ist das Thema.
 # Rasterplätze: benign 0,1,2,3,5,7 – attack 4,6,8,9.
 box b1 "" right of lben gap 0.55 w 0.42 h 0.42 {.tone-2 .sharp}
-box b2 "" right of b1 gap 0.32 same as b1 {.tone-2 .sharp}
-box b3 "" right of b2 gap 0.32 same as b1 {.tone-2 .sharp}
-box b4 "" right of b3 gap 0.32 same as b1 {.tone-2 .sharp}
-box b5 "" right of b4 gap 1.06 same as b1 {.tone-2 .sharp}
-box b6 "" right of b5 gap 1.06 same as b1 {.tone-2 .sharp}
+box b2 "" right of b1 gap 0.3 same as b1 {.tone-2 .sharp}
+box b3 "" right of b2 gap 0.3 same as b1 {.tone-2 .sharp}
+box b4 "" right of b3 gap 0.3 same as b1 {.tone-2 .sharp}
+box b5 "" right of b4 gap 1.05 same as b1 {.tone-2 .sharp}
+box b6 "" right of b5 gap 1.05 same as b1 {.tone-2 .sharp}
 
 box a1 "" at b1.cx+2.96,latt.cy same as b1 {.accent .sharp}
-box a2 "" right of a1 gap 1.06 same as b1 {.accent .sharp}
-box a3 "" right of a2 gap 1.06 same as b1 {.accent .sharp}
-box a4 "" right of a3 gap 0.32 same as b1 {.accent .sharp}
+box a2 "" right of a1 gap 1.05 same as b1 {.accent .sharp}
+box a3 "" right of a2 gap 1.05 same as b1 {.accent .sharp}
+box a4 "" right of a3 gap 0.3 same as b1 {.accent .sharp}
 
-edge b1.left-0.5,b1.bottom+0.7 -> a4.right+0.6,b1.bottom+0.7 {#axis .muted}
+edge axis b1.left-0.5,b1.bottom+0.7 -> a4.right+0.6,b1.bottom+0.7 {.muted}
 text axn "anomaly score" at b1.cx+3.33,b1.bottom+1.12 {.muted}
 text lno "no alert" at b1.cx+0.37,b1.bottom+0.34 {.muted}
 text lal "alert" at a4.cx-0.37,b1.bottom+0.34 {.muted}
@@ -1525,7 +1524,7 @@ text lal "alert" at a4.cx-0.37,b1.bottom+0.34 {.muted}
 # folgt. Der Doppelpfeil der alten Fassung, der sagen sollte, dass der Strich
 # beweglich ist, ist damit überflüssig – jetzt bewegt er sich.
 text tlbl "t" at a1.cx+0.37,a1.top-0.45 pad 0.12 {.paper .hand @thr}
-edge tlbl.cx,tlbl.bottom -- tlbl.cx,b1.bottom+0.7 {#thr .thick @thr}
+edge thr tlbl.cx,tlbl.bottom -- tlbl.cx,b1.bottom+0.7 {.thick @thr}
 
 # Die 2×2-Matrix. Die Angriffszeile trägt die Akzentfarbe, die Normalzeile
 # den Ton für legitimen Verkehr – dieselbe Zuordnung wie überall sonst.
@@ -1542,9 +1541,9 @@ box fp "FP" right of tn gap 0 same as fn {.tone-2}
 # Quadraten aus der letzten Reihe des Hörsaals dauert länger als Lesen.
 text cno "no alert" above fn gap 0.28
 text cal "alert" above tp gap 0.28
-text head "REACTION OF IDS" above cno gap 0.3 align left {.bold .left}
-text rowa "attack" left of fn gap 0.24 {.turn}
-text rown "normal" left of tn gap 0.24 {.turn}
+text head "REACTION OF IDS" above cno gap 0.3 flush left {.bold .left}
+text rowa "attack" left of fn gap 0.25 {.turn}
+text rown "normal" left of tn gap 0.25 {.turn}
 
 text rates "TP rate: 0.75 / FP rate: 0.33" at tp.right+2.1,fn.bottom-0.25 {.bold @thr}
 
@@ -1590,9 +1589,9 @@ step tradeoff
 ::: diagram {unit=104x104}
 # "False Postive Rate" ist der Tippfehler der Originalfolie und bleibt so.
 # Die Einheit ist quadratisch, damit der ROC-Rahmen quadratisch wird.
-plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 2.6 h 2.45 x 0,1 y 0,1 step 0.2
+plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 2.6 h 2.45 x 0,1 y 0,1 tick 0.2
 
-edge roc@0.02,roc@0.03 -> roc@0.98,roc@1 via roc@0.06,roc@0.5 roc@0.2,roc@0.8 roc@0.49,roc@0.95 roc@0.75,roc@0.98 {#curve .smooth .thick .no-head}
+edge curve roc@0.02,roc@0.03 -- roc@0.98,roc@1 via roc@0.06,roc@0.5 roc@0.2,roc@0.8 roc@0.49,roc@0.95 roc@0.75,roc@0.98 {.smooth .thick}
 
 # Die Beschriftungen sitzen unter ihrem Punkt, nicht rechts daneben: rechts
 # liegt die Kurve, und ein .paper-Grund stanzt sie sonst aus.
@@ -1619,22 +1618,22 @@ step lenient
 
 ::: diagram {unit=104x104}
 # Derselbe Rahmen wie zuvor, samt Tippfehler "False Postive Rate".
-plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 2.6 h 2.45 x 0,1 y 0,1 step 0.2
+plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 2.6 h 2.45 x 0,1 y 0,1 tick 0.2
 
-edge roc@0.02,roc@0.02 -> roc@1,roc@1 {#chance .muted .no-head @chance}
+edge chance roc@0.02,roc@0.02 -- roc@1,roc@1 {.muted @chance}
 # Unterhalb der Diagonalen, aber weit genug daneben, dass ihr .paper-Grund
 # die Linie nicht zerschneidet: die Diagonale ist y = x, also muss die linke
 # Kante des Kastens rechts von seiner Oberkante liegen.
 text nchance "Accuracy due\nto chance" at roc@0.65,roc@0.35 pad 0.12 {.bold .paper @chance}
 
-edge roc@0.02,roc@0.02 -> roc@1,roc@1 via roc@0.05,roc@0.6 roc@0.15,roc@0.86 roc@0.4,roc@0.95 roc@0.7,roc@0.98 {#high .smooth .thick .no-head @curves}
-edge roc@0.02,roc@0.02 -> roc@1,roc@1 via roc@0.12,roc@0.35 roc@0.3,roc@0.66 roc@0.6,roc@0.88 {#low .smooth .thick .no-head @curves}
+edge high roc@0.02,roc@0.02 -- roc@1,roc@1 via roc@0.05,roc@0.6 roc@0.15,roc@0.86 roc@0.4,roc@0.95 roc@0.7,roc@0.98 {.smooth .thick @curves}
+edge low roc@0.02,roc@0.02 -- roc@1,roc@1 via roc@0.12,roc@0.35 roc@0.3,roc@0.66 roc@0.6,roc@0.88 {.smooth .thick @curves}
 
-text lhigh "High\naccuracy" at roc@0.3,roc@1.24 -> roc@0.24,roc@0.92 {.bold @curves}
-text llow "Low\naccuracy" at roc@0.62,roc@1.24 -> roc@0.5,roc@0.81 {.bold @curves}
+text lhigh "High\naccuracy" at roc@0.3,roc@1.24 -- roc@0.24,roc@0.92 {.bold @curves}
+text llow "Low\naccuracy" at roc@0.62,roc@1.24 -- roc@0.5,roc@0.81 {.bold @curves}
 
 dot pperf "" at roc@0.02,roc@1 r 0.055 {.tone-4 @perfect}
-text lperf "Perfect\naccuracy" at roc@0.02,roc@1.24 -> roc@0.02,roc@1.03 {.bold @perfect}
+text lperf "Perfect\naccuracy" at roc@0.02,roc@1.24 -- roc@0.02,roc@1.03 {.bold @perfect}
 
 text q "What false positive\nrate is acceptable?" at roc@0.7,roc@0.12 pad 0.12 {.paper .hand @ask}
 
@@ -1646,7 +1645,7 @@ step perfect
   show @perfect
 step question
   show @ask
-  calm chance
+  dim chance
 :::
 
 **Zwei Verfahren vergleicht man an ihren Kurven, nicht an einem Punkt.** Je weiter eine Kurve in die linke obere Ecke ausbeult, desto besser trennt das Verfahren – die Ecke selbst wäre perfekt, die Diagonale ist raten. Alternative Binnings der Zeichenverteilung liefern genau solche Kurvenscharen, und das bessere Binning ist das mit der oberen Kurve. Die Frage, welchen Punkt man auf der gewählten Kurve einstellt, beantwortet das Bild aber nicht.
@@ -1658,16 +1657,16 @@ step question
 # eine Zeile, die Ausnahme ist ein eigenes Raster. Das Asset wird nur einmal
 # eingebettet, egal wie oft es vorkommt.
 grid sickp image face-bad 7x1 at 0,0 cell 0.3 space 0.08 {@tp}
-grid sickn image face-ok 1x1 right of sickp gap 0.08 cell 0.3 space 0.08 {@fn}
-grid well image face-ok 7x11 below sickp gap 0.32 align left cell 0.3 space 0.08 {@wellneg}
-grid fpos image face-bad 1x11 right of well gap 0.08 align top cell 0.3 space 0.08 {@fpos}
+grid sickn image face-ok 1x1 right of sickp gap 0.1 cell 0.3 space 0.08 {@fn}
+grid well image face-ok 7x11 below sickp gap 0.32 flush left cell 0.3 space 0.08 {@wellneg}
+grid fpos image face-bad 1x11 right of well gap 0.1 flush top cell 0.3 space 0.08 {@fpos}
 
 container zsick "" over sickp,sickn pad 0.09 {.accent .sharp}
 container zwell "" over well,fpos pad 0.09 {.sharp}
 text lsick "sick" left of sickp gap 0.3 {.right}
 text lwell "healthy" left of well gap 0.3 {.right}
 
-text rates "TP rate: 87.5% FP rate: 12.5%\nactually sick: 8.3%" above sickp gap 0.35 align left {.left .muted}
+text rates "TP rate: 87.5% FP rate: 12.5%\nactually sick: 8.3%" above sickp gap 0.35 flush left {.left .muted}
 
 # Die Legende steht auf halber Höhe der Tafel, nicht oben: sonst bliebe die
 # rechte untere Hälfte der Figur leer.
@@ -1675,7 +1674,7 @@ image legb face-bad right of fpos gap 1.1 offset 0,-0.3 w 0.3
 text tlegb "test positive (you are worried)" right of legb gap 0.2 {.left}
 image lego face-ok below legb gap 0.35 same as legb
 text tlego "test negative (you feel safe)" right of lego gap 0.2 {.left}
-text ask "Should you be?" below tlego gap 0.55 align left {.hand @ask}
+text ask "Should you be?" below tlego gap 0.55 flush left {.hand @ask}
 
 # Die Beats bauen die Argumentation auf, statt sie wegzudimmen. Vorher hiess
 # der erste "positives" und liess den einen uebersehenen Kranken hell stehen,
@@ -1683,13 +1682,13 @@ text ask "Should you be?" below tlego gap 0.55 align left {.hand @ask}
 # leuchteten nur die *falschen* Alarme, also genau das Gegenteil des Namens.
 step detected
   emph @tp
-  calm @fn, @wellneg, @fpos
+  dim @fn, @wellneg, @fpos
 step flagged
   emph @fpos
-  calm @tp
+  dim @tp
 step alarms
   emph @tp, @fpos
-  calm @fn, @wellneg
+  dim @fn, @wellneg
   label rates "TP rate: 87.5% FP rate: 12.5%\nactually sick: 8.3%\n18 alarms, 7 of them real: 39%"
 step worried
   show @ask

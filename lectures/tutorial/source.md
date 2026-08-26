@@ -447,15 +447,15 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 ::: diagram {unit=126x72}
 box  src  "Sender"
-box  mix  "Mix"        right of src gap 0.6
-box  dst  "Empfänger"  right of mix gap 0.6
+box  mix  "Mix"        right of src gap 1.05
+box  dst  "Empfänger"  right of mix gap 1.05
 box  log  "Logfile"    below mix gap 0.9  {.dashed}
 
 edge src -> mix "encrypted"
 edge mix -> dst "recoded"
-edge mix -> log {#leak .dashed}
+edge leak mix -> log {.dashed}
 
-text why "this is where\nthe anonymity ends"  right of log gap 0.8 -> leak {.hand}
+text why "this is where\nthe anonymity ends"  right of log gap 1.4 -- leak {.hand}
 
 step leak
   show log
@@ -472,13 +472,13 @@ kind  name  label   placement              options  tail
 
 **Inside the tail, three prefixes answer three questions** – `.tone-2` is a class (how it looks), `@crypto` a tag (which set it belongs to), and `#leak`, as on the `edge` line above, a name for the statements that have no name slot of their own. The name is how later lines refer to the element and is never drawn; the label is what the room reads, and `""` is a legal empty one.
 
-**Placement is a grid cell or a relation to a neighbour** – `at 2,1`, or `right of mix gap 0.6`, or `below src gap 0 align left` for boxes that touch. The first element sits at the origin so a simple diagram needs no coordinates at all. There is no automatic layout: every element sits where you put it.
+**Placement is a grid cell or a relation to a neighbour** – `at 2,1`, or `right of mix gap 0.6`, or `below src gap 0 flush left` for boxes that touch. The first element sits at the origin so a simple diagram needs no coordinates at all. There is no automatic layout: every element sits where you put it.
 
 **A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`, `via iv.cx,x0.cy`. Every slot that takes an `X,Y` pair takes that form, so moving one element does not mean re-typing the coordinates of everything placed against it. `.elbow` on an edge writes the commonest of those routes for you – one turn out, one turn in, halfway across the gap – and takes no waypoints and no options.
 
-**An edge is one of the things a coordinate can name.** `text n "only after the handshake" above w1 gap 0.2` places a phrase against the wire it describes rather than against a box at one end of it, which is the difference between a label that follows its line and one that drifts off it the next time a height changes. Give the edge an `{#id}` first: an edge has no name until you write one. Element names are letters, digits, `_` and `-`, because `mix.cx` has to be readable as one thing; a comment line starts with `#`.
+**An edge is one of the things a coordinate can name.** `text n "only after the handshake" above w1 gap 0.2` places a phrase against the wire it describes rather than against a box at one end of it, which is the difference between a label that follows its line and one that drifts off it the next time a height changes. Give the edge a name first, and it goes where every other statement puts one – in front, in the slot before the arrow's first endpoint: `edge w1 mix -> log`. An edge is anonymous until you write one, and an anonymous edge costs nothing to leave anonymous. Element names are letters, digits, `_` and `-`, because `mix.cx` has to be readable as one thing; a comment line starts with `#`.
 
-**`step` blocks make a figure move.** One step is one press of the same key that uncovers a reveal segment, so steps and segments interleave in the order you wrote them and the cockpit follows. The vocabulary is `show`, `hide`, `move … to`, `move … by`, `emph`, `calm`, `style` and `label`.
+**`step` blocks make a figure move.** One step is one press of the same key that uncovers a reveal segment, so steps and segments interleave in the order you wrote them and the cockpit follows. The vocabulary is `show`, `hide`, `move … to`, `move … by`, the three prominence verbs `emph`, `dim` and `ghost`, `style` and `label`.
 
 **A moved box takes its arrows with it.** The layout is evaluated again for every step rather than nudged, so an edge that connects two elements re-routes whenever either end moves.
 
@@ -510,7 +510,7 @@ Two more options work from the box inwards rather than from the label outwards. 
 **An edge's label reads the same rule.** A fill class on the `edge` itself gives its label a ground, and with no side named the words then sit *on* the line and knock it out behind them; `.top`, `.bottom`, `.left` or `.right` lifts them clear and carries the ground with them. The label is held at the middle of the route, so it stays there when the route bends or either end moves – which a separate `text` placed `between` two boxes does not. Use the on-the-line form for a token that names the line, a sequence number or a port, and the beside-it form for a phrase describing what travels along it, and keep to one of the two per figure.
 :::
 
-> note: Print shows every element the diagram ever displays, at its last position, with nothing emphasised and nothing greyed out – the handout is the finished picture, the same rule reveal segments follow.
+> note: Print is the **last** beat, not the union of every beat – so an element a step hid stays hidden, which is what "the finished picture" means. The one thing it does not take from the last beat is prominence: that comes from the opening one, so emphasis a lecturer hands around during the talk does not arrive on paper, while a `{.dim}` written on an element's own line does. The rule is readable off the source – on the line it is the drawing, inside a `step` it is the talk.
 
 ## example: Looks, and lining things up | the class slots, `align` and `spread` {.full #diagram-classes}
 
@@ -523,62 +523,62 @@ default box {.sharp} w 0.62 h 0.42 pad 0.12
 # one lets the line through, the other knocks a hole in it.
 edge -0.55,0 -- 4.85,0 {.muted}
 box f1 "paper"  at 0,0 {.paper}
-box f2 "tone-1" right of f1 gap 0.24 same as f1 {.tone-1}
-box f3 "tone-2" right of f2 gap 0.24 same as f1 {.tone-2}
-box f4 "tone-3" right of f3 gap 0.24 same as f1 {.tone-3}
-box f5 "tone-4" right of f4 gap 0.24 same as f1 {.tone-4}
-box f6 "clear"  right of f5 gap 0.24 same as f1 {.clear}
-text fl "fill" left of f1 gap 0.5 {.muted .right}
+box f2 "tone-1" right of f1 gap 0.35 same as f1 {.tone-1}
+box f3 "tone-2" right of f2 gap 0.35 same as f1 {.tone-2}
+box f4 "tone-3" right of f3 gap 0.35 same as f1 {.tone-3}
+box f5 "tone-4" right of f4 gap 0.35 same as f1 {.tone-4}
+box f6 "clear"  right of f5 gap 0.35 same as f1 {.clear}
+text fl "fill" left of f1 gap 0.7 {.muted .right}
 
 box o1 "round"   at 0,1.1 {.round .tone-2}
-box o2 "sharp"   right of o1 gap 0.24 same as o1 {.tone-2}
-box o3 "hex"     right of o2 gap 0.24 same as o1 {.hex .tone-2}
-box o4 "chevron" right of o3 gap 0.24 w 0.78 h 0.42 point right {.chevron .tone-2}
-box o5 ""        right of o4 gap 0.3 w 0.42 h 0.42 point up {.wedge .tone-4}
+box o2 "sharp"   right of o1 gap 0.35 same as o1 {.tone-2}
+box o3 "hex"     right of o2 gap 0.35 same as o1 {.hex .tone-2}
+box o4 "chevron" right of o3 gap 0.35 w 0.78 h 0.42 point right {.chevron .tone-2}
+box o5 ""        right of o4 gap 0.4 w 0.42 h 0.42 point up {.wedge .tone-4}
 # A cross squares itself past this row's `default box … w`, the same way a
 # bars column ignores an inherited outline: the default is about the
 # rectangles in the block, and a plus sign is not one of them.
-box o6 ""        right of o5 gap 0.3 {.cross .accent}
+box o6 ""        right of o5 gap 0.4 {.cross .accent}
 # A diamond is sized at twice what its label would need in a rectangle, so it
 # is shown empty here like the wedge and the cross rather than made to hold
 # the word "diamond" and doubling the width of the whole row.
-box o7 ""        right of o6 gap 0.3 w 0.5 h 0.42 {.diamond .tone-2}
+box o7 ""        right of o6 gap 0.4 w 0.5 h 0.42 {.diamond .tone-2}
 text o5n "wedge" below o5 gap 0.16 {.small .muted}
 text o6n "cross" below o6 gap 0.16 {.small .muted}
 text o7n "diamond" below o7 gap 0.16 {.small .muted}
-text ol "outline" left of o1 gap 0.5 {.muted .right}
+text ol "outline" left of o1 gap 0.7 {.muted .right}
 
 box s1 "dashed" at 0,2.25 {.dashed .clear}
-box s2 "dotted" right of s1 gap 0.24 same as s1 {.dotted .clear}
-box s3 "thick"  right of s2 gap 0.24 same as s1 {.thick .clear}
-box s4 "bare"   right of s3 gap 0.24 same as s1 {.bare .clear}
-box s5 "ghost"  right of s4 gap 0.24 same as s1 {.ghost .tone-2}
-box s6 "dim"    right of s5 gap 0.24 same as s1 {.dim .tone-2}
-text sl "stroke,\nand presence" left of s1 gap 0.5 {.muted .right}
+box s2 "dotted" right of s1 gap 0.35 same as s1 {.dotted .clear}
+box s3 "thick"  right of s2 gap 0.35 same as s1 {.thick .clear}
+box s4 "bare"   right of s3 gap 0.35 same as s1 {.bare .clear}
+box s5 "ghost"  right of s4 gap 0.35 same as s1 {.ghost .tone-2}
+box s6 "dim"    right of s5 gap 0.35 same as s1 {.dim .tone-2}
+text sl "stroke,\nand presence" left of s1 gap 0.7 {.muted .right}
 
 # Only the two ends of this row are placed. The five between them are named
 # in the order they should stand in and get equal centre distances, which is
 # what a row of seven specimens of seven different widths wants.
 text t1 "sans"  at 0.3,3.2
-text t7 "bold"  right of t1 gap 4.0 {.bold}
-text t2 "mono"  right of t1 gap 0.4 {.mono}
-text t3 "serif" right of t1 gap 0.4 {.serif}
-text t4 "hand"  right of t1 gap 0.4 {.hand}
-text t5 "small" right of t1 gap 0.4 {.small}
-text t6 "large" right of t1 gap 0.4 {.large}
-text tw "family,\nand size" left of t1 gap 0.62 {.muted .right}
+text t7 "bold"  right of t1 gap 5.45 {.bold}
+text t2 "mono"  right of t1 gap 0.55 {.mono}
+text t3 "serif" right of t1 gap 0.55 {.serif}
+text t4 "hand"  right of t1 gap 0.55 {.hand}
+text t5 "small" right of t1 gap 0.55 {.small}
+text t6 "large" right of t1 gap 0.55 {.large}
+text tw "family,\nand size" left of t1 gap 0.85 {.muted .right}
 spread x t1, t2, t3, t4, t5, t6, t7
 
 box g1 "a label that is too long" at 0,4.2 w 1.2 h 0.5 {.shrink .clear}
-box g2 "short" right of g1 gap 0.28 same as g1 {.fit .clear}
+box g2 "short" right of g1 gap 0.4 same as g1 {.fit .clear}
 text n1 "shrink" below g1 gap 0.14 {.small .muted}
 text n2 "fit"    below g2 gap 0.14 {.small .muted}
-text gl "type meets\nits box" left of g1 gap 0.5 {.muted .right}
+text gl "type meets\nits box" left of g1 gap 0.7 {.muted .right}
 
-box w1 "top\nleft"     right of g2 gap 0.55 w 0.56 h 0.74 {.clear .top .left}
-box w2 "centred"       right of w1 gap 0.2 same as w1 {.clear}
-box w3 "bottom\nright" right of w2 gap 0.2 same as w1 {.clear .bottom .right}
-box w4 "turn"          right of w3 gap 0.2 w 0.34 h 0.74 {.tone-2 .turn}
+box w1 "top\nleft"     right of g2 gap 0.75 w 0.56 h 0.74 {.clear .top .left}
+box w2 "centred"       right of w1 gap 0.25 same as w1 {.clear}
+box w3 "bottom\nright" right of w2 gap 0.25 same as w1 {.clear .bottom .right}
+box w4 "turn"          right of w3 gap 0.25 w 0.34 h 0.74 {.tone-2 .turn}
 text wl "where the words sit" below w2 gap 0.28 {.small .muted}
 
 # Five labels hanging off rows of five different lengths: the statement gives
@@ -588,13 +588,13 @@ align x right fl, ol, sl, tw, gl
 
 **Every row of that sheet holds at least one slot.** Three of them hold more than one, where the slots belong together – stroke pattern beside stroke weight beside the two retreats, `.ghost` and `.dim`; family beside size; and the words that place a label across beside the ones that place it down – and the two ink classes have no row at all, because they are at work over the whole sheet: `.accent` on the cross, `.muted` on every caption. **Forty names in all, and `lint.js` refuses anything else** – a typo is a build error, not a box that comes out unstyled.
 
-**`align` means two different things, and where it sits on the line tells you which.** At the end of a placement it takes one word: `below src gap 0 align left` keeps the new box's left edge flush with `src`. On a line of its own it is a statement – `align y middle a, b, c` gives `b` and `c` the vertical centre of `a`, the first name being the one the others follow.
+**Two words, one for each of two different jobs.** At the end of a placement, `flush` takes one word: `below src gap 0 flush left` keeps the new box's left edge level with `src`. On a line of its own, `align` is a statement – `align y middle a, b, c` gives `b` and `c` the vertical centre of `a`, the first name being the one the others follow. Both were called `align` once, which meant a single line could carry two of them meaning different things; the centre of an axis is `middle` on both axes, for the same reason.
 
 **`spread x a, b, c, d` distributes a set evenly** – first and last stay put, everything between gets equal spacing between centres. **Both are at work in the sheet above**: one `align x right` gives the five row labels the right edge of the first, and `spread x` puts the five middle words of the family row between `sans` and `bold`, which are the only two that were placed at all.
 
 ::: expand The rest of the class list, and where the two statements refuse
 
-Only three class names belong to no slot and stack freely: `.bold` for a heavier label, `.turn` for a label read bottom-to-top up the side of something tall and narrow, and `.front` for a line drawn over the boxes rather than under them. Two slots the sheet has no row for at all belong to edges: how a line is drawn – `.smooth` bends the waypoints you wrote into a curve through them, `.elbow` works out a right-angled route with its turn halfway across the gap and needs no waypoints at all – and which of its ends carries an arrowhead, `.no-head` or `.both-heads`. The third is prominence, how much of the room's attention an element asks for: the sheet's stroke row shows the two retreats, `.ghost` and `.dim`, and the slot's third name is `.emph`. Those last two are also what a step sets when it says `emph` or `calm`. Two members of one slot on one element is a lint warning; `.paper` fills a label with the page colour, which knocks a hole in a line running behind it.
+Only three class names belong to no slot and stack freely: `.bold` for a heavier label, `.turn` for a label read bottom-to-top up the side of something tall and narrow, and `.front` for a line drawn over the boxes rather than under them. Two slots the sheet has no row for at all belong to edges: how a line is drawn – `.smooth` bends the waypoints you wrote into a curve through them, `.elbow` works out a right-angled route with its turn halfway across the gap and needs no waypoints at all – and which of its ends carries an arrowhead, which you normally say with the arrow token itself and only ever write as a class inside a `step`. The third is prominence, how much of the room's attention an element asks for: `.emph`, `.dim` and `.ghost`. **Those three names are also the three verbs a step has for the same channel**, so learning one form teaches the other. Two members of one slot on one element is an error, and `{!dim}` is how a class comes back off – there is no fourth name for ordinary prominence, because the absence of all three is what that is. `.paper` fills a label with the page colour, which knocks a hole in a line running behind it.
 
 Two pairs are not one slot – they act on different things – and are still a warning, because one of the two ends up doing nothing: `.tone-4` with `.accent`, where the fill already *is* the accent, and `.turn` with `.left` or `.right`, where a label standing on end is centred across the direction it reads and has nothing left to align. `.top` and `.bottom` do still move a turned label.
 
@@ -614,14 +614,14 @@ Which way a pointed outline aims is the `point` option – `up`, `down`, `left`,
 
 ::: diagram {unit=148x64}
 bars wc "18,16,15,12,11,9,8,7,6,5,4,3" at 0,0 w 2.3 h 1.05 space 0.06 {.tone-3}
-brace long over wc-0,wc-1,wc-2 bottom "the three to rewrite" pad 0.45 {.small .muted}
+brace long over wc-0,wc-1,wc-2 side bottom "the three to rewrite" pad 0.45 {.small .muted}
 # In front, or the columns cover the line and it shows only in the gaps.
-edge wc.left,wc.top+0.3 -- wc.right,wc.top+0.3 {#lim .accent .dashed .front}
+edge lim wc.left,wc.top+0.3 -- wc.right,wc.top+0.3 {.accent .dashed .front}
 text limn "budget" at wc.right-0.28,wc.top+0.1 {.small .accent}
-text wcn "words per chunk" above wc gap 0.3 align left {.small .muted .left}
+text wcn "words per chunk" above wc gap 0.3 flush left {.small .muted .left}
 
-grid ch dot 8x5 right of wc gap 0.75 cell 0.15 space 0.07 {.tone-2}
-text chn "one dot per chunk,\ntinted where a figure lives" below ch gap 0.3 align left {.small .muted .left}
+grid ch dot 8x5 right of wc gap 1.75 cell 0.15 space 0.07 {.tone-2}
+text chn "one dot per chunk,\ntinted where a figure lives" below ch gap 0.3 flush left {.small .muted .left}
 
 step over
   emph wc-0, wc-1, wc-2
@@ -631,7 +631,7 @@ step figures
 
 **A `brace` spans three of the columns and a `style` step tints four of the cells, because both are ordinary boxes** – named after the statement they came out of: `wc-0`, `wc-1`, … for the columns and `ch-1-0`, `ch-4-2`, … for the cells. The budget line is an ordinary edge between two coordinates read off the chart's own frame, `.front` because otherwise the columns cover it and it shows only in the gaps. The spacing *inside* these statements is `space`, never `gap`: the placement on the same line already uses that word for the distance to another element.
 
-**A chart can carry more than one series, and it is one more `bars` line.** `bars after "…" series of wc {.tone-1}` joins the first chart's frame and borrows its ticks, its baseline and its scale, bringing only its own numbers and its own look; the cell is shared out between them, so a grouped chart takes exactly the paper a single one did. `stacked` on that line piles it onto the run before it instead, and the scale becomes the tallest stack. A series takes no `w`, no `h`, no `space`, no placement and no tick strip – all five belong to the chart it joined. And `emph 0,1,2` or `calm 5` on any `bars` line marks those columns from the opening beat, which is where a chart usually wants one column to stand out rather than a keypress later.
+**A chart can carry more than one series, and it is one more `bars` line.** `bars after "…" series of wc {.tone-1}` joins the first chart's frame and borrows its ticks, its baseline and its scale, bringing only its own numbers and its own look; the cell is shared out between them, so a grouped chart takes exactly the paper a single one did. `stacked` on that line piles it onto the run before it instead, and the scale becomes the tallest stack. A series takes no `w`, no `h`, no `space`, no placement and no tick strip – all five belong to the chart it joined. And `emph 0,1,2` or `dim 5` on any `bars` line marks those columns from the opening beat, which is where a chart usually wants one column to stand out rather than a keypress later – the same three words again, in a third position.
 
 **`horizontal` lays the columns flat, and it is the same kind of bare word `stacked` is.** The bars run left to right, the categories stack downwards, the tick strip becomes a right-aligned column of labels down the left margin and the baseline stands on the left. Two things get better at once: lengths measured from one shared left edge are easier to rank than heights over a shared floor, and a category called "DNS cache poisoning" cannot be written under an upright column at all. **Which is why the tick string splits on `|` when it contains one**, and on spaces otherwise – the same mark that already separates a `table` row and a `lanes` name list, so a label may be as many words as it needs.
 
@@ -643,29 +643,29 @@ text hourn "minutes, in the hour before a lecture" below hour gap 0.5 {.small .m
 **`w` and `h` are grid units, and a grid cell is not square – so the two numbers do not describe the shape on the page.** At the `unit=150x54` of the figure below, a plot written `w 1.9 h 1.5` lands 285px by 81px, which is nothing like 1.9 by 1.5. `aspect 4:3`, `aspect 1:1`, or one bare number meaning that many wide to one tall, states the proportion the reader actually sees and lets the build work the other number out. Both `bars` and `plot` take it, and giving `w`, `h` and `aspect` together is an error: two of the three would have to lose, and nothing on the line says which.
 
 ::: diagram {unit=150x54}
-plot pace "minutes into the talk" "chunks covered" at 0,0 w 2.7 aspect 2:1 x 0,60 y 0,40 step 10
-edge pace@0,pace@0 -> pace@60,pace@40 {#even .muted .dashed .no-head}
-edge pace@0,pace@0 -> pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {#real .smooth .accent .thick .no-head}
+plot pace "minutes into the talk" "chunks covered" at 0,0 w 2.7 aspect 2:1 x 0,60 y 0,40 tick 10
+edge even pace@0,pace@0 -- pace@60,pace@40 {.muted .dashed}
+edge real pace@0,pace@0 -- pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {.smooth .accent .thick}
 dot  mark "" at pace@26,pace@12 r 0.08 {.accent}
 text evenn "even pace" at pace@50,pace@33 pad 0.12 {.small .paper}
 # Die Leitlinie greift die Kurve an einem Punkt ab, statt quer durchs Feld zu
 # laufen und dabei beide Kurven zu kreuzen.
-text realn "the first third\nalways runs long" at pace@22,pace@31 pad 0.12 -> mark {.small .hand .paper}
+text realn "the first third\nalways runs long" at pace@22,pace@31 pad 0.12 -- mark {.small .hand .paper}
 
 step real
   show real, mark
 step lesson
   emph real
-  calm even
+  dim even
 :::
 
-**A `plot` draws the frame and the scale, and nothing else.** It takes the two ranges and one tick `step`, after which `pace@26` names a value in the plot's own units anywhere a coordinate goes – in a waypoint, in an `at`, at the end of a leader. **The curves are ordinary edges.** `.smooth` draws the same waypoints as a spline *through* them rather than as a chain of straight segments, `.no-head` takes the arrowhead off, and the two steps bring the second curve in and then `emph` it while the reference line is `calm`ed.
+**A `plot` draws the frame and the scale, and nothing else.** It takes the two ranges and one `tick` interval, after which `pace@26` names a value in the plot's own units anywhere a coordinate goes – in a waypoint, in an `at`, at the end of a leader. **The curves are ordinary edges.** `.smooth` draws the same waypoints as a spline *through* them rather than as a chain of straight segments, `--` writes a line with no arrowhead at all, and the two steps bring the second curve in and then `emph` it while the reference line is `dim`med.
 
 **Two charts meant to be compared take one size, written once.** `same as pace` on a second `bars` or `plot` line copies the whole frame, so a reader can lay one over the other instead of measuring both. It can only name a chart written *above* it, because a chart's gridlines and columns are placed as its own line is read; and `w`, `h` or `aspect` beside it is an error, since the size has already come from elsewhere. Matching frames are not a matching scale, though: the ranges are written per chart, and nothing checks that two of them agree.
 
 > note: The numbers in both figures are made up. `plot` has no log scale, no automatic tick choice, no legend and no series of its own: everything it draws is an element you could have written by hand.
 
-## example: A figure that moves | `hide`, `calm`, and a box that walks into the wire {.full #diagram-steps}
+## example: A figure that moves | `hide`, `dim`, and a box that walks into the wire {.full #diagram-steps}
 
 **A stepped figure is an argument in beats – the stage, the disturbance, the cut, and what it costs.** Press forward three times.
 
@@ -673,18 +673,18 @@ step lesson
 default box {.tone-2} w 1.25 h 0.5
 
 box alice "Alice" at 0,0
-box bob   "Bob"   right of alice gap 3.2 same as alice
-edge alice -> bob "M" {#wire .both-heads}
+box bob   "Bob"   right of alice gap 6.3 same as alice
+edge wire alice <-> bob "M"
 container net "one wire, two honest ends" over alice,bob pad 0.5 {.dashed .muted}
 
 box eve "Eve" between alice,bob offset 0,-1.7 same as alice {.tone-4 @attack}
-text note "no cipher is broken here –\nshe just stands in the middle" below alice gap 1.05 align left -> eve.cx,eve.bottom {.hand .small @attack}
+text note "no cipher is broken here –\nshe just stands in the middle" below alice gap 1.05 flush left -- eve.cx,eve.bottom {.hand .small @attack}
 
 # Eine Ecke ist so adressierbar wie eine Kante: .tl .tr .bl .br, dazu .center.
 # Für eine diagonale Verbindung trifft die Ecke, was die Seite verfehlt.
-edge alice.br -> eve.tl {#in .accent @cut}
-edge eve.right:0.2 -> bob.left:0.2 "M"  {#fwd .accent .top @cut}
-edge eve.right:0.8 -> bob.left:0.8 "M′" {#edit .accent .bottom @cut}
+edge in alice.br -> eve.tl {.accent @cut}
+edge fwd eve.right:0.2 -> bob.left:0.2 "M" {.accent @cut} side top
+edge edit eve.right:0.8 -> bob.left:0.8 "M′" {.accent @cut} side bottom
 
 step spot
   show @attack
@@ -700,10 +700,10 @@ step cut
 step damage
   label eve "Eve rewrites M"
   style edit {.dashed}
-  calm net
+  dim net
 :::
 
-**Every element after the first is placed against another one, which is why nothing comes apart when the middle box walks in.** `move eve to between alice,bob` states a position, `move alice by -0.5,0` shifts one by an amount, and the layout is evaluated again for every beat – so Alice and Bob step aside, the `container` re-fits around them, and the arrows are drawn where their endpoints have ended up. `hide` takes the direct wire away, `calm` is the opposite of `emph`, and `label` swaps in a wording that was typeset at build time.
+**Every element after the first is placed against another one, which is why nothing comes apart when the middle box walks in.** `move eve to between alice,bob` states a position, `move alice by -0.5,0` shifts one by an amount, and the layout is evaluated again for every beat – so Alice and Bob step aside, the `container` re-fits around them, and the arrows are drawn where their endpoints have ended up. `hide` takes the direct wire away, `dim` is the opposite of `emph`, and `label` swaps in a wording that was typeset at build time.
 
 **Two tags do all the revealing: `@attack` and `@cut`.** `show @attack` brings Eve in and the handwritten caption with her, because both lines carry that tag; `show @cut` brings the three arrows through her a beat later. The pair running to Bob leaves Eve's right edge at `:0.2` and `:0.8` – a fraction along a side is how two arrows between the same two boxes run parallel instead of on top of each other – and `.top` / `.bottom` put one label above its line and the other below.
 

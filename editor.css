@@ -465,6 +465,13 @@
   line-height: 1.6;
 }
 .dge-sw:hover { border-color: var(--ink-soft); }
+/* Disabled rather than hidden, and it is the one row that earns the
+   distinction: a leader's token has no step form, so away from beat 0 there
+   is nothing for a click to write – but the row still says which of the two a
+   leader is, which is worth seeing at any beat. A missing control reads as
+   "this element cannot do that"; a greyed one reads as "not here". */
+.dge-sw:disabled { cursor: default; opacity: 0.45; }
+.dge-sw:disabled:hover { border-color: var(--rule); }
 .dge-sw[aria-pressed=true] {
   border-color: var(--emph);
   box-shadow: inset 0 0 0 1px var(--emph);

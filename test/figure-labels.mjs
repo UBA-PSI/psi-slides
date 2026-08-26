@@ -83,7 +83,19 @@ export async function run({ page, errors, report, walkTo }) {
   // emit its CSS and move nothing – measured on the emitted SVG, `.left` moved
   // a node label and an edge label and no other, `.top` moved a node label
   // alone. A silent no-op is the failure this grammar keeps closing, so the
-  // five combinations that cannot act are errors now.
+  // combinations that cannot act are errors now.
+  //
+  // **The edge half changed with the `side` option.** These four words are two
+  // independent channels on a box, a dot or a free text – they place the label
+  // inside the element's own padding, nine combinations, which `#justify`
+  // exists to show. On an edge they named *one* thing, which side of the routed
+  // line the label sits on, so the same four words meant two geometries chosen
+  // by kind and `{.top .left}` on an edge was writable although an edge has one
+  // side to pick. That reading is now the `side` option, following the
+  // precedent `point` set, and the classes are refused on an edge like the
+  // other two holders. Which pair of sides can act is still only known after
+  // routing, so naming the pair that runs *along* the line stays a warning –
+  // but it now names a word that means only this.
   //
   // Compiled through the page's own compiler rather than against a lecture,
   // because a lecture cannot hold a line that does not build.
@@ -103,20 +115,22 @@ export async function run({ page, errors, report, walkTo }) {
       braceDown: compile('brace r "lab" over a,b right {.bottom}'),
       edgeDown: compile('edge a -- b "e" {.top}'),
       edgeAcross: compile('edge a -- b "e" {.left}'),
+      edgeSideDown: compile('edge a -- b "e" side top'),
+      edgeSideAcross: compile('edge a -- b "e" side left'),
       nodeAcross: compile('box c "z" right of a gap 0.5 {.left}'),
       nodeDown: compile('box c "z" right of a gap 0.5 {.bottom}'),
     };
   });
   note('refused: ' + Object.entries(verdicts).filter(([, v]) => v).map(([k]) => k).join(' '));
   ok(verdicts.containerAcross && verdicts.containerDown
-     && verdicts.braceAcross && verdicts.braceDown,
-    'the four combinations that could not act are refused', JSON.stringify(verdicts));
-  // All four words now name a side of an edge's line: top/bottom across a
-  // horizontal one, left/right across a vertical one. Which pair applies is
-  // only known once the edge is routed, so naming the other pair is a build
-  // warning rather than a parse error, and neither is refused here.
-  ok(!verdicts.edgeAcross && !verdicts.edgeDown && !verdicts.nodeAcross && !verdicts.nodeDown,
-    'and the four that do act are still allowed', JSON.stringify(verdicts));
+     && verdicts.braceAcross && verdicts.braceDown
+     && verdicts.edgeAcross && verdicts.edgeDown,
+    'the six combinations that could not act are refused', JSON.stringify(verdicts));
+  // The two halves of the replacement: an edge takes `side`, and a node keeps
+  // the classes on both of its two independent channels.
+  ok(!verdicts.edgeSideDown && !verdicts.edgeSideAcross
+     && !verdicts.nodeAcross && !verdicts.nodeDown,
+    'and the ways that do act are still allowed', JSON.stringify(verdicts));
 
   // ── the review's parser holes, closed and pinned ──
   //

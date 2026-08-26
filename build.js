@@ -1609,7 +1609,7 @@ const DIAGRAM_CSS = `
    different kind of thing. .muted is scaffolding - an axis, a leader, a zone
    outline - and scaffolding is drawn thinner as well as lighter. .dim is the
    other axis entirely: full colour at a third of the strength, which is what
-   the calm step operation reaches for when a beat moves on. */
+   the dim step operation reaches for when a beat moves on. */
 .psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); stroke-width: 1.05; }
 .psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); stroke-width: 1.05; }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }

@@ -34,6 +34,10 @@ export async function run({ page, errors, report, walkTo, ed }) {
   const slots = await page.evaluate(() =>
     [...document.querySelectorAll('#dge-side .dge-slot')].map(s => ({
       slot: s.querySelector('b').textContent,
+      // The closed class vocabulary, as opposed to the placement's own swatch
+      // rows, which share the outer class and write a relation rather than a
+      // look. Only the first kind can be asked whether a swatch is dead.
+      look: s.classList.contains('dge-slot-look'),
       opts: [...s.querySelectorAll('.dge-sw')].map(b => b.title),
     })));
   note(slots.length + ' slots, ' + slots.reduce((n, s) => n + s.opts.length, 0) + ' swatches');
@@ -50,9 +54,38 @@ export async function run({ page, errors, report, walkTo, ed }) {
   const lineB = () => ed.lineWith('"Mix"');
   const tailOf = (l) => ((l || '').match(/\{[^}]*\}/) || [''])[0];
 
+  // The third assertion, and the one whose absence let nineteen dead swatches
+  // ship. "The block still parses" and "the tail is still a tail" are both
+  // true of a click that does *nothing*: the class is written, the compiler
+  // accepts it on the kind, and no rule in the stylesheet can reach it – which
+  // is exactly what `.emph` on a free text, `.bare` on a brace and thirteen
+  // others were doing. So measure the drawing: after a swatch that was not
+  // already pressed, the element's own group has to come back different, in
+  // its class attribute or in its geometry. `outerHTML` is both at once.
+  const sigOf = () => page.evaluate(() => {
+    const g = document.querySelector('#dge-art-svg [id$="-b"]');
+    return g ? g.outerHTML : '';
+  });
+  const pressedAt = (slot, title) => page.evaluate(([sl, t]) => {
+    const s = [...document.querySelectorAll('#dge-side .dge-slot')].find(x => x.querySelector('b').textContent === sl);
+    const b = s && [...s.querySelectorAll('.dge-sw')].find(x => x.title === t);
+    return b ? b.getAttribute('aria-pressed') === 'true' : null;
+  }, [slot, title]);
+
+  // The conditional set, named rather than left as a blanket tolerance. A
+  // swatch is exempt only where "nothing changed" is the honest answer: a
+  // swatch already pressed is the state the element is in, and `inherit` is an
+  // act rather than a state, so where no default supplies the slot it means
+  // the same as what is already written.
+  const exempt = (slot, title, was) =>
+    was !== false || /^drop this element/.test(title);
+
   let broke = null, unbraced = null;
+  const dead = [];
   for (const s of slots) {
     for (const t of s.opts) {
+      const was = await pressedAt(s.slot, t);
+      const sig = await sigOf();
       await click(s.slot, t);
       const l = await lineB();
       const probs = await ed.problems();
@@ -61,10 +94,15 @@ export async function run({ page, errors, report, walkTo, ed }) {
       if (!unbraced && /\s\.[a-z-]/.test((l || '').replace(tailOf(l), ''))) {
         unbraced = s.slot + ' ' + t + ' -> ' + l;
       }
+      if (s.look && !exempt(s.slot, t, was) && (await sigOf()) === sig) {
+        dead.push(s.slot + ' · ' + t);
+      }
     }
   }
   ok(!broke, 'the block parses after every swatch in every slot', broke);
   ok(!unbraced, 'and a class never escapes the attribute tail', unbraced);
+  ok(dead.length === 0, 'and every swatch the panel offers actually changes the drawing',
+    dead.join(' | '));
 
   // The point of the panel: the class has to reach the drawing, not just the
   // text. "Nothing happens" was the symptom, and it was true of the picture.
@@ -149,10 +187,11 @@ export async function run({ page, errors, report, walkTo, ed }) {
 
   // ── the one word that moves a brace, and the two fields that shared a name ──
   //
-  // `brace b over a,z right "…"` says which side of its members the brace
-  // stands on. A bare word off a closed list, so createSpanTable has no entry
-  // for it – and with no span there was no control at all, which left the
-  // option that decides where a brace *is* reachable only by typing.
+  // `brace b over a,z side left "…"` says which side of its members the brace
+  // stands on. It used to be a bare positional word – the last one in the
+  // statement grammar – whose place on the line was free, so the panel needed a
+  // one-off scanner to find it. It is an ordinary keyed option now, the same
+  // word an edge's label side takes, and the row is backed by plain spanOf.
   await page.evaluate(() => dgeClose());
   await page.waitForTimeout(400);
   await walkTo('expand');
@@ -195,13 +234,13 @@ export async function run({ page, errors, report, walkTo, ed }) {
 
   const braceLine = () => ed.lineWith('"Bin 1"');
   await clickSide('right');
-  ok(/over \S+ right /.test((await braceLine()) || ''),
-    'clicking a side writes it after the members', await braceLine());
+  ok(/\bside right\b/.test((await braceLine()) || ''),
+    'clicking a side writes the keyword and the word', await braceLine());
   ok(!(await ed.problems()).includes('line '), 'and the block parses', await ed.problems());
   await clickSide('default');
   const bare2 = await braceLine();
-  ok(!/ (right|left|top|bottom) /.test(bare2 || ''),
-    'the default swatch takes the word off again', bare2);
+  ok(!/\bside\b/.test(bare2 || ''),
+    'the default swatch takes the keyword and the word off again', bare2);
   ok(!/ {2}/.test(bare2 || ''), 'and leaves no double space behind', JSON.stringify(bare2));
   ok(!(await ed.problems()).includes('line '), 'and that parses too', await ed.problems());
 

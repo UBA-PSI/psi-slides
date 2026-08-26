@@ -57,12 +57,20 @@ jobs:
       - name: Lint
         run: node lint.js lectures/ docs/site/example/source.md docs/artifact/figure-rules/source.md
 
-      - name: Build the published lectures
+      - name: Build the lectures
         run: |
           node build.js lectures/tutorial/source.md
           node build.js lectures/diagrams/source.md
           node build.js lectures/python-intro/source.md
           node build.js docs/site/example/source.md
+          # Linted above and not published, which is exactly why they are built
+          # here: the linter is deliberately the laxer of the pair, so a line
+          # it passes and the compiler refuses would merge green and fail every
+          # later build. These two hold the largest bodies of real figures in
+          # the repository and are the likeliest to catch a refusal that is too
+          # strict.
+          node build.js lectures/network-security/source.md
+          node build.js docs/artifact/figure-rules/source.md
 
       # The tutorial and diagram HTML is committed; a stale copy would ship a
       # tour, or a construct reference, that does not match its own source.

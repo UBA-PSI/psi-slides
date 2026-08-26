@@ -161,7 +161,7 @@ export async function run({ page, errors, report, walkTo, ed }) {
   await ed.beat(beats - 1);
   ok(await pick('ask') === 'text ask', 'the handwritten question is selected', await ed.selection());
   const askBefore = await ed.lineWith('text ask ');
-  ok(/below tlego gap 0\.55 align left/.test(askBefore || ''),
+  ok(/below tlego gap 0\.55 flush left/.test(askBefore || ''),
     'it hangs below the legend at gap 0.55', askBefore);
   seen = await dragCells(await ed.centreOf('#dge-art-svg [id$="-ask"]'), -0.25, -0.2);
   note('labels : ' + JSON.stringify(seen.labels) + '  ·  ' + seen.note);
@@ -172,8 +172,8 @@ export async function run({ page, errors, report, walkTo, ed }) {
   const stepOps = (await ed.source()).split('\n').map((l) => l.trim())
     .filter((l) => l.startsWith('move ask'));
   note('written: ' + stepOps.join(' | '));
-  ok(stepOps.length === 1 && /^move ask to below tlego gap [\d.]+ align left$/.test(stepOps[0]),
-    'the step carries the whole relation, align word included', JSON.stringify(stepOps));
+  ok(stepOps.length === 1 && /^move ask to below tlego gap [\d.]+ flush left$/.test(stepOps[0]),
+    'the step carries the whole relation, flush word included', JSON.stringify(stepOps));
   ok(/gap 0\.55/.test(await ed.lineWith('text ask ') || ''),
     'and the element’s own line is untouched', await ed.lineWith('text ask '));
   ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());

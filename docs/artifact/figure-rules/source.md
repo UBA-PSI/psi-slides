@@ -53,9 +53,9 @@ edge e -> b "plaintext"
 # panel of empty paper under two boxes; at 4.4:1 it reads as a margin. The
 # gaps here are set for that proportion rather than for the spacing rules.
 box  a  "Alice"
-box  b  "Bob"   right of a gap 3.4
+box  b  "Bob"   right of a gap 10.3
 box  e  "Eve"   below a gap 0.85 offset 1.7,0 {.accent}
-edge a -> b "message" {#direct}
+edge direct a -> b "message"
 edge a -> e {.accent}
 edge e -> b {.accent}
 container zone "Eve's reach" over e pad 0.3 {.dashed .muted}
@@ -80,34 +80,34 @@ step relabel
 
 ::: diagram {unit=150x52}
 box a "Switch"    at 0,0 {.tone-1}
-box b "Router"    right of a gap 0.5 {.tone-1}
-box c "Resolver"  right of b gap 0.5 {.tone-1}
-box d "Webserver" right of c gap 0.5 {.tone-2}
+box b "Router"    right of a gap 1.45 {.tone-1}
+box c "Resolver"  right of b gap 1.45 {.tone-1}
+box d "Webserver" right of c gap 1.45 {.tone-2}
 :::
 
 ## figure: 1 right | the pair is a pair before you read it {.full #r1r}
 
 ::: diagram {unit=150x52}
 box a "Switch"    at 0,0 {.tone-1}
-box b "Router"    right of a gap 0.25 {.tone-1}
-box c "Resolver"  right of b gap 0.9 {.tone-1}
-box d "Webserver" right of c gap 0.25 {.tone-2}
+box b "Router"    right of a gap 0.7 {.tone-1}
+box c "Resolver"  right of b gap 2.6 {.tone-1}
+box d "Webserver" right of c gap 0.7 {.tone-2}
 :::
 
 ## figure: 2 wrong | the home network is "the stuff on the left" {.full #r2w}
 
 ::: diagram {unit=150x52}
 box a "A" at 0,0 {.tone-2}
-box b "B" right of a gap 0.3 {.tone-2}
-box r "Router" right of b gap 1.6 {.tone-1}
+box b "B" right of a gap 0.85 {.tone-2}
+box r "Router" right of b gap 4.6 {.tone-1}
 :::
 
 ## figure: 2 right | common region beats proximity {.full #r2r}
 
 ::: diagram {unit=150x52}
 box a "A" at 0,0 {.tone-2}
-box b "B" right of a gap 0.3 {.tone-2}
-box r "Router" right of b gap 1.6 {.tone-1}
+box b "B" right of a gap 0.85 {.tone-2}
+box r "Router" right of b gap 4.6 {.tone-1}
 container home "Home network" over a,b pad 0.4 {.dashed}
 :::
 
@@ -115,7 +115,7 @@ container home "Home network" over a,b pad 0.4 {.dashed}
 
 ::: diagram {unit=150x52}
 box  sw "Switch" at 0,0 {.tone-1}
-text n  "learns MAC addresses" right of sw gap 1.2
+text n  "learns MAC addresses" right of sw gap 3.45
 edge n -> sw
 :::
 
@@ -123,14 +123,14 @@ edge n -> sw
 
 ::: diagram {unit=150x52}
 box  sw "Switch" at 0,0 {.tone-1}
-text n  "learns MAC addresses" right of sw gap 1.2 -> sw {.small .muted}
+text n  "learns MAC addresses" right of sw gap 3.45 -- sw {.small .muted}
 :::
 
 ## figure: 6a wrong | type on a line is read as texture {.full #r6aw}
 
 ::: diagram {unit=150x52}
 box sw "Switch" at 0,0 {.tone-1}
-box rt "Router" right of sw gap 2.4 {.tone-1}
+box rt "Router" right of sw gap 6.9 {.tone-1}
 edge sw -> rt
 text lbl "10.1.1.0/24" between sw,rt
 :::
@@ -139,7 +139,7 @@ text lbl "10.1.1.0/24" between sw,rt
 
 ::: diagram {unit=150x52}
 box sw "Switch" at 0,0 {.tone-1}
-box rt "Router" right of sw gap 2.4 {.tone-1}
+box rt "Router" right of sw gap 6.9 {.tone-1}
 edge sw -> rt
 text lbl "10.1.1.0/24" between sw,rt pad 0.12 {.paper .small}
 :::
@@ -183,7 +183,7 @@ box aut "Auth" below app gap 0.12 same as db {.paper}
 box c0  "C0"  at 0,0 {.tone-3}
 box dec "Dec" below c0 gap 0.5 {.tone-1}
 box x1  "X1"  below dec gap 0.5 {.tone-3}
-box p1  "P1"  right of x1 gap 0.9 {.tone-2}
+box p1  "P1"  right of x1 gap 2.6 {.tone-2}
 edge x1 -> p1
 edge c0 -> x1 via c0.cx,c0.bottom+0.25 c0.right+0.4,c0.bottom+0.25 c0.right+0.4,x1.top-0.25 x1.cx,x1.top-0.25
 :::
@@ -197,7 +197,7 @@ edge c0 -> x1 via c0.cx,c0.bottom+0.25 c0.right+0.4,c0.bottom+0.25 c0.right+0.4,
 box c0  "C0"  at 0,0 {.tone-3}
 box dec "Dec" below c0 gap 0.5 {.tone-1}
 box x1  "X1"  below dec gap 0.5 {.tone-3}
-box p1  "P1"  right of x1 gap 0.9 {.tone-2}
+box p1  "P1"  right of x1 gap 2.6 {.tone-2}
 edge x1 -> p1
 edge c0 -> x1 via c0.left-0.4,c0.cy c0.left-0.4,x1.cy
 :::
@@ -206,7 +206,7 @@ edge c0 -> x1 via c0.left-0.4,c0.cy c0.left-0.4,x1.cy
 
 ::: diagram {unit=150x52}
 box  eve "Eve" at 0,0 h 1.05 {.accent}
-box  bob "Bob" right of eve gap 2.2 same as eve {.tone-2}
+box  bob "Bob" right of eve gap 6.35 same as eve {.tone-2}
 edge eve -> bob "replay"
 edge eve -> bob "forgery"
 :::
@@ -219,9 +219,9 @@ edge eve -> bob "forgery"
 # line, forgery lands in the gap between the two, and the only way to keep
 # them apart is to push the boxes far taller than the figure needs.
 box  eve "Eve" at 0,0 h 1.05 {.accent}
-box  bob "Bob" right of eve gap 2.2 same as eve {.tone-2}
+box  bob "Bob" right of eve gap 6.35 same as eve {.tone-2}
 edge eve.right:0.3 -> bob.left:0.3 "replay"  {.accent}
-edge eve.right:0.7 -> bob.left:0.7 "forgery" {.accent .bottom}
+edge eve.right:0.7 -> bob.left:0.7 "forgery" {.accent} side bottom
 :::
 
 ## figure: 8 skewed | the fraction is measured along each box's own side {.full #r8s}
@@ -233,9 +233,9 @@ edge eve.right:0.7 -> bob.left:0.7 "forgery" {.accent .bottom}
 # axis. The fix is the "same as" the right-hand version carries, not a nudge
 # on one endpoint.
 box  eve "Eve" at 0,0 h 1.05 {.accent}
-box  bob "Bob" right of eve gap 2.2 h 1.85 {.tone-2}
+box  bob "Bob" right of eve gap 6.35 h 1.85 {.tone-2}
 edge eve.right:0.3 -> bob.left:0.3 "replay"  {.accent}
-edge eve.right:0.7 -> bob.left:0.7 "forgery" {.accent .bottom}
+edge eve.right:0.7 -> bob.left:0.7 "forgery" {.accent} side bottom
 :::
 
 ## figure: 11 wrong | the middle box is bigger because its label is longer {.full #r11w}
@@ -246,8 +246,8 @@ edge eve.right:0.7 -> bob.left:0.7 "forgery" {.accent .bottom}
 # the one with the longest phrase in it comes out half again as wide as its
 # neighbours and reads as the important one.
 box a "Sensor" at 0,0 {.tone-1}
-box b "Correlation engine" right of a gap 0.4 {.tone-1}
-box c "Log" right of b gap 0.4 {.tone-1}
+box b "Correlation engine" right of a gap 1.15 {.tone-1}
+box c "Log" right of b gap 1.15 {.tone-1}
 :::
 
 ## figure: 11 right | one width for the set, and the long label breaks {.full #r11r}
@@ -261,8 +261,8 @@ box c "Log" right of b gap 0.4 {.tone-1}
 # finds, so a one-line first box would hand a one-line height to the box with
 # two lines in it.
 box a "Sensor" at 0,0 w 1.05 h 0.85 {.tone-1}
-box b "Correlation\nengine" right of a gap 0.4 same as a {.tone-1}
-box c "Log" right of b gap 0.4 same as a {.tone-1}
+box b "Correlation\nengine" right of a gap 1.15 same as a {.tone-1}
+box c "Log" right of b gap 1.15 same as a {.tone-1}
 :::
 
 ## figure: 14 wrong | two long leaders, crossing {.full #r14w}
@@ -275,8 +275,8 @@ box c "Log" right of b gap 0.4 same as a {.tone-1}
 # find out which is which.
 box  sw "Switch" at 0,0 h 1.2 w 1.1 {.tone-1}
 box  rt "Router" below sw gap 0.75 h 1.2 w 1.1 {.tone-1}
-text n1 "learns MAC\naddresses" right of rt gap 0.55 -> sw {.small .muted}
-text n2 "forwards by\nprefix" right of sw gap 0.55 -> rt {.small .muted}
+text n1 "learns MAC\naddresses" right of rt gap 1.6 -- sw {.small .muted}
+text n2 "forwards by\nprefix" right of sw gap 1.6 -- rt {.small .muted}
 :::
 
 ## figure: 14 right | each label outside the pair, on a short stub {.full #r14r}
@@ -290,8 +290,8 @@ text n2 "forwards by\nprefix" right of sw gap 0.55 -> rt {.small .muted}
 # against the box rather than as a paragraph floating near it.
 box  sw "Switch" at 0,0 h 1.2 w 1.1 {.tone-1}
 box  rt "Router" below sw gap 0.75 h 1.2 w 1.1 {.tone-1}
-text n1 "learns MAC\naddresses" left of sw gap 0.55 -> sw {.small .muted .right}
-text n2 "forwards by\nprefix" right of rt gap 0.55 -> rt {.small .muted .left}
+text n1 "learns MAC\naddresses" left of sw gap 1.6 -- sw {.small .muted .right}
+text n2 "forwards by\nprefix" right of rt gap 1.6 -- rt {.small .muted .left}
 :::
 
 ## figure: 6c | numbers on the line, words beside it {.full #r6c}
@@ -309,16 +309,16 @@ text n2 "forwards by\nprefix" right of rt gap 0.55 -> rt {.small .muted .left}
 # them. The phrases are held left of centre because an edge label always sits
 # at the middle of its own line, and the two would otherwise be one heap.
 box cl "Client" at 0,0 h 3.0 {.tone-2}
-box sv "Server" right of cl gap 3.4 h 3.0 {.tone-1}
+box sv "Server" right of cl gap 9.8 h 3.0 {.tone-1}
 # Each phrase is placed against its own wire, not against the box. Pinned to
 # cl.top it would keep its distance from the Client and lose it from the line
 # it names the moment a fraction or a height changed - which is the failure
 # writing relations is supposed to prevent, and the one place the grammar
 # could not until an edge got a coordinate of its own.
-edge cl.right:0.14 -> sv.left:0.14 "1" pad 0.1 {#f1 .paper}
-edge sv.left:0.44 -> cl.right:0.44 "2" pad 0.1 {#f2a .paper}
-edge sv.left:0.62 -> cl.right:0.62 "2" pad 0.1 {#f2b .paper}
-edge cl.right:0.92 -> sv.left:0.92 "3" pad 0.1 {#f3 .paper}
+edge f1 cl.right:0.14 -> sv.left:0.14 "1" pad 0.1 {.paper}
+edge f2a sv.left:0.44 -> cl.right:0.44 "2" pad 0.1 {.paper}
+edge f2b sv.left:0.62 -> cl.right:0.62 "2" pad 0.1 {.paper}
+edge f3 cl.right:0.92 -> sv.left:0.92 "3" pad 0.1 {.paper}
 text m1 "ClientHello"       at f1.cx-0.55,f1.cy-0.26 {.small .muted}
 text m2 "ServerHello"       at f2a.cx-0.55,f2a.cy-0.26 {.small .muted}
 text m3 "Certificate"       at f2b.cx-0.55,f2b.cy-0.26 {.small .muted}
@@ -329,12 +329,12 @@ text m4 "ClientKeyExchange" at f3.cx-0.55,f3.cy-0.26 {.small .muted}
 
 ::: diagram {unit=150x52}
 box t1 "tone-1" at 0,0 {.tone-1}
-box t2 "tone-2" right of t1 gap 0.16 same as t1 {.tone-2}
-box t3 "tone-3" right of t2 gap 0.16 same as t1 {.tone-3}
-box t4 "tone-4" right of t3 gap 0.16 same as t1 {.tone-4}
-box ac "accent" right of t4 gap 0.16 same as t1 {.accent}
-box dm "dim"    right of ac gap 0.16 same as t1 {.dim}
-box mu "muted"  right of dm gap 0.16 same as t1 {.muted}
+box t2 "tone-2" right of t1 gap 0.45 same as t1 {.tone-2}
+box t3 "tone-3" right of t2 gap 0.45 same as t1 {.tone-3}
+box t4 "tone-4" right of t3 gap 0.45 same as t1 {.tone-4}
+box ac "accent" right of t4 gap 0.45 same as t1 {.accent}
+box dm "dim"    right of ac gap 0.45 same as t1 {.dim}
+box mu "muted"  right of dm gap 0.45 same as t1 {.muted}
 :::
 
 # Basics
@@ -343,14 +343,14 @@ box mu "muted"  right of dm gap 0.16 same as t1 {.muted}
 
 ::: diagram {unit=170x56}
 box cl "Client" at 0,0
-box sv "Server" right of cl gap 1.4
+box sv "Server" right of cl gap 4.25
 :::
 
 ## figure: b2 an edge {.full #b2}
 
 ::: diagram {unit=170x56}
 box cl "Client" at 0,0
-box sv "Server" right of cl gap 1.4
+box sv "Server" right of cl gap 4.25
 edge cl -> sv
 :::
 
@@ -358,7 +358,7 @@ edge cl -> sv
 
 ::: diagram {unit=170x56}
 box cl "Client" at 0,0
-box sv "Server" right of cl gap 1.4
+box sv "Server" right of cl gap 4.25
 edge cl -> sv
 box log "Log" below sv gap 0.9
 edge sv -> log
@@ -368,7 +368,7 @@ edge sv -> log
 
 ::: diagram {unit=170x56}
 box cl "Client" at 0,0 {.tone-2}
-box sv "Server" right of cl gap 1.4 {.tone-1}
+box sv "Server" right of cl gap 4.25 {.tone-1}
 edge cl -> sv
 box log "Log" below sv gap 0.9 {.tone-3}
 edge sv -> log
@@ -378,22 +378,22 @@ edge sv -> log
 
 ::: diagram {unit=170x56}
 box cl "Client" at 0,0 {.tone-2}
-box sv "Server" right of cl gap 1.4 {.tone-1}
+box sv "Server" right of cl gap 4.25 {.tone-1}
 edge cl -> sv
 box log "Log" below sv gap 0.9 {.tone-3}
 edge sv -> log
-text n "TLS ends here" right of sv gap 1.2 -> sv {.small .muted}
+text n "TLS ends here" right of sv gap 3.65 -- sv {.small .muted}
 :::
 
 ## figure: b6 an outline around a part of it {.full #b6}
 
 ::: diagram {unit=170x56}
 box cl "Client" at 0,0 {.tone-2}
-box sv "Server" right of cl gap 1.4 {.tone-1}
+box sv "Server" right of cl gap 4.25 {.tone-1}
 edge cl -> sv
 box log "Log" below sv gap 0.9 {.tone-3}
 edge sv -> log
-text n "TLS ends here" right of sv gap 1.2 -> sv {.small .muted}
+text n "TLS ends here" right of sv gap 3.65 -- sv {.small .muted}
 container dmz "DMZ" over sv,log pad 0.4 {.dashed .muted}
 :::
 
@@ -407,17 +407,17 @@ container dmz "DMZ" over sv,log pad 0.4 {.dashed .muted}
 # `show` - so every element is written at the top of the block and simply
 # appears on the beat that names it.
 box  a  "A"      at 0,0 {.tone-2}
-box  sw "Switch" right of a gap 1.2 {.tone-1}
-box  b  "B"      right of sw gap 1.2 {.tone-2}
+box  sw "Switch" right of a gap 3.55 {.tone-1}
+box  b  "B"      right of sw gap 3.55 {.tone-2}
 edge a -- sw {.muted}
 edge sw -- b {.muted}
 
 text q "who has 10.1.1.5?" above sw gap 0.7 pad 0.1 {.small .paper @ask}
-text r "10.1.1.5 is at bb:bb" below b gap 0.6 pad 0.1 {.small .paper @answer}
+text r "10.1.1.5 is at bb:bb" below b gap 0.6 pad 0.1 {.small .paper .dim @answer}
 
 box  e  "E" below sw gap 1.15 {.accent @attack}
 edge e.top -- sw.bottom {.accent @attack}
-text s "10.1.1.5 is at ee:ee" right of e gap 0.6 pad 0.1 -> e {.small .paper .accent @attack}
+text s "10.1.1.5 is at ee:ee" right of e gap 1.8 pad 0.1 -- e {.small .paper .accent @attack}
 
 step ask
   show @ask
@@ -425,11 +425,17 @@ step ask
 step answer
   show @answer
   emph b
-  calm a
+  dim a
+  # Full prominence for exactly the beats where this is the right answer.
+  # Print takes prominence from the opening beat, where `r` carries .dim, so
+  # the handout shows the true reply already superseded - which is the whole
+  # argument of this figure. The live reading is unchanged: `r` is loud while
+  # it is correct and quiet again once the spoof has replaced it.
+  style r {!dim}
 step spoof
   show @attack
   emph e
-  calm b
+  dim b
 step redirected
   style r {.dim}
   emph e, s
@@ -446,9 +452,9 @@ step redirected
 # machines are placed absolutely, or the laptop would take the move twice.
 box cl  "Client" at 0,0 {.tone-2 @client}
 box lap "Laptop" at 0,-1.05 same as cl {.tone-2 @client}
-box sv  "Server" right of cl gap 3.0 {.tone-1}
+box sv  "Server" right of cl gap 8.9 {.tone-1}
 box px  "Proxy"  below cl gap 1.0 offset 1.0,0 {.tone-4}
-edge cl -> sv "direct" {#direct .dashed .muted}
+edge direct cl -> sv "direct" {.dashed .muted}
 edge cl -> px {.muted}
 edge px -> sv {.muted}
 container zone "client side" over @client pad 0.36 {.dashed .muted}
@@ -468,20 +474,20 @@ step withdraw
 ::: diagram {unit=150x52}
 box a "SYN seq=c"       at 0,0 {.chevron .tone-3}
 box b "SYN+ACK ack=c+1" below a point left {.chevron}
-box c "IDS"             right of a {.hex .tone-1}
+box c "IDS"             right of a gap 0.7 {.hex .tone-1}
 box d ""                below c {.wedge .tone-4}
-box e ""                right of d point up {.wedge}
-box f ""                right of e {.cross .accent}
-box g "?"               right of f {.diamond .tone-2}
+box e ""                right of d gap 0.7 point up {.wedge}
+box f ""                right of e gap 0.7 {.cross .accent}
+box g "?"               right of f gap 0.7 {.diamond .tone-2}
 :::
 
 ## figure: sp2 a turned label {.full #sp2}
 
 ::: diagram {unit=150x52}
 box  fw "FIREWALL" at 0,0 h 1.5 {.tone-4 .turn}
-box  sw "SWITCH"   right of fw gap 0.7
+box  sw "SWITCH"   right of fw gap 2
 edge fw -> sw.left
-text ax "True Positive Rate" left of fw {.turn}
+text ax "True Positive Rate" left of fw gap 0.7 {.turn}
 :::
 
 ## figure: sp3 a chart that is still boxes {.full #sp3}
@@ -491,8 +497,8 @@ text ax "True Positive Rate" left of fw {.turn}
 # 150 by 52, so the two numbers that look square draw something three times
 # wider than it is tall. 4:1 is the proportion the room actually sees.
 bars f "20,19,17,12,11,10,9,9,8,7,6,5" ". i e 0 l o 1 / a 3 5 M" at 0,0 w 2.2 aspect 4:1 {.tone-3 .bare}
-brace b1 over f-0,f-1,f-2 bottom "the top three"
-brace b2 over f-3,f-4,f-5,f-6,f-7 bottom "the next five"
+brace b1 over f-0,f-1,f-2 side bottom "the top three"
+brace b2 over f-3,f-4,f-5,f-6,f-7 side bottom "the next five"
 :::
 
 ## figure: sp4 a frame and a curve through its points {.full #sp4}
@@ -502,14 +508,15 @@ brace b2 over f-3,f-4,f-5,f-6,f-7 bottom "the next five"
 # the chance diagonal has to arrive at 45 degrees. Written w 1.9 h 1.5 the
 # frame came out 285 by 78 - two numbers that look nearly square drawing
 # something four times wider than tall, because a grid cell is not square.
-plot roc "False positive rate" "True positive rate" at 0,0 w 1.9 aspect 1:1 x 0,1 y 0,1 step 0.2
+plot roc "False positive rate" "True positive rate" at 0,0 w 1.9 aspect 1:1 x 0,1 y 0,1 tick 0.2
 edge roc@0,roc@0 -> roc@1,roc@1 {.muted .dashed}
 edge roc@0,roc@0 -> roc@1,roc@1 via roc@0.03,roc@0.45 roc@0.1,roc@0.72 roc@0.3,roc@0.9 {.smooth .accent}
 # A marker has to be sized like one, and the two have to be sized like each
-# other. A bare dot is 0.18 grid units across and a bare .cross is a square
-# the height of one line of type - both right for a junction in a topology,
-# both too heavy for a point inside a frame. These two land at 10 and 13
-# pixels, which is a marker rather than an element.
+# other. A bare dot has a radius of 0.18 grid units, so it is 0.36 across,
+# and a bare .cross is a square the height of one line of type - both right
+# for a junction in a topology, both too heavy for a point inside a frame.
+# These two land at 10 and 13 pixels, which is a marker rather than an
+# element.
 dot  m1 at roc@0.1,roc@0.72 r 0.1 {.accent}
 box  m2 "" at roc@0.35,roc@0.95 w 0.09 h 0.26 {.cross .tone-3}
 :::
@@ -523,9 +530,9 @@ box  m2 "" at roc@0.35,roc@0.95 w 0.09 h 0.26 {.cross .tone-3}
 # than tall. aspect states the proportion the room sees instead.
 # Bottoms aligned rather than centres, so the two frames are compared from
 # the one edge they have in common.
-plot bad "" "" at 0,0 w 1.9 h 1.5 x 0,1 y 0,1 step 0.5
+plot bad "" "" at 0,0 w 1.9 h 1.5 x 0,1 y 0,1 tick 0.5
 text nb "w 1.9  h 1.5" below bad gap 0.4 {.small .muted}
-plot good "" "" right of bad gap 1.0 align bottom w 1.9 aspect 1:1 x 0,1 y 0,1 step 0.5
+plot good "" "" right of bad gap 2.9 flush bottom w 1.9 aspect 1:1 x 0,1 y 0,1 tick 0.5
 text ng "w 1.9  aspect 1:1" below good gap 0.4 {.small .muted}
 :::
 
@@ -538,9 +545,9 @@ text ng "w 1.9  aspect 1:1" below good gap 0.4 {.small .muted}
 # copied has to stand above the ones copying it.
 bars w1 "18,24,31,9" "M T W T" at 0,0 w 1.5 aspect 3:2 {.tone-3}
 text c1 "week 1" below w1 gap 0.35 {.small .muted}
-bars w2 "22,19,31,14" "M T W T" right of w1 gap 0.6 same as w1 {.tone-3}
+bars w2 "22,19,31,14" "M T W T" right of w1 gap 1.75 same as w1 {.tone-3}
 text c2 "week 2" below w2 gap 0.35 {.small .muted}
-bars w3 "9,12,7,31" "M T W T" right of w2 gap 0.6 same as w1 {.tone-3}
+bars w3 "9,12,7,31" "M T W T" right of w2 gap 1.75 same as w1 {.tone-3}
 text c3 "week 3" below w3 gap 0.35 {.small .muted}
 :::
 
@@ -548,7 +555,7 @@ text c3 "week 3" below w3 gap 0.35 {.small .muted}
 
 ::: diagram {unit=150x52}
 grid g image face-ok 8x3 at 0,0 cell 0.26 space 0.09
-text n "one file, twenty-four times" right of g
+text n "one file, twenty-four times" right of g gap 0.7
 :::
 
 ## figure: sp6 evenly spaced by one line {.full #sp6}
@@ -564,16 +571,16 @@ text n "one file, twenty-four times" right of g
 # everything between them, so an end placed against one of the movers is a
 # placement cycle the build refuses by name.
 box a1 "a" at 0,0 w 0.7 h 0.5 {.tone-1}
-box b1 "b" right of a1 gap 0.2 w 0.3 h 0.5 {.tone-2}
-box c1 "c" right of b1 gap 0.2 w 0.55 h 0.5 {.tone-3}
-box d1 "d" right of c1 gap 1.5 w 0.4 h 0.5 {.tone-4}
-text w1 "as written" right of d1 gap 0.4 {.small .muted}
+box b1 "b" right of a1 gap 0.6 w 0.3 h 0.5 {.tone-2}
+box c1 "c" right of b1 gap 0.6 w 0.55 h 0.5 {.tone-3}
+box d1 "d" right of c1 gap 4.35 w 0.4 h 0.5 {.tone-4}
+text w1 "as written" right of d1 gap 1.15 {.small .muted}
 box a2 "a" below a1 gap 0.55 same as a1 {.tone-1}
-box b2 "b" right of a2 gap 0.2 same as b1 {.tone-2}
-box c2 "c" right of b2 gap 0.2 same as c1 {.tone-3}
+box b2 "b" right of a2 gap 0.6 same as b1 {.tone-2}
+box c2 "c" right of b2 gap 0.6 same as c1 {.tone-3}
 box d2 "d" below d1 gap 0.55 same as d1 {.tone-4}
 spread x a2, b2, c2, d2
-text w2 "after spread x" right of d2 gap 0.4 {.small .muted}
+text w2 "after spread x" right of d2 gap 1.15 {.small .muted}
 :::
 
 ## figure: sp11 the cycle a spread can create {.full #sp11}
@@ -583,9 +590,9 @@ text w2 "after spread x" right of d2 gap 0.4 {.small .muted}
 # all four pins the two ends and moves everything between, so c waits for d.
 # The build names the loop rather than drawing something plausible.
 box c "c" at 0,0 w 0.75 h 0.6 {.tone-1}
-box d "d" right of c gap 2.0 same as c {.tone-4}
-edge c.top -> d.top via c.cx,c.top-0.7 d.cx,d.top-0.7 "d right of c" {.top .small .muted}
-edge d.bottom -> c.bottom via d.cx,d.bottom+0.7 c.cx,c.bottom+0.7 "spread pins d, so c waits for it" {.bottom .small .accent}
+box d "d" right of c gap 5.75 same as c {.tone-4}
+edge c.top -> d.top via c.cx,c.top-0.7 d.cx,d.top-0.7 "d right of c" {.small .muted} side top
+edge d.bottom -> c.bottom via d.cx,d.bottom+0.7 c.cx,c.bottom+0.7 "spread pins d, so c waits for it" {.small .accent} side bottom
 :::
 
 ## figure: sp7 type that fits, and a line over the top {.full #sp7}
@@ -600,11 +607,11 @@ edge d.bottom -> c.bottom via d.cx,d.bottom+0.7 c.cx,c.bottom+0.7 "spread pins d
 # naming the middle of something works, an arrowhead is not.
 box a "FIT" at 0,0 w 1.7 h 0.55 {.fit .tone-2}
 box b "this one is far too long to fit" below a gap 0.45 same as a {.shrink .tone-2}
-box c "" right of a gap 1.0 w 0.9 h 1.0 {.tone-1}
+box c "" right of a gap 2.9 w 0.9 h 1.0 {.tone-1}
 dot m at c.cx,c.cy r 0.09 {.accent}
-edge a.tr -> c.tl {.both-heads .muted}
+edge a.tr <-> c.tl {.muted}
 edge b.br -> c.bl {.muted}
-edge c.left-0.55,c.cy -> c.right+0.45,c.cy {.front .accent .no-head}
+edge c.left-0.55,c.cy -- c.right+0.45,c.cy {.front .accent}
 :::
 
 ## figure: sp8 two series {.full #sp8}
@@ -619,11 +626,11 @@ bars man "12,18,9,4" "info low medium high" at 0,0 w 2.9 h 1.3 {.tone-1}
 bars scan "26,31,14,5" series of man {.tone-3}
 bars fp "19,22,7,1" series of man stacked {.tone-4}
 box  s1 "" at man.left+0.14,man.bottom+0.78 w 0.2 h 0.55 {.tone-1 .sharp}
-text n1 "reviewed by hand" right of s1 gap 0.12 {.small .muted}
-box  s2 "" right of n1 gap 0.3 same as s1 {.tone-3 .sharp}
-text n2 "scanner" right of s2 gap 0.12 {.small .muted}
-box  s3 "" right of n2 gap 0.3 same as s1 {.tone-4 .sharp}
-text n3 "false positive" right of s3 gap 0.12 {.small .muted}
+text n1 "reviewed by hand" right of s1 gap 0.35 {.small .muted}
+box  s2 "" right of n1 gap 0.85 same as s1 {.tone-3 .sharp}
+text n2 "scanner" right of s2 gap 0.35 {.small .muted}
+box  s3 "" right of n2 gap 0.85 same as s1 {.tone-4 .sharp}
+text n3 "false positive" right of s3 gap 0.35 {.small .muted}
 :::
 
 ## figure: sp9 one column singled out {.full #sp9}
@@ -633,8 +640,8 @@ text n3 "false positive" right of s3 gap 0.12 {.small .muted}
 # saying which column the sentence beside it is about. Reached by a step
 # instead, the opening picture would be five equal columns and the point
 # would only exist from beat one onwards.
-bars port "12,9,41,7,5" "80 443 22 53 25" at 0,0 w 2.4 h 1.2 emph 2 calm 0,1,3,4 {.tone-3}
-text n "one port carries more\nthan the other four together" right of port gap 0.55 -> port-2 {.small .muted .left}
+bars port "12,9,41,7,5" "80 443 22 53 25" at 0,0 w 2.4 h 1.2 emph 2 dim 0,1,3,4 {.tone-3}
+text n "one port carries more\nthan the other four together" right of port gap 1.6 -- port-2 {.small .muted .left}
 text ax "blocked connection attempts, by destination port, one week" below port gap 0.55 {.small .muted}
 :::
 
@@ -653,7 +660,7 @@ text ax "blocked connection attempts, by destination port, one week" below port 
 # aspect rather than h, because what has to be true of this chart is that its
 # five rows have room to be read - a proportion, not a count of grid cells.
 bars al "412,268,91,57,24" "SSH brute force | Port scan | DNS tunnelling attempt | SMB exploit attempt | TLS certificate mismatch" at 0,0 horizontal w 3.0 aspect 5:2 emph 0 {.tone-3}
-text n "one automated attack accounts\nfor nearly half the week" right of al gap 0.5 -> al-0 {.small .muted .left}
+text n "one automated attack accounts\nfor nearly half the week" right of al gap 1.45 -- al-0 {.small .muted .left}
 text ax "IDS alerts by signature class, one campus network, one week" below al gap 0.5 {.small .muted}
 :::
 
@@ -673,12 +680,12 @@ box in   "Packet in"   at 0,0 w 1.15 {.round .tone-3}
 box d1   "Known flow?" below in gap 0.55 {.diamond .tone-1}
 box d2   "Rule allows?" below d1 gap 0.55 same as d1 {.diamond .tone-1}
 box acc  "Forward"     below d2 gap 0.55 same as in {.round .tone-2}
-box drop "Drop"        right of d2 gap 1.0 same as in {.round .accent}
+box drop "Drop"        right of d2 gap 2.9 same as in {.round .accent}
 edge in -> d1
-edge d1 -> d2 "no" {.right}
-edge d2 -> acc "yes" {.right}
-edge d2 -> drop "no" {.top}
-edge d1.left -> acc.left "yes" via d1.left-0.55,d1.cy d1.left-0.55,acc.cy {.left}
+edge d1 -> d2 "no" side right
+edge d2 -> acc "yes" side right
+edge d2 -> drop "no" side top
+edge d1.left -> acc.left "yes" via d1.left-0.55,d1.cy d1.left-0.55,acc.cy side left
 :::
 
 ## figure: a swimlane {.full #swim}
@@ -688,7 +695,7 @@ edge d1.left -> acc.left "yes" via d1.left-0.55,d1.cy d1.left-0.55,acc.cy {.left
 # be written in a box. Every hand-off changes lane, which is why they are
 # elbows: a straight line between two bands reads as a diagonal across a band
 # it never enters, and there are four of those here.
-lanes swim "User | SOC | IT ops" at 0,0 w 7.05 h 0.95 {.muted .dashed}
+lanes swim "User | SOC | IT ops" at 0,0 w 7.05 band 0.95 {.muted .dashed}
 box rep "Reports\nsuspect mail"      at swim.left+0.75,swim-0.cy w 1.2 {.tone-2}
 box tri "Triage"                     at swim.left+2.05,swim-1.cy w 0.9 {.tone-1}
 box con "Confirmed\nmalicious"       at swim.left+3.35,swim-1.cy w 1.15 {.tone-4}
@@ -736,7 +743,7 @@ edge rt -- i2 {.elbow .muted}
 # The last row is written cell by cell: a beat reaches one cell as
 # readily as a whole row, so t-2-4 arrives on its own beat and is emphasised
 # there. Column first, row second, and row 0 is the heading.
-table t "Layer | Forgery | Countermeasure" at 0,0 col 1.15,1.55,1.7 h 0.44 {.clear .bare .left}
+table t "Layer | Forgery | Countermeasure" at 0,0 col 1.15,1.55,1.7 row 0.44 {.clear .bare .left}
 "Link | ARP spoofing | Dynamic ARP inspection"
 "Network | IP source spoofing | Ingress filtering (BCP 38)"
 "Transport | Blind TCP reset | Sequence-number checks"
@@ -803,19 +810,19 @@ sequence wa at 0,0
 # Two annotations the statement knows nothing about, hung off generated
 # names: a brace over three messages and a note beside one of them. A beat
 # can show or emphasise either one exactly as it would a box.
-brace ctap over wa-3,wa-4,wa-5 pad 0.3 "on the device, over CTAP" left {.small .turn}
-text fresh "the challenge is what makes it fresh" right of wa-2 gap 0.5 {.small .hand} -> wa-2
+brace ctap over wa-3,wa-4,wa-5 pad 0.3 "on the device, over CTAP" side left {.small .turn}
+text fresh "the challenge is what makes it fresh" right of wa-2 gap 1.9 {.small .hand} -- wa-2
 
 step in-the-browser
   emph @br-msgs
 step on-the-device
-  calm @br-msgs
+  dim @br-msgs
   emph @au-msgs
   emph au
 step back-to-the-relying-party
-  calm @au-msgs
-  calm au
+  dim @au-msgs
+  dim au
   emph @wa-msg-7, @wa-msg-8
 step the-whole-registration
-  calm @wa-msgs
+  dim @wa-msgs
 :::

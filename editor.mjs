@@ -169,7 +169,14 @@ function dgeCompile(fig, body) {
     const res = fig.compiler.parseDiagramSource(src, fig.attrs, base);
     out.model = res.model;
     if (res.errors.length) {
-      out.errors = dgeDedupe(res.errors);
+      // Phase order, never push order. `renderDiagram` sorts before it throws,
+      // but this branch never reaches it: a block that fails to *parse* returns
+      // from parseDiagramSource with its problems in the order the parser met
+      // them, and the editor is the one consumer that shows a single sentence.
+      // Unsorted, `problems[0]` on a syntax failure that manufactured a
+      // dangling reference is whichever of the two the parser happened to push
+      // first – see DG_PHASES.
+      out.errors = window.PSI_DG.dgSortProblems(dgeDedupe(res.errors));
       return out;
     }
     out.html = fig.compiler.renderDiagram(src, fig.attrs, { prefix: fig.prefix, alt: fig.alt, base });
@@ -304,21 +311,52 @@ function dgeSelfTest() {
 // whatever was there.
 
 // A slot is offered to a set of kinds; a single *option* inside one is
-// sometimes narrower than its slot, and then it carries its own test. Both
-// answer the same question – would clicking this produce anything but the
-// compiler's refusal – and the answer is read off the compiler's own rules
-// rather than restated as a list of names.
-const dgeShapeOK = (el) => el.kind === 'box';
+// sometimes narrower than its slot. Both answer the same question – would
+// clicking this produce anything but the compiler's refusal – and the answer
+// is now literally read off the compiler's own rules rather than restated as a
+// list of names.
+//
+// `DG_CLASS_KINDS` is the compiler's single table of which class is legal on
+// which kind, so every `kinds:` field here is derived from it rather than
+// hand-kept. Sixteen such lists used to sit in DGE_SLOTS, and the drift was
+// not hypothetical in either direction: `.turn` was offered on a box and a
+// free text although the compiler accepts it on all six kinds, `fill` was
+// missing `edge` so an edge label's ground could be written by hand and never
+// unset in the panel, and six rows said `kinds: null` – every kind – which
+// shows a swatch for `.emph` on an image, where nothing paints it. A class the
+// panel does not offer for a kind cannot be taken *off* there either, because
+// dgePlanTail rebuilds a tail from the model and writes back every slot it is
+// not touching. Deriving the field makes a dead swatch impossible rather than
+// a thing to notice.
+//
+// The arrowheads row is the one that needs a translation: at beat 0 its
+// options are the arrow *tokens*, and each token seeds one of the three head
+// classes, so the question "which kinds may carry `<->`" is the question
+// "which kinds may carry `.both-heads`".
+function dgeClassKinds(cls) {
+  const PSI = window.PSI_DG;
+  const key = (PSI.DG_ARROW_CLASS && PSI.DG_ARROW_CLASS[cls]) || cls;
+  return (PSI.DG_CLASS_KINDS || {})[key] || null;
+}
 const dgeElbowOK = (el) => !(el.via || []).length;
 
-// Which pair of alignment words can pick a side of an edge, which is a
-// question about the *routed* line rather than about the statement: the
-// compiler offsets the label along the line's normal, so `.top` / `.bottom`
-// act across a mostly horizontal edge and `.left` / `.right` across a mostly
-// vertical one. The other pair runs along the line, moves nothing, and comes
-// back as a build warning – which is the click this panel exists not to offer.
-// Read off the painted polyline, the same source dgeEdgePts reads, and at the
-// same point dgPolyPoint puts the label.
+// Which pair of `side` words can pick a side of an edge, which is a question
+// about the *routed* line rather than about the statement: the compiler offsets
+// the label along the line's normal, so `top` / `bottom` act across a mostly
+// horizontal edge and `left` / `right` across a mostly vertical one. The other
+// pair runs along the line, moves nothing, and comes back as a build warning –
+// which is the click this panel exists not to offer. Read off the painted
+// polyline, the same source dgeEdgePts reads, and at the same point
+// dgPolyPoint puts the label.
+//
+// This used to guard the two *alignment class* rows, and those rows needed
+// three helpers – dgeAcrossOK, dgeDownOK and dgeCarries – to paper over the
+// four words meaning one thing on a box and another on an edge. An edge's
+// label side is the `side` option now, so the alignment rows are node-only and
+// the three helpers are gone; this predicate survives as the `when` of the
+// side row, which offers only the pair that can act. A word that cannot act is
+// still removable there, because `side` is a keyed option with a `default`
+// swatch rather than a class the row would have to show to let go of.
 //
 // Null where there is no line to ask, and both pairs are then offered rather
 // than neither: a control that is missing reads as "this element cannot do
@@ -330,16 +368,6 @@ function dgeEdgeVertical(el) {
   const { dir } = window.PSI_DG.dgPolyPoint(pts, 0.5);
   return Math.abs(dir[1]) > Math.abs(dir[0]);
 }
-// A row is offered where its pair can act – and also where the line already
-// says one of them, whether it can act or not. A word written on an edge it
-// cannot move is still written on it, and a row that hid itself would leave the
-// author no way to take it off, which is a worse answer than the pressed swatch
-// with the compiler's warning beside it.
-const dgeCarries = (el, pair) => (el.classes || []).some((c) => pair.includes(c));
-const dgeAcrossOK = (el) => el.kind !== 'edge' || dgeEdgeVertical(el) !== false
-  || dgeCarries(el, ['left', 'right']);
-const dgeDownOK = (el) => el.kind !== 'edge' || dgeEdgeVertical(el) !== true
-  || dgeCarries(el, ['top', 'bottom']);
 
 // Which of the two "how a line is drawn" classes is in force. `el.classes` is
 // only what the line itself says, and a `default edge {.elbow}` binds just as
@@ -358,86 +386,119 @@ function dgeCurveOf(el) {
 }
 
 const DGE_SLOTS = [
-  { key: 'fill', label: 'fill', kinds: ['box', 'dot', 'text', 'container'],
+  { key: 'fill', label: 'fill',
     options: [
-      // Two swatches that can look alike and are not: the first is "whatever
-      // a default says", the second names the canvas colour. Without the
-      // second, a box under `default box {.tone-3}` had no way back to paper
-      // and a free text could not have a ground at all.
-      { cls: '', label: 'default', fill: '' },
+      // Two swatches that can look alike and are not: the first is the slot
+      // empty, the second names the canvas colour. Without the second, a box
+      // under `default box {.tone-3}` had no way back to paper and a free text
+      // could not have a ground at all. The first carries a word rather than a
+      // blank chip, because a base swatch drawn as an empty square is the one
+      // control in the row nobody can read: it looked exactly like `paper`.
+      { cls: '', label: 'none' },
       { cls: 'paper', fill: '' },
       { cls: 'tone-1', fill: 'tone-1' }, { cls: 'tone-2', fill: 'tone-2' },
       { cls: 'tone-3', fill: 'tone-3' }, { cls: 'tone-4', fill: 'tone-4' },
       { cls: 'clear', fill: 'clear' },
     ] },
-  { key: 'ink', label: 'ink', kinds: null,
+  { key: 'ink', label: 'ink',
     options: [{ cls: '', label: 'ink' }, { cls: 'accent' }, { cls: 'muted' }] },
-  { key: 'stroke', label: 'line', kinds: null,
+  { key: 'stroke', label: 'line',
     options: [{ cls: '', label: 'solid' }, { cls: 'dashed' }, { cls: 'dotted' }] },
-  { key: 'weight', label: 'weight', kinds: null,
+  { key: 'weight', label: 'weight',
     options: [{ cls: '', label: 'normal' }, { cls: 'thick' }, { cls: 'bare' }] },
   // One slot, seven outlines, because they are one slot in the grammar: a
   // hexagon has no corner radius to argue about, so picking one has to
-  // displace whatever was there. Only the two rectangles reach a container:
-  // `rejectShapeOn` refuses every other outline on anything but a box, so
-  // offering one there would be a click that can only come back as a
-  // refusal – which is the rule the two alignment rows already follow.
-  { key: 'corner', label: 'outline', kinds: ['box', 'container'],
+  // displace whatever was there. The five shapes reach only a box and the two
+  // rectangles reach a text, a container and an edge's label ground – and
+  // neither of those facts is stated here any more, because DG_CLASS_KINDS
+  // states both and this row is derived from it.
+  { key: 'corner', label: 'outline',
     // Which way a chevron or a wedge aims is the `point` option rather than a
     // class, and it has its own row – see dgeAimOf. The outline is picked
     // here, the direction there, because one is a slot and the other is a
     // word on the line.
     options: [{ cls: '', label: 'default' }, { cls: 'round' }, { cls: 'sharp' },
-      { cls: 'hex', when: dgeShapeOK }, { cls: 'diamond', label: 'diam', when: dgeShapeOK },
-      { cls: 'chevron', label: 'chev', when: dgeShapeOK },
-      { cls: 'wedge', when: dgeShapeOK }, { cls: 'cross', when: dgeShapeOK }] },
-  { key: 'reading', label: 'reading', kinds: ['box', 'text'],
+      { cls: 'hex' }, { cls: 'diamond', label: 'diam' },
+      { cls: 'chevron', label: 'chev' },
+      { cls: 'wedge' }, { cls: 'cross' }] },
+  { key: 'reading', label: 'reading',
     options: [{ cls: '', label: 'across' }, { cls: 'turn', label: 'up' }] },
   // One slot, "how a line is drawn": the waypoints as segments, as a spline
   // through them, or as a rail halfway across the gap. `.elbow` writes its own
   // two waypoints, so the compiler refuses an edge that also carries `via`
   // rather than silently preferring one – an edge already bent by hand is
   // therefore not offered it.
-  { key: 'curve', label: 'line shape', kinds: ['edge'],
+  { key: 'curve', label: 'line shape',
     options: [{ cls: '', label: 'straight' }, { cls: 'smooth', label: 'curved' },
       { cls: 'elbow', when: dgeElbowOK }] },
   // Drawing order is otherwise fixed. Right for an arrow, which a box should
   // cover where it arrives; wrong for an axis, which showed only in the gaps
   // between the columns it ruled.
-  { key: 'depth', label: 'depth', kinds: ['edge'],
+  { key: 'depth', label: 'depth',
     options: [{ cls: '', label: 'behind boxes' }, { cls: 'front', label: 'in front' }] },
-  { key: 'size', label: 'type size', kinds: null,
+  { key: 'size', label: 'type size',
     options: [{ cls: 'small' }, { cls: '', label: 'normal' }, { cls: 'large' }] },
-  { key: 'family', label: 'family', kinds: null,
+  { key: 'family', label: 'family',
     options: [{ cls: '', label: 'sans' }, { cls: 'mono' }, { cls: 'serif' }, { cls: 'hand' }] },
-  { key: 'fitting', label: 'type fits the box', kinds: ['box', 'text'],
+  { key: 'fitting', label: 'type fits the box',
     options: [{ cls: '', label: 'no' }, { cls: 'fit' }, { cls: 'shrink' }] },
-  { key: 'weightfont', label: 'text weight', kinds: null,
+  { key: 'weightfont', label: 'text weight',
     options: [{ cls: '', label: 'regular' }, { cls: 'bold' }] },
   // Both axes, and on a box as well as a free text: a tall element with a
   // short label is the case these words exist for. Measured against the
   // element's own padding, so `left` is as far left as that box allows.
-  // The kinds are exactly the ones the compiler lets the word act on. A `dot`
-  // has a label and takes both. A container's caption and a brace's label are
-  // pinned by their own statement, so neither row offers them and the compiler
-  // refuses both.
+  // A container's caption and a brace's label are pinned by their own
+  // statement, so the compiler refuses all four there and the derived kinds
+  // leave them out.
   //
-  // An edge takes all four, and they mean something else there: which side of
-  // the line the label sits on. Only the pair lying *across* the routed line
-  // can pick a side, so each row asks the drawing which edges it applies to –
-  // and a row left with nothing but its own "none of this" swatch is dropped
-  // in dgeRenderSide rather than offered as a choice of one.
-  { key: 'align', label: 'label across', kinds: ['box', 'dot', 'text', 'edge'],
-    options: [{ cls: 'left', when: dgeAcrossOK }, { cls: '', label: 'centre' },
-      { cls: 'right', when: dgeAcrossOK }] },
-  { key: 'alignv', label: 'label down', kinds: ['box', 'dot', 'text', 'edge'],
-    options: [{ cls: 'top', when: dgeDownOK }, { cls: '', label: 'middle' },
-      { cls: 'bottom', when: dgeDownOK }] },
-  { key: 'head', label: 'arrowheads', kinds: ['edge'],
-    options: [{ cls: '', label: 'one' }, { cls: 'no-head', label: 'none' }, { cls: 'both-heads', label: 'both' }] },
-  { key: 'softness', label: 'softness', kinds: null,
-    options: [{ cls: '', label: 'full' }, { cls: 'ghost' }, { cls: 'dim' }, { cls: 'emph' }] },
+  // An edge is not among them either. The same four words used to mean
+  // something else there – which side of the routed line the label sits on –
+  // so one row wrote two geometries depending on what was selected, and
+  // `{.top .left}` on an edge was writable although an edge has one side to
+  // pick. That reading is the `side` option now, with a row of its own.
+  { key: 'align', label: 'label across',
+    options: [{ cls: 'left' }, { cls: '', label: 'centre' }, { cls: 'right' }] },
+  { key: 'alignv', label: 'label down',
+    options: [{ cls: 'top' }, { cls: '', label: 'middle' }, { cls: 'bottom' }] },
+  // Four states, one channel, and the row writes the arrow *token* at beat 0 –
+  // never a class. Every token seeds one of the three head classes now, so an
+  // element tail carrying one is refused: the token on that line already said
+  // it. See dgeSetSlot, which is where the two beats part company.
+  { key: 'head', label: 'arrowheads', arrow: true,
+    // Four tokens at beat 0, three classes at any later one. The direction is
+    // fixed by the opening token once the drawing is up – a beat cannot re-run
+    // it – so what a step can say is how many ends carry a head, and
+    // `.one-head` is the member that makes all three states sayable.
+    options: () => (DGE.beat
+      ? [{ cls: 'no-head', label: 'none' }, { cls: 'one-head', label: 'as written' },
+        { cls: 'both-heads', label: 'both' }]
+      : [{ cls: '--', label: 'none' }, { cls: '->', label: 'to second' },
+        { cls: '<-', label: 'to first' }, { cls: '<->', label: 'both' }]) },
+  // The prominence row, and after item 1 it is the only control for the
+  // channel: one dial, four states, the same three words whether they are
+  // written as a class on the element's line or as a verb inside a step. The
+  // membership is DG_PROMINENCE rather than a list retyped here – the class
+  // list *is* the verb list, so a fourth word could not arrive on one surface
+  // and not the other. Read late, because window.PSI_DG is not there yet when
+  // this module's constants are evaluated.
+  { key: 'prominence', label: 'prominence', prominence: true,
+    options: () => [{ cls: '', label: 'full' },
+      ...dgeProminenceWords().map((c) => ({ cls: c }))] },
 ];
+
+// The three words weakest-first, which is the order a row of them reads in,
+// derived from the compiler's own table so a fourth setting cannot appear on
+// the step verbs and miss the swatches.
+function dgeProminenceWords() {
+  const all = window.PSI_DG.DG_PROMINENCE || [];
+  const order = ['ghost', 'dim', 'emph'];
+  return [...order.filter((c) => all.includes(c)), ...all.filter((c) => !order.includes(c))];
+}
+
+// A slot's options, which are a list on every row but one: the prominence row
+// derives its own from the compiler's table and so has to be asked at render
+// time rather than at module load.
+const dgeSlotOptions = (slot) => (typeof slot.options === 'function' ? slot.options() : slot.options);
 
 // The tools. Placers put a new element somewhere; wrappers act on what is
 // already selected, because that is what their statements mean. There is
@@ -472,8 +533,25 @@ function dgeKindOpts(elOrKind) {
   // control whose only outcome is a compiler refusal is not offering a
   // control.
   const key = el ? (el.frame || el.entry || el.kind) : elOrKind;
-  return (window.PSI_DG.DG_KIND_OPTS[key] || []).slice();
+  const opts = (window.PSI_DG.DG_KIND_OPTS[key] || []).slice();
+  if (!el) return opts;
+  // `col` gives each column its own width and `w` divides one total equally –
+  // the same quantity said two ways, and the compiler refuses the pair. So a
+  // table that carries `col` shows no `w` field: it could only ever answer a
+  // keystroke with a refusal, and before the refusal existed it was worse than
+  // that, because the write succeeded, the source grew a `w 5` and the canvas
+  // did not move.
+  if (key === 'table' && (dgeSpanOf(el.id, 'col') || {}).present) {
+    return opts.filter((k) => k !== 'w');
+  }
+  return opts;
 }
+
+// The options a statement takes that are *not* number fields, because a closed
+// word list is a row of swatches wherever this panel meets one – `point`, a
+// brace's or an edge's `side`. Kept out of the size row so one option is not
+// two controls under one word.
+const DGE_WORD_OPTS = new Set(['side', 'point']);
 
 // Which way a pointed outline aims. Its own control rather than a text field
 // in the size row: the value is one of four words, and the row above it that
@@ -518,6 +596,13 @@ const DGE = {
   clipboard: null,
   dirty: false,
   status: { line: '', note: '', bad: false },
+  // The problems of the last edit that was refused and rolled back. Read-only
+  // – nothing plans against it and nothing splices from it – and cleared by
+  // the next successful compile. It exists because the rollback recompiles the
+  // *clean* source, so DGE.problems is empty again by the time the source pane
+  // redraws: without this the other sentences were not deprioritised, they
+  // were discarded.
+  refusal: null,
 };
 
 const DGE_MAX_UNDO = 120;
@@ -752,6 +837,11 @@ function dgeLoadFigure(index, resetView) {
   DGE.undo = [];
   DGE.redo = [];
   DGE.dirty = false;
+  // A refusal belongs to the figure it was refused in. The recompile below
+  // clears it anyway on a figure that compiles – this covers the one that
+  // does not, where a sentence about the previous figure's edit would
+  // otherwise sit under this one's source.
+  DGE.refusal = null;
   // The editor opens at the beat that is on screen. `revealed[chunkId]` is
   // the single piece of state the reveal, the sync, the freeze gate and the
   // localStorage recovery all share, and the editor writes nothing back to
@@ -777,11 +867,18 @@ function dgeLoadFigure(index, resetView) {
 // figure with fifty elements the difference is visible.
 let dgeInGesture = false;
 
+// True only while dgeSetSource is recompiling the source it just restored.
+// That compile succeeds by construction – it is the text that compiled a
+// moment ago – so without the flag it would clear the refusal it was called to
+// report, and the box would be gone before the pane that shows it is built.
+let dgeRollingBack = false;
+
 function dgeRecompile() {
   const res = dgeCompile(DGE.fig, DGE.source);
   DGE.problems = res.errors.length ? res.errors : [];
   DGE.warnings = res.warnings || [];
   if (res.ok) {
+    if (!dgeRollingBack) DGE.refusal = null;
     DGE.compiled = res;
     DGE.model = res.model;
     DGE.spans = window.PSI_DG.createSpanTable(res.model, DGE.source);
@@ -1109,14 +1206,20 @@ function dgeDrawRelations(g, id) {
         tick(x, from, x, p.dir === 'below' ? b.y : b.y + b.h, true);
         label(x + 5, (from + (p.dir === 'below' ? b.y : b.y + b.h)) / 2, 'gap ' + dgeNum(p.gap));
       }
-      // The alignment edge the placement carries, as a hairline through both.
+      // The edge the placement is flush with, as a hairline through both –
+      // captioned, like the `align` statement's own hairline on the same
+      // canvas. It went uncaptioned while the option was called `align` too,
+      // which is how one drawing came to show two unrelated constructs under
+      // one word, one of them named and one of them not.
       const a = p.align;
       if (p.dir === 'right' || p.dir === 'left') {
         const ay = a === 'top' ? ref.y : a === 'bottom' ? ref.y + ref.h : midY(ref);
         tick(Math.min(ref.x, b.x) - 10, ay, Math.max(ref.x + ref.w, b.x + b.w) + 10, ay);
+        label(Math.max(ref.x + ref.w, b.x + b.w) + 13, ay - 4, 'flush ' + a);
       } else {
         const ax = a === 'left' ? ref.x : a === 'right' ? ref.x + ref.w : mid(ref);
         tick(ax, Math.min(ref.y, b.y) - 10, ax, Math.max(ref.y + ref.h, b.y + b.h) + 10);
+        label(ax + 5, Math.min(ref.y, b.y) - 13, 'flush ' + a);
       }
     }
   } else if (p && p.kind === 'between') {
@@ -1328,8 +1431,28 @@ const DGE_SNAP_CELL = 0.05;      // round values on the cell grid
 // keeps the row, close enough that leaving is a gesture rather than a fight.
 const DGE_BREAK_CELL = 0.5;
 // The distance a freshly docked element keeps when it had none of its own.
-const DGE_DOCK_GAP = 0.4;
+// It was 0.4 while a gap was axis-keyed, which at the corpus median unit drew
+// 60 px across and 21 px down from one number. Square, 0.4 would have been the
+// narrower of the two on both axes; 0.9 is the pair's own middle and reads as
+// a designed gutter either way.
+const DGE_DOCK_GAP = 0.9;
 const DGE_ALIGN_TOL = 0.06;      // how close counts as "on that edge", in cells
+
+// The ruler a `gap` is measured against, and it is its own function precisely
+// so that there is one of it. A number that *addresses* the grid is axis-keyed
+// – a cell has a width and a height – and a number that states a *clearance* is
+// square, measured against one row. `gap` used to be the exception: `uw` on a
+// `right of` / `left of` placement and `uh` on `above` / `below`, so the same
+// number on two adjacent lines drew two distances 2.9 times apart at the corpus
+// median unit, with nothing in the source to say so. `pad`, `cell`, `space`,
+// `r` and DGE_LEAD_GAP were square all along; `gap` is now too.
+//
+// Six expressions in this file convert between pixels and a gap number and one
+// of them – the drag in dgePlanDrag – has no `uw` on the line at all, because
+// its delta arrives already normalised. A half-converted editor writes numbers
+// the compiler reads on the other convention and nothing reports it, which is
+// exactly the silent failure squaring the gap exists to remove.
+const dgeGapUnit = (model) => dgeUnits(model).uh;
 
 function dgeRound(v, step) {
   return Math.round(v / step) * step;
@@ -1378,7 +1501,11 @@ function dgeRedock(ctx, id, place, dx, dy, snap) {
     : dir === 'left' ? ref.x - (cx + b.w / 2)
       : dir === 'below' ? (cy - b.h / 2) - (ref.y + ref.h)
         : ref.y - (cy + b.h / 2);
-  const gap = Math.max(0, snap(gapPx / ((dir === 'right' || dir === 'left') ? uw : uh)));
+  // One ruler on both axes, so re-docking is the operation it was always
+  // written to be: keep the number, change the word. While the gap was
+  // axis-keyed this function and the `side` swatch row disagreed with each
+  // other by uw/uh, and neither said anything, because both edits compiled.
+  const gap = Math.max(0, snap(gapPx / dgeGapUnit(ctx.model)));
   return {
     text: dgePlaceText(dir, place.ref, gap),
     why: 'docks it ' + (dir === 'right' || dir === 'left' ? dir + ' of ' : dir + ' ') + place.ref
@@ -1505,7 +1632,7 @@ const DGE_FRAC_MIN = 0.15;
 //   3  at A.p,<n>   one axis, and the other stays a bare number
 //   4  gap 0.62     one axis, and a number another statement already carries
 //   5  spread x     one axis, and a new statement to hold it
-//   6  align middle the alignment word on a relation's cross axis (already here)
+//   6  flush middle the word for a relation's cross-axis edge     (already here)
 //   7  the 0.05 cell grid                                         (already here)
 //
 // Ranks 1 and 3 are the same family split by how much of the drag they
@@ -1861,17 +1988,28 @@ function dgeGuideSnap(ctx, id, dx, dy, opts) {
       // the box under the pointer is the one measured from the two edges as
       // they stand. The placement's own `offset` is subtracted because it is
       // re-emitted beside the gap and would otherwise be counted twice.
+      //
+      // The offset is subtracted in the axis's own unit and the remainder is
+      // divided by `uh` on both axes: an `offset` addresses the grid, a `gap`
+      // states a clearance, and after item 6 those are two different rulers on
+      // one line. Written with `uw` on the horizontal branch this read a
+      // 2.9×-too-small number back off the drawing at the corpus median unit,
+      // and the sibling-gap guide then never matched a number an author had
+      // written down.
       const off = place.offset || [0, 0];
+      const gap1 = dgeGapUnit(ctx.model);
       const gapAt = (cx, cy) => (place.dir === 'right'
-        ? (cx - off[0] * uw - b.w / 2 - (ref.x + ref.w)) / uw
-        : place.dir === 'left' ? (ref.x - (cx - off[0] * uw + b.w / 2)) / uw
-          : place.dir === 'below' ? (cy - off[1] * uh - b.h / 2 - (ref.y + ref.h)) / uh
-            : (ref.y - (cy - off[1] * uh + b.h / 2)) / uh);
+        ? (cx - off[0] * uw - b.w / 2 - (ref.x + ref.w)) / gap1
+        : place.dir === 'left' ? (ref.x - (cx - off[0] * uw + b.w / 2)) / gap1
+          : place.dir === 'below' ? (cy - off[1] * uh - b.h / 2 - (ref.y + ref.h)) / gap1
+            : (ref.y - (cy - off[1] * uh + b.h / 2)) / gap1);
       const was = gapAt(b.x + b.w / 2, b.y + b.h / 2);
       const raw = gapAt(want.x, want.y);
       for (const s of dgeSiblingGaps(ctx, id, axis)) {
         const d = Math.abs(s.gap - raw);
-        if (d > DGE_GUIDE_CELL) continue;      // in cells, which is what a gap is
+        // In gap units, which since item 6 is one row on both axes rather than
+        // the cell of whichever way the placement runs.
+        if (d > DGE_GUIDE_CELL) continue;
         cands.push({ kind: 'gap', rank: DGE_RANK.gap, tier: s.near ? 0 : 1, dist: d,
           axes: [axis], axis, gap: s.gap, from: s.from, sign, was });
       }
@@ -1966,13 +2104,19 @@ function dgeStepToText(ctx, id, out, eff, want) {
   return comp('x', 0) + ',' + comp('y', 1);
 }
 
-// A `rel` placement written back out, with one number replaced. The align
+// A `rel` placement written back out, with one number replaced. The flush
 // word and the offset have to travel with it: `move x to right of a gap 0.6`
 // is a whole placement, so anything left off is a thing the step silently
 // resets.
+//
+// `middle` is the one centre word on both axes now, so the neutral this drops
+// is one name rather than `center` on x and `middle` on y. The old check was
+// correct on one axis only: `below a align center` was dropped and `right of a
+// align middle` was written back out in full, on a line where the option said
+// nothing.
 function dgeRelText(place, gap) {
   let out = dgePlaceText(place.dir, place.ref, gap == null ? place.gap : gap);
-  if (place.align && place.align !== 'center') out += ' align ' + place.align;
+  if (place.align && place.align !== 'middle') out += ' flush ' + place.align;
   const off = place.offset;
   if (off && (off[0] || off[1])) out += ` offset ${dgeNum(off[0])},${dgeNum(off[1])}`;
   return out;
@@ -1983,7 +2127,6 @@ function dgeRelText(place, gap) {
 function dgeGuideApply(ctx, id, dx, dy, want, won) {
   const b = ctx.boxes.get(id);
   const { uw, uh } = dgeUnits(ctx.model);
-  const unit = { x: uw, y: uh };
   const out = { dx, dy, nodes: [],
     snap: { at: {}, ref: {}, to: null, gap: null, place: null, append: null,
       appendAt: null, appendAxis: null, why: '' } };
@@ -2023,8 +2166,13 @@ function dgeGuideApply(ctx, id, dx, dy, want, won) {
     } else if (c.kind === 'gap') {
       // `place.gap + sign * delta` is the gap the drag resolves to, so the
       // delta that lands exactly on the sibling's number is one subtraction.
+      // Back into pixels through the gap's own ruler, not the axis's: a gap is
+      // a clearance and a clearance is one row on both axes. Written with
+      // `unit[c.axis]` a horizontal snap moved the preview 2.9× too far at the
+      // corpus median unit, so the box landed nowhere near the guide's callout
+      // while the number written on the line was right.
       shift(c.axis, (c.axis === 'x' ? b.x + b.w / 2 : b.y + b.h / 2)
-        + (c.gap - c.was) * c.sign * unit[c.axis]);
+        + (c.gap - c.was) * c.sign * dgeGapUnit(ctx.model));
       out.snap.gap = c.gap;
       why.push(`gap ${dgeNum(c.gap)} – the same gap ${c.from} has, so the row stays regular`);
       out.nodes.push(...dgeGuideGap(ctx, c));
@@ -2505,6 +2653,15 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
   const main = dgeMainAxis(place);
   const mainDelta = main === 'x' ? dx : dy;
   const crossDelta = main === 'x' ? dy : dx;
+  // The same delta, in the unit a `gap` is written in. `dx` and `dy` arrive
+  // from dgeGestureDrag already normalised – `dx` by `uw`, `dy` by `uh` – so
+  // the axis dependence is *inside* them and a grep for `uw` does not find this
+  // line at all. That is what made it the one site of item 6 that would be
+  // missed: left unconverted, a sideways drag writes a gap off by uw/uh (2.9×
+  // at the corpus median unit) and the line still compiles, which is precisely
+  // the silent failure squaring the gap exists to remove.
+  const gapDelta = main === 'x'
+    ? dx * dgeUnits(ctx.model).uw / dgeGapUnit(ctx.model) : dy;
   const sign = (place.dir === 'right' || place.dir === 'below') ? 1 : -1;
   const mainBlocked = main === 'x' ? xBlocked : yBlocked;
   const crossBlocked = main === 'x' ? yBlocked : xBlocked;
@@ -2531,7 +2688,7 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
     // 0.05 grid afterwards would turn 0.62 into 0.60 and quietly break the
     // equality the guide had just promised.
     const sib = guide && guide.gap;
-    const next = sib != null ? sib : Math.max(0, snap(place.gap + sign * mainDelta));
+    const next = sib != null ? sib : Math.max(0, snap(place.gap + sign * gapDelta));
     edits.push({ attr: 'gap', value: dgeNum(next), why: sib != null ? guide.why : undefined });
   }
   if (crossDelta && !crossBlocked) {
@@ -2539,22 +2696,27 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
     const b = ctx.boxes.get(id);
     const { uw, uh } = dgeUnits(ctx.model);
     const u = main === 'x' ? uh : uw;
-    const words = main === 'x' ? ['top', 'middle', 'bottom'] : ['left', 'center', 'right'];
     let matched = null;
     if (ref && b) {
-      // Where would each alignment word put this element's centre? Whichever
-      // is within tolerance of where the pointer dropped it, wins – and that
-      // is the guide that proposes the statement.
+      // Where would each `flush` word put this element's centre? Whichever is
+      // within tolerance of where the pointer dropped it, wins – and that is
+      // the guide that proposes the statement.
+      //
+      // Two lists sharing their middle entry, because the centre of an axis is
+      // one word on both now. It was `center` here and `middle` there, an
+      // axis-conditioned spelling that the parser's own internal default then
+      // contradicted: it defaulted every direction to `center`, which on a
+      // vertical placement is a value the language refused.
       const want = (main === 'x' ? b.y + b.h / 2 : b.x + b.w / 2) + crossDelta * u;
       const cands = main === 'x'
         ? [['top', ref.y + b.h / 2], ['middle', ref.y + ref.h / 2], ['bottom', ref.y + ref.h - b.h / 2]]
-        : [['left', ref.x + b.w / 2], ['center', ref.x + ref.w / 2], ['right', ref.x + ref.w - b.w / 2]];
+        : [['left', ref.x + b.w / 2], ['middle', ref.x + ref.w / 2], ['right', ref.x + ref.w - b.w / 2]];
       for (const [word, at] of cands) {
         if (Math.abs(at - want) <= DGE_ALIGN_TOL * u) { matched = word; break; }
       }
     }
     if (matched && !free) {
-      if (matched !== place.align) edits.push({ attr: 'align', value: matched, why: 'snapped to the edge' });
+      if (matched !== place.align) edits.push({ attr: 'flush', value: matched, why: 'snapped to the edge' });
       // Landing on an alignment word means the offset it had on that axis is
       // no longer wanted; clearing it is what makes the snap actually snap.
       if (place.offset && (main === 'x' ? place.offset[1] : place.offset[0])) {
@@ -2610,12 +2772,19 @@ function dgePlanResize(ctx, id, dw, dh, handle, opts) {
     if (next !== cur) edits.push({ attr: 'cell', value: dgeNum(next), why: 'a grid is sized by its cell' });
     return { edits, refusals: [] };
   }
-  // A `table`'s `h` is the height of one row and a `lanes`'s the height of one
-  // lane – but the handle is on the frame, which is the whole stack of them.
-  // Written straight, one drag on the south edge of a four-row table made it
-  // four times too tall, and nothing said so: the word parsed, the number was
-  // the one the pointer asked for, and the drawing was wrong. Divide by what
-  // the statement repeats.
+  // A `table`'s `row` is the height of one row and a `lanes`'s `band` the
+  // height of one band – but the handle is on the frame, which is the whole
+  // stack of them. Written straight, one drag on the south edge of a four-row
+  // table made it four times too tall, and nothing said so: the word parsed,
+  // the number was the one the pointer asked for, and the drawing was wrong.
+  // Divide by what the statement repeats.
+  //
+  // The *word* moved with item 23. These two statements used to spell it `h`,
+  // which on every other kind is the whole element's height, so an author
+  // reading it as "how tall" was wrong by the row count – silently, and in the
+  // direction that still draws a plausible picture. The panel kept writing `h`
+  // after the compiler stopped reading it, so a south-edge drag on a table
+  // wrote a word the statement refuses and the whole gesture was rolled back.
   //
   // Across, a lane band really is the frame's width. A table's is the sum of
   // its columns, so once the author has written `col` the drag scales that
@@ -2625,9 +2794,10 @@ function dgePlanResize(ctx, id, dw, dh, handle, opts) {
     const n = dgeRepeatCount(el, ctx.model);
     const w0 = b.w / uw, h0 = b.h / uh;
     if (handle !== 'e' && n) {
+      const word = el.frame === 'table' ? 'row' : 'band';
       const next = Math.max(0.05, dgeRound((h0 + dh) / n, 0.01));
-      edits.push({ attr: 'h', value: dgeNum(next),
-        why: `h is one ${el.frame === 'table' ? 'row' : 'lane'}, and there are ${n}` });
+      edits.push({ attr: word, value: dgeNum(next),
+        why: `${word} is one of them, and there are ${n}` });
     }
     if (handle !== 's') {
       const cols = dgeSpanIn(ctx, id, 'col');
@@ -2796,18 +2966,27 @@ function dgeSetSource(next, opts) {
   // compiled again the canvas never changed – the panel looked like it was
   // doing nothing while it took the source apart.
   if (wasClean && DGE.problems.length && !(opts && opts.allowBroken)) {
-    const why = DGE.problems[0];
+    // Kept, not discarded. `problems[0]` is the cause – the compiler sorts by
+    // phase, so a syntax failure comes before the dangling reference it
+    // manufactured – but it is one sentence out of however many, and the
+    // rollback below leaves DGE.problems empty. The rest go to the source
+    // pane, which is the only place with room for them.
+    const refused = DGE.problems.slice();
+    const why = refused[0];
     DGE.source = before;
     if (snapshotted) DGE.undo.pop();
     DGE.dirty = wasDirty;
     if (DGE.redo) DGE.redo.splice(0, DGE.redo.length, ...hadRedo);
-    dgeRecompile();
+    DGE.refusal = refused;
+    dgeRollingBack = true;
+    try { dgeRecompile(); } finally { dgeRollingBack = false; }
     // Say what happened before saying why, and **name no line**. The
     // compiler's sentence is about the text that was just rolled back, so a
     // line number sends the author to a line that no longer contains what the
     // message names – "line 3: box c: .shrink …" while line 3 reads
     // `box c "Empfänger" right of b gap 0.6 {.thick}`.
-    dgeStatus('', 'not applied · ' + why.msg, true);
+    dgeStatus('', 'not applied · ' + why.msg
+      + (refused.length > 1 ? ` (+${refused.length - 1} more)` : ''), true);
     return false;
   }
   dgeAfterEdit();
@@ -3810,21 +3989,30 @@ function dgeFreshName(stem) {
 // edit elsewhere in the diagram.
 function dgeProposePlacement(pt) {
   const { uw, uh } = dgeUnits();
+  const gap1 = dgeGapUnit();
   let best = null;
   for (const [id, b] of (DGE.boxes || [])) {
     if (!DGE.model.nodes.some((n) => n.id === id)) continue;
     const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    // Two different questions, and after item 6 two different rulers. *How far
+    // away is the drop* is a question about the grid, so `reach` keeps the
+    // axis's own cell and the acceptance radius is the same paper it always
+    // was. *What number to write* is a clearance, so `gap` is one row on both
+    // axes. Dividing the reach by `uh` as well would have shrunk the sideways
+    // catchment by 2.9× at the corpus median unit – a behaviour change nobody
+    // asked for, hidden inside a units fix.
     const cands = [
       ['right', pt.x - (b.x + b.w), Math.abs(pt.y - cy) / uh, (pt.x - (b.x + b.w)) / uw],
       ['left', b.x - pt.x, Math.abs(pt.y - cy) / uh, (b.x - pt.x) / uw],
       ['below', pt.y - (b.y + b.h), Math.abs(pt.x - cx) / uw, (pt.y - (b.y + b.h)) / uh],
       ['above', b.y - pt.y, Math.abs(pt.x - cx) / uw, (b.y - pt.y) / uh],
     ];
-    for (const [dir, along, off, gap] of cands) {
-      if (along < 0 || gap > 2.2 || off > 0.55) continue;
-      const score = off + Math.abs(gap) * 0.15;
+    for (const [dir, along, off, reach] of cands) {
+      if (along < 0 || reach > 2.2 || off > 0.55) continue;
+      const score = off + Math.abs(reach) * 0.15;
       if (!best || score < best.score) {
-        best = { score, text: `${dir === 'right' || dir === 'left' ? dir + ' of' : dir} ${id} gap ${dgeNum(Math.max(0, dgeRound(gap, DGE_SNAP_CELL)))}` };
+        const gap = dgeNum(Math.max(0, dgeRound(along / gap1, DGE_SNAP_CELL)));
+        best = { score, text: `${dir === 'right' || dir === 'left' ? dir + ' of' : dir} ${id} gap ${gap}` };
       }
     }
   }
@@ -4182,8 +4370,12 @@ function dgeDuplicate() {
   const toks = window.PSI_DG.dgTokenize(line, 0);
   if (!toks[1]) return;
   const renamed = line.slice(0, toks[1].s) + name + line.slice(toks[1].e);
+  // `gap 0.9`, not `0.3`. A gap is one row on both axes now, so the number
+  // that used to draw 45 px of clearance beside the original draws 15.6 px at
+  // the corpus median unit – a copy sitting almost against the thing it was
+  // copied from. Same drawn distance, said in the new ruler.
   const placed = /\b(at|right of|left of|below|above|between)\b/.test(renamed)
-    ? renamed : renamed + ' right of ' + el.id + ' gap 0.3';
+    ? renamed : renamed + ' right of ' + el.id + ' gap 0.9';
   dgeAppendLine(placed);
   dgeSelect([name]);
 }
@@ -4268,6 +4460,13 @@ function dgeRenderSide() {
       while (dgeFind(window.PSI_DG.dgBarName(id, n))) n++;
       side.appendChild(dgeEl('h3', { class: 'dge-sel-head',
         text: (toks[0] ? toks[0].v : 'statement') + ' ' + id }));
+      // A series is named by its own statement like anything else, and the
+      // name is what a `brace over g-0,g-1` and a `style @run2` are written
+      // against, so the field belongs here too.
+      if (statement) {
+        const ident = dgeIdentityPane(statement);
+        if (ident) side.appendChild(ident);
+      }
       side.appendChild(dgeEl('div', { class: 'dge-empty', html:
         'A series draws columns in a frame it does not own, so it has no box of its own to '
         + 'select, drag or resize.<br><br>' + n + ' column(s)'
@@ -4369,16 +4568,21 @@ function dgeRenderSide() {
       // DG_KIND_OPTS lists for a `bars` line – w, h, space, aspect – belong to
       // the chart it joined and the compiler says so, so they are not fields
       // here rather than fields that answer with a refusal.
+      // The prominence words, off the compiler's own table rather than a pair
+      // retyped here: they are one dial with three settings whether they are
+      // written as a class, as a step verb or, as here, as a list of column
+      // numbers. `ghost` had no field at all while the pair was hardcoded, and
+      // the second of the two was `calm`, a word with no class behind it.
       const marks = dgeEl('div', { class: 'dge-nums' });
-      for (const key of ['emph', 'calm']) {
+      for (const key of dgeProminenceWords()) {
         const span = dgeSpanOf(id, key);
         marks.appendChild(dgeEl('label', { class: 'dge-num dge-num-wide' }, [
           dgeEl('span', { text: key }),
           dgeEl('input', {
             type: 'text',
             value: span && span.present ? span.value : '',
-            placeholder: DGE_LIST_HINT[key],
-            title: DGE_LIST_HINT[key],
+            placeholder: dgeListHint(key),
+            title: dgeListHint(key),
             onchange: (e) => dgeWriteAttr(id, key, e.target.value
               .split(',').map((x) => x.trim()).filter(Boolean).join(',')),
           }),
@@ -4426,6 +4630,16 @@ function dgeRenderSide() {
   }
   side.appendChild(head);
 
+  // Who this is, before what it looks like. An element's name is the thing
+  // every other line in the block addresses it by, so it belongs at the top of
+  // the pane rather than among the appearance rows – and on an edge or a
+  // message it is the difference between a figure that can be annotated and
+  // one that cannot.
+  if (single) {
+    const ident = dgeIdentityPane(single);
+    if (ident) side.appendChild(ident);
+  }
+
   if (single) {
     // A label is multi-line. The tokenizer decodes \\n inside a quoted string
     // to a real line break and the drawing typesets one line per break, so a
@@ -4465,19 +4679,16 @@ function dgeRenderSide() {
         dgeEl('input', {
           type: 'text', value: sp && sp.present ? sp.value : '',
           placeholder: 'name or x,y',
-          onchange: (e) => {
-            const v = e.target.value.trim();
-            // Not the same as clearing an option. dgeWriteAttr's drop path
-            // would take the token out and leave "edge  -> b", which does not
-            // parse, and there is no keyword in front of an endpoint for it
-            // to eat either. Refuse, and put the field back.
-            if (!v) {
-              dgeStatus('', 'An edge needs something at both ends – an element name, or a coordinate like 1.5,2.', true);
-              dgeRenderSide();
-              return;
-            }
-            dgeWriteAttr(single.id, which, v);
-          },
+          // An emptied field used to be refused here, because the compiler's
+          // own answer was a misparse: dgeWriteAttr's drop path leaves
+          // `edge -> b`, and the statement read the keyword `edge` as the
+          // from-endpoint and reported that no element called "edge" exists.
+          // It now says `edge needs an element on both sides of "->"`, and on
+          // a sequence message `a message needs an actor on both sides` –
+          // which is the distinction the hand-written sentence got wrong, by
+          // offering a coordinate on a line where only an actor name is legal.
+          // So the write goes through and dgeSetSource's rollback shows it.
+          onchange: (e) => dgeWriteAttr(single.id, which, e.target.value.trim()),
         }),
       ]));
     }
@@ -4555,6 +4766,13 @@ function dgeRenderSide() {
     side.appendChild(dgePlacementPane(single));
   }
 
+  // The stub from a note to what it is about, beside the placement that put
+  // the note there – the two are one thought, and unlike everything else in
+  // this panel the leader row acts on the whole selection rather than on one
+  // element, because relabelling six annotations at once is what it is for.
+  const leader = dgeLeaderPane();
+  if (leader) side.appendChild(leader);
+
   // The tokens a statement identifies by position rather than by a keyword:
   // a chart's values, a grid's shape and cell kind, a plot's axis titles, an
   // image's asset. Named fields rather than "the second string on the line",
@@ -4616,30 +4834,45 @@ function dgeRenderSide() {
   // Which side of its members a brace stands on. A closed word list, so it is a
   // swatch row for the same reason `point` is one – and it was the only word in
   // the grammar that moves an element bodily with no control at all.
-  if (single && single.kind === 'brace') {
+  if (single && dgeKindOpts(single).includes('side')) {
+    const isEdge = single.kind === 'edge';
     const sp = dgeSpanOf(single.id, 'side');
     const now = sp && sp.present ? sp.value : '';
+    // Which of the four can act. On a brace, all of them – it may stand on any
+    // side of its members. On an edge the answer is a question about the
+    // *routed* line rather than about the statement: only the pair lying across
+    // it can pick a side, and the other pair moves nothing and comes back as a
+    // build warning. A word already written that cannot act is still removable,
+    // because `default` is in the row whatever else is.
+    const vertical = isEdge ? dgeEdgeVertical(single) : null;
+    const usable = window.PSI_DG.DG_SIDES.filter((w) => vertical == null
+      || (vertical ? w === 'left' || w === 'right' : w === 'top' || w === 'bottom'));
     const row = dgeEl('div', { class: 'dge-swatches' });
-    for (const which of ['', ...window.PSI_DG.DG_BRACE_SIDES]) {
+    for (const which of ['', ...usable]) {
       row.appendChild(dgeEl('button', {
         type: 'button', class: 'dge-sw',
         'aria-pressed': String(now === which),
-        title: which ? 'the spine on the ' + which : 'whatever the defaults say',
+        title: which
+          ? (isEdge ? 'the label on the ' + which + ' of the line' : 'the spine on the ' + which)
+          : 'whatever the defaults say',
         text: which || 'default',
         onclick: () => dgeWriteAttr(single.id, 'side', which),
       }));
     }
     side.appendChild(dgeEl('div', {}, [
       dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'side' }), row]),
-      dgeEl('div', { class: 'dge-hint', text:
-        'Which side of its members the brace stands on, and so which side its '
-        + 'label sits on. How far off them it stands is pad, below.' }),
+      dgeEl('div', { class: 'dge-hint', text: isEdge
+        ? 'Which side of the routed line the label sits on. It used to be the four '
+          + 'alignment classes, which on a box place the label inside its padding – the same '
+          + 'four words for two geometries. Only the pair lying across the line can pick a side.'
+        : 'Which side of its members the brace stands on, and so which side its '
+          + 'label sits on. How far off them it stands is pad, below.' }),
     ]));
   }
 
   // Geometry: exactly the options that element's own statement accepts.
   if (single) {
-    const opts = dgeKindOpts(single);
+    const opts = dgeKindOpts(single).filter((k) => !DGE_WORD_OPTS.has(k));
     if (opts.length) {
       const row = dgeEl('div', { class: 'dge-nums' });
       for (const key of opts) {
@@ -4655,8 +4888,8 @@ function dgeRenderSide() {
           dgeEl('input', {
             type: 'text',
             value: span && span.present ? span.value : '',
-            placeholder: list ? DGE_LIST_HINT[key] : (resolved.value === null ? 'auto' : dgeNum(resolved.value)),
-            title: list ? DGE_LIST_HINT[key] : null,
+            placeholder: list ? dgeListHint(key) : (resolved.value === null ? 'auto' : dgeNum(resolved.value)),
+            title: list ? dgeListHint(key) : null,
             // Spaces around the commas are the one mistake this field invites
             // and the one the tokenizer cannot survive: `emph 1, 3` splits into
             // two tokens and the second is reported as an unexpected word. Take
@@ -4689,7 +4922,10 @@ function dgeRenderSide() {
         `${DGE.selection[0]} is the master – it keeps its place and the rest follow.` }),
     ]);
     for (const [axis, label, edges] of [
-      ['x', 'across', [['left', 'left edges'], ['center', 'centres'], ['right', 'right edges']]],
+      // `middle` on both axes. It was `center` here and `middle` below, which
+      // is what DG_ALIGN_X spelled – and `align x middle` was refused although
+      // nothing about it was ambiguous, since the axis is named on the line.
+      ['x', 'across', [['left', 'left edges'], ['middle', 'centres'], ['right', 'right edges']]],
       ['y', 'down', [['top', 'top edges'], ['middle', 'middles'], ['bottom', 'bottom edges']]],
     ]) {
       const row = dgeEl('div', { class: 'dge-chips' });
@@ -4758,33 +4994,66 @@ function dgeSlotRows(chosen, kinds) {
   const slots = dgeEl('div', {});
   slots.appendChild(dgeEl('h3', { text: 'look' }));
   const on = kinds || new Set(chosen.map((el) => el.kind));
+  // Whether one swatch is worth offering, and it is the whole of item 15. The
+  // kind half comes off DG_CLASS_KINDS – every kind in the selection has to be
+  // one the compiler accepts this class on, because the click writes one class
+  // on all of them – and the base swatch is exempt, since "nothing in this
+  // slot" is the one answer every kind can give. `when` survives for the one
+  // question the table cannot answer: `.elbow` is refused on an edge that
+  // already carries `via`, which is a fact about the figure rather than about
+  // the kind.
+  const usable = (opt) => {
+    if (opt.when && !chosen.some((el) => opt.when(el))) return false;
+    if (!opt.cls) return true;
+    const kk = dgeClassKinds(opt.cls);
+    return !kk || [...on].every((k) => kk.includes(k));
+  };
   for (const slot of DGE_SLOTS) {
-    if (slot.kinds && ![...on].some((k) => slot.kinds.includes(k))) continue;
     const current = dgeSlotValue(slot);
     const row = dgeEl('div', { class: 'dge-swatches' });
-    // A slot every one of whose real options is out of reach here – the two
-    // alignment rows on an edge, where only the pair across the line can pick
-    // a side – would come out as a single "none of this" swatch, pressed and
-    // unclickable. That is a row asking a question with one answer, so it is
-    // not a row.
-    if (!slot.options.some((o) => o.cls && (!o.when || chosen.some((el) => o.when(el))))) continue;
-    for (const opt of slot.options) {
+    const options = dgeSlotOptions(slot);
+    // A slot every one of whose real options is out of reach here would come
+    // out as a single "none of this" swatch, pressed and unclickable. That is a
+    // row asking a question with one answer, so it is not a row – and with the
+    // kinds derived, this one test is also what makes a whole row disappear
+    // for a kind the compiler paints none of it on.
+    if (!options.some((o) => o.cls && usable(o))) continue;
+    // The base swatch says "the look with nothing in this slot", and at beat 0
+    // it says it by inserting a negation where a `default` block would
+    // otherwise surface. That leaves a second, different answer with no name:
+    // *drop* the element's own say and let the default through. It is offered
+    // only where a default actually supplies the slot, because otherwise the
+    // two are the same click – and it is a beat-0 act, since a step edits
+    // appearance and knows nothing about provenance.
+    const inheritable = !slot.arrow && !DGE.beat
+      && chosen.some((el) => dgeSlotDefaultFor(el, options.map((o) => o.cls).filter(Boolean)));
+    for (const opt of (inheritable
+      ? [...options, { cls: '', inherit: true, label: 'inherit' }] : options)) {
       // An option narrower than its slot. Hidden rather than disabled: the row
       // is a closed list of what this selection can be, and a greyed swatch
       // reads as "not yet" rather than "not here". `dgeSlotValue` and
       // `dgeSetSlot` still know the whole slot, so a `.diamond` written by
       // hand is still displaced when another outline is picked.
-      if (opt.when && !chosen.some((el) => opt.when(el))) continue;
+      if (!opt.inherit && !usable(opt)) continue;
       row.appendChild(dgeEl('button', {
         type: 'button', class: 'dge-sw',
         'data-fill': opt.fill === undefined ? null : (opt.fill || 'none'),
-        'aria-pressed': String(current === opt.cls),
-        title: opt.cls ? '.' + opt.cls : 'none of this slot',
-        text: opt.fill !== undefined ? '' : (opt.label || opt.cls),
-        onclick: () => dgeSetSlot(slot, opt.cls),
+        // An "inherit" click is an act rather than a state – the state it
+        // produces is whatever the default says, and that state is already the
+        // swatch the default's own class owns – so it never reads as pressed.
+        'aria-pressed': String(!opt.inherit && current === opt.cls),
+        title: opt.inherit ? 'drop this element’s own say and take the default'
+          : (opt.cls ? (slot.arrow ? opt.cls : '.' + opt.cls) : 'nothing in this slot'),
+        text: opt.fill !== undefined && !opt.inherit ? '' : (opt.label || opt.cls),
+        onclick: () => dgeSetSlot(slot, opt.cls, opt),
       }));
     }
-    slots.appendChild(dgeEl('div', { class: 'dge-slot' }, [
+    // Its own class beside the shared one, the rule chips already follow: a
+    // `.dge-slot` is any swatch row in the panel – the placement's kind, its
+    // side, its `flush`, a brace's `side`, a leader's token – and only these
+    // are the closed class vocabulary. Something asking "does every swatch the
+    // panel offers do anything" has to be able to ask it of these alone.
+    slots.appendChild(dgeEl('div', { class: 'dge-slot dge-slot-look' }, [
       dgeEl('b', { text: slot.label }), row,
     ]));
   }
@@ -4816,55 +5085,108 @@ function dgeTagPane() {
   return dgeEl('div', {}, [dgeEl('h3', { text: 'tags' }), chips]);
 }
 
-// Which class of a slot the selection carries. Mixed selections show none
-// pressed rather than lying about a shared value.
+// What a weaker layer puts in this slot when the element's own tail says
+// nothing about it – the `default` blocks, resolved the way the compiler
+// resolves them: weakest first, each layer's removals taken off what the
+// layers before it added. Empty when no default reaches the slot, which is the
+// question the "inherit" swatch is offered on.
+function dgeSlotDefaultFor(el, names) {
+  if (!el) return '';
+  let hit = '';
+  for (const layer of window.PSI_DG.dgDefaultLayers(DGE.model, el.kind, el.tags)) {
+    for (const r of (layer.removedClasses || [])) if (r === hit) hit = '';
+    const c = (layer.classes || []).find((x) => names.includes(x));
+    if (c) hit = c;
+  }
+  return hit;
+}
+
+// Which class of a slot the selection carries **at the beat on screen**. Not
+// `el.classes`: that is only what the element's own line says, so a box drawn
+// dim by `default box {.dim}` showed the base swatch pressed, and a step that
+// emphasised it changed nothing in the panel at all. `dgStateAt` is the one
+// answer to "what is this element wearing here" – it resolves the defaults, it
+// honours a `{!class}` removal, and it carries the steps up to this beat.
+//
+// Mixed selections show none pressed rather than lying about a shared value.
 function dgeSlotValue(slot) {
-  const names = slot.options.map((o) => o.cls).filter(Boolean);
+  if (slot.arrow && !DGE.beat) return dgeArrowValue();
+  const names = dgeSlotOptions(slot).map((o) => o.cls).filter(Boolean);
+  // A series statement has no element and so no resolved state; its classes
+  // describe the columns it draws and its own line is the only reading there.
+  const state = DGE.model ? window.PSI_DG.dgStateAt(DGE.model, DGE.beat) : null;
   let found;
   for (const id of DGE.selection) {
     const el = dgeLineOwner(id);
     if (!el) continue;
-    const hit = (el.classes || []).find((c) => names.includes(c)) || '';
+    const st = state && state.get(id);
+    const carries = st ? [...st.classes] : (el.classes || []);
+    const hit = carries.find((c) => names.includes(c)) || '';
     if (found === undefined) found = hit;
     else if (found !== hit) return null;
   }
   return found === undefined ? null : found;
 }
 
-function dgeSetSlot(slot, cls) {
-  const names = slot.options.map((o) => o.cls).filter(Boolean);
+// The arrow token the selection is written with, which is what the arrowheads
+// row reads at beat 0 – the channel is stated by the token there, never by a
+// class, and a tail carrying a head class is refused.
+function dgeArrowValue() {
+  let found;
+  for (const id of DGE.selection) {
+    const el = dgeLineOwner(id);
+    if (!el || el.kind !== 'edge') continue;
+    const sp = dgeSpanOf(id, 'arrow');
+    const hit = sp && sp.present ? sp.value : '';
+    if (found === undefined) found = hit;
+    else if (found !== hit) return null;
+  }
+  return found === undefined ? null : found;
+}
+
+// A swatch click, routed by which line the word belongs on – which after item
+// 11 is the *whole* difference between the two surfaces, print included.
+//
+// Three rows part company from the rest here, and each for a reason the
+// compiler states rather than a preference of the panel's:
+//
+//   · the arrowheads row at beat 0 rewrites the arrow **token**, because a
+//     head class in an element's own tail is refused – the token already said
+//     it – and at a later beat it writes the class, because a token cannot be
+//     re-run in a beat;
+//   · the prominence row at a later beat writes the step **verb**, `dim a`,
+//     because that is the same act spelled shorter and it is what the row is
+//     for: a beat is where prominence usually changes;
+//   · the base swatch inserts a `{!class}` where a `default` block would
+//     otherwise surface, which is the only way back to the unnamed normal.
+function dgeSetSlot(slot, cls, opt) {
+  const names = dgeSlotOptions(slot).map((o) => o.cls).filter(Boolean);
+  if (slot.arrow && !DGE.beat) return dgeSetArrowToken(cls);
+  if (DGE.beat && (slot.prominence || slot.arrow)) return dgeSetSlotAtBeat(slot, cls, names);
   const splices = [];
   const widened = [];
   for (const id of DGE.selection) {
     const el = dgeLineOwner(id);
     if (!el) continue;
-    // Arrowheads are the arrow token's business, not a class's. `--` IS
-    // "none", so the row rewrites the token – picking "none" writes `--`,
-    // picking "one" or "both" restores `->` – and only `.both-heads` is a
-    // class at all. Editing the class alone left `--` in the line, the
-    // parser re-derived `no-head` on top of `.both-heads`, and "both" came
-    // out as one reversed head.
-    if (slot.key === 'head') {
-      if (el.kind !== 'edge') continue;
-      const arrowSp = DGE.spans.spanOf(id, 'arrow');
-      const cur = arrowSp && arrowSp.present ? arrowSp.value : '->';
-      const want = cls === 'no-head' ? '--' : (cur === '--' ? '->' : cur);
-      if (arrowSp && arrowSp.present && want !== cur) {
-        splices.push({ start: arrowSp.start, end: arrowSp.end, text: want, seq: 0 });
-      }
-      const keep = (el.classes || []).filter((c) => !names.includes(c));
-      if (cls === 'both-heads') keep.push(cls);
-      const tail = dgePlanTail(id, { classes: keep });
-      if (tail) splices.push({ ...tail, seq: 1 });
-      continue;
-    }
     const keep = (el.classes || []).filter((c) => !names.includes(c));
+    // Own removals in this slot go too: they are this element's say about the
+    // slot, and every swatch in the row replaces that say outright.
+    const drop = (el.removedClasses || []).filter((c) => !names.includes(c));
     if (cls) keep.push(cls);
+    // The base swatch, which is not the same act as "inherit". Base means the
+    // look with nothing in the slot, so where a default would put something
+    // there the negation has to be written or the click does nothing visible.
+    // Inherit means the opposite – take this element's own say off and let the
+    // default through – and needs no negation at all.
+    if (!cls && !(opt && opt.inherit)) {
+      const def = dgeSlotDefaultFor(el, names);
+      if (def) drop.push(def);
+    }
     if (cls === 'fit' || cls === 'shrink') {
       const w = dgePlanFitWidth(id);
       if (w) { splices.push(w); widened.push(id + ' w ' + w.value); }
     }
-    const tail = dgePlanTail(id, { classes: keep });
+    const tail = dgePlanTail(id, { classes: keep, removed: drop });
     if (tail) splices.push({ ...tail, seq: 1 });
   }
   const next = dgeApplySplices(splices);
@@ -4878,6 +5200,59 @@ function dgeSetSlot(slot, cls) {
     dgeStatus('', 'wrote ' + widened.join(', ') + ' as well – .' + cls
       + ' fits the type to the box, so the box has to say how wide it is.', false);
   } else if (applied) dgeBeatNote();
+}
+
+// Beat 0's arrowheads row. Four tokens, four states, one channel: `--` for no
+// head, `->` and `<-` for one at either end, `<->` for a head at each. It never
+// touches the tail – every token seeds its own head class, so a class written
+// beside one says what the token already said and the compiler refuses it.
+function dgeSetArrowToken(want) {
+  const splices = [];
+  for (const id of DGE.selection) {
+    const el = dgeLineOwner(id);
+    if (!el || el.kind !== 'edge') continue;
+    const sp = dgeSpanOf(id, 'arrow');
+    if (!sp || !sp.present || sp.value === want) continue;
+    splices.push({ start: sp.start, end: sp.end, text: want, seq: 0 });
+  }
+  const next = dgeApplySplices(splices);
+  if (next !== null && dgeSetSource(next)) dgeBeatNote();
+}
+
+// A class row standing on a beat. The word goes into the step rather than onto
+// the element's line, so the change is a lecture-time act and the opening
+// picture – which is what the printed handout shows – keeps what it had.
+//
+// Elements are grouped by the operation they need, one line per group, because
+// the base state of one element is not the base state of another: two boxes at
+// `dim` and `ghost` need two different negations to reach the same look.
+function dgeSetSlotAtBeat(slot, cls, names) {
+  const step = DGE.model && DGE.model.steps[DGE.beat - 1];
+  if (!step) return;
+  const state = window.PSI_DG.dgStateAt(DGE.model, DGE.beat);
+  const groups = new Map();
+  const add = (line, id) => {
+    if (!groups.has(line)) groups.set(line, []);
+    groups.get(line).push(id);
+  };
+  for (const id of DGE.selection) {
+    const el = dgeLineOwner(id);
+    if (!el) continue;
+    if (slot.arrow && el.kind !== 'edge') continue;
+    const st = state.get(id);
+    const now = (st ? [...st.classes] : (el.classes || [])).find((c) => names.includes(c)) || '';
+    if (now === cls) continue;
+    // The prominence words are step verbs of their own – `dim a` is the same
+    // act as `style a {.dim}`, one line shorter – and every other slot says it
+    // through `style`.
+    if (cls) add(slot.prominence ? cls : 'style|{.' + cls + '}', id);
+    else if (now) add('style|{!' + now + '}', id);
+  }
+  const lines = [...groups].map(([key, ids]) => (key.includes('|')
+    ? `style ${ids.join(', ')} ${key.split('|')[1]}`
+    : `${key} ${ids.join(', ')}`));
+  if (!lines.length) return;
+  dgeAddStepLines(lines);
 }
 
 function dgeToggleTag(tag, add) {
@@ -4919,14 +5294,24 @@ function dgePlanFitWidth(id) {
 function dgePlanTail(id, changes) {
   const el = dgeLineOwner(id);
   if (!el) return null;
-  const isEdge = el.kind === 'edge';
   const parts = [];
-  const wantId = changes.id !== undefined ? changes.id : (isEdge && !/^edge-\d+$/.test(el.id) ? el.id : null);
-  if (wantId) parts.push('#' + wantId);
-  // A class the parser derived from the statement itself – `no-head` on a
-  // `--` edge – is not the author's and must not be written back: every tail
-  // rebuild on such a line used to grow a `.no-head` the arrow token already
-  // says.
+  // No name is written here. `{#id}` is deleted from the language: an edge and
+  // a sequence message take an optional name in the slot *before* the
+  // from-token, which is where every other statement puts one, and the tail is
+  // classes, removals and tags and nothing else. Rebuilding a tail used to
+  // re-emit `#wire` on every swatch click, which is now a parse error.
+  //
+  // Removals first, because that is the order they resolve in and because a
+  // hand-written tail reads that way – `{!dim .tone-1}`. Within the tail order
+  // means nothing, so this is legibility rather than semantics.
+  for (const c of (changes.removed !== undefined ? changes.removed : el.removedClasses || [])) {
+    parts.push('!' + c);
+  }
+  // A class the parser derived from the statement itself – the head class
+  // every arrow token seeds – is not the author's and must not be written
+  // back: every tail rebuild on such a line used to grow a `.no-head` the
+  // arrow token already says, and a head class in a tail is now refused
+  // outright rather than merely redundant.
   const auto = new Set(el.autoClasses || []);
   for (const c of (changes.classes !== undefined ? changes.classes : el.classes || [])) {
     if (!auto.has(c)) parts.push('.' + c);
@@ -5004,85 +5389,19 @@ function dgeQuote(v) {
   return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
 
-// `col`, `emph` and `calm` are keyword options like `w` or `space`, but their
-// value is a comma list rather than one number – and `DG_KEYED_ATTRS`, the
-// list `spanOf` scans for a keyword, does not carry them. So `spanOf` answers
-// null for all three, and the fields the panel derives from `DG_KIND_OPTS`
-// refused every keystroke with a sentence about placements.
-//
-// Resolved here in the meantime, in exactly the shape `spanOf` hands back, so
-// no caller branches. **This belongs in `DG_KEYED_ATTRS`**: the day those three
-// names join it, `spanOf` answers first and this function goes dark – delete
-// it then rather than leaving two readings of one line.
-function dgeListSpan(ctx, id, attr) {
-  // Through dgeLineOwner, not dgeFind: `emph 3 calm 0` is as legal on a
-  // `series of` line as on the chart it joined, and that line has no element.
-  const el = dgeLineOwner(id, ctx.model);
-  if (!el || !el.span) return null;
-  const src = ctx.source;
-  const toks = window.PSI_DG.dgTokenize(src.slice(el.span[0], el.span[1]), el.span[0]);
-  // The two guards spanOf uses, for the reason it uses them: `col` is a
-  // perfectly good element name, so the kind word and the element's own name
-  // are never keywords, and neither is a token sitting in a reference slot.
-  const REF_INTRO = new Set(['of', 'below', 'above', 'as', 'over', 'between', '->', '<-', '--']);
-  const k = toks.findIndex((x, i) => i >= 2 && !x.q && !x.attr && x.v === attr
-    && !(toks[i - 1] && !toks[i - 1].q && !toks[i - 1].attr
-      && (REF_INTRO.has(toks[i - 1].v) || toks[i - 1].v.endsWith(','))));
-  if (k >= 0 && toks[k + 1]) {
-    const t = toks[k + 1];
-    return { start: t.s, end: t.e, prefix: '', suffix: '', present: true,
-             text: src.slice(t.s, t.e), value: t.v };
-  }
-  // Where a new one goes: in front of the attribute tail when there is one,
-  // like every other trailing option, because `bars b "…" {.tone-1} emph 1`
-  // reads like a mistake and the author has to live in this file.
-  const tail = toks.find((x) => x.attr);
-  let at = el.span[1];
-  if (tail) { at = tail.s; while (at > el.span[0] && /\s/.test(src[at - 1])) at--; }
-  return { start: at, end: at, prefix: ' ' + attr + ' ', suffix: '',
-           present: false, text: '', value: '' };
-}
-
-// Which side of its members a brace sits on: `brace b over a,z right "…"`. A
-// bare word off a closed list, like `stacked` on a chart, so createSpanTable
-// has no entry for it – and with no span there was no control, which left the
-// one option that decides where a brace *is* reachable only by typing.
-//
-// The word is the first token after the member list, and the list is what
-// makes this worth a shim rather than a scan: `over a,b` is one token and
-// `over a, b` is two, so the run has to be walked rather than counted. A
-// member actually named `right` cannot be mistaken for the side, because the
-// token before it then carries the comma that keeps it inside the run.
-function dgeSideSpan(ctx, id) {
-  const el = dgeFind(id, ctx.model);
-  if (!el || el.kind !== 'brace' || !el.span) return null;
-  const src = ctx.source;
-  const toks = window.PSI_DG.dgTokenize(src.slice(el.span[0], el.span[1]), el.span[0]);
-  const bare = toks.filter((x) => !x.q && !x.attr);
-  const over = bare.findIndex((x) => x.v === 'over');
-  if (over < 0 || !bare[over + 1]) return null;
-  let k = over + 1;
-  while (k + 1 < bare.length && bare[k].v.endsWith(',')) k++;
-  const after = bare[k + 1];
-  if (after && window.PSI_DG.DG_BRACE_SIDES.includes(after.v)) {
-    return { start: after.s, end: after.e, prefix: '', suffix: '', present: true,
-             text: src.slice(after.s, after.e), value: after.v };
-  }
-  // Where a new one goes: straight after the members, which is where the
-  // grammar reads it and where anyone writing the line by hand would put it.
-  const at = bare[k].e;
-  return { start: at, end: at, prefix: ' ', suffix: '', present: false, text: '', value: '' };
-}
-
 // One question, two callers: the panel asks it against DGE, a gesture against
 // the state it started from (dgeGestureBase). Both carry a source, a model and
-// a span table under those names, so neither has to know about the shims.
+// a span table under those names.
+//
+// This used to carry two shims and now carries none, which is the point. `col`
+// and the prominence words were keyword options whose value is a comma list,
+// and `side` was a brace's bare positional word; neither was in the compiler's
+// own tables, so the editor read the line a second way to reach them. Both
+// names are ordinary keyed options now – `dgeListSpan` and `dgeSideSpan` are
+// deleted rather than left as a second reading of one line, which is what
+// dgeListSpan's own header comment asked for.
 function dgeSpanIn(ctx, id, attr) {
-  const sp = ctx.spans.spanOf(id, attr);
-  if (sp) return sp;
-  if (window.PSI_DG.DG_LIST_OPTS.has(attr)) return dgeListSpan(ctx, id, attr);
-  if (attr === 'side') return dgeSideSpan(ctx, id);
-  return null;
+  return ctx.spans.spanOf(id, attr);
 }
 const dgeSpanOf = (id, attr) => dgeSpanIn(DGE, id, attr);
 
@@ -5126,6 +5445,152 @@ function dgeWriteAttr(id, attr, value, quoted) {
   // table describing text that is gone, and the next edit splices at offsets
   // that have moved.
   dgeSetSource(next);
+}
+
+// ── identity: the element's own name ────────────────────────────────
+// Item 9 put every name in the same place – the second token on most
+// statements, the optional token before the from-token on an `edge` and a
+// `sequence` message – and this is the control that follows it there. Renaming
+// was the one edit no kind had, and it is the one edit a text editor is worst
+// at: a name is a reference target, so changing it by hand means finding every
+// endpoint, placement, coordinate, member list and step target that says it,
+// and missing one is a dangling reference three lines further down.
+
+// Which statements may be left unnamed. Only the two whose name slot is
+// optional; everywhere else the name is the mandatory second token and
+// clearing it leaves a statement with no subject.
+const dgeNameOptional = (el) => !!el && el.kind === 'edge';
+
+// Whether the name the model is showing is the author's. `named` is the
+// compiler's own flag – false on a generated `edge-N` and on a generated
+// sequence-message id, true on an explicit one – and it is what the panel must
+// ask. An id pattern cannot answer this: an edge the author called `edge-2`
+// and a generated `edge-2` are the same string, and pinning the second into
+// the source is exactly what item 27 forbids. Statements whose name is
+// mandatory carry no flag, because the question cannot arise there.
+const dgeIsNamed = (el) => !!el && el.named !== false;
+
+// The whole rename, as two maps. Element ids first: a statement that expands
+// – a `table`, a `lanes`, a `sequence`, a chart – owns generated names built
+// out of its own, and those are the ones the compiler marks synthetic and
+// stamps with the owner. An author's own `sq-extra` is not one of them and is
+// left alone. Then the generated *tags*, through the compiler's own
+// generators rather than by matching a prefix, because a naming scheme is a
+// table and both files have to agree on it exactly.
+function dgeRenameMap(id, next) {
+  const P = window.PSI_DG;
+  const ids = new Map([[id, next]]);
+  const tags = new Map();
+  const m = DGE.model;
+  for (const el of [...m.nodes, ...m.edges, ...m.containers, ...m.braces]) {
+    if (!el.synth || el.synth === el.id) continue;
+    // Prefix plus synthetic, not `synth === id`. A lifeline is `u-life` for
+    // the actor `u` and its `synth` is the *sequence*, so keying on the owner
+    // alone would leave `u-life` behind when `u` is renamed and the block
+    // would stop compiling. Names are unique, so a synthetic `X-…` can only
+    // have been generated from the X being renamed.
+    if (!el.id.startsWith(id + '-')) continue;
+    ids.set(el.id, next + el.id.slice(id.length));
+  }
+  const has = (t) => m.tags && m.tags.has(t);
+  for (const gen of ['dgMsgsTag', 'dgNotesTag', 'dgActorsTag', 'dgLivesTag']) {
+    if (P[gen] && has(P[gen](id))) tags.set(P[gen](id), P[gen](next));
+  }
+  for (const gen of ['dgMsgTag', 'dgRowTag', 'dgColTag']) {
+    if (!P[gen]) continue;
+    for (let i = 0; has(P[gen](id, i)); i++) tags.set(P[gen](id, i), P[gen](next, i));
+  }
+  return { ids, tags };
+}
+
+// One atomic source edit, through the one door. Validate first – an
+// identifier the grammar refuses, a reserved word, or a name already taken are
+// three things the author can be told without touching the source at all – and
+// leave the rest to the compiler: anything still naming a name that has moved
+// stops the block compiling and dgeSetSource puts it all back.
+function dgeRename(id, raw) {
+  const next = String(raw == null ? '' : raw).trim();
+  const el = dgeLineOwner(id);
+  const sp = dgeSpanOf(id, 'name');
+  if (!el || !sp) return;
+  const say = (msg) => { dgeStatus('', msg, true); dgeRenderSide(); };
+  if (!next) {
+    // Clearing an optional name takes the token off; the compiler decides
+    // whether anything still needed it. A mandatory name has nothing to fall
+    // back to, so the field says so rather than writing a line that cannot
+    // parse and being rolled back a moment later.
+    if (!dgeNameOptional(el)) {
+      return say(`${el.kind} ${id} is named by its statement – every kind but an edge is. `
+        + 'A name here can be changed, not removed.');
+    }
+    if (!sp.present) return;
+    let start = sp.start;
+    const lead = DGE.source.slice(0, start).match(/[ \t]+$/);
+    let end = sp.end;
+    const trail = DGE.source.slice(end).match(/^[ \t]+/);
+    if (trail) end += trail[0].length; else if (lead) start -= lead[0].length;
+    if (dgeSetSource(DGE.source.slice(0, start) + DGE.source.slice(end))) {
+      dgeStatus('', 'the name is off the line – it is an anonymous edge again');
+    }
+    return;
+  }
+  if (next === id) return;
+  if (!/^[A-Za-z_][\w-]*$/.test(next)) {
+    return say(`"${next}" is not a name – letters, digits, _ and -, starting with a letter or _.`);
+  }
+  if ((window.PSI_DG.DG_RESERVED_IDS || new Set()).has(next)) {
+    return say(`"${next}" is reserved – the runtime keys its own state by element name, `
+      + 'so a name that shadows Object.prototype reads a prototype member where it expects an entry.');
+  }
+  if (DGE.model.byId.has(next)) {
+    return say(`"${next}" is already the name of something in this figure.`);
+  }
+  // Naming an anonymous edge or message: one insertion, in front of the
+  // from-token, which is where the span table's absent case points. Nothing
+  // refers to a generated name, so there is nothing else to rewrite.
+  if (!sp.present) {
+    const ok = dgeSetSource(DGE.source.slice(0, sp.start)
+      + sp.prefix + next + sp.suffix + DGE.source.slice(sp.end));
+    if (ok) { dgeSelect([next]); dgeStatus('', `named ${next} – it can be referred to now`); }
+    return;
+  }
+  const map = dgeRenameMap(id, next);
+  const also = map.ids.size - 1 + map.tags.size;
+  if (dgeSetSource(dgeRenameIn(DGE.source, map.ids, map.tags))) {
+    dgeSelect([next]);
+    dgeStatus('', `${id} is ${next}, in every line that named it`
+      + (also ? ` – and ${also} name(s) the statement generates from it` : ''));
+  }
+}
+
+// The field itself. Offered wherever the span table hands out a name, which is
+// every source-owned element and nothing else: a chart's columns, a table's
+// cells and a lane's bands have no name token of their own and get none here.
+function dgeIdentityPane(el) {
+  const id = el.id;
+  const sp = dgeSpanOf(id, 'name');
+  if (!sp) return null;
+  // A `note`'s second token is the actor it hangs on, not a name – the
+  // statement generates the note's id – so a field here would offer to rename
+  // somebody else's element under this one's heading.
+  if (el.entry === 'note') return null;
+  const named = dgeIsNamed(el) && sp.present;
+  return dgeEl('div', {}, [
+    dgeEl('h3', { text: 'name' }),
+    dgeEl('input', {
+      type: 'text',
+      value: named ? sp.value : '',
+      placeholder: named ? '' : id,
+      onchange: (e) => dgeRename(id, e.target.value),
+    }),
+    dgeEl('div', { class: 'dge-hint', text: named
+      ? 'Renaming rewrites every line that names it – endpoints, placements, coordinates, '
+        + 'member lists, step targets – in one edit. Anything left dangling is refused and '
+        + 'nothing is written.'
+      : `${id} is generated, and it is positional: insert a line above and it becomes `
+        + 'something else. Type a name and it goes in front of the first endpoint, where '
+        + 'every other statement puts one. Leave it empty and nothing is written to the line.' }),
+  ]);
 }
 
 // The beat you are standing on: what it is called, what it does, and the four
@@ -5179,11 +5644,15 @@ function dgeStepPane() {
   }
   wrap.appendChild(does);
 
-  // The acts, on the selection.
+  // The acts, on the selection – and after item 1 they are the two that have
+  // no class row to fold into. Prominence used to be here as well, as an
+  // `emph` button and a `calm` button: one channel with four states, offered
+  // in this pane as two buttons and in the look pane as four swatches, under
+  // two different spellings. It is the prominence row alone now, which writes
+  // the verb into this step when you are standing on a beat.
   const acts = dgeEl('div', { class: 'dge-chips' });
   const sel = DGE.selection.slice();
-  for (const [op, why] of [['show', 'bring in'], ['hide', 'take away'],
-    ['emph', 'emphasise'], ['calm', 'push back']]) {
+  for (const [op, why] of [['show', 'bring in'], ['hide', 'take away']]) {
     acts.appendChild(dgeEl('button', {
       type: 'button', class: 'dge-chip', text: op,
       disabled: !sel.length,
@@ -5220,9 +5689,20 @@ function dgeStepPane() {
   // worst way to learn otherwise.
   wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
     'A drag at this beat writes a move into the step rather than changing where '
-    + 'the element is placed. The look and the label below are not part of the '
-    + 'step: they edit the opening picture, and a style or label op still wins '
-    + 'over them here. Write one with a step line of its own.' }));
+    + 'the element is placed, and so do the prominence and arrowhead rows below. '
+    + 'The rest of the look, and the label, are not part of the step: they edit '
+    + 'the opening picture, and a style or label op still wins over them here. '
+    + 'Write one with a step line of its own.' }));
+  // The other half of item 11's rule, and the panel is the only place either
+  // half is legible: nothing else in the editor knows about print, and the
+  // frame segment offers a button captioned "print" that is a width and not a
+  // state. Prominence written into a step is a lecture-time act and the
+  // handout does not show it; prominence written on the element's own line is
+  // part of the drawing and does. Which line the word is on is the only thing
+  // that decides, so these two sentences are the whole account.
+  wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
+    'Prominence set here is a lecture-time act – the printed handout shows the '
+    + 'prominence the element opens with, not the one this beat leaves it at.' }));
   return wrap;
 }
 
@@ -5232,7 +5712,8 @@ function dgeBeatNote() {
   if (!DGE.beat || !DGE.model || !DGE.model.steps[DGE.beat - 1]) return;
   dgeStatus('', 'Written on the element\u2019s own line, which is the opening picture \u2013 not '
     + 'into step \u201c' + DGE.model.steps[DGE.beat - 1].name + '\u201d. A style or label op in '
-    + 'this or an earlier step still wins over it here.', false);
+    + 'this or an earlier step still wins over it here \u2013 and this is the prominence the '
+    + 'printed handout will show.', false);
 }
 
 // The positional tokens, per statement, as named fields. Each entry is the
@@ -5287,14 +5768,18 @@ const DGE_DATA_FIELDS = {
 // The list-valued options, and what each list is of. A placeholder reading
 // "auto" is right for a number that a `default` might supply and wrong here,
 // where nothing supplies one and the question is what to type.
-const DGE_LIST_HINT = {
-  col: 'one width per column · 1.5,0.9',
-  emph: 'column numbers from 0 · 1,3',
-  calm: 'column numbers from 0 · 0,2',
-};
+// The three prominence words are the same three everywhere – the class list,
+// the step verbs and these – so the hint is generated for whatever
+// DG_PROMINENCE holds rather than typed out per word. `calm` used to be here,
+// a fourth name for a three-word dial with no class behind it.
+function dgeListHint(key) {
+  if (key === 'col') return 'one width per column · 1.5,0.9';
+  if ((window.PSI_DG.DG_PROMINENCE || []).includes(key)) return 'column numbers from 0 · 1,3';
+  return null;
+}
 
-// How many of the thing its `h` measures a `table` or a `lanes` repeats.
-// Counted off the elements the statement expanded into, through the
+// How many of the thing its `row` / `band` measures a `table` or a `lanes`
+// repeats. Counted off the elements the statement expanded into, through the
 // compiler's own name generators, because that is the one reading that cannot
 // disagree with the drawing – the source has the rows on separate lines and
 // the lanes inside one string.
@@ -5461,6 +5946,81 @@ function dgeTagLegend() {
   return wrap;
 }
 
+// ── a leader's own token ────────────────────────────────────────────
+// A free `text` or an `image` can grow a stub to the thing it annotates, and
+// the token that writes it is the edge's: `--` for a plain stub, `->` for one
+// that points. It used to be `->` for the plain one, drawing no head, with
+// `--` refused outright – one token, two meanings chosen by the statement it
+// sat on – so a leader that points did not exist and there was no control
+// here either, because the token had no span to address.
+//
+// Not a swatch in the `look` rows and not an element in the list: the leader is
+// an aspect of a `text` statement rather than something named, so it has no
+// class slot to sit in and no step target of its own. That last part is why
+// the row is inert away from beat 0 – a beat says things about elements, and
+// the leader is not one, so the only line a click could write would change the
+// opening drawing from inside a step that promises not to.
+//
+// `<-` and `<->` are refused on a leader by the compiler – the words are
+// always one end of it – so the row offers two choices and not four.
+function dgeLeaderPane() {
+  if (!DGE.selection.length || !DGE.spans) return null;
+  const els = DGE.selection.map((id) => dgeFind(id)).filter(Boolean);
+  if (els.length !== DGE.selection.length) return null;
+  // Hidden if any selected element has no leader: the row acts on all of them
+  // in one transaction, so a mixed selection would be a click that means
+  // something for half of it.
+  const spans = els.map((el) => (el.leaderArrow ? DGE.spans.spanOf(el.id, 'leaderArrow') : null));
+  if (spans.some((sp) => !sp || !sp.present)) return null;
+  let now;
+  for (const el of els) {
+    if (now === undefined) now = el.leaderArrow;
+    else if (now !== el.leaderArrow) { now = null; break; }   // mixed: neither pressed
+  }
+  const atBeat = DGE.beat > 0;
+  const row = dgeEl('div', { class: 'dge-swatches' });
+  for (const [tok, label] of [['--', 'plain'], ['->', 'points']]) {
+    row.appendChild(dgeEl('button', {
+      type: 'button', class: 'dge-sw',
+      'aria-pressed': String(now === tok),
+      disabled: atBeat || null,
+      title: tok === '--' ? 'a stub that touches what it points at, and draws no head'
+        : 'a stub with an arrowhead on it',
+      text: label,
+      onclick: () => dgeSetLeaderArrow(tok),
+    }));
+  }
+  return dgeEl('div', {}, [
+    dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'leader' }), row]),
+    dgeEl('div', { class: 'dge-hint', text: atBeat
+      ? 'A leader has no step target of its own, so this would change the opening drawing '
+        + 'rather than this beat. Go to beat 0 to change it.'
+      : 'The stub from these words to what they are about. It takes the edge’s own '
+        + 'tokens and means the same by them; a leader always points away from the words, '
+        + 'so there is no reverse.' }),
+  ]);
+}
+
+// One transaction over every selected line, through the recorded spans. It
+// never searches for arrow-shaped text: `->` occurs inside labels, inside
+// edge statements and inside comments, and a regex over the block would find
+// all three. The span table knows which token is this statement's leader.
+function dgeSetLeaderArrow(tok) {
+  const splices = [];
+  for (const id of DGE.selection) {
+    const sp = DGE.spans.spanOf(id, 'leaderArrow');
+    if (!sp || !sp.present || sp.value === tok) continue;
+    splices.push({ start: sp.start, end: sp.end, text: tok });
+  }
+  if (!splices.length) return;
+  const next = dgeApplySplices(splices);
+  if (next && dgeSetSource(next)) {
+    dgeStatus('', tok === '->'
+      ? 'the leader points now – ' + splices.length + ' line(s)'
+      : 'the leader is a plain stub again – ' + splices.length + ' line(s)');
+  }
+}
+
 // The placement, as three answers rather than one opaque phrase.
 function dgePlacementPane(el) {
   const wrap = dgeEl('div', {});
@@ -5489,11 +6049,15 @@ function dgePlacementPane(el) {
       dgeEl('button', { type: 'button', class: 'dge-btn', text: 'at ' + here(),
         onclick: () => write('at ' + here(), 'writes the placement out') }),
       others.length ? dgeEl('button', { type: 'button', class: 'dge-btn', text: 'beside ' + others[0],
-        onclick: () => write(dgePlaceText('right', others[0], 0.6)) }) : null,
+        onclick: () => write(dgePlaceText('right', others[0], DGE_DOCK_GAP)) }) : null,
     ]));
     return wrap;
   }
 
+  // The clearance a placement written from nothing takes is DGE_DOCK_GAP,
+  // shared with the docking chips rather than typed here: it was 0.6 in two
+  // places and 0.4 in the third, and once a gap became square all three drew a
+  // hair instead of a gutter. One number, one reason.
   const kinds = dgeEl('div', { class: 'dge-chips' });
   const kindOf = p.kind === 'rel' ? 'beside' : p.kind === 'between' ? 'between' : 'at';
   for (const [key, label] of [['at', 'at x,y'], ['beside', 'beside'], ['between', 'between two']]) {
@@ -5508,7 +6072,7 @@ function dgePlacementPane(el) {
         if (key === 'at') return write('at ' + here());
         if (key === 'beside') {
           const ref = (p.kind === 'between' && p.refs[0] && p.refs[0].ref) || others[0];
-          if (ref) write(dgePlaceText('right', ref, 0.6));
+          if (ref) write(dgePlaceText('right', ref, DGE_DOCK_GAP));
           return;
         }
         const a = p.kind === 'rel' ? p.ref : others[0];
@@ -5536,7 +6100,13 @@ function dgePlacementPane(el) {
             onchange: (e) => {
               const v = e.target.value.trim();
               // Not a drop: an `at` with nothing after it is not a placement,
-              // and the keyword left standing does not parse.
+              // and the keyword left standing does not parse. Kept rather than
+              // handed to the compiler, whose answer here is `at expects X,Y –
+              // got ""`: correct, but it describes the shape of a coordinate
+              // and says nothing about the thing a panel user emptying this
+              // field most likely wants, which is to stop placing the element
+              // by coordinate at all. The kind row above is where that lives,
+              // and only the panel can point at it.
               if (!v) {
                 dgeStatus('', 'A coordinate is two values separated by a comma – 1.5,2 – '
                   + 'or drop the placement with one of the other kinds above.', true);
@@ -5564,6 +6134,34 @@ function dgePlacementPane(el) {
       }));
     }
     wrap.appendChild(dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'side' }), dirs]));
+
+    // Which cross-axis edge of the reference the new element lines up with.
+    // This is the option with the most corpus traffic and it had no control at
+    // all: no field, no swatch, no chip, written only by a cross-axis drag and
+    // drawn as a hairline the canvas captioned `align x left` – the *other*
+    // construct, under the same word. It is `flush` now, and a closed word list
+    // is a swatch row here the same way `point` and `side` are.
+    //
+    // Two lists sharing their middle entry, straight off the compiler's own
+    // sets, because the centre of an axis is one word on both axes. `middle`
+    // writes nothing: it is the value the parser defaults to, so the swatch
+    // takes the token off rather than restating it, which is what every other
+    // "this is the plain case" swatch in this panel does.
+    const flushOK = [...((p.dir === 'right' || p.dir === 'left')
+      ? window.PSI_DG.DG_ALIGN_Y : window.PSI_DG.DG_ALIGN_X)];
+    const flushRow = dgeEl('div', { class: 'dge-swatches' });
+    for (const w of flushOK) {
+      flushRow.appendChild(dgeEl('button', {
+        type: 'button', class: 'dge-sw',
+        'aria-pressed': String((p.align || 'middle') === w),
+        title: w === 'middle' ? 'centred on ' + p.ref + ' – the plain case, and no word on the line'
+          : `flush ${w} – this element’s ${w} edge lines up with ${p.ref}’s`,
+        text: w,
+        onclick: () => dgeWriteAttr(el.id, 'flush', w === 'middle' ? '' : w),
+      }));
+    }
+    wrap.appendChild(dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'flush' }), flushRow]));
+
     const row = dgeEl('div', { class: 'dge-nums' }, [
       dgeEl('label', { class: 'dge-num' }, [
         dgeEl('span', { text: 'of' }),
@@ -5581,6 +6179,13 @@ function dgePlacementPane(el) {
           type: 'text', value: dgeNum(p.gap),
           // Refuse what is not a number instead of silently writing 0 –
           // `Number('0.,4') || 0` collapsed a typo into "no gap at all".
+          //
+          // This one is **not** the compiler's to answer, whatever it now says
+          // about `gap x` written in the source. The field is converted to a
+          // number before anything is written, so the compiler never meets the
+          // bad token: dgePlaceText renders NaN through dgeNum as "0" and the
+          // line comes out `right of a gap 0`, which is legal and silent.
+          // Measured: `box b "B" right of a gap 0` compiles clean.
           onchange: (e) => {
             const n = Number(e.target.value.trim());
             if (!e.target.value.trim() || !Number.isFinite(n)) {
@@ -5615,7 +6220,9 @@ function dgePlacementPane(el) {
       dgeEl('span', { text: 'frac' }),
       dgeEl('input', {
         type: 'text', value: dgeNum(p.frac),
-        // Same refusal as the gap field: a typo is not the number 0.
+        // Same refusal as the gap field, and it stays for the same reason: the
+        // value is written through dgeNum, so a typo reaches the source as
+        // `frac 0` – a legal fraction the compiler has nothing to say about.
         onchange: (e) => {
           const n = Number(e.target.value.trim());
           if (!e.target.value.trim() || !Number.isFinite(n)) {
@@ -5700,6 +6307,20 @@ function dgeSourcePane() {
     for (const w of DGE.warnings || []) {
       box.appendChild(dgeEl('div', { class: 'dge-warn', text: w }));
     }
+    wrap.appendChild(box);
+  }
+  // The edit that was refused, headed as not applied so it cannot be read as a
+  // complaint about the text above it. **No line numbers, and no marking in
+  // the pane**: those numbers belong to the rejected text while the pane is
+  // showing the restored text, so marking line 7 of the source on screen for a
+  // problem on line 7 of a source that no longer exists is a new way to
+  // mislead – the same reason the status bar names no line either.
+  if ((DGE.refusal || []).length) {
+    const box = dgeEl('div', { class: 'dge-problems dge-refused' });
+    box.appendChild(dgeEl('b', { text: DGE.refusal.length === 1
+      ? 'not applied · the edit was rolled back'
+      : `not applied · the edit was rolled back, ${DGE.refusal.length} problems` }));
+    for (const p of DGE.refusal) box.appendChild(dgeEl('div', { text: p.msg }));
     wrap.appendChild(box);
   }
   return wrap;
@@ -5889,13 +6510,22 @@ function dgeAddStep() {
 // `dgeStepMove` uses – after the step's last op, or straight after the `step`
 // line when it has none – so the source reads in the order the ops run.
 function dgeAddStepOp(op, ids) {
+  if (ids.length) dgeAddStepLines([`${op} ${ids.join(', ')}`]);
+}
+
+// Several ops at once, in one splice. A class row standing on a beat can need
+// more than one line – two elements at two different prominences need two
+// different negations to reach the same look – and writing them one at a time
+// would recompile between them, so the second would be planned against a model
+// the first had already moved.
+function dgeAddStepLines(lines) {
   const step = DGE.model && DGE.model.steps[DGE.beat - 1];
-  if (!step || !ids.length) return;
+  if (!step || !lines.length) return;
   const indent = (DGE.source.split('\n')[step.line] || '  ').match(/^\s*/)[0] || '  ';
   const at = step.ops.length ? step.ops[step.ops.length - 1].span[1] : step.span[1];
-  const text = `${op} ${ids.join(', ')}`;
-  dgeSetSource(DGE.source.slice(0, at) + '\n' + indent + text + DGE.source.slice(at));
-  dgeStatus(text, 'written into step “' + step.name + '”');
+  const text = lines.map((l) => '\n' + indent + l).join('');
+  dgeSetSource(DGE.source.slice(0, at) + text + DGE.source.slice(at));
+  dgeStatus(lines.join(' · '), 'written into step “' + step.name + '”');
 }
 
 function dgeRemoveStepOp(k) {
@@ -5916,8 +6546,20 @@ function dgeRenameStep(k, name) {
   const step = DGE.model && DGE.model.steps[k];
   if (!step) return;
   const clean = String(name).trim().replace(/\s+/g, '-');
-  if (!/^[A-Za-z_][\w-]*$/.test(clean)) {
-    dgeStatus('', 'A step name is letters, digits, _ and - , starting with a letter.', true);
+  // The rule is the compiler's, imported rather than restated: the panel used
+  // to be the only place it was written down, so a name typed here was checked
+  // and the same name written into the source was not. Now DG_STEP_NAME is one
+  // text and the two cannot judge a name differently.
+  //
+  // The guard stays rather than being dropped for the rollback, because of the
+  // one case the compiler cannot see: an emptied field writes `step` with no
+  // name at all, which compiles clean and silently renames the beat to
+  // `step-3`. Nothing would be rolled back and nothing would be said.
+  if (!window.PSI_DG.DG_STEP_NAME.test(clean)) {
+    dgeStatus('', clean
+      ? `"${clean}" is not a step name – it starts with a letter or an underscore, `
+        + 'then takes letters, digits, underscores or hyphens.'
+      : 'A step needs a name – emptying the field would leave the beat with a generated one.', true);
     return;
   }
   const text = DGE.source.slice(step.span[0], step.span[1]);
@@ -5990,11 +6632,19 @@ function dgeStepMove(ctx, id, dx, dy, place) {
 //
 // This is what makes a step legible on the canvas: without it the only way to
 // find out what a beat changes is to press Space and watch.
-const DGE_VERBS = [
+// A function rather than a constant, because one row of it is generated from
+// the compiler's own table and that table is not on `window` yet when this
+// module's constants are evaluated.
+const dgeVerbs = () => [
   ['appears', (a, b) => !a.visible && b.visible],
   ['goes', (a, b) => a.visible && !b.visible],
-  ['emphasised', (a, b) => !a.classes.has('emph') && b.classes.has('emph')],
-  ['calmed', (a, b) => !a.classes.has('dim') && b.classes.has('dim')],
+  // One clause per prominence word, generated rather than listed: the
+  // hardcoded pair reported "calmed" for `.dim`, a fourth name for a channel
+  // whose three settings the grammar now spells one way each, and it had
+  // nothing at all to say about `.ghost`.
+  ...dgeProminenceWords().reverse().map((c) => [
+    { emph: 'emphasised', dim: 'dimmed', ghost: 'ghosted' }[c] || c + 'ed',
+    (a, b) => !a.classes.has(c) && b.classes.has(c)]),
   ['relabelled', (a, b) => a.label !== b.label],
   ['moves', (a, b) => a.shift[0] !== b.shift[0] || a.shift[1] !== b.shift[1] || a.place !== b.place],
   ['restyled', (a, b) => [...b.classes].join(' ') !== [...a.classes].join(' ')],
@@ -6017,13 +6667,14 @@ function dgeStepChanges(beat) {
   if (!DGE.model || !beat || beat > DGE.model.steps.length) return out;
   const before = window.PSI_DG.dgStateAt(DGE.model, beat - 1);
   const after = window.PSI_DG.dgStateAt(DGE.model, beat);
+  const verbs = dgeVerbs();
   for (const [id, b] of after) {
     const a = before.get(id);
     if (!a) continue;
     // First verb that fits, not all of them: an element that appears has
     // every class it will ever have "gained", and listing that as a restyle
     // as well says nothing.
-    const verb = DGE_VERBS.find(([, test]) => test(a, b));
+    const verb = verbs.find(([, test]) => test(a, b));
     if (verb) out.set(id, verb[0]);
   }
   const fr = DGE.frames;
@@ -6328,10 +6979,23 @@ function dgeCopy() {
 // label. A regex over the raw text cannot tell the two apart: copying
 // `box mix "the mix of a and b"` into a figure that already has `mix` turned
 // the caption into "the mix2 of a2 and b". So this tokenizes each line and
-// rewrites only the tokens that can hold a *name* – bare tokens, and the
-// `#id` inside an attribute tail. A quoted token is never one of them.
-function dgeRenameIn(text, rename) {
-  const alt = [...rename.keys()]
+// rewrites only the tokens that can hold a *name*, and a quoted token is never
+// one of them. Two callers: a paste, which renames to dodge a collision, and
+// the name field, which renames because that is what it is for.
+//
+// **A tag is not an element name**, and `tags` is a second map rather than the
+// same one because the two live in different namespaces. `style @mix` is a
+// bare token that reads `@mix`, so one map renamed a *tag* called `mix` when
+// an *element* called `mix` was the thing being renamed – a silent wrong edit
+// on a line the compiler had no reason to object to. The character in front of
+// the match is what tells them apart, and it is already captured.
+//
+// The `#id` half of an attribute tail is gone with `{#id}` itself: item 9 moved
+// every name to a token of its own, so a tail holds classes, removals and tags
+// and none of the three is a name.
+function dgeRenameIn(text, rename, tags) {
+  const tagMap = tags || new Map();
+  const alt = [...rename.keys(), ...tagMap.keys()]
     .sort((a, b) => b.length - a.length)
     .map((n) => n.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&'))
     .join('|');
@@ -6339,19 +7003,21 @@ function dgeRenameIn(text, rename) {
   // A name is bounded by anything that cannot be part of one. Element names
   // are letters, digits, _ and -, which is what makes this exact.
   const re = new RegExp('(^|[^\\w-])(' + alt + ')(?![\\w-])', 'g');
-  const swap = (str) => str.replace(re, (m, pre, name) => pre + (rename.get(name) || name));
+  const swap = (str) => str.replace(re, (m, pre, name) =>
+    pre + ((pre === '@' ? tagMap : rename).get(name) || name));
   return text.split('\n').map((line) => {
     const toks = window.PSI_DG.dgTokenize(line, 0);
     const edits = [];
     for (const t of toks) {
+      // A comment runs to the end of the line, and dgTokenize does not strip
+      // one – it hands `#` back as a bare token and every word after it as
+      // another. Measured: a rename of an element called `a` rewrote the word
+      // "a" inside the German prose comments of `lectures/network-security`,
+      // which compiles perfectly and is nonsense. A name is a name only before
+      // the hash.
+      if (!t.q && !t.attr && t.v.startsWith('#')) break;
       if (t.q) continue;                       // a label is not a name
-      if (t.attr) {
-        // Only the #id half of the tail: a .class is vocabulary and an @tag
-        // is a set, and neither is an element name.
-        const inner = t.v.replace(/#([A-Za-z_][\w-]*)/g, (m, n) => '#' + (rename.get(n) || n));
-        if (inner !== t.v) edits.push({ start: t.s + 1, end: t.e - 1, text: inner });
-        continue;
-      }
+      if (t.attr) continue;                    // classes, removals and tags
       const next = swap(t.v);
       if (next !== t.v) edits.push({ start: t.s, end: t.e, text: next });
     }

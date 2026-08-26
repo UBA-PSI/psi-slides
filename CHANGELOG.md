@@ -9,13 +9,147 @@ from building the same way is a major version.
 
 ### Added
 
-- **An edge label can sit on either side of its line.** All four alignment
-  words now name a side: `.top` / `.bottom` beside a horizontal edge,
-  `.left` / `.right` beside a vertical one, and `.turn` stands the words on
-  end beside it. Two parallel edges can therefore carry a label each without
-  the reader having to guess which line the lower one belongs to. Which pair
+- **`{!class}` takes a class off.** In an element's tail, in a `default` tail
+  and in a `style` step. A step could only ever add one, and many slots express
+  their base state as the absence of every member – normal prominence, a solid
+  stroke, a regular size and family – so a beat could leave that state and
+  never return, and an element could not opt out of a `default box {.dim}` on
+  its own line either. One mark closes both, where a named neutral per slot
+  would have been a word per look. It removes the exact name and not the slot:
+  `!dim` does not clear `.ghost`, and a later layer may add `.dim` back. Layers
+  resolve weakest first, removals before additions, so `{.c !c}` in one tail is
+  refused – there is no order under which the removal is not dead – while
+  `style e {!dashed}` at beat 2 and `style e {.dashed}` at beat 4 compose the
+  way an author reads them. A `style` with nothing to add and nothing to remove
+  is an error, because both spellings of it used to be accepted and both did
+  nothing.
+
+- **An element's name goes in front of the statement, and `{#id}` is gone.**
+  On a box, dot, text, image, container, brace or a chart the name was always
+  the word after the statement. The tail form existed for the two constructs
+  with no name slot, and it put the name *last*, after the options, where
+  neither a reader nor a language model looks for it – and on every statement
+  that did not honour it the id parsed, validated and was thrown away without a
+  word, so `box a "A" {#zz}` followed by a reference to `zz` reported that `zz`
+  was not defined. An `edge` and a `sequence` message take an optional name in
+  the slot **before** the from-endpoint: `edge wire p -> q`. It reads by
+  counting rather than by lookahead, because every endpoint form is exactly one
+  token, and anonymous stays exactly as short as it was.
+
+- **Four arrow tokens, and every one of them says which ends carry a head.**
+  `--` none, `->` and `<-` one, `<->` one at each end. `<->` closes a gap that
+  made "a message is an edge" untrue in a `sequence`, where an unknown token
+  drops a line out of the entry run and every line beneath it then reports a
+  keyword nobody wrote. More importantly, `->` used to seed *nothing*: the head
+  arrived as the drawn default, so `default edge {.no-head}` beat a written
+  `->` while a written `--` beat `default edge {.both-heads}`, and precedence
+  depended on which token you happened to type. Every token now seeds a class –
+  `.no-head`, `.one-head`, `.both-heads`, one slot, three states – so no
+  default can win the channel, and a head class is refused in an element's tail
+  and in a `default edge` block. A `style` step is the one place to write one,
+  being the one place a token cannot be re-run.
+
+- **A leader takes the same tokens an edge does.** `text n "…" right of c gap
+  0.9 -- leak` is the plain stub, which is what every leader in the corpus was;
+  `-> leak` is a leader that points, which did not exist before. It used to be
+  written `->` and drew no head, so one token meant *a head* on an edge and *no
+  head* on a text, and the token that describes what a leader draws was refused
+  there. `<-` and `<->` are refused for a stated reason: a leader names one
+  operand and the words are always the other end.
+
+- **Prominence is one channel with three names in three positions.** A class
+  (`{.dim}`), a step verb (`dim a, b`), and a `bars` option taking column
+  indices (`dim 0,2`) – all three off one table, so learning one teaches the
+  others. It replaces `calm`, a verb that existed nowhere else in the grammar
+  and had no class behind it, and it gives `.ghost` a verb it never had.
+  `dim a` and `style a {.dim}` are now the same act everywhere, print included.
+  Going back to the unnamed normal is `{!emph}` / `{!dim}` / `{!ghost}`, not a
+  fourth word.
+
+- **Print's prominence for an element is the prominence it carries at the
+  opening beat.** *A prominence class on an element's own line is part of the
+  drawing and appears in the handout; a prominence set inside a `step` is a
+  lecture-time act and does not.* Everything else about print is unchanged –
+  still the last beat, still not the union, still keeping tones, labels and
+  visibility from the last beat. What it replaces was a provenance flag set by
+  the verb and cleared by the class, so `emph a` and `style a {.emph}` were
+  identical on screen and different on paper with nothing in the source to say
+  so; and it was recorded per element rather than per class, so any prominence
+  verb naming an element stripped a `{.dim}` the author had written on the
+  element's own line, and something declared to be background came out of the
+  printer as foreground. An arrowhead a step removed is no longer printed
+  either: print was the last beat's line with the opening beat's head, an
+  arrowhead sitting on an endpoint that was never shortened to receive it.
+
+- **One word, one meaning, across four pairs that had two.** The placement
+  option `align` is now **`flush`** – the statement keeps `align`, because that
+  is what the set operation is called in every drawing tool, and `flush` is the
+  word the prose already reached for when it explained the option. The centre
+  word is **`middle`** on both axes, so `align x center` becomes `align x
+  middle`; `center` stays as an anchor, where it names the centre of one
+  element. A `plot`'s tick interval is **`tick`**, not `step`, which is the
+  statement that opens a beat. And the per-unit height of a repeating thing is
+  **`row`** on a `table`, **`band`** on `lanes` and **`header`** on a
+  `sequence`, rather than `h`: on a box or a chart `h` is how tall the thing
+  is, and reading it that way on those three was wrong by a factor of the row
+  count, silently, in the direction that still draws a plausible picture. A
+  `table`'s `w` is the frame now, and writing it beside `col` is refused as one
+  number said twice.
+
+- **A `gap` is comparable with any other `gap`, whichever way it points.**
+  Every number in a figure is in that figure's own grid units, and there are
+  two families: a number that *addresses* the grid is axis-keyed, because a
+  cell has a width and a height, and a number that states a *clearance* is
+  square, with one row as its ruler. `gap` was the one clearance that was not –
+  multiplied by the cell's width across and its height down, so the same number
+  on two adjacent lines drew two distances with nothing in the source to say
+  so. Measured over the corpus, `gap 1` sideways was on median **2.9 times**
+  `gap 1` downwards, which silently breaks the first rule of figure layout:
+  even gaps say nothing, uneven gaps mean something. `space` on a `bars` and on
+  a `table` are square for the same reason – adding `horizontal` to a `bars`
+  line used to rescale its column spacing, and a table, whose whole promise is
+  regularity, put 30.0px between two columns and 10.4px between two rows at one
+  unit. Existing figures were migrated with the converted number written out.
+
+- **A class is legal on a kind exactly when that kind draws something it can
+  reach.** One table and one gate, replacing the two ad-hoc ones for outlines
+  and for label alignment, so `.hex` on an edge, `.elbow` on a box and `.left`
+  on a brace are all refused by the same rule and the refusal names the
+  question the class answers: *".hex is an outline, and an edge has nothing to
+  draw it with – it belongs on a box."* It reaches a `style` step too, where a
+  tag expands to members that may not all be able to take the class. And **two
+  classes from one slot in one attribute tail is an error**: both used to
+  survive parsing and both were emitted, so which one the reader saw was
+  decided by stylesheet order. The kind gate runs first and the slot check only
+  on what survives it, or an edge carrying two outline classes is told "an
+  element has one outline", which is false of an edge.
+
+- **Problems are reported in causal order, never in line order.** Four phases –
+  syntax, reference, semantic, layout – and the sort is by phase, stable within
+  one. A syntax failure can *manufacture* a dangling reference, and the reverse
+  never happens, so the cause is always in the earlier phase; a line number is
+  not evidence about cause, and sorting by it puts the manufactured symptom
+  first whenever the statement that caused it sits further down the block. This
+  matters most in the editor, which shows one problem and nothing else. In the
+  same pass, a statement that stopped reading early no longer earns a complaint
+  per remaining token plus one for the placement it never reached: `rightof a`
+  went from five problems to one.
+
+- **A `step` takes one name, spelled the way an element name is.** A second
+  token after it is an error naming what a step is.
+
+- **An edge label can sit on either side of its line, and `side <word>` says
+  which.** `side top` / `side bottom` beside a horizontal edge, `side left` /
+  `side right` beside a vertical one, and `.turn` stands the words on end
+  beside it. Two parallel edges can therefore carry a label each without the
+  reader having to guess which line the lower one belongs to. Which pair
   applies depends on the direction the edge ended up running, so naming the
-  pair that runs along it is a build warning rather than a parse error.
+  pair that runs along it is a build warning rather than a parse error. It is
+  a keyed option and not the four alignment classes, which on a box, a dot or
+  a free text are two independent channels – the same four words would have
+  meant two geometries chosen by kind, and `{.top .left}` on an edge would
+  have been writable although an edge has one side to pick. A brace's side is
+  `side <word>` too, for the one concept the two share.
 
 - **`::: diagram` draws five more outlines.** `.hex`, `.diamond`, `.chevron`,
   `.wedge` and `.cross` join `.round` and `.sharp` in one slot – a protocol
@@ -102,9 +236,10 @@ from building the same way is a major version.
   its own attribute tail: a series is a thing with a colour and a name, and one
   tail per series is how it gets one. A series refuses `w`, `h`, `space`, a
   placement and a tick strip by name, because all five belong to the chart it
-  joined. `emph 1,3` and `calm 4` on any `bars` line take column indices and
-  mean on the line what they already mean in a step, so a chart can *arrive*
-  with one column singled out instead of only from beat 1 onwards.
+  joined. `emph 1,3`, `dim 4` and `ghost 0` on any `bars` line take column
+  indices and mean on the line what they already mean in a step and as a
+  class, so a chart can *arrive* with one column singled out instead of only
+  from beat 1 onwards.
 - **`.elbow` routes an edge with one turn out and one turn in.** A rail halfway
   across the gap, on whichever axis the two ends are further apart, with both
   anchors forced onto that axis – the two waypoints every tree edge used to be
@@ -158,11 +293,11 @@ from building the same way is a major version.
   `unnumbered` is a checkbox.
 - **An edge's label can carry a ground.** A fill class on an `edge` draws a
   rect behind the label on the same terms a free `text`'s ground is drawn, and
-  `pad` is now a legal `edge` option. With no side named the label sits **on**
-  the line and knocks it out behind the words, which is what a sequence number
-  or a port wants; with `.top`, `.bottom`, `.left` or `.right` it clears the
-  line and carries the ground with it. Before this, `.paper` on an edge
-  resolved, emitted its class and drew nothing.
+  `pad` and `side` are now legal `edge` options. With no side named the label
+  sits **on** the line and knocks it out behind the words, which is what a
+  sequence number or a port wants; with a `side` it clears the line and
+  carries the ground with it. Before this, `.paper` on an edge resolved,
+  emitted its class and drew nothing.
 - **`figure-design.md`** – how to lay a figure out so a room reads it: ten
   rules with a wrong/right pair each, the tone-to-role table, the five
   arrangements a lecture keeps asking for (flowchart, swimlane, tree, table,
@@ -179,9 +314,10 @@ from building the same way is a major version.
   moves. Steps become beats on the existing reveal counter, so `Space`
   advances them, the speaker window follows, the freeze gate applies, and a
   revisited chunk comes back fully stepped, all without new state. Free
-  `text` can grow a leader line to whatever it comments on (`-> ref`), which
-  is what makes placement free without losing the connection. Print shows the
-  last beat, minus the live-only emphasis. There is **no automatic layout and
+  `text` can grow a leader line to whatever it comments on (`-- ref` plain,
+  `-> ref` pointing), which is what makes placement free without losing the
+  connection. Print shows the last beat, carrying each element's prominence
+  from the opening beat. There is **no automatic layout and
   no constraint solver**: placement
   is a grid cell or a relation to a neighbour, resolved as a DAG, so a
   mistake names its line instead of shifting the picture. `lint.js`
@@ -189,7 +325,7 @@ from building the same way is a major version.
   duplicate names and dangling references.
 
   `align x|y <edge> a,b,c` lines up one coordinate (Figma's edge words,
-  with the axis stated: left/center/right on x, top/middle/bottom on y) and `spread x|y a,…,z`
+  with the axis stated: left/middle/right on x, top/middle/bottom on y) and `spread x|y a,…,z`
   gives equal spacing between centres. Both are an extra dependency plus a
   coordinate override in the same topological walk – no solver, no second
   pass – and both name the line on a circular authoring instead of drawing
@@ -251,8 +387,8 @@ from building the same way is a major version.
   container and a brace – one word, one sentence, four statements. Every
   class now belongs to a slot: `.thick`/`.bare` and `.mono`/`.serif`/`.hand`
   used to stack with a `default` instead of displacing it. `.tone-4` with
-  `.accent` is accent ink on an accent fill; the inversion wins and
-  `lint.js` warns on the pair.
+  `.accent` is accent ink on an accent fill; the inversion wins and the build
+  warns where the pair is live in every beat.
 
   Inside a label, `_sub` / `^sup` shift a run and `*accent*` / `~muted~`
   colour one. Free `text` honours `.left` / `.right`, and its anchor
@@ -308,7 +444,7 @@ from building the same way is a major version.
   the options that kind's own statement accepts, so `default box r 5` is
   an error naming the kind it belongs to instead of a line that parses and
   does nothing, and `default container pad` / `default brace pad …
-  <side>` now reach the elements they are about. An element name is
+  side <word>` now reach the elements they are about. An element name is
   restricted to letters, digits, `_` and `-`, because a name with a dot in
   it is indistinguishable from a coordinate.
 
@@ -342,7 +478,7 @@ from building the same way is a major version.
   File System Access API: for *reading* a picked file that has always been
   enough, in every browser and from `file://`.
 
-  `.paper` is a 29th class, invented while building that picker. The fill
+  `.paper` joined the class vocabulary while that picker was being built. The fill
   swatch row opened with the *empty* class labelled "paper", so it meant
   "whatever a default says" – a box under `default box {.tone-3}` had no
   way back to the canvas colour, and a free `text` could not have a ground
@@ -350,7 +486,7 @@ from building the same way is a major version.
 
   `lint.js` was stricter than the build, which for the pre-commit gate is
   worse than not linting: its `between` scan did not terminate on `pad`,
-  `gap`, `align` or `same`, so a placement with any of them read their
+  `gap`, `flush` or `same`, so a placement with any of them read their
   values as members.
 
   Development state: this is unreleased work on a branch, and the
@@ -416,10 +552,10 @@ from building the same way is a major version.
 
   Written where it cannot act, one of those words is now an error rather than
   a class that resolves and moves nothing. A container's caption is placed on
-  its own top border and a brace's label beside the spine, so none of the four
-  applies to either. An edge carries its label at the middle of the line, so
-  `.top` and `.bottom` have nothing to move there, while `.left` and `.right`
-  still decide which side of that midpoint the words start from.
+  its own top border, a brace's label beside the spine and an edge's at the
+  middle of the route, so none of the four applies to any of the three – an
+  edge says which side of its line the label sits on with `side <word>`
+  instead.
 
   **An `align` or `spread` set can be left by dragging.** Pulling a follower
   against its shared axis holds it there, draws the axis, and says how much

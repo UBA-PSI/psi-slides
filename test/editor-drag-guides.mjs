@@ -173,7 +173,7 @@ export async function run({ page, errors, report, walkTo, ed }) {
 
   // ── the gap guide, in a step ──
   // tagA sits `below macA gap 0.14`; macA and ver1 both sit `gap 0.3`. The
-  // relation the guide proposes is the whole placement, align word included –
+  // relation the guide proposes is the whole placement, flush word included –
   // `move … to` sets a placement, so anything left off it is a thing the step
   // would silently reset.
   ok(await pick('tagA') === 'text tagA', 'the tag caption is selected', await ed.selection());
@@ -212,9 +212,9 @@ export async function run({ page, errors, report, walkTo, ed }) {
   await ed.beat(0);
   await page.evaluate(() => dgeSelect(['wire']));
   await page.waitForTimeout(340);
-  const wire0 = await ed.lineWith('#wire');
+  const wire0 = await ed.lineWith('edge wire ');
   note('before : ' + wire0);
-  ok(/ via [\d.]+,[\d.]+ [\d.]+,[\d.]+ /.test(wire0 || ''),
+  ok(/ via [\d.]+,[\d.]+ [\d.]+,[\d.]+\s*$/.test(wire0 || ''),
     'both waypoints are bare numbers to begin with', wire0);
   const via0 = await handleAt('wire', 'via-0');
   ok(!!via0, 'the first waypoint has a handle');
@@ -224,18 +224,18 @@ export async function run({ page, errors, report, walkTo, ed }) {
     'the line it landed on is drawn and named', JSON.stringify(seen.labels));
   ok(seen.labels.every((t) => seen.note.includes(t)),
     'and the status bar says the same sentence', seen.note);
-  const wire1 = await ed.lineWith('#wire');
+  const wire1 = await ed.lineWith('edge wire ');
   note('after  : ' + wire1);
   ok(/ via [a-z]\w*\.(cx|left|right),1\.5 /.test(wire1 || ''),
     'the waypoint carries the reference, and only the x half of it', wire1);
-  ok(/ [\d.]+,1\.5 \{/.test(wire1 || ''),
+  ok(/ [\d.]+,1\.5\s*$/.test(wire1 || ''),
     'the second waypoint is re-emitted untouched', wire1);
 
   // And the reference survives the next drag, or the guide would be a
   // one-shot: §9.3 rewrites the nudge, never the reference.
   const via0b = await handleAt('wire', 'via-0');
   seen = await dragCells(via0b, 0.3, 0);
-  const wire2 = await ed.lineWith('#wire');
+  const wire2 = await ed.lineWith('edge wire ');
   note('nudged : ' + wire2);
   ok(/ via [a-z]\w*\.(cx|left|right)[+-][\d.]+,1\.5 /.test(wire2 || ''),
     'a further drag moves the nudge and keeps the reference', wire2);
@@ -251,6 +251,15 @@ export async function run({ page, errors, report, walkTo, ed }) {
   await walkTo('look');
   ok(await ed.open('look'), 'the editor is open on #look');
   await ed.beat(0);
+  // #look grew a row when the class reference gained its prominence swatches,
+  // so the fit-to-frame zoom shrank the diamond below the size at which grips
+  // are drawn at all. That suppression is deliberate – a grip on something a
+  // few pixels across *is* the element, and a small dot could then only be
+  // resized, never moved – and zooming in is what the code comment says brings
+  // them back. The drags below are given in cells and converted through the
+  // canvas CTM, so nothing else about this section changes.
+  await page.evaluate(() => dgeZoomBy(1.7));
+  await page.waitForTimeout(300);
   ok(await pick('s4') === 'box s4', 'the diamond is selected', await ed.selection());
   const s4Before = await ed.lineWith('box  s4');
   ok(/ w 0\.4 h 0\.42 /.test(s4Before || ''), 'and starts at 0.4 by 0.42', s4Before);
@@ -300,9 +309,9 @@ export async function run({ page, errors, report, walkTo, ed }) {
   await ed.beat(0);
   await page.evaluate(() => dgeSelect(['chance']));
   await page.waitForTimeout(340);
-  const chance0 = await ed.lineWith('#chance');
+  const chance0 = await ed.lineWith('edge chance ');
   note('before : ' + chance0);
-  ok(/-> roc@[\d.]+,roc@[\d.]+ /.test(chance0 || ''),
+  ok(/(->|<-|<->|--) roc@[\d.]+,roc@[\d.]+/.test(chance0 || ''),
     'the diagonal ends on a value in the plot’s own units', chance0);
   // Genuinely empty paper: a point the hit test answers nothing for, so the
   // fallback is the branch under test rather than a drop onto the frame.
@@ -327,12 +336,12 @@ export async function run({ page, errors, report, walkTo, ed }) {
   const said = await statusLine();
   await page.mouse.up();
   await page.waitForTimeout(420);
-  const chance1 = await ed.lineWith('#chance');
+  const chance1 = await ed.lineWith('edge chance ');
   note('status : ' + said);
   note('after  : ' + chance1);
-  ok(/-> roc@-?[\d.]+,roc@-?[\d.]+/.test(said),
+  ok(/(->|<-|<->|--) roc@-?[\d.]+,roc@-?[\d.]+/.test(said),
     'the status bar shows the endpoint in the plot’s units before the button comes up', said);
-  ok(/-> roc@-?[\d.]+,roc@-?[\d.]+ /.test(chance1 || ''),
+  ok(/(->|<-|<->|--) roc@-?[\d.]+,roc@-?[\d.]+/.test(chance1 || ''),
     'and that is what the source gets – a value, not a position on the paper', chance1);
   ok(chance1 !== chance0, 'the endpoint really did move', chance1);
   ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());

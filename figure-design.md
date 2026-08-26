@@ -55,7 +55,8 @@ They take a minute and they settle most of the figure:
 7. Does it need a precise depiction of distance?
 8. Which symbols have to stay consistent throughout?
 
-Questions three and four are the `emph` / `calm` pair and the beat order below.
+Questions three and four are the prominence words – `emph`, `dim`, `ghost` – and the
+beat order below.
 Question five decides between an `edge`, a `container` and mere proximity, which
 is rules 1 to 3. Six and seven are the two that get skipped, and they are the
 two that bite: if time is precise, the left-to-right order is carrying it and
@@ -73,6 +74,17 @@ groups. A factor of two is enough; a factor of three is unmistakable.
 **Why:** proximity is the fastest grouping cue there is, and it fires before
 anyone reads a word. If your spacing says one thing and your labels say another,
 the spacing wins and the labels look like a mistake.
+
+**A `gap` is comparable with any other `gap`, whichever way it points.** That is
+not a small promise, and it is what makes the factor of two above something you
+can write rather than something you have to look at. Every number in a figure is
+in that figure's own grid units, and there are two families of them. A number
+that **addresses** the grid is axis-keyed, because a grid cell is not square:
+`at`, `w`, `h`, `offset` and every nudge count cells across and cells down. A
+number that states a **clearance** is square, and its ruler is one row – `gap`,
+`pad`, `space`, and a `dot`'s `r`. So `gap 0.25` between two boxes side by side
+and `gap 0.25` between two stacked on top of each other draw the same distance,
+and the rule above is arithmetic rather than judgement.
 
 ```
 # wrong: four boxes, one rhythm, and only the words say which two belong together
@@ -115,7 +127,7 @@ it needs no `show` of its own and no maintenance when the figure changes.
 ## 3. Keep edges for relations
 
 **Do:** draw an `edge` when two things are actually connected. When you only
-want to point at something, use a leader: `-> target` on a `text`.
+want to point at something, use a leader: `-- target` on a `text`.
 
 **Why:** uniform connectedness is the strongest grouping cue of all – stronger
 than proximity, stronger than colour. An arrow used as a pointing finger claims
@@ -129,7 +141,7 @@ edge n -> sw
 
 # right: a leader is a thin muted stub and reads as an annotation
 box  sw "Switch" at 0,0
-text n  "learns MAC addresses" right of sw gap 1.2 -> sw {.small .muted}
+text n  "learns MAC addresses" right of sw gap 1.2 -- sw {.small .muted}
 ```
 
 ## 4. One tone, one role, all the way through
@@ -154,12 +166,19 @@ security lecture:
 | `.dim` | present in the picture, not part of this scene |
 | `.muted` | scaffolding: grid lines, zone outlines, annotations |
 
-Two tones from the same slot on one element is a conflict the linter reports. A **slot** is a group of classes that answer one question - which fill, which outline, which typeface - and an element takes one class from each.
-`.tone-4` with `.accent` is not a slot conflict but is still a mistake: the fill
-is the accent, so accent ink on it is invisible. `.turn` with `.left` or
-`.right` is the other one the linter names: a turned label is centred on its
+Two classes from the same slot on one element is an **error**: the build refuses
+the line. A **slot** is a group of classes that answer one question - which
+fill, which outline, which typeface - and an element takes one class from each,
+so writing two is the line giving two answers to one question.
+`.tone-4` with `.accent` is not a slot conflict but is still usually a mistake:
+the fill is the accent, so accent ink on it is invisible. `.turn` with `.left`
+or `.right` on a node label is the other one: a turned label is centred on its
 origin across the direction it reads, so those two have nothing left to align.
-`.top` and `.bottom` do still move a turned label.
+`.top` and `.bottom` do still move a turned label. Those two are **warnings**
+rather than errors, and they are the compiler's rather than the linter's,
+because both are authorable on purpose – a later `style` step that takes the
+fill off turns an inert `.accent` into the ink. The build only complains where
+the pair is live in every beat.
 
 **Which of them may cover a large area is a separate question.** Strong colour
 belongs on small marks, thin lines and small areas, weak colour on large ones
@@ -196,8 +215,8 @@ whole set before the set has filled up gets one too.
 
 ```
 # the arrow arrives on its own beat, after both ends are already there.
-# An edge has no name until you give it one: {#reply} in the tail.
-edge srv -> cli "200 OK" {#reply}
+# An edge has no name until you give it one: the word before the from-end.
+edge reply srv -> cli "200 OK"
 step the-request
   show srv, cli
 step the-answer
@@ -244,15 +263,16 @@ They combine with `.turn`, which is how a firewall bar gets a label at all: the
 word reads up the bar, and `.top` decides which end it starts from.
 
 With more than one line they move the *block*, so `.bottom` puts the last line
-on the inner edge. They apply to a box, a dot and a free text. On an **edge**
-all four name which side of the line the label sits on: `.top` / `.bottom`
-beside a horizontal edge, `.left` / `.right` beside a vertical one, and
-`.turn` stands the words on end beside it. Which pair applies depends on the
-direction the edge ended up running, so naming the pair that runs *along* it
-is a build warning rather than a parse error.
-A container's caption and a brace's label are placed by their own statement, so
-writing one of the four words there is an error rather than a class that
-quietly does nothing.
+on the inner edge. They apply to a box, a dot and a free text, and to nothing
+else: writing one of them on an edge, a container or a brace is an error rather
+than a class that quietly does nothing, because all three place their label by
+their own statement. An **edge** says which side of the line its label sits on
+with the `side` option instead – `side top` / `side bottom` beside a horizontal
+edge, `side left` / `side right` beside a vertical one, and `.turn` stands the
+words on end beside it. Which pair applies depends on the direction the edge
+ended up running, so naming the pair that runs *along* it is a build warning
+rather than a parse error. A brace takes `side <word>` too, for the same
+concept: which side of the thing the spine sits on.
 
 **On an edge, a label is either *on* the line or *beside* it, and the choice
 says what kind of label it is.** A fill class with no side named puts the words
@@ -276,12 +296,12 @@ already true.
 ```
 # wrong: one convention for the tokens and another for the phrases, in one
 # figure – the reader has to decide what kind each label is before reading it
-edge a -> b "1"                     {.top}
+edge a -> b "1"                     side top
 edge b -> c "carries the session key" {.paper .small}
 
 # right: numbers ride on the line, phrases sit beside it, all the way through
 edge a -> b "1"                     {.paper .small}
-edge b -> c "carries the session key" {.top .small .muted}
+edge b -> c "carries the session key" side top {.small .muted}
 ```
 
 **A phrase that describes a wire belongs to the wire, so place it against the
@@ -293,19 +313,19 @@ height changes, and nothing warns you.
 
 ```
 # wrong: the phrase is measured from the Client, and the wire is not
-edge cl.right:0.14 -> sv.left:0.14 "1" pad 0.1 {#f1 .paper}
+edge f1 cl.right:0.14 -> sv.left:0.14 "1" pad 0.1 {.paper}
 text m1 "ClientHello" at cl.right+1.0,cl.top+0.16 {.small .muted}
 
 # right: the phrase is measured from the wire it names
-edge cl.right:0.14 -> sv.left:0.14 "1" pad 0.1 {#f1 .paper}
+edge f1 cl.right:0.14 -> sv.left:0.14 "1" pad 0.1 {.paper}
 text m1 "ClientHello" at f1.cx-0.55,f1.cy-0.26 {.small .muted}
 ```
 
 Raising those two boxes from `h 3.0` to `h 4.2` leaves the second label 13.5px
 from its line, where it was authored, and drags the first one out to 22.3px.
-Note that this is also the reason to give such an edge an `{#id}`: an edge has
-no name until you write one, and a wire nobody can name is a wire nothing can
-be placed against.
+Note that this is also the reason to give such an edge a name – the word before
+its from-end, `edge f1 cl…` – because an edge has no name until you write one,
+and a wire nobody can name is a wire nothing can be placed against.
 
 Pick the convention once per figure and keep it. Both readings are legible on
 their own; a figure that mixes them makes the reader classify every label before
@@ -504,8 +524,9 @@ shape, and keep `.bold` for the one element the figure is about.
 the systems" and at the same time says "look here" about all of them, which is
 the same as saying it about none. `.bold`
 also belongs to no class slot, so nothing displaces it: a `default box {.bold}`
-boldens every box in the block and no element can opt out of it, and unlike two
-tones from one slot the linter has nothing to say about the result.
+boldens every box in the block, and the only way out of it is to take the class
+off by name, `{!bold}` on the element's own line. Unlike two tones from one
+slot, which the build refuses outright, nothing complains about the result.
 
 ```
 # wrong: bold as a category marker – every box shouts, so none does
@@ -521,10 +542,11 @@ box ca "CA"     above sv gap 0.7 same as cl {.tone-1}
 edge cl -> sv "ClientHello" {.paper .small}
 ```
 
-`.bold` and `emph` are not interchangeable, and which one you write decides
-what the handout shows: `.bold` is a property of the drawing and prints, `emph`
-is a lecture-time act and print strips it. Bold the element the whole figure is
-about; `emph` the element this beat is about.
+`.bold` and `emph` are not interchangeable, and *where* you write a prominence
+class decides what the handout shows: a prominence class on an element's own
+line is part of the drawing and appears in the handout, while one a `step` sets
+is a lecture-time act and does not. `.bold` prints either way. Bold the element
+the whole figure is about; `emph` the element this beat is about.
 
 ## 14. A leader is short, straight, and parallel to its neighbours
 
@@ -543,24 +565,27 @@ makes.
 # what it names
 box  sw "Switch" at 0,0 h 1.2 w 1.2 {.tone-1}
 box  rt "Router" right of sw gap 1.6 h 1.2 w 1.2 {.tone-1}
-text n1 "learns MAC\naddresses" above rt gap 0.9 -> sw {.small .muted}
-text n2 "forwards by\nprefix" above sw gap 0.9 -> rt {.small .muted}
+text n1 "learns MAC\naddresses" above rt gap 0.9 -- sw {.small .muted}
+text n2 "forwards by\nprefix" above sw gap 0.9 -- rt {.small .muted}
 
 # right: each label outside the pair, a short stub, and the words run
 # towards the box they belong to
 box  sw "Switch" at 0,0 h 1.2 w 1.2 {.tone-1}
 box  rt "Router" right of sw gap 1.6 h 1.2 w 1.2 {.tone-1}
-text n1 "learns MAC\naddresses" left of sw gap 0.5 -> sw {.small .muted .right}
-text n2 "forwards by\nprefix" right of rt gap 0.5 -> rt {.small .muted .left}
+text n1 "learns MAC\naddresses" left of sw gap 0.5 -- sw {.small .muted .right}
+text n2 "forwards by\nprefix" right of rt gap 0.5 -- rt {.small .muted .left}
 ```
 
 **Two of Carter's rules for outside labels are already the default here, and it
-is worth knowing which.** The stub a `text … -> ref` grows is drawn thin and
-grey with no arrowhead, and it cannot be given one: a leader with an arrowhead
-is indistinguishable from an `edge` in a busy figure, so the grammar does not
-offer it. It also carries no waypoints, so it is a single straight segment by
-construction. What is left to the author is the pair the grammar cannot decide
-for them – which side, and how short – plus the alignment, which is what
+is worth knowing which.** The stub a `text … -- ref` grows is drawn thin and
+grey, and it carries no waypoints, so it is a single straight segment by
+construction. The token means here what it means on an edge: `--` is the plain
+stub and is what almost every leader wants, `->` is a leader that *points*.
+Reach for `->` sparingly – a leader with an arrowhead is hard to tell from an
+`edge` in a busy figure, which is the claim rule 3 says an arrow makes. `<-`
+and `<->` are refused, because a leader names one operand and the words are
+always the other end. What is left to the author is the pair the grammar cannot
+decide for them – which side, and how short – plus the alignment, which is what
 `.left` and `.right` are for. On a label of more than one line they put the
 words flush against the edge nearest the object, which is what Carter's
 flush-right rule asks for.
@@ -636,7 +661,7 @@ box d1 "Is this flow already known to the state table?" below in gap 0.55 {.diam
 
 # right: the question in the diamond, the detail in a note beside it
 box  d1 "Known flow?" below in gap 0.55 {.diamond .tone-1}
-text n1 "state table, per five-tuple" right of d1 gap 0.5 -> d1 {.small .muted}
+text n1 "state table, per five-tuple" right of d1 gap 0.5 -- d1 {.small .muted}
 ```
 
 **A swimlane** is `lanes`: equal bands, `.turn`ed captions outside the left
@@ -653,7 +678,7 @@ band it never enters.
 
 ```
 # right: three bands, and nothing has to say what the time axis is
-lanes swim "User | SOC | IT ops" at 0,0 w 7.4 h 0.95 {.muted .dashed}
+lanes swim "User | SOC | IT ops" at 0,0 w 7.4 band 0.95 {.muted .dashed}
 box  rep "Reports\nsuspect mail" at swim.left+0.85,swim-0.cy w 1.5 {.tone-2}
 box  tri "Triage"                at swim.left+2.5,swim-1.cy  w 1.1 {.tone-1}
 edge rep -> tri {.elbow}
@@ -671,7 +696,7 @@ re-centres with no other line touched.
 box   rt "Root CA"      at 0,0
 box   i1 "Issuing CA A" below rt gap 1.5
 box   i2 "Issuing CA B" right of i1 gap 0.8 same as i1
-align x center rt, i1, i2
+align x middle rt, i1, i2
 
 # right: leaves first, and every parent is the midpoint of what it signs
 box  l1 "www.example.org"  at 0,0 w 1.5
@@ -683,7 +708,12 @@ edge i1 -- l2 {.elbow .muted}
 
 **A table** is `table`: the heading row as one quoted string split on `|`, the
 body rows as bare quoted strings on the lines directly under it, `col` giving
-one width per column and `h` the height of one row. Every cell arrives carrying a tag
+one width per column and `row` the height of **one** row. (`w` is the frame
+instead – the total, shared out equally – and writing both is refused, because
+they are one number said twice.) The per-row word is deliberate: on a box or a
+chart `h` is how tall the thing is, and reading it that way on a `table` is
+wrong by a factor of the row count. `lanes` spells the same idea `band` and
+`sequence` spells it `header`. Every cell arrives carrying a tag
 for its row and a tag for its column – `@t-row-2`, `@t-col-1` – so lighting a
 row per beat is one line of source rather than one cell name per column, kept in
 step with the table by hand.
@@ -718,11 +748,14 @@ step every-one-of-them-has-an-answer
   style @t-col-2 {.tone-2}
 ```
 
-`style` and `emph` differ here, and which one you wrote decides what the
-handout shows: a tone a `style` step puts on a row describes the drawing, so
-print keeps it, while `emph` and `calm` are lecture-time acts that print strips. So a highlight that
-is only for the room can be an `emph` and needs no closing beat; one written as
-a tone needs the beat that takes it off again.
+**Where you wrote it decides what the handout shows, not which word you used.**
+A prominence class on an element's own line is part of the drawing and appears
+in the handout; a prominence a *step* sets is a lecture-time act and does not.
+`emph a` and `style a {.emph}` are the same act, so the seam is the line, not
+the verb. A tone is different again: `style` is the only way to set one per
+beat, and print keeps the last beat's tone – which is why a tinted row needs
+the beat that takes it off again, while a row the room is only meant to look at
+for a moment can be an `emph` inside a step and needs no closing beat.
 
 **A protocol** is `sequence`: who is across the top, one lifeline per actor, and
 time *is* the vertical axis. That is the half of the pair `lanes` does not
@@ -734,7 +767,13 @@ part it draws a name you can write. Every head keeps the name its `actor` line
 gives it, every lifeline is `<actor>-life`, every message is `<seq>-N` counting
 from 0, and the tags `@<seq>-msg-N`, `@<seq>-msgs`, `@<actor>-msgs`,
 `@<seq>-notes` name the sets. So the annotation a real protocol slide always
-ends up needing is an ordinary line of source hung off an ordinary name.
+ends up needing is an ordinary line of source hung off an ordinary name. One
+ordering rule comes with that: the entry run reads *through* blank lines and
+ends at the first line that is not an entry, so an annotation carrying an arrow
+token – a `text … -- x` leader – must not be the first line under the entries,
+or it is read as one more message. Put the `brace` or the `container` first,
+which is where it usually wants to be anyway; a line with no arrow token in it
+closes the run.
 
 ```
 # wrong: a note the sequence cannot see, positioned by hand against a coordinate
@@ -742,14 +781,14 @@ ends up needing is an ordinary line of source hung off an ordinary name.
 text n "die Challenge ist die Frische" at 4.2,2.6 {.small}
 
 # right: hung off the message it is about, and it follows when the figure moves
-text n "die Challenge ist die Frische" right of wa-2 gap 0.5 {.small .hand} -> wa-2
-brace ctap over wa-3,wa-4,wa-5 pad 0.3 "auf dem Gerät, über CTAP" left {.small .turn}
+brace ctap over wa-3,wa-4,wa-5 pad 0.3 "auf dem Gerät, über CTAP" side left {.small .turn}
+text n "die Challenge ist die Frische" right of wa-2 gap 1.9 {.small .hand} -- wa-2
 ```
 
 Three things a protocol figure gets wrong often enough to name. **A response is
 `{.dashed}`, not a second kind of arrow** – a message *is* an edge, so it takes
-the edge's classes, and dashed against solid is the distinction the room already
-reads. **A local action is a self-message or a note, and the two are not
+the edge's four arrow tokens (`->`, `<-`, `--`, `<->`) and the edge's classes,
+and dashed against solid is the distinction the room already reads. **A local action is a self-message or a note, and the two are not
 interchangeable**: `au -> au "sign"` is one step in the sequence and takes a
 number, a `note au "…"` is a standing fact about that lifeline and takes none.
 **Payload detail belongs in a message's second string, not in a note under it** –
@@ -759,7 +798,8 @@ footnote to one line. The two strings have fixed roles and no word swaps them:
 the first is the message's **name** and goes over the arrow, the second is its
 **payload** and goes under it. If what you have written wants to be the other
 way round, it is usually two messages. A brace's label goes `.turn`ed when the
-brace stands on the left, or it runs back over the number column.
+brace stands on the left – `side left` on the `brace` line – or it runs back
+over the number column.
 
 **Break a long protocol into phases with `space` on the entry that opens one.**
 `space 0.9` on a message or a note is the air above *that* band, and two or
@@ -791,10 +831,10 @@ and it catches everybody once.
 
 ```
 # wrong: two numbers that look like a shape and are not
-plot roc "False positive rate" "True positive rate" at 0,0 w 1.9 h 1.5 x 0,1 y 0,1 step 0.2
+plot roc "False positive rate" "True positive rate" at 0,0 w 1.9 h 1.5 x 0,1 y 0,1 tick 0.2
 
 # right: the proportion the room sees, and the build works the rest out
-plot roc "False positive rate" "True positive rate" at 0,0 w 1.6 aspect 1:1 x 0,1 y 0,1 step 0.2
+plot roc "False positive rate" "True positive rate" at 0,0 w 1.6 aspect 1:1 x 0,1 y 0,1 tick 0.2
 ```
 
 A ROC curve is square because both axes are the same quantity and the diagonal
@@ -811,8 +851,8 @@ another, which is what a row of charts is for.
 
 ```
 # right: one frame stated once, and the rest said in two words each
-plot roc  "False positive rate" "True positive rate" at 0,0 w 1.6 aspect 1:1 x 0,1 y 0,1 step 0.25
-plot roc2 "False positive rate" "True positive rate" right of roc gap 0.7 same as roc x 0,1 y 0,1 step 0.25
+plot roc  "False positive rate" "True positive rate" at 0,0 w 1.6 aspect 1:1 x 0,1 y 0,1 tick 0.25
+plot roc2 "False positive rate" "True positive rate" right of roc gap 0.7 same as roc x 0,1 y 0,1 tick 0.25
 ```
 
 The chart being copied has to be written **above** the one copying it. A chart is
@@ -862,26 +902,26 @@ does not move, and the frames can be read in either order.
 
 ```
 # wrong: four curves, a dozen crossings, and the reader ranking tones
-plot p "week" "alerts" at 0,0 w 2.0 aspect 4:3 x 0,8 y 0,8 step 2
-edge p@0,p@2   -> p@8,p@7   via p@2,p@3   p@4,p@4.4 p@6,p@6   {.smooth .no-head .muted .thick}
-edge p@0,p@3.5 -> p@8,p@3   via p@2,p@6.2 p@4,p@2   p@6,p@5.5 {.smooth .no-head .accent}
-edge p@0,p@6   -> p@8,p@5.2 via p@2,p@4   p@4,p@7.5 p@6,p@3.6 {.smooth .no-head .tone-3}
-edge p@0,p@1   -> p@8,p@7.6 via p@2,p@7   p@4,p@2.5 p@6,p@6.8 {.smooth .no-head .tone-1}
+plot p "week" "alerts" at 0,0 w 2.0 aspect 4:3 x 0,8 y 0,8 tick 2
+edge p@0,p@2   -- p@8,p@7   via p@2,p@3   p@4,p@4.4 p@6,p@6   {.smooth .muted .thick}
+edge p@0,p@3.5 -- p@8,p@3   via p@2,p@6.2 p@4,p@2   p@6,p@5.5 {.smooth .accent}
+edge p@0,p@6   -- p@8,p@5.2 via p@2,p@4   p@4,p@7.5 p@6,p@3.6 {.smooth .tone-3}
+edge p@0,p@1   -- p@8,p@7.6 via p@2,p@7   p@4,p@2.5 p@6,p@6.8 {.smooth .tone-1}
 
 # right: one frame per site, and the same grey baseline in both
-plot p "week" "alerts, site A" at 0,0 w 1.5 aspect 4:3 x 0,8 y 0,8 step 2
-edge p@0,p@2   -> p@8,p@7 via p@2,p@3   p@4,p@4.4 p@6,p@6   {.smooth .no-head .muted .thick}
-edge p@0,p@3.5 -> p@8,p@3 via p@2,p@6.2 p@4,p@2   p@6,p@5.5 {.smooth .no-head .accent}
-plot q "week" "alerts, site B" right of p gap 1.1 w 1.5 aspect 4:3 x 0,8 y 0,8 step 2
-edge q@0,q@2 -> q@8,q@7   via q@2,q@3 q@4,q@4.4 q@6,q@6   {.smooth .no-head .muted .thick}
-edge q@0,q@6 -> q@8,q@5.2 via q@2,q@4 q@4,q@7.5 q@6,q@3.6 {.smooth .no-head .accent}
+plot p "week" "alerts, site A" at 0,0 w 1.5 aspect 4:3 x 0,8 y 0,8 tick 2
+edge p@0,p@2   -- p@8,p@7 via p@2,p@3   p@4,p@4.4 p@6,p@6   {.smooth .muted .thick}
+edge p@0,p@3.5 -- p@8,p@3 via p@2,p@6.2 p@4,p@2   p@6,p@5.5 {.smooth .accent}
+plot q "week" "alerts, site B" right of p gap 1.1 w 1.5 aspect 4:3 x 0,8 y 0,8 tick 2
+edge q@0,q@2 -- q@8,q@7   via q@2,q@3 q@4,q@4.4 q@6,q@6   {.smooth .muted .thick}
+edge q@0,q@6 -- q@8,q@5.2 via q@2,q@4 q@4,q@7.5 q@6,q@3.6 {.smooth .accent}
 ```
 
 Two frames side by side have to carry the same `x` and `y` domains, or the
 comparison the arrangement promises is a lie. Nothing in the build checks that,
 and it is the one thing to re-read before the figure ships.
 
-**Name a curve at the curve.** A `text … -> ref` beside the end of a line costs
+**Name a curve at the curve.** A `text … -- ref` beside the end of a line costs
 one statement and puts the name where the eye already is; a key in the corner
 asks a reader to hold a tone in memory, look away, and come back (Carter). A
 legend is the right answer only where the names cannot go beside the marks at
@@ -929,14 +969,20 @@ almost every time:
    attack will be measured against.
 3. **The disturbance.** The attacker, the failure, the exception. This is the
    beat that earns `.accent` and `emph`.
-4. **The consequence.** The defence, the result, the number. Often `calm` on
+4. **The consequence.** The defence, the result, the number. Often `dim` on
    what came before, so the last beat is not four things shouting at once.
 
 Rules that go with it:
 
-- **Print is the last beat without the emphasis.** Not the union of all beats.
-  So the last beat has to be a picture that makes sense on paper, standing
-  alone. If it is not, you have one beat too few.
+- **Print is the last beat, and its prominence is the opening beat's.** Not the
+  union of all beats. So the last beat has to be a picture that makes sense on
+  paper, standing alone; if it is not, you have one beat too few. And the seam
+  between what prints and what does not is the *line*, not the word: a
+  prominence class on an element's own line is part of the drawing and reaches
+  the handout, a prominence a `step` sets does not. So an element written
+  `{.dim}` because it is background stays grey on paper, and `dim x` inside
+  beat 3 does not. To go back to normal for one stretch of a stepped figure,
+  take the class off by name: `style x {!dim}`.
 - **Backwards costs nothing.** Every beat is recomputed from the counter, so
   you can step back and forth freely and `hide` is as usable as `show`.
 - **Do not put a `show` on every element.** See rule 5. Over-specified steps are
@@ -946,10 +992,12 @@ Rules that go with it:
   `show`.** So a thing that is on screen at the start and taken away later needs
   no special handling.
 - **Emphasis a figure opens with belongs on the statement, not in step 1.**
-  On a chart that means the `bars` line itself: `bars port "12,9,41,7,5" … emph 2 calm 0,1,3,4`
+  On a chart that means the `bars` line itself: `bars port "12,9,41,7,5" … emph 2 dim 0,1,3,4`
   says which column the sentence beside the figure is about from the moment the
   slide appears. Written as a step instead, the picture the room first sees is
   five equal columns and the point only exists once you have pressed Space.
+  This is also the print rule seen from the other side: emphasis on the
+  statement is emphasis the handout keeps.
 
 ---
 

@@ -73,13 +73,24 @@ export async function run({ page, errors, report, walkTo, ed }) {
   });
   await page.waitForTimeout(350);
   ok(await ed.selection() === 'box m0', 'an element is selected', await ed.selection());
-  await page.evaluate(() => {
-    const b = [...document.querySelectorAll('#dge-side .dge-chip')].find((x) => x.textContent === 'emph');
+  // Through the prominence row, not an act chip. Prominence is one channel
+  // with four states, and it used to be offered twice in two spellings: an
+  // `emph` button and a `calm` button in this pane, four swatches in the look
+  // pane. It is the row alone now – standing on a beat it writes the step
+  // verb, which is the same act as `style m0 {.emph}` one line shorter.
+  const clickProminence = (text) => page.evaluate((t) => {
+    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+      .find((x) => x.querySelector('b') && x.querySelector('b').textContent === 'prominence');
+    const b = s && [...s.querySelectorAll('.dge-sw')].find((x) => x.textContent === t);
     if (b) b.click();
-  });
+  }, text);
+  ok(!(await page.evaluate(() =>
+    [...document.querySelectorAll('#dge-side .dge-chip')].some((x) => x.textContent === 'emph'))),
+    'prominence is no longer an act chip of its own');
+  await clickProminence('emph');
   await page.waitForTimeout(500);
   const src = await ed.source();
-  ok(/\n\s*emph m0\b/.test(src), 'clicking an act writes it into that step',
+  ok(/\n\s*emph m0\b/.test(src), 'clicking the prominence row writes the verb into that step',
     (src.split('\n').find((l) => /emph m0/.test(l)) || '(not found)'));
   ok(!(await ed.problems()).includes('line '), 'the block still parses', await ed.problems());
 

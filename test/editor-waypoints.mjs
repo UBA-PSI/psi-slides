@@ -23,7 +23,7 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   ok(await ed.clickPath('#dge-art-svg [id$="feed0--p"]', 0.5) && await ed.selection() === 'edge feed0',
     'feed0 selected', await ed.selection());
 
-  const before = await ed.lineWith('#feed0');
+  const before = await ed.lineWith('edge feed0 ');
   note('before : ' + before);
 
   // Counted off the line rather than written out, so redrawing the figure
@@ -46,7 +46,7 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
 
   // ── the load-bearing assertion ──
   await ed.drag(await ed.centreOf('#dge-guides .dge-h-via'), 70, 45);
-  const moved = await ed.lineWith('#feed0');
+  const moved = await ed.lineWith('edge feed0 ');
   note('moved  : ' + moved);
   ok(moved !== before, 'the drag wrote something', moved);
   // The references are the assertion. Every name.prop the waypoint held has
@@ -73,7 +73,7 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   await page.keyboard.down('Control');
   await ed.drag(addDot, -60, -40, 10);
   await page.keyboard.up('Control');
-  const added = await ed.lineWith('#feed0');
+  const added = await ed.lineWith('edge feed0 ');
   note('added  : ' + added);
   const wordsAdded = viaWords(added);
   ok(wordsAdded.length === want + 1, 'one more waypoint than before',
@@ -97,9 +97,9 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   await page.mouse.dblclick(firstVia.x, firstVia.y);
   await page.waitForTimeout(450);
   ok(await nVia() === want, 'a double-click on a waypoint takes it out again',
-    String(await nVia()) + ' handles, line: ' + (await ed.lineWith('#feed0')));
-  ok(await ed.lineWith('#feed0') === moved,
-    'and the line is back to what it was before the insert', await ed.lineWith('#feed0'));
+    String(await nVia()) + ' handles, line: ' + (await ed.lineWith('edge feed0 ')));
+  ok(await ed.lineWith('edge feed0 ') === moved,
+    'and the line is back to what it was before the insert', await ed.lineWith('edge feed0 '));
 
   // ── and removing, from the panel ──
   const removeFirstChip = () => page.evaluate(() => {
@@ -107,11 +107,11 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
     if (chips[0]) chips[0].click();
   });
   const wholeBefore = (await ed.source()).split('\n');
-  for (let i = 0; i < 8 && (await ed.lineWith('#feed0') || '').includes(' via '); i++) {
+  for (let i = 0; i < 8 && (await ed.lineWith('edge feed0 ') || '').includes(' via '); i++) {
     await removeFirstChip();
     await page.waitForTimeout(350);
   }
-  const bare = await ed.lineWith('#feed0');
+  const bare = await ed.lineWith('edge feed0 ');
   note('bare   : ' + bare);
   ok(!!bare && !bare.includes('via'), 'removing the last one takes the clause with it', bare);
 
@@ -125,7 +125,7 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
     .map((l, i) => (l === wholeAfter[i] ? null : i))
     .filter(i => i !== null);
   ok(wholeBefore.length === wholeAfter.length && differing.length === 1
-     && wholeBefore[differing[0]].includes('#feed0'),
+     && wholeBefore[differing[0]].includes('edge feed0 '),
     'and every other line of the block is untouched, byte for byte',
     JSON.stringify(differing.map(i => [wholeBefore[i], wholeAfter[i]])));
   // The via span starts at the keyword, so the drop path in dgeApplyEdits has
