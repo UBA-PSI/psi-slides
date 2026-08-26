@@ -1560,7 +1560,13 @@ const DIAGRAM_CSS = `
    which is the sans. The family classes are now all written the same way,
    matching on the wrapper and reaching the text, so they tie with the label
    rule and win on source order like .serif and .hand always did. */
-.psi-diagram .mono text, .psi-diagram .dg-mono { font-family: var(--dg-mono); }
+.psi-diagram .mono text, .psi-diagram .dg-mono {
+  font-family: var(--dg-mono);
+  /* A .mono label is a token – a header field, a flag, an arrow – so it
+     is spelled out for the same reason a listing is. Only the mono
+     channel: the sans and serif labels keep their fi and fl. */
+  font-variant-ligatures: none;
+}
 /* inline *accent* / ~muted~ inside a label */
 .psi-diagram tspan.dg-em { fill: var(--emph); }
 .psi-diagram tspan.dg-mu { fill: var(--ink-soft); }
@@ -2888,6 +2894,15 @@ pre {
   line-height: 1.45;
 }
 pre code { font-size: inherit; }
+/* A monospaced face with programming ligatures – JetBrains Mono, the
+   bundled one, is such a face – draws the two characters -> as a single
+   arrow glyph, and <-, <->, --, != and :: the same way. A listing is source
+   a reader retypes, so the characters have to be the characters. The value
+   is none and not no-contextual: the arrows live in the contextual set
+   (calt) and the rest in liga, and only none covers both. No backtick in
+   this comment, escaped or otherwise – see the template-literal rule in
+   CLAUDE.md. */
+code, pre, kbd, samp { font-variant-ligatures: none; }
 
 table {
   border-collapse: collapse;
@@ -4027,6 +4042,11 @@ body[data-slide-nums=off] .chunk-num { display: none; }
 .chunk-body ul, .chunk-body ol { margin: 0 0 0.7em 1.4em; }
 .chunk-body li { margin: 0.15em 0; }
 .chunk-body code { font-family: var(--mono-font); font-size: 0.92em; }
+/* Same reason as the matching rule in PRINT_CSS: the bundled mono face
+   ligates the arrow tokens into one glyph, and a slide is where the room is
+   reading the token rather than the prose. Bare element selectors, so the
+   cockpit gets it too – SPEAKER_CSS is layered on top of this sheet. */
+code, pre, kbd, samp { font-variant-ligatures: none; }
 /* GFM tables: marked emits bare <table>; without this they collapse to the
    browser default of ~1px cell spacing and read as cramped. Borders use
    var(--rule) so they track all six themes (same reactivity rule as figures). */

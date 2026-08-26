@@ -86,6 +86,15 @@ pre {
   line-height: 1.45;
 }
 pre code { font-size: inherit; }
+/* A monospaced face with programming ligatures – JetBrains Mono, the
+   bundled one, is such a face – draws the two characters -> as a single
+   arrow glyph, and <-, <->, --, != and :: the same way. A listing is source
+   a reader retypes, so the characters have to be the characters. The value
+   is none and not no-contextual: the arrows live in the contextual set
+   (calt) and the rest in liga, and only none covers both. No backtick in
+   this comment, escaped or otherwise – see the template-literal rule in
+   CLAUDE.md. */
+code, pre, kbd, samp { font-variant-ligatures: none; }
 
 table {
   border-collapse: collapse;
@@ -523,7 +532,13 @@ pre.shiki .line { display: inline; }
    which is the sans. The family classes are now all written the same way,
    matching on the wrapper and reaching the text, so they tie with the label
    rule and win on source order like .serif and .hand always did. */
-.psi-diagram .mono text, .psi-diagram .dg-mono { font-family: var(--dg-mono); }
+.psi-diagram .mono text, .psi-diagram .dg-mono {
+  font-family: var(--dg-mono);
+  /* A .mono label is a token – a header field, a flag, an arrow – so it
+     is spelled out for the same reason a listing is. Only the mono
+     channel: the sans and serif labels keep their fi and fl. */
+  font-variant-ligatures: none;
+}
 /* inline *accent* / ~muted~ inside a label */
 .psi-diagram tspan.dg-em { fill: var(--emph); }
 .psi-diagram tspan.dg-mu { fill: var(--ink-soft); }

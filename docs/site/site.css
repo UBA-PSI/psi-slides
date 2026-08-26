@@ -625,6 +625,13 @@ p, li { max-width: 40rem; }
    Blocks are exempt - `pre` scrolls inside its own box, and breaking a
    transcript would misquote it. */
 code { font-family: var(--mono); font-size: 0.92em; overflow-wrap: break-word; }
+/* Every listing on this page is psi-slides source, and its grammar spells
+   an arrow -> and a plain line --. A mono face that ligates those draws one
+   glyph where the author has to type two characters, so the whole family is
+   turned off here the way it is in the built views. Preventive for Iosevka,
+   which does not ligate by default – the rule is here so the page cannot
+   acquire the fault by changing its face. */
+code, pre, kbd, samp { font-variant-ligatures: none; }
 pre code { overflow-wrap: normal; }
 pre {
   font-family: var(--mono);

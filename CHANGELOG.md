@@ -627,6 +627,16 @@ from building the same way is a major version.
 
 ### Fixed
 
+- **The bundled mono face ligated the grammar's own tokens away.** JetBrains
+  Mono draws `->` as a single arrow glyph, and `<-`, `<->`, `--` and `!=` the
+  same way, so a listing on a slide, in a handout, in a `.mono` diagram label
+  or in the editor's source pane showed a character the author cannot type
+  back – and in this grammar `->` and `--` are two different edges. Every
+  stylesheet that carries a listing now sets `font-variant-ligatures: none`;
+  the value is `none` and not `no-contextual`, because the arrows live in the
+  contextual set and the rest in `liga`. Only the mono channel: sans and serif
+  labels keep their `fi` and `fl`, and the editor's canvas is left alone so
+  the figure looks there exactly as it looks on the slide.
 - **Two messages named a name that exists but is not usable yet as one that
   does not exist.** A `plot` line that failed on a later option is still
   *registered* under its name, so reading a value out of it reported that

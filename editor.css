@@ -22,6 +22,18 @@
 
 /* ── the modal ────────────────────────────────────────────────────── */
 
+/* The chrome, and deliberately not the canvas. Every mono field in this
+   panel shows source - an element name, an option value, a compiler
+   sentence, the source pane itself - and the bundled mono face ligates
+   -> and -- into one glyph, so a waypoint list or a step chip would show
+   a token the author cannot type back. #dge-canvas is left out because
+   what is in it is the compiler's own SVG: its mono labels are already
+   answered by the rule in DIAGRAM_CSS, and its sans and serif labels have
+   to look here exactly as they look on the slide. */
+#dge-top, #dge-tools, #dge-side, #dge-status, #dge-strip {
+  font-variant-ligatures: none;
+}
+
 #dge-root {
   position: fixed;
   inset: 0;

@@ -337,6 +337,11 @@ body[data-slide-nums=off] .chunk-num { display: none; }
 .chunk-body ul, .chunk-body ol { margin: 0 0 0.7em 1.4em; }
 .chunk-body li { margin: 0.15em 0; }
 .chunk-body code { font-family: var(--mono-font); font-size: 0.92em; }
+/* Same reason as the matching rule in PRINT_CSS: the bundled mono face
+   ligates the arrow tokens into one glyph, and a slide is where the room is
+   reading the token rather than the prose. Bare element selectors, so the
+   cockpit gets it too – SPEAKER_CSS is layered on top of this sheet. */
+code, pre, kbd, samp { font-variant-ligatures: none; }
 /* GFM tables: marked emits bare <table>; without this they collapse to the
    browser default of ~1px cell spacing and read as cramped. Borders use
    var(--rule) so they track all six themes (same reactivity rule as figures). */
@@ -1649,7 +1654,13 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    which is the sans. The family classes are now all written the same way,
    matching on the wrapper and reaching the text, so they tie with the label
    rule and win on source order like .serif and .hand always did. */
-.psi-diagram .mono text, .psi-diagram .dg-mono { font-family: var(--dg-mono); }
+.psi-diagram .mono text, .psi-diagram .dg-mono {
+  font-family: var(--dg-mono);
+  /* A .mono label is a token – a header field, a flag, an arrow – so it
+     is spelled out for the same reason a listing is. Only the mono
+     channel: the sans and serif labels keep their fi and fl. */
+  font-variant-ligatures: none;
+}
 /* inline *accent* / ~muted~ inside a label */
 .psi-diagram tspan.dg-em { fill: var(--emph); }
 .psi-diagram tspan.dg-mu { fill: var(--ink-soft); }
@@ -7719,6 +7730,18 @@ sendToPeer({ type: 'hello', source: 'speaker' });
  */
 
 /* ── the modal ────────────────────────────────────────────────────── */
+
+/* The chrome, and deliberately not the canvas. Every mono field in this
+   panel shows source - an element name, an option value, a compiler
+   sentence, the source pane itself - and the bundled mono face ligates
+   -> and -- into one glyph, so a waypoint list or a step chip would show
+   a token the author cannot type back. #dge-canvas is left out because
+   what is in it is the compiler's own SVG: its mono labels are already
+   answered by the rule in DIAGRAM_CSS, and its sans and serif labels have
+   to look here exactly as they look on the slide. */
+#dge-top, #dge-tools, #dge-side, #dge-status, #dge-strip {
+  font-variant-ligatures: none;
+}
 
 #dge-root {
   position: fixed;

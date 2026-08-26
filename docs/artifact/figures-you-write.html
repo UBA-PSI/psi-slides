@@ -133,6 +133,13 @@ a { color: var(--emph); text-decoration-thickness: 1px; text-underline-offset: 2
 a:focus-visible, button:focus-visible { outline: 2px solid var(--emph); outline-offset: 3px; border-radius: 2px; }
 code { font-family: var(--mono); font-size: 0.9em; }
 
+/* JetBrains Mono ligates the grammar's own tokens away: `->` becomes one
+   arrow glyph, and so do `<-`, `<->`, `--`, `!=` and `::`. Every listing on
+   this page is source a reader is meant to retype, so the two characters are
+   the point. `none` and not `no-contextual`, because the arrows live in the
+   contextual set (calt) and the rest in liga - `none` covers both. */
+pre, code { font-variant-ligatures: none; }
+
 .eyebrow {
   font-family: var(--mono);
   font-size: var(--t-micro);
@@ -677,7 +684,13 @@ footer .paths b { color: var(--ink); font-weight: 500; }
    which is the sans. The family classes are now all written the same way,
    matching on the wrapper and reaching the text, so they tie with the label
    rule and win on source order like .serif and .hand always did. */
-.psi-diagram .mono text, .psi-diagram .dg-mono { font-family: var(--dg-mono); }
+.psi-diagram .mono text, .psi-diagram .dg-mono {
+  font-family: var(--dg-mono);
+  /* A .mono label is a token – a header field, a flag, an arrow – so it
+     is spelled out for the same reason a listing is. Only the mono
+     channel: the sans and serif labels keep their fi and fl. */
+  font-variant-ligatures: none;
+}
 /* inline *accent* / ~muted~ inside a label */
 .psi-diagram tspan.dg-em { fill: var(--emph); }
 .psi-diagram tspan.dg-mu { fill: var(--ink-soft); }
