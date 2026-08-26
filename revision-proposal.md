@@ -751,7 +751,7 @@ the editor's own `DGE_SNAP_CELL`. It never emits four-decimal preservation
 numbers. Examples remain legible: `gap 0.5` becomes `gap 1.45`, `gap 0.25`
 becomes `gap 0.7`, and `gap 0.9` becomes `gap 2.6` at the common unit.
 
-Snapping can accumulate in a long chain, so “within three pixels of the old SVG”
+Snapping can accumulate in a long chain, so "within three pixels of the old SVG"
 is not the acceptance criterion. The acceptance criterion is that the revised
 figure still communicates the same relationships: no unintended overlap, no
 lost arrow clearance, no clipped label, and no broken framing. If a snapped
@@ -1043,6 +1043,24 @@ A reader scanning a block for `wire` has to look in a different column depending
 on the kind. That is the defect, and moving the name to the front is what fixes
 it – refusing `{#id}` where it is discarded would have left the two statements
 that honour it still naming backwards.
+
+**Why it is strictly better.** *Resolves an ambiguity*: an element's name is in
+the same place on every statement, so a reader scanning a block for `wire` looks
+in one column rather than a different one per kind. *Reduces the chance of writing
+a figure wrong, for a person and for a language model alike*: the tail form put
+the name last, after the options, which is where neither would look for it, and
+the positional form is the shape every other statement already teaches. *Removes
+a silent failure*: `{#id}` is deleted, so the fifteen statements that parsed it
+and threw it away have nothing left to throw away – the defect stops being
+refused and stops existing. *More concise*: the anonymous case, 177 of 264 edges
+and all 28 messages, loses two characters and gains nothing to type. *No
+capability lost*: every edge and message nameable today is nameable after, and
+the editor gains a rename control it has never had on any kind.
+
+The one thing it costs is the guard above – a two-token slip that used to be a
+syntax error now needs the unclaimed-name check to stay an error. That is one
+condition on one line, against a naming rule that becomes sayable in a single
+sentence for the whole grammar.
 
 **Migration.** **87 edge lines**, mechanical: `edge X -> Y … {#n …}` becomes
 `edge n X -> Y …` with `#n` struck from the tail and the rest of the tail kept.
@@ -1387,7 +1405,7 @@ remains one the compiler accepts. **It should be strengthened rather than left**
 its loop already clicks every swatch in every slot, so add a third assertion
 beside `broke` and `unbraced` – that the selected element's rendered `class`
 attribute or geometry changed, with the conditional set named as the exemption.
-That is the assertion whose absence let 16 dead swatches ship.
+That is the assertion whose absence let the dead swatches ship.
 
 **Why it is strictly better.** Turns silent failures into explicit ones – the
 criterion this item exists for. Reduces the chance of a human or a model writing
@@ -1443,15 +1461,16 @@ member that cannot take it:
 
 ```
 box p "P" {@mix}
-edge p -> q {#e @mix}
+edge e p -> q {@mix}
 
 step s
   style @mix {.both-heads}
 ```
 
-Today this is silent – the edge gets two heads, the box ignores the class. Under
-this item the class is illegal on a `box`, and the question is whether the
-refusal fires when the box arrives through a tag.
+The line is written in this proposal's syntax; the equivalent today – with the
+edge named `{#e}` – is **silent**: the edge gets two heads, the box ignores the
+class. Under this item the class is illegal on a `box`, and the question is
+whether the refusal fires when the box arrives through a tag.
 
 **Decided: refuse, on the statement, naming the member that cannot take it.** The
 error says which element and which kind, and the author writes `style e
@@ -1630,7 +1649,7 @@ labeled choices: **none** (`--`), **to second** (`->`), **to first** (`<-`) and
 **both** (`<->`). It rewrites only `spanOf(id, 'arrow')`; it never adds a head
 class to the element tail. This preserves `<-` as a source-legibility choice and
 makes the two possible one-headed directions explicit instead of collapsing them
-under a swatch named “one”. At a later beat the edge direction is fixed by its
+under a swatch named "one". At a later beat the edge direction is fixed by its
 opening token, so the row offers **none**, **original destination**, and **both**,
 writing `.no-head`, `.one-head`, or `.both-heads` through item 16's beat-local
 class path. Multi-selection enables **original destination** only when all
@@ -1964,7 +1983,7 @@ Layers resolve from weak to strong: built-in state, matching `default` layers,
 the element's own tail, then step operations in source order. At each layer,
 `removedClasses` deletes those exact names from the accumulated set; each
 positive class then displaces the current member of its slot and is added.
-Removing `.dim` does not mean “clear the prominence slot” and does not remove
+Removing `.dim` does not mean "clear the prominence slot" and does not remove
 `.ghost`. A later layer may add `.dim` again. This exact-name rule makes
 `{!class}` predictable without creating a second, hidden slot grammar.
 
@@ -2000,10 +2019,10 @@ An ungrouped toggle such as `bold`, `turn`, or `front` uses `.class` to turn on
 and the same beat-0/default algorithm or `!class` to turn off.
 
 Beat 0 additionally shows **inherit** whenever a matching default supplies the
-slot. “Inherit” removes all own additions and removals in that slot; the base
+slot. "Inherit" removes all own additions and removals in that slot; the base
 swatch instead keeps the element at the base appearance by inserting the needed
-negation. This distinction prevents “default” from ambiguously meaning both
-“use the default block” and “use the stylesheet's base look”. At later beats the
+negation. This distinction prevents "default" from ambiguously meaning both
+"use the default block" and "use the stylesheet's base look". At later beats the
 row is purely appearance-based; it does not expose provenance.
 
 Source surgery is deterministic. `dgeSlotValue` reads the resolved beat state;
@@ -2035,9 +2054,9 @@ conflicts, several removals in one slot, default → own-tail override, removal 
 re-addition across beats, tag failure on a mixed kind, round-trip preservation,
 beat-0 inherit versus base, beat-local swatches, mixed selection, and rollback.
 
-**Why it is better.** It adds a missing capability and turns an accepted empty
+**Why it is strictly better.** It adds a missing capability and turns an accepted empty
 `style` into an explicit failure. One mark works for grouped and ungrouped
-classes without adding a “default class” for every slot. The source remains
+classes without adding a "default class" for every slot. The source remains
 readable because hand-written cases normally need one negation; only the editor's
 mixed/base operations may emit more.
 
@@ -2788,7 +2807,7 @@ beat-4 card (*"Often `calm` on what came before"*), and the `bars` sentence
 line exactly what they already mean inside a step."* That last one is the sentence
 that gets **better**: after item 1 it is not a coincidence being explained, it is
 the rule. Replace the counting sentences with a grouped explanation: visibility,
-movement, prominence and styling are the operation families, and prominence uses
+movement, labelling, prominence and styling are the operation families, and prominence uses
 the same names as the class row. Do not publish a new total.
 
 **(h) Items 5 and 13 rename `align` and complete the arrow family.** Four `align`
@@ -2939,8 +2958,8 @@ not become a selectable element and gets no generated id. When every selected
 the recorded token span and applies one transaction across all selected source
 lines; it never searches for arrow-shaped text, so arrows inside labels and edge
 statements are untouched. The row is hidden if any selected element has no
-leader, and it is disabled away from beat 0 with the existing “changes the
-opening drawing” explanation: a leader has no step target of its own. Tests cover
+leader, and it is disabled away from beat 0 with the existing "changes the
+opening drawing" explanation: a leader has no step target of its own. Tests cover
 text, image, mixed selection, quoted `->`, round-trip in both directions, and
 rollback after a failed multi-edit.
 
@@ -3139,6 +3158,20 @@ three figure specs are expected to pass throughout; `test/figure-labels.mjs` nee
 about six lines changed by item 5(d), and `test/editor-sidebar.mjs` should gain
 item 12's third assertion.
 
+**7b. The items no group named.** Items **8**, **9**, **28**, **31** and **32**,
+placed here because each has a fixed neighbour rather than a group of its own:
+
+- **32 before 13b**, which is item 13's own stated constraint – the print pass
+  draws an arrowhead the last beat removed, and 13b makes head-changing steps the
+  ordinary way to do it.
+- **9, 13b and 31 in one pass over the edge lines.** All three rewrite the same
+  statements: 9 moves the name to the front, 13b changes the token, 31 changes
+  the leader's. Three passes over 264 edges and 29 leaders is how the three end
+  up disagreeing.
+- **8** is diagnostics only and rides with group 1.
+- **28** is a lecture edit and rides with group 7, where the tracked views are
+  rebuilt anyway.
+
 **8. The prose.** Item **29**, then item **7**. Item 7 lands last so its growth
 rule describes the final system; it deliberately contains no vocabulary count.
 
@@ -3242,11 +3275,14 @@ the rest.
 
 ---
 
-# Appendix: rejected and superseded variants — not current
+# Appendix: superseded answers, and decisions not to change
 
-Nothing in this appendix is an implementation instruction. It records discarded
-intermediate answers and deliberate exclusions so that their reasoning remains
-available without competing with the V2 contract in the main body.
+Two kinds of thing, and they differ in standing. **Superseded intermediate
+proposals** are discarded answers, kept for their reasoning and binding on
+nothing. **Deliberate exclusions** are decisions, and they hold: each one is a
+change that was considered and refused, and refusing it again is not an open
+question. The heading separates them; read the subheading before treating
+anything here as inert.
 
 ## Superseded intermediate proposals
 
@@ -3275,10 +3311,17 @@ second operation family.** Rejected after the corpus check found no use. V2
 accepts that named capability loss and uses one source-visible print rule.
 
 **Delete the arrowhead classes after adding `<->`.** Rejected because a `style`
-step genuinely changes arrowheads. Item 13 keeps the slot, adds `.one-head`, and
-refuses head classes only where the mandatory token has already stated them.
+step genuinely changes arrowheads. Item 13 keeps the slot and adds `.one-head`;
+for where the head classes are and are not legal, item 13's scope table is the
+statement – a tail and a `default edge` block both refuse them, and a `style`
+step is the only place they may be written.
 
 ## Deliberate exclusions
+
+**These are current.** Each is a change that was weighed and refused, and the
+refusal stands with the same force as any item in the main body. They live here
+rather than as numbered items because a decision not to change something has no
+migration and no implementation step – not because it is provisional.
 
 ## Lengthening `->` to `-->`
 

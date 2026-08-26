@@ -1070,8 +1070,19 @@ Every proposal must therefore say **how large its migration is** (how many lines
 in which files, and whether a `sed`-shaped rewrite covers it or a human has to
 read each site).
 
-The one thing that may **not** shrink is capability. If a word goes, everything
-it could express must still be expressible – by hand and in the editor.
+**Capability loss has a high bar, but is not an absolute veto.** Revised by the
+maintainer after this file was written, and `revision-proposal.md` is written
+against the revised form: a revision *may* remove an expressible but unused
+behaviour when keeping it would cost a second rule or new vocabulary – provided
+the loss is named explicitly, the corpus has been checked, and every real figure
+still has a clear spelling. Editor reach stays part of the decision: a capability
+described as available in the editor needs a concrete control and a round-trip
+contract, not a claim.
+
+The earlier form of this rule was absolute – *"if a word goes, everything it
+could express must still be expressible"*. It is recorded here because two items
+(11 and 12) were argued under it and reach the same recommendation either way,
+so nothing in the proposal rests on the change.
 
 ## Findings outside the thirteen
 
