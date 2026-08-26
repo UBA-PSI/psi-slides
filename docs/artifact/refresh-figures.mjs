@@ -43,6 +43,11 @@ const CHECK = process.argv.includes('--check');
 
 // The chunk ids are the contract with the lecture. Renaming one there without
 // renaming it here is the one edit that breaks this quietly.
+// The masthead figure. Its listing keeps the fence, which is what shows where
+// a diagram block sits in a lecture file, and drops the comments, which are
+// notes to whoever maintains this lecture. No other list pairs those two
+// treatments: PAIRS drops both, SHAPES keeps both.
+const OPENERS = ['hero'];
 // The opening section builds one figure a line at a time, so its chunks are
 // cumulative: each is the previous one plus what that step introduces.
 const BASICS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'];
@@ -61,6 +66,7 @@ const SPECS = ['sp1', 'sp2', 'sp3', 'sp10', 'sp8', 'sp9', 'sp4', 'sp4b', 'sp4c',
 // half a block is not that.
 const SHAPES = ['fc', 'swim', 'tree', 'seq'];
 const STILLS = [
+  ...OPENERS,
   ...BASICS,
   ...SPECS,
   ...SHAPES,
@@ -69,7 +75,13 @@ const STILLS = [
   'r11w', 'r11r', 'r14w', 'r14r',
   'tones',
 ];
+// `bare: true` strips the block's comments from the listing. Every demo but
+// the masthead one keeps them, because there they carry the explanation. The
+// masthead demo has to show the *shape* of a stepped block - the cast at the
+// top, the beats underneath, one blank line between - and six lines of
+// commentary sitting in that blank line hide it.
 const DEMOS = [
+  { chunk: 'follow', prefix: 'dgfollow', bare: true },
   { chunk: 'beats-demo', prefix: 'dgbeat' },
   { chunk: 'move-demo', prefix: 'dgmove' },
   { chunk: 'table-demo', prefix: 'dgtable' },
@@ -332,6 +344,14 @@ function anatomy() {
 page = replaceBetween(page, '<pre class="anat">', '</pre>', anatomy(), 'anatomy diagram');
 say('  anatomy diagram drawn from its own code line');
 
+// ── the masthead figure: its whole block, minus the maintainer's comments ──
+for (const id of OPENERS) {
+  page = replaceBetween(page, '<pre data-opensrc="' + id + '">', '</pre><!--/opensrc-->',
+    hl(diagramBlock(lectureMd, id).split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')),
+    'opener source ' + id);
+}
+say('  ' + OPENERS.length + ' masthead listing refreshed from the lecture');
+
 // ── the opening tutorial: each step's source, with what it added marked ──
 // Diffed against the previous chunk rather than annotated by hand, so a line
 // edited in step 4 is marked in step 4 without anyone remembering to say so.
@@ -368,7 +388,7 @@ for (const id of PAIRS) {
 }
 say('  ' + PAIRS.length + ' wrong/right listings refreshed from the lecture');
 
-for (const { chunk, prefix } of DEMOS) {
+for (const { chunk, prefix, bare } of DEMOS) {
   const { svg, old } = svgFor(live, chunk, prefix);
   const payload = payloadFor(live, old, prefix);
   if (!payload) throw new Error('#' + chunk + ' has no frames payload - has it lost its steps?');
@@ -386,8 +406,11 @@ for (const { chunk, prefix } of DEMOS) {
   page = replaceBetween(page, '<ol class="rail" data-rail="' + chunk + '">', '</ol><!--/rail-->',
     rail + '\n    ', 'rail ' + chunk);
 
+  const demoBlock = bare
+    ? diagramBlock(lectureMd, chunk).split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')
+    : diagramBlock(lectureMd, chunk);
   page = replaceBetween(page, '<pre class="demo-src" data-demosrc="' + chunk + '">', '</pre><!--/demosrc-->',
-    hl(diagramBlock(lectureMd, chunk)), 'source ' + chunk);
+    hl(demoBlock), 'source ' + chunk);
 
   say('  ' + chunk + ': ' + data.n + ' beats [' + data.names.join(', ') + '], rail and source in step');
 }

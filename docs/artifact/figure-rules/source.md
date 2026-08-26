@@ -20,6 +20,60 @@ first.
 
 The chunk ids are the contract with the refresh script. Do not rename them.
 
+# The opening
+
+## figure: hero, the whole of a figure {.full #hero}
+
+::: diagram
+# Five statements, and nothing in them is a coordinate but the two gaps. Eve
+# is placed against Alice and Bob against Eve, so the row is a chain of
+# relations; the two wires name their ends and work out their own route.
+# The first figure anyone meets on the artifact page, and the one block in
+# this lecture with no option tail on the fence and no `at` on the first box.
+# The page explains both further down; here they would be two pieces of
+# syntax a reader cannot yet read, in a listing whose claim is that it is
+# complete.
+box a "Alice"
+box e "Eve"  right of a gap 1.1 {.accent}
+box b "Bob"  right of e gap 1.1
+edge a -> e "plaintext"
+edge e -> b "plaintext"
+:::
+
+## figure: hero, one line changes and everything follows {.full #follow}
+
+::: diagram {unit=170x56}
+# The cast is written once, at the top, whether or not it is on screen at the
+# opening beat. Eve is hidden there because the first thing any step says
+# about her is `show` - and her two wires and her outline arrive with her
+# without a word, because an edge is only as visible as its ends and an
+# outline only as visible as its members.
+# Every beat has to fit one frame, so the room Eve will need is reserved
+# from the opening beat. At 3.3:1 that reservation rendered as a third of a
+# panel of empty paper under two boxes; at 4.4:1 it reads as a margin. The
+# gaps here are set for that proportion rather than for the spacing rules.
+box  a  "Alice"
+box  b  "Bob"   right of a gap 3.4
+box  e  "Eve"   below a gap 0.85 offset 1.7,0 {.accent}
+edge a -> b "message" {#direct}
+edge a -> e {.accent}
+edge e -> b {.accent}
+container zone "Eve's reach" over e pad 0.3 {.dashed .muted}
+
+# The second beat is one line. Nothing in the figure stores a coordinate, so
+# a longer label widens Eve's box, both her arrows re-aim at the sides that
+# moved, and the outline re-fits around her. Measured on the emitted
+# geometry: the box goes 54 to 116.3 wide, the outline 87.6 to 149.9, and
+# each arrow moves 31 pixels, one left and one right. Re-measure these
+# numbers if the geometry above changes - the artifact page quotes them.
+step intercept
+  show e
+  hide direct
+step relabel
+  label e "Eve, on path"
+  emph e
+:::
+
 # The pairs
 
 ## figure: 1 wrong | even gaps say nothing {.full #r1w}

@@ -27,19 +27,27 @@ node docs/artifact/refresh-figures.mjs --check   # report drift, write nothing (
 
 It replaces, keyed by markers in the HTML:
 
-- **Forty-four still figures** &ndash; the six tutorial steps, the twenty
+- **Forty-five still figures** &ndash; the masthead figure, the six tutorial steps, the twenty
   wrong/right drawings, the tone row, the thirteen advanced specimens and the
   four still arrangements, taken from a `--print-only` build.
-- **Forty-three listings** &ndash; six tutorial steps (with the lines each step
-  adds marked by diffing it against the one before), twenty wrong/right
-  halves, thirteen specimens and four arrangements. Each is the block its drawing
-  was compiled from, so the two cannot disagree. The specimens are stripped of
-  their comments and their fence; the four arrangements keep both, because the
-  page says they are real source in the number of lines shown, and half a block
-  is not that.
-- **Four figures that step** &ndash; drawing, per-beat geometry, the list of
+- **Forty-four listings** &ndash; the masthead figure, six tutorial steps (with
+  the lines each step adds marked by diffing it against the one before), twenty
+  wrong/right halves, thirteen specimens and four arrangements. Each is the block
+  its drawing was compiled from, so the two cannot disagree. Three treatments,
+  picked by what each listing has to show. The wrong/right halves lose both
+  comments and fence, so that only the few lines that differ are left. The four
+  arrangements keep both, because the page states their length in lines and half
+  a block is not that. The masthead figure keeps its fence, which is what shows
+  where a diagram block sits in a lecture file, and drops its comments, which
+  are notes to whoever maintains the lecture.
+- **Five figures that step** &ndash; drawing, per-beat geometry, the list of
   beat names under it and its listing, from an `--audience-only` build, which
-  is the only pass that emits the geometry.
+  is the only pass that emits the geometry. `#follow`, the one in the opening
+  section, is the only one whose listing is stripped of its comments: it has to
+  show the *shape* of a stepped block &ndash; the cast at the top, the beats
+  underneath, one blank line between &ndash; and six lines of commentary sitting
+  in that blank line hide it. Its prose on the page quotes measured pixel
+  widths, so re-measure them if the figure's geometry changes.
 - **Fifteen gallery figures**, their fifteen listings and their fifteen beat
   rails, read out of `lectures/network-security/source.md`. The line count
   shown in each card comes from the same read.
@@ -66,7 +74,7 @@ It replaces, keyed by markers in the HTML:
 Everything else &ndash; prose, layout, CSS, and the short script under the
 runtime that wires up the buttons &ndash; is hand-written and safe to edit.
 
-The chunk ids in the lecture are what the script looks figures up by: `#b1`,
+The chunk ids in the lecture are what the script looks figures up by: `#hero`, `#follow`, `#b1`,
 `#r1w`, `#tones`, `#beats-demo`, `#table-demo`, `#seq-demo`, and so on. Rename one in the lecture without
 renaming it in `refresh-figures.mjs` and the run stops with an error.
 

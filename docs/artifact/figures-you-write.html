@@ -147,24 +147,77 @@ header.top { padding: clamp(52px, 9vw, 104px) 0 0; }
 .lede { font-size: clamp(1.16rem, 2vw, 1.42rem); line-height: 1.5; color: var(--ink); max-width: 46ch; }
 .lede em { font-style: italic; font-family: var(--serif); }
 
-.tally {
+.hero {
+  margin-top: 44px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  /* The listing first, and the drawing second. The listing is the claim
+     this page opens with - "this is the whole of one" - and the drawing is
+     what backs it up. The other order reads as a picture with a caption,
+     which is the thing a figure here is not. */
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
   gap: 1px;
   background: var(--rule);
   border: 1px solid var(--rule);
+}
+.hero > * { background: var(--paper); padding: 24px clamp(18px, 2.4vw, 28px); min-width: 0; }
+.hero pre {
+  font-family: var(--mono); font-size: var(--t-code); line-height: 1.75;
+  margin: 0; overflow-x: auto; white-space: pre-wrap; color: var(--ink);
+  display: flex; flex-direction: column; justify-content: center;
+}
+.hero pre .kw { color: var(--emph); }
+.hero pre .cl { color: var(--ink-soft); }
+.hero-fig { display: flex; align-items: center; justify-content: center; }
+.hero-fig .psi-diagram { width: 100%; height: auto; max-height: 190px; }
+.hero-note { margin-top: 24px; display: flex; flex-direction: column; gap: 13px; }
+.hero-note p { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; max-width: var(--measure); }
+.hero-note b { color: var(--ink); font-weight: 500; }
+.hero-note code { color: var(--emph); }
+@media (max-width: 760px) { .hero { grid-template-columns: 1fr; } }
+
+/* ── the four decisions ───────────────────────────────── */
+.tenets {
   margin-top: 40px;
+  display: grid;
+  /* Two by two, not three and a stray. At 330px the four decisions came out
+     as a row of three and one card with two thirds of a row of nothing
+     beside it, which reads as a fourth thought that arrived late. */
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
 }
-.tally div { background: var(--paper); padding: 16px 18px; }
-.tally b {
-  display: block;
-  font-family: var(--serif);
-  font-size: 2rem;
-  font-weight: 400;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
+.tenet { background: var(--paper); padding: 24px clamp(18px, 2.2vw, 26px) 28px; display: flex; flex-direction: column; gap: 10px; }
+.tenet .t { font-family: var(--mono); font-size: var(--t-micro); letter-spacing: 0.11em; color: var(--emph); }
+.tenet h3 { font-size: 1.22rem; max-width: none; }
+.tenet p { font-size: var(--t-body); line-height: 1.6; }
+.tenet .why { margin-top: 2px; }
+.tenet code { color: var(--emph); }
+/* The same wash the six stages use to mark the lines a step added, so one
+   colour means one thing on this page: this is the part that changed. */
+.tenet code b { background: var(--yes-wash); box-shadow: 0 0 0 2px var(--yes-wash); border-radius: 2px; color: var(--emph); font-weight: 500; }
+
+/* ── against the two things a reader already knows ────────────── */
+.versus { margin-top: 48px; border: 1px solid var(--rule); overflow-x: auto; }
+.versus table { border-collapse: collapse; width: 100%; min-width: 760px; background: var(--paper); }
+.versus th, .versus td {
+  text-align: left; vertical-align: top;
+  padding: 15px clamp(12px, 1.5vw, 18px);
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--t-small); line-height: 1.5;
 }
-.tally span { display: block; margin-top: 7px; font-size: var(--t-mini); color: var(--ink-soft); line-height: 1.4; }
+.versus thead th { font-family: var(--sans); font-weight: 500; color: var(--ink); font-size: var(--t-body); border-bottom: 1px solid var(--ink); }
+.versus thead th span { display: block; margin-top: 5px; font-family: var(--mono); font-size: var(--t-micro); font-weight: 400; letter-spacing: 0.02em; color: var(--ink-soft); }
+.versus tbody th { font-family: var(--sans); font-weight: 400; color: var(--ink); width: 19%; }
+.versus tbody td { color: var(--ink-soft); }
+/* The column the page is about reads in the primary ink; the two it is being
+   measured against read as the secondary voice, like every other aside here. */
+.versus tbody td:last-child { color: var(--ink); }
+.versus tbody tr:last-child th, .versus tbody tr:last-child td { border-bottom: 0; }
+/* The row that says what the other two do better. It is shaded rather than
+   dropped, because a comparison that only runs one way is an advertisement. */
+.versus tr.fair { background: var(--panel); }
+.versus tr.fair th { font-style: italic; }
 
 /* ── sections ─────────────────────────────────────────────────────── */
 section { padding: clamp(56px, 9vw, 100px) 0 0; }
@@ -208,7 +261,7 @@ section { padding: clamp(56px, 9vw, 100px) 0 0; }
      readable in a narrow column; scrolling each of them sideways would not. */
   white-space: pre-wrap;
 }
-.spec pre .srcln, .side pre .srcln, figure.card pre .srcln, .demo-src .srcln {
+.spec pre .srcln, .side pre .srcln, figure.card pre .srcln, .demo-src .srcln, .hero pre .srcln {
   display: block; padding-left: 2.4em; text-indent: -2.4em;
 }
 /* A blank line in a diagram block is the author's own break - it is what
@@ -749,16 +802,144 @@ footer .paths b { color: var(--ink); font-weight: 500; }
   <div class="stack">
     <p class="eyebrow">psi-slides &middot; <code>::: diagram</code></p>
     <h1>Figures You Write</h1>
-    <p class="lede">A figure in a psi-slides lecture is a dozen lines of text you write inside the lecture&rsquo;s Markdown file, in a small language called <code>::: diagram</code>. The build &ndash; the one command that turns that file into slides &ndash; reads those lines, works out where every part belongs, and writes one drawing into the finished slide. The text is the only copy there is: the live slide carries a graphical editor, and a drag in it rewrites the same lines you wrote rather than saving a drawing somewhere else.</p>
+    <p class="lede">A figure in a psi-slides lecture is not a picture made somewhere else and imported. It is a few lines of text in the lecture&rsquo;s own Markdown file, and the build &ndash; the one command that turns that file into slides &ndash; draws it. The seven lines below are a whole figure, and the drawing is what the build made of them.</p>
   </div>
 
-  <div class="tally">
-    <div><b>17</b><span>statements in the language</span></div>
-    <div><b>7</b><span>things a step can do</span></div>
-    <div><b>13</b><span>groups of classes that set how things look</span></div>
-    <div><b>1</b><span>layout pass for each step of an animation, all of it before the page opens</span></div>
+  <div class="hero">
+    <pre data-opensrc="hero"><span class="srcln">::: diagram</span><span class="srcln"><span class="kw">box</span> a <span class="cl">"Alice"</span></span><span class="srcln"><span class="kw">box</span> e <span class="cl">"Eve"</span>  <span class="kw">right of</span> a <span class="kw">gap</span> 1.1 <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">box</span> b <span class="cl">"Bob"</span>  <span class="kw">right of</span> e <span class="kw">gap</span> 1.1</span><span class="srcln"><span class="kw">edge</span> a -&gt; e <span class="cl">"plaintext"</span></span><span class="srcln"><span class="kw">edge</span> e -&gt; b <span class="cl">"plaintext"</span></span><span class="srcln">:::</span></pre><!--/opensrc-->
+    <div class="hero-fig"><svg id="rlhero-root" class="psi-diagram" viewBox="-44.05 -32.75 460.10 63.13" width="2000" height="274" data-steps="1" role="img" aria-label="hero, the whole of a figure" preserveAspectRatio="xMidYMid meet">
+<g id="rlhero-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="rlhero-edge-1--p" class="dg-stroke" d="M32.05 0.00L156.40 0.00" fill="none"/><path id="rlhero-edge-1--h" class="dg-head" d="M164.05 0.00L155.05 3.96L155.05 -3.96Z"/><g id="rlhero-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(98.05,-11.38)"><g id="rlhero-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
+<g id="rlhero-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge"><path id="rlhero-edge-2--p" class="dg-stroke" d="M218.05 0.00L342.40 0.00" fill="none"/><path id="rlhero-edge-2--h" class="dg-head" d="M350.05 0.00L341.05 3.96L341.05 -3.96Z"/><g id="rlhero-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(284.05,-11.38)"><g id="rlhero-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
+<g id="rlhero-a" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="rlhero-a--r" x="-32.05" y="-18.38" width="64.10" height="36.75" rx="4"/><g id="rlhero-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="rlhero-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Alice</tspan></text></g></g></g>
+<g id="rlhero-e" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="rlhero-e--r" x="164.05" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="rlhero-e--lw0" data-lab="e--l" class="dg-lwrap" transform="translate(191.05,0.00)"><g id="rlhero-e--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g></g>
+<g id="rlhero-b" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="rlhero-b--r" x="350.05" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="rlhero-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(377.05,0.00)"><g id="rlhero-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
+</svg></div>
+  </div>
+
+  <div class="hero-note">
+    <p>Read the second line. Eve is put <b>right of Alice</b> &ndash; not at a coordinate, but against Alice. Bob is put against Eve. So the row is a chain of relations, and the only numbers in the figure are how much air to leave between two of them.</p>
+    <p>Nothing says where the arrows run, either. An <code>edge</code> is handed two ends and finds its own route between them. And nothing says where the first box is: the first element in a figure stands at the origin unless it is told otherwise.</p>
+    <p>That leaves nothing in this file to keep in step by hand. Give Eve a longer name and her box grows to hold it, and both arrows re-aim at the sides that moved. There is a live figure doing exactly that further down this page.</p>
   </div>
 </header>
+
+<section>
+  <div class="sechead">
+    <p class="eyebrow">what is different about it</p>
+    <h2>Written, not drawn</h2>
+    <p class="measure">A lecture figure has a harder job than a picture. It has to be built up in front of a room while somebody talks over it, survive the slides being reordered around it a year later, and come out of the same file as the printed handout. A drawing program and an auto-layout language each do one half of that well. The four decisions below are what <code>::: diagram</code> does instead.</p>
+  </div>
+
+  <div class="tenets">
+    <div class="tenet">
+      <span class="t">01</span>
+      <h3>The text is the figure</h3>
+      <p>There is no second copy of it anywhere: no drawing file beside the lecture, no exported image sitting one edit behind its source. The figure is in the same file as the prose around it, so it travels when a slide is moved, and a change to it arrives in a diff as the lines that changed, where a reviewer can read it without opening anything.</p>
+      <p class="why">The same holds when the editing is graphical. The live slide carries a graphical editor, and dragging a box in it rewrites one word of the source you wrote: <code>right of a gap <b>1.1</b></code> becomes <code>right of a gap <b>1.6</b></code>. The editor does not put the number the build worked out in place of the relation, because a bare number there would stop following Alice.</p>
+    </div>
+
+    <div class="tenet">
+      <span class="t">02</span>
+      <h3>Positions are relations, and stay relations</h3>
+      <p><code>right of a gap 1.1</code> is not shorthand that the build resolves once and forgets. It is the whole of what the file says about where Eve is, permanently. Every element but the first is placed against something already on the drawing, so a figure is a chain, and one pass down the chain settles it.</p>
+      <p class="why">There is no constraint solver &ndash; no engine that takes a list of requirements and searches for an arrangement meeting them all. Handed a figure it cannot satisfy, such an engine draws something that looks plausible and reports a number saying how far off it was. A chain can fail in only one way, and the build names the line it failed on: <code>placement cycle: b &rarr; w1 &rarr; b</code>.</p>
+    </div>
+
+    <div class="tenet">
+      <span class="t">03</span>
+      <h3>The cast is written once; the beats say what changes</h3>
+      <p>Every element a figure will ever hold &ndash; every box, arrow, label and outline &ndash; is written at the top of the block, whether or not it is on screen when the slide arrives. Underneath, a <code>step</code> names a beat, which is one press of the space bar in front of the room, and lists what that beat does: <code>show</code>, <code>hide</code>, <code>move</code>, <code>emph</code>, <code>calm</code>, <code>style</code>, <code>label</code>. Seven of them, and there are no others.</p>
+      <p class="why">An element is hidden at the opening beat exactly when the first thing any step says about it is <code>show</code>. So nobody writes an initial picture and a final picture and keeps the two agreeing. There is one description of the figure and a list of changes to it.</p>
+    </div>
+
+    <div class="tenet">
+      <span class="t">04</span>
+      <h3>A beat is the whole figure laid out again</h3>
+      <p>Every beat is the same layout evaluated again with different inputs, rather than a movement played over a finished picture, and the build works all of them out before the page is written. What the browser is handed is one drawing and a table of numbers to slide between, with no layout engine to load.</p>
+      <p class="why">This is why an arrow stays attached to a box that walks away. The arrow never held a coordinate; it held &ldquo;the right-hand edge of <code>e</code>&rdquo;, and that still means the right-hand edge of <code>e</code> wherever <code>e</code> now is. On an animation timeline the arrow is a separate object with a start and an end of its own, and nothing ties it to the box.</p>
+    </div>
+  </div>
+
+  <div class="demo">
+    <h3>One line changes, and four things follow</h3>
+    <p class="measure demo-lede">The same three boxes as at the top of the page, with two beats added: Eve arrives, then Eve is renamed. Step through it and watch what the second beat moves without mentioning.</p>
+    <div class="demo-stage" data-demo="follow"><svg id="dgfollow-root" class="psi-diagram" viewBox="-44.05 -30.38 720.10 161.90" width="2000" height="450" data-live-viewbox="-44.05 -32.75 720.10 164.27" data-live-ratio="0.228128" data-steps="3" role="img" aria-label="hero, one line changes and everything follows" preserveAspectRatio="xMidYMid meet">
+<g id="dgfollow-zone" data-base="dg-el dg-container" class="dg-el dg-container dashed muted"><rect id="dgfollow-zone--r" x="214.05" y="26.42" width="149.90" height="93.10" rx="4"/><g id="dgfollow-zone--lw0" data-lab="zone--l" class="dg-lwrap" transform="translate(224.05,38.80)"><g id="dgfollow-zone--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">Eve's reach</tspan></text></g></g></g>
+<g id="dgfollow-direct" data-base="dg-el dg-edge" class="dg-el dg-edge" style="opacity:0"><path id="dgfollow-direct--p" class="dg-stroke" d="M32.05 0.00L602.40 0.00" fill="none"/><path id="dgfollow-direct--h" class="dg-head" d="M610.05 0.00L601.05 3.96L601.05 -3.96Z"/><g id="dgfollow-direct--lw0" data-lab="direct--l" class="dg-lwrap" transform="translate(321.05,-11.38)"><g id="dgfollow-direct--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">message</tspan></text></g></g></g>
+<g id="dgfollow-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge accent"><path id="dgfollow-edge-1--p" class="dg-stroke" d="M32.05 0.00L223.81 81.36" fill="none"/><path id="dgfollow-edge-1--h" class="dg-head" d="M230.85 84.35L221.02 84.48L224.11 77.19Z"/></g>
+<g id="dgfollow-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge accent"><path id="dgfollow-edge-2--p" class="dg-stroke" d="M347.15 84.35L602.77 2.34" fill="none"/><path id="dgfollow-edge-2--h" class="dg-head" d="M610.05 0.00L602.69 6.52L600.27 -1.02Z"/></g>
+<g id="dgfollow-a" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dgfollow-a--r" x="-32.05" y="-18.38" width="64.10" height="36.75" rx="4"/><g id="dgfollow-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dgfollow-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Alice</tspan></text></g></g></g>
+<g id="dgfollow-b" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dgfollow-b--r" x="610.05" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="dgfollow-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(637.05,0.00)"><g id="dgfollow-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
+<g id="dgfollow-e" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="dgfollow-e--r" x="230.85" y="65.97" width="116.30" height="36.75" rx="4"/><g id="dgfollow-e--lw0" data-lab="e--l" class="dg-lwrap dg-variant dg-off" transform="translate(289.00,84.35)"><g id="dgfollow-e--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g><g id="dgfollow-e--lw1" data-lab="e--l" class="dg-lwrap dg-variant" transform="translate(289.00,84.35)"><g id="dgfollow-e--l1" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve, on path</tspan></text></g></g></g>
+</svg><script type="application/json" class="psi-diagram-frames" data-for="dgfollow-root">{"p":"dgfollow-","n":3,"kinds":{"zone--r":"rect","zone--l":"text","direct--p":"path","direct--h":"path","direct--l":"text","edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","a--r":"rect","a--l":"text","b--r":"rect","b--l":"text","e--r":"rect","e--l":"text"},"names":["intercept","relabel"],"frames":[{"vis":{"a":1,"b":1,"e":0,"zone":0,"direct":1,"edge-1":0,"edge-2":0},"cls":{"a":"","b":"","e":"accent","zone":"dashed muted","direct":"","edge-1":"accent","edge-2":"accent"},"lab":{"a":0,"b":0,"e":0,"zone":0,"direct":0},"geom":{"a--r":[-32.05,-18.37,64.1,36.75],"a--l":[0,0,0],"b--r":[610.05,-18.37,54,36.75],"b--l":[637.05,0,0],"e--r":[262,65.97,54,36.75],"e--l":[289,84.35,0],"zone--r":[245.2,26.42,87.6,93.1],"zone--l":[255.2,38.8,0],"direct--p":[32.05,0,602.4,0],"direct--h":[610.05,0,601.05,3.96,601.05,-3.96],"direct--l":[321.05,-11.37,0],"edge-1--p":[32.05,0,254.82,81.72],"edge-1--h":[262,84.35,252.19,84.97,254.91,77.53],"edge-2--p":[316,84.35,602.7,2.11],"edge-2--h":[610.05,0,602.49,6.29,600.31,-1.32]}},{"vis":{"a":1,"b":1,"e":1,"zone":1,"direct":0,"edge-1":1,"edge-2":1},"cls":{"a":"","b":"","e":"accent","zone":"dashed muted","direct":"","edge-1":"accent","edge-2":"accent"},"lab":{"a":0,"b":0,"e":0,"zone":0,"direct":0},"geom":{"a--r":[-32.05,-18.37,64.1,36.75],"a--l":[0,0,0],"b--r":[610.05,-18.37,54,36.75],"b--l":[637.05,0,0],"e--r":[262,65.97,54,36.75],"e--l":[289,84.35,0],"zone--r":[245.2,26.42,87.6,93.1],"zone--l":[255.2,38.8,0],"direct--p":[32.05,0,602.4,0],"direct--h":[610.05,0,601.05,3.96,601.05,-3.96],"direct--l":[321.05,-11.37,0],"edge-1--p":[32.05,0,254.82,81.72],"edge-1--h":[262,84.35,252.19,84.97,254.91,77.53],"edge-2--p":[316,84.35,602.7,2.11],"edge-2--h":[610.05,0,602.49,6.29,600.31,-1.32]}},{"vis":{"a":1,"b":1,"e":1,"zone":1,"direct":0,"edge-1":1,"edge-2":1},"cls":{"a":"","b":"","e":"accent emph","zone":"dashed muted","direct":"","edge-1":"accent","edge-2":"accent"},"lab":{"a":0,"b":0,"e":1,"zone":0,"direct":0},"geom":{"a--r":[-32.05,-18.37,64.1,36.75],"a--l":[0,0,0],"b--r":[610.05,-18.37,54,36.75],"b--l":[637.05,0,0],"e--r":[230.85,65.97,116.3,36.75],"e--l":[289,84.35,0],"zone--r":[214.05,26.42,149.9,93.1],"zone--l":[224.05,38.8,0],"direct--p":[32.05,0,602.4,0],"direct--h":[610.05,0,601.05,3.96,601.05,-3.96],"direct--l":[321.05,-11.37,0],"edge-1--p":[32.05,0,223.81,81.36],"edge-1--h":[230.85,84.35,221.02,84.48,224.11,77.19],"edge-2--p":[347.15,84.35,602.77,2.34],"edge-2--h":[610.05,0,602.69,6.52,600.27,-1.02]}}]}</script></div><!--/stage-->
+    <div class="demo-bar">
+      <button class="db" data-go="-1" aria-label="previous beat">&lsaquo;</button>
+      <button class="db" data-go="1" aria-label="next beat">&rsaquo;</button>
+      <ol class="rail" data-rail="follow">
+      <li><button type="button">opening</button></li>
+      <li><button type="button"><b>1</b> intercept</button></li>
+      <li><button type="button"><b>2</b> relabel</button></li>
+    </ol><!--/rail-->
+      <button class="db play" aria-label="play the beats">play</button>
+    </div>
+    <pre class="demo-src" data-demosrc="follow"><span class="srcln">::: diagram <span class="cl">{unit=170x56}</span></span><span class="srcln"><span class="kw">box</span>  a  <span class="cl">"Alice"</span></span><span class="srcln"><span class="kw">box</span>  b  <span class="cl">"Bob"</span>   <span class="kw">right of</span> a <span class="kw">gap</span> 3.4</span><span class="srcln"><span class="kw">box</span>  e  <span class="cl">"Eve"</span>   <span class="kw">below</span> a <span class="kw">gap</span> 0.85 <span class="kw">offset</span> 1.7,0 <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">edge</span> a -&gt; b <span class="cl">"message"</span> <span class="cl">{#direct}</span></span><span class="srcln"><span class="kw">edge</span> a -&gt; e <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">edge</span> e -&gt; b <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">container</span> zone <span class="cl">"Eve's reach"</span> <span class="kw">over</span> e <span class="kw">pad</span> 0.3 <span class="cl">{.dashed .muted}</span></span><span class="srcln"></span><span class="srcln"><span class="st">step</span> intercept</span><span class="srcln">  <span class="st">show</span> e</span><span class="srcln">  <span class="st">hide</span> direct</span><span class="srcln"><span class="st">step</span> relabel</span><span class="srcln">  <span class="st">label</span> e <span class="cl">"Eve, on path"</span></span><span class="srcln">  <span class="st">emph</span> e</span><span class="srcln">:::</span></pre><!--/demosrc-->
+    <p class="why after">The block has two halves, and the blank line between them is the whole of the boundary. Above it, everything the figure contains. Below it, what the beats do. <b>The first beat is two lines and four changes:</b> Eve appears, and so do her two arrows and the outline around her, because an arrow is only as visible as the things it joins and an outline only as visible as what it holds. No line anywhere says <code>show</code> about the arrows or the outline.</p>
+    <p class="why after"><b>The second beat is one line:</b> <code>label e</code> gives Eve a longer name; her box grows from 54 pixels wide to 116 to hold it; the outline re-fits from 88 to 150; and each arrow re-aims by 31 pixels, one to the left and one to the right. The beat names the label and nothing else. In a drawing program the same edit is one text box and four corrections by hand, repeated for every beat the figure has.</p>
+  </div>
+
+  <div class="versus">
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>A drawing program<span>PowerPoint, Keynote, Excalidraw</span></th>
+          <th>An auto-layout language<span>Mermaid, Graphviz, PlantUML</span></th>
+          <th>This<span>::: diagram</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>Where the figure lives</th>
+          <td>A file of its own, beside the lecture</td>
+          <td>Text, in the lecture or beside it</td>
+          <td>Text, in the lecture file, between the sentences it belongs to</td>
+        </tr>
+        <tr>
+          <th>Who decides where things go</th>
+          <td>You, in pixels</td>
+          <td>The layout engine</td>
+          <td>You, in relations between one element and another</td>
+        </tr>
+        <tr>
+          <th>Give one box a longer label</th>
+          <td>The box grows; every arrow, outline and note around it is moved by hand</td>
+          <td>The graph is laid out again, and can come back in a different arrangement</td>
+          <td>Whatever was attached to it follows, and nothing else moves</td>
+        </tr>
+        <tr>
+          <th>Building it up in front of a room</th>
+          <td>A timeline of appearances and moves, played over the finished picture</td>
+          <td>There is no equivalent; a diagram is one static picture</td>
+          <td>Beats, each of them the whole figure laid out again</td>
+        </tr>
+        <tr>
+          <th>The handout</th>
+          <td>A second export, and a second thing to keep current</td>
+          <td>The same picture</td>
+          <td>The last beat of the same figure, with the lecture-time emphasis taken off</td>
+        </tr>
+        <tr class="fair">
+          <th>When to reach for it</th>
+          <td>One figure, drawn once and not revised. Nothing to install, no build step, and everyone already has it</td>
+          <td>Forty nodes whose arrangement carries no meaning. It places everything for you, which this will never do</td>
+          <td>When the arrangement is part of the argument, or the figure has to be built up in front of a room</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="measure" style="margin-top:34px;color:var(--ink-soft)">None of that is visible in the five statements at the top of this page. The ordinary figure is short, and the rest of the page is the vocabulary that keeps the harder ones short too.</p>
+</section>
 
 <section>
   <div class="sechead">
@@ -768,38 +949,11 @@ footer .paths b { color: var(--ink); font-weight: 500; }
   </div>
 
 
-  <div class="anatomy">
-    <h3>How a line is put together</h3>
-    <p class="measure">Every statement has the same shape. Not every slot is filled every time &ndash; most lines use three or four of them &ndash; but they always come in this order.</p>
-    <pre class="anat"><span class="kw">box</span>   sw   <span class="cl">"Switch"</span>   <span class="kw">right of</span> a <span class="kw">gap</span> 0.4   <span class="kw">w</span> 1.2   <span class="cl">{.tone-1 #main @net}</span>
-<span class="an">___   __   ________   __________________   _____   ____________________
- |    |       |               |              |              |
- |    |       |               |              |              '-- tail: classes, an id, tags
- |    |       |               |              '-- options: size, padding, routing
- |    |       |               '-- placement: where it goes, relative to something else
- |    |       '-- label: what the reader sees. Optional, and "" is a legal empty one
- |    '-- name: how later lines refer to this element. Never drawn
- '-- statement: what kind of thing this is</span></pre>
-    <p class="measure">Placement is the slot to read first. Only the first element in a figure gives a position outright; everything after it is placed against something already there, so a figure is a chain of relations rather than a list of coordinates.</p>
-
-    <h4 class="quirk-head">Eight things the shape above does not tell you</h4>
-    <div class="walls quirks">
-      <div class="wall"><h4>Everything is in the figure&rsquo;s own units</h4><p>The block opens with <code>::: diagram {unit=170x56}</code>, which sets how many pixels one unit is across and down. After that every number &ndash; a gap, a width, a nudge &ndash; is in units, so a figure keeps its proportions whatever size it is drawn at. One unit is meant to be about one box wide.</p></div>
-      <div class="wall"><h4>Three different marks share one pair of braces</h4><p>In the tail, <code>.something</code> is a class, <code>#something</code> is a name you are giving the element, and <code>@something</code> is a tag that puts it in a group. A <code>box</code> is usually named in its second word instead; the <code>#</code> form is there for the statements that have no name slot, such as <code>edge</code>.</p></div>
-      <div class="wall"><h4>A coordinate can be another element&rsquo;s coordinate</h4><p>Written <code>sw.right</code>, <code>sw.cx</code>, <code>sw.top</code> and so on, optionally with a nudge: <code>sw.right+0.4</code>. A pair separated by a comma is a point: <code>sw.right+0.4,sw.cy</code>. This is what keeps a route attached to what it was drawn against.</p></div>
-      <div class="wall"><h4>A fraction slides an endpoint along a side</h4><p><code>eve.right:0.3</code> is three tenths of the way down Eve&rsquo;s right-hand side. Two edges between the same pair at <code>:0.3</code> and <code>:0.7</code> run parallel instead of on top of each other.</p></div>
-      <div class="wall"><h4><code>gap</code> and <code>space</code> are not the same word</h4><p><code>gap</code> is the distance to the element you are placing against. <code>space</code> is the distance between the bars of a chart, the cells of a grid, or two bands of a protocol.</p></div>
-      <div class="wall"><h4><code>same as</code> copies the size, not the position</h4><p><code>box bob "Bob" right of eve gap 2.2 same as eve</code> places Bob relative to Eve and gives him Eve&rsquo;s width and height. Leaving it out is how two parallel edges end up slightly skewed, because a fraction of two different heights lands at two different places.</p></div>
-      <div class="wall"><h4>Steps are indented under the beat they belong to</h4><p>A <code>step</code> line names the beat; the operations that make it up are indented beneath it. There are seven: <code>show</code>, <code>hide</code>, <code>move</code>, <code>emph</code>, <code>calm</code>, <code>style</code> and <code>label</code>. Two other statements take lines of their own like this: a <code>table</code> reads its rows off the lines underneath it, and a <code>sequence</code> reads its actors, messages and notes the same way.</p></div>
-      <div class="wall"><h4>A line starting with <code>#</code> is a comment</h4><p>Anywhere inside the block. Use them for the reasoning behind an arrangement, which the arrangement itself does not record.</p></div>
-    </div>
-  </div>
-
   <div class="specimen">
     <div class="spec">
       <div class="said">
         <h3>Two boxes, and a name nobody sees</h3>
-        <p>Each of these lines has the same four parts: what kind of thing this is, what it is called, what it says, and where it goes. Here <code>box</code> is the kind and <code>"Client"</code> is the label. <code>cl</code> is the name, and the name is never drawn &ndash; it is there so that later lines can point at this box. <code>at&nbsp;0,0</code> is the position, and it is the only position in the whole figure that names a number rather than another element.</p>
+        <p>Each of these lines has the same four parts: what kind of thing this is, what it is called, what it says, and where it goes. Here <code>box</code> is the kind and <code>"Client"</code> is the label. <code>cl</code> is the name, and the name is never drawn &ndash; it is there so that later lines can point at this box. <code>at&nbsp;0,0</code> is the position, and it is the only position in the whole figure that names a number rather than another element. The first element in a figure may leave the placement out altogether &ndash; the one at the top of this page does &ndash; and it is written here to have something for the second line to be placed against.</p>
       </div>
       <div class="shown">
       <div class="drawn"><svg id="rlb1-root" class="psi-diagram" viewBox="-46.98 -30.38 408.65 60.75" width="2000" height="297" data-steps="1" role="img" aria-label="b1 two boxes" preserveAspectRatio="xMidYMid meet">
@@ -891,6 +1045,33 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 </svg></div>
       <pre data-basicsrc="b6"><span class="srcln">::: diagram <span class="cl">{unit=170x56}</span></span><span class="srcln"><span class="kw">box</span> cl <span class="cl">"Client"</span> <span class="kw">at</span> 0,0 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> sv <span class="cl">"Server"</span> <span class="kw">right of</span> cl <span class="kw">gap</span> 1.4 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">edge</span> cl -&gt; sv</span><span class="srcln"><span class="kw">box</span> log <span class="cl">"Log"</span> <span class="kw">below</span> sv <span class="kw">gap</span> 0.9 <span class="cl">{.tone-3}</span></span><span class="srcln"><span class="kw">edge</span> sv -&gt; log</span><span class="srcln"><span class="kw">text</span> n <span class="cl">"TLS ends here"</span> <span class="kw">right of</span> sv <span class="kw">gap</span> 1.2 -&gt; sv <span class="cl">{.small .muted}</span></span><span class="add"><span class="srcln"><span class="kw">container</span> dmz <span class="cl">"DMZ"</span> <span class="kw">over</span> sv,log <span class="kw">pad</span> 0.4 <span class="cl">{.dashed .muted}</span></span></span><span class="srcln">:::</span></pre><!--/basicsrc-->
       </div>
+    </div>
+  </div>
+
+  <div class="anatomy">
+    <h3>How a line is put together</h3>
+    <p class="measure">Every statement in those six stages has the same shape, and so does every other statement in the language. Not every slot is filled every time &ndash; most lines use three or four of them &ndash; but they always come in this order.</p>
+    <pre class="anat"><span class="kw">box</span>   sw   <span class="cl">"Switch"</span>   <span class="kw">right of</span> a <span class="kw">gap</span> 0.4   <span class="kw">w</span> 1.2   <span class="cl">{.tone-1 #main @net}</span>
+<span class="an">___   __   ________   __________________   _____   ____________________
+ |    |       |               |              |              |
+ |    |       |               |              |              '-- tail: classes, an id, tags
+ |    |       |               |              '-- options: size, padding, routing
+ |    |       |               '-- placement: where it goes, relative to something else
+ |    |       '-- label: what the reader sees. Optional, and "" is a legal empty one
+ |    '-- name: how later lines refer to this element. Never drawn
+ '-- statement: what kind of thing this is</span></pre>
+    <p class="measure">Placement is the slot that is compulsory, and the only element allowed to leave it out is the first one, which stands at the origin. Any later statement without one is an error that names the five words that would fix it: <code>at</code>, <code>above</code>, <code>below</code>, <code>right of</code>, <code>left of</code>.</p>
+
+    <h4 class="quirk-head">Eight things the shape above does not tell you</h4>
+    <div class="walls quirks">
+      <div class="wall"><h4>Everything is in the figure&rsquo;s own units</h4><p>The block opens with <code>::: diagram {unit=170x56}</code>, which sets how many pixels one unit is across and down. After that every number &ndash; a gap, a width, a nudge &ndash; is in units, so a figure keeps its proportions whatever size it is drawn at. One unit is meant to be about one box wide.</p></div>
+      <div class="wall"><h4>Three different marks share one pair of braces</h4><p>In the tail, <code>.something</code> is a class, <code>#something</code> is a name you are giving the element, and <code>@something</code> is a tag that puts it in a group. A <code>box</code> is usually named in its second word instead; the <code>#</code> form is there for the statements that have no name slot, such as <code>edge</code>.</p></div>
+      <div class="wall"><h4>A coordinate can be another element&rsquo;s coordinate</h4><p>Written <code>sw.right</code>, <code>sw.cx</code>, <code>sw.top</code> and so on, optionally with a nudge: <code>sw.right+0.4</code>. A pair separated by a comma is a point: <code>sw.right+0.4,sw.cy</code>. This is what keeps a route attached to what it was drawn against.</p></div>
+      <div class="wall"><h4>A fraction slides an endpoint along a side</h4><p><code>eve.right:0.3</code> is three tenths of the way down Eve&rsquo;s right-hand side. Two edges between the same pair at <code>:0.3</code> and <code>:0.7</code> run parallel instead of on top of each other.</p></div>
+      <div class="wall"><h4><code>gap</code> and <code>space</code> are not the same word</h4><p><code>gap</code> is the distance to the element you are placing against. <code>space</code> is the distance between the bars of a chart, the cells of a grid, or two bands of a protocol.</p></div>
+      <div class="wall"><h4><code>same as</code> copies the size, not the position</h4><p><code>box bob "Bob" right of eve gap 2.2 same as eve</code> places Bob relative to Eve and gives him Eve&rsquo;s width and height. Leaving it out is how two parallel edges end up slightly skewed, because a fraction of two different heights lands at two different places.</p></div>
+      <div class="wall"><h4>Steps are indented under the beat they belong to</h4><p>A <code>step</code> line names the beat; the operations that make it up are indented beneath it. There are seven: <code>show</code>, <code>hide</code>, <code>move</code>, <code>emph</code>, <code>calm</code>, <code>style</code> and <code>label</code>. Two other statements take lines of their own like this: a <code>table</code> reads its rows off the lines underneath it, and a <code>sequence</code> reads its actors, messages and notes the same way.</p></div>
+      <div class="wall"><h4>A line starting with <code>#</code> is a comment</h4><p>Anywhere inside the block. Use them for the reasoning behind an arrangement, which the arrangement itself does not record.</p></div>
     </div>
   </div>
 
@@ -1397,8 +1578,8 @@ footer .paths b { color: var(--ink); font-weight: 500; }
   <div class="sechead">
     <p class="eyebrow">steps and tags</p>
     <h2>How a figure moves from one beat to the next</h2>
-    <p class="measure">Each beat is the whole figure laid out again, with different inputs. Nothing is nudged, and nothing is animated on top of a finished picture. That is why an arrow stays attached to a box that walks away: the arrow never held a coordinate, it held &ldquo;the right edge of <code>px</code>&rdquo;, and that still points at the box wherever the box now is. The build works out every beat in advance and hands the browser the numbers to slide between.</p>
-    <p class="measure">Both figures below are live: they run exactly the code a projected lecture runs. Step forward and back with the arrows, or press play.</p>
+    <p class="measure">A beat is the whole figure laid out again, which is the fourth of the decisions at the top of this page. Here is what it is like to write one. Both figures below are longer than the two-beat one up there, and both are doing the same three things: bringing elements in on the beat they belong to, taking the room&rsquo;s attention from one part of the drawing to another, and moving something and letting everything attached to it follow.</p>
+    <p class="measure">Both are live, and they run exactly the code a projected lecture runs. Step forward and back with the arrows, or press play.</p>
   </div>
 
   <div class="demo">
