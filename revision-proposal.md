@@ -1,13 +1,15 @@
 # Revising the `::: diagram` language – the proposal
 
-**Status: proposal.** Input to a decision. Every item here is a recommendation
-with the measurement behind it and the migration it costs.
+**Status: proposal v2 – current decisions.** This is the implementation input.
+The main body contains only the current recommendation for each item. Rejected
+or superseded variants are collected in the appendix and are explicitly not
+implementation instructions.
 
 ## What this is
 
 `todo-revision-of-system.md` is the finding document: fifteen numbered defects,
 each with measured evidence. This file is the answer to it. It covers every one
-of those fifteen and adds fifteen more that surfaced while measuring them, and
+of those fifteen and adds seventeen more that surfaced while measuring them, and
 it is written under the maintainer's ground rules – **free rein to break, and no
 legacy spellings**. Where a word is replaced, the old word goes.
 
@@ -17,12 +19,16 @@ Three things it assumes, from those ground rules:
   is unreleased; the source format freezes at the tag.
 - **One way to say each thing.** No aliases, no deprecation period. A rename is
   a rename, and the corpus migrates.
-- **Capability may not shrink.** Where a word is removed, this document shows
-  what replaces it and confirms the graphical editor can still reach it.
+- **Capability loss has a high bar, but is not an absolute veto.** A revision may
+  remove an expressible but unused behaviour when keeping it would require a
+  second rule or new vocabulary, the loss is named explicitly, the corpus has
+  been checked, and every real figure still has a clear spelling. Editor reach
+  remains part of the decision: a feature described as available in the editor
+  must have a concrete control and round-trip contract.
 
 ## How to read it
 
-Items 1–15 keep the finding document's numbering. Items 16–30 are new and are
+Items 1–15 keep the finding document's numbering. Items 16–32 are new and are
 numbered in the order the ground rules require (never renumber 1–15). Each item
 carries the seven parts the ground rules specify: problem statement, editor
 perspective, proposed revision, why it is strictly better, migration, effect on
@@ -31,8 +37,9 @@ perspective, proposed revision, why it is strictly better, migration, effect on
 Everything marked *measured* was produced by driving `diagram-core.mjs` through
 the probe harness or by compiling the corpus under a patched compiler. **Where a
 measurement contradicts the finding document, the measurement wins and the
-override is called out in place.** Five of the finding document's numbers moved;
-they are listed together under *Overrides* at the end.
+override is called out in place.** Corrections to the finding document are listed
+together under *Overrides* at the end; superseded proposal variants are separate
+from them in the final appendix.
 
 The corpus is `lectures/diagrams/source.md` (895 lines, 24 diagram blocks),
 `lectures/network-security/source.md` (1698 lines, 36 blocks) and
@@ -52,9 +59,9 @@ or stops compiling.
 | 2 | one typo produces five errors | one generated sentence per statement; stop at the first unreadable token | no | 0 |
 | 3 | `gap` vs `space` caught but not explained | **no change of its own** – item 2 closes it | no | 0 |
 | 4 | build silent on same-slot pairs and clashes | same-slot pair is an error; a clash is a build warning | no | 0 |
-| 5 | `align` is three things; `.left`/`.right` are two | placement option becomes `flush`; edge label side becomes `side`; one centre word | yes | 81 sites, 71 mechanical |
-| 6 | `gap` has two units | `gap` is square, measured in `uh` | **yes – redraws every figure** | 239 lines, scripted |
-| 7 | "a small language" undersells the surface | put the bar for a new word on the page, with measured counts | no | 1 paragraph |
+| 5 | `align` is three things; `.left`/`.right` are two | placement option becomes `flush`; edge label side becomes `side`; one centre word within each grammar | yes | 81 sites, 71 mechanical |
+| 6 | `gap` has two units | `gap` is square, measured in `uh` | **yes – spacing changes** | 239 lines, scripted |
+| 7 | "a small language" undersells the surface | state the bar for adding a word; do not publish brittle vocabulary counts | no | 1 paragraph |
 | 8 | `above`/`below` refuse the `of` the others require | keep all four spellings; fix the diagnosis on both near-misses | no | 0 |
 | 9 | `{#id}` honoured on two statements of seventeen | **delete `{#id}`; an optional name goes before the from-token** | yes | 87 edges, mechanical |
 | 10 | `edge` missing from `rejectShapeOn` | close the hole; fix the `"a edge"` article at four sites | no | 0 |
@@ -70,21 +77,24 @@ or stops compiling.
 | 20 | `w`/`h`/`r`/`point` parse on kinds that ignore them | gate them on `DG_KIND_OPTS` | no | 0 |
 | 21 | `step my name` compiles and drops the rest | a step takes one name | no | 0 |
 | 22 | a brace's side is a bare positional word | `side <word>`, the same keyword an edge gets | yes | 20 sites |
-| 23 | `h` is the whole element on four statements, one row on three | `row` / `band` / `head` on those three | yes | 4 sites |
+| 23 | `h` is the whole element on four statements, one row on three | `row` / `band` / `header` on those three | yes | 4 sites |
 | 24 | `bars … space` flips its unit with `horizontal` | square, in `uh` | yes | 1 line |
 | 25 | `table … space` is one number drawing two distances | convert x as `grid` already does | no | 0 |
 | 26 | `.smooth .elbow` draws a route outside its own extents | refused by item 4 | no | 0 |
-| 27 | the panel writes a generated `{#id}` onto a sequence message | read `el.named` instead of pattern-matching | no | 0 |
+| 27 | the panel treats a generated sequence-message name as authored | folded into item 9's explicit-name model and editor contract | no | 0 |
 | 28 | `#look` demonstrates no prominence class | add a four-swatch row | no | 2 lines |
-| 29 | six claims on the artifact page the compiler contradicts | rewrite six sentences | no | 6 sentences |
+| 29 | claims on the artifact page contradict the compiler or this revision | rewrite the affected passages | no | prose-only |
 | 30 | `step` is a statement and a `plot` option | rename the `plot` option to `tick` | yes | 9 sites, mechanical |
 | 31 | a `text` leader is written `->` and draws no arrowhead | leader takes the edge's tokens; `--` plain, `->` points | yes | 29 sites, mechanical |
 | 32 | print draws an arrowhead the last beat removed | hide the head in the print state, keep the node for the runtime | no | 0 sites, compiler fix |
 
-**Total source migration: 439 lines across three files** (1: 44, 5: 81, 6: 239,
-12: 11, 13: 28, 22: 20, 23: 4, 24: 1, 28: 2, 30: 9), of which about 390 are
-covered by a script and about 50 need a human to read the site. Item 11 adds
-three judgement calls that are one line each.
+**Do not sum the item counts into a line total.** Several revisions touch the
+same source line, while some item counts include examples outside the three-file
+corpus. In particular item 9 changes named edges and item 31 changes leaders,
+which are easy to omit from a manual total. The migration tool must report the
+deduplicated changed-line set after all mechanical rewrites have been composed.
+Per-item counts below are workload estimates, not additive totals. Item 11 adds
+three one-line judgement calls.
 
 ---
 
@@ -93,9 +103,10 @@ three judgement calls that are one line each.
 ## 1. `emph` has three grammatical roles, and `calm` sets `.dim`
 
 **Problem statement.** Prominence – how much of a room's attention an element is
-asking for – is one channel with three settings (`.emph`, `.dim`, `.ghost`, plus
-an unnamed normal), and the language spells it four ways depending on where it
-is written. On an element's own line it is a class. Inside a `step` it is a verb,
+asking for – is one channel with four visual states: an unnamed normal plus the
+three classes `.emph`, `.dim` and `.ghost`. The language spells the named states
+four ways depending on where they are written. On an element's own line each is
+a class. Inside a `step` it is a verb,
 and only two of the three settings have one: `emph` sets `.emph`, but the verb
 for `.dim` is `calm`, a word that exists nowhere else in the grammar and has no
 class behind it. On a `bars` line it is an option taking column indices. The two
@@ -141,16 +152,17 @@ thing, and it is what lets `style a {.tone-4 .emph}` stay one line.
 
 **Returning to normal is item 16's `{!class}`, not a fourth word.** The emphasis
 analysis proposed a named neutral, `.full`, for this. It is displaced here – see
-item 16 – because the same gap exists in ten slots and one mark closes all of
-them, where ten named neutrals would be ten new words.
+item 16 – because the same gap exists across grouped and ungrouped classes. One
+negation mark closes it generally; a named neutral for each look would multiply
+special cases.
 
 **Why it is strictly better.** *Removes a word that means two things*: `calm`
 goes and the survivors mean one thing each in every position. *Reduces the chance
 of a human or a language model writing a figure wrong*: `{.calm}` and `dim a` are
 both hard errors today, and a model that has learned the class list writes the
 second. *More self-describing*: the class list is the verb list, so learning one
-teaches the other, and the count of words to learn goes **down** by one. *No
-capability lost*, and `ghost` at a beat is gained.
+teaches the other. Existing behaviour is retained, and `ghost` at a beat is
+gained.
 
 **Migration.** Mechanical, 44 lines:
 
@@ -495,18 +507,19 @@ up" the way `flush` reads for one edge.
 more common in the corpus (24 against 4); because it sidesteps the
 `center`/`centre` question in a repo whose prose, comments and editor labels are
 en-GB, and a keyword whose spelling contradicts the surrounding text is a thing
-both a person and a model get wrong; and because it frees `center` completely.
+both a person and a model get wrong.
 This does not weaken the design comment defending the split, it completes it –
 once the axis is named, encoding it a second time in the edge word buys nothing.
 
-**(c) `center` is removed from `DG_ANCHORS`.** Measured, `edge p -> q.center` and
-`edge p -> q.cx,q.cy` are byte-identical, so the anchor is already expressible;
-it is used **zero** times in the corpus; and the only place it is mentioned is a
-comment in `figure-rules/source.md:594` warning against it, echoed by the page.
-Removing it deletes a word the documentation exists to talk people out of.
-`tl`/`tr`/`bl`/`br` stay: they name a **corner**, a different kind of thing from
-an edge, and the abbreviation keeps `a.tl` visibly distinct from `a.top` in a
-dense endpoint token.
+**(c) `center` stays in `DG_ANCHORS`.** `q.center` is the direct and learnable
+name for the centre of one element. `q.cx,q.cy` is more powerful – its two axes
+may come from different elements and carry independent nudges – but it is not a
+better spelling of the common case. The grammar position already distinguishes
+an endpoint anchor from an `align` or `flush` value, and both readings describe
+the same geometry rather than unrelated acts. Removing the familiar spelling for
+internal vocabulary purity would make ordinary source harder to read. The corner
+anchors `tl`/`tr`/`bl`/`br` stay for the same reason: they keep a dense endpoint
+token visibly distinct from `a.top` and friends.
 
 **(d) An edge's label side becomes the `side` option; the four classes stay
 classes on `box` / `dot` / `text` only.**
@@ -531,8 +544,9 @@ message keeps working and gets more honest: the expansion currently *injects*
 the edge record with an author's own `side` winning, the same shape `space n`
 already has.
 
-**Why it is strictly better.** *Removes a word that means two things*, three
-times over – `align`, `center`/`middle`, and the four alignment words. *Reduces
+**Why it is strictly better.** *Removes a word that means two things*, twice –
+`align`, and the four alignment words on nodes versus edges. It also removes the
+axis-conditioned `center`/`middle` choice inside `align` and `flush`. *Reduces
 the chance of a human or a model writing a figure wrong*: the two-`top`s line
 stops being writable, `align x middle` stops being an error, and a model that has
 seen `.top` on a box no longer guesses it onto an edge and gets a different
@@ -547,10 +561,10 @@ figure stops being expressible, and the editor gains a control it does not have.
 |---|---|---|
 | `align <word>` → `flush <word>` | 67 (diagrams 6, network-security 60, figure-rules 1) | pure `sed` – the statement form always has `x` or `y` after `align` |
 | `align x center` → `align x middle` | 4 (all in diagrams) + 1 in `figure-design.md:674` | pure `sed` |
-| `.center` anchor removed | 0 source sites | one comment line |
+| `.center` anchor | unchanged | the direct centre anchor stays supported |
 | edge label classes → `side` | 10 (diagrams 2, figure-rules 8) | **human per site** – the word moves out of a tail carrying other classes |
 
-81 sites, 71 mechanical. Code: `diagram-core.mjs` (`DG_ALIGN_X/Y`, `DG_ANCHORS`,
+81 sites, 71 mechanical. Code: `diagram-core.mjs` (`DG_ALIGN_X/Y`,
 `dgParsePlacement` and its two `STOP` sets, `PLACEMENT_OPTS`, `DG_KEYED_ATTRS`,
 `DG_KIND_OPTS.edge`, `dgDefaultLayers`, `rejectAlignOn`, `DG_CLASSES`, the two
 alignment slots, the `.turn`+`.left`/`.right` clash rows which now apply to node
@@ -731,46 +745,24 @@ rewriting inside it produces a line that fails to parse; splitting each line on
 `/("(?:[^"\\]|\\.)*")/` and rewriting only the even runs fixes it. And **it must
 read `unit=` off each block's own fence**, since 109 of 110 differ.
 
-**Verified: with that rewrite in place the corpus draws the same picture.** At
-four decimal places every number in every emitted SVG across all 110 blocks is
-within **0.02 px** of what the compiler on disk produces today; 66 blocks are
-numerically identical; compiler warnings are unchanged at three before and after;
-no block fails to compile.
+**Rounding policy: source readability wins over pixel identity.** The migration
+first converts a horizontal authored gap by `uw/uh`, then snaps it to **0.05**,
+the editor's own `DGE_SNAP_CELL`. It never emits four-decimal preservation
+numbers. Examples remain legible: `gap 0.5` becomes `gap 1.45`, `gap 0.25`
+becomes `gap 0.7`, and `gap 0.9` becomes `gap 2.6` at the common unit.
 
-**Recommended rounding: snap to 0.05 – the editor's own `DGE_SNAP_CELL` – with a
-four-decimal fallback on the blocks where accumulated drift exceeds 3 px.**
+Snapping can accumulate in a long chain, so “within three pixels of the old SVG”
+is not the acceptance criterion. The acceptance criterion is that the revised
+figure still communicates the same relationships: no unintended overlap, no
+lost arrow clearance, no clipped label, and no broken framing. If a snapped
+conversion fails one of those checks, the author tunes it by another 0.05 step or
+redesigns the local spacing. Exact decimals are not a fallback.
 
-| rounding | worst drift, any number, any figure |
-|---|---|
-| exact (6 dp) | 0.01 px |
-| 4 dp | 0.02 px |
-| 3 dp | 1.00 px |
-| snap 0.05 | 15.00 px (one block; a chain of six gaps rounding the same way) |
-| snap 0.10 | 29.00 px |
-| **hybrid: 0.05, 4 dp where that exceeds 3 px** | **3.00 px** |
-
-The hybrid puts **95 of 110 blocks on readable two-decimal numbers** (`gap 0.5` →
-`gap 1.45`, `gap 0.25` → `gap 0.7`, `gap 0.9` → `gap 2.6`) and gives the other 15
-four-decimal numbers. Zero new warnings, zero new overlaps, worst drift 3 px on
-figures 400–1200 px wide. The reason to prefer readable numbers over exact ones
-is item 7's reason: **50 listing lines on the artifact page show a horizontal
-gap**, and the page's whole claim is that those listings are the real source.
-`gap 1.45` is a number a reader can read; `gap 1.4423` is not.
-
-**The alternative – accept the redraw and rewrite nothing – is worse, and not
-marginally.** Recompiling the corpus unchanged under the square-gap rule: **79 of
-110 figures change geometry**, and it is not a uniform scale – heights are
-untouched and widths shrink by each figure's own mix of gaps, median viewBox
-width **−15.8%**, worst **−49%**. **Three pairs of sibling boxes end up
-overlapping, in two figures** – `lectures/diagrams:362` (the `#alignment` chunk,
-`p`/`q` and `q`/`r` overlapping by 31 px) and `lectures/network-security:1217`
-(`web`/`db`, 118 px) – and **nothing reports it**: the compiler deliberately does
-not warn on coincident elements, `lint.js` computes no geometry, and
-`test/figure-framing` measures the frame rather than the contents, so two broken
-figures ship green. Four more figures fall below a 12 px gutter where the
-arrowhead alone is 9 px. A human would have to re-read all 79, and there is no
-property that says a figure survived. The mechanical rewrite converts an
-unbounded design review into a diff.
+The migration script also emits a review manifest containing every changed
+block, its old and new viewBox, and every relation gutter that crossed zero or
+fell below one arrowhead plus padding. All changed blocks receive visual review;
+the named framing and label tests remain gates. This is deliberately a source
+migration plus design review, not a claim that the old raster is sacred.
 
 Other files: `lint.js` needs **no change** (it computes no geometry). `build.js`
 needs **no change**. `editor.mjs`: the seven expressions plus the `gapDelta` line
@@ -779,41 +771,35 @@ compiler reads on the other convention, and that failure is silent in exactly th
 way this item is about. Two further editor sites need no change but want a look:
 `1874`'s comment (*"in cells, which is what a gap is"*) stops being true, and
 `4186` hardcodes `' gap 0.3'` for a renamed element, which at 150x52 goes from
-45 px to 15.6 px and wants raising to `0.9`. `figure-design.md` carries 50
+45 px to 15.6 px and wants raising to `0.9`. `figure-design.md` carries many
 illustrative `gap` numbers in uncompiled snippets; every within-axis comparison it
 makes stays valid, so no snippet is wrong, but rule 1 is a claim about drawn
 distance and the doc should name the two families out loud.
 
-**Tests.** All three figure specs still pass, for a reason rather than by luck –
-they assert properties, not coordinates. `figure-sequence` is unaffected
-(`#sequence` and `#seqmore` compile byte-identically). `figure-labels` measures
-each label's inset against its own element's padding, which does not move; its
-reference chunk `#justify` is the worst block for 0.05 rounding and is therefore
-one of the 15 put on four decimals. `figure-framing` measures slack as a
-proportion, and figures are within 3 px of identical. The browser suite was not
-run.
+**Tests.** The three figure specs assert properties rather than exact
+coordinates. `figure-sequence` is unaffected. `figure-labels` measures each
+label's inset against its own element's padding, which does not move, and
+`figure-framing` measures slack as a proportion. They must pass together with the
+browser suite and the visual-review manifest; none is treated as a substitute
+for the others.
 
 **Effect on `lectures/diagrams/source.md`.** 24 blocks, 78 gap tokens, none to
 insert. `#grouping`, `#plot`, `#swimlane`, `#table` and `#seqmore` do not move at
 all – worth noting, because three of those are the reference for `lanes`, `table`
-and `sequence` and none of the three learns anything about this change. Seven
-chunks take four-decimal numbers; the rest are within 3 px. No statement, class,
+and `sequence` and none of the three learns anything about this change. No statement, class,
 option or generated name changes, so nothing is added to or removed from the
 construct reference. **The four tracked HTML views must be rebuilt and committed
 in the same commit** – the release workflow fails if they are stale, and every
 one of them changes.
 
 **Effect on `docs/artifact/`.** *The figures*: chunk ids do not change, so the
-contract with `refresh-figures.mjs` holds. 42 of the 50 blocks move at all, and
-under the hybrid the largest movement is 3 px. The four wrong/right pairs that
+contract with `refresh-figures.mjs` holds. The four wrong/right pairs that
 are *about* spacing – `#r1w`/`#r1r` ("even gaps say nothing") and `#r2w`/`#r2r` –
 are pure horizontal chains, so their comparison survives exactly: `0.5 0.5 0.5`
 becomes `1.45 1.45 1.45`, and `0.25 / 0.9 / 0.25` becomes `0.7 / 2.6 / 0.7`. The
-rule the page teaches still reads off the source. **The one block to hand-edit
-rather than script is `#hero`**: it is the first figure and the first listing on
-the page, the only block with no `unit=`, and the page's prose quotes its numbers.
-Rewrite it to `gap 1.85` (drift 1.2 px) so the drawing is unchanged, and update
-the one sentence that quotes `gap 1.1`.
+rule the page teaches still reads off the source. **Exclude `#hero` from the
+script and keep `gap 1.1`.** It is the first teaching example and deliberately
+has no `unit=`; its cleaner source is worth the accepted redraw.
 
 *The prose*: four passages, quoted under item 29(i). One of them – the wall
 stating the units rule – is the item itself, and one is a sentence this revision
@@ -822,63 +808,31 @@ makes **true** without any edit at all.
 ## 7. "A small language" undersells the surface
 
 **Problem statement.** The page describes the language but never says how large
-it is or whether it is going to get larger, and the honest answer to the second
-question is the more useful one. The old number strip advertised the first and
-read as bragging; taking it out left the question a newcomer actually arrives
-with – *will this list keep growing under me* – unanswered on a page that
-otherwise answers everything. The answer exists and is good, but it is stated
-only inside CLAUDE.md, where no reader of the page will find it. The page already
-narrates one instance of that bar being cleared, on `table`, `lanes` and
-`sequence`, without ever saying it is a bar.
+it is or whether it is going to get larger. Publishing a count is not a useful
+answer: it becomes stale whenever a class or option moves and says nothing about
+how much of the surface a newcomer needs. The useful answer is the maintenance
+rule that governs growth. It exists in CLAUDE.md but not on the page.
 
-**Editor perspective.** Nothing a user hits; this is a measurement, not a defect.
-**Which count is honest: the grammar's**, and the reason is not that it is
-smaller. The panel's 16 rows are not a second surface – they are the same 13
-slots plus three one-member rows for `.turn`, `.front` and `.bold`, the three
-classes that belong to no slot, because a swatch row needs an "off" swatch to be
-a row at all. `dgeKindOpts` reads `DG_KIND_OPTS`, `DGE_SLOTS` mirrors
-`DG_CLASS_GROUPS`, the aim row reads `DG_POINTED`; every pane is a rendering of a
-`diagram-core.mjs` table, so a word added to the grammar is a row added to the
-panel and not the other way round – which is exactly the reassurance the sentence
-is supposed to give. Item 15 makes that literally true by deriving the rows. The
-panel's number is the honest count of what a person *faces* and belongs in
-`editor.md`; the page teaches writing figures as text and should count the text.
+**Editor perspective.** Nothing a user hits directly. The editor is evidence for
+the rule: its panes are renderings of compiler tables, so a new language word
+normally creates a new control or choice that somebody has to face. Item 15 makes
+that relationship explicit by deriving the rows from the compiler's class-kind
+table. No numeric claim about rows, classes or options is published in user-facing
+prose.
 
-**Proposed revision.** One paragraph, appended to the *what it cannot do*
-section – the boundary section, where the question is asked – after the closing
-`</div>` of `<div class="walls limits">`, styled like the equivalent closing
-paragraph further up:
+**Proposed revision.** Append one paragraph to the *what it cannot do* section:
 
 > Those are the boundaries. The fair question about what is inside them is
-> whether the list keeps growing under you. Seventeen statements, eight step
-> words, forty classes and thirty-seven option words is the whole surface, and
-> there is a written bar for the eighteenth statement: *build it out of what
-> exists first, and only add a word when the hand-built version is the thing that
-> cannot be maintained.* `table`, `lanes` and `sequence` are the three that
-> cleared it, and the section on the five arrangements says how – each could
-> already be drawn by hand, and the hand-built version was the thing nobody could
-> edit afterwards. A word that only saves typing does not get in, which is why the
-> flowchart and the tree in that same section have no statement of their own.
+> whether the list keeps growing under you. There is a written bar for a new
+> statement or option: *build it out of what exists first, and only add a word
+> when the hand-built version is the thing that cannot be maintained.* `table`,
+> `lanes` and `sequence` cleared that bar because their hand-built equivalents
+> became uneditable. A word that only saves typing does not get in, which is why
+> the flowchart and the tree need no statement of their own.
 
-The last clause is checkable on the page itself: it already says *"the flowchart
-and the tree need nothing the page has not already shown"*, and the two figures
-are there.
-
-**The numbers are the ones that hold after this whole pass lands**, not today's.
-Measured today: 17 statements, 7 step ops, 40 classes (37 in 13 slots), 33
-distinct option words. After the pass: statements stay 17; step ops become **8**
-(`calm` out, `dim` and `ghost` in); classes stay **40** (nothing is added or
-removed – `.no-head` and `.both-heads` survive as `style`-step spellings, and
-item 16's `{!class}` is a mark, not a word); option words become about **37**
-(`flush` replaces `align`, plus `side`, `row`, `band`, `head`, `tick`, and `calm`
-becomes `dim` and `ghost`). **This paragraph must be written last**, and its
-numbers recounted from the tables at that point rather than copied from here.
-
-The alternative – a ninth card in the `walls limits` div – is declined: a wall is
-a capability the language refuses, and this is a policy about how the list
-changes; it would also force the section's heading from eight to nine for no
-gain. Numbers alone without the bar is the third option and is the one already
-tried and removed.
+No vocabulary count is added. Counts are brittle, invite false precision and
+measure the whole reference surface rather than the path a learner actually
+takes.
 
 **Why it is strictly better.** *Makes the language easier to learn and more
 self-describing.* A reader who has just been shown forty classes and seventeen
@@ -886,9 +840,7 @@ statements is told, on the page, what governs whether there will be fifty next
 year, and the sentence is the one the maintainer actually applies. Worse on
 nothing: it adds no vocabulary, no behaviour, no constraint.
 
-**Migration.** One paragraph of HTML. No code, no source. The four numbers become
-a thing to keep true – which is the point of writing them as words rather than as
-a strip, so a stale one reads as prose to fix rather than as a fact to trust.
+**Migration.** One paragraph of HTML. No code and no diagram source.
 
 **Effect on `lectures/diagrams/source.md`.** None.
 
@@ -1005,76 +957,7 @@ not defined – a message about the *reference* for a defect in the *definition*
 The silence is in the naming layer, which is the layer every other construct
 addresses.
 
-**Correction to the finding document.** It says the id *"is not even checked
-against `DG_RESERVED_IDS` where it is discarded"*, which is true but reads as
-though the check were missing generally. Where `{#id}` *is* honoured the check
-fires – `edge p -> q {#constructor}`, `{#__proto__}` and `{#toString}` are all
-refused today, and so is `{#constructor}` on a sequence message, because
-`claim()` runs on the resolved id. Refusing the discarded case therefore closes
-the hole completely with **no new reserved-id logic**.
-
-**Editor perspective.** There is no rename control anywhere in the panel. A name,
-once written, cannot be changed through the editor on any kind; the only code
-that rewrites one is `dgeDuplicate` and the paste-time collision renamer
-`dgeRenameIn`, which nothing in the panel calls. `dgePlanTail` rebuilds the whole
-attribute tail from the model and its `wantId` is non-null only for an edge, so
-one swatch click on any other kind deletes a hand-written `#id`. The two defects
-cover for each other exactly: the id does nothing, so losing it does nothing.
-Under this proposal no non-edge figure can carry one, so `dgePlanTail` becomes
-correct where it stands and **needs no change at all**.
-
-**Proposed revision. Refuse `{#id}` on every statement that does not use it as
-the name** – everywhere except an `edge` line and a `sequence` message line –
-with the message naming the second token as the place a name goes:
-
-```
-box a "A" {#zz}
-  ->  a name goes in the statement's second token, not in the tail:
-      write `box zz "A"`. Only an edge and a sequence message take {#name},
-      because their second token is already an endpoint.
-```
-
-**The rejected answer is the finding document's own "make `{#id}` name the
-element everywhere":** it gives every element two spellings for its name, which
-is precisely what the ground rules forbid, and it forces a collision rule (second
-token *and* `{#id}`) that is a new ambiguity introduced to fix an old silence.
-
-**The genuinely better long-run answer, declined for now.** Give `edge` a
-second-token name (`edge awire a.bottom -- a.cx,sw.top {.muted}`) and delete
-`{#id}` from the grammar entirely, so every statement names its element the same
-way. It parses unambiguously – exactly two bare tokens before the arrow means
-name plus from-token – and CLAUDE.md records that anything between `edge` and the
-from-token is already an error, so the slot is free. It is the most consistent
-answer and it makes a rename control uniform. It is declined **now** for one
-reason: it rewrites the same 87 edge lines item 13 is rewriting, and two
-proposals editing the same 87 lines is how the two end up disagreeing. **If item
-13's edge work is done as a single pass, this should be folded into it.**
-
-**Why it is strictly better.** Turns a silent no-op into an explicit failure, in
-the layer everything else references. Removes a word that means two things – an
-`{#id}` that is a name on two statements and litter on fifteen. Worse on nothing:
-the id does nothing today, so nothing that works stops working.
-
-**Migration.** **Zero lines.** Measured across all three corpus files: 87 `{#id}`
-occurrences, **every one on an `edge` line**, none on a `sequence` message, none
-on any other statement (diagrams 18, network-security 63, figure-rules 6). The
-refusal cannot fire on anything that exists. Code: one branch in
-`diagram-core.mjs`, one mirror in `lint.js`. No editor change.
-
-**Effect on `lectures/diagrams/source.md`.** None. The construct reference still
-demonstrates `{#id}` – `#mac`, `#proxy`, `#roc` and `#table` name edges that way,
-which is the one place the construct is real. One prose line there becomes *more*
-true: it already says *"Eine Kante hat keinen Namen, bis man ihr mit `{#w1}` einen
-gibt"*, which under this proposal describes the only thing `{#…}` does.
-
-**Effect on `docs/artifact/`.** *Figures*: none. `figure-rules/source.md` writes
-`{#direct}`, `{#f1}`, `{#f2a}`, `{#f2b}`, `{#f3}` – all on edges, all still
-legal. *Prose*: no existing sentence becomes false. Worth **adding** one, because
-the page teaches the tail and never says what `{#…}` is for: the
-anatomy-of-a-line section is where *"an edge is the one element with no second
-token, so it takes its name in the tail"* belongs.
-
-### The adopted answer: an optional name before the from-token
+**Current revision: an optional name before the from-token.**
 
 `{#id}` is **deleted from the language**. Nothing then needs refusing where it
 used to be discarded – there is no construct left to discard – so this item stops
@@ -1120,6 +1003,39 @@ introduces back into an error. Note the slot has been typed into by accident
 before – CLAUDE.md records twelve such lines in `lectures/network-security` – which
 is a reason to make the guard precise, not a reason to leave the slot empty.
 
+**Editor contract.** This revision includes naming in the panel; it is not only a
+parser migration.
+
+- Every selectable source-owned element gets a `name` field in an **identity**
+  pane. For statements whose second token is the mandatory name, the field shows
+  that token. For an anonymous edge or message it is empty and shows the generated
+  id as a read-only placeholder; typing a value inserts the optional name before
+  the from-token.
+- Every model element carries `named: boolean`. Ordinary named statements and an
+  explicit edge/message name set it to true; `edge-N` and sequence-generated
+  message names set it to false. The compiler already records this fact for an
+  ordinary edge; the sequence expansion must carry it too. No editor code infers
+  authorship from an id pattern.
+- `createSpanTable()` exposes `spanOf(id, 'name')`. On an anonymous edge or
+  message it returns an absent span whose insertion point is immediately before
+  the from-token. On every other statement it covers the mandatory name token.
+- A rename is one atomic source edit: rewrite the declaration and every reference
+  to it, including endpoints, placements, coordinates, member lists, step targets,
+  tags only where the token is an id, and generated-owner annotations. Reuse the
+  token-aware `dgeRenameIn` machinery; never replace inside quoted labels or
+  comments. Validate the identifier and collision before applying the splice set.
+- Clearing an optional edge/message name removes its token. If anything still
+  refers to that explicit name, the compiler refusal rolls the whole edit back.
+  Mandatory statement names cannot be cleared.
+- `dgePlanTail()` stops reading or writing ids altogether. The tail contains only
+  classes, removals and tags. `#...` is refused by `dgParseAttrs` on every kind,
+  with an error pointing to the name field or leading name slot.
+
+This also closes item 27: a generated sequence-message id has `named: false`, so
+a class or tag edit cannot pin it into the source. Add an editor regression test
+that changes a message tail, asserts that no name token appears, then explicitly
+names and renames the message through the identity field.
+
 **Why the tail is the wrong place, stated once.** `{#id}` puts the name **last**,
 far from where every other statement puts it. `box a "A"`, `container k … `,
 `bars f …` all name in front; only an edge named its element after its options.
@@ -1131,8 +1047,9 @@ that honour it still naming backwards.
 **Migration.** **87 edge lines**, mechanical: `edge X -> Y … {#n …}` becomes
 `edge n X -> Y …` with `#n` struck from the tail and the rest of the tail kept.
 **Zero message lines** – none of the 28 in the corpus is named, so the message
-half of this is capability added, not source moved. Do it in the same pass as
-items 13b and 31, which touch the same lines.
+half of this is capability added, not source moved. Do it in the same migration
+program as items 13b and 31, then report unique changed lines rather than adding
+the three site counts.
 
 **Effect on `lectures/diagrams/source.md`.** Every chunk with a named edge changes
 one token's position per line; no chunk loses a construct. `#sequence` and
@@ -1279,16 +1196,12 @@ Measured on a patched compiler, print `<g class>` of the element:
 Rows 7 and 8 are item 17's bug, fixed. Rows 2 and 4 are the deliberate change.
 Everything else, including every tone, is untouched.
 
-**The defensible alternative, and why not.** Keep both behaviours and make the
-*source* carry the difference – a marker on the step line, say
-`step s {.handout}`, or a separate verb pair. It preserves the one capability the
-recommendation drops: an element normal at beat 0, quiet in the handout, and
-quiet only from beat 3 on screen. It is declined because the capability has no
-case – no figure in the corpus asks for it, all three sites that would have used
-it read as an author reaching for the only spelling they knew, and a word that
-freezes at the first tagged release deserves a case that exists. It would also
-add vocabulary to close an item whose whole complaint is that there are already
-too many ways to say this.
+**Accepted capability loss.** The revision can no longer express an element that
+is normal at beat 0, becomes quiet only later on screen, yet is quiet in the
+handout. No corpus figure asks for that state, while preserving it would require
+a handout marker or a second operation family. The loss is explicit and judged
+smaller than keeping two visually identical step spellings with hidden print
+semantics. The rejected marker variant is recorded in the non-current appendix.
 
 **Why it is strictly better.** *Removes a word that means two things* in the
 strongest available sense: after the change `emph a` and `style a {.emph}` are
@@ -1298,8 +1211,8 @@ deleted rather than documented. *Reduces the chance of writing a figure wrong*: 
 author's own `{.dim}` no longer disappears from print because an unrelated step
 touched the element, and one real figure in the corpus is drawn wrong on paper
 today. *More self-describing*: the print rule becomes readable off the source,
-with no flag and no provenance. *No capability lost* that any figure uses, and
-one gained – a `dim` at a beat can be undone with item 16's `{!dim}` at a later
+with no flag and no provenance. The corpus loses no used behaviour, and one
+capability is gained – a `dim` at a beat can be undone with item 16's `{!dim}` at a later
 beat, so a build-up can hand attention back.
 
 **Migration.** Measured over the whole corpus: 110 blocks compiled under both the
@@ -1389,56 +1302,52 @@ without reading the compiler:
 
 The middle tier gains no new members.
 
-**Three overrides of the finding document, all measured.** Its numbers moved
-again and the method is worth stating, because a naïve sweep goes wrong in both
-directions: raw computed style **over**-reports (`.emph` on a free `text` sets
-`stroke-width` on a rect the sheet has already given `stroke: none`), and
-screenshot hashing **under**-reports and is flaky (two renders of byte-identical
-SVG hashed differently). Both were tried. The numbers below come from a **paint
-signature** – the computed style of every emitted node, filtered to the
-properties that can actually put ink on the page for that node, plus transforms
-and geometry – across 40 classes × 7 kinds × 22 fixtures.
+**How the rule was checked.** A naïve sweep goes wrong in both directions: raw
+computed style over-reports (`.emph` on a free `text` sets a stroke width on a
+rect the sheet then forces to `stroke: none`), while screenshot hashing
+under-reports and is flaky. The check therefore uses a paint signature: computed
+style filtered to properties that can put ink on each emitted node, plus
+transforms and geometry, over fixtures for every kind. This is test methodology,
+not a vocabulary count; the table below is the contract.
 
-1. **"~43 inert" → 76.** The headline list omits `image` entirely (32 pairs,
-   which appear in the finding document only as "13 swatches" in the editor
-   table), and misses `dot .round .sharp`, `text .dashed .dotted .thick`,
-   `brace .round .sharp` and `brace .bare`.
-2. **"30 explicitly refused" → 35.** The five it misses are the outline classes
-   on an `image`, which a sweep cannot see unless its image fixture resolves an
-   asset.
-3. **"nineteen dead swatches" → 16.**
-
-**Proposed revision. All 76 become errors, from one exported table. None becomes
-a warning.**
-
-Forty classes collapse into **eight distinct kind-sets**:
+**Proposed revision. Every inert kind/class pair becomes an error from one
+exported table. None becomes a warning.** This is the final table after items 5,
+13 and 16; later sections must not recut it:
 
 | kinds | classes |
 |---|---|
 | `box` | `hex diamond chevron wedge cross` |
-| `box dot container brace edge` | `dashed dotted thick bare` |
-| `box dot text container brace edge` | `tone-1 tone-2 tone-3 tone-4 clear paper accent muted turn mono serif hand small large bold` |
+| `box dot container brace edge` | `dashed dotted thick` |
+| `box dot container` | `bare` |
+| `box dot text container edge` | `tone-1 tone-2 tone-3 tone-4 clear paper` |
+| `box dot text container brace edge` | `accent muted turn mono serif hand small large bold` |
 | `box dot text` | `left right top bottom` (edge reading moved to `side`, item 5d) |
-| `box dot text image container brace edge` | `emph dim ghost` |
+| `box dot container brace edge` | `emph` |
+| `box dot text image container brace edge` | `dim ghost` |
 | `box text` | `fit shrink` |
 | `box text container edge` | `round sharp` |
-| `edge` | `no-head both-heads smooth elbow front` |
+| `edge` | `no-head one-head both-heads smooth elbow front` |
+
+A class appears once in this table. A positive `.class` and a negative
+`!class` are legal on exactly the same kinds; negation does not become an escape
+hatch for a class that the kind can never carry. The parser uses the table for
+element tails, `default` tails and every member reached by a `style` target.
 
 `DG_CLASS_KINDS` plus `rejectClassOn()` replace `rejectShapeOn` and
 `rejectAlignOn`, at **8 call sites** – exactly the sites those two occupy now,
 six of which lose a line because two calls become one.
 
-**Where the check belongs, and the answer to "grammar or stylesheet".** For 75 of
-the 76 it is a fact about the **grammar**, decidable from the kind word with no
+**Where the check belongs, and the answer to "grammar or stylesheet".** Almost
+all entries are facts about the **grammar**, decidable from the kind word with no
 reference to `DIAGRAM_CSS` at all, because the kind decides which drawables the
 group holds: an `image` group holds one `<image>` and nothing else, a `brace`
 holds one stroke path, a free `text` holds a label and a rect only when filled.
-The single case that is genuinely a stylesheet fact is `.bare` on a free `text`
-and on an edge's label ground, where two rules unstroke the ground
-unconditionally – but those rules are a *stated rule of the language*, not a
-look, and the comment above them says so: *"No stroke – a bordered label on a
-line is a box, and there is a statement for that."* Freezing it into the grammar
-writes down a decision already made.
+The cases that are genuinely stylesheet facts include `.bare` on a free `text`,
+brace or edge: `.bare` targets shape children, while brace and edge strokes are
+`.dg-stroke` paths and label grounds are un-stroked unconditionally. Those rules
+are a *stated rule of the language*, not a look. Freezing them into the grammar
+writes down a decision already made rather than promising an effect the CSS
+cannot deliver.
 
 **Cost in `lint.js`: the dispatch collapses to one call per branch, and the
 import stops importing two *functions* and imports a table instead.** CLAUDE.md
@@ -1457,15 +1366,11 @@ at `w 1 h 0.5` with an overlong label it takes the font from 15.00 to 9.00).
 `.smooth` on an edge with no `via`, and `.round`/`.sharp` on a text or edge with
 no ground – live the moment the figure gives them something.
 
-**The cancel clause is deleted, and this is a cross-cluster decision.** The
-naming analysis rescued seven further pairs (`text .emph`, `image .emph`, and
-five brace fills) on the grounds that a class also "reaches something" if it
-cancels a same-slot default, since **the source language has no way to write
-"none of this slot"** – only the editor has that swatch. Item 16 gives the
-language that way (`{!class}`), so the workaround is removed rather than kept, as
-that analysis itself asked. The seven pairs become refusals and the set grows
-from 76 to 83. **The table above must be recut after item 16 lands**, and that
-ordering is in the sequencing section.
+**There is no cancel-only exception.** `text .emph`, `image .emph` and fill
+classes on a `brace` do not paint those kinds and are refused. Item 16 supplies
+the honest spelling for suppressing a weaker default: negate the class that is
+actually present. This is why the final table above is defined after item 16
+rather than carrying a second, intention-dependent legality rule.
 
 **And the editor derives its rows from the same table.** This is the part the
 finding document says the panel cannot do from its own side. Every `kinds:` field
@@ -1473,9 +1378,9 @@ in `DGE_SLOTS` turns out to be exactly the union of `DG_CLASS_KINDS[c]` over tha
 slot's real classes – all sixteen rows checked – so the field is deleted and
 derived, `dgeShapeOK` becomes a table lookup, and the row's own comment (*"the
 answer is read off the compiler's own rules rather than restated as a list of
-names"*) becomes literally true. **16 dead swatches disappear**: `image` loses
-ink (2), line (2), weight (2), size (2), family (3) and text-weight (1); `text`
-loses line (2) and weight (2).
+names"*) becomes literally true. Dead swatches disappear automatically: an
+option is shown for the current selection only when every selected kind is in
+that option's derived kind-set.
 
 **`test/editor-sidebar.mjs` still passes**, because every swatch it drives
 remains one the compiler accepts. **It should be strengthened rather than left**:
@@ -1484,14 +1389,15 @@ beside `broke` and `unbraced` – that the selected element's rendered `class`
 attribute or geometry changed, with the conditional set named as the exemption.
 That is the assertion whose absence let 16 dead swatches ship.
 
-**Why it is strictly better.** Turns 76 silent failures into explicit ones – the
+**Why it is strictly better.** Turns silent failures into explicit ones – the
 criterion this item exists for. Reduces the chance of a human or a model writing
 a figure wrong, which is not hypothetical: the eleven `.bare` lines are the
 compiler's own author writing the same inert class eleven times over 36 slides.
 More self-describing, because the error names the statements the class *does*
 belong on. Removes a hand-kept list from sixteen editor rows and a documented
-bend from `lint.js`. Worse on nothing – no capability lost, verified by
-re-rendering the whole corpus byte-for-byte.
+bend from `lint.js`. The only accepted loss is the ability to carry an inert
+class string in emitted SVG; it changes no rendered figure and no corpus figure
+relies on it.
 
 **Migration. 11 lines, one file, mechanical.** All in
 `lectures/network-security/source.md` (73, 80, 144, 186, 203, 237, 251, 294, 308,
@@ -1516,7 +1422,7 @@ compiles clean under the full rule. *Prose*: the sentence the finding document
 puts under review is *"Anything outside the vocabulary is refused when the figure
 is built rather than ignored."* It is true as written and false as read – a
 reader takes it to mean *the build tells me when a word does nothing*, which is
-false for 76 combinations today. **Under this proposal the honest sentence is
+false for many combinations today. **Under this proposal the honest sentence is
 stronger, not narrower**, and that is the point:
 
 > Anything outside the vocabulary is refused when the figure is built rather than
@@ -1680,7 +1586,7 @@ The leader takes a **subset, and for a stated reason** rather than as an
 exception: it names one operand, not two, so `<-` has nothing to reverse and
 `<->` would put a head on the words themselves. See item 31.
 
-**Every token seeds a class, and that is a correction to the first draft.** Today
+**Every token seeds a class.** Today
 `--` seeds `no-head` through `autoClasses` and **`->` seeds nothing at all** – it
 is the *absence* of a head class, with the head arriving as the drawn default. The
 consequence is precedence that depends on which token was written:
@@ -1711,12 +1617,26 @@ Three things fall out, and all three are simplifications:
   returns to a single head by saying `{.one-head}` rather than by clearing the
   slot. Item 16 is still needed for the slots where "no class" is a real state;
   it just is not load-bearing *here*, which narrows its blast radius.
-- **The editor's head row becomes a three-way swatch** with no implicit fourth
-  position, which is the shape `DGE_SLOTS` already expects of every other row.
+- **The model's head slot becomes three-state** with no implicit absence-based
+  state. The editor still preserves the source direction distinction described
+  below.
 
-The vocabulary grows by one word. That is the right trade: the count goes up by
-one and the number of *rules* goes down, which is the direction this document is
-supposed to move in.
+`.one-head` earns its place because it makes all three runtime states explicit,
+removes absence-based precedence, and gives the editor a closed three-state
+model.
+
+**Editor contract for direction.** At beat 0 the arrowheads row has four plainly
+labeled choices: **none** (`--`), **to second** (`->`), **to first** (`<-`) and
+**both** (`<->`). It rewrites only `spanOf(id, 'arrow')`; it never adds a head
+class to the element tail. This preserves `<-` as a source-legibility choice and
+makes the two possible one-headed directions explicit instead of collapsing them
+under a swatch named “one”. At a later beat the edge direction is fixed by its
+opening token, so the row offers **none**, **original destination**, and **both**,
+writing `.no-head`, `.one-head`, or `.both-heads` through item 16's beat-local
+class path. Multi-selection enables **original destination** only when all
+selected edges have a defined opening direction; changing direction itself is an
+opening-beat edit. Tests cover all four token round-trips, `<-` preservation, and
+each of the three beat-local states.
 
 **Two settled details.**
 
@@ -1732,10 +1652,9 @@ along the final segment. Verified. Worth **one sentence on the artifact page**
 precisely because a reader might expect a curve or a rail to change how an arrow
 terminates, and nothing currently says it does not.
 
-**The scope rule, corrected.** The arrow token is the one class-channel that every
+**The scope rule.** The arrow token is the one class-channel that every
 edge statement is *forced* to speak on – it is the operand separator, so no edge
-can be written without one. That single fact settles all three scopes, and the
-first draft of this item got the third wrong:
+can be written without one. That single fact settles all three scopes:
 
 | scope | head classes | why |
 |---|---|---|
@@ -1743,9 +1662,8 @@ first draft of this item got the third wrong:
 | a `style` step | **legal – the only spelling** | a token cannot be re-run in a beat |
 | a `default edge` block | **refused** | every edge states this channel itself, so there is nothing to default |
 
-The draft had `default edge` in the second row, on the reasoning that the arrow
-token wins over any class by the ordinary four-layer rule. **That is a behaviour
-change, and it reintroduces exactly the defect item 12 removes.** Measured today:
+Allowing a head class in `default edge` and letting the mandatory arrow token
+win would reintroduce exactly the defect item 12 removes. Measured today:
 
 ```
 default edge {.no-head}
@@ -1755,14 +1673,10 @@ edge p -> q      ->  draws byte-identically to  edge p -- q
 The default *does* act. Under token-wins precedence it never could, because every
 edge carries a token that outranks it – so `default edge {.no-head}` would become
 a permanent silent no-op, a control that parses and can never take effect. No
-corpus site writes one (verified across all three lectures), so nothing breaks
-either way; the choice is between a capability that quietly dies and a scope that
-is refused with a sentence. Refuse it, and say why.
+corpus site writes one. Refuse the ineffective scope with a sentence.
 
 With `default edge` refused, no precedence rule is needed on this channel at all:
-exactly one scope can speak per beat. That is simpler than the four-layer
-resolution the draft proposed, and it removes the question rather than answering
-it.
+exactly one scope can speak per beat. No special precedence rule is needed.
 
 The refusals need a small second table beside `DG_CLASS_KINDS`, keyed by
 **position** rather than by kind. That is the same shape as item 12's rule – a
@@ -1787,10 +1701,9 @@ it, and the guessable token exists. *Reduces the chance of writing a figure
 wrong*: 16 of 18 corpus sites are the wrong spelling of something with a right
 spelling, and afterwards the wrong spelling does not parse. *Turns a silent
 failure into an explicit one*: `edge p -- q {.no-head}` is today a line that says
-the same thing twice with no complaint. *No capability lost* – `DG_CLASS_GROUPS`'s
-arrowheads slot **stays**, which is what makes `style` displace within the
-channel, and `autoClasses` keeps its only caller because `--` still seeds
-`no-head` into the per-beat state.
+the same thing twice with no complaint. The runtime capability stays:
+`DG_CLASS_GROUPS`'s arrowheads slot lets `style` change the channel, and every
+token seeds the corresponding per-beat state.
 
 **Migration.** 18 corpus sites (diagrams 9 – `#motion`, `#plot`, `#sameframe`,
 `#table`; network-security 7; figure-rules 2 – `sp7`), plus 10 example lines in
@@ -1878,7 +1791,7 @@ Add `aspect`, `col` and the prominence option words to `DG_KEYED_ATTRS`, and
 delete `dgeListSpan` together with its dispatch line, as its own header comment
 instructs. After item 1 the list to add is `aspect, col, emph, dim, ghost` – not
 `emph, calm` – and after item 5 the list already carries `flush` rather than
-`align` and gains `side`; after items 22, 23 and 30 it gains `row`, `band`, `head`
+`align` and gains `side`; after items 22, 23 and 30 it gains `row`, `band`, `header`
 and `tick`. **These land in one commit or the list disagrees with the grammar.**
 
 *Checked: can `spanOf` find `aspect 4:3` when the value is not a number?* Yes.
@@ -1951,8 +1864,8 @@ rest by deriving `kinds` rather than by adding guards.**
 Where item 12 makes the compiler **refuse** a combination, the figures carrying it
 stop existing and the row needs no guard. That covers `.hex` and its four
 siblings on an edge (item 10); `.fit`/`.shrink` on a container, brace or edge;
-`.no-head`, `.both-heads`, `.smooth`, `.elbow`, `.front` on anything but an edge;
-and the whole of `image`'s 32.
+`.no-head`, `.one-head`, `.both-heads`, `.smooth`, `.elbow`, `.front` on anything
+but an edge; and every image swatch whose class cannot paint an image.
 
 The rest are rows whose `kinds` is **narrower than the compiler's rule** – the
 same defect as item 10 with the sign flipped – and deriving `kinds` from
@@ -1960,10 +1873,10 @@ same defect as item 10 with the sign flipped – and deriving `kinds` from
 
 | row | `kinds` today | derived | what becomes reachable |
 |---|---|---|---|
-| `fill` | `box dot text container` | `+ brace edge` | an edge's label ground – **written by hand six times in `docs/artifact/figure-rules/source.md`** and unsettable in the panel today |
+| `fill` | `box dot text container` | `+ edge` | an edge's label ground – written by hand in `docs/artifact/figure-rules/source.md` and unsettable in the panel today; brace fills remain refused |
 | `corner` | `box container` | `+ text edge` | `.round`/`.sharp` on a label ground, which act; the five shapes stay box-only |
 | `reading` (`.turn`) | `box text` | `+ dot container brace edge` | `.turn` acts on all six – measured |
-| `ink`, `line`, `weight`, `size`, `family`, `text weight` | `null` (= every kind) | narrowed off the table | the 16 dead swatches go |
+| `ink`, `line`, `weight`, `size`, `family`, `text weight` | `null` (= every kind) | narrowed off the table | dead swatches disappear |
 
 **How many rows still need a `dgeCarries`-shaped clause: none.** The naming
 analysis concluded "none beyond the two that already have it", on the grounds
@@ -1974,8 +1887,8 @@ row offers only the pair that can act, and `dgeAcrossOK`, `dgeDownOK` and
 `dgeCarries` are all deleted. That is a cross-cluster improvement on both
 analyses and it is the answer this document takes.
 
-**Why it is strictly better.** No capability is lost by either half and two are
-restored: taking a class off becomes uniformly possible, and four rows start
+**Why it is strictly better.** Taking a class off becomes uniformly possible,
+and four rows start
 offering clicks the compiler has always accepted and the panel never showed. It
 removes sixteen hand-kept lists that could drift from the compiler – the drift
 that produced item 10 in the first place.
@@ -1995,47 +1908,26 @@ there is no way to take it back off". No separate edit.
 
 ---
 
-# New items
+# Further implementation items
 
-These were surfaced while measuring items 1–15. The ground rules require them to
-be added rather than dropped, and numbered from 16 without renumbering 1–15.
-Three analyses independently found the same defect and it is merged here as item
-16; the rest are distinct.
+The numbering remains stable for cross-references to the finding document.
 
 ## 16. A step can only add a class, so no slot's default can be returned to
 
-**New, and found by three separate analyses** – as the missing fourth prominence
-setting, as the missing arrowheads default, and as the reason the refusal rule of
-item 12 needed a workaround. It is one defect.
-
 **Problem statement.** `dgStateAt` implements `style` as add-and-displace: the
 class is added and same-slot classes are deleted. **There is no way for a step to
-remove a class.** Ten of the thirteen slots express their default as the absence
-of every member – prominence, stroke pattern, stroke weight, size, family, line
-shape, fitting, the two label alignment slots, arrowheads – so a beat can leave
-those slots and never come back. Measured on arrowheads: `edge p -- q` then
-`style e {.both-heads}` works, and there is no class meaning "one head", so the
-opening state is unreachable from beat 2 onwards. The three ungrouped classes
-(`.bold`, `.turn`, `.front`) are in the same position with no slot at all. The
-obvious attempts are worse than useless: measured, **`style a {}` and `style a`
-with no class list are both accepted and do nothing, silently** – precisely the
-failure this grammar refuses everywhere else. The same gap is why an element
-cannot opt out of a `default box {.dim}` on its own line.
+remove a class.** Many slots express their base state as the absence of every
+member – normal prominence, a solid stroke, regular size and family, and centred
+label alignment among them – so a beat can leave that state and never return.
+For example, after `dim a` there is no operation for restoring full prominence.
+Ungrouped classes such as `.bold`, `.turn` and `.front` have the same problem.
+The obvious attempts are worse than useless: measured, **`style a {}` and
+`style a` with no class list are both accepted and do nothing, silently**. The
+same gap is why an element cannot opt out of a `default box {.dim}` on its own
+line.
 
-**Editor perspective.** The panel has no problem editing the element's own tail,
-because it rewrites it as text and can delete a class. So the step pane can
-*show* a state a step could not have produced, and the swatch rows offer a
-neutral option a `style` step cannot express – a class removed through the panel
-and a class removed through a beat are two different acts with one control
-between them. The prominence row's neutral swatch is the clearest case: it is
-`{ cls: '', label: 'full' }`, which works at beat 0 by deleting the class from the
-line and has nothing to write standing on a beat. After the revision the neutral
-swatch writes `{!class}` at a beat and deletes the class at beat 0, and
-`dgeSlotValue` gains a `neutral` field so an element with no class in the slot
-shows the neutral pressed rather than nothing.
-
-**Proposed revision. One mark: `{!class}` removes a class, legal in any attribute
-tail and inside a `style` step.**
+**Proposed revision. One mark: `{!class}` removes that exact class.** It is legal
+in every attribute tail: an element, a `default`, and a `style` operation.
 
 ```
 step solid-again
@@ -2046,40 +1938,111 @@ step solid-again
 box a "A" at 0,0 {!dim}        # under `default box {.dim}`, this one is not dim
 ```
 
-Measured, `{!dim}` is unparseable today in both positions (*"attribute
-`!dim` is not #id, .class or @tag"*), so the mark is purely additive and cannot
-collide with anything written. And **`style x` with an empty or absent class list
-becomes an error**, naming the ops that do take a bare target.
+Measured, `{!dim}` is unparseable today, so the mark is additive and cannot
+collide with authored source. `style x` with an empty or absent tail becomes an
+error rather than a silent no-op.
 
-**The alternative, and why not.** Give each slot a word for its own default –
-`.full`, `.one-head`, `.solid`, `.sans` and so on. The emphasis analysis proposed
-exactly this for prominence (`.full`) and it is a good word; but the gap exists in
-ten slots, so the consistent version of that answer is **ten new class words**,
-and it still leaves `.bold`, `.turn` and `.front` unreachable because they have
-no slot to be neutral in. One mark closes all thirteen slots and the three free
-classes, adds no class names, and reads as the negation of what is already there.
-**This is the one place where this document overrides a cluster's own
-recommendation**, and the reason is that a second cluster's finding made the
-narrow answer look like one tenth of a general one.
+### 16a. Grammar and resolution contract
 
-**Extending it to the element's own tail, rather than to `style` steps only, is
-what lets item 12 delete its cancel clause.** That clause exists solely because
-the source language cannot say "none of this slot", and it rescues seven
-(kind, class) pairs from refusal on the grounds that they are the only way back
-from a default. With `{!class}` in a tail they are no longer the only way back,
-the clause goes, and the refusal rule of item 12 becomes what it claims to be – a
-statement about what a kind can draw, with no exception for what an author might
-be trying to cancel.
+The attribute parser returns four separate fields: `id`, `classes`,
+`removedClasses`, and `tags`. A `.name` token enters `classes`; `!name` enters
+`removedClasses`. Both names must be in `DG_CLASSES` and legal for the target
+kind according to item 12's final `DG_CLASS_KINDS`. For a tag target, every
+expanded member must accept every addition and removal; one incompatible member
+refuses the whole `style` statement and names that member.
 
-**Why it is strictly better.** *Adds capability the language currently lacks
-entirely*, and *turns a silent no-op into an explicit failure* – a step that means
-to restore a default today writes nothing, because there is nothing to write.
-*More consistent*: one mark answers the same question in all thirteen slots and
-for the three free classes. *No capability lost.*
+Within one tail:
 
-**Migration.** **None – purely additive.** Code: `dgStateAt`'s `style` branch, the
-attribute-tail parser (a `!` prefix), `lint.js` mirroring the same, one
-`DGE_SLOTS`-driven affordance in the step pane, and the `dgeSlotValue` neutral.
+- the same class may not be both added and removed;
+- the same removal may not appear twice;
+- the existing one-positive-class-per-slot rule remains;
+- several removals from one slot are legal, which is useful for an explicit
+  base state on a box such as `{!emph !dim !ghost}`; and
+- token order has no meaning. Resolution always removes first, then adds.
+
+Layers resolve from weak to strong: built-in state, matching `default` layers,
+the element's own tail, then step operations in source order. At each layer,
+`removedClasses` deletes those exact names from the accumulated set; each
+positive class then displaces the current member of its slot and is added.
+Removing `.dim` does not mean “clear the prominence slot” and does not remove
+`.ghost`. A later layer may add `.dim` again. This exact-name rule makes
+`{!class}` predictable without creating a second, hidden slot grammar.
+
+`dgStateAt` carries the resolved set from one beat to the next. Thus
+`style e {!dashed}` removes `.dashed` from that beat onward, and a later
+`style e {.dashed}` restores it. A tail-level removal can suppress a class from a
+weaker default even when that default is later reordered; it is a declarative
+override, not a parser-time deletion.
+
+### 16b. Editor contract
+
+Class controls edit the state the user is looking at:
+
+- at beat 0 they rewrite the selected element's own tail, except item 13's
+  arrowhead row, which rewrites the mandatory arrow token;
+- at beat 1 or later ordinary class rows write a `style` operation inside the
+  selected step; the prominence row uses item 1's `emph` / `dim` / `ghost` verb
+  for a positive state and `style {!class}` for the base state;
+- their pressed state comes from `dgStateAt` for that beat, not from
+  `el.classes`; and
+- geometry and keyed-option controls keep their existing behaviour. This rule is
+  only for class swatches, whose values the frame model can represent.
+
+Every grouped row has a visible base swatch (`full`, `solid`, `normal`, and so
+on), never an unlabeled blank. Clicking a positive swatch writes `.class` and
+lets normal slot displacement do the rest. At beat 0, clicking the base swatch
+first removes every own addition and removal in the slot, resolves the weaker
+defaults, and writes `!current` only if one of those defaults would otherwise
+surface. At a later beat it writes `!current` for the currently resolved member.
+For a mixed selection, the editor groups elements by the required operation and
+emits one operation per group; elements already at the base state need no edit.
+An ungrouped toggle such as `bold`, `turn`, or `front` uses `.class` to turn on
+and the same beat-0/default algorithm or `!class` to turn off.
+
+Beat 0 additionally shows **inherit** whenever a matching default supplies the
+slot. “Inherit” removes all own additions and removals in that slot; the base
+swatch instead keeps the element at the base appearance by inserting the needed
+negation. This distinction prevents “default” from ambiguously meaning both
+“use the default block” and “use the stylesheet's base look”. At later beats the
+row is purely appearance-based; it does not expose provenance.
+
+Source surgery is deterministic. `dgeSlotValue` reads the resolved beat state;
+`dgeSetSlot` produces `{ add, remove }`; and `dgePlanTail` preserves and
+serialises both `classes` and `removedClasses`. At a later beat the editor may
+reuse a class operation only when it is the **last operation in that step that
+affects this slot for every selected element** and its explicit target list is
+exactly the selected ids; for prominence this may be a dedicated verb, for other
+rows it is `style`. Otherwise it appends the canonical form at the end of the
+step, using the step's indentation, so a later tag or overlapping target cannot
+silently override the click. It does not rewrite a tag expression into ids or
+merge into a statement with a different target set.
+When it reuses a `style` line, `dgePlanTail` changes only the selected slot and
+preserves every unrelated addition, removal and tag.
+Repeated clicks therefore update one editor-owned operation instead of
+accumulating contradictory lines.
+
+The model and span table retain authorship: each removal has its own tail token
+span, and a missing tail has an insertion span after the last keyed option. The
+editor must never infer removals by searching raw source. Compilation failure
+rolls the edit back through the existing transaction path.
+
+### 16c. Implementation and tests
+
+`dgParseAttrs`, default resolution, `dgStateAt`, the frame payload, `lint.js`,
+`DGE_SLOTS`, `dgeSlotValue`, `dgeSetSlot`, and `dgePlanTail` all gain the explicit
+removal field. Tests cover unknown and kind-incompatible removals, add/remove
+conflicts, several removals in one slot, default → own-tail override, removal and
+re-addition across beats, tag failure on a mixed kind, round-trip preservation,
+beat-0 inherit versus base, beat-local swatches, mixed selection, and rollback.
+
+**Why it is better.** It adds a missing capability and turns an accepted empty
+`style` into an explicit failure. One mark works for grouped and ungrouped
+classes without adding a “default class” for every slot. The source remains
+readable because hand-written cases normally need one negation; only the editor's
+mixed/base operations may emit more.
+
+**Migration.** None; the syntax is purely additive. The first real use is the
+`#beats-demo` correction in the sequencing section.
 
 **Effect on `lectures/diagrams/source.md`.** None required. One beat somewhere
 should demonstrate it, most naturally in `#motion`; and item 28's new prominence
@@ -2351,8 +2314,7 @@ included because it is the one thing blocking that refusal's deletion.
 **Problem statement.** A `step` takes its name from the token after the keyword
 and ignores everything else on the line. `step my name` compiles clean, produces a
 step called `my`, and the word `name` is discarded with no error and no warning.
-The editor knows this is wrong and says so in a sentence of its own – *"A step
-name is letters, digits, _ and - , starting with a letter."* – which is a rule the
+The editor knows this is wrong and applies its own identifier rule, which the
 compiler does not have.
 
 **Editor perspective.** The panel's step-rename field is the only place the rule
@@ -2363,8 +2325,9 @@ guard, and the fifth of the five hand-written refusals goes with the other four.
 **Proposed revision.** A `step` line takes exactly one token after the keyword.
 Anything after it is *unexpected "<tok>" in step <name> – a step takes one name
 and its operations on the lines beneath it*, phase `syntax`. The name itself must
-match `/^[A-Za-z_][\w-]*$/`, the rule the editor already applies, so the two
-cannot disagree.
+match `/^[A-Za-z_][\w-]*$/`: it starts with an ASCII letter or underscore, then
+uses letters, digits, underscore or hyphen. The editor imports this rule rather
+than paraphrasing it, so the two cannot disagree.
 
 **Why it is strictly better.** *Turns a silent failure into an explicit one*: the
 discarded token is silently gone today, and a step name is an identifier that later
@@ -2391,11 +2354,13 @@ corpus writes it both before and after the label. It is one of the same four wor
 item 5 is disambiguating, and it is the last place where one of them appears with
 no keyword to say which reading is meant.
 
-**Editor perspective.** `DG_BRACE_SIDES` is in neither `DG_KEYED_ATTRS` nor
-`DG_POSITIONAL`, so `spanOf` cannot find it and **the brace's side has no panel
-control at all** – the same class of gap as item 5's placement option and item
-14's `aspect`. A keyword makes it addressable, and a closed four-word list makes
-it a swatch row like `point`.
+**Editor perspective.** The current branch already has the control: a five-way
+`side` row (`default`, `right`, `left`, `top`, `bottom`) backed by the temporary
+`dgeSideSpan` scanner, and `test/editor-sidebar.mjs` exercises both writing and
+removal. The defect is therefore not missing capability. It is that this one
+control needs a bespoke positional-token parser because the language gives the
+value no keyword. After the revision the row stays visually unchanged and uses
+ordinary `spanOf(id, 'side')`; `dgeSideSpan` and its dispatch branch are deleted.
 
 **Proposed revision.** `side <word>`, the same keyword item 5(d) gives an edge:
 
@@ -2407,15 +2372,15 @@ The two are one concept – which side of the thing the label or the spine sits 
 so they should be one word. Taken with item 5(d), `side` is the single answer to
 that question wherever it is asked.
 
-**Why it is strictly better.** Removes the last bare positional word in the
-statement grammar; makes an option the editor cannot reach reachable; unifies two
-spellings of one concept. Worse on nothing.
+**Why it is strictly better.** Removes the last bare positional option in the
+statement grammar, deletes a one-off editor parser and unifies two spellings of
+one concept. The user keeps the control they already have. Worse on nothing.
 
 **Migration.** 20 sites (diagrams 9, network-security 8, figure-rules 3). **Not a
 clean `sed`**, because the word's position is free – a small script or a human
 pass. Code: two sites in `diagram-core.mjs` where `DG_BRACE_SIDES` is read as a
-bare key, `DG_KIND_OPTS.brace`, `DG_KEYED_ATTRS`, `lint.js`'s mirror, one new
-`DGE_SLOTS` row.
+bare key, `DG_KIND_OPTS.brace`, `DG_KEYED_ATTRS`, and `lint.js`'s mirror;
+`editor.mjs` deletes `dgeSideSpan` and keeps the existing row.
 
 **Effect on `lectures/diagrams/source.md`.** `#overflow`, `#lifecycle`,
 `#grouping`, `#expand`, `#sequence` – spelling only, all constructs still
@@ -2452,9 +2417,11 @@ refuse `h` on the three statements where it meant something else:
 ```
 table t "A|B|C" at 0,0 col 1,1,1 row 0.42
 lanes swim "User | SOC | IT ops" at 0,0 w 7.05 band 0.95
-sequence wa at 0,0 head 0.9
+sequence wa at 0,0 header 0.9
 ```
 
+`header` is used rather than `head`: a sequence is full of arrowheads, so `head`
+would introduce a new collision in the domain where it is easiest to misread.
 `h` on any of the three becomes an error naming the right word. The alternative –
 make `h` the frame on all seven and let the per-unit number fall out of the count
 – loses the property these three statements exist for: insert a row and nothing
@@ -2610,52 +2577,21 @@ currently false and becomes true untouched. **Worth noting in the commit
 message**, because a future reader will otherwise wonder why a sentence describing
 a refusal has no refusal behind it.
 
-## 27. The panel writes a generated `{#id}` onto a sequence message line
+## 27. A generated sequence-message name must not become authored
 
-**New**, and an editor defect only.
+**Problem statement.** A sequence message has a stable generated id such as
+`wa-3`. The current editor guesses whether an edge name was authored from the
+shape of that id, so a tail rebuild can pin a generated message name into source.
 
-**Problem statement.** A `sequence` message expands into an ordinary edge whose id
-is `dgMsgName(seq, i)` – `wa-3` – unless the line carries its own `{#name}`. Those
-generated names are a promised interface, documented in CLAUDE.md and exercised by
-`test/figure-sequence.mjs`. `dgePlanTail` decides whether to write an `#id` back
-into the tail with `isEdge && !/^edge-\d+$/.test(el.id)`, a test that means "this
-edge was named by hand". A sequence message's id is `wa-3`, which does not match
-`edge-\d+`, so the test reads it as hand-named and the next tail rebuild writes
-`{#wa-3}` onto a line that never had one. The result is legal, idempotent and
-identical in the drawing, so nothing breaks – but the panel silently adds source
-the author did not write, pinning a name that was generated, and a later insertion
-of a message above it then renumbers the generated names around a now-frozen one.
+**Current revision. Fold this item into item 9.** Item 9 deletes tail ids,
+defines the model's `named` flag for ordinary edges and sequence messages, adds
+the optional leading-name span, and specifies the regression test. There is no
+separate parser or editor change here, and no `{#id}` remains for this item to
+write.
 
-**Confidence: this is read off the code, not driven through the panel.** It
-follows from `dgeLineOwner` resolving a message to a normal `kind: 'edge'` model
-element with the generated id, and `dgePlanTail`'s test being a regex on the
-anonymous-edge name pattern rather than a flag. **It should be confirmed with a
-`test/editor-*` spec before being fixed.**
-
-**Editor perspective.** What a user hits is a diff: click one swatch on a message
-in a `sequence` and the line grows a token. Under item 9 this becomes more visible
-rather than less, because `{#…}` then means exactly one thing and its unexplained
-appearance reads as a rename.
-
-**Proposed revision.** Replace the regex with the fact it is guessing at. The
-compiler already computes `const named = !!attrs.id` in the edge branch and then
-does not put it on the element. Put it on the element, and have `dgePlanTail` read
-`el.named` instead of pattern-matching the id. That also removes the last place in
-the editor that infers authorship from a name's shape.
-
-**Why it is strictly better.** Turns a silent source rewrite into no rewrite.
-Removes a second reading of one line – an id that is both a name and evidence
-about who wrote it. Worse on nothing: `edge` lines behave exactly as they do now,
-because `named` is true there precisely when the regex was.
-
-**Migration.** **No source changes.** One assignment in `diagram-core.mjs`, one
-condition in `editor.mjs`, plus the spec above.
-
-**Effect on `lectures/diagrams/source.md`.** None; `#sequence` and `#seqmore`
-still demonstrate the whole sub-grammar and both annotations that hang off the
-generated names.
-
-**Effect on `docs/artifact/`.** None on either half.
+**Migration and effects.** No source lines beyond item 9. `#sequence` and
+`#seqmore` keep their generated-name interface; an explicitly named message uses
+the new leading slot. No separate artifact prose change.
 
 ## 28. `#look`, the class reference, demonstrates no prominence class
 
@@ -2693,7 +2629,7 @@ gets strictly more complete.
 `refresh-figures.mjs` lifts, and no sentence in `figures-you-write.html` refers to
 it.
 
-## 29. Six claims on the artifact page that the compiler contradicts
+## 29. Claims on the artifact page that the compiler contradicts
 
 **New.** Six defects of one kind, in one file, with one migration shape: a
 sentence on `figures-you-write.html` that the running compiler does not support.
@@ -2794,22 +2730,18 @@ follows the first sentence looks for a control that is not there. Smallest fix:
 `.chevron`, `.wedge` – which also puts the two pointed shapes next to each other,
 as the class table below already groups them.
 
-### (e) A miscount of the page's own listings
+### (e) A brittle count of the page's own listings
 
 > *"The three below the rule are in no group and combine freely. **The six stages
 > above used one class in all.** Anything outside the vocabulary is refused when
 > the figure is built rather than ignored."*
 
-Read out of the page's own regenerated listings, the six stages use **six distinct
-classes across seven attribute tails**, two of which carry two classes each. So
-neither reading survives – not "one class altogether" and not "one class per
-element". The sentence's job is to reassure a reader arriving at a forty-item
-table that they have needed almost none of it, and that is worth keeping:
-*"The six stages above used six of the forty, and never more than two on one
-element."* **Note the coupling**: the stages are regenerated from
-`figure-rules/source.md`, so a future edit to those chunks silently invalidates
-this sentence again. It is one of the few numbers on the page that describes
-generated content and is not itself generated.
+The sentence is already false and would become stale again whenever a generated
+listing changes. Delete the count rather than replace it with another. Its useful
+teaching point survives as: *"The stages above use only the classes that make a
+specific visual distinction; you do not need to learn the class table before
+writing a figure."* That statement explains progressive disclosure without
+coupling prose to generated content.
 
 ### (f) "Every statement has the same shape" and "placement is compulsory"
 
@@ -2847,18 +2779,17 @@ ASCII slot diagram between the two sentences needs no change; it is drawn for a
 These are not defects today. They are the sentences that **become** wrong when
 other items land, collected here so nothing is missed. None regenerates.
 
-**(g) Item 1 renames `calm`.** Eleven passages use `emph` / `calm` by name,
-including two that count the step ops – *"`show`, `hide`, `move`, `emph`, `calm`,
-`style`, `label`. Seven of them, and there are no others."* and *"There are seven:
-…"* – the prominence row of the class table (*"A step reaches for the first two
+**(g) Item 1 renames `calm`.** The affected passages use `emph` / `calm` by name,
+including two that enumerate and count the step operations, the prominence row
+of the class table (*"A step reaches for the first two
 through `emph` and `calm`"*), the `.dim` row (*"A step sets it with `calm`"*), the
 beat-4 card (*"Often `calm` on what came before"*), and the `bars` sentence
 *"`emph` and `calm` on a `bars` line take a list of column numbers and mean on the
 line exactly what they already mean inside a step."* That last one is the sentence
 that gets **better**: after item 1 it is not a coincidence being explained, it is
-the rule. The two counting sentences get worse on their own terms – seven becomes
-eight – and should be re-cut as *"five verbs and the three names of one dial"*
-rather than as a longer list.
+the rule. Replace the counting sentences with a grouped explanation: visibility,
+movement, prominence and styling are the operation families, and prominence uses
+the same names as the class row. Do not publish a new total.
 
 **(h) Items 5 and 13 rename `align` and complete the arrow family.** Four `align`
 passages, including one that exists **because** of the overload – *"Two of these
@@ -2984,9 +2915,9 @@ All **29 leader sites** in the corpus are written `->` and all 29 draw no head.
 `diagram-core.mjs:1734` records that the leader stub is deliberately absent from
 the span table – *"it carries the span of the `text` … an aspect of the statement
 rather than an element"* – so the token is reachable only as raw text. The panel
-therefore cannot offer a head control on a leader today, and under this proposal
-it gains one for free: the leader's token becomes the same closed two-member list
-the edge's head branch in `dgeSetSlot` already rewrites.
+therefore cannot offer a head control on a leader today. It does **not** gain one
+for free: the leader is an aspect of a `text` or `image`, not an independently
+named edge, so the editor needs an explicit aspect span and control.
 
 **Proposed revision.** The leader takes the same tokens as an edge, meaning the
 same thing:
@@ -2999,6 +2930,19 @@ text n "…" right of c gap 0.7 -> leak     a leader that points     (new capabi
 `<-` and `<->` are refused on a leader: it has a fixed subject and a fixed
 direction – the words point at the thing, never the reverse – so neither has
 anything to say. That refusal is the same positional table item 13b introduces.
+
+**Editor change.** `dgParseLine` records `spanOf(id, 'leaderArrow')` for the
+`--`/`->` token and the model records `leader: { arrow, target }`; the leader does
+not become a selectable element and gets no generated id. When every selected
+`text`/`image` has a leader, the relation pane shows a two-way row, **plain**
+(`--`) and **points** (`->`). A mixed value shows neither pressed. Clicking uses
+the recorded token span and applies one transaction across all selected source
+lines; it never searches for arrow-shaped text, so arrows inside labels and edge
+statements are untouched. The row is hidden if any selected element has no
+leader, and it is disabled away from beat 0 with the existing “changes the
+opening drawing” explanation: a leader has no step target of its own. Tests cover
+text, image, mixed selection, quoted `->`, round-trip in both directions, and
+rollback after a failed multi-edit.
 
 The alternative – keep `->` on a leader and give it a head – is declined. It
 changes all 29 existing drawings, and a note that points with an arrowhead is the
@@ -3153,9 +3097,9 @@ a phase and to use the generator. Item **3** closes itself here. Items **19**,
 **20** and **21** are the same edit's neighbours and belong in this group;
 together they let all five hand-written panel refusals be deleted.
 
-**2. The removal mark.** Item **16**. It has to precede item 12, because item 12's
-refusal table is written *with* the cancel clause and *without* it, and the
-difference is seven (kind, class) pairs. It also has to precede item 1, because
+**2. The removal mark.** Item **16**. It has to precede item 12 because the final
+kind table assumes an inert class is not retained merely to cancel a default. It
+also has to precede item 1, because
 item 1's prominence dial is three settings plus `{!class}` rather than four
 settings, and the panel's neutral swatch is built once.
 
@@ -3195,14 +3139,10 @@ three figure specs are expected to pass throughout; `test/figure-labels.mjs` nee
 about six lines changed by item 5(d), and `test/editor-sidebar.mjs` should gain
 item 12's third assertion.
 
-**8. The prose.** Item **29**, then item **7**. Item 7 last of all, because its
-paragraph states four counts and they are only final once everything above has
-landed. Recount them from the tables rather than copying them from this document.
+**8. The prose.** Item **29**, then item **7**. Item 7 lands last so its growth
+rule describes the final system; it deliberately contains no vocabulary count.
 
-## Two judgement calls, now decided
-
-Both have since been decided. They are recorded here rather than deleted, because
-the reasoning is what a later reader will want.
+## Resolved migration cases
 
 **`#beats-demo` in `figure-rules`** (item 11). Measured, the element `r` – the
 *true* ARP reply – prints today as `dg-el dg-text small paper dim`, because
@@ -3223,7 +3163,7 @@ step answer
   show @answer
   style r {!dim}        ← full prominence while it is the right answer
   emph b
-  calm a
+  dim a
 step redirected
   style r {.dim}        ← quiet again, once it is superseded
 ```
@@ -3234,28 +3174,15 @@ first figure in the corpus that cannot be written correctly without item 16's
 weighing item 16, and worth saying on the page when `{!class}` is introduced,
 because it is a better motivating example than any invented one.
 
-**`#hero` in `figure-rules`** (item 6). One of the two stated reasons for
-hand-editing it was wrong: **the page does not quote its numbers.** The prose
-above the listing reads *"The seven lines below are a whole figure"* – it quotes
-the **line count**, which no option here changes. No gap value appears anywhere in
-`figures-you-write.html`.
-
-That leaves one consideration. `gap 1.1` reads as *a bit more than one cell*;
-`gap 1.8333` (the exact preserving value – the earlier draft's `1.85` is 1.2 px
-off) reads as a magic number, in the first listing a newcomer ever sees, whose
-claim is that it is five statements with nothing in them but two gaps.
-
-**Decided: let it redraw, and keep `gap 1.1`.** The row pulls 105.6 px tighter and
+**`#hero` in `figure-rules`** (item 6) keeps `gap 1.1` and is excluded
+from the migration script. The row pulls 105.6 px tighter and
 the figure goes from **7.29:1 to 5.62:1**, which is a better proportion for a
 full-width figure than the very wide, flat one there now. The opening listing
 stays clean, which is what matters at the start of a page that is teaching. The
-third option – give `#hero` a `unit=` like the other 109 blocks – is closed by its
+option to give `#hero` a `unit=` like the other blocks is closed by its
 own source comment, which says the bare fence is deliberate: *"here they would be
 two pieces of syntax a reader cannot yet read, in a listing whose claim is that it
 is complete."*
-
-**Exclude `#hero` from the migration script** – not to hand-edit it, but to leave
-it alone.
 
 ## One ordering constraint that is not obvious
 
@@ -3272,7 +3199,7 @@ build steps under them name only `tutorial`, `diagrams`, `python-intro` and the
 site example. **`lectures/network-security` is linted and never built.** CLAUDE.md
 already names this as the dangerous direction – a line the build refuses and the
 linter passes merges green and fails every later build – and this revision widens
-the gap sharply: item 12 alone adds 76 refusals, item 13b adds a positional table,
+the gap sharply: item 12 adds broad refusal coverage, item 13b adds a positional table,
 and item 12's tag rule adds a check `lint.js` cannot make without expanding tags.
 
 **Decided: CI builds every lecture it lints, for the duration of this work and
@@ -3295,7 +3222,7 @@ Every one is a measurement, and each is stated again in place.
 | 6 | the ratio is 1.67:1 (`DG_UNIT = [120, 72]`) | 109 of 110 blocks set their own `unit=`; the median is **150x52, 2.88:1**. `DG_UNIT` is very nearly dead code, which kills "square the default cell" outright. |
 | 6 | "roughly twenty" editor sites, all written `axis === 'x' ? uw : uh` | **Seven expressions in five functions**, and one of them (`editor.mjs:2534`) has **no `uw` on the line at all**, so `grep uw` misses it. That is the half-converted-editor failure the item warns about. |
 | 9 | `{#id}` "is not even checked against `DG_RESERVED_IDS`" | True where it is discarded; but where it *is* honoured the check fires, on an edge and on a sequence message alike. Refusing the discarded case needs no new reserved-id logic. |
-| 12 | ~43 combinations are inert; 30 are refused; 19 dead swatches | **76 inert, 35 refused, 16 dead swatches.** The headline list omits `image` entirely (32 pairs) plus five others. Method: a paint signature over 22 fixtures – raw computed style over-reports and screenshot hashing under-reports. |
+| 12 | the reported inert/refused/dead-swatch counts are incomplete | The final `DG_CLASS_KINDS` table in item 12 is authoritative. It was derived with paint-signature fixtures; no user-facing count is retained because it would become stale with the vocabulary. |
 | 13 | `bars` and `plot` make `w` + `aspect` a hard error | They do not. What is refused is **all three at once**. The principle is real and the table does break it, but the rule is "not two numbers for one number". |
 | 13 | dropping `.both-heads` would cost nothing – `autoClasses` loses its only caller and the arrowheads slot disappears | **A `style` step does change arrowheads** (measured on the frames payload), so deleting the classes would shrink capability. They are refused on a tail and kept in a `style` step. |
 | 13 | `<-` should probably go, since the editor never writes it | All four corpus uses are **sequence messages**, and `lectures/diagrams:887` documents it as a source-legibility affordance for reading a protocol as a column. It stays. |
@@ -3304,7 +3231,7 @@ Every one is a measurement, and each is stated again in place.
 | 4 | the two tables are one defect | They are not. A clash row is authorable on purpose – `{.tone-4 .accent}` with `style x {.clear}` at beat 1 is a working figure. A same-slot pair never becomes useful at any beat. |
 | 2 | all six primitives say "unexpected X, once per leftover token" | `container` and `brace` say nothing about the token at all – they swallow it into the member list and report two bogus references. See item 19. |
 | 14 | keep `aspect` on the model so the panel can show it | Unnecessary; the field renders off the span. The model value could feed only `placeholder` and `dgeProvenance`, and neither can ever show it. |
-| 12 | (the file's own correction: a `dot` does carry a label) | **Confirmed.** `dot d "hello"` compiles to a circle plus a label wrapper and seven classes move it. |
+| 12 | (the file's own correction: a `dot` does carry a label) | **Confirmed.** `dot d "hello"` compiles to a circle plus a label wrapper, so the label classes in item 12's table can act. |
 
 Two further measurements go **beyond** the finding document rather than
 contradicting it: `lint.js` is **laxer than the build** on a mistyped primitive
@@ -3315,7 +3242,43 @@ the rest.
 
 ---
 
-# What we chose not to fix
+# Appendix: rejected and superseded variants — not current
+
+Nothing in this appendix is an implementation instruction. It records discarded
+intermediate answers and deliberate exclusions so that their reasoning remains
+available without competing with the V2 contract in the main body.
+
+## Superseded intermediate proposals
+
+**Vocabulary counts on the artifact page.** An earlier version proposed
+publishing totals for statements, options, classes and step operations. Rejected:
+the totals are brittle, do not measure learnability, and become incorrect as soon
+as this revision moves a word. Item 7 now publishes only the growth rule.
+
+**Keep anonymous edges and retain `{#id}` for their editor identity.** Rejected in
+favour of item 9's one naming position before the from-token. A generated id is
+still available internally, but the editor now records whether a name was
+authored and exposes one explicit `name` field. `{#id}` is deleted rather than
+remaining a second naming grammar.
+
+**Remove `center` as an anchor and require `cx,cy`.** Rejected because
+`a.center` is the readable direct form while `a.cx,a.cy` is the composable form.
+Both stay; item 5 removes only the unrelated overloads.
+
+**Preserve every pre-migration `gap` coordinate with four-decimal values or a
+hybrid rounding fallback.** Rejected because it turns layout intent into magic
+numbers and makes the teaching source harder to read. Item 6 uses 0.05 snapping,
+explicit visual review and local redesign when necessary.
+
+**Preserve item 11's rare print/screen combination with `step {.handout}` or a
+second operation family.** Rejected after the corpus check found no use. V2
+accepts that named capability loss and uses one source-visible print rule.
+
+**Delete the arrowhead classes after adding `<->`.** Rejected because a `style`
+step genuinely changes arrowheads. Item 13 keeps the slot, adds `.one-head`, and
+refuses head classes only where the mandatory token has already stated them.
+
+## Deliberate exclusions
 
 ## Lengthening `->` to `-->`
 
@@ -3356,18 +3319,11 @@ would have been needed under every one of the four answers.
 points in, because all four corpus uses are sequence messages and the lecture
 documents it as the affordance that lets a protocol be read as a column.
 
-**`tl` / `tr` / `bl` / `br` stay abbreviated** (item 5c). They name a *corner*,
-which is a different kind of thing from an edge, and the abbreviation is what
-keeps `a.tl` visibly distinct from `a.top` inside a dense endpoint token. Only
-`center` is removed from `DG_ANCHORS`, because it is expressible as `.cx,.cy`, is
-used zero times, and is the one anchor the documentation exists to talk people
-out of.
-
-**Giving `edge` a name before its from-token and deleting `{#id}` entirely** (item
-9) was deferred here in an earlier draft. **It is now adopted** – see item 9's own
-section for the design. The deferral's reason was scheduling (it rewrites the same
-87 edge lines item 13 rewrites); items 13b and 31 rewrite those lines anyway, so
-the objection had evaporated.
+**`center`, `tl`, `tr`, `bl` and `br` stay as anchors** (item 5c). `a.center` is
+the readable common case; `a.cx,a.cy` is the composable form when the two axes
+must be addressed separately. The corner abbreviations keep `a.tl` visibly
+distinct from `a.top` inside a dense endpoint token. This is intentional overlap
+inside one geometry, not two unrelated meanings of one word.
 
 **The four `uw` constants inside `sequence` and `lanes` keep their axis** (item
 6). They are not in the surface – an author cannot write `DG_SEQ_GAP` – and a
@@ -3395,9 +3351,6 @@ have to rediscover it.
 
 **Nothing in this document touches the four decisions.** No constraint solver,
 layout once per step, numbers-only interpolation, and relations-not-coordinates
-all survive intact. Items 9, 10, 12, 13, 15, 20, 22, 23 and 30 are naming and
-refusal coverage; 2, 3, 8, 18, 19 and 21 are error text; 4, 16, 26 and 27 are
-silent failures made explicit; 6, 24 and 25 are what a number means; 7 and 29 are
-sentences. **The one genuinely new thing in the language is item 16's `{!class}`
-mark**, and it exists to close a gap in ten of the thirteen slots rather than to
-add a capability nobody asked for.
+all survive intact. The main body's changes stay within naming, refusal coverage,
+error text, class-state editing and the meaning of authored clearances; no item
+introduces step-wise layout or a second coordinate system.
