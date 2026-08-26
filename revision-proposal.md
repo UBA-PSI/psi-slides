@@ -1052,10 +1052,11 @@ the name last, after the options, which is where neither would look for it, and
 the positional form is the shape every other statement already teaches. *Removes
 a silent failure*: `{#id}` is deleted, so the fifteen statements that parsed it
 and threw it away have nothing left to throw away – the defect stops being
-refused and stops existing. *More concise*: the anonymous case, 177 of 264 edges
-and all 28 messages, loses two characters and gains nothing to type. *No
-capability lost*: every edge and message nameable today is nameable after, and
-the editor gains a rename control it has never had on any kind.
+refused and stops existing. *More concise*: the optional leading name keeps the
+anonymous case exactly as short as it is today; unlike a mandatory placeholder,
+it adds nothing to the common case. *No capability lost*: every edge and message
+nameable today is nameable after, and the editor gains a rename control it has
+never had on any kind.
 
 The one thing it costs is the guard above – a two-token slip that used to be a
 syntax error now needs the unclaimed-name check to stay an error. That is one
@@ -1622,14 +1623,12 @@ line 5: message: "pp" is not an actor of sequence s – this sequence has c, p
 ```
 
 One error, naming the token, naming the alternatives. That is the shape this
-grammar reaches for everywhere else, and it is what adding `<->` to
-`DG_SEQ_ARROWS` buys here: the line stays inside the entry run, so a wrong token
-is answered by the message that already exists rather than by three that describe
-the parser's recovery. It is one entry in a table, and it removes the worst
-error-message cascade measured anywhere in this document.
-Measured, the failure is not even a clean refusal – `u <-> r` falls out of the
-entry run and reports `unknown statement "u"`, which is the misparse the sequence
-lookahead is documented to risk.
+grammar reaches for everywhere else. Adding `<->` to `DG_SEQ_ARROWS` keeps this
+predictable family member inside the entry run; with valid actors the line then
+becomes valid, and with a bad actor it reaches the precise validation above. The
+table entry therefore eliminates this cascade for the guessable missing member.
+It is not a general recovery fix: a genuinely unknown separator can still end
+the run and belongs to a separate parser-recovery question.
 
 | site | tokens | drawings |
 |---|---|---|
@@ -3143,14 +3142,17 @@ document moves has moved.
 
 ## The dependency order
 
-Eight groups. Within a group the order does not matter; across groups it does.
+Nine groups. Within a group the order does not matter; across groups it does.
+Groups 1–3 are non-breaking foundations. The first source-format batch is group
+4.
 
 **1. Foundations that everything else writes into.** Item **18** (phases on every
 problem) and item **2** (one generated sentence per statement). Every later item
 adds a refusal, and a refusal added before these two has to be revisited to carry
 a phase and to use the generator. Item **3** closes itself here. Items **19**,
 **20** and **21** are the same edit's neighbours and belong in this group;
-together they let all five hand-written panel refusals be deleted.
+together they let all five hand-written panel refusals be deleted. Item **8** is
+diagnostics only and rides with this group.
 
 **2. The removal mark.** Item **16**. It has to precede item 12 because the final
 kind table assumes an inert class is not retained merely to cancel a default. It
@@ -3158,26 +3160,37 @@ also has to precede item 1, because
 item 1's prominence dial is three settings plus `{!class}` rather than four
 settings, and the panel's neutral swatch is built once.
 
-**3. The vocabulary decisions.** Items **1**, **5**, **13**, **22**, **23**,
-**30**. These are the renames, and they should land together or nearly so,
-because they share `DG_KEYED_ATTRS`, `DG_KIND_OPTS` and `DGE_SLOTS` and a
-half-migrated table is a silent mismatch between panel and compiler. Item **11**
-rides with item 1 – it is the same decision – and item **17** is fixed by it.
+**3. The print prerequisite.** Item **32**, on its own. The print pass draws an
+arrowhead the last beat removed; item 13b makes head-changing steps the ordinary
+way to do that. Landing 32 here keeps a dormant print bug from becoming a common
+one in the next group.
 
-**4. The refusal rule.** Items **10**, **12**, **4**, **26**. Item 12 subsumes
-item 10 as a call site and must be written **after** group 3, because item 5(d)
-removes the edge reading of four classes and item 13b refuses two more on a tail,
-and the table has to be cut after those decisions rather than before. Within this
+**4. The vocabulary decisions and arrow migration.** Items **1**, **5**, **9**,
+**13**, **22**, **23**, **30** and **31**. These are vocabulary and source-format
+decisions, and they should land together or nearly so: a half-migrated
+`DG_KEYED_ATTRS`, `DG_KIND_OPTS` or `DGE_SLOTS` is a silent mismatch between
+panel and compiler. Item **11**
+rides with item 1 – it is the same decision – and item **17** is fixed by it.
+Items 9, 13b and 31 use one migration program over two line families: 9 and 13b
+operate on edge/message declarations, while 31 rewrites `text`/`image` leaders.
+One token-aware pass keeps their name and arrow-token rules in sync without
+claiming that all three touch the same statements.
+
+**5. The refusal rule.** Items **10**, **12**, **4**, **26**. Item 12 subsumes
+item 10 as a call site and must be written **after** group 4, because item 5(d)
+removes the edge reading of four classes and item 13b adds the positional
+head-class refusals, and the table has to be cut after those decisions rather
+than before. Within this
 group the kind gate (12) runs **before** the slot-pair check (4a), or a shape
 class on an edge is answered *"an element has one outline"*, which is false of an
 edge. Item 4(c)'s clash warning is last, because it is the only beat-aware check.
 
-**5. The editor catches up.** Items **15**, **14**, **27**, and the `dgeKindOpts`
+**6. The editor catches up.** Items **15**, **14**, **27**, and the `dgeKindOpts`
 narrowing that items 13a and 14 share. Item 15 derives `DGE_SLOTS.kinds` from
-group 4's table, so it cannot precede it. Item 14's `DG_KEYED_ATTRS` line has to
-carry group 3's final spellings.
+group 5's table, so it cannot precede it. Item 14's `DG_KEYED_ATTRS` line has to
+carry group 4's final spellings.
 
-**6. The units migration.** Item **6**, with items **24** and **25**. It is
+**7. The units migration.** Item **6**, with items **24** and **25**. It is
 deliberately last among the breaking changes, for one reason: **it rewrites 239
 lines that several earlier items also touch**, and running the gap script over
 source that is still being renamed means running it twice and diffing the result
@@ -3186,7 +3199,8 @@ editor expressions land in **one commit** – a half-converted editor writes
 numbers the compiler reads on the other convention, and that failure is silent in
 exactly the way the item is about.
 
-**7. Rebuild and verify.** The four tracked views of `lectures/diagrams` and
+**8. Rebuild and verify.** Item **28** rides with this group, where its lecture
+edit is rebuilt anyway. The four tracked views of `lectures/diagrams` and
 `lectures/diagrams` itself must be rebuilt and committed – the release workflow
 fails if they are stale, and item 6 alone changes every one of them. Re-run
 `node lint.js lectures/`, `node test/run.mjs`, and `refresh-figures.mjs`. The
@@ -3194,21 +3208,7 @@ three figure specs are expected to pass throughout; `test/figure-labels.mjs` nee
 about six lines changed by item 5(d), and `test/editor-sidebar.mjs` should gain
 item 12's third assertion.
 
-**7b. The items no group named.** Items **8**, **9**, **28**, **31** and **32**,
-placed here because each has a fixed neighbour rather than a group of its own:
-
-- **32 before 13b**, which is item 13's own stated constraint – the print pass
-  draws an arrowhead the last beat removed, and 13b makes head-changing steps the
-  ordinary way to do it.
-- **9, 13b and 31 in one pass over the edge lines.** All three rewrite the same
-  statements: 9 moves the name to the front, 13b changes the token, 31 changes
-  the leader's. Three passes over 264 edges and 29 leaders is how the three end
-  up disagreeing.
-- **8** is diagnostics only and rides with group 1.
-- **28** is a lecture edit and rides with group 7, where the tracked views are
-  rebuilt anyway.
-
-**8. The prose.** Item **29**, then item **7**. Item 7 lands last so its growth
+**9. The prose.** Item **29**, then item **7**. Item 7 lands last so its growth
 rule describes the final system; it deliberately contains no vocabulary count.
 
 ## Resolved migration cases

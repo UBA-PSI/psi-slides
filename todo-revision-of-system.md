@@ -1080,9 +1080,12 @@ described as available in the editor needs a concrete control and a round-trip
 contract, not a claim.
 
 The earlier form of this rule was absolute – *"if a word goes, everything it
-could express must still be expressible"*. It is recorded here because two items
-(11 and 12) were argued under it and reach the same recommendation either way,
-so nothing in the proposal rests on the change.
+could express must still be expressible"*. It is recorded because the revision
+matters to the answer: item 11 explicitly drops one unused print/screen
+combination rather than adding a second operation family. Item 12 reaches the
+same recommendation under either rule because it refuses inert class strings
+that cannot change a drawing or expose an editor capability. The proposal names
+both cases instead of pretending that nothing rests on the revised rule.
 
 ## Findings outside the thirteen
 
