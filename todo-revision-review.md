@@ -1,11 +1,13 @@
 # Review follow-ups for the revision implementation
 
-**Status: closed.** Reviewed 2026-08-26 against `revision-proposal.md` and
-`revision-implementation.md`. This document records implementation gaps found
-after Claude reported all 32 proposal items complete. It is a follow-up list,
-not a replacement specification: where this file and `revision-proposal.md`
-disagree, the proposal remains authoritative unless a decision below is
-explicitly accepted and moved into it.
+**Status: reopened.** Reviewed 2026-08-26 against `revision-proposal.md` and
+`revision-implementation.md`, then rechecked at commit `718e383` after the first
+nine resolutions were reported complete. The recheck found three remaining P1
+contract violations; see **Post-close verification** below. This document
+records implementation gaps found after Claude reported all 32 proposal items
+complete. It is a follow-up list, not a replacement specification: where this
+file and `revision-proposal.md` disagree, the proposal remains authoritative
+unless a decision below is explicitly accepted and moved into it.
 
 The regular project checks are green:
 
@@ -658,7 +660,7 @@ place: the emit-once hole and the expanding-statement hole both let *both signs*
 through rather than the one the review names; the double gate call produced no
 duplicate *message*, because two layers deduplicate, making it latent rather than
 visible; and the "print state unchanged" assertion cannot discriminate the
-behaviour it was asked to catch. **A ninth defect the review did not have** was
+behaviour it was asked to catch. **A tenth defect the review did not have** was
 found by the gate it asked for: the three arrowhead classes were not beat-local,
 which is item 32 in mirror image.
 
@@ -677,3 +679,185 @@ At review time the implementation changes were still uncommitted and
 `revision-implementation.md` was untracked. Commit hygiene is deliberately not
 treated as a language finding, but the implementation record and this review
 must be tracked before hand-off.
+
+---
+
+## Post-close verification of `718e383`
+
+The regular checks reproduce the reported result:
+
+- `npm run gate`: **161 passed, 0 failed, 1 pending**;
+- `npm test`: **566 passed, 0 failed** (278.1 s);
+- `npm run lint`: clean;
+- `node docs/artifact/refresh-figures.mjs --check`: up to date before the
+  browser build; and
+- `git diff --check`: clean.
+
+Those green results do not close the review. Direct counterexamples found three
+remaining P1 violations. The first two meet at the same missing abstraction:
+an ordinary edge derives one of the three head classes from every arrow token,
+but a sequence message still carries the old one-bit `headless` representation.
+
+### P1 · `<->` on a sequence message draws only one head
+
+The proposal's token-family table promises the same four tokens and the same
+none / one / both meanings on an ordinary edge and on a sequence message.
+`DG_SEQ_ARROWS` now accepts `<->`, but expansion remembers only whether the
+token was `--`:
+
+```diagram
+sequence s at 0,0
+  actor a "A"
+  actor b "B"
+  a <-> b "M"
+```
+
+This compiles. The generated message group carries `paper`, not
+`paper both-heads`, and the SVG has `s-0--h` but no `s-0--h2`. It therefore
+draws exactly like `a -> b`, not like a two-headed message.
+
+The cause is structural. The entry record stores only
+`headless: eb[aAt] === '--'`; expansion later conditionally appends only
+`no-head`. The four-state `DG_ARROW_CLASS` table used by direct edges is never
+consulted. The acceptance gate contains `reg r <-> u`, but asks only whether the
+block compiles, so it makes this wrong rendering green.
+
+#### Required resolution
+
+- Carry the message's arrow token, or its `DG_ARROW_CLASS` result, through
+  expansion; do not keep a second one-bit arrow model.
+- Seed `no-head`, `one-head` or `both-heads` for **every** sequence-message
+  token, using the same table as a direct edge.
+- Preserve the derived/authored distinction (`autoClasses`) so an editor tail
+  rebuild never writes the seeded class back as authored source.
+- Add semantic fixtures, not only acceptance fixtures: `--` has zero heads,
+  `->` and `<-` one at the correct end, and `<->` two. Include a self-message,
+  because the proposal explicitly promises `u <-> u` as a round trip.
+
+### P1 · Head-class scope is still bypassable on message tails, in both signs
+
+Item 13's scope table says *the edge's / message's own tail: refused*. Direct
+edges now call `rejectHeadClassIn`, but sequence entries call only
+`rejectClassOn`. The linter mirrors the same omission. All six of these message
+tails are consequently accepted by both build and lint:
+
+```diagram
+sequence s at 0,0
+  actor a "A"
+  actor b "B"
+  a -> b "M" {.no-head}
+```
+
+The same result holds for `.one-head`, `.both-heads`, `!no-head`, `!one-head`
+and `!both-heads`. The positive forms can override the token under the old
+sequence expansion (`{.no-head}` suppresses a written `->`, and
+`{.both-heads}` is currently the only way to make the accepted `<->` actually
+draw both heads); the negative forms are inert. Both outcomes contradict the
+single-authoring-surface rule.
+
+#### Required resolution
+
+- For message entries, run `rejectHeadClassIn('tail', classes, ..., removals)`
+  after the edge-kind gate in both compiler and linter.
+- Add paired `.class` / `!class` fixtures for all three head states on a direct
+  edge tail, a sequence-message tail and `default edge`. The current gate has
+  only the positive ordinary-edge and positive default cases.
+- Keep the diagnostic tied to the written sign and name the arrow token as the
+  authoring surface, as the direct-edge diagnostic already does.
+
+### P1 · An actor-tail removal loses to the weaker sequence tail
+
+The statement tail is the weak layer for every actor head and the actor entry's
+own tail is the strong layer. This should therefore remove `.dim`:
+
+```diagram
+sequence s at 0,0 {.dim}
+  actor a "A" {!dim}
+  actor b "B"
+```
+
+It compiles but actor `a` is emitted with `round dim` and opacity 0.3. The
+opposite direction happens to work:
+
+```diagram
+sequence s at 0,0 {!dim}
+  actor a "A" {.dim}
+  actor b "B"
+```
+
+The cause is flattening. Expansion concatenates statement and entry positives
+into one `classes` list and concatenates their removals into one
+`removedClasses` list. `withDefaults` then applies every removal in that single
+synthetic layer before every positive, so the weaker statement's `.dim` is
+re-added after the stronger entry's `!dim`. The source layers' ordering has
+been erased before the general resolver can honour it.
+
+#### Required resolution
+
+- Compose the statement tail and actor-entry tail **weak to strong** during
+  expansion, with each layer's removals applied before that layer's positives.
+  Do not flatten signs independently.
+- Prefer one shared class-layer composition helper over a sequence-only
+  exception; it should use the same slot displacement rule as `withDefaults`.
+- Permanently test both directions above and a grouped positive override such
+  as statement `.tone-1` plus actor `.tone-2`.
+
+### P2 · The new gates and the closure claims overstate their coverage
+
+The gates are a material improvement, but the text currently claims more than
+they establish:
+
+- `refusals.mjs` calls itself “build and lint agree on every refusal”, while its
+  own output says **97 agree, 1 pending**. The pending case is the dangerous
+  direction: a later unplaced box is refused by the build and passed by lint.
+- `accepts.mjs` proves that a sequence `<->` parses, not that it means two
+  heads. That exact distinction let the P1 above pass.
+- There are no permanent fixtures for the expanding-layer precedence above,
+  the message-tail head scope, or the accepted and rejected word-valued
+  defaults. This contradicts the closure claims that every P1 has a permanent
+  regression fixture and that `DG_WORD_OPTS` has paired fixtures.
+- The non-fixed half of `step-classes.mjs` checks only a positive `.class` on
+  the first compatible fixture kind. That is useful for falsifying
+  `DG_STEP_FIXED`, but it is not a general proof that both signs work on every
+  kind the class can reach.
+
+#### Required resolution
+
+- Add the missing semantic and paired fixtures above; do not put these known
+  failures on the pending ledger.
+- Either implement the linter's missing-placement check or narrow the gate's
+  name and the review's “every refusal” claim. A green exit with an explicitly
+  reported pending item must not be summarized as full agreement.
+- State separately what each gate proves: parsing acceptance, build/lint
+  agreement, emitted semantics and beat-local runtime behaviour are four
+  different contracts.
+
+### P3 · Small cleanup before the next close
+
+- The sequence-note object literal writes `removedClasses` twice on adjacent
+  lines. It is harmless in JavaScript but should be reduced to one property.
+- The top of `revision-implementation.md` still presents the absent scratchpad
+  programs and `scratchpad/probe/gates.sh` as the current verification path.
+  Historical measurements may stay, but the current “How the work is
+  verified” section should point at `test/gates/` and mark the scratch programs
+  as unavailable history.
+- The editor comment above `dgeSetSlotAtBeat` still says print strips `emph`
+  and `dim`; the implemented rule carries the whole prominence slot from the
+  opening frame, including `ghost`. The user-facing text was corrected, but
+  this implementation comment was not.
+
+## Reopened completion criteria
+
+Do not close this file again until:
+
+1. all four sequence arrow tokens seed the same head states as direct edges;
+2. both signs of all head classes are refused on message tails by build and
+   lint;
+3. an actor-entry removal overrides a positive class from the sequence tail;
+4. each of those behaviours has a checked-in semantic regression fixture;
+5. the word-valued default and expanding-removal fixes named in the first
+   review also have their claimed paired fixtures;
+6. gate summaries distinguish the one pending build/lint disagreement from
+   passing assertions; and
+7. the implementation record and small stale comments describe the current
+   code and verification entry points.
