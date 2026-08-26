@@ -30,8 +30,12 @@ kinder to agree on the shape before you write the code.
 npm install
 node build.js lectures/tutorial/source.md   # build the self-referential tour
 node lint.js lectures/                      # must be clean before you commit
+npm run gate                                # the fast gates, seconds, see below
 node test/run.mjs                           # the browser suite, see below
 ```
+
+`npm test` runs the fast gates and then the browser suite, in that order, so a
+compiler regression fails in a second rather than after four minutes.
 
 **`node lint.js lectures/` is the gate**, and `node test/run.mjs` is the
 safety net. The linter is zero-dependency and runs anywhere, so run it on every
@@ -46,9 +50,50 @@ whose name matches.
 Run it after touching `AUDIENCE_JS`, the key map, `editor.mjs`,
 `createSpanTable`, or anything that decides a diagram's `viewBox`. The header
 of `test/harness.mjs` says how to write a spec that will not need rewriting
-the next time a lecture is redrawn. It is not a unit-test suite and should not grow into one:
-anything checkable without a browser belongs in `lint.js`, where it runs on
-every commit instead of on the ones somebody remembered.
+the next time a lecture is redrawn. It is not a unit-test suite and should not
+grow into one: anything checkable without a browser belongs in `lint.js` or in
+the fast gates below, where it runs on every commit instead of on the ones
+somebody remembered.
+
+### The fast gates
+
+```bash
+npm run gate                   # all of them, about a fifth of a second
+node test/gates/run.mjs corpus # only the gates whose name matches
+```
+
+`test/gates/` is everything about the **figure language** that can be decided
+without a browser. It needs no `npm install` and no Chromium, because
+`diagram-core.mjs` and `lint.js` are both zero-dependency, and it runs on every
+push in CI – which the browser suite never can. Four gates:
+
+- **`refusals.mjs`** – 98 fixtures, each compiled through `diagram-core.mjs`
+  *and* run through `lint.js`, asserting the two agree on every refusal. This
+  is the gate that matters most, because `lint.js` re-implements the parsing
+  contract by hand: a line the linter passes and the build refuses merges green
+  and fails every later build, and CI lints two lectures whose figures the
+  compiler is the only real judge of. A third of the fixtures are acceptance
+  cases, because a linter *stricter* than the build is nearly as bad.
+- **`accepts.mjs`** – one construct per shape the grammar offers, compiled.
+  Every other check in the repository asks whether a refusal fires; this asks
+  whether the grammar still accepts what it promises, which is the only
+  direction a pass that adds refusals can fail in.
+- **`corpus.mjs`** – every `::: diagram` block in the four sources that carry
+  figures still compiles, with no new compiler warning. Deliberately not a
+  snapshot of the emitted SVG: text width here is estimated rather than
+  measured, so a committed baseline churns on every layout constant and cannot
+  tell an improvement from a regression. The geometric properties are asserted
+  from a real browser by `test/figure-framing.mjs`, `figure-labels.mjs` and
+  `figure-sequence.mjs`.
+- **`step-classes.mjs`** – a `style` step can only change what a beat can
+  carry. Derives both halves of its expectation from `DG_STEP_FIXED`, so the
+  table and the check cannot drift.
+
+A gate may carry a **pending** entry: a known defect, written as the assertion
+that should hold once it is fixed, with the reason beside it. Pending entries
+do not fail the run – but the day one starts passing it does, so the ledger
+cannot fill up with things that were fixed years ago and nobody dared delete.
+`npm run gate` prints them as `~`.
 
 Read [`CLAUDE.md`](CLAUDE.md) first. It is written for an assistant but it is
 the honest architecture guide: what lives where in `build.js`, which

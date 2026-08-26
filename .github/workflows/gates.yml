@@ -1,0 +1,44 @@
+# The checks that are cheap enough to run on every push.
+#
+# Until this existed, nothing ran on a branch: Pages fires on main and Release
+# on a tag, so a figure-language regression was first seen by whoever merged
+# it. Both of the programs run here are zero-dependency by design – `lint.js`
+# so it can serve as a pre-commit gate without the Markdown and Shiki stack,
+# `diagram-core.mjs` so the browser can run the same compiler the build runs –
+# so this job needs no `npm ci` and finishes in seconds.
+#
+# What it deliberately does not do is build the lectures or run the browser
+# suite. Those need the dependency tree and a Chromium, and they belong in the
+# jobs that already pay for them (see pages.yml and release.yml).
+name: Gates
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# A second push to the same branch makes the first one's answer uninteresting.
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The same invocation the Pages job uses, so a branch cannot go green
+      # here and red there.
+      - name: Lint the lectures
+        run: node lint.js lectures/ docs/site/example/source.md docs/artifact/figure-rules/source.md
+
+      # The compiler gates: build-versus-linter agreement over the refusal
+      # fixtures, the constructs the grammar must still accept, every corpus
+      # figure, and the beat-locality of a `style` step's classes.
+      - name: Fast gates
+        run: node test/gates/run.mjs

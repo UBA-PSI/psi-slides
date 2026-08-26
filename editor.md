@@ -2681,8 +2681,10 @@ field, which left a borrowed coordinate and a plot value typeable nowhere. The
 resize grips were constants in diagram units, so on a plot point at high zoom
 they covered the element and every pointerdown resized it, which is why such a
 point could never be moved. And the step pane's *"restyle and relabel with the
-controls below"* read as "these write into this step" when they write on the
-element's own line.
+controls below"* read as "these write into this step" when they wrote on the
+element's own line. (That sentence was replaced by an accurate one here; the
+*behaviour* was fixed later, and the look rows do write into the step now – see
+**The whole look pane crosses over at a beat** below.)
 
 Six spec files grew to hold them, all against figures already in
 `lectures/diagrams` rather than invented ones: 225 assertions became 281.
@@ -2920,3 +2922,90 @@ shorter, and the same click on the base swatch writes `style x {!dim}`. The
 step pane needed nothing: it shows a beat by what it *does* (`dgeStepChanges`),
 diffing the resolved state either side, so a removal reads correctly there for
 free.
+
+**A beat can now say "take it off"** was written when only two rows could say
+anything at a beat at all. The paragraph above is still true of what the base
+swatch writes; which rows reach it is the entry below.
+
+### The whole look pane crosses over at a beat · **done**
+
+**One `if` was the whole of it, and it made every swatch row answer two
+different questions at once.**
+
+```js
+if (DGE.beat && (slot.prominence || slot.arrow)) return dgeSetSlotAtBeat(...);
+```
+
+Pressed state has read `dgStateAt` for the beat on screen since the step pane
+was built, so a fill row standing on beat 2 showed what beat 2 wears. A click on
+it rebuilt the *element's own tail* – beat 0. Two rows out of sixteen crossed
+over, and not because anyone decided the other fourteen should not: prominence
+and arrowheads were the two that had a step form when the branch was written.
+
+The fix is one line, but only after the compiler had a table to point at.
+`DG_STEP_FIXED` groups the classes a `style` step may not change by **the thing
+the emitter writes once** – the drawable kind, the label anchor, the type size,
+the path kind, the drawing order – and `DG_STEP_FIXED_CLASSES` is that flattened
+into a Set, exported for exactly this. So the panel keeps no second list:
+
+```js
+const fixed = dgeBeatFixed(slot, opt.cls, carried);   // '' when it can act
+```
+
+Three things that had to be got right, in the order they bit.
+
+- **The gate is asked per swatch, not per row, because one row is only half
+  settled.** `line shape` holds `.smooth` – one path kind stored for every frame
+  – beside `.elbow`, which draws two waypoints and is as beat-local as a tone. A
+  row-level reading would have taken the second away with the first. Everything
+  else falls out: four rows come out wholly greyed, and the rest wholly live.
+- **Both signs, like `rejectStepClass`.** Clicking a class writes `{.cls}`;
+  clicking the base swatch to get back out writes `{!cls}`, and a removal the
+  emitter cannot honour is exactly as inert as an addition it cannot. That half
+  depends on what the element is *already* wearing at this beat, not on the
+  swatch alone – which is why the carried state is passed in and why
+  `dgeSlotValue` was split so `dgeSlotCarried` could answer per element.
+- **Greyed, not hidden.** The panel's habit is to drop a swatch a kind cannot
+  carry, because a greyed one reads as "not yet" rather than "not here". Here
+  "not yet" is the true answer: leave the beat and the same swatch works. Each
+  greyed row carries its own sentence, and the sentence is the group name out of
+  `DG_STEP_FIXED` rather than one generic line for five different causes.
+
+**What was measured and came out the other way round.** The review asked the new
+tests to assert that the print state is unchanged, and it is not – it never was.
+Print is the **last beat** with `emph` and `dim` stripped, so a tone written into
+step 2 is still in force at the last beat:
+
+```diagram
+box a "A"
+box b "B" right of a
+step one
+  style a {.tone-1}
+  emph b
+```
+
+emits `class="dg-el dg-box tone-1"` in `print.html`, while `emph b` at the same
+beat emits nothing. Under the *old* behaviour the same click wrote `.tone-1`
+onto `box a`'s own line, and print came out identical – so the print reading
+does not separate the two behaviours at all. **The opening picture does**, and
+that is what every case in `test/editor-steps.mjs` asserts: the element's own
+line unchanged, and `dgStateAt(model, 0)` unchanged. Two consequences:
+
+- the step pane's second sentence used to generalise the prominence rule to the
+  whole look ("the printed handout shows the look the element opens with"),
+  which is false for every class but the three prominence words. It now says
+  what print is: the last beat with the emphasis taken off.
+- `dgeBeatNote` – *"written on the element's own line … not into step X"* – is
+  reached only by the label field now, and says `label` where it said
+  `prominence`. A `label` op swaps pre-rendered `<g>`s typeset at build time, so
+  the panel has no step form for it and this is not an oversight.
+
+`test/editor-steps.mjs` had asserted the old behaviour in as many words – *"a
+swatch at a beat writes no style op"*, *"it edits the element's own line"* –
+which is how the mismatch stayed green. It is inverted rather than deleted:
+those two sentences are precisely what must not come back. Four positive cases
+now stand in their place (a grouped row, an ungrouped toggle, a base-state
+removal of a class the element's own line gives it, and a mixed selection that
+needs two different negations to reach one look), each asserting the opening
+line and the opening state, plus the four greyed rows with their reasons and the
+half-settled one with only its half taken away. 17 assertions became 46.

@@ -39,6 +39,14 @@ jobs:
       - name: Lint the lectures
         run: node lint.js lectures/ docs/artifact/figure-rules/source.md
 
+      # Seconds, and they fail on things neither the linter nor the build can
+      # see on its own: a linter that has drifted from the compiler it mirrors,
+      # a construct the grammar has quietly stopped accepting, a `style` step
+      # carrying a class the last beat bakes for every beat. Also run on every
+      # push by gates.yml; repeated here so a deploy cannot go out over one.
+      - name: Fast gates
+        run: node test/gates/run.mjs
+
       - name: Build the lectures
         run: |
           node build.js lectures/tutorial/source.md

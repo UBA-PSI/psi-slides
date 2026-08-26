@@ -126,7 +126,7 @@ const DENSITY_BUDGET = {
 // indexed rather than listed. This file has to agree with the compiler
 // exactly – a `brace over f-0,f-1,f-2` names elements no line declares –
 // and writing the scheme out twice is the duplication importing the tables
-// was meant to end. `rejectShapeOn` and `rejectAlignOn` ride the same bend
+// was meant to end. `rejectClassOn` and its siblings ride the same bend
 // for the same reason: they ARE the rule for which class may sit on which
 // kind, and a second spelling of it here is how this gate came to pass
 // lines the build refuses – lectures/network-security is linted by CI but
@@ -149,7 +149,8 @@ import {
   dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName,
   dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag,
   DG_EDGE_ARROWS, DG_STEP_NAME,
-  rejectShapeOn, rejectAlignOn, rejectHeadClassIn, rejectSlotPair, dgTakes, dgArticle,
+  rejectHeadClassIn, rejectSlotPair, rejectStepClass,
+  rejectClassOn, DG_WORD_OPTS, dgTakes, dgArticle,
 } from './diagram-core.mjs';
 
 const REVEAL_PCT_WARN = 0.5;
@@ -159,7 +160,7 @@ const ORPHAN_MIN = 2;
 // option check at all on the seven statements a newcomer meets first, so
 // `box c "C" rightof a gap 1` produced no finding here: it passed the
 // pre-commit gate and failed every later build. That is the exact trap
-// CLAUDE.md records for `rejectShapeOn`, and it bites the same way, because
+// CLAUDE.md records for the class gate, and it bites the same way, because
 // CI lints lectures/network-security and lectures/diagrams without ever
 // building them.
 //
@@ -258,7 +259,19 @@ function lintDefaultStatement(words, ln, add, ctx) {
           + `is written 'side ${w}' – a bare '${w}' is one of the four words that also place a label.`);
       break;
     }
-    if (opts.includes(w)) { k++; continue; }
+    if (opts.includes(w)) {
+      // Skipping the value was how this file came to accept `default edge side
+      // bottom` while the build refused it: everything not `brace side` went to
+      // dgNum there, and to nothing at all here. A closed word list is as much
+      // a value shape as a number is, and DG_WORD_OPTS is where both read it.
+      const allowed = DG_WORD_OPTS[w];
+      if (allowed && !allowed.includes(words[k + 1])) {
+        add(ln, 'error', 'bad-diagram-default', `default ${kind}: ${w} expects `
+            + `${allowed.join(' / ')}, got '${words[k + 1] ?? ''}'`);
+      }
+      k++;
+      continue;
+    }
     // Only kinds a `default` can name - see the same line in diagram-core.
     const owner = [...DG_DEFAULT_KINDS].find(kk => (DG_KIND_OPTS[kk] || []).includes(w));
     if (owner) {
@@ -632,21 +645,19 @@ function lintDiagram(block, add, fmLines, lectureTags) {
     {
       const gate = [];
       if (head === 'bars' || head === 'grid') {
-        rejectShapeOn(head === 'grid' ? (words[2] || 'box') : 'box', attrs.classes, ln, gate, attrs.removedClasses);
+        rejectClassOn(head === 'grid' ? (words[2] || 'box') : 'box', attrs.classes, ln, gate, '', attrs.removedClasses);
       } else if (head === 'edge') {
-        rejectAlignOn('edge', attrs.classes, ln, gate, attrs.removedClasses);
-        rejectHeadClassIn('tail', attrs.classes, ln, gate);
+        rejectClassOn('edge', attrs.classes, ln, gate, '', attrs.removedClasses);
+        rejectHeadClassIn('tail', attrs.classes, ln, gate, attrs.removedClasses);
       } else if (head === 'box') {
-        rejectShapeOn('box', attrs.classes, ln, gate, attrs.removedClasses);
+        rejectClassOn('box', attrs.classes, ln, gate, '', attrs.removedClasses);
       } else if (head === 'container' || head === 'brace') {
-        rejectShapeOn(head, attrs.classes, ln, gate, attrs.removedClasses);
-        rejectAlignOn(head, attrs.classes, ln, gate);
+        rejectClassOn(head, attrs.classes, ln, gate, '', attrs.removedClasses);
       } else if (head === 'dot' || head === 'text' || head === 'image') {
-        rejectShapeOn(head, attrs.classes, ln, gate, attrs.removedClasses);
+        rejectClassOn(head, attrs.classes, ln, gate, '', attrs.removedClasses);
       } else if (head === 'default' && words[1]) {
-        rejectShapeOn(words[1], attrs.classes, ln, gate, attrs.removedClasses);
-        rejectAlignOn(words[1], attrs.classes, ln, gate);
-        if (words[1] === 'edge') rejectHeadClassIn('default', attrs.classes, ln, gate);
+        rejectClassOn(words[1], attrs.classes, ln, gate, '', attrs.removedClasses);
+        if (words[1] === 'edge') rejectHeadClassIn('default', attrs.classes, ln, gate, attrs.removedClasses);
       }
       // `point` aims an outline. The direction is a closed list, and an
       // outline the line itself declares either has a point or has not –
@@ -712,7 +723,8 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       if (words[1] && !DG_STEP_NAME.test(words[1])) {
         add(ln, 'error', 'bad-diagram-step', `'${words[1]}' is not a step name – a step name `
             + 'starts with a letter or an underscore and then takes letters, digits, '
-            + 'underscores or hyphens');
+            + 'underscores or hyphens. Any script: it is a label for a beat, not a name '
+            + 'anything refers to.');
       }
       if (words.length > 2) {
         add(ln, 'error', 'bad-diagram-step', `unexpected '${words[2]}' in step ${words[1]} – `
@@ -722,6 +734,18 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       continue;
     }
     if (inStep && DG_STEP_OPS.has(head)) {
+      // What a `style` step may change, from the compiler's own table. The
+      // static SVG is the last beat and the runtime revisits only the class
+      // string and the geometry vectors, so a class the emitter bakes - a
+      // font-size, a text-anchor, a drawable kind, a path kind, the drawing
+      // order - has one value for the whole figure. Both signs, because a
+      // removal that cannot be represented is exactly as silent as an
+      // addition that cannot.
+      if (head === 'style') {
+        const gate = [];
+        rejectStepClass(attrs.classes, attrs.removedClasses, ln, gate);
+        for (const g of gate) add(ln, 'error', 'diagram-step-fixed-class', g.msg);
+      }
       if (head === 'move' && words[2] === 'to' && words[3] && words[3].includes(',')) {
         referPair(words[3], ln, 'move … to');
       }
@@ -779,6 +803,16 @@ function lintDiagram(block, add, fmLines, lectureTags) {
     if (head === 'plot') {
       const id = words[1];
       define(id, ln);
+      // A plot's frame, gridlines and ticks each take their look from the
+      // statement, so a class in the tail reached nothing at all - parsed,
+      // validated and dropped. The build refuses it now, and a gate that
+      // passed it would be the laxer of the pair.
+      if (attrs.classes.length || (attrs.removedClasses || []).length) {
+        add(ln, 'error', 'bad-diagram-plot', `plot ${id || ''}: a class in the tail reaches `
+            + "nothing – a plot's frame, gridlines and ticks each take their look from the "
+            + 'statement. Put the class on what you draw inside the frame, or name the plot '
+            + 'in a `style` step.');
+      }
       chartSameAs('plot', id, words, ln);
       chartsAbove.add(id);
       if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: id, tags: attrs.tags, ln });
@@ -961,6 +995,18 @@ function lintDiagram(block, add, fmLines, lectureTags) {
         const w = nq.replace(/\{[^}]*\}/g, ' ').trim().split(/\s+/).filter(Boolean);
         const aAt = w.findIndex(v => DG_SEQ_ARROWS.has(v));
         if (!DG_SEQ_ENTRIES.has(w[0]) && aAt < 0) break;
+        // The kind the entry expands into: an `actor` head and a `note` are
+        // boxes, a message is an edge. Only the slot-pair check ran on these
+        // tails, so `actor u "U" {.smooth}` and a message carrying `{.hex}`
+        // passed the gate and failed the build - the one family of tails the
+        // class table did not reach.
+        {
+          const ea = attrsOf(raw, block.lines[m].ln, false);
+          const gate = [];
+          rejectClassOn(DG_SEQ_ENTRIES.has(w[0]) ? 'box' : 'edge',
+            ea.classes, block.lines[m].ln, gate, '', ea.removedClasses);
+          for (const g of gate) add(block.lines[m].ln, 'error', 'diagram-class-kind', g.msg);
+        }
         entries.push({ w, aAt, nq, ln: block.lines[m].ln });
         lastAt = m;
       }

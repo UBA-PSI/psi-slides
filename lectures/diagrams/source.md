@@ -889,11 +889,11 @@ text fresh "die Challenge ist die Frische" right of wa-2 gap 1.9 {.small .hand} 
 
 step im-browser
   emph @br-msgs
-step auf-dem-geraet
+step auf-dem-gerät
   dim @br-msgs
   emph @au-msgs
   emph au
-step zurueck-zur-partei
+step zurück-zur-partei
   dim @au-msgs
   dim au
   emph @wa-msg-7, @wa-msg-8

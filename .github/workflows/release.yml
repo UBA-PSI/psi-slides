@@ -57,6 +57,12 @@ jobs:
       - name: Lint
         run: node lint.js lectures/ docs/site/example/source.md docs/artifact/figure-rules/source.md
 
+      # The compiler gates, same as the Pages job. A release that ships a
+      # linter which has drifted from the build ships the one failure mode
+      # `lint.js` exists to prevent.
+      - name: Fast gates
+        run: node test/gates/run.mjs
+
       - name: Build the lectures
         run: |
           node build.js lectures/tutorial/source.md

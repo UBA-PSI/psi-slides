@@ -340,6 +340,25 @@ function dgeClassKinds(cls) {
 }
 const dgeElbowOK = (el) => !(el.via || []).length;
 
+// Why a class cannot be written into a `style` step, in the compiler's own
+// words, or '' when it can.
+//
+// `DG_STEP_FIXED_CLASSES` is the membership and `DG_STEP_FIXED` is the reason,
+// grouped by the thing the emitter writes **once** for the whole figure – a
+// `font-size`, a `text-anchor`, which tag is drawn, whether the path is a
+// spline, where the group sits in document order. The panel keeps no second
+// copy of either: the set is exported precisely so this row can be hidden at a
+// beat rather than restated here, and a class added to the compiler's table
+// therefore reaches this panel in the same commit. That drift is what the two
+// ad-hoc loops this table replaced were made of.
+function dgeStepFixedWhy(cls) {
+  const PSI = window.PSI_DG || {};
+  if (!cls || !(PSI.DG_STEP_FIXED_CLASSES || new Set()).has(cls)) return '';
+  const fixed = PSI.DG_STEP_FIXED || {};
+  for (const what in fixed) if ((fixed[what] || []).includes(cls)) return what;
+  return '';
+}
+
 // Which pair of `side` words can pick a side of an edge, which is a question
 // about the *routed* line rather than about the statement: the compiler offsets
 // the label along the line's normal, so `top` / `bottom` act across a mostly
@@ -5009,9 +5028,20 @@ function dgeSlotRows(chosen, kinds) {
     return !kk || [...on].every((k) => kk.includes(k));
   };
   for (const slot of DGE_SLOTS) {
-    const current = dgeSlotValue(slot);
     const row = dgeEl('div', { class: 'dge-swatches' });
     const options = dgeSlotOptions(slot);
+    // What the selection wears in this slot at the beat on screen, per
+    // element. Read once and handed to both readers of it: it tells the base
+    // swatch whether the negation it would have to write is one a step can
+    // carry, and collapsed it is the pressed state. `dgStateAt` walks the whole
+    // model, and this loop runs sixteen times per panel render.
+    const carried = dgeSlotCarried(options.map((o) => o.cls).filter(Boolean));
+    const current = dgeSlotValue(slot, carried);
+    // The distinct reasons collected while the swatches are built, so the row
+    // says which channel is settled rather than one generic sentence for five
+    // different causes. A Set because `size` and `fitting` are two rows over
+    // one reason and `align` and `alignv` are two more.
+    const whys = new Set();
     // A slot every one of whose real options is out of reach here would come
     // out as a single "none of this" swatch, pressed and unclickable. That is a
     // row asking a question with one answer, so it is not a row – and with the
@@ -5035,6 +5065,13 @@ function dgeSlotRows(chosen, kinds) {
       // `dgeSetSlot` still know the whole slot, so a `.diamond` written by
       // hand is still displaced when another outline is picked.
       if (!opt.inherit && !usable(opt)) continue;
+      // Greyed rather than dropped, and this row earns the distinction the
+      // leader's token row already had: the answer is "not at this beat",
+      // not "not on this element". Go back to the opening picture and the
+      // same swatch works, so a control that vanished would be telling the
+      // author the wrong thing about their figure.
+      const fixed = opt.inherit ? '' : dgeBeatFixed(slot, opt.cls, carried);
+      if (fixed) whys.add(fixed);
       row.appendChild(dgeEl('button', {
         type: 'button', class: 'dge-sw',
         'data-fill': opt.fill === undefined ? null : (opt.fill || 'none'),
@@ -5042,10 +5079,14 @@ function dgeSlotRows(chosen, kinds) {
         // produces is whatever the default says, and that state is already the
         // swatch the default's own class owns – so it never reads as pressed.
         'aria-pressed': String(!opt.inherit && current === opt.cls),
-        title: opt.inherit ? 'drop this element’s own say and take the default'
-          : (opt.cls ? (slot.arrow ? opt.cls : '.' + opt.cls) : 'nothing in this slot'),
+        disabled: !!fixed,
+        title: fixed
+          ? (opt.cls ? '.' + opt.cls : 'nothing in this slot') + ' – ' + fixed
+            + ' is settled once when the figure is built, so a step has nothing to switch'
+          : (opt.inherit ? 'drop this element’s own say and take the default'
+            : (opt.cls ? (slot.arrow ? opt.cls : '.' + opt.cls) : 'nothing in this slot')),
         text: opt.fill !== undefined && !opt.inherit ? '' : (opt.label || opt.cls),
-        onclick: () => dgeSetSlot(slot, opt.cls, opt),
+        onclick: fixed ? null : () => dgeSetSlot(slot, opt.cls, opt),
       }));
     }
     // Its own class beside the shared one, the rule chips already follow: a
@@ -5053,9 +5094,19 @@ function dgeSlotRows(chosen, kinds) {
     // side, its `flush`, a brace's `side`, a leader's token – and only these
     // are the closed class vocabulary. Something asking "does every swatch the
     // panel offers do anything" has to be able to ask it of these alone.
-    slots.appendChild(dgeEl('div', { class: 'dge-slot dge-slot-look' }, [
-      dgeEl('b', { text: slot.label }), row,
-    ]));
+    // Its own class beside the shared one, for the same reason the chips
+    // carry one: `.dge-hint` is every sentence in the panel, and something
+    // asking "does the look pane explain what it greyed out" has to be able
+    // to ask it of these alone.
+    const kids = [dgeEl('b', { text: slot.label }), row];
+    if (whys.size) {
+      kids.push(dgeEl('div', { class: 'dge-hint dge-slot-why', text:
+        'Not part of a step: ' + [...whys].join(' and ')
+        + ' is settled once when the figure is built, so the beats that should not '
+        + 'have it would be drawn with it anyway. Leave the beat to change it – or, '
+        + 'where two beats really need two, draw two elements and show one at a time.' }));
+    }
+    slots.appendChild(dgeEl('div', { class: 'dge-slot dge-slot-look' }, kids));
   }
   return slots;
 }
@@ -5109,23 +5160,59 @@ function dgeSlotDefaultFor(el, names) {
 // honours a `{!class}` removal, and it carries the steps up to this beat.
 //
 // Mixed selections show none pressed rather than lying about a shared value.
-function dgeSlotValue(slot) {
+function dgeSlotValue(slot, precomputed) {
   if (slot.arrow && !DGE.beat) return dgeArrowValue();
-  const names = dgeSlotOptions(slot).map((o) => o.cls).filter(Boolean);
+  const carried = precomputed
+    || dgeSlotCarried(dgeSlotOptions(slot).map((o) => o.cls).filter(Boolean));
+  if (!carried.length) return null;
+  return carried.every((c) => c === carried[0]) ? carried[0] : null;
+}
+
+// The same reading, one entry per selected element rather than collapsed to a
+// single answer. The base swatch needs them apart: reaching "nothing in this
+// slot" at a beat means removing whatever each element has *there*, and two
+// boxes at `small` and `large` need two different negations – which is also
+// how dgeSetSlotAtBeat groups them.
+function dgeSlotCarried(names) {
   // A series statement has no element and so no resolved state; its classes
   // describe the columns it draws and its own line is the only reading there.
   const state = DGE.model ? window.PSI_DG.dgStateAt(DGE.model, DGE.beat) : null;
-  let found;
+  const out = [];
   for (const id of DGE.selection) {
     const el = dgeLineOwner(id);
     if (!el) continue;
     const st = state && state.get(id);
     const carries = st ? [...st.classes] : (el.classes || []);
-    const hit = carries.find((c) => names.includes(c)) || '';
-    if (found === undefined) found = hit;
-    else if (found !== hit) return null;
+    out.push(carries.find((c) => names.includes(c)) || '');
   }
-  return found === undefined ? null : found;
+  return out;
+}
+
+// Why one swatch cannot act at the beat on screen, or '' when it can – and it
+// is the whole of the routing decision below as well, so the row and the click
+// cannot disagree about which of the two lines a word goes on.
+//
+// `rejectStepClass` refuses **both signs**, and so does this. Clicking a class
+// would write `{.cls}` into the step; clicking the base swatch to get back out
+// would write `{!cls}`, and a removal the emitter cannot honour is exactly as
+// inert as an addition it cannot. That second half is the one an
+// option-by-option reading misses, because it depends on what the element is
+// already wearing here rather than on the swatch alone – which is why
+// `carried` is passed in.
+//
+// Nothing here names a class. The arrowheads and prominence rows come out
+// beat-capable because their classes are not in the compiler's table, not
+// because they are listed as exceptions; that listing is precisely the
+// narrowing this replaced, which let a fill swatch at beat 2 quietly edit the
+// printed handout.
+function dgeBeatFixed(slot, cls, carried) {
+  if (!DGE.beat) return '';
+  if (cls) return dgeStepFixedWhy(cls);
+  for (const now of (carried || [])) {
+    const why = dgeStepFixedWhy(now);
+    if (why) return why;
+  }
+  return '';
 }
 
 // The arrow token the selection is written with, which is what the arrowheads
@@ -5147,7 +5234,17 @@ function dgeArrowValue() {
 // A swatch click, routed by which line the word belongs on – which after item
 // 11 is the *whole* difference between the two surfaces, print included.
 //
-// Three rows part company from the rest here, and each for a reason the
+// **Which beat you are standing on is the whole of it.** At the opening
+// picture a swatch rebuilds the element's own tail; at any later beat it
+// writes into the step, because that is the beat whose pressed state the row
+// is already showing. It used to be only the prominence and arrowhead rows
+// that crossed over, so every other row answered two different questions at
+// once – its pressed state said what beat 2 looks like while a click edited
+// beat 0, and a fill picked to make a point mid-lecture silently changed the
+// printed handout. The exception now is the compiler's own `DG_STEP_FIXED`
+// and nothing else.
+//
+// Three rows still part company from the rest, and each for a reason the
 // compiler states rather than a preference of the panel's:
 //
 //   · the arrowheads row at beat 0 rewrites the arrow **token**, because a
@@ -5162,7 +5259,18 @@ function dgeArrowValue() {
 function dgeSetSlot(slot, cls, opt) {
   const names = dgeSlotOptions(slot).map((o) => o.cls).filter(Boolean);
   if (slot.arrow && !DGE.beat) return dgeSetArrowToken(cls);
-  if (DGE.beat && (slot.prominence || slot.arrow)) return dgeSetSlotAtBeat(slot, cls, names);
+  if (DGE.beat) {
+    // Unreachable from the panel – the swatch is disabled and says why – so
+    // this is the guard for every other way in, and it refuses rather than
+    // falling through to the element's own line. Falling through is how a
+    // click on a beat came to edit the opening picture in the first place.
+    const fixed = dgeBeatFixed(slot, cls, dgeSlotCarried(names));
+    if (fixed) {
+      return dgeStatus('', fixed + ' is settled once when the figure is built – a step has '
+        + 'nothing to switch. Leave the beat to change it.', true);
+    }
+    return dgeSetSlotAtBeat(slot, cls, names);
+  }
   const splices = [];
   const widened = [];
   for (const id of DGE.selection) {
@@ -5220,8 +5328,15 @@ function dgeSetArrowToken(want) {
 }
 
 // A class row standing on a beat. The word goes into the step rather than onto
-// the element's line, so the change is a lecture-time act and the opening
-// picture – which is what the printed handout shows – keeps what it had.
+// the element's line, so the opening picture keeps what it had and the change
+// belongs to the beat the row is already showing the state of.
+//
+// Not the same as "the handout does not see it", which is true of the
+// prominence words alone: print is the last beat with `emph` and `dim`
+// stripped, so a tone written at beat 2 is in print.html and an `emph` written
+// at beat 2 is not. What every op here does guarantee is that beat 0 – the
+// element's own line, the thing a reader of the source sees first – is
+// untouched.
 //
 // Elements are grouped by the operation they need, one line per group, because
 // the base state of one element is not the base state of another: two boxes at
@@ -5679,40 +5794,56 @@ function dgeStepPane() {
     wrap.appendChild(list);
   }
 
-  // What the mode does and does not cover. The drag is the only gesture that
-  // knows about the beat; the swatches and the label field below write on the
-  // element's own line, which is the opening picture – and if this step or a
-  // later one styles or relabels the same element, the canvas here goes on
-  // showing that instead. Said plainly, because the sentence that used to sit
-  // here ("Restyle and relabel with the controls below") read as a promise that
-  // they wrote into the step, and a swatch that visibly does nothing is the
-  // worst way to learn otherwise.
+  // What the mode does and does not cover. It used to be the other way round –
+  // the drag was the only gesture that knew about the beat and every look
+  // swatch but two wrote on the element's own line, so a row showed what beat 2
+  // wears and edited what beat 0 wears. The whole look pane writes into the
+  // step now, and what is left to say is the two things that still do not: the
+  // label, and the rows the compiler settles once for the whole figure, each of
+  // which greys out here and gives its own reason.
   wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
     'A drag at this beat writes a move into the step rather than changing where '
-    + 'the element is placed, and so do the prominence and arrowhead rows below. '
-    + 'The rest of the look, and the label, are not part of the step: they edit '
-    + 'the opening picture, and a style or label op still wins over them here. '
-    + 'Write one with a step line of its own.' }));
+    + 'the element is placed, and so does every look row below that can be one: '
+    + 'a swatch writes a style op into this step, and its base swatch writes the '
+    + 'removal that takes the class back off. The rows greyed out are the ones '
+    + 'the figure settles once when it is built, and each says which. The label '
+    + 'is not part of the step either: it edits the opening picture, and a label '
+    + 'op still wins over it here.' }));
   // The other half of item 11's rule, and the panel is the only place either
   // half is legible: nothing else in the editor knows about print, and the
   // frame segment offers a button captioned "print" that is a width and not a
-  // state. Prominence written into a step is a lecture-time act and the
-  // handout does not show it; prominence written on the element's own line is
-  // part of the drawing and does. Which line the word is on is the only thing
-  // that decides, so these two sentences are the whole account.
+  // state.
+  //
+  // **Measured, because the sentence that used to sit here was half wrong.** It
+  // said a look written into a step is a lecture-time act the handout does not
+  // show, which is true of the three prominence words and of nothing else:
+  // print is the *last beat* with the emphasis stripped, so `style a {.tone-1}`
+  // written at beat 1 comes out `class="dg-el dg-box tone-1"` in print.html
+  // while `emph b` at the same beat comes out bare. Generalising the prominence
+  // sentence to the whole look pane would have been the same mistake this
+  // change is undoing, one document further on.
   wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
-    'Prominence set here is a lecture-time act – the printed handout shows the '
-    + 'prominence the element opens with, not the one this beat leaves it at.' }));
+    'The printed handout is the last beat with the emphasis taken off. So the '
+    + 'prominence words set here never reach it, and everything else in the look '
+    + 'does unless a later step takes it back off – what the handout will not '
+    + 'show is the beat you set it at.' }));
   return wrap;
 }
 
-// Said after a look or label edit made while standing on a beat. The edit went
-// somewhere the canvas may not show, so the status bar has to name where.
+// Said after an edit made while standing on a beat that nevertheless landed on
+// the element's own line. The edit went somewhere the canvas may not show, so
+// the status bar has to name where.
+//
+// The look rows no longer reach it: they write into the step now, and the two
+// callers below are at beat 0 where this returns at the first test. What is
+// left is the label field, which has no step form in the panel \u2013 a `label` op
+// swaps pre-rendered variants, so writing one from here would mean typesetting
+// in the browser.
 function dgeBeatNote() {
   if (!DGE.beat || !DGE.model || !DGE.model.steps[DGE.beat - 1]) return;
   dgeStatus('', 'Written on the element\u2019s own line, which is the opening picture \u2013 not '
-    + 'into step \u201c' + DGE.model.steps[DGE.beat - 1].name + '\u201d. A style or label op in '
-    + 'this or an earlier step still wins over it here \u2013 and this is the prominence the '
+    + 'into step \u201c' + DGE.model.steps[DGE.beat - 1].name + '\u201d. A label op in '
+    + 'this or an earlier step still wins over it here \u2013 and this is the wording the '
     + 'printed handout will show.', false);
 }
 
@@ -6558,7 +6689,7 @@ function dgeRenameStep(k, name) {
   if (!window.PSI_DG.DG_STEP_NAME.test(clean)) {
     dgeStatus('', clean
       ? `"${clean}" is not a step name – it starts with a letter or an underscore, `
-        + 'then takes letters, digits, underscores or hyphens.'
+        + 'then takes letters, digits, underscores or hyphens. Any script.'
       : 'A step needs a name – emptying the field would leave the beat with a generated one.', true);
     return;
   }

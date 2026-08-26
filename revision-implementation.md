@@ -1,11 +1,19 @@
 # Implementing `revision-proposal.md` – progress and decisions
 
-**Status: complete.** This file is the running record of the implementation of
+**Status: complete, and reviewed – see `todo-revision-review.md`, which is closed.** This file is the running record of the implementation of
 `revision-proposal.md`. It is not a second plan: the proposal is the
 specification and stays authoritative. What goes here is (a) what has landed, (b)
 every implementation decision the proposal left to the implementer, and (c) every
 measurement that contradicted or sharpened the proposal, so a later reader can
 tell a deliberate deviation from an oversight.
+
+**`todo-revision-review.md` is the follow-up.** It reviews this file and the code
+against the proposal and found nine gaps, several of them real. Where it and this
+file disagreed, it was right twice – once about a passage here that described a
+guard which had been deliberately removed, and once about a technical
+justification that measurement did not support. Both are corrected in place and
+recorded there. Read the two together: this file says what was decided, that one
+says what the decisions missed.
 
 ## How the work is verified
 
@@ -71,9 +79,13 @@ bug – item 9's guard against `edge a b -> c` on a **sequence message** was
 written against `known`, which in that file is a whole-model reference test
 declared several hundred lines later, so every named message threw
 `Cannot access 'known' before initialization` rather than compiling. It is
-`actors.some(...)` now, against the actors the entry run has read so far, which
-is the set the check actually means. No corpus line named a message, so nothing
-outside a fixture could have caught it.
+`actors.some(...)` against the actors the entry run has read so far, which is the
+set the check actually meant. No corpus line named a message, so nothing outside
+a fixture could have caught it.
+
+**That guard has since been removed entirely** – see *The two readings of `edge
+X Y -> Z`* below. The bug was real and the fix was right for as long as the guard
+existed; the guard itself turned out not to be needed.
 
 The build loop earned its place immediately. Renaming `calm` to `dim` in a
 comment inside `DIAGRAM_CSS` put a **backtick inside a template literal**, which
@@ -372,6 +384,42 @@ silently relies on a default it never chose is the same defect one layer down.
 Totals, over four files: **244 gaps rewritten, 6 inserted, `#hero` excluded** as
 the proposal directs. 98 of 116 blocks are redrawn.
 
+### Item 32 was half an answer, and the gate said so
+
+Print stopped drawing an arrowhead the last beat removed – but by writing
+`opacity: 0` into the print state, which fixed the artefact an author checks last
+and left the **runtime** unable to do the same thing. `dgRenderInto` iterates
+`for (const key in frame.geom)`, so a key a frame does not mention is never
+touched, and the static SVG is the last beat: `style e {.both-heads}` at beat 1
+drew the second head at beat 0 as well, and `style e {.no-head}` left the first
+drawn after it had gone.
+
+Found by `test/gates/step-classes.mjs`, which the review asked for and which
+derives its expectation from `DG_STEP_FIXED` instead of restating it. My own
+sweep had measured the same figure and cleared it, because it asked a blunter
+question; the gate asked *is a geometry key present in one beat and absent in
+another* and got the right answer.
+
+The whole answer is the rule the edge label's ground already followed: **emit the
+drawable in every frame that could want it, and let the numbers say whether it is
+there.** A head a beat does not want is a head of zero length at its own tip. It
+collapses in print, it tweens out on screen, and item 32's inline opacity is
+deleted – two mechanisms for one thing is what this revision exists to remove.
+`vis` could not have carried it, because `vis` is keyed by element and a head is
+one drawable inside an edge's group.
+
+### The ASCII step-name decision was reversed
+
+Recorded below as a measured override of the proposal, and **it was wrong on its
+second reason**. `dgeRenameStep` splices inside the step's own span and never
+goes near `dgeRenameIn`, so the boundary risk cited as the technical necessity
+does not exist for a step name. `todo-revision-review.md` found this.
+
+`DG_STEP_NAME` is Unicode-aware now and the two German step names are restored.
+The section below is kept rather than rewritten, because the *first* reason – one
+naming rule is better than two – was a real argument that lost to a better one,
+and a record that quietly deletes a reversed decision teaches nothing.
+
 ### G7 · The acceptance criterion, run as a check rather than asserted
 
 The proposal is explicit that "within three pixels of the old SVG" is *not* the
@@ -443,25 +491,43 @@ already caught and fixed a few hours earlier – the panel measured it before th
 landed. Worth recording only because two independent checks found the same
 defect from opposite directions, which is the argument for having both.
 
-### Item 9's one ambiguous line has two readings, and they needed two answers
+### The two readings of `edge X Y -> Z`, and why neither needed a rule
 
-`edge X Y -> Z` is the single silent misreading the leading-name rule
-introduces, and the proposal asks for a guard: *"if the first of two tokens
-already names an element, that is two element names before an arrow and almost
-certainly a slip."* Written that way it is too broad, and it gets a common case
-exactly backwards.
+`edge X Y -> Z` is the named form – name X, from Y, to Z. It is the one line the
+leading-name rule makes ambiguous, and the proposal asks for a guard: *"if the
+first of two tokens already names an element, that is two element names before an
+arrow and almost certainly a slip."*
 
-Found by compiling the craft doc's code samples, which state a rule as a
-wrong/right **pair in one fence** – so they declare the same element twice on
-purpose, a shape no lecture ever contains. There, `edge f1 cl.right:0.14 -> …`
-written twice is a **duplicate edge name**, and answering it with *"two element
-names before the arrow"* sends the author looking for a slip they did not make.
+Two rules were written for it and then **both were removed**, which is the more
+useful record. The first was the guard as specified. It answered a *duplicate
+edge name* – the same `edge f1 …` written twice, which is what a wrong/right pair
+in one fence produces – with *"two element names before the arrow"*, sending the
+author after a slip they had not made. So a second rule was added to discriminate
+by what kind the first token already named.
 
-The discriminator is **what kind the first token already names**: an `edge`, and
-the author wrote the same declaration twice, so `claim()` reports the duplicate
-it is there to report; anything else, and the name slot is holding something that
-was only ever a drawable, which is the slip. Both messages are now true of their
-own case, and both are in `diffgate.mjs`.
+Measured, the whole thing was unnecessary. The only way the line can be wrong is
+that the name is not available, and `duplicate element id "X"` is exactly that
+sentence – the same one every other statement gets. The guard's one real
+contribution was suppressing a **cascade**: the edge took the box's name, two
+elements answered to one id, and the layout then reported `placement cycle: a → c
+→ a`, which nobody had written.
+
+So the cascade is what was fixed. `claim()` returns whether the name was granted,
+and **an edge that did not get its name is not built** – anything further would be
+a second element answering to somebody else's id, and the layout's report on that
+is a fiction. One message per defect, no invented second one, and the sequence
+half needed no rule of its own either.
+
+| written | reported |
+|---|---|
+| `edge a c -> c`, `a` is a box | `duplicate element id "a"` |
+| `edge f1 …` twice | `duplicate element id "f1"` |
+| `u r -> r` in a sequence, `u` is an actor | `duplicate element id "u"` |
+
+Recorded at this length because the proposal asks for a guard that is not there,
+and a reader comparing the two documents deserves the reason rather than a
+silence. **Two rules removed rather than two added** is the shape this revision
+was for.
 
 ## Measurements that override the proposal
 

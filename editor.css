@@ -453,6 +453,16 @@
   margin-bottom: 0.2rem;
 }
 .dge-swatches { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+/* Why a row is greyed at this beat, under the row it is about. Indented and
+   quieter than the panel's other sentences because it belongs to one control
+   rather than to the pane - a reason sitting flush left reads as a general
+   remark, and there can be four of these on screen at once. */
+#dge-side .dge-slot-why {
+  margin-top: 0.25rem;
+  padding-left: 0.4rem;
+  border-left: 1px solid var(--rule);
+  font-size: 10px;
+}
 .dge-sw {
   font: inherit;
   min-width: 1.9rem;
