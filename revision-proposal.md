@@ -1591,6 +1591,42 @@ has to be the same on the two that are edges. CLAUDE.md already says so – *"a
 message is an edge, so nothing about arrow styles is new vocabulary"* – and that
 sentence is false today: `<->` has to go into `DG_SEQ_ARROWS` alongside the
 `findIndex` change, or a message takes three tokens where an edge takes four.
+
+**And in a `sequence` this is a diagnostics fix, not only a vocabulary one.** A
+missing token in that sub-grammar does not produce a refusal naming the token –
+it drops the line out of the entry run, and the run's own recovery message then
+fires on every line beneath it. Measured on a seven-line protocol with one
+`c <-> p "handshake"` written into the middle of it:
+
+```
+line 5: unknown statement "c" (known: box, dot, text, image, edge, brace, …)
+line 6: "c" only means something inside a sequence – "actor", "note" and "a -> b"
+        are a sequence's entries, and the run of them ends at the first line that
+        is not one of the three. Check the line above this one.
+line 7: "note" only means something inside a sequence – …
+```
+
+**One token an author would reasonably guess costs three errors, and not one of
+them contains the string `<->`.** The follow-on message is good – it was clearly
+written for exactly this cascade, and it says *check the line above* – but the
+line above reports `unknown statement "c"`, which is not the cause either, so
+following the pointer still never reaches the token that is wrong. The same line
+written at the *end* of the run costs one error instead of three, so the cost
+depends on where in the protocol the author was standing.
+
+Contrast a defect the sub-grammar already handles properly – a mistyped actor
+name in the same position:
+
+```
+line 5: message: "pp" is not an actor of sequence s – this sequence has c, p
+```
+
+One error, naming the token, naming the alternatives. That is the shape this
+grammar reaches for everywhere else, and it is what adding `<->` to
+`DG_SEQ_ARROWS` buys here: the line stays inside the entry run, so a wrong token
+is answered by the message that already exists rather than by three that describe
+the parser's recovery. It is one entry in a table, and it removes the worst
+error-message cascade measured anywhere in this document.
 Measured, the failure is not even a clean refusal – `u <-> r` falls out of the
 entry run and reports `unknown statement "u"`, which is the misparse the sequence
 lookahead is documented to risk.
