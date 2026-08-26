@@ -65,6 +65,38 @@ const CONSTRUCTS = [
     'sequence q at 0,0 header 0.9\n  actor u "User"\n  actor r "RP"\n  u -> r "register"\n'
       + '  note u "a note"\n  reg r <-> u "both ways" side bottom\n  u -> u "self"\n'
       + '  r -- u "plain" space 0.4 {.dashed}'],
+  // The three shapes of annotation that follow a sequence's entry run. Each
+  // one carries an arrow token, which is what used to drag it into the run and
+  // report that the words in it are not actors - and it only did so when the
+  // annotation came *first*, because a `brace` above it ended the run and both
+  // then compiled. A statement keyword ends the run now, so all three parse
+  // wherever they are written; the leader form is the one that broke, and the
+  // `brace`-first form is the workaround that must not become the rule.
+  ['an annotation with a leader, first line after a sequence',
+    'sequence x at 0,0\n  actor a "A"\n  actor b "B"\n  a -> b "hello"\n'
+      + 'text n "why here" right of x-0 gap 1 -- x-0'],
+  ['the same annotation behind a brace',
+    'sequence x at 0,0\n  actor a "A"\n  actor b "B"\n  a -> b "hello"\n'
+      + 'brace br over x-0 "phase" side left\ntext n "why here" right of x-0 gap 1 -- x-0'],
+  ['an edge drawn between two sequence-generated names',
+    'sequence x at 0,0\n  actor a "A"\n  actor b "B"\n  a -> b "hello"\n'
+      + 'box far "elsewhere" right of b gap 2\nedge x-0 -> far {.dashed}'],
+  // Prominence is one slot with three words, and one kind list behind all
+  // three. `emph` on a text draws its glyphs in --emph; on an image it draws
+  // no ink and still acts, because the slot displaces a `dim`. Both were
+  // refused as classes while the *verb* was accepted and ungated, which is the
+  // asymmetry these four fixtures exist to hold shut.
+  ['prominence as a class on every kind it reaches',
+    'box a "A" at 0,0 {.emph}\ntext t "T" right of a gap 1 {.emph}\n'
+      + 'image i pic "P" below a gap 1 w 0.5 {.dim}\nedge a -> t {.ghost}'],
+  ['prominence as a verb on the same kinds',
+    'box a "A" at 0,0\ntext t "T" right of a gap 1\nimage i pic "P" below a gap 1 w 0.5\n'
+      + 'step s\n  emph a, t, i\nstep s2\n  dim a\n  ghost t'],
+  ['prominence through a style step on the same kinds',
+    'box a "A" at 0,0\ntext t "T" right of a gap 1\nimage i pic "P" below a gap 1 w 0.5\n'
+      + 'step s\n  style a {.emph}\n  style t {.emph}\n  style i {.emph}'],
+  ['a class the table has nothing to say about, on a chart frame',
+    'bars f "3,4,5" at 0,0 w 1 h 1 {.dim}\nstep s\n  style f {.dim}\n  emph f'],
   ['a default block and a tag default',
     'default box {.tone-1}\ndefault box @d w 0.5\nbox a "A" at 0,0 {@d}\nbox b "B" right of a gap 1 {.tone-3 !tone-1}'],
   ['steps, every op',

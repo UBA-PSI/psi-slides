@@ -34,6 +34,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { DG_STEP_FIXED } from '../../diagram-core.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../..');
@@ -346,6 +347,28 @@ function anatomy() {
     + esc(stems.join('').replace(/\s+$/, '')) + '\n' + rows.map(esc).join('\n') + '</span>';
 }
 page = replaceBetween(page, '<pre class="anat">', '</pre>', anatomy(), 'anatomy diagram');
+
+// ── which classes a beat cannot change ───────────────────────────────────
+// Generated, not transcribed. The page carried no account of this at all,
+// although it is a real authoring boundary: seventeen of the forty-one classes
+// are legal on an element's own line and refused inside a `step`, so a reader
+// who had been told the prominence verbs *are* the prominence classes would
+// reasonably expect any class to work in a beat and be refused by nearly half
+// the vocabulary. `DG_STEP_FIXED` is the compiler's own answer, and it is
+// already grouped by what each class settles, so the sentence it produces is
+// the reason as well as the list - which is why this is spliced from the table
+// rather than written out beside it, where the next consolidation would leave
+// it behind exactly as it left "sixteen statements" behind.
+function stepFixed() {
+  const cs = (list) => list.map(c => '<code>.' + c + '</code>').join(' ');
+  const parts = Object.entries(DG_STEP_FIXED).map(([what, list]) => what + ' (' + cs(list) + ')');
+  return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+}
+page = replaceBetween(page, '<!--stepfixed:start-->', '<!--stepfixed:end-->',
+  stepFixed(), 'step-fixed class list');
+say('  ' + Object.values(DG_STEP_FIXED).flat().length
+  + ' step-fixed classes listed from DG_STEP_FIXED');
+
 say('  anatomy diagram drawn from its own code line');
 
 // ── the masthead figure: its whole block, minus the maintainer's comments ──

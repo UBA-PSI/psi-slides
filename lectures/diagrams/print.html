@@ -644,6 +644,21 @@ pre.shiki .line { display: inline; }
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
+/* Words are the third thing emphasis can act on, and leaving them out left the
+   emph verb on a text accepted and completely inert - the ground rule at the
+   foot of this stylesheet refuses to stroke a label's rect, deliberately and
+   for good reason, so on a text the two rules above have nothing to reach.
+   That is not a corner case: the per-message tag a sequence generates is
+   documented as the way to address one message, and it holds the arrow *and*
+   its number *and* its second line, so the commonest emphasis in a protocol
+   figure is a mixed set by construction. The .accent text rule two blocks up
+   is the same act on the same channel and was already written this way.
+   .tone-4 inverts its own label, and has to keep winning here exactly as it
+   does over .accent text; one class more in the selector settles it rather
+   than source order, which is the guard the stroke case below already uses.
+   (No backticks in here: this whole stylesheet is a template literal.) */
+.psi-diagram .emph text { fill: var(--emph); }
+.psi-diagram .tone-4.emph text, .psi-diagram .tone-4.emph tspan { fill: var(--paper); }
 /* .tone-4 fills with the accent, so an emphasis stroke in the accent lands
    invisibly on it: emph on such a box resolved, set its width and changed
    nothing on screen - the silent no-op again, arriving through the stylesheet
@@ -728,7 +743,7 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong>Zwei Familien, dieselbe Form.</strong> Das <code>align left</code> am Ende einer Platzierung hält jede <code>below</code>-Kette an ihrer linken Kante bündig, obwohl der obere Code zweizeilig und der untere anders breit ist; <code>same as</code> gibt jedem Paar gleich große Kästen. Die <em>Anweisung</em> <code>align x center tobj, sobj</code> ist etwas anderes: sie übernimmt eine Koordinate vom zuerst genannten Element, und hier ist sie nötig, weil die beiden Kästchen neben verschieden langen Wörtern hängen. Die beiden Schritte sprechen <code>@temporal</code> und <code>@spatial</code> an, statt acht Namen einzeln aufzuzählen.</p>
+<p><strong>Zwei Familien, dieselbe Form.</strong> Das <code>align left</code> am Ende einer Platzierung hält jede <code>below</code>-Kette an ihrer linken Kante bündig, obwohl der obere Code zweizeilig und der untere anders breit ist; <code>same as</code> gibt jedem Paar gleich große Kästen. Die <em>Anweisung</em> <code>align x middle tobj, sobj</code> ist etwas anderes: sie übernimmt eine Koordinate vom zuerst genannten Element, und hier ist sie nötig, weil die beiden Kästchen neben verschieden langen Wörtern hängen. Die beiden Schritte sprechen <code>@temporal</code> und <code>@spatial</code> an, statt acht Namen einzeln aufzuzählen.</p>
 
   
   
@@ -1017,7 +1032,7 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg></figure>
 
 
-<p><code>box</code>, <code>dot</code>, <code>text</code>, <code>image</code>, <code>edge</code>, <code>brace</code>, <code>container</code>, <code>bars</code>, <code>grid</code>, <code>plot</code>, <code>table</code>, <code>lanes</code>, <code>align</code>, <code>spread</code>, <code>default</code>, <code>step</code> – sechzehn Anweisungen, mehr nicht. Ein <code>text</code> bekommt mit <code>-&gt; x</code> eine kurze Linie zu dem, worüber er spricht.</p>
+<p><code>box</code>, <code>dot</code>, <code>text</code>, <code>image</code>, <code>edge</code>, <code>brace</code>, <code>container</code>, <code>bars</code>, <code>grid</code>, <code>plot</code>, <code>table</code>, <code>lanes</code>, <code>sequence</code>, <code>align</code>, <code>spread</code>, <code>default</code>, <code>step</code> – siebzehn Anweisungen, mehr nicht. Ein <code>text</code> bekommt mit <code>-&gt; x</code> eine kurze Linie zu dem, worüber er spricht.</p>
 <p><strong>Alles darin ist in Rastereinheiten gemessen, auch das, was keine Beschriftung hat.</strong> Der <code>dot</code> in der Mitte hat kein <code>r</code> und hat deshalb einen <em>Radius</em> von 0.18 Einheiten – also 0.36 quer –, keine feste Pixelzahl. Der Unterschied fällt erst auf, wenn ein Block sein <code>unit=</code> ändert: Eine Pixelangabe bliebe liegen, während alle Kästen um sie herum größer werden.</p>
 
   
@@ -1580,7 +1595,7 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong>Ein Baum wird von den Blättern her gebaut.</strong> Sie sind die Fixpunkte – um sie geht es –, und jede Ebene darüber steht <code>between</code> ihren eigenen Kindern mit einem <code>offset</code> nach oben. Andersherum ginge es nicht: <code>align x center rt, i1, i2</code> reicht die Koordinate des <em>ersten</em> genannten Elements an die übrigen weiter, würde also nicht die Wurzel über ihre Kinder setzen, sondern beide Kinder auf die Mittellinie der Wurzel stapeln.</p>
+<p><strong>Ein Baum wird von den Blättern her gebaut.</strong> Sie sind die Fixpunkte – um sie geht es –, und jede Ebene darüber steht <code>between</code> ihren eigenen Kindern mit einem <code>offset</code> nach oben. Andersherum aufgeschrieben hält der Compiler es aus – er liest den Block ganz und löst die Abhängigkeiten in der Reihenfolge auf, in der sie aufgehen, nicht in der Reihenfolge der Zeilen –, aber das Mittel, zu dem man dann greift, trägt nicht: <code>align x middle rt, i1, i2</code> reicht die Koordinate des <em>ersten</em> genannten Elements an die übrigen weiter, würde also nicht die Wurzel über ihre Kinder setzen, sondern beide Kinder auf die Mittellinie der Wurzel stapeln.</p>
 <p><strong>Die Klammern sind sechsmal dasselbe Wort.</strong> <code>.elbow</code> verlässt das eine Ende auf der Achse, auf der die beiden weiter auseinanderliegen, läuft eine Schiene auf halbem Weg durch die Lücke und kommt auf derselben Achse wieder an; die beiden Ansatzpunkte werden dafür auf diese Achse gezwungen, was immer die automatische Wahl sonst genommen hätte. Gemessen wird die Schiene zwischen den <em>zugewandten Kanten</em> der beiden Elemente, nicht zwischen ihren Mittelpunkten – deshalb liegt sie für beide Kinder einer Ausstellerin auf derselben Linie, und das Paar liest sich als eine Klammer statt als zwei Verbinder. Von Hand wären das zwölf Wegpunkte, die jedes Mal neu gerechnet werden müssten, wenn eine Ebene ihren Abstand ändert. Wer die Schiene woanders haben will, schreibt <code>via</code>; beides auf einer Zeile ist ein Fehler. Einen Slot teilt sich <code>.elbow</code> mit <code>.smooth</code>: Wie eine Linie gezeichnet wird, ist eine Frage mit genau einer Antwort.</p>
 <p><strong>Der gestrichelte Kasten steht um die ganze Menge, bevor die Menge beisammen ist.</strong> Er ist im selben Takt ausgeschrieben wie die Ausstellerinnen (<code>show @issuers, scope</code>), obwohl seine beiden anderen Mitglieder erst einen Takt später kommen. Ohne das ausgeschriebene <code>show</code> gilt die übliche Regel: Ein Umriss ist nur so sichtbar wie seine Mitglieder und passt sich denen an, die man sieht – er wäre erst um die Ausstellerin allein gewachsen und dann nach unten aufgegangen. Wer ihn beim Namen nennt, bekommt beides: die Sichtbarkeit <em>und</em> die volle Ausdehnung. Das ist der Sinn der Ausnahme; für den Normalfall ist sie ausdrücklich nicht gedacht.</p>
 

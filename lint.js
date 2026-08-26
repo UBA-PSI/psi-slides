@@ -139,7 +139,7 @@ const DENSITY_BUDGET = {
 // and this gate cannot print two different accounts of what a statement
 // accepts. Restating it here would be the drift it exists to prevent.
 import {
-  DG_KEYWORDS, DG_STEP_OPS, DG_CLASSES,
+  DG_KEYWORDS, DG_STEP_OPS, DG_CLASSES, DG_PROMINENCE, DG_CLASS_KIND_SET,
   DG_KIND_OPTS, DG_BRACE_SIDES, DG_SIDES, DG_ALIGN_X, DG_ALIGN_Y, DG_SCALAR_X,
   DG_SCALAR_Y, DG_DEFAULT_KINDS, DG_ANCHORS, DG_DEFINES, DG_GRID_KINDS, DG_GRID_MAX,
   DG_PLOT_MAX_TICKS, DG_POINT_DIRS, DG_POINTED, DG_SHAPE_CLASSES, DG_RESERVED_IDS,
@@ -648,7 +648,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   };
   // Which kind words the class table can answer about. A `bars` or a `plot`
   // frame is registered as the box it draws, so nothing else needs excluding.
-  const DG_CLASS_KINDS_OK = new Set(['box', 'dot', 'text', 'image', 'edge', 'container', 'brace']);
+  const DG_CLASS_KINDS_OK = DG_CLASS_KIND_SET;   // imported: one list, not two
   const styled = [];               // { classes, removed, targets, ln } per `style` op
   // Lines a `table` has already read as its own rows. It is the one statement
   // besides `step` that takes continuation lines, and they are bare quoted
@@ -795,6 +795,17 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         // {.no-head}` on a box is refused by the build and was clean here,
         // in both signs and through a tag.
         styled.push({ classes: attrs.classes, removed: attrs.removedClasses, ln,
+          targets: words.slice(1).join(',').split(',').map(x => x.trim()).filter(Boolean) });
+      }
+      // A prominence verb rides the same deferred gate, because `emph a` and
+      // `style a {.emph}` are one act spelled two ways and only the spelling
+      // with the class was ever asked whether the kind can draw it. In
+      // practice this is `emph` on a `text` or an `image`: `dim` and `ghost`
+      // resolve to an opacity, which every kind carries. Written off
+      // DG_PROMINENCE rather than off `emph`, so DG_CLASS_KINDS stays the one
+      // answer to which kinds a prominence reaches.
+      if (DG_PROMINENCE.includes(head)) {
+        styled.push({ classes: [head], removed: [], ln,
           targets: words.slice(1).join(',').split(',').map(x => x.trim()).filter(Boolean) });
       }
       if (head === 'move' && words[2] === 'to' && words[3] && words[3].includes(',')) {
@@ -1105,6 +1116,15 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         const nq = raw.replace(/"(?:\\.|[^"\\])*"/g, ' ');
         const w = nq.replace(/\{[^}]*\}/g, ' ').trim().split(/\s+/).filter(Boolean);
         const aAt = w.findIndex(v => DG_SEQ_ARROWS.has(v));
+        // A statement keyword ends the run before the arrow test, mirroring
+        // the build exactly. An annotation carrying a leader (`text n "…"
+        // right of wa-3 -- wa-3`) holds an arrow token, and without this it
+        // was read as a message here too - so the linter reported that the
+        // words in it are not actors, for a line that is now an ordinary
+        // statement. The two files have to agree on where the run ends or
+        // their `rowsRead` counts diverge and every line after it is judged
+        // against the wrong grammar.
+        if (DG_KEYWORDS.has(w[0])) break;
         if (!DG_SEQ_ENTRIES.has(w[0]) && aAt < 0) break;
         // The kind the entry expands into: an `actor` head and a `note` are
         // boxes, a message is an edge. Only the slot-pair check ran on these

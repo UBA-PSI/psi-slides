@@ -48,7 +48,7 @@ step spatial
   show @spatial
 :::
 
-**Zwei Familien, dieselbe Form.** Das `align left` am Ende einer Platzierung hält jede `below`-Kette an ihrer linken Kante bündig, obwohl der obere Code zweizeilig und der untere anders breit ist; `same as` gibt jedem Paar gleich große Kästen. Die *Anweisung* `align x center tobj, sobj` ist etwas anderes: sie übernimmt eine Koordinate vom zuerst genannten Element, und hier ist sie nötig, weil die beiden Kästchen neben verschieden langen Wörtern hängen. Die beiden Schritte sprechen `@temporal` und `@spatial` an, statt acht Namen einzeln aufzuzählen.
+**Zwei Familien, dieselbe Form.** Das `align left` am Ende einer Platzierung hält jede `below`-Kette an ihrer linken Kante bündig, obwohl der obere Code zweizeilig und der untere anders breit ist; `same as` gibt jedem Paar gleich große Kästen. Die *Anweisung* `align x middle tobj, sobj` ist etwas anderes: sie übernimmt eine Koordinate vom zuerst genannten Element, und hier ist sie nötig, weil die beiden Kästchen neben verschieden langen Wörtern hängen. Die beiden Schritte sprechen `@temporal` und `@spatial` an, statt acht Namen einzeln aufzuzählen.
 
 ## figure: Your first buffer overflow | ein konstruiertes Beispiel {.full #overflow}
 
@@ -353,7 +353,7 @@ edge b -> c "recoded"
 edge b -> x {.dashed}
 :::
 
-`box`, `dot`, `text`, `image`, `edge`, `brace`, `container`, `bars`, `grid`, `plot`, `table`, `lanes`, `align`, `spread`, `default`, `step` – sechzehn Anweisungen, mehr nicht. Ein `text` bekommt mit `-> x` eine kurze Linie zu dem, worüber er spricht.
+`box`, `dot`, `text`, `image`, `edge`, `brace`, `container`, `bars`, `grid`, `plot`, `table`, `lanes`, `sequence`, `align`, `spread`, `default`, `step` – siebzehn Anweisungen, mehr nicht. Ein `text` bekommt mit `-> x` eine kurze Linie zu dem, worüber er spricht.
 
 **Alles darin ist in Rastereinheiten gemessen, auch das, was keine Beschriftung hat.** Der `dot` in der Mitte hat kein `r` und hat deshalb einen *Radius* von 0.18 Einheiten – also 0.36 quer –, keine feste Pixelzahl. Der Unterschied fällt erst auf, wenn ein Block sein `unit=` ändert: Eine Pixelangabe bliebe liegen, während alle Kästen um sie herum größer werden.
 
@@ -819,7 +819,7 @@ step certificates
   show @leaves
 :::
 
-**Ein Baum wird von den Blättern her gebaut.** Sie sind die Fixpunkte – um sie geht es –, und jede Ebene darüber steht `between` ihren eigenen Kindern mit einem `offset` nach oben. Andersherum ginge es nicht: `align x center rt, i1, i2` reicht die Koordinate des *ersten* genannten Elements an die übrigen weiter, würde also nicht die Wurzel über ihre Kinder setzen, sondern beide Kinder auf die Mittellinie der Wurzel stapeln.
+**Ein Baum wird von den Blättern her gebaut.** Sie sind die Fixpunkte – um sie geht es –, und jede Ebene darüber steht `between` ihren eigenen Kindern mit einem `offset` nach oben. Andersherum aufgeschrieben hält der Compiler es aus – er liest den Block ganz und löst die Abhängigkeiten in der Reihenfolge auf, in der sie aufgehen, nicht in der Reihenfolge der Zeilen –, aber das Mittel, zu dem man dann greift, trägt nicht: `align x middle rt, i1, i2` reicht die Koordinate des *ersten* genannten Elements an die übrigen weiter, würde also nicht die Wurzel über ihre Kinder setzen, sondern beide Kinder auf die Mittellinie der Wurzel stapeln.
 
 **Die Klammern sind sechsmal dasselbe Wort.** `.elbow` verlässt das eine Ende auf der Achse, auf der die beiden weiter auseinanderliegen, läuft eine Schiene auf halbem Weg durch die Lücke und kommt auf derselben Achse wieder an; die beiden Ansatzpunkte werden dafür auf diese Achse gezwungen, was immer die automatische Wahl sonst genommen hätte. Gemessen wird die Schiene zwischen den *zugewandten Kanten* der beiden Elemente, nicht zwischen ihren Mittelpunkten – deshalb liegt sie für beide Kinder einer Ausstellerin auf derselben Linie, und das Paar liest sich als eine Klammer statt als zwei Verbinder. Von Hand wären das zwölf Wegpunkte, die jedes Mal neu gerechnet werden müssten, wenn eine Ebene ihren Abstand ändert. Wer die Schiene woanders haben will, schreibt `via`; beides auf einer Zeile ist ein Fehler. Einen Slot teilt sich `.elbow` mit `.smooth`: Wie eine Linie gezeichnet wird, ist eine Frage mit genau einer Antwort.
 

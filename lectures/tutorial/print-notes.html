@@ -644,6 +644,21 @@ pre.shiki .line { display: inline; }
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
+/* Words are the third thing emphasis can act on, and leaving them out left the
+   emph verb on a text accepted and completely inert - the ground rule at the
+   foot of this stylesheet refuses to stroke a label's rect, deliberately and
+   for good reason, so on a text the two rules above have nothing to reach.
+   That is not a corner case: the per-message tag a sequence generates is
+   documented as the way to address one message, and it holds the arrow *and*
+   its number *and* its second line, so the commonest emphasis in a protocol
+   figure is a mixed set by construction. The .accent text rule two blocks up
+   is the same act on the same channel and was already written this way.
+   .tone-4 inverts its own label, and has to keep winning here exactly as it
+   does over .accent text; one class more in the selector settles it rather
+   than source order, which is the guard the stroke case below already uses.
+   (No backticks in here: this whole stylesheet is a template literal.) */
+.psi-diagram .emph text { fill: var(--emph); }
+.psi-diagram .tone-4.emph text, .psi-diagram .tone-4.emph tspan { fill: var(--paper); }
 /* .tone-4 fills with the accent, so an emphasis stroke in the accent lands
    invisibly on it: emph on such a box resolved, set its width and changed
    nothing on screen - the silent no-op again, arriving through the stylesheet
