@@ -25,8 +25,8 @@
  * defect the table exists to prevent.
  */
 import { render, frames } from './harness.mjs';
-import { DG_CLASSES, DG_CLASS_KINDS, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES }
-  from '../../diagram-core.mjs';
+import { DG_CLASSES, DG_CLASS_KINDS, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, DG_HEAD_CLASSES,
+  DG_CLASS_GROUPS } from '../../diagram-core.mjs';
 
 export const name = 'a style step only carries beat-local classes';
 
@@ -40,22 +40,54 @@ export const name = 'a style step only carries beat-local classes';
 // changes nothing and would pass whatever it does, and against a `--` base
 // `.no-head` would. Every class is measured on both and judged by the worse
 // answer.
+//
+// Each body takes the step *and* a base class to write on the target's own
+// line, because the two signs need opposite starting points: a class is only
+// tested by a figure that does not already carry it, and a *removal* is only
+// tested by one that does.
+// The base *displaces* a class of the fixture's own that answers the same
+// question, rather than joining it: two classes from one slot in one tail is
+// an error, so a text written `{.paper}` and handed a base of `.tone-1` would
+// be refused by the grammar and the gate would report a fixture as a defect.
+const slotOf = (cls) => DG_CLASS_GROUPS.find(g => g.includes(cls.replace(/^\./, '')));
+const tail = (own, base) => {
+  const slot = base ? slotOf(base) : null;
+  const kept = slot ? own.filter(c => !slot.includes(c.replace(/^\./, ''))) : own;
+  const parts = [...kept, ...(base ? [base] : [])];
+  return parts.length ? ` {${parts.join(' ')}}` : '';
+};
 const FIXTURE = {
   box: {
     target: 'a', spare: 'z',
-    bodies: [(step) => `box a "Label" at 0,0 w 1 h 0.6\nbox z "Z" right of a gap 1\n${step}`],
+    bodies: [(step, base) =>
+      `box a "Label" at 0,0 w 1 h 0.6${tail([], base)}\nbox z "Z" right of a gap 1\n${step}`],
   },
   edge: {
     target: 'e', spare: 'a',
-    bodies: ['->', '--'].map(arrow => (step) =>
-      `box a "A" at 0,0\nbox b "B" right of a gap 1\nedge e a ${arrow} b "L" via 1,1\n${step}`),
+    // A third body with no waypoints, because `.elbow` and `via` on one line
+    // are an error – so a base of `.elbow` can only be written on an edge
+    // that has none, and without this body the removal of an elbow could not
+    // be measured at all.
+    bodies: [...['->', '--'].map(arrow => (step, base) =>
+      `box a "A" at 0,0\nbox b "B" right of a gap 1\n`
+      + `edge e a ${arrow} b "L" via 1,1${tail([], base)}\n${step}`),
+    (step, base) => `box a "A" at 0,0\nbox b "B" right of a gap 1\n`
+      + `edge e a -> b "L"${tail([], base)}\n${step}`],
   },
   text: {
     target: 't', spare: 'a',
-    bodies: [(step) => `box a "A" at 0,0\ntext t "Words" right of a gap 1 {.paper}\n${step}`],
+    bodies: [(step, base) =>
+      `box a "A" at 0,0\ntext t "Words" right of a gap 1${tail(['.paper'], base)}\n${step}`],
   },
 };
 const KINDS = ['box', 'edge', 'text'];
+
+// What a removal has to be removing. A class the element already carries -
+// except a head class, which item 13 refuses in a tail outright: there the
+// arrow token *is* the base, so the `->` body already carries `.one-head` and
+// the `--` body `.no-head`, and only `!both-heads` is left with nothing to
+// take away.
+const baseFor = (cls) => (DG_HEAD_CLASSES.includes(cls) ? '' : `.${cls}`);
 
 // Everything the emitter writes once and the runtime never revisits.
 const bakedAttrs = (svg) => [
@@ -64,11 +96,17 @@ const bakedAttrs = (svg) => [
 ].join('|');
 
 /** What one fixture bakes about `cls`, or '' when the class is beat-local. */
-function bakedIn(body, target, spare, cls) {
-  const control = render(body(`step later\n  move ${spare} by 0,0`));
-  const styled = render(body(`step later\n  style ${target} {.${cls}}`));
+function bakedIn(body, target, spare, cls, sign = '.') {
+  const base = sign === '!' ? baseFor(cls) : '';
+  const control = render(body(`step later\n  move ${spare} by 0,0`, base));
+  // The control carries the base and an inert step, so a control the compiler
+  // refuses means the *base* cannot be written on this fixture – `.elbow`
+  // beside a `via`, say. That is a fixture saying "not here", not a defect,
+  // and it is answered before the styled figure is judged so the two can
+  // never be confused.
+  if (!control.ok) return 'base';
+  const styled = render(body(`step later\n  style ${target} {${sign}${cls}}`, base));
   if (!styled.ok) return 'refused';
-  if (!control.ok) return 'fixture';
   const a = frames(control.out), b = frames(styled.out);
   if (!a || !b) return 'payload';
   // A geometry key present in one beat and absent in another is a drawable the
@@ -94,13 +132,18 @@ function bakedIn(body, target, spare, cls) {
 }
 
 /** The worst answer across the kind's fixtures, or '' when all are clean. */
-function bakedBy(kind, cls) {
+function bakedBy(kind, cls, sign = '.') {
   const f = FIXTURE[kind];
+  let tested = 0;
   for (const body of f.bodies) {
-    const why = bakedIn(body, f.target, f.spare, cls);
+    const why = bakedIn(body, f.target, f.spare, cls, sign);
+    if (why === 'base') continue;
+    tested++;
     if (why) return why;
   }
-  return '';
+  // Every body refused the base: nothing was measured, and saying so is the
+  // difference between a gate with a hole in it and a gate that passes.
+  return tested ? '' : 'base';
 }
 
 // Known gaps: the assertion reads as it should once the gap is closed, so an
@@ -139,18 +182,32 @@ export async function run({ report }) {
   }
 
   // ── the converse: everything else is accepted and is beat-local ───
-  let checked = 0;
+  // On *every* kind the class can reach, in *both* signs. Taking the first
+  // compatible kind and the positive sign alone is enough to falsify the
+  // table, which is what this half is for – but it is not the claim the
+  // closure made, and the two the narrow version could not have seen are the
+  // two the grammar keeps getting wrong: a class that reaches two kinds
+  // through different drawables, and a removal that is not the mirror of its
+  // addition.
+  let checked = 0, pairs = 0;
   for (const cls of [...DG_CLASSES].sort()) {
     if (DG_STEP_FIXED_CLASSES.has(cls)) continue;
-    const kind = KINDS.find(k => (DG_CLASS_KINDS[cls] || []).includes(k));
-    if (!kind) continue;
+    const kinds = KINDS.filter(k => (DG_CLASS_KINDS[cls] || []).includes(k));
+    if (!kinds.length) continue;
     checked++;
-    const why = bakedBy(kind, cls);
-    const what = `.${cls} survives a style step on ${kind === 'edge' ? 'an' : 'a'} ${kind}`;
-    if (cls in PENDING) { pendingOk(why === '', what, PENDING[cls]); continue; }
-    ok(why === '', what, why === 'refused'
-      ? 'the compiler refuses it although DG_STEP_FIXED does not name it'
-      : `it bakes ${why}`);
+    for (const kind of kinds) {
+      for (const sign of ['.', '!']) {
+        pairs++;
+        const why = bakedBy(kind, cls, sign);
+        const what = `${sign}${cls} survives a style step on ${kind === 'edge' ? 'an' : 'a'} ${kind}`;
+        if (why === 'base') { pairs--; note(`${what}: no fixture can carry the base, not measured`); continue; }
+        if (cls in PENDING) { pendingOk(why === '', what, PENDING[cls]); continue; }
+        ok(why === '', what, why === 'refused'
+          ? 'the compiler refuses it although DG_STEP_FIXED does not name it'
+          : `it bakes ${why}`);
+      }
+    }
   }
-  note(`${DG_STEP_FIXED_CLASSES.size} class(es) the table fixes · ${checked} it does not`);
+  note(`${DG_STEP_FIXED_CLASSES.size} class(es) the table fixes · ${checked} it does not, `
+    + `over ${pairs} kind-and-sign combination(s)`);
 }

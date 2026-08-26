@@ -734,6 +734,33 @@ block compiles, so it makes this wrong rendering green.
   `->` and `<-` one at the correct end, and `<->` two. Include a self-message,
   because the proposal explicitly promises `u <-> u` as a round trip.
 
+#### Resolution
+
+**Confirmed exactly as written, and the cause was the structural one the review
+names.** The entry record now carries `arrow: eb[aAt]` – the token itself,
+rather than a bit taken off it – and the expansion reads `DG_ARROW_CLASS`, the
+same table a direct edge reads. There is no second arrow model left in the
+grammar.
+
+`autoClasses` carries the seeded class, so a tail rebuild in the panel does not
+write it back as the author's. The **derived ground travels with it**: a
+message's `.paper` is injected by the same expansion and was equally not the
+author's, and while writing it back was merely noise before, it is a line the
+compiler now refuses – so the rebuild would have reverted itself on the first
+swatch click. One mark, both derived classes.
+
+Measured on the corpus rather than on a fixture: the only change to any drawing
+in `lectures/diagrams` and on the artifact page is that thirteen message groups
+gained the word `one-head` in their class attribute. Every path, every head
+coordinate and every label position is byte-identical. That is the shape the
+change was supposed to have – every message states its head channel explicitly,
+and nothing moves.
+
+`test/gates/semantics.mjs` holds it: each of the four tokens on a message *and*
+on an ordinary edge, the class and the drawn heads read back out of the SVG,
+which end the single head of `->` and `<-` sits at, and the self-message round
+trip.
+
 ### P1 · Head-class scope is still bypassable on message tails, in both signs
 
 Item 13's scope table says *the edge's / message's own tail: refused*. Direct
@@ -764,6 +791,18 @@ single-authoring-surface rule.
   only the positive ordinary-edge and positive default cases.
 - Keep the diagnostic tied to the written sign and name the arrow token as the
   authoring surface, as the direct-edge diagnostic already does.
+
+#### Resolution
+
+**Confirmed.** `rejectHeadClassIn('tail', …)` runs on a message entry in both
+files, after the kind gate, in the order that answers an edge about edges. All
+six forms are refused by the build and reported by the linter.
+
+The paired fixtures are **generated from the channel rather than written out**,
+which is the point the review makes about the two that existed: three head
+states × two signs × three positions, plus the one position where the channel
+*may* be written, a `style` step, so the refusals read as a rule about position
+rather than about the words. Twenty-four fixtures where there were two.
 
 ### P1 · An actor-tail removal loses to the weaker sequence tail
 
@@ -802,6 +841,47 @@ been erased before the general resolver can honour it.
 - Permanently test both directions above and a grouped positive override such
   as statement `.tone-1` plus actor `.tone-2`.
 
+#### Resolution
+
+**Confirmed, and settled by removing the sequence-only path rather than
+correcting it.** `dgComposeClassLayers()` in `diagram-core.mjs` resolves a
+stack of class layers weakest first, and is the one text that does: at each layer the
+removals delete those names, then each positive displaces its slot and is
+added, and a positive cancels a removal carried up from a weaker layer.
+`dgStateAt`'s `withDefaults` – which had the rule right – is two lines calling
+it, and the sequence composes `[statement, entry]` through the same function.
+
+It returns **both** halves, and the second is what makes it a composition
+rather than a merge: the removals that survive the whole stack ride on to the
+generated element, so an actor's `{!dim}` also reaches a `default box {.dim}`
+nobody in that stack has seen yet.
+
+**One text, and an adversarial pass found that it was one text too late.**
+Ninety lines above the fix, in the same statement, the actors' *measurement*
+still concatenated both tails' positives with no removals and no slot
+displacement – and that number is every head's footprint and the figure's whole
+horizontal rhythm. So `sequence s {.large}` with `actor a "…" {!large}` drew a
+normal head at the large font's footprint, and nothing said so, because the
+too-narrow warning only speaks about a box smaller than its label. That is this
+revision's recurring family read one statement along: **the paper reserved
+disagreeing with the drawing made.** The composed tail is computed once now and
+both halves read it.
+
+The same line had a second omission of exactly that shape, and it is fixed with
+it: `.turn` reads a label up the long side, `sizeOf` and `extentsOf` both swap
+its measurements, and this third site did not – so a turned actor head reserved
+a wide short box (124 × 37) around a label 116 px tall. A note's height is
+reserved here too and now swaps; a *message* label's deliberately does not,
+because its rotation is the edge emitter's and what the band must clear is a
+question about the line's direction rather than about the words alone.
+
+All three cases the review names are fixtures now – the removal beating the
+weak positive, the positive beating the weak removal, and a grouped override
+(`.tone-1` under `.tone-2`) – plus the one they turn on: the statement tail
+still reaching an actor that says nothing. That fourth is the control, and
+without it the other three pass on a figure where the weak layer never arrived
+at all.
+
 ### P2 · The new gates and the closure claims overstate their coverage
 
 The gates are a material improvement, but the text currently claims more than
@@ -832,6 +912,43 @@ they establish:
   agreement, emitted semantics and beat-local runtime behaviour are four
   different contracts.
 
+#### Resolution
+
+**Confirmed on all four counts, and the gates that grew to answer it found two
+defects nobody had.** They are written up under *What the widened gates found*
+below, because they are findings rather than resolutions.
+
+- **The pending ledger is empty, and the check it stood for is implemented.**
+  `lint.js` now asks whether an element after the first has a placement, off two
+  new tables in the compiler (`DG_PLACED_HEADS`, `DG_PLACE_INTRO`) rather than a
+  second opinion about the same vocabulary. Two things keep it from being
+  stricter than the build, which is the one direction a linter must never be
+  wrong in: it counts **nodes**, which is the compiler's own test for "is this
+  the first element", and a `series of` line is exempt because it joins another
+  chart's frame and refuses a placement by name. It also stays quiet on a line
+  this gate has already reported – one authored defect, one causal diagnostic,
+  which is the nearest a linter can get to the build's "the statement stopped
+  reading" rule. All five lectures and the artifact lecture lint clean, which is
+  116 diagram blocks with no false positive.
+- **`accepts.mjs` states what it proves**, in its own header: the line parses
+  and the block compiles, not that it draws the right thing – with the `<->`
+  case named, because that distinction is what let it through. `refusals.mjs`
+  says the same about `accept: true`. `run.mjs` lists the five gates and the
+  four contracts they hold.
+- **The missing fixtures are checked in**, and the word-valued defaults have
+  both directions: `default edge side bottom`, `default brace side left`,
+  `default box point up` accepted, a bad word on each refused, a number where
+  the word list is refused, and a number-valued default beside them accepted so
+  the fix cannot have narrowed the ordinary case.
+- **`step-classes.mjs`'s converse half now runs on every kind the class can
+  reach and in both signs**, 116 combinations where it was 24. A removal needs
+  something to remove, so the fixture writes the class on the element's own line
+  first – displacing a fixture class from the same slot rather than joining it,
+  or the grammar refuses the pair and the gate reports its own fixture as a
+  defect. Where no fixture can carry the base (`.elbow` beside a `via`) the gate
+  says "not measured" rather than passing, and an edge body with no waypoints
+  was added so that case is measured after all.
+
 ### P3 · Small cleanup before the next close
 
 - The sequence-note object literal writes `removedClasses` twice on adjacent
@@ -845,6 +962,148 @@ they establish:
   and `dim`; the implemented rule carries the whole prominence slot from the
   opening frame, including `ghost`. The user-facing text was corrected, but
   this implementation comment was not.
+
+## What the widened gates found
+
+Two defects, both of the shape this revision keeps meeting, and neither was in
+the review. They are recorded here rather than in a resolution because nobody
+had reported them.
+
+### `default box point up` parsed, type-checked, and aimed nothing
+
+The first review round's own resolution said the opposite – *"`default box point
+up` reaches the chevron's path"*, verified end to end. **It was verified at the
+parser.** Measured on the emitted path, `default box point up` on a `.chevron`
+produced the identical `d` attribute as no `point` at all: a chevron aimed
+right, which is the drawn default.
+
+`point` was read straight off the element at both of its consumers, so only a
+word on the element's own line ever arrived. `dgPointOf(model, node)` resolves it
+through the four default layers with the element's own word winning, which is
+what `side` and `pad` on an edge already do and for the same stated reason: one
+of the two consumers is `sizeOf`, where `pick` is scoped to a single call, and
+the other is the print emitter, which is not in `sizeOf` at all.
+
+A defaulted direction landing on an element with no point is **not** an error,
+and that is `dgReadDefault`'s own rule rather than an exception to it: a default
+is legal where the kind can reach the word, and where this particular figure has
+not given it one, the drawing is the author's business. On the element's own line
+it is still refused, because there the author named both halves.
+
+This is the review's P2 about the gates, one layer down: an acceptance fixture
+said the line was legal, a refusal fixture said the bad word was caught, and
+between them sat a token that did nothing.
+
+### A `style` step that takes a fill away stranded the ground it had painted
+
+Found by the widened `step-classes.mjs`, in the half that had only ever tested
+the positive sign. `style t {!tone-1}` and `style t {.clear}` on a grounded text
+or edge label left the ground rect in frame 0's geometry and absent from frame
+1's – and the runtime visits only the keys a frame mentions, so the ground stayed
+painted for the rest of the figure.
+
+The rect is emitted in every frame of anything that carries a tone in *any* of
+them, and the set that condition was computed over was narrow twice over: it read
+`op.classes` and not `op.removed`, and it tested `DG_FILL_CLASSES` and not the
+fill **slot**, so `.clear` – which is the slot's way of saying no fill – was not
+a fill act at all. Both halves now read like the arrowhead line three lines below
+them, which was widened for exactly this reason one channel along.
+
+**This is the third instance of one pattern**, and the pattern is worth naming
+because it will recur: *a drawable whose presence a beat can change has to be
+present in every frame, with the numbers saying whether it is there.* Item 32
+found it on arrowheads in print, the previous round found it on arrowheads at
+runtime, and this is the fill's ground. `vis` cannot carry any of them – `vis` is
+keyed by element, and these are drawables inside an element's group.
+
+### Three statement tails the linter never gated
+
+Not the gates' find but a probe's, written while checking that the *entry*
+tails were the only family the class table had missed. They were not: the
+**statement** tails of `table`, `lanes` and `sequence` were gated by the build
+and by nothing in `lint.js`. `sequence s at 0,0 {.smooth}` – an edge class on a
+statement whose tail lands on boxes – was refused by the compiler and passed by
+the linter, which is the direction that merges green, on the two lectures CI
+lints and never builds.
+
+`bars` and `grid` were in that switch from the start; the three that were added
+to the grammar later were not, and nothing made the omission visible because
+the switch is a list of statement names rather than something derived. The
+seven fixtures that hold it now are three refusals and three acceptances plus a
+removal, because a gate that only knows what to refuse cannot tell a fix from
+an over-correction.
+
+### What an adversarial pass found and this one does not close
+
+Two verification agents were run against the finished work, told to refute it
+rather than confirm it. One found the measurement defect above, which is fixed.
+Between them they also found three lax-direction gaps – the build refuses, the
+linter is silent – and none of them is closed here. They are recorded as
+fixtures-in-waiting because a finding with a reproducing line is most of the
+work of fixing it:
+
+1. **A `series of` line's other refusals.** The placement check exempts the
+   whole line, and nothing else in `lint.js` looks at it, so `bars g "3,4"
+   series of f at 1,1` – and the same line carrying `w`, `h`, `space` or a tick
+   strip – is refused by the build and passed by the linter. Five refusals.
+2. **The kind gate inside a `style` step.** `lint.js` runs `rejectStepClass`
+   on a step's classes and never `rejectClassOn`, and never expands a tag to
+   its members – so `style a {.no-head}` on a **box** is refused by the build
+   and clean here, in both signs and through a tag.
+3. **A statement with no name.** `box` on a line of its own is refused by the
+   build and unreported here. The placement check deliberately stays quiet on
+   it – the missing name is the causal diagnostic and the placement is not –
+   but nothing else speaks.
+
+So the honest form of this gate's claim is the one its header now makes:
+**build and lint agree on every refusal these 136 fixtures state**, which is
+not the same sentence as "on every refusal in the language". The pending
+ledger is empty and that is a fact about the ledger.
+
+### One thing left open, stated rather than closed
+
+Now that removals travel to generated elements, a removal naming a class the
+**expansion itself injects** is inert: `{!paper}` on a message, `{!round}` on an
+actor head, `{!sharp}` on a lane band. Each of those injections is conditioned
+on the author not having written a class of that *slot*, so a positive
+displaces it (`{.clear}`, `{.sharp}`) and a removal by name arrives before the
+injection and is overwritten by it.
+
+It is left alone deliberately, and the reason is that the visible cost is
+nearly nil while the fix is not: `.round` is byte-identical to no outline class
+at all – measured, `rx="4"` in both, the corner being a CSS matter – so
+`{!round}` and `{.round}` draw the same box, and the one case with any meaning,
+a message's ground, already has its own spelling in `.clear`. The principled
+fix is to make each injection the **weakest layer** of the composition rather
+than a post-hoc push, which `dgFlattenClassLayers` now makes a three-line
+change at each of the four sites – worth doing in a pass that can re-measure
+the corpus, not worth doing at the end of this one.
+
+It has a second face worth writing down, because that face is not cosmetic:
+the injection is pushed into the element's **own** layer, which is the
+strongest, so it also beats every *default*. `default box {.hex}` reaches a
+plain box and never a sequence head, a table cell or a bar column. Making the
+injection the weakest layer answers both at once, which is the argument for
+doing it as one deliberate pass rather than two patches.
+
+## Verification at close
+
+- `npm run gate` – **361 passed, 0 failed, 0 pending** (0.3 s), against 161 with
+  one pending at `718e383`. Five gates: 136 refusal/acceptance fixtures that
+  build and lint must agree on plus the two placement tables checked against
+  the compiler, 21 constructs, 41 semantic assertions, 116 corpus blocks, 133
+  step-class assertions.
+- `npm run lint` – 4 files, 0 errors, 0 warnings; `docs/artifact/figure-rules`
+  clean too.
+- `npm test` – **570 passed, 0 failed** (277 s), against 566 at `718e383`. The
+  four are new assertions in `test/editor-sequence.mjs`: a class swatch on a
+  message writes its class and neither derived one, and the block still
+  compiles after the click. That is the one half of this work a gate with no
+  browser cannot hold, because the tail rebuild is the editor's.
+- `node docs/artifact/refresh-figures.mjs --check` – up to date.
+- The two tracked lectures rebuilt. **The only change to any drawing in the
+  repository** is thirteen sequence-message groups gaining `one-head`; no
+  coordinate moved.
 
 ## Reopened completion criteria
 
@@ -861,3 +1120,40 @@ Do not close this file again until:
    passing assertions; and
 7. the implementation record and small stale comments describe the current
    code and verification entry points.
+
+### Against that list
+
+1. **Yes.** `arrow` carries the token and `DG_ARROW_CLASS` answers it, the one
+   table both an edge and a message read.
+2. **Yes.** `rejectHeadClassIn` on message tails in `diagram-core.mjs` and
+   `lint.js`, all three states, both signs, in all three positions.
+3. **Yes.** Through `dgComposeClassLayers`, which is the resolver `dgStateAt`
+   uses – not a sequence-only rule that happens to agree with it.
+4. **Yes**, in `test/gates/semantics.mjs`, which reads the emitted SVG rather
+   than asking whether the source compiled. It is the gate the review's own
+   diagnosis called for: the `<->` case was green in `accepts.mjs` all along.
+5. **Yes**, in `test/gates/refusals.mjs` (word-valued defaults, accepted and
+   refused) and `semantics.mjs` (a removal reaching each of the seven things an
+   expanding statement generates, each against a control that shows the default
+   arriving).
+6. **There is nothing left to distinguish.** The pending ledger is empty
+   because the disagreement it recorded is fixed, not because the wording
+   changed. Each gate's header now says what it proves and what it does not –
+   and the refusals gate's name says *these fixtures*, because an adversarial
+   pass found three more lax-direction gaps that no fixture states. They are
+   listed above with reproducing lines. A gate that claimed the language
+   rather than its fixtures would be making the same overstatement this
+   finding was about.
+7. **Yes.** `revision-implementation.md` points at `test/gates/` and marks the
+   scratch programs as unavailable history; the editor comment states the
+   prominence *slot* rather than two of its three words; the duplicated
+   `removedClasses` property is gone.
+
+One assertion the review implies is a **browser** question rather than a gate
+one, and it is in `test/editor-sequence.mjs` rather than in `test/gates/`: that
+a message's derived classes are never written back into its tail by the panel.
+The tail rebuild is `dgePlanTail`, which needs the editor loaded. It clicks the
+line-pattern swatch on a message and asserts that the line grew `.dashed`, that
+it grew no head class, and that the block still compiles – which is the whole
+failure mode, because a head class written back is a line the compiler refuses
+and the edit would revert itself.

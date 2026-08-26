@@ -112,6 +112,30 @@ export async function run({ page, errors, report, walkTo, ed }) {
   ok(/\bspace 0\.8\b/.test(msgLine || ''), 'space lands on the message line', msgLine);
   ok(!(await ed.problems()).includes('line '), 'the block still compiles', await ed.problems());
 
+  // ── a swatch on a message must not write the tail it reads ────────
+  // `dgePlanTail` rebuilds the whole tail from the model, and a message's
+  // model classes hold two the author never wrote: the ground the expansion
+  // gives every message label, and the head class its arrow token seeds. The
+  // second is refused in a message tail outright, so writing it back would
+  // stop the block compiling and the edit would revert – a panel that looks
+  // dead on the first swatch click. `autoClasses` is what stops it, and this
+  // is the assertion that it is set on a message and not only on an edge.
+  const clickSlot = (slot, text) => page.evaluate(([sl, t]) => {
+    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+      .find((x) => x.querySelector('b') && x.querySelector('b').textContent === sl);
+    const b = s && [...s.querySelectorAll('.dge-sw')].find((x) => x.textContent === t);
+    if (b) b.click();
+    return !!b;
+  }, [slot, text]);
+  ok(await clickSlot('line', 'dashed'), 'the message offers the line-pattern row');
+  await page.waitForTimeout(360);
+  msgLine = await ed.lineWith('request registration options');
+  ok(/\.dashed/.test(msgLine || ''), 'the swatch writes its class onto the message line', msgLine);
+  ok(!/head/.test(msgLine || ''),
+    'and not the head class the arrow token seeded, which the tail refuses', msgLine);
+  ok(!(await ed.problems()).includes('line '),
+    'so the block still compiles after a swatch click', await ed.problems());
+
   // ── an edit that cannot compile is put back ───────────────────────
   const before = await ed.source();
   await setField('to', 'nobody');

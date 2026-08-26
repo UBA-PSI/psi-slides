@@ -5332,11 +5332,13 @@ function dgeSetArrowToken(want) {
 // belongs to the beat the row is already showing the state of.
 //
 // Not the same as "the handout does not see it", which is true of the
-// prominence words alone: print is the last beat with `emph` and `dim`
-// stripped, so a tone written at beat 2 is in print.html and an `emph` written
-// at beat 2 is not. What every op here does guarantee is that beat 0 – the
-// element's own line, the thing a reader of the source sees first – is
-// untouched.
+// prominence slot alone: print is the last beat with the **whole prominence
+// slot** taken from the opening one – `emph`, `dim` and `ghost` alike, since
+// they are one channel – so a tone written at beat 2 is in print.html and an
+// `emph` written at beat 2 is not. Naming two of the three read as a list of
+// exceptions rather than as the slot it is. What every op here does guarantee
+// is that beat 0 – the element's own line, the thing a reader of the source
+// sees first – is untouched.
 //
 // Elements are grouped by the operation they need, one line per group, because
 // the base state of one element is not the base state of another: two boxes at

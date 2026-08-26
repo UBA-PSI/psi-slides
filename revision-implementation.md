@@ -17,6 +17,29 @@ says what the decisions missed.
 
 ## How the work is verified
 
+**The current entry point is `npm run gate`** – `test/gates/`, five gates,
+about 320 assertions in under a second, no browser and no `npm install`. That
+is where every generally useful fixture in this section now lives, and it is
+what CI runs on push and pull request. `npm test` runs it ahead of the browser
+suite, so a compiler regression fails in a second rather than after four
+minutes.
+
+The five gates prove four different things, and the distinction is load-bearing
+rather than tidy: `refusals.mjs` (build and lint agree on what is refused),
+`accepts.mjs` (every construct still parses), `semantics.mjs` (the emitted SVG
+means what the source says), `corpus.mjs` (every block in the repository still
+compiles) and `step-classes.mjs` (which classes a beat can carry, derived from
+`DG_STEP_FIXED` rather than restated). A green `accepts.mjs` was once
+summarised as coverage and hid a sequence `<->` that parsed and drew one
+arrowhead; that is what `semantics.mjs` exists for.
+
+### The scratch harnesses this work was done with (history)
+
+**Unavailable.** The programs named below lived under a session scratchpad and
+are not in the repository; the measurements they produced stay here because
+they are the evidence for the decisions, but none of them can be rerun. What
+was worth keeping was moved into `test/gates/` and is listed above.
+
 Two harnesses, both under the session scratchpad and both driving
 `diagram-core.mjs` directly rather than through `build.js`:
 
@@ -34,11 +57,10 @@ Two harnesses, both under the session scratchpad and both driving
   **116, not the proposal's 110** – see the override below. The corpus is four
   files, not three.
 
-Around those grew five more checks, and they are all in one script –
-`scratchpad/probe/gates.sh` – because a revision this size needs its
-verification to be one command rather than five things to remember. They are
-listed under *The gates* below. `node test/run.mjs` sits outside the script: it
-launches a browser and takes minutes rather than seconds.
+Around those grew five more checks, all in one script – `scratchpad/probe/gates.sh`
+– because a revision this size needs its verification to be one command rather
+than five things to remember. They are listed under *The gates* below, and they
+are history: `npm run gate` is the command now.
 
 ## Order of work
 
@@ -59,7 +81,11 @@ order is in the proposal's *Sequencing* section and is not restated here.
 
 ## The gates, and one they caught
 
-`scratchpad/probe/gates.sh` runs all six in one command, and every claim in this
+*Historical – these are the scratch programs the claims below were measured
+with, and they are not in the tree. `npm run gate` is the checked-in
+descendant; the table is kept because the rest of this file refers to it.*
+
+`scratchpad/probe/gates.sh` ran all six in one command, and every claim in this
 file was produced by one of them:
 
 | gate | what it refuses to let through |

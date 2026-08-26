@@ -217,6 +217,52 @@ export const DG_CLASS_GROUPS = [
   // head class in a `default edge` block is refused rather than ranked.
   ['no-head', 'one-head', 'both-heads'],      // arrowheads
 ];
+// Resolve a stack of class layers, weakest first. One text, because there are
+// two callers and they were two implementations of one rule: `dgStateAt`
+// walking the four default layers down onto an element, and a `sequence`
+// composing its statement tail with an entry's own. The sequence's version
+// concatenated the positives of both layers into one list and the removals of
+// both into another, which erases the ordering *before* the resolver can
+// honour it – every removal then ran before every positive, so a strong
+// `actor a "A" {!dim}` was undone by the weak `sequence s {.dim}` above it.
+// The other direction happened to work, which is how a flattened model hides.
+//
+// Within a layer: the removals delete those exact names from what has
+// accumulated, then each positive displaces the current member of its slot and
+// is added. A positive also cancels a removal carried up from a weaker layer,
+// so the pair composes the way an author reads it.
+//
+// Returns both halves. `from` maps a surviving class to the index of the
+// strongest layer that added it – the emitted order is strongest first, which
+// is the order the `class` attribute always had. `removed` is what is still
+// being taken away once the whole stack has spoken, which is what a composed
+// element has to carry forward so its removal also reaches a *weaker* layer
+// nobody in this stack has seen yet – a `default box {.dim}` under it.
+export function dgComposeClassLayers(layers) {
+  const from = new Map();
+  const removed = new Set();
+  layers.forEach((layer, i) => {
+    for (const cls of (layer.removedClasses || [])) { from.delete(cls); removed.add(cls); }
+    for (const cls of (layer.classes || [])) {
+      const group = DG_CLASS_GROUPS.find(g => g.includes(cls));
+      if (group) for (const other of group) if (other !== cls) from.delete(other);
+      from.delete(cls);
+      from.set(cls, i);
+      removed.delete(cls);
+    }
+  });
+  return { from, removed };
+}
+// The composed stack as one tail again: the classes strongest-layer-first, and
+// the removals that survived it. What an expanding statement writes onto each
+// element it generates.
+export function dgFlattenClassLayers(layers) {
+  const { from, removed } = dgComposeClassLayers(layers);
+  return {
+    classes: [...from].sort((a, b) => b[1] - a[1]).map(([cls]) => cls),
+    removedClasses: [...removed],
+  };
+}
 // Pairs that are not one slot – they act on different channels, so a shared
 // slot would be a lie – but where one of the two still ends up doing nothing
 // and nothing on the page says why. The build draws something defensible; the
@@ -1394,6 +1440,29 @@ export function dgDefaultLayers(model, kind, tags) {
   return out;
 }
 
+// Which way a pointed outline aims, resolved through the four default layers
+// with the element's own word winning. Explicit, for the reason an edge's
+// `side` and `pad` are: the two places that need this answer are `sizeOf`,
+// where `pick` is scoped to one call, and the print emitter, which is not in
+// `sizeOf` at all – so `default box point up` parsed, was type-checked against
+// DG_WORD_OPTS, sat in the model and aimed nothing. Accepted and refused are
+// not the only two states a word can be in; this one was accepted and inert,
+// which is the state this grammar exists to remove.
+//
+// A defaulted direction that lands on an element with no point is *not* an
+// error, and that follows the rule dgReadDefault states below rather than
+// being an exception to it: a default is legal where the kind can reach the
+// word, and where this particular figure has not given it one, the drawing is
+// the author's business. Written on an element's own line it is still refused,
+// because there the author named both halves.
+export function dgPointOf(model, node) {
+  if (node.point != null) return node.point;
+  for (const d of dgDefaultLayers(model, node.kind, node.tags).reverse()) {
+    if (d.point != null) return d.point;
+  }
+  return null;
+}
+
 // One `default …` statement, read into whichever layer is collecting them.
 // Factored out because the same statement is now legal in two places: inside
 // a block, and in the lecture's `diagram-defaults` frontmatter key. Two
@@ -1655,6 +1724,20 @@ export function dgParseRatio(tok) {
 // out – the panel's option row rendered as prose for whoever is not using the
 // panel.
 export const DG_PLACEMENT_LONG = 'at X,Y / above X / below X / right of X / left of X / between X,Y';
+// The two halves of "an element after the first has to say where it goes",
+// as tables, so `lint.js` can answer the question rather than staying silent
+// on a line the build refuses – which was the one entry on the gate's pending
+// ledger, and in the dangerous direction: the line merged green.
+//
+// DG_PLACED_HEADS is every statement that draws a node and is therefore
+// subject to the rule; `edge`, `container` and `brace` place themselves from
+// what they join or hold. DG_PLACE_INTRO is deliberately the *first* word of
+// each form and not the forms themselves – `right` and `left` without their
+// `of` are a different, earlier error, and a check that answered "no
+// placement" there would be a second sentence about one defect.
+export const DG_PLACED_HEADS = new Set(['box', 'dot', 'text', 'image',
+  'bars', 'grid', 'plot', 'table', 'lanes', 'sequence']);
+export const DG_PLACE_INTRO = new Set(['at', 'between', 'below', 'above', 'right', 'left']);
 export const DG_PLACEMENT_SHORT = 'at / above / below / right of / left of / between';
 // The forms that have no keyword to list, per statement. Everything else in a
 // statement's vocabulary is a word in DG_KIND_OPTS.
@@ -1986,27 +2069,13 @@ export function dgStateAt(model, k) {
   // `.dim` it cancels has not been added yet. Weak-to-strong is the order the
   // layers actually mean, and it is what `{!class}` needs to be a declarative
   // override rather than a parser-time deletion.
-  const withDefaults = (el) => {
-    // class -> the index of the strongest layer that added it. Resolution is
-    // weak to strong; the *emitted order* is strongest first, which is the
-    // order this walked in before removals existed. Class order in a `class`
-    // attribute decides nothing – CSS arbitrates by selector, not by position –
-    // so the emitter has no business changing it as a side effect of a fix
-    // somewhere else, and keeping it stable is what lets a corpus snapshot
-    // stay a usable signal.
-    const from = new Map();
-    const layers = [...dgDefaultLayers(model, el.kind, el.tags), el];
-    layers.forEach((layer, i) => {
-      for (const cls of (layer.removedClasses || [])) from.delete(cls);
-      for (const cls of (layer.classes || [])) {
-        const group = DG_CLASS_GROUPS.find(g => g.includes(cls));
-        if (group) for (const other of group) if (other !== cls) from.delete(other);
-        from.delete(cls);
-        from.set(cls, i);
-      }
-    });
-    return new Set([...from].sort((a, b) => b[1] - a[1]).map(([cls]) => cls));
-  };
+  // The four default layers with the element's own tail on top of them, through
+  // the one composition rule. Class order in a `class` attribute decides
+  // nothing – CSS arbitrates by selector, not by position – so the emitter has
+  // no business changing it as a side effect of a fix somewhere else, and
+  // keeping it stable is what lets a corpus snapshot stay a usable signal.
+  const withDefaults = (el) =>
+    new Set(dgFlattenClassLayers([...dgDefaultLayers(model, el.kind, el.tags), el]).classes);
   const state = new Map();
   const all = [...model.nodes, ...model.containers, ...model.braces];
   for (const el of all) {
@@ -3410,8 +3479,17 @@ export function createDiagramCompiler(env = {}) {
           // in the grammar that the class table did not reach. `rejectClassOn`
           // runs the slot check itself, in the order that answers an edge about
           // edges rather than about outlines.
-          rejectClassOn(DG_SEQ_ENTRIES.has(e.bare[0]) ? 'box' : 'edge',
-            ea.classes, e.ln, errors, '', ea.removedClasses);
+          const eKind = DG_SEQ_ENTRIES.has(e.bare[0]) ? 'box' : 'edge';
+          rejectClassOn(eKind, ea.classes, e.ln, errors, '', ea.removedClasses);
+          // And through the *scope* gate the kind implies. A message is an
+          // edge, so its arrow token is the one authoring surface for the head
+          // channel – the same sentence a direct edge is answered with. Only
+          // the kind gate ran here, so all six head forms were accepted on a
+          // message tail: the positives could override the token (`{.no-head}`
+          // suppressing a written `->`) and the removals were inert, which are
+          // the two halves of the single-authoring-surface rule breaking in
+          // opposite directions.
+          if (eKind === 'edge') rejectHeadClassIn('tail', ea.classes, e.ln, errors, ea.removedClasses);
           const eq = e.toks.filter(x => x.q).map(x => x.v);
           const es = readEntrySpace(e);
           const eside = readEntrySide(e, es.bare);
@@ -3458,7 +3536,6 @@ export function createDiagramCompiler(env = {}) {
                 + 'so several lines are one string.');
             }
             seq.push({ type: 'note', on, label: eq[0] ?? '', classes: ea.classes,
-              removedClasses: ea.removedClasses,
               removedClasses: ea.removedClasses, tags: ea.tags, own: null, ln: e.ln, span: e.span, space: es.space });
             continue;
           }
@@ -3526,9 +3603,20 @@ export function createDiagramCompiler(env = {}) {
           // behind them", so `{.paper}` on a message swallowed the whole arrow.
           // `.top` on an ordinary message, `.right` on a self-message, whose
           // loop is read as vertical at its middle.
-          if (!DG_FILL_SLOT.some(c => mcls.includes(c))) mcls.push('paper');
+          // Both derived classes are marked as such, for the reason the direct
+          // edge's seeded head is: the editor rebuilds an attribute tail from
+          // `classes`, and a class the parser wrote there is not the author's
+          // to write back. A ground written back is merely noise; a head class
+          // written back is a line the compiler now refuses, so the rebuild
+          // would revert itself.
+          const mDerived = [];
+          if (!DG_FILL_SLOT.some(c => mcls.includes(c))) { mcls.push('paper'); mDerived.push('paper'); }
           seq.push({ type: 'msg', from: flip ? toTok : fromTok, to: flip ? fromTok : toTok,
-            headless: eb[aAt] === '--', label: eq[0] ?? '', sub: eq[1] ?? '',
+            // The token itself, not a bit taken off it. A message *is* an edge,
+            // so it has the same three head states, and keeping "was it `--`"
+            // here was a second, one-bit arrow model beside `DG_ARROW_CLASS`:
+            // `<->` parsed, compiled, and drew exactly like `->`.
+            arrow: eb[aAt], derived: mDerived, label: eq[0] ?? '', sub: eq[1] ?? '',
             side: eside.side || (self ? 'right' : 'top'),
             classes: mcls, removedClasses: ea.removedClasses, tags: ea.tags, own: ownName, ln: e.ln, span: e.span, space: es.space });
         }
@@ -3549,9 +3637,25 @@ export function createDiagramCompiler(env = {}) {
         // its padding – so the common case states no number at all. `w` sets
         // the whole frame instead and the columns divide it evenly.
         const setOf = (c) => new Set(c);
-        const headM = actors.map(a => {
-          const cs = setOf([...attrs.classes, ...a.classes]);
-          return dgMeasure(a.label, dgFontFor(cs), cs.has('mono'));
+        // The composed tail of each head, computed **once** and used for both
+        // halves of the question. It was two answers: this measurement
+        // concatenated the two layers' positives with no removals and no slot
+        // displacement, while the element the emitter builds resolved them
+        // properly – so `sequence s {.large}` with `actor a "…" {!large}` drew
+        // a normal head at the large font's footprint, and nothing warned,
+        // because the too-narrow warning only speaks when a box is *smaller*
+        // than its label. That is this revision's recurring failure family:
+        // the paper reserved disagreeing with the drawing made.
+        const actorCls = actors.map(a => dgFlattenClassLayers([attrs, a]));
+        const headM = actors.map((a, i) => {
+          const cs = setOf(actorCls[i].classes);
+          const m = dgMeasure(a.label, dgFontFor(cs), cs.has('mono'));
+          // `.turn` reads the label up the long side, and every other place
+          // that reserves paper for one swaps its measurements – `sizeOf` and
+          // `extentsOf` both do. This is the third such site and it did not,
+          // so a turned actor head reserved a wide short box and drew a tall
+          // label out of both ends of it.
+          return cs.has('turn') ? { w: m.h, h: m.w } : m;
         });
         const headW = Math.max(DG_MIN_W, Math.max(...headM.map(m => m.w)) + 2 * DG_PAD_X);
         const headH = opts.header != null ? opts.header * uh
@@ -3580,7 +3684,14 @@ export function createDiagramCompiler(env = {}) {
           const font = dgFontFor(cs);
           const m = dgMeasure(it.label, font, cs.has('mono'));
           if (it.type === 'note') {
-            const h = m.h + 2 * padY;
+            // A note's *width* comes from `sizeOf`, which swaps a turned
+            // label's measurements; its height is reserved here. Reserving the
+            // upright height under a rotated label is the two halves of one
+            // element disagreeing, so this swaps too. The message label a few
+            // lines down deliberately does not: its rotation is the edge
+            // emitter's, and what a band has to clear there is a question
+            // about the line's direction rather than about the words alone.
+            const h = (cs.has('turn') ? m.w : m.h) + 2 * padY;
             plan.push({ it, y: cy + h / 2, h, j: ni++ });
             cy += h;
             continue;
@@ -3631,13 +3742,17 @@ export function createDiagramCompiler(env = {}) {
           r: null, pad: null, frame: head,
         }, lineNo));
         actors.forEach((a, i) => {
+          const headCls = actorCls[i];
           model.nodes.push(synthAt({
             kind: 'box', id: a.id, label: a.label,
             // The statement's own tail lands on the heads, which is where
             // `table` puts it (on the cells) and `lanes` puts it (on the
-            // bands): the repeated element the author would want to tint.
-            classes: outlined([...attrs.classes, ...a.classes]),
-            removedClasses: [...(attrs.removedClasses || []), ...(a.removedClasses || [])],
+            // bands): the repeated element the author would want to tint. It is
+            // the *weak* layer of the two – the entry's own tail is written
+            // closer to the element it describes – so the two go through the
+            // one composition rule rather than being concatenated sign by sign.
+            classes: outlined(headCls.classes),
+            removedClasses: headCls.removedClasses,
             tags: [...seqTags, ...(a.tags || []), dgActorsTag(id)],
             place: at(xOf(i) / uw, (headH / 2) / uh),
             w: boxW / uw, h: headH / uh, r: null, pad: null,
@@ -3682,7 +3797,14 @@ export function createDiagramCompiler(env = {}) {
           claim(mid, 'edge', it.ln);
           const tag = dgMsgTag(id, p.i);
           const cls = [...it.classes];
-          if (it.headless && !cls.includes('no-head')) cls.push('no-head');
+          // The same table a direct edge reads, so every one of the four tokens
+          // states the same head state in both places. `--` is no longer the
+          // only token that says anything: `->` and `<-` seed `one-head` and
+          // `<->` seeds `both-heads`, which is what makes the accepted `<->`
+          // draw the second head instead of merely parsing.
+          const mAuto = [...(it.derived || [])];
+          const seeded = DG_ARROW_CLASS[it.arrow];
+          if (seeded && !cls.includes(seeded)) { cls.push(seeded); mAuto.push(seeded); }
           const x0 = xOf(fi), x1 = xOf(ti);
           const via = [];
           let to = end(x1, p.y);
@@ -3704,6 +3826,7 @@ export function createDiagramCompiler(env = {}) {
             // element rather than left to the default so a knockout behind two
             // words is a knockout and not a slab.
             via, pad: DG_SEQ_GROUND, side: it.side, named: !!it.own,
+            autoClasses: mAuto,
           }, it.ln, 'message', it.span));
           if (!opts.unnumbered) {
             const numId = dgMsgNumName(id, p.i);
@@ -4922,7 +5045,7 @@ export function createDiagramCompiler(env = {}) {
       // point actually eats into. Only the automatic case – an explicit `w`
       // or `h` is the author's decision, and the too-narrow warning above
       // already speaks for that one.
-      const outline = dgShapeName(classes, node.point);
+      const outline = dgShapeName(classes, dgPointOf(model, node));
       const boxH = nh != null ? nh * uh
         : m.h + 2 * padY + dgShapeInsetY(outline, m.h, padY);
       const inset = dgShapeInsetX(outline, boxH, m.w, padX);
@@ -5219,6 +5342,17 @@ export function createDiagramCompiler(env = {}) {
     // only some frames would leave the rect stranded in the others. So the
     // rect is emitted in every frame of anything that carries a tone in *any*
     // of them, and the class decides whether it paints.
+    //
+    // The condition is "a step speaks about this element's fill *slot*", in
+    // either sign, and both halves of that were once narrower. Reading only
+    // `op.classes` missed `style t {!tone-1}`, and reading only
+    // DG_FILL_CLASSES missed `style t {.clear}` – which is the same act
+    // written the other way round, since `.clear` is the slot's way of saying
+    // no fill. Either one left a text that *starts* grounded and loses its
+    // ground at a beat with the rect present in frame 0 and absent in frame 1:
+    // the runtime visits only the keys a frame mentions, so the ground stayed
+    // painted for the rest of the figure. That is the arrowhead defect one
+    // channel along, and it is why the two lines below now read alike.
     const styleFilled = new Set();
     // The same question one channel along, and it has to be answered the same
     // way: which edges does a `style` step touch the *arrowhead* slot on? An
@@ -5231,7 +5365,8 @@ export function createDiagramCompiler(env = {}) {
     for (const s of model.steps) {
       for (const op of s.ops) {
         if (op.op !== 'style') continue;
-        const fill = (op.classes || []).some(c => DG_FILL_CLASSES.includes(c));
+        const fill = [...(op.classes || []), ...(op.removed || [])]
+          .some(c => DG_FILL_SLOT.includes(c));
         const heads = [...(op.classes || []), ...(op.removed || [])]
           .some(c => DG_HEAD_CLASSES.includes(c));
         if (!fill && !heads) continue;
@@ -5990,7 +6125,7 @@ export function createDiagramCompiler(env = {}) {
         // written into the payload at this moment, and a later frame that
         // wanted a different one would have nothing to switch. The parser
         // refuses that line rather than letting it be a silent no-op.
-        const shape = kind === 'box' ? dgShapeName(st, e.point) : '';
+        const shape = kind === 'box' ? dgShapeName(st, dgPointOf(model, e)) : '';
         if (shape) {
           kinds[e.id + '--r'] = shape;
           inner += `<path id="${prefix}${e.id}--r" class="dg-shape" d="${dgShapeD(shape, v[0], v[1], v[2], v[3])}"/>`;

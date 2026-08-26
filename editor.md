@@ -2544,10 +2544,15 @@ now and say why only when grabbed alone. A drag at a beat moved only
 `selection[0]`. A resize handle on a `grid` spliced `w`/`h` into a statement
 that takes `cell` – it scales the cell now, which says the same thing in the
 word the statement accepts. And the arrowheads row edited the `no-head`
-*class* on an edge whose headlessness came from the `--` token: picking
+*class* on an edge whose head state came from its `--` token: picking
 "both" produced one reversed head, and every tail rebuild wrote `.no-head`
 into the line. The parser marks the derived class (`autoClasses`), tail
-rebuilds skip it, and the row rewrites the arrow token itself.
+rebuilds skip it, and the row rewrites the arrow token itself. A **sequence
+message** is on that path too now: it derives two classes, its head from the
+token and its `.paper` ground from the expansion, and both are marked – a
+head class written back into a message tail is a line the compiler refuses,
+so the rebuild would have reverted itself on the first swatch click.
+`test/editor-sequence.mjs` clicks that swatch.
 
 Two were plain input handling: `Number(value) || 0` turned a typo in the gap
 or frac field into 0, and no gesture listened for `pointercancel`, so an

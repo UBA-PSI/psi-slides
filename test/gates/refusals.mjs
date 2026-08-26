@@ -20,20 +20,36 @@
  * gate is the other direction, and three of the expectations in this list were
  * caught out by the grammar moving under them rather than by a bug.
  *
+ * And it is agreement **over these fixtures**, which is not the same sentence
+ * as agreement over the language. Three lax-direction gaps are known and open
+ * at the time of writing – the other options on a `series of` line, the kind
+ * gate inside a `style` step, and a statement with no name – each recorded in
+ * `todo-revision-review.md` with a reproducing line. A fixture added here for
+ * any of them fails until the linter learns it, which is the right way round.
+ *
+ * What this gate proves is agreement, not meaning: a fixture marked
+ * `accept: true` says both sides let the line through, never that the drawing
+ * it produces is the right one. `semantics.mjs` holds that half.
+ *
  * These fixtures are the ones the diagram revision was verified against –
  * items 1, 2, 3, 5, 8, 9, 12, 13, 16, 19, 20, 21, 22, 23, 30 and 31 of
  * `revision-proposal.md` – merged from the two scratch programs that carried
  * them. `item` is the proposal item, for anyone reading back.
  */
 import { render, lintAll } from './harness.mjs';
+import { DG_KEYWORDS, DG_PLACED_HEADS, DG_PLACE_INTRO } from '../../diagram-core.mjs';
 
-export const name = 'build and lint agree on every refusal';
+export const name = 'build and lint agree on every refusal these fixtures state';
 
 // Two preambles, because the fixtures were written against two. `PAIR` is
 // enough for anything about one line; `QUAD` gives a second row, which the
 // placement fixtures need in order to have somewhere to point.
 const PAIR = 'box a "A" at 0,0\nbox c "C" right of a gap 1\n';
 const QUAD = 'box a "A" at 0,0\nbox c "C" at 2,0\nbox p "P" at 0,1\nbox q "Q" at 2,1\n';
+// A sequence written as a prefix and a suffix, so a fixture can hang a tail on
+// the statement line and still have the entries that make it a sequence.
+const SEQ = 'sequence s at 0,0';
+const SEQ_BODY = '\n  actor u "U"\n  actor r "R"\n  u -> r "m"';
 
 // `accept: true` means both sides must let it through. Anything else must be
 // refused by the build and reported by the linter.
@@ -45,6 +61,15 @@ const FIXTURES = [
   { item: 2, name: 'gap on an edge', body: QUAD + 'edge a -> c gap 0.3' },
   { item: 2, name: 'point on no outline', body: QUAD + 'box b "B" point sideways' },
   { item: 2, name: 'a later box needs a placement', body: QUAD + 'box b "B"' },
+  // `point` takes `up / down / left / right`, so a placement test that looks
+  // for its words anywhere on the line reads this as placed. Ten lines of the
+  // corpus carry that shape, and both signs of the near-miss are here because
+  // the fixture that existed used `point up`, which the loose test caught.
+  { item: 2, name: 'point left is not a placement', body: QUAD + 'box b "B" point left {.chevron}' },
+  { item: 2, name: 'point right is not a placement', body: QUAD + 'box b "B" point right {.chevron}' },
+  { item: 2, accept: true, name: 'point left beside a placement', body: QUAD + 'box b "B" right of a gap 1 point left {.chevron}' },
+  { item: 2, name: 'a chart may be named series', body: QUAD + 'bars series "1,2,3"' },
+  { item: 2, accept: true, name: 'a real series takes no placement', body: 'bars f "3,5" at 0,0 w 2 h 1\nbars g "1,2" series of f' },
   { item: 2, accept: true, name: 'at is a placement', body: QUAD + 'box b "B" at 1,1' },
   { item: 2, accept: true, name: 'between then point', body: QUAD + 'box b "B" between a,c point up {.chevron}' },
   { item: 2, accept: true, name: 'between then offset', body: QUAD + 'text t "x" between a,c offset 0,1' },
@@ -182,18 +207,68 @@ const FIXTURES = [
 
   // ── a step verb that is still a step verb ─────────────────────────
   { item: 1, accept: true, name: 'ghost as a step verb', body: PAIR + 'step s\n  ghost a' },
+
+  // ── item 5: an option whose value is a closed word list ───────────
+  // `default edge side bottom` used to be refused by the build ("side expects
+  // a number") and accepted by this file, which skipped the value token
+  // rather than reading it. Both halves are fixtures now: the value that must
+  // be accepted, and the one that must not.
+  { item: 5, accept: true, name: 'a word-valued edge default', body: 'default edge side bottom\n' + PAIR + 'edge a -> c "m"' },
+  { item: 5, accept: true, name: 'a word-valued brace default', body: 'default brace side left\n' + PAIR + 'brace y "Y" over a,c' },
+  { item: 5, accept: true, name: 'a word-valued box default', body: 'default box point up\n' + PAIR + 'box b "B" below a gap 1 {.chevron}' },
+  { item: 5, name: 'a bad word on an edge default', body: 'default edge side sideways\n' + PAIR + 'edge a -> c "m"' },
+  { item: 5, name: 'a bad word on a box default', body: 'default box point sideways\n' + PAIR + 'box b "B" below a gap 1 {.chevron}' },
+  { item: 5, name: 'a number where the word list is', body: 'default edge side 3\n' + PAIR + 'edge a -> c "m"' },
+  { item: 5, accept: true, name: 'a number-valued default beside it', body: 'default edge pad 0.2\n' + PAIR + 'edge a -> c "m"' },
+
+  // ── item 12: the kind gate on an expanding statement's own tail ───
+  // Its tail lands on what the statement draws – a table's cells, a lane's
+  // bands, a sequence's actor heads, all boxes – so a class no box can carry
+  // is refused there. `bars` and `grid` were gated in both files from the
+  // start and these three in neither, which is the direction that merges
+  // green: the build refuses the line and CI never builds these lectures.
+  { item: 12, name: 'an edge class on a sequence tail', body: SEQ + ' {.smooth}' + SEQ_BODY },
+  { item: 12, name: 'an edge class removed on a sequence tail', body: SEQ + ' {!smooth}' + SEQ_BODY },
+  { item: 12, name: 'an edge class on a lanes tail', body: 'lanes l "one | two" at 0,0 w 4 band 0.8 {.smooth}' },
+  { item: 12, name: 'an edge class on a table tail', body: 'table t "A|B" at 0,0 col 1,1 row 0.4 {.smooth}\n  "1|2"' },
+  { item: 12, accept: true, name: 'a box class on a sequence tail', body: SEQ + ' {.dim}' + SEQ_BODY },
+  { item: 12, accept: true, name: 'a box class on a lanes tail', body: 'lanes l "one | two" at 0,0 w 4 band 0.8 {.sharp}' },
+  { item: 12, accept: true, name: 'a box class on a table tail', body: 'table t "A|B" at 0,0 col 1,1 row 0.4 {.tone-2}\n  "1|2"' },
 ];
 
-// Known gaps: the assertion reads as it should once the gap is closed, so the
-// entry fails the day it is fixed and somebody deletes it.
-const PENDING = {
-  // `lint.js` never asks whether an element has a placement. Deciding it means
-  // knowing which element is the first in the block – the one that may sit at
-  // the origin without saying so – which the linter does track, but the check
-  // was never written. The dangerous direction: this line merges green.
-  'a later box needs a placement':
-    'lint.js has no missing-placement check, so it is silent on a line the build refuses',
-};
+// Item 13's scope table, paired: every head state, both signs, in all three
+// positions the rule names. Generated rather than written out, because the
+// two that *were* written out are exactly the two that passed while four
+// others in the same row did not – the review found `.no-head` refused on a
+// message tail and `!no-head` accepted, and the sequence tail had all six.
+// A rule stated for a channel is tested for the whole channel.
+for (const cls of ['no-head', 'one-head', 'both-heads']) {
+  for (const sign of ['.', '!']) {
+    const tail = `{${sign}${cls}}`;
+    FIXTURES.push(
+      { item: 13, name: `${sign}${cls} in an edge tail`, body: PAIR + `edge a -> c ${tail}` },
+      { item: 13, name: `${sign}${cls} in a default edge`, body: `default edge ${tail}\n` + PAIR + 'edge a -> c' },
+      {
+        item: 13, name: `${sign}${cls} in a message tail`,
+        body: `sequence s at 0,0\n  actor u "U"\n  actor r "R"\n  u -> r "m" ${tail}`,
+      },
+      // The one place the channel may be written, which is what makes the
+      // three refusals above a rule about position rather than about the word.
+      {
+        item: 13, accept: true, name: `${sign}${cls} in a style step`,
+        body: PAIR + `edge e1 a -> c\nstep s\n  style e1 ${tail}`,
+      });
+  }
+}
+
+// Known gaps, for the day there is one again: the assertion reads as it
+// should *once the gap is closed*, so the entry fails the moment somebody
+// fixes it and forgets to delete it. Empty, and it has to stay empty for this
+// gate's name to be true – a green exit with a reported pending item is not
+// agreement, and summarising it as one is how the missing-placement hole came
+// to sit here for a revision. That hole is closed: `lint.js` asks whether an
+// element after the first has a placement, off the compiler's own tables.
+const PENDING = {};
 
 export async function run({ report }) {
   const { ok, pendingOk, note } = report;
@@ -215,6 +290,30 @@ export async function run({ report }) {
     ok(good, `item ${f.item} · ${f.name}`,
       good ? undefined : `build ${buildRefuses ? 'refuses' : 'accepts'}, lint ${lintReports ? 'reports' : 'is silent'}`);
   });
+
+  // ── the two placement tables, against the compiler ────────────────
+  // `DG_PLACED_HEADS` and `DG_PLACE_INTRO` are read by `lint.js` and by
+  // nothing else, so nothing forces them to stay true as the grammar grows –
+  // a new node statement that nobody adds to the table makes the linter
+  // silently blind rather than loudly wrong. This is the guard: every
+  // statement in `DG_KEYWORDS` is either placed or on the exempt list, so a
+  // new one fails here until somebody classifies it.
+  const EXEMPT = new Set(['edge', 'container', 'brace', 'align', 'spread', 'default', 'step']);
+  for (const head of DG_KEYWORDS) {
+    ok(DG_PLACED_HEADS.has(head) !== EXEMPT.has(head),
+      `${head} is classified: it either takes a placement or is exempt`,
+      DG_PLACED_HEADS.has(head) ? 'it is in both lists' : 'it is in neither');
+  }
+  // And every intro word really introduces one, on a real second element.
+  const INTRO_BODY = {
+    at: 'at 1,1', between: 'between a,c', below: 'below a gap 1', above: 'above a gap 1',
+    right: 'right of a gap 1', left: 'left of a gap 1',
+  };
+  for (const w of DG_PLACE_INTRO) {
+    const r = render(QUAD + `box b "B" ${INTRO_BODY[w]}`);
+    ok(r.ok, `"${w}" introduces a placement the compiler accepts`,
+      INTRO_BODY[w] ? (r.ok ? '' : r.msg.split('\n')[1]) : 'no fixture for this word – add one');
+  }
 
   const pending = FIXTURES.filter(f => f.name in PENDING).length;
   note(`${FIXTURES.length} fixtures · ${FIXTURES.filter(f => f.accept).length} of them acceptance cases `

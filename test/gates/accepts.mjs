@@ -15,6 +15,14 @@
  * One entry per shape the grammar offers, not one per lecture line: the point
  * is coverage of the vocabulary, so a construct that appears nowhere in any
  * lecture belongs here more than one that appears forty times.
+ *
+ * **What this gate proves, exactly: the line parses and the block compiles.**
+ * Not that it draws the right thing. That distinction is not pedantry – this
+ * file carried `reg r <-> u` and went green while the message drew a single
+ * arrowhead, because the sequence sub-grammar accepted the token and then
+ * consulted a one-bit arrow model. `semantics.mjs` is the gate that reads the
+ * emitted SVG back; a construct whose *meaning* can be wrong while it compiles
+ * belongs there as well as here.
  */
 import { render } from './harness.mjs';
 

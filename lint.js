@@ -151,6 +151,7 @@ import {
   DG_EDGE_ARROWS, DG_STEP_NAME,
   rejectHeadClassIn, rejectSlotPair, rejectStepClass,
   rejectClassOn, DG_WORD_OPTS, dgTakes, dgArticle,
+  DG_PLACED_HEADS, DG_PLACE_INTRO, dgNoPlacement,
 } from './diagram-core.mjs';
 
 const REVEAL_PCT_WARN = 0.5;
@@ -314,7 +315,14 @@ function collectDiagramDefaults(header) {
 // statements, unknown classes, duplicate names and dangling references.
 // Everything geometric is the build's business – but these four are the
 // mistakes that are invisible in the source and expensive on a projector.
-function lintDiagram(block, add, fmLines, lectureTags) {
+function lintDiagram(block, addOuter, fmLines, lectureTags) {
+  // Which lines this block has already said something about. One authored
+  // defect yields one causal diagnostic: the build suppresses its "has no
+  // placement" consequence for a statement that stopped reading part-way
+  // through its own line, and a line this gate has already reported on is the
+  // nearest thing to that fact a linter can see.
+  const noted = new Set();
+  const add = (ln, severity, rule, msg) => { noted.add(ln); addOuter(ln, severity, rule, msg); };
   const defined = new Map();     // name -> line
   const tags = new Set();        // every @tag any element carries
   const referenced = [];         // { name, ln, what }
@@ -624,6 +632,9 @@ function lintDiagram(block, add, fmLines, lectureTags) {
   // strings – read as statements they would each report a keyword that is a
   // quotation mark. The build skips them the same way, off the same count.
   let rowsRead = 0;
+  // How many statements have drawn a node so far, which is the compiler's own
+  // test for "is this the first element": it asks `model.nodes.length === 0`.
+  let nodesSoFar = 0;
   for (let n = 0; n < block.lines.length; n++) {
     const { text, ln } = block.lines[n];
     if (n < rowsRead) continue;
@@ -655,6 +666,14 @@ function lintDiagram(block, add, fmLines, lectureTags) {
         rejectClassOn(head, attrs.classes, ln, gate, '', attrs.removedClasses);
       } else if (head === 'dot' || head === 'text' || head === 'image') {
         rejectClassOn(head, attrs.classes, ln, gate, '', attrs.removedClasses);
+      } else if (head === 'table' || head === 'lanes' || head === 'sequence') {
+        // The three expanding statements whose tail lands on boxes – a table's
+        // cells, a lane's bands, a sequence's actor heads – and the three this
+        // switch did not name, so `sequence s at 0,0 {.smooth}` was refused by
+        // the build and passed here. `bars` and `grid` were gated from the
+        // start; the gap was that the list of statements grew and this switch
+        // did not.
+        rejectClassOn('box', attrs.classes, ln, gate, '', attrs.removedClasses);
       } else if (head === 'default' && words[1]) {
         rejectClassOn(words[1], attrs.classes, ln, gate, '', attrs.removedClasses);
         if (words[1] === 'edge') rejectHeadClassIn('default', attrs.classes, ln, gate, attrs.removedClasses);
@@ -791,6 +810,41 @@ function lintDiagram(block, add, fmLines, lectureTags) {
       continue;
     }
     inStep = false;
+
+    // The first element in a block anchors the drawing at the origin; every
+    // one after it has to say where it goes, because silently stacking two
+    // elements on 0,0 is not a default anybody means. The build has always
+    // refused it and this file was silent, which is the direction that merges
+    // green and fails every later build.
+    //
+    // Two things keep it from being stricter than the build. The rule counts
+    // *nodes*, so it is the same "first" the compiler counts – a `container`
+    // or an `edge` above the line changes nothing. And a `series of` line is
+    // exempt: it joins the frame of the chart it names and refuses a
+    // placement by name, so requiring one would refuse source the build
+    // accepts.
+    //
+    // The words are matched **positionally**, not "anywhere on the line", and
+    // that is not fussiness: `point` takes `up / down / left / right`, so a
+    // line-wide test read `box b "B" point left {.chevron}` as placed and went
+    // silent on a line the build refuses. Ten lines of the corpus already
+    // carry that shape. `right` and `left` are a placement only in front of
+    // their `of`, and every other intro word only in front of an operand –
+    // which also settles an element named `above` arriving as a leader target.
+    if (DG_PLACED_HEADS.has(head)) {
+      const placed = words.some((w, i) => (w === 'right' || w === 'left'
+        ? words[i + 1] === 'of'
+        : DG_PLACE_INTRO.has(w) && !!words[i + 1]));
+      // The *pair*, not the word: a chart may be named `series`.
+      const series = head === 'bars' && words.some((w, i) => w === 'series' && words[i + 1] === 'of');
+      // A statement with no name never reached the placement check in the
+      // build either - it reports the missing name and pushes nothing, so it
+      // is not the block's first node and it is not asked where it goes.
+      if (words[1] && nodesSoFar > 0 && !series && !placed && !noted.has(ln)) {
+        add(ln, 'error', 'diagram-no-placement', dgNoPlacement(head, words[1]));
+      }
+      if (words[1]) nodesSoFar++;
+    }
 
     // `bars` and `grid` are the two statements that declare more than one
     // name. Everything they expand into is an ordinary element by the time the
@@ -1003,8 +1057,12 @@ function lintDiagram(block, add, fmLines, lectureTags) {
         {
           const ea = attrsOf(raw, block.lines[m].ln, false);
           const gate = [];
-          rejectClassOn(DG_SEQ_ENTRIES.has(w[0]) ? 'box' : 'edge',
-            ea.classes, block.lines[m].ln, gate, '', ea.removedClasses);
+          const eKind = DG_SEQ_ENTRIES.has(w[0]) ? 'box' : 'edge';
+          rejectClassOn(eKind, ea.classes, block.lines[m].ln, gate, '', ea.removedClasses);
+          // The scope gate the kind implies, mirrored from the build: a
+          // message is an edge, so a head class in its tail says what the
+          // arrow token already said. Both signs, because both are inert.
+          if (eKind === 'edge') rejectHeadClassIn('tail', ea.classes, block.lines[m].ln, gate, ea.removedClasses);
           for (const g of gate) add(block.lines[m].ln, 'error', 'diagram-class-kind', g.msg);
         }
         entries.push({ w, aAt, nq, ln: block.lines[m].ln });
