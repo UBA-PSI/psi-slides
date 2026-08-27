@@ -1,7 +1,10 @@
 # Review of the figure language and its documentation
 
-**Status: open.** Reviewed 2026-08-26 against the current working tree, with
-particular attention to `docs/artifact/figures-you-write.html`,
+**Status: open, partially addressed.** Initially reviewed 2026-08-26 against
+the then-current working tree, with a follow-up review of the implementation
+added on 2026-08-27 below. The initial findings are kept as the evidence and
+decision record rather than rewritten after the fact. Particular attention was
+given to `docs/artifact/figures-you-write.html`,
 `lectures/diagrams/source.md`, `figure-design.md`, and the contract implemented
 by `diagram-core.mjs`.
 
@@ -826,3 +829,348 @@ documentation impressions from language behaviour. They verified:
 
 The review did not run or modify the full gate suite because a separate agent
 was actively changing those gates in the same working tree.
+
+---
+
+## Follow-up review after the implementation
+
+**Reviewed 2026-08-27.** This pass examined the implementation recorded in:
+
+- `e062a2a` - documentation corrections, the `sequence` termination change,
+  the prominence contract, the state table, and the generated step-fixed list;
+- `08766ab` - the consistency and readability sweep; and
+- `baa8ccb` - the information-architecture pass over the standalone page.
+
+The implementation is technically strong and materially improves the page. It
+does not yet close the review. The factual corrections are sound, moving the
+step model before the design textbook is the right structural change, and the
+decision not to split the standalone page remains appropriate. The remaining
+work falls into three groups:
+
+1. one new edge case in the `sequence` contract;
+2. incomplete regression coverage and small newly introduced documentation
+   drift; and
+3. a learning path that is better ordered but still reads as a reference before
+   it reads as a tutorial.
+
+### Resolution ledger
+
+| initial finding | implementation result | follow-up status |
+|---|---|---|
+| false source-order and root-first claims | replaced with the dependency-graph model and the actual topological walk | resolved |
+| blank line described as the step boundary | `step` is now named as the boundary; whitespace is presented as a reading convention | resolved |
+| live/opening/print state model implicit | one state table now presents the three readings together | resolved |
+| step-fixed classes absent from the public page | generated explanation and list added from `DG_STEP_FIXED` | partially resolved: no lookup column |
+| order-dependent `sequence` annotation trap | a statement keyword now ends the entry run | partially resolved: keyword/name collision introduced |
+| `emph` verb and class disagree on text | one prominence kind set plus a visible text effect added | resolved in implementation, incompletely tested |
+| hand-maintained counts and renamed vocabulary drift | current occurrences corrected; one drifting implementation count removed instead of updated | resolved for the reviewed surfaces |
+| standalone page interrupts grammar acquisition | steps moved before the class/design reference and route-based contents added | improved, not yet a linear tutorial |
+| `unit` and the spatial-word model | explanatory prose improved, no format rename attempted | deliberately deferred |
+| generated-name and default-cascade reference | no full generated reference added | open |
+| figures lecture framed as showcase rather than tutorial | no explicit reframing added | open |
+
+The two deliberately rejected format changes remain correctly rejected:
+
+- renaming `unit` to `grid` would break the format without adding capability;
+- introducing another centre word would undo the completed `middle` / `center`
+  distinction. The compiler diagnosis is already the right answer there; the
+  stale prose was the defect.
+
+---
+
+## Follow-up P1 - The sequence fix makes statement words implicit reserved names
+
+The new rule is implemented in the compiler and linter as an unconditional
+first-token check:
+
+```js
+if (DG_KEYWORDS.has(eb[0])) break;
+```
+
+This removes the original annotation trap. A line such as
+
+```diagram
+text n "why here" right of s-0 gap 1 -- s-0
+```
+
+now ends the sequence run and parses as the ordinary statement it visibly is.
+That is a substantial improvement, and using the existing statement vocabulary
+is preferable to making indentation grammatical in this one construct.
+
+It also makes every statement keyword an implicit reserved name at the first
+position of a sequence message. The language does not reserve or diagnose those
+names when the actor is declared:
+
+```diagram
+sequence s at 0,0
+  actor text "Text"
+  actor b "B"
+  text -> b "hello"
+```
+
+The actor declaration is read, but the message begins with `text`, so the entry
+run ends. The last line is then parsed as a top-level `text` statement and fails
+with two secondary diagnostics:
+
+```text
+"->" is not a usable name
+unexpected "b" in text ->
+```
+
+Neither tells the author that `text` was taken as a statement keyword. The same
+ambiguity exists for a named message whose message name itself is a statement
+keyword.
+
+### Required resolution before the format freezes
+
+Choose and test one explicit rule:
+
+1. **Prefer the message shape where it is unambiguous.** An arrow in the sender
+   slot can identify `text -> b` as a message even though `text` is also a
+   statement word. A keyword followed by an ordinary statement name can still
+   end the run. The named-message form needs its own ambiguity decision.
+2. **Reserve statement keywords as sequence actor and message names.** Refuse
+   the declaration itself with a direct diagnostic such as “`text` is a
+   statement word and cannot be an actor name”. Document the restriction as an
+   identifier rule rather than leaving it as a lookahead side effect.
+
+Whichever rule is chosen belongs in both the compiler/linter agreement gate and
+the acceptance/refusal census. The current implementation acknowledges the
+cost in a maintainer comment, but the author-facing documentation and tests do
+not hold the cost as a deliberate contract.
+
+---
+
+## Follow-up P1 - The new prominence meaning has only an acceptance gate
+
+The revised prominence contract is coherent:
+
+- `.emph`, `.dim`, and `.ghost` occupy one slot;
+- the three direct verbs use the same kind list;
+- `.emph` gives free text a visible glyph colour;
+- on an image it can still act by displacing `.dim`; and
+- compiler-generated mixed sets such as `@wa-msg-N` and grid tags remain
+  addressable as one set.
+
+The decision to broaden the shared prominence contract is better than refusing
+the verb on text. The corpus counterexample is decisive: `sequence` generates a
+message tag containing an edge and text, while a grid tag may contain a frame
+and images. Refusing a whole tag because the compiler itself made the set mixed
+would make documented, real figures unwritable.
+
+The tests added for this change live in `test/gates/accepts.mjs`. They prove that
+the three spellings compile on the broadened kind set. They do not prove the
+new visible meaning, despite the acceptance gate's own header explaining that
+a construct whose meaning can be wrong belongs in a semantic gate too.
+
+The following behaviours are currently unguarded by a targeted assertion:
+
+- `.emph` or `emph` makes a free text's computed fill `--emph`;
+- `.tone-4.emph` keeps its inverted label readable and gives the outline a
+  contrasting stroke;
+- a generated message tag applies prominence to the edge, number, and optional
+  second line together; and
+- applying `emph` after `dim` to an image actually restores full opacity.
+
+### Required resolution
+
+Add two levels of coverage:
+
+1. a fast semantic fixture that reads the step frames and verifies that a mixed
+   generated tag receives the same prominence state on all of its members; and
+2. a browser assertion using computed styles for the CSS-only effects on free
+   text and `.tone-4`.
+
+This is the one place where the full browser suite being green is not enough:
+the existing suite contains no targeted assertion for the new text effect, so
+the selector can disappear while every current test remains green.
+
+---
+
+## Follow-up P1 - The standalone page is not yet a linear tutorial
+
+Moving the step section was the correct first pass. A reader now reaches the
+grammar of movement before the class matrix and the 5,000-word design section,
+and the state table gives a compact account that the old page lacked.
+
+The contents block is also useful, especially because it organises entry points
+by intent rather than reproducing eleven headings. But its `Learn` route and the
+physical document disagree:
+
+```text
+contents route:   first figure -> steps -> written, not drawn
+document order:   written, not drawn -> first figure -> steps
+```
+
+Following the route therefore ends with a jump back towards the beginning. A
+reader who simply scrolls gets the opposite problem: before reaching the block
+labelled `start here`, they read the manifesto, four architectural decisions, a
+moving figure using advanced constructs, and a comparison with two other tool
+families.
+
+The six-stage basic path also retains reference density inside tutorial-shaped
+cards. For example, the stage whose new idea is one edge immediately explains:
+
+- all four arrow tokens;
+- `via`, `.smooth`, and `.elbow`;
+- the internal `.no-head`, `.one-head`, and `.both-heads` classes; and
+- changing those classes inside a `style` step.
+
+Later in the same basic path, class removals, enclosing defaults, fractional
+anchors, coordinate nudges, the measurement model, and continuation
+subgrammars arrive before the dedicated step tutorial. All of those facts are
+useful. Their position is what makes the path a reference that happens to be
+incremental rather than a ten-minute tutorial.
+
+### Recommended second pass, without splitting the page
+
+Use the existing figures and make the physical order match the Learn route:
+
+1. **Hero and copy-ready first result.** Let the opening figure establish the
+   payoff and give the reader a block they can paste.
+2. **Minimal static figure.** Teach the wrapper, a stable name, relative
+   placement, one `->` edge, and one visible class. Move the other three arrow
+   tokens, routing alternatives, head classes, removals, and default precedence
+   to the reference sections that already explain them.
+3. **One minimal beat on the same cast.** Add one tag and one `step`, then show
+   one `show` or `emph`. This closes a usable learning loop before introducing
+   the full state table.
+4. **Mental model.** Put “Written, not drawn” here: identity, dependencies, one
+   cast, re-layout per beat, and print. Those claims are easier to understand
+   after the reader has made one of each.
+5. **Full steps, reference, design, and cookbook.** Keep the current state
+   table, advanced demonstrations, class matrix, wrong/right rules, and gallery
+   after the beginner has reached a clear stopping point.
+
+No seventh bespoke figure is required. The hero, the existing six-stage cast,
+and `#beats-demo` contain all the material. The work is progressive disclosure:
+shorten the explanation at first contact and move the alternatives to where a
+reader looks for alternatives.
+
+The page should also decide whether its contents is a one-time route chooser or
+a lookup aid. The initial proposal called for a persistent contents mechanism;
+the implementation is a static block. On a page of this length, a compact
+sticky route/back-to-contents affordance would materially improve the `Look
+up` use case, but it is secondary to fixing the linear Learn path.
+
+---
+
+## Follow-up P2 - Step legality is explained but not directly look-up-able
+
+The generated `DG_STEP_FIXED` sentence is a good implementation choice. It
+provides both the reason and the seventeen classes, grouped by what they settle,
+and `refresh-figures.mjs --check` keeps it from drifting.
+
+It is not the “step?” column proposed by the initial review. The class table
+still has four columns:
+
+```text
+group | classes | where it acts | what it sets
+```
+
+The generated fixed list sits in prose below the entire table. An author
+looking at `.smooth`, `.front`, or `.small` therefore has to cross-reference a
+second inventory to learn whether `style` may change it.
+
+### Required resolution
+
+Keep the generated explanation, and make the lookup answer local as well. Any
+of these would satisfy the requirement without duplicating vocabulary:
+
+- add a generated `in a step?` column;
+- add a generated fixed/beat-local marker beside each class group; or
+- provide two generated, adjacent lists with direct anchors from the class
+  rows.
+
+The source must remain `DG_STEP_FIXED`; the open question is presentation, not
+where the truth lives.
+
+---
+
+## Follow-up P2 - Small new documentation drift
+
+### `editor` is not a stored reader preference
+
+The README now says that six frontmatter keys pin how a lecture opens and that
+an absent key leaves the reader's stored preference alone. That description is
+correct for:
+
+```text
+font, theme, collapse, auto-fit, slide-numbers
+```
+
+It is not correct for `editor`. That key controls which live output receives a
+compiler/editor payload. When it is absent, the build uses `both`; there is no
+stored reader preference to preserve. Keep the five viewer defaults in their
+existing sentence and describe `editor: both | speaker | none` separately as a
+payload/build choice.
+
+### Maintainer comments still describe the rejected prominence solution
+
+The deferred kind-gate comments in `diagram-core.mjs` and `lint.js` still say
+that `.emph` on free text is refused or that the gate in practice rejects text
+and images. The implemented table now deliberately permits both. These comments
+should describe the current reason for keeping the shared gate: it validates
+classes on known drawable kinds, while the unified prominence table makes the
+three prominence words legal on the same set.
+
+### The review needs closure annotations
+
+Before this follow-up, the review remained simply `Status: open` and described
+fixed defects in the present tense. Keeping the original evidence is useful;
+silently rewriting it would erase why the changes were made. This follow-up and
+the resolution ledger are the intended closure mechanism. Future work should
+mark entries resolved, superseded, declined, or deferred here when it lands so
+the review does not become the next stale reference.
+
+---
+
+## Assessment of the documented implementation process
+
+The process was unusually good in the areas that matter for language work:
+
+- every checkable initial claim was reproduced before implementation;
+- documentation advice was separated from actual grammar behaviour;
+- indentation was rejected as a one-off grammatical signal for a principled,
+  repository-wide reason;
+- the first prominence repair was abandoned when a real corpus figure showed
+  that compiler-generated mixed sets made it unusable;
+- closed vocabulary was generated from `DG_STEP_FIXED` rather than copied;
+- tracked lecture views were rebuilt when their sources changed;
+- the learning-path move was isolated in its own commit; and
+- the neighbouring process was informed before overlapping files were touched.
+
+Two process improvements remain:
+
+1. A new semantic effect should not be declared closed with only a parse/
+   acceptance fixture. The test should be selected by the failure mode: frames
+   for emitted state, browser/computed style for stylesheet meaning.
+2. When an implementation deliberately delivers a weaker form than the plan -
+   generated prose instead of a lookup column, static contents instead of a
+   persistent aid - record that decision explicitly in the review ledger.
+
+The large `e062a2a` commit contains two independent language decisions
+(`sequence` termination and prominence) beside documentation corrections. Its
+commit message makes the reasoning recoverable, but separate commits would
+have made later bisecting or reverting safer. This is not a correctness defect;
+it is a history/maintenance observation.
+
+---
+
+## Independent verification for the follow-up
+
+This follow-up changed no implementation or generated view. The following
+read-only checks were run against the resulting tree:
+
+- `npm run gate`: **389 passed, 0 failed, 0 pending**;
+- `node docs/artifact/refresh-figures.mjs --check`: **up to date**;
+- `node lint.js lectures/`: **4 files, 0 errors, 0 warnings**;
+- local fragment check on `figures-you-write.html`: **131 links, 0 missing
+  targets**; and
+- a direct compiler probe reproduced the statement-keyword actor collision and
+  its two misleading diagnostics.
+
+The full browser suite reported in the implementation commits was not rerun for
+this follow-up. Inspection of the browser tests found no targeted computed-style
+assertion for the new free-text prominence effect, which is why that gap remains
+even if the reported full suite is green.
