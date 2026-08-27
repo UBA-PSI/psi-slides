@@ -199,19 +199,28 @@ ${body}
 `;
 
 // The two typefaces site.css asks for, gathered into one folder next to the
-// pages. Inter Tight comes out of node_modules, the same packages build.js
-// embeds into lectures, so a font upgrade lands here without a second step.
-// Iosevka is checked in already subset (see docs/site/fonts/): its published
-// latin cut is 961 KB, nearly all of it variants a web page never sets.
+// pages. Both families come out of node_modules - the same packages build.js
+// embeds into lectures - so the site is set in the type the tool ships, and a
+// font upgrade lands here without a second step. That was not true while the
+// site kept Inter Tight and Iosevka: build.js had already moved to IBM Plex
+// Sans and JetBrains Mono, and the page arguing for the tool was set in
+// neither of them.
+// Mono is upright only, as the checked-in Iosevka subset was: nothing here
+// sets mono in italic. The licence file of each package travels with its
+// face, which is what OFL 1.1 asks for.
 // A missing file is a hard error – silently shipping a page whose @font-face
 // 404s is exactly the fallback-to-system-font failure this avoids.
+const FONT_PKG = (p, f) => path.join(ROOT, 'node_modules/@fontsource-variable', p, 'files', f);
 function copyFonts(outDir) {
   const sources = [
-    path.join(ROOT, 'node_modules/@fontsource-variable/inter-tight/files/inter-tight-latin-wght-normal.woff2'),
-    path.join(ROOT, 'node_modules/@fontsource-variable/inter-tight/files/inter-tight-latin-wght-italic.woff2'),
-    path.join(HERE, 'fonts', 'iosevka-subset-400.woff2'),
-    path.join(HERE, 'fonts', 'iosevka-OFL.txt'),
+    FONT_PKG('ibm-plex-sans', 'ibm-plex-sans-latin-wght-normal.woff2'),
+    FONT_PKG('ibm-plex-sans', 'ibm-plex-sans-latin-wght-italic.woff2'),
+    FONT_PKG('jetbrains-mono', 'jetbrains-mono-latin-wght-normal.woff2'),
   ];
+  const notices = [
+    ['ibm-plex-sans', 'ibm-plex-sans-OFL.txt'],
+    ['jetbrains-mono', 'jetbrains-mono-OFL.txt'],
+  ].map(([pkg, out]) => [path.join(ROOT, 'node_modules/@fontsource-variable', pkg, 'LICENSE'), out]);
   fs.mkdirSync(outDir, { recursive: true });
   let bytes = 0;
   for (const src of sources) {
@@ -221,7 +230,13 @@ function copyFonts(outDir) {
     fs.copyFileSync(src, path.join(outDir, path.basename(src)));
     bytes += fs.statSync(src).size;
   }
-  console.log(`  fonts -> fonts/ (${sources.length} files, ${Math.round(bytes / 1024)} KB)`);
+  for (const [src, out] of notices) {
+    if (!fs.existsSync(src)) {
+      throw new Error(`site font licence missing: ${src}\nRun npm install first.`);
+    }
+    fs.copyFileSync(src, path.join(outDir, out));
+  }
+  console.log(`  fonts -> fonts/ (${sources.length} faces + ${notices.length} licences, ${Math.round(bytes / 1024)} KB)`);
 }
 
 function main() {
@@ -270,12 +285,16 @@ function main() {
   // places the page is read.
   const MANUAL = path.join(ROOT, 'docs/artifact/figures-you-write.html');
   const manual = fs.readFileSync(MANUAL, 'utf8');
-  const LINK = '"../site/figures.html"';
+  // Matched as a prefix, without its closing quote, so a link into a section
+  // of the case travels too: `"../site/figures.html#editor"` is the same one
+  // relative step wrong in _site, and an exact match silently left it there
+  // while rewriting the plain link beside it.
+  const LINK = '"../site/figures.html';
   if (!manual.includes(LINK)) {
-    throw new Error('the manual has no ' + LINK + ' link back to the case - has it been renamed?');
+    throw new Error('the manual has no ' + LINK + '" link back to the case - has it been renamed?');
   }
   fs.writeFileSync(path.join(outDir, 'figures-you-write.html'),
-    manual.split(LINK).join('"figures.html"'));
+    manual.split(LINK).join('"figures.html'));
   console.log('  docs/artifact/figures-you-write.html -> figures-you-write.html');
   fs.copyFileSync(path.join(HERE, 'site.css'), path.join(outDir, 'site.css'));
   fs.copyFileSync(path.join(HERE, 'site.js'), path.join(outDir, 'site.js'));

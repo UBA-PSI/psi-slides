@@ -6,39 +6,44 @@
  * have been one line, but it also tells a third party who reads the page of
  * a tool whose whole point is that its output fetches nothing at run time.
  *
- * Inter Tight is copied out of node_modules at build time (variable weight
- * axis, latin subset). Iosevka is checked in under fonts/, subset to the
- * characters this site actually sets: the published latin cut is 961 KB
- * because it carries Iosevka's full variant and ligature inventory, and
- * nine tenths of that never reaches a code snippet on a web page.
+ * The two families are the ones build.js embeds into every lecture, and that
+ * is the point: the site that argues for the tool should be set in the tool's
+ * own type. It was not - the site kept Inter Tight and Iosevka after build.js
+ * moved to IBM Plex Sans and JetBrains Mono, so a reader comparing a
+ * screenshot with the page around it was looking at two different faces.
+ * Both are copied out of node_modules at build time (variable weight axis,
+ * latin subset), so a font upgrade lands here without a second step.
  */
 
 @font-face {
-  font-family: 'Inter Tight Var';
+  font-family: 'IBM Plex Sans Var';
   font-style: normal;
   font-display: swap;
-  font-weight: 100 900;
-  src: url('fonts/inter-tight-latin-wght-normal.woff2') format('woff2-variations');
+  font-weight: 100 700;
+  src: url('fonts/ibm-plex-sans-latin-wght-normal.woff2') format('woff2-variations');
 }
 @font-face {
-  font-family: 'Inter Tight Var';
+  font-family: 'IBM Plex Sans Var';
   font-style: italic;
   font-display: swap;
-  font-weight: 100 900;
-  src: url('fonts/inter-tight-latin-wght-italic.woff2') format('woff2-variations');
+  font-weight: 100 700;
+  src: url('fonts/ibm-plex-sans-latin-wght-italic.woff2') format('woff2-variations');
 }
+/* Upright only, as Iosevka was: nothing on this site sets mono in italic, and
+   the second face would be 42 KB nobody downloads a glyph of. */
 @font-face {
-  font-family: 'Iosevka Web';
+  font-family: 'JetBrains Mono Var';
   font-style: normal;
   font-display: swap;
-  font-weight: 400;
-  src: url('fonts/iosevka-subset-400.woff2') format('woff2');
+  font-weight: 100 800;
+  src: url('fonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2-variations');
 }
 
 /*
- * Inter Tight: SIL OFL 1.1, Copyright The Inter Project Authors.
- * Iosevka: SIL OFL 1.1, Copyright Renzhi Li (aka. Belleve Invis).
- * Full licence texts: fonts/iosevka-OFL.txt and the packages they ship in.
+ * IBM Plex Sans and JetBrains Mono, each under SIL OFL 1.1. The licence
+ * permits serving them from this origin and requires the notice to travel
+ * with them. Full texts: fonts/ibm-plex-sans-OFL.txt and
+ * fonts/jetbrains-mono-OFL.txt, copied from the two packages.
  */
 
 /*
@@ -70,8 +75,8 @@
   /* The dimmed token still sets the `{.wide #id}` attribute tail, which is
      content a reader has to be able to read, not decoration. */
   --tok-punct: oklch(0.50 0.02 260);
-  --sans: 'Inter Tight Var', 'Inter Tight', system-ui, -apple-system, sans-serif;
-  --mono: 'Iosevka Web', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: 'IBM Plex Sans Var', 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono Var', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -327,6 +332,18 @@ main.banded { max-width: none; padding: 0; }
   .topbar-right { display: none; }
   .topbar-in { padding: 0.5rem 1rem; }
 }
+/* The narrowest phone. Inter Tight is the condensed cut of Inter and the bar
+   fit 320px with nothing to spare; IBM Plex Sans sets the wordmark 7px wider
+   and the row began to push the page sideways - 325px of content in a 320px
+   window, which is the one thing no page here may do. The wordmark must not
+   wrap and must not be cut, so the space comes from the three places nobody
+   looks at: the gap between the two groups, the bar's own padding, and a
+   sixteenth of a rem off the brand. */
+@media (max-width: 22rem) {
+  .topbar-in { padding: 0.5rem 0.75rem; }
+  .topbar-row { gap: 0.5rem; }
+  .topbar-brand { font-size: 0.76rem; }
+}
 /* Anchored headings have to clear the bar, or the browser parks them under it. */
 h2[id], h3[id] { scroll-margin-top: 4rem; }
 
@@ -344,6 +361,13 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
 .hero { padding: 1rem 0 0; }
 .hero .mark {
   font-family: var(--mono);
+  /* A label line, not prose, so the 40rem measure p carries does not apply to
+     it - the same reason the headline under it runs the hero's width. It only
+     started to matter with JetBrains Mono: at 0.6em per character against
+     Iosevka's 0.5em the English line went from 585px to 697px and broke in
+     two, and shrinking the type to fit would have been paying for a cap that
+     was never meant for this line. */
+  max-width: none;
   font-size: 0.95rem;
   color: var(--ink-soft);
   letter-spacing: 0.02em;
@@ -633,18 +657,32 @@ code { font-family: var(--mono); font-size: 0.92em; overflow-wrap: break-word; }
 /* Every listing on this page is psi-slides source, and its grammar spells
    an arrow -> and a plain line --. A mono face that ligates those draws one
    glyph where the author has to type two characters, so the whole family is
-   turned off here the way it is in the built views. Preventive for Iosevka,
-   which does not ligate by default – the rule is here so the page cannot
-   acquire the fault by changing its face. */
-code, pre, kbd, samp { font-variant-ligatures: none; }
+   turned off here the way it is in the built views. This was written as a
+   preventive rule while Iosevka, which does not ligate by default, was the
+   face - "so the page cannot acquire the fault by changing its face". The
+   face changed, JetBrains Mono does ligate, and the rule is load-bearing now.
+   Which is also why it lists every selector that sets --mono rather than the
+   four element names it started with: the four covered the listings, and the
+   window bars, the eyebrow and the figure captions were left to acquire the
+   fault on their own. If a new rule sets --mono, it belongs in this list. */
+code, pre, kbd, samp,
+.hero .mark,
+.path svg text, .path figcaption,
+figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
 pre code { overflow-wrap: normal; }
 pre {
   font-family: var(--mono);
-  /* Iosevka is narrow, so it can carry a longer line than a normal mono at
-     the same size – but it also reads smaller, which is why this sits above
+  /* 0.96rem was Iosevka's number: it reads small, so the size had to sit above
      the 0.9rem that looked right in a specimen and read as fine print on the
-     page. A Markdown sample is meant to be read, not squinted at. */
-  font-size: 0.96rem;
+     page. JetBrains Mono is a normal-width face - measured, its advance is
+     0.6em against Iosevka's 0.5em, so the same string is 20% wider and two
+     more listings on the landing page began to scroll inside their box.
+     Matching the old line width exactly would mean 0.80rem, which is the fine
+     print again. 0.92rem is where the two claims meet: measured on the canvas,
+     its x-height is 8.10px against Iosevka's 7.99px at 0.96rem, so it reads
+     no smaller than what it replaced, and it gives back a quarter of the
+     width. A Markdown sample is meant to be read, not squinted at. */
+  font-size: 0.92rem;
   line-height: 1.6;
   background: var(--code-bg);
   border: 1px solid var(--rule);
