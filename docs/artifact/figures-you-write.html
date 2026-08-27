@@ -852,6 +852,14 @@ footer .paths b { color: var(--ink); font-weight: 500; }
          border-bottom: 1px solid var(--rule); color: var(--ink); }
 .toc a:hover { border-bottom-color: var(--ink); }
 
+.top .status {
+  /* --emph, not --accent: this page has no --accent, exactly as the lecture
+     views have none - and a color over a missing token silently drops the
+     whole declaration. Copied from the case page, where --accent is right. */
+  margin-top: 20px; padding: 12px 14px; border-left: 3px solid var(--emph);
+  background: var(--panel); color: var(--ink-soft); font-size: var(--t-small);
+}
+.top .status strong { color: var(--ink); font-weight: 500; }
 /* The gallery and the specimens size their own figures. */
 .psi-diagram { max-height: none; }
 </style>
@@ -865,6 +873,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
     <p class="eyebrow">psi-slides &middot; <code>::: diagram</code></p>
     <h1>Figures You Write</h1>
     <p class="lede">A figure in a psi-slides lecture is not a picture made somewhere else and imported. It is a few lines of text in the lecture&rsquo;s own Markdown file, and the build &ndash; the one command that turns that file into slides &ndash; draws it. The seven lines below are a whole figure, and the drawing is what the build made of them.</p>
+    <p class="status"><strong>Development status:</strong> <code>::: diagram</code> is implemented in this repository, but is not part of a tagged psi-slides release yet. The graphical editor is experimental and desktop-oriented: it has automated coverage, but has not yet been tested broadly by people.</p>
   </div>
 
   <div class="hero">
@@ -893,7 +902,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
   </ul></div>
   <div class="toc-route"><p class="toc-h">Look up</p><ul>
     <li><a href="#classes">Every class, and what it acts on</a></li>
-    <li><a href="#beyond">Ten more things you can write</a></li>
+    <li><a href="#beyond">Thirteen more things you can write</a></li>
   </ul></div>
   <div class="toc-route"><p class="toc-h">Design it well</p><ul>
     <li><a href="#rules">Fifteen rules a room can read</a></li>
@@ -919,7 +928,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
     <div class="spec">
       <div class="said">
         <h3>Two boxes, and a name nobody sees</h3>
-        <p>Each of these lines has the same four parts: what kind of thing this is, what it is called, what it says, and where it goes. Here <code>box</code> is the kind and <code>"Client"</code> is the label. <code>cl</code> is the name, and the name is never drawn &ndash; it is there so that later lines can point at this box. <code>at&nbsp;0,0</code> is the position, and it is the only position in the whole figure that names a number rather than another element. The first element in a figure may leave the placement out altogether &ndash; the one at the top of this page does &ndash; and it is written here to have something for the second line to be placed against.</p>
+        <p>The first and last lines are the block itself: <code>::: diagram</code> opens one inside a lecture chunk, <code>:::</code> closes it, and the figure is what stands between them. <code>{unit=170x56}</code> says how many pixels one grid unit is, across and down; leave it out and a default is used. Each of the lines between has the same four parts: what kind of thing this is, what it is called, what it says, and where it goes. Here <code>box</code> is the kind and <code>"Client"</code> is the label. <code>cl</code> is the name, and the name is never drawn &ndash; it is there so that later lines can point at this box. <code>at&nbsp;0,0</code> is the position, and it is the only position in the whole figure that names a number rather than another element. The first element in a figure may leave the placement out altogether &ndash; the one at the top of this page does &ndash; and it is written here to have something for the second line to be placed against.</p>
       </div>
       <div class="shown">
       <div class="drawn"><svg id="rlb1-root" class="psi-diagram" viewBox="-46.98 -30.38 408.65 60.75" width="2000" height="297" data-steps="1" role="img" aria-label="b1 two boxes" preserveAspectRatio="xMidYMid meet">
@@ -1032,7 +1041,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 
     <h4 class="quirk-head">Eight things the shape above does not tell you</h4>
     <div class="walls quirks">
-      <div class="wall"><h4>Two rulers, both in the figure&rsquo;s own units</h4><p>The block opens with <code>::: diagram {unit=170x56}</code>, which sets how many pixels one unit is across and down, and one unit is meant to be about one box wide. Every number after that is in units, so a figure keeps its proportions whatever size it is drawn at &ndash; but the two are not one ruler. A number that <em>addresses</em> the grid takes the axis it is written on: <code>w</code> counts unit widths, <code>h</code> unit heights, and so do <code>at</code>, <code>offset</code> and a nudge on a coordinate. A number that states a <em>clearance</em> is square, and its ruler is the row: <code>gap</code>, <code>pad</code> and <code>space</code> draw the same distance whichever way they point.</p></div>
+      <div class="wall"><h4>Two rulers, both in the figure&rsquo;s own units</h4><p>The block opens with <code>::: diagram {unit=170x56}</code>, which sets how many pixels one unit is across and down, and one unit is meant to be about one box wide. Every number after that is in units, so a figure keeps its proportions whatever size it is drawn at &ndash; but the two are not one ruler. A number that <em>addresses</em> the grid takes the axis it is written on: <code>w</code> counts unit widths, <code>h</code> unit heights, and so do <code>at</code>, <code>offset</code> and a nudge on a coordinate. A number that states a <em>clearance</em> is square, and its ruler is the row: <code>gap</code>, <code>pad</code>, <code>space</code> and a dot&rsquo;s <code>r</code> draw the same distance whichever way they point.</p></div>
       <div class="wall"><h4>Three different marks share one pair of braces</h4><p>In the tail, <code>.something</code> adds a class, <code>!something</code> takes one off again, and <code>@something</code> is a tag that puts the element in a group. There is no mark for a name: every statement that can be referred to later names itself in its own words, a <code>box</code> and an <code>edge</code> alike.</p></div>
       <div class="wall"><h4>A coordinate can be another element&rsquo;s coordinate</h4><p>Written <code>sw.right</code>, <code>sw.cx</code>, <code>sw.top</code> and so on, optionally with a nudge: <code>sw.right+0.4</code>. A pair separated by a comma is a point: <code>sw.right+0.4,sw.cy</code>. This is what keeps a route attached to what it was drawn against.</p></div>
       <div class="wall"><h4>A fraction slides an endpoint along a side</h4><p><code>eve.right:0.3</code> is three tenths of the way down Eve&rsquo;s right-hand side. Two edges between the same pair at <code>:0.3</code> and <code>:0.7</code> run parallel instead of on top of each other.</p></div>
@@ -1043,14 +1052,14 @@ footer .paths b { color: var(--ink); font-weight: 500; }
     </div>
   </div>
 
-  <p class="measure" style="margin-top:34px;color:var(--ink-soft)">That is the everyday vocabulary, and it is enough to write a figure that stands still. Next is the one thing left that changes what the source says rather than how it looks: making the figure move, a beat at a time. After that the page turns to reference &ndash; the full class list, then fifteen rules for a figure a room can read at a glance.</p>
+  <p class="measure" style="margin-top:34px;color:var(--ink-soft)">That is the everyday vocabulary, and it is enough to write a figure that stands still. To see one, put the block in a <code>## figure:</code> chunk of a lecture and build it &ndash; <code>node build.js &lt;your-lecture&gt;/source.md</code> &ndash; then open the <code>audience.html</code> written beside the source. Next is the one thing left that changes the figure over time rather than how it looks: making it move, a beat at a time. After that the page turns to reference &ndash; the full class list, then fifteen rules for a figure a room can read at a glance.</p>
 </section>
 
 <section id="steps">
   <div class="sechead">
     <p class="eyebrow">steps and tags</p>
     <h2>How a figure moves from one beat to the next</h2>
-    <p class="measure">Take the figure you have just built and give it beats. A <code>step</code> line names one, the operations under it say what changes, and the figure is then laid out again from the top with those changes in force &ndash; which is why an arrow stays attached to a box that walks away: the arrow never held a coordinate, it held &ldquo;the right-hand edge of <code>e</code>&rdquo;, and that is still what it holds after <code>e</code> has moved. The two figures below are longer than the one at the top of the page, and both do the same three things: bringing elements in on the beat they belong to, taking the room&rsquo;s attention from one part of the drawing to another, and moving something and letting everything attached to it follow.</p>
+    <p class="measure">Take the figure you have just built and give it beats. A beat is one press of the key that advances the slide, in front of the room. A <code>step</code> line names one, the operations under it say what changes, and the figure is then laid out again from the top with those changes in force &ndash; which is why an arrow stays attached to a box that walks away: the arrow never held a coordinate, it held &ldquo;the right-hand edge of <code>e</code>&rdquo;, and that is still what it holds after <code>e</code> has moved. The two figures below are longer than the one at the top of the page, and both do the same three things: bringing elements in on the beat they belong to, taking the room&rsquo;s attention from one part of the drawing to another, and moving something and letting everything attached to it follow.</p>
     <p class="measure">Both are live, and they run exactly the code a projected lecture runs. Step forward and back with the arrows, or press play.</p>
 
     <p class="measure">Three states are worth holding in mind at once, because a figure with beats is three drawings at the same time: the one the block opens with, the one the room sees at beat <i>k</i>, and the one that comes out of the printer.</p>
@@ -1173,7 +1182,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
   <div class="sechead">
     <p class="eyebrow">the whole vocabulary, for looking up</p>
     <h2>The classes, and the words that go with them</h2>
-    <p class="measure">This is the whole list, and you do not need it to write a figure &ndash; the six stages above use only the classes that make a specific visual distinction, and most figures never reach past those. Come back when you want a shape or a weight you have not met. Most classes belong to a group, one group per thing they set, and only one class from a group may be written on an element: a second from the same group is refused when the figure is built, so two fills can never both take effect. The three below the rule are in no group and combine freely. Every class also states which kinds of element it acts on, and one written where it can do nothing is refused too &ndash; a hexagon on an edge, an alignment on a brace &ndash; because a class that resolves, emits its CSS and moves nothing is the failure this list exists to prevent. A class is taken off again with <code>!</code> in place of the dot, which is how an element opts out of something a <code>default</code> line handed it. Anything outside the vocabulary is refused when the figure is built rather than ignored.</p>
+    <p class="measure">This is the whole list, and you do not need it to write a figure &ndash; the six stages above use only the classes that make a specific visual distinction, and most figures never reach past those. Come back when you want a shape or a weight you have not met. Most classes belong to a group, one group per thing they set, and only one class from a group may be written on an element: a second from the same group is refused when the figure is built, so two fills can never both take effect. The three below the rule belong to no group, so nothing displaces them &ndash; though combining is not always useful, and the row for <code>.turn</code> says where. Every class also states which kinds of element it acts on, and one written where it can do nothing is refused too &ndash; a hexagon on an edge, an alignment on a brace &ndash; because a class that resolves, emits its CSS and moves nothing is the failure this list exists to prevent. A class is taken off again with <code>!</code> in place of the dot, which is how an element opts out of something a <code>default</code> line handed it. Anything outside the vocabulary is refused when the figure is built rather than ignored.</p>
   </div>
 
   <div class="tones" style="margin-top:34px">
@@ -1184,7 +1193,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
               <tr><td>ink</td><td style="white-space:normal"><code>.accent</code> <code>.muted</code></td><td><code>box</code> <code>dot</code> <code>text</code> <code>container</code> <code>brace</code> <code>edge</code></td><td data-stepcol>yes</td><td>Which colour the outline and the words take. <code>.accent</code> is the one strong colour on the page; <code>.muted</code> is lighter and thinner, for supporting apparatus.</td></tr>
               <tr><td>stroke pattern</td><td style="white-space:normal"><code>.dashed</code> <code>.dotted</code></td><td><code>box</code> <code>dot</code> <code>container</code> <code>brace</code> <code>edge</code></td><td data-stepcol>yes</td><td>A broken outline. Conventionally a boundary you can cross, or a thing that is not really there.</td></tr>
               <tr><td>stroke weight</td><td style="white-space:normal"><code>.thick</code> <code>.bare</code></td><td><code>.thick</code> on <code>box</code> <code>dot</code> <code>container</code> <code>brace</code> <code>edge</code>; <code>.bare</code> on <code>box</code> <code>dot</code> <code>container</code></td><td data-stepcol>yes</td><td>A heavier outline, or none at all. <code>.bare</code> leaves the fill and the label with no border round them &ndash; which an edge and a brace, being a line already, have nothing to take off.</td></tr>
-              <tr><td>outline</td><td style="white-space:normal"><code>.round</code> <code>.sharp</code> <code>.hex</code> <code>.diamond</code> <code>.chevron</code> <code>.wedge</code> <code>.cross</code></td><td><code>.round</code> <code>.sharp</code> on <code>box</code> <code>text</code> <code>container</code> <code>edge</code>; the other five on a <code>box</code></td><td data-stepcol>no</td><td>The shape drawn: a rectangle with rounded or square corners, a hexagon, a diamond, a chevron, a triangle or a cross. They share a group because a hexagon has no corner radius to argue about. A bare <code>.cross</code> comes out square, because a plus with arms of two different lengths is not a plus.</td></tr>
+              <tr><td>outline</td><td style="white-space:normal"><code>.round</code> <code>.sharp</code> <code>.hex</code> <code>.diamond</code> <code>.chevron</code> <code>.wedge</code> <code>.cross</code></td><td><code>.round</code> <code>.sharp</code> on <code>box</code> <code>text</code> <code>container</code> <code>edge</code>; the other five on a <code>box</code></td><td data-stepcol>no</td><td>The shape drawn: a rectangle with rounded or square corners, a hexagon, a diamond, a chevron, a triangular wedge or a cross. They share a group because a hexagon has no corner radius to argue about. A bare <code>.cross</code> comes out square, because a plus with arms of two different lengths is not a plus.</td></tr>
               <tr><td>size</td><td style="white-space:normal"><code>.small</code> <code>.large</code></td><td><code>box</code> <code>dot</code> <code>text</code> <code>container</code> <code>brace</code> <code>edge</code></td><td data-stepcol>no</td><td>The label one step down or up from the figure&rsquo;s normal size.</td></tr>
               <tr><td>family</td><td style="white-space:normal"><code>.mono</code> <code>.serif</code> <code>.hand</code></td><td><code>box</code> <code>dot</code> <code>text</code> <code>container</code> <code>brace</code> <code>edge</code></td><td data-stepcol>yes</td><td>Typeface for the label: fixed-width for addresses and code, the reading face, or that face in italic for something written in beside the drawing.</td></tr>
               <tr><td>fitting</td><td style="white-space:normal"><code>.fit</code> <code>.shrink</code></td><td><code>box</code> <code>text</code></td><td data-stepcol>no</td><td>What to do when the label does not match the box. <code>.fit</code> scales the type to a width you gave, within about 0.6 to 1.5 times normal; <code>.shrink</code> only ever shrinks. Both need a width.</td></tr>
@@ -1218,8 +1227,8 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 <section id="beyond">
   <div class="sechead">
     <p class="eyebrow">beyond the basics</p>
-    <h2>Ten more things you can write</h2>
-    <p class="measure">Five outlines that are not rectangles, a label that reads bottom to top, a bar chart, the same chart turned on its side, a second series in it, a column singled out from the opening beat, a plot with a curve through it, one drawing reused many times over, a statement that evens out spacing, and type that scales to its box. None of them is a new kind of element, so all of them move between beats like the boxes and edges above.</p>
+    <h2>Thirteen more things you can write</h2>
+    <p class="measure">None of these is a new kind of element, which is why all of them move between beats like the boxes and edges above. Five outlines that are not rectangles, a label that reads bottom to top, a bar chart, the same chart turned on its side, a second series in it, a column singled out from the opening beat, a plot with a curve through it, two ways of saying what shape a chart is, three frames matched to the pixel, one drawing reused many times over, a statement that evens out spacing, the cycle that statement can create, and type that scales to its box.</p>
     <p class="measure">Each pair below is real: the drawing was produced by the source shown with it.</p>
   </div>
 
@@ -1787,7 +1796,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
       <div class="n">5</div>
       <div>
         <h3>Let a step say what belongs together</h3>
-        <p class="do">Give the elements of one beat a shared tag and reveal the tag, rather than listing their names. A beat is one press of the key that advances the slide; the two stepped figures earlier on this page work through theirs.</p>
+        <p class="do">Give the elements of one beat a shared tag and reveal the tag, rather than listing their names. The two stepped figures earlier on this page work through theirs.</p>
         <p class="why">Things that appear together are read as one thing. Both versions below draw the same beat today, and they stop agreeing the moment the figure grows. A list of names is a second copy of who belongs to the beat, kept on a line nowhere near the elements it names: adding a sixth thing to the attack means writing the tag on that element and nothing else, or writing the element and then remembering a line further down the file. The second of those is the edit that gets forgotten, and a beat that reveals five things where it should reveal six looks exactly as deliberate as one that is right.</p>
         <div class="pair src">
         <div class="side no">
@@ -1810,7 +1819,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
       <div>
         <h3>Give a label a ground when it sits on a line</h3>
         <p class="do">Any text that overlaps a line, a grid or a filled area gets a fill class and some <code>pad</code>. <code>.paper</code> is the one that knocks a hole in what is behind it.</p>
-        <p class="why">Type printed on top of a line is read as texture rather than as words, and from the back of a room it is lost altogether. This is figure and ground, the oldest of the grouping effects. A box is filled with the background colour already; a <code>text</code> on its own has no fill until you ask for one, which is what <code>.paper</code> is for.</p>
+        <p class="why">Type printed on top of a line is read as texture rather than as words, and from the back of a room it is lost altogether. This is the figure-and-ground effect, the oldest of the groupings vision performs. A box is filled with the background colour already; a <code>text</code> on its own has no fill until you ask for one, which is what <code>.paper</code> is for.</p>
         <div class="pair">
         <div class="side no">
           <span class="tag">wrong</span>
@@ -3174,7 +3183,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 <footer>
   <div class="paths">
     <div><b>figure-design.md</b> &ndash; the same fifteen rules, written out as instructions</div>
-    <div><b>lectures/diagrams/source.md</b> &ndash; one lecture that uses every construct</div>
+    <div><b>lectures/diagrams/source.md</b> &ndash; one lecture that uses every statement kind</div>
     <div><b>diagram-core.mjs</b> &ndash; the compiler, the same one in the build and in the browser</div>
     <div><b>CLAUDE.md</b> &ndash; the grammar in full, under <i>Animated infographics</i></div>
   </div>

@@ -353,7 +353,7 @@ edge b -> c "recoded"
 edge b -> x {.dashed}
 :::
 
-`box`, `dot`, `text`, `image`, `edge`, `brace`, `container`, `bars`, `grid`, `plot`, `table`, `lanes`, `sequence`, `align`, `spread`, `default`, `step` – siebzehn Anweisungen, mehr nicht. Ein `text` bekommt mit `-> x` eine kurze Linie zu dem, worüber er spricht.
+`box`, `dot`, `text`, `image`, `edge`, `brace`, `container`, `bars`, `grid`, `plot`, `table`, `lanes`, `sequence`, `align`, `spread`, `default`, `step` – siebzehn Anweisungen, mehr nicht. Ein `text` bekommt mit `-- x` eine kurze Linie zu dem, worüber er spricht – einen Hinweisstrich, keinen Pfeil: ein Pfeil behauptet eine Verbindung, ein Strich sagt nur, worum es geht.
 
 **Alles darin ist in Rastereinheiten gemessen, auch das, was keine Beschriftung hat.** Der `dot` in der Mitte hat kein `r` und hat deshalb einen *Radius* von 0.18 Einheiten – also 0.36 quer –, keine feste Pixelzahl. Der Unterschied fällt erst auf, wenn ein Block sein `unit=` ändert: Eine Pixelangabe bliebe liegen, während alle Kästen um sie herum größer werden.
 

@@ -34,7 +34,7 @@ serve it better than any number of diamonds, and so will a `::: script` block �
 the directive that says "this part of the chunk is what I say, not what the
 slide shows".
 
-**This cuts against two figures in this repository, and it should.** The
+**This cuts against two figures in this repository.** The
 flowchart in `lectures/diagrams` (`#flowchart`) and its cut-down twin in
 `docs/artifact/figure-rules` (`#fc`) are packet-forwarding decisions, which is
 exactly the case Ware's rule is aimed at. They are there to demonstrate a
@@ -810,12 +810,20 @@ reads the source.
 
 ```
 # wrong: fifteen messages at one rhythm, and the room has nowhere to rest
-rp -> br "session cookie"
-u  -> br "later: click 'Sign in'"
+sequence s at 0,0
+  actor rp "RP"
+  actor u  "User"
+  actor br "Browser"
+  rp -> br "session cookie"
+  u  -> br "later: click 'Sign in'"
 
 # right: the second phase is announced by the paper around it
-rp -> br "session cookie"
-u  -> br "later: click 'Sign in'" space 0.9
+sequence s at 0,0
+  actor rp "RP"
+  actor u  "User"
+  actor br "Browser"
+  rp -> br "session cookie"
+  u  -> br "later: click 'Sign in'" space 0.9
 ```
 
 ---
@@ -870,12 +878,13 @@ ranking.** A reader ranks lengths from a shared left edge more reliably than
 heights from a shared floor, so `horizontal` on a `bars` line is not one more
 way of drawing the same picture: it is usually the better one. And a category
 called "DNS cache poisoning" cannot be written under an upright column at all –
-it either overlaps its neighbour, turns on its side, or gets abbreviated into
-something the room has to decode.
+it cannot be written there at all. The upright label list is split on spaces,
+one word per column, so a phrase has to be cut down to an abbreviation the room
+decodes from a legend – which is a legend nobody reads at the back.
 
 ```
-# wrong: four phrases under four columns, none of them legible
-bars t "20,19,17,12" "ARP spoofing SYN flood DNS poisoning TLS strip" at 0,0 w 2.2 h 0.9
+# wrong: four abbreviations, because a space-split list has no room for a phrase
+bars t "20,19,17,12" "ARP SYN DNS TLS" at 0,0 w 2.2 h 0.9
 
 # right: sideways, and the category names split on a pipe so a label may be a phrase
 bars t "20,19,17,12" "ARP spoofing | SYN flood | DNS cache poisoning | TLS stripping" at 0,0 w 2.2 h 1.4 horizontal

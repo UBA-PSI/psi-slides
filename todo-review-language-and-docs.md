@@ -1551,3 +1551,98 @@ public wording no longer promises exhaustive option coverage.
 maturity and scope explicit, this adversarial pass found no obvious
 release-blocking problem across language, compiler, editor, lecture, manual and
 public site.
+
+
+---
+
+## Adversarial review of the figure documentation
+
+Six surfaces, ~75,000 words: the case, the manual, the lecture both compile
+from, the German figure lecture, `figure-design.md` and the folder README.
+Every finding below was reproduced before it was touched; the ones this round
+declined are named at the end.
+
+### Correctness
+
+Four claims did not match the compiler.
+
+**Two blocks in `figure-design.md` did not compile at all**, in a file whose own
+contract is a wrong/right pair *in real syntax you can copy*. The horizontal
+chart's "wrong" half was refused on tick arithmetic - `8 tick label(s) for 4
+column(s)` - so it never drew the illegible chart the prose described; the
+prose promised a *drawn* failure that cannot happen, and the real failure is
+that a phrase has no room in a space-split list at all. The `space`-on-a-band
+pair was two bare message lines with no `sequence` around them, which fails on
+shape and sends the reader hunting a defect in the snippet's first line.
+
+**The manual claimed `lectures/diagrams` "uses every construct."** Measured: all
+17 statements, but 37 of 41 classes - `.bold` and the three head classes appear
+nowhere. `README.md` was narrowed to "every statement kind" in an earlier
+round; the manual's footer kept the strong form.
+
+**The German lecture named `-> x` for a figure that writes `-- x`**, in the
+chunk that is a reader's first sight of a leader, and the two are not
+interchangeable: the manual spends a paragraph of rule 14 on the difference.
+
+**"The three below the rule combine freely"** is contradicted by the table's own
+`.turn` row twenty-two lines later, and by a compiler warning.
+
+### Beginner comprehensibility
+
+The six-stage promise holds - after stage 6 a reader has box, edge, relative
+placement, tones, a leader and a container, and needs no `default`, no routing
+class, no removal and no step verb. Four things did not.
+
+**The fence was never explained.** Stage 1's listing marks `::: diagram
+{unit=170x56}` as its first new line and its prose explains the four parts of
+the lines *below* it. The lecture that feeds the page had already reasoned this
+through for the masthead; stage 1 reintroduced it a screen later.
+
+**The page never said what to run.** `node build.js` appeared once, as item 2 of
+a twenty-item checklist 1,200 lines past the tutorial, while the lede promises
+"the build - the one command that turns that file into slides".
+
+**"Beat" was used from the contents onward and defined in plain language 899
+lines later**, in rule 5. The case page defines it at first use; the manual now
+does the same, and rule 5 no longer has to.
+
+**"Ten more things you can write" headed thirteen cards.** The standfirst named
+ten and now names thirteen - and leads with its point rather than closing on it.
+
+### Consistency
+
+**The manual carried no development-status note and the case page did.** The
+manual is not a sub-page: it has its own URL, is described as a page you open
+off disk, and is what a repository reader reaches first - so 37,000 words
+taught an unreleased source format with nothing saying so. It now carries the
+case page's sentence **verbatim**, so the two cannot drift into two answers.
+
+`.wedge` was called "a triangle" twice and "the wedge" once, in one document.
+
+### Language
+
+Both published pages are clean on the house rules: zero em dashes, zero
+forbidden vocabulary, no marketing cadence, and no maintainer idiom
+("load-bearing", "silent no-op") anywhere in reader-facing prose. Two
+ambiguities fixed - "figure and ground" arriving in its perceptual sense after
+900 lines in which *figure* meant a drawing, and a transition claiming a step
+"changes what the source says", which it does not. One self-congratulatory tail
+cut from `figure-design.md` by the deletion test.
+
+### Declined, and why
+
+**`figure-design.md` bolds 42 whole sentences**, about 25 of them in four long
+sections where paragraph after paragraph opens with one - which is the failure
+the house rule names, since an anchor on every paragraph is no anchor. Left
+alone: it is a real effect but the repair is a judgement about 25 paragraphs of
+authored prose, not a verified defect, and it is the author's call.
+
+### One thing worth recording about this round
+
+Inserting the status note, its stylesheet rule was copied verbatim from the
+case page - including `var(--accent)`, a token the manual does not define. The
+left border silently vanished, which is precisely the defect found in the
+editor badge one round earlier, reproduced by the reviewer who had just found
+it. Measured in the browser and corrected to `--emph`. The pattern outlives any
+single instance of it: **a rule moved between two pages carries the assumptions
+of the page it came from.**
