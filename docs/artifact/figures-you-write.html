@@ -856,7 +856,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
    does over .accent text; one class more in the selector settles it rather
    than source order, which is the guard the stroke case below already uses.
    (No backticks in here: this whole stylesheet is a template literal.) */
-.psi-diagram .emph text { fill: var(--emph); }
+.psi-diagram .emph text { fill: var(--emph); font-weight: 600; }
 .psi-diagram .tone-4.emph text, .psi-diagram .tone-4.emph tspan { fill: var(--paper); }
 /* .tone-4 fills with the accent, so an emphasis stroke in the accent lands
    invisibly on it: emph on such a box resolved, set its width and changed
@@ -876,7 +876,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
    ground, emph @wa-msg-8 framed the words instead of thickening the arrow.
    A bordered label is a box, and there is a statement for that. */
 .psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
-.psi-diagram .dg-edge > rect { stroke: none; }
+.psi-diagram .dg-edge > :is(rect, circle, .dg-shape) { stroke: none; }
 
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {
