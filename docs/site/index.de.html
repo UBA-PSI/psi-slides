@@ -554,7 +554,67 @@ browser is for pages meant to be looked at.
   </div>
 </section>
 
-<section class="band band-read band-close">
+<section class="band band-read">
+ <div class="wrap">
+
+  <h2 id="figures">Auch eine Abbildung ist Text</h2>
+
+  <p>Die Abbildungen einer Vorlesung veralten dort, wo sie in einem
+  Zeichenprogramm liegen. psi-slides hat dafür eine kleine Sprache: eine
+  Abbildung sind ein paar Zeilen in derselben Markdown-Datei wie die Folie, auf
+  der sie steht, und der Build zeichnet sie. Nichts darin speichert eine
+  Koordinate &ndash; jedes Element wird <em>an</em> ein anderes gesetzt &ndash;
+  also zieht ein verschobener Kasten mit, was an ihm hängt, und eine Abbildung
+  kann vor dem Publikum Takt für Takt entstehen.</p>
+
+  <figure class="shot drawn">
+    <img src="../img/figure.webp" alt="Eine Abbildung aus einer Vorlesung zur Netzsicherheit: vier Kästen in einer Reihe, beschriftet Frame Header, Datagram Header, Segment Header und Payload, mit je einer Linie von den ersten drei hinauf zu einer Notiz, welche Adressen dieser Kopf trägt.">
+  </figure>
+
+  <p class="tiny">Eine Folie aus einer echten Vorlesung, vom Build gezeichnet.
+  Diese fünf Zeilen sind die vier Kästen darin; die Notizen darüber, ihre
+  Linien und die drei Takte, die sie nacheinander hereinholen, sind elf
+  weitere.</p>
+
+<pre><code><span class="t-dir">default box</span> <span class="t-punct">{.tone-3 .sharp}</span> w 0.88 h 0.85
+<span class="t-dir">box</span> fh <span class="t-strong">"Frame\nHeader"</span>    <span class="t-cmt">at</span> 0,0
+<span class="t-dir">box</span> dh <span class="t-strong">"Datagram\nHeader"</span> <span class="t-cmt">right of</span> fh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh
+<span class="t-dir">box</span> sh <span class="t-strong">"Segment\nHeader"</span>  <span class="t-cmt">right of</span> dh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh
+<span class="t-dir">box</span> pl <span class="t-strong">"Payload"</span>          <span class="t-cmt">right of</span> sh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh <span class="t-punct">{.paper}</span></code></pre>
+
+  <div class="hint">
+    <p><strong>Das hier ist eine Vorschau.</strong> Sie steckt nicht in der
+    Version 1.0.0, der Download auf der Releases-Seite hat sie also nicht. Zum
+    Ausprobieren braucht es das Repository selbst &ndash; entweder ein Klon oder
+    das <b>Source code (zip)</b> von derselben Releases-Seite, das den aktuellen
+    Stand des Codes enthält statt des getaggten.</p>
+
+<pre><code><span class="t-cmd">git</span> clone <span class="t-path">https://github.com/UBA-PSI/psi-slides</span>
+<span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
+<span class="t-cmd">npm</span> install
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/diagrams/source.md</span>
+<span class="t-cmd">open</span> <span class="t-path">lectures/diagrams/audience.html</span>   <span class="t-cmt"># jedes Konstrukt, gezeichnet</span></code></pre>
+
+    <p>Vorschau heißt nicht nur, dass die Verpackung fehlt: das Quellformat
+    kann sich noch ändern, und eine heute geschriebene Abbildung braucht
+    möglicherweise eine Anpassung, wenn es erscheint. Die Zeichnung oben ist
+    eine von sechsunddreißig in <code>lectures/network-security</code>, wo die
+    Sprache am Umfang einer echten Vorlesung erprobt wurde.</p>
+  </div>
+
+  <p><a href="../figures.html">Figures you write</a> ist die Begründung für die
+  Sprache &ndash; was eine Vorlesungsabbildung leisten muss, woran ein
+  Zeichenprogramm und eine Auto-Layout-Sprache dabei jeweils scheitern.
+  <a href="../figures-you-write.html">Das Handbuch</a> baut eine Abbildung
+  Zeile für Zeile auf, führt dann jede Anweisung, die Gestaltungsregeln und
+  ausgearbeitete Beispiele auf und zeigt den grafischen Editor, mit dem sich
+  ein Kasten in der laufenden Folie ziehen lässt, während der Quelltext
+  mitgeschrieben wird. Beide Seiten sind auf Englisch.</p>
+
+  </div>
+</section>
+
+<section class="band band-do band-close">
  <div class="wrap">
 
   <h2>Dokumentation</h2>
@@ -562,15 +622,8 @@ browser is for pages meant to be looked at.
     <li><a href="../comparison.html">Der Vergleich mit anderen Werkzeugen</a> &ndash;
       Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint und Verwandte, in beide
       Richtungen, samt den Stellen, an denen psi-slides verliert. Auf Englisch.</li>
-    <li><a href="../figures.html">Abbildungen, die man schreibt</a> &ndash;
-      die Begründung für die Figurensprache: was eine Vorlesungsabbildung leisten muss,
-      woran ein Zeichenprogramm und eine Auto-Layout-Sprache dabei jeweils scheitern,
-      und die vier Entscheidungen dahinter. Auf Englisch.</li>
-    <li><a href="../figures-you-write.html">Das Handbuch dazu</a> &ndash;
-      baut eine Abbildung Zeile für Zeile auf, gibt ihr Takte, und führt dann jede
-      Klasse, jede Anweisung, die Gestaltungsregeln, ausgearbeitete Beispiele und wie man
-      eine Abbildung direkt in der laufenden Folie per Maus bearbeitet.
-      Auf Englisch.</li>
+    <li><a href="#figures">Die Figurensprache</a> &ndash; eine Vorschau, mit den
+      beiden Seiten, die sie beschreiben, und dem, was man zum Ausprobieren braucht.</li>
   </ul>
 
   <h2>Quellcode</h2>

@@ -148,6 +148,12 @@ main.banded { max-width: none; padding: 0; }
 /* Tinted band, tinted card: the hint would sit 0.005 lightness from its own
    ground and disappear. Lifted to paper, it reads as a card either way. */
 .band-read .hint { background: var(--paper); }
+/* A drawing, not a screen. It gets the shot frame - and with it the lightbox -
+   but no window bar, because there is no window, and it is set narrower than a
+   screenshot: a screenshot has to stay legible at a third of its size, while a
+   figure is already at reading size and only looks shouted at when blown up. */
+.shot.drawn { max-width: 40rem; margin-left: auto; margin-right: auto; }
+.shot.drawn img { display: block; }
 /* The hero carries its own opening space, and the university bar is directly
    above it. */
 .band-hero { padding-top: 1.5rem; }

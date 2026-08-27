@@ -541,7 +541,63 @@ browser is for pages meant to be looked at.
   </div>
 </section>
 
-<section class="band band-read band-close">
+<section class="band band-read">
+ <div class="wrap">
+
+  <h2 id="figures">A figure is text too</h2>
+
+  <p>The lecture figures that get out of date are the ones that live in a
+  drawing program. psi-slides has a small language for them instead: a figure
+  is a few lines in the same Markdown file as the slide it sits on, and the
+  build draws it. Nothing stores a coordinate &ndash; each element is placed
+  <em>against</em> another one &ndash; so moving a box moves what is attached to
+  it, and a figure can be built up in front of the room one beat at a time.</p>
+
+  <figure class="shot drawn">
+    <img src="img/figure.webp" alt="A figure from a network security lecture: four boxes in a row, labelled Frame Header, Datagram Header, Segment Header and Payload, with a leader line from each of the first three up to a note naming the addresses that header carries.">
+  </figure>
+
+  <p class="tiny">One slide from a real course, drawn by the build. These five
+  lines are the four boxes in it; the notes above them, the leaders and the
+  three beats that bring the notes in one at a time are eleven more.</p>
+
+<pre><code><span class="t-dir">default box</span> <span class="t-punct">{.tone-3 .sharp}</span> w 0.88 h 0.85
+<span class="t-dir">box</span> fh <span class="t-strong">"Frame\nHeader"</span>    <span class="t-cmt">at</span> 0,0
+<span class="t-dir">box</span> dh <span class="t-strong">"Datagram\nHeader"</span> <span class="t-cmt">right of</span> fh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh
+<span class="t-dir">box</span> sh <span class="t-strong">"Segment\nHeader"</span>  <span class="t-cmt">right of</span> dh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh
+<span class="t-dir">box</span> pl <span class="t-strong">"Payload"</span>          <span class="t-cmt">right of</span> sh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh <span class="t-punct">{.paper}</span></code></pre>
+
+  <div class="hint">
+    <p><strong>This one is a preview.</strong> It is not in the 1.0.0 release,
+    so the download on the releases page does not have it. To try it you need
+    the repository itself &ndash; either a clone, or the <b>Source code (zip)</b>
+    from the same releases page, which is the current state of the code rather
+    than the tagged one.</p>
+
+<pre><code><span class="t-cmd">git</span> clone <span class="t-path">https://github.com/UBA-PSI/psi-slides</span>
+<span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
+<span class="t-cmd">npm</span> install
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/diagrams/source.md</span>
+<span class="t-cmd">open</span> <span class="t-path">lectures/diagrams/audience.html</span>   <span class="t-cmt"># every construct, drawn</span></code></pre>
+
+    <p>Being a preview is not only a question of packaging: the source format
+    is still open to change, and a figure you write now may need an edit when
+    it ships. The drawing above is one of thirty-six in
+    <code>lectures/network-security</code>, which is where it was worked out at
+    the size of a real course.</p>
+  </div>
+
+  <p><a href="figures.html">Figures you write</a> is the case for the language
+  &ndash; what a lecture figure has to do that a drawing program and an
+  auto-layout language each do badly. <a href="figures-you-write.html">The
+  manual</a> builds one a line at a time, then lists every statement, the
+  design rules and worked examples, and shows the graphical editor that lets
+  you drag a box on the live slide and have the source rewritten.</p>
+
+  </div>
+</section>
+
+<section class="band band-do band-close">
  <div class="wrap">
 
   <h2>Documentation</h2>
@@ -549,14 +605,8 @@ browser is for pages meant to be looked at.
     <li><a href="comparison.html">How psi-slides compares</a> &ndash;
       Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, in both directions,
       including where psi-slides loses.</li>
-    <li><a href="figures.html">Figures you write</a> &ndash;
-      the case for the figure language: what a lecture figure has to do that a drawing
-      program and an auto-layout language each do badly, and the four decisions behind
-      the answer.</li>
-    <li><a href="figures-you-write.html">Writing figures: the manual</a> &ndash;
-      builds a figure a line at a time, gives it beats, then every class and statement,
-      the design rules, worked examples, and how to edit one by dragging it on the live
-      slide.</li>
+    <li><a href="#figures">The figure language</a> &ndash; a preview, with the two
+      pages that describe it and what you need to try it.</li>
   </ul>
 
   <h2>Source</h2>

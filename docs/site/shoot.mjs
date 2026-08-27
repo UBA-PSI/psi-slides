@@ -95,6 +95,16 @@ const SHOTS = [
   // half, and a screenshot of a clipped UI reads as a broken one.
   { name: 'editor', src: 'audience.html', w: 1280, h: 850, dsf: 1.5,
     lecture: 'diagrams', target: 'cbc', frag: true, act: openEditor },
+  // A figure on the slide, for the preview section on the landing page. It is
+  // a projection rather than a cut-out drawing, because what the section
+  // claims is that these are lecture slides, not pictures pasted onto them.
+  // network-security rather than diagrams: it is lang: en, and its chunks are
+  // slides from a real course rather than a construct reference. #ns-a03 has
+  // no reveal separator, so the projection opens on the finished figure -
+  // #lifecycle looked empty, because its first segment is one row of three.
+  { name: 'figure', src: 'print.html', w: 1200, h: 900, dsf: 2,
+    lecture: 'network-security', target: 'ns-a03',
+    clip: '#ns-a03 svg.psi-diagram' },
 ];
 
 // What the shot has to show is not that the editor exists but what it knows:
@@ -106,6 +116,21 @@ const SHOTS = [
 // The zoom is left at what Fit answers. One step in fills the canvas better and
 // pushes the frame past both edges, which takes the outermost relation label
 // with it.
+// Both figure lectures pin theme: dark in their frontmatter, and every other
+// screenshot on the landing page is on paper - one dark plate in the set reads
+// as a different product rather than as a different theme. A is the key a
+// lecturer presses, so the shot cycles it exactly as the room would, and stops
+// on the first light theme rather than counting presses: the cycle is built
+// from THEME_NAMES and a new theme would silently move the count.
+async function toLightTheme(p) {
+  for (let i = 0; i < 8; i++) {
+    if (await p.evaluate(() => document.body.dataset.mode === 'light')) return;
+    await p.keyboard.press('a');
+    await p.waitForTimeout(220);
+  }
+  throw new Error('figure shot: no light theme after a full cycle of A');
+}
+
 async function openEditor(p) {
   await p.click('#cbc figure.figure-diagram svg', { position: { x: 8, y: 8 } });
   await p.waitForTimeout(400);
@@ -281,7 +306,15 @@ try {
     if (s.act) await s.act(page);
 
     const png = path.join(IMG, s.name + '.png');
-    await page.screenshot({ path: png });
+    // A shot may name one element instead of the viewport. Only the figure
+    // shot does: what it has to show is the drawing, and everything else on
+    // that slide is the lecture's own German commentary, a page number and a
+    // lot of paper. Clipping also puts the theme toast outside the frame.
+    const frame = s.clip ? page.locator(s.clip) : page;
+    if (s.clip && !(await page.locator(s.clip).count())) {
+      throw new Error(`${s.name}: nothing matches ${s.clip}`);
+    }
+    await frame.screenshot({ path: png });
     let out = png;
     if (enc) {
       out = path.join(IMG, s.name + '.webp');
