@@ -6113,9 +6113,14 @@ if (document.fonts && document.fonts.ready) {
 #dge-top .dge-experimental {
   flex: none;
   padding: 0.16rem 0.42rem;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--rule));
+  /* --emph, not --accent: the lecture views define --emph and know nothing
+     about --accent, so the pill came out with the toolbar's own grey text and
+     no border at all - `border: 1px solid color-mix(…var(--accent)…)` is
+     invalid as a whole when the token is missing, so the outline vanished
+     rather than falling back. Every other accent in this file is --emph. */
+  border: 1px solid color-mix(in srgb, var(--emph) 45%, var(--rule));
   border-radius: 999px;
-  color: var(--accent);
+  color: var(--emph);
   font-size: 9px;
   font-weight: 700;
   font-variant-caps: all-small-caps;

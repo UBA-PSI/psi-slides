@@ -20,6 +20,22 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   ok(await ed.open('cbc'), 'the editor opens with E from a focused figure');
   ok(await page.locator('#dge-top .dge-experimental').isVisible(),
     'the open editor labels itself experimental');
+  // Visible is not the claim. The badge shipped asking for `--accent`, which
+  // the lecture views do not define - so it came out in the toolbar's own grey
+  // with `border: none`, because a `color-mix()` over a missing token
+  // invalidates the whole declaration rather than falling back. It was
+  // present, and it did not read as a badge. This asserts the effect: it is a
+  // different colour from the text around it and it has an outline.
+  const badge = await page.evaluate(() => {
+    const b = document.querySelector('#dge-top .dge-experimental');
+    const cs = getComputedStyle(b);
+    return { colour: cs.color, around: getComputedStyle(b.parentElement).color,
+      border: cs.borderTopStyle };
+  });
+  ok(badge.colour !== badge.around, 'the experimental badge is not the colour of the toolbar around it',
+    `badge ${badge.colour}, toolbar ${badge.around}`);
+  ok(badge.border === 'solid', 'the experimental badge keeps its outline',
+    `border-style was ${badge.border}`);
   ok((await page.locator('#dge-root').getAttribute('aria-label')) === 'Diagram editor, experimental',
     'the experimental status is also in the dialog name');
 
