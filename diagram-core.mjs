@@ -3446,7 +3446,22 @@ export function createDiagramCompiler(env = {}) {
           const et = dgTokenize(line, eSpan[0]);
           const eb = et.filter(x => !x.attr && !x.q).map(x => x.v);
           const aAt = eb.findIndex(v => DG_SEQ_ARROWS.has(v));
-          if (DG_KEYWORDS.has(eb[0])) break;
+          if (DG_KEYWORDS.has(eb[0])) {
+            // `edge a -> b "hi"` is both a named message and an ordinary edge
+            // between the two actor heads, and no shape tells them apart. Say
+            // so rather than silently taking the second reading - which is what
+            // happened, and only when the line was the last entry, because with
+            // an entry under it the run's own recovery message fired instead.
+            // An annotation that merely *contains* an arrow is unaffected: its
+            // token before the arrow is not one of this sequence's actors.
+            const actorsSoFar = new Set(entries.filter(x => x.bare[0] === 'actor').map(x => x.bare[1]));
+            if (aAt === 2 && actorsSoFar.has(eb[1]) && actorsSoFar.has(eb[3])) {
+              dgErr(errors, m + 1, `"${eb[0]}" is a statement word, so this line is both a message `
+                + `named ${eb[0]} and an ordinary ${eb[0]} statement, and nothing in it decides which. `
+                + `Drop the name to make it a message, or rename it.`, 'syntax');
+            }
+            break;
+          }
           if (!DG_SEQ_ENTRIES.has(eb[0]) && aAt < 0) break;
           entries.push({ toks: et, bare: eb, arrowAt: aAt, ln: m + 1, span: eSpan });
           lastAt = m;
@@ -3551,6 +3566,18 @@ export function createDiagramCompiler(env = {}) {
           if (eb[0] === 'actor') {
             const aid = eb[1];
             if (!aid) { dgErr(errors, e.ln, 'actor needs a name and a label – actor u "User"'); continue; }
+            // A message begins with its from-actor, and the entry run ends at
+            // any line opening with a statement word - so an actor called
+            // `text` or `box` can be declared and then never sent a message:
+            // `text -> b "hi"` leaves the run and is read as a `text`
+            // statement, which fails on the arrow with two complaints that
+            // never mention what happened. Refused where the name is chosen,
+            // which is the line the author can act on.
+            if (DG_KEYWORDS.has(aid)) {
+              dgErr(errors, e.ln, `actor ${aid}: "${aid}" is a statement word, and a message begins `
+                + `with its sender – so "${aid} -> …" would be read as a ${aid} statement rather than `
+                + 'as a message. Give the actor another name.', 'syntax');
+            }
             if (eb.length > 2) {
               dgErr(errors, e.ln, `unexpected "${eb.slice(2).join(' ')}" in actor ${aid} – `
                 + 'an actor is `actor <name> "<label>"` and an attribute tail');
@@ -4993,17 +5020,18 @@ export function createDiagramCompiler(env = {}) {
         //
         // A prominence verb is gated here too, and through this same walk
         // rather than a second one. `emph a` and `style a {.emph}` are
-        // documented as one act spelled two ways, but only the spelling with
-        // the class was ever asked whether the kind can draw it: `.emph` on a
-        // free text is refused, and `emph a` on the same text was accepted and
-        // did nothing, because the stylesheet strokes a rect, a circle or a
-        // shape and a bare glyph run is none of them. Where the text carries a
-        // fill it is worse than inert - there *is* a rect then, so the verb
-        // reached an effect the class gate exists to forbid. `dim` and `ghost`
-        // resolve to an opacity and every kind can carry one, so in practice
-        // this refuses `emph` on a `text` or an `image` and nothing else; it
-        // is written off DG_PROMINENCE rather than off `emph` so that the
-        // table stays the single answer to which kinds a prominence reaches.
+        // documented as one act spelled two ways, and only the spelling with
+        // the class was ever asked whether the kind can draw it - so the verb
+        // is the reason this branch takes an op that is not `style`.
+        //
+        // What it refuses today is *nothing* in the prominence family, and
+        // that is the point rather than a hole: the three words share one kind
+        // list, so a target this gate would reject does not exist. The gate is
+        // still what makes that a fact instead of a claim - widen or narrow
+        // DG_CLASS_KINDS and the verb follows the class in the same commit,
+        // which is what "one channel with three names" has to mean to be worth
+        // writing down. Written off DG_PROMINENCE and not off `emph` for the
+        // same reason: the table stays the single answer.
         const gated = op.op === 'style'
           ? ((op.classes || []).length || (op.removed || []).length ? op.classes : null)
           : (DG_PROMINENCE.includes(op.op) ? [op.op] : null);

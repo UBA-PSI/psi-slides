@@ -23,7 +23,7 @@
  * here is estimated rather than measured, so a coordinate baked into an
  * assertion pins the estimate rather than the meaning.
  */
-import { render } from './harness.mjs';
+import { frames, render } from './harness.mjs';
 
 export const name = 'the emitted drawing means what the source says';
 
@@ -252,6 +252,58 @@ export async function run({ report }) {
     const overridden = box('default box point up', 'point down');
     ok(overridden && overridden === down, 'a box\'s own point beats the default',
       'the default won');
+  }
+
+  // ── prominence is one slot, and it reaches every member of a set the
+  //    compiler itself mixed ──────────────────────────────────────────
+  // The kind list was widened so that `emph @wa-msg-N` works: `sequence`
+  // generates that tag holding an edge, a number and an optional second line,
+  // and a `{@t}` written once on a `grid` line is spread over a frame and its
+  // image cells. Accepting the line is not the claim - the claim is that every
+  // member ends the beat carrying the class, which is what makes the set one
+  // act rather than one act and some silence.
+  {
+    const out = fig('a message tag emphasised',
+      SEQ(AB + '  a -> b "M" "second line"\n') + '\nstep s\n  emph @s-msg-0');
+    if (out) {
+      const fr = frames(out);
+      const at1 = fr && fr.frames && fr.frames[1] && fr.frames[1].cls;
+      for (const part of ['s-0', 's-n-0', 's-sub-0']) {
+        const got = at1 && at1[part];
+        ok(typeof got === 'string' && got.split(/\s+/).includes('emph'),
+          `emph @s-msg-0 reaches ${part}`, `beat 1 class was ${JSON.stringify(got)}`);
+      }
+    }
+  }
+  {
+    // The three words share one slot, so `emph` on a picture is not inert: it
+    // displaces the `dim` that was there. This is the whole of what emphasis
+    // means on a kind with no ink of its own, and it is why the kind list is
+    // one list.
+    const out = fig('emph after dim on an image',
+      'image i pic "P" w 1 {.dim}\nbox b "B" below i gap 1\nstep s\n  emph i');
+    const fr = out && frames(out);
+    const a = fr && fr.frames[0] && fr.frames[0].cls && fr.frames[0].cls.i;
+    const b = fr && fr.frames[1] && fr.frames[1].cls && fr.frames[1].cls.i;
+    ok(/\bdim\b/.test(String(a)) && /\bemph\b/.test(String(b)) && !/\bdim\b/.test(String(b)),
+      'emph displaces dim on an image rather than stacking with it',
+      `opening ${JSON.stringify(a)}, beat 1 ${JSON.stringify(b)}`);
+  }
+  {
+    // A free text carries the class in every spelling, which is the symmetry
+    // the verb used to break: the class was refused and the verb accepted.
+    const spellings = {
+      'on its own line': 'text t "T" at 0,0 {.emph}\nbox b "B" below t gap 1',
+      'through a style step': 'text t "T" at 0,0\nbox b "B" below t gap 1\nstep s\n  style t {.emph}',
+      'through the verb': 'text t "T" at 0,0\nbox b "B" below t gap 1\nstep s\n  emph t',
+    };
+    for (const [how, body] of Object.entries(spellings)) {
+      const out = fig(`emph on a text ${how}`, body);
+      if (!out) continue;
+      const last = body.includes('step') ? (frames(out).frames[1].cls || {}).t : clsOf(out, 't');
+      ok(String(last).split(/\s+/).includes('emph'), `a text takes emph ${how}`,
+        `class was ${JSON.stringify(last)}`);
+    }
   }
 
   note('four contracts, and this gate holds the third: what the compiler emitted, '

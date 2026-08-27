@@ -1,6 +1,8 @@
 # Review of the figure language and its documentation
 
-**Status: open, partially addressed.** Initially reviewed 2026-08-26 against
+**Status: the follow-up findings are addressed; three items stay open by
+decision, and they are listed at the foot of this file under *Second
+implementation round*.** Initially reviewed 2026-08-26 against
 the then-current working tree, with a follow-up review of the implementation
 added on 2026-08-27 below. The initial findings are kept as the evidence and
 decision record rather than rewritten after the fact. Particular attention was
@@ -1174,3 +1176,50 @@ The full browser suite reported in the implementation commits was not rerun for
 this follow-up. Inspection of the browser tests found no targeted computed-style
 assertion for the new free-text prominence effect, which is why that gap remains
 even if the reported full suite is green.
+
+
+---
+
+## Second implementation round
+
+Answering the follow-up of 2026-08-27. Every claim in it was reproduced before
+anything was changed, and each fix was calibrated in both directions - shown to
+fire on the fault and to stay silent without it - because the follow-up's
+sharpest observation was that a green suite had been treated as evidence when
+no assertion in it could see the effect under test.
+
+### Closed
+
+| follow-up finding | what was done |
+|---|---|
+| statement words are implicit reserved names at the head of a message | both halves refused where the author can act. `actor text "T"` is refused on the *declaration*, naming the collision; a named message whose name is a statement word (`edge a -> b`, ambiguous with the `edge` statement in both readings) is refused on the line, and only when its two ends really are actors of that sequence - so an annotation that merely contains an arrow is untouched. Mirrored in `lint.js`, five fixtures in `accepts.mjs`, and the causal problem sorts first, which is what the editor panel shows |
+| `emph` had only an acceptance gate | calibrated first: deleting `.psi-diagram .emph text { fill: var(--emph) }` left all 389 fast gates green. Seven assertions added to `test/gates/semantics.mjs` (a generated message tag reaches its edge, number and second line; `emph` displaces `dim` on an image; a text takes `emph` in all three spellings), and `test/figure-prominence.mjs` added for the part no gate can see - computed style in the browser. Both were then re-run against the old narrow kind list and against the deleted rule: 6 and 1 failures respectively |
+| step legality explained but not look-up-able | the class table has a generated fifth column, `in a step?`, filled per row from the classes that row lists rather than per group - `line shape` answers *only `.elbow`*, because `.smooth` is settled at build time and `.elbow` is not. Source stays `DG_STEP_FIXED`; `refresh-figures.mjs --check` holds it |
+| `editor` folded into the viewer-default sentence | it is a build-time payload choice with no stored reader preference to yield to (`state.editor` does not exist and nothing writes it to `localStorage`). The README keeps five viewer defaults and describes `editor` separately |
+| maintainer comments still describing the rejected repair | both rewritten. The honest reason for keeping the gate is that it refuses nothing in this family *today* and is what keeps the verb following the class if the kind list ever moves |
+| contents route disagreed with document order | the `Learn` route now runs with the page. Checked mechanically: all four routes are monotone in section order |
+| the review needs closure annotations | this section |
+
+### Open by decision
+
+- **The learning path's second pass** (progressive disclosure inside the six
+  stages) is not done. It is the one remaining item that rewrites teaching
+  prose rather than moving or generating it, and the ordering it proposes -
+  mental model *after* the first beat - moves "Written, not drawn" out of the
+  opening, which is a decision about what the page argues, not only about what
+  it teaches. Worth doing; worth deciding deliberately.
+- **A persistent/sticky contents affordance.** The static block was built
+  first because it is the part that survives a reader printing the page.
+- **A full generated reference** for generated names and the default cascade,
+  and **reframing `lectures/diagrams`** as a construct reference rather than a
+  tutorial. Both were deferred in the first round and stay deferred.
+
+### One observation the follow-up did not raise
+
+At viewport widths below roughly 800px the *page* scrolls horizontally, not
+only the wide tables inside their own containers. The offenders predate this
+work - code listings (`span.cl`), the tool-comparison table, the state table -
+and the class table's width is unchanged by the new column, because
+`table.roles:has(th:nth-child(4))` pins it at 58rem whether it carries four
+columns or five. Recorded rather than fixed: it is a layout question about the
+whole page.

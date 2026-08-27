@@ -799,9 +799,10 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       }
       // A prominence verb rides the same deferred gate, because `emph a` and
       // `style a {.emph}` are one act spelled two ways and only the spelling
-      // with the class was ever asked whether the kind can draw it. In
-      // practice this is `emph` on a `text` or an `image`: `dim` and `ghost`
-      // resolve to an opacity, which every kind carries. Written off
+      // with the class was ever asked whether the kind can draw it. The three
+      // share one kind list, so there is no target this rejects today - it is
+      // here so that the verb keeps following the class if that list ever
+      // moves, in this file and in the build together. Written off
       // DG_PROMINENCE rather than off `emph`, so DG_CLASS_KINDS stays the one
       // answer to which kinds a prominence reaches.
       if (DG_PROMINENCE.includes(head)) {
@@ -1124,7 +1125,18 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         // statement. The two files have to agree on where the run ends or
         // their `rowsRead` counts diverge and every line after it is judged
         // against the wrong grammar.
-        if (DG_KEYWORDS.has(w[0])) break;
+        if (DG_KEYWORDS.has(w[0])) {
+          // The other half of the same rule: a named message whose name is a
+          // statement word is both readings at once, and the build says so.
+          const actorsSoFar = new Set(entries.filter(x => x.w[0] === 'actor').map(x => x.w[1]));
+          if (aAt === 2 && actorsSoFar.has(w[1]) && actorsSoFar.has(w[3])) {
+            add(block.lines[m].ln, 'error', 'bad-diagram-sequence',
+              `'${w[0]}' is a statement word, so this line is both a message named ${w[0]} and an `
+              + `ordinary ${w[0]} statement, and nothing in it decides which. Drop the name to make `
+              + 'it a message, or rename it.');
+          }
+          break;
+        }
         if (!DG_SEQ_ENTRIES.has(w[0]) && aAt < 0) break;
         // The kind the entry expands into: an `actor` head and a `note` are
         // boxes, a message is an edge. Only the slot-pair check ran on these
@@ -1186,6 +1198,14 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
           if (!aid) {
             add(e.ln, 'error', 'bad-diagram-sequence', 'actor needs a name and a label – actor u "User"');
             continue;
+          }
+          // Mirrors the build: a message begins with its sender, and the entry
+          // run ends at any line opening with a statement word, so an actor
+          // named after one can never be sent a message.
+          if (DG_KEYWORDS.has(aid)) {
+            add(e.ln, 'error', 'bad-diagram-sequence', `actor ${aid}: '${aid}' is a statement word, `
+              + `and a message begins with its sender – so '${aid} -> …' would be read as a ${aid} `
+              + 'statement rather than as a message. Give the actor another name.');
           }
           if (ea.id) {
             add(e.ln, 'error', 'bad-diagram-sequence', `actor ${aid} is named by the word after `

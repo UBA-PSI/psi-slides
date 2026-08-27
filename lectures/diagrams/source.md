@@ -424,6 +424,16 @@ text t3 "serif" right of t2 gap 1 {.serif}
 text t4 "hand"  right of t3 gap 1 {.hand}
 text tl "family" left of t1 gap 1.15 {.muted}
 
+# Die drei Prominenzwörter, an freiem Text statt an Kästen: sie belegen einen
+# Slot und verdrängen einander, und `.emph` färbt hier die Wörter selbst –
+# ein Bild hat gar keine Tinte dafür und wird trotzdem von derselben Liste
+# bedient, weil `emph` dort schlicht ein `dim` wieder abnimmt.
+text pr0 "normal" at 0.31,1.85
+text pr1 "emph"  right of pr0 gap 1 {.emph}
+text pr2 "dim"   right of pr1 gap 1 {.dim}
+text pr3 "ghost" right of pr2 gap 1 {.ghost}
+text prl "prominence" left of pr0 gap 1.15 {.muted}
+
 # One width, three answers: leave the type as it is and let it run over the
 # border, shrink it until it fits, or let it fill the box in both directions.
 box g1 "a label that is too long" at 0,2.3 w 1.2 h 0.46

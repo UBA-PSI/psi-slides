@@ -364,6 +364,31 @@ function stepFixed() {
   const parts = Object.entries(DG_STEP_FIXED).map(([what, list]) => what + ' (' + cs(list) + ')');
   return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
 }
+// The same table again, as a lookup. The generated sentence below the class
+// table gives the reason and the grouping; it does not answer "may a step
+// change *this* class" where the reader is actually looking, which is the row.
+// So each row carries an empty `<td data-stepcol>` and this fills it from the
+// classes that row lists - never from a second inventory, and never per group,
+// because `line shape` holds `.smooth` (settled at build time) beside
+// `.elbow` (a beat may add or drop it), and one answer for the pair would be
+// wrong about one of them.
+function stepColumn(page) {
+  const fixed = new Set(Object.values(DG_STEP_FIXED).flat());
+  return page.replace(/<tr(?: [^>]*)?>(?:(?!<\/tr>)[\s\S])*<\/tr>/g, (row) => {
+    if (!row.includes('data-stepcol')) return row;
+    const cells = row.match(/<td[\s\S]*?<\/td>/g) || [];
+    const classes = [...(cells[1] || '').matchAll(/<code>\.([a-z0-9-]+)<\/code>/g)].map((m) => m[1]);
+    if (!classes.length) return row;
+    const no = classes.filter((c) => fixed.has(c));
+    const answer = no.length === 0 ? 'yes'
+      : no.length === classes.length ? 'no'
+        : 'only ' + classes.filter((c) => !fixed.has(c)).map((c) => '<code>.' + c + '</code>').join(' ');
+    return row.replace(/<td data-stepcol>[\s\S]*?<\/td>/, '<td data-stepcol>' + answer + '</td>');
+  });
+}
+page = stepColumn(page);
+say('  step column filled for ' + (page.match(/data-stepcol/g) || []).length + ' class rows');
+
 page = replaceBetween(page, '<!--stepfixed:start-->', '<!--stepfixed:end-->',
   stepFixed(), 'step-fixed class list');
 say('  ' + Object.values(DG_STEP_FIXED).flat().length
