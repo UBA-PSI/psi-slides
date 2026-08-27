@@ -12093,6 +12093,33 @@ function createDiagramCompiler(env = {}) {
         // own, with a label and an attribute tail written by hand on it, so
         // the span it carries is that line and a panel edit lands where the
         // author put the words. See `entry` below.
+        // Every actor this sequence declares, gathered before the run is read.
+        // The ambiguity test below needs to know whether the two names either
+        // side of an arrow are actors, and a message may name an actor
+        // declared *under* it - that is an ordinary forward reference and the
+        // rest of the grammar allows it everywhere. Collecting actors as the
+        // loop met them therefore answered "no" for every message written
+        // above its own cast, so `edge a -> b` with the actors below it fell
+        // out of the run unchallenged and produced five downstream complaints
+        // - no actors, two orphaned actor lines, two undefined endpoints -
+        // none of which contained the word `edge`.
+        //
+        // The scan walks the same lines and stops where the run can still
+        // stop: at the first line that is neither an entry nor a keyword-led
+        // line carrying an arrow. A `box far "X"` under a sequence ends it
+        // here exactly as it ends the run, so no actor from beyond the
+        // sequence is ever collected.
+        const declaredActors = new Set();
+        for (let m = n + 1; m < lines.length; m++) {
+          const line = lines[m].trim();
+          if (!line || line.startsWith('#')) continue;
+          const b = dgTokenize(line, 0).filter(x => !x.attr && !x.q).map(x => x.v);
+          const hasArrow = b.some(v => DG_SEQ_ARROWS.has(v));
+          if (b[0] === 'actor') { if (b[1]) declaredActors.add(b[1]); continue; }
+          if (DG_SEQ_ENTRIES.has(b[0]) || hasArrow) continue;
+          break;
+        }
+
         const entries = [];
         let lastAt = n;
         let entryAt = lineAt;          // start of line n+1; lineAt is already past n
@@ -12115,13 +12142,20 @@ function createDiagramCompiler(env = {}) {
             // an entry under it the run's own recovery message fired instead.
             // An annotation that merely *contains* an arrow is unaffected: its
             // token before the arrow is not one of this sequence's actors.
-            const actorsSoFar = new Set(entries.filter(x => x.bare[0] === 'actor').map(x => x.bare[1]));
-            if (aAt === 2 && actorsSoFar.has(eb[1]) && actorsSoFar.has(eb[3])) {
+            if (aAt === 2 && declaredActors.has(eb[1]) && declaredActors.has(eb[3])) {
               dgErr(errors, m + 1, `"${eb[0]}" is a statement word, so this line is both a message `
                 + `named ${eb[0]} and an ordinary ${eb[0]} statement, and nothing in it decides which. `
                 + `Drop the name to make it a message, or rename it.`, 'syntax');
+              // Said once, and then read on as a message. Breaking here would
+              // be the second reading chosen silently, and it takes every
+              // entry under the line out of the run with it: the actors below
+              // arrive at the unknown-statement gate as orphans and the
+              // endpoints they would have defined are reported undefined.
+              // One authored defect earns one diagnostic, so the run
+              // continues in the reading the line is sitting inside.
+            } else {
+              break;
             }
-            break;
           }
           if (!DG_SEQ_ENTRIES.has(eb[0]) && aAt < 0) break;
           entries.push({ toks: et, bare: eb, arrowAt: aAt, ln: m + 1, span: eSpan });

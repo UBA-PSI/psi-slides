@@ -83,6 +83,12 @@ jobs:
       - name: Check the tracked outputs are current
         run: git diff --exit-code -- lectures/tutorial lectures/diagrams
 
+      # Same rule one folder over: both figure pages are tracked HTML whose
+      # drawings come from the lecture built above, so a stale one ships a
+      # picture its own listing no longer produces.
+      - name: Check the figure pages are current
+        run: node docs/artifact/refresh-figures.mjs --check
+
       - name: Stage the archive
         run: |
           mkdir -p dist/psi-slides

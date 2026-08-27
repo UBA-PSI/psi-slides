@@ -1271,3 +1271,50 @@ stage. **Still open:** progressive disclosure inside the six stages (stage 2
 introduces fourteen terms for one `edge`; stage 4 uses `default` 211 lines
 before it is defined), the page-level horizontal scroll below ~800px, and the
 generated reference for generated names and the default cascade.
+
+
+---
+
+## Fourth round: the four findings against the split
+
+All four reproduced before anything changed; three were defects introduced by
+the round they reviewed.
+
+**The sequence ambiguity check was asymmetric.** It built its actor set from
+the entries already read, while the grammar lets a message name an actor
+declared *under* it - so `edge a -> b` above its own cast fell out of the run
+unchallenged and produced five downstream complaints, none containing the word
+`edge`. A pre-scan gathers the run's actors before the loop reads it, stopping
+exactly where the run can stop, so no actor from beyond the sequence is
+collected. And the ambiguous line no longer *breaks* the run: it is reported
+once and then read on as the message it sits among, because breaking took every
+entry under it out of the run with it. Both orders now give the same single
+diagnostic, and four mirrored fixtures hold it - the missing mirror was half
+the finding.
+
+**The staleness gate was a claim, not a gate.** `build-site.js` and `CLAUDE.md`
+both named `refresh-figures.mjs --check` as what keeps the two published pages
+from going stale, and no workflow ran it. It runs in `pages.yml` before the
+site is assembled and in `release.yml` beside the tracked-output check. Not in
+`gates.yml`: that job is deliberately dependency-free and this check needs the
+full build. Calibrated both ways - and the first calibration was wrong, which
+is worth recording: sabotaging the page `<title>` did not trip it, because
+`--check` compares the *generated regions* against a fresh build rather than
+the whole file. Sabotaging a spliced listing trips it, exit 1, naming the file.
+
+**`docs/artifact/README.md` had gone stale in four places** - Google Fonts that
+are embedded, four stepped figures that are five, `#follow` in a section it has
+left, and the button wiring described as hand-written and safe to edit when
+editing it in the HTML is now exactly what gets thrown away on the next
+refresh.
+
+**The manual's link back to the case only resolved after deployment.** The
+manual is described as a page you open straight off disk, so a link that needs
+`_site` is broken for its own reader. The source now carries
+`../site/figures.html` and `build-site.js` drops the one step while copying,
+failing loudly if the link is not there to rewrite. The reverse asymmetry is
+deliberate: the site page is a build input that has no styling or top bar until
+the site build runs, so its links are written for where it is served.
+
+Still open, unchanged: progressive disclosure inside the six stages, and the
+page-level horizontal scroll below ~800px.

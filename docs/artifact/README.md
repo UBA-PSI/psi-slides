@@ -2,7 +2,8 @@
 
 A standalone page that teaches `::: diagram`, the figure language described in
 CLAUDE.md under *Animated infographics*. Open it in a browser; it needs no
-server and fetches nothing but its two Google Fonts stylesheets.
+server and fetches nothing at all &ndash; the three typefaces are embedded as
+`data:` URIs, which is what the last row below is about.
 
 It is written by hand, but several regions of it are produced by a script and
 must not be edited in the HTML.
@@ -11,9 +12,14 @@ must not be edited in the HTML.
 
 | | |
 |---|---|
-| `figures-you-write.html` | the page |
-| `figure-rules/source.md` | a psi-slides lecture whose only job is to be compiled: every figure the page teaches with, including four that step |
-| `refresh-figures.mjs` | rebuilds that lecture and puts every generated region back into the page |
+| `figures-you-write.html` | the manual: the page that teaches the language from nothing |
+| `figure-rules/source.md` | a psi-slides lecture whose only job is to be compiled: every figure both pages draw with, including five that step |
+| `demo-controls.js` | the arrows, the beat rail and the play button under a stepped figure. Inlined into both pages, because two copies of it is how their controls come to disagree |
+| `refresh-figures.mjs` | rebuilds that lecture and puts every generated region back into **both** pages |
+
+The second page is `docs/site/figures.html`, on the project site: the *case*
+for the language rather than the manual for it, drawing three of the same
+figures. This script writes it too, and `--check` covers both.
 
 ## What the script owns
 
@@ -42,8 +48,9 @@ It replaces, keyed by markers in the HTML:
   are notes to whoever maintains the lecture.
 - **Five figures that step** &ndash; drawing, per-beat geometry, the list of
   beat names under it and its listing, from an `--audience-only` build, which
-  is the only pass that emits the geometry. `#follow`, the one in the opening
-  section, is the only one whose listing is stripped of its comments: it has to
+  is the only pass that emits the geometry. `#follow`, which opens the step
+  section here and carries the argument on the site page, is the only one whose
+  listing is stripped of its comments: it has to
   show the *shape* of a stepped block &ndash; the cast at the top, the beats
   underneath, one blank line between &ndash; and six lines of commentary sitting
   in that blank line hide it. Its prose on the page quotes measured pixel
@@ -71,8 +78,10 @@ It replaces, keyed by markers in the HTML:
   Hand-counted, its brackets were one to four columns too wide and the error
   accumulated along the line.
 
-Everything else &ndash; prose, layout, CSS, and the short script under the
-runtime that wires up the buttons &ndash; is hand-written and safe to edit.
+Everything else &ndash; prose, layout and CSS &ndash; is hand-written and safe to
+edit. The script under the runtime that wires up the buttons is **not**: it is
+`demo-controls.js`, spliced in like the runtime above it, so an edit made in the
+HTML is gone on the next refresh. Edit the file.
 
 The chunk ids in the lecture are what the script looks figures up by: `#hero`, `#follow`, `#b1`,
 `#r1w`, `#tones`, `#beats-demo`, `#table-demo`, `#seq-demo`, and so on. Rename one in the lecture without

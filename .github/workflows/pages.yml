@@ -65,6 +65,15 @@ jobs:
           node build.js lectures/diagrams/source.md
           node build.js docs/artifact/figure-rules/source.md
 
+      # Both pages this job publishes carry figures compiled from the lecture
+      # above, and `refresh-figures.mjs` is the only text that compiles one for
+      # publication. Nothing ran it here, so a commit that changed the compiler
+      # or the lecture could publish a page whose drawings were made by an
+      # older one - and the two files say in their own comments that this check
+      # is what prevents that. It is a claim only if it runs.
+      - name: Check the published figure pages are current
+        run: node docs/artifact/refresh-figures.mjs --check
+
       - name: Assemble the site
         run: |
           mkdir -p _site/tutorial _site/python-intro _site/example

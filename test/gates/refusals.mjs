@@ -57,6 +57,22 @@ const SEQ_BODY = '\n  actor u "U"\n  actor r "R"\n  u -> r "m"';
 // `accept: true` means both sides must let it through. Anything else must be
 // refused by the build and reported by the linter.
 const FIXTURES = [
+  // ── the sequence identifier rule, in both directions ──────────────────
+  // A message begins with its sender and the entry run ends at a statement
+  // word, so an actor named after one could be declared and never spoken to.
+  // The named-message half has no answer at all rather than a bad one: `edge
+  // a -> b` is a message named `edge` and an ordinary edge between the two
+  // heads, and nothing in it decides which.
+  //
+  // The mirrored pair is the point of these four. A message may name an actor
+  // declared *under* it - that is an ordinary forward reference - so a check
+  // that collected actors as it met them answered "no" for every message
+  // written above its own cast, and the ambiguous line then fell out of the
+  // run unchallenged. Both orders must produce the same one diagnostic.
+  { item: 0, name: 'an actor named after a statement', body: SEQ + '\n  actor text "T"\n  actor b "B"\n  text -> b "hi"' },
+  { item: 0, name: 'a message named after a statement', body: SEQ + SEQ_BODY + '\n  edge u -> r "hi"' },
+  { item: 0, name: 'the same, with the actors declared below', body: SEQ + '\n  edge a -> b "hi"\n  actor a "A"\n  actor b "B"' },
+  { item: 0, name: 'and with a note between them', body: SEQ + '\n  edge a -> b "hi"\n  note a "n"\n  actor a "A"\n  actor b "B"' },
   // ── item 2: one sentence per statement, and the derived stop sets ──
   { item: 2, name: 'rightof is not a word', body: QUAD + 'box b "B" rightof a gap 1' },
   { item: 2, name: 'space is not a gap', body: QUAD + 'text t "note" right of a space 1' },

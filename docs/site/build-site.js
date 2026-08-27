@@ -255,8 +255,20 @@ function main() {
   // a real build - so it is copied whole. Published because the page beside it
   // ends by sending the reader to it, and a link to a page that is not there
   // is worse than no link.
-  fs.copyFileSync(path.join(ROOT, 'docs/artifact/figures-you-write.html'),
-    path.join(outDir, 'figures-you-write.html'));
+  // Its link back to the case is written for the repository, where the two
+  // pages are one folder apart, because the manual is described as a page you
+  // can open straight off disk and a link that only resolves after deployment
+  // is broken for exactly that reader. In _site they are siblings, so the one
+  // relative step is dropped here rather than being wrong in one of the two
+  // places the page is read.
+  const MANUAL = path.join(ROOT, 'docs/artifact/figures-you-write.html');
+  const manual = fs.readFileSync(MANUAL, 'utf8');
+  const LINK = '"../site/figures.html"';
+  if (!manual.includes(LINK)) {
+    throw new Error('the manual has no ' + LINK + ' link back to the case - has it been renamed?');
+  }
+  fs.writeFileSync(path.join(outDir, 'figures-you-write.html'),
+    manual.split(LINK).join('"figures.html"'));
   console.log('  docs/artifact/figures-you-write.html -> figures-you-write.html');
   fs.copyFileSync(path.join(HERE, 'site.css'), path.join(outDir, 'site.css'));
   fs.copyFileSync(path.join(HERE, 'site.js'), path.join(outDir, 'site.js'));

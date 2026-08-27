@@ -1110,6 +1110,22 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       };
       carry(id, 'box');
       const entries = [];
+      // Every actor the sequence declares, gathered before the run is read.
+      // Mirrors the build: a message may name an actor declared under it, so
+      // collecting them as the loop meets them answers "no" for every message
+      // written above its own cast. The scan stops where the run can stop.
+      const declaredActors = new Set();
+      for (let m = n + 1; m < block.lines.length; m++) {
+        const raw = block.lines[m].text.trim();
+        if (!raw || raw.startsWith('#')) continue;
+        const nq0 = raw.replace(/"(?:\\.|[^"\\])*"/g, ' ');
+        const w0 = nq0.replace(/\{[^}]*\}/g, ' ').trim().split(/\s+/).filter(Boolean);
+        const arrow0 = w0.some(v => DG_SEQ_ARROWS.has(v));
+        if (w0[0] === 'actor') { if (w0[1]) declaredActors.add(w0[1]); continue; }
+        if (DG_SEQ_ENTRIES.has(w0[0]) || arrow0) continue;
+        break;
+      }
+
       let lastAt = n;
       for (let m = n + 1; m < block.lines.length; m++) {
         const raw = block.lines[m].text.trim();
@@ -1128,14 +1144,16 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         if (DG_KEYWORDS.has(w[0])) {
           // The other half of the same rule: a named message whose name is a
           // statement word is both readings at once, and the build says so.
-          const actorsSoFar = new Set(entries.filter(x => x.w[0] === 'actor').map(x => x.w[1]));
-          if (aAt === 2 && actorsSoFar.has(w[1]) && actorsSoFar.has(w[3])) {
+          if (aAt === 2 && declaredActors.has(w[1]) && declaredActors.has(w[3])) {
             add(block.lines[m].ln, 'error', 'bad-diagram-sequence',
               `'${w[0]}' is a statement word, so this line is both a message named ${w[0]} and an `
               + `ordinary ${w[0]} statement, and nothing in it decides which. Drop the name to make `
               + 'it a message, or rename it.');
+            // Said once, then read on as a message - breaking here would take
+            // every entry under it out of the run, exactly as in the build.
+          } else {
+            break;
           }
-          break;
         }
         if (!DG_SEQ_ENTRIES.has(w[0]) && aAt < 0) break;
         // The kind the entry expands into: an `actor` head and a `note` are
