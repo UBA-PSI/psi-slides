@@ -33,11 +33,11 @@ The chunk ids are the contract with the refresh script. Do not rename them.
 # The page explains both further down; here they would be two pieces of
 # syntax a reader cannot yet read, in a listing whose claim is that it is
 # complete.
-box a "Alice"
-box e "Eve"  right of a gap 1.7 {.accent}
-box b "Bob"  right of e gap 1.7
-edge a -> e "plaintext"
-edge e -> b "plaintext"
+box alice "Alice"
+box eve "Eve"  right of alice gap 1.7 {.accent}
+box bob "Bob"  right of eve gap 1.7
+edge alice -> eve "plaintext"
+edge eve -> bob "plaintext"
 :::
 
 ## figure: the picture the site opens with {.full #sitehero}
@@ -90,18 +90,18 @@ step wire
 # from the opening beat. At 3.3:1 that reservation rendered as a third of a
 # panel of empty paper under two boxes; at 4.4:1 it reads as a margin. The
 # gaps here are set for that proportion rather than for the spacing rules.
-# Eve is `between` the two rather than `below a` with an offset, and that is
+# Eve is `between` the two rather than `below alice` with an offset, and that is
 # the figure practising what its own caption claims. The offset was a guessed
 # 1.7 grid units, which put her 28.9px left of the midpoint - close enough to
 # centred to read as a mistake rather than as a decision, and wrong again the
 # moment either gap changes. `between` states the relation and cannot drift.
-box  a  "Alice"
-box  b  "Bob"   right of a gap 10.3
-box  e  "Eve"   between a,b offset 0,1.5 {.accent}
-edge direct a -> b "message"
-edge a -> e {.accent}
-edge e -> b {.accent}
-container zone "Eve's reach" over e pad 0.45 {.dashed .muted}
+box  alice  "Alice"
+box  bob  "Bob"   right of alice gap 10.3
+box  eve  "Eve"   between alice,bob offset 0,1.5 {.accent}
+edge direct alice -> bob "message"
+edge alice -> eve {.accent}
+edge eve -> bob {.accent}
+container zone "Eve's reach" over eve pad 0.45 {.dashed .muted}
 
 # The second beat is one line. Nothing in the figure stores a coordinate, so
 # a longer label widens Eve's box, both her arrows re-aim at the sides that
@@ -110,11 +110,11 @@ container zone "Eve's reach" over e pad 0.45 {.dashed .muted}
 # each arrow moves 31 pixels, one left and one right. Re-measure these
 # numbers if the geometry above changes - the artifact page quotes them.
 step intercept
-  show e
+  show eve
   hide direct
 step relabel
-  label e "Eve, on path"
-  emph e
+  label eve "Eve, on path"
+  emph eve
 :::
 
 # The pairs
