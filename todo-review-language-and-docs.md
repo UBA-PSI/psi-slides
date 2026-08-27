@@ -1499,10 +1499,40 @@ responsive and were already checked at 320, 380, 760 and 1200 px.
 - `refresh-figures.mjs --check` reports both published pages current. A built
   site resolves every local reference from `figures.html` and
   `figures-you-write.html`.
-- The browser suite passes **578/0**, including the editor status assertions,
+- The browser suite passes **580/0**, including the editor status assertions,
   editor/compiler round trips, sequence ambiguity cases, computed-style
   effects, framing and overlap checks. The figure lecture build retains one
   intentional, already documented overflow warning for `g1`.
+
+### Review of the experimental labelling, and the one thing it shipped broken
+
+Every factual correction in the labelling commit was reproduced and holds: 41
+classes with 38 of them in thirteen slots and three ungrouped; `build.js:863`
+bundling IBM Plex Sans, so the tutorial naming Inter Tight was wrong; and the
+keymap repair complete rather than partial - checked against `DGE_TOOLS`, all
+nine tools now carry every key in the help sheet. `editor: both` remains the
+default, and all four surfaces carry the label, the figure lecture in German.
+
+The badge itself did not work. `.dge-experimental` asked for `var(--accent)`,
+which `site.css` defines and the lecture views do not - there the token is
+`--emph`. Measured in the open editor it came out at `oklch(0.68 0.01 260)`,
+the same colour as the toolbar text beside it, with `border-style: none`: a
+`color-mix()` over a missing token invalidates the whole `border` declaration
+rather than falling back. The file's own usage was the tell, 39 uses of
+`--emph` against 2 of `--accent`, and the two were these.
+
+**The assertion guarding it passed the whole time.** `isVisible()` asks whether
+an element is present, and a badge with no colour and no outline is entirely
+present. That is the failure this grammar keeps closing - a rule that resolves,
+emits its CSS and moves nothing - arriving in the test written to catch it. The
+spec reads computed style now: a colour different from the toolbar around it,
+and an outline. Calibrated by restoring `--accent`, where those two fail while
+`isVisible()` still reports green.
+
+With `--emph` the badge also meets a rule `--accent` could never have met: it
+stands out in all seven themes including both phosphor modes, where the accent
+is deliberately suppressed - it stays inside the phosphor hue and only
+brightens. Under `--accent` it was undefined in all seven.
 
 ### Residual risks, not release blockers
 
