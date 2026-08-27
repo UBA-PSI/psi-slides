@@ -10411,9 +10411,19 @@ function createDiagramCompiler(env = {}) {
           const line = lines[m].trim();
           if (!line || line.startsWith('#')) continue;
           const b = dgTokenize(line, 0).filter(x => !x.attr && !x.q).map(x => x.v);
-          const hasArrow = b.some(v => DG_SEQ_ARROWS.has(v));
+          const aAt = b.findIndex(v => DG_SEQ_ARROWS.has(v));
           if (b[0] === 'actor') { if (b[1]) declaredActors.add(b[1]); continue; }
-          if (DG_SEQ_ENTRIES.has(b[0]) || hasArrow) continue;
+          if (DG_SEQ_ENTRIES.has(b[0])) continue;
+          // Step over a line only where it could structurally *be* an entry.
+          // "carries an arrow anywhere" is too weak: a terminating annotation
+          // carries one too - `text n "…" right of s gap 1 -- s` - and walking
+          // past it collected actors declared beyond the sequence, which then
+          // made a keyword-named message look ambiguous against a cast it
+          // never had. An anonymous message has its arrow with a plain name
+          // before it; a named one has a statement word, a name and then the
+          // arrow at index 2. An annotation has neither shape.
+          if (!DG_KEYWORDS.has(b[0]) && aAt >= 0) continue;
+          if (DG_KEYWORDS.has(b[0]) && aAt === 2) continue;
           break;
         }
 

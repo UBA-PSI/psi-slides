@@ -345,6 +345,47 @@ export async function run({ report }) {
       good ? undefined : `build ${buildRefuses ? 'refuses' : 'accepts'}, lint ${lintReports ? 'reports' : 'is silent'}`);
   });
 
+  // ── where the actor pre-scan stops ────────────────────────────────
+  // The ambiguity test for a keyword-named message needs to know whether the
+  // names either side of the arrow are actors, and an actor may be declared
+  // *under* the message. So a scan runs ahead of the entry run to collect
+  // them - and where that scan stops is the whole of its correctness. Too
+  // eager and it walks past a terminating annotation, which carries an arrow
+  // of its own, and counts actors that belong to no sequence; the block then
+  // gets told a line is ambiguous against a cast it never had.
+  //
+  // Calibrated in both directions on purpose: the message must appear for the
+  // two real orders and must not appear for the annotation, and build and
+  // lint must agree on the count in all three. They diverged four against
+  // five on the third one, which is the failure this repository treats as the
+  // most expensive of all.
+  {
+    const AMBIG = /is a statement word, so this line is both a message/;
+    const CASES = [
+      { name: 'a keyword-named message, actors above', want: true,
+        body: 'sequence s at 0,0\n  actor a "A"\n  actor b "B"\n  edge a -> b "hi"' },
+      { name: 'the same, actors declared below it', want: true,
+        body: 'sequence s at 0,0\n  edge a -> b "hi"\n  actor a "A"\n  actor b "B"' },
+      { name: 'actors past a terminating annotation are not this sequence’s', want: false,
+        body: 'sequence s at 0,0\n  edge x -> y "hi"\n'
+          + 'text n "outside" right of s gap 1 -- s\nactor x "X"\nactor y "Y"' },
+    ];
+    const lintOf = lintAll(CASES);
+    CASES.forEach((c, i) => {
+      const r = render(c.body);
+      const said = !r.ok && AMBIG.test(r.msg);
+      ok(said === c.want, (c.want ? 'ambiguity named: ' : 'ambiguity NOT named: ') + c.name,
+        said ? 'the compiler named it' : 'the compiler did not name it');
+      const lintSaid = lintOf[i].some((f) => AMBIG.test(f.msg));
+      ok(lintSaid === c.want, 'lint.js agrees on: ' + c.name,
+        lintSaid ? 'lint named it' : 'lint did not name it');
+      const nBuild = r.ok ? 0 : Number((r.msg.match(/(\d+) problem/) || [0, 0])[1]);
+      ok(nBuild === lintOf[i].length,
+        'build and lint report the same count for: ' + c.name,
+        `build ${nBuild}, lint ${lintOf[i].length}`);
+    });
+  }
+
   // ── the two placement tables, against the compiler ────────────────
   // `DG_PLACED_HEADS` and `DG_PLACE_INTRO` are read by `lint.js` and by
   // nothing else, so nothing forces them to stay true as the grammar grows –

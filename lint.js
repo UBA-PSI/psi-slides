@@ -1120,9 +1120,16 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         if (!raw || raw.startsWith('#')) continue;
         const nq0 = raw.replace(/"(?:\\.|[^"\\])*"/g, ' ');
         const w0 = nq0.replace(/\{[^}]*\}/g, ' ').trim().split(/\s+/).filter(Boolean);
-        const arrow0 = w0.some(v => DG_SEQ_ARROWS.has(v));
+        const a0 = w0.findIndex(v => DG_SEQ_ARROWS.has(v));
         if (w0[0] === 'actor') { if (w0[1]) declaredActors.add(w0[1]); continue; }
-        if (DG_SEQ_ENTRIES.has(w0[0]) || arrow0) continue;
+        if (DG_SEQ_ENTRIES.has(w0[0])) continue;
+        // Same three shapes as the build: an anonymous message, a named one,
+        // and nothing else. A terminating annotation carries an arrow and is
+        // not an entry, so stepping over it gathered actors from beyond the
+        // sequence - and the two files then reported four problems against
+        // five on the same block.
+        if (!DG_KEYWORDS.has(w0[0]) && a0 >= 0) continue;
+        if (DG_KEYWORDS.has(w0[0]) && a0 === 2) continue;
         break;
       }
 

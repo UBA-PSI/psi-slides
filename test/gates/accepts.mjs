@@ -78,6 +78,18 @@ const CONSTRUCTS = [
   ['the same annotation behind a brace',
     'sequence x at 0,0\n  actor a "A"\n  actor b "B"\n  a -> b "hello"\n'
       + 'brace br over x-0 "phase" side left\ntext n "why here" right of x-0 gap 1 -- x-0'],
+  // The property the whole actor pre-scan exists for, and the one thing in
+  // this family that is *legal*. A message may name an actor declared under
+  // it - an ordinary forward reference, which the rest of the grammar allows
+  // everywhere - so the ambiguity test cannot answer from the entries it has
+  // read so far. Refusals hold the illegal shapes; nothing held this one, and
+  // an implementation that quietly required actors-before-messages would have
+  // passed every gate in the repository while making the scan pointless.
+  ['a message naming actors declared under it',
+    'sequence s at 0,0\n  a -> b "hi"\n  actor a "A"\n  actor b "B"'],
+  ['the same with a note and a second message between',
+    'sequence s at 0,0\n  a -> b "one"\n  note a "thinking"\n  b -> a "two"\n'
+      + '  actor a "A"\n  actor b "B"'],
   ['an edge drawn between two sequence-generated names',
     'sequence x at 0,0\n  actor a "A"\n  actor b "B"\n  a -> b "hello"\n'
       + 'box far "elsewhere" right of b gap 2\nedge x-0 -> far {.dashed}'],

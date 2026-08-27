@@ -1316,5 +1316,18 @@ failing loudly if the link is not there to rewrite. The reverse asymmetry is
 deliberate: the site page is a build input that has no styling or top bar until
 the site build runs, so its links are written for where it is served.
 
+**A fifth finding, against the fix for the first.** The pre-scan stepped over
+any line carrying an arrow token, and a *terminating* annotation carries one:
+`text n "…" right of s gap 1 -- s`. So the scan walked past it and collected
+actors that belong to no sequence, and a keyword-named message above them was
+then reported ambiguous against a cast it never had - with the build saying
+four problems and the linter five, which is the divergence this repository
+treats as the most expensive defect there is. The scan now steps over a line
+only where it could structurally *be* an entry: an anonymous message has a
+plain name before its arrow, a named one has a statement word, a name, and the
+arrow at index 2, and an annotation has neither shape. Nine assertions hold it
+in `refusals.mjs`, calibrated both ways - restoring the wide scan fails exactly
+two of them, the wrong message and the count divergence.
+
 Still open, unchanged: progressive disclosure inside the six stages, and the
 page-level horizontal scroll below ~800px.
