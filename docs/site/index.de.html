@@ -579,15 +579,27 @@ browser is for pages meant to be looked at.
   </figure>
 
   <p class="tiny">Eine Folie aus einer echten Vorlesung, vom Build gezeichnet.
-  Diese fünf Zeilen sind die vier Kästen darin; die Notizen darüber, ihre
-  Linien und die drei Takte, die sie nacheinander hereinholen, sind elf
-  weitere.</p>
+  Ein Teil ihres Quelltexts steht unten: die vier Kästen, eine der drei Notizen
+  und der Takt, der diese Notiz hereinholt. Zwei Dinge muss man wissen, um sie zu
+  lesen. <b>Längen zählen in Rasterzellen, nicht in Pixeln</b> &ndash; der Fence
+  setzt die Zelle auf 150 mal 54, deshalb ist <code>w 0.88 h 0.85</code> ein
+  Kasten, der viel breiter als hoch ist, und eine Abbildung behält ihre
+  Proportionen, wenn die Zelle sich ändert. Und <code>-- fh.cx,fh.top</code>
+  ist eine <b>Anschlusslinie</b>: sie richtet die Notiz auf eine Koordinate
+  eines anderen Kastens aus, sucht sich ihren Weg selbst und bleibt daran
+  hängen, wenn der Kasten sich bewegt.</p>
 
-<pre><code><span class="t-dir">default box</span> <span class="t-punct">{.tone-3 .sharp}</span> w 0.88 h 0.85
+
+<pre><code><span class="t-dir">::: draw</span> <span class="t-punct">{unit=150x54}</span>
+<span class="t-dir">default box</span> <span class="t-punct">{.tone-3 .sharp}</span> w 0.88 h 0.85
 <span class="t-dir">box</span> fh <span class="t-strong">"Frame\nHeader"</span>    <span class="t-cmt">at</span> 0,0
 <span class="t-dir">box</span> dh <span class="t-strong">"Datagram\nHeader"</span> <span class="t-cmt">right of</span> fh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh
 <span class="t-dir">box</span> sh <span class="t-strong">"Segment\nHeader"</span>  <span class="t-cmt">right of</span> dh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh
-<span class="t-dir">box</span> pl <span class="t-strong">"Payload"</span>          <span class="t-cmt">right of</span> sh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh <span class="t-punct">{.paper}</span></code></pre>
+<span class="t-dir">box</span> pl <span class="t-strong">"Payload"</span>          <span class="t-cmt">right of</span> sh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh <span class="t-punct">{.paper}</span>
+<span class="t-dir">text</span> lmac <span class="t-strong">"Ethernet source\nand destination\naddresses*"</span>       <span class="t-cmt">above</span> fh <span class="t-cmt">gap</span> 0.5 -- fh.cx,fh.top <span class="t-punct">{.muted @l1}</span>
+<span class="t-dir">step</span> ethernet
+  <span class="t-cmt">show</span> @l1
+  <span class="t-cmt">emph</span> fh</code></pre>
 
   <div class="hint">
     <p><strong>Das hier ist eine Vorschau.</strong> Sie steckt nicht in der

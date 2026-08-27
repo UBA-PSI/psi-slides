@@ -908,16 +908,26 @@ sequence wa at 0,0
 brace ctap over wa-3,wa-4,wa-5 pad 0.3 "on the device, over CTAP" side left {.small .turn}
 text fresh "the challenge is what makes it fresh" right of wa-2 gap 1.9 {.small .hand} -- wa-2
 
-step in-the-browser
-  emph @br-msgs
+# The beats build the protocol rather than only lighting parts of a finished
+# one, which is how it is read in front of a room: one exchange, then the next.
+# Two things arrive on their own and neither is named where it appears. The
+# brace is never shown by a step - it holds wa-3, wa-4 and wa-5, and a brace is
+# only as visible as its members, so it comes in with them. The annotation is
+# the opposite case: it hangs off wa-2 by a leader and would arrive with it, so
+# an explicit `show` one beat later is what holds it back until the exchange
+# it comments on has been read.
+step ask-for-options
+  show @wa-msg-1, @wa-msg-2
+  emph @wa-msg-2
+step the-challenge-is-the-point
+  show fresh
+  dim @wa-msg-1, @wa-msg-2
 step on-the-device
-  dim @br-msgs
-  emph @au-msgs
+  show @wa-msg-3, @wa-msg-4, @wa-msg-5
+  show wa-note-0, wa-note-1
   emph au
 step back-to-the-relying-party
-  dim @au-msgs
+  show @wa-msg-6, @wa-msg-7, @wa-msg-8
   dim au
-  emph @wa-msg-7, @wa-msg-8
-step the-whole-registration
-  dim @wa-msgs
+  emph @wa-msg-8
 :::
