@@ -732,6 +732,11 @@ function dgeBuildChrome() {
 
   const top = dgeEl('header', { id: 'dge-top' }, [
     dgeEl('span', { class: 'dge-name', id: 'dge-name' }),
+    dgeEl('span', {
+      class: 'dge-experimental',
+      text: 'experimental',
+      title: 'This editor has automated coverage, but has not yet been tested broadly by people.',
+    }),
     dgeEl('div', { class: 'dge-group' }, [
       dgeEl('button', { type: 'button', class: 'dge-btn', 'data-act': 'prev', title: 'previous figure (, or PageUp)', text: '‹', onclick: () => dgeGoFigure(-1) }),
       dgeEl('span', { id: 'dge-figpos' }),
@@ -803,7 +808,7 @@ function dgeBuildChrome() {
 
   dgeRoot = dgeEl('div', {
     id: 'dge-root', role: 'dialog', 'aria-modal': 'true',
-    'aria-label': 'Diagram editor', hidden: true,
+    'aria-label': 'Diagram editor, experimental', hidden: true,
   }, [top, tools, canvas, side, status, strip]);
   document.body.appendChild(dgeRoot);
 
@@ -7622,7 +7627,7 @@ function dgeMountEntryPoint() {
     const btn = dgeEl('button', {
       type: 'button', class: 'dge-btn dge-pencil',
       html: 'Edit this figure <kbd>E</kbd>',
-      title: 'open the diagram editor',
+      title: 'open the experimental diagram editor',
       onclick: (e) => { e.stopPropagation(); dgeOpenFromCard(); },
     });
     // Appended to the body, not to the overlay. It is position: fixed

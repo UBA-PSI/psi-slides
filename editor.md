@@ -1,36 +1,27 @@
 # The diagram editor
 
-Spec and build plan for the graphical editor for `::: diagram`. Companion to
+Design and build log for the graphical editor for `::: diagram`. Companion to
 `PRD.md` §4.6a (the grammar) and `speaker.md` (the sync protocol it borrows).
 
-Status: **under construction.** The grammar it edits is frozen enough to build
-against – three constructs in it exist specifically so this editor can answer a
-drag without destroying what the author wrote (§3). What is built and what is
-not is in **§15, the build log**, which is kept at the end of this file and is
-the thing to read before picking the work up again.
+Status: **experimental and desktop-oriented.** The implementation has substantial
+automated coverage, but has not yet been tested broadly by people. This document records design and
+implementation history; it is a maintainer reference, not a promise that every
+historical status note below still describes the current tree. The compiler,
+editor source and executable tests are authoritative for current behaviour.
 
 ## 0. Where this lives, and what exists
 
-**Read this first or the rest will not make sense.** Measured, not remembered:
+**Read this first or the rest will not make sense.** The durable release facts are:
 
-- **`main` does not know `::: diagram` exists.** `git show origin/main:build.js
-  | grep -c renderDiagram` → **0**. The entire diagram feature – compiler,
-  runtime, CSS, the `lectures/diagrams` lecture, the linter's half – has never
-  been on `main`. Branch from `main` and there is nothing here to build an
-  editor for.
-- **The work now lives on `claude/network-security-figures`**, which carries
-  the compiler, this editor and the figure lectures together. The two branches
-  this plan was originally written against –
-  `claude/psi-slides-animated-infographics-eoe2yj` and
-  `claude/psi-slides-diagram-editor` – have both been folded into it and are
-  history. **Work there**, or on a branch off it.
+- The diagram compiler, linter, editor and figure lectures live together in
+  this source tree. Do not use old branch names in this build log as setup
+  instructions.
 - **`package.json` is still 1.0.0** and the changelog entry is under
   `## [Unreleased]`. `CONTRIBUTING.md` § *Building and releasing* bumps the
   version at release time, not during development, so there is nothing to bump.
-- **Do not merge to `main`.** That is itself a publication: `pages.yml` fires
-  on every push to `main` and redeploys the project site, and the tutorial –
-  which now carries a `#diagram` chunk – is one of the lectures it rebuilds and
-  publishes. The maintainer decides when that happens.
+- Merging to `main` is itself a publication: `pages.yml` redeploys the project
+  site, including the tutorial and the public figure pages. Treat the merge as
+  a release decision even though it does not create a tagged package release.
 - `npm install` once before anything, including before building a lecture from
   a sibling content repo.
 - Sanity check that you are in the right place:
@@ -52,10 +43,11 @@ Two audiences, one editor.
 
 And one thing it is emphatically **not**: a drawing program. It has no
 freehand, no curves, no arbitrary colours, no free font choice. The class
-vocabulary is a closed enumeration – 40 names, 32 of them in eleven slots – and the
-editor exposes exactly those and nothing else. Anything
-it produces is a `::: diagram` block a human could have typed, in the same
-language, and anything a human typed it can open.
+vocabulary is a closed enumeration – 41 names, 38 of them in thirteen slots – and the
+editor derives its controls from that vocabulary. Anything it produces is a
+`::: diagram` block a human could have typed in the same language. It can open
+supported compiler source without flattening it, while constructs that cannot
+be manipulated directly remain source-preserving or produce an explicit refusal.
 
 **The load-bearing property: the editor edits source text, not a model.** It
 parses the block, records where every token sits, answers a drag by rewriting
@@ -486,9 +478,9 @@ that a tag no element carries is an error. Offer to drop the default with it.
 ### 4.2 Every binding, in one place
 
 Scattered bindings are how two of them end up meaning the same thing. This
-table is the single source of truth, and it is what feeds the `?` sheet through
-`renderHelpOverlay()` – the same rule the rest of the product follows, where
-the help sheet is generated from one data structure rather than written twice.
+table is the maintainer checklist; `renderHelpOverlay()` mirrors it in the
+built page, so a binding change has to update and test both places. The editor's
+tool buttons themselves are generated from `DGE_TOOLS`.
 
 | key | does |
 |---|---|
@@ -1969,8 +1961,9 @@ Verified:
   **Both landed later in the branch** – `build.js` scaffolds a
   `## figure: TODO` chunk and `editor.mjs` carries the "New figure…" button.
   This entry was stale; corrected in review.
-- **`Q` locks the tool but nothing draws the lock state** beyond the status
-  line it prints.
+- ~~**`Q` locks the tool but nothing draws the lock state** beyond the status
+  line it prints.~~ **Fixed** – the lock button carries `aria-pressed`, and the
+  active tool gains a visible inset mark while the rail is locked.
 - ~~Placing a picture (§14).~~ **Built** – see *Phase 11* below.
 - ~~The demo lecture never learned the new vocabulary.~~ **Fixed**:
   `lectures/diagrams` now carries the lecture-wide `diagram-defaults`, `pad` on
@@ -2844,7 +2837,7 @@ exception. `CLAUDE.md` carries the detail.
 
 The suite went from 449 assertions to 493.
 
-### The grammar revision, and what it cost the panel · **in progress**
+### The grammar revision, and what it cost the panel · **done**
 
 `revision-proposal.md` re-cut the figure language, and the editor is the second
 consumer of every table it touched. Most of the work was not editing the panel
@@ -2889,17 +2882,12 @@ What did need writing, in order of how much of it there was:
   token, or a round trip through the panel dropped every `!class` an author had
   typed.
 
-**What is outstanding, and it is the thing to pick up first.** `gap` is square
-now, measured in `uh` on both axes, and three expressions in this file still
-divide a horizontal gap by `uw`: the drag that writes a `gap` (`dgePlanDrag`),
-the sibling-gap guide that reads one back, and the `' gap 0.3'` this file
-hardcodes when it places a renamed element. The first two make a horizontal
-drag write a number about 2.9 times too small at the corpus median unit, which
-looks like a snapping bug and is a ruler bug; the third puts a new element
-closer than it used to. A comment at the sibling-gap guide still reads *"in
-cells, which is what a gap is"*, which is now half true – a gap is in cells, but
-always the row's. Fix the ruler in one place and thread it, rather than
-patching three call sites.
+**The `gap` ruler is closed in one place.** `dgeGapUnit()` returns the row unit
+for both axes, and the drag planner, sibling-gap guide and fresh-placement path
+all use it. Keeping that conversion behind one function matters: a horizontal
+path left on `uw` writes a number about 2.9 times too small at the corpus median
+unit, yet the resulting line still compiles, so this class of drift otherwise
+looks like a snapping problem rather than a units error.
 
 - **A named edge is a name before the from-token now.** The guide that offers
   an edge as a docking host still waits for the author to have named it – an

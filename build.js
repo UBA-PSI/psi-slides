@@ -3562,11 +3562,11 @@ function renderHelpOverlay(view, withEditor) {
   // The editor's own section, from the one table in editor.md §4.2. Emitted
   // only where the editor ships, so a lecture without diagrams does not
   // advertise a modal it does not carry.
-  const editorKeys = ['The diagram editor', [
+  const editorKeys = ['The experimental diagram editor', [
     ['click a diagram, then <kbd>E</kbd>', 'open the editor on that figure – or the button in the corner of the card'],
     ['<kbd>1</kbd> <kbd>V</kbd>', 'select'],
-    ['<kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> <kbd>5</kbd> <kbd>8</kbd>', 'box · dot · text · edge · image'],
-    ['<kbd>9</kbd>', 'a line with no arrowhead – both ends are plain coordinates, so it attaches to nothing'],
+    ['<kbd>2</kbd>/<kbd>R</kbd> <kbd>3</kbd>/<kbd>C</kbd> <kbd>4</kbd>/<kbd>T</kbd> <kbd>5</kbd>/<kbd>A</kbd> <kbd>8</kbd>/<kbd>I</kbd>', 'box · dot · text · edge · image'],
+    ['<kbd>9</kbd>/<kbd>L</kbd>', 'a line with no arrowhead – both ends are plain coordinates, so it attaches to nothing'],
     ['<kbd>6</kbd> · <kbd>7</kbd>', 'container · brace, drawn around whatever is selected'],
     ['<kbd>Q</kbd>', 'keep the current tool instead of falling back to select'],
     ['drag · drag a handle', 'move it · resize it – the status bar shows the line it will write'],
@@ -3577,10 +3577,10 @@ function renderHelpOverlay(view, withEditor) {
     ['<kbd>Alt</kbd> while dragging', 'leave an align or spread set at once – or just pull half a cell clear of it'],
     ['double-click a waypoint', 'take it off the arrow – the hollow dots on the line put one back'],
     ['<kbd>Delete</kbd>', 'delete, after listing what refers to it'],
-    ['<kbd>Ctrl</kbd>-<kbd>Z</kbd> · <kbd>Shift</kbd>-<kbd>Ctrl</kbd>-<kbd>Z</kbd>', 'undo · redo'],
-    ['<kbd>Ctrl</kbd>-<kbd>A</kbd> · <kbd>Ctrl</kbd>-<kbd>D</kbd>', 'select all · duplicate'],
-    ['<kbd>Ctrl</kbd>-<kbd>C</kbd> · <kbd>Ctrl</kbd>-<kbd>V</kbd> · <kbd>Ctrl</kbd>-<kbd>Shift</kbd>-<kbd>V</kbd>', 'copy · paste · paste in place'],
-    ['<kbd>Ctrl</kbd>-<kbd>S</kbd>', 'write the block back – into source.md while --watch runs, otherwise to the clipboard'],
+    ['<kbd>Ctrl/Cmd</kbd>-<kbd>Z</kbd> · <kbd>Shift</kbd>-<kbd>Ctrl/Cmd</kbd>-<kbd>Z</kbd>', 'undo · redo'],
+    ['<kbd>Ctrl/Cmd</kbd>-<kbd>A</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>D</kbd>', 'select all · duplicate'],
+    ['<kbd>Ctrl/Cmd</kbd>-<kbd>C</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>V</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>Shift</kbd>-<kbd>V</kbd>', 'copy · paste · paste in place'],
+    ['<kbd>Ctrl/Cmd</kbd>-<kbd>S</kbd>', 'write the block back – into source.md while --watch runs, otherwise to the clipboard'],
     ['<kbd>&lt;</kbd> <kbd>&gt;</kbd>', 'walk the diagram steps – a drag inside a step writes a move into that step'],
     ['<kbd>Space</kbd>-drag · middle-drag · wheel', 'pan · pan · zoom'],
     ['<kbd>F</kbd>', 'frame: slide → column → print, the three places the figure can land'],

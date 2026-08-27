@@ -243,12 +243,12 @@ function main() {
   // one level up. Same document, translated; the lectures it links to stay in
   // the language they are taught in.
   landing('index.de.html', path.join('de', 'index.html'), 'de', '../');
-  // The case for `::: diagram`, and deliberately not the manual for it. Its
-  // figures, its stepped payloads, its rails and the diagram stylesheet and
-  // runtime are spliced in by docs/artifact/refresh-figures.mjs, which is the
-  // only text that compiles a figure for publication - so this page is copied
-  // verbatim like the landing pages rather than rendered from Markdown, and
-  // `refresh-figures.mjs --check` is what keeps it from going stale.
+  // The case for `::: diagram`. Its figures, its stepped payloads, its rails
+  // and the diagram stylesheet and runtime are spliced in by
+  // docs/artifact/refresh-figures.mjs, which is the only text that compiles a
+  // figure for publication - so this page is copied verbatim like the landing
+  // pages rather than rendered from Markdown, and `refresh-figures.mjs
+  // --check` is what keeps it from going stale.
   landing('figures.html', 'figures.html', 'en', '');
   // The manual the case links to. It is not rendered from Markdown and it is
   // not assembled here - refresh-figures.mjs compiles every drawing on it from

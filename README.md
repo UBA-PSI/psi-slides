@@ -130,7 +130,7 @@ Files are matched by name, with weight and style read off the suffix (`Literata-
 
 > **Check the licence before you embed.** Embedding redistributes the font file. The SIL Open Font License and Apache-2.0 – between them nearly every family on Google Fonts – permit this; most commercial *desktop* licences do not, and require a separate webfont licence. psi-slides prints a reminder and makes no attempt to verify anything. It is your call and your responsibility.
 
-Five optional frontmatter keys pin how a lecture opens – `font`, `theme`, `collapse`, `auto-fit`, `slide-numbers`. A key that is present wins over the reader's stored preference; a key that is absent leaves it alone, so a lecture that pins nothing still follows whatever the reader last chose. A sixth key, `editor: both | speaker | none`, goes through the same validation and is not one of these: it decides which live views carry the figure editor, which is payload rather than appearance, so there is no reader preference for it to yield to. It defaults to `both`.
+Five optional frontmatter keys pin how a lecture opens – `font`, `theme`, `collapse`, `auto-fit`, `slide-numbers`. A key that is present wins over the reader's stored preference; a key that is absent leaves it alone, so a lecture that pins nothing still follows whatever the reader last chose. A sixth key, `editor: both | speaker | none`, goes through the same validation and is not one of these: it decides which live views carry the experimental figure editor, which is payload rather than appearance, so there is no reader preference for it to yield to. It defaults to `both`. The editor is desktop-oriented and has substantial automated coverage, but has not yet been tested broadly by people.
 
 **Video** uses the same shorthand as an image. `![](clip)` finds `assets/clip.mp4` and inlines it, up to a 12 MB per-file cap; over that, the build copies it to a `videos/` folder beside the output, plays it from there, and tells you the output now needs that folder. A written-out URL works too – `![](https://host/clip.mp4)` – and is still an ordinary `<video>`, so play, pause and seeking stay synchronised between the projection and the cockpit.
 
@@ -190,7 +190,7 @@ speaker state; say so up front, because no check will catch it.
 This is the section that will save you the most time.
 
 - **You need `.pptx` or Keynote interop, or a corporate template.** There is no export path. The output is HTML; the only bridge to a slide deck is printing to PDF.
-- **A co-author needs a GUI.** The source is Markdown in a text editor and nothing else. If your collaborator will not edit a text file, this will not work for the two of you.
+- **A co-author needs a stable, fully graphical workflow.** The source of record is Markdown. The experimental diagram editor can adjust figures and write their source back, but it does not edit the rest of a lecture and is not yet a production-tested substitute for text authoring.
 - **You want slide transitions, or motion for its own sake.** There are none, and there will be none. What exists is two mechanisms: reveal segments uncover blocks of text in place, and a `::: diagram` block can be stepped – elements appear, disappear, move, and the arrows between them re-route as they go. Both run on the same key. Neither will animate a slide change. (`::: diagram` is in this repository but not in any tagged release yet; see [Documentation](#documentation).)
 - **You want the cockpit on a tablet and the slides on the projector.** The design rules it out: the cockpit is a window the audience view opened, and the two talk to each other as parent and popup, which means same machine, same browser, same profile. Syncing over a network is deferred, not planned.
 - **You need more than KaTeX covers.** `$inline$` and `$$display$$` work and render at build time, but that is KaTeX, not LaTeX: no equation numbering or `\ref`, no `mhchem`, no TikZ. If your lecture is a mathematics lecture, check [KaTeX's supported functions](https://katex.org/docs/supported.html) before committing.
@@ -219,11 +219,11 @@ Every tool in this space is good, and nearly all of them take Markdown, so “it
 | --- | --- |
 | [`lectures/tutorial/source.md`](lectures/tutorial/source.md) | The authoring reference. Build it and read it as a lecture. |
 | [`lectures/python-intro/`](lectures/python-intro/) | The richest worked example – 36 chunks, the full layout vocabulary. |
-| [`lectures/diagrams/`](lectures/diagrams/) | Every `::: diagram` construct in one lecture, real lecture figures among them. |
+| [`lectures/diagrams/`](lectures/diagrams/) | Reference and showcase for `::: diagram`: every statement kind, with real lecture figures among them. |
 | [`figure-design.md`](figure-design.md) | How to lay out a `::: diagram` so a room can read it. Rules with a wrong and a right version each, in real syntax, and a checklist. |
 | [`docs/artifact/`](docs/artifact/) | The manual for the figure language, from nothing: a figure built a line at a time, then beats, then every class and statement, fifteen design rules and a gallery. Every drawing on it is compiled by the build rather than redrawn. |
 | [`docs/site/figures.html`](docs/site/figures.html) | The case for the figure language, published on the project site: why a lecture figure is not a picture, and three figures that show it. Sends the reader to the manual. |
-| [`editor.md`](editor.md) | The graphical editor for `::: diagram` blocks: what it edits, what it refuses to edit, and why. |
+| [`editor.md`](editor.md) | Design and build log for the experimental graphical editor: what it edits, what it refuses to edit, and why. |
 | [`docs/comparison.md`](docs/comparison.md) | Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, compared in both directions. |
 | [`PRD.md`](PRD.md) | Design rationale. Why four views, why this tag set, why collapse has two mechanisms and not four. |
 | [`speaker.md`](speaker.md) | The cockpit spec and the `postMessage` sync protocol – which fields travel, which stay local. |
@@ -233,7 +233,7 @@ Every tool in this space is good, and nearly all of them take Markdown, so “it
 | [`CLAUDE.md`](CLAUDE.md) | Repo conventions and a map of `build.js`. Useful to any contributor, not just to Claude. |
 | [`.claude/skills/psi-slides-authoring/`](.claude/skills/psi-slides-authoring/SKILL.md) | The authoring contract in one artefact, for handing to an LLM assistant. |
 
-**`::: diagram` and its editor are not in a tagged release yet.** They are in this repository and in the four rows above, and a lecture that uses them builds here; against a released psi-slides it will not. The same goes for the `editor:` frontmatter key, which decides whether the live views carry the editor at all.
+**`::: diagram` and its editor are not in a tagged release yet.** They are in this repository and in the four rows above, and a lecture that uses them builds here; against a released psi-slides it will not. The editor is experimental: automated tests cover it extensively, but broad human testing has not happened yet. The same goes for the `editor:` frontmatter key, which decides whether the live views carry the editor at all.
 
 ## Command reference
 

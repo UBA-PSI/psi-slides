@@ -84,6 +84,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+#dge-top .dge-experimental {
+  flex: none;
+  padding: 0.16rem 0.42rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--rule));
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 700;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.11em;
+  line-height: 1;
+}
 #dge-top .dge-spacer { flex: 1; }
 
 .dge-group {

@@ -28,6 +28,11 @@
 main { max-width: 62rem; }
 .scqa p { max-width: var(--measure); }
 .scqa .answer { font-size: 1.1875rem; line-height: 1.5; }
+.scqa .status {
+  margin-top: 20px; padding: 12px 14px; border-left: 3px solid var(--accent);
+  background: var(--panel); color: var(--ink-soft); font-size: var(--t-small);
+}
+.scqa .status strong { color: var(--ink); font-weight: 500; }
 .figlead { color: var(--ink-soft); max-width: var(--measure); }
 .handoff { margin: 48px 0 8px; padding: 20px 22px; border: 1px solid var(--rule);
            background: var(--panel); max-width: var(--measure); }
@@ -371,6 +376,8 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
   <p>A lecture figure is rarely that picture. It has to be built up in front of a room while somebody talks over it, survive the slides being reordered around it a year later, and come out of the same file as the printed handout. A drawing program does the first badly and the last one not at all. An auto-layout language does the last one well and takes the arrangement out of your hands, which is the half you most need to keep.</p>
 
   <p class="answer">So a figure here is neither. It is a few lines of text in the lecture&rsquo;s own Markdown file, and the build &ndash; the one command that turns that file into slides &ndash; draws it.</p>
+
+  <p class="status"><strong>Development status:</strong> <code>::: diagram</code> is implemented in this repository, but is not part of a tagged psi-slides release yet. The graphical editor is experimental and desktop-oriented: it has automated coverage, but has not yet been tested broadly by people.</p>
 </section>
 
 <h2>Seven lines, and a figure</h2>

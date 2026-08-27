@@ -503,7 +503,7 @@ And against measuring: a coordinate may be another element's coordinate. `edge i
 
 Inside a label, `_sub` and `^sup` shift a character or a `{group}`, `*accent*` colours a run and `~muted~` greys it.
 
-**Click the figure, and the button in the corner of the card opens a graphical editor for it.** Drag a box and the editor rewrites one number – the `gap`, the fraction along a line, the nudge on a borrowed coordinate – and never the relation that number sits in. It also draws the relations while you work, which is the part a finished diagram cannot show you: a box written as `gap 0.55` from its neighbour looks exactly like a box that merely happens to sit 0.55 away. `editor: none` in the frontmatter ships the lecture without it.
+**Click the figure, and the button in the corner of the card opens the experimental graphical editor.** It is made for a desktop-sized authoring screen and has substantial automated coverage, but has not yet been tested broadly by people. Drag a box and the editor rewrites one number – the `gap`, the fraction along a line, the nudge on a borrowed coordinate – and never the relation that number sits in. It also draws the relations while you work, which is the part a finished diagram cannot show you: a box written as `gap 0.55` from its neighbour looks exactly like a box that merely happens to sit 0.55 away. `editor: none` in the frontmatter ships the lecture without it.
 
 Two more options work from the box inwards rather than from the label outwards. `pad 0.3` sets how far a box's border sits from its own label – the same word `container` and `brace` already use – and `.fit` on a box with a given `w` sizes the *type* to fill the box instead of growing the box to the type, with `.shrink` for a label that may only ever get smaller. A free `text` that carries a tone draws its own background patch, so a caption can sit on a panel without becoming a box.
 
@@ -586,7 +586,7 @@ text wl "where the words sit" below w2 gap 0.28 {.small .muted}
 align x right fl, ol, sl, tw, gl
 :::
 
-**Every row of that sheet holds at least one slot.** Three of them hold more than one, where the slots belong together – stroke pattern beside stroke weight beside the two retreats, `.ghost` and `.dim`; family beside size; and the words that place a label across beside the ones that place it down – and the two ink classes have no row at all, because they are at work over the whole sheet: `.accent` on the cross, `.muted` on every caption. **Forty names in all, and `lint.js` refuses anything else** – a typo is a build error, not a box that comes out unstyled.
+**Every row of that sheet holds at least one slot.** Three of them hold more than one, where the slots belong together – stroke pattern beside stroke weight beside the two retreats, `.ghost` and `.dim`; family beside size; and the words that place a label across beside the ones that place it down – and the two ink classes have no row at all, because they are at work over the whole sheet: `.accent` on the cross, `.muted` on every caption. **Forty-one names in all, and `lint.js` refuses anything else** – a typo is a build error, not a box that comes out unstyled.
 
 **Two words, one for each of two different jobs.** At the end of a placement, `flush` takes one word: `below src gap 0 flush left` keeps the new box's left edge level with `src`. On a line of its own, `align` is a statement – `align y middle a, b, c` gives `b` and `c` the vertical centre of `a`, the first name being the one the others follow. Both were called `align` once, which meant a single line could carry two of them meaning different things; the centre of an axis is `middle` on both axes, for the same reason.
 
@@ -790,14 +790,14 @@ A source file can silence one check with `<!-- linter: ignore reveal-overuse, de
 
 ## example: Embedding your own type | `fonts/` plus a frontmatter block {.wide #fonts}
 
-**Three typefaces ship with the tool and are embedded in every output:** Literata, Inter Tight and JetBrains Mono, all under the SIL Open Font License, which permits it. Safari does not expose installed fonts to a page at all, so a deck that only *names* its typefaces gets whatever that browser decides. The bundle costs about 280 KB per file, and `fonts: none` turns it off.
+**Three typefaces ship with the tool and are embedded in every output:** Literata, IBM Plex Sans and JetBrains Mono, all under the SIL Open Font License, which permits it. Safari does not expose installed fonts to a page at all, so a deck that only *names* its typefaces gets whatever that browser decides. The bundle costs about 280 KB per file, and `fonts: none` turns it off.
 
 To use your own instead, put the files in a `fonts/` folder beside `source.md` and name the families:
 
 ```yaml
 fonts:
   serif: Literata
-  sans: Inter Tight
+  sans: IBM Plex Sans
   mono: JetBrains Mono
 ```
 

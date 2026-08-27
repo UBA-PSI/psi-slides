@@ -18,6 +18,10 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   await walkTo('cbc');
   for (let i = 0; i < 3; i++) await press(' ');
   ok(await ed.open('cbc'), 'the editor opens with E from a focused figure');
+  ok(await page.locator('#dge-top .dge-experimental').isVisible(),
+    'the open editor labels itself experimental');
+  ok((await page.locator('#dge-root').getAttribute('aria-label')) === 'Diagram editor, experimental',
+    'the experimental status is also in the dialog name');
 
   // ── undo and redo are controls, not only keys (editor.md §4.2) ──
   ok(await page.locator('#dge-undo-btn').count() > 0, 'undo is in the toolbar');

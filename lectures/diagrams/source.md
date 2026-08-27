@@ -474,7 +474,7 @@ box  p5 "!dim"   right of p4 gap 0.7 same as p1 {@prom !dim}
 text pl "prominence" left of p1 gap 0.8 {.muted .right}
 :::
 
-**Der Editor zeigt genau diese Reihen in seiner Seitenleiste.** Die Klassen sind eine geschlossene Aufzählung, keine freien Farben – jede Füllung mischt sich aus `--emph` und `--ink` über `--paper` und überlebt damit alle sieben Themes.
+**Der experimentelle, für Desktop-Bildschirme gedachte Editor zeigt genau diese Reihen in seiner Seitenleiste.** Er ist umfangreich automatisiert getestet, aber noch nicht breit von Menschen erprobt. Die Klassen sind eine geschlossene Aufzählung, keine freien Farben – jede Füllung mischt sich aus `--emph` und `--ink` über `--paper` und überlebt damit alle sieben Themes.
 
 **`.paper` in der oberen Reihe sieht wirkungslos aus und ist es nicht.** Es ist zwar die Voreinstellung einer Box, aber unter einem `default box {.tone-3}` findet eine Box ohne diese Klasse nicht mehr dorthin zurück, und ein freier `text` bekommt ohne sie überhaupt keinen Hintergrund – der ist es, der die Linie hinter einer Beschriftung ausstanzt.
 

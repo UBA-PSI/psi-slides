@@ -1,9 +1,10 @@
 # Review of the figure language and its documentation
 
-**Status: the follow-up findings are addressed; three items stay open by
-decision, and they are listed at the foot of this file under *Second
-implementation round*.** Initially reviewed 2026-08-26 against
-the then-current working tree, with a follow-up review of the implementation
+**Status: six review rounds are complete. The implementation findings are
+addressed; shipping the experimental editor to both audience and speaker views,
+and treating it as desktop-oriented, are explicit product decisions. No known
+release-blocking language/documentation mismatch remains.** Initially reviewed
+2026-08-26 against the then-current working tree, with implementation reviews
 added on 2026-08-27 below. The initial findings are kept as the evidence and
 decision record rather than rewritten after the fact. Particular attention was
 given to `docs/artifact/figures-you-write.html`,
@@ -1443,3 +1444,80 @@ nothing escaping and nothing clipped away.
 than adjacency - one of the three tables opens its wrapper a swatch earlier, so
 "the tag before it" is the wrong question. Calibrated against the original
 defect: it names the table by its first heading, `"what you wrote"`.
+
+
+---
+
+## Sixth round: adversarial pre-merge review
+
+This pass read the figure lecture, tutorial, public case page, author manual,
+editor documentation, generated editor help, compiler/linter vocabulary and
+release build as one interface. The question was not whether each part looked
+reasonable in isolation, but whether an author could move between them without
+meeting a contradicted fact, an unstated maturity boundary or a promise the
+implementation does not keep.
+
+### Findings fixed in this pass
+
+| finding | consequence | resolution |
+|---|---|---|
+| The graphical editor shipped without a visible maturity label | A new user could reasonably read a working dialog as a supported, broadly tested product | The launch button's tooltip, dialog top bar, accessible dialog name, tutorial, figure lecture, README and editor log now say **experimental**. The prose says what that means: automated coverage exists, broad human testing does not yet. |
+| The editor's desktop scope was implicit | The absence of a mobile workflow looked accidental rather than deliberate | It is described as desktop-oriented. Mobile editor support is explicitly not a release criterion. |
+| The tutorial said **forty** classes | The compiler exports 41 class names | The tutorial now says 41; the generated class reference remains the authoritative inventory. |
+| The tutorial said the bundled lecture font was Inter Tight | The compiler bundles IBM Plex Sans | The prose and example frontmatter now name IBM Plex Sans. |
+| `editor.md` mixed current instructions with old implementation plans | A maintainer or user could mistake completed work and old branch/release instructions for current state | It is explicitly a design/build log, its current status and vocabulary are corrected, completed gaps are marked as such, and the README no longer presents it as a standalone user guide. |
+| Generated editor help omitted letter aliases and described Command-capable shortcuts as Control-only | The visible reference disagreed with the input handler | The help lists both tool-key forms and says Ctrl/Cmd for the shared shortcuts. |
+| A site-build comment said the manual was deliberately unpublished | The next lines now publish that manual | The comment describes the actual release contract. |
+| The README called the figure lecture a tutorial in one place and implied exhaustive construct demonstration in another | It blurred the now-deliberate split between learning path and showcase | The lecture is called a reference/showcase of every statement kind; the author manual is the learning path and reference. |
+
+The experimental label is also a browser assertion, not only prose: the suite
+requires the visible badge and requires the dialog's accessible name to include
+the status. Removing either now fails the editor test.
+
+### Product decisions recorded
+
+`editor: both` remains the default. The editor is deliberately delivered in
+both audience and speaker views, as it was before this pass. **Experimental is
+a maturity label, not a distribution mode.** The decision therefore does not
+change frontmatter defaults or hide the editor from an audience build.
+
+The editor is desktop-oriented. Making its editing surface work on a phone is
+not required for this release; the public figure pages themselves remain
+responsive and were already checked at 320, 380, 760 and 1200 px.
+
+### Cross-contract checks
+
+- The figure lecture source exercises all 17 statement keywords exported by
+  the compiler. Its README description has nevertheless been narrowed to
+  "every statement kind", avoiding the stronger and unnecessary claim that
+  every option and state transition is demonstrated.
+- The generated manual accounts for all 41 class names and all 17
+  step-fixed classes; the refresh check rejects missing, invented or duplicate
+  class rows.
+- Compiler/linter gates pass 411/0. The strict lecture lint reports 0 errors
+  and 0 warnings across its checked sources.
+- `refresh-figures.mjs --check` reports both published pages current. A built
+  site resolves every local reference from `figures.html` and
+  `figures-you-write.html`.
+- The browser suite passes **578/0**, including the editor status assertions,
+  editor/compiler round trips, sequence ambiguity cases, computed-style
+  effects, framing and overlap checks. The figure lecture build retains one
+  intentional, already documented overflow warning for `g1`.
+
+### Residual risks, not release blockers
+
+Broad human editor testing is still absent; that is exactly the uncertainty the
+experimental label exposes. Feedback may justify a concise task-oriented editor
+guide later. For now the runtime `?` help is the user reference and
+`editor.md` is deliberately a maintainer-facing design/build log.
+
+The statement-kind coverage of the figure lecture is checked by the compiler
+corpus and was measured in this pass, but is not generated from `DG_KEYWORDS`
+the way the class table is generated from the class vocabulary. That is a
+maintenance risk rather than a present mismatch: all 17 are present and the
+public wording no longer promises exhaustive option coverage.
+
+**Conclusion:** after correcting the factual drift and making the editor's
+maturity and scope explicit, this adversarial pass found no obvious
+release-blocking problem across language, compiler, editor, lecture, manual and
+public site.
