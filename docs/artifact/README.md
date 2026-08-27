@@ -1,6 +1,6 @@
 # figures-you-write.html
 
-A standalone page that teaches `::: diagram`, the figure language described in
+A standalone page that teaches `::: draw`, the figure language described in
 CLAUDE.md under *Animated infographics*. Open it in a browser; it needs no
 server and fetches nothing at all &ndash; the three typefaces are embedded as
 `data:` URIs, which is what the last row below is about.

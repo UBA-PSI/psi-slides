@@ -404,10 +404,10 @@ The first closer ends `side`, the second ends `expand`.
 
 ### Two more directives this skill does not cover
 
-`::: diagram` and `::: embed` are also `:::` blocks, and neither is a layout
+`::: draw` and `::: embed` are also `:::` blocks, and neither is a layout
 wrapper or an aside: each compiles to something of its own.
 
-- **`::: diagram`** is a figure written as text - named boxes, arrows,
+- **`::: draw`** is a figure written as text - named boxes, arrows,
   containers, charts, tables, swimlanes and sequence diagrams, laid out at build
   time and steppable on the same key that advances a reveal segment. It has its
   own grammar, seventeen statements and forty classes, and two documents:

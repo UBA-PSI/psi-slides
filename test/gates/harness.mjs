@@ -99,7 +99,7 @@ export function lintAll(cases) {
   cases.forEach((c, i) => {
     // A `figure:` chunk has no word budget, so nothing but the diagram itself
     // can produce a finding inside the span this gate reads.
-    out.push(`## figure: Fixture ${i} {#fx-${i}}`, '', '::: diagram');
+    out.push(`## figure: Fixture ${i} {#fx-${i}}`, '', '::: draw');
     const start = out.length + 1;              // 1-based line of the first body line
     for (const l of c.body.split('\n')) out.push(l);
     spans.push([start, out.length]);

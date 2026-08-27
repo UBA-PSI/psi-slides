@@ -1,4 +1,4 @@
-# Designing a `::: diagram`
+# Designing a figure
 
 How to lay out a figure so a room reads it in one look, written as instructions
 rather than principles. Every rule has three parts: what to do, what the eye is

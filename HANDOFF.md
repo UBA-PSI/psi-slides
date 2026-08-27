@@ -82,7 +82,7 @@ beschränkt, die der Compiler zulässt.
 ## Slice: 36 echte Folien, und was dabei an der Sprache fehlte
 
 Auslöser war ein Auftrag, keine Feature-Idee: 36 Folien aus zwei
-PowerPoint-Decks (IntroSP Network Security I und II) als `::: diagram`
+PowerPoint-Decks (IntroSP Network Security I und II) als `::: draw`
 nachbauen, Inhalt wörtlich, Anordnung frei. 21 davon gingen mit dem
 vorhandenen Vokabular. Die übrigen 15 scheiterten nicht an 15 Sonderfällen,
 sondern an vier wiederkehrenden Lücken – gedrehte Beschriftung (9 Folien),
@@ -135,7 +135,7 @@ aber **nur** bei Dateien ohne `<style>` und ohne interne Id-Verweise, weil ein
 `test/figure-framing.mjs` nannte genau eine Vorlesung, weshalb jeder der sechs
 Autoren die Messung von Hand nachbaute; sie ist jetzt auf beide gerichtet.
 
-## Diagram-Slice (`::: diagram` – animierte Infografiken)
+## Diagram-Slice (`::: draw` – animierte Infografiken)
 
 Auslöser: der Wunsch, Kästen-Pfeile-Labels-Diagramme aus früheren Vorlesungen (CBC-Schaubild, Stack-Frame beim Overflow, Identity-Lifecycle) nach psi-slides zu holen **und schrittweise zu animieren**. Die beiden naheliegenden Wege scheitern beide, und zwar an unterschiedlichen Stellen:
 

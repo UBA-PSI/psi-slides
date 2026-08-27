@@ -1,4 +1,4 @@
-# Revising the `::: diagram` language – the proposal
+# Revising the `::: draw` language – the proposal
 
 **Status: proposal v2 – current decisions.** This is the implementation input.
 The main body contains only the current recommendation for each item. Rejected
@@ -15,7 +15,7 @@ legacy spellings**. Where a word is replaced, the old word goes.
 
 Three things it assumes, from those ground rules:
 
-- **The window is open and closes at the first tagged release.** `::: diagram`
+- **The window is open and closes at the first tagged release.** `::: draw`
   is unreleased; the source format freezes at the tag.
 - **One way to say each thing.** No aliases, no deprecation period. A rename is
   a rename, and the corpus migrates.
@@ -2857,7 +2857,7 @@ and is also the site of (b). The `.turn` row's sentence stays true for node labe
 and needs a scope word.
 
 **(i) Item 6 squares `gap`.** The wall stating the units rule is the item itself:
-*"The block opens with `::: diagram {unit=170x56}` … After that every number – a
+*"The block opens with `::: draw {unit=170x56}` … After that every number – a
 gap, a width, a nudge – is in units, so a figure keeps its proportions whatever
 size it is drawn at."* *"Every number … is in units"* is exactly the claim the
 revision breaks, and it names `gap` first; it becomes the two-family sentence.

@@ -10,7 +10,7 @@ lecture: network-security
 lang: en
 theme: dark
 collapse: none
-diagram-defaults: |
+draw-defaults: |
   default text {.small}
   default container pad 0.4
 ---
@@ -31,7 +31,7 @@ Szene unbeteiligt, `.muted` das Gerüst.
 
 ## figure: For transport, each network layer relies on addresses {.full #ns-a03}
 
-::: diagram {unit=150x54}
+::: draw {unit=150x54}
 default box {.tone-3 .sharp} w 0.88 h 0.85
 
 box fh "Frame\nHeader"    at 0,0
@@ -64,7 +64,7 @@ step ports
 
 ## figure: Besides spoofing, adversaries may attack address resolution {.full #ns-a07}
 
-::: diagram {unit=170x50}
+::: draw {unit=170x50}
 default box {.tone-3 .sharp} w 1.15 h 0.6
 
 box dn  "domain name" at 0,0
@@ -92,7 +92,7 @@ step surface
 
 ## figure: ARP Cache Poisoning | allows A to eavesdrop on communication between local network devices {.full #ns-a10}
 
-::: diagram {unit=170x50}
+::: draw {unit=170x50}
 box sw "Ethernet\nSwitch" at 0,0 w 1.0 h 0.9 {.tone-1}
 box gw "Default\nGateway" right of sw gap 1.15 same as sw {.tone-1}
 edge sw -- gw {.muted}
@@ -124,7 +124,7 @@ step poisoning
 
 ## figure: B wants to visit webserver at example.com | knows IP of DNS resolver of ISP and gateway {.full #ns-a08}
 
-::: diagram {unit=190x54}
+::: draw {unit=190x54}
 # Diese Topologie tragen vier Figuren gemeinsam (A-08, A-12, A-13, A-14):
 # gleiche Namen, gleiche Plätze, damit die Folge als eine Zeichnung liest,
 # die sich entwickelt.
@@ -168,7 +168,7 @@ step wants
 
 ## figure: DNS Spoofing | Adversary forges IP address in DNS reply to redirect victim to malicious server, e.g., for phishing credentials {.full #ns-a12}
 
-::: diagram {unit=190x54}
+::: draw {unit=190x54}
 # Dieselbe Topologie wie #ns-a08, dieselben Namen, dieselben Plätze.
 box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
 box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
@@ -219,7 +219,7 @@ step redirect
 
 ## figure: Forgery trivial for on-path attacker (on routers or endpoints) | prevent reply from reaching B and inject own reply {.full #ns-a13}
 
-::: diagram {unit=190x54}
+::: draw {unit=190x54}
 # Dieselbe Topologie wie #ns-a08 und #ns-a12, dieselben Namen, dieselben Plätze.
 box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
 box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
@@ -274,7 +274,7 @@ step question
 
 ## figure: Off-path attackers (E) must generate a valid reply | that reaches B before the reply sent by the real DNS resolver {.full #ns-a14}
 
-::: diagram {unit=190x54}
+::: draw {unit=190x54}
 # Dieselbe Topologie wie #ns-a08, #ns-a12 und #ns-a13, dieselben Namen,
 # dieselben Plätze. Neu ist nur, wer der Angreifer ist: A tritt zurück,
 # der Kasten unten links im Internet bekommt einen Namen.
@@ -331,7 +331,7 @@ step cache
 
 ## figure: Distributed Denial of Service (DDoS) attack | attacker instructs hosts infected with malware to flood a victim with traffic {.full #ns-a28}
 
-::: diagram {unit=100x76}
+::: draw {unit=100x76}
 # Auf der Folie liegen die Bots auf einer Weltkarte. Die bleibt hier draußen:
 # ein Rasterbild folgt keinem Theme und kostet über 100 kB. Verstreute Quellen
 # ringsum sagen dasselbe – "verteilt" war das Argument, die Geografie nie.
@@ -380,7 +380,7 @@ step unfilterable
 
 ## figure: DoS attacks are also possible without access to a botnet | Attackers can use connectionless protocols and spoof their Src IP to hide their identity {.full #ns-a29}
 
-::: diagram {unit=96x74}
+::: draw {unit=96x74}
 # Wieder ohne Weltkarte, aus denselben Gründen wie eine Folie zuvor. Die
 # gestrichelten Kästen mit dem Fragezeichen sind die "faked sources": Was an
 # ihnen unecht ist, ist der Umriss. Texte wörtlich von der Folie, nur die
@@ -458,7 +458,7 @@ Example: Spamhouse  (75 Gbps)
 <https://blog.cloudflare.com/the-ddos-that-knocked-spamhaus-offline-and-ho/>
 
 ::: flip
-::: diagram {unit=130x62}
+::: draw {unit=130x62}
 # "Spamhouse" steht so auf der Folie (die Firma heißt Spamhaus) und bleibt so
 # stehen; der Beleg dazu ist der Mitschnitt nebenan, nicht dieses Bild.
 # Die beiden Dreiecke sind der Größenvergleich: die Fläche ist die Menge, die
@@ -513,7 +513,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 ```
 
 ::: flip
-::: diagram {unit=112x58}
+::: draw {unit=112x58}
 # Der Tippfehler der Vorlage bleibt stehen: im Code links heißt es
 # print('Connected by', add) statt addr.
 # Die Blockpfeile der Folie sind .chevron (Spitze rechts, Client -> Server)
@@ -548,7 +548,7 @@ step state
 
 ## figure: One technique to defend against SYN flooding is to enable SYN Cookies | so that server does not have to store the state {.full #ns-a33}
 
-::: diagram {unit=126x62}
+::: draw {unit=126x62}
 # Die Folie hebt seq=e und ack=e+1 gelb hervor. Freie Farben gibt es hier
 # nicht, und sie werden auch nicht gebraucht: *e* setzt die Variable in den
 # Akzent, und der Takt "cookie" hebt die beiden Blockpfeile hervor, in denen
@@ -576,7 +576,7 @@ step encode
 
 ## figure: TLS 1.3 performs a handshake to start a secure network connection | and to negotiate cryptographic keys between the client and the server {.full #ns-a41}
 
-::: diagram {unit=120x46}
+::: draw {unit=120x46}
 default box {.tone-3} w 2.3
 
 text cl "Client" at 0,0 {.large .muted}
@@ -609,7 +609,7 @@ step verify
 
 ## figure: Certificate chains {.full #ns-a43}
 
-::: diagram {unit=124x50}
+::: draw {unit=124x50}
 default box {.tone-3} w 1.55
 
 box  os "Browser/OS" at 0,0 {.tone-1}
@@ -653,7 +653,7 @@ step real
 
 ## figure: Certificates are stored in a X.509 (v3) data structure. {.standard #ns-a45}
 
-::: diagram {unit=150x40}
+::: draw {unit=150x40}
 default box {.tone-3} w 2.6 pad 0.3
 
 box f1 "X.509 version\nSerial number\nSignature algorithm\nValid from/until\nIssuer Name\n*Subject Name*\n*Public Key*" at 0,0
@@ -674,7 +674,7 @@ step signature
 
 ## figure: Extensions of a server certificate | github.com, as a certificate viewer lists them {.standard #ns-a49}
 
-::: diagram {unit=150x30}
+::: draw {unit=150x30}
 default text {.small}
 
 text l1 "Extension\nCritical\nUsage" at 0,0 {.right .muted}
@@ -721,7 +721,7 @@ step domains
 
 ## figure: Upgrading HTTP to HTTPS {.full #ns-a60}
 
-::: diagram {unit=110x110}
+::: draw {unit=110x110}
 box  br "Browser" at 0,0 w 1.1 {.tone-2}
 box  sv "Server"  at 4.0,0 same as br {.tone-2}
 
@@ -765,7 +765,7 @@ or
 
 ## figure: Operation of sslstrip {.full #ns-a62}
 
-::: diagram {unit=90x90}
+::: draw {unit=90x90}
 box  br "Browser"  at 0,0   w 1.3 {.tone-2}
 box  sv "Server"   at 5.4,0 same as br {.tone-2}
 text ss "sslstrip" at 2.7,0 {.turn .accent @mitm}
@@ -818,7 +818,7 @@ Go to secure Login Form</a>[...]
 
 ## figure: Firewalls enforce rules that limit who is allowed to talk to whom. {.full #ns-b04}
 
-::: diagram {unit=132x78}
+::: draw {unit=132x78}
 # Alle Beschriftungen wörtlich von der Folie – auch "publically reachable",
 # das im Original genau so geschrieben steht und hier so bleibt. Der
 # Zeilenumbruch in "demilitarized zone (DMZ)" ist im Original nur ein
@@ -881,7 +881,7 @@ step trusted
 
 ## figure: Not only used to secure the perimeter, also for network segmentation. | cf. lateral movement, ransomware {.full #ns-b05}
 
-::: diagram {unit=132x78}
+::: draw {unit=132x78}
 # Dieselbe Zeichnung wie auf der vorigen Folie: dieselben Namen, dieselben
 # Koordinaten, dieselben Ersatzformen. Neu sind allein die beiden inneren
 # Firewalls und die Zonenbeschriftung "segmented net" – so liest die Folge
@@ -937,7 +937,7 @@ step contained
 
 ## figure: Firewalls are also run on hosts to limit chatty applications' network access. {.full #ns-b06}
 
-::: diagram {unit=132x78}
+::: draw {unit=132x78}
 # Wieder dieselbe Zeichnung, dieselben Namen, dieselben Koordinaten. Neu
 # ist die FIREWALL auf dem Host – im Original steht sie waagerecht neben
 # der Beschriftung "desktops", deshalb steht sie hier an derselben Stelle
@@ -1018,7 +1018,7 @@ ssh –D1080 91.1.1.5 # SOCKS proxy
 ssh –L2222:44.11.1.4:22 92.1.1.5
 ```
 ::: flip
-::: diagram {unit=138x74}
+::: draw {unit=138x74}
 # Die Kommandozeilen der Folie stehen als gewöhnlicher Codeblock daneben,
 # nicht im Diagramm. Und sie stehen wörtlich da: die zweite Zeile nennt
 # 91.1.1.5, die anderen 92.1.1.5. Das ist auf der Folie so, und der
@@ -1081,7 +1081,7 @@ Proxy-Connection: close
 .`...\ÇÈÀœÁ.Û3Xjè*...=diffie- […]
 ```
 ::: flip
-::: diagram {unit=118x150}
+::: draw {unit=118x150}
 # Eine Kette auf einer waagerechten Linie – dieselbe Form wie auf der
 # Folie danach. Der HTTP-Mitschnitt steht daneben als Codeblock, nicht
 # im Bild. Die Beschriftungen "ssh client" und "ssh server" stehen wie
@@ -1125,7 +1125,7 @@ ssh […] 92.1.1.5
  ▶ <more TLS records> (SSH)
 ```
 ::: flip
-::: diagram {unit=118x104}
+::: draw {unit=118x104}
 # Zwei Ketten auf je einer waagerechten Linie, formal wie die Folie davor:
 # oben der naive Versuch, unten der, der durchkommt. Das Verbotszeichen und
 # die beiden Aufkleber der Vorlage sind Beiwerk und fehlen – dass es oben
@@ -1172,7 +1172,7 @@ step futile
 
 ## figure: Why should we deploy an intrusion detection system (IDS) at all? {.full #ns-b26}
 
-::: diagram {unit=118x78}
+::: draw {unit=118x78}
 default box {.tone-1} w 1.15 h 0.66
 
 # Die fünf proaktiven Maßnahmen sind die Mauer selbst: eine Reihe ohne Fuge,
@@ -1213,7 +1213,7 @@ step detect
 
 ## figure: Two Deployment Approaches | Host- (HIDS) and Network-based (NIDS) {.full #ns-b27}
 
-::: diagram {unit=150x62}
+::: draw {unit=150x62}
 default box {.tone-1}
 
 # Das Rückgrat: Uplink, Firewall, Switch. Der hellblaue Vollflächen-
@@ -1262,7 +1262,7 @@ step hids
 
 ## figure: The observable input depends on the placement of the sensor. {.full #ns-b28}
 
-::: diagram {unit=150x58}
+::: draw {unit=150x58}
 # In der Vorlage fehlen die Pfeile zwischen den drei Stufen, und die beiden
 # Ausprägungen hängen ohne Bezug daneben. Beides ist hier ergänzt, ohne dass
 # sich ein Wort ändert.
@@ -1289,7 +1289,7 @@ step sensor
 
 ## figure: Given some input data, the detection result of an IDS can be classified into one of four cases. {.full #ns-b39}
 
-::: diagram {unit=150x60}
+::: draw {unit=150x60}
 default box {.sharp}
 
 box tp  "true positive\nTP"  at 0,0 w 1.45 h 1.05 {.tone-2}
@@ -1322,7 +1322,7 @@ step alarm
 
 ## figure: Misuse-based IDS can only detect what is known. | Anomaly-based IDS might detect novel attacks. {.full #ns-b48}
 
-::: diagram {unit=150x62}
+::: draw {unit=150x62}
 default box {.sharp}
 
 text mh "Misuse detection"  at 0.85,0 {.large .bold}
@@ -1370,7 +1370,7 @@ step rest
 
 ## figure: Observed character freq. | Anomaly? {.full #ns-b55}
 
-::: diagram {unit=150x58}
+::: draw {unit=150x58}
 # Die Zeichenkette unter den Säulen ist wörtlich von der Folie, gesperrt
 # gesetzt: "t / p r e n . ; l m o b". Der zweite String wird an Leerzeichen
 # geteilt, also eine Beschriftung je Säule. Die Werte sind so gewählt, dass
@@ -1421,7 +1421,7 @@ step metric
 
 ## figure: Training stage | Chi-square statistic (goodness of fit) {.full #ns-b56}
 
-::: diagram {unit=150x56}
+::: draw {unit=150x56}
 bars f "20,19,17,12,11,10,9,9,8,7,6,5" ". i e 0 l o 1 / a 3 5 M" at 0,0 w 2.5 h 0.9 {.tone-3 .bare}
 text cap "Char. freq. distribution for\nnormal payloads" above f gap 0.16 flush right {.right}
 
@@ -1449,7 +1449,7 @@ step weights
 
 ## figure: Detection at Runtime {.full #ns-b57}
 
-::: diagram {unit=150x56}
+::: draw {unit=150x56}
 # Dieselben Werte wie die beobachtete Verteilung auf #ns-b55 – es ist
 # dasselbe Paket – und die Bins summieren exakt auf die Zahlen der Folie:
 # 20+12+11 = 43, 10+9+9+8 = 36, 8+7+6 = 21. Vorher standen hier die Werte
@@ -1484,7 +1484,7 @@ und der Sensor schlägt Alarm, sobald $\chi^2 > t$ ist. Welcher Wert für $t$ da
 
 ## figure: Reaction of IDS {.full #ns-b59}
 
-::: diagram {unit=62x62}
+::: draw {unit=62x62}
 # Die zehn beschrifteten Pakete liegen auf einer Achse: waagerecht der
 # Anomaliewert, den der Sensor ausrechnet (das Chi-Quadrat der Folie davor),
 # senkrecht die wahre Klasse. Erst dadurch kann der Schwellwert überhaupt
@@ -1586,7 +1586,7 @@ step tradeoff
 
 ## figure: Receiver operating characteristic (ROC) curves {.full #ns-b60}
 
-::: diagram {unit=104x104}
+::: draw {unit=104x104}
 # "False Postive Rate" ist der Tippfehler der Originalfolie und bleibt so.
 # Die Einheit ist quadratisch, damit der ROC-Rahmen quadratisch wird.
 plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 2.6 h 2.45 x 0,1 y 0,1 tick 0.2
@@ -1616,7 +1616,7 @@ step lenient
 
 ## figure: Comparing detection techniques | ROC curves for alternative binnings {.full #ns-b61}
 
-::: diagram {unit=104x104}
+::: draw {unit=104x104}
 # Derselbe Rahmen wie zuvor, samt Tippfehler "False Postive Rate".
 plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 2.6 h 2.45 x 0,1 y 0,1 tick 0.2
 
@@ -1652,7 +1652,7 @@ step question
 
 ## figure: Sketch of a Similar Situation {.full #ns-b63}
 
-::: diagram {unit=70x70}
+::: draw {unit=70x70}
 # 96 Gesichter aus vier Rastern statt aus 96 Zeilen: die Regel ist je Raster
 # eine Zeile, die Ausnahme ist ein eigenes Raster. Das Asset wird nur einmal
 # eingebettet, egal wie oft es vorkommt.

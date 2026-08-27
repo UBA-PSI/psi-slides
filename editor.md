@@ -1,6 +1,6 @@
 # The diagram editor
 
-Design and build log for the graphical editor for `::: diagram`. Companion to
+Design and build log for the graphical editor for `::: draw`. Companion to
 `PRD.md` §4.6a (the grammar) and `speaker.md` (the sync protocol it borrows).
 
 Status: **experimental and desktop-oriented.** The implementation has substantial
@@ -45,7 +45,7 @@ And one thing it is emphatically **not**: a drawing program. It has no
 freehand, no curves, no arbitrary colours, no free font choice. The class
 vocabulary is a closed enumeration – 41 names, 38 of them in thirteen slots – and the
 editor derives its controls from that vocabulary. Anything it produces is a
-`::: diagram` block a human could have typed in the same language. It can open
+`::: draw` block a human could have typed in the same language. It can open
 supported compiler source without flattening it, while constructs that cannot
 be manipulated directly remain source-preserving or produce an explicit refusal.
 
@@ -95,7 +95,7 @@ price.
 ```
 ## figure: Heading {.wide #some-id}
 
-::: diagram
+::: draw
 box a "A"
 :::
 ```
@@ -129,7 +129,7 @@ Three things that must be true before this ships:
   listens on every interface – worth fixing regardless of the editor.
 - A per-build **nonce** in the HTML, required on every patch. Without it any
   page in the browser that guessed the port could write to the author's disk.
-- The server accepts a patch only if its range matches a `::: diagram` block
+- The server accepts a patch only if its range matches a `::: draw` block
   the build actually emitted, and re-reads the file first, so a patch computed
   against a stale buffer is refused rather than applied at the wrong offset.
   That refusal is also what makes two open tabs safe: whichever writes second
@@ -224,7 +224,7 @@ gets to expose rather than work around.
 **A frontmatter key holding `default` statements, in the same language:**
 
 ```yaml
-diagram-defaults: |
+draw-defaults: |
   default box       {.tone-2} w 1.0
   default text      {.small .muted}
   default container pad 0.4
@@ -243,8 +243,8 @@ added then. The escape hatch until then is the one that already exists: a
 and in one place a tag beats the bare kind.** So four layers, most specific
 last:
 
-1. `diagram-defaults` – `default <kind>`
-2. `diagram-defaults` – `default <kind> @tag`
+1. `draw-defaults` – `default <kind>`
+2. `draw-defaults` – `default <kind> @tag`
 3. the block's own `default <kind>`
 4. the block's own `default <kind> @tag`
 5. the element's own `{…}` and `w` / `h` / `r` / `pad`
@@ -276,7 +276,7 @@ with the same statement parser the DSL uses, hand the resulting layer to
 `parseDiagramSource`, and let it sit under `model.defaults` /
 `model.tagDefaults` as the base.
 
-**`lint.js` needs no YAML.** After `diagram-defaults: |` it collects the
+**`lint.js` needs no YAML.** After `draw-defaults: |` it collects the
 indented lines and runs the same `default`-statement checks it already has,
 which is roughly fifteen lines and keeps it zero-dep.
 
@@ -1050,8 +1050,8 @@ written as a list of traps) · this file · `speaker.md` §2 (state ownership, f
 | `diagram-core.mjs` | **new.** The compiler, moved out of `build.js` verbatim – *after* phase 0, so the move is a pure move and §3.3's emitter change is not tangled into it. Pure JS, zero imports, zero Node APIs. |
 | `editor.mjs` | **new.** The editor UI. Inlined as text into the live views, like `AUDIENCE_JS` is today. |
 | `editor.css` or a `EDITOR_CSS` constant | **new.** Same treatment. |
-| `build.js` | imports `diagram-core.mjs`; reads both new files as text and inlines them; emits the per-diagram source payload; the `diagram-defaults` frontmatter key; the two-way watch socket. |
-| `lint.js` | imports the vocabulary tables from `diagram-core.mjs`, drops its mirrors; gains the `diagram-defaults` checks. |
+| `build.js` | imports `diagram-core.mjs`; reads both new files as text and inlines them; emits the per-diagram source payload; the `draw-defaults` frontmatter key; the two-way watch socket. |
+| `lint.js` | imports the vocabulary tables from `diagram-core.mjs`, drops its mirrors; gains the `draw-defaults` checks. |
 | `speaker.md` | §2 gains the `diagram-edit` row. |
 | `PRD.md`, `CLAUDE.md`, `CHANGELOG.md`, tutorial | §3.2, then the editor itself. |
 
@@ -1207,7 +1207,7 @@ Not "carefully" – these are the commands.
 | 8 | Two windows, one edit, assert the other re-renders; freeze, edit, assert it does not; unfreeze, assert it catches up. Patch with a stale range, assert refusal. |
 | 9 | Paste the `#lifecycle` selection into an empty figure and assert the result **builds** – the closure is right exactly when the pasted block compiles with no dangling reference. Then paste it twice and assert the renames are distinct. |
 | 10 | Step through the CBC figure in the editor and assert each beat's geometry matches the frames payload the build emitted for that beat. |
-| §3.2 | A lecture whose `diagram-defaults` sets `w`, plus one block overriding it, plus one element overriding that: assert three different widths in the emitted SVG. A tag no diagram carries: assert the build fails. A tag *some* diagram carries: assert it does not. |
+| §3.2 | A lecture whose `draw-defaults` sets `w`, plus one block overriding it, plus one element overriding that: assert three different widths in the emitted SVG. A tag no diagram carries: assert the build fails. A tag *some* diagram carries: assert it does not. |
 | §3.3 | One figure using every new class, screenshotted in all seven themes – `.clear` must show what is behind it, `.tone-4` text must stay legible, `.serif` must not be italic. `.fit` on a box with an explicit `w`: assert the emitted `font-size` differs from `DG_FONT` and that the measured label still fits. `pad 0.3` on a box: assert the rect grew by `0.6 × unit` in both axes. `lint --strict` on `{.tone-4 .accent}`: assert the warning. |
 
 There is no test suite in this repo and this plan does not add one. The checks
@@ -1216,7 +1216,7 @@ above are scripts under the scratchpad, run and reported, not committed.
 ### 11.9 Not in scope
 
 Touch and pen input. Mobile layout. Collaborative editing. Editing the prose of
-a chunk. Any figure type other than `::: diagram` – images, video and embeds
+a chunk. Any figure type other than `::: draw` – images, video and embeds
 are not editable and their focus cards get no pencil. Undo across a reload.
 
 ## 12. Settled, and still open
@@ -1244,7 +1244,7 @@ rather than deleted, because the reasoning is what a later reader will want.
 - **A shared preamble: sensible, still deferred.** §7.2 carries defaults by
   copying them into each block, and that decays – change the look later and it
   is twelve edits again. The durable fix is a lecture-level default that
-  several figures name, `::: diagram {unit=130x76 use=house}` against presets
+  several figures name, `::: draw {unit=130x76 use=house}` against presets
   in the frontmatter. It is *additive*, so it stays available after the grammar
   freezes, which is exactly why it does not have to be decided now. **Build
   §7.2 first.** The trigger for building the preamble is concrete: if an author
@@ -1451,7 +1451,7 @@ that Tier 0's reader edits use.
 **Never inline a `data:` URI into `source.md`.** The `image` statement takes a
 path or a URL and would probably swallow one, which is exactly what makes it
 tempting. A 40 KB base64 blob in a lecture source is unreadable, undiffable,
-and breaks the property the whole editor is built on – that a `::: diagram`
+and breaks the property the whole editor is built on – that a `::: draw`
 block is something a human could have typed. The build already inlines assets
 into the *output*; the source stays a reference. That separation is the reason
 `--no-inline-images` can exist at all.
@@ -1482,7 +1482,7 @@ not already say. The plan is the *what*; this is what actually happened.
 
 ### Phase 0a – lecture-wide defaults · **done**
 
-`diagram-defaults:` in the frontmatter, exactly as §3.2 specifies. Four
+`draw-defaults:` in the frontmatter, exactly as §3.2 specifies. Four
 layers, scope before selector, and the lecture-level tag rule one scope wider
 than the block's.
 
@@ -1506,13 +1506,13 @@ Three things worth knowing:
   `parseLecture` rules on it after the last chunk – which is also the only
   reason that check is in `parseLecture` rather than beside the others.
 - **`lint.js` reads the key without YAML**, per §3.2: `collectDiagramDefaults`
-  scans for `diagram-defaults:` followed by `|` or `>` and takes what is
+  scans for `draw-defaults:` followed by `|` or `>` and takes what is
   indented under it, dedenting by the first line's indentation. Fifteen lines,
   still zero-dep.
 
 Verified (§11.8's row for §3.2, run, not asserted in prose):
 
-- a lecture whose `diagram-defaults` sets `w 1.0`, a block overriding with
+- a lecture whose `draw-defaults` sets `w 1.0`, a block overriding with
   `w 0.5`, an element overriding with `w 2.0`, plus a `@dec` tag default at
   `w 0.4` → emitted widths 100 / 50 / 200 / 40 px at `unit=100x60`, and the
   block's bare `default box` beating the lecture's `@dec` one (scope before
@@ -1877,7 +1877,7 @@ Verified in a real browser, all on `lectures/diagrams`:
 *Tier 1, the watch socket*, now two-way. The three preconditions §2.3 asks
 for are all in place – the server binds to `127.0.0.1`, a per-build nonce is
 required on every patch, and a patch is refused unless the range is one a
-`::: diagram` block actually occupied *and* the bytes there still match what
+`::: draw` block actually occupied *and* the bytes there still match what
 that block compiled from. **A fourth check turned out to be needed.** The
 plan's reasoning – "whichever writes second is working against a range that
 no longer exists" – holds only when an edit changes the block's *length*. Two
@@ -1966,7 +1966,7 @@ Verified:
   active tool gains a visible inset mark while the rail is locked.
 - ~~Placing a picture (§14).~~ **Built** – see *Phase 11* below.
 - ~~The demo lecture never learned the new vocabulary.~~ **Fixed**:
-  `lectures/diagrams` now carries the lecture-wide `diagram-defaults`, `pad` on
+  `lectures/diagrams` now carries the lecture-wide `draw-defaults`, `pad` on
   the stack frames in `#overflow`, `.paper` and `.serif` in `#mac`, and a
   `#look` chunk that shows every fill, every family and the three answers to
   "how does type meet its box".
@@ -2039,30 +2039,30 @@ an element that had none emitted `""Hi""`; the paste rename rewrote words
 not to delete this one. See the commit for each.
 
 **The one that made the editor draw a different picture than the build.** The
-lecture-wide `diagram-defaults` layer never reached the browser, so the
+lecture-wide `draw-defaults` layer never reached the browser, so the
 in-browser compiler resolved four layers where the build resolved five. Worth
 recording why phase 3's identity check missed it: **the check was right and
 the corpus was too small** – none of the three lectures in the repo uses
-`diagram-defaults`. The fixture that reproduces it, for anyone re-running the
+`draw-defaults`. The fixture that reproduces it, for anyone re-running the
 check:
 
 ```markdown
 ---
 title: Lecture defaults
-diagram-defaults: |
+draw-defaults: |
   default box {.tone-3} w 1.1
   default box @dec {.round} w 0.5
   default text {.small}
 ---
 ## title: Lecture defaults {#cover}
 ## figure: Styled by the lecture {.full #styled}
-::: diagram {unit=130x76}
+::: draw {unit=130x76}
 box a "Alpha"
 box b "Beta" right of a gap 0.4 {@dec}
 text n "a note" below a gap 0.5
 :::
 ## figure: A fit that needs the lecture width {.full #fitted}
-::: diagram {unit=130x76}
+::: draw {unit=130x76}
 box f "fits the box" {.fit}
 :::
 ```

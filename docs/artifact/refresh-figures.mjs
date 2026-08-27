@@ -140,13 +140,13 @@ function hl(src) {
   }).join('');
 }
 
-// ── the ::: diagram block belonging to a chunk, verbatim ─────────────────
+// ── the ::: draw block belonging to a chunk, verbatim ─────────────────
 function diagramBlock(md, chunkId) {
   const lines = md.split('\n');
   const head = lines.findIndex((l) => l.startsWith('## ') && l.includes('#' + chunkId + '}'));
   if (head < 0) throw new Error('chunk #' + chunkId + ' not in the lecture');
   const next = lines.findIndex((l, i) => i > head && l.startsWith('## '));
-  const open = lines.findIndex((l, i) => i > head && l.startsWith('::: diagram'));
+  const open = lines.findIndex((l, i) => i > head && l.startsWith('::: draw'));
   if (open < 0 || (next > 0 && open > next)) throw new Error('no diagram in #' + chunkId);
   let close = -1;
   for (let i = open + 1; i < lines.length; i++) if (lines[i] === ':::') { close = i; break; }

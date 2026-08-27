@@ -1,13 +1,13 @@
-# Revising the `::: diagram` language – findings, and the job
+# Revising the `::: draw` language – findings, and the job
 
 **Status: working document.** Input to a two-stage review. Nothing here is a
 decision; every item is a defect statement with the evidence that produced it.
 
 ## Why now
 
-`::: diagram` is development state on `claude/network-security-figures`. It is
+`::: draw` is development state on `claude/network-security-figures`. It is
 not in any release, and CLAUDE.md is explicit about what changes at the first
-tagged one: *"`::: diagram` becomes frozen source-format the moment it is in a
+tagged one: *"`::: draw` becomes frozen source-format the moment it is in a
 tagged release."* So the window for anything that changes what existing source
 means, or what it draws, is open now and closes at that tag.
 
@@ -378,7 +378,7 @@ at 1,1 step ............ 120 x 72 px
 ```
 
 **And the default is not what the corpus uses.** Measured across all 110
-`::: diagram` blocks in `lectures/diagrams`, `lectures/network-security` and
+`::: draw` blocks in `lectures/diagrams`, `lectures/network-security` and
 `docs/artifact/figure-rules`: **109 of 110 set their own `unit=`**, and the
 median cell is **2.88:1**, not the default's 1.67:1 (`unit=150x52` alone accounts
 for 38 blocks). So in the figures people actually write, `gap 1` rightwards buys
@@ -1059,7 +1059,7 @@ under these.
 
 ## Breaking-change budget: free rein, and drop the old spellings
 
-`::: diagram` is unreleased, so the window is open. Proposals **may** rename
+`::: draw` is unreleased, so the window is open. Proposals **may** rename
 words, change what a number means, and remove statements or tokens. They should
 **not** keep legacy spellings alive as aliases: where a revision replaces a word,
 the old word goes, so the final surface has exactly one way to say each thing.

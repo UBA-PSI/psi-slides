@@ -3,7 +3,7 @@ title: Figure rules
 subtitle: "The wrong/right pairs from figure-design.md, as compilable figures"
 author: Dominik Herrmann
 collapse: none
-diagram-defaults: |
+draw-defaults: |
   default text {.small}
 ---
 
@@ -24,7 +24,7 @@ The chunk ids are the contract with the refresh script. Do not rename them.
 
 ## figure: hero, the whole of a figure {.full #hero}
 
-::: diagram
+::: draw
 # Five statements, and nothing in them is a coordinate but the two gaps. Eve
 # is placed against Alice and Bob against Eve, so the row is a chain of
 # relations; the two wires name their ends and work out their own route.
@@ -42,7 +42,7 @@ edge e -> b "plaintext"
 
 ## figure: the picture the site opens with {.full #sitehero}
 
-::: diagram {unit=150x38}
+::: draw {unit=150x38}
 # The figure at the top of docs/site/figures.html. Encapsulation drawn as what
 # it is - each layer wrapping the one before it - rather than as a stack of
 # four bars, which is the same fact drawn as a list.
@@ -80,7 +80,7 @@ step wire
 
 ## figure: hero, one line changes and everything follows {.full #follow}
 
-::: diagram {unit=170x56}
+::: draw {unit=170x56}
 # The cast is written once, at the top, whether or not it is on screen at the
 # opening beat. Eve is hidden there because the first thing any step says
 # about her is `show` - and her two wires and her outline arrive with her
@@ -121,7 +121,7 @@ step relabel
 
 ## figure: 1 wrong | even gaps say nothing {.full #r1w}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 box a "Switch"    at 0,0 {.tone-1}
 box b "Router"    right of a gap 1.45 {.tone-1}
 box c "Resolver"  right of b gap 1.45 {.tone-1}
@@ -130,7 +130,7 @@ box d "Webserver" right of c gap 1.45 {.tone-2}
 
 ## figure: 1 right | the pair is a pair before you read it {.full #r1r}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 box a "Switch"    at 0,0 {.tone-1}
 box b "Router"    right of a gap 0.7 {.tone-1}
 box c "Resolver"  right of b gap 2.6 {.tone-1}
@@ -139,7 +139,7 @@ box d "Webserver" right of c gap 0.7 {.tone-2}
 
 ## figure: 2 wrong | the home network is "the stuff on the left" {.full #r2w}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 box a "A" at 0,0 {.tone-2}
 box b "B" right of a gap 0.85 {.tone-2}
 box r "Router" right of b gap 4.6 {.tone-1}
@@ -147,7 +147,7 @@ box r "Router" right of b gap 4.6 {.tone-1}
 
 ## figure: 2 right | common region beats proximity {.full #r2r}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 box a "A" at 0,0 {.tone-2}
 box b "B" right of a gap 0.85 {.tone-2}
 box r "Router" right of b gap 4.6 {.tone-1}
@@ -156,7 +156,7 @@ container home "Home network" over a,b pad 0.4 {.dashed}
 
 ## figure: 3 wrong | an arrow used as a pointing finger {.full #r3w}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 box  sw "Switch" at 0,0 {.tone-1}
 text n  "learns MAC addresses" right of sw gap 3.45
 edge n -> sw
@@ -164,14 +164,14 @@ edge n -> sw
 
 ## figure: 3 right | a leader reads as an annotation {.full #r3r}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 box  sw "Switch" at 0,0 {.tone-1}
 text n  "learns MAC addresses" right of sw gap 3.45 -- sw {.small .muted}
 :::
 
 ## figure: 6a wrong | type on a line is read as texture {.full #r6aw}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 box sw "Switch" at 0,0 {.tone-1}
 box rt "Router" right of sw gap 6.9 {.tone-1}
 edge sw -> rt
@@ -180,7 +180,7 @@ text lbl "10.1.1.0/24" between sw,rt
 
 ## figure: 6a right | .paper punches the line out behind the word {.full #r6ar}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 box sw "Switch" at 0,0 {.tone-1}
 box rt "Router" right of sw gap 6.9 {.tone-1}
 edge sw -> rt
@@ -189,7 +189,7 @@ text lbl "10.1.1.0/24" between sw,rt pad 0.12 {.paper .small}
 
 ## figure: 6b wrong | the caption lands on what the panel holds {.full #r6bw}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # A centred caption is right in an empty box and wrong in a full one: the
 # middle of a zone panel is where its contents are, so the word ends up under
 # them, with an end showing on either side of the box that covers it.
@@ -206,7 +206,7 @@ box aut "Auth" below app gap 0.12 same as db {.paper}
 
 ## figure: 6b right | it sits where the eye enters the shape {.full #r6br}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # One class different. .top moves the caption to the panel's inner top edge,
 # which is both where nothing else is and where the eye enters a tall shape.
 # The room between the caption and DB is bought by where the stack starts,
@@ -222,7 +222,7 @@ box aut "Auth" below app gap 0.12 same as db {.paper}
 
 ## figure: 7 wrong | down, across, down again to dodge Dec {.full #r7w}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 box c0  "C0"  at 0,0 {.tone-3}
 box dec "Dec" below c0 gap 0.5 {.tone-1}
 box x1  "X1"  below dec gap 0.5 {.tone-3}
@@ -233,7 +233,7 @@ edge c0 -> x1 via c0.cx,c0.bottom+0.25 c0.right+0.4,c0.bottom+0.25 c0.right+0.4,
 
 ## figure: 7 right | out sideways into the channel, then down {.full #r7r}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # The left channel, not the right one: X1 -> P1 already occupies the right,
 # and an arrow arriving on that same line would break rule 8 inside the
 # example that is supposed to demonstrate rule 7.
@@ -247,7 +247,7 @@ edge c0 -> x1 via c0.left-0.4,c0.cy c0.left-0.4,x1.cy
 
 ## figure: 8 wrong | two arrows on one line, two labels on one word {.full #r8w}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 box  eve "Eve" at 0,0 h 1.05 {.accent}
 box  bob "Bob" right of eve gap 6.35 same as eve {.tone-2}
 edge eve -> bob "replay"
@@ -256,7 +256,7 @@ edge eve -> bob "forgery"
 
 ## figure: 8 right | the fraction slides the attachment along the side {.full #r8r}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # Each label sits on the outside of its own line: replay above the upper one,
 # forgery below the lower one. Without that, both are carried above their
 # line, forgery lands in the gap between the two, and the only way to keep
@@ -269,7 +269,7 @@ edge eve.right:0.7 -> bob.left:0.7 "forgery" {.accent} side bottom
 
 ## figure: 8 skewed | the fraction is measured along each box's own side {.full #r8s}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # This block is meant to warn, and the warning is the lesson: the two boxes
 # are different heights, so 0.3 of Eve's side and 0.3 of Bob's are not the
 # same height above the floor and both lines arrive a degree or so off the
@@ -283,7 +283,7 @@ edge eve.right:0.7 -> bob.left:0.7 "forgery" {.accent} side bottom
 
 ## figure: 11 wrong | the middle box is bigger because its label is longer {.full #r11w}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # Three peers of one kind, and nothing said about size at all - which is
 # exactly how the accident happens. Each box is as wide as its own label, so
 # the one with the longest phrase in it comes out half again as wide as its
@@ -295,7 +295,7 @@ box c "Log" right of b gap 1.15 {.tone-1}
 
 ## figure: 11 right | one width for the set, and the long label breaks {.full #r11r}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # One explicit w on the first of the set and "same as" on the other two, so
 # the three are peers in the drawing as well as in the sentence. The break in
 # the long label is written, because nothing here breaks a line for you - and
@@ -310,7 +310,7 @@ box c "Log" right of b gap 1.15 same as a {.tone-1}
 
 ## figure: 12 wrong | every arrow travels against the way the room reads {.full #r12w}
 
-::: diagram {unit=150x60}
+::: draw {unit=150x60}
 # The same chain laid out right to left, so every arrow travels against the
 # direction the room is already reading in. The note hangs off the middle box
 # and is placed by nothing but where it reads best - no edge joins it.
@@ -324,7 +324,7 @@ text n "and the drop is logged" below b gap 0.5 {.small .muted}
 
 ## figure: 12 right | the flow runs with the eye, and a note needs no edge {.full #r12r}
 
-::: diagram {unit=150x60}
+::: draw {unit=150x60}
 # The same three, laid out the way the room reads: the arrows now travel with
 # the eye instead of against it. The note is still joined to nothing - where it
 # sits is the whole of what says which box it is about.
@@ -338,7 +338,7 @@ text n "and the drop is logged" below b gap 0.5 {.small .muted}
 
 ## figure: 15 wrong | the outline is gone and the fill is too pale to replace it {.full #r15w}
 
-::: diagram {unit=150x60}
+::: draw {unit=150x60}
 # One box has had its outline taken away and kept the palest fill there is.
 # Beside three that still have theirs it stops reading as a box at all - which
 # is only visible next to the neighbours it is meant to belong with.
@@ -350,7 +350,7 @@ box d "Console" right of c gap 0.5 {.tone-1}
 
 ## figure: 15 right | the same box, in a fill dark enough to be the shape {.full #r15r}
 
-::: diagram {unit=150x60}
+::: draw {unit=150x60}
 # The same box, with a fill dark enough to be the shape on its own. Nothing
 # else changed: the outline is still gone, and it still reads as a box, which
 # is the whole of what the darker fill bought.
@@ -362,7 +362,7 @@ box d "Console" right of c gap 0.5 {.tone-1}
 
 ## figure: 14 wrong | two long leaders, crossing {.full #r14w}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # Both notes are parked on the same side and each points at the far box, so
 # the two stubs run diagonally and cross in the middle. A crossing is read as
 # a relationship, which is the one claim a leader must never make - and
@@ -376,7 +376,7 @@ text n2 "forwards by\nprefix" right of sw gap 1.6 -- rt {.small .muted}
 
 ## figure: 14 right | each label outside the pair, on a short stub {.full #r14r}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # Each note is put beside its own box, on the side where there is room, so
 # the two stubs are short, horizontal and parallel and nothing crosses. The
 # alignment class is the other half: .right on the label sitting to the left
@@ -391,7 +391,7 @@ text n2 "forwards by\nprefix" right of rt gap 1.6 -- rt {.small .muted .left}
 
 ## figure: 6c | numbers on the line, words beside it {.full #r6c}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # Two conventions, kept apart by what the text is doing. A sequence number is
 # an index: it belongs to the wire, so it rides on it with a ground knocked
 # out behind it. A message name is a description: it belongs to the reader,
@@ -422,7 +422,7 @@ text m4 "ClientKeyExchange" at f3.cx-0.55,f3.cy-0.26 {.small .muted}
 
 ## figure: the seven fills, mixed from the page's own inks {.full #tones}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 box t1 "tone-1" at 0,0 {.tone-1}
 box t2 "tone-2" right of t1 gap 0.45 same as t1 {.tone-2}
 box t3 "tone-3" right of t2 gap 0.45 same as t1 {.tone-3}
@@ -436,14 +436,14 @@ box mu "muted"  right of dm gap 0.45 same as t1 {.muted}
 
 ## figure: b1 two boxes {.full #b1}
 
-::: diagram {unit=170x56}
+::: draw {unit=170x56}
 box cl "Client" at 0,0
 box sv "Server" right of cl gap 4.25
 :::
 
 ## figure: b2 an edge {.full #b2}
 
-::: diagram {unit=170x56}
+::: draw {unit=170x56}
 box cl "Client" at 0,0
 box sv "Server" right of cl gap 4.25
 edge cl -> sv
@@ -451,7 +451,7 @@ edge cl -> sv
 
 ## figure: b3 placement is an expression {.full #b3}
 
-::: diagram {unit=170x56}
+::: draw {unit=170x56}
 box cl "Client" at 0,0
 box sv "Server" right of cl gap 4.25
 edge cl -> sv
@@ -461,7 +461,7 @@ edge sv -> log
 
 ## figure: b4 the attribute tail {.full #b4}
 
-::: diagram {unit=170x56}
+::: draw {unit=170x56}
 box cl "Client" at 0,0 {.tone-2}
 box sv "Server" right of cl gap 4.25 {.tone-1}
 edge cl -> sv
@@ -471,7 +471,7 @@ edge sv -> log
 
 ## figure: b5 words that are not a box {.full #b5}
 
-::: diagram {unit=170x56}
+::: draw {unit=170x56}
 box cl "Client" at 0,0 {.tone-2}
 box sv "Server" right of cl gap 4.25 {.tone-1}
 edge cl -> sv
@@ -482,7 +482,7 @@ text n "TLS ends here" right of sv gap 3.65 -- sv {.small .muted}
 
 ## figure: b6 an outline around a part of it {.full #b6}
 
-::: diagram {unit=170x56}
+::: draw {unit=170x56}
 box cl "Client" at 0,0 {.tone-2}
 box sv "Server" right of cl gap 4.25 {.tone-1}
 edge cl -> sv
@@ -496,7 +496,7 @@ container dmz "DMZ" over sv,log pad 0.4 {.dashed .muted}
 
 ## figure: four beats, one tag {.full #beats-demo}
 
-::: diagram {unit=160x54}
+::: draw {unit=160x54}
 # The disturbance is one line, `show @attack`. It can be, because an element
 # starts hidden exactly when the first thing any step says about it is
 # `show` - so every element is written at the top of the block and simply
@@ -538,7 +538,7 @@ step redirected
 
 ## figure: a box that walks away {.full #move-demo}
 
-::: diagram {unit=160x54}
+::: draw {unit=160x54}
 # Nothing here stores a coordinate: the arrows were written as "from cl" and
 # "to sv" and the outline as "over @client", so both beats move a drawing
 # rather than a number. The verbs differ in what they can address - "to"
@@ -566,7 +566,7 @@ step withdraw
 
 ## figure: sp1 outlines {.full #sp1}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 box a "SYN seq=c"       at 0,0 {.chevron .tone-3}
 box b "SYN+ACK ack=c+1" below a point left {.chevron}
 box c "IDS"             right of a gap 0.7 {.hex .tone-1}
@@ -578,7 +578,7 @@ box g "?"               right of f gap 0.7 {.diamond .tone-2}
 
 ## figure: sp2 a turned label {.full #sp2}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 box  fw "FIREWALL" at 0,0 h 1.5 {.tone-4 .turn}
 box  sw "SWITCH"   right of fw gap 2
 edge fw -> sw.left
@@ -587,7 +587,7 @@ text ax "True Positive Rate" left of fw gap 0.7 {.turn}
 
 ## figure: sp3 a chart that is still boxes {.full #sp3}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # aspect rather than h: w and h are counts of grid cells and a cell here is
 # 150 by 52, so the two numbers that look square draw something three times
 # wider than it is tall. 4:1 is the proportion the room actually sees.
@@ -598,7 +598,7 @@ brace b2 over f-3,f-4,f-5,f-6,f-7 side bottom "the next five"
 
 ## figure: sp4 a frame and a curve through its points {.full #sp4}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # aspect 1:1, because both axes of a ROC plot carry the same quantity and
 # the chance diagonal has to arrive at 45 degrees. Written w 1.9 h 1.5 the
 # frame came out 285 by 78 - two numbers that look nearly square drawing
@@ -618,7 +618,7 @@ box  m2 "" at roc@0.35,roc@0.95 w 0.09 h 0.26 {.cross .tone-3}
 
 ## figure: sp4b the same two numbers, said the two ways {.full #sp4b}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # The same width, the other dimension said the two ways. w and h count grid
 # cells and a cell here is 150 by 52, so w 1.9 h 1.5 is 285 by 78 - two
 # numbers that look nearly square drawing something almost four times wider
@@ -633,7 +633,7 @@ text ng "w 1.9  aspect 1:1" below good gap 0.4 {.small .muted}
 
 ## figure: sp4c three frames that match to the pixel {.full #sp4c}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # The second and third charts take their frame from the first, so the three
 # can be read against one another and, on paper, laid over one another.
 # `same as` is answered as the line is read - which is why the chart being
@@ -648,14 +648,14 @@ text c3 "week 3" below w3 gap 0.35 {.small .muted}
 
 ## figure: sp5 one drawing, however often it appears {.full #sp5}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 grid g image face-ok 8x3 at 0,0 cell 0.26 space 0.09
 text n "one file, twenty-four times" right of g gap 0.7
 :::
 
 ## figure: sp6 evenly spaced by one line {.full #sp6}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # Written the way a row gets written: every box against the one before it,
 # and one deliberately large gap before the last, which is how an author says
 # where the right-hand end belongs. The four widths differ on purpose - the
@@ -680,7 +680,7 @@ text w2 "after spread x" right of d2 gap 1.15 {.small .muted}
 
 ## figure: sp11 the cycle a spread can create {.full #sp11}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # The error message, drawn. `d right of c` makes d wait for c; a spread over
 # all four pins the two ends and moves everything between, so c waits for d.
 # The build names the loop rather than drawing something plausible.
@@ -692,7 +692,7 @@ edge d.bottom -> c.bottom via d.cx,d.bottom+0.7 c.cx,c.bottom+0.7 "spread pins d
 
 ## figure: sp7 type that fits, and a line over the top {.full #sp7}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # Both connectors aim at a corner. An endpoint written .center is a point
 # *inside* the box, so nothing is drawn from the border inwards and the line
 # stops wherever it happens to cross the edge - which reads as a line that
@@ -711,7 +711,7 @@ edge c.left-0.55,c.cy -- c.right+0.45,c.cy {.front .accent}
 
 ## figure: sp8 two series {.full #sp8}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # Three runs of columns in one frame, and which run stands beside which is
 # the argument: the scanner column is beside the hand-reviewed one because
 # the two are being compared, and the false positives are stacked on the
@@ -730,7 +730,7 @@ text n3 "false positive" right of s3 gap 0.35 {.small .muted}
 
 ## figure: sp9 one column singled out {.full #sp9}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # emph and calm are written on the statement, so the chart arrives already
 # saying which column the sentence beside it is about. Reached by a step
 # instead, the opening picture would be five equal columns and the point
@@ -742,7 +742,7 @@ text ax "blocked connection attempts, by destination port, one week" below port 
 
 ## figure: sp10 bars that run sideways {.full #sp10}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # horizontal, because the categories are phrases. Upright, "TLS certificate
 # mismatch" would have a ninety-pixel column to be written under and a label
 # half again as wide as that; flat, it has the whole left margin, and the
@@ -763,7 +763,7 @@ text ax "IDS alerts by signature class, one campus network, one week" below al g
 
 ## figure: a flowchart {.full #fc}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # The main road runs straight down and reads as the default: every decision
 # that says no leaves it sideways, so a reader who follows the vertical line
 # is following the packet that gets through. The fast path is the one branch
@@ -785,7 +785,7 @@ edge d1.left -> acc.left "yes" via d1.left-0.55,d1.cy d1.left-0.55,acc.cy side l
 
 ## figure: a swimlane {.full #swim}
 
-::: diagram {unit=110x64}
+::: draw {unit=110x64}
 # The lanes say who and the left-to-right order says when, so neither has to
 # be written in a box. Every hand-off changes lane, which is why they are
 # elbows: a straight line between two bands reads as a diagonal across a band
@@ -804,7 +804,7 @@ edge blk -> ntf {.elbow}
 
 ## figure: a tree {.full #tree}
 
-::: diagram {unit=95x95}
+::: draw {unit=95x95}
 # Written from the leaves up, because the leaves are the fixed points - they
 # are what a browser is actually asked about - and every parent is then the
 # midpoint of what it signs. Move a leaf and the two ranks above it re-centre
@@ -825,7 +825,7 @@ edge rt -- i2 {.elbow .muted}
 
 ## figure: a table, a row at a time {.full #table-demo}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 # A cell carries a tag for its row and a tag for its column, so a beat is one
 # name rather than three cell names kept in step by hand - and a tag is a tag,
 # so `show @t-row-2` brings a row in exactly as `style @t-row-2` tints one.
@@ -861,7 +861,7 @@ step every-one-of-them-has-an-answer
 
 ## figure: a protocol {.full #seq}
 
-::: diagram {unit=140x44}
+::: draw {unit=140x44}
 # Three shapes of line and nothing else: an actor, a message between two
 # names, and a note standing on a lifeline. What the statement decides is the
 # vertical rhythm - every band is as tall as what stands in it - so inserting
@@ -880,7 +880,7 @@ sequence x at 0,0 space 0.34
 
 ## figure: a protocol, one phase at a time {.full #seq-demo}
 
-::: diagram {unit=150x40}
+::: draw {unit=150x40}
 # The actors are lines of their own because each needs a name later lines can
 # hold on to and an attribute tail of its own. Everything under them is a
 # message - an arrow between two names - or a note.

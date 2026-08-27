@@ -441,11 +441,11 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 > note: A malformed formula does not fail the build – KaTeX renders it in red so a typo never blanks the projector mid-lecture. The terminal reports it instead, and `lint.js` warns about a `$$` you forgot to close.
 
-## example: Diagrams | `::: diagram` draws boxes and arrows from text {.full #diagram}
+## example: Diagrams | `::: draw` draws boxes and arrows from text {.full #diagram}
 
-**A `::: diagram` block is a figure written in the lecture source and drawn into the page as vector artwork at build time.** You name the pieces and say where they go; the arrows between them are computed.
+**A `::: draw` block is a figure written in the lecture source and drawn into the page as vector artwork at build time.** You name the pieces and say where they go; the arrows between them are computed.
 
-::: diagram {unit=126x72}
+::: draw {unit=126x72}
 box  src  "Sender"
 box  mix  "Mix"        right of src gap 1.05
 box  dst  "Empfänger"  right of mix gap 1.05
@@ -497,7 +497,7 @@ A **tag** can be written wherever a name can, so `show @crypto` in a step covers
 
 Placement also takes `between a,b` – the point on the line joining two elements, which is where a separator glyph or a note beside a connector goes – and any placement accepts a trailing `offset dx,dy`. An anchor can carry a fraction: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side instead of on top of each other.
 
-Against repetition there are two more: `default box {.tone-4} w 1.15` sets the base for every box in the diagram (add a tag – `default box @dec w 0.48` – to refine it for one set), and `same as create` copies another element's width and height. The same `default` lines go in a `diagram-defaults:` frontmatter key when a whole lecture's figures should look like each other – then a block's own `default` overrides the lecture's for that one figure, and changing the house style is one edit.
+Against repetition there are two more: `default box {.tone-4} w 1.15` sets the base for every box in the diagram (add a tag – `default box @dec w 0.48` – to refine it for one set), and `same as create` copies another element's width and height. The same `default` lines go in a `draw-defaults:` frontmatter key when a whole lecture's figures should look like each other – then a block's own `default` overrides the lecture's for that one figure, and changing the house style is one edit.
 
 And against measuring: a coordinate may be another element's coordinate. `edge iv -> x0 via iv.cx,x0.cy` means *straight down from the IV, then across at the height of the XOR*, and it stays true when anything above it moves. Adding `+0.2` or `-0.2` (`mix.cx+0.2`) shifts it a little without giving up the relation.
 
@@ -516,7 +516,7 @@ Two more options work from the box inwards rather than from the label outwards. 
 
 **How an element looks comes from a fixed list of classes, and thirteen groups of them are slots that hold one class at a time.** So `{.tone-1}` on a box *displaces* a `default box {.tone-4}` rather than stacking with it.
 
-::: diagram {unit=112x82}
+::: draw {unit=112x82}
 default box {.sharp} w 0.62 h 0.42 pad 0.12
 
 # The fills sit across a rule, so that .clear and .paper can be told apart:
@@ -612,7 +612,7 @@ Which way a pointed outline aims is the `point` option – `up`, `down`, `left`,
 
 **Three statements draw data, and each one expands into ordinary boxes, texts and edges before anything is drawn.** `bars` becomes one box per column plus a baseline, `grid` one per cell, `plot` a frame of gridlines, ticks and two axis titles.
 
-::: diagram {unit=148x64}
+::: draw {unit=148x64}
 bars wc "18,16,15,12,11,9,8,7,6,5,4,3" at 0,0 w 2.3 h 1.05 space 0.06 {.tone-3}
 brace long over wc-0,wc-1,wc-2 side bottom "the three to rewrite" pad 0.45 {.small .muted}
 # In front, or the columns cover the line and it shows only in the gaps.
@@ -635,14 +635,14 @@ step figures
 
 **`horizontal` lays the columns flat, and it is the same kind of bare word `stacked` is.** The bars run left to right, the categories stack downwards, the tick strip becomes a right-aligned column of labels down the left margin and the baseline stands on the left. Two things get better at once: lengths measured from one shared left edge are easier to rank than heights over a shared floor, and a category called "DNS cache poisoning" cannot be written under an upright column at all. **Which is why the tick string splits on `|` when it contains one**, and on spaces otherwise – the same mark that already separates a `table` row and a `lanes` name list, so a label may be as many words as it needs.
 
-::: diagram {unit=150x50}
+::: draw {unit=150x50}
 bars hour "31,24,18,9" "writing the prose | drawing the figures | fixing one wording | fighting the tooling" at 0,0 horizontal w 1.7 h 1.25 emph 1 {.tone-2}
 text hourn "minutes, in the hour before a lecture" below hour gap 0.5 {.small .muted}
 :::
 
 **`w` and `h` are grid units, and a grid cell is not square – so the two numbers do not describe the shape on the page.** At the `unit=150x54` of the figure below, a plot written `w 1.9 h 1.5` lands 285px by 81px, which is nothing like 1.9 by 1.5. `aspect 4:3`, `aspect 1:1`, or one bare number meaning that many wide to one tall, states the proportion the reader actually sees and lets the build work the other number out. Both `bars` and `plot` take it, and giving `w`, `h` and `aspect` together is an error: two of the three would have to lose, and nothing on the line says which.
 
-::: diagram {unit=150x54}
+::: draw {unit=150x54}
 plot pace "minutes into the talk" "chunks covered" at 0,0 w 2.7 aspect 2:1 x 0,60 y 0,40 tick 10
 edge even pace@0,pace@0 -- pace@60,pace@40 {.muted .dashed}
 edge real pace@0,pace@0 -- pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {.smooth .accent .thick}
@@ -669,7 +669,7 @@ step lesson
 
 **A stepped figure is an argument in beats – the stage, the disturbance, the cut, and what it costs.** Press forward three times.
 
-::: diagram {unit=138x70}
+::: draw {unit=138x70}
 default box {.tone-2} w 1.25 h 0.5
 
 box alice "Alice" at 0,0

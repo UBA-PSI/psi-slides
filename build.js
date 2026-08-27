@@ -361,13 +361,13 @@ function collectDiagramImageRefs(src) {
   let inFence = false;
   for (const line of String(src).split('\n')) {
     // Fence-aware, like the block matchers in parseLecture and lintDiagram:
-    // a ::: diagram inside a code fence is a syntax example, and collecting
+    // a ::: draw inside a code fence is a syntax example, and collecting
     // its image lines converted (and with --optimize-images deleted) files
     // the lecture never actually references.
     if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; continue; }
     if (inFence) continue;
     if (!inDiagram) {
-      if (/^:::\s+diagram\b/.test(line)) inDiagram = true;
+      if (/^:::\s+draw\b/.test(line)) inDiagram = true;
       continue;
     }
     if (/^:::\s*$/.test(line)) { inDiagram = false; continue; }
@@ -1259,7 +1259,7 @@ marked.use({
   ],
 });
 
-// ── diagrams (::: diagram) ──────────────────────────────────────────
+// ── diagrams (::: draw) ──────────────────────────────────────────
 // The compiler itself lives in `diagram-core.mjs`, and that is the one
 // documented exception to "build.js is one file". The reason is narrow: the
 // graphical editor answers a drag by rewriting the source and re-running the
@@ -1472,7 +1472,7 @@ const dgCore = createDiagramCompiler({
 });
 const { parseDiagramSource, layoutDiagram, dgFrameDrawables, renderDiagram } = dgCore;
 
-// Every `::: diagram` block the last build emitted: its byte range in
+// Every `::: draw` block the last build emitted: its byte range in
 // source.md and the body it compiled from. The watch server checks a patch
 // against this before touching the file – see runWatch.
 const dgEmittedBlocks = [];
@@ -2038,11 +2038,11 @@ function parseLecture(src) {
   dgLectureTags.clear();
   dgEmittedBlocks.length = 0;
   let diagramBase = null;
-  if (frontmatter['diagram-defaults'] != null) {
-    const { layer, errors } = parseDiagramDefaults(frontmatter['diagram-defaults']);
+  if (frontmatter['draw-defaults'] != null) {
+    const { layer, errors } = parseDiagramDefaults(frontmatter['draw-defaults']);
     if (errors.length) {
       const err = new Error(
-        `Frontmatter: diagram-defaults has ${errors.length} problem(s):\n`
+        `Frontmatter: draw-defaults has ${errors.length} problem(s):\n`
         + errors.map(e => `  line ${e.line} of the block: ${e.msg}`).join('\n'));
       err.userFacing = true;
       throw err;
@@ -2058,7 +2058,7 @@ function parseLecture(src) {
   let noteBlock = null;        // { lines: string[] } – current `> note:` block
   let pendingNotes = [];       // notes that appeared before a chunk, attach to the next one
   let annotBlock = null;       // { lines: string[] } – current `> annot:` block
-  let diagramBlock = null;     // { attrs, lines } while inside a ::: diagram block
+  let diagramBlock = null;     // { attrs, lines } while inside a ::: draw block
   let pendingAnnotation = '';  // annotation that appeared before a chunk, attach to the next one
   let layoutStack = [];        // closing HTML tokens for open layout directives
 
@@ -2315,11 +2315,11 @@ function parseLecture(src) {
           layoutStack.push('</figcaption></figure>');
           continue;
         }
-        // ::: diagram – a boxes-and-arrows figure written in the diagram
+        // ::: draw – a boxes-and-arrows figure written in the diagram
         // DSL and compiled to inline SVG at build time. Like ::: embed it
         // earns its own directive rather than overloading a fence, because
         // the body is not markdown and must not be parsed as any.
-        const diagramOpen = line.match(/^:::\s+diagram\s*(?:\{([^}]*)\})?\s*$/);
+        const diagramOpen = line.match(/^:::\s+draw\s*(?:\{([^}]*)\})?\s*$/);
         if (diagramOpen) {
           diagramBlock = { attrs: diagramOpen[1] || '', lines: [], bodyAt: fmOffset + lineAt };
           continue;
@@ -2366,7 +2366,7 @@ function parseLecture(src) {
     // below it simply vanished from all four outputs. Exiting 0 on that is
     // the worst possible answer.
     const err = new Error(
-      '::: diagram was never closed. Everything after it was read as diagram\n'
+      '::: draw was never closed. Everything after it was read as diagram\n'
       + 'source, so any chunk below it is missing from the output. Add a\n'
       + 'closing ::: line.');
     err.userFacing = true;
@@ -2382,7 +2382,7 @@ function parseLecture(src) {
     const orphan = diagramBase.tagDefaults.filter(d => !dgLectureTags.has(d.tag));
     if (orphan.length) {
       const err = new Error(
-        'Frontmatter: diagram-defaults targets tags no diagram in this lecture carries:\n'
+        'Frontmatter: draw-defaults targets tags no diagram in this lecture carries:\n'
         + orphan.map(d => `  line ${d.line}: default ${d.kind} @${d.tag}`).join('\n')
         + (dgLectureTags.size
           ? `\n  Tags this lecture does use: ${[...dgLectureTags].sort().map(t => '@' + t).join(', ')}`
@@ -3652,8 +3652,8 @@ function editorPayload(frontmatter, columnsHtml, view) {
   // stack than the build did, which is a differently-styled figure and, for
   // an element whose `w` comes from a lecture default, a block that does not
   // compile at all.
-  const base = frontmatter['diagram-defaults'] != null
-    ? String(frontmatter['diagram-defaults']) : '';
+  const base = frontmatter['draw-defaults'] != null
+    ? String(frontmatter['draw-defaults']) : '';
   // Only the cockpit of an `editor: speaker` lecture has a peer without a
   // compiler, and only then does an edit have to travel as compiled markup
   // as well as source – see the diagram-edit receiver's fallback.
@@ -9922,7 +9922,7 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
       const replacement = explicit.replace(/\.[^.]+$/, '.webp');
       const beforeSrc = src;
       // Both spellings of a reference – the markdown `](path)` form and the
-      // bare token a ::: diagram `image` statement carries. Rewriting only
+      // bare token a ::: draw `image` statement carries. Rewriting only
       // the markdown form deleted an original a diagram still pointed at
       // and then reported the rewrite as done: the next build failed on a
       // file this very command had removed. Fence-aware, line by line,
@@ -10214,7 +10214,7 @@ async function runWatch(absIn, only, baseOpts = {}) {
   // touches the file, and the third is what makes two open tabs safe:
   //
   //  - the nonce matches this build's,
-  //  - the range is one a `::: diagram` block of the last build actually
+  //  - the range is one a `::: draw` block of the last build actually
   //    occupied,
   //  - and the bytes still there are the bytes that block compiled from.
   //
@@ -10299,7 +10299,7 @@ async function runWatch(absIn, only, baseOpts = {}) {
       const range = Array.isArray(msg.range) ? msg.range : null;
       if (!range || typeof msg.text !== 'string') return reply(false, 'malformed patch');
       const hit = dgEmittedBlocks.find(b => b.range[0] === range[0] && b.range[1] === range[1]);
-      if (!hit) return reply(false, 'that is not a ::: diagram block this build emitted');
+      if (!hit) return reply(false, 'that is not a ::: draw block this build emitted');
       let src;
       try { src = fs.readFileSync(absIn, 'utf8'); } catch (e) { return reply(false, 'cannot read the source: ' + e.message); }
       const there = src.slice(range[0], range[1]);
@@ -10365,7 +10365,7 @@ Replace this paragraph with the opening prose of the lecture.
 
 ## figure: TODO – figure heading {.wide #intro-figure}
 
-::: diagram
+::: draw
 box a "A"
 :::
 

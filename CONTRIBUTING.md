@@ -78,7 +78,7 @@ push in CI – which the browser suite never can. Four gates:
   Every other check in the repository asks whether a refusal fires; this asks
   whether the grammar still accepts what it promises, which is the only
   direction a pass that adds refusals can fail in.
-- **`corpus.mjs`** – every `::: diagram` block in the four sources that carry
+- **`corpus.mjs`** – every `::: draw` block in the four sources that carry
   figures still compiles, with no new compiler warning. Deliberately not a
   snapshot of the emitted SVG: text width here is estimated rather than
   measured, so a committed baseline churns on every layout constant and cannot

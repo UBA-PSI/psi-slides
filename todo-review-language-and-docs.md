@@ -480,7 +480,7 @@ lecture uses `default box @dec`, `@enc`, `@stream`, `@msg`, `@cipher`, and
 Add one worked cascade, weakest to strongest:
 
 ```diagram
-diagram-defaults: default box {.tone-1}
+draw-defaults: default box {.tone-1}
 
 default box @server {.tone-2}
 box a "A" {@server}
@@ -714,7 +714,7 @@ reference should organise them under their statement kinds rather than present
 ### The first example and the unit section disagree in tone
 
 The hero correctly omits `{unit=...}`, proving the option is not required.
-Later prose begins “The block opens with `::: diagram {unit=170x56}`”, which
+Later prose begins “The block opens with `::: draw {unit=170x56}`”, which
 reads as a requirement. State the default and explain when an author should
 override it.
 
@@ -1593,7 +1593,7 @@ The six-stage promise holds - after stage 6 a reader has box, edge, relative
 placement, tones, a leader and a container, and needs no `default`, no routing
 class, no removal and no step verb. Four things did not.
 
-**The fence was never explained.** Stage 1's listing marks `::: diagram
+**The fence was never explained.** Stage 1's listing marks `::: draw
 {unit=170x56}` as its first new line and its prose explains the four parts of
 the lines *below* it. The lecture that feeds the page had already reasoned this
 through for the masthead; stage 1 reintroduced it a screen later.

@@ -151,7 +151,7 @@ from building the same way is a major version.
   have been writable although an edge has one side to pick. A brace's side is
   `side <word>` too, for the one concept the two share.
 
-- **`::: diagram` draws five more outlines.** `.hex`, `.diamond`, `.chevron`,
+- **`::: draw` draws five more outlines.** `.hex`, `.diamond`, `.chevron`,
   `.wedge` and `.cross` join `.round` and `.sharp` in one slot – a protocol
   message that is an arrow, an IDS sensor that is a hexagon, a size comparison
   that is a triangle, a scatter marker, and the diamond a room has been trained
@@ -304,7 +304,7 @@ from building the same way is a major version.
   protocol) with the construction fact each one turns on, the four-beat step
   order, and a checklist to work down before a figure is finished.
 
-- **`::: diagram` – animated infographics written in the lecture source.**
+- **`::: draw` – animated infographics written in the lecture source.**
   A line-oriented DSL for boxes, dots, free text, arrows, auto-fitting
   containers, groups and braces, compiled to inline SVG at build time and
   themed through the page's own custom properties, so a diagram re-inks
@@ -350,7 +350,7 @@ from building the same way is a major version.
   <element>` copies another element's width and height.
 
   The same statements can be written **once for the whole lecture** in a
-  `diagram-defaults` frontmatter key, so a series of figures looks like
+  `draw-defaults` frontmatter key, so a series of figures looks like
   itself without repeating four lines in every block – and changing the
   look is one edit instead of twelve. Four layers now, most specific last:
   the lecture's kind default, the lecture's tag default, the block's kind
@@ -401,7 +401,7 @@ from building the same way is a major version.
   element id rather than the geometry key), a `.ghost` element could
   never be hidden (author CSS beat the presentation attribute the runtime
   set), hide-then-show started an element invisible, an unclosed
-  `::: diagram` silently swallowed the rest of the file, `align` and
+  `::: draw` silently swallowed the rest of the file, `align` and
   `spread` accepted containers and edges and did nothing with them, a
   `move` on a brace was a no-op, `--optimize-images` and the linter's
   oversized-asset gate could not see diagram assets that the build now
@@ -497,7 +497,7 @@ from building the same way is a major version.
   See `PRD.md` §4.6a for the grammar and `lectures/diagrams/source.md` for
   a worked example of every construct.
 
-- **A graphical editor for `::: diagram`.** Click a diagram to focus it, then
+- **A graphical editor for `::: draw`.** Click a diagram to focus it, then
   the button in the corner or `E`. It parses the block, records where every
   token sits, answers a drag by rewriting the smallest span it can, and
   re-runs the same compiler the build runs – so there is no second
@@ -723,7 +723,7 @@ from building the same way is a major version.
   user could meet, grouped:
 
   `--optimize-images` rewrote only markdown-style `](path)` references, so
-  an explicit path in a `::: diagram` image statement kept pointing at the
+  an explicit path in a `::: draw` image statement kept pointing at the
   original the command had just converted and deleted – the next build
   failed on a file the tool itself removed. Both spellings are rewritten
   now, fence-aware, and a conversion whose reference cannot be found is

@@ -1,5 +1,5 @@
 /*
- * Every `::: diagram` block in the repository still compiles.
+ * Every `::: draw` block in the repository still compiles.
  *
  * The four sources below hold every figure the project has: the construct
  * reference, thirty-six real lecture slides, the lecture the standalone
@@ -48,7 +48,7 @@ const FILES = [
 // failure names itself.
 const WARNING_CEILING = 3;
 
-// Extract `::: diagram` blocks the way lint.js does: fence-aware, because a
+// Extract `::: draw` blocks the way lint.js does: fence-aware, because a
 // block inside a code fence is a syntax example and must not be compiled.
 export function blocks(src) {
   const lines = src.split('\n');
@@ -64,7 +64,7 @@ export function blocks(src) {
     }
     if (fence) { if (cur) cur.body.push(ln); continue; }
     if (!cur) {
-      const m = ln.match(/^:::\s+diagram\s*(?:\{([^}]*)\})?\s*$/);
+      const m = ln.match(/^:::\s+draw\s*(?:\{([^}]*)\})?\s*$/);
       if (m) cur = { head: m[1] || '', body: [], line: i + 1 };
     } else if (/^:::\s*$/.test(ln)) { out.push(cur); cur = null; }
     else cur.body.push(ln);

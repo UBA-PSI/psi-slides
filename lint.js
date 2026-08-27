@@ -61,7 +61,7 @@ const VIEW_DEFAULTS = {
 // notice, not the only one.
 // Kept here as plain fs.statSync so lint.js stays zero-dep.
 // Mirrors collectDiagramImageRefs in build.js: `image <name> <asset>` lines
-// inside a ::: diagram block reference assets exactly like ![](fig-id) does,
+// inside a ::: draw block reference assets exactly like ![](fig-id) does,
 // and the build hard-fails on an oversized one – so the pre-commit gate has
 // to find them too.
 function diagramImageRefs(src) {
@@ -70,13 +70,13 @@ function diagramImageRefs(src) {
   let inFence = false;
   for (const line of String(src).split('\n')) {
     // Fence-aware, like the block matchers in parseLecture and lintDiagram:
-    // a ::: diagram inside a code fence is a syntax example, and collecting
+    // a ::: draw inside a code fence is a syntax example, and collecting
     // its image lines converted (and with --optimize-images deleted) files
     // the lecture never actually references.
     if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; continue; }
     if (inFence) continue;
     if (!inDiagram) {
-      if (/^:::\s+diagram\b/.test(line)) inDiagram = true;
+      if (/^:::\s+draw\b/.test(line)) inDiagram = true;
       continue;
     }
     if (/^:::\s*$/.test(line)) { inDiagram = false; continue; }
@@ -226,7 +226,7 @@ function wordCountOf(lines) {
 }
 
 // One `default …` line, checked the same way wherever it is written: inside
-// a block, or in the lecture's `diagram-defaults` frontmatter key. Mirrors
+// a block, or in the lecture's `draw-defaults` frontmatter key. Mirrors
 // dgReadDefault in build.js – a linter stricter or laxer than the build is
 // worse than none, and there are now two places to get that wrong.
 function lintDefaultStatement(words, ln, add, ctx) {
@@ -288,7 +288,7 @@ function lintDefaultStatement(words, ln, add, ctx) {
   }
 }
 
-// The `diagram-defaults:` frontmatter key, without a YAML parser: after the
+// The `draw-defaults:` frontmatter key, without a YAML parser: after the
 // `|` (or `>`) the block is whatever is indented under it, which is fifteen
 // lines of scanning and keeps this file zero-dep. Returns the statements
 // with their line numbers counted from the opening `---`.
@@ -299,7 +299,7 @@ function collectDiagramDefaults(header) {
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i];
     if (indent < 0) {
-      if (/^diagram-defaults:[ \t]*[|>][-+]?[ \t]*$/.test(raw)) indent = 0;
+      if (/^draw-defaults:[ \t]*[|>][-+]?[ \t]*$/.test(raw)) indent = 0;
       continue;
     }
     if (!raw.trim()) { out.push({ text: '', ln: i + 2 }); continue; }
@@ -745,7 +745,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
 
     if (head === 'default') {
       lintDefaultStatement(words, ln, add, {
-        defaulted, scope: 'diagram', reportLine: ln + fmLines,
+        defaulted, scope: 'draw', reportLine: ln + fmLines,
         onTag: (kind, tag) => {
           referenced.push({ name: tag, ln, what: `default ${kind}` });
           if (!tagDefaults.has(kind)) tagDefaults.set(kind, new Map());
@@ -1675,7 +1675,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
     }
   }
   if (inStep === false && block.lines.length === 0) {
-    add(block.open, 'warn', 'empty-diagram', '::: diagram has no content');
+    add(block.open, 'warn', 'empty-diagram', '::: draw has no content');
   }
   const tagCount = new Map();
   for (const c of carries) for (const t of c.tags) tagCount.set(t, (tagCount.get(t) || 0) + 1);
@@ -1738,7 +1738,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
 }
 
 function lintFile(filePath) {
-  let diagram = null;   // { open, lines } while inside a ::: diagram block
+  let diagram = null;   // { open, lines } while inside a ::: draw block
   const src = fs.readFileSync(filePath, 'utf8');
   const ignores = parseIgnores(src);
   const { body, fmLines, header } = splitFrontmatter(src);
@@ -1793,14 +1793,14 @@ function lintFile(filePath) {
                   `unknown diagram class '${tok}' – valid: ${[...DG_CLASSES].map(c => '.' + c).join(', ')}`);
           } else if (!tok.startsWith('.')) {
             addFm(ln, 'error', 'bad-diagram-attribute',
-                  `'${tok}' in a diagram-defaults {…} tail is not a .class`);
+                  `'${tok}' in a draw-defaults {…} tail is not a .class`);
           }
         }
       }
       const words = trimmed.replace(/"[^"]*"/g, ' ').trim().split(/\s+/).filter(Boolean);
       if (words[0] !== 'default') {
-        addFm(ln, 'error', 'bad-diagram-defaults',
-              `diagram-defaults holds 'default …' statements only, got '${trimmed}'`);
+        addFm(ln, 'error', 'bad-draw-defaults',
+              `draw-defaults holds 'default …' statements only, got '${trimmed}'`);
         continue;
       }
       lintDefaultStatement(words, ln, addFm, {
@@ -1874,12 +1874,12 @@ function lintFile(filePath) {
         }
       }
     }
-    // An unclosed ::: diagram swallows the rest of the file, headings and
+    // An unclosed ::: draw swallows the rest of the file, headings and
     // all, so this only ever fires from the final flush – which is exactly
     // when the author needs to be told what ate their lecture.
     if (diagram) {
       add(diagram.open, 'error', 'unclosed-directive',
-          `::: diagram not closed – everything after line ${diagram.open} was read as diagram source`);
+          `::: draw not closed – everything after line ${diagram.open} was read as diagram source`);
       diagram = null;
     }
     if (activeDirective) {
@@ -1905,7 +1905,7 @@ function lintFile(filePath) {
     const line = lines[i];
     const ln = i + 1;
 
-    // A ::: diagram body is captured verbatim, ahead of everything else.
+    // A ::: draw body is captured verbatim, ahead of everything else.
     // Not an optimisation: a diagram comment starts with '#', and read as
     // markdown that is a column heading. The build takes the body verbatim
     // too, so the linter has to as well or the two disagree about where
@@ -1926,19 +1926,19 @@ function lintFile(filePath) {
     }
     if (inFence) { if (chunk) chunkBody.push(line); continue; }
 
-    // Only now, with the fence settled: a ::: diagram inside a code fence is
+    // Only now, with the fence settled: a ::: draw inside a code fence is
     // a syntax example, not a diagram. build.js guards the same way, and a
     // linter that disagrees with the build is worse than none – this one
     // failed any lecture that documented the directive.
-    const diagramOpen = line.match(/^:::\s+diagram\s*(?:\{([^}]*)\})?\s*$/);
+    const diagramOpen = line.match(/^:::\s+draw\s*(?:\{([^}]*)\})?\s*$/);
     if (diagramOpen) {
       if (!chunk) {
-        add(ln, 'error', 'stray-directive', '::: diagram outside any chunk');
+        add(ln, 'error', 'stray-directive', '::: draw outside any chunk');
       }
       for (const tok of (diagramOpen[1] || '').trim().split(/\s+/).filter(Boolean)) {
         if (!tok.startsWith('#') && !/^unit=\d+x\d+$/.test(tok)) {
           add(ln, 'error', 'unknown-diagram-option',
-              `unknown ::: diagram option '${tok}' – expected #id or unit=WxH`);
+              `unknown ::: draw option '${tok}' – expected #id or unit=WxH`);
         }
       }
       diagram = { open: ln, lines: [] };
@@ -2157,7 +2157,7 @@ function lintFile(filePath) {
   // the machine that built it and breaks wherever the HTML travels alone.
   const sourceDir = path.dirname(filePath);
   const seenAssets = new Set();
-  // `image <name> <asset>` inside a ::: diagram references an asset the same
+  // `image <name> <asset>` inside a ::: draw references an asset the same
   // way; the build hard-fails on an oversized one, so this gate has to reach
   // them or it lets through exactly what the build will refuse.
   const diagramRefs = new Set(diagramImageRefs(body));
@@ -2228,7 +2228,7 @@ function lintFile(filePath) {
   for (const d of fmTagDefaults) {
     if (lectureTags.has(d.tag)) continue;
     addFm(d.ln, 'error', 'unknown-diagram-tag',
-      `diagram-defaults: 'default ${d.kind} @${d.tag}' – no diagram in this lecture carries @${d.tag}`
+      `draw-defaults: 'default ${d.kind} @${d.tag}' – no diagram in this lecture carries @${d.tag}`
       + (lectureTags.size ? ` (tags in use: ${[...lectureTags].sort().map(t => '@' + t).join(', ')})` : ''));
   }
 

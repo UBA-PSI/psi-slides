@@ -332,7 +332,7 @@ Discipline: reveal is for the chunks where the *sequence* of ideas is the point 
 
 ### 4.6a Diagrams and their steps
 
-A `::: diagram` block is a boxes-and-arrows figure written in the lecture source and compiled to inline SVG at build time. It exists because the two obvious alternatives both fail the same lecture:
+A `::: draw` block is a boxes-and-arrows figure written in the lecture source and compiled to inline SVG at build time. It exists because the two obvious alternatives both fail the same lecture:
 
 - **Auto-layout tools (Mermaid, PlantUML)** decide where things go. For a diagram whose arrangement *is* the argument – a stack frame in address order, three parallel cipher blocks – the layout engine is the problem, not the service.
 - **A drawing tool (Excalidraw, Inkscape, Figma) plus layers** gives free placement but knows an arrow only as a line. Move a box and every arrow touching it has to be redrawn by hand, in every step. Layers can reveal; they cannot re-route.
@@ -340,7 +340,7 @@ A `::: diagram` block is a boxes-and-arrows figure written in the lecture source
 The DSL takes free placement from the second and connectivity from the first, and drops auto-layout:
 
 ```markdown
-::: diagram {unit=130x76}
+::: draw {unit=130x76}
 box sender "Sender"
 box mix    "Mix"       right of sender gap 0.6
 box log    "Logfile"   below mix gap 0.8   {.dashed}
@@ -416,10 +416,10 @@ Step operations are `show`, `hide`, `move … to`, `move … by`, `emph`, `dim`,
 
 `default box @dec {.round} w 0.48` refines the kind default for the elements carrying that tag. Three layers, resolved weakest first: the kind default, then the tag default, then the element's own `{…}`. At each layer a `!class` removes that exact name from what has accumulated and a `.class` displaces whatever else holds its slot, so the most specific layer wins and an element can opt out of a default by name. One per kind and one per (kind, tag), so the result never depends on the order of the declarations, and a tag no element carries is an error rather than a line with no effect.
 
-**A lecture's figures should look like each other, so the same `default` statements can be written once for the whole lecture** – a `diagram-defaults` frontmatter key, in the same language:
+**A lecture's figures should look like each other, so the same `default` statements can be written once for the whole lecture** – a `draw-defaults` frontmatter key, in the same language:
 
 ```yaml
-diagram-defaults: |
+draw-defaults: |
   default box       {.tone-2} w 1.0
   default text      {.small .muted}
   default container pad 0.4
@@ -430,8 +430,8 @@ Repeating those lines in twelve blocks decays: change the look and it is twelve 
 
 **Precedence is one sentence: the nearer the declaration, the stronger it is, and in one place a tag beats the bare kind.** So four layers, most specific last:
 
-1. `diagram-defaults` – `default <kind>`
-2. `diagram-defaults` – `default <kind> @tag`
+1. `draw-defaults` – `default <kind>`
+2. `draw-defaults` – `default <kind> @tag`
 3. the block's own `default <kind>`
 4. the block's own `default <kind> @tag`
 5. the element's own `{…}` and `w` / `h` / `r` / `pad`

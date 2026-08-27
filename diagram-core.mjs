@@ -25,7 +25,7 @@
 // CLAUDE.md § Animated infographics; what is here is the code.
 
 
-// ── diagrams (::: diagram) ──────────────────────────────────────────
+// ── diagrams (::: draw) ──────────────────────────────────────────
 // A boxes-and-arrows compiler. The source is a line-oriented DSL in the
 // lecture markdown; the output is one inline <svg> plus, when the author
 // wrote steps, a payload of precomputed per-step geometries that the live
@@ -1465,7 +1465,7 @@ export function dgPointOf(model, node) {
 
 // One `default …` statement, read into whichever layer is collecting them.
 // Factored out because the same statement is now legal in two places: inside
-// a block, and in the lecture's `diagram-defaults` frontmatter key. Two
+// a block, and in the lecture's `draw-defaults` frontmatter key. Two
 // parsers for one line is how the two would eventually disagree.
 //
 // ── which class is legal on which kind ───────────────────────────────
@@ -1931,7 +1931,7 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) 
   return def;
 }
 
-// The lecture-wide layer: the `diagram-defaults:` frontmatter key, written
+// The lecture-wide layer: the `draw-defaults:` frontmatter key, written
 // in the same language as the block's own `default` lines. Parsed once per
 // build and handed to every diagram as the base under its own defaults, so
 // "make these figures match" is one edit rather than twelve.
@@ -1953,7 +1953,7 @@ export function parseDiagramDefaults(text) {
 
     const body0 = toks.filter(x => !x.attr && !x.q);
     if ((body0[0] ? body0[0].v : '') !== 'default') {
-      dgErr(errors, n + 1, `diagram-defaults holds "default …" statements only, got "${trimmed}"`);
+      dgErr(errors, n + 1, `draw-defaults holds "default …" statements only, got "${trimmed}"`);
       continue;
     }
     dgReadDefault(body0, attrs, n + 1, errors, layer, 'lecture');
@@ -2264,7 +2264,7 @@ export function dgSplineD(v) {
   return d;
 }
 
-// Compile one ::: diagram block into an inline <svg> plus, when it has
+// Compile one ::: draw block into an inline <svg> plus, when it has
 // steps, the per-step geometry the live runtime tweens between.
 
 
@@ -2858,7 +2858,7 @@ export function createDiagramCompiler(env = {}) {
       spreads: [],
       defaults: {},
       tagDefaults: [],
-      // The lecture-wide layer (`diagram-defaults` in the frontmatter), under
+      // The lecture-wide layer (`draw-defaults` in the frontmatter), under
       // the block's own. Held separately rather than merged so the sidebar can
       // still say which layer a resolved value came from, and so a block's
       // `default box` means it – even for an element the lecture tags @dec.
@@ -2867,13 +2867,13 @@ export function createDiagramCompiler(env = {}) {
       byId: new Map(),
     };
     const layer = { defaults: model.defaults, tagDefaults: model.tagDefaults };
-    const scopeWord = 'diagram';
+    const scopeWord = 'draw';
 
     for (const tok of String(headAttrs || '').trim().split(/\s+/).filter(Boolean)) {
       const m = tok.match(/^unit=(\d+)x(\d+)$/);
       if (m) { model.unit = [Number(m[1]), Number(m[2])]; continue; }
       if (tok.startsWith('#')) { model.id = tok.slice(1); continue; }
-      dgErr(errors, 0, `unknown ::: diagram option "${tok}" (expected #id or unit=WxH)`);
+      dgErr(errors, 0, `unknown ::: draw option "${tok}" (expected #id or unit=WxH)`);
     }
 
     // Returns whether the name is now this element's. A caller that would go on
@@ -6083,7 +6083,7 @@ export function createDiagramCompiler(env = {}) {
       dgSortProblems(errors);
       const where = opts.where ? ` in ${opts.where}` : '';
       const err = new Error(
-        `::: diagram${model.id ? ` #${model.id}` : ''}${where} has ${errors.length} problem(s):\n` +
+        `::: draw${model.id ? ` #${model.id}` : ''}${where} has ${errors.length} problem(s):\n` +
         errors.map(e => `  ${e.line ? `line ${e.line} of the block: ` : ''}${e.msg}`).join('\n')
       );
       err.userFacing = true;

@@ -46,7 +46,7 @@ Two harnesses, both under the session scratchpad and both driving
 - **`probe.mjs`** – one block in, problems or the emitted `<figure>` out. This is
   the finding document's own harness and it is what every "measured" claim below
   was produced with.
-- **`corpus.mjs`** – compiles every `::: diagram` block in the corpus,
+- **`corpus.mjs`** – compiles every `::: draw` block in the corpus,
   normalises the per-figure `dgN-` id prefix away and snapshots each print SVG.
   The baseline is taken by running the **same script against `HEAD`'s
   `diagram-core.mjs`**, checked out to a second path, so a snapshot can be
@@ -586,7 +586,7 @@ count in it.** The proposal states the corpus as `lectures/diagrams` (24 blocks)
 `lectures/network-security` (36) and `docs/artifact/figure-rules` (50) – 110 in
 all – and every per-item table is drawn from those three.
 
-`lectures/tutorial/source.md` has **six compiled `::: diagram` blocks**, in four
+`lectures/tutorial/source.md` has **six compiled `::: draw` blocks**, in four
 chunks (`#diagram`, `#diagram-classes`, `#diagram-charts` – which holds three –
 and `#diagram-steps`), each setting its own `unit=`. It is excluded from every
 table in the proposal except the one figure in item 19, where its two

@@ -1,7 +1,7 @@
 // The diagram editor.
 //
 // Read editor.md first – this file is the *what*, that file is the why. The
-// short version: a `::: diagram` block is a figure written in a small
+// short version: a `::: draw` block is a figure written in a small
 // relational language, and this is the graphical way to edit it. It parses
 // the block, records where every token sits, answers a drag by rewriting the
 // smallest span it can, and re-runs the same compiler the build runs.
@@ -57,7 +57,7 @@ function dgeBase() {
     const { layer, errors } = window.PSI_DG.parseDiagramDefaults(text);
     // The build already refused a bad block, so an error here means the two
     // parsers disagree – worth saying rather than silently ignoring.
-    if (errors.length) DGE_WARNINGS.push('diagram-defaults: ' + errors[0].msg);
+    if (errors.length) DGE_WARNINGS.push('draw-defaults: ' + errors[0].msg);
     else dgeBaseLayer = layer;
   }
   return dgeBaseLayer;
@@ -7233,7 +7233,7 @@ function dgePaste(inPlace) {
 // never owns a parallel copy.
 
 function dgeBlockText() {
-  return '::: diagram' + (DGE.fig.attrs ? ' {' + DGE.fig.attrs + '}' : '') + '\n'
+  return '::: draw' + (DGE.fig.attrs ? ' {' + DGE.fig.attrs + '}' : '') + '\n'
     + DGE.source + '\n:::';
 }
 
@@ -7280,7 +7280,7 @@ function dgeCommit() {
 function dgeCopyBlock() {
   const block = dgeBlockText();
   const done = (ok) => dgeStatus(DGE.status.line, ok
-    ? 'copied – paste it over the ::: diagram block in source.md'
+    ? 'copied – paste it over the ::: draw block in source.md'
     : 'could not reach the clipboard; select the source pane and copy by hand', !ok);
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(block).then(() => done(true), () => done(false));
@@ -7499,7 +7499,7 @@ function dgeNewFigure() {
   let id = 'figure-1';
   for (let i = 1; taken.has(id); i++) id = 'figure-' + (i + 1);
   const chunk = `## figure: TODO – heading {.wide #${id}}\n\n`
-    + '::: diagram\nbox a "A"\n:::\n';
+    + '::: draw\nbox a "A"\n:::\n';
   const done = (ok) => dgeStatus(ok ? `## figure: TODO – heading {.wide #${id}}` : '', ok
     ? 'a whole chunk is on the clipboard – paste it into source.md, rebuild, and it is here'
     : 'could not reach the clipboard', !ok);
@@ -7556,7 +7556,7 @@ function dgeRenderAll() {
     copy.title = live
       ? 'write this block back into source.md, through the running --watch'
       : DGE.fileHandle ? 'write this block back into the file you opened'
-      : 'copy the whole ::: diagram block to the clipboard';
+      : 'copy the whole ::: draw block to the clipboard';
   }
   // Tier 3 is opportunistic and never load-bearing: offered where the
   // picker exists and there is no watch socket already doing the job.

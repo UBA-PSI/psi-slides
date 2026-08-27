@@ -1,10 +1,10 @@
 ---
 title: Animated Infographics
-subtitle: "Six real lecture slides, rebuilt in ::: diagram"
+subtitle: "Six real lecture slides, rebuilt in ::: draw"
 author: Dominik Herrmann
 theme: dark
 collapse: none
-diagram-defaults: |
+draw-defaults: |
   default text {.small}
   default container pad 0.34
 ---
@@ -18,7 +18,7 @@ build time, and stepped with the same key that advances a reveal.
 
 ## figure: Types of memory unsafety {.full #unsafety}
 
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 default box {.tone-2} w 1.05
 
 text tlab "Temporal" at 0,0 {.left .large}
@@ -67,7 +67,7 @@ int main(void) {
 }
 ```
 ::: flip
-::: diagram {unit=150x52}
+::: draw {unit=150x52}
 default box {.tone-2 .sharp} w 1.5 pad 0.16
 
 box buf "Local variable: mystring\n(char[], 16 bytes)" at 0,0 h 1.5
@@ -98,7 +98,7 @@ step reached
 
 ## figure: Cipher Block Chaining, decryption {.full #cbc}
 
-::: diagram {unit=112x74}
+::: draw {unit=112x74}
 default box {.tone-3} w 0.82
 default box @dec {.round .tone-2} w 0.48
 default text {.mono}
@@ -165,7 +165,7 @@ Jeder `step` ist ein Druck auf die Vorwärtstaste. Die Verkettungspfeile haben j
 
 ## figure: Counter mode, encryption {.full #ctr}
 
-::: diagram {unit=104x66}
+::: draw {unit=104x66}
 default text {.mono}
 default box @enc {.round .tone-3}
 default box @stream {.tone-2}
@@ -242,7 +242,7 @@ step cipher
 
 ## figure: Identity lifecycle {.full #lifecycle}
 
-::: diagram {unit=176x56}
+::: draw {unit=176x56}
 default box {.tone-3} w 1.15
 default text {.small .muted}
 
@@ -302,7 +302,7 @@ step self
 
 ## figure: Message authentication | it is not about confidentiality {.full #mac}
 
-::: diagram {unit=150x60}
+::: draw {unit=150x60}
 image alice avatar-alice "Alice" w 0.42
 image eve   avatar-bob   "Eve"   right of alice gap 3.5 same as alice {.ghost @attack}
 image bob   avatar-bob   "Bob"   right of eve gap 3.5 same as alice
@@ -342,7 +342,7 @@ step attack
 
 ## figure: The pieces {.wide #primitives}
 
-::: diagram {unit=130x76}
+::: draw {unit=130x76}
 box  a "Sender"
 box  b "Mix"        right of a gap 1.05
 box  c "Empfänger"  right of b gap 1.05
@@ -359,7 +359,7 @@ edge b -> x {.dashed}
 
 ## figure: Alignment {.wide #alignment}
 
-::: diagram {unit=140x70}
+::: draw {unit=140x70}
 default box {.tone-2}
 
 box a "one"                     at 0,0
@@ -381,7 +381,7 @@ edge a.left-0.8,a.cy -> a "from outside" {.muted}
 
 ## figure: Containers and braces {.wide #grouping}
 
-::: diagram {unit=130x76}
+::: draw {unit=130x76}
 default box {.tone-1} w 1.0
 
 box r1 "Registration"  at 0,0
@@ -404,7 +404,7 @@ Ein `container` legt sich um seine Mitglieder und passt sich neu an, wenn sie si
 
 ## figure: The look of a thing {.full #look}
 
-::: diagram {unit=118x74}
+::: draw {unit=118x74}
 default box {.sharp} w 0.62 h 0.42
 
 # Every fill the vocabulary has, drawn over a line so that .clear and .paper
@@ -498,7 +498,7 @@ text pl "prominence" left of p1 gap 0.8 {.muted .right}
 
 ## figure: Steps that move {.wide #motion}
 
-::: diagram {unit=140x72}
+::: draw {unit=140x72}
 default box w 0.92
 
 box  cl "Client"  at 0,0
@@ -540,7 +540,7 @@ step wieder-alle
 
 ## figure: Where the words sit {.wide #justify}
 
-::: diagram {unit=126x86}
+::: draw {unit=126x86}
 default box {.sharp} w 0.66 h 0.72
 
 # Ein hoher Kasten mit kurzer Beschriftung ist der Fall, für den es diese
@@ -580,7 +580,7 @@ Bei mehreren Zeilen bewegt sich der **Block**, nicht die einzelne Zeile. Deshalb
 
 ## figure: Six statements that expand {.full #expand}
 
-::: diagram {unit=150x62}
+::: draw {unit=150x62}
 bars f "20,19,17,12,11,10,9,9,8,7,6,5" at 0,0 w 2.4 h 1.0 {.tone-3 .bare}
 brace b1 over f-0,f-1,f-2 side bottom "Bin 1" pad 0.4 {.muted}
 brace b2 over f-3,f-4,f-5,f-6,f-7 side bottom "Bin 2" pad 0.4 {.muted}
@@ -606,7 +606,7 @@ step exception
 
 ## figure: A second run of columns {.full #series}
 
-::: diagram {unit=150x64}
+::: draw {unit=150x64}
 # Dieselben acht Zahlen, zweimal gezeichnet. Die zweite Zeile legt keinen
 # eigenen Rahmen an, sie tritt dem ersten bei – und die Spalten des ersten
 # werden dafür schmaler, damit das Paar den Platz einer einzelnen einnimmt.
@@ -630,7 +630,7 @@ text y2 "2024" right of y1 gap 0.55 pad 0.12 {.tone-3}
 
 ## figure: Columns laid flat | dieselben sechs Zahlen, zweimal {.full #flat}
 
-::: diagram {unit=150x54}
+::: draw {unit=150x54}
 # Links und rechts stehen dieselben Werte. Links sind die Kategorien so breit,
 # wie eine Säule breit ist, also stehen dort Nummern und die Namen müssten
 # woanders stehen; rechts sind sie die Achse. Dieselbe emph-Spalte in beiden
@@ -650,7 +650,7 @@ text incn "the names are the axis" below inc gap 0.55 {.small .muted}
 
 ## figure: A frame to draw in {.full #plot}
 
-::: diagram {unit=150x58}
+::: draw {unit=150x58}
 # Eine ROC-Kurve gehört ins Quadrat: beide Achsen tragen dieselbe Einheit, und
 # die Diagonale muss unter 45° laufen, sonst behauptet das Bild eine Steigung,
 # die es nicht gibt. `w` und `h` geben das nicht her – hier stünden 2.2 und
@@ -696,7 +696,7 @@ step judge
 
 ## figure: One size, two frames | zwei Plots, die sich vergleichen lassen {.full #sameframe}
 
-::: diagram {unit=150x54}
+::: draw {unit=150x54}
 # Zwei Rahmen, die verglichen werden sollen. Der linke schreibt seine Größe
 # hin, der rechte zeigt darauf. Die graue Kurve ist in beiden dieselbe: Sie
 # ist der Bezug, gegen den beide Standorte gelesen werden.
@@ -717,7 +717,7 @@ edge sb pb@0,pb@3.2 -- pb@8,pb@7.6 via pb@2,pb@4.4 pb@4,pb@5.2 pb@6,pb@6.8 {.smo
 
 ## figure: A raster does not follow the theme {.standard #raster}
 
-::: diagram {unit=150x60}
+::: draw {unit=150x60}
 image swatch swatch w 0.6
 text  note "a raster keeps its own colours\nin every theme" right of swatch gap 0.9 -- swatch {.small .muted .left}
 :::
@@ -728,7 +728,7 @@ Beim Durchschalten der Themes mit `A` bleibt das Rasterbild, wie es ist, währen
 
 ## figure: The road straight down | a flowchart {.wide #flowchart}
 
-::: diagram {unit=132x70}
+::: draw {unit=132x70}
 default box {.tone-2}
 
 # Die Hauptstraße läuft geradewegs nach unten, jeder Zweig geht seitlich ab:
@@ -764,7 +764,7 @@ edge d2 -> drop "no"  {.paper}
 
 ## figure: Three roles, one incident | a swimlane {.full #swimlane}
 
-::: diagram {unit=118x72}
+::: draw {unit=118x72}
 # lanes zeichnet den Rahmen, die Bänder und die gedrehten Namen davor. Was in
 # den Bändern liegt, wird wie überall sonst einzeln platziert – gegen die
 # Mitte eines Bandes (swim-1.cy) und gegen den Rahmen (swim.left+n).
@@ -797,7 +797,7 @@ step antwort
 
 ## figure: Leaves first, and the brackets follow | a tree {.full #tree}
 
-::: diagram {unit=112x96}
+::: draw {unit=112x96}
 default box {.tone-2} w 1.35
 
 # Die Blätter sind die Fixpunkte, denn um sie geht es. Jede Ebene darüber
@@ -837,7 +837,7 @@ step certificates
 
 ## figure: One line per row | a table {.full #table}
 
-::: diagram {unit=150x54}
+::: draw {unit=150x54}
 # Die Kopfzeile ist eine Zeichenkette, an | zerlegt; die Datenzeilen sind die
 # bloßen Zeichenketten darunter. Jede Zelle ist eine gewöhnliche Box und
 # trägt zwei erzeugte Tags, @t-row-N und @t-col-N.
@@ -870,7 +870,7 @@ step every-one-has-an-answer
 
 ## figure: Ein Ablauf von oben nach unten | a sequence {.full #sequence}
 
-::: diagram {unit=150x40}
+::: draw {unit=150x40}
 # Die Beteiligten sind eigene Zeilen, weil jeder einen Namen zum Anfassen
 # und einen eigenen Attributschwanz braucht. Alles darunter ist eine
 # Nachricht (Pfeil zwischen zwei Namen) oder eine Notiz.
@@ -923,7 +923,7 @@ step alles
 
 ## figure: Was eine Nachricht sonst sein kann {.wide #seqmore}
 
-::: diagram {unit=140x44}
+::: draw {unit=140x44}
 sequence x at 0,0 unnumbered space 0.34
   actor c "Client"
   actor p "Proxy"
