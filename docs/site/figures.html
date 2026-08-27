@@ -412,7 +412,6 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
 
       <div class="cta">
         <a class="primary" href="#seven">See it in seven lines</a>
-        <a class="secondary" href="#lecture">Open the lecture</a>
         <a class="secondary" href="figures-you-write.html">Read the manual</a>
       </div>
     </div>
@@ -464,7 +463,7 @@ becomes the projection, the speaker cockpit and both reading views.</p>
 the beats inside a figure; <kbd>S</kbd> opens a cockpit that follows it.</p>
 
 <h2 id="seven">Figures in psi-slides</h2>
-<p class="figlead">A <strong>figure</strong> is whatever a slide shows in place of plain text &ndash; such as an image or a video clip. Our focus is on special kinds of figures: <strong>interactive drawings</strong> that are fenced off with <code>::: draw</code>. These are described with text and rendered when you <em>build</em> the slides.</p>
+<p class="figlead">A <strong>figure</strong> is whatever a slide shows in place of plain text &ndash; such as an image or a video clip. Our focus is on <strong>relational drawings</strong> fenced off with <code>::: draw</code>. They are described with text, rendered when you <em>build</em> the slides, and can optionally be built up in beats while you present.</p>
 
 <p class="figlead">This is a whole figure just as you would insert it into a slide. Note that the positions of the objects and arrows are not stored as absolute coordinates: Eve is placed <em>against</em> Alice, Bob against Eve. The arrows are described by naming their two ends and they find their own way between them.</p>
 <div class="herofig">
@@ -572,13 +571,13 @@ the beats inside a figure; <kbd>S</kbd> opens a cockpit that follows it.</p>
       <span class="t">02</span>
       <h3>Positions are relations, and stay relations</h3>
       <p><code>right of alice gap 1.7</code> is not shorthand that the build resolves once and forgets. It is the whole of what the file says about where Eve is, permanently. Every element but the first is placed against something else in the figure, so the file is a set of dependencies rather than a set of coordinates, and the build follows them in whichever order resolves them.</p>
-      <p class="why">There is no constraint solver &ndash; no engine that takes a list of requirements and searches for an arrangement meeting them all. Handed a figure it cannot satisfy, such an engine draws something that looks plausible and reports a number saying how far off it was. A dependency graph can fail in only one way &ndash; by referring back to itself &ndash; and the build names the line it failed on: <code>placement cycle: b &rarr; w1 &rarr; b</code>.</p> <!-- this is very cryptic for people who do not know our discussions about using constraint solving as an option, maybe replace it ith a different principle or a different wording? -->
+      <p class="why">Give Alice a longer label and her box grows; Eve remains 1.7 units to its right, Bob follows Eve, and both arrows find their new ends. Nobody has to move the surrounding parts by hand. If two relations point back to each other, the build stops and names the placement cycle instead of guessing where either element belongs.</p>
     </div>
 
     <div class="tenet">
       <span class="t">03</span>
       <h3>The cast is written once; the beats say what changes</h3>
-      <p>Every element a figure will ever hold &ndash; every box, arrow, label, and outline &ndash; is written at the top of the <code>::: draw</code> block, whether or not it is initially visible when the figure comes up on the projector. Underneath the list of elements, there are one or more <code>step</code> blocks. Each step block names a beat and lists what that beat does. Pressing the space bar when a figure is shown proceeds to the next beat. The following properties can change in a beat: visibility (<code>show</code>, <code>hide</code>), position (<code>move</code>), labelling (<code>label</code>), prominence (<code>emph</code>, <code>dim</code>, <code>ghost</code>) and styling (<code>style</code>).</p>
+      <p>Every element a figure will ever hold &ndash; every box, arrow, label, and outline &ndash; is written at the top of the <code>::: draw</code> block, whether or not it is initially visible when the figure comes up on the projector. A static figure stops there. If the figure has beats, one or more <code>step</code> sections follow; each names a beat and lists what it changes. Pressing the space bar when the figure is shown proceeds to the next beat. A beat can change visibility (<code>show</code>, <code>hide</code>), position (<code>move</code>), labelling (<code>label</code>), prominence (<code>emph</code>, <code>dim</code>, <code>ghost</code>) and styling (<code>style</code>).</p>
       <p class="why">An element is hidden at the opening beat exactly when the first thing any step says about it is <code>show</code>. The benefit: there is only one description of the figure with all its elements and a list of changes to it.</p>
     </div>
 
