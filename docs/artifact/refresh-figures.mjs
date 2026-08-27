@@ -693,6 +693,17 @@ const siteWas = site;
     'site hero listing');
 }
 
+// The figure at the top of the page. Compiled from the live build rather than
+// the printed one because it plays itself: the frames payload is the whole
+// point, and print's static viewBox would clip the beats.
+{
+  const { svg, old: oldRoot } = svgFor(live, 'sitehero', 'sltop');
+  const payload = payloadFor(live, oldRoot, 'sltop');
+  if (!payload) throw new Error('site: #sitehero has no frames payload');
+  site = replaceBetween(site, '<div class="herotop" data-autoplay>', '</div><!--/herotop-->',
+    svg + payload, 'site hero figure');
+}
+
 // The same two chunks the artifact page steps through, compiled again with a
 // prefix of their own so the two files can never collide on an element id.
 for (const chunk of ['follow', 'seq-demo']) {
@@ -726,7 +737,8 @@ site = replaceBetween(site, '// demo-controls-start', '// demo-controls-end',
   const ids = [...site.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
   const dup = [...new Set(ids.filter((r, i) => ids.indexOf(r) !== i))];
   if (dup.length) throw new Error('site: duplicate ids after splice: ' + dup.slice(0, 8).join(', '));
-  say('  docs/site/figures.html: 3 figures, ' + ids.length + ' ids, all unique');
+  const figs = [...site.matchAll(/<svg id="[a-z0-9-]+-root"/g)].length;
+    say('  docs/site/figures.html: ' + figs + ' figures, ' + ids.length + ' ids, all unique');
 }
 
 if (CHECK) {

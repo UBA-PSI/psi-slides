@@ -40,6 +40,31 @@ edge a -> e "plaintext"
 edge e -> b "plaintext"
 :::
 
+## figure: the picture the site opens with {.full #sitehero}
+
+::: diagram {unit=150x38}
+# The figure at the top of docs/site/figures.html. Encapsulation drawn as what
+# it is - each layer wrapping the one before it - rather than as a stack of
+# four bars, which is the same fact drawn as a list.
+# It opens finished and the beats walk outwards through it, one header at a
+# time. Nothing here is a coordinate: every outline fits whatever it holds, so
+# widening the payload label re-fits all three wrappers without a number
+# changing anywhere.
+box       pay "payload" w 1.9 {.accent}
+container tcp "TCP"      over pay pad 0.36
+container ip  "IP"       over tcp pad 0.36
+container eth "Ethernet" over ip  pad 0.36
+
+step payload
+  emph pay
+step tcp
+  emph tcp
+step ip
+  emph ip
+step ethernet
+  emph eth
+:::
+
 ## figure: hero, one line changes and everything follows {.full #follow}
 
 ::: diagram {unit=170x56}

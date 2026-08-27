@@ -55,6 +55,34 @@
     paint();
   }
 
+  // A figure that plays itself: the one at the top of the site page. It has no
+  // controls, because nobody asked it to start - so it has to be polite about
+  // it. Three rules follow from that. It runs only while it is on screen, or a
+  // tab left open animates forever behind whatever the reader moved on to. It
+  // steps back to the opening beat instantly rather than tweening, because a
+  // tween backwards through four beats reads as a rewind rather than a loop.
+  // And under prefers-reduced-motion it does not run at all: it shows the last
+  // beat, which is the finished picture, not the empty one.
+  document.querySelectorAll('[data-autoplay]').forEach(function (host) {
+    var svg = host.querySelector('svg.psi-diagram');
+    var d = svg && svg.psiDiagram;
+    if (!d || !d.data || d.data.n < 2) return;
+    if (slow) { dgStep(d, d.data.n - 1, true); return; }
+    var timer = 0, at = 0;
+    function stop() { clearInterval(timer); timer = 0; }
+    function start() {
+      if (timer) return;
+      timer = setInterval(function () {
+        at = (at + 1) % d.data.n;
+        dgStep(d, at, at === 0);
+      }, 1900);
+    }
+    if (typeof IntersectionObserver !== 'function') { start(); return; }
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) start(); else stop(); });
+    }, { threshold: 0.35 }).observe(host);
+  });
+
   document.querySelectorAll('.demo').forEach(function (demo) {
     var svg = demo.querySelector('svg.psi-diagram');
     if (svg && svg.psiDiagram) controls(demo, svg.psiDiagram);

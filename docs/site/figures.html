@@ -53,8 +53,12 @@ pre code, pre .cl, pre .kw, .demo-src code {
 .why { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; margin-top: 9px; max-width: var(--measure); }
 .why.after { margin-top: 16px; }
 .why b { color: var(--ink); font-weight: 500; }
-.hero pre .kw { color: var(--emph); }
-.hero pre .cl { color: var(--ink-soft); }
+.herofig pre .kw { color: var(--emph); }
+.herofig pre .cl { color: var(--ink-soft); }
+/* The figure at the top of the page. It sits in the answer column, in the
+   space the shorter column left empty, so it costs the hero no height. */
+.herotop { margin-top: 26px; }
+.herotop .psi-diagram { width: 100%; height: auto; display: block; }
 .hero-note { margin-top: 24px; display: flex; flex-direction: column; gap: 13px; }
 .hero-note p { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; max-width: var(--measure); }
 .hero-note b { color: var(--ink); font-weight: 500; }
@@ -94,7 +98,7 @@ pre code, pre .cl, pre .kw, .demo-src code {
    dropped, because a comparison that only runs one way is an advertisement. */
 .versus tr.fair { background: var(--panel); }
 .versus tr.fair th { font-style: italic; }
-.spec pre .srcln, .side pre .srcln, figure.card pre .srcln, .demo-src .srcln, .hero pre .srcln {
+.spec pre .srcln, .side pre .srcln, figure.card pre .srcln, .demo-src .srcln, .herofig pre .srcln {
   display: block; padding-left: 2.4em; text-indent: -2.4em;
 }
 /* A blank line in a diagram block is the author's own break - it is what
@@ -388,7 +392,7 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
     <div class="hero-col">
       <p>Every lecture needs figures, and you already have a way to make them. A drawing program is on the machine, or one of the text-to-diagram languages is a line away, and for a picture that is drawn once and looked at once either is the right answer.</p>
 
-      <p>A lecture figure is rarely that picture. It has to be built up in front of a room while somebody talks over it, survive the slides being reordered around it a year later, and come out of the same file as the printed handout. A drawing program does the first badly and the last one not at all. An auto-layout language does the last one well and takes the arrangement out of your hands, which is the half you most need to keep.</p>
+      <p>A lecture figure is rarely that picture. It has to be <strong>built up in front of a room</strong> while somebody talks over it, <strong>survive the slides being reordered</strong> around it a year later, and come out of the <strong>same file as the printed handout</strong>. A drawing program does the first badly and the last one not at all. An auto-layout language does the last one well and takes the arrangement out of your hands, which is the half you most need to keep.</p>
 
       <div class="cta">
         <a class="primary" href="#seven">See it in seven lines</a>
@@ -396,16 +400,23 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
       </div>
     </div>
     <div class="hero-col">
-      <p class="answer">So a figure here is neither. It is a few lines of text in the lecture&rsquo;s own Markdown file, and the build &ndash; the one command that turns that file into slides &ndash; draws it.</p>
+      <p class="answer">So a figure here is neither. It is <strong>a few lines of text in the lecture&rsquo;s own Markdown file</strong>, and the build &ndash; the one command that turns that file into slides &ndash; draws it.</p>
 
       <p class="status"><strong>Development status:</strong> <code>::: diagram</code> is implemented in this repository, but is not part of a tagged psi-slides release yet. The graphical editor is experimental and desktop-oriented: it has automated coverage, but has not yet been tested broadly by people.</p>
+
+      <div class="herotop" data-autoplay><svg id="sltop-root" class="psi-diagram" viewBox="-195.54 -139.66 391.08 211.08" width="2000" height="1079" data-live-viewbox="-195.54 -139.66 391.08 211.08" data-live-ratio="0.539736" data-steps="5" role="img" aria-label="the picture the site opens with" preserveAspectRatio="xMidYMid meet">
+<g id="sltop-tcp" data-base="dg-el dg-container" class="dg-el dg-container"><rect id="sltop-tcp--r" x="-156.18" y="-54.80" width="312.36" height="86.86" rx="4"/><g id="sltop-tcp--lw0" data-lab="tcp--l" class="dg-lwrap" transform="translate(-146.18,-42.43)"><g id="sltop-tcp--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">TCP</tspan></text></g></g></g>
+<g id="sltop-ip" data-base="dg-el dg-container" class="dg-el dg-container"><rect id="sltop-ip--r" x="-169.86" y="-91.23" width="339.72" height="136.97" rx="4"/><g id="sltop-ip--lw0" data-lab="ip--l" class="dg-lwrap" transform="translate(-159.86,-78.86)"><g id="sltop-ip--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">IP</tspan></text></g></g></g>
+<g id="sltop-eth" data-base="dg-el dg-container" class="dg-el dg-container"><rect id="sltop-eth--r" x="-183.54" y="-127.66" width="367.08" height="187.08" rx="4"/><g id="sltop-eth--lw0" data-lab="eth--l" class="dg-lwrap" transform="translate(-173.54,-115.29)"><g id="sltop-eth--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">Ethernet</tspan></text></g></g></g>
+<g id="sltop-pay" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="sltop-pay--r" x="-142.50" y="-18.38" width="285.00" height="36.75" rx="4"/><g id="sltop-pay--lw0" data-lab="pay--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="sltop-pay--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">payload</tspan></text></g></g></g>
+</svg><script type="application/json" class="psi-diagram-frames" data-for="sltop-root">{"p":"sltop-","n":5,"kinds":{"tcp--r":"rect","tcp--l":"text","ip--r":"rect","ip--l":"text","eth--r":"rect","eth--l":"text","pay--r":"rect","pay--l":"text"},"names":["payload","tcp","ip","ethernet"],"frames":[{"vis":{"pay":1,"tcp":1,"ip":1,"eth":1},"cls":{"pay":"accent","tcp":"","ip":"","eth":""},"lab":{"pay":0,"tcp":0,"ip":0,"eth":0},"geom":{"pay--r":[-142.5,-18.37,285,36.75],"pay--l":[0,0,0],"tcp--r":[-156.18,-54.8,312.36,86.86],"tcp--l":[-146.18,-42.43,0],"ip--r":[-169.86,-91.23,339.72,136.97],"ip--l":[-159.86,-78.86,0],"eth--r":[-183.54,-127.66,367.08,187.08],"eth--l":[-173.54,-115.29,0]}},{"vis":{"pay":1,"tcp":1,"ip":1,"eth":1},"cls":{"pay":"accent emph","tcp":"","ip":"","eth":""},"lab":{"pay":0,"tcp":0,"ip":0,"eth":0},"geom":{"pay--r":[-142.5,-18.37,285,36.75],"pay--l":[0,0,0],"tcp--r":[-156.18,-54.8,312.36,86.86],"tcp--l":[-146.18,-42.43,0],"ip--r":[-169.86,-91.23,339.72,136.97],"ip--l":[-159.86,-78.86,0],"eth--r":[-183.54,-127.66,367.08,187.08],"eth--l":[-173.54,-115.29,0]}},{"vis":{"pay":1,"tcp":1,"ip":1,"eth":1},"cls":{"pay":"accent emph","tcp":"emph","ip":"","eth":""},"lab":{"pay":0,"tcp":0,"ip":0,"eth":0},"geom":{"pay--r":[-142.5,-18.37,285,36.75],"pay--l":[0,0,0],"tcp--r":[-156.18,-54.8,312.36,86.86],"tcp--l":[-146.18,-42.43,0],"ip--r":[-169.86,-91.23,339.72,136.97],"ip--l":[-159.86,-78.86,0],"eth--r":[-183.54,-127.66,367.08,187.08],"eth--l":[-173.54,-115.29,0]}},{"vis":{"pay":1,"tcp":1,"ip":1,"eth":1},"cls":{"pay":"accent emph","tcp":"emph","ip":"emph","eth":""},"lab":{"pay":0,"tcp":0,"ip":0,"eth":0},"geom":{"pay--r":[-142.5,-18.37,285,36.75],"pay--l":[0,0,0],"tcp--r":[-156.18,-54.8,312.36,86.86],"tcp--l":[-146.18,-42.43,0],"ip--r":[-169.86,-91.23,339.72,136.97],"ip--l":[-159.86,-78.86,0],"eth--r":[-183.54,-127.66,367.08,187.08],"eth--l":[-173.54,-115.29,0]}},{"vis":{"pay":1,"tcp":1,"ip":1,"eth":1},"cls":{"pay":"accent emph","tcp":"emph","ip":"emph","eth":"emph"},"lab":{"pay":0,"tcp":0,"ip":0,"eth":0},"geom":{"pay--r":[-142.5,-18.37,285,36.75],"pay--l":[0,0,0],"tcp--r":[-156.18,-54.8,312.36,86.86],"tcp--l":[-146.18,-42.43,0],"ip--r":[-169.86,-91.23,339.72,136.97],"ip--l":[-159.86,-78.86,0],"eth--r":[-183.54,-127.66,367.08,187.08],"eth--l":[-173.54,-115.29,0]}}]}</script></div><!--/herotop-->
     </div>
   </div>
 </section>
 
 <h2 id="seven">Seven lines, and a figure</h2>
 <p class="figlead">This is a whole figure. Nothing is stored as a coordinate: Eve is placed <em>against</em> Alice, Bob against Eve, and the arrows are handed two ends and find their own way between them.</p>
-<div class="hero">
+<div class="herofig">
 <svg id="slhero-root" class="psi-diagram" viewBox="-44.05 -32.75 440.90 63.13" width="2000" height="286" data-steps="1" role="img" aria-label="hero, the whole of a figure" preserveAspectRatio="xMidYMid meet">
 <g id="slhero-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="slhero-edge-1--p" class="dg-stroke" d="M32.05 0.00L146.80 0.00" fill="none"/><path id="slhero-edge-1--h" class="dg-head" d="M154.45 0.00L145.45 3.96L145.45 -3.96Z"/><g id="slhero-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(93.25,-11.38)"><g id="slhero-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
 <g id="slhero-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="slhero-edge-2--p" class="dg-stroke" d="M208.45 0.00L323.20 0.00" fill="none"/><path id="slhero-edge-2--h" class="dg-head" d="M330.85 0.00L321.85 3.96L321.85 -3.96Z"/><g id="slhero-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(269.65,-11.38)"><g id="slhero-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
@@ -990,6 +1001,34 @@ function initDiagrams() {
     });
     paint();
   }
+
+  // A figure that plays itself: the one at the top of the site page. It has no
+  // controls, because nobody asked it to start - so it has to be polite about
+  // it. Three rules follow from that. It runs only while it is on screen, or a
+  // tab left open animates forever behind whatever the reader moved on to. It
+  // steps back to the opening beat instantly rather than tweening, because a
+  // tween backwards through four beats reads as a rewind rather than a loop.
+  // And under prefers-reduced-motion it does not run at all: it shows the last
+  // beat, which is the finished picture, not the empty one.
+  document.querySelectorAll('[data-autoplay]').forEach(function (host) {
+    var svg = host.querySelector('svg.psi-diagram');
+    var d = svg && svg.psiDiagram;
+    if (!d || !d.data || d.data.n < 2) return;
+    if (slow) { dgStep(d, d.data.n - 1, true); return; }
+    var timer = 0, at = 0;
+    function stop() { clearInterval(timer); timer = 0; }
+    function start() {
+      if (timer) return;
+      timer = setInterval(function () {
+        at = (at + 1) % d.data.n;
+        dgStep(d, at, at === 0);
+      }, 1900);
+    }
+    if (typeof IntersectionObserver !== 'function') { start(); return; }
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) start(); else stop(); });
+    }, { threshold: 0.35 }).observe(host);
+  });
 
   document.querySelectorAll('.demo').forEach(function (demo) {
     var svg = demo.querySelector('svg.psi-diagram');
