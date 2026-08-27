@@ -77,9 +77,14 @@ step ethernet
 # from the opening beat. At 3.3:1 that reservation rendered as a third of a
 # panel of empty paper under two boxes; at 4.4:1 it reads as a margin. The
 # gaps here are set for that proportion rather than for the spacing rules.
+# Eve is `between` the two rather than `below a` with an offset, and that is
+# the figure practising what its own caption claims. The offset was a guessed
+# 1.7 grid units, which put her 28.9px left of the midpoint - close enough to
+# centred to read as a mistake rather than as a decision, and wrong again the
+# moment either gap changes. `between` states the relation and cannot drift.
 box  a  "Alice"
 box  b  "Bob"   right of a gap 10.3
-box  e  "Eve"   below a gap 0.85 offset 1.7,0 {.accent}
+box  e  "Eve"   between a,b offset 0,1.5 {.accent}
 edge direct a -> b "message"
 edge a -> e {.accent}
 edge e -> b {.accent}
@@ -88,7 +93,7 @@ container zone "Eve's reach" over e pad 0.45 {.dashed .muted}
 # The second beat is one line. Nothing in the figure stores a coordinate, so
 # a longer label widens Eve's box, both her arrows re-aim at the sides that
 # moved, and the outline re-fits around her. Measured on the emitted
-# geometry: the box goes 54 to 116.3 wide, the outline 103.6 to 166.7, and
+# geometry: the box goes 54 to 116.3 wide, the outline 104.4 to 166.7, and
 # each arrow moves 31 pixels, one left and one right. Re-measure these
 # numbers if the geometry above changes - the artifact page quotes them.
 step intercept
