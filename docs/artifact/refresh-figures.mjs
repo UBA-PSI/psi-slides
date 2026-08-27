@@ -668,6 +668,31 @@ page = replaceBetween(page, '// demo-controls-start', '// demo-controls-end',
   '\n' + CONTROLS.trimEnd() + '\n', 'demo controls');
 say('  demo controls inlined, ' + CONTROLS.length + ' bytes');
 
+// The one raster the manual carries: the screenshot of the editor's window,
+// embedded as a data: URI rather than referenced. Everything else on this page
+// is compiler output, and the page's own promise is the one the lectures make
+// - it fetches nothing at run time - so an `img/…` path would be the single
+// line that breaks it. The bytes are the same file the case page shows through
+// site.css's screenshot frame, so one shot serves both and neither can drift
+// from the other: re-take it with `node docs/site/shoot.mjs editor` and run
+// this script.
+const SHOT = path.join(ROOT, 'docs/site/img/editor.webp');
+if (!fs.existsSync(SHOT)) {
+  throw new Error('the editor screenshot is missing: ' + path.relative(ROOT, SHOT) +
+    '\nTake it with: node docs/site/shoot.mjs editor');
+}
+const shotB64 = fs.readFileSync(SHOT).toString('base64');
+const SHOT_ALT = 'The diagram editor open over a lecture slide: a dark canvas ' +
+  'holding a CBC decryption figure with one box selected, the relations that ' +
+  'place it written on the canvas beside it, a panel on the right describing ' +
+  'the beat that is standing, a rail of the figure&rsquo;s beats along the ' +
+  'bottom, and a strip of the lecture&rsquo;s other figures under that.';
+page = replaceBetween(page, '<div class="uishot-frame" data-shot="editor">',
+  '</div><!--/editorshot-->',
+  '<img src="data:image/webp;base64,' + shotB64 + '" alt="' + SHOT_ALT + '">',
+  'editor screenshot');
+say('  editor screenshot embedded, ' + Math.round(shotB64.length / 1024) + ' KB base64');
+
 // ── the project site's case for the language ────────────────────────────
 // A second output, and the reason it is here rather than in build-site.js is
 // that everything it needs has already been computed: the compiled figures,

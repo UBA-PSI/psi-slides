@@ -52,6 +52,13 @@ pre code, pre .cl, pre .kw, .demo-src code {
            background: var(--panel); max-width: var(--measure); }
 .handoff p { margin: 0; }
 .measure { max-width: var(--measure); }
+/* The editor screenshot is the one raster on a page whose every other picture
+   is compiler output, and that is worth keeping legible rather than hiding:
+   it wears site.css's screenshot frame, the same one index.html puts round a
+   shot, so a reader can tell at a glance which pixels are the tool. Held well
+   inside the 62rem measure because it is a picture of a UI, not a figure to
+   read - the lightbox in site.js is what full size is for. */
+.shot.compact { max-width: 51rem; }
 /* The secondary voice, wherever it is used. It was defined twice, once under
    .rule and once under .prelude, and the seven of these that sit under a
    stepped demo belong to neither - so they took the full width of the page
@@ -410,12 +417,14 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
 
       <p class="status"><strong>Development status:</strong> <code>::: diagram</code> is implemented in this repository, but is not part of a tagged psi-slides release yet. The graphical editor is experimental and desktop-oriented: it has automated coverage, but has not yet been tested broadly by people.</p>
 
-      <div class="herotop" data-autoplay><svg id="sltop-root" class="psi-diagram" viewBox="-195.54 -139.66 391.08 211.08" width="2000" height="1079" data-live-viewbox="-195.54 -139.66 391.08 211.08" data-live-ratio="0.539736" data-steps="5" role="img" aria-label="the picture the site opens with" preserveAspectRatio="xMidYMid meet">
-<g id="sltop-tcp" data-base="dg-el dg-container" class="dg-el dg-container"><rect id="sltop-tcp--r" x="-156.18" y="-54.80" width="312.36" height="86.86" rx="4"/><g id="sltop-tcp--lw0" data-lab="tcp--l" class="dg-lwrap" transform="translate(-146.18,-42.43)"><g id="sltop-tcp--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">TCP</tspan></text></g></g></g>
-<g id="sltop-ip" data-base="dg-el dg-container" class="dg-el dg-container"><rect id="sltop-ip--r" x="-169.86" y="-91.23" width="339.72" height="136.97" rx="4"/><g id="sltop-ip--lw0" data-lab="ip--l" class="dg-lwrap" transform="translate(-159.86,-78.86)"><g id="sltop-ip--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">IP</tspan></text></g></g></g>
-<g id="sltop-eth" data-base="dg-el dg-container" class="dg-el dg-container"><rect id="sltop-eth--r" x="-183.54" y="-127.66" width="367.08" height="187.08" rx="4"/><g id="sltop-eth--lw0" data-lab="eth--l" class="dg-lwrap" transform="translate(-173.54,-115.29)"><g id="sltop-eth--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">Ethernet</tspan></text></g></g></g>
-<g id="sltop-pay" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="sltop-pay--r" x="-142.50" y="-18.38" width="285.00" height="36.75" rx="4"/><g id="sltop-pay--lw0" data-lab="pay--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="sltop-pay--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">payload</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-frames" data-for="sltop-root">{"p":"sltop-","n":5,"kinds":{"tcp--r":"rect","tcp--l":"text","ip--r":"rect","ip--l":"text","eth--r":"rect","eth--l":"text","pay--r":"rect","pay--l":"text"},"names":["payload","tcp","ip","ethernet"],"frames":[{"vis":{"pay":1,"tcp":1,"ip":1,"eth":1},"cls":{"pay":"accent","tcp":"","ip":"","eth":""},"lab":{"pay":0,"tcp":0,"ip":0,"eth":0},"geom":{"pay--r":[-142.5,-18.37,285,36.75],"pay--l":[0,0,0],"tcp--r":[-156.18,-54.8,312.36,86.86],"tcp--l":[-146.18,-42.43,0],"ip--r":[-169.86,-91.23,339.72,136.97],"ip--l":[-159.86,-78.86,0],"eth--r":[-183.54,-127.66,367.08,187.08],"eth--l":[-173.54,-115.29,0]}},{"vis":{"pay":1,"tcp":1,"ip":1,"eth":1},"cls":{"pay":"accent emph","tcp":"","ip":"","eth":""},"lab":{"pay":0,"tcp":0,"ip":0,"eth":0},"geom":{"pay--r":[-142.5,-18.37,285,36.75],"pay--l":[0,0,0],"tcp--r":[-156.18,-54.8,312.36,86.86],"tcp--l":[-146.18,-42.43,0],"ip--r":[-169.86,-91.23,339.72,136.97],"ip--l":[-159.86,-78.86,0],"eth--r":[-183.54,-127.66,367.08,187.08],"eth--l":[-173.54,-115.29,0]}},{"vis":{"pay":1,"tcp":1,"ip":1,"eth":1},"cls":{"pay":"accent emph","tcp":"emph","ip":"","eth":""},"lab":{"pay":0,"tcp":0,"ip":0,"eth":0},"geom":{"pay--r":[-142.5,-18.37,285,36.75],"pay--l":[0,0,0],"tcp--r":[-156.18,-54.8,312.36,86.86],"tcp--l":[-146.18,-42.43,0],"ip--r":[-169.86,-91.23,339.72,136.97],"ip--l":[-159.86,-78.86,0],"eth--r":[-183.54,-127.66,367.08,187.08],"eth--l":[-173.54,-115.29,0]}},{"vis":{"pay":1,"tcp":1,"ip":1,"eth":1},"cls":{"pay":"accent emph","tcp":"emph","ip":"emph","eth":""},"lab":{"pay":0,"tcp":0,"ip":0,"eth":0},"geom":{"pay--r":[-142.5,-18.37,285,36.75],"pay--l":[0,0,0],"tcp--r":[-156.18,-54.8,312.36,86.86],"tcp--l":[-146.18,-42.43,0],"ip--r":[-169.86,-91.23,339.72,136.97],"ip--l":[-159.86,-78.86,0],"eth--r":[-183.54,-127.66,367.08,187.08],"eth--l":[-173.54,-115.29,0]}},{"vis":{"pay":1,"tcp":1,"ip":1,"eth":1},"cls":{"pay":"accent emph","tcp":"emph","ip":"emph","eth":"emph"},"lab":{"pay":0,"tcp":0,"ip":0,"eth":0},"geom":{"pay--r":[-142.5,-18.37,285,36.75],"pay--l":[0,0,0],"tcp--r":[-156.18,-54.8,312.36,86.86],"tcp--l":[-146.18,-42.43,0],"ip--r":[-169.86,-91.23,339.72,136.97],"ip--l":[-159.86,-78.86,0],"eth--r":[-183.54,-127.66,367.08,187.08],"eth--l":[-173.54,-115.29,0]}}]}</script></div><!--/herotop-->
+      <div class="herotop" data-autoplay><svg id="sltop-root" class="psi-diagram" viewBox="-165.54 -139.66 468.68 211.08" width="2000" height="901" data-live-viewbox="-165.54 -139.66 468.68 211.08" data-live-ratio="0.450371" data-steps="6" role="img" aria-label="the picture the site opens with" preserveAspectRatio="xMidYMid meet">
+<g id="sltop-tcp" data-base="dg-el dg-container" class="dg-el dg-container"><rect id="sltop-tcp--r" x="-126.18" y="-54.80" width="252.36" height="86.86" rx="4"/><g id="sltop-tcp--lw0" data-lab="tcp--l" class="dg-lwrap" transform="translate(-116.18,-42.43)"><g id="sltop-tcp--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">TCP</tspan></text></g></g></g>
+<g id="sltop-ip" data-base="dg-el dg-container" class="dg-el dg-container"><rect id="sltop-ip--r" x="-139.86" y="-91.23" width="279.72" height="136.97" rx="4"/><g id="sltop-ip--lw0" data-lab="ip--l" class="dg-lwrap" transform="translate(-129.86,-78.86)"><g id="sltop-ip--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">IP</tspan></text></g></g></g>
+<g id="sltop-eth" data-base="dg-el dg-container" class="dg-el dg-container"><rect id="sltop-eth--r" x="-153.54" y="-127.66" width="307.08" height="187.08" rx="4"/><g id="sltop-eth--lw0" data-lab="eth--l" class="dg-lwrap" transform="translate(-143.54,-115.29)"><g id="sltop-eth--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">Ethernet</tspan></text></g></g></g>
+<g id="sltop-link" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="sltop-link--p" class="dg-stroke" d="M153.54 -34.13L229.49 -34.13" fill="none"/><path id="sltop-link--h" class="dg-head" d="M237.14 -34.13L228.14 -30.16L228.14 -38.09Z"/><g id="sltop-link--lw0" data-lab="link--l" class="dg-lwrap" transform="translate(195.34,-45.50)"><g id="sltop-link--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">one frame</tspan></text></g></g></g>
+<g id="sltop-pay" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="sltop-pay--r" x="-112.50" y="-18.38" width="225.00" height="36.75" rx="4"/><g id="sltop-pay--lw0" data-lab="pay--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="sltop-pay--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">payload</tspan></text></g></g></g>
+<g id="sltop-hop" data-base="dg-el dg-box" class="dg-el dg-box turn"><rect id="sltop-hop--r" x="237.14" y="-87.23" width="54.00" height="106.20" rx="4"/><g id="sltop-hop--lw0" data-lab="hop--l" class="dg-lwrap" transform="translate(264.14,-34.13) rotate(-90)"><g id="sltop-hop--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">the next hop</tspan></text></g></g></g>
+</svg><script type="application/json" class="psi-diagram-frames" data-for="sltop-root">{"p":"sltop-","n":6,"kinds":{"tcp--r":"rect","tcp--l":"text","ip--r":"rect","ip--l":"text","eth--r":"rect","eth--l":"text","link--p":"path","link--h":"path","link--l":"text","pay--r":"rect","pay--l":"text","hop--r":"rect","hop--l":"text"},"names":["payload","tcp","ip","ethernet","wire"],"frames":[{"vis":{"pay":1,"hop":1,"tcp":1,"ip":1,"eth":1,"link":1},"cls":{"pay":"accent","hop":"turn","tcp":"","ip":"","eth":"","link":"one-head"},"lab":{"pay":0,"hop":0,"tcp":0,"ip":0,"eth":0,"link":0},"geom":{"pay--r":[-112.5,-18.37,225,36.75],"pay--l":[0,0,0],"hop--r":[237.14,-87.22,54,106.2],"hop--l":[264.14,-34.12,-90],"tcp--r":[-126.18,-54.8,252.36,86.86],"tcp--l":[-116.18,-42.43,0],"ip--r":[-139.86,-91.23,279.72,136.97],"ip--l":[-129.86,-78.86,0],"eth--r":[-153.54,-127.66,307.08,187.08],"eth--l":[-143.54,-115.29,0],"link--p":[153.54,-34.12,229.49,-34.12],"link--h":[237.14,-34.12,228.14,-30.16,228.14,-38.08],"link--l":[195.34,-45.5,0]}},{"vis":{"pay":1,"hop":1,"tcp":1,"ip":1,"eth":1,"link":1},"cls":{"pay":"accent emph","hop":"turn","tcp":"","ip":"","eth":"","link":"one-head"},"lab":{"pay":0,"hop":0,"tcp":0,"ip":0,"eth":0,"link":0},"geom":{"pay--r":[-112.5,-18.37,225,36.75],"pay--l":[0,0,0],"hop--r":[237.14,-87.22,54,106.2],"hop--l":[264.14,-34.12,-90],"tcp--r":[-126.18,-54.8,252.36,86.86],"tcp--l":[-116.18,-42.43,0],"ip--r":[-139.86,-91.23,279.72,136.97],"ip--l":[-129.86,-78.86,0],"eth--r":[-153.54,-127.66,307.08,187.08],"eth--l":[-143.54,-115.29,0],"link--p":[153.54,-34.12,229.49,-34.12],"link--h":[237.14,-34.12,228.14,-30.16,228.14,-38.08],"link--l":[195.34,-45.5,0]}},{"vis":{"pay":1,"hop":1,"tcp":1,"ip":1,"eth":1,"link":1},"cls":{"pay":"accent emph","hop":"turn","tcp":"emph","ip":"","eth":"","link":"one-head"},"lab":{"pay":0,"hop":0,"tcp":0,"ip":0,"eth":0,"link":0},"geom":{"pay--r":[-112.5,-18.37,225,36.75],"pay--l":[0,0,0],"hop--r":[237.14,-87.22,54,106.2],"hop--l":[264.14,-34.12,-90],"tcp--r":[-126.18,-54.8,252.36,86.86],"tcp--l":[-116.18,-42.43,0],"ip--r":[-139.86,-91.23,279.72,136.97],"ip--l":[-129.86,-78.86,0],"eth--r":[-153.54,-127.66,307.08,187.08],"eth--l":[-143.54,-115.29,0],"link--p":[153.54,-34.12,229.49,-34.12],"link--h":[237.14,-34.12,228.14,-30.16,228.14,-38.08],"link--l":[195.34,-45.5,0]}},{"vis":{"pay":1,"hop":1,"tcp":1,"ip":1,"eth":1,"link":1},"cls":{"pay":"accent emph","hop":"turn","tcp":"emph","ip":"emph","eth":"","link":"one-head"},"lab":{"pay":0,"hop":0,"tcp":0,"ip":0,"eth":0,"link":0},"geom":{"pay--r":[-112.5,-18.37,225,36.75],"pay--l":[0,0,0],"hop--r":[237.14,-87.22,54,106.2],"hop--l":[264.14,-34.12,-90],"tcp--r":[-126.18,-54.8,252.36,86.86],"tcp--l":[-116.18,-42.43,0],"ip--r":[-139.86,-91.23,279.72,136.97],"ip--l":[-129.86,-78.86,0],"eth--r":[-153.54,-127.66,307.08,187.08],"eth--l":[-143.54,-115.29,0],"link--p":[153.54,-34.12,229.49,-34.12],"link--h":[237.14,-34.12,228.14,-30.16,228.14,-38.08],"link--l":[195.34,-45.5,0]}},{"vis":{"pay":1,"hop":1,"tcp":1,"ip":1,"eth":1,"link":1},"cls":{"pay":"accent emph","hop":"turn","tcp":"emph","ip":"emph","eth":"emph","link":"one-head"},"lab":{"pay":0,"hop":0,"tcp":0,"ip":0,"eth":0,"link":0},"geom":{"pay--r":[-112.5,-18.37,225,36.75],"pay--l":[0,0,0],"hop--r":[237.14,-87.22,54,106.2],"hop--l":[264.14,-34.12,-90],"tcp--r":[-126.18,-54.8,252.36,86.86],"tcp--l":[-116.18,-42.43,0],"ip--r":[-139.86,-91.23,279.72,136.97],"ip--l":[-129.86,-78.86,0],"eth--r":[-153.54,-127.66,307.08,187.08],"eth--l":[-143.54,-115.29,0],"link--p":[153.54,-34.12,229.49,-34.12],"link--h":[237.14,-34.12,228.14,-30.16,228.14,-38.08],"link--l":[195.34,-45.5,0]}},{"vis":{"pay":1,"hop":1,"tcp":1,"ip":1,"eth":1,"link":1},"cls":{"pay":"accent emph","hop":"turn emph","tcp":"emph","ip":"emph","eth":"emph","link":"one-head emph"},"lab":{"pay":0,"hop":0,"tcp":0,"ip":0,"eth":0,"link":0},"geom":{"pay--r":[-112.5,-18.37,225,36.75],"pay--l":[0,0,0],"hop--r":[237.14,-87.22,54,106.2],"hop--l":[264.14,-34.12,-90],"tcp--r":[-126.18,-54.8,252.36,86.86],"tcp--l":[-116.18,-42.43,0],"ip--r":[-139.86,-91.23,279.72,136.97],"ip--l":[-129.86,-78.86,0],"eth--r":[-153.54,-127.66,307.08,187.08],"eth--l":[-143.54,-115.29,0],"link--p":[153.54,-34.12,229.49,-34.12],"link--h":[237.14,-34.12,228.14,-30.16,228.14,-38.08],"link--l":[195.34,-45.5,0]}}]}</script></div><!--/herotop-->
     </div>
   </div>
 </section>
@@ -544,6 +553,25 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
       <p class="why">This is why an arrow stays attached to a box that walks away. The arrow never held a coordinate; it held &ldquo;the right-hand edge of <code>e</code>&rdquo;, and that still means the right-hand edge of <code>e</code> wherever <code>e</code> now is. On an animation timeline the arrow is a separate object with a start and an end of its own, and nothing ties it to the box.</p>
     </div>
   </div>
+
+<h2 id="editor">Dragging a box rewrites the line that placed it</h2>
+<p class="figlead">The two decisions above have a consequence you can put a pointer on. A figure whose positions are relations can be edited by hand without the relations being lost, because a drag then has an honest answer: change the number inside the relation and leave the relation standing. That is the whole of what the editor on the live slide does &ndash; there is no model beside the file, and it writes nothing you could not have typed.</p>
+
+<figure class="shot compact">
+  <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>the editor, opened on a figure with beats</b></div>
+  <img src="img/editor.webp" alt="The diagram editor open over a lecture slide: a dark canvas holding a CBC decryption figure with one box selected, the relations that place it written on the canvas beside it, a panel on the right describing the beat that is standing, a rail of the figure's beats along the bottom, and a strip of the lecture's other figures under that.">
+</figure>
+
+<p class="measure">The selected box is <code>c1</code>, and the words drawn beside it &ndash; <code>gap 1.15</code>, <code>flush middle</code>, <code>align y middle</code> &ndash; are the relations it was written with. That is the part a finished drawing cannot show anyone: a box placed <code>gap 1.15</code> from its neighbour looks exactly like a box that happens to sit 1.15 away, and only one of the two moves when the neighbour does. Drag it and the number inside the relation is what changes.</p>
+
+<p class="measure">The panel on the right describes the beat that is standing, and it describes it by what it <em>does</em> rather than by what it says: the beat is written <code>show @out</code> and <code>dim feed0, feed1, feed2</code>, and the panel names the three boxes that appear, the three arrows that come with their ends because an arrow is only as visible as the two things it joins, and the three lines dimmed under them. A drag at that beat writes a <code>move</code> into the step rather than moving the element, which is the distinction the source makes and the canvas has to keep.</p>
+
+<h3>Opening it, and where the edit goes</h3>
+<p class="measure">Click a figure in the live view and press <code>E</code>, or use the button in the corner of the card the click opens. It is on by default wherever a lecture has a diagram; <code>editor: speaker</code> in the frontmatter keeps it off the projection and <code>editor: none</code> ships the lecture without it.</p>
+
+<p class="measure"><strong>Build with <code>--watch</code> and the edit goes straight back into <code>source.md</code>:</strong> the button in the top right then reads <em>Write to source.md</em>, the server splices the block into the file, and the rebuild that follows reloads every open tab. Without a watch server the same button copies the whole block to the clipboard to paste over the old one. An edit that stops the block compiling is not written anywhere &ndash; it is rolled back on the spot and the compiler&rsquo;s own sentence about it is shown instead.</p>
+
+<p class="measure">The gestures, the panel and the rest of it are in <a href="figures-you-write.html#editor">the manual</a>. It is experimental and made for a desktop-sized authoring screen: it has automated coverage, but has not been tested broadly by people.</p>
 
 <h2>What you give up, and what you get</h2>
 <div class="versus"><table>
@@ -1074,6 +1102,51 @@ function initDiagrams() {
     det.addEventListener('toggle', function () {
       if (det.open) wireCard(det.closest('figure.card'));
     });
+  });
+  /* ── the one screenshot ────────────────────────────────────────────────
+   * The manual carries a picture of the editor's window, and a window shown
+   * at the width of a column is a thumbnail of one. The case page gets this
+   * behaviour from site.js; the manual loads no script of its own, so it
+   * arrives here, where both pages already share their controls. Bound to
+   * `.uishot img`, which only the manual has - on the case page this wires
+   * nothing and site.js keeps its own shots.
+   */
+  var lit = null;
+  function litOpen(img) {
+    if (!lit) {
+      lit = document.createElement('div');
+      lit.className = 'uilight';
+      lit.hidden = true;
+      lit.tabIndex = -1;
+      lit.appendChild(document.createElement('img'));
+      document.body.appendChild(lit);
+      lit.addEventListener('click', litClose);
+    }
+    lit.firstChild.src = img.currentSrc || img.src;
+    lit.firstChild.alt = img.alt;
+    lit.hidden = false;
+    document.body.classList.add('uilight-open');
+    lit.focus();
+  }
+  function litClose() {
+    if (!lit || lit.hidden) return;
+    lit.hidden = true;
+    // Dropped rather than left in place: the source is a data: URI of a few
+    // hundred kilobytes, and a hidden copy of it is a second decode held for
+    // the rest of the page's life.
+    lit.firstChild.removeAttribute('src');
+    document.body.classList.remove('uilight-open');
+  }
+  document.querySelectorAll('.uishot img').forEach(function (img) {
+    img.tabIndex = 0;
+    img.setAttribute('role', 'button');
+    img.addEventListener('click', function () { litOpen(img); });
+    img.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); litOpen(img); }
+    });
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape') litClose();
   });
 })();
 // demo-controls-end

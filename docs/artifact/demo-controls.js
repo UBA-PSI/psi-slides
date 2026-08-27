@@ -122,4 +122,49 @@
       if (det.open) wireCard(det.closest('figure.card'));
     });
   });
+  /* ── the one screenshot ────────────────────────────────────────────────
+   * The manual carries a picture of the editor's window, and a window shown
+   * at the width of a column is a thumbnail of one. The case page gets this
+   * behaviour from site.js; the manual loads no script of its own, so it
+   * arrives here, where both pages already share their controls. Bound to
+   * `.uishot img`, which only the manual has - on the case page this wires
+   * nothing and site.js keeps its own shots.
+   */
+  var lit = null;
+  function litOpen(img) {
+    if (!lit) {
+      lit = document.createElement('div');
+      lit.className = 'uilight';
+      lit.hidden = true;
+      lit.tabIndex = -1;
+      lit.appendChild(document.createElement('img'));
+      document.body.appendChild(lit);
+      lit.addEventListener('click', litClose);
+    }
+    lit.firstChild.src = img.currentSrc || img.src;
+    lit.firstChild.alt = img.alt;
+    lit.hidden = false;
+    document.body.classList.add('uilight-open');
+    lit.focus();
+  }
+  function litClose() {
+    if (!lit || lit.hidden) return;
+    lit.hidden = true;
+    // Dropped rather than left in place: the source is a data: URI of a few
+    // hundred kilobytes, and a hidden copy of it is a second decode held for
+    // the rest of the page's life.
+    lit.firstChild.removeAttribute('src');
+    document.body.classList.remove('uilight-open');
+  }
+  document.querySelectorAll('.uishot img').forEach(function (img) {
+    img.tabIndex = 0;
+    img.setAttribute('role', 'button');
+    img.addEventListener('click', function () { litOpen(img); });
+    img.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); litOpen(img); }
+    });
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape') litClose();
+  });
 })();

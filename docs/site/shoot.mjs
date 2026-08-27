@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 /**
- * Re-shoots the landing page's screenshots from lectures/python-intro.
+ * Re-shoots the site's screenshots from lectures/python-intro, plus the one
+ * of the diagram editor from lectures/diagrams.
  *
- *   node docs/site/shoot.mjs                 # all seven, into docs/site/img/
+ *   node docs/site/shoot.mjs                 # all eight, into docs/site/img/
  *   node docs/site/shoot.mjs cockpit search  # just those two
  *   node docs/site/shoot.mjs --keep-png      # leave the PNGs beside the WebP
  *
- * Requires the lecture to be built first (`node build.js
- * lectures/python-intro/source.md`), `playwright-core` from devDependencies,
+ * Requires the lectures to be built first (`node build.js
+ * lectures/python-intro/source.md`, and the same for lectures/diagrams if the
+ * editor shot is in the run), `playwright-core` from devDependencies,
  * and a Chromium: $PSI_CHROME wins, then a browser in the Playwright cache,
  * then the system Google Chrome. Encoding needs cwebp or magick on PATH; with
  * neither, the PNGs are kept and the WebP step is skipped with a note.
@@ -24,6 +26,15 @@
  * - deviceScaleFactor is where the resolution comes from. The viewport stays
  *   at the size the shots were composed at (1440x900) and only the pixel
  *   density goes up, so the layout is identical and the type is not resampled.
+ *
+ * The editor shot is the one that comes from another lecture, and it has to:
+ * the editor ships into a live view only where the lecture has a diagram, and
+ * python-intro has none. lectures/diagrams is the reference for every
+ * construct, its frontmatter names no `editor:` key so it gets the default
+ * `both`, and its four views are tracked, so the shot can never be taken of a
+ * lecture nobody rebuilt. It is addressed by fragment rather than walked,
+ * because what the shot is about is inside a modal that opens over whichever
+ * chunk the camera is on, not the walk that got there.
  *
  * The audience view is walked to the target chunk with the arrow keys rather
  * than addressed by fragment. That was a workaround for the bug where the
@@ -44,6 +55,11 @@ const ROOT = path.resolve(HERE, '..', '..');
 const LECTURE = path.join(ROOT, 'lectures', 'python-intro');
 const IMG = path.join(HERE, 'img');
 const TARGET = 'why-playwright';
+
+// A shot may name its own lecture and its own chunk; everything without one is
+// the landing page's set, which is one chunk of one lecture in six views.
+const lectureOf = (s) => s.lecture ? path.join(ROOT, 'lectures', s.lecture) : LECTURE;
+const targetOf = (s) => s.target || TARGET;
 
 // The document views are trimmed to the two chunks the figure frames. Same
 // job the fragment does for the live views, done with CSS because print.html
@@ -74,7 +90,50 @@ const SHOTS = [
   { name: 'cockpit', src: 'speaker.html', w: 1440, h: 900, dsf: 1.5, frag: true },
   { name: 'printed', src: 'print.html', w: 1000, h: 625, dsf: 2.15, rig: DOC_RIG },
   { name: 'handout', src: 'print-notes.html', w: 860, h: 690, dsf: 2.5, rig: DOC_RIG },
+  // The editor, opened on a figure with beats. 1280 is the narrowest viewport
+  // that still fits the whole top bar - at 1200 the Close button is cut in
+  // half, and a screenshot of a clipped UI reads as a broken one.
+  { name: 'editor', src: 'audience.html', w: 1280, h: 850, dsf: 1.5,
+    lecture: 'diagrams', target: 'cbc', frag: true, act: openEditor },
 ];
+
+// What the shot has to show is not that the editor exists but what it knows:
+// the relations the figure was written with, drawn on the canvas beside the
+// element they hold. So it opens at the last beat, fits the frame, and selects
+// one box - `c1`, which is placed against its neighbour and aligned with the
+// row, so the canvas carries a `gap`, a `flush` and an `align` at once.
+//
+// The zoom is left at what Fit answers. One step in fills the canvas better and
+// pushes the frame past both edges, which takes the outermost relation label
+// with it.
+async function openEditor(p) {
+  await p.click('#cbc figure.figure-diagram svg', { position: { x: 8, y: 8 } });
+  await p.waitForTimeout(400);
+  await p.keyboard.press('e');
+  await p.waitForTimeout(900);
+  if (!(await p.locator('#dge-root').count())) throw new Error('editor: did not open');
+  await p.evaluate(() => {
+    const beats = [...document.querySelectorAll('#dge-beats .dge-beat')];
+    if (beats.length) beats[beats.length - 1].click();
+  });
+  await p.waitForTimeout(500);
+  const fit = p.locator('#dge-root button', { hasText: /^Fit$/ }).first();
+  if (!(await fit.count())) throw new Error('editor: no Fit button');
+  await fit.click();
+  await p.waitForTimeout(600);
+  const at = await p.evaluate(() => {
+    const el = document.querySelector('#dge-art-svg [id$="-c1"] rect');
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+  });
+  if (!at) throw new Error('editor: box c1 is not on the canvas');
+  await p.mouse.click(at.x, at.y);
+  await p.waitForTimeout(600);
+  const sel = await p.evaluate(() =>
+    ((document.querySelector('#dge-side .dge-sel-head') || {}).textContent || '').trim());
+  if (!/c1/.test(sel)) throw new Error(`editor: selected "${sel}", expected box c1`);
+}
 
 // ── browser ──────────────────────────────────────────────────────────────
 function findChrome() {
@@ -99,22 +158,21 @@ function findChrome() {
 }
 
 // ── the rig, and a server for it ─────────────────────────────────────────
-function buildRig() {
+function buildRig(shots) {
   const dir = fs.mkdtempSync(path.join(process.env.TMPDIR || '/tmp', 'psi-shoot-'));
-  const needed = [...new Set(SHOTS.map(s => s.src))];
-  for (const src of needed) {
-    const abs = path.join(LECTURE, src);
+  for (const s of shots) {
+    const lecture = lectureOf(s);
+    const abs = path.join(lecture, s.src);
     if (!fs.existsSync(abs)) {
       const err = new Error(
         `${path.relative(ROOT, abs)} is missing.\n` +
-        'Build the lecture first: node build.js lectures/python-intro/source.md');
+        `Build the lecture first: node build.js ` +
+        `${path.relative(ROOT, path.join(lecture, 'source.md'))}`);
       err.userFacing = true;
       throw err;
     }
-  }
-  for (const s of SHOTS) {
-    const html = fs.readFileSync(path.join(LECTURE, s.src), 'utf8');
-    fs.writeFileSync(path.join(dir, s.name + '.html'), html + (s.rig || ''));
+    fs.writeFileSync(path.join(dir, s.name + '.html'),
+                     fs.readFileSync(abs, 'utf8') + (s.rig || ''));
   }
   return dir;
 }
@@ -138,10 +196,10 @@ const activeId = (p) => p.evaluate(() => {
 
 // Down steps within a column, Right moves to the next one, so a sweep needs
 // both: Down until it stops changing anything, then Right, then Down again.
-async function walkTo(p) {
+async function walkTo(p, target) {
   let last = await activeId(p);
   for (let i = 0; i < 200; i++) {
-    if (last === TARGET) return;
+    if (last === target) return;
     await p.keyboard.press('ArrowDown');
     await p.waitForTimeout(110);
     let now = await activeId(p);
@@ -153,12 +211,12 @@ async function walkTo(p) {
     }
     last = now;
   }
-  throw new Error(`never reached #${TARGET}`);
+  throw new Error(`never reached #${target}`);
 }
 
 // A chunk outside the viewport means the camera did not land, and the shot
 // would be of an empty stage. That has happened; it is fatal here.
-async function assertOnScreen(p, name) {
+async function assertOnScreen(p, name, target) {
   const r = await p.evaluate((id) => {
     const b = document.getElementById(id).getBoundingClientRect();
     const v = document.getElementById('stage-viewport').getBoundingClientRect();
@@ -166,8 +224,8 @@ async function assertOnScreen(p, name) {
       on: b.x < v.right && b.y < v.bottom && b.x + b.width > v.left && b.y + b.height > v.top,
       x: Math.round(b.x), y: Math.round(b.y),
     };
-  }, TARGET);
-  if (!r.on) throw new Error(`${name}: #${TARGET} is off screen (x=${r.x} y=${r.y})`);
+  }, target);
+  if (!r.on) throw new Error(`${name}: #${target} is off screen (x=${r.x} y=${r.y})`);
 }
 
 // ── encoding ─────────────────────────────────────────────────────────────
@@ -199,7 +257,7 @@ try {
   process.exit(1);
 }
 
-const dir = buildRig();
+const dir = buildRig(shots);
 const { server, port } = await serve(dir);
 const enc = encoder();
 if (!enc) console.log('no cwebp or magick on PATH - writing PNG only');
@@ -212,13 +270,14 @@ try {
       deviceScaleFactor: s.dsf,
     });
     const page = await ctx.newPage();
-    await page.goto(`http://127.0.0.1:${port}/${s.name}.html` + (s.frag ? `#${TARGET}` : ''),
+    const target = targetOf(s);
+    await page.goto(`http://127.0.0.1:${port}/${s.name}.html` + (s.frag ? `#${target}` : ''),
       { waitUntil: 'networkidle' });
     await page.waitForTimeout(1000);
-    if (s.live) { await walkTo(page); await page.waitForTimeout(700); }
+    if (s.live) { await walkTo(page, target); await page.waitForTimeout(700); }
     // Checked before the state change: overview and search deliberately
     // cover or shrink the stage, so the assertion belongs to the landing.
-    if (s.live || s.frag) await assertOnScreen(page, s.name);
+    if (s.live || s.frag) await assertOnScreen(page, s.name, target);
     if (s.act) await s.act(page);
 
     const png = path.join(IMG, s.name + '.png');

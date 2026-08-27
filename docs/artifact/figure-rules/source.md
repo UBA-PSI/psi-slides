@@ -47,13 +47,24 @@ edge e -> b "plaintext"
 # it is - each layer wrapping the one before it - rather than as a stack of
 # four bars, which is the same fact drawn as a list.
 # It opens finished and the beats walk outwards through it, one header at a
-# time. Nothing here is a coordinate: every outline fits whatever it holds, so
-# widening the payload label re-fits all three wrappers without a number
-# changing anywhere.
-box       pay "payload" w 1.9 {.accent}
+# time, and the last one hands the finished frame to the link.
+# Nothing here is a coordinate, and nothing here is a measurement either: every
+# outline fits whatever it holds, the hop sizes itself from its own turned
+# label, and the arrow is handed two ends. So widening the payload label
+# re-fits all three wrappers and re-aims the wire with no number changing
+# anywhere - which is the claim the page under it makes, drawn rather than
+# asserted.
+# The `payload` is 1.5 units where it used to be 1.9: the hero column is 462px
+# wide, so what the hop costs across has to be paid for somewhere, and the
+# figure fills the gap the shorter column leaves without making the hero
+# taller. The gap of 2.2 is the arrow's own label - the one distance in the
+# block that has something to hold.
+box       pay "payload" w 1.5 {.accent}
 container tcp "TCP"      over pay pad 0.36
 container ip  "IP"       over tcp pad 0.36
 container eth "Ethernet" over ip  pad 0.36
+box       hop "the next hop" right of eth gap 2.2 {.turn}
+edge link eth -> hop "one frame"
 
 step payload
   emph pay
@@ -63,6 +74,8 @@ step ip
   emph ip
 step ethernet
   emph eth
+step wire
+  emph hop, link
 :::
 
 ## figure: hero, one line changes and everything follows {.full #follow}
