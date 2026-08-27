@@ -381,19 +381,29 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
 <!--topbar-->
 <main>
 
-<h1>Figures you write</h1>
+<section class="scqa hero">
+  <p class="mark"><b>psi-slides</b> &middot; a figure language for lectures</p>
+  <h1>Figures you write</h1>
+  <div class="hero-cols">
+    <div class="hero-col">
+      <p>Every lecture needs figures, and you already have a way to make them. A drawing program is on the machine, or one of the text-to-diagram languages is a line away, and for a picture that is drawn once and looked at once either is the right answer.</p>
 
-<section class="scqa">
-  <p>Every lecture needs figures, and you already have a way to make them. A drawing program is on the machine, or one of the text-to-diagram languages is a line away, and for a picture that is drawn once and looked at once either is the right answer.</p>
+      <p>A lecture figure is rarely that picture. It has to be built up in front of a room while somebody talks over it, survive the slides being reordered around it a year later, and come out of the same file as the printed handout. A drawing program does the first badly and the last one not at all. An auto-layout language does the last one well and takes the arrangement out of your hands, which is the half you most need to keep.</p>
 
-  <p>A lecture figure is rarely that picture. It has to be built up in front of a room while somebody talks over it, survive the slides being reordered around it a year later, and come out of the same file as the printed handout. A drawing program does the first badly and the last one not at all. An auto-layout language does the last one well and takes the arrangement out of your hands, which is the half you most need to keep.</p>
+      <div class="cta">
+        <a class="primary" href="#seven">See it in seven lines</a>
+        <a class="secondary" href="figures-you-write.html">Read the manual</a>
+      </div>
+    </div>
+    <div class="hero-col">
+      <p class="answer">So a figure here is neither. It is a few lines of text in the lecture&rsquo;s own Markdown file, and the build &ndash; the one command that turns that file into slides &ndash; draws it.</p>
 
-  <p class="answer">So a figure here is neither. It is a few lines of text in the lecture&rsquo;s own Markdown file, and the build &ndash; the one command that turns that file into slides &ndash; draws it.</p>
-
-  <p class="status"><strong>Development status:</strong> <code>::: diagram</code> is implemented in this repository, but is not part of a tagged psi-slides release yet. The graphical editor is experimental and desktop-oriented: it has automated coverage, but has not yet been tested broadly by people.</p>
+      <p class="status"><strong>Development status:</strong> <code>::: diagram</code> is implemented in this repository, but is not part of a tagged psi-slides release yet. The graphical editor is experimental and desktop-oriented: it has automated coverage, but has not yet been tested broadly by people.</p>
+    </div>
+  </div>
 </section>
 
-<h2>Seven lines, and a figure</h2>
+<h2 id="seven">Seven lines, and a figure</h2>
 <p class="figlead">This is a whole figure. Nothing is stored as a coordinate: Eve is placed <em>against</em> Alice, Bob against Eve, and the arrows are handed two ends and find their own way between them.</p>
 <div class="hero">
 <svg id="slhero-root" class="psi-diagram" viewBox="-44.05 -32.75 440.90 63.13" width="2000" height="286" data-steps="1" role="img" aria-label="hero, the whole of a figure" preserveAspectRatio="xMidYMid meet">

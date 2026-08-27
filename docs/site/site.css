@@ -387,6 +387,11 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
 .hero-in { width: min(94vw, 66rem); margin-left: 50%; transform: translateX(-50%); }
 .hero-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
 .hero-col { display: flex; flex-direction: column; }
+/* A flex container does not collapse its children's margins, so two stacked
+   paragraphs put the first's margin-bottom and the second's margin-top between
+   them - 42px where the column rhythm is 21. The hero on index.html carries one
+   paragraph per column and never met it; figures.html carries two. */
+.hero-col > p + p { margin-top: 0; }
 /* Buttons to the foot of the column, so the two columns end on one line
    however the prose falls. */
 .hero-col .cta { margin-top: auto; margin-bottom: 2rem; }
