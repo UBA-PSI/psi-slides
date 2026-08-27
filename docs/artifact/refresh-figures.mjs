@@ -34,7 +34,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { DG_STEP_FIXED } from '../../diagram-core.mjs';
+import { DG_CLASS_KINDS, DG_STEP_FIXED } from '../../diagram-core.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../..');
@@ -388,6 +388,36 @@ function stepColumn(page) {
 }
 page = stepColumn(page);
 say('  step column filled for ' + (page.match(/data-stepcol/g) || []).length + ' class rows');
+
+// The table says it lists every class, and for one commit it did not: the
+// arrowhead slot - `.no-head` / `.one-head` / `.both-heads`, a group in
+// DG_CLASS_GROUPS - was in no row of it. Nothing noticed, because a missing
+// row is not a broken build, a wrong number or a stale splice; it is a
+// sentence that is quietly untrue. So the claim is checked rather than made:
+// every class the compiler knows appears exactly once, and the table invents
+// none. This is the guard the generated step column could not be, because a
+// column can only answer for rows that exist.
+{
+  const rows = (page.match(/<tr[^>]*>(?:(?!<\/tr>)[\s\S])*<\/tr>/g) || [])
+    .filter((r) => r.includes('data-stepcol'));
+  const listed = rows.flatMap((r) => {
+    const cells = r.match(/<td[\s\S]*?<\/td>/g) || [];
+    return [...(cells[1] || '').matchAll(/<code>\.([a-z0-9-]+)<\/code>/g)].map((m) => m[1]);
+  });
+  const known = Object.keys(DG_CLASS_KINDS);
+  const missing = known.filter((c) => !listed.includes(c));
+  const extra = listed.filter((c) => !known.includes(c));
+  const dupes = listed.filter((c, i) => listed.indexOf(c) !== i);
+  const wrong = [
+    missing.length && 'missing: ' + missing.join(' '),
+    extra.length && 'not a class: ' + extra.join(' '),
+    dupes.length && 'listed twice: ' + [...new Set(dupes)].join(' '),
+  ].filter(Boolean);
+  if (wrong.length) {
+    throw new Error('the class table does not match DG_CLASS_KINDS - ' + wrong.join('; '));
+  }
+  say('  class table holds all ' + known.length + ' classes, once each');
+}
 
 page = replaceBetween(page, '<!--stepfixed:start-->', '<!--stepfixed:end-->',
   stepFixed(), 'step-fixed class list');

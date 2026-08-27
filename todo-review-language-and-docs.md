@@ -1382,3 +1382,26 @@ which statements have no placement slot - named in passing, not used.
 
 Structure unchanged across the pass: 8 sections, 10 h2, 46 h3, 65 svg, 68 pre,
 0 em dashes; class-table rows 15 -> 16, which is the arrowhead group.
+
+
+### Follow-ups to the fifth round
+
+Three, and the third is the one that matters.
+
+**The class table is gated now, not merely measured.** The arrowhead find was a
+sentence that had gone quietly untrue - the table says it lists every class and
+for one commit it did not - and nothing about a missing row is a broken build, a
+wrong number or a stale splice, so nothing was ever going to catch it.
+`refresh-figures.mjs` compares the classes in the table against
+`DG_CLASS_KINDS` and throws on a missing one, an invented one or a duplicate,
+naming it. Calibrated in all three directions and both modes: exit 1 on each
+defect, exit 0 clean, and it runs wherever `--check` runs.
+
+**Stage 4 explained `@tag` and pointed forward to beats, and its listing has no
+tag in it** - the same rule the pass was written to enforce, broken by the pass
+itself. The card is classes only, and tags are introduced where one is first
+used.
+
+**Sixteen lines carried trailing whitespace**; `git diff --check` is clean. The
+step wall lost its closing sentence about `table` and `sequence`, a reference
+digression left over from the card it came from.
