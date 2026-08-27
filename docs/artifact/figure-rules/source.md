@@ -34,8 +34,8 @@ The chunk ids are the contract with the refresh script. Do not rename them.
 # syntax a reader cannot yet read, in a listing whose claim is that it is
 # complete.
 box a "Alice"
-box e "Eve"  right of a gap 1.1 {.accent}
-box b "Bob"  right of e gap 1.1
+box e "Eve"  right of a gap 1.7 {.accent}
+box b "Bob"  right of e gap 1.7
 edge a -> e "plaintext"
 edge e -> b "plaintext"
 :::
@@ -58,12 +58,12 @@ box  e  "Eve"   below a gap 0.85 offset 1.7,0 {.accent}
 edge direct a -> b "message"
 edge a -> e {.accent}
 edge e -> b {.accent}
-container zone "Eve's reach" over e pad 0.3 {.dashed .muted}
+container zone "Eve's reach" over e pad 0.45 {.dashed .muted}
 
 # The second beat is one line. Nothing in the figure stores a coordinate, so
 # a longer label widens Eve's box, both her arrows re-aim at the sides that
 # moved, and the outline re-fits around her. Measured on the emitted
-# geometry: the box goes 54 to 116.3 wide, the outline 87.6 to 149.9, and
+# geometry: the box goes 54 to 116.3 wide, the outline 103.6 to 166.7, and
 # each arrow moves 31 pixels, one left and one right. Re-measure these
 # numbers if the geometry above changes - the artifact page quotes them.
 step intercept
@@ -263,6 +263,54 @@ box c "Log" right of b gap 1.15 {.tone-1}
 box a "Sensor" at 0,0 w 1.05 h 0.85 {.tone-1}
 box b "Correlation\nengine" right of a gap 1.15 same as a {.tone-1}
 box c "Log" right of b gap 1.15 same as a {.tone-1}
+:::
+
+## figure: 12 wrong | the first thing to happen is at the bottom right {.full #r12w}
+
+::: diagram {unit=150x60}
+# Four stages and not one edge between them: the only thing saying which comes
+# first is where each one sits. Written this way the room reads Disclose first
+# and Report last, which is the story backwards.
+box d "Disclose" at 0,0 {.tone-2}
+box p "Patch"    right of d gap 0.55 {.tone-2}
+box t "Triage"   below d gap 0.6 flush left {.tone-2}
+box r "Report"   right of t gap 0.55 {.tone-2}
+:::
+
+## figure: 12 right | reading order carries the sequence, with nothing drawn to say so {.full #r12r}
+
+::: diagram {unit=150x60}
+# The same four, and still no edges. Top left to bottom right is the order the
+# room reads a page in, so it is the order it reads these in - and the figure
+# spends no arrow, no number and no word on saying so.
+box r "Report"   at 0,0 {.tone-2}
+box t "Triage"   right of r gap 0.55 {.tone-2}
+box p "Patch"    below r gap 0.6 flush left {.tone-2}
+box d "Disclose" right of p gap 0.55 {.tone-2}
+:::
+
+## figure: 15 wrong | four bare shapes in a fill too pale to be a shape {.full #r15w}
+
+::: diagram {unit=150x60}
+# .bare takes the contour away, so the fill has to be the whole of the shape.
+# At .tone-1 it is barely a tint, and with four of them there is no quiet
+# ground left to read any of them against.
+box a "Sensor"  at 0,0 {.bare .tone-1}
+box b "Engine"  right of a gap 0.5 {.bare .tone-1}
+box c "Store"   right of b gap 0.5 {.bare .tone-1}
+box d "Console" right of c gap 0.5 {.bare .tone-1}
+:::
+
+## figure: 15 right | one bare shape, dark enough to stand without an outline {.full #r15r}
+
+::: diagram {unit=150x60}
+# One shape carries the emphasis and pays for it with a darker fill; the other
+# three keep their outlines and stay quiet. That is the ground the bare one is
+# read against.
+box a "Sensor"  at 0,0 {.bare .tone-3}
+box b "Engine"  right of a gap 0.5 {.tone-1}
+box c "Store"   right of b gap 0.5 {.tone-1}
+box d "Console" right of c gap 0.5 {.tone-1}
 :::
 
 ## figure: 14 wrong | two long leaders, crossing {.full #r14w}

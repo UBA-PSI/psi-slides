@@ -73,7 +73,7 @@ const STILLS = [
   ...SHAPES,
   'r1w', 'r1r', 'r2w', 'r2r', 'r3w', 'r3r',
   'r6aw', 'r6ar', 'r6c', 'r6bw', 'r6br', 'r7w', 'r7r', 'r8w', 'r8r', 'r8s',
-  'r11w', 'r11r', 'r14w', 'r14r',
+  'r11w', 'r11r', 'r12w', 'r12r', 'r14w', 'r14r', 'r15w', 'r15r',
   'tones',
 ];
 // `bare: true` strips the block's comments from the listing. Every demo but
@@ -491,7 +491,7 @@ say('  ' + BASICS.length + ' tutorial steps, additions marked by diff');
 // the text beside it went on describing the version before.
 const PAIRS = ['r1w', 'r1r', 'r2w', 'r2r', 'r3w', 'r3r',
   'r6aw', 'r6ar', 'r6c', 'r6bw', 'r6br', 'r7w', 'r7r', 'r8w', 'r8r', 'r8s',
-  'r11w', 'r11r', 'r14w', 'r14r'];
+  'r11w', 'r11r', 'r12w', 'r12r', 'r14w', 'r14r', 'r15w', 'r15r'];
 for (const id of PAIRS) {
   page = replaceBetween(page, '<pre data-pairsrc="' + id + '">', '</pre>',
     hl(diagramBlock(lectureMd, id).split('\n').filter((l) => !/^\s*#/.test(l) && l !== ':::' && !l.startsWith(':::')).join('\n')),

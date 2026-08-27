@@ -29,7 +29,7 @@
   --ink:      #14171c;
   --ink-soft: #485160;
   --rule:     #dcded9;
-  --emph:     #0f5d57;
+  --emph:     #007982;
   --panel:    #eceee9;
   --shade:    #e3e6e0;
   --no:       #8e301b;
@@ -71,7 +71,7 @@
     --ink:      #e9ebe6;
     --ink-soft: #a2aab4;
     --rule:     #2a2f35;
-    --emph:     #4fb3a6;
+    --emph:     #00b5c1;
     --panel:    #1b1f23;
     --shade:    #22272c;
     --no:       #ef9c81;
@@ -84,7 +84,7 @@
   --ink:      #e9ebe6;
   --ink-soft: #a2aab4;
   --rule:     #2a2f35;
-  --emph:     #4fb3a6;
+  --emph:     #00b5c1;
   --panel:    #1b1f23;
   --shade:    #22272c;
   --no:       #ef9c81;
@@ -131,7 +131,22 @@ p { margin: 0; }
 .why b { color: var(--ink); font-weight: 500; }
 a { color: var(--emph); text-decoration-thickness: 1px; text-underline-offset: 2px; }
 a:focus-visible, button:focus-visible { outline: 2px solid var(--emph); outline-offset: 3px; border-radius: 2px; }
-code { font-family: var(--mono); font-size: 0.9em; }
+/* Inline code in running prose. A monospace space is much wider than a sans
+   one, so a phrase like `## figure:` inside a sentence opens a gap the eye
+   reads as sentence spacing and the line comes out restless. The ground is
+   what fixes it: with a tint behind it the span reads as one object, and the
+   wide space inside it is understood as part of the token rather than as air
+   between words. Mixed from --ink over --paper rather than fixed, so it
+   follows the page into dark mode with everything else. */
+code { font-family: var(--mono); font-size: 0.88em;
+  background: color-mix(in oklch, var(--ink) 7%, var(--paper));
+  border-radius: 3px; padding: 0.08em 0.28em;
+  /* and the space itself is brought back towards the sans one it sits among */
+  word-spacing: -0.12em; }
+/* A listing is already a block of monospace: it needs no ground and no
+   padding, and the word-spacing correction would misalign its columns. */
+pre code, code.k, code.e, .srcln code, pre .cl, pre .kw {
+  background: none; padding: 0; border-radius: 0; word-spacing: normal; }
 
 /* JetBrains Mono ligates the grammar's own tokens away: `->` becomes one
    arrow glyph, and so do `<-`, `<->`, `--`, `!=` and `::`. Every listing on
@@ -383,7 +398,7 @@ figure.card:has(details.src[open]) details.src pre { max-height: 460px; }
 .prelude .why { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; margin-top: 9px; max-width: var(--measure); }
 .prelude .why.after { margin-top: 16px; }
 .prelude .why b { color: var(--ink); font-weight: 500; }
-.prelude .quote { color: var(--ink); font-family: var(--serif); font-size: 1.2rem; line-height: 1.5; margin: 0; max-width: 44ch; border-left: 2px solid var(--emph); padding-left: 18px; }
+.prelude .quote { color: var(--ink); font-family: var(--serif); font-size: 1.2rem; line-height: 1.5; margin: 0; max-width: 44ch; border-left: 2px solid var(--rule); padding-left: 18px; }
 .prelude .quote cite { display: block; margin-top: 8px; font-family: var(--mono); font-size: var(--t-micro); font-style: normal; letter-spacing: 0.06em; color: var(--ink-soft); }
 /* One column while the list is in the margin - it has the height to spare
    there, and two columns of four in a 490px aside wrap every question. Two
@@ -397,12 +412,12 @@ figure.card:has(details.src[open]) details.src pre { max-height: 460px; }
    what that source compiled to. The stripe carries the verdict, so the pair
    is scannable before any of it is read. */
 .pair { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(16px, 2.4vw, 30px); }
-.side { background: var(--paper); display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--rule); border-top-width: 3px; }
+.side { background: var(--paper); display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--rule); }
 .pair.solo { grid-template-columns: 1fr; }
-.side.plain { border-top-color: var(--ink-soft); }
+
 .side.plain .tag { color: var(--ink-soft); }
-.side.no { border-top-color: var(--no); }
-.side.yes { border-top-color: var(--emph); }
+
+
 .side .tag { font-family: var(--mono); font-size: var(--t-micro); font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; padding: 10px 14px 9px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; gap: 8px; }
 /* The mark carries the verdict at a glance; the word carries it for anyone
    who cannot separate the two hues. Never colour alone. */
@@ -431,6 +446,15 @@ figure.card:has(details.src[open]) details.src pre { max-height: 460px; }
 table.roles { min-width: 46rem; }
 /* The class table carries a fourth column and needs more of them at once. */
 table.roles:has(th:nth-child(4)) { min-width: 58rem; }
+/* Five columns need their own widths: the rules above were written for four,
+   so the step column took a full share it does not need and the description
+   was left with what was over - a very tall, very narrow last column while
+   two others sat half empty. */
+table.roles:has(th:nth-child(5)) { min-width: 62rem; }
+table.roles:has(th:nth-child(5)) th:first-child { width: 6rem; }
+table.roles:has(th:nth-child(5)) th:nth-child(2) { width: 10.5rem; }
+table.roles:has(th:nth-child(5)) th:nth-child(3) { width: 8.5rem; }
+table.roles:has(th:nth-child(5)) th:nth-child(4) { width: 4.5rem; }
 .tones .swatch { background: var(--paper); padding: 16px clamp(14px, 2vw, 22px); }
 .tones .swatch .psi-diagram { width: 100%; height: auto; }
 /* The last column is prose, and at the full width of the page it ran to a
@@ -438,7 +462,9 @@ table.roles:has(th:nth-child(4)) { min-width: 58rem; }
    reads at roughly the measure the rest of the page keeps. min-width
    above is the other end of the same question, for a phone. */
 table.roles { width: 100%; border-collapse: collapse; font-size: var(--t-body); }
-table.roles tr.ungrouped td { color: var(--ink-soft); }
+/* No lighter ink on these three: the divider above them already says what
+   they are, and greying the rows as well made them read as an afterthought
+   rather than as three classes like the rest. */
 /* The one cell the column caps cannot reach: it spans all three, so it takes
    the table's full width and ran to 108 characters - the longest text run left
    on the page. A measure of its own, since there is no column to inherit. */
@@ -446,6 +472,11 @@ table.roles tr.divider td { border-top: 2px solid var(--rule); color: var(--ink-
 table.roles th, table.roles td { text-align: left; padding: 10px clamp(14px, 2vw, 22px); border-top: 1px solid var(--rule); vertical-align: baseline; }
 table.roles th { font-family: var(--mono); font-size: var(--t-micro); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); font-weight: 400; }
 table.roles td:first-child { font-family: var(--mono); font-size: var(--t-mini); color: var(--emph); white-space: nowrap; }
+/* The state table's first column holds phrases, not the one-word group names
+   the nowrap above was written for. With table-layout: fixed they ran out of
+   the column and printed over the one beside it. */
+table.roles.states td:first-child { white-space: normal; line-height: 1.5; }
+table.roles.states td code { white-space: normal; }
 table.roles td code { color: var(--emph); font-size: var(--t-mini); white-space: nowrap; }
 table.roles td:nth-child(2) { line-height: 1.9; }
 table.roles td:last-child { color: var(--ink-soft); }
@@ -516,7 +547,13 @@ pre.anat .kw { color: var(--emph); }
 pre.anat .cl { color: var(--ink-soft); }
 pre.anat .an { color: var(--ink-soft); }
 .quirk-head { font-family: var(--serif); font-size: 1.3rem; font-weight: 400; margin: 32px 0 0; }
-.walls.quirks { margin-top: 18px; gap: 22px 40px; }
+/* Columns rather than a grid, exactly as .walls.limits below: a grid aligns
+   its rows, so eight blocks of very different length leave the short ones
+   sitting under a band of empty paper. Flowed into columns they pack. */
+.walls.quirks { margin-top: 18px; display: block; column-count: 3; column-gap: 40px; }
+.walls.quirks .wall { break-inside: avoid; -webkit-column-break-inside: avoid; margin: 0 0 24px; }
+@media (max-width: 940px) { .walls.quirks { column-count: 2; } }
+@media (max-width: 620px) { .walls.quirks { column-count: 1; } }
 .walls.quirks h4 { font-family: var(--sans); font-size: var(--t-body); font-weight: 500; letter-spacing: 0; }
 .walls.quirks h4 code { font-size: 0.9em; }
 
@@ -571,10 +608,16 @@ pre.anat .an { color: var(--ink-soft); }
 .beat h4 { font-family: var(--serif); font-size: 1.2rem; font-weight: 400; margin: 0; line-height: 1.25; }
 .beat p { font-size: var(--t-small); line-height: 1.55; color: var(--ink-soft); }
 
-.checks { margin-top: 34px; border-top: 1px solid var(--rule); counter-reset: chk; }
+.checks { margin-top: 34px; border-top: 1px solid var(--rule); counter-reset: chk;
+  /* Wider than a reading measure, because it is two columns of it: the
+     grid below keeps each column at a readable width of its own. */
+  max-width: none; }
 .checks li { list-style: none; border-bottom: 1px solid var(--rule); padding: 14px 0 14px 46px; position: relative; font-size: var(--t-body); line-height: 1.55; }
 .checks li::before { counter-increment: chk; content: counter(chk, decimal-leading-zero); position: absolute; left: 0; top: 16px; font-family: var(--mono); font-size: var(--t-micro); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
-.checks ol { margin: 0; padding: 0; }
+/* Two columns: twenty single-line items down one column is a very long
+   scroll for a list nobody reads straight through - it is worked down as a
+   pre-flight, and two columns put twice as much of it in view. */
+.checks ol { margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr)); column-gap: 44px; }
 .checks code { color: var(--emph); }
 
 .walls { margin-top: 34px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 28px 44px; }
@@ -840,6 +883,8 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 /* Contents. Four routes rather than a flat list of eleven headings: a reader
    arrives wanting to learn the language, to look one thing up, or to copy a
    shape that already works, and those want different entry points. */
+.toc-lede { grid-column: 1 / -1; margin: 0 0 4px; font-size: var(--t-small);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
 .toc { margin: 44px 0 8px; display: grid; gap: 20px 32px;
        grid-template-columns: repeat(auto-fit, minmax(min(215px, 100%), 1fr));
        border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
@@ -856,7 +901,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
   /* --emph, not --accent: this page has no --accent, exactly as the lecture
      views have none - and a color over a missing token silently drops the
      whole declaration. Copied from the case page, where --accent is right. */
-  margin-top: 20px; padding: 12px 14px; border-left: 3px solid var(--emph);
+  margin-top: 20px; padding: 12px 14px;
   background: var(--panel); color: var(--ink-soft); font-size: var(--t-small);
 }
 .top .status strong { color: var(--ink); font-weight: 500; }
@@ -877,13 +922,13 @@ footer .paths b { color: var(--ink); font-weight: 500; }
   </div>
 
   <div class="hero">
-    <pre data-opensrc="hero"><span class="srcln">::: diagram</span><span class="srcln"><span class="kw">box</span> a <span class="cl">"Alice"</span></span><span class="srcln"><span class="kw">box</span> e <span class="cl">"Eve"</span>  <span class="kw">right of</span> a <span class="kw">gap</span> 1.1 <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">box</span> b <span class="cl">"Bob"</span>  <span class="kw">right of</span> e <span class="kw">gap</span> 1.1</span><span class="srcln"><span class="kw">edge</span> a -&gt; e <span class="cl">"plaintext"</span></span><span class="srcln"><span class="kw">edge</span> e -&gt; b <span class="cl">"plaintext"</span></span><span class="srcln">:::</span></pre><!--/opensrc-->
-    <div class="hero-fig"><svg id="rlhero-root" class="psi-diagram" viewBox="-44.05 -32.75 354.50 63.13" width="2000" height="356" data-steps="1" role="img" aria-label="hero, the whole of a figure" preserveAspectRatio="xMidYMid meet">
-<g id="rlhero-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="rlhero-edge-1--p" class="dg-stroke" d="M32.05 0.00L103.60 0.00" fill="none"/><path id="rlhero-edge-1--h" class="dg-head" d="M111.25 0.00L102.25 3.96L102.25 -3.96Z"/><g id="rlhero-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(71.65,-11.38)"><g id="rlhero-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
-<g id="rlhero-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="rlhero-edge-2--p" class="dg-stroke" d="M165.25 0.00L236.80 0.00" fill="none"/><path id="rlhero-edge-2--h" class="dg-head" d="M244.45 0.00L235.45 3.96L235.45 -3.96Z"/><g id="rlhero-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(204.85,-11.38)"><g id="rlhero-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
+    <pre data-opensrc="hero"><span class="srcln">::: diagram</span><span class="srcln"><span class="kw">box</span> a <span class="cl">"Alice"</span></span><span class="srcln"><span class="kw">box</span> e <span class="cl">"Eve"</span>  <span class="kw">right of</span> a <span class="kw">gap</span> 1.7 <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">box</span> b <span class="cl">"Bob"</span>  <span class="kw">right of</span> e <span class="kw">gap</span> 1.7</span><span class="srcln"><span class="kw">edge</span> a -&gt; e <span class="cl">"plaintext"</span></span><span class="srcln"><span class="kw">edge</span> e -&gt; b <span class="cl">"plaintext"</span></span><span class="srcln">:::</span></pre><!--/opensrc-->
+    <div class="hero-fig"><svg id="rlhero-root" class="psi-diagram" viewBox="-44.05 -32.75 440.90 63.13" width="2000" height="286" data-steps="1" role="img" aria-label="hero, the whole of a figure" preserveAspectRatio="xMidYMid meet">
+<g id="rlhero-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="rlhero-edge-1--p" class="dg-stroke" d="M32.05 0.00L146.80 0.00" fill="none"/><path id="rlhero-edge-1--h" class="dg-head" d="M154.45 0.00L145.45 3.96L145.45 -3.96Z"/><g id="rlhero-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(93.25,-11.38)"><g id="rlhero-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
+<g id="rlhero-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="rlhero-edge-2--p" class="dg-stroke" d="M208.45 0.00L323.20 0.00" fill="none"/><path id="rlhero-edge-2--h" class="dg-head" d="M330.85 0.00L321.85 3.96L321.85 -3.96Z"/><g id="rlhero-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(269.65,-11.38)"><g id="rlhero-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
 <g id="rlhero-a" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="rlhero-a--r" x="-32.05" y="-18.38" width="64.10" height="36.75" rx="4"/><g id="rlhero-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="rlhero-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Alice</tspan></text></g></g></g>
-<g id="rlhero-e" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="rlhero-e--r" x="111.25" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="rlhero-e--lw0" data-lab="e--l" class="dg-lwrap" transform="translate(138.25,0.00)"><g id="rlhero-e--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g></g>
-<g id="rlhero-b" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="rlhero-b--r" x="244.45" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="rlhero-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(271.45,0.00)"><g id="rlhero-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
+<g id="rlhero-e" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="rlhero-e--r" x="154.45" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="rlhero-e--lw0" data-lab="e--l" class="dg-lwrap" transform="translate(181.45,0.00)"><g id="rlhero-e--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g></g>
+<g id="rlhero-b" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="rlhero-b--r" x="330.85" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="rlhero-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(357.85,0.00)"><g id="rlhero-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
 </svg></div>
   </div>
 
@@ -895,6 +940,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 </header>
 
 <nav class="toc" aria-label="Contents">
+  <p class="toc-lede">On this page</p>
   <div class="toc-route"><p class="toc-h">Learn</p><ul>
     <li><a href="#first-figure">Build one figure, a line at a time</a></li>
     <li><a href="#steps">Make it move, a beat at a time</a></li>
@@ -910,7 +956,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
   </ul></div>
   <div class="toc-route"><p class="toc-h">Copy a pattern</p><ul>
     <li><a href="#arrangements">Flowchart, swimlane, tree, table, protocol</a></li>
-    <li><a href="#gallery">Fifteen finished figures</a></li>
+    <li><a href="#gallery">More complex examples</a></li>
   </ul></div>
 </nav>
 
@@ -1064,7 +1110,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 
     <p class="measure">Three states are worth holding in mind at once, because a figure with beats is three drawings at the same time: the one the block opens with, the one the room sees at beat <i>k</i>, and the one that comes out of the printer.</p>
     <div class="tones">
-      <table class="roles">
+      <table class="roles states">
         <thead><tr><th>what you wrote</th><th>the opening picture</th><th>during the lecture</th><th>in print</th></tr></thead>
         <tbody>
           <tr><td><code>show</code> / <code>hide</code></td><td>hidden from the start if the first thing any beat says about it is <code>show</code>; visible otherwise</td><td>cumulative &ndash; every beat up to here has happened</td><td>the last beat</td></tr>
@@ -1082,15 +1128,15 @@ footer .paths b { color: var(--ink); font-weight: 500; }
   <div class="demo">
     <h3>One line changes, and four things follow</h3>
     <p class="measure demo-lede">The same three boxes as at the top of the page, with two beats added: Eve arrives, then Eve is renamed. Step through it and watch what the second beat moves without mentioning.</p>
-    <div class="demo-stage" data-demo="follow"><svg id="dgfollow-root" class="psi-diagram" viewBox="-44.05 -30.38 718.90 161.90" width="2000" height="450" data-live-viewbox="-44.05 -32.75 718.90 164.27" data-live-ratio="0.228509" data-steps="3" role="img" aria-label="hero, one line changes and everything follows" preserveAspectRatio="xMidYMid meet">
-<g id="dgfollow-zone" data-base="dg-el dg-container" class="dg-el dg-container dashed muted"><rect id="dgfollow-zone--r" x="214.05" y="26.42" width="149.90" height="93.10" rx="4"/><g id="dgfollow-zone--lw0" data-lab="zone--l" class="dg-lwrap" transform="translate(224.05,38.80)"><g id="dgfollow-zone--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">Eve's reach</tspan></text></g></g></g>
+    <div class="demo-stage" data-demo="follow"><svg id="dgfollow-root" class="psi-diagram" viewBox="-44.05 -30.38 718.90 170.30" width="2000" height="474" data-live-viewbox="-44.05 -32.75 718.90 172.68" data-live-ratio="0.240193" data-steps="3" role="img" aria-label="hero, one line changes and everything follows" preserveAspectRatio="xMidYMid meet">
+<g id="dgfollow-zone" data-base="dg-el dg-container" class="dg-el dg-container dashed muted"><rect id="dgfollow-zone--r" x="205.65" y="18.02" width="166.70" height="109.90" rx="4"/><g id="dgfollow-zone--lw0" data-lab="zone--l" class="dg-lwrap" transform="translate(215.65,30.40)"><g id="dgfollow-zone--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">Eve's reach</tspan></text></g></g></g>
 <g id="dgfollow-direct" data-base="dg-el dg-edge" class="dg-el dg-edge one-head" style="opacity:0"><path id="dgfollow-direct--p" class="dg-stroke" d="M32.05 0.00L601.20 0.00" fill="none"/><path id="dgfollow-direct--h" class="dg-head" d="M608.85 0.00L599.85 3.96L599.85 -3.96Z"/><g id="dgfollow-direct--lw0" data-lab="direct--l" class="dg-lwrap" transform="translate(320.45,-11.38)"><g id="dgfollow-direct--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">message</tspan></text></g></g></g>
 <g id="dgfollow-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge accent one-head"><path id="dgfollow-edge-1--p" class="dg-stroke" d="M32.05 0.00L223.81 81.36" fill="none"/><path id="dgfollow-edge-1--h" class="dg-head" d="M230.85 84.35L221.02 84.48L224.11 77.19Z"/></g>
 <g id="dgfollow-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge accent one-head"><path id="dgfollow-edge-2--p" class="dg-stroke" d="M347.15 84.35L601.57 2.35" fill="none"/><path id="dgfollow-edge-2--h" class="dg-head" d="M608.85 0.00L601.50 6.53L599.07 -1.01Z"/></g>
 <g id="dgfollow-a" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dgfollow-a--r" x="-32.05" y="-18.38" width="64.10" height="36.75" rx="4"/><g id="dgfollow-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dgfollow-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Alice</tspan></text></g></g></g>
 <g id="dgfollow-b" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dgfollow-b--r" x="608.85" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="dgfollow-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(635.85,0.00)"><g id="dgfollow-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
 <g id="dgfollow-e" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="dgfollow-e--r" x="230.85" y="65.97" width="116.30" height="36.75" rx="4"/><g id="dgfollow-e--lw0" data-lab="e--l" class="dg-lwrap dg-variant dg-off" transform="translate(289.00,84.35)"><g id="dgfollow-e--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g><g id="dgfollow-e--lw1" data-lab="e--l" class="dg-lwrap dg-variant" transform="translate(289.00,84.35)"><g id="dgfollow-e--l1" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve, on path</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-frames" data-for="dgfollow-root">{"p":"dgfollow-","n":3,"kinds":{"zone--r":"rect","zone--l":"text","direct--p":"path","direct--h":"path","direct--l":"text","edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","a--r":"rect","a--l":"text","b--r":"rect","b--l":"text","e--r":"rect","e--l":"text"},"names":["intercept","relabel"],"frames":[{"vis":{"a":1,"b":1,"e":0,"zone":0,"direct":1,"edge-1":0,"edge-2":0},"cls":{"a":"","b":"","e":"accent","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"a":0,"b":0,"e":0,"zone":0,"direct":0},"geom":{"a--r":[-32.05,-18.37,64.1,36.75],"a--l":[0,0,0],"b--r":[608.85,-18.37,54,36.75],"b--l":[635.85,0,0],"e--r":[262,65.97,54,36.75],"e--l":[289,84.35,0],"zone--r":[245.2,26.42,87.6,93.1],"zone--l":[255.2,38.8,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,254.82,81.72],"edge-1--h":[262,84.35,252.19,84.97,254.91,77.53],"edge-2--p":[316,84.35,601.5,2.12],"edge-2--h":[608.85,0,601.3,6.3,599.11,-1.31]}},{"vis":{"a":1,"b":1,"e":1,"zone":1,"direct":0,"edge-1":1,"edge-2":1},"cls":{"a":"","b":"","e":"accent","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"a":0,"b":0,"e":0,"zone":0,"direct":0},"geom":{"a--r":[-32.05,-18.37,64.1,36.75],"a--l":[0,0,0],"b--r":[608.85,-18.37,54,36.75],"b--l":[635.85,0,0],"e--r":[262,65.97,54,36.75],"e--l":[289,84.35,0],"zone--r":[245.2,26.42,87.6,93.1],"zone--l":[255.2,38.8,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,254.82,81.72],"edge-1--h":[262,84.35,252.19,84.97,254.91,77.53],"edge-2--p":[316,84.35,601.5,2.12],"edge-2--h":[608.85,0,601.3,6.3,599.11,-1.31]}},{"vis":{"a":1,"b":1,"e":1,"zone":1,"direct":0,"edge-1":1,"edge-2":1},"cls":{"a":"","b":"","e":"accent emph","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"a":0,"b":0,"e":1,"zone":0,"direct":0},"geom":{"a--r":[-32.05,-18.37,64.1,36.75],"a--l":[0,0,0],"b--r":[608.85,-18.37,54,36.75],"b--l":[635.85,0,0],"e--r":[230.85,65.97,116.3,36.75],"e--l":[289,84.35,0],"zone--r":[214.05,26.42,149.9,93.1],"zone--l":[224.05,38.8,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,223.81,81.36],"edge-1--h":[230.85,84.35,221.02,84.48,224.11,77.19],"edge-2--p":[347.15,84.35,601.57,2.35],"edge-2--h":[608.85,0,601.5,6.53,599.07,-1.01]}}]}</script></div><!--/stage-->
+</svg><script type="application/json" class="psi-diagram-frames" data-for="dgfollow-root">{"p":"dgfollow-","n":3,"kinds":{"zone--r":"rect","zone--l":"text","direct--p":"path","direct--h":"path","direct--l":"text","edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","a--r":"rect","a--l":"text","b--r":"rect","b--l":"text","e--r":"rect","e--l":"text"},"names":["intercept","relabel"],"frames":[{"vis":{"a":1,"b":1,"e":0,"zone":0,"direct":1,"edge-1":0,"edge-2":0},"cls":{"a":"","b":"","e":"accent","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"a":0,"b":0,"e":0,"zone":0,"direct":0},"geom":{"a--r":[-32.05,-18.37,64.1,36.75],"a--l":[0,0,0],"b--r":[608.85,-18.37,54,36.75],"b--l":[635.85,0,0],"e--r":[262,65.97,54,36.75],"e--l":[289,84.35,0],"zone--r":[236.8,18.02,104.4,109.9],"zone--l":[246.8,30.4,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,254.82,81.72],"edge-1--h":[262,84.35,252.19,84.97,254.91,77.53],"edge-2--p":[316,84.35,601.5,2.12],"edge-2--h":[608.85,0,601.3,6.3,599.11,-1.31]}},{"vis":{"a":1,"b":1,"e":1,"zone":1,"direct":0,"edge-1":1,"edge-2":1},"cls":{"a":"","b":"","e":"accent","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"a":0,"b":0,"e":0,"zone":0,"direct":0},"geom":{"a--r":[-32.05,-18.37,64.1,36.75],"a--l":[0,0,0],"b--r":[608.85,-18.37,54,36.75],"b--l":[635.85,0,0],"e--r":[262,65.97,54,36.75],"e--l":[289,84.35,0],"zone--r":[236.8,18.02,104.4,109.9],"zone--l":[246.8,30.4,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,254.82,81.72],"edge-1--h":[262,84.35,252.19,84.97,254.91,77.53],"edge-2--p":[316,84.35,601.5,2.12],"edge-2--h":[608.85,0,601.3,6.3,599.11,-1.31]}},{"vis":{"a":1,"b":1,"e":1,"zone":1,"direct":0,"edge-1":1,"edge-2":1},"cls":{"a":"","b":"","e":"accent emph","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"a":0,"b":0,"e":1,"zone":0,"direct":0},"geom":{"a--r":[-32.05,-18.37,64.1,36.75],"a--l":[0,0,0],"b--r":[608.85,-18.37,54,36.75],"b--l":[635.85,0,0],"e--r":[230.85,65.97,116.3,36.75],"e--l":[289,84.35,0],"zone--r":[205.65,18.02,166.7,109.9],"zone--l":[215.65,30.4,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,223.81,81.36],"edge-1--h":[230.85,84.35,221.02,84.48,224.11,77.19],"edge-2--p":[347.15,84.35,601.57,2.35],"edge-2--h":[608.85,0,601.5,6.53,599.07,-1.01]}}]}</script></div><!--/stage-->
     <div class="demo-bar">
       <button class="db" data-go="-1" aria-label="previous beat">&lsaquo;</button>
       <button class="db" data-go="1" aria-label="next beat">&rsaquo;</button>
@@ -1101,13 +1147,13 @@ footer .paths b { color: var(--ink); font-weight: 500; }
     </ol><!--/rail-->
       <button class="db play" aria-label="play the beats">play</button>
     </div>
-    <pre class="demo-src" data-demosrc="follow"><span class="srcln">::: diagram <span class="cl">{unit=170x56}</span></span><span class="srcln"><span class="kw">box</span>  a  <span class="cl">"Alice"</span></span><span class="srcln"><span class="kw">box</span>  b  <span class="cl">"Bob"</span>   <span class="kw">right of</span> a <span class="kw">gap</span> 10.3</span><span class="srcln"><span class="kw">box</span>  e  <span class="cl">"Eve"</span>   <span class="kw">below</span> a <span class="kw">gap</span> 0.85 <span class="kw">offset</span> 1.7,0 <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">edge</span> direct a -&gt; b <span class="cl">"message"</span></span><span class="srcln"><span class="kw">edge</span> a -&gt; e <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">edge</span> e -&gt; b <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">container</span> zone <span class="cl">"Eve's reach"</span> <span class="kw">over</span> e <span class="kw">pad</span> 0.3 <span class="cl">{.dashed .muted}</span></span><span class="srcln"></span><span class="srcln"><span class="st">step</span> intercept</span><span class="srcln">  <span class="st">show</span> e</span><span class="srcln">  <span class="st">hide</span> direct</span><span class="srcln"><span class="st">step</span> relabel</span><span class="srcln">  <span class="st">label</span> e <span class="cl">"Eve, on path"</span></span><span class="srcln">  <span class="st">emph</span> e</span><span class="srcln">:::</span></pre><!--/demosrc-->
+    <pre class="demo-src" data-demosrc="follow"><span class="srcln">::: diagram <span class="cl">{unit=170x56}</span></span><span class="srcln"><span class="kw">box</span>  a  <span class="cl">"Alice"</span></span><span class="srcln"><span class="kw">box</span>  b  <span class="cl">"Bob"</span>   <span class="kw">right of</span> a <span class="kw">gap</span> 10.3</span><span class="srcln"><span class="kw">box</span>  e  <span class="cl">"Eve"</span>   <span class="kw">below</span> a <span class="kw">gap</span> 0.85 <span class="kw">offset</span> 1.7,0 <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">edge</span> direct a -&gt; b <span class="cl">"message"</span></span><span class="srcln"><span class="kw">edge</span> a -&gt; e <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">edge</span> e -&gt; b <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">container</span> zone <span class="cl">"Eve's reach"</span> <span class="kw">over</span> e <span class="kw">pad</span> 0.45 <span class="cl">{.dashed .muted}</span></span><span class="srcln"></span><span class="srcln"><span class="st">step</span> intercept</span><span class="srcln">  <span class="st">show</span> e</span><span class="srcln">  <span class="st">hide</span> direct</span><span class="srcln"><span class="st">step</span> relabel</span><span class="srcln">  <span class="st">label</span> e <span class="cl">"Eve, on path"</span></span><span class="srcln">  <span class="st">emph</span> e</span><span class="srcln">:::</span></pre><!--/demosrc-->
     <p class="why after">The block has two halves: above, everything the figure contains; below, what the beats do. The word <code>step</code> is the boundary &ndash; the blank line is there for your eye, and the parser does not read it. Writing the cast first and the beats under it is the shape to keep, all the same: it is the order the figure is read in. <b>The first beat is two lines and four changes:</b> Eve appears, and so do her two arrows and the outline around her, because an arrow is only as visible as the things it joins and an outline only as visible as what it holds. No line anywhere says <code>show</code> about the arrows or the outline.</p>
-    <p class="why after"><b>The second beat is one line:</b> <code>label e</code> gives Eve a longer name; her box grows from 54 pixels wide to 116 to hold it; the outline re-fits from 88 to 150; and each arrow re-aims by 31 pixels, one to the left and one to the right. The beat names the label and nothing else. In a drawing program the same edit is one text box and four corrections by hand, repeated for every beat the figure has.</p>
+    <p class="why after"><b>The second beat is one line:</b> <code>label e</code> gives Eve a longer name; her box grows from 54 pixels wide to 116 to hold it; the outline re-fits from 104 to 167; and each arrow re-aims by 31 pixels, one to the left and one to the right. The beat names the label and nothing else. In a drawing program the same edit is one text box and four corrections by hand, repeated for every beat the figure has.</p>
   </div>
-    <div class="wall"><h4>The five families of operation</h4><p>That is one beat. A <code>step</code> line names it and the operations that make it up follow, indented. Indent them: it is how every figure on this page is written and how a beat is read. Like the blank line above the first <code>step</code>, though, the indentation is for your eye &ndash; what ends one beat is the next <code>step</code>, any line that opens with a statement, or the end of the block. They come in five families: visibility (<code>show</code>, <code>hide</code>), movement (<code>move</code>), labelling (<code>label</code>), prominence (<code>emph</code>, <code>dim</code>, <code>ghost</code>) and styling (<code>style</code>). The prominence verbs are the prominence classes, so learning one teaches the other, and a beat returns an element to normal with <code>style e {!dim}</code> rather than with a fourth word.</p></div>
-    <p class="why after">The block has two halves: above, everything the figure contains; below, what the beats do. The word <code>step</code> is the boundary &ndash; the blank line is there for your eye, and the parser does not read it. Writing the cast first and the beats under it is the shape to keep, all the same: it is the order the figure is read in. <b>The first beat is two lines and four changes:</b> Eve appears, and so do her two arrows and the outline around her, because an arrow is only as visible as the things it joins and an outline only as visible as what it holds. No line anywhere says <code>show</code> about the arrows or the outline.</p>
-    <p class="why after"><b>The second beat is one line:</b> <code>label e</code> gives Eve a longer name; her box grows from 54 pixels wide to 116 to hold it; the outline re-fits from 88 to 150; and each arrow re-aims by 31 pixels, one to the left and one to the right. The beat names the label and nothing else. In a drawing program the same edit is one text box and four corrections by hand, repeated for every beat the figure has.</p>
+    <h3>The five families of operation</h3>
+    <p class="measure">That is one beat. A <code>step</code> line names it and the operations that make it up follow, indented. Indent them: it is how every figure on this page is written and how a beat is read. Like the blank line above the first <code>step</code>, though, the indentation is for your eye &ndash; what ends one beat is the next <code>step</code>, any line that opens with a statement, or the end of the block. They come in five families: visibility (<code>show</code>, <code>hide</code>), movement (<code>move</code>), labelling (<code>label</code>), prominence (<code>emph</code>, <code>dim</code>, <code>ghost</code>) and styling (<code>style</code>). The prominence verbs are the prominence classes, so learning one teaches the other, and a beat returns an element to normal with <code>style e {!dim}</code> rather than with a fourth word.</p>
+
 
 
 
@@ -1202,7 +1248,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
               <tr><td>label across</td><td style="white-space:normal"><code>.left</code> <code>.right</code></td><td><code>box</code> <code>dot</code> <code>text</code></td><td data-stepcol>no</td><td>Push the label to one side of the space its element gives it.</td></tr>
               <tr><td>label down</td><td style="white-space:normal"><code>.top</code> <code>.bottom</code></td><td><code>box</code> <code>dot</code> <code>text</code></td><td data-stepcol>no</td><td>The same on the other axis. Which side of the line an <em>edge</em> label sits on is a different question with a word of its own, <code>side</code>, so none of these four is accepted there.</td></tr>
               <tr><td>prominence</td><td style="white-space:normal"><code>.emph</code> <code>.dim</code> <code>.ghost</code></td><td>every element</td><td data-stepcol>yes</td><td>How much of the room&rsquo;s attention an element is asking for, and one of the three at a time. <code>.emph</code> is the one a beat is about; <code>.dim</code> is a third of full strength and <code>.ghost</code> roughly half, so they are two depths of the same retreat rather than two settings to combine. All three reach every kind, because they are one slot and displace each other: on a picture, which has no ink to thicken, <code>.emph</code> is still what takes a <code>.dim</code> off again. A step reaches for all three by these same three names, and <code>{!dim}</code> puts an element back to normal.</td></tr>
-              <tr class="divider"><td colspan="5">The three below belong to no group. They combine freely, with each other and with anything above.</td></tr>
+              <tr class="divider"><td colspan="5">The three below belong to no group, so nothing displaces them &ndash; though combining is not always useful, and the row for <code>.turn</code> says where.</td></tr>
               <tr class="ungrouped"><td>edge order</td><td style="white-space:normal"><code>.front</code></td><td><code>edge</code></td><td data-stepcol>no</td><td>An edge drawn above the boxes instead of behind them. Right for an axis, which is otherwise hidden by the columns it rules; wrong for an arrow, which a box should cover as it arrives.</td></tr>
               <tr class="ungrouped"><td>label direction</td><td style="white-space:normal"><code>.turn</code></td><td><code>box</code> <code>dot</code> <code>text</code> <code>container</code> <code>brace</code> <code>edge</code></td><td data-stepcol>yes</td><td>The label reads bottom to top, for a tall element with room for a word only along its long side. It is centred on its origin whichever way it reads, so on a node label <code>.left</code> and <code>.right</code> have nothing left to align &ndash; they resolve, emit their CSS and move nothing, and the build warns about the pair. <code>.top</code> and <code>.bottom</code> do still move one.</td></tr>
               <tr class="ungrouped"><td>label weight</td><td style="white-space:normal"><code>.bold</code></td><td><code>box</code> <code>dot</code> <code>text</code> <code>container</code> <code>brace</code> <code>edge</code></td><td data-stepcol>yes</td><td>The label in a heavier weight, for the one element a figure is about.</td></tr>
@@ -1212,7 +1258,9 @@ footer .paths b { color: var(--ink); font-weight: 500; }
     <p class="why after">Every class above may be written on the element&rsquo;s own line. Not every one of them may be changed later by a <code>step</code>. A beat can repaint an element, restroke it, turn its label, reroute an elbow, alter its arrowheads and move it up or down the order of the room&rsquo;s attention &ndash; that is the whole of what a beat is for. It cannot change <em>what is drawn</em>: the drawable, its typeset text and its place in the document are settled once, when the figure is built, and shared by every beat. The classes that decide those are fixed for the whole figure, and writing one inside a <code>step</code> is refused rather than ignored &ndash; in either sign, because taking such a class off is as impossible as putting it on. They are, by what each one settles: <!--stepfixed:start-->the drawable kind (<code>.round</code> <code>.sharp</code> <code>.hex</code> <code>.diamond</code> <code>.chevron</code> <code>.wedge</code> <code>.cross</code>), the label anchor (<code>.left</code> <code>.right</code> <code>.top</code> <code>.bottom</code>), the type size (<code>.small</code> <code>.large</code> <code>.fit</code> <code>.shrink</code>), the path kind (<code>.smooth</code>) and the drawing order (<code>.front</code>)<!--stepfixed:end-->.</p>
   </div>
 
-  <div class="walls vocab" style="margin-top:40px">
+  <h3 class="wall-lede-h">The rest of the tail, and the words beside it</h3>
+    <p class="measure">Classes are one half of what a line can carry. The other half is the keyed options &ndash; how big a thing is, where exactly it sits, how an edge gets from one end to the other. Each box below is one question and the words that answer it.</p>
+    <div class="walls vocab" style="margin-top:26px">
     <div class="wall"><h4>Size</h4><ul class="kws"><li><code class="k">w</code><code class="e">box sw "Switch" at 0,0 <b>w</b> 1.2</code></li><li><code class="k">h</code><code class="e">box fw "Firewall" at 0,0 <b>h</b> 1.5</code></li><li><code class="k">r</code><code class="e">dot j at sw.right,sw.cy <b>r</b> 0.12</code></li><li><code class="k">same as</code><code class="e">box gw "GW" right of sw <b>same as</b> sw</code></li></ul><p>A width and a height in the figure&rsquo;s own units, a radius for a dot, or the size of another element copied wholesale. Leave them out and a box is as big as its label needs.</p></div>
     <div class="wall"><h4>Nudging a placement</h4><ul class="kws"><li><code class="k">offset</code><code class="e">box b "B" right of a <b>offset</b> 0,-0.3</code></li><li><code class="k">flush</code><code class="e">box b "B" below a <b>flush</b> left</code></li></ul><p>After <code>right of a gap 1.15</code> you can add <code>offset 0.2,0</code> to shift the result, or <code>flush left</code> to keep the new element&rsquo;s left edge level with the one it was placed against. It takes one word, and the words are the ones the placement leaves free: <code>left</code>, <code>middle</code> or <code>right</code> under an <code>above</code> or a <code>below</code>, <code>top</code>, <code>middle</code> or <code>bottom</code> beside a <code>right of</code> or a <code>left of</code>.</p></div>
     <div class="wall"><h4>Lining several elements up</h4><ul class="kws"><li><code class="k">align</code><code class="e"><b>align</b> y middle a, b, c</code></li><li><code class="k">spread</code><code class="e"><b>spread</b> x a, b, c, d</code></li></ul><p>Written on a line of their own, these are statements rather than placements: <code>align y middle a, b, c</code> gives <code>b</code> and <code>c</code> the vertical centre of <code>a</code>, and <code>spread</code> distributes a set evenly. The first element named is the one the others follow. <code>align</code> names its axis first, and the edge words follow the axis: <code>left</code>, <code>middle</code>, <code>right</code> on <code>x</code>; <code>top</code>, <code>middle</code>, <code>bottom</code> on <code>y</code>.</p></div>
@@ -2029,6 +2077,28 @@ footer .paths b { color: var(--ink); font-weight: 500; }
         <p class="do">Start at the top left and run left to right, top to bottom. The first thing in time or in cause goes at the top left, the last at the bottom right.</p>
         <p class="why">With nothing shouting for attention, a reader works through a figure the way they work through a page of text (Carter): top left, then a zig-zag rightwards and down. A figure whose flow runs against that gets read twice &ndash; once the wrong way, and again once the arrowheads have been noticed.</p>
         <p class="why after">The exception is a figure whose subject is the <em>return</em>. A request going out and an answer coming back is two directions, and the pair still reads correctly, because the outward leg is the upper one. What does not survive is a single chain laid out backwards. This is also what lets a swimlane carry time with no axis drawn on it, and a flowchart say which branch is the ordinary one without spending a word on saying so: in both, the reading order <em>is</em> the argument.</p>
+        <div class="pair">
+        <div class="side no">
+          <span class="tag">wrong</span>
+          <div class="draw"><svg id="rlr12w-root" class="psi-diagram" viewBox="-56.20 -30.38 211.75 133.50" width="2000" height="1261" data-steps="1" role="img" aria-label="12 wrong" preserveAspectRatio="xMidYMid meet">
+<g id="rlr12w-d" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12w-d--r" x="-44.20" y="-18.38" width="88.40" height="36.75" rx="4"/><g id="rlr12w-d--lw0" data-lab="d--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="rlr12w-d--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Disclose</tspan></text></g></g></g>
+<g id="rlr12w-p" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12w-p--r" x="77.20" y="-18.38" width="66.35" height="36.75" rx="4"/><g id="rlr12w-p--lw0" data-lab="p--l" class="dg-lwrap" transform="translate(110.38,0.00)"><g id="rlr12w-p--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Patch</tspan></text></g></g></g>
+<g id="rlr12w-t" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12w-t--r" x="-44.20" y="54.38" width="74.45" height="36.75" rx="4"/><g id="rlr12w-t--lw0" data-lab="t--l" class="dg-lwrap" transform="translate(-6.97,72.75)"><g id="rlr12w-t--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Triage</tspan></text></g></g></g>
+<g id="rlr12w-r" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12w-r--r" x="63.25" y="54.38" width="74.45" height="36.75" rx="4"/><g id="rlr12w-r--lw0" data-lab="r--l" class="dg-lwrap" transform="translate(100.48,72.75)"><g id="rlr12w-r--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Report</tspan></text></g></g></g>
+</svg></div>
+          <pre data-pairsrc="r12w"><span class="srcln"><span class="kw">box</span> d <span class="cl">"Disclose"</span> <span class="kw">at</span> 0,0 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> p <span class="cl">"Patch"</span>    <span class="kw">right of</span> d <span class="kw">gap</span> 0.55 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> t <span class="cl">"Triage"</span>   <span class="kw">below</span> d <span class="kw">gap</span> 0.6 <span class="kw">flush</span> left <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> r <span class="cl">"Report"</span>   <span class="kw">right of</span> t <span class="kw">gap</span> 0.55 <span class="cl">{.tone-2}</span></span></pre>
+        </div>
+        <div class="side yes">
+          <span class="tag">right</span>
+          <div class="draw"><svg id="rlr12r-root" class="psi-diagram" viewBox="-49.23 -30.38 211.75 133.50" width="2000" height="1261" data-steps="1" role="img" aria-label="12 right" preserveAspectRatio="xMidYMid meet">
+<g id="rlr12r-r" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12r-r--r" x="-37.23" y="-18.38" width="74.45" height="36.75" rx="4"/><g id="rlr12r-r--lw0" data-lab="r--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="rlr12r-r--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Report</tspan></text></g></g></g>
+<g id="rlr12r-t" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12r-t--r" x="70.23" y="-18.38" width="74.45" height="36.75" rx="4"/><g id="rlr12r-t--lw0" data-lab="t--l" class="dg-lwrap" transform="translate(107.45,0.00)"><g id="rlr12r-t--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Triage</tspan></text></g></g></g>
+<g id="rlr12r-p" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12r-p--r" x="-37.23" y="54.38" width="66.35" height="36.75" rx="4"/><g id="rlr12r-p--lw0" data-lab="p--l" class="dg-lwrap" transform="translate(-4.05,72.75)"><g id="rlr12r-p--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Patch</tspan></text></g></g></g>
+<g id="rlr12r-d" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12r-d--r" x="62.13" y="54.38" width="88.40" height="36.75" rx="4"/><g id="rlr12r-d--lw0" data-lab="d--l" class="dg-lwrap" transform="translate(106.33,72.75)"><g id="rlr12r-d--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Disclose</tspan></text></g></g></g>
+</svg></div>
+          <pre data-pairsrc="r12r"><span class="srcln"><span class="kw">box</span> r <span class="cl">"Report"</span>   <span class="kw">at</span> 0,0 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> t <span class="cl">"Triage"</span>   <span class="kw">right of</span> r <span class="kw">gap</span> 0.55 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> p <span class="cl">"Patch"</span>    <span class="kw">below</span> r <span class="kw">gap</span> 0.6 <span class="kw">flush</span> left <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> d <span class="cl">"Disclose"</span> <span class="kw">right of</span> p <span class="kw">gap</span> 0.55 <span class="cl">{.tone-2}</span></span></pre>
+        </div>
+      </div>
       </div>
     </div>
     <div class="rule">
@@ -2154,7 +2224,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 <section id="arrangements">
   <div class="sechead">
     <p class="eyebrow">five shapes of argument</p>
-    <h2>Five figures a lecture keeps asking for</h2>
+    <h2>Five visualisations we like to use in our lectures</h2>
     <p class="measure">A flowchart, a swimlane, a tree, a table and a protocol. None of them is a kind of drawing this language knows about &ndash; each is boxes, edges and text put in a particular arrangement, and the flowchart and the tree need nothing the page has not already shown. Every one below is real source the build draws, in the number of lines you see.</p>
     <p class="measure">The swimlane, the table and the protocol have a statement of their own, which writes those same boxes and edges for you. All three were added for one reason: the language could draw the picture by hand, but it could not let you change it afterwards. A swimlane's equal bands meant guessing a width and re-guessing it every time their contents changed. A grid of labelled cells cost twenty-one lines before a single word of the table appeared, each cell placed against the one above or beside it, so inserting a row meant re-aiming three of those references &ndash; and nobody catches a missed one by reading the change. A protocol cost every message a y coordinate of its own, so inserting one in the middle meant moving every message under it, renumbering all of them and re-guessing how far each lifeline runs. Measured on the stepped figure at the end of this section: <b>thirteen lines of edits to insert one message, against one line now</b>.</p>
   </div>
@@ -2377,9 +2447,31 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 <section id="gallery">
   <div class="sechead">
     <p class="eyebrow">a gallery</p>
-    <h2>Fifteen finished figures</h2>
+    <h2>More complex examples</h2>
     <p class="measure">Network security, mostly: how a packet is addressed, a spoofed reply to a name lookup, a handshake used as a weapon, certificate chains, firewall rules, an intrusion detector and the curve that describes it. Three of these are one drawing that develops rather than three separate drawings &ndash; the same names in the same places, at different beats.</p>
     <p class="measure">Each is shown at its final beat, which is what a printed copy gets. Open a card to read the source it was built from, exactly as it stands in the lecture file, comments and working notes included.</p>
+        <div class="pair">
+        <div class="side no">
+          <span class="tag">wrong</span>
+          <div class="draw"><svg id="rlr15w-root" class="psi-diagram" viewBox="-50.35 -30.38 414.05 60.75" width="2000" height="293" data-steps="1" role="img" aria-label="15 wrong" preserveAspectRatio="xMidYMid meet">
+<g id="rlr15w-a" data-base="dg-el dg-box" class="dg-el dg-box bare tone-1"><rect id="rlr15w-a--r" x="-38.35" y="-18.38" width="76.70" height="36.75" rx="4"/><g id="rlr15w-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="rlr15w-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sensor</tspan></text></g></g></g>
+<g id="rlr15w-b" data-base="dg-el dg-box" class="dg-el dg-box bare tone-1"><rect id="rlr15w-b--r" x="68.35" y="-18.38" width="74.45" height="36.75" rx="4"/><g id="rlr15w-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(105.58,0.00)"><g id="rlr15w-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Engine</tspan></text></g></g></g>
+<g id="rlr15w-c" data-base="dg-el dg-box" class="dg-el dg-box bare tone-1"><rect id="rlr15w-c--r" x="172.80" y="-18.38" width="66.35" height="36.75" rx="4"/><g id="rlr15w-c--lw0" data-lab="c--l" class="dg-lwrap" transform="translate(205.98,0.00)"><g id="rlr15w-c--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Store</tspan></text></g></g></g>
+<g id="rlr15w-d" data-base="dg-el dg-box" class="dg-el dg-box bare tone-1"><rect id="rlr15w-d--r" x="269.15" y="-18.38" width="82.55" height="36.75" rx="4"/><g id="rlr15w-d--lw0" data-lab="d--l" class="dg-lwrap" transform="translate(310.42,0.00)"><g id="rlr15w-d--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Console</tspan></text></g></g></g>
+</svg></div>
+          <pre data-pairsrc="r15w"><span class="srcln"><span class="kw">box</span> a <span class="cl">"Sensor"</span>  <span class="kw">at</span> 0,0 <span class="cl">{.bare .tone-1}</span></span><span class="srcln"><span class="kw">box</span> b <span class="cl">"Engine"</span>  <span class="kw">right of</span> a <span class="kw">gap</span> 0.5 <span class="cl">{.bare .tone-1}</span></span><span class="srcln"><span class="kw">box</span> c <span class="cl">"Store"</span>   <span class="kw">right of</span> b <span class="kw">gap</span> 0.5 <span class="cl">{.bare .tone-1}</span></span><span class="srcln"><span class="kw">box</span> d <span class="cl">"Console"</span> <span class="kw">right of</span> c <span class="kw">gap</span> 0.5 <span class="cl">{.bare .tone-1}</span></span></pre>
+        </div>
+        <div class="side yes">
+          <span class="tag">right</span>
+          <div class="draw"><svg id="rlr15r-root" class="psi-diagram" viewBox="-50.35 -30.38 414.05 60.75" width="2000" height="293" data-steps="1" role="img" aria-label="15 right" preserveAspectRatio="xMidYMid meet">
+<g id="rlr15r-a" data-base="dg-el dg-box" class="dg-el dg-box bare tone-3"><rect id="rlr15r-a--r" x="-38.35" y="-18.38" width="76.70" height="36.75" rx="4"/><g id="rlr15r-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="rlr15r-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sensor</tspan></text></g></g></g>
+<g id="rlr15r-b" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlr15r-b--r" x="68.35" y="-18.38" width="74.45" height="36.75" rx="4"/><g id="rlr15r-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(105.58,0.00)"><g id="rlr15r-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Engine</tspan></text></g></g></g>
+<g id="rlr15r-c" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlr15r-c--r" x="172.80" y="-18.38" width="66.35" height="36.75" rx="4"/><g id="rlr15r-c--lw0" data-lab="c--l" class="dg-lwrap" transform="translate(205.98,0.00)"><g id="rlr15r-c--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Store</tspan></text></g></g></g>
+<g id="rlr15r-d" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlr15r-d--r" x="269.15" y="-18.38" width="82.55" height="36.75" rx="4"/><g id="rlr15r-d--lw0" data-lab="d--l" class="dg-lwrap" transform="translate(310.42,0.00)"><g id="rlr15r-d--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Console</tspan></text></g></g></g>
+</svg></div>
+          <pre data-pairsrc="r15r"><span class="srcln"><span class="kw">box</span> a <span class="cl">"Sensor"</span>  <span class="kw">at</span> 0,0 <span class="cl">{.bare .tone-3}</span></span><span class="srcln"><span class="kw">box</span> b <span class="cl">"Engine"</span>  <span class="kw">right of</span> a <span class="kw">gap</span> 0.5 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">box</span> c <span class="cl">"Store"</span>   <span class="kw">right of</span> b <span class="kw">gap</span> 0.5 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">box</span> d <span class="cl">"Console"</span> <span class="kw">right of</span> c <span class="kw">gap</span> 0.5 <span class="cl">{.tone-1}</span></span></pre>
+        </div>
+      </div>
   </div>
   <div class="gallery"><figure class="card">
       <div class="shot" data-shot="ns-a03"><svg id="galnsa03-root" class="psi-diagram" viewBox="-78.00 -236.55 552.00 332.40" width="2000" height="1204" data-live-viewbox="-78.00 -236.55 552.00 332.40" data-live-ratio="0.602174" data-steps="4" role="img" aria-label="For transport, each network layer relies on addresses" preserveAspectRatio="xMidYMid meet">
