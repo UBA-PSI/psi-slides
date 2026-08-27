@@ -600,10 +600,85 @@ if (dupes.length) {
 const roots = allIds.filter((i) => /-root$/.test(i));
 say('  ' + roots.length + ' figures, ' + allIds.length + ' ids, all unique');
 
-if (CHECK) {
-  say(page === was ? '\nup to date' : '\nDRIFT: the page does not match a fresh build');
-  process.exit(page === was ? 0 : 1);
+// The controls under a stepped figure, read from disk and inlined into every
+// page that carries one. Two pages carry one now, which is exactly why it is a
+// file: two copies of the same event wiring is how the arrows on one page come
+// to behave differently from the arrows on the other.
+const CONTROLS = fs.readFileSync(path.join(HERE, 'demo-controls.js'), 'utf8');
+page = replaceBetween(page, '// demo-controls-start', '// demo-controls-end',
+  '\n' + CONTROLS.trimEnd() + '\n', 'demo controls');
+say('  demo controls inlined, ' + CONTROLS.length + ' bytes');
+
+// ── the project site's case for the language ────────────────────────────
+// A second output, and the reason it is here rather than in build-site.js is
+// that everything it needs has already been computed: the compiled figures,
+// the stepped payloads, the rails, the stylesheet and the runtime. The site
+// page is the argument - situation, complication, answer, then three figures
+// that carry it - and `figures-you-write.html` is the manual. Splitting them
+// was the point: one page was doing both, and its own eyebrow admitted it by
+// putting "start here" on the second section.
+//
+// It takes the site's palette rather than this page's. The diagram stylesheet
+// asks for --ink, --paper and --rule by exactly the names site.css already
+// defines, so the drawings come out in the site's colours with no mapping;
+// only --emph and a handful of component tokens are declared there.
+const SITE = path.join(ROOT, 'docs/site/figures.html');
+let site = fs.readFileSync(SITE, 'utf8');
+const siteWas = site;
+
+{
+  const { svg } = svgFor(printed, 'hero', 'slhero');
+  site = replaceSvg(site, 'slhero-root', svg);
+  site = replaceBetween(site, '<pre data-opensrc="hero">', '</pre><!--/opensrc-->',
+    hl(diagramBlock(lectureMd, 'hero').split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')),
+    'site hero listing');
 }
+
+// The same two chunks the artifact page steps through, compiled again with a
+// prefix of their own so the two files can never collide on an element id.
+for (const chunk of ['follow', 'seq-demo']) {
+  const d = DEMOS.find((x) => x.chunk === chunk);
+  const { svg, old: oldRoot } = svgFor(live, chunk, 'sd' + chunk);
+  const payload = payloadFor(live, oldRoot, 'sd' + chunk);
+  if (!payload) throw new Error('site: #' + chunk + ' has no frames payload');
+  const data = JSON.parse(payload.slice(payload.indexOf('>') + 1, payload.lastIndexOf('</script>')));
+  site = replaceBetween(site, '<div class="demo-stage" data-demo="' + chunk + '">',
+    '</div><!--/stage-->', svg + payload, 'site stage ' + chunk);
+  const rail = ['opening', ...data.names].map((nm, i) =>
+    '\n      <li><button type="button">' +
+    (i === 0 ? '' : '<b>' + i + '</b> ') + nm.replace(/[&<>]/g, '') + '</button></li>').join('');
+  site = replaceBetween(site, '<ol class="rail" data-rail="' + chunk + '">', '</ol><!--/rail-->',
+    rail + '\n    ', 'site rail ' + chunk);
+  const block = d && d.bare
+    ? diagramBlock(lectureMd, chunk).split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')
+    : diagramBlock(lectureMd, chunk);
+  site = replaceBetween(site, '<pre class="demo-src" data-demosrc="' + chunk + '">',
+    '</pre><!--/demosrc-->', hl(block), 'site source ' + chunk);
+}
+
+site = replaceBetween(site, '/* dg-css-start */', '/* dg-css-end */', '\n' + dgCss + '\n',
+  'site diagram stylesheet');
+site = replaceBetween(site, '// dg-rt-start', '// dg-rt-end', '\n' + runtime + '\n',
+  'site diagram runtime');
+site = replaceBetween(site, '// demo-controls-start', '// demo-controls-end',
+  '\n' + CONTROLS.trimEnd() + '\n', 'site demo controls');
+
+{
+  const ids = [...site.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+  const dup = [...new Set(ids.filter((r, i) => ids.indexOf(r) !== i))];
+  if (dup.length) throw new Error('site: duplicate ids after splice: ' + dup.slice(0, 8).join(', '));
+  say('  docs/site/figures.html: 3 figures, ' + ids.length + ' ids, all unique');
+}
+
+if (CHECK) {
+  const drift = [page !== was && 'figures-you-write.html', site !== siteWas && 'docs/site/figures.html']
+    .filter(Boolean);
+  say(drift.length ? '\nDRIFT: ' + drift.join(' and ') + ' do(es) not match a fresh build' : '\nup to date');
+  process.exit(drift.length ? 1 : 0);
+}
+fs.writeFileSync(SITE, site);
+say('wrote docs/site/figures.html (' + site.length + ' bytes)'
+  + (site === siteWas ? ' - unchanged' : ''));
 fs.writeFileSync(PAGE, page);
 say('\nwrote ' + path.relative(ROOT, PAGE) + ' (' + page.length + ' bytes)' +
   (page === was ? ' - unchanged' : ''));

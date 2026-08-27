@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Figures you write &ndash; psi-slides</title>
+<link rel="stylesheet" href="site.css">
+<style>
+/* Only what the figure components need. site.css owns the typography, the
+   colours and the chrome, and the diagram stylesheet below asks for --ink,
+   --paper and --rule by those exact names, so the drawings take the site's
+   palette without a line of mapping. These are the tokens site.css has no
+   opinion about. */
+:root {
+  /* The one ink the drawings add to the site's palette. Taken from the site's
+     own accent rather than fixed, so it follows into dark mode with everything
+     else - a fixed dark teal here was legible on paper and gone on a dark
+     ground, which is the whole failure the shared tokens avoid. */
+  --emph: var(--accent);
+  --panel: color-mix(in oklch, var(--ink) 6%, var(--paper));
+  --measure: 52ch;
+  --t-body: 1.0625rem;
+  --t-small: 0.975rem;
+  --t-code: 0.8125rem;
+  --t-micro: 0.78rem;
+  --yes-wash: color-mix(in oklch, var(--accent) 12%, var(--paper));
+}
+main { max-width: 62rem; }
+.scqa p { max-width: var(--measure); }
+.scqa .answer { font-size: 1.1875rem; line-height: 1.5; }
+.figlead { color: var(--ink-soft); max-width: var(--measure); }
+.handoff { margin: 48px 0 8px; padding: 20px 22px; border: 1px solid var(--rule);
+           background: var(--panel); max-width: var(--measure); }
+.handoff p { margin: 0; }
+.measure { max-width: var(--measure); }
+/* The secondary voice, wherever it is used. It was defined twice, once under
+   .rule and once under .prelude, and the seven of these that sit under a
+   stepped demo belong to neither - so they took the full width of the page
+   and ran to about a hundred and fifty characters a line. */
+.why { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; margin-top: 9px; max-width: var(--measure); }
+.why.after { margin-top: 16px; }
+.why b { color: var(--ink); font-weight: 500; }
+.hero pre .kw { color: var(--emph); }
+.hero pre .cl { color: var(--ink-soft); }
+.hero-note { margin-top: 24px; display: flex; flex-direction: column; gap: 13px; }
+.hero-note p { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; max-width: var(--measure); }
+.hero-note b { color: var(--ink); font-weight: 500; }
+.hero-note code { color: var(--emph); }
+.tenet { background: var(--paper); padding: 24px clamp(18px, 2.2vw, 26px) 28px; display: flex; flex-direction: column; gap: 10px; }
+.tenet .t { font-family: var(--mono); font-size: var(--t-micro); letter-spacing: 0.11em; color: var(--emph); }
+.tenet h3 { font-size: 1.22rem; max-width: none; }
+.tenet p { font-size: var(--t-body); line-height: 1.6; }
+.tenet .why { margin-top: 2px; }
+.tenet code { color: var(--emph); }
+/* The same wash the six stages use to mark the lines a step added, so one
+   colour means one thing on this page: this is the part that changed. */
+.tenet code b { background: var(--yes-wash); box-shadow: 0 0 0 2px var(--yes-wash); border-radius: 2px; color: var(--emph); font-weight: 500; }
+/* ── against the two things a reader already knows ────────────── */
+.versus { margin-top: 48px; border: 1px solid var(--rule); overflow-x: auto; }
+.versus table { border-collapse: collapse; width: 100%; min-width: 760px; background: var(--paper); }
+.versus th, .versus td {
+  text-align: left; vertical-align: top;
+  padding: 15px clamp(12px, 1.5vw, 18px);
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--t-small); line-height: 1.5;
+}
+.versus thead th { font-family: var(--sans); font-weight: 500; color: var(--ink); font-size: var(--t-body); border-bottom: 1px solid var(--ink); }
+.versus thead th span { display: block; margin-top: 5px; font-family: var(--mono); font-size: var(--t-micro); font-weight: 400; letter-spacing: 0.02em; color: var(--ink-soft); }
+.versus tbody th { font-family: var(--sans); font-weight: 400; color: var(--ink); width: 19%; }
+.versus tbody td { color: var(--ink-soft); }
+/* The column the page is about reads in the primary ink; the two it is being
+   measured against read as the secondary voice, like every other aside here. */
+.versus tbody td:last-child { color: var(--ink); }
+.versus tbody tr:last-child th, .versus tbody tr:last-child td { border-bottom: 0; }
+/* The row that says what the other two do better. It is shaded rather than
+   dropped, because a comparison that only runs one way is an advertisement. */
+.versus tr.fair { background: var(--panel); }
+.versus tr.fair th { font-style: italic; }
+.spec pre .srcln, .side pre .srcln, figure.card pre .srcln, .demo-src .srcln, .hero pre .srcln {
+  display: block; padding-left: 2.4em; text-indent: -2.4em;
+}
+/* A blank line in a diagram block is the author's own break - it is what
+   separates the drawing from the steps that move it. Each source line is
+   emitted as its own block-level span, and an empty block box is zero
+   pixels tall, so every one of those breaks was silently dropped and the
+   longest listings arrived as a single wall of source. */
+pre .srcln:empty::before { content: "\00a0"; }
+.spec pre .kw { color: var(--emph); }
+.spec pre .cl { color: var(--ink-soft); }
+/* Lines this step introduced. The wash is drawn with a spread shadow so
+   it hugs the text without taking part in the layout of a <pre>. */
+.spec pre .add { background: var(--yes-wash); box-shadow: 0 0 0 2px var(--yes-wash); border-radius: 2px; }
+figure.card details.src pre .kw { color: var(--emph); }
+figure.card details.src pre .cl { color: var(--ink-soft); }
+.rule .why { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; margin-top: 9px; max-width: var(--measure); }
+.rule .why.after { margin-top: 16px; }
+.rule .why b { color: var(--ink); font-weight: 500; }
+.prelude .why { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; margin-top: 9px; max-width: var(--measure); }
+.prelude .why.after { margin-top: 16px; }
+.prelude .why b { color: var(--ink); font-weight: 500; }
+.side pre .kw { color: var(--emph); }
+.side pre .cl { color: var(--ink-soft); }
+.anatomy .measure { margin-bottom: 20px; }
+/* ── the two live demos ───────────────────────────────────────────────
+   The figure, a bar to walk its beats, and the source that produced it.
+   The runtime is the one a projected lecture ships, lifted by
+   docs/artifact/refresh-figures.mjs rather than reimplemented here. */
+.demo { margin-top: 44px; }
+.demo h3 { margin-bottom: 8px; }
+.demo .demo-lede { color: var(--ink-soft); font-size: var(--t-body); margin-bottom: 18px; }
+.demo-stage { background: var(--paper); border: 1px solid var(--rule); padding: clamp(16px, 2.4vw, 28px); display: flex; justify-content: center; }
+.demo-stage .psi-diagram { width: 100%; height: auto; max-height: 340px; }
+.demo-stage[data-demo="seq-demo"] .psi-diagram { max-height: 620px; }
+.demo-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px solid var(--rule); border-top: 0; padding: 10px 12px; }
+.db {
+  font: 500 var(--t-micro)/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink); background: var(--paper); border: 1px solid var(--rule);
+  padding: 7px 11px; cursor: pointer; min-width: 34px;
+}
+.db:hover:not(:disabled) { border-color: var(--emph); color: var(--emph); }
+.db:disabled { opacity: 0.38; cursor: default; }
+.db:focus-visible { outline: 2px solid var(--emph); outline-offset: 2px; }
+.rail { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0 auto 0 4px; padding: 0; counter-reset: beat -1; }
+.rail button {
+  font: var(--t-micro)/1 var(--mono); letter-spacing: 0.05em; color: var(--ink-soft);
+  background: none; border: 0; border-bottom: 2px solid transparent;
+  padding: 5px 6px 4px; cursor: pointer;
+}
+.rail button:hover { color: var(--emph); }
+.rail button:focus-visible { outline: 2px solid var(--emph); outline-offset: 1px; }
+.rail li[aria-current="true"] button { color: var(--ink); border-bottom-color: var(--emph); }
+.demo-src {
+  font-family: var(--mono); font-size: var(--t-code); line-height: 1.6; margin: 0;
+  padding: 15px clamp(14px, 2vw, 20px) 17px; border: 1px solid var(--rule);
+  border-top: 0; color: var(--ink);
+  /* The longest line in the three demo sources is 97 characters, which at
+     this size fits the full column - so these are the one listing on the
+     page with room to stand unwrapped. Below that width they scroll inside
+     their own box, which is what the narrow columns cannot do. */
+  overflow-x: auto; white-space: pre;
+}
+.demo-src .kw { color: var(--emph); }
+.demo-src .cl { color: var(--ink-soft); }
+.demo-src .cm { color: var(--ink-soft); font-style: italic; }
+.demo-src .st { color: var(--ink); font-weight: 500; }
+/* dg-css-start */
+.figure-diagram { margin: 0.7em 0; }
+.psi-diagram {
+  --dg-sans: var(--sans-font, var(--sans));
+  --dg-mono: var(--mono-font, var(--mono));
+  /* the serif FAMILY, not the reading voice: --body-font is what the F
+     toggle rewrites, so naming it here made .serif and .hand follow the
+     reader's font choice and collapse onto the sans the diagram already
+     defaults to. Print was never affected - it defines no --body-font and
+     fell through to --serif. Parallel to --dg-sans / --dg-mono above. */
+  --dg-serif: var(--serif-stack, var(--serif));
+  display: block; overflow: visible;
+  /* Deliberately the same numbers as figure.figure-img svg. A diagram is a
+     figure, and figures in this project are sized in viewport space, not
+     em space: the drawing has a natural size (its viewBox in px, so the
+     unit option is also the nominal on-slide scale), max-width shrinks it
+     when it is wider, and the vh cap keeps a tall one from overflowing the
+     slide. Diverging here would have made diagrams the one figure kind that
+     responds to the zoom key, which reads as a bug rather than a feature. */
+  max-width: 100%;
+  /* A little taller than figure.figure-img's 50vh. A photo shares the slide
+     with a caption and often arrives in portrait; a diagram is landscape and
+     is usually the whole point of the chunk, and at 50vh a wide one was
+     height-capped hard enough to leave a third of the measure empty beside
+     it. */
+  max-height: 62vh;
+  height: auto;
+}
+@media print {
+  .psi-diagram { max-height: none; }
+  /* A diagram is one picture; splitting it across a page break makes it
+     two useless halves. */
+  .figure-diagram { break-inside: avoid; page-break-inside: avoid; }
+}
+.psi-diagram .dg-el { transition: opacity 200ms ease; }
+/* Direct children of an element group, never descendants. A rect or a
+   circle deeper than that belongs to an embedded asset, and this rule would
+   paint it the canvas colour over the file's own answer - CSS beats a
+   presentation attribute, so a style-free line drawing came out white on
+   white. The tone rules below always used the child combinator; this one and
+   the text rule did not, which is why the two of them were the leak. */
+.psi-diagram .dg-el > rect, .psi-diagram .dg-el > circle, .psi-diagram .dg-el > .dg-shape {
+  fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
+}
+/* A box whose outline is not a rectangle is a <path>, so every rule below
+   that paints a box has to name it too. They do it through :is(), which is
+   also why those selectors read shorter than they used to: the alternative
+   was a third copy of each one. The join is rounded so a chevron's nose is a
+   point rather than a miter spike. */
+.psi-diagram .dg-shape { stroke-linejoin: round; }
+.psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
+.psi-diagram .dg-head { fill: var(--ink); stroke: none; }
+/* Same reason: a diagram's own labels live inside a .dg-lbl wrapper, and
+   type inside an embedded drawing is the drawing's business. */
+.psi-diagram .dg-lbl text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
+/* .dg-mono sits on the <text> itself, so this rule is (0,2,0) while the
+   .dg-lbl text rule above it is (0,2,1) - the label rule won and .mono
+   resolved, emitted its class and changed nothing. Measured before the fix:
+   eight i's and eight W's in a .mono label came out 22.8px and 109.1px wide,
+   which is the sans. The family classes are now all written the same way,
+   matching on the wrapper and reaching the text, so they tie with the label
+   rule and win on source order like .serif and .hand always did. */
+.psi-diagram .mono text, .psi-diagram .dg-mono {
+  font-family: var(--dg-mono);
+  /* A .mono label is a token – a header field, a flag, an arrow – so it
+     is spelled out for the same reason a listing is. Only the mono
+     channel: the sans and serif labels keep their fi and fl. */
+  font-variant-ligatures: none;
+}
+/* inline *accent* / ~muted~ inside a label */
+.psi-diagram tspan.dg-em { fill: var(--emph); }
+.psi-diagram tspan.dg-mu { fill: var(--ink-soft); }
+.psi-diagram .dg-off { display: none; }
+
+/* containers are a frame around their members, never a filled panel */
+/* --rule is the hairline between two cells of a table; a container is a
+   trust boundary, a segment, a machine - it has to read as a statement.
+   Dashed at that weight it was barely visible on a shaded ground, which
+   is exactly where these are usually drawn. */
+.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); stroke-width: 1.3; }
+.psi-diagram .dg-caption text { fill: var(--ink-soft); }
+
+/* braces have no fill and no head */
+.psi-diagram .dg-brace .dg-stroke { stroke: var(--rule); }
+
+/* ── tones ── four theme-safe fills, mixed from the page's own inks ── */
+.psi-diagram .tone-1 > :is(rect, circle, .dg-shape) {
+  fill: color-mix(in oklab, var(--emph) 13%, var(--paper));
+  stroke: color-mix(in oklab, var(--emph) 60%, var(--ink));
+}
+.psi-diagram .tone-2 > :is(rect, circle, .dg-shape) {
+  fill: color-mix(in oklab, var(--ink) 8%, var(--paper)); stroke: var(--ink);
+}
+.psi-diagram .tone-3 > :is(rect, circle, .dg-shape) {
+  fill: color-mix(in oklab, var(--ink) 20%, var(--paper)); stroke: var(--ink);
+}
+.psi-diagram .tone-4 > :is(rect, circle, .dg-shape) {
+  fill: var(--emph); stroke: var(--emph);
+}
+/* .clear is a see-through interior. .bare removes the *stroke*, so without
+   this there was no way to draw a frame you can read through – which is
+   what an outline over an image or another element wants. */
+.psi-diagram .clear > :is(rect, circle, .dg-shape) { fill: none; }
+/* The canvas colour, named. A box already defaults to it, but a box under a
+   tinted default block had no way back, and a free text could not have one at
+   all. A label with a ground is how it knocks out a line running behind it. */
+.psi-diagram .paper > :is(rect, circle, .dg-shape) { fill: var(--paper); }
+
+.psi-diagram .accent > :is(rect, circle, .dg-shape) { stroke: var(--emph); }
+.psi-diagram .accent .dg-stroke { stroke: var(--emph); }
+.psi-diagram .accent .dg-head { fill: var(--emph); }
+.psi-diagram .accent text { fill: var(--emph); }
+/* .muted and .dim answer different questions and were hard to tell apart,
+   because a lighter grey alone reads as "slightly faint" rather than as a
+   different kind of thing. .muted is scaffolding - an axis, a leader, a zone
+   outline - and scaffolding is drawn thinner as well as lighter. .dim is the
+   other axis entirely: full colour at a third of the strength, which is what
+   the dim step operation reaches for when a beat moves on. */
+.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); stroke-width: 1.05; }
+.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); stroke-width: 1.05; }
+.psi-diagram .muted .dg-head { fill: var(--ink-soft); }
+.psi-diagram .muted text { fill: var(--ink-soft); }
+
+/* .tone-4 inverts its own label, and that has to win over .accent text:
+   accent ink on an accent fill is invisible, legal, and would otherwise be
+   decided by which rule was written later. lint.js warns on the pair. */
+.psi-diagram .tone-4 text, .psi-diagram .tone-4 tspan { fill: var(--paper); }
+
+/* A free text element draws a ground only where the author gave it a tone.
+   The rect is always the same drawable; these two rules are what make "a
+   box defaults to paper, a text defaults to see-through" one mechanism rather
+   than two. No stroke either way – a bordered label is a box, and there is
+   a statement for that. */
+.psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > :is(rect, circle, .dg-shape) { fill: none; }
+
+/* An edge's label gets the same ground on the same terms: a fill class draws
+   it, no fill class draws nothing. No stroke - a bordered label on a line is
+   a box, and there is a statement for that - and no dash, which the .dashed
+   rule above would otherwise put around the ground of a dashed edge's label.
+   Written after the tone rules on purpose: they set a stroke at the same
+   specificity, so source order is what decides. */
+/* And no fill unless a tone asked for one. An SVG rect with no fill property
+   is black, and this one is emitted in every frame of any edge that is ever
+   given a tone - so without this rule an edge whose label gains a ground in
+   beat 3 draws a black slab across its own line in beats 1 and 2. Exactly the
+   rule the free text's ground already needs, for exactly the same reason. */
+.psi-diagram .dg-edge:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
+
+.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
+.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
+.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
+.psi-diagram .bare > :is(rect, circle, .dg-shape) { stroke: none; }
+.psi-diagram .round > rect { rx: 13px; }
+.psi-diagram .sharp > rect { rx: 0; }
+.psi-diagram .bold text { font-weight: 600; }
+/* the upright serif, for a label that wants the reading voice rather than
+   the diagram's. .hand is the same family forced italic and accented, which
+   is the annotation voice and a different thing – until .serif existed the
+   family was reachable only through it. */
+.psi-diagram .serif text { font-family: var(--dg-serif); }
+/* no handwriting face is bundled, so the annotation voice is the serif in
+   italic – close enough to read as "written in beside the diagram", and it
+   costs no extra font payload. */
+.psi-diagram .hand text { font-family: var(--dg-serif); font-style: italic; fill: var(--emph); }
+
+/* .ghost and .dim deliberately do NOT set opacity here. Visibility and the
+   two softening classes share one channel, and author CSS beats a
+   presentation attribute – so an element pinned at 0.45 by this stylesheet
+   could never be hidden, and its show step did nothing at all. Both the
+   emitter and the runtime resolve the channel once, in dgOpacity(). */
+/* emph / dim are what a step reaches for; both stay inside the palette */
+.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph .dg-head { fill: var(--emph); }
+/* Words are the third thing emphasis can act on, and leaving them out left the
+   emph verb on a text accepted and completely inert - the ground rule at the
+   foot of this stylesheet refuses to stroke a label's rect, deliberately and
+   for good reason, so on a text the two rules above have nothing to reach.
+   That is not a corner case: the per-message tag a sequence generates is
+   documented as the way to address one message, and it holds the arrow *and*
+   its number *and* its second line, so the commonest emphasis in a protocol
+   figure is a mixed set by construction. The .accent text rule two blocks up
+   is the same act on the same channel and was already written this way.
+   .tone-4 inverts its own label, and has to keep winning here exactly as it
+   does over .accent text; one class more in the selector settles it rather
+   than source order, which is the guard the stroke case below already uses.
+   (No backticks in here: this whole stylesheet is a template literal.) */
+.psi-diagram .emph text { fill: var(--emph); }
+.psi-diagram .tone-4.emph text, .psi-diagram .tone-4.emph tspan { fill: var(--paper); }
+/* .tone-4 fills with the accent, so an emphasis stroke in the accent lands
+   invisibly on it: emph on such a box resolved, set its width and changed
+   nothing on screen - the silent no-op again, arriving through the stylesheet
+   rather than through the grammar. Inverted the way .tone-4's own label
+   already is, and for the same reason. Higher specificity than the rule above,
+   so source order does not decide it. (No backticks in here: this whole
+   stylesheet is a template literal, and one would end it.) */
+.psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape) { stroke: var(--ink); }
+
+/* A label's ground is never stroked, and this is where that has to be said.
+   It was written up with the two rules that create the ground, above the
+   tone rules that stroke - and .emph and .accent both set a stroke on the
+   same child selector at the very same specificity, so source order decided
+   it and they won. The result was a box drawn around a label the moment a step
+   emphasised it: on a sequence, where every message label now carries a
+   ground, emph @wa-msg-8 framed the words instead of thickening the arrow.
+   A bordered label is a box, and there is a statement for that. */
+.psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
+.psi-diagram .dg-edge > rect { stroke: none; }
+
+.dg-hint { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .psi-diagram .dg-el { transition: none; }
+}
+/* dg-css-end */
+</style>
+</head>
+<body>
+<!--topbar-->
+<main>
+
+<h1>Figures you write</h1>
+
+<section class="scqa">
+  <p>Every lecture needs figures, and you already have a way to make them. A drawing program is on the machine, or one of the text-to-diagram languages is a line away, and for a picture that is drawn once and looked at once either is the right answer.</p>
+
+  <p>A lecture figure is rarely that picture. It has to be built up in front of a room while somebody talks over it, survive the slides being reordered around it a year later, and come out of the same file as the printed handout. A drawing program does the first badly and the last one not at all. An auto-layout language does the last one well and takes the arrangement out of your hands, which is the half you most need to keep.</p>
+
+  <p class="answer">So a figure here is neither. It is a few lines of text in the lecture&rsquo;s own Markdown file, and the build &ndash; the one command that turns that file into slides &ndash; draws it.</p>
+</section>
+
+<h2>Seven lines, and a figure</h2>
+<p class="figlead">This is a whole figure. Nothing is stored as a coordinate: Eve is placed <em>against</em> Alice, Bob against Eve, and the arrows are handed two ends and find their own way between them.</p>
+<div class="hero">
+<svg id="slhero-root" class="psi-diagram" viewBox="-44.05 -32.75 354.50 63.13" width="2000" height="356" data-steps="1" role="img" aria-label="hero, the whole of a figure" preserveAspectRatio="xMidYMid meet">
+<g id="slhero-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="slhero-edge-1--p" class="dg-stroke" d="M32.05 0.00L103.60 0.00" fill="none"/><path id="slhero-edge-1--h" class="dg-head" d="M111.25 0.00L102.25 3.96L102.25 -3.96Z"/><g id="slhero-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(71.65,-11.38)"><g id="slhero-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
+<g id="slhero-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="slhero-edge-2--p" class="dg-stroke" d="M165.25 0.00L236.80 0.00" fill="none"/><path id="slhero-edge-2--h" class="dg-head" d="M244.45 0.00L235.45 3.96L235.45 -3.96Z"/><g id="slhero-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(204.85,-11.38)"><g id="slhero-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
+<g id="slhero-a" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="slhero-a--r" x="-32.05" y="-18.38" width="64.10" height="36.75" rx="4"/><g id="slhero-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="slhero-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Alice</tspan></text></g></g></g>
+<g id="slhero-e" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="slhero-e--r" x="111.25" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="slhero-e--lw0" data-lab="e--l" class="dg-lwrap" transform="translate(138.25,0.00)"><g id="slhero-e--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g></g>
+<g id="slhero-b" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="slhero-b--r" x="244.45" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="slhero-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(271.45,0.00)"><g id="slhero-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
+</svg>
+<pre data-opensrc="hero"><span class="srcln">::: diagram</span><span class="srcln"><span class="kw">box</span> a <span class="cl">"Alice"</span></span><span class="srcln"><span class="kw">box</span> e <span class="cl">"Eve"</span>  <span class="kw">right of</span> a <span class="kw">gap</span> 1.1 <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">box</span> b <span class="cl">"Bob"</span>  <span class="kw">right of</span> e <span class="kw">gap</span> 1.1</span><span class="srcln"><span class="kw">edge</span> a -&gt; e <span class="cl">"plaintext"</span></span><span class="srcln"><span class="kw">edge</span> e -&gt; b <span class="cl">"plaintext"</span></span><span class="srcln">:::</span></pre><!--/opensrc-->
+</div>
+
+<h2>Change one line, and everything attached follows</h2>
+<p class="figlead">The same three boxes, with two beats added. Step through it: the second beat renames Eve, and her box, both arrows and the outline around her move without a line of source mentioning any of them.</p>
+<div class="demo">
+  <div class="demo-stage" data-demo="follow"><svg id="sdfollow-root" class="psi-diagram" viewBox="-44.05 -30.38 718.90 161.90" width="2000" height="450" data-live-viewbox="-44.05 -32.75 718.90 164.27" data-live-ratio="0.228509" data-steps="3" role="img" aria-label="hero, one line changes and everything follows" preserveAspectRatio="xMidYMid meet">
+<g id="sdfollow-zone" data-base="dg-el dg-container" class="dg-el dg-container dashed muted"><rect id="sdfollow-zone--r" x="214.05" y="26.42" width="149.90" height="93.10" rx="4"/><g id="sdfollow-zone--lw0" data-lab="zone--l" class="dg-lwrap" transform="translate(224.05,38.80)"><g id="sdfollow-zone--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">Eve's reach</tspan></text></g></g></g>
+<g id="sdfollow-direct" data-base="dg-el dg-edge" class="dg-el dg-edge one-head" style="opacity:0"><path id="sdfollow-direct--p" class="dg-stroke" d="M32.05 0.00L601.20 0.00" fill="none"/><path id="sdfollow-direct--h" class="dg-head" d="M608.85 0.00L599.85 3.96L599.85 -3.96Z"/><g id="sdfollow-direct--lw0" data-lab="direct--l" class="dg-lwrap" transform="translate(320.45,-11.38)"><g id="sdfollow-direct--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">message</tspan></text></g></g></g>
+<g id="sdfollow-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge accent one-head"><path id="sdfollow-edge-1--p" class="dg-stroke" d="M32.05 0.00L223.81 81.36" fill="none"/><path id="sdfollow-edge-1--h" class="dg-head" d="M230.85 84.35L221.02 84.48L224.11 77.19Z"/></g>
+<g id="sdfollow-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge accent one-head"><path id="sdfollow-edge-2--p" class="dg-stroke" d="M347.15 84.35L601.57 2.35" fill="none"/><path id="sdfollow-edge-2--h" class="dg-head" d="M608.85 0.00L601.50 6.53L599.07 -1.01Z"/></g>
+<g id="sdfollow-a" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="sdfollow-a--r" x="-32.05" y="-18.38" width="64.10" height="36.75" rx="4"/><g id="sdfollow-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="sdfollow-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Alice</tspan></text></g></g></g>
+<g id="sdfollow-b" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="sdfollow-b--r" x="608.85" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="sdfollow-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(635.85,0.00)"><g id="sdfollow-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
+<g id="sdfollow-e" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="sdfollow-e--r" x="230.85" y="65.97" width="116.30" height="36.75" rx="4"/><g id="sdfollow-e--lw0" data-lab="e--l" class="dg-lwrap dg-variant dg-off" transform="translate(289.00,84.35)"><g id="sdfollow-e--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g><g id="sdfollow-e--lw1" data-lab="e--l" class="dg-lwrap dg-variant" transform="translate(289.00,84.35)"><g id="sdfollow-e--l1" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve, on path</tspan></text></g></g></g>
+</svg><script type="application/json" class="psi-diagram-frames" data-for="sdfollow-root">{"p":"sdfollow-","n":3,"kinds":{"zone--r":"rect","zone--l":"text","direct--p":"path","direct--h":"path","direct--l":"text","edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","a--r":"rect","a--l":"text","b--r":"rect","b--l":"text","e--r":"rect","e--l":"text"},"names":["intercept","relabel"],"frames":[{"vis":{"a":1,"b":1,"e":0,"zone":0,"direct":1,"edge-1":0,"edge-2":0},"cls":{"a":"","b":"","e":"accent","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"a":0,"b":0,"e":0,"zone":0,"direct":0},"geom":{"a--r":[-32.05,-18.37,64.1,36.75],"a--l":[0,0,0],"b--r":[608.85,-18.37,54,36.75],"b--l":[635.85,0,0],"e--r":[262,65.97,54,36.75],"e--l":[289,84.35,0],"zone--r":[245.2,26.42,87.6,93.1],"zone--l":[255.2,38.8,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,254.82,81.72],"edge-1--h":[262,84.35,252.19,84.97,254.91,77.53],"edge-2--p":[316,84.35,601.5,2.12],"edge-2--h":[608.85,0,601.3,6.3,599.11,-1.31]}},{"vis":{"a":1,"b":1,"e":1,"zone":1,"direct":0,"edge-1":1,"edge-2":1},"cls":{"a":"","b":"","e":"accent","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"a":0,"b":0,"e":0,"zone":0,"direct":0},"geom":{"a--r":[-32.05,-18.37,64.1,36.75],"a--l":[0,0,0],"b--r":[608.85,-18.37,54,36.75],"b--l":[635.85,0,0],"e--r":[262,65.97,54,36.75],"e--l":[289,84.35,0],"zone--r":[245.2,26.42,87.6,93.1],"zone--l":[255.2,38.8,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,254.82,81.72],"edge-1--h":[262,84.35,252.19,84.97,254.91,77.53],"edge-2--p":[316,84.35,601.5,2.12],"edge-2--h":[608.85,0,601.3,6.3,599.11,-1.31]}},{"vis":{"a":1,"b":1,"e":1,"zone":1,"direct":0,"edge-1":1,"edge-2":1},"cls":{"a":"","b":"","e":"accent emph","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"a":0,"b":0,"e":1,"zone":0,"direct":0},"geom":{"a--r":[-32.05,-18.37,64.1,36.75],"a--l":[0,0,0],"b--r":[608.85,-18.37,54,36.75],"b--l":[635.85,0,0],"e--r":[230.85,65.97,116.3,36.75],"e--l":[289,84.35,0],"zone--r":[214.05,26.42,149.9,93.1],"zone--l":[224.05,38.8,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,223.81,81.36],"edge-1--h":[230.85,84.35,221.02,84.48,224.11,77.19],"edge-2--p":[347.15,84.35,601.57,2.35],"edge-2--h":[608.85,0,601.5,6.53,599.07,-1.01]}}]}</script></div><!--/stage-->
+  <div class="demo-bar">
+    <button class="db" data-go="-1" aria-label="previous beat">&lsaquo;</button>
+    <button class="db" data-go="1" aria-label="next beat">&rsaquo;</button>
+    <ol class="rail" data-rail="follow">
+      <li><button type="button">opening</button></li>
+      <li><button type="button"><b>1</b> intercept</button></li>
+      <li><button type="button"><b>2</b> relabel</button></li>
+    </ol><!--/rail-->
+    <button class="db play" aria-label="play the beats">play</button>
+  </div>
+  <pre class="demo-src" data-demosrc="follow"><span class="srcln">::: diagram <span class="cl">{unit=170x56}</span></span><span class="srcln"><span class="kw">box</span>  a  <span class="cl">"Alice"</span></span><span class="srcln"><span class="kw">box</span>  b  <span class="cl">"Bob"</span>   <span class="kw">right of</span> a <span class="kw">gap</span> 10.3</span><span class="srcln"><span class="kw">box</span>  e  <span class="cl">"Eve"</span>   <span class="kw">below</span> a <span class="kw">gap</span> 0.85 <span class="kw">offset</span> 1.7,0 <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">edge</span> direct a -&gt; b <span class="cl">"message"</span></span><span class="srcln"><span class="kw">edge</span> a -&gt; e <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">edge</span> e -&gt; b <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">container</span> zone <span class="cl">"Eve's reach"</span> <span class="kw">over</span> e <span class="kw">pad</span> 0.3 <span class="cl">{.dashed .muted}</span></span><span class="srcln"></span><span class="srcln"><span class="st">step</span> intercept</span><span class="srcln">  <span class="st">show</span> e</span><span class="srcln">  <span class="st">hide</span> direct</span><span class="srcln"><span class="st">step</span> relabel</span><span class="srcln">  <span class="st">label</span> e <span class="cl">"Eve, on path"</span></span><span class="srcln">  <span class="st">emph</span> e</span><span class="srcln">:::</span></pre><!--/demosrc-->
+</div>
+
+<h2>And it scales to the figures a lecture actually needs</h2>
+<p class="figlead">A passkey registration: four lifelines, nine messages, two notes, in four beats. The numbering, the spacing and the lifelines are the statement&rsquo;s job &ndash; inserting a message in the middle is one line, not thirteen.</p>
+<div class="demo">
+  <div class="demo-stage" data-demo="seq-demo"><svg id="sdseq-demo-root" class="psi-diagram" viewBox="-454.66 -323.65 1053.38 647.30" width="2000" height="1229" data-live-viewbox="-454.66 -323.65 1053.38 647.30" data-live-ratio="0.614498" data-steps="5" role="img" aria-label="a protocol, one phase at a time" preserveAspectRatio="xMidYMid meet">
+<g id="sdseq-demo-ctap" data-base="dg-el dg-brace" class="dg-el dg-brace small turn"><path id="sdseq-demo-ctap--p" class="dg-stroke" d="M-303.00 -97.70L-310.00 -97.70L-310.00 49.95L-303.00 49.95" fill="none"/><g id="sdseq-demo-ctap--lw0" data-lab="ctap--l" class="dg-lwrap" transform="translate(-318.00,-23.87) rotate(-90)"><g id="sdseq-demo-ctap--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">on the device, over CTAP</tspan></text></g></g></g>
+<g id="sdseq-demo-u-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="sdseq-demo-u-life--p" class="dg-stroke" d="M-291.00 -274.90L-291.00 311.65" fill="none"/><path id="sdseq-demo-u-life--h" class="dg-head" d="M-291.00 311.65L-291.00 311.65L-291.00 311.65Z"/></g>
+<g id="sdseq-demo-br-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="sdseq-demo-br-life--p" class="dg-stroke" d="M-97.00 -274.90L-97.00 311.65" fill="none"/><path id="sdseq-demo-br-life--h" class="dg-head" d="M-97.00 311.65L-97.00 311.65L-97.00 311.65Z"/></g>
+<g id="sdseq-demo-au-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="sdseq-demo-au-life--p" class="dg-stroke" d="M97.00 -274.90L97.00 311.65" fill="none"/><path id="sdseq-demo-au-life--h" class="dg-head" d="M97.00 311.65L97.00 311.65L97.00 311.65Z"/></g>
+<g id="sdseq-demo-rp-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="sdseq-demo-rp-life--p" class="dg-stroke" d="M291.00 -274.90L291.00 311.65" fill="none"/><path id="sdseq-demo-rp-life--h" class="dg-head" d="M291.00 311.65L291.00 311.65L291.00 311.65Z"/></g>
+<g id="sdseq-demo-wa-0" data-base="dg-el dg-edge" class="dg-el dg-edge paper one-head"><path id="sdseq-demo-wa-0--p" class="dg-stroke" d="M-291.00 -237.35L-104.65 -237.35" fill="none"/><path id="sdseq-demo-wa-0--h" class="dg-head" d="M-97.00 -237.35L-106.00 -233.39L-106.00 -241.31Z"/><rect id="sdseq-demo-wa-0--r" x="-278.47" y="-266.10" width="168.95" height="26.75" rx="4"/><g id="sdseq-demo-wa-0--lw0" data-lab="wa-0--l" class="dg-lwrap" transform="translate(-194.00,-252.72)"><g id="sdseq-demo-wa-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">clicks Create passkey</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-1" data-base="dg-el dg-edge" class="dg-el dg-edge paper one-head"><path id="sdseq-demo-wa-1--p" class="dg-stroke" d="M-97.00 -199.80L283.35 -199.80" fill="none"/><path id="sdseq-demo-wa-1--h" class="dg-head" d="M291.00 -199.80L282.00 -195.84L282.00 -203.76Z"/><rect id="sdseq-demo-wa-1--r" x="-10.27" y="-228.55" width="214.55" height="26.75" rx="4"/><g id="sdseq-demo-wa-1--lw0" data-lab="wa-1--l" class="dg-lwrap" transform="translate(97.00,-215.17)"><g id="sdseq-demo-wa-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request registration options</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-2" data-base="dg-el dg-edge" class="dg-el dg-edge dashed paper one-head"><path id="sdseq-demo-wa-2--p" class="dg-stroke" d="M291.00 -162.25L-89.35 -162.25" fill="none"/><path id="sdseq-demo-wa-2--h" class="dg-head" d="M-97.00 -162.25L-88.00 -166.21L-88.00 -158.29Z"/><rect id="sdseq-demo-wa-2--r" x="19.88" y="-191.00" width="154.25" height="26.75" rx="4"/><g id="sdseq-demo-wa-2--lw0" data-lab="wa-2--l" class="dg-lwrap" transform="translate(97.00,-177.63)"><g id="sdseq-demo-wa-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">registration options</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-3" data-base="dg-el dg-edge" class="dg-el dg-edge paper one-head"><path id="sdseq-demo-wa-3--p" class="dg-stroke" d="M-97.00 -97.70L89.35 -97.70" fill="none"/><path id="sdseq-demo-wa-3--h" class="dg-head" d="M97.00 -97.70L88.00 -93.74L88.00 -101.66Z"/><rect id="sdseq-demo-wa-3--r" x="-132.92" y="-126.45" width="265.85" height="26.75" rx="4"/><g id="sdseq-demo-wa-3--lw0" data-lab="wa-3--l" class="dg-lwrap" transform="translate(0.00,-113.07)"><g id="sdseq-demo-wa-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">CTAP authenticatorMakeCredential</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-4" data-base="dg-el dg-edge" class="dg-el dg-edge paper one-head"><path id="sdseq-demo-wa-4--p" class="dg-stroke" d="M97.00 12.40L-283.35 12.40" fill="none"/><path id="sdseq-demo-wa-4--h" class="dg-head" d="M-291.00 12.40L-282.00 8.44L-282.00 16.36Z"/><rect id="sdseq-demo-wa-4--r" x="-196.32" y="-16.35" width="198.65" height="26.75" rx="4"/><g id="sdseq-demo-wa-4--lw0" data-lab="wa-4--l" class="dg-lwrap" transform="translate(-97.00,-2.97)"><g id="sdseq-demo-wa-4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">prompt: PIN or biometric</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-5" data-base="dg-el dg-edge" class="dg-el dg-edge paper one-head"><path id="sdseq-demo-wa-5--p" class="dg-stroke" d="M-291.00 49.95L89.35 49.95" fill="none"/><path id="sdseq-demo-wa-5--h" class="dg-head" d="M97.00 49.95L88.00 53.91L88.00 45.99Z"/><rect id="sdseq-demo-wa-5--r" x="-178.17" y="21.20" width="162.35" height="26.75" rx="4"/><g id="sdseq-demo-wa-5--lw0" data-lab="wa-5--l" class="dg-lwrap" transform="translate(-97.00,34.58)"><g id="sdseq-demo-wa-5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">user verified locally</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-6" data-base="dg-el dg-edge" class="dg-el dg-edge dashed paper one-head"><path id="sdseq-demo-wa-6--p" class="dg-stroke" d="M97.00 170.55L-89.35 170.55" fill="none"/><path id="sdseq-demo-wa-6--h" class="dg-head" d="M-97.00 170.55L-88.00 166.59L-88.00 174.51Z"/><rect id="sdseq-demo-wa-6--r" x="-67.90" y="141.80" width="135.80" height="26.75" rx="4"/><g id="sdseq-demo-wa-6--lw0" data-lab="wa-6--l" class="dg-lwrap" transform="translate(0.00,155.18)"><g id="sdseq-demo-wa-6--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">attestation object</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-7" data-base="dg-el dg-edge" class="dg-el dg-edge paper one-head"><path id="sdseq-demo-wa-7--p" class="dg-stroke" d="M-97.00 235.10L283.35 235.10" fill="none"/><path id="sdseq-demo-wa-7--h" class="dg-head" d="M291.00 235.10L282.00 239.06L282.00 231.14Z"/><rect id="sdseq-demo-wa-7--r" x="-36.37" y="206.35" width="266.75" height="26.75" rx="4"/><g id="sdseq-demo-wa-7--lw0" data-lab="wa-7--l" class="dg-lwrap" transform="translate(97.00,219.73)"><g id="sdseq-demo-wa-7--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">attestationObject + clientDataJSON</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-8" data-base="dg-el dg-edge" class="dg-el dg-edge paper one-head"><path id="sdseq-demo-wa-8--p" class="dg-stroke" d="M291.00 274.90L333.00 274.90L333.00 299.65L298.65 299.65" fill="none"/><path id="sdseq-demo-wa-8--h" class="dg-head" d="M291.00 299.65L300.00 295.69L300.00 303.61Z"/><rect id="sdseq-demo-wa-8--r" x="338.88" y="273.90" width="238.85" height="26.75" rx="4"/><g id="sdseq-demo-wa-8--lw0" data-lab="wa-8--l" class="dg-lwrap" transform="translate(458.30,287.27)"><g id="sdseq-demo-wa-8--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">verify signature · check origin</tspan></text></g></g></g>
+<g id="sdseq-demo-fresh--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="sdseq-demo-fresh--lead--p" class="dg-stroke" d="M362.60 -162.25L291.00 -162.25" fill="none"/><path id="sdseq-demo-fresh--lead--h" class="dg-head" d="M291.00 -162.25L291.00 -162.25L291.00 -162.25Z"/></g>
+<g id="sdseq-demo-wa" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="sdseq-demo-wa--r" x="-388.00" y="-311.65" width="776.00" height="623.30" rx="4"/></g>
+<g id="sdseq-demo-u" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="sdseq-demo-u--r" x="-354.25" y="-311.65" width="126.50" height="36.75" rx="4"/><g id="sdseq-demo-u--lw0" data-lab="u--l" class="dg-lwrap" transform="translate(-291.00,-293.27)"><g id="sdseq-demo-u--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">User</tspan></text></g></g></g>
+<g id="sdseq-demo-br" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="sdseq-demo-br--r" x="-160.25" y="-311.65" width="126.50" height="36.75" rx="4"/><g id="sdseq-demo-br--lw0" data-lab="br--l" class="dg-lwrap" transform="translate(-97.00,-293.27)"><g id="sdseq-demo-br--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Browser</tspan></text></g></g></g>
+<g id="sdseq-demo-au" data-base="dg-el dg-box" class="dg-el dg-box round tone-3"><rect id="sdseq-demo-au--r" x="33.75" y="-311.65" width="126.50" height="36.75" rx="4"/><g id="sdseq-demo-au--lw0" data-lab="au--l" class="dg-lwrap" transform="translate(97.00,-293.27)"><g id="sdseq-demo-au--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Authenticator</tspan></text></g></g></g>
+<g id="sdseq-demo-rp" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="sdseq-demo-rp--r" x="227.75" y="-311.65" width="126.50" height="36.75" rx="4"/><g id="sdseq-demo-rp--lw0" data-lab="rp--l" class="dg-lwrap" transform="translate(291.00,-293.27)"><g id="sdseq-demo-rp--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Relying Party</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-n-0" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="sdseq-demo-wa-n-0--lw0" data-lab="wa-n-0--l" class="dg-lwrap" transform="translate(-439.00,-237.35)"><g id="sdseq-demo-wa-n-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">1</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-n-1" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="sdseq-demo-wa-n-1--lw0" data-lab="wa-n-1--l" class="dg-lwrap" transform="translate(-439.00,-199.80)"><g id="sdseq-demo-wa-n-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">2</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-n-2" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="sdseq-demo-wa-n-2--lw0" data-lab="wa-n-2--l" class="dg-lwrap" transform="translate(-439.00,-162.25)"><g id="sdseq-demo-wa-n-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">3</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-sub-2" data-base="dg-el dg-text" class="dg-el dg-text small muted paper"><rect id="sdseq-demo-wa-sub-2--r" x="-5.46" y="-158.25" width="204.92" height="23.00" rx="4"/><g id="sdseq-demo-wa-sub-2--lw0" data-lab="wa-sub-2--l" class="dg-lwrap" transform="translate(97.00,-146.75)"><g id="sdseq-demo-wa-sub-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">challenge · rp.id · user.id · algs</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-n-3" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="sdseq-demo-wa-n-3--lw0" data-lab="wa-n-3--l" class="dg-lwrap" transform="translate(-439.00,-97.70)"><g id="sdseq-demo-wa-n-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">4</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-sub-3" data-base="dg-el dg-text" class="dg-el dg-text small muted paper"><rect id="sdseq-demo-wa-sub-3--r" x="-110.62" y="-93.70" width="221.24" height="23.00" rx="4"/><g id="sdseq-demo-wa-sub-3--lw0" data-lab="wa-sub-3--l" class="dg-lwrap" transform="translate(0.00,-82.20)"><g id="sdseq-demo-wa-sub-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">clientDataHash · rp.id · user · algs</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-note-0" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="sdseq-demo-wa-note-0--r" x="-140.27" y="-61.90" width="280.55" height="36.75" rx="4"/><g id="sdseq-demo-wa-note-0--lw0" data-lab="wa-note-0--l" class="dg-lwrap" transform="translate(0.00,-43.52)"><g id="sdseq-demo-wa-note-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">CTAP runs over USB, NFC or BLE</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-n-4" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="sdseq-demo-wa-n-4--lw0" data-lab="wa-n-4--l" class="dg-lwrap" transform="translate(-439.00,12.40)"><g id="sdseq-demo-wa-n-4--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">5</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-n-5" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="sdseq-demo-wa-n-5--lw0" data-lab="wa-n-5--l" class="dg-lwrap" transform="translate(-439.00,49.95)"><g id="sdseq-demo-wa-n-5--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">6</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-note-1" data-base="dg-el dg-box" class="dg-el dg-box round"><rect id="sdseq-demo-wa-note-1--r" x="-30.00" y="58.75" width="254.00" height="74.25" rx="4"/><g id="sdseq-demo-wa-note-1--lw0" data-lab="wa-note-1--l" class="dg-lwrap" transform="translate(97.00,95.88)"><g id="sdseq-demo-wa-note-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-13.65">generate key pair</tspan><tspan x="0" y="5.10">bind to SHA-256(rp.id)</tspan><tspan x="0" y="23.85">store privately · emit publicly</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-n-6" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="sdseq-demo-wa-n-6--lw0" data-lab="wa-n-6--l" class="dg-lwrap" transform="translate(-439.00,170.55)"><g id="sdseq-demo-wa-n-6--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">7</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-sub-6" data-base="dg-el dg-text" class="dg-el dg-text small muted paper"><rect id="sdseq-demo-wa-sub-6--r" x="-127.36" y="174.55" width="254.72" height="23.00" rx="4"/><g id="sdseq-demo-wa-sub-6--lw0" data-lab="wa-sub-6--l" class="dg-lwrap" transform="translate(0.00,186.05)"><g id="sdseq-demo-wa-sub-6--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">authData (public key, cred ID) · signature</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-n-7" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="sdseq-demo-wa-n-7--lw0" data-lab="wa-n-7--l" class="dg-lwrap" transform="translate(-439.00,235.10)"><g id="sdseq-demo-wa-n-7--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">8</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-sub-7" data-base="dg-el dg-text" class="dg-el dg-text small muted paper"><rect id="sdseq-demo-wa-sub-7--r" x="-32.34" y="239.10" width="258.68" height="23.00" rx="4"/><g id="sdseq-demo-wa-sub-7--lw0" data-lab="wa-sub-7--l" class="dg-lwrap" transform="translate(97.00,250.60)"><g id="sdseq-demo-wa-sub-7--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">clientDataJSON carries challenge · origin</tspan></text></g></g></g>
+<g id="sdseq-demo-wa-n-8" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="sdseq-demo-wa-n-8--lw0" data-lab="wa-n-8--l" class="dg-lwrap" transform="translate(-439.00,287.27)"><g id="sdseq-demo-wa-n-8--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">9</tspan></text></g></g></g>
+<g id="sdseq-demo-fresh" data-base="dg-el dg-text" class="dg-el dg-text small hand"><g id="sdseq-demo-fresh--lw0" data-lab="fresh--l" class="dg-lwrap" transform="translate(476.86,-162.25)"><g id="sdseq-demo-fresh--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">the challenge is what makes it fresh</tspan></text></g></g></g>
+</svg><script type="application/json" class="psi-diagram-frames" data-for="sdseq-demo-root">{"p":"sdseq-demo-","n":5,"kinds":{"ctap--p":"path","ctap--l":"text","u-life--p":"path","u-life--h":"path","br-life--p":"path","br-life--h":"path","au-life--p":"path","au-life--h":"path","rp-life--p":"path","rp-life--h":"path","wa-0--p":"path","wa-0--h":"path","wa-0--r":"rect","wa-0--l":"text","wa-1--p":"path","wa-1--h":"path","wa-1--r":"rect","wa-1--l":"text","wa-2--p":"path","wa-2--h":"path","wa-2--r":"rect","wa-2--l":"text","wa-3--p":"path","wa-3--h":"path","wa-3--r":"rect","wa-3--l":"text","wa-4--p":"path","wa-4--h":"path","wa-4--r":"rect","wa-4--l":"text","wa-5--p":"path","wa-5--h":"path","wa-5--r":"rect","wa-5--l":"text","wa-6--p":"path","wa-6--h":"path","wa-6--r":"rect","wa-6--l":"text","wa-7--p":"path","wa-7--h":"path","wa-7--r":"rect","wa-7--l":"text","wa-8--p":"path","wa-8--h":"path","wa-8--r":"rect","wa-8--l":"text","fresh--lead--p":"path","fresh--lead--h":"path","wa--r":"rect","u--r":"rect","u--l":"text","br--r":"rect","br--l":"text","au--r":"rect","au--l":"text","rp--r":"rect","rp--l":"text","wa-n-0--l":"text","wa-n-1--l":"text","wa-n-2--l":"text","wa-sub-2--r":"rect","wa-sub-2--l":"text","wa-n-3--l":"text","wa-sub-3--r":"rect","wa-sub-3--l":"text","wa-note-0--r":"rect","wa-note-0--l":"text","wa-n-4--l":"text","wa-n-5--l":"text","wa-note-1--r":"rect","wa-note-1--l":"text","wa-n-6--l":"text","wa-sub-6--r":"rect","wa-sub-6--l":"text","wa-n-7--l":"text","wa-sub-7--r":"rect","wa-sub-7--l":"text","wa-n-8--l":"text","fresh--l":"text"},"names":["in-the-browser","on-the-device","back-to-the-relying-party","the-whole-registration"],"frames":[{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":1,"wa-2":1,"wa-3":1,"wa-4":1,"wa-5":1,"wa-6":1,"wa-7":1,"wa-8":1,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted paper","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head","wa-1":"paper one-head","wa-2":"dashed paper one-head","wa-3":"paper one-head","wa-4":"paper one-head","wa-5":"paper one-head","wa-6":"dashed paper one-head","wa-7":"paper one-head","wa-8":"paper one-head","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[476.86,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":1,"wa-2":1,"wa-3":1,"wa-4":1,"wa-5":1,"wa-6":1,"wa-7":1,"wa-8":1,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted paper","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head emph","wa-1":"paper one-head emph","wa-2":"dashed paper one-head emph","wa-3":"paper one-head emph","wa-4":"paper one-head","wa-5":"paper one-head","wa-6":"dashed paper one-head emph","wa-7":"paper one-head emph","wa-8":"paper one-head","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[476.86,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":0.3,"wa-1":0.3,"wa-2":0.3,"wa-3":1,"wa-4":1,"wa-5":1,"wa-6":1,"wa-7":0.3,"wa-8":1,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3 emph","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted paper","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head dim","wa-1":"paper one-head dim","wa-2":"dashed paper one-head dim","wa-3":"paper one-head emph","wa-4":"paper one-head emph","wa-5":"paper one-head emph","wa-6":"dashed paper one-head emph","wa-7":"paper one-head dim","wa-8":"paper one-head","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[476.86,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":0.3,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":0.3,"wa-1":0.3,"wa-2":0.3,"wa-3":0.3,"wa-4":0.3,"wa-5":0.3,"wa-6":0.3,"wa-7":1,"wa-8":1,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3 dim","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted paper","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted emph","wa-sub-7":"small muted paper emph","wa-n-8":"small muted emph","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head dim","wa-1":"paper one-head dim","wa-2":"dashed paper one-head dim","wa-3":"paper one-head dim","wa-4":"paper one-head dim","wa-5":"paper one-head dim","wa-6":"dashed paper one-head dim","wa-7":"paper one-head emph","wa-8":"paper one-head emph","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[476.86,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":0.3,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":0.3,"wa-1":0.3,"wa-2":0.3,"wa-3":0.3,"wa-4":0.3,"wa-5":0.3,"wa-6":0.3,"wa-7":0.3,"wa-8":0.3,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3 dim","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted paper","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted emph","wa-sub-7":"small muted paper emph","wa-n-8":"small muted emph","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head dim","wa-1":"paper one-head dim","wa-2":"dashed paper one-head dim","wa-3":"paper one-head dim","wa-4":"paper one-head dim","wa-5":"paper one-head dim","wa-6":"dashed paper one-head dim","wa-7":"paper one-head dim","wa-8":"paper one-head dim","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[476.86,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}}]}</script></div><!--/stage-->
+  <div class="demo-bar">
+    <button class="db" data-go="-1" aria-label="previous beat">&lsaquo;</button>
+    <button class="db" data-go="1" aria-label="next beat">&rsaquo;</button>
+    <ol class="rail" data-rail="seq-demo">
+      <li><button type="button">opening</button></li>
+      <li><button type="button"><b>1</b> in-the-browser</button></li>
+      <li><button type="button"><b>2</b> on-the-device</button></li>
+      <li><button type="button"><b>3</b> back-to-the-relying-party</button></li>
+      <li><button type="button"><b>4</b> the-whole-registration</button></li>
+    </ol><!--/rail-->
+    <button class="db play" aria-label="play the beats">play</button>
+  </div>
+  <pre class="demo-src" data-demosrc="seq-demo"><span class="srcln">::: diagram <span class="cl">{unit=150x40}</span></span><span class="srcln cm"># The actors are lines of their own because each needs a name later lines can</span><span class="srcln cm"># hold on to and an attribute tail of its own. Everything under them is a</span><span class="srcln cm"># message - an arrow between two names - or a note.</span><span class="srcln"><span class="kw">sequence</span> wa <span class="kw">at</span> 0,0</span><span class="srcln">  <span class="kw">actor</span> u  <span class="cl">"User"</span></span><span class="srcln">  <span class="kw">actor</span> br <span class="cl">"Browser"</span></span><span class="srcln">  <span class="kw">actor</span> au <span class="cl">"Authenticator"</span> <span class="cl">{.tone-3}</span></span><span class="srcln">  <span class="kw">actor</span> rp <span class="cl">"Relying Party"</span></span><span class="srcln"></span><span class="srcln">  u  -&gt; br <span class="cl">"clicks Create passkey"</span></span><span class="srcln">  br -&gt; rp <span class="cl">"request registration options"</span></span><span class="srcln">  br &lt;- rp <span class="cl">"registration options"</span> <span class="cl">"challenge · rp.id · user.id · algs"</span> <span class="cl">{.dashed}</span></span><span class="srcln">  br -&gt; au <span class="cl">"CTAP authenticatorMakeCredential"</span> <span class="cl">"clientDataHash · rp.id · user · algs"</span></span><span class="srcln">  <span class="kw">note</span> br,au <span class="cl">"CTAP runs over USB, NFC or BLE"</span></span><span class="srcln">  au -&gt; u  <span class="cl">"prompt: PIN or biometric"</span></span><span class="srcln">  u  -&gt; au <span class="cl">"user verified locally"</span></span><span class="srcln">  <span class="kw">note</span> au <span class="cl">"generate key pair\nbind to SHA-256(rp.id)\nstore privately · emit publicly"</span></span><span class="srcln">  au -&gt; br <span class="cl">"attestation object"</span> <span class="cl">"authData (public key, cred ID) · signature"</span> <span class="cl">{.dashed}</span></span><span class="srcln">  br -&gt; rp <span class="cl">"attestationObject + clientDataJSON"</span> <span class="cl">"clientDataJSON carries challenge · origin"</span></span><span class="srcln">  rp -&gt; rp <span class="cl">"verify signature · check origin"</span></span><span class="srcln"></span><span class="srcln cm"># Two annotations the statement knows nothing about, hung off generated</span><span class="srcln cm"># names: a brace over three messages and a note beside one of them. A beat</span><span class="srcln cm"># can show or emphasise either one exactly as it would a box.</span><span class="srcln"><span class="kw">brace</span> ctap <span class="kw">over</span> wa-3,wa-4,wa-5 <span class="kw">pad</span> 0.3 <span class="cl">"on the device, over CTAP"</span> <span class="kw">side</span> left <span class="cl">{.small .turn}</span></span><span class="srcln"><span class="kw">text</span> fresh <span class="cl">"the challenge is what makes it fresh"</span> <span class="kw">right of</span> wa-2 <span class="kw">gap</span> 1.9 <span class="cl">{.small .hand}</span> -- wa-2</span><span class="srcln"></span><span class="srcln"><span class="st">step</span> in-the-browser</span><span class="srcln">  <span class="st">emph</span> @br-msgs</span><span class="srcln"><span class="st">step</span> on-the-device</span><span class="srcln">  <span class="st">dim</span> @br-msgs</span><span class="srcln">  <span class="st">emph</span> @au-msgs</span><span class="srcln">  <span class="st">emph</span> au</span><span class="srcln"><span class="st">step</span> back-to-the-relying-party</span><span class="srcln">  <span class="st">dim</span> @au-msgs</span><span class="srcln">  <span class="st">dim</span> au</span><span class="srcln">  <span class="st">emph</span> @wa-msg-7, @wa-msg-8</span><span class="srcln"><span class="st">step</span> the-whole-registration</span><span class="srcln">  <span class="st">dim</span> @wa-msgs</span><span class="srcln">:::</span></pre><!--/demosrc-->
+</div>
+
+<h2>Four decisions hold it up</h2>
+<div class="tenets">
+    <div class="tenet">
+      <span class="t">01</span>
+      <h3>The text is the figure</h3>
+      <p>There is no second copy of it anywhere: no drawing file beside the lecture, no exported image sitting one edit behind its source. The figure is in the same file as the prose around it, so it travels when a slide is moved, and a change to it arrives in a diff as the lines that changed, where a reviewer can read it without opening anything.</p>
+      <p class="why">The same holds when the editing is graphical. The live slide carries a graphical editor, and dragging a box in it rewrites one word of the source you wrote: <code>right of a gap <b>1.1</b></code> becomes <code>right of a gap <b>1.6</b></code>. The editor does not put the number the build worked out in place of the relation, because a bare number there would stop following Alice.</p>
+    </div>
+
+    <div class="tenet">
+      <span class="t">02</span>
+      <h3>Positions are relations, and stay relations</h3>
+      <p><code>right of a gap 1.1</code> is not shorthand that the build resolves once and forgets. It is the whole of what the file says about where Eve is, permanently. Every element but the first is placed against something else in the figure, so the file is a set of dependencies rather than a set of coordinates, and the build follows them in whichever order resolves them.</p>
+      <p class="why">There is no constraint solver &ndash; no engine that takes a list of requirements and searches for an arrangement meeting them all. Handed a figure it cannot satisfy, such an engine draws something that looks plausible and reports a number saying how far off it was. A dependency graph can fail in only one way &ndash; by referring back to itself &ndash; and the build names the line it failed on: <code>placement cycle: b &rarr; w1 &rarr; b</code>.</p>
+    </div>
+
+    <div class="tenet">
+      <span class="t">03</span>
+      <h3>The cast is written once; the beats say what changes</h3>
+      <p>Every element a figure will ever hold &ndash; every box, arrow, label and outline &ndash; is written at the top of the block, whether or not it is on screen when the slide arrives. Underneath, a <code>step</code> names a beat, which is one press of the space bar in front of the room, and lists what that beat does. There are five families and nothing outside them: visibility (<code>show</code>, <code>hide</code>), movement (<code>move</code>), labelling (<code>label</code>), prominence (<code>emph</code>, <code>dim</code>, <code>ghost</code>) and styling (<code>style</code>).</p>
+      <p class="why">An element is hidden at the opening beat exactly when the first thing any step says about it is <code>show</code>. So nobody writes an initial picture and a final picture and keeps the two agreeing. There is one description of the figure and a list of changes to it.</p>
+    </div>
+
+    <div class="tenet">
+      <span class="t">04</span>
+      <h3>A beat is the whole figure laid out again</h3>
+      <p>Every beat is the same layout evaluated again with different inputs, rather than a movement played over a finished picture, and the build works all of them out before the page is written. What the browser is handed is one drawing and a table of numbers to slide between, with no layout engine to load.</p>
+      <p class="why">This is why an arrow stays attached to a box that walks away. The arrow never held a coordinate; it held &ldquo;the right-hand edge of <code>e</code>&rdquo;, and that still means the right-hand edge of <code>e</code> wherever <code>e</code> now is. On an animation timeline the arrow is a separate object with a start and an end of its own, and nothing ties it to the box.</p>
+    </div>
+  </div>
+
+<h2>What you give up, and what you get</h2>
+<table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>A drawing program<span>PowerPoint, Keynote, Excalidraw</span></th>
+          <th>An auto-layout language<span>Mermaid, Graphviz, PlantUML</span></th>
+          <th>This<span>::: diagram</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>Where the figure lives</th>
+          <td>A file of its own, beside the lecture</td>
+          <td>Text, in the lecture or beside it</td>
+          <td>Text, in the lecture file, between the sentences it belongs to</td>
+        </tr>
+        <tr>
+          <th>Who decides where things go</th>
+          <td>You, in pixels</td>
+          <td>The layout engine</td>
+          <td>You, in relations between one element and another</td>
+        </tr>
+        <tr>
+          <th>Give one box a longer label</th>
+          <td>The box grows; every arrow, outline and note around it is moved by hand</td>
+          <td>The graph is laid out again, and can come back in a different arrangement</td>
+          <td>Whatever was attached to it follows, and nothing else moves</td>
+        </tr>
+        <tr>
+          <th>Building it up in front of a room</th>
+          <td>A timeline of appearances and moves, played over the finished picture</td>
+          <td>There is no equivalent; a diagram is one static picture</td>
+          <td>Beats, each of them the whole figure laid out again</td>
+        </tr>
+        <tr>
+          <th>The handout</th>
+          <td>A second export, and a second thing to keep current</td>
+          <td>The same picture</td>
+          <td>The last beat of the same figure, carrying the prominence written into it rather than the prominence a beat lent it</td>
+        </tr>
+        <tr class="fair">
+          <th>When to reach for it</th>
+          <td>One figure, drawn once and not revised. Nothing to install, no build step, and everyone already has it</td>
+          <td>Forty nodes whose arrangement carries no meaning. It places everything for you, which this will never do</td>
+          <td>When the arrangement is part of the argument, or the figure has to be built up in front of a room</td>
+        </tr>
+      </tbody>
+    </table>
+
+<div class="handoff">
+  <p><strong>That is the case. The manual is separate.</strong> <a href="figures-you-write.html">Figures You Write</a> teaches the language from nothing &ndash; a figure built a line at a time, then beats, then every class and statement there is, fifteen rules for a figure a room can read, and a gallery of finished ones.</p>
+</div>
+
+<script>
+// dg-rt-start
+const DG_LIST = [];
+const DG_REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DG_DUR = 380;
+
+// The one text that draws the non-rectangular outlines, lifted straight out
+// of diagram-core.mjs rather than transcribed. The build emits the opening
+// beat with this function and the runtime redraws every later beat with it,
+// so the two cannot drift; a hand copy here would be a second vocabulary
+// nobody would think to keep in step.
+// Keyed by the outline alone; a drawable kind may carry a direction after a
+// colon (`chevron:up`), which dgShapeD reads and this lookup must not.
+// Interpolated from DG_SHAPE_CLASSES rather than spelled out – a fifth
+// outline added to the table would otherwise draw at build time and be
+// unknown to the very runtime that has to move it.
+const DG_SHAPES = {"hex":1,"diamond":1,"chevron":1,"wedge":1,"cross":1};
+function dgShapeD(shape, x, y, w, h) {
+  // The direction rides on the shape name (`chevron:up`), so the drawable
+  // still carries four numbers and the runtime still looks a shape up by one
+  // string. Rotating the finished points would have been the obvious move and
+  // is the wrong one: a w-by-h box turned ninety degrees is an h-by-w box, and
+  // the footprint the layout computed has to stay exactly what it was. Each
+  // direction is drawn inside the box it was given.
+  const [kind, dir] = String(shape).split(':');
+  const n = (v) => Math.round(v * 100) / 100;
+  const poly = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + n(p[0]) + ' ' + n(p[1])).join('') + 'Z';
+  // How far the point eats into the box along the axis it points down. Tied to
+  // the cross-axis so a row of boxes of one height gets one consistent nose,
+  // and capped by its own axis so a very short box degenerates to a triangle
+  // rather than folding through itself.
+  const noseX = Math.min(h * 0.5, w * 0.42);
+  const noseY = Math.min(w * 0.5, h * 0.42);
+  const bevel = Math.min(h * 0.28, w * 0.34);
+  const r = x + w, b = y + h, mx = x + w / 2, my = y + h / 2;
+  if (kind === 'hex') {
+    return poly([[x + bevel, y], [r - bevel, y], [r, my],
+      [r - bevel, b], [x + bevel, b], [x, my]]);
+  }
+  if (kind === 'diamond') {
+    return poly([[mx, y], [r, my], [mx, b], [x, my]]);
+  }
+  if (kind === 'chevron') {
+    if (dir === 'left') return poly([[r, y], [x + noseX, y], [x, my], [x + noseX, b], [r, b]]);
+    if (dir === 'up') return poly([[x, b], [x, y + noseY], [mx, y], [r, y + noseY], [r, b]]);
+    if (dir === 'down') return poly([[x, y], [x, b - noseY], [mx, b], [r, b - noseY], [r, y]]);
+    return poly([[x, y], [r - noseX, y], [r, my], [r - noseX, b], [x, b]]);
+  }
+  if (kind === 'cross') {
+    // A plus rather than a saltire. At marker size a saltire reads as two
+    // gridlines crossing; the arms of a plus stay on the axes the reader is
+    // already following.
+    const t = Math.min(w, h) * 0.34, hx = t / 2;
+    return poly([[mx - hx, y], [mx + hx, y], [mx + hx, my - hx], [r, my - hx],
+      [r, my + hx], [mx + hx, my + hx], [mx + hx, b], [mx - hx, b],
+      [mx - hx, my + hx], [x, my + hx], [x, my - hx], [mx - hx, my - hx]]);
+  }
+  // wedge: a triangle standing on its point, which is how a size comparison
+  // reads – the area is the quantity and the tip is where it lands.
+  if (dir === 'up') return poly([[x, b], [r, b], [mx, y]]);
+  if (dir === 'left') return poly([[r, y], [r, b], [x, my]]);
+  if (dir === 'right') return poly([[x, y], [x, b], [r, my]]);
+  return poly([[x, y], [r, y], [mx, b]]);
+}
+function dgPathD(nums) {
+  let d = '';
+  for (let i = 0; i < nums.length; i += 2) {
+    d += (i ? 'L' : 'M') + nums[i].toFixed(2) + ' ' + nums[i + 1].toFixed(2);
+  }
+  return d;
+}
+function dgSplineD(v) {
+  const n = v.length / 2;
+  if (n < 3) return dgPathD(v);
+  const px = (i) => v[Math.max(0, Math.min(n - 1, i)) * 2];
+  const py = (i) => v[Math.max(0, Math.min(n - 1, i)) * 2 + 1];
+  const r = (x) => Math.round(x * 100) / 100;
+  let d = 'M' + r(px(0)) + ' ' + r(py(0));
+  for (let i = 0; i < n - 1; i++) {
+    // The classic uniform Catmull-Rom to Bézier conversion: the control
+    // points sit a sixth of the way along the neighbours' chord.
+    const c1x = px(i) + (px(i + 1) - px(i - 1)) / 6;
+    const c1y = py(i) + (py(i + 1) - py(i - 1)) / 6;
+    const c2x = px(i + 1) - (px(i + 2) - px(i)) / 6;
+    const c2y = py(i + 1) - (py(i + 2) - py(i)) / 6;
+    d += 'C' + r(c1x) + ' ' + r(c1y) + ' ' + r(c2x) + ' ' + r(c2y)
+      + ' ' + r(px(i + 1)) + ' ' + r(py(i + 1));
+  }
+  return d;
+}
+
+function dgApplyVec(el, kind, v) {
+  if (kind === 'rect') {
+    el.setAttribute('x', v[0]); el.setAttribute('y', v[1]);
+    el.setAttribute('width', Math.max(0, v[2])); el.setAttribute('height', Math.max(0, v[3]));
+  } else if (DG_SHAPES[String(kind).split(':')[0]]) {
+    // Same four numbers a rect carries, joined into a different outline. That
+    // is the whole reason a hexagon costs nothing here: it tweens as a rect
+    // does, and only the last step – turning the vector into a path – differs.
+    el.setAttribute('d', dgShapeD(kind, v[0], v[1], Math.max(0, v[2]), Math.max(0, v[3])));
+  } else if (kind === 'circle') {
+    el.setAttribute('cx', v[0]); el.setAttribute('cy', v[1]); el.setAttribute('r', Math.max(0, v[2]));
+  } else if (kind === 'spline') {
+    el.setAttribute('d', dgSplineD(v));
+  } else if (kind === 'path') {
+    let d = '';
+    for (let i = 0; i < v.length; i += 2) d += (i ? 'L' : 'M') + v[i] + ' ' + v[i + 1];
+    el.setAttribute('d', d + (el.classList.contains('dg-head') ? 'Z' : ''));
+  } else {
+    // A label. The optional third number is the turn, so a rotated one is
+    // carried, interpolated and applied by the very same machinery that moves
+    // an upright one - no class lookup at step time, no second code path.
+    el.setAttribute('transform', 'translate(' + v[0] + ',' + v[1] + ')'
+      + (v[2] ? ' rotate(' + v[2] + ')' : ''));
+  }
+}
+
+function dgTargets(d, key) {
+  if (d.cache[key]) return d.cache[key];
+  // Label wrappers are addressed by data-lab, not by id, because one
+  // element can carry several pre-rendered label variants. The attribute
+  // holds the full geometry key.
+  const list = key.endsWith('--l')
+    ? [...d.svg.querySelectorAll('[data-lab="' + key + '"]')]
+    : [document.getElementById(d.data.p + key)].filter(Boolean);
+  d.cache[key] = list;
+  return list;
+}
+
+// Discrete state – visibility, classes, which label variant is on – lands
+// at once. Only geometry is worth interpolating; a class that fades is a
+// class that is wrong for half the transition.
+function dgApplyDiscrete(d, frame) {
+  for (const id in frame.vis) {
+    const g = document.getElementById(d.data.p + id);
+    if (!g) continue;
+    g.style.opacity = frame.vis[id];
+    const base = g.dataset.base || '';
+    const extra = frame.cls[id] || '';
+    g.setAttribute('class', extra ? base + ' ' + extra : base);
+    if (id in frame.lab) {
+      d.svg.querySelectorAll('[data-lab="' + id + '--l"]').forEach((w, i) => {
+        w.classList.toggle('dg-off', i !== frame.lab[id]);
+      });
+    }
+  }
+}
+
+function dgApplyGeom(d, from, to, f) {
+  const now = {};
+  for (const key in to) {
+    const b = to[key];
+    const a = from[key] || b;
+    const v = new Array(b.length);
+    for (let i = 0; i < b.length; i++) {
+      const av = a[i] === undefined ? b[i] : a[i];
+      v[i] = Math.round((av + (b[i] - av) * f) * 100) / 100;
+    }
+    now[key] = v;
+    const kind = d.data.kinds[key];
+    for (const el of dgTargets(d, key)) dgApplyVec(el, kind, v);
+  }
+  return now;
+}
+
+// Paint a frame into a copy of the diagram that is not the live one - the
+// speaker's preview thumbnails. Resolves ids inside the given root rather
+// than through getElementById, because a clone carries duplicate ids and
+// the document would hand back the original every time.
+function dgRenderInto(root, d, step) {
+  const frame = d.data.frames[Math.max(0, Math.min(d.data.n - 1, step))];
+  if (!frame) return;
+  for (const id in frame.vis) {
+    const g = root.querySelector('[id="' + d.data.p + id + '"]');
+    if (!g) continue;
+    g.style.opacity = frame.vis[id];
+    const base = g.dataset.base || '';
+    const extra = frame.cls[id] || '';
+    g.setAttribute('class', extra ? base + ' ' + extra : base);
+    if (id in frame.lab) {
+      root.querySelectorAll('[data-lab="' + id + '--l"]').forEach((w, i) => {
+        w.classList.toggle('dg-off', i !== frame.lab[id]);
+      });
+    }
+  }
+  for (const key in frame.geom) {
+    const els = key.endsWith('--l')
+      ? [...root.querySelectorAll('[data-lab="' + key + '"]')]
+      : [root.querySelector('[id="' + d.data.p + key + '"]')].filter(Boolean);
+    for (const el of els) dgApplyVec(el, d.data.kinds[key], frame.geom[key]);
+  }
+}
+
+function dgStep(d, step, instant) {
+  step = Math.max(0, Math.min(d.data.n - 1, step | 0));
+  const frame = d.data.frames[step];
+  const same = d.step === step && d.cur;
+  d.step = step;
+  dgApplyDiscrete(d, frame);
+  // The focus card is a *clone* of the figure, ids and all, so every
+  // getElementById above reaches the hidden original and the card - the only
+  // thing the room can see - never moves. Paint it the same way the
+  // speaker's preview thumbnails are painted, by resolving inside that root.
+  dgMirrorIntoFocus(d, step);
+  if (d.hint) {
+    const next = d.data.names[step];
+    d.hint.textContent = next ? 'next: ' + next : '';
+  }
+  if (same) return;
+  const from = d.cur || frame.geom;
+  cancelAnimationFrame(d.raf);
+  if (instant || DG_REDUCED) { d.cur = dgApplyGeom(d, frame.geom, frame.geom, 1); return; }
+  const t0 = performance.now();
+  const tick = (now) => {
+    const f = Math.min(1, (now - t0) / DG_DUR);
+    const e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2;
+    d.cur = dgApplyGeom(d, from, frame.geom, e);
+    if (f < 1) d.raf = requestAnimationFrame(tick);
+  };
+  d.raf = requestAnimationFrame(tick);
+}
+
+// Swap one diagram for a freshly compiled copy of itself – the DOM half of
+// an applied edit. Shared: the editor calls it after compiling in this
+// window, and the diagram-edit receiver in a view that ships no editor
+// (editor: speaker) calls it with the markup the cockpit sent along. One
+// text, or the two swap paths would drift.
+function dgSwapFigure(oldSvg, html) {
+  const holder = document.createElement('div');
+  holder.innerHTML = html;
+  // Belt and braces for the remote path: the compiler never emits an event
+  // handler, an executable script or a javascript: URL, so anything of the
+  // kind in incoming markup is not a figure – scrub it rather than let it
+  // run. innerHTML does not execute script elements, but an on* attribute
+  // on a parsed element fires the moment it is in the document.
+  holder.querySelectorAll('script:not([type="application/json"])').forEach((s) => s.remove());
+  holder.querySelectorAll('*').forEach((el) => {
+    for (const a of [...el.attributes]) {
+      const n = a.name.toLowerCase();
+      const v = String(a.value || '').trim().toLowerCase();
+      if (n.indexOf('on') === 0 || v.indexOf('javascript:') === 0) el.removeAttribute(a.name);
+    }
+  });
+  const next = holder.querySelector('svg.psi-diagram');
+  const payload = holder.querySelector('script.psi-diagram-frames');
+  if (!next) return null;
+  const live = oldSvg.psiDiagram;
+  if (next.dataset.liveViewbox) {
+    next.setAttribute('viewBox', next.dataset.liveViewbox);
+    const w = Number(next.getAttribute('width'));
+    const r = Number(next.dataset.liveRatio);
+    if (w && r) next.setAttribute('height', String(Math.round(w * r)));
+  }
+  const figure = oldSvg.closest('.figure-diagram');
+  oldSvg.replaceWith(next);
+  // The frames payload is what the step runtime reads. Replace it alongside
+  // the drawing, or a figure that just gained steps has none the runtime can
+  // see, while one that lost them keeps applying geometry from a picture
+  // that no longer exists.
+  const oldPayload = figure ? figure.querySelector('script.psi-diagram-frames') : null;
+  if (payload) {
+    payload.dataset.for = next.id;
+    if (oldPayload) oldPayload.replaceWith(payload);
+    else if (figure) figure.appendChild(payload);
+  } else if (oldPayload) {
+    oldPayload.remove();
+  }
+  let d = null;
+  if (payload) {
+    try {
+      const data = JSON.parse(payload.textContent);
+      d = live || { svg: next, step: 0, raf: 0, cur: null, cache: {},
+        hint: figure ? figure.querySelector('.dg-hint') : null };
+      d.data = data;
+      d.svg = next;
+      d.cache = {};
+      d.cur = null;
+      next.psiDiagram = d;
+      if (!live) DG_LIST.push(d);
+      dgStep(d, Math.min(d.step, data.n - 1), true);
+    } catch (e) { d = null; }
+  } else if (live) {
+    // No steps any more: nothing left to tween, and the static attributes
+    // the emitter wrote are already the finished picture.
+    next.psiDiagram = null;
+  }
+  // The focus card holds a clone, ids and all, and it is what the room is
+  // actually looking at while a figure is zoomed – the very state an edit
+  // is usually made in. dgMirrorIntoFocus can only repaint ids that
+  // survived the edit, so a structural change replaces the clone whole.
+  const card = document.querySelector('#figure-overlay .figure-focus-target');
+  if (card) {
+    const shown = card.querySelector('svg.psi-diagram');
+    if (shown && shown.id === next.id) {
+      const clone = next.cloneNode(true);
+      shown.replaceWith(clone);
+      if (d) dgRenderInto(clone, d, d.step);
+    }
+  }
+  return next;
+}
+
+// Repaint whatever diagram is currently zoomed into the focus card. Cheap and
+// unconditional: one querySelector when nothing is focused.
+function dgMirrorIntoFocus(d, step) {
+  const card = document.querySelector('#figure-overlay .figure-focus-target');
+  if (!card) return;
+  const svg = card.querySelector('svg.psi-diagram');
+  if (!svg || svg.id !== d.svg.id) return;
+  dgRenderInto(svg, d, step);
+}
+
+function initDiagrams() {
+  document.querySelectorAll('script.psi-diagram-frames').forEach(sc => {
+    const svg = document.getElementById(sc.dataset.for);
+    if (!svg) return;
+    let data;
+    try { data = JSON.parse(sc.textContent); } catch (e) { return; }
+    // The static viewBox is the print one – tight around the finished
+    // picture. A live view has to hold every frame instead, or an element
+    // that walks in from outside is clipped for the whole of its journey.
+    // Swapped here rather than emitted, so a view with no JavaScript keeps
+    // the still it is going to show.
+    if (svg.dataset.liveViewbox) {
+      svg.setAttribute('viewBox', svg.dataset.liveViewbox);
+      const w = Number(svg.getAttribute('width'));
+      const r = Number(svg.dataset.liveRatio);
+      if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
+    }
+    const fig = svg.closest('.figure-diagram');
+    const d = {
+      svg, data, step: -1, raf: 0, cur: null, cache: {},
+      hint: fig ? fig.querySelector('.dg-hint') : null,
+    };
+    svg.psiDiagram = d;
+    DG_LIST.push(d);
+    // A diagram inside an expansion consumes no beats – chunkBeats skips
+    // expansion bodies, or Space would advance a counter while the room
+    // sees nothing move – so nothing ever steps it. Rewinding it to its
+    // opening beat therefore left it half-drawn for good, while print, with
+    // no JavaScript at all, showed the finished picture. Where no beat can
+    // reach, the finished picture is the one to show. Same selector as
+    // chunkBeats, so the two answers cannot disagree.
+    const beatless = svg.closest('.exp-body, .chunk-expansion');
+    dgStep(d, beatless ? d.data.n - 1 : 0, true);
+  });
+}
+
+// dg-rt-end
+</script>
+<script>
+// demo-controls-start
+/*
+ * The controls under a stepped figure: the two arrows, the beat rail and the
+ * play button. It drives the lifted diagram runtime and depends on nothing
+ * else - initDiagrams, dgStep and DG_LIST, all of which arrive from the
+ * runtime spliced in above it.
+ *
+ * A file of its own for the reason editor.mjs and editor.css are: read from
+ * disk and inlined, so a backtick or a backslash in it means what it says.
+ * refresh-figures.mjs splices it into both pages that carry stepped figures -
+ * docs/artifact/figures-you-write.html, which is the manual, and
+ * docs/site/figures.html, which is the case for the language - so the two
+ * cannot drift into two different sets of controls.
+ */
+// Drives the lifted runtime. dgStep(d, k) renders any beat in either
+// direction - stepping back costs nothing, because each beat is recomputed
+// from the counter rather than undone.
+(function () {
+  if (typeof initDiagrams !== 'function') return;
+  initDiagrams();
+  var slow = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // One control bar, wherever it is: the two live demos and, once opened,
+  // any of the fifteen gallery cards.
+  function controls(scope, d) {
+    var play = scope.querySelector('.play');
+    var rail = [].slice.call(scope.querySelectorAll('.rail li'));
+    var timer = 0;
+    function stop() { clearInterval(timer); timer = 0; if (play) play.textContent = 'play'; }
+    function paint() {
+      rail.forEach(function (li, i) { li.setAttribute('aria-current', i === d.step ? 'true' : 'false'); });
+      scope.querySelectorAll('[data-go]').forEach(function (b) {
+        var k = d.step + Number(b.getAttribute('data-go'));
+        b.disabled = k < 0 || k > d.data.n - 1;
+      });
+    }
+    function go(k, instant) {
+      dgStep(d, Math.max(0, Math.min(d.data.n - 1, k)), instant);
+      paint();
+    }
+    scope.querySelectorAll('[data-go]').forEach(function (b) {
+      b.addEventListener('click', function () { stop(); go(d.step + Number(b.getAttribute('data-go'))); });
+    });
+    rail.forEach(function (li, i) {
+      li.querySelector('button').addEventListener('click', function () { stop(); go(i); });
+    });
+    if (play) play.addEventListener('click', function () {
+      if (timer) return stop();
+      play.textContent = 'stop';
+      if (d.step >= d.data.n - 1) go(0, true);
+      timer = setInterval(function () {
+        if (d.step >= d.data.n - 1) { stop(); return; }
+        go(d.step + 1);
+      }, slow ? 1600 : 1150);
+    });
+    paint();
+  }
+
+  document.querySelectorAll('.demo').forEach(function (demo) {
+    var svg = demo.querySelector('svg.psi-diagram');
+    if (svg && svg.psiDiagram) controls(demo, svg.psiDiagram);
+  });
+
+  // A gallery card shows its finished picture until someone opens the source,
+  // and only then becomes steppable. Its beat data is marked with
+  // a class initDiagrams() does not look for: registering these at load would
+  // widen each figure to the frame that holds every beat and rewind it to the
+  // first, so fifteen finished pictures would arrive half-drawn.
+  function wireCard(card) {
+    var svg = card.querySelector('svg.psi-diagram');
+    var sc = card.querySelector('script.psi-card-frames');
+    if (!svg || !sc || svg.psiDiagram) return;
+    var data;
+    try { data = JSON.parse(sc.textContent); } catch (e) { return; }
+    // The same setup initDiagrams() does for one figure. Repeated rather than
+    // called, because that function walks the whole document and would
+    // register the two demos a second time.
+    if (svg.dataset.liveViewbox) {
+      svg.setAttribute('viewBox', svg.dataset.liveViewbox);
+      var w = Number(svg.getAttribute('width'));
+      var r = Number(svg.dataset.liveRatio);
+      if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
+    }
+    var d = { svg: svg, data: data, step: -1, raf: 0, cur: null, cache: {}, hint: null };
+    svg.psiDiagram = d;
+    if (typeof DG_LIST !== 'undefined') DG_LIST.push(d);
+    // Open on the beat the closed card was showing, so nothing jumps.
+    dgStep(d, data.n - 1, true);
+    card.classList.add('steppable');
+    controls(card, d);
+  }
+
+  document.querySelectorAll('figure.card details.src').forEach(function (det) {
+    det.addEventListener('toggle', function () {
+      if (det.open) wireCard(det.closest('figure.card'));
+    });
+  });
+})();
+// demo-controls-end
+</script>
+<script src="site.js"></script>
+<footer>
+  psi-slides &middot; <a href="https://psi.uni-bamberg.de/">Privacy and Security in Information Systems</a>,
+  University of Bamberg &middot; <a href="https://herdom.net">Dominik Herrmann</a><br>
+  Tooling MIT-licensed, lecture content CC&nbsp;BY-SA&nbsp;4.0.
+</footer>
+</main>
+</body>
+</html>

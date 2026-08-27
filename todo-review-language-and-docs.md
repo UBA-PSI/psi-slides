@@ -1223,3 +1223,51 @@ and the class table's width is unchanged by the new column, because
 `table.roles:has(th:nth-child(4))` pins it at 58rem whether it carries four
 columns or five. Recorded rather than fixed: it is a layout question about the
 whole page.
+
+
+---
+
+## Third implementation round: the page was two documents, so it is two pages
+
+The follow-up's learning-path finding was accepted and then overtaken. Rather
+than order one page to serve both jobs, the maintainer split the jobs.
+
+The page was described in two places - `README.md` and `CLAUDE.md` - with one
+verb, *teaches*, and it opened as a manifesto. Its own markup admitted the
+conflict: the eyebrow reading `start here` was on the **second** section, 1,562
+words in, and all nine step verbs appeared before the reader's first `box`.
+Every ordering proposed here, including the one implemented in the previous
+round, was an attempt to make one document do both.
+
+**`docs/site/figures.html`** is the case, on the project site where an
+evaluator arrives. It is Minto, checked against the wording: the page had an
+Answer at the top (line 867) and its Complication 1,170 words below it (line
+913), and no Situation at all - the Answer opened by *negating* a belief it
+never granted. It now runs S-C-A over three figures that already existed: the
+seven-line hero, `#follow` (whose second beat moves four things no line names),
+and `#seq-demo`. Then the four decisions and the comparison table, which are the
+support level Minto says they always were.
+
+**`docs/artifact/figures-you-write.html`** is the manual, and nothing else. The
+manifesto section left; `#follow` moved *into* the step section, where it is now
+the first stepped figure a reader meets - it is three boxes and two beats, and
+`#beats-demo`, which held that place, is ten elements and four beats. `beyond`
+moved above `rules`.
+
+Measured before and after: words before `start here` **1,562 -> 306**; sections
+9 -> 8; **svg 65 -> 65** and pre 68 -> 68, so no drawing and no listing was lost
+in the move. All four contents routes are now **contiguous blocks**, which is
+the property the previous round's monotonicity check was reaching for.
+
+Two things the split forced that are worth recording. `demo-controls.js` became
+a file of its own, inlined into both pages, because two pages now carry stepped
+figures and two copies of that wiring is how their controls come to disagree.
+And `build-site.js` publishes the manual, because the case ends by sending the
+reader to it - the link would otherwise 404 on the deployed site, where
+`docs/artifact/` had never been copied at all.
+
+**Not done, and now unnecessary:** a seventh tutorial stage. `#follow` is that
+stage. **Still open:** progressive disclosure inside the six stages (stage 2
+introduces fourteen terms for one `edge`; stage 4 uses `default` 211 lines
+before it is defined), the page-level horizontal scroll below ~800px, and the
+generated reference for generated names and the default cascade.

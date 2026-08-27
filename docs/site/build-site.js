@@ -243,6 +243,21 @@ function main() {
   // one level up. Same document, translated; the lectures it links to stay in
   // the language they are taught in.
   landing('index.de.html', path.join('de', 'index.html'), 'de', '../');
+  // The case for `::: diagram`, and deliberately not the manual for it. Its
+  // figures, its stepped payloads, its rails and the diagram stylesheet and
+  // runtime are spliced in by docs/artifact/refresh-figures.mjs, which is the
+  // only text that compiles a figure for publication - so this page is copied
+  // verbatim like the landing pages rather than rendered from Markdown, and
+  // `refresh-figures.mjs --check` is what keeps it from going stale.
+  landing('figures.html', 'figures.html', 'en', '');
+  // The manual the case links to. It is not rendered from Markdown and it is
+  // not assembled here - refresh-figures.mjs compiles every drawing on it from
+  // a real build - so it is copied whole. Published because the page beside it
+  // ends by sending the reader to it, and a link to a page that is not there
+  // is worse than no link.
+  fs.copyFileSync(path.join(ROOT, 'docs/artifact/figures-you-write.html'),
+    path.join(outDir, 'figures-you-write.html'));
+  console.log('  docs/artifact/figures-you-write.html -> figures-you-write.html');
   fs.copyFileSync(path.join(HERE, 'site.css'), path.join(outDir, 'site.css'));
   fs.copyFileSync(path.join(HERE, 'site.js'), path.join(outDir, 'site.js'));
   // Screenshots the landing page shows. Copied rather than referenced out of
