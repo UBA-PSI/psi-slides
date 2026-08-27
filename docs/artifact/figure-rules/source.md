@@ -265,48 +265,52 @@ box b "Correlation\nengine" right of a gap 1.15 same as a {.tone-1}
 box c "Log" right of b gap 1.15 same as a {.tone-1}
 :::
 
-## figure: 12 wrong | the first thing to happen is at the bottom right {.full #r12w}
+## figure: 12 wrong | every arrow travels against the way the room reads {.full #r12w}
 
 ::: diagram {unit=150x60}
-# Four stages and not one edge between them: the only thing saying which comes
-# first is where each one sits. Written this way the room reads Disclose first
-# and Report last, which is the story backwards.
-box d "Disclose" at 0,0 {.tone-2}
-box p "Patch"    right of d gap 0.55 {.tone-2}
-box t "Triage"   below d gap 0.6 flush left {.tone-2}
-box r "Report"   right of t gap 0.55 {.tone-2}
+# The same chain laid out right to left, so every arrow travels against the
+# direction the room is already reading in. The note hangs off the middle box
+# and is placed by nothing but where it reads best - no edge joins it.
+box c "Service"  at 0,0 {.tone-2}
+box b "Filter"   right of c gap 0.75 {.tone-1}
+box a "Request"  right of b gap 0.75 {.tone-2}
+edge a -> b
+edge b -> c
+text n "and the drop is logged" below b gap 0.5 {.small .muted}
 :::
 
-## figure: 12 right | reading order carries the sequence, with nothing drawn to say so {.full #r12r}
+## figure: 12 right | the flow runs with the eye, and a note needs no edge {.full #r12r}
 
 ::: diagram {unit=150x60}
-# The same four, and still no edges. Top left to bottom right is the order the
-# room reads a page in, so it is the order it reads these in - and the figure
-# spends no arrow, no number and no word on saying so.
-box r "Report"   at 0,0 {.tone-2}
-box t "Triage"   right of r gap 0.55 {.tone-2}
-box p "Patch"    below r gap 0.6 flush left {.tone-2}
-box d "Disclose" right of p gap 0.55 {.tone-2}
+# The same three, laid out the way the room reads: the arrows now travel with
+# the eye instead of against it. The note is still joined to nothing - where it
+# sits is the whole of what says which box it is about.
+box a "Request"  at 0,0 {.tone-2}
+box b "Filter"   right of a gap 0.75 {.tone-1}
+box c "Service"  right of b gap 0.75 {.tone-2}
+edge a -> b
+edge b -> c
+text n "and the drop is logged" below b gap 0.5 {.small .muted}
 :::
 
-## figure: 15 wrong | four bare shapes in a fill too pale to be a shape {.full #r15w}
+## figure: 15 wrong | the outline is gone and the fill is too pale to replace it {.full #r15w}
 
 ::: diagram {unit=150x60}
-# .bare takes the contour away, so the fill has to be the whole of the shape.
-# At .tone-1 it is barely a tint, and with four of them there is no quiet
-# ground left to read any of them against.
+# One box has had its outline taken away and kept the palest fill there is.
+# Beside three that still have theirs it stops reading as a box at all - which
+# is only visible next to the neighbours it is meant to belong with.
 box a "Sensor"  at 0,0 {.bare .tone-1}
-box b "Engine"  right of a gap 0.5 {.bare .tone-1}
-box c "Store"   right of b gap 0.5 {.bare .tone-1}
-box d "Console" right of c gap 0.5 {.bare .tone-1}
+box b "Engine"  right of a gap 0.5 {.tone-1}
+box c "Store"   right of b gap 0.5 {.tone-1}
+box d "Console" right of c gap 0.5 {.tone-1}
 :::
 
-## figure: 15 right | one bare shape, dark enough to stand without an outline {.full #r15r}
+## figure: 15 right | the same box, in a fill dark enough to be the shape {.full #r15r}
 
 ::: diagram {unit=150x60}
-# One shape carries the emphasis and pays for it with a darker fill; the other
-# three keep their outlines and stay quiet. That is the ground the bare one is
-# read against.
+# The same box, with a fill dark enough to be the shape on its own. Nothing
+# else changed: the outline is still gone, and it still reads as a box, which
+# is the whole of what the darker fill bought.
 box a "Sensor"  at 0,0 {.bare .tone-3}
 box b "Engine"  right of a gap 0.5 {.tone-1}
 box c "Store"   right of b gap 0.5 {.tone-1}

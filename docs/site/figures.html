@@ -33,6 +33,14 @@ main { max-width: 62rem; }
   background: var(--panel); color: var(--ink-soft); font-size: var(--t-small);
 }
 .scqa .status strong { color: var(--ink); font-weight: 500; }
+/* figures-code-fix: site.css paints inline code in its own red; on this page
+   code names things the drawings label in --emph, so the two must agree. The
+   ground is the same one the manual uses, mixed so it follows dark mode. */
+code { color: var(--emph);
+  background: color-mix(in oklch, var(--ink) 7%, var(--paper));
+  border-radius: 3px; padding: 0.08em 0.28em; word-spacing: -0.12em; }
+pre code, pre .cl, pre .kw, .demo-src code {
+  background: none; padding: 0; word-spacing: normal; }
 .figlead { color: var(--ink-soft); max-width: var(--measure); }
 .handoff { margin: 48px 0 8px; padding: 20px 22px; border: 1px solid var(--rule);
            background: var(--panel); max-width: var(--measure); }
@@ -51,6 +59,11 @@ main { max-width: 62rem; }
 .hero-note p { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; max-width: var(--measure); }
 .hero-note b { color: var(--ink); font-weight: 500; }
 .hero-note code { color: var(--emph); }
+.tenets {
+  margin-top: 40px; display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr));
+  gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+}
 .tenet { background: var(--paper); padding: 24px clamp(18px, 2.2vw, 26px) 28px; display: flex; flex-direction: column; gap: 10px; }
 .tenet .t { font-family: var(--mono); font-size: var(--t-micro); letter-spacing: 0.11em; color: var(--emph); }
 .tenet h3 { font-size: 1.22rem; max-width: none; }
@@ -506,7 +519,7 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
   </div>
 
 <h2>What you give up, and what you get</h2>
-<table>
+<div class="versus"><table>
       <thead>
         <tr>
           <th></th>
@@ -553,10 +566,10 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
           <td>When the arrangement is part of the argument, or the figure has to be built up in front of a room</td>
         </tr>
       </tbody>
-    </table>
+    </table></div>
 
 <div class="handoff">
-  <p><strong>That is the case. The manual is separate.</strong> <a href="figures-you-write.html">Figures You Write</a> teaches the language from nothing &ndash; a figure built a line at a time, then beats, then every class and statement there is, fifteen rules for a figure a room can read, and a gallery of finished ones.</p>
+  <p>This page argues for the language. <a href="figures-you-write.html">Figures You Write</a> is the manual: it builds a figure a line at a time, gives it beats, then lists every class and statement, fifteen design rules and a set of worked examples.</p>
 </div>
 
 <script>

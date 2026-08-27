@@ -116,6 +116,9 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 400; text-wrap: balance; ma
 h1 { font-size: clamp(2.6rem, 7vw, 4.6rem); line-height: 1.02; letter-spacing: -0.015em; }
 h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); line-height: 1.12; letter-spacing: -0.01em; }
 h3 { font-size: 1.3rem; line-height: 1.28; }
+/* An h3 standing in the prose flow rather than inside a card, which is
+   where every other one on this page sits and gets its spacing from. */
+section > h3 { margin: 40px 0 12px; }
 /* A heading obeys the measure too. Most of them are three words and never
    reach it; the one that ran to a hundred and nine characters is the reason
    the cap is written down. */
@@ -454,7 +457,7 @@ table.roles:has(th:nth-child(5)) { min-width: 62rem; }
 table.roles:has(th:nth-child(5)) th:first-child { width: 6rem; }
 table.roles:has(th:nth-child(5)) th:nth-child(2) { width: 10.5rem; }
 table.roles:has(th:nth-child(5)) th:nth-child(3) { width: 8.5rem; }
-table.roles:has(th:nth-child(5)) th:nth-child(4) { width: 4.5rem; }
+table.roles:has(th:nth-child(5)) th:nth-child(4) { width: 6.5rem; }
 .tones .swatch { background: var(--paper); padding: 16px clamp(14px, 2vw, 22px); }
 .tones .swatch .psi-diagram { width: 100%; height: auto; }
 /* The last column is prose, and at the full width of the page it ran to a
@@ -508,6 +511,7 @@ table.roles th:nth-child(3):not(:last-child) { width: 11rem; }
    rest, and it is the column that shrinks because it is the one that wraps
    gracefully. */
 .tones:has(th:nth-child(4)) { max-width: 66rem; }
+.tones:has(th:nth-child(5)) { max-width: none; }
 .tones:not(:has(th:nth-child(3))) { max-width: 48rem; }
 /* On a phone the table is at its min-width and scrolling, so every column
    the two name columns keep is one the description does not have - and a
@@ -948,7 +952,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
   </ul></div>
   <div class="toc-route"><p class="toc-h">Look up</p><ul>
     <li><a href="#classes">Every class, and what it acts on</a></li>
-    <li><a href="#beyond">Thirteen more things you can write</a></li>
+    <li><a href="#beyond">More things you can write</a></li>
   </ul></div>
   <div class="toc-route"><p class="toc-h">Design it well</p><ul>
     <li><a href="#rules">Fifteen rules a room can read</a></li>
@@ -1085,7 +1089,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
  '-- statement: what kind of thing this is</span></pre>
     <p class="measure">For a statement that has a placement slot, that slot is compulsory, and the only element allowed to leave it out is the first one, which stands at the origin. Any later one without a placement is an error that names the six words that would fix it: <code>at</code>, <code>above</code>, <code>below</code>, <code>right of</code>, <code>left of</code>, <code>between</code>. The remaining statements have no placement slot at all, because they put what they are about in its stead: an <code>edge</code> writes its two ends there, a <code>container</code> and a <code>brace</code> the members they hold, <code>align</code> and <code>spread</code> an axis and a list, <code>default</code> a kind, and <code>step</code> the name of a beat.</p>
 
-    <h4 class="quirk-head">Eight things the shape above does not tell you</h4>
+    <h4 class="quirk-head">What the shape above does not tell you</h4>
     <div class="walls quirks">
       <div class="wall"><h4>Two rulers, both in the figure&rsquo;s own units</h4><p>The block opens with <code>::: diagram {unit=170x56}</code>, which sets how many pixels one unit is across and down, and one unit is meant to be about one box wide. Every number after that is in units, so a figure keeps its proportions whatever size it is drawn at &ndash; but the two are not one ruler. A number that <em>addresses</em> the grid takes the axis it is written on: <code>w</code> counts unit widths, <code>h</code> unit heights, and so do <code>at</code>, <code>offset</code> and a nudge on a coordinate. A number that states a <em>clearance</em> is square, and its ruler is the row: <code>gap</code>, <code>pad</code>, <code>space</code> and a dot&rsquo;s <code>r</code> draw the same distance whichever way they point.</p></div>
       <div class="wall"><h4>Three different marks share one pair of braces</h4><p>In the tail, <code>.something</code> adds a class, <code>!something</code> takes one off again, and <code>@something</code> is a tag that puts the element in a group. There is no mark for a name: every statement that can be referred to later names itself in its own words, a <code>box</code> and an <code>edge</code> alike.</p></div>
@@ -1275,7 +1279,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 <section id="beyond">
   <div class="sechead">
     <p class="eyebrow">beyond the basics</p>
-    <h2>Thirteen more things you can write</h2>
+    <h2>More things you can write</h2>
     <p class="measure">None of these is a new kind of element, which is why all of them move between beats like the boxes and edges above. Five outlines that are not rectangles, a label that reads bottom to top, a bar chart, the same chart turned on its side, a second series in it, a column singled out from the opening beat, a plot with a curve through it, two ways of saying what shape a chart is, three frames matched to the pixel, one drawing reused many times over, a statement that evens out spacing, the cycle that statement can create, and type that scales to its box.</p>
     <p class="measure">Each pair below is real: the drawing was produced by the source shown with it.</p>
   </div>
@@ -1284,7 +1288,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 
     <div class="spec">
       <div class="said">
-        <h3>Five outlines that are not rectangles, two of which can be aimed</h3>
+        <h3>Outlines that are not rectangles, two of which can be aimed</h3>
         <p>A protocol message that is an arrow, a sensor that is a hexagon, a decision that is a diamond, a size comparison that is a triangle, a scatter marker. They share one class group with <code>.round</code> and <code>.sharp</code>, and a group holds one class at a time, so a box that is written with two outlines is a line the build refuses rather than a drawing that picks one of them for you.</p>
         <p><code>.diamond</code> is the shape a room has been trained on since school, and it is the one outline that eats both axes at once: the widest room a diamond offers is a strip half its width by half its height through the middle, so the box is sized at twice what the same label would need in a rectangle. Give it short labels.</p>
         <p>Which way a point aims is set by the <code>point</code> option &ndash; <code>up</code>, <code>down</code>, <code>left</code> or <code>right</code> &ndash; rather than by a class of its own, so the two pointed outlines cover eight orientations between them. Writing <code>point</code> on an outline that has no point is an error.</p>
@@ -2080,23 +2084,27 @@ footer .paths b { color: var(--ink); font-weight: 500; }
         <div class="pair">
         <div class="side no">
           <span class="tag">wrong</span>
-          <div class="draw"><svg id="rlr12w-root" class="psi-diagram" viewBox="-56.20 -30.38 211.75 133.50" width="2000" height="1261" data-steps="1" role="img" aria-label="12 wrong" preserveAspectRatio="xMidYMid meet">
-<g id="rlr12w-d" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12w-d--r" x="-44.20" y="-18.38" width="88.40" height="36.75" rx="4"/><g id="rlr12w-d--lw0" data-lab="d--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="rlr12w-d--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Disclose</tspan></text></g></g></g>
-<g id="rlr12w-p" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12w-p--r" x="77.20" y="-18.38" width="66.35" height="36.75" rx="4"/><g id="rlr12w-p--lw0" data-lab="p--l" class="dg-lwrap" transform="translate(110.38,0.00)"><g id="rlr12w-p--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Patch</tspan></text></g></g></g>
-<g id="rlr12w-t" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12w-t--r" x="-44.20" y="54.38" width="74.45" height="36.75" rx="4"/><g id="rlr12w-t--lw0" data-lab="t--l" class="dg-lwrap" transform="translate(-6.97,72.75)"><g id="rlr12w-t--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Triage</tspan></text></g></g></g>
-<g id="rlr12w-r" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12w-r--r" x="63.25" y="54.38" width="74.45" height="36.75" rx="4"/><g id="rlr12w-r--lw0" data-lab="r--l" class="dg-lwrap" transform="translate(100.48,72.75)"><g id="rlr12w-r--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Report</tspan></text></g></g></g>
+          <div class="draw"><svg id="rlr12w-root" class="psi-diagram" viewBox="-53.28 -30.38 349.05 105.75" width="2000" height="606" data-steps="1" role="img" aria-label="12 wrong" preserveAspectRatio="xMidYMid meet">
+<g id="rlr12w-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="rlr12w-edge-1--p" class="dg-stroke" d="M201.23 0.00L163.88 0.00" fill="none"/><path id="rlr12w-edge-1--h" class="dg-head" d="M156.23 0.00L165.23 -3.96L165.23 3.96Z"/></g>
+<g id="rlr12w-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="rlr12w-edge-2--p" class="dg-stroke" d="M86.28 0.00L48.93 0.00" fill="none"/><path id="rlr12w-edge-2--h" class="dg-head" d="M41.28 0.00L50.28 -3.96L50.28 3.96Z"/></g>
+<g id="rlr12w-c" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12w-c--r" x="-41.28" y="-18.38" width="82.55" height="36.75" rx="4"/><g id="rlr12w-c--lw0" data-lab="c--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="rlr12w-c--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Service</tspan></text></g></g></g>
+<g id="rlr12w-b" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlr12w-b--r" x="86.28" y="-18.38" width="69.95" height="36.75" rx="4"/><g id="rlr12w-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(121.25,0.00)"><g id="rlr12w-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Filter</tspan></text></g></g></g>
+<g id="rlr12w-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12w-a--r" x="201.23" y="-18.38" width="82.55" height="36.75" rx="4"/><g id="rlr12w-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(242.50,0.00)"><g id="rlr12w-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Request</tspan></text></g></g></g>
+<g id="rlr12w-n" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="rlr12w-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(121.25,55.88)"><g id="rlr12w-n--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">and the drop is logged</tspan></text></g></g></g>
 </svg></div>
-          <pre data-pairsrc="r12w"><span class="srcln"><span class="kw">box</span> d <span class="cl">"Disclose"</span> <span class="kw">at</span> 0,0 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> p <span class="cl">"Patch"</span>    <span class="kw">right of</span> d <span class="kw">gap</span> 0.55 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> t <span class="cl">"Triage"</span>   <span class="kw">below</span> d <span class="kw">gap</span> 0.6 <span class="kw">flush</span> left <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> r <span class="cl">"Report"</span>   <span class="kw">right of</span> t <span class="kw">gap</span> 0.55 <span class="cl">{.tone-2}</span></span></pre>
+          <pre data-pairsrc="r12w"><span class="srcln"><span class="kw">box</span> c <span class="cl">"Service"</span>  <span class="kw">at</span> 0,0 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> b <span class="cl">"Filter"</span>   <span class="kw">right of</span> c <span class="kw">gap</span> 0.75 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">box</span> a <span class="cl">"Request"</span>  <span class="kw">right of</span> b <span class="kw">gap</span> 0.75 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">edge</span> a -&gt; b</span><span class="srcln"><span class="kw">edge</span> b -&gt; c</span><span class="srcln"><span class="kw">text</span> n <span class="cl">"and the drop is logged"</span> <span class="kw">below</span> b <span class="kw">gap</span> 0.5 <span class="cl">{.small .muted}</span></span></pre>
         </div>
         <div class="side yes">
           <span class="tag">right</span>
-          <div class="draw"><svg id="rlr12r-root" class="psi-diagram" viewBox="-49.23 -30.38 211.75 133.50" width="2000" height="1261" data-steps="1" role="img" aria-label="12 right" preserveAspectRatio="xMidYMid meet">
-<g id="rlr12r-r" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12r-r--r" x="-37.23" y="-18.38" width="74.45" height="36.75" rx="4"/><g id="rlr12r-r--lw0" data-lab="r--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="rlr12r-r--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Report</tspan></text></g></g></g>
-<g id="rlr12r-t" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12r-t--r" x="70.23" y="-18.38" width="74.45" height="36.75" rx="4"/><g id="rlr12r-t--lw0" data-lab="t--l" class="dg-lwrap" transform="translate(107.45,0.00)"><g id="rlr12r-t--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Triage</tspan></text></g></g></g>
-<g id="rlr12r-p" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12r-p--r" x="-37.23" y="54.38" width="66.35" height="36.75" rx="4"/><g id="rlr12r-p--lw0" data-lab="p--l" class="dg-lwrap" transform="translate(-4.05,72.75)"><g id="rlr12r-p--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Patch</tspan></text></g></g></g>
-<g id="rlr12r-d" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12r-d--r" x="62.13" y="54.38" width="88.40" height="36.75" rx="4"/><g id="rlr12r-d--lw0" data-lab="d--l" class="dg-lwrap" transform="translate(106.33,72.75)"><g id="rlr12r-d--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Disclose</tspan></text></g></g></g>
+          <div class="draw"><svg id="rlr12r-root" class="psi-diagram" viewBox="-53.28 -30.38 349.05 105.75" width="2000" height="606" data-steps="1" role="img" aria-label="12 right" preserveAspectRatio="xMidYMid meet">
+<g id="rlr12r-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="rlr12r-edge-1--p" class="dg-stroke" d="M41.28 0.00L78.63 0.00" fill="none"/><path id="rlr12r-edge-1--h" class="dg-head" d="M86.28 0.00L77.28 3.96L77.28 -3.96Z"/></g>
+<g id="rlr12r-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="rlr12r-edge-2--p" class="dg-stroke" d="M156.23 0.00L193.58 0.00" fill="none"/><path id="rlr12r-edge-2--h" class="dg-head" d="M201.23 0.00L192.23 3.96L192.23 -3.96Z"/></g>
+<g id="rlr12r-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12r-a--r" x="-41.28" y="-18.38" width="82.55" height="36.75" rx="4"/><g id="rlr12r-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="rlr12r-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Request</tspan></text></g></g></g>
+<g id="rlr12r-b" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlr12r-b--r" x="86.28" y="-18.38" width="69.95" height="36.75" rx="4"/><g id="rlr12r-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(121.25,0.00)"><g id="rlr12r-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Filter</tspan></text></g></g></g>
+<g id="rlr12r-c" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlr12r-c--r" x="201.23" y="-18.38" width="82.55" height="36.75" rx="4"/><g id="rlr12r-c--lw0" data-lab="c--l" class="dg-lwrap" transform="translate(242.50,0.00)"><g id="rlr12r-c--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Service</tspan></text></g></g></g>
+<g id="rlr12r-n" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="rlr12r-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(121.25,55.88)"><g id="rlr12r-n--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">and the drop is logged</tspan></text></g></g></g>
 </svg></div>
-          <pre data-pairsrc="r12r"><span class="srcln"><span class="kw">box</span> r <span class="cl">"Report"</span>   <span class="kw">at</span> 0,0 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> t <span class="cl">"Triage"</span>   <span class="kw">right of</span> r <span class="kw">gap</span> 0.55 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> p <span class="cl">"Patch"</span>    <span class="kw">below</span> r <span class="kw">gap</span> 0.6 <span class="kw">flush</span> left <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> d <span class="cl">"Disclose"</span> <span class="kw">right of</span> p <span class="kw">gap</span> 0.55 <span class="cl">{.tone-2}</span></span></pre>
+          <pre data-pairsrc="r12r"><span class="srcln"><span class="kw">box</span> a <span class="cl">"Request"</span>  <span class="kw">at</span> 0,0 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> b <span class="cl">"Filter"</span>   <span class="kw">right of</span> a <span class="kw">gap</span> 0.75 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">box</span> c <span class="cl">"Service"</span>  <span class="kw">right of</span> b <span class="kw">gap</span> 0.75 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">edge</span> a -&gt; b</span><span class="srcln"><span class="kw">edge</span> b -&gt; c</span><span class="srcln"><span class="kw">text</span> n <span class="cl">"and the drop is logged"</span> <span class="kw">below</span> b <span class="kw">gap</span> 0.5 <span class="cl">{.small .muted}</span></span></pre>
         </div>
       </div>
       </div>
@@ -2154,6 +2162,28 @@ footer .paths b { color: var(--ink); font-weight: 500; }
         <p class="why">The outline is what closes the contour, and a closed contour is what the eye takes for an object. Dropping it is a fair way to cut clutter, and it moves the whole job onto the fill, which then has to be darker than it would otherwise have been (Carter). Past three or four such shapes the saving has been spent, and the figure has no quiet ground left to emphasise anything against.</p>
         <p class="why after">The exception is a region rather than an object. A <code>container</code> written <code>.bare</code> with a pale fill is a ground, and a ground is meant to recede, which is the opposite of what a shape has to do. The rule above is about shapes that have to read as <em>things</em>.</p>
         <p class="why after"><b><code>.tone-4</code> with <code>.small</code> is the specific pair to watch.</b> <code>.tone-4</code> turns its own label the colour of the page, so that it can be read on a solid fill, and <code>.small</code> is twelve pixels. Reversed type at twelve pixels is legible on the machine that drew the figure and gone from the back of a lecture theatre. A solid-filled box that needs a small label needs a shorter label instead.</p>
+        <div class="pair">
+        <div class="side no">
+          <span class="tag">wrong</span>
+          <div class="draw"><svg id="rlr15w-root" class="psi-diagram" viewBox="-50.35 -30.38 414.05 60.75" width="2000" height="293" data-steps="1" role="img" aria-label="15 wrong" preserveAspectRatio="xMidYMid meet">
+<g id="rlr15w-a" data-base="dg-el dg-box" class="dg-el dg-box bare tone-1"><rect id="rlr15w-a--r" x="-38.35" y="-18.38" width="76.70" height="36.75" rx="4"/><g id="rlr15w-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="rlr15w-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sensor</tspan></text></g></g></g>
+<g id="rlr15w-b" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlr15w-b--r" x="68.35" y="-18.38" width="74.45" height="36.75" rx="4"/><g id="rlr15w-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(105.58,0.00)"><g id="rlr15w-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Engine</tspan></text></g></g></g>
+<g id="rlr15w-c" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlr15w-c--r" x="172.80" y="-18.38" width="66.35" height="36.75" rx="4"/><g id="rlr15w-c--lw0" data-lab="c--l" class="dg-lwrap" transform="translate(205.98,0.00)"><g id="rlr15w-c--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Store</tspan></text></g></g></g>
+<g id="rlr15w-d" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlr15w-d--r" x="269.15" y="-18.38" width="82.55" height="36.75" rx="4"/><g id="rlr15w-d--lw0" data-lab="d--l" class="dg-lwrap" transform="translate(310.42,0.00)"><g id="rlr15w-d--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Console</tspan></text></g></g></g>
+</svg></div>
+          <pre data-pairsrc="r15w"><span class="srcln"><span class="kw">box</span> a <span class="cl">"Sensor"</span>  <span class="kw">at</span> 0,0 <span class="cl">{.bare .tone-1}</span></span><span class="srcln"><span class="kw">box</span> b <span class="cl">"Engine"</span>  <span class="kw">right of</span> a <span class="kw">gap</span> 0.5 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">box</span> c <span class="cl">"Store"</span>   <span class="kw">right of</span> b <span class="kw">gap</span> 0.5 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">box</span> d <span class="cl">"Console"</span> <span class="kw">right of</span> c <span class="kw">gap</span> 0.5 <span class="cl">{.tone-1}</span></span></pre>
+        </div>
+        <div class="side yes">
+          <span class="tag">right</span>
+          <div class="draw"><svg id="rlr15r-root" class="psi-diagram" viewBox="-50.35 -30.38 414.05 60.75" width="2000" height="293" data-steps="1" role="img" aria-label="15 right" preserveAspectRatio="xMidYMid meet">
+<g id="rlr15r-a" data-base="dg-el dg-box" class="dg-el dg-box bare tone-3"><rect id="rlr15r-a--r" x="-38.35" y="-18.38" width="76.70" height="36.75" rx="4"/><g id="rlr15r-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="rlr15r-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sensor</tspan></text></g></g></g>
+<g id="rlr15r-b" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlr15r-b--r" x="68.35" y="-18.38" width="74.45" height="36.75" rx="4"/><g id="rlr15r-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(105.58,0.00)"><g id="rlr15r-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Engine</tspan></text></g></g></g>
+<g id="rlr15r-c" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlr15r-c--r" x="172.80" y="-18.38" width="66.35" height="36.75" rx="4"/><g id="rlr15r-c--lw0" data-lab="c--l" class="dg-lwrap" transform="translate(205.98,0.00)"><g id="rlr15r-c--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Store</tspan></text></g></g></g>
+<g id="rlr15r-d" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlr15r-d--r" x="269.15" y="-18.38" width="82.55" height="36.75" rx="4"/><g id="rlr15r-d--lw0" data-lab="d--l" class="dg-lwrap" transform="translate(310.42,0.00)"><g id="rlr15r-d--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Console</tspan></text></g></g></g>
+</svg></div>
+          <pre data-pairsrc="r15r"><span class="srcln"><span class="kw">box</span> a <span class="cl">"Sensor"</span>  <span class="kw">at</span> 0,0 <span class="cl">{.bare .tone-3}</span></span><span class="srcln"><span class="kw">box</span> b <span class="cl">"Engine"</span>  <span class="kw">right of</span> a <span class="kw">gap</span> 0.5 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">box</span> c <span class="cl">"Store"</span>   <span class="kw">right of</span> b <span class="kw">gap</span> 0.5 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">box</span> d <span class="cl">"Console"</span> <span class="kw">right of</span> c <span class="kw">gap</span> 0.5 <span class="cl">{.tone-1}</span></span></pre>
+        </div>
+      </div>
       </div>
     </div>
   </div>
@@ -2179,7 +2209,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 
   <div class="sechead" style="margin-top:56px">
     <p class="eyebrow">before a figure is finished</p>
-    <h2>Twenty things, checkable mechanically</h2>
+    <h2>Checkable mechanically, before a figure is finished</h2>
   </div>
   <div class="checks measure"><ol>
     <li><code>node lint.js &lt;source.md&gt;</code> reports nothing. A warning you have decided to live with still counts as unclean.</li>
@@ -2206,7 +2236,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 
   <div class="sechead" style="margin-top:56px">
     <p class="eyebrow">what it cannot do</p>
-    <h2>Eight things the language will not do</h2>
+    <h2>What the language will not do</h2>
   </div>
   <div class="walls limits">
     <div class="wall"><h4>No automatic routing</h4><p>Edges are straight segments through the waypoints you write. Nothing steps around a box for you, and nothing fans out parallel edges &ndash; that is what the <code>:0.3</code> / <code>:0.7</code> fractions are for. <code>.elbow</code> is the one place the build puts a point on the page you did not write, and it is bounded so it cannot become routing: the turn is always halfway across the gap, it looks at nothing else in the figure, and there is no option to move it.</p></div>
@@ -2450,28 +2480,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
     <h2>More complex examples</h2>
     <p class="measure">Network security, mostly: how a packet is addressed, a spoofed reply to a name lookup, a handshake used as a weapon, certificate chains, firewall rules, an intrusion detector and the curve that describes it. Three of these are one drawing that develops rather than three separate drawings &ndash; the same names in the same places, at different beats.</p>
     <p class="measure">Each is shown at its final beat, which is what a printed copy gets. Open a card to read the source it was built from, exactly as it stands in the lecture file, comments and working notes included.</p>
-        <div class="pair">
-        <div class="side no">
-          <span class="tag">wrong</span>
-          <div class="draw"><svg id="rlr15w-root" class="psi-diagram" viewBox="-50.35 -30.38 414.05 60.75" width="2000" height="293" data-steps="1" role="img" aria-label="15 wrong" preserveAspectRatio="xMidYMid meet">
-<g id="rlr15w-a" data-base="dg-el dg-box" class="dg-el dg-box bare tone-1"><rect id="rlr15w-a--r" x="-38.35" y="-18.38" width="76.70" height="36.75" rx="4"/><g id="rlr15w-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="rlr15w-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sensor</tspan></text></g></g></g>
-<g id="rlr15w-b" data-base="dg-el dg-box" class="dg-el dg-box bare tone-1"><rect id="rlr15w-b--r" x="68.35" y="-18.38" width="74.45" height="36.75" rx="4"/><g id="rlr15w-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(105.58,0.00)"><g id="rlr15w-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Engine</tspan></text></g></g></g>
-<g id="rlr15w-c" data-base="dg-el dg-box" class="dg-el dg-box bare tone-1"><rect id="rlr15w-c--r" x="172.80" y="-18.38" width="66.35" height="36.75" rx="4"/><g id="rlr15w-c--lw0" data-lab="c--l" class="dg-lwrap" transform="translate(205.98,0.00)"><g id="rlr15w-c--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Store</tspan></text></g></g></g>
-<g id="rlr15w-d" data-base="dg-el dg-box" class="dg-el dg-box bare tone-1"><rect id="rlr15w-d--r" x="269.15" y="-18.38" width="82.55" height="36.75" rx="4"/><g id="rlr15w-d--lw0" data-lab="d--l" class="dg-lwrap" transform="translate(310.42,0.00)"><g id="rlr15w-d--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Console</tspan></text></g></g></g>
-</svg></div>
-          <pre data-pairsrc="r15w"><span class="srcln"><span class="kw">box</span> a <span class="cl">"Sensor"</span>  <span class="kw">at</span> 0,0 <span class="cl">{.bare .tone-1}</span></span><span class="srcln"><span class="kw">box</span> b <span class="cl">"Engine"</span>  <span class="kw">right of</span> a <span class="kw">gap</span> 0.5 <span class="cl">{.bare .tone-1}</span></span><span class="srcln"><span class="kw">box</span> c <span class="cl">"Store"</span>   <span class="kw">right of</span> b <span class="kw">gap</span> 0.5 <span class="cl">{.bare .tone-1}</span></span><span class="srcln"><span class="kw">box</span> d <span class="cl">"Console"</span> <span class="kw">right of</span> c <span class="kw">gap</span> 0.5 <span class="cl">{.bare .tone-1}</span></span></pre>
-        </div>
-        <div class="side yes">
-          <span class="tag">right</span>
-          <div class="draw"><svg id="rlr15r-root" class="psi-diagram" viewBox="-50.35 -30.38 414.05 60.75" width="2000" height="293" data-steps="1" role="img" aria-label="15 right" preserveAspectRatio="xMidYMid meet">
-<g id="rlr15r-a" data-base="dg-el dg-box" class="dg-el dg-box bare tone-3"><rect id="rlr15r-a--r" x="-38.35" y="-18.38" width="76.70" height="36.75" rx="4"/><g id="rlr15r-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="rlr15r-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sensor</tspan></text></g></g></g>
-<g id="rlr15r-b" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlr15r-b--r" x="68.35" y="-18.38" width="74.45" height="36.75" rx="4"/><g id="rlr15r-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(105.58,0.00)"><g id="rlr15r-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Engine</tspan></text></g></g></g>
-<g id="rlr15r-c" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlr15r-c--r" x="172.80" y="-18.38" width="66.35" height="36.75" rx="4"/><g id="rlr15r-c--lw0" data-lab="c--l" class="dg-lwrap" transform="translate(205.98,0.00)"><g id="rlr15r-c--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Store</tspan></text></g></g></g>
-<g id="rlr15r-d" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlr15r-d--r" x="269.15" y="-18.38" width="82.55" height="36.75" rx="4"/><g id="rlr15r-d--lw0" data-lab="d--l" class="dg-lwrap" transform="translate(310.42,0.00)"><g id="rlr15r-d--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Console</tspan></text></g></g></g>
-</svg></div>
-          <pre data-pairsrc="r15r"><span class="srcln"><span class="kw">box</span> a <span class="cl">"Sensor"</span>  <span class="kw">at</span> 0,0 <span class="cl">{.bare .tone-3}</span></span><span class="srcln"><span class="kw">box</span> b <span class="cl">"Engine"</span>  <span class="kw">right of</span> a <span class="kw">gap</span> 0.5 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">box</span> c <span class="cl">"Store"</span>   <span class="kw">right of</span> b <span class="kw">gap</span> 0.5 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">box</span> d <span class="cl">"Console"</span> <span class="kw">right of</span> c <span class="kw">gap</span> 0.5 <span class="cl">{.tone-1}</span></span></pre>
-        </div>
-      </div>
+
   </div>
   <div class="gallery"><figure class="card">
       <div class="shot" data-shot="ns-a03"><svg id="galnsa03-root" class="psi-diagram" viewBox="-78.00 -236.55 552.00 332.40" width="2000" height="1204" data-live-viewbox="-78.00 -236.55 552.00 332.40" data-live-ratio="0.602174" data-steps="4" role="img" aria-label="For transport, each network layer relies on addresses" preserveAspectRatio="xMidYMid meet">
