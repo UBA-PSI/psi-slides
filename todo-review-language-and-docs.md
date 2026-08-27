@@ -1331,3 +1331,54 @@ two of them, the wrong message and the count divergence.
 
 Still open, unchanged: progressive disclosure inside the six stages, and the
 page-level horizontal scroll below ~800px.
+
+
+---
+
+## Fifth round: progressive disclosure inside the six stages
+
+The last learning-path item, and the one that rewrites teaching prose rather
+than moving it. The rule applied to each card: explain the new marked line and
+nothing else; variants, exceptions and complete inventories belong in the
+reference.
+
+Measured per card, prose words and distinct `<code>` terms:
+
+| stage | before | after |
+|---|---|---|
+| 2, one `edge` | 194 w, **14 terms** | 62 w, **1 term** |
+| 3, placement | 101 w, 5 | 94 w, 7 |
+| 4, the tail | 129 w, 4 | 96 w, 2 |
+| 5, `text` and a leader | 111 w, 5 | 81 w, 2 |
+
+Stage 3 gained terms on purpose: it now names all five placement words, which
+are its own subject. Stage 2 lost the four arrow tokens, `via`, `.smooth`,
+`.elbow`, the three head classes and a `style` step - a beat construct that
+stood 118 lines before beats are taught. Stage 4 lost class groups, slot
+conflicts, `{!bold}` and the forward reference to `default`, which was defined
+211 lines later in the reference.
+
+**Nothing was deleted that the reference did not already hold, and where it did
+not hold it, the reference gained it.** `via` and `.elbow` were already in
+*Routing an edge*; `default` was already in *Setting a base for everything*. The
+four arrow tokens were nowhere, so they are a wall of their own now - and the
+class table turned out to be **missing an entire class group**: arrowheads.
+`.no-head` / `.one-head` / `.both-heads` are in `DG_CLASS_GROUPS` and were in no
+row of the reference that lists every class. That row exists now, and its
+"in a step?" cell filled itself from `DG_STEP_FIXED` like the other fifteen.
+
+The card enumerating the five families of step operation moved out of the
+tutorial into the step section, where the verbs it names are actually used. It
+was the last place `step` was explained before its own section. What is left in
+the tutorial is one sentence: three statements read the lines under them, none
+of them is needed for a figure that stands still.
+
+**Acceptance, checked mechanically rather than asserted:** the tutorial section
+now contains no `{!class}`, no `via`, no `.smooth`, no `.elbow`, no head class,
+no `emph` / `ghost` / `style`, and no `<-` or `<->`; and it still teaches `box`,
+`edge`, relative placement, `gap`, tones, `text` with a leader, and
+`container`. One mention of `default` remains, in the anatomy block's list of
+which statements have no placement slot - named in passing, not used.
+
+Structure unchanged across the pass: 8 sections, 10 h2, 46 h3, 65 svg, 68 pre,
+0 em dashes; class-table rows 15 -> 16, which is the arrowhead group.
