@@ -11,8 +11,10 @@
  * own type. It was not - the site kept Inter Tight and Iosevka after build.js
  * moved to IBM Plex Sans and JetBrains Mono, so a reader comparing a
  * screenshot with the page around it was looking at two different faces.
- * Both are copied out of node_modules at build time (variable weight axis,
- * latin subset), so a font upgrade lands here without a second step.
+ * The variable-weight latin cuts are tracked under fonts/, so these source
+ * pages keep their type when opened straight from a fresh checkout or release
+ * archive. They come from the same Fontsource packages build.js embeds; an
+ * upgrade updates the packages and these copies together.
  */
 
 @font-face {

@@ -130,17 +130,26 @@
    * `.uishot img`, which only the manual has - on the case page this wires
    * nothing and site.js keeps its own shots.
    */
-  var lit = null;
+  var lit = null, litTrigger = null;
   function litOpen(img) {
     if (!lit) {
       lit = document.createElement('div');
       lit.className = 'uilight';
       lit.hidden = true;
       lit.tabIndex = -1;
+      lit.setAttribute('role', 'dialog');
+      lit.setAttribute('aria-modal', 'true');
+      lit.setAttribute('aria-label', 'Expanded editor screenshot');
       lit.appendChild(document.createElement('img'));
       document.body.appendChild(lit);
       lit.addEventListener('click', litClose);
+      // The overlay itself is the dialog's only control. Keep Tab from moving
+      // into the page behind a modal whose body has been made non-scrollable.
+      lit.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Tab') ev.preventDefault();
+      });
     }
+    litTrigger = img;
     lit.firstChild.src = img.currentSrc || img.src;
     lit.firstChild.alt = img.alt;
     lit.hidden = false;
@@ -155,6 +164,8 @@
     // the rest of the page's life.
     lit.firstChild.removeAttribute('src');
     document.body.classList.remove('uilight-open');
+    if (litTrigger && litTrigger.isConnected) litTrigger.focus();
+    litTrigger = null;
   }
   document.querySelectorAll('.uishot img').forEach(function (img) {
     img.tabIndex = 0;
