@@ -419,6 +419,35 @@ say('  step column filled for ' + (page.match(/data-stepcol/g) || []).length + '
   say('  class table holds all ' + known.length + ' classes, once each');
 }
 
+// Every wide table on this page is `table.roles`, and the page's own way of
+// keeping one inside the viewport is a `.tones` wrapper, whose
+// `:has(table.roles)` rule gives it `overflow-x: auto`. Without it the table's
+// 928px `min-width` pushes the whole document sideways on any screen narrower
+// than that - which is what the state table added with the step section did,
+// and it went unseen because nothing at desktop width is narrow enough to show
+// it. Containment and not adjacency: one of these tables opens its wrapper a
+// swatch earlier, so "the tag before it" is the wrong question.
+{
+  const loose = [];
+  const depth = [];                       // open <div>s, true where one is .tones
+  const tok = /<div\b([^>]*)>|<\/div>|<table class="roles">/g;
+  let m;
+  while ((m = tok.exec(page))) {
+    if (m[0] === '</div>') depth.pop();
+    else if (m[0].startsWith('<div')) depth.push(/class="[^"]*\btones\b/.test(m[1]));
+    else if (!depth.some(Boolean)) {
+      const th = page.slice(m.index, m.index + 400).match(/<th[^>]*>([^<]{1,28})/);
+      loose.push(th ? '"' + th[1].trim() + '"' : 'at offset ' + m.index);
+    }
+  }
+  if (loose.length) {
+    throw new Error('table.roles outside a .tones wrapper, so it pushes the page sideways on a '
+      + 'narrow screen: ' + loose.join('; '));
+  }
+  say('  ' + (page.match(/<table class="roles">/g) || []).length
+    + ' wide tables, each inside its own scroll container');
+}
+
 page = replaceBetween(page, '<!--stepfixed:start-->', '<!--stepfixed:end-->',
   stepFixed(), 'step-fixed class list');
 say('  ' + Object.values(DG_STEP_FIXED).flat().length

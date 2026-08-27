@@ -1405,3 +1405,41 @@ used.
 **Sixteen lines carried trailing whitespace**; `git diff --check` is clean. The
 step wall lost its closing sentence about `table` and `sequence`, a reference
 digression left over from the card it came from.
+
+
+---
+
+## The horizontal page scroll
+
+Two causes, one of them mine, and the diagnosis mattered more than either fix.
+
+**A `table.roles` with no `.tones` wrapper.** The page keeps a wide table inside
+the viewport by wrapping it in `.tones`, whose `:has(table.roles)` rule supplies
+`overflow-x: auto`. The state table added with the step section had no wrapper,
+so its 928px `min-width` pushed the document sideways on anything narrower -
+invisible at desk width, because nothing there is narrow enough to show it.
+
+**An auto-fit floor wider than a phone.** `.walls.vocab` asked for
+`minmax(336px, 1fr)`, which cannot shrink below 336 however narrow the screen
+is. Eight such floors are now `minmax(min(Xpx, 100%), 1fr)`, which changes
+nothing where the column fits: at 1200px the walls are still three across, the
+beats four, the contents four.
+
+**The measurement had to be fixed before either could be.** A first pass named
+six offenders, and four were false: `getBoundingClientRect()` reports layout
+position regardless of clipping, so every token inside a scrolling `<pre>` looks
+like it escapes the page. The probe now walks up for an ancestor with
+`overflow-x`, and it separates the two answers that a naive check conflates:
+`auto` or `scroll` means the content is *reachable*, `hidden` means it is
+*lost*. Both would otherwise read as "fine". The comparison table on the site
+page turned out to be the first kind - it is its own scroll container and scrolls
+its full 160px of overhang, verified by scrolling it rather than by reading a
+number off it.
+
+Measured after: at 320, 380, 760 and 1200 both pages report zero page overflow,
+nothing escaping and nothing clipped away.
+
+`refresh-figures.mjs` gates the wrapper convention now, by containment rather
+than adjacency - one of the three tables opens its wrapper a swatch earlier, so
+"the tag before it" is the wrong question. Calibrated against the original
+defect: it names the table by its first heading, `"what you wrote"`.
