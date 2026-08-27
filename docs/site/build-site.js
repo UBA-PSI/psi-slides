@@ -211,7 +211,7 @@ ${body}
 // A missing file is a hard error – silently shipping a page whose @font-face
 // 404s is exactly the fallback-to-system-font failure this avoids.
 const FONT_PKG = (p, f) => path.join(ROOT, 'node_modules/@fontsource-variable', p, 'files', f);
-function copyFonts(outDir) {
+function copyFonts(outDir, quiet) {
   const sources = [
     FONT_PKG('ibm-plex-sans', 'ibm-plex-sans-latin-wght-normal.woff2'),
     FONT_PKG('ibm-plex-sans', 'ibm-plex-sans-latin-wght-italic.woff2'),
@@ -236,7 +236,7 @@ function copyFonts(outDir) {
     }
     fs.copyFileSync(src, path.join(outDir, out));
   }
-  console.log(`  fonts -> fonts/ (${sources.length} faces + ${notices.length} licences, ${Math.round(bytes / 1024)} KB)`);
+  if (!quiet) console.log(`  fonts -> fonts/ (${sources.length} faces + ${notices.length} licences, ${Math.round(bytes / 1024)} KB)`);
 }
 
 function main() {
@@ -308,6 +308,14 @@ function main() {
     console.log(`  docs/site/img -> img/ (${fs.readdirSync(img).length} files)`);
   }
   copyFonts(path.join(outDir, 'fonts'));
+  // And into the source tree, so docs/site/index.html renders in its own type
+  // when it is opened straight off disk. It is a developer convenience, not an
+  // output: the faces stay untracked (see .gitignore) because node_modules is
+  // where they come from, and a checked-in copy is a second place a font
+  // upgrade has to reach. Only one of the three used to be there, which is why
+  // the source file had been falling back to the system sans for a long time
+  // without anyone deciding that it should.
+  copyFonts(path.join(HERE, 'fonts'), true);
 
   for (const page of PAGES) {
     const abs = path.join(ROOT, page.src);

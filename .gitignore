@@ -47,3 +47,8 @@ lectures/*/speaker.html
 
 # playwright smoke-test scratch
 .playwright-mcp/
+
+# Site webfaces: copied out of node_modules by docs/site/build-site.js so the
+# source pages render in their own type when opened off disk. Not outputs.
+docs/site/fonts/*.woff2
+docs/site/fonts/*-OFL.txt
