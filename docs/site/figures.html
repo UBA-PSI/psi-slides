@@ -52,6 +52,9 @@ pre code, pre .cl, pre .kw, .demo-src code {
            background: var(--panel); max-width: var(--measure); }
 .handoff p { margin: 0; }
 .measure { max-width: var(--measure); }
+.lecture-links { max-width: 48rem; margin-top: 1.5rem; }
+.lecture-links th:first-child { width: 24%; }
+.lecture-links td:last-child { color: var(--ink-soft); }
 /* The editor screenshot is the one raster on a page whose every other picture
    is compiler output, and that is worth keeping legible rather than hiding:
    it wears site.css's screenshot frame, the same one index.html puts round a
@@ -409,6 +412,7 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
 
       <div class="cta">
         <a class="primary" href="#seven">See it in seven lines</a>
+        <a class="secondary" href="#lecture">Open the lecture</a>
         <a class="secondary" href="figures-you-write.html">Read the manual</a>
       </div>
     </div>
@@ -428,6 +432,36 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
     </div>
   </div>
 </section>
+
+<h2 id="lecture">Open it as a lecture</h2>
+<p class="measure"><strong>Animated Infographics is a complete psi-slides
+lecture, not a detached diagram gallery.</strong> Its figures live inside its
+Markdown source, the build places them into the slides, and the same source
+becomes the projection, the speaker cockpit and both reading views.</p>
+
+<table class="lecture-links">
+  <thead><tr><th></th><th>Open</th><th>What it shows</th></tr></thead>
+  <tbody>
+    <tr><th>The source</th>
+        <td><a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/diagrams/source.md">source.md</a></td>
+        <td>The Markdown, prose and every <code>::: draw</code> block</td></tr>
+    <tr><th>The projection</th>
+        <td><a href="diagrams/audience.html">audience</a></td>
+        <td>The view presented to the room</td></tr>
+    <tr><th>The cockpit</th>
+        <td><a href="diagrams/speaker.html">speaker</a></td>
+        <td>The private presenter view with notes and previews</td></tr>
+    <tr><th>The document</th>
+        <td><a href="diagrams/print.html">print</a></td>
+        <td>The lecture as a reading document</td></tr>
+    <tr><th>With the notes</th>
+        <td><a href="diagrams/print-notes.html">print-notes</a></td>
+        <td>The same document with the speaker notes folded in</td></tr>
+  </tbody>
+</table>
+
+<p class="why after">Start with the projection. <kbd>Space</kbd> walks through
+the beats inside a figure; <kbd>S</kbd> opens a cockpit that follows it.</p>
 
 <h2 id="seven">Seven lines, and a figure</h2>
 <p class="figlead">Two words are doing work here, and neither is loose. A <b>figure</b> is whatever the slide shows in place of a sentence &ndash; a photograph, a clip, or a drawing &ndash; and <code>::: draw</code> is the one of those three the build makes for you. It is called draw rather than diagram because most of what it draws is boxes and arrows, but some of it is a bar chart, a plot or a table, and those are figures nobody calls a diagram.</p>

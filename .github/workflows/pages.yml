@@ -1,9 +1,9 @@
-# Publishes the tutorial lecture to GitHub Pages as a live demo.
+# Publishes the site and its example lectures to GitHub Pages as live demos.
 #
-# The lecture is rebuilt from source rather than copied from the tracked
-# HTML outputs, so the demo can never be stale relative to source.md. That
-# also makes this job a de-facto build check: a source or build.js change
-# that breaks the tutorial fails here.
+# The lectures are rebuilt from source rather than copied from tracked HTML
+# outputs, so the demos can never be stale relative to source.md. That also
+# makes this job a de-facto build check: a source or build.js change that
+# breaks one of them fails here.
 #
 # Requires Settings -> Pages -> Source: "GitHub Actions" to be enabled once.
 name: Pages
@@ -51,18 +51,16 @@ jobs:
         run: |
           node build.js lectures/tutorial/source.md
           node build.js lectures/python-intro/source.md
+          node build.js lectures/diagrams/source.md
           # A 39-line lecture, published so a reader can take in one whole
           # source at a glance. The screenshots come from python-intro.
           node build.js docs/site/example/source.md
           # Built although they are not published, because they are linted.
           # A line the build refuses and the linter passes merges green and
-          # fails every later build - and the two lectures that were linted
-          # and never built are the two largest bodies of real figures in the
-          # repository. `lint.js` is deliberately the laxer of the pair (it
-          # computes no geometry and cannot expand a tag), so linting alone is
-          # not a gate on anything the compiler decides.
+          # fails every later build. `lint.js` is deliberately the laxer of
+          # the pair (it computes no geometry and cannot expand a tag), so
+          # linting alone is not a gate on anything the compiler decides.
           node build.js lectures/network-security/source.md
-          node build.js lectures/diagrams/source.md
           node build.js docs/artifact/figure-rules/source.md
 
       # Both pages this job publishes carry figures compiled from the lecture
@@ -76,11 +74,11 @@ jobs:
 
       - name: Assemble the site
         run: |
-          mkdir -p _site/tutorial _site/python-intro _site/example
+          mkdir -p _site/tutorial _site/python-intro _site/diagrams _site/example
           # Renders the docs from the same Markdown the repository serves, so
           # the site cannot drift from them.
           node docs/site/build-site.js _site
-          for l in tutorial python-intro; do
+          for l in tutorial python-intro diagrams; do
             cp lectures/$l/audience.html \
                lectures/$l/speaker.html \
                lectures/$l/print.html \

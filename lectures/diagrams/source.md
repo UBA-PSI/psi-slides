@@ -11,6 +11,11 @@ draw-defaults: |
 
 ## title: Animated Infographics | Six real slides, rebuilt from text {#cover}
 
+This is a psi-slides lecture: one Markdown source becomes the projected slides,
+a speaker cockpit, a reading document, and a handout with the spoken notes. The
+[psi-slides tutorial lecture](../tutorial/audience.html) introduces the system
+itself.
+
 Every figure in this lecture is written in the lecture source, laid out at
 build time, and stepped with the same key that advances a reveal.
 

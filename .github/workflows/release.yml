@@ -11,7 +11,7 @@
 # What is in them: the repository tree at the tag (`git archive`, so every
 # tracked file) – build.js, diagram-core.mjs, editor.mjs, editor.css, lint.js,
 # every lecture source, docs/, the checked-in site fonts, LICENSE, package.json
-# and the lockfile – plus the four built HTML views for all three published
+# and the lockfile – plus the four built HTML views for all four published
 # lectures. The built views are the reason to prefer the archive over a clone:
 # a reader can open the tutorial straight out of it, before installing
 # anything. Building their own still needs `npm install`, because the renderer

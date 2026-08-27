@@ -121,7 +121,7 @@ built or uploaded from a laptop, so the artefacts always come from the tagged
 tree rather than from whatever happened to be in someone's working directory.
 
 **Every push to `main` redeploys the project site.** `.github/workflows/pages.yml`
-lints, builds the three published lectures from source, assembles `_site` with
+lints, builds the four published lectures from source, assembles `_site` with
 `docs/site/build-site.js` and deploys it to GitHub Pages. Because the lectures
 are rebuilt rather than copied, that job is also a build check: a change that
 breaks the tutorial fails there. The `_site` directory is gitignored; to see
@@ -130,10 +130,11 @@ the site locally:
 ```bash
 node build.js lectures/tutorial/source.md
 node build.js lectures/python-intro/source.md
+node build.js lectures/diagrams/source.md
 node build.js docs/site/example/source.md
 node docs/site/build-site.js _site
-mkdir -p _site/tutorial _site/python-intro _site/example
-for l in tutorial python-intro; do
+mkdir -p _site/tutorial _site/python-intro _site/diagrams _site/example
+for l in tutorial python-intro diagrams; do
   cp lectures/$l/{audience,speaker,print,print-notes}.html _site/$l/
 done
 cp docs/site/example/{audience,speaker,print,print-notes}.html _site/example/
@@ -150,7 +151,7 @@ file is called exactly that.
 
 Each archive is the repository tree at the tag – sources, every lecture, the
 docs, the checked-in site fonts, `package.json` and the lockfile – plus the
-four built HTML views for all three published lectures, so a reader can open
+four built HTML views for all four published lectures, so a reader can open
 the tutorial straight out of the archive. Building their own still needs
 `npm install`; the renderer depends on marked, Shiki and KaTeX, and the
 archive does not pretend otherwise.

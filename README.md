@@ -52,7 +52,7 @@ node build.js lectures/tutorial/source.md
 open lectures/tutorial/audience.html      # macOS; use xdg-open or your browser otherwise
 ```
 
-On Windows take the `.zip` from the [releases page](https://github.com/UBA-PSI/psi-slides/releases). A `git clone` gives you the same thing: the archive is this repository without the history, plus the three published lectures already built, so you can open one before running anything.
+On Windows take the `.zip` from the [releases page](https://github.com/UBA-PSI/psi-slides/releases). Both the release archive and a `git clone` include their example lectures already built, so you can open one before running anything. A clone follows current development; the tagged archive does not.
 
 That builds the self-referential tour: a lecture that teaches the tool *by being the tool*. Press `?` for the cheat sheet, `S` to spawn the cockpit, `O` for the overview, `C` for collapse. Its source, [`lectures/tutorial/source.md`](lectures/tutorial/source.md), is the authoring reference.
 
