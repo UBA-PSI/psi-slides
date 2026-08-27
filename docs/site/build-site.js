@@ -19,6 +19,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { marked } from 'marked';
 
@@ -205,6 +206,36 @@ ${body}
 // They are the same Fontsource cuts build.js embeds into lectures. When those
 // packages are upgraded, refresh these tracked copies and their OFL notices in
 // the same change.
+// Tracking them costs a second place an upgrade has to reach, and the note
+// above asking for both to move together is a convention until something
+// checks it. This is what checks it. Bytes rather than versions: a package can
+// re-subset a face without bumping, and the file is what the page loads.
+//
+// It lives here rather than in test/gates/, which deliberately runs without
+// npm ci - a check that cannot see node_modules would be pending in exactly
+// the job that is supposed to run it. This file imports marked, so it never
+// runs without node_modules at all and always has something to compare
+// against; the missing-package guard below is for a partial install, not for
+// a release archive, which could not get this far.
+function fontDrift(names) {
+  const PKG = { 'ibm-plex-sans': 'ibm-plex-sans', 'jetbrains-mono': 'jetbrains-mono' };
+  const out = [];
+  for (const name of names) {
+    const pkg = Object.keys(PKG).find((p) => name.startsWith(p));
+    if (!pkg) continue;
+    const dir = path.join(ROOT, 'node_modules/@fontsource-variable', pkg);
+    if (!fs.existsSync(dir)) return [];
+    const shipped = name.endsWith('.woff2')
+      ? path.join(dir, 'files', name)
+      : path.join(dir, 'LICENSE');
+    if (!fs.existsSync(shipped)) continue;
+    const sum = (p) => crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex').slice(0, 12);
+    const a = sum(path.join(HERE, 'fonts', name)), b = sum(shipped);
+    if (a !== b) out.push(`${name}: tracked ${a}, package ${b}`);
+  }
+  return out;
+}
+
 function copyFonts(outDir) {
   const names = [
     'ibm-plex-sans-latin-wght-normal.woff2',
@@ -222,6 +253,12 @@ function copyFonts(outDir) {
     }
     fs.copyFileSync(src, path.join(outDir, name));
     if (name.endsWith('.woff2')) bytes += fs.statSync(src).size;
+  }
+  const drift = fontDrift(names);
+  if (drift.length) {
+    throw new Error('tracked site fonts no longer match their packages:\n  '
+      + drift.join('\n  ')
+      + '\nCopy them over from node_modules/@fontsource-variable/.');
   }
   console.log(`  fonts -> fonts/ (3 faces + 2 licences, ${Math.round(bytes / 1024)} KB)`);
 }
