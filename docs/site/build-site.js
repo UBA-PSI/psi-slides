@@ -97,12 +97,14 @@ const BAR_TEXT = {
     aria: 'Universität Bamberg and site navigation',
     chair: 'Chair of Privacy and Security in Information Systems',
     lectures: 'Live lectures', start: 'Getting started', compare: 'Comparison',
+    figures: 'Figures',
     overview: 'Overview', menu: 'Menu', lang: 'Language',
   },
   de: {
     aria: 'Universität Bamberg und Seitennavigation',
     chair: 'Lehrstuhl für Privatsphäre und Sicherheit in Informationssystemen',
     lectures: 'Vorlesungen', start: 'Loslegen', compare: 'Vergleich',
+    figures: 'Abbildungen',
     overview: 'Übersicht', menu: 'Menü', lang: 'Sprache',
   },
 };
@@ -115,6 +117,9 @@ function topbar(lang, base) {
   const home = lang === 'de' ? base + 'de/index.html' : base + 'index.html';
   const other = lang === 'de' ? base + 'index.html' : base + 'de/index.html';
   const compare = base + 'comparison.html';
+  // English-only, like the comparison, and linked from both bars for the same
+  // reason: the label is navigation, the page is the content.
+  const figures = base + 'figures.html';
   // The switch is two links, not a redirect: see site.js for why the browser's
   // language only ever produces a hint here, never a jump.
   const langSwitch = `<span class="topbar-lang" role="group" aria-label="${t.lang}">
@@ -137,6 +142,7 @@ function topbar(lang, base) {
         <div class="topbar-nav">
           <a href="${home}#open-them-yourself">${t.lectures}</a>
           <a href="${home}#getting-started">${t.start}</a>
+          <a href="${figures}">${t.figures}</a>
           <a href="${compare}">${t.compare}</a>
         </div>
         ${langSwitch}
@@ -150,6 +156,7 @@ function topbar(lang, base) {
             <a href="${home}">${t.overview}</a>
             <a href="${home}#open-them-yourself">${t.lectures}</a>
             <a href="${home}#getting-started">${t.start}</a>
+            <a href="${figures}">${t.figures}</a>
             <a href="${compare}">${t.compare}</a>
             <a href="https://github.com/UBA-PSI/psi-slides">GitHub</a>
             <hr>
