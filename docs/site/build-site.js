@@ -285,16 +285,18 @@ function main() {
   // places the page is read.
   const MANUAL = path.join(ROOT, 'docs/artifact/figures-you-write.html');
   const manual = fs.readFileSync(MANUAL, 'utf8');
-  // Matched as a prefix, without its closing quote, so a link into a section
-  // of the case travels too: `"../site/figures.html#editor"` is the same one
-  // relative step wrong in _site, and an exact match silently left it there
-  // while rewriting the plain link beside it.
-  const LINK = '"../site/figures.html';
+  // The whole relative step is the prefix, not one filename: the manual links
+  // back to the case, to a section of the case, and now to the project home,
+  // and a per-target rewrite is a list that has to be extended every time a
+  // link is added - silently, because the missed one still resolves in the
+  // repository and only breaks once deployed. In _site every page is a
+  // sibling, so "../site/ never means anything there.
+  const LINK = '"../site/';
   if (!manual.includes(LINK)) {
-    throw new Error('the manual has no ' + LINK + '" link back to the case - has it been renamed?');
+    throw new Error('the manual has no ' + LINK + '..." link back to the site - has it been renamed?');
   }
   fs.writeFileSync(path.join(outDir, 'figures-you-write.html'),
-    manual.split(LINK).join('"figures.html'));
+    manual.split(LINK).join('"'));
   console.log('  docs/artifact/figures-you-write.html -> figures-you-write.html');
   fs.copyFileSync(path.join(HERE, 'site.css'), path.join(outDir, 'site.css'));
   fs.copyFileSync(path.join(HERE, 'site.js'), path.join(outDir, 'site.js'));

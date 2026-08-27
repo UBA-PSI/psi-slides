@@ -184,6 +184,10 @@ pre code, code.k, code.e, .srcln code, pre .cl, pre .kw {
    the point. `none` and not `no-contextual`, because the arrows live in the
    contextual set (calt) and the rest in liga - `none` covers both. */
 pre, code { font-variant-ligatures: none; }
+/* The way back out. This page has no site bar - it loads no stylesheet and no
+   script, so that it can be opened straight off disk - which also means the
+   only way home is one it carries itself, at both ends of a long page. */
+footer .home { margin: 22px 0 0; color: var(--ink-soft); max-width: var(--measure); }
 
 .eyebrow {
   font-family: var(--mono);
@@ -946,7 +950,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 
 <header class="top">
   <div class="stack">
-    <p class="eyebrow">psi-slides &middot; <code>::: diagram</code></p>
+    <p class="eyebrow"><a href="../site/index.html">psi-slides</a> &middot; <code>::: diagram</code></p>
     <h1>Figures You Write</h1>
     <p class="lede">A figure in a psi-slides lecture is not a picture made somewhere else and imported. It is a few lines of text in the lecture&rsquo;s own Markdown file, and the build &ndash; the one command that turns that file into slides &ndash; draws it. The seven lines below are a whole figure, and the drawing is what the build made of them.</p>
     <p class="status"><strong>Development status:</strong> <code>::: diagram</code> is implemented in this repository, but is not part of a tagged psi-slides release yet. The graphical editor is experimental and desktop-oriented: it has automated coverage, but has not yet been tested broadly by people.</p>
@@ -3344,6 +3348,10 @@ footer .paths b { color: var(--ink); font-weight: 500; }
     <div><b>diagram-core.mjs</b> &ndash; the compiler, the same one in the build and in the browser</div>
     <div><b>CLAUDE.md</b> &ndash; the grammar in full, under <i>Animated infographics</i></div>
   </div>
+  <p class="home">This page is the manual.
+    <a href="../site/figures.html">Figures you write</a> is the case for the
+    language, and <a href="../site/index.html">the psi-slides project site</a>
+    is where both of them live.</p>
 </footer>
 
 </div>
