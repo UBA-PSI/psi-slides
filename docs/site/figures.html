@@ -26,6 +26,12 @@
   --yes-wash: color-mix(in oklch, var(--accent) 12%, var(--paper));
 }
 main { max-width: 62rem; }
+/* site.css sets h2 { margin: 0 0 1.2rem } because on index.html every h2 opens
+   a band, and the band s own 4.5rem of padding is the space above it. This page
+   has no bands, so four of its five section headings sat flush against the
+   block before them. h3 gets 2.2rem here; a heading that starts a section with
+   no change of ground under it needs more than one that starts a subsection. */
+main > h2 { margin-top: 3.6rem; }
 .scqa p { max-width: var(--measure); }
 .scqa .answer { font-size: 1.1875rem; line-height: 1.5; }
 .scqa .status {
