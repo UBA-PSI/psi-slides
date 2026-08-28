@@ -1,6 +1,6 @@
 ---
 name: psi-slides-authoring
-description: Write or edit a psi-slides lecture source.md - chunk grammar (## tag: Heading | Sub {.width #id}), the ::: directive vocabulary (expand, margin, marginalia, cols, side/flip, slide, script), reveal segments, speaker notes, image shorthand, KaTeX math, and the frontmatter keys (viewer defaults, embedded fonts). Use when drafting a new lecture, restructuring or polishing an existing one, fixing lint findings from lint.js, or when a Markdown file has chunk headings like "## principle:" / "## definition:" or ":::" blocks. Not for changing build.js or lint.js themselves.
+description: Write or edit a psi-slides lecture source.md - chunk grammar (## tag: Heading | Sub {.width #id}), the ::: directive vocabulary (expand, margin, marginalia, cols, cards, side/flip, slide, script, backdrop, overlay), reveal segments, speaker notes, image shorthand, KaTeX math, and the frontmatter keys (viewer defaults, cover variants, the style block, embedded fonts). Use when drafting a new lecture, restructuring or polishing an existing one, fixing lint findings from lint.js, or when a Markdown file has chunk headings like "## principle:" / "## definition:" or ":::" blocks. Not for changing build.js or lint.js themselves.
 ---
 
 # Authoring psi-slides lectures
@@ -402,11 +402,99 @@ Right
 
 The first closer ends `side`, the second ends `expand`.
 
+### `::: cards N`
+
+N equal cards in a row, each with a subtle ground and outline. **Not a second
+spelling of `::: cols N`**, and the difference is the reason to pick one: `cols`
+is one text flow the browser balances across N tracks, so a paragraph can spill
+from the foot of one column into the head of the next; `cards` is N
+*containers*, and an item is whole or it is nowhere.
+
+```markdown
+::: cards 3
+- **Measure** what a page does when a crawler asks for it
+- **Probe** the detector until it names itself
+- **Report** what that costs a measurement study
+:::
+```
+
+A lone list dissolves into the grid, so its items are the cards; anything else
+contributes one card per block. Counts 2 to 6. Use `cols` for an argument that
+runs long and `cards` for a comparison the room should be able to count.
+
+Five slots in the tail, and two decide themselves:
+
+| slot | words (first is the default) |
+|---|---|
+| size | `auto` `large` `medium` `small` |
+| align | `auto` `left` `center` |
+| anchor | `top` `middle` |
+| detail | `fold` `show` |
+| ground | `panel` `outline` `clear` |
+
+`auto` size counts the words in the longest item - three or fewer is large,
+twelve or fewer medium, else small - and applies to the whole row, never per
+card. `auto` align follows it, except where the row has a second level, which
+ranges left. `detail: fold` keeps nested levels off the projection and gives
+them to the document and to `C`.
+
+**A card row is refused inside `cols`, `side`, `marginalia`, `expand`,
+`margin` and `overlay`** - it needs the whole measure and those have already
+divided it. `slide` and `script` are fine. Put the row in the chunk body.
+
+**Bold is not required.** The sentence splitter walks paragraphs, never list
+items, so everything written in a card is on the slide; folding the nested
+level is the only thing that takes anything away.
+
+### `::: backdrop <ref> {classes}` and `::: overlay {classes}`
+
+A full-bleed picture behind the whole slide, and a grounded text block laid over
+it. The backdrop is one line with no closer; the overlay is a block.
+
+```markdown
+## figure: {#skyline .full}
+
+::: backdrop city-at-night {.invert .blur}
+
+::: overlay {.bottom-left .ink .wide}
+### Every endpoint is a sensor
+A crawler that looks like a browser gets measured back.
+:::
+```
+
+The backdrop takes the same three forms an image does - a bare asset id, a
+relative path, an https URL. Both class tails are **closed vocabularies, one
+word per slot**; two words from one slot fails the build, as does a word from
+no slot.
+
+| directive | slot | members (first is the default) |
+|---|---|---|
+| `backdrop` | fill | `cover` `contain` |
+| | crop | `middle` `top` `bottom` |
+| | scrim | `veil` `clear` `invert` |
+| | focus | `sharp` `blur` |
+| `overlay` | place | `center` `top-left` `top` `top-right` `left` `right` `bottom-left` `bottom` `bottom-right` |
+| | ground | `paper` `ink` `accent` `clear` `glass` |
+| | width | `standard` `narrow` `wide` `full` |
+
+`veil` is the theme's own paper at 80%, so ordinary ink stays readable over a
+photograph in every theme; `invert` turns the slide's ink light instead. Give a
+photograph-backed slide its text in an **overlay** rather than in the body:
+words laid straight onto a picture are unreadable at the back of a room, and the
+overlay's ground is what fixes that.
+
+One backdrop per chunk. A second is an error.
+
 ### Two more directives this skill does not cover
 
 `::: draw` and `::: embed` are also `:::` blocks, and neither is a layout
 wrapper or an aside: each compiles to something of its own.
 
+- **`::: draw`** takes `{autoplay=N}` - N milliseconds per step - which walks
+  the figure's own beats once the slide is on screen, and stops for good on the
+  first key, click or scroll. Between 200 and 60000. Add `cycle` to repeat the
+  walk (`{autoplay=1200 cycle}`); `cycle` alone is an error. Use it on a cover
+  figure; on a slide you are talking over, press Space.
 - **`::: draw`** is a figure written as text - named boxes, arrows,
   containers, charts, tables, swimlanes and sequence diagrams, laid out at build
   time and steppable on the same key that advances a reveal segment. It has its
@@ -445,6 +533,118 @@ slide-numbers: vertical # vertical | horizontal | off
 Pin only what you have actually designed for. A lecture that pins nothing keeps
 following whatever the reader last chose with `F`, `A`, `C`, `#` and `L`.
 
+## The cover, and lecture-wide type
+
+`subtitle:` is the key most covers are missing. Without it the one line that
+says what the talk is *about* has nowhere to go but `info`, where it renders at
+meta size beside the room and the date.
+
+```yaml
+title: Detecting Bot Detection
+subtitle: Prevalence, Techniques and Implications
+presenter: Ralf Gundelach
+info: |
+  ARES 2026 · Linköping · 24 to 27 August
+cover: editorial        # classic | editorial | split | hero
+cover-image: skyline    # split and hero need one; the others ignore it
+```
+
+| cover | picture from | what it is |
+|---|---|---|
+| `classic` | - | the lower-left third, all type. **The default** |
+| `editorial` | - | an accent rail, the title over a rule, the meta in a footer row |
+| `stack` | - | the title block centred on both axes |
+| `rule` | - | the title held between two hairlines |
+| `split` | `cover-image` | type left, the picture **bled** off the right edge |
+| `hero` | `cover-image` | the picture is the slide, type reversed out of a gradient |
+| `beside` | **the chunk body** | the art **inset** to the right of the title |
+| `above` | **the chunk body** | the art on top, title centred in the band below |
+
+`split` or `hero` with no `cover-image` fails the build rather than drawing an
+empty half.
+
+**`beside` and `above` take their art from the title chunk's own body**, which
+is how a `::: draw` becomes the cover - a diagram is not a file, so
+`cover-image` can never name one. On those two the body is the art and `info:`
+still supplies the meta; everywhere else a non-empty body replaces `info`.
+
+```markdown
+## title: {#title}
+
+::: draw {unit=150x56}
+box crawler "Crawler" {.tone-1}
+box site "Web site" below crawler gap 1.1
+edge crawler -> site "request"
+:::
+```
+
+`split` bleeds and `beside` insets, and that is the whole reason both exist: a
+photograph wants the edge, a drawing wants a margin. `cover-ratio: 42%`
+(15-75) sets how much of the slide the picture takes on `split`, `beside` and
+`above`; written on a cover that does not divide the slide it is an error.
+
+## Typefaces, ligatures, and the 1.0 layout
+
+Three families travel in any one output, and which three the lecture chooses.
+A **bundled** family needs no file in `fonts/`:
+
+| role | default | alternate |
+|---|---|---|
+| serif | Literata | - |
+| sans | IBM Plex Sans | Inter Tight |
+| mono | JetBrains Mono | Noto Sans Mono Condensed |
+
+```yaml
+fonts:
+  sans: Inter Tight
+  mono: Noto Sans Mono Condensed
+ligatures: text     # text | none | all
+style:
+  wrap: balance     # balance | none
+```
+
+The condensed mono is a pinned instance of Noto Sans Mono's width axis, not a
+different typeface: 0.50 em per character against JetBrains Mono's 0.60, at
+54 KB. Slashed zero, three distinct shapes for `I` `l` `1`. Iosevka reaches the
+same width and is deliberately not bundled - 961 KB per face - but works from
+`fonts/`.
+
+`ligatures: text` is the default: fi and fl in prose, none in code. `all` puts
+the code ligatures back, so `->` draws as one arrow glyph - which is why it is
+off, since in the figure grammar `->` and `--` are two different edges and a
+listing on a slide is source a reader retypes.
+
+**To lay a lecture out the way 1.0.0 did**, set all three of
+`fonts: {sans: Inter Tight}`, `style: {wrap: none}` and `ligatures: all`.
+That is the whole of what has moved, and together they reproduce it exactly.
+There is deliberately no version key - each of the three is a preference in
+its own right, and a key naming a release would promise a rebuild of every
+past release.
+
+The `style:` block sets the type for the whole lecture:
+
+```yaml
+style:
+  headings: left        # auto | left | center  - auto keeps the per-tag treatment
+  rules: off            # on | off              - the hairline above principle/definition
+  labels: off           # on | off              - the generated tag word (PRINCIPLE, EXERCISE...)
+  heading-scale: 1.15   # 0.6 … 1.8
+  body-scale: 0.95      # 0.6 … 1.8
+```
+
+The two scales are multipliers on the tool's own scale, bounded to 0.6-1.8.
+Reach for them on a whole deck, not to fix one chunk - a chunk that needs a
+different size usually needs a different width class or less text.
+
+`labels: off` hides the generated tag word in **both** views: the document
+renderer labels principle, question, definition and exercise, the projection
+generates only EXERCISE. Separate from `rules`, which hides the bar and the
+hairline - a word and a line are not one decision.
+
+**A figure's all-caps heading is not a generated label.** It is the chunk's own
+heading, so `## figure: {.wide #id}` with no heading text leaves it off the
+slide - at the cost of the TOC entry, the search text and the printed heading.
+
 ## Embedded fonts
 
 Drop font files into a `fonts/` folder beside `source.md` and name the families
@@ -481,7 +681,9 @@ Rules you will meet while authoring: `unknown-tag`, `unknown-width`,
 `duplicate-explicit-block`, `unclosed-directive`, `stray-directive`,
 `stray-directive-close`, `nested-directive`, `unclosed-math`, `reveal-overuse`,
 `orphan-column` (a column with fewer than two chunks),
-`figure-caption-redundant`, `oversized-asset`, `unknown-view-default`.
+`figure-caption-redundant`, `oversized-asset`, `unknown-view-default`,
+`unknown-style-setting`, `bad-backdrop`, `bad-backdrop-class`,
+`duplicate-backdrop`, `bad-overlay-class`, `bad-cards`.
 
 A source file can silence checks with an HTML comment anywhere in the body:
 

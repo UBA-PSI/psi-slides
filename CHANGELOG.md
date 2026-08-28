@@ -9,6 +9,165 @@ from building the same way is a major version.
 
 ### Added
 
+- **The 1.0.0 look is reachable, as three ordinary settings.** From 1.0.0 the
+  source format is the interface, and a finished deck should be able to lay
+  out the way it laid out. Exactly three things have moved since that an
+  existing lecture would notice, found by diffing the two stylesheets between
+  the tag and HEAD rather than by reading commit titles:
+  `fonts: {sans: Inter Tight}`, `style: {wrap: none}` and `ligatures: all`.
+  Verified: the same source built through `git show v1.0.0:build.js` and
+  through HEAD with all three set is **pixel-identical**, 0 differing pixels
+  by `magick compare -metric AE`.
+
+  A `layout: 1.0` umbrella over those three was written and then removed, and
+  the reasoning is the part worth keeping: one key naming a version reads as a
+  promise that the engine can rebuild any past release, which is unbounded -
+  every later change to a shared stylesheet would have to be gated on a
+  generation, the gates would compose, and the untested combinations would
+  grow with every release. It also put the burden on the author to know which
+  version their deck was authored against, and on the project to publish a
+  layout-version history beside the software version. Each of the three
+  settings is a preference someone might want on its own merits, so the old
+  look is a recipe in the docs rather than a mechanism in the code.
+
+- **The bundled font roster is per-lecture, and it has two alternates.**
+  `fonts: {sans: Inter Tight}` or `{mono: Noto Sans Mono Condensed}` needs no
+  file in `fonts/` - a bundled family is named the same way and supplies
+  itself. The roster used to be a fixed list that every output carried in
+  full, so adding two faces would have cost ~470 KB in every file including
+  the lectures that wanted neither; only the three families a lecture resolves
+  to are read at all.
+
+  The condensed mono is a **pinned instance of a variable font**, not a
+  different typeface: Noto Sans Mono carries a `wdth` axis and
+  `font-variation-settings` is a legal `@font-face` descriptor, so pinning
+  `wdth 62.5` yields one ordinary family nothing downstream has to know about.
+  Measured, 0.50 em per character against JetBrains Mono's 0.60, with a
+  slashed zero and three visibly different shapes for `I`, `l` and `1`.
+  Iosevka reaches the same width and was dropped on payload - 961 KB against
+  54, or 3.87 MB of base64 per view - so the rule is now that a bundled face
+  has to be a variable latin subset. Iosevka is still reachable through
+  `fonts/`.
+
+- **`ligatures:` decides a question that was two questions.** `text` (the
+  default) is fi and fl in prose and none in code, which is what the tool
+  already did; `none` takes them out of prose as well; `all` puts the code
+  ligatures back, so JetBrains Mono draws `->` as one arrow glyph again. The
+  default is not `none`, because code ligatures were already off and
+  defaulting to `none` would take fi and fl out of every existing lecture's
+  prose - a change to finished decks made in the name of not changing
+  finished decks.
+
+- **`::: draw {autoplay=N}` walks a figure's steps on a timer.** One delay for
+  every step, so a cover figure animates while the room files in; it works on
+  any chunk. `autoplay=` never reaches the compiler - build.js strips it from
+  the fence and puts it on the emitted figure - because playback is not part
+  of the drawing and `diagram-core.mjs` also runs inside the browser editor,
+  where there is no deck to play. The runtime calls the same advance the Space
+  key calls, so there is one counter, one broadcast and one freeze gate, and
+  the speaker view follows without knowing it exists. It runs in the audience
+  only and stops for good on the first key, pointer or wheel event: a lecturer
+  who has touched the deck has taken over. Bounded 200 ms to 60 s, refused
+  rather than clamped. `cycle` beside it repeats the walk, rewinding through
+  the same counter so the speaker view follows the rewind as it followed the
+  walk; the last beat is held for one delay like any other, because a second
+  number for how long to admire the finished picture is a knob nobody asked
+  for. `cycle` without `autoplay` is an error in both the build and the
+  linter.
+
+- **`style: {labels: off}` hides the generated tag words.** They are two
+  things wearing one name and the switch reaches both: the document renderer
+  labels principle, question, definition and exercise, while the projection
+  generates only EXERCISE. Its own key rather than part of `rules`, which
+  hides the bar over a principle and the hairline over a definition - a word
+  and a line are not one decision. A figure's all-caps heading needs no key:
+  it is the chunk's own heading, so leaving it out of the source leaves it off
+  the slide, at the cost of the TOC entry and the search text.
+
+- **Four more covers, and two of them draw.** `stack` centres the title block
+  on both axes, `rule` holds it between two hairlines - both for the talk that
+  wants a quiet opening rather than an asymmetric one. `beside` and `above`
+  take their art from the **title chunk's own body**, which is what lets a
+  `::: draw` be the cover: a diagram is not a file, so `cover-image` could
+  never name one. `beside` insets the art beside the title and `above` puts it
+  on top with the type centred in the band below. `split` bleeds where
+  `beside` insets, and that is why both exist - a photograph wants the edge, a
+  drawing wants a margin, because a diagram cropped by the frame reads as a
+  diagram that did not fit. `cover-ratio` (15-75%) sets how much of the slide
+  the picture takes on the three covers that divide it; written on one that
+  does not, it is an error rather than a number the drawing ignores.
+
+- **The cover has four compositions, and a `subtitle:` line.** `cover:` picks
+  between `classic` (the lower-left third the tool always drew, and still the
+  default), `editorial` (an accent rail, the title over a rule, the meta in a
+  footer row), `split` (type left, `cover-image:` bled off the right edge) and
+  `hero` (the picture is the slide, the type reversed out of a gradient).
+  `subtitle:` is the hierarchy step the cover was missing: without it the one
+  line that says what the talk is *about* has nowhere to go but the `info`
+  block, where it renders at meta size in soft ink beside the room and the
+  date – so the subtitle is set exactly like the venue line. Four sizes now
+  where there were two. An unknown `cover:` fails the build, and so does
+  `split` or `hero` with no `cover-image` rather than drawing an empty half.
+
+- **`::: backdrop <ref> {classes}` fills the slide with a picture.** On any
+  chunk, not only the cover. One line, no closer, and chunk-level rather than
+  a body wrapper – forced rather than chosen, because `.chunk-content` sits in
+  the middle track of the slide's grid and anything emitted inside the body is
+  boxed by the text column and can never reach the edges. Four closed slots:
+  fill (`cover`/`contain`), crop (`middle`/`top`/`bottom`), scrim
+  (`veil`/`clear`/`invert`) and focus (`sharp`/`blur`). The default scrim is
+  the theme's own paper at 80%, so ordinary ink stays legible over a
+  photograph in all seven themes with no second palette; `invert` turns the
+  slide's ink light instead.
+
+- **`::: overlay {classes}` lays a grounded text block over the slide.** Nine
+  places, five grounds (`paper` `ink` `accent` `clear` `glass`), four widths.
+  The ground is the point rather than decoration: text laid straight onto a
+  photograph is unreadable at the back of a room. All overlays of one chunk go
+  into one 3×3 grid layer, so two aimed at the same corner stack instead of
+  overlapping.
+
+- **`::: cards N {classes}` sets N equal cards in a row.** Not a second
+  spelling of `::: cols N`: `cols` is one text flow the browser balances
+  across N tracks, so a paragraph can spill from the foot of one column into
+  the head of the next, while `cards` is N *containers* and an item is whole
+  or it is nowhere.
+
+  Five slots - `size`, `align`, `anchor`, `detail`, `ground` - and two of
+  them decide themselves. `auto` size counts the words in the longest source
+  item (three or fewer means large, twelve or fewer medium, else small) and
+  is the block's decision rather than each card's, because three sizes in one
+  row read as a mistake. `auto` align follows the size, except where the row
+  carries a second level, which ranges left whatever its heads measure.
+
+  `detail: fold` is what makes one row serve two views: the nested levels are
+  off the projection and present in the document, and `C` brings them back
+  with no second markup. What a card shows is otherwise **not** decided by
+  bold - the sentence splitter walks `p` and never `li`, so a card item is
+  never abridged.
+
+  A card row is **refused inside any directive that has already divided the
+  measure** - cols, side, marginalia, embed, expand, margin, overlay - and
+  the `cols` case is why: the row spanned the full width and defeated the
+  column flow, so the author wrote `cols 2` and got one column with nothing
+  to say why. `slide` and `script` stay legal: they divide nothing, they say
+  which half of the chunk is on screen.
+
+  The default look was reworked in the same pass: a tinted fill *and* a
+  hairline is the one combination to avoid, so `panel` fills and `outline`
+  strokes and neither does both; the gutter scales with the card size, the
+  padding grows faster than the type, and the row keeps real air above it,
+  because a card row is a block of surfaces rather than a continuation of the
+  text. A centred row centres the heading over it.
+
+- **A `style:` frontmatter block sets the type for a whole lecture.**
+  `headings` (`auto` keeps the per-tag treatment, `left` overrides all of it),
+  `rules` (the hairlines above principle and definition chunks), and
+  `heading-scale` / `body-scale` as multipliers on the tool's own scale. The
+  two scales are bounded to 0.6–1.8 rather than free: outside that range the
+  collapse mode, the code-width clamp and the auto-fit camera stop agreeing
+  with each other, and the result is not a look but a bug report.
+
 - **`{!class}` takes a class off.** In an element's tail, in a `default` tail
   and in a `style` step. A step could only ever add one, and many slots express
   their base state as the absence of every member – normal prominence, a solid

@@ -216,13 +216,94 @@ A chunk can opt out of that derivation with `::: slide` (this block is the scree
 
 ### Bundled and embedded webfonts
 
-**Three families ship with the tool and are embedded in every output**: Literata, IBM Plex Sans, JetBrains Mono, as variable `wght` latin subsets, upright and italic – 279 KB for all six faces. All three are SIL OFL 1.1, which permits redistribution and embedding; `OFL_NOTICE` puts the required notice in the emitted stylesheet.
+**Three families ship in any one output**, as variable `wght` latin subsets, upright and italic. Which three is now a per-lecture decision rather than a fixed list, and that change is what makes an alternate affordable: the roster used to be a list and every output carried all of it, so adding two more faces would have put ~470 KB in every file including every lecture that wanted neither.
 
-This is a correctness fix, not polish. **Safari does not expose locally installed fonts to a page**, as an anti-fingerprinting measure, so the old name-only stacks resolved to Georgia and system-ui there no matter what the lecturer had installed. `fonts: none` in the frontmatter turns the bundle off for an author who would rather ship a smaller file.
+| role | default | alternate |
+|---|---|---|
+| serif | Literata | – |
+| sans | IBM Plex Sans | Inter Tight |
+| mono | JetBrains Mono | Noto Sans Mono Condensed |
 
-`bundledFaces()` reads them out of `node_modules` rather than from checked-in binaries: the packages carry their own licence files, and `npm install` is required anyway.
+An author names one in the `fonts:` block exactly as they would name a family in `fonts/` – the difference is that **a bundled name needs no file**, which is the point of bundling it. A name that is neither a bundled family nor a file in `fonts/` still fails the build, and the message now lists the bundled names for that role, because typing one of them almost right is the likeliest way to reach it.
 
-An author's own fonts still win. A role named in the `fonts:` block uses their family; every role they leave out keeps the bundled one.
+All of them are SIL OFL 1.1, which permits redistribution and embedding; `OFL_NOTICE` puts the required notice in the emitted stylesheet. `bundledFaces(roster)` reads them out of `node_modules` rather than from checked-in binaries: the packages carry their own licence files, and `npm install` is required anyway.
+
+**What has changed here since 1.0.0, and why it is written down.** The sans role was **Inter Tight** in 1.0.0 and became **IBM Plex Sans** in `94ee7bf` (2026-08-25). Tight is the condensed cut of Inter, and the width it saves is paid for in letter spacing that reads cramped on a screen – worst exactly where the type is already small, in figure labels. Measured, Plex's narrow forms (`i l j t`) are 13.5% wider and its digits 9.7%, which is what separates 1 from I from l at the back of a room. Payload went from 276 KB to 279 KB for all six faces. **The mono role has been JetBrains Mono since the first commit and has never been anything else** – in particular it was never Iosevka, which had never appeared in this repository before Iosevka was added as an alternate.
+
+**`dgCharW` in `diagram-core.mjs` is calibrated to the bundled sans**, and that is the thing to remember when the roster changes. It is an advance table tuned deliberately generous – a box wider than its text reads as designed, a narrower one reads as broken – and the Plex change had to re-measure every group (narrow 0.34 → 0.39, wide 0.92 → 0.95, digits 0.56 → 0.61, other 0.53 → 0.54) or labels whose estimate no longer covered them would have gone from 1 in 25 to 5 in 25 on real lecture strings. **Both alternates are narrower than the default they replace**, measured in a browser at 100px:
+
+| | narrow | wide | digits | upper | other |
+|---|---|---|---|---|---|
+| IBM Plex Sans | 0.281 | 0.847 | 0.600 | 0.634 | 0.518 |
+| Inter Tight | 0.240 | 0.847 | 0.545 | 0.626 | 0.508 |
+| JetBrains Mono | 0.600 | 0.600 | 0.600 | 0.600 | 0.600 |
+| Iosevka | 0.500 | 0.500 | 0.500 | 0.500 | 0.500 |
+
+So picking either leaves the estimate *more* generous, never less – the safe direction, and the reason neither needs its own table. **A future alternate that is wider than the default does need one**, and adding it without re-measuring is how labels start overflowing their boxes in silence.
+
+**The condensed mono is a pinned instance of a variable font, not a different typeface.** Noto Sans Mono carries a `wdth` axis, and `font-variation-settings` is a legal `@font-face` **descriptor** – verified rather than assumed: with the descriptor the same file measures 0.50 em per character and without it 0.60. So pinning `wdth 62.5` in the face declaration produces one ordinary family that nothing downstream has to know about: no `font-stretch` on any element, no second selector list, no rule that has to reach every place the mono role is used. It has a slashed zero and its `I`, `l` and `1` are three visibly different shapes, which is the other half of what a code face has to do. It ships upright only – the family has no italic, so an italic listing gets a synthesised oblique.
+
+**Iosevka was bundled first and was taken out on payload.** It is the same 0.50 em, and it is 961 KB against Noto's 54 – three static files came to 3.87 MB of base64 *per view*, on a tool whose promise is a file you can mail. An author who wants Iosevka specifically can still drop it in `fonts/`, which is what that mechanism is for. **The general rule: a bundled face has to be a variable latin subset**, because a static family is an order of magnitude heavier and the roster is embedded, not linked.
+
+`fonts: none` turns the bundle off entirely for an author who would rather ship a smaller file. That matters more than it looks: **Safari does not expose locally installed fonts to a page**, as an anti-fingerprinting measure, so the old name-only stacks resolved to Georgia and system-ui there no matter what the lecturer had installed.
+
+**`FONT_STACK_TAILS` is the single source of truth for the default stacks**, and a roster family other than the built-in default is emitted as an override that prepends it – otherwise the `@font-face` lands and nothing asks for it, because `--sans-font` still says `IBM Plex Sans` first and falls through to whatever the machine has. Emitted only where it differs, so a default lecture's CSS is byte-identical to before. `font-display: block`, not `swap`: a lecture must not flash a fallback face on the projector and then reflow the slide under the room's eyes. The bytes are read and base64-encoded **once** in `buildOnce` and passed to all four renderers via `opts.fontEmbed`.
+
+### Ligatures
+
+`ligatures:` in the frontmatter, and the reason it needs a key at all is that **two different questions get called "ligatures"**:
+
+- **text** – `fi`, `fl` and friends in prose. On by default and always has been; that is ordinary typesetting, not an effect.
+- **code** – `->` drawn as a single arrow glyph in a listing. **Off since `7eec831`**, and off for a reason worth keeping: JetBrains Mono ligates `->`, `<-`, `<->`, `--` and `!=`, and in the figure grammar `->` and `--` are two *different edges*. Every listing on a slide, in a handout, on the project site and on the artifact page is source a reader is meant to retype, and what the room saw was a character that does not exist in the language.
+
+So the values are `text` (the default: fi and fl in prose, none in code – exactly what the tool does today), `none` (none anywhere, prose included) and `all` (code ligatures back). **The default is `text` and not `none`** even though `none` is what "default: no ligatures" would suggest: code ligatures are already off, and defaulting to `none` would take fi and fl out of every existing lecture's prose, which is a change to finished decks made in the name of not changing finished decks. The rule is `font-variant-ligatures`, and `none` rather than `no-contextual` because the arrows live in the contextual set (`calt`) and the rest in `liga`.
+
+### Reaching the 1.0.0 look (and why there is no `layout:` key)
+
+From 1.0.0 the source format is the interface, and that promise is about more than parsing: **a lecture that laid out a certain way should be able to lay out that way again.** Exactly three things have moved since 1.0.0 that a finished deck would notice, and each is reachable as an ordinary preference:
+
+| what moved | how to get the old behaviour back |
+|---|---|
+| bundled sans, Inter Tight → IBM Plex Sans | `fonts: {sans: Inter Tight}` |
+| `text-wrap: balance` on headings, `pretty` on prose | `style: {wrap: none}` |
+| `font-variant-ligatures: none` on code | `ligatures: all` |
+
+**There was a `layout: 1.0` umbrella over those three and it was removed. The reasoning generalises and is the part to keep.** One key naming a version reads as a promise that the engine can rebuild any past release, and that promise is unbounded: every later change to a shared stylesheet would have to be gated on a generation, the gates would compose, and the set of combinations nobody tests would grow with every release. It also puts the burden in the wrong place – an author would have to know which version their deck was authored against and write it down, and the project would have to publish and explain a layout-version history beside the software version.
+
+None of that buys anything the three settings do not already give, and each of them is a preference an author might want on its own merits: someone who prefers Inter Tight is expressing a view about type, not pinning a release. So the settings stay, the umbrella is gone, and **the 1.0.0 look is a three-line recipe in the docs rather than a mechanism in the code.**
+
+The list was arrived at by diffing `AUDIENCE_CSS` and `PRINT_CSS` between `v1.0.0` and `HEAD` rather than by reading commit titles – 185 commits, of which these are the ones that touch an existing slide. **Repeat that diff before claiming the list is still complete**, and prefer adding a setting to adding a generation.
+
+**The recipe was verified against the real thing.** The same source built through `git show v1.0.0:build.js` and through HEAD with all three set came out **pixel-identical** – 0 differing pixels by `magick compare -metric AE`, at 1440×810 and `deviceScaleFactor: 2`, on a deck carrying a principle chunk, prose with `fi`/`fl` pairs, and a listing containing `->` and `!=`. That comparison cannot be a standing test, because it needs a checkout of the old build; `test/settings.mjs` is what stands in for it and guards the mechanism the comparison proved.
+
+**Its load-bearing assertions are the guards, not the outcomes.** An edit that drops the `body:not([data-wrap=none])` wrapper from the text-wrap rules leaves `style.wrap` silently doing nothing, and every outcome-shaped check still passes. It runs from `npm test` between the fast gates and the browser suite, and in `pages.yml` and `release.yml` – **not** in `gates.yml`, which has no `npm ci` by design and could not build a lecture.
+
+Deliberately outside the promise: the title chunk now fills the slide and drops its slide number. Both are cover fixes, a cover is one slide, and pinning them would mean carrying the old centring rules for a composition nobody wants back.
+
+### `::: draw {autoplay=N cycle}`
+
+A figure written `{autoplay=1200}` walks its own steps on a timer once the slide is on screen, one delay for every step. A cover figure that animates while the room files in is the case it was asked for; it works on any chunk because nothing about it is cover-specific.
+
+**`autoplay=` never reaches the compiler.** `takeAutoplay()` in build.js pulls it out of the fence attributes before `renderDiagram` is called and `withAutoplay()` puts it on the emitted `<figure>` as `data-autoplay`. Playback is not part of the drawing: the compiler's job ends at a set of per-beat geometries, and `diagram-core.mjs` also runs inside the browser editor, where there is no deck to play. `lint.js` has to know the word for the same reason – the token never reaches the compiler's own unknown-option error.
+
+Two decisions carry the runtime, and both are about not inventing state:
+
+- **It calls `advanceReveal()`, so it is the Space key on a timer.** A private step index would have let the drawing and the reveal counter disagree, and the next Space would jump. Because it *is* the counter, the speaker view follows through the ordinary state broadcast, the freeze gate applies, and localStorage recovery is unchanged.
+- **It runs in the audience only** – the state root – **and stops for good on the first key, pointer or wheel event.** Two windows both advancing would take two beats per tick; and a lecturer who has touched the deck has taken over, so a timer resuming underneath them is worse than no timer. Verified in a browser: interrupted one beat in, the figure froze there and stayed frozen for three seconds, and a manual Space then advanced it by exactly one.
+
+It also refuses to start from a half-revealed slide: arriving at one means the lecturer left it that way, and finishing it for them is the surprise this must not spring. Bounded 200 ms – 60 s, **refused rather than clamped**, because a clamped number is a number the author did not write.
+
+**`cycle` repeats the walk**, which is what a cover figure usually wants while a room fills. It rewinds by writing `revealed[id] = 1` through the same counter everything else reads, so the speaker view follows the rewind exactly as it followed the walk. The last beat is held for one delay like any other – **a second number for "how long to admire the finished picture" is a knob nobody asked for and one more thing to get wrong.** A bare `cycle`, and it is stripped in `takeAutoplay` before the compiler sees it for the same reason `autoplay=` is; `cycle` with no `autoplay` is an error in both the build and `lint.js`, because there is nothing for it to repeat.
+
+### Hiding the generated labels (`style.labels`)
+
+The tag word above a chunk is **two different things wearing one name**, and a switch has to reach both: the document renderer emits `<span class="chunk-label">` for principle, question, definition and exercise, while the projection generates only `EXERCISE`, in CSS – the one eyebrow that survived the removal of the others (PRD §2). So most of what an author sees as "the eyebrows" is in `print.html`, and a check in the audience view alone will report that there is nothing to hide.
+
+`style: {labels: off}` hides both. **It is its own key rather than part of `rules`**, which hides the bar over a principle and the hairline over a definition: a word and a line are not one decision, and an author may well want the line and not the word.
+
+**A figure's all-caps heading is not a generated label and needs no key.** It is the chunk's own heading, set in small caps by `.chunk[data-tag=figure] .chunk-heading`, so writing `## figure: {.wide #id}` with no heading text simply leaves it out – verified. The cost is that the chunk then has no TOC entry, no search text and no heading in the printed document, which is a real trade and the reason not to reach for it by reflex.
+
+
 
 ### Author-supplied webfonts
 
@@ -471,6 +552,83 @@ Ships into the live views whenever the lecture contains a diagram, gated by the 
 - **An edit syncs as its own message**, `diagram-edit`, following the `video` precedent rather than the state snapshot – see `speaker.md` §2 for why, and for the rest of that table. Three things keep that sync honest: an edit committed while frozen is queued and flushed on thaw (`psiEditorThaw`, called by `toggleFreeze`); a received edit is persisted the way a local one is, or reopening the editor loaded pre-edit source and the next gesture reverted the peer's work; and under `editor: speaker` the message carries the compiled figure too, because the projection ships no compiler. The DOM half of applying an edit – swapping the drawing, its frames payload, the runtime and the focus-card clone – is `dgSwapFigure` in the shared diagram runtime, one text for the editor's path and the no-editor path.
 - **`frozen` and `state` are top-level `let`/`const` in a classic script**, so they are *not* properties of `window`. The editor reads the freeze state off `#freeze-btn`, which is the same fact made visible. Function declarations (`sendToPeer`, `dgRenderInto`) are global and can be called directly.
 
+### Slide decoration: covers, backdrops, overlays, cards
+
+Four additions that are one idea – **a slide is a frame, and the frame can carry more than a text column.** All of them are additive: a `source.md` that uses none of them builds byte-identically to before.
+
+- **`subtitle:` in the frontmatter.** The hierarchy step the cover was missing, and most of the original "hard to read" complaint. Without it the one line that says what the talk is *about* has nowhere to go but the `info` block, where it renders at meta size in soft ink beside the room and the date. Four sizes now where there were two.
+
+- **`cover:` – eight compositions**, with `cover-image:` for the ones that take a picture from a file and `cover-ratio:` (15–75%) for the ones that divide the slide.
+
+  | | picture | what it is |
+  |---|---|---|
+  | `classic` | – | the lower-left third, all type. **The default**, and the composition the tool always drew |
+  | `editorial` | – | an accent rail, the title over a rule, the meta in a footer row |
+  | `stack` | – | the title block centred on both axes |
+  | `rule` | – | the title held between two hairlines across the measure |
+  | `split` | `cover-image` | type left, the picture **bled** off the right edge |
+  | `hero` | `cover-image` | the picture is the slide, type reversed out of a gradient |
+  | `beside` | **the chunk body** | the art **inset** to the right of the title |
+  | `above` | **the chunk body** | the art on top, title centred in the band below |
+
+  **`beside` and `above` take their art from the title chunk's own body**, which is what lets a `::: draw` be the cover: a diagram is not a file, so `cover-image` can never name one, and a directive of their own would be a second way to say "this is the cover". That changes one rule for exactly these two: a title chunk's body normally *replaces* the `info` lines (PRD §3), which would mean a figure cover could not carry a date, so here the body is the art and `info:` still supplies the meta.
+
+  **`split` bleeds and `beside` insets, and that is why both exist** – a photograph wants the edge, a drawing wants a margin, because a diagram cropped by the frame reads as a diagram that did not fit.
+
+  `cover-ratio` is a **percentage** and not a `W:H` ratio: what an author sets is the split of one fixed frame, and the slide's own aspect is the projector's. Written on a cover that does not divide the slide it is an error, because a number the drawing ignores is a silent no-op.
+
+- **`::: backdrop <ref> {classes}`** – a full-bleed image behind the whole slide, on any chunk. One line, no closer. **Chunk-level rather than a body wrapper, and that is forced rather than chosen**: `.chunk-content` sits in the middle track of the slide's grid, so anything emitted inside the body is boxed by the text column and can never reach the edges.
+
+- **`::: overlay {classes}` … `:::`** – a grounded text block laid over the slide. Chunk-level for the same reason. All overlays of one chunk go into **one** absolutely-positioned 3×3 grid (`.overlay-layer`), so two aimed at the same corner stack instead of overlapping.
+
+  | directive | slot | words (first is the default) |
+  |---|---|---|
+  | `backdrop` | fill | `cover` `contain` |
+  | | crop | `middle` `top` `bottom` |
+  | | scrim | `veil` `clear` `invert` |
+  | | focus | `sharp` `blur` |
+  | `overlay` | place | `center` `top-left` `top` `top-right` `left` `right` `bottom-left` `bottom` `bottom-right` |
+  | | ground | `paper` `ink` `accent` `clear` `glass` |
+  | | width | `standard` `narrow` `wide` `full` |
+
+- **`::: cards N {classes}`** – N equal containers in a row. **Not a second spelling of `cols`**: `cols` is one text flow the browser balances across N tracks, so a paragraph can spill from the foot of one column into the head of the next; `cards` is N *containers*, and an item is whole or it is nowhere.
+
+  **The block's body is captured and rendered by `renderCardsBlock` rather than streamed** as an open `<div>` for the markdown between to fall into, and that is what the size needs: choosing it means counting the words in the longest item, which is a fact about the *source* and cannot be recovered from CSS or from rendered HTML without parsing it back. The count is taken from the `- ` lines, which is a rule an author can see, and nested items are excluded because they are the detail rather than the headline.
+
+  | slot | words (first is the default) |
+  |---|---|
+  | size | `auto` `large` `medium` `small` |
+  | align | `auto` `left` `center` |
+  | anchor | `top` `middle` |
+  | detail | `fold` `show` |
+  | ground | `panel` `outline` `clear` |
+
+  **`auto` size reads the longest item**: ≤ 3 words → large, ≤ 12 → medium, else small. It is the **block's** decision and never each card's, because three sizes in one row read as a mistake rather than as a hierarchy. **`auto` align follows the size** – a word centres, a sentence ranges left – *except* where the row carries a second level, which ranges left whatever its heads measure: unfolded, a centred head over a left-aligned detail list reads as a mistake, and the head cannot change alignment with the collapse mode without the row jumping when `C` is pressed.
+
+  **`detail: fold` is what makes one row serve two views.** The nested levels are hidden on the projection under `topic-bold` and present everywhere else, so the slide carries the headline and the document carries the hierarchy — and `C` brings them back, needing no second markup because the nested list is already there. Print defines no `data-collapse` at all, so a hand-out always has them.
+
+  **A card row is refused inside any directive that has already divided the measure** – `cols`, `side`, `marginalia`, `embed`, `expand`, `margin`, `overlay`. It is N containers side by side, so it needs the whole width, and what the three interesting cases actually did is worse than nothing: in `cols` the row spanned the full width and **defeated the column flow**, so the author wrote `cols 2` and got one column with nothing to say why; in `side` it was squeezed into half the slide while the other pane floated beside the heading; in `marginalia` a full-width row sat inside a narrow aside. `slide` and `script` are exempt and must stay so – they divide nothing, they only say which half of the chunk is on screen. `layoutStack` entries carry `{close, kind, narrows}` for exactly this question.
+
+  **What a card shows is not decided by bold**, and this is the opposite of what the chunk body does: `splitSentencesIn` walks `p` and never `li`, so a list item is never abridged. Everything written in a card is on the slide, and the fold above is the only thing that takes anything away.
+
+  **The default look is one device, not two.** A tinted fill *and* a hairline is the combination to avoid – a grey box inside a grey border reads as a form field rather than as a card – so `panel` fills, `outline` strokes, and neither does both. Three numbers were tuned rather than defaulted: the gutter scales with the card's own size (at a flat 0.7em against a 300px card the row read as one panel with seams), the padding grows *faster* than the type (big type wants proportionally more air, or a large card reads as a caption that outgrew its box), and the row keeps `1.5em × card size` above it, because a card row is a block of surfaces rather than a continuation of the text. **The heading over a centred row centres with it**, written as a CSS coupling (`body:not([data-headings]) .chunk-content:has(.cards.ca-center)`) rather than as a class: there is nothing an author would want to say there that the cards have not already said, and naming any value for `style.headings` takes the decision back.
+
+**The class tails are closed vocabularies resolved into slots**, exactly as `DG_CLASS_GROUPS` does for a diagram, and `parseSlotClasses` reports the two failures this grammar refuses everywhere: a word from no slot, and two words from one. The second matters most – the second word lands, the first is thrown away, and nothing in the line says which won.
+
+Things that cost a debugging session each and should not be re-broken:
+
+- **A chunk's `min-height` is 40% of the viewport, not 100%.** A backdrop layer is `inset: 0` on the `.chunk`, so it fills whatever the chunk fills – which for a text slide is a band across the middle third with paper above and below it. `.chunk[data-has-backdrop]` and `.chunk-title` both force `min-height: var(--slide-h)`.
+- **`color: var(--ink)` is declared on `body`, so it is *computed there*.** Redefining `--ink` further down the tree changes nothing that already resolved, and the hero cover's title came out near-black on a night photograph for exactly that reason. `.chunk[data-backdrop=invert]` restates `color` alongside the token overrides.
+- **The stacking is z-index on each layer and never `position`.** `.overlay-layer` is already absolute, and a sibling selector restating `position: relative` on it dropped the layer back into the text flow, where its three `1fr` rows stretched the chunk to twice the viewport.
+- **The `split` cover pins both tracks to `grid-row: 1`.** The picture is emitted before the text, so sparse auto-placement fills column 2 of row 1 and sends the text to a second row – and the picture becomes a 200px stub at the top of an 810px slide.
+- **A cover figure sizes with `width: auto; height: auto` and a max on both.** The svg carries width and height attributes, so it has an intrinsic size and ratio, which is exactly the case where a pair of maxima shrinks it to fit. `height: 100%` instead made the box size from the content that was sizing from the box, and a tall figure ran off both the bottom and the right.
+- **The scrim is the theme's own paper, not white.** `color-mix(in oklch, var(--paper) 80%, transparent)` keeps ordinary ink legible over a photograph in all seven themes. `hero`'s scrim is a bottom-up gradient instead, because an even veil greys the whole photograph to protect four lines in one corner.
+- **`scanReferencedImages` has to see a backdrop and a `cover-image`.** Both go through the same `data:` URI a figure does, so both meet the same 2 MB cap – and left out of the scan an oversized one fell through `toDataUri` to an external path with no complaint, which is what `assertInlinable` exists to stop.
+
+`lint.js` mirrors all of it: `COVER_VARIANTS` in `VIEW_DEFAULTS`, `STYLE_ENUMS`, all four slot tables with `slotProblems`, the directives' shapes, a second `::: backdrop` in one chunk, `::: cards` outside 2–6 or inside a dividing directive, and `cover-ratio` outside 15–75.
+
+`test/settings.mjs` (was `layout-compat.mjs`; renamed once it outgrew the name) gates the lot – 51 checks over the 1.0.0 recipe, autoplay and `cycle`, the label switches, the card-row auto vocabulary, and the six refusals plus the two exemptions above. `npm run settings`.
+
 ### Hosted embeds (`::: embed <url>`)
 
 Its own directive, never the meaning of a bare link or asset, because it is the single construct that makes an output fetch from a third party at run time. `parseEmbedUrl()` recognises YouTube and Vimeo (leniently: a bare `youtu.be/ID` or `vimeo.com/ID` is fine, which is what people paste) and normalises them to `youtube-nocookie.com/embed/…?enablejsapi=1` and `player.vimeo.com/video/…?dnt=1`; any other `https://` URL is framed as-is with no sync. `lint.js` mirrors that leniency exactly – a linter stricter than the build is worse than none.
@@ -517,6 +675,8 @@ The cover treatment for `title` chunks also lives in `@media print` now. The bas
 Six optional frontmatter keys pin how a lecture opens: `font` (serif/sans/mono), `theme` (the six accent/phosphor names), `collapse` (topic-bold/none), `auto-fit` (true/false), `slide-numbers` (vertical/horizontal/off), `editor` (both/speaker/none). The last is not a look but a payload – whether the live views carry the diagram editor – and it goes through this machinery rather than growing its own because the failure mode is identical: a typo would otherwise cost the lecture its editor silently. The precedence rule is one sentence: **a key that is present wins over the reader's stored preference; a key that is absent leaves that preference alone.** So lectures that say nothing behave exactly as before – font, theme and slide numbers keep following the reader across lectures – and an author who has designed a particular look gets it without asking anyone to press keys.
 
 An unknown value **fails the build** (`err.userFacing`, no stack trace) rather than being ignored, because a typo here is otherwise invisible: the lecture still builds and still looks fine, it just looks like the author never set anything. `lint.js` mirrors the table as `VIEW_DEFAULTS` and reports `unknown-view-default` as an error – keep the two in sync, same rule as `VALID_TAGS`.
+
+See *Slide decoration* above for `cover`, `subtitle`, `cover-image` and the `style:` block, which are the author's composition rather than the reader's preference and so are validated separately.
 
 Chunk grammar: `## tag: Heading | Sub-Heading {.width #id}` where `tag` is one of `title`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`, and width is one of `narrow` (28em), `standard` (36em), `wide` (52em), `full` (72em). The `|` sub-heading and the `{...}` attribute tail are both optional; width defaults to `standard`.
 
