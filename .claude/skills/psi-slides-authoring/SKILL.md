@@ -601,13 +601,14 @@ says what the talk is *about* has nowhere to go but `info`, where it renders at
 meta size beside the room and the date.
 
 ```yaml
-title: Detecting Bot Detection
-subtitle: Prevalence, Techniques and Implications
-presenter: Ralf Gundelach
+title: How Caches Forget
+subtitle: Eviction, Staleness and the Cost of Being Wrong
+presenter: Jana Wieland
 info: |
-  ARES 2026 · Linköping · 24 to 27 August
+  Nordic Systems Days · Bergen · 12 to 15 October
 cover: masthead         # see the table below
-cover-image: skyline    # split and hero need one; the others ignore it
+cover-image: skyline    # only the four picture covers take one;
+                        # on the six type covers it is an error
 ```
 
 The list runs quiet to loud, which is the only question it asks you.

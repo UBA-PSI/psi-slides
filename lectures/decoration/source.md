@@ -19,6 +19,16 @@ A slide is a frame, and the frame can carry more than a column of text.
 Every way psi-slides has of decorating a slide, each one used on the slide that
 describes it, so you can see it work before you write it.
 
+## principle: None of this is in the 1.0.0 release {.standard #preview}
+
+**Everything this lecture shows was added after the 1.0.0 release**, so the
+archive on the releases page does not have it and a lecture that uses it will
+not build against that download.
+
+What you need instead is the repository: a clone, or **Download ZIP** from the
+project page, and the `build.js` inside it. The source format is frozen from
+1.0.0 onwards, so these constructions may still change before they are tagged.
+
 # The cover, and the slide that closes it {#covers}
 
 > A deck has one cover, so this lecture can show you only one of the ten. The

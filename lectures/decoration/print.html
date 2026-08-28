@@ -970,6 +970,23 @@ describes it, so you can see it work before you write it.</p>
   
   
 </article>
+<article class="chunk chunk-principle width-standard" id="preview" data-chunk-num="3">
+  
+  <span class="chunk-num" aria-hidden="true"><i>3</i></span>
+  <span class="chunk-label">principle</span>
+  <h2 class="chunk-heading">None of this is in the 1.0.0 release</h2>
+  <p><strong>Everything this lecture shows was added after the 1.0.0 release</strong>, so the
+archive on the releases page does not have it and a lecture that uses it will
+not build against that download.</p>
+<p>What you need instead is the repository: a clone, or <strong>Download ZIP</strong> from the
+project page, and the <code>build.js</code> inside it. The source format is frozen from
+1.0.0 onwards, so these constructions may still change before they are tagged.</p>
+
+  
+  
+  
+  
+</article>
 </section>
 <nav class="toc" aria-label="Contents">
   <h2>Contents</h2>
@@ -990,9 +1007,9 @@ describes it, so you can see it work before you write it.</p>
 from a real build.</p>
 </blockquote>
 </div>
-<article class="chunk chunk-free width-wide" id="cover-list" data-chunk-num="3">
+<article class="chunk chunk-free width-wide" id="cover-list" data-chunk-num="4">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i></span>
   
   <h2 class="chunk-heading">Ten ways to open a lecture</h2>
   <p><strong><code>cover:</code> in the frontmatter picks one of the ten below</strong>, ordered by how
@@ -1033,9 +1050,9 @@ loudly the opening slide announces itself rather than alphabetically.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="cover-keys" data-chunk-num="4">
+<article class="chunk chunk-free width-wide" id="cover-keys" data-chunk-num="5">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i></span>
   
   <h2 class="chunk-heading">Three keys the cover reads</h2>
   <p><strong><code>cover-image:</code></strong> names the picture, and four of the ten draw one: <code>split</code>,
@@ -1056,9 +1073,9 @@ question and the build stops with an error rather than ignoring the line.</p>
   
   
 </article>
-<article class="chunk chunk-free width-standard" id="cover-quote" data-chunk-num="5">
+<article class="chunk chunk-free width-standard" id="cover-quote" data-chunk-num="6">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i></span>
   
   <h2 class="chunk-heading"><code>quote</code> draws no quotation mark</h2>
   <p>A sentence set alone on a slide with a name under it <strong>already reads as a
@@ -1073,9 +1090,9 @@ with the title in the wrong place.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="closing-tag" data-chunk-num="6">
+<article class="chunk chunk-free width-wide" id="closing-tag" data-chunk-num="7">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i></span>
   
   <h2 class="chunk-heading">The last slide closes the arc</h2>
   <p><strong><code>## closing:</code> draws the last slide in whatever composition <code>cover:</code> names</strong>,
@@ -1095,9 +1112,9 @@ is one.</p>
   <h1 class="column-heading">Dividers carry their own slide</h1>
   <div class="chunk-backdrop bd-cover bd-middle bd-invert bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
   
-<article class="chunk chunk-free width-wide" id="section-list" data-chunk-num="7">
+<article class="chunk chunk-free width-wide" id="section-list" data-chunk-num="8">
   
-  <span class="chunk-num" aria-hidden="true"><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i></span>
   
   <h2 class="chunk-heading">Six treatments, every one quieter than the cover</h2>
   <p>A divider has <strong>one job: to say that a new part starts here, and that it is part
@@ -1127,9 +1144,9 @@ has failed at it.</p>
   
   
 </article>
-<article class="chunk chunk-principle width-standard" id="outline-why" data-chunk-num="8">
+<article class="chunk chunk-principle width-standard" id="outline-why" data-chunk-num="9">
   
-  <span class="chunk-num" aria-hidden="true"><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i></span>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading">What a running agenda says that a coloured field cannot</h2>
   <p><strong>Which part starts, out of how many, and how far into the hour you are.</strong> The
@@ -1143,9 +1160,9 @@ heading is the live item in the list rather than a second copy set beside it.</p
   
   
 </article>
-<article class="chunk chunk-free width-standard" id="outline-states" data-chunk-num="9">
+<article class="chunk chunk-free width-standard" id="outline-states" data-chunk-num="10">
   
-  <span class="chunk-num" aria-hidden="true"><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>0</i></span>
   
   <h2 class="chunk-heading">Three states, two greys</h2>
   <p>The live part is set <strong>larger and in full ink</strong>; the parts before and after it
@@ -1161,9 +1178,9 @@ Write nothing and nothing is drawn there.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="divider-body" data-chunk-num="10">
+<article class="chunk chunk-free width-wide" id="divider-body" data-chunk-num="11">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>1</i></span>
   
   <h2 class="chunk-heading">The lines under a <code>#</code> heading are the divider&#39;s slide</h2>
   <p>Whatever you write between a <code># Heading</code> and the first <code>##</code> heading under it
@@ -1189,9 +1206,9 @@ under the part title. The divider slide itself never prints.</p>
   
   
 </article>
-<article class="chunk chunk-free width-standard" id="divider-beside" data-chunk-num="11">
+<article class="chunk chunk-free width-standard" id="divider-beside" data-chunk-num="12">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>2</i></span>
   
   <h2 class="chunk-heading">A figure divider lays out beside the heading</h2>
   <p>When a divider&#39;s body is nothing but a figure, <strong>the figure goes beside the
@@ -1216,9 +1233,9 @@ is how the quotation divider in Part 1 comes out.</p>
 <g id="dg1-side" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg1-side--r" x="-77.00" y="94.50" width="154.00" height="27.00" rx="4"/><g id="dg1-side--lw0" data-lab="side--l" class="dg-lwrap" transform="translate(0.00,108.00)"><g id="dg1-side--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">side 2:1</tspan></text></g></g></g>
 <g id="dg1-note" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg1-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(136.40,54.00)"><g id="dg1-note--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">three containers,</tspan><tspan x="0" y="11.58">three jobs</tspan></text></g></g></g>
 </svg></figure></div>
-<article class="chunk chunk-free width-wide" id="cards-why" data-chunk-num="12">
+<article class="chunk chunk-free width-wide" id="cards-why" data-chunk-num="13">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></span>
   
   <h2 class="chunk-heading"><code>::: cards</code> makes boxes, not columns</h2>
   <p><strong><code>::: cards 3</code> puts three boxes side by side</strong>, and an item is whole or it is
@@ -1241,9 +1258,9 @@ than as a card</li>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="cards-grounds" data-chunk-num="13">
+<article class="chunk chunk-free width-wide" id="cards-grounds" data-chunk-num="14">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></span>
   
   <h2 class="chunk-heading">What a card sits on</h2>
   <p>The <code>ground</code> word says what is behind the text, and a row wears one at a time:
@@ -1275,9 +1292,9 @@ its top</li>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="cards-size" data-chunk-num="14">
+<article class="chunk chunk-free width-wide" id="cards-size" data-chunk-num="15">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></span>
   
   <h2 class="chunk-heading">The row size reads the longest item</h2>
   <p><strong><code>size: auto</code> counts the words in the longest card</strong>: three or fewer sets the
@@ -1305,9 +1322,9 @@ not jump when the reader presses <code>C</code>.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="cards-fold" data-chunk-num="15">
+<article class="chunk chunk-free width-wide" id="cards-fold" data-chunk-num="16">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>6</i></span>
   
   <h2 class="chunk-heading">One row serves two views</h2>
   <p><strong><code>detail: fold</code> is the default</strong>, so the levels under the first are in the
@@ -1338,9 +1355,9 @@ deck opens with everything showing, because its frontmatter says
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="rows" data-chunk-num="16">
+<article class="chunk chunk-free width-wide" id="rows" data-chunk-num="17">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></span>
   
   <h2 class="chunk-heading"><code>::: rows</code> turns a card row on its side</h2>
   <p><strong>A term in a small card on the left, its explanation beside it, several
@@ -1365,9 +1382,9 @@ slide however long the terms are.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="side" data-chunk-num="17">
+<article class="chunk chunk-free width-wide" id="side" data-chunk-num="18">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></span>
   
   <h2 class="chunk-heading"><code>::: side</code> takes a ratio</h2>
   <div class="side" style="--side-a:2fr;--side-b:1fr"><div class="side-a">
@@ -1396,9 +1413,9 @@ second one. Any two numbers work.</p>
   <h1 class="column-heading">Revealing a picture</h1>
   
   
-<article class="chunk chunk-free width-wide" id="reveal-why" data-chunk-num="18">
+<article class="chunk chunk-free width-wide" id="reveal-why" data-chunk-num="19">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></span>
   
   <h2 class="chunk-heading">The window walks the beats, and the picture stands still</h2>
   <p><strong><code>::: backdrop dusk {cover} reveal full, right 52%</code></strong> gives the picture one
@@ -1414,9 +1431,9 @@ or slides about while it is being revealed.</p>
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="reveal-open" data-chunk-num="19" data-has-backdrop="" data-backdrop="clear">
+<article class="chunk chunk-figure width-full" id="reveal-open" data-chunk-num="20" data-has-backdrop="" data-backdrop="clear">
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></span>
   
   
   
@@ -1429,9 +1446,9 @@ or slides about while it is being revealed.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="reveal-from" data-chunk-num="20">
+<article class="chunk chunk-free width-wide" id="reveal-from" data-chunk-num="21">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>1</i></span>
   
   <h2 class="chunk-heading"><code>from</code> holds an overlay back until a beat</h2>
   <p><strong><code>::: overlay {…} from 1</code> keeps the block off the slide</strong> until the first press
@@ -1447,9 +1464,9 @@ its own cell over the picture and nothing else moves.</p>
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="reveal-close" data-chunk-num="21" data-has-backdrop="" data-backdrop="clear">
+<article class="chunk chunk-figure width-full" id="reveal-close" data-chunk-num="22" data-has-backdrop="" data-backdrop="clear">
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-over" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></span>
   
   
   
@@ -1461,9 +1478,9 @@ its own cell over the picture and nothing else moves.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="backdrop-slots" data-chunk-num="22">
+<article class="chunk chunk-free width-wide" id="backdrop-slots" data-chunk-num="23">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></span>
   
   <h2 class="chunk-heading">Where the picture sits, and what it is veiled with</h2>
   <p>Four groups of words go in the braces after <code>::: backdrop</code>, at most one from
@@ -1489,9 +1506,9 @@ at the start of Part 2 does.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="overlay-slots" data-chunk-num="23">
+<article class="chunk chunk-free width-wide" id="overlay-slots" data-chunk-num="24">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>4</i></span>
   
   <h2 class="chunk-heading">An overlay is a block of text over the slide</h2>
   <p><strong>Nine places, five backgrounds, four widths.</strong> Aim two overlays at the same
@@ -1514,9 +1531,9 @@ corner and they stack rather than landing on top of each other.</p>
   <h1 class="column-heading">A heading that stays off the slide</h1>
   
   
-<article class="chunk chunk-free width-wide" id="bare-why" data-chunk-num="24">
+<article class="chunk chunk-free width-wide" id="bare-why" data-chunk-num="25">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></span>
   
   <h2 class="chunk-heading"><code>{.bare}</code> gives up the projection and nothing else</h2>
   <p><strong><code>{.bare}</code> keeps a heading out of the projection</strong> and leaves it everywhere
@@ -1533,9 +1550,9 @@ slide and the next one, and the next one carries no heading on screen at all.</p
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="bare-loop" data-chunk-num="25">
+<article class="chunk chunk-figure width-full" id="bare-loop" data-chunk-num="26">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></span>
   
   <h2 class="chunk-heading">The measurement loop</h2>
   <figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-56.35 -40.10 324.13 180.03" width="2000" height="1111" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
@@ -1551,9 +1568,9 @@ slide and the next one, and the next one carries no heading on screen at all.</p
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="autoplay" data-chunk-num="26">
+<article class="chunk chunk-figure width-full" id="autoplay" data-chunk-num="27">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></span>
   
   <h2 class="chunk-heading">A figure that walks itself</h2>
   <figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
@@ -1570,9 +1587,9 @@ slide and the next one, and the next one carries no heading on screen at all.</p
   
   
 </article>
-<article class="chunk chunk-title" data-cover="quote" data-closing="" data-chunk-num="27" id="end">
+<article class="chunk chunk-title" data-cover="quote" data-closing="" data-chunk-num="28" id="end">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></span>
   <h1 class="title-main">A slide is a frame</h1>
     <p class="title-subtitle">and the frame can carry more than a column of text</p>
     <div class="closing-body"><p>None of these constructions changes a lecture that does not use them. A

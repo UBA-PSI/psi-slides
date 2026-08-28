@@ -467,6 +467,126 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 > note: A malformed formula does not stop the build – it is drawn in red, so a typo never blanks the projector mid-lecture. The terminal reports it, and `lint.js` warns about a `$$` you forgot to close.
 
+# Writing chunks that work {#craft}
+
+## principle: The topic sentence is the slide | so write the opening line for the projector {.standard #topic-sentence}
+
+**When the tool works the slide out for you the room reads your opening sentences, so each one has to be a claim that stands up without its paragraph.** Everything after it belongs to the documents.
+
+The same rule is a rehearsal test: if the shortened chunk would not remind you what you meant to say, the chunk is not finished.
+
+> note: Present this chunk from the short view while you say it. Nothing lands the argument faster than a slide that is visibly the same text as the handout.
+
+## example: Four ways a chunk goes soft {.wide #anti-patterns}
+
+**Most chunks that read badly on the projector fail in one of four ways**, and each is one edit away from working.
+
+::: slide
+
+- **Bold used as a label.** `**Consequence:**` shortens to a bullet reading “Consequence” and nothing else. Put the claim inside the sentence.
+- **Bold on one word.** A lone `**not**` becomes a cryptic bullet. Bold a phrase that stands alone, or bold nothing.
+- **An opening that only connects.** “That was deliberate.” carries no claim. Say the thing itself in the first sentence.
+- **The substance after a colon.** If it sits after a colon at the end of the opening sentence, the cue dangles. Rewrite as one sentence.
+
+:::
+
+All four have the same shape: they read fine inside a paragraph and fall apart the moment the paragraph is taken away. Walking a lecture once in the short view before you teach it is where they show up.
+
+When several parallel items pile up inside one paragraph, write a real Markdown list instead of scattering bold through the prose. A list stays readable when it is shortened; a paragraph peppered with bold almost never does.
+
+> note: The recurring temptation is to fix a weak short view by adding more bold. That is nearly always the wrong direction – fewer bolds and a stronger opening sentence is the fix.
+
+## question: Let the tool work it out, or mark it yourself? {.standard #choose-mechanism}
+
+**Let the tool work it out while the chunk is an argument of one to three paragraphs; mark the slide yourself once the argument wants continuous prose.** Try the first and switch when it keeps fighting you.
+
+::: expand tag-as-predictor
+**The tag is a fair predictor.** `principle` and `question` chunks are short enough that the first-sentence rule rarely bites. `example` and `free` chunks near their word budget are where `::: slide` is worth reaching for, because those carry a walkthrough or a finding rather than a claim.
+
+A figure with a paragraph of interpretation under it is the other reliable case, and there `::: script` around the interpretation is less typing than wrapping the other half.
+:::
+
+## exercise: The squint test {.wide #squint-test}
+
+**Open your own lecture in the audience view, press `C` until it is short, and walk it end to end without opening the source.** Stop at every chunk you could not talk from using only what is on the screen.
+
+::: cols 2
+
+**For each chunk that fails**, ask in this order: is the opening sentence a claim, or a warm-up? Would each bold phrase read as a sensible bullet on its own? Is there a list hiding inside a paragraph?
+
+**If all three answers are fine and it still reads badly,** the chunk wants `::: slide`. Both ways of deciding exist because neither one covers every chunk.
+
+:::
+
+> note: Worth doing once per lecture, the day before. It doubles as a rehearsal, because reading the short version is very close to giving the talk.
+
+# Next steps {#next}
+
+## exercise: Read more | the artefacts that close the loop {.wide #read-more}
+
+**The tour covered the keys. What it cannot cover is the craft, and that only shows in lectures somebody wrote.**
+
+::: cols 2
+
+**1. `lectures/python-intro/audience.html`.** A 36-chunk teaching lecture. Open its speaker window with `S` and watch the layout vocabulary you have just learned in real use, running through segments, expansions and opened figures.
+
+**2. `lectures/decoration/audience.html`.** Every construction that puts something other than a column of text on a slide, one per slide: the covers, the six kinds of divider and the three kinds of divider content, cards and rows, a backdrop whose window opens on a keypress.
+
+**3. `lectures/diagrams/audience.html`.** The same for `::: draw`: every statement drawn rather than described, with real lecture figures among them.
+
+**4. `PRD.md`.** Why four views, why this set of tags, why `C` has two settings and not four. Part specification and part plan, so read it as a record of thinking rather than of behaviour.
+
+**5. `docs/comparison.md`.** psi-slides against Beamer, reveal.js, Quarto, Marp, Slidev and PowerPoint, including the places it loses.
+
+:::
+
+## free: Writing your own | `--new`, `--watch`, `lint.js` {.standard #authoring}
+
+**Three commands cover the whole of writing a lecture:**
+
+- `node build.js --new <slug>` makes a lecture folder with working frontmatter and two chunks. It builds the moment it lands on disk.
+- `node build.js <source.md> --watch` rebuilds and reloads every open tab on every save.
+- `node lint.js lectures/` checks what can be checked without building: unknown tags, unclosed directives, repeated ids, word budgets, too many segments, columns with only one chunk, captions that repeat the heading. `--strict` turns the warnings into failures.
+
+A source file can switch one check off with `<!-- linter: ignore reveal-overuse, density -->` anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for `density`, and says there why.
+
+## example: Deciding how a lecture opens | six optional frontmatter keys {.wide #view-defaults}
+
+**A lecture can set its own starting look instead of inheriting whatever the reader last chose.**
+
+```yaml
+---
+title: Anonymous Communication
+font: mono              # serif | sans | mono
+theme: terminal-green   # light-{red,teal,blue,orange}
+                        # dark | terminal-{amber,green}
+collapse: none          # topic-bold | none     – the C key
+auto-fit: true          # true | false          – the # key
+slide-numbers: off      # vertical | horizontal | off
+editor: speaker         # both | speaker | none – the diagram editor
+---
+```
+
+`lang:` sits beside them and does a different job: it names the language the lecture is written in (`en` unless you say otherwise, then `de`, `de-DE`, `fr` and so on) and reaches all four views. The document views use it to pick the **hyphenation rules**, which is what lets a long German compound break at the end of a line instead of leaving a hole. The two live views never hyphenate, because a broken word on a projection reads badly.
+
+**Which setting wins is one sentence.** A key you write beats whatever the reader last chose; a key you leave out leaves that choice alone. So a lecture that sets nothing behaves as it always did – font, theme and slide numbers follow the reader from lecture to lecture – while a lecture with a look of its own gets it without asking anyone to press keys.
+
+`slide-numbers` reaches the document views too, a document having no keyboard to cycle it with. A value the tool does not know stops the build and lists the ones it does, because a setting dropped in silence looks exactly like a setting you forgot to write.
+
+> note: When you finish this tour with a first-timer, ask them what they found on their own and what they did not. That is the most useful feedback the tool gets.
+
+# Beyond 1.0.0 {#beyond}
+
+> Everything from here on was added after the 1.0.0 release. The archive on the
+> releases page was built before it, so a lecture that uses any of it will not
+> build against that download.
+>
+> What you need is the repository itself: a clone, or **Download ZIP** from the
+> project page, and the `build.js` inside it. Try all of it – it is what the
+> rest of this tour is written in. The source format is frozen from 1.0.0
+> onwards, so these constructions may still change before they are tagged into
+> a release of their own.
+
 ## example: Diagrams | `::: draw` draws boxes and arrows from text {.full #diagram}
 
 **A `::: draw` block is a figure you write out in the lecture source, drawn into the page as artwork when the lecture is built.** You name the boxes and say where they go; the arrows between them are worked out for you.
@@ -733,12 +853,6 @@ step damage
 
 **Two tags do all the revealing: `@attack` and `@cut`.** `show @attack` brings Eve in and the handwritten caption with her, because both lines carry that tag; `show @cut` brings the three arrows through her a step later. The pair running to Bob leaves Eve's right edge at `:0.2` and `:0.8` – a fraction along a side is how two arrows between the same two boxes run parallel instead of on top of each other – and `side top` and `side bottom` put one label above its line and the other below.
 
-# Decorating a slide {#decorating}
-
-> A slide is a frame, and the frame can carry more than a column of text.
-> These lines are the divider's own slide: whatever you write between a `#`
-> heading and the first chunk under it.
-
 ## principle: A picture behind the text is not part of the text {.standard #deco-idea}
 
 **A backdrop, an overlay and a card row belong to the chunk, not to its body.**
@@ -776,89 +890,6 @@ and this block is an overlay, placed on a 3×3 grid.
 
 > note: The veil laid over a backdrop is the theme's own paper rather than white, so ordinary dark text stays legible over a photograph in every theme. `invert` is the other way round – it darkens the picture and turns the text light – and that is what this slide uses.
 
-# Writing chunks that work {#craft}
-
-## principle: The topic sentence is the slide | so write the opening line for the projector {.standard #topic-sentence}
-
-**When the tool works the slide out for you the room reads your opening sentences, so each one has to be a claim that stands up without its paragraph.** Everything after it belongs to the documents.
-
-The same rule is a rehearsal test: if the shortened chunk would not remind you what you meant to say, the chunk is not finished.
-
-> note: Present this chunk from the short view while you say it. Nothing lands the argument faster than a slide that is visibly the same text as the handout.
-
-## example: Four ways a chunk goes soft {.wide #anti-patterns}
-
-**Most chunks that read badly on the projector fail in one of four ways**, and each is one edit away from working.
-
-::: slide
-
-- **Bold used as a label.** `**Consequence:**` shortens to a bullet reading “Consequence” and nothing else. Put the claim inside the sentence.
-- **Bold on one word.** A lone `**not**` becomes a cryptic bullet. Bold a phrase that stands alone, or bold nothing.
-- **An opening that only connects.** “That was deliberate.” carries no claim. Say the thing itself in the first sentence.
-- **The substance after a colon.** If it sits after a colon at the end of the opening sentence, the cue dangles. Rewrite as one sentence.
-
-:::
-
-All four have the same shape: they read fine inside a paragraph and fall apart the moment the paragraph is taken away. Walking a lecture once in the short view before you teach it is where they show up.
-
-When several parallel items pile up inside one paragraph, write a real Markdown list instead of scattering bold through the prose. A list stays readable when it is shortened; a paragraph peppered with bold almost never does.
-
-> note: The recurring temptation is to fix a weak short view by adding more bold. That is nearly always the wrong direction – fewer bolds and a stronger opening sentence is the fix.
-
-## question: Let the tool work it out, or mark it yourself? {.standard #choose-mechanism}
-
-**Let the tool work it out while the chunk is an argument of one to three paragraphs; mark the slide yourself once the argument wants continuous prose.** Try the first and switch when it keeps fighting you.
-
-::: expand tag-as-predictor
-**The tag is a fair predictor.** `principle` and `question` chunks are short enough that the first-sentence rule rarely bites. `example` and `free` chunks near their word budget are where `::: slide` is worth reaching for, because those carry a walkthrough or a finding rather than a claim.
-
-A figure with a paragraph of interpretation under it is the other reliable case, and there `::: script` around the interpretation is less typing than wrapping the other half.
-:::
-
-## exercise: The squint test {.wide #squint-test}
-
-**Open your own lecture in the audience view, press `C` until it is short, and walk it end to end without opening the source.** Stop at every chunk you could not talk from using only what is on the screen.
-
-::: cols 2
-
-**For each chunk that fails**, ask in this order: is the opening sentence a claim, or a warm-up? Would each bold phrase read as a sensible bullet on its own? Is there a list hiding inside a paragraph?
-
-**If all three answers are fine and it still reads badly,** the chunk wants `::: slide`. Both ways of deciding exist because neither one covers every chunk.
-
-:::
-
-> note: Worth doing once per lecture, the day before. It doubles as a rehearsal, because reading the short version is very close to giving the talk.
-
-# Next steps {#next}
-
-## exercise: Read more | the artefacts that close the loop {.wide #read-more}
-
-**The tour covered the keys. What it cannot cover is the craft, and that only shows in lectures somebody wrote.**
-
-::: cols 2
-
-**1. `lectures/python-intro/audience.html`.** A 36-chunk teaching lecture. Open its speaker window with `S` and watch the layout vocabulary you have just learned in real use, running through segments, expansions and opened figures.
-
-**2. `lectures/decoration/audience.html`.** Every construction that puts something other than a column of text on a slide, one per slide: the covers, the six kinds of divider and the three kinds of divider content, cards and rows, a backdrop whose window opens on a keypress.
-
-**3. `lectures/diagrams/audience.html`.** The same for `::: draw`: every statement drawn rather than described, with real lecture figures among them.
-
-**4. `PRD.md`.** Why four views, why this set of tags, why `C` has two settings and not four. Part specification and part plan, so read it as a record of thinking rather than of behaviour.
-
-**5. `docs/comparison.md`.** psi-slides against Beamer, reveal.js, Quarto, Marp, Slidev and PowerPoint, including the places it loses.
-
-:::
-
-## free: Writing your own | `--new`, `--watch`, `lint.js` {.standard #authoring}
-
-**Three commands cover the whole of writing a lecture:**
-
-- `node build.js --new <slug>` makes a lecture folder with working frontmatter and two chunks. It builds the moment it lands on disk.
-- `node build.js <source.md> --watch` rebuilds and reloads every open tab on every save.
-- `node lint.js lectures/` checks what can be checked without building: unknown tags, unclosed directives, repeated ids, word budgets, too many segments, columns with only one chunk, captions that repeat the heading. `--strict` turns the warnings into failures.
-
-A source file can switch one check off with `<!-- linter: ignore reveal-overuse, density -->` anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for `density`, and says there why.
-
 ## example: Embedding your own type | `fonts/` plus a frontmatter block {.wide #fonts}
 
 **Three typefaces travel inside every file the tool writes:** Literata, IBM Plex Sans and JetBrains Mono, all under the SIL Open Font License, which permits exactly that. Carrying them matters because Safari does not tell a page which fonts a machine has, so a lecture that only *names* its typefaces gets whatever that browser decides. The three cost about 280 KB per file, and `fonts: none` leaves them out.
@@ -881,11 +912,11 @@ Files are matched by name, and the ending gives the weight and the style: `Liter
 **`cover:` in the frontmatter picks how the title slide is composed, and `subtitle:` gives it the line that says what the talk is about.** Without those two, a cover is one weight of one colour with the subject set beside the venue, and it reads as a text file rather than as the opening of a talk.
 
 ```yaml
-title: Detecting Bot Detection
-subtitle: Prevalence, Techniques and Implications
-presenter: Ralf Gundelach
+title: How Caches Forget
+subtitle: Eviction, Staleness and the Cost of Being Wrong
+presenter: Jana Wieland
 info: |
-  ARES 2026 · Linköping · 24 to 27 August
+  Nordic Systems Days · Bergen · 12 to 15 October
 cover: split            # see the two rows below
 cover-image: skyline    # only the four picture covers take one;
                         # on the six type covers it is an error
@@ -1039,28 +1070,6 @@ Iosevka reaches the same width and does **not** ship with the tool: it is 961 KB
 
 `ligatures:` answers what is really two questions. `text` is what you get by saying nothing: `fi` and `fl` joined up in prose, nothing joined in code. `none` takes them out of prose as well. `all` puts the code ones back, so JetBrains Mono draws `->` as a single arrow again – pleasant in an editor, and off here because in the figure language `->` and `--` are two *different* arrows, and every listing on a slide is source somebody may retype.
 
-## example: Laying a lecture out the way 1.0.0 did | three settings, not a version key {.wide #layout-generation}
-
-**Three settings between them bring a lecture back to the way version 1.0.0 laid it out.** Exactly three things have moved since then that a finished lecture would notice, and each is an ordinary preference:
-
-::: cards 3
-- **The sans face** was Inter Tight and is now IBM Plex Sans, which relays out every line set in sans. `fonts: {sans: Inter Tight}`
-- **Line breaking** now evens out the lines of a heading and protects the last line of a paragraph. `style: {wrap: none}`
-- **Code ligatures** were turned off, so `->` stopped drawing as an arrow. `ligatures: all`
-:::
-
-```yaml
-ligatures: all
-fonts:
-  sans: Inter Tight
-style:
-  wrap: none
-```
-
-Set together, those three give back the 1.0.0 rendering **exactly**: the same source was built through the real 1.0.0 build and through this one, and the two came out with zero differing pixels.
-
-**There is no `layout: 1.0` key, and there will not be one.** A single key naming a version reads as a promise that the tool can rebuild any past release, and that promise has no end: every later change to a shared stylesheet would have to be made conditional on a version, and the combinations nobody tests would multiply. It would also leave you having to know which version your lecture was written against. Each of these three is a setting you might want for its own sake – someone who prefers Inter Tight is expressing a view about type, not pinning a release.
-
 ## example: A figure that walks itself | `::: draw {autoplay=N}` {.wide #autoplay}
 
 **A figure written with `autoplay` walks its own steps on a timer once the slide is on screen** – one delay, in milliseconds, for every step. A cover figure that moves while the room files in is the case it was asked for, but it works on any chunk.
@@ -1119,31 +1128,6 @@ style:
 It is a key of its own rather than part of `rules`, which hides the bar above a principle and the hairline above a definition. A word and a line are not one decision, and you may want the line without the word.
 
 **A figure's heading, set in capitals, is your own text and needs no key.** It is the chunk's heading, drawn that way because the tag is `figure`, so `## figure: {.wide #id}` with no heading text leaves it off the slide. The cost is real and worth knowing: that chunk then has no text for search to find and no heading in the printed handout. (The contents list is unaffected either way – `T` lists the lecture's columns, never its chunks.)
-
-## example: Deciding how a lecture opens | six optional frontmatter keys {.wide #view-defaults}
-
-**A lecture can set its own starting look instead of inheriting whatever the reader last chose.**
-
-```yaml
----
-title: Anonymous Communication
-font: mono              # serif | sans | mono
-theme: terminal-green   # light-{red,teal,blue,orange}
-                        # dark | terminal-{amber,green}
-collapse: none          # topic-bold | none     – the C key
-auto-fit: true          # true | false          – the # key
-slide-numbers: off      # vertical | horizontal | off
-editor: speaker         # both | speaker | none – the diagram editor
----
-```
-
-`lang:` sits beside them and does a different job: it names the language the lecture is written in (`en` unless you say otherwise, then `de`, `de-DE`, `fr` and so on) and reaches all four views. The document views use it to pick the **hyphenation rules**, which is what lets a long German compound break at the end of a line instead of leaving a hole. The two live views never hyphenate, because a broken word on a projection reads badly.
-
-**Which setting wins is one sentence.** A key you write beats whatever the reader last chose; a key you leave out leaves that choice alone. So a lecture that sets nothing behaves as it always did – font, theme and slide numbers follow the reader from lecture to lecture – while a lecture with a look of its own gets it without asking anyone to press keys.
-
-`slide-numbers` reaches the document views too, a document having no keyboard to cycle it with. A value the tool does not know stops the build and lists the ones it does, because a setting dropped in silence looks exactly like a setting you forgot to write.
-
-> note: When you finish this tour with a first-timer, ask them what they found on their own and what they did not. That is the most useful feedback the tool gets.
 
 ## example: Closing the arc back to the cover | `## closing:` {.wide #closing}
 
