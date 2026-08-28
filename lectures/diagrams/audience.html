@@ -1420,6 +1420,11 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    not its first line. */
 .cards.rows {
   display: grid;
+  /* The anchor acts here, and until this line it did not: align-items was
+     center unconditionally, so top and middle rendered identically -
+     a word an author could write that moved nothing, which is the silent
+     no-op this format refuses everywhere else. */
+  align-items: var(--row-anchor, center);
   /* A definite share rather than an intrinsic track. Both intrinsic
      keywords were measured and both failed: auto resolves toward
      min-content under pressure, and the term inherits overflow-wrap from
@@ -1428,7 +1433,6 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
      78px wide in it. A fraction is predictable, needs no puzzle, and a
      term column of about a third is what the shape wants anyway. */
   grid-template-columns: minmax(6em, 0.38fr) minmax(0, 1fr);
-  align-items: center;
   column-gap: calc(1.1em * var(--card-fs, 1));
   row-gap: calc(0.7em * var(--card-fs, 1));
 }
@@ -1466,9 +1470,14 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    rather than a second card, so it takes no ground and stays at the
    chunk's own size - a row whose two halves are both cards reads as a
    two-column table, which is a different thing and has a statement. */
+/* On a row, align names how the *term* sits in its card - the term is
+   the card, and the body is prose beside it. Centring a definition's body
+   is not a thing anyone wants, so the body ranges left whatever the row
+   says, and the slot keeps meaning one thing rather than two. */
 .cards.rows li > .row-body {
   grid-column: 2;
-  align-self: center;
+  align-self: var(--row-anchor, center);
+  text-align: left;
   min-width: 0;
 }
 .cards.rows li > :is(strong, b):first-child + br { display: none; }
@@ -1600,8 +1609,8 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
 .cards.cg-clear   { gap: calc(2.1em * var(--card-fs, 1)); }
 .cards.ca-left   { --card-align: left; }
 .cards.ca-center { --card-align: center; }
-.cards.cv-top    { --card-anchor: flex-start; }
-.cards.cv-middle { --card-anchor: center; }
+.cards.cv-top    { --card-anchor: flex-start; --row-anchor: start; }
+.cards.cv-middle { --card-anchor: center;     --row-anchor: center; }
 /* detail - the levels under the first. On the projection they are folded
    away, so the card carries the headline and the document carries the
    hierarchy; pressing C is what brings them back, and it needs no second
