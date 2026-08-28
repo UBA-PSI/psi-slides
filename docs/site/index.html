@@ -40,14 +40,13 @@
       <div class="hero-col">
         <p class="extras">The slide carries what the room needs to follow you;
         the handout carries everything worth taking away. That split costs layout
-        freedom &ndash; fewer choices than PowerPoint, on purpose &ndash; and buys four
-        outputs instead of one. A lecture can carry <b>highlighted code</b>,
-        <b>LaTeX maths</b> and <b>video</b>, and every link gets <b>a QR
-        code</b> the room can scan off the wall. For the hour in front of the
-        room there is an overview board, full-text search, live annotation, a
-        timer and seven themes. All of that runs on your own laptop and keeps
-        working with the network unplugged, without a cloud or a service
-        provider.</p>
+        freedom &ndash; fewer choices than PowerPoint &ndash; and buys four outputs
+        instead of one. A lecture can carry <b>highlighted code, LaTeX formulas
+        and video</b>, and every link gets a QR code the room can scan off the
+        wall. For the hour in front of the room there is an overview board,
+        full-text search, live annotation, a timer and seven colour schemes. All
+        of that runs on your own laptop and keeps working with the network
+        unplugged, without a cloud or a service provider.</p>
       </div>
     </div>
    </div>
@@ -88,9 +87,9 @@
 
   <h2 id="the-film">The one-minute version</h2>
 
-  <p>The same argument as a film: what a lecture is made of, what comes out of
-  one file, and what the hour in front of the room looks like. Just under a
-  minute, subtitled.
+  <p>The argument on this page as a film: what a lecture is made of, what comes
+  out of one file, and what the hour in front of the room looks like. Just under
+  a minute, subtitled.
   <a href="de/index.html#the-film" hreflang="de" lang="de">Es gibt ihn auch auf
   Deutsch.</a></p>
 
@@ -272,7 +271,7 @@
 <section class="band band-do">
  <div class="wrap">
 
-  <h2>What psi-slides does</h2>
+  <h2>What the Markdown becomes</h2>
 
   <p>This is the Markdown behind the slide in the pictures above. The lecture it
   comes from is a real one, an introduction to Python built from 36 chunks &ndash; a
@@ -358,45 +357,47 @@ browser is for pages meant to be looked at.
 
   <h2 id="covers">Ten ways to open, six ways to change the subject</h2>
 
-  <p>A deck has exactly one cover and one divider style, so this is the only
-  place all of them stand side by side. Every tile below is a real build, shot
-  by <code>docs/site/shoot-gallery.mjs</code> at one viewport and one zoom
-  &ndash; nothing here was composed by hand. Click one to see it full size.</p>
+  <p>These are the ten title slides and the six dividers, all of them. A lecture
+  uses one of each, so this page is the only place they stand side by side.
+  Every tile below is a screenshot of a real slide, taken by
+  <code>docs/site/shoot-gallery.mjs</code> at the same window size and the same
+  zoom as all the others &ndash; none of them was laid out by hand. Click one to see
+  it full size.</p>
 
-  <p><strong><code>cover:</code></strong> is ordered quiet to loud rather than
-  alphabetically, because that is the only question it asks the author: how
-  much should the opening slide assert itself.</p>
+  <p><strong><code>cover:</code></strong> names the title slide. The ten run
+  quiet to loud rather than alphabetically, because the one question the list
+  asks is how much the opening slide should assert itself.</p>
 
   <div class="gallery">
     <figure class="shot tile"><img src="img/classic.webp" alt="A title slide with the type set in the lower left third of an otherwise empty slide.">
-      <figcaption><code>classic</code> the lower-left third. The default, and what the tool always drew</figcaption></figure>
+      <figcaption><code>classic</code> the type in the lower left third. The default</figcaption></figure>
     <figure class="shot tile"><img src="img/masthead.webp" alt="A title slide with the title at the top edge, a lede in the middle, and the credits under a rule at the bottom.">
-      <figcaption><code>masthead</code> a nameplate, a folio rule, and the chunk&rsquo;s own body as the lede between them</figcaption></figure>
+      <figcaption><code>masthead</code> the title at the top edge, credits under a rule at the foot, and the chunk&rsquo;s own text between them</figcaption></figure>
     <figure class="shot tile"><img src="img/stack.webp" alt="A title slide with the whole type block centred on both axes.">
       <figcaption><code>stack</code> centred on both axes, for an opening that wants to be still</figcaption></figure>
     <figure class="shot tile"><img src="img/display.webp" alt="A title slide with the title set very large, filling the upper half of the slide.">
-      <figcaption><code>display</code> the title set to fill the slide. The scale is the whole design</figcaption></figure>
+      <figcaption><code>display</code> the title set large enough to fill the slide, everything else small under it</figcaption></figure>
     <figure class="shot tile"><img src="img/panel.webp" alt="A title slide with white type reversed out of a full field of deep blue.">
-      <figcaption><code>panel</code> reversed out of a full field of the theme&rsquo;s accent</figcaption></figure>
+      <figcaption><code>panel</code> pale type on a full field of the colour scheme&rsquo;s accent</figcaption></figure>
     <figure class="shot tile"><img src="img/quote.webp" alt="A title slide that opens on a sentence set large, with the lecture title small underneath it.">
       <figcaption><code>quote</code> the talk opens on a claim; the title reads as the attribution</figcaption></figure>
     <figure class="shot tile"><img src="img/split.webp" alt="A title slide with the type on the left and a picture bled off the right edge.">
-      <figcaption><code>split</code> type left, <code>cover-image</code> bled off the right edge</figcaption></figure>
+      <figcaption><code>split</code> the type on the left, a picture running off the right edge</figcaption></figure>
     <figure class="shot tile"><img src="img/hero.webp" alt="A title slide where a picture fills the frame and the type is reversed out of a dark gradient over it.">
-      <figcaption><code>hero</code> the picture is the slide, type reversed out of a gradient</figcaption></figure>
+      <figcaption><code>hero</code> the picture fills the slide, the type set over a dark gradient</figcaption></figure>
     <figure class="shot tile"><img src="img/beside.webp" alt="A title slide with the title on the left and a three-box diagram inset on the right.">
-      <figcaption><code>beside</code> the chunk&rsquo;s own body inset to the right &ndash; so a <code>::: draw</code> can be the cover</figcaption></figure>
+      <figcaption><code>beside</code> the chunk&rsquo;s own content beside the title &ndash; so a drawing can be the cover</figcaption></figure>
     <figure class="shot tile"><img src="img/above.webp" alt="A title slide with a three-box diagram across the top and the title centred in the band below it.">
-      <figcaption><code>above</code> the same body on top, title centred in the band below</figcaption></figure>
+      <figcaption><code>above</code> the same content on top, the title centred in the band below</figcaption></figure>
   </div>
 
-  <p class="tiny">Two keys modify a composition rather than replacing it.
-  <strong><code>cover-align:</code></strong> is where the type sits on the
-  vertical, for the six compositions that leave it any freedom;
-  <strong><code>cover-ratio:</code></strong> is how much of the slide the
-  picture gets on the three that divide it, as a percentage of one fixed frame
-  rather than a <code>W:H</code> ratio &ndash; the slide&rsquo;s own aspect is
-  the projector&rsquo;s.</p>
+  <p class="tiny">Two further settings adjust a composition rather than
+  replacing it. <strong><code>cover-align:</code></strong> puts the type high,
+  in the middle or low, on the six compositions that leave it any freedom;
+  <strong><code>cover-ratio:</code></strong> says how much of the slide the
+  picture gets on the three that divide it. It is a percentage rather than a
+  <code>W:H</code> ratio, because the shape of the slide itself is the
+  projector&rsquo;s to decide.</p>
 
   <div class="gallery">
     <figure class="shot tile"><img src="img/stack-bottom.webp" alt="The stack cover with its type block moved down to sit on the bottom margin.">
@@ -405,11 +406,11 @@ browser is for pages meant to be looked at.
       <figcaption><code>cover: beside</code> with <code>cover-ratio: 62%</code> &ndash; compare the ninth</figcaption></figure>
   </div>
 
-  <p><strong><code>section:</code></strong> draws the slide a column opens
-  with. Every one of the six is quieter than any cover, deliberately: a
-  divider that can be mistaken for the title slide has failed at the one job
-  it has, which is to say <em>a new part starts here, and it is part of the
-  thing you are already in</em>.</p>
+  <p><strong><code>section:</code></strong> draws the divider slide a new part
+  of the lecture opens with. Every one of the six is quieter than any title
+  slide: a divider that can be mistaken for the title slide has failed at the
+  one job it has, which is to say <em>a new part starts here, and it is part of
+  the thing you are already in</em>.</p>
 
   <div class="gallery">
     <figure class="shot tile"><img src="img/section-plain.webp" alt="A divider slide showing only the part heading on an empty slide.">
@@ -417,18 +418,18 @@ browser is for pages meant to be looked at.
     <figure class="shot tile"><img src="img/section-tinted.webp" alt="A divider slide where the whole slide takes a light tint of the theme accent.">
       <figcaption><code>tinted</code> the accent at 12%. From the back of a room the colour arrives before any word</figcaption></figure>
     <figure class="shot tile"><img src="img/section-rule.webp" alt="A divider slide with the heading between two rules across the measure.">
-      <figcaption><code>rule</code> the quietest, and the one that survives a monochrome print</figcaption></figure>
+      <figcaption><code>rule</code> the quietest, and one that survives a black-and-white print</figcaption></figure>
     <figure class="shot tile"><img src="img/section-card.webp" alt="A divider slide with the heading sitting on a tinted panel.">
-      <figcaption><code>card</code> the card vocabulary borrowed rather than a fifth thing to learn</figcaption></figure>
+      <figcaption><code>card</code> the heading on a tinted panel</figcaption></figure>
     <figure class="shot tile"><img src="img/section-number.webp" alt="A divider slide with a large accent numeral two above the part heading.">
-      <figcaption><code>number</code> a counter that steps the heading back. It counts the parts, not the columns</figcaption></figure>
+      <figcaption><code>number</code> a large numeral above the heading, counting the parts of the lecture</figcaption></figure>
     <figure class="shot tile"><img src="img/section-outline.webp" alt="A divider slide listing all three parts of the lecture with the second one set large and live.">
       <figcaption><code>outline</code> the running agenda: which part, out of how many, and how far in</figcaption></figure>
   </div>
 
-  <p class="tiny">Everything a single deck <em>can</em> carry at once &ndash;
-  the closing slide, dividers that carry a quotation or a photograph or a
-  figure, cards, rows, a backdrop whose window opens as you press
+  <p class="tiny">Everything one lecture <em>can</em> carry at once &ndash; a
+  closing slide, dividers carrying a quotation or a photograph or a figure,
+  items laid out as cards, a full-slide photograph that opens up as you press
   <kbd>Space</kbd> &ndash; is in the <a href="decoration/audience.html">decoration
   lecture</a>, which is written to be read rather than looked at.</p>
 
@@ -443,14 +444,14 @@ browser is for pages meant to be looked at.
   <p>Five lectures are published on this site. <strong>python-intro</strong> is
   the one the pictures come from. The <strong>tutorial</strong> is a
   self-referential tour that explains the tool by being the tool. The
-  <strong>figures</strong> lecture rebuilds real lecture slides from
-  <code>::: draw</code> blocks and is the worked example behind
-  <a href="figures.html">Figures you write</a>. <strong>Decoration</strong> shows
-  every construction that puts something other than a text column on a slide &ndash;
-  the cover family, the six dividers, cards and rows, a photograph whose window
-  opens as you press <kbd>Space</kbd>. All four are in English. The
-  <strong>short example</strong> is one section of a first-year
-  networking lecture, in German &ndash; 80 lines of Markdown, short
+  <strong>figures</strong> lecture draws every construction the figure language
+  has, with figures from a real course among them, and is the worked example
+  behind <a href="figures.html">Figures you write</a>.
+  <strong>Decoration</strong> shows every construction that puts something other
+  than a text column on a slide &ndash; the ten title slides, the six dividers, items
+  laid out as cards, a photograph that opens up as you press <kbd>Space</kbd>.
+  All four are in English. The <strong>short example</strong> is one section of a
+  first-year networking lecture, in German &ndash; eighty-odd lines of Markdown, short
   enough to read end to end beside what it produces
   (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">source</a>,
   set from the <a href="https://inf.zone/lectures/8.5-netze/notes85/">lecture notes</a>
@@ -468,7 +469,7 @@ browser is for pages meant to be looked at.
         <td><a href="python-intro/speaker.html">speaker</a></td>
         <td><a href="tutorial/speaker.html">speaker</a></td>
         <td><a href="diagrams/speaker.html">speaker</a></td>
-        <td><a href="decoration/speaker.html">speaker</a></td>
+        <td class="tiny">&ndash;</td>
         <td><a href="example/speaker.html">speaker</a></td></tr>
     <tr><td>The document</td>
         <td><a href="python-intro/print.html">print</a></td>
@@ -480,9 +481,16 @@ browser is for pages meant to be looked at.
         <td><a href="python-intro/print-notes.html">print-notes</a></td>
         <td><a href="tutorial/print-notes.html">print-notes</a></td>
         <td><a href="diagrams/print-notes.html">print-notes</a></td>
-        <td><a href="decoration/print-notes.html">print-notes</a></td>
+        <td class="tiny">&ndash;</td>
         <td><a href="example/print-notes.html">print-notes</a></td></tr>
   </table>
+
+  <p class="tiny"><strong>The decoration lecture is where the newer features
+  live</strong> &ndash; the ten title slides, the six part dividers, items laid
+  out as cards, a full-slide photograph that opens up as you advance, and a
+  heading that stays in the printed document but not on the screen. It is
+  published as the projection and the document only: what it shows is what a
+  slide looks like, and those two carry all of it.</p>
 
   <p class="tiny">Start with the projection. Arrow keys move between slides,
   <kbd>Space</kbd> brings in the next part of a slide, <kbd>C</kbd> switches
@@ -589,7 +597,7 @@ browser is for pages meant to be looked at.
       <p>The same line on Windows and macOS, forward slashes included: Node takes
       them everywhere. It reports what it embedded &ndash; the images, the typefaces,
       the QR codes, the rendered maths &ndash; and ends with what it wrote.</p>
-<pre><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (10 columns, 38 chunks)</code></pre>
+<pre><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (11 columns, 59 chunks)</code></pre>
 
       <h3>Open it</h3>
       <p>Double-click <code>lectures/tutorial/audience.html</code>. It opens in
@@ -646,23 +654,24 @@ browser is for pages meant to be looked at.
   <p>The lecture figures that get out of date are the ones that live in a
   drawing program. psi-slides has a small language for them instead: a figure
   is a few lines in the same Markdown file as the slide it sits on, and the
-  build draws it. Nothing stores a coordinate &ndash; each element is placed
-  <em>against</em> another one &ndash; so moving a box moves what is attached to
-  it, and a figure can be built up in front of the room one beat at a time.</p>
+  build draws it. Apart from the first element, nothing in it is placed at a
+  point on a canvas &ndash; each box is placed <em>against</em> another box &ndash; so
+  moving one moves everything attached to it, and a figure can be built up in
+  front of the room one step at a time.</p>
 
   <figure class="shot drawn">
     <img src="img/figure.webp" alt="A figure from a network security lecture: four boxes in a row, labelled Frame Header, Datagram Header, Segment Header and Payload, with a leader line from each of the first three up to a note naming the addresses that header carries.">
   </figure>
 
   <p class="tiny">One slide from a real course, drawn by the build. Part of its
-  source is below: the four boxes, one of the three notes, and the beat that
+  source is below: the four boxes, one of the three notes, and the step that
   brings that note in. Two things are worth knowing to read them.
-  <b>Lengths are in grid cells, not pixels</b> &ndash; the fence sets the cell to
-  150 by 54, so <code>w 0.88 h 0.85</code> is a box far wider than it is tall,
-  and a figure keeps its proportions when the cell changes. And
-  <code>-- fh.cx,fh.top</code> is a <b>leader</b>: it points the note at a
-  coordinate on another box, so the line finds its own way and stays attached
-  when that box moves.</p>
+  <b>Lengths are in grid cells, not pixels</b> &ndash; the opening line sets the cell
+  to 150 by 54, so <code>w 0.88 h 0.85</code> is a box far wider than it is
+  tall, and a figure keeps its proportions when the cell changes. And
+  <code>-- fh.cx,fh.top</code> is a <b>leader line</b>: it points the note at a
+  spot on another box, so the line finds its own way and stays attached when
+  that box moves.</p>
 
 
 <pre><code><span class="t-dir">::: draw</span> <span class="t-punct">{unit=150x54}</span>

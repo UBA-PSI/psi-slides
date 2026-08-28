@@ -1420,10 +1420,14 @@ const SECTION_VARIANTS = ['plain', 'tinted', 'rule', 'card', 'number', 'outline'
 // audience-only construct, auto-inserted so the camera lands on the heading,
 // and the document renderer emits col.heading as an ordinary <h1>. That is
 // what makes the whole family cheap.
-// Listed loud-to-quiet within each half rather than alphabetically,
-// because the list is the answer to one question - how much should the
-// opening slide assert itself - and an author reads it to place their own
-// talk on that range.
+// Ordered by how loudly the slide announces itself rather than
+// alphabetically, because the list is the answer to one question - how much
+// should the opening slide assert itself - and an author reads it to place
+// their own talk on that range. Quietest first within each half, with the
+// one exception of `quote`, which was added later and sits with the type
+// compositions rather than at its own volume. This comment said
+// "loud-to-quiet" and contradicted both prose documents; the list has always
+// opened on `classic`, which is the quietest thing here.
 //
 // `editorial` used to sit here and is gone. It drew a 4px accent rail down
 // the left edge of the type, which is the single most reliable tell of a

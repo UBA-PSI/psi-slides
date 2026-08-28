@@ -11,8 +11,7 @@ from building the same way is a major version.
 
 - **A heading can be the document's without being the slide's.**
   `## figure: How a crawl is scored {.full #loop .bare}` keeps the heading in
-  `print.html`, in the table of contents and in the search index, and takes it
-  off the projection. `style: {headings: off}` is the same switch for a whole
+  `print.html` and in the search index, and takes it off the projection. `style: {headings: off}` is the same switch for a whole
   deck. The case is a talk that is a run of `::: draw` figures with speaker
   notes: the room looks at the drawing, and the deck still needs a name per
   slide to navigate by and to print. Leaving the heading text out gives up all

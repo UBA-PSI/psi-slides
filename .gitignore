@@ -28,12 +28,17 @@ lectures/*/print.html
 lectures/*/print-notes.html
 lectures/*/audience.html
 lectures/*/speaker.html
-# three lectures ship their built outputs so they can be browsed directly
-# from the repo without running build.js: the self-referential tutorial, the
+# Three lectures ship their built outputs so they can be read straight from
+# the repository without running build.js: the self-referential tutorial, the
 # diagram reference, which is the only place every ::: draw construct is
 # drawn rather than described, and the decoration reference, which is the
 # only place the cover, divider, card, backdrop and overlay constructions are
 # shown rather than described. All three are checked for staleness on release.
+#
+# The decoration reference ships two of the four views rather than all four.
+# What it demonstrates is what a slide looks like, so the projection and the
+# printed document carry the whole of it; the notes view and the cockpit would
+# add 2 MB of tracked HTML and show nothing the other two do not.
 !lectures/tutorial/print.html
 !lectures/tutorial/print-notes.html
 !lectures/tutorial/audience.html
@@ -43,12 +48,14 @@ lectures/*/speaker.html
 !lectures/diagrams/audience.html
 !lectures/diagrams/speaker.html
 !lectures/decoration/print.html
-!lectures/decoration/print-notes.html
 !lectures/decoration/audience.html
-!lectures/decoration/speaker.html
 
-# scratch scripts a screenshot or coverage run leaves behind
+# scratch scripts a screenshot or coverage run leaves behind. Both spellings:
+# `.psi-` is what this repo's own notes suggested, `_` is what everyone
+# actually reaches for, and six of them were left in the root before the
+# second pattern was added.
 .psi-*.mjs
+/_*.mjs
 .beats-tmp.mjs
 
 # playwright smoke-test scratch

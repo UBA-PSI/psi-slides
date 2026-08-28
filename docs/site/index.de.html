@@ -41,13 +41,12 @@
       <div class="hero-col">
         <p class="extras">Auf die Folie kommt, was der Raum braucht, um zu
         folgen; ins Handout kommt alles, was man behalten will. Diese Trennung
-        kostet Freiheit im Layout &ndash; weniger Möglichkeiten als in PowerPoint, mit
-        Absicht &ndash; und bringt dafür vier Ausgaben statt einer. Eine Vorlesung
-        kann <b>hervorgehobenen Code</b>, <b>LaTeX-Formeln</b> und <b>Video</b>
-        enthalten, und jeder Link bekommt <b>einen QR-Code</b>, den der Raum von
-        der Wand abscannen kann. Für die Stunde im Hörsaal gibt es
-        Übersichtstafel, Volltextsuche, Live-Annotationen, eine Uhr und sieben
-        Farbschemata. Das alles läuft auf
+        kostet Freiheit im Layout &ndash; weniger Möglichkeiten als in PowerPoint &ndash;
+        und bringt dafür vier Ausgaben statt einer. Eine Vorlesung kann
+        <b>hervorgehobenen Code, LaTeX-Formeln und Video</b> enthalten, und jeder
+        Link bekommt einen QR-Code, den der Raum von der Wand abscannen kann. Für
+        die Stunde im Hörsaal gibt es Übersichtstafel, Volltextsuche,
+        Live-Annotationen, eine Uhr und sieben Farbschemata. Das alles läuft auf
         dem eigenen Laptop und funktioniert auch offline, ohne Cloud und ohne
         Dienstleister.</p>
       </div>
@@ -90,9 +89,9 @@
 
   <h2 id="the-film">Die Kurzfassung in einer Minute</h2>
 
-  <p>Dasselbe Argument als Film: woraus eine Vorlesung besteht, was aus einer
-  Datei entsteht und wie die Stunde im Hörsaal aussieht. Gut eine Minute, mit
-  Untertiteln.
+  <p>Das Argument dieser Seite als Film: woraus eine Vorlesung besteht, was aus
+  einer Datei entsteht und wie die Stunde im Hörsaal aussieht. Gut eine Minute,
+  mit Untertiteln.
   <a href="../index.html#the-film" hreflang="en" lang="en">There is an English
   version, too.</a></p>
 
@@ -128,10 +127,10 @@
     selbst</strong>: erst die Gruppe fragen; das hier weglassen, wenn die Zeit
     knapp wird; das geht nicht raus.</p>
 
-    <p>Die gängigen Programme, die zum Präsentieren verwendet werden, bieten
-    Folien und ein Notizfeld. Für das Skript ist darin kein Platz vorgesehen, und
-    ausgerechnet das ist der Teil, den Studierende am meisten wollen. Das Skript
-    nimmt dann einen von zwei Wegen. <span class="tie" data-tie="1">Entweder übernehmen die Folien seine Aufgabe
+    <p>Die gängigen Präsentationsprogramme bieten Folien und ein Notizfeld. Für
+    das Skript ist darin kein Platz vorgesehen, und ausgerechnet das ist der
+    Teil, den Studierende am meisten wollen. Das Skript nimmt dann einen von zwei
+    Wegen. <span class="tie" data-tie="1">Entweder übernehmen die Folien seine Aufgabe
     und werden so voll, dass sie aus der letzten Reihe niemand mehr lesen kann &ndash;
     <em>Death by PowerPoint</em>.</span> <span class="tie" data-tie="2">Oder das Skript steht in einem zweiten Dokument,
     das ab der ersten Änderung nicht mehr zu den Folien passt.</span></p>
@@ -276,7 +275,7 @@
 <section class="band band-do">
  <div class="wrap">
 
-  <h2>Was psi-slides tut</h2>
+  <h2>Was aus dem Markdown wird</h2>
 
   <p>Das hier ist das Markdown hinter der Folie auf den Bildern oben. Die
   Vorlesung, aus der sie stammt, ist eine echte: eine Python-Einführung aus 36
@@ -361,48 +360,49 @@ browser is for pages meant to be looked at.
 <section class="band band-do">
  <div class="wrap">
 
-  <h2 id="covers">Zehn Arten anzufangen, sechs den Teil zu wechseln</h2>
+  <h2 id="covers">Zehn Titelfolien, sechs Trenner</h2>
 
-  <p>Ein Foliensatz hat genau ein Cover und einen Trennerstil, deshalb ist dies
-  die einzige Stelle, an der alle nebeneinander stehen. Jede Kachel unten ist
-  ein echter Build, geschossen von <code>docs/site/shoot-gallery.mjs</code> bei
-  einem Viewport und einem Zoom &ndash; nichts davon ist von Hand gesetzt.
-  Anklicken zeigt sie in voller Größe.</p>
+  <p>Hier stehen die zehn Titelfolien und die sechs Trenner, alle miteinander.
+  Eine Vorlesung benutzt je eine davon, deshalb ist diese Seite die einzige
+  Stelle, an der sie nebeneinander stehen. Jede Kachel unten ist die Aufnahme
+  einer echten Folie, aufgenommen von <code>docs/site/shoot-gallery.mjs</code>
+  bei derselben Fenstergröße und demselben Zoom wie alle anderen &ndash; keine davon
+  ist von Hand gesetzt. Anklicken zeigt sie in voller Größe.</p>
 
-  <p><strong><code>cover:</code></strong> ist von leise nach laut sortiert und
-  nicht alphabetisch, weil das die einzige Frage ist, die die Liste der Autorin
-  stellt: wie sehr soll die erste Folie auftreten.</p>
+  <p><strong><code>cover:</code></strong> benennt die Titelfolie. Die zehn sind
+  von leise nach laut sortiert und nicht alphabetisch, weil die Liste nur eine
+  Frage stellt: wie sehr soll die erste Folie auftreten.</p>
 
   <div class="gallery">
     <figure class="shot tile"><img src="../img/classic.webp" alt="Eine Titelfolie, deren Satz im unteren linken Drittel einer sonst leeren Folie steht.">
-      <figcaption><code>classic</code> das untere linke Drittel. Die Vorgabe, und was das Werkzeug immer gezeichnet hat</figcaption></figure>
+      <figcaption><code>classic</code> der Satz im unteren linken Drittel. Die Vorgabe</figcaption></figure>
     <figure class="shot tile"><img src="../img/masthead.webp" alt="Eine Titelfolie mit dem Titel an der Oberkante, einem Lead in der Mitte und den Credits unter einer Linie am Fuß.">
-      <figcaption><code>masthead</code> Titelkopf, Kolumnenlinie, und der Body des Chunks als Lead dazwischen</figcaption></figure>
+      <figcaption><code>masthead</code> der Titel an der Oberkante, die Credits unter einer Linie am Fuß, dazwischen der Text des Chunks</figcaption></figure>
     <figure class="shot tile"><img src="../img/stack.webp" alt="Eine Titelfolie, deren ganzer Satzblock auf beiden Achsen zentriert ist.">
       <figcaption><code>stack</code> auf beiden Achsen zentriert, für einen Anfang, der still sein will</figcaption></figure>
     <figure class="shot tile"><img src="../img/display.webp" alt="Eine Titelfolie mit sehr groß gesetztem Titel, der die obere Hälfte füllt.">
-      <figcaption><code>display</code> der Titel füllt die Folie. Der Grad ist der ganze Entwurf</figcaption></figure>
+      <figcaption><code>display</code> der Titel so groß, dass er die Folie füllt, alles andere klein darunter</figcaption></figure>
     <figure class="shot tile"><img src="../img/panel.webp" alt="Eine Titelfolie mit weißer Schrift, ausgespart aus einem ganzflächigen dunkelblauen Feld.">
-      <figcaption><code>panel</code> ausgespart aus einem vollen Feld der Akzentfarbe</figcaption></figure>
+      <figcaption><code>panel</code> helle Schrift auf einem ganzflächigen Feld der Akzentfarbe</figcaption></figure>
     <figure class="shot tile"><img src="../img/quote.webp" alt="Eine Titelfolie, die mit einem groß gesetzten Satz beginnt, darunter klein der Vortragstitel.">
       <figcaption><code>quote</code> der Vortrag beginnt mit einer Behauptung, der Titel liest sich als Zuschreibung</figcaption></figure>
     <figure class="shot tile"><img src="../img/split.webp" alt="Eine Titelfolie mit dem Satz links und einem rechts angeschnittenen Bild.">
-      <figcaption><code>split</code> Satz links, <code>cover-image</code> rechts angeschnitten</figcaption></figure>
+      <figcaption><code>split</code> der Satz links, rechts läuft ein Bild über den Rand hinaus</figcaption></figure>
     <figure class="shot tile"><img src="../img/hero.webp" alt="Eine Titelfolie, auf der ein Bild den Rahmen füllt und der Satz aus einem dunklen Verlauf ausgespart ist.">
-      <figcaption><code>hero</code> das Bild ist die Folie, der Satz aus einem Verlauf ausgespart</figcaption></figure>
+      <figcaption><code>hero</code> das Bild füllt die Folie, der Satz steht auf einem dunklen Verlauf</figcaption></figure>
     <figure class="shot tile"><img src="../img/beside.webp" alt="Eine Titelfolie mit dem Titel links und einem Diagramm aus drei Kästen rechts daneben.">
-      <figcaption><code>beside</code> der Body des Chunks rechts daneben &ndash; so kann ein <code>::: draw</code> das Cover sein</figcaption></figure>
+      <figcaption><code>beside</code> der Inhalt des Chunks neben dem Titel &ndash; so kann eine Zeichnung das Cover sein</figcaption></figure>
     <figure class="shot tile"><img src="../img/above.webp" alt="Eine Titelfolie mit einem Diagramm aus drei Kästen oben und dem Titel zentriert im Band darunter.">
-      <figcaption><code>above</code> derselbe Body oben, der Titel zentriert im Band darunter</figcaption></figure>
+      <figcaption><code>above</code> derselbe Inhalt oben, der Titel zentriert im Band darunter</figcaption></figure>
   </div>
 
-  <p class="tiny">Zwei Schlüssel verändern eine Komposition, statt sie zu
-  ersetzen. <strong><code>cover-align:</code></strong> ist, wo der Satz auf der
-  Senkrechten sitzt, für die sechs Kompositionen, die ihm dort Freiheit lassen;
-  <strong><code>cover-ratio:</code></strong> ist, wie viel der Folie das Bild
-  bei den dreien bekommt, die sie teilen &ndash; als Prozentsatz eines festen
-  Rahmens und nicht als <code>W:H</code>-Verhältnis, denn das Seitenverhältnis
-  der Folie gehört dem Beamer.</p>
+  <p class="tiny">Zwei weitere Angaben verändern eine Komposition, statt sie zu
+  ersetzen. <strong><code>cover-align:</code></strong> setzt den Satz nach oben,
+  in die Mitte oder nach unten, bei den sechs Kompositionen, die ihm dort
+  Freiheit lassen; <strong><code>cover-ratio:</code></strong> sagt, wie viel der
+  Folie das Bild bei den dreien bekommt, die sie teilen. Es ist ein Prozentsatz
+  und kein <code>W:H</code>-Verhältnis, denn das Seitenverhältnis der Folie
+  selbst gehört dem Beamer.</p>
 
   <div class="gallery">
     <figure class="shot tile"><img src="../img/stack-bottom.webp" alt="Das stack-Cover, dessen Satzblock nach unten an den Rand gerückt ist.">
@@ -411,11 +411,11 @@ browser is for pages meant to be looked at.
       <figcaption><code>cover: beside</code> mit <code>cover-ratio: 62%</code> &ndash; vergleiche die neunte</figcaption></figure>
   </div>
 
-  <p><strong><code>section:</code></strong> zeichnet die Folie, mit der eine
-  Spalte aufmacht. Jede der sechs ist leiser als jedes Cover, und zwar
-  absichtlich: ein Trenner, den man mit der Titelfolie verwechseln kann, hat
-  bei seiner einzigen Aufgabe versagt &ndash; zu sagen, <em>hier beginnt ein
-  neuer Teil, und er gehört zu dem, worin du schon bist</em>.</p>
+  <p><strong><code>section:</code></strong> zeichnet die Trennerfolie, mit der
+  ein neuer Teil der Vorlesung aufmacht. Jede der sechs ist leiser als jede
+  Titelfolie: ein Trenner, den man mit der Titelfolie verwechseln kann, hat bei
+  seiner einzigen Aufgabe versagt &ndash; zu sagen, <em>hier beginnt ein neuer Teil,
+  und er gehört zu dem, worin du schon bist</em>.</p>
 
   <div class="gallery">
     <figure class="shot tile"><img src="../img/section-plain.webp" alt="Eine Trennerfolie, die nur die Überschrift des Teils auf leerer Folie zeigt.">
@@ -423,18 +423,18 @@ browser is for pages meant to be looked at.
     <figure class="shot tile"><img src="../img/section-tinted.webp" alt="Eine Trennerfolie, bei der die ganze Folie leicht in der Akzentfarbe getönt ist.">
       <figcaption><code>tinted</code> der Akzent bei 12%. Aus der letzten Reihe kommt die Farbe vor jedem Wort an</figcaption></figure>
     <figure class="shot tile"><img src="../img/section-rule.webp" alt="Eine Trennerfolie mit der Überschrift zwischen zwei Linien über das Satzmaß.">
-      <figcaption><code>rule</code> die leiseste, und die einzige, die einen Schwarzweißdruck übersteht</figcaption></figure>
+      <figcaption><code>rule</code> die leiseste, und eine, die einen Schwarzweißdruck übersteht</figcaption></figure>
     <figure class="shot tile"><img src="../img/section-card.webp" alt="Eine Trennerfolie, deren Überschrift auf einer getönten Fläche sitzt.">
-      <figcaption><code>card</code> das Karten-Vokabular geborgt, statt ein fünftes zu lernen</figcaption></figure>
+      <figcaption><code>card</code> die Überschrift auf einer getönten Fläche</figcaption></figure>
     <figure class="shot tile"><img src="../img/section-number.webp" alt="Eine Trennerfolie mit einer großen Ziffer zwei in Akzentfarbe über der Überschrift.">
-      <figcaption><code>number</code> ein Zähler, der die Überschrift zurücktreten lässt. Er zählt Teile, nicht Spalten</figcaption></figure>
+      <figcaption><code>number</code> eine große Ziffer über der Überschrift, die die Teile der Vorlesung zählt</figcaption></figure>
     <figure class="shot tile"><img src="../img/section-outline.webp" alt="Eine Trennerfolie, die alle drei Teile der Vorlesung listet, der zweite groß und aktiv.">
       <figcaption><code>outline</code> die laufende Gliederung: welcher Teil, von wie vielen, und wie weit hinein</figcaption></figure>
   </div>
 
-  <p class="tiny">Alles, was ein einzelner Foliensatz gleichzeitig tragen
-  <em>kann</em> &ndash; die Schlussfolie, Trenner mit Zitat, Foto oder Figur,
-  Karten, Zeilen, ein Hintergrundbild, dessen Fenster sich auf
+  <p class="tiny">Alles, was eine einzelne Vorlesung gleichzeitig tragen
+  <em>kann</em> &ndash; eine Schlussfolie, Trenner mit Zitat, Foto oder Abbildung,
+  Inhalte als Karten gesetzt, ein ganzflächiges Foto, das sich auf
   <kbd>Leertaste</kbd> öffnet &ndash; steht in der
   <a href="../decoration/audience.html">Dekorations-Vorlesung</a>, die zum Lesen
   geschrieben ist und nicht zum Ansehen.</p>
@@ -450,15 +450,16 @@ browser is for pages meant to be looked at.
   <p>Auf dieser Seite liegen fünf Vorlesungen. <strong>python-intro</strong> ist
   die, aus der die Bilder stammen. Das <strong>Tutorial</strong> ist eine
   selbstbezügliche Tour, die das Werkzeug erklärt, indem sie es benutzt. Die
-  <strong>Figures</strong>-Vorlesung baut echte Vorlesungsfolien aus
-  <code>::: draw</code>-Blöcken nach und ist das ausgearbeitete Beispiel hinter
+  <strong>Figures</strong>-Vorlesung zeichnet jede Konstruktion, die die
+  Abbildungssprache kennt, darunter Abbildungen aus einer echten Vorlesung, und
+  ist das ausgearbeitete Beispiel hinter
   <a href="../figures.html">Figures you write</a>. <strong>Decoration</strong> zeigt
   jede Konstruktion, die etwas anderes als eine Textspalte auf eine Folie bringt:
-  die Cover-Familie, die sechs Trenner, Karten und Zeilen, ein Foto, dessen Fenster
-  sich mit <kbd>Space</kbd> öffnet. Alle vier sind auf Englisch. Das
+  die zehn Titelfolien, die sechs Trenner, Inhalte als Karten gesetzt, ein Foto,
+  das sich mit <kbd>Leertaste</kbd> öffnet. Alle vier sind auf Englisch. Das
   <strong>Kurzbeispiel</strong> ist ein Ausschnitt aus einer Netzwerk-Vorlesung
-  im ersten Semester, auf Deutsch: 80 Zeilen Markdown, kurz genug, um sie ganz zu
-  lesen und daneben zu sehen, was daraus wird
+  im ersten Semester, auf Deutsch: gut 80 Zeilen Markdown, kurz genug, um sie
+  ganz zu lesen und daneben zu sehen, was daraus wird
   (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">Quelle</a>,
   gesetzt nach den <a href="https://inf.zone/lectures/8.5-netze/notes85/">Vorlesungsnotizen</a>
   unter CC&nbsp;BY-NC-SA&nbsp;4.0).</p>
@@ -475,7 +476,7 @@ browser is for pages meant to be looked at.
         <td><a href="../python-intro/speaker.html">speaker</a></td>
         <td><a href="../tutorial/speaker.html">speaker</a></td>
         <td><a href="../diagrams/speaker.html">speaker</a></td>
-        <td><a href="../decoration/speaker.html">speaker</a></td>
+        <td class="tiny">&ndash;</td>
         <td><a href="../example/speaker.html">speaker</a></td></tr>
     <tr><td>Das Dokument</td>
         <td><a href="../python-intro/print.html">print</a></td>
@@ -487,9 +488,17 @@ browser is for pages meant to be looked at.
         <td><a href="../python-intro/print-notes.html">print-notes</a></td>
         <td><a href="../tutorial/print-notes.html">print-notes</a></td>
         <td><a href="../diagrams/print-notes.html">print-notes</a></td>
-        <td><a href="../decoration/print-notes.html">print-notes</a></td>
+        <td class="tiny">&ndash;</td>
         <td><a href="../example/print-notes.html">print-notes</a></td></tr>
   </table>
+
+  <p class="tiny"><strong>In der Dekorations-Vorlesung stecken die neueren
+  Möglichkeiten</strong> &ndash; die zehn Titelfolien, die sechs Trenner für
+  Abschnitte, Aufzählungen als Karten gesetzt, ein bildschirmfüllendes Foto,
+  das sich beim Weiterblättern öffnet, und eine Überschrift, die im gedruckten
+  Dokument steht, aber nicht auf der Leinwand. Sie erscheint nur als Projektion
+  und als Dokument: gezeigt wird, wie eine Folie aussieht, und das tragen diese
+  beiden vollständig.</p>
 
   <p class="tiny">Am besten mit der Projektion anfangen. Pfeiltasten blättern,
   <kbd>Leertaste</kbd> blendet den nächsten Abschnitt ein, <kbd>C</kbd> schaltet
@@ -602,7 +611,7 @@ browser is for pages meant to be looked at.
       Node nimmt sie überall. Sie meldet, was eingebettet wurde &ndash; die Bilder, die
       Schriften, die QR-Codes, die gesetzten Formeln &ndash; und endet damit, was
       geschrieben wurde.</p>
-<pre><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (10 columns, 38 chunks)</code></pre>
+<pre><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (11 columns, 59 chunks)</code></pre>
 
       <h3>Öffnen</h3>
       <p><code>lectures/tutorial/audience.html</code> doppelklicken. Es öffnet sich
@@ -660,10 +669,11 @@ browser is for pages meant to be looked at.
   <p>Die Abbildungen einer Vorlesung veralten dort, wo sie in einem
   Zeichenprogramm liegen. psi-slides hat dafür eine kleine Sprache: eine
   Abbildung besteht aus ein paar Zeilen in derselben Markdown-Datei wie die
-  Folie, auf der sie steht, und der Build zeichnet sie. Nichts darin speichert
-  eine Koordinate &ndash; jedes Element wird <em>an</em> ein anderes gesetzt &ndash;
-  also zieht ein verschobener Kasten mit, was an ihm hängt, und eine Abbildung
-  kann vor dem Publikum Takt für Takt entstehen.</p>
+  Folie, auf der sie steht, und der Build zeichnet sie. Außer dem ersten Element
+  sitzt darin nichts auf einem Punkt einer Zeichenfläche &ndash; jeder Kasten wird
+  <em>an</em> einen anderen gesetzt &ndash; also zieht ein verschobener Kasten mit,
+  was an ihm hängt, und eine Abbildung kann vor dem Publikum Schritt für Schritt
+  entstehen.</p>
 
   <figure class="shot drawn">
     <img src="../img/figure.webp" alt="Eine Abbildung aus einer Vorlesung zur Netzsicherheit: vier Kästen in einer Reihe, beschriftet Frame Header, Datagram Header, Segment Header und Payload, mit je einer Linie von den ersten drei hinauf zu einer Notiz, welche Adressen dieser Kopf trägt.">
@@ -671,12 +681,12 @@ browser is for pages meant to be looked at.
 
   <p class="tiny">Eine Folie aus einer echten Vorlesung, vom Build gezeichnet.
   Ein Teil ihres Quelltexts steht unten: die vier Kästen, eine der drei Notizen
-  und der Takt, der diese Notiz hereinholt. Zwei Dinge muss man wissen, um sie zu
-  lesen. <b>Längen zählen in Rasterzellen, nicht in Pixeln</b> &ndash; der Fence
-  setzt die Zelle auf 150 mal 54, deshalb ist <code>w 0.88 h 0.85</code> ein
-  Kasten, der viel breiter als hoch ist, und eine Abbildung behält ihre
+  und der Schritt, der diese Notiz hereinholt. Zwei Dinge muss man wissen, um sie
+  zu lesen. <b>Längen zählen in Rasterzellen, nicht in Pixeln</b> &ndash; die erste
+  Zeile setzt die Zelle auf 150 mal 54, deshalb ist <code>w 0.88 h 0.85</code>
+  ein Kasten, der viel breiter als hoch ist, und eine Abbildung behält ihre
   Proportionen, wenn die Zelle sich ändert. Und <code>-- fh.cx,fh.top</code>
-  ist eine <b>Anschlusslinie</b>: sie richtet die Notiz auf eine Koordinate
+  ist eine <b>Anschlusslinie</b>: sie richtet die Notiz auf eine Stelle
   eines anderen Kastens aus, sucht sich ihren Weg selbst und bleibt daran
   hängen, wenn der Kasten sich bewegt.</p>
 

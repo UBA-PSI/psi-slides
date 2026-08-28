@@ -84,13 +84,19 @@ jobs:
           # Renders the docs from the same Markdown the repository serves, so
           # the site cannot drift from them.
           node docs/site/build-site.js _site
-          for l in tutorial python-intro diagrams decoration; do
+          for l in tutorial python-intro diagrams; do
             cp lectures/$l/audience.html \
                lectures/$l/speaker.html \
                lectures/$l/print.html \
                lectures/$l/print-notes.html \
                _site/$l/
           done
+          # The decoration reference publishes the two views that show what a
+          # slide looks like. The notes view and the cockpit add weight and
+          # show nothing the other two do not.
+          cp lectures/decoration/audience.html \
+             lectures/decoration/print.html \
+             _site/decoration/
           cp docs/site/example/{audience,speaker,print,print-notes}.html _site/example/
 
       - uses: actions/upload-pages-artifact@v3
