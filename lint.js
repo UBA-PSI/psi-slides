@@ -54,6 +54,8 @@ const VIEW_DEFAULTS = {
   'editor': ['both', 'speaker', 'none'],
   // Which cover composition the lecture opens with. Mirrors COVER_VARIANTS.
   'cover': ['classic', 'editorial', 'split', 'hero', 'stack', 'rule', 'beside', 'above'],
+  // How a column's divider slide is drawn. Mirrors SECTION_VARIANTS.
+  'section': ['plain', 'tinted', 'rule', 'card', 'number'],
   // Mirrors LIGATURE_MODES. The default is `text` and not `none`, because
   // code ligatures are already off and defaulting to none would take fi and
   // fl out of every existing lecture's prose.
@@ -95,8 +97,15 @@ const CARDS_SLOTS = {
   size:   ['auto', 'large', 'medium', 'small'],
   align:  ['auto', 'left', 'center'],
   anchor: ['top', 'middle'],
-  detail: ['fold', 'show'],
-  ground: ['panel', 'outline', 'clear'],
+  detail: ['fold', 'show', 'page'],
+  ground: ['panel', 'outline', 'clear', 'accent', 'paper', 'photo'],
+  corner: ['round', 'square'],
+  // `plain` and not `clear`: `clear` is already a ground in this same
+  // table, and a word in two slots of one table makes the second slot
+  // unreachable. build.js asserts that invariant at load.
+  scrim: ['veil', 'invert', 'plain'],
+  // `align` is the text inside the card, `anchor` where the block sits when
+  // the row is taller than it. Two questions, two slots, no shared word.
 };
 const OVERLAY_SLOTS = {
   place:  ['center', 'top-left', 'top', 'top-right', 'left', 'right',
@@ -2077,6 +2086,16 @@ function lintFile(filePath) {
               `unknown ::: draw option '${tok}' – expected #id, unit=WxH, autoplay=N or cycle`);
         }
       }
+      // Mirrors build.js: `.cols` is `column-count`, so it is a text flow,
+      // and a figure placed in it breaks the flow - the figure appears, the
+      // second column never fills, and the author who wrote `cols 2` gets
+      // one column with nothing to say why. Checked here rather than at the
+      // cols matcher, because this handler consumes the ::: draw line first.
+      if (layoutStack.some(l => /^cols/.test(l.kind))) {
+        add(ln, 'error', 'draw-in-cols',
+            '::: draw inside ::: cols – a figure breaks the column flow, so the columns '
+            + 'silently stop working; use ::: side to put a figure beside prose');
+      }
       diagram = { open: ln, lines: [] };
       continue;
     }
@@ -2211,22 +2230,30 @@ function lintFile(filePath) {
     // own small stack so bare `:::` closes the innermost layout first,
     // and the outer sidebar directive only after.
     const colsOpen = line.match(/^:::\s+cols\s+(2|3)\s*$/);
-    const cardsOpen = line.match(/^:::\s+cards\s+([2-6])\s*(?:\{([^}]*)\})?\s*$/);
+    // `::: rows` is the same container as `::: cards`, turned ninety
+    // degrees: same slots, same refusals, one column by definition.
+    const rowsOpen = line.match(/^:::\s+rows\s*(?:\{([^}]*)\})?\s*$/);
+    if (!rowsOpen && /^:::\s+rows\b/.test(line)) {
+      add(ln, 'error', 'bad-rows',
+          '::: rows takes no count and an optional {.class} tail – a row block has one column');
+    }
+    const cardsOpen = line.match(/^:::\s+cards\s+([1-6])\s*(?:\{([^}]*)\})?\s*$/);
     if (!cardsOpen && /^:::\s+cards\b/.test(line)) {
       add(ln, 'error', 'bad-cards',
-          '::: cards takes a count from 2 to 6, then an optional {.class} tail – '
+          '::: cards takes a count from 1 to 6, then an optional {.class} tail – '
           + 'more than six cards in a row is a table');
     }
-    if (cardsOpen) {
-      for (const msg of slotProblems(cardsOpen[2], CARDS_SLOTS)) {
-        add(ln, 'error', 'bad-cards-class', `::: cards: ${msg}`);
+    if (cardsOpen || rowsOpen) {
+      const kind = rowsOpen ? 'rows' : 'cards';
+      for (const msg of slotProblems((rowsOpen ? rowsOpen[1] : cardsOpen[2]), CARDS_SLOTS)) {
+        add(ln, 'error', `bad-${kind}-class`, `::: ${kind}: ${msg}`);
       }
       // Mirrors build.js: a card row is N containers side by side, so it
       // needs the whole measure, and every directive that could enclose it
       // has already divided that measure. `slide` and `script` divide
       // nothing - they say which half of the chunk is on screen - so they
       // are not in the list.
-      const narrowing = layoutStack.filter(l => /^(cols|side|marginalia|embed)/.test(l.kind)).pop();
+      const narrowing = layoutStack.filter(l => /^(cols|marginalia|embed)/.test(l.kind)).pop();
       const encl = narrowing ? `::: ${narrowing.kind.split(' ')[0]}`
         : activeDirective ? `::: ${activeDirective.kind}` : null;
       if (encl) {
@@ -2235,7 +2262,11 @@ function lintFile(filePath) {
             + `${encl} has already divided it`);
       }
     }
-    const sideOpen = /^:::\s+side\s*$/.test(line);
+    const sideOpen = /^:::\s+side(?:\s+\d{1,2}\s*:\s*\d{1,2})?\s*$/.test(line);
+    if (!sideOpen && /^:::\s+side\b/.test(line)) {
+      add(ln, 'error', 'bad-side',
+          '::: side takes an optional ratio and nothing else – write ::: side or ::: side 2:1');
+    }
     const flipMark = /^:::\s+flip\s*$/.test(line);
     const marginaliaOpen = /^:::\s+marginalia\s*$/.test(line);
     const slideOpen = /^:::\s+slide\s*$/.test(line);
@@ -2258,12 +2289,13 @@ function lintFile(filePath) {
             `::: embed needs a YouTube or Vimeo link, or an https URL - got '${v}'`);
       }
     }
-    if (colsOpen || cardsOpen || sideOpen || marginaliaOpen || slideOpen || scriptOpen || embedOpen) {
+    if (colsOpen || cardsOpen || rowsOpen || sideOpen || marginaliaOpen || slideOpen || scriptOpen || embedOpen) {
       if (!chunk) {
         add(ln, 'error', 'stray-directive',
             `::: layout directive outside any chunk`);
       }
       const kind = colsOpen ? `cols ${colsOpen[1]}`
+        : rowsOpen ? 'rows'
         : cardsOpen ? `cards ${cardsOpen[1]}`
         : sideOpen ? 'side'
         : marginaliaOpen ? 'marginalia'
