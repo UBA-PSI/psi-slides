@@ -103,11 +103,13 @@ In the source, an expansion is written `::: expand <label>` … `:::`. The label
 
 **Click any figure, code block or margin note inside the chunk you are on.** A figure or a block of code lifts into a card in the middle of the screen with the slide dimmed behind it; a **marginalia** – an aside set out in the slide's margin – instead pans the view so the aside sits in the centre.
 
-**Links behave two ways.** A plain click opens the link in a new tab of the window you clicked in, so in the lectern view that is you checking a source while the projection stays where it was. `Shift`-click instead puts the **address** on both screens, large, with a **QR code** beside it. Click the address to open it anyway; `Esc` or the next slide clears it.
+**Links behave two ways, and which one you want depends on the window you are in.** A plain click follows the link in a new tab of *that* window. Clicked in the lectern view, that is you checking a source while the projection stays where it was. Clicked in the projection, it is the page itself arriving in front of the room.
 
-Try it on this one: [the group behind the tool](https://psi.uni-bamberg.de/). Plain click opens a tab; `Shift`-click puts the address on the wall with a code the room can scan.
+`Shift`-click does the other thing: it puts the **address** on both screens, large, with a **QR code** beside it. Click the address to open it anyway; `Esc` or the next slide clears it.
 
-Opening the page on the projector instead goes wrong twice over: you would be driving a browser you cannot see from the lectern, and the room would be watching an unrelated interface rather than the lecture. What a room wants from a link mid-talk is to capture it, and the code moves that onto the listener's own phone. The projection machine still contacts nobody.
+Try it on this one: [the group behind the tool](https://psi.uni-bamberg.de/). `Shift`-click is the one to try while a room is watching.
+
+That is why the code exists. Putting the page itself on the projector goes wrong twice over: you would be driving a browser you cannot see from the lectern, and the room would be watching an unrelated interface rather than the lecture. What a room wants from a link mid-talk is to capture it, and the code moves that onto the listener's own phone, while the projection machine contacts nobody.
 
 The codes are drawn when the lecture is built, one per external address in the source, so a lecture without links carries none.
 
