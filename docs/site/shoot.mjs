@@ -45,10 +45,10 @@
  * honest against a fragment path that has been wrong once.
  */
 import fs from 'node:fs';
-import http from 'node:http';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { findChrome, serve, encoder } from './shoot-lib.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -160,28 +160,6 @@ async function openEditor(p) {
   if (!/c1/.test(sel)) throw new Error(`editor: selected "${sel}", expected box c1`);
 }
 
-// ── browser ──────────────────────────────────────────────────────────────
-function findChrome() {
-  if (process.env.PSI_CHROME) return process.env.PSI_CHROME;
-  const cache = path.join(process.env.HOME, 'Library/Caches/ms-playwright');
-  if (fs.existsSync(cache)) {
-    const builds = fs.readdirSync(cache)
-      .filter(d => /^chromium-\d+$/.test(d))
-      .sort((a, b) => Number(b.split('-')[1]) - Number(a.split('-')[1]));
-    for (const b of builds) {
-      const mac = path.join(cache, b, 'chrome-mac-arm64');
-      if (!fs.existsSync(mac)) continue;
-      for (const app of fs.readdirSync(mac).filter(f => f.endsWith('.app'))) {
-        const exe = path.join(mac, app, 'Contents/MacOS', app.replace(/\.app$/, ''));
-        if (fs.existsSync(exe)) return exe;
-      }
-    }
-  }
-  const system = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-  if (fs.existsSync(system)) return system;
-  throw new Error('no Chromium found - set $PSI_CHROME to a browser executable');
-}
-
 // ── the rig, and a server for it ─────────────────────────────────────────
 function buildRig(shots) {
   const dir = fs.mkdtempSync(path.join(process.env.TMPDIR || '/tmp', 'psi-shoot-'));
@@ -200,17 +178,6 @@ function buildRig(shots) {
                      fs.readFileSync(abs, 'utf8') + (s.rig || ''));
   }
   return dir;
-}
-
-function serve(dir) {
-  const server = http.createServer((req, res) => {
-    const file = path.join(dir, path.basename(req.url.split('?')[0]));
-    if (!fs.existsSync(file)) { res.writeHead(404); res.end(); return; }
-    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    res.end(fs.readFileSync(file));
-  });
-  return new Promise(resolve => server.listen(0, '127.0.0.1',
-    () => resolve({ server, port: server.address().port })));
 }
 
 // ── driving the deck ─────────────────────────────────────────────────────
@@ -251,17 +218,6 @@ async function assertOnScreen(p, name, target) {
     };
   }, target);
   if (!r.on) throw new Error(`${name}: #${target} is off screen (x=${r.x} y=${r.y})`);
-}
-
-// ── encoding ─────────────────────────────────────────────────────────────
-function encoder() {
-  for (const [bin, args] of [
-    ['cwebp', (i, o) => ['-quiet', '-q', '86', '-m', '6', i, '-o', o]],
-    ['magick', (i, o) => [i, '-quality', '86', '-define', 'webp:method=6', o]],
-  ]) {
-    if (spawnSync('which', [bin]).status === 0) return { bin, args };
-  }
-  return null;
 }
 
 // ── main ─────────────────────────────────────────────────────────────────
@@ -318,7 +274,7 @@ try {
     let out = png;
     if (enc) {
       out = path.join(IMG, s.name + '.webp');
-      const r = spawnSync(enc.bin, enc.args(png, out), { stdio: 'inherit' });
+      const r = spawnSync(enc.bin, enc.args(png, out, 86), { stdio: 'inherit' });
       if (r.status !== 0) throw new Error(`${enc.bin} failed on ${s.name}`);
       if (!keepPng) fs.rmSync(png);
     }

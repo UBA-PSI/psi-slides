@@ -1148,8 +1148,15 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    edge. Tried the other way round first: min-height plus a negative
    margin made the article taller than the viewport, and the type went
    off the bottom of the frame while the picture reached neither end. */
+/* The picture's share is the author's, exactly as it is on beside and above.
+   Hard-coded here, split was in COVER_RATIO_VARIANTS - so the frontmatter
+   was accepted, validated against the 15-75 band, emitted as a custom
+   property on the article, and then read by nobody: measured, beside went
+   from 519.8px to 671.4px at 62% and split did not move. A key the drawing
+   ignores is the silent no-op this format refuses, and the refusal for the
+   covers that do not divide only made it look deliberate. */
 .chunk[data-cover=split] {
-  grid-template-columns: minmax(0, 1fr) 42%;
+  grid-template-columns: minmax(0, 1fr) var(--cover-ratio, 42%);
   align-items: stretch;
   padding: 0;
   gap: 0;
@@ -1363,6 +1370,23 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   font-size: calc(3.1em * var(--zoom));
   max-width: 14em;
 }
+/* quote is the other cover that sets .title-main to something it is not on a
+   closing slide. There the lecture's title is the *attribution* under the
+   claim, so it is meta-sized on purpose - but a closing slide has no claim
+   above it and its heading IS its content, which came out at attribution
+   size: measured, 29.9px where a heading belongs. The bookend keeps the
+   composition and takes back the one rule that only made sense with a
+   quotation over it. */
+.chunk[data-cover=quote][data-closing] .title-main {
+  font-size: calc(2.2em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  max-width: 20em;
+}
+.chunk[data-cover=quote][data-closing] .title-subtitle {
+  font-size: calc(1.05em * var(--zoom));
+  margin-top: 0.35em;
+}
 
 /* The body-as-art wrapper has to let a figure fill it. A ::: draw emits a
    <figure class=psi-diagram> whose own margins are tuned for the text
@@ -1460,11 +1484,20 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    segment appearing is a footnote to what is already on the slide; a
    picture opening across the frame is the slide changing, and at the speed
    of a bullet it reads as a glitch. */
+/* The opacity half has to be restated here: transition is a shorthand and
+   this selector outranks the plain .chunk-backdrop rule, so naming only
+   clip-path silently dropped the fade that keeps a backdrop off its
+   neighbours - on exactly the backdrops that most need the crossfade. */
 .chunk-backdrop[data-bd-frames] {
-  transition: clip-path 0.62s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: clip-path 0.62s cubic-bezier(0.4, 0, 0.2, 1), opacity 260ms ease;
 }
+/* The same shorthand clobber, one media query down: transition: none here
+   took the opacity crossfade away too, so under reduced motion a revealed
+   backdrop snapped between slides while every other one still faded. What
+   reduced motion is asking to suppress is the picture opening across the
+   frame, not a 260ms fade the tool keeps everywhere else. */
 @media (prefers-reduced-motion: reduce) {
-  .chunk-backdrop[data-bd-frames] { transition: none; }
+  .chunk-backdrop[data-bd-frames] { transition: opacity 260ms ease; }
 }
 /* Scaled up because a blur samples transparent pixels past the edge and
    would otherwise fade the frame out into paper on all four sides. */
@@ -2115,23 +2148,30 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    a lede and reads correctly stacked, which is what a quotation divider is.
    :has(> figure:only-child) is that test, written where the compiler already
    put the answer rather than being decided again in the parser. */
+.section-lead { display: contents; }
 .chunk-section .chunk-content:has(> .section-body > figure:only-child) {
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
   align-items: center;
   column-gap: 2.4em;
 }
+/* One row, two cells. The lead stops dissolving here and becomes the left
+   cell, which is the whole of the fix: as separate grid rows the mark and the
+   heading were pushed apart by the height the spanning figure forced into
+   every row they sat in. */
+.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-lead {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  grid-column: 1;
+  grid-row: 1;
+}
 .chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-body {
   grid-column: 2;
-  grid-row: 1 / -1;
+  grid-row: 1;
   margin-top: 0;
   max-width: none;
   align-self: center;
-}
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-outline,
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-heading,
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-mark {
-  grid-column: 1;
 }
 .chunk-section .chunk-content:has(> .section-body > figure:only-child) .section-body svg {
   max-height: calc(var(--slide-h) * 0.68);
@@ -3350,8 +3390,10 @@ build time, and stepped with the same key that advances a reveal.</p>
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="__section-c1">
   
   <div class="chunk-content">
-    
-    <h1 class="section-heading">Memory safety</h1>
+    <div class="section-lead">
+      
+      <h1 class="section-heading">Memory safety</h1>
+    </div>
     
   </div>
 </article>
@@ -3446,8 +3488,10 @@ build time, and stepped with the same key that advances a reveal.</p>
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="__section-c2">
   
   <div class="chunk-content">
-    
-    <h1 class="section-heading">Block ciphers</h1>
+    <div class="section-lead">
+      
+      <h1 class="section-heading">Block ciphers</h1>
+    </div>
     
   </div>
 </article>
@@ -3575,8 +3619,10 @@ build time, and stepped with the same key that advances a reveal.</p>
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="__section-c3">
   
   <div class="chunk-content">
-    
-    <h1 class="section-heading">Identity and authentication</h1>
+    <div class="section-lead">
+      
+      <h1 class="section-heading">Identity and authentication</h1>
+    </div>
     
   </div>
 </article>
@@ -3717,8 +3763,10 @@ build time, and stepped with the same key that advances a reveal.</p>
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="__section-c4">
   
   <div class="chunk-content">
-    
-    <h1 class="section-heading">The vocabulary</h1>
+    <div class="section-lead">
+      
+      <h1 class="section-heading">The vocabulary</h1>
+    </div>
     
   </div>
 </article>
@@ -4337,8 +4385,10 @@ build time, and stepped with the same key that advances a reveal.</p>
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="__section-c5">
   
   <div class="chunk-content">
-    
-    <h1 class="section-heading">Four arrangements</h1>
+    <div class="section-lead">
+      
+      <h1 class="section-heading">Four arrangements</h1>
+    </div>
     
   </div>
 </article>

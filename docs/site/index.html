@@ -353,17 +353,102 @@ browser is for pages meant to be looked at.
   </div>
 </section>
 
+<section class="band band-do">
+ <div class="wrap">
+
+  <h2 id="covers">Ten ways to open, six ways to change the subject</h2>
+
+  <p>A deck has exactly one cover and one divider style, so this is the only
+  place all of them stand side by side. Every tile below is a real build, shot
+  by <code>docs/site/shoot-gallery.mjs</code> at one viewport and one zoom
+  &ndash; nothing here was composed by hand. Click one to see it full size.</p>
+
+  <p><strong><code>cover:</code></strong> is ordered quiet to loud rather than
+  alphabetically, because that is the only question it asks the author: how
+  much should the opening slide assert itself.</p>
+
+  <div class="gallery">
+    <figure class="shot tile"><img src="img/classic.webp" alt="A title slide with the type set in the lower left third of an otherwise empty slide.">
+      <figcaption><code>classic</code> the lower-left third. The default, and what the tool always drew</figcaption></figure>
+    <figure class="shot tile"><img src="img/masthead.webp" alt="A title slide with the title at the top edge, a lede in the middle, and the credits under a rule at the bottom.">
+      <figcaption><code>masthead</code> a nameplate, a folio rule, and the chunk&rsquo;s own body as the lede between them</figcaption></figure>
+    <figure class="shot tile"><img src="img/stack.webp" alt="A title slide with the whole type block centred on both axes.">
+      <figcaption><code>stack</code> centred on both axes, for an opening that wants to be still</figcaption></figure>
+    <figure class="shot tile"><img src="img/display.webp" alt="A title slide with the title set very large, filling the upper half of the slide.">
+      <figcaption><code>display</code> the title set to fill the slide. The scale is the whole design</figcaption></figure>
+    <figure class="shot tile"><img src="img/panel.webp" alt="A title slide with white type reversed out of a full field of deep blue.">
+      <figcaption><code>panel</code> reversed out of a full field of the theme&rsquo;s accent</figcaption></figure>
+    <figure class="shot tile"><img src="img/quote.webp" alt="A title slide that opens on a sentence set large, with the lecture title small underneath it.">
+      <figcaption><code>quote</code> the talk opens on a claim; the title reads as the attribution</figcaption></figure>
+    <figure class="shot tile"><img src="img/split.webp" alt="A title slide with the type on the left and a picture bled off the right edge.">
+      <figcaption><code>split</code> type left, <code>cover-image</code> bled off the right edge</figcaption></figure>
+    <figure class="shot tile"><img src="img/hero.webp" alt="A title slide where a picture fills the frame and the type is reversed out of a dark gradient over it.">
+      <figcaption><code>hero</code> the picture is the slide, type reversed out of a gradient</figcaption></figure>
+    <figure class="shot tile"><img src="img/beside.webp" alt="A title slide with the title on the left and a three-box diagram inset on the right.">
+      <figcaption><code>beside</code> the chunk&rsquo;s own body inset to the right &ndash; so a <code>::: draw</code> can be the cover</figcaption></figure>
+    <figure class="shot tile"><img src="img/above.webp" alt="A title slide with a three-box diagram across the top and the title centred in the band below it.">
+      <figcaption><code>above</code> the same body on top, title centred in the band below</figcaption></figure>
+  </div>
+
+  <p class="tiny">Two keys modify a composition rather than replacing it.
+  <strong><code>cover-align:</code></strong> is where the type sits on the
+  vertical, for the six compositions that leave it any freedom;
+  <strong><code>cover-ratio:</code></strong> is how much of the slide the
+  picture gets on the three that divide it, as a percentage of one fixed frame
+  rather than a <code>W:H</code> ratio &ndash; the slide&rsquo;s own aspect is
+  the projector&rsquo;s.</p>
+
+  <div class="gallery">
+    <figure class="shot tile"><img src="img/stack-bottom.webp" alt="The stack cover with its type block moved down to sit on the bottom margin.">
+      <figcaption><code>cover: stack</code> with <code>cover-align: bottom</code> &ndash; compare the third tile above</figcaption></figure>
+    <figure class="shot tile"><img src="img/beside-ratio.webp" alt="The beside cover with the diagram given a wider share of the slide than the default.">
+      <figcaption><code>cover: beside</code> with <code>cover-ratio: 62%</code> &ndash; compare the ninth</figcaption></figure>
+  </div>
+
+  <p><strong><code>section:</code></strong> draws the slide a column opens
+  with. Every one of the six is quieter than any cover, deliberately: a
+  divider that can be mistaken for the title slide has failed at the one job
+  it has, which is to say <em>a new part starts here, and it is part of the
+  thing you are already in</em>.</p>
+
+  <div class="gallery">
+    <figure class="shot tile"><img src="img/section-plain.webp" alt="A divider slide showing only the part heading on an empty slide.">
+      <figcaption><code>plain</code> the heading alone. The default</figcaption></figure>
+    <figure class="shot tile"><img src="img/section-tinted.webp" alt="A divider slide where the whole slide takes a light tint of the theme accent.">
+      <figcaption><code>tinted</code> the accent at 12%. From the back of a room the colour arrives before any word</figcaption></figure>
+    <figure class="shot tile"><img src="img/section-rule.webp" alt="A divider slide with the heading between two rules across the measure.">
+      <figcaption><code>rule</code> the quietest, and the one that survives a monochrome print</figcaption></figure>
+    <figure class="shot tile"><img src="img/section-card.webp" alt="A divider slide with the heading sitting on a tinted panel.">
+      <figcaption><code>card</code> the card vocabulary borrowed rather than a fifth thing to learn</figcaption></figure>
+    <figure class="shot tile"><img src="img/section-number.webp" alt="A divider slide with a large accent numeral two above the part heading.">
+      <figcaption><code>number</code> a counter that steps the heading back. It counts the parts, not the columns</figcaption></figure>
+    <figure class="shot tile"><img src="img/section-outline.webp" alt="A divider slide listing all three parts of the lecture with the second one set large and live.">
+      <figcaption><code>outline</code> the running agenda: which part, out of how many, and how far in</figcaption></figure>
+  </div>
+
+  <p class="tiny">Everything a single deck <em>can</em> carry at once &ndash;
+  the closing slide, dividers that carry a quotation or a photograph or a
+  figure, cards, rows, a backdrop whose window opens as you press
+  <kbd>Space</kbd> &ndash; is in the <a href="decoration/audience.html">decoration
+  lecture</a>, which is written to be read rather than looked at.</p>
+
+  </div>
+</section>
+
 <section class="band band-read">
  <div class="wrap">
 
   <h2 id="open-them-yourself">Open the lectures yourself</h2>
 
-  <p>Four lectures are published on this site. <strong>python-intro</strong> is
+  <p>Five lectures are published on this site. <strong>python-intro</strong> is
   the one the pictures come from. The <strong>tutorial</strong> is a
   self-referential tour that explains the tool by being the tool. The
   <strong>figures</strong> lecture rebuilds real lecture slides from
   <code>::: draw</code> blocks and is the worked example behind
-  <a href="figures.html">Figures you write</a>. All three are in English. The
+  <a href="figures.html">Figures you write</a>. <strong>Decoration</strong> shows
+  every construction that puts something other than a text column on a slide &ndash;
+  the cover family, the six dividers, cards and rows, a photograph whose window
+  opens as you press <kbd>Space</kbd>. All four are in English. The
   <strong>short example</strong> is one section of a first-year
   networking lecture, in German &ndash; 80 lines of Markdown, short
   enough to read end to end beside what it produces
@@ -372,26 +457,30 @@ browser is for pages meant to be looked at.
   under CC&nbsp;BY-NC-SA&nbsp;4.0).</p>
 
   <table>
-    <tr><th></th><th>python-intro</th><th>Tutorial</th><th>Figures</th><th>Short example</th></tr>
+    <tr><th></th><th>python-intro</th><th>Tutorial</th><th>Figures</th><th>Decoration</th><th>Short example</th></tr>
     <tr><td>The projection</td>
         <td><a href="python-intro/audience.html">audience</a></td>
         <td><a href="tutorial/audience.html">audience</a></td>
         <td><a href="diagrams/audience.html">audience</a></td>
+        <td><a href="decoration/audience.html">audience</a></td>
         <td><a href="example/audience.html">audience</a></td></tr>
     <tr><td>The cockpit</td>
         <td><a href="python-intro/speaker.html">speaker</a></td>
         <td><a href="tutorial/speaker.html">speaker</a></td>
         <td><a href="diagrams/speaker.html">speaker</a></td>
+        <td><a href="decoration/speaker.html">speaker</a></td>
         <td><a href="example/speaker.html">speaker</a></td></tr>
     <tr><td>The document</td>
         <td><a href="python-intro/print.html">print</a></td>
         <td><a href="tutorial/print.html">print</a></td>
         <td><a href="diagrams/print.html">print</a></td>
+        <td><a href="decoration/print.html">print</a></td>
         <td><a href="example/print.html">print</a></td></tr>
     <tr><td>With the notes</td>
         <td><a href="python-intro/print-notes.html">print-notes</a></td>
         <td><a href="tutorial/print-notes.html">print-notes</a></td>
         <td><a href="diagrams/print-notes.html">print-notes</a></td>
+        <td><a href="decoration/print-notes.html">print-notes</a></td>
         <td><a href="example/print-notes.html">print-notes</a></td></tr>
   </table>
 

@@ -1682,6 +1682,21 @@ function parseSlotClasses(attrs, slots, what, where) {
   return out;
 }
 
+// marked wraps a lone image in a <p> and passes a raw <figure> through as a
+// block, so the same divider written two ways produced two different trees -
+// and the side-by-side rule, which keys on the figure being a child of the
+// body, matched one and not the other. Unwrapping here fixes the class of
+// problem rather than adding a second selector for every rule that follows.
+function unwrapLoneFigure(html) {
+  const m = String(html).match(/^\s*<p>\s*(<figure[\s\S]*<\/figure>)\s*<\/p>\s*$/);
+  // The capture is greedy and anchored only at the ends, so two pictures on
+  // separate lines matched *across* the `</p>\n<p>` between them and the
+  // function named "lone figure" fired on two - emitting an orphan closer and
+  // an unclosed opener. A paragraph boundary inside the capture means there
+  // was more than one, and then there is nothing to unwrap.
+  return m && !/<\/p>/.test(m[1]) ? m[1] : String(html);
+}
+
 // The backdrop element. Returned with its scrim mode, because the mode is
 // two facts at once: how the image is veiled, and – for `invert` – that the
 // slide's ink has to turn light. The second lands as data-backdrop on the
@@ -2745,11 +2760,20 @@ function initDiagrams() {
 
 function parseAttributeTail(text) {
   const m = text.match(/^(.*?)\s*\{([^}]*)\}\s*$/);
-  if (!m) return { text: text.trim() };
-  const out = { text: m[1].trim() };
+  // `classes` is always an array, including on the no-tail path: two callers
+  // read its length, and a heading with no {…} at all is by far the common
+  // case - it crashed every lecture whose first column heading carries no id.
+  if (!m) return { text: text.trim(), classes: [] };
+  // Every class token is recorded, recognised or not. Dropping the ones it
+  // did not know left the build silent on a typo while lint.js reported an
+  // unknown width - a linter stricter than the build, which is the one
+  // direction this project does not allow. The callers decide what is legal
+  // where; this only reads the line.
+  const out = { text: m[1].trim(), classes: [] };
   for (const token of m[2].trim().split(/\s+/)) {
     if (token.startsWith('.')) {
       const cls = token.slice(1);
+      out.classes.push(cls);
       if (VALID_WIDTHS.has(cls)) out.width = cls;
       else if (VALID_CHUNK_CLASSES.has(cls)) out[cls] = true;
     } else if (token.startsWith('#')) {
@@ -2882,7 +2906,17 @@ function parseLecture(src) {
     flushExpansion();
     // Close any still-open layout directives defensively so the emitted
     // body HTML stays balanced. The linter will flag these separately.
-    while (layoutStack.length) bodyLines.push('', layoutStack.pop().close, '');
+    // Popped one at a time rather than in bulk, because `cols` carries a
+    // counter beside the stack and the counter has to come down with it. Left
+    // standing, one unclosed `::: cols` made every later ::: draw in the
+    // lecture a hard build failure naming a chunk that contained no columns -
+    // while lint.js correctly reported the real unclosed directive, so the two
+    // files disagreed about what was wrong.
+    while (layoutStack.length) {
+      const l = layoutStack.pop();
+      if (l.cols) colsDepth -= 1;
+      bodyLines.push('', l.close, '');
+    }
     // Split body at standalone `---` lines into reveal segments (§4.6).
     // A `---` inside a fenced code block stays part of the segment — the
     // `inFence` flag below tracks that.
@@ -2991,7 +3025,22 @@ function parseLecture(src) {
       if (h1) {
         flushChunk();
         flushColBody();
-        const { text, id } = parseAttributeTail(h1[1]);
+        const h1Attr = parseAttributeTail(h1[1]);
+        const { text, id } = h1Attr;
+        // A column heading takes an id and nothing else. Width and `.bare`
+        // are a chunk's business, and left unchecked they parsed here, were
+        // dropped, and neither file said anything - which is the silent no-op
+        // this format refuses everywhere else. Reported off the class list
+        // and not off the parsed keys, or a width came back as the *key* and
+        // the message named a class called `.width` that does not exist.
+        if (h1Attr.classes.length) {
+          const err = new Error(
+            `A column heading carries .${h1Attr.classes[0]} ("${text}").\n` +
+            '  A `# Heading` takes an {#id} and nothing else - a width and .bare\n' +
+            '  belong on the `## tag:` chunks under it.');
+          err.userFacing = true;
+          throw err;
+        }
         currentColumn = { heading: text, id, chunks: [], body: '', backdrop: null };
         colBody = [];
         columns.push(currentColumn);
@@ -3006,13 +3055,30 @@ function parseLecture(src) {
           currentColumn = { heading: null, id: null, chunks: [] };
           columns.push(currentColumn);
         }
-        const { text, width, id, bare } = parseAttributeTail(h2[1]);
+        const h2Attr = parseAttributeTail(h2[1]);
+        const { text, width, id, bare } = h2Attr;
+        // Same rule one heading level down: a class this tail does not know
+        // was dropped in silence here while lint.js called it an unknown
+        // width, so the two programs disagreed about a typo.
+        const strayCls = h2Attr.classes.find(c => !VALID_WIDTHS.has(c) && !VALID_CHUNK_CLASSES.has(c));
+        if (strayCls) {
+          const err = new Error(
+            `A chunk heading carries .${strayCls}, which is not a class this tail takes ("${text}").\n` +
+            `  Valid: ${[...VALID_WIDTHS].map(w => '.' + w).join(', ')}, ` +
+            `${[...VALID_CHUNK_CLASSES].map(c => '.' + c).join(', ')}.`);
+          err.userFacing = true;
+          throw err;
+        }
         const { tag, heading, headingSub } = parseTagPrefix(text);
         currentChunk = {
           tag,
           heading,
           headingSub,
-          width: width || 'standard',
+          // The one per-tag default. An agenda is a list of part titles and
+          // wants the wider measure; every other tag is standard. It is set
+          // here rather than in the renderer because the renderer's own
+          // fallback could never fire - this line always supplies a value.
+          width: width || (tag === 'outline' ? 'wide' : 'standard'),
           bare: !!bare,
           id,
           expansions: [],
@@ -3125,8 +3191,30 @@ function parseLecture(src) {
         // ::: overlay {classes} – a text block laid over the slide rather
         // than set in its column. Collected on the chunk for the same
         // reason the backdrop is: it has to escape the content track.
-        const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\d+))?\s*$/);
+        // `from` takes a token rather than digits, and the token is checked
+        // below. Matched narrowly, anything `from` could not swallow made the
+        // whole line fail to match - so `from later` was not an overlay at
+        // all, the build said nothing, and `::: overlay …` printed as literal
+        // text on the projection while the linter blamed the closing `:::`.
+        const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\S+))?\s*$/);
         if (overlayOpen) {
+          if (overlayOpen[2] != null && !/^[1-9]\d*$/.test(overlayOpen[2])) {
+            const err = new Error(
+              `::: overlay from ${overlayOpen[2]} in ${currentChunk.id ? '#' + currentChunk.id : 'a chunk with no id'}.\n` +
+              '  `from` takes a whole beat number from 1 up - the beat the block\n' +
+              '  arrives on. Beat 0 is the beat the slide opens on, which is what\n' +
+              '  writing no `from` already says.');
+            err.userFacing = true;
+            throw err;
+          }
+          if (overlayOpen[2] === '0') {
+            const err = new Error(
+              `::: overlay from 0 in ${currentChunk.id ? '#' + currentChunk.id : 'a chunk with no id'}.\n` +
+              '  Beat 0 is the beat the slide opens on, which is what writing no\n' +
+              '  `from` already says. Write `from 1` for the next one.');
+            err.userFacing = true;
+            throw err;
+          }
           flushExpansion();
           currentOverlay = { attrs: overlayOpen[1] || '', from: overlayOpen[2] || null, lines: [] };
           continue;
@@ -3368,6 +3456,24 @@ function parseLecture(src) {
       '::: cards was never closed. Everything after it was read as card\n'
       + 'content, so any chunk below it is missing from the output. Add a\n'
       + 'closing ::: line.');
+    err.userFacing = true;
+    throw err;
+  }
+  // Same reasoning as the two above, and it became reachable when headings
+  // stopped breaking out of a captured block: an `## chunk` inside an open
+  // ::: expand / ::: margin / ::: overlay is that block's content now, which
+  // is right for a sub-heading in an aside and catastrophic for a directive
+  // the author forgot to close - every slide below it was folded into the
+  // aside and the build exited 0. The linter reported it; the build has to
+  // as well, or a lecture loses slides between a clean lint and a clean
+  // build.
+  if (currentOverlay || currentExpansion) {
+    const kind = currentOverlay ? 'overlay'
+      : (currentExpansion.kind === 'margin' ? 'margin' : `expand ${currentExpansion.label}`);
+    const err = new Error(
+      `::: ${kind} was never closed. Everything after it was read as that\n`
+      + 'block\'s content, so any chunk below it is missing from the output.\n'
+      + 'Add a closing ::: line.');
     err.userFacing = true;
     throw err;
   }
@@ -3994,10 +4100,14 @@ function renderHeadingHtml(chunk, cls = 'chunk-heading') {
 
 function renderChunk(chunk, frontmatter, num, opts = {}) {
   const { tag, body = '', id, width, expansions = [], annotation = '', speakerNotes = [] } = chunk;
-  if (tag === 'outline') {
-    return renderOutlineChunk(chunk, num, opts.parts || [], opts.partNo || 0, true);
-  }
-  const bodyHtml = body ? marked.parse(body) : '';
+  // An `outline:` chunk is an ordinary chunk whose body ends with the list,
+  // and that is the whole of it. Rendering it through a shell of its own
+  // dropped five things the ordinary path reads - its speaker notes, its
+  // annotation, its expansions, its backdrop and its overlays - and dropped
+  // them without a word, because nothing downstream knew they had been
+  // written. Appending the list is one line and inherits all of it.
+  const bodyHtml = (body ? marked.parse(body) : '')
+    + (tag === 'outline' ? renderOutlineList(opts.parts || [], opts.partNo || 0) : '');
 
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
   const numAttr = num ? ` data-chunk-num="${num}"` : '';
@@ -4100,9 +4210,15 @@ function renderColumn(col, frontmatter, nextNum, chunkOpts = {}) {
   // picture becomes the same banner band a chunk's backdrop becomes, print
   // being a document rather than a slide.
   const lede = (col.body || '').trim()
-    ? `<div class="column-lede">${marked.parse(col.body)}</div>` : '';
+    ? `<div class="column-lede">${unwrapLoneFigure(marked.parse(col.body))}</div>` : '';
   const bd = renderBackdrop(col.backdrop, `the divider for "${col.heading}"`);
-  return `<section class="column"${idAttr}>
+  // The same two attributes a chunk's backdrop puts on its article. Nothing
+  // in PRINT_CSS keys on them today, which is exactly why they were missing -
+  // and exactly why a scrim rule added later would have reached every chunk
+  // and silently skipped every divider.
+  const bdScrim = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
+  const bdHas = bd.html ? ' data-has-backdrop=""' : '';
+  return `<section class="column"${idAttr}${bdHas}${bdScrim}>
   <h1 class="column-heading">${escapeHtml(col.heading)}</h1>
   ${bd.html}
   ${lede}
@@ -4143,6 +4259,18 @@ function stripDiagramAssets(html) {
 // consumer ever reads them there. Measured on lectures/network-security
 // before this existed: 346 KB of a 1.26 MB print file, all of it JSON that
 // nothing would ever parse.
+// A backdrop's reveal is a window on to a slide-sized picture, and on paper
+// there is no such picture: print turns a backdrop into a banner band at the
+// head of the chunk. Left in, the opening beat's inset cropped that banner -
+// `reveal right 45%` printed the right 45% of a strip, a geometry that means
+// nothing where it landed. Stripped here rather than branched at the emitter
+// because renderBackdrop has five call sites and this is the pass that
+// already removes what print has no runtime for.
+function stripBackdropFrames(html) {
+  return html
+    .replace(/ data-bd-frames="[^"]*"/g, '')
+    .replace(/(<div class="chunk-backdrop[^>]*style="[^"]*?);clip-path:[^";]*(")/g, '$1$2');
+}
 function stripDiagramPayloads(html) {
   return stripDiagramAssets(html).replace(
     /<script type="application\/json" class="psi-diagram-(?:frames|source)"[^>]*>[^<]*<\/script>/g, '');
@@ -4173,7 +4301,7 @@ function renderDocument(lecture, opts = {}) {
   // Title / anon columns render above the TOC (cover page first),
   // named columns render after (body of the document).
   const chunkOpts = { withNotes: !!opts.withNotes };
-  const forPrint = (html) => stripDarkTokenColors(stripDiagramPayloads(html));
+  const forPrint = (html) => stripDarkTokenColors(stripDiagramPayloads(stripBackdropFrames(html)));
   // The parts a lecture has, and which one each column is, threaded through
   // so an `outline:` chunk can list them. Print reorders the columns (anon
   // first, named after), so the part number has to ride with the column
@@ -4698,7 +4826,11 @@ body[data-labels=off] .chunk-label { display: none; }
   margin-bottom: 1.4rem;
   order: -1;
 }
-.chunk .chunk-backdrop {
+/* A divider's picture is emitted inside its <section class="column">, not
+   inside a .chunk, so a selector scoped to .chunk left it with no height and
+   no background-size - the author wrote a picture for the part opener and
+   the paper showed nothing. Both hosts, one rule. */
+:is(.chunk, .column) > .chunk-backdrop {
   width: 100%;
   aspect-ratio: 16 / 7;
   background-size: cover;
@@ -4708,9 +4840,9 @@ body[data-labels=off] .chunk-label { display: none; }
   margin: 0 0 1rem;
   display: block;
 }
-.chunk .chunk-backdrop.bd-contain { background-size: contain; background-color: color-mix(in oklch, var(--ink) 6%, transparent); }
-.chunk .chunk-backdrop.bd-top { background-position: center top; }
-.chunk .chunk-backdrop.bd-bottom { background-position: center bottom; }
+:is(.chunk, .column) > .chunk-backdrop.bd-contain { background-size: contain; background-color: color-mix(in oklch, var(--ink) 6%, transparent); }
+:is(.chunk, .column) > .chunk-backdrop.bd-top { background-position: center top; }
+:is(.chunk, .column) > .chunk-backdrop.bd-bottom { background-position: center bottom; }
 .overlay-layer { display: block; margin: 0.9rem 0; }
 .overlay-card {
   padding: 0.75rem 0.95rem;
@@ -4949,6 +5081,30 @@ function abbrevForLabel(label) {
   return 'Exp';
 }
 
+// A cover that draws the title chunk's body needs one. Checked here, beside
+// assertInlinable and collectEmbeddedFonts, and not in the renderer that
+// happens to need it: as a renderer check it fired after print.html and
+// print-notes.html were already on disk, and --print-only never reached it
+// at all, so an invalid deck built clean. Same contract as the two above -
+// a failed build leaves no half-written artefact.
+function assertCoverBody(lecture) {
+  const cover = coverSettings(lecture.frontmatter);
+  if (!cover.bodyRequired) return;
+  const title = lecture.columns
+    .flatMap(c => c.chunks).find(c => c.tag === 'title');
+  // Comments are stripped before the test: `<!-- nothing to say -->` survives
+  // a trim and produced exactly the composition this refuses - a quote cover
+  // with an empty quotation.
+  const said = (title ? (title.body || '') : '').replace(/<!--[\s\S]*?-->/g, '').trim();
+  if (said) return;
+  const err = new Error(
+    `Frontmatter: "cover: ${cover.variant}" sets the title chunk's body as the claim,\n` +
+    `  and the title chunk has no body. Write the sentence the talk opens on\n` +
+    '  under `## title:`, or choose a cover that needs no body.');
+  err.userFacing = true;
+  throw err;
+}
+
 function renderTitleChunk(chunk, frontmatter, num) {
   const closing = chunk.tag === 'closing';
   const where = closing ? 'the closing chunk' : 'the title chunk';
@@ -4968,17 +5124,6 @@ function renderTitleChunk(chunk, frontmatter, num) {
   // the cover's picture and re-running it is precisely the repeat this
   // slide exists not to be.
   const art = own.html ? own : (closing ? { html: '', scrim: null } : renderCoverArt(cover, bodyHtml));
-  // A quote cover with no quotation is a title slide with the title in the
-  // wrong place. The closing slide is exempt: it carries its own words in
-  // its heading, which is the whole reason that tag exists.
-  if (cover.bodyRequired && !closing && !String(bodyHtml).trim()) {
-    const err = new Error(
-      `Frontmatter: "cover: ${cover.variant}" sets the title chunk's body as the claim,\n` +
-      `  and the title chunk has no body. Write the sentence the talk opens on\n` +
-      `  under \`## title:\`, or choose a cover that needs no body.`);
-    err.userFacing = true;
-    throw err;
-  }
   const scrimAttr = art.scrim && art.scrim !== 'veil' ? ` data-backdrop="${art.scrim}"` : '';
   const bdAttr = art.html ? ' data-has-backdrop=""' : '';
   const ratioStyle = (cover.ratio && !closing) ? ` style="--cover-ratio:${cover.ratio}%"` : '';
@@ -5001,41 +5146,21 @@ function renderTitleChunk(chunk, frontmatter, num) {
 </article>`;
 }
 
-// An `outline:` chunk is the agenda where the author puts it, which is what
-// a divider cannot be: a divider is generated at a column boundary, and the
-// place a lecture most often wants its plan is right after the cover, inside
-// the anonymous column, where there is no boundary at all. It draws the same
-// list the divider draws, so one stylesheet serves both - the difference is
-// only which part is live, and before the first one none is.
-//
-// Unlike a divider it prints. A divider is an auto-inserted camera stop; this
-// is a slide the author wrote, and print shows every slide the author wrote.
-function renderOutlineChunk(chunk, num, parts, now, forPrint) {
-  const chunkId = chunk.id || 'outline';
-  const idAttr = chunk.id ? ` id="${escapeHtml(chunk.id)}"` : '';
-  const numAttr = num ? ` data-chunk-num="${num}"` : '';
-  const heading = renderHeadingHtml(chunk);
-  const body = (chunk.body || '').trim() ? marked.parse(chunk.body) : '';
-  const inner = `${heading}\n    ${body}\n    ${renderOutlineList(parts, now)}`;
-  if (forPrint) {
-    return `<article class="chunk chunk-outline" data-tag="outline" data-width="${chunk.width || 'wide'}"${numAttr}${idAttr}>
-  ${renderChunkNumBadge(num, 'span')}
-  ${inner}
-</article>`;
-  }
-  return `<article class="chunk chunk-outline" data-tag="outline" data-width="${chunk.width || 'wide'}" data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}>
-  <div class="chunk-content">
-    ${inner}
-  </div>
-  ${renderChunkNumBadge(num, 'div')}
-</article>`;
-}
-
 function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num, parts = [], now = 0) {
   if (chunk.tag === 'title' || chunk.tag === 'closing') return renderTitleChunk(chunk, frontmatter, num);
-  if (chunk.tag === 'outline') return renderOutlineChunk(chunk, num, parts, now, false);
-
-  const { tag, heading, segments = [], id, width, expansions = [], annotation = '' } = chunk;
+  const { tag, heading, id, width, expansions = [], annotation = '' } = chunk;
+  // Same rule as the document renderer: the list is the end of the body, so
+  // an outline chunk goes through the ordinary path and keeps its notes, its
+  // annotation box, its expansions, its backdrop and its overlays.
+  const segments = tag === 'outline'
+    ? (() => {
+        const s = (chunk.segments || []).slice();
+        const list = renderOutlineList(parts, now);
+        if (s.length) s[s.length - 1] += '\n\n' + list;
+        else s.push(list);
+        return s;
+      })()
+    : (chunk.segments || []);
   const chunkId = id || `c${colIdx}-${chunkIdx}`;
   // `.bare` takes the heading off the *slide* and nowhere else. It is an
   // attribute rather than a dropped element on purpose: the TOC, the search
@@ -5152,6 +5277,15 @@ function lectureParts(columns) {
 // and 0 is not "nothing is live" rendered as a wall of grey. A list nobody
 // has started yet is a plan, and a plan is read at full strength; recession
 // is what says "not the one we are on", which needs there to be one.
+// An `outline:` chunk is the agenda where the author puts it, which is what
+// a divider cannot be: a divider is generated at a column boundary, and the
+// place a lecture most often wants its plan is right after the cover, inside
+// the anonymous column, where there is no boundary at all. It draws the same
+// list the divider draws, so one stylesheet serves both - the difference is
+// only which part is live, and before the first one none is.
+//
+// Unlike a divider it prints. A divider is an auto-inserted camera stop; this
+// is a slide the author wrote, and print shows every slide the author wrote.
 function renderOutlineList(parts, now) {
   if (!parts.length) return '';
   const items = parts.map(p => {
@@ -5182,14 +5316,22 @@ function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []
   const where = `the divider for "${col.heading}"`;
   const art = renderBackdrop(col.backdrop, where);
   const own = (col.body || '').trim()
-    ? `<div class="section-body">${marked.parse(col.body)}</div>` : '';
+    ? `<div class="section-body">${unwrapLoneFigure(marked.parse(col.body))}</div>` : '';
   const scrimAttr = art.scrim && art.scrim !== 'veil' ? ` data-backdrop="${art.scrim}"` : '';
   const bdAttr = art.html ? ' data-has-backdrop=""' : '';
+  // The mark and the heading (or the list) are one block, and saying so in
+  // the markup is what lets the beside layout be a two-column grid with one
+  // row. Left as siblings they were separate grid rows, the figure spanned
+  // all of them, and the extra height it forced was shared out among them -
+  // measured, the list's centre sat 132px below the figure's. Everywhere
+  // else the wrapper is `display: contents`, so it changes nothing.
   return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="${sec.variant}"${bdAttr}${scrimAttr} data-chunk-id="${escapeHtml(chunkId)}">
   ${art.html}
   <div class="chunk-content">
-    ${mark}
-    ${body}
+    <div class="section-lead">
+      ${mark}
+      ${body}
+    </div>
     ${own}
   </div>
 </article>`;
@@ -6645,8 +6787,15 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    edge. Tried the other way round first: min-height plus a negative
    margin made the article taller than the viewport, and the type went
    off the bottom of the frame while the picture reached neither end. */
+/* The picture's share is the author's, exactly as it is on beside and above.
+   Hard-coded here, split was in COVER_RATIO_VARIANTS - so the frontmatter
+   was accepted, validated against the 15-75 band, emitted as a custom
+   property on the article, and then read by nobody: measured, beside went
+   from 519.8px to 671.4px at 62% and split did not move. A key the drawing
+   ignores is the silent no-op this format refuses, and the refusal for the
+   covers that do not divide only made it look deliberate. */
 .chunk[data-cover=split] {
-  grid-template-columns: minmax(0, 1fr) 42%;
+  grid-template-columns: minmax(0, 1fr) var(--cover-ratio, 42%);
   align-items: stretch;
   padding: 0;
   gap: 0;
@@ -6860,6 +7009,23 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   font-size: calc(3.1em * var(--zoom));
   max-width: 14em;
 }
+/* quote is the other cover that sets .title-main to something it is not on a
+   closing slide. There the lecture's title is the *attribution* under the
+   claim, so it is meta-sized on purpose - but a closing slide has no claim
+   above it and its heading IS its content, which came out at attribution
+   size: measured, 29.9px where a heading belongs. The bookend keeps the
+   composition and takes back the one rule that only made sense with a
+   quotation over it. */
+.chunk[data-cover=quote][data-closing] .title-main {
+  font-size: calc(2.2em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  max-width: 20em;
+}
+.chunk[data-cover=quote][data-closing] .title-subtitle {
+  font-size: calc(1.05em * var(--zoom));
+  margin-top: 0.35em;
+}
 
 /* The body-as-art wrapper has to let a figure fill it. A ::: draw emits a
    <figure class=psi-diagram> whose own margins are tuned for the text
@@ -6957,11 +7123,20 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    segment appearing is a footnote to what is already on the slide; a
    picture opening across the frame is the slide changing, and at the speed
    of a bullet it reads as a glitch. */
+/* The opacity half has to be restated here: transition is a shorthand and
+   this selector outranks the plain .chunk-backdrop rule, so naming only
+   clip-path silently dropped the fade that keeps a backdrop off its
+   neighbours - on exactly the backdrops that most need the crossfade. */
 .chunk-backdrop[data-bd-frames] {
-  transition: clip-path 0.62s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: clip-path 0.62s cubic-bezier(0.4, 0, 0.2, 1), opacity 260ms ease;
 }
+/* The same shorthand clobber, one media query down: transition: none here
+   took the opacity crossfade away too, so under reduced motion a revealed
+   backdrop snapped between slides while every other one still faded. What
+   reduced motion is asking to suppress is the picture opening across the
+   frame, not a 260ms fade the tool keeps everywhere else. */
 @media (prefers-reduced-motion: reduce) {
-  .chunk-backdrop[data-bd-frames] { transition: none; }
+  .chunk-backdrop[data-bd-frames] { transition: opacity 260ms ease; }
 }
 /* Scaled up because a blur samples transparent pixels past the edge and
    would otherwise fade the frame out into paper on all four sides. */
@@ -7612,23 +7787,30 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    a lede and reads correctly stacked, which is what a quotation divider is.
    :has(> figure:only-child) is that test, written where the compiler already
    put the answer rather than being decided again in the parser. */
+.section-lead { display: contents; }
 .chunk-section .chunk-content:has(> .section-body > figure:only-child) {
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
   align-items: center;
   column-gap: 2.4em;
 }
+/* One row, two cells. The lead stops dissolving here and becomes the left
+   cell, which is the whole of the fix: as separate grid rows the mark and the
+   heading were pushed apart by the height the spanning figure forced into
+   every row they sat in. */
+.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-lead {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  grid-column: 1;
+  grid-row: 1;
+}
 .chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-body {
   grid-column: 2;
-  grid-row: 1 / -1;
+  grid-row: 1;
   margin-top: 0;
   max-width: none;
   align-self: center;
-}
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-outline,
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-heading,
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-mark {
-  grid-column: 1;
 }
 .chunk-section .chunk-content:has(> .section-body > figure:only-child) .section-body svg {
   max-height: calc(var(--slide-h) * 0.68);
@@ -13447,6 +13629,7 @@ function buildOnce(absIn, only, opts = {}) {
   // parseLecture, so a reset further down wiped the very thing it collects.
   embedsThisBuild = [];
   const lecture = parseLecture(src);
+  assertCoverBody(lecture);
   const chunkCount = lecture.columns.reduce((n, c) => n + c.chunks.length, 0);
   const shape = `${lecture.columns.length} columns, ${chunkCount} chunks`;
 

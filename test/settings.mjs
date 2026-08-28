@@ -911,6 +911,244 @@ console.log('\nlayout generations');
   // A divider whose body is nothing but a figure lays it beside the heading.
   ok(/\.chunk-section \.chunk-content:has\(> \.section-body > figure:only-child\)/.test(cls.html),
      'a divider with a lone figure lays it beside the heading, not under it');
+
+  // ── the ten a review found, each phrased as the failure that was there ──
+  // A helper that writes a whole source and reports what was left on disk,
+  // because two of these are about artefacts a failed build must not leave.
+  const raw = (src, args = []) => {
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-rv-'));
+    fs.mkdirSync(path.join(d, 'assets'));
+    // A one-pixel PNG: these checks are about where a picture lands, not
+    // what it is, so the asset is written rather than copied from a lecture
+    // whose files are free to move.
+    fs.writeFileSync(path.join(d, 'assets/pic.png'), Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64'));
+    fs.writeFileSync(path.join(d, 'source.md'), src);
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(d, 'source.md'), ...args],
+      { cwd: ROOT, encoding: 'utf8' });
+    const read = (n) => { try { return fs.readFileSync(path.join(d, n), 'utf8'); } catch { return null; } };
+    return { code: r.status, out: (r.stdout || '') + (r.stderr || ''), dir: d,
+             files: fs.readdirSync(d).filter(f => f.endsWith('.html')),
+             html: read('audience.html'), print: read('print.html'), notes: read('print-notes.html') };
+  };
+  const lintOf = (src) => {
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-rl-'));
+    fs.writeFileSync(path.join(d, 'source.md'), src);
+    const r = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(d, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    return (r.stdout || '') + (r.stderr || '');
+  };
+  const FM = '---\ntitle: T\n---\n\n## title: {#title}\n\n';
+
+  // 1 · colsDepth outlived the chunk that opened it, so one unclosed
+  // `::: cols` made every later ::: draw in the lecture a hard failure
+  // naming a chunk that contained no columns.
+  const leak = raw(FM + '## free: A {#a}\n\n::: cols 2\n\nProse.\n\n'
+    + '## figure: Later {#b}\n\n::: draw\nbox one "One"\nbox two "Two" right of one gap 1\n:::\n',
+    ['--audience-only']);
+  ok(leak.code === 0 && !/draw inside/.test(leak.out),
+     'an unclosed ::: cols does not poison a later ::: draw', leak.out.split('\n')[0]);
+  ok(/unclosed-directive/.test(lintOf(FM + '## free: A {#a}\n\n::: cols 2\n\nProse.\n')),
+     'and the linter still names the directive that was left open');
+
+  // 2 · the quote cover's refusal lived in a renderer, so --print-only
+  // accepted an invalid deck and a full build wrote two files before throwing.
+  const noClaim = '---\ntitle: T\ncover: quote\n---\n\n## title: {#title}\n\n## free: F {#f}\n\nBody.\n';
+  const po = raw(noClaim, ['--print-only']);
+  ok(po.code !== 0 && /has no body/.test(po.out),
+     'a quote cover with no quotation is refused by --print-only too');
+  const full = raw(noClaim);
+  ok(full.code !== 0 && full.files.length === 0,
+     'and the failed build leaves no half-written artefact, ' + full.files.join(','));
+
+  // 3 · the divider's backdrop was emitted inside a <section class="column">
+  // while every print rule was scoped .chunk, so it painted nothing.
+  const divBd = raw(FM + '# One {#o}\n\n::: backdrop pic\n\n## free: A {#a}\n\nX.\n');
+  ok(divBd.code === 0 && /:is\(\.chunk, \.column\) > \.chunk-backdrop \{/.test(divBd.print),
+     'a divider backdrop is styled in print, not only a chunk one', divBd.out.split('\n')[0]);
+
+  // 4 · an outline chunk went through a shell of its own and dropped five
+  // things the ordinary path reads.
+  const rvOc = raw(FM + '## outline: Plan {#ag}\n\n> note: Reaches the notes.\n\n'
+    + '::: backdrop pic\n\n# One {#o}\n\n## free: A {#a}\n\nX.\n');
+  const rvOcArt = (rvOc.html.match(/<article class="chunk chunk-outline[\s\S]*?<\/article>/) || [''])[0];
+  ok(/Reaches the notes/.test(rvOc.notes), 'an outline chunk keeps its speaker notes');
+  ok(/chunk-backdrop/.test(rvOcArt), 'and its backdrop');
+  ok(/annot-box/.test(rvOcArt), 'and its annotation box');
+  ok(/<ol class="section-outline">/.test(rvOcArt), 'and still draws the list');
+
+  // 7 · the renderer's `wide` fallback could never fire, because the parser
+  // always supplied a width.
+  ok(/<article class="chunk chunk-outline[^>]*data-width="wide"/.test(rvOc.html),
+     'and is wide, which the unreachable fallback only claimed');
+
+  // 5 · the reveal is live-only, but its clip and payload rode into print and
+  // cropped the banner band with a slide-sized geometry.
+  const rvRev = raw(FM + '## figure: F {.full #c}\n\n'
+    + '::: backdrop pic {cover clear} reveal right 45%, full\n\nText.\n');
+  ok(!/clip-path/.test(rvRev.print) && !/data-bd-frames/.test(rvRev.print),
+     'the backdrop reveal does not reach print', rvRev.out.split('\n')[0]);
+  ok(/data-bd-frames/.test(rvRev.html) && /clip-path:inset\(0 0 0 55%\)/.test(rvRev.html),
+     'and the live view still opens on the first place');
+
+  // 8 · the [data-bd-frames] shorthand replaced the plain rule's opacity
+  // transition, so a revealed backdrop snapped instead of fading.
+  ok(/\.chunk-backdrop\[data-bd-frames\] \{[^}]*clip-path[^}]*opacity 260ms/.test(rvRev.html),
+     'and it still fades with its slide, which the shorthand had dropped');
+
+  // 6 · marked wraps a lone image in a <p> and passes a raw <figure> through,
+  // so the same divider written two ways produced two different trees.
+  const rvImg = raw(FM + '# One {#o}\n\n![A picture](pic)\n\n## free: A {#a}\n\nX.\n', ['--audience-only']);
+  ok(/<div class="section-body"><figure/.test(rvImg.html),
+     'a lone image divider is a figure child, like a ::: draw one', rvImg.out.split('\n')[0]);
+
+  // 9 · a class on a column heading parsed, was dropped, and neither file
+  // said anything.
+  const clsCol = raw(FM + '# A part {#p .bare}\n\n## free: A {#a}\n\nX.\n', ['--audience-only']);
+  ok(clsCol.code !== 0 && /column heading carries \.bare/.test(clsCol.out),
+     'a class on a column heading is refused rather than dropped');
+  ok(/class-on-column/.test(lintOf(FM + '# A part {#p .bare}\n\n## free: A {#a}\n\nX.\n')),
+     'and the linter says the same');
+
+  // 10 · `from 0` is what writing no `from` already says.
+  const from0 = raw(FM + '## free: A {#a}\n\n::: overlay {left} from 0\nWords.\n:::\n\nX.\n', ['--audience-only']);
+  ok(from0.code !== 0 && /from 0/.test(from0.out), 'an overlay held to beat 0 is refused');
+  ok(/bad-overlay-from/.test(lintOf(FM + '## free: A {#a}\n\n::: overlay {left} from 0\nWords.\n:::\n\nX.\n')),
+     'and the linter says the same');
+  const from1 = raw(FM + '## free: A {#a}\n\n::: overlay {left} from 1\nWords.\n:::\n\nX.\n', ['--audience-only']);
+  ok(from1.code === 0 && /data-from="1"/.test(from1.html),
+     'while from 1 still works', from1.out.split('\n')[0]);
+
+  // ── and five the independent verification of those ten turned up ──
+  // A heading inside an open ::: expand is that block's content, which is
+  // right for a sub-heading in an aside and catastrophic for a directive the
+  // author forgot to close: every slide below it was folded into the aside
+  // and the build exited 0. The linter reported it; the build did not.
+  const swallow = raw(FM + '## free: A {#c}\n\n::: expand Details\n\nInside.\n\n'
+    + '## free: must not vanish {#d}\n\nProse.\n', ['--print-only']);
+  ok(swallow.code !== 0 && /::: expand Details was never closed/.test(swallow.out),
+     'an unclosed ::: expand is a hard error, not a silently shorter deck');
+  const swMargin = raw(FM + '## free: A {#c}\n\n::: margin\n\nInside.\n\n'
+    + '## free: B {#d}\n\nProse.\n', ['--print-only']);
+  ok(swMargin.code !== 0 && /::: margin was never closed/.test(swMargin.out),
+     'and so is an unclosed ::: margin');
+  const swOv = raw(FM + '## free: A {#c}\n\n::: overlay {left}\n\nInside.\n\n'
+    + '## free: B {#d}\n\nProse.\n', ['--print-only']);
+  ok(swOv.code !== 0 && /::: overlay was never closed/.test(swOv.out),
+     'and an unclosed ::: overlay');
+  // A closed one still works, and a markdown sub-heading inside it is still
+  // that block's content rather than a new chunk - which is the capability
+  // the guard exists for.
+  const swOk = raw(FM + '## free: A {#c}\n\n::: expand Details\n\n## A sub-heading\n\nInside.\n:::\n\n'
+    + '## free: B {#d}\n\nProse.\n', ['--print-only']);
+  ok(swOk.code === 0 && /id="d"/.test(swOk.print) && /<h2[^>]*>A sub-heading/.test(swOk.print),
+     'while a closed one keeps its own sub-heading and the chunk after it',
+     swOk.out.split('\n')[0]);
+
+  // A comment survives a trim, so `<!-- nothing -->` produced exactly the
+  // composition the quote-cover check exists to prevent.
+  const cmt = raw('---\ntitle: T\ncover: quote\n---\n\n## title: {#title}\n\n'
+    + '<!-- nothing to say -->\n\n## free: F {#f}\n\nBody.\n');
+  ok(cmt.code !== 0 && cmt.files.length === 0,
+     'a comment-only body is not a quotation');
+  ok(/cover-needs-body/.test(lintOf('---\ntitle: T\ncover: quote\n---\n\n## title: {#title}\n\n\n## free: F {#f}\n\nB.\n')),
+     'and the linter mirrors the rule, so the pre-commit gate cannot pass what the build refuses');
+
+  // On a quote cover the lecture title is the attribution under the claim and
+  // is meta-sized on purpose. A closing slide has no claim above it and its
+  // heading IS its content - it came out at 29.9px.
+  ok(/\.chunk\[data-cover=quote\]\[data-closing\] \.title-main/.test(cls.html),
+     'a quote closing slide takes its heading back to heading size');
+
+  // The same shorthand clobber, one media query down: reduced motion took the
+  // opacity crossfade away too, so a revealed backdrop snapped between slides
+  // while every other one faded.
+  ok(/prefers-reduced-motion: reduce\) \{\s*\.chunk-backdrop\[data-bd-frames\] \{ transition: opacity 260ms ease; \}/
+       .test(rvRev.html),
+     'and reduced motion suppresses the picture opening, not the fade');
+
+  // Print emits data-has-backdrop and data-backdrop on a chunk's article;
+  // nothing keyed on either yet, which is why a divider had neither - and why
+  // a scrim rule added later would have reached chunks and skipped dividers.
+  const divAttr = raw(FM + '# One {#o}\n\n::: backdrop pic {invert}\n\n## free: A {#a}\n\nX.\n');
+  ok(/<section class="column" id="o" data-has-backdrop="" data-backdrop="invert">/.test(divAttr.print),
+     'and a divider carries the same backdrop attributes a chunk does',
+     divAttr.out.split('\n')[0]);
+
+  // ── and four the verification of the fixes turned up in the fixes ──
+  // An unrecognised class was dropped by the build and reported by lint.js as
+  // an unknown *width* - a linter stricter than the build, in both directions
+  // wrong: the build said nothing and the linter named the wrong thing.
+  for (const [where, src] of [
+    ['column', FM + '# A part {#p .zzz}\n\n## free: A {#a}\n\nX.\n'],
+    ['chunk',  FM + '## free: A {#a .zzz}\n\nX.\n'],
+  ]) {
+    const r = raw(src, ['--audience-only']);
+    ok(r.code !== 0 && /\.zzz/.test(r.out),
+       `an unrecognised class on a ${where} heading is refused, and named as written`);
+  }
+  // …and the message names the class the author typed, not the key it parsed
+  // into: a width came back as `.width`, which is not a class that exists.
+  const wCol = raw(FM + '# A part {#p .narrow}\n\n## free: A {#a}\n\nX.\n', ['--audience-only']);
+  ok(wCol.code !== 0 && /\.narrow/.test(wCol.out) && !/\.width/.test(wCol.out),
+     'and a width on a column heading is named as .narrow, not as .width');
+  // `.bare` and the four widths must still work where they belong.
+  const okCls = raw(FM + '## figure: H {.wide #a .bare}\n\nX.\n', ['--audience-only']);
+  ok(okCls.code === 0 && /data-width="wide"/.test(okCls.html) && /data-bare=""/.test(okCls.html),
+     'while a width and .bare on a chunk heading still work', okCls.out.split('\n')[0]);
+
+  // unwrapLoneFigure's capture is greedy and anchored only at the ends, so two
+  // pictures on separate lines matched across the </p><p> between them - the
+  // function named "lone figure" fired on two and emitted an orphan closer.
+  const twoPix = raw(FM + '# One {#o}\n\n![A](pic)\n\n![B](pic)\n\n## free: A {#a}\n\nX.\n',
+    ['--audience-only']);
+  const sb = (twoPix.html.match(/<div class="section-body">[\s\S]*?<\/div>/) || [''])[0];
+  ok(twoPix.code === 0 && (sb.match(/<p>/g) || []).length === (sb.match(/<\/p>/g) || []).length,
+     'two pictures in a divider stay balanced markup', twoPix.out.split('\n')[0]);
+
+  // `from` was matched as digits, so anything it could not swallow made the
+  // whole line fail to match: `from later` was not an overlay at all, printed
+  // `::: overlay …` as literal text on the projection, and the linter blamed
+  // the closing `:::` two lines down.
+  const badFrom = raw(FM + '## free: A {#a}\n\n::: overlay {left} from later\nWords.\n:::\n\nX.\n',
+    ['--audience-only']);
+  ok(badFrom.code !== 0 && /from later/.test(badFrom.out),
+     'an unreadable `from` is named rather than printed on the slide');
+  ok(/bad-overlay-from/.test(lintOf(FM + '## free: A {#a}\n\n::: overlay {left} from later\nWords.\n:::\n\nX.\n')),
+     'and the linter names it too, on the line that carries it');
+
+  // The divider's mark and heading were separate grid rows, so the spanning
+  // figure's height was shared out among them and pushed them apart -
+  // measured, the list's centre sat 132px below the figure's. The guard is
+  // the wrapper: everywhere else it dissolves, and in the beside layout it is
+  // the left cell of a one-row grid.
+  ok(/\.section-lead \{ display: contents; \}/.test(cls.html),
+     'the divider lead dissolves everywhere it is not the beside layout');
+  ok(/:has\(> \.section-body > figure:only-child\) > \.section-lead \{[^}]*grid-row: 1/.test(cls.html)
+     && /:has\(> \.section-body > figure:only-child\) > \.section-body \{[^}]*grid-row: 1/.test(cls.html),
+     'and there both cells are in one row, which is what stops the offset');
+
+  // The commonest heading of all: no attribute tail at all. parseAttributeTail
+  // returns early there, and the early return did not carry `classes` - so the
+  // two checks above crashed every lecture whose first column heading has no
+  // id. Caught by the browser suite, not by this file, because the fixture
+  // decks here all happened to write one.
+  const noTail = raw('---\ntitle: T\n---\n\n## title: {#t}\n\n# A part\n\n## free: A\n\nX.\n',
+    ['--audience-only']);
+  ok(noTail.code === 0, 'a heading with no attribute tail at all still builds',
+     noTail.out.split('\n').slice(-2)[0]);
+
+  // `split` was in COVER_RATIO_VARIANTS, so the key was accepted, validated
+  // against the 15-75 band and emitted as a custom property that its own grid
+  // never read - measured, beside moved 152px at 62% and split did not move at
+  // all. All three dividing covers read it now.
+  ok(/\.chunk\[data-cover=split\] \{[^}]*var\(--cover-ratio, 42%\)/.test(cls.html),
+     'split reads cover-ratio, like the other two covers that divide the slide');
+  ok(/\.chunk\[data-cover=beside\] \{[^}]*var\(--cover-ratio/.test(cls.html)
+     && /\.chunk\[data-cover=above\] \{[^}]*var\(--cover-ratio/.test(cls.html),
+     'and beside and above still do');
 }
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

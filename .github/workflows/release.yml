@@ -72,6 +72,7 @@ jobs:
         run: |
           node build.js lectures/tutorial/source.md
           node build.js lectures/diagrams/source.md
+          node build.js lectures/decoration/source.md
           node build.js lectures/python-intro/source.md
           node build.js docs/site/example/source.md
           # Linted above and not published, which is exactly why they are built
@@ -86,7 +87,7 @@ jobs:
       # The tutorial and diagram HTML is committed; a stale copy would ship a
       # tour, or a construct reference, that does not match its own source.
       - name: Check the tracked outputs are current
-        run: git diff --exit-code -- lectures/tutorial lectures/diagrams
+        run: git diff --exit-code -- lectures/tutorial lectures/diagrams lectures/decoration
 
       # Same rule one folder over: both figure pages are tracked HTML whose
       # drawings come from the lecture built above, so a stale one ships a

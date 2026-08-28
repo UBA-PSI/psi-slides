@@ -358,17 +358,104 @@ browser is for pages meant to be looked at.
   </div>
 </section>
 
+<section class="band band-do">
+ <div class="wrap">
+
+  <h2 id="covers">Zehn Arten anzufangen, sechs den Teil zu wechseln</h2>
+
+  <p>Ein Foliensatz hat genau ein Cover und einen Trennerstil, deshalb ist dies
+  die einzige Stelle, an der alle nebeneinander stehen. Jede Kachel unten ist
+  ein echter Build, geschossen von <code>docs/site/shoot-gallery.mjs</code> bei
+  einem Viewport und einem Zoom &ndash; nichts davon ist von Hand gesetzt.
+  Anklicken zeigt sie in voller Größe.</p>
+
+  <p><strong><code>cover:</code></strong> ist von leise nach laut sortiert und
+  nicht alphabetisch, weil das die einzige Frage ist, die die Liste der Autorin
+  stellt: wie sehr soll die erste Folie auftreten.</p>
+
+  <div class="gallery">
+    <figure class="shot tile"><img src="../img/classic.webp" alt="Eine Titelfolie, deren Satz im unteren linken Drittel einer sonst leeren Folie steht.">
+      <figcaption><code>classic</code> das untere linke Drittel. Die Vorgabe, und was das Werkzeug immer gezeichnet hat</figcaption></figure>
+    <figure class="shot tile"><img src="../img/masthead.webp" alt="Eine Titelfolie mit dem Titel an der Oberkante, einem Lead in der Mitte und den Credits unter einer Linie am Fuß.">
+      <figcaption><code>masthead</code> Titelkopf, Kolumnenlinie, und der Body des Chunks als Lead dazwischen</figcaption></figure>
+    <figure class="shot tile"><img src="../img/stack.webp" alt="Eine Titelfolie, deren ganzer Satzblock auf beiden Achsen zentriert ist.">
+      <figcaption><code>stack</code> auf beiden Achsen zentriert, für einen Anfang, der still sein will</figcaption></figure>
+    <figure class="shot tile"><img src="../img/display.webp" alt="Eine Titelfolie mit sehr groß gesetztem Titel, der die obere Hälfte füllt.">
+      <figcaption><code>display</code> der Titel füllt die Folie. Der Grad ist der ganze Entwurf</figcaption></figure>
+    <figure class="shot tile"><img src="../img/panel.webp" alt="Eine Titelfolie mit weißer Schrift, ausgespart aus einem ganzflächigen dunkelblauen Feld.">
+      <figcaption><code>panel</code> ausgespart aus einem vollen Feld der Akzentfarbe</figcaption></figure>
+    <figure class="shot tile"><img src="../img/quote.webp" alt="Eine Titelfolie, die mit einem groß gesetzten Satz beginnt, darunter klein der Vortragstitel.">
+      <figcaption><code>quote</code> der Vortrag beginnt mit einer Behauptung, der Titel liest sich als Zuschreibung</figcaption></figure>
+    <figure class="shot tile"><img src="../img/split.webp" alt="Eine Titelfolie mit dem Satz links und einem rechts angeschnittenen Bild.">
+      <figcaption><code>split</code> Satz links, <code>cover-image</code> rechts angeschnitten</figcaption></figure>
+    <figure class="shot tile"><img src="../img/hero.webp" alt="Eine Titelfolie, auf der ein Bild den Rahmen füllt und der Satz aus einem dunklen Verlauf ausgespart ist.">
+      <figcaption><code>hero</code> das Bild ist die Folie, der Satz aus einem Verlauf ausgespart</figcaption></figure>
+    <figure class="shot tile"><img src="../img/beside.webp" alt="Eine Titelfolie mit dem Titel links und einem Diagramm aus drei Kästen rechts daneben.">
+      <figcaption><code>beside</code> der Body des Chunks rechts daneben &ndash; so kann ein <code>::: draw</code> das Cover sein</figcaption></figure>
+    <figure class="shot tile"><img src="../img/above.webp" alt="Eine Titelfolie mit einem Diagramm aus drei Kästen oben und dem Titel zentriert im Band darunter.">
+      <figcaption><code>above</code> derselbe Body oben, der Titel zentriert im Band darunter</figcaption></figure>
+  </div>
+
+  <p class="tiny">Zwei Schlüssel verändern eine Komposition, statt sie zu
+  ersetzen. <strong><code>cover-align:</code></strong> ist, wo der Satz auf der
+  Senkrechten sitzt, für die sechs Kompositionen, die ihm dort Freiheit lassen;
+  <strong><code>cover-ratio:</code></strong> ist, wie viel der Folie das Bild
+  bei den dreien bekommt, die sie teilen &ndash; als Prozentsatz eines festen
+  Rahmens und nicht als <code>W:H</code>-Verhältnis, denn das Seitenverhältnis
+  der Folie gehört dem Beamer.</p>
+
+  <div class="gallery">
+    <figure class="shot tile"><img src="../img/stack-bottom.webp" alt="Das stack-Cover, dessen Satzblock nach unten an den Rand gerückt ist.">
+      <figcaption><code>cover: stack</code> mit <code>cover-align: bottom</code> &ndash; vergleiche die dritte Kachel oben</figcaption></figure>
+    <figure class="shot tile"><img src="../img/beside-ratio.webp" alt="Das beside-Cover, bei dem das Diagramm einen breiteren Anteil der Folie bekommt als voreingestellt.">
+      <figcaption><code>cover: beside</code> mit <code>cover-ratio: 62%</code> &ndash; vergleiche die neunte</figcaption></figure>
+  </div>
+
+  <p><strong><code>section:</code></strong> zeichnet die Folie, mit der eine
+  Spalte aufmacht. Jede der sechs ist leiser als jedes Cover, und zwar
+  absichtlich: ein Trenner, den man mit der Titelfolie verwechseln kann, hat
+  bei seiner einzigen Aufgabe versagt &ndash; zu sagen, <em>hier beginnt ein
+  neuer Teil, und er gehört zu dem, worin du schon bist</em>.</p>
+
+  <div class="gallery">
+    <figure class="shot tile"><img src="../img/section-plain.webp" alt="Eine Trennerfolie, die nur die Überschrift des Teils auf leerer Folie zeigt.">
+      <figcaption><code>plain</code> die Überschrift allein. Die Vorgabe</figcaption></figure>
+    <figure class="shot tile"><img src="../img/section-tinted.webp" alt="Eine Trennerfolie, bei der die ganze Folie leicht in der Akzentfarbe getönt ist.">
+      <figcaption><code>tinted</code> der Akzent bei 12%. Aus der letzten Reihe kommt die Farbe vor jedem Wort an</figcaption></figure>
+    <figure class="shot tile"><img src="../img/section-rule.webp" alt="Eine Trennerfolie mit der Überschrift zwischen zwei Linien über das Satzmaß.">
+      <figcaption><code>rule</code> die leiseste, und die einzige, die einen Schwarzweißdruck übersteht</figcaption></figure>
+    <figure class="shot tile"><img src="../img/section-card.webp" alt="Eine Trennerfolie, deren Überschrift auf einer getönten Fläche sitzt.">
+      <figcaption><code>card</code> das Karten-Vokabular geborgt, statt ein fünftes zu lernen</figcaption></figure>
+    <figure class="shot tile"><img src="../img/section-number.webp" alt="Eine Trennerfolie mit einer großen Ziffer zwei in Akzentfarbe über der Überschrift.">
+      <figcaption><code>number</code> ein Zähler, der die Überschrift zurücktreten lässt. Er zählt Teile, nicht Spalten</figcaption></figure>
+    <figure class="shot tile"><img src="../img/section-outline.webp" alt="Eine Trennerfolie, die alle drei Teile der Vorlesung listet, der zweite groß und aktiv.">
+      <figcaption><code>outline</code> die laufende Gliederung: welcher Teil, von wie vielen, und wie weit hinein</figcaption></figure>
+  </div>
+
+  <p class="tiny">Alles, was ein einzelner Foliensatz gleichzeitig tragen
+  <em>kann</em> &ndash; die Schlussfolie, Trenner mit Zitat, Foto oder Figur,
+  Karten, Zeilen, ein Hintergrundbild, dessen Fenster sich auf
+  <kbd>Leertaste</kbd> öffnet &ndash; steht in der
+  <a href="../decoration/audience.html">Dekorations-Vorlesung</a>, die zum Lesen
+  geschrieben ist und nicht zum Ansehen.</p>
+
+  </div>
+</section>
+
 <section class="band band-read">
  <div class="wrap">
 
   <h2 id="open-them-yourself">Vorlesungen selbst öffnen</h2>
 
-  <p>Auf dieser Seite liegen vier Vorlesungen. <strong>python-intro</strong> ist
+  <p>Auf dieser Seite liegen fünf Vorlesungen. <strong>python-intro</strong> ist
   die, aus der die Bilder stammen. Das <strong>Tutorial</strong> ist eine
   selbstbezügliche Tour, die das Werkzeug erklärt, indem sie es benutzt. Die
   <strong>Figures</strong>-Vorlesung baut echte Vorlesungsfolien aus
   <code>::: draw</code>-Blöcken nach und ist das ausgearbeitete Beispiel hinter
-  <a href="../figures.html">Figures you write</a>. Alle drei sind auf Englisch. Das
+  <a href="../figures.html">Figures you write</a>. <strong>Decoration</strong> zeigt
+  jede Konstruktion, die etwas anderes als eine Textspalte auf eine Folie bringt:
+  die Cover-Familie, die sechs Trenner, Karten und Zeilen, ein Foto, dessen Fenster
+  sich mit <kbd>Space</kbd> öffnet. Alle vier sind auf Englisch. Das
   <strong>Kurzbeispiel</strong> ist ein Ausschnitt aus einer Netzwerk-Vorlesung
   im ersten Semester, auf Deutsch: 80 Zeilen Markdown, kurz genug, um sie ganz zu
   lesen und daneben zu sehen, was daraus wird
@@ -377,26 +464,30 @@ browser is for pages meant to be looked at.
   unter CC&nbsp;BY-NC-SA&nbsp;4.0).</p>
 
   <table>
-    <tr><th></th><th>python-intro</th><th>Tutorial</th><th>Figures</th><th>Kurzbeispiel</th></tr>
+    <tr><th></th><th>python-intro</th><th>Tutorial</th><th>Figures</th><th>Decoration</th><th>Kurzbeispiel</th></tr>
     <tr><td>Die Projektion</td>
         <td><a href="../python-intro/audience.html">audience</a></td>
         <td><a href="../tutorial/audience.html">audience</a></td>
         <td><a href="../diagrams/audience.html">audience</a></td>
+        <td><a href="../decoration/audience.html">audience</a></td>
         <td><a href="../example/audience.html">audience</a></td></tr>
     <tr><td>Das Cockpit</td>
         <td><a href="../python-intro/speaker.html">speaker</a></td>
         <td><a href="../tutorial/speaker.html">speaker</a></td>
         <td><a href="../diagrams/speaker.html">speaker</a></td>
+        <td><a href="../decoration/speaker.html">speaker</a></td>
         <td><a href="../example/speaker.html">speaker</a></td></tr>
     <tr><td>Das Dokument</td>
         <td><a href="../python-intro/print.html">print</a></td>
         <td><a href="../tutorial/print.html">print</a></td>
         <td><a href="../diagrams/print.html">print</a></td>
+        <td><a href="../decoration/print.html">print</a></td>
         <td><a href="../example/print.html">print</a></td></tr>
     <tr><td>Mit den Notizen</td>
         <td><a href="../python-intro/print-notes.html">print-notes</a></td>
         <td><a href="../tutorial/print-notes.html">print-notes</a></td>
         <td><a href="../diagrams/print-notes.html">print-notes</a></td>
+        <td><a href="../decoration/print-notes.html">print-notes</a></td>
         <td><a href="../example/print-notes.html">print-notes</a></td></tr>
   </table>
 

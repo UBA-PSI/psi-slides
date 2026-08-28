@@ -28,10 +28,12 @@ lectures/*/print.html
 lectures/*/print-notes.html
 lectures/*/audience.html
 lectures/*/speaker.html
-# two lectures ship their built outputs so they can be browsed directly
-# from the repo without running build.js: the self-referential tutorial, and
-# the diagram reference, which is the only place every ::: diagram construct
-# is drawn rather than described. Both are checked for staleness on release.
+# three lectures ship their built outputs so they can be browsed directly
+# from the repo without running build.js: the self-referential tutorial, the
+# diagram reference, which is the only place every ::: draw construct is
+# drawn rather than described, and the decoration reference, which is the
+# only place the cover, divider, card, backdrop and overlay constructions are
+# shown rather than described. All three are checked for staleness on release.
 !lectures/tutorial/print.html
 !lectures/tutorial/print-notes.html
 !lectures/tutorial/audience.html
@@ -40,6 +42,10 @@ lectures/*/speaker.html
 !lectures/diagrams/print-notes.html
 !lectures/diagrams/audience.html
 !lectures/diagrams/speaker.html
+!lectures/decoration/print.html
+!lectures/decoration/print-notes.html
+!lectures/decoration/audience.html
+!lectures/decoration/speaker.html
 
 # scratch scripts a screenshot or coverage run leaves behind
 .psi-*.mjs

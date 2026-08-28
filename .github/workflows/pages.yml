@@ -57,6 +57,7 @@ jobs:
           node build.js lectures/tutorial/source.md
           node build.js lectures/python-intro/source.md
           node build.js lectures/diagrams/source.md
+          node build.js lectures/decoration/source.md
           # A 39-line lecture, published so a reader can take in one whole
           # source at a glance. The screenshots come from python-intro.
           node build.js docs/site/example/source.md
@@ -79,11 +80,11 @@ jobs:
 
       - name: Assemble the site
         run: |
-          mkdir -p _site/tutorial _site/python-intro _site/diagrams _site/example
+          mkdir -p _site/tutorial _site/python-intro _site/diagrams _site/decoration _site/example
           # Renders the docs from the same Markdown the repository serves, so
           # the site cannot drift from them.
           node docs/site/build-site.js _site
-          for l in tutorial python-intro diagrams; do
+          for l in tutorial python-intro diagrams decoration; do
             cp lectures/$l/audience.html \
                lectures/$l/speaker.html \
                lectures/$l/print.html \

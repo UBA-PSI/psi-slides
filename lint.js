@@ -1883,6 +1883,37 @@ function lintFile(filePath) {
       `'${m[1]}: ${value}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
   });
 
+  // A cover that sets the title chunk's body as its claim needs one. The
+  // build refuses it in its pre-flight; mirrored here because a pre-commit
+  // gate that passes a deck the build then hard-fails is the one direction
+  // this file is not allowed to be wrong in. Decidable from the source
+  // alone: which cover, and whether the title chunk has a body.
+  {
+    const m = header.match(/^cover:[ \t]*(\w+)/m);
+    const needsBody = m && ['quote'].includes(m[1]);
+    if (needsBody) {
+      // Walked line by line rather than matched with one regex: `$` under /m
+      // matches at every line end, so a lazy body capture with `$` in its
+      // lookahead stopped at the first newline and read every title chunk as
+      // empty. Directive and note lines are not body - the build's chunk.body
+      // does not contain them either.
+      const ls = body.split('\n');
+      const at = ls.findIndex(l => /^##[ \t]+title:/.test(l));
+      let said = '';
+      for (let j = at + 1; at >= 0 && j < ls.length; j++) {
+        if (/^#{1,2}[ \t]/.test(ls[j])) break;
+        if (/^:::/.test(ls[j]) || /^>[ \t]*(note|annot):/i.test(ls[j])) continue;
+        said += ls[j] + '\n';
+      }
+      said = said.replace(/<!--[\s\S]*?-->/g, '').trim();
+      if (!said) {
+        add(1, 'error', 'cover-needs-body',
+            `'cover: ${m[1]}' sets the title chunk's body as the claim, and the title `
+            + 'chunk has no body – write the sentence the talk opens on under ## title:');
+      }
+    }
+  }
+
   // cover-ratio: how much of the slide the picture takes. Bounded rather
   // than free, and mirrored here because the build's message is the only
   // other place that says so.
@@ -2146,6 +2177,15 @@ function lintFile(filePath) {
         add(ln, 'error', 'multiple-ids',
             `column heading has ${attr.ids.length} {#id} tokens; only the first is used`);
       }
+      // A column heading takes an {#id} and nothing else - width and .bare
+      // are a chunk's business. The build refuses them here; unmirrored, a
+      // `.bare` written one heading level up parsed, was dropped, and neither
+      // file said a word.
+      for (const cls of attr.classes) {
+        add(ln, 'error', 'class-on-column',
+            `column heading carries '.${cls}' – a # heading takes an {#id} and `
+            + 'nothing else; width and .bare belong on the ## chunks under it');
+      }
       const id = attr.ids[0];
       if (id) {
         if (ids.has(id)) {
@@ -2274,10 +2314,18 @@ function lintFile(filePath) {
           + 'and an optional `reveal <place>, <place>`');
       continue;
     }
-    const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\d+))?\s*$/);
+    const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\S+))?\s*$/);
     if (overlayOpen) {
       if (!chunk) {
         add(ln, 'error', 'stray-directive', '::: overlay outside any chunk');
+      }
+      // `from 0` is the beat the slide opens on, which is what writing no
+      // `from` already says - a number the drawing ignores.
+      if (overlayOpen[2] != null && !/^[1-9]\d*$/.test(overlayOpen[2])) {
+        add(ln, 'error', 'bad-overlay-from',
+            `::: overlay from ${overlayOpen[2]} – \`from\` takes a whole beat number `
+            + 'from 1 up; beat 0 is the beat the slide opens on, which is what writing '
+            + 'no `from` already says');
       }
       for (const msg of slotProblems(overlayOpen[1], OVERLAY_SLOTS)) {
         add(ln, 'error', 'bad-overlay-class', `::: overlay: ${msg}`);

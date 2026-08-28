@@ -65,6 +65,25 @@ from building the same way is a major version.
 
 ### Fixed
 
+- **A code review over the whole slide-decoration family found eighteen
+  defects, and four of them were in the fixes for the first ten.** The ones
+  an author would have met: an unclosed `::: cols` made every later
+  `::: draw` in the lecture a hard failure naming a chunk that had no
+  columns; an unclosed `::: expand` silently swallowed every slide below it
+  and exited 0; a `quote` cover with no quotation built clean under
+  `--print-only` and left half-written files under a full build; a divider's
+  `::: backdrop` painted nothing on paper; an `outline:` chunk dropped its
+  speaker notes, annotation box, expansions, backdrop and overlays; the
+  backdrop reveal's crop rode into print and cropped the banner; a lone
+  picture written as Markdown laid out differently from the same picture
+  written as a figure; an unrecognised class was dropped by the build and
+  reported by the linter; and `::: overlay … from later` printed the
+  directive as literal text on the projection.
+
+  Each has a regression test phrased as the failure that was there rather
+  than the outcome that is wanted. The rules they produced are in CLAUDE.md,
+  under the slide-decoration section.
+
 - **Three things painted over each other, and they are one mistake in three
   places: chrome and grounds positioned against something other than the
   slide.** A backdrop is no longer painted on any slide but its own -

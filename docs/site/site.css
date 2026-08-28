@@ -947,3 +947,51 @@ footer {
   color: var(--ink-soft);
 }
 footer p { max-width: none; }
+
+/*
+ * The cover and divider gallery. Sixteen compositions of the same words, so
+ * the tiles have to be one size and one shape or the row reads as sixteen
+ * different products - which is also why they are shot rather than composed
+ * (docs/site/shoot-gallery.mjs).
+ *
+ * They keep `figure.shot`, and with it the frame and the lightbox, because a
+ * tile is a third of the width the slide was composed at and clicking one is
+ * how you actually read it. What they drop is the window bar: a screenshot is
+ * a picture of an application, and these are pictures of a slide.
+ *
+ * Three across at the page's measure, two below it, one on a phone - one
+ * track count for every gallery on the page, including the two-tile one. A
+ * second grid with its own count was written first and is the drift this
+ * whole section exists to prevent: two tiles across a measure sized for three
+ * came out half again as large as the ten above them, which reads as
+ * emphasis nobody meant. `auto-fit` with a floor has the same fault built in,
+ * because it stretches whatever the last row happens to hold.
+ */
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin: 0 0 2.4rem;
+}
+.gallery figure.shot { margin: 0; }
+figure.shot.tile figcaption {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  padding: 0.5rem 0.7rem 0.65rem;
+}
+/* The name of the composition leads the caption, so it is set as the code it
+   is and given the line to itself - at this size a run-in name and its gloss
+   are one grey blur. */
+figure.shot.tile figcaption code {
+  display: block;
+  color: var(--ink);
+  font-size: 0.82rem;
+  margin-bottom: 0.1rem;
+}
+figure.shot.tile figcaption code + code { display: inline; margin: 0; }
+@media (max-width: 46rem) {
+  .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 30rem) {
+  .gallery { grid-template-columns: minmax(0, 1fr); }
+}

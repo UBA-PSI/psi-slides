@@ -3,6 +3,7 @@ title: psi-slides – a ten-step tour
 subtitle: A lecture medium that builds four views from one Markdown file
 presenter: Dominik Herrmann
 cover: masthead
+section: rule
 info: |
   Tutorial lecture built with psi-slides itself
   Use the tool to learn the tool
@@ -20,6 +21,10 @@ lecture: tutorial
      into the bargain, which this file never needed. -->
 
 ## title: {#title}
+
+One Markdown file, four views, and a grammar small enough to hold in your head.
+On `cover: masthead` this paragraph is the **lede** in the field between the
+nameplate and the folio rule, and `info:` below still carries the meta.
 
 # Welcome {#welcome}
 
@@ -176,6 +181,20 @@ Reach for `::: slide` when the slide wants to be tight bullets while the argumen
 
 > note: The lint density budget only counts the on-screen half. Narration is unbudgeted, so you can write as much of it as the argument needs.
 
+## example: The other way round | `::: script` on a slide-shaped chunk {.wide #script-mode}
+
+**A figure and three lines of finding are already the slide.** Wrapping them in `::: slide` would mean marking almost the whole chunk, so the shorter route is to mark the part that is *not* on screen.
+
+- One request in seven is answered differently once the crawler is instrumented.
+- The gap is widest on the sites that serve the most third-party script.
+- It closes again if the crawler waits between requests.
+
+::: script
+This paragraph is the narration, and it never reaches the projection. Press `C` and it stays away – that is the whole difference from `#derived-mode`, where the collapse mode decides what survives. Here the source says it. Use this shape when the chunk is a finding, a figure with a caption, or a short list that is already the right length for a slide: everything stays where you wrote it, and one block steps out of the projection.
+:::
+
+> note: A chunk carrying both blocks is not an error – the slide block wins and everything outside it, including the script block, is narration. Writing both is usually a sign the chunk wants splitting.
+
 ## question: Which mode does a chunk use? {.narrow #which-mode}
 
 **A `::: slide` block if there is one, otherwise everything outside `::: script`, otherwise the derived first-sentence-plus-bold.** Three rules, checked in that order, per chunk.
@@ -188,15 +207,19 @@ The tag vocabulary is a good predictor: `principle` and `question` chunks are sh
 
 # The chunk vocabulary {#vocabulary}
 
-## principle: Eight tags, one grammar | `## tag: Heading | Sub {.width #id}` {.standard #grammar}
+## principle: Ten tags, one grammar | `## tag: Heading | Sub {.width #id}` {.standard #grammar}
 
-**Every chunk opens with a tag that names what kind of move it makes.** `title`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`.
+**Every chunk opens with a tag that names what kind of move it makes.** `title`, `closing`, `outline`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`.
 
 The `| Sub-Heading` and the `{.width #id}` tail are both optional. Width is one of `narrow`, `standard`, `wide`, `full`, and **the `{#id}` is frozen once authored** – it anchors cross-references, TOC entries, speaker-sync snapshots, and localStorage.
+
+The tail takes one class that is not a width: `{.bare}` keeps the heading in the document, the contents page and the search index and takes it off the projection.
 
 ## definition: What a tag actually does {.standard #tag-effects}
 
 **A tag sets the visual treatment and the density budget, not the layout.** `principle`, `definition`, `question` and `example` print their tag name as a small label above the heading; `free`, `exercise` and `figure` render unlabelled.
+
+Three of the ten are whole slides rather than treatments: `title` draws the cover from the frontmatter, `closing` draws the same composition at the end with the author's own words, and `outline` draws the lecture's own agenda wherever you put it.
 
 The lint budgets differ per tag, and they encode intent rather than taste: `principle` and `question` get 80 words because a claim that needs 200 is not a claim yet. `definition` gets 200, `example` and `free` get 250, `exercise` gets 350, and `title` and `figure` are unbudgeted.
 
@@ -709,6 +732,49 @@ step damage
 
 **Two tags do all the revealing: `@attack` and `@cut`.** `show @attack` brings Eve in and the handwritten caption with her, because both lines carry that tag; `show @cut` brings the three arrows through her a beat later. The pair running to Bob leaves Eve's right edge at `:0.2` and `:0.8` – a fraction along a side is how two arrows between the same two boxes run parallel instead of on top of each other – and `.top` / `.bottom` put one label above its line and the other below.
 
+# Decorating a slide {#decorating}
+
+> A slide is a frame, and the frame can carry more than a text column. These
+> lines are the divider's own slide: everything between a `#` heading and the
+> first chunk under it.
+
+## principle: The frame is separate from the flow {.standard #deco-idea}
+
+**A backdrop, an overlay and a card row are chunk-level, not body-level.**
+The body sits in the middle track of the slide's grid, so anything written
+inside it is boxed by the text column and can never reach the edges.
+
+The full vocabulary – ten covers, six dividers, cards, rows, backdrops with a
+reveal, overlays – is shown one construct per slide in
+[the decoration lecture](../decoration/audience.html). Two of them are on the
+next two slides so you can see the shape.
+
+## example: A card row is N containers | `::: cards 3`, and an item is whole or nowhere {.wide #deco-cards}
+
+::: cards 3
+- **cards**\
+  N containers side by side. A three-item comparison reads as three things
+- **rows**\
+  the same container turned ninety degrees: a term, its body beside it
+- **cols**\
+  one text flow balanced across N tracks, where a paragraph can spill
+:::
+
+The row picks its own type size from the longest item, and a second level
+folds away on the projection and stays in the document. `C` here shows the
+difference.
+
+## example: A picture behind the words | `::: backdrop`, and `::: overlay` on top {.full #deco-picture}
+
+::: backdrop dusk {cover invert}
+
+::: overlay {bottom-left ink standard}
+**The backdrop is the slide's ground**\
+and this block is an overlay, placed on a 3×3 grid.
+:::
+
+> note: The scrim is the theme's own paper rather than white, so ordinary ink stays legible over a photograph in every theme. `invert` is the other way round: it darkens the picture and re-points the ink tokens, which is what this slide uses.
+
 # Writing chunks that work {#craft}
 
 ## principle: The topic sentence is the slide | so write the opening line for the projector {.standard #topic-sentence}
@@ -772,11 +838,13 @@ A figure chunk plus a paragraph of interpretation is the other reliable case, an
 
 **1. `lectures/python-intro/audience.html`.** A 36-chunk teaching lecture. Spawn its speaker with `S` and watch the layout vocabulary you just learned in real use, woven through reveals, expansions, and figure focus.
 
-**2. `PRD.md`.** Why four views, why this tag set, why collapse has two modes and not four. Part specification and part plan, so read it as a record of thinking rather than of behaviour.
+**2. `lectures/decoration/audience.html`.** Every construction that puts something other than a text column on a slide, one per slide: the cover family, the six dividers and the three kinds of divider content, cards and rows, a backdrop whose window opens on a keypress.
 
-**3. `speaker.md`.** The sync protocol: which fields travel between the two windows and which stay local. Written for whoever changes the code, not for an author.
+**3. `lectures/diagrams/audience.html`.** The same idea for `::: draw`: every statement kind drawn rather than described, with real lecture figures among them.
 
-**4. `docs/comparison.md`.** psi-slides against Beamer, reveal.js, Quarto, Marp, Slidev and PowerPoint, including the places it loses.
+**4. `PRD.md`.** Why four views, why this tag set, why collapse has two modes and not four. Part specification and part plan, so read it as a record of thinking rather than of behaviour.
+
+**5. `docs/comparison.md`.** psi-slides against Beamer, reveal.js, Quarto, Marp, Slidev and PowerPoint, including the places it loses.
 
 :::
 

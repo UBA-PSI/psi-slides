@@ -482,7 +482,11 @@ body[data-labels=off] .chunk-label { display: none; }
   margin-bottom: 1.4rem;
   order: -1;
 }
-.chunk .chunk-backdrop {
+/* A divider's picture is emitted inside its <section class="column">, not
+   inside a .chunk, so a selector scoped to .chunk left it with no height and
+   no background-size - the author wrote a picture for the part opener and
+   the paper showed nothing. Both hosts, one rule. */
+:is(.chunk, .column) > .chunk-backdrop {
   width: 100%;
   aspect-ratio: 16 / 7;
   background-size: cover;
@@ -492,9 +496,9 @@ body[data-labels=off] .chunk-label { display: none; }
   margin: 0 0 1rem;
   display: block;
 }
-.chunk .chunk-backdrop.bd-contain { background-size: contain; background-color: color-mix(in oklch, var(--ink) 6%, transparent); }
-.chunk .chunk-backdrop.bd-top { background-position: center top; }
-.chunk .chunk-backdrop.bd-bottom { background-position: center bottom; }
+:is(.chunk, .column) > .chunk-backdrop.bd-contain { background-size: contain; background-color: color-mix(in oklch, var(--ink) 6%, transparent); }
+:is(.chunk, .column) > .chunk-backdrop.bd-top { background-position: center top; }
+:is(.chunk, .column) > .chunk-backdrop.bd-bottom { background-position: center bottom; }
 .overlay-layer { display: block; margin: 0.9rem 0; }
 .overlay-card {
   padding: 0.75rem 0.95rem;
