@@ -151,6 +151,55 @@ a:hover { text-decoration-color: var(--ink); }
 
 .column { margin: 0 0 2rem; }
 .column-anon { margin-top: 0; }
+/* The agenda on paper. An outline: chunk is a slide the author wrote, so
+   it prints - unlike a section divider, which is an auto-inserted camera
+   stop and has never printed. Same markup, same grid, and the live item is
+   still marked, because "we are here" is as true in a hand-out as on a
+   projection; only the scale steps back, since a document is read at
+   arm's length rather than from the back of a room. */
+.section-outline {
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 0.5rem;
+  row-gap: 0.32rem;
+  line-height: 1.25;
+}
+.section-outline li { display: contents; }
+.so-num {
+  font-family: var(--sans-font);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  text-align: right;
+  color: var(--ink-soft);
+}
+.section-outline li[data-state=done] .so-text,
+.section-outline li[data-state=next] .so-text { color: var(--ink-soft); }
+.section-outline li[data-state=now] { font-size: 1.22em; }
+.section-outline li[data-state=now] .so-text { font-weight: 600; }
+.chunk-outline { break-inside: avoid; page-break-inside: avoid; }
+/* What the author wrote under a column heading. The divider slide itself is
+   an audience-only camera stop; these are the author's own words and they
+   belong in the document, set as a lede under the part title. */
+.column-lede {
+  margin: -0.9rem 0 1.8rem;
+  max-width: 34rem;
+  color: var(--ink-soft);
+}
+.column-lede blockquote {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 1.2rem;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.column-lede > :first-child { margin-top: 0; }
+.column-lede > :last-child { margin-bottom: 0; }
+
 .column-heading {
   font-size: 1.9rem;
   margin: 3.5rem 0 1.8rem;
@@ -919,6 +968,8 @@ build time, and stepped with the same key that advances a reveal.</p>
 </nav>
 <section class="column">
   <h1 class="column-heading">Memory safety</h1>
+  
+  
 <article class="chunk chunk-figure width-full" id="unsafety" data-chunk-num="2">
   
   <span class="chunk-num" aria-hidden="true"><i>2</i></span>
@@ -994,6 +1045,8 @@ build time, and stepped with the same key that advances a reveal.</p>
 </section>
 <section class="column">
   <h1 class="column-heading">Block ciphers</h1>
+  
+  
 <article class="chunk chunk-figure width-full" id="cbc" data-chunk-num="4">
   
   <span class="chunk-num" aria-hidden="true"><i>4</i></span>
@@ -1102,6 +1155,8 @@ build time, and stepped with the same key that advances a reveal.</p>
 </section>
 <section class="column">
   <h1 class="column-heading">Identity and authentication</h1>
+  
+  
 <article class="chunk chunk-figure width-full" id="lifecycle" data-chunk-num="6">
   
   <span class="chunk-num" aria-hidden="true"><i>6</i></span>
@@ -1223,6 +1278,8 @@ build time, and stepped with the same key that advances a reveal.</p>
 </section>
 <section class="column">
   <h1 class="column-heading">The vocabulary</h1>
+  
+  
 <article class="chunk chunk-figure width-wide" id="primitives" data-chunk-num="8">
   
   <span class="chunk-num" aria-hidden="true"><i>8</i></span>
@@ -1752,6 +1809,8 @@ build time, and stepped with the same key that advances a reveal.</p>
 </section>
 <section class="column">
   <h1 class="column-heading">Four arrangements</h1>
+  
+  
 <article class="chunk chunk-figure width-wide" id="flowchart" data-chunk-num="20">
   
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></span>

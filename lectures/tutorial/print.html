@@ -151,6 +151,55 @@ a:hover { text-decoration-color: var(--ink); }
 
 .column { margin: 0 0 2rem; }
 .column-anon { margin-top: 0; }
+/* The agenda on paper. An outline: chunk is a slide the author wrote, so
+   it prints - unlike a section divider, which is an auto-inserted camera
+   stop and has never printed. Same markup, same grid, and the live item is
+   still marked, because "we are here" is as true in a hand-out as on a
+   projection; only the scale steps back, since a document is read at
+   arm's length rather than from the back of a room. */
+.section-outline {
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 0.5rem;
+  row-gap: 0.32rem;
+  line-height: 1.25;
+}
+.section-outline li { display: contents; }
+.so-num {
+  font-family: var(--sans-font);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  text-align: right;
+  color: var(--ink-soft);
+}
+.section-outline li[data-state=done] .so-text,
+.section-outline li[data-state=next] .so-text { color: var(--ink-soft); }
+.section-outline li[data-state=now] { font-size: 1.22em; }
+.section-outline li[data-state=now] .so-text { font-weight: 600; }
+.chunk-outline { break-inside: avoid; page-break-inside: avoid; }
+/* What the author wrote under a column heading. The divider slide itself is
+   an audience-only camera stop; these are the author's own words and they
+   belong in the document, set as a lede under the part title. */
+.column-lede {
+  margin: -0.9rem 0 1.8rem;
+  max-width: 34rem;
+  color: var(--ink-soft);
+}
+.column-lede blockquote {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 1.2rem;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.column-lede > :first-child { margin-top: 0; }
+.column-lede > :last-child { margin-bottom: 0; }
+
 .column-heading {
   font-size: 1.9rem;
   margin: 3.5rem 0 1.8rem;
@@ -921,6 +970,8 @@ pre.shiki .line { display: inline; }
 </nav>
 <section class="column" id="welcome">
   <h1 class="column-heading">Welcome</h1>
+  
+  
 <article class="chunk chunk-principle width-standard" id="one-source" data-chunk-num="2">
   
   <span class="chunk-num" aria-hidden="true"><i>2</i></span>
@@ -1023,6 +1074,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="moving">
   <h1 class="column-heading">Moving around</h1>
+  
+  
 <article class="chunk chunk-example width-standard" id="arrows" data-chunk-num="5">
   
   <span class="chunk-num" aria-hidden="true"><i>5</i></span>
@@ -1089,6 +1142,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="finding">
   <h1 class="column-heading">Finding content</h1>
+  
+  
 <article class="chunk chunk-example width-standard" id="overview" data-chunk-num="8">
   
   <span class="chunk-num" aria-hidden="true"><i>8</i></span>
@@ -1138,6 +1193,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="on-screen">
   <h1 class="column-heading">What goes on the slide</h1>
+  
+  
 <article class="chunk chunk-principle width-standard" id="two-modes" data-chunk-num="11">
   
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>1</i></span>
@@ -1208,6 +1265,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="vocabulary">
   <h1 class="column-heading">The chunk vocabulary</h1>
+  
+  
 <article class="chunk chunk-principle width-standard" id="grammar" data-chunk-num="15">
   
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></span>
@@ -1258,6 +1317,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="speaker">
   <h1 class="column-heading">Speaker cockpit</h1>
+  
+  
 <article class="chunk chunk-free width-wide" id="speaker-s" data-chunk-num="18">
   
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></span>
@@ -1364,6 +1425,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="layouts">
   <h1 class="column-heading">Authoring layouts</h1>
+  
+  
 <article class="chunk chunk-principle width-standard" id="layout-axes" data-chunk-num="22">
   
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></span>
@@ -1829,6 +1892,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="craft">
   <h1 class="column-heading">Writing chunks that work</h1>
+  
+  
 <article class="chunk chunk-principle width-standard" id="topic-sentence" data-chunk-num="35">
   
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></span>
@@ -1904,6 +1969,8 @@ pre.shiki .line { display: inline; }
 </section>
 <section class="column" id="next">
   <h1 class="column-heading">Next steps</h1>
+  
+  
 <article class="chunk chunk-exercise width-wide" id="read-more" data-chunk-num="39">
   
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>9</i></span>

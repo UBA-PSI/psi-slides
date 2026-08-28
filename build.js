@@ -47,7 +47,7 @@ const nodeRequire = createRequire(import.meta.url);
 // each other. And a frontmatter key could only ever repeat the cover's
 // own fields, which is the one thing the closing slide must not be.
 const VALID_TAGS = new Set([
-  'title', 'closing', 'principle', 'definition', 'example',
+  'title', 'closing', 'outline', 'principle', 'definition', 'example',
   'question', 'figure', 'exercise', 'free',
 ]);
 
@@ -1422,7 +1422,7 @@ const SECTION_VARIANTS = ['plain', 'tinted', 'rule', 'card', 'number', 'outline'
 // equal weight - survives in `masthead`, where it is the composition
 // rather than a decoration beside one.
 const COVER_VARIANTS = [
-  'classic', 'masthead', 'stack', 'display', 'panel',
+  'classic', 'masthead', 'stack', 'display', 'panel', 'quote',
   'split', 'hero', 'beside', 'above',
 ];
 // The covers that take their picture from the chunk's own body rather than
@@ -1444,7 +1444,20 @@ const COVER_BODY_ART = new Set(['beside', 'above']);
 // the cover-art plumbing: one more slot in renderTitleBlock, no grid track,
 // no second stylesheet. It shares one rule with them, though: info: still
 // supplies the meta, because the body is no longer standing in for it.
-const COVER_BODY_FIELD = new Set(['masthead']);
+//
+// `quote` is the second, and there the body is not a lede but the whole
+// slide: a talk that opens on a claim rather than on its own name. It needs
+// the body the way `beside` needs its art - a quote cover with no quotation
+// is a title slide with the title in the wrong place - so it is refused
+// without one.
+//
+// **No quotation marks.** Not a hanging curly quote, not a giant glyph
+// behind the words, not a rule beside them. A sentence set at three times
+// the body size, alone on a slide, with a name under it, already reads as a
+// quotation; the mark is decoration added because the composition was not
+// trusted to say it, which is the same failure the accent rail was.
+const COVER_BODY_FIELD = new Set(['masthead', 'quote']);
+const COVER_BODY_REQUIRED = new Set(['quote']);
 // Which covers divide the slide, and therefore have a ratio to set.
 const COVER_RATIO_VARIANTS = new Set(['split', 'beside', 'above']);
 // Where the type block sits on the vertical, for the covers that leave it
@@ -1459,7 +1472,7 @@ const COVER_RATIO_VARIANTS = new Set(['split', 'beside', 'above']);
 // placement; and `masthead` pins its two bands to the two edges, which is
 // the whole composition rather than one setting of it.
 const COVER_ALIGNS = ['top', 'middle', 'bottom'];
-const COVER_ALIGN_VARIANTS = new Set(['classic', 'stack', 'panel', 'split', 'beside', 'hero']);
+const COVER_ALIGN_VARIANTS = new Set(['classic', 'stack', 'panel', 'quote', 'split', 'beside', 'hero']);
 
 // Slot tables. The first member of each list is the default, which is why
 // `cover` and `veil` are named at all: a word an author can write is a word
@@ -1470,7 +1483,68 @@ const BACKDROP_SLOTS = {
   crop:  ['middle', 'top', 'bottom'],
   scrim: ['veil', 'clear', 'invert'],
   focus: ['sharp', 'blur'],
+  // Which side of the type the picture is on. `under` is what a backdrop
+  // has always been. `over` exists for exactly one move: a picture that
+  // opens as a band beside the title and then covers it - the title is
+  // revealed *away* rather than added to, which is the one thing the reveal
+  // counter cannot do by adding segments. It stays below .overlay-layer, so
+  // an ::: overlay is how words go back on top of the covering picture.
+  layer: ['under', 'over'],
 };
+// Where a backdrop sits on the slide, and the whole of the reveal vocabulary.
+// A band against one edge, the whole slide, or nothing - which is enough for
+// both directions of the move: a picture that retreats to free the paper the
+// type is written on, and a picture that grows over it.
+//
+// It is a *window* and not a size: the picture is painted at `cover` against
+// the whole slide either way, so revealing it moves the frame and never the
+// image. Scaling instead would have zoomed the photograph while it opened,
+// which is a different effect and not the one anyone asked for.
+const BACKDROP_EDGES = ['left', 'right', 'top', 'bottom'];
+function parseBackdropExtent(tok, where) {
+  const t = tok.trim();
+  if (t === 'full') return 'inset(0)';
+  if (t === 'none') return 'inset(50%)';
+  const m = t.match(/^(left|right|top|bottom)[ \t]+([\d.]+)%$/);
+  if (!m) {
+    const err = new Error(
+      `::: backdrop in ${where}: "${t}" is not a place on the slide.\n` +
+      `  Write  full, none, or one of ${BACKDROP_EDGES.join(' / ')} with a percentage,\n` +
+      `  as in  reveal full, right 45%`);
+    err.userFacing = true;
+    throw err;
+  }
+  const n = Number(m[2]);
+  if (!(n >= 5 && n <= 95)) {
+    const err = new Error(
+      `::: backdrop in ${where}: "${t}" is not a percentage between 5 and 95.\n` +
+      `  Under 5 the picture is a hairline and over 95 it is the whole slide,\n` +
+      `  which is what \`full\` says.`);
+    err.userFacing = true;
+    throw err;
+  }
+  const rest = (100 - n).toFixed(4).replace(/\.?0+$/, '') + '%';
+  return {
+    left:   `inset(0 ${rest} 0 0)`,
+    right:  `inset(0 0 0 ${rest})`,
+    top:    `inset(0 0 ${rest} 0)`,
+    bottom: `inset(${rest} 0 0 0)`,
+  }[m[1]];
+}
+function parseBackdropReveal(spec, where) {
+  if (spec == null) return null;
+  const parts = String(spec).split(',').map(s => s.trim()).filter(Boolean);
+  // One extent is a static crop written the long way round, and this format
+  // refuses a construct that says it takes beats and then takes none.
+  if (parts.length < 2) {
+    const err = new Error(
+      `::: backdrop in ${where}: \`reveal\` needs at least two places, one per beat.\n` +
+      `  With one there is nothing to reveal - write  reveal full, right 45%`);
+    err.userFacing = true;
+    throw err;
+  }
+  return parts.map(p => parseBackdropExtent(p, where));
+}
 // A card row answers four questions, and one of them it can answer itself.
 const CARDS_SLOTS = {
   // How big the type is. `auto` reads the longest item: a row of single
@@ -1612,9 +1686,21 @@ function renderBackdrop(bd, where) {
     throw err;
   }
   const o = parseSlotClasses(bd.attrs, BACKDROP_SLOTS, 'backdrop', where);
-  const cls = ['chunk-backdrop', `bd-${o.fill}`, `bd-${o.crop}`, `bd-${o.scrim}`, `bd-${o.focus}`];
+  const cls = ['chunk-backdrop', `bd-${o.fill}`, `bd-${o.crop}`, `bd-${o.scrim}`, `bd-${o.focus}`,
+               `bd-${o.layer}`];
+  // The reveal is live-only, and that is not an omission. On paper a
+  // backdrop is already a banner band at the head of the chunk rather than
+  // a full-bleed ground (print is a document, not a slide), so a window on
+  // to a slide-sized picture has nothing to be a window on to. The frames
+  // ride as a data attribute; the *inline* clip is frame 0, so the first
+  // paint is the opening beat rather than a flash of the last one before
+  // the runtime boots.
+  const frames = parseBackdropReveal(bd.reveal, where);
+  const fr = frames
+    ? ` data-bd-frames="${escapeHtml(JSON.stringify(frames))}" style="background-image:url(&quot;${escapeHtml(url)}&quot;);clip-path:${frames[0]}"`
+    : ` style="background-image:url(&quot;${escapeHtml(url)}&quot;)"`;
   return {
-    html: `<div class="${cls.join(' ')}" style="background-image:url(&quot;${escapeHtml(url)}&quot;)" aria-hidden="true"></div>`,
+    html: `<div class="${cls.join(' ')}"${fr} aria-hidden="true"></div>`,
     scrim: o.scrim,
   };
 }
@@ -1739,7 +1825,15 @@ function renderOverlayLayer(overlays, where) {
   const cards = overlays.map((ov) => {
     const o = parseSlotClasses(ov.attrs, OVERLAY_SLOTS, 'overlay', where);
     const body = marked.parse(ov.lines.join('\n'));
-    return `<div class="overlay-card ov-${o.place} ov-${o.ground} ov-w-${o.width}">${body}</div>`;
+    // `from n` is the counterpart to a backdrop's reveal, and it is what
+    // makes the picture half useful on a slide with no body to split: a
+    // chunk's own segments already arrive on a beat, an overlay had no way
+    // to. One integer rather than a list, because an overlay is one block
+    // that is either on the slide or not - the backdrop's list says *where*
+    // the picture is at each beat, which is a different question and is why
+    // the two do not share a word.
+    const from = ov.from == null ? '' : ` data-from="${Number(ov.from)}"`;
+    return `<div class="overlay-card ov-${o.place} ov-${o.ground} ov-w-${o.width}"${from}>${body}</div>`;
   }).join('\n');
   return `<div class="overlay-layer">\n${cards}\n</div>`;
 }
@@ -2703,6 +2797,11 @@ function parseLecture(src) {
   let pendingNotes = [];       // notes that appeared before a chunk, attach to the next one
   let annotBlock = null;       // { lines: string[] } – current `> annot:` block
   let diagramBlock = null;     // { attrs, lines } while inside a ::: draw block
+  // A column heading's own slide. The lines between `# Heading` and the
+  // first `##` used to be dropped without a word; they are the divider's
+  // content now, which is what lets a part open on a picture, a quotation
+  // or a figure without a grammar of its own for any of the three.
+  let colBody = [];
   let pendingAnnotation = '';  // annotation that appeared before a chunk, attach to the next one
   let layoutStack = [];        // closing HTML tokens for open layout directives
 
@@ -2720,6 +2819,7 @@ function parseLecture(src) {
     if (!currentOverlay || !currentChunk) return;
     currentChunk.overlays.push({
       attrs: currentOverlay.attrs,
+      from: currentOverlay.from,
       lines: currentOverlay.lines,
     });
     currentOverlay = null;
@@ -2752,6 +2852,15 @@ function parseLecture(src) {
     annotBlock = null;
   };
 
+  // The divider's body, joined once when the column's own slide is over -
+  // which is the first `##`, the next `#`, or the end of the file. It is
+  // trimmed rather than tested for emptiness anywhere else, so a column with
+  // nothing under its heading carries an empty string and every renderer
+  // that asks gets the same answer.
+  const flushColBody = () => {
+    if (currentColumn && colBody.length) currentColumn.body = colBody.join('\n').trim();
+    colBody = [];
+  };
   const flushChunk = () => {
     if (!currentChunk) return;
     flushNoteBlock();
@@ -2808,7 +2917,8 @@ function parseLecture(src) {
     // directive table. Nothing inside it is markdown.
     if (diagramBlock) {
       if (/^:::\s*$/.test(line)) {
-        const target = currentExpansion ? currentExpansion.lines : bodyLines;
+        const target = currentExpansion ? currentExpansion.lines
+          : currentChunk ? bodyLines : colBody;
         const dgBody = diagramBlock.lines.join('\n');
         dgEmittedBlocks.push({
           range: [diagramBlock.bodyAt, diagramBlock.bodyAt + dgBody.length],
@@ -2850,20 +2960,34 @@ function parseLecture(src) {
       continue;
     }
 
+    // A heading inside a captured block is that block's content, not the
+    // deck's structure. Without this an `# Heading` written in an
+    // ::: overlay opened a new *column* - the overlay was left open, its
+    // body came out empty, and the deck grew a divider slide carrying the
+    // author's title. Nothing said so: the later `:::` still closed
+    // something, so the unclosed-directive error never fired either. The
+    // same held for ::: expand, and both are places an author reaches for a
+    // heading. Guarding here rather than reordering the loop keeps the one
+    // real diagnostic - a block that is genuinely never closed is now an
+    // unclosed `:::`, which is what it is.
+    const inCaptured = !!(currentOverlay || currentExpansion);
     if (!inFence) {
-      const h1 = line.match(/^#\s+(.*)$/);
-      const h2 = line.match(/^##\s+(.*)$/);
+      const h1 = inCaptured ? null : line.match(/^#\s+(.*)$/);
+      const h2 = inCaptured ? null : line.match(/^##\s+(.*)$/);
 
       if (h1) {
         flushChunk();
+        flushColBody();
         const { text, id } = parseAttributeTail(h1[1]);
-        currentColumn = { heading: text, id, chunks: [] };
+        currentColumn = { heading: text, id, chunks: [], body: '', backdrop: null };
+        colBody = [];
         columns.push(currentColumn);
         continue;
       }
 
       if (h2) {
         flushChunk();
+        flushColBody();
         if (!currentColumn) {
           // A chunk before any `# Column` (e.g. the title chunk).
           currentColumn = { heading: null, id: null, chunks: [] };
@@ -2927,6 +3051,34 @@ function parseLecture(src) {
         // fall through: this non-> line still needs normal handling
       }
 
+      // What a column heading's own slide may carry, and the list is short
+      // on purpose. A divider is one slide with one heading and one thing on
+      // it: a picture behind it, a figure on it, or the words under it. A
+      // column layout, an expansion or a card row there is a slide that has
+      // stopped being a divider - so those stay chunk-only, and writing one
+      // there falls through to the stray-directive path rather than being
+      // half-supported.
+      if (!currentChunk && currentColumn) {
+        const colBd = line.match(/^:::\s+backdrop\s+([^\s{]+)\s*(?:\{([^}]*)\})?\s*(?:reveal\s+(.+?))?\s*$/);
+        if (colBd) {
+          if (currentColumn.backdrop) {
+            const err = new Error(
+              `A column heading has two ::: backdrop lines (${currentColumn.heading || 'no heading'}).\n`
+              + `  One slide has one ground.`);
+            err.userFacing = true;
+            throw err;
+          }
+          currentColumn.backdrop = { ref: colBd[1], attrs: colBd[2] || '', reveal: colBd[3] || null };
+          continue;
+        }
+        const colDraw = line.match(/^:::\s+draw\s*(?:\{([^}]*)\})?\s*$/);
+        if (colDraw) {
+          const { autoplay, cycle, rest } = takeAutoplay(colDraw[1] || '');
+          diagramBlock = { attrs: rest, autoplay, cycle, lines: [], bodyAt: fmOffset + lineAt };
+          continue;
+        }
+      }
+
       if (currentChunk) {
 
         // ::: backdrop <ref> {classes} – a full-bleed image behind the
@@ -2935,7 +3087,11 @@ function parseLecture(src) {
         // track of the slide's grid, so anything emitted inside the body
         // is boxed by the text column and can never reach the edges. One
         // line, no closer – the directive has no body to hold.
-        const backdropOpen = line.match(/^:::\s+backdrop\s+([^\s{]+)\s*(?:\{([^}]*)\})?\s*$/);
+        // `reveal` rides after the attribute tail rather than inside it,
+        // because it is a list of places and the tail is a set of closed
+        // words - and a comma list of `left 45%` inside braces would have
+        // been a second grammar wearing the slot table's syntax.
+        const backdropOpen = line.match(/^:::\s+backdrop\s+([^\s{]+)\s*(?:\{([^}]*)\})?\s*(?:reveal\s+(.+?))?\s*$/);
         if (backdropOpen) {
           if (currentChunk.backdrop) {
             const err = new Error(
@@ -2944,17 +3100,21 @@ function parseLecture(src) {
             err.userFacing = true;
             throw err;
           }
-          currentChunk.backdrop = { ref: backdropOpen[1], attrs: backdropOpen[2] || '' };
+          currentChunk.backdrop = {
+            ref: backdropOpen[1],
+            attrs: backdropOpen[2] || '',
+            reveal: backdropOpen[3] || null,
+          };
           continue;
         }
 
         // ::: overlay {classes} – a text block laid over the slide rather
         // than set in its column. Collected on the chunk for the same
         // reason the backdrop is: it has to escape the content track.
-        const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*$/);
+        const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\d+))?\s*$/);
         if (overlayOpen) {
           flushExpansion();
-          currentOverlay = { attrs: overlayOpen[1] || '', lines: [] };
+          currentOverlay = { attrs: overlayOpen[1] || '', from: overlayOpen[2] || null, lines: [] };
           continue;
         }
 
@@ -3184,8 +3344,11 @@ function parseLecture(src) {
       if (currentOverlay) currentOverlay.lines.push(line);
       else if (currentExpansion) currentExpansion.lines.push(line);
       else bodyLines.push(line);
+    } else if (currentColumn) {
+      colBody.push(line);
     }
   }
+  flushColBody();
   if (cardsBlock) {
     const err = new Error(
       '::: cards was never closed. Everything after it was read as card\n'
@@ -3557,7 +3720,7 @@ function splitInfo(info = '') {
 // room and the date – so the one line that says what the talk is about is
 // set exactly like the one that says which conference it is. That is the
 // whole of the "hard to read" complaint the variants were asked for.
-function renderTitleBlock({ title, subtitle, presenter, info, bodyHtml, bodyIsArt, bodyInField }) {
+function renderTitleBlock({ title, subtitle, presenter, info, bodyHtml, bodyIsArt, bodyInField, variant }) {
   // The body stands in for `info` only where the composition has nowhere
   // else to put it. Where it does - as a picture in its own track, or as the
   // lede in a masthead's field - the info lines are still the meta.
@@ -3567,10 +3730,16 @@ function renderTitleBlock({ title, subtitle, presenter, info, bodyHtml, bodyIsAr
     : splitInfo(info);
   const field = (bodyInField && bodyHtml)
     ? `<div class="title-field">${bodyHtml}</div>` : '';
+  // On `quote` the field IS the slide, so it comes first and the title
+  // reads as the attribution under it. Source order rather than CSS order:
+  // the two are different documents, not one document laid out twice, and a
+  // screen reader gets the claim before the name either way.
+  const claimFirst = bodyInField && variant === 'quote';
   return `
+    ${claimFirst ? field : ''}
     <h1 class="title-main">${escapeHtml(title || '')}</h1>
     ${subtitle ? `<p class="title-subtitle">${escapeHtml(subtitle)}</p>` : ''}
-    ${field}
+    ${claimFirst ? '' : field}
     ${presenter ? `<p class="title-presenter">${escapeHtml(presenter)}</p>` : ''}
     ${infoLines
       ? `<div class="title-info">${infoLines.map(l => `<p>${escapeHtml(l)}</p>`).join('')}</div>`
@@ -3654,6 +3823,7 @@ function coverSettings(frontmatter = {}) {
       `      stack     the block centred on both axes\n` +
       `      display   the title set to fill the slide\n` +
       `      panel     reversed out of a deep accent field\n` +
+      `      quote     the title chunk's body set as the claim, title beneath\n` +
       `    with a picture:\n` +
       `      split     type left, cover-image bled off the right edge\n` +
       `      hero      cover-image full bleed, type reversed out of it\n` +
@@ -3726,6 +3896,7 @@ function coverSettings(frontmatter = {}) {
     variant: raw, image, ratio, align,
     bodyIsArt: COVER_BODY_ART.has(raw),
     bodyInField: COVER_BODY_FIELD.has(raw),
+    bodyRequired: COVER_BODY_REQUIRED.has(raw),
   };
 }
 
@@ -3802,6 +3973,9 @@ function renderHeadingHtml(chunk, cls = 'chunk-heading') {
 
 function renderChunk(chunk, frontmatter, num, opts = {}) {
   const { tag, body = '', id, width, expansions = [], annotation = '', speakerNotes = [] } = chunk;
+  if (tag === 'outline') {
+    return renderOutlineChunk(chunk, num, opts.parts || [], opts.partNo || 0, true);
+  }
   const bodyHtml = body ? marked.parse(body) : '';
 
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
@@ -3829,7 +4003,7 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
   ${numHtml}
   ${closing
     ? renderClosingBlock(chunk, bodyHtml)
-    : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt, bodyInField: cover.bodyInField })}
+    : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt, bodyInField: cover.bodyInField, variant: cover.variant })}
   ${renderOverlayLayer(chunk.overlays, where)}
 </article>`;
   }
@@ -3899,8 +4073,18 @@ function renderColumn(col, frontmatter, nextNum, chunkOpts = {}) {
     return `<section class="column column-anon">\n${chunksHtml}\n</section>`;
   }
   const idAttr = col.id ? ` id="${escapeHtml(col.id)}"` : '';
+  // A divider does not print - it is an auto-inserted camera stop - but what
+  // the author wrote under the heading does, because that is content and not
+  // a stop. It lands under the column heading, where a lede belongs; the
+  // picture becomes the same banner band a chunk's backdrop becomes, print
+  // being a document rather than a slide.
+  const lede = (col.body || '').trim()
+    ? `<div class="column-lede">${marked.parse(col.body)}</div>` : '';
+  const bd = renderBackdrop(col.backdrop, `the divider for "${col.heading}"`);
   return `<section class="column"${idAttr}>
   <h1 class="column-heading">${escapeHtml(col.heading)}</h1>
+  ${bd.html}
+  ${lede}
 ${chunksHtml}
 </section>`;
 }
@@ -3969,10 +4153,18 @@ function renderDocument(lecture, opts = {}) {
   // named columns render after (body of the document).
   const chunkOpts = { withNotes: !!opts.withNotes };
   const forPrint = (html) => stripDarkTokenColors(stripDiagramPayloads(html));
+  // The parts a lecture has, and which one each column is, threaded through
+  // so an `outline:` chunk can list them. Print reorders the columns (anon
+  // first, named after), so the part number has to ride with the column
+  // rather than being counted here.
+  const parts = lectureParts(columns);
+  const partNoOf = new Map();
+  { let n = 0; for (const c of columns) if (c.heading) partNoOf.set(c, ++n); }
+  const colOpts = (c) => ({ ...chunkOpts, parts, partNo: partNoOf.get(c) || 0 });
   const anonHtml = forPrint(columns.filter(c => !c.heading)
-    .map(c => renderColumn(c, frontmatter, nextNum, chunkOpts)).join('\n'));
+    .map(c => renderColumn(c, frontmatter, nextNum, colOpts(c))).join('\n'));
   const namedHtml = forPrint(columns.filter(c => c.heading)
-    .map(c => renderColumn(c, frontmatter, nextNum, chunkOpts)).join('\n'));
+    .map(c => renderColumn(c, frontmatter, nextNum, colOpts(c))).join('\n'));
 
   const titleSuffix = opts.withNotes ? 'print + notes' : 'print';
   // Print has no keyboard, so the frontmatter is its only say over the
@@ -4154,6 +4346,55 @@ a:hover { text-decoration-color: var(--ink); }
 
 .column { margin: 0 0 2rem; }
 .column-anon { margin-top: 0; }
+/* The agenda on paper. An outline: chunk is a slide the author wrote, so
+   it prints - unlike a section divider, which is an auto-inserted camera
+   stop and has never printed. Same markup, same grid, and the live item is
+   still marked, because "we are here" is as true in a hand-out as on a
+   projection; only the scale steps back, since a document is read at
+   arm's length rather than from the back of a room. */
+.section-outline {
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 0.5rem;
+  row-gap: 0.32rem;
+  line-height: 1.25;
+}
+.section-outline li { display: contents; }
+.so-num {
+  font-family: var(--sans-font);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  text-align: right;
+  color: var(--ink-soft);
+}
+.section-outline li[data-state=done] .so-text,
+.section-outline li[data-state=next] .so-text { color: var(--ink-soft); }
+.section-outline li[data-state=now] { font-size: 1.22em; }
+.section-outline li[data-state=now] .so-text { font-weight: 600; }
+.chunk-outline { break-inside: avoid; page-break-inside: avoid; }
+/* What the author wrote under a column heading. The divider slide itself is
+   an audience-only camera stop; these are the author's own words and they
+   belong in the document, set as a lede under the part title. */
+.column-lede {
+  margin: -0.9rem 0 1.8rem;
+  max-width: 34rem;
+  color: var(--ink-soft);
+}
+.column-lede blockquote {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 1.2rem;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.column-lede > :first-child { margin-top: 0; }
+.column-lede > :last-child { margin-bottom: 0; }
+
 .column-heading {
   font-size: 1.9rem;
   margin: 3.5rem 0 1.8rem;
@@ -4705,6 +4946,17 @@ function renderTitleChunk(chunk, frontmatter, num) {
   // the cover's picture and re-running it is precisely the repeat this
   // slide exists not to be.
   const art = own.html ? own : (closing ? { html: '', scrim: null } : renderCoverArt(cover, bodyHtml));
+  // A quote cover with no quotation is a title slide with the title in the
+  // wrong place. The closing slide is exempt: it carries its own words in
+  // its heading, which is the whole reason that tag exists.
+  if (cover.bodyRequired && !closing && !String(bodyHtml).trim()) {
+    const err = new Error(
+      `Frontmatter: "cover: ${cover.variant}" sets the title chunk's body as the claim,\n` +
+      `  and the title chunk has no body. Write the sentence the talk opens on\n` +
+      `  under \`## title:\`, or choose a cover that needs no body.`);
+    err.userFacing = true;
+    throw err;
+  }
   const scrimAttr = art.scrim && art.scrim !== 'veil' ? ` data-backdrop="${art.scrim}"` : '';
   const bdAttr = art.html ? ' data-has-backdrop=""' : '';
   const ratioStyle = (cover.ratio && !closing) ? ` style="--cover-ratio:${cover.ratio}%"` : '';
@@ -4716,7 +4968,7 @@ function renderTitleChunk(chunk, frontmatter, num) {
   const closingAttr = closing ? ' data-closing=""' : '';
   const block = closing
     ? renderClosingBlock(chunk, bodyHtml)
-    : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt, bodyInField: cover.bodyInField });
+    : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt, bodyInField: cover.bodyInField, variant: cover.variant });
   return `<article class="chunk chunk-title" data-tag="${closing ? 'closing' : 'title'}" data-width="full" data-cover="${cover.variant}"${closingAttr}${alignAttr}${bdAttr}${scrimAttr} data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}${ratioStyle}>
   ${art.html}
   <div class="chunk-content">
@@ -4727,8 +4979,39 @@ function renderTitleChunk(chunk, frontmatter, num) {
 </article>`;
 }
 
-function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num) {
+// An `outline:` chunk is the agenda where the author puts it, which is what
+// a divider cannot be: a divider is generated at a column boundary, and the
+// place a lecture most often wants its plan is right after the cover, inside
+// the anonymous column, where there is no boundary at all. It draws the same
+// list the divider draws, so one stylesheet serves both - the difference is
+// only which part is live, and before the first one none is.
+//
+// Unlike a divider it prints. A divider is an auto-inserted camera stop; this
+// is a slide the author wrote, and print shows every slide the author wrote.
+function renderOutlineChunk(chunk, num, parts, now, forPrint) {
+  const chunkId = chunk.id || 'outline';
+  const idAttr = chunk.id ? ` id="${escapeHtml(chunk.id)}"` : '';
+  const numAttr = num ? ` data-chunk-num="${num}"` : '';
+  const heading = renderHeadingHtml(chunk);
+  const body = (chunk.body || '').trim() ? marked.parse(chunk.body) : '';
+  const inner = `${heading}\n    ${body}\n    ${renderOutlineList(parts, now)}`;
+  if (forPrint) {
+    return `<article class="chunk chunk-outline" data-tag="outline" data-width="${chunk.width || 'wide'}"${numAttr}${idAttr}>
+  ${renderChunkNumBadge(num, 'span')}
+  ${inner}
+</article>`;
+  }
+  return `<article class="chunk chunk-outline" data-tag="outline" data-width="${chunk.width || 'wide'}" data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}>
+  <div class="chunk-content">
+    ${inner}
+  </div>
+  ${renderChunkNumBadge(num, 'div')}
+</article>`;
+}
+
+function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num, parts = [], now = 0) {
   if (chunk.tag === 'title' || chunk.tag === 'closing') return renderTitleChunk(chunk, frontmatter, num);
+  if (chunk.tag === 'outline') return renderOutlineChunk(chunk, num, parts, now, false);
 
   const { tag, heading, segments = [], id, width, expansions = [], annotation = '' } = chunk;
   const chunkId = id || `c${colIdx}-${chunkIdx}`;
@@ -4826,6 +5109,31 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num) {
 // walking the columns and already counting the headed ones for `number` -
 // a second walk would be a second definition of "which columns are parts",
 // and the two would disagree the first time the rule changed.
+// What a lecture's parts are, in one place. `section: outline` and the
+// `outline:` chunk both list them and both have to list the same set in the
+// same order, or a deck says "part 3 of 5" on one slide and "3 of 6" on the
+// next. It is the columns that carry a heading - the anonymous opening
+// column, which holds the title chunk, is not a part anybody is counting.
+function lectureParts(columns) {
+  const out = [];
+  for (const col of columns) if (col.heading) out.push({ no: out.length + 1, heading: col.heading });
+  return out;
+}
+// The list itself, shared by the divider and the chunk. `now` is the part
+// the reader is inside, or 0 for an agenda that sits before any of them -
+// and 0 is not "nothing is live" rendered as a wall of grey. A list nobody
+// has started yet is a plan, and a plan is read at full strength; recession
+// is what says "not the one we are on", which needs there to be one.
+function renderOutlineList(parts, now) {
+  if (!parts.length) return '';
+  const items = parts.map(p => {
+    const state = !now ? 'all' : (p.no < now ? 'done' : (p.no === now ? 'now' : 'next'));
+    return `<li data-state="${state}"${p.no === now ? ' aria-current="step"' : ''}>` +
+      `<span class="so-num">${p.no}</span>` +
+      `<span class="so-text">${escapeHtml(p.heading)}</span></li>`;
+  }).join('');
+  return `<ol class="section-outline">${items}</ol>`;
+}
 function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []) {
   const chunkId = col.id ? `${col.id}-section` : `__section-c${ci}`;
   const sec = sectionSettings(frontmatter);
@@ -4837,17 +5145,24 @@ function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []
   // heading plus a list of headings says the same thing twice, and the
   // second copy is the one the room reads.
   const body = sec.variant === 'outline' && parts.length
-    ? `<ol class="section-outline">${parts.map(p => {
-        const state = p.no < num ? 'done' : (p.no === num ? 'now' : 'next');
-        return `<li data-state="${state}"` + (p.no === num ? ' aria-current="step"' : '') + `>` +
-          `<span class="so-num">${p.no}</span>` +
-          `<span class="so-text">${escapeHtml(p.heading)}</span></li>`;
-      }).join('')}</ol>`
+    ? renderOutlineList(parts, num)
     : `<h1 class="section-heading">${escapeHtml(col.heading)}</h1>`;
-  return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="${sec.variant}" data-chunk-id="${escapeHtml(chunkId)}">
+  // The divider's own content, if the author wrote any under the heading.
+  // It is what makes a part open on a picture, a quotation or a figure with
+  // no vocabulary of its own for any of the three: a ::: backdrop is the
+  // picture, ordinary markdown is the words, a ::: draw is the figure.
+  const where = `the divider for "${col.heading}"`;
+  const art = renderBackdrop(col.backdrop, where);
+  const own = (col.body || '').trim()
+    ? `<div class="section-body">${marked.parse(col.body)}</div>` : '';
+  const scrimAttr = art.scrim && art.scrim !== 'veil' ? ` data-backdrop="${art.scrim}"` : '';
+  const bdAttr = art.html ? ' data-has-backdrop=""' : '';
+  return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="${sec.variant}"${bdAttr}${scrimAttr} data-chunk-id="${escapeHtml(chunkId)}">
+  ${art.html}
   <div class="chunk-content">
     ${mark}
     ${body}
+    ${own}
   </div>
 </article>`;
 }
@@ -4865,11 +5180,7 @@ function renderColumnsHtml(columns, frontmatter) {
   // heading - so `section: number` numbers the parts a reader sees rather
   // than the array index, which counts the anonymous opening column too.
   let sectionNo = 0;
-  // The same set, counted the same way, so `outline` and `number` can never
-  // disagree about which part this is.
-  const parts = [];
-  let partNo = 0;
-  for (const col of columns) if (col.heading) parts.push({ no: ++partNo, heading: col.heading });
+  const parts = lectureParts(columns);
   return columns.map((col, ci) => {
     if (col.heading) sectionNo += 1;
     const sectionHtml = col.heading
@@ -4877,7 +5188,7 @@ function renderColumnsHtml(columns, frontmatter) {
     const chunks = col.chunks
       .map((c, xi) => {
         num += 1;
-        return renderAudienceChunk(c, frontmatter, ci, xi, num);
+        return renderAudienceChunk(c, frontmatter, ci, xi, num, parts, col.heading ? sectionNo : 0);
       })
       .join('\n');
     const idAttr = col.id ? ` id="${escapeHtml(col.id)}"` : '';
@@ -6097,7 +6408,11 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
   justify-content: center;
   gap: 0.5em;
   margin: 1.4em 0 1.2em;
-  max-width: 38em;
+  /* Measured, not chosen: at 38em the widest line of a real lede ran to 84
+     characters. A field that spans the measure is right for a rule and wrong
+     for running text - the folio rule is what asserts the width now, so the
+     lede does not have to. 28em is about 65 characters at this size. */
+  max-width: 28em;
   font-size: calc(0.95em * var(--zoom));
   overflow: hidden;
 }
@@ -6230,6 +6545,58 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    compose into a look neither has alone. */
 .chunk[data-cover=panel][data-has-backdrop] .chunk-backdrop::after {
   background: color-mix(in oklch, var(--panel-field) 80%, transparent);
+}
+
+/* quote - the talk opens on a claim rather than on its own name. The
+   composition is one sentence and an attribution, and that is the whole of
+   it: no quotation mark, no glyph behind the words, no rule beside them.
+   A sentence set at twice the body size, alone, with a name under it,
+   already reads as a quotation - the mark is what gets added when the
+   composition is not trusted to say so, which is the same failure the
+   accent rail was.
+
+   Serif whatever the roster's default, because a claim is read rather than
+   scanned and this is the one slide in a deck that is pure running text.
+   The reader's own F toggle still wins, as it does everywhere. */
+.chunk[data-cover=quote] { align-items: center; }
+.chunk[data-cover=quote] .chunk-content {
+  gap: 0;
+  padding-bottom: 0;
+}
+.chunk[data-cover=quote] .title-field {
+  font-family: var(--serif-font);
+  font-size: calc(2.05em * var(--zoom));
+  line-height: 1.24;
+  letter-spacing: -0.012em;
+  max-width: 19em;
+  text-wrap: pretty;
+  margin: 0 0 1.1em;
+}
+.chunk[data-cover=quote] .title-field > * { margin: 0 0 0.35em; }
+.chunk[data-cover=quote] .title-field > :last-child { margin-bottom: 0; }
+/* Under the claim the title is the attribution, so it is set at meta size
+   and not as a headline - the one place in the family where the lecture's
+   own name is not the largest thing on its cover. */
+.chunk[data-cover=quote] .title-main {
+  font-size: calc(1.05em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: 0;
+  max-width: 26em;
+}
+.chunk[data-cover=quote] .title-subtitle {
+  margin: 0.2em 0 0;
+  font-size: calc(0.92em * var(--zoom));
+  max-width: 28em;
+}
+.chunk[data-cover=quote] .title-presenter {
+  margin-top: 0.85em;
+  font-size: calc(0.86em * var(--zoom));
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+.chunk[data-cover=quote] .title-info {
+  margin-top: 0.1em;
+  font-size: calc(0.78em * var(--zoom));
 }
 
 /* split – type left, picture bled off the right edge. The picture is a
@@ -6540,6 +6907,24 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .chunk-backdrop.bd-contain { background-size: contain; }
 .chunk-backdrop.bd-top    { background-position: center top; }
 .chunk-backdrop.bd-bottom { background-position: center bottom; }
+/* The reveal animates the *window*, never the picture. clip-path is what
+   makes that true: background-size: cover is resolved against the whole
+   slide whatever the clip says, so the photograph stays exactly where it
+   is and the frame opens or closes over it. Animating width or inset
+   instead re-resolves cover on every frame, and the picture zooms and
+   slides while it is being revealed - a different effect, and not one
+   anybody asked for. It also costs no layout: clip-path is composited.
+
+   0.62s, which is slower than the reveal of a text segment on purpose. A
+   segment appearing is a footnote to what is already on the slide; a
+   picture opening across the frame is the slide changing, and at the speed
+   of a bullet it reads as a glitch. */
+.chunk-backdrop[data-bd-frames] {
+  transition: clip-path 0.62s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chunk-backdrop[data-bd-frames] { transition: none; }
+}
 /* Scaled up because a blur samples transparent pixels past the edge and
    would otherwise fade the frame out into paper on all four sides. */
 .chunk-backdrop.bd-blur { filter: blur(18px) saturate(1.06); transform: scale(1.08); }
@@ -6579,7 +6964,14 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    the text flow, where its three 1fr rows stretched the chunk to twice
    the viewport and pushed the card off the bottom of the slide. */
 .chunk[data-has-backdrop] > .chunk-content { z-index: 1; }
-.chunk[data-has-backdrop] > .chunk-num { z-index: 2; }
+/* The over word is the one backdrop that sits on the type. It stops short of the
+   overlay layer deliberately: a picture that covers the title is a move
+   that usually wants a word left standing on top of it, and an ::: overlay
+   is where that word already goes. The three numbers below are one ladder -
+   backdrop 0, content 1, an over-layer picture 2, overlays and the slide number
+   3 - so changing one means reading all of them. */
+.chunk-backdrop.bd-over { z-index: 2; }
+.chunk[data-has-backdrop] > .chunk-num { z-index: 3; }
 
 /* ── overlay cards (::: overlay) ─────────────────────────────────────
    One 3x3 grid over the whole slide inside its padding, rather than each
@@ -6589,13 +6981,20 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .overlay-layer {
   position: absolute;
   inset: var(--slide-pad-y) calc(var(--slide-pad-x) * 0.62);
-  z-index: 2;
+  z-index: 3;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
   gap: 0.6em;
   pointer-events: none;
 }
+/* An overlay held back by a beat fades rather than vanishing, which is the
+   one place it differs from a reveal segment. A segment is part of a text
+   flow, so display: none is right - what follows it closes up. An overlay
+   sits in its own grid cell over a picture, so nothing moves when it
+   arrives, and a block of type appearing instantly on a photograph reads as
+   a rendering fault rather than as a beat. It keeps its cell in both
+   states, so the layout never shifts. */
 .overlay-card {
   pointer-events: auto;
   padding: 0.85em 1.05em;
@@ -6604,6 +7003,16 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   line-height: 1.45;
   align-self: center;
   backdrop-filter: blur(3px);
+  transition: opacity 0.5s ease 0.14s, transform 0.5s ease 0.14s, visibility 0.5s;
+}
+.overlay-card[data-hidden] {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(0.45em);
+}
+@media (prefers-reduced-motion: reduce) {
+  .overlay-card { transition: none; }
+  .overlay-card[data-hidden] { transform: none; }
 }
 .overlay-card > :first-child { margin-top: 0; }
 .overlay-card > :last-child { margin-bottom: 0; }
@@ -7122,6 +7531,46 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   line-height: 1;
   margin-bottom: 0.25em;
 }
+/* The divider's own content. It sits under the heading and is deliberately
+   quiet: a divider that competes with the title slide has failed, and a
+   divider that competes with its own heading has failed twice. A quotation
+   is the case this exists for, so a blockquote here loses the bar and the
+   indent a blockquote carries in a chunk - the words are the slide, and a
+   rule beside them is a second thing to look at. */
+.chunk-section .section-body {
+  margin-top: 1.1em;
+  max-width: 30em;
+  font-size: calc(1.02em * var(--zoom));
+  color: var(--ink-soft);
+}
+.chunk-section .section-body > :first-child { margin-top: 0; }
+.chunk-section .section-body > :last-child { margin-bottom: 0; }
+.chunk-section .section-body blockquote {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-family: var(--serif-font);
+  font-size: calc(1.35em * var(--zoom));
+  line-height: 1.3;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+.chunk-section .section-body blockquote p { margin: 0 0 0.4em; }
+.chunk-section .section-body blockquote > :last-child { margin-bottom: 0; }
+/* A figure on a divider is the slide, so it gets the room a cover figure
+   gets rather than the room a paragraph gets. */
+.chunk-section .section-body figure { margin: 0; }
+.chunk-section .section-body svg {
+  width: auto; height: auto;
+  max-width: 100%;
+  max-height: calc(var(--slide-h) * 0.52);
+}
+/* A divider with a picture behind it needs the full slide, like every other
+   chunk that carries one - the shared rule keys on data-has-backdrop and is
+   already there; this is the centring the divider itself needs so the
+   heading does not sit on the picture's own subject by accident. */
+.chunk-section[data-has-backdrop] .chunk-content { position: relative; z-index: 1; }
+
 /* tinted - the whole slide takes the accent, at the strength that still
    leaves ordinary ink legible on it in all seven themes. This is the
    ten-metre signal: from the back of a room the colour arrives before any
@@ -7168,51 +7617,76 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    the rest, which is why the current item needs no ground, no rail and no
    marker of its own. */
 .chunk[data-section=outline] .chunk-content { align-items: flex-start; }
+/* One grid for the whole list, with every item dissolved into it - the same
+   trick ::: rows uses, and for the same reason. A grid per item sizes its own
+   first column, so with the live row set 1.6x larger than the rest the text
+   would start at two different x positions and the list would stop being a
+   list. Here the numeral column is as wide as the widest numeral and every
+   heading begins on one edge.
+
+   display: contents keeps the <li> in the tree for inheritance, which is what
+   lets the state selectors set a *row* font-size that both spans pick up. It
+   also means the row can carry no colour of its own - which is fine, because
+   the colour moved onto the spans anyway. */
 .section-outline {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5em;
-  text-align: left;
-  max-width: 36em;
-}
-.section-outline li {
   display: grid;
-  grid-template-columns: 1.9em minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: baseline;
-  column-gap: 0.5em;
+  column-gap: 0.55em;
+  row-gap: 0.5em;
+  text-align: left;
+  max-width: 34em;
   line-height: 1.2;
-  color: var(--ink-soft);
-  transition: opacity 0.25s ease;
 }
+.section-outline li { display: contents; font-size: calc(1.02em * var(--zoom)); }
+/* An outline chunk placed before the first part has nothing to recede from:
+   a list nobody has started is a plan, and a plan is read at full strength.
+   The numeral still steps back, because it is an index and not a word. */
+.section-outline li[data-state=all] .so-num {
+  color: color-mix(in oklch, var(--ink) 55%, var(--paper));
+}
+/* The agenda as an authored slide rather than a generated divider: it sits
+   under a heading in the ordinary content column, so it needs the air a
+   list gets after prose and none of the divider's centring. */
+.chunk-outline .section-outline { margin-top: 0.5em; }
+/* The numerals are set at their own row's size, which is what makes baseline
+   alignment read as deliberate. At one small size for every row they sat on
+   the live row's baseline - a footnote marker hanging under a headline, which
+   is exactly what it looked like. Right-aligned, so the column has one edge
+   whatever the digits measure. */
 .so-num {
   font-family: var(--sans-font);
   font-variant-numeric: tabular-nums;
-  font-size: calc(0.76em * var(--zoom));
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   text-align: right;
+  color: color-mix(in oklch, var(--ink) 45%, var(--paper));
 }
-.so-text { font-size: calc(1.02em * var(--zoom)); }
-.section-outline li[data-state=done] { opacity: 0.5; }
-.section-outline li[data-state=next] { opacity: 0.3; }
+/* Recession is one mix toward the paper, not opacity over soft ink. Stacked,
+   those two dim twice: in terminal-green --ink-soft is already L 0.58 against
+   an L 0.11 ground, and 0.3 opacity on top put the coming parts at L 0.25 -
+   invisible from the back of a room. One mix is also the idiom the rest of
+   this stylesheet uses for exactly this. */
+.section-outline li[data-state=done] .so-text {
+  color: color-mix(in oklch, var(--ink) 62%, var(--paper));
+}
+.section-outline li[data-state=next] .so-text {
+  color: color-mix(in oklch, var(--ink) 42%, var(--paper));
+}
+.section-outline li[data-state=next] .so-num {
+  color: color-mix(in oklch, var(--ink) 32%, var(--paper));
+}
 /* The live item. The accent is on the numeral alone - it is the one mark
    that says which of them this is, and it says it in the column that
    exists to number them. Putting it on a bar beside the type instead is
    the machine-made layout this project took an accent rail out for. */
-.section-outline li[data-state=now] {
-  opacity: 1;
-  color: var(--ink);
-  margin: 0.24em 0;
-}
-.section-outline li[data-state=now] .so-num {
-  color: var(--emph);
-  font-size: calc(0.9em * var(--zoom));
-}
+.section-outline li[data-state=now] { font-size: calc(1.6em * var(--zoom)); }
+.section-outline li[data-state=now] .so-num { color: var(--emph); }
 .section-outline li[data-state=now] .so-text {
-  font-size: calc(1.72em * var(--zoom));
+  color: var(--ink);
   font-weight: 600;
   letter-spacing: -0.014em;
 }
@@ -8807,12 +9281,33 @@ function chunkBeats(el) {
   });
   return out;
 }
+// A backdrop's reveal is indexed by the beat rather than pushed into the
+// ordered list above, and that is the whole of the design. The backdrop is
+// a sibling of .chunk-content, so document order would put every one of its
+// places *before* every reveal segment - and the move this exists for is
+// exactly the one where the picture retreats and the words arrive in the
+// same beat. Indexed, extent i is simply what the slide looks like at beat
+// i, and the last one persists.
+//
+// So it does not add beats, it *rides* them - except where the chunk has
+// none of its own, which is the title slide the feature was asked for.
+function bdFrames(el) {
+  const bd = el.querySelector(':scope > .chunk-backdrop[data-bd-frames]');
+  if (!bd) return null;
+  try { return { el: bd, frames: JSON.parse(bd.dataset.bdFrames) }; }
+  catch (e) { return null; }
+}
 // Positions, not beats: 1 means "in the chunk, nothing advanced yet", which
 // is the convention jumpTo and advanceReveal were already written against.
 function countSegments(el) {
   const beats = chunkBeats(el).length;
-  if (beats) return beats + 1;
-  return el.querySelector('.reveal-segment') ? 1 : 0;
+  const bd = bdFrames(el);
+  let n = beats ? beats + 1 : (el.querySelector('.reveal-segment') ? 1 : 0);
+  if (bd) n = Math.max(n, bd.frames.length);
+  el.querySelectorAll('.overlay-card[data-from]').forEach(c => {
+    n = Math.max(n, Number(c.dataset.from) + 1);
+  });
+  return n;
 }
 function applyReveal(el, id, instant) {
   const beats = chunkBeats(el);
@@ -8840,6 +9335,18 @@ function applyReveal(el, id, instant) {
   // stored reveal state to forty chunks at boot must not start forty tweens.
   const jump = instant || !el.classList.contains('active');
   steps.forEach((step, d) => dgStep(d, step, jump));
+  el.querySelectorAll('.overlay-card[data-from]').forEach(c => {
+    c.toggleAttribute('data-hidden', consumed < Number(c.dataset.from));
+  });
+  const bd = bdFrames(el);
+  if (bd) {
+    // The same rule the tween follows: a chunk off screen snaps, or booting
+    // into the middle of a deck plays every backdrop's whole reveal at once
+    // behind the reader's back.
+    bd.el.style.transition = jump ? 'none' : '';
+    bd.el.style.clipPath = bd.frames[Math.min(consumed, bd.frames.length - 1)];
+    if (jump) { void bd.el.offsetWidth; bd.el.style.transition = ''; }
+  }
 }
 function applyRevealAll() {
   flatChunks.forEach(c => applyReveal(c.el, c.id));

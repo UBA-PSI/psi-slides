@@ -33,7 +33,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const VALID_TAGS = new Set([
-  'title', 'closing', 'principle', 'definition', 'example',
+  'title', 'closing', 'outline', 'principle', 'definition', 'example',
   'question', 'figure', 'exercise', 'free',
 ]);
 
@@ -53,7 +53,7 @@ const VIEW_DEFAULTS = {
   'slide-numbers': ['vertical', 'horizontal', 'off'],
   'editor': ['both', 'speaker', 'none'],
   // Which cover composition the lecture opens with. Mirrors COVER_VARIANTS.
-  'cover': ['classic', 'masthead', 'stack', 'display', 'panel',
+  'cover': ['classic', 'masthead', 'stack', 'display', 'panel', 'quote',
             'split', 'hero', 'beside', 'above'],
   // Where the type sits on the vertical, on the covers that leave it any
   // freedom. Mirrors COVER_ALIGNS. Which covers those are is the build's to
@@ -97,6 +97,9 @@ const BACKDROP_SLOTS = {
   crop:  ['middle', 'top', 'bottom'],
   scrim: ['veil', 'clear', 'invert'],
   focus: ['sharp', 'blur'],
+  // Which side of the type the picture is on. `over` is the one that covers
+  // it, which is how a title is revealed *away* rather than added to.
+  layer: ['under', 'over'],
 };
 // Mirrors CARDS_SLOTS in build.js. The auto size is the build's - it
 // counts words in the source - but the vocabulary is shared.
@@ -198,6 +201,10 @@ const DENSITY_BUDGET = {
   // last slide is a reading list nobody in the room can read - which is
   // the narrowest budget in the table and is meant to be.
   closing: 60,
+  // An outline chunk's words are the column headings, which it does not
+  // own; its body is at most a line of framing over the list. 40 is enough
+  // for that and short of anything that would push the list off the slide.
+  outline: 40,
   principle: 80,
   question: 80,
   definition: 200,
@@ -2063,7 +2070,10 @@ function lintFile(filePath) {
     // failed any lecture that documented the directive.
     const diagramOpen = line.match(/^:::\s+draw\s*(?:\{([^}]*)\})?\s*$/);
     if (diagramOpen) {
-      if (!chunk) {
+      // A column heading's own slide may carry a figure - that is how a part
+      // opens on a drawing. Outside both a chunk and a column there is
+      // nothing for it to be on.
+      if (!chunk && !col) {
         add(ln, 'error', 'stray-directive', '::: draw outside any chunk');
       }
       for (const tok of (diagramOpen[1] || '').trim().split(/\s+/).filter(Boolean)) {
@@ -2113,8 +2123,14 @@ function lintFile(filePath) {
       continue;
     }
 
-    const h1 = line.match(/^#\s+(.*)$/);
-    const h2 = line.match(/^##\s+(.*)$/);
+    // A heading inside a still-open ::: overlay or ::: expand is that
+    // block's content, not the deck's structure - the same rule the build
+    // applies, and it has to be the same or the two disagree about where
+    // the chunks are. Left out, an `# Heading` in an overlay reported an
+    // unclosed directive here while the build silently opened a column.
+    const inCaptured = !!activeDirective;
+    const h1 = inCaptured ? null : line.match(/^#\s+(.*)$/);
+    const h2 = inCaptured ? null : line.match(/^##\s+(.*)$/);
 
     if (h1) {
       flushChunk();
@@ -2132,7 +2148,7 @@ function lintFile(filePath) {
           ids.set(id, fmLines + ln);
         }
       }
-      col = { line: ln, heading: attr.text, id, chunks: [] };
+      col = { line: ln, heading: attr.text, id, chunks: [], backdropSeen: 0 };
       columns.push(col);
       continue;
     }
@@ -2201,28 +2217,56 @@ function lintFile(filePath) {
     // Both mirror build.js; the reference is resolved there (a backdrop
     // that names no file hard-fails), so the linter rules on the shape of
     // the line and on the class tail, which is what it can decide alone.
-    const backdropOpen = line.match(/^:::\s+backdrop\s+([^\s{]+)\s*(?:\{([^}]*)\})?\s*$/);
+    const backdropOpen = line.match(/^:::\s+backdrop\s+([^\s{]+)\s*(?:\{([^}]*)\})?\s*(?:reveal\s+(.+?))?\s*$/);
     if (backdropOpen) {
-      if (!chunk) {
+      // A divider takes one too: that is the picture a part opens on. The
+      // duplicate check is the same rule read against whichever slide the
+      // line is on - one slide has one ground.
+      const bdHost = chunk || col;
+      if (!bdHost) {
         add(ln, 'error', 'stray-directive', '::: backdrop outside any chunk');
-      } else if (chunk.backdropSeen) {
+      } else if (bdHost.backdropSeen) {
         add(ln, 'error', 'duplicate-backdrop',
-            `second ::: backdrop in one chunk (first at line ${chunk.backdropSeen}) – `
+            `second ::: backdrop in one ${chunk ? 'chunk' : 'divider'} (first at line ${bdHost.backdropSeen}) – `
             + 'a slide has one background, and the second would silently win');
       } else {
-        chunk.backdropSeen = ln;
+        bdHost.backdropSeen = ln;
       }
       for (const msg of slotProblems(backdropOpen[2], BACKDROP_SLOTS)) {
         add(ln, 'error', 'bad-backdrop-class', `::: backdrop: ${msg}`);
+      }
+      // `reveal` is a comma list of places, one per beat. Mirrored because
+      // the shape is decidable from the line alone; which asset it names is
+      // still the build's, like every other reference in this file.
+      if (backdropOpen[3] != null) {
+        const places = backdropOpen[3].split(',').map(s => s.trim()).filter(Boolean);
+        if (places.length < 2) {
+          add(ln, 'error', 'bad-backdrop-reveal',
+              '::: backdrop: reveal needs at least two places, one per beat – '
+              + 'with one there is nothing to reveal');
+        }
+        for (const p of places) {
+          if (p === 'full' || p === 'none') continue;
+          const pm = p.match(/^(left|right|top|bottom)[ \t]+([\d.]+)%$/);
+          if (!pm) {
+            add(ln, 'error', 'bad-backdrop-reveal',
+                `::: backdrop: "${p}" is not a place – write full, none, or `
+                + 'left / right / top / bottom with a percentage');
+          } else if (!(Number(pm[2]) >= 5 && Number(pm[2]) <= 95)) {
+            add(ln, 'error', 'bad-backdrop-reveal',
+                `::: backdrop: "${p}" is not a percentage between 5 and 95`);
+          }
+        }
       }
       continue;
     }
     if (/^:::\s+backdrop\b/.test(line)) {
       add(ln, 'error', 'bad-backdrop',
-          '::: backdrop takes one asset id, path or URL, then an optional {.class} tail');
+          '::: backdrop takes one asset id, path or URL, then an optional {.class} tail '
+          + 'and an optional `reveal <place>, <place>`');
       continue;
     }
-    const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*$/);
+    const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\d+))?\s*$/);
     if (overlayOpen) {
       if (!chunk) {
         add(ln, 'error', 'stray-directive', '::: overlay outside any chunk');

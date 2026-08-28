@@ -705,8 +705,153 @@ console.log('\nlayout generations');
   // Print ignores every divider variant - that is what makes the family
   // cheap, and an outline leaking into the document would be a table of
   // contents printed three times.
-  ok(!/section-outline/.test(outl.print),
-     'and print carries no outline, like every other divider variant');
+  // The markup, not the string: PRINT_CSS carries .section-outline rules for
+  // the `outline:` chunk, which does print - a divider is what does not.
+  ok(!/<ol class="section-outline">/.test(outl.print),
+     'and print carries no divider outline, like every other divider variant');
+
+  // ── backdrop reveal, the over layer, and an overlay held to a beat ──
+  const mask = (body) => {
+    fs.writeFileSync(path.join(dir, 'source.md'),
+      '---\ntitle: T\n---\n\n## title: {#title}\n\n## figure: {.full #m}\n\n' + body);
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    return { failed: r.status !== 0, out: (r.stdout || '') + (r.stderr || ''),
+             html: r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '',
+             print: r.status === 0 ? fs.readFileSync(path.join(dir, 'print.html'), 'utf8') : '' };
+  };
+  const PIC = 'https://example.invalid/p.jpg';
+  const rev = mask('::: backdrop ' + PIC + ' {cover clear} reveal full, right 52%\n');
+  ok(!rev.failed, 'a backdrop reveal builds', rev.out.split('\n')[0]);
+  // The frames are places, and the second one has to be the *window* the
+  // author asked for: right 52% is a left inset of 48, not a width of 52.
+  ok(/data-bd-frames="\[&quot;inset\(0\)&quot;,&quot;inset\(0 0 0 48%\)&quot;\]"/.test(rev.html),
+     'and each place becomes the inset that leaves exactly that band showing');
+  // The inline clip is frame 0, not the last: the first paint has to be the
+  // opening beat or the slide flashes its ending before the runtime boots.
+  ok(/clip-path:inset\(0\)"/.test(rev.html),
+     'and the inline clip is the opening beat');
+  // clip-path and not width/inset: cover is resolved against the whole
+  // slide, so the picture must not move while its window opens.
+  ok(/\.chunk-backdrop\[data-bd-frames\] \{\s*transition: clip-path/.test(rev.html),
+     'the reveal animates the window, never the picture');
+  ok(/prefers-reduced-motion[^}]*\}[\s\S]{0,120}\.chunk-backdrop\[data-bd-frames\] \{ transition: none/
+       .test(rev.html) || /@media \(prefers-reduced-motion: reduce\) \{\s*\.chunk-backdrop\[data-bd-frames\]/
+       .test(rev.html),
+     'and it stands still for a reader who asked for no motion');
+  // One place is a static crop written the long way round.
+  const revOne = mask('::: backdrop ' + PIC + ' reveal full\n');
+  ok(revOne.failed && /needs at least two places/.test(revOne.out),
+     'one place is refused – there is nothing to reveal');
+  const revBad = mask('::: backdrop ' + PIC + ' reveal full, sideways 40%\n');
+  ok(revBad.failed && /is not a place on the slide/.test(revBad.out),
+     'and an unknown place names the words that work');
+  const revPct = mask('::: backdrop ' + PIC + ' reveal full, right 3%\n');
+  ok(revPct.failed && /between 5 and 95/.test(revPct.out),
+     'and a percentage outside the band is refused rather than clamped');
+  // The ladder: backdrop 0, content 1, an over-layer picture 2, overlays 3.
+  // Read all four or none - a picture that covers the type must still leave
+  // an ::: overlay standing on top of it.
+  const over = mask('::: backdrop ' + PIC + ' {cover clear over} reveal right 45%, full\n');
+  ok(/class="chunk-backdrop[^"]*bd-over/.test(over.html),
+     'the over layer reaches the markup');
+  ok(/\.chunk-backdrop\.bd-over \{ z-index: 2; \}/.test(over.html)
+     && /\.overlay-layer \{[^}]*z-index: 3/.test(over.html),
+     'and sits above the type but below the overlay layer');
+  // An overlay held to a beat.
+  const ovf = mask('::: overlay {left clear} from 1\n# Later\n:::\n');
+  ok(!ovf.failed && /class="overlay-card[^"]*" data-from="1"/.test(ovf.html),
+     'an overlay can be held to a beat', ovf.out.split('\n')[0]);
+  // A heading inside a captured block is content. Left unguarded this opened
+  // a *column*, the overlay came out empty, and nothing said so.
+  ok(/data-from="1"><h1>Later<\/h1>/.test(ovf.html),
+     'and a heading written inside it stays inside it');
+  ok(!/section-heading">Later/.test(ovf.html),
+     'rather than opening a column of its own');
+  // It fades, where a reveal segment vanishes: nothing moves when an overlay
+  // arrives, so display:none would be an instant appearance over a picture.
+  ok(/\.overlay-card\[data-hidden\] \{[^}]*visibility: hidden/.test(ovf.html),
+     'a held overlay keeps its cell and fades');
+  // Print has no runtime and no beats, so it shows the finished slide.
+  ok(/data-from="1"/.test(ovf.print) && !/\[data-hidden\]/.test(ovf.print.split('.overlay-card')[0] || ''),
+     'and print shows it, having no beats to hold it back');
+
+  // ── the outline chunk ──
+  const oc = (() => {
+    fs.writeFileSync(path.join(dir, 'source.md'),
+      '---\ntitle: T\n---\n\n## title: {#title}\n\n## outline: Plan {#ag}\n\n' +
+      '# One {#o}\n\n## free: A {#a}\n\nX.\n\n## outline: Here {#mid}\n\n' +
+      '# Two {#t}\n\n## free: B {#b}\n\nX.\n');
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    return { failed: r.status !== 0, out: (r.stdout || '') + (r.stderr || ''),
+             html: r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '',
+             print: r.status === 0 ? fs.readFileSync(path.join(dir, 'print.html'), 'utf8') : '' };
+  })();
+  ok(!oc.failed, 'an outline: chunk builds', oc.out.split('\n')[0]);
+  // Before the first part nothing is live, and that is not "everything
+  // recedes" - a list nobody has started is a plan, read at full strength.
+  const agenda = (oc.html.match(/id="ag"[\s\S]*?<\/article>/) || [''])[0];
+  ok((agenda.match(/data-state="all"/g) || []).length === 2,
+     'an agenda before the first part marks every item as a plan');
+  const mid = (oc.html.match(/id="mid"[\s\S]*?<\/article>/) || [''])[0];
+  ok(/data-state="now"[^>]*><span class="so-num">1</.test(mid),
+     'and one inside a part marks that part live');
+  // Unlike a divider it prints: it is a slide the author wrote.
+  ok(/<ol class="section-outline">/.test(oc.print),
+     'an outline chunk prints, unlike the divider that draws the same list');
+
+  // ── a divider's own content ──
+  const dv = (() => {
+    fs.writeFileSync(path.join(dir, 'source.md'),
+      '---\ntitle: T\n---\n\n## title: {#title}\n\n' +
+      '# One {#o}\n\n> A claim worth opening on.\n\n## free: A {#a}\n\nX.\n\n' +
+      '# Two {#t}\n\n::: backdrop ' + PIC + ' {cover invert}\n\n## free: B {#b}\n\nX.\n');
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    return { failed: r.status !== 0, out: (r.stdout || '') + (r.stderr || ''),
+             html: r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '',
+             print: r.status === 0 ? fs.readFileSync(path.join(dir, 'print.html'), 'utf8') : '' };
+  })();
+  ok(!dv.failed, 'a divider carries its own content', dv.out.split('\n')[0]);
+  // The lines under a column heading used to be dropped without a word.
+  ok(/class="section-body"><blockquote>/.test(dv.html),
+     'the words under a column heading reach the divider slide');
+  ok(/chunk-section[^>]*data-has-backdrop[^>]*data-backdrop="invert"/.test(dv.html),
+     'and a ::: backdrop there is the picture the part opens on');
+  // They are the author's words, so they print - the divider itself never has.
+  ok(/class="column-lede"><blockquote>/.test(dv.print),
+     'and both reach the document, where the divider slide does not');
+  ok(!/chunk-section/.test(dv.print),
+     'because print renders the column heading, not the camera stop');
+
+  // ── cover: quote ──
+  const qt = cover('cover: quote\n', '');
+  ok(qt.failed && /has no body/.test(qt.out),
+     'a quote cover with no quotation is refused');
+  const qt2 = (() => {
+    fs.writeFileSync(path.join(dir, 'source.md'),
+      '---\ntitle: T\npresenter: P\ncover: quote\n---\n\n' +
+      '## title: {#title}\n\nThe claim.\n\n## free: F {#f}\n\nBody.\n');
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    return { failed: r.status !== 0, out: (r.stdout || '') + (r.stderr || ''),
+             html: r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '' };
+  })();
+  ok(!qt2.failed && /data-cover="quote"/.test(qt2.html), 'and one with a quotation builds',
+     qt2.out.split('\n')[0]);
+  // Source order, not CSS order: the claim is the slide and the title is the
+  // attribution under it.
+  ok(qt2.html.indexOf('class="title-field"') < qt2.html.indexOf('class="title-main"'),
+     'the claim comes before the title, in the document and not only on screen');
+  // No quotation mark, in any of the three ways one gets added.
+  const qBlock = (qt2.html.match(/\.chunk\[data-cover=quote\][\s\S]*?\/\* split/) || [''])[0];
+  ok(!/content: *['"\\]/.test(qBlock) && !/\\201C|&ldquo;|&#8220;/.test(qBlock),
+     'and the composition adds no quotation mark, glyph or rule');
 }
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

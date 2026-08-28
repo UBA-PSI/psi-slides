@@ -9,6 +9,67 @@ from building the same way is a major version.
 
 ### Added
 
+- **A backdrop can be revealed, and text can wait for the beat.**
+  `::: backdrop pic {cover} reveal full, right 45%` walks the picture's
+  *window* across the slide's beats: a photograph that retreats to free the
+  paper the title is written on, or – with `over` in the class tail –
+  one that grows over the title and covers it. `::: overlay {left} from 1`
+  is the other half: a block of type that arrives on a beat, which is what
+  makes the picture half work on a slide with no body to split.
+
+  It is a window and not a size. `clip-path`, animated, with
+  `background-size: cover` still resolved against the whole slide, so the
+  photograph stays exactly where it is and the frame opens over it;
+  animating a width instead zooms and slides the picture while it is being
+  revealed. The places are indexed by the beat rather than pushed into the
+  ordered beat list, because the backdrop is a sibling of the content and
+  document order would put every one of its places before every reveal
+  segment – and the move this exists for is the one where the picture
+  retreats and the words arrive in the same beat.
+
+- **`## outline:` – the agenda where the author puts it.** The same list
+  `section: outline` draws, as a chunk, for the place a lecture most often
+  wants its plan: right after the cover, where there is no column boundary
+  for a divider to be generated at. Before the first part nothing is live
+  and every item is read at full strength – a list nobody has started is a
+  plan, and recession is what says *not the one we are on*. Unlike a
+  divider it prints.
+
+- **A section divider can carry its own content.** The lines between a
+  `# Heading` and the first `##` chunk used to be dropped without a word;
+  they are the divider's slide now. A blockquote opens the part on a
+  quotation, a `::: backdrop` on a photograph, a `::: draw` on a figure –
+  three things authors ask for, no vocabulary added for any of them. Those
+  words print as a lede under the part title; the divider slide itself
+  never has.
+
+- **`cover: quote`** – the talk opens on a claim rather than on its own
+  name. The title chunk's body is the sentence; the lecture's title reads
+  as the attribution under it. **No quotation mark**: a sentence alone on a
+  slide with a name under it already reads as a quotation, and the mark is
+  what gets added when the composition is not trusted to say so.
+
+### Fixed
+
+- **A heading inside a `::: overlay` or `::: expand` opened a column.** The
+  overlay came out empty, the deck grew a divider slide carrying the
+  author's title, and nothing said so – the later `:::` still closed
+  something, so the unclosed-directive error never fired either. A heading
+  inside a captured block is that block's content now, in the build and in
+  the linter.
+
+- **The masthead lede ran to 84 characters.** Measured on a real deck; it is
+  capped at about 65 now. The folio rule is what asserts the composition's
+  width, so the running text does not have to.
+
+- **The outline divider's numerals were unreadable and oddly set.** They sat
+  at one small size on every row, so on the live row a footnote-sized digit
+  hung under a headline; and the recession stacked opacity on top of soft
+  ink, which in `terminal-green` put the coming parts at a luminance of
+  0.25 against a 0.11 ground. Each numeral takes its own row's size now,
+  right-aligned in one column, and recession is a single mix toward the
+  paper.
+
 - **`section: outline` – the running agenda.** The one divider that is a
   different slide rather than a treatment of the heading: every part of the
   lecture listed, this one live, the ones behind and ahead receding. It

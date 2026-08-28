@@ -939,7 +939,11 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
   justify-content: center;
   gap: 0.5em;
   margin: 1.4em 0 1.2em;
-  max-width: 38em;
+  /* Measured, not chosen: at 38em the widest line of a real lede ran to 84
+     characters. A field that spans the measure is right for a rule and wrong
+     for running text - the folio rule is what asserts the width now, so the
+     lede does not have to. 28em is about 65 characters at this size. */
+  max-width: 28em;
   font-size: calc(0.95em * var(--zoom));
   overflow: hidden;
 }
@@ -1072,6 +1076,58 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    compose into a look neither has alone. */
 .chunk[data-cover=panel][data-has-backdrop] .chunk-backdrop::after {
   background: color-mix(in oklch, var(--panel-field) 80%, transparent);
+}
+
+/* quote - the talk opens on a claim rather than on its own name. The
+   composition is one sentence and an attribution, and that is the whole of
+   it: no quotation mark, no glyph behind the words, no rule beside them.
+   A sentence set at twice the body size, alone, with a name under it,
+   already reads as a quotation - the mark is what gets added when the
+   composition is not trusted to say so, which is the same failure the
+   accent rail was.
+
+   Serif whatever the roster's default, because a claim is read rather than
+   scanned and this is the one slide in a deck that is pure running text.
+   The reader's own F toggle still wins, as it does everywhere. */
+.chunk[data-cover=quote] { align-items: center; }
+.chunk[data-cover=quote] .chunk-content {
+  gap: 0;
+  padding-bottom: 0;
+}
+.chunk[data-cover=quote] .title-field {
+  font-family: var(--serif-font);
+  font-size: calc(2.05em * var(--zoom));
+  line-height: 1.24;
+  letter-spacing: -0.012em;
+  max-width: 19em;
+  text-wrap: pretty;
+  margin: 0 0 1.1em;
+}
+.chunk[data-cover=quote] .title-field > * { margin: 0 0 0.35em; }
+.chunk[data-cover=quote] .title-field > :last-child { margin-bottom: 0; }
+/* Under the claim the title is the attribution, so it is set at meta size
+   and not as a headline - the one place in the family where the lecture's
+   own name is not the largest thing on its cover. */
+.chunk[data-cover=quote] .title-main {
+  font-size: calc(1.05em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: 0;
+  max-width: 26em;
+}
+.chunk[data-cover=quote] .title-subtitle {
+  margin: 0.2em 0 0;
+  font-size: calc(0.92em * var(--zoom));
+  max-width: 28em;
+}
+.chunk[data-cover=quote] .title-presenter {
+  margin-top: 0.85em;
+  font-size: calc(0.86em * var(--zoom));
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+.chunk[data-cover=quote] .title-info {
+  margin-top: 0.1em;
+  font-size: calc(0.78em * var(--zoom));
 }
 
 /* split – type left, picture bled off the right edge. The picture is a
@@ -1382,6 +1438,24 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .chunk-backdrop.bd-contain { background-size: contain; }
 .chunk-backdrop.bd-top    { background-position: center top; }
 .chunk-backdrop.bd-bottom { background-position: center bottom; }
+/* The reveal animates the *window*, never the picture. clip-path is what
+   makes that true: background-size: cover is resolved against the whole
+   slide whatever the clip says, so the photograph stays exactly where it
+   is and the frame opens or closes over it. Animating width or inset
+   instead re-resolves cover on every frame, and the picture zooms and
+   slides while it is being revealed - a different effect, and not one
+   anybody asked for. It also costs no layout: clip-path is composited.
+
+   0.62s, which is slower than the reveal of a text segment on purpose. A
+   segment appearing is a footnote to what is already on the slide; a
+   picture opening across the frame is the slide changing, and at the speed
+   of a bullet it reads as a glitch. */
+.chunk-backdrop[data-bd-frames] {
+  transition: clip-path 0.62s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chunk-backdrop[data-bd-frames] { transition: none; }
+}
 /* Scaled up because a blur samples transparent pixels past the edge and
    would otherwise fade the frame out into paper on all four sides. */
 .chunk-backdrop.bd-blur { filter: blur(18px) saturate(1.06); transform: scale(1.08); }
@@ -1421,7 +1495,14 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    the text flow, where its three 1fr rows stretched the chunk to twice
    the viewport and pushed the card off the bottom of the slide. */
 .chunk[data-has-backdrop] > .chunk-content { z-index: 1; }
-.chunk[data-has-backdrop] > .chunk-num { z-index: 2; }
+/* The over word is the one backdrop that sits on the type. It stops short of the
+   overlay layer deliberately: a picture that covers the title is a move
+   that usually wants a word left standing on top of it, and an ::: overlay
+   is where that word already goes. The three numbers below are one ladder -
+   backdrop 0, content 1, an over-layer picture 2, overlays and the slide number
+   3 - so changing one means reading all of them. */
+.chunk-backdrop.bd-over { z-index: 2; }
+.chunk[data-has-backdrop] > .chunk-num { z-index: 3; }
 
 /* ── overlay cards (::: overlay) ─────────────────────────────────────
    One 3x3 grid over the whole slide inside its padding, rather than each
@@ -1431,13 +1512,20 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .overlay-layer {
   position: absolute;
   inset: var(--slide-pad-y) calc(var(--slide-pad-x) * 0.62);
-  z-index: 2;
+  z-index: 3;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
   gap: 0.6em;
   pointer-events: none;
 }
+/* An overlay held back by a beat fades rather than vanishing, which is the
+   one place it differs from a reveal segment. A segment is part of a text
+   flow, so display: none is right - what follows it closes up. An overlay
+   sits in its own grid cell over a picture, so nothing moves when it
+   arrives, and a block of type appearing instantly on a photograph reads as
+   a rendering fault rather than as a beat. It keeps its cell in both
+   states, so the layout never shifts. */
 .overlay-card {
   pointer-events: auto;
   padding: 0.85em 1.05em;
@@ -1446,6 +1534,16 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   line-height: 1.45;
   align-self: center;
   backdrop-filter: blur(3px);
+  transition: opacity 0.5s ease 0.14s, transform 0.5s ease 0.14s, visibility 0.5s;
+}
+.overlay-card[data-hidden] {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(0.45em);
+}
+@media (prefers-reduced-motion: reduce) {
+  .overlay-card { transition: none; }
+  .overlay-card[data-hidden] { transform: none; }
 }
 .overlay-card > :first-child { margin-top: 0; }
 .overlay-card > :last-child { margin-bottom: 0; }
@@ -1964,6 +2062,46 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   line-height: 1;
   margin-bottom: 0.25em;
 }
+/* The divider's own content. It sits under the heading and is deliberately
+   quiet: a divider that competes with the title slide has failed, and a
+   divider that competes with its own heading has failed twice. A quotation
+   is the case this exists for, so a blockquote here loses the bar and the
+   indent a blockquote carries in a chunk - the words are the slide, and a
+   rule beside them is a second thing to look at. */
+.chunk-section .section-body {
+  margin-top: 1.1em;
+  max-width: 30em;
+  font-size: calc(1.02em * var(--zoom));
+  color: var(--ink-soft);
+}
+.chunk-section .section-body > :first-child { margin-top: 0; }
+.chunk-section .section-body > :last-child { margin-bottom: 0; }
+.chunk-section .section-body blockquote {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-family: var(--serif-font);
+  font-size: calc(1.35em * var(--zoom));
+  line-height: 1.3;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+.chunk-section .section-body blockquote p { margin: 0 0 0.4em; }
+.chunk-section .section-body blockquote > :last-child { margin-bottom: 0; }
+/* A figure on a divider is the slide, so it gets the room a cover figure
+   gets rather than the room a paragraph gets. */
+.chunk-section .section-body figure { margin: 0; }
+.chunk-section .section-body svg {
+  width: auto; height: auto;
+  max-width: 100%;
+  max-height: calc(var(--slide-h) * 0.52);
+}
+/* A divider with a picture behind it needs the full slide, like every other
+   chunk that carries one - the shared rule keys on data-has-backdrop and is
+   already there; this is the centring the divider itself needs so the
+   heading does not sit on the picture's own subject by accident. */
+.chunk-section[data-has-backdrop] .chunk-content { position: relative; z-index: 1; }
+
 /* tinted - the whole slide takes the accent, at the strength that still
    leaves ordinary ink legible on it in all seven themes. This is the
    ten-metre signal: from the back of a room the colour arrives before any
@@ -2010,51 +2148,76 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    the rest, which is why the current item needs no ground, no rail and no
    marker of its own. */
 .chunk[data-section=outline] .chunk-content { align-items: flex-start; }
+/* One grid for the whole list, with every item dissolved into it - the same
+   trick ::: rows uses, and for the same reason. A grid per item sizes its own
+   first column, so with the live row set 1.6x larger than the rest the text
+   would start at two different x positions and the list would stop being a
+   list. Here the numeral column is as wide as the widest numeral and every
+   heading begins on one edge.
+
+   display: contents keeps the <li> in the tree for inheritance, which is what
+   lets the state selectors set a *row* font-size that both spans pick up. It
+   also means the row can carry no colour of its own - which is fine, because
+   the colour moved onto the spans anyway. */
 .section-outline {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5em;
-  text-align: left;
-  max-width: 36em;
-}
-.section-outline li {
   display: grid;
-  grid-template-columns: 1.9em minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: baseline;
-  column-gap: 0.5em;
+  column-gap: 0.55em;
+  row-gap: 0.5em;
+  text-align: left;
+  max-width: 34em;
   line-height: 1.2;
-  color: var(--ink-soft);
-  transition: opacity 0.25s ease;
 }
+.section-outline li { display: contents; font-size: calc(1.02em * var(--zoom)); }
+/* An outline chunk placed before the first part has nothing to recede from:
+   a list nobody has started is a plan, and a plan is read at full strength.
+   The numeral still steps back, because it is an index and not a word. */
+.section-outline li[data-state=all] .so-num {
+  color: color-mix(in oklch, var(--ink) 55%, var(--paper));
+}
+/* The agenda as an authored slide rather than a generated divider: it sits
+   under a heading in the ordinary content column, so it needs the air a
+   list gets after prose and none of the divider's centring. */
+.chunk-outline .section-outline { margin-top: 0.5em; }
+/* The numerals are set at their own row's size, which is what makes baseline
+   alignment read as deliberate. At one small size for every row they sat on
+   the live row's baseline - a footnote marker hanging under a headline, which
+   is exactly what it looked like. Right-aligned, so the column has one edge
+   whatever the digits measure. */
 .so-num {
   font-family: var(--sans-font);
   font-variant-numeric: tabular-nums;
-  font-size: calc(0.76em * var(--zoom));
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   text-align: right;
+  color: color-mix(in oklch, var(--ink) 45%, var(--paper));
 }
-.so-text { font-size: calc(1.02em * var(--zoom)); }
-.section-outline li[data-state=done] { opacity: 0.5; }
-.section-outline li[data-state=next] { opacity: 0.3; }
+/* Recession is one mix toward the paper, not opacity over soft ink. Stacked,
+   those two dim twice: in terminal-green --ink-soft is already L 0.58 against
+   an L 0.11 ground, and 0.3 opacity on top put the coming parts at L 0.25 -
+   invisible from the back of a room. One mix is also the idiom the rest of
+   this stylesheet uses for exactly this. */
+.section-outline li[data-state=done] .so-text {
+  color: color-mix(in oklch, var(--ink) 62%, var(--paper));
+}
+.section-outline li[data-state=next] .so-text {
+  color: color-mix(in oklch, var(--ink) 42%, var(--paper));
+}
+.section-outline li[data-state=next] .so-num {
+  color: color-mix(in oklch, var(--ink) 32%, var(--paper));
+}
 /* The live item. The accent is on the numeral alone - it is the one mark
    that says which of them this is, and it says it in the column that
    exists to number them. Putting it on a bar beside the type instead is
    the machine-made layout this project took an accent rail out for. */
-.section-outline li[data-state=now] {
-  opacity: 1;
-  color: var(--ink);
-  margin: 0.24em 0;
-}
-.section-outline li[data-state=now] .so-num {
-  color: var(--emph);
-  font-size: calc(0.9em * var(--zoom));
-}
+.section-outline li[data-state=now] { font-size: calc(1.6em * var(--zoom)); }
+.section-outline li[data-state=now] .so-num { color: var(--emph); }
 .section-outline li[data-state=now] .so-text {
-  font-size: calc(1.72em * var(--zoom));
+  color: var(--ink);
   font-weight: 600;
   letter-spacing: -0.014em;
 }
@@ -3116,9 +3279,11 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </section>
 <section class="column" data-col="1" id="welcome">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="welcome-section">
+  
   <div class="chunk-content">
     
     <h1 class="section-heading">Welcome</h1>
+    
   </div>
 </article>
 <article class="chunk chunk-principle" id="one-source" data-chunk-id="one-source" data-tag="principle" data-width="standard" data-chunk-num="2">
@@ -3244,9 +3409,11 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </section>
 <section class="column" data-col="2" id="moving">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="moving-section">
+  
   <div class="chunk-content">
     
     <h1 class="section-heading">Moving around</h1>
+    
   </div>
 </article>
 <article class="chunk chunk-example" id="arrows" data-chunk-id="arrows" data-tag="example" data-width="standard" data-chunk-num="5">
@@ -3346,9 +3513,11 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </section>
 <section class="column" data-col="3" id="finding">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="finding-section">
+  
   <div class="chunk-content">
     
     <h1 class="section-heading">Finding content</h1>
+    
   </div>
 </article>
 <article class="chunk chunk-example" id="overview" data-chunk-id="overview" data-tag="example" data-width="standard" data-chunk-num="8">
@@ -3421,9 +3590,11 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </section>
 <section class="column" data-col="4" id="on-screen">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="on-screen-section">
+  
   <div class="chunk-content">
     
     <h1 class="section-heading">What goes on the slide</h1>
+    
   </div>
 </article>
 <article class="chunk chunk-principle" id="two-modes" data-chunk-id="two-modes" data-tag="principle" data-width="standard" data-chunk-num="11">
@@ -3528,9 +3699,11 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </section>
 <section class="column" data-col="5" id="vocabulary">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="vocabulary-section">
+  
   <div class="chunk-content">
     
     <h1 class="section-heading">The chunk vocabulary</h1>
+    
   </div>
 </article>
 <article class="chunk chunk-principle" id="grammar" data-chunk-id="grammar" data-tag="principle" data-width="standard" data-chunk-num="15">
@@ -3604,9 +3777,11 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </section>
 <section class="column" data-col="6" id="speaker">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="speaker-section">
+  
   <div class="chunk-content">
     
     <h1 class="section-heading">Speaker cockpit</h1>
+    
   </div>
 </article>
 <article class="chunk chunk-free" id="speaker-s" data-chunk-id="speaker-s" data-tag="free" data-width="wide" data-chunk-num="18">
@@ -3739,9 +3914,11 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </section>
 <section class="column" data-col="7" id="layouts">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="layouts-section">
+  
   <div class="chunk-content">
     
     <h1 class="section-heading">Authoring layouts</h1>
+    
   </div>
 </article>
 <article class="chunk chunk-principle" id="layout-axes" data-chunk-id="layout-axes" data-tag="principle" data-width="standard" data-chunk-num="22">
@@ -4306,9 +4483,11 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </section>
 <section class="column" data-col="8" id="craft">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="craft-section">
+  
   <div class="chunk-content">
     
     <h1 class="section-heading">Writing chunks that work</h1>
+    
   </div>
 </article>
 <article class="chunk chunk-principle" id="topic-sentence" data-chunk-id="topic-sentence" data-tag="principle" data-width="standard" data-chunk-num="35">
@@ -4418,9 +4597,11 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </section>
 <section class="column" data-col="9" id="next">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="next-section">
+  
   <div class="chunk-content">
     
     <h1 class="section-heading">Next steps</h1>
+    
   </div>
 </article>
 <article class="chunk chunk-exercise" id="read-more" data-chunk-id="read-more" data-tag="exercise" data-width="wide" data-chunk-num="39">
@@ -6223,12 +6404,33 @@ function chunkBeats(el) {
   });
   return out;
 }
+// A backdrop's reveal is indexed by the beat rather than pushed into the
+// ordered list above, and that is the whole of the design. The backdrop is
+// a sibling of .chunk-content, so document order would put every one of its
+// places *before* every reveal segment - and the move this exists for is
+// exactly the one where the picture retreats and the words arrive in the
+// same beat. Indexed, extent i is simply what the slide looks like at beat
+// i, and the last one persists.
+//
+// So it does not add beats, it *rides* them - except where the chunk has
+// none of its own, which is the title slide the feature was asked for.
+function bdFrames(el) {
+  const bd = el.querySelector(':scope > .chunk-backdrop[data-bd-frames]');
+  if (!bd) return null;
+  try { return { el: bd, frames: JSON.parse(bd.dataset.bdFrames) }; }
+  catch (e) { return null; }
+}
 // Positions, not beats: 1 means "in the chunk, nothing advanced yet", which
 // is the convention jumpTo and advanceReveal were already written against.
 function countSegments(el) {
   const beats = chunkBeats(el).length;
-  if (beats) return beats + 1;
-  return el.querySelector('.reveal-segment') ? 1 : 0;
+  const bd = bdFrames(el);
+  let n = beats ? beats + 1 : (el.querySelector('.reveal-segment') ? 1 : 0);
+  if (bd) n = Math.max(n, bd.frames.length);
+  el.querySelectorAll('.overlay-card[data-from]').forEach(c => {
+    n = Math.max(n, Number(c.dataset.from) + 1);
+  });
+  return n;
 }
 function applyReveal(el, id, instant) {
   const beats = chunkBeats(el);
@@ -6256,6 +6458,18 @@ function applyReveal(el, id, instant) {
   // stored reveal state to forty chunks at boot must not start forty tweens.
   const jump = instant || !el.classList.contains('active');
   steps.forEach((step, d) => dgStep(d, step, jump));
+  el.querySelectorAll('.overlay-card[data-from]').forEach(c => {
+    c.toggleAttribute('data-hidden', consumed < Number(c.dataset.from));
+  });
+  const bd = bdFrames(el);
+  if (bd) {
+    // The same rule the tween follows: a chunk off screen snaps, or booting
+    // into the middle of a deck plays every backdrop's whole reveal at once
+    // behind the reader's back.
+    bd.el.style.transition = jump ? 'none' : '';
+    bd.el.style.clipPath = bd.frames[Math.min(consumed, bd.frames.length - 1)];
+    if (jump) { void bd.el.offsetWidth; bd.el.style.transition = ''; }
+  }
 }
 function applyRevealAll() {
   flatChunks.forEach(c => applyReveal(c.el, c.id));
