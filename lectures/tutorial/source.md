@@ -2,7 +2,7 @@
 title: psi-slides – a ten-step tour
 subtitle: A lecture medium that builds four views from one Markdown file
 presenter: Dominik Herrmann
-cover: editorial
+cover: masthead
 info: |
   Tutorial lecture built with psi-slides itself
   Use the tool to learn the tool
@@ -807,7 +807,7 @@ Files are matched by name and the suffix gives weight and style: `Literata-Regul
 
 **Check the licence first.** Embedding redistributes the font file. The SIL Open Font License and Apache-2.0 – which between them cover nearly all of Google Fonts – allow it; most commercial desktop licences do not, and want a separate webfont licence. The build prints a reminder and verifies nothing.
 
-## example: The cover has four compositions | `cover:` plus a `subtitle:` line {.wide #covers}
+## example: The cover has nine compositions | `cover:` plus a `subtitle:` line {.wide #covers}
 
 **A cover set only in ink, at one weight, with the subtitle at meta size beside the venue reads as a text file rather than as the opening of a talk.** Two frontmatter keys fix most of it.
 
@@ -817,18 +817,23 @@ subtitle: Prevalence, Techniques and Implications
 presenter: Ralf Gundelach
 info: |
   ARES 2026 · Linköping · 24 to 27 August
-cover: editorial        # classic | editorial | split | hero
+cover: masthead         # see the two rows below
 cover-image: skyline    # split and hero need one; the others ignore it
 ```
 
 `subtitle:` is the step the ladder was missing. Without it the one line that says what the talk is *about* has nowhere to go but `info`, where it is set exactly like the line that says which conference it is.
 
-::: cards 4
-- **classic** the lower-left third, all type. The default, so a lecture that names no `cover:` is unchanged.
-- **editorial** an accent rail, the title over a rule, the meta collected into a footer row.
-- **stack** the title block centred on both axes, for a quiet opening.
-- **rule** the title held between two hairlines across the measure.
+**The list runs from quiet to loud, and that is the only question it asks you.** Five compositions are type alone:
+
+::: cards 5
+- **classic** the lower-left third. The default, so a lecture that names no `cover:` is unchanged.
+- **masthead** the title along the top edge, the credits along the bottom, the field between them empty.
+- **stack** the title block centred on both axes, for an opening that wants to be still.
+- **display** the title set to fill the slide. The scale is the whole design.
+- **panel** the type on a full field of the theme's accent.
 :::
+
+Four take a picture:
 
 ::: cards 4
 - **split** type left, `cover-image` bled off the right edge.
@@ -839,9 +844,9 @@ cover-image: skyline    # split and hero need one; the others ignore it
 
 **`beside` and `above` take their art from the chunk body**, which is what lets a `::: draw` be the cover: a diagram is not a file, so `cover-image` can never name one. On those two the body is the art and `info:` still supplies the meta lines; everywhere else a non-empty body replaces `info` as it always did. `cover-ratio: 42%` sets how much of the slide the picture takes on `split`, `beside` and `above`.
 
-`split` bleeds and `beside` insets, and that is why both exist: a photograph wants the edge, a drawing wants a margin, because a diagram cropped by the frame reads as a diagram that did not fit.
+**The five type compositions each take a `::: backdrop` too**, which is how a photograph reaches a cover that has no `cover-image` of its own. `panel` is the one worth trying that way: its field becomes the scrim, so the picture reads through a plate of the accent instead of under the paper veil every other backdrop gets.
 
-An unknown value fails the build, and `split` or `hero` without a `cover-image` fails too rather than drawing an empty half.
+> note: There used to be a tenth, `editorial`, with an accent rail down the left edge of the type. It is gone. A coloured bar welded to the side of a text block carries no information and is the most reliable single tell of a machine-made layout – and the deleted variant's one good idea, the meta set as a row of credits rather than four stacked lines, is what `masthead` puts along the bottom.
 
 ## example: A picture that fills the frame | `::: backdrop` and `::: overlay` {.wide #backdrop}
 
@@ -1068,3 +1073,27 @@ editor: speaker         # both | speaker | none  – who gets the diagram editor
 `slide-numbers` reaches the print views as well, since a document has no keyboard to cycle it with. An unknown value fails the build with the list of valid ones rather than being ignored, because a silently dropped setting looks exactly like a setting you forgot to write.
 
 > note: When finishing this tour with a first-timer, end by asking them what felt discoverable and what did not. Their first-impression friction is the most valuable feedback the tool will get.
+
+## example: Closing the arc back to the cover | `## closing:` {.wide #closing}
+
+**A deck that opens on a designed slide and ends on the last bullet of the last argument stops rather than finishes.** `## closing:` is the bookend: the last chunk of the lecture, drawn in whatever composition `cover:` names, so the room sees the shape it started with.
+
+```markdown
+## closing: Questions? | office hours Thursday, 14–16 {#end}
+
+Next week: certificates, and who you are actually trusting.
+```
+
+It is a tag rather than a second `title:` chunk, and the reason is that a title chunk's heading is *ignored* – the cover renders from frontmatter so there is one source of truth for it. A closing slide is the one cover-shaped slide whose words are its own, so the heading is what it says, the sub-heading after the `|` is the second line, and the body is whatever should stay on screen while the room asks questions.
+
+**It carries no presenter line and no `info` block, and that is deliberate.** Those say who is talking and where, which the room learned an hour ago; setting them again in the same composition is a slide that reads as a mistake in the deck. The composition is inherited and the content is written, which is what makes it the same shape without being the same slide.
+
+The four picture compositions draw their type alone here – a closing slide never reaches for `cover-image`, because re-running the cover's own picture is exactly the repeat it exists not to be. Give it a `::: backdrop` if you want one of its own.
+
+> note: The linter warns if a `closing:` chunk is not the last chunk in the lecture, and if there is more than one – both of which are decks that end twice.
+
+## closing: That is the tour | now write your own `source.md` {#end}
+
+Everything in these ten steps is one Markdown file and one command: `node build.js source.md`. The four views are already beside it.
+
+> note: This slide is itself the construct it documents – the tour ends on the composition it opened with, `masthead`, with its own words rather than a second copy of the title block.

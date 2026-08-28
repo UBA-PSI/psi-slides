@@ -97,18 +97,48 @@ from building the same way is a major version.
   the picture takes on the three covers that divide it; written on one that
   does not, it is an error rather than a number the drawing ignores.
 
-- **The cover has four compositions, and a `subtitle:` line.** `cover:` picks
-  between `classic` (the lower-left third the tool always drew, and still the
-  default), `editorial` (an accent rail, the title over a rule, the meta in a
-  footer row), `split` (type left, `cover-image:` bled off the right edge) and
-  `hero` (the picture is the slide, the type reversed out of a gradient).
-  `subtitle:` is the hierarchy step the cover was missing: without it the one
-  line that says what the talk is *about* has nowhere to go but the `info`
-  block, where it renders at meta size in soft ink beside the room and the
-  date – so the subtitle is set exactly like the venue line. Four sizes now
-  where there were two. An unknown `cover:` fails the build, and so does
-  `split` or `hero` with no `cover-image` rather than drawing an empty half.
+- **The cover has nine compositions, and a `subtitle:` line.** `cover:` picks
+  between them and the list runs quiet to loud, which is the only question it
+  asks. Five are type alone: `classic` (the lower-left third the tool always
+  drew, and still the default), `masthead` (the title along the top edge, the
+  credits along the bottom, the field between them left empty), `stack` (the
+  block centred on both axes), `display` (the title set to fill the slide, so
+  the scale is the whole design) and `panel` (the type on a full field of the
+  theme's accent). Four take a picture: `split` (type left, `cover-image:`
+  bled off the right edge), `hero` (the picture is the slide, the type
+  reversed out of a gradient) and `beside` / `above`, which take their art
+  from the title chunk's own body. `subtitle:` is the hierarchy step the cover
+  was missing: without it the one line that says what the talk is *about* has
+  nowhere to go but the `info` block, where it renders at meta size in soft
+  ink beside the room and the date – so the subtitle is set exactly like the
+  venue line. Four sizes now where there were two. An unknown `cover:` fails
+  the build, and so does `split` or `hero` with no `cover-image` rather than
+  drawing an empty half.
 
+  The five type compositions each combine with `::: backdrop`, which is how a
+  picture reaches a cover that has no picture slot of its own. On `panel` the
+  two make something neither has alone: the field becomes the scrim, so the
+  photograph reads through a plate of the accent rather than under the paper
+  veil that would lighten the ground beneath type which is already reversed.
+
+- **`## closing:` closes the arc back to the cover.** The last slide of a
+  deck, drawn in whatever composition `cover:` names, so the room sees the
+  shape it started with. It carries the author's own words – the heading, the
+  sub-heading after the `|`, and a body – and deliberately **neither the
+  presenter line nor the `info` block**: those say who is talking and where,
+  which the room learned an hour ago, and repeating them in the same
+  composition is a slide that reads as a mistake in the deck rather than as an
+  ending. The composition is inherited and the content is written.
+
+  It is a tag rather than a second `title:` chunk or a frontmatter key. A
+  title chunk's heading is *ignored* – the cover renders from frontmatter – so
+  a closing slide could only get its own words by making the heading mean
+  something on the second occurrence, a positional exception to a rule frozen
+  at 1.0.0; `lint.js` already warns that a second `title:` chunk does not
+  render, so the two spellings would contradict each other. Adding a tag is
+  additive: no existing source could have used the word, because it would have
+  failed the build. `lint.js` gains `closing-count`, `closing-position` and
+  `closing-heading`.
 - **`::: backdrop <ref> {classes}` fills the slide with a picture.** On any
   chunk, not only the cover. One line, no closer, and chunk-level rather than
   a body wrapper – forced rather than chosen, because `.chunk-content` sits in
@@ -1051,6 +1081,42 @@ from building the same way is a major version.
   Trade-off: a sentence genuinely ending in a single character ("… um
   Faktor 3.") now keeps its continuation in the head – a too-long topic
   sentence rather than a truncated one.
+
+- **The `above` cover ran its title off the bottom of the slide.** A
+  percentage grid row resolves against the container's height, and `.chunk`
+  carries only a `min-height` – so `grid-template-rows: 58% …` fell back to
+  auto, the art row took the drawing's intrinsic height, the text row took the
+  type's, and together they came to more than a slide. Rendered with a figure
+  and four meta lines, the subtitle was cut through the middle by the frame's
+  bottom edge. The height is definite now. A second defect was hiding behind
+  it: `max-height: 100%` on the svg resolved to `none`, because a percentage
+  max-height needs a *specified* height on the containing block and the
+  `<figure>` between the two had `height: auto` – so the drawing came out
+  622px tall in a 409px row. Both were found by measuring the rendered page,
+  not by reading the stylesheet.
+
+- **A closing slide on the `panel` cover printed grey type on a brown plate.**
+  `.chunk-title[data-closing] .closing-body` and
+  `.chunk-title[data-cover=panel] .closing-body` weigh the same, so source
+  order decided it; `AUDIENCE_CSS` happened to order them the way that worked
+  and `PRINT_CSS` the way that did not. Both name both attributes now and win
+  by specificity rather than by luck.
+
+### Removed
+
+- **The `editorial` cover is gone, and so is `rule`.** `editorial` drew a 4px
+  accent rail down the left edge of the type. A coloured bar welded to the
+  side of a text block carries no information and is present only so that the
+  theme colour appears somewhere on the slide; that is one of the most
+  reliable tells of a machine-made layout, it is named as one in Anthropic's
+  own design guidance, and it was the specific thing the lecturer objected to.
+  Nothing replaced it one for one – its single good idea, the meta set as a
+  row of credits instead of four stacked lines of equal weight, is what
+  `masthead` runs along the bottom of the slide. `rule` went for a smaller
+  reason: it was `stack` plus two hairlines, and a lecturer is not choosing
+  between "centred" and "centred with lines". Both names now fail the build
+  with the list of what to write instead. `::: draw` and the covers are
+  unreleased, so this is not a source-format break.
 
 ## [1.0.0]
 

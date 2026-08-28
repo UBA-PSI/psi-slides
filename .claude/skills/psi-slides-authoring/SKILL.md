@@ -93,6 +93,7 @@ Tags (eight, exhaustive) and what they mean in practice:
 | Tag | Use for | Word budget the linter enforces |
 |---|---|---|
 | `title` | the cover chunk, normally `## title: {#title}` | unlimited |
+| `closing` | the last slide, drawn in the cover's composition with its own heading and body | 60 |
 | `principle` | a claim, thesis, rule, takeaway | 80 |
 | `question` | a posed question or framing problem | 80 |
 | `definition` | a precise concept or formal statement | 200 |
@@ -102,6 +103,21 @@ Tags (eight, exhaustive) and what they mean in practice:
 | `figure` | an image- or diagram-led chunk | unlimited |
 
 When in doubt, `free`.
+
+`closing:` is the bookend and is the one exception to the rule that a
+cover-shaped slide renders from frontmatter: its heading is what it says,
+the sub-heading after the `|` is the second line, and the body is whatever
+stays on screen while the room asks questions. It draws the deck's own
+`cover:` composition, carries **no** presenter line and **no** `info` block
+- those would make it a copy of the title slide rather than an ending - and
+never reaches for `cover-image`. Give it a `::: backdrop` for a picture of
+its own. Put it last; the linter warns if it is not.
+
+```markdown
+## closing: Questions? | office hours Thursday, 14-16 {#end}
+
+Next week: certificates, and who you are actually trusting.
+```
 
 Widths (four, exhaustive): `.narrow` (28em), `.standard` (36em, the default),
 `.wide` (52em), `.full` (72em).
@@ -590,16 +606,19 @@ subtitle: Prevalence, Techniques and Implications
 presenter: Ralf Gundelach
 info: |
   ARES 2026 · Linköping · 24 to 27 August
-cover: editorial        # classic | editorial | split | hero
+cover: masthead         # see the table below
 cover-image: skyline    # split and hero need one; the others ignore it
 ```
+
+The list runs quiet to loud, which is the only question it asks you.
 
 | cover | picture from | what it is |
 |---|---|---|
 | `classic` | - | the lower-left third, all type. **The default** |
-| `editorial` | - | an accent rail, the title over a rule, the meta in a footer row |
+| `masthead` | - | the title along the top edge, the credits along the bottom, the field between empty |
 | `stack` | - | the title block centred on both axes |
-| `rule` | - | the title held between two hairlines |
+| `display` | - | the title set to fill the slide; the scale is the design |
+| `panel` | - | the type on a full field of the theme's accent |
 | `split` | `cover-image` | type left, the picture **bled** off the right edge |
 | `hero` | `cover-image` | the picture is the slide, type reversed out of a gradient |
 | `beside` | **the chunk body** | the art **inset** to the right of the title |
@@ -608,6 +627,10 @@ cover-image: skyline    # split and hero need one; the others ignore it
 `split` or `hero` with no `cover-image` fails the build rather than drawing an
 empty half.
 
+**The five type covers each take a `::: backdrop` too**, which is how a picture
+reaches a cover with no picture slot of its own. On `panel` the field becomes
+the scrim, so the photograph reads through a plate of the accent instead of
+under the paper veil every other backdrop gets.
 **`beside` and `above` take their art from the title chunk's own body**, which
 is how a `::: draw` becomes the cover - a diagram is not a file, so
 `cover-image` can never name one. On those two the body is the art and `info:`

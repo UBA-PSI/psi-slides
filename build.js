@@ -34,8 +34,20 @@ import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPat
 // They are not importable as ESM, so resolve them the CommonJS way.
 const nodeRequire = createRequire(import.meta.url);
 
+// `closing` is the bookend to `title`: the last slide of a deck, drawn in
+// the same cover composition so the arc closes on the shape it opened
+// with. It is a tag and not a second `title:` chunk, and not a
+// frontmatter key, for three reasons that are each already written down
+// somewhere else in this repo. A title chunk's heading is *ignored* (PRD
+// §3) because the cover renders from frontmatter, so a closing slide -
+// which needs its own words - could only get them by making the heading
+// mean something on the second occurrence, which is a positional
+// exception to a frozen rule. `lint.js` already warns that a second
+// `title:` chunk does not render, so the two spellings would contradict
+// each other. And a frontmatter key could only ever repeat the cover's
+// own fields, which is the one thing the closing slide must not be.
 const VALID_TAGS = new Set([
-  'title', 'principle', 'definition', 'example',
+  'title', 'closing', 'principle', 'definition', 'example',
   'question', 'figure', 'exercise', 'free',
 ]);
 
@@ -1381,9 +1393,22 @@ function resolveAssetUrl(ref) {
 // `plain` is what the tool always drew, minus the paragraph sign - see
 // SECTION_MARK below.
 const SECTION_VARIANTS = ['plain', 'tinted', 'rule', 'card', 'number'];
+// Listed loud-to-quiet within each half rather than alphabetically,
+// because the list is the answer to one question - how much should the
+// opening slide assert itself - and an author reads it to place their own
+// talk on that range.
+//
+// `editorial` used to sit here and is gone. It drew a 4px accent rail down
+// the left edge of the type, which is the single most reliable tell of a
+// machine-made layout: a coloured bar welded to the side of a block of
+// text, carrying no information, present only so that the theme colour
+// appears somewhere. Nothing replaced it one-for-one. The one good idea in
+// it - the meta set as a row of credits instead of four stacked lines of
+// equal weight - survives in `masthead`, where it is the composition
+// rather than a decoration beside one.
 const COVER_VARIANTS = [
-  'classic', 'editorial', 'split', 'hero',
-  'stack', 'rule', 'beside', 'above',
+  'classic', 'masthead', 'stack', 'display', 'panel',
+  'split', 'hero', 'beside', 'above',
 ];
 // The two that take their picture from the chunk's own body rather than
 // from cover-image. That is what lets a ::: draw be the art: a diagram is
@@ -3508,6 +3533,32 @@ function renderTitleBlock({ title, subtitle, presenter, info, bodyHtml, bodyIsAr
   `.trim();
 }
 
+// The closing slide. Same three classes as the cover, so every cover
+// variant styles it without a second stylesheet - and deliberately two
+// fields short of one.
+//
+// It carries no presenter line and no info block, and that is what keeps
+// it from reading as a duplicate of the opening slide. Those two say who
+// is talking and where, which the room learned forty minutes ago; setting
+// them again in the same composition is a slide that looks like a mistake
+// in the deck. What it does carry is the author's own words - the heading
+// is the closing line, the sub-heading the second line, the body whatever
+// should be left on the screen while the room asks questions. The
+// composition is inherited and the content is written, which is the
+// division that makes it the same shape without being the same slide.
+//
+// The heading goes through renderInlineMd, not escapeHtml: it is an
+// ordinary chunk heading and code spans work in it the way they do in
+// every other one. The cover's title cannot, because it comes from
+// frontmatter and is escaped there.
+function renderClosingBlock(chunk, bodyHtml) {
+  return `
+    <h1 class="title-main">${renderInlineMd(chunk.heading || '')}</h1>
+    ${chunk.headingSub ? `<p class="title-subtitle">${renderInlineMd(chunk.headingSub)}</p>` : ''}
+    ${bodyHtml ? `<div class="closing-body">${bodyHtml}</div>` : ''}
+  `.trim();
+}
+
 // Which cover the lecture opens with. Validated the way a viewer default
 // is – an unknown value fails the build – for the identical reason: a typo
 // here is otherwise invisible, because the lecture still builds and still
@@ -3552,10 +3603,17 @@ function coverSettings(frontmatter = {}) {
     const err = new Error(
       `Frontmatter: "cover: ${raw}" is not a cover this tool draws.\n` +
       `  Valid values: ${COVER_VARIANTS.join(', ')}\n` +
-      `    classic    the lower-left third, all type (the default)\n` +
-      `    editorial  accent rail, title over a rule, meta in a footer row\n` +
-      `    split      type on the left, cover-image bled off the right edge\n` +
-      `    hero       cover-image full bleed, type reversed out of it`);
+      `    all type:\n` +
+      `      classic   the lower-left third (the default)\n` +
+      `      masthead  title at the top edge, meta along the bottom\n` +
+      `      stack     the block centred on both axes\n` +
+      `      display   the title set to fill the slide\n` +
+      `      panel     reversed out of a deep accent field\n` +
+      `    with a picture:\n` +
+      `      split     type left, cover-image bled off the right edge\n` +
+      `      hero      cover-image full bleed, type reversed out of it\n` +
+      `      beside    the chunk's own body inset to the right of the title\n` +
+      `      above     the chunk's own body on top, title centred below`);
     err.userFacing = true;
     throw err;
   }
@@ -3566,7 +3624,8 @@ function coverSettings(frontmatter = {}) {
     const err = new Error(
       `Frontmatter: "cover: ${raw}" needs a picture, and no cover-image is set.\n` +
       `  Add e.g.  cover-image: cover-photo   (assets/cover-photo.jpg), a\n` +
-      `  relative path, or an https URL – or choose cover: classic|editorial|stack|rule.`);
+      `  relative path, or an https URL – or choose one of the covers that\n` +
+      `  needs no picture: classic, masthead, stack, display, panel.`);
     err.userFacing = true;
     throw err;
   }
@@ -3678,22 +3737,29 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
   const numAttr = num ? ` data-chunk-num="${num}"` : '';
   const numHtml = renderChunkNumBadge(num, 'span');
 
-  if (tag === 'title') {
+  if (tag === 'title' || tag === 'closing') {
     // Title chunk's heading text and sub-heading are intentionally ignored:
     // the cover renders from frontmatter (`title`, `presenter`, `info`) so
     // there's a single source of truth. Authors write `## title: {#title}`
     // with an empty heading by convention; the body, if non-empty, overrides
-    // the `info` lines (PRD §3, §4.4).
+    // the `info` lines (PRD §3, §4.4). A `closing:` chunk is the opposite
+    // and has to be: it is the one cover-shaped slide whose words are its
+    // own, so its heading is what it says.
+    const closing = tag === 'closing';
+    const where = closing ? 'the closing chunk' : 'the title chunk';
     const cover = coverSettings(frontmatter);
-    const own = renderBackdrop(chunk.backdrop, 'the title chunk');
-    const art = own.html ? own : renderCoverArt(cover, bodyHtml);
+    const own = renderBackdrop(chunk.backdrop, where);
+    const art = own.html ? own : (closing ? { html: '', scrim: null } : renderCoverArt(cover, bodyHtml));
     const scrimAttr = art.scrim && art.scrim !== 'veil' ? ` data-backdrop="${art.scrim}"` : '';
     const bdAttr = art.html ? ' data-has-backdrop=""' : '';
-    return `<article class="chunk chunk-title" data-cover="${cover.variant}"${bdAttr}${scrimAttr}${numAttr}${idAttr}>
+    const closingAttr = closing ? ' data-closing=""' : '';
+    return `<article class="chunk chunk-title" data-cover="${cover.variant}"${closingAttr}${bdAttr}${scrimAttr}${numAttr}${idAttr}>
   ${art.html}
   ${numHtml}
-  ${renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt })}
-  ${renderOverlayLayer(chunk.overlays, 'the title chunk')}
+  ${closing
+    ? renderClosingBlock(chunk, bodyHtml)
+    : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt })}
+  ${renderOverlayLayer(chunk.overlays, where)}
 </article>`;
   }
 
@@ -4241,10 +4307,53 @@ body[data-labels=off] .chunk-label { display: none; }
   margin: -0.35rem 0 0.9rem;
   max-width: 28em;
 }
-.chunk-title[data-cover=editorial] {
+/* On paper a cover is a masthead whatever variant the projection uses:
+   the compositions above are all answers to "how does this fill a 16:9
+   frame", and a page is neither 16:9 nor a thing anybody projects. Two of
+   them survive because they are treatments rather than placements - the
+   reversed field, and the title at display size. */
+.chunk-title[data-cover=panel] {
+  background: color-mix(in oklab, var(--emph) 62%, var(--ink));
   border-bottom: 0;
-  border-left: 4px solid var(--emph);
-  padding-left: 1rem;
+  padding: 1.6rem 1.4rem;
+  color: var(--paper);
+}
+.chunk-title[data-cover=panel] .title-main,
+.chunk-title[data-cover=panel] .title-presenter { color: var(--paper); }
+.chunk-title[data-cover=panel] .title-subtitle,
+.chunk-title[data-cover=panel] .title-info p,
+.chunk-title[data-cover=panel] .closing-body {
+  color: color-mix(in oklch, var(--paper) 78%, transparent);
+}
+.chunk-title[data-cover=display] .title-main {
+  font-size: 3.6rem;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  max-width: 11em;
+}
+
+/* The closing slide is a page like the cover is a page, and it carries the
+   same rule under it that every other chunk does - it is the last thing in
+   the document rather than the first, so a page break *after* it would be
+   a blank sheet. */
+.chunk-title[data-closing] {
+  page-break-after: auto;
+  page-break-before: always;
+}
+.chunk-title[data-closing] .closing-body {
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 34em;
+}
+.chunk-title[data-closing] .closing-body > :first-child { margin-top: 0; }
+/* Both selectors above weigh the same, and this one is written last in
+   the file, so on paper the panel's reversed body lost to the soft ink and
+   the closing slide's text came out grey on a brown plate. The live
+   stylesheet happens to order the two the other way round and was correct
+   by luck. Naming both attributes settles it by specificity instead. */
+.chunk-title[data-cover=panel][data-closing] .closing-body {
+  color: color-mix(in oklch, var(--paper) 78%, transparent);
 }
 .chunk-title .cover-art {
   width: 100%;
@@ -4507,8 +4616,10 @@ function abbrevForLabel(label) {
 }
 
 function renderTitleChunk(chunk, frontmatter, num) {
+  const closing = chunk.tag === 'closing';
+  const where = closing ? 'the closing chunk' : 'the title chunk';
   const idAttr = chunk.id ? ` id="${escapeHtml(chunk.id)}"` : '';
-  const chunkId = chunk.id || 'title';
+  const chunkId = chunk.id || (closing ? 'closing' : 'title');
   const bodyHtml = (chunk.body || '').trim() ? marked.parse(chunk.body) : '';
   const numAttr = num ? ` data-chunk-num="${num}"` : '';
   const numHtml = renderChunkNumBadge(num, 'div');
@@ -4516,23 +4627,32 @@ function renderTitleChunk(chunk, frontmatter, num) {
   // A backdrop the author wrote on the title chunk itself wins over the
   // one the cover variant would build, so `cover: classic` plus a
   // ::: backdrop is a picture cover without a variant for it.
-  const own = renderBackdrop(chunk.backdrop, 'the title chunk');
-  const art = own.html ? own : renderCoverArt(cover, bodyHtml);
+  const own = renderBackdrop(chunk.backdrop, where);
+  // A closing slide draws the cover's *type* and never its picture. Its
+  // own ::: backdrop still works, which is the way to give it one - what
+  // it must not do is reach for `cover-image` by itself, because that is
+  // the cover's picture and re-running it is precisely the repeat this
+  // slide exists not to be.
+  const art = own.html ? own : (closing ? { html: '', scrim: null } : renderCoverArt(cover, bodyHtml));
   const scrimAttr = art.scrim && art.scrim !== 'veil' ? ` data-backdrop="${art.scrim}"` : '';
   const bdAttr = art.html ? ' data-has-backdrop=""' : '';
-  const ratioStyle = cover.ratio ? ` style="--cover-ratio:${cover.ratio}%"` : '';
-  return `<article class="chunk chunk-title" data-tag="title" data-width="full" data-cover="${cover.variant}"${bdAttr}${scrimAttr} data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}${ratioStyle}>
+  const ratioStyle = (cover.ratio && !closing) ? ` style="--cover-ratio:${cover.ratio}%"` : '';
+  const closingAttr = closing ? ' data-closing=""' : '';
+  const block = closing
+    ? renderClosingBlock(chunk, bodyHtml)
+    : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt });
+  return `<article class="chunk chunk-title" data-tag="${closing ? 'closing' : 'title'}" data-width="full" data-cover="${cover.variant}"${closingAttr}${bdAttr}${scrimAttr} data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}${ratioStyle}>
   ${art.html}
   <div class="chunk-content">
-    ${renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt })}
+    ${block}
   </div>
-  ${renderOverlayLayer(chunk.overlays, 'the title chunk')}
+  ${renderOverlayLayer(chunk.overlays, where)}
   ${numHtml}
 </article>`;
 }
 
 function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num) {
-  if (chunk.tag === 'title') return renderTitleChunk(chunk, frontmatter, num);
+  if (chunk.tag === 'title' || chunk.tag === 'closing') return renderTitleChunk(chunk, frontmatter, num);
 
   const { tag, heading, segments = [], id, width, expansions = [], annotation = '' } = chunk;
   const chunkId = id || `c${colIdx}-${chunkIdx}`;
@@ -5787,47 +5907,169 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
    unfinished; every printed programme drops it too. */
 .chunk-title > .chunk-num { display: none; }
 
-/* editorial – an accent rail down the left, the title over a rule, and
-   the meta collected into a footer row instead of stacked under the name.
-   The rail is what carries the theme: it is the only element on the slide
-   that is not type, and it re-colours with all seven themes for free. */
-.chunk[data-cover=editorial] { align-items: center; }
-.chunk[data-cover=editorial] .chunk-content {
-  padding-bottom: 0;
-  gap: 0;
-  padding-left: 1.1em;
-  border-left: 4px solid var(--emph);
-}
-.chunk[data-cover=editorial] .title-main {
-  font-size: calc(2.9em * var(--zoom));
-  font-weight: 600;
-  letter-spacing: -0.028em;
-}
-.chunk[data-cover=editorial] .title-subtitle {
-  margin: 0.42em 0 0;
-  font-size: calc(1.18em * var(--zoom));
-  color: var(--ink-soft);
-}
-.chunk[data-cover=editorial] .title-presenter {
-  margin: 1.5em 0 0;
-  padding-top: 0.75em;
-  border-top: 1px solid var(--rule);
-  font-size: calc(1.05em * var(--zoom));
-  font-weight: 600;
-  letter-spacing: 0.005em;
-}
-/* The meta reads as a single line of credits rather than as four
-   left-aligned rows of equal weight, which is what made the stack look
-   like a log file. It wraps to as many rows as it needs. */
-.chunk[data-cover=editorial] .title-info {
+/* The meta as a row of credits rather than four stacked lines of equal
+   weight, which is what made the default block read as a log file. Shared
+   by every variant that wants it, because it is one idea and it was worth
+   keeping when the variant it arrived in was not. It wraps to as many rows
+   as it needs. */
+.chunk[data-cover=masthead] .title-info,
+.chunk[data-cover=display] .title-info,
+.chunk[data-cover=panel] .title-info {
   display: flex;
   flex-wrap: wrap;
   gap: 0.15em 1.35em;
-  margin-top: 0.42em;
   font-size: calc(0.68em * var(--zoom));
   letter-spacing: 0.01em;
 }
-.chunk[data-cover=editorial] .title-info p { margin: 0; }
+.chunk[data-cover=masthead] .title-info p,
+.chunk[data-cover=display] .title-info p,
+.chunk[data-cover=panel] .title-info p { margin: 0; }
+
+/* masthead – the title along the top edge, the credits along the bottom,
+   and the field between them left empty. The empty field is the whole
+   composition, which is what separates this from every variant that fills
+   it: there is no rule, no rail and no ground, so nothing on the slide is
+   there to be looked at except the words and the distance between them.
+   That distance is also the only thing carrying the format, so it has to
+   be the slide's own height and not a margin – hence align-items: stretch
+   on the chunk and margin-top: auto on the credits, which pins them to the
+   bottom whatever the title above them measures. */
+.chunk[data-cover=masthead] { align-items: stretch; }
+.chunk[data-cover=masthead] .chunk-content {
+  padding-top: 9vh;
+  padding-bottom: 9vh;
+  gap: 0;
+  justify-content: flex-start;
+}
+.chunk[data-cover=masthead] .title-main {
+  font-size: calc(2.5em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: -0.026em;
+  max-width: 17em;
+}
+.chunk[data-cover=masthead] .title-subtitle {
+  margin: 0.5em 0 0;
+  font-size: calc(1.15em * var(--zoom));
+  max-width: 25em;
+}
+.chunk[data-cover=masthead] .title-presenter {
+  margin-top: auto;
+  font-size: calc(1.02em * var(--zoom));
+  font-weight: 600;
+}
+.chunk[data-cover=masthead] .title-info { margin-top: 0.35em; }
+
+/* display – the title set to fill the slide, and nothing else asked to
+   carry anything. The scale is the design: a lecture title at four and a
+   half times the body size is the one typographic move that needs no
+   second element to read as deliberate, which is exactly what a coloured
+   bar beside a small title was failing to do.
+   max-width is in em, so it scales with the type it bounds and a title
+   breaks to two or three lines instead of running to a single thin line
+   across a wide projector. line-height under 1 is safe here because the
+   face is set once and never mixed. */
+.chunk[data-cover=display] { align-items: center; }
+.chunk[data-cover=display] .chunk-content {
+  padding-bottom: 0;
+  gap: 0;
+}
+.chunk[data-cover=display] .title-main {
+  font-size: calc(4.4em * var(--zoom));
+  font-weight: 600;
+  line-height: 0.97;
+  letter-spacing: -0.042em;
+  max-width: 9.5em;
+  text-wrap: balance;
+}
+.chunk[data-cover=display] .title-subtitle {
+  margin: 0.75em 0 0;
+  font-size: calc(1.2em * var(--zoom));
+  max-width: 28em;
+}
+.chunk[data-cover=display] .title-presenter {
+  margin-top: 1.5em;
+  font-size: calc(1em * var(--zoom));
+  font-weight: 600;
+}
+.chunk[data-cover=display] .title-info { margin-top: 0.3em; }
+
+/* panel – the type set on a full field of the theme's own accent. This is
+   the answer to "expressive" that the accent rail was reaching for and
+   getting wrong: a colour is either the composition or it is decoration
+   welded to the side of one, and a whole field is the first.
+   The field is the accent driven to the far end of that theme's value
+   range and the type is set at the near end. Which end is far depends on
+   the mode, and that is not a refinement - it is the whole correctness of
+   the thing. Written as one formula, the accent mixed towards the ink, it
+   is a deep plate in the four light themes and a full-bleed acid field in
+   the two terminal modes, because there the ink is the bright end:
+   terminal-green resolved to oklch(0.87 0.09 145), a whole projector of
+   phosphor green with black type on it. Rendered, it was the worst frame
+   in the set, and nothing in the source said so.
+   So the dark modes mix towards the paper instead and keep the theme's own
+   ink on top. In a dark deck there is nothing to reverse - the deck is
+   already reversed - and what a panel means there is a field deeper and
+   more saturated than the paper. Keyed on data-mode, which is what every
+   other surface in this file that was written against paper keys on.
+   Nothing here redefines --emph, --ink or --paper. The field reads all
+   three, and a declaration resolves var() against the element's own value,
+   so an override in this block would make the field resolve to the new
+   colour - the defect that shipped an invisible accent card twice. The two
+   ends are carried as properties of their own instead.
+   The field mixes in oklab and every other mix in this file stays oklch,
+   which is not an inconsistency: oklch interpolates the *hue angle*, and
+   this is the one mix here whose two ends are both chromatic and far
+   apart on that circle. The neutral dark theme sets a warm accent at hue
+   35 and a paper at hue 260, and the short way round between them runs
+   backwards through magenta - so the plate under an orange accent
+   rendered plum. oklab interpolates the rectangular components, which is
+   what "the accent, darkened" means. Every other mix here is a colour
+   with transparent, where there is no second hue to travel to. */
+.chunk[data-cover=panel] {
+  --panel-field: color-mix(in oklab, var(--emph) 62%, var(--ink));
+  --panel-ink: var(--paper);
+  background: var(--panel-field);
+}
+body[data-mode=dark] .chunk[data-cover=panel] {
+  --panel-field: color-mix(in oklab, var(--emph) 30%, var(--paper));
+  --panel-ink: var(--ink);
+}
+.chunk[data-cover=panel] .chunk-content {
+  color: var(--panel-ink);
+  padding-bottom: 12vh;
+  gap: 0.3em;
+}
+.chunk[data-cover=panel] .title-main {
+  color: var(--panel-ink);
+  font-size: calc(2.85em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: -0.028em;
+}
+.chunk[data-cover=panel] .title-subtitle {
+  color: color-mix(in oklch, var(--panel-ink) 80%, transparent);
+  margin: 0.4em 0 0;
+  font-size: calc(1.18em * var(--zoom));
+  max-width: 26em;
+}
+.chunk[data-cover=panel] .title-presenter {
+  color: var(--panel-ink);
+  margin-top: 1.1em;
+  font-size: calc(1.02em * var(--zoom));
+  font-weight: 600;
+}
+.chunk[data-cover=panel] .title-info {
+  color: color-mix(in oklch, var(--panel-ink) 68%, transparent);
+  margin-top: 0.3em;
+}
+/* panel with a picture under it. The scrim becomes the panel's own field
+   at 80%, so the photograph reads through a plate of the accent rather
+   than through the paper veil every other backdrop gets - which would
+   lighten the ground under type that is already reversed and leave the
+   words on nothing. This is the one place a cover and ::: backdrop
+   compose into a look neither has alone. */
+.chunk[data-cover=panel][data-has-backdrop] .chunk-backdrop::after {
+  background: color-mix(in oklch, var(--panel-field) 80%, transparent);
+}
 
 /* split – type left, picture bled off the right edge. The picture is a
    grid track and not a background, because it has to end on a hard edge
@@ -5915,44 +6157,6 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
 .chunk[data-cover=stack] .title-presenter { margin-top: 0.9em; font-weight: 600; }
 .chunk[data-cover=stack] .title-info { margin-top: 0.15em; }
 
-/* rule - the title held between two hairlines across the full measure. The
-   rules are the composition: they give a centred block the horizontal
-   anchor it otherwise lacks, which is what separates this from stack. */
-.chunk[data-cover=rule] { align-items: center; text-align: center; }
-.chunk[data-cover=rule] .chunk-content {
-  padding-bottom: 0;
-  align-items: center;
-  gap: 0;
-  max-width: 44em;
-  margin: 0 auto;
-}
-.chunk[data-cover=rule] .title-main {
-  font-size: calc(2.5em * var(--zoom));
-  font-weight: 600;
-  padding: 0.42em 0 0.34em;
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-  width: 100%;
-}
-.chunk[data-cover=rule] .title-subtitle {
-  margin: 0.55em auto 0;
-  max-width: 32em;
-  font-size: calc(1.1em * var(--zoom));
-}
-.chunk[data-cover=rule] .title-presenter {
-  margin-top: 1.15em;
-  font-weight: 600;
-  font-variant-caps: all-small-caps;
-  letter-spacing: 0.1em;
-}
-.chunk[data-cover=rule] .title-info {
-  display: flex; flex-wrap: wrap; justify-content: center;
-  gap: 0.1em 1.2em;
-  margin-top: 0.2em;
-  font-size: calc(0.66em * var(--zoom));
-}
-.chunk[data-cover=rule] .title-info p { margin: 0; }
-
 /* beside - the art to the right of the title, inset rather than bled. That
    is the difference from split, and it is the whole reason both exist: a
    photograph wants the edge, a drawing wants a margin, because a diagram
@@ -5983,9 +6187,23 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
    both axes. The proportion is the point: cover-ratio is how much of the
    slide the drawing gets, and the type sits in what is left rather than
    floating in the middle of it. */
+/* The height has to be *definite*, not a minimum, and that is the whole of
+   why the title used to run off the bottom of the slide. A percentage row
+   track resolves against the container's height, and a container with only
+   a min-height has an indefinite one - so the 58% fell back to auto, the art
+   row took the drawing's intrinsic height, the text row took the type's,
+   and the two together came to more than a slide. Rendered with a figure
+   and four meta lines, the subtitle was cut through the middle by the
+   bottom edge of the frame. Nothing about the source said so, and the two
+   sibling compositions are unaffected: beside divides the width, which
+   is definite in every layout this tool draws.
+   With the height pinned, minmax(0, …) on both tracks is what makes the
+   art give way rather than the words: the drawing is a background or an
+   svg with a max on both axes, so it letterboxes into whatever it gets. */
 .chunk[data-cover=above] {
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: var(--cover-ratio, 58%) minmax(0, 1fr);
+  grid-template-rows: minmax(0, var(--cover-ratio, 56%)) minmax(0, 1fr);
+  height: var(--slide-h);
   align-items: center;
   text-align: center;
   row-gap: 0.6em;
@@ -6016,6 +6234,66 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
 .chunk[data-cover=above] .title-subtitle { max-width: 32em; font-size: calc(1.05em * var(--zoom)); }
 .chunk[data-cover=above] .title-presenter { margin-top: 0.5em; font-weight: 600; }
 .chunk[data-cover=above] .title-info { margin-top: 0.05em; font-size: calc(0.64em * var(--zoom)); }
+
+/* ── the closing slide (## closing:) ─────────────────────────────────
+   It reuses .chunk-title and data-cover wholesale, so every rule above
+   already applies to it and there is no second family of compositions to
+   keep in step. What it adds is only what differs: the picture is gone,
+   and there is a body where the cover has its info block.
+
+   The four picture compositions each have a track with nothing in it once
+   the picture is gone, so it is collapsed rather than left as a band of
+   paper the type is pushed out of. One declaration each, keyed on
+   data-closing rather than on :has(.cover-art) - the attribute is the
+   fact, and the absence of an element is only a symptom of it. */
+.chunk[data-cover=split][data-closing],
+.chunk[data-cover=beside][data-closing] { grid-template-columns: minmax(0, 1fr); }
+.chunk[data-cover=split][data-closing] .chunk-content {
+  padding-right: calc(var(--slide-pad-x) * 0.62);
+}
+.chunk[data-cover=above][data-closing] { grid-template-rows: minmax(0, 1fr); }
+.chunk[data-cover=above][data-closing] .chunk-content { grid-row: 1; }
+/* hero's gradient is on the backdrop, so a closing slide with no picture
+   simply has none - the type sits where hero puts it, on paper. */
+
+/* The body sits under the title the way the info block does on a cover,
+   at reading size rather than meta size: it is the one thing on this slide
+   the room is meant to act on - where to write, what is next week, which
+   paper to read - and the cover's soft small type is for a date. */
+.chunk-title[data-closing] .closing-body {
+  margin-top: 1.1em;
+  font-size: calc(0.95em * var(--zoom) * var(--body-scale));
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 34em;
+}
+.chunk-title[data-closing] .closing-body > :first-child { margin-top: 0; }
+.chunk-title[data-closing] .closing-body > :last-child { margin-bottom: 0; }
+.chunk[data-cover=stack] .closing-body,
+.chunk[data-cover=above] .closing-body { margin-left: auto; margin-right: auto; }
+/* Reversed out, like the four fields above it. */
+/* Both attributes named, so this beats the soft-ink rule above by
+   specificity rather than by being written after it. It was correct here
+   only because of the order, and the same pair in PRINT_CSS was ordered
+   the other way and shipped grey text on a brown plate. */
+.chunk[data-cover=panel][data-closing] .closing-body {
+  color: color-mix(in oklch, var(--panel-ink) 76%, transparent);
+}
+/* masthead is two anchors with the slide's own height between them, and on
+   a cover the bottom one is the credits row. A closing slide has no credits
+   - that is the point of it - so the bottom anchor went missing and the
+   composition collapsed into a top-heavy slide with a void under it, which
+   is not the same composition at all. Whatever comes last takes the anchor,
+   which on this slide is the body. */
+.chunk[data-cover=masthead][data-closing] .closing-body { margin-top: auto; }
+
+/* display sets the title at four and a half ems, which is right for a
+   lecture title and shouting for the word "Questions?". The bookend keeps
+   the composition and steps the scale back to the cover's own. */
+.chunk[data-cover=display][data-closing] .title-main {
+  font-size: calc(3.1em * var(--zoom));
+  max-width: 14em;
+}
 
 /* The body-as-art wrapper has to let a figure fill it. A ::: draw emits a
    <figure class=psi-diagram> whose own margins are tuned for the text
@@ -6048,6 +6326,21 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
   max-height: calc(var(--slide-h) - 2 * var(--slide-pad-y));
 }
 .chunk[data-cover=split] .cover-art-body { padding: var(--slide-pad-y) 1.5em; }
+/* In the above cover the art is inside a bounded row rather than beside
+   the type, so its ceiling is the row and not the slide - the shared rule
+   above caps the svg at the whole slide, which in a 56% track is no cap at
+   all. Saying max-height: 100% is not enough on its own, and the reason is
+   the one percentage rule everybody forgets: a percentage max-height
+   resolves against the containing block's *specified* height, and where
+   that is auto it resolves to none. The wrapper is a grid item with a
+   definite height, but the figure between it and the svg is not, so the
+   cap silently evaporated one level down and the drawing came out 622px
+   tall in a 409px row - overflowing the track at both ends and running
+   through the title. Measured, not guessed: it looked like the drawing had
+   been scaled up. Giving the figure a height makes the chain definite. */
+.chunk[data-cover=above] .cover-art-body,
+.chunk[data-cover=above] .cover-art-body figure { height: 100%; max-height: 100%; }
+.chunk[data-cover=above] .cover-art-body svg { max-height: 100%; }
 
 /* ── full-bleed backdrops (::: backdrop) ─────────────────────────────
    The layer is inset:0 on the .chunk, so it fills whatever the chunk
