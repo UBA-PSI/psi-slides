@@ -9,6 +9,20 @@ from building the same way is a major version.
 
 ### Added
 
+- **A heading can be the document's without being the slide's.**
+  `## figure: How a crawl is scored {.full #loop .bare}` keeps the heading in
+  `print.html`, in the table of contents and in the search index, and takes it
+  off the projection. `style: {headings: off}` is the same switch for a whole
+  deck. The case is a talk that is a run of `::: draw` figures with speaker
+  notes: the room looks at the drawing, and the deck still needs a name per
+  slide to navigate by and to print. Leaving the heading text out gives up all
+  four at once; this gives up only the slide.
+
+  `off` sits in the existing `style.headings` key beside `left` and `center`
+  rather than in one of its own, because the two readings are one question -
+  what the projection does with a heading - and a second key's only legal
+  combination with this one would have been "off, and also aligned left".
+
 - **A backdrop can be revealed, and text can wait for the beat.**
   `::: backdrop pic {cover} reveal full, right 45%` walks the picture's
   *window* across the slide's beats: a photograph that retreats to free the
@@ -50,6 +64,25 @@ from building the same way is a major version.
   what gets added when the composition is not trusted to say so.
 
 ### Fixed
+
+- **Three things painted over each other, and they are one mistake in three
+  places: chrome and grounds positioned against something other than the
+  slide.** A backdrop is no longer painted on any slide but its own -
+  neighbours sit at 4%, which is invisible for a paragraph and a visible grey
+  band for a photograph, and a `reveal`ed one showed as a grey block in the
+  corner of the next slide. The `+ note` affordance moved out of the content
+  box into the slide's own gutter, where it cannot reach the text whatever
+  the width class says. And the outline list caps each row in its own type
+  size rather than the list in the list's, which had the live row wrapping
+  after four words while a quotation beside it ran half again as wide.
+
+- **A divider whose body is nothing but a figure now lays it beside the
+  heading.** Stacked, a part title, an agenda and a drawing are three blocks
+  down one axis with nothing balancing them across it.
+
+- **An overlay card's `standard` measure was about 48 characters.** Measured
+  in the card's own em, which is 0.92 of the slide's. Widened one step each
+  (19 / 29 / 42em).
 
 - **A heading inside a `::: overlay` or `::: expand` opened a column.** The
   overlay came out empty, the deck grew a divider slide carrying the

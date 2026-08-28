@@ -38,6 +38,10 @@ const VALID_TAGS = new Set([
 ]);
 
 const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
+// The one non-width class an attribute tail may carry. Mirrors
+// VALID_CHUNK_CLASSES in build.js: `.bare` takes the heading off the slide
+// and leaves it in the TOC, in search and in the printed document.
+const VALID_CHUNK_CLASSES = new Set(['bare']);
 
 // Mirrors VIEW_DEFAULT_SPEC in build.js: frontmatter keys that pin how a
 // lecture opens. The build hard-fails on a bad value, but a typo here is
@@ -83,7 +87,10 @@ const BUNDLED_FAMILIES = {
 // number out of YAML with no parser is where a linter starts disagreeing
 // with the build. The build hard-fails on both halves either way.
 const STYLE_ENUMS = {
-  'headings': ['auto', 'left', 'center'],
+  // `off` takes the heading off the *slide* and leaves it in the TOC, in
+  // search and in the printed document. Same key as the alignment, because
+  // the two are one question - what the projection does with a heading.
+  'headings': ['auto', 'left', 'center', 'off'],
   'rules': ['on', 'off'],
   'wrap': ['balance', 'none'],
   'labels': ['on', 'off'],
@@ -2177,9 +2184,10 @@ function lintFile(filePath) {
         }
       }
       for (const cls of attr.classes) {
-        if (!VALID_WIDTHS.has(cls)) {
+        if (!VALID_WIDTHS.has(cls) && !VALID_CHUNK_CLASSES.has(cls)) {
           add(ln, 'error', 'unknown-width',
-              `unknown width '.${cls}' – valid: ${[...VALID_WIDTHS].map(w => '.' + w).join(', ')}`);
+              `unknown class '.${cls}' – valid: ${[...VALID_WIDTHS].map(w => '.' + w).join(', ')}`
+              + `, or ${[...VALID_CHUNK_CLASSES].map(c => '.' + c).join(', ')}`);
         }
       }
       if (!id) {

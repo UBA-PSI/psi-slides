@@ -52,6 +52,18 @@ const VALID_TAGS = new Set([
 ]);
 
 const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
+// Classes an attribute tail may carry that are not a width. There is exactly
+// one, and it exists because a heading is two different things at once: the
+// slide's title, and the chunk's name in the table of contents, in search,
+// and in the printed document. Leaving the heading text out gives up all
+// four; `.bare` gives up only the first.
+//
+// The case is a talk that is a run of figures with speaker notes - the room
+// looks at the drawing, and the deck still needs a name for each slide to
+// navigate by and to print. Refused rather than ignored when misspelled: an
+// unknown class in this tail used to be dropped without a word by the build
+// while lint.js called it an unknown width, which named the wrong thing.
+const VALID_CHUNK_CLASSES = new Set(['bare']);
 
 // ── syntax highlighting ──────────────────────────────────────────────
 // Shiki is loaded once per process and reused across rebuilds. Output
@@ -2739,6 +2751,7 @@ function parseAttributeTail(text) {
     if (token.startsWith('.')) {
       const cls = token.slice(1);
       if (VALID_WIDTHS.has(cls)) out.width = cls;
+      else if (VALID_CHUNK_CLASSES.has(cls)) out[cls] = true;
     } else if (token.startsWith('#')) {
       out.id = token.slice(1);
     }
@@ -2993,13 +3006,14 @@ function parseLecture(src) {
           currentColumn = { heading: null, id: null, chunks: [] };
           columns.push(currentColumn);
         }
-        const { text, width, id } = parseAttributeTail(h2[1]);
+        const { text, width, id, bare } = parseAttributeTail(h2[1]);
         const { tag, heading, headingSub } = parseTagPrefix(text);
         currentChunk = {
           tag,
           heading,
           headingSub,
           width: width || 'standard',
+          bare: !!bare,
           id,
           expansions: [],
           overlays: [],
@@ -3553,7 +3567,14 @@ const STYLE_SPEC = {
   // is centred, a figure's caption is centred over its artwork); `left`
   // overrides all of it, which is what an author who wants one axis of
   // alignment through the whole deck is asking for.
-  headings: { kind: 'enum', values: ['auto', 'left', 'center'], dflt: 'auto' },
+  // `off` sits in this key rather than in one of its own, and the two
+  // readings are one question: what does the projection do with a chunk's
+  // heading. left / center are where it goes, off is that it does not go
+  // anywhere - and the alternative was a second key whose only legal
+  // combination with this one is "off, and also aligned left", which means
+  // nothing. It is the *slide* it comes off: the TOC, the search index and
+  // the printed document keep it, which is the whole point.
+  headings: { kind: 'enum', values: ['auto', 'left', 'center', 'off'], dflt: 'auto' },
   // The hairline above a principle / definition chunk.
   rules:    { kind: 'enum', values: ['on', 'off'], dflt: 'on' },
   // Multipliers on the heading and body scales. Bounded rather than free:
@@ -4600,6 +4621,7 @@ body[data-slide-nums=off] .chunk-num { display: none; }
 body[data-headings=left] .chunk-heading,
 body[data-headings=left] .title-main { text-align: left; }
 body[data-headings=center] .chunk-heading { text-align: center; }
+
 body[data-rules=off] .chunk-principle,
 body[data-rules=off] .chunk-definition { border-top: 0; }
 /* The document view labels every tagged chunk, which is where most of
@@ -5015,6 +5037,12 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num, parts = 
 
   const { tag, heading, segments = [], id, width, expansions = [], annotation = '' } = chunk;
   const chunkId = id || `c${colIdx}-${chunkIdx}`;
+  // `.bare` takes the heading off the *slide* and nowhere else. It is an
+  // attribute rather than a dropped element on purpose: the TOC, the search
+  // index and the speaker's own lists all read the heading's text out of the
+  // DOM, and every one of them should keep working. Emitted only here -
+  // print has no slide to take it off.
+  const bareAttr = chunk.bare ? ' data-bare=""' : '';
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
 
   // No tag eyebrow on the projection. The word announced a taxonomy that is
@@ -5079,7 +5107,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num, parts = 
   const scrimAttr = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
   const bdAttr = bd.html ? ' data-has-backdrop=""' : '';
 
-  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${numAttr}${bdAttr}${scrimAttr}>
+  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${numAttr}${bdAttr}${scrimAttr}>
   ${bd.html}
   <div class="chunk-content">
     ${tagLabel}
@@ -5090,8 +5118,8 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num, parts = 
       <div class="annot-box-label">annotation · ${escapeHtml(chunkId)}</div>
       <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1">${escapeHtml(annotation)}</textarea>
     </aside>
-    <button class="annot-add" type="button" data-annot-add>+ note</button>
   </div>
+  <button class="annot-add" type="button" data-annot-add>+ note</button>
   ${overlayHtml}
   ${chevsHtml}
   ${expBodiesHtml}
@@ -6284,6 +6312,16 @@ body[data-headings=left] .chunk[data-tag=figure] .chunk-body { text-align: left;
 body[data-headings=left] .chunk-heading,
 body[data-headings=left] .title-main { text-align: left; }
 body[data-headings=center] .chunk-heading { text-align: center; }
+/* The heading comes off the slide and stays everywhere else. Two switches,
+   both subtractive and both live-view-only: a .bare class on one chunk, and
+   style.headings: off for a deck that is a run of figures with notes, where
+   writing the class forty times is the repetition the key exists to remove.
+   display: none rather than a dropped element, because the TOC, the search
+   index and the speaker's lists all read the heading's text out of the DOM
+   and every one of them keeps working. Both are audience-only: PRINT_CSS
+   carries neither, so the document and its contents page are unchanged. */
+.chunk[data-bare] > .chunk-content > .chunk-heading,
+body[data-headings=off] .chunk-heading { display: none; }
 body[data-headings=center] .chunk[data-tag=question] { text-align: center; }
 /* The hairline and the thick rule above a definition / principle chunk. */
 body[data-rules=off] .chunk[data-tag=principle] .chunk-content::before,
@@ -7043,9 +7081,13 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    left column can grow rightwards, the right column leftwards, and the
    middle both ways, which is what makes full a band rather than a
    third. */
-.overlay-card.ov-w-narrow   { max-width: 16em; }
-.overlay-card.ov-w-standard { max-width: 24em; }
-.overlay-card.ov-w-wide     { max-width: 36em; }
+/* Measured in the card's own em, which is 0.92 of the slide's - so 24em was
+   about 48 characters, short of the range running text wants and visibly so
+   on a two-line pull-out over a photograph. Widened one step each; the
+   full width is still the way to have the whole frame. */
+.overlay-card.ov-w-narrow   { max-width: 19em; }
+.overlay-card.ov-w-standard { max-width: 29em; }
+.overlay-card.ov-w-wide     { max-width: 42em; }
 .overlay-card.ov-w-full     { max-width: none; justify-self: stretch; }
 .overlay-card.ov-w-wide, .overlay-card.ov-w-full { grid-column: 1 / -1; }
 .overlay-card.ov-w-wide.ov-top-right,
@@ -7560,6 +7602,37 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
 /* A figure on a divider is the slide, so it gets the room a cover figure
    gets rather than the room a paragraph gets. */
 .chunk-section .section-body figure { margin: 0; }
+/* …and it sits *beside* the heading rather than under it. Stacked, a part
+   title, an agenda and a drawing are three blocks down one axis with nothing
+   balancing them across it - which is the busy, unresolved column the
+   composition produced the first time. The same reasoning the beside cover
+   follows, and it applies for the same reason: a drawing is a shape, and a
+   shape wants the axis the words are not using.
+   Only for a body that is *nothing but* a picture: prose under a heading is
+   a lede and reads correctly stacked, which is what a quotation divider is.
+   :has(> figure:only-child) is that test, written where the compiler already
+   put the answer rather than being decided again in the parser. */
+.chunk-section .chunk-content:has(> .section-body > figure:only-child) {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  align-items: center;
+  column-gap: 2.4em;
+}
+.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-body {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  margin-top: 0;
+  max-width: none;
+  align-self: center;
+}
+.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-outline,
+.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-heading,
+.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-mark {
+  grid-column: 1;
+}
+.chunk-section .chunk-content:has(> .section-body > figure:only-child) .section-body svg {
+  max-height: calc(var(--slide-h) * 0.68);
+}
 .chunk-section .section-body svg {
   width: auto; height: auto;
   max-width: 100%;
@@ -7636,9 +7709,8 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   grid-template-columns: auto minmax(0, 1fr);
   align-items: baseline;
   column-gap: 0.55em;
-  row-gap: 0.5em;
+  row-gap: 0.62em;
   text-align: left;
-  max-width: 34em;
   line-height: 1.2;
 }
 .section-outline li { display: contents; font-size: calc(1.02em * var(--zoom)); }
@@ -7652,6 +7724,12 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    under a heading in the ordinary content column, so it needs the air a
    list gets after prose and none of the divider's centring. */
 .chunk-outline .section-outline { margin-top: 0.5em; }
+/* The measure is capped per row and not on the list, and that is the whole
+   of it: an em on the <ol> is the *small* rows' em, so a cap that suits them
+   is 1.6x too tight for the live row - which then wrapped after four words
+   while a quotation under it on the same slide ran half again as wide.
+   Written on the cell, each row is bounded in its own type size. */
+.so-text { max-width: 26em; }
 /* The numerals are set at their own row's size, which is what makes baseline
    alignment read as deliberate. At one small size for every row they sat on
    the live row's baseline - a footnote marker hanging under a headline, which
@@ -7684,6 +7762,15 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    exists to number them. Putting it on a bar beside the type instead is
    the machine-made layout this project took an accent rail out for. */
 .section-outline li[data-state=now] { font-size: calc(1.6em * var(--zoom)); }
+/* The live row needs its own air, and it cannot come from row-gap: the gap
+   is one number for every row, and this row is 1.6x the others - at a gap
+   that suits the small rows it sits shoulder to shoulder with them, and at
+   one that suits it the whole list falls apart. Padding on the row's own
+   cells is the per-row spacing a grid does not otherwise offer, and it goes
+   on *both* cells so the two stay on one baseline. Written in the row's own
+   em, so it scales with whatever size the live row is set to. */
+.section-outline li[data-state=now] .so-num,
+.section-outline li[data-state=now] .so-text { padding: 0.16em 0; }
 .section-outline li[data-state=now] .so-num { color: var(--emph); }
 .section-outline li[data-state=now] .so-text {
   color: var(--ink);
@@ -7766,10 +7853,18 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
   line-height: 1.5;
 }
 .annot-textarea::placeholder { color: oklch(0.78 0 0); font-style: italic; }
+/* The affordance sits in the *slide's* left gutter, not beside the content
+   column, and it is a sibling of .chunk-content for exactly that reason: as
+   a child it was positioned against the measure, so on a wide chunk or a
+   narrow window it had nowhere to be but on top of the words. The gutter is
+   the chunk's own padding and the measure is the middle grid track, so from
+   out here it cannot reach the text whatever the width class says. Below the
+   width where the gutter stops being a gutter it is not drawn at all - a
+   hint for a key nobody has to be told about is not worth a collision. */
 .annot-add {
   position: absolute;
-  top: 0;
-  right: calc(100% + 2.5vw);
+  top: var(--slide-pad-y);
+  left: 0.4em;
   font-family: var(--sans-font);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.15em;
@@ -7786,6 +7881,7 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
 }
 .chunk.active:not(.has-annot):not(.annot-visible) .annot-add { opacity: 0.45; }
 .annot-add:hover { opacity: 0.9; }
+@media (max-width: 780px) { .annot-add { display: none; } }
 
 /* expansion chevrons – bottom-right of the slide */
 .exps {
@@ -7881,6 +7977,17 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
   transition: opacity 500ms ease;
 }
 .chunk.active { opacity: 1; }
+/* A backdrop belongs to its own slide and to no other. Neighbouring chunks
+   are dimmed rather than hidden - at --dim 1 they sit at 4% - which is
+   invisible for a paragraph and very much not invisible for a photograph:
+   the slide above showed as a grey band across the top of the one you were
+   reading, and a revealed backdrop, being a clipped rectangle, showed as a
+   grey block in a corner. Text at 4% is a rumour; a picture at 4% is a
+   picture. So the ground goes to zero off the active slide and comes back
+   with it, a little faster than the chunk's own fade so it has arrived by
+   the time the camera lands. */
+.chunk:not(.active) .chunk-backdrop { opacity: 0; }
+.chunk-backdrop { transition: opacity 260ms ease; }
 
 /* collapse modes (§4.5) – applied per reveal-segment.
    Two states only: 'none' (show everything) and 'topic-bold'

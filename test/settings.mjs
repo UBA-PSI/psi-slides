@@ -852,6 +852,65 @@ console.log('\nlayout generations');
   const qBlock = (qt2.html.match(/\.chunk\[data-cover=quote\][\s\S]*?\/\* split/) || [''])[0];
   ok(!/content: *['"\\]/.test(qBlock) && !/\\201C|&ldquo;|&#8220;/.test(qBlock),
      'and the composition adds no quotation mark, glyph or rule');
+
+  // ── a heading that is the document's and not the slide's ──
+  // Leaving the heading text out gives up the TOC entry, the search text and
+  // the printed heading too. `.bare` gives up only the slide.
+  const bare = (() => {
+    fs.writeFileSync(path.join(dir, 'source.md'),
+      '---\ntitle: T\n---\n\n## title: {#title}\n\n' +
+      '## figure: How a crawl is scored {.full #loop .bare}\n\nBody.\n');
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    return { failed: r.status !== 0, out: (r.stdout || '') + (r.stderr || ''),
+             html: r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '',
+             print: r.status === 0 ? fs.readFileSync(path.join(dir, 'print.html'), 'utf8') : '' };
+  })();
+  ok(!bare.failed && /data-bare=""/.test(bare.html), '.bare reaches the markup',
+     bare.out.split('\n')[0]);
+  // The heading stays in the DOM, hidden. Dropping the element instead would
+  // take it out of search and out of the speaker's own lists, which read it
+  // from there.
+  ok(/<h2 class="chunk-heading">How a crawl is scored<\/h2>/.test(bare.html),
+     'and the heading text is still in the live DOM, for search to find');
+  ok(/\.chunk\[data-bare\] > \.chunk-content > \.chunk-heading[^{]*\{ display: none/.test(bare.html),
+     'hidden by a rule rather than by being left out');
+  // Print is a document: it has no slide to take the heading off.
+  ok(/<h2 class="chunk-heading">How a crawl is scored<\/h2>/.test(bare.print)
+     && !/data-bare/.test(bare.print),
+     'and the printed document is untouched');
+  // The deck-wide switch lives in the same key as the alignment, because the
+  // two are one question: what the projection does with a heading.
+  const hOff = cover('style:\n  headings: off\n');
+  ok(!hOff.failed && /data-headings="off"/.test(hOff.html),
+     'style.headings: off reaches the body attribute', hOff.out.split('\n')[0]);
+  ok(/body\[data-headings=off\] \.chunk-heading \{ display: none/.test(hOff.html)
+     && !/data-headings=off/.test(hOff.print),
+     'and hides headings on the projection only');
+  const hBad = cover('style:\n  headings: gone\n');
+  ok(hBad.failed, 'an unknown value for the key is still refused');
+
+  // ── things that were painting over each other ──
+  // A backdrop belongs to its own slide. Neighbours are dimmed to 4%, which
+  // is invisible for a paragraph and a visible grey band for a photograph.
+  ok(/\.chunk:not\(\.active\) \.chunk-backdrop \{ opacity: 0; \}/.test(cls.html),
+     'a backdrop is not painted on any slide but its own');
+  // The annotation affordance sits in the slide's gutter, as a sibling of the
+  // content box - as a child it was positioned against the measure and had
+  // nowhere to go but on top of the words.
+  ok(/<\/div>\s*<button class="annot-add"/.test(cls.html),
+     'the + note affordance is outside the content box');
+  ok(!/\.annot-add \{[^}]*right: calc\(100%/.test(cls.html),
+     'and is no longer positioned against the measure');
+  // The outline's measure is capped per row, not on the list: an em on the
+  // <ol> is the small rows' em and 1.6x too tight for the live one.
+  ok(/\.so-text \{ max-width: 26em; \}/.test(cls.html)
+     && !/\.section-outline \{[^}]*max-width/.test(cls.html),
+     'the outline caps each row in its own type size');
+  // A divider whose body is nothing but a figure lays it beside the heading.
+  ok(/\.chunk-section \.chunk-content:has\(> \.section-body > figure:only-child\)/.test(cls.html),
+     'a divider with a lone figure lays it beside the heading, not under it');
 }
 
 console.log(`\n${passed} passed, ${failures.length} failed`);
