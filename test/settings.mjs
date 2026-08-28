@@ -312,7 +312,6 @@ console.log('\nlayout generations');
   const CARDS = '::: cards 2\n- Alpha\n- Beta\n:::\n';
   for (const [name, body] of [
     ['cols',       '::: cols 2\n' + CARDS + ':::\n'],
-    ['side',       '::: side\nleft\n' + CARDS + '::: flip\nright\n:::\n'],
     ['marginalia', '::: marginalia\n' + CARDS + ':::\n'],
     ['expand',     '::: expand detail\n' + CARDS + ':::\n'],
     ['margin',     '::: margin\n' + CARDS + ':::\n'],
@@ -322,6 +321,14 @@ console.log('\nlayout generations');
     ok(r.failed && /needs the whole measure/.test(r.out),
        `a card row inside ::: ${name} is refused, not squeezed`, r.out.split('\n')[0]);
   }
+  // `side` was in that list and came out of it, and the distinction is the
+  // one worth keeping: a pane is a *container* with a width the row can
+  // fill, while `cols` is a text flow the row breaks. Measured both ways.
+  {
+    const r = refuses('::: side 2:1\nleft\n::: flip\n' + CARDS + ':::\n');
+    ok(!r.failed, 'a card row inside a ::: side pane builds, because a pane is a container',
+       r.out.split('\n')[0]);
+  }
   // slide and script divide nothing - they say which half of the chunk is
   // on screen - so a row inside one is legitimate and must still build.
   for (const name of ['slide', 'script']) {
@@ -329,6 +336,160 @@ console.log('\nlayout generations');
     ok(!r.failed, `and one inside ::: ${name} still builds, because that divides nothing`,
        r.out.split('\n').find(l => l.includes('cards')) || '');
   }
+  // A figure in a column flow is the same defect the card row was.
+  {
+    const r = refuses('::: cols 2\nsome prose\n\n::: draw {unit=140x52}\nbox a "A"\n:::\n\nmore prose\n:::\n');
+    ok(r.failed && /breaks the flow/.test(r.out),
+       'and a ::: draw inside ::: cols is refused for the same reason', r.out.split('\n')[0]);
+  }
+}
+
+// ── the card row's own vocabulary ─────────────────────────────────────
+{
+  const mk = (body) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-cardv-'));
+    fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\n---\n\n## free: F {#f}\n\n' + body);
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
+      { cwd: ROOT, encoding: 'utf8' });
+    if (r.status !== 0) throw new Error((r.stdout || '') + (r.stderr || ''));
+    return fs.readFileSync(path.join(dir, 'audience.html'), 'utf8');
+  };
+  const one = mk('::: cards 1 {.accent .square}\n- **Key insight**\n:::\n');
+  ok(/cards cards-1 [^"]*cg-accent ck-square/.test(one),
+     'one card is a legal row, and the accent and square words reach it');
+  // A count with no --card-n rule leaves repeat() invalid and the whole
+  // grid-template-columns declaration is dropped. It shipped that way for
+  // one build: the row parsed, carried its classes, and drew nothing.
+  ok(/\.cards-1 \{ --card-n: 1; \}/.test(one),
+     'and the count has a rule behind it, or the grid silently has no columns');
+  // The accent ground reads var(--emph) for its fill, so redefining --emph
+  // in the same block resolved the fill against the *new* value: a
+  // paper-coloured card on paper, text and all. currentColor is what the
+  // bold fragments use instead.
+  const accentBlock = (one.match(/\.cards\.cg-accent > ul > li,[\s\S]{0,400}?\}/) || [''])[0];
+  ok(accentBlock && !/--emph:/.test(accentBlock),
+     'and the accent ground does not redefine the token its own fill reads');
+  const overlayAccent = (one.match(/\.overlay-card\.ov-accent \{[\s\S]{0,400}?\}/) || [''])[0];
+  ok(overlayAccent && !/--emph:/.test(overlayAccent),
+     'nor does the overlay card, which had the identical defect');
+}
+
+// ── what the card feedback pass changed, and why each one is a guard ──
+{
+  const css = build('').html;
+  // A hairline is a print value. On a projector one CSS pixel is at or
+  // below what the room can resolve, and the outline read as a rendering
+  // fault rather than as a border.
+  ok(/\.cards\.cg-outline \{ --card-border: 2px solid/.test(css),
+     'the outline ground is 2px, not a hairline');
+  // Balance equalises line lengths, so a three-line card came out as three
+  // short ragged lines with the column half empty. pretty fills the measure.
+  ok(/\.cards li,\s*\n?[^\n]*\.cards > :not\(ul\):not\(ol\) \{ text-wrap: pretty; \}/.test(css)
+     || /\.cards li[\s\S]{0,120}?text-wrap: pretty/.test(css),
+     'a card item wraps pretty rather than balanced');
+  // A card that opens with a bold run has a heading and needs air under it,
+  // and the <br> an author may also have written must not double it.
+  // Two selectors per rule, and the second is the card that opens with a
+  // bleeding picture: there the bold run is the *second* element, so a
+  // :first-child rule reached none of it and the <br> drew a visible empty
+  // line under every heading.
+  ok(/\.cards li > :is\(strong, b\):first-child,\s*\n?\.cards li > :is\(p, figure, img\):first-child \+ :is\(strong, b\) \{ display: block; \}/.test(css),
+     'a leading bold run becomes the card heading, after a picture too');
+  // The margin is keyed on the break the author typed, not on whether a
+  // text node happens to follow - :last-child counts elements, so the old
+  // rule gave a card that opened with a nested list a margin with nothing
+  // after it to separate from.
+  ok(/:is\(strong, b\):first-child:has\(\+ br\)/.test(css),
+     'and the air under it needs the hard break, not a following element');
+  ok(/:is\(strong, b\):first-child \+ br,[\s\S]{0,140}?display: none/.test(css),
+     'and that break is suppressed, or the separation doubles');
+  // Measured: a 231px card carried 39.8px of padding a side and left 151px
+  // for a word 153.7px wide, so the word overflowed and centred text that
+  // overflows shifts - which read as "not centred".
+  ok(/\.cards\.cs-large\s+\{ --card-fs: 1\.4;\s+--card-py: 0\.62em;\s+--card-px: 0\.7em; \}/.test(css),
+     'large cards carry less padding than small ones, not more');
+  // A figure rule elsewhere caps every picture at max-width 100%, which
+  // clamped the bleeding image straight back inside its padded box.
+  ok(/\.cards li > figure\.figure-img:first-child img[\s\S]{0,400}?max-width: none/.test(css),
+     'a bleeding card image lifts the max-width cap that clamped it');
+}
+
+// ── the auto size counts an item, not its first line ──────────────────
+{
+  const mk = (body) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-size-'));
+    fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\n---\n\n## free: F {#f}\n\n' + body);
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
+      { cwd: ROOT, encoding: 'utf8' });
+    if (r.status !== 0) throw new Error((r.stdout || '') + (r.stderr || ''));
+    return fs.readFileSync(path.join(dir, 'audience.html'), 'utf8');
+  };
+  // A hard break puts the rest of the item on the next line. Counting the
+  // marker line alone read this as a row of single words.
+  const broken = mk('::: cards 3\n- **Measure**\\\n  what the page does when a crawler asks for it\n- **Probe**\\\n  the detector until it names itself\n:::\n');
+  ok(/cs-medium/.test(broken),
+     'a continuation line after a hard break counts toward the size');
+  // With no box the type is the only thing carrying the structure, so the
+  // auto size steps down - and only where the author left it to the tool.
+  const clear = mk('::: cards 3 {.clear}\n- The gutter widens to carry the separation\n- Closest to plain prose in columns\n- No box at all\n:::\n');
+  ok(/cs-small/.test(clear), 'the clear ground takes the auto size one step down');
+  const forced = mk('::: cards 3 {.clear .large}\n- The gutter widens to carry the separation\n:::\n');
+  ok(/cs-large/.test(forced), 'but a written size is the author\'s and is left alone');
+}
+
+// ── ::: rows is the card row turned ninety degrees ────────────────────
+{
+  const mk = (body) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-rows-'));
+    fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\n---\n\n## free: F {#f}\n\n' + body);
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
+      { cwd: ROOT, encoding: 'utf8' });
+    if (r.status !== 0) throw new Error((r.stdout || '') + (r.stderr || ''));
+    return fs.readFileSync(path.join(dir, 'audience.html'), 'utf8');
+  };
+  const rows = mk('::: rows\n- **Separatism** Engineers do the technical work.\n- **Technocracy** Engineers decide.\n:::\n');
+  ok(/class="cards rows cards-1/.test(rows), 'a row block is the card container with one column');
+  // The body has to be an element or it cannot be placed in column 2: CSS
+  // can place a grid item, and an anonymous text run is not one.
+  ok(/<strong>Separatism<\/strong><span class="row-body">/.test(rows),
+     'and its body is wrapped, or it cannot be put in the second column');
+  // With a body attribute this selector outranks .cards.rows, so without
+  // the :not() the collapse rule handed a row block the column grid and
+  // the term track resolved to 0px with a 78px item in it.
+  ok(/body\[data-collapse=topic-bold\] \.cards:not\(\.rows\)/.test(rows),
+     'and the collapse rule exempts it, or its term track collapses to nothing');
+  // A row's term is a label in a column, not a headline across the slide.
+  ok(/cards rows cards-1 cs-medium/.test(rows),
+     'a row term is capped at medium however short it is');
+}
+
+// ── ::: side takes a ratio, and nothing else ──────────────────────────
+{
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-side-'));
+  const build2 = (body) => {
+    fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\n---\n\n## free: F {#f}\n\n' + body);
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
+      { cwd: ROOT, encoding: 'utf8' });
+    return { failed: r.status !== 0, out: (r.stdout || '') + (r.stderr || ''),
+             html: r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '' };
+  };
+  const r = build2('::: side 2:1\nleft\n::: flip\nright\n:::\n');
+  ok(!r.failed && /--side-a:2fr;--side-b:1fr/.test(r.html),
+     'a ratio on ::: side reaches the emitted markup', r.out.split('\n')[0]);
+  ok(/grid-template-columns: var\(--side-a, 1fr\) var\(--side-b, 1fr\)/.test(r.html),
+     'and the stylesheet reads it, with equal panes as the fallback');
+  const plain = build2('::: side\nleft\n::: flip\nright\n:::\n');
+  // The *markup*, not the file: the stylesheet names --side-a in its own
+  // fallback, so testing the whole document finds it either way.
+  ok(!plain.failed && /<div class="side"><div class="side-a">/.test(plain.html),
+     'a bare ::: side emits no ratio at all, so it is unchanged');
+  const bad = build2('::: side wide\nleft\n::: flip\nright\n:::\n');
+  ok(bad.failed && /takes an optional ratio/.test(bad.out),
+     'and anything else after the word is refused rather than dropped');
 }
 
 console.log(`\n${passed} passed, ${failures.length} failed`);
