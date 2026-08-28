@@ -336,6 +336,16 @@ console.log('\nlayout generations');
     ok(!r.failed, `and one inside ::: ${name} still builds, because that divides nothing`,
        r.out.split('\n').find(l => l.includes('cards')) || '');
   }
+  // The refusal was applied in the `cards` branch alone, so `::: rows`
+  // inside `::: cols` *built* while the linter reported an error on it -
+  // and reported it as `::: cards`, naming a construct the line does not
+  // contain. A linter stricter than the build is what CLAUDE.md calls
+  // worse than no linter.
+  {
+    const r = refuses('::: cols 2\n::: rows\n- **A** one\n- **B** two\n:::\n:::\n');
+    ok(r.failed && /::: rows inside ::: cols/.test(r.out),
+       'a row block inside ::: cols is refused too, and named as rows', r.out.split('\n')[0]);
+  }
   // A figure in a column flow is the same defect the card row was.
   {
     const r = refuses('::: cols 2\nsome prose\n\n::: draw {unit=140x52}\nbox a "A"\n:::\n\nmore prose\n:::\n');

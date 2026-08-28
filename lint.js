@@ -2257,8 +2257,13 @@ function lintFile(filePath) {
       const encl = narrowing ? `::: ${narrowing.kind.split(' ')[0]}`
         : activeDirective ? `::: ${activeDirective.kind}` : null;
       if (encl) {
+        // Names the keyword the author wrote. It said `cards` for a line
+        // reading `rows`, which is a message about a construct that is not
+        // on the line - and the build was not refusing it at all, so the
+        // linter was the stricter of the two. CLAUDE.md calls that worse
+        // than no linter, and it was right.
         add(ln, 'error', 'cards-nested',
-            `::: cards inside ${encl} – a card row needs the whole measure, and `
+            `::: ${kind} inside ${encl} – a card row needs the whole measure, and `
             + `${encl} has already divided it`);
       }
     }

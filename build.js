@@ -1419,15 +1419,14 @@ const CARDS_SLOTS = {
   // `auto` follows the size, because that is how one would set it by hand:
   // a word centres, a sentence ranges left.
   align:  ['auto', 'left', 'center'],
-  // Where the text sits when the cards are taller than their content -
-  // and they always are, because a grid row is as tall as its longest card.
+  // Where the text sits when the card is taller than its content - and it
+  // always is, because a grid row is as tall as its longest card. On a
+  // ::: rows block it is the term against the body beside it instead, and
+  // the *default* there is `middle` rather than `top`: see renderCardsBlock.
   anchor: ['top', 'middle'],
   // What happens to the levels under the first. `fold` keeps them off the
   // projection and gives them to the document and to the reader who
-  // presses C; `show` puts them on the slide too.
-  // `fold` keeps the levels under the first off the projection and gives
-  // them to the document and to the reader who presses C. `show` puts them
-  // on the slide too. `page` is the third answer and it exists for the case
+  // presses C. `show` puts them on the slide too. `page` is the third answer and it exists for the case
   // the other two cannot serve: a second level that is a paragraph rather
   // than a bullet. Unfolded in place that wrecks the row, so `page` never
   // unfolds - the detail is the hand-out's and C leaves it alone.
@@ -1439,9 +1438,9 @@ const CARDS_SLOTS = {
   // combination to avoid: a grey box inside a grey border reads as a form
   // field rather than as a card. One device or the other.
   //
-  // Five is the whole list and it is meant to stay five: filled, outlined,
-  // nothing, the accent, and the paper. Anyone who wants a sixth ground
-  // wants a drawing, and there is a language for that.
+  // Six is the whole list and it is meant to stay six: filled, outlined,
+  // nothing, the accent, the paper, and a picture. Anyone who wants a
+  // seventh ground wants a drawing, and there is a language for that.
   ground: ['panel', 'outline', 'clear', 'accent', 'paper', 'photo'],
   // Rounded or not. Its own slot rather than a ground, because it is a
   // different question - a square accent card and a round accent card are
@@ -2969,15 +2968,9 @@ function parseLecture(src) {
         // columns, and a row block has exactly one. A class would have
         // left the number on the line meaning nothing.
         const rowsOpen = line.match(/^:::\s+rows\s*(?:\{([^}]*)\})?\s*$/);
-        if (rowsOpen) {
-          cardsBlock = {
-            n: 1, rows: true, attrs: rowsOpen[1] || '', lines: [],
-            where: currentChunk.id ? `chunk #${currentChunk.id}` : 'a chunk with no id',
-          };
-          continue;
-        }
         const cardsOpen = line.match(/^:::\s+cards\s+([1-6])\s*(?:\{([^}]*)\})?\s*$/);
-        if (cardsOpen) {
+        if (cardsOpen || rowsOpen) {
+          const kw = rowsOpen ? 'rows' : 'cards';
           // A card row is N containers side by side, so it needs the whole
           // measure - and every directive that could enclose it has already
           // divided that measure up. Refused rather than rendered, because
@@ -3008,17 +3001,18 @@ function parseLecture(src) {
             : null;
           if (where) {
             const err = new Error(
-              `::: cards inside ${where} (${currentChunk.id ? '#' + currentChunk.id : 'a chunk with no id'}).\n` +
+              `::: ${kw} inside ${where} (${currentChunk.id ? '#' + currentChunk.id : 'a chunk with no id'}).\n` +
               '  A card row is N containers side by side, so it needs the whole measure,\n' +
               `  and ${where} has already divided it. Put the row in the chunk body, or\n` +
               `  use the enclosing directive alone.`);
             err.userFacing = true;
             throw err;
           }
-          cardsBlock = {
-            n: cardsOpen[1], attrs: cardsOpen[2] || '', lines: [],
-            where: currentChunk.id ? `chunk #${currentChunk.id}` : 'a chunk with no id',
-          };
+          cardsBlock = rowsOpen
+            ? { n: 1, rows: true, attrs: rowsOpen[1] || '', lines: [],
+                where: currentChunk.id ? `chunk #${currentChunk.id}` : 'a chunk with no id' }
+            : { n: cardsOpen[1], attrs: cardsOpen[2] || '', lines: [],
+                where: currentChunk.id ? `chunk #${currentChunk.id}` : 'a chunk with no id' };
           continue;
         }
         // `::: side 2:1` - how the two panes divide the measure. A ratio
