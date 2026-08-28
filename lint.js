@@ -55,8 +55,14 @@ const VIEW_DEFAULTS = {
   // Which cover composition the lecture opens with. Mirrors COVER_VARIANTS.
   'cover': ['classic', 'masthead', 'stack', 'display', 'panel',
             'split', 'hero', 'beside', 'above'],
+  // Where the type sits on the vertical, on the covers that leave it any
+  // freedom. Mirrors COVER_ALIGNS. Which covers those are is the build's to
+  // rule on, exactly as it is for cover-ratio: deciding it here means
+  // mirroring a second table to say something the build already says with
+  // the line in hand.
+  'cover-align': ['top', 'middle', 'bottom'],
   // How a column's divider slide is drawn. Mirrors SECTION_VARIANTS.
-  'section': ['plain', 'tinted', 'rule', 'card', 'number'],
+  'section': ['plain', 'tinted', 'rule', 'card', 'number', 'outline'],
   // Mirrors LIGATURE_MODES. The default is `text` and not `none`, because
   // code ligatures are already off and defaulting to none would take fi and
   // fl out of every existing lecture's prose.

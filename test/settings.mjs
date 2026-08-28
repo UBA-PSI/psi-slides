@@ -611,6 +611,102 @@ console.log('\nlayout generations');
     '\n## closing: Fin {#end}\n');
   ok(!cloPic.failed && !/data-closing[^>]*data-has-backdrop/.test(cloPic.html),
      'and takes no picture from cover-image', cloPic.out.split('\n')[0]);
+
+  // ── masthead's field and folio rule ──
+  // The composition is two bands with the slide's height between them, and
+  // with a short title nothing on it spanned the measure - which is what
+  // read as empty. The rule is the fix and it is load-bearing, so it is
+  // asserted on the element that carries it rather than as "some border
+  // exists somewhere".
+  ok(/\.chunk\[data-cover=masthead\] \.title-presenter \{[^}]*border-top: 2px solid var\(--rule\)/
+       .test(cls.html),
+     'masthead bounds its credits band with a folio rule across the measure');
+  ok(/\.chunk\[data-cover=masthead\] \.title-info \{[^}]*justify-content: space-between/
+       .test(cls.html),
+     'and lays the credits out as a row that reaches both edges');
+  // The lede. Its whole point is that info: survives it, which is the rule
+  // every other cover breaks - a chunk body normally replaces the meta.
+  const mastLede = cover('cover: masthead\n', '');
+  ok(!mastLede.failed && !/class="title-field"/.test(mastLede.html),
+     'a masthead with no body draws no field');
+  ok(/:not\(:has\(\.title-field\)\) \.title-main/.test(mastLede.html),
+     'and sets a larger nameplate when the field is empty');
+  const mastBody = (() => {
+    fs.writeFileSync(path.join(dir, 'source.md'),
+      '---\ntitle: T\nsubtitle: S\npresenter: P\ninfo: |\n  Lline\ncover: masthead\n---\n\n' +
+      '## title: {#title}\n\nThe lede.\n\n## free: F {#f}\n\nBody.\n');
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    return { failed: r.status !== 0, out: (r.stdout || '') + (r.stderr || ''),
+             html: r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '' };
+  })();
+  ok(!mastBody.failed && /class="title-field"><p>The lede\.<\/p>/.test(mastBody.html),
+     'a masthead body becomes the lede in the field', mastBody.out.split('\n')[0]);
+  ok(/class="title-info"><p>Lline<\/p>/.test(mastBody.html),
+     'and info: still supplies the meta, which a body elsewhere would have replaced');
+
+  // ── cover-align ──
+  // The mechanism is align-self on the content plus justify-content, and
+  // NOT align-items on the chunk: half these covers put a picture in a
+  // second grid track, and align-items is per-item, so moving the type that
+  // way collapses the picture to nothing. That is the guard worth holding.
+  const alBottom = cover('cover: stack\ncover-align: bottom\n');
+  ok(!alBottom.failed && /data-cover-align="bottom"/.test(alBottom.html),
+     'cover-align reaches the markup', alBottom.out.split('\n')[0]);
+  ok(/\.chunk\[data-cover-align\] \.chunk-content \{ align-self: stretch/.test(alBottom.html),
+     'and stretches the content, or justify-content has no slack to distribute');
+  ok(!/\.chunk\[data-cover-align[^{]*\{[^}]*align-items:/.test(alBottom.html),
+     'and never sets align-items on the chunk, which would collapse a picture track');
+  const alBad = cover('cover: stack\ncover-align: sideways\n');
+  ok(alBad.failed && /is not a place on the vertical/.test(alBad.out),
+     'an unknown place is refused rather than ignored');
+  const alWrong = cover('cover: display\ncover-align: bottom\n');
+  ok(alWrong.failed && /places its type itself/.test(alWrong.out),
+     'and a cover that places its own type refuses the key, like cover-ratio');
+  // The closing slide takes it, unlike the ratio: the placement is what the
+  // bookend has to match, and a cover in the lower third closed by a centred
+  // last slide has not closed the arc it opened.
+  const alClo = cover('cover: stack\ncover-align: bottom\n', '\n## closing: Fin {#end}\n');
+  ok(/data-tag="closing"[^>]*data-cover-align="bottom"/.test(alClo.html),
+     'and the closing slide inherits the placement');
+
+  // ── section: outline ──
+  // The one divider that needs the *other* columns. Everything else on a
+  // divider is a function of its own heading.
+  const outl = (() => {
+    fs.writeFileSync(path.join(dir, 'source.md'),
+      '---\ntitle: T\nsection: outline\n---\n\n## title: {#title}\n\n' +
+      '# One {#o}\n\n## free: A {#a}\n\nX.\n\n' +
+      '# Two {#t}\n\n## free: B {#b}\n\nX.\n\n' +
+      '# Three {#h}\n\n## free: C {#c}\n\nX.\n');
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    return { failed: r.status !== 0, out: (r.stdout || '') + (r.stderr || ''),
+             html: r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '',
+             print: r.status === 0 ? fs.readFileSync(path.join(dir, 'print.html'), 'utf8') : '' };
+  })();
+  ok(!outl.failed, 'section: outline builds', outl.out.split('\n')[0]);
+  const divs = outl.html.match(/<article class="chunk chunk-section"[\s\S]*?<\/article>/g) || [];
+  ok(divs.length === 3, 'one divider per headed column, ' + divs.length);
+  // Every divider lists every part - that is what makes it a running agenda
+  // rather than three unrelated slides - and each names a different one live.
+  ok(divs.every(d => (d.match(/<li data-state=/g) || []).length === 3),
+     'and every one of them lists all three parts');
+  ok(divs.map(d => (d.match(/data-state="now"[^>]*><span class="so-num">(\d)/) || [])[1])
+       .join('') === '123',
+     'with the live item walking down the list');
+  ok(/data-state="done"/.test(divs[2]) && /data-state="next"/.test(divs[0]),
+     'and parts behind and ahead marked as such');
+  // The heading is the live item, not a second copy of it beside the list.
+  ok(!/section-heading/.test(divs[1]),
+     'the outline replaces the heading rather than repeating it');
+  // Print ignores every divider variant - that is what makes the family
+  // cheap, and an outline leaking into the document would be a table of
+  // contents printed three times.
+  ok(!/section-outline/.test(outl.print),
+     'and print carries no outline, like every other divider variant');
 }
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

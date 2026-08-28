@@ -1392,7 +1392,22 @@ function resolveAssetUrl(ref) {
 //
 // `plain` is what the tool always drew, minus the paragraph sign - see
 // SECTION_MARK below.
-const SECTION_VARIANTS = ['plain', 'tinted', 'rule', 'card', 'number'];
+const SECTION_VARIANTS = ['plain', 'tinted', 'rule', 'card', 'number', 'outline'];
+// `outline` is the one divider that is not a treatment of the heading but a
+// different slide: it lists every part of the lecture and says which one
+// starts here. That is the running agenda a long lecture keeps wanting, and
+// it is the recurring element that fights monotony - the room sees the same
+// list four times and learns the shape of the hour from it.
+//
+// It needs something no other variant does: the *other* columns. Everything
+// else on a divider is a function of its own heading, so renderColumnSectionChunk
+// took one column; this one takes the list of headed columns and its own index
+// in it, which renderColumnsHtml already computes for `number`.
+//
+// Print ignores it, like every other divider variant: a divider slide is an
+// audience-only construct, auto-inserted so the camera lands on the heading,
+// and the document renderer emits col.heading as an ordinary <h1>. That is
+// what makes the whole family cheap.
 // Listed loud-to-quiet within each half rather than alphabetically,
 // because the list is the answer to one question - how much should the
 // opening slide assert itself - and an author reads it to place their own
@@ -1410,18 +1425,41 @@ const COVER_VARIANTS = [
   'classic', 'masthead', 'stack', 'display', 'panel',
   'split', 'hero', 'beside', 'above',
 ];
-// The two that take their picture from the chunk's own body rather than
+// The covers that take their picture from the chunk's own body rather than
 // from cover-image. That is what lets a ::: draw be the art: a diagram is
 // not a file, so cover-image can never name one, and giving them a
 // directive of their own would be a second way to say "this is the cover".
 //
-// It also changes one rule for exactly these two, and only these two: a
+// It also changes one rule for exactly these covers and no others: a
 // title chunk's body normally *replaces* the info lines (PRD §3), which
 // would mean a figure cover could not carry a date. Here the body is the
 // art and info: still supplies the meta.
 const COVER_BODY_ART = new Set(['beside', 'above']);
+// `masthead` is the third cover that does something with the chunk's own
+// body, and it is deliberately NOT on the list above. The two there place
+// the body as a picture in a grid track beside the type; a masthead has an
+// empty field *between* its two bands, and what belongs in a field between
+// a nameplate and a folio rule is the lede - a paragraph, a short list, a
+// drawing, in the flow. So it stays inside .chunk-content and needs none of
+// the cover-art plumbing: one more slot in renderTitleBlock, no grid track,
+// no second stylesheet. It shares one rule with them, though: info: still
+// supplies the meta, because the body is no longer standing in for it.
+const COVER_BODY_FIELD = new Set(['masthead']);
 // Which covers divide the slide, and therefore have a ratio to set.
 const COVER_RATIO_VARIANTS = new Set(['split', 'beside', 'above']);
+// Where the type block sits on the vertical, for the covers that leave it
+// any freedom. It is a separate key from `cover:` rather than six more
+// variant names because it is one question asked of six compositions, and
+// the alternative is `split-bottom`, `stack-top` and so on - a list that
+// multiplies every time either half of it grows.
+//
+// The four it is refused on are refused for a reason each, not by omission:
+// `display` sets the title to fill the slide, so there is no block to move;
+// `above` puts the title in a band under the art, which *is* its vertical
+// placement; and `masthead` pins its two bands to the two edges, which is
+// the whole composition rather than one setting of it.
+const COVER_ALIGNS = ['top', 'middle', 'bottom'];
+const COVER_ALIGN_VARIANTS = new Set(['classic', 'stack', 'panel', 'split', 'beside', 'hero']);
 
 // Slot tables. The first member of each list is the default, which is why
 // `cover` and `veil` are named at all: a word an author can write is a word
@@ -3519,17 +3557,24 @@ function splitInfo(info = '') {
 // room and the date – so the one line that says what the talk is about is
 // set exactly like the one that says which conference it is. That is the
 // whole of the "hard to read" complaint the variants were asked for.
-function renderTitleBlock({ title, subtitle, presenter, info, bodyHtml, bodyIsArt }) {
-  const infoLines = (bodyHtml && !bodyIsArt)
+function renderTitleBlock({ title, subtitle, presenter, info, bodyHtml, bodyIsArt, bodyInField }) {
+  // The body stands in for `info` only where the composition has nowhere
+  // else to put it. Where it does - as a picture in its own track, or as the
+  // lede in a masthead's field - the info lines are still the meta.
+  const bodyPlaced = bodyIsArt || bodyInField;
+  const infoLines = (bodyHtml && !bodyPlaced)
     ? null // chunk body overrides `info` (PRD §3 rules)
     : splitInfo(info);
+  const field = (bodyInField && bodyHtml)
+    ? `<div class="title-field">${bodyHtml}</div>` : '';
   return `
     <h1 class="title-main">${escapeHtml(title || '')}</h1>
     ${subtitle ? `<p class="title-subtitle">${escapeHtml(subtitle)}</p>` : ''}
+    ${field}
     ${presenter ? `<p class="title-presenter">${escapeHtml(presenter)}</p>` : ''}
     ${infoLines
       ? `<div class="title-info">${infoLines.map(l => `<p>${escapeHtml(l)}</p>`).join('')}</div>`
-      : (bodyIsArt ? '' : (bodyHtml || ''))}
+      : (bodyPlaced ? '' : (bodyHtml || ''))}
   `.trim();
 }
 
@@ -3655,7 +3700,33 @@ function coverSettings(frontmatter = {}) {
     }
     ratio = n;
   }
-  return { variant: raw, image, ratio, bodyIsArt: COVER_BODY_ART.has(raw) };
+  // Where the type sits on the vertical. Refused where the composition has
+  // already answered it, for the same reason cover-ratio is: a key the
+  // drawing ignores is a silent no-op.
+  let align = null;
+  if (frontmatter['cover-align'] != null) {
+    const rawA = String(frontmatter['cover-align']).trim();
+    if (!COVER_ALIGNS.includes(rawA)) {
+      const err = new Error(
+        `Frontmatter: "cover-align: ${rawA}" is not a place on the vertical.\n` +
+        `  Valid values: ${COVER_ALIGNS.join(', ')}`);
+      err.userFacing = true;
+      throw err;
+    }
+    if (!COVER_ALIGN_VARIANTS.has(raw)) {
+      const err = new Error(
+        `Frontmatter: cover-align is set, but "cover: ${raw}" places its type itself,\n` +
+        `  so there is nothing left for it to place. It applies to: ${[...COVER_ALIGN_VARIANTS].join(', ')}`);
+      err.userFacing = true;
+      throw err;
+    }
+    align = rawA;
+  }
+  return {
+    variant: raw, image, ratio, align,
+    bodyIsArt: COVER_BODY_ART.has(raw),
+    bodyInField: COVER_BODY_FIELD.has(raw),
+  };
 }
 
 // The picture half of a cover. `hero` reuses the ::: backdrop machinery
@@ -3758,7 +3829,7 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
   ${numHtml}
   ${closing
     ? renderClosingBlock(chunk, bodyHtml)
-    : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt })}
+    : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt, bodyInField: cover.bodyInField })}
   ${renderOverlayLayer(chunk.overlays, where)}
 </article>`;
   }
@@ -4637,11 +4708,16 @@ function renderTitleChunk(chunk, frontmatter, num) {
   const scrimAttr = art.scrim && art.scrim !== 'veil' ? ` data-backdrop="${art.scrim}"` : '';
   const bdAttr = art.html ? ' data-has-backdrop=""' : '';
   const ratioStyle = (cover.ratio && !closing) ? ` style="--cover-ratio:${cover.ratio}%"` : '';
+  // The closing slide takes the placement too, unlike the ratio. The ratio
+  // divides a slide for a picture and the closing has none; the placement is
+  // where the type sits, and a deck whose cover puts its title in the lower
+  // third and whose last slide centres it has not closed the arc it opened.
+  const alignAttr = cover.align ? ` data-cover-align="${cover.align}"` : '';
   const closingAttr = closing ? ' data-closing=""' : '';
   const block = closing
     ? renderClosingBlock(chunk, bodyHtml)
-    : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt });
-  return `<article class="chunk chunk-title" data-tag="${closing ? 'closing' : 'title'}" data-width="full" data-cover="${cover.variant}"${closingAttr}${bdAttr}${scrimAttr} data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}${ratioStyle}>
+    : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt, bodyInField: cover.bodyInField });
+  return `<article class="chunk chunk-title" data-tag="${closing ? 'closing' : 'title'}" data-width="full" data-cover="${cover.variant}"${closingAttr}${alignAttr}${bdAttr}${scrimAttr} data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}${ratioStyle}>
   ${art.html}
   <div class="chunk-content">
     ${block}
@@ -4744,16 +4820,34 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num) {
 // the audience/speaker camera lands on the heading before the first
 // chunk. Print already renders col.heading as a static `<h1>`; here we
 // need it as its own `.chunk` so flatChunks (the navigator) sees it.
-function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0) {
+//
+// `parts` is the list of every headed column, which only `outline` reads.
+// It is passed rather than looked up because renderColumnsHtml is already
+// walking the columns and already counting the headed ones for `number` -
+// a second walk would be a second definition of "which columns are parts",
+// and the two would disagree the first time the rule changed.
+function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []) {
   const chunkId = col.id ? `${col.id}-section` : `__section-c${ci}`;
   const sec = sectionSettings(frontmatter);
   const mark = sec.mark
     ? `<div class="section-mark">${escapeHtml(sec.mark)}</div>`
     : (sec.variant === 'number' ? `<div class="section-mark section-num">${num}</div>` : '');
+  // The running agenda. The heading is not set beside the list - it IS the
+  // list's current item, which is the whole reason the variant exists: a
+  // heading plus a list of headings says the same thing twice, and the
+  // second copy is the one the room reads.
+  const body = sec.variant === 'outline' && parts.length
+    ? `<ol class="section-outline">${parts.map(p => {
+        const state = p.no < num ? 'done' : (p.no === num ? 'now' : 'next');
+        return `<li data-state="${state}"` + (p.no === num ? ' aria-current="step"' : '') + `>` +
+          `<span class="so-num">${p.no}</span>` +
+          `<span class="so-text">${escapeHtml(p.heading)}</span></li>`;
+      }).join('')}</ol>`
+    : `<h1 class="section-heading">${escapeHtml(col.heading)}</h1>`;
   return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="${sec.variant}" data-chunk-id="${escapeHtml(chunkId)}">
   <div class="chunk-content">
     ${mark}
-    <h1 class="section-heading">${escapeHtml(col.heading)}</h1>
+    ${body}
   </div>
 </article>`;
 }
@@ -4771,10 +4865,15 @@ function renderColumnsHtml(columns, frontmatter) {
   // heading - so `section: number` numbers the parts a reader sees rather
   // than the array index, which counts the anonymous opening column too.
   let sectionNo = 0;
+  // The same set, counted the same way, so `outline` and `number` can never
+  // disagree about which part this is.
+  const parts = [];
+  let partNo = 0;
+  for (const col of columns) if (col.heading) parts.push({ no: ++partNo, heading: col.heading });
   return columns.map((col, ci) => {
     if (col.heading) sectionNo += 1;
     const sectionHtml = col.heading
-      ? renderColumnSectionChunk(col, ci, frontmatter, sectionNo) : '';
+      ? renderColumnSectionChunk(col, ci, frontmatter, sectionNo, parts) : '';
     const chunks = col.chunks
       .map((c, xi) => {
         num += 1;
@@ -5936,8 +6035,8 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
    bottom whatever the title above them measures. */
 .chunk[data-cover=masthead] { align-items: stretch; }
 .chunk[data-cover=masthead] .chunk-content {
-  padding-top: 9vh;
-  padding-bottom: 9vh;
+  padding-top: 8vh;
+  padding-bottom: 7vh;
   gap: 0;
   justify-content: flex-start;
 }
@@ -5952,12 +6051,74 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
   font-size: calc(1.15em * var(--zoom));
   max-width: 25em;
 }
+/* The one rule on the slide, and it is what turns the empty field from a
+   hole into a field. A masthead is defined by a band that spans the measure,
+   and with a short title nothing here spans anything: measured on a real
+   deck, the longest line reached 55% of the frame and the right 45% was
+   empty at every height, which is what "leer" was describing. The folio rule
+   is the newspaper device for exactly that - it is the composition asserting
+   its width, and it costs no colour, no ground and no glyph.
+
+   2px and not 1: a hairline is invisible on most projectors and reads as a
+   defect on the rest, which is the same measurement the outline card
+   already carries. It sits on the presenter because the presenter already
+   carries margin-top: auto, so the border lands at the top of the credits
+   band whatever the field above it measures - no second element, no
+   pseudo-element, nothing to keep in sync with the block above. */
 .chunk[data-cover=masthead] .title-presenter {
   margin-top: auto;
+  padding-top: 0.85em;
+  border-top: 2px solid var(--rule);
   font-size: calc(1.02em * var(--zoom));
   font-weight: 600;
 }
-.chunk[data-cover=masthead] .title-info { margin-top: 0.35em; }
+/* The credits run to both edges of the measure: who spoke on the left, where
+   and when on the right. They were a single left-hugging run with a wide gap
+   in the middle of it, which is a row that has been written but not laid
+   out. space-between is the whole difference, and it needs the width to
+   push against - a flex item in a column shrink-wraps its content. */
+.chunk[data-cover=masthead] .title-info {
+  margin-top: 0.35em;
+  width: 100%;
+  justify-content: space-between;
+  column-gap: 2.4em;
+}
+/* The lede. A masthead's field wants what a front page puts there - a
+   paragraph, a short list, a drawing - and it is the chunk's own body, in
+   the flow, so every construct that works in a chunk works here. It takes
+   the slack between the bands rather than sitting under the subtitle,
+   because a two-line lede pinned to the top of a tall field re-creates the
+   hole it was written to fill. */
+.chunk[data-cover=masthead] .title-field {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5em;
+  margin: 1.4em 0 1.2em;
+  max-width: 38em;
+  font-size: calc(0.95em * var(--zoom));
+  overflow: hidden;
+}
+/* With no lede the field is empty, and an empty field wants a bigger
+   nameplate over it - the same reasoning the card row's auto size follows,
+   and the same shape of rule: the composition reads what it was given and
+   sets the scale from it, rather than making the author choose a size to go
+   with a decision they already made by writing (or not writing) a body. */
+.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) .title-main {
+  font-size: calc(3.05em * var(--zoom));
+  max-width: 15em;
+}
+.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) .title-subtitle {
+  font-size: calc(1.3em * var(--zoom));
+  margin-top: 0.55em;
+}
+.chunk[data-cover=masthead] .title-field > * { margin: 0; }
+.chunk[data-cover=masthead] .title-field figure { margin: 0; min-height: 0; }
+.chunk[data-cover=masthead] .title-field svg {
+  width: auto; height: auto; max-width: 100%; max-height: 100%;
+}
 
 /* display – the title set to fill the slide, and nothing else asked to
    carry anything. The scale is the design: a lecture title at four and a
@@ -6089,7 +6250,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   grid-column: 1;
   grid-row: 1;
   justify-content: center;
-  padding: var(--slide-pad-y) 2.4em var(--slide-pad-y) calc(var(--slide-pad-x) * 0.62);
+  padding: var(--slide-pad-y) 4.4em var(--slide-pad-y) calc(var(--slide-pad-x) * 0.62);
   gap: 0.42em;
 }
 /* Both tracks are pinned to row 1. The picture is emitted before the text
@@ -6341,6 +6502,23 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .chunk[data-cover=above] .cover-art-body,
 .chunk[data-cover=above] .cover-art-body figure { height: 100%; max-height: 100%; }
 .chunk[data-cover=above] .cover-art-body svg { max-height: 100%; }
+
+/* ── cover-align: where the type sits on the vertical ────────────────
+   One mechanism for six compositions, and it is deliberately the *content
+   box* rather than the grid's align-items. Half of these covers put a
+   picture in a second grid track, and align-items is per-item: setting it
+   on the chunk to move the type also un-stretches the art, which on split
+   collapses a full-height panel to the intrinsic height of an empty div -
+   the picture vanishes and nothing in the rule says why. align-self on the
+   content alone cannot reach the art at all.
+
+   Stretching it is what makes justify-content operative: a flex column that
+   shrink-wraps its own content has no slack to distribute, so the property
+   would resolve and move nothing - the silent no-op this format refuses. */
+.chunk[data-cover-align] .chunk-content { align-self: stretch; }
+.chunk[data-cover-align=top] .chunk-content { justify-content: flex-start; }
+.chunk[data-cover-align=middle] .chunk-content { justify-content: center; }
+.chunk[data-cover-align=bottom] .chunk-content { justify-content: flex-end; }
 
 /* ── full-bleed backdrops (::: backdrop) ─────────────────────────────
    The layer is inset:0 on the .chunk, so it fills whatever the chunk
@@ -6970,6 +7148,74 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
 }
 /* number - the counter carries the weight, so the heading steps back. */
 .chunk[data-section=number] .section-heading { font-size: calc(2.1em * var(--zoom)); }
+
+/* outline - the running agenda, and the only divider that is a different
+   slide rather than a treatment of the heading. It answers the question a
+   long lecture keeps raising and a coloured field cannot: not "a new part
+   starts" but "which part, out of how many, and how far in are we".
+
+   It is also the recurring element that fights monotony, which is why it
+   earns its place next to four treatments of one heading: the room meets
+   the same list four or six times and learns the shape of the hour from
+   it. That only works if the list is stable, so the items are the columns
+   in source order and nothing about the slide changes but which one is
+   live.
+
+   Three states, and the difference between them is deliberately not three
+   greys. Two greys a projector can tell apart, three it cannot; what
+   carries progress is the *position* of the live item as it walks down the
+   list, and the fade only has to say "not this one". Size and weight do
+   the rest, which is why the current item needs no ground, no rail and no
+   marker of its own. */
+.chunk[data-section=outline] .chunk-content { align-items: flex-start; }
+.section-outline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  text-align: left;
+  max-width: 36em;
+}
+.section-outline li {
+  display: grid;
+  grid-template-columns: 1.9em minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 0.5em;
+  line-height: 1.2;
+  color: var(--ink-soft);
+  transition: opacity 0.25s ease;
+}
+.so-num {
+  font-family: var(--sans-font);
+  font-variant-numeric: tabular-nums;
+  font-size: calc(0.76em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: right;
+}
+.so-text { font-size: calc(1.02em * var(--zoom)); }
+.section-outline li[data-state=done] { opacity: 0.5; }
+.section-outline li[data-state=next] { opacity: 0.3; }
+/* The live item. The accent is on the numeral alone - it is the one mark
+   that says which of them this is, and it says it in the column that
+   exists to number them. Putting it on a bar beside the type instead is
+   the machine-made layout this project took an accent rail out for. */
+.section-outline li[data-state=now] {
+  opacity: 1;
+  color: var(--ink);
+  margin: 0.24em 0;
+}
+.section-outline li[data-state=now] .so-num {
+  color: var(--emph);
+  font-size: calc(0.9em * var(--zoom));
+}
+.section-outline li[data-state=now] .so-text {
+  font-size: calc(1.72em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: -0.014em;
+}
 
 /* margin notes: inline below body, dimmed, small */
 .margin-note {

@@ -877,8 +877,8 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
    bottom whatever the title above them measures. */
 .chunk[data-cover=masthead] { align-items: stretch; }
 .chunk[data-cover=masthead] .chunk-content {
-  padding-top: 9vh;
-  padding-bottom: 9vh;
+  padding-top: 8vh;
+  padding-bottom: 7vh;
   gap: 0;
   justify-content: flex-start;
 }
@@ -893,12 +893,74 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
   font-size: calc(1.15em * var(--zoom));
   max-width: 25em;
 }
+/* The one rule on the slide, and it is what turns the empty field from a
+   hole into a field. A masthead is defined by a band that spans the measure,
+   and with a short title nothing here spans anything: measured on a real
+   deck, the longest line reached 55% of the frame and the right 45% was
+   empty at every height, which is what "leer" was describing. The folio rule
+   is the newspaper device for exactly that - it is the composition asserting
+   its width, and it costs no colour, no ground and no glyph.
+
+   2px and not 1: a hairline is invisible on most projectors and reads as a
+   defect on the rest, which is the same measurement the outline card
+   already carries. It sits on the presenter because the presenter already
+   carries margin-top: auto, so the border lands at the top of the credits
+   band whatever the field above it measures - no second element, no
+   pseudo-element, nothing to keep in sync with the block above. */
 .chunk[data-cover=masthead] .title-presenter {
   margin-top: auto;
+  padding-top: 0.85em;
+  border-top: 2px solid var(--rule);
   font-size: calc(1.02em * var(--zoom));
   font-weight: 600;
 }
-.chunk[data-cover=masthead] .title-info { margin-top: 0.35em; }
+/* The credits run to both edges of the measure: who spoke on the left, where
+   and when on the right. They were a single left-hugging run with a wide gap
+   in the middle of it, which is a row that has been written but not laid
+   out. space-between is the whole difference, and it needs the width to
+   push against - a flex item in a column shrink-wraps its content. */
+.chunk[data-cover=masthead] .title-info {
+  margin-top: 0.35em;
+  width: 100%;
+  justify-content: space-between;
+  column-gap: 2.4em;
+}
+/* The lede. A masthead's field wants what a front page puts there - a
+   paragraph, a short list, a drawing - and it is the chunk's own body, in
+   the flow, so every construct that works in a chunk works here. It takes
+   the slack between the bands rather than sitting under the subtitle,
+   because a two-line lede pinned to the top of a tall field re-creates the
+   hole it was written to fill. */
+.chunk[data-cover=masthead] .title-field {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5em;
+  margin: 1.4em 0 1.2em;
+  max-width: 38em;
+  font-size: calc(0.95em * var(--zoom));
+  overflow: hidden;
+}
+/* With no lede the field is empty, and an empty field wants a bigger
+   nameplate over it - the same reasoning the card row's auto size follows,
+   and the same shape of rule: the composition reads what it was given and
+   sets the scale from it, rather than making the author choose a size to go
+   with a decision they already made by writing (or not writing) a body. */
+.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) .title-main {
+  font-size: calc(3.05em * var(--zoom));
+  max-width: 15em;
+}
+.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) .title-subtitle {
+  font-size: calc(1.3em * var(--zoom));
+  margin-top: 0.55em;
+}
+.chunk[data-cover=masthead] .title-field > * { margin: 0; }
+.chunk[data-cover=masthead] .title-field figure { margin: 0; min-height: 0; }
+.chunk[data-cover=masthead] .title-field svg {
+  width: auto; height: auto; max-width: 100%; max-height: 100%;
+}
 
 /* display – the title set to fill the slide, and nothing else asked to
    carry anything. The scale is the design: a lecture title at four and a
@@ -1030,7 +1092,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   grid-column: 1;
   grid-row: 1;
   justify-content: center;
-  padding: var(--slide-pad-y) 2.4em var(--slide-pad-y) calc(var(--slide-pad-x) * 0.62);
+  padding: var(--slide-pad-y) 4.4em var(--slide-pad-y) calc(var(--slide-pad-x) * 0.62);
   gap: 0.42em;
 }
 /* Both tracks are pinned to row 1. The picture is emitted before the text
@@ -1282,6 +1344,23 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .chunk[data-cover=above] .cover-art-body,
 .chunk[data-cover=above] .cover-art-body figure { height: 100%; max-height: 100%; }
 .chunk[data-cover=above] .cover-art-body svg { max-height: 100%; }
+
+/* ── cover-align: where the type sits on the vertical ────────────────
+   One mechanism for six compositions, and it is deliberately the *content
+   box* rather than the grid's align-items. Half of these covers put a
+   picture in a second grid track, and align-items is per-item: setting it
+   on the chunk to move the type also un-stretches the art, which on split
+   collapses a full-height panel to the intrinsic height of an empty div -
+   the picture vanishes and nothing in the rule says why. align-self on the
+   content alone cannot reach the art at all.
+
+   Stretching it is what makes justify-content operative: a flex column that
+   shrink-wraps its own content has no slack to distribute, so the property
+   would resolve and move nothing - the silent no-op this format refuses. */
+.chunk[data-cover-align] .chunk-content { align-self: stretch; }
+.chunk[data-cover-align=top] .chunk-content { justify-content: flex-start; }
+.chunk[data-cover-align=middle] .chunk-content { justify-content: center; }
+.chunk[data-cover-align=bottom] .chunk-content { justify-content: flex-end; }
 
 /* ── full-bleed backdrops (::: backdrop) ─────────────────────────────
    The layer is inset:0 on the .chunk, so it fills whatever the chunk
@@ -1911,6 +1990,74 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
 }
 /* number - the counter carries the weight, so the heading steps back. */
 .chunk[data-section=number] .section-heading { font-size: calc(2.1em * var(--zoom)); }
+
+/* outline - the running agenda, and the only divider that is a different
+   slide rather than a treatment of the heading. It answers the question a
+   long lecture keeps raising and a coloured field cannot: not "a new part
+   starts" but "which part, out of how many, and how far in are we".
+
+   It is also the recurring element that fights monotony, which is why it
+   earns its place next to four treatments of one heading: the room meets
+   the same list four or six times and learns the shape of the hour from
+   it. That only works if the list is stable, so the items are the columns
+   in source order and nothing about the slide changes but which one is
+   live.
+
+   Three states, and the difference between them is deliberately not three
+   greys. Two greys a projector can tell apart, three it cannot; what
+   carries progress is the *position* of the live item as it walks down the
+   list, and the fade only has to say "not this one". Size and weight do
+   the rest, which is why the current item needs no ground, no rail and no
+   marker of its own. */
+.chunk[data-section=outline] .chunk-content { align-items: flex-start; }
+.section-outline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  text-align: left;
+  max-width: 36em;
+}
+.section-outline li {
+  display: grid;
+  grid-template-columns: 1.9em minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 0.5em;
+  line-height: 1.2;
+  color: var(--ink-soft);
+  transition: opacity 0.25s ease;
+}
+.so-num {
+  font-family: var(--sans-font);
+  font-variant-numeric: tabular-nums;
+  font-size: calc(0.76em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: right;
+}
+.so-text { font-size: calc(1.02em * var(--zoom)); }
+.section-outline li[data-state=done] { opacity: 0.5; }
+.section-outline li[data-state=next] { opacity: 0.3; }
+/* The live item. The accent is on the numeral alone - it is the one mark
+   that says which of them this is, and it says it in the column that
+   exists to number them. Putting it on a bar beside the type instead is
+   the machine-made layout this project took an accent rail out for. */
+.section-outline li[data-state=now] {
+  opacity: 1;
+  color: var(--ink);
+  margin: 0.24em 0;
+}
+.section-outline li[data-state=now] .so-num {
+  color: var(--emph);
+  font-size: calc(0.9em * var(--zoom));
+}
+.section-outline li[data-state=now] .so-text {
+  font-size: calc(1.72em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: -0.014em;
+}
 
 /* margin notes: inline below body, dimmed, small */
 .margin-note {
@@ -3715,6 +3862,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   <div class="chunk-content">
     <h1 class="title-main">Animated Infographics</h1>
     <p class="title-subtitle">Six real lecture slides, rebuilt in ::: draw</p>
+    
     
     <p>This is a psi-slides lecture: one Markdown source becomes the projected slides,
 a speaker cockpit, a reading document, and a handout with the spoken notes. The

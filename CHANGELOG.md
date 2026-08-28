@@ -9,6 +9,47 @@ from building the same way is a major version.
 
 ### Added
 
+- **`section: outline` – the running agenda.** The one divider that is a
+  different slide rather than a treatment of the heading: every part of the
+  lecture listed, this one live, the ones behind and ahead receding. It
+  answers what a coloured field cannot - not *a new part starts* but *which
+  part, out of how many, and how far in are we* - and it is the recurring
+  element a long lecture needs, because the room meets the same list four or
+  six times and learns the shape of the hour from it.
+
+  Three states and deliberately not three greys: two a projector can tell
+  apart, three it cannot, so progress is carried by the *position* of the live
+  item walking down the list and the fade only says "not this one". The
+  heading is the live item rather than a second copy of it set beside the
+  list. Print ignores it like every other divider variant, which is what keeps
+  the family cheap.
+
+- **`cover-align: top | middle | bottom`.** Where the type sits on the
+  vertical, for the six covers that leave it any freedom (`classic`, `stack`,
+  `panel`, `split`, `beside`, `hero`) - so a `split` cover can put its title
+  in the lower third instead of centring it. One key rather than six more
+  variant names, because `split-bottom` and `stack-top` is a list that
+  multiplies every time either half of it grows. Refused on the three that
+  place their own type, the same rule `cover-ratio` follows. The closing slide
+  inherits it, unlike the ratio: a deck whose cover puts its title in the
+  lower third and whose last slide centres it has not closed the arc.
+
+### Changed
+
+- **`masthead` was rebuilt.** It read as empty, and the fault was not the
+  empty middle band: measured on a real deck, *nothing on the slide spanned
+  the measure* - the longest line reached 55% of the frame with a short title,
+  and the credits, already described as "a row", were a left-hugging run with
+  a wide space in the middle. It now carries a 2px folio rule above the
+  credits, lays them out to both edges of the measure, and takes a **lede**
+  from the title chunk's own body in the field between the bands, with `info:`
+  still supplying the meta. With no lede the nameplate is set larger.
+
+- **`split`'s gutter is 4.4em, up from 2.4em.** That padding is the guaranteed
+  minimum distance between the type and a photograph bled off the edge, and at
+  the old value a title that nearly filled its column came within about 50px
+  of the picture. A long title now wraps where it did not.
+
 - **The 1.0.0 look is reachable, as three ordinary settings.** From 1.0.0 the
   source format is the interface, and a finished deck should be able to lay
   out the way it laid out. Exactly three things have moved since that an
