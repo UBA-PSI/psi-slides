@@ -2049,17 +2049,40 @@ pre.shiki .line { display: inline; }
 <span class="line"><span style="color:#E36209">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold"> **Probe**</span><span style="color:#24292E"> the detector until it names itself</span></span>
 <span class="line"><span style="color:#E36209">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold"> **Report**</span><span style="color:#24292E"> what that costs a measurement study</span></span>
 <span class="line"><span style="color:#24292E">:::</span></span></code></pre>
-<p>Which children become the cards is one rule and no parsing: a lone list dissolves into the grid, so its items are the cards; anything else contributes one card per block. Counts from 2 to 6 – past six, what you have is a table.</p>
+<p>Which children become the cards is one rule and no parsing: a lone list dissolves into the grid, so its items are the cards; anything else contributes one card per block. Counts from 1 to 6 – one card is a callout, and past six what you have is a table.</p>
 <p>Use <code>cols</code> for an argument that runs long and <code>cards</code> for a comparison the room should be able to count.</p>
+<p><strong>Seven slots ride in the tail</strong>, and two of them decide themselves: <code>size</code> (<code>auto</code> reads the longest item), <code>align</code> (<code>auto</code> follows the size), <code>anchor</code>, <code>detail</code>, <code>ground</code>, <code>corner</code> and <code>scrim</code>. <code>ground: photo</code> makes the card&#39;s first picture its ground and <code>scrim</code> says what veils it; a picture that is <em>not</em> the ground bleeds to the card&#39;s edges with the text beneath it.</p>
+<p><strong>How you open a card decides what the bold means.</strong> Written inline it is a lead-in; written before a hard break it is a heading with air under it – a distinction you already write, so nothing new had to be invented for it.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#E36209">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold"> **panel**</span><span style="color:#24292E"> a tinted fill…      lead-in</span></span>
+<span class="line"><span style="color:#E36209">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold"> **Measure**</span><span style="color:#24292E">\                  heading</span></span>
+<span class="line"><span style="color:#24292E">  what the page does</span></span></code></pre>
 
   
   
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="side-ratio" data-chunk-num="45">
+<article class="chunk chunk-example width-wide" id="rows" data-chunk-num="45">
   
   <span class="chunk-num" aria-hidden="true"><i>4</i><i>5</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">A term and what it means</span> <span class="hd-sub"><code>::: rows</code></span></h2>
+  <p><strong><code>::: rows</code> is the same container turned ninety degrees</strong>: a term in a card on the left, its body beside it, several stacked.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#24292E">::: rows {.accent}</span></span>
+<span class="line"><span style="color:#E36209">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold"> **Separatism**</span><span style="color:#24292E"> Engineers do the technical work; managers take the decisions.</span></span>
+<span class="line"><span style="color:#E36209">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold"> **Technocracy**</span><span style="color:#24292E"> Engineers should take them, because they understand them.</span></span>
+<span class="line"><span style="color:#24292E">:::</span></span></code></pre>
+<p>It takes no count – a row block has one column by definition – and every slot a card row has. Three defaults differ, each for a reason you can see on the slide: <code>anchor</code> is <code>middle</code>, because a one-line term set against a three-line body&#39;s first line reads as a mistake; <code>align</code> names how the term sits <em>in its card</em> and the body always ranges left; and the automatic size stops at <code>medium</code>, because a term is a label in a column rather than a headline across the slide.</p>
+<p>Reach for <code>rows</code> when a term needs a sentence, and for <code>cards</code> when a comparison needs counting.</p>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="side-ratio" data-chunk-num="46">
+  
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>6</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure beside the prose</span> <span class="hd-sub"><code>::: side 2:1</code></span></h2>
   <p><strong><code>::: side</code> takes an optional ratio</strong>, and that turned out to be the whole of what &quot;figure beside the text&quot; needed.</p>
@@ -2081,9 +2104,9 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="style-block" data-chunk-num="46">
+<article class="chunk chunk-example width-wide" id="style-block" data-chunk-num="47">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Setting the type for a whole lecture</span> <span class="hd-sub">the <code>style:</code> block</span></h2>
   <p><strong>Four knobs an author reaches for on a whole deck rather than on one chunk.</strong></p>
@@ -2100,9 +2123,9 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="bundled-fonts" data-chunk-num="47">
+<article class="chunk chunk-example width-wide" id="bundled-fonts" data-chunk-num="48">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>8</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Which typefaces travel in the file</span> <span class="hd-sub">five bundled families, named not filed</span></h2>
   <p><strong>Three families ship in any one output, and which three is the lecture&#39;s choice.</strong> A bundled family needs no file — that is the point of bundling it.</p>
@@ -2120,9 +2143,9 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="layout-generation" data-chunk-num="48">
+<article class="chunk chunk-example width-wide" id="layout-generation" data-chunk-num="49">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Laying a lecture out the way 1.0.0 did</span> <span class="hd-sub">three settings, not a version key</span></h2>
   <p><strong>From 1.0.0 the source format is the interface, and that is about more than parsing.</strong> A finished deck should be able to lay out the way it laid out.</p>
@@ -2150,9 +2173,9 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="autoplay" data-chunk-num="49">
+<article class="chunk chunk-example width-wide" id="autoplay" data-chunk-num="50">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure that walks itself</span> <span class="hd-sub"><code>::: draw {autoplay=N}</code></span></h2>
   <p><strong>A figure written with <code>autoplay</code> advances its own steps on a timer once the slide is on screen</strong> — one delay, in milliseconds, for every step. A cover figure that moves while the room files in is what it is for, but it works on any chunk.</p>
@@ -2173,9 +2196,35 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="50">
+<article class="chunk chunk-example width-wide" id="section-dividers" data-chunk-num="51">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>1</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Where a new part starts</span> <span class="hd-sub"><code>section:</code></span></h2>
+  <p><strong>A column with a <code># Heading</code> opens with a divider slide</strong>, and <code>section:</code> picks how it is drawn.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">section</span><span style="color:#24292E">: </span><span style="color:#032F62">tinted</span><span style="color:#6A737D">         # plain | tinted | rule | card | number</span></span>
+<span class="line"><span style="color:#22863A">section-mark</span><span style="color:#24292E">: </span><span style="color:#032F62">Teil</span><span style="color:#6A737D">      # any short word, or nothing at all</span></span></code></pre>
+<div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
+<ul>
+<li><strong>tinted</strong> the whole slide takes the accent, lightly. The signal that arrives across a room before any word does</li>
+<li><strong>rule</strong> the heading between two rules. The quietest, and the one that survives a monochrome print</li>
+<li><strong>number</strong> a large counter, counting the columns that have a heading</li>
+</ul>
+
+</div>
+
+
+<p><strong>Every option is quieter than the cover, deliberately.</strong> A divider that can be mistaken for the title slide has failed at the one job it has, which is to say <em>a new part starts here, and it is part of the thing you are already in</em>.</p>
+<p>There is no paragraph sign over the heading any more. It is a legal-citation mark – it reads as a statute number to anyone outside a German law faculty – and on a projection it was a small grey glyph nobody could place. <code>section-mark:</code> puts a word there if you want one; saying nothing puts nothing.</p>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="52">
+  
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>2</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Turning the generated labels off</span> <span class="hd-sub"><code>style: {labels: off}</code></span></h2>
   <p><strong>The tag word above a chunk is two different things wearing one name</strong>, so it takes one switch to reach both.</p>
@@ -2198,9 +2247,9 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="view-defaults" data-chunk-num="51">
+<article class="chunk chunk-example width-wide" id="view-defaults" data-chunk-num="53">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>3</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Pinning how a lecture opens</span> <span class="hd-sub">six optional frontmatter keys</span></h2>
   <p><strong>A lecture can decide its own starting look instead of inheriting the reader&#39;s.</strong></p>

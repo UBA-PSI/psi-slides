@@ -404,11 +404,11 @@ The first closer ends `side`, the second ends `expand`.
 
 ### `::: cards N`
 
-N equal cards in a row, each with a subtle ground and outline. **Not a second
-spelling of `::: cols N`**, and the difference is the reason to pick one: `cols`
-is one text flow the browser balances across N tracks, so a paragraph can spill
-from the foot of one column into the head of the next; `cards` is N
-*containers*, and an item is whole or it is nowhere.
+N equal cards in a row, each on a subtle ground. **Not a second spelling of
+`::: cols N`**, and the difference is the reason to pick one: `cols` is one
+text flow the browser balances across N tracks, so a paragraph can spill from
+the foot of one column into the head of the next; `cards` is N *containers*,
+and an item is whole or it is nowhere.
 
 ```markdown
 ::: cards 3
@@ -419,28 +419,73 @@ from the foot of one column into the head of the next; `cards` is N
 ```
 
 A lone list dissolves into the grid, so its items are the cards; anything else
-contributes one card per block. Counts 2 to 6. Use `cols` for an argument that
-runs long and `cards` for a comparison the room should be able to count.
+contributes one card per block. Counts 1 to 6 - one card is a callout, and in
+a `::: side` pane it is the narrow stacked column. Use `cols` for an argument
+that runs long and `cards` for a comparison the room should be able to count.
 
-Five slots in the tail, and two decide themselves:
+Seven slots in the tail, and two decide themselves:
 
 | slot | words (first is the default) |
 |---|---|
 | size | `auto` `large` `medium` `small` |
 | align | `auto` `left` `center` |
 | anchor | `top` `middle` |
-| detail | `fold` `show` |
-| ground | `panel` `outline` `clear` |
+| detail | `fold` `show` `page` |
+| ground | `panel` `outline` `clear` `accent` `paper` `photo` |
+| corner | `round` `square` |
+| scrim | `veil` `invert` `plain` |
 
 `auto` size counts the words in the longest item - three or fewer is large,
 twelve or fewer medium, else small - and applies to the whole row, never per
 card. `auto` align follows it, except where the row has a second level, which
-ranges left. `detail: fold` keeps nested levels off the projection and gives
-them to the document and to `C`.
+ranges left.
 
-**A card row is refused inside `cols`, `side`, `marginalia`, `expand`,
-`margin` and `overlay`** - it needs the whole measure and those have already
-divided it. `slide` and `script` are fine. Put the row in the chunk body.
+`detail: fold` keeps nested levels off the projection and gives them to the
+document and to `C`. `detail: page` never unfolds at all, and that is what to
+reach for when the second level is a *paragraph*: unfolding one of those in
+place wrecks the row, so it stays the hand-out's.
+
+`ground: photo` makes the card's first picture its ground, and `scrim` says
+what veils it - `veil` is the theme's own paper, so ordinary ink stays legible
+in every theme; `invert` darkens and turns the card's ink light; `plain`
+leaves the picture alone. A scrim on a row with no picture is an error. A
+picture that is *not* the ground bleeds to the card's edges with the text
+beneath it, which is the other useful shape.
+
+**Open a card with bold and the break decides what it means:**
+
+```markdown
+- **panel** a tinted fill…      lead-in - own line, ordinary leading
+- **Measure**\                  heading - own line, and air under it
+  what the page does
+```
+
+**A card row is refused inside `cols`, `marginalia`, `expand`, `margin` and
+`overlay`** - it needs the whole measure and those have already divided it.
+`::: side` is fine, because a pane is a container with a width the row can
+fill, and so are `slide` and `script`, which divide nothing.
+
+### `::: rows`
+
+The same container turned ninety degrees: a term in a card on the left, its
+body beside it, several stacked. Same slots as `::: cards`, no count - a row
+block has one column by definition.
+
+```markdown
+::: rows {.accent}
+- **Separatism** Engineers do the technical work; managers take the decisions.
+- **Technocracy** Engineers should take them, because they understand them.
+:::
+```
+
+Three defaults differ from a card row, and each is deliberate: `anchor` is
+`middle`, because a one-line term against a three-line body's first line reads
+as a mistake; `align` names how the term sits *in its card* and the body always
+ranges left; and the automatic size is capped at `medium`, because a term is a
+label in a column rather than a headline across the slide.
+
+Reach for `rows` when a term needs a sentence, and for `cards` when a
+comparison needs counting.
 
 **Bold is not required.** The sentence splitter walks paragraphs, never list
 items, so everything written in a card is on the slide; folding the nested
@@ -583,6 +628,29 @@ photograph wants the edge, a drawing wants a margin. `cover-ratio: 42%`
 (15-75) sets how much of the slide the picture takes on `split`, `beside` and
 `above`; written on a cover that does not divide the slide it is an error.
 
+## Section dividers
+
+A column with a `# Heading` opens with a divider slide. `section:` picks how it
+is drawn, and every option is quieter than the cover on purpose - a divider
+that can be mistaken for the title slide has failed at its one job.
+
+```yaml
+section: tinted         # plain | tinted | rule | card | number
+section-mark: Teil      # any short word, or none (the default)
+```
+
+| | what it is |
+|---|---|
+| `plain` | the heading alone. **The default** |
+| `tinted` | the whole slide takes the accent, lightly. The strongest signal across a room |
+| `rule` | the heading between two rules. The quietest, and it survives a monochrome print |
+| `card` | the heading on a panel |
+| `number` | a large counter above the heading, counting the columns that have one |
+
+There is no paragraph sign over the heading any more - it read as a statute
+number to anyone outside a German law faculty. Put a word there with
+`section-mark:` if you want one.
+
 ## Typefaces, ligatures, and the 1.0 layout
 
 Three families travel in any one output, and which three the lecture chooses.
@@ -683,7 +751,9 @@ Rules you will meet while authoring: `unknown-tag`, `unknown-width`,
 `orphan-column` (a column with fewer than two chunks),
 `figure-caption-redundant`, `oversized-asset`, `unknown-view-default`,
 `unknown-style-setting`, `bad-backdrop`, `bad-backdrop-class`,
-`duplicate-backdrop`, `bad-overlay-class`, `bad-cards`.
+`duplicate-backdrop`, `bad-overlay-class`, `bad-cards`, `bad-cards-class`,
+`bad-rows`, `bad-rows-class`, `cards-nested`, `bad-side`, `draw-in-cols`,
+`bad-cover-ratio`, `bad-autoplay`.
 
 A source file can silence checks with an HTML comment anywhere in the body:
 

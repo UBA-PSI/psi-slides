@@ -127,31 +127,105 @@ from building the same way is a major version.
   into one 3×3 grid layer, so two aimed at the same corner stack instead of
   overlapping.
 
+- **`::: rows` is the card row turned ninety degrees.** A term in a card on
+  the left, its body beside it, several stacked - the shape a definition
+  list wants and the one a lecture reaches for when a term needs a sentence
+  rather than a column. Deliberately **not** a new container: same slot
+  vocabulary, same auto size, same fold, same print rules, because the only
+  thing that differs is the arrangement of the item and that is one
+  `display` plus a grid on the list. The list is the grid and each item
+  dissolves into it, which is what gives every row one term-column width; a
+  per-item grid could not.
+
+  Four things behave differently from a card row, each for a stated reason.
+  The body is wrapped in a span at render time, because CSS can place a grid
+  item and an anonymous text run is not one - done on the source rather than
+  on the rendered HTML, since `marked` passes inline HTML through untouched.
+  `anchor` defaults to `middle` where a card defaults to `top`, because a
+  one-line term set against a three-line body's first line reads as a
+  mistake. `align` names how the term sits in its card and nothing else; it
+  centred the body too at first, and a centred definition body is not
+  something anyone wants. And the automatic size is capped at `medium`,
+  because a row term is a label in a column rather than a headline across
+  the slide: measured, `Separatism` overflowed a 229px term track and ran
+  across the body beside it.
+
+- **`ground: photo` makes a card's first picture its ground**, with a
+  `scrim` slot - `veil`, `invert`, `plain` - answering what it is veiled
+  with. Same question `::: backdrop` answers and the same reasoning: the
+  veil is the theme's own paper, so ordinary ink stays legible on a
+  photograph in all seven themes and in dark mode without a second palette.
+  A scrim written on a row with no picture is an error, checked against the
+  written tail so `{.veil}` is caught even though `veil` is the default -
+  a word the drawing ignores is a silent no-op. A picture that is *not* the
+  ground bleeds to the card's edges instead, which needed the `max-width:
+  100%` every figure carries to be lifted: the negative margins were applied
+  and the picture still did not reach the edges, 327.6px asked for and
+  262.2px granted.
+
+- **`section:` gives a column's divider slide five compositions** - `plain`,
+  `tinted`, `rule`, `card`, `number` - and every one is quieter than the
+  cover, because a divider that can be mistaken for the title slide has
+  failed at the one job it has. The hard-coded PARAGRAPH SIGN over the
+  heading is gone: it is a legal-citation mark that reads as a statute
+  number to anyone outside a German law faculty, and on a projection it was
+  a small grey glyph nobody could place. `section-mark:` puts a word there
+  instead, and saying nothing puts nothing. `number` counts the columns that
+  have a heading rather than the array index, because the anonymous opening
+  column that holds the title chunk is not a part anybody is counting.
+
+- **No word may appear in two slots of one table, and it is asserted at
+  load.** `parseSlotClasses` assigns a word to whichever slot lists it first,
+  so a collision makes the other slot silently unreachable; `clear` is
+  already a card ground and was very nearly also the card scrim, which is
+  why that value is spelled `plain` even though `::: backdrop` calls the
+  same thing `clear`. Two tables may share a word; one table may not. The
+  exemption is exact: a word that is the default of *every* slot holding it
+  is allowed, because writing a default changes nothing whichever slot
+  receives it - which is what lets `auto` be both the size and the align
+  default, a collision the assertion found the moment it was written.
+
 - **`::: cards N {classes}` sets N equal cards in a row.** Not a second
   spelling of `::: cols N`: `cols` is one text flow the browser balances
   across N tracks, so a paragraph can spill from the foot of one column into
   the head of the next, while `cards` is N *containers* and an item is whole
   or it is nowhere.
 
-  Five slots - `size`, `align`, `anchor`, `detail`, `ground` - and two of
-  them decide themselves. `auto` size counts the words in the longest source
-  item (three or fewer means large, twelve or fewer medium, else small) and
-  is the block's decision rather than each card's, because three sizes in one
-  row read as a mistake. `auto` align follows the size, except where the row
-  carries a second level, which ranges left whatever its heads measure.
+  Seven slots - `size`, `align`, `anchor`, `detail`, `ground`, `corner`,
+  `scrim` - and two of them decide themselves. `auto` size counts the words
+  in the longest source item (three or fewer means large, twelve or fewer
+  medium, else small) and is the block's decision rather than each card's,
+  because three sizes in one row read as a mistake. `auto` align follows the
+  size, except where the row carries a second level, which ranges left
+  whatever its heads measure. Counts run 1 to 6: one card is a callout, and
+  in a `::: side` pane it is the narrow stacked column a lecture keeps
+  wanting.
 
   `detail: fold` is what makes one row serve two views: the nested levels are
   off the projection and present in the document, and `C` brings them back
-  with no second markup. What a card shows is otherwise **not** decided by
-  bold - the sentence splitter walks `p` and never `li`, so a card item is
-  never abridged.
+  with no second markup. `detail: page` is the third answer, for a second
+  level that is a paragraph rather than a bullet - unfolding one of those in
+  place wrecks the row, so `page` never unfolds and the detail stays the
+  hand-out's. What a card shows is otherwise **not** decided by bold - the
+  sentence splitter walks `p` and never `li`, so a card item is never
+  abridged. A leading bold run is a lead-in; a leading bold run followed by
+  a hard break is a heading with air under it, which is a distinction the
+  author already writes rather than one that had to be invented.
 
   A card row is **refused inside any directive that has already divided the
-  measure** - cols, side, marginalia, embed, expand, margin, overlay - and
-  the `cols` case is why: the row spanned the full width and defeated the
-  column flow, so the author wrote `cols 2` and got one column with nothing
-  to say why. `slide` and `script` stay legal: they divide nothing, they say
-  which half of the chunk is on screen.
+  measure** - cols, marginalia, embed, expand, margin, overlay - and the
+  `cols` case is why: the row spanned the full width and defeated the column
+  flow, so the author wrote `cols 2` and got one column with nothing to say
+  why. `::: side` is *not* on that list, and the distinction is the one worth
+  keeping: a pane is a container with a width the row can fill, while `cols`
+  is a text flow the row breaks. Measured both ways rather than assumed.
+  `slide` and `script` stay legal: they divide nothing, they say which half
+  of the chunk is on screen.
+
+  A card hyphenates, with a floor of eight characters: `Countermeasures`
+  overflowed a 320px card by 26px once its second level widened it, and left
+  to itself the browser then broke `until` into `un-` and `til`, which costs
+  a reader more than the ragged edge it saved.
 
   The default look was reworked in the same pass: a tinted fill *and* a
   hairline is the one combination to avoid, so `panel` fills and `outline`

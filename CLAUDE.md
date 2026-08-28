@@ -604,13 +604,36 @@ Four additions that are one idea – **a slide is a frame, and the frame can car
   | size | `auto` `large` `medium` `small` |
   | align | `auto` `left` `center` |
   | anchor | `top` `middle` |
-  | detail | `fold` `show` |
-  | ground | `panel` `outline` `clear` `accent` `paper` |
+  | detail | `fold` `show` `page` |
+  | ground | `panel` `outline` `clear` `accent` `paper` `photo` |
   | corner | `round` `square` |
+  | scrim | `veil` `invert` `plain` |
 
   **`auto` size reads the longest item**: ≤ 3 words → large, ≤ 12 → medium, else small. It is the **block's** decision and never each card's, because three sizes in one row read as a mistake rather than as a hierarchy. **`auto` align follows the size** – a word centres, a sentence ranges left – *except* where the row carries a second level, which ranges left whatever its heads measure: unfolded, a centred head over a left-aligned detail list reads as a mistake, and the head cannot change alignment with the collapse mode without the row jumping when `C` is pressed.
 
-  **`detail: fold` is what makes one row serve two views.** The nested levels are hidden on the projection under `topic-bold` and present everywhere else, so the slide carries the headline and the document carries the hierarchy — and `C` brings them back, needing no second markup because the nested list is already there. Print defines no `data-collapse` at all, so a hand-out always has them.
+  **`detail: fold` is what makes one row serve two views.** The nested levels are hidden on the projection under `topic-bold` and present everywhere else, so the slide carries the headline and the document carries the hierarchy – and `C` brings them back, needing no second markup because the nested list is already there. Print defines no `data-collapse` at all, so a hand-out always has them.
+
+  **`detail: page` is the third answer, and it exists for the case the other two cannot serve**: a second level that is a *paragraph* rather than a bullet. Unfolding one of those in place wrecks the row, so `page` never unfolds – the rule carries no collapse condition, `C` leaves it alone, and the detail stays the hand-out's. `show` is the opposite end: the levels are on the slide too.
+
+  **A leading bold run is a lead-in; a leading bold run followed by a hard break is a heading.** The author already writes the distinction, so nothing new was invented for it:
+
+  ```markdown
+  - **panel** a tinted fill…      lead-in: own line, ordinary leading
+  - **Measure**\                  heading: own line, and air under it
+    what the page does
+  ```
+
+  Both behaviours existed before this was deliberate, and by accident: the rule read `:not(:last-child)`, which counts **elements**, so a bold run followed by a bare text node matched `:last-child` and lost its margin while one followed by a `<br>` kept it. Two behaviours, no way to predict which you would get, and a card that opened with a nested list took the margin with nothing after it to separate from. It is keyed on the break now, which is the thing the author actually typed – and the `<br>` that earned the margin is then hidden, because the block display has already broken the line.
+
+  The same rules missed the card that opens with a bleeding picture entirely, where the bold run is the *second* element: `:first-child` reached none of it and the `<br>` drew a visible blank line under every heading. Each rule carries a second selector (`:is(p, figure, img):first-child + :is(strong, b)`) for that shape.
+
+  **A picture in a card bleeds to its edges**, which is why the padding is two custom properties (`--card-py`, `--card-px`) rather than one shorthand – a shorthand cannot be negated a side at a time. The top corners take the card's radius and the bottom ones do not, because the image sits above text rather than filling the box. **The `max-width: 100%` that every figure carries had to be lifted for it**: the negative margins were applied and the picture still did not reach the edges, because the cap clamped the computed width straight back inside the padded box – measured, 327.6px asked for and 262.2px granted.
+
+  **`ground: photo` is the other thing a picture can be**: the card's first image becomes its ground rather than a band across its top, taken out of the flow and stretched behind the words. The two are alternatives, not a combination. The `scrim` slot then answers what the picture is veiled with, and it is the same question `::: backdrop` answers with the same reasoning: `veil` is the theme's own paper over the picture, so ordinary ink stays legible in all seven themes and in dark mode without a second palette; `invert` darkens instead and re-points the ink tokens; `plain` leaves the picture alone. **A scrim written on a row with no picture is an error**, checked against the *written* tail so `{.veil}` is caught even though `veil` is the default – a word the drawing ignores is the silent no-op this format refuses.
+
+  **`plain` and not `clear`, and that is the slot-collision rule in action** – see below.
+
+  **A card hyphenates, with a floor of eight characters.** A card is the narrowest measure on the slide, so it is where a long word first runs out of room: measured, `Countermeasures` overflowed a 320px card by 26px once the second level widened it. `overflow-wrap: break-word` is the floor and `hyphens: auto` the preference, and the floor of eight characters exists because the browser was otherwise breaking `until` into `un-` and `til`, which costs a reader more than the ragged edge it saves. The language comes from `<html lang>`, so `lang: de` in the frontmatter is what makes a German compound break at all.
 
   **A card row is refused inside any directive that has already divided the measure** – `cols`, `marginalia`, `embed`, `expand`, `margin`, `overlay`. **`side` is not on that list and the distinction is the one to keep**: a `::: side` pane is a *container* with a width the row can fill, while `::: cols` is a text *flow* the row breaks. Measured both ways rather than assumed — a row in a pane lays out correctly, and a row in a column silently defeated the column count. The same rule refuses a **`::: draw` inside `::: cols`**, which was the identical silent no-op and was found the same way. It is N containers side by side, so it needs the whole width, and what the three interesting cases actually did is worse than nothing: in `cols` the row spanned the full width and **defeated the column flow**, so the author wrote `cols 2` and got one column with nothing to say why; in `side` it was squeezed into half the slide while the other pane floated beside the heading; in `marginalia` a full-width row sat inside a narrow aside. `slide` and `script` are exempt and must stay so – they divide nothing, they only say which half of the chunk is on screen. `layoutStack` entries carry `{close, kind, narrows}` for exactly this question.
 
@@ -624,7 +647,28 @@ Four additions that are one idea – **a slide is a frame, and the frame can car
 
   **The default look is one device, not two.** A tinted fill *and* a hairline is the combination to avoid – a grey box inside a grey border reads as a form field rather than as a card – so `panel` fills, `outline` strokes, and neither does both. Three numbers were tuned rather than defaulted: the gutter scales with the card's own size (at a flat 0.7em against a 300px card the row read as one panel with seams), the padding grows *faster* than the type (big type wants proportionally more air, or a large card reads as a caption that outgrew its box), and the row keeps `1.5em × card size` above it, because a card row is a block of surfaces rather than a continuation of the text. **The heading over a centred row centres with it**, written as a CSS coupling (`body:not([data-headings]) .chunk-content:has(.cards.ca-center)`) rather than as a class: there is nothing an author would want to say there that the cards have not already said, and naming any value for `style.headings` takes the decision back.
 
+- **`::: rows {classes}`** – the card row turned ninety degrees: a term in a card on the left, its body beside it, several stacked. **It is deliberately not a new container.** Same slot vocabulary, same auto size, same fold, same print rules; the only thing that differs is the arrangement of the item, and that is one `display` plus a grid on the list. Under the criterion above that makes it nearly free, where a genuinely new container would not have been.
+
+  **The list is the grid and each item dissolves into it** (`display: contents` on both `ul` and `li`), which is what gives every row one term-column width. A per-item grid could not: each row would have sized its own first column and the terms would not line up.
+
+  Written as its own keyword rather than a class on `cards`, because the count means something different – `cards 3` is three columns and a row block has exactly one, so a class would have left the number on the line meaning nothing.
+
+  Four things behave differently from a card row, each for a stated reason:
+
+  - **The body is wrapped at render time.** A row's body is an anonymous text run, and CSS can place a grid *item* – an anonymous run is not one, so it could not be put in column 2 at all. The wrapping is done on the **source** rather than on the rendered HTML: `marked` passes inline HTML through untouched, so one `<span class="row-body">` in the line is safe where a regex over nested `<li>` markup would not be.
+  - **`anchor` defaults to `middle`, where a card defaults to `top`.** The constructs differ: a card is a block of text in a box and reads from its first line, while a row is a term *beside* a body, and a one-line term set against a three-line body's first line reads as a mistake. `parseSlotClasses` cannot tell a written `top` from the defaulted one, so the **written tail** decides – and that test has to run *before* the class list is built.
+  - **`align` names how the term sits in its card, and nothing else.** It centred the body as well at first, and a centred definition body is not something anyone wants.
+  - **The automatic size is capped at `medium`.** A row's term is a label in a column rather than a headline across the slide, and at the large scale it simply did not fit: measured, `Separatism` overflowed a 229px term track and ran across the body beside it. The cap is on the *automatic* size only – a written size is the author's.
+
+  **The term track is a fraction, not an intrinsic keyword**, and both intrinsic ones were measured and both failed: `auto` resolves toward min-content under pressure, and the term inherits `overflow-wrap` from the card rule, so its min-content is one character and the column came out one letter wide; `max-content` then resolved to 0px with an item 78px wide sitting in it.
+
+  **`body[data-collapse=topic-bold] .cards` carries `:not(.rows)`, and that is load-bearing.** With a body attribute that selector outranks `.cards.rows`, so without the exclusion the collapse rule handed a row block the column grid and the term track collapsed to nothing. The rule itself only exists to stop a card row folding to one column the way `.cols` does.
+
 **The class tails are closed vocabularies resolved into slots**, exactly as `DG_CLASS_GROUPS` does for a diagram, and `parseSlotClasses` reports the two failures this grammar refuses everywhere: a word from no slot, and two words from one. The second matters most – the second word lands, the first is thrown away, and nothing in the line says which won.
+
+**No word may appear in two slots of one table, and `build.js` asserts it at load** rather than leaving it to be remembered. `parseSlotClasses` assigns a word to whichever slot lists it *first*, so a collision makes the other slot silently unreachable – `clear` is already a card ground and was very nearly also the card scrim, which is why that value is spelled `plain` even though `::: backdrop` calls the same thing `clear`. **Two tables may share a word; one table may not.**
+
+The exemption is exact rather than lenient: a word that is the **default of every slot holding it** is allowed, because writing a default changes nothing whichever slot receives it. That is what lets `auto` be both the size and the align default – a collision the assertion found the moment it was written. A word that means something in one slot and is merely the default of another is *not* exempt, because that is precisely the case where the first slot listed wins and the second becomes unreachable.
 
 Things that cost a debugging session each and should not be re-broken:
 
@@ -636,9 +680,29 @@ Things that cost a debugging session each and should not be re-broken:
 - **The scrim is the theme's own paper, not white.** `color-mix(in oklch, var(--paper) 80%, transparent)` keeps ordinary ink legible over a photograph in all seven themes. `hero`'s scrim is a bottom-up gradient instead, because an even veil greys the whole photograph to protect four lines in one corner.
 - **`scanReferencedImages` has to see a backdrop and a `cover-image`.** Both go through the same `data:` URI a figure does, so both meet the same 2 MB cap – and left out of the scan an oversized one fell through `toDataUri` to an external path with no complaint, which is what `assertInlinable` exists to stop.
 
-`lint.js` mirrors all of it: `COVER_VARIANTS` in `VIEW_DEFAULTS`, `STYLE_ENUMS`, all four slot tables with `slotProblems`, the directives' shapes, a second `::: backdrop` in one chunk, `::: cards` outside 2–6 or inside a dividing directive, and `cover-ratio` outside 15–75.
+`lint.js` mirrors all of it: `COVER_VARIANTS` and `SECTION_VARIANTS` in `VIEW_DEFAULTS`, `STYLE_ENUMS`, all four slot tables with `slotProblems`, the directives' shapes, a second `::: backdrop` in one chunk, `::: cards` outside 1–6 or inside a dividing directive, a `::: draw` inside `::: cols`, `::: side` with anything but a ratio, and `cover-ratio` outside 15–75.
 
-`test/settings.mjs` (was `layout-compat.mjs`; renamed once it outgrew the name) gates the lot – 51 checks over the 1.0.0 recipe, autoplay and `cycle`, the label switches, the card-row auto vocabulary, and the six refusals plus the two exemptions above. `npm run settings`.
+**One known asymmetry, and it is the wrong way round.** `lint.js` applies the nesting refusal to `::: rows` as well as `::: cards`, and `build.js` applies it only in the `cardsOpen` branch – so `::: rows` inside `::: cols` **builds** and **lints as an error**, and the message names `::: cards` for a line that says `rows`. A linter stricter than the build is the one thing this project calls worse than no linter. Fix it in `build.js` (extend the enclosure check to the `rowsOpen` branch) rather than by relaxing the linter: a row block breaks a column flow for exactly the reason a card row does.
+
+`test/settings.mjs` (was `layout-compat.mjs`; renamed once it outgrew the name) gates the lot – 80 checks over the 1.0.0 recipe, autoplay and `cycle`, the label switches, the card and row vocabulary, and the refusals plus their exemptions. `npm run settings`.
+
+### Section dividers (`section:`, `section-mark:`)
+
+A column with a `# Heading` opens with a divider slide so the camera lands on the heading before the first chunk. `section:` gives that slide five compositions, and **every one of them is quieter than the cover**, deliberately: a divider that can be mistaken for the title slide has failed at the one job it has, which is to say *a new part starts here, and it is part of the thing you are already in*.
+
+| | what it is |
+|---|---|
+| `plain` | the heading alone. **The default** |
+| `tinted` | the whole slide takes the accent, lightly – `color-mix(in oklch, var(--emph) 12%, var(--paper))` |
+| `rule` | the heading between two rules across the measure. The quietest, and the one that survives a monochrome print |
+| `card` | the heading on a panel, which is the card vocabulary borrowed rather than a fifth thing to learn |
+| `number` | a large counter above the heading, which steps the heading back |
+
+`tinted` is the ten-metre signal: from the back of a room the colour arrives before any word does. `number` counts the columns that **have a heading**, not the array index, because the anonymous opening column that holds the title chunk is not a part anybody is counting.
+
+**A divider owns the whole slide**, and `.chunk-section` forces `min-height: var(--slide-h)` for it. At the 40% every chunk gets, `tinted` painted a band across the middle third with paper above and below it – the same trap the backdrop and the cover both fell into.
+
+**The hard-coded PARAGRAPH SIGN over the heading is gone.** It is a legal-citation mark: it reads as a statute number rather than as *section* to anyone outside a German law faculty, and on a projection it was a small grey glyph nobody could place. `section-mark:` puts any short string there instead – a word (`Teil`, `Kapitel`), a numeral the author writes themselves – and **saying nothing puts nothing**, because the sign that used to be there was one nobody asked for. `section-mark: none` is the explicit spelling of the same thing.
 
 ### Hosted embeds (`::: embed <url>`)
 

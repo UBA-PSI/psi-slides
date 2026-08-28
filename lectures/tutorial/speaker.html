@@ -1420,6 +1420,11 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    not its first line. */
 .cards.rows {
   display: grid;
+  /* The anchor acts here, and until this line it did not: align-items was
+     center unconditionally, so top and middle rendered identically -
+     a word an author could write that moved nothing, which is the silent
+     no-op this format refuses everywhere else. */
+  align-items: var(--row-anchor, center);
   /* A definite share rather than an intrinsic track. Both intrinsic
      keywords were measured and both failed: auto resolves toward
      min-content under pressure, and the term inherits overflow-wrap from
@@ -1428,7 +1433,6 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
      78px wide in it. A fraction is predictable, needs no puzzle, and a
      term column of about a third is what the shape wants anyway. */
   grid-template-columns: minmax(6em, 0.38fr) minmax(0, 1fr);
-  align-items: center;
   column-gap: calc(1.1em * var(--card-fs, 1));
   row-gap: calc(0.7em * var(--card-fs, 1));
 }
@@ -1466,9 +1470,14 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    rather than a second card, so it takes no ground and stays at the
    chunk's own size - a row whose two halves are both cards reads as a
    two-column table, which is a different thing and has a statement. */
+/* On a row, align names how the *term* sits in its card - the term is
+   the card, and the body is prose beside it. Centring a definition's body
+   is not a thing anyone wants, so the body ranges left whatever the row
+   says, and the slot keeps meaning one thing rather than two. */
 .cards.rows li > .row-body {
   grid-column: 2;
-  align-self: center;
+  align-self: var(--row-anchor, center);
+  text-align: left;
   min-width: 0;
 }
 .cards.rows li > :is(strong, b):first-child + br { display: none; }
@@ -1600,8 +1609,8 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
 .cards.cg-clear   { gap: calc(2.1em * var(--card-fs, 1)); }
 .cards.ca-left   { --card-align: left; }
 .cards.ca-center { --card-align: center; }
-.cards.cv-top    { --card-anchor: flex-start; }
-.cards.cv-middle { --card-anchor: center; }
+.cards.cv-top    { --card-anchor: flex-start; --row-anchor: start; }
+.cards.cv-middle { --card-anchor: center;     --row-anchor: center; }
 /* detail - the levels under the first. On the projection they are folded
    away, so the card carries the headline and the document carries the
    hierarchy; pressing C is what brings them back, and it needs no second
@@ -3551,7 +3560,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     </div>
 <div class="col-entry" data-col-idx="9">
       <button class="col-btn" type="button">Next steps</button>
-      <div class="dots"><span class="dot" data-col-idx="9" data-chunk-idx="0"></span><span class="dot" data-col-idx="9" data-chunk-idx="1"></span><span class="dot" data-col-idx="9" data-chunk-idx="2"></span><span class="dot" data-col-idx="9" data-chunk-idx="3"></span><span class="dot" data-col-idx="9" data-chunk-idx="4"></span><span class="dot" data-col-idx="9" data-chunk-idx="5"></span><span class="dot" data-col-idx="9" data-chunk-idx="6"></span><span class="dot" data-col-idx="9" data-chunk-idx="7"></span><span class="dot" data-col-idx="9" data-chunk-idx="8"></span><span class="dot" data-col-idx="9" data-chunk-idx="9"></span><span class="dot" data-col-idx="9" data-chunk-idx="10"></span><span class="dot" data-col-idx="9" data-chunk-idx="11"></span><span class="dot" data-col-idx="9" data-chunk-idx="12"></span></div>
+      <div class="dots"><span class="dot" data-col-idx="9" data-chunk-idx="0"></span><span class="dot" data-col-idx="9" data-chunk-idx="1"></span><span class="dot" data-col-idx="9" data-chunk-idx="2"></span><span class="dot" data-col-idx="9" data-chunk-idx="3"></span><span class="dot" data-col-idx="9" data-chunk-idx="4"></span><span class="dot" data-col-idx="9" data-chunk-idx="5"></span><span class="dot" data-col-idx="9" data-chunk-idx="6"></span><span class="dot" data-col-idx="9" data-chunk-idx="7"></span><span class="dot" data-col-idx="9" data-chunk-idx="8"></span><span class="dot" data-col-idx="9" data-chunk-idx="9"></span><span class="dot" data-col-idx="9" data-chunk-idx="10"></span><span class="dot" data-col-idx="9" data-chunk-idx="11"></span><span class="dot" data-col-idx="9" data-chunk-idx="12"></span><span class="dot" data-col-idx="9" data-chunk-idx="13"></span><span class="dot" data-col-idx="9" data-chunk-idx="14"></span></div>
     </div>
 </div>
 <div id="stage-cell">
@@ -5051,8 +5060,13 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <span class="line"><span style="color:#E36209;--shiki-dark:#FFA657">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark:#E6EDF3;--shiki-dark-font-weight:bold"> **Probe**</span><span style="color:#24292E;--shiki-dark:#E6EDF3"> the detector until it names itself</span></span>
 <span class="line"><span style="color:#E36209;--shiki-dark:#FFA657">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark:#E6EDF3;--shiki-dark-font-weight:bold"> **Report**</span><span style="color:#24292E;--shiki-dark:#E6EDF3"> what that costs a measurement study</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">:::</span></span></code></pre>
-<p>Which children become the cards is one rule and no parsing: a lone list dissolves into the grid, so its items are the cards; anything else contributes one card per block. Counts from 2 to 6 – past six, what you have is a table.</p>
+<p>Which children become the cards is one rule and no parsing: a lone list dissolves into the grid, so its items are the cards; anything else contributes one card per block. Counts from 1 to 6 – one card is a callout, and past six what you have is a table.</p>
 <p>Use <code>cols</code> for an argument that runs long and <code>cards</code> for a comparison the room should be able to count.</p>
+<p><strong>Seven slots ride in the tail</strong>, and two of them decide themselves: <code>size</code> (<code>auto</code> reads the longest item), <code>align</code> (<code>auto</code> follows the size), <code>anchor</code>, <code>detail</code>, <code>ground</code>, <code>corner</code> and <code>scrim</code>. <code>ground: photo</code> makes the card&#39;s first picture its ground and <code>scrim</code> says what veils it; a picture that is <em>not</em> the ground bleeds to the card&#39;s edges with the text beneath it.</p>
+<p><strong>How you open a card decides what the bold means.</strong> Written inline it is a lead-in; written before a hard break it is a heading with air under it – a distinction you already write, so nothing new had to be invented for it.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#E36209;--shiki-dark:#FFA657">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark:#E6EDF3;--shiki-dark-font-weight:bold"> **panel**</span><span style="color:#24292E;--shiki-dark:#E6EDF3"> a tinted fill…      lead-in</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#FFA657">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark:#E6EDF3;--shiki-dark-font-weight:bold"> **Measure**</span><span style="color:#24292E;--shiki-dark:#E6EDF3">\                  heading</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">  what the page does</span></span></code></pre>
 </div></div>
     
     <aside class="annot-box" data-annot-for="cards">
@@ -5066,7 +5080,32 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>4</i></div>
 </article>
-<article class="chunk chunk-example" id="side-ratio" data-chunk-id="side-ratio" data-tag="example" data-width="wide" data-chunk-num="45">
+<article class="chunk chunk-example" id="rows" data-chunk-id="rows" data-tag="example" data-width="wide" data-chunk-num="45">
+  
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">A term and what it means</span> <span class="hd-sub"><code>::: rows</code></span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: rows</code> is the same container turned ninety degrees</strong>: a term in a card on the left, its body beside it, several stacked.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">::: rows {.accent}</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#FFA657">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark:#E6EDF3;--shiki-dark-font-weight:bold"> **Separatism**</span><span style="color:#24292E;--shiki-dark:#E6EDF3"> Engineers do the technical work; managers take the decisions.</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#FFA657">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark:#E6EDF3;--shiki-dark-font-weight:bold"> **Technocracy**</span><span style="color:#24292E;--shiki-dark:#E6EDF3"> Engineers should take them, because they understand them.</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">:::</span></span></code></pre>
+<p>It takes no count – a row block has one column by definition – and every slot a card row has. Three defaults differ, each for a reason you can see on the slide: <code>anchor</code> is <code>middle</code>, because a one-line term set against a three-line body&#39;s first line reads as a mistake; <code>align</code> names how the term sits <em>in its card</em> and the body always ranges left; and the automatic size stops at <code>medium</code>, because a term is a label in a column rather than a headline across the slide.</p>
+<p>Reach for <code>rows</code> when a term needs a sentence, and for <code>cards</code> when a comparison needs counting.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="rows">
+      <div class="annot-box-label">annotation · rows</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>5</i></div>
+</article>
+<article class="chunk chunk-example" id="side-ratio" data-chunk-id="side-ratio" data-tag="example" data-width="wide" data-chunk-num="46">
   
   <div class="chunk-content">
     
@@ -5095,9 +5134,9 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>4</i><i>5</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>6</i></div>
 </article>
-<article class="chunk chunk-example" id="style-block" data-chunk-id="style-block" data-tag="example" data-width="wide" data-chunk-num="46">
+<article class="chunk chunk-example" id="style-block" data-chunk-id="style-block" data-tag="example" data-width="wide" data-chunk-num="47">
   
   <div class="chunk-content">
     
@@ -5121,9 +5160,9 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>4</i><i>6</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>7</i></div>
 </article>
-<article class="chunk chunk-example" id="bundled-fonts" data-chunk-id="bundled-fonts" data-tag="example" data-width="wide" data-chunk-num="47">
+<article class="chunk chunk-example" id="bundled-fonts" data-chunk-id="bundled-fonts" data-tag="example" data-width="wide" data-chunk-num="48">
   
   <div class="chunk-content">
     
@@ -5148,9 +5187,9 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>4</i><i>7</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>8</i></div>
 </article>
-<article class="chunk chunk-example" id="layout-generation" data-chunk-id="layout-generation" data-tag="example" data-width="wide" data-chunk-num="48">
+<article class="chunk chunk-example" id="layout-generation" data-chunk-id="layout-generation" data-tag="example" data-width="wide" data-chunk-num="49">
   
   <div class="chunk-content">
     
@@ -5185,9 +5224,9 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>4</i><i>8</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></div>
 </article>
-<article class="chunk chunk-example" id="autoplay" data-chunk-id="autoplay" data-tag="example" data-width="wide" data-chunk-num="49">
+<article class="chunk chunk-example" id="autoplay" data-chunk-id="autoplay" data-tag="example" data-width="wide" data-chunk-num="50">
   
   <div class="chunk-content">
     
@@ -5215,9 +5254,42 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>5</i><i>0</i></div>
 </article>
-<article class="chunk chunk-example" id="labels" data-chunk-id="labels" data-tag="example" data-width="wide" data-chunk-num="50">
+<article class="chunk chunk-example" id="section-dividers" data-chunk-id="section-dividers" data-tag="example" data-width="wide" data-chunk-num="51">
+  
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Where a new part starts</span> <span class="hd-sub"><code>section:</code></span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A column with a <code># Heading</code> opens with a divider slide</strong>, and <code>section:</code> picks how it is drawn.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">section</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">tinted</span><span style="color:#6A737D;--shiki-dark:#8B949E">         # plain | tinted | rule | card | number</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">section-mark</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">Teil</span><span style="color:#6A737D;--shiki-dark:#8B949E">      # any short word, or nothing at all</span></span></code></pre>
+<div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
+<ul>
+<li><strong>tinted</strong> the whole slide takes the accent, lightly. The signal that arrives across a room before any word does</li>
+<li><strong>rule</strong> the heading between two rules. The quietest, and the one that survives a monochrome print</li>
+<li><strong>number</strong> a large counter, counting the columns that have a heading</li>
+</ul>
+
+</div>
+
+
+<p><strong>Every option is quieter than the cover, deliberately.</strong> A divider that can be mistaken for the title slide has failed at the one job it has, which is to say <em>a new part starts here, and it is part of the thing you are already in</em>.</p>
+<p>There is no paragraph sign over the heading any more. It is a legal-citation mark – it reads as a statute number to anyone outside a German law faculty – and on a projection it was a small grey glyph nobody could place. <code>section-mark:</code> puts a word there if you want one; saying nothing puts nothing.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="section-dividers">
+      <div class="annot-box-label">annotation · section-dividers</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>5</i><i>1</i></div>
+</article>
+<article class="chunk chunk-example" id="labels" data-chunk-id="labels" data-tag="example" data-width="wide" data-chunk-num="52">
   
   <div class="chunk-content">
     
@@ -5247,9 +5319,9 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>5</i><i>0</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>5</i><i>2</i></div>
 </article>
-<article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="51">
+<article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="53">
   
   <div class="chunk-content">
     
@@ -5278,7 +5350,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>5</i><i>1</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>5</i><i>3</i></div>
 </article>
 </section>
     </div>

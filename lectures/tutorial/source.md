@@ -876,9 +876,34 @@ An overlay answers three: **place** – the nine cells of a 3×3 grid, `bottom-l
 :::
 ```
 
-Which children become the cards is one rule and no parsing: a lone list dissolves into the grid, so its items are the cards; anything else contributes one card per block. Counts from 2 to 6 – past six, what you have is a table.
+Which children become the cards is one rule and no parsing: a lone list dissolves into the grid, so its items are the cards; anything else contributes one card per block. Counts from 1 to 6 – one card is a callout, and past six what you have is a table.
 
 Use `cols` for an argument that runs long and `cards` for a comparison the room should be able to count.
+
+**Seven slots ride in the tail**, and two of them decide themselves: `size` (`auto` reads the longest item), `align` (`auto` follows the size), `anchor`, `detail`, `ground`, `corner` and `scrim`. `ground: photo` makes the card's first picture its ground and `scrim` says what veils it; a picture that is *not* the ground bleeds to the card's edges with the text beneath it.
+
+**How you open a card decides what the bold means.** Written inline it is a lead-in; written before a hard break it is a heading with air under it – a distinction you already write, so nothing new had to be invented for it.
+
+```markdown
+- **panel** a tinted fill…      lead-in
+- **Measure**\                  heading
+  what the page does
+```
+
+## example: A term and what it means | `::: rows` {.wide #rows}
+
+**`::: rows` is the same container turned ninety degrees**: a term in a card on the left, its body beside it, several stacked.
+
+```markdown
+::: rows {.accent}
+- **Separatism** Engineers do the technical work; managers take the decisions.
+- **Technocracy** Engineers should take them, because they understand them.
+:::
+```
+
+It takes no count – a row block has one column by definition – and every slot a card row has. Three defaults differ, each for a reason you can see on the slide: `anchor` is `middle`, because a one-line term set against a three-line body's first line reads as a mistake; `align` names how the term sits *in its card* and the body always ranges left; and the automatic size stops at `medium`, because a term is a label in a column rather than a headline across the slide.
+
+Reach for `rows` when a term needs a sentence, and for `cards` when a comparison needs counting.
 
 ## example: A figure beside the prose | `::: side 2:1` {.wide #side-ratio}
 
@@ -980,6 +1005,25 @@ It calls the same advance the Space key calls, so there is **one counter**: the 
 Between 200 ms and 60 s. Outside that the build refuses rather than clamps: below 200 ms the room cannot read a beat, and above a minute a "moving" figure is a still one that changes when nobody is looking.
 
 **`cycle` repeats the walk** — `{autoplay=1200 cycle}` — which is usually what a cover figure wants while a room fills. It rewinds through the same counter, so the speaker view follows the rewind exactly as it followed the walk. The last beat is held for one delay like any other; there is deliberately no second number for how long to hold the finished picture.
+
+## example: Where a new part starts | `section:` {.wide #section-dividers}
+
+**A column with a `# Heading` opens with a divider slide**, and `section:` picks how it is drawn.
+
+```yaml
+section: tinted         # plain | tinted | rule | card | number
+section-mark: Teil      # any short word, or nothing at all
+```
+
+::: cards 3
+- **tinted** the whole slide takes the accent, lightly. The signal that arrives across a room before any word does
+- **rule** the heading between two rules. The quietest, and the one that survives a monochrome print
+- **number** a large counter, counting the columns that have a heading
+:::
+
+**Every option is quieter than the cover, deliberately.** A divider that can be mistaken for the title slide has failed at the one job it has, which is to say *a new part starts here, and it is part of the thing you are already in*.
+
+There is no paragraph sign over the heading any more. It is a legal-citation mark – it reads as a statute number to anyone outside a German law faculty – and on a projection it was a small grey glyph nobody could place. `section-mark:` puts a word there if you want one; saying nothing puts nothing.
 
 ## example: Turning the generated labels off | `style: {labels: off}` {.wide #labels}
 
