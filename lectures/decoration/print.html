@@ -410,6 +410,14 @@ body[data-rules=off] .chunk-principle,
 body[data-rules=off] .chunk-definition { border-top: 0; }
 /* The document view labels every tagged chunk, which is where most of
    these eyebrows actually live - the projection generates only EXERCISE. */
+/* The link mark is a control, and a control on paper is a smudge: there is
+   nothing to click and nothing to scan. Note what this does not do - the
+   document does not print the address either, so a link in a handout is a
+   phrase whose target the reader cannot reach. That is how it has always
+   been here; printing every href would change every existing handout, and it
+   is a separate decision from making the code findable on screen. */
+.link-code { display: none; }
+
 body[data-labels=off] .chunk-label { display: none; }
 
 /* Cover, backdrop, overlay and card grid in the document view. Print is a
@@ -1003,7 +1011,7 @@ project page, and the <code>build.js</code> inside it. The source format is froz
   
   <div class="column-lede"><blockquote>
 <p>A deck has one cover, so this lecture can show you only one of the ten. The
-<a href="https://uba-psi.github.io/psi-slides/#covers" target="_blank" rel="noopener noreferrer">gallery</a> has all ten, each shot
+<a href="https://uba-psi.github.io/psi-slides/#covers" target="_blank" rel="noopener noreferrer">gallery</a><button type="button" class="link-code" data-link-code="https://uba-psi.github.io/psi-slides/#covers" aria-label="Show this address large, with a code to scan"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M1 1h5.4v5.4H1V1zm1.3 1.3v2.8h2.8V2.3H2.3zM9.6 1H15v5.4H9.6V1zm1.3 1.3v2.8h2.8V2.3h-2.8zM1 9.6h5.4V15H1V9.6zm1.3 1.3v2.8h2.8v-2.8H2.3z"/><path d="M8 1h1.2v3.1H8V1zm0 4.3h1.2v2.4h2.3v1.2H8V5.3zm5.5 2.4H15v1.2h-1.5V7.7zM8 10.1h1.2v1.4H8v-1.4zm2.4 0H15v1.2h-1.9v1.4H15V15h-1.2v-2.1h-2.2v-1.4h-1.2v-1.4zM8 12.6h1.2V15H8v-2.4z"/></svg></button> has all ten, each shot
 from a real build.</p>
 </blockquote>
 </div>

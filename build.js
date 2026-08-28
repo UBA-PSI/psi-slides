@@ -1976,7 +1976,27 @@ marked.use({
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
       const isExternal = /^https?:\/\//i.test(href || '');
       const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
-      return `<a href="${escapeHtml(href || '')}"${titleAttr}${target}>${text}</a>`;
+      const a = `<a href="${escapeHtml(href || '')}"${titleAttr}${target}>${text}</a>`;
+      if (!isExternal) return a;
+      // …and it gets a mark that opens the address with its QR code. Up to
+      // 1.0.0 that was reachable only by Shift-clicking the link, and a
+      // modifier nobody is told about is a feature that does not exist for
+      // most readers. The mark says it is there; Shift-click is unchanged.
+      //
+      // A <button> and not a second <a>: it navigates nowhere, and a screen
+      // reader should hear an action rather than a link to the same place.
+      // It carries the address, so the runtime needs no lookup, and it is
+      // hidden in print, where the address is already set beside the text.
+      return a + `<button type="button" class="link-code"`
+        + ` data-link-code="${escapeHtml(href)}"`
+        + ` aria-label="Show this address large, with a code to scan">`
+        + `<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">`
+        + `<path d="M1 1h5.4v5.4H1V1zm1.3 1.3v2.8h2.8V2.3H2.3zM9.6 1H15v5.4H9.6V1z`
+        + `m1.3 1.3v2.8h2.8V2.3h-2.8zM1 9.6h5.4V15H1V9.6zm1.3 1.3v2.8h2.8v-2.8H2.3z"/>`
+        + `<path d="M8 1h1.2v3.1H8V1zm0 4.3h1.2v2.4h2.3v1.2H8V5.3zm5.5 2.4H15v1.2h-1.5V7.7z`
+        + `M8 10.1h1.2v1.4H8v-1.4zm2.4 0H15v1.2h-1.9v1.4H15V15h-1.2v-2.1h-2.2v-1.4h-1.2v-1.4z`
+        + `M8 12.6h1.2V15H8v-2.4z"/>`
+        + `</svg></button>`;
     },
   },
 });
@@ -3747,6 +3767,13 @@ const STYLE_SPEC = {
   headings: { kind: 'enum', values: ['auto', 'left', 'center', 'off'], dflt: 'auto' },
   // The hairline above a principle / definition chunk.
   rules:    { kind: 'enum', values: ['on', 'off'], dflt: 'on' },
+  // The little code mark after an external link. Up to 1.0.0 the address and
+  // its QR code were reachable only by Shift-clicking the link, which is a
+  // gesture nobody finds who has not read about it - so in practice the
+  // feature was there and unused. The mark says it is there; Shift-click
+  // still works and is unchanged. `off` for a deck that would rather keep
+  // its links bare, and for anyone who wants the 1.0.0 rendering back.
+  'link-codes': { kind: 'enum', values: ['on', 'off'], dflt: 'on' },
   // Multipliers on the heading and body scales. Bounded rather than free:
   // outside this range the collapse mode, the code-width clamp and the
   // auto-fit camera all stop agreeing with each other, and the result is
@@ -3830,6 +3857,7 @@ function styleBodyAttrs(st, frontmatter = {}) {
   if (st.headings !== 'auto') parts.push(`data-headings="${st.headings}"`);
   if (st.rules !== 'on') parts.push('data-rules="off"');
   if (st.labels !== 'on') parts.push('data-labels="off"');
+  if (st['link-codes'] !== 'on') parts.push('data-link-codes="off"');
   // Emitted only when they differ from the default, so a lecture that says
   // nothing produces the same <body> tag it always did.
   const liga = ligatureMode(frontmatter);
@@ -4826,6 +4854,14 @@ body[data-rules=off] .chunk-principle,
 body[data-rules=off] .chunk-definition { border-top: 0; }
 /* The document view labels every tagged chunk, which is where most of
    these eyebrows actually live - the projection generates only EXERCISE. */
+/* The link mark is a control, and a control on paper is a smudge: there is
+   nothing to click and nothing to scan. Note what this does not do - the
+   document does not print the address either, so a link in a handout is a
+   phrase whose target the reader cannot reach. That is how it has always
+   been here; printing every href would change every existing handout, and it
+   is a separate decision from making the code findable on screen. */
+.link-code { display: none; }
+
 body[data-labels=off] .chunk-label { display: none; }
 
 /* Cover, backdrop, overlay and card grid in the document view. Print is a
@@ -8492,6 +8528,32 @@ body[data-view=speaker] #help-button { display: none; }
    able to write an address down, and a browser tab pushed to a projector
    is a UI the lecturer is then driving blind. Sized to be read from the
    back row, and it breaks anywhere so a long URL never overflows. */
+/* The mark after an external link. Sized in the surrounding em so it tracks
+   the type at every zoom, and set in --ink-soft so it reads as a mark on the
+   line rather than as a second word: at full ink a row of links comes out as a
+   row of little black squares. It is what makes the address and its code
+   findable at all - up to 1.0.0 the only way in was Shift-click. */
+.link-code {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0 0.12em;
+  margin-left: 0.18em;
+  cursor: pointer;
+  color: var(--ink-soft);
+  vertical-align: baseline;
+  line-height: 1;
+}
+.link-code svg {
+  width: 0.78em;
+  height: 0.78em;
+  fill: currentColor;
+  vertical-align: -0.08em;
+}
+.link-code:hover, .link-code:focus-visible { color: var(--emph); }
+.link-code:focus-visible { outline: 2px solid var(--emph); outline-offset: 2px; border-radius: 2px; }
+body[data-link-codes=off] .link-code { display: none; }
+
 #link-overlay {
   position: fixed;
   inset: 0;
@@ -10828,6 +10890,29 @@ if (linkOverlay) {
 }
 // Capture phase: this has to beat the stage's own click handling, which
 // would otherwise treat the click as a chunk select.
+// The mark after a link, and Shift-click, are one act with two ways in. The
+// mark exists because the modifier is not discoverable: a reader who has not
+// been told about it never finds the address or its code. Both end in the
+// same call, so the projection, the peer message and the freeze rule cannot
+// drift apart between them.
+document.addEventListener('click', (e) => {
+  const mark = e.target.closest && e.target.closest('button[data-link-code]');
+  if (!mark) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const a = mark.previousElementSibling;
+  const href = mark.dataset.linkCode;
+  const label = (a && a.tagName === 'A' ? a.textContent : '').trim();
+  showLinkOverlay(href, label);
+  sendToPeer({ type: 'link-show', source: VIEW, href, label });
+  if (VIEW === 'speaker') flashMode('address shown on the projection');
+  // Chrome leaves a clicked button focused, and the guard above then hands
+  // it the next Space - so a lecturer who clicked the mark and pressed Space
+  // to move on would have re-opened the address instead. A keyboard
+  // activation reports detail 0 and keeps its place in the tab order.
+  if (e.detail > 0) mark.blur();
+}, true);
+
 document.addEventListener('click', (e) => {
   if (!e.shiftKey) return;
   // External only. A cross-reference resolves to a file:// path with a
@@ -10933,6 +11018,14 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { e.target.blur(); e.preventDefault(); }
     return;
   }
+  // A focused control has to be able to answer its own key. Space on the
+  // focused link mark advanced the deck instead of showing the address, so
+  // the mark was reachable by mouse alone - which is the thing it exists to
+  // stop being. Narrow to that one button on purpose: standing back for
+  // every button would take Space away from a lecturer who had just clicked
+  // the freeze control and still expected the next press to advance.
+  if (e.target.closest && e.target.closest('button[data-link-code]')
+      && (e.key === 'Enter' || e.key === ' ')) return;
   // A browser or system shortcut is not a slide command. Every binding here
   // is a bare letter, so Cmd-C reached the c case and toggled the collapse
   // instead of copying the selection – on a view that has an Alt-to-select

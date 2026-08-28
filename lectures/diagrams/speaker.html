@@ -2775,6 +2775,32 @@ body[data-view=speaker] #help-button { display: none; }
    able to write an address down, and a browser tab pushed to a projector
    is a UI the lecturer is then driving blind. Sized to be read from the
    back row, and it breaks anywhere so a long URL never overflows. */
+/* The mark after an external link. Sized in the surrounding em so it tracks
+   the type at every zoom, and set in --ink-soft so it reads as a mark on the
+   line rather than as a second word: at full ink a row of links comes out as a
+   row of little black squares. It is what makes the address and its code
+   findable at all - up to 1.0.0 the only way in was Shift-click. */
+.link-code {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0 0.12em;
+  margin-left: 0.18em;
+  cursor: pointer;
+  color: var(--ink-soft);
+  vertical-align: baseline;
+  line-height: 1;
+}
+.link-code svg {
+  width: 0.78em;
+  height: 0.78em;
+  fill: currentColor;
+  vertical-align: -0.08em;
+}
+.link-code:hover, .link-code:focus-visible { color: var(--emph); }
+.link-code:focus-visible { outline: 2px solid var(--emph); outline-offset: 2px; border-radius: 2px; }
+body[data-link-codes=off] .link-code { display: none; }
+
 #link-overlay {
   position: fixed;
   inset: 0;
@@ -7979,6 +8005,29 @@ if (linkOverlay) {
 }
 // Capture phase: this has to beat the stage's own click handling, which
 // would otherwise treat the click as a chunk select.
+// The mark after a link, and Shift-click, are one act with two ways in. The
+// mark exists because the modifier is not discoverable: a reader who has not
+// been told about it never finds the address or its code. Both end in the
+// same call, so the projection, the peer message and the freeze rule cannot
+// drift apart between them.
+document.addEventListener('click', (e) => {
+  const mark = e.target.closest && e.target.closest('button[data-link-code]');
+  if (!mark) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const a = mark.previousElementSibling;
+  const href = mark.dataset.linkCode;
+  const label = (a && a.tagName === 'A' ? a.textContent : '').trim();
+  showLinkOverlay(href, label);
+  sendToPeer({ type: 'link-show', source: VIEW, href, label });
+  if (VIEW === 'speaker') flashMode('address shown on the projection');
+  // Chrome leaves a clicked button focused, and the guard above then hands
+  // it the next Space - so a lecturer who clicked the mark and pressed Space
+  // to move on would have re-opened the address instead. A keyboard
+  // activation reports detail 0 and keeps its place in the tab order.
+  if (e.detail > 0) mark.blur();
+}, true);
+
 document.addEventListener('click', (e) => {
   if (!e.shiftKey) return;
   // External only. A cross-reference resolves to a file:// path with a
@@ -8084,6 +8133,14 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { e.target.blur(); e.preventDefault(); }
     return;
   }
+  // A focused control has to be able to answer its own key. Space on the
+  // focused link mark advanced the deck instead of showing the address, so
+  // the mark was reachable by mouse alone - which is the thing it exists to
+  // stop being. Narrow to that one button on purpose: standing back for
+  // every button would take Space away from a lecturer who had just clicked
+  // the freeze control and still expected the next press to advance.
+  if (e.target.closest && e.target.closest('button[data-link-code]')
+      && (e.key === 'Enter' || e.key === ' ')) return;
   // A browser or system shortcut is not a slide command. Every binding here
   // is a bare letter, so Cmd-C reached the c case and toggled the collapse
   // instead of copying the selection – on a view that has an Alt-to-select

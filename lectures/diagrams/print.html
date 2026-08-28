@@ -410,6 +410,14 @@ body[data-rules=off] .chunk-principle,
 body[data-rules=off] .chunk-definition { border-top: 0; }
 /* The document view labels every tagged chunk, which is where most of
    these eyebrows actually live - the projection generates only EXERCISE. */
+/* The link mark is a control, and a control on paper is a smudge: there is
+   nothing to click and nothing to scan. Note what this does not do - the
+   document does not print the address either, so a link in a handout is a
+   phrase whose target the reader cannot reach. That is how it has always
+   been here; printing every href would change every existing handout, and it
+   is a separate decision from making the code findable on screen. */
+.link-code { display: none; }
+
 body[data-labels=off] .chunk-label { display: none; }
 
 /* Cover, backdrop, overlay and card grid in the document view. Print is a

@@ -7,6 +7,25 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+### Changed
+
+- **An external link now carries a mark that shows its address and a QR code.**
+  Up to 1.0.0 that view existed and was reachable only by `Shift`-clicking the
+  link – a modifier nothing on the slide mentioned, so for most readers the
+  feature did not exist and a plain click simply opened the page. A small
+  button after every `https?://` link now opens the same overlay on both
+  screens; `Shift`-click is unchanged, and a plain click on the link itself
+  still opens the page in a new tab as before.
+
+  It is a `<button>` rather than a second link, so it announces what it does
+  and answers `Enter` or `Space`: the key map stands back for that one
+  button, or the deck's own `Space` binding would advance the slide instead
+  of showing the address. `style: {link-codes: off}` takes the marks away
+  for a deck that would rather keep its links bare. Existing sources are
+  unaffected in every other respect: the attribute is emitted only when the
+  key says `off`, so a deck that says nothing produces byte-identical markup
+  apart from the marks themselves. Print hides them.
+
 ### Added
 
 - **A heading can be the document's without being the slide's.**

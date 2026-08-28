@@ -717,16 +717,28 @@ The `style:` block sets the type for the whole lecture:
 
 ```yaml
 style:
-  headings: left        # auto | left | center  - auto keeps the per-tag treatment
+  headings: left        # auto | left | center | off  - auto keeps the per-tag treatment
   rules: off            # on | off              - the hairline above principle/definition
   labels: off           # on | off              - the generated tag word (PRINCIPLE, EXERCISE...)
+  link-codes: off       # on | off              - the mark after an external link
   heading-scale: 1.15   # 0.6 … 1.8
   body-scale: 0.95      # 0.6 … 1.8
+  wrap: none            # balance | none        - how a heading breaks across lines
 ```
 
 The two scales are multipliers on the tool's own scale, bounded to 0.6-1.8.
 Reach for them on a whole deck, not to fix one chunk - a chunk that needs a
 different size usually needs a different width class or less text.
+
+`headings: off` takes every heading off the projection and keeps it in the
+document, the contents list and the search - for a talk that is a run of
+figures with speaker notes. `{.bare}` in a chunk's attribute tail is the same
+switch for one chunk.
+
+`link-codes: off` takes away the mark after every external link. The mark
+shows the address on both screens, large, with a QR code beside it; up to
+1.0.0 that view was reachable only by `Shift`-clicking the link, which still
+works.
 
 `labels: off` hides the generated tag word in **both** views: the document
 renderer labels principle, question, definition and exercise, the projection

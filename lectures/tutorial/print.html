@@ -410,6 +410,14 @@ body[data-rules=off] .chunk-principle,
 body[data-rules=off] .chunk-definition { border-top: 0; }
 /* The document view labels every tagged chunk, which is where most of
    these eyebrows actually live - the projection generates only EXERCISE. */
+/* The link mark is a control, and a control on paper is a smudge: there is
+   nothing to click and nothing to scan. Note what this does not do - the
+   document does not print the address either, so a link in a handout is a
+   phrase whose target the reader cannot reach. That is how it has always
+   been here; printing every href would change every existing handout, and it
+   is a separate decision from making the code findable on screen. */
+.link-code { display: none; }
+
 body[data-labels=off] .chunk-label { display: none; }
 
 /* Cover, backdrop, overlay and card grid in the document view. Print is a
@@ -1135,9 +1143,10 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Zoom into a figure or code block</span> <span class="hd-sub">click it</span></h2>
   <p><strong>Click any figure, code block or margin note inside the chunk you are on.</strong> A figure or a block of code lifts into a card in the middle of the screen with the slide dimmed behind it; a <strong>marginalia</strong> – an aside set out in the slide&#39;s margin – instead pans the view so the aside sits in the centre.</p>
 <p><strong>Links behave two ways, and which one you want depends on the window you are in.</strong> A plain click follows the link in a new tab of <em>that</em> window. Clicked in the lectern view, that is you checking a source while the projection stays where it was. Clicked in the projection, it is the page itself arriving in front of the room.</p>
-<p><code>Shift</code>-click does the other thing: it puts the <strong>address</strong> on both screens, large, with a <strong>QR code</strong> beside it. Click the address to open it anyway; <code>Esc</code> or the next slide clears it.</p>
-<p>Try it on this one: <a href="https://psi.uni-bamberg.de/" target="_blank" rel="noopener noreferrer">the group behind the tool</a>. <code>Shift</code>-click is the one to try while a room is watching.</p>
-<p>That is why the code exists. Putting the page itself on the projector goes wrong twice over: you would be driving a browser you cannot see from the lectern, and the room would be watching an unrelated interface rather than the lecture. What a room wants from a link mid-talk is to capture it, and the code moves that onto the listener&#39;s own phone, while the projection machine contacts nobody.</p>
+<p><strong>The little mark after the link does the other thing</strong>: it puts the <strong>address</strong> on both screens, large, with a <strong>QR code</strong> beside it, so the room can take the link away on their own phones. Click the address to open it anyway; <code>Esc</code> or the next slide clears it. <code>Shift</code>-clicking the link itself does the same.</p>
+<p>Try it on this one: <a href="https://psi.uni-bamberg.de/" target="_blank" rel="noopener noreferrer">the group behind the tool</a><button type="button" class="link-code" data-link-code="https://psi.uni-bamberg.de/" aria-label="Show this address large, with a code to scan"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M1 1h5.4v5.4H1V1zm1.3 1.3v2.8h2.8V2.3H2.3zM9.6 1H15v5.4H9.6V1zm1.3 1.3v2.8h2.8V2.3h-2.8zM1 9.6h5.4V15H1V9.6zm1.3 1.3v2.8h2.8v-2.8H2.3z"/><path d="M8 1h1.2v3.1H8V1zm0 4.3h1.2v2.4h2.3v1.2H8V5.3zm5.5 2.4H15v1.2h-1.5V7.7zM8 10.1h1.2v1.4H8v-1.4zm2.4 0H15v1.2h-1.9v1.4H15V15h-1.2v-2.1h-2.2v-1.4h-1.2v-1.4zM8 12.6h1.2V15H8v-2.4z"/></svg></button>. The mark is what you want while a room is watching.</p>
+<p><strong>Up to 1.0.0 there was no mark, and <code>Shift</code>-click was the only way in.</strong> It worked, and almost nobody found it. Both work now; <code>style: {link-codes: off}</code> takes the marks away again if you would rather keep your links bare.</p>
+<p>Putting the page itself on the projector goes wrong twice over: you would be driving a browser you cannot see from the lectern, and the room would be watching an unrelated interface rather than the lecture. The code asks the projection machine to contact nobody, and moves the fetching onto the phones of people who actually want the page.</p>
 <p>The codes are drawn when the lecture is built, one per external address in the source, so a lecture without links carries none.</p>
 <p><strong>Hold <code>Alt</code> to select text.</strong> Dragging normally pans the slide, so selection is off – a stray highlight left on the projection is a distraction that never stops being one. Hold <code>Alt</code> and the slide becomes selectable and the cursor changes; let go and dragging pans again. The selection survives the key release so you can reach <code>Cmd</code>-<code>C</code>, and <code>Esc</code> clears it.</p>
 <p>Inside an opened card: drag to pan, wheel or <code>+</code> <code>-</code> to zoom, <code>0</code> to reset, <code>Esc</code> or a click to close. With a speaker window open, the projection follows which card you opened, how far you zoomed and where you panned, so what you are inspecting is what the room sees.</p>
@@ -2304,10 +2313,11 @@ here shows the difference.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">style</span><span style="color:#24292E">:</span></span>
 <span class="line"><span style="color:#22863A">  headings</span><span style="color:#24292E">: </span><span style="color:#032F62">left</span><span style="color:#6A737D">        # auto | left | center | off</span></span>
 <span class="line"><span style="color:#22863A">  rules</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">            # on | off  – the hairline over a principle</span></span>
+<span class="line"><span style="color:#22863A">  labels</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">           # on | off  – the tag word over a chunk</span></span>
+<span class="line"><span style="color:#22863A">  link-codes</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">       # on | off  – the mark after an external link</span></span>
 <span class="line"><span style="color:#22863A">  heading-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">1.15</span><span style="color:#6A737D">   # 0.6 … 1.8</span></span>
 <span class="line"><span style="color:#22863A">  body-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">0.95</span><span style="color:#6A737D">      # 0.6 … 1.8</span></span>
-<span class="line"><span style="color:#22863A">  wrap</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">            # balance | none – how a heading breaks</span></span>
-<span class="line"><span style="color:#22863A">  labels</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">           # on | off  – the tag word over a chunk</span></span></code></pre>
+<span class="line"><span style="color:#22863A">  wrap</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">            # balance | none – how a heading breaks</span></span></code></pre>
 <p><code>headings: auto</code> is what you get by saying nothing, and it means the tag decides: a question is centred, a figure&#39;s caption sits over its artwork. <code>left</code> overrides all of that, which is what you want if one line of alignment should run down the whole lecture. <code>off</code> takes every heading off the projection while keeping it in the documents, the contents list and the search.</p>
 <p>The two scales multiply the tool&#39;s own sizes rather than replacing them, and they are <strong>bounded</strong>. Outside 0.6 to 1.8 the shortened view, the limit on how wide a line of code may be, and the automatic zoom stop agreeing with each other, and what you get is not a look but a bug report.</p>
 

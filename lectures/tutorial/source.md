@@ -105,11 +105,13 @@ In the source, an expansion is written `::: expand <label>` … `:::`. The label
 
 **Links behave two ways, and which one you want depends on the window you are in.** A plain click follows the link in a new tab of *that* window. Clicked in the lectern view, that is you checking a source while the projection stays where it was. Clicked in the projection, it is the page itself arriving in front of the room.
 
-`Shift`-click does the other thing: it puts the **address** on both screens, large, with a **QR code** beside it. Click the address to open it anyway; `Esc` or the next slide clears it.
+**The little mark after the link does the other thing**: it puts the **address** on both screens, large, with a **QR code** beside it, so the room can take the link away on their own phones. Click the address to open it anyway; `Esc` or the next slide clears it. `Shift`-clicking the link itself does the same.
 
-Try it on this one: [the group behind the tool](https://psi.uni-bamberg.de/). `Shift`-click is the one to try while a room is watching.
+Try it on this one: [the group behind the tool](https://psi.uni-bamberg.de/). The mark is what you want while a room is watching.
 
-That is why the code exists. Putting the page itself on the projector goes wrong twice over: you would be driving a browser you cannot see from the lectern, and the room would be watching an unrelated interface rather than the lecture. What a room wants from a link mid-talk is to capture it, and the code moves that onto the listener's own phone, while the projection machine contacts nobody.
+**Up to 1.0.0 there was no mark, and `Shift`-click was the only way in.** It worked, and almost nobody found it. Both work now; `style: {link-codes: off}` takes the marks away again if you would rather keep your links bare.
+
+Putting the page itself on the projector goes wrong twice over: you would be driving a browser you cannot see from the lectern, and the room would be watching an unrelated interface rather than the lecture. The code asks the projection machine to contact nobody, and moves the fetching onto the phones of people who actually want the page.
 
 The codes are drawn when the lecture is built, one per external address in the source, so a lecture without links carries none.
 
@@ -1043,10 +1045,11 @@ A card row *is* welcome in a pane, because a pane is a box with a width the row 
 style:
   headings: left        # auto | left | center | off
   rules: off            # on | off  – the hairline over a principle
+  labels: off           # on | off  – the tag word over a chunk
+  link-codes: off       # on | off  – the mark after an external link
   heading-scale: 1.15   # 0.6 … 1.8
   body-scale: 0.95      # 0.6 … 1.8
   wrap: none            # balance | none – how a heading breaks
-  labels: off           # on | off  – the tag word over a chunk
 ```
 
 `headings: auto` is what you get by saying nothing, and it means the tag decides: a question is centred, a figure's caption sits over its artwork. `left` overrides all of that, which is what you want if one line of alignment should run down the whole lecture. `off` takes every heading off the projection while keeping it in the documents, the contents list and the search.

@@ -98,6 +98,8 @@ const STYLE_ENUMS = {
   'rules': ['on', 'off'],
   'wrap': ['balance', 'none'],
   'labels': ['on', 'off'],
+  // The mark after an external link that opens its address and QR code.
+  'link-codes': ['on', 'off'],
 };
 
 // Mirrors BACKDROP_SLOTS / OVERLAY_SLOTS in build.js. Two words from one

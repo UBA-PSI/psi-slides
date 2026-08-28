@@ -2775,6 +2775,32 @@ body[data-view=speaker] #help-button { display: none; }
    able to write an address down, and a browser tab pushed to a projector
    is a UI the lecturer is then driving blind. Sized to be read from the
    back row, and it breaks anywhere so a long URL never overflows. */
+/* The mark after an external link. Sized in the surrounding em so it tracks
+   the type at every zoom, and set in --ink-soft so it reads as a mark on the
+   line rather than as a second word: at full ink a row of links comes out as a
+   row of little black squares. It is what makes the address and its code
+   findable at all - up to 1.0.0 the only way in was Shift-click. */
+.link-code {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0 0.12em;
+  margin-left: 0.18em;
+  cursor: pointer;
+  color: var(--ink-soft);
+  vertical-align: baseline;
+  line-height: 1;
+}
+.link-code svg {
+  width: 0.78em;
+  height: 0.78em;
+  fill: currentColor;
+  vertical-align: -0.08em;
+}
+.link-code:hover, .link-code:focus-visible { color: var(--emph); }
+.link-code:focus-visible { outline: 2px solid var(--emph); outline-offset: 2px; border-radius: 2px; }
+body[data-link-codes=off] .link-code { display: none; }
+
 #link-overlay {
   position: fixed;
   inset: 0;
@@ -3437,7 +3463,7 @@ project page, and the <code>build.js</code> inside it. The source format is froz
     </div>
     <div class="section-body"><blockquote>
 <p>A deck has one cover, so this lecture can show you only one of the ten. The
-<a href="https://uba-psi.github.io/psi-slides/#covers" target="_blank" rel="noopener noreferrer">gallery</a> has all ten, each shot
+<a href="https://uba-psi.github.io/psi-slides/#covers" target="_blank" rel="noopener noreferrer">gallery</a><button type="button" class="link-code" data-link-code="https://uba-psi.github.io/psi-slides/#covers" aria-label="Show this address large, with a code to scan"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M1 1h5.4v5.4H1V1zm1.3 1.3v2.8h2.8V2.3H2.3zM9.6 1H15v5.4H9.6V1zm1.3 1.3v2.8h2.8V2.3h-2.8zM1 9.6h5.4V15H1V9.6zm1.3 1.3v2.8h2.8v-2.8H2.3z"/><path d="M8 1h1.2v3.1H8V1zm0 4.3h1.2v2.4h2.3v1.2H8V5.3zm5.5 2.4H15v1.2h-1.5V7.7zM8 10.1h1.2v1.4H8v-1.4zm2.4 0H15v1.2h-1.9v1.4H15V15h-1.2v-2.1h-2.2v-1.4h-1.2v-1.4zM8 12.6h1.2V15H8v-2.4z"/></svg></button> has all ten, each shot
 from a real build.</p>
 </blockquote>
 </div>
@@ -6707,6 +6733,29 @@ if (linkOverlay) {
 }
 // Capture phase: this has to beat the stage's own click handling, which
 // would otherwise treat the click as a chunk select.
+// The mark after a link, and Shift-click, are one act with two ways in. The
+// mark exists because the modifier is not discoverable: a reader who has not
+// been told about it never finds the address or its code. Both end in the
+// same call, so the projection, the peer message and the freeze rule cannot
+// drift apart between them.
+document.addEventListener('click', (e) => {
+  const mark = e.target.closest && e.target.closest('button[data-link-code]');
+  if (!mark) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const a = mark.previousElementSibling;
+  const href = mark.dataset.linkCode;
+  const label = (a && a.tagName === 'A' ? a.textContent : '').trim();
+  showLinkOverlay(href, label);
+  sendToPeer({ type: 'link-show', source: VIEW, href, label });
+  if (VIEW === 'speaker') flashMode('address shown on the projection');
+  // Chrome leaves a clicked button focused, and the guard above then hands
+  // it the next Space - so a lecturer who clicked the mark and pressed Space
+  // to move on would have re-opened the address instead. A keyboard
+  // activation reports detail 0 and keeps its place in the tab order.
+  if (e.detail > 0) mark.blur();
+}, true);
+
 document.addEventListener('click', (e) => {
   if (!e.shiftKey) return;
   // External only. A cross-reference resolves to a file:// path with a
@@ -6812,6 +6861,14 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { e.target.blur(); e.preventDefault(); }
     return;
   }
+  // A focused control has to be able to answer its own key. Space on the
+  // focused link mark advanced the deck instead of showing the address, so
+  // the mark was reachable by mouse alone - which is the thing it exists to
+  // stop being. Narrow to that one button on purpose: standing back for
+  // every button would take Space away from a lecturer who had just clicked
+  // the freeze control and still expected the next press to advance.
+  if (e.target.closest && e.target.closest('button[data-link-code]')
+      && (e.key === 'Enter' || e.key === ' ')) return;
   // A browser or system shortcut is not a slide command. Every binding here
   // is a bare letter, so Cmd-C reached the c case and toggled the collapse
   // instead of copying the selection – on a view that has an Alt-to-select

@@ -1150,6 +1150,57 @@ console.log('\nlayout generations');
      && /\.chunk\[data-cover=above\] \{[^}]*var\(--cover-ratio/.test(cls.html),
      'and beside and above still do');
 
+  // ── the link code mark ──
+  // Up to 1.0.0 the address and its QR code were reachable only by
+  // Shift-clicking the link: a modifier nobody is told about, so for most
+  // readers the feature did not exist. The mark is the way in that can be
+  // seen; Shift-click is unchanged.
+  const lk = raw(FM + '## free: A {#a}\n\nSee [the site](https://example.invalid/p).\n',
+    ['--audience-only']);
+  ok(lk.code === 0 && /<button type="button" class="link-code" data-link-code="https:\/\/example\.invalid\/p"/
+       .test(lk.html),
+     'an external link carries a mark that opens its address', lk.out.split('\n')[0]);
+  ok(/aria-label="Show this address large, with a code to scan"/.test(lk.html),
+     'and the mark is a labelled control, not a second anchor to the same place');
+  ok(/button\[data-link-code\][\s\S]{0,500}showLinkOverlay\(href, label\)/.test(lk.html),
+     'clicking it takes the same path Shift-click takes');
+  ok(/if \(!e\.shiftKey\) return;/.test(lk.html), 'and Shift-click still works');
+  const lkArt = (lk.html.match(/<article class="chunk chunk-free[\s\S]*?<\/article>/) || [''])[0];
+  ok(/link-code/.test(lkArt), 'the mark is in the chunk, beside its link');
+  const lkIn = raw(FM + '## free: A {#a}\n\nSee [the other one](#t).\n', ['--audience-only']);
+  const lkInArt = (lkIn.html.match(/<article class="chunk chunk-free[\s\S]*?<\/article>/) || [''])[0];
+  ok(!/link-code/.test(lkInArt), 'and an internal cross-reference carries none');
+  const lkOff = raw('---\ntitle: T\nstyle:\n  link-codes: off\n---\n\n## title: {#t}\n\n'
+    + '## free: A {#a}\n\nSee [the site](https://example.invalid/p).\n', ['--audience-only']);
+  ok(/data-link-codes="off"/.test(lkOff.html)
+     && /body\[data-link-codes=off\] \.link-code \{ display: none; \}/.test(lkOff.html),
+     'style.link-codes: off hides them');
+  // The body tag, not the file: the stylesheet carries the word too, and a
+  // check that reads the whole document passes on its own CSS.
+  const lkBody = (lk.html.match(/<body[^>]*>/) || [''])[0];
+  ok(!/data-link-codes/.test(lkBody),
+     'and a deck that says nothing emits no attribute, so its markup is unchanged');
+  // Built in full, because the print check below needs print.html.
+  const lkFull = raw(FM + '## free: A {#a}\n\nSee [the site](https://example.invalid/p).\n');
+  const lkBad = raw('---\ntitle: T\nstyle:\n  link-codes: sometimes\n---\n\n## title: {#t}\n\n'
+    + '## free: A {#a}\n\nX.\n', ['--audience-only']);
+  ok(lkBad.code !== 0, 'an unknown value is refused by the build');
+  ok(/unknown-view-default|link-codes/.test(lintOf(
+       '---\ntitle: T\nstyle:\n  link-codes: sometimes\n---\n\n## title: {#t}\n\n'
+       + '## free: A {#a}\n\nX.\n')), 'and by the linter');
+  ok(/\.link-code \{ display: none; \}/.test(lkFull.print), 'and print hides it');
+  // The guard, not the outcome. Browser-verified once: with the mark
+  // focused, Space used to advance the deck instead of opening the address,
+  // so the mark was reachable by mouse alone - which is what it exists to
+  // stop being. An edit that drops this leaves the button focusable,
+  // labelled, and unusable by the keyboard that reached it, and every
+  // outcome-shaped check on the markup still passes.
+  ok(/closest\('button\[data-link-code\]'\)\s*\n?\s*&& \(e\.key === 'Enter' \|\| e\.key === ' '\)\) return;/
+       .test(lk.html),
+     'the key map stands back so the focused mark can answer its own key');
+  ok(/if \(e\.detail > 0\) mark\.blur\(\);/.test(lk.html),
+     'and a pointer activation gives the deck its keys back');
+
   // ── and nine an independent GPT-5.6 review found ──
   // Every frontmatter key that can refuse a deck resolves in the pre-flight.
   // `section:` was read only while rendering a live divider, so an unknown
