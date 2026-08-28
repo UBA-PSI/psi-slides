@@ -4052,8 +4052,15 @@ body[data-slide-nums=off] .chunk-num { display: none; }
 .chunk-body p:last-child { margin-bottom: 0; }
 .chunk-body strong { font-weight: var(--bold-weight); color: var(--emph); }
 .chunk-body em { font-style: italic; }
-.chunk-body a { color: var(--emph); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
-.chunk-body a:hover { text-decoration-thickness: 2px; }
+/* A link is styled for the whole live surface, not only inside .chunk-body.
+   Three constructs render markdown outside that wrapper – a title chunk's
+   body, a margin note and an expansion body – and scoped to the body their
+   links fell through to the browser's own blue, the one colour in the view
+   that follows none of the seven themes. The two chrome links (the address
+   overlay and an embed's source line) carry their own colour and win on
+   specificity. Print already styles the bare element for the same reason. */
+a { color: var(--emph); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
 .chunk-body ul, .chunk-body ol { margin: 0 0 0.7em 1.4em; }
 .chunk-body li { margin: 0.15em 0; }
 .chunk-body code { font-family: var(--mono-font); font-size: 0.92em; }
