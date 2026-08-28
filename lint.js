@@ -52,7 +52,79 @@ const VIEW_DEFAULTS = {
   'auto-fit': ['true', 'false'],
   'slide-numbers': ['vertical', 'horizontal', 'off'],
   'editor': ['both', 'speaker', 'none'],
+  // Which cover composition the lecture opens with. Mirrors COVER_VARIANTS.
+  'cover': ['classic', 'editorial', 'split', 'hero', 'stack', 'rule', 'beside', 'above'],
+  // Mirrors LIGATURE_MODES. The default is `text` and not `none`, because
+  // code ligatures are already off and defaulting to none would take fi and
+  // fl out of every existing lecture's prose.
+  'ligatures': ['text', 'none', 'all'],
 };
+
+// Mirrors BUNDLED_FONTS in build.js – the families that need no file in
+// fonts/. Names only: the build owns the packages, the byte counts and the
+// warning about Iosevka's size.
+const BUNDLED_FAMILIES = {
+  serif: ['Literata'],
+  sans: ['IBM Plex Sans', 'Inter Tight'],
+  mono: ['JetBrains Mono', 'Noto Sans Mono Condensed'],
+};
+
+// Mirrors STYLE_SPEC in build.js – the nested `style:` block. Only the two
+// enum keys are checked: the two scales are bounded numbers, and reading a
+// number out of YAML with no parser is where a linter starts disagreeing
+// with the build. The build hard-fails on both halves either way.
+const STYLE_ENUMS = {
+  'headings': ['auto', 'left', 'center'],
+  'rules': ['on', 'off'],
+  'wrap': ['balance', 'none'],
+  'labels': ['on', 'off'],
+};
+
+// Mirrors BACKDROP_SLOTS / OVERLAY_SLOTS in build.js. Two words from one
+// slot is refused for the reason the diagram grammar refuses it: the second
+// lands, the first is thrown away, and nothing in the line says which.
+const BACKDROP_SLOTS = {
+  fill:  ['cover', 'contain'],
+  crop:  ['middle', 'top', 'bottom'],
+  scrim: ['veil', 'clear', 'invert'],
+  focus: ['sharp', 'blur'],
+};
+// Mirrors CARDS_SLOTS in build.js. The auto size is the build's - it
+// counts words in the source - but the vocabulary is shared.
+const CARDS_SLOTS = {
+  size:   ['auto', 'large', 'medium', 'small'],
+  align:  ['auto', 'left', 'center'],
+  anchor: ['top', 'middle'],
+  detail: ['fold', 'show'],
+  ground: ['panel', 'outline', 'clear'],
+};
+const OVERLAY_SLOTS = {
+  place:  ['center', 'top-left', 'top', 'top-right', 'left', 'right',
+           'bottom-left', 'bottom', 'bottom-right'],
+  ground: ['paper', 'ink', 'accent', 'clear', 'glass'],
+  width:  ['standard', 'narrow', 'wide', 'full'],
+};
+// Returns [] when the tail resolves, or one message per problem.
+function slotProblems(attrs, slots) {
+  const out = [];
+  const seen = {};
+  for (const raw of String(attrs || '').trim().split(/\s+/).filter(Boolean)) {
+    const w = raw.replace(/^\./, '');
+    const slot = Object.keys(slots).find(k => slots[k].includes(w));
+    if (!slot) {
+      out.push(`'${w}' is not a word this directive knows – `
+        + Object.entries(slots).map(([k, m]) => `${k}: ${m.join('|')}`).join(', '));
+      continue;
+    }
+    if (seen[slot]) {
+      out.push(`'${seen[slot]}' and '${w}' both answer '${slot}', `
+        + `and one of them would be thrown away with nothing in the line to say which`);
+      continue;
+    }
+    seen[slot] = w;
+  }
+  return out;
+}
 
 // Mirrors build.js: the per-image inline cap, and the extension search order
 // used to resolve `![](fig-id)` shorthand. An asset over the cap fails the
@@ -151,7 +223,7 @@ import {
   DG_EDGE_ARROWS, DG_STEP_NAME,
   rejectHeadClassIn, rejectSlotPair, rejectStepClass,
   rejectClassOn, DG_WORD_OPTS, dgTakes, dgArticle,
-  DG_PLACED_HEADS, DG_PLACE_INTRO, dgNoPlacement,
+  DG_PLACED_HEADS, DG_PLACE_INTRO, dgNoPlacement, DG_HOST_OPTS,
 } from './diagram-core.mjs';
 
 const REVEAL_PCT_WARN = 0.5;
@@ -1775,6 +1847,43 @@ function lintFile(filePath) {
       `'${m[1]}: ${value}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
   });
 
+  // cover-ratio: how much of the slide the picture takes. Bounded rather
+  // than free, and mirrored here because the build's message is the only
+  // other place that says so.
+  header.split('\n').forEach((raw, i) => {
+    const m = raw.match(/^cover-ratio:[ \t]*(.*)$/);
+    if (!m) return;
+    const v = m[1].replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '').replace(/%$/, '');
+    if (!v) return;
+    const n = Number(v);
+    if (Number.isFinite(n) && n >= 15 && n <= 75) return;
+    addFm(i + 2, 'error', 'bad-cover-ratio',
+      `'cover-ratio: ${m[1].trim()}' is not a percentage between 15 and 75`);
+  });
+
+  // The nested `style:` block. Read by indentation rather than with a YAML
+  // parser, the same fifteen-line trick collectDiagramDefaults uses: a
+  // `style:` line with no value opens the block, and any line indented
+  // under it is one of its keys. Only the two enums are ruled on – see
+  // STYLE_ENUMS for why the two scales are left to the build.
+  {
+    const lines = header.split('\n');
+    let inStyle = false;
+    lines.forEach((raw, i) => {
+      if (/^style:[ \t]*$/.test(raw)) { inStyle = true; return; }
+      if (!inStyle) return;
+      if (!/^[ \t]+\S/.test(raw)) { if (raw.trim()) inStyle = false; return; }
+      const m = raw.match(/^[ \t]+([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
+      if (!m) return;
+      const allowed = STYLE_ENUMS[m[1]];
+      if (!allowed) return;
+      const value = m[2].replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
+      if (!value || allowed.includes(value)) return;
+      addFm(i + 2, 'error', 'unknown-style-setting',
+        `'style.${m[1]}: ${value}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
+    });
+  }
+
   // The lecture-wide diagram layer. Its `default <kind> @tag` lines cannot be
   // checked against one block – they are written once for every figure in the
   // lecture – so the tags they target are collected here and ruled on after
@@ -1936,9 +2045,36 @@ function lintFile(filePath) {
         add(ln, 'error', 'stray-directive', '::: draw outside any chunk');
       }
       for (const tok of (diagramOpen[1] || '').trim().split(/\s+/).filter(Boolean)) {
-        if (!tok.startsWith('#') && !/^unit=\d+x\d+$/.test(tok)) {
+        // `autoplay=N` is build.js's, not the compiler's: playback is not
+        // part of the drawing, so build.js strips it before the block is
+        // compiled. The linter has to know the word for the same reason -
+        // it never reaches the compiler's own option error.
+        // `cycle` repeats the walk. Bare word, and meaningless without a
+        // delay to repeat - the build says so and so does this.
+        if (tok === 'cycle') {
+          if (!/(^|\s)autoplay=/.test(diagramOpen[1] || '')) {
+            add(ln, 'error', 'bad-autoplay',
+                "'cycle' has no autoplay to repeat – write {autoplay=1200 cycle}");
+          }
+          continue;
+        }
+        const auto = tok.match(/^autoplay=(.*)$/);
+        if (auto) {
+          const n = Number(auto[1]);
+          if (!Number.isFinite(n) || n < 200 || n > 60000) {
+            add(ln, 'error', 'bad-autoplay',
+                `'${tok}' is not a delay in milliseconds between 200 and 60000 – `
+                + 'it is one delay for every step of the figure');
+          }
+          continue;
+        }
+        // DG_HOST_OPTS is imported rather than restated: the two words
+        // above are checked here in detail, and this is the gate that has
+        // to agree with the compiler about which words exist at all.
+        if (!tok.startsWith('#') && !/^unit=\d+x\d+$/.test(tok)
+            && !DG_HOST_OPTS.includes(tok.split('=')[0])) {
           add(ln, 'error', 'unknown-diagram-option',
-              `unknown ::: draw option '${tok}' – expected #id or unit=WxH`);
+              `unknown ::: draw option '${tok}' – expected #id, unit=WxH, autoplay=N or cycle`);
         }
       }
       diagram = { open: ln, lines: [] };
@@ -2028,11 +2164,77 @@ function lintFile(filePath) {
       continue;
     }
 
+    // ::: backdrop <ref> {classes} – one line, no closer, chunk-level.
+    // ::: overlay {classes} … ::: – a text block laid over the slide.
+    // Both mirror build.js; the reference is resolved there (a backdrop
+    // that names no file hard-fails), so the linter rules on the shape of
+    // the line and on the class tail, which is what it can decide alone.
+    const backdropOpen = line.match(/^:::\s+backdrop\s+([^\s{]+)\s*(?:\{([^}]*)\})?\s*$/);
+    if (backdropOpen) {
+      if (!chunk) {
+        add(ln, 'error', 'stray-directive', '::: backdrop outside any chunk');
+      } else if (chunk.backdropSeen) {
+        add(ln, 'error', 'duplicate-backdrop',
+            `second ::: backdrop in one chunk (first at line ${chunk.backdropSeen}) – `
+            + 'a slide has one background, and the second would silently win');
+      } else {
+        chunk.backdropSeen = ln;
+      }
+      for (const msg of slotProblems(backdropOpen[2], BACKDROP_SLOTS)) {
+        add(ln, 'error', 'bad-backdrop-class', `::: backdrop: ${msg}`);
+      }
+      continue;
+    }
+    if (/^:::\s+backdrop\b/.test(line)) {
+      add(ln, 'error', 'bad-backdrop',
+          '::: backdrop takes one asset id, path or URL, then an optional {.class} tail');
+      continue;
+    }
+    const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*$/);
+    if (overlayOpen) {
+      if (!chunk) {
+        add(ln, 'error', 'stray-directive', '::: overlay outside any chunk');
+      }
+      for (const msg of slotProblems(overlayOpen[1], OVERLAY_SLOTS)) {
+        add(ln, 'error', 'bad-overlay-class', `::: overlay: ${msg}`);
+      }
+      if (activeDirective) {
+        add(ln, 'error', 'nested-directive',
+            `::: overlay inside still-open ::: ${activeDirective.kind} (line ${activeDirective.line})`);
+      }
+      activeDirective = { kind: 'overlay', line: ln };
+      continue;
+    }
+
     // Layout directives (::: cols N / side / flip / marginalia / slide /
     // script) stay inline in the body as HTML wrappers. They have their
     // own small stack so bare `:::` closes the innermost layout first,
     // and the outer sidebar directive only after.
     const colsOpen = line.match(/^:::\s+cols\s+(2|3)\s*$/);
+    const cardsOpen = line.match(/^:::\s+cards\s+([2-6])\s*(?:\{([^}]*)\})?\s*$/);
+    if (!cardsOpen && /^:::\s+cards\b/.test(line)) {
+      add(ln, 'error', 'bad-cards',
+          '::: cards takes a count from 2 to 6, then an optional {.class} tail – '
+          + 'more than six cards in a row is a table');
+    }
+    if (cardsOpen) {
+      for (const msg of slotProblems(cardsOpen[2], CARDS_SLOTS)) {
+        add(ln, 'error', 'bad-cards-class', `::: cards: ${msg}`);
+      }
+      // Mirrors build.js: a card row is N containers side by side, so it
+      // needs the whole measure, and every directive that could enclose it
+      // has already divided that measure. `slide` and `script` divide
+      // nothing - they say which half of the chunk is on screen - so they
+      // are not in the list.
+      const narrowing = layoutStack.filter(l => /^(cols|side|marginalia|embed)/.test(l.kind)).pop();
+      const encl = narrowing ? `::: ${narrowing.kind.split(' ')[0]}`
+        : activeDirective ? `::: ${activeDirective.kind}` : null;
+      if (encl) {
+        add(ln, 'error', 'cards-nested',
+            `::: cards inside ${encl} – a card row needs the whole measure, and `
+            + `${encl} has already divided it`);
+      }
+    }
     const sideOpen = /^:::\s+side\s*$/.test(line);
     const flipMark = /^:::\s+flip\s*$/.test(line);
     const marginaliaOpen = /^:::\s+marginalia\s*$/.test(line);
@@ -2056,12 +2258,13 @@ function lintFile(filePath) {
             `::: embed needs a YouTube or Vimeo link, or an https URL - got '${v}'`);
       }
     }
-    if (colsOpen || sideOpen || marginaliaOpen || slideOpen || scriptOpen || embedOpen) {
+    if (colsOpen || cardsOpen || sideOpen || marginaliaOpen || slideOpen || scriptOpen || embedOpen) {
       if (!chunk) {
         add(ln, 'error', 'stray-directive',
             `::: layout directive outside any chunk`);
       }
       const kind = colsOpen ? `cols ${colsOpen[1]}`
+        : cardsOpen ? `cards ${cardsOpen[1]}`
         : sideOpen ? 'side'
         : marginaliaOpen ? 'marginalia'
         : embedOpen ? 'embed'
@@ -2165,6 +2368,11 @@ function lintFile(filePath) {
     const hrefs = [...line.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)].map(m => m[1]);
     const dm = line.trim().match(/^image\s+\S+\s+(\S+)/);
     if (dm && diagramRefs.has(dm[1])) hrefs.push(dm[1]);
+    // A ::: backdrop is inlined as a data: URI exactly like a figure, so
+    // it meets the same per-image cap – and it is the reference most
+    // likely to be a photograph, which is the kind that blows it.
+    const bm = line.match(/^:::\s+backdrop\s+([^\s{]+)/);
+    if (bm) hrefs.push(bm[1]);
     for (const href of hrefs) {
       if (/^[a-z]+:/i.test(href)) continue;
       let abs = null;

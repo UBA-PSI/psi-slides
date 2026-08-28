@@ -825,6 +825,14 @@ export const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid un
 // This matters far more to the editor than to a terminal. `dgeSetSource`
 // rolls a refused edit back and shows `problems[0]` and nothing else, so
 // whichever problem lands first *is* the whole message a panel user gets.
+// Fence options the compiler does not own. `autoplay=N` and `cycle` say
+// how a finished figure is *played*, which is a fact about the deck and not
+// about the drawing - and this file also runs inside the browser editor,
+// where there is no deck to play. Exported so the one vocabulary has one
+// home: build.js reads the values, lint.js checks them, the compiler steps
+// over them, and any future embedder is correct without being told.
+export const DG_HOST_OPTS = ['autoplay', 'cycle'];
+
 export const DG_PHASES = ['syntax', 'reference', 'semantic', 'layout'];
 export function dgErr(errors, line, msg, phase = 'syntax') { errors.push({ line, msg, phase }); }
 // Stable-sort a problem list into phase order. Exported because lint.js
@@ -2873,7 +2881,16 @@ export function createDiagramCompiler(env = {}) {
       const m = tok.match(/^unit=(\d+)x(\d+)$/);
       if (m) { model.unit = [Number(m[1]), Number(m[2])]; continue; }
       if (tok.startsWith('#')) { model.id = tok.slice(1); continue; }
-      dgErr(errors, 0, `unknown ::: draw option "${tok}" (expected #id or unit=WxH)`);
+      // Options that belong to whoever embeds this compiler rather than to
+      // the drawing. Skipped rather than refused, because a fence carrying
+      // one is legal source and every embedder would otherwise have to
+      // strip it: build.js does (it needs the value), but the corpus gate
+      // and the browser editor compile blocks straight out of a file, and
+      // both broke on the first lecture that used one.
+      if (DG_HOST_OPTS.includes(tok.split('=')[0])) continue;
+      dgErr(errors, 0,
+        `unknown ::: draw option "${tok}" (expected #id, unit=WxH, ` +
+        `${DG_HOST_OPTS.join(' or ')})`);
     }
 
     // Returns whether the name is now this element's. A caller that would go on
