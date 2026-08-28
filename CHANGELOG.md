@@ -65,6 +65,24 @@ from building the same way is a major version.
 
 ### Fixed
 
+- **A second review, by a different model, found eight more - and seven of
+  them were places `build.js` and `lint.js` disagreed.** Four in the direction
+  that matters, where the build accepted what the linter refuses: `section:`
+  with an unknown value was read only while rendering a live divider, so it
+  wrote two print files and then threw; a second `::: overlay` replaced the
+  first and its words were gone from every output at exit 0; an unreadable
+  `::: cards` or `::: rows` line fell through every branch and printed as
+  literal text on the projection; and a `## closing:` with no heading rendered
+  an empty slide. Plus two silent no-ops - `cover-image` on the six covers
+  that draw no picture of their own, and a width class or `.bare` on a title
+  or closing chunk, both byte-identical with and without - and two gaps where
+  the linter read the frontmatter more narrowly than the build.
+
+  Two of its findings were declined as documented decisions: the linter
+  deliberately leaves the numeric `style:` scales to the build, and naming a
+  slot's default explicitly is meant to produce identical output - that is
+  self-documentation for a reader, not a promise of an effect.
+
 - **A code review over the whole slide-decoration family found eighteen
   defects, and four of them were in the fixes for the first ten.** The ones
   an author would have met: an unclosed `::: cols` made every later

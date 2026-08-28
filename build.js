@@ -1472,6 +1472,12 @@ const COVER_BODY_FIELD = new Set(['masthead', 'quote']);
 const COVER_BODY_REQUIRED = new Set(['quote']);
 // Which covers divide the slide, and therefore have a ratio to set.
 const COVER_RATIO_VARIANTS = new Set(['split', 'beside', 'above']);
+// Which covers draw a `cover-image` at all. On the six that do not it was
+// read, stored and never looked at again: byte-identical output with and
+// without the line, which is the silent no-op this format refuses. A picture
+// reaches those six through `::: backdrop` on the title chunk, which is what
+// that directive is for.
+const COVER_IMAGE_VARIANTS = new Set(['split', 'hero', 'beside', 'above']);
 // Where the type block sits on the vertical, for the covers that leave it
 // any freedom. It is a separate key from `cover:` rather than six more
 // variant names because it is one question asked of six compositions, and
@@ -3070,6 +3076,33 @@ function parseLecture(src) {
           throw err;
         }
         const { tag, heading, headingSub } = parseTagPrefix(text);
+        // A title or closing chunk is placed by its cover composition: both
+        // renderers hardcode data-width="full", and the heading is the
+        // composition's rather than the slide's. So a width class and .bare
+        // were read, stored and thrown away - byte-identical output with and
+        // without them, which is the silent no-op this format refuses.
+        // A closing slide's heading IS its content - unlike a title chunk it
+        // has no frontmatter to fall back on - so one with no heading renders
+        // an empty <h1> and a slide with nothing on it. lint.js has said so
+        // since the tag was added; the build let it through, which is the
+        // direction that matters: a pre-commit gate refusing what the build
+        // accepts is the wrong way round of a rule this project states.
+        if (tag === 'closing' && !heading) {
+          const err = new Error(
+            'A closing chunk has no heading, and its heading is its content.\n' +
+            '  Unlike `## title:`, which renders from the frontmatter, a closing\n' +
+            '  slide has no other source for its words. Write  ## closing: Your line');
+          err.userFacing = true;
+          throw err;
+        }
+        if ((tag === 'title' || tag === 'closing') && (width || bare)) {
+          const err = new Error(
+            `A ${tag} chunk carries .${width || 'bare'}, which its cover composition decides ("${text}").\n` +
+            '  A title or closing slide is always full width, and its heading is\n' +
+            '  the composition\'s - so neither class has anything to act on.');
+          err.userFacing = true;
+          throw err;
+        }
         currentChunk = {
           tag,
           heading,
@@ -3198,6 +3231,18 @@ function parseLecture(src) {
         // text on the projection while the linter blamed the closing `:::`.
         const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\S+))?\s*$/);
         if (overlayOpen) {
+          // Assigned unconditionally, a second opener replaced the first and
+          // its words were gone from every output with the build exiting 0 -
+          // while lint.js reported `nested-directive`. Content loss and a
+          // divergence in one line.
+          if (currentOverlay) {
+            const err = new Error(
+              `::: overlay opened while one is still open (${currentChunk.id ? '#' + currentChunk.id : 'a chunk with no id'}).\n` +
+              '  An overlay is a block, not a marker: close the first with a ::: line\n' +
+              '  before opening the second. Two overlays on one chunk are fine.');
+            err.userFacing = true;
+            throw err;
+          }
           if (overlayOpen[2] != null && !/^[1-9]\d*$/.test(overlayOpen[2])) {
             const err = new Error(
               `::: overlay from ${overlayOpen[2]} in ${currentChunk.id ? '#' + currentChunk.id : 'a chunk with no id'}.\n` +
@@ -3352,6 +3397,21 @@ function parseLecture(src) {
         // the collapse mode does not touch .side at all - two panes are two
         // things rather than one flow. Placement-only constructs are cheap
         // exactly because print can ignore them and collapse does not care.
+        // The counterpart of the ::: side refusal below, and missing for the
+        // same two keywords: an unreadable line simply did not match, fell
+        // through every branch and was emitted as literal text - the words
+        // `::: cards 7` printed on the projection, with the build exiting 0
+        // while lint.js reported bad-cards.
+        if (/^:::\s+(cards|rows)\b/.test(line)) {
+          const kw = /rows/.test(line) ? 'rows' : 'cards';
+          const err = new Error(
+            `::: ${kw} could not be read: "${line.trim()}".\n` +
+            (kw === 'cards'
+              ? '  Write  ::: cards N  with N from 1 to 6, and an optional {class} tail.'
+              : '  Write  ::: rows  with an optional {class} tail - a row block has one column,\n  so it takes no count.'));
+          err.userFacing = true;
+          throw err;
+        }
         const sideOpen = line.match(/^:::\s+side(?:\s+(\d{1,2})\s*:\s*(\d{1,2}))?\s*$/);
         if (sideOpen) {
           const style = sideOpen[1]
@@ -3962,6 +4022,14 @@ function coverSettings(frontmatter = {}) {
   const image = frontmatter['cover-image']
     ? String(frontmatter['cover-image']).trim()
     : null;
+  if (image && !COVER_IMAGE_VARIANTS.has(raw)) {
+    const err = new Error(
+      `Frontmatter: cover-image is set, but "cover: ${raw}" draws no picture of its own.\n` +
+      `  It applies to: ${[...COVER_IMAGE_VARIANTS].join(', ')}. To put a photograph\n` +
+      '  behind this composition, write ::: backdrop on the title chunk instead.');
+    err.userFacing = true;
+    throw err;
+  }
   if ((raw === 'split' || raw === 'hero') && !image) {
     const err = new Error(
       `Frontmatter: "cover: ${raw}" needs a picture, and no cover-image is set.\n` +
@@ -5088,6 +5156,12 @@ function abbrevForLabel(label) {
 // at all, so an invalid deck built clean. Same contract as the two above -
 // a failed build leaves no half-written artefact.
 function assertCoverBody(lecture) {
+  // Every frontmatter key that can refuse a deck is resolved here, not where
+  // a renderer happens to need it. `section:` was read only while rendering a
+  // live divider, so `section: bogus` built print.html and print-notes.html
+  // and then threw - the half-written artefact this pre-flight exists to
+  // prevent - and --print-only never reached it at all.
+  sectionSettings(lecture.frontmatter);
   const cover = coverSettings(lecture.frontmatter);
   if (!cover.bodyRequired) return;
   const title = lecture.columns

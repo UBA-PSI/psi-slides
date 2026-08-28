@@ -42,6 +42,10 @@ const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
 // VALID_CHUNK_CLASSES in build.js: `.bare` takes the heading off the slide
 // and leaves it in the TOC, in search and in the printed document.
 const VALID_CHUNK_CLASSES = new Set(['bare']);
+// Mirrors COVER_RATIO_VARIANTS / COVER_IMAGE_VARIANTS in build.js: which
+// covers divide the slide, and which draw a picture of their own.
+const COVER_RATIO_VARIANTS = new Set(['split', 'beside', 'above']);
+const COVER_IMAGE_VARIANTS = new Set(['split', 'hero', 'beside', 'above']);
 
 // Mirrors VIEW_DEFAULT_SPEC in build.js: frontmatter keys that pin how a
 // lecture opens. The build hard-fails on a bad value, but a typo here is
@@ -1889,7 +1893,10 @@ function lintFile(filePath) {
   // this file is not allowed to be wrong in. Decidable from the source
   // alone: which cover, and whether the title chunk has a body.
   {
-    const m = header.match(/^cover:[ \t]*(\w+)/m);
+    // The value may be quoted - gray-matter reads real YAML, so `cover: "quote"`
+    // is the same deck as `cover: quote`, and a check that only sees the bare
+    // word passes a deck the build then hard-fails.
+    const m = header.match(/^cover:[ \t]*["']?(\w+)["']?/m);
     const needsBody = m && ['quote'].includes(m[1]);
     if (needsBody) {
       // Walked line by line rather than matched with one regex: `$` under /m
@@ -1914,6 +1921,21 @@ function lintFile(filePath) {
     }
   }
 
+  // cover-image on a cover that draws no picture of its own. The build
+  // refuses it; unmirrored, the pre-commit gate passed a deck the build then
+  // hard-failed - and before the build refused it, the key was simply read
+  // and thrown away.
+  {
+    const cm = header.match(/^cover:[ \t]*["']?(\w+)["']?/m);
+    const im = header.split('\n').findIndex(l => /^cover-image:[ \t]*\S/.test(l));
+    const cover = cm ? cm[1] : 'classic';
+    if (im >= 0 && !COVER_IMAGE_VARIANTS.has(cover)) {
+      addFm(im + 2, 'error', 'bad-cover-image',
+        `cover-image is set, but 'cover: ${cover}' draws no picture of its own – `
+        + `it applies to: ${[...COVER_IMAGE_VARIANTS].join(', ')}; use ::: backdrop instead`);
+    }
+  }
+
   // cover-ratio: how much of the slide the picture takes. Bounded rather
   // than free, and mirrored here because the build's message is the only
   // other place that says so.
@@ -1923,9 +1945,21 @@ function lintFile(filePath) {
     const v = m[1].replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '').replace(/%$/, '');
     if (!v) return;
     const n = Number(v);
-    if (Number.isFinite(n) && n >= 15 && n <= 75) return;
-    addFm(i + 2, 'error', 'bad-cover-ratio',
-      `'cover-ratio: ${m[1].trim()}' is not a percentage between 15 and 75`);
+    if (!(Number.isFinite(n) && n >= 15 && n <= 75)) {
+      addFm(i + 2, 'error', 'bad-cover-ratio',
+        `'cover-ratio: ${m[1].trim()}' is not a percentage between 15 and 75`);
+      return;
+    }
+    // …and which covers it applies to. Mirrored after all: the build's own
+    // message names the three, so the two files can say the same thing, and
+    // a number the drawing ignores is what this format refuses everywhere.
+    const cm = header.match(/^cover:[ \t]*["']?(\w+)["']?/m);
+    const cover = cm ? cm[1] : 'classic';
+    if (!COVER_RATIO_VARIANTS.has(cover)) {
+      addFm(i + 2, 'error', 'bad-cover-ratio',
+        `cover-ratio is set, but 'cover: ${cover}' does not divide the slide – `
+        + `it applies to: ${[...COVER_RATIO_VARIANTS].join(', ')}`);
+    }
   });
 
   // The nested `style:` block. Read by indentation rather than with a YAML
@@ -2228,6 +2262,14 @@ function lintFile(filePath) {
           add(ln, 'error', 'unknown-width',
               `unknown class '.${cls}' – valid: ${[...VALID_WIDTHS].map(w => '.' + w).join(', ')}`
               + `, or ${[...VALID_CHUNK_CLASSES].map(c => '.' + c).join(', ')}`);
+        } else if (tag === 'title' || tag === 'closing') {
+          // Both are placed by the cover composition: full width, and a
+          // heading that is the composition's rather than the slide's. The
+          // build refuses these; unmirrored, the two disagreed about a class
+          // that changes nothing either way.
+          add(ln, 'error', 'class-on-cover-chunk',
+              `'.${cls}' on a ${tag} chunk – its cover composition decides the width `
+              + 'and the heading, so the class has nothing to act on');
         }
       }
       if (!id) {

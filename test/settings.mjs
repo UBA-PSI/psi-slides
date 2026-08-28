@@ -1149,6 +1149,76 @@ console.log('\nlayout generations');
   ok(/\.chunk\[data-cover=beside\] \{[^}]*var\(--cover-ratio/.test(cls.html)
      && /\.chunk\[data-cover=above\] \{[^}]*var\(--cover-ratio/.test(cls.html),
      'and beside and above still do');
+
+  // ── and nine an independent GPT-5.6 review found ──
+  // Every frontmatter key that can refuse a deck resolves in the pre-flight.
+  // `section:` was read only while rendering a live divider, so an unknown
+  // value wrote print.html and print-notes.html and then threw.
+  const badSec = raw('---\ntitle: T\nsection: bogus\n---\n\n## title: {#t}\n\n'
+    + '# P {#p}\n\n## free: S {#s}\n\nB.\n');
+  ok(badSec.code !== 0 && badSec.files.length === 0,
+     'an unknown section: is refused before anything is written');
+  const badSecPO = raw('---\ntitle: T\nsection: bogus\n---\n\n## title: {#t}\n\n'
+    + '# P {#p}\n\n## free: S {#s}\n\nB.\n', ['--print-only']);
+  ok(badSecPO.code !== 0, 'and --print-only refuses it too');
+
+  // A second ::: overlay replaced the first and its words were gone from every
+  // output with the build exiting 0, while lint.js reported nested-directive.
+  const twoOv = raw(FM + '## free: S {#s}\n\n::: overlay {left}\nFirst.\n'
+    + '::: overlay {right}\nSecond.\n:::\n', ['--audience-only']);
+  ok(twoOv.code !== 0 && /still open/.test(twoOv.out),
+     'a second ::: overlay while one is open is refused, not silently dropped');
+
+  // An unreadable cards/rows line fell through every branch and printed as
+  // literal text on the projection. ::: side already had this refusal.
+  for (const [kw, src] of [['cards', '::: cards 7\n- A\n:::\n'], ['rows', '::: rows 2\n- A\n:::\n']]) {
+    const r = raw(FM + '## free: S {#s}\n\n' + src, ['--audience-only']);
+    ok(r.code !== 0 && new RegExp('::: ' + kw + ' could not be read').test(r.out),
+       `an unreadable ::: ${kw} line is named, not printed on the slide`);
+  }
+
+  // A closing slide's heading is its content - it has no frontmatter to fall
+  // back on. lint.js had said so since the tag was added; the build had not.
+  const emptyClo = raw(FM + '## closing: {#end}\n', ['--print-only']);
+  ok(emptyClo.code !== 0 && /heading is its content/.test(emptyClo.out),
+     'a closing chunk with no heading is refused by the build too');
+
+  // A title or closing chunk is placed by its composition: both renderers
+  // hardcode full width and the heading is the composition's, so a width
+  // class and .bare were read and thrown away - byte-identical output.
+  const cloCls = raw(FM + '## closing: Done {.bare .narrow #end}\n', ['--audience-only']);
+  ok(cloCls.code !== 0 && /cover composition decides/.test(cloCls.out),
+     'a width or .bare on a title or closing chunk is refused');
+  ok(/class-on-cover-chunk/.test(lintOf(FM + '## closing: Done {.bare #end}\n')),
+     'and the linter says the same');
+
+  // cover-image on a cover that draws no picture of its own: read, stored and
+  // never looked at again.
+  const imgNo = raw('---\ntitle: T\ncover: classic\ncover-image: https://example.invalid/p.jpg\n---\n\n'
+    + '## title: {#t}\n\n## free: X {#x}\n\nX.\n', ['--audience-only']);
+  ok(imgNo.code !== 0 && /draws no picture of its own/.test(imgNo.out),
+     'cover-image on a type-only cover is refused');
+  ok(/bad-cover-image/.test(lintOf('---\ntitle: T\ncover: classic\ncover-image: p\n---\n\n'
+    + '## title: {#t}\n\n## free: X {#x}\n\nX.\n')),
+     'and the linter says the same');
+
+  // Two gaps where the linter read the frontmatter more narrowly than the
+  // build: a quoted cover value, and which covers cover-ratio applies to.
+  ok(/cover-needs-body/.test(lintOf('---\ntitle: T\ncover: "quote"\n---\n\n'
+    + '## title: {#t}\n\n## free: X {#x}\n\nX.\n')),
+     'a quoted cover value is read like the build reads it');
+  ok(/bad-cover-ratio/.test(lintOf('---\ntitle: T\ncover: classic\ncover-ratio: 42\n---\n\n'
+    + '## title: {#t}\n\n## free: X {#x}\n\nX.\n')),
+     'and cover-ratio is checked against the composition, not only the number');
+
+  // The card alignment checks matched `ca-center` in the markup and would have
+  // passed with the rule that makes it mean anything deleted. Assert the
+  // mechanism, which is what the rest of this file does.
+  ok(/\.cards\.ca-center \{ --card-align: center; \}/.test(cls.html)
+     && /\.cards\.ca-left   \{ --card-align: left; \}/.test(cls.html),
+     'the card alignment classes set the property their name promises');
+  ok(/text-align: var\(--card-align, left\)/.test(cls.html),
+     'and something reads it, or the classes would resolve and move nothing');
 }
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

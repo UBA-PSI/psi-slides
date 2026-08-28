@@ -885,8 +885,9 @@ subtitle: Prevalence, Techniques and Implications
 presenter: Ralf Gundelach
 info: |
   ARES 2026 · Linköping · 24 to 27 August
-cover: masthead         # see the two rows below
-cover-image: skyline    # split and hero need one; the others ignore it
+cover: split            # see the two rows below
+cover-image: skyline    # the four picture covers take one; the six type
+                        # compositions refuse it - they take a ::: backdrop
 ```
 
 `subtitle:` is the step the ladder was missing. Without it the one line that says what the talk is *about* has nowhere to go but `info`, where it is set exactly like the line that says which conference it is.
