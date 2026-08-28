@@ -461,7 +461,7 @@ body[data-liga=none] { font-variant-ligatures: none; }
 /* ::: side / ::: flip  – explicit two-pane grid for figure+text */
 .side {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: var(--side-a, 1fr) var(--side-b, 1fr);
   gap: 2em;
   align-items: start;
   margin: 0.85em 0 1.2em;
@@ -1244,6 +1244,9 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
   --ink-soft: color-mix(in oklch, var(--ink) 55%, transparent);
   text-shadow: none;
 }
+/* ov-ink's fill is a literal rather than var(--emph), so redefining --emph
+   here is safe - and it is wanted, because an accent on a dark slab has to
+   lift to stay legible. Kept as the counter-example to the rule above. */
 .overlay-card.ov-ink {
   background: oklch(0.16 0.015 260 / 0.9);
   color: oklch(0.99 0 0);
@@ -1257,9 +1260,9 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
   color: var(--paper);
   --ink: var(--paper);
   --ink-soft: color-mix(in oklch, var(--paper) 80%, transparent);
-  --emph: var(--paper);
   text-shadow: none;
 }
+.overlay-card.ov-accent strong, .overlay-card.ov-accent b { color: currentColor; }
 .overlay-card.ov-glass {
   background: color-mix(in oklch, var(--paper) 26%, transparent);
   backdrop-filter: blur(14px) saturate(1.2);
@@ -1298,10 +1301,17 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
    a class, because there is nothing an author would want to say here that
    the cards have not already said - and it yields entirely the moment
    style.headings names a value, which is what that key is for. */
-body:not([data-headings]) .chunk-content:has(.cards.ca-center) .chunk-heading,
-body:not([data-headings]) .chunk-content:has(.cards.ca-center) .chunk-body > .reveal-segment > p {
+/* Only a row that spans the measure moves the heading. A centred card row
+   inside a ::: side pane is centred *in its pane*, and letting that centre
+   the heading over the whole slide put the title above one column and the
+   prose beside it - two axes, no reason for either. The child combinator
+   is what says "spans the measure": in a pane the row sits under
+   .side-a / .side-b instead. */
+body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .cards.ca-center) .chunk-heading,
+body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .cards.ca-center) .chunk-body > .reveal-segment > p {
   text-align: center;
 }
+.cards-1 { --card-n: 1; }
 .cards-2 { --card-n: 2; }
 .cards-3 { --card-n: 3; }
 .cards-4 { --card-n: 4; }
@@ -1312,7 +1322,7 @@ body:not([data-headings]) .chunk-content:has(.cards.ca-center) .chunk-body > .re
 .cards > ol > li,
 .cards > :not(ul):not(ol) {
   margin: 0;
-  padding: var(--card-pad, 1.05em 1.15em);
+  padding: var(--card-py, 1.05em) var(--card-px, 1.15em);
   border: var(--card-border, 0);
   /* 6px on a card 300px wide is the radius a stylesheet has when nobody
      chose one. At slide scale it needs to be visible as a decision. */
@@ -1321,6 +1331,19 @@ body:not([data-headings]) .chunk-content:has(.cards.ca-center) .chunk-body > .re
   list-style: none;
   line-height: 1.38;
   font-size: calc(1em * var(--card-fs, 1));
+  /* A card is the narrowest measure on the slide, so it is where a long
+     word first runs out of room - measured, Countermeasures overflowed a
+     320px card by 26px once the second level widened it. Breaking is the
+     floor and hyphenation the preference; the language comes from the
+     html lang attribute, which is why lang: de in the frontmatter is what
+     makes a German compound break at all. */
+  overflow-wrap: break-word;
+  hyphens: auto;
+  /* Only long words. Left to itself the browser broke until into un-
+     and til, which costs a reader more than the ragged edge it saved.
+     Eight characters is past every short function word and short of every
+     compound worth breaking. */
+  hyphenate-limit-chars: 8 4 4;
   /* A grid row is as tall as its longest card, so every other card has
      slack in it and something has to say where the text sits. Flex column
      rather than align-content, because a card can hold more than one block
@@ -1330,21 +1353,250 @@ body:not([data-headings]) .chunk-content:has(.cards.ca-center) .chunk-body > .re
   justify-content: var(--card-anchor, flex-start);
   text-align: var(--card-align, left);
 }
+/* A card that opens with a bold run has a heading, and it needs air under
+   it or the two read as one paragraph that happens to start bold. Detected
+   rather than declared, because the author already wrote the distinction:
+   an item beginning - **panel** a tinted fill... means exactly this. It
+   is skipped where the bold run is the whole card, which is the callout.
+   A hard line break (two trailing spaces, or a backslash) is honoured for
+   the same job and needs no rule - <br> is already a line break. */
+/* Two ways to open a card, and the author already writes the difference:
+     - **panel** a tinted fill…     a lead-in. Own line, ordinary leading.
+     - **Measure**                 a heading. Own line, and air under it.
+       what the page does
+   Keyed on the break, which is the thing the author actually typed. The
+   rule said :not(:last-child) before, which counts *elements*: a bold run
+   followed by a bare text node matched :last-child and lost its margin,
+   one followed by a <br> kept it. Same two behaviours, no way to predict
+   which you would get - and a card that opened with a nested list got the
+   margin with nothing after it to separate from.
+
+   The second selector of each pair is the card that opens with a bleeding
+   picture: there the bold run is the *second* element, so a :first-child
+   rule reached none of it and the <br> drew a visible empty line under
+   every heading. */
+.cards li > :is(strong, b):first-child,
+.cards li > :is(p, figure, img):first-child + :is(strong, b) { display: block; }
+.cards li > :is(strong, b):first-child:has(+ br),
+.cards li > :is(p, figure, img):first-child + :is(strong, b):has(+ br) { margin-bottom: 0.45em; }
+/* An author who wrote the hard break *and* opened with bold meant one
+   separation, not two: the block display already broke the line, so the
+   <br> that follows it adds an empty one. */
+.cards li > :is(strong, b):first-child + br,
+.cards li > :is(p, figure, img):first-child + :is(strong, b) + br { display: none; }
+/* An image in a card bleeds to its edges. Negative margins equal to the
+   padding, which is why the padding is two custom properties rather than
+   one shorthand - a shorthand cannot be negated a side at a time. The top
+   corners follow the card's own radius; the bottom ones do not, because
+   the image sits above text rather than filling the box. */
+.cards li > :is(p, figure):first-child > img:only-child,
+.cards li > img:first-child,
+.cards li > figure.figure-img:first-child img {
+  display: block;
+  width: calc(100% + 2 * var(--card-px, 1.15em));
+  /* The figure and image rules elsewhere cap every picture at max-width
+     100%, which clamped the computed width straight back to the padded
+     box: the negative margins were applied and the image still did not
+     reach the edges. Measured - 327.6px asked for, 262.2px granted. */
+  max-width: none;
+  margin: calc(-1 * var(--card-py, 1.05em)) calc(-1 * var(--card-px, 1.15em)) 0.75em;
+  border-radius: inherit;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  object-fit: cover;
+}
+.cards li > :is(p, figure):first-child { margin-top: 0; }
+.cards li figure.figure-img { margin: 0; }
+.cards li figure.figure-img figcaption { display: none; }
+
+/* ── rows: the card row turned ninety degrees ────────────────────────
+   Term in a card on the left, body beside it, several stacked. The list is
+   the grid and each item dissolves into it (display: contents), so the
+   term column is one width for every row - which is the whole point, and
+   what a per-item grid could not give.
+
+   align-items: center is the vertical middle the shape asks for: a term of
+   one line beside a body of three should sit against the body's middle,
+   not its first line. */
+.cards.rows {
+  display: grid;
+  /* A definite share rather than an intrinsic track. Both intrinsic
+     keywords were measured and both failed: auto resolves toward
+     min-content under pressure, and the term inherits overflow-wrap from
+     the card rule, so its min-content is one character - the column came
+     out one letter wide. max-content then resolved to 0px with an item
+     78px wide in it. A fraction is predictable, needs no puzzle, and a
+     term column of about a third is what the shape wants anyway. */
+  grid-template-columns: minmax(6em, 0.38fr) minmax(0, 1fr);
+  align-items: center;
+  column-gap: calc(1.1em * var(--card-fs, 1));
+  row-gap: calc(0.7em * var(--card-fs, 1));
+}
+.cards.rows > ul, .cards.rows > ol { display: contents; }
+.cards.rows > ul > li, .cards.rows > ol > li {
+  display: contents;
+}
+/* The term is the card. Everything a card ground does is reached through
+   the same custom properties, so every ground, corner and size works here
+   with no second implementation. */
+.cards.rows li > :is(strong, b):first-child {
+  display: block;
+  grid-column: 1;
+  margin: 0;
+  padding: var(--card-py, 1.05em) var(--card-px, 1.15em);
+  background: var(--card-bg, none);
+  border: var(--card-border, 0);
+  border-radius: 10px;
+  align-self: center;
+  text-align: var(--card-align, left);
+  font-size: calc(1em * var(--card-fs, 1));
+  line-height: 1.25;
+  /* A single long term cannot wrap between words, so it hyphenates - and
+     if it is longer than even that allows, it breaks rather than running
+     across the body beside it. */
+  /* Hyphenation first and breaking only as the floor: Technocracy came
+     out as Technocrac / y when break-word got there first, which is
+     worse than the ragged edge it prevented. */
+  hyphens: auto;
+  overflow-wrap: break-word;
+  hyphenate-limit-chars: 7 3 3;
+}
+.cards.rows.ck-square li > :is(strong, b):first-child { border-radius: 0; }
+/* The body is the anonymous run after the term. It is prose beside a card
+   rather than a second card, so it takes no ground and stays at the
+   chunk's own size - a row whose two halves are both cards reads as a
+   two-column table, which is a different thing and has a statement. */
+.cards.rows li > .row-body {
+  grid-column: 2;
+  align-self: center;
+  min-width: 0;
+}
+.cards.rows li > :is(strong, b):first-child + br { display: none; }
+/* Every ground rule above targets > ul > li, which a contents-display
+   item is not, so the term picks the fill up through the properties. */
+.cards.rows.cg-accent li > :is(strong, b):first-child {
+  color: var(--paper);
+}
+.cards.rows.cg-paper li > :is(strong, b):first-child {
+  box-shadow: 0 1px 2px oklch(0.2 0.01 260 / 0.10), 0 6px 20px oklch(0.2 0.01 260 / 0.10);
+}
+
 /* size - one decision for the row, never per card: three sizes in one row
    read as a mistake rather than as a hierarchy. */
-/* Padding is in em, so it already scales with the card's own font size -
-   but not enough: big type wants proportionally *more* air around it, not
-   the same ratio, or a large card reads as a caption that outgrew its box. */
-.cards.cs-large  { --card-fs: 1.4;  --card-pad: 0.95em 1em; }
-.cards.cs-medium { --card-fs: 1;    --card-pad: 1.05em 1.15em; }
-.cards.cs-small  { --card-fs: 0.84; --card-pad: 1.15em 1.25em; }
-/* ground - one device, never two. */
+/* Padding is in em, so it already scales with the card's own font size,
+   and at large that was too much of a good thing: measured on a 4-up row
+   of single words, a 231px card carried 39.8px of padding on each side and
+   left 151px of inner width for a word 153.7px wide. The word overflowed
+   its own content box, and centred text that overflows shifts - which is
+   what read as "not centred". Small type gets proportionally more air, big
+   type less, which is the opposite of what was written here first. */
+.cards.cs-large  { --card-fs: 1.4;  --card-py: 0.62em; --card-px: 0.7em; }
+.cards.cs-medium { --card-fs: 1;    --card-py: 1.05em; --card-px: 1.15em; }
+.cards.cs-small  { --card-fs: 0.84; --card-py: 1.2em;  --card-px: 1.3em; }
+/* ground - one device, never two. Five is the whole list: filled,
+   outlined, nothing, the accent, the paper. Anyone who wants a sixth
+   wants a drawing, and there is a language for that. */
 .cards.cg-panel   { --card-bg: color-mix(in oklch, var(--ink) 5%, transparent); }
-.cards.cg-outline { --card-border: 1px solid color-mix(in oklch, var(--ink) 16%, transparent); }
+/* 2px, not 1. A hairline is a print value: on a projector one CSS pixel is
+   at or below the limit of what the room can resolve, so the outline read
+   as a rendering fault rather than as a border. Grey rather than dark,
+   because the card is a container and not a callout. */
+.cards.cg-outline { --card-border: 2px solid color-mix(in oklch, var(--ink) 22%, transparent); }
+/* The accent, with its own ink. Written as token overrides rather than a
+   colour per element for the reason every other inverted surface here is:
+   everything downstream already reads --ink and --emph, so one block
+   covers the type, the bold fragments and any rule inside the card. */
+/* The fill reads --emph and the ink overrides do NOT redefine it, which is
+   the whole of the fix: a declaration that uses var(--emph) resolves against
+   this element's own --emph, so redefining it in the same block made the
+   accent card paper-coloured on paper - invisible, text and all. Bold
+   fragments take currentColor instead, which is what --emph was being
+   bent to do. The overlay card had the identical defect and never showed
+   it, because no test had ever rendered one. */
+.cards.cg-accent > ul > li,
+.cards.cg-accent > ol > li,
+.cards.cg-accent > :not(ul):not(ol) {
+  --card-bg: var(--emph);
+  color: var(--paper);
+  --ink: var(--paper);
+  --ink-soft: color-mix(in oklch, var(--paper) 78%, transparent);
+}
+.cards.cg-accent strong, .cards.cg-accent b { color: currentColor; }
+/* The paper itself, which only reads as a card when the slide behind it is
+   not paper - on a tinted or dark ground, or over a backdrop. It carries a
+   shadow rather than a border for that reason: the edge has to come from
+   depth, because there is no tint to separate it. */
+.cards.cg-paper > ul > li,
+.cards.cg-paper > ol > li,
+.cards.cg-paper > :not(ul):not(ol) {
+  --card-bg: var(--paper);
+  box-shadow: 0 1px 2px oklch(0.2 0.01 260 / 0.10), 0 6px 20px oklch(0.2 0.01 260 / 0.10);
+}
+/* photo - the card's first picture becomes its ground rather than a band
+   across its top. The image is the same <img> the bleeding rule handles;
+   here it is taken out of the flow and stretched behind the text, which is
+   why the two are alternatives and not a combination.
+
+   The scrim is a pseudo-element over the picture and under the words, and
+   it is the theme's own paper: that is what keeps ordinary ink legible on
+   a photograph in all seven themes and in dark mode without a second
+   palette. invert darkens instead and re-points the ink tokens, exactly
+   as ::: backdrop does - one vocabulary, two places. */
+.cards.cg-photo > ul > li,
+.cards.cg-photo > ol > li,
+.cards.cg-photo > :not(ul):not(ol) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 7em;
+}
+.cards.cg-photo li > :is(p, figure):first-child > img:only-child,
+.cards.cg-photo li > img:first-child,
+.cards.cg-photo li > figure.figure-img:first-child img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border-radius: inherit;
+  object-fit: cover;
+  z-index: -2;
+}
+.cards.cg-photo li > figure.figure-img:first-child { position: static; margin: 0; }
+.cards.cg-photo li::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+}
+.cards.cg-photo.cx-veil li::before {
+  background: color-mix(in oklch, var(--paper) 78%, transparent);
+}
+.cards.cg-photo.cx-invert li::before {
+  background: color-mix(in oklch, oklch(0.14 0.015 260) 62%, transparent);
+}
+.cards.cg-photo.cx-plain li::before { content: none; }
+/* An inverted card re-points the ink tokens rather than restating a colour
+   per element, and it restates color for the same reason .chunk
+   [data-backdrop=invert] does: color: var(--ink) is computed where it is
+   declared, so redefining the token alone changes nothing already resolved. */
+.cards.cg-photo.cx-invert > ul > li,
+.cards.cg-photo.cx-invert > ol > li,
+.cards.cg-photo.cx-invert > :not(ul):not(ol) {
+  color: var(--ink);
+  --ink: oklch(0.99 0 0);
+  --ink-soft: oklch(0.99 0 0 / 0.76);
+  --emph: oklch(0.90 0.10 75);
+}
+
+/* corner - shape, not ground, so the two compose. */
+.cards.ck-round  > ul > li, .cards.ck-round  > ol > li, .cards.ck-round  > :not(ul):not(ol) { border-radius: 10px; }
+.cards.ck-square > ul > li, .cards.ck-square > ol > li, .cards.ck-square > :not(ul):not(ol) { border-radius: 0; }
 /* No box at all: the gutter is what separates the cards, so it has to be
    wide enough to do that on its own, and the padding goes away with the
    ground it was insetting from. */
-.cards.cg-clear   { --card-pad: 0 0; }
+.cards.cg-clear   { --card-py: 0; --card-px: 0; }
 .cards.cg-clear   { gap: calc(2.1em * var(--card-fs, 1)); }
 .cards.ca-left   { --card-align: left; }
 .cards.ca-center { --card-align: center; }
@@ -1357,6 +1609,11 @@ body:not([data-headings]) .chunk-content:has(.cards.ca-center) .chunk-body > .re
    data-collapse at all, so a hand-out always has them. */
 [data-collapse=topic-bold] .cards.cd-fold li ul,
 [data-collapse=topic-bold] .cards.cd-fold li ol { display: none; }
+/* page is the same hiding with no collapse condition on it: the levels
+   under the first are never on the projection, whatever C says. Print
+   carries no data-collapse and no cd-page rule, so the document has them. */
+.cards.cd-page li ul,
+.cards.cd-page li ol { display: none; }
 /* Shown, the nested level is an indented hierarchy rather than a second
    flat run - which is the whole reason to write one. */
 .cards li ul, .cards li ol {
@@ -1385,12 +1642,20 @@ body:not([data-headings]) .chunk-content:has(.cards.ca-center) .chunk-body > .re
    projection collapses – three things stay three things. What collapse
    still does inside one is abridge its prose, which is the same rule
    everywhere else. */
-body[data-collapse=topic-bold] .cards { grid-template-columns: repeat(var(--card-n), minmax(0, 1fr)); }
+/* :not(.rows) is load-bearing: with a body attribute this selector
+   outranks .cards.rows, so without it the collapse rule handed a row
+   block the column grid and the term track resolved to 0px - an item 78px
+   wide in a track of nothing. The rule itself only exists to stop a card
+   row folding to one column the way .cols does. */
+body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat(var(--card-n), minmax(0, 1fr)); }
 
 /* section divider slide: opens each named column ('# Heading').
    Centered like a part-title page so the camera has a clear stop
    before the first chunk of the section. */
-.chunk-section { align-items: center; }
+/* A divider owns the whole slide. At the 40% min-height every chunk gets,
+   tinted painted a band across the middle third with paper above and
+   below it - the same trap the backdrop and the cover both fell into. */
+.chunk-section { align-items: center; min-height: var(--slide-h); }
 .chunk-section .chunk-content {
   grid-column: 2;
   align-items: flex-start;
@@ -1405,17 +1670,65 @@ body[data-collapse=topic-bold] .cards { grid-template-columns: repeat(var(--card
   margin: 0;
   color: var(--ink);
 }
-.chunk-section .section-heading::before {
-  content: '§';
-  display: block;
+/* The PARAGRAPH SIGN that used to sit here is gone. It is a legal-citation
+   mark - it reads as a statute number rather than as "section" to anyone
+   outside a German law faculty - and on a projection it was a small grey
+   glyph nobody could place. section-mark: Teil puts a word there
+   instead, and saying nothing puts nothing there. */
+
+/* ── section dividers ────────────────────────────────────────────────
+   A divider says "a new part starts here, and it is part of the thing you
+   are already in". Every variant below is therefore quieter than the cover
+   it must not be mistaken for: no variant uses the title's scale, and the
+   two that take a ground take it lightly. */
+.chunk-section .section-mark {
   font-family: var(--sans-font);
   font-size: calc(0.42em * var(--zoom));
-  font-weight: 400;
+  font-weight: 500;
   font-variant-caps: all-small-caps;
   letter-spacing: 0.18em;
   color: var(--ink-soft);
-  margin-bottom: 0.6em;
+  margin-bottom: 0.35em;
 }
+/* The counter is the one mark that is not small caps: a numeral read
+   across a room wants size, not spacing. */
+.chunk-section .section-mark.section-num {
+  /* Big enough to be the thing the room sees first, and still short of the
+     cover's own scale - a divider that reads as a title has failed. */
+  font-size: calc(3.2em * var(--zoom));
+  font-variant-caps: normal;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  color: var(--emph);
+  line-height: 1;
+  margin-bottom: 0.25em;
+}
+/* tinted - the whole slide takes the accent, at the strength that still
+   leaves ordinary ink legible on it in all seven themes. This is the
+   ten-metre signal: from the back of a room the colour arrives before any
+   word does. */
+.chunk[data-section=tinted] {
+  background: color-mix(in oklch, var(--emph) 12%, var(--paper));
+}
+.chunk[data-section=tinted] .section-heading { color: var(--ink); }
+/* rule - the heading between two rules across the measure. The quietest of
+   the four, and the one that survives a monochrome print. */
+.chunk[data-section=rule] .chunk-content { align-items: stretch; }
+.chunk[data-section=rule] .section-heading {
+  border-top: 2px solid var(--rule);
+  border-bottom: 2px solid var(--rule);
+  padding: 0.35em 0;
+}
+/* card - the heading on a panel, which is the card vocabulary borrowed
+   rather than a fifth thing to learn. */
+.chunk[data-section=card] .chunk-content { align-items: flex-start; }
+.chunk[data-section=card] .section-heading {
+  background: color-mix(in oklch, var(--ink) 5%, transparent);
+  border-radius: 10px;
+  padding: 0.5em 0.7em;
+}
+/* number - the counter carries the weight, so the heading steps back. */
+.chunk[data-section=number] .section-heading { font-size: calc(2.1em * var(--zoom)); }
 
 /* margin notes: inline below body, dimmed, small */
 .margin-note {
@@ -1624,6 +1937,12 @@ body:not([data-wrap=none]) :is(
   [data-collapse=topic-bold] .reveal-segment p,
   [data-collapse=topic-bold] .reveal-segment li,
   [data-collapse=topic-bold] .reveal-segment .sentence-rest strong) { text-wrap: balance; }
+/* A card item is not a slide line, and balancing it is wrong: balance
+   equalises line lengths, so a three-line card comes out as three short
+   ragged lines with the column half empty. pretty fills the measure and
+   only protects the last line, which is what a box of prose wants. */
+body:not([data-wrap=none]) .cards li,
+body:not([data-wrap=none]) .cards > :not(ul):not(ol) { text-wrap: pretty; }
 
 /* Headings are phrases in every mode, so they balance whatever the collapse
    setting is - and unlike the slide lines they are the same in the live views
@@ -3227,8 +3546,9 @@ build time, and stepped with the same key that advances a reveal.</p>
 </article>
 </section>
 <section class="column" data-col="1">
-<article class="chunk chunk-section" data-tag="section" data-width="full" data-chunk-id="__section-c1">
+<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="__section-c1">
   <div class="chunk-content">
+    
     <h1 class="section-heading">Memory safety</h1>
   </div>
 </article>
@@ -3320,8 +3640,9 @@ build time, and stepped with the same key that advances a reveal.</p>
 </article>
 </section>
 <section class="column" data-col="2">
-<article class="chunk chunk-section" data-tag="section" data-width="full" data-chunk-id="__section-c2">
+<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="__section-c2">
   <div class="chunk-content">
+    
     <h1 class="section-heading">Block ciphers</h1>
   </div>
 </article>
@@ -3446,8 +3767,9 @@ build time, and stepped with the same key that advances a reveal.</p>
 </article>
 </section>
 <section class="column" data-col="3">
-<article class="chunk chunk-section" data-tag="section" data-width="full" data-chunk-id="__section-c3">
+<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="__section-c3">
   <div class="chunk-content">
+    
     <h1 class="section-heading">Identity and authentication</h1>
   </div>
 </article>
@@ -3585,8 +3907,9 @@ build time, and stepped with the same key that advances a reveal.</p>
 </article>
 </section>
 <section class="column" data-col="4">
-<article class="chunk chunk-section" data-tag="section" data-width="full" data-chunk-id="__section-c4">
+<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="__section-c4">
   <div class="chunk-content">
+    
     <h1 class="section-heading">The vocabulary</h1>
   </div>
 </article>
@@ -4202,8 +4525,9 @@ build time, and stepped with the same key that advances a reveal.</p>
 </article>
 </section>
 <section class="column" data-col="5">
-<article class="chunk chunk-section" data-tag="section" data-width="full" data-chunk-id="__section-c5">
+<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="plain" data-chunk-id="__section-c5">
   <div class="chunk-content">
+    
     <h1 class="section-heading">Four arrangements</h1>
   </div>
 </article>

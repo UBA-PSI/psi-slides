@@ -880,6 +880,27 @@ Which children become the cards is one rule and no parsing: a lone list dissolve
 
 Use `cols` for an argument that runs long and `cards` for a comparison the room should be able to count.
 
+## example: A figure beside the prose | `::: side 2:1` {.wide #side-ratio}
+
+**`::: side` takes an optional ratio**, and that turned out to be the whole of what "figure beside the text" needed.
+
+```markdown
+::: side 2:1
+The argument gets the wider pane, because it is the thing being read.
+
+::: flip
+::: draw {unit=140x52}
+box a "Crawler" {.tone-1}
+box b "Detector" below a gap 1.1 {.tone-4}
+edge a -> b "request"
+:::
+:::
+```
+
+**Figure *above* or *below* the text needs nothing at all** — put the block first or last in the chunk body, and document order does it. `::: cols` is the one place a figure does not belong: it is a text *flow*, so a figure breaks it and the columns silently stop working. That case is refused now, and the message points here.
+
+A card row *is* welcome in a pane, because a pane is a container with a width the row can fill. `::: cards 1` in a narrow pane is the stacked column a lecture keeps wanting; one card on its own is a callout.
+
 ## example: Setting the type for a whole lecture | the `style:` block {.wide #style-block}
 
 **Four knobs an author reaches for on a whole deck rather than on one chunk.**

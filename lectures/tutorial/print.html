@@ -423,6 +423,7 @@ body[data-labels=off] .chunk-label { display: none; }
   gap: 0.6rem;
   margin: 0.9rem 0;
 }
+.cards-1 { --card-n: 1; }
 .cards-2 { --card-n: 2; }
 .cards-3 { --card-n: 3; }
 .cards-4 { --card-n: 4; }
@@ -447,6 +448,23 @@ body[data-labels=off] .chunk-label { display: none; }
 .cards.cs-small  { --card-fs: 0.92; }
 .cards.ca-left   { --card-align: left; }
 .cards.ca-center { --card-align: center; }
+/* The five grounds on paper. accent and paper are the two that carry a
+   real fill, so they are the two the reader's printer will actually be
+   asked for; the rest stay hairlines, which is the right default for a
+   document that may be printed in black and white. */
+.cards.cg-panel > ul > li, .cards.cg-panel > ol > li, .cards.cg-panel > :not(ul):not(ol) {
+  background: color-mix(in oklch, var(--ink) 4%, transparent); border-color: transparent;
+}
+.cards.cg-clear > ul > li, .cards.cg-clear > ol > li, .cards.cg-clear > :not(ul):not(ol) {
+  border: 0; padding-left: 0; padding-right: 0;
+}
+.cards.cg-accent > ul > li, .cards.cg-accent > ol > li, .cards.cg-accent > :not(ul):not(ol) {
+  background: var(--emph); color: #fff; border-color: transparent;
+}
+.cards.cg-paper > ul > li, .cards.cg-paper > ol > li, .cards.cg-paper > :not(ul):not(ol) {
+  background: #fff;
+}
+.cards.ck-square > ul > li, .cards.ck-square > ol > li, .cards.ck-square > :not(ul):not(ol) { border-radius: 0; }
 /* No data-collapse in a document, so the second level is always here -
    which is the point of writing one. */
 .cards li ul, .cards li ol {
@@ -1912,7 +1930,7 @@ pre.shiki .line { display: inline; }
 <span class="line"><span style="color:#22863A">cover</span><span style="color:#24292E">: </span><span style="color:#032F62">editorial</span><span style="color:#6A737D">        # classic | editorial | split | hero</span></span>
 <span class="line"><span style="color:#22863A">cover-image</span><span style="color:#24292E">: </span><span style="color:#032F62">skyline</span><span style="color:#6A737D">    # split and hero need one; the others ignore it</span></span></code></pre>
 <p><code>subtitle:</code> is the step the ladder was missing. Without it the one line that says what the talk is <em>about</em> has nowhere to go but <code>info</code>, where it is set exactly like the line that says which conference it is.</p>
-<div class="cards cards-4 cs-small ca-left cv-top cd-fold cg-panel">
+<div class="cards cards-4 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li><strong>classic</strong> the lower-left third, all type. The default, so a lecture that names no <code>cover:</code> is unchanged.</li>
 <li><strong>editorial</strong> an accent rail, the title over a rule, the meta collected into a footer row.</li>
@@ -1924,7 +1942,7 @@ pre.shiki .line { display: inline; }
 
 
 
-<div class="cards cards-4 cs-small ca-left cv-top cd-fold cg-panel">
+<div class="cards cards-4 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li><strong>split</strong> type left, <code>cover-image</code> bled off the right edge.</li>
 <li><strong>hero</strong> the picture is the slide, type reversed out of a gradient scrim.</li>
@@ -1986,9 +2004,33 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="style-block" data-chunk-num="45">
+<article class="chunk chunk-example width-wide" id="side-ratio" data-chunk-num="45">
   
   <span class="chunk-num" aria-hidden="true"><i>4</i><i>5</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">A figure beside the prose</span> <span class="hd-sub"><code>::: side 2:1</code></span></h2>
+  <p><strong><code>::: side</code> takes an optional ratio</strong>, and that turned out to be the whole of what &quot;figure beside the text&quot; needed.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#24292E">::: side 2:1</span></span>
+<span class="line"><span style="color:#24292E">The argument gets the wider pane, because it is the thing being read.</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#24292E">::: flip</span></span>
+<span class="line"><span style="color:#24292E">::: draw {unit=140x52}</span></span>
+<span class="line"><span style="color:#24292E">box a "Crawler" {.tone-1}</span></span>
+<span class="line"><span style="color:#24292E">box b "Detector" below a gap 1.1 {.tone-4}</span></span>
+<span class="line"><span style="color:#24292E">edge a -> b "request"</span></span>
+<span class="line"><span style="color:#24292E">:::</span></span>
+<span class="line"><span style="color:#24292E">:::</span></span></code></pre>
+<p><strong>Figure <em>above</em> or <em>below</em> the text needs nothing at all</strong> — put the block first or last in the chunk body, and document order does it. <code>::: cols</code> is the one place a figure does not belong: it is a text <em>flow</em>, so a figure breaks it and the columns silently stop working. That case is refused now, and the message points here.</p>
+<p>A card row <em>is</em> welcome in a pane, because a pane is a container with a width the row can fill. <code>::: cards 1</code> in a narrow pane is the stacked column a lecture keeps wanting; one card on its own is a callout.</p>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="style-block" data-chunk-num="46">
+  
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>6</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Setting the type for a whole lecture</span> <span class="hd-sub">the <code>style:</code> block</span></h2>
   <p><strong>Four knobs an author reaches for on a whole deck rather than on one chunk.</strong></p>
@@ -2005,9 +2047,9 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="bundled-fonts" data-chunk-num="46">
+<article class="chunk chunk-example width-wide" id="bundled-fonts" data-chunk-num="47">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Which typefaces travel in the file</span> <span class="hd-sub">five bundled families, named not filed</span></h2>
   <p><strong>Three families ship in any one output, and which three is the lecture&#39;s choice.</strong> A bundled family needs no file — that is the point of bundling it.</p>
@@ -2025,14 +2067,14 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="layout-generation" data-chunk-num="47">
+<article class="chunk chunk-example width-wide" id="layout-generation" data-chunk-num="48">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>8</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Laying a lecture out the way 1.0.0 did</span> <span class="hd-sub">three settings, not a version key</span></h2>
   <p><strong>From 1.0.0 the source format is the interface, and that is about more than parsing.</strong> A finished deck should be able to lay out the way it laid out.</p>
 <p>Exactly three things have moved since 1.0.0 that an existing lecture would notice, and each is an ordinary preference:</p>
-<div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel">
+<div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li><strong>The sans</strong> was Inter Tight, now IBM Plex Sans — it relays out every sans run. <code>fonts: {sans: Inter Tight}</code></li>
 <li><strong>Line breaking</strong> gained <code>text-wrap: balance</code> on headings and <code>pretty</code> on prose. <code>style: {wrap: none}</code></li>
@@ -2055,9 +2097,9 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="autoplay" data-chunk-num="48">
+<article class="chunk chunk-example width-wide" id="autoplay" data-chunk-num="49">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure that walks itself</span> <span class="hd-sub"><code>::: draw {autoplay=N}</code></span></h2>
   <p><strong>A figure written with <code>autoplay</code> advances its own steps on a timer once the slide is on screen</strong> — one delay, in milliseconds, for every step. A cover figure that moves while the room files in is what it is for, but it works on any chunk.</p>
@@ -2078,13 +2120,13 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="49">
+<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="50">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Turning the generated labels off</span> <span class="hd-sub"><code>style: {labels: off}</code></span></h2>
   <p><strong>The tag word above a chunk is two different things wearing one name</strong>, so it takes one switch to reach both.</p>
-<div class="cards cards-2 cs-small ca-left cv-top cd-fold cg-panel">
+<div class="cards cards-2 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li><strong>The document view</strong> labels every tagged chunk — <code>PRINCIPLE</code>, <code>QUESTION</code>, <code>DEFINITION</code>, <code>EXERCISE</code>. That is where most of them live.</li>
 <li><strong>The projection</strong> generates only <code>EXERCISE</code>, in CSS. The others were removed outright: a taxonomy announces itself only as correctly as the tag choice was.</li>
@@ -2103,9 +2145,9 @@ pre.shiki .line { display: inline; }
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="view-defaults" data-chunk-num="50">
+<article class="chunk chunk-example width-wide" id="view-defaults" data-chunk-num="51">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>1</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Pinning how a lecture opens</span> <span class="hd-sub">six optional frontmatter keys</span></h2>
   <p><strong>A lecture can decide its own starting look instead of inheriting the reader&#39;s.</strong></p>

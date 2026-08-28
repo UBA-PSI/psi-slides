@@ -423,6 +423,7 @@ body[data-labels=off] .chunk-label { display: none; }
   gap: 0.6rem;
   margin: 0.9rem 0;
 }
+.cards-1 { --card-n: 1; }
 .cards-2 { --card-n: 2; }
 .cards-3 { --card-n: 3; }
 .cards-4 { --card-n: 4; }
@@ -447,6 +448,23 @@ body[data-labels=off] .chunk-label { display: none; }
 .cards.cs-small  { --card-fs: 0.92; }
 .cards.ca-left   { --card-align: left; }
 .cards.ca-center { --card-align: center; }
+/* The five grounds on paper. accent and paper are the two that carry a
+   real fill, so they are the two the reader's printer will actually be
+   asked for; the rest stay hairlines, which is the right default for a
+   document that may be printed in black and white. */
+.cards.cg-panel > ul > li, .cards.cg-panel > ol > li, .cards.cg-panel > :not(ul):not(ol) {
+  background: color-mix(in oklch, var(--ink) 4%, transparent); border-color: transparent;
+}
+.cards.cg-clear > ul > li, .cards.cg-clear > ol > li, .cards.cg-clear > :not(ul):not(ol) {
+  border: 0; padding-left: 0; padding-right: 0;
+}
+.cards.cg-accent > ul > li, .cards.cg-accent > ol > li, .cards.cg-accent > :not(ul):not(ol) {
+  background: var(--emph); color: #fff; border-color: transparent;
+}
+.cards.cg-paper > ul > li, .cards.cg-paper > ol > li, .cards.cg-paper > :not(ul):not(ol) {
+  background: #fff;
+}
+.cards.ck-square > ul > li, .cards.ck-square > ol > li, .cards.ck-square > :not(ul):not(ol) { border-radius: 0; }
 /* No data-collapse in a document, so the second level is always here -
    which is the point of writing one. */
 .cards li ul, .cards li ol {
