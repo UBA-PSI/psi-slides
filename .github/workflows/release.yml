@@ -63,6 +63,11 @@ jobs:
       - name: Fast gates
         run: node test/gates/run.mjs
 
+      # A release is exactly where the 1.0 compatibility promise matters, so
+      # it is checked before the archive is cut rather than after.
+      - name: Layout-generation compatibility
+        run: node test/settings.mjs
+
       - name: Build the lectures
         run: |
           node build.js lectures/tutorial/source.md

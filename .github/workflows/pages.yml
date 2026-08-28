@@ -47,6 +47,11 @@ jobs:
       - name: Fast gates
         run: node test/gates/run.mjs
 
+      # The promise `layout:` makes. It has to run where the deps are: it
+      # builds a lecture through build.js, so it cannot be a fast gate.
+      - name: Layout-generation compatibility
+        run: node test/settings.mjs
+
       - name: Build the lectures
         run: |
           node build.js lectures/tutorial/source.md
