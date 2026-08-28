@@ -464,6 +464,26 @@ console.log('\nlayout generations');
   // A row's term is a label in a column, not a headline across the slide.
   ok(/cards rows cards-1 cs-medium/.test(rows),
      'a row term is capped at medium however short it is');
+  // Every slot has to *do* something on a row or be refused - `anchor` did
+  // neither: align-items was `center` unconditionally, so `top` and
+  // `middle` rendered identically. The default differs by construct, which
+  // is why the written tail decides rather than parseSlotClasses.
+  ok(/cards rows [^"]*cv-middle/.test(rows),
+     'a row anchors its term to the middle by default');
+  const rowsTop = mk('::: rows {.top}\n- **A** one line\n:::\n');
+  ok(/cards rows [^"]*cv-top/.test(rowsTop), 'and honours a written top');
+  ok(/\.cards\.rows \{[\s\S]{0,600}?align-items: var\(--row-anchor, center\)/.test(rows),
+     'and the stylesheet reads it, or the word moves nothing');
+  ok(/\.cards\.cv-top\s+\{ --card-anchor: flex-start; --row-anchor: start; \}/.test(rows),
+     'through one declaration that serves both constructs');
+  // The body is prose beside a card, so it ranges left whatever the row
+  // says - `align` keeps meaning one thing rather than two.
+  ok(/\.cards\.rows li > \.row-body \{[\s\S]{0,200}?text-align: left/.test(rows),
+     'and a centred row centres its term, never its body');
+  // A card row is untouched by any of it.
+  const plainCards = mk('::: cards 3\n- Alpha\n- Beta\n- Gamma\n:::\n');
+  ok(/cards cards-3 [^"]*cv-top/.test(plainCards),
+     'while a card row still anchors to the top, which is its own shape');
 }
 
 // ── ::: side takes a ratio, and nothing else ──────────────────────────

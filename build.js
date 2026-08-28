@@ -1643,13 +1643,21 @@ function renderCardsBlock(b) {
     body = out.map(e => typeof e === 'string' ? e
       : e.head + (e.rest.length ? `<span class="row-body">${e.rest.join(' ')}</span>` : ''));
   }
+  const wrote = String(b.attrs).split(/\s+/).map(w => w.replace(/^\./, ''));
+  // A row's default anchor is `middle`, and a card's is `top`. The default
+  // differs by construct because the constructs differ: a card is a block
+  // of text in a box and reads from its first line, while a row is a term
+  // *beside* a body, and a one-line term against a three-line body's first
+  // line reads as a mistake. parseSlotClasses cannot tell a written `top`
+  // from the defaulted one, so the written tail is what decides - and this
+  // has to run *before* the class list is built, which it did not at first.
+  if (b.rows && !wrote.includes('top') && !wrote.includes('middle')) o.anchor = 'middle';
   const cls = [b.rows ? 'cards rows' : 'cards', `cards-${b.n}`, `cs-${size}`, `ca-${align}`,
     `cv-${o.anchor}`, `cd-${o.detail}`, `cg-${o.ground}`, `ck-${o.corner}`,
     `cx-${o.scrim}`];
   // A scrim with no picture to veil is a word the drawing ignores, which
   // this format refuses rather than drops. Checked against the *written*
   // tail, so `{.veil}` alone is caught even though veil is the default.
-  const wrote = String(b.attrs).split(/\s+/).map(w => w.replace(/^\./, ''));
   if (o.ground !== 'photo' && wrote.some(w => CARDS_SLOTS.scrim.includes(w))) {
     const err = new Error(
       `::: cards in ${b.where}: a scrim needs a picture to veil.\n` +
@@ -6357,6 +6365,11 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    not its first line. */
 .cards.rows {
   display: grid;
+  /* The anchor acts here, and until this line it did not: align-items was
+     center unconditionally, so top and middle rendered identically -
+     a word an author could write that moved nothing, which is the silent
+     no-op this format refuses everywhere else. */
+  align-items: var(--row-anchor, center);
   /* A definite share rather than an intrinsic track. Both intrinsic
      keywords were measured and both failed: auto resolves toward
      min-content under pressure, and the term inherits overflow-wrap from
@@ -6365,7 +6378,6 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
      78px wide in it. A fraction is predictable, needs no puzzle, and a
      term column of about a third is what the shape wants anyway. */
   grid-template-columns: minmax(6em, 0.38fr) minmax(0, 1fr);
-  align-items: center;
   column-gap: calc(1.1em * var(--card-fs, 1));
   row-gap: calc(0.7em * var(--card-fs, 1));
 }
@@ -6403,9 +6415,14 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    rather than a second card, so it takes no ground and stays at the
    chunk's own size - a row whose two halves are both cards reads as a
    two-column table, which is a different thing and has a statement. */
+/* On a row, align names how the *term* sits in its card - the term is
+   the card, and the body is prose beside it. Centring a definition's body
+   is not a thing anyone wants, so the body ranges left whatever the row
+   says, and the slot keeps meaning one thing rather than two. */
 .cards.rows li > .row-body {
   grid-column: 2;
-  align-self: center;
+  align-self: var(--row-anchor, center);
+  text-align: left;
   min-width: 0;
 }
 .cards.rows li > :is(strong, b):first-child + br { display: none; }
@@ -6537,8 +6554,8 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
 .cards.cg-clear   { gap: calc(2.1em * var(--card-fs, 1)); }
 .cards.ca-left   { --card-align: left; }
 .cards.ca-center { --card-align: center; }
-.cards.cv-top    { --card-anchor: flex-start; }
-.cards.cv-middle { --card-anchor: center; }
+.cards.cv-top    { --card-anchor: flex-start; --row-anchor: start; }
+.cards.cv-middle { --card-anchor: center;     --row-anchor: center; }
 /* detail - the levels under the first. On the projection they are folded
    away, so the card carries the headline and the document carries the
    hierarchy; pressing C is what brings them back, and it needs no second
