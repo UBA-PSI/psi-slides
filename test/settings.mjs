@@ -492,6 +492,97 @@ console.log('\nlayout generations');
      'and anything else after the word is refused rather than dropped');
 }
 
+// ── covers and the closing slide ──────────────────────────────────────
+// The cover family had no test at all until this block, which is how an
+// accent rail nobody could defend survived every revision of the docs that
+// described it. These do not judge a composition - a stylesheet is not the
+// kind of thing an assertion can like - they hold the three things a
+// redesign can silently break: the vocabulary gate, which composition
+// reached the markup, and the two colour rules that have each already
+// shipped an element nobody could see.
+{
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-cover-'));
+  const cover = (fm, body) => {
+    fs.writeFileSync(path.join(dir, 'source.md'),
+      '---\ntitle: T\nsubtitle: S\npresenter: P\ninfo: |\n  L\n' + fm + '---\n\n' +
+      '## title: {#title}\n\n## free: F {#f}\n\nBody.\n' + (body || ''));
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    return { failed: r.status !== 0, out: (r.stdout || '') + (r.stderr || ''),
+             html: r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '',
+             print: r.status === 0 ? fs.readFileSync(path.join(dir, 'print.html'), 'utf8') : '' };
+  };
+
+  // Every name in the vocabulary builds, and reaches the markup as the
+  // attribute the stylesheet keys on. A variant whose rules were deleted
+  // but whose name stayed in the list would build clean and draw nothing.
+  for (const v of ['classic', 'masthead', 'stack', 'display', 'panel']) {
+    const r = cover('cover: ' + v + '\n');
+    ok(!r.failed && r.html.includes('data-cover="' + v + '"'),
+       'cover: ' + v + ' builds and reaches the markup', r.out.split('\n')[0]);
+    ok(v === 'classic' || new RegExp('\\[data-cover=' + v + '\\]').test(r.html),
+       'and the stylesheet carries rules for it');
+  }
+
+  const cls = cover('cover: classic\n');
+  // The removed variant is refused rather than quietly falling back, and
+  // the refusal names what to write instead of it.
+  const gone = cover('cover: editorial\n');
+  ok(gone.failed && /is not a cover this tool draws/.test(gone.out),
+     'the deleted editorial cover is refused, not silently ignored');
+  ok(/masthead/.test(gone.out) && /panel/.test(gone.out),
+     'and the refusal lists the covers that took its place');
+  // The rail itself, in case anyone reaches for it again by hand.
+  ok(!/border-left: 4px solid var\(--emph\)/.test(cls.html),
+     'no cover draws an accent rail beside the type');
+
+  // panel is the one cover that paints a field, and both halves of it have
+  // a history. A single mix towards the ink made a full-bleed acid plate in
+  // the two terminal themes, where the ink is the bright end; and
+  // redefining --emph inside a block whose own fill reads --emph is what
+  // made an accent card invisible twice before this file existed.
+  const pan = cover('cover: panel\n');
+  ok(/body\[data-mode=dark\] \.chunk\[data-cover=panel\]/.test(pan.html),
+     'panel derives its field per mode, so a dark deck is not handed a light plate');
+  ok(/--panel-field: color-mix\(in oklab/.test(pan.html),
+     'and mixes in oklab, so a warm accent over a blue paper does not travel through magenta');
+  const panBlock = (pan.html.match(/\.chunk\[data-cover=panel\] \{[^}]*\}/) || [''])[0];
+  ok(panBlock && !/--emph:/.test(panBlock) && !/--ink:/.test(panBlock),
+     'and redefines neither --emph nor --ink in the block whose field reads them', panBlock);
+
+  // above is the one composition whose height has to be definite: with only
+  // a min-height the percentage row fell back to auto, the art took its
+  // intrinsic size, and the title ran off the bottom of the slide.
+  ok(/\.chunk\[data-cover=above\] \{[^}]*height: var\(--slide-h\)/.test(cls.html),
+     'the above cover pins a definite height, or its percentage row resolves to auto');
+
+  // ── the closing slide ──
+  const clo = cover('cover: panel\n',
+    '\n## closing: Questions? | see you Thursday {#end}\n\nOffice hours 14 to 16.\n');
+  ok(!clo.failed && /data-tag="closing"[^>]*data-cover="panel"[^>]*data-closing/.test(clo.html),
+     'a closing chunk draws the deck own cover composition', clo.out.split('\n')[0]);
+  ok(/<h1 class="title-main">Questions\?<\/h1>/.test(clo.html),
+     'and renders its own heading, where a title chunk ignores one');
+  ok(/<p class="title-subtitle">see you Thursday<\/p>/.test(clo.html),
+     'and its sub-heading as the second line');
+  ok(/<div class="closing-body"><p>Office hours 14 to 16\./.test(clo.html),
+     'and its body, which on a cover would have replaced the info block');
+  // The whole reason the tag exists: the same shape, not the same slide.
+  const article = (clo.html.match(/<article[^>]*data-closing[\s\S]*?<\/article>/) || [''])[0];
+  ok(article && !/title-presenter/.test(article) && !/title-info/.test(article),
+     'and carries neither the presenter line nor the info block');
+  ok(/\.chunk\[data-cover=panel\]\[data-closing\] \.closing-body/.test(clo.html) &&
+     /\.chunk-title\[data-cover=panel\]\[data-closing\] \.closing-body/.test(clo.print),
+     'the reversed closing body wins by specificity in both stylesheets, not by source order');
+  // The picture is the cover's, and re-running it is the repeat this slide
+  // exists not to be.
+  const cloPic = cover('cover: hero\ncover-image: https://example.invalid/p.jpg\n',
+    '\n## closing: Fin {#end}\n');
+  ok(!cloPic.failed && !/data-closing[^>]*data-has-backdrop/.test(cloPic.html),
+     'and takes no picture from cover-image', cloPic.out.split('\n')[0]);
+}
+
 console.log(`\n${passed} passed, ${failures.length} failed`);
 if (failures.length) {
   console.log(failures.map(f => '  ✗ ' + f).join('\n'));

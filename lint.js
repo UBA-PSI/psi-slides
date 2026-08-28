@@ -33,7 +33,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const VALID_TAGS = new Set([
-  'title', 'principle', 'definition', 'example',
+  'title', 'closing', 'principle', 'definition', 'example',
   'question', 'figure', 'exercise', 'free',
 ]);
 
@@ -53,7 +53,8 @@ const VIEW_DEFAULTS = {
   'slide-numbers': ['vertical', 'horizontal', 'off'],
   'editor': ['both', 'speaker', 'none'],
   // Which cover composition the lecture opens with. Mirrors COVER_VARIANTS.
-  'cover': ['classic', 'editorial', 'split', 'hero', 'stack', 'rule', 'beside', 'above'],
+  'cover': ['classic', 'masthead', 'stack', 'display', 'panel',
+            'split', 'hero', 'beside', 'above'],
   // How a column's divider slide is drawn. Mirrors SECTION_VARIANTS.
   'section': ['plain', 'tinted', 'rule', 'card', 'number'],
   // Mirrors LIGATURE_MODES. The default is `text` and not `none`, because
@@ -185,6 +186,12 @@ const inlineCapFor = (p) =>
 const DENSITY_BUDGET = {
   title: null,
   figure: null,
+  // A closing slide is a cover with the author's own words on it, and a
+  // cover has no budget. 60 rather than none, because unlike a cover it
+  // has a body that is ordinary prose, and the thing that goes wrong on a
+  // last slide is a reading list nobody in the room can read - which is
+  // the narrowest budget in the table and is meant to be.
+  closing: 60,
   principle: 80,
   question: 80,
   definition: 200,
@@ -2367,6 +2374,31 @@ function lintFile(filePath) {
   } else if (titleChunks.length > 1) {
     add(titleChunks[1].line, 'warn', 'title-count',
         `multiple 'title:' chunks (${titleChunks.length}); only the first renders`);
+  }
+
+  // A closing slide is the bookend to the cover, so more than one is the
+  // same defect a second cover would be - except that here every one of
+  // them renders, so the deck ends twice with nothing to say which was
+  // meant. Warned rather than refused: the build draws them all correctly,
+  // and a lecturer splitting "questions" from "next week" across two
+  // slides has written something legitimate that merely does not close an
+  // arc. A closing chunk that is not last is the other half of the same
+  // sentence and is why the check reads position rather than count alone.
+  const closingChunks = allChunks.filter(c => c.tag === 'closing');
+  if (closingChunks.length > 1) {
+    add(closingChunks[1].line, 'warn', 'closing-count',
+        `multiple 'closing:' chunks (${closingChunks.length}); each one renders, so the deck ends more than once`);
+  }
+  if (closingChunks.length && allChunks.length &&
+      allChunks[allChunks.length - 1].tag !== 'closing') {
+    add(closingChunks[closingChunks.length - 1].line, 'warn', 'closing-position',
+        `a 'closing:' chunk is not the last chunk in the lecture – it draws the cover's composition, which mid-deck reads as a second title slide`);
+  }
+  for (const c of closingChunks) {
+    if (!c.heading) {
+      add(c.line, 'error', 'closing-heading',
+          `a 'closing:' chunk needs a heading – unlike 'title:', which renders the frontmatter, this slide has no other source for its words`);
+    }
   }
 
   for (const c of columns) {

@@ -375,10 +375,53 @@ body[data-labels=off] .chunk-label { display: none; }
   margin: -0.35rem 0 0.9rem;
   max-width: 28em;
 }
-.chunk-title[data-cover=editorial] {
+/* On paper a cover is a masthead whatever variant the projection uses:
+   the compositions above are all answers to "how does this fill a 16:9
+   frame", and a page is neither 16:9 nor a thing anybody projects. Two of
+   them survive because they are treatments rather than placements - the
+   reversed field, and the title at display size. */
+.chunk-title[data-cover=panel] {
+  background: color-mix(in oklab, var(--emph) 62%, var(--ink));
   border-bottom: 0;
-  border-left: 4px solid var(--emph);
-  padding-left: 1rem;
+  padding: 1.6rem 1.4rem;
+  color: var(--paper);
+}
+.chunk-title[data-cover=panel] .title-main,
+.chunk-title[data-cover=panel] .title-presenter { color: var(--paper); }
+.chunk-title[data-cover=panel] .title-subtitle,
+.chunk-title[data-cover=panel] .title-info p,
+.chunk-title[data-cover=panel] .closing-body {
+  color: color-mix(in oklch, var(--paper) 78%, transparent);
+}
+.chunk-title[data-cover=display] .title-main {
+  font-size: 3.6rem;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  max-width: 11em;
+}
+
+/* The closing slide is a page like the cover is a page, and it carries the
+   same rule under it that every other chunk does - it is the last thing in
+   the document rather than the first, so a page break *after* it would be
+   a blank sheet. */
+.chunk-title[data-closing] {
+  page-break-after: auto;
+  page-break-before: always;
+}
+.chunk-title[data-closing] .closing-body {
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 34em;
+}
+.chunk-title[data-closing] .closing-body > :first-child { margin-top: 0; }
+/* Both selectors above weigh the same, and this one is written last in
+   the file, so on paper the panel's reversed body lost to the soft ink and
+   the closing slide's text came out grey on a brown plate. The live
+   stylesheet happens to order the two the other way round and was correct
+   by luck. Naming both attributes settles it by specificity instead. */
+.chunk-title[data-cover=panel][data-closing] .closing-body {
+  color: color-mix(in oklch, var(--paper) 78%, transparent);
 }
 .chunk-title .cover-art {
   width: 100%;
@@ -851,7 +894,7 @@ pre.shiki .line { display: inline; }
 <body data-slide-nums="vertical" >
 <main>
 <section class="column column-anon">
-<article class="chunk chunk-title" data-cover="editorial" data-chunk-num="1" id="title">
+<article class="chunk chunk-title" data-cover="masthead" data-chunk-num="1" id="title">
   
   <span class="chunk-num" aria-hidden="true"><i>1</i></span>
   <h1 class="title-main">psi-slides – a ten-step tour</h1>
@@ -1920,28 +1963,30 @@ pre.shiki .line { display: inline; }
   
   <span class="chunk-num" aria-hidden="true"><i>4</i><i>2</i></span>
   <span class="chunk-label">example</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">The cover has four compositions</span> <span class="hd-sub"><code>cover:</code> plus a <code>subtitle:</code> line</span></h2>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">The cover has nine compositions</span> <span class="hd-sub"><code>cover:</code> plus a <code>subtitle:</code> line</span></h2>
   <p><strong>A cover set only in ink, at one weight, with the subtitle at meta size beside the venue reads as a text file rather than as the opening of a talk.</strong> Two frontmatter keys fix most of it.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">title</span><span style="color:#24292E">: </span><span style="color:#032F62">Detecting Bot Detection</span></span>
 <span class="line"><span style="color:#22863A">subtitle</span><span style="color:#24292E">: </span><span style="color:#032F62">Prevalence, Techniques and Implications</span></span>
 <span class="line"><span style="color:#22863A">presenter</span><span style="color:#24292E">: </span><span style="color:#032F62">Ralf Gundelach</span></span>
 <span class="line"><span style="color:#22863A">info</span><span style="color:#24292E">: </span><span style="color:#D73A49">|</span></span>
 <span class="line"><span style="color:#032F62">  ARES 2026 · Linköping · 24 to 27 August</span></span>
-<span class="line"><span style="color:#22863A">cover</span><span style="color:#24292E">: </span><span style="color:#032F62">editorial</span><span style="color:#6A737D">        # classic | editorial | split | hero</span></span>
+<span class="line"><span style="color:#22863A">cover</span><span style="color:#24292E">: </span><span style="color:#032F62">masthead</span><span style="color:#6A737D">         # see the two rows below</span></span>
 <span class="line"><span style="color:#22863A">cover-image</span><span style="color:#24292E">: </span><span style="color:#032F62">skyline</span><span style="color:#6A737D">    # split and hero need one; the others ignore it</span></span></code></pre>
 <p><code>subtitle:</code> is the step the ladder was missing. Without it the one line that says what the talk is <em>about</em> has nowhere to go but <code>info</code>, where it is set exactly like the line that says which conference it is.</p>
-<div class="cards cards-4 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
+<p><strong>The list runs from quiet to loud, and that is the only question it asks you.</strong> Five compositions are type alone:</p>
+<div class="cards cards-5 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
-<li><strong>classic</strong> the lower-left third, all type. The default, so a lecture that names no <code>cover:</code> is unchanged.</li>
-<li><strong>editorial</strong> an accent rail, the title over a rule, the meta collected into a footer row.</li>
-<li><strong>stack</strong> the title block centred on both axes, for a quiet opening.</li>
-<li><strong>rule</strong> the title held between two hairlines across the measure.</li>
+<li><strong>classic</strong> the lower-left third. The default, so a lecture that names no <code>cover:</code> is unchanged.</li>
+<li><strong>masthead</strong> the title along the top edge, the credits along the bottom, the field between them empty.</li>
+<li><strong>stack</strong> the title block centred on both axes, for an opening that wants to be still.</li>
+<li><strong>display</strong> the title set to fill the slide. The scale is the whole design.</li>
+<li><strong>panel</strong> the type on a full field of the theme&#39;s accent.</li>
 </ul>
 
 </div>
 
 
-
+<p>Four take a picture:</p>
 <div class="cards cards-4 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li><strong>split</strong> type left, <code>cover-image</code> bled off the right edge.</li>
@@ -1954,8 +1999,7 @@ pre.shiki .line { display: inline; }
 
 
 <p><strong><code>beside</code> and <code>above</code> take their art from the chunk body</strong>, which is what lets a <code>::: draw</code> be the cover: a diagram is not a file, so <code>cover-image</code> can never name one. On those two the body is the art and <code>info:</code> still supplies the meta lines; everywhere else a non-empty body replaces <code>info</code> as it always did. <code>cover-ratio: 42%</code> sets how much of the slide the picture takes on <code>split</code>, <code>beside</code> and <code>above</code>.</p>
-<p><code>split</code> bleeds and <code>beside</code> insets, and that is why both exist: a photograph wants the edge, a drawing wants a margin, because a diagram cropped by the frame reads as a diagram that did not fit.</p>
-<p>An unknown value fails the build, and <code>split</code> or <code>hero</code> without a <code>cover-image</code> fails too rather than drawing an empty half.</p>
+<p><strong>The five type compositions each take a <code>::: backdrop</code> too</strong>, which is how a photograph reaches a cover that has no <code>cover-image</code> of its own. <code>panel</code> is the one worth trying that way: its field becomes the scrim, so the picture reads through a plate of the accent instead of under the paper veil every other backdrop gets.</p>
 
   
   
@@ -2167,6 +2211,33 @@ pre.shiki .line { display: inline; }
   
   
   
+  
+</article>
+<article class="chunk chunk-example width-wide" id="closing" data-chunk-num="52">
+  
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>2</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Closing the arc back to the cover</span> <span class="hd-sub"><code>## closing:</code></span></h2>
+  <p><strong>A deck that opens on a designed slide and ends on the last bullet of the last argument stops rather than finishes.</strong> <code>## closing:</code> is the bookend: the last chunk of the lecture, drawn in whatever composition <code>cover:</code> names, so the room sees the shape it started with.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold">## closing: Questions? | office hours Thursday, 14–16 {#end}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#24292E">Next week: certificates, and who you are actually trusting.</span></span></code></pre>
+<p>It is a tag rather than a second <code>title:</code> chunk, and the reason is that a title chunk&#39;s heading is <em>ignored</em> – the cover renders from frontmatter so there is one source of truth for it. A closing slide is the one cover-shaped slide whose words are its own, so the heading is what it says, the sub-heading after the <code>|</code> is the second line, and the body is whatever should stay on screen while the room asks questions.</p>
+<p><strong>It carries no presenter line and no <code>info</code> block, and that is deliberate.</strong> Those say who is talking and where, which the room learned an hour ago; setting them again in the same composition is a slide that reads as a mistake in the deck. The composition is inherited and the content is written, which is what makes it the same shape without being the same slide.</p>
+<p>The four picture compositions draw their type alone here – a closing slide never reaches for <code>cover-image</code>, because re-running the cover&#39;s own picture is exactly the repeat it exists not to be. Give it a <code>::: backdrop</code> if you want one of its own.</p>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-title" data-cover="masthead" data-closing="" data-chunk-num="53" id="end">
+  
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>3</i></span>
+  <h1 class="title-main">That is the tour</h1>
+    <p class="title-subtitle">now write your own <code>source.md</code></p>
+    <div class="closing-body"><p>Everything in these ten steps is one Markdown file and one command: <code>node build.js source.md</code>. The four views are already beside it.</p>
+</div>
   
 </article>
 </section>
