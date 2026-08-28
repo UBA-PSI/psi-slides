@@ -17,6 +17,10 @@
   --emph:       oklch(0.42 0.16 30);
 
   --zoom: 1.35;
+  /* Multipliers the style: frontmatter block overrides. 1 is the tool's
+     own scale, so a lecture that sets nothing is unchanged. */
+  --heading-scale: 1;
+  --body-scale: 1;
   --dim: 0.86;
   --camera-duration: 250ms;
   --slide-pad-x: 14%;
@@ -317,14 +321,14 @@ body[data-slide-nums=off] .chunk-num { display: none; }
 .chunk-heading {
   font-family: var(--body-font);
   font-weight: 600;
-  font-size: calc(1.55em * var(--zoom));
+  font-size: calc(1.55em * var(--zoom) * var(--heading-scale));
   margin: 0;
   line-height: 1.15;
   letter-spacing: -0.012em;
   color: var(--ink);
 }
 .chunk-body {
-  font-size: calc(1em * var(--zoom));
+  font-size: calc(1em * var(--zoom) * var(--body-scale));
   line-height: 1.5;
   text-align: left;
 }
@@ -348,7 +352,17 @@ a:hover { text-decoration-thickness: 2px; }
    ligates the arrow tokens into one glyph, and a slide is where the room is
    reading the token rather than the prose. Bare element selectors, so the
    cockpit gets it too – SPEAKER_CSS is layered on top of this sheet. */
-code, pre, kbd, samp { font-variant-ligatures: none; }
+/* Ligature policy, from the ligatures: frontmatter key. "text" is the
+   default and is what this rule always did: none in code, ordinary fi and
+   fl in prose. "all" puts the code ligatures back - JetBrains Mono draws
+   "->" as one arrow glyph, which is pleasant in an editor and wrong on a
+   slide, where the listing is source a reader is meant to retype. "none"
+   takes them out of prose as well. */
+body:not([data-liga=all]) code,
+body:not([data-liga=all]) pre,
+body:not([data-liga=all]) kbd,
+body:not([data-liga=all]) samp { font-variant-ligatures: none; }
+body[data-liga=none] { font-variant-ligatures: none; }
 /* GFM tables: marked emits bare <table>; without this they collapse to the
    browser default of ~1px cell spacing and read as cramped. Borders use
    var(--rule) so they track all six themes (same reactivity rule as figures). */
@@ -720,8 +734,8 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
   background: var(--ink);
   margin-bottom: 0.4em;
 }
-.chunk[data-tag=principle] .chunk-body { font-size: calc(1.2em * var(--zoom)); line-height: 1.4; }
-.chunk[data-tag=principle] .chunk-heading { font-size: calc(1.8em * var(--zoom)); }
+.chunk[data-tag=principle] .chunk-body { font-size: calc(1.2em * var(--zoom) * var(--body-scale)); line-height: 1.4; }
+.chunk[data-tag=principle] .chunk-heading { font-size: calc(1.8em * var(--zoom) * var(--heading-scale)); }
 
 .chunk[data-tag=definition] .chunk-content::before {
   content: '';
@@ -733,11 +747,11 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
 
 .chunk[data-tag=question] { text-align: center; }
 .chunk[data-tag=question] .chunk-content { gap: 0.8em; align-items: flex-start; }
-.chunk[data-tag=question] .chunk-heading { font-size: calc(2.4em * var(--zoom)); font-weight: 500; }
-.chunk[data-tag=question] .chunk-body { font-size: calc(1.15em * var(--zoom)); color: var(--ink-soft); }
+.chunk[data-tag=question] .chunk-heading { font-size: calc(2.4em * var(--zoom) * var(--heading-scale)); font-weight: 500; }
+.chunk[data-tag=question] .chunk-body { font-size: calc(1.15em * var(--zoom) * var(--body-scale)); color: var(--ink-soft); }
 
 .chunk[data-tag=figure] .chunk-heading {
-  font-size: calc(1.05em * var(--zoom));
+  font-size: calc(1.05em * var(--zoom) * var(--heading-scale));
   font-weight: 500;
   color: var(--ink-soft);
   font-variant-caps: all-small-caps;
@@ -760,7 +774,11 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
 }
 
 /* title chunk: lower-left-third (PRD §4.4) */
-.chunk-title { align-items: end; }
+/* A cover owns the whole slide, whichever variant it is. Left at the 40%
+   min-height every chunk gets, the next chunk's heading crept into the
+   bottom of the frame and the split variant's picture stretched to a band
+   across the top third instead of bleeding down the whole right edge. */
+.chunk-title { align-items: end; min-height: var(--slide-h); }
 .chunk-title .chunk-content {
   grid-column: 2;
   gap: 0.5em;
@@ -785,6 +803,589 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
   line-height: 1.5;
 }
 .chunk-title .title-info p { margin: 0.15em 0; }
+
+/* ── lecture-wide style settings (the style: frontmatter block) ──────
+   Two of the four keys are selectors rather than numbers, because what
+   they turn off is a per-tag decision and not a size. Both are written as
+   overrides of the tag treatments rather than by changing those rules, so
+   a lecture that sets nothing meets the same stylesheet it always did. */
+body[data-headings=left] .chunk[data-tag=question] { text-align: left; }
+body[data-headings=left] .chunk[data-tag=figure] .chunk-content { align-items: flex-start; }
+body[data-headings=left] .chunk[data-tag=figure] .chunk-body { text-align: left; }
+body[data-headings=left] .chunk-heading,
+body[data-headings=left] .title-main { text-align: left; }
+body[data-headings=center] .chunk-heading { text-align: center; }
+body[data-headings=center] .chunk[data-tag=question] { text-align: center; }
+/* The hairline and the thick rule above a definition / principle chunk. */
+body[data-rules=off] .chunk[data-tag=principle] .chunk-content::before,
+body[data-rules=off] .chunk[data-tag=definition] .chunk-content::before { display: none; }
+/* The one generated word left on the projection. The others were removed
+   outright, because a taxonomy announces itself only as correctly as the
+   tag choice was; this one stayed because a task the room is meant to do
+   benefits from being named. Some authors do not want it either. */
+body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content: none; }
+
+/* ── cover variants ──────────────────────────────────────────────────
+   Four compositions of the same five fields. classic is what the tool
+   always drew and stays the default, so a lecture that says nothing about
+   cover is unchanged to the pixel. The other three exist because a cover
+   set only in ink, at one weight, with the subtitle at meta size beside
+   the venue, reads as a text file rather than as the opening of a talk. */
+
+/* The subtitle is the step the ladder was missing: title → subtitle →
+   presenter → meta, four sizes rather than two. */
+.chunk-title .title-subtitle {
+  font-size: calc(1.28em * var(--zoom));
+  line-height: 1.25;
+  font-weight: 400;
+  margin: -0.1em 0 0.25em;
+  color: var(--ink-soft);
+  max-width: 26em;
+  text-wrap: balance;
+}
+.chunk-title .title-presenter { font-weight: 500; }
+/* A cover with a page number on it is the detail that makes a deck look
+   unfinished; every printed programme drops it too. */
+.chunk-title > .chunk-num { display: none; }
+
+/* editorial – an accent rail down the left, the title over a rule, and
+   the meta collected into a footer row instead of stacked under the name.
+   The rail is what carries the theme: it is the only element on the slide
+   that is not type, and it re-colours with all seven themes for free. */
+.chunk[data-cover=editorial] { align-items: center; }
+.chunk[data-cover=editorial] .chunk-content {
+  padding-bottom: 0;
+  gap: 0;
+  padding-left: 1.1em;
+  border-left: 4px solid var(--emph);
+}
+.chunk[data-cover=editorial] .title-main {
+  font-size: calc(2.9em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: -0.028em;
+}
+.chunk[data-cover=editorial] .title-subtitle {
+  margin: 0.42em 0 0;
+  font-size: calc(1.18em * var(--zoom));
+  color: var(--ink-soft);
+}
+.chunk[data-cover=editorial] .title-presenter {
+  margin: 1.5em 0 0;
+  padding-top: 0.75em;
+  border-top: 1px solid var(--rule);
+  font-size: calc(1.05em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: 0.005em;
+}
+/* The meta reads as a single line of credits rather than as four
+   left-aligned rows of equal weight, which is what made the stack look
+   like a log file. It wraps to as many rows as it needs. */
+.chunk[data-cover=editorial] .title-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15em 1.35em;
+  margin-top: 0.42em;
+  font-size: calc(0.68em * var(--zoom));
+  letter-spacing: 0.01em;
+}
+.chunk[data-cover=editorial] .title-info p { margin: 0; }
+
+/* split – type left, picture bled off the right edge. The picture is a
+   grid track and not a background, because it has to end on a hard edge
+   partway across rather than fade under the words. */
+/* The slide's own padding moves onto the text column, so the picture
+   track needs no negative margin to reach the edges – it simply is the
+   edge. Tried the other way round first: min-height plus a negative
+   margin made the article taller than the viewport, and the type went
+   off the bottom of the frame while the picture reached neither end. */
+.chunk[data-cover=split] {
+  grid-template-columns: minmax(0, 1fr) 42%;
+  align-items: stretch;
+  padding: 0;
+  gap: 0;
+}
+.chunk[data-cover=split] .chunk-content {
+  grid-column: 1;
+  grid-row: 1;
+  justify-content: center;
+  padding: var(--slide-pad-y) 2.4em var(--slide-pad-y) calc(var(--slide-pad-x) * 0.62);
+  gap: 0.42em;
+}
+/* Both tracks are pinned to row 1. The picture is emitted before the text
+   (it has to sit under it in the stacking order), so sparse auto-placement
+   fills column 2 of row 1 and then sends the text to a second row – and the
+   picture becomes a 200px stub at the top of an 810px slide. */
+.chunk[data-cover=split] .cover-art {
+  grid-column: 2;
+  grid-row: 1;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.chunk[data-cover=split] .title-main {
+  font-size: calc(2.35em * var(--zoom));
+  font-weight: 600;
+}
+.chunk[data-cover=split] .title-presenter { margin-top: 0.5em; }
+.chunk[data-cover=split] .title-info { margin-top: 0.55em; }
+
+/* hero – the picture is the slide and the type is reversed out of it.
+   The scrim is a gradient from the bottom rather than an even veil: an
+   even one greys the whole photograph to protect four lines in one
+   corner, which is the look every stock template has. */
+.chunk[data-cover=hero] { align-items: end; }
+.chunk[data-cover=hero] .chunk-content {
+  padding-bottom: 7vh;
+  gap: 0.35em;
+}
+.chunk[data-cover=hero] .chunk-backdrop.bd-invert::after {
+  background: linear-gradient(
+    to top,
+    oklch(0.12 0.02 260 / 0.88) 0%,
+    oklch(0.12 0.02 260 / 0.72) 34%,
+    oklch(0.12 0.02 260 / 0.28) 68%,
+    oklch(0.12 0.02 260 / 0.10) 100%);
+}
+.chunk[data-cover=hero] .title-main {
+  font-size: calc(2.75em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: -0.026em;
+}
+.chunk[data-cover=hero] .title-subtitle { max-width: 24em; }
+.chunk[data-cover=hero] .title-presenter {
+  margin-top: 0.5em;
+  font-weight: 600;
+}
+
+/* stack - the title block centred on both axes, and nothing else. PRD 4.4
+   argues against a centred cover, and it is right about the reason: centred
+   reads institutional. It is here because the argument is about weight, not
+   about the axis - with a subtitle carrying the second line and generous
+   leading there is enough on the slide for the centre to hold, and some
+   talks want the quiet opening rather than the asymmetric one. */
+.chunk[data-cover=stack] { align-items: center; text-align: center; }
+.chunk[data-cover=stack] .chunk-content {
+  padding-bottom: 0;
+  align-items: center;
+  gap: 0.28em;
+  max-width: 34em;
+  margin: 0 auto;
+}
+.chunk[data-cover=stack] .title-main { font-size: calc(2.6em * var(--zoom)); font-weight: 600; }
+.chunk[data-cover=stack] .title-subtitle { max-width: 30em; margin-top: 0.1em; }
+.chunk[data-cover=stack] .title-presenter { margin-top: 0.9em; font-weight: 600; }
+.chunk[data-cover=stack] .title-info { margin-top: 0.15em; }
+
+/* rule - the title held between two hairlines across the full measure. The
+   rules are the composition: they give a centred block the horizontal
+   anchor it otherwise lacks, which is what separates this from stack. */
+.chunk[data-cover=rule] { align-items: center; text-align: center; }
+.chunk[data-cover=rule] .chunk-content {
+  padding-bottom: 0;
+  align-items: center;
+  gap: 0;
+  max-width: 44em;
+  margin: 0 auto;
+}
+.chunk[data-cover=rule] .title-main {
+  font-size: calc(2.5em * var(--zoom));
+  font-weight: 600;
+  padding: 0.42em 0 0.34em;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  width: 100%;
+}
+.chunk[data-cover=rule] .title-subtitle {
+  margin: 0.55em auto 0;
+  max-width: 32em;
+  font-size: calc(1.1em * var(--zoom));
+}
+.chunk[data-cover=rule] .title-presenter {
+  margin-top: 1.15em;
+  font-weight: 600;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+}
+.chunk[data-cover=rule] .title-info {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 0.1em 1.2em;
+  margin-top: 0.2em;
+  font-size: calc(0.66em * var(--zoom));
+}
+.chunk[data-cover=rule] .title-info p { margin: 0; }
+
+/* beside - the art to the right of the title, inset rather than bled. That
+   is the difference from split, and it is the whole reason both exist: a
+   photograph wants the edge, a drawing wants a margin, because a diagram
+   cropped by the frame reads as a diagram that did not fit. */
+.chunk[data-cover=beside] {
+  grid-template-columns: minmax(0, 1fr) var(--cover-ratio, 48%);
+  align-items: center;
+  gap: 2.4em;
+  padding-left: calc(var(--slide-pad-x) * 0.55);
+  padding-right: calc(var(--slide-pad-x) * 0.55);
+}
+.chunk[data-cover=beside] .chunk-content {
+  grid-column: 1; grid-row: 1;
+  padding-bottom: 0;
+  gap: 0.38em;
+}
+.chunk[data-cover=beside] .cover-art {
+  grid-column: 2; grid-row: 1;
+  align-self: center;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 42vh;
+}
+.chunk[data-cover=beside] .title-main { font-size: calc(2.25em * var(--zoom)); font-weight: 600; }
+
+/* above - the art on top, the title in the lower quarter and centred on
+   both axes. The proportion is the point: cover-ratio is how much of the
+   slide the drawing gets, and the type sits in what is left rather than
+   floating in the middle of it. */
+.chunk[data-cover=above] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--cover-ratio, 58%) minmax(0, 1fr);
+  align-items: center;
+  text-align: center;
+  row-gap: 0.6em;
+}
+.chunk[data-cover=above] .cover-art {
+  grid-column: 1; grid-row: 1;
+  align-self: center;
+  background-size: contain;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+.chunk[data-cover=above] .chunk-content {
+  grid-column: 1; grid-row: 2;
+  padding-bottom: 0;
+  align-items: center;
+  /* Centred in the band the drawing left, not pinned under it - which is
+     what "the lower quarter, centred on both axes" means when the drawing
+     turns out shorter than the track it was given. */
+  align-self: center;
+  gap: 0.22em;
+  max-width: 36em;
+  margin: 0 auto;
+}
+.chunk[data-cover=above] .title-main { font-size: calc(2.05em * var(--zoom)); font-weight: 600; }
+.chunk[data-cover=above] .title-subtitle { max-width: 32em; font-size: calc(1.05em * var(--zoom)); }
+.chunk[data-cover=above] .title-presenter { margin-top: 0.5em; font-weight: 600; }
+.chunk[data-cover=above] .title-info { margin-top: 0.05em; font-size: calc(0.64em * var(--zoom)); }
+
+/* The body-as-art wrapper has to let a figure fill it. A ::: draw emits a
+   <figure class=psi-diagram> whose own margins are tuned for the text
+   column it normally sits in; on a cover it is the composition. */
+/* The art box is capped at the slide, and the drawing letterboxes inside
+   it. An inline <svg> with a viewBox and width:100% is *width*-driven, so a
+   tall figure in a narrow column grew to whatever its aspect demanded and
+   took the whole article with it - the title went off the bottom of the
+   frame and the drawing off the right. Giving the svg both dimensions hands
+   the fitting to preserveAspectRatio, which is what it is for. */
+.cover-art-body {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 0; min-height: 0; overflow: hidden;
+  max-height: calc(var(--slide-h) - 2 * var(--slide-pad-y));
+}
+.cover-art-body > * { margin: 0; max-width: 100%; max-height: 100%; }
+.cover-art-body figure {
+  margin: 0; min-width: 0; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+/* auto on both axes with a max on both. The svg carries width and height
+   attributes in px, so it has an intrinsic size and an intrinsic ratio,
+   and that is exactly the case where a pair of maxima shrinks it to fit
+   and keeps the proportion. Setting height:100% instead made the box size
+   from the content that was sizing from the box, and a tall figure ran
+   off both the bottom and the right of the slide. */
+.cover-art-body svg {
+  width: auto; height: auto;
+  max-width: 100%;
+  max-height: calc(var(--slide-h) - 2 * var(--slide-pad-y));
+}
+.chunk[data-cover=split] .cover-art-body { padding: var(--slide-pad-y) 1.5em; }
+
+/* ── full-bleed backdrops (::: backdrop) ─────────────────────────────
+   The layer is inset:0 on the .chunk, so it fills whatever the chunk
+   fills. That is only the viewport once the chunk is forced to the full
+   slide height: a .chunk's min-height is 40% of the viewport, which for a
+   text slide is right and for a picture would have painted a band across
+   the middle third and left paper above and below it. */
+.chunk[data-has-backdrop] { min-height: var(--slide-h); }
+.chunk-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  overflow: hidden;
+}
+.chunk-backdrop.bd-contain { background-size: contain; }
+.chunk-backdrop.bd-top    { background-position: center top; }
+.chunk-backdrop.bd-bottom { background-position: center bottom; }
+/* Scaled up because a blur samples transparent pixels past the edge and
+   would otherwise fade the frame out into paper on all four sides. */
+.chunk-backdrop.bd-blur { filter: blur(18px) saturate(1.06); transform: scale(1.08); }
+/* The veil is the theme's own paper, not white, so ordinary ink stays
+   legible over a photograph in all seven themes with no second palette. */
+.chunk-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklch, var(--paper) 80%, transparent);
+}
+.chunk-backdrop.bd-clear::after { content: none; }
+.chunk-backdrop.bd-invert::after {
+  background: color-mix(in oklch, oklch(0.14 0.015 260) 58%, transparent);
+}
+/* An inverted slide re-points the ink tokens rather than restating every
+   colour rule: everything downstream already reads --ink / --ink-soft /
+   --rule, so one block covers headings, body, lists, rules and captions. */
+.chunk[data-backdrop=invert] {
+  /* color: var(--ink) is declared on body, so it is *computed* there
+     against body's --ink and inherited as a finished colour: redefining
+     the token further down changes nothing that already resolved. The
+     title came out near-black on a night photograph for exactly that
+     reason. Restating color here re-resolves it against this element's
+     own tokens, and everything below inherits the new value. */
+  color: var(--ink);
+  --ink: oklch(0.99 0 0);
+  --ink-soft: oklch(0.99 0 0 / 0.74);
+  --rule: oklch(0.99 0 0 / 0.32);
+  --emph: oklch(0.90 0.10 75);
+  text-shadow: 0 1px 14px oklch(0.12 0.02 260 / 0.5);
+}
+/* Content has to clear the backdrop, which is z-index 0 in the same
+   stacking context. Written as a z-index on each layer and never as a
+   position – .overlay-layer is already absolute, and a sibling selector
+   restating position: relative on it dropped the whole layer back into
+   the text flow, where its three 1fr rows stretched the chunk to twice
+   the viewport and pushed the card off the bottom of the slide. */
+.chunk[data-has-backdrop] > .chunk-content { z-index: 1; }
+.chunk[data-has-backdrop] > .chunk-num { z-index: 2; }
+
+/* ── overlay cards (::: overlay) ─────────────────────────────────────
+   One 3x3 grid over the whole slide inside its padding, rather than each
+   card positioned on its own: two cards aimed at the same corner then
+   stack instead of overlapping, and there is one element out of the text
+   flow rather than N. */
+.overlay-layer {
+  position: absolute;
+  inset: var(--slide-pad-y) calc(var(--slide-pad-x) * 0.62);
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 0.6em;
+  pointer-events: none;
+}
+.overlay-card {
+  pointer-events: auto;
+  padding: 0.85em 1.05em;
+  border-radius: 6px;
+  font-size: calc(0.92em * var(--zoom));
+  line-height: 1.45;
+  align-self: center;
+  backdrop-filter: blur(3px);
+}
+.overlay-card > :first-child { margin-top: 0; }
+.overlay-card > :last-child { margin-bottom: 0; }
+.overlay-card p { margin: 0 0 0.5em; }
+.overlay-card h1, .overlay-card h2, .overlay-card h3 {
+  font-size: calc(1.45em * var(--zoom));
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 0 0 0.3em;
+  letter-spacing: -0.015em;
+}
+.overlay-card strong { font-weight: var(--bold-weight); color: var(--emph); }
+
+/* place – nine cells, one slot. The row and column are set separately so
+   the nine words stay one closed list rather than two crossed ones. */
+.overlay-card.ov-top-left     { grid-area: 1 / 1; justify-self: start;  align-self: start; }
+.overlay-card.ov-top          { grid-area: 1 / 2; justify-self: center; align-self: start; }
+.overlay-card.ov-top-right    { grid-area: 1 / 3; justify-self: end;    align-self: start; }
+.overlay-card.ov-left         { grid-area: 2 / 1; justify-self: start; }
+.overlay-card.ov-center       { grid-area: 2 / 2; justify-self: center; }
+.overlay-card.ov-right        { grid-area: 2 / 3; justify-self: end; }
+.overlay-card.ov-bottom-left  { grid-area: 3 / 1; justify-self: start;  align-self: end; }
+.overlay-card.ov-bottom       { grid-area: 3 / 2; justify-self: center; align-self: end; }
+.overlay-card.ov-bottom-right { grid-area: 3 / 3; justify-self: end;    align-self: end; }
+
+/* width – a card sized to its cell would be a third of the slide whatever
+   it holds, so the width words set a max and the card shrinks to fit. The
+   left column can grow rightwards, the right column leftwards, and the
+   middle both ways, which is what makes full a band rather than a
+   third. */
+.overlay-card.ov-w-narrow   { max-width: 16em; }
+.overlay-card.ov-w-standard { max-width: 24em; }
+.overlay-card.ov-w-wide     { max-width: 36em; }
+.overlay-card.ov-w-full     { max-width: none; justify-self: stretch; }
+.overlay-card.ov-w-wide, .overlay-card.ov-w-full { grid-column: 1 / -1; }
+.overlay-card.ov-w-wide.ov-top-right,
+.overlay-card.ov-w-wide.ov-right,
+.overlay-card.ov-w-wide.ov-bottom-right { justify-self: end; }
+
+/* ground – five answers to "what does this sit on". paper and ink are
+   the theme's own two grounds, so both follow a theme change; accent
+   is --emph; glass is the paper at low alpha over whatever is behind,
+   which is the only one that needs the picture to still show through. */
+.overlay-card.ov-paper {
+  background: color-mix(in oklch, var(--paper) 94%, transparent);
+  box-shadow: 0 2px 22px oklch(0.2 0.01 260 / 0.16);
+  color: var(--ink);
+  --ink-soft: color-mix(in oklch, var(--ink) 55%, transparent);
+  text-shadow: none;
+}
+.overlay-card.ov-ink {
+  background: oklch(0.16 0.015 260 / 0.9);
+  color: oklch(0.99 0 0);
+  --ink: oklch(0.99 0 0);
+  --ink-soft: oklch(0.99 0 0 / 0.72);
+  --emph: oklch(0.90 0.10 75);
+  text-shadow: none;
+}
+.overlay-card.ov-accent {
+  background: color-mix(in oklch, var(--emph) 92%, transparent);
+  color: var(--paper);
+  --ink: var(--paper);
+  --ink-soft: color-mix(in oklch, var(--paper) 80%, transparent);
+  --emph: var(--paper);
+  text-shadow: none;
+}
+.overlay-card.ov-glass {
+  background: color-mix(in oklch, var(--paper) 26%, transparent);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid color-mix(in oklch, var(--ink) 12%, transparent);
+}
+.overlay-card.ov-clear { background: none; padding: 0; backdrop-filter: none; }
+
+/* ── card grid (::: cards N) ─────────────────────────────────────────
+   Not a second spelling of cols. cols is one text flow the browser
+   balances across N tracks, so a paragraph can spill from the foot of one
+   into the head of the next; cards is N containers, and an item is
+   whole or it is nowhere. Which is why a three-way comparison belongs
+   here and a long argument belongs in cols.
+
+   Which children become the cards is a CSS rule and not a parse: a lone
+   list dissolves into the grid so its items are the cards, and anything
+   else contributes one card per block. One rule, no body inspection. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(var(--card-n), minmax(0, 1fr));
+  /* The gutter has to read as the thing separating N cards, and at 0.7em
+     against a 300px card it did not - the row looked like one panel with
+     seams. Scaled with the card's own size so it stays proportional when
+     the type gets bigger. */
+  gap: calc(0.95em * var(--card-fs, 1));
+  /* A card row needs more air above it than a paragraph does. It is a
+     block of surfaces rather than a continuation of the text, so the
+     heading has to stop belonging to it - at the paragraph's spacing the
+     row read as the heading's own background. Scaled with the card size,
+     because a large row is a heavier object. */
+  margin: calc(1.5em * var(--card-fs, 1)) 0 0.4em;
+  align-items: stretch;
+}
+/* When the row is centred the heading over it should be too, or the slide
+   has two axes and no reason for either. Written as a coupling rather than
+   a class, because there is nothing an author would want to say here that
+   the cards have not already said - and it yields entirely the moment
+   style.headings names a value, which is what that key is for. */
+body:not([data-headings]) .chunk-content:has(.cards.ca-center) .chunk-heading,
+body:not([data-headings]) .chunk-content:has(.cards.ca-center) .chunk-body > .reveal-segment > p {
+  text-align: center;
+}
+.cards-2 { --card-n: 2; }
+.cards-3 { --card-n: 3; }
+.cards-4 { --card-n: 4; }
+.cards-5 { --card-n: 5; }
+.cards-6 { --card-n: 6; }
+.cards > ul, .cards > ol { display: contents; }
+.cards > ul > li,
+.cards > ol > li,
+.cards > :not(ul):not(ol) {
+  margin: 0;
+  padding: var(--card-pad, 1.05em 1.15em);
+  border: var(--card-border, 0);
+  /* 6px on a card 300px wide is the radius a stylesheet has when nobody
+     chose one. At slide scale it needs to be visible as a decision. */
+  border-radius: 10px;
+  background: var(--card-bg, none);
+  list-style: none;
+  line-height: 1.38;
+  font-size: calc(1em * var(--card-fs, 1));
+  /* A grid row is as tall as its longest card, so every other card has
+     slack in it and something has to say where the text sits. Flex column
+     rather than align-content, because a card can hold more than one block
+     and they have to stay stacked. */
+  display: flex;
+  flex-direction: column;
+  justify-content: var(--card-anchor, flex-start);
+  text-align: var(--card-align, left);
+}
+/* size - one decision for the row, never per card: three sizes in one row
+   read as a mistake rather than as a hierarchy. */
+/* Padding is in em, so it already scales with the card's own font size -
+   but not enough: big type wants proportionally *more* air around it, not
+   the same ratio, or a large card reads as a caption that outgrew its box. */
+.cards.cs-large  { --card-fs: 1.4;  --card-pad: 0.95em 1em; }
+.cards.cs-medium { --card-fs: 1;    --card-pad: 1.05em 1.15em; }
+.cards.cs-small  { --card-fs: 0.84; --card-pad: 1.15em 1.25em; }
+/* ground - one device, never two. */
+.cards.cg-panel   { --card-bg: color-mix(in oklch, var(--ink) 5%, transparent); }
+.cards.cg-outline { --card-border: 1px solid color-mix(in oklch, var(--ink) 16%, transparent); }
+/* No box at all: the gutter is what separates the cards, so it has to be
+   wide enough to do that on its own, and the padding goes away with the
+   ground it was insetting from. */
+.cards.cg-clear   { --card-pad: 0 0; }
+.cards.cg-clear   { gap: calc(2.1em * var(--card-fs, 1)); }
+.cards.ca-left   { --card-align: left; }
+.cards.ca-center { --card-align: center; }
+.cards.cv-top    { --card-anchor: flex-start; }
+.cards.cv-middle { --card-anchor: center; }
+/* detail - the levels under the first. On the projection they are folded
+   away, so the card carries the headline and the document carries the
+   hierarchy; pressing C is what brings them back, and it needs no second
+   markup because the nested list is already there. Print defines no
+   data-collapse at all, so a hand-out always has them. */
+[data-collapse=topic-bold] .cards.cd-fold li ul,
+[data-collapse=topic-bold] .cards.cd-fold li ol { display: none; }
+/* Shown, the nested level is an indented hierarchy rather than a second
+   flat run - which is the whole reason to write one. */
+.cards li ul, .cards li ol {
+  margin: 0.35em 0 0;
+  padding-left: 1.1em;
+  list-style: disc;
+  font-size: 0.88em;
+  color: var(--ink-soft);
+  text-align: left;
+}
+.cards li li { display: list-item; }
+.cards li ul li::marker, .cards li ol li::marker { content: none; }
+.cards li ul li { list-style: none; position: relative; padding-left: 0.75em; }
+.cards li ul li::before {
+  content: '';
+  position: absolute; left: 0; top: 0.62em;
+  width: 0.28em; height: 1px;
+  background: currentColor;
+  opacity: 0.55;
+}
+.cards > ul > li::marker, .cards > ol > li::marker { content: none; }
+.cards li > :first-child, .cards > div > :first-child { margin-top: 0; }
+.cards li > :last-child, .cards > div > :last-child { margin-bottom: 0; }
+.cards p { margin: 0 0 0.45em; }
+/* A card is a container, so it does not fold to one column when the
+   projection collapses – three things stay three things. What collapse
+   still does inside one is abridge its prose, which is the same rule
+   everywhere else. */
+body[data-collapse=topic-bold] .cards { grid-template-columns: repeat(var(--card-n), minmax(0, 1fr)); }
 
 /* section divider slide: opens each named column ('# Heading').
    Centered like a part-title page so the camera has a clear stop
@@ -1019,16 +1620,17 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
    pretty (protect the last line) rather than balance (even every line).
    The bold fragments are already display:block below, so the rule reaches
    them directly; the topic sentence is balanced through its own p. */
-[data-collapse=topic-bold] .reveal-segment p,
-[data-collapse=topic-bold] .reveal-segment li,
-[data-collapse=topic-bold] .reveal-segment .sentence-rest strong { text-wrap: balance; }
+body:not([data-wrap=none]) :is(
+  [data-collapse=topic-bold] .reveal-segment p,
+  [data-collapse=topic-bold] .reveal-segment li,
+  [data-collapse=topic-bold] .reveal-segment .sentence-rest strong) { text-wrap: balance; }
 
 /* Headings are phrases in every mode, so they balance whatever the collapse
    setting is - and unlike the slide lines they are the same in the live views
    and on paper. Measured on the tutorial at 1100px, the cover subtitle was
    the last runt left after the rule above. */
-h1, h2, h3, h4, .chunk-heading, .hd-sub, .section-heading, figcaption,
-.tag-label, #toc-panel li { text-wrap: balance; }
+body:not([data-wrap=none]) :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
+  .section-heading, figcaption, .tag-label, #toc-panel li) { text-wrap: balance; }
 
 [data-collapse=topic-bold] .reveal-segment .sentence-rest .prose { display: none; }
 [data-collapse=topic-bold] .reveal-segment .sentence-rest strong {
@@ -1828,6 +2430,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 </style>
 
 
+
 </head>
 <body data-collapse="none" data-font="serif" data-theme="dark" data-mode="dark" data-slide-nums="vertical">
 
@@ -1835,9 +2438,11 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   <div id="stage">
 <section class="column" data-col="0">
 
-<article class="chunk chunk-title" data-tag="title" data-width="full" data-chunk-id="cover" data-chunk-num="1" id="cover">
+<article class="chunk chunk-title" data-tag="title" data-width="full" data-cover="classic" data-chunk-id="cover" data-chunk-num="1" id="cover">
+  
   <div class="chunk-content">
     <h1 class="title-main">Animated Infographics</h1>
+    <p class="title-subtitle">Six real lecture slides, rebuilt in ::: draw</p>
     
     <p>This is a psi-slides lecture: one Markdown source becomes the projected slides,
 a speaker cockpit, a reading document, and a handout with the spoken notes. The
@@ -1846,6 +2451,7 @@ itself.</p>
 <p>Every figure in this lecture is written in the lecture source, laid out at
 build time, and stepped with the same key that advances a reveal.</p>
   </div>
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i></div>
 </article>
 </section>
@@ -1856,6 +2462,7 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
 </article>
 <article class="chunk chunk-figure" id="unsafety" data-chunk-id="unsafety" data-tag="figure" data-width="full" data-chunk-num="2">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Types of memory unsafety</h2>
@@ -1886,9 +2493,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i></div>
 </article>
 <article class="chunk chunk-figure" id="overflow" data-chunk-id="overflow" data-tag="figure" data-width="full" data-chunk-num="3">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Your first buffer overflow</span> <span class="hd-sub">ein konstruiertes Beispiel</span></h2>
@@ -1935,6 +2544,7 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>3</i></div>
 </article>
 </section>
@@ -1945,6 +2555,7 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
 </article>
 <article class="chunk chunk-figure" id="cbc" data-chunk-id="cbc" data-tag="figure" data-width="full" data-chunk-num="4">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Cipher Block Chaining, decryption</h2>
@@ -1994,9 +2605,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>4</i></div>
 </article>
 <article class="chunk chunk-figure" id="ctr" data-chunk-id="ctr" data-tag="figure" data-width="full" data-chunk-num="5">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Counter mode, encryption</h2>
@@ -2057,6 +2670,7 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>5</i></div>
 </article>
 </section>
@@ -2067,6 +2681,7 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
 </article>
 <article class="chunk chunk-figure" id="lifecycle" data-chunk-id="lifecycle" data-tag="figure" data-width="full" data-chunk-num="6">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Identity lifecycle</h2>
@@ -2110,9 +2725,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>6</i></div>
 </article>
 <article class="chunk chunk-figure" id="mac" data-chunk-id="mac" data-tag="figure" data-width="full" data-chunk-num="7">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Message authentication</span> <span class="hd-sub">it is not about confidentiality</span></h2>
@@ -2192,6 +2809,7 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>7</i></div>
 </article>
 </section>
@@ -2202,6 +2820,7 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
 </article>
 <article class="chunk chunk-figure" id="primitives" data-chunk-id="primitives" data-tag="figure" data-width="wide" data-chunk-num="8">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">The pieces</h2>
@@ -2230,9 +2849,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>8</i></div>
 </article>
 <article class="chunk chunk-figure" id="alignment" data-chunk-id="alignment" data-tag="figure" data-width="wide" data-chunk-num="9">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Alignment</h2>
@@ -2260,9 +2881,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>9</i></div>
 </article>
 <article class="chunk chunk-figure" id="grouping" data-chunk-id="grouping" data-tag="figure" data-width="wide" data-chunk-num="10">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Containers and braces</h2>
@@ -2291,9 +2914,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>0</i></div>
 </article>
 <article class="chunk chunk-figure" id="look" data-chunk-id="look" data-tag="figure" data-width="full" data-chunk-num="11">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">The look of a thing</h2>
@@ -2362,9 +2987,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>1</i></div>
 </article>
 <article class="chunk chunk-figure" id="motion" data-chunk-id="motion" data-tag="figure" data-width="wide" data-chunk-num="12">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Steps that move</h2>
@@ -2395,9 +3022,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>2</i></div>
 </article>
 <article class="chunk chunk-figure" id="justify" data-chunk-id="justify" data-tag="figure" data-width="wide" data-chunk-num="13">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Where the words sit</h2>
@@ -2431,9 +3060,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></div>
 </article>
 <article class="chunk chunk-figure" id="expand" data-chunk-id="expand" data-tag="figure" data-width="full" data-chunk-num="14">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Six statements that expand</h2>
@@ -2522,9 +3153,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></div>
 </article>
 <article class="chunk chunk-figure" id="series" data-chunk-id="series" data-tag="figure" data-width="full" data-chunk-num="15">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">A second run of columns</h2>
@@ -2577,9 +3210,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></div>
 </article>
 <article class="chunk chunk-figure" id="flat" data-chunk-id="flat" data-tag="figure" data-width="full" data-chunk-num="16">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Columns laid flat</span> <span class="hd-sub">dieselben sechs Zahlen, zweimal</span></h2>
@@ -2630,9 +3265,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>6</i></div>
 </article>
 <article class="chunk chunk-figure" id="plot" data-chunk-id="plot" data-tag="figure" data-width="full" data-chunk-num="17">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">A frame to draw in</h2>
@@ -2688,9 +3325,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></div>
 </article>
 <article class="chunk chunk-figure" id="sameframe" data-chunk-id="sameframe" data-tag="figure" data-width="full" data-chunk-num="18">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">One size, two frames</span> <span class="hd-sub">zwei Plots, die sich vergleichen lassen</span></h2>
@@ -2761,9 +3400,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></div>
 </article>
 <article class="chunk chunk-figure" id="raster" data-chunk-id="raster" data-tag="figure" data-width="standard" data-chunk-num="19">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">A raster does not follow the theme</h2>
@@ -2785,6 +3426,7 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></div>
 </article>
 </section>
@@ -2795,6 +3437,7 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
 </article>
 <article class="chunk chunk-figure" id="flowchart" data-chunk-id="flowchart" data-tag="figure" data-width="wide" data-chunk-num="20">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">The road straight down</span> <span class="hd-sub">a flowchart</span></h2>
@@ -2827,9 +3470,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></div>
 </article>
 <article class="chunk chunk-figure" id="swimlane" data-chunk-id="swimlane" data-tag="figure" data-width="full" data-chunk-num="21">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Three roles, one incident</span> <span class="hd-sub">a swimlane</span></h2>
@@ -2864,9 +3509,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>1</i></div>
 </article>
 <article class="chunk chunk-figure" id="tree" data-chunk-id="tree" data-tag="figure" data-width="full" data-chunk-num="22">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Leaves first, and the brackets follow</span> <span class="hd-sub">a tree</span></h2>
@@ -2901,9 +3548,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></div>
 </article>
 <article class="chunk chunk-figure" id="table" data-chunk-id="table" data-tag="figure" data-width="full" data-chunk-num="23">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">One line per row</span> <span class="hd-sub">a table</span></h2>
@@ -2941,9 +3590,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></div>
 </article>
 <article class="chunk chunk-figure" id="sequence" data-chunk-id="sequence" data-tag="figure" data-width="full" data-chunk-num="24">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Ein Ablauf von oben nach unten</span> <span class="hd-sub">a sequence</span></h2>
@@ -3002,9 +3653,11 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>4</i></div>
 </article>
 <article class="chunk chunk-figure" id="seqmore" data-chunk-id="seqmore" data-tag="figure" data-width="wide" data-chunk-num="25">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Was eine Nachricht sonst sein kann</h2>
@@ -3043,7 +3696,39 @@ build time, and stepped with the same key that advances a reveal.</p>
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></div>
+</article>
+<article class="chunk chunk-figure" id="autoplay" data-chunk-id="autoplay" data-tag="figure" data-width="wide" data-chunk-num="26">
+  
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Eine Figur, die sich selbst abspielt</span> <span class="hd-sub"><code>autoplay</code> und <code>cycle</code></span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg25-root" class="psi-diagram" viewBox="-56.35 -32.75 453.45 63.13" width="2000" height="278" data-live-viewbox="-56.35 -32.75 459.30 63.13" data-live-ratio="0.137437" data-steps="4" role="img" aria-label="Eine Figur, die sich selbst abspielt" preserveAspectRatio="xMidYMid meet">
+<g id="dg25-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg25-edge-1--p" class="dg-stroke" d="M44.35 0.00L120.70 0.00" fill="none"/><path id="dg25-edge-1--h" class="dg-head" d="M128.35 0.00L119.35 3.96L119.35 -3.96Z"/><g id="dg25-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(86.35,-11.38)"><g id="dg25-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Anfrage</tspan></text></g></g></g>
+<g id="dg25-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg25-edge-2--p" class="dg-stroke" d="M218.55 0.00L294.90 0.00" fill="none"/><path id="dg25-edge-2--h" class="dg-head" d="M302.55 0.00L293.55 3.96L293.55 -3.96Z"/><g id="dg25-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(260.55,-11.38)"><g id="dg25-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Fingerabdruck</tspan></text></g></g></g>
+<g id="dg25-cr" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg25-cr--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg25-cr--lw0" data-lab="cr--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg25-cr--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
+<g id="dg25-wb" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg25-wb--r" x="128.35" y="-18.38" width="90.20" height="36.75" rx="4"/><g id="dg25-wb--lw0" data-lab="wb--l" class="dg-lwrap" transform="translate(173.45,0.00)"><g id="dg25-wb--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Web site</tspan></text></g></g></g>
+<g id="dg25-dt" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg25-dt--r" x="302.55" y="-18.38" width="82.55" height="36.75" rx="4"/><g id="dg25-dt--lw0" data-lab="dt--l" class="dg-lwrap dg-variant dg-off" transform="translate(343.83,0.00)"><g id="dg25-dt--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Detector</tspan></text></g></g><g id="dg25-dt--lw1" data-lab="dt--l" class="dg-lwrap dg-variant" transform="translate(343.83,0.00)"><g id="dg25-dt--l1" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Erkannt</tspan></text></g></g></g>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg25-root">{"p":"dg25-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-1--l":"text","edge-2--p":"path","edge-2--h":"path","edge-2--l":"text","cr--r":"rect","cr--l":"text","wb--r":"rect","wb--l":"text","dt--r":"rect","dt--l":"text"},"names":["probe","catch","verdict"],"frames":[{"vis":{"cr":1,"wb":1,"dt":1,"edge-1":1,"edge-2":1},"cls":{"cr":"tone-1","wb":"","dt":"tone-4","edge-1":"one-head","edge-2":"one-head"},"lab":{"cr":0,"wb":0,"dt":0,"edge-1":0,"edge-2":0},"geom":{"cr--r":[-44.35,-18.37,88.7,36.75],"cr--l":[0,0,0],"wb--r":[128.35,-18.37,90.2,36.75],"wb--l":[173.45,0,0],"dt--r":[302.55,-18.37,88.4,36.75],"dt--l":[346.75,0,0],"edge-1--p":[44.35,0,120.7,0],"edge-1--h":[128.35,0,119.35,3.96,119.35,-3.96],"edge-1--l":[86.35,-11.37,0],"edge-2--p":[218.55,0,294.9,0],"edge-2--h":[302.55,0,293.55,3.96,293.55,-3.96],"edge-2--l":[260.55,-11.37,0]}},{"vis":{"cr":1,"wb":1,"dt":1,"edge-1":1,"edge-2":1},"cls":{"cr":"tone-1","wb":"emph","dt":"tone-4","edge-1":"one-head","edge-2":"one-head"},"lab":{"cr":0,"wb":0,"dt":0,"edge-1":0,"edge-2":0},"geom":{"cr--r":[-44.35,-18.37,88.7,36.75],"cr--l":[0,0,0],"wb--r":[128.35,-18.37,90.2,36.75],"wb--l":[173.45,0,0],"dt--r":[302.55,-18.37,88.4,36.75],"dt--l":[346.75,0,0],"edge-1--p":[44.35,0,120.7,0],"edge-1--h":[128.35,0,119.35,3.96,119.35,-3.96],"edge-1--l":[86.35,-11.37,0],"edge-2--p":[218.55,0,294.9,0],"edge-2--h":[302.55,0,293.55,3.96,293.55,-3.96],"edge-2--l":[260.55,-11.37,0]}},{"vis":{"cr":0.3,"wb":1,"dt":1,"edge-1":1,"edge-2":1},"cls":{"cr":"tone-1 dim","wb":"emph","dt":"tone-4 emph","edge-1":"one-head","edge-2":"one-head"},"lab":{"cr":0,"wb":0,"dt":0,"edge-1":0,"edge-2":0},"geom":{"cr--r":[-44.35,-18.37,88.7,36.75],"cr--l":[0,0,0],"wb--r":[128.35,-18.37,90.2,36.75],"wb--l":[173.45,0,0],"dt--r":[302.55,-18.37,88.4,36.75],"dt--l":[346.75,0,0],"edge-1--p":[44.35,0,120.7,0],"edge-1--h":[128.35,0,119.35,3.96,119.35,-3.96],"edge-1--l":[86.35,-11.37,0],"edge-2--p":[218.55,0,294.9,0],"edge-2--h":[302.55,0,293.55,3.96,293.55,-3.96],"edge-2--l":[260.55,-11.37,0]}},{"vis":{"cr":0.3,"wb":1,"dt":1,"edge-1":1,"edge-2":1},"cls":{"cr":"tone-1 dim","wb":"emph","dt":"emph tone-2","edge-1":"one-head","edge-2":"one-head"},"lab":{"cr":0,"wb":0,"dt":1,"edge-1":0,"edge-2":0},"geom":{"cr--r":[-44.35,-18.37,88.7,36.75],"cr--l":[0,0,0],"wb--r":[128.35,-18.37,90.2,36.75],"wb--l":[173.45,0,0],"dt--r":[302.55,-18.37,82.55,36.75],"dt--l":[343.83,0,0],"edge-1--p":[44.35,0,120.7,0],"edge-1--h":[128.35,0,119.35,3.96,119.35,-3.96],"edge-1--l":[86.35,-11.37,0],"edge-2--p":[218.55,0,294.9,0],"edge-2--h":[302.55,0,293.55,3.96,293.55,-3.96],"edge-2--l":[260.55,-11.37,0]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg25-root">{"body":"box  cr  \"Crawler\"                       {.tone-1}\nbox  wb  \"Web site\"  right of cr  gap 1.5\nbox  dt  \"Detector\"  right of wb  gap 1.5 {.tone-4}\nedge cr -> wb \"Anfrage\"\nedge wb -> dt \"Fingerabdruck\"\n\nstep probe\n  emph wb\nstep catch\n  emph dt\n  dim cr\nstep verdict\n  style dt {.tone-2}\n  label dt \"Erkannt\"","attrs":"unit=150x56","range":[67501,67806],"chunk":"autoplay","width":"wide","alt":"Eine Figur, die sich selbst abspielt"}</script></figure>
+
+
+<p><strong><code>autoplay=1400</code> läuft die Takte dieser Figur von selbst ab, <code>cycle</code> beginnt danach wieder vorn.</strong> Eine Verzögerung in Millisekunden, dieselbe für jeden Takt – ein Deckblatt, das sich bewegt, während der Raum sich setzt, ist der Fall, für den es gebaut ist; es steht hier auf einer gewöhnlichen Folie, weil nichts daran an das Deckblatt gebunden ist.</p>
+<p><strong>Es ruft dieselbe Fortschaltung wie die Leertaste.</strong> Ein eigener Zähler hätte Zeichnung und Taktzähler auseinanderlaufen lassen, und der nächste Tastendruck wäre gesprungen. Weil es <em>der</em> Zähler ist, folgt das Rednerfenster über die gewöhnliche Synchronisation, die Einfrier-Sperre greift, und gespeichert wird nichts Neues. <code>cycle</code> spult über denselben Zähler zurück, also folgt das Rednerfenster auch dem Rücksprung.</p>
+<p><strong>Der erste Tastendruck, Klick oder Scroll hält es endgültig an.</strong> Wer das Deck angefasst hat, hat übernommen, und eine Uhr, die darunter weiterläuft, ist schlimmer als keine. Aus demselben Grund fängt es auf einer schon halb aufgedeckten Folie gar nicht erst an: Dass sie halb aufgedeckt ist, heißt, jemand hat sie so verlassen.</p>
+<p><strong>Zwischen 200 ms und 60 s, und außerhalb verweigert statt gekappt.</strong> Unter 200 ms liest der Raum keinen Takt, über einer Minute ist eine „bewegte&quot; Figur eine stehende, die sich ändert, wenn niemand hinsieht. Eine gekappte Zahl ist eine Zahl, die niemand geschrieben hat.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="autoplay">
+      <div class="annot-box-label">annotation · autoplay</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></div>
 </article>
 </section>
   </div>
@@ -4750,6 +5435,7 @@ function jumpTo(idx, direction) {
   applyState();
   focusCamera(false);
   saveActive();
+  restartAutoplay();
 }
 
 // A fragment in the address is an explicit request for one chunk, so it
@@ -4785,6 +5471,70 @@ function advanceReveal() {
     return true;
   }
   return false;
+}
+
+// ── ::: draw autoplay ──
+// A figure written {autoplay=N} walks its own steps once the slide is on
+// screen. It calls advanceReveal(), so it IS the Space key on a timer:
+// one counter, one broadcast, one freeze gate, and the speaker view follows
+// without knowing this exists.
+//
+// The audience is the state root, so only the audience runs the clock -
+// two windows both advancing would take two beats per tick. And the first
+// deliberate act stops it for good: a lecturer who has touched the deck has
+// taken over, and a timer resuming underneath them is worse than no timer.
+let autoplayTimer = 0;
+let autoplayStopped = false;
+function stopAutoplay() {
+  if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = 0; }
+}
+function restartAutoplay() {
+  stopAutoplay();
+  if (autoplayStopped || VIEW !== 'audience') return;
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) return;
+  const fig = entry.el.querySelector('[data-autoplay]');
+  if (!fig) return;
+  const ms = Number(fig.dataset.autoplay);
+  if (!ms) return;
+  // Only from the opening beat. Arriving at a half-revealed slide means the
+  // lecturer left it that way, and finishing it for them is the surprise
+  // this feature must not spring.
+  const segCount = countSegments(entry.el);
+  if ((revealed[entry.id] ?? 0) > 1) return;
+  const cycle = fig.hasAttribute('data-autoplay-cycle');
+  const tick = () => {
+    autoplayTimer = 0;
+    if (autoplayStopped) return;
+    if (flatChunks[state.activeIdx] !== entry) return;
+    if (advanceReveal()) {
+      if ((revealed[entry.id] ?? 0) < segCount) autoplayTimer = setTimeout(tick, ms);
+      else if (cycle) autoplayTimer = setTimeout(tick, ms);
+      return;
+    }
+    // advanceReveal said no, so we are at the last beat. Cycling rewinds
+    // to the opening one through the same counter everything else reads,
+    // so the speaker view follows the rewind exactly as it followed the
+    // walk. The last beat is held for one delay like any other: a second
+    // number for "how long to admire the finished picture" is a knob
+    // nobody asked for and one more thing to get wrong.
+    if (!cycle) return;
+    revealed[entry.id] = 1;
+    applyReveal(entry.el, entry.id);
+    updateNavHints();
+    broadcastState();
+    autoplayTimer = setTimeout(tick, ms);
+  };
+  if (segCount > 1) autoplayTimer = setTimeout(tick, ms);
+}
+// Any deliberate input retires the clock. Capture phase and passive, so it
+// sees the event whatever else handles it and never delays one.
+for (const ev of ['keydown', 'pointerdown', 'wheel']) {
+  window.addEventListener(ev, () => {
+    if (autoplayStopped) return;
+    autoplayStopped = true;
+    stopAutoplay();
+  }, { capture: true, passive: true });
 }
 
 // The mirror of advanceReveal, and it costs nothing but the counter: every
@@ -6024,6 +6774,9 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
   if (state.autoFit) fitZoomToChunk(2.2);
   else clampZoomToWidth();
   focusCamera(true);
+  // Same reasoning for autoplay, and it matters more here: the cover is
+  // the slide the feature was asked for, and jumpTo never runs on it.
+  restartAutoplay();
 }));
 if (document.fonts && document.fonts.ready) {
   document.fonts.ready.then(() => {
@@ -7811,6 +8564,14 @@ const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid units
 // This matters far more to the editor than to a terminal. `dgeSetSource`
 // rolls a refused edit back and shows `problems[0]` and nothing else, so
 // whichever problem lands first *is* the whole message a panel user gets.
+// Fence options the compiler does not own. `autoplay=N` and `cycle` say
+// how a finished figure is *played*, which is a fact about the deck and not
+// about the drawing - and this file also runs inside the browser editor,
+// where there is no deck to play. Exported so the one vocabulary has one
+// home: build.js reads the values, lint.js checks them, the compiler steps
+// over them, and any future embedder is correct without being told.
+const DG_HOST_OPTS = ['autoplay', 'cycle'];
+
 const DG_PHASES = ['syntax', 'reference', 'semantic', 'layout'];
 function dgErr(errors, line, msg, phase = 'syntax') { errors.push({ line, msg, phase }); }
 // Stable-sort a problem list into phase order. Exported because lint.js
@@ -9859,7 +10620,16 @@ function createDiagramCompiler(env = {}) {
       const m = tok.match(/^unit=(\d+)x(\d+)$/);
       if (m) { model.unit = [Number(m[1]), Number(m[2])]; continue; }
       if (tok.startsWith('#')) { model.id = tok.slice(1); continue; }
-      dgErr(errors, 0, `unknown ::: draw option "${tok}" (expected #id or unit=WxH)`);
+      // Options that belong to whoever embeds this compiler rather than to
+      // the drawing. Skipped rather than refused, because a fence carrying
+      // one is legal source and every embedder would otherwise have to
+      // strip it: build.js does (it needs the value), but the corpus gate
+      // and the browser editor compile blocks straight out of a file, and
+      // both broke on the first lecture that used one.
+      if (DG_HOST_OPTS.includes(tok.split('=')[0])) continue;
+      dgErr(errors, 0,
+        `unknown ::: draw option "${tok}" (expected #id, unit=WxH, ` +
+        `${DG_HOST_OPTS.join(' or ')})`);
     }
 
     // Returns whether the name is now this element's. A caller that would go on
@@ -13426,7 +14196,7 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_RESERVED_IDS, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, rejectClassOn, dgArticle, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_RESERVED_IDS, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_HOST_OPTS, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, rejectClassOn, dgArticle, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "default text {.small}\ndefault container pad 0.34\n";
 window.PSI_DG_EDIT_HTML = false;

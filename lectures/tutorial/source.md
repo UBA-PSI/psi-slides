@@ -1,6 +1,8 @@
 ---
 title: psi-slides – a ten-step tour
+subtitle: A lecture medium that builds four views from one Markdown file
 presenter: Dominik Herrmann
+cover: editorial
 info: |
   Tutorial lecture built with psi-slides itself
   Use the tool to learn the tool
@@ -804,6 +806,179 @@ fonts:
 Files are matched by name and the suffix gives weight and style: `Literata-Regular.woff2`, `-Bold`, `-Italic`, `-BoldItalic`, `-600`, `-600italic`, or a variable file named `Literata[wght].woff2`. A role you name uses your font; a role you leave out keeps the bundled one. Naming a family with no matching file fails the build.
 
 **Check the licence first.** Embedding redistributes the font file. The SIL Open Font License and Apache-2.0 – which between them cover nearly all of Google Fonts – allow it; most commercial desktop licences do not, and want a separate webfont licence. The build prints a reminder and verifies nothing.
+
+## example: The cover has four compositions | `cover:` plus a `subtitle:` line {.wide #covers}
+
+**A cover set only in ink, at one weight, with the subtitle at meta size beside the venue reads as a text file rather than as the opening of a talk.** Two frontmatter keys fix most of it.
+
+```yaml
+title: Detecting Bot Detection
+subtitle: Prevalence, Techniques and Implications
+presenter: Ralf Gundelach
+info: |
+  ARES 2026 · Linköping · 24 to 27 August
+cover: editorial        # classic | editorial | split | hero
+cover-image: skyline    # split and hero need one; the others ignore it
+```
+
+`subtitle:` is the step the ladder was missing. Without it the one line that says what the talk is *about* has nowhere to go but `info`, where it is set exactly like the line that says which conference it is.
+
+::: cards 4
+- **classic** the lower-left third, all type. The default, so a lecture that names no `cover:` is unchanged.
+- **editorial** an accent rail, the title over a rule, the meta collected into a footer row.
+- **stack** the title block centred on both axes, for a quiet opening.
+- **rule** the title held between two hairlines across the measure.
+:::
+
+::: cards 4
+- **split** type left, `cover-image` bled off the right edge.
+- **hero** the picture is the slide, type reversed out of a gradient scrim.
+- **beside** the title chunk's own body — a `::: draw` — inset to the right.
+- **above** that body on top, the title centred in the band below it.
+:::
+
+**`beside` and `above` take their art from the chunk body**, which is what lets a `::: draw` be the cover: a diagram is not a file, so `cover-image` can never name one. On those two the body is the art and `info:` still supplies the meta lines; everywhere else a non-empty body replaces `info` as it always did. `cover-ratio: 42%` sets how much of the slide the picture takes on `split`, `beside` and `above`.
+
+`split` bleeds and `beside` insets, and that is why both exist: a photograph wants the edge, a drawing wants a margin, because a diagram cropped by the frame reads as a diagram that did not fit.
+
+An unknown value fails the build, and `split` or `hero` without a `cover-image` fails too rather than drawing an empty half.
+
+## example: A picture that fills the frame | `::: backdrop` and `::: overlay` {.wide #backdrop}
+
+**`::: backdrop` puts an image behind the whole slide, edge to edge, and `::: overlay` puts a text block on top of it.** One line each, on any chunk – the cover is not a special case.
+
+```markdown
+## figure: {#skyline .full}
+
+::: backdrop city-at-night {.invert .blur}
+
+::: overlay {.bottom-left .ink .wide}
+### Every endpoint is a sensor
+A crawler that looks like a browser gets measured back.
+:::
+```
+
+The backdrop takes the same three forms an image does – a bare asset id, a relative path, an https URL – and its class tail answers four questions, each a closed list: **fill** `cover` or `contain`, **crop** `middle` `top` `bottom`, **scrim** `veil` `clear` `invert`, **focus** `sharp` `blur`.
+
+`veil` is the default and it is the theme's own paper at 80%, so ordinary ink stays legible over a photograph in all seven themes. `invert` turns the slide's ink light instead. Writing two words from one slot is an error, not a preference the build guesses at.
+
+An overlay answers three: **place** – the nine cells of a 3×3 grid, `bottom-left` through `top-right`; **ground** – `paper` `ink` `accent` `clear` `glass`; **width** – `narrow` `standard` `wide` `full`. All of them are cards with padding and a radius, which is the point: text laid straight onto a photograph is unreadable at the back of a room.
+
+## example: Three things stay three things | `::: cards N` {.wide #cards}
+
+**`::: cards 3` is not a second spelling of `::: cols 3`.** A `cols` block is one text flow the browser balances across N tracks, so a paragraph can spill from the foot of one column into the head of the next. A `cards` block is N *containers*, and an item is whole or it is nowhere.
+
+```markdown
+::: cards 3
+- **Measure** what a page does when a crawler asks for it
+- **Probe** the detector until it names itself
+- **Report** what that costs a measurement study
+:::
+```
+
+Which children become the cards is one rule and no parsing: a lone list dissolves into the grid, so its items are the cards; anything else contributes one card per block. Counts from 2 to 6 – past six, what you have is a table.
+
+Use `cols` for an argument that runs long and `cards` for a comparison the room should be able to count.
+
+## example: Setting the type for a whole lecture | the `style:` block {.wide #style-block}
+
+**Four knobs an author reaches for on a whole deck rather than on one chunk.**
+
+```yaml
+style:
+  headings: left        # auto | left | center   – auto keeps the per-tag treatment
+  rules: off            # on | off               – the hairline above principle/definition
+  heading-scale: 1.15   # 0.6 … 1.8
+  body-scale: 0.95      # 0.6 … 1.8
+```
+
+`headings: auto` is the default and means the tag decides: a question is centred, a figure's caption sits over its artwork. `left` overrides all of it, which is what an author who wants one axis of alignment through the whole deck is asking for.
+
+The two scales are multipliers on the tool's own scale rather than absolute sizes, and they are **bounded**. Outside 0.6–1.8 the collapse mode, the code-width clamp and the auto-fit camera stop agreeing with each other, and the result is not a look but a bug report.
+
+## example: Which typefaces travel in the file | five bundled families, named not filed {.wide #bundled-fonts}
+
+**Three families ship in any one output, and which three is the lecture's choice.** A bundled family needs no file — that is the point of bundling it.
+
+```yaml
+fonts:
+  sans: Inter Tight                # or IBM Plex Sans (the default)
+  mono: Noto Sans Mono Condensed   # or JetBrains Mono (the default)
+  serif: Literata                  # the only serif bundled
+```
+
+Only the three families a lecture resolves to are read at all, so an alternate costs the lecture that asks for it and nothing else. A name that is neither a bundled family nor a file in `fonts/` fails the build, and the message lists the bundled names for that role.
+
+**The condensed mono is 17% narrower** — 0.50 em against 0.60 em per character, measured in a browser — which is usually why an author reaches for it: a listing that overran the slide fits. It is a *pinned instance* of Noto Sans Mono's width axis rather than a different typeface, so it costs 54 KB and nothing downstream has to know about it. Slashed zero, and `I`, `l` and `1` are three visibly different shapes.
+
+Iosevka reaches the same width and is deliberately **not** bundled: it is 961 KB per face against 54, which is 3.87 MB of base64 in every view on a tool whose whole promise is a file you can mail. Drop it in `fonts/` if you want it anyway — that is what that mechanism is for.
+
+`ligatures:` answers a question that is really two. `text` is the default: `fi` and `fl` in prose, none in code. `none` takes them out of prose too. `all` puts the code ligatures back, so JetBrains Mono draws `->` as a single arrow glyph again — pleasant in an editor, and the reason it is off here is that in the figure grammar `->` and `--` are two *different* edges, and every listing on a slide is source a reader is meant to retype.
+
+## example: Laying a lecture out the way 1.0.0 did | three settings, not a version key {.wide #layout-generation}
+
+**From 1.0.0 the source format is the interface, and that is about more than parsing.** A finished deck should be able to lay out the way it laid out.
+
+Exactly three things have moved since 1.0.0 that an existing lecture would notice, and each is an ordinary preference:
+
+::: cards 3
+- **The sans** was Inter Tight, now IBM Plex Sans — it relays out every sans run. `fonts: {sans: Inter Tight}`
+- **Line breaking** gained `text-wrap: balance` on headings and `pretty` on prose. `style: {wrap: none}`
+- **Code ligatures** were turned off, so `->` stopped drawing as an arrow. `ligatures: all`
+:::
+
+```yaml
+ligatures: all
+fonts:
+  sans: Inter Tight
+style:
+  wrap: none
+```
+
+Set together, those three reproduce the 1.0.0 rendering **exactly** — verified by building the same source through the real 1.0.0 build and through this one and comparing: zero differing pixels.
+
+**There is deliberately no `layout: 1.0` key.** One key naming a version reads as a promise that the tool can rebuild any past release, and that promise has no end: every later change to a shared stylesheet would have to be gated on a generation, and the combinations nobody tests would multiply. It would also make you keep track of which version your deck was authored against. Each of these three is a setting you might want on its own — someone who prefers Inter Tight is expressing a view about type, not pinning a release.
+
+## example: A figure that walks itself | `::: draw {autoplay=N}` {.wide #autoplay}
+
+**A figure written with `autoplay` advances its own steps on a timer once the slide is on screen** — one delay, in milliseconds, for every step. A cover figure that moves while the room files in is what it is for, but it works on any chunk.
+
+```markdown
+::: draw {unit=150x56 autoplay=1200}
+box crawler "Crawler" {.tone-1}
+box det "Detector" right of crawler gap 1.6
+edge crawler -> det "request"
+
+step probe
+  emph det
+:::
+```
+
+It calls the same advance the Space key calls, so there is **one counter**: the speaker view follows through the ordinary sync, the freeze gate applies, and nothing new is stored. It runs on the projection only, and **the first key, click or scroll stops it for good** — a lecturer who has touched the deck has taken over, and a timer resuming underneath them is worse than no timer. It also refuses to start on a slide that is already half revealed, because arriving at one means you left it that way.
+
+Between 200 ms and 60 s. Outside that the build refuses rather than clamps: below 200 ms the room cannot read a beat, and above a minute a "moving" figure is a still one that changes when nobody is looking.
+
+**`cycle` repeats the walk** — `{autoplay=1200 cycle}` — which is usually what a cover figure wants while a room fills. It rewinds through the same counter, so the speaker view follows the rewind exactly as it followed the walk. The last beat is held for one delay like any other; there is deliberately no second number for how long to hold the finished picture.
+
+## example: Turning the generated labels off | `style: {labels: off}` {.wide #labels}
+
+**The tag word above a chunk is two different things wearing one name**, so it takes one switch to reach both.
+
+::: cards 2
+- **The document view** labels every tagged chunk — `PRINCIPLE`, `QUESTION`, `DEFINITION`, `EXERCISE`. That is where most of them live.
+- **The projection** generates only `EXERCISE`, in CSS. The others were removed outright: a taxonomy announces itself only as correctly as the tag choice was.
+:::
+
+```yaml
+style:
+  labels: off
+```
+
+It is its own key rather than part of `rules`, which hides the bar above a principle and the hairline above a definition — a word and a line are not one decision, and you may want the line without the word.
+
+**A figure's all-caps heading is not a generated label and needs no key.** It is the chunk's own heading, set in small caps by the `figure` treatment, so `## figure: {.wide #id}` with no heading text simply leaves it off the slide. The cost is real and worth knowing: that chunk then has no TOC entry, no search text, and no heading in the printed hand-out.
+
+
 
 ## example: Pinning how a lecture opens | six optional frontmatter keys {.wide #view-defaults}
 

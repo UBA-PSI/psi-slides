@@ -957,3 +957,30 @@ brace tun over tunnel side right "das ist die Nutzlast" pad 0.35 {.muted .small}
 **Jede Nachrichtenbeschriftung bringt ihren eigenen Grund mit.** Eine Lebenslinie kreuzt jede Beschriftung im Bild, also wird der Grund von vornherein gezeichnet und die gestrichelte Linie hinter den Wörtern ausgespart. `{.clear}` nimmt ihn weg, `{.tone-2}` färbt ihn. Die kleinere zweite Zeile bekommt denselben Grund, die Nummern links keinen: Sie stehen außerhalb des Rahmens und kreuzen nichts.
 
 **`unnumbered` nimmt die Zahlenspalte weg.** Sie ist sonst da, weil das Umnummerieren von Hand genau die Arbeit ist, die die Anweisung abnimmt, und weil die Zahl im Bild und der Index im Tag dieselbe Zahl sind: `@x-msg-3` ist der Pfeil, den der Raum als 4 liest. Wo ein Ablauf so kurz ist, dass niemand auf eine Nummer zeigt, ist die Spalte nur Papier.
+
+## figure: Eine Figur, die sich selbst abspielt | `autoplay` und `cycle` {.wide #autoplay}
+
+::: draw {unit=150x56 autoplay=1400 cycle}
+box  cr  "Crawler"                       {.tone-1}
+box  wb  "Web site"  right of cr  gap 1.5
+box  dt  "Detector"  right of wb  gap 1.5 {.tone-4}
+edge cr -> wb "Anfrage"
+edge wb -> dt "Fingerabdruck"
+
+step probe
+  emph wb
+step catch
+  emph dt
+  dim cr
+step verdict
+  style dt {.tone-2}
+  label dt "Erkannt"
+:::
+
+**`autoplay=1400` läuft die Takte dieser Figur von selbst ab, `cycle` beginnt danach wieder vorn.** Eine Verzögerung in Millisekunden, dieselbe für jeden Takt – ein Deckblatt, das sich bewegt, während der Raum sich setzt, ist der Fall, für den es gebaut ist; es steht hier auf einer gewöhnlichen Folie, weil nichts daran an das Deckblatt gebunden ist.
+
+**Es ruft dieselbe Fortschaltung wie die Leertaste.** Ein eigener Zähler hätte Zeichnung und Taktzähler auseinanderlaufen lassen, und der nächste Tastendruck wäre gesprungen. Weil es *der* Zähler ist, folgt das Rednerfenster über die gewöhnliche Synchronisation, die Einfrier-Sperre greift, und gespeichert wird nichts Neues. `cycle` spult über denselben Zähler zurück, also folgt das Rednerfenster auch dem Rücksprung.
+
+**Der erste Tastendruck, Klick oder Scroll hält es endgültig an.** Wer das Deck angefasst hat, hat übernommen, und eine Uhr, die darunter weiterläuft, ist schlimmer als keine. Aus demselben Grund fängt es auf einer schon halb aufgedeckten Folie gar nicht erst an: Dass sie halb aufgedeckt ist, heißt, jemand hat sie so verlassen.
+
+**Zwischen 200 ms und 60 s, und außerhalb verweigert statt gekappt.** Unter 200 ms liest der Raum keinen Takt, über einer Minute ist eine „bewegte" Figur eine stehende, die sich ändert, wenn niemand hinsieht. Eine gekappte Zahl ist eine Zahl, die niemand geschrieben hat.

@@ -7,6 +7,8 @@
 <style>
 
 :root {
+  --heading-scale: 1;
+  --body-scale: 1;
   --ink: #1f1f24;
   --ink-soft: #6b6b72;
   --paper: #fafaf7;
@@ -44,8 +46,11 @@ h1, h2, h3 { font-weight: 500; letter-spacing: -0.01em; break-after: avoid; page
    not balanced - a paragraph wants its measure kept and only its last line
    protected, which is what pretty does. Both degrade to nothing where the
    browser does not know the value, so neither needs a fallback. */
-h1, h2, h3, h4, .chunk-heading, .hd-sub, .section-heading, figcaption { text-wrap: balance; }
-p, li, dd { text-wrap: pretty; }
+/* Balanced headings and protected last lines. Landed after 1.0.0, and it
+   moves where lines break in a finished deck - so layout: 1.0 turns it
+   off rather than leaving an old lecture to re-wrap under its author. */
+body:not([data-wrap=none]) :is(h1, h2, h3, h4, .chunk-heading, .hd-sub, .section-heading, figcaption) { text-wrap: balance; }
+body:not([data-wrap=none]) :is(p, li, dd) { text-wrap: pretty; }
 p { margin: 0.4em 0 0.9em; orphans: 3; widows: 3; }
 
 /* Hyphenation. Only in the document views: a hyphenated word on a
@@ -94,7 +99,17 @@ pre code { font-size: inherit; }
    (calt) and the rest in liga, and only none covers both. No backtick in
    this comment, escaped or otherwise – see the template-literal rule in
    CLAUDE.md. */
-code, pre, kbd, samp { font-variant-ligatures: none; }
+/* Ligature policy, from the ligatures: frontmatter key. "text" is the
+   default and is what this rule always did: none in code, ordinary fi and
+   fl in prose. "all" puts the code ligatures back - JetBrains Mono draws
+   "->" as one arrow glyph, which is pleasant in an editor and wrong on a
+   slide, where the listing is source a reader is meant to retype. "none"
+   takes them out of prose as well. */
+body:not([data-liga=all]) code,
+body:not([data-liga=all]) pre,
+body:not([data-liga=all]) kbd,
+body:not([data-liga=all]) samp { font-variant-ligatures: none; }
+body[data-liga=none] { font-variant-ligatures: none; }
 
 table {
   border-collapse: collapse;
@@ -154,7 +169,7 @@ a:hover { text-decoration-color: var(--ink); }
   position: relative;
 }
 .chunk-heading {
-  font-size: 1.12rem;
+  font-size: calc(1.12rem * var(--heading-scale));
   margin: 0 0 0.5rem;
   break-after: avoid;
   page-break-after: avoid;
@@ -335,6 +350,117 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   font-size: 0.88rem;
   color: var(--ink-soft);
 }
+
+/* The style: frontmatter block, on paper. Same two selectors as the live
+   views; the two scales ride on custom properties emitted per build. */
+body[data-headings=left] .chunk-heading,
+body[data-headings=left] .title-main { text-align: left; }
+body[data-headings=center] .chunk-heading { text-align: center; }
+body[data-rules=off] .chunk-principle,
+body[data-rules=off] .chunk-definition { border-top: 0; }
+/* The document view labels every tagged chunk, which is where most of
+   these eyebrows actually live - the projection generates only EXERCISE. */
+body[data-labels=off] .chunk-label { display: none; }
+
+/* Cover, backdrop, overlay and card grid in the document view. Print is a
+   document, not a slide: composition over a picture is the one thing paper
+   cannot have, so the backdrop becomes a banner band at the head of the
+   chunk and an overlay an ordinary block under it. The treatments survive
+   (an ink card is still an inverted card on the page); only the placement
+   is dropped, because there is nothing to place it over. */
+.chunk-title .title-subtitle {
+  font-size: 1.35rem;
+  line-height: 1.3;
+  color: var(--ink-soft);
+  margin: -0.35rem 0 0.9rem;
+  max-width: 28em;
+}
+.chunk-title[data-cover=editorial] {
+  border-bottom: 0;
+  border-left: 4px solid var(--emph);
+  padding-left: 1rem;
+}
+.chunk-title .cover-art {
+  width: 100%;
+  aspect-ratio: 16 / 6;
+  background-size: cover;
+  background-position: center;
+  border-radius: 3px;
+  margin-bottom: 1.4rem;
+  order: -1;
+}
+.chunk .chunk-backdrop {
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 3px;
+  margin: 0 0 1rem;
+  display: block;
+}
+.chunk .chunk-backdrop.bd-contain { background-size: contain; background-color: color-mix(in oklch, var(--ink) 6%, transparent); }
+.chunk .chunk-backdrop.bd-top { background-position: center top; }
+.chunk .chunk-backdrop.bd-bottom { background-position: center bottom; }
+.overlay-layer { display: block; margin: 0.9rem 0; }
+.overlay-card {
+  padding: 0.75rem 0.95rem;
+  border-radius: 5px;
+  margin: 0 0 0.7rem;
+  max-width: 34em;
+}
+.overlay-card > :first-child { margin-top: 0; }
+.overlay-card > :last-child { margin-bottom: 0; }
+.overlay-card.ov-paper  { background: color-mix(in oklch, var(--ink) 4%, transparent); border: 1px solid var(--rule); }
+.overlay-card.ov-glass  { background: color-mix(in oklch, var(--ink) 4%, transparent); border: 1px solid var(--rule); }
+.overlay-card.ov-ink    { background: #1b1b20; color: #fff; }
+.overlay-card.ov-ink a  { color: #fff; }
+.overlay-card.ov-accent { background: var(--emph); color: #fff; }
+.overlay-card.ov-clear  { padding: 0; background: none; border: 0; }
+.cards {
+  display: grid;
+  grid-template-columns: repeat(var(--card-n), minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0.9rem 0;
+}
+.cards-2 { --card-n: 2; }
+.cards-3 { --card-n: 3; }
+.cards-4 { --card-n: 4; }
+.cards-5 { --card-n: 5; }
+.cards-6 { --card-n: 6; }
+.cards > ul, .cards > ol { display: contents; }
+.cards > ul > li, .cards > ol > li, .cards > :not(ul):not(ol) {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  list-style: none;
+  break-inside: avoid;
+  font-size: calc(1em * var(--card-fs, 1));
+  text-align: var(--card-align, left);
+}
+/* The document is read at the reader's own pace, so the size difference is
+   damped: on paper a row of single words at 1.4x is shouting. The
+   alignment is kept, because that is composition rather than emphasis. */
+.cards.cs-large  { --card-fs: 1.15; }
+.cards.cs-medium { --card-fs: 1; }
+.cards.cs-small  { --card-fs: 0.92; }
+.cards.ca-left   { --card-align: left; }
+.cards.ca-center { --card-align: center; }
+/* No data-collapse in a document, so the second level is always here -
+   which is the point of writing one. */
+.cards li ul, .cards li ol {
+  margin: 0.3rem 0 0;
+  padding-left: 1.05em;
+  list-style: disc;
+  font-size: 0.9em;
+  color: var(--ink-soft);
+  text-align: left;
+}
+.cards li li { display: list-item; }
+.cards > ul > li::marker, .cards > ol > li::marker { content: none; }
+.cards li > :first-child { margin-top: 0; }
+.cards li > :last-child { margin-bottom: 0; }
 
 /* Two-line action heading – the sub-line reads like a subtitle in
    print, italicized and quieter. The space between the spans (see
@@ -699,13 +825,16 @@ pre.shiki .line { display: inline; }
 </style>
 
 
+
 </head>
-<body data-slide-nums="vertical">
+<body data-slide-nums="vertical" >
 <main>
 <section class="column column-anon">
-<article class="chunk chunk-title" data-chunk-num="1" id="cover">
+<article class="chunk chunk-title" data-cover="classic" data-chunk-num="1" id="cover">
+  
   <span class="chunk-num" aria-hidden="true"><i>1</i></span>
   <h1 class="title-main">Animated Infographics</h1>
+    <p class="title-subtitle">Six real lecture slides, rebuilt in ::: draw</p>
     
     <p>This is a psi-slides lecture: one Markdown source becomes the projected slides,
 a speaker cockpit, a reading document, and a handout with the spoken notes. The
@@ -713,6 +842,7 @@ a speaker cockpit, a reading document, and a handout with the spoken notes. The
 itself.</p>
 <p>Every figure in this lecture is written in the lecture source, laid out at
 build time, and stepped with the same key that advances a reveal.</p>
+  
 </article>
 </section>
 <nav class="toc" aria-label="Contents">
@@ -728,6 +858,7 @@ build time, and stepped with the same key that advances a reveal.</p>
 <section class="column">
   <h1 class="column-heading">Memory safety</h1>
 <article class="chunk chunk-figure width-full" id="unsafety" data-chunk-num="2">
+  
   <span class="chunk-num" aria-hidden="true"><i>2</i></span>
   
   <h2 class="chunk-heading">Types of memory unsafety</h2>
@@ -752,8 +883,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="overflow" data-chunk-num="3">
+  
   <span class="chunk-num" aria-hidden="true"><i>3</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Your first buffer overflow</span> <span class="hd-sub">ein konstruiertes Beispiel</span></h2>
@@ -794,11 +927,13 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 </section>
 <section class="column">
   <h1 class="column-heading">Block ciphers</h1>
 <article class="chunk chunk-figure width-full" id="cbc" data-chunk-num="4">
+  
   <span class="chunk-num" aria-hidden="true"><i>4</i></span>
   
   <h2 class="chunk-heading">Cipher Block Chaining, decryption</h2>
@@ -842,8 +977,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="ctr" data-chunk-num="5">
+  
   <span class="chunk-num" aria-hidden="true"><i>5</i></span>
   
   <h2 class="chunk-heading">Counter mode, encryption</h2>
@@ -898,11 +1035,13 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 </section>
 <section class="column">
   <h1 class="column-heading">Identity and authentication</h1>
 <article class="chunk chunk-figure width-full" id="lifecycle" data-chunk-num="6">
+  
   <span class="chunk-num" aria-hidden="true"><i>6</i></span>
   
   <h2 class="chunk-heading">Identity lifecycle</h2>
@@ -940,8 +1079,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="mac" data-chunk-num="7">
+  
   <span class="chunk-num" aria-hidden="true"><i>7</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Message authentication</span> <span class="hd-sub">it is not about confidentiality</span></h2>
@@ -1015,11 +1156,13 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 </section>
 <section class="column">
   <h1 class="column-heading">The vocabulary</h1>
 <article class="chunk chunk-figure width-wide" id="primitives" data-chunk-num="8">
+  
   <span class="chunk-num" aria-hidden="true"><i>8</i></span>
   
   <h2 class="chunk-heading">The pieces</h2>
@@ -1042,8 +1185,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-wide" id="alignment" data-chunk-num="9">
+  
   <span class="chunk-num" aria-hidden="true"><i>9</i></span>
   
   <h2 class="chunk-heading">Alignment</h2>
@@ -1065,8 +1210,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-wide" id="grouping" data-chunk-num="10">
+  
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>0</i></span>
   
   <h2 class="chunk-heading">Containers and braces</h2>
@@ -1089,8 +1236,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="look" data-chunk-num="11">
+  
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>1</i></span>
   
   <h2 class="chunk-heading">The look of a thing</h2>
@@ -1153,8 +1302,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-wide" id="motion" data-chunk-num="12">
+  
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>2</i></span>
   
   <h2 class="chunk-heading">Steps that move</h2>
@@ -1179,8 +1330,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-wide" id="justify" data-chunk-num="13">
+  
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></span>
   
   <h2 class="chunk-heading">Where the words sit</h2>
@@ -1208,8 +1361,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="expand" data-chunk-num="14">
+  
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></span>
   
   <h2 class="chunk-heading">Six statements that expand</h2>
@@ -1292,8 +1447,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="series" data-chunk-num="15">
+  
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></span>
   
   <h2 class="chunk-heading">A second run of columns</h2>
@@ -1340,8 +1497,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="flat" data-chunk-num="16">
+  
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>6</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Columns laid flat</span> <span class="hd-sub">dieselben sechs Zahlen, zweimal</span></h2>
@@ -1386,8 +1545,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="plot" data-chunk-num="17">
+  
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></span>
   
   <h2 class="chunk-heading">A frame to draw in</h2>
@@ -1437,8 +1598,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="sameframe" data-chunk-num="18">
+  
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">One size, two frames</span> <span class="hd-sub">zwei Plots, die sich vergleichen lassen</span></h2>
@@ -1503,8 +1666,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-standard" id="raster" data-chunk-num="19">
+  
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></span>
   
   <h2 class="chunk-heading">A raster does not follow the theme</h2>
@@ -1520,11 +1685,13 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 </section>
 <section class="column">
   <h1 class="column-heading">Four arrangements</h1>
 <article class="chunk chunk-figure width-wide" id="flowchart" data-chunk-num="20">
+  
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">The road straight down</span> <span class="hd-sub">a flowchart</span></h2>
@@ -1551,8 +1718,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="swimlane" data-chunk-num="21">
+  
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>1</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Three roles, one incident</span> <span class="hd-sub">a swimlane</span></h2>
@@ -1581,8 +1750,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="tree" data-chunk-num="22">
+  
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Leaves first, and the brackets follow</span> <span class="hd-sub">a tree</span></h2>
@@ -1611,8 +1782,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="table" data-chunk-num="23">
+  
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">One line per row</span> <span class="hd-sub">a table</span></h2>
@@ -1644,8 +1817,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="sequence" data-chunk-num="24">
+  
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>4</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Ein Ablauf von oben nach unten</span> <span class="hd-sub">a sequence</span></h2>
@@ -1698,8 +1873,10 @@ build time, and stepped with the same key that advances a reveal.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-wide" id="seqmore" data-chunk-num="25">
+  
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></span>
   
   <h2 class="chunk-heading">Was eine Nachricht sonst sein kann</h2>
@@ -1729,6 +1906,31 @@ build time, and stepped with the same key that advances a reveal.</p>
 <p><strong>Jede Nachrichtenbeschriftung bringt ihren eigenen Grund mit.</strong> Eine Lebenslinie kreuzt jede Beschriftung im Bild, also wird der Grund von vornherein gezeichnet und die gestrichelte Linie hinter den Wörtern ausgespart. <code>{.clear}</code> nimmt ihn weg, <code>{.tone-2}</code> färbt ihn. Die kleinere zweite Zeile bekommt denselben Grund, die Nummern links keinen: Sie stehen außerhalb des Rahmens und kreuzen nichts.</p>
 <p><strong><code>unnumbered</code> nimmt die Zahlenspalte weg.</strong> Sie ist sonst da, weil das Umnummerieren von Hand genau die Arbeit ist, die die Anweisung abnimmt, und weil die Zahl im Bild und der Index im Tag dieselbe Zahl sind: <code>@x-msg-3</code> ist der Pfeil, den der Raum als 4 liest. Wo ein Ablauf so kurz ist, dass niemand auf eine Nummer zeigt, ist die Spalte nur Papier.</p>
 
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-figure width-wide" id="autoplay" data-chunk-num="26">
+  
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></span>
+  
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Eine Figur, die sich selbst abspielt</span> <span class="hd-sub"><code>autoplay</code> und <code>cycle</code></span></h2>
+  <figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg25-root" class="psi-diagram" viewBox="-56.35 -32.75 453.45 63.13" width="2000" height="278" data-live-viewbox="-56.35 -32.75 459.30 63.13" data-live-ratio="0.137437" data-steps="4" role="img" aria-label="Eine Figur, die sich selbst abspielt" preserveAspectRatio="xMidYMid meet">
+<g id="dg25-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg25-edge-1--p" class="dg-stroke" d="M44.35 0.00L120.70 0.00" fill="none"/><path id="dg25-edge-1--h" class="dg-head" d="M128.35 0.00L119.35 3.96L119.35 -3.96Z"/><g id="dg25-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(86.35,-11.38)"><g id="dg25-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Anfrage</tspan></text></g></g></g>
+<g id="dg25-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg25-edge-2--p" class="dg-stroke" d="M218.55 0.00L294.90 0.00" fill="none"/><path id="dg25-edge-2--h" class="dg-head" d="M302.55 0.00L293.55 3.96L293.55 -3.96Z"/><g id="dg25-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(260.55,-11.38)"><g id="dg25-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Fingerabdruck</tspan></text></g></g></g>
+<g id="dg25-cr" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg25-cr--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg25-cr--lw0" data-lab="cr--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg25-cr--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
+<g id="dg25-wb" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg25-wb--r" x="128.35" y="-18.38" width="90.20" height="36.75" rx="4"/><g id="dg25-wb--lw0" data-lab="wb--l" class="dg-lwrap" transform="translate(173.45,0.00)"><g id="dg25-wb--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Web site</tspan></text></g></g></g>
+<g id="dg25-dt" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg25-dt--r" x="302.55" y="-18.38" width="82.55" height="36.75" rx="4"/><g id="dg25-dt--lw0" data-lab="dt--l" class="dg-lwrap dg-variant dg-off" transform="translate(343.83,0.00)"><g id="dg25-dt--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Detector</tspan></text></g></g><g id="dg25-dt--lw1" data-lab="dt--l" class="dg-lwrap dg-variant" transform="translate(343.83,0.00)"><g id="dg25-dt--l1" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Erkannt</tspan></text></g></g></g>
+</svg><figcaption class="dg-hint"></figcaption></figure>
+
+
+<p><strong><code>autoplay=1400</code> läuft die Takte dieser Figur von selbst ab, <code>cycle</code> beginnt danach wieder vorn.</strong> Eine Verzögerung in Millisekunden, dieselbe für jeden Takt – ein Deckblatt, das sich bewegt, während der Raum sich setzt, ist der Fall, für den es gebaut ist; es steht hier auf einer gewöhnlichen Folie, weil nichts daran an das Deckblatt gebunden ist.</p>
+<p><strong>Es ruft dieselbe Fortschaltung wie die Leertaste.</strong> Ein eigener Zähler hätte Zeichnung und Taktzähler auseinanderlaufen lassen, und der nächste Tastendruck wäre gesprungen. Weil es <em>der</em> Zähler ist, folgt das Rednerfenster über die gewöhnliche Synchronisation, die Einfrier-Sperre greift, und gespeichert wird nichts Neues. <code>cycle</code> spult über denselben Zähler zurück, also folgt das Rednerfenster auch dem Rücksprung.</p>
+<p><strong>Der erste Tastendruck, Klick oder Scroll hält es endgültig an.</strong> Wer das Deck angefasst hat, hat übernommen, und eine Uhr, die darunter weiterläuft, ist schlimmer als keine. Aus demselben Grund fängt es auf einer schon halb aufgedeckten Folie gar nicht erst an: Dass sie halb aufgedeckt ist, heißt, jemand hat sie so verlassen.</p>
+<p><strong>Zwischen 200 ms und 60 s, und außerhalb verweigert statt gekappt.</strong> Unter 200 ms liest der Raum keinen Takt, über einer Minute ist eine „bewegte&quot; Figur eine stehende, die sich ändert, wenn niemand hinsieht. Eine gekappte Zahl ist eine Zahl, die niemand geschrieben hat.</p>
+
+  
   
   
   

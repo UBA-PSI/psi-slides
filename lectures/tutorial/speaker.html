@@ -17,6 +17,10 @@
   --emph:       oklch(0.42 0.16 30);
 
   --zoom: 1.35;
+  /* Multipliers the style: frontmatter block overrides. 1 is the tool's
+     own scale, so a lecture that sets nothing is unchanged. */
+  --heading-scale: 1;
+  --body-scale: 1;
   --dim: 0.86;
   --camera-duration: 250ms;
   --slide-pad-x: 14%;
@@ -317,14 +321,14 @@ body[data-slide-nums=off] .chunk-num { display: none; }
 .chunk-heading {
   font-family: var(--body-font);
   font-weight: 600;
-  font-size: calc(1.55em * var(--zoom));
+  font-size: calc(1.55em * var(--zoom) * var(--heading-scale));
   margin: 0;
   line-height: 1.15;
   letter-spacing: -0.012em;
   color: var(--ink);
 }
 .chunk-body {
-  font-size: calc(1em * var(--zoom));
+  font-size: calc(1em * var(--zoom) * var(--body-scale));
   line-height: 1.5;
   text-align: left;
 }
@@ -348,7 +352,17 @@ a:hover { text-decoration-thickness: 2px; }
    ligates the arrow tokens into one glyph, and a slide is where the room is
    reading the token rather than the prose. Bare element selectors, so the
    cockpit gets it too – SPEAKER_CSS is layered on top of this sheet. */
-code, pre, kbd, samp { font-variant-ligatures: none; }
+/* Ligature policy, from the ligatures: frontmatter key. "text" is the
+   default and is what this rule always did: none in code, ordinary fi and
+   fl in prose. "all" puts the code ligatures back - JetBrains Mono draws
+   "->" as one arrow glyph, which is pleasant in an editor and wrong on a
+   slide, where the listing is source a reader is meant to retype. "none"
+   takes them out of prose as well. */
+body:not([data-liga=all]) code,
+body:not([data-liga=all]) pre,
+body:not([data-liga=all]) kbd,
+body:not([data-liga=all]) samp { font-variant-ligatures: none; }
+body[data-liga=none] { font-variant-ligatures: none; }
 /* GFM tables: marked emits bare <table>; without this they collapse to the
    browser default of ~1px cell spacing and read as cramped. Borders use
    var(--rule) so they track all six themes (same reactivity rule as figures). */
@@ -720,8 +734,8 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
   background: var(--ink);
   margin-bottom: 0.4em;
 }
-.chunk[data-tag=principle] .chunk-body { font-size: calc(1.2em * var(--zoom)); line-height: 1.4; }
-.chunk[data-tag=principle] .chunk-heading { font-size: calc(1.8em * var(--zoom)); }
+.chunk[data-tag=principle] .chunk-body { font-size: calc(1.2em * var(--zoom) * var(--body-scale)); line-height: 1.4; }
+.chunk[data-tag=principle] .chunk-heading { font-size: calc(1.8em * var(--zoom) * var(--heading-scale)); }
 
 .chunk[data-tag=definition] .chunk-content::before {
   content: '';
@@ -733,11 +747,11 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
 
 .chunk[data-tag=question] { text-align: center; }
 .chunk[data-tag=question] .chunk-content { gap: 0.8em; align-items: flex-start; }
-.chunk[data-tag=question] .chunk-heading { font-size: calc(2.4em * var(--zoom)); font-weight: 500; }
-.chunk[data-tag=question] .chunk-body { font-size: calc(1.15em * var(--zoom)); color: var(--ink-soft); }
+.chunk[data-tag=question] .chunk-heading { font-size: calc(2.4em * var(--zoom) * var(--heading-scale)); font-weight: 500; }
+.chunk[data-tag=question] .chunk-body { font-size: calc(1.15em * var(--zoom) * var(--body-scale)); color: var(--ink-soft); }
 
 .chunk[data-tag=figure] .chunk-heading {
-  font-size: calc(1.05em * var(--zoom));
+  font-size: calc(1.05em * var(--zoom) * var(--heading-scale));
   font-weight: 500;
   color: var(--ink-soft);
   font-variant-caps: all-small-caps;
@@ -760,7 +774,11 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
 }
 
 /* title chunk: lower-left-third (PRD §4.4) */
-.chunk-title { align-items: end; }
+/* A cover owns the whole slide, whichever variant it is. Left at the 40%
+   min-height every chunk gets, the next chunk's heading crept into the
+   bottom of the frame and the split variant's picture stretched to a band
+   across the top third instead of bleeding down the whole right edge. */
+.chunk-title { align-items: end; min-height: var(--slide-h); }
 .chunk-title .chunk-content {
   grid-column: 2;
   gap: 0.5em;
@@ -785,6 +803,589 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
   line-height: 1.5;
 }
 .chunk-title .title-info p { margin: 0.15em 0; }
+
+/* ── lecture-wide style settings (the style: frontmatter block) ──────
+   Two of the four keys are selectors rather than numbers, because what
+   they turn off is a per-tag decision and not a size. Both are written as
+   overrides of the tag treatments rather than by changing those rules, so
+   a lecture that sets nothing meets the same stylesheet it always did. */
+body[data-headings=left] .chunk[data-tag=question] { text-align: left; }
+body[data-headings=left] .chunk[data-tag=figure] .chunk-content { align-items: flex-start; }
+body[data-headings=left] .chunk[data-tag=figure] .chunk-body { text-align: left; }
+body[data-headings=left] .chunk-heading,
+body[data-headings=left] .title-main { text-align: left; }
+body[data-headings=center] .chunk-heading { text-align: center; }
+body[data-headings=center] .chunk[data-tag=question] { text-align: center; }
+/* The hairline and the thick rule above a definition / principle chunk. */
+body[data-rules=off] .chunk[data-tag=principle] .chunk-content::before,
+body[data-rules=off] .chunk[data-tag=definition] .chunk-content::before { display: none; }
+/* The one generated word left on the projection. The others were removed
+   outright, because a taxonomy announces itself only as correctly as the
+   tag choice was; this one stayed because a task the room is meant to do
+   benefits from being named. Some authors do not want it either. */
+body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content: none; }
+
+/* ── cover variants ──────────────────────────────────────────────────
+   Four compositions of the same five fields. classic is what the tool
+   always drew and stays the default, so a lecture that says nothing about
+   cover is unchanged to the pixel. The other three exist because a cover
+   set only in ink, at one weight, with the subtitle at meta size beside
+   the venue, reads as a text file rather than as the opening of a talk. */
+
+/* The subtitle is the step the ladder was missing: title → subtitle →
+   presenter → meta, four sizes rather than two. */
+.chunk-title .title-subtitle {
+  font-size: calc(1.28em * var(--zoom));
+  line-height: 1.25;
+  font-weight: 400;
+  margin: -0.1em 0 0.25em;
+  color: var(--ink-soft);
+  max-width: 26em;
+  text-wrap: balance;
+}
+.chunk-title .title-presenter { font-weight: 500; }
+/* A cover with a page number on it is the detail that makes a deck look
+   unfinished; every printed programme drops it too. */
+.chunk-title > .chunk-num { display: none; }
+
+/* editorial – an accent rail down the left, the title over a rule, and
+   the meta collected into a footer row instead of stacked under the name.
+   The rail is what carries the theme: it is the only element on the slide
+   that is not type, and it re-colours with all seven themes for free. */
+.chunk[data-cover=editorial] { align-items: center; }
+.chunk[data-cover=editorial] .chunk-content {
+  padding-bottom: 0;
+  gap: 0;
+  padding-left: 1.1em;
+  border-left: 4px solid var(--emph);
+}
+.chunk[data-cover=editorial] .title-main {
+  font-size: calc(2.9em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: -0.028em;
+}
+.chunk[data-cover=editorial] .title-subtitle {
+  margin: 0.42em 0 0;
+  font-size: calc(1.18em * var(--zoom));
+  color: var(--ink-soft);
+}
+.chunk[data-cover=editorial] .title-presenter {
+  margin: 1.5em 0 0;
+  padding-top: 0.75em;
+  border-top: 1px solid var(--rule);
+  font-size: calc(1.05em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: 0.005em;
+}
+/* The meta reads as a single line of credits rather than as four
+   left-aligned rows of equal weight, which is what made the stack look
+   like a log file. It wraps to as many rows as it needs. */
+.chunk[data-cover=editorial] .title-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15em 1.35em;
+  margin-top: 0.42em;
+  font-size: calc(0.68em * var(--zoom));
+  letter-spacing: 0.01em;
+}
+.chunk[data-cover=editorial] .title-info p { margin: 0; }
+
+/* split – type left, picture bled off the right edge. The picture is a
+   grid track and not a background, because it has to end on a hard edge
+   partway across rather than fade under the words. */
+/* The slide's own padding moves onto the text column, so the picture
+   track needs no negative margin to reach the edges – it simply is the
+   edge. Tried the other way round first: min-height plus a negative
+   margin made the article taller than the viewport, and the type went
+   off the bottom of the frame while the picture reached neither end. */
+.chunk[data-cover=split] {
+  grid-template-columns: minmax(0, 1fr) 42%;
+  align-items: stretch;
+  padding: 0;
+  gap: 0;
+}
+.chunk[data-cover=split] .chunk-content {
+  grid-column: 1;
+  grid-row: 1;
+  justify-content: center;
+  padding: var(--slide-pad-y) 2.4em var(--slide-pad-y) calc(var(--slide-pad-x) * 0.62);
+  gap: 0.42em;
+}
+/* Both tracks are pinned to row 1. The picture is emitted before the text
+   (it has to sit under it in the stacking order), so sparse auto-placement
+   fills column 2 of row 1 and then sends the text to a second row – and the
+   picture becomes a 200px stub at the top of an 810px slide. */
+.chunk[data-cover=split] .cover-art {
+  grid-column: 2;
+  grid-row: 1;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.chunk[data-cover=split] .title-main {
+  font-size: calc(2.35em * var(--zoom));
+  font-weight: 600;
+}
+.chunk[data-cover=split] .title-presenter { margin-top: 0.5em; }
+.chunk[data-cover=split] .title-info { margin-top: 0.55em; }
+
+/* hero – the picture is the slide and the type is reversed out of it.
+   The scrim is a gradient from the bottom rather than an even veil: an
+   even one greys the whole photograph to protect four lines in one
+   corner, which is the look every stock template has. */
+.chunk[data-cover=hero] { align-items: end; }
+.chunk[data-cover=hero] .chunk-content {
+  padding-bottom: 7vh;
+  gap: 0.35em;
+}
+.chunk[data-cover=hero] .chunk-backdrop.bd-invert::after {
+  background: linear-gradient(
+    to top,
+    oklch(0.12 0.02 260 / 0.88) 0%,
+    oklch(0.12 0.02 260 / 0.72) 34%,
+    oklch(0.12 0.02 260 / 0.28) 68%,
+    oklch(0.12 0.02 260 / 0.10) 100%);
+}
+.chunk[data-cover=hero] .title-main {
+  font-size: calc(2.75em * var(--zoom));
+  font-weight: 600;
+  letter-spacing: -0.026em;
+}
+.chunk[data-cover=hero] .title-subtitle { max-width: 24em; }
+.chunk[data-cover=hero] .title-presenter {
+  margin-top: 0.5em;
+  font-weight: 600;
+}
+
+/* stack - the title block centred on both axes, and nothing else. PRD 4.4
+   argues against a centred cover, and it is right about the reason: centred
+   reads institutional. It is here because the argument is about weight, not
+   about the axis - with a subtitle carrying the second line and generous
+   leading there is enough on the slide for the centre to hold, and some
+   talks want the quiet opening rather than the asymmetric one. */
+.chunk[data-cover=stack] { align-items: center; text-align: center; }
+.chunk[data-cover=stack] .chunk-content {
+  padding-bottom: 0;
+  align-items: center;
+  gap: 0.28em;
+  max-width: 34em;
+  margin: 0 auto;
+}
+.chunk[data-cover=stack] .title-main { font-size: calc(2.6em * var(--zoom)); font-weight: 600; }
+.chunk[data-cover=stack] .title-subtitle { max-width: 30em; margin-top: 0.1em; }
+.chunk[data-cover=stack] .title-presenter { margin-top: 0.9em; font-weight: 600; }
+.chunk[data-cover=stack] .title-info { margin-top: 0.15em; }
+
+/* rule - the title held between two hairlines across the full measure. The
+   rules are the composition: they give a centred block the horizontal
+   anchor it otherwise lacks, which is what separates this from stack. */
+.chunk[data-cover=rule] { align-items: center; text-align: center; }
+.chunk[data-cover=rule] .chunk-content {
+  padding-bottom: 0;
+  align-items: center;
+  gap: 0;
+  max-width: 44em;
+  margin: 0 auto;
+}
+.chunk[data-cover=rule] .title-main {
+  font-size: calc(2.5em * var(--zoom));
+  font-weight: 600;
+  padding: 0.42em 0 0.34em;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  width: 100%;
+}
+.chunk[data-cover=rule] .title-subtitle {
+  margin: 0.55em auto 0;
+  max-width: 32em;
+  font-size: calc(1.1em * var(--zoom));
+}
+.chunk[data-cover=rule] .title-presenter {
+  margin-top: 1.15em;
+  font-weight: 600;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+}
+.chunk[data-cover=rule] .title-info {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 0.1em 1.2em;
+  margin-top: 0.2em;
+  font-size: calc(0.66em * var(--zoom));
+}
+.chunk[data-cover=rule] .title-info p { margin: 0; }
+
+/* beside - the art to the right of the title, inset rather than bled. That
+   is the difference from split, and it is the whole reason both exist: a
+   photograph wants the edge, a drawing wants a margin, because a diagram
+   cropped by the frame reads as a diagram that did not fit. */
+.chunk[data-cover=beside] {
+  grid-template-columns: minmax(0, 1fr) var(--cover-ratio, 48%);
+  align-items: center;
+  gap: 2.4em;
+  padding-left: calc(var(--slide-pad-x) * 0.55);
+  padding-right: calc(var(--slide-pad-x) * 0.55);
+}
+.chunk[data-cover=beside] .chunk-content {
+  grid-column: 1; grid-row: 1;
+  padding-bottom: 0;
+  gap: 0.38em;
+}
+.chunk[data-cover=beside] .cover-art {
+  grid-column: 2; grid-row: 1;
+  align-self: center;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 42vh;
+}
+.chunk[data-cover=beside] .title-main { font-size: calc(2.25em * var(--zoom)); font-weight: 600; }
+
+/* above - the art on top, the title in the lower quarter and centred on
+   both axes. The proportion is the point: cover-ratio is how much of the
+   slide the drawing gets, and the type sits in what is left rather than
+   floating in the middle of it. */
+.chunk[data-cover=above] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--cover-ratio, 58%) minmax(0, 1fr);
+  align-items: center;
+  text-align: center;
+  row-gap: 0.6em;
+}
+.chunk[data-cover=above] .cover-art {
+  grid-column: 1; grid-row: 1;
+  align-self: center;
+  background-size: contain;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+.chunk[data-cover=above] .chunk-content {
+  grid-column: 1; grid-row: 2;
+  padding-bottom: 0;
+  align-items: center;
+  /* Centred in the band the drawing left, not pinned under it - which is
+     what "the lower quarter, centred on both axes" means when the drawing
+     turns out shorter than the track it was given. */
+  align-self: center;
+  gap: 0.22em;
+  max-width: 36em;
+  margin: 0 auto;
+}
+.chunk[data-cover=above] .title-main { font-size: calc(2.05em * var(--zoom)); font-weight: 600; }
+.chunk[data-cover=above] .title-subtitle { max-width: 32em; font-size: calc(1.05em * var(--zoom)); }
+.chunk[data-cover=above] .title-presenter { margin-top: 0.5em; font-weight: 600; }
+.chunk[data-cover=above] .title-info { margin-top: 0.05em; font-size: calc(0.64em * var(--zoom)); }
+
+/* The body-as-art wrapper has to let a figure fill it. A ::: draw emits a
+   <figure class=psi-diagram> whose own margins are tuned for the text
+   column it normally sits in; on a cover it is the composition. */
+/* The art box is capped at the slide, and the drawing letterboxes inside
+   it. An inline <svg> with a viewBox and width:100% is *width*-driven, so a
+   tall figure in a narrow column grew to whatever its aspect demanded and
+   took the whole article with it - the title went off the bottom of the
+   frame and the drawing off the right. Giving the svg both dimensions hands
+   the fitting to preserveAspectRatio, which is what it is for. */
+.cover-art-body {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 0; min-height: 0; overflow: hidden;
+  max-height: calc(var(--slide-h) - 2 * var(--slide-pad-y));
+}
+.cover-art-body > * { margin: 0; max-width: 100%; max-height: 100%; }
+.cover-art-body figure {
+  margin: 0; min-width: 0; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+/* auto on both axes with a max on both. The svg carries width and height
+   attributes in px, so it has an intrinsic size and an intrinsic ratio,
+   and that is exactly the case where a pair of maxima shrinks it to fit
+   and keeps the proportion. Setting height:100% instead made the box size
+   from the content that was sizing from the box, and a tall figure ran
+   off both the bottom and the right of the slide. */
+.cover-art-body svg {
+  width: auto; height: auto;
+  max-width: 100%;
+  max-height: calc(var(--slide-h) - 2 * var(--slide-pad-y));
+}
+.chunk[data-cover=split] .cover-art-body { padding: var(--slide-pad-y) 1.5em; }
+
+/* ── full-bleed backdrops (::: backdrop) ─────────────────────────────
+   The layer is inset:0 on the .chunk, so it fills whatever the chunk
+   fills. That is only the viewport once the chunk is forced to the full
+   slide height: a .chunk's min-height is 40% of the viewport, which for a
+   text slide is right and for a picture would have painted a band across
+   the middle third and left paper above and below it. */
+.chunk[data-has-backdrop] { min-height: var(--slide-h); }
+.chunk-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  overflow: hidden;
+}
+.chunk-backdrop.bd-contain { background-size: contain; }
+.chunk-backdrop.bd-top    { background-position: center top; }
+.chunk-backdrop.bd-bottom { background-position: center bottom; }
+/* Scaled up because a blur samples transparent pixels past the edge and
+   would otherwise fade the frame out into paper on all four sides. */
+.chunk-backdrop.bd-blur { filter: blur(18px) saturate(1.06); transform: scale(1.08); }
+/* The veil is the theme's own paper, not white, so ordinary ink stays
+   legible over a photograph in all seven themes with no second palette. */
+.chunk-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklch, var(--paper) 80%, transparent);
+}
+.chunk-backdrop.bd-clear::after { content: none; }
+.chunk-backdrop.bd-invert::after {
+  background: color-mix(in oklch, oklch(0.14 0.015 260) 58%, transparent);
+}
+/* An inverted slide re-points the ink tokens rather than restating every
+   colour rule: everything downstream already reads --ink / --ink-soft /
+   --rule, so one block covers headings, body, lists, rules and captions. */
+.chunk[data-backdrop=invert] {
+  /* color: var(--ink) is declared on body, so it is *computed* there
+     against body's --ink and inherited as a finished colour: redefining
+     the token further down changes nothing that already resolved. The
+     title came out near-black on a night photograph for exactly that
+     reason. Restating color here re-resolves it against this element's
+     own tokens, and everything below inherits the new value. */
+  color: var(--ink);
+  --ink: oklch(0.99 0 0);
+  --ink-soft: oklch(0.99 0 0 / 0.74);
+  --rule: oklch(0.99 0 0 / 0.32);
+  --emph: oklch(0.90 0.10 75);
+  text-shadow: 0 1px 14px oklch(0.12 0.02 260 / 0.5);
+}
+/* Content has to clear the backdrop, which is z-index 0 in the same
+   stacking context. Written as a z-index on each layer and never as a
+   position – .overlay-layer is already absolute, and a sibling selector
+   restating position: relative on it dropped the whole layer back into
+   the text flow, where its three 1fr rows stretched the chunk to twice
+   the viewport and pushed the card off the bottom of the slide. */
+.chunk[data-has-backdrop] > .chunk-content { z-index: 1; }
+.chunk[data-has-backdrop] > .chunk-num { z-index: 2; }
+
+/* ── overlay cards (::: overlay) ─────────────────────────────────────
+   One 3x3 grid over the whole slide inside its padding, rather than each
+   card positioned on its own: two cards aimed at the same corner then
+   stack instead of overlapping, and there is one element out of the text
+   flow rather than N. */
+.overlay-layer {
+  position: absolute;
+  inset: var(--slide-pad-y) calc(var(--slide-pad-x) * 0.62);
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 0.6em;
+  pointer-events: none;
+}
+.overlay-card {
+  pointer-events: auto;
+  padding: 0.85em 1.05em;
+  border-radius: 6px;
+  font-size: calc(0.92em * var(--zoom));
+  line-height: 1.45;
+  align-self: center;
+  backdrop-filter: blur(3px);
+}
+.overlay-card > :first-child { margin-top: 0; }
+.overlay-card > :last-child { margin-bottom: 0; }
+.overlay-card p { margin: 0 0 0.5em; }
+.overlay-card h1, .overlay-card h2, .overlay-card h3 {
+  font-size: calc(1.45em * var(--zoom));
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 0 0 0.3em;
+  letter-spacing: -0.015em;
+}
+.overlay-card strong { font-weight: var(--bold-weight); color: var(--emph); }
+
+/* place – nine cells, one slot. The row and column are set separately so
+   the nine words stay one closed list rather than two crossed ones. */
+.overlay-card.ov-top-left     { grid-area: 1 / 1; justify-self: start;  align-self: start; }
+.overlay-card.ov-top          { grid-area: 1 / 2; justify-self: center; align-self: start; }
+.overlay-card.ov-top-right    { grid-area: 1 / 3; justify-self: end;    align-self: start; }
+.overlay-card.ov-left         { grid-area: 2 / 1; justify-self: start; }
+.overlay-card.ov-center       { grid-area: 2 / 2; justify-self: center; }
+.overlay-card.ov-right        { grid-area: 2 / 3; justify-self: end; }
+.overlay-card.ov-bottom-left  { grid-area: 3 / 1; justify-self: start;  align-self: end; }
+.overlay-card.ov-bottom       { grid-area: 3 / 2; justify-self: center; align-self: end; }
+.overlay-card.ov-bottom-right { grid-area: 3 / 3; justify-self: end;    align-self: end; }
+
+/* width – a card sized to its cell would be a third of the slide whatever
+   it holds, so the width words set a max and the card shrinks to fit. The
+   left column can grow rightwards, the right column leftwards, and the
+   middle both ways, which is what makes full a band rather than a
+   third. */
+.overlay-card.ov-w-narrow   { max-width: 16em; }
+.overlay-card.ov-w-standard { max-width: 24em; }
+.overlay-card.ov-w-wide     { max-width: 36em; }
+.overlay-card.ov-w-full     { max-width: none; justify-self: stretch; }
+.overlay-card.ov-w-wide, .overlay-card.ov-w-full { grid-column: 1 / -1; }
+.overlay-card.ov-w-wide.ov-top-right,
+.overlay-card.ov-w-wide.ov-right,
+.overlay-card.ov-w-wide.ov-bottom-right { justify-self: end; }
+
+/* ground – five answers to "what does this sit on". paper and ink are
+   the theme's own two grounds, so both follow a theme change; accent
+   is --emph; glass is the paper at low alpha over whatever is behind,
+   which is the only one that needs the picture to still show through. */
+.overlay-card.ov-paper {
+  background: color-mix(in oklch, var(--paper) 94%, transparent);
+  box-shadow: 0 2px 22px oklch(0.2 0.01 260 / 0.16);
+  color: var(--ink);
+  --ink-soft: color-mix(in oklch, var(--ink) 55%, transparent);
+  text-shadow: none;
+}
+.overlay-card.ov-ink {
+  background: oklch(0.16 0.015 260 / 0.9);
+  color: oklch(0.99 0 0);
+  --ink: oklch(0.99 0 0);
+  --ink-soft: oklch(0.99 0 0 / 0.72);
+  --emph: oklch(0.90 0.10 75);
+  text-shadow: none;
+}
+.overlay-card.ov-accent {
+  background: color-mix(in oklch, var(--emph) 92%, transparent);
+  color: var(--paper);
+  --ink: var(--paper);
+  --ink-soft: color-mix(in oklch, var(--paper) 80%, transparent);
+  --emph: var(--paper);
+  text-shadow: none;
+}
+.overlay-card.ov-glass {
+  background: color-mix(in oklch, var(--paper) 26%, transparent);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid color-mix(in oklch, var(--ink) 12%, transparent);
+}
+.overlay-card.ov-clear { background: none; padding: 0; backdrop-filter: none; }
+
+/* ── card grid (::: cards N) ─────────────────────────────────────────
+   Not a second spelling of cols. cols is one text flow the browser
+   balances across N tracks, so a paragraph can spill from the foot of one
+   into the head of the next; cards is N containers, and an item is
+   whole or it is nowhere. Which is why a three-way comparison belongs
+   here and a long argument belongs in cols.
+
+   Which children become the cards is a CSS rule and not a parse: a lone
+   list dissolves into the grid so its items are the cards, and anything
+   else contributes one card per block. One rule, no body inspection. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(var(--card-n), minmax(0, 1fr));
+  /* The gutter has to read as the thing separating N cards, and at 0.7em
+     against a 300px card it did not - the row looked like one panel with
+     seams. Scaled with the card's own size so it stays proportional when
+     the type gets bigger. */
+  gap: calc(0.95em * var(--card-fs, 1));
+  /* A card row needs more air above it than a paragraph does. It is a
+     block of surfaces rather than a continuation of the text, so the
+     heading has to stop belonging to it - at the paragraph's spacing the
+     row read as the heading's own background. Scaled with the card size,
+     because a large row is a heavier object. */
+  margin: calc(1.5em * var(--card-fs, 1)) 0 0.4em;
+  align-items: stretch;
+}
+/* When the row is centred the heading over it should be too, or the slide
+   has two axes and no reason for either. Written as a coupling rather than
+   a class, because there is nothing an author would want to say here that
+   the cards have not already said - and it yields entirely the moment
+   style.headings names a value, which is what that key is for. */
+body:not([data-headings]) .chunk-content:has(.cards.ca-center) .chunk-heading,
+body:not([data-headings]) .chunk-content:has(.cards.ca-center) .chunk-body > .reveal-segment > p {
+  text-align: center;
+}
+.cards-2 { --card-n: 2; }
+.cards-3 { --card-n: 3; }
+.cards-4 { --card-n: 4; }
+.cards-5 { --card-n: 5; }
+.cards-6 { --card-n: 6; }
+.cards > ul, .cards > ol { display: contents; }
+.cards > ul > li,
+.cards > ol > li,
+.cards > :not(ul):not(ol) {
+  margin: 0;
+  padding: var(--card-pad, 1.05em 1.15em);
+  border: var(--card-border, 0);
+  /* 6px on a card 300px wide is the radius a stylesheet has when nobody
+     chose one. At slide scale it needs to be visible as a decision. */
+  border-radius: 10px;
+  background: var(--card-bg, none);
+  list-style: none;
+  line-height: 1.38;
+  font-size: calc(1em * var(--card-fs, 1));
+  /* A grid row is as tall as its longest card, so every other card has
+     slack in it and something has to say where the text sits. Flex column
+     rather than align-content, because a card can hold more than one block
+     and they have to stay stacked. */
+  display: flex;
+  flex-direction: column;
+  justify-content: var(--card-anchor, flex-start);
+  text-align: var(--card-align, left);
+}
+/* size - one decision for the row, never per card: three sizes in one row
+   read as a mistake rather than as a hierarchy. */
+/* Padding is in em, so it already scales with the card's own font size -
+   but not enough: big type wants proportionally *more* air around it, not
+   the same ratio, or a large card reads as a caption that outgrew its box. */
+.cards.cs-large  { --card-fs: 1.4;  --card-pad: 0.95em 1em; }
+.cards.cs-medium { --card-fs: 1;    --card-pad: 1.05em 1.15em; }
+.cards.cs-small  { --card-fs: 0.84; --card-pad: 1.15em 1.25em; }
+/* ground - one device, never two. */
+.cards.cg-panel   { --card-bg: color-mix(in oklch, var(--ink) 5%, transparent); }
+.cards.cg-outline { --card-border: 1px solid color-mix(in oklch, var(--ink) 16%, transparent); }
+/* No box at all: the gutter is what separates the cards, so it has to be
+   wide enough to do that on its own, and the padding goes away with the
+   ground it was insetting from. */
+.cards.cg-clear   { --card-pad: 0 0; }
+.cards.cg-clear   { gap: calc(2.1em * var(--card-fs, 1)); }
+.cards.ca-left   { --card-align: left; }
+.cards.ca-center { --card-align: center; }
+.cards.cv-top    { --card-anchor: flex-start; }
+.cards.cv-middle { --card-anchor: center; }
+/* detail - the levels under the first. On the projection they are folded
+   away, so the card carries the headline and the document carries the
+   hierarchy; pressing C is what brings them back, and it needs no second
+   markup because the nested list is already there. Print defines no
+   data-collapse at all, so a hand-out always has them. */
+[data-collapse=topic-bold] .cards.cd-fold li ul,
+[data-collapse=topic-bold] .cards.cd-fold li ol { display: none; }
+/* Shown, the nested level is an indented hierarchy rather than a second
+   flat run - which is the whole reason to write one. */
+.cards li ul, .cards li ol {
+  margin: 0.35em 0 0;
+  padding-left: 1.1em;
+  list-style: disc;
+  font-size: 0.88em;
+  color: var(--ink-soft);
+  text-align: left;
+}
+.cards li li { display: list-item; }
+.cards li ul li::marker, .cards li ol li::marker { content: none; }
+.cards li ul li { list-style: none; position: relative; padding-left: 0.75em; }
+.cards li ul li::before {
+  content: '';
+  position: absolute; left: 0; top: 0.62em;
+  width: 0.28em; height: 1px;
+  background: currentColor;
+  opacity: 0.55;
+}
+.cards > ul > li::marker, .cards > ol > li::marker { content: none; }
+.cards li > :first-child, .cards > div > :first-child { margin-top: 0; }
+.cards li > :last-child, .cards > div > :last-child { margin-bottom: 0; }
+.cards p { margin: 0 0 0.45em; }
+/* A card is a container, so it does not fold to one column when the
+   projection collapses – three things stay three things. What collapse
+   still does inside one is abridge its prose, which is the same rule
+   everywhere else. */
+body[data-collapse=topic-bold] .cards { grid-template-columns: repeat(var(--card-n), minmax(0, 1fr)); }
 
 /* section divider slide: opens each named column ('# Heading').
    Centered like a part-title page so the camera has a clear stop
@@ -1019,16 +1620,17 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
    pretty (protect the last line) rather than balance (even every line).
    The bold fragments are already display:block below, so the rule reaches
    them directly; the topic sentence is balanced through its own p. */
-[data-collapse=topic-bold] .reveal-segment p,
-[data-collapse=topic-bold] .reveal-segment li,
-[data-collapse=topic-bold] .reveal-segment .sentence-rest strong { text-wrap: balance; }
+body:not([data-wrap=none]) :is(
+  [data-collapse=topic-bold] .reveal-segment p,
+  [data-collapse=topic-bold] .reveal-segment li,
+  [data-collapse=topic-bold] .reveal-segment .sentence-rest strong) { text-wrap: balance; }
 
 /* Headings are phrases in every mode, so they balance whatever the collapse
    setting is - and unlike the slide lines they are the same in the live views
    and on paper. Measured on the tutorial at 1100px, the cover subtitle was
    the last runt left after the rule above. */
-h1, h2, h3, h4, .chunk-heading, .hd-sub, .section-heading, figcaption,
-.tag-label, #toc-panel li { text-wrap: balance; }
+body:not([data-wrap=none]) :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
+  .section-heading, figcaption, .tag-label, #toc-panel li) { text-wrap: balance; }
 
 [data-collapse=topic-bold] .reveal-segment .sentence-rest .prose { display: none; }
 [data-collapse=topic-bold] .reveal-segment .sentence-rest strong {
@@ -2558,6 +3160,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 }
 
 </style>
+
 <style>
 /* Bundled typefaces: Literata, IBM Plex Sans and JetBrains Mono, each under
    SIL Open Font License 1.1 (https://openfontlicense.org). The licence
@@ -2576,7 +3179,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 </style>
 
 </head>
-<body data-collapse="topic-bold" data-view="speaker" data-font="serif" data-theme="light-red" data-mode="light" data-slide-nums="vertical">
+<body data-collapse="topic-bold" data-view="speaker"  data-font="serif" data-theme="light-red" data-mode="light" data-slide-nums="vertical">
 <script>
 (function () {
   var names = ["light-red","light-teal","light-blue","light-orange","dark","terminal-amber","terminal-green"];
@@ -2629,7 +3232,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     </div>
 <div class="col-entry" data-col-idx="9">
       <button class="col-btn" type="button">Next steps</button>
-      <div class="dots"><span class="dot" data-col-idx="9" data-chunk-idx="0"></span><span class="dot" data-col-idx="9" data-chunk-idx="1"></span><span class="dot" data-col-idx="9" data-chunk-idx="2"></span><span class="dot" data-col-idx="9" data-chunk-idx="3"></span></div>
+      <div class="dots"><span class="dot" data-col-idx="9" data-chunk-idx="0"></span><span class="dot" data-col-idx="9" data-chunk-idx="1"></span><span class="dot" data-col-idx="9" data-chunk-idx="2"></span><span class="dot" data-col-idx="9" data-chunk-idx="3"></span><span class="dot" data-col-idx="9" data-chunk-idx="4"></span><span class="dot" data-col-idx="9" data-chunk-idx="5"></span><span class="dot" data-col-idx="9" data-chunk-idx="6"></span><span class="dot" data-col-idx="9" data-chunk-idx="7"></span><span class="dot" data-col-idx="9" data-chunk-idx="8"></span><span class="dot" data-col-idx="9" data-chunk-idx="9"></span><span class="dot" data-col-idx="9" data-chunk-idx="10"></span><span class="dot" data-col-idx="9" data-chunk-idx="11"></span></div>
     </div>
 </div>
 <div id="stage-cell">
@@ -2637,12 +3240,15 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     <div id="stage">
 <section class="column" data-col="0">
 
-<article class="chunk chunk-title" data-tag="title" data-width="full" data-chunk-id="title" data-chunk-num="1" id="title">
+<article class="chunk chunk-title" data-tag="title" data-width="full" data-cover="editorial" data-chunk-id="title" data-chunk-num="1" id="title">
+  
   <div class="chunk-content">
     <h1 class="title-main">psi-slides – a ten-step tour</h1>
+    <p class="title-subtitle">A lecture medium that builds four views from one Markdown file</p>
     <p class="title-presenter">Dominik Herrmann</p>
     <div class="title-info"><p>Tutorial lecture built with psi-slides itself</p><p>Use the tool to learn the tool</p></div>
   </div>
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i></div>
 </article>
 </section>
@@ -2653,6 +3259,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
 </article>
 <article class="chunk chunk-principle" id="one-source" data-chunk-id="one-source" data-tag="principle" data-width="standard" data-chunk-num="2">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">One source, four views</span> <span class="hd-sub">print, print-notes, audience, speaker all come from the same <code>source.md</code></span></h2>
@@ -2668,9 +3275,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i></div>
 </article>
 <article class="chunk chunk-figure" id="four-views" data-chunk-id="four-views" data-tag="figure" data-width="wide" data-chunk-num="3">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">The build, in one picture</h2>
@@ -2737,9 +3346,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>3</i></div>
 </article>
 <article class="chunk chunk-free" id="audience-now" data-chunk-id="audience-now" data-tag="free" data-width="wide" data-chunk-num="4">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">What you&#39;re reading right now</span> <span class="hd-sub">is the audience view</span></h2>
@@ -2764,6 +3375,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>4</i></div>
 </article>
 </section>
@@ -2774,6 +3386,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
 </article>
 <article class="chunk chunk-example" id="arrows" data-chunk-id="arrows" data-tag="example" data-width="standard" data-chunk-num="5">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Forward and back</span> <span class="hd-sub">plus a sideways pair for columns</span></h2>
@@ -2799,9 +3412,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>5</i></div>
 </article>
 <article class="chunk chunk-example" id="expand" data-chunk-id="expand" data-tag="example" data-width="wide" data-chunk-num="6">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Expansions</span> <span class="hd-sub"><code>1</code>-<code>9</code> or the chevron open side asides</span></h2>
@@ -2815,6 +3430,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     </aside>
     <button class="annot-add" type="button" data-annot-add>+ note</button>
   </div>
+  
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
          <span class="caret">›</span>
@@ -2836,6 +3452,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   <div class="chunk-num" aria-hidden="true"><i>6</i></div>
 </article>
 <article class="chunk chunk-example" id="figure-focus" data-chunk-id="figure-focus" data-tag="example" data-width="standard" data-chunk-num="7">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Zoom into a figure or code block</span> <span class="hd-sub">click it</span></h2>
@@ -2859,6 +3476,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>7</i></div>
 </article>
 </section>
@@ -2869,6 +3487,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
 </article>
 <article class="chunk chunk-example" id="overview" data-chunk-id="overview" data-tag="example" data-width="standard" data-chunk-num="8">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Overview</span> <span class="hd-sub"><code>O</code> as in Overview zooms out so you can see everything</span></h2>
@@ -2890,9 +3509,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>8</i></div>
 </article>
 <article class="chunk chunk-example" id="toc" data-chunk-id="toc" data-tag="example" data-width="standard" data-chunk-num="9">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">TOC</span> <span class="hd-sub"><code>T</code> toggles a flat column index</span></h2>
@@ -2908,9 +3529,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>9</i></div>
 </article>
 <article class="chunk chunk-example" id="search" data-chunk-id="search" data-tag="example" data-width="wide" data-chunk-num="10">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Search</span> <span class="hd-sub"><code>/</code> lists every slide that mentions a word</span></h2>
@@ -2927,6 +3550,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>0</i></div>
 </article>
 </section>
@@ -2937,6 +3561,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
 </article>
 <article class="chunk chunk-principle" id="two-modes" data-chunk-id="two-modes" data-tag="principle" data-width="standard" data-chunk-num="11">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Two ways to decide what the room sees</span> <span class="hd-sub">derived, or stated outright</span></h2>
@@ -2952,9 +3577,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>1</i></div>
 </article>
 <article class="chunk chunk-example" id="derived-mode" data-chunk-id="derived-mode" data-tag="example" data-width="wide" data-chunk-num="12">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Derived</span> <span class="hd-sub">first sentence of each paragraph, plus bold fragments</span></h2>
@@ -2971,9 +3598,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>2</i></div>
 </article>
 <article class="chunk chunk-example" id="explicit-mode" data-chunk-id="explicit-mode" data-tag="example" data-width="wide" data-chunk-num="13">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Stated</span> <span class="hd-sub"><code>::: slide</code> and <code>::: script</code></span></h2>
@@ -3000,9 +3629,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></div>
 </article>
 <article class="chunk chunk-question" id="which-mode" data-chunk-id="which-mode" data-tag="question" data-width="narrow" data-chunk-num="14">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Which mode does a chunk use?</h2>
@@ -3015,6 +3646,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     </aside>
     <button class="annot-add" type="button" data-annot-add>+ note</button>
   </div>
+  
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>?</span>
          <span class="caret">›</span>
@@ -3035,6 +3667,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
 </article>
 <article class="chunk chunk-principle" id="grammar" data-chunk-id="grammar" data-tag="principle" data-width="standard" data-chunk-num="15">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Eight tags, one grammar</span> <span class="hd-sub"><code>## tag: Heading Sub {.width #id}</code></span></h2>
@@ -3050,9 +3683,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></div>
 </article>
 <article class="chunk chunk-definition" id="tag-effects" data-chunk-id="tag-effects" data-tag="definition" data-width="standard" data-chunk-num="16">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">What a tag actually does</h2>
@@ -3069,9 +3704,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>6</i></div>
 </article>
 <article class="chunk chunk-exercise" id="try-tags" data-chunk-id="try-tags" data-tag="exercise" data-width="wide" data-chunk-num="17">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Try the vocabulary</h2>
@@ -3094,6 +3731,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></div>
 </article>
 </section>
@@ -3104,6 +3742,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
 </article>
 <article class="chunk chunk-free" id="speaker-s" data-chunk-id="speaker-s" data-tag="free" data-width="wide" data-chunk-num="18">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Speaker view</span> <span class="hd-sub">the other window <code>S</code> spawned</span></h2>
@@ -3129,9 +3768,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></div>
 </article>
 <article class="chunk chunk-example" id="cockpit-layout" data-chunk-id="cockpit-layout" data-tag="example" data-width="wide" data-chunk-num="19">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Arranging the cockpit</span> <span class="hd-sub">the part everyone forgets</span></h2>
@@ -3161,9 +3802,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></div>
 </article>
 <article class="chunk chunk-example" id="notes-vs-annot" data-chunk-id="notes-vs-annot" data-tag="example" data-width="wide" data-chunk-num="20">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">N vs Shift-N</span> <span class="hd-sub">audience-visible vs private</span></h2>
@@ -3189,9 +3832,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></div>
 </article>
 <article class="chunk chunk-example" id="knobs" data-chunk-id="knobs" data-tag="example" data-width="wide" data-chunk-num="21">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">The reading knobs</span> <span class="hd-sub"><code>C</code> <code>F</code> <code>A</code> and zoom</span></h2>
@@ -3220,6 +3865,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>1</i></div>
 </article>
 </section>
@@ -3230,6 +3876,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
 </article>
 <article class="chunk chunk-principle" id="layout-axes" data-chunk-id="layout-axes" data-tag="principle" data-width="standard" data-chunk-num="22">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Two layout axes</span> <span class="hd-sub">chunk widths and body directives</span></h2>
@@ -3245,9 +3892,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></div>
 </article>
 <article class="chunk chunk-example" id="cols-demo" data-chunk-id="cols-demo" data-tag="example" data-width="wide" data-chunk-num="23">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Multi-column flow</span> <span class="hd-sub"><code>::: cols 2</code> and <code>::: cols 3</code></span></h2>
@@ -3272,9 +3921,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></div>
 </article>
 <article class="chunk chunk-example" id="side-demo" data-chunk-id="side-demo" data-tag="example" data-width="wide" data-chunk-num="24">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Two-pane grid</span> <span class="hd-sub"><code>::: side</code> and <code>::: flip</code></span></h2>
@@ -3302,9 +3953,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>4</i></div>
 </article>
 <article class="chunk chunk-example" id="marginalia-demo" data-chunk-id="marginalia-demo" data-tag="example" data-width="standard" data-chunk-num="25">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Marginalia</span> <span class="hd-sub"><code>::: marginalia</code> escapes to the slide margin</span></h2>
@@ -3328,9 +3981,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></div>
 </article>
 <article class="chunk chunk-example" id="margin-demo" data-chunk-id="margin-demo" data-tag="example" data-width="standard" data-chunk-num="26">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Margin notes</span> <span class="hd-sub"><code>::: margin</code> is a quiet inline footnote</span></h2>
@@ -3347,9 +4002,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></div>
 </article>
 <article class="chunk chunk-example" id="images" data-chunk-id="images" data-tag="example" data-width="wide" data-chunk-num="27">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Images</span> <span class="hd-sub"><code>![](fig-id)</code> resolves against <code>assets/</code></span></h2>
@@ -3373,9 +4030,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></div>
 </article>
 <article class="chunk chunk-example" id="video" data-chunk-id="video" data-tag="example" data-width="wide" data-chunk-num="28">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Video</span> <span class="hd-sub">a clip is a figure that moves</span></h2>
@@ -3397,9 +4056,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></div>
 </article>
 <article class="chunk chunk-example" id="embed" data-chunk-id="embed" data-tag="example" data-width="wide" data-chunk-num="29">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Hosted players</span> <span class="hd-sub"><code>::: embed</code> for YouTube and Vimeo</span></h2>
@@ -3430,9 +4091,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></div>
 </article>
 <article class="chunk chunk-example" id="math" data-chunk-id="math" data-tag="example" data-width="wide" data-chunk-num="30">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Math</span> <span class="hd-sub"><code>$inline$</code> and <code>$$display$$</code></span></h2>
@@ -3452,9 +4115,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></div>
 </article>
 <article class="chunk chunk-example" id="diagram" data-chunk-id="diagram" data-tag="example" data-width="full" data-chunk-num="31">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Diagrams</span> <span class="hd-sub"><code>::: draw</code> draws boxes and arrows from text</span></h2>
@@ -3469,7 +4134,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <g id="dg1-dst" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg1-dst--r" x="243.75" y="-18.38" width="107.15" height="36.75" rx="4"/><g id="dg1-dst--lw0" data-lab="dst--l" class="dg-lwrap" transform="translate(297.33,0.00)"><g id="dg1-dst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Empfänger</tspan></text></g></g></g>
 <g id="dg1-log" data-base="dg-el dg-box" class="dg-el dg-box dashed"><rect id="dg1-log--r" x="100.90" y="83.17" width="80.30" height="36.75" rx="4"/><g id="dg1-log--lw0" data-lab="log--l" class="dg-lwrap" transform="translate(141.05,101.55)"><g id="dg1-log--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Logfile</tspan></text></g></g></g>
 <g id="dg1-why" data-base="dg-el dg-text" class="dg-el dg-text hand"><g id="dg1-why--lw0" data-lab="why--l" class="dg-lwrap" transform="translate(352.35,101.55)"><g id="dg1-why--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">this is where</tspan><tspan x="0" y="14.48">the anonymity ends</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg1-root">{"p":"dg1-","n":3,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-1--l":"text","edge-2--p":"path","edge-2--h":"path","edge-2--l":"text","leak--p":"path","leak--h":"path","why--lead--p":"path","why--lead--h":"path","src--r":"rect","src--l":"text","mix--r":"rect","mix--l":"text","dst--r":"rect","dst--l":"text","log--r":"rect","log--l":"text","why--l":"text"},"names":["leak","blame"],"frames":[{"vis":{"src":1,"mix":1,"dst":1,"log":0,"why":1,"edge-1":1,"edge-2":1,"leak":0,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"one-head","edge-2":"one-head","leak":"dashed one-head","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-38.35,-18.37,76.7,36.75],"src--l":[0,0,0],"mix--r":[113.95,-18.37,54.2,36.75],"mix--l":[141.05,0,0],"dst--r":[243.75,-18.37,107.15,36.75],"dst--l":[297.33,0,0],"log--r":[100.9,83.18,80.3,36.75],"log--l":[141.05,101.55,0],"why--l":[352.35,101.55,0],"edge-1--p":[38.35,0,106.3,0],"edge-1--h":[113.95,0,104.95,3.96,104.95,-3.96],"edge-1--l":[76.15,-11.37,0],"edge-2--p":[168.15,0,236.1,0],"edge-2--h":[243.75,0,234.75,3.96,234.75,-3.96],"edge-2--l":[205.95,-11.37,0],"leak--p":[141.05,18.38,141.05,75.52],"leak--h":[141.05,83.18,137.09,74.18,145.01,74.18],"why--lead--p":[274.08,101.55,141.05,50.78],"why--lead--h":[141.05,50.78,141.05,50.78,141.05,50.78]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"one-head","edge-2":"one-head","leak":"dashed one-head","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-38.35,-18.37,76.7,36.75],"src--l":[0,0,0],"mix--r":[113.95,-18.37,54.2,36.75],"mix--l":[141.05,0,0],"dst--r":[243.75,-18.37,107.15,36.75],"dst--l":[297.33,0,0],"log--r":[100.9,83.18,80.3,36.75],"log--l":[141.05,101.55,0],"why--l":[352.35,101.55,0],"edge-1--p":[38.35,0,106.3,0],"edge-1--h":[113.95,0,104.95,3.96,104.95,-3.96],"edge-1--l":[76.15,-11.37,0],"edge-2--p":[168.15,0,236.1,0],"edge-2--h":[243.75,0,234.75,3.96,234.75,-3.96],"edge-2--l":[205.95,-11.37,0],"leak--p":[141.05,18.38,141.05,75.52],"leak--h":[141.05,83.18,137.09,74.18,145.01,74.18],"why--lead--p":[274.08,101.55,141.05,50.78],"why--lead--h":[141.05,50.78,141.05,50.78,141.05,50.78]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed emph","why":"hand","edge-1":"one-head","edge-2":"one-head","leak":"dashed one-head emph","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-38.35,-18.37,76.7,36.75],"src--l":[0,0,0],"mix--r":[113.95,-18.37,54.2,36.75],"mix--l":[141.05,0,0],"dst--r":[243.75,-18.37,107.15,36.75],"dst--l":[297.33,0,0],"log--r":[100.9,83.18,80.3,36.75],"log--l":[141.05,101.55,0],"why--l":[352.35,101.55,0],"edge-1--p":[38.35,0,106.3,0],"edge-1--h":[113.95,0,104.95,3.96,104.95,-3.96],"edge-1--l":[76.15,-11.37,0],"edge-2--p":[168.15,0,236.1,0],"edge-2--h":[243.75,0,234.75,3.96,234.75,-3.96],"edge-2--l":[205.95,-11.37,0],"leak--p":[141.05,18.38,141.05,75.52],"leak--h":[141.05,83.18,137.09,74.18,145.01,74.18],"why--lead--p":[274.08,101.55,141.05,50.78],"why--lead--h":[141.05,50.78,141.05,50.78,141.05,50.78]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  src  \"Sender\"\nbox  mix  \"Mix\"        right of src gap 1.05\nbox  dst  \"Empfänger\"  right of mix gap 1.05\nbox  log  \"Logfile\"    below mix gap 0.9  {.dashed}\n\nedge src -> mix \"encrypted\"\nedge mix -> dst \"recoded\"\nedge leak mix -> log {.dashed}\n\ntext why \"this is where\\nthe anonymity ends\"  right of log gap 1.4 -- leak {.hand}\n\nstep leak\n  show log\nstep blame\n  emph leak, log","attrs":"unit=126x72","range":[35990,36370],"chunk":"diagram","width":"full","alt":"Diagrams"}</script></figure>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg1-root">{"p":"dg1-","n":3,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-1--l":"text","edge-2--p":"path","edge-2--h":"path","edge-2--l":"text","leak--p":"path","leak--h":"path","why--lead--p":"path","why--lead--h":"path","src--r":"rect","src--l":"text","mix--r":"rect","mix--l":"text","dst--r":"rect","dst--l":"text","log--r":"rect","log--l":"text","why--l":"text"},"names":["leak","blame"],"frames":[{"vis":{"src":1,"mix":1,"dst":1,"log":0,"why":1,"edge-1":1,"edge-2":1,"leak":0,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"one-head","edge-2":"one-head","leak":"dashed one-head","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-38.35,-18.37,76.7,36.75],"src--l":[0,0,0],"mix--r":[113.95,-18.37,54.2,36.75],"mix--l":[141.05,0,0],"dst--r":[243.75,-18.37,107.15,36.75],"dst--l":[297.33,0,0],"log--r":[100.9,83.18,80.3,36.75],"log--l":[141.05,101.55,0],"why--l":[352.35,101.55,0],"edge-1--p":[38.35,0,106.3,0],"edge-1--h":[113.95,0,104.95,3.96,104.95,-3.96],"edge-1--l":[76.15,-11.37,0],"edge-2--p":[168.15,0,236.1,0],"edge-2--h":[243.75,0,234.75,3.96,234.75,-3.96],"edge-2--l":[205.95,-11.37,0],"leak--p":[141.05,18.38,141.05,75.52],"leak--h":[141.05,83.18,137.09,74.18,145.01,74.18],"why--lead--p":[274.08,101.55,141.05,50.78],"why--lead--h":[141.05,50.78,141.05,50.78,141.05,50.78]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"one-head","edge-2":"one-head","leak":"dashed one-head","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-38.35,-18.37,76.7,36.75],"src--l":[0,0,0],"mix--r":[113.95,-18.37,54.2,36.75],"mix--l":[141.05,0,0],"dst--r":[243.75,-18.37,107.15,36.75],"dst--l":[297.33,0,0],"log--r":[100.9,83.18,80.3,36.75],"log--l":[141.05,101.55,0],"why--l":[352.35,101.55,0],"edge-1--p":[38.35,0,106.3,0],"edge-1--h":[113.95,0,104.95,3.96,104.95,-3.96],"edge-1--l":[76.15,-11.37,0],"edge-2--p":[168.15,0,236.1,0],"edge-2--h":[243.75,0,234.75,3.96,234.75,-3.96],"edge-2--l":[205.95,-11.37,0],"leak--p":[141.05,18.38,141.05,75.52],"leak--h":[141.05,83.18,137.09,74.18,145.01,74.18],"why--lead--p":[274.08,101.55,141.05,50.78],"why--lead--h":[141.05,50.78,141.05,50.78,141.05,50.78]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed emph","why":"hand","edge-1":"one-head","edge-2":"one-head","leak":"dashed one-head emph","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-38.35,-18.37,76.7,36.75],"src--l":[0,0,0],"mix--r":[113.95,-18.37,54.2,36.75],"mix--l":[141.05,0,0],"dst--r":[243.75,-18.37,107.15,36.75],"dst--l":[297.33,0,0],"log--r":[100.9,83.18,80.3,36.75],"log--l":[141.05,101.55,0],"why--l":[352.35,101.55,0],"edge-1--p":[38.35,0,106.3,0],"edge-1--h":[113.95,0,104.95,3.96,104.95,-3.96],"edge-1--l":[76.15,-11.37,0],"edge-2--p":[168.15,0,236.1,0],"edge-2--h":[243.75,0,234.75,3.96,234.75,-3.96],"edge-2--l":[205.95,-11.37,0],"leak--p":[141.05,18.38,141.05,75.52],"leak--h":[141.05,83.18,137.09,74.18,145.01,74.18],"why--lead--p":[274.08,101.55,141.05,50.78],"why--lead--h":[141.05,50.78,141.05,50.78,141.05,50.78]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  src  \"Sender\"\nbox  mix  \"Mix\"        right of src gap 1.05\nbox  dst  \"Empfänger\"  right of mix gap 1.05\nbox  log  \"Logfile\"    below mix gap 0.9  {.dashed}\n\nedge src -> mix \"encrypted\"\nedge mix -> dst \"recoded\"\nedge leak mix -> log {.dashed}\n\ntext why \"this is where\\nthe anonymity ends\"  right of log gap 1.4 -- leak {.hand}\n\nstep leak\n  show log\nstep blame\n  emph leak, log","attrs":"unit=126x72","range":[36080,36460],"chunk":"diagram","width":"full","alt":"Diagrams"}</script></figure>
 
 
 <p><strong>Every line has the same six slots, and they always come in this order</strong> – most lines fill three or four of them:</p>
@@ -3491,6 +4156,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     </aside>
     <button class="annot-add" type="button" data-annot-add>+ note</button>
   </div>
+  
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
          <span class="caret">›</span>
@@ -3513,6 +4179,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></div>
 </article>
 <article class="chunk chunk-example" id="diagram-classes" data-chunk-id="diagram-classes" data-tag="example" data-width="full" data-chunk-num="32">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Looks, and lining things up</span> <span class="hd-sub">the class slots, <code>align</code> and <code>spread</code></span></h2>
@@ -3562,7 +4229,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <g id="dg2-w3" data-base="dg-el dg-box" class="dg-el dg-box clear bottom right sharp"><rect id="dg2-w3--r" x="462.34" y="314.06" width="62.72" height="60.68" rx="4"/><g id="dg2-w3--lw0" data-lab="w3--l" class="dg-lwrap" transform="translate(515.22,346.15)"><g id="dg2-w3--l0" class="dg-lbl"><text text-anchor="end" font-size="15.00"><tspan x="0" y="-4.27">bottom</tspan><tspan x="0" y="14.48">right</tspan></text></g></g></g>
 <g id="dg2-w4" data-base="dg-el dg-box" class="dg-el dg-box tone-2 turn sharp"><rect id="dg2-w4--r" x="545.56" y="314.06" width="38.08" height="60.68" rx="4"/><g id="dg2-w4--lw0" data-lab="w4--l" class="dg-lwrap" transform="translate(564.60,344.40) rotate(-90)"><g id="dg2-w4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">turn</tspan></text></g></g></g>
 <g id="dg2-wl" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg2-wl--lw0" data-lab="wl--l" class="dg-lwrap" transform="translate(410.48,405.20)"><g id="dg2-wl--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">where the words sit</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"default box {.sharp} w 0.62 h 0.42 pad 0.12\n\n# The fills sit across a rule, so that .clear and .paper can be told apart:\n# one lets the line through, the other knocks a hole in it.\nedge -0.55,0 -- 4.85,0 {.muted}\nbox f1 \"paper\"  at 0,0 {.paper}\nbox f2 \"tone-1\" right of f1 gap 0.35 same as f1 {.tone-1}\nbox f3 \"tone-2\" right of f2 gap 0.35 same as f1 {.tone-2}\nbox f4 \"tone-3\" right of f3 gap 0.35 same as f1 {.tone-3}\nbox f5 \"tone-4\" right of f4 gap 0.35 same as f1 {.tone-4}\nbox f6 \"clear\"  right of f5 gap 0.35 same as f1 {.clear}\ntext fl \"fill\" left of f1 gap 0.7 {.muted .right}\n\nbox o1 \"round\"   at 0,1.1 {.round .tone-2}\nbox o2 \"sharp\"   right of o1 gap 0.35 same as o1 {.tone-2}\nbox o3 \"hex\"     right of o2 gap 0.35 same as o1 {.hex .tone-2}\nbox o4 \"chevron\" right of o3 gap 0.35 w 0.78 h 0.42 point right {.chevron .tone-2}\nbox o5 \"\"        right of o4 gap 0.4 w 0.42 h 0.42 point up {.wedge .tone-4}\n# A cross squares itself past this row's `default box … w`, the same way a\n# bars column ignores an inherited outline: the default is about the\n# rectangles in the block, and a plus sign is not one of them.\nbox o6 \"\"        right of o5 gap 0.4 {.cross .accent}\n# A diamond is sized at twice what its label would need in a rectangle, so it\n# is shown empty here like the wedge and the cross rather than made to hold\n# the word \"diamond\" and doubling the width of the whole row.\nbox o7 \"\"        right of o6 gap 0.4 w 0.5 h 0.42 {.diamond .tone-2}\ntext o5n \"wedge\" below o5 gap 0.16 {.small .muted}\ntext o6n \"cross\" below o6 gap 0.16 {.small .muted}\ntext o7n \"diamond\" below o7 gap 0.16 {.small .muted}\ntext ol \"outline\" left of o1 gap 0.7 {.muted .right}\n\nbox s1 \"dashed\" at 0,2.25 {.dashed .clear}\nbox s2 \"dotted\" right of s1 gap 0.35 same as s1 {.dotted .clear}\nbox s3 \"thick\"  right of s2 gap 0.35 same as s1 {.thick .clear}\nbox s4 \"bare\"   right of s3 gap 0.35 same as s1 {.bare .clear}\nbox s5 \"ghost\"  right of s4 gap 0.35 same as s1 {.ghost .tone-2}\nbox s6 \"dim\"    right of s5 gap 0.35 same as s1 {.dim .tone-2}\ntext sl \"stroke,\\nand presence\" left of s1 gap 0.7 {.muted .right}\n\n# Only the two ends of this row are placed. The five between them are named\n# in the order they should stand in and get equal centre distances, which is\n# what a row of seven specimens of seven different widths wants.\ntext t1 \"sans\"  at 0.3,3.2\ntext t7 \"bold\"  right of t1 gap 5.45 {.bold}\ntext t2 \"mono\"  right of t1 gap 0.55 {.mono}\ntext t3 \"serif\" right of t1 gap 0.55 {.serif}\ntext t4 \"hand\"  right of t1 gap 0.55 {.hand}\ntext t5 \"small\" right of t1 gap 0.55 {.small}\ntext t6 \"large\" right of t1 gap 0.55 {.large}\ntext tw \"family,\\nand size\" left of t1 gap 0.85 {.muted .right}\nspread x t1, t2, t3, t4, t5, t6, t7\n\nbox g1 \"a label that is too long\" at 0,4.2 w 1.2 h 0.5 {.shrink .clear}\nbox g2 \"short\" right of g1 gap 0.4 same as g1 {.fit .clear}\ntext n1 \"shrink\" below g1 gap 0.14 {.small .muted}\ntext n2 \"fit\"    below g2 gap 0.14 {.small .muted}\ntext gl \"type meets\\nits box\" left of g1 gap 0.7 {.muted .right}\n\nbox w1 \"top\\nleft\"     right of g2 gap 0.75 w 0.56 h 0.74 {.clear .top .left}\nbox w2 \"centred\"       right of w1 gap 0.25 same as w1 {.clear}\nbox w3 \"bottom\\nright\" right of w2 gap 0.25 same as w1 {.clear .bottom .right}\nbox w4 \"turn\"          right of w3 gap 0.25 w 0.34 h 0.74 {.tone-2 .turn}\ntext wl \"where the words sit\" below w2 gap 0.28 {.small .muted}\n\n# Five labels hanging off rows of five different lengths: the statement gives\n# them all the right edge of the first one.\nalign x right fl, ol, sl, tw, gl","attrs":"unit=112x82","range":[46136,49666],"chunk":"diagram-classes","width":"full","alt":"Looks, and lining things up"}</script></figure>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"default box {.sharp} w 0.62 h 0.42 pad 0.12\n\n# The fills sit across a rule, so that .clear and .paper can be told apart:\n# one lets the line through, the other knocks a hole in it.\nedge -0.55,0 -- 4.85,0 {.muted}\nbox f1 \"paper\"  at 0,0 {.paper}\nbox f2 \"tone-1\" right of f1 gap 0.35 same as f1 {.tone-1}\nbox f3 \"tone-2\" right of f2 gap 0.35 same as f1 {.tone-2}\nbox f4 \"tone-3\" right of f3 gap 0.35 same as f1 {.tone-3}\nbox f5 \"tone-4\" right of f4 gap 0.35 same as f1 {.tone-4}\nbox f6 \"clear\"  right of f5 gap 0.35 same as f1 {.clear}\ntext fl \"fill\" left of f1 gap 0.7 {.muted .right}\n\nbox o1 \"round\"   at 0,1.1 {.round .tone-2}\nbox o2 \"sharp\"   right of o1 gap 0.35 same as o1 {.tone-2}\nbox o3 \"hex\"     right of o2 gap 0.35 same as o1 {.hex .tone-2}\nbox o4 \"chevron\" right of o3 gap 0.35 w 0.78 h 0.42 point right {.chevron .tone-2}\nbox o5 \"\"        right of o4 gap 0.4 w 0.42 h 0.42 point up {.wedge .tone-4}\n# A cross squares itself past this row's `default box … w`, the same way a\n# bars column ignores an inherited outline: the default is about the\n# rectangles in the block, and a plus sign is not one of them.\nbox o6 \"\"        right of o5 gap 0.4 {.cross .accent}\n# A diamond is sized at twice what its label would need in a rectangle, so it\n# is shown empty here like the wedge and the cross rather than made to hold\n# the word \"diamond\" and doubling the width of the whole row.\nbox o7 \"\"        right of o6 gap 0.4 w 0.5 h 0.42 {.diamond .tone-2}\ntext o5n \"wedge\" below o5 gap 0.16 {.small .muted}\ntext o6n \"cross\" below o6 gap 0.16 {.small .muted}\ntext o7n \"diamond\" below o7 gap 0.16 {.small .muted}\ntext ol \"outline\" left of o1 gap 0.7 {.muted .right}\n\nbox s1 \"dashed\" at 0,2.25 {.dashed .clear}\nbox s2 \"dotted\" right of s1 gap 0.35 same as s1 {.dotted .clear}\nbox s3 \"thick\"  right of s2 gap 0.35 same as s1 {.thick .clear}\nbox s4 \"bare\"   right of s3 gap 0.35 same as s1 {.bare .clear}\nbox s5 \"ghost\"  right of s4 gap 0.35 same as s1 {.ghost .tone-2}\nbox s6 \"dim\"    right of s5 gap 0.35 same as s1 {.dim .tone-2}\ntext sl \"stroke,\\nand presence\" left of s1 gap 0.7 {.muted .right}\n\n# Only the two ends of this row are placed. The five between them are named\n# in the order they should stand in and get equal centre distances, which is\n# what a row of seven specimens of seven different widths wants.\ntext t1 \"sans\"  at 0.3,3.2\ntext t7 \"bold\"  right of t1 gap 5.45 {.bold}\ntext t2 \"mono\"  right of t1 gap 0.55 {.mono}\ntext t3 \"serif\" right of t1 gap 0.55 {.serif}\ntext t4 \"hand\"  right of t1 gap 0.55 {.hand}\ntext t5 \"small\" right of t1 gap 0.55 {.small}\ntext t6 \"large\" right of t1 gap 0.55 {.large}\ntext tw \"family,\\nand size\" left of t1 gap 0.85 {.muted .right}\nspread x t1, t2, t3, t4, t5, t6, t7\n\nbox g1 \"a label that is too long\" at 0,4.2 w 1.2 h 0.5 {.shrink .clear}\nbox g2 \"short\" right of g1 gap 0.4 same as g1 {.fit .clear}\ntext n1 \"shrink\" below g1 gap 0.14 {.small .muted}\ntext n2 \"fit\"    below g2 gap 0.14 {.small .muted}\ntext gl \"type meets\\nits box\" left of g1 gap 0.7 {.muted .right}\n\nbox w1 \"top\\nleft\"     right of g2 gap 0.75 w 0.56 h 0.74 {.clear .top .left}\nbox w2 \"centred\"       right of w1 gap 0.25 same as w1 {.clear}\nbox w3 \"bottom\\nright\" right of w2 gap 0.25 same as w1 {.clear .bottom .right}\nbox w4 \"turn\"          right of w3 gap 0.25 w 0.34 h 0.74 {.tone-2 .turn}\ntext wl \"where the words sit\" below w2 gap 0.28 {.small .muted}\n\n# Five labels hanging off rows of five different lengths: the statement gives\n# them all the right edge of the first one.\nalign x right fl, ol, sl, tw, gl","attrs":"unit=112x82","range":[46226,49756],"chunk":"diagram-classes","width":"full","alt":"Looks, and lining things up"}</script></figure>
 
 
 <p><strong>Every row of that sheet holds at least one slot.</strong> Three of them hold more than one, where the slots belong together – stroke pattern beside stroke weight beside the two retreats, <code>.ghost</code> and <code>.dim</code>; family beside size; and the words that place a label across beside the ones that place it down – and the two ink classes have no row at all, because they are at work over the whole sheet: <code>.accent</code> on the cross, <code>.muted</code> on every caption. <strong>Forty-one names in all, and <code>lint.js</code> refuses anything else</strong> – a typo is a build error, not a box that comes out unstyled.</p>
@@ -3576,6 +4243,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     </aside>
     <button class="annot-add" type="button" data-annot-add>+ note</button>
   </div>
+  
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
          <span class="caret">›</span>
@@ -3591,6 +4259,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></div>
 </article>
 <article class="chunk chunk-example" id="diagram-charts" data-chunk-id="diagram-charts" data-tag="example" data-width="full" data-chunk-num="33">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Charts, without a chart library</span> <span class="hd-sub"><code>bars</code>, <code>grid</code> and <code>plot</code></span></h2>
@@ -3656,7 +4325,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <g id="dg3-chn" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg3-chn--lw0" data-lab="chn--l" class="dg-lwrap" transform="translate(282.20,67.16)"><g id="dg3-chn--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">one dot per chunk,</tspan><tspan x="0" y="11.58">tinted where a figure lives</tspan></text></g></g></g>
 <g id="dg3-wc-base" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted front"><path id="dg3-wc-base--p" class="dg-stroke" d="M-170.20 33.60L170.20 33.60" fill="none"/><path id="dg3-wc-base--h" class="dg-head" d="M170.20 33.60L170.20 33.60L170.20 33.60Z"/></g>
 <g id="dg3-lim" data-base="dg-el dg-edge" class="dg-el dg-edge accent dashed front no-head"><path id="dg3-lim--p" class="dg-stroke" d="M-170.20 -14.40L170.20 -14.40" fill="none"/><path id="dg3-lim--h" class="dg-head" d="M170.20 -14.40L170.20 -14.40L170.20 -14.40Z"/></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg3-root">{"p":"dg3-","n":3,"kinds":{"long--p":"path","long--l":"text","wc--r":"rect","wc-0--r":"rect","wc-1--r":"rect","wc-2--r":"rect","wc-3--r":"rect","wc-4--r":"rect","wc-5--r":"rect","wc-6--r":"rect","wc-7--r":"rect","wc-8--r":"rect","wc-9--r":"rect","wc-10--r":"rect","wc-11--r":"rect","limn--l":"text","wcn--l":"text","ch--r":"rect","ch-0-0--c":"circle","ch-1-0--c":"circle","ch-2-0--c":"circle","ch-3-0--c":"circle","ch-4-0--c":"circle","ch-5-0--c":"circle","ch-6-0--c":"circle","ch-7-0--c":"circle","ch-0-1--c":"circle","ch-1-1--c":"circle","ch-2-1--c":"circle","ch-3-1--c":"circle","ch-4-1--c":"circle","ch-5-1--c":"circle","ch-6-1--c":"circle","ch-7-1--c":"circle","ch-0-2--c":"circle","ch-1-2--c":"circle","ch-2-2--c":"circle","ch-3-2--c":"circle","ch-4-2--c":"circle","ch-5-2--c":"circle","ch-6-2--c":"circle","ch-7-2--c":"circle","ch-0-3--c":"circle","ch-1-3--c":"circle","ch-2-3--c":"circle","ch-3-3--c":"circle","ch-4-3--c":"circle","ch-5-3--c":"circle","ch-6-3--c":"circle","ch-7-3--c":"circle","ch-0-4--c":"circle","ch-1-4--c":"circle","ch-2-4--c":"circle","ch-3-4--c":"circle","ch-4-4--c":"circle","ch-5-4--c":"circle","ch-6-4--c":"circle","ch-7-4--c":"circle","chn--l":"text","wc-base--p":"path","wc-base--h":"path","lim--p":"path","lim--h":"path"},"names":["over","figures"],"frames":[{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp tone-3","wc-1":"sharp tone-3","wc-2":"sharp tone-3","wc-3":"sharp tone-3","wc-4":"sharp tone-3","wc-5":"sharp tone-3","wc-6":"sharp tone-3","wc-7":"sharp tone-3","wc-8":"sharp tone-3","wc-9":"sharp tone-3","wc-10":"sharp tone-3","wc-11":"sharp tone-3","limn":"small accent","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-2","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-2","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-2","ch-7-3":"tone-2","ch-0-4":"tone-2","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"accent dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-168.28,-33.6,24.53,67.2],"wc-1--r":[-139.91,-26.13,24.53,59.73],"wc-2--r":[-111.55,-22.4,24.53,56],"wc-3--r":[-83.18,-11.2,24.53,44.8],"wc-4--r":[-54.81,-7.47,24.53,41.07],"wc-5--r":[-26.45,0,24.53,33.6],"wc-6--r":[1.92,3.73,24.53,29.87],"wc-7--r":[30.29,7.47,24.53,26.13],"wc-8--r":[58.65,11.2,24.53,22.4],"wc-9--r":[87.02,14.93,24.53,18.67],"wc-10--r":[115.39,18.67,24.53,14.93],"wc-11--r":[143.75,22.4,24.53,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[282.2,-32.96,108.16,65.92],"ch-0-0--c":[287,-28.16,4.8],"ch-1-0--c":[301.08,-28.16,4.8],"ch-2-0--c":[315.16,-28.16,4.8],"ch-3-0--c":[329.24,-28.16,4.8],"ch-4-0--c":[343.32,-28.16,4.8],"ch-5-0--c":[357.4,-28.16,4.8],"ch-6-0--c":[371.48,-28.16,4.8],"ch-7-0--c":[385.56,-28.16,4.8],"ch-0-1--c":[287,-14.08,4.8],"ch-1-1--c":[301.08,-14.08,4.8],"ch-2-1--c":[315.16,-14.08,4.8],"ch-3-1--c":[329.24,-14.08,4.8],"ch-4-1--c":[343.32,-14.08,4.8],"ch-5-1--c":[357.4,-14.08,4.8],"ch-6-1--c":[371.48,-14.08,4.8],"ch-7-1--c":[385.56,-14.08,4.8],"ch-0-2--c":[287,0,4.8],"ch-1-2--c":[301.08,0,4.8],"ch-2-2--c":[315.16,0,4.8],"ch-3-2--c":[329.24,0,4.8],"ch-4-2--c":[343.32,0,4.8],"ch-5-2--c":[357.4,0,4.8],"ch-6-2--c":[371.48,0,4.8],"ch-7-2--c":[385.56,0,4.8],"ch-0-3--c":[287,14.08,4.8],"ch-1-3--c":[301.08,14.08,4.8],"ch-2-3--c":[315.16,14.08,4.8],"ch-3-3--c":[329.24,14.08,4.8],"ch-4-3--c":[343.32,14.08,4.8],"ch-5-3--c":[357.4,14.08,4.8],"ch-6-3--c":[371.48,14.08,4.8],"ch-7-3--c":[385.56,14.08,4.8],"ch-0-4--c":[287,28.16,4.8],"ch-1-4--c":[301.08,28.16,4.8],"ch-2-4--c":[315.16,28.16,4.8],"ch-3-4--c":[329.24,28.16,4.8],"ch-4-4--c":[343.32,28.16,4.8],"ch-5-4--c":[357.4,28.16,4.8],"ch-6-4--c":[371.48,28.16,4.8],"ch-7-4--c":[385.56,28.16,4.8],"chn--l":[282.2,67.16,0],"long--p":[-168.28,62.4,-168.28,69.4,-87.02,69.4,-87.02,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"wc-base--h":[170.2,33.6,170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4],"lim--h":[170.2,-14.4,170.2,-14.4,170.2,-14.4]}},{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp tone-3 emph","wc-1":"sharp tone-3 emph","wc-2":"sharp tone-3 emph","wc-3":"sharp tone-3","wc-4":"sharp tone-3","wc-5":"sharp tone-3","wc-6":"sharp tone-3","wc-7":"sharp tone-3","wc-8":"sharp tone-3","wc-9":"sharp tone-3","wc-10":"sharp tone-3","wc-11":"sharp tone-3","limn":"small accent","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-2","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-2","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-2","ch-7-3":"tone-2","ch-0-4":"tone-2","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"accent dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-168.28,-33.6,24.53,67.2],"wc-1--r":[-139.91,-26.13,24.53,59.73],"wc-2--r":[-111.55,-22.4,24.53,56],"wc-3--r":[-83.18,-11.2,24.53,44.8],"wc-4--r":[-54.81,-7.47,24.53,41.07],"wc-5--r":[-26.45,0,24.53,33.6],"wc-6--r":[1.92,3.73,24.53,29.87],"wc-7--r":[30.29,7.47,24.53,26.13],"wc-8--r":[58.65,11.2,24.53,22.4],"wc-9--r":[87.02,14.93,24.53,18.67],"wc-10--r":[115.39,18.67,24.53,14.93],"wc-11--r":[143.75,22.4,24.53,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[282.2,-32.96,108.16,65.92],"ch-0-0--c":[287,-28.16,4.8],"ch-1-0--c":[301.08,-28.16,4.8],"ch-2-0--c":[315.16,-28.16,4.8],"ch-3-0--c":[329.24,-28.16,4.8],"ch-4-0--c":[343.32,-28.16,4.8],"ch-5-0--c":[357.4,-28.16,4.8],"ch-6-0--c":[371.48,-28.16,4.8],"ch-7-0--c":[385.56,-28.16,4.8],"ch-0-1--c":[287,-14.08,4.8],"ch-1-1--c":[301.08,-14.08,4.8],"ch-2-1--c":[315.16,-14.08,4.8],"ch-3-1--c":[329.24,-14.08,4.8],"ch-4-1--c":[343.32,-14.08,4.8],"ch-5-1--c":[357.4,-14.08,4.8],"ch-6-1--c":[371.48,-14.08,4.8],"ch-7-1--c":[385.56,-14.08,4.8],"ch-0-2--c":[287,0,4.8],"ch-1-2--c":[301.08,0,4.8],"ch-2-2--c":[315.16,0,4.8],"ch-3-2--c":[329.24,0,4.8],"ch-4-2--c":[343.32,0,4.8],"ch-5-2--c":[357.4,0,4.8],"ch-6-2--c":[371.48,0,4.8],"ch-7-2--c":[385.56,0,4.8],"ch-0-3--c":[287,14.08,4.8],"ch-1-3--c":[301.08,14.08,4.8],"ch-2-3--c":[315.16,14.08,4.8],"ch-3-3--c":[329.24,14.08,4.8],"ch-4-3--c":[343.32,14.08,4.8],"ch-5-3--c":[357.4,14.08,4.8],"ch-6-3--c":[371.48,14.08,4.8],"ch-7-3--c":[385.56,14.08,4.8],"ch-0-4--c":[287,28.16,4.8],"ch-1-4--c":[301.08,28.16,4.8],"ch-2-4--c":[315.16,28.16,4.8],"ch-3-4--c":[329.24,28.16,4.8],"ch-4-4--c":[343.32,28.16,4.8],"ch-5-4--c":[357.4,28.16,4.8],"ch-6-4--c":[371.48,28.16,4.8],"ch-7-4--c":[385.56,28.16,4.8],"chn--l":[282.2,67.16,0],"long--p":[-168.28,62.4,-168.28,69.4,-87.02,69.4,-87.02,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"wc-base--h":[170.2,33.6,170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4],"lim--h":[170.2,-14.4,170.2,-14.4,170.2,-14.4]}},{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp tone-3 emph","wc-1":"sharp tone-3 emph","wc-2":"sharp tone-3 emph","wc-3":"sharp tone-3","wc-4":"sharp tone-3","wc-5":"sharp tone-3","wc-6":"sharp tone-3","wc-7":"sharp tone-3","wc-8":"sharp tone-3","wc-9":"sharp tone-3","wc-10":"sharp tone-3","wc-11":"sharp tone-3","limn":"small accent","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-4","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-4","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-4","ch-7-3":"tone-2","ch-0-4":"tone-4","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"accent dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-168.28,-33.6,24.53,67.2],"wc-1--r":[-139.91,-26.13,24.53,59.73],"wc-2--r":[-111.55,-22.4,24.53,56],"wc-3--r":[-83.18,-11.2,24.53,44.8],"wc-4--r":[-54.81,-7.47,24.53,41.07],"wc-5--r":[-26.45,0,24.53,33.6],"wc-6--r":[1.92,3.73,24.53,29.87],"wc-7--r":[30.29,7.47,24.53,26.13],"wc-8--r":[58.65,11.2,24.53,22.4],"wc-9--r":[87.02,14.93,24.53,18.67],"wc-10--r":[115.39,18.67,24.53,14.93],"wc-11--r":[143.75,22.4,24.53,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[282.2,-32.96,108.16,65.92],"ch-0-0--c":[287,-28.16,4.8],"ch-1-0--c":[301.08,-28.16,4.8],"ch-2-0--c":[315.16,-28.16,4.8],"ch-3-0--c":[329.24,-28.16,4.8],"ch-4-0--c":[343.32,-28.16,4.8],"ch-5-0--c":[357.4,-28.16,4.8],"ch-6-0--c":[371.48,-28.16,4.8],"ch-7-0--c":[385.56,-28.16,4.8],"ch-0-1--c":[287,-14.08,4.8],"ch-1-1--c":[301.08,-14.08,4.8],"ch-2-1--c":[315.16,-14.08,4.8],"ch-3-1--c":[329.24,-14.08,4.8],"ch-4-1--c":[343.32,-14.08,4.8],"ch-5-1--c":[357.4,-14.08,4.8],"ch-6-1--c":[371.48,-14.08,4.8],"ch-7-1--c":[385.56,-14.08,4.8],"ch-0-2--c":[287,0,4.8],"ch-1-2--c":[301.08,0,4.8],"ch-2-2--c":[315.16,0,4.8],"ch-3-2--c":[329.24,0,4.8],"ch-4-2--c":[343.32,0,4.8],"ch-5-2--c":[357.4,0,4.8],"ch-6-2--c":[371.48,0,4.8],"ch-7-2--c":[385.56,0,4.8],"ch-0-3--c":[287,14.08,4.8],"ch-1-3--c":[301.08,14.08,4.8],"ch-2-3--c":[315.16,14.08,4.8],"ch-3-3--c":[329.24,14.08,4.8],"ch-4-3--c":[343.32,14.08,4.8],"ch-5-3--c":[357.4,14.08,4.8],"ch-6-3--c":[371.48,14.08,4.8],"ch-7-3--c":[385.56,14.08,4.8],"ch-0-4--c":[287,28.16,4.8],"ch-1-4--c":[301.08,28.16,4.8],"ch-2-4--c":[315.16,28.16,4.8],"ch-3-4--c":[329.24,28.16,4.8],"ch-4-4--c":[343.32,28.16,4.8],"ch-5-4--c":[357.4,28.16,4.8],"ch-6-4--c":[371.48,28.16,4.8],"ch-7-4--c":[385.56,28.16,4.8],"chn--l":[282.2,67.16,0],"long--p":[-168.28,62.4,-168.28,69.4,-87.02,69.4,-87.02,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"wc-base--h":[170.2,33.6,170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4],"lim--h":[170.2,-14.4,170.2,-14.4,170.2,-14.4]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"bars wc \"18,16,15,12,11,9,8,7,6,5,4,3\" at 0,0 w 2.3 h 1.05 space 0.06 {.tone-3}\nbrace long over wc-0,wc-1,wc-2 side bottom \"the three to rewrite\" pad 0.45 {.small .muted}\n# In front, or the columns cover the line and it shows only in the gaps.\nedge lim wc.left,wc.top+0.3 -- wc.right,wc.top+0.3 {.accent .dashed .front}\ntext limn \"budget\" at wc.right-0.28,wc.top+0.1 {.small .accent}\ntext wcn \"words per chunk\" above wc gap 0.3 flush left {.small .muted .left}\n\ngrid ch dot 8x5 right of wc gap 1.75 cell 0.15 space 0.07 {.tone-2}\ntext chn \"one dot per chunk,\\ntinted where a figure lives\" below ch gap 0.3 flush left {.small .muted .left}\n\nstep over\n  emph wc-0, wc-1, wc-2\nstep figures\n  style ch-1-0, ch-4-2, ch-6-3, ch-0-4 {.tone-4}","attrs":"unit=148x64","range":[54872,55607],"chunk":"diagram-charts","width":"full","alt":"Charts, without a chart library"}</script></figure>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg3-root">{"p":"dg3-","n":3,"kinds":{"long--p":"path","long--l":"text","wc--r":"rect","wc-0--r":"rect","wc-1--r":"rect","wc-2--r":"rect","wc-3--r":"rect","wc-4--r":"rect","wc-5--r":"rect","wc-6--r":"rect","wc-7--r":"rect","wc-8--r":"rect","wc-9--r":"rect","wc-10--r":"rect","wc-11--r":"rect","limn--l":"text","wcn--l":"text","ch--r":"rect","ch-0-0--c":"circle","ch-1-0--c":"circle","ch-2-0--c":"circle","ch-3-0--c":"circle","ch-4-0--c":"circle","ch-5-0--c":"circle","ch-6-0--c":"circle","ch-7-0--c":"circle","ch-0-1--c":"circle","ch-1-1--c":"circle","ch-2-1--c":"circle","ch-3-1--c":"circle","ch-4-1--c":"circle","ch-5-1--c":"circle","ch-6-1--c":"circle","ch-7-1--c":"circle","ch-0-2--c":"circle","ch-1-2--c":"circle","ch-2-2--c":"circle","ch-3-2--c":"circle","ch-4-2--c":"circle","ch-5-2--c":"circle","ch-6-2--c":"circle","ch-7-2--c":"circle","ch-0-3--c":"circle","ch-1-3--c":"circle","ch-2-3--c":"circle","ch-3-3--c":"circle","ch-4-3--c":"circle","ch-5-3--c":"circle","ch-6-3--c":"circle","ch-7-3--c":"circle","ch-0-4--c":"circle","ch-1-4--c":"circle","ch-2-4--c":"circle","ch-3-4--c":"circle","ch-4-4--c":"circle","ch-5-4--c":"circle","ch-6-4--c":"circle","ch-7-4--c":"circle","chn--l":"text","wc-base--p":"path","wc-base--h":"path","lim--p":"path","lim--h":"path"},"names":["over","figures"],"frames":[{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp tone-3","wc-1":"sharp tone-3","wc-2":"sharp tone-3","wc-3":"sharp tone-3","wc-4":"sharp tone-3","wc-5":"sharp tone-3","wc-6":"sharp tone-3","wc-7":"sharp tone-3","wc-8":"sharp tone-3","wc-9":"sharp tone-3","wc-10":"sharp tone-3","wc-11":"sharp tone-3","limn":"small accent","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-2","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-2","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-2","ch-7-3":"tone-2","ch-0-4":"tone-2","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"accent dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-168.28,-33.6,24.53,67.2],"wc-1--r":[-139.91,-26.13,24.53,59.73],"wc-2--r":[-111.55,-22.4,24.53,56],"wc-3--r":[-83.18,-11.2,24.53,44.8],"wc-4--r":[-54.81,-7.47,24.53,41.07],"wc-5--r":[-26.45,0,24.53,33.6],"wc-6--r":[1.92,3.73,24.53,29.87],"wc-7--r":[30.29,7.47,24.53,26.13],"wc-8--r":[58.65,11.2,24.53,22.4],"wc-9--r":[87.02,14.93,24.53,18.67],"wc-10--r":[115.39,18.67,24.53,14.93],"wc-11--r":[143.75,22.4,24.53,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[282.2,-32.96,108.16,65.92],"ch-0-0--c":[287,-28.16,4.8],"ch-1-0--c":[301.08,-28.16,4.8],"ch-2-0--c":[315.16,-28.16,4.8],"ch-3-0--c":[329.24,-28.16,4.8],"ch-4-0--c":[343.32,-28.16,4.8],"ch-5-0--c":[357.4,-28.16,4.8],"ch-6-0--c":[371.48,-28.16,4.8],"ch-7-0--c":[385.56,-28.16,4.8],"ch-0-1--c":[287,-14.08,4.8],"ch-1-1--c":[301.08,-14.08,4.8],"ch-2-1--c":[315.16,-14.08,4.8],"ch-3-1--c":[329.24,-14.08,4.8],"ch-4-1--c":[343.32,-14.08,4.8],"ch-5-1--c":[357.4,-14.08,4.8],"ch-6-1--c":[371.48,-14.08,4.8],"ch-7-1--c":[385.56,-14.08,4.8],"ch-0-2--c":[287,0,4.8],"ch-1-2--c":[301.08,0,4.8],"ch-2-2--c":[315.16,0,4.8],"ch-3-2--c":[329.24,0,4.8],"ch-4-2--c":[343.32,0,4.8],"ch-5-2--c":[357.4,0,4.8],"ch-6-2--c":[371.48,0,4.8],"ch-7-2--c":[385.56,0,4.8],"ch-0-3--c":[287,14.08,4.8],"ch-1-3--c":[301.08,14.08,4.8],"ch-2-3--c":[315.16,14.08,4.8],"ch-3-3--c":[329.24,14.08,4.8],"ch-4-3--c":[343.32,14.08,4.8],"ch-5-3--c":[357.4,14.08,4.8],"ch-6-3--c":[371.48,14.08,4.8],"ch-7-3--c":[385.56,14.08,4.8],"ch-0-4--c":[287,28.16,4.8],"ch-1-4--c":[301.08,28.16,4.8],"ch-2-4--c":[315.16,28.16,4.8],"ch-3-4--c":[329.24,28.16,4.8],"ch-4-4--c":[343.32,28.16,4.8],"ch-5-4--c":[357.4,28.16,4.8],"ch-6-4--c":[371.48,28.16,4.8],"ch-7-4--c":[385.56,28.16,4.8],"chn--l":[282.2,67.16,0],"long--p":[-168.28,62.4,-168.28,69.4,-87.02,69.4,-87.02,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"wc-base--h":[170.2,33.6,170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4],"lim--h":[170.2,-14.4,170.2,-14.4,170.2,-14.4]}},{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp tone-3 emph","wc-1":"sharp tone-3 emph","wc-2":"sharp tone-3 emph","wc-3":"sharp tone-3","wc-4":"sharp tone-3","wc-5":"sharp tone-3","wc-6":"sharp tone-3","wc-7":"sharp tone-3","wc-8":"sharp tone-3","wc-9":"sharp tone-3","wc-10":"sharp tone-3","wc-11":"sharp tone-3","limn":"small accent","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-2","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-2","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-2","ch-7-3":"tone-2","ch-0-4":"tone-2","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"accent dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-168.28,-33.6,24.53,67.2],"wc-1--r":[-139.91,-26.13,24.53,59.73],"wc-2--r":[-111.55,-22.4,24.53,56],"wc-3--r":[-83.18,-11.2,24.53,44.8],"wc-4--r":[-54.81,-7.47,24.53,41.07],"wc-5--r":[-26.45,0,24.53,33.6],"wc-6--r":[1.92,3.73,24.53,29.87],"wc-7--r":[30.29,7.47,24.53,26.13],"wc-8--r":[58.65,11.2,24.53,22.4],"wc-9--r":[87.02,14.93,24.53,18.67],"wc-10--r":[115.39,18.67,24.53,14.93],"wc-11--r":[143.75,22.4,24.53,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[282.2,-32.96,108.16,65.92],"ch-0-0--c":[287,-28.16,4.8],"ch-1-0--c":[301.08,-28.16,4.8],"ch-2-0--c":[315.16,-28.16,4.8],"ch-3-0--c":[329.24,-28.16,4.8],"ch-4-0--c":[343.32,-28.16,4.8],"ch-5-0--c":[357.4,-28.16,4.8],"ch-6-0--c":[371.48,-28.16,4.8],"ch-7-0--c":[385.56,-28.16,4.8],"ch-0-1--c":[287,-14.08,4.8],"ch-1-1--c":[301.08,-14.08,4.8],"ch-2-1--c":[315.16,-14.08,4.8],"ch-3-1--c":[329.24,-14.08,4.8],"ch-4-1--c":[343.32,-14.08,4.8],"ch-5-1--c":[357.4,-14.08,4.8],"ch-6-1--c":[371.48,-14.08,4.8],"ch-7-1--c":[385.56,-14.08,4.8],"ch-0-2--c":[287,0,4.8],"ch-1-2--c":[301.08,0,4.8],"ch-2-2--c":[315.16,0,4.8],"ch-3-2--c":[329.24,0,4.8],"ch-4-2--c":[343.32,0,4.8],"ch-5-2--c":[357.4,0,4.8],"ch-6-2--c":[371.48,0,4.8],"ch-7-2--c":[385.56,0,4.8],"ch-0-3--c":[287,14.08,4.8],"ch-1-3--c":[301.08,14.08,4.8],"ch-2-3--c":[315.16,14.08,4.8],"ch-3-3--c":[329.24,14.08,4.8],"ch-4-3--c":[343.32,14.08,4.8],"ch-5-3--c":[357.4,14.08,4.8],"ch-6-3--c":[371.48,14.08,4.8],"ch-7-3--c":[385.56,14.08,4.8],"ch-0-4--c":[287,28.16,4.8],"ch-1-4--c":[301.08,28.16,4.8],"ch-2-4--c":[315.16,28.16,4.8],"ch-3-4--c":[329.24,28.16,4.8],"ch-4-4--c":[343.32,28.16,4.8],"ch-5-4--c":[357.4,28.16,4.8],"ch-6-4--c":[371.48,28.16,4.8],"ch-7-4--c":[385.56,28.16,4.8],"chn--l":[282.2,67.16,0],"long--p":[-168.28,62.4,-168.28,69.4,-87.02,69.4,-87.02,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"wc-base--h":[170.2,33.6,170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4],"lim--h":[170.2,-14.4,170.2,-14.4,170.2,-14.4]}},{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp tone-3 emph","wc-1":"sharp tone-3 emph","wc-2":"sharp tone-3 emph","wc-3":"sharp tone-3","wc-4":"sharp tone-3","wc-5":"sharp tone-3","wc-6":"sharp tone-3","wc-7":"sharp tone-3","wc-8":"sharp tone-3","wc-9":"sharp tone-3","wc-10":"sharp tone-3","wc-11":"sharp tone-3","limn":"small accent","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-4","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-4","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-4","ch-7-3":"tone-2","ch-0-4":"tone-4","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"accent dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-168.28,-33.6,24.53,67.2],"wc-1--r":[-139.91,-26.13,24.53,59.73],"wc-2--r":[-111.55,-22.4,24.53,56],"wc-3--r":[-83.18,-11.2,24.53,44.8],"wc-4--r":[-54.81,-7.47,24.53,41.07],"wc-5--r":[-26.45,0,24.53,33.6],"wc-6--r":[1.92,3.73,24.53,29.87],"wc-7--r":[30.29,7.47,24.53,26.13],"wc-8--r":[58.65,11.2,24.53,22.4],"wc-9--r":[87.02,14.93,24.53,18.67],"wc-10--r":[115.39,18.67,24.53,14.93],"wc-11--r":[143.75,22.4,24.53,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[282.2,-32.96,108.16,65.92],"ch-0-0--c":[287,-28.16,4.8],"ch-1-0--c":[301.08,-28.16,4.8],"ch-2-0--c":[315.16,-28.16,4.8],"ch-3-0--c":[329.24,-28.16,4.8],"ch-4-0--c":[343.32,-28.16,4.8],"ch-5-0--c":[357.4,-28.16,4.8],"ch-6-0--c":[371.48,-28.16,4.8],"ch-7-0--c":[385.56,-28.16,4.8],"ch-0-1--c":[287,-14.08,4.8],"ch-1-1--c":[301.08,-14.08,4.8],"ch-2-1--c":[315.16,-14.08,4.8],"ch-3-1--c":[329.24,-14.08,4.8],"ch-4-1--c":[343.32,-14.08,4.8],"ch-5-1--c":[357.4,-14.08,4.8],"ch-6-1--c":[371.48,-14.08,4.8],"ch-7-1--c":[385.56,-14.08,4.8],"ch-0-2--c":[287,0,4.8],"ch-1-2--c":[301.08,0,4.8],"ch-2-2--c":[315.16,0,4.8],"ch-3-2--c":[329.24,0,4.8],"ch-4-2--c":[343.32,0,4.8],"ch-5-2--c":[357.4,0,4.8],"ch-6-2--c":[371.48,0,4.8],"ch-7-2--c":[385.56,0,4.8],"ch-0-3--c":[287,14.08,4.8],"ch-1-3--c":[301.08,14.08,4.8],"ch-2-3--c":[315.16,14.08,4.8],"ch-3-3--c":[329.24,14.08,4.8],"ch-4-3--c":[343.32,14.08,4.8],"ch-5-3--c":[357.4,14.08,4.8],"ch-6-3--c":[371.48,14.08,4.8],"ch-7-3--c":[385.56,14.08,4.8],"ch-0-4--c":[287,28.16,4.8],"ch-1-4--c":[301.08,28.16,4.8],"ch-2-4--c":[315.16,28.16,4.8],"ch-3-4--c":[329.24,28.16,4.8],"ch-4-4--c":[343.32,28.16,4.8],"ch-5-4--c":[357.4,28.16,4.8],"ch-6-4--c":[371.48,28.16,4.8],"ch-7-4--c":[385.56,28.16,4.8],"chn--l":[282.2,67.16,0],"long--p":[-168.28,62.4,-168.28,69.4,-87.02,69.4,-87.02,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"wc-base--h":[170.2,33.6,170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4],"lim--h":[170.2,-14.4,170.2,-14.4,170.2,-14.4]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"bars wc \"18,16,15,12,11,9,8,7,6,5,4,3\" at 0,0 w 2.3 h 1.05 space 0.06 {.tone-3}\nbrace long over wc-0,wc-1,wc-2 side bottom \"the three to rewrite\" pad 0.45 {.small .muted}\n# In front, or the columns cover the line and it shows only in the gaps.\nedge lim wc.left,wc.top+0.3 -- wc.right,wc.top+0.3 {.accent .dashed .front}\ntext limn \"budget\" at wc.right-0.28,wc.top+0.1 {.small .accent}\ntext wcn \"words per chunk\" above wc gap 0.3 flush left {.small .muted .left}\n\ngrid ch dot 8x5 right of wc gap 1.75 cell 0.15 space 0.07 {.tone-2}\ntext chn \"one dot per chunk,\\ntinted where a figure lives\" below ch gap 0.3 flush left {.small .muted .left}\n\nstep over\n  emph wc-0, wc-1, wc-2\nstep figures\n  style ch-1-0, ch-4-2, ch-6-3, ch-0-4 {.tone-4}","attrs":"unit=148x64","range":[54962,55697],"chunk":"diagram-charts","width":"full","alt":"Charts, without a chart library"}</script></figure>
 
 
 <p><strong>A <code>brace</code> spans three of the columns and a <code>style</code> step tints four of the cells, because both are ordinary boxes</strong> – named after the statement they came out of: <code>wc-0</code>, <code>wc-1</code>, … for the columns and <code>ch-1-0</code>, <code>ch-4-2</code>, … for the cells. The budget line is an ordinary edge between two coordinates read off the chart&#39;s own frame, <code>.front</code> because otherwise the columns cover it and it shows only in the gaps. The spacing <em>inside</em> these statements is <code>space</code>, never <code>gap</code>: the placement on the same line already uses that word for the distance to another element.</p>
@@ -3674,7 +4343,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <g id="dg4-hour-tick-3" data-base="dg-el dg-text" class="dg-el dg-text small muted right"><g id="dg4-hour-tick-3--lw0" data-lab="hour-tick-3--l" class="dg-lwrap" transform="translate(-136.50,23.44)"><g id="dg4-hour-tick-3--l0" class="dg-lbl"><text text-anchor="end" font-size="12.00"><tspan x="0" y="4.08">fighting the tooling</tspan></text></g></g></g>
 <g id="dg4-hourn" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg4-hourn--lw0" data-lab="hourn--l" class="dg-lwrap" transform="translate(0.00,63.75)"><g id="dg4-hourn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">minutes, in the hour before a lecture</tspan></text></g></g></g>
 <g id="dg4-hour-base" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted front"><path id="dg4-hour-base--p" class="dg-stroke" d="M-127.50 -31.25L-127.50 31.25" fill="none"/><path id="dg4-hour-base--h" class="dg-head" d="M-127.50 31.25L-127.50 31.25L-127.50 31.25Z"/></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"bars hour \"31,24,18,9\" \"writing the prose | drawing the figures | fixing one wording | fighting the tooling\" at 0,0 horizontal w 1.7 h 1.25 emph 1 {.tone-2}\ntext hourn \"minutes, in the hour before a lecture\" below hour gap 0.5 {.small .muted}","attrs":"unit=150x50","range":[57699,57941],"chunk":"diagram-charts","width":"full","alt":"Charts, without a chart library"}</script></figure>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"bars hour \"31,24,18,9\" \"writing the prose | drawing the figures | fixing one wording | fighting the tooling\" at 0,0 horizontal w 1.7 h 1.25 emph 1 {.tone-2}\ntext hourn \"minutes, in the hour before a lecture\" below hour gap 0.5 {.small .muted}","attrs":"unit=150x50","range":[57789,58031],"chunk":"diagram-charts","width":"full","alt":"Charts, without a chart library"}</script></figure>
 
 
 <p><strong><code>w</code> and <code>h</code> are grid units, and a grid cell is not square – so the two numbers do not describe the shape on the page.</strong> At the <code>unit=150x54</code> of the figure below, a plot written <code>w 1.9 h 1.5</code> lands 285px by 81px, which is nothing like 1.9 by 1.5. <code>aspect 4:3</code>, <code>aspect 1:1</code>, or one bare number meaning that many wide to one tall, states the proportion the reader actually sees and lets the build work the other number out. Both <code>bars</code> and <code>plot</code> take it, and giving <code>w</code>, <code>h</code> and <code>aspect</code> together is an error: two of the three would have to lose, and nothing on the line says which.</p>
@@ -3712,7 +4381,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <g id="dg5-mark" data-base="dg-el dg-dot" class="dg-el dg-dot accent"><circle id="dg5-mark--c" cx="-27.00" cy="40.50" r="4.32"/></g>
 <g id="dg5-evenn" data-base="dg-el dg-text" class="dg-el dg-text small paper"><rect id="dg5-evenn--r" x="100.26" y="-79.79" width="69.48" height="27.96" rx="4"/><g id="dg5-evenn--lw0" data-lab="evenn--l" class="dg-lwrap" transform="translate(135.00,-65.81)"><g id="dg5-evenn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">even pace</tspan></text></g></g></g>
 <g id="dg5-realn" data-base="dg-el dg-text" class="dg-el dg-text small hand paper"><rect id="dg5-realn--r" x="-111.18" y="-77.17" width="114.36" height="42.96" rx="4"/><g id="dg5-realn--lw0" data-lab="realn--l" class="dg-lwrap" transform="translate(-54.00,-55.69)"><g id="dg5-realn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="-3.42">the first third</tspan><tspan x="0" y="11.58">always runs long</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg5-root">{"p":"dg5-","n":3,"kinds":{"pace-gx-0--p":"path","pace-gx-0--h":"path","pace-gx-1--p":"path","pace-gx-1--h":"path","pace-gx-2--p":"path","pace-gx-2--h":"path","pace-gx-3--p":"path","pace-gx-3--h":"path","pace-gx-4--p":"path","pace-gx-4--h":"path","pace-gx-5--p":"path","pace-gx-5--h":"path","pace-gx-6--p":"path","pace-gx-6--h":"path","pace-gy-0--p":"path","pace-gy-0--h":"path","pace-gy-1--p":"path","pace-gy-1--h":"path","pace-gy-2--p":"path","pace-gy-2--h":"path","pace-gy-3--p":"path","pace-gy-3--h":"path","pace-gy-4--p":"path","pace-gy-4--h":"path","even--p":"path","even--h":"path","real--p":"spline","real--h":"path","realn--lead--p":"path","realn--lead--h":"path","pace--r":"rect","pace-xt-0--l":"text","pace-xt-1--l":"text","pace-xt-2--l":"text","pace-xt-3--l":"text","pace-xt-4--l":"text","pace-xt-5--l":"text","pace-xt-6--l":"text","pace-yt-0--l":"text","pace-yt-1--l":"text","pace-yt-2--l":"text","pace-yt-3--l":"text","pace-yt-4--l":"text","pace-xl--l":"text","pace-yl--l":"text","mark--c":"circle","evenn--r":"rect","evenn--l":"text","realn--r":"rect","realn--l":"text"},"names":["real","lesson"],"frames":[{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":0,"evenn":1,"realn":0,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":0,"realn--lead":0},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-0--h":[-202.5,101.25,-202.5,101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-1--h":[-135,101.25,-135,101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-2--h":[-67.5,101.25,-67.5,101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-3--h":[0,101.25,0,101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-4--h":[67.5,101.25,67.5,101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-5--h":[135,101.25,135,101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gx-6--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-0--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-1--h":[202.5,50.63,202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-2--h":[202.5,0,202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-3--h":[202.5,-50.62,202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"pace-gy-4--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"even--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"real--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18],"realn--lead--h":[-27,36.18,-27,36.18,-27,36.18]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-0--h":[-202.5,101.25,-202.5,101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-1--h":[-135,101.25,-135,101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-2--h":[-67.5,101.25,-67.5,101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-3--h":[0,101.25,0,101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-4--h":[67.5,101.25,67.5,101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-5--h":[135,101.25,135,101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gx-6--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-0--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-1--h":[202.5,50.63,202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-2--h":[202.5,0,202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-3--h":[202.5,-50.62,202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"pace-gy-4--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"even--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"real--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18],"realn--lead--h":[-27,36.18,-27,36.18,-27,36.18]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":0.3,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head dim","real":"smooth accent thick no-head emph","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-0--h":[-202.5,101.25,-202.5,101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-1--h":[-135,101.25,-135,101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-2--h":[-67.5,101.25,-67.5,101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-3--h":[0,101.25,0,101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-4--h":[67.5,101.25,67.5,101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-5--h":[135,101.25,135,101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gx-6--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-0--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-1--h":[202.5,50.63,202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-2--h":[202.5,0,202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-3--h":[202.5,-50.62,202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"pace-gy-4--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"even--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"real--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18],"realn--lead--h":[-27,36.18,-27,36.18,-27,36.18]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg5-root">{"body":"plot pace \"minutes into the talk\" \"chunks covered\" at 0,0 w 2.7 aspect 2:1 x 0,60 y 0,40 tick 10\nedge even pace@0,pace@0 -- pace@60,pace@40 {.muted .dashed}\nedge real pace@0,pace@0 -- pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {.smooth .accent .thick}\ndot  mark \"\" at pace@26,pace@12 r 0.08 {.accent}\ntext evenn \"even pace\" at pace@50,pace@33 pad 0.12 {.small .paper}\n# Die Leitlinie greift die Kurve an einem Punkt ab, statt quer durchs Feld zu\n# laufen und dabei beide Kurven zu kreuzen.\ntext realn \"the first third\\nalways runs long\" at pace@22,pace@31 pad 0.12 -- mark {.small .hand .paper}\n\nstep real\n  show real, mark\nstep lesson\n  emph real\n  dim even","attrs":"unit=150x54","range":[58555,59253],"chunk":"diagram-charts","width":"full","alt":"Charts, without a chart library"}</script></figure>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg5-root">{"p":"dg5-","n":3,"kinds":{"pace-gx-0--p":"path","pace-gx-0--h":"path","pace-gx-1--p":"path","pace-gx-1--h":"path","pace-gx-2--p":"path","pace-gx-2--h":"path","pace-gx-3--p":"path","pace-gx-3--h":"path","pace-gx-4--p":"path","pace-gx-4--h":"path","pace-gx-5--p":"path","pace-gx-5--h":"path","pace-gx-6--p":"path","pace-gx-6--h":"path","pace-gy-0--p":"path","pace-gy-0--h":"path","pace-gy-1--p":"path","pace-gy-1--h":"path","pace-gy-2--p":"path","pace-gy-2--h":"path","pace-gy-3--p":"path","pace-gy-3--h":"path","pace-gy-4--p":"path","pace-gy-4--h":"path","even--p":"path","even--h":"path","real--p":"spline","real--h":"path","realn--lead--p":"path","realn--lead--h":"path","pace--r":"rect","pace-xt-0--l":"text","pace-xt-1--l":"text","pace-xt-2--l":"text","pace-xt-3--l":"text","pace-xt-4--l":"text","pace-xt-5--l":"text","pace-xt-6--l":"text","pace-yt-0--l":"text","pace-yt-1--l":"text","pace-yt-2--l":"text","pace-yt-3--l":"text","pace-yt-4--l":"text","pace-xl--l":"text","pace-yl--l":"text","mark--c":"circle","evenn--r":"rect","evenn--l":"text","realn--r":"rect","realn--l":"text"},"names":["real","lesson"],"frames":[{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":0,"evenn":1,"realn":0,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":0,"realn--lead":0},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-0--h":[-202.5,101.25,-202.5,101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-1--h":[-135,101.25,-135,101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-2--h":[-67.5,101.25,-67.5,101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-3--h":[0,101.25,0,101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-4--h":[67.5,101.25,67.5,101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-5--h":[135,101.25,135,101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gx-6--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-0--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-1--h":[202.5,50.63,202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-2--h":[202.5,0,202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-3--h":[202.5,-50.62,202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"pace-gy-4--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"even--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"real--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18],"realn--lead--h":[-27,36.18,-27,36.18,-27,36.18]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-0--h":[-202.5,101.25,-202.5,101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-1--h":[-135,101.25,-135,101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-2--h":[-67.5,101.25,-67.5,101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-3--h":[0,101.25,0,101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-4--h":[67.5,101.25,67.5,101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-5--h":[135,101.25,135,101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gx-6--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-0--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-1--h":[202.5,50.63,202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-2--h":[202.5,0,202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-3--h":[202.5,-50.62,202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"pace-gy-4--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"even--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"real--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18],"realn--lead--h":[-27,36.18,-27,36.18,-27,36.18]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":0.3,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head dim","real":"smooth accent thick no-head emph","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-0--h":[-202.5,101.25,-202.5,101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-1--h":[-135,101.25,-135,101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-2--h":[-67.5,101.25,-67.5,101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-3--h":[0,101.25,0,101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-4--h":[67.5,101.25,67.5,101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-5--h":[135,101.25,135,101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gx-6--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-0--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-1--h":[202.5,50.63,202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-2--h":[202.5,0,202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-3--h":[202.5,-50.62,202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"pace-gy-4--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"even--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"real--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18],"realn--lead--h":[-27,36.18,-27,36.18,-27,36.18]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg5-root">{"body":"plot pace \"minutes into the talk\" \"chunks covered\" at 0,0 w 2.7 aspect 2:1 x 0,60 y 0,40 tick 10\nedge even pace@0,pace@0 -- pace@60,pace@40 {.muted .dashed}\nedge real pace@0,pace@0 -- pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {.smooth .accent .thick}\ndot  mark \"\" at pace@26,pace@12 r 0.08 {.accent}\ntext evenn \"even pace\" at pace@50,pace@33 pad 0.12 {.small .paper}\n# Die Leitlinie greift die Kurve an einem Punkt ab, statt quer durchs Feld zu\n# laufen und dabei beide Kurven zu kreuzen.\ntext realn \"the first third\\nalways runs long\" at pace@22,pace@31 pad 0.12 -- mark {.small .hand .paper}\n\nstep real\n  show real, mark\nstep lesson\n  emph real\n  dim even","attrs":"unit=150x54","range":[58645,59343],"chunk":"diagram-charts","width":"full","alt":"Charts, without a chart library"}</script></figure>
 
 
 <p><strong>A <code>plot</code> draws the frame and the scale, and nothing else.</strong> It takes the two ranges and one <code>tick</code> interval, after which <code>pace@26</code> names a value in the plot&#39;s own units anywhere a coordinate goes – in a waypoint, in an <code>at</code>, at the end of a leader. <strong>The curves are ordinary edges.</strong> <code>.smooth</code> draws the same waypoints as a spline <em>through</em> them rather than as a chain of straight segments, <code>--</code> writes a line with no arrowhead at all, and the two steps bring the second curve in and then <code>emph</code> it while the reference line is <code>dim</code>med.</p>
@@ -3727,9 +4396,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></div>
 </article>
 <article class="chunk chunk-example" id="diagram-steps" data-chunk-id="diagram-steps" data-tag="example" data-width="full" data-chunk-num="34">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">A figure that moves</span> <span class="hd-sub"><code>hide</code>, <code>dim</code>, and a box that walks into the wire</span></h2>
@@ -3745,7 +4416,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
 <g id="dg6-bob" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg6-bob--r" x="527.25" y="-17.50" width="172.50" height="35.00" rx="4"/><g id="dg6-bob--lw0" data-lab="bob--l" class="dg-lwrap" transform="translate(613.50,0.00)"><g id="dg6-bob--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
 <g id="dg6-eve" data-base="dg-el dg-box" class="dg-el dg-box tone-4"><rect id="dg6-eve--r" x="186.00" y="-17.50" width="172.50" height="35.00" rx="4"/><g id="dg6-eve--lw0" data-lab="eve--l" class="dg-lwrap dg-variant dg-off" transform="translate(272.25,0.00)"><g id="dg6-eve--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g><g id="dg6-eve--lw1" data-lab="eve--l" class="dg-lwrap dg-variant" transform="translate(272.25,0.00)"><g id="dg6-eve--l1" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve rewrites M</tspan></text></g></g></g>
 <g id="dg6-note" data-base="dg-el dg-text" class="dg-el dg-text hand small"><g id="dg6-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(-69.63,106.00)"><g id="dg6-note--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="-3.42">no cipher is broken here –</tspan><tspan x="0" y="11.58">she just stands in the middle</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg6-root">{"p":"dg6-","n":4,"kinds":{"net--r":"rect","net--l":"text","wire--p":"path","wire--h":"path","wire--h2":"path","wire--l":"text","note--lead--p":"path","note--lead--h":"path","in--p":"path","in--h":"path","fwd--p":"path","fwd--h":"path","fwd--l":"text","edit--p":"path","edit--h":"path","edit--l":"text","alice--r":"rect","alice--l":"text","bob--r":"rect","bob--l":"text","eve--r":"rect","eve--l":"text","note--l":"text"},"names":["spot","cut","damage"],"frames":[{"vis":{"alice":1,"bob":1,"eve":0,"note":0,"net":1,"wire":1,"note--lead":0,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-86.25,-17.5,172.5,35],"alice--l":[0,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[220.5,-136.5,172.5,35],"eve--l":[306.75,-119,0],"note--l":[-0.63,106,0],"net--r":[-121.25,-75.25,856,127.75],"net--l":[-111.25,-62.87,0],"wire--p":[93.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[86.25,0,95.25,-3.96,95.25,3.96],"wire--l":[306.75,-11.37,0],"note--lead--p":[92.69,106,306.75,-101.5],"note--lead--h":[306.75,-101.5,306.75,-101.5,306.75,-101.5],"in--p":[86.25,17.5,215.47,-130.73],"in--h":[220.5,-136.5,217.57,-127.11,211.6,-132.32],"fwd--p":[393,-129.5,521.53,-15.57],"fwd--h":[527.25,-10.5,517.89,-13.51,523.14,-19.43],"fwd--l":[467.67,-78.51,0],"edit--p":[393,-108.5,521.53,5.43],"edit--h":[527.25,10.5,517.89,7.49,523.14,1.57],"edit--l":[452.58,-40.49,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":1,"note--lead":1,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-86.25,-17.5,172.5,35],"alice--l":[0,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[220.5,-136.5,172.5,35],"eve--l":[306.75,-119,0],"note--l":[-0.63,106,0],"net--r":[-121.25,-75.25,856,127.75],"net--l":[-111.25,-62.87,0],"wire--p":[93.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[86.25,0,95.25,-3.96,95.25,3.96],"wire--l":[306.75,-11.37,0],"note--lead--p":[92.69,106,306.75,-101.5],"note--lead--h":[306.75,-101.5,306.75,-101.5,306.75,-101.5],"in--p":[86.25,17.5,215.47,-130.73],"in--h":[220.5,-136.5,217.57,-127.11,211.6,-132.32],"fwd--p":[393,-129.5,521.53,-15.57],"fwd--h":[527.25,-10.5,517.89,-13.51,523.14,-19.43],"fwd--l":[467.67,-78.51,0],"edit--p":[393,-108.5,521.53,5.43],"edit--h":[527.25,10.5,517.89,7.49,523.14,1.57],"edit--l":[452.58,-40.49,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-155.25,-17.5,172.5,35],"alice--l":[-69,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[186,-17.5,172.5,35],"eve--l":[272.25,0,0],"note--l":[-69.63,106,0],"net--r":[-190.25,-75.25,925,127.75],"net--l":[-180.25,-62.87,0],"wire--p":[24.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[17.25,0,26.25,-3.96,26.25,3.96],"wire--l":[272.25,-11.37,0],"note--lead--p":[23.69,106,272.25,17.5],"note--lead--h":[272.25,17.5,272.25,17.5,272.25,17.5],"in--p":[17.25,17.5,178.51,-15.95],"in--h":[186,-17.5,177.99,-11.79,176.38,-19.55],"fwd--p":[358.5,-10.5,519.6,-10.5],"fwd--h":[527.25,-10.5,518.25,-6.54,518.25,-14.46],"fwd--l":[442.88,-21.87,0],"edit--p":[358.5,10.5,519.6,10.5],"edit--h":[527.25,10.5,518.25,14.46,518.25,6.54],"edit--l":[442.88,21.88,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":0.3,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted dim","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head dashed"},"lab":{"alice":0,"bob":0,"eve":1,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-155.25,-17.5,172.5,35],"alice--l":[-69,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[186,-17.5,172.5,35],"eve--l":[272.25,0,0],"note--l":[-69.63,106,0],"net--r":[-190.25,-75.25,925,127.75],"net--l":[-180.25,-62.87,0],"wire--p":[24.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[17.25,0,26.25,-3.96,26.25,3.96],"wire--l":[272.25,-11.37,0],"note--lead--p":[23.69,106,272.25,17.5],"note--lead--h":[272.25,17.5,272.25,17.5,272.25,17.5],"in--p":[17.25,17.5,178.51,-15.95],"in--h":[186,-17.5,177.99,-11.79,176.38,-19.55],"fwd--p":[358.5,-10.5,519.6,-10.5],"fwd--h":[527.25,-10.5,518.25,-6.54,518.25,-14.46],"fwd--l":[442.88,-21.87,0],"edit--p":[358.5,10.5,519.6,10.5],"edit--h":[527.25,10.5,518.25,14.46,518.25,6.54],"edit--l":[442.88,21.88,0]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg6-root">{"body":"default box {.tone-2} w 1.25 h 0.5\n\nbox alice \"Alice\" at 0,0\nbox bob   \"Bob\"   right of alice gap 6.3 same as alice\nedge wire alice \u003c-> bob \"M\"\ncontainer net \"one wire, two honest ends\" over alice,bob pad 0.5 {.dashed .muted}\n\nbox eve \"Eve\" between alice,bob offset 0,-1.7 same as alice {.tone-4 @attack}\ntext note \"no cipher is broken here –\\nshe just stands in the middle\" below alice gap 1.05 flush left -- eve.cx,eve.bottom {.hand .small @attack}\n\n# Eine Ecke ist so adressierbar wie eine Kante: .tl .tr .bl .br, dazu .center.\n# Für eine diagonale Verbindung trifft die Ecke, was die Seite verfehlt.\nedge in alice.br -> eve.tl {.accent @cut}\nedge fwd eve.right:0.2 -> bob.left:0.2 \"M\" {.accent @cut} side top\nedge edit eve.right:0.8 -> bob.left:0.8 \"M′\" {.accent @cut} side bottom\n\nstep spot\n  show @attack\nstep cut\n  hide wire\n# `to` setzt eine Position, `by` verschiebt um einen Betrag – und weil das\n# Layout pro Schritt neu ausgewertet wird, passt sich der Container an.\n  move eve to between alice,bob\n  move alice by -0.5,0\n  move bob by 0.5,0\n  show @cut\n  emph eve\nstep damage\n  label eve \"Eve rewrites M\"\n  style edit {.dashed}\n  dim net","attrs":"unit=138x70","range":[60813,61963],"chunk":"diagram-steps","width":"full","alt":"A figure that moves"}</script></figure>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg6-root">{"p":"dg6-","n":4,"kinds":{"net--r":"rect","net--l":"text","wire--p":"path","wire--h":"path","wire--h2":"path","wire--l":"text","note--lead--p":"path","note--lead--h":"path","in--p":"path","in--h":"path","fwd--p":"path","fwd--h":"path","fwd--l":"text","edit--p":"path","edit--h":"path","edit--l":"text","alice--r":"rect","alice--l":"text","bob--r":"rect","bob--l":"text","eve--r":"rect","eve--l":"text","note--l":"text"},"names":["spot","cut","damage"],"frames":[{"vis":{"alice":1,"bob":1,"eve":0,"note":0,"net":1,"wire":1,"note--lead":0,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-86.25,-17.5,172.5,35],"alice--l":[0,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[220.5,-136.5,172.5,35],"eve--l":[306.75,-119,0],"note--l":[-0.63,106,0],"net--r":[-121.25,-75.25,856,127.75],"net--l":[-111.25,-62.87,0],"wire--p":[93.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[86.25,0,95.25,-3.96,95.25,3.96],"wire--l":[306.75,-11.37,0],"note--lead--p":[92.69,106,306.75,-101.5],"note--lead--h":[306.75,-101.5,306.75,-101.5,306.75,-101.5],"in--p":[86.25,17.5,215.47,-130.73],"in--h":[220.5,-136.5,217.57,-127.11,211.6,-132.32],"fwd--p":[393,-129.5,521.53,-15.57],"fwd--h":[527.25,-10.5,517.89,-13.51,523.14,-19.43],"fwd--l":[467.67,-78.51,0],"edit--p":[393,-108.5,521.53,5.43],"edit--h":[527.25,10.5,517.89,7.49,523.14,1.57],"edit--l":[452.58,-40.49,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":1,"note--lead":1,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-86.25,-17.5,172.5,35],"alice--l":[0,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[220.5,-136.5,172.5,35],"eve--l":[306.75,-119,0],"note--l":[-0.63,106,0],"net--r":[-121.25,-75.25,856,127.75],"net--l":[-111.25,-62.87,0],"wire--p":[93.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[86.25,0,95.25,-3.96,95.25,3.96],"wire--l":[306.75,-11.37,0],"note--lead--p":[92.69,106,306.75,-101.5],"note--lead--h":[306.75,-101.5,306.75,-101.5,306.75,-101.5],"in--p":[86.25,17.5,215.47,-130.73],"in--h":[220.5,-136.5,217.57,-127.11,211.6,-132.32],"fwd--p":[393,-129.5,521.53,-15.57],"fwd--h":[527.25,-10.5,517.89,-13.51,523.14,-19.43],"fwd--l":[467.67,-78.51,0],"edit--p":[393,-108.5,521.53,5.43],"edit--h":[527.25,10.5,517.89,7.49,523.14,1.57],"edit--l":[452.58,-40.49,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-155.25,-17.5,172.5,35],"alice--l":[-69,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[186,-17.5,172.5,35],"eve--l":[272.25,0,0],"note--l":[-69.63,106,0],"net--r":[-190.25,-75.25,925,127.75],"net--l":[-180.25,-62.87,0],"wire--p":[24.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[17.25,0,26.25,-3.96,26.25,3.96],"wire--l":[272.25,-11.37,0],"note--lead--p":[23.69,106,272.25,17.5],"note--lead--h":[272.25,17.5,272.25,17.5,272.25,17.5],"in--p":[17.25,17.5,178.51,-15.95],"in--h":[186,-17.5,177.99,-11.79,176.38,-19.55],"fwd--p":[358.5,-10.5,519.6,-10.5],"fwd--h":[527.25,-10.5,518.25,-6.54,518.25,-14.46],"fwd--l":[442.88,-21.87,0],"edit--p":[358.5,10.5,519.6,10.5],"edit--h":[527.25,10.5,518.25,14.46,518.25,6.54],"edit--l":[442.88,21.88,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":0.3,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted dim","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head dashed"},"lab":{"alice":0,"bob":0,"eve":1,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-155.25,-17.5,172.5,35],"alice--l":[-69,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[186,-17.5,172.5,35],"eve--l":[272.25,0,0],"note--l":[-69.63,106,0],"net--r":[-190.25,-75.25,925,127.75],"net--l":[-180.25,-62.87,0],"wire--p":[24.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[17.25,0,26.25,-3.96,26.25,3.96],"wire--l":[272.25,-11.37,0],"note--lead--p":[23.69,106,272.25,17.5],"note--lead--h":[272.25,17.5,272.25,17.5,272.25,17.5],"in--p":[17.25,17.5,178.51,-15.95],"in--h":[186,-17.5,177.99,-11.79,176.38,-19.55],"fwd--p":[358.5,-10.5,519.6,-10.5],"fwd--h":[527.25,-10.5,518.25,-6.54,518.25,-14.46],"fwd--l":[442.88,-21.87,0],"edit--p":[358.5,10.5,519.6,10.5],"edit--h":[527.25,10.5,518.25,14.46,518.25,6.54],"edit--l":[442.88,21.88,0]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg6-root">{"body":"default box {.tone-2} w 1.25 h 0.5\n\nbox alice \"Alice\" at 0,0\nbox bob   \"Bob\"   right of alice gap 6.3 same as alice\nedge wire alice \u003c-> bob \"M\"\ncontainer net \"one wire, two honest ends\" over alice,bob pad 0.5 {.dashed .muted}\n\nbox eve \"Eve\" between alice,bob offset 0,-1.7 same as alice {.tone-4 @attack}\ntext note \"no cipher is broken here –\\nshe just stands in the middle\" below alice gap 1.05 flush left -- eve.cx,eve.bottom {.hand .small @attack}\n\n# Eine Ecke ist so adressierbar wie eine Kante: .tl .tr .bl .br, dazu .center.\n# Für eine diagonale Verbindung trifft die Ecke, was die Seite verfehlt.\nedge in alice.br -> eve.tl {.accent @cut}\nedge fwd eve.right:0.2 -> bob.left:0.2 \"M\" {.accent @cut} side top\nedge edit eve.right:0.8 -> bob.left:0.8 \"M′\" {.accent @cut} side bottom\n\nstep spot\n  show @attack\nstep cut\n  hide wire\n# `to` setzt eine Position, `by` verschiebt um einen Betrag – und weil das\n# Layout pro Schritt neu ausgewertet wird, passt sich der Container an.\n  move eve to between alice,bob\n  move alice by -0.5,0\n  move bob by 0.5,0\n  show @cut\n  emph eve\nstep damage\n  label eve \"Eve rewrites M\"\n  style edit {.dashed}\n  dim net","attrs":"unit=138x70","range":[60903,62053],"chunk":"diagram-steps","width":"full","alt":"A figure that moves"}</script></figure>
 
 
 <p><strong>Every element after the first is placed against another one, which is why nothing comes apart when the middle box walks in.</strong> <code>move eve to between alice,bob</code> states a position, <code>move alice by -0.5,0</code> shifts one by an amount, and the layout is evaluated again for every beat – so Alice and Bob step aside, the <code>container</code> re-fits around them, and the arrows are drawn where their endpoints have ended up. <code>hide</code> takes the direct wire away, <code>dim</code> is the opposite of <code>emph</code>, and <code>label</code> swaps in a wording that was typeset at build time.</p>
@@ -3760,6 +4431,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></div>
 </article>
 </section>
@@ -3770,6 +4442,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
 </article>
 <article class="chunk chunk-principle" id="topic-sentence" data-chunk-id="topic-sentence" data-tag="principle" data-width="standard" data-chunk-num="35">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">The topic sentence is the slide</span> <span class="hd-sub">so write the opening line for the projector</span></h2>
@@ -3785,9 +4458,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></div>
 </article>
 <article class="chunk chunk-example" id="anti-patterns" data-chunk-id="anti-patterns" data-tag="example" data-width="wide" data-chunk-num="36">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Four ways a chunk goes soft</h2>
@@ -3816,9 +4491,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></div>
 </article>
 <article class="chunk chunk-question" id="choose-mechanism" data-chunk-id="choose-mechanism" data-tag="question" data-width="standard" data-chunk-num="37">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Derive it, or state it?</h2>
@@ -3831,6 +4508,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
     </aside>
     <button class="annot-add" type="button" data-annot-add>+ note</button>
   </div>
+  
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
          <span class="caret">›</span>
@@ -3844,6 +4522,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></div>
 </article>
 <article class="chunk chunk-exercise" id="squint-test" data-chunk-id="squint-test" data-tag="exercise" data-width="wide" data-chunk-num="38">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading">The squint test</h2>
@@ -3863,6 +4542,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></div>
 </article>
 </section>
@@ -3873,6 +4553,7 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
 </article>
 <article class="chunk chunk-exercise" id="read-more" data-chunk-id="read-more" data-tag="exercise" data-width="wide" data-chunk-num="39">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the artefacts that close the loop</span></h2>
@@ -3894,9 +4575,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>9</i></div>
 </article>
 <article class="chunk chunk-free" id="authoring" data-chunk-id="authoring" data-tag="free" data-width="standard" data-chunk-num="40">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Authoring your own</span> <span class="hd-sub"><code>--new</code>, <code>--watch</code>, <code>lint.js</code></span></h2>
@@ -3917,9 +4600,11 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>0</i></div>
 </article>
 <article class="chunk chunk-example" id="fonts" data-chunk-id="fonts" data-tag="example" data-width="wide" data-chunk-num="41">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own type</span> <span class="hd-sub"><code>fonts/</code> plus a frontmatter block</span></h2>
@@ -3941,9 +4626,272 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>1</i></div>
 </article>
-<article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="42">
+<article class="chunk chunk-example" id="covers" data-chunk-id="covers" data-tag="example" data-width="wide" data-chunk-num="42">
+  
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">The cover has four compositions</span> <span class="hd-sub"><code>cover:</code> plus a <code>subtitle:</code> line</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A cover set only in ink, at one weight, with the subtitle at meta size beside the venue reads as a text file rather than as the opening of a talk.</strong> Two frontmatter keys fix most of it.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">title</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">Detecting Bot Detection</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">subtitle</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">Prevalence, Techniques and Implications</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">presenter</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">Ralf Gundelach</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">info</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#D73A49;--shiki-dark:#FF7B72">|</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#A5D6FF">  ARES 2026 · Linköping · 24 to 27 August</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">cover</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">editorial</span><span style="color:#6A737D;--shiki-dark:#8B949E">        # classic | editorial | split | hero</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">cover-image</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">skyline</span><span style="color:#6A737D;--shiki-dark:#8B949E">    # split and hero need one; the others ignore it</span></span></code></pre>
+<p><code>subtitle:</code> is the step the ladder was missing. Without it the one line that says what the talk is <em>about</em> has nowhere to go but <code>info</code>, where it is set exactly like the line that says which conference it is.</p>
+<div class="cards cards-4 cs-small ca-left cv-top cd-fold cg-panel">
+<ul>
+<li><strong>classic</strong> the lower-left third, all type. The default, so a lecture that names no <code>cover:</code> is unchanged.</li>
+<li><strong>editorial</strong> an accent rail, the title over a rule, the meta collected into a footer row.</li>
+<li><strong>stack</strong> the title block centred on both axes, for a quiet opening.</li>
+<li><strong>rule</strong> the title held between two hairlines across the measure.</li>
+</ul>
+
+</div>
+
+
+
+<div class="cards cards-4 cs-small ca-left cv-top cd-fold cg-panel">
+<ul>
+<li><strong>split</strong> type left, <code>cover-image</code> bled off the right edge.</li>
+<li><strong>hero</strong> the picture is the slide, type reversed out of a gradient scrim.</li>
+<li><strong>beside</strong> the title chunk&#39;s own body — a <code>::: draw</code> — inset to the right.</li>
+<li><strong>above</strong> that body on top, the title centred in the band below it.</li>
+</ul>
+
+</div>
+
+
+<p><strong><code>beside</code> and <code>above</code> take their art from the chunk body</strong>, which is what lets a <code>::: draw</code> be the cover: a diagram is not a file, so <code>cover-image</code> can never name one. On those two the body is the art and <code>info:</code> still supplies the meta lines; everywhere else a non-empty body replaces <code>info</code> as it always did. <code>cover-ratio: 42%</code> sets how much of the slide the picture takes on <code>split</code>, <code>beside</code> and <code>above</code>.</p>
+<p><code>split</code> bleeds and <code>beside</code> insets, and that is why both exist: a photograph wants the edge, a drawing wants a margin, because a diagram cropped by the frame reads as a diagram that did not fit.</p>
+<p>An unknown value fails the build, and <code>split</code> or <code>hero</code> without a <code>cover-image</code> fails too rather than drawing an empty half.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="covers">
+      <div class="annot-box-label">annotation · covers</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>2</i></div>
+</article>
+<article class="chunk chunk-example" id="backdrop" data-chunk-id="backdrop" data-tag="example" data-width="wide" data-chunk-num="43">
+  
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">A picture that fills the frame</span> <span class="hd-sub"><code>::: backdrop</code> and <code>::: overlay</code></span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: backdrop</code> puts an image behind the whole slide, edge to edge, and <code>::: overlay</code> puts a text block on top of it.</strong> One line each, on any chunk – the cover is not a special case.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark:#79C0FF;--shiki-dark-font-weight:bold">## figure: {#skyline .full}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">::: backdrop city-at-night {.invert .blur}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">::: overlay {.bottom-left .ink .wide}</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark:#79C0FF;--shiki-dark-font-weight:bold">### Every endpoint is a sensor</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">A crawler that looks like a browser gets measured back.</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">:::</span></span></code></pre>
+<p>The backdrop takes the same three forms an image does – a bare asset id, a relative path, an https URL – and its class tail answers four questions, each a closed list: <strong>fill</strong> <code>cover</code> or <code>contain</code>, <strong>crop</strong> <code>middle</code> <code>top</code> <code>bottom</code>, <strong>scrim</strong> <code>veil</code> <code>clear</code> <code>invert</code>, <strong>focus</strong> <code>sharp</code> <code>blur</code>.</p>
+<p><code>veil</code> is the default and it is the theme&#39;s own paper at 80%, so ordinary ink stays legible over a photograph in all seven themes. <code>invert</code> turns the slide&#39;s ink light instead. Writing two words from one slot is an error, not a preference the build guesses at.</p>
+<p>An overlay answers three: <strong>place</strong> – the nine cells of a 3×3 grid, <code>bottom-left</code> through <code>top-right</code>; <strong>ground</strong> – <code>paper</code> <code>ink</code> <code>accent</code> <code>clear</code> <code>glass</code>; <strong>width</strong> – <code>narrow</code> <code>standard</code> <code>wide</code> <code>full</code>. All of them are cards with padding and a radius, which is the point: text laid straight onto a photograph is unreadable at the back of a room.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="backdrop">
+      <div class="annot-box-label">annotation · backdrop</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>3</i></div>
+</article>
+<article class="chunk chunk-example" id="cards" data-chunk-id="cards" data-tag="example" data-width="wide" data-chunk-num="44">
+  
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Three things stay three things</span> <span class="hd-sub"><code>::: cards N</code></span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: cards 3</code> is not a second spelling of <code>::: cols 3</code>.</strong> A <code>cols</code> block is one text flow the browser balances across N tracks, so a paragraph can spill from the foot of one column into the head of the next. A <code>cards</code> block is N <em>containers</em>, and an item is whole or it is nowhere.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">::: cards 3</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#FFA657">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark:#E6EDF3;--shiki-dark-font-weight:bold"> **Measure**</span><span style="color:#24292E;--shiki-dark:#E6EDF3"> what a page does when a crawler asks for it</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#FFA657">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark:#E6EDF3;--shiki-dark-font-weight:bold"> **Probe**</span><span style="color:#24292E;--shiki-dark:#E6EDF3"> the detector until it names itself</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#FFA657">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark:#E6EDF3;--shiki-dark-font-weight:bold"> **Report**</span><span style="color:#24292E;--shiki-dark:#E6EDF3"> what that costs a measurement study</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">:::</span></span></code></pre>
+<p>Which children become the cards is one rule and no parsing: a lone list dissolves into the grid, so its items are the cards; anything else contributes one card per block. Counts from 2 to 6 – past six, what you have is a table.</p>
+<p>Use <code>cols</code> for an argument that runs long and <code>cards</code> for a comparison the room should be able to count.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="cards">
+      <div class="annot-box-label">annotation · cards</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>4</i></div>
+</article>
+<article class="chunk chunk-example" id="style-block" data-chunk-id="style-block" data-tag="example" data-width="wide" data-chunk-num="45">
+  
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Setting the type for a whole lecture</span> <span class="hd-sub">the <code>style:</code> block</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Four knobs an author reaches for on a whole deck rather than on one chunk.</strong></p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">style</span><span style="color:#24292E;--shiki-dark:#E6EDF3">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  headings</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">left</span><span style="color:#6A737D;--shiki-dark:#8B949E">        # auto | left | center   – auto keeps the per-tag treatment</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  rules</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#005CC5;--shiki-dark:#79C0FF">off</span><span style="color:#6A737D;--shiki-dark:#8B949E">            # on | off               – the hairline above principle/definition</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  heading-scale</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#005CC5;--shiki-dark:#79C0FF">1.15</span><span style="color:#6A737D;--shiki-dark:#8B949E">   # 0.6 … 1.8</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  body-scale</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#005CC5;--shiki-dark:#79C0FF">0.95</span><span style="color:#6A737D;--shiki-dark:#8B949E">      # 0.6 … 1.8</span></span></code></pre>
+<p><code>headings: auto</code> is the default and means the tag decides: a question is centred, a figure&#39;s caption sits over its artwork. <code>left</code> overrides all of it, which is what an author who wants one axis of alignment through the whole deck is asking for.</p>
+<p>The two scales are multipliers on the tool&#39;s own scale rather than absolute sizes, and they are <strong>bounded</strong>. Outside 0.6–1.8 the collapse mode, the code-width clamp and the auto-fit camera stop agreeing with each other, and the result is not a look but a bug report.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="style-block">
+      <div class="annot-box-label">annotation · style-block</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>5</i></div>
+</article>
+<article class="chunk chunk-example" id="bundled-fonts" data-chunk-id="bundled-fonts" data-tag="example" data-width="wide" data-chunk-num="46">
+  
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Which typefaces travel in the file</span> <span class="hd-sub">five bundled families, named not filed</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Three families ship in any one output, and which three is the lecture&#39;s choice.</strong> A bundled family needs no file — that is the point of bundling it.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">fonts</span><span style="color:#24292E;--shiki-dark:#E6EDF3">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  sans</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">Inter Tight</span><span style="color:#6A737D;--shiki-dark:#8B949E">                # or IBM Plex Sans (the default)</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  mono</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">Noto Sans Mono Condensed</span><span style="color:#6A737D;--shiki-dark:#8B949E">   # or JetBrains Mono (the default)</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  serif</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">Literata</span><span style="color:#6A737D;--shiki-dark:#8B949E">                  # the only serif bundled</span></span></code></pre>
+<p>Only the three families a lecture resolves to are read at all, so an alternate costs the lecture that asks for it and nothing else. A name that is neither a bundled family nor a file in <code>fonts/</code> fails the build, and the message lists the bundled names for that role.</p>
+<p><strong>The condensed mono is 17% narrower</strong> — 0.50 em against 0.60 em per character, measured in a browser — which is usually why an author reaches for it: a listing that overran the slide fits. It is a <em>pinned instance</em> of Noto Sans Mono&#39;s width axis rather than a different typeface, so it costs 54 KB and nothing downstream has to know about it. Slashed zero, and <code>I</code>, <code>l</code> and <code>1</code> are three visibly different shapes.</p>
+<p>Iosevka reaches the same width and is deliberately <strong>not</strong> bundled: it is 961 KB per face against 54, which is 3.87 MB of base64 in every view on a tool whose whole promise is a file you can mail. Drop it in <code>fonts/</code> if you want it anyway — that is what that mechanism is for.</p>
+<p><code>ligatures:</code> answers a question that is really two. <code>text</code> is the default: <code>fi</code> and <code>fl</code> in prose, none in code. <code>none</code> takes them out of prose too. <code>all</code> puts the code ligatures back, so JetBrains Mono draws <code>-&gt;</code> as a single arrow glyph again — pleasant in an editor, and the reason it is off here is that in the figure grammar <code>-&gt;</code> and <code>--</code> are two <em>different</em> edges, and every listing on a slide is source a reader is meant to retype.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="bundled-fonts">
+      <div class="annot-box-label">annotation · bundled-fonts</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>6</i></div>
+</article>
+<article class="chunk chunk-example" id="layout-generation" data-chunk-id="layout-generation" data-tag="example" data-width="wide" data-chunk-num="47">
+  
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Laying a lecture out the way 1.0.0 did</span> <span class="hd-sub">three settings, not a version key</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>From 1.0.0 the source format is the interface, and that is about more than parsing.</strong> A finished deck should be able to lay out the way it laid out.</p>
+<p>Exactly three things have moved since 1.0.0 that an existing lecture would notice, and each is an ordinary preference:</p>
+<div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel">
+<ul>
+<li><strong>The sans</strong> was Inter Tight, now IBM Plex Sans — it relays out every sans run. <code>fonts: {sans: Inter Tight}</code></li>
+<li><strong>Line breaking</strong> gained <code>text-wrap: balance</code> on headings and <code>pretty</code> on prose. <code>style: {wrap: none}</code></li>
+<li><strong>Code ligatures</strong> were turned off, so <code>-&gt;</code> stopped drawing as an arrow. <code>ligatures: all</code></li>
+</ul>
+
+</div>
+
+
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">ligatures</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">all</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">fonts</span><span style="color:#24292E;--shiki-dark:#E6EDF3">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  sans</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">Inter Tight</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">style</span><span style="color:#24292E;--shiki-dark:#E6EDF3">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  wrap</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">none</span></span></code></pre>
+<p>Set together, those three reproduce the 1.0.0 rendering <strong>exactly</strong> — verified by building the same source through the real 1.0.0 build and through this one and comparing: zero differing pixels.</p>
+<p><strong>There is deliberately no <code>layout: 1.0</code> key.</strong> One key naming a version reads as a promise that the tool can rebuild any past release, and that promise has no end: every later change to a shared stylesheet would have to be gated on a generation, and the combinations nobody tests would multiply. It would also make you keep track of which version your deck was authored against. Each of these three is a setting you might want on its own — someone who prefers Inter Tight is expressing a view about type, not pinning a release.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="layout-generation">
+      <div class="annot-box-label">annotation · layout-generation</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>7</i></div>
+</article>
+<article class="chunk chunk-example" id="autoplay" data-chunk-id="autoplay" data-tag="example" data-width="wide" data-chunk-num="48">
+  
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">A figure that walks itself</span> <span class="hd-sub"><code>::: draw {autoplay=N}</code></span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A figure written with <code>autoplay</code> advances its own steps on a timer once the slide is on screen</strong> — one delay, in milliseconds, for every step. A cover figure that moves while the room files in is what it is for, but it works on any chunk.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">::: draw {unit=150x56 autoplay=1200}</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">box crawler "Crawler" {.tone-1}</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">box det "Detector" right of crawler gap 1.6</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">edge crawler -> det "request"</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">step probe</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">  emph det</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">:::</span></span></code></pre>
+<p>It calls the same advance the Space key calls, so there is <strong>one counter</strong>: the speaker view follows through the ordinary sync, the freeze gate applies, and nothing new is stored. It runs on the projection only, and <strong>the first key, click or scroll stops it for good</strong> — a lecturer who has touched the deck has taken over, and a timer resuming underneath them is worse than no timer. It also refuses to start on a slide that is already half revealed, because arriving at one means you left it that way.</p>
+<p>Between 200 ms and 60 s. Outside that the build refuses rather than clamps: below 200 ms the room cannot read a beat, and above a minute a &quot;moving&quot; figure is a still one that changes when nobody is looking.</p>
+<p><strong><code>cycle</code> repeats the walk</strong> — <code>{autoplay=1200 cycle}</code> — which is usually what a cover figure wants while a room fills. It rewinds through the same counter, so the speaker view follows the rewind exactly as it followed the walk. The last beat is held for one delay like any other; there is deliberately no second number for how long to hold the finished picture.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="autoplay">
+      <div class="annot-box-label">annotation · autoplay</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>8</i></div>
+</article>
+<article class="chunk chunk-example" id="labels" data-chunk-id="labels" data-tag="example" data-width="wide" data-chunk-num="49">
+  
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Turning the generated labels off</span> <span class="hd-sub"><code>style: {labels: off}</code></span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>The tag word above a chunk is two different things wearing one name</strong>, so it takes one switch to reach both.</p>
+<div class="cards cards-2 cs-small ca-left cv-top cd-fold cg-panel">
+<ul>
+<li><strong>The document view</strong> labels every tagged chunk — <code>PRINCIPLE</code>, <code>QUESTION</code>, <code>DEFINITION</code>, <code>EXERCISE</code>. That is where most of them live.</li>
+<li><strong>The projection</strong> generates only <code>EXERCISE</code>, in CSS. The others were removed outright: a taxonomy announces itself only as correctly as the tag choice was.</li>
+</ul>
+
+</div>
+
+
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">style</span><span style="color:#24292E;--shiki-dark:#E6EDF3">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  labels</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#005CC5;--shiki-dark:#79C0FF">off</span></span></code></pre>
+<p>It is its own key rather than part of <code>rules</code>, which hides the bar above a principle and the hairline above a definition — a word and a line are not one decision, and you may want the line without the word.</p>
+<p><strong>A figure&#39;s all-caps heading is not a generated label and needs no key.</strong> It is the chunk&#39;s own heading, set in small caps by the <code>figure</code> treatment, so <code>## figure: {.wide #id}</code> with no heading text simply leaves it off the slide. The cost is real and worth knowing: that chunk then has no TOC entry, no search text, and no heading in the printed hand-out.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="labels">
+      <div class="annot-box-label">annotation · labels</div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+    <button class="annot-add" type="button" data-annot-add>+ note</button>
+  </div>
+  
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></div>
+</article>
+<article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="50">
+  
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Pinning how a lecture opens</span> <span class="hd-sub">six optional frontmatter keys</span></h2>
@@ -3970,7 +4918,8 @@ body[data-view=speaker].preview-right #preview-resizer::after {
   </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>4</i><i>2</i></div>
+  
+  <div class="chunk-num" aria-hidden="true"><i>5</i><i>0</i></div>
 </article>
 </section>
     </div>
@@ -5742,6 +6691,7 @@ function jumpTo(idx, direction) {
   applyState();
   focusCamera(false);
   saveActive();
+  restartAutoplay();
 }
 
 // A fragment in the address is an explicit request for one chunk, so it
@@ -5777,6 +6727,70 @@ function advanceReveal() {
     return true;
   }
   return false;
+}
+
+// ── ::: draw autoplay ──
+// A figure written {autoplay=N} walks its own steps once the slide is on
+// screen. It calls advanceReveal(), so it IS the Space key on a timer:
+// one counter, one broadcast, one freeze gate, and the speaker view follows
+// without knowing this exists.
+//
+// The audience is the state root, so only the audience runs the clock -
+// two windows both advancing would take two beats per tick. And the first
+// deliberate act stops it for good: a lecturer who has touched the deck has
+// taken over, and a timer resuming underneath them is worse than no timer.
+let autoplayTimer = 0;
+let autoplayStopped = false;
+function stopAutoplay() {
+  if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = 0; }
+}
+function restartAutoplay() {
+  stopAutoplay();
+  if (autoplayStopped || VIEW !== 'audience') return;
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) return;
+  const fig = entry.el.querySelector('[data-autoplay]');
+  if (!fig) return;
+  const ms = Number(fig.dataset.autoplay);
+  if (!ms) return;
+  // Only from the opening beat. Arriving at a half-revealed slide means the
+  // lecturer left it that way, and finishing it for them is the surprise
+  // this feature must not spring.
+  const segCount = countSegments(entry.el);
+  if ((revealed[entry.id] ?? 0) > 1) return;
+  const cycle = fig.hasAttribute('data-autoplay-cycle');
+  const tick = () => {
+    autoplayTimer = 0;
+    if (autoplayStopped) return;
+    if (flatChunks[state.activeIdx] !== entry) return;
+    if (advanceReveal()) {
+      if ((revealed[entry.id] ?? 0) < segCount) autoplayTimer = setTimeout(tick, ms);
+      else if (cycle) autoplayTimer = setTimeout(tick, ms);
+      return;
+    }
+    // advanceReveal said no, so we are at the last beat. Cycling rewinds
+    // to the opening one through the same counter everything else reads,
+    // so the speaker view follows the rewind exactly as it followed the
+    // walk. The last beat is held for one delay like any other: a second
+    // number for "how long to admire the finished picture" is a knob
+    // nobody asked for and one more thing to get wrong.
+    if (!cycle) return;
+    revealed[entry.id] = 1;
+    applyReveal(entry.el, entry.id);
+    updateNavHints();
+    broadcastState();
+    autoplayTimer = setTimeout(tick, ms);
+  };
+  if (segCount > 1) autoplayTimer = setTimeout(tick, ms);
+}
+// Any deliberate input retires the clock. Capture phase and passive, so it
+// sees the event whatever else handles it and never delays one.
+for (const ev of ['keydown', 'pointerdown', 'wheel']) {
+  window.addEventListener(ev, () => {
+    if (autoplayStopped) return;
+    autoplayStopped = true;
+    stopAutoplay();
+  }, { capture: true, passive: true });
 }
 
 // The mirror of advanceReveal, and it costs nothing but the counter: every
@@ -7016,6 +8030,9 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
   if (state.autoFit) fitZoomToChunk(2.2);
   else clampZoomToWidth();
   focusCamera(true);
+  // Same reasoning for autoplay, and it matters more here: the cover is
+  // the slide the feature was asked for, and jumpTo never runs on it.
+  restartAutoplay();
 }));
 if (document.fonts && document.fonts.ready) {
   document.fonts.ready.then(() => {
@@ -9689,6 +10706,14 @@ const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid units
 // This matters far more to the editor than to a terminal. `dgeSetSource`
 // rolls a refused edit back and shows `problems[0]` and nothing else, so
 // whichever problem lands first *is* the whole message a panel user gets.
+// Fence options the compiler does not own. `autoplay=N` and `cycle` say
+// how a finished figure is *played*, which is a fact about the deck and not
+// about the drawing - and this file also runs inside the browser editor,
+// where there is no deck to play. Exported so the one vocabulary has one
+// home: build.js reads the values, lint.js checks them, the compiler steps
+// over them, and any future embedder is correct without being told.
+const DG_HOST_OPTS = ['autoplay', 'cycle'];
+
 const DG_PHASES = ['syntax', 'reference', 'semantic', 'layout'];
 function dgErr(errors, line, msg, phase = 'syntax') { errors.push({ line, msg, phase }); }
 // Stable-sort a problem list into phase order. Exported because lint.js
@@ -11737,7 +12762,16 @@ function createDiagramCompiler(env = {}) {
       const m = tok.match(/^unit=(\d+)x(\d+)$/);
       if (m) { model.unit = [Number(m[1]), Number(m[2])]; continue; }
       if (tok.startsWith('#')) { model.id = tok.slice(1); continue; }
-      dgErr(errors, 0, `unknown ::: draw option "${tok}" (expected #id or unit=WxH)`);
+      // Options that belong to whoever embeds this compiler rather than to
+      // the drawing. Skipped rather than refused, because a fence carrying
+      // one is legal source and every embedder would otherwise have to
+      // strip it: build.js does (it needs the value), but the corpus gate
+      // and the browser editor compile blocks straight out of a file, and
+      // both broke on the first lecture that used one.
+      if (DG_HOST_OPTS.includes(tok.split('=')[0])) continue;
+      dgErr(errors, 0,
+        `unknown ::: draw option "${tok}" (expected #id, unit=WxH, ` +
+        `${DG_HOST_OPTS.join(' or ')})`);
     }
 
     // Returns whether the name is now this element's. A caller that would go on
@@ -15304,7 +16338,7 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_RESERVED_IDS, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, rejectClassOn, dgArticle, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_RESERVED_IDS, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_HOST_OPTS, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, rejectClassOn, dgArticle, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "";
 window.PSI_DG_EDIT_HTML = false;
