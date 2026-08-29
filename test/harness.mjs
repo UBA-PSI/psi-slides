@@ -86,6 +86,18 @@ export function findChrome() {
   // A browser the host installed. `/usr/bin/google-chrome` is what a GitHub
   // ubuntu runner has, which is the whole reason this function knows about
   // more than one platform.
+  //
+  // UNTESTED ON LINUX. Everything here was written and verified on macOS: the
+  // branch selection and this path list were exercised by forcing
+  // process.platform, but no Linux host has ever actually run it, and whether
+  // a GitHub runner image really ships a browser at one of these four paths is
+  // an empirical question about that image rather than about this code. The
+  // authoring machine is a Mac, so nothing local depends on it - but
+  // release.yml runs on ubuntu-latest, so a tag does. The failure is safe and
+  // loud rather than subtle: release.yml calls this in a step of its own
+  // before it stages or publishes anything, so a wrong guess costs one failed
+  // release run and one line here. `browser.yml` exists partly to find that
+  // out on a branch first.
   const system = process.platform === 'darwin'
     ? ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
       '/Applications/Chromium.app/Contents/MacOS/Chromium']

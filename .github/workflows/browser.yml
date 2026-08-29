@@ -41,6 +41,12 @@ jobs:
       # /usr/bin/google-chrome. Named in its own step so the log says which
       # browser answered, and so a missing one fails here with the list of
       # paths it tried rather than inside the suite.
+      #
+      # Note that the Linux half of findChrome() has never run: it was written
+      # and verified on macOS, and this workflow is the intended way to find
+      # out whether it works before release.yml depends on it at a tag. If
+      # this step is red, that is the answer, and the fix is one path added in
+      # test/harness.mjs and docs/site/shoot-lib.mjs.
       - name: Name the browser
         run: node -e "import('./test/harness.mjs').then(m => console.log(m.findChrome()))"
 

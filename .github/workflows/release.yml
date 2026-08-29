@@ -110,6 +110,17 @@ jobs:
       # browser the host installed - on a GitHub ubuntu runner that is
       # /usr/bin/google-chrome. Named in its own step so a missing browser
       # fails with the list of paths it tried rather than inside the suite.
+      #
+      # That Linux branch has never actually run: it was written and verified
+      # on macOS, which is where this project is developed and where every
+      # local build happens. This job is the one place it matters, because it
+      # runs on ubuntu-latest. Deliberately placed after every check that can
+      # fail cheaply and before anything is staged or published, so the worst
+      # case is a red release run with a list of paths in the log - no
+      # archive, no release, no half-published tag. If it does go red here,
+      # add the path it names to findChrome() in test/harness.mjs and
+      # docs/site/shoot-lib.mjs. `browser.yml` runs the same two steps on
+      # demand, which is the cheaper place to discover it.
       - name: Name the browser
         run: node -e "import('./test/harness.mjs').then(m => console.log(m.findChrome()))"
 
