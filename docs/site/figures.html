@@ -478,7 +478,7 @@ the beats inside a figure; <kbd>S</kbd> opens a cockpit that follows it.</p>
 </div>
 
 <h2>Beats let figures come alive</h2>
-<p class="figlead">The same three boxes, with two <strong>beats</strong> added. <strong>Each beat is a step in an animation</strong>, similar to how keyframes work in video editing. Step through it: the second beat renames Eve, and her box, both arrows and the outline around her move without a line of source mentioning any of them.</p>
+<p class="figlead">The same three boxes, with two <strong>beats</strong> added &ndash; <strong>keyframes, in the sense video editing uses the word</strong>. Step through it: the second beat renames Eve, and her box, both arrows and the outline around her move without a line of source mentioning any of them.</p>
 <div class="demo">
   <div class="demo-stage" data-demo="follow"><svg id="sdfollow-root" class="psi-diagram" viewBox="-44.05 -30.38 718.90 169.95" width="2000" height="473" data-live-viewbox="-44.05 -32.75 718.90 172.32" data-live-ratio="0.239706" data-steps="3" role="img" aria-label="hero, one line changes and everything follows" preserveAspectRatio="xMidYMid meet">
 <g id="sdfollow-zone" data-base="dg-el dg-container" class="dg-el dg-container dashed muted"><rect id="sdfollow-zone--r" x="234.57" y="17.67" width="166.70" height="109.90" rx="4"/><g id="sdfollow-zone--lw0" data-lab="zone--l" class="dg-lwrap" transform="translate(244.57,30.05)"><g id="sdfollow-zone--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">Eve's reach</tspan></text></g></g></g>
@@ -503,7 +503,7 @@ the beats inside a figure; <kbd>S</kbd> opens a cockpit that follows it.</p>
 </div>
 
 <h2>Toy examples are nice, but what about <em>real</em> figures?</h2>
-<p class="figlead">A passkey registration: four lifelines, nine messages, two notes. The numbering, the spacing and the lifelines are generated automatically. The four beats build it the way it is read to a room &ndash; one exchange, then the next &ndash; and two things arrive without a beat naming them where they appear: the brace over the CTAP leg is never shown by a step at all, because a brace is only as visible as what it holds, and the note in the margin is held back a beat so it lands after the exchange it comments on.</p>
+<p class="figlead">A passkey registration: four lifelines, nine messages, two notes. The numbering, the spacing and the lifelines are generated. The four beats build it the way it is read to a room, one exchange then the next, and two things arrive without a beat naming them: the brace over the CTAP leg, because a brace is only as visible as what it holds, and the note in the margin, held back a beat so it lands after the exchange it comments on.</p>
 <div class="demo">
   <div class="demo-stage" data-demo="seq-demo"><svg id="sdseq-demo-root" class="psi-diagram" viewBox="-454.66 -323.65 1053.38 647.30" width="2000" height="1229" data-live-viewbox="-454.66 -323.65 1053.38 647.30" data-live-ratio="0.614498" data-steps="5" role="img" aria-label="a protocol, one phase at a time" preserveAspectRatio="xMidYMid meet">
 <g id="sdseq-demo-ctap" data-base="dg-el dg-brace" class="dg-el dg-brace small turn"><path id="sdseq-demo-ctap--p" class="dg-stroke" d="M-303.00 -97.70L-310.00 -97.70L-310.00 49.95L-303.00 49.95" fill="none"/><g id="sdseq-demo-ctap--lw0" data-lab="ctap--l" class="dg-lwrap" transform="translate(-318.00,-23.87) rotate(-90)"><g id="sdseq-demo-ctap--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">on the device, over CTAP</tspan></text></g></g></g>
@@ -563,43 +563,43 @@ the beats inside a figure; <kbd>S</kbd> opens a cockpit that follows it.</p>
     <div class="tenet">
       <span class="t">01</span>
       <h3>The text is the figure</h3>
-      <p>There is no second copy of it anywhere: no drawing file beside the lecture, no exported image sitting one edit behind its source. The figure is in the same file as the prose around it, so it travels when a slide is moved or copied, and a change to it arrives in a diff as the lines that changed, where a reviewer can read it without opening anything.</p>
-      <p class="why">Graphical editing works. The live slides you present come with a graphical editor! When you drag a box in the editor, the relationships between objects and edges persist: <code>right of alice gap <b>1.1</b></code> becomes <code>right of alice gap <b>1.6</b></code>. Try it: Open the slides, bring up a <code>::: draw</code> figure, click on it, and press <kbd>E</kbd> to open the editor.</p>
+      <p>There is no second copy of it: no drawing file beside the lecture, no exported image one edit behind its source. The figure is in the same file as the prose around it, so it travels when a slide is moved or copied, and a change to it arrives in a diff as the lines that changed.</p>
+      <p class="why">You can still drag it. The live slides carry a graphical editor, and a drag keeps the relation and changes the number inside it: <code>right of alice gap <b>1.1</b></code> becomes <code>right of alice gap <b>1.6</b></code>. Open the slides, bring up a <code>::: draw</code> figure, click it and press <kbd>E</kbd>.</p>
     </div>
 
     <div class="tenet">
       <span class="t">02</span>
       <h3>Positions are relations, and stay relations</h3>
-      <p><code>right of alice gap 1.7</code> is not shorthand that the build resolves once and forgets. It is the whole of what the file says about where Eve is, permanently. Every element but the first is placed against something else in the figure, so the file is a set of dependencies rather than a set of coordinates, and the build follows them in whichever order resolves them.</p>
-      <p class="why">Give Alice a longer label and her box grows; Eve remains 1.7 units to its right, Bob follows Eve, and both arrows find their new ends. Nobody has to move the surrounding parts by hand. If two relations point back to each other, the build stops and names the placement cycle instead of guessing where either element belongs.</p>
+      <p><code>right of alice gap 1.7</code> is the whole of what the file says about where Eve is, permanently &ndash; not shorthand the build resolves once and forgets. Every element but the first is placed against another, so the file is a set of dependencies and the build follows them in whichever order resolves them.</p>
+      <p class="why">Give Alice a longer label and her box grows; Eve stays 1.7 units to its right, Bob follows Eve, and both arrows find their new ends, with nothing moved by hand. If two relations point back to each other the build stops and names the placement cycle.</p>
     </div>
 
     <div class="tenet">
       <span class="t">03</span>
       <h3>The cast is written once; the beats say what changes</h3>
       <p>Every element a figure will ever hold &ndash; every box, arrow, label, and outline &ndash; is written at the top of the <code>::: draw</code> block, whether or not it is initially visible when the figure comes up on the projector. A static figure stops there. If the figure has beats, one or more <code>step</code> sections follow; each names a beat and lists what it changes. Pressing the space bar when the figure is shown proceeds to the next beat. A beat can change visibility (<code>show</code>, <code>hide</code>), position (<code>move</code>), labelling (<code>label</code>), prominence (<code>emph</code>, <code>dim</code>, <code>ghost</code>) and styling (<code>style</code>).</p>
-      <p class="why">An element is hidden at the opening beat exactly when the first thing any step says about it is <code>show</code>. The benefit: there is only one description of the figure with all its elements and a list of changes to it.</p>
+      <p class="why">An element is hidden at the opening beat exactly when the first thing any step says about it is <code>show</code>, so there is no second list of what starts hidden &ndash; one description of the figure, and the changes to it.</p>
     </div>
 
     <div class="tenet">
       <span class="t">04</span>
       <h3>A beat is the whole figure laid out again</h3>
-      <p>Every beat is the same layout evaluated again with different inputs, rather than a movement played over a finished picture, and the build works all of them out before the page is written. What the browser is handed is one drawing and a table of numbers to slide between, with no layout engine to load.</p>
-      <p class="why">This is why an arrow stays attached to a box that walks away. The arrow never held a coordinate; it held &ldquo;the right-hand edge of <code>eve</code>&rdquo;, and that still means the right-hand edge of <code>eve</code> wherever <code>eve</code> now is.</p>
+      <p>Every beat is the same layout evaluated again with different inputs, not a movement played over a finished picture, and the build works all of them out before the page is written. The browser is handed one drawing and a table of numbers to slide between, with no layout engine to load.</p>
+      <p class="why">So an arrow stays attached to a box that walks away. The arrow never held a coordinate; it held &ldquo;the right-hand edge of <code>eve</code>&rdquo;, and that still means the right-hand edge of <code>eve</code> wherever <code>eve</code> now is.</p>
     </div>
   </div>
 
 <h2 id="editor">Dragging a box rewrites the line that placed it</h2>
-<p class="figlead">Since figure elements use relative positions, they can be edited by hand without the relations being lost. A drag means: change the number inside the relation and leave the relation standing. As a result, the editor works differently than what you are used to: it shows you the relations and asks you to name your elements.</p>
+<p class="figlead">A drag changes the number inside a relation and leaves the relation standing, so a figure can be edited by hand without losing what holds it together. The editor therefore works differently from the ones you know: it shows you the relations, and it asks you to name your elements.</p>
 
 <figure class="shot compact">
   <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>the editor, opened on a figure with beats</b></div>
   <img src="img/editor.webp" alt="The diagram editor open over a lecture slide: a dark canvas holding a CBC decryption figure with one box selected, the relations that place it written on the canvas beside it, a panel on the right describing the beat that is standing, a rail of the figure's beats along the bottom, and a strip of the lecture's other figures under that.">
 </figure>
 
-<p class="measure">The selected box is <code>c1</code>, and the words drawn beside it &ndash; <code>gap 1.15</code>, <code>flush middle</code>, <code>align y middle</code> &ndash; are the relations it was written with. That is the part a finished drawing cannot show anyone: a box placed <code>gap 1.15</code> from its neighbour looks exactly like a box that happens to sit 1.15 away, and only one of the two moves when the neighbour does. Drag it and the number inside the relation is what changes.</p>
+<p class="measure">The selected box is <code>c1</code>, and the words drawn beside it &ndash; <code>gap 1.15</code>, <code>flush middle</code>, <code>align y middle</code> &ndash; are the relations it was written with. A finished drawing cannot show those: a box placed <code>gap 1.15</code> from its neighbour looks exactly like one that happens to sit 1.15 away, and only one of the two moves when the neighbour does.</p>
 
-<p class="measure">The panel on the right describes the beat that is standing, and it describes it by what it <em>does</em> rather than by what it says: the beat is written <code>show @out</code> and <code>dim feed0, feed1, feed2</code>, and the panel names the three boxes that appear, the three arrows that come with their ends because an arrow is only as visible as the two things it joins, and the three lines dimmed under them. A drag at that beat writes a <code>move</code> into the step rather than moving the element, which is the distinction the source makes and the canvas has to keep.</p>
+<p class="measure">The panel on the right describes the beat that is standing, and it describes it by what it <em>does</em> rather than by what it says: the beat is written <code>show @out</code> and <code>dim feed0, feed1, feed2</code>, and the panel names the three boxes that appear, the three arrows that come with their ends because an arrow is only as visible as the two things it joins, and the three lines dimmed under them. A drag at that beat writes a <code>move</code> into the step rather than moving the element.</p>
 
 <h3>Opening it, and where the edit goes</h3>
 <p class="measure">Click a figure in the live view and press <code>E</code>, or use the button in the corner of the card the click opens. It is on by default wherever a lecture has a diagram; <code>editor: speaker</code> in the frontmatter keeps it off the projection and <code>editor: none</code> ships the lecture without it.</p>
