@@ -450,6 +450,24 @@ export async function run({ report }) {
       INTRO_BODY[w] ? (r.ok ? '' : r.msg.split('\n')[1]) : 'no fixture for this word – add one');
   }
 
+  // ── the list is a list, not a bag ─────────────────────────────────
+  // Two fixtures with the same body and the same expectation are one fixture
+  // run twice. Three of them accumulated the day the generated loop was added
+  // beside the hand-written pair that prompted it, and nothing said so: the
+  // gate reported agreement on 164 fixtures and meant 161. It cost a review
+  // and a scratch program to find, and it costs a Map to ask.
+  {
+    const bodies = new Map();
+    const dupes = [];
+    for (const f of FIXTURES) {
+      const key = JSON.stringify([f.body, !!f.accept]);
+      if (bodies.has(key)) dupes.push(`'${f.name}' is '${bodies.get(key)}' again`);
+      else bodies.set(key, f.name);
+    }
+    ok(dupes.length === 0, 'no two fixtures are the same line with the same expectation',
+      dupes.join(' · '));
+  }
+
   const pending = FIXTURES.filter(f => f.name in PENDING).length;
   note(`${FIXTURES.length} fixtures · ${FIXTURES.filter(f => f.accept).length} of them acceptance cases `
     + `· ${agree} agree · ${pending} pending`);
