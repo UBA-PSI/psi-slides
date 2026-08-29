@@ -968,6 +968,23 @@ itself.</p>
 build time, and stepped with the same key that advances a reveal.</p>
   
 </article>
+<article class="chunk chunk-principle width-standard" id="preview" data-chunk-num="2">
+  
+  <span class="chunk-num" aria-hidden="true"><i>2</i></span>
+  <span class="chunk-label">principle</span>
+  <h2 class="chunk-heading">None of this is in the 1.0.0 release</h2>
+  <p><strong><code>::: draw</code> was added after the 1.0.0 release</strong>, so the archive on the
+releases page does not have it and a lecture that uses it will not build
+against that download.</p>
+<p>What you need instead is the repository: a clone, or <strong>Download ZIP</strong> from the
+project page. The figure language may still change before it is tagged, so a
+figure you write today may need an edit. The editor is experimental too.</p>
+
+  
+  
+  
+  
+</article>
 </section>
 <nav class="toc" aria-label="Contents">
   <h2>Contents</h2>
@@ -983,9 +1000,9 @@ build time, and stepped with the same key that advances a reveal.</p>
   <h1 class="column-heading">Memory safety</h1>
   
   
-<article class="chunk chunk-figure width-full" id="unsafety" data-chunk-num="2">
+<article class="chunk chunk-figure width-full" id="unsafety" data-chunk-num="3">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i></span>
   
   <h2 class="chunk-heading">Types of memory unsafety</h2>
   <figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-55.19 -66.78 372.80 400.51" width="2000" height="2149" data-live-viewbox="-55.19 -66.78 372.80 400.51" data-live-ratio="1.074323" data-steps="3" role="img" aria-label="Types of memory unsafety" preserveAspectRatio="xMidYMid meet">
@@ -1004,18 +1021,18 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong>Zwei Familien, dieselbe Form.</strong> Das <code>flush left</code> am Ende einer Platzierung hält jede <code>below</code>-Kette an ihrer linken Kante bündig, obwohl der obere Code zweizeilig und der untere anders breit ist; <code>same as</code> gibt jedem Paar gleich große Kästen. Die <em>Anweisung</em> <code>align x middle tobj, sobj</code> ist etwas anderes: sie übernimmt eine Koordinate vom zuerst genannten Element, und hier ist sie nötig, weil die beiden Kästchen neben verschieden langen Wörtern hängen. Die beiden Schritte sprechen <code>@temporal</code> und <code>@spatial</code> an, statt acht Namen einzeln aufzuzählen.</p>
+<p><strong>Two families, one shape.</strong> <code>flush left</code> at the end of a placement keeps each <code>below</code> chain level at its left edge, though the upper listing runs to two lines and the lower one is a different width; <code>same as</code> gives each pair boxes of one size. The <em>statement</em> <code>align x middle tobj, sobj</code> is a different thing: it hands one coordinate from the first element named to the rest, and it is needed here because the two small boxes hang beside words of different lengths. The two steps name <code>@temporal</code> and <code>@spatial</code> instead of listing eight names.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="overflow" data-chunk-num="3">
+<article class="chunk chunk-figure width-full" id="overflow" data-chunk-num="4">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i></span>
   
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Your first buffer overflow</span> <span class="hd-sub">ein konstruiertes Beispiel</span></h2>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Your first buffer overflow</span> <span class="hd-sub">a made-up example</span></h2>
   <div class="side"><div class="side-a">
 
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#D73A49">int</span><span style="color:#6F42C1"> main</span><span style="color:#24292E">(</span><span style="color:#D73A49">void</span><span style="color:#24292E">) {</span></span>
@@ -1048,7 +1065,7 @@ build time, and stepped with the same key that advances a reveal.</p>
 </div></div>
 
 
-<p><strong>Links ein ganz normaler Markdown-Codeblock, rechts ein Diagramm.</strong> <code>::: side</code> stellt beide nebeneinander; das Diagramm muss dafür nichts können. Innen halten <code>same as</code> und <code>gap 0</code> die vier Rahmen als einen Stapel zusammen, und die <code>brace</code> spannt sich über alle vier und schreibt die Schreibrichtung daneben.</p>
+<p><strong>An ordinary Markdown code block on the left, a diagram on the right.</strong> <code>::: side</code> puts the two beside each other, and the diagram needs to know nothing about it. Inside, <code>same as</code> and <code>gap 0</code> hold the four frames together as one stack, and the <code>brace</code> spans all four and writes the direction of writing beside them.</p>
 
   
   
@@ -1060,9 +1077,9 @@ build time, and stepped with the same key that advances a reveal.</p>
   <h1 class="column-heading">Block ciphers</h1>
   
   
-<article class="chunk chunk-figure width-full" id="cbc" data-chunk-num="4">
+<article class="chunk chunk-figure width-full" id="cbc" data-chunk-num="5">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i></span>
   
   <h2 class="chunk-heading">Cipher Block Chaining, decryption</h2>
   <figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-57.92 -30.38 646.66 312.59" width="2000" height="967" data-live-viewbox="-57.92 -30.38 646.66 312.59" data-live-ratio="0.483392" data-steps="4" role="img" aria-label="Cipher Block Chaining, decryption" preserveAspectRatio="xMidYMid meet">
@@ -1100,16 +1117,16 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p>Jeder <code>step</code> ist ein Druck auf die Vorwärtstaste. Die Verkettungspfeile haben je einen Wegpunkt (<code>via</code>) – mehr Wegführung brauchen diese Bilder nie.</p>
+<p>Each <code>step</code> is one press of the forward key. The chaining arrows carry one waypoint each (<code>via</code>), which is as much routing as these figures ever need.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="ctr" data-chunk-num="5">
+<article class="chunk chunk-figure width-full" id="ctr" data-chunk-num="6">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i></span>
   
   <h2 class="chunk-heading">Counter mode, encryption</h2>
   <figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-104.68 -30.38 588.92 355.35" width="2000" height="1207" data-live-viewbox="-104.68 -30.38 588.92 355.35" data-live-ratio="0.603393" data-steps="4" role="img" aria-label="Counter mode, encryption" preserveAspectRatio="xMidYMid meet">
@@ -1158,7 +1175,7 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong>Die geteilten Kästen sind zwei Kästen mit <code>gap 0</code>.</strong> IV und Zähler tragen verschiedene Tönungen und stehen bündig aneinander; <code>between iv0,n0 offset 0,1.35</code> setzt die <code>Enc</code>-Box unter die Mitte des Paares, statt sie gegen einen der beiden zu schätzen. Die zwölf Pfeile im unteren Teil tragen weder <code>@tag</code> noch <code>show</code>: <strong>eine Kante ist nur so sichtbar wie ihre beiden Enden</strong>, also kommt jede von selbst in dem Schritt, in dem ihr zweiter Endpunkt erscheint.</p>
+<p><strong>The split boxes are two boxes with <code>gap 0</code>.</strong> IV and counter carry different tones and sit flush against each other; <code>between iv0,n0 offset 0,1.35</code> puts the <code>Enc</code> box under the middle of the pair instead of guessing it against one of the two. The twelve arrows in the lower half carry neither <code>@tag</code> nor <code>show</code>: <strong>an edge is only as visible as its two ends</strong>, so each arrives by itself in the step where its second endpoint does.</p>
 
   
   
@@ -1170,9 +1187,9 @@ build time, and stepped with the same key that advances a reveal.</p>
   <h1 class="column-heading">Identity and authentication</h1>
   
   
-<article class="chunk chunk-figure width-full" id="lifecycle" data-chunk-num="6">
+<article class="chunk chunk-figure width-full" id="lifecycle" data-chunk-num="7">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i></span>
   
   <h2 class="chunk-heading">Identity lifecycle</h2>
   <figure class="figure-diagram"><svg id="dg5-root" class="psi-diagram" viewBox="-113.20 -30.38 849.60 434.85" width="2000" height="1024" data-live-viewbox="-113.20 -30.38 849.60 434.85" data-live-ratio="0.511832" data-steps="4" role="img" aria-label="Identity lifecycle" preserveAspectRatio="xMidYMid meet">
@@ -1204,16 +1221,16 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong>Ohne <code>align y middle</code> driften die beiden Spalten auseinander.</strong> Sie sind getrennte <code>below</code>-Ketten, und die Bildunterschriften sind mal ein-, mal zweizeilig – drei <code>align</code>-Zeilen halten die Reihen bündig.</p>
+<p><strong>Without <code>align y middle</code> the two columns drift apart.</strong> They are separate <code>below</code> chains, and the captions run to one line or to two; three <code>align</code> lines hold the rows level.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="mac" data-chunk-num="7">
+<article class="chunk chunk-figure width-full" id="mac" data-chunk-num="8">
   
-  <span class="chunk-num" aria-hidden="true"><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Message authentication</span> <span class="hd-sub">it is not about confidentiality</span></h2>
   <figure class="figure-diagram"><svg id="dg6-root" class="psi-diagram" viewBox="-80.70 -97.50 707.40 261.90" width="2000" height="740" data-live-viewbox="-80.70 -97.50 707.40 261.90" data-live-ratio="0.370229" data-steps="3" role="img" aria-label="Message authentication" preserveAspectRatio="xMidYMid meet">
@@ -1281,7 +1298,7 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong>Die Avatare sind Vektorgrafiken und folgen dem Theme.</strong> <code>image alice avatar-alice</code> sucht die Datei in <code>assets/</code>, genau wie <code>![](fig-id)</code>; eine SVG-Datei wird als verschachteltes <code>&lt;svg&gt;</code> eingesetzt und erbt <code>--ink</code> und <code>--paper</code>. Die beiden Angriffspfeile setzen bei <code>eve.right:0.28</code> und <code>:0.72</code> an: Der Bruchteil hinter dem Doppelpunkt schiebt den Ansatzpunkt an der Kante entlang, und so laufen die beiden parallel, statt übereinanderzuliegen.</p>
+<p><strong>The avatars are vector drawings and follow the theme.</strong> <code>image alice avatar-alice</code> finds the file in <code>assets/</code> exactly as <code>![](fig-id)</code> does; an SVG file is spliced in as a nested <code>&lt;svg&gt;</code> and inherits <code>--ink</code> and <code>--paper</code>. The two attack arrows start at <code>eve.right:0.28</code> and <code>:0.72</code>: the fraction after the colon slides the attachment point along that side, so the two run parallel instead of on top of each other.</p>
 
   
   
@@ -1293,9 +1310,9 @@ build time, and stepped with the same key that advances a reveal.</p>
   <h1 class="column-heading">The vocabulary</h1>
   
   
-<article class="chunk chunk-figure width-wide" id="primitives" data-chunk-num="8">
+<article class="chunk chunk-figure width-wide" id="primitives" data-chunk-num="9">
   
-  <span class="chunk-num" aria-hidden="true"><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i></span>
   
   <h2 class="chunk-heading">The pieces</h2>
   <figure class="figure-diagram"><svg id="dg7-root" class="psi-diagram" viewBox="-50.35 -32.75 468.16 152.61" width="2000" height="652" data-steps="1" role="img" aria-label="The pieces" preserveAspectRatio="xMidYMid meet">
@@ -1305,23 +1322,23 @@ build time, and stepped with the same key that advances a reveal.</p>
 <g id="dg7-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg7-edge-3--p" class="dg-stroke" d="M145.25 18.38L145.25 71.53" fill="none"/><path id="dg7-edge-3--h" class="dg-head" d="M145.25 79.18L141.29 70.18L149.21 70.18Z"/></g>
 <g id="dg7-a" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg7-a--r" x="-38.35" y="-18.38" width="76.70" height="36.75" rx="4"/><g id="dg7-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg7-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sender</tspan></text></g></g></g>
 <g id="dg7-b" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg7-b--r" x="118.15" y="-18.38" width="54.20" height="36.75" rx="4"/><g id="dg7-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(145.25,0.00)"><g id="dg7-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Mix</tspan></text></g></g></g>
-<g id="dg7-c" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg7-c--r" x="252.15" y="-18.38" width="107.15" height="36.75" rx="4"/><g id="dg7-c--lw0" data-lab="c--l" class="dg-lwrap" transform="translate(305.73,0.00)"><g id="dg7-c--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Empfänger</tspan></text></g></g></g>
+<g id="dg7-c" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg7-c--r" x="252.15" y="-18.38" width="90.65" height="36.75" rx="4"/><g id="dg7-c--lw0" data-lab="c--l" class="dg-lwrap" transform="translate(297.48,0.00)"><g id="dg7-c--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Receiver</tspan></text></g></g></g>
 <g id="dg7-x" data-base="dg-el dg-dot" class="dg-el dg-dot"><circle id="dg7-x--c" cx="145.25" cy="92.86" r="13.68"/><g id="dg7-x--lw0" data-lab="x--l" class="dg-lwrap" transform="translate(145.25,92.86)"><g id="dg7-x--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">+</tspan></text></g></g></g>
 <g id="dg7-n" data-base="dg-el dg-text" class="dg-el dg-text muted small left"><g id="dg7-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(269.13,92.86)"><g id="dg7-n--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">a free label, placed</tspan><tspan x="0" y="11.58">wherever it reads best</tspan></text></g></g></g>
 </svg></figure>
 
 
-<p><code>box</code>, <code>dot</code>, <code>text</code>, <code>image</code>, <code>edge</code>, <code>brace</code>, <code>container</code>, <code>bars</code>, <code>grid</code>, <code>plot</code>, <code>table</code>, <code>lanes</code>, <code>sequence</code>, <code>align</code>, <code>spread</code>, <code>default</code>, <code>step</code> – siebzehn Anweisungen, mehr nicht. Ein <code>text</code> bekommt mit <code>-- x</code> eine kurze Linie zu dem, worüber er spricht – einen Hinweisstrich, keinen Pfeil: ein Pfeil behauptet eine Verbindung, ein Strich sagt nur, worum es geht.</p>
-<p><strong>Alles darin ist in Rastereinheiten gemessen, auch das, was keine Beschriftung hat.</strong> Der <code>dot</code> in der Mitte hat kein <code>r</code> und hat deshalb einen <em>Radius</em> von 0.18 Einheiten – also 0.36 quer –, keine feste Pixelzahl. Der Unterschied fällt erst auf, wenn ein Block sein <code>unit=</code> ändert: Eine Pixelangabe bliebe liegen, während alle Kästen um sie herum größer werden.</p>
+<p><code>box</code>, <code>dot</code>, <code>text</code>, <code>image</code>, <code>edge</code>, <code>brace</code>, <code>container</code>, <code>bars</code>, <code>grid</code>, <code>plot</code>, <code>table</code>, <code>lanes</code>, <code>sequence</code>, <code>align</code>, <code>spread</code>, <code>default</code>, <code>step</code> – seventeen statements, and no more. <code>-- x</code> on a <code>text</code> draws a short line to what it is about: a leader, not an arrow. An arrow claims a connection, a leader only says what the note refers to.</p>
+<p><strong>Everything in it is measured in grid units, including what carries no label.</strong> The <code>dot</code> in the middle has no <code>r</code> and so has a <em>radius</em> of 0.18 units – 0.36 across – rather than a fixed number of pixels. The difference shows the moment a block changes its <code>unit=</code>: a pixel figure would stay where it was while every box around it grew.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-wide" id="alignment" data-chunk-num="9">
+<article class="chunk chunk-figure width-wide" id="alignment" data-chunk-num="10">
   
-  <span class="chunk-num" aria-hidden="true"><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>0</i></span>
   
   <h2 class="chunk-heading">Alignment</h2>
   <figure class="figure-diagram"><svg id="dg8-root" class="psi-diagram" viewBox="-151.00 -32.75 770.35 186.50" width="2000" height="484" data-steps="1" role="img" aria-label="Alignment" preserveAspectRatio="xMidYMid meet">
@@ -1337,16 +1354,16 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg></figure>
 
 
-<p><strong>Die beiden Reihen zeigen zwei verschiedene Arten von gleichmäßig.</strong> Oben sind die <em>Kantenabstände</em> gleich – das gibt schon eine Kette aus <code>right of … gap n</code> her. Unten sind die <em>Mittelpunktabstände</em> gleich: <code>spread x</code> verteilt die inneren Elemente zwischen dem ersten und dem letzten, und weil der zweite Kasten viel breiter ist als seine Nachbarn, sind die Lücken links und rechts von ihm sichtbar kleiner. Der Pfeil links oben hat einen Endpunkt ohne Objekt – eine Koordinate statt eines unsichtbaren Ankers.</p>
+<p><strong>The two rows show two different kinds of even.</strong> In the top row the <em>gaps between edges</em> are equal, which a chain of <code>right of … gap n</code> already gives you. In the bottom row the <em>distances between centres</em> are equal: <code>spread x</code> distributes the inner elements between the first and the last, and because the second box is much wider than its neighbours the gaps either side of it are visibly smaller. The arrow at the top left has an endpoint with no object behind it – a coordinate instead of an invisible anchor.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-wide" id="grouping" data-chunk-num="10">
+<article class="chunk chunk-figure width-wide" id="grouping" data-chunk-num="11">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>1</i></span>
   
   <h2 class="chunk-heading">Containers and braces</h2>
   <figure class="figure-diagram"><svg id="dg9-root" class="psi-diagram" viewBox="-139.38 -85.05 326.94 304.44" width="2000" height="1862" data-steps="1" role="img" aria-label="Containers and braces" preserveAspectRatio="xMidYMid meet">
@@ -1361,18 +1378,18 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg></figure>
 
 
-<p>Ein <code>container</code> legt sich um seine Mitglieder und passt sich neu an, wenn sie sich bewegen. Eine <code>brace</code> überspannt eine Teilmenge und hängt ihr Label nach außen. Beide messen ihren Abstand zum Inhalt mit demselben Wort, <code>pad</code> – die Klammer bekommt hier <code>0.62</code>, damit sie außerhalb der <code>0.42</code> des Containers zu liegen kommt.</p>
-<p><strong>Genau deshalb sind Schwimmbahnen kein <code>container</code>.</strong> Ein Container misst sich an dem, was er hält; drei Bahnen, in denen verschieden viele Dinge liegen, kommen so an beiden Enden verschieden lang heraus. Ein Schwimmbahn-Diagramm behauptet aber das Gegenteil: Die Bänder sind gleich lang, und ungleich ist nur, was darin passiert. Dafür ist <code>lanes</code> da – gleich breite Bänder, die von ihrem Inhalt nichts wissen wollen. Die Figur dazu steht weiter unten unter <em>Three roles, one incident</em>.</p>
-<p><strong><code>.turn</code> gilt für jede Beschriftung, nicht nur für die eines Kastens.</strong> Die linke Klammer liest von unten nach oben, und dieselbe Klasse tut dasselbe an einer Container-Überschrift und an einem Kantenlabel – an allen vier Stellen also, an denen überhaupt eine Beschriftung gesetzt wird.</p>
+<p>A <code>container</code> lays itself around its members and re-fits when they move. A <code>brace</code> spans a subset and hangs its label outside. Both measure their distance to their contents with the same word, <code>pad</code> – the brace is given <code>0.62</code> here so that it comes to lie outside the container&#39;s <code>0.42</code>.</p>
+<p><strong>Swimlanes are not a <code>container</code>, and that is why.</strong> A container measures itself against what it holds, so three lanes holding different numbers of things come out different lengths at both ends. A swimlane diagram says the opposite: the bands are equal, and only what happens inside them differs. <code>lanes</code> is for that – bands of equal width that want to know nothing about their contents. The figure is further down, under <em>Three roles, one incident</em>.</p>
+<p><strong><code>.turn</code> applies to every label, not only to a box&#39;s.</strong> The left brace reads bottom to top, and the same class does the same thing on a container caption and on an edge label – at all four places, that is, where a label is set at all.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="look" data-chunk-num="11">
+<article class="chunk chunk-figure width-full" id="look" data-chunk-num="12">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>2</i></span>
   
   <h2 class="chunk-heading">The look of a thing</h2>
   <figure class="figure-diagram"><svg id="dg10-root" class="psi-diagram" viewBox="-211.30 -27.54 943.10 432.48" width="2000" height="917" data-steps="1" role="img" aria-label="The look of a thing" preserveAspectRatio="xMidYMid meet">
@@ -1419,30 +1436,30 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg></figure>
 
 
-<p><strong>Der experimentelle, für Desktop-Bildschirme gedachte Editor zeigt genau diese Reihen in seiner Seitenleiste.</strong> Er ist umfangreich automatisiert getestet, aber noch nicht breit von Menschen erprobt. Die Klassen sind eine geschlossene Aufzählung, keine freien Farben – jede Füllung mischt sich aus <code>--emph</code> und <code>--ink</code> über <code>--paper</code> und überlebt damit alle sieben Themes.</p>
-<p><strong><code>.paper</code> in der oberen Reihe sieht wirkungslos aus und ist es nicht.</strong> Es ist zwar die Voreinstellung einer Box, aber unter einem <code>default box {.tone-3}</code> findet eine Box ohne diese Klasse nicht mehr dorthin zurück, und ein freier <code>text</code> bekommt ohne sie überhaupt keinen Hintergrund – der ist es, der die Linie hinter einer Beschriftung ausstanzt.</p>
-<p><strong>Die untere Reihe sind die fünf Umrisse, die kein Rechteck sind, und <code>.turn</code>.</strong> Sie teilen sich einen Slot mit <code>.round</code> und <code>.sharp</code> – eine Gruppe von Klassen, von denen immer nur eine gelten kann –, weil ein Sechseck keinen Eckenradius hat, über den sich streiten ließe; gezeichnet werden dieselben vier Zahlen wie bei einem Rechteck, nur zu einem anderen Pfad verbunden. <code>.turn</code> liest die Beschriftung von unten nach oben; ein hoher schmaler Kasten hat für ein Wort nur längs Platz, und die Alternative ist ein Buchstabe pro Zeile.</p>
-<p><strong>Ein <code>.cross</code> ohne eigenes <code>w</code> kommt quadratisch heraus, auch unter einer Blockvoreinstellung.</strong> Ein Pluszeichen mit zwei verschieden langen Armen ist keines: Ohne diese Ausnahme bekäme das Kreuz die Mindestbreite, die eine Zeile Schrift verlangt, und käme damit auf 66 mal 37 Pixel – eine gedehnte Form statt eines Zeichens. Das <code>default box … w 0.62</code> dieser Reihe gilt für die Rechtecke darin, und ein Kreuz ist keines, also geht es daran vorbei – dieselbe Ausnahme, die <code>bars</code> beim Umriss macht. Ein auf der eigenen Zeile ausgeschriebenes <code>w</code> gewinnt weiterhin, denn das ist eine Aussage über dieses eine Element.</p>
-<p><strong><code>.diamond</code> ist der eine Umriss, der beide Achsen frisst.</strong> Der breiteste Platz, den eine Raute anbietet, ist ein Streifen von halber Breite und halber Höhe durch ihre Mitte – der Build bemisst sie deshalb auf das Doppelte dessen, was ein Rechteck für dieselbe Zeichenkette bräuchte, und zwar in beiden Richtungen. Ein Satz in einer Raute kommt damit auf die vierfache Fläche der Kästen daneben und nimmt das Bild ein; zwei, drei Wörter sind das Maß, und die Erläuterung gehört in eine Notiz nebenan. Die Raute in dieser Reihe trägt aus demselben Grund gar keine Beschriftung – die beschriftete steht im Flussdiagramm weiter unten. <code>.hex</code> sagt „hier wird gefragt“ ebenfalls; die Raute sagt darüber hinaus, dass es auf zwei Arten weitergeht, und darauf ist ein Raum seit der Schule trainiert.</p>
-<p><strong>Wohin ein Umriss zeigt, sagt die Option <code>point</code>, nicht der Klassenname.</strong> <code>{.chevron} point left</code> statt einer eigenen Klasse <code>.chevron-left</code>: ein Chevron nach oben ist dieselbe Form, anders ausgerichtet, und für jede Form mal jede Richtung ein Wort würde die geschlossene Liste vervierfachen. <code>point</code> gilt für <code>.chevron</code> und <code>.wedge</code>; auf einer Form ohne Spitze lehnt der Build es ab, statt es zu überlesen.</p>
-<p><strong>Die letzte Reihe ist der eine Kanal, den die Sprache an drei Stellen buchstabiert – und an allen dreien gleich.</strong> <code>.emph</code>, <code>.dim</code> und <code>.ghost</code> sind Klassen auf der Zeile eines Elements; sie sind die Verben, die ein <code>step</code> dafür hat (<code>dim a, b</code>); und auf einer <code>bars</code>-Zeile nennen dieselben drei Wörter Spaltennummern. Wer eine der drei Formen kennt, kennt alle drei. Der vierte Zustand – ganz gewöhnliche Prominenz – hat absichtlich keinen Namen: <code>{!dim}</code> nimmt die Klasse ab, statt eine vierte hinzuzufügen, und das gilt für jede Klasse und in jedem Tail.</p>
-<p><strong><code>p5</code> trägt <code>@prom</code> und damit die Voreinstellung <code>default box @prom {.dim}</code> – und <code>{!dim}</code> daneben.</strong> Ohne diese Marke gäbe es keinen Weg zurück: ein <code>style</code>-Schritt konnte eine Klasse immer nur <em>hinzufügen</em>, und viele Slots buchstabieren ihren Grundzustand als die Abwesenheit aller Mitglieder. Ein Takt konnte einen solchen Zustand also verlassen und nie wieder erreichen.</p>
-<p><strong>Was auf der Zeile steht, steht auch im Handout; was in einem <code>step</code> steht, nicht.</strong> Das ist die ganze Regel, und sie ist der Quelle anzusehen: Prominenz auf der eigenen Zeile beschreibt die Zeichnung, Prominenz in einem Takt ist eine Handlung im Vortrag. Der Druck nimmt sie deshalb aus dem Eröffnungstakt und nicht aus dem letzten.</p>
-<p><strong>Wenn Schrift und Kasten nicht zusammenpassen, gibt es drei Antworten.</strong> Ohne <code>w</code> wächst der Kasten zur Schrift. Bei festem <code>w</code> verkleinert <code>.shrink</code> die Schrift, bis sie hineinpasst, und <code>.fit</code> füllt den Kasten in beide Richtungen aus, begrenzt auf 0.6–1.5× der Grundgröße. Weil die Textbreite beim Bauen nur <em>geschätzt</em> wird – einen Browser gibt es dabei nicht –, fällt die gewählte Größe eine Spur zu klein aus. Das ist die sichere Richtung.</p>
-<p><strong>Der erste Kasten läuft absichtlich über, und der Build sagt das auch:</strong> <code>box g1 is 1.2 units wide but its label needs about 1.64</code>. Das ist die Antwort, die man nicht will: ein festes <code>w</code>, das für die Beschriftung zu klein ist, und weder <code>.shrink</code> noch <code>.fit</code>. Es ist die eine Warnung, mit der diese Vorlesung baut.</p>
+<p><strong>The editor&#39;s sidebar shows exactly these rows.</strong> It is experimental and made for a desktop-sized screen: heavily covered by automated tests, not yet widely tried by people. The classes are a closed list rather than free colours – every fill is mixed from <code>--emph</code> and <code>--ink</code> over <code>--paper</code>, so it survives all seven themes.</p>
+<p><strong><code>.paper</code> in the top row looks inert and is not.</strong> It is a box&#39;s default, but under a <code>default box {.tone-3}</code> a box without the class cannot find its way back, and a free <code>text</code> gets no background at all without it – that background is what knocks a line out behind a label.</p>
+<p><strong>The bottom row is the five outlines that are not rectangles, plus <code>.turn</code>.</strong> They share a slot with <code>.round</code> and <code>.sharp</code> – a group from which only one class can hold at a time – because a hexagon has no corner radius to argue about. The same four numbers are drawn as for a rectangle, joined into a different path. <code>.turn</code> reads the label bottom to top: a tall narrow box has room for a word only along its length, and the alternative is one letter per line.</p>
+<p><strong>A <code>.cross</code> with no <code>w</code> of its own comes out square, block default or not.</strong> A plus with arms of two different lengths is not a plus. Without the exception the cross would take the minimum width one line of type needs and arrive at 66 by 37 pixels, a stretched shape instead of a sign. The row&#39;s <code>default box … w 0.62</code> applies to the rectangles in it, and a cross is not one, so it passes by – the same exception <code>bars</code> makes for outlines. A <code>w</code> written on the element&#39;s own line still wins, that being a statement about this one element.</p>
+<p><strong><code>.diamond</code> is the one outline that eats both axes.</strong> The widest room a diamond offers is a strip half its width by half its height through the middle, so the build sizes it at twice what a rectangle would need for the same string, in both directions. A sentence in a diamond therefore takes four times the area of the boxes beside it and swallows the figure; two or three words is the measure, and the explanation belongs in a note next to it. The diamond in this row carries no label for the same reason – the labelled one is in the flowchart further down. <code>.hex</code> also says <em>a question is asked here</em>; the diamond says on top of that that it goes on in two ways, which a room has been trained on since school.</p>
+<p><strong>Which way an outline aims is the <code>point</code> option, not the class name.</strong> <code>{.chevron} point left</code> rather than a class <code>.chevron-left</code>: a chevron aimed up is the same shape aimed differently, and a word for every shape times every direction would quadruple the closed list. <code>point</code> applies to <code>.chevron</code> and <code>.wedge</code>; on a shape with no point the build refuses it instead of reading past it.</p>
+<p><strong>The last row is the one channel the language spells in three places, and spells the same way in all three.</strong> <code>.emph</code>, <code>.dim</code> and <code>.ghost</code> are classes on an element&#39;s own line; they are the verbs a <code>step</code> has for them (<code>dim a, b</code>); and on a <code>bars</code> line the same three words name column numbers. Learn one form and you have all three. The fourth state – ordinary prominence – deliberately has no name: <code>{!dim}</code> takes the class off instead of adding a fourth, and that holds for every class and in every tail.</p>
+<p><strong><code>p5</code> carries <code>@prom</code>, and so the default <code>default box @prom {.dim}</code> – and <code>{!dim}</code> beside it.</strong> Without that mark there is no way back: a <code>style</code> step could only ever <em>add</em> a class, and many slots spell their base state as the absence of every member, so a beat could leave such a state and never reach it again.</p>
+<p><strong>What is written on the line is in the handout; what is written in a <code>step</code> is not.</strong> That is the whole rule, and it reads off the source: prominence on an element&#39;s own line describes the drawing, prominence in a beat is an act performed in the talk. Print therefore takes it from the opening beat rather than the last.</p>
+<p><strong>When type and box do not match, there are three answers.</strong> With no <code>w</code> the box grows to the type. With a fixed <code>w</code>, <code>.shrink</code> shrinks the type until it fits and <code>.fit</code> fills the box in both directions, bounded to 0.6–1.5× the base size. Text width is <em>estimated</em> at build time – there is no browser – so the size chosen comes out a shade too small, which is the safe direction.</p>
+<p><strong>The first box overflows on purpose, and the build says so:</strong> <code>box g1 is 1.2 units wide but its label needs about 1.64</code>. That is the answer nobody wants: a fixed <code>w</code> too small for the label, and neither <code>.shrink</code> nor <code>.fit</code>. It is the one warning this lecture builds with.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-wide" id="motion" data-chunk-num="12">
+<article class="chunk chunk-figure width-wide" id="motion" data-chunk-num="13">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></span>
   
   <h2 class="chunk-heading">Steps that move</h2>
   <figure class="figure-diagram"><svg id="dg11-root" class="psi-diagram" viewBox="-100.88 -77.61 737.36 173.98" width="2000" height="472" data-live-viewbox="-100.88 -77.61 737.36 286.33" data-live-ratio="0.388318" data-steps="4" role="img" aria-label="Steps that move" preserveAspectRatio="xMidYMid meet">
-<g id="dg11-zone" data-base="dg-el dg-container" class="dg-el dg-container bare tone-2"><rect id="dg11-zone--r" x="-88.88" y="-65.61" width="713.36" height="108.46" rx="4"/><g id="dg11-zone--lw0" data-lab="zone--l" class="dg-lwrap" transform="translate(-78.88,-53.23)"><g id="dg11-zone--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">auf dem Weg</tspan></text></g></g></g>
+<g id="dg11-zone" data-base="dg-el dg-container" class="dg-el dg-container bare tone-2"><rect id="dg11-zone--r" x="-88.88" y="-65.61" width="713.36" height="108.46" rx="4"/><g id="dg11-zone--lw0" data-lab="zone--l" class="dg-lwrap" transform="translate(-78.88,-53.23)"><g id="dg11-zone--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">on the path</tspan></text></g></g></g>
 <g id="dg11-direct" data-base="dg-el dg-edge" class="dg-el dg-edge both-heads"><path id="dg11-direct--p" class="dg-stroke" d="M72.05 0.00L463.55 0.00" fill="none"/><path id="dg11-direct--h" class="dg-head" d="M471.20 0.00L462.20 3.96L462.20 -3.96Z"/><path id="dg11-direct--h2" class="dg-head" d="M64.40 0.00L73.40 -3.96L73.40 3.96Z"/><g id="dg11-direct--lw0" data-lab="direct--l" class="dg-lwrap" transform="translate(267.80,-11.38)"><g id="dg11-direct--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">HTTP</tspan></text></g></g></g>
 <g id="dg11-up" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg11-up--p" class="dg-stroke" d="M64.40 0.00L195.75 0.00" fill="none"/><path id="dg11-up--h" class="dg-head" d="M203.40 0.00L194.40 3.96L194.40 -3.96Z"/></g>
 <g id="dg11-down" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg11-down--p" class="dg-stroke" d="M332.20 0.00L463.55 0.00" fill="none"/><path id="dg11-down--h" class="dg-head" d="M471.20 0.00L462.20 3.96L462.20 -3.96Z"/></g>
@@ -1450,26 +1467,26 @@ build time, and stepped with the same key that advances a reveal.</p>
 <g id="dg11-cl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg11-cl--r" x="-64.40" y="-18.38" width="128.80" height="36.75" rx="4"/><g id="dg11-cl--lw0" data-lab="cl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg11-cl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Client</tspan></text></g></g></g>
 <g id="dg11-sv" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg11-sv--r" x="471.20" y="-18.38" width="128.80" height="36.75" rx="4"/><g id="dg11-sv--lw0" data-lab="sv--l" class="dg-lwrap" transform="translate(535.60,0.00)"><g id="dg11-sv--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Server</tspan></text></g></g></g>
 <g id="dg11-px" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg11-px--r" x="203.40" y="-18.38" width="128.80" height="36.75" rx="4"/><g id="dg11-px--lw0" data-lab="px--l" class="dg-lwrap" transform="translate(267.80,0.00)"><g id="dg11-px--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Proxy</tspan></text></g></g></g>
-<g id="dg11-note" data-base="dg-el dg-text" class="dg-el dg-text hand small"><g id="dg11-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(267.80,69.38)"><g id="dg11-note--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="-3.42">der Kasten wandert,</tspan><tspan x="0" y="11.58">die Pfeile folgen</tspan></text></g></g></g>
+<g id="dg11-note" data-base="dg-el dg-text" class="dg-el dg-text hand small"><g id="dg11-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(267.80,69.38)"><g id="dg11-note--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="-3.42">the box walks,</tspan><tspan x="0" y="11.58">the arrows follow</tspan></text></g></g></g>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong><code>move</code> verschiebt ein Element, und alles, was daran hängt, geht mit.</strong> Der Proxy bekommt <code>move px to between cl,sv</code>, und weil das Layout pro Schritt neu ausgewertet wird, hängen die beiden gestrichelten Pfeile weiterhin an ihm, die kurze Linie am Label zeigt weiter auf ihn, und der <code>container</code> fasst plötzlich eine Reihe statt zwei. <code>hide direct</code> nimmt den direkten Pfeil weg. <code>to</code> setzt eine Position, <code>by</code> verschiebt um einen Betrag – und <strong>ein <code>move @tag to …</code> lehnt der Build ab</strong>, weil es die ganze Menge auf einen Punkt legen würde; für eine Menge ist <code>by</code> gemeint.</p>
-<p><strong>Ein Takt kann eine Klasse auch wieder abnehmen, und <code>{!klasse}</code> ist das einzige Wort dafür.</strong> Ein <code>style</code>-Schritt konnte lange nur <em>hinzufügen</em>, und weil viele Slots ihren Grundzustand als die Abwesenheit aller Mitglieder buchstabieren – gewöhnliche Prominenz, ein durchgezogener Strich, die normale Schriftgröße –, konnte ein Takt einen solchen Zustand verlassen und nie wieder erreichen. Der letzte Takt hier nimmt <code>.dim</code> und <code>.emph</code> ab und gibt dem Bild seine Ausgangsgewichtung zurück. Die Marke nimmt <strong>genau den genannten Namen</strong> weg, nicht den Slot: <code>{!dim}</code> räumt kein <code>.ghost</code> weg, und ein späterer Takt darf <code>.dim</code> erneut setzen.</p>
-<p><strong>Was an etwas Unsichtbarem hängt, bleibt selbst unsichtbar.</strong> Weder der <code>container</code> noch die gestrichelten Pfeile noch das handschriftliche Label brauchen deshalb ein eigenes <code>show</code>: Ein Pfeil ist nur so sichtbar wie seine Enden, ein <code>container</code> nur so sichtbar wie seine Mitglieder, und ein <code>text</code> mit einer Linie nur so sichtbar wie das, worauf er zeigt. Der erste Schritt sagt <code>show px</code> und nichts weiter – die beiden gestrichelten Pfeile kommen mit dem Proxy von selbst.</p>
-<p><strong>Wer ein Element beim Namen nennt, setzt diese Regel außer Kraft, und zwar in beide Richtungen.</strong> <code>hide direct</code> nimmt den direkten Pfeil weg, obwohl beide Enden weiter dastehen; ein ausgeschriebenes <code>show</code> holt umgekehrt etwas auf den Schirm, dessen Quelle noch fehlt – ein Umriss etwa, der um seine ganze Menge stehen soll, bevor die Menge beisammen ist (die Figur dazu ist der Baum unter <em>Leaves first, and the brackets follow</em>). Beides gilt ab dem Takt, in dem es steht, und für jeden danach. Ausgeschrieben gehört es nur dorthin, wo die Regel das Falsche sagt. Wer auf jedes Element ein <code>show</code> schreibt, hat eine Figur, die beim nächsten ergänzten Element unvollständig bleibt: Das Element steht im Block, kein Schritt nennt es, und es erscheint nie.</p>
+<p><strong><code>move</code> shifts an element, and everything hanging off it goes too.</strong> The proxy gets <code>move px to between cl,sv</code>, and because the layout is worked out again at every step, the two dashed arrows still hang off it, the short line on the label still points at it, and the <code>container</code> suddenly holds a row instead of two. <code>hide direct</code> takes the direct arrow away. <code>to</code> names a position and <code>by</code> shifts by an amount – and <strong>the build refuses <code>move @tag to …</code></strong>, which would stack the whole set on one point; for a set, <code>by</code> is what is meant.</p>
+<p><strong>A beat can also take a class off, and <code>{!class}</code> is the only word for it.</strong> A <code>style</code> step could once only <em>add</em>, and because many slots spell their base state as the absence of every member – ordinary prominence, a solid stroke, the normal type size – a beat could leave such a state and never reach it again. The last beat here takes <code>.dim</code> and <code>.emph</code> off and gives the figure its opening weighting back. The mark removes <strong>the exact name written</strong>, not the slot: <code>{!dim}</code> clears no <code>.ghost</code>, and a later beat may set <code>.dim</code> again.</p>
+<p><strong>Anything hanging off something invisible stays invisible.</strong> So neither the <code>container</code> nor the dashed arrows nor the handwritten label needs a <code>show</code> of its own: an arrow is only as visible as its ends, a <code>container</code> only as visible as its members, and a <code>text</code> with a leader only as visible as what it points at. The first step says <code>show px</code> and nothing else – the two dashed arrows arrive with the proxy.</p>
+<p><strong>Naming an element overrides that rule, in both directions.</strong> <code>hide direct</code> takes the direct arrow away though both its ends are still there; a written <code>show</code> does the reverse and brings something on screen whose source is still missing – an outline, say, that should stand around its whole set before the set is assembled (the figure for that is the tree under <em>Leaves first, and the brackets follow</em>). Both hold from the beat they are written in onwards. Write one only where the rule says the wrong thing. Write a <code>show</code> on every element and you have a figure that stays incomplete the next time one is added: the element is in the block, no step names it, and it never appears.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-wide" id="justify" data-chunk-num="13">
+<article class="chunk chunk-figure width-wide" id="justify" data-chunk-num="14">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></span>
   
   <h2 class="chunk-heading">Where the words sit</h2>
-  <figure class="figure-diagram"><svg id="dg12-root" class="psi-diagram" viewBox="-56.14 -102.96 342.94 411.46" width="2000" height="2400" data-steps="1" role="img" aria-label="Where the words sit" preserveAspectRatio="xMidYMid meet">
+  <figure class="figure-diagram"><svg id="dg12-root" class="psi-diagram" viewBox="-53.80 -102.96 337.36 411.46" width="2000" height="2439" data-steps="1" role="img" aria-label="Where the words sit" preserveAspectRatio="xMidYMid meet">
 <g id="dg12-sa" data-base="dg-el dg-edge" class="dg-el dg-edge small muted one-head"><path id="dg12-sa--p" class="dg-stroke" d="M-41.58 -73.96L260.45 -73.96" fill="none"/><path id="dg12-sa--h" class="dg-head" d="M268.10 -73.96L259.10 -70.00L259.10 -77.92Z"/><g id="dg12-sa--lw0" data-lab="sa--l" class="dg-lwrap" transform="translate(113.26,-83.46)"><g id="dg12-sa--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">side top</tspan></text></g></g></g>
 <g id="dg12-sb" data-base="dg-el dg-edge" class="dg-el dg-edge small muted one-head"><path id="dg12-sb--p" class="dg-stroke" d="M-41.58 279.50L260.45 279.50" fill="none"/><path id="dg12-sb--h" class="dg-head" d="M268.10 279.50L259.10 283.46L259.10 275.54Z"/><g id="dg12-sb--lw0" data-lab="sb--l" class="dg-lwrap" transform="translate(113.26,289.00)"><g id="dg12-sb--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">side bottom</tspan></text></g></g></g>
 <g id="dg12-tl" data-base="dg-el dg-box" class="dg-el dg-box top left sharp"><rect id="dg12-tl--r" x="-41.58" y="-30.96" width="83.16" height="61.92" rx="4"/><g id="dg12-tl--lw0" data-lab="tl--l" class="dg-lwrap" transform="translate(-28.58,-3.21)"><g id="dg12-tl--l0" class="dg-lbl"><text text-anchor="start" font-size="15.00"><tspan x="0" y="-4.27">top</tspan><tspan x="0" y="14.48">left</tspan></text></g></g></g>
@@ -1481,23 +1498,23 @@ build time, and stepped with the same key that advances a reveal.</p>
 <g id="dg12-bl" data-base="dg-el dg-box" class="dg-el dg-box bottom left sharp"><rect id="dg12-bl--r" x="-41.58" y="135.88" width="83.16" height="61.92" rx="4"/><g id="dg12-bl--lw0" data-lab="bl--l" class="dg-lwrap" transform="translate(-28.58,170.05)"><g id="dg12-bl--l0" class="dg-lbl"><text text-anchor="start" font-size="15.00"><tspan x="0" y="-4.27">bottom</tspan><tspan x="0" y="14.48">left</tspan></text></g></g></g>
 <g id="dg12-bc" data-base="dg-el dg-box" class="dg-el dg-box bottom sharp"><rect id="dg12-bc--r" x="71.68" y="135.88" width="83.16" height="61.92" rx="4"/><g id="dg12-bc--lw0" data-lab="bc--l" class="dg-lwrap" transform="translate(113.26,179.42)"><g id="dg12-bc--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">bottom</tspan></text></g></g></g>
 <g id="dg12-br" data-base="dg-el dg-box" class="dg-el dg-box bottom right sharp"><rect id="dg12-br--r" x="184.94" y="135.88" width="83.16" height="61.92" rx="4"/><g id="dg12-br--lw0" data-lab="br--l" class="dg-lwrap" transform="translate(255.10,170.05)"><g id="dg12-br--l0" class="dg-lbl"><text text-anchor="end" font-size="15.00"><tspan x="0" y="-4.27">bottom</tspan><tspan x="0" y="14.48">right</tspan></text></g></g></g>
-<g id="dg12-fl" data-base="dg-el dg-text" class="dg-el dg-text left small paper"><rect id="dg12-fl--r" x="-44.14" y="214.60" width="88.28" height="33.00" rx="4"/><g id="dg12-fl--lw0" data-lab="fl--l" class="dg-lwrap" transform="translate(-31.14,231.10)"><g id="dg12-fl--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">frei, links</tspan></text></g></g></g>
-<g id="dg12-fr" data-base="dg-el dg-text" class="dg-el dg-text right small paper"><rect id="dg12-fr--r" x="178.24" y="214.60" width="96.56" height="33.00" rx="4"/><g id="dg12-fr--lw0" data-lab="fr--l" class="dg-lwrap" transform="translate(261.80,231.10)"><g id="dg12-fr--l0" class="dg-lbl"><text text-anchor="end" font-size="12.00"><tspan x="0" y="4.08">frei, rechts</tspan></text></g></g></g>
+<g id="dg12-fl" data-base="dg-el dg-text" class="dg-el dg-text left small paper"><rect id="dg12-fl--r" x="-41.80" y="214.60" width="83.60" height="33.00" rx="4"/><g id="dg12-fl--lw0" data-lab="fl--l" class="dg-lwrap" transform="translate(-28.80,231.10)"><g id="dg12-fl--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">free, left</tspan></text></g></g></g>
+<g id="dg12-fr" data-base="dg-el dg-text" class="dg-el dg-text right small paper"><rect id="dg12-fr--r" x="181.48" y="214.60" width="90.08" height="33.00" rx="4"/><g id="dg12-fr--lw0" data-lab="fr--l" class="dg-lwrap" transform="translate(258.56,231.10)"><g id="dg12-fr--l0" class="dg-lbl"><text text-anchor="end" font-size="12.00"><tspan x="0" y="4.08">free, right</tspan></text></g></g></g>
 </svg></figure>
 
 
-<p><strong><code>left</code> und <code>right</code> sagen, wo eine Zeile steht, <code>top</code> und <code>bottom</code>, wo der Block aus Zeilen steht.</strong> Gemessen wird gegen das <strong>Padding</strong>, nicht gegen den Rand – <code>left</code> heißt „so weit nach links, wie dieser Kasten es zulässt“. Ohne eines dieser Wörter sitzt die Beschriftung mittig, was für fast jeden Kasten richtig ist; die Wörter sind für die übrigen da, für einen hohen Kasten mit kurzer Beschriftung vor allem.</p>
-<p>Bei mehreren Zeilen bewegt sich der <strong>Block</strong>, nicht die einzelne Zeile. Deshalb setzt <code>bottom</code> bei zwei Zeilen die <em>letzte</em> auf die innere Kante und nicht die erste. <code>turn</code> schlägt beides: eine gedrehte Beschriftung liest von unten nach oben und ist auf ihrem Punkt zentriert, wie herum auch immer.</p>
-<p><strong>Die neun Felder oben sind zwei unabhängige Kanäle, die zwei Linien darum sind einer.</strong> Eine Kastenbeschriftung steht irgendwo in einem Rechteck aus Platz, also gibt es quer drei Antworten und längs drei; eine Kantenbeschriftung liegt auf der einen oder der anderen Seite ihrer Linie, und das ist alles. Dieselben vier Wörter für beides hieß, dass <code>{.top .left}</code> auf einer Kante schreibbar war, obwohl eine Kante nur eine Seite zu wählen hat. Auf der Kante heißt es deshalb <code>side &lt;wort&gt;</code>, nach demselben Muster wie <code>point</code> bei den Umrissen: eine geschlossene Wortliste als Option statt eine Klasse je Wort. Welches Paar überhaupt wählen kann, steht erst fest, wenn die Linie geroutet ist – wer das andere nennt, bekommt eine Warnung.</p>
+<p><strong><code>left</code> and <code>right</code> say where a line of words sits, <code>top</code> and <code>bottom</code> where the block of lines sits.</strong> Both are measured against the <strong>padding</strong>, not the border: <code>left</code> means as far left as this box allows. Without one of the four the label sits centred, which is right for almost every box; the words are there for the rest, above all for a tall box with a short label.</p>
+<p>With more than one line the <strong>block</strong> moves, not the single line, so on two lines <code>bottom</code> puts the <em>last</em> one on the inner edge rather than the first. <code>turn</code> beats both: a turned label reads bottom to top and is centred on its point whichever way round it goes.</p>
+<p><strong>The nine boxes above are two independent channels; the two lines around them are one.</strong> A box label sits somewhere in a rectangle of space, so there are three answers across and three down. An edge label lies on one side of its line or the other, and that is all. The same four words for both meant <code>{.top .left}</code> was writable on an edge, which has only one side to pick. On an edge it is therefore <code>side &lt;word&gt;</code>, the pattern <code>point</code> follows on the outlines: a closed word list as an option instead of a class per word. Which pair can choose at all is settled only once the line is routed, so naming the other one draws a warning.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="expand" data-chunk-num="14">
+<article class="chunk chunk-figure width-full" id="expand" data-chunk-num="15">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></span>
   
   <h2 class="chunk-heading">Six statements that expand</h2>
   <figure class="figure-diagram"><svg id="dg13-root" class="psi-diagram" viewBox="-192.00 -45.48 610.92 138.66" width="2000" height="454" data-live-viewbox="-192.00 -45.48 610.92 138.66" data-live-ratio="0.226961" data-steps="3" role="img" aria-label="Six statements that expand" preserveAspectRatio="xMidYMid meet">
@@ -1571,19 +1588,19 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong>Sechs Anweisungen erzeugen beim Parsen gewöhnliche Elemente.</strong> <code>bars</code> wird zu einer Box je Säule (<code>f-0</code> … <code>f-11</code>), einer Grundlinie und – wenn eine zweite Zeichenkette dasteht – einem Text je Beschriftung; <code>grid</code> zu einer Zelle je Feld (<code>g-&lt;spalte&gt;-&lt;zeile&gt;</code>); <code>plot</code> zu einem Rahmen mit Gitterlinien und Achsen, <code>table</code> zu einer Box je Zelle, <code>lanes</code> zu einem Band je Bahn, <code>sequence</code> zu einem Kopf, einer Lebenslinie, einer Nachricht und einer Notiz je Eintrag. Alles Weitere behandelt das Ergebnis wie jedes andere Element: Die <code>brace</code> überspannt drei Säulen, weil drei Säulen drei ganz normale Kästen sind, und ein <code>style</code>-Schritt färbt drei Zellen, weil es Kästen sind. Möglich ist das, weil eine Koordinate die eines anderen Elements sein darf – jede Zelle steht an der Kante des Rahmens, den dieselbe Anweisung anlegt. Die vier übrigen stehen weiter hinten: <code>plot</code> zwei Figuren später, <code>table</code>, <code>lanes</code> und <code>sequence</code> unter <em>Four arrangements</em>.</p>
-<p><strong>Auch eine Kante ist etwas, an dem sich eine Koordinate ablesen lässt.</strong> <code>w1.cx</code>, <code>w1.cy</code>, <code>above w1 gap 0.2</code>: Was dabei gelesen wird, ist der Hüllrahmen der Leitung. Das zählt, sobald ein Satz die Leitung beschreibt statt eines ihrer Enden. Am Kasten festgemacht hält so ein Satz seinen Abstand zum Kasten und verliert ihn zur Linie, sobald sich ein Bruchteil oder eine Höhe ändert – gewarnt wird dabei nicht. Eine Kante hat keinen Namen, bis man ihr einen gibt – und der steht, wie bei jeder anderen Anweisung, vorn: in dem Feld vor dem ersten Endpunkt, also <code>edge w1 mix -&gt; log</code>. Anonym bleiben kostet nichts, denn das Feld ist optional. Wer im Kreis herum platziert – ein Element gegen eine Kante, die selbst an ihm hängt –, bekommt <code>placement cycle</code> mit der Zeilennummer.</p>
-<p><strong><code>cell</code> zählt auf beiden Achsen in der Höhe einer Rastereinheit, genau wie <code>pad</code>.</strong> Ein Feld des <code>grid</code> soll quadratisch sein; eine Zahl, die quer die Breite und hoch die Höhe der Rastereinheit meinte, ergäbe Quadrate nur dort, wo die Einheit selbst quadratisch ist.</p>
-<p><strong>Der Abstand <em>innerhalb</em> dieser Anweisungen heißt <code>space</code>, nicht <code>gap</code>.</strong> Auf derselben Zeile steht eine Platzierung, und dort bedeutet <code>gap</code> den Abstand zu einem anderen Element. Der Abstand zwischen zwei Säulen ist etwas anderes und heißt deshalb anders.</p>
+<p><strong>Six statements expand at parse time into ordinary elements.</strong> <code>bars</code> becomes a box per column (<code>f-0</code> … <code>f-11</code>), a baseline and – where a second string is written – a text per label; <code>grid</code> a cell per field (<code>g-&lt;column&gt;-&lt;row&gt;</code>); <code>plot</code> a frame with gridlines and axes; <code>table</code> a box per cell; <code>lanes</code> a band per lane; <code>sequence</code> a head, a lifeline, a message and a note per entry. Everything downstream treats the result like any other element: the <code>brace</code> spans three columns because three columns are three ordinary boxes, and a <code>style</code> step tints three cells because they are boxes. What makes that work is that a coordinate may be another element&#39;s – every cell is placed against an edge of the frame the same statement lays. The other four are further on: <code>plot</code> two figures later, <code>table</code>, <code>lanes</code> and <code>sequence</code> under <em>Four arrangements</em>.</p>
+<p><strong>An edge is one of the things a coordinate can be read off.</strong> <code>w1.cx</code>, <code>w1.cy</code>, <code>above w1 gap 0.2</code> – what is read is the wire&#39;s bounding box. That counts as soon as a sentence describes the wire rather than one of its ends. Pinned to a box, such a sentence keeps its distance from the box and loses it from the line the moment a fraction or a height changes, with no warning. An edge has no name until you give it one, and the name goes in front, as it does on every other statement: in the slot before the first endpoint, <code>edge w1 mix -&gt; log</code>. Staying anonymous costs nothing, the slot being optional. Place in a circle – an element against an edge that itself hangs off it – and you get <code>placement cycle</code> with the line number.</p>
+<p><strong><code>cell</code> counts in the height of a grid unit on both axes, exactly as <code>pad</code> does.</strong> A <code>grid</code> cell is meant to be square, and a number meaning the unit&#39;s width across and its height down would give squares only where the unit is itself square.</p>
+<p><strong>The spacing <em>inside</em> these statements is <code>space</code>, not <code>gap</code>.</strong> A placement stands on the same line, and there <code>gap</code> means the distance to another element. The distance between two columns is a different thing and takes a different word.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="series" data-chunk-num="15">
+<article class="chunk chunk-figure width-full" id="series" data-chunk-num="16">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>6</i></span>
   
   <h2 class="chunk-heading">A second run of columns</h2>
   <figure class="figure-diagram"><svg id="dg14-root" class="psi-diagram" viewBox="-154.50 -82.54 818.00 178.34" width="2000" height="436" data-steps="1" role="img" aria-label="A second run of columns" preserveAspectRatio="xMidYMid meet">
@@ -1622,20 +1639,20 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg></figure>
 
 
-<p><strong><code>series of a</code> heißt: dieselben Spalten, ein zweiter Lauf.</strong> Die zweite <code>bars</code>-Zeile bekommt keinen Rahmen, keine Grundlinie und keine Beschriftungsleiste – die gehören alle dem Rahmen, dem sie beitritt, und wer sie trotzdem hinschreibt, bekommt einen Fehler. Eine Platzierung nimmt sie aus demselben Grund nicht an. Was sie mitbringt, sind ihre Werte, ihre Klassen und – wie jede andere <code>bars</code>-Zeile auch – die beiden Wörter, die Spalten schon vom ersten Takt an auszeichnen.</p>
-<p><strong>Der Unterschied zwischen den beiden Bildern ist ein Wort, und er ändert die Skala.</strong> Ohne <code>stacked</code> stellt sich der zweite Lauf <em>neben</em> den ersten, und die Zelle einer Spalte wird unter beiden aufgeteilt; mit <code>stacked</code> stellt er sich <em>darauf</em>, und der Maßstab ist nicht mehr der höchste Einzelwert, sondern der höchste Stapel. Rechts sind dieselben Zahlen deshalb flacher als links, obwohl kein Wert sich geändert hat. Welche der beiden Lesarten man will, ist eine inhaltliche Frage: nebeneinander vergleicht die Jahre, gestapelt zählt sie zusammen.</p>
-<p><strong><code>emph 3 dim 0</code> steht auf der Anweisung, nicht in einem Schritt.</strong> Q4 ist das, worum es geht, und Q1 wurde erst ab Februar gezählt – beides gilt, sobald das Bild da ist. Als Schritt geschrieben wäre das Erste, was der Raum sieht, vier gleichwertige Quartale, und die Aussage entstünde erst auf Tastendruck. Alle drei Prominenzwörter – <code>emph</code>, <code>dim</code>, <code>ghost</code> – nehmen hier Spaltennummern, ab 0 gezählt; eine Nummer, für die es keine Säule gibt, lehnt der Build ab. Es sind dieselben drei, die auf einer Elementzeile Klassen sind und in einem Takt Verben.</p>
+<p><strong><code>series of a</code> means: the same columns, a second run.</strong> The second <code>bars</code> line gets no frame, no baseline and no strip of category names – all three belong to the frame it joins, and writing one anyway is an error. It refuses a placement for the same reason. What it brings is its values, its classes and, like any other <code>bars</code> line, the two words that single columns out from the opening picture onwards.</p>
+<p><strong>One word separates the two figures, and it changes the scale.</strong> Without <code>stacked</code> the second run stands <em>beside</em> the first and a column&#39;s cell is shared between them; with <code>stacked</code> it stands <em>on</em> it, and the scale is no longer the tallest single value but the tallest stack. The same numbers are therefore flatter on the right than on the left, though no value changed. Which reading you want is a question about the content: side by side compares the years, stacked adds them up.</p>
+<p><strong><code>emph 3 dim 0</code> stands on the statement, not in a step.</strong> Q4 is what this is about and Q1 was only counted from February onwards; both hold the moment the figure is on screen. Written as a step, the first thing the room would see is four equal quarters, and the point would arrive on a keypress. All three prominence words – <code>emph</code>, <code>dim</code>, <code>ghost</code> – take column numbers here, counted from 0, and a number with no column behind it is refused. They are the same three that are classes on an element&#39;s line and verbs in a beat.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="flat" data-chunk-num="16">
+<article class="chunk chunk-figure width-full" id="flat" data-chunk-num="17">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></span>
   
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Columns laid flat</span> <span class="hd-sub">dieselben sechs Zahlen, zweimal</span></h2>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Columns laid flat</span> <span class="hd-sub">the same six numbers, twice</span></h2>
   <figure class="figure-diagram"><svg id="dg15-root" class="psi-diagram" viewBox="-105.75 -66.00 735.30 176.70" width="2000" height="481" data-steps="1" role="img" aria-label="Columns laid flat" preserveAspectRatio="xMidYMid meet">
 <g id="dg15-up" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg15-up--r" x="-93.75" y="-54.00" width="187.50" height="108.00" rx="4"/></g>
 <g id="dg15-up-0" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg15-up-0--r" x="-89.84" y="-54.00" width="23.44" height="108.00" rx="4"/></g>
@@ -1670,18 +1687,18 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg></figure>
 
 
-<p><strong><code>horizontal</code> legt die Säulen um: die Balken laufen nach rechts, die Kategorien stapeln sich nach unten.</strong> Es steht als einzelnes Wort auf der <code>bars</code>-Zeile, genau wie <code>stacked</code>. Die Beschriftungsleiste wird dabei zu einer rechtsbündigen Spalte im linken Rand – jedes Wort nach seiner eigenen gemessenen Breite gesetzt, damit die rechten Kanten eine Linie bilden –, und die Grundlinie steht senkrecht links, statt waagerecht unten zu liegen. Die Zahlen sind erfunden.</p>
-<p><strong>Quer sind die Größenverhältnisse besser zu lesen.</strong> Alle Balken beginnen an derselben senkrechten Kante, und das Auge vergleicht Längen von einer gemeinsamen Startlinie aus zuverlässiger als Höhen über einem gemeinsamen Boden – links muss man die Säulenoberkanten der Reihe nach ansteuern, rechts liest man die Rangfolge in einem Blick ab. Dazu kommt, dass eine absteigend sortierte Reihe von Balken von selbst wie eine Rangliste aussieht.</p>
-<p><strong>Und erst quer ist überhaupt Platz für die Namen.</strong> Eine Kategorie, die „DNS cache poisoning“ heißt, lässt sich unter eine aufrechte Säule nicht schreiben; links stehen deshalb Nummern, und der Raum schlägt in einer Legende nach, die es hier gar nicht gibt. Möglich macht das die zweite Zeichenkette: <strong>enthält sie einen <code>|</code>, wird an dem geteilt statt an Leerzeichen</strong>, und ein Etikett darf so viele Wörter haben, wie es braucht. <code>|</code> trennt schon die Zellen einer <code>table</code>-Zeile und die Namen einer <code>lanes</code>-Liste.</p>
+<p><strong><code>horizontal</code> turns the columns on their side: the bars run right, the categories stack downwards.</strong> It stands as a single word on the <code>bars</code> line, exactly as <code>stacked</code> does. The strip of category names becomes a right-aligned column in the left margin, each word set by its own measured width so the right edges form a line, and the baseline stands vertically on the left instead of lying under the bars. The numbers are made up.</p>
+<p><strong>Flat, the proportions are easier to read.</strong> Every bar starts at the same vertical edge, and the eye compares lengths from one shared start line more reliably than heights over a shared floor: on the left you have to visit the tops of the columns in turn, on the right you read the ranking at a glance. A run of bars sorted downwards also looks like a ranking by itself.</p>
+<p><strong>And only flat is there room for the names at all.</strong> A category called “DNS cache poisoning” cannot be written under an upright column, so the left-hand figure carries numbers and the room looks them up in a legend that does not exist here. The second string is what makes it possible: <strong>a <code>|</code> in it splits on that instead of on spaces</strong>, so a label may be as many words as it needs. <code>|</code> already separates the cells of a <code>table</code> row and the names in a <code>lanes</code> list.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="plot" data-chunk-num="17">
+<article class="chunk chunk-figure width-full" id="plot" data-chunk-num="18">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></span>
   
   <h2 class="chunk-heading">A frame to draw in</h2>
   <figure class="figure-diagram"><svg id="dg16-root" class="psi-diagram" viewBox="-277.50 -184.50 594.30 400.90" width="2000" height="1349" data-live-viewbox="-277.50 -184.50 594.30 400.90" data-live-ratio="0.674575" data-steps="3" role="img" aria-label="A frame to draw in" preserveAspectRatio="xMidYMid meet">
@@ -1721,22 +1738,22 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong>Ein <code>plot</code> ist ein Rahmen zum Hineinzeichnen, keine Diagrammbibliothek.</strong> Er legt Gitterlinien, Achsenbeschriftungen und die beiden Achsentitel an – und eine Umrechnung, sodass <code>roc@0.35</code> einen Wert in den Einheiten des Plots benennt. Aufgelöst wird die erst, wenn der Block ganz gelesen ist, und zwar in das gewöhnliche <code>roc.left+n</code>; ein Punkt darf deshalb einen Plot nennen, der weiter unten steht.</p>
-<p><strong><code>w</code> und <code>h</code> sind in Rastereinheiten gemessen, und eine Rasterzelle ist nicht quadratisch – das ist die Falle.</strong> Bei <code>unit=150x58</code> kommt ein <code>plot … w 1.9 h 1.5</code> als 285 mal 87 Pixel heraus: die beiden Zahlen liegen um ein Viertel auseinander, das Bild um mehr als das Dreifache. <strong><code>aspect W:H</code> sagt stattdessen das Verhältnis, das der Leser wirklich sieht</strong>, und der Build rechnet die fehlende der beiden Zahlen aus. Diese ROC-Kurve steht deshalb auf <code>aspect 1:1</code> und ist quadratisch, wie es sich für zwei Achsen mit derselben Einheit gehört – die Zufallsdiagonale läuft unter 45°, und das ist die einzige Steigung, bei der sie das sagt, was sie heißt. Erlaubt sind <code>4:3</code>, <code>1:1</code> oder eine einzelne Zahl („so viel breit wie hoch“); <code>w</code>, <code>h</code> und <code>aspect</code> zusammen sind ein Fehler, weil sonst zwei Angaben dastünden, die sich widersprechen können. Auf <code>bars</code> gilt dasselbe Wort und dieselbe Regel.</p>
-<p><strong>Die Kurven sind gewöhnliche Kanten.</strong> <code>.smooth</code> zieht dieselben Wegpunkte als Kurve <em>durch</em> sie hindurch statt als Streckenzug – ein interpolierender Spline, damit ein Wegpunkt genau dort bleibt, wo er hingeschrieben wurde. Die Schiefe-Warnung schweigt hier, denn ihre Prämisse gilt nicht: bei einer Kurve sind zwei fast waagerechte Punkte die Form und nicht zwei Enden, die sich verfehlt haben.</p>
-<p><strong>„weaker“ ist ein Kantenlabel <em>neben</em> der Linie, und der Grund fährt mit.</strong> Eine Füllklasse an einer Kante zeichnet einen Grund hinter das Label; ohne ein <code>side top</code>, <code>side bottom</code>, <code>side left</code> oder <code>side right</code> bleibt es auf der Linie und stanzt sie aus – so wie das Flussdiagramm weiter unten es mit „yes“ und „no“ macht. Mit einem davon rückt es weg und nimmt den Grund mit. Für den Namen einer Kurve ist das die einzige Wahl: auf der Linie stanzte er genau das aus, was er benennt. Zu tun hat der Grund hier trotzdem etwas, denn unter der Kurve laufen die Diagonale und zwei Gitterlinien durch.</p>
-<p><strong>Das Wort ist kurz, und das ist hier keine Geschmacksfrage.</strong> Weggerückt wird entlang der Normalen <em>in der Mitte</em> der Kurve, aber die Kurve steigt weiter – also läuft ein langes Label an seinen Enden in die eigene Linie zurück, statt neben ihr zu bleiben. Neben einer waagerechten oder senkrechten Kante stellt sich die Frage nicht, und dort darf das Label so lang sein, wie es sein muss.</p>
+<p><strong>A <code>plot</code> is a frame to draw in, not a chart library.</strong> It lays down gridlines, axis labels and the two axis titles, plus a conversion, so that <code>roc@0.35</code> names a value in the plot&#39;s own units. That is resolved into an ordinary <code>roc.left+n</code> only once the block has been read, so a point may name a plot written further down.</p>
+<p><strong><code>w</code> and <code>h</code> are counted in grid units, and a grid cell is not square. That is the trap.</strong> At <code>unit=150x58</code> a <code>plot … w 1.9 h 1.5</code> comes out 285 by 87 pixels: the two numbers are a quarter apart, the picture more than three times. <strong><code>aspect W:H</code> states the proportion the reader actually sees</strong> and lets the build work the missing number out. This ROC curve is therefore written <code>aspect 1:1</code> and comes out square, as two axes carrying the same unit should – the chance diagonal runs at 45 degrees, the only slope at which it says what it is called. <code>4:3</code>, <code>1:1</code> or a single number (that many wide to one tall) are all allowed; <code>w</code>, <code>h</code> and <code>aspect</code> together is an error, because two of the three can contradict each other. The same word and the same rule apply on <code>bars</code>.</p>
+<p><strong>The curves are ordinary edges.</strong> <code>.smooth</code> draws the same waypoints as a curve running <em>through</em> them instead of as straight segments – an interpolating spline, so a waypoint stays exactly where it was written. The skew warning stays quiet here, its premise not holding: on a curve two nearly level points are the shape rather than two ends that missed each other.</p>
+<p><strong>“weaker” is an edge label <em>beside</em> the line, and the ground travels with it.</strong> A fill class on an edge draws a ground behind the label; without a <code>side top</code>, <code>side bottom</code>, <code>side left</code> or <code>side right</code> it stays on the line and knocks it out, which is what the flowchart further down does with “yes” and “no”. With one of them it moves clear and takes the ground along. For the name of a curve that is the only choice: on the line it would knock out exactly what it names. The ground still has work to do, because the diagonal and two gridlines run under the curve.</p>
+<p><strong>The word is short, and that is not a matter of taste here.</strong> The label is moved clear along the normal <em>at the middle</em> of the curve, but the curve goes on climbing, so a long label runs back into its own line at both ends instead of staying beside it. Beside a horizontal or vertical edge the question does not arise, and there a label may be as long as it needs to be.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="sameframe" data-chunk-num="18">
+<article class="chunk chunk-figure width-full" id="sameframe" data-chunk-num="19">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></span>
   
-  <h2 class="chunk-heading has-sub"><span class="hd-main">One size, two frames</span> <span class="hd-sub">zwei Plots, die sich vergleichen lassen</span></h2>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">One size, two frames</span> <span class="hd-sub">two plots that can be compared</span></h2>
   <figure class="figure-diagram"><svg id="dg17-root" class="psi-diagram" viewBox="-217.50 -98.25 720.96 226.20" width="2000" height="627" data-steps="1" role="img" aria-label="One size, two frames" preserveAspectRatio="xMidYMid meet">
 <g id="dg17-pa-gx-0" data-base="dg-el dg-edge" class="dg-el dg-edge muted dotted no-head"><path id="dg17-pa-gx-0--p" class="dg-stroke" d="M-105.00 -78.75L-105.00 78.75" fill="none"/><path id="dg17-pa-gx-0--h" class="dg-head" d="M-105.00 78.75L-105.00 78.75L-105.00 78.75Z"/></g>
 <g id="dg17-pa-gx-1" data-base="dg-el dg-edge" class="dg-el dg-edge muted dotted no-head"><path id="dg17-pa-gx-1--p" class="dg-stroke" d="M-52.50 -78.75L-52.50 78.75" fill="none"/><path id="dg17-pa-gx-1--h" class="dg-head" d="M-52.50 78.75L-52.50 78.75L-52.50 78.75Z"/></g>
@@ -1791,18 +1808,18 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg></figure>
 
 
-<p><strong><code>same as</code> auf einer <code>plot</code>- oder <code>bars</code>-Zeile übernimmt den ganzen Rahmen.</strong> Der rechte Plot schreibt keine eigene Größe hin, sondern zeigt auf den linken, und die beiden Bilder sind damit auf den Pixel gleich groß. Zwei Bilder, die verglichen werden sollen, muss der Blick in Gedanken übereinanderlegen können; zwei Rahmen, die sich um eine Haaresbreite unterscheiden, geben das nicht her.</p>
-<p><strong>Kopiert wird beim Lesen der Zeile, nicht beim Layout – anders als bei einem Kasten.</strong> Gitterlinien, Achsenbeschriftungen und Säulen werden aus <code>w</code> und <code>h</code> gesetzt, sobald die Zeile gelesen ist; eine Größe, die erst später ankäme, verschöbe den Rahmen und ließe alles darin stehen. Die Anweisung, von der kopiert wird, muss deshalb <strong>über</strong> der stehen, die kopiert, und der Build benennt, was schiefging: ein Name, der erst weiter unten steht, einer, der auf etwas anderes als <code>plot</code> oder <code>bars</code> zeigt, oder einer, den es im Block gar nicht gibt. Zusammen mit <code>w</code>, <code>h</code> oder <code>aspect</code> ist <code>same as</code> ein Fehler, und auf einer <code>series of</code>-Zeile ebenfalls: Eine Serie zeichnet in einem Rahmen, den sie nicht anlegt.</p>
-<p><strong>Gleich große Rahmen sind noch kein gemeinsamer Maßstab.</strong> <code>x</code> und <code>y</code> stehen auf jeder <code>plot</code>-Zeile für sich, und niemand prüft, ob zwei Rahmen dieselben Bereiche tragen – oben stehen sie deshalb zweimal ausgeschrieben da, und das ist die Stelle, die man vor dem Abgeben noch einmal liest. Bei <code>bars</code> gibt es nicht einmal einen Bereich zum Hinschreiben: Jede <code>bars</code>-Anweisung skaliert auf ihren eigenen höchsten Wert, zwei gleich große Rahmen können also Säulen enthalten, die sich nicht vergleichen lassen.</p>
+<p><strong><code>same as</code> on a <code>plot</code> or <code>bars</code> line copies the whole frame.</strong> The right-hand plot writes no size of its own but points at the left one, so the two figures match to the pixel. Two figures meant to be compared have to be ones the eye can lay over each other; two frames a hair apart cannot do that.</p>
+<p><strong>The copy happens as the line is read, not at layout time – unlike a box&#39;s.</strong> Gridlines, axis labels and columns are placed from <code>w</code> and <code>h</code> the moment the line is read, so a size arriving later would move the frame and leave everything in it standing. The statement being copied from must therefore stand <strong>above</strong> the one copying, and the build names what went wrong: a name that appears further down, one pointing at something other than a <code>plot</code> or <code>bars</code>, or one that is not in the block at all. <code>same as</code> beside <code>w</code>, <code>h</code> or <code>aspect</code> is an error, and so is <code>same as</code> on a <code>series of</code> line, a series drawing in a frame it does not lay.</p>
+<p><strong>Frames of one size are not yet one scale.</strong> <code>x</code> and <code>y</code> stand on each <code>plot</code> line for themselves, and nothing checks that two frames carry the same ranges – above they are written out twice, and that is the place to re-read before handing the slide over. <code>bars</code> has no range to write at all: every <code>bars</code> statement scales to its own highest value, so two frames of one size can hold columns that cannot be compared.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-standard" id="raster" data-chunk-num="19">
+<article class="chunk chunk-figure width-standard" id="raster" data-chunk-num="20">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></span>
   
   <h2 class="chunk-heading">A raster does not follow the theme</h2>
   <figure class="figure-diagram"><svg id="dg18-root" class="psi-diagram" viewBox="-57.00 -57.00 351.12 114.00" width="2000" height="649" data-steps="1" role="img" aria-label="A raster does not follow the theme" preserveAspectRatio="xMidYMid meet">
@@ -1812,7 +1829,7 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg></figure>
 
 
-<p>Beim Durchschalten der Themes mit <code>A</code> bleibt das Rasterbild, wie es ist, während Kästen, Pfeile und Vektorgrafiken umfärben. Das ist der Preis für Pixel.</p>
+<p>Cycle the themes with <code>A</code> and the raster image stays as it is, while boxes, arrows and vector drawings re-colour. That is what pixels cost.</p>
 
   
   
@@ -1824,9 +1841,9 @@ build time, and stepped with the same key that advances a reveal.</p>
   <h1 class="column-heading">Four arrangements</h1>
   
   
-<article class="chunk chunk-figure width-wide" id="flowchart" data-chunk-num="20">
+<article class="chunk chunk-figure width-wide" id="flowchart" data-chunk-num="21">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>1</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">The road straight down</span> <span class="hd-sub">a flowchart</span></h2>
   <figure class="figure-diagram"><svg id="dg19-root" class="psi-diagram" viewBox="-299.22 -30.38 712.02 339.00" width="2000" height="952" data-steps="1" role="img" aria-label="The road straight down" preserveAspectRatio="xMidYMid meet">
@@ -1846,17 +1863,17 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg></figure>
 
 
-<p><strong>Die Raute ist der Umriss, den ein Raum nicht erklärt bekommen muss.</strong> Er hat ihn in der Schule gelernt: Hier wird gefragt, und es geht auf zwei Arten weiter. Bezahlt wird das mit Platz. Der breiteste Streifen, den eine Raute anbietet, ist halb so breit und halb so hoch wie sie selbst, also bemisst der Build sie auf das Doppelte – zwei, drei Wörter, und die Erläuterung steht in einer Notiz daneben, so wie hier links. Ein ganzer Satz in einer Raute käme auf die vierfache Fläche der Kästen ringsum und wäre das Bild.</p>
-<p><strong>Die vier Beschriftungen sitzen <em>auf</em> der Linie, und das ist eine Entscheidung, keine Voreinstellung.</strong> Eine Füllklasse an einer Kante zeichnet einen Grund hinter das Label; steht kein <code>side top</code>, <code>side bottom</code>, <code>side left</code> oder <code>side right</code> dabei, bleibt es auf der Linie und stanzt sie hinter sich aus. Das ist die richtige Form für ein Wort, das die Linie <em>benennt</em> – „yes“, „no“, eine Portnummer, ein Nachrichtentyp –, so wie ein Straßenschild zur Straße gehört und die Straße links und rechts daran vorbeiläuft. Ein Satz, der beschreibt, was auf der Linie <em>unterwegs</em> ist, gehört daneben: Die Schwimmbahnen nebenan machen das so, und die ROC-Kurven weiter oben nehmen den Grund dabei mit. Beides in einer Figur zu mischen heißt, dass der Raum jedes Label erst einsortieren muss, bevor er eines lesen kann – deshalb ist hier alles auf der Linie.</p>
+<p><strong>The diamond is the outline a room needs no explanation for.</strong> It learned it at school: a question is asked here, and it goes on in two ways. What that costs is room. The widest strip a diamond offers is half its width by half its height, so the build sizes it at twice what a rectangle would need – two or three words, with the explanation in a note beside it, as on the left here. A whole sentence in a diamond would take four times the area of the boxes around it and become the figure.</p>
+<p><strong>The four labels sit <em>on</em> the line, and that is a decision rather than a default.</strong> A fill class on an edge draws a ground behind the label; with no <code>side top</code>, <code>side bottom</code>, <code>side left</code> or <code>side right</code> beside it, the label stays on the line and knocks it out behind itself. That is the right form for a word that <em>names</em> the line – “yes”, “no”, a port number, a message type – the way a street sign belongs to the street and the street runs past it either side. A sentence describing what <em>travels</em> along the line belongs beside it: the swimlanes next door do that, and the ROC curves above take the ground along when they do. Mixing the two in one figure means the room has to sort each label before it can read any of them, so everything here is on the line.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="swimlane" data-chunk-num="21">
+<article class="chunk chunk-figure width-full" id="swimlane" data-chunk-num="22">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Three roles, one incident</span> <span class="hd-sub">a swimlane</span></h2>
   <figure class="figure-diagram"><svg id="dg20-root" class="psi-diagram" viewBox="-482.65 -120.00 922.40 240.00" width="2000" height="520" data-live-viewbox="-482.65 -120.00 922.40 240.00" data-live-ratio="0.260191" data-steps="4" role="img" aria-label="Three roles, one incident" preserveAspectRatio="xMidYMid meet">
@@ -1877,18 +1894,18 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong>Bahnen sind gleich lang, ihr Inhalt ist es nicht – deshalb sind sie kein <code>container</code>.</strong> Ein Container misst sich an dem, was er hält; drei Bänder mit unterschiedlich vielen Kästen kämen so an beiden Enden verschieden weit heraus, und ausgerechnet das ist die eine Aussage, die ein Schwimmbahn-Diagramm nicht machen darf. <code>lanes</code> legt den Rahmen an, teilt ihn in gleich hohe Bänder und schreibt die Namen gedreht vor die linke Kante; die Bänder sind <code>.clear</code>, damit alles darin über ihnen liest. Eine Zeitachse braucht es nicht: Sie ist die Leserichtung.</p>
-<p><strong>Jede Übergabe wechselt das Band, und <code>.elbow</code> ist die Linienführung dafür.</strong> Die Klasse zeichnet zwei Wegpunkte selbst – eine Schiene auf halbem Weg durch die Lücke, auf der Achse, auf der die beiden Enden weiter auseinanderliegen –, statt dass man denselben doppelten Knick pro Kante von Hand hinschreibt. Eine gerade Linie täte etwas anderes: Sie liefe schräg durch ein Band, das sie gar nicht betritt, und der Raum liest sie als Beteiligung.</p>
-<p><strong>Das eine Kantenlabel steht <em>neben</em> der Linie, nicht darauf.</strong> „same sender“ beschreibt, was auf der Linie unterwegs ist, und ein Satz mit einem Strich mittendrin wird als zwei Bruchstücke gelesen, bevor er als Satz gelesen wird. <code>side top</code> hebt ihn über die Linie; an einer senkrechten Kante wären es <code>side left</code> und <code>side right</code>, und welches Paar gilt, weiß man erst, wenn die Kante geführt ist – deshalb ist das falsche Paar eine Warnung beim Bauen statt eines Fehlers beim Parsen. Weggerückt wird um das, was die Beschriftung <em>quer zur Linie</em> misst: neben einer waagerechten Kante ihre Höhe, neben einer senkrechten ihre Breite – dort mit einem Zuschlag, weil ein Spalt quer zu einer Zeile Schrift mehr Luft braucht als über ihr. Einen Grund braucht dieses Label nicht: Unter ihm liegt nur Bandfläche. Was ein Grund tut und wie groß er sein darf, steht bei den ROC-Kurven weiter oben.</p>
+<p><strong>The bands are equal, their contents are not, and that is why they are no <code>container</code>.</strong> A container measures itself against what it holds, so three bands with different numbers of boxes would come out different lengths at both ends – the one thing a swimlane diagram must not say. <code>lanes</code> lays the frame, divides it into bands of equal height and writes the names turned on end in front of the left edge; the bands are <code>.clear</code> so that everything in them reads over them. It needs no time axis: the reading direction is the axis.</p>
+<p><strong>Every hand-off changes band, and <code>.elbow</code> is the routing for it.</strong> The class draws two waypoints itself – a rail halfway across the gap, on the axis the two ends are further apart on – instead of the same double bend written out by hand on every edge. A straight line would do something else: it would run diagonally through a band it never enters, and the room reads that as involvement.</p>
+<p><strong>The one edge label sits <em>beside</em> the line, not on it.</strong> “same sender” describes what travels along the line, and a sentence with a rule through the middle of it is read as two fragments before it is read as a sentence. <code>side top</code> lifts it over the line; on a vertical edge it would be <code>side left</code> and <code>side right</code>, and which pair applies is known only once the edge has been routed – so the wrong pair is a warning at build time rather than an error at parse time. The label is moved clear by what it measures <em>across</em> the line: beside a horizontal edge its height, beside a vertical one its width, there with a margin, because a gap across a line of type needs more air than one above it. This label needs no ground: there is nothing but band under it. What a ground does, and how large it may be, is at the ROC curves above.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="tree" data-chunk-num="22">
+<article class="chunk chunk-figure width-full" id="tree" data-chunk-num="23">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Leaves first, and the brackets follow</span> <span class="hd-sub">a tree</span></h2>
   <figure class="figure-diagram"><svg id="dg21-root" class="psi-diagram" viewBox="-110.64 -452.78 767.04 506.19" width="2000" height="1320" data-live-viewbox="-110.64 -452.78 767.04 506.19" data-live-ratio="0.659926" data-steps="3" role="img" aria-label="Leaves first, and the brackets follow" preserveAspectRatio="xMidYMid meet">
@@ -1909,18 +1926,18 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong>Ein Baum wird von den Blättern her gebaut.</strong> Sie sind die Fixpunkte – um sie geht es –, und jede Ebene darüber steht <code>between</code> ihren eigenen Kindern mit einem <code>offset</code> nach oben. Andersherum aufgeschrieben hält der Compiler es aus – er liest den Block ganz und löst die Abhängigkeiten in der Reihenfolge auf, in der sie aufgehen, nicht in der Reihenfolge der Zeilen –, aber das Mittel, zu dem man dann greift, trägt nicht: <code>align x middle rt, i1, i2</code> reicht die Koordinate des <em>ersten</em> genannten Elements an die übrigen weiter, würde also nicht die Wurzel über ihre Kinder setzen, sondern beide Kinder auf die Mittellinie der Wurzel stapeln.</p>
-<p><strong>Die Klammern sind sechsmal dasselbe Wort.</strong> <code>.elbow</code> verlässt das eine Ende auf der Achse, auf der die beiden weiter auseinanderliegen, läuft eine Schiene auf halbem Weg durch die Lücke und kommt auf derselben Achse wieder an; die beiden Ansatzpunkte werden dafür auf diese Achse gezwungen, was immer die automatische Wahl sonst genommen hätte. Gemessen wird die Schiene zwischen den <em>zugewandten Kanten</em> der beiden Elemente, nicht zwischen ihren Mittelpunkten – deshalb liegt sie für beide Kinder einer Ausstellerin auf derselben Linie, und das Paar liest sich als eine Klammer statt als zwei Verbinder. Von Hand wären das zwölf Wegpunkte, die jedes Mal neu gerechnet werden müssten, wenn eine Ebene ihren Abstand ändert. Wer die Schiene woanders haben will, schreibt <code>via</code>; beides auf einer Zeile ist ein Fehler. Einen Slot teilt sich <code>.elbow</code> mit <code>.smooth</code>: Wie eine Linie gezeichnet wird, ist eine Frage mit genau einer Antwort.</p>
-<p><strong>Der gestrichelte Kasten steht um die ganze Menge, bevor die Menge beisammen ist.</strong> Er ist im selben Takt ausgeschrieben wie die Ausstellerinnen (<code>show @issuers, scope</code>), obwohl seine beiden anderen Mitglieder erst einen Takt später kommen. Ohne das ausgeschriebene <code>show</code> gilt die übliche Regel: Ein Umriss ist nur so sichtbar wie seine Mitglieder und passt sich denen an, die man sieht – er wäre erst um die Ausstellerin allein gewachsen und dann nach unten aufgegangen. Wer ihn beim Namen nennt, bekommt beides: die Sichtbarkeit <em>und</em> die volle Ausdehnung. Das ist der Sinn der Ausnahme; für den Normalfall ist sie ausdrücklich nicht gedacht.</p>
+<p><strong>A tree is built from the leaves.</strong> They are the fixed points, and every level above stands <code>between</code> its own children with an <code>offset</code> upwards. Written the other way round the compiler copes – it reads the whole block and resolves the dependencies in whatever order works out, not in line order – but the tool you then reach for does not: <code>align x middle rt, i1, i2</code> hands the <em>first</em> named element&#39;s coordinate to the rest, so it would not put the root over its children but stack both children on the root&#39;s centre line.</p>
+<p><strong>The brackets are the same word six times.</strong> <code>.elbow</code> leaves one end on the axis the two are further apart on, runs a rail halfway across the gap and arrives on the same axis; both attachment points are forced onto that axis, whatever the automatic choice would otherwise have taken. The rail is measured between the two elements&#39; <em>facing edges</em>, not between their centres, so it lies on one line for both children of an issuer and the pair reads as one bracket rather than as two connectors. By hand that would be twelve waypoints, recomputed every time a level changes its spacing. Put the rail somewhere else with <code>via</code>; both on one line is an error. <code>.elbow</code> shares a slot with <code>.smooth</code>: how a line is drawn is a question with exactly one answer.</p>
+<p><strong>The dashed box stands around the whole set before the set is assembled.</strong> It is written into the same beat as the issuers (<code>show @issuers, scope</code>), though its other two members arrive a beat later. Without the written <code>show</code> the usual rule applies: an outline is only as visible as its members and fits itself to the ones you can see, so it would first have grown around the issuer alone and then opened downwards. Naming it gets you both the visibility <em>and</em> the full extent. That is what the exception is for, and it is expressly not for the ordinary case.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="table" data-chunk-num="23">
+<article class="chunk chunk-figure width-full" id="table" data-chunk-num="24">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>4</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">One line per row</span> <span class="hd-sub">a table</span></h2>
   <figure class="figure-diagram"><svg id="dg22-root" class="psi-diagram" viewBox="-222.00 -68.70 444.00 137.40" width="2000" height="619" data-live-viewbox="-222.00 -68.70 444.00 137.40" data-live-ratio="0.309459" data-steps="5" role="img" aria-label="One line per row" preserveAspectRatio="xMidYMid meet">
@@ -1944,22 +1961,22 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong>Fünf Zeilen mal drei Spalten sind fünfzehn Kästen, jeder mit eigenem Namen, eigener Breite und eigener Platzierung – und einer <code>below</code>-Kette, die man beim Einfügen einer Zeile neu ausrichtet.</strong> <code>table</code> schreibt sie: Die Kopfzeile ist eine Zeichenkette, an <code>|</code> zerlegt, die Datenzeilen sind die bloßen Zeichenketten darunter, <code>col</code> gibt eine Breite je Spalte und <code>row</code> die Höhe einer Zeile. Der Attributschwanz <code>{.clear .bare .left}</code> landet auf den <strong>Zellen</strong>, nicht auf dem Rahmen – deshalb ist eine Tabelle hier ein Satzspiegel und kein Gitter aus Kästchen. Der Strich unter der Kopfzeile ist eine gewöhnliche Kante zwischen zwei Koordinaten, die je zur Hälfte vom Rahmen und von der ersten Zelle kommen.</p>
-<p><strong>Jede Zelle trägt zwei erzeugte Tags, <code>@t-row-N</code> und <code>@t-col-N</code>.</strong> Damit ist eine Zeile ein Takt und eine Spalte ein Takt, je eine Zeile Quelltext – wo sonst je Takt drei Zellennamen stünden, die von Hand mit der Tabelle Schritt halten müssten. Zeile 0 ist die Kopfzeile, gezählt wird also ab 1, wenn man Daten meint.</p>
-<p><strong>Der letzte Takt ist der, der auf dem Handout landet.</strong> Eine Figur, die eine Zeile nach der anderen hervorhebt und dann aufhört, kommt mit der letzten Zeile leuchtend aus dem Drucker und berichtet damit von einem Moment im Vortrag statt von der Tabelle. Hier nimmt ein vierter Takt die Hervorhebung wieder ab und tönt stattdessen die Spalte mit den Gegenmaßnahmen – das Bild, das ohne Vortrag etwas sagt. Dass es einen Takt kostet, ist der Grund, warum die Prominenzverben das nicht brauchen: Was ein <code>step</code> an Prominenz setzt, ist eine Vortragshandlung, und der Druck nimmt seine Prominenz aus dem Eröffnungstakt. Was auf der Zeile eines Elements steht, beschreibt dagegen die Zeichnung und steht deshalb auch im Handout.</p>
+<p><strong>Five rows by three columns is fifteen boxes, each with its own name, width and placement, and a <code>below</code> chain to re-aim whenever a row is inserted.</strong> <code>table</code> writes them: the heading is one string split on <code>|</code>, the data rows are the bare strings under it, <code>col</code> gives a width per column and <code>row</code> the height of one row. The attribute tail <code>{.clear .bare .left}</code> lands on the <strong>cells</strong>, not on the frame, which is what makes a table here a text block rather than a grid of little boxes. The rule under the heading is an ordinary edge between two coordinates, each half from the frame and half from the first cell.</p>
+<p><strong>Every cell carries two generated tags, <code>@t-row-N</code> and <code>@t-col-N</code>.</strong> So a row is one beat and a column is one beat, one line of source each – where otherwise every beat would carry three cell names to keep in step with the table by hand. Row 0 is the heading, so count from 1 when you mean data.</p>
+<p><strong>The last beat is the one that reaches the handout.</strong> A figure that lights one row after another and then stops comes out of the printer with its last row glowing, reporting a moment in the talk rather than the table. A fourth beat here takes the emphasis off again and tints the countermeasures column instead – the picture that says something without a talk around it. That it costs a beat is why the prominence verbs need no such thing: prominence a <code>step</code> sets is an act in the talk, and print takes its prominence from the opening beat. Prominence on an element&#39;s own line describes the drawing, and reaches the handout.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="sequence" data-chunk-num="24">
+<article class="chunk chunk-figure width-full" id="sequence" data-chunk-num="25">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></span>
   
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Ein Ablauf von oben nach unten</span> <span class="hd-sub">a sequence</span></h2>
-  <figure class="figure-diagram"><svg id="dg23-root" class="psi-diagram" viewBox="-454.66 -323.65 1044.38 647.30" width="2000" height="1240" data-live-viewbox="-454.66 -323.65 1044.38 647.30" data-live-ratio="0.619791" data-steps="5" role="img" aria-label="Ein Ablauf von oben nach unten" preserveAspectRatio="xMidYMid meet">
-<g id="dg23-ctap" data-base="dg-el dg-brace" class="dg-el dg-brace small turn"><path id="dg23-ctap--p" class="dg-stroke" d="M-303.00 -97.70L-310.00 -97.70L-310.00 49.95L-303.00 49.95" fill="none"/><g id="dg23-ctap--lw0" data-lab="ctap--l" class="dg-lwrap" transform="translate(-318.00,-23.87) rotate(-90)"><g id="dg23-ctap--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">auf dem Gerät, über CTAP</tspan></text></g></g></g>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">A protocol down the page</span> <span class="hd-sub">a sequence</span></h2>
+  <figure class="figure-diagram"><svg id="dg23-root" class="psi-diagram" viewBox="-454.66 -323.65 1044.38 647.30" width="2000" height="1240" data-live-viewbox="-454.66 -323.65 1044.38 647.30" data-live-ratio="0.619791" data-steps="5" role="img" aria-label="A protocol down the page" preserveAspectRatio="xMidYMid meet">
+<g id="dg23-ctap" data-base="dg-el dg-brace" class="dg-el dg-brace small turn"><path id="dg23-ctap--p" class="dg-stroke" d="M-303.00 -97.70L-310.00 -97.70L-310.00 49.95L-303.00 49.95" fill="none"/><g id="dg23-ctap--lw0" data-lab="ctap--l" class="dg-lwrap" transform="translate(-318.00,-23.87) rotate(-90)"><g id="dg23-ctap--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">on the device, over CTAP</tspan></text></g></g></g>
 <g id="dg23-u-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg23-u-life--p" class="dg-stroke" d="M-291.00 -274.90L-291.00 311.65" fill="none"/><path id="dg23-u-life--h" class="dg-head" d="M-291.00 311.65L-291.00 311.65L-291.00 311.65Z"/></g>
 <g id="dg23-br-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg23-br-life--p" class="dg-stroke" d="M-97.00 -274.90L-97.00 311.65" fill="none"/><path id="dg23-br-life--h" class="dg-head" d="M-97.00 311.65L-97.00 311.65L-97.00 311.65Z"/></g>
 <g id="dg23-au-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg23-au-life--p" class="dg-stroke" d="M97.00 -274.90L97.00 311.65" fill="none"/><path id="dg23-au-life--h" class="dg-head" d="M97.00 311.65L97.00 311.65L97.00 311.65Z"/></g>
@@ -1994,28 +2011,28 @@ build time, and stepped with the same key that advances a reveal.</p>
 <g id="dg23-wa-n-7" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-7--lw0" data-lab="wa-n-7--l" class="dg-lwrap" transform="translate(-439.00,235.10)"><g id="dg23-wa-n-7--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">8</tspan></text></g></g></g>
 <g id="dg23-wa-sub-7" data-base="dg-el dg-text" class="dg-el dg-text small muted paper"><rect id="dg23-wa-sub-7--r" x="-32.34" y="239.10" width="258.68" height="23.00" rx="4"/><g id="dg23-wa-sub-7--lw0" data-lab="wa-sub-7--l" class="dg-lwrap" transform="translate(97.00,250.60)"><g id="dg23-wa-sub-7--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">clientDataJSON carries challenge · origin</tspan></text></g></g></g>
 <g id="dg23-wa-n-8" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg23-wa-n-8--lw0" data-lab="wa-n-8--l" class="dg-lwrap" transform="translate(-439.00,287.27)"><g id="dg23-wa-n-8--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">9</tspan></text></g></g></g>
-<g id="dg23-fresh" data-base="dg-el dg-text" class="dg-el dg-text small hand"><g id="dg23-fresh--lw0" data-lab="fresh--l" class="dg-lwrap" transform="translate(452.74,-162.25)"><g id="dg23-fresh--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">die Challenge ist die Frische</tspan></text></g></g></g>
+<g id="dg23-fresh" data-base="dg-el dg-text" class="dg-el dg-text small hand"><g id="dg23-fresh--lw0" data-lab="fresh--l" class="dg-lwrap" transform="translate(456.10,-162.25)"><g id="dg23-fresh--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">the challenge is the freshness</tspan></text></g></g></g>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong>Ein Protokoll ist die eine Zeichnung, die eine Vorlesung immer wieder braucht und die von Hand geschrieben am schwersten zu ändern ist.</strong> Ausgeschrieben trägt jede Nachricht ihre eigene y-Koordinate: Eine Nachricht in der Mitte einzufügen heißt, alle darunter zu verschieben, alle Nummern neu zu vergeben und die Länge jeder Lebenslinie neu zu raten – an genau diesem Bild nachgezählt dreizehn geschriebene Zeilen für eine eingefügte Nachricht. Und ein Notizkasten, der höher ausfällt als der geratene Abstand, schneidet still in die Beschriftung darunter.</p>
-<p><strong><code>sequence</code> regelt deshalb genau eines: den senkrechten Rhythmus.</strong> Jeder Eintrag sagt, wie hoch er ist – eine Nachricht so hoch wie ihre Beschriftung, eine Notiz so hoch wie ihr Text –, und die Anweisung stapelt sie. Ein Kasten schiebt mit, was unter ihm steht, und eine eingefügte Zeile ist eine eingefügte Zeile. Quer misst die Anweisung sich genauso selbst: Alle Köpfe sind so breit wie die breiteste Beschriftung, damit eine Reihe gleichrangiger Beteiligter nicht ausgefranst dasteht. <code>w</code>, <code>header</code> und <code>space</code> sind Übersteuerungen, die im Regelfall niemand schreibt.</p>
-<p><strong>Eine Nachricht darf sich auch selbst benennen, und der Name steht vorn.</strong> <code>tunnel c -- s &quot;…&quot;</code> – in genau dem Feld, in dem eine <code>edge</code> ihren trägt, nämlich vor dem ersten Endpunkt. Das lohnt sich für die Zeilen, auf die etwas anderes zeigt: Ein erzeugter Name wie <code>x-4</code> zählt Nachrichten und wandert deshalb, sobald oberhalb eine dazukommt, während ein geschriebener bleibt, wo er ist. Anonym zu bleiben kostet nichts, und die meisten Nachrichten bleiben es.</p>
-<p><strong>Alles andere beantwortet sie nicht mit neuen Wörtern, sondern damit, dass jeder Teil einen Namen behält.</strong> Jeder Kopf behält den Namen, den die <code>actor</code>-Zeile ihm gibt; jede Lebenslinie heißt <code>&lt;actor&gt;-life</code>, jede Nachricht <code>wa-N</code> (von 0 gezählt, die Nummer im Bild ist <code>N+1</code>), ihre Nummer <code>wa-n-N</code>, ihre kleinere zweite Zeile <code>wa-sub-N</code>, jede Notiz <code>wa-note-N</code>. Dazu Tags für die Mengen: <code>@wa-msg-N</code> für eine Nachricht samt Nummer und zweiter Zeile, <code>@wa-msgs</code> für alle, <code>@au-msgs</code> für alle, die den Authenticator berühren, <code>@wa-notes</code>, <code>@wa-actors</code>, <code>@wa-lives</code>. Die Klammer und die handschriftliche Anmerkung oben sind deshalb gewöhnliche Zeilen, die an <code>wa-3</code> und <code>wa-2</code> andocken – das Konstrukt weiß von beiden nichts.</p>
-<p><strong>Es gibt kein <code>alt</code> / <code>else</code>.</strong> Eine Gruppe von Nachrichten zu umschließen und zu benennen ist, was <code>container … pad n</code> schon zeichnet, und im gemessenen Bestand wollten es zwei von neun Bildern. Ein Wort, das mit der ersten Veröffentlichung einfriert, sollte mehr Fälle haben als das.</p>
+<p><strong>A protocol is the drawing a lecture asks for again and again, and the one that is hardest to change written out by hand.</strong> Written out, every message carries its own y coordinate: inserting one in the middle means moving everything under it, renumbering all of them and re-guessing how far each lifeline runs – counted on this very figure, thirteen written lines for one inserted message. And a note box taller than the guessed spacing cuts silently into the label beneath it.</p>
+<p><strong><code>sequence</code> therefore owns exactly one thing: the vertical rhythm.</strong> Every entry states how tall it is – a message as tall as its label, a note as tall as its text – and the statement stacks them. A box pushes down what stands under it, and an inserted line is an inserted line. Across, the statement measures itself the same way: all heads are as wide as the widest label, so a row of equal participants does not stand there ragged. <code>w</code>, <code>header</code> and <code>space</code> are overrides nobody normally writes.</p>
+<p><strong>A message may also name itself, and the name goes in front.</strong> <code>tunnel c -- s &quot;…&quot;</code> – in exactly the slot an <code>edge</code> carries its name in, before the first endpoint. It is worth doing on the lines something else points at: a generated name like <code>x-4</code> counts messages and moves the moment one is added above it, where a written name stays put. Staying anonymous costs nothing, and most messages do.</p>
+<p><strong>Everything else it answers by keeping a name on every part, not by adding words.</strong> Each head keeps the name its <code>actor</code> line gives it; each lifeline is <code>&lt;actor&gt;-life</code>, each message <code>wa-N</code> (counted from 0, so the number drawn is <code>N+1</code>), its number <code>wa-n-N</code>, its smaller second line <code>wa-sub-N</code>, each note <code>wa-note-N</code>. Plus tags for the sets: <code>@wa-msg-N</code> for one message with its number and second line, <code>@wa-msgs</code> for all of them, <code>@au-msgs</code> for all that touch the authenticator, <code>@wa-notes</code>, <code>@wa-actors</code>, <code>@wa-lives</code>. The brace and the handwritten annotation above are therefore ordinary lines hung off <code>wa-3</code> and <code>wa-2</code>, and the statement knows nothing about either.</p>
+<p><strong>There is no <code>alt</code> / <code>else</code>.</strong> Enclosing a group of messages and naming it is what <code>container … pad n</code> already draws, and two of the nine figures in the measured corpus wanted it. A word that freezes with the first release deserves more cases than that.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-wide" id="seqmore" data-chunk-num="25">
+<article class="chunk chunk-figure width-wide" id="seqmore" data-chunk-num="26">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></span>
   
-  <h2 class="chunk-heading">Was eine Nachricht sonst sein kann</h2>
-  <figure class="figure-diagram"><svg id="dg24-root" class="psi-diagram" viewBox="-221.55 -209.30 518.73 418.60" width="2000" height="1614" data-steps="1" role="img" aria-label="Was eine Nachricht sonst sein kann" preserveAspectRatio="xMidYMid meet">
-<g id="dg24-tun" data-base="dg-el dg-brace" class="dg-el dg-brace muted small"><path id="dg24-tun--p" class="dg-stroke" d="M155.10 113.64L162.10 113.64L162.10 113.64L155.10 113.64" fill="none"/><g id="dg24-tun--lw0" data-lab="tun--l" class="dg-lwrap" transform="translate(170.10,113.64)"><g id="dg24-tun--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">das ist die Nutzlast</tspan></text></g></g></g>
+  <h2 class="chunk-heading">What else a message can be</h2>
+  <figure class="figure-diagram"><svg id="dg24-root" class="psi-diagram" viewBox="-221.55 -209.30 512.37 418.60" width="2000" height="1634" data-steps="1" role="img" aria-label="What else a message can be" preserveAspectRatio="xMidYMid meet">
+<g id="dg24-tun" data-base="dg-el dg-brace" class="dg-el dg-brace muted small"><path id="dg24-tun--p" class="dg-stroke" d="M155.10 113.64L162.10 113.64L162.10 113.64L155.10 113.64" fill="none"/><g id="dg24-tun--lw0" data-lab="tun--l" class="dg-lwrap" transform="translate(170.10,113.64)"><g id="dg24-tun--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">this is the payload</tspan></text></g></g></g>
 <g id="dg24-c-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg24-c-life--p" class="dg-stroke" d="M-139.70 -160.55L-139.70 197.30" fill="none"/><path id="dg24-c-life--h" class="dg-head" d="M-139.70 197.30L-139.70 197.30L-139.70 197.30Z"/></g>
 <g id="dg24-p-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg24-p-life--p" class="dg-stroke" d="M0.00 -160.55L0.00 197.30" fill="none"/><path id="dg24-p-life--h" class="dg-head" d="M0.00 197.30L0.00 197.30L0.00 197.30Z"/></g>
 <g id="dg24-s-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg24-s-life--p" class="dg-stroke" d="M139.70 -160.55L139.70 197.30" fill="none"/><path id="dg24-s-life--h" class="dg-head" d="M139.70 197.30L139.70 197.30L139.70 197.30Z"/></g>
@@ -2033,36 +2050,36 @@ build time, and stepped with the same key that advances a reveal.</p>
 </svg></figure>
 
 
-<p><strong>Vier Token, und keines davon ist eine eigene Pfeilart.</strong> <code>-&gt;</code> und <code>&lt;-</code> sind dieselbe Nachricht, einmal vom Absender und einmal vom Empfänger her geschrieben: Wer die Antwort als <code>c &lt;- p</code> schreibt, nennt in beiden Zeilen zuerst den Client und liest die Quelle als Spalte statt hin und her. <code>--</code> ist eine Linie ohne Kopf, also eine Beziehung ohne Richtung, und <code>&lt;-&gt;</code> trägt an beiden Enden einen – ein Hin und Zurück, in eine Bande gefasst. Für „gestrichelt“ gibt es kein eigenes Wort, das macht <code>{.dashed}</code> – der Attributschwanz einer Nachrichtenzeile ist der einer Kante, weil eine Nachricht eine Kante <em>ist</em>.</p>
-<p><strong>Das Token sagt den Kopf, nicht eine Klasse.</strong> Jedes der vier setzt genau einen der drei Zustände – kein Kopf, einer, an beiden Enden –, und deshalb steht dieselbe Aussage nie zweimal auf einer Zeile: <code>{.no-head}</code> neben einem <code>-&gt;</code> ist ein Fehler und kein stiller Widerspruch mehr. Innerhalb eines Taktes gilt das Umgekehrte: dort ist die Klasse die einzige Schreibweise, weil ein Token sich nicht noch einmal ausführen lässt.</p>
-<p><strong>Eine Selbstnachricht ist der übliche Weg, eine örtliche Handlung in den Ablauf zu setzen</strong>, und sie schleift aus der Lebenslinie heraus und wieder hinein. Ihre Beschriftung steht neben der Schleife, ihre zweite Zeile darunter. Eine Notiz zwischen zwei Namen steht in der Mitte zwischen deren Lebenslinien und ist so breit wie ihr eigener Text – nicht so breit wie die Spanne, sonst wird aus drei Wörtern ein Banner. Sie bricht an <code>\n</code>, sodass eine dreizeilige Notiz eine Notiz bleibt.</p>
-<p><strong><code>space</code> auf einer Eintragszeile ist die Luft über genau diesem Band.</strong> Der Tunnel unten steht mit <code>space 0.9</code> merklich abgesetzt vom Aufbau darüber – zwei oder drei solcher Lücken gliedern einen langen Ablauf in Abschnitte, die ein Raum sich merken kann. Eine Leerzeile im Quelltext tut das nicht: Die Anweisung liest über Leerzeilen hinweg, damit der Quelltext so gegliedert werden darf, wie er sich gut liest. Auf einer <code>actor</code>-Zeile ist <code>space</code> ein Fehler, denn über den Köpfen gibt es kein Band.</p>
-<p><strong>Jede Nachrichtenbeschriftung bringt ihren eigenen Grund mit.</strong> Eine Lebenslinie kreuzt jede Beschriftung im Bild, also wird der Grund von vornherein gezeichnet und die gestrichelte Linie hinter den Wörtern ausgespart. <code>{.clear}</code> nimmt ihn weg, <code>{.tone-2}</code> färbt ihn. Die kleinere zweite Zeile bekommt denselben Grund, die Nummern links keinen: Sie stehen außerhalb des Rahmens und kreuzen nichts.</p>
-<p><strong><code>unnumbered</code> nimmt die Zahlenspalte weg.</strong> Sie ist sonst da, weil das Umnummerieren von Hand genau die Arbeit ist, die die Anweisung abnimmt, und weil die Zahl im Bild und der Index im Tag dieselbe Zahl sind: <code>@x-msg-3</code> ist der Pfeil, den der Raum als 4 liest. Wo ein Ablauf so kurz ist, dass niemand auf eine Nummer zeigt, ist die Spalte nur Papier.</p>
+<p><strong>Four tokens, and none of them is an arrow style of its own.</strong> <code>-&gt;</code> and <code>&lt;-</code> are the same message written from the sender&#39;s end and from the receiver&#39;s: write the reply as <code>c &lt;- p</code> and both lines name the client first, so the source reads as a column instead of zig-zagging. <code>--</code> is a line with no head, a relation with no direction, and <code>&lt;-&gt;</code> carries one at each end – a there-and-back caught in one line. There is no word for “dashed”; <code>{.dashed}</code> does that, a message line&#39;s attribute tail being an edge&#39;s, because a message <em>is</em> an edge.</p>
+<p><strong>The token states the head, not a class.</strong> Each of the four sets exactly one of the three states – no head, one, one at each end – so the same thing is never said twice on one line: <code>{.no-head}</code> beside a <code>-&gt;</code> is an error rather than a silent contradiction. Inside a beat the reverse holds, and there the class is the only spelling, because a token cannot be run again.</p>
+<p><strong>A self-message is the usual way to put a local action into the sequence</strong>, and it loops out of the lifeline and back in. Its label stands beside the loop, its second line under it. A note between two names sits midway between their lifelines and is as wide as its own text – not as wide as the span, or three words become a banner. It breaks at <code>\n</code>, so a three-line note stays a note.</p>
+<p><strong><code>space</code> on an entry line is the air above that one band.</strong> The tunnel at the bottom carries <code>space 0.9</code> and stands visibly apart from the setup above it; two or three such gaps break a long exchange into phases a room can hold. A blank line in the source does not do this: the statement reads through blank lines, so the source may be grouped however it reads best. On an <code>actor</code> line <code>space</code> is an error, there being no band above the heads.</p>
+<p><strong>Every message label brings its own ground.</strong> A lifeline crosses every label in the figure, so the ground is drawn from the start and the dashed line is knocked out behind the words. <code>{.clear}</code> takes it away, <code>{.tone-2}</code> colours it. The smaller second line gets the same ground; the numbers on the left get none, standing outside the frame and crossing nothing.</p>
+<p><strong><code>unnumbered</code> takes the column of numbers away.</strong> It is there otherwise because renumbering by hand is exactly the work the statement removes, and because the number drawn and the index in the tag are the same number: <code>@x-msg-3</code> is the arrow the room reads as 4. Where an exchange is short enough that nobody points at a number, the column is just paper.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-figure width-wide" id="autoplay" data-chunk-num="26">
+<article class="chunk chunk-figure width-wide" id="autoplay" data-chunk-num="27">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></span>
   
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Eine Figur, die sich selbst abspielt</span> <span class="hd-sub"><code>autoplay</code> und <code>cycle</code></span></h2>
-  <figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg25-root" class="psi-diagram" viewBox="-56.35 -32.75 453.45 63.13" width="2000" height="278" data-live-viewbox="-56.35 -32.75 459.30 63.13" data-live-ratio="0.137437" data-steps="4" role="img" aria-label="Eine Figur, die sich selbst abspielt" preserveAspectRatio="xMidYMid meet">
-<g id="dg25-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg25-edge-1--p" class="dg-stroke" d="M44.35 0.00L120.70 0.00" fill="none"/><path id="dg25-edge-1--h" class="dg-head" d="M128.35 0.00L119.35 3.96L119.35 -3.96Z"/><g id="dg25-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(86.35,-11.38)"><g id="dg25-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Anfrage</tspan></text></g></g></g>
-<g id="dg25-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg25-edge-2--p" class="dg-stroke" d="M218.55 0.00L294.90 0.00" fill="none"/><path id="dg25-edge-2--h" class="dg-head" d="M302.55 0.00L293.55 3.96L293.55 -3.96Z"/><g id="dg25-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(260.55,-11.38)"><g id="dg25-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Fingerabdruck</tspan></text></g></g></g>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">A figure that plays itself</span> <span class="hd-sub"><code>autoplay</code> and <code>cycle</code></span></h2>
+  <figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg25-root" class="psi-diagram" viewBox="-56.35 -32.75 459.30 63.13" width="2000" height="275" data-live-viewbox="-56.35 -32.75 459.30 63.13" data-live-ratio="0.137437" data-steps="4" role="img" aria-label="A figure that plays itself" preserveAspectRatio="xMidYMid meet">
+<g id="dg25-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg25-edge-1--p" class="dg-stroke" d="M44.35 0.00L120.70 0.00" fill="none"/><path id="dg25-edge-1--h" class="dg-head" d="M128.35 0.00L119.35 3.96L119.35 -3.96Z"/><g id="dg25-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(86.35,-11.38)"><g id="dg25-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
+<g id="dg25-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg25-edge-2--p" class="dg-stroke" d="M218.55 0.00L294.90 0.00" fill="none"/><path id="dg25-edge-2--h" class="dg-head" d="M302.55 0.00L293.55 3.96L293.55 -3.96Z"/><g id="dg25-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(260.55,-11.38)"><g id="dg25-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">fingerprint</tspan></text></g></g></g>
 <g id="dg25-cr" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg25-cr--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg25-cr--lw0" data-lab="cr--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg25-cr--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
 <g id="dg25-wb" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg25-wb--r" x="128.35" y="-18.38" width="90.20" height="36.75" rx="4"/><g id="dg25-wb--lw0" data-lab="wb--l" class="dg-lwrap" transform="translate(173.45,0.00)"><g id="dg25-wb--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Web site</tspan></text></g></g></g>
-<g id="dg25-dt" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg25-dt--r" x="302.55" y="-18.38" width="82.55" height="36.75" rx="4"/><g id="dg25-dt--lw0" data-lab="dt--l" class="dg-lwrap dg-variant dg-off" transform="translate(343.83,0.00)"><g id="dg25-dt--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Detector</tspan></text></g></g><g id="dg25-dt--lw1" data-lab="dt--l" class="dg-lwrap dg-variant" transform="translate(343.83,0.00)"><g id="dg25-dt--l1" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Erkannt</tspan></text></g></g></g>
+<g id="dg25-dt" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg25-dt--r" x="302.55" y="-18.38" width="88.40" height="36.75" rx="4"/><g id="dg25-dt--lw0" data-lab="dt--l" class="dg-lwrap dg-variant dg-off" transform="translate(346.75,0.00)"><g id="dg25-dt--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Detector</tspan></text></g></g><g id="dg25-dt--lw1" data-lab="dt--l" class="dg-lwrap dg-variant" transform="translate(346.75,0.00)"><g id="dg25-dt--l1" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Detected</tspan></text></g></g></g>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong><code>autoplay=1400</code> läuft die Takte dieser Figur von selbst ab, <code>cycle</code> beginnt danach wieder vorn.</strong> Eine Verzögerung in Millisekunden, dieselbe für jeden Takt – ein Deckblatt, das sich bewegt, während der Raum sich setzt, ist der Fall, für den es gebaut ist; es steht hier auf einer gewöhnlichen Folie, weil nichts daran an das Deckblatt gebunden ist.</p>
-<p><strong>Es ruft dieselbe Fortschaltung wie die Leertaste.</strong> Ein eigener Zähler hätte Zeichnung und Taktzähler auseinanderlaufen lassen, und der nächste Tastendruck wäre gesprungen. Weil es <em>der</em> Zähler ist, folgt das Rednerfenster über die gewöhnliche Synchronisation, die Einfrier-Sperre greift, und gespeichert wird nichts Neues. <code>cycle</code> spult über denselben Zähler zurück, also folgt das Rednerfenster auch dem Rücksprung.</p>
-<p><strong>Der erste Tastendruck, Klick oder Scroll hält es endgültig an.</strong> Wer das Deck angefasst hat, hat übernommen, und eine Uhr, die darunter weiterläuft, ist schlimmer als keine. Aus demselben Grund fängt es auf einer schon halb aufgedeckten Folie gar nicht erst an: Dass sie halb aufgedeckt ist, heißt, jemand hat sie so verlassen.</p>
-<p><strong>Zwischen 200 ms und 60 s, und außerhalb verweigert statt gekappt.</strong> Unter 200 ms liest der Raum keinen Takt, über einer Minute ist eine „bewegte&quot; Figur eine stehende, die sich ändert, wenn niemand hinsieht. Eine gekappte Zahl ist eine Zahl, die niemand geschrieben hat.</p>
+<p><strong><code>autoplay=1400</code> walks this figure&#39;s beats by itself, and <code>cycle</code> starts again at the end.</strong> One delay in milliseconds, the same for every beat. A cover figure moving while the room settles is the case it was built for; it stands on an ordinary slide here, because nothing about it is tied to a cover.</p>
+<p><strong>It calls the same advance the space bar does.</strong> A counter of its own would have let the drawing and the beat counter drift apart, and the next keypress would have jumped. Because it <em>is</em> the counter, the speaker window follows through the ordinary sync and the freeze gate applies. <code>cycle</code> rewinds through the same counter, so the speaker window follows the rewind too.</p>
+<p><strong>The first keypress, click or scroll stops it for good.</strong> Whoever has touched the deck has taken over, and a timer running on underneath them is worse than none. For the same reason it does not start at all on a slide that is already half revealed: half revealed means somebody left it that way.</p>
+<p><strong>Between 200 ms and 60 s, and outside that refused rather than clamped.</strong> Under 200 ms the room reads no beat; over a minute a “moving” figure is a still one that changes while nobody is watching. A clamped number is a number nobody wrote.</p>
 
   
   

@@ -19,6 +19,16 @@ itself.
 Every figure in this lecture is written in the lecture source, laid out at
 build time, and stepped with the same key that advances a reveal.
 
+## principle: None of this is in the 1.0.0 release {.standard #preview}
+
+**`::: draw` was added after the 1.0.0 release**, so the archive on the
+releases page does not have it and a lecture that uses it will not build
+against that download.
+
+What you need instead is the repository: a clone, or **Download ZIP** from the
+project page. The figure language may still change before it is tagged, so a
+figure you write today may need an edit. The editor is experimental too.
+
 # Memory safety
 
 ## figure: Types of memory unsafety {.full #unsafety}
@@ -42,9 +52,9 @@ box  bo   "Buffer Overflow" below slab gap 0.75 flush left {.accent @spatial}
 box  bor  "Buffer Overread" right of bo gap 0.65 same as bo {.accent @spatial}
 text scode "char buf[16];\nbuf[42];" below bo gap 0.28 flush left {.mono .left @spatial}
 
-# Die beiden Spalten hält das flush left in den Platzierungen schon bündig.
-# Die Kästchen rechts nicht: sie sitzen je 0.7 neben einem Wort, und
-# "Temporal" ist ein Zeichen länger als "Spatial".
+# The flush left in the placements already lines the two columns up. It does
+# not line up the two small boxes on the right: each sits 0.7 beside a word,
+# and "Temporal" is one character longer than "Spatial".
 align x middle tobj, sobj
 
 step temporal
@@ -53,9 +63,9 @@ step spatial
   show @spatial
 :::
 
-**Zwei Familien, dieselbe Form.** Das `flush left` am Ende einer Platzierung hält jede `below`-Kette an ihrer linken Kante bündig, obwohl der obere Code zweizeilig und der untere anders breit ist; `same as` gibt jedem Paar gleich große Kästen. Die *Anweisung* `align x middle tobj, sobj` ist etwas anderes: sie übernimmt eine Koordinate vom zuerst genannten Element, und hier ist sie nötig, weil die beiden Kästchen neben verschieden langen Wörtern hängen. Die beiden Schritte sprechen `@temporal` und `@spatial` an, statt acht Namen einzeln aufzuzählen.
+**Two families, one shape.** `flush left` at the end of a placement keeps each `below` chain level at its left edge, though the upper listing runs to two lines and the lower one is a different width; `same as` gives each pair boxes of one size. The *statement* `align x middle tobj, sobj` is a different thing: it hands one coordinate from the first element named to the rest, and it is needed here because the two small boxes hang beside words of different lengths. The two steps name `@temporal` and `@spatial` instead of listing eight names.
 
-## figure: Your first buffer overflow | ein konstruiertes Beispiel {.full #overflow}
+## figure: Your first buffer overflow | a made-up example {.full #overflow}
 
 ::: side
 ```c
@@ -97,7 +107,7 @@ step reached
 :::
 :::
 
-**Links ein ganz normaler Markdown-Codeblock, rechts ein Diagramm.** `::: side` stellt beide nebeneinander; das Diagramm muss dafür nichts können. Innen halten `same as` und `gap 0` die vier Rahmen als einen Stapel zusammen, und die `brace` spannt sich über alle vier und schreibt die Schreibrichtung daneben.
+**An ordinary Markdown code block on the left, a diagram on the right.** `::: side` puts the two beside each other, and the diagram needs to know nothing about it. Inside, `same as` and `gap 0` hold the four frames together as one stack, and the `brace` spans all four and writes the direction of writing beside them.
 
 # Block ciphers
 
@@ -109,10 +119,10 @@ default box @dec {.round .tone-2} w 0.48
 default text {.mono}
 
 box iv "Rand. IV" at 0,0 {.tone-1}
-# Die Spalten stehen weiter auseinander, als die Kästen es bräuchten. Der
-# Zwischenraum ist kein Weißraum, sondern der Kanal, in dem die Verkettung
-# nach unten läuft – bei gap 0.3 blieb dafür nichts übrig, was die Linie
-# entweder durch den Dec-Kasten oder über die Schlüssel-Beschriftung zwang.
+# The columns stand further apart than the boxes need. The space between them
+# is not white space but the channel the chaining runs down - at gap 0.3 there
+# was nothing left for it, which forced the line either through the Dec box or
+# over the key label.
 box c0 "c_0" right of iv gap 1.15
 box c1 "c_1" right of c0 gap 1.15
 box c2 "c_2" right of c1 gap 1.15
@@ -143,10 +153,10 @@ edge d2 -> x2
 edge x0 -> m0
 edge x1 -> m1
 edge x2 -> m2
-# Die Verkettung verlässt den Chiffrat-Kasten seitlich und läuft in der Lücke
-# zwischen den Spalten nach unten. Geradewegs nach unten wäre kürzer und
-# falsch: der Dec-Kasten steht genau darunter, die Linie liefe mitten
-# hindurch und legte sich über den Pfeil, der wirklich hineinführt.
+# The chaining leaves the ciphertext box sideways and runs down the gap between
+# the columns. Straight down would be shorter and wrong: the Dec box sits
+# directly under it, so the line would run through the middle of it and lie
+# over the arrow that really does go in.
 edge feed0 iv -> x0 via iv.right+0.2,iv.cy iv.right+0.2,d0.bottom+0.28
 edge feed1 c0 -> x1 via c0.right+0.2,c0.cy c0.right+0.2,d0.bottom+0.28
 edge feed2 c1 -> x2 via c1.right+0.2,c1.cy c1.right+0.2,d0.bottom+0.28
@@ -166,7 +176,7 @@ step recover
   dim feed0, feed1, feed2
 :::
 
-Jeder `step` ist ein Druck auf die Vorwärtstaste. Die Verkettungspfeile haben je einen Wegpunkt (`via`) – mehr Wegführung brauchen diese Bilder nie.
+Each `step` is one press of the forward key. The chaining arrows carry one waypoint each (`via`), which is as much routing as these figures ever need.
 
 ## figure: Counter mode, encryption {.full #ctr}
 
@@ -211,9 +221,9 @@ edge ke0 -> e0 {@enc}
 edge ke1 -> e1 {@enc}
 edge ke2 -> e2 {@enc}
 
-# Diese zwölf brauchen kein eigenes @tag und kein show: eine Kante ist nur so
-# sichtbar wie ihre beiden Enden, also erscheint s->+ mit dem Schlüsselstrom,
-# m->+ mit der Nachricht und +->c mit dem Chiffrat.
+# These twelve need no @tag of their own and no show: an edge is only as
+# visible as its two ends, so s->+ arrives with the keystream, m->+ with the
+# message and +->c with the ciphertext.
 edge e0 -> s0
 edge e1 -> s1
 edge e2 -> s2
@@ -241,7 +251,7 @@ step cipher
   emph cc0, cc1, cc2
 :::
 
-**Die geteilten Kästen sind zwei Kästen mit `gap 0`.** IV und Zähler tragen verschiedene Tönungen und stehen bündig aneinander; `between iv0,n0 offset 0,1.35` setzt die `Enc`-Box unter die Mitte des Paares, statt sie gegen einen der beiden zu schätzen. Die zwölf Pfeile im unteren Teil tragen weder `@tag` noch `show`: **eine Kante ist nur so sichtbar wie ihre beiden Enden**, also kommt jede von selbst in dem Schritt, in dem ihr zweiter Endpunkt erscheint.
+**The split boxes are two boxes with `gap 0`.** IV and counter carry different tones and sit flush against each other; `between iv0,n0 offset 0,1.35` puts the `Enc` box under the middle of the pair instead of guessing it against one of the two. The twelve arrows in the lower half carry neither `@tag` nor `show`: **an edge is only as visible as its two ends**, so each arrives by itself in the step where its second endpoint does.
 
 # Identity and authentication
 
@@ -251,11 +261,10 @@ step cipher
 default box {.tone-3} w 1.15
 default text {.small .muted}
 
-# Die Phasenzeile trägt schon einen eigenen Ton, also braucht sie kein Fett
-# dazu: Fett hebt *ein* Element hervor, es kennzeichnet keine Gattung. Und der
-# Grundton ist der mittlere, nicht der satteste – neun kräftig gefüllte Kästen
-# nebeneinander lassen dem `emph` im letzten Takt nichts, wovon es sich abheben
-# könnte.
+# The phase row already carries a tone of its own, so it needs no bold on top:
+# bold marks *one* element, it does not label a category. And the base tone is
+# the middle one rather than the fullest - nine strongly filled boxes side by
+# side leave the emph in the last beat nothing to stand out from.
 box  create "Creation" {.tone-1}
 text sep1   "▶"             between create,usage {.large}
 box  usage  "Usage"         right of create gap 1.95 same as create {.tone-1}
@@ -280,9 +289,9 @@ align y middle reg, ident
 align y middle prov, authn
 align y middle authz, acl
 
-# Der Pfeil sitzt zwischen Bildunterschrift und nächstem Kasten, gehört aber
-# nicht zur below-Kette: sonst schöbe ihn eine zweizeilige Unterschrift in
-# den Kasten hinein, den align y middle gerade festgehalten hat.
+# The arrow sits between a caption and the next box but is not part of the
+# below chain: inside it, a two-line caption would push it into the box that
+# align y middle has just pinned.
 text down1  "▼"  between regc,prov {@creation}
 text down2  "▼"  between provc,authz {@creation}
 text down3  "▼"  between identc,authn {@usage}
@@ -303,7 +312,7 @@ step self
   emph selfsv
 :::
 
-**Ohne `align y middle` driften die beiden Spalten auseinander.** Sie sind getrennte `below`-Ketten, und die Bildunterschriften sind mal ein-, mal zweizeilig – drei `align`-Zeilen halten die Reihen bündig.
+**Without `align y middle` the two columns drift apart.** They are separate `below` chains, and the captions run to one line or to two; three `align` lines hold the rows level.
 
 ## figure: Message authentication | it is not about confidentiality {.full #mac}
 
@@ -341,7 +350,7 @@ step attack
   emph replay, forge
 :::
 
-**Die Avatare sind Vektorgrafiken und folgen dem Theme.** `image alice avatar-alice` sucht die Datei in `assets/`, genau wie `![](fig-id)`; eine SVG-Datei wird als verschachteltes `<svg>` eingesetzt und erbt `--ink` und `--paper`. Die beiden Angriffspfeile setzen bei `eve.right:0.28` und `:0.72` an: Der Bruchteil hinter dem Doppelpunkt schiebt den Ansatzpunkt an der Kante entlang, und so laufen die beiden parallel, statt übereinanderzuliegen.
+**The avatars are vector drawings and follow the theme.** `image alice avatar-alice` finds the file in `assets/` exactly as `![](fig-id)` does; an SVG file is spliced in as a nested `<svg>` and inherits `--ink` and `--paper`. The two attack arrows start at `eve.right:0.28` and `:0.72`: the fraction after the colon slides the attachment point along that side, so the two run parallel instead of on top of each other.
 
 # The vocabulary
 
@@ -350,7 +359,7 @@ step attack
 ::: draw {unit=130x76}
 box  a "Sender"
 box  b "Mix"        right of a gap 1.05
-box  c "Empfänger"  right of b gap 1.05
+box  c "Receiver"   right of b gap 1.05
 dot  x "+"          below b gap 0.8
 text n "a free label, placed\nwherever it reads best"  right of x gap 1.45 -- x {.muted .small .left}
 edge a -> b "encrypted"
@@ -358,9 +367,9 @@ edge b -> c "recoded"
 edge b -> x {.dashed}
 :::
 
-`box`, `dot`, `text`, `image`, `edge`, `brace`, `container`, `bars`, `grid`, `plot`, `table`, `lanes`, `sequence`, `align`, `spread`, `default`, `step` – siebzehn Anweisungen, mehr nicht. Ein `text` bekommt mit `-- x` eine kurze Linie zu dem, worüber er spricht – einen Hinweisstrich, keinen Pfeil: ein Pfeil behauptet eine Verbindung, ein Strich sagt nur, worum es geht.
+`box`, `dot`, `text`, `image`, `edge`, `brace`, `container`, `bars`, `grid`, `plot`, `table`, `lanes`, `sequence`, `align`, `spread`, `default`, `step` – seventeen statements, and no more. `-- x` on a `text` draws a short line to what it is about: a leader, not an arrow. An arrow claims a connection, a leader only says what the note refers to.
 
-**Alles darin ist in Rastereinheiten gemessen, auch das, was keine Beschriftung hat.** Der `dot` in der Mitte hat kein `r` und hat deshalb einen *Radius* von 0.18 Einheiten – also 0.36 quer –, keine feste Pixelzahl. Der Unterschied fällt erst auf, wenn ein Block sein `unit=` ändert: Eine Pixelangabe bliebe liegen, während alle Kästen um sie herum größer werden.
+**Everything in it is measured in grid units, including what carries no label.** The `dot` in the middle has no `r` and so has a *radius* of 0.18 units – 0.36 across – rather than a fixed number of pixels. The difference shows the moment a block changes its `unit=`: a pixel figure would stay where it was while every box around it grew.
 
 ## figure: Alignment {.wide #alignment}
 
@@ -382,7 +391,7 @@ spread x p, q, r, s
 edge a.left-0.8,a.cy -> a "from outside" {.muted}
 :::
 
-**Die beiden Reihen zeigen zwei verschiedene Arten von gleichmäßig.** Oben sind die *Kantenabstände* gleich – das gibt schon eine Kette aus `right of … gap n` her. Unten sind die *Mittelpunktabstände* gleich: `spread x` verteilt die inneren Elemente zwischen dem ersten und dem letzten, und weil der zweite Kasten viel breiter ist als seine Nachbarn, sind die Lücken links und rechts von ihm sichtbar kleiner. Der Pfeil links oben hat einen Endpunkt ohne Objekt – eine Koordinate statt eines unsichtbaren Ankers.
+**The two rows show two different kinds of even.** In the top row the *gaps between edges* are equal, which a chain of `right of … gap n` already gives you. In the bottom row the *distances between centres* are equal: `spread x` distributes the inner elements between the first and the last, and because the second box is much wider than its neighbours the gaps either side of it are visibly smaller. The arrow at the top left has an endpoint with no object behind it – a coordinate instead of an invisible anchor.
 
 ## figure: Containers and braces {.wide #grouping}
 
@@ -396,16 +405,16 @@ edge r1 -> r2
 edge r2 -> r3
 brace sign over r1,r2 side right "Signup" pad 0.62
 container life "Creation" over r1,r2,r3 pad 0.42 {.dashed}
-# Dieselbe Klasse wie auf einer Kastenbeschriftung. Eine Klammer, die drei
-# Zeilen überspannt, hat für ihr Wort längs mehr Platz als quer.
+# The same class as on a box label. A brace spanning three rows has more room
+# for its word along its length than across it.
 brace whole over r1,r2,r3 side left "the whole thing" pad 0.5 {.turn .muted}
 :::
 
-Ein `container` legt sich um seine Mitglieder und passt sich neu an, wenn sie sich bewegen. Eine `brace` überspannt eine Teilmenge und hängt ihr Label nach außen. Beide messen ihren Abstand zum Inhalt mit demselben Wort, `pad` – die Klammer bekommt hier `0.62`, damit sie außerhalb der `0.42` des Containers zu liegen kommt.
+A `container` lays itself around its members and re-fits when they move. A `brace` spans a subset and hangs its label outside. Both measure their distance to their contents with the same word, `pad` – the brace is given `0.62` here so that it comes to lie outside the container's `0.42`.
 
-**Genau deshalb sind Schwimmbahnen kein `container`.** Ein Container misst sich an dem, was er hält; drei Bahnen, in denen verschieden viele Dinge liegen, kommen so an beiden Enden verschieden lang heraus. Ein Schwimmbahn-Diagramm behauptet aber das Gegenteil: Die Bänder sind gleich lang, und ungleich ist nur, was darin passiert. Dafür ist `lanes` da – gleich breite Bänder, die von ihrem Inhalt nichts wissen wollen. Die Figur dazu steht weiter unten unter *Three roles, one incident*.
+**Swimlanes are not a `container`, and that is why.** A container measures itself against what it holds, so three lanes holding different numbers of things come out different lengths at both ends. A swimlane diagram says the opposite: the bands are equal, and only what happens inside them differs. `lanes` is for that – bands of equal width that want to know nothing about their contents. The figure is further down, under *Three roles, one incident*.
 
-**`.turn` gilt für jede Beschriftung, nicht nur für die eines Kastens.** Die linke Klammer liest von unten nach oben, und dieselbe Klasse tut dasselbe an einer Container-Überschrift und an einem Kantenlabel – an allen vier Stellen also, an denen überhaupt eine Beschriftung gesetzt wird.
+**`.turn` applies to every label, not only to a box's.** The left brace reads bottom to top, and the same class does the same thing on a container caption and on an edge label – at all four places, that is, where a label is set at all.
 
 ## figure: The look of a thing {.full #look}
 
@@ -429,10 +438,10 @@ text t3 "serif" right of t2 gap 1 {.serif}
 text t4 "hand"  right of t3 gap 1 {.hand}
 text tl "family" left of t1 gap 1.15 {.muted}
 
-# Die drei Prominenzwörter, an freiem Text statt an Kästen: sie belegen einen
-# Slot und verdrängen einander, und `.emph` färbt hier die Wörter selbst –
-# ein Bild hat gar keine Tinte dafür und wird trotzdem von derselben Liste
-# bedient, weil `emph` dort schlicht ein `dim` wieder abnimmt.
+# The three prominence words, on free text rather than on boxes: they occupy
+# one slot and displace each other, and .emph colours the words themselves
+# here. An image has no ink to thicken and is still served by the same list,
+# because there emph simply takes a dim off again.
 text pr0 "normal" at 0.31,1.85
 text pr1 "emph"  right of pr0 gap 1 {.emph}
 text pr2 "dim"   right of pr1 gap 1 {.dim}
@@ -449,27 +458,27 @@ text n2 "shrink" below g2 gap 0.16 {.muted}
 text n3 "fit"    below g3 gap 0.16 {.muted}
 text gl "type meets\nits box" left of g1 gap 0.8 {.muted .right}
 
-# Die fünf Umrisse, die kein Rechteck sind, und die eine Leserichtung, die
-# nicht waagerecht ist. Beide gehören hierher, weil das der Katalog ist, den
-# die Seitenleiste des Editors spiegelt.
+# The five outlines that are not rectangles, and the one reading direction
+# that is not horizontal. Both belong here: this is the catalogue the editor's
+# sidebar mirrors.
 box  s1 "hex"      at 0,3.5 w 0.66 h 0.42 {.hex .tone-2}
 box  s2 "chevron"  right of s1 gap 0.5 same as s1 {.chevron .tone-2}
 box  s3 "left"     right of s2 gap 0.5 same as s1 point left {.chevron .tone-2}
 box  s4 ""         right of s3 gap 0.4 w 0.4 h 0.42 {.diamond .tone-2}
 box  s5 ""         right of s4 gap 0.35 w 0.42 h 0.42 {.wedge .tone-4}
 box  s6 ""         right of s5 gap 0.35 same as s5 point up {.wedge .tone-4}
-# Ein Kreuz ohne eigenes w kommt quadratisch heraus – hier gibt ihm aber die
-# Blockvoreinstellung eines, also stehen beide Zahlen da. Dass sie so ungleich
-# aussehen und dasselbe meinen, ist der Punkt: 0.264 mal 118 ist 0.42 mal 74.
+# A cross with no w of its own comes out square - here the block default gives
+# it one, so both numbers are written. That they look so unequal and mean the
+# same thing is the point: 0.264 times 118 is 0.42 times 74.
 box  s7 ""         right of s6 gap 0.35 {.cross .accent}
 box  s8 "turn"     right of s7 gap 0.65 h 0.62 {.tone-2 .turn}
 text sl "outline, and\nreading direction" left of s1 gap 0.8 {.muted .right}
 
-# Prominenz: ein Kanal, vier Zustände. Die drei Klassen heißen genau wie die
-# drei Verben, die ein `step` dafür hat – deshalb steht die Reihe hier und
-# nicht nur in der Seitenleiste des Editors. Der vierte Zustand hat keinen
-# Namen und braucht auch keinen: `{!dim}` nimmt die Klasse wieder ab, hier
-# gegen die Blockvoreinstellung eine Zeile darüber.
+# Prominence: one channel, four states. The three classes are named exactly
+# like the three verbs a step has for them, which is why the row is here and
+# not only in the editor's sidebar. The fourth state has no name and needs
+# none: {!dim} takes the class off again, here against the block default one
+# line above.
 default box @prom {.dim}
 box  p1 "emph"   at 0,5.1 w 0.62 h 0.42 {.emph}
 box  p2 "normal" right of p1 gap 0.7 same as p1
@@ -479,27 +488,27 @@ box  p5 "!dim"   right of p4 gap 0.7 same as p1 {@prom !dim}
 text pl "prominence" left of p1 gap 0.8 {.muted .right}
 :::
 
-**Der experimentelle, für Desktop-Bildschirme gedachte Editor zeigt genau diese Reihen in seiner Seitenleiste.** Er ist umfangreich automatisiert getestet, aber noch nicht breit von Menschen erprobt. Die Klassen sind eine geschlossene Aufzählung, keine freien Farben – jede Füllung mischt sich aus `--emph` und `--ink` über `--paper` und überlebt damit alle sieben Themes.
+**The editor's sidebar shows exactly these rows.** It is experimental and made for a desktop-sized screen: heavily covered by automated tests, not yet widely tried by people. The classes are a closed list rather than free colours – every fill is mixed from `--emph` and `--ink` over `--paper`, so it survives all seven themes.
 
-**`.paper` in der oberen Reihe sieht wirkungslos aus und ist es nicht.** Es ist zwar die Voreinstellung einer Box, aber unter einem `default box {.tone-3}` findet eine Box ohne diese Klasse nicht mehr dorthin zurück, und ein freier `text` bekommt ohne sie überhaupt keinen Hintergrund – der ist es, der die Linie hinter einer Beschriftung ausstanzt.
+**`.paper` in the top row looks inert and is not.** It is a box's default, but under a `default box {.tone-3}` a box without the class cannot find its way back, and a free `text` gets no background at all without it – that background is what knocks a line out behind a label.
 
-**Die untere Reihe sind die fünf Umrisse, die kein Rechteck sind, und `.turn`.** Sie teilen sich einen Slot mit `.round` und `.sharp` – eine Gruppe von Klassen, von denen immer nur eine gelten kann –, weil ein Sechseck keinen Eckenradius hat, über den sich streiten ließe; gezeichnet werden dieselben vier Zahlen wie bei einem Rechteck, nur zu einem anderen Pfad verbunden. `.turn` liest die Beschriftung von unten nach oben; ein hoher schmaler Kasten hat für ein Wort nur längs Platz, und die Alternative ist ein Buchstabe pro Zeile.
+**The bottom row is the five outlines that are not rectangles, plus `.turn`.** They share a slot with `.round` and `.sharp` – a group from which only one class can hold at a time – because a hexagon has no corner radius to argue about. The same four numbers are drawn as for a rectangle, joined into a different path. `.turn` reads the label bottom to top: a tall narrow box has room for a word only along its length, and the alternative is one letter per line.
 
-**Ein `.cross` ohne eigenes `w` kommt quadratisch heraus, auch unter einer Blockvoreinstellung.** Ein Pluszeichen mit zwei verschieden langen Armen ist keines: Ohne diese Ausnahme bekäme das Kreuz die Mindestbreite, die eine Zeile Schrift verlangt, und käme damit auf 66 mal 37 Pixel – eine gedehnte Form statt eines Zeichens. Das `default box … w 0.62` dieser Reihe gilt für die Rechtecke darin, und ein Kreuz ist keines, also geht es daran vorbei – dieselbe Ausnahme, die `bars` beim Umriss macht. Ein auf der eigenen Zeile ausgeschriebenes `w` gewinnt weiterhin, denn das ist eine Aussage über dieses eine Element.
+**A `.cross` with no `w` of its own comes out square, block default or not.** A plus with arms of two different lengths is not a plus. Without the exception the cross would take the minimum width one line of type needs and arrive at 66 by 37 pixels, a stretched shape instead of a sign. The row's `default box … w 0.62` applies to the rectangles in it, and a cross is not one, so it passes by – the same exception `bars` makes for outlines. A `w` written on the element's own line still wins, that being a statement about this one element.
 
-**`.diamond` ist der eine Umriss, der beide Achsen frisst.** Der breiteste Platz, den eine Raute anbietet, ist ein Streifen von halber Breite und halber Höhe durch ihre Mitte – der Build bemisst sie deshalb auf das Doppelte dessen, was ein Rechteck für dieselbe Zeichenkette bräuchte, und zwar in beiden Richtungen. Ein Satz in einer Raute kommt damit auf die vierfache Fläche der Kästen daneben und nimmt das Bild ein; zwei, drei Wörter sind das Maß, und die Erläuterung gehört in eine Notiz nebenan. Die Raute in dieser Reihe trägt aus demselben Grund gar keine Beschriftung – die beschriftete steht im Flussdiagramm weiter unten. `.hex` sagt „hier wird gefragt“ ebenfalls; die Raute sagt darüber hinaus, dass es auf zwei Arten weitergeht, und darauf ist ein Raum seit der Schule trainiert.
+**`.diamond` is the one outline that eats both axes.** The widest room a diamond offers is a strip half its width by half its height through the middle, so the build sizes it at twice what a rectangle would need for the same string, in both directions. A sentence in a diamond therefore takes four times the area of the boxes beside it and swallows the figure; two or three words is the measure, and the explanation belongs in a note next to it. The diamond in this row carries no label for the same reason – the labelled one is in the flowchart further down. `.hex` also says *a question is asked here*; the diamond says on top of that that it goes on in two ways, which a room has been trained on since school.
 
-**Wohin ein Umriss zeigt, sagt die Option `point`, nicht der Klassenname.** `{.chevron} point left` statt einer eigenen Klasse `.chevron-left`: ein Chevron nach oben ist dieselbe Form, anders ausgerichtet, und für jede Form mal jede Richtung ein Wort würde die geschlossene Liste vervierfachen. `point` gilt für `.chevron` und `.wedge`; auf einer Form ohne Spitze lehnt der Build es ab, statt es zu überlesen.
+**Which way an outline aims is the `point` option, not the class name.** `{.chevron} point left` rather than a class `.chevron-left`: a chevron aimed up is the same shape aimed differently, and a word for every shape times every direction would quadruple the closed list. `point` applies to `.chevron` and `.wedge`; on a shape with no point the build refuses it instead of reading past it.
 
-**Die letzte Reihe ist der eine Kanal, den die Sprache an drei Stellen buchstabiert – und an allen dreien gleich.** `.emph`, `.dim` und `.ghost` sind Klassen auf der Zeile eines Elements; sie sind die Verben, die ein `step` dafür hat (`dim a, b`); und auf einer `bars`-Zeile nennen dieselben drei Wörter Spaltennummern. Wer eine der drei Formen kennt, kennt alle drei. Der vierte Zustand – ganz gewöhnliche Prominenz – hat absichtlich keinen Namen: `{!dim}` nimmt die Klasse ab, statt eine vierte hinzuzufügen, und das gilt für jede Klasse und in jedem Tail.
+**The last row is the one channel the language spells in three places, and spells the same way in all three.** `.emph`, `.dim` and `.ghost` are classes on an element's own line; they are the verbs a `step` has for them (`dim a, b`); and on a `bars` line the same three words name column numbers. Learn one form and you have all three. The fourth state – ordinary prominence – deliberately has no name: `{!dim}` takes the class off instead of adding a fourth, and that holds for every class and in every tail.
 
-**`p5` trägt `@prom` und damit die Voreinstellung `default box @prom {.dim}` – und `{!dim}` daneben.** Ohne diese Marke gäbe es keinen Weg zurück: ein `style`-Schritt konnte eine Klasse immer nur *hinzufügen*, und viele Slots buchstabieren ihren Grundzustand als die Abwesenheit aller Mitglieder. Ein Takt konnte einen solchen Zustand also verlassen und nie wieder erreichen.
+**`p5` carries `@prom`, and so the default `default box @prom {.dim}` – and `{!dim}` beside it.** Without that mark there is no way back: a `style` step could only ever *add* a class, and many slots spell their base state as the absence of every member, so a beat could leave such a state and never reach it again.
 
-**Was auf der Zeile steht, steht auch im Handout; was in einem `step` steht, nicht.** Das ist die ganze Regel, und sie ist der Quelle anzusehen: Prominenz auf der eigenen Zeile beschreibt die Zeichnung, Prominenz in einem Takt ist eine Handlung im Vortrag. Der Druck nimmt sie deshalb aus dem Eröffnungstakt und nicht aus dem letzten.
+**What is written on the line is in the handout; what is written in a `step` is not.** That is the whole rule, and it reads off the source: prominence on an element's own line describes the drawing, prominence in a beat is an act performed in the talk. Print therefore takes it from the opening beat rather than the last.
 
-**Wenn Schrift und Kasten nicht zusammenpassen, gibt es drei Antworten.** Ohne `w` wächst der Kasten zur Schrift. Bei festem `w` verkleinert `.shrink` die Schrift, bis sie hineinpasst, und `.fit` füllt den Kasten in beide Richtungen aus, begrenzt auf 0.6–1.5× der Grundgröße. Weil die Textbreite beim Bauen nur *geschätzt* wird – einen Browser gibt es dabei nicht –, fällt die gewählte Größe eine Spur zu klein aus. Das ist die sichere Richtung.
+**When type and box do not match, there are three answers.** With no `w` the box grows to the type. With a fixed `w`, `.shrink` shrinks the type until it fits and `.fit` fills the box in both directions, bounded to 0.6–1.5× the base size. Text width is *estimated* at build time – there is no browser – so the size chosen comes out a shade too small, which is the safe direction.
 
-**Der erste Kasten läuft absichtlich über, und der Build sagt das auch:** `box g1 is 1.2 units wide but its label needs about 1.64`. Das ist die Antwort, die man nicht will: ein festes `w`, das für die Beschriftung zu klein ist, und weder `.shrink` noch `.fit`. Es ist die eine Warnung, mit der diese Vorlesung baut.
+**The first box overflows on purpose, and the build says so:** `box g1 is 1.2 units wide but its label needs about 1.64`. That is the answer nobody wants: a fixed `w` too small for the label, and neither `.shrink` nor `.fit`. It is the one warning this lecture builds with.
 
 ## figure: Steps that move {.wide #motion}
 
@@ -510,47 +519,47 @@ box  cl "Client"  at 0,0
 box  sv "Server"  right of cl gap 5.65 same as cl
 box  px "Proxy"   below cl gap 1.05
 
-container zone "auf dem Weg" over cl,sv,px {.bare .tone-2}
+container zone "on the path" over cl,sv,px {.bare .tone-2}
 
 edge direct cl <-> sv "HTTP"
 edge up cl -> px {.dashed}
 edge down px -> sv {.dashed}
 
-text note "der Kasten wandert,\ndie Pfeile folgen" below px gap 0.5 -- px {.hand .small}
+text note "the box walks,\nthe arrows follow" below px gap 0.5 -- px {.hand .small}
 
-step erscheint
+step appears
   show px
-  # Der direkte Pfeil ist noch da und soll zurücktreten, nicht verschwinden.
+  # The direct arrow is still there and should recede, not vanish.
   dim direct
-step dazwischen
+step interposed
   hide direct
   move px to between cl,sv
   emph px
-step wieder-alle
+step all-again
   show direct
-  # Und hier zurück auf gewöhnliche Prominenz. Dafür gibt es kein viertes
-  # Wort - der Zustand *ist* die Abwesenheit der drei, also nimmt man die
-  # Klasse ab, statt eine weitere hinzuzufügen.
+  # And back to ordinary prominence. There is no fourth word for it - the
+  # state *is* the absence of the three, so you take the class off instead
+  # of adding another one.
   style direct {!dim}
   style px {!emph}
 :::
 
-**`move` verschiebt ein Element, und alles, was daran hängt, geht mit.** Der Proxy bekommt `move px to between cl,sv`, und weil das Layout pro Schritt neu ausgewertet wird, hängen die beiden gestrichelten Pfeile weiterhin an ihm, die kurze Linie am Label zeigt weiter auf ihn, und der `container` fasst plötzlich eine Reihe statt zwei. `hide direct` nimmt den direkten Pfeil weg. `to` setzt eine Position, `by` verschiebt um einen Betrag – und **ein `move @tag to …` lehnt der Build ab**, weil es die ganze Menge auf einen Punkt legen würde; für eine Menge ist `by` gemeint.
+**`move` shifts an element, and everything hanging off it goes too.** The proxy gets `move px to between cl,sv`, and because the layout is worked out again at every step, the two dashed arrows still hang off it, the short line on the label still points at it, and the `container` suddenly holds a row instead of two. `hide direct` takes the direct arrow away. `to` names a position and `by` shifts by an amount – and **the build refuses `move @tag to …`**, which would stack the whole set on one point; for a set, `by` is what is meant.
 
-**Ein Takt kann eine Klasse auch wieder abnehmen, und `{!klasse}` ist das einzige Wort dafür.** Ein `style`-Schritt konnte lange nur *hinzufügen*, und weil viele Slots ihren Grundzustand als die Abwesenheit aller Mitglieder buchstabieren – gewöhnliche Prominenz, ein durchgezogener Strich, die normale Schriftgröße –, konnte ein Takt einen solchen Zustand verlassen und nie wieder erreichen. Der letzte Takt hier nimmt `.dim` und `.emph` ab und gibt dem Bild seine Ausgangsgewichtung zurück. Die Marke nimmt **genau den genannten Namen** weg, nicht den Slot: `{!dim}` räumt kein `.ghost` weg, und ein späterer Takt darf `.dim` erneut setzen.
+**A beat can also take a class off, and `{!class}` is the only word for it.** A `style` step could once only *add*, and because many slots spell their base state as the absence of every member – ordinary prominence, a solid stroke, the normal type size – a beat could leave such a state and never reach it again. The last beat here takes `.dim` and `.emph` off and gives the figure its opening weighting back. The mark removes **the exact name written**, not the slot: `{!dim}` clears no `.ghost`, and a later beat may set `.dim` again.
 
-**Was an etwas Unsichtbarem hängt, bleibt selbst unsichtbar.** Weder der `container` noch die gestrichelten Pfeile noch das handschriftliche Label brauchen deshalb ein eigenes `show`: Ein Pfeil ist nur so sichtbar wie seine Enden, ein `container` nur so sichtbar wie seine Mitglieder, und ein `text` mit einer Linie nur so sichtbar wie das, worauf er zeigt. Der erste Schritt sagt `show px` und nichts weiter – die beiden gestrichelten Pfeile kommen mit dem Proxy von selbst.
+**Anything hanging off something invisible stays invisible.** So neither the `container` nor the dashed arrows nor the handwritten label needs a `show` of its own: an arrow is only as visible as its ends, a `container` only as visible as its members, and a `text` with a leader only as visible as what it points at. The first step says `show px` and nothing else – the two dashed arrows arrive with the proxy.
 
-**Wer ein Element beim Namen nennt, setzt diese Regel außer Kraft, und zwar in beide Richtungen.** `hide direct` nimmt den direkten Pfeil weg, obwohl beide Enden weiter dastehen; ein ausgeschriebenes `show` holt umgekehrt etwas auf den Schirm, dessen Quelle noch fehlt – ein Umriss etwa, der um seine ganze Menge stehen soll, bevor die Menge beisammen ist (die Figur dazu ist der Baum unter *Leaves first, and the brackets follow*). Beides gilt ab dem Takt, in dem es steht, und für jeden danach. Ausgeschrieben gehört es nur dorthin, wo die Regel das Falsche sagt. Wer auf jedes Element ein `show` schreibt, hat eine Figur, die beim nächsten ergänzten Element unvollständig bleibt: Das Element steht im Block, kein Schritt nennt es, und es erscheint nie.
+**Naming an element overrides that rule, in both directions.** `hide direct` takes the direct arrow away though both its ends are still there; a written `show` does the reverse and brings something on screen whose source is still missing – an outline, say, that should stand around its whole set before the set is assembled (the figure for that is the tree under *Leaves first, and the brackets follow*). Both hold from the beat they are written in onwards. Write one only where the rule says the wrong thing. Write a `show` on every element and you have a figure that stays incomplete the next time one is added: the element is in the block, no step names it, and it never appears.
 
 ## figure: Where the words sit {.wide #justify}
 
 ::: draw {unit=126x86}
 default box {.sharp} w 0.66 h 0.72
 
-# Ein hoher Kasten mit kurzer Beschriftung ist der Fall, für den es diese
-# Wörter gibt. Ohne sie sitzt jede Zeile in der Mitte, was bei einem
-# Stack-Rahmen oder einer Matrixzeile das Falsche sagt.
+# A tall box with a short label is the case these words exist for. Without
+# them every line sits in the middle, which says the wrong thing about a
+# stack frame or a matrix row.
 box  tl "top\nleft"                      at 0,0    {.top .left}
 box  tc "top"           right of tl gap 0.35       {.top}
 box  tr "top\nright"    right of tc gap 0.35       {.top .right}
@@ -561,27 +570,27 @@ box  bl "bottom\nleft"  below ml gap 0.25          {.bottom .left}
 box  bc "bottom"        right of bl gap 0.35       {.bottom}
 box  br "bottom\nright" right of bc gap 0.35       {.bottom .right}
 
-# Ein freier `text` hat keinen Rand, von dem er Abstand halten müsste, und
-# deshalb auch kein Padding: seine Box *ist* der Zeilenblock. Die Wörter
-# richten ihn an seiner eigenen Kante aus, nicht an einer inneren. Die
-# Grundfläche macht das sichtbar – sie wird nach außen gezeichnet.
-text fl "frei, links"   below bl gap 0.3 {.left .small .paper}
-text fr "frei, rechts"  below br gap 0.3 {.right .small .paper}
+# A free text has no border to keep its distance from, and so no padding
+# either: its box *is* the block of lines. The words align it against its own
+# edge, not an inner one. The ground makes that visible - it is drawn
+# outwards.
+text fl "free, left"   below bl gap 0.3 {.left .small .paper}
+text fr "free, right"  below br gap 0.3 {.right .small .paper}
 
-# Und die Lesart, die *nicht* hierher gehört: An einer Kante sagen dieselben
-# vier Wörter nichts über den Zeilenblock, sondern auf welcher Seite der
-# Linie die Beschriftung liegt. Das ist eine Frage mit einer Antwort statt
-# zweier Kanäle mit je dreien - deshalb ist es dort die Option `side` und
-# keine Klasse, und deshalb lehnt der Build `{.top}` auf einer Kante ab.
+# And the reading that does *not* belong here: on an edge the same four words
+# say nothing about the block of lines, but which side of the line the label
+# lies on. That is one question with one answer rather than two channels with
+# three each - which is why an edge takes the option `side` and no class, and
+# why the build refuses {.top} on an edge.
 edge sa tl.left,tl.top-0.5 -> tr.right,tr.top-0.5 "side top" side top {.small .muted}
 edge sb bl.left,bl.bottom+0.95 -> br.right,br.bottom+0.95 "side bottom" side bottom {.small .muted}
 :::
 
-**`left` und `right` sagen, wo eine Zeile steht, `top` und `bottom`, wo der Block aus Zeilen steht.** Gemessen wird gegen das **Padding**, nicht gegen den Rand – `left` heißt „so weit nach links, wie dieser Kasten es zulässt“. Ohne eines dieser Wörter sitzt die Beschriftung mittig, was für fast jeden Kasten richtig ist; die Wörter sind für die übrigen da, für einen hohen Kasten mit kurzer Beschriftung vor allem.
+**`left` and `right` say where a line of words sits, `top` and `bottom` where the block of lines sits.** Both are measured against the **padding**, not the border: `left` means as far left as this box allows. Without one of the four the label sits centred, which is right for almost every box; the words are there for the rest, above all for a tall box with a short label.
 
-Bei mehreren Zeilen bewegt sich der **Block**, nicht die einzelne Zeile. Deshalb setzt `bottom` bei zwei Zeilen die *letzte* auf die innere Kante und nicht die erste. `turn` schlägt beides: eine gedrehte Beschriftung liest von unten nach oben und ist auf ihrem Punkt zentriert, wie herum auch immer.
+With more than one line the **block** moves, not the single line, so on two lines `bottom` puts the *last* one on the inner edge rather than the first. `turn` beats both: a turned label reads bottom to top and is centred on its point whichever way round it goes.
 
-**Die neun Felder oben sind zwei unabhängige Kanäle, die zwei Linien darum sind einer.** Eine Kastenbeschriftung steht irgendwo in einem Rechteck aus Platz, also gibt es quer drei Antworten und längs drei; eine Kantenbeschriftung liegt auf der einen oder der anderen Seite ihrer Linie, und das ist alles. Dieselben vier Wörter für beides hieß, dass `{.top .left}` auf einer Kante schreibbar war, obwohl eine Kante nur eine Seite zu wählen hat. Auf der Kante heißt es deshalb `side <wort>`, nach demselben Muster wie `point` bei den Umrissen: eine geschlossene Wortliste als Option statt eine Klasse je Wort. Welches Paar überhaupt wählen kann, steht erst fest, wenn die Linie geroutet ist – wer das andere nennt, bekommt eine Warnung.
+**The nine boxes above are two independent channels; the two lines around them are one.** A box label sits somewhere in a rectangle of space, so there are three answers across and three down. An edge label lies on one side of its line or the other, and that is all. The same four words for both meant `{.top .left}` was writable on an edge, which has only one side to pick. On an edge it is therefore `side <word>`, the pattern `point` follows on the outlines: a closed word list as an option instead of a class per word. Which pair can choose at all is settled only once the line is routed, so naming the other one draws a warning.
 
 ## figure: Six statements that expand {.full #expand}
 
@@ -601,20 +610,20 @@ step exception
   emph f-0, f-1, f-2
 :::
 
-**Sechs Anweisungen erzeugen beim Parsen gewöhnliche Elemente.** `bars` wird zu einer Box je Säule (`f-0` … `f-11`), einer Grundlinie und – wenn eine zweite Zeichenkette dasteht – einem Text je Beschriftung; `grid` zu einer Zelle je Feld (`g-<spalte>-<zeile>`); `plot` zu einem Rahmen mit Gitterlinien und Achsen, `table` zu einer Box je Zelle, `lanes` zu einem Band je Bahn, `sequence` zu einem Kopf, einer Lebenslinie, einer Nachricht und einer Notiz je Eintrag. Alles Weitere behandelt das Ergebnis wie jedes andere Element: Die `brace` überspannt drei Säulen, weil drei Säulen drei ganz normale Kästen sind, und ein `style`-Schritt färbt drei Zellen, weil es Kästen sind. Möglich ist das, weil eine Koordinate die eines anderen Elements sein darf – jede Zelle steht an der Kante des Rahmens, den dieselbe Anweisung anlegt. Die vier übrigen stehen weiter hinten: `plot` zwei Figuren später, `table`, `lanes` und `sequence` unter *Four arrangements*.
+**Six statements expand at parse time into ordinary elements.** `bars` becomes a box per column (`f-0` … `f-11`), a baseline and – where a second string is written – a text per label; `grid` a cell per field (`g-<column>-<row>`); `plot` a frame with gridlines and axes; `table` a box per cell; `lanes` a band per lane; `sequence` a head, a lifeline, a message and a note per entry. Everything downstream treats the result like any other element: the `brace` spans three columns because three columns are three ordinary boxes, and a `style` step tints three cells because they are boxes. What makes that work is that a coordinate may be another element's – every cell is placed against an edge of the frame the same statement lays. The other four are further on: `plot` two figures later, `table`, `lanes` and `sequence` under *Four arrangements*.
 
-**Auch eine Kante ist etwas, an dem sich eine Koordinate ablesen lässt.** `w1.cx`, `w1.cy`, `above w1 gap 0.2`: Was dabei gelesen wird, ist der Hüllrahmen der Leitung. Das zählt, sobald ein Satz die Leitung beschreibt statt eines ihrer Enden. Am Kasten festgemacht hält so ein Satz seinen Abstand zum Kasten und verliert ihn zur Linie, sobald sich ein Bruchteil oder eine Höhe ändert – gewarnt wird dabei nicht. Eine Kante hat keinen Namen, bis man ihr einen gibt – und der steht, wie bei jeder anderen Anweisung, vorn: in dem Feld vor dem ersten Endpunkt, also `edge w1 mix -> log`. Anonym bleiben kostet nichts, denn das Feld ist optional. Wer im Kreis herum platziert – ein Element gegen eine Kante, die selbst an ihm hängt –, bekommt `placement cycle` mit der Zeilennummer.
+**An edge is one of the things a coordinate can be read off.** `w1.cx`, `w1.cy`, `above w1 gap 0.2` – what is read is the wire's bounding box. That counts as soon as a sentence describes the wire rather than one of its ends. Pinned to a box, such a sentence keeps its distance from the box and loses it from the line the moment a fraction or a height changes, with no warning. An edge has no name until you give it one, and the name goes in front, as it does on every other statement: in the slot before the first endpoint, `edge w1 mix -> log`. Staying anonymous costs nothing, the slot being optional. Place in a circle – an element against an edge that itself hangs off it – and you get `placement cycle` with the line number.
 
-**`cell` zählt auf beiden Achsen in der Höhe einer Rastereinheit, genau wie `pad`.** Ein Feld des `grid` soll quadratisch sein; eine Zahl, die quer die Breite und hoch die Höhe der Rastereinheit meinte, ergäbe Quadrate nur dort, wo die Einheit selbst quadratisch ist.
+**`cell` counts in the height of a grid unit on both axes, exactly as `pad` does.** A `grid` cell is meant to be square, and a number meaning the unit's width across and its height down would give squares only where the unit is itself square.
 
-**Der Abstand *innerhalb* dieser Anweisungen heißt `space`, nicht `gap`.** Auf derselben Zeile steht eine Platzierung, und dort bedeutet `gap` den Abstand zu einem anderen Element. Der Abstand zwischen zwei Säulen ist etwas anderes und heißt deshalb anders.
+**The spacing *inside* these statements is `space`, not `gap`.** A placement stands on the same line, and there `gap` means the distance to another element. The distance between two columns is a different thing and takes a different word.
 
 ## figure: A second run of columns {.full #series}
 
 ::: draw {unit=150x64}
-# Dieselben acht Zahlen, zweimal gezeichnet. Die zweite Zeile legt keinen
-# eigenen Rahmen an, sie tritt dem ersten bei – und die Spalten des ersten
-# werden dafür schmaler, damit das Paar den Platz einer einzelnen einnimmt.
+# The same eight numbers, drawn twice. The second line lays no frame of its
+# own, it joins the first - and the first one's columns narrow for it, so the
+# pair takes the room a single run did.
 bars a  "12,15,19,24" "Q1 Q2 Q3 Q4" at 0,0 w 1.9 h 1.05 emph 3 dim 0 {.tone-2}
 bars a2 "9,11,10,21"  series of a emph 3 dim 0 {.tone-3}
 text an "side by side" below a gap 0.55 {.muted}
@@ -627,19 +636,19 @@ text y1 "2023" at a.left+0.32,a.top-0.34 pad 0.12 {.tone-2}
 text y2 "2024" right of y1 gap 0.55 pad 0.12 {.tone-3}
 :::
 
-**`series of a` heißt: dieselben Spalten, ein zweiter Lauf.** Die zweite `bars`-Zeile bekommt keinen Rahmen, keine Grundlinie und keine Beschriftungsleiste – die gehören alle dem Rahmen, dem sie beitritt, und wer sie trotzdem hinschreibt, bekommt einen Fehler. Eine Platzierung nimmt sie aus demselben Grund nicht an. Was sie mitbringt, sind ihre Werte, ihre Klassen und – wie jede andere `bars`-Zeile auch – die beiden Wörter, die Spalten schon vom ersten Takt an auszeichnen.
+**`series of a` means: the same columns, a second run.** The second `bars` line gets no frame, no baseline and no strip of category names – all three belong to the frame it joins, and writing one anyway is an error. It refuses a placement for the same reason. What it brings is its values, its classes and, like any other `bars` line, the two words that single columns out from the opening picture onwards.
 
-**Der Unterschied zwischen den beiden Bildern ist ein Wort, und er ändert die Skala.** Ohne `stacked` stellt sich der zweite Lauf *neben* den ersten, und die Zelle einer Spalte wird unter beiden aufgeteilt; mit `stacked` stellt er sich *darauf*, und der Maßstab ist nicht mehr der höchste Einzelwert, sondern der höchste Stapel. Rechts sind dieselben Zahlen deshalb flacher als links, obwohl kein Wert sich geändert hat. Welche der beiden Lesarten man will, ist eine inhaltliche Frage: nebeneinander vergleicht die Jahre, gestapelt zählt sie zusammen.
+**One word separates the two figures, and it changes the scale.** Without `stacked` the second run stands *beside* the first and a column's cell is shared between them; with `stacked` it stands *on* it, and the scale is no longer the tallest single value but the tallest stack. The same numbers are therefore flatter on the right than on the left, though no value changed. Which reading you want is a question about the content: side by side compares the years, stacked adds them up.
 
-**`emph 3 dim 0` steht auf der Anweisung, nicht in einem Schritt.** Q4 ist das, worum es geht, und Q1 wurde erst ab Februar gezählt – beides gilt, sobald das Bild da ist. Als Schritt geschrieben wäre das Erste, was der Raum sieht, vier gleichwertige Quartale, und die Aussage entstünde erst auf Tastendruck. Alle drei Prominenzwörter – `emph`, `dim`, `ghost` – nehmen hier Spaltennummern, ab 0 gezählt; eine Nummer, für die es keine Säule gibt, lehnt der Build ab. Es sind dieselben drei, die auf einer Elementzeile Klassen sind und in einem Takt Verben.
+**`emph 3 dim 0` stands on the statement, not in a step.** Q4 is what this is about and Q1 was only counted from February onwards; both hold the moment the figure is on screen. Written as a step, the first thing the room would see is four equal quarters, and the point would arrive on a keypress. All three prominence words – `emph`, `dim`, `ghost` – take column numbers here, counted from 0, and a number with no column behind it is refused. They are the same three that are classes on an element's line and verbs in a beat.
 
-## figure: Columns laid flat | dieselben sechs Zahlen, zweimal {.full #flat}
+## figure: Columns laid flat | the same six numbers, twice {.full #flat}
 
 ::: draw {unit=150x54}
-# Links und rechts stehen dieselben Werte. Links sind die Kategorien so breit,
-# wie eine Säule breit ist, also stehen dort Nummern und die Namen müssten
-# woanders stehen; rechts sind sie die Achse. Dieselbe emph-Spalte in beiden
-# Bildern, damit man sieht, dass es dieselben Zahlen sind.
+# The same values left and right. On the left a category is as wide as a
+# column, so it carries a number and the names would have to go elsewhere; on
+# the right the names are the axis. The same emph column in both figures, so
+# that you can see the numbers are the same.
 bars up "41,33,22,14,9,6" "1 2 3 4 5 6" at 0,0 w 1.25 h 2.0 emph 3 {.tone-3}
 text upn "the names go elsewhere" below up gap 0.55 {.small .muted}
 
@@ -647,39 +656,39 @@ bars inc "41,33,22,14,9,6" "Phishing | Ransomware | Credential stuffing | DNS ca
 text incn "the names are the axis" below inc gap 0.55 {.small .muted}
 :::
 
-**`horizontal` legt die Säulen um: die Balken laufen nach rechts, die Kategorien stapeln sich nach unten.** Es steht als einzelnes Wort auf der `bars`-Zeile, genau wie `stacked`. Die Beschriftungsleiste wird dabei zu einer rechtsbündigen Spalte im linken Rand – jedes Wort nach seiner eigenen gemessenen Breite gesetzt, damit die rechten Kanten eine Linie bilden –, und die Grundlinie steht senkrecht links, statt waagerecht unten zu liegen. Die Zahlen sind erfunden.
+**`horizontal` turns the columns on their side: the bars run right, the categories stack downwards.** It stands as a single word on the `bars` line, exactly as `stacked` does. The strip of category names becomes a right-aligned column in the left margin, each word set by its own measured width so the right edges form a line, and the baseline stands vertically on the left instead of lying under the bars. The numbers are made up.
 
-**Quer sind die Größenverhältnisse besser zu lesen.** Alle Balken beginnen an derselben senkrechten Kante, und das Auge vergleicht Längen von einer gemeinsamen Startlinie aus zuverlässiger als Höhen über einem gemeinsamen Boden – links muss man die Säulenoberkanten der Reihe nach ansteuern, rechts liest man die Rangfolge in einem Blick ab. Dazu kommt, dass eine absteigend sortierte Reihe von Balken von selbst wie eine Rangliste aussieht.
+**Flat, the proportions are easier to read.** Every bar starts at the same vertical edge, and the eye compares lengths from one shared start line more reliably than heights over a shared floor: on the left you have to visit the tops of the columns in turn, on the right you read the ranking at a glance. A run of bars sorted downwards also looks like a ranking by itself.
 
-**Und erst quer ist überhaupt Platz für die Namen.** Eine Kategorie, die „DNS cache poisoning“ heißt, lässt sich unter eine aufrechte Säule nicht schreiben; links stehen deshalb Nummern, und der Raum schlägt in einer Legende nach, die es hier gar nicht gibt. Möglich macht das die zweite Zeichenkette: **enthält sie einen `|`, wird an dem geteilt statt an Leerzeichen**, und ein Etikett darf so viele Wörter haben, wie es braucht. `|` trennt schon die Zellen einer `table`-Zeile und die Namen einer `lanes`-Liste.
+**And only flat is there room for the names at all.** A category called “DNS cache poisoning” cannot be written under an upright column, so the left-hand figure carries numbers and the room looks them up in a legend that does not exist here. The second string is what makes it possible: **a `|` in it splits on that instead of on spaces**, so a label may be as many words as it needs. `|` already separates the cells of a `table` row and the names in a `lanes` list.
 
 ## figure: A frame to draw in {.full #plot}
 
 ::: draw {unit=150x58}
-# Eine ROC-Kurve gehört ins Quadrat: beide Achsen tragen dieselbe Einheit, und
-# die Diagonale muss unter 45° laufen, sonst behauptet das Bild eine Steigung,
-# die es nicht gibt. `w` und `h` geben das nicht her – hier stünden 2.2 und
-# 5.69 nebeneinander und sähen nach allem anderen als nach einem Quadrat aus.
+# A ROC curve belongs in a square: both axes carry the same unit, and the
+# diagonal has to run at 45 degrees or the picture claims a slope it does not
+# have. w and h cannot say that - here 2.2 and 5.69 would stand side by side
+# and look like anything but a square.
 plot roc "False positive rate" "True positive rate" at 0,0 w 2.2 aspect 1:1 x 0,1 y 0,1 tick 0.2
 
 edge chance roc@0,roc@0 -- roc@1,roc@1 {.muted .dashed}
 edge good roc@0,roc@0 -- roc@1,roc@1 via roc@0.03,roc@0.45 roc@0.1,roc@0.72 roc@0.3,roc@0.9 roc@0.6,roc@0.97 {.smooth .accent .thick}
-# Ein Kantenlabel neben der Linie, und der Grund fährt mit: Er stanzt die
-# Diagonale und die Gitterlinien aus, die unter der Kurve durchlaufen. pad 0
-# ist hier nicht Sparsamkeit – der Grund ist Label plus pad, und mit dem
-# üblichen pad deckte er die Linie wieder zu, von der .right ihn gerade
-# weggerückt hat. Im Quadrat steigt die Kurve in ihrer Mitte steiler als sie
-# läuft, also gilt hier das senkrechte Wortpaar; flach gezogen war es .bottom.
+# An edge label beside the line, and the ground travels with it: it knocks out
+# the diagonal and the gridlines running under the curve. The small pad is not
+# thrift - the ground is label plus pad, and at the usual pad it would cover
+# the line again that side just moved it clear of. In a square the curve
+# climbs more steeply at its middle than it runs, so the vertical pair of
+# words applies here; drawn flat it was side bottom.
 edge weak roc@0,roc@0 -- roc@1,roc@1 via roc@0.15,roc@0.3 roc@0.4,roc@0.6 roc@0.7,roc@0.85 "weaker" pad 0.08 {.smooth .paper .small} side right
 
-# Auf der Linie, nicht daneben: der .paper-Grund ist nur dann etwas wert,
-# wenn er wirklich etwas ausstanzt.
+# On the line rather than beside it: a .paper ground is only worth anything
+# where it really knocks something out.
 text nchance "chance" at roc@0.74,roc@0.74 pad 0.12 {.small .paper}
-# Und die Leitlinie greift die Kurve an ihrem rechten Ende ab, statt quer
-# durch das Feld zu laufen und dabei beide Kurven zu kreuzen. Im Quadrat
-# reicht dafür ein „rechts daneben“ nicht mehr: die Mitte der rechten Kante
-# liegt jetzt tief genug, dass die Leitlinie von dort aus die Diagonale
-# schnitte. Die Höhe kommt deshalb aus den Einheiten des Plots selbst.
+# And the leader meets the curve at its right-hand end instead of running
+# across the field and crossing both curves. In a square, "just to the right"
+# is no longer enough: the middle of the right edge now sits low enough that a
+# leader from there would cut the diagonal. The height therefore comes from
+# the plot's own units.
 text ngood   "the one you want" at roc.right+0.6,roc@0.93 -- roc@0.86,roc@0.99 {.small .hand}
 
 step curves
@@ -689,22 +698,22 @@ step judge
   dim weak
 :::
 
-**Ein `plot` ist ein Rahmen zum Hineinzeichnen, keine Diagrammbibliothek.** Er legt Gitterlinien, Achsenbeschriftungen und die beiden Achsentitel an – und eine Umrechnung, sodass `roc@0.35` einen Wert in den Einheiten des Plots benennt. Aufgelöst wird die erst, wenn der Block ganz gelesen ist, und zwar in das gewöhnliche `roc.left+n`; ein Punkt darf deshalb einen Plot nennen, der weiter unten steht.
+**A `plot` is a frame to draw in, not a chart library.** It lays down gridlines, axis labels and the two axis titles, plus a conversion, so that `roc@0.35` names a value in the plot's own units. That is resolved into an ordinary `roc.left+n` only once the block has been read, so a point may name a plot written further down.
 
-**`w` und `h` sind in Rastereinheiten gemessen, und eine Rasterzelle ist nicht quadratisch – das ist die Falle.** Bei `unit=150x58` kommt ein `plot … w 1.9 h 1.5` als 285 mal 87 Pixel heraus: die beiden Zahlen liegen um ein Viertel auseinander, das Bild um mehr als das Dreifache. **`aspect W:H` sagt stattdessen das Verhältnis, das der Leser wirklich sieht**, und der Build rechnet die fehlende der beiden Zahlen aus. Diese ROC-Kurve steht deshalb auf `aspect 1:1` und ist quadratisch, wie es sich für zwei Achsen mit derselben Einheit gehört – die Zufallsdiagonale läuft unter 45°, und das ist die einzige Steigung, bei der sie das sagt, was sie heißt. Erlaubt sind `4:3`, `1:1` oder eine einzelne Zahl („so viel breit wie hoch“); `w`, `h` und `aspect` zusammen sind ein Fehler, weil sonst zwei Angaben dastünden, die sich widersprechen können. Auf `bars` gilt dasselbe Wort und dieselbe Regel.
+**`w` and `h` are counted in grid units, and a grid cell is not square. That is the trap.** At `unit=150x58` a `plot … w 1.9 h 1.5` comes out 285 by 87 pixels: the two numbers are a quarter apart, the picture more than three times. **`aspect W:H` states the proportion the reader actually sees** and lets the build work the missing number out. This ROC curve is therefore written `aspect 1:1` and comes out square, as two axes carrying the same unit should – the chance diagonal runs at 45 degrees, the only slope at which it says what it is called. `4:3`, `1:1` or a single number (that many wide to one tall) are all allowed; `w`, `h` and `aspect` together is an error, because two of the three can contradict each other. The same word and the same rule apply on `bars`.
 
-**Die Kurven sind gewöhnliche Kanten.** `.smooth` zieht dieselben Wegpunkte als Kurve *durch* sie hindurch statt als Streckenzug – ein interpolierender Spline, damit ein Wegpunkt genau dort bleibt, wo er hingeschrieben wurde. Die Schiefe-Warnung schweigt hier, denn ihre Prämisse gilt nicht: bei einer Kurve sind zwei fast waagerechte Punkte die Form und nicht zwei Enden, die sich verfehlt haben.
+**The curves are ordinary edges.** `.smooth` draws the same waypoints as a curve running *through* them instead of as straight segments – an interpolating spline, so a waypoint stays exactly where it was written. The skew warning stays quiet here, its premise not holding: on a curve two nearly level points are the shape rather than two ends that missed each other.
 
-**„weaker“ ist ein Kantenlabel *neben* der Linie, und der Grund fährt mit.** Eine Füllklasse an einer Kante zeichnet einen Grund hinter das Label; ohne ein `side top`, `side bottom`, `side left` oder `side right` bleibt es auf der Linie und stanzt sie aus – so wie das Flussdiagramm weiter unten es mit „yes“ und „no“ macht. Mit einem davon rückt es weg und nimmt den Grund mit. Für den Namen einer Kurve ist das die einzige Wahl: auf der Linie stanzte er genau das aus, was er benennt. Zu tun hat der Grund hier trotzdem etwas, denn unter der Kurve laufen die Diagonale und zwei Gitterlinien durch.
+**“weaker” is an edge label *beside* the line, and the ground travels with it.** A fill class on an edge draws a ground behind the label; without a `side top`, `side bottom`, `side left` or `side right` it stays on the line and knocks it out, which is what the flowchart further down does with “yes” and “no”. With one of them it moves clear and takes the ground along. For the name of a curve that is the only choice: on the line it would knock out exactly what it names. The ground still has work to do, because the diagonal and two gridlines run under the curve.
 
-**Das Wort ist kurz, und das ist hier keine Geschmacksfrage.** Weggerückt wird entlang der Normalen *in der Mitte* der Kurve, aber die Kurve steigt weiter – also läuft ein langes Label an seinen Enden in die eigene Linie zurück, statt neben ihr zu bleiben. Neben einer waagerechten oder senkrechten Kante stellt sich die Frage nicht, und dort darf das Label so lang sein, wie es sein muss.
+**The word is short, and that is not a matter of taste here.** The label is moved clear along the normal *at the middle* of the curve, but the curve goes on climbing, so a long label runs back into its own line at both ends instead of staying beside it. Beside a horizontal or vertical edge the question does not arise, and there a label may be as long as it needs to be.
 
-## figure: One size, two frames | zwei Plots, die sich vergleichen lassen {.full #sameframe}
+## figure: One size, two frames | two plots that can be compared {.full #sameframe}
 
 ::: draw {unit=150x54}
-# Zwei Rahmen, die verglichen werden sollen. Der linke schreibt seine Größe
-# hin, der rechte zeigt darauf. Die graue Kurve ist in beiden dieselbe: Sie
-# ist der Bezug, gegen den beide Standorte gelesen werden.
+# Two frames meant to be compared. The left one writes its size out, the right
+# one points at it. The grey curve is the same in both: it is the reference
+# both sites are read against.
 plot pa "week" "alerts, site A" at 0,0 w 1.4 aspect 4:3 x 0,8 y 0,8 tick 2
 plot pb "week" "alerts, site B" right of pa gap 3.2 same as pa x 0,8 y 0,8 tick 2
 
@@ -714,11 +723,11 @@ edge sa pa@0,pa@3.2 -- pa@8,pa@2.4 via pa@2,pa@2.6 pa@4,pa@1.8 pa@6,pa@2.2 {.smo
 edge sb pb@0,pb@3.2 -- pb@8,pb@7.6 via pb@2,pb@4.4 pb@4,pb@5.2 pb@6,pb@6.8 {.smooth .accent}
 :::
 
-**`same as` auf einer `plot`- oder `bars`-Zeile übernimmt den ganzen Rahmen.** Der rechte Plot schreibt keine eigene Größe hin, sondern zeigt auf den linken, und die beiden Bilder sind damit auf den Pixel gleich groß. Zwei Bilder, die verglichen werden sollen, muss der Blick in Gedanken übereinanderlegen können; zwei Rahmen, die sich um eine Haaresbreite unterscheiden, geben das nicht her.
+**`same as` on a `plot` or `bars` line copies the whole frame.** The right-hand plot writes no size of its own but points at the left one, so the two figures match to the pixel. Two figures meant to be compared have to be ones the eye can lay over each other; two frames a hair apart cannot do that.
 
-**Kopiert wird beim Lesen der Zeile, nicht beim Layout – anders als bei einem Kasten.** Gitterlinien, Achsenbeschriftungen und Säulen werden aus `w` und `h` gesetzt, sobald die Zeile gelesen ist; eine Größe, die erst später ankäme, verschöbe den Rahmen und ließe alles darin stehen. Die Anweisung, von der kopiert wird, muss deshalb **über** der stehen, die kopiert, und der Build benennt, was schiefging: ein Name, der erst weiter unten steht, einer, der auf etwas anderes als `plot` oder `bars` zeigt, oder einer, den es im Block gar nicht gibt. Zusammen mit `w`, `h` oder `aspect` ist `same as` ein Fehler, und auf einer `series of`-Zeile ebenfalls: Eine Serie zeichnet in einem Rahmen, den sie nicht anlegt.
+**The copy happens as the line is read, not at layout time – unlike a box's.** Gridlines, axis labels and columns are placed from `w` and `h` the moment the line is read, so a size arriving later would move the frame and leave everything in it standing. The statement being copied from must therefore stand **above** the one copying, and the build names what went wrong: a name that appears further down, one pointing at something other than a `plot` or `bars`, or one that is not in the block at all. `same as` beside `w`, `h` or `aspect` is an error, and so is `same as` on a `series of` line, a series drawing in a frame it does not lay.
 
-**Gleich große Rahmen sind noch kein gemeinsamer Maßstab.** `x` und `y` stehen auf jeder `plot`-Zeile für sich, und niemand prüft, ob zwei Rahmen dieselben Bereiche tragen – oben stehen sie deshalb zweimal ausgeschrieben da, und das ist die Stelle, die man vor dem Abgeben noch einmal liest. Bei `bars` gibt es nicht einmal einen Bereich zum Hinschreiben: Jede `bars`-Anweisung skaliert auf ihren eigenen höchsten Wert, zwei gleich große Rahmen können also Säulen enthalten, die sich nicht vergleichen lassen.
+**Frames of one size are not yet one scale.** `x` and `y` stand on each `plot` line for themselves, and nothing checks that two frames carry the same ranges – above they are written out twice, and that is the place to re-read before handing the slide over. `bars` has no range to write at all: every `bars` statement scales to its own highest value, so two frames of one size can hold columns that cannot be compared.
 
 ## figure: A raster does not follow the theme {.standard #raster}
 
@@ -727,7 +736,7 @@ image swatch swatch w 0.6
 text  note "a raster keeps its own colours\nin every theme" right of swatch gap 0.9 -- swatch {.small .muted .left}
 :::
 
-Beim Durchschalten der Themes mit `A` bleibt das Rasterbild, wie es ist, während Kästen, Pfeile und Vektorgrafiken umfärben. Das ist der Preis für Pixel.
+Cycle the themes with `A` and the raster image stays as it is, while boxes, arrows and vector drawings re-colour. That is what pixels cost.
 
 # Four arrangements
 
@@ -736,14 +745,14 @@ Beim Durchschalten der Themes mit `A` bleibt das Rasterbild, wie es ist, währen
 ::: draw {unit=132x70}
 default box {.tone-2}
 
-# Die Hauptstraße läuft geradewegs nach unten, jeder Zweig geht seitlich ab:
-# Wer der senkrechten Linie folgt, folgt dem Fall, der durchgeht. Die beiden
-# Rauten bekommen kein w. Ein festes w hilft hier auch niemandem: Die
-# Zu-eng-Warnung misst gegen das Rechteck, nicht gegen den halb so breiten
-# Streifen, den eine Raute wirklich anbietet.
-# Man würde diese Figur gar nicht zeichnen: ein Ablauf aus Bedingungen und
-# Zuweisungen liest sich als Pseudocode schneller als als Flussdiagramm. Sie
-# steht hier für die *Form*, nicht als Empfehlung für diesen Inhalt.
+# The main road runs straight down and every branch leaves sideways: follow
+# the vertical line and you follow the case that goes through. The two
+# diamonds get no w. A fixed w would help nobody here either: the too-narrow
+# warning measures against the rectangle, not against the half-as-wide strip a
+# diamond really offers.
+# You would not draw this figure at all: a procedure of conditions and
+# assignments reads faster as pseudo-code than as a flowchart. It stands here
+# for the *shape*, not as a recommendation for this content.
 box  pkt  "Packet arrives"          at 0,0 w 1.4 {.tone-3}
 box  d1   "Known flow?"             below pkt gap 0.45 {.diamond .tone-1}
 box  d2   "Rule permits?"           below d1 gap 0.45 {.diamond .tone-1}
@@ -752,8 +761,8 @@ box  fast "Forward,\nno rule check" right of d1 gap 1.3 w 1.4
 box  drop "Drop"                    right of d2 gap 1.3 w 1.4 {.tone-4}
 text note "state table,\nper five-tuple" left of d1 gap 1.15 -- d1 {.muted .right}
 
-# Die beiden Rauten sind verschieden breit, also enden ihre Zweige an
-# verschiedenen Stellen. Das align holt die zweite Spalte wieder bündig.
+# The two diamonds are different widths, so their branches end at different
+# places. The align brings the second column back into line.
 align x left fast, drop
 
 edge pkt -> d1
@@ -763,16 +772,16 @@ edge d2 -> fwd  "yes" {.paper}
 edge d2 -> drop "no"  {.paper}
 :::
 
-**Die Raute ist der Umriss, den ein Raum nicht erklärt bekommen muss.** Er hat ihn in der Schule gelernt: Hier wird gefragt, und es geht auf zwei Arten weiter. Bezahlt wird das mit Platz. Der breiteste Streifen, den eine Raute anbietet, ist halb so breit und halb so hoch wie sie selbst, also bemisst der Build sie auf das Doppelte – zwei, drei Wörter, und die Erläuterung steht in einer Notiz daneben, so wie hier links. Ein ganzer Satz in einer Raute käme auf die vierfache Fläche der Kästen ringsum und wäre das Bild.
+**The diamond is the outline a room needs no explanation for.** It learned it at school: a question is asked here, and it goes on in two ways. What that costs is room. The widest strip a diamond offers is half its width by half its height, so the build sizes it at twice what a rectangle would need – two or three words, with the explanation in a note beside it, as on the left here. A whole sentence in a diamond would take four times the area of the boxes around it and become the figure.
 
-**Die vier Beschriftungen sitzen *auf* der Linie, und das ist eine Entscheidung, keine Voreinstellung.** Eine Füllklasse an einer Kante zeichnet einen Grund hinter das Label; steht kein `side top`, `side bottom`, `side left` oder `side right` dabei, bleibt es auf der Linie und stanzt sie hinter sich aus. Das ist die richtige Form für ein Wort, das die Linie *benennt* – „yes“, „no“, eine Portnummer, ein Nachrichtentyp –, so wie ein Straßenschild zur Straße gehört und die Straße links und rechts daran vorbeiläuft. Ein Satz, der beschreibt, was auf der Linie *unterwegs* ist, gehört daneben: Die Schwimmbahnen nebenan machen das so, und die ROC-Kurven weiter oben nehmen den Grund dabei mit. Beides in einer Figur zu mischen heißt, dass der Raum jedes Label erst einsortieren muss, bevor er eines lesen kann – deshalb ist hier alles auf der Linie.
+**The four labels sit *on* the line, and that is a decision rather than a default.** A fill class on an edge draws a ground behind the label; with no `side top`, `side bottom`, `side left` or `side right` beside it, the label stays on the line and knocks it out behind itself. That is the right form for a word that *names* the line – “yes”, “no”, a port number, a message type – the way a street sign belongs to the street and the street runs past it either side. A sentence describing what *travels* along the line belongs beside it: the swimlanes next door do that, and the ROC curves above take the ground along when they do. Mixing the two in one figure means the room has to sort each label before it can read any of them, so everything here is on the line.
 
 ## figure: Three roles, one incident | a swimlane {.full #swimlane}
 
 ::: draw {unit=118x72}
-# lanes zeichnet den Rahmen, die Bänder und die gedrehten Namen davor. Was in
-# den Bändern liegt, wird wie überall sonst einzeln platziert – gegen die
-# Mitte eines Bandes (swim-1.cy) und gegen den Rahmen (swim.left+n).
+# lanes draws the frame, the bands and the turned names in front of them. What
+# lies in the bands is placed one by one as everywhere else - against the
+# middle of a band (swim-1.cy) and against the frame (swim.left+n).
 lanes swim "User | SOC | IT ops" at 0,0 w 7.25 band 1.0 {.muted}
 
 box rep  "Phishing mail\nreported" at swim.left+0.8,swim-0.cy w 1.4 {.tone-2}
@@ -780,38 +789,38 @@ box tri  "Triage"                  at swim.left+2.9,swim-1.cy w 1.0 {.tone-1}
 box hunt "Who else\ngot it?"       at swim.left+4.85,swim-1.cy w 1.2 {.tone-1}
 box blk  "Sender blocked"          at swim.left+6.35,swim-2.cy w 1.4 {.tone-4}
 
-# Jede Übergabe wechselt das Band, und dafür ist .elbow da: eine gerade Linie
-# von hier nach dort liefe schräg durch ein Band, das sie nie betritt.
+# Every hand-off changes band, which is what .elbow is for: a straight line
+# from here to there would run diagonally through a band it never enters.
 edge rep -> tri {.elbow}
 edge tri -> hunt "same sender" {.small} side top
 edge hunt -> blk {.elbow}
 
-step meldung
+step reported
   show rep
-step untersuchung
+step investigated
   show tri, hunt
-step antwort
+step answered
   show blk
 :::
 
-**Bahnen sind gleich lang, ihr Inhalt ist es nicht – deshalb sind sie kein `container`.** Ein Container misst sich an dem, was er hält; drei Bänder mit unterschiedlich vielen Kästen kämen so an beiden Enden verschieden weit heraus, und ausgerechnet das ist die eine Aussage, die ein Schwimmbahn-Diagramm nicht machen darf. `lanes` legt den Rahmen an, teilt ihn in gleich hohe Bänder und schreibt die Namen gedreht vor die linke Kante; die Bänder sind `.clear`, damit alles darin über ihnen liest. Eine Zeitachse braucht es nicht: Sie ist die Leserichtung.
+**The bands are equal, their contents are not, and that is why they are no `container`.** A container measures itself against what it holds, so three bands with different numbers of boxes would come out different lengths at both ends – the one thing a swimlane diagram must not say. `lanes` lays the frame, divides it into bands of equal height and writes the names turned on end in front of the left edge; the bands are `.clear` so that everything in them reads over them. It needs no time axis: the reading direction is the axis.
 
-**Jede Übergabe wechselt das Band, und `.elbow` ist die Linienführung dafür.** Die Klasse zeichnet zwei Wegpunkte selbst – eine Schiene auf halbem Weg durch die Lücke, auf der Achse, auf der die beiden Enden weiter auseinanderliegen –, statt dass man denselben doppelten Knick pro Kante von Hand hinschreibt. Eine gerade Linie täte etwas anderes: Sie liefe schräg durch ein Band, das sie gar nicht betritt, und der Raum liest sie als Beteiligung.
+**Every hand-off changes band, and `.elbow` is the routing for it.** The class draws two waypoints itself – a rail halfway across the gap, on the axis the two ends are further apart on – instead of the same double bend written out by hand on every edge. A straight line would do something else: it would run diagonally through a band it never enters, and the room reads that as involvement.
 
-**Das eine Kantenlabel steht *neben* der Linie, nicht darauf.** „same sender“ beschreibt, was auf der Linie unterwegs ist, und ein Satz mit einem Strich mittendrin wird als zwei Bruchstücke gelesen, bevor er als Satz gelesen wird. `side top` hebt ihn über die Linie; an einer senkrechten Kante wären es `side left` und `side right`, und welches Paar gilt, weiß man erst, wenn die Kante geführt ist – deshalb ist das falsche Paar eine Warnung beim Bauen statt eines Fehlers beim Parsen. Weggerückt wird um das, was die Beschriftung *quer zur Linie* misst: neben einer waagerechten Kante ihre Höhe, neben einer senkrechten ihre Breite – dort mit einem Zuschlag, weil ein Spalt quer zu einer Zeile Schrift mehr Luft braucht als über ihr. Einen Grund braucht dieses Label nicht: Unter ihm liegt nur Bandfläche. Was ein Grund tut und wie groß er sein darf, steht bei den ROC-Kurven weiter oben.
+**The one edge label sits *beside* the line, not on it.** “same sender” describes what travels along the line, and a sentence with a rule through the middle of it is read as two fragments before it is read as a sentence. `side top` lifts it over the line; on a vertical edge it would be `side left` and `side right`, and which pair applies is known only once the edge has been routed – so the wrong pair is a warning at build time rather than an error at parse time. The label is moved clear by what it measures *across* the line: beside a horizontal edge its height, beside a vertical one its width, there with a margin, because a gap across a line of type needs more air than one above it. This label needs no ground: there is nothing but band under it. What a ground does, and how large it may be, is at the ROC curves above.
 
 ## figure: Leaves first, and the brackets follow | a tree {.full #tree}
 
 ::: draw {unit=112x96}
 default box {.tone-2} w 1.35
 
-# Die Blätter sind die Fixpunkte, denn um sie geht es. Jede Ebene darüber
-# sitzt zwischen ihren eigenen Kindern: ein Blatt verschieben, und alles
-# darüber zentriert sich neu, ohne dass eine zweite Zeile davon weiß.
+# The leaves are the fixed points, because they are what this is about. Every
+# level above sits between its own children: move a leaf and everything above
+# re-centres, with no second line knowing about it.
 box l1 "www.example.org"  at 0,0 {.tone-3 @leaves}
 box l2 "mail.example.org" right of l1 gap 0.2 same as l1 {.tone-3 @leaves}
-# Die Lücke zwischen den beiden Teilbäumen ist viermal die Lücke innerhalb
-# eines Teilbaums. Damit sind es zwei Gruppen, bevor jemand ein Wort liest.
+# The gap between the two subtrees is four times the gap inside one. That
+# makes them two groups before anybody reads a word.
 box l3 "shop.example.com" right of l2 gap 0.8 same as l1 {.tone-3 @leaves}
 box l4 "vpn.example.com"  right of l3 gap 0.2 same as l1 {.tone-3 @leaves}
 
@@ -834,18 +843,18 @@ step certificates
   show @leaves
 :::
 
-**Ein Baum wird von den Blättern her gebaut.** Sie sind die Fixpunkte – um sie geht es –, und jede Ebene darüber steht `between` ihren eigenen Kindern mit einem `offset` nach oben. Andersherum aufgeschrieben hält der Compiler es aus – er liest den Block ganz und löst die Abhängigkeiten in der Reihenfolge auf, in der sie aufgehen, nicht in der Reihenfolge der Zeilen –, aber das Mittel, zu dem man dann greift, trägt nicht: `align x middle rt, i1, i2` reicht die Koordinate des *ersten* genannten Elements an die übrigen weiter, würde also nicht die Wurzel über ihre Kinder setzen, sondern beide Kinder auf die Mittellinie der Wurzel stapeln.
+**A tree is built from the leaves.** They are the fixed points, and every level above stands `between` its own children with an `offset` upwards. Written the other way round the compiler copes – it reads the whole block and resolves the dependencies in whatever order works out, not in line order – but the tool you then reach for does not: `align x middle rt, i1, i2` hands the *first* named element's coordinate to the rest, so it would not put the root over its children but stack both children on the root's centre line.
 
-**Die Klammern sind sechsmal dasselbe Wort.** `.elbow` verlässt das eine Ende auf der Achse, auf der die beiden weiter auseinanderliegen, läuft eine Schiene auf halbem Weg durch die Lücke und kommt auf derselben Achse wieder an; die beiden Ansatzpunkte werden dafür auf diese Achse gezwungen, was immer die automatische Wahl sonst genommen hätte. Gemessen wird die Schiene zwischen den *zugewandten Kanten* der beiden Elemente, nicht zwischen ihren Mittelpunkten – deshalb liegt sie für beide Kinder einer Ausstellerin auf derselben Linie, und das Paar liest sich als eine Klammer statt als zwei Verbinder. Von Hand wären das zwölf Wegpunkte, die jedes Mal neu gerechnet werden müssten, wenn eine Ebene ihren Abstand ändert. Wer die Schiene woanders haben will, schreibt `via`; beides auf einer Zeile ist ein Fehler. Einen Slot teilt sich `.elbow` mit `.smooth`: Wie eine Linie gezeichnet wird, ist eine Frage mit genau einer Antwort.
+**The brackets are the same word six times.** `.elbow` leaves one end on the axis the two are further apart on, runs a rail halfway across the gap and arrives on the same axis; both attachment points are forced onto that axis, whatever the automatic choice would otherwise have taken. The rail is measured between the two elements' *facing edges*, not between their centres, so it lies on one line for both children of an issuer and the pair reads as one bracket rather than as two connectors. By hand that would be twelve waypoints, recomputed every time a level changes its spacing. Put the rail somewhere else with `via`; both on one line is an error. `.elbow` shares a slot with `.smooth`: how a line is drawn is a question with exactly one answer.
 
-**Der gestrichelte Kasten steht um die ganze Menge, bevor die Menge beisammen ist.** Er ist im selben Takt ausgeschrieben wie die Ausstellerinnen (`show @issuers, scope`), obwohl seine beiden anderen Mitglieder erst einen Takt später kommen. Ohne das ausgeschriebene `show` gilt die übliche Regel: Ein Umriss ist nur so sichtbar wie seine Mitglieder und passt sich denen an, die man sieht – er wäre erst um die Ausstellerin allein gewachsen und dann nach unten aufgegangen. Wer ihn beim Namen nennt, bekommt beides: die Sichtbarkeit *und* die volle Ausdehnung. Das ist der Sinn der Ausnahme; für den Normalfall ist sie ausdrücklich nicht gedacht.
+**The dashed box stands around the whole set before the set is assembled.** It is written into the same beat as the issuers (`show @issuers, scope`), though its other two members arrive a beat later. Without the written `show` the usual rule applies: an outline is only as visible as its members and fits itself to the ones you can see, so it would first have grown around the issuer alone and then opened downwards. Naming it gets you both the visibility *and* the full extent. That is what the exception is for, and it is expressly not for the ordinary case.
 
 ## figure: One line per row | a table {.full #table}
 
 ::: draw {unit=150x54}
-# Die Kopfzeile ist eine Zeichenkette, an | zerlegt; die Datenzeilen sind die
-# bloßen Zeichenketten darunter. Jede Zelle ist eine gewöhnliche Box und
-# trägt zwei erzeugte Tags, @t-row-N und @t-col-N.
+# The heading is one string split on |; the data rows are the bare strings
+# under it. Every cell is an ordinary box and carries two generated tags,
+# @t-row-N and @t-col-N.
 table t "Attack | Layer | Countermeasure" at 0,0 col 1.0,0.45,1.35 row 0.42 {.clear .bare .left}
   "ARP spoofing | 2 | Dynamic ARP Inspection"
   "SYN flooding | 4 | SYN cookies"
@@ -867,18 +876,18 @@ step every-one-has-an-answer
   style @t-col-2 {.tone-2}
 :::
 
-**Fünf Zeilen mal drei Spalten sind fünfzehn Kästen, jeder mit eigenem Namen, eigener Breite und eigener Platzierung – und einer `below`-Kette, die man beim Einfügen einer Zeile neu ausrichtet.** `table` schreibt sie: Die Kopfzeile ist eine Zeichenkette, an `|` zerlegt, die Datenzeilen sind die bloßen Zeichenketten darunter, `col` gibt eine Breite je Spalte und `row` die Höhe einer Zeile. Der Attributschwanz `{.clear .bare .left}` landet auf den **Zellen**, nicht auf dem Rahmen – deshalb ist eine Tabelle hier ein Satzspiegel und kein Gitter aus Kästchen. Der Strich unter der Kopfzeile ist eine gewöhnliche Kante zwischen zwei Koordinaten, die je zur Hälfte vom Rahmen und von der ersten Zelle kommen.
+**Five rows by three columns is fifteen boxes, each with its own name, width and placement, and a `below` chain to re-aim whenever a row is inserted.** `table` writes them: the heading is one string split on `|`, the data rows are the bare strings under it, `col` gives a width per column and `row` the height of one row. The attribute tail `{.clear .bare .left}` lands on the **cells**, not on the frame, which is what makes a table here a text block rather than a grid of little boxes. The rule under the heading is an ordinary edge between two coordinates, each half from the frame and half from the first cell.
 
-**Jede Zelle trägt zwei erzeugte Tags, `@t-row-N` und `@t-col-N`.** Damit ist eine Zeile ein Takt und eine Spalte ein Takt, je eine Zeile Quelltext – wo sonst je Takt drei Zellennamen stünden, die von Hand mit der Tabelle Schritt halten müssten. Zeile 0 ist die Kopfzeile, gezählt wird also ab 1, wenn man Daten meint.
+**Every cell carries two generated tags, `@t-row-N` and `@t-col-N`.** So a row is one beat and a column is one beat, one line of source each – where otherwise every beat would carry three cell names to keep in step with the table by hand. Row 0 is the heading, so count from 1 when you mean data.
 
-**Der letzte Takt ist der, der auf dem Handout landet.** Eine Figur, die eine Zeile nach der anderen hervorhebt und dann aufhört, kommt mit der letzten Zeile leuchtend aus dem Drucker und berichtet damit von einem Moment im Vortrag statt von der Tabelle. Hier nimmt ein vierter Takt die Hervorhebung wieder ab und tönt stattdessen die Spalte mit den Gegenmaßnahmen – das Bild, das ohne Vortrag etwas sagt. Dass es einen Takt kostet, ist der Grund, warum die Prominenzverben das nicht brauchen: Was ein `step` an Prominenz setzt, ist eine Vortragshandlung, und der Druck nimmt seine Prominenz aus dem Eröffnungstakt. Was auf der Zeile eines Elements steht, beschreibt dagegen die Zeichnung und steht deshalb auch im Handout.
+**The last beat is the one that reaches the handout.** A figure that lights one row after another and then stops comes out of the printer with its last row glowing, reporting a moment in the talk rather than the table. A fourth beat here takes the emphasis off again and tints the countermeasures column instead – the picture that says something without a talk around it. That it costs a beat is why the prominence verbs need no such thing: prominence a `step` sets is an act in the talk, and print takes its prominence from the opening beat. Prominence on an element's own line describes the drawing, and reaches the handout.
 
-## figure: Ein Ablauf von oben nach unten | a sequence {.full #sequence}
+## figure: A protocol down the page | a sequence {.full #sequence}
 
 ::: draw {unit=150x40}
-# Die Beteiligten sind eigene Zeilen, weil jeder einen Namen zum Anfassen
-# und einen eigenen Attributschwanz braucht. Alles darunter ist eine
-# Nachricht (Pfeil zwischen zwei Namen) oder eine Notiz.
+# The participants are lines of their own, because each needs a name to hold
+# on to and an attribute tail of its own. Everything below is either a message
+# (an arrow between two names) or a note.
 sequence wa at 0,0
   actor u  "User"
   actor br "Browser"
@@ -897,36 +906,36 @@ sequence wa at 0,0
   br -> rp "attestationObject + clientDataJSON" "clientDataJSON carries challenge · origin"
   rp -> rp "verify signature · check origin"
 
-# Zwei Anmerkungen, die das Konstrukt nicht kennt: gewöhnliche Zeilen an
-# erzeugten Namen. Ein Takt kann sie zeigen wie jedes andere Element.
-brace ctap over wa-3,wa-4,wa-5 pad 0.3 "auf dem Gerät, über CTAP" side left {.small .turn}
-text fresh "die Challenge ist die Frische" right of wa-2 gap 1.9 {.small .hand} -- wa-2
+# Two annotations the statement knows nothing about: ordinary lines hung off
+# generated names. A beat can show them like any other element.
+brace ctap over wa-3,wa-4,wa-5 pad 0.3 "on the device, over CTAP" side left {.small .turn}
+text fresh "the challenge is the freshness" right of wa-2 gap 1.9 {.small .hand} -- wa-2
 
-step im-browser
+step in-the-browser
   emph @br-msgs
-step auf-dem-gerät
+step on-the-device
   dim @br-msgs
   emph @au-msgs
   emph au
-step zurück-zur-partei
+step back-to-the-party
   dim @au-msgs
   dim au
   emph @wa-msg-7, @wa-msg-8
-step alles
+step everything
   dim @wa-msgs
 :::
 
-**Ein Protokoll ist die eine Zeichnung, die eine Vorlesung immer wieder braucht und die von Hand geschrieben am schwersten zu ändern ist.** Ausgeschrieben trägt jede Nachricht ihre eigene y-Koordinate: Eine Nachricht in der Mitte einzufügen heißt, alle darunter zu verschieben, alle Nummern neu zu vergeben und die Länge jeder Lebenslinie neu zu raten – an genau diesem Bild nachgezählt dreizehn geschriebene Zeilen für eine eingefügte Nachricht. Und ein Notizkasten, der höher ausfällt als der geratene Abstand, schneidet still in die Beschriftung darunter.
+**A protocol is the drawing a lecture asks for again and again, and the one that is hardest to change written out by hand.** Written out, every message carries its own y coordinate: inserting one in the middle means moving everything under it, renumbering all of them and re-guessing how far each lifeline runs – counted on this very figure, thirteen written lines for one inserted message. And a note box taller than the guessed spacing cuts silently into the label beneath it.
 
-**`sequence` regelt deshalb genau eines: den senkrechten Rhythmus.** Jeder Eintrag sagt, wie hoch er ist – eine Nachricht so hoch wie ihre Beschriftung, eine Notiz so hoch wie ihr Text –, und die Anweisung stapelt sie. Ein Kasten schiebt mit, was unter ihm steht, und eine eingefügte Zeile ist eine eingefügte Zeile. Quer misst die Anweisung sich genauso selbst: Alle Köpfe sind so breit wie die breiteste Beschriftung, damit eine Reihe gleichrangiger Beteiligter nicht ausgefranst dasteht. `w`, `header` und `space` sind Übersteuerungen, die im Regelfall niemand schreibt.
+**`sequence` therefore owns exactly one thing: the vertical rhythm.** Every entry states how tall it is – a message as tall as its label, a note as tall as its text – and the statement stacks them. A box pushes down what stands under it, and an inserted line is an inserted line. Across, the statement measures itself the same way: all heads are as wide as the widest label, so a row of equal participants does not stand there ragged. `w`, `header` and `space` are overrides nobody normally writes.
 
-**Eine Nachricht darf sich auch selbst benennen, und der Name steht vorn.** `tunnel c -- s "…"` – in genau dem Feld, in dem eine `edge` ihren trägt, nämlich vor dem ersten Endpunkt. Das lohnt sich für die Zeilen, auf die etwas anderes zeigt: Ein erzeugter Name wie `x-4` zählt Nachrichten und wandert deshalb, sobald oberhalb eine dazukommt, während ein geschriebener bleibt, wo er ist. Anonym zu bleiben kostet nichts, und die meisten Nachrichten bleiben es.
+**A message may also name itself, and the name goes in front.** `tunnel c -- s "…"` – in exactly the slot an `edge` carries its name in, before the first endpoint. It is worth doing on the lines something else points at: a generated name like `x-4` counts messages and moves the moment one is added above it, where a written name stays put. Staying anonymous costs nothing, and most messages do.
 
-**Alles andere beantwortet sie nicht mit neuen Wörtern, sondern damit, dass jeder Teil einen Namen behält.** Jeder Kopf behält den Namen, den die `actor`-Zeile ihm gibt; jede Lebenslinie heißt `<actor>-life`, jede Nachricht `wa-N` (von 0 gezählt, die Nummer im Bild ist `N+1`), ihre Nummer `wa-n-N`, ihre kleinere zweite Zeile `wa-sub-N`, jede Notiz `wa-note-N`. Dazu Tags für die Mengen: `@wa-msg-N` für eine Nachricht samt Nummer und zweiter Zeile, `@wa-msgs` für alle, `@au-msgs` für alle, die den Authenticator berühren, `@wa-notes`, `@wa-actors`, `@wa-lives`. Die Klammer und die handschriftliche Anmerkung oben sind deshalb gewöhnliche Zeilen, die an `wa-3` und `wa-2` andocken – das Konstrukt weiß von beiden nichts.
+**Everything else it answers by keeping a name on every part, not by adding words.** Each head keeps the name its `actor` line gives it; each lifeline is `<actor>-life`, each message `wa-N` (counted from 0, so the number drawn is `N+1`), its number `wa-n-N`, its smaller second line `wa-sub-N`, each note `wa-note-N`. Plus tags for the sets: `@wa-msg-N` for one message with its number and second line, `@wa-msgs` for all of them, `@au-msgs` for all that touch the authenticator, `@wa-notes`, `@wa-actors`, `@wa-lives`. The brace and the handwritten annotation above are therefore ordinary lines hung off `wa-3` and `wa-2`, and the statement knows nothing about either.
 
-**Es gibt kein `alt` / `else`.** Eine Gruppe von Nachrichten zu umschließen und zu benennen ist, was `container … pad n` schon zeichnet, und im gemessenen Bestand wollten es zwei von neun Bildern. Ein Wort, das mit der ersten Veröffentlichung einfriert, sollte mehr Fälle haben als das.
+**There is no `alt` / `else`.** Enclosing a group of messages and naming it is what `container … pad n` already draws, and two of the nine figures in the measured corpus wanted it. A word that freezes with the first release deserves more cases than that.
 
-## figure: Was eine Nachricht sonst sein kann {.wide #seqmore}
+## figure: What else a message can be {.wide #seqmore}
 
 ::: draw {unit=140x44}
 sequence x at 0,0 unnumbered space 0.34
@@ -940,32 +949,32 @@ sequence x at 0,0 unnumbered space 0.34
   tunnel c -- s "encrypted tunnel, end to end" space 0.9
   note c,s "the proxy forwards bytes\nand reads none of them" {.tone-2}
 
-# Die Klammer hängt an dem Namen, den die Nachricht sich selbst gegeben hat,
-# und nicht an `x-4`: ein erzeugter Name zählt Nachrichten, also wandert er,
-# sobald eine dazwischenkommt. Ein geschriebener Name tut das nicht.
-brace tun over tunnel side right "das ist die Nutzlast" pad 0.35 {.muted .small}
+# The brace hangs off the name the message gave itself rather than off x-4: a
+# generated name counts messages, so it moves as soon as one is inserted. A
+# written name does not.
+brace tun over tunnel side right "this is the payload" pad 0.35 {.muted .small}
 :::
 
-**Vier Token, und keines davon ist eine eigene Pfeilart.** `->` und `<-` sind dieselbe Nachricht, einmal vom Absender und einmal vom Empfänger her geschrieben: Wer die Antwort als `c <- p` schreibt, nennt in beiden Zeilen zuerst den Client und liest die Quelle als Spalte statt hin und her. `--` ist eine Linie ohne Kopf, also eine Beziehung ohne Richtung, und `<->` trägt an beiden Enden einen – ein Hin und Zurück, in eine Bande gefasst. Für „gestrichelt“ gibt es kein eigenes Wort, das macht `{.dashed}` – der Attributschwanz einer Nachrichtenzeile ist der einer Kante, weil eine Nachricht eine Kante *ist*.
+**Four tokens, and none of them is an arrow style of its own.** `->` and `<-` are the same message written from the sender's end and from the receiver's: write the reply as `c <- p` and both lines name the client first, so the source reads as a column instead of zig-zagging. `--` is a line with no head, a relation with no direction, and `<->` carries one at each end – a there-and-back caught in one line. There is no word for “dashed”; `{.dashed}` does that, a message line's attribute tail being an edge's, because a message *is* an edge.
 
-**Das Token sagt den Kopf, nicht eine Klasse.** Jedes der vier setzt genau einen der drei Zustände – kein Kopf, einer, an beiden Enden –, und deshalb steht dieselbe Aussage nie zweimal auf einer Zeile: `{.no-head}` neben einem `->` ist ein Fehler und kein stiller Widerspruch mehr. Innerhalb eines Taktes gilt das Umgekehrte: dort ist die Klasse die einzige Schreibweise, weil ein Token sich nicht noch einmal ausführen lässt.
+**The token states the head, not a class.** Each of the four sets exactly one of the three states – no head, one, one at each end – so the same thing is never said twice on one line: `{.no-head}` beside a `->` is an error rather than a silent contradiction. Inside a beat the reverse holds, and there the class is the only spelling, because a token cannot be run again.
 
-**Eine Selbstnachricht ist der übliche Weg, eine örtliche Handlung in den Ablauf zu setzen**, und sie schleift aus der Lebenslinie heraus und wieder hinein. Ihre Beschriftung steht neben der Schleife, ihre zweite Zeile darunter. Eine Notiz zwischen zwei Namen steht in der Mitte zwischen deren Lebenslinien und ist so breit wie ihr eigener Text – nicht so breit wie die Spanne, sonst wird aus drei Wörtern ein Banner. Sie bricht an `\n`, sodass eine dreizeilige Notiz eine Notiz bleibt.
+**A self-message is the usual way to put a local action into the sequence**, and it loops out of the lifeline and back in. Its label stands beside the loop, its second line under it. A note between two names sits midway between their lifelines and is as wide as its own text – not as wide as the span, or three words become a banner. It breaks at `\n`, so a three-line note stays a note.
 
-**`space` auf einer Eintragszeile ist die Luft über genau diesem Band.** Der Tunnel unten steht mit `space 0.9` merklich abgesetzt vom Aufbau darüber – zwei oder drei solcher Lücken gliedern einen langen Ablauf in Abschnitte, die ein Raum sich merken kann. Eine Leerzeile im Quelltext tut das nicht: Die Anweisung liest über Leerzeilen hinweg, damit der Quelltext so gegliedert werden darf, wie er sich gut liest. Auf einer `actor`-Zeile ist `space` ein Fehler, denn über den Köpfen gibt es kein Band.
+**`space` on an entry line is the air above that one band.** The tunnel at the bottom carries `space 0.9` and stands visibly apart from the setup above it; two or three such gaps break a long exchange into phases a room can hold. A blank line in the source does not do this: the statement reads through blank lines, so the source may be grouped however it reads best. On an `actor` line `space` is an error, there being no band above the heads.
 
-**Jede Nachrichtenbeschriftung bringt ihren eigenen Grund mit.** Eine Lebenslinie kreuzt jede Beschriftung im Bild, also wird der Grund von vornherein gezeichnet und die gestrichelte Linie hinter den Wörtern ausgespart. `{.clear}` nimmt ihn weg, `{.tone-2}` färbt ihn. Die kleinere zweite Zeile bekommt denselben Grund, die Nummern links keinen: Sie stehen außerhalb des Rahmens und kreuzen nichts.
+**Every message label brings its own ground.** A lifeline crosses every label in the figure, so the ground is drawn from the start and the dashed line is knocked out behind the words. `{.clear}` takes it away, `{.tone-2}` colours it. The smaller second line gets the same ground; the numbers on the left get none, standing outside the frame and crossing nothing.
 
-**`unnumbered` nimmt die Zahlenspalte weg.** Sie ist sonst da, weil das Umnummerieren von Hand genau die Arbeit ist, die die Anweisung abnimmt, und weil die Zahl im Bild und der Index im Tag dieselbe Zahl sind: `@x-msg-3` ist der Pfeil, den der Raum als 4 liest. Wo ein Ablauf so kurz ist, dass niemand auf eine Nummer zeigt, ist die Spalte nur Papier.
+**`unnumbered` takes the column of numbers away.** It is there otherwise because renumbering by hand is exactly the work the statement removes, and because the number drawn and the index in the tag are the same number: `@x-msg-3` is the arrow the room reads as 4. Where an exchange is short enough that nobody points at a number, the column is just paper.
 
-## figure: Eine Figur, die sich selbst abspielt | `autoplay` und `cycle` {.wide #autoplay}
+## figure: A figure that plays itself | `autoplay` and `cycle` {.wide #autoplay}
 
 ::: draw {unit=150x56 autoplay=1400 cycle}
 box  cr  "Crawler"                       {.tone-1}
 box  wb  "Web site"  right of cr  gap 1.5
 box  dt  "Detector"  right of wb  gap 1.5 {.tone-4}
-edge cr -> wb "Anfrage"
-edge wb -> dt "Fingerabdruck"
+edge cr -> wb "request"
+edge wb -> dt "fingerprint"
 
 step probe
   emph wb
@@ -974,13 +983,13 @@ step catch
   dim cr
 step verdict
   style dt {.tone-2}
-  label dt "Erkannt"
+  label dt "Detected"
 :::
 
-**`autoplay=1400` läuft die Takte dieser Figur von selbst ab, `cycle` beginnt danach wieder vorn.** Eine Verzögerung in Millisekunden, dieselbe für jeden Takt – ein Deckblatt, das sich bewegt, während der Raum sich setzt, ist der Fall, für den es gebaut ist; es steht hier auf einer gewöhnlichen Folie, weil nichts daran an das Deckblatt gebunden ist.
+**`autoplay=1400` walks this figure's beats by itself, and `cycle` starts again at the end.** One delay in milliseconds, the same for every beat. A cover figure moving while the room settles is the case it was built for; it stands on an ordinary slide here, because nothing about it is tied to a cover.
 
-**Es ruft dieselbe Fortschaltung wie die Leertaste.** Ein eigener Zähler hätte Zeichnung und Taktzähler auseinanderlaufen lassen, und der nächste Tastendruck wäre gesprungen. Weil es *der* Zähler ist, folgt das Rednerfenster über die gewöhnliche Synchronisation, die Einfrier-Sperre greift, und gespeichert wird nichts Neues. `cycle` spult über denselben Zähler zurück, also folgt das Rednerfenster auch dem Rücksprung.
+**It calls the same advance the space bar does.** A counter of its own would have let the drawing and the beat counter drift apart, and the next keypress would have jumped. Because it *is* the counter, the speaker window follows through the ordinary sync and the freeze gate applies. `cycle` rewinds through the same counter, so the speaker window follows the rewind too.
 
-**Der erste Tastendruck, Klick oder Scroll hält es endgültig an.** Wer das Deck angefasst hat, hat übernommen, und eine Uhr, die darunter weiterläuft, ist schlimmer als keine. Aus demselben Grund fängt es auf einer schon halb aufgedeckten Folie gar nicht erst an: Dass sie halb aufgedeckt ist, heißt, jemand hat sie so verlassen.
+**The first keypress, click or scroll stops it for good.** Whoever has touched the deck has taken over, and a timer running on underneath them is worse than none. For the same reason it does not start at all on a slide that is already half revealed: half revealed means somebody left it that way.
 
-**Zwischen 200 ms und 60 s, und außerhalb verweigert statt gekappt.** Unter 200 ms liest der Raum keinen Takt, über einer Minute ist eine „bewegte" Figur eine stehende, die sich ändert, wenn niemand hinsieht. Eine gekappte Zahl ist eine Zahl, die niemand geschrieben hat.
+**Between 200 ms and 60 s, and outside that refused rather than clamped.** Under 200 ms the room reads no beat; over a minute a “moving” figure is a still one that changes while nobody is watching. A clamped number is a number nobody wrote.

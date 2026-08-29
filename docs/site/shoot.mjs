@@ -98,8 +98,8 @@ const SHOTS = [
   // A figure on the slide, for the preview section on the landing page. It is
   // a projection rather than a cut-out drawing, because what the section
   // claims is that these are lecture slides, not pictures pasted onto them.
-  // network-security rather than diagrams: it is lang: en, and its chunks are
-  // slides from a real course rather than a construct reference. #ns-a03 has
+  // network-security rather than diagrams: its chunks are slides from a real
+  // course rather than a construct reference. #ns-a03 has
   // no reveal separator, so the projection opens on the finished figure -
   // #lifecycle looked empty, because its first segment is one row of three.
   { name: 'figure', src: 'print.html', w: 1200, h: 900, dsf: 2,
