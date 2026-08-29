@@ -3549,8 +3549,8 @@ take whatever you write under the <code>## title:</code> heading, so a <code>:::
 the cover.</p>
 <p><strong><code>cover-ratio:</code></strong> is how much of the slide the picture takes, as a percentage
 between 15 and 75. Only the three that divide the slide read it – <code>split</code>,
-<code>beside</code> and <code>above</code>. It is a percentage rather than a <code>W:H</code> ratio because it
-splits one fixed frame; the shape of the frame comes from the projector.</p>
+<code>beside</code> and <code>above</code>. A percentage and not a <code>W:H</code> ratio: the shape of the
+frame comes from the projector, and this splits it.</p>
 <p><strong><code>cover-align:</code></strong> puts the block of text at the <code>top</code>, the <code>middle</code> or the
 <code>bottom</code>. The seven compositions that leave the block any freedom read it.</p>
 <p>Set either of the last two keys on a composition that has already settled the
@@ -3577,8 +3577,7 @@ question and the build stops with an error rather than ignoring the line.</p>
 quotation</strong>, so there is no mark: no hanging curly quote, no glyph behind the
 words, no rule beside them.</p>
 <p>The claim is what you write under the <code>## title:</code> heading. A <code>quote</code> cover
-without one fails the build: a quote cover with no quotation is a title slide
-with the title in the wrong place.</p>
+without one fails the build.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="cover-quote">
@@ -3600,9 +3599,8 @@ with the title in the wrong place.</p>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>## closing:</code> draws the last slide in whatever composition <code>cover:</code> names</strong>,
 so the room sees the shape the lecture opened with.</p>
 <p>What it carries is different: your own heading, sub-heading and text, and
-neither the presenter line nor the <code>info</code> block. Those two say who is talking
-and where, which the room learned an hour ago. The last slide of this lecture
-is one.</p>
+neither the presenter line nor the <code>info</code> block – the room learned who is
+talking and where an hour ago. The last slide of this lecture is one.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="closing-tag">
@@ -3697,9 +3695,8 @@ heading is the live item in the list rather than a second copy set beside it.</p
     <h2 class="chunk-heading">Three states, two greys</h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p>The live part is set <strong>larger and in full ink</strong>; the parts before and after it
 recede. What carries progress is where the live item sits as it walks down the
-list, so the recession only has to say <em>not this one</em>. Two greys read from the
-back of a room and three do not, which is why the live item is a size rather
-than a third shade.</p>
+list, so the recession only has to say <em>not this one</em>. The live part is a size
+and not a third shade: two greys read from the back of a room, three do not.</p>
 <p><code>section-mark:</code> puts a short word over the heading. This lecture writes <code>Part</code>.
 Write nothing and nothing is drawn there.</p>
 </div></div>
@@ -3733,10 +3730,9 @@ Write nothing and nothing is drawn there.</p>
 </div>
 
 
-<p>Those three are what a divider takes, and the other directives belong inside a
-<code>##</code> slide: a card row or a two-column layout on a divider is a slide that has
-stopped being a divider. The words themselves do print, as a short paragraph
-under the part title. The divider slide itself never prints.</p>
+<p>Those three are what a divider takes; the other directives belong inside a
+<code>##</code> slide. The words do print, as a short paragraph under the part title. The
+divider slide itself never prints.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="divider-body">
@@ -3756,10 +3752,10 @@ under the part title. The divider slide itself never prints.</p>
     
     <h2 class="chunk-heading">A figure divider lays out beside the heading</h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p>When a divider&#39;s body is nothing but a figure, <strong>the figure goes beside the
-heading</strong> rather than under it. Stacked, a part title, an agenda and a drawing
-are three blocks down one axis with nothing balancing them across it.</p>
-<p>Prose under a heading is an opening paragraph and reads correctly stacked, which
-is how the quotation divider in Part 1 comes out.</p>
+heading</strong> – stacked, a part title, an agenda and a drawing are three blocks
+down one axis with nothing across it.</p>
+<p>Prose under a heading is an opening paragraph and stays stacked, which is how
+the quotation divider in Part 1 comes out.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="divider-beside">
@@ -3788,7 +3784,7 @@ is how the quotation divider in Part 1 comes out.</p>
 <g id="dg1-rows" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg1-rows--r" x="-77.00" y="40.50" width="154.00" height="27.00" rx="4"/><g id="dg1-rows--lw0" data-lab="rows--l" class="dg-lwrap" transform="translate(0.00,54.00)"><g id="dg1-rows--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">rows</tspan></text></g></g></g>
 <g id="dg1-side" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg1-side--r" x="-77.00" y="94.50" width="154.00" height="27.00" rx="4"/><g id="dg1-side--lw0" data-lab="side--l" class="dg-lwrap" transform="translate(0.00,108.00)"><g id="dg1-side--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">side 2:1</tspan></text></g></g></g>
 <g id="dg1-note" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg1-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(136.40,54.00)"><g id="dg1-note--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">three containers,</tspan><tspan x="0" y="11.58">three jobs</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  cards \"cards 3\"  at 0,0 w 1.1 h 0.5 {.tone-2}\nbox  rows  \"rows\"     below cards gap 0.5 same as cards {.tone-3}\nbox  side  \"side 2:1\" below rows  gap 0.5 same as cards {.tone-1}\ntext note  \"three containers,\\nthree jobs\" right of rows gap 1.1 -- rows {.small .muted .left}","attrs":"unit=140x54","range":[7093,7370],"chunk":null,"width":null,"alt":""}</script></figure></div>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  cards \"cards 3\"  at 0,0 w 1.1 h 0.5 {.tone-2}\nbox  rows  \"rows\"     below cards gap 0.5 same as cards {.tone-3}\nbox  side  \"side 2:1\" below rows  gap 0.5 same as cards {.tone-1}\ntext note  \"three containers,\\nthree jobs\" right of rows gap 1.1 -- rows {.small .muted .left}","attrs":"unit=140x54","range":[6793,7070],"chunk":null,"width":null,"alt":""}</script></figure></div>
   </div>
 </article>
 <article class="chunk chunk-free" id="cards-why" data-chunk-id="cards-why" data-tag="free" data-width="wide" data-chunk-num="13">
@@ -3799,8 +3795,8 @@ is how the quotation divider in Part 1 comes out.</p>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: cards 3</code> puts three boxes side by side</strong>, and an item is whole or it is
 nowhere. <code>::: cols 3</code> is the other thing: one flow of text the browser
 balances across three columns, so a paragraph can spill from the foot of one
-into the head of the next. Reach for cards when three items are three things
-rather than one paragraph cut in three.</p>
+into the head of the next. Use cards for three things, columns for one long
+argument.</p>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-outline ck-round cx-veil">
 <ul>
 <li><strong>outline</strong> a hairline and no fill. Quieter on a slide that already carries a
@@ -3871,8 +3867,7 @@ its top</li>
     <h2 class="chunk-heading">The row size reads the longest item</h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>size: auto</code> counts the words in the longest card</strong>: three or fewer sets the
 row large, twelve or fewer medium, more than twelve small. One size for the
-whole row and never one per card, because three sizes in a row read as a mistake
-rather than as a hierarchy.</p>
+whole row, never one per card.</p>
 <div class="cards cards-4 cs-large ca-center cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li>Measure</li>
@@ -3885,9 +3880,8 @@ rather than as a hierarchy.</p>
 
 
 <p>Alignment then follows the size, a single word centring and a sentence ranging
-left. A row that carries a second level ranges left whatever its heads measure:
-a centred head over a left-aligned list reads as a mistake, and the heads must
-not jump when the reader presses <code>C</code>.</p>
+left. A row that carries a second level ranges left whatever its heads measure,
+so the heads do not jump when the reader presses <code>C</code>.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="cards-size">
@@ -3992,7 +3986,7 @@ second one. Any two numbers work.</p>
 <figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-154.50 -69.00 464.70 138.00" width="2000" height="594" data-steps="1" role="img" aria-label="`::: side` takes a ratio" preserveAspectRatio="xMidYMid meet">
 <g id="dg2-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg2-a--r" x="-142.50" y="-57.00" width="285.00" height="114.00" rx="4"/><g id="dg2-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg2-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">2fr</tspan></text></g></g></g>
 <g id="dg2-b" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg2-b--r" x="155.70" y="-57.00" width="142.50" height="114.00" rx="4"/><g id="dg2-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(226.95,0.00)"><g id="dg2-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">1fr</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"box a \"2fr\" at 0,0 w 1.9 h 1.9 {.tone-2}\nbox b \"1fr\" right of a gap 0.22 w 0.95 h 1.9 {.tone-3}","attrs":"unit=150x60","range":[11033,11128],"chunk":"side","width":"wide","alt":"`::: side` takes a ratio"}</script></figure>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"box a \"2fr\" at 0,0 w 1.9 h 1.9 {.tone-2}\nbox b \"1fr\" right of a gap 0.22 w 0.95 h 1.9 {.tone-3}","attrs":"unit=150x60","range":[10561,10656],"chunk":"side","width":"wide","alt":"`::: side` takes a ratio"}</script></figure>
 
 
 </div></div></div></div>
@@ -4073,9 +4067,8 @@ or slides about while it is being revealed.</p>
     
     <h2 class="chunk-heading"><code>from</code> holds an overlay back until a beat</h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: overlay {…} from 1</code> keeps the block off the slide</strong> until the first press
-of Space. It takes one number and not a list, because an overlay is either on
-the slide or it is not. The backdrop&#39;s list answers a different question, which
-is where the picture is at each beat.</p>
+of Space. One number, not a list: an overlay is either on the slide or it is
+not, where the backdrop&#39;s list says where the picture is at each beat.</p>
 <p>An overlay fades in where a reveal segment simply appears. A segment is part of
 the flowing text, so what follows it closes up as it arrives; an overlay sits in
 its own cell over the picture and nothing else moves.</p>
@@ -4193,9 +4186,9 @@ corner and they stack rather than landing on top of each other.</p>
     
     <h2 class="chunk-heading"><code>{.bare}</code> gives up the projection and nothing else</h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>{.bare}</code> keeps a heading out of the projection</strong> and leaves it everywhere
-else. Writing no heading at all would cost three things together: the slide,
-the printed document and the search index. A talk that is a run of figures with
-speaker notes usually wants to lose only the first.</p>
+else. Writing no heading at all would cost the slide, the printed document and
+the search index together; a talk that is a run of figures with speaker notes
+usually wants to lose only the first.</p>
 <p>So <code>## figure: How a crawl is scored {.full #id .bare}</code> prints the heading,
 indexes it, and draws nothing on screen. <code>style: {headings: off}</code> says the same
 for a whole deck. Press <code>/</code> and search for <em>measurement loop</em>: it matches this
@@ -4225,7 +4218,7 @@ slide and the next one, and the next one carries no heading on screen at all.</p
 <g id="dg3-crawl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-crawl--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg3-crawl--lw0" data-lab="crawl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg3-crawl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
 <g id="dg3-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-site--r" x="156.35" y="-18.38" width="56.00" height="36.75" rx="4"/><g id="dg3-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(184.35,0.00)"><g id="dg3-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
 <g id="dg3-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-score--r" x="112.93" y="91.17" width="142.85" height="36.75" rx="4"/><g id="dg3-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(184.35,109.55)"><g id="dg3-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"box crawl \"Crawler\"         at 0,0\nbox site  \"Site\"            right of crawl gap 2.0\nbox score \"Scoring service\" below site gap 1.3\nedge crawl.right:0.3 -> site.left:0.3 \"request\" side top\nedge site.left:0.72 -> crawl.right:0.72 \"page, or not\" side bottom\nedge site -> score {.dashed}","attrs":"unit=150x56","range":[15050,15335],"chunk":"bare-loop","width":"full","alt":"The measurement loop"}</script></figure></div></div>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"box crawl \"Crawler\"         at 0,0\nbox site  \"Site\"            right of crawl gap 2.0\nbox score \"Scoring service\" below site gap 1.3\nedge crawl.right:0.3 -> site.left:0.3 \"request\" side top\nedge site.left:0.72 -> crawl.right:0.72 \"page, or not\" side bottom\nedge site -> score {.dashed}","attrs":"unit=150x56","range":[14516,14801],"chunk":"bare-loop","width":"full","alt":"The measurement loop"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="bare-loop">
       <div class="annot-box-label">annotation · bare-loop</div>
@@ -4251,7 +4244,7 @@ slide and the next one, and the next one carries no heading on screen at all.</p
 <g id="dg4-inst" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg4-inst--r" x="153.40" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg4-inst--lw0" data-lab="inst--l" class="dg-lwrap" transform="translate(228.40,0.00)"><g id="dg4-inst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">instrumented</tspan></text></g></g></g>
 <g id="dg4-diff" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg4-diff--r" x="153.40" y="74.38" width="150.00" height="36.75" rx="4"/><g id="dg4-diff--lw0" data-lab="diff--l" class="dg-lwrap" transform="translate(228.40,92.75)"><g id="dg4-diff--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">difference</tspan></text></g></g></g>
 <g id="dg4-n" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg4-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(359.40,92.75)"><g id="dg4-n--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a difference is a detection</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg4-root">{"p":"dg4-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","n--lead--p":"path","n--lead--h":"path","raw--r":"rect","raw--l":"text","inst--r":"rect","inst--l":"text","diff--r":"rect","diff--l":"text","n--l":"text"},"names":["compare","verdict","note"],"frames":[{"vis":{"raw":1,"inst":0,"diff":0,"n":0,"edge-1":0,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":0,"n":0,"edge-1":1,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":0,"edge-1":1,"edge-2":1,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":1,"edge-1":1,"edge-2":1,"n--lead":1},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box  raw  \"raw crawl\"    at 0,0 w 1.0 {.tone-2}\nbox  inst \"instrumented\" right of raw gap 1.4 w 1.0 {.tone-3}\nbox  diff \"difference\"   below inst gap 1.0 w 1.0 {.tone-1}\nedge raw -> inst\nedge inst -> diff\ntext  n \"a difference is a detection\" right of diff gap 1.0 -- diff {.small .muted .left}\n\nstep compare\n  show inst\n\nstep verdict\n  show diff\n  emph diff\n\nstep note\n  show n","attrs":"unit=150x56","range":[15740,16118],"chunk":"autoplay","width":"full","alt":"A figure that walks itself"}</script></figure></div></div>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg4-root">{"p":"dg4-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","n--lead--p":"path","n--lead--h":"path","raw--r":"rect","raw--l":"text","inst--r":"rect","inst--l":"text","diff--r":"rect","diff--l":"text","n--l":"text"},"names":["compare","verdict","note"],"frames":[{"vis":{"raw":1,"inst":0,"diff":0,"n":0,"edge-1":0,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":0,"n":0,"edge-1":1,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":0,"edge-1":1,"edge-2":1,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":1,"edge-1":1,"edge-2":1,"n--lead":1},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box  raw  \"raw crawl\"    at 0,0 w 1.0 {.tone-2}\nbox  inst \"instrumented\" right of raw gap 1.4 w 1.0 {.tone-3}\nbox  diff \"difference\"   below inst gap 1.0 w 1.0 {.tone-1}\nedge raw -> inst\nedge inst -> diff\ntext  n \"a difference is a detection\" right of diff gap 1.0 -- diff {.small .muted .left}\n\nstep compare\n  show inst\n\nstep verdict\n  show diff\n  emph diff\n\nstep note\n  show n","attrs":"unit=150x56","range":[15206,15584],"chunk":"autoplay","width":"full","alt":"A figure that walks itself"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="autoplay">
       <div class="annot-box-label">annotation · autoplay</div>

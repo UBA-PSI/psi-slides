@@ -473,7 +473,7 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 That doubles as a rehearsal test: if the shortened chunk would not remind you what you meant to say, the chunk is not finished.
 
-> note: Present this chunk from the short view while you say it. Nothing lands the argument faster than a slide that is visibly the same text as the handout.
+> note: Present this chunk from the short view while you say it – the room can see that the slide is the same text as the handout.
 
 ## example: Four ways a chunk goes soft {.wide #anti-patterns}
 
@@ -499,7 +499,7 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 **Let the tool work it out while the chunk is an argument of one to three paragraphs; mark the slide yourself once the argument wants continuous prose.** Try the first and switch when it keeps fighting you.
 
 ::: expand tag-as-predictor
-**The tag is a fair predictor.** `principle` and `question` chunks are short enough that the first-sentence rule rarely bites. `example` and `free` chunks near their word budget are where `::: slide` is worth reaching for, because those carry a walkthrough or a finding rather than a claim.
+**The tag is a fair predictor.** `principle` and `question` chunks are short enough that the first-sentence rule rarely bites. `example` and `free` chunks near their word budget carry a walkthrough or a finding, and that is where `::: slide` is worth reaching for.
 
 A figure with a paragraph of interpretation under it is the other reliable case, and there `::: script` around the interpretation is less typing than wrapping the other half.
 :::
@@ -512,17 +512,17 @@ A figure with a paragraph of interpretation under it is the other reliable case,
 
 **For each chunk that fails**, ask in this order: is the opening sentence a claim, or a warm-up? Would each bold phrase read as a sensible bullet on its own? Is there a list hiding inside a paragraph?
 
-**If all three answers are fine and it still reads badly,** the chunk wants `::: slide`. Both ways of deciding exist because neither one covers every chunk.
+**If all three answers are fine and it still reads badly,** the chunk wants `::: slide`.
 
 :::
 
-> note: Worth doing once per lecture, the day before. It doubles as a rehearsal, because reading the short version is very close to giving the talk.
+> note: Worth doing once per lecture, the day before. Reading the short version is close enough to giving the talk that it doubles as a rehearsal.
 
 # Next steps {#next}
 
 ## exercise: Read more | the artefacts that close the loop {.wide #read-more}
 
-**The tour covered the keys. What it cannot cover is the craft, and that only shows in lectures somebody wrote.**
+**The tour covered the keys. The craft only shows in lectures somebody wrote.**
 
 ::: cols 2
 
@@ -532,7 +532,7 @@ A figure with a paragraph of interpretation under it is the other reliable case,
 
 **3. `lectures/diagrams/audience.html`.** The same for `::: draw`: every statement drawn rather than described, with real lecture figures among them.
 
-**4. `PRD.md`.** Why four views, why this set of tags, why `C` has two settings and not four. Part specification and part plan, so read it as a record of thinking rather than of behaviour.
+**4. `PRD.md`.** Why four views, why this set of tags, why `C` has two settings and not four. Part specification and part plan – a record of the thinking, not of the behaviour.
 
 **5. `docs/comparison.md`.** psi-slides against Beamer, reveal.js, Quarto, Marp, Slidev and PowerPoint, including the places it loses.
 
@@ -618,7 +618,7 @@ kind  name  label   placement              options  tail
 
 **Placement is a grid square or a relation to a neighbour** – `at 2,1`, or `right of mix gap 0.6`, or `below src gap 0 flush left` for boxes that touch. The first element sits at the origin, so a simple diagram needs no coordinates at all. Nothing is laid out for you: every element sits where you put it.
 
-**A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`, `via iv.cx,x0.cy`. Anywhere an `X,Y` pair goes, that form goes, so moving one element does not mean retyping the coordinates of everything placed against it. `.elbow` on an edge writes the commonest of those routes for you – one turn out, one turn in, halfway across the gap – and takes no waypoints and no options.
+**A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`, `via iv.cx,x0.cy`. Anywhere an `X,Y` pair goes, that form goes, so moving one element does not mean retyping everything placed against it. `.elbow` on an edge writes the commonest route for you – one turn out, one turn in, halfway across the gap – and takes no waypoints and no options.
 
 **An edge is one of the things a coordinate can name.** `text n "only after the handshake" above w1 gap 0.2` sets a phrase against the wire it describes rather than against a box at one end of it, so the label follows its line instead of drifting off it the next time a box changes height. Name the edge first, in the slot before the arrow's first end: `edge w1 mix -> log`. An edge has no name until you write one, and most edges never need one. A name is letters, digits, `_` and `-`; a line starting with `#` is a comment.
 
@@ -626,7 +626,7 @@ kind  name  label   placement              options  tail
 
 **A box that moves takes its arrows with it.** The whole figure is laid out again at every step rather than nudged, so an arrow joining two elements finds a new route whenever either end moves.
 
-**Anything hanging off something invisible is invisible too.** An arrow is only as visible as the two things it joins; a `container` or a `brace` only as visible as its members, and it shrinks to fit the ones on screen; a `text` with a line drawn to something only as visible as the thing it points at. So showing the boxes shows the arrows between them, the outline around them and the note beside them, and most of a diagram needs no `show` of its own. A free `text` gets that line by writing `-> some-element` after it, which is how a label goes wherever it reads best without losing what it is about. Naming an arrow or an outline in a `show` or a `hide` of its own overrides the rule, in both directions, from that step onwards.
+**Anything hanging off something invisible is invisible too.** An arrow is only as visible as the two things it joins; a `container` or a `brace` only as visible as its members, and it shrinks to fit the ones on screen; a `text` with a line drawn to something only as visible as what it points at. So showing the boxes shows the arrows between them, the outline around them and the note beside them, and most of a diagram needs no `show` of its own. A free `text` gets that line by writing `-> some-element` after it. Naming an arrow or an outline in a `show` or a `hide` of its own overrides the rule, in both directions, from that step onwards.
 
 **A picture can be an element too.** `image alice avatar-alice w 0.4` finds the file exactly as `![](fig-id)` does. An SVG drawing is written into the page itself, so it takes the theme's colours and changes with the `A` key; a photograph is embedded as it is and keeps its own colours in every theme.
 
@@ -635,21 +635,21 @@ kind  name  label   placement              options  tail
 
 `table` and `lanes` turn into ordinary boxes the way `bars` and `grid` do. `table t "Attack | Layer | Countermeasure"` reads its rows off the quoted lines under it, names every cell `t-<column>-<row>` with the heading as row 0, and tags each one `@t-row-2` and `@t-col-0`, so lighting one row per step is one line of source. `lanes swim "User | SOC | IT ops"` draws bands of equal width with their captions turned on end. Use it rather than a `container`, which fits itself to its members, so lanes holding different numbers of things come out ragged at both ends.
 
-`sequence` draws a protocol down the page: `actor u "User"` lines for the columns, then `u -> br "click …"` for the messages and `note au "…"` for the boxes that sit on a lifeline. It decides the vertical spacing and nothing else – every entry states the height it needs and the statement stacks them, so a note pushes the messages under it down instead of cutting into their labels, and inserting a message costs one line instead of thirteen. A message *is* an edge, so `{.dashed}` makes it a reply and `--` a line without a head; `x -> x` loops out of a lifeline and back for something an actor does alone. Annotating one is ordinary lines, because the statement generates names for everything it draws: `wa-3` is the fourth message, `au-life` the authenticator's lifeline, and `@wa-msg-3`, `@au-msgs` and `@wa-notes` are sets, so `brace over wa-3,wa-4,wa-5` works. Message labels bring their own paper background, and `space 0.9` on a message or a note is the air above that one band, which is how a long protocol is broken into phases.
+`sequence` draws a protocol down the page: `actor u "User"` lines for the columns, then `u -> br "click …"` for the messages and `note au "…"` for the boxes that sit on a lifeline. It decides the vertical spacing and nothing else – every entry states the height it needs and the statement stacks them, so a note pushes the messages under it down and inserting one costs a line instead of thirteen. A message *is* an edge, so `{.dashed}` makes it a reply and `--` a line without a head; `x -> x` loops out of a lifeline and back. The statement generates a name for everything it draws – `wa-3` is the fourth message, `au-life` the authenticator's lifeline, `@wa-msg-3`, `@au-msgs` and `@wa-notes` the sets – so annotating one is ordinary lines: `brace over wa-3,wa-4,wa-5`. Message labels bring their own paper background, and `space 0.9` on a message or a note is the air above that band, which is how a long protocol is broken into phases.
 
 A **tag** goes wherever a name goes, so `show @crypto` in a step reaches every element carrying it. An element joins a set on its own line, so adding one to a set is a one-line edit.
 
 Placement also takes `between a,b` – the point on the line joining two elements, which is where a separator or a note beside a connector goes – and any placement accepts a trailing `offset dx,dy`. An anchor can carry a fraction: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side instead of on top of each other.
 
-Two statements save repetition. `default box {.tone-4} w 1.15` sets the starting point for every box in the figure, and adding a tag – `default box @dec w 0.48` – narrows that to one set. `same as create` copies another element's width and height. The same `default` lines go in a `draw-defaults:` frontmatter key when every figure in a lecture should look alike; a block's own `default` then overrides the lecture's for that one figure, and changing the house style is one edit.
+Two statements save repetition. `default box {.tone-4} w 1.15` sets the starting point for every box in the figure, and adding a tag – `default box @dec w 0.48` – narrows that to one set. `same as create` copies another element's width and height. The same `default` lines go in a `draw-defaults:` frontmatter key when every figure in a lecture should look alike, and a block's own `default` overrides the lecture's for that one figure.
 
-And one saves measuring: a coordinate may be another element's coordinate. `edge iv -> x0 via iv.cx,x0.cy` means *straight down from the IV, then across at the height of the XOR*, and it stays true when anything above it moves. Adding `+0.2` or `-0.2`, as in `mix.cx+0.2`, shifts it a little without giving up the relation.
+A third saves measuring: a coordinate may be another element's coordinate. `edge iv -> x0 via iv.cx,x0.cy` means *straight down from the IV, then across at the height of the XOR*, and it stays true when anything above it moves. `+0.2` or `-0.2`, as in `mix.cx+0.2`, shifts it a little without giving up the relation.
 
 Inside a label, `_sub` and `^sup` shift a character or a `{group}` down or up, `*accent*` colours a run and `~muted~` greys it.
 
 **Click the figure, and the button in the corner of the card opens the graphical editor, which is experimental.** It is built for a desktop-sized screen and has been tested a great deal by machine and very little by people. Drag a box and it rewrites one number – the `gap`, the fraction along a line, the nudge on a borrowed coordinate – and never the relation that number sits inside. It also draws those relations while you work, which the finished drawing cannot: a box written `gap 0.55` from its neighbour looks exactly like one that happens to sit 0.55 away. `editor: none` in the frontmatter leaves it out.
 
-Two options work from the box inwards rather than from the label outwards. `pad 0.3` sets how far a box's border sits from its own label, the same word `container` and `brace` already use. `.fit` on a box with a given `w` sizes the *type* to fill the box instead of growing the box to fit the type, and `.shrink` allows only the shrinking half of that. A free `text` carrying a tone draws its own patch of background, so a caption can sit on a panel without becoming a box.
+Two options work from the box inwards instead of from the label outwards. `pad 0.3` sets how far a box's border sits from its own label, the same word `container` and `brace` use. `.fit` on a box with a given `w` sizes the *type* to fill the box instead of growing the box to fit the type, and `.shrink` allows only the shrinking half of that. A free `text` carrying a tone draws its own patch of background, so a caption can sit on a panel without becoming a box.
 
 **An edge's label reads the same rule.** A fill class on the `edge` itself gives its label a background, and with no side named the words sit *on* the line and knock a hole in it; `side top`, `side bottom`, `side left` or `side right` lifts them clear and carries the background with them. The label is held at the middle of the route, so it stays there when the route bends or either end moves – a separate `text` placed `between` two boxes does not. Use the on-the-line form for a token naming the line, a message number or a port, the beside-it form for a phrase describing what travels along it, and keep to one of the two per figure.
 :::
@@ -742,19 +742,19 @@ Only three class names belong to no group and can be combined with anything: `.b
 
 Two pairs are not one group but still draw a warning, because one of the two ends up doing nothing: `.tone-4` with `.accent`, where the fill already *is* the accent, and `.turn` with `.left` or `.right`, where a label standing on end is centred across the direction it reads. `.top` and `.bottom` do still move a turned label.
 
-Which way a pointed outline aims is the `point` option – `up`, `down`, `left` or `right` – rather than four more class names for every shape, and writing it on an outline that has no point is an error. So is `.fit` on a box with no width to fit into, and so is an outline class on anything but a `box`. A `.cross` given no `w` of its own comes out square, because a plus with arms of two different lengths is not a plus, and it stays square even under a `default box … w`. A `w` written on the element's own line still wins, that one being a statement about that element in particular.
+Which way a pointed outline aims is the `point` option – `up`, `down`, `left` or `right` – and writing it on an outline that has no point is an error. So is `.fit` on a box with no width to fit into, and so is an outline class on anything but a `box`. A `.cross` given no `w` of its own comes out square, and stays square even under a `default box … w`; a `w` on the element's own line still wins.
 
-`align` and `spread` work on boxes, dots, texts and images only, because they overwrite a coordinate that only those four work out for themselves; naming an edge, a container or a brace is an error. `align` names its axis first – `x` takes `left`, `middle` or `right`, `y` takes `top`, `middle` or `bottom` – because the axis is what decides which way a set moves, and getting it wrong silently would push a whole block sideways. `spread` needs at least three elements; `align` needs two.
+`align` and `spread` work on boxes, dots, texts and images only – naming an edge, a container or a brace is an error. `align` names its axis first: `x` takes `left`, `middle` or `right`, `y` takes `top`, `middle` or `bottom`. `spread` needs at least three elements; `align` needs two.
 
 :::
 
-> note: Two columns built as separate `below` chains drift apart the moment their captions differ in height, and a line between two drifted boxes runs a degree off the axis, which the room reads as a mistake. The build warns about exactly that.
+> note: Two columns built as separate `below` chains drift apart the moment their captions differ in height, and a line between two drifted boxes then runs a degree off the axis. The build warns about that.
 >
-> The sheet is the reference table, and it stays on screen when the prose around it is shortened away, so present this chunk from the short view. Press `A` a few times while it is up: the four tones are mixed from the page's own ink and accent rather than being fixed colours, so the whole sheet changes with the theme instead of bringing a palette of its own.
+> The sheet stays on screen when the prose around it is shortened away, so present this chunk from the short view. Press `A` a few times while it is up: the four tones are mixed from the page's own ink and accent, so the whole sheet changes with the theme.
 
 ## example: Charts, without a chart library | `bars`, `grid` and `plot` {.full #diagram-charts}
 
-**Three statements draw data, and each of them turns into ordinary boxes, texts and edges before anything is drawn.** `bars` becomes one box per column plus a baseline, `grid` one box per cell, and `plot` a frame of gridlines, ticks and two axis titles.
+**Three statements draw data, and each turns into ordinary boxes, texts and edges first.** `bars` becomes one box per column plus a baseline, `grid` one box per cell, and `plot` a frame of gridlines, ticks and two axis titles.
 
 ::: draw {unit=148x64}
 bars wc "18,16,15,12,11,9,8,7,6,5,4,3" at 0,0 w 2.3 h 1.05 space 0.06 {.tone-3}
@@ -775,7 +775,7 @@ step figures
 
 **A `brace` spans three of the columns and a `style` step tints four of the cells, because all of those are ordinary boxes** – named after the statement they came out of: `wc-0`, `wc-1`, … for the columns and `ch-1-0`, `ch-4-2`, … for the cells. The budget line is an ordinary edge drawn between two coordinates read off the chart's own frame, with `.front` on it so the columns do not cover it. The spacing *inside* these statements is `space` and never `gap`, `gap` being the distance to another element on the same line.
 
-**A chart can carry more than one set of numbers, and that is one more `bars` line.** `bars after "…" series of wc {.tone-1}` joins the first chart's frame and borrows its ticks, its baseline and its scale, bringing only its own numbers and its own colour. The width is shared out between them, so a grouped chart takes exactly the paper a single one did. `stacked` on that line piles it on top of the run before it instead, and the scale becomes the tallest stack. Such a line takes no `w`, no `h`, no `space`, no placement and no tick labels, because all five belong to the chart it joined. `emph 0,1,2` or `dim 5` on any `bars` line marks those columns from the first step onwards, which is usually where a chart wants a column to stand out rather than a keypress later – the same three words again, in a third position.
+**A second set of numbers is one more `bars` line.** `bars after "…" series of wc {.tone-1}` joins the first chart's frame and borrows its ticks, its baseline and its scale, bringing only its own numbers and its own colour. The width is shared out between them, so a grouped chart takes exactly the paper a single one did. `stacked` piles it on the run before it instead, and the scale becomes the tallest stack. Such a line takes no `w`, no `h`, no `space`, no placement and no tick labels: all five belong to the chart it joined. `emph 0,1,2` or `dim 5` on any `bars` line marks those columns from the opening picture onwards, which is usually where a chart wants one – the same three words again, in a third position.
 
 **`horizontal` lays the columns flat.** The bars run left to right, the categories stack downwards, the tick labels become a right-aligned column down the left margin and the baseline stands on the left. Lengths from one shared left edge are easier to rank than heights over a shared floor, and a category called “DNS cache poisoning” cannot be written under an upright column at all. A tick string containing `|` splits on that instead of on spaces, so a label can be as many words as it needs – the same mark that separates a `table` row and a `lanes` name list.
 
@@ -859,8 +859,8 @@ held inside the text column and can never reach the edges.
 
 All of it – ten covers, six kinds of divider, cards, rows, backdrops that open
 on a keypress, overlays – is shown one construct per slide in
-[the decoration lecture](../decoration/audience.html). Two of them are on the
-next two slides so you can see the shape.
+[the decoration lecture](../decoration/audience.html). The next two slides
+carry two of them.
 
 ## example: A card row is N containers | `::: cards 3`, and an item is whole or nowhere {.wide #deco-cards}
 
@@ -886,11 +886,11 @@ here shows the difference.
 and this block is an overlay, placed on a 3×3 grid.
 :::
 
-> note: The veil laid over a backdrop is the theme's own paper rather than white, so ordinary dark text stays legible over a photograph in every theme. `invert` is the other way round – it darkens the picture and turns the text light – and that is what this slide uses.
+> note: The veil laid over a backdrop is the theme's own paper, not white, so ordinary dark text stays legible over a photograph in every theme. `invert`, which this slide uses, darkens the picture and turns the text light instead.
 
 ## example: Embedding your own type | `fonts/` plus a frontmatter block {.wide #fonts}
 
-**Three typefaces travel inside every file the tool writes:** Literata, IBM Plex Sans and JetBrains Mono, all under the SIL Open Font License, which permits exactly that. Carrying them matters because Safari does not tell a page which fonts a machine has, so a lecture that only *names* its typefaces gets whatever that browser decides. The three cost about 280 KB per file, and `fonts: none` leaves them out.
+**Three typefaces travel inside every file the tool writes:** Literata, IBM Plex Sans and JetBrains Mono, all under the SIL Open Font License, which permits it. Naming a typeface is not enough on its own: Safari does not tell a page which fonts a machine has, so a lecture that only names its own gets whatever that browser decides. The three cost about 280 KB per file, and `fonts: none` leaves them out.
 
 To use your own instead, put the files in a `fonts/` folder beside `source.md` and name the families:
 
@@ -903,7 +903,7 @@ fonts:
 
 Files are matched by name, and the ending gives the weight and the style: `Literata-Regular.woff2`, `-Bold`, `-Italic`, `-BoldItalic`, `-600`, `-600italic`, or a single file named `Literata[wght].woff2` that carries every weight. A role you name uses your font; a role you leave out keeps the one that ships. Naming a family with no matching file stops the build.
 
-**Check the licence first.** Putting a font inside the file redistributes it. The SIL Open Font License and Apache-2.0 – which between them cover nearly all of Google Fonts – allow that; most commercial desktop licences do not, and want a separate web licence. The build prints a reminder and checks nothing.
+**Check the licence first.** Putting a font inside the file redistributes it. The SIL Open Font License and Apache-2.0 – between them nearly all of Google Fonts – allow that; most commercial desktop licences do not, and want a separate web licence. The build prints a reminder and checks nothing.
 
 ## example: Ten ways to draw the first slide | `cover:` plus a `subtitle:` line {.wide #covers}
 

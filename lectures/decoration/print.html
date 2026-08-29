@@ -1069,8 +1069,8 @@ take whatever you write under the <code>## title:</code> heading, so a <code>:::
 the cover.</p>
 <p><strong><code>cover-ratio:</code></strong> is how much of the slide the picture takes, as a percentage
 between 15 and 75. Only the three that divide the slide read it – <code>split</code>,
-<code>beside</code> and <code>above</code>. It is a percentage rather than a <code>W:H</code> ratio because it
-splits one fixed frame; the shape of the frame comes from the projector.</p>
+<code>beside</code> and <code>above</code>. A percentage and not a <code>W:H</code> ratio: the shape of the
+frame comes from the projector, and this splits it.</p>
 <p><strong><code>cover-align:</code></strong> puts the block of text at the <code>top</code>, the <code>middle</code> or the
 <code>bottom</code>. The seven compositions that leave the block any freedom read it.</p>
 <p>Set either of the last two keys on a composition that has already settled the
@@ -1090,8 +1090,7 @@ question and the build stops with an error rather than ignoring the line.</p>
 quotation</strong>, so there is no mark: no hanging curly quote, no glyph behind the
 words, no rule beside them.</p>
 <p>The claim is what you write under the <code>## title:</code> heading. A <code>quote</code> cover
-without one fails the build: a quote cover with no quotation is a title slide
-with the title in the wrong place.</p>
+without one fails the build.</p>
 
   
   
@@ -1106,9 +1105,8 @@ with the title in the wrong place.</p>
   <p><strong><code>## closing:</code> draws the last slide in whatever composition <code>cover:</code> names</strong>,
 so the room sees the shape the lecture opened with.</p>
 <p>What it carries is different: your own heading, sub-heading and text, and
-neither the presenter line nor the <code>info</code> block. Those two say who is talking
-and where, which the room learned an hour ago. The last slide of this lecture
-is one.</p>
+neither the presenter line nor the <code>info</code> block – the room learned who is
+talking and where an hour ago. The last slide of this lecture is one.</p>
 
   
   
@@ -1175,9 +1173,8 @@ heading is the live item in the list rather than a second copy set beside it.</p
   <h2 class="chunk-heading">Three states, two greys</h2>
   <p>The live part is set <strong>larger and in full ink</strong>; the parts before and after it
 recede. What carries progress is where the live item sits as it walks down the
-list, so the recession only has to say <em>not this one</em>. Two greys read from the
-back of a room and three do not, which is why the live item is a size rather
-than a third shade.</p>
+list, so the recession only has to say <em>not this one</em>. The live part is a size
+and not a third shade: two greys read from the back of a room, three do not.</p>
 <p><code>section-mark:</code> puts a short word over the heading. This lecture writes <code>Part</code>.
 Write nothing and nothing is drawn there.</p>
 
@@ -1204,10 +1201,9 @@ Write nothing and nothing is drawn there.</p>
 </div>
 
 
-<p>Those three are what a divider takes, and the other directives belong inside a
-<code>##</code> slide: a card row or a two-column layout on a divider is a slide that has
-stopped being a divider. The words themselves do print, as a short paragraph
-under the part title. The divider slide itself never prints.</p>
+<p>Those three are what a divider takes; the other directives belong inside a
+<code>##</code> slide. The words do print, as a short paragraph under the part title. The
+divider slide itself never prints.</p>
 
   
   
@@ -1220,10 +1216,10 @@ under the part title. The divider slide itself never prints.</p>
   
   <h2 class="chunk-heading">A figure divider lays out beside the heading</h2>
   <p>When a divider&#39;s body is nothing but a figure, <strong>the figure goes beside the
-heading</strong> rather than under it. Stacked, a part title, an agenda and a drawing
-are three blocks down one axis with nothing balancing them across it.</p>
-<p>Prose under a heading is an opening paragraph and reads correctly stacked, which
-is how the quotation divider in Part 1 comes out.</p>
+heading</strong> – stacked, a part title, an agenda and a drawing are three blocks
+down one axis with nothing across it.</p>
+<p>Prose under a heading is an opening paragraph and stays stacked, which is how
+the quotation divider in Part 1 comes out.</p>
 
   
   
@@ -1249,8 +1245,8 @@ is how the quotation divider in Part 1 comes out.</p>
   <p><strong><code>::: cards 3</code> puts three boxes side by side</strong>, and an item is whole or it is
 nowhere. <code>::: cols 3</code> is the other thing: one flow of text the browser
 balances across three columns, so a paragraph can spill from the foot of one
-into the head of the next. Reach for cards when three items are three things
-rather than one paragraph cut in three.</p>
+into the head of the next. Use cards for three things, columns for one long
+argument.</p>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-outline ck-round cx-veil">
 <ul>
 <li><strong>outline</strong> a hairline and no fill. Quieter on a slide that already carries a
@@ -1307,8 +1303,7 @@ its top</li>
   <h2 class="chunk-heading">The row size reads the longest item</h2>
   <p><strong><code>size: auto</code> counts the words in the longest card</strong>: three or fewer sets the
 row large, twelve or fewer medium, more than twelve small. One size for the
-whole row and never one per card, because three sizes in a row read as a mistake
-rather than as a hierarchy.</p>
+whole row, never one per card.</p>
 <div class="cards cards-4 cs-large ca-center cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li>Measure</li>
@@ -1321,9 +1316,8 @@ rather than as a hierarchy.</p>
 
 
 <p>Alignment then follows the size, a single word centring and a sentence ranging
-left. A row that carries a second level ranges left whatever its heads measure:
-a centred head over a left-aligned list reads as a mistake, and the heads must
-not jump when the reader presses <code>C</code>.</p>
+left. A row that carries a second level ranges left whatever its heads measure,
+so the heads do not jump when the reader presses <code>C</code>.</p>
 
   
   
@@ -1460,9 +1454,8 @@ or slides about while it is being revealed.</p>
   
   <h2 class="chunk-heading"><code>from</code> holds an overlay back until a beat</h2>
   <p><strong><code>::: overlay {…} from 1</code> keeps the block off the slide</strong> until the first press
-of Space. It takes one number and not a list, because an overlay is either on
-the slide or it is not. The backdrop&#39;s list answers a different question, which
-is where the picture is at each beat.</p>
+of Space. One number, not a list: an overlay is either on the slide or it is
+not, where the backdrop&#39;s list says where the picture is at each beat.</p>
 <p>An overlay fades in where a reveal segment simply appears. A segment is part of
 the flowing text, so what follows it closes up as it arrives; an overlay sits in
 its own cell over the picture and nothing else moves.</p>
@@ -1545,9 +1538,9 @@ corner and they stack rather than landing on top of each other.</p>
   
   <h2 class="chunk-heading"><code>{.bare}</code> gives up the projection and nothing else</h2>
   <p><strong><code>{.bare}</code> keeps a heading out of the projection</strong> and leaves it everywhere
-else. Writing no heading at all would cost three things together: the slide,
-the printed document and the search index. A talk that is a run of figures with
-speaker notes usually wants to lose only the first.</p>
+else. Writing no heading at all would cost the slide, the printed document and
+the search index together; a talk that is a run of figures with speaker notes
+usually wants to lose only the first.</p>
 <p>So <code>## figure: How a crawl is scored {.full #id .bare}</code> prints the heading,
 indexes it, and draws nothing on screen. <code>style: {headings: off}</code> says the same
 for a whole deck. Press <code>/</code> and search for <em>measurement loop</em>: it matches this

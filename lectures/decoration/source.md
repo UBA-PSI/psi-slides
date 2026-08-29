@@ -78,8 +78,8 @@ the cover.
 
 **`cover-ratio:`** is how much of the slide the picture takes, as a percentage
 between 15 and 75. Only the three that divide the slide read it – `split`,
-`beside` and `above`. It is a percentage rather than a `W:H` ratio because it
-splits one fixed frame; the shape of the frame comes from the projector.
+`beside` and `above`. A percentage and not a `W:H` ratio: the shape of the
+frame comes from the projector, and this splits it.
 
 **`cover-align:`** puts the block of text at the `top`, the `middle` or the
 `bottom`. The seven compositions that leave the block any freedom read it.
@@ -94,8 +94,7 @@ quotation**, so there is no mark: no hanging curly quote, no glyph behind the
 words, no rule beside them.
 
 The claim is what you write under the `## title:` heading. A `quote` cover
-without one fails the build: a quote cover with no quotation is a title slide
-with the title in the wrong place.
+without one fails the build.
 
 ## free: The last slide closes the arc {.wide #closing-tag}
 
@@ -103,9 +102,8 @@ with the title in the wrong place.
 so the room sees the shape the lecture opened with.
 
 What it carries is different: your own heading, sub-heading and text, and
-neither the presenter line nor the `info` block. Those two say who is talking
-and where, which the room learned an hour ago. The last slide of this lecture
-is one.
+neither the presenter line nor the `info` block – the room learned who is
+talking and where an hour ago. The last slide of this lecture is one.
 
 # Dividers carry their own slide {#dividers}
 
@@ -148,9 +146,8 @@ heading is the live item in the list rather than a second copy set beside it.
 
 The live part is set **larger and in full ink**; the parts before and after it
 recede. What carries progress is where the live item sits as it walks down the
-list, so the recession only has to say *not this one*. Two greys read from the
-back of a room and three do not, which is why the live item is a size rather
-than a third shade.
+list, so the recession only has to say *not this one*. The live part is a size
+and not a third shade: two greys read from the back of a room, three do not.
 
 `section-mark:` puts a short word over the heading. This lecture writes `Part`.
 Write nothing and nothing is drawn there.
@@ -170,19 +167,18 @@ Whatever you write between a `# Heading` and the first `##` heading under it
   opens it on a drawing set beside the heading. Part 3 does
 :::
 
-Those three are what a divider takes, and the other directives belong inside a
-`##` slide: a card row or a two-column layout on a divider is a slide that has
-stopped being a divider. The words themselves do print, as a short paragraph
-under the part title. The divider slide itself never prints.
+Those three are what a divider takes; the other directives belong inside a
+`##` slide. The words do print, as a short paragraph under the part title. The
+divider slide itself never prints.
 
 ## free: A figure divider lays out beside the heading {.standard #divider-beside}
 
 When a divider's body is nothing but a figure, **the figure goes beside the
-heading** rather than under it. Stacked, a part title, an agenda and a drawing
-are three blocks down one axis with nothing balancing them across it.
+heading** – stacked, a part title, an agenda and a drawing are three blocks
+down one axis with nothing across it.
 
-Prose under a heading is an opening paragraph and reads correctly stacked, which
-is how the quotation divider in Part 1 comes out.
+Prose under a heading is an opening paragraph and stays stacked, which is how
+the quotation divider in Part 1 comes out.
 
 # Cards, rows and panes {#grounds}
 
@@ -198,8 +194,8 @@ text note  "three containers,\nthree jobs" right of rows gap 1.1 -- rows {.small
 **`::: cards 3` puts three boxes side by side**, and an item is whole or it is
 nowhere. `::: cols 3` is the other thing: one flow of text the browser
 balances across three columns, so a paragraph can spill from the foot of one
-into the head of the next. Reach for cards when three items are three things
-rather than one paragraph cut in three.
+into the head of the next. Use cards for three things, columns for one long
+argument.
 
 ::: cards 3 {.outline}
 - **outline** a hairline and no fill. Quieter on a slide that already carries a
@@ -239,8 +235,7 @@ question.
 
 **`size: auto` counts the words in the longest card**: three or fewer sets the
 row large, twelve or fewer medium, more than twelve small. One size for the
-whole row and never one per card, because three sizes in a row read as a mistake
-rather than as a hierarchy.
+whole row, never one per card.
 
 ::: cards 4 {.large}
 - Measure
@@ -250,9 +245,8 @@ rather than as a hierarchy.
 :::
 
 Alignment then follows the size, a single word centring and a sentence ranging
-left. A row that carries a second level ranges left whatever its heads measure:
-a centred head over a left-aligned list reads as a mistake, and the heads must
-not jump when the reader presses `C`.
+left. A row that carries a second level ranges left whatever its heads measure,
+so the heads do not jump when the reader presses `C`.
 
 ## free: One row serves two views {.wide #cards-fold}
 
@@ -333,9 +327,8 @@ and the words arrive in the space it freed, on the same press of Space.
 ## free: `from` holds an overlay back until a beat {.wide #reveal-from}
 
 **`::: overlay {…} from 1` keeps the block off the slide** until the first press
-of Space. It takes one number and not a list, because an overlay is either on
-the slide or it is not. The backdrop's list answers a different question, which
-is where the picture is at each beat.
+of Space. One number, not a list: an overlay is either on the slide or it is
+not, where the backdrop's list says where the picture is at each beat.
 
 An overlay fades in where a reveal segment simply appears. A segment is part of
 the flowing text, so what follows it closes up as it arrives; an overlay sits in
@@ -394,9 +387,9 @@ corner and they stack rather than landing on top of each other.
 ## free: `{.bare}` gives up the projection and nothing else {.wide #bare-why}
 
 **`{.bare}` keeps a heading out of the projection** and leaves it everywhere
-else. Writing no heading at all would cost three things together: the slide,
-the printed document and the search index. A talk that is a run of figures with
-speaker notes usually wants to lose only the first.
+else. Writing no heading at all would cost the slide, the printed document and
+the search index together; a talk that is a run of figures with speaker notes
+usually wants to lose only the first.
 
 So `## figure: How a crawl is scored {.full #id .bare}` prints the heading,
 indexes it, and draws nothing on screen. `style: {headings: off}` says the same
