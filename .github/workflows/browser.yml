@@ -17,6 +17,14 @@ name: Browser suite
 
 on:
   workflow_dispatch:
+  # TEMPORARY, and to be removed once this branch has answered the question.
+  # workflow_dispatch is only registered from the DEFAULT branch, so this file
+  # cannot be dispatched until it is on main - which makes it useless for the
+  # one job it was written for, proving a branch before a tag. A branch-scoped
+  # push trigger is the way to exercise it from here without pushing to main
+  # and redeploying the project site as a side effect.
+  push:
+    branches: [test-suite-review]
 
 concurrency:
   group: browser-${{ github.ref }}
