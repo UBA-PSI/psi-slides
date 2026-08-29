@@ -94,7 +94,7 @@ const FM = [
   'presenter: Marit Osterhagen',
   'info: |',
   '  with Tomas Brekke and Ines Falk',
-  '  Web Measurement Workshop · Delft · 9 to 11 April',
+  '  Web Measurement Workshop · Delft · 10 April',
   'theme: light-blue',
   'font: sans',
   'lang: en',

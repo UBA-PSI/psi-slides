@@ -8,6 +8,7 @@ section: outline
 section-mark: Part
 theme: light-blue
 collapse: none
+auto-fit: true
 ---
 
 ## title: {#cover}
@@ -17,7 +18,7 @@ A slide is a frame, and the frame can carry more than a column of text.
 ## outline: What this lecture shows {.wide #agenda}
 
 Every way psi-slides has of decorating a slide, each one used on the slide that
-describes it, so you can see it work before you write it.
+describes it.
 
 ## principle: None of this is in the 1.0.0 release {.standard #preview}
 
@@ -31,9 +32,9 @@ project page, and the `build.js` inside it. The source format is frozen from
 
 # The cover, and the slide that closes it {#covers}
 
-> A deck has one cover, so this lecture can show you only one of the ten. The
-> [gallery](https://uba-psi.github.io/psi-slides/#covers) has all ten, each shot
-> from a real build.
+> All ten covers are in the
+> [gallery](https://uba-psi.github.io/psi-slides/#covers), each shot from a real
+> build. This deck wears `quote`.
 
 ## free: Ten ways to open a lecture {.wide #cover-list}
 

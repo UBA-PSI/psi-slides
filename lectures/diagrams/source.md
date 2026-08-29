@@ -4,6 +4,7 @@ subtitle: "Six real lecture slides, rebuilt in ::: draw"
 author: Dominik Herrmann
 theme: dark
 collapse: none
+auto-fit: true
 draw-defaults: |
   default text {.small}
   default container pad 0.34
