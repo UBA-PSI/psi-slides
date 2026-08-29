@@ -12,6 +12,21 @@
  * things, because a name that undersells a file is a name that stops
  * people adding to it.
  *
+ * The same failure has since moved from the name into the shape, and this
+ * paragraph is the standing note about it. The file writes "put a source in
+ * a temp dir, spawn build.js, read what came out" about a dozen times over:
+ * four identical mk()s, refuses(), build2(), cover(), mask(), a row of
+ * anonymous IIFEs, and then raw(), which is the general one and could have
+ * written every one of the others. Consolidating gains no assertion and
+ * loses none, which is why it has not been done - but a file with a dozen
+ * ways to do one thing is a file people add a thirteenth to, which is
+ * exactly what the rename was trying to prevent.
+ *
+ * So: write anything new with raw() and lintOf(), never a new helper. And if
+ * you are here to extend this file substantially rather than to add one
+ * assertion, consolidate downwards onto those two first - that is the moment
+ * it is worth paying for, and no earlier.
+ *
  * Three settings, and the reason they exist.
  *
  * From 1.0.0 the source format is the interface, and a lecture that laid out
