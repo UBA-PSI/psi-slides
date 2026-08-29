@@ -39,13 +39,19 @@ compiler regression fails in a second rather than after four minutes.
 
 **`node lint.js lectures/` is the gate**, and `node test/run.mjs` is the
 safety net. The linter is zero-dependency and runs anywhere, so run it on every
-commit. The suite drives a built lecture in a headless Chromium and covers the
-three things that can only break in a built page: the navigation model, the
-diagram editor's treatment of an edge, and the waypoint round-trip. It builds
-and serves the lecture itself, so it never reports on stale HTML. It needs a
-browser (`$PSI_CHROME`, else the Playwright cache, else the system Google
-Chrome) and takes about half a minute. `node test/run.mjs nav` runs the specs
-whose name matches.
+commit. The suite drives built lectures in a headless Chromium and covers what
+can only break in a built page, in three families: the navigation model, the
+diagram editor's gestures and panel, and the geometry of an emitted figure. It
+said "three things" for as long as it had three specs; it has twenty-two, and
+577 assertions. It builds and serves the lectures itself, so it never reports
+on stale HTML. It needs a browser (`$PSI_CHROME`, else the Playwright cache,
+else the browser the host installed) and takes about five minutes.
+`node test/run.mjs nav` runs the specs whose name matches.
+
+`no page errors` is asserted by the runner after every spec rather than by
+each spec, because it is an invariant of running one at all – it was a line
+twenty-one specs remembered and one forgot, and that one swallowed console
+errors for as long as it existed.
 
 Run it after touching `AUDIENCE_JS`, the key map, `editor.mjs`,
 `createSpanTable`, or anything that decides a diagram's `viewBox`. The header
@@ -65,9 +71,12 @@ node test/gates/run.mjs corpus # only the gates whose name matches
 `test/gates/` is everything about the **figure language** that can be decided
 without a browser. It needs no `npm install` and no Chromium, because
 `diagram-core.mjs` and `lint.js` are both zero-dependency, and it runs on every
-push in CI – which the browser suite never can. Four gates:
+push in CI, which the browser suite cannot be: it needs `npm ci`, a Chromium
+and five minutes. Where the suite *does* run is a version tag, in
+`release.yml`, and on demand from `browser.yml` – start that one from the
+Actions tab to put a branch through it before tagging. Five gates:
 
-- **`refusals.mjs`** – 98 fixtures, each compiled through `diagram-core.mjs`
+- **`refusals.mjs`** – 170 fixtures, each compiled through `diagram-core.mjs`
   *and* run through `lint.js`, asserting the two agree on every refusal. This
   is the gate that matters most, because `lint.js` re-implements the parsing
   contract by hand: a line the linter passes and the build refuses merges green
@@ -78,6 +87,13 @@ push in CI – which the browser suite never can. Four gates:
   Every other check in the repository asks whether a refusal fires; this asks
   whether the grammar still accepts what it promises, which is the only
   direction a pass that adds refusals can fail in.
+- **`semantics.mjs`** – what the emitted drawing *means*, as distinct from
+  whether the source parsed. It exists because a green acceptance test made a
+  wrong drawing look right: `accepts.mjs` carried a sequence `<->` and asked
+  only whether the block compiled, which it did, drawing one arrowhead. Every
+  assertion here reads the SVG back and asks what a reader would see. One
+  block at the end reads no SVG – the span table, which is what a source means
+  to the editor that rewrites it, and is decided by the compiler alone.
 - **`corpus.mjs`** – every `::: draw` block in the four sources that carry
   figures still compiles, with no new compiler warning. Deliberately not a
   snapshot of the emitted SVG: text width here is estimated rather than
@@ -143,8 +159,11 @@ python3 -m http.server -d _site 8000
 
 **A version tag publishes a release.** `.github/workflows/release.yml` fires on
 `v*`, and it refuses to publish if the tag disagrees with `package.json`, if
-the lint fails, or if the tracked tutorial HTML is not what the current source
-builds. Then it attaches two archives, `psi-slides.tar.gz` and
+the lint fails, if the tracked tutorial HTML is not what the current source
+builds, or if the browser suite finds a regression – it runs there, last of
+the checks because it is the only one that costs minutes. If that is a
+surprise at tag time, it should not be: run `browser.yml` from the Actions tab
+on the branch first. Then it attaches two archives, `psi-slides.tar.gz` and
 `psi-slides.zip`. **Do not rename those assets**: the README and the site link
 `releases/latest/download/psi-slides.tar.gz`, which only resolves while the
 file is called exactly that.
@@ -161,11 +180,14 @@ Cutting a release:
 1. `node lint.js lectures/ docs/site/example/source.md` – clean.
 2. Rebuild the tutorial and commit `lectures/tutorial/*.html` if they moved.
    The release job checks this and fails on a stale tour.
-3. Move the changelog's `## [Unreleased]` items into a new version section and
+3. Run the browser suite – `node test/run.mjs`, or `browser.yml` from the
+   Actions tab on the branch. The release job runs it too, and a tag is a bad
+   place to learn that a spec is red.
+4. Move the changelog's `## [Unreleased]` items into a new version section and
    update the two link definitions at the bottom. The release notes are cut
    from that section by heading, so the heading has to read `## [1.2.3]`.
-4. Bump `version` in `package.json` to match.
-5. Commit, then tag and push:
+5. Bump `version` in `package.json` to match.
+6. Commit, then tag and push:
 
 ```bash
 git tag -a v1.2.3 -m "psi-slides 1.2.3"

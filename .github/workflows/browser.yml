@@ -1,0 +1,50 @@
+# The browser suite, on demand.
+#
+# It is not on push. It needs the dependency tree, a Chromium and about five
+# minutes, which is the wrong trade on every branch and the reason `gates.yml`
+# leaves it out and says so. Where it does run automatically is a tag, in
+# `release.yml`. This file is the same run started by hand, so a branch can be
+# put through it before it is tagged - after a change to AUDIENCE_JS, the key
+# map, editor.mjs, createSpanTable, or anything that moves a label or an
+# extent - rather than finding out at release time.
+#
+# Run it from the Actions tab, or `gh workflow run browser.yml --ref <branch>`.
+#
+# Why this is worth having at all: the two `lint.js` gaps closed in the
+# test-suite review had been pinned by passing assertions for a revision,
+# because those assertions lived in the one entry point nothing ever ran.
+name: Browser suite
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      # `findChrome()` takes $PSI_CHROME, then a Playwright cache, then a
+      # browser the host installed - which on a GitHub ubuntu runner is
+      # /usr/bin/google-chrome. Named in its own step so the log says which
+      # browser answered, and so a missing one fails here with the list of
+      # paths it tried rather than inside the suite.
+      - name: Name the browser
+        run: node -e "import('./test/harness.mjs').then(m => console.log(m.findChrome()))"
+
+      # The suite builds and serves the lectures itself, so it never reports
+      # on stale HTML and needs no build step ahead of it.
+      - name: Browser suite
+        run: node test/run.mjs

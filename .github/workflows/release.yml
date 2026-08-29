@@ -95,6 +95,27 @@ jobs:
       - name: Check the figure pages are current
         run: node docs/artifact/refresh-figures.mjs --check
 
+      # The assertions that can only be made against a built, served page:
+      # the navigation model, the editor's gestures, and the geometry of an
+      # emitted figure. It is deliberately absent from `gates.yml`, which
+      # needs neither `npm ci` nor a browser and answers in seconds; here the
+      # five minutes are worth paying, because a tag is the last moment a
+      # regression is cheaper to find than to explain. `browser.yml` is the
+      # same run on demand, for proving a branch before it is tagged.
+      #
+      # Last of the checks, because it is the only one that costs minutes:
+      # a stale tracked output should fail in two, not in seven.
+      #
+      # `findChrome()` takes $PSI_CHROME, then a Playwright cache, then a
+      # browser the host installed - on a GitHub ubuntu runner that is
+      # /usr/bin/google-chrome. Named in its own step so a missing browser
+      # fails with the list of paths it tried rather than inside the suite.
+      - name: Name the browser
+        run: node -e "import('./test/harness.mjs').then(m => console.log(m.findChrome()))"
+
+      - name: Browser suite
+        run: node test/run.mjs
+
       - name: Stage the archive
         run: |
           mkdir -p dist/psi-slides

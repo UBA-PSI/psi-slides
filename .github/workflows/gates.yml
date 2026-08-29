@@ -9,7 +9,12 @@
 #
 # What it deliberately does not do is build the lectures or run the browser
 # suite. Those need the dependency tree and a Chromium, and they belong in the
-# jobs that already pay for them (see pages.yml and release.yml).
+# jobs that already pay for them: pages.yml and release.yml build, release.yml
+# runs the browser suite before it cuts an archive, and browser.yml runs it on
+# demand so a branch can be put through it without waiting for a tag. That
+# last sentence was an intention for a while before it was true, and the cost
+# was two lint.js gaps sitting behind passing assertions in the one entry
+# point nothing ever ran.
 name: Gates
 
 on:

@@ -43,28 +43,60 @@ import { chromium } from 'playwright-core';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-// A second copy of this lives in docs/site/shoot.mjs, which is a standalone
-// script rather than a module and predates this file. Fifteen lines that
-// change when a Playwright cache layout changes, which is roughly never.
+// A second copy of this lives in docs/site/shoot-lib.mjs, which serves a
+// standalone script rather than a module and predates this file. It changes
+// when a Playwright cache layout changes, which is roughly never, and when a
+// host is added, which happened once: until then this looked only in a macOS
+// cache under an arm64 directory and at /Applications, so the suite could not
+// run on a Linux runner at all - which is why the CI job that would have
+// caught two lint.js gaps was never written. Keep the two in step.
 export function findChrome() {
   if (process.env.PSI_CHROME) return process.env.PSI_CHROME;
-  const cache = path.join(process.env.HOME || '', 'Library/Caches/ms-playwright');
+  const tried = [];
+  const take = (p) => { tried.push(p); return fs.existsSync(p) ? p : null; };
+
+  // The Playwright cache, newest build first. Only two things differ between
+  // hosts: where the cache lives, and whether a build is an .app bundle or a
+  // bare binary.
+  const home = process.env.HOME || '';
+  const cache = process.platform === 'darwin'
+    ? path.join(home, 'Library/Caches/ms-playwright')
+    : path.join(home, '.cache/ms-playwright');
   if (fs.existsSync(cache)) {
     const builds = fs.readdirSync(cache)
       .filter(d => /^chromium-\d+$/.test(d))
       .sort((a, b) => Number(b.split('-')[1]) - Number(a.split('-')[1]));
     for (const b of builds) {
-      const mac = path.join(cache, b, 'chrome-mac-arm64');
-      if (!fs.existsSync(mac)) continue;
-      for (const app of fs.readdirSync(mac).filter(f => f.endsWith('.app'))) {
-        const exe = path.join(mac, app, 'Contents/MacOS', app.replace(/\.app$/, ''));
-        if (fs.existsSync(exe)) return exe;
+      for (const plat of ['chrome-mac-arm64', 'chrome-mac', 'chrome-linux']) {
+        const at = path.join(cache, b, plat);
+        if (!fs.existsSync(at)) continue;
+        if (plat === 'chrome-linux') {
+          const exe = take(path.join(at, 'chrome'));
+          if (exe) return exe;
+          continue;
+        }
+        for (const app of fs.readdirSync(at).filter(f => f.endsWith('.app'))) {
+          const exe = take(path.join(at, app, 'Contents/MacOS', app.replace(/\.app$/, '')));
+          if (exe) return exe;
+        }
       }
     }
   }
-  const system = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-  if (fs.existsSync(system)) return system;
-  const err = new Error('no Chromium found - set $PSI_CHROME to a browser executable');
+
+  // A browser the host installed. `/usr/bin/google-chrome` is what a GitHub
+  // ubuntu runner has, which is the whole reason this function knows about
+  // more than one platform.
+  const system = process.platform === 'darwin'
+    ? ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Chromium.app/Contents/MacOS/Chromium']
+    : ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable',
+      '/usr/bin/chromium-browser', '/usr/bin/chromium'];
+  for (const p of system) { const hit = take(p); if (hit) return hit; }
+
+  // Naming what was looked for, because "no Chromium found" on a host whose
+  // layout this function does not know is a sentence with no next step in it.
+  const err = new Error('no Chromium found \u2013 set $PSI_CHROME to a browser executable.\n'
+    + 'Tried:\n  ' + tried.join('\n  '));
   err.userFacing = true;
   throw err;
 }
