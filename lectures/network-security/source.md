@@ -21,11 +21,11 @@ Every figure in this lecture is written in the lecture source, laid out at build
 time, and stepped with the same key that advances a reveal. The wording of every
 label is the wording of the original slide; the arrangement is not.
 
-Die Regeln, gegen die hier gebaut wurde, stehen in `figure-design.md`. Die
-Tonzuordnung gilt für den ganzen Foliensatz: `.tone-1` Infrastruktur, `.tone-2`
-ein legitimer Host, `.tone-3` Nutzdaten und Protokollfelder, `.tone-4` das, worum
-es in diesem Beat geht, `.accent` Angreifer und Angriffsverkehr, `.dim` in dieser
-Szene unbeteiligt, `.muted` das Gerüst.
+The rules these were built against are in `figure-design.md`. The tone
+assignment holds for the whole deck: `.tone-1` infrastructure, `.tone-2` a
+legitimate host, `.tone-3` payload and protocol fields, `.tone-4` whatever this
+beat is about, `.accent` the attacker and the attack traffic, `.dim` not
+involved in this scene, `.muted` the apparatus.
 
 # Addresses, and the protocols that resolve them
 
@@ -39,10 +39,9 @@ box dh "Datagram\nHeader" right of fh gap 0 same as fh
 box sh "Segment\nHeader"  right of dh gap 0 same as fh
 box pl "Payload"          right of sh gap 0 same as fh {.paper}
 
-# Die drei Beschriftungen steigen nach rechts an, damit ihre Leitlinien
-# senkrecht bleiben und keine über der nächsten liegt. Sie zeigen auf die
-# Oberkante, nicht auf den Kasten: eine Leitlinie zur Mitte endete mitten
-# in der Beschriftung des Kastens.
+# The three labels climb to the right, so their leaders stay vertical and none
+# lies over the next. They point at the top edge rather than at the box: a
+# leader to the centre would end in the middle of the box's own label.
 text lmac "Ethernet source\nand destination\naddresses*"       above fh gap 0.5 -- fh.cx,fh.top {.muted @l1}
 text lip  "IP source\nand destination\naddresses"              above dh gap 1.7 -- dh.cx,dh.top {.muted @l2}
 text lprt "source and\ndestination ports\n(if TCP/UDP is used)" above sh gap 2.9 -- sh.cx,sh.top {.muted @l3}
@@ -60,7 +59,7 @@ step ports
   emph sh
 :::
 
-**Ein Paket trägt in jeder Schicht ein eigenes Adressenpaar.** Die vier Kästen sind ein einziger Rahmen auf dem Draht: `gap 0` und `same as` halten sie als Stapel zusammen, und nur die Beschriftung darüber sagt, welcher Kopf welche Adressen führt. Jeder Schritt hebt einen Kopf hervor und blendet die zugehörige Erklärung ein, von außen nach innen – in der Reihenfolge, in der ein Gerät die Kopfdaten abarbeitet. Die Nutzdaten bleiben ungetönt, weil sie in dieser Figur nichts zu sagen haben.
+**A packet carries its own pair of addresses at every layer.** The four boxes are one frame on the wire: `gap 0` and `same as` hold them together as a stack, and only the label above says which header carries which addresses. Each step emphasises one header and brings its explanation in, outside to inside, in the order a device works through the headers. The payload stays untinted, having nothing to say in this figure.
 
 ## figure: Besides spoofing, adversaries may attack address resolution {.full #ns-a07}
 
@@ -72,8 +71,8 @@ box ip1 "IP address"  below dn gap 0.5 offset 1.5,0 {@dns}
 edge dn.bottom -- ip1.left via dn.cx,ip1.cy {.muted}
 text ldns "DNS" left of ip1 gap 1.15 pad 0.14 {.paper .bold @dns}
 
-# Der Abstand innerhalb eines Paares ist 0.5, der zwischen den Paaren 1.15 –
-# gut Faktor zwei, damit die Gruppierung vor der Beschriftung ankommt.
+# The gap inside a pair is 0.5, between pairs 1.15 - a good factor of two, so
+# the grouping arrives before the label does.
 box ip2 "IP address"  below ip1 gap 1.15 offset -1.5,0
 box mac "MAC address" below ip2 gap 0.5 offset 1.5,0 {@arp}
 edge ip2.bottom -- mac.left via ip2.cx,mac.cy {.muted}
@@ -88,7 +87,7 @@ step surface
   emph ldns, larp
 :::
 
-**Ein Name allein trägt kein Paket.** Zwischen dem, was ein Mensch eintippt, und dem, was eine Netzkarte adressieren kann, liegen zwei Übersetzungen: DNS macht aus dem Namen eine IP-Adresse, ARP aus der IP-Adresse eine MAC-Adresse. Beide sind hier gleich gezeichnet, denn es ist zweimal dieselbe Bauform – eine Frage, eine Antwort, kein Beweis. Der letzte Schritt färbt genau die beiden Protokollnamen ein: Sie sind die Angriffsfläche, nicht die Adressen. Die ausführliche Erklärung steht im Video zu den Netzgrundlagen.
+**A name on its own carries no packet.** Two translations sit between what a person types and what a network card can address: DNS turns the name into an IP address, ARP turns the IP address into a MAC address. Both are drawn the same way here, being twice the same construction – a question, an answer, no proof. The last step colours exactly the two protocol names: they are the attack surface, not the addresses. The full explanation is in the video on network fundamentals.
 
 ## figure: ARP Cache Poisoning | allows A to eavesdrop on communication between local network devices {.full #ns-a10}
 
@@ -107,9 +106,9 @@ text amac "aa:aa:aa:00:01:02" above a gap 0.25 offset -0.55,0 {.mono .muted @hos
 text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" above b gap 0.3 {.mono .muted @hosts}
 text gwl  "10.1.1.1\n00:ac:c1:11:15:11" below gw gap 0.32 {.mono .muted}
 
-# Auf der Originalfolie ist A von Anfang an rot. Hier ist A zuerst ein Host
-# wie jeder andere und wird erst im letzten Beat zum Angreifer – das ist
-# genau die Aussage der Folie und kostet keine Beschriftung.
+# On the original slide A is red from the start. Here A is a host like any
+# other first and becomes the attacker only in the last beat, which is exactly
+# what the slide says and costs no label.
 step hosts
   show @hosts
 step forwarding
@@ -120,14 +119,14 @@ step poisoning
   dim bwire, sw
 :::
 
-**Ein Switch ist keine Sicherheitsmaßnahme, sondern eine Optimierung.** Er merkt sich, hinter welchem Port welche MAC-Adresse sitzt, und schickt einen Rahmen nur dorthin; dass A den Verkehr von B nicht sieht, ist ein Nebeneffekt dieser Sparsamkeit. ARP Cache Poisoning greift genau diese Zuordnung an: A behauptet unaufgefordert, die MAC-Adresse zu einer fremden IP zu besitzen, und der Verkehr landet fortan bei A. Der letzte Beat färbt deshalb A und seine Leitung ein und nimmt die Betonung vom Normalfall wieder weg.
+**A switch is an optimisation, not a security measure.** It remembers which MAC address sits behind which port and sends a frame only there; that A does not see B's traffic is a side effect of that thrift. ARP cache poisoning attacks exactly that mapping: A claims, unasked, to hold the MAC address for somebody else's IP, and the traffic lands at A from then on. So the last beat colours A and its wire and takes the emphasis off the normal case again.
 
 ## figure: B wants to visit webserver at example.com | knows IP of DNS resolver of ISP and gateway {.full #ns-a08}
 
 ::: draw {unit=190x54}
 # Diese Topologie tragen vier Figuren gemeinsam (A-08, A-12, A-13, A-14):
-# gleiche Namen, gleiche Plätze, damit die Folge als eine Zeichnung liest,
-# die sich entwickelt.
+# the same names in the same places, so the run reads as one drawing that
+# develops.
 box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
 box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
 box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.dim}
@@ -148,8 +147,8 @@ text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.3 {.mute
 text resl "41.1.2.1\nDNS Resolver of ISP" above res gap 0.28 {.muted @net}
 text webl "Webserver\nexample.com\n80.5.5.3" below web gap 0.28 {.muted @net}
 
-# Die Zonengrenze ist keine Beziehung, sondern eine Trennung: eine kopflose
-# gepunktete Kante zwischen zwei Koordinaten, die kein Element berührt.
+# The zone boundary is a separation rather than a relation: a headless dotted
+# edge between two coordinates, touching no element.
 text zoneh "Home Network\n(10.1.1.1–254)" above bmac gap 0.5 offset 0.55,0 {.muted .serif}
 text zonei "Internet" above resl gap 0.5 offset -0.5,0 {.muted .serif}
 align y middle zoneh, zonei
@@ -164,12 +163,12 @@ step wants
   dim res, sw
 :::
 
-**Die Bühne für die nächsten drei Figuren.** Links das Heimnetz, rechts das Internet, dazwischen eine gepunktete Grenze, die nichts verbindet, sondern trennt – deshalb ist sie eine kopflose Kante zwischen zwei Koordinaten und hängt an keinem Element. B kennt zwei Adressen auswendig: die des Standardgateways und die des DNS-Resolvers seines Providers. Alles Weitere muss B erfragen, und genau dort setzen die folgenden Angriffe an. Das Bruchzeichen auf der Leitung zum Webserver sagt, dass zwischen Router und Ziel noch viel Netz liegt, das die Zeichnung nicht zeigt.
+**The stage for the next three figures.** The home network on the left, the internet on the right, and a dotted boundary between them that separates rather than connects – which is why it is a headless edge between two coordinates and hangs off no element. B knows two addresses by heart: its default gateway and its provider's DNS resolver. Everything else B has to ask for, and that is where the attacks that follow begin. The break mark on the wire to the web server says there is a lot of network between router and destination that the drawing does not show.
 
 ## figure: DNS Spoofing | Adversary forges IP address in DNS reply to redirect victim to malicious server, e.g., for phishing credentials {.full #ns-a12}
 
 ::: draw {unit=190x54}
-# Dieselbe Topologie wie #ns-a08, dieselben Namen, dieselben Plätze.
+# The same topology as #ns-a08, the same names, the same places.
 box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
 box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
 box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.accent}
@@ -196,9 +195,9 @@ text resl "DNS Resolver\nof ISP" above res gap 0.28 {.muted}
 text webl "Webserver\nexample.com\n80.5.5.3" below web gap 0.28 {.muted}
 text awbl "Attacker's Webserver\n“example.com”\n66.9.9.6" below awb gap 0.28 {.muted @evil}
 
-# Die gefälschte Antwort läuft auf derselben Leitung wie B's Anschluss, also
-# tritt sie an deren Stelle: bwire geht weg, forged kommt – nie beide, statt
-# zweier Linien übereinander.
+# The forged reply runs on the same wire as B's connection, so it takes that
+# wire's place: bwire goes, forged arrives - never both, instead of two lines
+# on top of each other.
 edge forged b.cx,sw.top -> b.bottom {.accent}
 text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .accent .mono @spoof}
 
@@ -215,12 +214,12 @@ step redirect
   emph awb
 :::
 
-**Der Angreifer muss den Webserver nicht knacken, es genügt die Antwort auf die Frage nach ihm.** A wartet nicht ab, sondern legt B eine eigene DNS-Antwort vor – „example.com is 66.9.9.6“ –, und B baut die Verbindung brav zu diesem Rechner auf. In der Figur ersetzt der rote Pfeil B's Anschlussleitung, statt sich daneben zu legen: Es ist derselbe Draht, auf dem sonst die echte Antwort käme, und zwei Linien übereinander wären eine Zeichnung, die zwei Wege behauptet. Der echte Webserver bleibt erreichbar und ahnungslos, was den Angriff so unauffällig macht.
+**The attacker need not break the web server; the answer to the question about it is enough.** A does not wait but hands B a DNS reply of its own – “example.com is 66.9.9.6” – and B dutifully opens the connection to that machine. In the figure the red arrow replaces B's connecting wire rather than lying beside it: it is the same wire the real answer would come on, and two lines on top of each other would be a drawing claiming two paths. The real web server stays reachable and unaware, which is what makes the attack so quiet.
 
 ## figure: Forgery trivial for on-path attacker (on routers or endpoints) | prevent reply from reaching B and inject own reply {.full #ns-a13}
 
 ::: draw {unit=190x54}
-# Dieselbe Topologie wie #ns-a08 und #ns-a12, dieselben Namen, dieselben Plätze.
+# The same topology as #ns-a08 and #ns-a12, the same names and places.
 box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
 box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
 box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.accent}
@@ -250,10 +249,10 @@ text awbl "Attacker's Webserver\n“example.com”\n66.9.9.6" below awb gap 0.28
 edge forged b.cx,sw.top -> b.bottom {.accent}
 text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .accent .mono @spoof}
 
-# „on-patch“ ist der Tippfehler der Originalfolie und bleibt wörtlich stehen.
-# Auf der Folie ist die Frage ein umrandeter Kasten; hier ist sie eine
-# Anmerkung mit Leitlinie auf A – ein Kasten in der Topologie sähe aus wie
-# ein Gerät. Sie steht neben A, damit die Leitlinie waagerecht bleibt.
+# "on-patch" is the original slide's typo and is kept verbatim. On the slide
+# the question is a bordered box; here it is a note with a leader to A - a box
+# in the topology would look like a device. It stands beside A so the leader
+# stays horizontal.
 text ask "Can A also become\non-patch attacker?" left of a gap 1.75 -- a.left,a.cy {.accent @ask}
 
 edge rt.left-0.52,resl.top-0.3 -- e.cx-0.45,gwl.bottom+0.28 via rt.left-0.52,gwl.bottom+0.28 {.dotted .muted}
@@ -270,14 +269,14 @@ step question
   show @ask
 :::
 
-**Wer auf dem Pfad sitzt, muss nicht raten.** Ein Angreifer auf einem Router oder auf einem der Endpunkte sieht die Anfrage und alle ihre Zufallszahlen; er hält die echte Antwort zurück und schiebt seine eigene vor. Die Figur zeigt das in zwei Zügen: erst wird die Leitung, auf der die echte Antwort käme, gestrichelt, dann tritt der gefälschte Pfeil an ihre Stelle. Der Kasten links oben ist die Frage der Folie an den Hörsaal, und sie ist ernst gemeint: A liegt nicht auf dem Pfad zum Resolver, kann sich aber per ARP Cache Poisoning dorthin bringen.
+**Sitting on the path means never having to guess.** An attacker on a router or on one of the endpoints sees the query and all its random numbers; they hold the real reply back and push their own in front of it. The figure does that in two moves: first the wire the real answer would come on turns dashed, then the forged arrow takes its place. The box at the top left is the slide's question to the room, and it is meant seriously: A does not lie on the path to the resolver but can put itself there by ARP cache poisoning.
 
 ## figure: Off-path attackers (E) must generate a valid reply | that reaches B before the reply sent by the real DNS resolver {.full #ns-a14}
 
 ::: draw {unit=190x54}
-# Dieselbe Topologie wie #ns-a08, #ns-a12 und #ns-a13, dieselben Namen,
-# dieselben Plätze. Neu ist nur, wer der Angreifer ist: A tritt zurück,
-# der Kasten unten links im Internet bekommt einen Namen.
+# The same topology as #ns-a08, #ns-a12 and #ns-a13, the same names and
+# places. All that is new is who the attacker is: A steps back and the box at
+# the bottom left of the internet gets a name.
 box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
 box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
 box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.dim}
@@ -325,17 +324,17 @@ step cache
   emph poison
 :::
 
-**Von außen ist derselbe Angriff plötzlich ein Rennen.** E sieht die Anfrage nicht und muss deshalb drei Felder blind treffen: die Absender-IP der Antwort muss die des Resolvers sein, der UDP-Zielport auf B muss der Quellport der Anfrage sein, und die Transaction ID muss zur ID der Anfrage passen. Die IP lässt sich fälschen, Port und TXID nicht – je 2^16 Möglichkeiten, sofern der Client sie zufällig wählt, und genau das haben manche Clients nicht getan. Dazu muss die gefälschte Antwort vor der echten ankommen; deshalb ersetzt der rote Pfeil auch hier jeweils die Leitung, auf der die echte Antwort unterwegs wäre. Zielt E statt auf B auf den Resolver, landet der gefälschte Eintrag in dessen Cache und trifft alle seine Kunden – das ist DNS Cache Poisoning.
+**From outside, the same attack is suddenly a race.** E does not see the query and has to hit three fields blind: the reply's source IP has to be the resolver's, the UDP destination port on B has to be the query's source port, and the transaction ID has to match the query's. The IP can be forged, the port and the TXID cannot – 2^16 possibilities each, provided the client picks them at random, and some clients did not. On top of that the forged reply has to arrive before the real one, which is why the red arrow replaces the wire the real answer would be travelling on here too. Aim E at the resolver instead of at B and the forged entry lands in its cache and reaches all its customers, which is DNS cache poisoning.
 
 # Denial of service
 
 ## figure: Distributed Denial of Service (DDoS) attack | attacker instructs hosts infected with malware to flood a victim with traffic {.full #ns-a28}
 
 ::: draw {unit=100x76}
-# Auf der Folie liegen die Bots auf einer Weltkarte. Die bleibt hier draußen:
-# ein Rasterbild folgt keinem Theme und kostet über 100 kB. Verstreute Quellen
-# ringsum sagen dasselbe – "verteilt" war das Argument, die Geografie nie.
-# Alle Beschriftungen stehen wörtlich wie auf der Folie.
+# On the slide the bots lie on a world map. That stays out here: a raster
+# image follows no theme and costs over 100 kB. Scattered sources all round
+# say the same thing - "distributed" was the argument, the geography never
+# was. Every label is verbatim from the slide.
 default box {.accent} w 0.44 h 0.3
 
 box vic "Victim" at 0,0 w 1.05 h 0.62 {.tone-4 !accent}
@@ -349,9 +348,9 @@ box n6 "" at 1.0,2.1 {@bots}
 box n7 "" at -1.2,2.0 {@bots}
 box n8 "" at -2.8,0.8 {@bots}
 
-# Acht Pfeile auf einen Kasten sind hier genau die Aussage, deshalb kein
-# Wegpunkt und kein Umweg. Der Bruchteil hinter dem Anker verteilt die
-# Spitzen über die Kanten, statt drei davon auf denselben Punkt zu legen.
+# Eight arrows into one box is exactly the point here, so no waypoint and no
+# detour. The fraction after the anchor spreads the heads along the sides
+# instead of putting three of them on the same spot.
 edge f1 n1 -> vic.left:0.25 {.accent @flood}
 edge f2 n2 -> vic.top:0.35 {.accent @flood}
 edge f3 n3 -> vic.top:0.65 {.accent @flood}
@@ -376,16 +375,16 @@ step unfilterable
   dim @flood
 :::
 
-**Das Opfer steht still, der Rest kommt von überall.** Die Karte der Vorlage ist durch einen Ring verstreuter Bots ersetzt – *verteilt* war die Aussage, der Kontinent nie. Der erste Takt stellt das Botnetz hin, der zweite lässt es feuern, der dritte zieht die Folgerung, die der Vortrag ohnehin sprechen muss. Weil die Bots ihre echten Adressen benutzen, sieht der Verkehr aus wie Verkehr.
+**The victim stands still and the rest comes from everywhere.** The original's map is replaced by a ring of scattered bots – *distributed* was the point, the continent never was. The first beat sets the botnet up, the second lets it fire, the third draws the conclusion the talk has to speak anyway. Because the bots use their real addresses, the traffic looks like traffic.
 
 ## figure: DoS attacks are also possible without access to a botnet | Attackers can use connectionless protocols and spoof their Src IP to hide their identity {.full #ns-a29}
 
 ::: draw {unit=96x74}
-# Wieder ohne Weltkarte, aus denselben Gründen wie eine Folie zuvor. Die
-# gestrichelten Kästen mit dem Fragezeichen sind die "faked sources": Was an
-# ihnen unecht ist, ist der Umriss. Texte wörtlich von der Folie, nur die
-# Zeilenumbrüche des Kastens rechts sind neu gesetzt – die Vorlage trennt dort
-# "proto-cols" mitten im Wort, weil ihr Rahmen zu Ende war.
+# Again with no world map, for the same reasons as the slide before. The
+# dashed boxes with the question mark are the "faked sources": what is not
+# genuine about them is the outline. Text verbatim from the slide; only the
+# line breaks in the box on the right are re-set - the original breaks
+# "proto-cols" mid-word there, because its frame ran out.
 default box {.accent} w 0.44 h 0.34
 
 box vic "Victim" at 0,0 w 1.05 h 0.62 {.tone-4 !accent}
@@ -412,8 +411,8 @@ text fs "Faked sources" right of q5 gap 0.6 -- q5 {@fake}
 
 box atk "Attacker" at -4.3,2.6 w 0.95 h 0.55 {@real}
 edge real-traffic atk -> vic.bl {.accent .thick @real}
-# Die Beschriftung sitzt auf der Linie, nicht daneben, und .paper stanzt sie
-# dafür aus – sonst lesen sich Linie und Wort als ein Muster.
+# The label sits on the line rather than beside it, and .paper knocks the line
+# out for it - otherwise line and word read as one pattern.
 text tr "Traffic of the DoS attack" between atk,vic pad 0.14 {.paper .accent @real}
 text loc "Attacker’s real location\nis unknown (IP spoofing)." below atk gap 0.4 {.muted @real}
 
@@ -433,7 +432,7 @@ step mitigation
   dim @spoofed
 :::
 
-**Ohne Botnetz, dafür mit gefälschter Absenderadresse.** Der Angreifer sitzt einmal im Bild, sein Verkehr trägt aber acht fremde Quellen – das ist der ganze Trick, und die gestrichelten Umrisse sagen, dass an diesen Quellen nichts echt ist. Der letzte Takt nimmt die Pfeile zurück und stellt die Gegenmaßnahme daneben. Sie ist seit BCP 38 bekannt und wird trotzdem nicht flächendeckend umgesetzt, weil sie dem filternden Provider selbst nichts einbringt.
+**No botnet, a forged source address instead.** The attacker appears once in the picture, but their traffic carries eight foreign sources – that is the whole trick, and the dashed outlines say nothing about those sources is genuine. The last beat takes the arrows back and puts the countermeasure beside them. It has been known since BCP 38 and is still not deployed everywhere, because it earns the filtering provider nothing.
 
 ## figure: Amplification attack | some connectionless protocols allow attackers to use IP Spoofing to reflect and multiply their attack traffic {.full #ns-a30}
 
@@ -459,10 +458,10 @@ Example: Spamhouse  (75 Gbps)
 
 ::: flip
 ::: draw {unit=130x62}
-# "Spamhouse" steht so auf der Folie (die Firma heißt Spamhaus) und bleibt so
-# stehen; der Beleg dazu ist der Mitschnitt nebenan, nicht dieses Bild.
-# Die beiden Dreiecke sind der Größenvergleich: die Fläche ist die Menge, die
-# Spitze zeigt, wo sie ankommt. 37 Bytes hin, 1194 zurück.
+# "Spamhouse" is what the slide says (the company is called Spamhaus) and it
+# stays; the evidence for it is the capture beside it, not this picture. The
+# two triangles are the size comparison: the area is the volume, the point
+# shows where it arrives. 37 bytes out, 1194 back.
 text intro "For some protocols (e.g., DNS or\nNTP) the response can become\nmuch larger than the request." at -2.3,-1.35 {.left}
 text amp "*Amplification factor:* ratio of\nresponse and request size." below intro gap 0.45 flush left {.left}
 
@@ -487,7 +486,7 @@ step blame
 :::
 :::
 
-**Der Angreifer schickt wenig und lässt viel zurückkommen.** Die kleine Spitze geht mit der Absenderadresse des Opfers an einen offenen Resolver, die große kommt beim Opfer heraus; das Verhältnis der beiden Flächen ist der Verstärkungsfaktor. Der Mitschnitt nebenan liefert die Zahlen dazu. Möglich ist das nur, weil die befragten Server jedem antworten, der fragt.
+**The attacker sends little and lets a lot come back.** The small point goes to an open resolver carrying the victim's source address; the large one comes out at the victim, and the ratio of the two areas is the amplification factor. The capture beside it has the numbers. It works only because the servers queried answer anybody who asks.
 
 ## figure: Next up is a DoS attack that exploits a design flaw | For that let’s review the TCP connection handshake {.full #ns-a31}
 
@@ -514,11 +513,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
 ::: flip
 ::: draw {unit=112x58}
-# Der Tippfehler der Vorlage bleibt stehen: im Code links heißt es
-# print('Connected by', add) statt addr.
-# Die Blockpfeile der Folie sind .chevron (Spitze rechts, Client -> Server)
-# und .chevron point left (Server -> Client); die kursiven Variablen schreibt man
-# als *c* und *s*, der Compiler setzt sie in den Akzent.
+# The original's typo stays: the code on the left says
+# print('Connected by', add) rather than addr.
+# The slide's block arrows are .chevron (pointing right, client -> server) and
+# .chevron point left (server -> client); the italic variables are written *c*
+# and *s*, and the compiler sets them in the accent.
 default box {.tone-3} w 2.35 h 0.5
 
 text cl "Client" at -1.175,-0.75 {.left}
@@ -544,14 +543,14 @@ step state
 :::
 :::
 
-**Drei Nachrichten, und schon nach der ersten merkt sich der Server etwas.** Die Blockpfeile stehen in der Leserichtung ihres Verkehrs: zwei zeigen nach rechts, der mittlere nach links. Der Code links ist der Beleg dafür, dass ein gewöhnlicher Server dafür nichts tun muss – `s.listen(5)` legt die Warteschlange an, `accept()` bekommt erst die fertige Verbindung. Genau dieser gemerkte Zustand ist die Angriffsfläche.
+**Three messages, and the server remembers something after the first.** The block arrows point in the reading direction of their traffic: two to the right, the middle one to the left. The code on the left is the evidence that an ordinary server has to do nothing for this – `s.listen(5)` sets the queue up, and `accept()` only gets the finished connection. That remembered state is the attack surface.
 
 ## figure: One technique to defend against SYN flooding is to enable SYN Cookies | so that server does not have to store the state {.full #ns-a33}
 
 ::: draw {unit=126x62}
-# Die Folie hebt seq=e und ack=e+1 gelb hervor. Freie Farben gibt es hier
-# nicht, und sie werden auch nicht gebraucht: *e* setzt die Variable in den
-# Akzent, und der Takt "cookie" hebt die beiden Blockpfeile hervor, in denen
+# The slide highlights seq=e and ack=e+1 in yellow. There are no free colours
+# here and none are needed: *e* sets the variable in the accent, and the beat
+# "cookie" emphasises the two block arrows in which
 # sie steht.
 text st "*State:* Src IP/port, Dst IP/port,\nmax segment size (MSS)" at 0,0 {.left}
 
@@ -570,7 +569,7 @@ step encode
   show @ask
 :::
 
-**Der Zustand muss irgendwo stehen – warum nicht im Paket selbst.** Der Server antwortet mit einer Sequenznummer *e*, die er sich ausgerechnet hat, und bekommt sie im ACK des Clients als *e*+1 zurück. Damit trägt der Client den Zustand für ihn, solange er in 32 Bit passt. Ein SYN, dem kein ACK folgt, kostet den Server dann nichts mehr.
+**The state has to live somewhere, so why not in the packet.** The server answers with a sequence number *e* it worked out itself, and gets it back as *e*+1 in the client's ACK. The client carries the state for it, as long as the state fits in 32 bits. A SYN with no ACK behind it then costs the server nothing.
 
 # TLS, certificates, and what a browser trusts
 
@@ -605,7 +604,7 @@ step verify
   emph vf
 :::
 
-**Ein Handshake, zwei Flüge.** Der Client eröffnet mit `ClientHello` und legt seinen halben Diffie-Hellman-Schlüssel gleich bei. Der Server antwortet in einem einzigen Flug: Parameterwahl, Zertifikatskette, Signatur und MAC. Danach kennen beide Seiten dasselbe Geheimnis, ohne dass es je über die Leitung gegangen wäre – geprüft wird es erst im letzten Schritt, bevor Nutzdaten fließen.
+**One handshake, two flights.** The client opens with `ClientHello` and encloses its half of the Diffie-Hellman key. The server answers in a single flight: parameter choice, certificate chain, signature and MAC. After that both sides know the same secret without it ever having crossed the wire – and it is checked only in the last step, before any payload flows.
 
 ## figure: Certificate chains {.full #ns-a43}
 
@@ -620,10 +619,10 @@ box  r1 "Certificate of an\nintermediate CA"   below r0 gap 0.5 flush left offse
 box  r2 "Cert. of another\nintermediate CA"    below r1 gap 0.5 flush left offset 0.55,0
 box  r3 "Certificate\nof server"               below r2 gap 0.5 flush left offset 0.55,0 {.tone-4}
 
-# Die Treppe: senkrecht aus der Unterkante heraus, in der Gasse links vom
-# nächsten Kasten nach unten, dann waagerecht auf dessen linke Kante. Der
-# Startpunkt ist eine Koordinate statt eines Ankers, damit Abstieg und
-# Wegpunkt dasselbe x tragen und die Senkrechte senkrecht ist.
+# The staircase: vertically out of the bottom edge, down the channel left of
+# the next box, then horizontally onto its left edge. The start point is a
+# coordinate rather than an anchor, so the descent and the waypoint carry the
+# same x and the vertical is vertical.
 edge os.left+0.35,os.bottom -> r0.left via os.left+0.35,r0.cy
 edge r0.left+0.35,r0.bottom -> r1.left via r0.left+0.35,r1.cy
 edge r1.left+0.35,r1.bottom -> r2.left via r1.left+0.35,r2.cy
@@ -649,7 +648,7 @@ step real
   emph d2
 :::
 
-**Vertrauen hat einen Anfang, und der liegt auf dem eigenen Rechner.** Browser und Betriebssystem bringen einen Speicher mit Wurzelzertifikaten mit; alles Weitere hängt über Signaturen daran. Jedes Glied der Kette signiert das nächste, bis unten das Zertifikat des Servers steht. Rechts dieselbe Kette, wie ein Zertifikatsbetrachter sie für `github.com` auflistet – Zwischenstufen sind die Regel, nicht die Ausnahme: hier ist es eine, im Schema links sind es zwei.
+**Trust has a beginning, and it is on your own machine.** Browser and operating system ship a store of root certificates, and everything else hangs off it through signatures. Each link in the chain signs the next, until the server's own certificate stands at the bottom. On the right, the same chain as a certificate viewer lists it for `github.com` – intermediates are the rule rather than the exception: one here, two in the schematic on the left.
 
 ## figure: Certificates are stored in a X.509 (v3) data structure. {.standard #ns-a45}
 
@@ -670,7 +669,7 @@ step signature
   emph f4
 :::
 
-**Ein Zertifikat ist eine Datenstruktur, kein Text.** Der obere Block trägt, was jede Version kennt – Version, Seriennummer, Signaturverfahren, Gültigkeit, Aussteller –, und darin die beiden Felder, um die es eigentlich geht: der Name des Inhabers und sein öffentlicher Schlüssel. Darunter kamen mit v2 die Identifier und mit v3 die Erweiterungen hinzu. Ganz unten liegt die Signatur des Ausstellers über allem Vorhergehenden; sie ist der Grund, warum niemand eine Zeile darüber ändern kann.
+**A certificate is a data structure, not a text.** The upper block carries what every version knows – version, serial number, signature algorithm, validity, issuer – and within it the two fields this is really about: the holder's name and their public key. Under that, v2 added the identifiers and v3 the extensions. At the very bottom lies the issuer's signature over everything above it, which is why nobody can change a line further up.
 
 ## figure: Extensions of a server certificate | github.com, as a certificate viewer lists them {.standard #ns-a49}
 
@@ -688,9 +687,9 @@ text v2b "NO" right of l2b gap 1.5 flush top {.left}
 text l3 "Extension\nCritical\nPurpose #1\nPurpose #2" below l2b gap 0.4 flush right {.right .muted}
 text v3 "Extended Key Usage ( 2.5.29.37 )\nNO\nServer Authentication ( 1.3.6.1.5.5.7.3.1 )\nClient Authentication ( 1.3.6.1.5.5.7.3.2 )" right of l3 gap 1.5 flush top {.left}
 
-# Die vierte, leere Zeile ist Absicht: der Wert daneben ist vierzeilig, und
-# ohne sie misst die nächste Gruppe ihren Abstand von einer Beschriftung,
-# die drei Zeilen höher endet – der Gruppenabstand verschwände.
+# The fourth, empty row is deliberate: the value beside it runs to four lines,
+# and without it the next group measures its gap from a label ending three
+# lines higher - the grouping gap would disappear.
 text l4 "Extension\nCritical\nKey ID\n " below l3 gap 0.4 flush right {.right .muted}
 text v4 "Subject Key Identifier ( 2.5.29.14 )\nNO\n63 02 D2 5D 02 5F F7 8D D5 5A 12 9E 76 11 36 96\n86 2C 8A 48" right of l4 gap 1.5 flush top {.left}
 
@@ -717,7 +716,7 @@ step domains
   emph l6b, v6b
 :::
 
-**Die Erweiterungen sagen, wozu der Schlüssel taugt.** `Basic Constraints` mit `Certificate Authority: NO` verbietet diesem Zertifikat, weitere Zertifikate zu signieren – stünde dort `YES`, könnte der Betreiber von `github.com` für jede Domain der Welt ausstellen. Der `Subject Alternative Name` führt die Namen auf, für die das Zertifikat gilt. Und `Critical` ist keine Zierde: Ein Client, der eine als kritisch markierte Erweiterung nicht versteht, muss das Zertifikat ablehnen.
+**The extensions say what the key is good for.** `Basic Constraints` with `Certificate Authority: NO` forbids this certificate from signing further certificates – were it `YES`, whoever runs `github.com` could issue for every domain in the world. The `Subject Alternative Name` lists the names the certificate is valid for. And `Critical` is not decoration: a client that does not understand an extension marked critical has to reject the certificate.
 
 ## figure: Upgrading HTTP to HTTPS {.full #ns-a60}
 
@@ -747,7 +746,7 @@ step secure
 <html> [...]
 <body> [...]
 <a href="https://www.shop.de/login">
-Zum Login-Formular</a> [...]
+To the login form</a> [...]
 </body></html>
 ```
 
@@ -761,7 +760,7 @@ or
 < Location: https://www.bank.de/
 ```
 
-**Der Wechsel auf HTTPS ist eine Bitte, keine Garantie.** Beide Wege beginnen im Klartext: Entweder liefert der Server eine Seite aus, deren Links schon `https://` tragen, oder er beantwortet die HTTP-Anfrage mit einer Weiterleitung. In beiden Fällen ist die erste Runde ungeschützt. Genau dort, in der Antwort, die niemand prüft, setzt der Angriff an.
+**Switching to HTTPS is a request, not a guarantee.** Both routes start in the clear: either the server delivers a page whose links already carry `https://`, or it answers the HTTP request with a redirect. Either way the first round trip is unprotected, and that is where the attack goes in – in the answer nobody checks.
 
 ## figure: Operation of sslstrip {.full #ns-a62}
 
@@ -769,8 +768,8 @@ or
 box  br "Browser"  at 0,0   w 1.3 {.tone-2}
 box  sv "Server"   at 5.4,0 same as br {.tone-2}
 text ss "sslstrip" at 2.7,0 {.turn .accent @mitm}
-# Die beiden Schrägstriche sind der Schnitt in der Leitung. Sie laufen rund
-# 7 Grad aus der Senkrechten und damit weit außerhalb der Schiefe-Warnung.
+# The two slashes are the cut in the wire. They run about 7 degrees off
+# vertical and so well outside the skew warning.
 edge 2.40,-1.0 -- 2.15,1.0 {.muted @mitm}
 edge 3.25,-1.0 -- 3.00,1.0 {.muted @mitm}
 
@@ -812,23 +811,22 @@ Go to secure Login Form</a>[...]
 </body></html>
 ```
 
-**sslstrip nimmt dem Opfer die Verschlüsselung ab, ohne sie zu brechen.** Der Angreifer steht im Pfad, spricht zum Server ganz regulär HTTPS und reicht die Antwort an den Browser im Klartext weiter. Dabei schreibt er jedes `https://` in den ausgelieferten Seiten auf `http://` um, sodass der Browser nie einen Anlass hat, umzuschalten. Der Server sieht eine tadellose TLS-Verbindung, der Nutzer sieht eine Seite ohne Schloss – und genau darauf achtet fast niemand.
+**sslstrip takes the encryption off the victim without breaking it.** The attacker sits in the path, speaks perfectly ordinary HTTPS to the server, and passes the answer on to the browser in the clear. On the way it rewrites every `https://` in the delivered pages to `http://`, so the browser never has cause to switch. The server sees a faultless TLS connection and the user sees a page with no padlock, which almost nobody looks at.
 
 # Firewalls and tunnels
 
 ## figure: Firewalls enforce rules that limit who is allowed to talk to whom. {.full #ns-b04}
 
 ::: draw {unit=132x78}
-# Alle Beschriftungen wörtlich von der Folie – auch "publically reachable",
-# das im Original genau so geschrieben steht und hier so bleibt. Der
-# Zeilenumbruch in "demilitarized zone (DMZ)" ist im Original nur ein
-# Umbruch (dort mit Trennstrich), kein anderer Wortlaut.
+# Every label verbatim from the slide - including "publically reachable",
+# which is spelled exactly that way in the original and stays. The line break
+# in "demilitarized zone (DMZ)" is only a break in the original (hyphenated
+# there), not different wording.
 #
-# Drei Formen, die die Sprache nicht hat, und ihr Ersatz – auf allen drei
-# Folien derselbe: der Zylinder (web/database/file server) ist eine
-# .round-Box im Speicherton, die Wolke ist eine .round-Box "Internet",
-# die Monitorsymbole sind beschriftete Kästen unter der Gruppen-
-# beschriftung "desktops".
+# Three shapes the language does not have, and their stand-ins, the same on
+# all three slides: the cylinder (web/database/file server) is a .round box in
+# the storage tone, the cloud is a .round box "Internet", and the monitor
+# symbols are labelled boxes under the group caption "desktops".
 default text {.muted}
 
 box net "Internet" at 0,0 w 0.8 {.round .dim}
@@ -844,9 +842,9 @@ box  d1 "desktop"  at 4.25,-1.95 w 0.82 {.tone-2}
 box  d2 "desktop"  at 5.45,-1.95 same as d1 {.tone-2}
 text dl "desktops" between d1,d2 offset 0,-0.6
 
-# Der Bus: jede Kante läuft senkrecht aus dem Kasten, waagerecht im Kanal
-# und senkrecht in den Switch – keine Schräge, und dass die letzten Stücke
-# aufeinanderliegen, ist genau das T der Vorlage.
+# The bus: every edge runs vertically out of its box, horizontally along the
+# channel and vertically into the switch - no diagonals, and that the last
+# pieces lie on each other is exactly the original's T.
 edge net -- fw1
 edge fw1 -- fw2
 edge fw2 -- sw
@@ -862,9 +860,9 @@ text tru "trusted hosts"             at 4.85,2.75 {@zone}
 
 container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,pub,dmz,tru {.muted}
 
-# Die gestrichelte Zonentrennung ist eine kopflose Kante zwischen zwei
-# Koordinaten. Sie läuft durch fw2 – Kästen werden nach den Kanten
-# gezeichnet und decken sie dort ab, genau wie in der Vorlage.
+# The dashed zone separator is a headless edge between two coordinates. It
+# runs through fw2 - boxes are drawn after edges and cover it there, exactly
+# as in the original.
 edge zsep fw2.cx,perim.top -- fw2.cx,perim.bottom {.dashed .muted @zone}
 
 step zones
@@ -877,15 +875,14 @@ step trusted
   emph fw2
 :::
 
-**Zwei Filter in einer Leitung, und dazwischen ein Streifen, der von außen erreichbar sein darf.** Die äußere Firewall trennt das Internet von der demilitarisierten Zone, die innere trennt die DMZ von den vertrauenswürdigen Hosts. Was von außen angesprochen werden muss – hier der Webserver –, steht deshalb zwischen den beiden und nicht hinter beiden. Fällt er, hat der Angreifer immer noch die zweite Firewall vor sich und nicht Datenbank und Fileserver.
+**Two filters in one wire, and between them a strip that may be reachable from outside.** The outer firewall separates the internet from the demilitarised zone, the inner one separates the DMZ from the trusted hosts. Whatever has to be addressable from outside – the web server here – therefore stands between the two rather than behind both. If it falls, the attacker still has the second firewall in front of them rather than the database and the file server.
 
 ## figure: Not only used to secure the perimeter, also for network segmentation. | cf. lateral movement, ransomware {.full #ns-b05}
 
 ::: draw {unit=132x78}
-# Dieselbe Zeichnung wie auf der vorigen Folie: dieselben Namen, dieselben
-# Koordinaten, dieselben Ersatzformen. Neu sind allein die beiden inneren
-# Firewalls und die Zonenbeschriftung "segmented net" – so liest die Folge
-# als eine Zeichnung, die sich entwickelt.
+# The same drawing as on the previous slide: the same names, coordinates and
+# stand-in shapes. All that is new are the two inner firewalls and the zone
+# caption "segmented net", so the run reads as one drawing that develops.
 default text {.muted}
 
 box net "Internet" at 0,0 w 0.8 {.round .dim}
@@ -901,8 +898,8 @@ box  d1 "desktop"  at 4.25,-1.95 w 0.82 {.tone-2}
 box  d2 "desktop"  at 5.45,-1.95 same as d1 {.tone-2}
 text dl "desktops" between d1,d2 offset 0,-0.6
 
-# Die beiden inneren Firewalls sitzen auf den Stichleitungen zum Switch,
-# nicht am Rand: das ist der ganze Unterschied zur vorigen Folie.
+# The two inner firewalls sit on the spurs to the switch rather than at the
+# perimeter: that is the whole difference from the previous slide.
 box fwd "FW" at 4.85,-0.62 w 0.24 h 0.46 {.turn .tone-1 @seg}
 box fws "FW" at 4.85,0.62  w 0.24 h 0.46 {.turn .tone-1 @seg}
 
@@ -933,21 +930,20 @@ step contained
   dim fwd, fws
 :::
 
-**Dieselbe Zeichnung, zwei Filter mehr – und die stehen nicht mehr am Rand.** Eine Firewall am Perimeter hilft nur gegen den, der noch draußen ist. Wer erst einmal auf einem Desktop sitzt, bewegt sich sonst ungebremst zu Datenbank- und Fileserver weiter, und genau davon lebt Ransomware. Die Segmentierung zieht die Filter ins Netz hinein, sodass jeder Sprung zwischen Segmenten wieder an einer Regel vorbei muss.
+**The same drawing, two filters more, and they are no longer at the perimeter.** A firewall at the perimeter helps only against whoever is still outside. Anyone who has reached a desktop otherwise moves on unimpeded to the database and file servers, which is what ransomware lives on. Segmentation pulls the filters into the network, so every hop between segments has to pass a rule again.
 
 ## figure: Firewalls are also run on hosts to limit chatty applications' network access. {.full #ns-b06}
 
 ::: draw {unit=132x78}
-# Wieder dieselbe Zeichnung, dieselben Namen, dieselben Koordinaten. Neu
-# ist die FIREWALL auf dem Host – im Original steht sie waagerecht neben
-# der Beschriftung "desktops", deshalb steht sie hier an derselben Stelle
-# und "desktops" rückt um eine Kastenbreite nach rechts.
+# The same drawing again, the same names and coordinates. What is new is the
+# FIREWALL on the host - in the original it stands horizontally beside the
+# caption "desktops", so it stands in the same place here and "desktops"
+# moves one box width to the right.
 #
-# Der Little-Snitch-Dialog ist kein Screenshot, sondern nachgebaut: ein
-# Rahmen mit den Textzeilen der Vorlage und zwei Knöpfen. Alle Zeilen
-# wörtlich; die gewählte Option ist fett statt durch einen Radioknopf
-# markiert, und die beiden Symbolknöpfe der Vorlage tragen nichts zum
-# Argument bei und fehlen deshalb.
+# The Little Snitch dialogue is not a screenshot but rebuilt: a frame with the
+# original's text lines and two buttons. Every line verbatim; the selected
+# option is bold rather than marked with a radio button, and the original's
+# two icon buttons add nothing to the argument and are left out.
 default text {.muted}
 
 box net "Internet" at 0,0 w 0.8 {.round .dim}
@@ -987,11 +983,11 @@ box  deny  "Deny…" left of allow gap 0.35 same as allow {@ask}
 align x right want, allow
 container dlg "" over mail,want,once,anyc,only,deny,allow {.round .muted @ask}
 
-# Der Dialog steht von Anfang an da und wird nicht eingeblendet: die
-# Live-Ansicht reserviert im viewBox Platz für jedes Element, das später
-# auftaucht, und ein erst im dritten Beat gezeigter Dialog dieser Größe
-# hätte die Zeichnung zwei Beats lang in die obere Hälfte eines doppelt
-# so hohen Rahmens gedrückt.
+# The dialogue stands there from the start rather than being brought in: the
+# live view reserves room in the viewBox for every element that turns up
+# later, and a dialogue this size shown only in the third beat would have
+# pressed the drawing into the upper half of a twice-as-tall frame for two
+# beats.
 step host
   show @host
   style hfw {.tone-4}
@@ -1005,7 +1001,7 @@ step decide
   emph deny
 :::
 
-**Eine Firewall muss nicht im Netz stehen, sie kann auf dem Rechner selbst laufen.** Dort weiß sie etwas, das kein Gerät im Netz wissen kann: welches Programm die Verbindung aufbauen will. Little Snitch fragt deshalb nicht nach Adresse und Port, sondern nach der Anwendung – und lässt die Antwort auf eine einzelne Domain einschränken. Der Preis ist, dass jemand entscheiden muss, und zwar mitten in der Arbeit.
+**A firewall need not stand in the network; it can run on the machine itself.** There it knows something no device in the network can: which program wants to open the connection. So Little Snitch asks about the application rather than about address and port, and lets the answer be narrowed to a single domain. The price is that somebody has to decide, in the middle of their work.
 
 ## figure: Tunneling TCP Connections via SSH {.full #ns-b18}
 
@@ -1019,10 +1015,10 @@ ssh –L2222:44.11.1.4:22 92.1.1.5
 ```
 ::: flip
 ::: draw {unit=138x74}
-# Die Kommandozeilen der Folie stehen als gewöhnlicher Codeblock daneben,
-# nicht im Diagramm. Und sie stehen wörtlich da: die zweite Zeile nennt
-# 91.1.1.5, die anderen 92.1.1.5. Das ist auf der Folie so, und der
-# Unterschied bleibt erhalten.
+# The slide's command lines stand beside the figure as an ordinary code
+# block, not in the diagram. And they stand there verbatim: the second line
+# names 91.1.1.5, the others 92.1.1.5. That is how the slide has it, and the
+# difference is kept.
 default box {.tone-2}
 
 box  wb  "web\nbrowser" at 0,0 w 0.8
@@ -1038,14 +1034,14 @@ container rh "" over ws,ss,ip {.dashed .muted}
 box  ss2 "ssh\nserver" below ip gap 0.85 same as sc {.tone-3 @second}
 text ip2 "44.11.1.4"   left of ss2 gap 0.35 {.muted @second}
 
-# Der Browser spricht den lokal geöffneten Port an, der Tunnel trägt die
-# Verbindung durch, und am anderen Ende geht sie an den Webserver oder an
-# einen dritten Rechner weiter.
+# The browser addresses the locally opened port, the tunnel carries the
+# connection through, and at the far end it goes on to the web server or to a
+# third machine.
 edge wb -> sc
 edge tun sc -- ss {.thick}
 edge ss -> ws
-# Seitlich in den Kanal rechts neben dem Rechner und dann hinunter – gerade
-# nach unten liefe die Kante mitten durch die Beschriftung "92.1.1.5".
+# Sideways into the channel right of the machine and then down - straight
+# down, the edge would run through the middle of the label "92.1.1.5".
 edge ss.right -> ss2.right via rh.right+0.28,ss.cy rh.right+0.28,ss2.cy
 
 step tunnel
@@ -1059,7 +1055,7 @@ step further
 :::
 :::
 
-**Ein Tunnel ist eine Verbindung, die in einer anderen Verbindung reist.** Der `ssh`-Client öffnet lokal einen Port, nimmt dort eine gewöhnliche TCP-Verbindung an und trägt sie verschlüsselt zum `ssh`-Server, der sie dort ausleitet. Wohin sie ausgeleitet wird, steht in der Kommandozeile: an den Webserver auf demselben Rechner, an einen dritten Rechner im Netz dahinter, oder – mit `–D` – an alles, was der SOCKS-Proxy angeboten bekommt. Für jedes Gerät auf dem Weg sieht das aus wie eine einzige SSH-Sitzung.
+**A tunnel is a connection travelling inside another connection.** The `ssh` client opens a port locally, accepts an ordinary TCP connection on it, and carries that connection encrypted to the `ssh` server, which lets it out at the far end. Where it comes out is in the command line: at the web server on the same machine, at a third machine in the network behind it, or – with `-D` – at whatever the SOCKS proxy is offered. To every device along the way this looks like a single SSH session.
 
 ## figure: Tunneling SSH via HTTP {.full #ns-b20}
 
@@ -1082,10 +1078,10 @@ Proxy-Connection: close
 ```
 ::: flip
 ::: draw {unit=118x150}
-# Eine Kette auf einer waagerechten Linie – dieselbe Form wie auf der
-# Folie danach. Der HTTP-Mitschnitt steht daneben als Codeblock, nicht
-# im Bild. Die Beschriftungen "ssh client" und "ssh server" stehen wie
-# im Original zweizeilig; das ist ein Umbruch, kein anderer Wortlaut.
+# A chain on one horizontal line - the same shape as on the slide after it.
+# The HTTP capture stands beside it as a code block, not in the picture. The
+# labels "ssh client" and "ssh server" run to two lines as in the original;
+# that is a break, not different wording.
 box sc  "ssh\nclient"      at 0,0 w 0.66 {.tone-2}
 box htc "htc"              right of sc gap 0.25 w 0.5 {.tone-1 @relay}
 box fwp "firewall\nproxy"  right of htc gap 0.25 w 0.8 {.tone-1}
@@ -1109,7 +1105,7 @@ step through
 :::
 :::
 
-**Bleibt nur Port 80 offen, wird der Tunnel selbst zu HTTP.** `htc` nimmt die SSH-Verbindung lokal an, verpackt sie in eine gewöhnliche GET-Anfrage an `vm1.cloud.com` und hält die Antwort offen; `hts` packt am anderen Ende wieder aus und reicht an den `ssh`-Server weiter. Für den Proxy dazwischen ist das eine lange, langweilige HTTP-Antwort mit `Content-Length: 102400`. Erst wer in den Rumpf hineinsieht, findet dort den SSH-Banner.
+**If only port 80 stays open, the tunnel becomes HTTP itself.** `htc` accepts the SSH connection locally, wraps it in an ordinary GET request to `vm1.cloud.com` and holds the answer open; `hts` unwraps it at the far end and passes it to the `ssh` server. To the proxy in between this is a long, dull HTTP response with `Content-Length: 102400`. Only somebody looking into the body finds the SSH banner in it.
 
 ## figure: Tunneling SSH over HTTPS: why DPI is futile | … unless specific DstIPs are whitelisted {.full #ns-b22}
 
@@ -1126,19 +1122,19 @@ ssh […] 92.1.1.5
 ```
 ::: flip
 ::: draw {unit=118x104}
-# Zwei Ketten auf je einer waagerechten Linie, formal wie die Folie davor:
-# oben der naive Versuch, unten der, der durchkommt. Das Verbotszeichen und
-# die beiden Aufkleber der Vorlage sind Beiwerk und fehlen – dass es oben
-# nicht durchgeht, sagt die Lücke hinter der Firewall.
+# Two chains on one horizontal line each, formally like the slide before it:
+# the naive attempt above, the one that gets through below. The original's
+# prohibition sign and two stickers are trimming and are left out - the gap
+# behind the firewall says that the upper one does not get through.
 box uc  "ssh client\nconnect to 443" at 0,0 w 1.1 {.tone-2}
 box ufw "firewall\nwith DPI"         right of uc gap 0.5 w 0.82 {.tone-1}
 box us  "ssh server\non port 443"    right of ufw gap 0.5 same as uc {.tone-3}
 edge uc  -- ufw
 edge reach ufw -- us
 
-# Die untere Kette wird von der Firewall aus nach beiden Seiten aufgebaut,
-# damit die beiden "firewall with DPI" genau übereinanderstehen: es ist
-# dieselbe Firewall, zweimal gezeichnet.
+# The lower chain is built out from the firewall in both directions, so the
+# two "firewall with DPI" boxes stand exactly above each other: it is the same
+# firewall, drawn twice.
 box lfw "firewall\nwith DPI"         below ufw gap 1.1 same as ufw {.tone-1 @proxy}
 box pt  "proxy-\ntunnel"             left of lfw gap 0.5 w 0.68 {.tone-2 @proxy}
 box lc  "ssh client"                 left of pt gap 0.5 same as uc {.tone-2 @proxy}
@@ -1166,7 +1162,7 @@ step futile
 :::
 :::
 
-**Der Port allein verrät nichts, der erste Datensatz schon.** Wer `ssh` einfach auf 443 laufen lässt, schickt als Erstes den Klartext-Banner `SSH-2.0-OpenSSH_3.8p1` – für eine Deep Packet Inspection ist das eindeutig, und die Verbindung endet an der Firewall. Der zweite Weg spricht stattdessen echtes HTTPS: ein `CONNECT` an den Webserver, danach ein regulärer TLS-Handshake, und der SSH-Verkehr liegt in gewöhnlichen TLS-Records. Damit sieht die Inspektion dasselbe wie bei jedem anderen Aufruf einer Website – nur eine Liste erlaubter Zieladressen hilft dann noch.
+**The port alone gives nothing away; the first record does.** Run `ssh` on 443 and the first thing it sends is the plaintext banner `SSH-2.0-OpenSSH_3.8p1`, which is unambiguous to a deep packet inspection, and the connection ends at the firewall. The second route speaks real HTTPS instead: a `CONNECT` to the web server, then a regular TLS handshake, with the SSH traffic in ordinary TLS records. The inspection then sees what it sees on any other visit to a website, and only a list of permitted destinations still helps.
 
 # Intrusion detection
 
@@ -1175,9 +1171,9 @@ step futile
 ::: draw {unit=118x78}
 default box {.tone-1} w 1.15 h 0.66
 
-# Die fünf proaktiven Maßnahmen sind die Mauer selbst: eine Reihe ohne Fuge,
-# bis auf die eine, durch die der Eindringling kommt. Die Halbkreisbögen der
-# Vorlage sind Dekoration und fehlen hier.
+# The five proactive measures are the wall itself: a row with no joint except
+# the one the intruder comes through. The original's semicircular arcs are
+# decoration and are left out.
 box fw "Firewall"                         at 0,0
 box cr "Cryptography"                     right of fw gap 0 same as fw
 box su "Security\nUpdates"                right of cr gap 0 same as fw
@@ -1185,7 +1181,7 @@ box pt "Penetration\nTests"               right of su gap 0 same as fw
 box aa "Authentication &\nAccess Control" right of pt gap 0.3 w 1.55 h 0.66
 text plab "EXAMPLES OF\nPROACTIVE MEASURES" above cr gap 0.5 {.muted}
 
-# Was übrig bleibt, wenn die Mauer passiert ist.
+# What is left once the wall has been passed.
 box al  "Audit\nLogs"    below fw gap 1.5 w 1.0 h 0.66 {.tone-3 @inner}
 box ids "IDS"            below su gap 1.5 w 0.95 h 0.66 {.hex .tone-4 @inner}
 box im  "Incident\nMgmt" below aa gap 1.5 w 1.0 h 0.66 {.tone-3 @inner}
@@ -1193,9 +1189,9 @@ align y middle al, ids, im
 spread x al, ids, im
 container react "REACTIVE MEASURES" over al,ids,im pad 0.5 {.dashed .muted}
 
-# Der rote, um 30° gedrehte Schriftzug der Vorlage lässt sich nicht drehen.
-# Statt dessen eine dicke Kante, die von außen durch die Fuge der Mauer
-# stößt, und das Wort waagerecht daneben.
+# The original's red lettering, rotated 30 degrees, cannot be rotated here.
+# Instead a thick edge pushing in from outside through the joint in the wall,
+# with the word horizontal beside it.
 edge intr pt.right+0.1,-0.95 -> pt.right+0.1,1.0 {.thick .accent @in}
 text intrl "INTRUDER" above aa gap 0.62 {.accent .bold @in}
 
@@ -1209,35 +1205,35 @@ step detect
   emph ids
 :::
 
-**Proaktive Maßnahmen bauen eine Mauer, und die Mauer hat Fugen.** Firewall, Kryptographie, Sicherheitsupdates, Penetrationstests und Zugriffskontrolle halten den Normalfall draußen – jede von ihnen ist ein Stein in derselben Wand. Der Eindringling geht nicht um diese Wand herum, sondern durch eine ihrer Fugen, und ab diesem Moment hilft keine Vorbeugung mehr. Was dann noch trägt, sind reaktive Maßnahmen: Protokolle, die den Vorfall festhalten, ein Incident Management, das ihn abarbeitet – und dazwischen das IDS, das ihn überhaupt erst bemerkt.
+**Proactive measures build a wall, and the wall has joints.** Firewalls, cryptography, security updates, penetration tests and access control keep the normal case out, each of them a stone in the same wall. The intruder does not go round that wall but through one of its joints, and from that moment no prevention helps any more. What still carries is the reactive measures: logs that record the incident, an incident management that works through it, and between them the IDS that noticed it at all.
 
 ## figure: Two Deployment Approaches | Host- (HIDS) and Network-based (NIDS) {.full #ns-b27}
 
 ::: draw {unit=150x62}
 default box {.tone-1}
 
-# Das Rückgrat: Uplink, Firewall, Switch. Der hellblaue Vollflächen-
-# Hintergrund der Vorlage entfällt; akzentuiert werden die Sensoren.
+# The backbone: uplink, firewall, switch. The original's pale blue full-bleed
+# background is dropped; what is accented is the sensors.
 dot ext ""         at 0,0 r 0.07 {.muted}
 box fw "FIREWALL"  right of ext gap 3.85 w 0.34 h 1.55 {.turn}
 box sw "SWITCH"    right of fw gap 3.85 w 0.85 h 0.44
 edge w1 ext -- fw.left
 edge w2 fw.right -- sw.left
 
-# Die Sensoren sitzen auf der Leitung, nicht daneben.
+# The sensors sit on the wire rather than beside it.
 box n1 "NIDS" between ext,fw w 0.7 h 0.44 {.hex .tone-4 @nids}
 box n2 "NIDS" between fw,sw same as n1 {.hex .tone-4 @nids}
 
-# Arbeitsplätze über dem Switch, an einem gemeinsamen Strang.
-# Beschriftet wie in #ns-b04, nicht leer: ein Kasten ohne Wort liest sich als
-# Fehler, und die beiden Figuren zeigen dasselbe Netz.
+# Workstations above the switch, on one shared strand. Labelled as in
+# #ns-b04 rather than left empty: a box with no word reads as a mistake, and
+# the two figures show the same network.
 box d2 "desktop" above sw gap 1.25 w 0.6 h 0.44 {.tone-2 @hosts}
 box d1 "desktop" left of d2 gap 1.45 same as d2 {.tone-2 @hosts}
 text dlab "desktops" left of d1 gap 1.2 -- d1 {.muted @hosts}
 edge k2 d2.bottom -- sw.top {@hosts}
 edge k1 d1.bottom -- sw.cx,d1.bottom+0.42 via d1.cx,d1.bottom+0.42 {@hosts}
 
-# Zwei Server. Der Zylinder der Vorlage ist eine .round-Box im Serverton.
+# Two servers. The original's cylinder is a .round box in the server tone.
 box web "Web server" below n1 gap 1.3 w 1.0 h 0.5 {.round .tone-3 @hosts}
 box db  "DB server"  below sw gap 1.3 offset -1.9,0 same as web {.round .tone-3 @hosts}
 align y middle web, db
@@ -1258,14 +1254,14 @@ step hids
   show @hids
 :::
 
-**Zwei Anbringungsorte, ein Netz.** Die Leitung läuft vom Uplink über die Firewall zum Switch; daran hängen die Arbeitsplätze und die beiden Server. Netzbasierte Sensoren sitzen auf der Leitung selbst und sehen genau den Verkehr, der an ihrer Stelle vorbeikommt – vor der Firewall etwas anderes als dahinter. Hostbasierte Sensoren laufen auf dem Gerät und sehen dafür alles, was dort geschieht, aber nichts vom Rest des Netzes.
+**Two places to put one, one network.** The wire runs from the uplink through the firewall to the switch, and the workstations and the two servers hang off it. Network-based sensors sit on the wire itself and see exactly the traffic that passes their spot – something different before the firewall and after it. Host-based sensors run on the device and see everything that happens there, and nothing of the rest of the network.
 
 ## figure: The observable input depends on the placement of the sensor. {.full #ns-b28}
 
 ::: draw {unit=150x58}
-# In der Vorlage fehlen die Pfeile zwischen den drei Stufen, und die beiden
-# Ausprägungen hängen ohne Bezug daneben. Beides ist hier ergänzt, ohne dass
-# sich ein Wort ändert.
+# The original has no arrows between the three stages, and the two variants
+# hang beside them with no connection. Both are supplied here without a word
+# changing.
 box inp "Input"            at 0,0 w 1.5 h 0.5 {.tone-3}
 box de  "Decision\nEngine" below inp gap 0.75 w 1.7 h 0.95 {.hex .tone-4}
 box rea "Reaction"         below de gap 0.75 w 1.5 h 0.5 {.tone-3}
@@ -1285,7 +1281,7 @@ step sensor
   emph inp
 :::
 
-**Ein IDS ist eine Kette aus drei Stufen.** Was hereinkommt, wertet eine Entscheidungsinstanz aus, und erst deren Urteil löst eine Reaktion aus. Die Kette ist nur so gut wie ihr Anfang: Das Beobachtbare entscheidet sich am Ort des Sensors. Netzbasiert liest er Pakete auf der Leitung, hostbasiert die Ereignisse eines einzelnen Rechners – zwei verschiedene Weltausschnitte, aus denen dieselbe Entscheidungsinstanz verschiedene Urteile zieht.
+**An IDS is a chain of three stages.** What comes in is assessed by a decision stage, and only its verdict triggers a response. The chain is only as good as its beginning: what can be observed is settled where the sensor sits. Network-based it reads packets on the wire, host-based the events of a single machine – two different slices of the world, from which the same decision stage draws different verdicts.
 
 ## figure: Given some input data, the detection result of an IDS can be classified into one of four cases. {.full #ns-b39}
 
@@ -1318,7 +1314,7 @@ step alarm
   show fa
 :::
 
-**Vier Fälle, zwei davon sind Fehler.** Auf der einen Achse steht, was wirklich vorlag, auf der anderen, wie das IDS darauf reagiert hat. Stimmen beide überein, ist der Fall erledigt: ein erkannter Angriff oder ein zu Recht stiller Normalbetrieb. Interessant sind die beiden Diagonalfelder – ein übersehener Angriff kostet Sicherheit, ein Fehlalarm kostet Aufmerksamkeit, und jede Schwelle, die das eine senkt, hebt das andere.
+**Four cases, two of them mistakes.** One axis says what was really there, the other how the IDS reacted to it. Where the two agree the case is closed: an attack detected, or normal operation rightly passed over in silence. The two off-diagonal cells are the interesting ones – a missed attack costs security, a false alarm costs attention, and every threshold that lowers one raises the other.
 
 ## figure: Misuse-based IDS can only detect what is known. | Anomaly-based IDS might detect novel attacks. {.full #ns-b48}
 
@@ -1328,13 +1324,13 @@ default box {.sharp}
 text mh "Misuse detection"  at 0.85,0 {.large .bold}
 text ah "Anomaly detection" at 2.65,0 {.large .bold}
 
-# Zwei gleich große Grundmengen, gleicher Ton: beide sind eine Menge von
-# Vorgängen. Was der Detektor davon kennt, trägt in beiden Spalten denselben
-# Ton – der Unterschied ist die Form, punktuell gegen flächig. Der gezackte
-# Stern der Vorlage wird ein dot, die Blob-Form eine .round-Box.
-# Der Rahmen ist .clear, nicht gefüllt: Kästen werden nach den Kanten
-# gezeichnet, eine Füllung verschluckte die beiden Leitlinien zu den
-# Signaturen. Die Grundmenge ist damit die Fläche im Rahmen.
+# Two base sets of one size, one tone: both are a set of events. What the
+# detector knows of them carries the same tone in both columns - the
+# difference is the shape, pointwise against areal. The original's jagged star
+# becomes a dot and the blob a .round box.
+# The frame is .clear rather than filled: boxes are drawn after edges, and a
+# fill would swallow the two leaders to the signatures. So the base set is the
+# area inside the frame.
 box mf "" at 0.85,3.55 w 1.7 h 4.1 {.clear}
 box af "" at 2.65,3.55 w 1.7 h 4.1 {.clear}
 
@@ -1364,35 +1360,35 @@ step rest
   show mt, an, foot
 :::
 
-**Punktuell gegen flächig – daran hängt der ganze Unterschied.** Ein Misuse-Detektor kennt Signaturen bekannter Angriffe; das sind einzelne Punkte in der Menge aller Einbrüche, und alles daneben löst keinen Alarm aus. Ein Anomalie-Detektor kennt statt dessen eine Fläche: ein Modell des erlaubten Betriebs, und alles außerhalb davon meldet er. Deshalb kann nur der zweite einen Angriff melden, den noch niemand gesehen hat – und deshalb meldet er auch harmlose Vorgänge, die sein Modell nicht abdeckt.
+**Pointwise against areal – the whole difference hangs on that.** A misuse detector knows signatures of known attacks: single points in the set of all intrusions, and anything beside them raises no alarm. An anomaly detector knows an area instead – a model of permitted operation – and reports everything outside it. So only the second can report an attack nobody has seen before, and that is also why it reports harmless events its model does not cover.
 
 # How good is a detector?
 
 ## figure: Observed character freq. | Anomaly? {.full #ns-b55}
 
 ::: draw {unit=150x58}
-# Die Zeichenkette unter den Säulen ist wörtlich von der Folie, gesperrt
-# gesetzt: "t / p r e n . ; l m o b". Der zweite String wird an Leerzeichen
-# geteilt, also eine Beschriftung je Säule. Die Werte sind so gewählt, dass
-# die Bins auf #ns-b57 – dasselbe Paket, dieselben Säulen – exakt die dort
-# wörtlich übernommenen Zählungen 43 / 36 / 21 ergeben.
+# The string under the columns is verbatim from the slide, letter-spaced:
+# "t / p r e n . ; l m o b". The second string splits on spaces, so one label
+# per column. The values are chosen so that the bins on #ns-b57 - the same
+# packet, the same columns - come to exactly the counts 43 / 36 / 21 taken
+# verbatim there.
 bars obs "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 3.1 h 0.85 {.tone-3 .bare}
 
 text hcmp "Comparison with normal behavior" below obs gap 0.62 flush left {.left}
 
-# Der Rahmen ist auf beiden Achsen normiert: waagerecht der Rang des Zeichens,
-# senkrecht seine relative Häufigkeit. Die Folie beschriftet nur die Waagerechte,
-# und zwar mit der Zeichenkette selbst – die steht deshalb als Achsentitel da.
+# The frame is normalised on both axes: the character's rank across, its
+# relative frequency down. The slide labels only the horizontal, and with the
+# string itself, so that stands as the axis title.
 plot cmp ".ie0lo1/a35M6rckn()tW…" below hcmp gap 0.5 flush left w 3.1 h 1.5 x 0,1 y 0,1 tick 0.5
 
-# Das Normalverhalten läuft als glatte Kurve durch seine Wegpunkte.
+# Normal behaviour runs as a smooth curve through its waypoints.
 edge normal cmp@0.01,cmp@0.6 -- cmp@1,cmp@0.03 via cmp@0.1,cmp@0.4 cmp@0.25,cmp@0.26 cmp@0.45,cmp@0.15 cmp@0.7,cmp@0.07 {.smooth .thick}
 
-# Die Nadeln des verdächtigen Pakets: eine zweite Säulenreihe, die auf der
-# Grundlinie des plots steht und ihn in der Breite ausfüllt. 24 statt der ~40
-# Nadeln der Folie – die Aussage ist der Kontrast, nicht die Anzahl.
-# .tone-4 ist die einzige volle Füllung, die es gibt, und sie mischt sich aus
-# --emph: eine 6 px schmale Nadel mit bloßem Strich bliebe innen leer.
+# The suspicious packet's needles: a second run of columns standing on the
+# plot's baseline and filling its width. 24 rather than the slide's ~40
+# needles - the point is the contrast, not the count.
+# .tone-4 is the only full fill there is, and it mixes from --emph: a needle
+# 6 px wide with a bare stroke would be empty inside.
 bars sus "20,14,55,10,8,45,12,88,9,62,7,6,10,5,18,4,6,5,3,4,3,2,3,2" at cmp@0.5,cmp@0.425 w 3.1 h 1.275 space 0.085 {.tone-4 .bare @sus}
 
 text ls "/" above sus-2 gap 0.06 {@sus}
@@ -1400,8 +1396,8 @@ text lr "r" above sus-5 gap 0.06 {@sus}
 text lt "t" above sus-7 gap 0.06 {@sus}
 text lp "p" above sus-9 gap 0.06 {@sus}
 
-# Beide Beschriftungen liegen über Gitterlinien und bekommen deshalb einen
-# eigenen Grund, der die Linie dahinter ausstanzt.
+# Both labels lie over gridlines and so get a ground of their own, which
+# knocks the line out behind them.
 text nnorm "normal behavior" at cmp@0.66,cmp@0.42 pad 0.12 {.paper}
 text nsus  "suspicious packet" at cmp@0.62,cmp@0.86 pad 0.12 {.paper .hand @sus}
 
@@ -1417,7 +1413,7 @@ step metric
   dim normal
 :::
 
-**Ein Paket bringt seine eigene Zeichenverteilung mit.** Oben steht, was in der Nutzlast tatsächlich gezählt wurde; unten liegt dieselbe Zählung über dem, was an diesem Dienst normal ist. Die roten Nadeln stehen dort, wo das beobachtete Paket weit über der Referenz liegt – das Auge sieht den Ausreißer, bevor irgendeine Kennzahl berechnet ist. Bleibt die Frage, die die Folie stellt: welches Abstandsmaß macht aus diesem Bild eine Zahl?
+**A packet brings its own character distribution with it.** Above is what was actually counted in the payload; below, the same count lies over what is normal for this service. The red needles stand where the observed packet is far above the reference – the eye sees the outlier before any figure has been computed. Which leaves the question the slide asks: what distance measure turns this picture into a number?
 
 ## figure: Training stage | Chi-square statistic (goodness of fit) {.full #ns-b56}
 
@@ -1430,9 +1426,9 @@ brace b2 over f-3,f-4,f-5,f-6 side bottom "Bin 2" pad 0.45 {.muted @bins}
 brace b3 over f-7,f-8,f-9 side bottom "Bin 3" pad 0.45 {.muted @bins}
 text bd "…" at f.right+0.3,f.bottom+0.78 {.muted @bins}
 
-# Die Gewichte stehen unter den Bin-Namen, nicht unter der Klammer: die
-# Klammer misst sich ohne ihre Beschriftung, und eine Zeile weiter oben
-# läge die Zahl auf der Zeichenreihe.
+# The weights stand under the bin names rather than under the brace: a brace
+# measures itself without its label, and one line higher the number would lie
+# on the row of characters.
 text w1 "0.20" at b1.cx,f.bottom+1.12 {@weights}
 text w2 "0.18" at b2.cx,f.bottom+1.12 {@weights}
 text w3 "0.12" at b3.cx,f.bottom+1.12 {@weights}
@@ -1445,16 +1441,16 @@ step weights
   emph @weights
 :::
 
-**Die Trainingsphase misst, was normal ist.** Der Sensor zählt die Zeichen im Nutzdatenteil harmloser Anfragen, sortiert sie absteigend und fasst benachbarte Zeichen zu Bins zusammen – „group multiple features into bins of suitable size (aggregating counts)". Was der Sensor behält, sind nicht die einzelnen Häufigkeiten, sondern die Bin-Anteile $p_1 = 0{,}20$, $p_2 = 0{,}18$, $p_3 = 0{,}12$ mit $\sum_i p_i = 1$. Das Verfahren stammt aus C. Krügel et al. (2002): *Service Specific Anomaly Detection for Network Intrusion Detection*, SAC 2002, ACM, S. 201–208.
+**The training phase measures what is normal.** The sensor counts the characters in the payload of harmless requests, sorts them descending and groups neighbouring characters into bins – “group multiple features into bins of suitable size (aggregating counts)”. What it keeps is not the individual frequencies but the bin shares $p_1 = 0.20$, $p_2 = 0.18$, $p_3 = 0.12$ with $\sum_i p_i = 1$. The method is from C. Krügel et al. (2002), *Service Specific Anomaly Detection for Network Intrusion Detection*, SAC 2002, ACM, pp. 201–208.
 
 ## figure: Detection at Runtime {.full #ns-b57}
 
 ::: draw {unit=150x56}
-# Dieselben Werte wie die beobachtete Verteilung auf #ns-b55 – es ist
-# dasselbe Paket – und die Bins summieren exakt auf die Zahlen der Folie:
-# 20+12+11 = 43, 10+9+9+8 = 36, 8+7+6 = 21. Vorher standen hier die Werte
-# der *Trainingsverteilung* von #ns-b56, womit die anomale Verteilung
-# deckungsgleich mit der war, von der sie abweichen soll.
+# The same values as the observed distribution on #ns-b55 - it is the same
+# packet - and the bins sum to exactly the slide's numbers: 20+12+11 = 43,
+# 10+9+9+8 = 36, 8+7+6 = 21. These used to be the values of the *training*
+# distribution from #ns-b56, which made the anomalous distribution identical
+# to the one it is meant to deviate from.
 bars g "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 2.5 h 0.9 {.tone-3 .bare}
 text cap "Anomalous payload\ndistribution" above g gap 0.16 flush right {.right}
 
@@ -1476,32 +1472,31 @@ step deviation
   emph b1, o1
 :::
 
-**Zur Laufzeit wird dieselbe Einteilung noch einmal ausgezählt.** Jede Anfrage liefert beobachtete Bin-Häufigkeiten $O_i$; die erwarteten folgen aus den trainierten Anteilen, etwa $E(\text{Bin 1}) = 0{,}2 \cdot 163 = 32{,}6$. Der Abstand zwischen beobachtet und erwartet ist die Chi-Quadrat-Statistik
+**At run time the same division is counted again.** Every request yields observed bin frequencies $O_i$; the expected ones follow from the trained shares, for instance $E(\text{Bin 1}) = 0.2 \cdot 163 = 32.6$. The distance between observed and expected is the chi-squared statistic
 
 $$\chi^2 = \sum_i \frac{(O_i - E_i)^2}{E_i}$$
 
-und der Sensor schlägt Alarm, sobald $\chi^2 > t$ ist. Welcher Wert für $t$ das sein soll, entscheidet die nächste Folie.
+and the sensor raises an alarm as soon as $\chi^2 > t$. What value $t$ should take is what the next slide decides.
 
 ## figure: Reaction of IDS {.full #ns-b59}
 
 ::: draw {unit=62x62}
-# Die zehn beschrifteten Pakete liegen auf einer Achse: waagerecht der
-# Anomaliewert, den der Sensor ausrechnet (das Chi-Quadrat der Folie davor),
-# senkrecht die wahre Klasse. Erst dadurch kann der Schwellwert überhaupt
-# etwas trennen – in der Fassung davor standen die Marker als Block
-# nebeneinander, und der Strich lief an ihnen vorbei statt hindurch.
-# Die Einheit ist quadratisch, damit ein Paketkasten quadratisch wird.
+# The ten labelled packets lie on an axis: the anomaly score the sensor
+# computes across (the chi-squared of the slide before), the true class down.
+# Only that lets the threshold separate anything at all - in the version
+# before, the markers stood side by side as a block and the rule ran past
+# them rather than through them.
+# The unit is square, so that a packet box comes out square.
 text ds "Labeled dataset (e.g., by DARPA/Lincoln Labs)" at 0,0 {.left}
 
 text latt "attack traffic" below ds gap 1.0 flush left {.left}
 text lben "benign traffic" below latt gap 0.5 flush left {.left}
 
-# Rasterplatz zu Rasterplatz sind 0.74, ein Kasten misst 0.42: der
-# Zwischenraum ist damit dreiviertel so breit wie ein Kasten, und der
-# Schwellwert passt sichtbar dazwischen, ohne einen zu berühren. Die
-# Reihenfolge ist die Sortierung nach Anomaliewert – Angriffe liegen im
-# Mittel höher, überlappen aber, und genau diese Überlappung ist das Thema.
-# Rasterplätze: benign 0,1,2,3,5,7 – attack 4,6,8,9.
+# Grid slot to grid slot is 0.74 and a box measures 0.42, so the space
+# between is three quarters of a box wide and the threshold fits visibly
+# between them without touching one. The order is the sort by anomaly score -
+# attacks lie higher on average but overlap, and that overlap is the subject.
+# Grid slots: benign 0,1,2,3,5,7 - attack 4,6,8,9.
 box b1 "" right of lben gap 0.55 w 0.42 h 0.42 {.tone-2 .sharp}
 box b2 "" right of b1 gap 0.3 same as b1 {.tone-2 .sharp}
 box b3 "" right of b2 gap 0.3 same as b1 {.tone-2 .sharp}
@@ -1519,26 +1514,26 @@ text axn "anomaly score" at b1.cx+3.33,b1.bottom+1.12 {.muted}
 text lno "no alert" at b1.cx+0.37,b1.bottom+0.34 {.muted}
 text lal "alert" at a4.cx-0.37,b1.bottom+0.34 {.muted}
 
-# Der Schwellwert selbst ist die Beschriftung, und die Linie hängt an ihr:
-# ein Schritt verschiebt "t", das Layout wird neu ausgewertet, und der Strich
-# folgt. Der Doppelpfeil der alten Fassung, der sagen sollte, dass der Strich
-# beweglich ist, ist damit überflüssig – jetzt bewegt er sich.
+# The threshold itself is the label, and the line hangs off it: a step moves
+# "t", the layout is worked out again, and the rule follows. The old version's
+# double-headed arrow, which was there to say the rule can move, is therefore
+# unnecessary - now it moves.
 text tlbl "t" at a1.cx+0.37,a1.top-0.45 pad 0.12 {.paper .hand @thr}
 edge thr tlbl.cx,tlbl.bottom -- tlbl.cx,b1.bottom+0.7 {.thick @thr}
 
-# Die 2×2-Matrix. Die Angriffszeile trägt die Akzentfarbe, die Normalzeile
-# den Ton für legitimen Verkehr – dieselbe Zuordnung wie überall sonst.
-# Die Spalten stehen wie die Achse darüber: links von t kein Alarm, rechts
-# Alarm. Deshalb sitzt FN links neben TP und nicht umgekehrt.
+# The 2x2 matrix. The attack row carries the accent, the normal row the tone
+# for legitimate traffic - the same assignment as everywhere else.
+# The columns stand as the axis above them does: no alarm left of t, alarm
+# right of it. So FN sits left of TP and not the other way round.
 box fn "FN" at ds.left+1.2,b1.bottom+3.05 w 1.3 h 0.9 {.accent}
 box tp "TP" right of fn gap 0 same as fn {.accent}
 box tn "TN" below fn gap 0 same as fn {.tone-2}
 box fp "FP" right of tn gap 0 same as fn {.tone-2}
 
-# Die Zahl steht in der Beschriftung des Feldes und nicht als Reihe kleiner
-# Marker daneben: sie ändert sich in jedem Beat, und ein "label"-Schritt
-# tauscht dafür eine zur Bauzeit gesetzte Variante ein. Abzählen von vier
-# Quadraten aus der letzten Reihe des Hörsaals dauert länger als Lesen.
+# The number is in the cell's own label rather than a row of small markers
+# beside it: it changes in every beat, and a "label" step swaps in a variant
+# typeset at build time for it. Counting four squares from the back row of a
+# lecture hall takes longer than reading.
 text cno "no alert" above fn gap 0.28
 text cal "alert" above tp gap 0.28
 text head "REACTION OF IDS" above cno gap 0.3 flush left {.bold .left}
@@ -1547,8 +1542,8 @@ text rown "normal" left of tn gap 0.25 {.turn}
 
 text rates "TP rate: 0.75 / FP rate: 0.33" at tp.right+2.1,fn.bottom-0.25 {.bold @thr}
 
-# Der Merksatz gehört zum letzten Beat und damit auch auf das Handout: der
-# Zusammenhang, den die Folie danach als ROC-Kurve zeichnet.
+# The takeaway belongs to the last beat and therefore to the handout too: the
+# relationship the next slide draws as a ROC curve.
 text tnote "moving t moves both rates" at rates.cx,rates.bottom+0.6 {.hand}
 
 step threshold
@@ -1582,19 +1577,19 @@ step tradeoff
   label rates "TP rate: 0.75 / FP rate: 0.33"
 :::
 
-**Die vier Felder sind kein Vokabular, sondern eine Auszählung.** Zehn beschriftete Pakete laufen durch den Sensor, aufgereiht nach dem Anomaliewert, den er ihnen gibt; $t$ ist der Strich auf dieser Achse, und alles rechts davon meldet er als Alarm. Steht $t$ in der Mitte, erkennt er von den vier Angriffen drei (TP) und verpasst einen (FN), von den sechs harmlosen Paketen meldet er zwei fälschlich (FP) – das sind die beiden Kennzahlen, die den Rest des Kapitels tragen: TP rate 0.75 und FP rate 0.33. Schiebt man $t$ nach rechts, schweigt der Sensor öfter und beide Raten fallen (0.50 und 0.00); schiebt man ihn nach links, steigen beide (1.00 und 0.67). Kein Wert von $t$ senkt die eine, ohne die andere mitzunehmen.
+**The four cells are a count, not a vocabulary.** Ten labelled packets run through the sensor, lined up by the anomaly score it gives them; $t$ is the rule on that axis, and everything right of it is reported as an alarm. With $t$ in the middle the sensor catches three of the four attacks (TP) and misses one (FN), and wrongly reports two of the six harmless packets (FP) – the two figures the rest of the chapter rests on: TP rate 0.75 and FP rate 0.33. Push $t$ right and the sensor stays quiet more often and both rates fall (0.50 and 0.00); push it left and both rise (1.00 and 0.67). No value of $t$ lowers one without taking the other with it.
 
 ## figure: Receiver operating characteristic (ROC) curves {.full #ns-b60}
 
 ::: draw {unit=104x104}
-# "False Postive Rate" ist der Tippfehler der Originalfolie und bleibt so.
-# Die Einheit ist quadratisch, damit der ROC-Rahmen quadratisch wird.
+# "False Postive Rate" is the original slide's typo and stays.
+# The unit is square, so that the ROC frame comes out square.
 plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 2.6 h 2.45 x 0,1 y 0,1 tick 0.2
 
 edge curve roc@0.02,roc@0.03 -- roc@0.98,roc@1 via roc@0.06,roc@0.5 roc@0.2,roc@0.8 roc@0.49,roc@0.95 roc@0.75,roc@0.98 {.smooth .thick}
 
-# Die Beschriftungen sitzen unter ihrem Punkt, nicht rechts daneben: rechts
-# liegt die Kurve, und ein .paper-Grund stanzt sie sonst aus.
+# The labels sit under their point rather than to its right: the curve is to
+# the right, and a .paper ground would otherwise knock it out.
 dot pstrict "" at roc@0.06,roc@0.5 r 0.055 {.tone-4 @strict}
 text lstrict "Strict threshold" at roc@0.3,roc@0.43 pad 0.12 {.bold .paper @strict}
 dot pmod "" at roc@0.2,roc@0.8 r 0.055 {.tone-4 @moderate}
@@ -1612,18 +1607,18 @@ step lenient
   show @lenient
 :::
 
-**Eine ROC-Kurve ist die Menge aller Schwellwerte auf einmal.** Jeder Punkt der Kurve gehört zu einem Wert von $t$: waagerecht der Anteil der Fehlalarme, senkrecht der Anteil der erkannten Angriffe. Ein strenger Schwellwert hält die Fehlalarme klein und findet dafür nur die Hälfte der Angriffe; ein großzügiger findet fast alles und lässt jeden zweiten harmlosen Verkehr als Alarm durch. Zwischen beiden kann man wählen, aber nicht beides haben.
+**A ROC curve is every threshold at once.** Each point on the curve belongs to a value of $t$: the share of false alarms across, the share of detected attacks down. A strict threshold keeps the false alarms small and finds only half the attacks; a generous one finds nearly everything and lets every second harmless flow through as an alarm. You can choose between the two, but not have both.
 
 ## figure: Comparing detection techniques | ROC curves for alternative binnings {.full #ns-b61}
 
 ::: draw {unit=104x104}
-# Derselbe Rahmen wie zuvor, samt Tippfehler "False Postive Rate".
+# The same frame as before, typo "False Postive Rate" included.
 plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 2.6 h 2.45 x 0,1 y 0,1 tick 0.2
 
 edge chance roc@0.02,roc@0.02 -- roc@1,roc@1 {.muted @chance}
-# Unterhalb der Diagonalen, aber weit genug daneben, dass ihr .paper-Grund
-# die Linie nicht zerschneidet: die Diagonale ist y = x, also muss die linke
-# Kante des Kastens rechts von seiner Oberkante liegen.
+# Below the diagonal, but far enough clear that its .paper ground does not cut
+# the line: the diagonal is y = x, so the box's left edge has to lie right of
+# its top edge.
 text nchance "Accuracy due\nto chance" at roc@0.65,roc@0.35 pad 0.12 {.bold .paper @chance}
 
 edge high roc@0.02,roc@0.02 -- roc@1,roc@1 via roc@0.05,roc@0.6 roc@0.15,roc@0.86 roc@0.4,roc@0.95 roc@0.7,roc@0.98 {.smooth .thick @curves}
@@ -1648,14 +1643,14 @@ step question
   dim chance
 :::
 
-**Zwei Verfahren vergleicht man an ihren Kurven, nicht an einem Punkt.** Je weiter eine Kurve in die linke obere Ecke ausbeult, desto besser trennt das Verfahren – die Ecke selbst wäre perfekt, die Diagonale ist raten. Alternative Binnings der Zeichenverteilung liefern genau solche Kurvenscharen, und das bessere Binning ist das mit der oberen Kurve. Die Frage, welchen Punkt man auf der gewählten Kurve einstellt, beantwortet das Bild aber nicht.
+**Compare two methods by their curves, not at one point.** The further a curve bulges into the top left corner, the better the method separates – the corner itself would be perfect, the diagonal is guessing. Alternative binnings of the character distribution give exactly such families of curves, and the better binning is the one with the upper curve. Which point on the chosen curve to set is a question the picture does not answer.
 
 ## figure: Sketch of a Similar Situation {.full #ns-b63}
 
 ::: draw {unit=70x70}
-# 96 Gesichter aus vier Rastern statt aus 96 Zeilen: die Regel ist je Raster
-# eine Zeile, die Ausnahme ist ein eigenes Raster. Das Asset wird nur einmal
-# eingebettet, egal wie oft es vorkommt.
+# 96 faces out of four grids rather than 96 lines: the rule is one line per
+# grid, the exception a grid of its own. The asset is embedded once, however
+# often it appears.
 grid sickp image face-bad 7x1 at 0,0 cell 0.3 space 0.08 {@tp}
 grid sickn image face-ok 1x1 right of sickp gap 0.1 cell 0.3 space 0.08 {@fn}
 grid well image face-ok 7x11 below sickp gap 0.32 flush left cell 0.3 space 0.08 {@wellneg}
@@ -1668,18 +1663,18 @@ text lwell "healthy" left of well gap 0.3 {.right}
 
 text rates "TP rate: 87.5% FP rate: 12.5%\nactually sick: 8.3%" above sickp gap 0.35 flush left {.left .muted}
 
-# Die Legende steht auf halber Höhe der Tafel, nicht oben: sonst bliebe die
-# rechte untere Hälfte der Figur leer.
+# The legend stands halfway down the board rather than at the top: otherwise
+# the bottom right half of the figure would stay empty.
 image legb face-bad right of fpos gap 1.1 offset 0,-0.3 w 0.3
 text tlegb "test positive (you are worried)" right of legb gap 0.2 {.left}
 image lego face-ok below legb gap 0.35 same as legb
 text tlego "test negative (you feel safe)" right of lego gap 0.2 {.left}
 text ask "Should you be?" below tlego gap 0.55 flush left {.hand @ask}
 
-# Die Beats bauen die Argumentation auf, statt sie wegzudimmen. Vorher hiess
-# der erste "positives" und liess den einen uebersehenen Kranken hell stehen,
-# und der zweite hiess "alarms" und loeschte die Krankenzeile ganz - am Ende
-# leuchteten nur die *falschen* Alarme, also genau das Gegenteil des Namens.
+# The beats build the argument up rather than dimming it away. The first used
+# to be called "positives" and left the one missed sick case standing bright,
+# and the second was called "alarms" and cleared the sick row entirely - so at
+# the end only the *false* alarms were lit, the exact opposite of the name.
 step detected
   emph @tp
   dim @fn, @wellneg, @fpos
@@ -1694,4 +1689,4 @@ step worried
   show @ask
 :::
 
-**Dieselbe Rechnung, ein Test statt eines Sensors.** Von 96 Personen sind acht krank, der Test erkennt sieben davon und übersieht eine – und meldet zugleich elf der 88 Gesunden als positiv. Wer ein positives Ergebnis in der Hand hält, gehört also zu 18 Positiven, von denen nur sieben wirklich krank sind: die Wahrscheinlichkeit liegt bei $7/18 \approx 39\,\%$, nicht bei den 87,5 % der Trefferquote. Genau so verhält sich ein Sensor mit guter TP-Rate in einem Netz, in dem fast aller Verkehr harmlos ist.
+**The same arithmetic, a test instead of a sensor.** Of 96 people eight are ill; the test catches seven of them and misses one, and at the same time reports eleven of the 88 healthy ones as positive. Anyone holding a positive result is therefore one of 18 positives, of whom only seven are really ill: the probability is $7/18 \approx 39\,\%$, not the 87.5 % of the hit rate. A sensor with a good TP rate behaves exactly this way in a network where nearly all the traffic is harmless.

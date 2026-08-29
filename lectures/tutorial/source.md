@@ -592,7 +592,7 @@ editor: speaker         # both | speaker | none – the diagram editor
 ::: draw {unit=126x72}
 box  src  "Sender"
 box  mix  "Mix"        right of src gap 1.05
-box  dst  "Empfänger"  right of mix gap 1.05
+box  dst  "Receiver"   right of mix gap 1.05
 box  log  "Logfile"    below mix gap 0.9  {.dashed}
 
 edge src -> mix "encrypted"
@@ -792,8 +792,8 @@ edge even pace@0,pace@0 -- pace@60,pace@40 {.muted .dashed}
 edge real pace@0,pace@0 -- pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {.smooth .accent .thick}
 dot  mark "" at pace@26,pace@12 r 0.08 {.accent}
 text evenn "even pace" at pace@50,pace@33 pad 0.12 {.small .paper}
-# Die Leitlinie greift die Kurve an einem Punkt ab, statt quer durchs Feld zu
-# laufen und dabei beide Kurven zu kreuzen.
+# The leader meets the curve at one point instead of running across the field
+# and crossing both curves on the way.
 text realn "the first third\nalways runs long" at pace@22,pace@31 pad 0.12 -- mark {.small .hand .paper}
 
 step real
@@ -824,8 +824,8 @@ container net "one wire, two honest ends" over alice,bob pad 0.5 {.dashed .muted
 box eve "Eve" between alice,bob offset 0,-1.7 same as alice {.tone-4 @attack}
 text note "no cipher is broken here –\nshe just stands in the middle" below alice gap 1.05 flush left -- eve.cx,eve.bottom {.hand .small @attack}
 
-# Eine Ecke ist so adressierbar wie eine Kante: .tl .tr .bl .br, dazu .center.
-# Für eine diagonale Verbindung trifft die Ecke, was die Seite verfehlt.
+# A corner is as addressable as a side: .tl .tr .bl .br, plus .center. On a
+# diagonal connection the corner hits what the side would miss.
 edge in alice.br -> eve.tl {.accent @cut}
 edge fwd eve.right:0.2 -> bob.left:0.2 "M" {.accent @cut} side top
 edge edit eve.right:0.8 -> bob.left:0.8 "M′" {.accent @cut} side bottom
@@ -834,8 +834,8 @@ step spot
   show @attack
 step cut
   hide wire
-# `to` setzt eine Position, `by` verschiebt um einen Betrag – und weil das
-# Layout pro Schritt neu ausgewertet wird, passt sich der Container an.
+# `to` names a position, `by` shifts by an amount, and the layout is worked
+# out again at every step, so the container re-fits.
   move eve to between alice,bob
   move alice by -0.5,0
   move bob by 0.5,0
