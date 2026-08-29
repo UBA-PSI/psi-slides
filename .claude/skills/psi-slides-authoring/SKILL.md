@@ -1,6 +1,6 @@
 ---
 name: psi-slides-authoring
-description: Write or edit a psi-slides lecture source.md - chunk grammar (## tag: Heading | Sub {.width #id}), the ::: directive vocabulary (expand, margin, marginalia, cols, cards, side/flip, slide, script, backdrop, overlay), reveal segments, speaker notes, image shorthand, KaTeX math, and the frontmatter keys (viewer defaults, cover variants, the style block, embedded fonts). Use when drafting a new lecture, restructuring or polishing an existing one, fixing lint findings from lint.js, or when a Markdown file has chunk headings like "## principle:" / "## definition:" or ":::" blocks. Not for changing build.js or lint.js themselves.
+description: Write or edit a psi-slides lecture source.md – chunk grammar (## tag: Heading | Sub {.width #id}), the ::: directive vocabulary (expand, margin, marginalia, cols, cards, side/flip, slide, script, backdrop, overlay), reveal segments, speaker notes, image shorthand, KaTeX math, and the frontmatter keys (viewer defaults, cover variants, the style block, embedded fonts). Use when drafting a new lecture, restructuring or polishing an existing one, fixing lint findings from lint.js, or when a Markdown file has chunk headings like "## principle:" / "## definition:" or ":::" blocks. Not for changing build.js or lint.js themselves.
 ---
 
 # Authoring psi-slides lectures
@@ -75,11 +75,13 @@ of the live deck. A chunk may appear before the first `#`; that is how the
 
 - `tag:` is optional. Without one the whole line is the heading and the chunk
   renders and lints as `free`. A lowercase `word:` prefix that is *not* one of
-  the eight tags is an `unknown-tag` error, not a silent heading.
+  the ten tags is an `unknown-tag` error, not a silent heading.
 - `|` splits the heading into a main line and a typographically quieter second
   line. Further `|` segments are joined into that second line.
-- The attribute tail recognises exactly two things: a width class and `#id`.
-  Any other class in `{...}` is silently ignored. Do not invent classes.
+- The attribute tail recognises three things: a width class, `#id`, and
+  `.bare` (keep the heading in the document and off the projection). Any other
+  class is an `unknown class` error in both the build and `lint.js` – it is not
+  silently ignored. Do not invent classes.
 - Headings carry **inline** Markdown, so backticks render as a real code span
   (`## free: Loops | for, while, and \`enumerate\` {.standard #loops}`). Block
   Markdown does not belong in a heading.
@@ -88,12 +90,13 @@ of the live deck. A chunk may appear before the first `#`; that is how the
   speaker-sync snapshots, exported annotations, and `localStorage`. Renaming a
   heading is free; renaming an id is not.
 
-Tags (eight, exhaustive) and what they mean in practice:
+Tags (ten, exhaustive) and what they mean in practice:
 
 | Tag | Use for | Word budget the linter enforces |
 |---|---|---|
 | `title` | the cover chunk, normally `## title: {#title}` | unlimited |
 | `closing` | the last slide, drawn in the cover's composition with its own heading and body | 60 |
+| `outline` | the running agenda – the lecture's parts, none live before the first one | 40 |
 | `principle` | a claim, thesis, rule, takeaway | 80 |
 | `question` | a posed question or framing problem | 80 |
 | `definition` | a precise concept or formal statement | 200 |
@@ -818,7 +821,8 @@ warning go away unread.
 
 ## Gotchas
 
-- Only the eight tags and four widths exist. No custom classes in `{...}`.
+- Only the ten tags and four widths exist. `.bare` is the one non-width class
+  an attribute tail may carry; anything else is an `unknown class` error.
 - IDs unique across the file, and frozen once authored.
 - `::: flip` requires an enclosing `::: side`.
 - A bare `:::` closes layout first, then the enclosing `expand` or `margin`.
