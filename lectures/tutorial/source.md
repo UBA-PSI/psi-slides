@@ -47,7 +47,7 @@ Each of the four files carries everything it needs inside itself – the picture
 
 ## free: What you're reading right now | is the audience view {.wide #audience-now}
 
-**You are in `audience.html`, the view for the projector.** One **chunk** – one `##` heading in the source, with everything written under it – fills the slide. The keyboard moves you from chunk to chunk, and a speaker window, once you open one, mirrors everything here as it happens.
+**You are in `audience.html`, the view for the projector.** One **chunk – one `##` heading in the source, with everything written under it** – fills the slide. The keyboard moves you from chunk to chunk, and a speaker window, once you open one, mirrors everything here as it happens.
 
 ::: cols 2
 
@@ -65,7 +65,7 @@ Each of the four files carries everything it needs inside itself – the picture
 
 ## example: Forward and back | plus a sideways pair for columns {.standard #arrows}
 
-**Two keys carry the whole lecture, forward and back, and a sideways pair moves between columns.** A `# Heading` in the source starts a **column** – a run of slides on one theme – and each `## tag: …` under it is one chunk.
+**Two keys carry the whole lecture, forward and back, and a sideways pair moves between columns.** A `# Heading` in the source starts a **column – a run of slides on one theme** – and each `## tag: …` under it is one chunk.
 
 - **Forward** is `Space`, `↓`, `Enter` or `PageDown`. It uncovers the next piece of the chunk you are on; once there is nothing left to uncover it moves to the next chunk, and at the end of a column it carries on into the first chunk of the next one.
 - **Back** is `↑`, `PageUp` or `Backspace`. It puts the last piece away again, and it leaves the chunk only once the chunk is back at its opening state.
@@ -73,7 +73,7 @@ Each of the four files carries everything it needs inside itself – the picture
 
 ---
 
-**Good – you just uncovered a segment.** In the source, a line containing nothing but `---`, outside a block of code, cuts a chunk into **segments**. The first one is on screen when you arrive; forward uncovers the next, back puts it away.
+**Good – you just uncovered a segment.** In the source, **a line containing nothing but `---` cuts a chunk into segments**, as long as it is outside a block of code. The first one is on screen when you arrive; forward uncovers the next, back puts it away.
 
 **Faint marks at the edge of the slide say when those two special cases apply.** `‹ ›` appear only on a chunk where sideways changes column, and `⌄` appears only when the next forward press will leave the column. There is nothing to click; they only tell you where you are.
 
@@ -101,7 +101,7 @@ In the source, an expansion is written `::: expand <label>` … `:::`. The label
 
 ## example: Zoom into a figure or code block | click it {.standard #figure-focus}
 
-**Click any figure, code block or margin note inside the chunk you are on.** A figure or a block of code lifts into a card in the middle of the screen with the slide dimmed behind it; a **marginalia** – an aside set out in the slide's margin – instead pans the view so the aside sits in the centre.
+**Click any figure, code block or margin note inside the chunk you are on.** A figure or a block of code lifts into a card in the middle of the screen with the slide dimmed behind it; **a marginalia – an aside set out in the slide's margin – is panned into the centre instead of being lifted**.
 
 **Links behave two ways, and which one you want depends on the window you are in.** A plain click follows the link in a new tab of *that* window. Clicked in the lectern view, that is you checking a source while the projection stays where it was. Clicked in the projection, it is the page itself arriving in front of the room.
 
@@ -359,7 +359,7 @@ Segments work inside `::: cols`, but uncovering text a piece at a time while it 
 
 You can put a `::: marginalia` *inside* a pane when a tangent belongs to one half in particular – it still escapes to the slide's right margin.
 
-**Code in a pane needs short lines.** A code block never wraps, so at the default zoom a pane has room for roughly **30 characters** of code – against about 50 in a `.standard` chunk and 60 in a `.wide` one. A longer line is not cut off; the build shrinks that one slide until it fits, and the slide then reads noticeably smaller than the ones either side of it. Break the line, or put the code across the full width and keep the panes for prose.
+**Code in a pane needs short lines.** A code block never wraps, so at the default zoom **a pane has room for roughly 30 characters of code** – against about 50 in a `.standard` chunk and 60 in a `.wide` one. A longer line is not cut off; the build shrinks that one slide until it fits, and the slide then reads noticeably smaller than the ones either side of it. Break the line, or put the code across the full width and keep the panes for prose.
 
 ## example: Marginalia | `::: marginalia` escapes to the slide margin {.standard #marginalia-demo}
 
@@ -565,7 +565,7 @@ editor: speaker         # both | speaker | none – the diagram editor
 ---
 ```
 
-`lang:` sits beside them and does a different job: it names the language the lecture is written in (`en` unless you say otherwise, then `de`, `de-DE`, `fr` and so on) and reaches all four views. The document views use it to pick the **hyphenation rules**, so a long German compound breaks at the end of a line instead of leaving a hole. The two live views never hyphenate.
+`lang:` sits beside them and does a different job: it names the language the lecture is written in (`en` unless you say otherwise, then `de`, `de-DE`, `fr` and so on) and reaches all four views. The document views use it to pick the hyphenation rules, so **a long German compound breaks at the end of a line instead of leaving a hole**. The two live views never hyphenate.
 
 **Which setting wins is one sentence.** A key you write beats whatever the reader last chose; a key you leave out leaves that choice alone. So a lecture that sets nothing behaves as it always did – font, theme and slide numbers follow the reader from lecture to lecture.
 

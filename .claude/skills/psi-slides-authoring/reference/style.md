@@ -52,6 +52,12 @@ that stands alone, or move the emphasis into the topic sentence.
 - Bad: `Die Tutor-Werte liegen sogar **unter** beiden KI-Bedingungen.`
 - Good: `Die Tutor-Werte liegen sogar unter beiden KI-Bedingungen – das war die **unerwartetste Beobachtung** des Experiments.`
 
+`lint.js` warns on this one as `single-word-bold`. It reproduces the renderer
+rather than the rule of thumb, so **continuation is literal**: the bad line above
+is only a finding once a sentence precedes it in the same paragraph. Standing
+alone as a paragraph's first sentence, that same bold is inside the head and the
+room reads the whole of it – which is the mechanism, not a gap in the check.
+
 **Topic sentences that are pure connectors.** „Das ist gewollt.“, „Sie haben 10
 Minuten.“ carry no claim. The presenter gets a thin prompt and the room gets
 nothing. Rewrite so the first sentence contains the claim.

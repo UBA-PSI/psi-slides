@@ -788,11 +788,19 @@ Rules you will meet while authoring: `unknown-tag`, `unknown-width`,
 `duplicate-explicit-block`, `unclosed-directive`, `stray-directive`,
 `stray-directive-close`, `nested-directive`, `unclosed-math`, `reveal-overuse`,
 `orphan-column` (a column with fewer than two chunks),
-`figure-caption-redundant`, `oversized-asset`, `unknown-view-default`,
+`figure-caption-redundant`, `single-word-bold`, `oversized-asset`,
+`unknown-view-default`,
 `unknown-style-setting`, `bad-backdrop`, `bad-backdrop-class`,
 `duplicate-backdrop`, `bad-overlay-class`, `bad-cards`, `bad-cards-class`,
 `bad-rows`, `bad-rows-class`, `cards-nested`, `bad-side`, `draw-in-cols`,
 `bad-cover-ratio`, `bad-autoplay`.
+
+`single-word-bold` is the collapse audit made mechanical: a bold of two words
+or fewer that lands *after* a paragraph's first sentence, where the projection
+will show it with none of the prose around it. It only ever looks at chunk-body
+paragraphs – a list item is shown whole and never triggers it, and neither does
+anything in a `::: slide`, a `::: script`, a `::: cards` or a code fence. See
+`reference/style.md` for the two fixes.
 
 A source file can silence checks with an HTML comment anywhere in the body:
 

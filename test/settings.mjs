@@ -1290,6 +1290,98 @@ console.log('\nlayout generations');
      'the card alignment classes set the property their name promises');
   ok(/text-align: var\(--card-align, left\)/.test(cls.html),
      'and something reads it, or the classes would resolve and move nothing');
+
+  // ── the collapsed view's bold audit, and the mirror under it ─────────────
+  //
+  // `single-word-bold` warns on a bold of two words or fewer landing after a
+  // paragraph's first sentence, because the collapse hides the prose around
+  // it and leaves the <strong> standing. Two assertions, and the second is
+  // the load-bearing one.
+  //
+  // What makes this rule different from the rest of lint.js is what it
+  // mirrors. A word budget or a directive check re-implements a *contract*,
+  // and a contract drifts when somebody changes a number – visibly, in a
+  // diff. This one mirrors an *algorithm*: splitSentencesIn's three sentence
+  // helpers, which live inside the AUDIENCE_JS template literal and so cannot
+  // be imported by anything. That drifts when somebody fixes an edge case in
+  // the renderer, invisibly, and the warning then describes a collapse that
+  // no longer happens. So the test that matters is not "lint warns" – lint
+  // agreeing with itself proves nothing – it is "lint's copy and the copy
+  // that ships to the browser still answer the same way".
+  //
+  // Both copies are lifted out as text and run side by side. Not imported:
+  // lint.js calls main() at module scope, and the build's copy only exists as
+  // characters inside a string until a page runs it. Extraction is also the
+  // point rather than a workaround – if either file renames or restructures
+  // these helpers this slice stops matching and the test fails loudly, which
+  // is exactly when a person should be looking at the pair.
+  const sentenceHelpers = (text, from, to, where) => {
+    const a = text.indexOf(from), b = text.indexOf(to, a + 1);
+    ok(a !== -1 && b > a, `the sentence helpers are still findable in ${where}`);
+    if (a === -1 || b <= a) return null;
+    // Findable is not the same as inside. Reorder either file so a helper
+    // lands past the end marker and the slice still matches, while the
+    // return line throws a ReferenceError on the call - killing the run with
+    // a trace where this file's convention is a named finding.
+    try {
+      return new Function(text.slice(a, b)
+        + ';return { sentenceEndIn, tailEndsSentence };')();
+    } catch (e) {
+      ok(false, `both sentence helpers are inside that slice in ${where}`,
+         String(e && e.message || e));
+      return null;
+    }
+  };
+  // The build's copy is taken from a real built page rather than from
+  // build.js, so what is measured is what a browser is actually handed.
+  const built = raw(FM + '## free: A {#a}\n\nProse.\n', ['--audience-only']);
+  const shipped = sentenceHelpers(built.html || '', 'const SENTENCE_ABBREVS',
+    'function splitSentencesIn', 'the built audience page');
+  const mirrored = sentenceHelpers(fs.readFileSync(path.join(ROOT, 'lint.js'), 'utf8'),
+    'const SENTENCE_ABBREVS', 'function proseNodes', 'lint.js');
+
+  if (shipped && mirrored) {
+    // Every branch the two share: a plain break, "!" and "?" which are never
+    // abbreviation marks, the single-character guard (an ordinal or an
+    // initial), the abbreviation list, and the lowercase continuation.
+    const cases = ['A sentence. Another one', 'Ende! Neu', 'Frage? Ja',
+      'Vgl. Meier 2017', 'z. B. so', 'et al. 2017 folgt', 'Kap. 4 dazu',
+      'um Faktor 3. Dann', 'Wort. dann klein', 'no end here at all'];
+    const tails = ['ends.', 'ends!', 'ends?', 'z.', 'et al.', 'Faktor 3.', 'no end'];
+    const drift = [
+      ...cases.filter(s => shipped.sentenceEndIn(s) !== mirrored.sentenceEndIn(s))
+        .map(s => `sentenceEndIn(${JSON.stringify(s)})`),
+      ...tails.filter(s => shipped.tailEndsSentence(s) !== mirrored.tailEndsSentence(s))
+        .map(s => `tailEndsSentence(${JSON.stringify(s)})`),
+    ];
+    ok(drift.length === 0,
+       "lint.js's sentence helpers still answer as the ones the build ships",
+       drift.join(', '));
+    // Two anchors, so a pair edited congruently but wrongly is still caught
+    // on the behaviour the rule is built on: a break the collapse acts on,
+    // and an abbreviation it must not act on.
+    ok(shipped.sentenceEndIn('A sentence. Another one') === 10
+       && shipped.sentenceEndIn('et al. 2017 folgt') === -1,
+       'and they still break on a sentence end and not on an abbreviation');
+  }
+
+  // The rule itself, in both directions. A bold in the opening sentence is
+  // shown whole and costs nothing; the same bold one sentence later is the
+  // finding. The pair is what makes this more than a smoke test - a check
+  // that fired on everything would pass a one-sided assertion.
+  const bold = (body) => lintOf(FM + `## free: A {#a}\n\n${body}\n`);
+  ok(/single-word-bold/.test(bold('One **chunk** is a heading. And more prose.')) === false,
+     'a short bold inside the opening sentence is not a finding');
+  ok(/single-word-bold/.test(bold('An opening sentence. One **chunk** fills the slide.')),
+     'the same bold after that sentence is');
+  ok(/single-word-bold/.test(bold('An opening sentence. **A phrase that stands on its own** follows.')) === false,
+     'and widening it into a phrase that reads alone clears it');
+  // Scope. splitSentencesIn walks p and never li, and skips explicit blocks
+  // outright, so none of these can be orphaned by the collapse.
+  ok(/single-word-bold/.test(bold('Lead-in.\n\n- An item. With **this** in it.')) === false,
+     'a list item is shown whole, so it is exempt');
+  ok(/single-word-bold/.test(bold('Lead-in.\n\n::: slide\n\nA sentence. Then **this**.\n\n:::')) === false,
+     'and so is an explicit ::: slide block');
 }
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

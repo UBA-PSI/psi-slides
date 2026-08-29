@@ -187,6 +187,28 @@ Checks enforced:
 - The kind gate on a `style` step's classes, in both signs, answered **after the block is read**: a step may name an element declared below it and a tag whose members are. That is why `define()` records what each name draws, generated names included, and why a tag expands to its members with one bad member failing the statement – the compiler's own rule.
 - Everything a `bars … series of` line does not own: `w`, `h`, `space` and a placement all belong to the chart it joined, and `stacked` needs a series to stand on.
 - An element after the first in a `::: draw` block with no placement (`diagram-no-placement`, error), off the compiler's own `DG_PLACED_HEADS` / `DG_PLACE_INTRO`. The words are matched **positionally**: `point` takes `left` and `right`, so a line-wide test reads `box b "B" point left` as placed, and ten lines of the corpus carry that shape. It counts **nodes**, which is the build's own test for "is this the first element", and exempts a `bars … series of` line, which joins another chart's frame and refuses a placement by name. It also stays quiet on a line this gate has already reported on – one authored defect, one causal diagnostic, which is the nearest a linter gets to the build's "the statement stopped reading" rule.
+- A bold of two words or fewer sitting after a paragraph's first sentence
+  (`single-word-bold`, warning). In `topic-bold` the collapse hides the
+  continuation's prose and leaves its `<strong>` runs standing, so such a bold
+  reaches the room as a bare noun – the tutorial shipped `a **marginalia** – an
+  aside …` and the slide read `– marginalia`. Mirrors `splitSentencesIn`'s
+  head/rest walk and its three sentence helpers, which live inside the
+  `AUDIENCE_JS` template literal and so cannot be imported; keep them congruent
+  or the two files disagree about where the first sentence ends. Scoped to what
+  the walker actually reaches: chunk-body paragraphs only, never a list item
+  (`splitSentencesIn` walks `p` and never `li`, which is also why `::: cards`
+  and `::: rows` are exempt), never a `::: slide` or `::: script` block, never a
+  fence. Warning and not error on purpose – the build renders it happily, and a
+  linter stricter than the build fails a source that builds clean.
+  **The mirror is guarded in `test/settings.mjs`**, which lifts the helpers out
+  of a built `audience.html` and out of `lint.js` as text and runs them side by
+  side: neither copy can be imported – lint.js calls `main()` at module scope,
+  and the build's copy is characters inside a string until a page runs it. That
+  is the assertion that matters. A contract drifts when someone changes a
+  number, visibly; an algorithm drifts when someone fixes an edge case in the
+  renderer, invisibly, and the warning then describes a collapse that no longer
+  happens. Asserting only that the rule fires would be lint.js agreeing with
+  itself.
 - Reveal-overuse (>50% of chunks using segments in a lecture flags a warning).
 - Orphan columns (columns with <2 chunks).
 - Figure caption redundancy (`figure:` chunk opens with an image whose alt text becomes a `<figcaption>` stacked under the heading – discourages three-label pile-ups of heading + sub-heading + caption).

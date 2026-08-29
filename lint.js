@@ -339,6 +339,144 @@ function wordCountOf(lines) {
   return lines.join(' ').split(/\s+/).filter(Boolean).length;
 }
 
+// ── the collapsed view's bold audit ──────────────────────────────────────
+//
+// In topic-bold mode the projection shows the first sentence of every
+// paragraph plus, out of the rest, only the <strong> runs: splitSentencesIn
+// wraps the continuation's *text* nodes in .prose and deliberately does not
+// descend into STRONG, so the collapse CSS hides the words around a bold and
+// leaves the bold standing. A one-word bold in continuation prose therefore
+// reaches the room as a bare noun with no sentence attached – the tutorial
+// shipped `a **marginalia** – an aside …`, and the slide read `– marginalia`.
+//
+// The rule is the authoring skill's ("Single-word bolds in continuation",
+// reference/style.md); this is the mechanical half of it. A **warning**, and
+// never an error: build.js renders such a bold perfectly happily, and a
+// linter stricter than the build fails a source that builds clean. Two words
+// is the threshold because the honest fix is always to widen the bold into a
+// phrase that stands alone, and a two-word bold almost never does.
+//
+// Mirrors build.js's three sentence helpers rather than importing them –
+// they live inside the AUDIENCE_JS template literal, which is a string, not
+// an export. Keep them congruent: a linter that disagrees with the build
+// about where the first sentence ends reports on the wrong half of a
+// paragraph. (Backslashes are single here and doubled there for that reason.)
+const SENTENCE_ABBREVS = new Set(['bzw','ca','vgl','etc','usw','engl','sog',
+  'inkl','zzgl','ggf','evtl','al','vs','resp','Nr','Dr','Prof','Abs','Art',
+  'Kap','Abb','Tab','Aufl','Hrsg','Mio','Mrd','ff','ebd','St']);
+function dotEndsSentence(before, after) {
+  const tok = (before.match(/([\p{L}\p{N}]+)$/u) || [])[1];
+  if (tok && (tok.length === 1 || SENTENCE_ABBREVS.has(tok))) return false;
+  if (/^\p{Ll}/u.test(after)) return false;
+  return true;
+}
+function sentenceEndIn(text) {
+  const re = /[.!?](?=\s)/g;
+  let m;
+  while ((m = re.exec(text))) {
+    if (text[m.index] !== '.') return m.index;
+    const after = text.slice(m.index + 1).replace(/^\s+/, '');
+    if (dotEndsSentence(text.slice(0, m.index), after)) return m.index;
+  }
+  return -1;
+}
+function tailEndsSentence(text) {
+  const t = text.trimEnd();
+  if (!/[.!?]$/.test(t)) return false;
+  if (t.endsWith('.')) return dotEndsSentence(t.slice(0, -1), '');
+  return true;
+}
+
+// One paragraph of markdown as the node sequence splitSentencesIn walks: an
+// alternation of text and STRONG. The reductions before it exist so the walk
+// reads the same characters the DOM will – an image contributes no prose, a
+// link contributes its label and not its href, and inline code contributes
+// its text, with any asterisk in it neutralised so it cannot pair with a
+// real bold marker across the span.
+function proseNodes(md) {
+  const s = md
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/`([^`]*)`/g, (_, code) => code.replace(/[*_]/g, ''));
+  const nodes = [];
+  const re = /\*\*(?=\S)([\s\S]*?\S)\*\*|__(?=\S)([\s\S]*?\S)__/g;
+  let last = 0, m;
+  while ((m = re.exec(s))) {
+    if (m.index > last) nodes.push({ strong: false, text: s.slice(last, m.index) });
+    nodes.push({ strong: true, text: m[1] ?? m[2], raw: m[0] });
+    last = re.lastIndex;
+  }
+  if (last < s.length) nodes.push({ strong: false, text: s.slice(last) });
+  return nodes;
+}
+
+// The bolds that land in .sentence-rest. The walk is build.js's head/rest
+// loop with the buckets thrown away: a text node ends the head at its first
+// sentence break, and an element ends it only once the head has already
+// taken it – which is why a bold that itself closes the opening sentence is
+// still part of what the room reads in full, and costs nothing.
+function continuationBolds(md) {
+  const out = [];
+  let head = true;
+  for (const n of proseNodes(md)) {
+    if (head) {
+      if (n.strong) { if (tailEndsSentence(n.text)) head = false; }
+      else if (sentenceEndIn(n.text) !== -1) head = false;
+      continue;
+    }
+    if (n.strong) out.push(n);
+  }
+  return out;
+}
+
+// The prose paragraphs of one chunk body, out of the lines the walker kept
+// and the line numbers it kept them under. A gap in those numbers is a
+// paragraph break for free: every line the walker skipped – a directive, a
+// `> note:`, a reveal rule, a code fence – is one the build does not put in
+// this paragraph either. What is dropped here is everything that does not
+// become a <p>: splitSentencesIn walks paragraphs and never list items, so a
+// bullet is shown whole and has nothing to answer for, and its wrapped
+// continuation lines go with it.
+function proseParagraphs(entries) {
+  const out = [];
+  let cur = null, inList = false;
+  for (const e of entries) {
+    if (!e.text.trim()) { cur = null; inList = false; continue; }
+    if (cur && e.ln !== cur.end + 1) { cur = null; inList = false; }
+    const isItem = /^\s*([-*+]|\d+[.)])\s/.test(e.text);
+    const isBlock = /^\s*(#{1,6}\s|>|\||<)/.test(e.text);
+    if (isItem || isBlock || (inList && /^\s{2,}\S/.test(e.text))) {
+      inList = isItem || (inList && !isBlock);
+      cur = null;
+      continue;
+    }
+    inList = false;
+    if (cur) { cur.lines.push(e.text); cur.end = e.ln; }
+    else { cur = { start: e.ln, end: e.ln, lines: [e.text] }; out.push(cur); }
+  }
+  return out;
+}
+
+const SINGLE_BOLD_MAX = 2;
+const boldWordCount = (t) => t.replace(/[`*_]/g, ' ').trim().split(/\s+/).filter(Boolean).length;
+
+function lintCollapsedBolds(entries, add) {
+  for (const para of proseParagraphs(entries)) {
+    for (const bold of continuationBolds(para.lines.join(' '))) {
+      const n = boldWordCount(bold.text);
+      if (n > SINGLE_BOLD_MAX) continue;
+      // Report on the line the author has to edit, not on the paragraph's
+      // first – a paragraph here runs to five or six wrapped lines.
+      const at = para.lines.findIndex(l => l.includes(bold.raw));
+      add(at === -1 ? para.start : para.start + at, 'warn', 'single-word-bold',
+          `'${bold.raw}' is ${n === 1 ? 'one word' : `${n} words`} and sits after the paragraph's `
+          + `first sentence – collapsed, the projection shows it alone, with none of the prose `
+          + `around it; widen it into a phrase that reads on its own, or move the emphasis into `
+          + `the opening sentence`);
+    }
+  }
+}
+
 // One `default …` line, checked the same way wherever it is written: inside
 // a block, or in the lecture's `draw-defaults` frontmatter key. Mirrors
 // dgReadDefault in build.js – a linter stricter or laxer than the build is
@@ -2037,6 +2175,11 @@ function lintFile(filePath) {
   // density budget can be applied to whatever actually lands on screen.
   let slideBody = [];
   let scriptBody = [];
+  // The same lines as chunkBody, carrying the line numbers the bold audit
+  // reports on. Kept separate rather than making chunkBody an array of
+  // objects: wordCountOf is called on three buckets and on none of them
+  // does the density budget care where a line came from.
+  let proseEntries = [];
   let chunkHasReveal = false;
   let inFence = false;
   let activeDirective = null;
@@ -2064,6 +2207,7 @@ function lintFile(filePath) {
             `chunk body is ${wc} words${scope} (budget for ${chunk.tag ?? 'free'}: ${budget})`);
       }
     }
+    lintCollapsedBolds(proseEntries, add);
     // Figure chunks where the image sits directly below the heading:
     // the image alt text renders as a <figcaption>, stacking a second
     // title on top of the artwork (often itself titled internally).
@@ -2116,6 +2260,7 @@ function lintFile(filePath) {
     chunkBody = [];
     slideBody = [];
     scriptBody = [];
+    proseEntries = [];
     chunkHasReveal = false;
   };
 
@@ -2523,7 +2668,16 @@ function lintFile(filePath) {
       const inKind = (k) => layoutStack.some(l => l.kind === k);
       if (inKind('slide')) slideBody.push(line);
       else if (inKind('script')) scriptBody.push(line);
-      else chunkBody.push(line);
+      else {
+        chunkBody.push(line);
+        // A card or a row is a list, and splitSentencesIn never abridges a
+        // list item, so nothing written in one can be orphaned by the
+        // collapse. An explicit block opts out of the split altogether and
+        // is already in another bucket.
+        if (!layoutStack.some(l => /^(cards|rows)\b/.test(l.kind))) {
+          proseEntries.push({ text: line, ln });
+        }
+      }
     }
   }
   flushChunk();
