@@ -89,12 +89,12 @@ edge mid -> out
 :::`;
 
 const FM = [
-  'title: Detecting Bot Detection',
-  'subtitle: Prevalence, Techniques, and Implications for Web Measurement Research',
-  'presenter: Ralf Gundelach',
+  'title: Crawling Under Observation',
+  'subtitle: Detection, Evasion, and What They Cost Web Measurement Research',
+  'presenter: Marit Osterhagen',
   'info: |',
-  '  with Michael Mühlhauser and Dominik Herrmann',
-  '  ARES 2026 · Linköping · 24 to 27 August 2026',
+  '  with Tomas Brekke and Ines Falk',
+  '  Web Measurement Workshop · Delft · 9 to 11 April',
   'theme: light-blue',
   'font: sans',
   'lang: en',
@@ -116,7 +116,7 @@ const TILES = [
   // Ordered quiet to loud, the same order the vocabulary itself is listed in,
   // because that is the only question the list asks the author.
   cover('classic', []),
-  cover('masthead', [], 'Roughly one site in seven fingerprints its visitors before it serves\nthem anything at all.'),
+  cover('masthead', [], 'A crawler that gets recognised is served a different web, and the\nmeasurement it brings home never says so.'),
   cover('stack', []),
   cover('display', []),
   cover('panel', []),

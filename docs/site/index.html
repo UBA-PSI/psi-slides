@@ -355,19 +355,14 @@ browser is for pages meant to be looked at.
 <section class="band band-do">
  <div class="wrap">
 
-  <h2 id="covers">Ten ways to open, six ways to change the subject</h2>
+  <h2 id="covers">Title slides and dividers</h2>
 
   <p>A lecture uses one title slide and one divider style, so this page is the
-  only place all of them stand side by side. The default is below; the other
-  nine are one click away.
-  Every tile below is a screenshot of a real slide, taken by
-  <code>docs/site/shoot-gallery.mjs</code> at the same window size and the same
-  zoom as all the others &ndash; none of them was laid out by hand. Click one to see
-  it full size.</p>
+  only place all of them stand side by side. The default is below, the rest one
+  click away. Click a tile to see it full size.</p>
 
-  <p><strong><code>cover:</code></strong> names the title slide. The ten run
-  quiet to loud rather than alphabetically, because the one question the list
-  asks is how much the opening slide should assert itself.</p>
+  <p><strong><code>cover:</code></strong> names the title slide. They are
+  ordered quiet to loud.</p>
 
   <div class="gallery">
     <figure class="shot tile"><img src="img/classic.webp" alt="A title slide with the type set in the lower left third of an otherwise empty slide.">
@@ -375,7 +370,7 @@ browser is for pages meant to be looked at.
   </div>
 
   <details class="setup">
-    <summary>The other nine title slides</summary>
+    <summary>The other title slides</summary>
     <div class="setup-body">
       <div class="gallery">
       <figure class="shot tile"><img src="img/masthead.webp" alt="A title slide with the title at the top edge, a lede in the middle, and the credits under a rule at the bottom.">
@@ -400,26 +395,20 @@ browser is for pages meant to be looked at.
     </div>
   </details>
 
-  <p class="tiny">Two further settings adjust a composition rather than
-  replacing it. <strong><code>cover-align:</code></strong> puts the type high,
-  in the middle or low, on the six compositions that leave it any freedom;
-  <strong><code>cover-ratio:</code></strong> says how much of the slide the
-  picture gets on the three that divide it. It is a percentage rather than a
-  <code>W:H</code> ratio, because the shape of the slide itself is the
-  projector&rsquo;s to decide.</p>
+  <p class="tiny"><strong><code>cover-align:</code></strong> puts the type
+  high, in the middle or low, on the compositions that leave it any freedom.
+  <strong><code>cover-ratio:</code></strong> is a percentage saying how much of
+  the slide the picture gets, on the ones that divide it.</p>
 
   <div class="gallery">
     <figure class="shot tile"><img src="img/stack-bottom.webp" alt="The stack cover with its type block moved down to sit on the bottom margin.">
-      <figcaption><code>cover: stack</code> with <code>cover-align: bottom</code> &ndash; compare the third tile above</figcaption></figure>
+      <figcaption><code>cover: stack</code> with <code>cover-align: bottom</code></figcaption></figure>
     <figure class="shot tile"><img src="img/beside-ratio.webp" alt="The beside cover with the diagram given a wider share of the slide than the default.">
-      <figcaption><code>cover: beside</code> with <code>cover-ratio: 62%</code> &ndash; compare the ninth</figcaption></figure>
+      <figcaption><code>cover: beside</code> with <code>cover-ratio: 62%</code></figcaption></figure>
   </div>
 
   <p><strong><code>section:</code></strong> draws the divider slide a new part
-  of the lecture opens with. Every one of the six is quieter than any title
-  slide: a divider that can be mistaken for the title slide has failed at the
-  one job it has, which is to say <em>a new part starts here, and it is part of
-  the thing you are already in</em>.</p>
+  of the lecture opens with. They are all quieter than any title slide.</p>
 
   <div class="gallery">
     <figure class="shot tile"><img src="img/section-plain.webp" alt="A divider slide showing only the part heading on an empty slide.">
@@ -440,7 +429,7 @@ browser is for pages meant to be looked at.
   closing slide, dividers carrying a quotation or a photograph or a figure,
   items laid out as cards, a full-slide photograph that opens up as you press
   <kbd>Space</kbd> &ndash; is in the <a href="decoration/audience.html">decoration
-  lecture</a>, which is written to be read rather than looked at.</p>
+  lecture</a>.</p>
 
   </div>
 </section>
@@ -457,9 +446,9 @@ browser is for pages meant to be looked at.
   has, with figures from a real course among them, and is the worked example
   behind <a href="figures.html">Figures you write</a>.
   <strong>Decoration</strong> shows every construction that puts something other
-  than a text column on a slide &ndash; the ten title slides, the six dividers, items
-  laid out as cards, a photograph that opens up as you press <kbd>Space</kbd>.
-  All four are in English. The <strong>short example</strong> is one section of a
+  than a text column on a slide &ndash; the title slides, the dividers, items laid
+  out as cards, a photograph that opens up as you press <kbd>Space</kbd>.
+  The <strong>short example</strong> is one section of a
   first-year networking lecture, in German &ndash; eighty-odd lines of Markdown, short
   enough to read end to end beside what it produces
   (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">source</a>,
@@ -495,11 +484,10 @@ browser is for pages meant to be looked at.
   </table>
 
   <p class="tiny"><strong>The decoration lecture is where the newer features
-  live</strong> &ndash; the ten title slides, the six part dividers, items laid
-  out as cards, a full-slide photograph that opens up as you advance, and a
-  heading that stays in the printed document but not on the screen. It is
-  published as the projection and the document only: what it shows is what a
-  slide looks like, and those two carry all of it.</p>
+  live</strong> &ndash; the title slides, the part dividers, items laid out as
+  cards, a full-slide photograph that opens up as you advance, and a heading
+  that stays in the printed document but not on the screen. Only the projection
+  and the document are published for it.</p>
 
   <p class="tiny">Start with the projection. Arrow keys move between slides,
   <kbd>Space</kbd> brings in the next part of a slide, <kbd>C</kbd> switches
@@ -709,9 +697,8 @@ browser is for pages meant to be looked at.
 
     <p>Being a preview is not only a question of packaging: the source format
     is still open to change, and a figure you write now may need an edit when
-    it ships. The drawing above is one of thirty-six in
-    <code>lectures/network-security</code>, which is where it was worked out at
-    the size of a real course.</p>
+    it ships. The drawing above comes from
+    <code>lectures/network-security</code>, a real course rebuilt as figures.</p>
   </div>
 
   <p><a href="figures.html">Figures you write</a> is the case for the language

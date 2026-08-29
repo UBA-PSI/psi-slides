@@ -360,18 +360,15 @@ browser is for pages meant to be looked at.
 <section class="band band-do">
  <div class="wrap">
 
-  <h2 id="covers">Zehn Titelfolien, sechs Trenner</h2>
+  <h2 id="covers">Titelfolien und Trenner</h2>
 
   <p>Eine Vorlesung benutzt eine Titelfolie und eine Trennerart, deshalb ist
   diese Seite die einzige Stelle, an der alle nebeneinander stehen. Die
-  Voreinstellung steht unten, die anderen neun sind einen Klick entfernt. Jede Kachel unten ist die Aufnahme
-  einer echten Folie, aufgenommen von <code>docs/site/shoot-gallery.mjs</code>
-  bei derselben Fenstergröße und demselben Zoom wie alle anderen &ndash; keine davon
-  ist von Hand gesetzt. Anklicken zeigt sie in voller Größe.</p>
+  Voreinstellung steht unten, der Rest ist einen Klick entfernt. Anklicken
+  zeigt eine Kachel in voller Größe.</p>
 
-  <p><strong><code>cover:</code></strong> benennt die Titelfolie. Die zehn sind
-  von leise nach laut sortiert und nicht alphabetisch, weil die Liste nur eine
-  Frage stellt: wie sehr soll die erste Folie auftreten.</p>
+  <p><strong><code>cover:</code></strong> benennt die Titelfolie. Sie sind von
+  leise nach laut sortiert.</p>
 
   <div class="gallery">
     <figure class="shot tile"><img src="../img/classic.webp" alt="Eine Titelfolie, deren Satz im unteren linken Drittel einer sonst leeren Folie steht.">
@@ -379,7 +376,7 @@ browser is for pages meant to be looked at.
   </div>
 
   <details class="setup">
-    <summary>Die anderen neun Titelfolien</summary>
+    <summary>Die anderen Titelfolien</summary>
     <div class="setup-body">
       <div class="gallery">
       <figure class="shot tile"><img src="../img/masthead.webp" alt="Eine Titelfolie mit dem Titel an der Oberkante, einem Lead in der Mitte und den Credits unter einer Linie am Fuß.">
@@ -404,26 +401,22 @@ browser is for pages meant to be looked at.
     </div>
   </details>
 
-  <p class="tiny">Zwei weitere Angaben verändern eine Komposition, statt sie zu
-  ersetzen. <strong><code>cover-align:</code></strong> setzt den Satz nach oben,
-  in die Mitte oder nach unten, bei den sechs Kompositionen, die ihm dort
-  Freiheit lassen; <strong><code>cover-ratio:</code></strong> sagt, wie viel der
-  Folie das Bild bei den dreien bekommt, die sie teilen. Es ist ein Prozentsatz
-  und kein <code>W:H</code>-Verhältnis, denn das Seitenverhältnis der Folie
-  selbst gehört dem Beamer.</p>
+  <p class="tiny"><strong><code>cover-align:</code></strong> setzt den Satz
+  nach oben, in die Mitte oder nach unten, bei den Kompositionen, die ihm dort
+  Freiheit lassen. <strong><code>cover-ratio:</code></strong> ist ein
+  Prozentsatz und sagt, wie viel der Folie das Bild bekommt, bei denen, die sie
+  teilen.</p>
 
   <div class="gallery">
     <figure class="shot tile"><img src="../img/stack-bottom.webp" alt="Das stack-Cover, dessen Satzblock nach unten an den Rand gerückt ist.">
-      <figcaption><code>cover: stack</code> mit <code>cover-align: bottom</code> &ndash; vergleiche die dritte Kachel oben</figcaption></figure>
+      <figcaption><code>cover: stack</code> mit <code>cover-align: bottom</code></figcaption></figure>
     <figure class="shot tile"><img src="../img/beside-ratio.webp" alt="Das beside-Cover, bei dem das Diagramm einen breiteren Anteil der Folie bekommt als voreingestellt.">
-      <figcaption><code>cover: beside</code> mit <code>cover-ratio: 62%</code> &ndash; vergleiche die neunte</figcaption></figure>
+      <figcaption><code>cover: beside</code> mit <code>cover-ratio: 62%</code></figcaption></figure>
   </div>
 
   <p><strong><code>section:</code></strong> zeichnet die Trennerfolie, mit der
-  ein neuer Teil der Vorlesung aufmacht. Jede der sechs ist leiser als jede
-  Titelfolie: ein Trenner, den man mit der Titelfolie verwechseln kann, hat bei
-  seiner einzigen Aufgabe versagt &ndash; zu sagen, <em>hier beginnt ein neuer Teil,
-  und er gehört zu dem, worin du schon bist</em>.</p>
+  ein neuer Teil der Vorlesung aufmacht. Sie sind alle leiser als jede
+  Titelfolie.</p>
 
   <div class="gallery">
     <figure class="shot tile"><img src="../img/section-plain.webp" alt="Eine Trennerfolie, die nur die Überschrift des Teils auf leerer Folie zeigt.">
@@ -444,8 +437,7 @@ browser is for pages meant to be looked at.
   <em>kann</em> &ndash; eine Schlussfolie, Trenner mit Zitat, Foto oder Abbildung,
   Inhalte als Karten gesetzt, ein ganzflächiges Foto, das sich auf
   <kbd>Leertaste</kbd> öffnet &ndash; steht in der
-  <a href="../decoration/audience.html">Dekorations-Vorlesung</a>, die zum Lesen
-  geschrieben ist und nicht zum Ansehen.</p>
+  <a href="../decoration/audience.html">Dekorations-Vorlesung</a>.</p>
 
   </div>
 </section>
@@ -463,8 +455,8 @@ browser is for pages meant to be looked at.
   ist das ausgearbeitete Beispiel hinter
   <a href="../figures.html">Figures you write</a>. <strong>Decoration</strong> zeigt
   jede Konstruktion, die etwas anderes als eine Textspalte auf eine Folie bringt:
-  die zehn Titelfolien, die sechs Trenner, Inhalte als Karten gesetzt, ein Foto,
-  das sich mit <kbd>Leertaste</kbd> öffnet. Alle vier sind auf Englisch. Das
+  die Titelfolien, die Trenner, Inhalte als Karten gesetzt, ein Foto, das sich
+  mit <kbd>Leertaste</kbd> öffnet. Das
   <strong>Kurzbeispiel</strong> ist ein Ausschnitt aus einer Netzwerk-Vorlesung
   im ersten Semester, auf Deutsch: gut 80 Zeilen Markdown, kurz genug, um sie
   ganz zu lesen und daneben zu sehen, was daraus wird
@@ -501,12 +493,11 @@ browser is for pages meant to be looked at.
   </table>
 
   <p class="tiny"><strong>In der Dekorations-Vorlesung stecken die neueren
-  Möglichkeiten</strong> &ndash; die zehn Titelfolien, die sechs Trenner für
-  Abschnitte, Aufzählungen als Karten gesetzt, ein bildschirmfüllendes Foto,
-  das sich beim Weiterblättern öffnet, und eine Überschrift, die im gedruckten
-  Dokument steht, aber nicht auf der Leinwand. Sie erscheint nur als Projektion
-  und als Dokument: gezeigt wird, wie eine Folie aussieht, und das tragen diese
-  beiden vollständig.</p>
+  Möglichkeiten</strong> &ndash; die Titelfolien, die Trenner für Abschnitte,
+  Aufzählungen als Karten gesetzt, ein bildschirmfüllendes Foto, das sich beim
+  Weiterblättern öffnet, und eine Überschrift, die im gedruckten Dokument
+  steht, aber nicht auf der Leinwand. Veröffentlicht sind davon nur die
+  Projektion und das Dokument.</p>
 
   <p class="tiny">Am besten mit der Projektion anfangen. Pfeiltasten blättern,
   <kbd>Leertaste</kbd> blendet den nächsten Abschnitt ein, <kbd>C</kbd> schaltet
