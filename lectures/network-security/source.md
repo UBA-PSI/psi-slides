@@ -108,7 +108,7 @@ text gwl  "10.1.1.1\n00:ac:c1:11:15:11" below gw gap 0.32 {.mono .muted}
 
 # On the original slide A is red from the start. Here A is a host like any
 # other first and becomes the attacker only in the last beat, which is exactly
-# what the slide says and costs no label.
+# what the original says, and costs no label.
 step hosts
   show @hosts
 step forwarding
@@ -249,8 +249,8 @@ text awbl "Attacker's Webserver\n“example.com”\n66.9.9.6" below awb gap 0.28
 edge forged b.cx,sw.top -> b.bottom {.accent}
 text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .accent .mono @spoof}
 
-# "on-patch" is the original slide's typo and is kept verbatim. On the slide
-# the question is a bordered box; here it is a note with a leader to A - a box
+# "on-patch" is the original's typo and is kept verbatim. There the question
+# is a bordered box; here it is a note with a leader to A - a box
 # in the topology would look like a device. It stands beside A so the leader
 # stays horizontal.
 text ask "Can A also become\non-patch attacker?" left of a gap 1.75 -- a.left,a.cy {.accent @ask}
@@ -269,7 +269,7 @@ step question
   show @ask
 :::
 
-**Sitting on the path means never having to guess.** An attacker on a router or on one of the endpoints sees the query and all its random numbers; they hold the real reply back and push their own in front of it. The figure does that in two moves: first the wire the real answer would come on turns dashed, then the forged arrow takes its place. The box at the top left is the slide's question to the room, and it is meant seriously: A does not lie on the path to the resolver but can put itself there by ARP cache poisoning.
+**Sitting on the path means never having to guess.** An attacker on a router or on one of the endpoints sees the query and all its random numbers; they hold the real reply back and push their own in front of it. The figure does that in two moves: first the wire the real answer would come on turns dashed, then the forged arrow takes its place. The box at the top left is the original's question to the room, and it is meant seriously: A does not lie on the path to the resolver but can put itself there by ARP cache poisoning.
 
 ## figure: Off-path attackers (E) must generate a valid reply | that reaches B before the reply sent by the real DNS resolver {.full #ns-a14}
 
@@ -331,10 +331,10 @@ step cache
 ## figure: Distributed Denial of Service (DDoS) attack | attacker instructs hosts infected with malware to flood a victim with traffic {.full #ns-a28}
 
 ::: draw {unit=100x76}
-# On the slide the bots lie on a world map. That stays out here: a raster
+# In the original the bots lie on a world map. That stays out here: a raster
 # image follows no theme and costs over 100 kB. Scattered sources all round
 # say the same thing - "distributed" was the argument, the geography never
-# was. Every label is verbatim from the slide.
+# was. Every label is verbatim from the original.
 default box {.accent} w 0.44 h 0.3
 
 box vic "Victim" at 0,0 w 1.05 h 0.62 {.tone-4 !accent}
@@ -380,9 +380,9 @@ step unfilterable
 ## figure: DoS attacks are also possible without access to a botnet | Attackers can use connectionless protocols and spoof their Src IP to hide their identity {.full #ns-a29}
 
 ::: draw {unit=96x74}
-# Again with no world map, for the same reasons as the slide before. The
+# Again with no world map, for the same reasons as the figure before. The
 # dashed boxes with the question mark are the "faked sources": what is not
-# genuine about them is the outline. Text verbatim from the slide; only the
+# genuine about them is the outline. Text verbatim from the original; only the
 # line breaks in the box on the right are re-set - the original breaks
 # "proto-cols" mid-word there, because its frame ran out.
 default box {.accent} w 0.44 h 0.34
@@ -414,7 +414,7 @@ edge real-traffic atk -> vic.bl {.accent .thick @real}
 # The label sits on the line rather than beside it, and .paper knocks the line
 # out for it - otherwise line and word read as one pattern.
 text tr "Traffic of the DoS attack" between atk,vic pad 0.14 {.paper .accent @real}
-text loc "Attacker’s real location\nis unknown (IP spoofing)." below atk gap 0.4 {.muted @real}
+text loc "Attacker's real location\nis unknown (IP spoofing)." below atk gap 0.4 {.muted @real}
 
 box why "Faking Src IP possible for\nconnectionless protocols,\ne.g., ICMP (“ping”) or\nprotocols using UDP (DNS, NTP)" at 5.05,-1.7 w 2.8 h 1.2 {.clear @fake}
 
@@ -458,7 +458,7 @@ Example: Spamhouse  (75 Gbps)
 
 ::: flip
 ::: draw {unit=130x62}
-# "Spamhouse" is what the slide says (the company is called Spamhaus) and it
+# "Spamhouse" is what the original says (the company is called Spamhaus) and it
 # stays; the evidence for it is the capture beside it, not this picture. The
 # two triangles are the size comparison: the area is the volume, the point
 # shows where it arrives. 37 bytes out, 1194 back.
@@ -488,7 +488,7 @@ step blame
 
 **The attacker sends little and lets a lot come back.** The small point goes to an open resolver carrying the victim's source address; the large one comes out at the victim, and the ratio of the two areas is the amplification factor. The capture beside it has the numbers. It works only because the servers queried answer anybody who asks.
 
-## figure: Next up is a DoS attack that exploits a design flaw | For that let’s review the TCP connection handshake {.full #ns-a31}
+## figure: Next up is a DoS attack that exploits a design flaw | For that let's review the TCP connection handshake {.full #ns-a31}
 
 ::: side
 
@@ -528,7 +528,7 @@ box sa   "SYN+ACK seq=*s* ack=*c*+1" below syn gap 0.22 point left {.chevron @tw
 box ack  "ACK seq=*c*+1 ack=*s*+1"   below sa gap 0.22 {.chevron @three}
 box data "DATA"                      below ack gap 0.62 {.chevron .tone-4 @data}
 
-text state "Server stores *state* (e.g., seq,\nIPs, ports) in memory to match\nclient’s ACK previous packets." below data gap 0.62 {@why}
+text state "Server stores *state* (e.g., seq,\nIPs, ports) in memory to match\nclient's ACK previous packets." below data gap 0.62 {@why}
 
 step reply
   show @two
@@ -818,7 +818,7 @@ Go to secure Login Form</a>[...]
 ## figure: Firewalls enforce rules that limit who is allowed to talk to whom. {.full #ns-b04}
 
 ::: draw {unit=132x78}
-# Every label verbatim from the slide - including "publically reachable",
+# Every label verbatim from the original - including "publically reachable",
 # which is spelled exactly that way in the original and stays. The line break
 # in "demilitarized zone (DMZ)" is only a break in the original (hyphenated
 # there), not different wording.
@@ -1017,7 +1017,7 @@ ssh –L2222:44.11.1.4:22 92.1.1.5
 ::: draw {unit=138x74}
 # The slide's command lines stand beside the figure as an ordinary code
 # block, not in the diagram. And they stand there verbatim: the second line
-# names 91.1.1.5, the others 92.1.1.5. That is how the slide has it, and the
+# names 91.1.1.5, the others 92.1.1.5. That is how the original has it, and the
 # difference is kept.
 default box {.tone-2}
 
@@ -1367,7 +1367,7 @@ step rest
 ## figure: Observed character freq. | Anomaly? {.full #ns-b55}
 
 ::: draw {unit=150x58}
-# The string under the columns is verbatim from the slide, letter-spaced:
+# The string under the columns is verbatim from the original, letter-spaced:
 # "t / p r e n . ; l m o b". The second string splits on spaces, so one label
 # per column. The values are chosen so that the bins on #ns-b57 - the same
 # packet, the same columns - come to exactly the counts 43 / 36 / 21 taken
@@ -1385,7 +1385,7 @@ plot cmp ".ie0lo1/a35M6rckn()tW…" below hcmp gap 0.5 flush left w 3.1 h 1.5 x 
 edge normal cmp@0.01,cmp@0.6 -- cmp@1,cmp@0.03 via cmp@0.1,cmp@0.4 cmp@0.25,cmp@0.26 cmp@0.45,cmp@0.15 cmp@0.7,cmp@0.07 {.smooth .thick}
 
 # The suspicious packet's needles: a second run of columns standing on the
-# plot's baseline and filling its width. 24 rather than the slide's ~40
+# plot's baseline and filling its width. 24 rather than the original's ~40
 # needles - the point is the contrast, not the count.
 # .tone-4 is the only full fill there is, and it mixes from --emph: a needle
 # 6 px wide with a bare stroke would be empty inside.
@@ -1413,7 +1413,7 @@ step metric
   dim normal
 :::
 
-**A packet brings its own character distribution with it.** Above is what was actually counted in the payload; below, the same count lies over what is normal for this service. The red needles stand where the observed packet is far above the reference – the eye sees the outlier before any figure has been computed. Which leaves the question the slide asks: what distance measure turns this picture into a number?
+**A packet brings its own character distribution with it.** Above is what was actually counted in the payload; below, the same count lies over what is normal for this service. The red needles stand where the observed packet is far above the reference – the eye sees the outlier before any figure has been computed. Which leaves the question the original asks: what distance measure turns this picture into a number?
 
 ## figure: Training stage | Chi-square statistic (goodness of fit) {.full #ns-b56}
 
@@ -1447,7 +1447,7 @@ step weights
 
 ::: draw {unit=150x56}
 # The same values as the observed distribution on #ns-b55 - it is the same
-# packet - and the bins sum to exactly the slide's numbers: 20+12+11 = 43,
+# packet - and the bins sum to exactly the original's numbers: 20+12+11 = 43,
 # 10+9+9+8 = 36, 8+7+6 = 21. These used to be the values of the *training*
 # distribution from #ns-b56, which made the anomalous distribution identical
 # to the one it is meant to deviate from.

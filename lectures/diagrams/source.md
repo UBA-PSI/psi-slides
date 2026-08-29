@@ -441,7 +441,7 @@ text tl "family" left of t1 gap 1.15 {.muted}
 # The three prominence words, on free text rather than on boxes: they occupy
 # one slot and displace each other, and .emph colours the words themselves
 # here. An image has no ink to thicken and is still served by the same list,
-# because there emph simply takes a dim off again.
+# because there emph takes a dim off again.
 text pr0 "normal" at 0.31,1.85
 text pr1 "emph"  right of pr0 gap 1 {.emph}
 text pr2 "dim"   right of pr1 gap 1 {.dim}
@@ -586,9 +586,9 @@ edge sa tl.left,tl.top-0.5 -> tr.right,tr.top-0.5 "side top" side top {.small .m
 edge sb bl.left,bl.bottom+0.95 -> br.right,br.bottom+0.95 "side bottom" side bottom {.small .muted}
 :::
 
-**`left` and `right` say where a line of words sits, `top` and `bottom` where the block of lines sits.** Both are measured against the **padding**, not the border: `left` means as far left as this box allows. Without one of the four the label sits centred, which is right for almost every box; the words are there for the rest, above all for a tall box with a short label.
+**`left` and `right` say where a line of words sits, `top` and `bottom` where the block of lines sits.** Both are **measured against the padding rather than the border**: `left` means as far left as this box allows. Without one of the four the label sits centred, which is right for almost every box; the words are there for the rest, above all for a tall box with a short label.
 
-With more than one line the **block** moves, not the single line, so on two lines `bottom` puts the *last* one on the inner edge rather than the first. `turn` beats both: a turned label reads bottom to top and is centred on its point whichever way round it goes.
+With more than one line **the whole block of lines moves, not the single line**, so on two lines `bottom` puts the *last* one on the inner edge rather than the first. `turn` beats both: a turned label reads bottom to top and is centred on its point whichever way round it goes.
 
 **The nine boxes above are two independent channels; the two lines around them are one.** A box label sits somewhere in a rectangle of space, so there are three answers across and three down. An edge label lies on one side of its line or the other, and that is all. The same four words for both meant `{.top .left}` was writable on an edge, which has only one side to pick. On an edge it is therefore `side <word>`, the pattern `point` follows on the outlines: a closed word list as an option instead of a class per word. Which pair can choose at all is settled only once the line is routed, so naming the other one draws a warning.
 
@@ -725,7 +725,7 @@ edge sb pb@0,pb@3.2 -- pb@8,pb@7.6 via pb@2,pb@4.4 pb@4,pb@5.2 pb@6,pb@6.8 {.smo
 
 **`same as` on a `plot` or `bars` line copies the whole frame.** The right-hand plot writes no size of its own but points at the left one, so the two figures match to the pixel. Two figures meant to be compared have to be ones the eye can lay over each other; two frames a hair apart cannot do that.
 
-**The copy happens as the line is read, not at layout time – unlike a box's.** Gridlines, axis labels and columns are placed from `w` and `h` the moment the line is read, so a size arriving later would move the frame and leave everything in it standing. The statement being copied from must therefore stand **above** the one copying, and the build names what went wrong: a name that appears further down, one pointing at something other than a `plot` or `bars`, or one that is not in the block at all. `same as` beside `w`, `h` or `aspect` is an error, and so is `same as` on a `series of` line, a series drawing in a frame it does not lay.
+**The copy happens as the line is read, not at layout time – unlike a box's.** Gridlines, axis labels and columns are placed from `w` and `h` the moment the line is read, so a size arriving later would move the frame and leave everything in it standing. **The statement being copied from has to stand above the one copying it**, and the build names what went wrong: a name that appears further down, one pointing at something other than a `plot` or `bars`, or one that is not in the block at all. `same as` beside `w`, `h` or `aspect` is an error, and so is `same as` on a `series of` line, a series drawing in a frame it does not lay.
 
 **Frames of one size are not yet one scale.** `x` and `y` stand on each `plot` line for themselves, and nothing checks that two frames carry the same ranges – above they are written out twice, and that is the place to re-read before handing the slide over. `bars` has no range to write at all: every `bars` statement scales to its own highest value, so two frames of one size can hold columns that cannot be compared.
 
@@ -736,7 +736,7 @@ image swatch swatch w 0.6
 text  note "a raster keeps its own colours\nin every theme" right of swatch gap 0.9 -- swatch {.small .muted .left}
 :::
 
-Cycle the themes with `A` and the raster image stays as it is, while boxes, arrows and vector drawings re-colour. That is what pixels cost.
+Cycle the themes with `A` and the raster image stays as it is, while boxes, arrows and vector drawings re-colour. Pixels cost that; a vector drawing does not.
 
 # Four arrangements
 
@@ -774,7 +774,7 @@ edge d2 -> drop "no"  {.paper}
 
 **The diamond is the outline a room needs no explanation for.** It learned it at school: a question is asked here, and it goes on in two ways. What that costs is room. The widest strip a diamond offers is half its width by half its height, so the build sizes it at twice what a rectangle would need – two or three words, with the explanation in a note beside it, as on the left here. A whole sentence in a diamond would take four times the area of the boxes around it and become the figure.
 
-**The four labels sit *on* the line, and that is a decision rather than a default.** A fill class on an edge draws a ground behind the label; with no `side top`, `side bottom`, `side left` or `side right` beside it, the label stays on the line and knocks it out behind itself. That is the right form for a word that *names* the line – “yes”, “no”, a port number, a message type – the way a street sign belongs to the street and the street runs past it either side. A sentence describing what *travels* along the line belongs beside it: the swimlanes next door do that, and the ROC curves above take the ground along when they do. Mixing the two in one figure means the room has to sort each label before it can read any of them, so everything here is on the line.
+**The four labels sit *on* the line, and each one says so on its own tail.** A fill class on an edge draws a ground behind the label; with no `side top`, `side bottom`, `side left` or `side right` beside it, the label stays on the line and knocks it out behind itself. That is the right form for a word that *names* the line – “yes”, “no”, a port number, a message type – the way a street sign belongs to the street and the street runs past it either side. A sentence describing what *travels* along the line belongs beside it: the swimlanes next door do that, and the ROC curves above take the ground along when they do. Mixing the two in one figure means the room has to sort each label before it can read any of them, so everything here is on the line.
 
 ## figure: Three roles, one incident | a swimlane {.full #swimlane}
 
@@ -876,7 +876,7 @@ step every-one-has-an-answer
   style @t-col-2 {.tone-2}
 :::
 
-**Five rows by three columns is fifteen boxes, each with its own name, width and placement, and a `below` chain to re-aim whenever a row is inserted.** `table` writes them: the heading is one string split on `|`, the data rows are the bare strings under it, `col` gives a width per column and `row` the height of one row. The attribute tail `{.clear .bare .left}` lands on the **cells**, not on the frame, which is what makes a table here a text block rather than a grid of little boxes. The rule under the heading is an ordinary edge between two coordinates, each half from the frame and half from the first cell.
+**Five rows by three columns is fifteen boxes, each with its own name, width and placement, and a `below` chain to re-aim whenever a row is inserted.** `table` writes them: the heading is one string split on `|`, the data rows are the bare strings under it, `col` gives a width per column and `row` the height of one row. The attribute tail `{.clear .bare .left}` **lands on the cells and not on the frame**, which is what makes a table here a text block rather than a grid of little boxes. The rule under the heading is an ordinary edge between two coordinates, each half from the frame and half from the first cell.
 
 **Every cell carries two generated tags, `@t-row-N` and `@t-col-N`.** So a row is one beat and a column is one beat, one line of source each – where otherwise every beat would carry three cell names to keep in step with the table by hand. Row 0 is the heading, so count from 1 when you mean data.
 
