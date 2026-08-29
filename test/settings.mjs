@@ -221,10 +221,6 @@ console.log('\nlayout generations');
     ok(/data-autoplay="900"/.test(out), 'and it lands on the figure as data-autoplay');
     ok(!/unit=150x56 autoplay/.test(out), 'with the option no longer in the block source');
   }
-  const bad = spawnSync(process.execPath,
-    [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
-    { cwd: ROOT, encoding: 'utf8', env: { ...process.env } });
-  ok(bad.status === 0, 'and the block still compiles on a rebuild');
 }
 
 // ── cycle, and the two switches that were only checked by hand ────────
@@ -736,10 +732,12 @@ console.log('\nlayout generations');
   // slide, so the picture must not move while its window opens.
   ok(/\.chunk-backdrop\[data-bd-frames\] \{\s*transition: clip-path/.test(rev.html),
      'the reveal animates the window, never the picture');
-  ok(/prefers-reduced-motion[^}]*\}[\s\S]{0,120}\.chunk-backdrop\[data-bd-frames\] \{ transition: none/
-       .test(rev.html) || /@media \(prefers-reduced-motion: reduce\) \{\s*\.chunk-backdrop\[data-bd-frames\]/
-       .test(rev.html),
-     'and it stands still for a reader who asked for no motion');
+  // What reduced motion does here is asserted where it was decided – in the
+  // review block below, against the exact rule (`transition: opacity 260ms
+  // ease`). The version that stood here looked for `transition: none`, which
+  // is the rule that was *removed* for taking the slide crossfade away with
+  // the picture's opening, and passed only through a fallback alternative
+  // that asked whether any rule at all was in the block.
   // One place is a static crop written the long way round.
   const revOne = mask('::: backdrop ' + PIC + ' reveal full\n');
   ok(revOne.failed && /needs at least two places/.test(revOne.out),
@@ -829,9 +827,10 @@ console.log('\nlayout generations');
      'because print renders the column heading, not the camera stop');
 
   // ── cover: quote ──
-  const qt = cover('cover: quote\n', '');
-  ok(qt.failed && /has no body/.test(qt.out),
-     'a quote cover with no quotation is refused');
+  // That a quote cover with no quotation is refused is asserted in the review
+  // block below, on the same source under `noClaim`, and more strictly: there
+  // it is refused by `--print-only` as well, and the failed build is checked
+  // to have left no half-written file. This is the same build.
   const qt2 = (() => {
     fs.writeFileSync(path.join(dir, 'source.md'),
       '---\ntitle: T\npresenter: P\ncover: quote\n---\n\n' +

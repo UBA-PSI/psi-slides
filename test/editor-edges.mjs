@@ -12,7 +12,7 @@ export const name = 'editor · edges';
 export const lecture = 'diagrams';
 export const view = 'audience';
 
-export async function run({ page, errors, report, press, walkTo, ed }) {
+export async function run({ page, report, press, walkTo, ed }) {
   const { ok, note } = report;
 
   await walkTo('cbc');
@@ -299,5 +299,4 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   await page.waitForTimeout(300);
 
   ok(!(await ed.problems()).includes('line '), 'the block compiles at the end', await ed.problems());
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

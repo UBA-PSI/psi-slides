@@ -34,7 +34,7 @@ const clickSlot = async (page, label, text) => {
   await page.waitForTimeout(420);
 };
 
-export async function run({ page, errors, report, walkTo, ed }) {
+export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
   // #look carries one of every outline, so it is where an aimable element is.
@@ -148,6 +148,4 @@ export async function run({ page, errors, report, walkTo, ed }) {
   await page.waitForTimeout(500);
   ok((await bars()) === barsWas, 'and clearing it leaves the line exactly as it was',
     JSON.stringify(await bars()));
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

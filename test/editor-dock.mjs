@@ -17,7 +17,7 @@ export const name = 'editor · docking';
 export const lecture = 'diagrams';
 export const view = 'audience';
 
-export async function run({ page, errors, report, walkTo, ed }) {
+export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
   await walkTo('primitives');
@@ -152,6 +152,4 @@ export async function run({ page, errors, report, walkTo, ed }) {
   ok(seen === 0, 'no chips over a container that holds the dragged element', String(seen));
   ok(!(await ed.problems()).includes('line '), 'and nothing broke', await ed.problems());
   note('r1 after: ' + (await ed.lineWith('box r1')));
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

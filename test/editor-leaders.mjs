@@ -18,7 +18,7 @@ export const name = 'editor · leader stubs';
 export const lecture = 'diagrams';
 export const view = 'audience';
 
-export async function run({ page, errors, report, walkTo, ed }) {
+export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
   await walkTo('primitives');
@@ -139,6 +139,4 @@ export async function run({ page, errors, report, walkTo, ed }) {
   await page.waitForTimeout(320);
   ok((await leaderRow()) === null, 'a selection holding something with no leader gets no row',
     JSON.stringify(await leaderRow()));
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

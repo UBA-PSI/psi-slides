@@ -32,7 +32,7 @@ export const name = 'editor · a guide on every drag';
 export const lecture = 'diagrams';
 export const view = 'audience';
 
-export async function run({ page, errors, report, walkTo, ed }) {
+export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
   const marks = () => page.locator('#dge-guides .dge-nb').count();
@@ -135,10 +135,12 @@ export async function run({ page, errors, report, walkTo, ed }) {
   const atBeat0 = seen.labels.slice().sort();
   note('beat 0 : ' + JSON.stringify(atBeat0) + '  ·  ' + seen.note);
   ok(atBeat0.length === 2, 'at beat 0 the drag lights up two lines', JSON.stringify(atBeat0));
-  const placed = await ed.lineWith('text goals');
-  ok(/ at [a-z]\w*\.\w+,[a-z]\w*\.\w+ /.test(placed || ''),
-    'and the placement becomes a ref coordinate', placed);
-
+  // That the drag writes a ref coordinate rather than a number is
+  // `editor-guides.mjs`, on this element and this drag, and said more
+  // strictly there – it separates the x words from the y words and asserts
+  // that no bare number survived. This spec is about what the *beat* does to
+  // the same gesture, which is what the undo and the last-beat drag below
+  // measure.
   await undo();
   const back = await ed.lineWith('text goals');
   ok(/at 3\.55,-1\.05/.test(back || ''), 'undo puts the two bare numbers back', back);
@@ -345,6 +347,4 @@ export async function run({ page, errors, report, walkTo, ed }) {
     'and that is what the source gets – a value, not a position on the paper', chance1);
   ok(chance1 !== chance0, 'the endpoint really did move', chance1);
   ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

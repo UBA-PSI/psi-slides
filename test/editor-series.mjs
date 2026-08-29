@@ -19,7 +19,7 @@ export const name = 'editor · a series of columns';
 export const lecture = 'diagrams';
 export const view = 'audience';
 
-export async function run({ page, errors, report, walkTo, ed }) {
+export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
   const panes = () => page.evaluate(() =>
@@ -213,5 +213,4 @@ export async function run({ page, errors, report, walkTo, ed }) {
 
   ok(!(await ed.problems()).includes('line '), 'every edit left the block compiling',
     await ed.problems());
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

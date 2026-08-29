@@ -28,7 +28,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { createDiagramCompiler } from '../../diagram-core.mjs';
+import { createDiagramCompiler, createSpanTable } from '../../diagram-core.mjs';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -66,6 +66,18 @@ export function render(body, headAttrs = '') {
   } catch (e) {
     return { ok: false, msg: String(e && e.message || e), warns };
   }
+}
+
+/**
+ * The span table the editor rewrites a block through, for one body. It is not
+ * a drawing, so nothing here reads it back out of an SVG – but it is decided
+ * by the compiler alone, which is what makes it a gate rather than a browser
+ * spec.
+ */
+export function spans(body) {
+  const { core } = makeCore();
+  const { model } = core.parseDiagramSource(body, '');
+  return createSpanTable(model, body);
 }
 
 /** The per-beat payload a stepped figure carries, as parsed JSON, or null. */

@@ -7,14 +7,15 @@
  * them in a headless Chromium. Needs a browser: $PSI_CHROME wins, then one in
  * the Playwright cache, then the system Google Chrome.
  *
- * This is not a unit-test suite and does not try to be one. It covers the
- * three things in this project that can only break in a built page - the
- * navigation model, the editor's treatment of an edge, and the waypoint
- * round-trip - and it exists because each of those is a place where a
- * regression is silent until somebody is teaching with it. Everything else is
- * still guarded by `node lint.js lectures/` and by the build's own hard
- * failures, which is the right split: a check that can run without a browser
- * should.
+ * This is not a unit-test suite and does not try to be one. It covers what
+ * can only break in a built page, in four families - the navigation model,
+ * the editor's gestures and panel, the geometry of an emitted figure, and the
+ * settings that only show up in a rendered view - and it exists because each
+ * of those is a place where a regression is silent until somebody is teaching
+ * with it. It said "three things" for as long as it had three specs.
+ * Everything else is still guarded by `node lint.js lectures/`, by
+ * `test/gates/`, and by the build's own hard failures, which is the right
+ * split: a check that can run without a browser should.
  */
 import { buildLecture, serve, openDeck, closeBrowser, editorHelpers, createReport, ROOT } from './harness.mjs';
 
@@ -72,9 +73,15 @@ for (const spec of specs) {
   const deck = await openDeck(port, spec.view || 'audience');
   try {
     await spec.run({ ...deck, report, ed: editorHelpers(deck.page) });
+    // Every spec used to end with this line, which meant one spec could
+    // forget it – `figure-prominence.mjs` did, and swallowed page errors for
+    // as long as it existed. It is an invariant of running a spec at all, so
+    // the runner owns it and no new spec can be written without it.
+    report.ok(deck.errors.length === 0, 'no page errors', deck.errors.join(' | '));
   } catch (e) {
     crashed++;
-    console.log('  ✗ spec threw: ' + (e && e.message ? e.message : e));
+    console.log('  ✗ spec threw: ' + (e && e.message ? e.message : e)
+      + (deck.errors.length ? '\n      page errors: ' + deck.errors.join(' | ') : ''));
   } finally {
     await deck.close();
   }

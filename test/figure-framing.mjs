@@ -26,7 +26,7 @@ export const view = 'audience';
 const MARGIN = 12;          // DG_MARGIN, the pad boxFor adds on every side
 const SKEW_FRACTION = 0.08; // of the viewBox width, generous against the estimate
 
-export async function run({ page, errors, report }) {
+export async function run({ page, report }) {
   const { ok, note } = report;
 
   const figs = await page.evaluate(() => {
@@ -67,6 +67,4 @@ export async function run({ page, errors, report }) {
   const tight = figs.filter(f => Math.abs(f.L - MARGIN) < 0.6 && Math.abs(f.R - MARGIN) < 0.6);
   ok(tight.length >= 4, 'several figures land exactly on the margin, so the pad is uniform',
     String(tight.length) + ' of ' + figs.length);
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

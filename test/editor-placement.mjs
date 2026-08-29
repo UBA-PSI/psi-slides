@@ -18,7 +18,7 @@ export const name = 'editor · placement';
 export const lecture = 'diagrams';
 export const view = 'audience';
 
-export async function run({ page, errors, report, walkTo, ed }) {
+export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
   await walkTo('primitives');
@@ -221,6 +221,4 @@ export async function run({ page, errors, report, walkTo, ed }) {
   ok(titlesAfter[1] === titlesBefore[1],
     'so the y title is still the y title', titlesAfter.join(' '));
   ok(!(await ed.problems()).includes('line '), 'and the plot still compiles', await ed.problems());
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

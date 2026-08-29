@@ -22,7 +22,7 @@ export const name = 'editor · neighbour guides';
 export const lecture = 'diagrams';
 export const view = 'audience';
 
-export async function run({ page, errors, report, walkTo, ed }) {
+export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
   const marks = () => page.locator('#dge-guides .dge-nb').count();
@@ -255,6 +255,4 @@ export async function run({ page, errors, report, walkTo, ed }) {
   ok(/ at [a-z]\w*\.cx,2\.3 /.test(written || ''),
     'and the coincidence is written down as the relation it was all along', written);
 
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

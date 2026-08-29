@@ -35,7 +35,7 @@ const does = (page) => page.evaluate(() => {
 // into, or "the opening picture" is a phrase with nothing to hold it down.
 const DGE_STEP_NAME_HINT = 'not into step';
 
-export async function run({ page, errors, report, walkTo, ed }) {
+export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
   await walkTo('cbc');
@@ -348,6 +348,4 @@ export async function run({ page, errors, report, walkTo, ed }) {
   const restored = await page.evaluate(() => DGE.source);
   ok(restored === original, 'and the block is put back the way it was',
     JSON.stringify(restored.slice(-60)) + ' vs ' + JSON.stringify(original.slice(-60)));
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

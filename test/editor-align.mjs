@@ -17,7 +17,7 @@ export const name = 'editor · leaving an align set';
 export const lecture = 'diagrams';
 export const view = 'audience';
 
-export async function run({ page, errors, report, press, walkTo, ed }) {
+export async function run({ page, report, press, walkTo, ed }) {
   const { ok, note } = report;
 
   await walkTo('cbc');
@@ -90,6 +90,4 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
   await page.keyboard.press('Control+z');
   await page.waitForTimeout(400);
   ok(await alignLine() === before, 'and that undoes too', await alignLine());
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

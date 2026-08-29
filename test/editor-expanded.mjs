@@ -20,7 +20,7 @@ export const name = 'editor · what a statement expands into';
 export const lecture = 'diagrams';
 export const view = 'audience';
 
-export async function run({ page, errors, report, walkTo, ed }) {
+export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
   await walkTo('expand');
@@ -124,5 +124,4 @@ export async function run({ page, errors, report, walkTo, ed }) {
     'and none of the cells it drew', (await synthetic()).join(' '));
 
   ok(!(await ed.problems()).includes('line '), 'the block still compiles', await ed.problems());
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

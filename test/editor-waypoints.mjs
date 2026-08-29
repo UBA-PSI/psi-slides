@@ -14,7 +14,7 @@ export const name = 'editor · waypoints';
 export const lecture = 'diagrams';
 export const view = 'audience';
 
-export async function run({ page, errors, report, press, walkTo, ed }) {
+export async function run({ page, report, press, walkTo, ed }) {
   const { ok, note } = report;
 
   await walkTo('cbc');
@@ -198,6 +198,4 @@ export async function run({ page, errors, report, press, walkTo, ed }) {
     String(zoomedIn));
   ok(zoomedOut === 0, 'and none when they would cover it', String(zoomedOut));
   await page.evaluate(() => { DGE.zoom = 1; dgeApplyView(); dgeDrawGuides(); });
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

@@ -83,6 +83,21 @@ from building the same way is a major version.
 
 ### Fixed
 
+- **`lint.js` let through a coordinate the build refuses, on the most basic
+  literal in the figure grammar.** `box a "x" at 3,` and `box a "x" at 0x10,1`
+  are errors in `diagram-core.mjs`, and for a stated reason: `Number('')` is 0,
+  so the empty half of a pair silently placed the element on an axis origin,
+  and `Number('0x10')` is 16. The linter still tested the token with a bare
+  `Number.isFinite`, which both of those pass. That is the lax direction – the
+  one that merges green and fails every later build – and it was reachable
+  from any lecture CI lints but does not build. The linter now spells the
+  literal out, the way the compiler already did.
+
+  Both cases had been written down for a revision. They sat in a browser spec
+  that CI never runs and that asked the build alone; moving them into
+  `test/gates/refusals.mjs`, where every fixture is compiled *and* linted, is
+  what turned two passing assertions into a named gap.
+
 - **A second review, by a different model, found eight more - and seven of
   them were places `build.js` and `lint.js` disagreed.** Four in the direction
   that matters, where the build accepted what the linter refuses: `section:`

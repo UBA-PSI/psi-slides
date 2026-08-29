@@ -16,7 +16,7 @@ export const name = 'figure labels';
 export const lecture = 'diagrams';
 export const view = 'audience';
 
-export async function run({ page, errors, report, walkTo }) {
+export async function run({ page, report, walkTo }) {
   const { ok, note } = report;
 
   await walkTo('justify');
@@ -75,97 +75,13 @@ export async function run({ page, errors, report, walkTo }) {
   ok(fl && fr && Math.abs(fl.left - fr.right) < 1.5,
     'and the two mirror each other exactly', JSON.stringify([fl, fr]));
 
-  // ── and where the word cannot act, it is refused ──
-  //
-  // Three kinds place their label by their own statement: a container's
-  // caption on its own top border, a brace's beside the spine, an edge's at
-  // the middle of the line. Written there, an alignment word used to resolve,
-  // emit its CSS and move nothing – measured on the emitted SVG, `.left` moved
-  // a node label and an edge label and no other, `.top` moved a node label
-  // alone. A silent no-op is the failure this grammar keeps closing, so the
-  // combinations that cannot act are errors now.
-  //
-  // **The edge half changed with the `side` option.** These four words are two
-  // independent channels on a box, a dot or a free text – they place the label
-  // inside the element's own padding, nine combinations, which `#justify`
-  // exists to show. On an edge they named *one* thing, which side of the routed
-  // line the label sits on, so the same four words meant two geometries chosen
-  // by kind and `{.top .left}` on an edge was writable although an edge has one
-  // side to pick. That reading is now the `side` option, following the
-  // precedent `point` set, and the classes are refused on an edge like the
-  // other two holders. Which pair of sides can act is still only known after
-  // routing, so naming the pair that runs *along* the line stays a warning –
-  // but it now names a word that means only this.
-  //
-  // Compiled through the page's own compiler rather than against a lecture,
-  // because a lecture cannot hold a line that does not build.
-  const verdicts = await page.evaluate(() => {
-    const compile = (line) => {
-      const c = window.PSI_DG.createDiagramCompiler({
-        resolveImage: () => null, imageAspect: () => 1, warn: () => {},
-        escapeHtml: (s) => String(s), assetMarkup: () => '',
-      });
-      const src = ['box a "x" at 0,0', 'box b "y" below a gap 0.4', line].join('\n');
-      return c.parseDiagramSource(src, '').errors.length > 0;
-    };
-    return {
-      containerAcross: compile('container k "cap" over a,b {.left}'),
-      containerDown: compile('container k "cap" over a,b {.top}'),
-      braceAcross: compile('brace r "lab" over a,b right {.right}'),
-      braceDown: compile('brace r "lab" over a,b right {.bottom}'),
-      edgeDown: compile('edge a -- b "e" {.top}'),
-      edgeAcross: compile('edge a -- b "e" {.left}'),
-      edgeSideDown: compile('edge a -- b "e" side top'),
-      edgeSideAcross: compile('edge a -- b "e" side left'),
-      nodeAcross: compile('box c "z" right of a gap 0.5 {.left}'),
-      nodeDown: compile('box c "z" right of a gap 0.5 {.bottom}'),
-    };
-  });
-  note('refused: ' + Object.entries(verdicts).filter(([, v]) => v).map(([k]) => k).join(' '));
-  ok(verdicts.containerAcross && verdicts.containerDown
-     && verdicts.braceAcross && verdicts.braceDown
-     && verdicts.edgeAcross && verdicts.edgeDown,
-    'the six combinations that could not act are refused', JSON.stringify(verdicts));
-  // The two halves of the replacement: an edge takes `side`, and a node keeps
-  // the classes on both of its two independent channels.
-  ok(!verdicts.edgeSideDown && !verdicts.edgeSideAcross
-     && !verdicts.nodeAcross && !verdicts.nodeDown,
-    'and the ways that do act are still allowed', JSON.stringify(verdicts));
-
-  // ── the review's parser holes, closed and pinned ──
-  //
-  // Each of these was a silent failure or an order-sensitive refusal: a
-  // half-empty coordinate parsed as 0, an id that shadows Object.prototype
-  // broke the runtime's frame tables at step time, `point` written after a
-  // `between` was consumed as a member name, and the span table took an
-  // element named `w` for the width keyword and let a panel edit splice
-  // over the wrong token.
-  const holes = await page.evaluate(() => {
-    const mk = () => window.PSI_DG.createDiagramCompiler({
-      resolveImage: () => null, imageAspect: () => 1, warn: () => {},
-      escapeHtml: (s) => String(s), assetMarkup: () => '',
-    });
-    const errs = (src) => mk().parseDiagramSource(src, '').errors.length;
-    const spanProbe = () => {
-      const src = 'box w "West" at 0,0\nbox e "East" right of w gap 1';
-      const { model } = mk().parseDiagramSource(src, '');
-      const t = window.PSI_DG.createSpanTable(model, src);
-      const misW = t.spanOf('e', 'w');            // must not hit the reference
-      const own = t.spanOf('w', 'w');             // must not hit the element's own name
-      return !(misW && misW.present) && !(own && own.present);
-    };
-    return {
-      halfCoord: errs('box a "x" at 3,') > 0,
-      hexLiteral: errs('box a "x" at 0x10,1') > 0,
-      reservedId: errs('box constructor "x" at 0,0') > 0,
-      betweenPoint: errs('box a "x" at 0,0\nbox b "y" at 2,0\nbox c "go" between a,b point right {.chevron}') === 0,
-      spanGuard: spanProbe(),
-    };
-  });
-  ok(holes.halfCoord && holes.hexLiteral, 'a half-empty or hex coordinate is an error, not a silent 0', JSON.stringify(holes));
-  ok(holes.reservedId, 'an id that shadows Object.prototype is refused', JSON.stringify(holes));
-  ok(holes.betweenPoint, 'the newer options may follow a between placement', JSON.stringify(holes));
-  ok(holes.spanGuard, 'spanOf never mistakes a name or reference for an option keyword', JSON.stringify(holes));
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
+  // Where one of these words cannot act – a container's caption, a brace's
+  // label, an edge's – the compiler refuses it, and where it can, it does not.
+  // That used to be asserted here, through `window.PSI_DG`, which is this
+  // suite being used as a way to reach a compiler that runs perfectly well in
+  // Node. Those ten checks are `test/gates/refusals.mjs` now, under 'where a
+  // label alignment cannot act', where they also ask `lint.js` the same
+  // question and run on every push. Two of them found the linter silent where
+  // the build refuses. What is left in this spec is what needs a page: the
+  // measured insets above.
 }

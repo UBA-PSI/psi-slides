@@ -25,7 +25,7 @@ export const view = 'audience';
 
 const TOL = 1.5;   // px of overlap tolerated before it is a collision
 
-export async function run({ page, errors, report }) {
+export async function run({ page, report }) {
   const { ok, note } = report;
 
   const figs = await page.evaluate(() => {
@@ -84,6 +84,4 @@ export async function run({ page, errors, report }) {
     ok(have.has(n), 'the generated name ' + n + ' is what the compiler emits',
       [...have].join(' '));
   }
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

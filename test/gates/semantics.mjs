@@ -22,8 +22,13 @@
  * Numbers are compared for *difference*, never against a literal: text width
  * here is estimated rather than measured, so a coordinate baked into an
  * assertion pins the estimate rather than the meaning.
+ *
+ * One block at the end reads no SVG: the span table is what a source *means*
+ * to the editor that rewrites it, and it is decided by the compiler alone. It
+ * lives here rather than in a browser spec for the same reason as everything
+ * else in this directory – it needs no page to answer.
  */
-import { frames, render } from './harness.mjs';
+import { frames, render, spans } from './harness.mjs';
 
 export const name = 'the emitted drawing means what the source says';
 
@@ -304,6 +309,21 @@ export async function run({ report }) {
       ok(String(last).split(/\s+/).includes('emph'), `a text takes emph ${how}`,
         `class was ${JSON.stringify(last)}`);
     }
+  }
+
+  // ── what the source means to a rewriter ──────────────────────────
+  // A name is not a keyword. The span table used to find `w` by scanning the
+  // line for the token, so an element *called* `w` was taken for the width
+  // option and a panel edit spliced over the wrong token – on the reference
+  // in another element's placement, and on the element's own name. Both signs
+  // are here because they fail through different halves of the lookup.
+  {
+    const t = spans('box w "West" at 0,0\nbox e "East" right of w gap 1');
+    const misW = t.spanOf('e', 'w');
+    const own = t.spanOf('w', 'w');
+    ok(!(misW && misW.present) && !(own && own.present),
+      'spanOf never mistakes a name or a reference for an option keyword',
+      `on the reference ${JSON.stringify(misW)}, on its own name ${JSON.stringify(own)}`);
   }
 
   note('four contracts, and this gate holds the third: what the compiler emitted, '

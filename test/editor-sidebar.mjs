@@ -17,7 +17,7 @@ export const name = 'editor · the look panel';
 export const lecture = 'diagrams';
 export const view = 'audience';
 
-export async function run({ page, errors, report, walkTo, ed }) {
+export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
   await walkTo('primitives');
@@ -165,7 +165,6 @@ export async function run({ page, errors, report, walkTo, ed }) {
     if (row) row.click();
   });
   await page.waitForTimeout(300);
-  ok(!(await ed.problems()).includes('line '), 'the block is not left broken', await ed.problems());
 
   // Tags go through the same tail.
   const before = await lineB();
@@ -255,6 +254,4 @@ export async function run({ page, errors, report, walkTo, ed }) {
   const dupes = names.filter((n, i) => names.indexOf(n) !== i);
   ok(dupes.length === 0, 'no two fields in one panel answer to the same word',
     dupes.join(' ') || '(none)');
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

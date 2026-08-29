@@ -14,7 +14,7 @@ export const name = 'navigation · cockpit';
 export const lecture = 'diagrams';
 export const view = 'speaker';
 
-export async function run({ page, errors, report, at, press }) {
+export async function run({ page, report, at, press }) {
   const { ok } = report;
 
   const opacity = (dir) => page.evaluate((d) =>
@@ -36,6 +36,4 @@ export async function run({ page, errors, report, at, press }) {
   await press('o', 550);
   ok(Number(await opacity('right')) === 0, 'the board still hides them', await opacity('right'));
   await press('Escape', 550);
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

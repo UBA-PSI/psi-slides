@@ -20,7 +20,7 @@ export const name = 'editor · a guide on every drag · network-security';
 export const lecture = 'network-security';
 export const view = 'audience';
 
-export async function run({ page, errors, report, walkTo, ed }) {
+export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
   const labels = () => page.evaluate(() =>
@@ -177,6 +177,4 @@ export async function run({ page, errors, report, walkTo, ed }) {
   ok(/gap 0\.55/.test(await ed.lineWith('text ask ') || ''),
     'and the element’s own line is untouched', await ed.lineWith('text ask '));
   ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());
-
-  ok(errors.length === 0, 'no page errors', errors.join(' | '));
 }

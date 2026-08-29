@@ -86,30 +86,37 @@ node lint.js lectures/ --strict                # warnings → exit 2
 #
 # Five gates, five contracts: refusals
 # (build and lint agree on what is refused), accepts (every construct still
-# parses), semantics (the emitted SVG *means* what the source says), corpus
+# parses), semantics (the emitted SVG *means* what the source says, plus what
+# the source means to the editor that rewrites it – the span table), corpus
 # (every block in the repository still compiles), step-classes (which classes
 # a beat can carry, derived from DG_STEP_FIXED rather than restated). A green
 # `accepts` once hid a sequence `<->` that parsed and drew one arrowhead;
-# that is what `semantics` exists for.
+# that is what `semantics` exists for. And a check that reaches the compiler
+# through a browser page reaches only the build: two `lint.js` gaps sat behind
+# assertions in `figure-labels.mjs` until they were moved here, where every
+# fixture is compiled *and* linted.
 npm run gate                                   # all gates
 node test/gates/run.mjs semantics              # gates whose name matches
 
-# browser suite – the things that only break in a built page, in four
+# browser suite – the things that only break in a built page, in three
 # families: the navigation model (nav, nav-cockpit), the editor's gestures and
-# panel (editor-*), and the two that measure the emitted SVG – figure-framing,
-# which catches a drawing sitting off-centre in an oversized frame,
-# figure-labels, which asserts both halves of the alignment rule, and
-# figure-sequence, which asserts that nothing in a `sequence` overlaps anything
-# else in it and that its generated names are the documented ones. The
-# editor-* family also covers the neighbour-alignment guides, which is what a
-# gesture snaps to. Twenty-three specs, ~450 assertions. Builds and serves the
-# lectures itself, so it never reports on stale HTML, and launches one
-# Chromium for the whole run ($PSI_CHROME, the Playwright cache, or system
-# Chrome); ~4 min. Run it after touching AUDIENCE_JS, the key map,
-# editor.mjs, createSpanTable, or anything that moves a label or an extent.
-# Not a unit-test suite: anything checkable without a browser belongs in
-# lint.js, where it runs on every commit, or in `test/gates/`, where it runs
-# on every push.
+# panel (editor-*), and the figure-* specs that measure the emitted SVG –
+# figure-framing, which catches a drawing sitting off-centre in an oversized
+# frame, figure-labels, which measures where an aligned label lands inside the
+# thing that holds it, and figure-sequence, which asserts that nothing in a
+# `sequence` overlaps anything else in it and that its generated names are the
+# documented ones. The editor-* family also covers the neighbour-alignment
+# guides, which is what a gesture snaps to. Twenty-two specs, ~575 assertions.
+# Builds and serves the lectures itself, so it never reports on stale HTML,
+# and launches one Chromium for the whole run ($PSI_CHROME, the Playwright
+# cache, or system Chrome); ~5 min. Run it after touching AUDIENCE_JS, the key
+# map, editor.mjs, createSpanTable, or anything that moves a label or an
+# extent. `no page errors` is asserted by the runner after every spec rather
+# than by each spec: it is an invariant of running one at all, and the one
+# spec that forgot the line swallowed console errors for as long as it
+# existed. Not a unit-test suite: anything checkable without a browser belongs
+# in lint.js, where it runs on every commit, or in `test/gates/`, where it
+# runs on every push.
 node test/run.mjs                              # all specs
 node test/run.mjs nav                          # specs whose name matches
 

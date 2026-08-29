@@ -547,7 +547,13 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       }
       const m = raw.match(/^([A-Za-z_][\w-]*)\.([a-z]+)([+-][\d.]+)?$/);
       if (!m) {
-        if (!Number.isFinite(Number(raw))) {
+        // The literal is spelled out rather than left to `Number`, which is
+        // the same guard dgParseCoord carries and for the same two reasons:
+        // `Number('')` is 0, so the empty half of `at 3,` placed the element
+        // on an axis origin, and `Number('0x10')` is 16. Both are finite, so
+        // a bare isFinite passed them – the lax direction, on the most basic
+        // literal in the grammar.
+        if (!/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(raw) || !Number.isFinite(Number(raw))) {
           add(ln, 'error', 'bad-diagram-coordinate',
               `${what} expects a number, an element coordinate like 'x0.cy', `
               + `or a value in a plot like 'roc@0.35' – got '${raw}'`);

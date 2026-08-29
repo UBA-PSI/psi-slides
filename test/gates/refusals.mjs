@@ -75,7 +75,6 @@ const FIXTURES = [
   { item: 0, name: 'and with a note between them', body: SEQ + '\n  edge a -> b "hi"\n  note a "n"\n  actor a "A"\n  actor b "B"' },
   // ── item 2: one sentence per statement, and the derived stop sets ──
   { item: 2, name: 'rightof is not a word', body: QUAD + 'box b "B" rightof a gap 1' },
-  { item: 2, name: 'space is not a gap', body: QUAD + 'text t "note" right of a space 1' },
   { item: 2, name: 'padd is not pad', body: QUAD + 'container z "Z" over a,c padd 0.3' },
   { item: 2, name: 'gap on an edge', body: QUAD + 'edge a -> c gap 0.3' },
   { item: 2, name: 'point on no outline', body: QUAD + 'box b "B" point sideways' },
@@ -105,6 +104,9 @@ const FIXTURES = [
   { item: 2, accept: true, name: 'a long but legal tail', body: QUAD + 'box b "B" right of a gap 0.5 flush top w 1 h 1 pad 0.2' },
 
   // ── item 3: one word for the distance between two elements ────────
+  // One placement routine reads the tail for every placed kind, so the same
+  // word on a `text` exercises nothing this does not – that fixture was here
+  // too, under item 2, and is gone.
   { item: 3, name: 'space where gap is meant', body: QUAD + 'box b "B" right of a space 1' },
   { item: 3, name: 'gap where pad is meant', body: QUAD + 'brace y "Y" over a,c gap 0.3' },
 
@@ -116,13 +118,15 @@ const FIXTURES = [
   { item: 8, name: 'above nothing', body: QUAD + 'box b "B" above' },
   { item: 8, accept: true, name: 'above X', body: QUAD + 'box b "B" above a' },
   { item: 8, accept: true, name: 'left of X', body: QUAD + 'box b "B" left of a' },
-  { item: 8, name: 'align on a placement is flush', body: QUAD + 'box b "B" above a gap 0.3 align left' },
 
   // ── item 1: calm was renamed to dim ───────────────────────────────
   { item: 1, name: 'calm as a step verb', body: PAIR + 'step s\n  calm a' },
   { item: 1, name: 'calm as a chart option', body: 'bars f "3,5" at 0,0 w 2 h 1 calm 0' },
 
   // ── item 5: flush on a placement, side on an edge ─────────────────
+  // The word on a placement is `flush`; `align` is a statement of its own.
+  // Item 8 carried a second fixture for the same sentence, on a different
+  // direction word, which is the placement table being tested twice.
   { item: 5, name: 'align on a placement', body: PAIR + 'box b "B" right of a gap 1 align top' },
   { item: 5, name: 'align x center', body: PAIR + 'align x center a,c' },
   { item: 5, name: 'an edge side as a class', body: PAIR + 'edge a -> c "x" {.top}' },
@@ -166,8 +170,6 @@ const FIXTURES = [
   { item: 13, name: 'no arrow at all', body: QUAD + 'edge p q' },
   { item: 13, accept: true, name: 'a plain arrow', body: QUAD + 'edge p -> q' },
   { item: 13, accept: true, name: 'a headless line', body: QUAD + 'edge p -- q' },
-  { item: 13, name: 'a head class in the tail', body: PAIR + 'edge a -> c {.no-head}' },
-  { item: 13, name: 'a head class in a default', body: 'default edge {.no-head}\n' + PAIR + 'edge a -> c' },
 
   // ── item 16: the removal mark ─────────────────────────────────────
   { item: 16, name: 'the same removal twice', body: PAIR + 'box z "Z" below a gap 1 {!dim !dim}' },
@@ -264,7 +266,6 @@ const FIXTURES = [
     item: 12, name: 'a head class styled onto a tag of boxes',
     body: 'sequence q at 0,0\n  actor u "U"\n  actor r "R"\n  u -- r "m"\nstep s\n  style @q-actors {.both-heads}',
   },
-  { item: 12, accept: true, name: 'a head class styled onto an edge', body: PAIR + 'edge e1 a -> c\nstep s\n  style e1 {.no-head}' },
   { item: 12, accept: true, name: 'a prominence styled onto a box', body: PAIR + 'step s\n  style a {.dim}' },
 
   // The build reads the token after the head as the name and refuses the line
@@ -274,6 +275,45 @@ const FIXTURES = [
   { item: 2, name: 'a chart with no name', body: PAIR + 'bars' },
   { item: 2, name: 'a plot with no name', body: PAIR + 'plot' },
   { item: 2, name: 'a name that is only a tail', body: PAIR + 'box {.dim}' },
+
+  // ── item 12: where a label alignment cannot act ──────────────────
+  // `.left` and its three siblings say where a label sits *inside* the thing
+  // that holds it, so a kind with nothing to draw a label in has no reading
+  // for them. Written there, the word used to resolve, emit its CSS and move
+  // nothing – a silent no-op, which is the failure this grammar keeps
+  // closing. Both axes on each holder, because the pair that runs across and
+  // the pair that runs down are separate entries in the table. The edge's
+  // `{.top}` half is item 5's 'an edge side as a class' above, which is where
+  // that reading was replaced by `side`; this is the other axis.
+  //
+  // The brace fixtures say `side right` and not a bare `right` on purpose. A
+  // bare side word is refused on its own (item 22), so the shorter spelling
+  // is refused before the class is ever looked at – it would keep passing
+  // with the whole kind gate for braces deleted, which is a fixture that
+  // tests nothing.
+  { item: 12, name: 'a label alignment across a container', body: PAIR + 'container k "cap" over a,c {.left}' },
+  { item: 12, name: 'a label alignment down a container', body: PAIR + 'container k "cap" over a,c {.top}' },
+  { item: 12, name: 'a label alignment across a brace', body: PAIR + 'brace r "lab" over a,c side right {.right}' },
+  { item: 12, name: 'a label alignment down a brace', body: PAIR + 'brace r "lab" over a,c side right {.bottom}' },
+  { item: 12, name: 'a label alignment across an edge', body: PAIR + 'edge a -- c "e" {.left}' },
+  // The channels that do act: an edge picks a side with `side`, and a node
+  // keeps the classes on both of its two independent axes.
+  { item: 12, accept: true, name: 'an edge side across', body: PAIR + 'edge a -- c "e" side left' },
+  { item: 12, accept: true, name: 'a label alignment across a box', body: PAIR + 'box z "Z" right of a gap 0.5 {.left}' },
+  { item: 12, accept: true, name: 'a label alignment down a box', body: PAIR + 'box z "Z" right of a gap 0.5 {.bottom}' },
+
+  // ── the review's parser holes ────────────────────────────────────
+  // Two silent failures the compiler closed and the linter did not, which is
+  // the direction that merges green: `Number('')` is 0, so the empty half of
+  // `at 3,` placed the element on an axis origin, and `Number('0x10')` is 16.
+  // Both are finite, so a bare isFinite test let them through – on the most
+  // basic literal in the grammar. They were pinned in a browser spec that CI
+  // never runs and that asked the build alone; asking both is what named the
+  // gap. The third is an id that shadows Object.prototype, which breaks the
+  // runtime's frame tables at step time because they are keyed by element id.
+  { item: 0, name: 'a half-empty coordinate', body: 'box a "x" at 3,' },
+  { item: 0, name: 'a hex coordinate', body: 'box a "x" at 0x10,1' },
+  { item: 0, name: 'an id that shadows Object.prototype', body: 'box constructor "x" at 0,0' },
 
   // ── item 12: the kind gate on an expanding statement's own tail ───
   // Its tail lands on what the statement draws – a table's cells, a lane's

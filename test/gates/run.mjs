@@ -9,13 +9,14 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Four gates, and they prove four different things – which is worth stating
+ * Five gates, and they prove five different things – which is worth stating
  * because a green run summarised as one number hid a wrong drawing behind a
  * passing parse:
  *
  *   refusals   build and lint agree on what is refused, and on what is not
  *   accepts    every construct the grammar offers still parses
- *   semantics  the emitted SVG means what the source says
+ *   semantics  the emitted SVG means what the source says, and what the
+ *              source means to the editor that rewrites it
  *   corpus     every block in the repository still compiles
  *   step-classes  which classes a beat can actually carry, derived from the
  *              compiler's own table rather than restated
