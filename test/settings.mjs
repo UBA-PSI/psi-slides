@@ -1201,6 +1201,18 @@ console.log('\nlayout generations');
   ok(/if \(e\.detail > 0\) mark\.blur\(\);/.test(lk.html),
      'and a pointer activation gives the deck its keys back');
 
+  // A card row is a block of surfaces, so it needs air on both edges. The
+  // bottom was a flat 0.4em against a top that scales with the card size:
+  // measured, 35.8px above and 11.4px below, so the paragraph after the
+  // last card sat against it. Asserted as the shape of the rule, because
+  // the rendered gap is only visible in a browser.
+  const cardsRule = (lk.html.match(/\n\.cards \{[\s\S]*?\n\}/g) || [])
+    .find(r => /grid-template-columns/.test(r) && /--card-fs/.test(r)) || '';
+  ok(/margin: calc\(1\.5em \* var\(--card-fs, 1\)\) 0;/.test(cardsRule),
+     'a card row keeps the same air below it as above it');
+  ok(!/margin: calc\(1\.5em \* var\(--card-fs, 1\)\) 0 0\.4em;/.test(lk.html),
+     'and the asymmetric margin that put a paragraph against the last card is gone');
+
   // ── and nine an independent GPT-5.6 review found ──
   // Every frontmatter key that can refuse a deck resolves in the pre-flight.
   // `section:` was read only while rendering a live divider, so an unknown

@@ -7442,8 +7442,16 @@ body[data-mode=dark] .chunk[data-cover=panel] {
      block of surfaces rather than a continuation of the text, so the
      heading has to stop belonging to it - at the paragraph's spacing the
      row read as the heading's own background. Scaled with the card size,
-     because a large row is a heavier object. */
-  margin: calc(1.5em * var(--card-fs, 1)) 0 0.4em;
+     because a large row is a heavier object.
+
+     Both edges, and the bottom used to be a flat 0.4em: measured at the
+     default size that was 35.8px of air above a row and 11.4px below it,
+     so a paragraph after the last card sat almost against it and read as
+     the card's own overflow - the same fault the top margin exists to
+     prevent, in the direction nobody had looked. Two rows in a row are
+     unaffected, because adjacent margins collapse to one. Print was
+     symmetric all along. */
+  margin: calc(1.5em * var(--card-fs, 1)) 0;
   align-items: stretch;
 }
 /* When the row is centred the heading over it should be too, or the slide
