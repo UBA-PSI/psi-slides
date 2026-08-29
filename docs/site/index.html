@@ -512,12 +512,31 @@ browser is for pages meant to be looked at.
 
   <h2 id="getting-started">Getting started</h2>
 
-  <p><strong><a href="https://github.com/UBA-PSI/psi-slides/releases/latest">Download
-  the latest release</a></strong> and unpack it. That folder is the whole tool, and
-  the tutorial, python-intro and short example listed above are already built
-  inside it: open
-  <code>lectures/tutorial/audience.html</code> and the tour runs, with nothing
-  installed and nothing to set up.</p>
+  <p>There are two versions, and they differ in what they can do.</p>
+
+  <p><strong><a href="https://github.com/UBA-PSI/psi-slides/releases/latest">The
+  latest release</a></strong> is 1.0.0. Its source format is fixed, so a lecture
+  that builds today keeps building the same way. Download the <code>.zip</code>
+  or the <code>.tar.gz</code> and unpack it; the tutorial, python-intro and short
+  example listed above are already built inside, so opening
+  <code>lectures/tutorial/audience.html</code> runs the tour with nothing
+  installed. One line does the same without clicking:</p>
+
+<pre><code><span class="t-cmd">curl</span> <span class="t-flag">-L</span> <span class="t-path">https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.tar.gz</span> <span class="t-punct">\</span>
+  <span class="t-punct">|</span> <span class="t-cmd">tar</span> <span class="t-flag">xz</span></code></pre>
+
+  <p><strong><a href="https://github.com/UBA-PSI/psi-slides">The
+  repository</a></strong> carries work that 1.0.0 does not: figures written as
+  <code>::: draw</code>, the title slides and section dividers, cards and rows,
+  and the graphical figure editor. If you came here for any of those, this is
+  the version to take. What you give up is the format promise &ndash; those parts
+  are still open to change, so a lecture written against them may need an edit
+  when they reach a release.</p>
+
+<pre><code><span class="t-cmd">git</span> clone <span class="t-path">https://github.com/UBA-PSI/psi-slides</span></code></pre>
+
+  <p class="tiny">Without git, take <b>Download ZIP</b> from the
+  repository&rsquo;s green <b>Code</b> button.</p>
 
   <p>Building a lecture of your own needs <strong>Node 20 or newer</strong>, which
   is what runs <code>build.js</code>, and nothing else: no LaTeX, no Pandoc, no
@@ -563,12 +582,15 @@ browser is for pages meant to be looked at.
       seen it yet.</p>
 
       <h3>Get the files</h3>
-      <p><strong><a href="https://github.com/UBA-PSI/psi-slides/releases/latest">Download
-      the latest release</a></strong> and unpack it, the way you would any other
-      download; double-clicking is enough on both systems. You get a folder called
-      <code>psi-slides</code>, and that folder is the whole tool. Put it somewhere
-      you can find again, because the terminal has to be pointed at it in a
-      moment.</p>
+      <p>Take either version from the two above. <strong><a href="https://github.com/UBA-PSI/psi-slides/releases/latest">The
+      release</a></strong> is the one to click if you are not sure; <b>Download
+      ZIP</b> from the <a href="https://github.com/UBA-PSI/psi-slides">repository&rsquo;s</a>
+      green <b>Code</b> button is the same kind of file and gets you the figures,
+      the title slides and the cards as well. Unpack it the way you would any
+      other download; double-clicking is enough on both systems. You get a folder
+      whose name starts with <code>psi-slides</code>, and that folder is the whole
+      tool. Put it somewhere you can find again, because the terminal has to be
+      pointed at it in a moment.</p>
       <p>On Windows, unpack the <code>.zip</code> rather than opening it by
       double-click: Windows shows the contents of a ZIP as if it were a folder,
       but commands cannot run inside it.</p>
@@ -608,20 +630,10 @@ browser is for pages meant to be looked at.
     </div>
   </details>
 
-  <p class="tiny">On Windows take the <code>.zip</code> from the same
-  <a href="https://github.com/UBA-PSI/psi-slides/releases">releases page</a>. A
-  <code>git clone</code> of the repository works identically &ndash; the archive is the
-  same set of files without the version history. If you would rather not click at
-  all, one line does the download and the unpacking:</p>
-
-<pre><code><span class="t-cmd">curl</span> <span class="t-flag">-L</span> <span class="t-path">https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.tar.gz</span> <span class="t-punct">\</span>
-  <span class="t-punct">|</span> <span class="t-cmd">tar</span> <span class="t-flag">xz</span></code></pre>
-
-  <p>That builds the tutorial: a lecture that teaches the tool by being the tool.
-  Press <kbd>?</kbd> for the cheat sheet, <kbd>S</kbd> to open the cockpit. The
-  tutorial&rsquo;s <code>source.md</code> is the reference for writing your own, and
-  the four files just built are yours to move, mail or upload &ndash; they carry
-  everything they need.</p>
+  <p>The tutorial teaches the tool by being the tool. Press <kbd>?</kbd> for the
+  cheat sheet, <kbd>S</kbd> to open the cockpit. Its <code>source.md</code> is
+  the reference for writing your own, and the four files the build wrote are
+  yours to move, mail or upload &ndash; they carry everything they need.</p>
 
   <h3>Then write your own lecture</h3>
 

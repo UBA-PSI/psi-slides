@@ -8545,18 +8545,29 @@ body[data-view=speaker] #help-button { display: none; }
   appearance: none;
   border: 0;
   background: none;
-  padding: 0 0.12em;
-  margin-left: 0.18em;
+  /* A button does not inherit font-size, so every em inside this rule used
+     to resolve against the UA's own 13.33px however large the slide was
+     set. Measured on a projection: link text 28.4px, mark 10.4px - 37% of
+     the text, and pinned there, so the larger the type the smaller the
+     affordance looked. Inheriting the font is what makes an em here mean
+     what it means everywhere else in this stylesheet. */
+  font: inherit;
+  padding: 0 0.1em;
+  margin-left: 0.2em;
   cursor: pointer;
-  color: var(--ink-soft);
+  /* The mark belongs to the link, so it takes the link's colour. In soft
+     ink it read as punctuation that had gone wrong. */
+  color: var(--emph);
   vertical-align: baseline;
   line-height: 1;
 }
 .link-code svg {
-  width: 0.78em;
-  height: 0.78em;
+  /* Cap height, near enough: the mark sits in a line of text and should
+     read as one of its glyphs rather than as a footnote to it. */
+  width: 0.72em;
+  height: 0.72em;
   fill: currentColor;
-  vertical-align: -0.08em;
+  vertical-align: -0.04em;
 }
 .link-code:hover, .link-code:focus-visible { color: var(--emph); }
 .link-code:focus-visible { outline: 2px solid var(--emph); outline-offset: 2px; border-radius: 2px; }

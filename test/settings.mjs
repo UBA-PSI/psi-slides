@@ -1189,6 +1189,15 @@ console.log('\nlayout generations');
        '---\ntitle: T\nstyle:\n  link-codes: sometimes\n---\n\n## title: {#t}\n\n'
        + '## free: A {#a}\n\nX.\n')), 'and by the linter');
   ok(/\.link-code \{ display: none; \}/.test(lkFull.print), 'and print hides it');
+  // A button does not inherit font-size, so every em in that rule resolved
+  // against the UA's 13.33px however large the slide was set: measured,
+  // link text 28.4px and mark 10.4px, pinned there. Without this line the
+  // sizes below are numbers that describe nothing.
+  const lcRule = (lk.html.match(/\n\.link-code \{[\s\S]*?\n\}/) || [''])[0];
+  ok(/font: inherit;/.test(lcRule),
+     'the link mark inherits its font, or its em is the browser default');
+  ok(/color: var\(--emph\);/.test(lcRule),
+     'and it takes the link colour, not soft ink');
   // The guard, not the outcome. Browser-verified once: with the mark
   // focused, Space used to advance the deck instead of opening the address,
   // so the mark was reachable by mouse alone - which is what it exists to
