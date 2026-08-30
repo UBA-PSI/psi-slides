@@ -10519,6 +10519,108 @@ function nowrapProbe(el) {
   return () => wide.some((n) => n.scrollWidth > n.clientWidth + 1);
 }
 
+// And a chunk's own box is not a measure of how much is on it. Three
+// families are pinned to the full slide height so their ground fills the
+// frame – the cover (.chunk-title), the section divider (.chunk-section)
+// and anything carrying a backdrop ([data-has-backdrop]) – and a box that
+// is as tall as the screen by construction can never fit inside 94% of it.
+// The fit then read “still too tall” at every step and walked the zoom
+// down to its 0.6 floor: with auto-fit on, every divider and every cover in
+// a deck came out at minimum type, whatever was on it.
+//
+// So measure the flow instead – the extent of the chunk's in-flow children,
+// which is the content column plus any expansion body open beneath it – and
+// never more than the box itself, so an ordinary chunk measures exactly
+// what it measured before. The out-of-flow children are ground and chrome
+// (the backdrop, the overlay layer, the slide number, the annotate button):
+// they are sized by the frame rather than by the type, so counting them
+// would let the min-height back in through the side door. A child with no
+// box at all is skipped – a collapsed ::: expand body is display:none, and
+// its all-zero rect would otherwise anchor the extent at the viewport top.
+//
+// Offsets and not getBoundingClientRect: the cockpit scales its whole stage
+// with a transform to fit the preview cell, and a client rect is in that
+// scaled space while avail is in layout pixels. offsetTop and offsetHeight are
+// layout pixels in both windows, and .chunk is positioned, so they are
+// already relative to the chunk.
+//
+// Same shape as nowrapProbe, and for the same reason: the child list and
+// the padding are read once per fit, and only the offsets are re-measured on
+// each zoom step.
+function flowHeightProbe(el) {
+  // display: contents is not a box, it is a wrapper whose children are laid
+  // out by the grandparent – the divider's own .section-lead is one, and so
+  // is every <li> of an outline list. Skipping it as boxless measured a
+  // divider by its prose alone and grew the type until the heading and the
+  // agenda above it were off the top of the screen; taking its zeroed offsets
+  // at face value would anchor the extent at the chunk's top edge. Both
+  // readings are wrong for the same reason, so such a child is replaced by
+  // the children it lends to this level.
+  const flowKids = (node) => {
+    const out = [];
+    for (const c of node.children) {
+      if (typeof c.offsetHeight !== 'number') continue;      // an <svg> has no offset box
+      const cs = getComputedStyle(c);
+      if (cs.position === 'absolute' || cs.position === 'fixed') continue;
+      if (cs.display === 'contents') { out.push(...flowKids(c)); continue; }
+      out.push(c);
+    }
+    return out;
+  };
+  // One level: the in-flow children of a node and its two vertical paddings,
+  // read once rather than on every zoom step.
+  const levelOf = (node) => {
+    const cs = getComputedStyle(node);
+    return {
+      flow: flowKids(node),
+      padT: parseFloat(cs.paddingTop) || 0,
+      padB: parseFloat(cs.paddingBottom) || 0,
+    };
+  };
+  // Returns the top and bottom of what the level holds, in that level's own
+  // offset coordinates, or null when nothing in it has a box.
+  const span = (lvl) => {
+    let top = Infinity, bottom = -Infinity;
+    for (const c of lvl.flow) {
+      if (!c.offsetHeight && !c.offsetWidth) continue;    // display:none has no box
+      if (c.offsetTop < top) top = c.offsetTop;
+      if (c.offsetTop + c.offsetHeight > bottom) bottom = c.offsetTop + c.offsetHeight;
+    }
+    return bottom < top ? null : { top, bottom };
+  };
+
+  const outer = levelOf(el);
+  // The one box we look inside is .chunk-content, and only because on a
+  // cover it is stretched to the frame as well: the block is then placed at
+  // its top, middle or end (cover-align), so the box says where the type may
+  // go and not how much of it there is. It is safe to look through precisely
+  // because it carries no ground - no background, no border, no min-height -
+  // and its own padding is added back below. Nothing deeper is looked
+  // through: a card row keeps its min-height, a figure keeps its frame.
+  const inner = outer.flow.map((c) => (c.classList.contains('chunk-content') ? levelOf(c) : null));
+
+  return () => {
+    let top = Infinity, bottom = -Infinity;
+    for (let i = 0; i < outer.flow.length; i++) {
+      const c = outer.flow[i];
+      if (!c.offsetHeight && !c.offsetWidth) continue;
+      let t = c.offsetTop, b = c.offsetTop + c.offsetHeight;
+      const lvl = inner[i];
+      const s = lvl && span(lvl);
+      if (s) {
+        // .chunk-content is the offsetParent of its own children, so the
+        // grandchildren's offsets are relative to it.
+        t = Math.max(t, c.offsetTop + s.top - lvl.padT);
+        b = Math.min(b, c.offsetTop + s.bottom + lvl.padB);
+      }
+      if (t < top) top = t;
+      if (b > bottom) bottom = b;
+    }
+    if (bottom < top) return el.scrollHeight;
+    return Math.min(el.scrollHeight, (bottom - top) + outer.padT + outer.padB);
+  };
+}
+
 // ceiling: the largest zoom the fit is allowed to reach. Entering the full
 // text on its own must never grow the type past what the lecturer chose for
 // the projector – they pressed C to see more text, not bigger text. In
@@ -10532,7 +10634,8 @@ function fitZoomToChunk(ceiling) {
   const avail = viewport.clientHeight * FULL_FIT_FILL;
   if (!(avail > 0)) return;
   const overflowsX = nowrapProbe(el);
-  if (el.scrollHeight <= avail && !overflowsX() && state.zoom >= cap) return;  // nothing to gain
+  const heightOf = flowHeightProbe(el);
+  if (heightOf() <= avail && !overflowsX() && state.zoom >= cap) return;  // nothing to gain
 
   // A single proportional estimate is not enough, because zoom changes line
   // wrapping and therefore height, and it is not safe either: solving for
@@ -10543,12 +10646,12 @@ function fitZoomToChunk(ceiling) {
   // safety factor and the 0.05 rounding left chunks a quarter smaller than
   // they needed to be.
   const STEP = 0.05;
-  let z = clampZoom(state.zoom * (avail / el.scrollHeight));
+  let z = clampZoom(state.zoom * (avail / (heightOf() || avail)));
   if (z > cap) z = cap;
   applyZoom(z);
 
   // Shrink until it fits, in both directions.
-  while ((el.scrollHeight > avail || overflowsX()) && z > 0.6) {
+  while ((heightOf() > avail || overflowsX()) && z > 0.6) {
     z = clampZoom(z - STEP);
     applyZoom(z);
   }
@@ -10556,7 +10659,7 @@ function fitZoomToChunk(ceiling) {
   while (z + STEP <= cap) {
     const probe = clampZoom(z + STEP);
     applyZoom(probe);
-    if (el.scrollHeight > avail || overflowsX()) { applyZoom(z); break; }
+    if (heightOf() > avail || overflowsX()) { applyZoom(z); break; }
     z = probe;
   }
 }

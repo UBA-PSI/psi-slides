@@ -83,6 +83,30 @@ from building the same way is a major version.
 
 ### Fixed
 
+- **Auto-fit sized every cover and every section divider to its smallest
+  type.** `fitZoomToChunk` asked whether the chunk's own box fitted inside 94%
+  of the viewport. Three families are pinned to the full slide height so their
+  ground fills the frame rather than painting a band across the middle third –
+  the cover (`.chunk-title`), the divider (`.chunk-section`) and any chunk
+  carrying a `::: backdrop` – and a box that is as tall as the screen by
+  construction can never fit inside 94% of it. The shrink loop therefore read
+  “still too tall” at every step and walked the zoom down to its 0.6 floor,
+  whatever was on the slide. A deck with `auto-fit: true` in its frontmatter
+  met it on its first slide; every other deck met it the moment the lecturer
+  pressed `#`.
+
+  The fit now measures the flow – the extent of the chunk's in-flow children,
+  which is the content column plus any expansion body open beneath it, and
+  never more than the box itself, so an ordinary chunk measures exactly what
+  it measured before. Two details are load-bearing. It looks one level
+  through `.chunk-content`, because on a cover that element is stretched to
+  the frame as well so the block can be placed at its top, middle or end; it
+  is safe to look through precisely because it carries no ground of its own,
+  and its padding is added back. And it reads `offsetTop`/`offsetHeight`
+  rather than client rects, because the cockpit scales its whole stage with a
+  transform to fit the preview cell – a client rect there is in that scaled
+  space while the budget it is compared against is in layout pixels.
+
 - **`lint.js` let through a coordinate the build refuses, on the most basic
   literal in the figure grammar.** `box a "x" at 3,` and `box a "x" at 0x10,1`
   are errors in `diagram-core.mjs`, and for a stated reason: `Number('')` is 0,
