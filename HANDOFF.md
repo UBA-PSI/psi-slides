@@ -890,6 +890,73 @@ eine Vorlesung, die `pages.yml` bei jedem Push auf `main` baut und
 veröffentlicht. Eine Migration, die sie auslässt, liefert ein Tutorial aus,
 das der Sprache widerspricht, die es unterrichtet.
 
+## Auto-Fit, Reveal und das Quadrat des Zooms
+
+Ausgelöst von einem Screenshot: eine Divider-Folie in Minimalschrift, ein
+Fünftel des Bildes gefüllt. Dahinter lagen drei Defekte, die alle dieselbe
+Form haben – irgendwo wird eine Größe gemessen oder multipliziert, die schon
+etwas anderes bedeutet.
+
+**1. Auto-Fit maß den Rahmen statt des Inhalts.** `fitZoomToChunk` fragte
+`el.scrollHeight <= viewport * 0.94`. Drei Chunk-Familien sind aber absichtlich
+auf volle Foliehöhe gepinnt, damit ihr Grund den Rahmen füllt statt ein Band
+durchs mittlere Drittel zu malen: Cover (`.chunk-title`), Divider
+(`.chunk-section`) und alles mit `::: backdrop`. Eine Box, die konstruktiv so
+hoch ist wie der Schirm, passt nie in 94% davon – die Schrumpfschleife lief
+also bei jeder solchen Folie bis auf den Boden von 0.6. Betroffen war jedes
+Deck, nicht nur das aus dem Screenshot: in `python-intro` sprang jeder
+`*-section`-Divider von 0.6 auf 1.95–2.2.
+
+`flowHeightProbe` misst jetzt den Fluss statt der Box, gedeckelt auf die Box,
+damit ein gewöhnlicher Chunk exakt das misst, was er vorher maß. Zwei Details
+tragen: es schaut **eine** Ebene durch `.chunk-content` (auf einem Cover ist
+auch die auf den Rahmen gestreckt, damit der Block oben/mittig/unten sitzen
+kann – erlaubt ist das nur, weil sie keinen eigenen Grund hat), und es liest
+`offsetTop`/`offsetHeight` statt Client-Rects, weil das Cockpit seine Bühne per
+Transform skaliert und ein Client-Rect dort in skaliertem Raum liegt, während
+das Budget in Layout-Pixeln steht. Ein `display: contents`-Kind hat gar keine
+Box und muss aufgelöst werden – die erste Fassung übersprang `.section-lead`
+und maß einen Divider an seiner Prosa allein.
+
+**2. Reveal löste nichts neu auf.** Jede andere Änderung, die den Folieninhalt
+ändert, rechnet Zoom *und* Kamera neu – `jumpTo`, die Zoom-Tasten, der
+Auto-Fit-Toggle, ein Resize. Reveal rechnete keins von beidem: in Auto-Fit war
+der Chunk auf sein erstes Segment eingepasst und der Rest wuchs unten heraus;
+in **beiden** Modi stand die Kamera still, während der Chunk nach unten wuchs,
+sodass auf einem Chunk, der schon höher als der Rahmen ist, jedes neue Segment
+weiter unter der Kante landete – im Tutorial 430px unter einem 900px-Viewport.
+Der Vortragende drückt weiter, der Raum sieht nichts. Ein zu hoher Chunk wird
+jetzt **gegangen**: Kopf bleibt beim Ankommen gepinnt wie bisher, ab dem
+zweiten Takt folgt die Kamera dem Fuß, nie weiter hoch als der Kopf-Pin – damit
+ist `back` die exakte Umkehrung. Reine Funktion von `revealed[]` und Layout,
+sonst zeigen Projektion und Cockpit auf verschiedene Stellen derselben Folie.
+
+Bewusst **nicht** für `::: expand` und `+ NOTE`: die verschieben die Kamera, um
+ein Panel ins Bild zu holen, und ändern am Folieninhalt nichts.
+
+**3. Sieben Regeln multiplizierten den Zoom zweimal.** `font-size:
+calc(0.78em * var(--zoom))` auf einem `em`, das der Container schon mit dem
+Zoom multipliziert hatte – der Koeffizient stimmte also nur bei Zoom 1. Beim
+Default-Zoom 1.35 kam ein Code-Block, der auf 0.78 der Prosa gesetzt ist, **5%
+größer** heraus als die Prosa, in der er steht; eine Marginalie wog schwerer
+als der Fließtext daneben. Betroffen: `pre`, `table`, `.marginalia`,
+`figcaption`, `.overlay-card`-Überschriften, das Divider-Zitat und die
+Outline-Liste. Letztere brauchte kein Löschen, sondern einen Umzug: dieselbe
+Liste ist einmal `## outline:`-Chunk (in `.chunk-body`, schon gezoomt) und
+einmal `section: outline`-Divider (in `.chunk-content`, ungezoomt) – der Zoom
+sitzt jetzt auf der Liste des Dividers, damit beide gleich skalieren.
+
+Gefunden wurde die Familie nicht durch Lesen, sondern durch einen Audit im
+Browser: `--zoom` auf 1 und auf 2 setzen und jedes Element melden, dessen
+Font-Size-Verhältnis weder 1 noch 2 ist. Acht Fälle vorher, null nachher. Der
+Audit ist die Methode, die hier zählt – die statische Suche nach
+`var(--zoom)` findet 63 Regeln und sagt nichts darüber, welche verschachtelt
+sind.
+
+Nebenwirkung, dokumentiert in `CLAUDE.md`: das Zeichenbudget einer Code-Zeile
+wächst von ~57 auf ~78 Zeichen (16:9, Default-Zoom), und es ist bei **jeder**
+Chunk-Breite gleich, weil ein Top-Level-`pre` ohnehin auf 72vw ausbricht.
+
 ## Gaps / Bekannte Limits
 
 - **Code-Blöcke in `::: side` können überlaufen.** Mit `white-space: pre` und langer URL (z.B. `curl -LsSf https://astral.sh/uv/install.sh | sh`) clippt der Pre am Pane-Rand rechts. Horizontal-Scroll-Bar greift, aber unschön auf dem Projektor. Workaround: kurze Commands in `::: side`, lange Commands in `::: cols` oder single-column. Möglicher Fix: `white-space: pre-wrap` innerhalb von `.side pre` – aber das bricht Code-Einrückung. Akzeptiert.

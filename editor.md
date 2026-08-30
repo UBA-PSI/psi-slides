@@ -565,8 +565,8 @@ invisible until you look at the built page:
   frame hits 62vh, a third of the measure stays empty beside the drawing. The
   CSS comment already describes this failure; the editor can name it while you
   can still fix it.
-- **"This is a 30-character budget."** Inside a `::: side` pane a `<pre>` gets
-  roughly 30 characters before `clampZoomToWidth()` shrinks that one slide. The
+- **"This is a 36-character budget."** Inside a `::: side` pane a `<pre>` gets
+  roughly 36 characters before `clampZoomToWidth()` shrinks that one slide. The
   same pressure applies to a long label in a narrow frame.
 
 ## 6. Moving between figures

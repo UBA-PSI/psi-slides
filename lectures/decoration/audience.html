@@ -369,7 +369,14 @@ body[data-liga=none] { font-variant-ligatures: none; }
 .chunk-body table {
   border-collapse: collapse;
   margin: 0.4em 0 0.7em 0;
-  font-size: calc(0.92em * var(--zoom));
+  /* No second var(--zoom) here or in the four rules below it: the em is
+     .chunk-body's, and that has already been multiplied by the zoom. Written
+     the other way these grew with its square - at the default zoom of 1.35 a
+     code block set at 0.78em of the prose came out 5% *larger* than the prose
+     it sat in, and a marginalia meant to be an aside outweighed the body. The
+     coefficient is the relationship the stylesheet always intended; it only
+     held at zoom 1. */
+  font-size: 0.92em;
   line-height: 1.35;
 }
 .chunk-body th, .chunk-body td {
@@ -385,7 +392,7 @@ body[data-liga=none] { font-variant-ligatures: none; }
 }
 .chunk-body pre {
   font-family: var(--mono-font);
-  font-size: calc(0.78em * var(--zoom));
+  font-size: 0.78em;
   line-height: 1.4;
   white-space: pre;
   overflow-x: auto;
@@ -481,7 +488,7 @@ body[data-liga=none] { font-variant-ligatures: none; }
   width: 26vw;
   max-width: 36em;
   font-family: var(--body-font);
-  font-size: calc(0.82em * var(--zoom));
+  font-size: 0.82em;
   line-height: 1.45;
   color: var(--ink-soft);
   padding: 0 0 0 1.1em;
@@ -622,7 +629,10 @@ figure.figure-img svg {
 }
 figure.figure-img figcaption {
   font-family: var(--sans-font);
-  font-size: calc(0.68em * var(--zoom));
+  /* Every context this caption appears in is zoomed already - .chunk-body in
+     a chunk, .section-body on a divider, .title-field on a cover - so the em
+     carries the zoom in and the coefficient is a plain ratio. */
+  font-size: 0.68em;
   color: var(--ink-soft);
   margin-top: 0.4em;
   text-align: center;
@@ -760,7 +770,7 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
 .chunk[data-tag=figure] .chunk-content { align-items: center; gap: 0.9em; }
 .chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
 .chunk[data-tag=figure] .chunk-heading { order: 2; }
-.chunk[data-tag=figure] .chunk-body pre { order: 1; font-size: calc(0.82em * var(--zoom)); }
+.chunk[data-tag=figure] .chunk-body pre { order: 1; font-size: 0.82em; }
 
 .chunk[data-tag=exercise] .chunk-heading { font-style: italic; }
 .chunk[data-tag=exercise] .chunk-content::before {
@@ -1592,7 +1602,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .overlay-card > :last-child { margin-bottom: 0; }
 .overlay-card p { margin: 0 0 0.5em; }
 .overlay-card h1, .overlay-card h2, .overlay-card h3 {
-  font-size: calc(1.45em * var(--zoom));
+  font-size: 1.45em;   /* .overlay-card's em is zoomed already */
   font-weight: 600;
   line-height: 1.15;
   margin: 0 0 0.3em;
@@ -2136,7 +2146,12 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   padding: 0;
   border: 0;
   font-family: var(--serif-font);
-  font-size: calc(1.35em * var(--zoom));
+  /* No second var(--zoom): the em here is .section-body's, which has already
+     been multiplied by it. Written the other way the quotation grew with the
+     square of the zoom while the part title and the agenda grew with the
+     zoom - invisible at 1.0, and at the zoom auto-fit picks for a divider it
+     was the largest thing on a slide whose whole job is to be quiet. */
+  font-size: 1.35em;
   line-height: 1.3;
   color: var(--ink);
   text-wrap: pretty;
@@ -2264,7 +2279,15 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   text-align: left;
   line-height: 1.2;
 }
-.section-outline li { display: contents; font-size: calc(1.02em * var(--zoom)); }
+/* The zoom is applied once, where the list starts, and where that is depends
+   on which of the two things this list is. A divider hangs it off
+   .chunk-content, which is not zoomed, so the list itself carries the zoom;
+   an outline: chunk puts the same list inside .chunk-body, which has
+   already applied it, and the rows inherit it through their em. Written on
+   the rows, it was applied twice in the chunk and once on the divider - one
+   list obeying two laws, and the chunk grew with the square of the zoom. */
+.chunk-section .section-outline { font-size: calc(1em * var(--zoom)); }
+.section-outline li { display: contents; font-size: 1.02em; }
 /* An outline chunk placed before the first part has nothing to recede from:
    a list nobody has started is a plan, and a plan is read at full strength.
    The numeral still steps back, because it is an index and not a word. */
@@ -2312,7 +2335,7 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    that says which of them this is, and it says it in the column that
    exists to number them. Putting it on a bar beside the type instead is
    the machine-made layout this project took an accent rail out for. */
-.section-outline li[data-state=now] { font-size: calc(1.6em * var(--zoom)); }
+.section-outline li[data-state=now] { font-size: 1.6em; }
 /* The live row needs its own air, and it cannot come from row-gap: the gap
    is one number for every row, and this row is 1.6x the others - at a gap
    that suits the small rows it sits shoulder to shoulder with them, and at

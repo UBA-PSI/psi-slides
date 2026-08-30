@@ -139,6 +139,31 @@ from building the same way is a major version.
   the slide's own content; both already have their own branch in
   `focusCamera`, and neither should resize anything.
 
+- **Code blocks, tables, marginalia, figure captions, overlay headings and the
+  outline list grew with the square of the zoom.** Each of those rules
+  multiplied by `var(--zoom)` on an `em` that its container had already
+  multiplied by it, so the coefficient the stylesheet states only held at zoom
+  1.0. At the default zoom of 1.35 a code block set at `0.78em` of the prose
+  came out **5% larger** than the prose it sat in, and a marginalia meant to
+  read as an aside outweighed the body text it hung beside. The zoom is now
+  applied once, where the container applies it, and the coefficients are plain
+  ratios again.
+
+  Two consequences worth knowing. Code is visibly smaller at any zoom above
+  1.0 – that is the 0.78 relationship the rule always named. And the
+  code-line budget widens with it: roughly **78 characters** at the default
+  zoom in a 16:9 window where it used to be 57, and about **36** inside one
+  pane of a `::: side`. The same list appears both as a `## outline:` chunk
+  and as a `section: outline` divider, and only the chunk was doubling – the
+  zoom moved onto the divider's own list so both now scale alike.
+
+- **A quotation on a divider grew with the square of the zoom.**
+  `.chunk-section .section-body blockquote` multiplied by `var(--zoom)` on an
+  `em` that `.section-body` had already multiplied by it. Invisible at 1.0,
+  and at the zoom auto-fit picks for a divider the quotation was the largest
+  thing on a slide whose whole job is to be quiet. Part of the same family as
+  the entry above it, found first.
+
 - **`lint.js` let through a coordinate the build refuses, on the most basic
   literal in the figure grammar.** `box a "x" at 3,` and `box a "x" at 0x10,1`
   are errors in `diagram-core.mjs`, and for a stated reason: `Number('')` is 0,
