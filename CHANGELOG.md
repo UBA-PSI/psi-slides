@@ -107,6 +107,38 @@ from building the same way is a major version.
   transform to fit the preview cell – a client rect there is in that scaled
   space while the budget it is compared against is in layout pixels.
 
+- **Revealing a segment now re-solves the zoom and the camera.** Every other
+  change that alters what is on a slide re-solves both – `jumpTo`, the zoom
+  keys, the auto-fit toggle, a window resize – and reveal re-solved neither.
+  One omission, two faces:
+
+  In auto-fit, the chunk was sized to its opening segment and everything
+  revealed after that grew off the bottom of the screen: 129px of a tutorial
+  chunk, with nothing on either screen saying so.
+
+  In **both** modes the camera held still while the chunk grew downwards. A
+  hidden segment takes no space, so a chunk already taller than the frame put
+  each new segment further below the bottom edge – on the tutorial's own
+  reveal chunk the third beat landed 430px below a 900px viewport. The
+  lecturer pressed forward and the room saw nothing change. A chunk taller
+  than the frame is now *walked*: its head is pinned on arrival exactly as
+  before, and from the second beat onward the camera follows the revealed
+  foot down, never further up than that head pin – so `back` retraces the walk
+  and returns to the arrival framing exactly.
+
+  The walk is a pure function of `revealed[]` and layout, which is what keeps
+  the projection and the cockpit pointing at the same part of the slide: each
+  window solves its own camera from the shared state, and neither is told
+  which key caused the change. The zoom half stays auto-fit only – outside it
+  the zoom is the lecturer's and is still never touched automatically – while
+  the camera half applies in both, because a camera framing the wrong part of
+  a slide is wrong either way.
+
+  Deliberately **not** extended to an opened `::: expand` or a `+ NOTE` box.
+  Those shift the camera to bring a panel into view and change nothing about
+  the slide's own content; both already have their own branch in
+  `focusCamera`, and neither should resize anything.
+
 - **`lint.js` let through a coordinate the build refuses, on the most basic
   literal in the figure grammar.** `box a "x" at 3,` and `box a "x" at 0x10,1`
   are errors in `diagram-core.mjs`, and for a stated reason: `Number('')` is 0,

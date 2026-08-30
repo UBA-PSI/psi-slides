@@ -7652,7 +7652,32 @@ function focusCamera(instant = false) {
     }
   } else {
     tx = vp.width / 2 - (left + width / 2);
-    ty = (height <= vp.height) ? vp.height / 2 - (top + height / 2) : vp.height * 0.05 - top;
+    if (height <= vp.height) {
+      ty = vp.height / 2 - (top + height / 2);
+    } else {
+      // A chunk taller than the frame cannot be framed, so it is walked: its
+      // head is pinned near the top edge and stays there.
+      //
+      // That is right on arrival and wrong from the second beat onwards. A
+      // hidden segment takes no space, so revealing one extends the chunk
+      // *downwards* while this camera held the head still - and once the
+      // chunk passed the height of the frame, forward put the new material
+      // below the bottom edge. The lecturer pressed the key and the room saw
+      // nothing change: on the tutorial's own reveal chunk the third beat
+      // landed 430px below a 900px viewport. So follow the foot down, and
+      // never further up than the head pin, which makes the walk reversible -
+      // back shortens the chunk and the view rises with it.
+      //
+      // Both windows have to agree on where the camera is, so this stays a
+      // pure function of the shared state: the foot is the chunk's own
+      // bottom, which is what the revealed segments measure, and the walk
+      // begins only past the opening beat. Arrival at the opening state
+      // frames exactly what it framed before.
+      const segCount = countSegments(entry.el);
+      const shown = revealed[entry.id] ?? (segCount ? 1 : 0);
+      const pinHead = vp.height * 0.05 - top;
+      ty = (shown > 1) ? Math.min(pinHead, vp.height * 0.95 - (top + height)) : pinHead;
+    }
   }
 
   // Manual pan offset from drag (§5: zoom-induced overflow). Reset on chunk change.
@@ -8018,11 +8043,42 @@ function advanceReveal() {
   if (cur < segCount) {
     revealed[entry.id] = cur + 1;
     applyReveal(entry.el, entry.id);
+    resettleAfterReveal();
     updateNavHints();
     broadcastState();
     return true;
   }
   return false;
+}
+
+// A revealed segment is content arriving on a slide that is already on
+// screen. Every other change of that kind re-solves both the zoom and the
+// camera - jumpTo, the zoom keys, the auto-fit toggle, a window resize - and
+// reveal re-solved neither, which is one omission with two faces:
+//
+//   - in auto-fit the chunk was sized to its opening segment and the rest
+//     grew off the bottom of the screen, 129px of a tutorial chunk, with
+//     nothing on either screen saying so;
+//   - in both modes the camera held still while the chunk grew downwards,
+//     so on a chunk already taller than the frame the new material landed
+//     below the bottom edge and the key press did nothing the room could
+//     see. focusCamera's walking branch is the other half of this fix.
+//
+// It runs before broadcastState, so the peer receives the zoom this window
+// settled on rather than the one it is about to leave.
+//
+// The zoom half is auto-fit only: outside it the zoom is the lecturer's and
+// is never touched automatically (clampZoomToWidth is the one exception, and
+// it already runs per chunk). The camera half is not - a camera that frames
+// the wrong part of the slide is wrong in either mode.
+//
+// Deliberately not called for an opened ::: expand or an annotation box:
+// those shift the camera to bring a panel into view and change nothing about
+// the slide's own content, which is why both already have their own branch
+// in focusCamera and neither should resize anything.
+function resettleAfterReveal() {
+  if (state.autoFit) fitZoomToChunk(2.2);
+  focusCamera(false);
 }
 
 // ── ::: draw autoplay ──
@@ -8073,6 +8129,7 @@ function restartAutoplay() {
     if (!cycle) return;
     revealed[entry.id] = 1;
     applyReveal(entry.el, entry.id);
+    resettleAfterReveal();
     updateNavHints();
     broadcastState();
     autoplayTimer = setTimeout(tick, ms);
@@ -8101,6 +8158,7 @@ function retreatReveal() {
   if (cur > 1) {
     revealed[entry.id] = cur - 1;
     applyReveal(entry.el, entry.id);
+    resettleAfterReveal();
     updateNavHints();
     broadcastState();
     return true;
