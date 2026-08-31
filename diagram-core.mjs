@@ -447,6 +447,27 @@ export const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'cont
 // runtime expected its own entry, and the diagram breaks at step time with
 // nothing at build time to say why. Refused at parse instead.
 export const DG_RESERVED_IDS = new Set(Object.getOwnPropertyNames(Object.prototype));
+// Names the *emitter* collides with, where DG_RESERVED_IDS above is the set
+// the *runtime* collides with. dgEmit writes the figure's own element as
+// `<svg id="${prefix}root">` and every element of the drawing as
+// `<g id="${prefix}${e.id}">`, so a `box root` produces a second node
+// carrying the svg's own id.
+//
+// Nothing downstream notices. The build exits 0, the linter is clean, and in
+// the browser the runtime's `[id="…"]` lookup and the figure's stylesheet
+// both resolve to whichever node comes first: the boxes render as unstyled
+// black rectangles, `svg.psiDiagram` is never set so no beat advances, and
+// auto-fit never runs so the figure sits at whatever scale the emitter
+// happened to write. It reads as a CSS failure and it is a name. Refused at
+// parse, which is the only place it is still cheap to change.
+export const DG_RESERVED_EMITTED_IDS = new Set(['root']);
+// `--` is how the emitter separates an element's id from the sub-node it
+// owns: `${prefix}${id}--r` is a box's rect, `--l0` its first label line,
+// `--lw0` that line's wrapper. An element named `panel--r` would therefore
+// claim the id of element `panel`'s rect. No lecture has ever written one,
+// and refusing the spelling outright is cheaper than making the emitter's
+// separator unguessable.
+export const DG_ID_SUBNODE_SEP = '--';
 // Scalar coordinates of an element, for use where a single number would go.
 // `left`/`right` are x, `top`/`bottom` are y, `cx`/`cy` the centres. Naming
 // the wrong axis is an error rather than a silent transposition.
@@ -2899,7 +2920,13 @@ export function createDiagramCompiler(env = {}) {
     // reports something nobody wrote - `edge a c -> c` where `a` is a box came
     // out as `duplicate element id "a"` *and* `placement cycle: a → c → a`,
     // the second manufactured entirely by the first.
-    const claim = (id, kind, lineNo) => {
+    //
+    // `generated` marks a name the compiler synthesised from one the author
+    // wrote – a bar, a table cell, a lifeline, a leader stub. Those are held
+    // to the collision rules but not to the spelling rules, because the
+    // spelling is this file's own and a complaint about it would be a
+    // complaint about code the author cannot edit.
+    const claim = (id, kind, lineNo, generated = false) => {
       if (!id) return false;
       // A name containing a dot would be indistinguishable from `elem.cx` in a
       // coordinate, and one containing @ or # from a tag or an id token.
@@ -2913,6 +2940,26 @@ export function createDiagramCompiler(env = {}) {
       if (DG_RESERVED_IDS.has(id)) {
         dgErr(errors, lineNo, `"${id}" is reserved – it already names a property every JavaScript object has, `
           + `and the step runtime keys its tables by element id. Pick another name.`, 'semantic');
+        return false;
+      }
+      // See DG_RESERVED_EMITTED_IDS: the emitter already writes a node under
+      // this name, so the drawing would carry two elements with one id and
+      // break in the browser with a clean build behind it.
+      if (DG_RESERVED_EMITTED_IDS.has(id)) {
+        dgErr(errors, lineNo, `"${id}" is reserved – the compiler emits the figure's own <svg> under that name, `
+          + `so an element called "${id}" gives the document two nodes with the same id. The build would stay `
+          + `clean and the figure would render as unstyled black rectangles with no working steps. Pick another name.`, 'semantic');
+        return false;
+      }
+      // See DG_ID_SUBNODE_SEP: `--` is the emitter's separator for the
+      // sub-nodes an element owns, so a name containing it can claim another
+      // element's rect or label. A leader stub is generated as
+      // `${id}--lead` and is exempt – it is the one synthesised name that
+      // uses the separator, and it is this file that wrote it.
+      if (!generated && id.includes(DG_ID_SUBNODE_SEP)) {
+        dgErr(errors, lineNo, `"${id}" cannot contain "${DG_ID_SUBNODE_SEP}" – the compiler uses it to name the parts `
+          + `an element owns (a box's rect is "<name>--r", its label lines "<name>--l0"), so this name could collide `
+          + `with another element's parts. Use a single hyphen.`, 'semantic');
         return false;
       }
       if (model.byId.has(id)) { dgErr(errors, lineNo, `duplicate element id "${id}"`); return false; }
@@ -4700,7 +4747,7 @@ export function createDiagramCompiler(env = {}) {
         model.nodes.push(node);
         if (node.leader) {
           const leadId = `${id}--lead`;
-          claim(leadId, 'edge', lineNo);
+          claim(leadId, 'edge', lineNo, true);
           const to = dgParseRef(node.leader, errors, lineNo);
           // Kept on the node as well: the label is only as visible as what it
           // points at, and that check should not re-parse the reference once
@@ -5491,6 +5538,179 @@ export function createDiagramCompiler(env = {}) {
     return boxes;
   }
 
+  // Two elements drawn on top of one another, which is never a thing anyone
+  // wrote on purpose and until now was a thing nothing said. The compiler
+  // computed both boxes, drew them overlapping and exited 0; the linter has
+  // no browser and could not have known. Three of the four worst defects one
+  // review found in a rebuilt course were exactly this shape:
+  //
+  //   - a leader's label printed across the box it pointed past, because
+  //     `right of vu gap 2.6` landed inside the element to vu's right;
+  //   - two swim-lane boxes placed with absolute `at`, whose half-widths
+  //     summed to 1.425 units against 1.35 between their centres, so the
+  //     arrow between them had nowhere to be drawn and vanished;
+  //   - a tree whose sibling sat close enough under another box to read as
+  //     its child.
+  //
+  // Only plain elements: `box`, `dot`, `text`, `image`. Two groups are out,
+  // and `synth` marks both – the same discriminator createSpanTable uses.
+  //
+  // The parts of a compound statement (a `table`'s cells, a `bars` chart's
+  // columns, a `lanes` band's rows) carry `synth` set to their statement's
+  // id, and they are adjacent by construction.
+  //
+  // The statement's own frame carries `synth` set to its *own* id, and it is
+  // excluded too – which is not obvious and is what the first version of this
+  // check got wrong. A frame is a container: `lanes swim` is drawn around the
+  // boxes placed into its bands, a `plot` around the dots and labels placed
+  // at its coordinates, a `bars` frame around the text that annotates it.
+  // Every false positive the first version produced across the engine's own
+  // lectures was a frame enclosing its own contents – swim against the four
+  // boxes in its lanes, pace against the dot and two notes plotted on it.
+  // `container` and `brace` never reach here at all, for the same reason one
+  // level up: enclosing their members is what they are for.
+  //
+  // Reported only where a pair overlaps at *every* beat at which both are
+  // visible. That is what keeps `move` out of it – a box sliding across
+  // another on its way somewhere is mid-animation, not a mistake – and it is
+  // what lets a label appear where a hidden box still sits without being
+  // called a collision. A pair never visible together is never compared.
+  // Two tolerances, because two kinds of element measure differently. A box
+  // has a drawn border, so its extent is exactly what the room sees and any
+  // intersection at all is visible ink. A `text` element's box is the line
+  // box: it carries the font's leading above and below the glyphs and draws
+  // no outline, so boxes can overlap by most of a line's leading with clear
+  // air between the words. Held to one tolerance, the check called two
+  // correctly-spaced captions in the engine's own lectures a collision -
+  // `bob`/`goals` at 63x16 and `intro`/`lreq` at 5x19, both of which render
+  // with visible space - while the real defects it exists for are 8x56
+  // between two boxes and 122x37 between a box and a text that genuinely sits
+  // on top of it.
+  const DG_OVERLAP_TOL = 2;        // px, between two drawn shapes
+  const DG_OVERLAP_TOL_TEXT = 24;  // px, where either side is a text's line box
+  function dgOverlapWarnings(model, states, frameBoxes, warn) {
+    const authored = model.nodes.filter(n => !n.synth);
+    if (authored.length < 2) return;
+    // Containment is nesting and nesting is deliberate: a `box` used as a
+    // panel with a stack of boxes inside it, a `dot` marking the centre of
+    // the box it sits in. Both are patterns the engine's own figure-rules
+    // document demonstrates on purpose, and the first version of this check
+    // called all of them collisions. Only a *partial* overlap is reported -
+    // the case where neither element is inside the other and the picture
+    // therefore has two things fighting for one piece of paper.
+    const holds = (a, b) => b.x >= a.x - DG_OVERLAP_TOL && b.y >= a.y - DG_OVERLAP_TOL
+      && b.x + b.w <= a.x + a.w + DG_OVERLAP_TOL && b.y + b.h <= a.y + a.h + DG_OVERLAP_TOL;
+    const inter = (a, b, tol) => {
+      if (holds(a, b) || holds(b, a)) return null;
+      const iw = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+      const ih = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+      return (iw > tol && ih > tol) ? { iw, ih } : null;
+    };
+    for (let i = 0; i < authored.length; i++) {
+      for (let j = i + 1; j < authored.length; j++) {
+        const a = authored[i].id, b = authored[j].id;
+        const tol = (authored[i].kind === 'text' || authored[j].kind === 'text')
+          ? DG_OVERLAP_TOL_TEXT : DG_OVERLAP_TOL;
+        let both = 0, hit = 0, worst = null;
+        for (let k = 0; k < states.length; k++) {
+          const sa = states[k].get(a), sb = states[k].get(b);
+          if (!sa || !sb || !sa.visible || !sb.visible) continue;
+          const ba = frameBoxes[k].get(a), bb = frameBoxes[k].get(b);
+          if (!ba || !bb || !ba.w || !bb.w) continue;
+          both++;
+          const ov = inter(ba, bb, tol);
+          if (!ov) { hit = -1; break; }
+          hit++;
+          if (!worst || ov.iw * ov.ih > worst.iw * worst.ih) worst = ov;
+        }
+        if (both === 0 || hit !== both || !worst) continue;
+        warn(`${a} and ${b} overlap by ${Math.round(worst.iw)}×${Math.round(worst.ih)} px`
+          + ` – nothing can be drawn between them and whichever is painted second wins.`
+          + ` Place one of them relative to the other (\`right of ${a} gap …\`) rather than`
+          + ` giving both an absolute \`at\`, so the spacing cannot drift when a label changes.`);
+      }
+    }
+  }
+
+  // A label's ground erasing the edge it annotates. The house rule is "give a
+  // label a ground when it sits on a line", and it has a second half nobody
+  // had written down: the ground is a rect as wide as the words, drawn over
+  // the stroke and under the glyphs, so on a *short* edge it covers the whole
+  // line. The connector disappears and two words are left floating in the
+  // gap where it was.
+  //
+  // That is not hypothetical. One figure in a rebuilt course lost the entire
+  // security half of its tree this way – `edge n2 -- l3 "random" {.paper}`
+  // over about 40px of elbow – and the same deck carried the opposite error
+  // one figure away, two labels with no ground and an arrow running through
+  // the word `impact`. Neither the build nor the linter said anything about
+  // either, because both are true of the geometry and nothing looked at it.
+  //
+  // Sampled rather than clipped: an edge may be an elbow with several
+  // segments, and walking it at a fixed step is both shorter and exact
+  // enough at this threshold.
+  const DG_LABEL_SWALLOW_FRAC = 0.72;
+  function dgLabelGroundWarnings(model, frames, frameBoxes, warn) {
+    const seen = new Set();
+    for (const e of model.edges) {
+      if (!e.label || seen.has(e.id)) continue;
+      for (let k = 0; k < frames.length; k++) {
+        const f = frames[k];
+        const pts = f.geom.get(e.id + '--p');
+        const rect = f.geom.get(e.id + '--r');
+        if (!pts || !rect || pts.length < 4) continue;
+        // Only an elbow. A straight link between two boxes that face each
+        // other is the documented idiom - a word that *names* the line, the
+        // way a street sign belongs to the street - and the eye completes it
+        // across the knock-out because there is only one way it could run.
+        // See the flowchart in lectures/diagrams, whose four yes/no labels
+        // are written exactly this way and read correctly. On an elbow the
+        // route *is* the information: erase it and which box joins which
+        // stops being visible, which is the defect this check exists for.
+        if (pts.length < 6) continue;
+        const [rx, ry, rw, rh] = rect;
+        // Against the *exposed* length, not the whole path. An edge starts
+        // and ends at its endpoints' box edges, but an elbow's outer runs lie
+        // under those boxes, and counting them made the one real defect
+        // measure 18% covered while the only part a reader can see was gone
+        // entirely. What matters is the fraction of the visible line the
+        // ground takes, so the parts already behind a box are excluded.
+        const hides = [];
+        for (const ref of [e.from && e.from.ref, e.to && e.to.ref]) {
+          const b = ref && frameBoxes[k] && frameBoxes[k].get(ref);
+          if (b && b.w && b.h) hides.push(b);
+        }
+        const buried = (px, py) => hides.some(b =>
+          px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h);
+        let total = 0, inside = 0;
+        for (let i = 0; i + 3 < pts.length; i += 2) {
+          const x0 = pts[i], y0 = pts[i + 1], x1 = pts[i + 2], y1 = pts[i + 3];
+          const len = Math.hypot(x1 - x0, y1 - y0);
+          if (!len) continue;
+          const steps = Math.max(2, Math.ceil(len / 2));
+          for (let st = 0; st < steps; st++) {
+            const t = (st + 0.5) / steps;
+            const px = x0 + (x1 - x0) * t, py = y0 + (y1 - y0) * t;
+            const d = len / steps;
+            if (buried(px, py)) continue;
+            total += d;
+            if (px >= rx && px <= rx + rw && py >= ry && py <= ry + rh) inside += d;
+          }
+        }
+        if (total <= 0) continue;
+        const frac = inside / total;
+        if (frac < DG_LABEL_SWALLOW_FRAC) continue;
+        seen.add(e.id);
+        warn(`edge ${e.id}: the label "${e.label}" sits on an elbow and its ground covers `
+          + `${Math.round(frac * 100)}% of the part of that elbow you can actually see, so the`
+          + ` connector disappears and the words are left floating in the gap. On an elbow the`
+          + ` route is the information. Drop the fill class, or move the label off the line with`
+          + ` side top / side bottom / side left / side right, or give the two elements more room.`);
+        break;
+      }
+    }
+  }
+
   function dgFrameDrawables(model, state, boxes, labelIndex) {
     const [uw, uh] = model.unit;
     const geom = new Map();
@@ -6061,11 +6281,22 @@ export function createDiagramCompiler(env = {}) {
     const frameCount = model.steps.length + 1;
     const frames = [];
     const states = [];
+    // Kept per beat rather than thrown away with the frame: dgOverlapWarnings
+    // has to see whether a pair overlaps at *every* beat both are visible,
+    // which one frame's boxes cannot answer.
+    const frameBoxes = [];
     for (let k = 0; k < frameCount; k++) {
       const state = dgStateAt(model, k);
       states.push(state);
       const boxes = layoutDiagram(model, state, errors);
+      frameBoxes.push(boxes);
       frames.push(dgFrameDrawables(model, state, boxes, labelIndex));
+    }
+    // After layout and before the error gate: an overlap is a warning, and a
+    // figure that also has errors has bigger problems to report first.
+    if (!errors.length) {
+      dgOverlapWarnings(model, states, frameBoxes, dgWarn);
+      dgLabelGroundWarnings(model, frames, frameBoxes, dgWarn);
     }
     // A DG_CLASS_CLASHES row is a **warning**, and it is the compiler's alone,
     // because deciding it correctly needs the resolved state at every beat.

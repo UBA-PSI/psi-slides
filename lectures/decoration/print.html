@@ -585,6 +585,35 @@ body[data-labels=off] .chunk-label { display: none; }
 .cards li > :first-child { margin-top: 0; }
 .cards li > :last-child { margin-bottom: 0; }
 
+/* ::: rows on paper. The emitter writes a row as a strong element holding
+   the term followed immediately by span.row-body holding the body, with no
+   separator between them, because in the live views the span is a grid item
+   and a separator would be a stray anonymous item in the same grid. That
+   made the span's placement load-bearing – and it existed only in
+   AUDIENCE_CSS, so on paper the two ran together and every row in every
+   lecture read "§ 202aObtaining specially protected data…".
+   (No backticks in this comment: one would end the template literal.)
+
+   The fix is a grid here too, but a smaller one than the live view's: the
+   li keeps its box, so its border, padding and break-inside: avoid all
+   still do their jobs and a row cannot be split across a page. Only the
+   inside of the row becomes two columns. Baseline rather than the live
+   view's centre, because a document is read line by line and a term
+   hanging half a line above its first word reads as a mistake on paper. */
+.cards.rows > ul > li, .cards.rows > ol > li {
+  display: grid;
+  grid-template-columns: minmax(5.5em, 0.3fr) minmax(0, 1fr);
+  column-gap: 0.9em;
+  align-items: baseline;
+}
+.cards.rows li > :is(strong, b):first-child { grid-column: 1; }
+.cards.rows li > .row-body { grid-column: 2; text-align: left; min-width: 0; }
+/* A markdown line break between the term and its body would otherwise be a
+   third item in the two-column grid and push the body onto its own row. */
+.cards.rows li > br { display: none; }
+/* The detail level under a row belongs beside the body, not under the term. */
+.cards.rows li > :is(ul, ol) { grid-column: 2; }
+
 /* Two-line action heading – the sub-line reads like a subtitle in
    print, italicized and quieter. The space between the spans (see
    renderHeadingHtml) keeps the two lines separated visually when

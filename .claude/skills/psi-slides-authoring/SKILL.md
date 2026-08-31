@@ -378,11 +378,20 @@ one place the block never sits.
 
 ### `::: cols 2` / `::: cols 3`
 
-A multi-column flow inside the chunk body. Note that **collapsed view folds it
-back to one column** on purpose: collapsed content is one topic sentence per
+A multi-column flow inside the chunk body. **The audience view's default
+collapse mode folds it back to one column, so in the room `::: cols` does
+nothing.** That is deliberate: collapsed content is one topic sentence per
 paragraph, and the browser can only balance in whole paragraphs, so two columns
-of stubs look broken. Print and the un-collapsed reading mode keep your
-columns. Author `cols` for content that has enough text to balance.
+of stubs look broken. But it makes `cols` a **print-and-reading-mode
+construct**, and the consequence is worth stating in the room's terms rather
+than the renderer's: content you write in `cols` because it is too long for one
+column arrives on the projection as one column of exactly that length. A
+six-definition quiz written as `::: cols 2` was projected as eleven unbroken
+lines of 70-character prose.
+
+**For two- or three-up content the room has to read, use `::: cards` or
+`::: rows`.** Both survive the collapse in full. Author `cols` for a handout
+whose reader can scroll.
 
 ### `::: side` with `::: flip`
 
@@ -807,7 +816,8 @@ Rules you will meet while authoring: `unknown-tag`, `unknown-width`,
 `duplicate-explicit-block`, `unclosed-directive`, `stray-directive`,
 `stray-directive-close`, `nested-directive`, `unclosed-math`, `reveal-overuse`,
 `orphan-column` (a column with fewer than two chunks),
-`figure-caption-redundant`, `single-word-bold`, `oversized-asset`,
+`figure-caption-redundant`, `single-word-bold`, `figure-tag-without-figure`,
+`oversized-asset`,
 `unknown-view-default`,
 `unknown-style-setting`, `bad-backdrop`, `bad-backdrop-class`,
 `duplicate-backdrop`, `bad-overlay-class`, `bad-cards`, `bad-cards-class`,
@@ -820,6 +830,59 @@ will show it with none of the prose around it. It only ever looks at chunk-body
 paragraphs – a list item is shown whole and never triggers it, and neither does
 anything in a `::: slide`, a `::: script`, a `::: cards` or a code fence. See
 `reference/style.md` for the two fixes.
+
+`figure-tag-without-figure` is a chunk tagged `figure:` whose body holds no
+`::: draw`, image, `::: backdrop`, `::: embed` or code fence. The slide renders
+identically either way, so this is not about the projection – the `O` overview
+board and the speaker view both read the tag, and a deck with eight `figure:`
+chunks holding `::: cards` lists reports twice the figures it has.
+
+**Two checks that were tried and deliberately not shipped**, because a
+measurement said they could not work. Both are recorded so nobody builds them
+again:
+
+- *An enumeration check* – "a first sentence that names a count, in a chunk
+  with no list" – to catch a paragraph that promises five kinds of something
+  and then names them in prose the collapse drops. Measured across two
+  repositories it produced 41 hits in this repo's own lectures alone, nearly
+  all of them ordinary topic sentences: "One handshake, two flights.", "flush
+  and align do two different jobs." Numerals are too common in good prose.
+- *A cards-per-width check* – "four cards do not fit a `.wide` chunk". True of
+  the deck it came from, and false in general: `lectures/decoration` and
+  `lectures/tutorial` use `cards 4` and `cards 5` at `.wide` correctly because
+  their labels are short. The predictor is the longest word against the column,
+  which is typography, not source.
+
+Both belong to `build.js --check-fit`, which measures the rendered result
+instead of estimating it from the source.
+
+## `build.js --check-fit`
+
+Whether every slide fits the frame, measured in a browser. `lint.js` has no
+browser, the density budgets are word counts, and `::: cards` and `::: rows`
+are exactly the constructs that break the relation between words and height, so
+a deck can reach `0 errors, 0 warnings` under `--strict` with a reading
+sentence off the bottom of a slide.
+
+```bash
+node build.js <source.md> --check-fit [--viewport 1600x900]
+```
+
+Walks the built `audience.html` state by state – pressing the key, so a figure
+step and a reveal each get measured – and compares each `.chunk-content` box
+against `#stage-viewport`. **1600x900 is the default because a projector is
+16:9**: `.wide` resolves through auto-fit, so the em and every wrapped card and
+row are functions of the viewport, and two chunks that measured inside the
+frame at a laptop's 1440x810 are 835 and 836 px tall in a 900 px 16:9 one.
+
+**It reports two things and only one is a failure.** A chunk *taller* than the
+frame is read by scrolling – the stage is a continuous column and walks down it
+as reveals advance – and is reported as a note; `lectures/tutorial` has
+eighteen. A chunk that *fits* the frame and is still outside it cannot be
+excused that way, and is the failure, with exit 2.
+
+Degrades rather than fails: with no `playwright-core` or no Chrome it says so
+and leaves the build's exit code alone.
 
 A source file can silence checks with an HTML comment anywhere in the body:
 

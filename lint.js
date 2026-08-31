@@ -259,6 +259,7 @@ import {
   DG_KIND_OPTS, DG_BRACE_SIDES, DG_SIDES, DG_ALIGN_X, DG_ALIGN_Y, DG_SCALAR_X,
   DG_SCALAR_Y, DG_DEFAULT_KINDS, DG_ANCHORS, DG_DEFINES, DG_GRID_KINDS, DG_GRID_MAX,
   DG_PLOT_MAX_TICKS, DG_POINT_DIRS, DG_POINTED, DG_SHAPE_CLASSES, DG_RESERVED_IDS,
+  DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP,
   dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks,
   dgRowTag, dgColTag, dgLaneName, dgLaneCapName,
   DG_SEQ_ENTRIES, DG_SEQ_ARROWS,
@@ -479,6 +480,37 @@ function lintCollapsedBolds(entries, add) {
   }
 }
 
+
+// `figure-tag-without-figure`: a chunk tagged `figure:` that holds no figure.
+// It renders identically either way, so this is not about the slide - it is
+// about the `O` overview board and the speaker's own map of the deck, both of
+// which read the tag. Eight chunks in one course were tagged `figure:` while
+// holding a `::: cards` or `::: rows` list, which makes the board report a
+// deck with twice the figures it has.
+//
+// Structural, and that is why it is here when two neighbouring checks are
+// not. Whether a chunk contains a drawing is a fact about the source; whether
+// four cards will fit a `.wide` chunk is a fact about type, and estimating it
+// from the count produced false positives on the engine's own decks at the
+// first try. Measurement belongs in a browser, not in this file.
+function lintChunkShape(chunk, chunkBody, hasDrawing, add) {
+  if (chunk.tag !== 'figure') return;
+  // What counts as a figure, and the list is wider than "a picture": a
+  // photographic `::: backdrop` is the whole slide, and a code listing is
+  // what a `figure:` chunk means in a programming lecture. Both are tagged
+  // figure: in the engine's own lectures and both are right.
+  const hasFigure = hasDrawing || chunk.backdropSeen || chunkBody.some(l =>
+    /^:::\s*embed\b/.test(l.trim())
+    || /^\s*(```|~~~)/.test(l)
+    || /!\[[^\]]*\]\(/.test(l)
+    || /<(img|svg|video)\b/.test(l));
+  if (hasFigure) return;
+  add(chunk.line, 'warn', 'figure-tag-without-figure',
+      'tagged figure: but the body holds no ::: draw, no image and no ::: embed. The slide renders '
+      + 'the same, but the overview board and the speaker view read the tag, so the deck reports more '
+      + 'figures than it has – use free:, definition: or whichever tag names what this chunk is');
+}
+
 // One `default …` line, checked the same way wherever it is written: inside
 // a block, or in the lecture's `draw-defaults` frontmatter key. Mirrors
 // dgReadDefault in build.js – a linter stricter or laxer than the build is
@@ -647,7 +679,10 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   // it writes. The compiler knows this from the model; this file has to be
   // told at each declaration, which is why `define` takes it.
   const kindOf = new Map();
-  const define = (name, ln, kind) => {
+  // `generated` mirrors claim()'s fourth argument in diagram-core.mjs: a name
+  // the compiler synthesises is held to the collision rules but not to the
+  // spelling rules, because the spelling is the compiler's own.
+  const define = (name, ln, kind, generated = false) => {
     if (!name) return;
     // A name with a dot would be indistinguishable from `elem.cx` in a
     // coordinate; one with @ or # from a tag or an id token. Mirrors claim()
@@ -662,6 +697,28 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       add(ln, 'error', 'bad-diagram-name',
           `'${name}' is reserved – it already names a property every JavaScript object has, `
           + 'and the step runtime keys its tables by element id');
+      return;
+    }
+    // Mirrors the DG_RESERVED_EMITTED_IDS branch in diagram-core.mjs's
+    // claim(). The compiler emits the figure's own <svg> under this name, so
+    // the drawing would hold two nodes with one id – and both the build and
+    // this linter used to stay silent about it while the figure rendered as
+    // black rectangles that never stepped.
+    if (DG_RESERVED_EMITTED_IDS.has(name)) {
+      add(ln, 'error', 'bad-diagram-name',
+          `'${name}' is reserved – the compiler emits the figure's own <svg> under that name, so an element `
+          + `called '${name}' gives the document two nodes with the same id; the figure renders as unstyled `
+          + 'black rectangles and its steps never run');
+      return;
+    }
+    // Mirrors the DG_ID_SUBNODE_SEP branch there: `--` separates an element
+    // from the parts it owns, so a name containing it can claim another
+    // element's rect or label line.
+    if (!generated && name.includes(DG_ID_SUBNODE_SEP)) {
+      add(ln, 'error', 'bad-diagram-name',
+          `'${name}' cannot contain '${DG_ID_SUBNODE_SEP}' – the compiler uses it to name the parts an element `
+          + "owns (a box's rect is '<name>--r', its label lines '<name>--l0'), so this name could collide with "
+          + 'another element\'s parts; use a single hyphen');
       return;
     }
     if (defined.has(name)) {
@@ -1834,7 +1891,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         // leader line: `text n "…" above c gap 1 -- leak`
         if (words[k] === '->' || words[k] === '--') {
           refer(words[k + 1], ln, `${head} ${words[1]} leader`);
-          define(`${words[1]}--lead`, ln, 'edge');
+          define(`${words[1]}--lead`, ln, 'edge', true);
         }
       }
       continue;
@@ -2183,6 +2240,10 @@ function lintFile(filePath) {
   // does the density budget care where a line came from.
   let proseEntries = [];
   let chunkHasReveal = false;
+  // A ::: draw opener never reaches chunkBody - it is captured into `diagram`
+  // and its body with it - so a chunk-level flag is the only way a later check
+  // can know the chunk drew something. Same shape as chunkHasReveal.
+  let chunkHasDrawing = false;
   let inFence = false;
   let activeDirective = null;
   let layoutStack = [];
@@ -2210,6 +2271,7 @@ function lintFile(filePath) {
       }
     }
     lintCollapsedBolds(proseEntries, add);
+    lintChunkShape(chunk, chunkBody, chunkHasDrawing, add);
     // Figure chunks where the image sits directly below the heading:
     // the image alt text renders as a <figcaption>, stacking a second
     // title on top of the artwork (often itself titled internally).
@@ -2264,6 +2326,7 @@ function lintFile(filePath) {
     scriptBody = [];
     proseEntries = [];
     chunkHasReveal = false;
+    chunkHasDrawing = false;
   };
 
   for (let i = 0; i < lines.length; i++) {
@@ -2347,6 +2410,7 @@ function lintFile(filePath) {
             + 'silently stop working; use ::: side to put a figure beside prose');
       }
       diagram = { open: ln, lines: [] };
+      chunkHasDrawing = true;
       continue;
     }
 

@@ -18,6 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 import crypto from 'node:crypto';
 import matter from 'gray-matter';
 import { marked } from 'marked';
@@ -5041,6 +5042,35 @@ body[data-labels=off] .chunk-label { display: none; }
 .cards li > :first-child { margin-top: 0; }
 .cards li > :last-child { margin-bottom: 0; }
 
+/* ::: rows on paper. The emitter writes a row as a strong element holding
+   the term followed immediately by span.row-body holding the body, with no
+   separator between them, because in the live views the span is a grid item
+   and a separator would be a stray anonymous item in the same grid. That
+   made the span's placement load-bearing – and it existed only in
+   AUDIENCE_CSS, so on paper the two ran together and every row in every
+   lecture read "§ 202aObtaining specially protected data…".
+   (No backticks in this comment: one would end the template literal.)
+
+   The fix is a grid here too, but a smaller one than the live view's: the
+   li keeps its box, so its border, padding and break-inside: avoid all
+   still do their jobs and a row cannot be split across a page. Only the
+   inside of the row becomes two columns. Baseline rather than the live
+   view's centre, because a document is read line by line and a term
+   hanging half a line above its first word reads as a mistake on paper. */
+.cards.rows > ul > li, .cards.rows > ol > li {
+  display: grid;
+  grid-template-columns: minmax(5.5em, 0.3fr) minmax(0, 1fr);
+  column-gap: 0.9em;
+  align-items: baseline;
+}
+.cards.rows li > :is(strong, b):first-child { grid-column: 1; }
+.cards.rows li > .row-body { grid-column: 2; text-align: left; min-width: 0; }
+/* A markdown line break between the term and its body would otherwise be a
+   third item in the two-column grid and push the body onto its own row. */
+.cards.rows li > br { display: none; }
+/* The detail level under a row belongs beside the body, not under the term. */
+.cards.rows li > :is(ul, ol) { grid-column: 2; }
+
 /* Two-line action heading – the sub-line reads like a subtitle in
    print, italicized and quieter. The space between the spans (see
    renderHeadingHtml) keeps the two lines separated visually when
@@ -6693,24 +6723,23 @@ body[data-headings=off] .chunk-heading { display: none; }
 /* .center sets the chunk's prose on a centre axis. Audience-only for the
    same reason .bare is: it is a decision about the slide, and the printed
    document keeps its left edge.
-   (No backticks in this comment: one would end the template literal.)
 
    The child combinator is what makes it safe. It reaches the chunk's own
    paragraphs and nothing nested - not a list, not a table, not a code
-   listing, and not the prose inside a ::: side pane or a ::: cards row, each
-   of which is a run of lines with a left edge of its own that centring would
-   only ruin. It reaches no figcaption either: an image's alt text is the
-   image's own line and is centred under it already. Centring was tried as a
-   default for every figure: chunk first, and lectures/diagrams says why it
-   cannot be one - the seven-line paragraph under #flowchart came out ragged
-   on both edges and hard to read. The case is one or two lines, and only the
-   author knows which chunk is that case.
+   listing, and not the prose inside a ::: side pane or a ::: cards row,
+   each of which is a run of lines with a left edge of its own that centring
+   would only ruin. It reaches no <figcaption> either: an image's alt text is
+   the image's own line and is centred under it already. Centring was tried
+   as a default for every figure: chunk first, and lectures/diagrams says why
+   it cannot be one - the seven-line paragraph under #flowchart came out
+   ragged on both edges and hard to read. The case is one or two lines, and
+   only the author knows which chunk is that case.
 
    It is the prose and not the heading. Where a heading sits is already one
    question with one answer - the tag's treatment, overridden for a whole
    deck by style.headings - and a chunk class that also moved it would be a
-   second, stronger way to say the same thing, which style.headings: left
-   could then no longer override. */
+   second, stronger way to say the same thing that style.headings: left could
+   then no longer override. */
 .chunk[data-center] > .chunk-content > .chunk-body > .reveal-segment > p { text-align: center; }
 body[data-headings=center] .chunk[data-tag=question] { text-align: center; }
 /* The hairline and the thick rule above a definition / principle chunk. */
@@ -14896,6 +14925,135 @@ async function runServe(rootDir, wantedPort) {
 // mistaken for the source path.
 const VALUE_FLAGS = new Set(['--max-width', '--port']);
 
+// ── --check-fit ──────────────────────────────────────────────────────
+// Whether every slide actually fits the frame, measured rather than
+// estimated. This exists because nothing else in the toolchain can answer
+// it: `lint.js` has no browser, the density budgets are word counts, and
+// `::: cards` and `::: rows` are exactly the constructs that break the
+// relation between words and height. A deck can reach `0 errors, 0
+// warnings` under `--strict` with a card's reading sentence off the bottom
+// of the slide and its heading scrolled off the top.
+//
+// Three decisions, each of which was got wrong once by a hand-rolled
+// version of this check before it was written down:
+//
+//   * **1600x900.** A projector is 16:9. `.wide` resolves through auto-fit,
+//     so the em - and with it every wrapped card and row - is a function of
+//     the viewport. Two chunks that measured inside the frame at a laptop's
+//     1440x810 are 835 and 836 px tall in a 900 px 16:9 one.
+//   * **Against the stage, not a threshold.** The question is whether any
+//     of the content is off the frame, so the comparison is the content box
+//     against #stage-viewport's box - not the content height against a
+//     guessed number with a fudge factor for chrome.
+//   * **Per state, not per chunk.** A slide can fit at beat 0 and overflow
+//     at beat 2, when a later reveal or figure step re-centres the stage.
+//     A per-chunk probe cannot see that, so the walk presses the key.
+//
+// Degrades rather than fails: no browser, or no playwright-core, reports
+// that it could not look and leaves the build's own exit code alone.
+async function runCheckFit(absIn, viewport) {
+  const audience = path.join(path.dirname(absIn), 'audience.html');
+  if (!fs.existsSync(audience)) {
+    console.error('--check-fit: no audience.html beside the source; build it first.');
+    return 1;
+  }
+  let chromium;
+  try {
+    ({ chromium } = await import('playwright-core'));
+  } catch {
+    console.error('--check-fit: playwright-core is not installed, so nothing was measured.');
+    console.error('             npm install, then try again.');
+    return 0;
+  }
+  let browser;
+  for (const channel of ['chrome', 'msedge', undefined]) {
+    try { browser = await chromium.launch(channel ? { channel } : {}); break; } catch { /* next */ }
+  }
+  if (!browser) {
+    console.error('--check-fit: no Chrome or Chromium this process could start, so nothing was measured.');
+    return 0;
+  }
+  const page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
+  await page.goto(pathToFileURL(audience).href, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  const probe = () => page.evaluate(() => {
+    const act = document.querySelector('.chunk.active');
+    if (!act) return null;
+    const content = act.querySelector('.chunk-content') || act;
+    const r = content.getBoundingClientRect();
+    const vp = document.getElementById('stage-viewport').getBoundingClientRect();
+    return {
+      id: act.dataset.chunkId || act.id || '?',
+      tag: act.dataset.tag || '', width: act.dataset.width || '',
+      top: Math.round(r.top - vp.top), bottom: Math.round(r.bottom - vp.top),
+      h: Math.round(r.height), vpH: Math.round(vp.height),
+    };
+  });
+
+  // The screenshot hash, not the DOM, decides when the walk is over. A
+  // figure step changes no text and no element count, so a signature taken
+  // from the document reports "nothing moved" and stops the walk on the
+  // first stepped figure in the deck.
+  const worst = new Map();
+  let states = 0, lastHash = null, same = 0;
+  for (let i = 0; i < 400; i++) {
+    const st = await probe();
+    if (!st) break;
+    const shot = await page.screenshot();
+    const hash = crypto.createHash('sha1').update(shot).digest('hex');
+    if (hash === lastHash) { if (++same >= 2) break; } else same = 0;
+    lastHash = hash;
+    states++;
+    const over = Math.max(0, -st.top) + Math.max(0, st.bottom - st.vpH);
+    if (over > 0) {
+      const prev = worst.get(st.id);
+      if (!prev || over > prev.over) worst.set(st.id, { ...st, over, beat: i });
+    }
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(360);
+  }
+  await browser.close();
+
+  // Two different things, and only one of them is a defect.
+  //
+  // A chunk **taller than the frame** is shown by scrolling: the stage is a
+  // continuous column and it walks down a long chunk as its reveals advance,
+  // so nothing is unreachable and the author may well have meant it. The
+  // engine's own tutorial has twenty-one of these, at 1200 to 2200 px, and
+  // reports every one of them as fine to read.
+  //
+  // A chunk that **fits the frame and is still outside it** cannot be
+  // excused that way: the room has 900 px, the content wants 835, and a
+  // sentence is off the bottom anyway. That is the class a review found by
+  // hand in a rebuilt course - 835, 836 and 836 px in a 900 px frame - and
+  // it is what this command exists to catch. Reported as the failure; the
+  // tall ones are reported as a note and change no exit code.
+  const all = [...worst.values()].sort((a, b) => b.over - a.over);
+  const clipped = all.filter(b => b.h <= b.vpH);
+  const tall = all.filter(b => b.h > b.vpH);
+  const where = `${viewport.width}x${viewport.height}`;
+  const tallNote = tall.length
+    ? ` ${tall.length} chunk(s) are taller than the frame and are read by scrolling`
+      + ` (${tall.slice(0, 4).map(b => '#' + b.id).join(', ')}${tall.length > 4 ? ', …' : ''}).`
+    : '';
+  if (!clipped.length) {
+    console.log(`[check-fit] ${states} state(s) at ${where}: every slide that fits the frame is inside it.${tallNote}`);
+    return 0;
+  }
+  console.error(`[check-fit] ${states} state(s) at ${where}: ${clipped.length} slide(s) fit the frame`
+    + ` and are positioned outside it.${tallNote}`);
+  for (const b of clipped) {
+    const side = b.top < 0 && b.bottom > b.vpH ? 'clipped at both ends'
+      : b.top < 0 ? `${-b.top} px off the top` : `${b.bottom - b.vpH} px off the bottom`;
+    console.error(`  #${b.id} (${b.tag}${b.width ? ', .' + b.width : ''}) – ${side}`
+      + ` at beat ${b.beat}; content ${b.h} px in a ${b.vpH} px frame, so it would fit.`);
+  }
+  console.error('  Nothing above the top or below the bottom reaches the room, and these would fit if'
+    + ' they were a little shorter. Move a paragraph into a ::: expand, split the chunk, or widen it.');
+  return 2;
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const flags = new Set(argv.filter(a => a.startsWith('--')));
@@ -14942,6 +15100,7 @@ async function main() {
     console.error('Usage:');
     console.error('  node build.js <source.md> [--watch] [--serve [--port N]] [--audience-only|--print-only|--print-notes-only|--speaker-only]');
     console.error('                            [--inline-images|--no-inline-images]');
+    console.error('  node build.js <source.md> --check-fit [--viewport 1600x900]');
     console.error('  node build.js <source.md> --integrate-annotations');
     console.error('  node build.js <source.md> --optimize-images [--dry-run] [--all] [--max-width N]');
     console.error('  node build.js --new <slug>');
@@ -14958,6 +15117,13 @@ async function main() {
     console.error('  --max-width N         also downscale to N px wide. Off by default on purpose:');
     console.error('                        figure focus zooms to 8x, so a high-resolution diagram');
     console.error('                        is high-resolution for a reason.');
+    console.error('');
+    console.error('Fit checking (needs playwright-core and a Chrome or Chromium):');
+    console.error('  --check-fit           after building, walk audience.html state by state at');
+    console.error('                        1600x900 and report any slide whose content leaves the');
+    console.error('                        frame. Exit 2 if one does. The density budgets are word');
+    console.error('                        counts, so cards and rows can overflow with a clean lint.');
+    console.error('  --viewport WxH        measure at another size (default 1600x900, a 16:9 room).');
     console.error('');
     console.error('Annotation integration:');
     console.error('  --integrate-annotations   move `> annot:` blocks from a trailing');
@@ -15015,6 +15181,23 @@ async function main() {
 
   const { written, shape } = buildOnce(absIn, only, opts);
   console.log(`Wrote ${written.join(', ')} (${shape})`);
+  // After the build, because it measures what the build just wrote. Its
+  // exit code is the command's: a slide that does not fit is a defect the
+  // author has to see, and a clean lint will not report it.
+  if (flags.has('--check-fit')) {
+    const vpIdx = argv.indexOf('--viewport');
+    let viewport = { width: 1600, height: 900 };
+    if (vpIdx >= 0) {
+      const m = String(argv[vpIdx + 1] || '').match(/^(\d{3,5})x(\d{3,5})$/);
+      if (!m) {
+        console.error('--viewport takes WIDTHxHEIGHT, e.g. --viewport 1600x900.');
+        process.exit(1);
+      }
+      viewport = { width: Number(m[1]), height: Number(m[2]) };
+    }
+    const code = await runCheckFit(absIn, viewport);
+    if (code) process.exitCode = code;
+  }
   if (flags.has('--serve')) await runServe(path.dirname(absIn), servePort);
 }
 

@@ -10,6 +10,53 @@ every session. The rules below are the compiler's contract: a change to
 `diagram-core.mjs` that contradicts one of them is a regression, and every
 vocabulary table named here has to change in `lint.js` in the same commit.
 
+## Where the grammar actually is, and it is not this file
+
+**This file is the machinery: the compiler's contract, the slot tables, the
+design decisions.** It is written for someone changing `diagram-core.mjs`. It
+is not a statement reference, and reading it first to learn how to write a
+figure costs an hour. The order that works:
+
+1. **`figure-design.md`** – the craft, with wrong/right pairs in real syntax.
+   Its "five arrangements a lecture keeps asking for" is the fastest route to
+   a working figure.
+2. **`lectures/diagrams/source.md`** – working syntax for `lanes`, `table`,
+   `sequence`, `bars`, `grid`, `plot`, steps and tags. Copy from here.
+3. **`diagram-core.mjs`'s exported tables**, which are quicker to grep than to
+   read about: `DG_KEYWORDS` (the statements), `DG_CLASS_GROUPS` (the slots),
+   `DG_KIND_OPTS` (which options each statement takes), `DG_ANCHORS`,
+   `DG_STEP_OPS`, `DG_PROMINENCE`, `DG_WORD_OPTS`.
+4. **This file**, when something compiles and draws the wrong thing.
+
+## Three placement traps the compiler now warns about
+
+Every one of these produced a clean build, a clean lint and a broken figure,
+and they are the reason `dgOverlapWarnings` and `dgLabelGroundWarnings` exist.
+
+**Place a row of elements relationally, never with absolute `at`.** Two boxes
+written `at swim.left+5.4 w 1.45` and `at swim.left+6.75 w 1.4` have centres
+1.35 apart and half-widths summing to 1.425, so they overlap by 0.075 units and
+the arrow between them has nowhere to be drawn. Written `right of marks gap 0.3`
+the arithmetic cannot drift when a label changes. The same trap in the
+vertical: **a stacked column's row pitch has to exceed the box height, and the
+box height comes from the label** – at `unit=112x40` a two-line box is 55 px
+tall, so a pitch of 0.85 units (34 px) overlaps every pair, plausibly enough to
+read as a design choice.
+
+**`right of X gap N` is checked against X and against nothing else.** An
+annotation placed `right of vu gap 2.6` landed inside the box to vu's right and
+printed across its label. Relational placement has to clear every neighbour,
+not just its anchor.
+
+**A `.paper` label's ground is as wide as the words, and it is drawn over the
+stroke.** On a short edge it covers the whole line: the connector disappears
+and the words float in the gap. What matters is the **exposed** line – an
+elbow's outer runs lie under the boxes at either end, so a ground covering 18 %
+of the path can cover 100 % of what a reader can see. On a straight link
+between two facing boxes the knock-out is the right form and the flowchart in
+`lectures/diagrams` uses it deliberately; on an elbow the route is the
+information and erasing it erases which box joins which.
+
 ## Animated infographics (`::: draw`)
 
 **Development state, not in any tagged release.** The repository and project site may carry `::: draw` as a preview independently of a versioned release; `package.json` still reports 1.0.0, and the latest tag does not include the feature. The changelog entry stays under `## [Unreleased]` – `CONTRIBUTING.md` § Building and releasing bumps the version at release time, not when a preview reaches `main`, so there is nothing to bump here.
@@ -106,6 +153,8 @@ Consequences worth not breaking:
   - **A `plot`'s tick interval is `tick`, not `step`.** `step` is the statement that opens a beat, so a reader scanning a block for its beats had to know that a `step` mid-line on a `plot` was not one. Of the three pairs this revision unpicked it was the worst, because the two roles are not two parts of speech but a *statement* and an *option*. `tick` and not `ticks`, because the value is an interval rather than a count.
   - **A brace's side is `side <word>`, and so is an edge label's.** It was the last bare positional option in the statement grammar – a lone `left` among keyed options, whose place on the line was free – and it is one concept with the edge's: which side of the thing the label or the spine sits on.
 - **`default <kind>` accepts exactly the options that kind's own statement accepts** (`DG_KIND_OPTS`). `default box r 5` used to parse and then do nothing, which is a silent no-op. The error names which kind the option belongs to. `w`, `h`, `r` and `point` are gated on the same table wherever they are written, so a `dot` given a `w` or a `text` given an `r` is refused by the sentence that lists what the statement does take rather than by a check written per option.
+- **The four `.tone-N` classes are one hue at four strengths, so they cannot encode an ordered scale.** low/medium/high written `.tone-2` / `.tone-3` / `.tone-4` renders as two greys and a red: two of the three do not separate at a projector's brightness, and whatever convention the room already had for that scale – traffic lights, most obviously – has been thrown away for one that has to be learned from the figure. Distinct hues beat distinct lightness. A scale wants shape or position; tone is for saying which of two kinds a thing is.
+
 - **`style` displaces same-slot classes, like the `default` block.** Adding `.tone-1` alongside an existing `.tone-4` left both matching at equal specificity, so stylesheet order decided the colour and the step could silently do nothing. A `style` with an empty tail, or none at all, is an **error**: `style a {}` and `style a` were both accepted and both did nothing, and that is precisely the shape an author reaches for when what they wanted was a removal.
 - **`{!class}` takes a class off, in an element's tail, a `default` tail and a `style` step.** A step could only ever *add* one, and many slots express their base state as the absence of every member – normal prominence, a solid stroke, regular size and family – so a beat could leave that state and never return, and an element could not opt out of a `default box {.dim}` on its own line either. One mark closes both, where a named neutral per slot would have been a word per look. It removes the **exact name**, not the slot: `!dim` does not clear `.ghost`, and a later layer may add `.dim` back – which is what keeps the mark predictable without inventing a second, hidden slot grammar. Layers resolve weak to strong and removals run before additions within a layer, so `{.c !c}` in one tail is an error (there is no order under which the removal is not dead) while `style e {!dashed}` at beat 2 and `style e {.dashed}` at beat 4 compose the way an author reads them. The figures that need it were found by other checks rather than written to demonstrate it, which is the evidence that matters: `#beats-demo` cannot say what it means without `{.dim}` on the element's own line plus `style r {!dim}` for the beats where it does not apply, and the two `lectures/network-security` DDoS figures need `{.tone-4 !accent}` to drop a block-level `default box {.accent}` that was landing invisibly under an inverting fill – a clash the check only sees once it resolves the default layer down onto the element.
 - **Prominence is one channel with three names used identically in three positions**: a class (`{.dim}`), a step verb (`dim a, b`) and a `bars` option taking column indices (`dim 0,2`). `DG_PROMINENCE` is the single table behind all three, spliced into `DG_STEP_OPS`, `DG_LIST_OPTS` and `DG_CLASS_GROUPS`, so learning one position teaches the other two. It replaced `calm`, a verb that existed nowhere else in the grammar, had no class behind it and was not derivable from anything a reader had already learned – and `.ghost`, which had no verb at all, so a beat could reach it only through `style`. `dim a` and `style a {.dim}` are the same act, byte-identical through the print pass included; returning to the unnamed normal is `{!emph}` / `{!dim}` / `{!ghost}`, not a fourth word.

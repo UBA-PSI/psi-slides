@@ -137,6 +137,16 @@ Four additions that are one idea – **a slide is a frame, and the frame can car
 
   **What a card shows is not decided by bold**, and this is the opposite of what the chunk body does: `splitSentencesIn` walks `p` and never `li`, so a list item is never abridged. Everything written in a card is on the slide, and the fold above is the only thing that takes anything away.
 
+  **Four cards do not fit a `.wide` chunk.** Four columns at that width are
+  about 230 px, narrow enough to hyphen-break a card's *head* and not only its
+  body – one deck projected "Reputation" as "Reputatio / n" – and to push the
+  chunk's reading sentence off the bottom of the slide. `cards 2` and `cards 3`
+  are safe at every width; `cards 4` and up want `.full`, or want to be
+  `cards 2` so six items wrap to two rows. Not lintable from the count alone:
+  `lectures/decoration` and `lectures/tutorial` both use `cards 4` and
+  `cards 5` at `.wide` correctly, because their labels are short. Measure it
+  with `build.js --check-fit`.
+
   **Counts run 1–6.** One card is a callout — the "key insight" box — and in a `::: side` pane it is the narrow column of stacked cards a lecture keeps wanting. **A count needs a `--card-n` rule behind it**: `repeat(var(--card-n), …)` with the property unset is an invalid `repeat()`, so the whole `grid-template-columns` declaration is dropped and the row draws nothing. It shipped that way for one build, with the classes all correct in the markup.
 
   **The accent ground must not redefine `--emph`.** Its fill is `var(--emph)`, and a declaration resolves `var()` against *that element's own* value — so overriding `--emph` in the same block made the fill resolve to the paper colour: an invisible card, text and all. Bold fragments take `currentColor` instead. **`::: overlay`'s accent card had the identical defect and had never been rendered by anything**, which is why `test/settings.mjs` now asserts the absence of `--emph:` in both blocks rather than the presence of a colour.
