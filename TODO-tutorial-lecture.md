@@ -3,81 +3,50 @@
 Rückmeldungen aus einem Durchgang durch `lectures/tutorial/` (Audience- und
 Lectern-View, Desktop und iPad). Die Original-Nummern sind als `[#n]` erhalten.
 
-**Abschnitte C und D – der ganze Textdurchgang und alle vier Umbau-Blöcke –
-sind fertig.** Was hier steht, ist das, was noch offen ist; der Rest ist unter
-*Was erledigt ist* zusammengefasst und steht ausführlich in den Commits.
-Erledigte Punkte sind aus der Liste entfernt, nicht abgehakt: eine Handoff-Datei,
-in der man sechs offene Punkte zwischen fünfzig erledigten suchen muss, ist
-keine.
+**Abschnitte A, C und D sind fertig** – der ganze Textdurchgang, alle vier
+Umbau-Blöcke und die drei Engine-Mini-Fixes. Was hier steht, ist das, was noch
+offen ist; der Rest ist unter *Was erledigt ist* zusammengefasst und steht
+ausführlich in den Commits. Erledigte Punkte sind aus der Liste entfernt, nicht
+abgehakt: eine Handoff-Datei, in der man drei offene Punkte zwischen fünfzig
+erledigten suchen muss, ist keine.
 
 ---
 
 ## Was noch offen ist
 
-Sechs Punkte. **Zwei davon fangen mit einer Messung an, nicht mit einer
-Änderung** – bei `#1` und `#41` widerspricht der Code der Beobachtung, und ohne
-Reproduktion ändert man das Falsche.
+Drei Punkte, und **keiner davon ist am Schreibtisch zu erledigen**. Zwei
+brauchen ein echtes iPad, einer eine Bildschirmaufnahme. Alles, was ohne beides
+zu klären war, ist geklärt – bei `[#5]` sind unten zwei Mechanismen mit Messung
+ausgeschlossen und eine Frage formuliert, die der nächste iPad-Durchgang in
+fünf Sekunden beantwortet.
 
-### A. Engine – Mini-Fixes ← hier weitermachen
+### B. Engine – größer ← hier weitermachen
 
-Jeder Punkt eine überschaubare Änderung an `build.js`, mit klarem Befund.
-
-- [ ] **[#9] Bei großer Schrift überlagern die EXP-Buttons den Text.**
-      *Befund:* `.exps` ist `position: absolute; bottom: …` im Chunk und skaliert
-      mit `--zoom`; der Fließtext wächst darunter durch.
-      *Vorschlag:* Am Chunk mit Expansions unten Platz reservieren, statt die
-      Buttons aus dem Chunk zu ziehen – die Geste „Knopf in der Ecke der Folie“
-      soll bleiben. Die Leistenhöhe ist zoomabhängig, also über dieselbe
-      `em`-Rechnung wie `.exp-chev` als `padding-block-end` an `.chunk-content`.
-      *Warnung aus `[#17]`:* `em` erbt dort die zoomskalierte Foliengröße. Das
-      ist hier **richtig** – der Platz soll ja mitwachsen –, war es bei einem
-      Bedienelement aber nicht. Nicht reflexhaft auf `rem` umstellen.
-
-- [ ] **[#10, Teil Desktop] Geöffnete Expansions nutzen zu wenig Breite.**
-      *Befund:* `.chunk.expanded` ist ein Zweispalten-Grid mit `minmax(0, 36em)`
-      rechts – fix, unabhängig von der Chunkbreite.
-      *Vorschlag:* Rechte Spalte an die Chunkbreite koppeln.
-      Der Mobile-Teil von `[#10]` ist mit `[#17]` erledigt: unter 900 px
-      überlagert die Expansion die Folie, statt in eine halbe Spalte gequetscht
-      zu werden.
-
-- [ ] **[#1] Zeilenumbruch: zweite Zeile oft länger als die erste.**
-      *Befund – kleiner als der Punkt klingt, aber anders gelagert als gedacht:*
-      `text-wrap` ist längst breit im Einsatz. `PRINT_CSS` hat die zwei
-      allgemeinen Regeln (`h1…h4` `balance`, `p, li, dd` `pretty`).
-      `AUDIENCE_CSS` hat acht Regeln, darunter **schon** eine für genau den
-      beklagten Fall: `[data-collapse=topic-bold] .reveal-segment p, li,
-      .sentence-rest strong { text-wrap: balance }`. Überschriften, Cards und
-      die Inhaltsliste ebenfalls. `SPEAKER_CSS` hat keine eigenen und braucht
-      auch keine, es erbt `AUDIENCE_CSS`.
-      **Was fehlt:** eine allgemeine `p { text-wrap: pretty }` in
-      `AUDIENCE_CSS`. Der **volle Text** (`C` einmal gedrückt) bekommt also gar
-      keine Behandlung.
-      *Erster Schritt:* herausfinden, in welchem der beiden `C`-Modi die Klage
-      gemeint war. Wenn im kollabierten, ist `balance` dort schon aktiv, und es
-      geht um eine Grenze von `balance` selbst – Chrome hört ab einer bestimmten
-      Zeilenzahl auf zu balancieren. Das ist **nicht verifiziert** und wäre das
-      Erste zum Nachmessen. Ein Test mit demselben Wort wiederholt beweist
-      nichts, dann sind alle Zeilen ohnehin gleich breit; echten Fließtext
-      nehmen.
-      *Beachten:* `body:not([data-wrap=none])` steht vor jeder dieser Regeln.
-      Das ist der `style: {wrap: none}`-Schalter, mit dem ein fertiger
-      Foliensatz sich gegen ein Neu-Umbrechen wehren kann. Neue Regeln tragen
-      ihn mit.
-
-### B. Engine – größer
-
-Zwei Reproduktionen und eine Aufnahme. Keiner ist bisher nachgestellt.
-
-- [ ] **[#5] iPad, Lectern-View: `f` öffnet manchmal die Suche statt den Font zu
-      wechseln.** Auch nach Antippen der Folie.
+- [ ] **[#5] iPad, Lectern-View: `f` öffnet manchmal die Suche statt den Font
+      zu wechseln.** Auch nach Antippen der Folie.
       *Status:* **nicht reproduziert, braucht ein echtes iPad.**
-      *Verdacht:* ein Fokusproblem – der `keydown`-Handler hängt am `window`,
-      aber ein Feld (Notizen, Annotation, Suchfeld) hat noch den Fokus und
-      schluckt oder verschiebt die Taste. Erster Schritt: prüfen, ob
-      `endSearch()` / `blurAnnotation()` auf iPadOS den Fokus wirklich abgeben,
-      und ob `startSearch()` von einem `beforeinput` statt von `keydown`
-      erreicht wird.
+
+      *Zwei Mechanismen sind inzwischen ausgeschlossen, beide gemessen:*
+
+      1. **Nicht der Key-Handler.** In `startSearch()` führen genau zwei Wege:
+         `case '/'` in der Key-Map und der `search`-Knopf der Touch-Palette.
+         Es gibt keinen Type-to-Search-Zweig, auch nicht im Overview-Ast, und
+         `e.metaKey || e.ctrlKey || e.altKey` steigt vorher aus. Ein `f` kann
+         den Panel über diesen Handler nicht öffnen.
+      2. **Nicht die Trefferflächen.** Die Palette an sechs iPad-Größen in
+         beiden Live-Views vermessen (`pointer: coarse` muss der Kontext
+         setzen, sonst ist die Leiste gar nicht da): zwölf Knöpfe, jeder
+         56 × 56 px, 6 px Abstand, keine Überlappung, keiner unter 44 px,
+         keiner außerhalb des Bildschirms. `F` ist der zweite Knopf, `⌕` der
+         fünfte – die beiden liegen nicht nebeneinander.
+
+      *Was der nächste Durchgang beantworten muss, bevor irgendetwas geändert
+      wird:* **welche Suche ging auf?** Das Panel der Lecture (eine Karte, die
+      Folien auflistet) oder Safaris eigene Seitensuche (Leiste am unteren
+      Rand)? War es Safaris, ist `⌘F` durchgekommen und die Frage lautet, wie
+      – Sticky Keys, Globe-Taste, Tastaturbelegung –, und der Code hier ist
+      unschuldig. War es das Panel, ist es doch der Knopf, und dann brauche ich
+      wissen, ob die Palette offen war.
 
 - [ ] **[#41] iPad: Diagram-Steps laufen angeblich nur bei fokussierter
       Abbildung.** Bei normal geöffnetem Chunk springe Vorwärts direkt zum
@@ -107,8 +76,9 @@ Zwei Reproduktionen und eine Aufnahme. Keiner ist bisher nachgestellt.
 node lint.js lectures/                # alle fünf Lectures, zero-dep
 npm run gate                          # 422 Assertions, ~0,5 s, kein Browser
 npm run settings                      # 244 Assertions, ~1 min, baut selbst
-node test/run.mjs                     # 583 Assertions, ~6 min, baut selbst
+node test/run.mjs                     # 602 Assertions, ~6 min, baut selbst
 node test/run.mjs nav                 # nur die Specs, deren Name passt
+node test/run.mjs expansion           # der neue Spec aus Slice 12, ~10 s
 ```
 
 Beim Anfassen der Live-Views mindestens `nav`, bei `editor.mjs` auch `editor`.
@@ -126,15 +96,37 @@ node build.js lectures/decoration/source.md --audience-only
 node build.js lectures/decoration/source.md --print-only
 ```
 
+### Ein Layout im Browser messen, statt es anzuschauen
+
+Die drei A-Punkte waren alle drei anders gelagert, als sie aussahen, und in
+allen drei Fällen hat dasselbe Vorgehen es gezeigt: `test/harness.mjs`
+importieren, `serve()` + `openDeck()`, und dann **die Kästen ausrechnen lassen,
+statt sie zu beurteilen**. Für Textzeilen liefert `Range.getClientRects()` pro
+Zeile ein Rechteck – damit ist „der Knopf liegt auf dem Text“ ein Schnitttest
+und keine Meinung, und „die zweite Zeile ist länger als die erste“ eine Zahl.
+
+Zwei Fallen dabei, beide selbst hineingetappt:
+
+- **Karten und Zeilen sind keine Absätze.** `::: cards` und `::: rows` sind
+  Raster; wer ihre Felder als Zeilen misst, liest Spalten als Umbrüche und
+  bekommt eine Fehlerquote von 14 %, die es nicht gibt. Filtern, und prüfen,
+  ob alle Zeilen an derselben linken Kante beginnen.
+- **`openDeck()` hat keinen groben Zeiger.** Die Touch-Leiste hängt an
+  `@media (pointer: coarse)`; im Standardkontext ist sie schlicht nicht im
+  Dokument, und die Messung meldet fröhlich null Überlappungen bei null
+  Knöpfen. Für so etwas einen eigenen Kontext mit
+  `{ hasTouch: true, isMobile: true }` aufmachen.
+
 ## Zwei Fallen, in die ich gelaufen bin
 
 **Ein rohes Backtick in einem Kommentar innerhalb eines Template-Literals**
-beendet das Literal, und `build.js` parst nicht mehr. Dreimal passiert, jedes
-Mal in einem Kommentar, der ein Ding beim Namen nennen wollte. Der
+beendet das Literal, und `build.js` parst nicht mehr. Viermal passiert, jedes
+Mal in einem Kommentar, der ein Ding beim Namen nennen wollte – das vierte Mal
+in genau dem CSS-Kommentar, der die `padding`-Eigenschaft erwähnen wollte. Der
 `SyntaxError` zeigt auf den Bezeichner *danach*, achttausend Zeilen tief. Seit
 Commit `674cbcd` findet `node test/gates/run.mjs inlined` das in Millisekunden
 und nennt Literal und Zeile – **vor** einem Build laufen lassen, nicht danach
-rätseln.
+rätseln. Es hat beim vierten Mal genau das getan.
 
 **`node build.js … 2>&1 >/dev/null` verschluckt genau diesen Fehler** und lässt
 das *vorherige* HTML auf der Platte. Der Browser zeigt dann einen alten Build,
@@ -145,7 +137,7 @@ CSS/JS die neue Regel per `grep -F` im gebauten HTML nachweisen.
 
 ## Was erledigt ist
 
-Elf Slices. Die Commit-Nachrichten tragen die Begründungen; diese Tabelle ist
+Zwölf Slices. Die Commit-Nachrichten tragen die Begründungen; diese Tabelle ist
 der Index. Was in C und D im Einzelnen geändert wurde, steht dort und nicht
 mehr hier.
 
@@ -162,11 +154,13 @@ mehr hier.
 | 9 | **D-Block 2 – Diagramme.** `#diagram` war der längste Chunk der Lecture *und* die erste Begegnung mit `::: draw`. Jetzt vier Chunks: fünf Zeilen und ihre Zeichnung, dieselbe Zeichnung mit zwei `step`-Blöcken, die sechs Slots, Placement. Im gebauten Page nachgezählt: dg1 ohne Frames-Payload (statisch), dg2 mit `n:3`. Eigene id `#diagram-beats` – `#diagram-steps` gehört der großen Alice/Eve-Figur, und ids sind eingefroren. | `3259d90` |
 | 10 | **D-Block 3 – Kernidee.** `#topic-sentence` sagte „der Topic Sentence“, Singular; PRD §4.5 und `splitSentencesIn` nehmen den ersten Satz **jedes** Absatzes. Trägt jetzt die Arbeitsreihenfolge (erst Prosa, dann die Eröffnungen schärfen), die sonst nirgends stand, und ist selbst vier Absätze – am gebauten Page nachgezählt, nicht geschätzt. `#33` gestrichen, `#19` ohne die Abbildung umformuliert, die es nie gab. | `d5d4bca` |
 | 11 | **D-Block 4 – `::: footnote`.** `::: margin` baut weiter und ist nirgends mehr dokumentiert. `word` merkt sich die geschriebene Schreibweise, damit „was never closed“ die getippte Zeile zitiert. `test/settings.mjs` sichert den Alias in **beiden** Views ab (`.margin-note` live, `.chunk-expansion-margin` auf Papier) – gegengeprüft, indem `margin` aus dem Parser entfernt und der Test fallen gesehen wurde. | `04c2921` |
+| 12 | **Abschnitt A – die drei Engine-Mini-Fixes**, alle drei anders gelagert als der Befund im Plan. `[#9]` reproduziert erst ab Zoom 1,65, dafür sicher: eine echte Prosazeile lag bei 1,65, 1,95 und 2,2 im Knopfrechteck. `[#10]` lag nicht an der `36em`-Kappe, die nie greift, sondern an den 14 % Seitenrand – beide Spalten kamen an jeder Fenstergröße und bei jeder Breitenklasse gleich breit heraus, 21,0em bei 1440, schmaler als `narrow`. Und dahinter steckte ein dritter Fehler, der in keinem Punkt stand: die Kamera zentrierte die Expansion statt des Chunks, unter 900 px auf ein `position: fixed` in einem transformierten Vorfahren, was das Deck um 40 850 px verschob. `[#1]` siehe *Entschieden*. Neu dazu `test/expansion.mjs`, 19 Assertions: der Kamerafehler hat vom ersten Audience-Renderer an gelebt, weil ein Screenshot der Karte richtig aussieht. Alle vier Defekte gegengeprüft, indem jeder einzeln wieder eingebaut und der Spec fallen gesehen wurde – jeder fällt genau an den Zeilen, die ihn benennen. | – |
 
 ### Beim Verifizieren nebenbei gefunden
 
-Vier Fehler, die in keinem Punkt der Liste standen – jeder kam heraus, weil eine
-Behauptung des Tutorials gegen den Code geprüft wurde statt geglaubt:
+Fünf Fehler, die in keinem Punkt der Liste standen – jeder kam heraus, weil eine
+Behauptung des Tutorials oder des Stylesheets gegen den Code geprüft wurde statt
+geglaubt:
 
 - **`lectures/decoration` dokumentierte vier `::: backdrop`-Slot-Gruppen, es
   sind fünf.** `focus` (`sharp` | `blur`) fehlte in genau der Lecture, die
@@ -180,10 +174,15 @@ Behauptung des Tutorials gegen den Code geprüft wurde statt geglaubt:
 - **`#cards`: „`ground: photo`“ ist keine Syntax.** `parseSlotClasses` liest
   blanke Wörter in Klammern; ein `key: value` in einem Tail hätte den Build
   angehalten. (`c5cdd9b`)
+- **Die Expansions-Kamera und das `position: fixed` darunter.** Der
+  CSS-Kommentar sagte, unter 900 px decke die Karte die Folie zu. Sie deckte
+  nichts zu: die Folie war 37 000 px weit weg, und die Karte stand auf leerer
+  Seite. Zwei Fehler, die sich in genau einem Rechteck aufhoben und sonst
+  nirgends – das ist die Sorte, die man nur findet, wenn man einen anfasst.
 
 ### Entschieden – nicht wieder aufmachen
 
-Drei Punkte kippten beim Prüfen und sind bewusst *keine* Arbeit:
+Vier Punkte kippten beim Prüfen und sind bewusst *keine* Arbeit:
 
 - **[#44] Der Link „in the decoration lecture“ hat keinen QR-Code – richtig so.**
   QR-Codes gibt es nur für `https?://`-Adressen (`marked`-Renderer, `isExternal`).
@@ -192,8 +191,27 @@ Drei Punkte kippten beim Prüfen und sind bewusst *keine* Arbeit:
   fast nichts. Bleibt als Aufnahme-Aufgabe in B stehen.
 - **[#41] widerspricht dem Code** – `countSegments()` zählt `chunkBeats()`
   unabhängig vom Fokus. Steht in B als Reproduktion, nicht als Fix.
+- **[#1] „zweite Zeile oft länger als die erste“ ist auf Fließtext nicht
+  reproduzierbar**, in keinem der beiden `C`-Modi. Gemessen über die ganze
+  Tutorial-Lecture, Zeile für Zeile: kollabiert, wo `balance` läuft, ein Fall
+  unter 97; im Lesemodus null unter 59. Wo es wirklich so aussieht, ist es
+  `::: cards` und `::: rows` – dort sind die vermeintlichen zwei Zeilen zwei
+  Rasterspalten, und die Beschwerde beschreibt das Layout, nicht den Umbruch.
+  Der eine echte Fall ist `#search`: `balance` kann nur eine Containerbreite
+  wählen und dann gierig füllen, und bei zwei Zeilen kommt dabei 514/672
+  heraus. Dagegen gibt es kein CSS.
 
-Drei Punkte kamen anders heraus als der Plan vorschlug, jeweils mit Grund:
+  **Die Lücke, die der Plan daneben genannt hat, war dagegen echt und ist zu**:
+  die Live-Views hatten für Prosa überhaupt keine `text-wrap`-Regel, also im
+  Lesemodus 31 % Absätze mit einer letzten Zeile unter einem Viertel der
+  Satzbreite. `p, li` bekommen jetzt dasselbe `pretty` wie die Print-Views.
+  Mit ehrlicher Buchführung: gegen sich selbst gemessen (`data-wrap=none` ist
+  genau der Schalter) bricht die Regel auf Chromium 149 zwei von 59 Absätzen
+  neu um. Sie ist richtig und kostet nichts, aber sie ist keine Lösung für die
+  31 % – Chromes `pretty` ist zurückhaltend, und Silbentrennung, die das
+  wirklich schließen würde, ist in den Live-Views mit Absicht aus.
+
+Vier Punkte kamen anders heraus als der Plan vorschlug, jeweils mit Grund:
 
 - **[#19]** hat die Abbildung aus dem *Satz* verloren, statt eine in den Chunk zu
   bekommen: `::: draw` wird erst in der Beyond-Spalte eingeführt, und es dort zu
@@ -204,3 +222,8 @@ Drei Punkte kamen anders heraus als der Plan vorschlug, jeweils mit Grund:
   Mechanismus.
 - **[#45]** wurde durch `#47`/`#49` gegenstandslos: `#deco-cards` ist ganz
   aufgelöst, `#deco-idea` eröffnet den Decoration-Lauf vor `#covers`.
+- **[#10]** hat die vorgeschlagene Änderung *nicht* bekommen. „Rechte Spalte an
+  die Chunkbreite koppeln“ hätte an keiner gemessenen Fenstergröße etwas
+  bewirkt: die `36em`-Kappe bindet nie, beide Spuren teilen sich den Rest
+  gleichmäßig, und mit `max(36em, --content-w)` täten sie das weiterhin. Der
+  Hebel war der Seitenrand.
