@@ -101,15 +101,20 @@ node lint.js lectures/ --strict                # warnings → exit 2
 npm run gate                                   # all gates
 node test/gates/run.mjs semantics              # gates whose name matches
 
-# browser suite – the things that only break in a built page, in three
-# families: the navigation model (nav, nav-cockpit), the editor's gestures and
+# browser suite – the things that only break in a built page, in four
+# families: the navigation model (nav, nav-cockpit), the frame an open
+# expansion leaves the slide (expansion), the editor's gestures and
 # panel (editor-*), and the figure-* specs that measure the emitted SVG –
 # figure-framing, which catches a drawing sitting off-centre in an oversized
 # frame, figure-labels, which measures where an aligned label lands inside the
 # thing that holds it, and figure-sequence, which asserts that nothing in a
 # `sequence` overlaps anything else in it and that its generated names are the
 # documented ones. The editor-* family also covers the neighbour-alignment
-# guides, which is what a gesture snaps to. Twenty-two specs, ~575 assertions.
+# guides, which is what a gesture snaps to. `expansion` is the youngest and
+# says why the family exists: the camera framed an open expansion by centring
+# the pane and cropping the slide it belongs to, from the first audience
+# renderer to 2026, because a screenshot of the pane looks right. It asserts
+# the frame, never a coordinate. Twenty-three specs, ~602 assertions.
 # Builds and serves the lectures itself, so it never reports on stale HTML,
 # and launches one Chromium for the whole run ($PSI_CHROME, the Playwright
 # cache, or system Chrome); ~5 min. Run it after touching AUDIENCE_JS, the key

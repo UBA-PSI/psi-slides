@@ -275,6 +275,48 @@ body.text-selecting #stage { cursor: text; }
   position: relative;
 }
 
+/* The chevrons float over the foot of the slide, so on a chunk that has them
+   the words have to stop short. The band is one chevron tall and a chevron
+   is sized in 0.62em times var(--zoom), so the reserve has to be written in
+   the same terms or it stops matching the moment the lecturer presses +: measured
+   on the tutorial's own #expand, a real line of prose sat inside the button
+   rectangle at zoom 1.65, 1.95 and 2.2. The 2.3 is the chevron's own box in
+   its own type - line box plus 0.45em of padding top and bottom - and the
+   band stands 0.65 of the vertical slide padding off the floor, which is
+   room the text already leaves, so that part comes back off.
+
+   The em unit here is the chunk's, which is the responsive body size and
+   carries no zoom of its own; the zoom is the explicit factor. That is the opposite of
+   the [#17] finding, where an em on a *control* inherited the zoomed slide
+   size and blew a touch bar up to 441px on a 390px phone. A control should
+   not grow with the type. This is not a control - it is the space the type
+   needs - so here it must.
+
+   Which box gives way depends on which one is standing on the floor of the
+   slide, and that is not the same box in both layouts, so the band is a
+   variable used twice rather than a number written twice. Closed, the words
+   are on the floor and the reserve is padding under .chunk-content - which
+   is also where flowHeightProbe() wants it, since that function reads a
+   level's own paddings and skips absolutely positioned children, so auto-fit
+   counts the reserve and ignores the buttons. Expanded, the pane is on the
+   floor, it is painted at z-index 5 over the buttons' 2, and it swallowed
+   their bottom half; there the reserve is the chunk's own padding, which
+   shortens the row the pane is centred in.
+
+   The variable holds an em, and an em means whatever the element using it
+   says it does. Both users here inherit the chunk's font size, so both
+   resolve it the same way. The pane does not - it sets 0.88em times the zoom
+   of its own - so do not reach for this inside .exp-body. */
+.chunk:has(> .exps) {
+  --exp-band: calc(0.62em * var(--zoom) * 2.3);
+}
+.chunk:has(> .exps):not(.expanded) > .chunk-content {
+  padding-block-end: max(0px, calc(var(--exp-band) - var(--slide-pad-y) * 0.35));
+}
+.chunk.expanded {
+  padding-block-end: calc(var(--slide-pad-y) + var(--exp-band, 0px));
+}
+
 .tag-label {
   font-family: var(--sans-font);
   font-variant-caps: all-small-caps;
@@ -2505,10 +2547,27 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
 
 /* expanded: split the slide grid into content-left + expansion-right.
    Exp-body gets a bit of extra breathing room (36em vs. 30em) so that
-   standard-width code blocks fit without horizontal scroll. */
+   standard-width code blocks fit without horizontal scroll.
+
+   The 36em cap has never been what decides the width, and reading the rule
+   as though it were sends you to the wrong line. A closed chunk is one text
+   column between two 1fr gutters, and it can afford a 14% margin on each
+   side; an expanded one has two panels and the same margin leaves them 72%
+   of the slide to share. Measured at three window sizes, both tracks came
+   out at 21.0em (1440) and 23.4em (1920) - equal, because neither reaches
+   its cap, so the free space is split evenly - and identical on a narrow,
+   a wide and a full chunk. 21em is narrower than the *narrow* width class,
+   and the pane scrolled in every case. So the margin is what gives, and it
+   is set as the variable rather than as a padding property: .exps and
+   .chunk-num are positioned against --slide-pad-x too, and trimming only the
+   box's own padding would have left the chevrons standing 14% in, on top of
+   the pane. Centred
+   because a narrow chunk beside a 36em pane no longer fills the row. */
 .chunk.expanded {
+  --slide-pad-x: 6%;
   grid-template-columns: minmax(0, var(--content-w, 36em)) minmax(0, 36em);
-  gap: 5%;
+  gap: 4%;
+  justify-content: center;
 }
 .chunk.expanded .chunk-content { grid-column: 1; }
 .exp-body { display: none; }
@@ -2574,6 +2633,28 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
    the time the camera lands. */
 .chunk:not(.active) .chunk-backdrop { opacity: 0; }
 .chunk-backdrop { transition: opacity 260ms ease; }
+
+/* Prose in the live views had no line-breaking treatment at all, and the
+   omission was invisible because the mode the room usually sees is the
+   collapsed one, which the rule below balances. Press C once and every
+   paragraph fell back to greedy wrapping: measured over the tutorial's 59
+   multi-line paragraphs in reading mode, 31% ended on a line under a quarter
+   of the measure - one word alone under a full line (822px then 57px, 938
+   then 233, 832 then 158). pretty is the answer to exactly that and no more:
+   it keeps the measure and protects the last line, where balance would even
+   every line of a paragraph that is meant to read as prose.
+
+   The document views have had this since 1.0.0; this is the same pair of
+   lines from PRINT_CSS, minus dd, because the only dl in a live view is the
+   help overlay's key table and a key is not a paragraph. Both selectors
+   below it are more specific and keep winning: the collapsed slide line
+   stays balanced, and a card stays pretty for its own reason.
+
+   The guard travels with it. body:not([data-wrap=none]) is the
+   style: {wrap: none} switch a finished deck uses to refuse a re-wrap, and
+   a rule that skips it re-breaks the lines of a lecture whose author has
+   said no. */
+body:not([data-wrap=none]) :is(p, li) { text-wrap: pretty; }
 
 /* collapse modes (§4.5) – applied per reveal-segment.
    Two states only: 'none' (show everything) and 'topic-bold'
@@ -3108,18 +3189,32 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
   }
 }
 /* An expansion is half of a two-column grid, which needs two columns' worth
-   of room. Under this width there are not two, so the pane covers the slide
-   instead of being squeezed beside it - the same trade the figure overlay
-   makes, and for the same reason: a card you can read beats a layout you
-   can see all of. */
+   of room. Under this width there are not two, so the pane takes the whole
+   column and stacks under the slide's own words, and focusCamera - which
+   frames an open pane vertically - lifts it to the middle of the screen with
+   the sentence it belongs to still above it.
+
+   It was position: fixed, with the inset of a card pinned to the bottom of
+   the window, and it was never pinned to anything of the sort. The pane
+   lives inside #stage, #stage carries the camera's transform, and a fixed
+   descendant of a transformed element is positioned against that element
+   rather than against the viewport. What made it look right was the other
+   half of the same defect: getOffset walks offsetParent up to the stage, a
+   fixed box has no such chain, so the camera was computing its translation
+   from the pane's own runaway coordinates and the two errors cancelled in
+   the card while leaving the slide behind it 37,000px away - a card floating
+   on an empty page. The one construct here that really does escape to the
+   window is the figure overlay, and it escapes by leaving the stage:
+   #figure-overlay is a sibling of it and the focused element is cloned in. */
 @media (max-width: 900px) {
-  .chunk.expanded { grid-template-columns: minmax(0, 1fr); }
+  .chunk.expanded {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 1.4em;
+  }
   .chunk.expanded .exp-body.on {
-    position: fixed;
-    inset: auto 4vw 12vh;
-    max-height: 62vh;
-    max-width: 92vw;
-    margin: 0 auto;
+    grid-column: 1;
+    align-self: start;
+    max-height: 70vh;
   }
 }
 
@@ -5784,22 +5879,36 @@ function focusCamera(instant = false) {
   const vp = vpLayout();
   const { left, top, width, height } = getOffset(entry.el, stage);
 
+  // The open expansion pane, but only while it is part of the chunk's own
+  // layout. Under 900px it is position: fixed, and a fixed element has no
+  // offsetParent chain up to the stage - getOffset then hands back viewport
+  // coordinates, and the camera built from them translated the deck to
+  // (-4320, -40850) on an 800px window. The card sat where fixed positioning
+  // put it and looked right; the slide it is supposed to cover was thirty-
+  // seven thousand pixels away, so it covered an empty page. A pane that
+  // frames itself wants no camera of its own: fall through to the chunk.
+  const expPane = (openExp && openExp.chunkIdx === state.activeIdx)
+    ? entry.el.querySelector(`.exp-body[data-exp-body="${openExp.expIdx}"]`)
+    : null;
+  const paneInFlow = expPane && getComputedStyle(expPane).position !== 'fixed';
+
   let tx, ty;
   if (annotEditingId === entry.id) {
     const contentEl = entry.el.querySelector('.chunk-content');
     const co = contentEl ? getOffset(contentEl, stage) : { left: left + width / 2 };
     tx = vp.width * 0.33 - co.left;
     ty = (height <= vp.height) ? vp.height / 2 - (top + height / 2) : vp.height * 0.05 - top;
-  } else if (openExp && openExp.chunkIdx === state.activeIdx) {
-    const body = entry.el.querySelector(`.exp-body[data-exp-body="${openExp.expIdx}"]`);
-    if (body) {
-      const bo = getOffset(body, stage);
-      tx = vp.width / 2 - (bo.left + bo.width / 2);
-      ty = vp.height / 2 - (bo.top + bo.height / 2);
-    } else {
-      tx = vp.width / 2 - (left + width / 2);
-      ty = vp.height / 2 - (top + height / 2);
-    }
+  } else if (paneInFlow) {
+    const bo = getOffset(expPane, stage);
+    // An expanded chunk is one composition and the stylesheet says so - the
+    // slide's own column on the left, the pane on the right. Centring the
+    // pane alone is centring half of it, which slid the words the pane
+    // belongs to off the left edge; the room read a card and a cropped
+    // sentence. So the horizontal frame is the chunk.
+    tx = vp.width / 2 - (left + width / 2);
+    // Vertically the pane is what is being read and it can stand taller than
+    // the text beside it, so it keeps the centring it always had.
+    ty = vp.height / 2 - (bo.top + bo.height / 2);
   } else {
     tx = vp.width / 2 - (left + width / 2);
     if (height <= vp.height) {

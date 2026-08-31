@@ -22,6 +22,7 @@ import { buildLecture, serve, openDeck, closeBrowser, editorHelpers, createRepor
 const SPECS = [
   './nav.mjs',
   './nav-cockpit.mjs',
+  './expansion.mjs',
   './editor-edges.mjs',
   './editor-waypoints.mjs',
   './editor-leaders.mjs',

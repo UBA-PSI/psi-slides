@@ -169,6 +169,64 @@ from building the same way is a major version.
 
 ### Fixed
 
+- **An open expansion threw away the slide it belonged to, and on a narrow
+  window threw away the deck.** The stylesheet builds an expanded chunk as one
+  composition – the slide's own column on the left, the pane on the right –
+  and `focusCamera` then centred the *pane*, which is half of it. The words
+  the pane expands slid off the left edge; measured on the tutorial at 1440,
+  the chunk sat at x −272 with its heading cropped. Horizontally the frame is
+  now the chunk. Vertically the pane keeps the centring it had, because it is
+  what the room is reading and it can stand taller than the text beside it.
+
+  Under 900px the same branch was worse. The pane is `position: fixed` there,
+  a fixed element inside a transformed ancestor is positioned against that
+  ancestor rather than the viewport, and `getOffset` walks `offsetParent` – of
+  which a fixed box has none – up to the stage. So the camera was reading the
+  pane's runaway coordinates and answering with `translate(-4320px,
+  -40850px)`. The two errors cancelled inside the card and nowhere else: the
+  card looked right, and the slide it is supposed to cover was thirty-seven
+  thousand pixels away, so it floated on an empty page. The pane now takes the
+  whole column and stacks under the slide's words, in flow, where the camera
+  can find it. The one construct here that really does escape to the window is
+  the figure overlay, and it escapes by leaving the stage.
+
+- **An expanded chunk gave both its columns less room than the `narrow` width
+  class.** The rule caps the pane at `36em` and that cap has never been what
+  decides the width. A closed chunk is one text column between two `1fr`
+  gutters and can afford a 14% margin each side; an expanded one has two
+  panels and the same margin leaves them 72% of the slide to share. Measured
+  at three window sizes, both tracks came out equal – 21.0em at 1440, 23.4em
+  at 1920 – identical on a narrow, a wide and a full chunk, with the pane
+  scrolling in every case. The margin now halves while a chunk is expanded, as
+  the variable rather than as a padding property, because `.exps` and
+  `.chunk-num` are positioned against it too and trimming the box alone would
+  have left the chevrons standing 14% in, on top of the pane. Both columns go
+  to 26.0em at 1440 and 28.9em at 1920, and three of the tutorial's four
+  expansions stop scrolling.
+
+- **The expansion chevrons sat on top of the words at any zoom above the
+  default.** `.exps` is absolutely positioned at the foot of the slide and
+  sized in `0.62em * var(--zoom)`, while the text below it simply grew. On the
+  tutorial's own `#expand` a line of prose was inside the button rectangle at
+  zoom 1.65, 1.95 and 2.2. A chunk that has chevrons now reserves the band, in
+  the same terms the chevrons are sized in, so the reserve tracks the zoom
+  key: under the words when the chunk is closed, and as the chunk's own bottom
+  padding when it is expanded, because then it is the pane standing on the
+  floor and the pane paints over the buttons.
+
+- **Prose in the live views had no line-breaking treatment at all.** The
+  collapsed slide line is balanced and a card is set `pretty`, so the omission
+  only showed with `C` pressed once, where every paragraph fell back to greedy
+  wrapping: over the tutorial's 59 multi-line paragraphs in reading mode, 31%
+  ended on a line under a quarter of the measure – one word alone under a full
+  line. `p` and `li` now take the `text-wrap: pretty` the document views have
+  had since 1.0.0, carrying the `style: {wrap: none}` guard with them, and
+  both existing rules stay more specific and keep winning. Honest about the
+  size of it: measured against itself on Chromium 149, the rule re-breaks two
+  of those 59 paragraphs. It is the right rule and the gap was real, but
+  Chrome's `pretty` is conservative, and hyphenation – the thing that would
+  actually close those lines up – is deliberately off in the live views.
+
 - **Auto-fit sized every cover and every section divider to its smallest
   type.** `fitZoomToChunk` asked whether the chunk's own box fitted inside 94%
   of the viewport. Three families are pinned to the full slide height so their
