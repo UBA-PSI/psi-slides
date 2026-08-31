@@ -7188,18 +7188,29 @@ function focusCamera(instant = false) {
   const vp = vpLayout();
   const { left, top, width, height } = getOffset(entry.el, stage);
 
-  // The open expansion pane, but only while it is part of the chunk's own
-  // layout. Under 900px it is position: fixed, and a fixed element has no
-  // offsetParent chain up to the stage - getOffset then hands back viewport
-  // coordinates, and the camera built from them translated the deck to
-  // (-4320, -40850) on an 800px window. The card sat where fixed positioning
-  // put it and looked right; the slide it is supposed to cover was thirty-
-  // seven thousand pixels away, so it covered an empty page. A pane that
-  // frames itself wants no camera of its own: fall through to the chunk.
+  // The open expansion pane. The branch below reads its offsets in stage
+  // coordinates, which holds because the pane is always part of the chunk's
+  // own layout: under 900px the stylesheet re-flows the grid and stacks it,
+  // and deliberately does not lift it out with position: fixed.
+  //
+  // That used to be the rule, and it was never fixed to the window. The pane
+  // lives inside #stage, #stage carries this very transform, and a fixed
+  // descendant of a transformed element is positioned against that element.
+  // getOffset walks offsetParent up to the stage, of which such a box has
+  // none, so the camera answered with translate(-4320px, -40850px) - the card
+  // sat where fixed positioning put it and looked right, while the slide it
+  // was supposed to cover was thirty-seven thousand pixels away.
+  //
+  // There is deliberately no runtime test for it. A position check here could
+  // never be false once that rule was gone, and it would not be free: this
+  // function is the pointermove handler for stage panning, so getComputedStyle
+  // would force a style recalc on every frame of a drag to answer a question
+  // with one possible answer. The invariant belongs where it can fail loudly,
+  // and test/expansion.mjs holds it twice - the pane is not fixed, and the
+  // chunk is still on screen behind it.
   const expPane = (openExp && openExp.chunkIdx === state.activeIdx)
     ? entry.el.querySelector(`.exp-body[data-exp-body="${openExp.expIdx}"]`)
     : null;
-  const paneInFlow = expPane && getComputedStyle(expPane).position !== 'fixed';
 
   let tx, ty;
   if (annotEditingId === entry.id) {
@@ -7207,7 +7218,7 @@ function focusCamera(instant = false) {
     const co = contentEl ? getOffset(contentEl, stage) : { left: left + width / 2 };
     tx = vp.width * 0.33 - co.left;
     ty = (height <= vp.height) ? vp.height / 2 - (top + height / 2) : vp.height * 0.05 - top;
-  } else if (paneInFlow) {
+  } else if (expPane) {
     const bo = getOffset(expPane, stage);
     // An expanded chunk is one composition and the stylesheet says so - the
     // slide's own column on the left, the pane on the right. Centring the
