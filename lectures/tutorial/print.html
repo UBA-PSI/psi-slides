@@ -1071,8 +1071,8 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   
   <span class="chunk-num" aria-hidden="true"><i>4</i></span>
   
-  <h2 class="chunk-heading has-sub"><span class="hd-main">What you&#39;re reading right now</span> <span class="hd-sub">is the audience view</span></h2>
-  <p><strong>You are in <code>audience.html</code>, the view for the projector.</strong> One <strong>chunk – one <code>##</code> heading in the source, with everything written under it</strong> – fills the slide. The keyboard moves you from chunk to chunk, and a speaker window, once you open one, mirrors everything here as it happens.</p>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">What you&#39;re reading right now</span> <span class="hd-sub">the projection, or the lectern view beside it</span></h2>
+  <p><strong>This is <code>audience.html</code>, the projection for the room – or the same slide in <code>speaker.html</code>, if you have the lectern window open already.</strong> One <strong>chunk – one <code>##</code> heading in the source, with everything written under it</strong> – fills the slide. The keyboard moves you from chunk to chunk, and the two windows, once both are open, mirror each other as it happens.</p>
 <div class="cols cols-2">
 
 
@@ -1108,7 +1108,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 <p><strong>Good – you just uncovered a segment.</strong> In the source, <strong>a line containing nothing but <code>---</code> cuts a chunk into segments</strong>, as long as it is outside a block of code. The first one is on screen when you arrive; forward uncovers the next, back puts it away.</p>
 <p><strong>A faint <code>⌄</code> at the foot of the slide says the next forward press will leave the column.</strong> It is the one thing about where you are that the slide cannot show you by itself. There is nothing to click.</p>
 <p><strong>The cockpit shows you what comes next.</strong> With a speaker window open, look at this slide there: the segment the next forward press will reveal is already drawn in place, hatched and inside a dashed frame, so you can read ahead without the room seeing it. Only the immediately next one; the segments behind it stay hidden.</p>
-<p><strong>One more, so you can see them chain.</strong> Segments let you pace a dense slide during a talk instead of putting all of it up at once. In the two document views they run together as one flowing body, so nothing is lost on paper.</p>
+<p><strong>One more, so you can see them chain.</strong> Segments let you pace a dense slide during a talk instead of putting all of it up at once. In <code>print.html</code> and <code>print-notes.html</code> they run together as one flowing body, so nothing is lost on paper.</p>
 
   
   
@@ -1121,7 +1121,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Expansions</span> <span class="hd-sub"><code>1</code>-<code>9</code> or the chevron open side asides</span></h2>
   <p><strong>Some chunks have extra detail tucked behind a chevron button.</strong> Click one, or press <code>1</code>…<code>9</code> for the n-th. This chunk has two expansions – try both.</p>
-<p><strong>The two document views print every expansion</strong> as an indented aside where it stood in the source, so the reading copy loses nothing.</p>
+<p><strong><code>print.html</code> and <code>print-notes.html</code> print every expansion</strong> as an indented aside where it stood in the source, so the reading copy loses nothing.</p>
 
   
   <aside class="chunk-expansion chunk-expansion-expand" data-label="digits-and-chevrons">
@@ -1233,8 +1233,8 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Worked out from the prose</span> <span class="hd-sub">first sentence of each paragraph, plus the bold phrases</span></h2>
   <p><strong>Unless you say otherwise, the slide is the first sentence of every paragraph plus any <code>**bold**</code> phrases from the rest.</strong> This chunk is written that way – press <code>C</code> twice and watch what appears and disappears.</p>
-<p>It asks two things of you: every paragraph has to open with a sentence that stands up on its own, and the <strong>bold phrases have to read as bullets on their own</strong>. Everything else is for the documents.</p>
-<p>A chunk that makes an argument lives with that easily. It fights you when the chunk wants continuous explanation, and the next chunk is the way out.</p>
+<p>It asks two things of you: every paragraph has to open with a sentence that stands up on its own, and the <strong>bold phrases have to read as bullets on their own</strong>. Everything else is for <code>print.html</code> and <code>print-notes.html</code>.</p>
+<p>That suits a chunk that argues, where every paragraph has a point to open with. It is the wrong fit when the chunk wants continuous explanation instead, and the next chunk is the way out.</p>
 
   
   
@@ -1313,7 +1313,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Ten tags, one grammar</span> <span class="hd-sub"><code>## tag: Heading Sub {.width #id}</code></span></h2>
   <p><strong>Every chunk opens with a tag that names what kind of move it makes.</strong> <code>title</code>, <code>closing</code>, <code>outline</code>, <code>principle</code>, <code>definition</code>, <code>example</code>, <code>question</code>, <code>figure</code>, <code>exercise</code>, <code>free</code>.</p>
 <p>The <code>| Sub-Heading</code> and the <code>{.width #id}</code> tail are both optional. Width is one of <code>narrow</code>, <code>standard</code>, <code>wide</code>, <code>full</code>, and <strong>once you have written an <code>{#id}</code> it should never change</strong> – it is what cross-references, the contents list and your saved reading position all point at.</p>
-<p>The tail takes one class that is not a width: <code>{.bare}</code> keeps the heading in the two documents and in the search index and takes it off the projection.</p>
+<p>The tail takes one class that is not a width: <code>{.bare}</code> hides the heading on the projection while keeping it in <code>print.html</code>, <code>print-notes.html</code> and the search index.</p>
 
   
   
@@ -1325,10 +1325,10 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></span>
   <span class="chunk-label">definition</span>
   <h2 class="chunk-heading">What a tag actually does</h2>
-  <p><strong>A tag sets how a chunk looks and how many words it may hold, never how wide it is.</strong> In the two document views every tag prints its own name as a small line of capitals above the heading; <code>free</code> and <code>figure</code> are the two that do not. On the projection only <code>EXERCISE</code> is printed.</p>
+  <p><strong>A tag sets how a chunk looks and how many words it may hold, never how wide it is.</strong> In <code>print.html</code> and <code>print-notes.html</code> every tag prints its own name as a small line of capitals above the heading; <code>free</code> and <code>figure</code> are the two that do not. On the projection only <code>EXERCISE</code> is printed.</p>
 <p>Three of the ten are whole slides rather than treatments: <code>title</code> draws the cover from the frontmatter, <code>closing</code> draws that same composition at the end with your own words, and <code>outline</code> draws the lecture&#39;s agenda wherever you put it.</p>
 <p>The word budgets differ per tag: <code>principle</code> and <code>question</code> get 80 words, <code>definition</code> 200, <code>example</code> and <code>free</code> 250, <code>exercise</code> 350. <code>closing</code> gets 60 and <code>outline</code> 40. <code>title</code> and <code>figure</code> have no limit.</p>
-<p>Picking the wrong tag is not an error and the checker will not mention it. It surfaces later, when a principle you tagged as an example no longer stands out on the overview board.</p>
+<p>Picking the wrong tag is not an error. It surfaces later, when a principle you tagged as an example no longer stands out on the overview board.</p>
 
   
   
@@ -1420,7 +1420,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 
 
 <p><strong><code>N</code> in either window writes an annotation on the chunk you are on.</strong> A typing box appears under the chunk, and whatever you write appears in the other window as you type it. Use it for the things a talk produces: a rule you want on screen, a question from the room, a correction.</p>
-<p>Annotations are kept in the browser, one set per lecture. <code>Shift-E</code> in the speaker view copies all of them to your clipboard as <code>&gt; annot:</code> Markdown; paste that under the matching chunk heading in <code>source.md</code>, run <code>node build.js &lt;source.md&gt; --integrate-annotations</code>, and the text becomes permanent – already in the typing box next time, and printed under the chunk in the documents.</p>
+<p>Annotations are kept in the browser, one set per lecture. <code>Shift-E</code> in the speaker view copies all of them to your clipboard as <code>&gt; annot:</code> Markdown; paste that under the matching chunk heading in <code>source.md</code>, run <code>node build.js &lt;source.md&gt; --integrate-annotations</code>, and the text becomes permanent – already in the typing box next time, and printed under the chunk in <code>print.html</code> and <code>print-notes.html</code>.</p>
 </div><div class="side-b">
 
 
@@ -1432,7 +1432,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   
   <aside class="presentation-note">
 <span class="presentation-note-label">Presentation Note</span>
-<div class="presentation-note-body"><p>The <code>&gt; annot:</code> block you are reading in the document views came out of a previous run of exactly that; the typing box above starts filled with this text.</p>
+<div class="presentation-note-body"><p>The <code>&gt; annot:</code> block you are reading in <code>print.html</code> and <code>print-notes.html</code> came out of a previous run of exactly that; the typing box above starts filled with this text.</p>
 </div>
 </aside>
   
@@ -1447,16 +1447,16 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 <li><code>C</code> switches between <strong>what the room sees and the full text</strong>.</li>
 <li><code>F</code> cycles the <strong>font</strong>: serif, then sans, then monospace, for legibility across a room.</li>
 <li><code>A</code> cycles the <strong>theme</strong>: four light ones with different accent colours, a neutral dark one, and two green-and-amber terminal ones.</li>
-<li><code>+</code> <code>-</code> <code>0</code> set the <strong>text size</strong>; <code>#</code> hands that job to the tool.</li>
-<li><code>B</code> <strong>blanks the projection</strong>, and only the projection.</li>
+<li><code>+</code> <code>-</code> <code>0</code> set the <strong>text size</strong>; <code>#</code> turns on <strong>auto-fit</strong>.</li>
+<li><code>B</code> <strong>blanks the projection</strong>.</li>
 <li><code>L</code> cycles the <strong>slide numbers</strong>: stacked, in a row, or off.</li>
 </ul>
 <p><code>Shift</code> with any of the cycling keys goes backwards. Font, theme and slide numbers are remembered for every lecture you open, so the preference follows you; zoom and the <code>C</code> setting belong to the talk you are giving.</p>
 <p><strong>On a phone or a tablet with no keyboard, both windows grow a small rail along the bottom.</strong> Forward, back, overview and zoom sit on it; <code>C</code>, <code>F</code>, <code>A</code>, <code>#</code>, the search and text selection are behind its <code>⋯</code> button. Attach a keyboard and the rail goes away again, because the keys are back.</p>
 <p><strong>Dark mode follows your machine unless something says otherwise.</strong> If you have never pressed <code>A</code> and the lecture pins no theme, a machine set to dark opens the lecture dark. Press <code>A</code> once and your choice is remembered from then on, everywhere. An author who writes <code>theme:</code> in the frontmatter overrides both, by the same rule as the other opening settings.</p>
 <p><strong>The two <code>C</code> modes keep separate zoom levels.</strong> The short version holds whatever size you set with <code>+</code> and <code>-</code>; the full text picks its own so the whole chunk fits the screen, and switching back restores yours exactly.</p>
-<p><strong><code>#</code> hands the zoom to the tool.</strong> Every slide is then sized to the screen as you arrive on it, in either mode, growing a short chunk as readily as shrinking a long one. <code>#</code> again takes it back. It suits a lecture whose chunks vary a lot in length, and it is wrong if you want one type size in the room all hour.</p>
-<p><strong><code>B</code> blanks the projection and not your own screen.</strong> The audience view goes black while the speaker window keeps the slide, the notes and the thumbnails, so you can move on or read ahead while the room sees nothing. A small <code>BLANK · hit B to toggle</code> marker sits at the bottom of the speaker window, or at the bottom of the audience view when there is no speaker window.</p>
+<p><strong><code>#</code> turns on auto-fit, which sizes every slide to the screen as you arrive on it</strong>, in either mode, growing a short chunk as readily as shrinking a long one. <code>#</code> again takes it back. It suits a lecture whose chunks vary a lot in length, and it is wrong if you want one type size in the room all hour.</p>
+<p><strong>While the room sees black, the speaker window keeps everything.</strong> The slide, the notes and the thumbnails stay where they were, so you can move on or read ahead with nothing showing. A small <code>BLANK · hit B to toggle</code> marker sits at the bottom of the speaker window, or at the bottom of the audience view when there is no speaker window.</p>
 
   
   
@@ -1473,7 +1473,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></span>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Two layout axes</span> <span class="hd-sub">chunk widths and body directives</span></h2>
-  <p><strong>You decide a layout twice: how wide the chunk is, and how its body is arranged inside that width.</strong> The heading picks one of four widths – <code>{.narrow}</code>, <code>{.standard}</code>, <code>{.wide}</code>, <code>{.full}</code> – and <code>:::</code> directives in the body do the rest.</p>
+  <p><strong>A layout is two independent decisions: how wide the chunk is, and how its body is arranged inside that width.</strong> The heading picks one of four widths – <code>{.narrow}</code>, <code>{.standard}</code>, <code>{.wide}</code>, <code>{.full}</code> – and <code>:::</code> directives in the body do the rest.</p>
 <p>Width is the decision about the slide; the directives work inside it. A <code>.wide</code> chunk with a <code>::: side</code> body is the usual shape for a figure with commentary beside it.</p>
 
   
@@ -1491,12 +1491,12 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 
 
 <p><strong>Left column.</strong> The browser balances the columns for you: it fills from the top and breaks wherever the text allows. Do not put one long paragraph here, or one column fills and the other sits empty. Several short blocks work best.</p>
-<p><strong>Right column.</strong> This block is the third paragraph in the source, which is why it landed on the right – the text runs down the first column and then wraps into the second. In the document views the columns become one ordinary sequence of paragraphs.</p>
+<p><strong>Right column.</strong> This block is the third paragraph in the source, which is why it landed on the right – the text runs down the first column and then wraps into the second. In <code>print.html</code> and <code>print-notes.html</code> the columns become one ordinary sequence of paragraphs.</p>
 </div>
 
 
-<p><strong>Columns fold to one while the slide is short</strong> – press <code>C</code> here and the two above stack. Shortened, each paragraph is down to its opening sentence, and a browser will not split a paragraph across columns, so two single sentences of different lengths do not balance. They come back in the documents and in the full-text mode.</p>
-<p>Segments work inside <code>::: cols</code>, but uncovering text a piece at a time while it also flows across columns is hard to follow – pick one or the other.</p>
+<p><strong>Columns fold to one while the slide is short</strong> – press <code>C</code> here and the two above stack. Shortened, each paragraph is down to its opening sentence, and a browser will not split a paragraph across columns, so two single sentences of different lengths do not balance. The full-text mode brings them back, and so do <code>print.html</code> and <code>print-notes.html</code>.</p>
+<p><strong>Revealed segments – the <code>---</code> lines from <code>#arrows</code> – work inside <code>::: cols</code></strong>, but uncovering text a piece at a time while it also flows across columns is hard to follow: pick one or the other.</p>
 
   
   
@@ -1516,7 +1516,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 </div><div class="side-b">
 
 
-<p><strong>Right pane.</strong> A figure usually goes here with the text on the left. On the projection, click either pane to open it large; the document views stack the two panes one above the other, so neither is ever lost.</p>
+<p><strong>Right pane.</strong> A figure usually goes here with the text on the left. On the projection, click either pane to open it large; <code>print.html</code> and <code>print-notes.html</code> stack the two panes one above the other, so neither is ever lost.</p>
 </div></div>
 
 
@@ -1538,7 +1538,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 
 
 <p>This whole block sits in the slide margin, small and grey. Use a marginalia for a tangent that belongs with the chunk but would crowd the main text – an aside, a citation, a pointer to another column.</p>
-<p>The document views set marginalia under the body as indented asides, so the reading copy keeps every word.</p>
+<p><code>print.html</code> and <code>print-notes.html</code> set marginalia under the body as indented asides, so the reading copy keeps every word.</p>
 </aside>
 
 
@@ -1571,15 +1571,54 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Images</span> <span class="hd-sub"><code>![](fig-id)</code> resolves against <code>assets/</code></span></h2>
   <p><strong>Write <code>![](fig-id)</code> and the build looks in <code>assets/</code> for <code>fig-id.svg</code>, <code>.png</code>, <code>.jpg</code>, <code>.jpeg</code>, <code>.gif</code> or <code>.webp</code>, taking the first it finds.</strong> No folder, no extension. Writing the path out in full still works when you need it.</p>
-<div class="cols cols-2">
+<div class="side"><div class="side-a">
 
 
-<p><strong>The alt text becomes a caption.</strong> <code>![a caption](fig-id)</code> sets that text under the picture. On a <code>figure:</code> chunk whose heading already says what the picture is, that stacks two labels, so the checker warns and suggests leaving the alt text empty.</p>
-<p><strong>A drawing saved as SVG is written into the page as artwork</strong>, not as a picture file, so it takes its colours from the theme and changes with the <code>A</code> key. Photographs and other pictures are embedded as they are. Anything under 2 MB a file and 10 MB in total goes inside the HTML without your asking; <code>--no-inline-images</code> leaves the files outside instead.</p>
-</div>
+<p><strong>The alt text becomes a caption.</strong> The picture beside this paragraph is written <code>![An abstract dusk skyline](dusk)</code>, and the small grey line under it is that alt text. Leave the brackets empty and the picture stands on its own. On a <code>figure:</code> chunk whose heading already says what the picture is, a caption stacks two labels, so the checker warns and suggests leaving the alt text out.</p>
+<p><strong>A drawing saved as SVG is written into the page as artwork</strong>, not as a picture file, so it takes its colours from the theme and changes with the <code>A</code> key – the figure back at <code>#four-views</code> is one of those. Photographs, and pictures like this skyline that carry their own colours, are embedded exactly as they are.</p>
+</div><div class="side-b">
 
 
-<p><strong>A picture over the 2 MB limit stops the build</strong>, because leaving it outside the HTML would give you a broken figure anywhere the file travels without its assets folder. <code>node build.js &lt;source.md&gt; --optimize-images</code> converts the offenders to WebP in place, which on real lecture assets comes out at 12 to 18 percent of the original with no visible loss. <code>--no-inline-images</code> is there if you do want the files kept outside.</p>
+<p><figure class="figure-img" data-fig-id="dusk"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" id="psi-fig-2-root" role="img" aria-label="An abstract dusk skyline">
+  <defs>
+    <linearGradient id="psi-fig-2-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101425"/>
+      <stop offset="0.55" stop-color="#3a3350"/>
+      <stop offset="0.82" stop-color="#8f6f7a"/>
+      <stop offset="1" stop-color="#c99a7d"/>
+    </linearGradient>
+    <linearGradient id="psi-fig-2-haze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a1526" stop-opacity="0"/>
+      <stop offset="1" stop-color="#140f1c" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#psi-fig-2-sky)"/>
+  <circle cx="1210" cy="232" r="46" fill="#f0d8b8" opacity="0.5"/>
+  <g fill="#191428" opacity="0.72">
+    <rect x="0" y="612" width="118" height="288"/><rect x="132" y="548" width="94" height="352"/>
+    <rect x="240" y="660" width="70" height="240"/><rect x="326" y="500" width="120" height="400"/>
+    <rect x="462" y="636" width="86" height="264"/><rect x="566" y="574" width="104" height="326"/>
+    <rect x="688" y="690" width="76" height="210"/><rect x="782" y="524" width="132" height="376"/>
+    <rect x="930" y="648" width="90" height="252"/><rect x="1038" y="596" width="112" height="304"/>
+    <rect x="1168" y="672" width="80" height="228"/><rect x="1264" y="540" width="126" height="360"/>
+    <rect x="1408" y="628" width="96" height="272"/><rect x="1520" y="686" width="80" height="214"/>
+  </g>
+  <g fill="#f6c975" opacity="0.5">
+    <rect x="352" y="536" width="12" height="18"/><rect x="384" y="536" width="12" height="18"/>
+    <rect x="352" y="586" width="12" height="18"/><rect x="410" y="586" width="12" height="18"/>
+    <rect x="808" y="560" width="12" height="18"/><rect x="852" y="560" width="12" height="18"/>
+    <rect x="808" y="614" width="12" height="18"/><rect x="880" y="614" width="12" height="18"/>
+    <rect x="1290" y="576" width="12" height="18"/><rect x="1334" y="576" width="12" height="18"/>
+    <rect x="1290" y="630" width="12" height="18"/><rect x="1356" y="630" width="12" height="18"/>
+    <rect x="150" y="588" width="12" height="18"/><rect x="192" y="588" width="12" height="18"/>
+    <rect x="1058" y="638" width="12" height="18"/><rect x="1108" y="638" width="12" height="18"/>
+  </g>
+  <rect y="560" width="1600" height="340" fill="url(#psi-fig-2-haze)"/>
+</svg><figcaption>An abstract dusk skyline</figcaption></figure></p>
+</div></div>
+
+
+<p><strong>Your pictures go inside the HTML by default, so that a built view travels as one file with nothing to leave behind.</strong> That is where the limit comes from: up to 2 MB a picture and 10 MB in total they are embedded without your asking, and a picture over that stops the build rather than being quietly left outside, where it would show as a broken figure the moment the file arrived somewhere without its assets folder. <code>node build.js &lt;source.md&gt; --optimize-images</code> converts the offenders to WebP in place, which on real lecture assets comes out at 12 to 18 percent of the original with no visible loss. <code>--no-inline-images</code> is there if you do want the files kept outside.</p>
 
   
   
@@ -1642,8 +1681,8 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 <div class="math-display"><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>d</mi><mo>=</mo><mfrac><mrow><mi>H</mi><mo stretchy="false">(</mo><mi>S</mi><mo stretchy="false">)</mo></mrow><mrow><msub><mrow><mi>log</mi><mo>⁡</mo></mrow><mn>2</mn></msub><mi mathvariant="normal">∣</mi><mi>S</mi><mi mathvariant="normal">∣</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">d = \frac{H(S)}{\log_2 |S|}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em"></span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2778em"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.363em;vertical-align:-0.936em"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em"><span style="top:-2.314em"><span class="pstrut" style="height:3em"></span><span class="mord"><span class="mop"><span class="mop">lo<span style="margin-right:0.0139em">g</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.207em"><span style="top:-2.4559em;margin-right:0.05em"><span class="pstrut" style="height:2.7em"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2441em"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em"></span><span class="mord">∣</span><span class="mord mathnormal" style="margin-right:0.0576em">S</span><span class="mord">∣</span></span></span><span style="top:-3.23em"><span class="pstrut" style="height:3em"></span><span class="frac-line" style="border-bottom-width:0.04em"></span></span><span style="top:-3.677em"><span class="pstrut" style="height:3em"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0813em">H</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0576em">S</span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span></div>
 <p><strong>A formula on its own line behaves like a figure</strong>: it stays on screen when the prose around it is shortened away, and clicking it opens it large for the room. Maths inside a sentence follows that sentence – on screen in an opening line, gone with everything else.</p>
 <p><strong>A lone dollar sign is safe.</strong> The delimiters are read as Markdown, not searched for in your text, so <code>$PATH</code> inside code, a price of $5 and $10 in prose, and a <code> $$</code> inside a code block are all left alone. Write <code>\$</code> if you want to be explicit.</p>
-<p><strong>Only the mathematical typefaces a lecture&#39;s formulas actually use travel in it</strong> – around 120 KB out of a possible 254 KB in the document views. A lecture without maths carries none, and the build tells you which.</p>
-<p><strong>The maths follows the <code>F</code> key.</strong> Switch the body font to sans or monospace and the formulas move with it instead of sitting in the slide as a serif island. Only the letters change: operators, relations and brackets keep their own shapes, and a character the sans face does not have falls back to the mathematical one. The two live views pay about 46 KB more for the extra faces; the documents have no such key and pay nothing.</p>
+<p><strong>Only the mathematical typefaces a lecture&#39;s formulas actually use travel in it</strong> – around 120 KB out of a possible 254 KB in <code>print.html</code> and <code>print-notes.html</code>. A lecture without maths carries none, and the build tells you which.</p>
+<p><strong>The maths follows the <code>F</code> key.</strong> Switch the body font to sans or monospace and the formulas move with it instead of sitting in the slide as a serif island. Only the letters change: operators, relations and brackets keep their own shapes, and a character the sans face does not have falls back to the mathematical one. The two live views pay about 46 KB more for the extra faces; <code>print.html</code> and <code>print-notes.html</code> have no such key and pay nothing.</p>
 
   
   
@@ -1660,7 +1699,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></span>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The topic sentence is the slide</span> <span class="hd-sub">so write the opening line for the projector</span></h2>
-  <p><strong>When the tool works the slide out for you the room reads your opening sentences, so each one has to be a claim that stands up without its paragraph.</strong> Everything after it belongs to the documents.</p>
+  <p><strong>When the tool works the slide out for you the room reads your opening sentences, so each one has to be a claim that stands up without its paragraph.</strong> Everything after it belongs to <code>print.html</code> and <code>print-notes.html</code>.</p>
 <p>That doubles as a rehearsal test: if the shortened chunk would not remind you what you meant to say, the chunk is not finished.</p>
 
   
@@ -1737,15 +1776,13 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></span>
   <span class="chunk-label">exercise</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">the artefacts that close the loop</span></h2>
-  <p><strong>The tour covered the keys. The craft only shows in lectures somebody wrote.</strong></p>
+  <p><strong>psi-slides comes with three finished lectures. Open them, and take whatever you need out of their sources.</strong></p>
 <div class="cols cols-2">
 
 
 <p><strong>1. <code>lectures/python-intro/audience.html</code>.</strong> A 36-chunk teaching lecture. Open its speaker window with <code>S</code> and watch the layout vocabulary you have just learned in real use, running through segments, expansions and opened figures.</p>
 <p><strong>2. <code>lectures/decoration/audience.html</code>.</strong> Every construction that puts something other than a column of text on a slide, one per slide: the covers, the six kinds of divider and the three kinds of divider content, cards and rows, a backdrop whose window opens on a keypress.</p>
 <p><strong>3. <code>lectures/diagrams/audience.html</code>.</strong> The same for <code>::: draw</code>: every statement drawn rather than described, with real lecture figures among them.</p>
-<p><strong>4. <code>PRD.md</code>.</strong> Why four views, why this set of tags, why <code>C</code> has two settings and not four. Part specification and part plan – a record of the thinking, not of the behaviour.</p>
-<p><strong>5. <code>docs/comparison.md</code>.</strong> psi-slides against Beamer, reveal.js, Quarto, Marp, Slidev and PowerPoint, including the places it loses.</p>
 </div>
   
   
@@ -1757,7 +1794,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Writing your own</span> <span class="hd-sub"><code>--new</code>, <code>--watch</code>, <code>lint.js</code></span></h2>
-  <p><strong>Three commands cover the whole of writing a lecture:</strong></p>
+  <p><strong>These are the commands you need while writing a lecture:</strong></p>
 <ul>
 <li><code>node build.js --new &lt;slug&gt;</code> makes a lecture folder with working frontmatter and two chunks. It builds the moment it lands on disk.</li>
 <li><code>node build.js &lt;source.md&gt; --watch</code> rebuilds and reloads every open tab on every save.</li>
@@ -1774,7 +1811,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></span>
   <span class="chunk-label">example</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Deciding how a lecture opens</span> <span class="hd-sub">six optional frontmatter keys</span></h2>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Deciding how a lecture opens</span> <span class="hd-sub">six view defaults, and <code>lang:</code> beside them</span></h2>
   <p><strong>A lecture can set its own starting look instead of inheriting whatever the reader last chose.</strong></p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#6F42C1">---</span></span>
 <span class="line"><span style="color:#22863A">title</span><span style="color:#24292E">: </span><span style="color:#032F62">Anonymous Communication</span></span>
@@ -1785,10 +1822,14 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 <span class="line"><span style="color:#22863A">auto-fit</span><span style="color:#24292E">: </span><span style="color:#005CC5">true</span><span style="color:#6A737D">          # true | false          – the # key</span></span>
 <span class="line"><span style="color:#22863A">slide-numbers</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">      # vertical | horizontal | off</span></span>
 <span class="line"><span style="color:#22863A">editor</span><span style="color:#24292E">: </span><span style="color:#032F62">speaker</span><span style="color:#6A737D">         # both | speaker | none – the diagram editor</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#22863A">lang</span><span style="color:#24292E">: </span><span style="color:#032F62">de</span><span style="color:#6A737D">                # not a view default: the language the lecture</span></span>
+<span class="line"><span style="color:#6A737D">                        # is written in. en, de, de-DE, fr and so on,</span></span>
+<span class="line"><span style="color:#6A737D">                        # and en when you leave it out</span></span>
 <span class="line"><span style="color:#6F42C1">---</span></span></code></pre>
-<p><code>lang:</code> sits beside them and does a different job: it names the language the lecture is written in (<code>en</code> unless you say otherwise, then <code>de</code>, <code>de-DE</code>, <code>fr</code> and so on) and reaches all four views. The document views use it to pick the hyphenation rules, so <strong>a long German compound breaks at the end of a line instead of leaving a hole</strong>. The two live views never hyphenate.</p>
-<p><strong>Which setting wins is one sentence.</strong> A key you write beats whatever the reader last chose; a key you leave out leaves that choice alone. So a lecture that sets nothing behaves as it always did – font, theme and slide numbers follow the reader from lecture to lecture.</p>
-<p><code>slide-numbers</code> reaches the document views too, a document having no keyboard to cycle it with. A value the tool does not know stops the build and lists the ones it does.</p>
+<p><code>lang:</code> reaches all four views. <code>print.html</code> and <code>print-notes.html</code> use it to pick the hyphenation rules, so <strong>a long German compound breaks at the end of a line instead of leaving a hole</strong>. The two live views never hyphenate.</p>
+<p><strong>A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.</strong> So a lecture that sets nothing behaves as it always did – font, theme and slide numbers follow the reader from lecture to lecture.</p>
+<p><code>slide-numbers</code> reaches <code>print.html</code> and <code>print-notes.html</code> too. A value the tool does not know stops the build and lists the ones it does.</p>
 
   
   
@@ -2124,7 +2165,7 @@ carry two of them.</p>
 
 
 <p>The row picks its own type size from the longest item, and anything nested
-under an item folds away on the projection and stays in the documents. <code>C</code>
+under an item folds away on the projection and stays in <code>print.html</code> and <code>print-notes.html</code>. <code>C</code>
 here shows the difference.</p>
 
   
@@ -2175,11 +2216,12 @@ here shows the difference.</p>
 <span class="line"><span style="color:#22863A">subtitle</span><span style="color:#24292E">: </span><span style="color:#032F62">Eviction, Staleness and the Cost of Being Wrong</span></span>
 <span class="line"><span style="color:#22863A">presenter</span><span style="color:#24292E">: </span><span style="color:#032F62">Jana Wieland</span></span>
 <span class="line"><span style="color:#22863A">info</span><span style="color:#24292E">: </span><span style="color:#D73A49">|</span></span>
-<span class="line"><span style="color:#032F62">  Nordic Systems Days · Bergen · 12 to 15 October</span></span>
+<span class="line"><span style="color:#032F62">  Distributed Systems · Lecture 7 · Room WE5/00.019</span></span>
+<span class="line"><span style="color:#032F62">  uni.example/ds</span></span>
 <span class="line"><span style="color:#22863A">cover</span><span style="color:#24292E">: </span><span style="color:#032F62">split</span><span style="color:#6A737D">            # see the two rows below</span></span>
 <span class="line"><span style="color:#22863A">cover-image</span><span style="color:#24292E">: </span><span style="color:#032F62">skyline</span><span style="color:#6A737D">    # only the four picture covers take one;</span></span>
 <span class="line"><span style="color:#6A737D">                        # on the six type covers it is an error</span></span></code></pre>
-<p>Without <code>subtitle:</code> the one line saying what the talk is <em>about</em> has nowhere to go but <code>info</code>, where it is set exactly like the line saying which conference it is.</p>
+<p><code>info:</code> takes as many lines as you give it – the course and the room, the address students should write down, or, at a conference, its name and dates. Without <code>subtitle:</code> the one line saying what the talk is <em>about</em> has nowhere to go but <code>info</code> either, where it is set exactly like the rest.</p>
 <p><strong>The ten are ordered by how much the opening slide asserts itself.</strong> Six of them are type alone:</p>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
@@ -2229,7 +2271,7 @@ here shows the difference.</p>
 <span class="line"><span style="color:#24292E">A crawler that looks like a browser gets measured back.</span></span>
 <span class="line"><span style="color:#24292E">:::</span></span></code></pre>
 <p>A backdrop names its picture the same three ways an image does – a bare asset id, a path, an https address – and the words in its tail answer five questions, each from a fixed list: <strong>fill</strong> <code>cover</code> or <code>contain</code>; <strong>crop</strong> <code>middle</code>, <code>top</code> or <code>bottom</code>; <strong>veil</strong> <code>veil</code>, <code>clear</code> or <code>invert</code>; <strong>focus</strong> <code>sharp</code> or <code>blur</code>; <strong>layer</strong> <code>under</code> or <code>over</code>, which decides whether the picture sits behind the type or in front of it.</p>
-<p><code>veil</code> is what you get by saying nothing: the theme&#39;s own paper laid over the picture at 80%, so ordinary dark text stays legible over a photograph in all seven themes. <code>invert</code> darkens the picture and turns the text light instead. Two words answering the same question is an error.</p>
+<p><code>veil</code> is the default: the theme&#39;s own paper laid over the picture at 80%, so ordinary dark text stays legible over a photograph in all seven themes. <code>invert</code> darkens the picture and turns the text light instead. Two words answering the same question is an error.</p>
 <p>An overlay answers three questions: <strong>where</strong> – the nine cells of a 3×3 grid, <code>bottom-left</code> through <code>top-right</code>; <strong>what it sits on</strong> – <code>paper</code>, <code>ink</code>, <code>accent</code>, <code>clear</code> or <code>glass</code>; and <strong>how wide</strong> – <code>narrow</code>, <code>standard</code>, <code>wide</code> or <code>full</code>. Every one of them is a card with padding and rounded corners, because text laid straight onto a photograph is unreadable at the back of a room.</p>
 
   
@@ -2250,7 +2292,7 @@ here shows the difference.</p>
 <span class="line"><span style="color:#24292E">:::</span></span></code></pre>
 <p>One rule decides what becomes a card: write a single list and each of its items is a card; write anything else and each block is a card. The count runs from 1 to 6 – one card is a callout you want to stand apart, and past six what you have is a table.</p>
 <p>Use <code>cols</code> for an argument that runs long, and <code>cards</code> for a comparison the room should be able to count.</p>
-<p><strong>Seven words in the tail set the look</strong>, and two of them decide themselves: <code>size</code> (say nothing and the longest item picks it), <code>align</code> (say nothing and it follows the size), plus <code>anchor</code>, <code>detail</code>, <code>ground</code>, <code>corner</code> and <code>scrim</code>. <code>ground: photo</code> makes the card&#39;s first picture its background and <code>scrim</code> says what is laid over it; a picture that is <em>not</em> the background runs to the card&#39;s edges with the text under it.</p>
+<p><strong>Seven words in the tail set the look</strong>, and two of them decide themselves: <code>size</code> (by default the longest item picks it), <code>align</code> (by default it follows the size), plus <code>anchor</code>, <code>detail</code>, <code>ground</code>, <code>corner</code> and <code>scrim</code>. <code>ground: photo</code> makes the card&#39;s first picture its background and <code>scrim</code> says what is laid over it; a picture that is <em>not</em> the background runs to the card&#39;s edges with the text under it.</p>
 <p><strong>How you open a card decides what the bold does.</strong> Written on the same line it is a lead-in; written before a line break it is a heading with air under it.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#E36209">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold"> **panel**</span><span style="color:#24292E"> a tinted fill…      lead-in</span></span>
 <span class="line"><span style="color:#E36209">-</span><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold"> **Measure**</span><span style="color:#24292E">\                  heading</span></span>
@@ -2296,7 +2338,7 @@ here shows the difference.</p>
 <span class="line"><span style="color:#24292E">:::</span></span>
 <span class="line"><span style="color:#24292E">:::</span></span></code></pre>
 <p><strong>A figure <em>above</em> or <em>below</em> the text needs nothing at all</strong> – put the block first or last in the chunk body. <code>::: cols</code> is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns quietly stop working. A <code>::: draw</code> written there is refused, and the message points you at <code>::: side</code>.</p>
-<p>A card row <em>is</em> welcome in a pane, a pane being a box with a width the row can fill. <code>::: cards 1</code> in a narrow pane gives you a stacked column, and one card on its own is a callout.</p>
+<p>A card row works inside one half of a <code>::: side</code> block, which is a box with a width the row can fill. <code>::: cards 1</code> in a narrow half gives you a stacked column, and one card on its own is a callout.</p>
 
   
   
@@ -2317,7 +2359,7 @@ here shows the difference.</p>
 <span class="line"><span style="color:#22863A">  heading-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">1.15</span><span style="color:#6A737D">   # 0.6 … 1.8</span></span>
 <span class="line"><span style="color:#22863A">  body-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">0.95</span><span style="color:#6A737D">      # 0.6 … 1.8</span></span>
 <span class="line"><span style="color:#22863A">  wrap</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">            # balance | none – how a heading breaks</span></span></code></pre>
-<p><code>headings: auto</code> is what you get by saying nothing, and it means the tag decides: a question is centred, a figure&#39;s caption sits over its artwork. <code>left</code> overrides all of that, for one line of alignment down the whole lecture. <code>off</code> takes every heading off the projection while keeping it in the documents, the contents list and the search.</p>
+<p><code>headings: auto</code> is the default, and it means the tag decides: a question is centred, a figure&#39;s caption sits over its artwork. <code>left</code> overrides all of that, for one line of alignment down the whole lecture. <code>off</code> takes every heading off the projection while keeping it in <code>print.html</code>, <code>print-notes.html</code>, the contents list and the search.</p>
 <p>The two scales multiply the tool&#39;s own sizes rather than replacing them, and they are <strong>bounded</strong>. Outside 0.6 to 1.8 the shortened view, the limit on how wide a line of code may be and the automatic zoom stop agreeing with each other.</p>
 
   
@@ -2337,8 +2379,7 @@ here shows the difference.</p>
 <span class="line"><span style="color:#22863A">  serif</span><span style="color:#24292E">: </span><span style="color:#032F62">Literata</span><span style="color:#6A737D">                  # the only serif that ships</span></span></code></pre>
 <p>Only the three a lecture actually asks for are read, so choosing an alternative costs that lecture and no other. A name that is neither one of the five nor a file in <code>fonts/</code> stops the build, and the message lists the names available for that role.</p>
 <p><strong>The condensed monospace is 17% narrower</strong> – 0.50 em against 0.60 em per character, measured in a browser – so a listing that ran off the slide now fits. It is Noto Sans Mono with its width axis pinned rather than a different typeface, so it costs 54 KB. Slashed zero, and <code>I</code>, <code>l</code> and <code>1</code> are three visibly different shapes.</p>
-<p>Iosevka reaches the same width and does <strong>not</strong> ship with the tool: 961 KB per weight against 54 would be 3.87 MB in every view. Put it in <code>fonts/</code> if you want it anyway.</p>
-<p><code>ligatures:</code> answers two questions at once. <code>text</code> is what you get by saying nothing: <code>fi</code> and <code>fl</code> joined up in prose, nothing joined in code. <code>none</code> takes them out of prose as well. <code>all</code> puts the code ones back, so JetBrains Mono draws <code>-&gt;</code> as a single arrow again. It is off by default because in the figure language <code>-&gt;</code> and <code>--</code> are two <em>different</em> arrows, and every listing on a slide is source somebody may retype.</p>
+<p><strong><code>ligatures:</code> decides whether letter pairs are drawn joined, and answers separately for prose and for code.</strong> <code>text</code> is the default: <code>fi</code> and <code>fl</code> joined up in prose, nothing joined in code. <code>none</code> takes them out of prose as well. <code>all</code> puts the code ones back, so JetBrains Mono draws <code>-&gt;</code> as a single arrow again. The code ones are off by default because in the figure language <code>-&gt;</code> and <code>--</code> are two <em>different</em> arrows, and every listing on a slide is source somebody may retype.</p>
 
   
   
@@ -2379,16 +2420,16 @@ here shows the difference.</p>
 <span class="line"><span style="color:#22863A">section-mark</span><span style="color:#24292E">: </span><span style="color:#032F62">Teil</span><span style="color:#6A737D">      # any short word, or nothing</span></span></code></pre>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
-<li><strong>tinted</strong> the whole slide takes the accent colour, lightly. The signal that arrives across a room before any word does</li>
+<li><strong>tinted</strong> the whole slide takes the accent colour, lightly. The most visible of the six from the back of a room</li>
 <li><strong>rule</strong> the heading between two rules. The quietest, and the one that survives a black-and-white print</li>
-<li><strong>outline</strong> every part of the lecture listed, with this one live. The running agenda a long lecture keeps wanting</li>
+<li><strong>outline</strong> every part of the lecture listed, with the one you are entering marked. A running agenda for a long lecture</li>
 </ul>
 
 </div>
 
 
-<p><code>plain</code> is the heading on its own and is what you get by saying nothing; <code>card</code> sets it on a panel; <code>number</code> puts a large counter above it, counting the columns that have a heading. <strong>Every one of them is quieter than the cover</strong>, so that a divider is never mistaken for the title slide: it says <em>a new part starts here, and it is part of the thing you are already in</em>.</p>
-<p><code>section-mark:</code> puts a word of your own – <code>Teil</code>, <code>Kapitel</code> – over the heading. Saying nothing puts nothing there.</p>
+<p><code>plain</code> is the default, the heading on its own; <code>card</code> sets it on a panel; <code>number</code> puts a large counter above it, counting the columns that have a heading. <strong>Every one of them is quieter than the cover</strong>, so that a divider is never mistaken for the title slide: it says <em>a new part starts here, and it is part of the thing you are already in</em>.</p>
+<p><code>section-mark:</code> puts a word of your own – <code>Teil</code>, <code>Kapitel</code> – over the heading. By default there is none.</p>
 
   
   
@@ -2400,10 +2441,10 @@ here shows the difference.</p>
   <span class="chunk-num" aria-hidden="true"><i>5</i><i>6</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Turning the generated labels off</span> <span class="hd-sub"><code>style: {labels: off}</code></span></h2>
-  <p><strong>The tag word above a chunk is two different things wearing one name</strong>, so it takes one setting to reach both.</p>
+  <p><strong>The tag word above a chunk is drawn in two places, and one setting takes it out of both.</strong></p>
 <div class="cards cards-2 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
-<li><strong>The two document views</strong> set a small line of capitals over every tagged chunk. Every tag has one except free and figure, so that is where most of them live.</li>
+<li><strong><code>print.html</code> and <code>print-notes.html</code></strong> set a small line of capitals over every tagged chunk. Every tag has one except free and figure, so that is where most of them live.</li>
 <li><strong>The projection</strong> prints only the word over an exercise. The rest were taken out: a label naming the kind of slide is only ever as right as the tag was.</li>
 </ul>
 
@@ -2412,8 +2453,8 @@ here shows the difference.</p>
 
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">style</span><span style="color:#24292E">:</span></span>
 <span class="line"><span style="color:#22863A">  labels</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span></span></code></pre>
-<p>It is a key of its own and not part of <code>rules</code>, which hides the bar above a principle and the hairline above a definition: you may want the line without the word.</p>
-<p><strong>A figure&#39;s heading, set in capitals, is your own text and needs no key.</strong> It is the chunk&#39;s heading, drawn that way because the tag is <code>figure</code>, so <code>## figure: {.wide #id}</code> with no heading text leaves it off the slide. The cost is that the chunk then has no text for search to find and no heading in the printed handout. (The contents list is unaffected – <code>T</code> lists the lecture&#39;s columns, never its chunks.)</p>
+<p><code>rules</code> is the neighbouring key and switches the lines – the bar above a principle, the hairline above a definition. <code>labels</code> switches the words.</p>
+<p><strong>A figure&#39;s heading, set in capitals, is your own text and needs no key.</strong> It is the chunk&#39;s heading, drawn that way because the tag is <code>figure</code>, so <code>## figure: {.wide #id}</code> with no heading text leaves it off the slide. The cost is that the chunk then has no text for search to find and no heading in <code>print.html</code>. (The contents list is unaffected – <code>T</code> lists the lecture&#39;s columns, never its chunks.)</p>
 
   
   
@@ -2429,9 +2470,8 @@ here shows the difference.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold">## closing: Questions? | office hours Thursday, 14–16 {#end}</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#24292E">Next week: certificates, and who you are actually trusting.</span></span></code></pre>
-<p>It is a tag and not a second <code>title:</code> chunk, because a title chunk&#39;s heading is <em>ignored</em> – the cover is drawn from the frontmatter. So on a closing slide the heading is what it says, the sub-heading after the <code>|</code> is the second line, and the body is whatever should stay on screen while the room asks questions.</p>
-<p><strong>It carries neither your name nor the <code>info</code> block</strong>, which say who is talking and where and which the room learned an hour ago.</p>
-<p>The four picture compositions draw their type alone here: a closing slide never reads <code>cover-image</code>. Give it a <code>::: backdrop</code> if you want a picture of its own.</p>
+<p><strong>The heading is what it says, the sub-heading after the <code>|</code> is the second line, and the body is whatever should stay on screen while the room asks questions.</strong> Your name and the <code>info</code> block are not drawn.</p>
+<p>A closing slide never reads <code>cover-image</code>, so the four picture compositions draw their type alone. Give it a <code>::: backdrop</code> if you want a picture of its own.</p>
 
   
   

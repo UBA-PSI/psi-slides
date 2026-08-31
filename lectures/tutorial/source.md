@@ -45,9 +45,9 @@ Each of the four files carries everything it needs inside itself – the picture
 
 > note: The drawing above is written into the page as vector artwork rather than as a picture file, and it takes its colours from the theme. Press A a few times while this slide is up and the figure re-colours with the page.
 
-## free: What you're reading right now | is the audience view {.wide #audience-now}
+## free: What you're reading right now | the projection, or the lectern view beside it {.wide #audience-now}
 
-**You are in `audience.html`, the view for the projector.** One **chunk – one `##` heading in the source, with everything written under it** – fills the slide. The keyboard moves you from chunk to chunk, and a speaker window, once you open one, mirrors everything here as it happens.
+**This is `audience.html`, the projection for the room – or the same slide in `speaker.html`, if you have the lectern window open already.** One **chunk – one `##` heading in the source, with everything written under it** – fills the slide. The keyboard moves you from chunk to chunk, and the two windows, once both are open, mirror each other as it happens.
 
 ::: cols 2
 
@@ -81,7 +81,7 @@ Each of the four files carries everything it needs inside itself – the picture
 
 ---
 
-**One more, so you can see them chain.** Segments let you pace a dense slide during a talk instead of putting all of it up at once. In the two document views they run together as one flowing body, so nothing is lost on paper.
+**One more, so you can see them chain.** Segments let you pace a dense slide during a talk instead of putting all of it up at once. In `print.html` and `print-notes.html` they run together as one flowing body, so nothing is lost on paper.
 
 ## example: Expansions | `1`-`9` or the chevron open side asides {.wide #expand}
 
@@ -99,7 +99,7 @@ In the source, an expansion is written `::: expand <label>` … `:::`. The label
 Press `C` while this pane is open and watch the chunk behind it shorten. The pane stays where it is: it is not part of the slide either way.
 :::
 
-**The two document views print every expansion** as an indented aside where it stood in the source, so the reading copy loses nothing.
+**`print.html` and `print-notes.html` print every expansion** as an indented aside where it stood in the source, so the reading copy loses nothing.
 
 ## example: Zoom into a figure or code block | click it {.standard #figure-focus}
 
@@ -162,9 +162,9 @@ Search is what you want when you remember a topic but not which slide it is on. 
 
 **Unless you say otherwise, the slide is the first sentence of every paragraph plus any `**bold**` phrases from the rest.** This chunk is written that way – press `C` twice and watch what appears and disappears.
 
-It asks two things of you: every paragraph has to open with a sentence that stands up on its own, and the **bold phrases have to read as bullets on their own**. Everything else is for the documents.
+It asks two things of you: every paragraph has to open with a sentence that stands up on its own, and the **bold phrases have to read as bullets on their own**. Everything else is for `print.html` and `print-notes.html`.
 
-A chunk that makes an argument lives with that easily. It fights you when the chunk wants continuous explanation, and the next chunk is the way out.
+That suits a chunk that argues, where every paragraph has a point to open with. It is the wrong fit when the chunk wants continuous explanation instead, and the next chunk is the way out.
 
 > note: If the shortened version of a chunk reads as a pile of cryptic one-word bullets, the fix is almost always fewer bolds and a stronger first sentence, not a different mechanism.
 
@@ -216,17 +216,17 @@ The tag is a fair predictor: `principle` and `question` chunks are short enough 
 
 The `| Sub-Heading` and the `{.width #id}` tail are both optional. Width is one of `narrow`, `standard`, `wide`, `full`, and **once you have written an `{#id}` it should never change** – it is what cross-references, the contents list and your saved reading position all point at.
 
-The tail takes one class that is not a width: `{.bare}` keeps the heading in the two documents and in the search index and takes it off the projection.
+The tail takes one class that is not a width: `{.bare}` hides the heading on the projection while keeping it in `print.html`, `print-notes.html` and the search index.
 
 ## definition: What a tag actually does {.standard #tag-effects}
 
-**A tag sets how a chunk looks and how many words it may hold, never how wide it is.** In the two document views every tag prints its own name as a small line of capitals above the heading; `free` and `figure` are the two that do not. On the projection only `EXERCISE` is printed.
+**A tag sets how a chunk looks and how many words it may hold, never how wide it is.** In `print.html` and `print-notes.html` every tag prints its own name as a small line of capitals above the heading; `free` and `figure` are the two that do not. On the projection only `EXERCISE` is printed.
 
 Three of the ten are whole slides rather than treatments: `title` draws the cover from the frontmatter, `closing` draws that same composition at the end with your own words, and `outline` draws the lecture's agenda wherever you put it.
 
 The word budgets differ per tag: `principle` and `question` get 80 words, `definition` 200, `example` and `free` 250, `exercise` 350. `closing` gets 60 and `outline` 40. `title` and `figure` have no limit.
 
-Picking the wrong tag is not an error and the checker will not mention it. It surfaces later, when a principle you tagged as an example no longer stands out on the overview board.
+Picking the wrong tag is not an error. It surfaces later, when a principle you tagged as an example no longer stands out on the overview board.
 
 ## exercise: Try the vocabulary {.wide #try-tags}
 
@@ -286,9 +286,9 @@ Put the thumbnails down the right-hand side if the screen has width to spare: th
 
 **`N` in either window writes an annotation on the chunk you are on.** A typing box appears under the chunk, and whatever you write appears in the other window as you type it. Use it for the things a talk produces: a rule you want on screen, a question from the room, a correction.
 
-Annotations are kept in the browser, one set per lecture. `Shift-E` in the speaker view copies all of them to your clipboard as `> annot:` Markdown; paste that under the matching chunk heading in `source.md`, run `node build.js <source.md> --integrate-annotations`, and the text becomes permanent – already in the typing box next time, and printed under the chunk in the documents.
+Annotations are kept in the browser, one set per lecture. `Shift-E` in the speaker view copies all of them to your clipboard as `> annot:` Markdown; paste that under the matching chunk heading in `source.md`, run `node build.js <source.md> --integrate-annotations`, and the text becomes permanent – already in the typing box next time, and printed under the chunk in `print.html` and `print-notes.html`.
 
-> annot: The `> annot:` block you are reading in the document views came out of a previous run of exactly that; the typing box above starts filled with this text.
+> annot: The `> annot:` block you are reading in `print.html` and `print-notes.html` came out of a previous run of exactly that; the typing box above starts filled with this text.
 
 ::: flip
 
@@ -307,8 +307,8 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 - `C` switches between **what the room sees and the full text**.
 - `F` cycles the **font**: serif, then sans, then monospace, for legibility across a room.
 - `A` cycles the **theme**: four light ones with different accent colours, a neutral dark one, and two green-and-amber terminal ones.
-- `+` `-` `0` set the **text size**; `#` hands that job to the tool.
-- `B` **blanks the projection**, and only the projection.
+- `+` `-` `0` set the **text size**; `#` turns on **auto-fit**.
+- `B` **blanks the projection**.
 - `L` cycles the **slide numbers**: stacked, in a row, or off.
 
 `Shift` with any of the cycling keys goes backwards. Font, theme and slide numbers are remembered for every lecture you open, so the preference follows you; zoom and the `C` setting belong to the talk you are giving.
@@ -319,15 +319,15 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 
 **The two `C` modes keep separate zoom levels.** The short version holds whatever size you set with `+` and `-`; the full text picks its own so the whole chunk fits the screen, and switching back restores yours exactly.
 
-**`#` hands the zoom to the tool.** Every slide is then sized to the screen as you arrive on it, in either mode, growing a short chunk as readily as shrinking a long one. `#` again takes it back. It suits a lecture whose chunks vary a lot in length, and it is wrong if you want one type size in the room all hour.
+**`#` turns on auto-fit, which sizes every slide to the screen as you arrive on it**, in either mode, growing a short chunk as readily as shrinking a long one. `#` again takes it back. It suits a lecture whose chunks vary a lot in length, and it is wrong if you want one type size in the room all hour.
 
-**`B` blanks the projection and not your own screen.** The audience view goes black while the speaker window keeps the slide, the notes and the thumbnails, so you can move on or read ahead while the room sees nothing. A small `BLANK · hit B to toggle` marker sits at the bottom of the speaker window, or at the bottom of the audience view when there is no speaker window.
+**While the room sees black, the speaker window keeps everything.** The slide, the notes and the thumbnails stay where they were, so you can move on or read ahead with nothing showing. A small `BLANK · hit B to toggle` marker sits at the bottom of the speaker window, or at the bottom of the audience view when there is no speaker window.
 
 # Authoring layouts {#layouts}
 
 ## principle: Two layout axes | chunk widths and body directives {.standard #layout-axes}
 
-**You decide a layout twice: how wide the chunk is, and how its body is arranged inside that width.** The heading picks one of four widths – `{.narrow}`, `{.standard}`, `{.wide}`, `{.full}` – and `:::` directives in the body do the rest.
+**A layout is two independent decisions: how wide the chunk is, and how its body is arranged inside that width.** The heading picks one of four widths – `{.narrow}`, `{.standard}`, `{.wide}`, `{.full}` – and `:::` directives in the body do the rest.
 
 Width is the decision about the slide; the directives work inside it. A `.wide` chunk with a `::: side` body is the usual shape for a figure with commentary beside it.
 
@@ -339,13 +339,13 @@ Width is the decision about the slide; the directives work inside it. A `.wide` 
 
 **Left column.** The browser balances the columns for you: it fills from the top and breaks wherever the text allows. Do not put one long paragraph here, or one column fills and the other sits empty. Several short blocks work best.
 
-**Right column.** This block is the third paragraph in the source, which is why it landed on the right – the text runs down the first column and then wraps into the second. In the document views the columns become one ordinary sequence of paragraphs.
+**Right column.** This block is the third paragraph in the source, which is why it landed on the right – the text runs down the first column and then wraps into the second. In `print.html` and `print-notes.html` the columns become one ordinary sequence of paragraphs.
 
 :::
 
-**Columns fold to one while the slide is short** – press `C` here and the two above stack. Shortened, each paragraph is down to its opening sentence, and a browser will not split a paragraph across columns, so two single sentences of different lengths do not balance. They come back in the documents and in the full-text mode.
+**Columns fold to one while the slide is short** – press `C` here and the two above stack. Shortened, each paragraph is down to its opening sentence, and a browser will not split a paragraph across columns, so two single sentences of different lengths do not balance. The full-text mode brings them back, and so do `print.html` and `print-notes.html`.
 
-Segments work inside `::: cols`, but uncovering text a piece at a time while it also flows across columns is hard to follow – pick one or the other.
+**Revealed segments – the `---` lines from `#arrows` – work inside `::: cols`**, but uncovering text a piece at a time while it also flows across columns is hard to follow: pick one or the other.
 
 ## example: Two-pane grid | `::: side` and `::: flip` {.wide #side-demo}
 
@@ -357,7 +357,7 @@ Segments work inside `::: cols`, but uncovering text a piece at a time while it 
 
 ::: flip
 
-**Right pane.** A figure usually goes here with the text on the left. On the projection, click either pane to open it large; the document views stack the two panes one above the other, so neither is ever lost.
+**Right pane.** A figure usually goes here with the text on the left. On the projection, click either pane to open it large; `print.html` and `print-notes.html` stack the two panes one above the other, so neither is ever lost.
 
 :::
 
@@ -373,7 +373,7 @@ You can put a `::: marginalia` *inside* a pane when a tangent belongs to one hal
 
 This whole block sits in the slide margin, small and grey. Use a marginalia for a tangent that belongs with the chunk but would crowd the main text – an aside, a citation, a pointer to another column.
 
-The document views set marginalia under the body as indented asides, so the reading copy keeps every word.
+`print.html` and `print-notes.html` set marginalia under the body as indented asides, so the reading copy keeps every word.
 
 :::
 
@@ -393,15 +393,19 @@ Reach for `::: margin` when the extra material is short and you want it on the p
 
 **Write `![](fig-id)` and the build looks in `assets/` for `fig-id.svg`, `.png`, `.jpg`, `.jpeg`, `.gif` or `.webp`, taking the first it finds.** No folder, no extension. Writing the path out in full still works when you need it.
 
-::: cols 2
+::: side
 
-**The alt text becomes a caption.** `![a caption](fig-id)` sets that text under the picture. On a `figure:` chunk whose heading already says what the picture is, that stacks two labels, so the checker warns and suggests leaving the alt text empty.
+**The alt text becomes a caption.** The picture beside this paragraph is written `![An abstract dusk skyline](dusk)`, and the small grey line under it is that alt text. Leave the brackets empty and the picture stands on its own. On a `figure:` chunk whose heading already says what the picture is, a caption stacks two labels, so the checker warns and suggests leaving the alt text out.
 
-**A drawing saved as SVG is written into the page as artwork**, not as a picture file, so it takes its colours from the theme and changes with the `A` key. Photographs and other pictures are embedded as they are. Anything under 2 MB a file and 10 MB in total goes inside the HTML without your asking; `--no-inline-images` leaves the files outside instead.
+**A drawing saved as SVG is written into the page as artwork**, not as a picture file, so it takes its colours from the theme and changes with the `A` key – the figure back at `#four-views` is one of those. Photographs, and pictures like this skyline that carry their own colours, are embedded exactly as they are.
+
+::: flip
+
+![An abstract dusk skyline](dusk)
 
 :::
 
-**A picture over the 2 MB limit stops the build**, because leaving it outside the HTML would give you a broken figure anywhere the file travels without its assets folder. `node build.js <source.md> --optimize-images` converts the offenders to WebP in place, which on real lecture assets comes out at 12 to 18 percent of the original with no visible loss. `--no-inline-images` is there if you do want the files kept outside.
+**Your pictures go inside the HTML by default, so that a built view travels as one file with nothing to leave behind.** That is where the limit comes from: up to 2 MB a picture and 10 MB in total they are embedded without your asking, and a picture over that stops the build rather than being quietly left outside, where it would show as a broken figure the moment the file arrived somewhere without its assets folder. `node build.js <source.md> --optimize-images` converts the offenders to WebP in place, which on real lecture assets comes out at 12 to 18 percent of the original with no visible loss. `--no-inline-images` is there if you do want the files kept outside.
 
 > note: That command does not shrink the picture's dimensions. The heavy files are usually already at slide resolution and heavy because PNG is a poor fit for photographs. An opened figure zooms to eight times, so the extra pixels in a diagram are ones the room gets to see; `--max-width` exists for the genuine outliers.
 
@@ -463,9 +467,9 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 **A lone dollar sign is safe.** The delimiters are read as Markdown, not searched for in your text, so `$PATH` inside code, a price of $5 and $10 in prose, and a `$$` inside a code block are all left alone. Write `\$` if you want to be explicit.
 
-**Only the mathematical typefaces a lecture's formulas actually use travel in it** – around 120 KB out of a possible 254 KB in the document views. A lecture without maths carries none, and the build tells you which.
+**Only the mathematical typefaces a lecture's formulas actually use travel in it** – around 120 KB out of a possible 254 KB in `print.html` and `print-notes.html`. A lecture without maths carries none, and the build tells you which.
 
-**The maths follows the `F` key.** Switch the body font to sans or monospace and the formulas move with it instead of sitting in the slide as a serif island. Only the letters change: operators, relations and brackets keep their own shapes, and a character the sans face does not have falls back to the mathematical one. The two live views pay about 46 KB more for the extra faces; the documents have no such key and pay nothing.
+**The maths follows the `F` key.** Switch the body font to sans or monospace and the formulas move with it instead of sitting in the slide as a serif island. Only the letters change: operators, relations and brackets keep their own shapes, and a character the sans face does not have falls back to the mathematical one. The two live views pay about 46 KB more for the extra faces; `print.html` and `print-notes.html` have no such key and pay nothing.
 
 > note: A malformed formula does not stop the build – it is drawn in red, so a typo never blanks the projector mid-lecture. The terminal reports it, and `lint.js` warns about a `$$` you forgot to close.
 
@@ -473,7 +477,7 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 ## principle: The topic sentence is the slide | so write the opening line for the projector {.standard #topic-sentence}
 
-**When the tool works the slide out for you the room reads your opening sentences, so each one has to be a claim that stands up without its paragraph.** Everything after it belongs to the documents.
+**When the tool works the slide out for you the room reads your opening sentences, so each one has to be a claim that stands up without its paragraph.** Everything after it belongs to `print.html` and `print-notes.html`.
 
 That doubles as a rehearsal test: if the shortened chunk would not remind you what you meant to say, the chunk is not finished.
 
@@ -526,7 +530,7 @@ A figure with a paragraph of interpretation under it is the other reliable case,
 
 ## exercise: Read more | the artefacts that close the loop {.wide #read-more}
 
-**The tour covered the keys. The craft only shows in lectures somebody wrote.**
+**psi-slides comes with three finished lectures. Open them, and take whatever you need out of their sources.**
 
 ::: cols 2
 
@@ -536,15 +540,11 @@ A figure with a paragraph of interpretation under it is the other reliable case,
 
 **3. `lectures/diagrams/audience.html`.** The same for `::: draw`: every statement drawn rather than described, with real lecture figures among them.
 
-**4. `PRD.md`.** Why four views, why this set of tags, why `C` has two settings and not four. Part specification and part plan – a record of the thinking, not of the behaviour.
-
-**5. `docs/comparison.md`.** psi-slides against Beamer, reveal.js, Quarto, Marp, Slidev and PowerPoint, including the places it loses.
-
 :::
 
 ## free: Writing your own | `--new`, `--watch`, `lint.js` {.standard #authoring}
 
-**Three commands cover the whole of writing a lecture:**
+**These are the commands you need while writing a lecture:**
 
 - `node build.js --new <slug>` makes a lecture folder with working frontmatter and two chunks. It builds the moment it lands on disk.
 - `node build.js <source.md> --watch` rebuilds and reloads every open tab on every save.
@@ -552,7 +552,7 @@ A figure with a paragraph of interpretation under it is the other reliable case,
 
 A source file can switch one check off with `<!-- linter: ignore reveal-overuse, density -->` anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for `density`, and says there why.
 
-## example: Deciding how a lecture opens | six optional frontmatter keys {.wide #view-defaults}
+## example: Deciding how a lecture opens | six view defaults, and `lang:` beside them {.wide #view-defaults}
 
 **A lecture can set its own starting look instead of inheriting whatever the reader last chose.**
 
@@ -566,14 +566,18 @@ collapse: none          # topic-bold | none     – the C key
 auto-fit: true          # true | false          – the # key
 slide-numbers: off      # vertical | horizontal | off
 editor: speaker         # both | speaker | none – the diagram editor
+
+lang: de                # not a view default: the language the lecture
+                        # is written in. en, de, de-DE, fr and so on,
+                        # and en when you leave it out
 ---
 ```
 
-`lang:` sits beside them and does a different job: it names the language the lecture is written in (`en` unless you say otherwise, then `de`, `de-DE`, `fr` and so on) and reaches all four views. The document views use it to pick the hyphenation rules, so **a long German compound breaks at the end of a line instead of leaving a hole**. The two live views never hyphenate.
+`lang:` reaches all four views. `print.html` and `print-notes.html` use it to pick the hyphenation rules, so **a long German compound breaks at the end of a line instead of leaving a hole**. The two live views never hyphenate.
 
-**Which setting wins is one sentence.** A key you write beats whatever the reader last chose; a key you leave out leaves that choice alone. So a lecture that sets nothing behaves as it always did – font, theme and slide numbers follow the reader from lecture to lecture.
+**A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.** So a lecture that sets nothing behaves as it always did – font, theme and slide numbers follow the reader from lecture to lecture.
 
-`slide-numbers` reaches the document views too, a document having no keyboard to cycle it with. A value the tool does not know stops the build and lists the ones it does.
+`slide-numbers` reaches `print.html` and `print-notes.html` too. A value the tool does not know stops the build and lists the ones it does.
 
 > note: When you finish this tour with a first-timer, ask them what they found on their own and what they did not. That is the most useful feedback the tool gets.
 
@@ -658,7 +662,7 @@ Two options work from the box inwards instead of from the label outwards. `pad 0
 **An edge's label reads the same rule.** A fill class on the `edge` itself gives its label a background, and with no side named the words sit *on* the line and knock a hole in it; `side top`, `side bottom`, `side left` or `side right` lifts them clear and carries the background with them. The label is held at the middle of the route, so it stays there when the route bends or either end moves – a separate `text` placed `between` two boxes does not. Use the on-the-line form for a token naming the line, a message number or a port, the beside-it form for a phrase describing what travels along it, and keep to one of the two per figure.
 :::
 
-> note: The document views draw the **last** step rather than every step laid over each other, so an element a step hid stays hidden. Emphasis is the exception and comes from the first step, so attention you move around during the talk never reaches the paper while a `{.dim}` written on an element's own line does: written on the line it is part of the drawing, written inside a `step` it is part of the talk.
+> note: `print.html` and `print-notes.html` draw the **last** step rather than every step laid over each other, so an element a step hid stays hidden. Emphasis is the exception and comes from the first step, so attention you move around during the talk never reaches the paper while a `{.dim}` written on an element's own line does: written on the line it is part of the drawing, written inside a `step` it is part of the talk.
 
 ## example: Looks, and lining things up | the class slots, `align` and `spread` {.full #diagram-classes}
 
@@ -878,7 +882,7 @@ carry two of them.
 :::
 
 The row picks its own type size from the longest item, and anything nested
-under an item folds away on the projection and stays in the documents. `C`
+under an item folds away on the projection and stays in `print.html` and `print-notes.html`. `C`
 here shows the difference.
 
 ## example: A picture behind the words | `::: backdrop`, and `::: overlay` on top {.full #deco-picture}
@@ -918,13 +922,14 @@ title: How Caches Forget
 subtitle: Eviction, Staleness and the Cost of Being Wrong
 presenter: Jana Wieland
 info: |
-  Nordic Systems Days · Bergen · 12 to 15 October
+  Distributed Systems · Lecture 7 · Room WE5/00.019
+  uni.example/ds
 cover: split            # see the two rows below
 cover-image: skyline    # only the four picture covers take one;
                         # on the six type covers it is an error
 ```
 
-Without `subtitle:` the one line saying what the talk is *about* has nowhere to go but `info`, where it is set exactly like the line saying which conference it is.
+`info:` takes as many lines as you give it – the course and the room, the address students should write down, or, at a conference, its name and dates. Without `subtitle:` the one line saying what the talk is *about* has nowhere to go but `info` either, where it is set exactly like the rest.
 
 **The ten are ordered by how much the opening slide asserts itself.** Six of them are type alone:
 
@@ -967,7 +972,7 @@ A crawler that looks like a browser gets measured back.
 
 A backdrop names its picture the same three ways an image does – a bare asset id, a path, an https address – and the words in its tail answer five questions, each from a fixed list: **fill** `cover` or `contain`; **crop** `middle`, `top` or `bottom`; **veil** `veil`, `clear` or `invert`; **focus** `sharp` or `blur`; **layer** `under` or `over`, which decides whether the picture sits behind the type or in front of it.
 
-`veil` is what you get by saying nothing: the theme's own paper laid over the picture at 80%, so ordinary dark text stays legible over a photograph in all seven themes. `invert` darkens the picture and turns the text light instead. Two words answering the same question is an error.
+`veil` is the default: the theme's own paper laid over the picture at 80%, so ordinary dark text stays legible over a photograph in all seven themes. `invert` darkens the picture and turns the text light instead. Two words answering the same question is an error.
 
 An overlay answers three questions: **where** – the nine cells of a 3×3 grid, `bottom-left` through `top-right`; **what it sits on** – `paper`, `ink`, `accent`, `clear` or `glass`; and **how wide** – `narrow`, `standard`, `wide` or `full`. Every one of them is a card with padding and rounded corners, because text laid straight onto a photograph is unreadable at the back of a room.
 
@@ -987,7 +992,7 @@ One rule decides what becomes a card: write a single list and each of its items 
 
 Use `cols` for an argument that runs long, and `cards` for a comparison the room should be able to count.
 
-**Seven words in the tail set the look**, and two of them decide themselves: `size` (say nothing and the longest item picks it), `align` (say nothing and it follows the size), plus `anchor`, `detail`, `ground`, `corner` and `scrim`. `ground: photo` makes the card's first picture its background and `scrim` says what is laid over it; a picture that is *not* the background runs to the card's edges with the text under it.
+**Seven words in the tail set the look**, and two of them decide themselves: `size` (by default the longest item picks it), `align` (by default it follows the size), plus `anchor`, `detail`, `ground`, `corner` and `scrim`. `ground: photo` makes the card's first picture its background and `scrim` says what is laid over it; a picture that is *not* the background runs to the card's edges with the text under it.
 
 **How you open a card decides what the bold does.** Written on the same line it is a lead-in; written before a line break it is a heading with air under it.
 
@@ -1031,7 +1036,7 @@ edge a -> b "request"
 
 **A figure *above* or *below* the text needs nothing at all** – put the block first or last in the chunk body. `::: cols` is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns quietly stop working. A `::: draw` written there is refused, and the message points you at `::: side`.
 
-A card row *is* welcome in a pane, a pane being a box with a width the row can fill. `::: cards 1` in a narrow pane gives you a stacked column, and one card on its own is a callout.
+A card row works inside one half of a `::: side` block, which is a box with a width the row can fill. `::: cards 1` in a narrow half gives you a stacked column, and one card on its own is a callout.
 
 ## example: Setting the type for a whole lecture | the `style:` block {.wide #style-block}
 
@@ -1048,7 +1053,7 @@ style:
   wrap: none            # balance | none – how a heading breaks
 ```
 
-`headings: auto` is what you get by saying nothing, and it means the tag decides: a question is centred, a figure's caption sits over its artwork. `left` overrides all of that, for one line of alignment down the whole lecture. `off` takes every heading off the projection while keeping it in the documents, the contents list and the search.
+`headings: auto` is the default, and it means the tag decides: a question is centred, a figure's caption sits over its artwork. `left` overrides all of that, for one line of alignment down the whole lecture. `off` takes every heading off the projection while keeping it in `print.html`, `print-notes.html`, the contents list and the search.
 
 The two scales multiply the tool's own sizes rather than replacing them, and they are **bounded**. Outside 0.6 to 1.8 the shortened view, the limit on how wide a line of code may be and the automatic zoom stop agreeing with each other.
 
@@ -1067,9 +1072,7 @@ Only the three a lecture actually asks for are read, so choosing an alternative 
 
 **The condensed monospace is 17% narrower** – 0.50 em against 0.60 em per character, measured in a browser – so a listing that ran off the slide now fits. It is Noto Sans Mono with its width axis pinned rather than a different typeface, so it costs 54 KB. Slashed zero, and `I`, `l` and `1` are three visibly different shapes.
 
-Iosevka reaches the same width and does **not** ship with the tool: 961 KB per weight against 54 would be 3.87 MB in every view. Put it in `fonts/` if you want it anyway.
-
-`ligatures:` answers two questions at once. `text` is what you get by saying nothing: `fi` and `fl` joined up in prose, nothing joined in code. `none` takes them out of prose as well. `all` puts the code ones back, so JetBrains Mono draws `->` as a single arrow again. It is off by default because in the figure language `->` and `--` are two *different* arrows, and every listing on a slide is source somebody may retype.
+**`ligatures:` decides whether letter pairs are drawn joined, and answers separately for prose and for code.** `text` is the default: `fi` and `fl` joined up in prose, nothing joined in code. `none` takes them out of prose as well. `all` puts the code ones back, so JetBrains Mono draws `->` as a single arrow again. The code ones are off by default because in the figure language `->` and `--` are two *different* arrows, and every listing on a slide is source somebody may retype.
 
 ## example: A figure that walks itself | `::: draw {autoplay=N}` {.wide #autoplay}
 
@@ -1103,21 +1106,21 @@ section-mark: Teil      # any short word, or nothing
 ```
 
 ::: cards 3
-- **tinted** the whole slide takes the accent colour, lightly. The signal that arrives across a room before any word does
+- **tinted** the whole slide takes the accent colour, lightly. The most visible of the six from the back of a room
 - **rule** the heading between two rules. The quietest, and the one that survives a black-and-white print
-- **outline** every part of the lecture listed, with this one live. The running agenda a long lecture keeps wanting
+- **outline** every part of the lecture listed, with the one you are entering marked. A running agenda for a long lecture
 :::
 
-`plain` is the heading on its own and is what you get by saying nothing; `card` sets it on a panel; `number` puts a large counter above it, counting the columns that have a heading. **Every one of them is quieter than the cover**, so that a divider is never mistaken for the title slide: it says *a new part starts here, and it is part of the thing you are already in*.
+`plain` is the default, the heading on its own; `card` sets it on a panel; `number` puts a large counter above it, counting the columns that have a heading. **Every one of them is quieter than the cover**, so that a divider is never mistaken for the title slide: it says *a new part starts here, and it is part of the thing you are already in*.
 
-`section-mark:` puts a word of your own – `Teil`, `Kapitel` – over the heading. Saying nothing puts nothing there.
+`section-mark:` puts a word of your own – `Teil`, `Kapitel` – over the heading. By default there is none.
 
 ## example: Turning the generated labels off | `style: {labels: off}` {.wide #labels}
 
-**The tag word above a chunk is two different things wearing one name**, so it takes one setting to reach both.
+**The tag word above a chunk is drawn in two places, and one setting takes it out of both.**
 
 ::: cards 2
-- **The two document views** set a small line of capitals over every tagged chunk. Every tag has one except free and figure, so that is where most of them live.
+- **`print.html` and `print-notes.html`** set a small line of capitals over every tagged chunk. Every tag has one except free and figure, so that is where most of them live.
 - **The projection** prints only the word over an exercise. The rest were taken out: a label naming the kind of slide is only ever as right as the tag was.
 :::
 
@@ -1126,9 +1129,9 @@ style:
   labels: off
 ```
 
-It is a key of its own and not part of `rules`, which hides the bar above a principle and the hairline above a definition: you may want the line without the word.
+`rules` is the neighbouring key and switches the lines – the bar above a principle, the hairline above a definition. `labels` switches the words.
 
-**A figure's heading, set in capitals, is your own text and needs no key.** It is the chunk's heading, drawn that way because the tag is `figure`, so `## figure: {.wide #id}` with no heading text leaves it off the slide. The cost is that the chunk then has no text for search to find and no heading in the printed handout. (The contents list is unaffected – `T` lists the lecture's columns, never its chunks.)
+**A figure's heading, set in capitals, is your own text and needs no key.** It is the chunk's heading, drawn that way because the tag is `figure`, so `## figure: {.wide #id}` with no heading text leaves it off the slide. The cost is that the chunk then has no text for search to find and no heading in `print.html`. (The contents list is unaffected – `T` lists the lecture's columns, never its chunks.)
 
 ## example: Closing the arc back to the cover | `## closing:` {.wide #closing}
 
@@ -1140,11 +1143,9 @@ It is a key of its own and not part of `rules`, which hides the bar above a prin
 Next week: certificates, and who you are actually trusting.
 ```
 
-It is a tag and not a second `title:` chunk, because a title chunk's heading is *ignored* – the cover is drawn from the frontmatter. So on a closing slide the heading is what it says, the sub-heading after the `|` is the second line, and the body is whatever should stay on screen while the room asks questions.
+**The heading is what it says, the sub-heading after the `|` is the second line, and the body is whatever should stay on screen while the room asks questions.** Your name and the `info` block are not drawn.
 
-**It carries neither your name nor the `info` block**, which say who is talking and where and which the room learned an hour ago.
-
-The four picture compositions draw their type alone here: a closing slide never reads `cover-image`. Give it a `::: backdrop` if you want a picture of its own.
+A closing slide never reads `cover-image`, so the four picture compositions draw their type alone. Give it a `::: backdrop` if you want a picture of its own.
 
 > note: The checker warns if a `closing:` chunk is not the last chunk in the lecture, and if there is more than one – both of which are lectures that end twice.
 
