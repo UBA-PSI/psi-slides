@@ -76,11 +76,20 @@ node build.js <source.md> --watch --serve         # live reload over http
 # HTML will not run, and a deck to hand on; it does not replace print.html,
 # which is a document. Needs a browser (playwright-core is an *optional*
 # dependency, so a checkout without it builds every HTML target and refuses
-# only this one, by name). Auto-fit is the only layout mode: a chunk taller
-# than the frame is panned in the hall, and paper cannot pan.
+# only this one, by name).
+#
+# --pdf-zoom=fit is the default and the reason: a chunk taller than the frame
+# is panned in the hall, and paper cannot pan, so auto-fit is the honest
+# translation. It is capped at PDF_FIT_CEILING (1.35, the runtime's own
+# default zoom) - the live view's 2.2 is right for a room and prints as type
+# jumping 3.7x between neighbouring pages. --pdf-zoom=<n> turns fitting off
+# and reports what runs off the page; measured, that costs 85% of
+# network-security's pages at 1.35, which is why it is an option and not the
+# default.
 node build.js <source.md> --slides-pdf                    # slides.pdf beside source.md
 node build.js <source.md> --slides-pdf --pdf-beats=final  # one page per chunk (default: all)
 node build.js <source.md> --slides-pdf --pdf-size=16:10   # 1600x1000 css px (default: 16:9)
+node build.js <source.md> --slides-pdf --pdf-zoom=1.2     # one zoom for every page
 node build.js <source.md> --slides-pdf --pdf-out=<path>
 
 # static checks – run before committing

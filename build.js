@@ -14935,6 +14935,20 @@ const PDF_SIZES = {
   '16:10': { w: 1600, h: 1000 },
 };
 
+// How large the type is allowed to get, and it is a ceiling rather than a
+// choice: the export shrinks a chunk to make it fit and never enlarges it past
+// what an ordinary slide gets.
+//
+// The live view's auto-fit ceiling is 2.2, which is right there - a lecturer
+// who presses `#` on a slide holding four words wants those four words to fill
+// the room. Printed, that same rule makes the type jump by a factor of 3.7
+// between neighbouring pages. Measured over the five lectures: 75% of
+// python-intro's states and 63% of decoration's sit above 1.6, while
+// network-security's median is 0.95. 1.35 is the runtime's own default zoom,
+// so the rule states itself - a page is at most as large as a slide nobody
+// fitted, and smaller when it has to be.
+const PDF_FIT_CEILING = 1.35;
+
 // A --pdf-* value flag, in the `--name=value` form. The older value flags in
 // this CLI take a separate argument (--port 8080); these do not, because a
 // separate argument has to be excluded from `positional` by hand and that
@@ -14977,11 +14991,33 @@ function pdfOptionsFrom(argv, flags, absIn) {
     err.userFacing = true;
     throw err;
   }
+  // `fit` shrinks what does not fit and stops at the ceiling above; a number
+  // is that number on every page, and whatever overruns is reported and
+  // printed cut. Not the other way round, and the measurement says why: at a
+  // fixed 1.35, 85% of network-security's states and 67% of the diagram
+  // lecture's run off the page. A fixed zoom is an honest choice for a deck
+  // whose slides are alike, and a bad default for one whose slides are not.
+  const zoomArg = pdfFlagValue(argv, '--pdf-zoom') ?? 'fit';
+  let zoom = null;
+  if (zoomArg !== 'fit') {
+    zoom = Number(zoomArg);
+    if (!Number.isFinite(zoom) || zoom < 0.6 || zoom > 2.2) {
+      const err = new Error(
+        `Error: --pdf-zoom=${zoomArg} is neither \`fit\` nor a number between 0.6 and 2.2.\n`
+        + '  fit (the default) sizes every chunk to the page and never enlarges past '
+        + `${PDF_FIT_CEILING}.\n`
+        + '  A number holds every page at that zoom and reports what runs off it.');
+      err.userFacing = true;
+      throw err;
+    }
+  }
   const outArg = pdfFlagValue(argv, '--pdf-out');
   return {
     beats,
     size,
     ...PDF_SIZES[size],
+    zoom,
+    ceiling: PDF_FIT_CEILING,
     out: outArg ? path.resolve(outArg) : path.join(path.dirname(absIn), 'slides.pdf'),
     dumpDom: pdfFlagValue(argv, '--pdf-dump-dom'),
   };
@@ -15033,7 +15069,8 @@ async function main() {
     console.error('Usage:');
     console.error('  node build.js <source.md> [--watch] [--serve [--port N]] [--audience-only|--print-only|--print-notes-only|--speaker-only]');
     console.error('                            [--inline-images|--no-inline-images]');
-    console.error('  node build.js <source.md> --slides-pdf [--pdf-beats=all|final] [--pdf-size=16:9|16:10] [--pdf-out=<path>]');
+    console.error('  node build.js <source.md> --slides-pdf [--pdf-beats=all|final] [--pdf-size=16:9|16:10]');
+    console.error('                                         [--pdf-zoom=fit|<n>] [--pdf-out=<path>]');
     console.error('  node build.js <source.md> --integrate-annotations');
     console.error('  node build.js <source.md> --optimize-images [--dry-run] [--all] [--max-width N]');
     console.error('  node build.js --new <slug>');
@@ -15057,6 +15094,8 @@ async function main() {
     console.error('  --pdf-beats=final     one page per chunk, fully built up');
     console.error('  --pdf-size=16:9       1600x900 css px, a 1200x675 pt page (default)');
     console.error('  --pdf-size=16:10      1600x1000 css px, a 1200x750 pt page');
+    console.error('  --pdf-zoom=fit        size each chunk to the page, never above 1.35 (default)');
+    console.error('  --pdf-zoom=<n>        hold every page at that zoom (0.6-2.2) and report overruns');
     console.error('  --pdf-out=<path>      default: slides.pdf beside source.md');
     console.error('  Needs a Chromium (playwright-core, $PSI_CHROME or a system Chrome).');
     console.error('');

@@ -30,12 +30,26 @@ from building the same way is a major version.
   hook that ships in the two live views and changes no behaviour. The export can
   therefore not be wrong about the order – only about the rendering.
 
-  **Auto-fit is the only layout mode**, whatever the frontmatter says: in a hall
+  **Every chunk is sized to the page, and never enlarged past 1.35.** In a hall
   a chunk taller than the frame is *panned*, the camera pinning its head and
-  following its foot down, and a sheet of paper cannot pan. Auto-fit is the
-  mechanism that already forces a chunk into the frame. Where even its 0.6 floor
-  is not enough the page is printed anyway, visibly cut, and the export names the
-  chunk and the beat so the author can shorten it.
+  following its foot down, and a sheet of paper cannot pan; auto-fit is the
+  mechanism that already forces a chunk into the frame, so the export turns it
+  on whatever the frontmatter says. But the live view's ceiling of 2.2 is right
+  for a room and wrong for a document: a slide holding four words should fill
+  the hall, and printed it makes the type jump by a factor of 3.7 between
+  neighbouring pages. Measured over the five lectures, 75% of `python-intro`'s
+  states and 63% of `decoration`'s sat above 1.6 while `network-security`'s
+  median was 0.95. The ceiling is now 1.35 – the runtime's own default zoom, so
+  the rule states itself: a page is at most as large as a slide nobody fitted,
+  and smaller when it has to be. Where even the 0.6 floor is not enough the page
+  is printed anyway, visibly cut, and the export names the chunk and the beat.
+
+  **`--pdf-zoom=<n>` turns the fitting off** and holds every page at one zoom,
+  reporting what runs off it. It is an option and not the default because the
+  measurement says so: at a fixed 1.35, 85% of `network-security`'s pages and
+  67% of the diagram lecture's would be cut. For a deck whose slides are alike
+  it is the better answer, and for one whose slides are not it tells you, once,
+  rather than page by page.
 
   **The export reaches no network.** HTTP(S) is routed to nothing before the
   page is even opened, because arriving at a chunk sets a hosted player's

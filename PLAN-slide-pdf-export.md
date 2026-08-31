@@ -1392,6 +1392,77 @@ gefunden, was die beste Auskunft über sie ist, die zu haben war:
   einzige, was sie heute nachprüft. Ob `lint.js` oder der Build davor
   warnen soll, ist eine offene Frage.
 
+### Nachtrag: der Zoom, nach dem ersten Ansehen
+
+Zwei Beobachtungen am fertigen PDF, beide zum selben Knopf, und eine
+Messung, die eine der beiden vorgeschlagenen Antworten verwirft.
+
+**Gemessen**, alle fünf Vorlesungen, jeder Zustand einzeln:
+
+| Vorlesung | Zustände | Fit min / median / max | über 1,6 | überliefe bei fest 1,2 | bei fest 1,35 |
+|---|---|---|---|---|---|
+| tutorial | 82 | 0,60 / 1,30 / 2,20 | 34 % | 32 % | 34 % |
+| diagrams | 70 | 0,60 / 0,80 / 2,20 | 10 % | 66 % | 67 % |
+| decoration | 38 | 1,00 / 1,85 / 2,20 | 63 % | 3 % | 11 % |
+| network-security | 156 | 0,60 / 0,95 / 2,20 | 4 % | 64 % | 85 % |
+| python-intro | 44 | 0,60 / 1,90 / 2,20 | 75 % | 5 % | 7 % |
+
+**Die Decke, und sie ist die Antwort.** In jeder Vorlesung spannt der Fit
+über 0,6 bis 2,2, also den Faktor 3,7 zwischen Nachbarseiten. Auf
+dünnen Folien greift die Obergrenze fast immer – 75 % von `python-intro`
+und 63 % von `decoration` stehen über 1,6. Der Export deckelt jetzt bei
+**1,35**, dem Standardzoom der Runtime: eine Seite ist höchstens so groß
+wie eine ungefittete Folie und kleiner, wenn sie muss. `decoration` läuft
+damit über 1,00–1,35 statt 1,00–2,20. In der Live-Ansicht bleiben die 2,2
+– wer im Saal `#` auf einer Folie mit vier Wörtern drückt, will die vier
+Wörter groß.
+
+Die Decke sitzt **nach** dem Fit, nicht im Fit. `fitZoomToChunk` nimmt
+zwar eine Obergrenze, kehrt aber vorher zurück, wenn der Chunk schon
+passt und `state.zoom` bereits darüber liegt – eine kleinere Grenze
+bewirkt dann gar nichts, weil der Wert der *vorigen* Folie stehen
+bleibt. Nachträglich klemmen braucht kein zweites Lösen und kann nicht
+falsch sein: Der Fit hat gerade gezeigt, dass es größer passt.
+Nebenbefund derselben Stelle: **der gefittete Zoom eines Chunks hängt
+davon ab, in welcher Reihenfolge das Deck durchlaufen wurde.**
+
+**Fester Zoom statt Fit: als Schalter ja, als Standard nein.** Der
+Vorschlag, Auto-Fit für den PDF-Export ganz abzuschalten und nur zu
+warnen, ist jetzt `--pdf-zoom=<n>` – und die Messung sagt, warum er nicht
+der Standard sein kann: bei fest 1,35 laufen **85 % der Seiten von
+`network-security`** und 67 % der Diagrammvorlesung über den Rand. Für
+ein Deck aus ähnlich langen Folien ist er die bessere Antwort
+(`decoration` verliert bei 1,2 eine einzige Seite), für ein ungleiches
+die schlechtere. Läuft mehr als ein Fünftel der Seiten über, sagt der
+Export das **einmal** statt Seite für Seite: das ist eine Entscheidung
+zum Revidieren, keine Liste zum Abarbeiten.
+
+### Nachtrag: der leere Raum, und was ihn nicht verursacht
+
+Drei Ursachen, und die naheliegendste Reparatur ist keine.
+
+1. **Eine Beat-Seite reserviert die Endausdehnung der Figur.** Das ist
+   die Hauptursache in `network-security` und Absicht: In der Halle
+   springt sonst bei jedem Beat alles. Die erste Beat-Seite eines
+   `sequence`-Diagramms ist zwei Beschriftungen in einem leeren Rahmen,
+   und der Rahmen ist der Platz, in den das Übrige kommt. Auf Papier
+   sieht das nach verschenktem Raum aus; es ist derselbe Raum, den die
+   letzte Beat-Seite füllt.
+2. **`.chunk[data-tag=figure] .chunk-body` ist auf `max-width: 40em`
+   gedeckelt, und die Zeichnung sitzt darin.** Auf einem `.full`-Chunk
+   bekommt sie damit 842 von 1152 verfügbaren px. Das sieht nach der
+   Ursache aus und **ist keine Reparatur**: gemessen mit aufgehobenem
+   Deckel über alle Chunks passen in `network-security` **10 Chunks
+   größer und 17 kleiner**, in `diagrams` 8 größer und 4 kleiner, in
+   `tutorial` ändert sich nichts. Der Grund ist der Aspekt: eine breitere
+   Zeichnung ist auch eine höhere, und der Fit muss sie dann stärker
+   verkleinern. Einzelne Fälle gewinnen viel (`ns-a30` 0,60 → 1,05,
+   `ns-a31` 0,60 → 0,85), ebenso viele verlieren. **Nicht geändert.**
+3. **Ein kleinerer Zoom schmälert auch die Spalte**, weil `--content-w`
+   in `em` steht. Ein Chunk, den der Fit herunterziehen musste, wird
+   dadurch ein schmales Band in einer breiten Folie – die beiden Effekte
+   verstärken sich.
+
 ### Was offen ist
 
 - Defekt A oben. Bis er entschieden ist, ist die Deckfolie jedes PDFs zu

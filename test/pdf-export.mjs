@@ -408,6 +408,36 @@ try {
     ok(near(mb2[2], 1200) && near(mb2[3], 750), '16:10 is a 1200 x 750 pt page', JSON.stringify(mb2));
   }
 
+  console.log('\nzoom: a ceiling on fit, and a fixed number as the way out');
+  // The live view's fit ceiling is 2.2, which is right in a hall and wrong on
+  // paper: it makes the type jump by a factor of 3.7 between neighbouring
+  // pages. The export never enlarges past the runtime's own default zoom.
+  const fitZooms = pages.map(p => p.zoom);
+  ok(Math.max(...fitZooms) <= 1.35, 'no page is fitted above the 1.35 ceiling',
+     String(Math.max(...fitZooms)));
+  ok(new Set(fitZooms).size > 1, 'and fit still sizes chunks differently from one another',
+     [...new Set(fitZooms)].sort().join(' '));
+
+  const fx = path.join(dir, 'fixed.pdf');
+  const fxDom = path.join(dir, 'fixed.html');
+  const r4 = run(dir, ['--pdf-zoom=0.9', `--pdf-out=${fx}`, `--pdf-dump-dom=${fxDom}`]);
+  ok(r4.status === 0, '--pdf-zoom=<n> exits 0', (r4.stderr || '').slice(-300));
+  if (r4.status === 0) {
+    // Body only. AUDIENCE_CSS declares `--zoom: 1.35` on :root in <head>, and
+    // reading the whole dump picks that up as a second value - the same trap
+    // the cleanliness assertions fell into.
+    const fxFull = fs.readFileSync(fxDom, 'utf8');
+    const fxBody = fxFull.slice(fxFull.lastIndexOf('</head>'));
+    const zs = [...fxBody.matchAll(/--zoom: ([0-9.]+);/g)].map(m => m[1]);
+    ok(zs.length === pages.length && new Set(zs).size === 1 && zs[0] === '0.9',
+       'and holds every page at exactly that zoom', [...new Set(zs)].join(' '));
+  }
+  // Refused before a browser starts, like every other bad --pdf-* value.
+  const r5 = run(dir, ['--pdf-zoom=huge']);
+  ok(r5.status !== 0 && /neither `fit` nor a number/.test(r5.stderr),
+     'a --pdf-zoom that is neither fit nor a number is refused', r5.stderr.split('\n')[0]);
+  ok(!/\bat .*\(.*:\d+:\d+\)/.test(r5.stderr), 'without a stack trace');
+
   console.log('\na host with no browser');
   // No fixture needed and none wanted: this failure happens before a page
   // exists, so the message must name the paths it tried and NOT a chunk id.

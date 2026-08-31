@@ -267,6 +267,7 @@ node build.js <source.md> --integrate-annotations       # fold exported live ann
 node build.js <source.md> --slides-pdf                  # a PDF slide deck, one page per beat
 node build.js <source.md> --slides-pdf --pdf-beats=final   # one page per chunk instead
 node build.js <source.md> --slides-pdf --pdf-size=16:10    # default is 16:9
+node build.js <source.md> --slides-pdf --pdf-zoom=1.2     # one zoom for every page
 node build.js <source.md> --slides-pdf --pdf-out=<path>    # default: slides.pdf beside source.md
 
 node lint.js lectures/                       # all lectures

@@ -245,13 +245,13 @@ function pageCollect(cfg) {
     '[data-fig-edit]',
   ].join(', ');
 
-  const capture = (el, id, beat) => {
+  const capture = (el, id, beat, zoomShown) => {
     const clone = el.cloneNode(true);
     clone.querySelectorAll(DROP).forEach(node => node.remove());
     const wrap = document.createElement('div');
     wrap.className = 'pdf-page';
     wrap.id = 'pdf-p' + (++n);
-    wrap.style.setProperty('--zoom', P.zoom());
+    wrap.style.setProperty('--zoom', zoomShown);
     const slide = document.createElement('div');
     slide.className = 'pdf-slide';
     slide.appendChild(clone);
@@ -282,28 +282,52 @@ function pageCollect(cfg) {
         P.jumpTo(i);
         P.setRevealed(id, pos);
         P.applyReveal(el, id, true);
-        // A reveal changes the chunk's height and therefore, under auto-fit,
-        // the zoom it needs. Skip this and beat 3 comes out at a different
-        // type size than it has in the hall.
-        P.settle();
+        if (cfg.zoom === null) {
+          // A reveal changes the chunk's height and therefore, under auto-fit,
+          // the zoom it needs. Skip this and beat 3 comes out at a different
+          // type size than it has in the hall.
+          P.settle();
+        } else {
+          // A fixed zoom, written straight onto <html> after jumpTo rather
+          // than through the hook. jumpTo has already run applyState, which is
+          // the last thing that writes --zoom, so this wins; and keeping it
+          // here keeps the policy in the exporter, which is the whole split.
+          document.documentElement.style.setProperty('--zoom', cfg.zoom);
+        }
+        // The ceiling, applied after the fit rather than through it.
+        // fitZoomToChunk takes a cap, but it also returns early when the chunk
+        // already fits and state.zoom is at or above that cap - so passing a
+        // lower one leaves whatever the previous slide happened to end on, and
+        // the ceiling silently does nothing. (That early return is also why a
+        // chunk's fitted zoom depends on the order the deck was walked in.)
+        // Clamping afterwards needs no re-solve and cannot be wrong: the fit
+        // has just shown the chunk fits at a larger size, so it fits at a
+        // smaller one.
+        if (cfg.zoom === null && P.zoom() > cfg.ceiling) {
+          document.documentElement.style.setProperty('--zoom', cfg.ceiling);
+        }
         P.quiesce();
         await twoFrames();
         await imagesDecoded(el);
 
-        // Auto-fit bottoms out at 0.6. Report against the page box rather
-        // than against auto-fit's 94% breathing room: what the PDF actually
-        // clips is the page, and a warning that fires on air the reader never
-        // loses is a warning authors learn to ignore.
+        // Reported against the page box rather than against auto-fit's 94%
+        // breathing room: what the PDF actually clips is the page, and a
+        // warning that fires on air the reader never loses is one authors
+        // learn to ignore. Under `fit` this can only happen at the 0.6 floor;
+        // at a fixed zoom it is the ordinary case, which is the trade the
+        // author made when they named a number.
+        const shown = cfg.zoom !== null ? cfg.zoom : Math.min(P.zoom(), cfg.ceiling);
         const box = el.getBoundingClientRect();
-        if (P.zoom() <= 0.6 && box.height > cfg.h + 1) {
+        if (box.height > cfg.h + 1) {
           overflow.push({
             chunkId: id,
             beat: pos,
             content: Math.round(box.height),
             available: cfg.h,
+            zoom: shown,
           });
         }
-        capture(el, id, pos);
+        capture(el, id, pos, shown);
       }
     }
   };
@@ -385,7 +409,7 @@ function userError(msg) {
 }
 
 export async function exportSlidesPdf(opts) {
-  const { audienceHtml, beats, size, w, h, out, dumpDom } = opts;
+  const { audienceHtml, beats, size, w, h, zoom, ceiling, out, dumpDom } = opts;
 
   let chromium;
   try {
@@ -435,7 +459,7 @@ export async function exportSlidesPdf(opts) {
       null, { timeout: 30000 });
 
     const prep = await page.evaluate(pagePrepare);
-    const got = await page.evaluate(pageCollect, { beats, h });
+    const got = await page.evaluate(pageCollect, { beats, h, zoom, ceiling });
 
     // Chunk id -> first page, then column id -> the same mapping for the
     // divider slide it generates, falling back to its first chunk when the
@@ -472,7 +496,7 @@ export async function exportSlidesPdf(opts) {
     fs.renameSync(tmp, out);
 
     report({
-      out, size, w, h, beats,
+      out, size, w, h, beats, zoom, ceiling,
       pages: installed.pages,
       chunks: new Set(got.pages.map(p => p.chunkId)).size,
       version: browser.version(),
@@ -500,8 +524,19 @@ function report(r) {
 
   for (const o of r.overflow) {
     console.error(
-      `${rel}: ${o.chunkId} beat ${o.beat} does not fit the page at zoom 0.60 `
-      + `(${o.content}px of content, ${o.available}px available). Shorten it or split it.`);
+      `${rel}: ${o.chunkId} beat ${o.beat} does not fit the page at zoom ${o.zoom.toFixed(2)} `
+      + `(${o.content}px of content, ${o.available}px available). `
+      + (r.zoom === null
+        ? 'Shorten it or split it.'
+        : 'Shorten it, split it, or drop --pdf-zoom and let each page size itself.'));
+  }
+  // One line rather than one per page when a fixed zoom is overrunning
+  // wholesale: that is a decision to revisit, not a list to work through.
+  if (r.zoom !== null && r.overflow.length > r.pages * 0.2) {
+    console.error(
+      `${rel}: ${r.overflow.length} of ${r.pages} pages run off the page at --pdf-zoom=${r.zoom}. `
+      + 'That is what a fixed zoom costs on a deck whose slides differ in length; '
+      + '--pdf-zoom=fit sizes each one instead.');
   }
   for (const m of r.missingImages) {
     console.error(`${rel}: ${m.chunkId} has an image that did not load: ${m.src}`
@@ -531,5 +566,6 @@ function report(r) {
   // PDF, two machines may differ in hyphenation and fallback glyphs.
   console.log(`[pdf] Chromium ${r.version} – ${r.executablePath}`);
   console.log(`Wrote ${rel} (${r.pages} page(s) from ${r.chunks} chunk(s), `
-    + `${r.size} at ${r.w}×${r.h}, beats=${r.beats})`);
+    + `${r.size} at ${r.w}×${r.h}, beats=${r.beats}, `
+    + `zoom=${r.zoom === null ? `fit≤${r.ceiling}` : r.zoom})`);
 }
