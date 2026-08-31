@@ -44,12 +44,14 @@ default box {.mono}
 
 # The four outputs stand in one column and source.md sits opposite their
 # middle. The four edges are .elbow, and an elbow's rail is measured between
-# the two faces – so all four rails land on one line and the fan-out reads as
-# a single bracket. Nothing here places that spine by hand.
-box  doc   "print.html\nthe document"            at 1.55,0
-box  notes "print-notes.html\ndocument + notes"  below doc gap 0.3
-box  aud   "audience.html\nthe projector"        below notes gap 0.3
-box  spk   "speaker.html\nthe cockpit"           below aud gap 0.3
+# the two faces – so the fan-out reads as one bracket only if the four left
+# faces are in one place. Left to size themselves the boxes are four widths
+# and the rails come out four abreast, so all of them are `same as` the
+# widest label, print-notes.html, which is the one that has to fit anyway.
+box  notes "print-notes.html\ndocument + notes"  at 1.55,0.75
+box  doc   "print.html\nthe document"            above notes gap 0.3 same as notes
+box  aud   "audience.html\nthe projector"        below notes gap 0.3 same as notes
+box  spk   "speaker.html\nthe cockpit"           below aud gap 0.3 same as notes
 
 box  src   "source.md\none file"                 between doc,spk offset -2.0,0 {.tone-3}
 text bjs   "build.js"                            right of src gap 0.14 offset 0,-0.34 {.muted .small .mono}
