@@ -4469,13 +4469,14 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
        </button></div>
   <aside class="exp-body" data-exp-body="0">
       <div class="tag-label">digits-and-chevrons</div>
-      <p><strong>A digit opens the expansion with that number.</strong> This is expansion number 1. Press <code>Esc</code> to close, or <code>2</code> to switch to the second expansion directly – no need to close first. <code>Enter</code> does not open expansions; it is one of the forward keys.</p>
+      <p><strong>A digit opens the expansion with that number, and the same digit closes it again.</strong> This is expansion number 1, so <code>1</code> puts it away. <code>Esc</code> closes it too, and <code>2</code> switches straight to the second one without closing this first.</p>
 <p>In the source, an expansion is written <code>::: expand &lt;label&gt;</code> … <code>:::</code>. The label appears at the top of the opened pane; the chevron button itself carries a short form of it (<code>Ex</code> for an example, <code>Ref</code> for a reference, <code>Fig</code> for a figure, <code>?</code> for an answer, <code>!</code> for a warning, and <code>Exp</code> for a label it does not recognise).</p>
 
     </aside>
 <aside class="exp-body" data-exp-body="1">
-      <div class="tag-label">collapse-behaviour</div>
-      <p><strong>Expansions disappear when the slide is collapsed.</strong> Press <code>C</code> after closing this to try it – the chunk shrinks to its opening sentence plus the bold phrases, and expansions go entirely. An expansion is the branch you take <em>if</em> someone asks; the main text has to carry the argument on its own.</p>
+      <div class="tag-label">what-it-is-for</div>
+      <p><strong>An expansion is the branch you take if somebody asks.</strong> It sits behind its button in both <code>C</code> settings, so it is never part of what the room reads by itself – the main text has to carry the argument without it.</p>
+<p>Press <code>C</code> while this pane is open and watch the chunk behind it shorten. The pane stays where it is: it is not part of the slide either way.</p>
 
     </aside>
   <div class="chunk-num" aria-hidden="true"><i>6</i></div>
@@ -4487,10 +4488,10 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
     <h2 class="chunk-heading has-sub"><span class="hd-main">Zoom into a figure or code block</span> <span class="hd-sub">click it</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Click any figure, code block or margin note inside the chunk you are on.</strong> A figure or a block of code lifts into a card in the middle of the screen with the slide dimmed behind it; <strong>a marginalia – an aside set out in the slide&#39;s margin – is panned into the centre instead of being lifted</strong>.</p>
 <p><strong>Links behave two ways, and which one you want depends on the window you are in.</strong> A plain click follows the link in a new tab of <em>that</em> window. Clicked in the lectern view, that is you checking a source while the projection stays where it was. Clicked in the projection, it is the page itself arriving in front of the room.</p>
-<p><strong>The little mark after the link does the other thing</strong>: it puts the <strong>address</strong> on both screens, large, with a <strong>QR code</strong> beside it, so the room can take the link away on their own phones. Click the address to open it anyway; <code>Esc</code> or the next slide clears it. <code>Shift</code>-clicking the link itself does the same.</p>
-<p>Try it on this one: <a href="https://psi.uni-bamberg.de/" target="_blank" rel="noopener noreferrer">the group behind the tool</a><button type="button" class="link-code" data-link-code="https://psi.uni-bamberg.de/" aria-label="Show this address large, with a code to scan"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M1 1h5.4v5.4H1V1zm1.3 1.3v2.8h2.8V2.3H2.3zM9.6 1H15v5.4H9.6V1zm1.3 1.3v2.8h2.8V2.3h-2.8zM1 9.6h5.4V15H1V9.6zm1.3 1.3v2.8h2.8v-2.8H2.3z"/><path d="M8 1h1.2v3.1H8V1zm0 4.3h1.2v2.4h2.3v1.2H8V5.3zm5.5 2.4H15v1.2h-1.5V7.7zM8 10.1h1.2v1.4H8v-1.4zm2.4 0H15v1.2h-1.9v1.4H15V15h-1.2v-2.1h-2.2v-1.4h-1.2v-1.4zM8 12.6h1.2V15H8v-2.4z"/></svg></button>. The mark is what you want while a room is watching.</p>
-<p>The codes are drawn when the lecture is built, one per external address in the source, so a lecture without links carries none. <code>style: {link-codes: off}</code> leaves them out.</p>
-<p><strong>Hold <code>Alt</code> to select text.</strong> Dragging normally pans the slide, so selection is off. Hold <code>Alt</code> and the slide becomes selectable and the cursor changes; let go and dragging pans again. The selection survives the key release so you can reach <code>Cmd</code>-<code>C</code>, and <code>Esc</code> clears it.</p>
+<p><strong>The small QR-code symbol after the link does the other thing</strong>: it puts the <strong>address</strong> on both screens, large, with a <strong>scannable code</strong> beside it, so the room can take the link away on their own phones. Click the address to open it anyway; <code>Esc</code> or the next slide clears it. <code>Shift</code>-clicking the link itself does the same.</p>
+<p>Try it on this one: <a href="https://psi.uni-bamberg.de/" target="_blank" rel="noopener noreferrer">the group behind the tool</a><button type="button" class="link-code" data-link-code="https://psi.uni-bamberg.de/" aria-label="Show this address large, with a code to scan"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M1 1h5.4v5.4H1V1zm1.3 1.3v2.8h2.8V2.3H2.3zM9.6 1H15v5.4H9.6V1zm1.3 1.3v2.8h2.8V2.3h-2.8zM1 9.6h5.4V15H1V9.6zm1.3 1.3v2.8h2.8v-2.8H2.3z"/><path d="M8 1h1.2v3.1H8V1zm0 4.3h1.2v2.4h2.3v1.2H8V5.3zm5.5 2.4H15v1.2h-1.5V7.7zM8 10.1h1.2v1.4H8v-1.4zm2.4 0H15v1.2h-1.9v1.4H15V15h-1.2v-2.1h-2.2v-1.4h-1.2v-1.4zM8 12.6h1.2V15H8v-2.4z"/></svg></button>. The symbol is what you want while a room is watching.</p>
+<p>The codes are drawn when the lecture is built, one per external address in the source. <code>style: {link-codes: off}</code> leaves them out.</p>
+<p><strong>Hold <code>Alt</code> – <code>option</code> on a Mac – to select text.</strong> Dragging normally pans the slide, so selection is off. Hold the key and the slide becomes selectable and the cursor changes; let go and dragging pans again. The selection survives the key release so you can reach <code>Cmd</code>-<code>C</code>, and <code>Esc</code> clears it.</p>
 <p>Inside an opened card: drag to pan, wheel or <code>+</code> <code>-</code> to zoom, <code>0</code> to reset, <code>Esc</code> or a click to close. With a speaker window open, the projection follows which card you opened, how far you zoomed and where you panned, so what you are inspecting is what the room sees.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#8B949E"># Click this block to zoom it. Useful when a line matters more than the slide.</span></span>
 <span class="line"><span style="color:#D73A49;--shiki-dark:#FF7B72">def</span><span style="color:#6F42C1;--shiki-dark:#D2A8FF"> anonymity_set</span><span style="color:#24292E;--shiki-dark:#E6EDF3">(observations, senders):</span></span>
@@ -4532,7 +4533,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 <li><strong>Arrow keys</strong> move the outline without landing, and the board follows, because the slide you want is often off screen.</li>
 <li><code>O</code> again or <code>Enter</code> <strong>lands</strong> on the outlined slide; <code>Esc</code> leaves without moving.</li>
 </ul>
-<p>In a lecture you did not write, the board shows the shape of it – where the principles are, where the figures are – which is usually enough to find the part you want. With a speaker window open, both windows enter, pan, zoom and leave together.</p>
+<p>The board shows the shape of the lecture – where the principles are, where the figures are – which is usually enough to find the part you want. With a speaker window open, both windows enter, pan, zoom and leave together.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="overview">
@@ -4552,7 +4553,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Contents</span> <span class="hd-sub"><code>T</code> lists the lecture&#39;s columns</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>T</code> shows a list of every named column.</strong> Click an entry to jump there; <code>T</code> again closes the panel.</p>
-<p>A column with no <code>{#id}</code> does not appear – the unnamed opening column that holds the title slide stays out of the list and renders normally. The <code>{#id}</code> is also what a cross-reference points at: a <code>[text](#some-id)</code> link anywhere in the body finds it.</p>
+<p>A column with no <code>{#id}</code> does not appear – the unnamed opening column that holds the title slide stays out of the list. The <code>{#id}</code> is also what a cross-reference points at: a <code>[text](#some-id)</code> link anywhere in the body finds it.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="toc">

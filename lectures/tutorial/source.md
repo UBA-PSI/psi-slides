@@ -88,13 +88,15 @@ Each of the four files carries everything it needs inside itself – the picture
 **Some chunks have extra detail tucked behind a chevron button.** Click one, or press `1`…`9` for the n-th. This chunk has two expansions – try both.
 
 ::: expand digits-and-chevrons
-**A digit opens the expansion with that number.** This is expansion number 1. Press `Esc` to close, or `2` to switch to the second expansion directly – no need to close first. `Enter` does not open expansions; it is one of the forward keys.
+**A digit opens the expansion with that number, and the same digit closes it again.** This is expansion number 1, so `1` puts it away. `Esc` closes it too, and `2` switches straight to the second one without closing this first.
 
 In the source, an expansion is written `::: expand <label>` … `:::`. The label appears at the top of the opened pane; the chevron button itself carries a short form of it (`Ex` for an example, `Ref` for a reference, `Fig` for a figure, `?` for an answer, `!` for a warning, and `Exp` for a label it does not recognise).
 :::
 
-::: expand collapse-behaviour
-**Expansions disappear when the slide is collapsed.** Press `C` after closing this to try it – the chunk shrinks to its opening sentence plus the bold phrases, and expansions go entirely. An expansion is the branch you take *if* someone asks; the main text has to carry the argument on its own.
+::: expand what-it-is-for
+**An expansion is the branch you take if somebody asks.** It sits behind its button in both `C` settings, so it is never part of what the room reads by itself – the main text has to carry the argument without it.
+
+Press `C` while this pane is open and watch the chunk behind it shorten. The pane stays where it is: it is not part of the slide either way.
 :::
 
 **The two document views print every expansion** as an indented aside where it stood in the source, so the reading copy loses nothing.
@@ -105,13 +107,13 @@ In the source, an expansion is written `::: expand <label>` … `:::`. The label
 
 **Links behave two ways, and which one you want depends on the window you are in.** A plain click follows the link in a new tab of *that* window. Clicked in the lectern view, that is you checking a source while the projection stays where it was. Clicked in the projection, it is the page itself arriving in front of the room.
 
-**The little mark after the link does the other thing**: it puts the **address** on both screens, large, with a **QR code** beside it, so the room can take the link away on their own phones. Click the address to open it anyway; `Esc` or the next slide clears it. `Shift`-clicking the link itself does the same.
+**The small QR-code symbol after the link does the other thing**: it puts the **address** on both screens, large, with a **scannable code** beside it, so the room can take the link away on their own phones. Click the address to open it anyway; `Esc` or the next slide clears it. `Shift`-clicking the link itself does the same.
 
-Try it on this one: [the group behind the tool](https://psi.uni-bamberg.de/). The mark is what you want while a room is watching.
+Try it on this one: [the group behind the tool](https://psi.uni-bamberg.de/). The symbol is what you want while a room is watching.
 
-The codes are drawn when the lecture is built, one per external address in the source, so a lecture without links carries none. `style: {link-codes: off}` leaves them out.
+The codes are drawn when the lecture is built, one per external address in the source. `style: {link-codes: off}` leaves them out.
 
-**Hold `Alt` to select text.** Dragging normally pans the slide, so selection is off. Hold `Alt` and the slide becomes selectable and the cursor changes; let go and dragging pans again. The selection survives the key release so you can reach `Cmd`-`C`, and `Esc` clears it.
+**Hold `Alt` – `option` on a Mac – to select text.** Dragging normally pans the slide, so selection is off. Hold the key and the slide becomes selectable and the cursor changes; let go and dragging pans again. The selection survives the key release so you can reach `Cmd`-`C`, and `Esc` clears it.
 
 Inside an opened card: drag to pan, wheel or `+` `-` to zoom, `0` to reset, `Esc` or a click to close. With a speaker window open, the projection follows which card you opened, how far you zoomed and where you panned, so what you are inspecting is what the room sees.
 
@@ -132,13 +134,13 @@ def anonymity_set(observations, senders):
 - **Arrow keys** move the outline without landing, and the board follows, because the slide you want is often off screen.
 - `O` again or `Enter` **lands** on the outlined slide; `Esc` leaves without moving.
 
-In a lecture you did not write, the board shows the shape of it – where the principles are, where the figures are – which is usually enough to find the part you want. With a speaker window open, both windows enter, pan, zoom and leave together.
+The board shows the shape of the lecture – where the principles are, where the figures are – which is usually enough to find the part you want. With a speaker window open, both windows enter, pan, zoom and leave together.
 
 ## example: Contents | `T` lists the lecture's columns {.standard #toc}
 
 **`T` shows a list of every named column.** Click an entry to jump there; `T` again closes the panel.
 
-A column with no `{#id}` does not appear – the unnamed opening column that holds the title slide stays out of the list and renders normally. The `{#id}` is also what a cross-reference points at: a `[text](#some-id)` link anywhere in the body finds it.
+A column with no `{#id}` does not appear – the unnamed opening column that holds the title slide stays out of the list. The `{#id}` is also what a cross-reference points at: a `[text](#some-id)` link anywhere in the body finds it.
 
 ## example: Search | `/` lists every slide that mentions a word {.wide #search}
 
