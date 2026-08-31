@@ -107,8 +107,8 @@ node test/gates/run.mjs semantics              # gates whose name matches
 
 # browser suite – the things that only break in a built page, in four
 # families: the navigation model (nav, nav-cockpit), the geometry the live
-# chrome leaves the slide (expansion, touch-rail), the editor's gestures and
-# panel (editor-*), and the figure-* specs that measure the emitted SVG –
+# chrome leaves the slide (expansion, touch-rail, math-focus), the editor's
+# gestures and panel (editor-*), and the figure-* specs that measure the SVG –
 # figure-framing, which catches a drawing sitting off-centre in an oversized
 # frame, figure-labels, which measures where an aligned label lands inside the
 # thing that holds it, and figure-sequence, which asserts that nothing in a
@@ -122,7 +122,10 @@ node test/gates/run.mjs semantics              # gates whose name matches
 # `touch-rail` opens its own browser context: the rail lives behind
 # `@media (pointer: coarse)` and openDeck's has a fine pointer, so in the
 # default context the bar is not in the document and a measurement of it
-# reports no overlaps among no buttons. Twenty-four specs, ~630 assertions.
+# reports no overlaps among no buttons. `math-focus` builds its own deck for
+# the opposite reason: no lecture in the repository has a display formula with
+# more than one row, so nothing that ships can reach the case, which is most
+# of why it shipped. Twenty-five specs, ~647 assertions.
 # Builds and serves the lectures itself, so it never reports on stale HTML,
 # and launches one Chromium for the whole run ($PSI_CHROME, the Playwright
 # cache, or system Chrome); ~5 min. Run it after touching AUDIENCE_JS, the key

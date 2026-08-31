@@ -10196,7 +10196,15 @@ function setSelectedIdx(idx, opts = {}) {
 
 // Column-wise selection jump in overview: land on the first chunk of the
 // next/previous column. Mirrors nextCol/prevCol, but moves the selection
-// rather than the live slide.
+// rather than the live slide - and that has to include where they stop.
+//
+// They stand still at the ends now; this went on falling through to the last
+// or the first chunk of the whole deck. So the behaviour the key model was
+// changed to remove was still reachable, through the board, where the next
+// Enter commits it: open the overview in the last column, press Right, press
+// Enter, and you are on the final slide of the lecture in front of a room.
+// One gesture with two implementations has to agree about its edges, or the
+// disagreement is something a lecturer finds by pressing it.
 function selectOverviewCol(dir) {
   const cur = flatChunks[selectedIdx];
   if (!cur) return;
@@ -10204,7 +10212,7 @@ function selectOverviewCol(dir) {
     for (let i = selectedIdx + 1; i < flatChunks.length; i++) {
       if (flatChunks[i].colIdx > cur.colIdx) return setSelectedIdx(i, { recenter: true });
     }
-    return setSelectedIdx(flatChunks.length - 1, { recenter: true });
+    return;
   }
   for (let i = selectedIdx - 1; i >= 0; i--) {
     if (flatChunks[i].colIdx < cur.colIdx) {
@@ -10213,7 +10221,6 @@ function selectOverviewCol(dir) {
       return setSelectedIdx(j, { recenter: true });
     }
   }
-  setSelectedIdx(0, { recenter: true });
 }
 
 // Single entry point for entering/leaving overview, used by both the
@@ -11549,15 +11556,18 @@ document.addEventListener('keydown', (e) => {
     }
   }
   switch (e.key) {
-    // Sideways is the column key only where a column can be entered from:
-    // its first chunk. Everywhere else it is the forward/backward pair, so
-    // the two keys under a lecturer's fingers do the same thing on every
-    // slide but the one where a second dimension exists. The first chunk of
-    // a column says so on screen (updateNavHints) rather than leaving the
-    // exception to be discovered by pressing it.
-    // Shift is the column modifier and nothing else here: the arrows are not
-    // cycling keys, so it does not collide with the Shift that runs C, F, A
-    // and L backwards.
+    // Forward and back are one pair everywhere - across reveals, across
+    // chunks, across columns - and Shift is the column modifier from any
+    // slide. That is the whole model, and it replaced one where the sideways
+    // arrows changed column on the first chunk of a column and meant
+    // forward/back on every other: an exception on exactly the slides a
+    // lecturer arrives at, which is the worst place to keep one.
+    // Shift collides with nothing here: the arrows are not cycling keys, so
+    // it does not meet the Shift that runs C, F, A and L backwards.
+    // updateNavHints still paints a mark, and it says something else now -
+    // not "sideways changes column on this slide" but "the next forward press
+    // leaves this column", which is a fact about the key already under the
+    // finger rather than about a key that might not be pressed.
     case 'ArrowRight': e.shiftKey ? nextCol() : goForward(); e.preventDefault(); break;
     case 'ArrowLeft':  e.shiftKey ? prevCol() : goBack();    e.preventDefault(); break;
     // Down, Space, Enter and a presenter's forward button are one key, and
@@ -11831,6 +11841,51 @@ function focusFigure(el) {
   const live = el.querySelector('svg.psi-diagram');
   const shown = clone.querySelector('svg.psi-diagram');
   if (live && shown && live.psiDiagram) dgRenderInto(shown, live.psiDiagram, live.psiDiagram.step);
+  fitFocusedMath(clone);
+}
+
+// A display formula is the one focus target whose size is set in type rather
+// than by a box, and type does not know how tall the screen is. The overlay
+// enlarges it to 0.12 of the slide height - 108px at 1440x900, three times
+// what it was on the slide - and then the card caps at 98vh with overflow-y
+// hidden. Eight rows of an aligned block measured 435px on the slide, fully
+// visible, and 1285px inside an 882px card once focused: the bottom third of
+// the formula was gone, and clicking a thing to see it better had made a
+// third of it invisible.
+//
+// Scrolling is not the way out of this, however natural it looks beside the
+// code block's overflow: auto. The overlay's wheel handler preventDefaults
+// and zooms, and a drag pans, so a scrollbar inside the card is reachable
+// only by dragging the bar itself, and on a touchscreen not at all.
+//
+// So the enlargement stops where the screen does. KaTeX scales linearly with
+// its font size, which makes the correction one ratio rather than a search:
+// the height it wants against the height it has. The second pass is not for
+// re-flow - a formula does not re-wrap - it is for the horizontal scrollbar a
+// narrow window can add underneath, which takes back a few pixels of the
+// height the first pass just measured.
+//
+// Each window fits for itself, deliberately, and no part of this is
+// broadcast: the projection and the cockpit's scaled stage are different
+// sizes, so the answer is different, and the shared figure-view message
+// carries the lecturer's own zoom and pan on top of whatever each window
+// found. Same reasoning as clampZoomToWidth.
+function fitFocusedMath(card) {
+  if (!card.classList || !card.classList.contains('math-display')) return;
+  const kx = card.querySelector('.katex');
+  if (!kx) return;
+  for (let pass = 0; pass < 2; pass++) {
+    const cs = getComputedStyle(card);
+    const pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    const have = card.clientHeight - pad;
+    const want = card.scrollHeight - pad;
+    if (!(want > have + 1) || !(have > 0)) return;
+    const size = parseFloat(getComputedStyle(kx).fontSize) || 0;
+    if (!size) return;
+    // 0.99 keeps the result off the exact edge, where a rounded layout pixel
+    // would put the last row back under the clip.
+    kx.style.fontSize = (size * (have / want) * 0.99) + 'px';
+  }
 }
 
 // Overlay pointerdown: drag pans the focused figure; a click without

@@ -169,6 +169,38 @@ from building the same way is a major version.
 
 ### Fixed
 
+- **Clicking a display formula could hide a third of it.** The overlay
+  enlarges a focused formula by setting type – 0.12 of the slide height, 108px
+  at 1440×900, about three times what it had on the slide – and the card it
+  sits on then caps at 98vh with `overflow-y: hidden`. Type does not know how
+  tall the screen is, so for a formula with rows the two rules pull against
+  each other and the card wins: eight rows of an `aligned` block measured
+  435px on the slide, fully visible, and 1285px inside an 882px card once
+  focused. The gesture whose whole purpose is to show the thing better made a
+  third of it invisible, and neither the drag-pan nor `+`/`-` could recover it,
+  because both are transforms on a box that carries its own clip.
+
+  Scrolling is not the way out, however natural it looks beside the code
+  block's `overflow: auto`: the overlay's wheel handler preventDefaults and
+  zooms, and a drag pans, so a scrollbar inside the card is reachable only by
+  dragging the bar and on a touchscreen not at all. The enlargement now stops
+  where the screen does. KaTeX scales linearly with its font size, so the
+  correction is one ratio rather than a search – 72.8px instead of 108px at
+  1440×900, still twice what the slide had. A formula that already fits keeps
+  the full enlargement untouched. Each window fits for itself and nothing is
+  broadcast, because the projection and the cockpit's scaled stage are
+  different sizes; the shared `figure-view` message still carries the
+  lecturer's own zoom and pan on top.
+
+- **The overview board could still jump the selection to the end of the
+  deck.** `nextCol`/`prevCol` were changed to stand still at the ends, and
+  `selectOverviewCol` – which its own comment says mirrors them – went on
+  falling through to the last or first chunk of the whole lecture. So the
+  behaviour that change removed was still reachable through the board, where
+  the next `Enter` commits it: open the overview in the last column, press `→`,
+  press `Enter`, and you are on the final slide. It stands still now, and
+  `test/nav.mjs` asserts both edges beside the assertions for the keys.
+
 - **The cockpit's touch rail sat on top of the lecturer's notes.** The rail
   clears the furniture below the stage by summing the numbers the grid rows
   are written in, and it summed two of the three. The one it missed is the

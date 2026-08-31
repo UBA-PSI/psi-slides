@@ -83,6 +83,40 @@ export async function run({ page, report, at, press, walkTo, beatOf, restart }) 
   ok((await at()).colIdx === 0, 'Shift-Left stands still on the first column too',
     JSON.stringify(await at()));
 
+  // The overview board moves the *selection* column-wise with the bare
+  // arrows, which is the second implementation of the same gesture. It kept
+  // the fall-through after the keys above lost it, so the jump to the end of
+  // the deck was still reachable - and there the very next Enter commits it.
+  const selected = () => page.evaluate(() => {
+    const el = document.querySelector('.chunk.overview-selected');
+    return el ? (el.dataset.chunkId || '(section)') : null;
+  });
+  await restart();
+  await press('o', 600);
+  for (let i = 0; i < 40; i++) {
+    const before = await selected();
+    await press('ArrowRight', 160);
+    if (await selected() === before) break;
+  }
+  const lastSel = await selected();
+  await press('ArrowRight', 500);
+  ok(await selected() === lastSel,
+    'on the board the column arrow stands still at the last column too',
+    `${lastSel} -> ${await selected()}`);
+  ok(lastSel !== shape[lastCol].at(-1),
+    'and standing still means the last column, not the last slide of the deck',
+    String(lastSel));
+  for (let i = 0; i < 40; i++) {
+    const before = await selected();
+    await press('ArrowLeft', 160);
+    if (await selected() === before) break;
+  }
+  const firstSel = await selected();
+  await press('ArrowLeft', 500);
+  ok(await selected() === firstSel,
+    'and at the first column going the other way', String(firstSel));
+  await press('Escape', 500);
+
   await restart();
 
   // ── forward is one key for the whole lecture ──
