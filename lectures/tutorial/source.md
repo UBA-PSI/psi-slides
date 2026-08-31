@@ -184,9 +184,9 @@ Reach for `::: slide` when the slide wants tight bullets while the argument want
 
 > note: The word budget the checker enforces counts only the on-screen half. What you say is unbudgeted, so write as much of it as the argument needs.
 
-## example: The other way round | `::: script` on a slide-shaped chunk {.wide #script-mode}
+## example: A finding is already slide-shaped | so mark the narration, not the slide {.wide #script-mode}
 
-**A figure and three lines of finding are already the slide.** Wrapping them in `::: slide` would mean marking almost the whole chunk, so the shorter route is to mark the part that is *not* on screen.
+**Three lines of a finding are already the slide.** Wrapping them in `::: slide` would mean marking almost the whole chunk, so the shorter route is to mark the part that is *not* on screen. The three below are a made-up finding, standing in for whatever yours is:
 
 - One request in seven is answered differently once the crawler is instrumented.
 - The gap is widest on the sites that serve the most third-party script.
@@ -475,13 +475,17 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 # Writing chunks that work {#craft}
 
-## principle: The topic sentence is the slide | so write the opening line for the projector {.standard #topic-sentence}
+## principle: Write the prose first, then sharpen the openings | the slide is every paragraph's first sentence {.standard #topic-sentence}
 
-**When the tool works the slide out for you the room reads your opening sentences, so each one has to be a claim that stands up without its paragraph.** Everything after it belongs to `print.html` and `print-notes.html`.
+**The projection is the first sentence of every paragraph, so a chunk of four paragraphs puts four sentences in front of the room.** It is not one topic sentence per chunk. It is one per paragraph, in the order you wrote them, plus whatever you set in bold.
 
-That doubles as a rehearsal test: if the shortened chunk would not remind you what you meant to say, the chunk is not finished.
+**So write what you mean to say first and in full, then go back and sharpen the openings.** Each opening has to be a claim that survives having its own paragraph taken away; everything after it stays where it is and becomes the backing, which reaches `print.html` and `print-notes.html` and never the projection.
 
-> note: Present this chunk from the short view while you say it – the room can see that the slide is the same text as the handout.
+**Doing it the other way round – bullets first, prose afterwards – leaves you a slide with nothing underneath it**, and an hour you have to improvise the substance of while standing in front of people.
+
+**This chunk is four paragraphs, so its slide is the four sentences you have just read.** Press `C` and the backing under each of them appears. `#derived-mode`, back in *What goes on the slide*, is where that shortening is shown happening.
+
+> note: The short view doubles as a rehearsal test: if it would not remind you what you meant to say, the chunk is not finished. Present this one from the short view while you say it – the room can see that the slide is the same text as the hand-out.
 
 ## example: Four ways a chunk goes soft {.wide #anti-patterns}
 
@@ -505,12 +509,6 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 ## question: Let the tool work it out, or mark it yourself? {.standard #choose-mechanism}
 
 **Let the tool work it out while the chunk is an argument of one to three paragraphs; mark the slide yourself once the argument wants continuous prose.** Try the first and switch when it keeps fighting you.
-
-::: expand tag-as-predictor
-**The tag is a fair predictor.** `principle` and `question` chunks are short enough that the first-sentence rule rarely bites. `example` and `free` chunks near their word budget carry a walkthrough or a finding, and that is where `::: slide` is worth reaching for.
-
-A figure with a paragraph of interpretation under it is the other reliable case, and there `::: script` around the interpretation is less typing than wrapping the other half.
-:::
 
 ## exercise: The squint test {.wide #squint-test}
 
