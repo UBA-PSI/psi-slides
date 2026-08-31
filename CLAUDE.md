@@ -92,7 +92,11 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # a beat can carry, derived from DG_STEP_FIXED rather than restated), inlined
 # (the two characters that mean something else inside one of build.js's own
 # template literals – a raw backtick, which ends it, and a single-backslash
-# regex escape, which the literal eats and which therefore ships). A green
+# regex escape, which the literal eats and which therefore ships; **all
+# twelve** literals, which is a number worth checking against the gate's own
+# note when you add one – it recognised seven until the five holding inlined
+# markup, the likeliest place of all to write a backtick beside a button,
+# turned out to open with a tag on the same line and be skipped). A green
 # `accepts` once hid a sequence `<->` that parsed and drew one arrowhead;
 # that is what `semantics` exists for. And a check that reaches the compiler
 # through a browser page reaches only the build: two `lint.js` gaps sat behind
@@ -102,19 +106,23 @@ npm run gate                                   # all gates
 node test/gates/run.mjs semantics              # gates whose name matches
 
 # browser suite – the things that only break in a built page, in four
-# families: the navigation model (nav, nav-cockpit), the frame an open
-# expansion leaves the slide (expansion), the editor's gestures and
+# families: the navigation model (nav, nav-cockpit), the geometry the live
+# chrome leaves the slide (expansion, touch-rail), the editor's gestures and
 # panel (editor-*), and the figure-* specs that measure the emitted SVG –
 # figure-framing, which catches a drawing sitting off-centre in an oversized
 # frame, figure-labels, which measures where an aligned label lands inside the
 # thing that holds it, and figure-sequence, which asserts that nothing in a
 # `sequence` overlaps anything else in it and that its generated names are the
 # documented ones. The editor-* family also covers the neighbour-alignment
-# guides, which is what a gesture snaps to. `expansion` is the youngest and
-# says why the family exists: the camera framed an open expansion by centring
-# the pane and cropping the slide it belongs to, from the first audience
-# renderer to 2026, because a screenshot of the pane looks right. It asserts
-# the frame, never a coordinate. Twenty-three specs, ~602 assertions.
+# guides, which is what a gesture snaps to. `expansion` and `touch-rail` say
+# why the family exists: the camera framed an open expansion by centring the
+# pane and cropping the slide it belongs to, and the cockpit rail sat on 82%
+# of the notes pane, and both survived because a screenshot of the thing you
+# were looking at is fine. They assert the property and never a coordinate.
+# `touch-rail` opens its own browser context: the rail lives behind
+# `@media (pointer: coarse)` and openDeck's has a fine pointer, so in the
+# default context the bar is not in the document and a measurement of it
+# reports no overlaps among no buttons. Twenty-four specs, ~630 assertions.
 # Builds and serves the lectures itself, so it never reports on stale HTML,
 # and launches one Chromium for the whole run ($PSI_CHROME, the Playwright
 # cache, or system Chrome); ~5 min. Run it after touching AUDIENCE_JS, the key

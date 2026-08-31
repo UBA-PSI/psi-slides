@@ -3174,18 +3174,30 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
      so the +/− buttons remain reachable for figure zoom; the rail is
      above the overlay (z-index 35 vs 30) so taps still land on it. */
   body:not([data-view=speaker]).blanked #touch-controls { display: none; }
-  /* In the cockpit the bottom edge is already spoken for: the thumbnail strip
-     and then the footer. The rail clears both by reading the same two numbers
-     the grid does, so a dragged strip carries it along. With the strip moved
-     to the right edge (Shift-V) there is no bottom row to clear, and
-     --preview-h is *removed* rather than set to zero - so the fallback would
-     lift the rail 22vh off the floor for a strip that is not there. Hence the
-     second rule rather than one clever expression. */
+  /* In the cockpit the bottom edge is spoken for several times over - the
+     notes pane, the thumbnail strip, the footer - and two of the three change
+     size while the lecture is running. The rail used to clear them by summing
+     the numbers the grid rows are written in, and it summed two of the three.
+     The one it missed is the notes pane, whose row is auto and therefore has
+     no number to read: measured at three iPad sizes with Shift-N open, the
+     opaque pill covered 81-82% of the pane, dead centre. On a tablet at the
+     lectern - the case the rail was added for - the lecturer's notes were
+     behind the buttons.
+
+     So it stops counting and joins the grid instead, in the stage's own row
+     and pinned to the bottom of it. Nothing below the stage can be covered by
+     something that lives above it, whatever gets added there and however it is
+     dragged. Both layouts put the stage in row 2 / column 1, so one rule
+     serves them and the Shift-V special case goes with the arithmetic that
+     needed it. It shares the cell with #stage-cell rather than taking a row of
+     its own, so the stage keeps every pixel it had; z-index 35 still decides
+     what is on top, which grid items honour without being positioned. */
   body[data-view=speaker] #touch-controls {
-    bottom: calc(2.2rem + var(--preview-h, 22vh) + 0.5em);
-  }
-  body[data-view=speaker].preview-right #touch-controls {
-    bottom: calc(2.2rem + 0.5em);
+    position: static;
+    grid-row: 2;
+    grid-column: 1;
+    align-self: end;
+    padding-bottom: max(0.6em, env(safe-area-inset-bottom));
   }
 }
 /* An expansion is half of a two-column grid, which needs two columns' worth

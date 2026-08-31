@@ -40,21 +40,52 @@ import { ROOT } from './harness.mjs';
 
 export const name = 'the inlined CSS and JS survive being edited';
 
-// A literal opens with `const NAME = \`` alone on its line and closes with a
-// line that is exactly a backtick and a semicolon. That is the shape every
-// one of them is written in, and matching it is what lets this gate say which
-// literal a bad line is in rather than only that the file has one.
+// A literal opens with `const NAME = \`` and closes with an unescaped
+// backtick and a semicolon at the end of a line. Naming the region is what
+// lets this gate say which literal a bad line is in rather than only that the
+// file has one.
+//
+// The opener used to require the backtick to be the last character on its
+// line, and the closer to be a line that was exactly a backtick and a
+// semicolon. That is the shape the seven big CSS and JS literals are written
+// in - and it is not the shape of the five that hold inlined markup, which
+// open with a tag on the same line: TOUCH_CONTROLS_HTML, OVERVIEW_BADGE_HTML,
+// BLANK_BADGE_HTML (which opens and closes on one line), LINK_OVERLAY_HTML
+// and SEARCH_PANEL_HTML. None of them was scanned. A raw backtick in any of
+// them ends the literal exactly as it does in the others, and inlined markup
+// is if anything the likelier place to write one, because a comment beside a
+// button is where a person names an attribute. The gate reported seven
+// literals and passed.
+//
+// The content of the opening and closing lines is kept, not skipped: a raw
+// backtick on the line that opens a literal is still a raw backtick.
 function literalRegions(lines) {
   const out = [];
   let open = null;
+  // A backtick preceded by an even number of backslashes is the real thing,
+  // not an escaped one. Scanning for it is only safe because any *other*
+  // unescaped backtick in a well-formed region is the defect this gate
+  // exists to report - so the closer is looked for at the end of a line,
+  // where a terminator is, and a stray one in the middle stays content.
+  const CLOSE = /(^|[^\\])`\s*;\s*$/;
+  const close = (text, no) => {
+    const cut = text.replace(CLOSE, (m, p1) => p1 || '');
+    if (cut.length) open.lines.push({ no, text: cut });
+    out.push(open); open = null;
+  };
   lines.forEach((line, i) => {
+    const no = i + 1;
     if (open === null) {
-      const m = /^const ([A-Z_0-9]+)\s*=\s*`\s*$/.exec(line);
-      if (m) open = { name: m[1], from: i + 1, lines: [] };
+      const m = /^const ([A-Z_0-9]+)\s*=\s*`(.*)$/.exec(line);
+      if (!m) return;
+      open = { name: m[1], from: no, lines: [] };
+      // Single-line literals - BLANK_BADGE_HTML is one - open and close here.
+      if (CLOSE.test(m[2])) { close(m[2], no); return; }
+      if (m[2].length) open.lines.push({ no, text: m[2] });
       return;
     }
-    if (line.trimEnd() === '`;') { out.push(open); open = null; return; }
-    open.lines.push({ no: i + 1, text: line });
+    if (CLOSE.test(line)) { close(line, no); return; }
+    open.lines.push({ no, text: line });
   });
   return out;
 }

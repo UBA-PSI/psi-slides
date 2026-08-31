@@ -23,6 +23,7 @@ const SPECS = [
   './nav.mjs',
   './nav-cockpit.mjs',
   './expansion.mjs',
+  './touch-rail.mjs',
   './editor-edges.mjs',
   './editor-waypoints.mjs',
   './editor-leaders.mjs',

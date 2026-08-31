@@ -169,6 +169,38 @@ from building the same way is a major version.
 
 ### Fixed
 
+- **The cockpit's touch rail sat on top of the lecturer's notes.** The rail
+  clears the furniture below the stage by summing the numbers the grid rows
+  are written in, and it summed two of the three. The one it missed is the
+  notes pane, whose row is `auto` and therefore has no number to read:
+  measured at three iPad sizes with `Shift-N` open, the opaque pill covered
+  81–82% of the pane, dead centre. On a tablet at the lectern – the case the
+  rail was added for – the notes were behind the buttons. It now stops
+  counting and joins the grid, in the stage's own row and pinned to the bottom
+  of it, so nothing below the stage can be covered by something that lives
+  above it whatever is added there later. Both cockpit layouts put the stage
+  in row 2 / column 1, so one rule serves them and the `Shift-V` special case
+  goes with the arithmetic that needed it – and the rail now stays inside the
+  stage column there instead of running under the thumbnail strip. The stage
+  keeps every pixel it had. `test/touch-rail.mjs` asserts the property rather
+  than the sum, in both orientations, both strip positions and with the
+  palette open and closed; the old rule fails all eight.
+
+- **The gate for build.js's template literals did not look at five of
+  them.** `literalRegions` opened a region only on a line where the backtick
+  was the last character, which is the shape of the seven big CSS and JS
+  literals and not of the five holding inlined markup – `TOUCH_CONTROLS_HTML`,
+  `OVERVIEW_BADGE_HTML`, `BLANK_BADGE_HTML`, `LINK_OVERLAY_HTML` and
+  `SEARCH_PANEL_HTML` all open with a tag on the same line. A raw backtick in
+  any of them ends the literal exactly as it does in the others, and markup is
+  if anything the likelier place to write one, because a comment beside a
+  button is where a person names an attribute. The gate reported seven
+  literals and passed. It now reports twelve, keeps the content of the opening
+  and closing lines rather than skipping it, and handles a literal that opens
+  and closes on one line. Counter-checked with a backtick planted in each of
+  the newly covered shapes, including on an opening line, plus a
+  single-backslash regex escape inside inlined markup.
+
 - **An open expansion threw away the slide it belonged to, and on a narrow
   window threw away the deck.** The stylesheet builds an expanded chunk as one
   composition – the slide's own column on the left, the pane on the right –
