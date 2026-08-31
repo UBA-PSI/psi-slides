@@ -13,26 +13,42 @@ flachen Liste gleich aus und sind es nicht.
 
 ## Wo die Arbeit steht
 
-**Erledigt:** die Engine-Mini-Fixes bis auf drei, das Navigationsmodell, die
-Touch-Bedienung, und ein erster Textdurchgang über die unstrittigen
-Streichungen. Fünf Commits – `git log b36bc24..` liest sie in Reihenfolge.
+**Erledigt:** **C und D vollständig**, dazu die Engine-Mini-Fixes bis auf
+drei, das Navigationsmodell und die Touch-Bedienung. Elf Commits –
+`git log b36bc24..` liest sie in Reihenfolge.
 
-**Als Nächstes:** Abschnitt **C**, der Textdurchgang durch
-`lectures/tutorial/source.md`. Rund 20 offene Punkte, fast alle eine
-Formulierung. `#39` und `#54` zuerst, weil beide Suchen-und-Ersetzen über den
-ganzen Text sind und jede spätere Umformulierung sonst zweimal angefasst wird.
-
-**Danach:** **D** (Umbauten am Chunk-Aufbau, in vier Blöcken), dann die drei
-Reste in **A**, dann die drei Reproduktionen in **B**.
+**Als Nächstes:** die drei Reste in **A** (`#9`, `#10`-Desktop, `#1`), dann die
+drei Reproduktionen in **B** (`#5`, `#41`, `#30`). **`#1` und `#41` brauchen
+zuerst eine Messung, keine Änderung** – bei beiden widerspricht der Code der
+Beobachtung, und ohne Reproduktion ändert man das Falsche.
 
 **Alle Entscheidungsfragen sind beantwortet** – nichts wartet auf Rückmeldung.
 Die Antworten stehen fett beim jeweiligen Punkt.
+
+### Beim Verifizieren nebenbei gefunden
+
+Vier Fehler, die keiner der Punkte oben beschrieb – jeder kam heraus, weil eine
+Behauptung des Tutorials gegen den Code geprüft wurde statt geglaubt:
+
+- **`lectures/decoration` dokumentierte vier `::: backdrop`-Slot-Gruppen, es
+  sind fünf.** `focus` (`sharp` | `blur`) fehlte in genau der Lecture, die
+  jedes Konstrukt zeigen soll. Das Tutorial hatte es richtig. (`1593233`)
+- **`#figure-focus`: „click any figure, code block or margin note“.** Eine
+  Margin Note war nie klickbar – `FOCUSABLE_SEL` führt `.marginalia` und nicht
+  `.margin-note`. (`04c2921`)
+- **`#margin-demo`: „the label reads NOTE unless you say otherwise“.** Die
+  Direktive nimmt kein Label, es ist auf `note` festverdrahtet. Es gab kein
+  „otherwise“. (`04c2921`)
+- **`#cards`: „`ground: photo`“ ist keine Syntax.** `parseSlotClasses` liest
+  blanke Wörter in Klammern; ein `key: value` in einem Tail hätte den Build
+  angehalten. (`c5cdd9b`)
 
 ### Wie hier verifiziert wird
 
 ```bash
 node lint.js lectures/                # alle fünf Lectures, zero-dep
 npm run gate                          # 422 Assertions, ~0,5 s, kein Browser
+npm run settings                      # 244 Assertions, ~1 min, baut selbst
 node test/run.mjs                     # 583 Assertions, ~6 min, baut selbst
 node test/run.mjs nav                 # nur die Specs, deren Name passt
 ```
@@ -79,10 +95,15 @@ CSS/JS die neue Regel per `grep -F` im gebauten HTML nachweisen.
 | 4 | **[#8] Navigationsmodell.** `←`/`→` sind überall Vor/Zurück, `Shift`+`←`/`→` wechselt die Spalte von jedem Chunk aus. Mit weggefallen: der `sideways`-Guard in der Key-Map, das gleichnamige Feld in `markColumnEdges()`, die beiden `‹ ›`-Marken samt CSS. `nextCol`/`prevCol` stehen jetzt still, wenn es keine Spalte in die Richtung gibt – vorher fiel `nextCol` auf den letzten Chunk der Lecture durch, was der alte Guard unerreichbar hielt und `Shift` von jeder Folie der letzten Spalte aus erreichbar gemacht hätte. Mitgezogen: `?`-Overlay, `PRD.md` §5, `README.md`, `speaker.md`, Tutorial `#arrows`, `CHANGELOG.md`, `test/harness.mjs` (`hints` ist jetzt ein Zeichen statt drei), `test/nav.mjs`, `test/nav-cockpit.mjs`. | `e9c3730` |
 | 5 | **Nebenprodukt: `test/gates/inlined.mjs`.** Prüft die beiden statisch entscheidbaren Fallen in den Template-Literalen von `build.js`: rohes Backtick und einfacher Regex-Backslash (`/\s+/g` wird zu `/s+/g` und geht still in Produktion). Beide Hälften gegengeprüft, indem der Defekt eingebaut und das Gate fallen gesehen wurde. Die dritte Falle, unterminiertes `/*`, hat mit `assertStylesheetsWellFormed()` längst einen harten Build-Fehler und wird nicht doppelt geprüft. `CLAUDE.md` und `run.mjs` sagen jetzt beide „sechs Gates“. | `674cbcd` |
 | 6 | **[#17/#4/#10-mobile] Touch-Bedienung.** Siehe den Punkt in B – drei echte CSS-Fehler kamen erst beim Messen heraus. | `12f67d4` |
+| 7 | **Text-Slice 2 – Abschnitt C komplett.** `#39` und `#54` zuerst, wie geplant: „document" als Name für die Print-Views ist überall durch `print.html` / `print-notes.html` ersetzt (vorher geprüft, dass `> annot:` wirklich in *beiden* Dateien landet – `annotationHtml` hängt nicht an `withNotes`), „saying nothing" durch „the default". Dann die restlichen 19 Punkte. `#22` heißt jetzt „auto-fit", weil `?`-Overlay, Frontmatter-Key und Flash-Meldung das Ding alle so nennen. `#28` zeigt ein Bild mit Alt-Text, statt die Caption-Regel zu behaupten. | `d52fd3b` |
+| 8 | **D-Block 1 – Decoration.** `#deco-cards` und `#deco-picture` sind aufgelöst: die Konstrukte werden jetzt genau einmal eingeführt, in einem Lauf, und dort *gezeigt* statt abgedruckt. Neu `#cards-look` mit `{accent}` und `{outline middle}` als sichtbaren Beispielen; die gerenderten Klassen (`cg-accent`/`cv-top` gegen `cg-outline`/`cv-middle`) bestätigen die Behauptungen. Die Cards-Demo trägt jetzt eine gefaltete zweite Ebene, damit `C` auf der Folie tut, was der Satz daneben sagt. | `c5cdd9b` |
+| 9 | **D-Block 2 – Diagramme.** `#diagram` war der längste Chunk der Lecture *und* die erste Begegnung mit `::: draw`. Jetzt vier Chunks: fünf Zeilen und ihre Zeichnung, dieselbe Zeichnung mit zwei `step`-Blöcken, die sechs Slots, Placement. Im gebauten Page nachgezählt: dg1 ohne Frames-Payload (statisch), dg2 mit `n:3`. Eigene id `#diagram-beats` – `#diagram-steps` gehört der großen Alice/Eve-Figur, und ids sind eingefroren. | `3259d90` |
+| 10 | **D-Block 3 – Kernidee.** `#topic-sentence` sagte „der Topic Sentence", Singular; PRD §4.5 und `splitSentencesIn` nehmen den ersten Satz **jedes** Absatzes. Trägt jetzt die Arbeitsreihenfolge (erst Prosa, dann die Eröffnungen schärfen), die sonst nirgends stand, und ist selbst vier Absätze – am gebauten Page nachgezählt, nicht geschätzt. `#33` gestrichen, `#19` ohne die Abbildung umformuliert, die es nie gab. | `d5d4bca` |
+| 11 | **D-Block 4 – `::: footnote`.** `::: margin` baut weiter und ist nirgends mehr dokumentiert. `word` merkt sich die geschriebene Schreibweise, damit „was never closed" die getippte Zeile zitiert. `test/settings.mjs` sichert den Alias in **beiden** Views ab (`.margin-note` live, `.chunk-expansion-margin` auf Papier) – gegengeprüft, indem `margin` aus dem Parser entfernt und der Test fallen gesehen wurde. | `04c2921` |
 
 ---
 
-## A. Engine – Mini-Fixes
+## A. Engine – Mini-Fixes ← **hier weitermachen** (drei Reste)
 
 Alles hier ist eine überschaubare Änderung an `build.js`, mit klarem Befund.
 
@@ -226,7 +247,7 @@ Alles hier ist eine überschaubare Änderung an `build.js`, mit klarem Befund.
 
 ---
 
-## C. Tutorial-Text – Mini-Fixes ← **hier weitermachen**
+## C. Tutorial-Text – Mini-Fixes ✅ **erledigt** (`d52fd3b`)
 
 Formulierung, Präzision, Faktenfehler. Alles in `lectures/tutorial/source.md`.
 Der rote Faden über fast alle Punkte: **weniger blumig, weniger belehrend,
@@ -242,38 +263,38 @@ Text; jede Umformulierung davor müsste sonst zweimal angefasst werden.
 - [x] **[#3] `#expand`: „`Enter` does not open expansions“** gestrichen.
 - [x] **[#6] Markieren: `Alt` / `option`** – im Tutorial und im `?`-Overlay.
 - [x] **[#11] `#expand`: `1` öffnet die erste Expansion *und schließt sie wieder*.**
-- [ ] **[#7] `#audience-now`: „What you are seeing is the audience view“ stimmt
+- [x] **[#7] `#audience-now`: „What you are seeing is the audience view“ stimmt
       nicht unbedingt** – man kann die Folie auch in der Lectern-View lesen.
       Umformulieren, sodass beide Fälle stimmen.
-- [ ] **[#23] `#knobs` erklärt `B` zweimal** – einmal in der Liste, einmal im
+- [x] **[#23] `#knobs` erklärt `B` zweimal** – einmal in der Liste, einmal im
       Absatz darunter. Eine Erklärung reicht.
-- [ ] **[#28] `#images` zeigt keinen Alt-Text auf der Folie.** Der Chunk erklärt
+- [x] **[#28] `#images` zeigt keinen Alt-Text auf der Folie.** Der Chunk erklärt
       „the alt text becomes a caption“ und enthält gar kein Bild. Ein
       Beispielbild mit Alt-Text einsetzen, damit die Regel sichtbar wird statt
       behauptet.
 
 ### Ungenaue oder kryptische Sprache
 
-- [ ] **[#39] „document“ als Wort für die Print-View aufgeben – überall.** Der
+- [x] **[#39] „document“ als Wort für die Print-View aufgeben – überall.** Der
       Leser weiß nicht, dass die zwei Handouts gemeint sind. Stattdessen die
       Dateinamen: `print.html` und `print-notes.html`. Betrifft den ganzen Text,
       nicht nur `#view-defaults`. Dort außerdem streichen: „a document having no
       keyboard to cycle it with“.
-- [ ] **[#54] „when you say nothing“ / „saying nothing“ → „default“.** Gemeint
+- [x] **[#54] „when you say nothing“ / „saying nothing“ → „default“.** Gemeint
       ist schlicht: die Einstellung ist weggelassen. Kommt an vielen Stellen vor.
-- [ ] **[#20] `#labels` (`.bare`): „takes it off“ → „hides“**, und „the two
+- [x] **[#20] `#labels` (`.bare`): „takes it off“ → „hides“**, und „the two
       documents“ durch die Dateinamen ersetzen.
-- [ ] **[#22] „`#` hands zoom to the tool“ → „`#` enables auto-fit, which …“.**
-- [ ] **[#24] `#layout-axes`: „You decide a layout twice“** klingt nach Nachteil.
+- [x] **[#22] „`#` hands zoom to the tool“ → „`#` enables auto-fit, which …“.**
+- [x] **[#24] `#layout-axes`: „You decide a layout twice“** klingt nach Nachteil.
       Umformulieren: zwei unabhängige Entscheidungen, Breite und Anordnung.
-- [ ] **[#25] `#cols-demo`: „Segments work inside `::: cols`“** – „segments“ ist
+- [x] **[#25] `#cols-demo`: „Segments work inside `::: cols`“** – „segments“ ist
       an der Stelle nicht eingeführt. „revealed segments (`---`)“ schreiben.
-- [ ] **[#51, Teil 1] `#side-ratio`: „A card row *is* welcome in a pane“.** „is
+- [x] **[#51, Teil 1] `#side-ratio`: „A card row *is* welcome in a pane“.** „is
       welcome“ ist blumig; „pane“ ist ein normales englisches Wort und wurde nie
       als Fachbegriff eingeführt. Klar sagen: eine Hälfte eines
       `::: side`-Blocks. (Prüfen, ob „pane“ an weiteren Stellen so benutzt wird.)
 - [x] **[#52] `#figure-focus`: „the mark“ → „the QR code symbol“.**
-- [ ] **[#29] `#images`: der Absatz über das 2-MB-Limit ist kryptisch.** Wer die
+- [x] **[#29] `#images`: der Absatz über das 2-MB-Limit ist kryptisch.** Wer die
       Folie in der kollabierten Ansicht liest, versteht nicht, dass Bilder
       **standardmäßig** in die HTML eingebettet werden, und schon gar nicht,
       warum.
@@ -289,15 +310,15 @@ Text; jede Umformulierung davor müsste sonst zweimal angefasst werden.
       denselben ersten Satz – es ist der Grund, warum das Werkzeug so
       entschieden hat, nicht ein Detail dahinter.
 
-- [ ] **[#53, Teil 2] `#bundled-fonts`: der erste Satz des `ligatures:`-Absatzes
+- [x] **[#53, Teil 2] `#bundled-fonts`: der erste Satz des `ligatures:`-Absatzes
       ist kryptisch** – und er ist der einzige, der auf der Folie steht.
-- [ ] **[#57] `#labels`, erster Absatz: „A tag word above a chunk is two
+- [x] **[#57] `#labels`, erster Absatz: „A tag word above a chunk is two
       different things wearing one name“** – umformulieren, ohne Pointe.
-- [ ] **[#58] `#labels`: „It is a key of its own and not part of `rules` …“** –
+- [x] **[#58] `#labels`: „It is a key of its own and not part of `rules` …“** –
       erklärt eine Design-Entscheidung, nach der niemand gefragt hat, und
       erklärt sie unverständlich. Streichen oder auf „`rules` schaltet die
       Linien, `labels` die Wörter“ eindampfen.
-- [ ] **[#59] `#closing`: die drei Absätze über „tag und nicht zweites
+- [x] **[#59] `#closing`: die drei Absätze über „tag und nicht zweites
       `title:`“, „trägt weder Namen noch `info`“, „die vier
       Bildkompositionen“** – alles Begründungen für nicht gestellte Fragen. Auf
       das eindampfen, was man tun muss.
@@ -307,32 +328,32 @@ Text; jede Umformulierung davor müsste sonst zweimal angefasst werden.
 - [x] **[#13] `#figure-focus`: der Satz über QR-Codes für Folien ohne Links.**
 - [x] **[#14] `#overview`: „in a lecture you did not write“.**
 - [x] **[#15] `#toc`: „and renders normally“.**
-- [ ] **[#18] `#derived-mode`: „A chunk that makes an argument lives with that
+- [x] **[#18] `#derived-mode`: „A chunk that makes an argument lives with that
       easily“** – umformulieren.
-- [ ] **[#34] `#read-more`: „The craft only shows in lectures somebody wrote“** –
+- [x] **[#34] `#read-more`: „The craft only shows in lectures somebody wrote“** –
       streichen. Stattdessen schlicht: psi-slides bringt Beispiel-Foliensätze
       mit, zum Anschauen und Abgucken.
-- [ ] **[#36] `#authoring`: „Three commands cover the whole of writing a
+- [x] **[#36] `#authoring`: „Three commands cover the whole of writing a
       lecture“** – die Anzahl ist egal. Ohne Zählung formulieren.
-- [ ] **[#56] `#section-dividers`: der Card-Text** ist belehrend („The signal
+- [x] **[#56] `#section-dividers`: der Card-Text** ist belehrend („The signal
       that arrives across a room before any word does“). Sachlich neu schreiben.
-- [ ] **[#53, Teil 1] `#bundled-fonts`: die Iosevka-Entscheidungsgeschichte
+- [x] **[#53, Teil 1] `#bundled-fonts`: die Iosevka-Entscheidungsgeschichte
       streichen.** Interessiert außer dem Autor niemanden.
 
 ### Inhaltlich unnötig oder falsch platziert
 
-- [ ] **[#21] `#tag-effects`: „And the checker will not mention it“** – der
+- [x] **[#21] `#tag-effects`: „And the checker will not mention it“** – der
       Linter ist an der Stelle noch nicht eingeführt, er kommt erst in
       `#authoring`. Streichen oder nach hinten verschieben.
-- [ ] **[#35] `#read-more`: `PRD.md` und `docs/comparison.md` streichen.** Beides
+- [x] **[#35] `#read-more`: `PRD.md` und `docs/comparison.md` streichen.** Beides
       ist nicht für Endnutzer. Übrig bleiben die drei Beispiel-Lectures.
-- [ ] **[#37] `#view-defaults`: `lang:` steht separat unter dem
+- [x] **[#37] `#view-defaults`: `lang:` steht separat unter dem
       Frontmatter-Block.** Einfach mit in den YAML-Block aufnehmen.
-- [ ] **[#38] `#view-defaults`: „Which setting wins is one sentence.“** Als
+- [x] **[#38] `#view-defaults`: „Which setting wins is one sentence.“** Als
       Topic-Sentence ist das Foreshadowing ohne Substanz – auf der Folie steht
       eine Ankündigung statt einer Aussage. Entweder die Regel selbst zum ersten
       Satz machen, oder den ganzen Absatz in ein `::: expand` verschieben.
-- [ ] **[#46] `#title` / Cover: `info:` „hält die Konferenz“** ist für eine
+- [x] **[#46] `#title` / Cover: `info:` „hält die Konferenz“** ist für eine
       Vorlesung schief. Beispieltext auf eine Lehrveranstaltung münzen
       (Kursname, Kurs-URL, Ort) und die Konferenz nur als eine Möglichkeit
       nennen.
@@ -343,7 +364,7 @@ Text; jede Umformulierung davor müsste sonst zweimal angefasst werden.
 
 ---
 
-## D. Tutorial-Text – Umbauten
+## D. Tutorial-Text – Umbauten ✅ **erledigt** (`c5cdd9b`, `3259d90`, `d5d4bca`, `04c2921`)
 
 Hier reicht keine Formulierung; die Folge oder der Aufbau von Chunks ändert
 sich. **In Blöcken abarbeiten, jeder Block ein Commit mit neu gebauten
@@ -351,26 +372,28 @@ Outputs.**
 
 ### Block 1 – Decoration (`#45`, `#47`–`#51`)
 
-- [ ] **[#45] `#deco-idea` und `#deco-cards` tauschen.** Der Chunk „A picture
+- [x] **[#45] `#deco-idea` und `#deco-cards` tauschen.** Der Chunk „A picture
       behind the text chunk“ kündigt das Konstrukt an, vorgeführt wird es aber
       erst einen Chunk später (`#deco-picture`), weil die Cards dazwischen
       liegen. Reihenfolge: `#deco-idea` → `#deco-picture` → `#deco-cards`.
-- [ ] **[#47] Backdrop wird zweimal eingeführt** – `#deco-picture` und
+      *Durch `#47`/`#49` gegenstandslos geworden:* `#deco-cards` ist ganz
+      aufgelöst, `#deco-idea` eröffnet den Decoration-Lauf vor `#covers`.
+- [x] **[#47] Backdrop wird zweimal eingeführt** – `#deco-picture` und
       `#backdrop`. Zusammenlegen; die erste Nennung geht in der zweiten auf.
-- [ ] **[#49] Cards werden ebenfalls zweimal eingeführt** – `#deco-cards` und
+- [x] **[#49] Cards werden ebenfalls zweimal eingeführt** – `#deco-cards` und
       `#cards`. Dasselbe.
-- [ ] **[#48] Backdrop hat viele Optionen – das sagen und auf
+- [x] **[#48] Backdrop hat viele Optionen – das sagen und auf
       `lectures/decoration/` verweisen**, statt fünf Slots in einem Absatz
       abzuhaken, für den kein Platz ist.
-- [ ] **[#50] Cards und Rows mit ausgewählten Optionen *zeigen*, nicht nur die
+- [x] **[#50] Cards und Rows mit ausgewählten Optionen *zeigen*, nicht nur die
       Syntax abdrucken.** Mindestens `ground`, `anchor` und die
       Lead-in-/Heading-Unterscheidung an einem sichtbaren Beispiel.
-- [ ] **[#51, Teil 2] `::: side 2:1` vorführen.** Der Chunk `#side-ratio` druckt
+- [x] **[#51, Teil 2] `::: side 2:1` vorführen.** Der Chunk `#side-ratio` druckt
       nur den Quelltext ab.
 
 ### Block 2 – Diagramme (`#40`, `#42`)
 
-- [ ] **[#40, #42] Die Diagram-Einführung auf mehrere Chunks verteilen.** Aktuell ein
+- [x] **[#40, #42] Die Diagram-Einführung auf mehrere Chunks verteilen.** Aktuell ein
       `.full`-Chunk `#diagram` mit sieben Absätzen plus eine Expansion, die fast
       die gesamte übrige Grammatik enthält. Das ist der längste Chunk der
       Lecture und zugleich die erste Begegnung mit `::: draw`.
@@ -386,7 +409,7 @@ Outputs.**
 
 ### Block 3 – Die Kernidee (`#32`, `#33`, `#19`)
 
-- [ ] **[#32] `#topic-sentence` neu aufbauen.** Der Chunk erklärt die zentrale
+- [x] **[#32] `#topic-sentence` neu aufbauen.** Der Chunk erklärt die zentrale
       Idee des Werkzeugs und tut es zu knapp und zu spät.
       Was er sagen muss, in dieser Reihenfolge:
       1. Standardmäßig entsteht die Folie aus dem Fließtext – **der erste Satz
@@ -399,19 +422,27 @@ Outputs.**
       mit zwei Absätzen und `C`.
       *Berührt* `#two-modes`, `#derived-mode` und `#choose-mechanism` – die
       Aufteilung zwischen den vieren nochmal ansehen, damit nichts dreimal steht.
-- [ ] **[#33] `#choose-mechanism`, Expansion „tag-as-predictor“: streichen.** Der
+      *Gemacht – ein Chunk statt zwei:* das sichtbare Beispiel mit `C` ist
+      `#derived-mode`, ein zweites hätte die Sache zum dritten Mal erklärt.
+      `#topic-sentence` trägt jetzt die Arbeitsreihenfolge, die sonst nirgends
+      stand; `#derived-mode` behält den Mechanismus.
+- [x] **[#33] `#choose-mechanism`, Expansion „tag-as-predictor“: streichen.** Der
       Nutzer wählt die Tags selbst, viele nutzen sie kaum, und „der Tag sagt
       etwas voraus“ ist zirkulär. Derselbe Text steht außerdem fast wörtlich in
       `#which-mode` („answer-in-practice“) – das ist der zweite Grund.
-- [ ] **[#19] `#script-mode` („The other way round“).** Zwei Probleme: man
+- [x] **[#19] `#script-mode` („The other way round“).** Zwei Probleme: man
       erkennt nicht sofort, dass es ein Beispiel ist, und die Abbildung, von der
       der Text redet („A figure and three lines of finding“), fehlt. Entweder
       eine kleine `::: draw`-Abbildung einsetzen oder den Text auf das ändern,
       was zu sehen ist.
+      *Gemacht – die zweite Variante:* `::: draw` wird erst in der
+      Beyond-Spalte eingeführt, und es hier zu benutzen wäre genau der Fehler,
+      den `#21` und `#25` beschreiben. Die Liste sagt jetzt außerdem, dass sie
+      ein erfundenes Beispiel ist.
 
 ### Block 4 – margin/marginalia (`#27`, `#12`, `#26`)
 
-- [ ] **[#27] `::: margin` in `::: footnote` umbenennen.**
+- [x] **[#27] `::: margin` in `::: footnote` umbenennen.**
       *Problem:* Die beiden Namen sind zu ähnlich, und „margin note“ für etwas,
       das *unter* dem Chunk steht, ist irreführend.
       **Entschieden:** `::: footnote` wird der dokumentierte Name; `::: margin`
@@ -424,12 +455,12 @@ Outputs.**
       greppt die andere nach demselben Schlüssel), `lectures/tutorial`,
       `lectures/decoration`, `lectures/python-intro`, der
       `psi-slides-authoring`-Skill, `PRD.md` §3, `CHANGELOG.md`.
-- [ ] **[#12] `#knobs` spricht über Marginalia und Margin Notes, bevor es sie
+- [x] **[#12] `#knobs` spricht über Marginalia und Margin Notes, bevor es sie
       gibt.** Beide kommen erst in `#marginalia-demo` / `#margin-demo`. Und
       „marginalia werden nicht gehoben, sondern zentriert“ versteht niemand, der
       das Konstrukt noch nicht gesehen hat. Den Hinweis dorthin verschieben und
       am sichtbaren Beispiel erklären.
-- [ ] **[#26] `#side-demo`: der Marginalia-Hinweis in Panes.** Der Chunk zeigt
+- [x] **[#26] `#side-demo`: der Marginalia-Hinweis in Panes.** Der Chunk zeigt
       keine Marginalia, also erinnert sich niemand an das Konstrukt. Entweder
       eine im Beispiel zeigen oder den Satz streichen – er hängt an `[#12]`.
       Danach `#margin-demo` und `#marginalia-demo` als Paar mit sichtbarem
