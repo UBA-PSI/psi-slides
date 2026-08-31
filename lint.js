@@ -2438,20 +2438,23 @@ function lintFile(filePath) {
       continue;
     }
 
-    // Sidebar directives (::: expand / margin) extract into a separate
+    // Sidebar directives (::: expand / footnote) extract into a separate
     // node; they don't nest with each other and `chunk` is required.
+    // `margin` is the older spelling of `footnote`, still accepted by
+    // build.js and documented nowhere - mirror both or the linter refuses a
+    // file that builds. See the ::: expand branch in build.js.
     const expandOpen = line.match(/^:::\s+expand\s+(.+?)\s*$/);
-    const marginOpen = /^:::\s+margin\s*$/.test(line);
+    const marginOpen = line.match(/^:::\s+(footnote|margin)\s*$/);
     if (expandOpen || marginOpen) {
       if (activeDirective) {
         add(ln, 'error', 'nested-directive',
-            `::: ${expandOpen ? 'expand' : 'margin'} inside still-open ::: ${activeDirective.kind} (line ${activeDirective.line})`);
+            `::: ${expandOpen ? 'expand' : marginOpen[1]} inside still-open ::: ${activeDirective.kind} (line ${activeDirective.line})`);
       }
       if (!chunk) {
         add(ln, 'error', 'stray-directive',
             `::: directive outside any chunk`);
       }
-      activeDirective = { kind: expandOpen ? 'expand' : 'margin', line: ln };
+      activeDirective = { kind: expandOpen ? 'expand' : marginOpen[1], line: ln };
       continue;
     }
 

@@ -9,6 +9,18 @@ from building the same way is a major version.
 
 ### Changed
 
+- **`::: margin` is now written `::: footnote`.** The old name was one
+  keystroke from `::: marginalia`, which is a different construct in a
+  different place – a marginalia goes out into the slide margin and can be
+  clicked into the centre, a footnote sits under the chunk and is read where
+  it is – and "margin note" named the one place the block never sits. The new
+  name says where the thing goes.
+
+  **`::: margin` still builds and always will**, so no existing `source.md`
+  breaks; it is simply documented nowhere any more. Both spellings render the
+  same aside, and `test/settings.mjs` asserts that they do, that both lint,
+  and that an unclosed block quotes back the word the author wrote.
+
 - **A touchscreen can now reach the knobs, and the cockpit has a rail at
   all.** There was a five-button rail – forward, back, overview, two zooms –
   and it was rendered into `audience.html` alone. That is the window a

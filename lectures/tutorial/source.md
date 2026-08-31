@@ -103,7 +103,7 @@ Press `C` while this pane is open and watch the chunk behind it shorten. The pan
 
 ## example: Zoom into a figure or code block | click it {.standard #figure-focus}
 
-**Click any figure, code block or margin note inside the chunk you are on.** A figure or a block of code lifts into a card in the middle of the screen with the slide dimmed behind it; **a marginalia – an aside set out in the slide's margin – is panned into the centre instead of being lifted**.
+**Click any figure, block of code or formula inside the chunk you are on.** It lifts into a card in the middle of the screen, with the slide dimmed behind it.
 
 **Links behave two ways, and which one you want depends on the window you are in.** A plain click follows the link in a new tab of *that* window. Clicked in the lectern view, that is you checking a source while the projection stays where it was. Clicked in the projection, it is the page itself arriving in front of the room.
 
@@ -361,13 +361,11 @@ Width is the decision about the slide; the directives work inside it. A `.wide` 
 
 :::
 
-You can put a `::: marginalia` *inside* a pane when a tangent belongs to one half in particular – it still escapes to the slide's right margin.
-
 **Code in a pane needs short lines.** A code block never wraps, so at the default zoom **a pane has room for roughly 30 characters of code** – against about 50 in a `.standard` chunk and 60 in a `.wide` one. A longer line is not cut off; the build shrinks that one slide until it fits, and the slide then reads noticeably smaller than the ones either side of it. Break the line, or put the code across the full width and keep the panes for prose.
 
-## example: Marginalia | `::: marginalia` escapes to the slide margin {.standard #marginalia-demo}
+## example: Marginalia | `::: marginalia` escapes into the slide margin {.standard #marginalia-demo}
 
-**`::: marginalia` sets an aside out to the right of the chunk**, past the edge of the text column and into the slide's margin. The view does not go there by itself – click the marginalia on this slide to bring it into the middle of the screen.
+**`::: marginalia` sets an aside out to the right of the chunk**, past the edge of the text column and into the slide's margin.
 
 ::: marginalia
 
@@ -377,17 +375,19 @@ This whole block sits in the slide margin, small and grey. Use a marginalia for 
 
 :::
 
-The body itself stays in the middle column and only the marginalia moves outward. Keep them short: a marginalia shares the chunk's height and cannot grow taller than it.
+**A marginalia is the one aside you can click.** A figure or a block of code lifts into a card in the middle of the screen; a marginalia is panned into the centre instead, because it is part of the slide's layout rather than something laid over it. Try it on the block out to the right.
 
-## example: Margin notes | `::: margin` is a quiet footnote in the flow {.standard #margin-demo}
+The body stays in the middle column and only the marginalia moves outward. Keep them short: a marginalia shares the chunk's height and cannot grow taller than it. One can also go *inside* a `::: side` pane, when a tangent belongs to one half in particular – it still escapes to the slide's right margin.
 
-**`::: margin` puts a small grey note under the chunk, labelled and always visible** – a footnote in the text rather than out at the side. No button, no separate panel.
+## example: Footnotes | `::: footnote` is a quiet note under the chunk {.standard #margin-demo}
 
-::: margin
-This is a margin note. The label above it reads NOTE unless you say otherwise, and the note sits in grey under a dotted rule. Margin notes are quieter than expansions: nothing to click, just a footnote attached to this chunk.
+**`::: footnote` puts a small grey note under the chunk, labelled and always visible** – down in the flow of the text rather than out at the side. No button, no separate panel, nothing to click.
+
+::: footnote
+This is a footnote. The label above it always reads NOTE, and the note sits in grey under a dotted rule. Unlike a marginalia it stays in the middle column, under the body it was written beneath.
 :::
 
-Reach for `::: margin` when the extra material is short and you want it on the page every time. Reach for `::: expand <label>` (back at `#expand`) when it should stay behind a button until somebody asks.
+**The two slides are the whole distinction**: a marginalia goes out into the margin and can be brought to the centre with a click, and a footnote stays under the chunk and is simply read. Reach for `::: footnote` when the extra material is short and you want it on the page every time, and for `::: expand <label>` (back at `#expand`) when it should stay behind a button until somebody asks.
 
 ## example: Images | `![](fig-id)` resolves against `assets/` {.wide #images}
 

@@ -356,16 +356,24 @@ in print. The label is what the UI shows. The first sentence inside an
 expansion is subject to the same collapse derivation, so it should stand alone
 too.
 
-### `::: margin`
+### `::: footnote`
 
 ```md
-::: margin
+::: footnote
 Short supplementary context that should stay visually secondary.
 :::
 ```
 
-A quieter always-visible side note attached to the chunk. Use for short
-context, not a second argument.
+A quieter always-visible note attached to the chunk, set under the body with a
+small NOTE label over a dotted rule. Use for short context, not a second
+argument. It stays in the middle column, has nothing to click, and takes no
+label of its own – that is the whole of the difference from `::: marginalia`,
+which goes out into the slide margin and *is* clickable.
+
+`::: margin` is the older spelling and still builds, so no existing
+`source.md` breaks. Do not write it in anything new: it was one keystroke from
+`::: marginalia`, a different construct in a different place, and it named the
+one place the block never sits.
 
 ### `::: cols 2` / `::: cols 3`
 

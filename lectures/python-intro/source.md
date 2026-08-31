@@ -525,7 +525,7 @@ The same three network calls. The same single thread. **The only difference is w
 
 :::
 
-::: margin
+::: footnote
 `requests` is still the right tool for an API that answers in JSON. The
 browser is for pages meant to be looked at.
 :::

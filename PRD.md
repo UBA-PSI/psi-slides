@@ -105,7 +105,7 @@ Second paragraph, also narrated.
 
 After a `---` the next paragraph is a new reveal segment (§4.6). Unsegmented chunks have no `---`; that is the common case.
 
-::: margin
+::: footnote
 Compare Pfitzmann & Hansen terminology paper.
 :::
 
@@ -134,7 +134,9 @@ Formal statement. $k \geq 2$ inline math.
 - `## title: {#title}` = cover slide. The heading text after `title:` is intentionally ignored – the cover always renders from frontmatter (`title`, `presenter`, `info`), so the heading is left empty by convention and only the `{#title}` id is needed. The body may also be empty; a non-empty body overrides `info`.
 - `## closing: Heading | Sub {#end}` = closing slide, and the exception to the line above: its heading is exactly what it says. It draws the deck's own `cover:` composition, with the body in place of the info block and no presenter or info lines at all.
 - Width classes: `.narrow`, `.standard`, `.wide`, `.full`. Default: `.standard`.
-- `::: margin` and `::: expand <label>` are fenced divs.
+- `::: footnote` and `::: expand <label>` are fenced divs. `::: margin` is the
+  older spelling of `::: footnote` and still builds, so no existing `source.md`
+  breaks; it is documented nowhere and should not be written in anything new.
 - `::: sketch <sketch-id>` defines a live sketch slot with a stable id.
 - `> note:` at the start of a blockquote marks a speaker note (private, speaker-only).
 - `> annot:` at the start of a blockquote is a **presentation note** – text the lecturer typed live into the audience annotation box and exported back via `Shift`-`E` on the speaker. It prefills the audience textarea and renders as a “Presentation Note” block in print. Public by design.
@@ -675,7 +677,7 @@ Single Node script, target <400 lines. Dependencies: `marked`, `katex`, `gray-ma
    - Dead image reference (`images/fig-id.*` not found).
    - Orphaned sketch ID: speaker textarea referencing an undeclared slot, or a `::: sketch` slot never mentioned by id in the source structure.
    - Unknown structural tag on a `## tag:` heading (typo-catcher; the tag vocabulary in §2.1 is exhaustive).
-   - Nested directive of any kind (`::: expand` inside `::: expand`, `::: margin` inside `::: expand`, etc.). Directives do not nest – the parser and placement algorithm both rely on this.
+   - Nested directive of any kind (`::: expand` inside `::: expand`, `::: footnote` inside `::: expand`, etc.). Directives do not nest – the parser and placement algorithm both rely on this.
 
    **Warnings – succeed but surface:**
    - Chunk exceeding the ~15 line-heights density budget at standard width.
@@ -734,7 +736,7 @@ Deliverable: one real lecture taught in the new medium.
 
 - Single HTML + single JS file, no Node build script.
 - Hand-author Markdown with hand-written IDs and explicit `{.width-class}` attributes just this once.
-- Parsing is client-side `marked` with a minimal inline tokenizer for the `{.class #id}` attribute tail and the `::: expand` / `::: margin` / `::: sketch` fences. The full §3.1 parsing contract and AST pipeline is Phase 1 work.
+- Parsing is client-side `marked` with a minimal inline tokenizer for the `{.class #id}` attribute tail and the `::: expand` / `::: footnote` / `::: sketch` fences. The full §3.1 parsing contract and AST pipeline is Phase 1 work.
 - Layout is **runtime-measured** via `getBoundingClientRect` in Phase 0 – no pretext, no build-time geometry. Deep-links are gated on a `ready` promise; sync messages are buffered until first measurement. This is explicitly the temporary path; §9 step 5 replaces it in Phase 1.
 - Four chunk types available via CSS: narrow/standard/wide/full.
 - Camera navigation (arrows, chevron click).

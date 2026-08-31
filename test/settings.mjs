@@ -325,7 +325,7 @@ console.log('\nlayout generations');
     ['cols',       '::: cols 2\n' + CARDS + ':::\n'],
     ['marginalia', '::: marginalia\n' + CARDS + ':::\n'],
     ['expand',     '::: expand detail\n' + CARDS + ':::\n'],
-    ['margin',     '::: margin\n' + CARDS + ':::\n'],
+    ['footnote',   '::: footnote\n' + CARDS + ':::\n'],
     ['overlay',    '::: overlay\n' + CARDS + ':::\n'],
   ]) {
     const r = refuses(body);
@@ -1044,10 +1044,10 @@ console.log('\nlayout generations');
     + '## free: must not vanish {#d}\n\nProse.\n', ['--print-only']);
   ok(swallow.code !== 0 && /::: expand Details was never closed/.test(swallow.out),
      'an unclosed ::: expand is a hard error, not a silently shorter deck');
-  const swMargin = raw(FM + '## free: A {#c}\n\n::: margin\n\nInside.\n\n'
+  const swMargin = raw(FM + '## free: A {#c}\n\n::: footnote\n\nInside.\n\n'
     + '## free: B {#d}\n\nProse.\n', ['--print-only']);
-  ok(swMargin.code !== 0 && /::: margin was never closed/.test(swMargin.out),
-     'and so is an unclosed ::: margin');
+  ok(swMargin.code !== 0 && /::: footnote was never closed/.test(swMargin.out),
+     'and so is an unclosed ::: footnote');
   const swOv = raw(FM + '## free: A {#c}\n\n::: overlay {left}\n\nInside.\n\n'
     + '## free: B {#d}\n\nProse.\n', ['--print-only']);
   ok(swOv.code !== 0 && /::: overlay was never closed/.test(swOv.out),
@@ -1060,6 +1060,36 @@ console.log('\nlayout generations');
   ok(swOk.code === 0 && /id="d"/.test(swOk.print) && /<h2[^>]*>A sub-heading/.test(swOk.print),
      'while a closed one keeps its own sub-heading and the chunk after it',
      swOk.out.split('\n')[0]);
+
+  // `::: footnote` is the documented spelling; `::: margin` is the one every
+  // source.md written before the rename uses, and it stays valid because from
+  // 1.0.0 the source format is the interface. An alias nothing asserts is an
+  // alias somebody deletes as dead code, so assert that both build, that they
+  // render the *same* aside down to the label, and that lint.js takes both -
+  // the last one because a spelling the build accepts and the linter refuses
+  // fails a file that builds clean, which is the direction CLAUDE.md warns
+  // about.
+  {
+    const fnSrc = (kw) => FM + `## free: A {#c}\n\n**Topic.** Rest of it.\n\n::: ${kw}\nQuiet note.\n:::\n`;
+    const fnB = raw(fnSrc('footnote'));
+    const mgB = raw(fnSrc('margin'));
+    // The two renderers name the same block differently - .margin-note in the
+    // live views, .chunk-expansion-margin on paper - so both are read here.
+    // Asserting only one would have passed while the other lost the alias.
+    const live = (h) => (h && h.match(/<aside class="margin-note"[\s\S]*?<\/aside>/) || [''])[0];
+    const onPaper = (h) => (h && h.match(/<aside class="chunk-expansion chunk-expansion-margin"[\s\S]*?<\/aside>/) || [''])[0];
+    ok(fnB.code === 0 && mgB.code === 0 && live(fnB.html) && onPaper(fnB.print),
+       '::: footnote builds, and so does the older ::: margin',
+       `codes ${fnB.code}/${mgB.code}`);
+    ok(live(fnB.html) === live(mgB.html) && onPaper(fnB.print) === onPaper(mgB.print),
+       'the two spellings render the same aside in both views, NOTE label included',
+       live(fnB.html) + '  vs  ' + live(mgB.html));
+    // "0 error(s)" contains the word, so count the summary rather than grep it.
+    const clean = (src) => / 0 error\(s\)/.test(lintOf(src));
+    ok(clean(fnSrc('footnote')) && clean(fnSrc('margin')),
+       'and lint.js mirrors both spellings rather than refusing one that builds',
+       lintOf(fnSrc('margin')).trim());
+  }
 
   // A comment survives a trim, so `<!-- nothing -->` produced exactly the
   // composition the quote-cover check exists to prevent.

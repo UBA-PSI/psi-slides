@@ -1142,7 +1142,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   <span class="chunk-num" aria-hidden="true"><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Zoom into a figure or code block</span> <span class="hd-sub">click it</span></h2>
-  <p><strong>Click any figure, code block or margin note inside the chunk you are on.</strong> A figure or a block of code lifts into a card in the middle of the screen with the slide dimmed behind it; <strong>a marginalia – an aside set out in the slide&#39;s margin – is panned into the centre instead of being lifted</strong>.</p>
+  <p><strong>Click any figure, block of code or formula inside the chunk you are on.</strong> It lifts into a card in the middle of the screen, with the slide dimmed behind it.</p>
 <p><strong>Links behave two ways, and which one you want depends on the window you are in.</strong> A plain click follows the link in a new tab of <em>that</em> window. Clicked in the lectern view, that is you checking a source while the projection stays where it was. Clicked in the projection, it is the page itself arriving in front of the room.</p>
 <p><strong>The small QR-code symbol after the link does the other thing</strong>: it puts the <strong>address</strong> on both screens, large, with a <strong>scannable code</strong> beside it, so the room can take the link away on their own phones. Click the address to open it anyway; <code>Esc</code> or the next slide clears it. <code>Shift</code>-clicking the link itself does the same.</p>
 <p>Try it on this one: <a href="https://psi.uni-bamberg.de/" target="_blank" rel="noopener noreferrer">the group behind the tool</a><button type="button" class="link-code" data-link-code="https://psi.uni-bamberg.de/" aria-label="Show this address large, with a code to scan"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M1 1h5.4v5.4H1V1zm1.3 1.3v2.8h2.8V2.3H2.3zM9.6 1H15v5.4H9.6V1zm1.3 1.3v2.8h2.8V2.3h-2.8zM1 9.6h5.4V15H1V9.6zm1.3 1.3v2.8h2.8v-2.8H2.3z"/><path d="M8 1h1.2v3.1H8V1zm0 4.3h1.2v2.4h2.3v1.2H8V5.3zm5.5 2.4H15v1.2h-1.5V7.7zM8 10.1h1.2v1.4H8v-1.4zm2.4 0H15v1.2h-1.9v1.4H15V15h-1.2v-2.1h-2.2v-1.4h-1.2v-1.4zM8 12.6h1.2V15H8v-2.4z"/></svg></button>. The symbol is what you want while a room is watching.</p>
@@ -1520,7 +1520,6 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 </div></div>
 
 
-<p>You can put a <code>::: marginalia</code> <em>inside</em> a pane when a tangent belongs to one half in particular – it still escapes to the slide&#39;s right margin.</p>
 <p><strong>Code in a pane needs short lines.</strong> A code block never wraps, so at the default zoom <strong>a pane has room for roughly 30 characters of code</strong> – against about 50 in a <code>.standard</code> chunk and 60 in a <code>.wide</code> one. A longer line is not cut off; the build shrinks that one slide until it fits, and the slide then reads noticeably smaller than the ones either side of it. Break the line, or put the code across the full width and keep the panes for prose.</p>
 
   
@@ -1532,8 +1531,8 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></span>
   <span class="chunk-label">example</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Marginalia</span> <span class="hd-sub"><code>::: marginalia</code> escapes to the slide margin</span></h2>
-  <p><strong><code>::: marginalia</code> sets an aside out to the right of the chunk</strong>, past the edge of the text column and into the slide&#39;s margin. The view does not go there by itself – click the marginalia on this slide to bring it into the middle of the screen.</p>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Marginalia</span> <span class="hd-sub"><code>::: marginalia</code> escapes into the slide margin</span></h2>
+  <p><strong><code>::: marginalia</code> sets an aside out to the right of the chunk</strong>, past the edge of the text column and into the slide&#39;s margin.</p>
 <aside class="marginalia">
 
 
@@ -1542,7 +1541,8 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 </aside>
 
 
-<p>The body itself stays in the middle column and only the marginalia moves outward. Keep them short: a marginalia shares the chunk&#39;s height and cannot grow taller than it.</p>
+<p><strong>A marginalia is the one aside you can click.</strong> A figure or a block of code lifts into a card in the middle of the screen; a marginalia is panned into the centre instead, because it is part of the slide&#39;s layout rather than something laid over it. Try it on the block out to the right.</p>
+<p>The body stays in the middle column and only the marginalia moves outward. Keep them short: a marginalia shares the chunk&#39;s height and cannot grow taller than it. One can also go <em>inside</em> a <code>::: side</code> pane, when a tangent belongs to one half in particular – it still escapes to the slide&#39;s right margin.</p>
 
   
   
@@ -1553,13 +1553,13 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></span>
   <span class="chunk-label">example</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Margin notes</span> <span class="hd-sub"><code>::: margin</code> is a quiet footnote in the flow</span></h2>
-  <p><strong><code>::: margin</code> puts a small grey note under the chunk, labelled and always visible</strong> – a footnote in the text rather than out at the side. No button, no separate panel.</p>
-<p>Reach for <code>::: margin</code> when the extra material is short and you want it on the page every time. Reach for <code>::: expand &lt;label&gt;</code> (back at <code>#expand</code>) when it should stay behind a button until somebody asks.</p>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Footnotes</span> <span class="hd-sub"><code>::: footnote</code> is a quiet note under the chunk</span></h2>
+  <p><strong><code>::: footnote</code> puts a small grey note under the chunk, labelled and always visible</strong> – down in the flow of the text rather than out at the side. No button, no separate panel, nothing to click.</p>
+<p><strong>The two slides are the whole distinction</strong>: a marginalia goes out into the margin and can be brought to the centre with a click, and a footnote stays under the chunk and is simply read. Reach for <code>::: footnote</code> when the extra material is short and you want it on the page every time, and for <code>::: expand &lt;label&gt;</code> (back at <code>#expand</code>) when it should stay behind a button until somebody asks.</p>
 
   
   <aside class="chunk-expansion chunk-expansion-margin" data-label="note">
-<p>This is a margin note. The label above it reads NOTE unless you say otherwise, and the note sits in grey under a dotted rule. Margin notes are quieter than expansions: nothing to click, just a footnote attached to this chunk.</p>
+<p>This is a footnote. The label above it always reads NOTE, and the note sits in grey under a dotted rule. Unlike a marginalia it stays in the middle column, under the body it was written beneath.</p>
 
 </aside>
   

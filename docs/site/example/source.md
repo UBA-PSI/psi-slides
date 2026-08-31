@@ -55,7 +55,7 @@ dig www.uni-bamberg.de
 
 `8.8.8.8` (Google) und `1.1.1.1` (Cloudflare) sind öffentliche Resolver, die jeder benutzen kann – und die deshalb mitlesen, welche Namen man nachschlägt.
 
-::: margin
+::: footnote
 Durch die Zwischenspeicher liegt eine typische Antwortzeit unter 10 Millisekunden.
 :::
 

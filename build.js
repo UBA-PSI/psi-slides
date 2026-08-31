@@ -3289,17 +3289,27 @@ function parseLecture(src) {
           continue;
         }
 
-        // ::: expand <label>  or  ::: margin  –  open an aside block.
+        // ::: expand <label>  or  ::: footnote  –  open an aside block.
         // Both are modeled as expansions for the print renderer; the
         // audience view will distinguish them later (expansions get a
-        // chevron, margins sit in the left lane).
+        // chevron, footnotes sit under the chunk).
+        //
+        // `::: margin` is the older spelling of `::: footnote` and stays
+        // valid so that no existing source.md breaks - the source format is
+        // the interface from 1.0.0. It is documented nowhere any more: the
+        // two names were a keystroke apart from `::: marginalia`, which is a
+        // different construct in a different place, and "margin note" named
+        // the one thing the block never does, which is sit in the margin.
+        // `word` remembers which spelling was written, so a message about an
+        // unclosed block quotes the line the author actually typed.
         const expandOpen = line.match(/^:::\s+expand\s+(.+?)\s*$/);
-        const marginOpen = /^:::\s+margin\s*$/.test(line);
+        const marginOpen = line.match(/^:::\s+(footnote|margin)\s*$/);
         if (expandOpen || marginOpen) {
           flushExpansion();
           currentExpansion = {
             label: expandOpen ? expandOpen[1].trim() : 'note',
             kind: marginOpen ? 'margin' : 'expand',
+            word: marginOpen ? marginOpen[1] : 'expand',
             lines: [],
           };
           continue;
@@ -3391,7 +3401,7 @@ function parseLecture(src) {
           const encl = layoutStack.filter(l => l.narrows).pop();
           const where = encl ? `::: ${encl.kind}`
             : currentOverlay ? '::: overlay'
-            : currentExpansion ? `::: ${currentExpansion.kind === 'margin' ? 'margin' : 'expand'}`
+            : currentExpansion ? `::: ${currentExpansion.word || 'expand'}`
             : null;
           if (where) {
             const err = new Error(
@@ -3553,7 +3563,7 @@ function parseLecture(src) {
   // build.
   if (currentOverlay || currentExpansion) {
     const kind = currentOverlay ? 'overlay'
-      : (currentExpansion.kind === 'margin' ? 'margin' : `expand ${currentExpansion.label}`);
+      : (currentExpansion.kind === 'margin' ? currentExpansion.word : `expand ${currentExpansion.label}`);
     const err = new Error(
       `::: ${kind} was never closed. Everything after it was read as that\n`
       + 'block\'s content, so any chunk below it is missing from the output.\n'
