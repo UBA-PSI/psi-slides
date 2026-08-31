@@ -12133,6 +12133,30 @@ function wireFigureClicks() {
   });
 }
 
+// The PDF exporter's whole contract with this runtime: mechanism, no policy.
+// The order of the beats has exactly one definition and it is above this
+// line; the export calls it rather than reimplementing it, which is why it
+// cannot be wrong about the order - only about the rendering, and that is a
+// class of fault you look at instead of hunting for. Everything the export
+// decides - which states, what leaves the clone, what the print DOM is -
+// lives in pdf-export.mjs and is injected. None of it ships here.
+//
+// Reaching into the runtime's own consts from page.evaluate() would work,
+// because this is a classic script and they sit in the global lexical scope,
+// and it would save these lines at the price of a contract no reader of
+// build.js can see and a rename breaks in silence.
+window.psiExport = {
+  chunks: () => flatChunks,
+  countSegments,
+  jumpTo,
+  setRevealed: (id, n) => { revealed[id] = n; },
+  applyReveal,
+  settle: () => { if (state.autoFit) fitZoomToChunk(2.2); else clampZoomToWidth(); },
+  setAutoFit: (on) => { state.autoFit = on; },
+  quiesce: () => { autoplayStopped = true; stopAutoplay(); },
+  zoom: () => state.zoom,
+};
+
 // Boot
 loadPersisted();
 // After loadPersisted, so an address with a fragment wins over the
@@ -14896,6 +14920,73 @@ async function runServe(rootDir, wantedPort) {
 // mistaken for the source path.
 const VALUE_FLAGS = new Set(['--max-width', '--port']);
 
+// ── PDF slide export (--slides-pdf) ─────────────────────────────────
+//
+// The number pair is the contract, not the ratio. The base type is
+// clamp(20px, --slide-h * 0.026, 38px), so a 720px-high page hits the lower
+// clamp and prints type that is *larger* relative to the slide than any
+// projection above 769px; at 900px it sits in the linear range and the slide
+// has the proportions of a lecture hall. And one number serves viewport and
+// paper at once: page.pdf() lays out at paper width x 96dpi, so identical
+// numbers remove every scale calculation and the rounding that produces
+// blank trailing pages.
+const PDF_SIZES = {
+  '16:9':  { w: 1600, h: 900 },
+  '16:10': { w: 1600, h: 1000 },
+};
+
+// A --pdf-* value flag, in the `--name=value` form. The older value flags in
+// this CLI take a separate argument (--port 8080); these do not, because a
+// separate argument has to be excluded from `positional` by hand and that
+// list is the kind that grows a hole.
+function pdfFlagValue(argv, name) {
+  const hit = argv.filter(a => a === name || a.startsWith(name + '='));
+  if (!hit.length) return null;
+  const last = hit[hit.length - 1];
+  if (last === name) {
+    const err = new Error(`Error: ${name} needs a value, as ${name}=<value>.`);
+    err.userFacing = true;
+    throw err;
+  }
+  return last.slice(name.length + 1);
+}
+
+// Everything --slides-pdf was told, refused early and in one place. A bad
+// value here is a typo, and a typo that reaches the browser costs a minute
+// before it says so.
+function pdfOptionsFrom(argv, flags, absIn) {
+  if (flags.has('--watch')) {
+    const err = new Error(
+      'Error: --slides-pdf and --watch are mutually exclusive.\n'
+      + '  --watch rebuilds on every save and keeps running; the export drives a\n'
+      + '  browser over one finished build and exits. Run the export when you are\n'
+      + '  done authoring, or in a second terminal.');
+    err.userFacing = true;
+    throw err;
+  }
+  const beats = pdfFlagValue(argv, '--pdf-beats') ?? 'all';
+  if (beats !== 'all' && beats !== 'final') {
+    const err = new Error(`Error: --pdf-beats=${beats} is not a mode. Use all (default) or final.`);
+    err.userFacing = true;
+    throw err;
+  }
+  const size = pdfFlagValue(argv, '--pdf-size') ?? '16:9';
+  if (!PDF_SIZES[size]) {
+    const err = new Error(
+      `Error: --pdf-size=${size} is not a size. Use ${Object.keys(PDF_SIZES).join(' or ')}.`);
+    err.userFacing = true;
+    throw err;
+  }
+  const outArg = pdfFlagValue(argv, '--pdf-out');
+  return {
+    beats,
+    size,
+    ...PDF_SIZES[size],
+    out: outArg ? path.resolve(outArg) : path.join(path.dirname(absIn), 'slides.pdf'),
+    dumpDom: pdfFlagValue(argv, '--pdf-dump-dom'),
+  };
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const flags = new Set(argv.filter(a => a.startsWith('--')));
@@ -14942,6 +15033,7 @@ async function main() {
     console.error('Usage:');
     console.error('  node build.js <source.md> [--watch] [--serve [--port N]] [--audience-only|--print-only|--print-notes-only|--speaker-only]');
     console.error('                            [--inline-images|--no-inline-images]');
+    console.error('  node build.js <source.md> --slides-pdf [--pdf-beats=all|final] [--pdf-size=16:9|16:10] [--pdf-out=<path>]');
     console.error('  node build.js <source.md> --integrate-annotations');
     console.error('  node build.js <source.md> --optimize-images [--dry-run] [--all] [--max-width N]');
     console.error('  node build.js --new <slug>');
@@ -14958,6 +15050,15 @@ async function main() {
     console.error('  --max-width N         also downscale to N px wide. Off by default on purpose:');
     console.error('                        figure focus zooms to 8x, so a high-resolution diagram');
     console.error('                        is high-resolution for a reason.');
+    console.error('');
+    console.error('PDF slide export (a fallback deck; print.html stays the document):');
+    console.error('  --slides-pdf          drive audience.html through every beat and print slides.pdf');
+    console.error('  --pdf-beats=all       one page per state, cumulative (default)');
+    console.error('  --pdf-beats=final     one page per chunk, fully built up');
+    console.error('  --pdf-size=16:9       1600x900 css px, a 1200x675 pt page (default)');
+    console.error('  --pdf-size=16:10      1600x1000 css px, a 1200x750 pt page');
+    console.error('  --pdf-out=<path>      default: slides.pdf beside source.md');
+    console.error('  Needs a Chromium (playwright-core, $PSI_CHROME or a system Chrome).');
     console.error('');
     console.error('Annotation integration:');
     console.error('  --integrate-annotations   move `> annot:` blocks from a trailing');
@@ -15000,6 +15101,13 @@ async function main() {
   const portIdx = argv.indexOf('--port');
   const servePort = portIdx >= 0 ? parseInt(argv[portIdx + 1], 10) || 0 : 0;
 
+  // Parsed before the --watch branch, not after: --watch returns from main()
+  // without ever reaching the build, so a check that sits below it never runs
+  // and `--watch --slides-pdf` would start a watcher and quietly export
+  // nothing. Everything --slides-pdf can be told wrong is refused here, in
+  // one place, before a browser is started.
+  const pdf = flags.has('--slides-pdf') ? pdfOptionsFrom(argv, flags, absIn) : null;
+
   if (flags.has('--watch')) {
     runWatch(absIn, only, opts).catch(err => {
       console.error(`Watch failed: ${err.message}`);
@@ -15013,8 +15121,25 @@ async function main() {
     return;
   }
 
-  const { written, shape } = buildOnce(absIn, only, opts);
+  // --slides-pdf ignores the --*-only flags rather than obeying them:
+  // `--print-only --slides-pdf` would otherwise export a stale audience.html,
+  // or none at all. Ignoring surprises least - the author still gets every
+  // view they would have got without the export flag, plus the PDF.
+  const { written, shape } = buildOnce(absIn, pdf ? undefined : only, opts);
   console.log(`Wrote ${written.join(', ')} (${shape})`);
+
+  if (pdf) {
+    // Loaded here and not at the top of the file, because pdf-export.mjs
+    // imports playwright-core and build.js must keep running on an install
+    // that has no browser binding at all (acceptance criterion 9). This is
+    // the only new import in build.js, and it sits behind the flag.
+    const { exportSlidesPdf } = await import('./pdf-export.mjs');
+    await exportSlidesPdf({
+      audienceHtml: path.join(path.dirname(absIn), 'audience.html'),
+      ...pdf,
+    });
+  }
+
   if (flags.has('--serve')) await runServe(path.dirname(absIn), servePort);
 }
 

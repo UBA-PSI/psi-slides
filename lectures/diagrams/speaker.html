@@ -9245,6 +9245,30 @@ function wireFigureClicks() {
   });
 }
 
+// The PDF exporter's whole contract with this runtime: mechanism, no policy.
+// The order of the beats has exactly one definition and it is above this
+// line; the export calls it rather than reimplementing it, which is why it
+// cannot be wrong about the order - only about the rendering, and that is a
+// class of fault you look at instead of hunting for. Everything the export
+// decides - which states, what leaves the clone, what the print DOM is -
+// lives in pdf-export.mjs and is injected. None of it ships here.
+//
+// Reaching into the runtime's own consts from page.evaluate() would work,
+// because this is a classic script and they sit in the global lexical scope,
+// and it would save these lines at the price of a contract no reader of
+// build.js can see and a rename breaks in silence.
+window.psiExport = {
+  chunks: () => flatChunks,
+  countSegments,
+  jumpTo,
+  setRevealed: (id, n) => { revealed[id] = n; },
+  applyReveal,
+  settle: () => { if (state.autoFit) fitZoomToChunk(2.2); else clampZoomToWidth(); },
+  setAutoFit: (on) => { state.autoFit = on; },
+  quiesce: () => { autoplayStopped = true; stopAutoplay(); },
+  zoom: () => state.zoom,
+};
+
 // Boot
 loadPersisted();
 // After loadPersisted, so an address with a fragment wins over the

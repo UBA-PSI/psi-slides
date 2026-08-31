@@ -28,6 +28,11 @@ lectures/*/print.html
 lectures/*/print-notes.html
 lectures/*/audience.html
 lectures/*/speaker.html
+# --slides-pdf, and no lecture tracks one. The three that ship their HTML do so
+# because a reader should be able to read the reference without running the
+# build; a PDF is a fallback deck for a room, not something anyone reads here,
+# and the five in this repository come to 15 MB.
+lectures/*/slides.pdf
 # Three lectures ship their built outputs so they can be read straight from
 # the repository without running build.js: the self-referential tutorial, the
 # diagram reference, which is the only place every ::: draw construct is
