@@ -378,6 +378,19 @@ try {
   ok(near(mb[2], 1200) && near(mb[3], 675.12),
      '16:9 is a 1200 x 675 pt page', JSON.stringify(mb));
   ok(!fs.existsSync(pdfPath + '.tmp'), 'and no .tmp is left behind');
+  // The other half of the link promise, and the DOM cannot answer it: an <a>
+  // with the right href is not yet a clickable annotation. Chromium writes an
+  // external link as /S /URI and an internal one as a named /Dest, so both are
+  // checkable in the clear alongside /Count.
+  ok(/\/S\s*\/URI\s*\n?\/URI \(https:\/\/uba-psi\.github\.io\/psi-slides\/\)/.test(pdf),
+     'the external link is a clickable URI annotation in the file');
+  const dests = [...pdf.matchAll(/\/Dest\s+\/(pdf-p\d+)/g)].map(m => m[1]);
+  ok(dests.includes(pages[firstOf['beatless']].id),
+     'and the chunk link is a named destination on that chunk\'s first page',
+     dests.join(', '));
+  ok(dests.includes(pages[firstOf['beats-section']].id),
+     'and the column link one on its divider slide', dests.join(', '));
+  ok(!/\/URI \(#/.test(pdf), 'no fragment was written out as an external address');
 
   console.log('\n16:10, which is public contract and was never checked');
   const alt = path.join(dir, 'wide.pdf');

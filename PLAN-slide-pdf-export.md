@@ -1225,12 +1225,16 @@ und deshalb keine Zeile mehr brauchen.
 
 | Etappe | Zustand | Prüfpunkt |
 |---|---|---|
-| 0 Vorarbeiten | fertig | `npm run gate`, `build.js`, `lint.js` und `test/settings.mjs` laufen mit gelöschtem `node_modules/playwright-core`; Browser-Suite 602 grün |
+| 0 Vorarbeiten | fertig | `npm run gate`, `build.js`, `lint.js` und `test/settings.mjs` laufen mit gelöschtem `node_modules/playwright-core` |
 | 1 Hook und CLI | fertig | vier Verweigerungen ohne Browserstart; `git diff --stat main` zeigt nur Einfügungen, nur in den beiden Live-Ansichten |
 | 2 Zustandslauf | fertig | in Etappe 3 aufgegangen – siehe unten |
 | 3 Druck-DOM und Druck | fertig | `lectures/tutorial/slides.pdf`, 82 Seiten, `/Count 82`, `/MediaBox [0 0 1200 675.12]` |
 | 4 Richtig statt vorhanden | fertig | alle vier Diagnosen haben einen Testfall und lösen aus |
-| 5 Messen, prüfen, aufschreiben | fertig | alle fünf Vorlesungen exportiert und angesehen; `test/pdf-export.mjs`, 61 Assertions; Dokumentation |
+| 5 Messen, prüfen, aufschreiben | fertig | alle fünf Vorlesungen exportiert und angesehen; `test/pdf-export.mjs`, 65 Assertions; Dokumentation |
+
+Die ganze Kette am Ende, auf `main` neu aufgesetzt (das während der Arbeit
+um zwei Commits vorgerückt ist): 422 Gates, 244 Settings, 65 PDF, 630
+Browser-Specs, `lint.js` sauber über die fünf Vorlesungen.
 
 ### Die Messung aus Umsetzungsschritt 12
 
@@ -1347,6 +1351,11 @@ Drei Stellen, an denen der Plan sich selbst misstraut hat und recht behielt:
   `/MediaBox [0 0 1200 675.12]`, wie in der Vormessung.
 - `emulateMedia('screen')` plus `printBackground` gibt das Theme wieder.
   Angesehen an fünf Vorlesungen, dunkles Terminal-Theme eingeschlossen.
+- Chromium macht aus den Links echte Annotationen, in beiden Richtungen:
+  ein externer Link wird `/S /URI`, ein umgeschriebener interner ein
+  benanntes `/Dest /pdf-pN`. Das steht im Klartext in der Datei und wird
+  jetzt dort geprüft – der DOM-Abzug kann es nicht beantworten, weil ein
+  `<a>` mit richtigem `href` noch keine anklickbare Annotation ist.
 - `!important` auf `--slide-w`/`--slide-h` schlägt den Inline-Write.
   Im DOM-Abzug nachgelesen, und `test/pdf-export.mjs` prüft es für 16:10.
 
@@ -1389,6 +1398,14 @@ gefunden, was die beste Auskunft über sie ist, die zu haben war:
   klein gesetzt.
 - Ob ein `@import` auf einen fremden Host in einem inlinierten SVG eine
   Warnung wert ist – siehe Stichprobe.
+- **Ein relativer Link wird zu einer absoluten `file://`-Adresse.** Die
+  Tutorial-Vorlesung verlinkt `../decoration/audience.html`; im PDF steht
+  dafür `file:///Users/…/lectures/decoration/audience.html`. Der Browser
+  löst gegen die `file://`-Basis auf, ein PDF hat keine Basis, und damit
+  trägt eine weitergegebene Datei den Pfad der Maschine, auf der sie
+  gebaut wurde. Der Plan sagt zu dieser Linkklasse nichts. Drei Antworten
+  wären möglich: so lassen, wie ein toter Fragmentlink zu `<span>`
+  degradieren, oder relativ ausschreiben. Nicht entschieden.
 - 22 Overflow-Meldungen über die fünf Vorlesungen dieses Repositories,
   alle geprüft und alle wahr: die betroffenen Chunks werden im Hörsaal
   geschwenkt und auf Papier abgeschnitten. Das ist das geplante Verhalten
