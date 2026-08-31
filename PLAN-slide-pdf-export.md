@@ -1,11 +1,18 @@
 # Plan: PDF-Foliensatz mit allen Beats
 
 Vierte Fassung, implementierungsbereit. Jede Fassung ist an einem Review
-von Codex und am Code geprüft worden (`REVIEW-slide-pdf-export.md`, `-v2`, `-v3`). Was
-bestätigt wurde, was verworfen, und was billiger zu haben ist als
-vorgeschlagen, steht in den Änderungsabschnitten. Der dritte Review
-findet keinen Architektur- oder Rendering-Blocker mehr; alles, was hier
-noch geändert wird, steht im Testvertrag.
+von Codex und am Code geprüft worden (`REVIEW-slide-pdf-export.md` und
+die beiden Nachfolger `-v2`, `-v3`). Was bestätigt wurde, was verworfen,
+und was billiger zu haben ist als vorgeschlagen, steht in den drei
+Änderungsabschnitten. Der dritte Review findet keinen Architektur- oder
+Rendering-Blocker mehr.
+
+> **Wer das baut, liest drei Abschnitte zuerst:** „Übergabe“ ganz am
+> Ende – welche Aussage gemessen ist, welche im Code nachgelesen und
+> welche nur plausibel, was man nicht tun soll, und wo ich erwarte, dass
+> der Plan sich irrt. Dann „Umsetzungsschritte“, fünf Etappen mit
+> Prüfpunkten. Dann „Architektur“. Die Änderungsabschnitte sind
+> Vorgeschichte und können warten.
 
 ## Ziel
 
@@ -1067,3 +1074,139 @@ Die erste Version ist fertig, wenn:
 
 10. die vier bestehenden HTML-Ausgaben byteweise unverändert sind, bis
     auf die zehn Zeilen `psiExport` in den beiden Live-Ansichten.
+
+## Übergabe
+
+Geschrieben für den, der das baut, und nicht in diesem Gespräch dabei
+war. Drei Dinge: was belegt ist und was nicht, was man nicht tun soll,
+und wo ich erwarte, dass es klemmt.
+
+### Belegstand
+
+Ein Plan, der nicht sagt, woher er seine Sätze hat, lädt dazu ein, sie
+alle gleich ernst zu nehmen. Diese hier sind es nicht.
+
+**Gemessen** – ausgeführt, Chromium 1228, macOS arm64, `--print-to-pdf`:
+
+| Aussage | Messung |
+|---|---|
+| `html,body{height:100%;overflow:hidden}` verhindert Pagination | vier Seiten-`div`s → `/Count 1`; mit `height:auto;overflow:visible` → `/Count 4` |
+| Viewport 1600 × 900 px ergibt 1200 × 675 pt | `/MediaBox [0 0 1200 675.12]` – die 0,12 sind der Grund für die 1-pt-Toleranz im Test |
+| `/Count` und `/MediaBox` sind aus der Datei lesbar | PDF 1.4, kein `ObjStm` im Ergebnis |
+
+**Im Code nachgelesen** – Zeilennummern stimmten am Tag der Prüfung;
+wenn eine nicht mehr passt, ist die Datei umgezogen, nicht die Aussage
+falsch. Navigiere mit `grep -n '^// ── ' build.js`.
+
+| Aussage | Fundstelle |
+|---|---|
+| `applyReveal` liest `revealed[id]`, ist kein Setter | `build.js` 9902 |
+| `countSegments` gibt `0` für einen beatlosen Chunk | 9892 |
+| Basisschrift ist `clamp(20px, --slide-h*0.026, 38px)` | 5980 |
+| `--slide-w/h` werden als Inline-px auf `<html>` geschrieben | 9170–9176 |
+| `@scope (svg#…-root)` bindet SVG-Styles an die Root-ID | 318–340 |
+| `jumpTo` → `applyState` → `updateEmbedLoading` setzt `iframe.src` | 10357 / 9846–9856 / 11134 |
+| `wireEmbeds` blockt unter `file://` nur YouTube | 11107–11111 |
+| Divider-Chunk heißt `${col.id}-section` | 5416 |
+| `<video>` hat kein `poster`, die Grammatik kennt keins | 1932, 1968 |
+| Fehlende Kurzform-Bilder rendern `figure-missing` | 1937 |
+| Kein Zoom in `VIEW_DEFAULT_SPEC`; `zoom: 1.35` fest | 3748ff / 9221 |
+| `clampZoomToWidth` kehrt bei `collapse: none` sofort zurück | 10931–10933 |
+| **Der Diagramm-Compiler emittiert kein `<use>`** | `diagram-core.mjs`, gezählt: rect, image, path, g, text, tspan, foreignObject, circle – sonst nichts |
+| **`dgApplyVec` schreibt nur `setAttribute`**, kein WAAPI | `diagram-core.mjs`, `dgApplyVec` |
+| Elf `position: fixed` in `AUDIENCE_CSS`, alle auf ID-Chrome | 6485, 8554, 8581, 8663, 8729, 8799, 8824, 8890, 9033, 9055 |
+| `.chunk-num` ist Kind von `.chunk`, absolut gegen dessen `relative` | 6125 |
+| `.marginalia` ist `left: calc(100%+2vw); width: 26vw` | 6315 |
+| Es gibt kein `test/specs/`; `SPECS` ist eine feste Liste | `test/run.mjs` 22–46 |
+| `test/settings.mjs` mkdtempt zwölfmal in `$TMPDIR` | 109, 226, 243, 288, 316, 371, 442, 466, 512, 545, 933, 951 |
+| `test/harness.mjs` importiert `playwright-core` statisch | 42 |
+| `findChrome` existiert zweimal | `shoot-lib.mjs` 25, `harness.mjs` 53 |
+
+Die letzten beiden Zeilen der ersten Hälfte sind die wichtigsten: **Sie
+tragen die Entscheidung, keine IDs zu präfixen.** Kein `<use>` heißt,
+dass nichts im Diagramm Geometrie über eine ID holt; nur `setAttribute`
+heißt, dass `cloneNode(true)` den Beat wirklich einfängt. Wären beide
+anders, wäre Architektur 5 falsch.
+
+**Nicht gemessen, nur plausibel** – hier irrt der Plan am ehesten:
+
+- **`page.pdf({width:'1600px'})` layoutet bei genau 1600 CSS-px.** Gut
+  dokumentiert, aber ich hatte kein `playwright-core` im Checkout und
+  habe es nicht ausgeführt. Prüfpunkt Etappe 3 fängt es: Wenn die
+  Seitenzahl stimmt und der Text nicht umbricht wie erwartet, ist das
+  hier die erste Verdächtige.
+- **`emulateMedia('screen')` + `printBackground` gibt das Theme
+  originalgetreu wieder.** Nicht gemessen. Farben und Backdrop sind das,
+  was man in Etappe 3 als Erstes ansieht.
+- **`!important` auf `--slide-w` schlägt den Inline-Write der Runtime.**
+  Kaskadenregel, also sicher – aber mit einer Custom Property nicht von
+  mir ausprobiert. Im DOM-Abzug nachsehen, es ist eine Zeile.
+- **Auto-Fit ist schnell genug.** `fitZoomToChunk` misst in einer
+  Schleife, und der Export ruft es je Beat. Bei 40 Chunks mit je 4 Beats
+  sind das 160 Läufe. Falls das quält: Tabelle „Wo es am ehesten hakt“.
+- **Video-Frame-0 per Canvas.** Und hier erwarte ich, dass es **nicht**
+  klappt: Ein `file://`-Video hat eine opake Herkunft, `drawImage` färbt
+  die Leinwand ein und `toDataURL()` wirft `SecurityError`. Für ein
+  inliniertes `data:`-Video sollte es gehen, für ein nach `videos/`
+  ausgelagertes (über 12 MB) nicht. Wer das baut: `try/catch` um den
+  Abgriff, Platzhalter im `catch`, und **keine Stunde** in den
+  `SecurityError` investieren – der Rückfall ist der geplante Normalfall,
+  nicht die Panne.
+
+### Was man nicht tun soll
+
+Fünf Wege, die naheliegen und die in drei Review-Runden verworfen wurden.
+Wer einen davon einschlägt, baut nicht diesen Plan:
+
+1. **Keinen ID-Rewriter bauen.** Nicht, weil er schwer wäre, sondern weil
+   er nichts repariert: Alle Duplikate sind byteidentische Kopien
+   derselben Definition. Erst wenn zwei Beat-Klone eines `::: draw`
+   einander sichtbar beeinflussen, ist er fällig – dann aber vollständig,
+   mit `@scope`.
+2. **`test/run.mjs` nicht anfassen.** Kein `SPECS`-Eintrag, kein
+   `standalone`-Feld, kein `buildSource()` im Harness. Der Test ist ein
+   zweites `test/settings.mjs`.
+3. **Keine `poster:`-Syntax erfinden.** Der Export ist kein Anlass, die
+   Markdown-Grammatik zu erweitern.
+4. **`hyphens: auto` nicht anfassen.** Es steht in `AUDIENCE_CSS` und
+   betrifft alle vier Ausgaben. Eigenes Vorhaben.
+5. **Keine Schrift instanzieren, bevor Etappe 5 gemessen hat.** Type 3
+   ist zugelassen. Ob es teuer ist, sagt die Dateigröße, nicht das
+   Gefühl.
+
+### Arbeitsweise, die dieses Vorhaben besonders braucht
+
+Aus `CLAUDE.md`, weil hier alle drei Fallen zugleich offen stehen:
+
+- Der `psiExport`-Hook lebt in einem Template-Literal. **Ein rohes
+  Backtick beendet es, ein einfacher Backslash wird gefressen.**
+  `node test/gates/run.mjs inlined` sagt das in Millisekunden.
+- **Nie `2>&1 >/dev/null`.** Ein `SyntaxError` verschwindet damit, und
+  das alte HTML bleibt liegen – man debuggt dann einen Build, der nie
+  gelaufen ist.
+- Nach jeder Änderung an etwas Inliniertem: **`grep -F` im gebauten
+  HTML**, bevor im Browser geurteilt wird.
+
+### Einschätzung
+
+Ich halte den Plan für baubar, und den riskanten Teil für kleiner, als
+die 1000 Zeilen vermuten lassen. Der Grund ist Architektur 1: Der Export
+implementiert die Beat-Reihenfolge nicht nach, er ruft sie auf. Damit
+kann er in der Reihenfolge nicht falsch liegen – nur im Rendern, und das
+ist eine Klasse von Fehlern, die man ansieht statt sie zu suchen.
+
+Was ich für sicher halte: Zustandsdomäne, Klonen, Aufnahmeregel,
+Seitengeometrie, Links, das Testgerüst. Das steht auf gemessenen oder
+gezählten Aussagen.
+
+Was ich für offen halte, in dieser Reihenfolge: die Treue des Renderings
+(Etappe 3, mit Augen), die Laufzeit bei einer großen Vorlesung, und die
+Dateigröße unter Type 3. Alle drei zeigen sich in Etappe 3 und 5, und für
+alle drei steht die Antwort schon im Plan – deshalb ist die Reihenfolge
+der Etappen so und nicht anders.
+
+Was ich anders machen würde, wenn es schiefgeht: Die erste Ausbaustufe
+kleiner schneiden. `--pdf-beats=final` ist eine Seite pro Chunk, braucht
+keinen Beat-Lauf und keine kumulative Reihenfolge, und wäre schon für
+sich nützlich. Wenn Etappe 2 sich als zäh erweist, ist das der Schnitt,
+an dem man v1 ausliefert und den Beat-Lauf zu v1.1 macht.
