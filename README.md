@@ -277,6 +277,7 @@ Press `?` in either live view for the full on-screen reference. The ones you nee
 - `C` collapse, `F` font, `A` accent theme, `+` `-` `0` zoom.
 - `#` auto-fit: size every slide to the screen. `B` blanks the projection – the speaker window keeps working so you can change slide while the room sees black.
 - `S` open the speaker window, `P` open the print view.
+- **On a touchscreen** both live views show a small rail along the bottom: forward, back, overview and zoom, with `C`, `F`, `A`, `#`, search and text selection behind the `⋯` button. It appears only on a device with no fine pointer, so an iPad with a keyboard attached does not see it.
 - `L` slide numbers: stacked, in a row, or off.
 
 ## What is stable and what is not

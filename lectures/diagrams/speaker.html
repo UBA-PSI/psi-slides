@@ -3004,30 +3004,81 @@ body:not([data-view=speaker]).blanked #nav-hints span,
    setOverviewMode does not always go through applyState. */
 body.overview-mode #nav-hints span { opacity: 0 !important; }
 
+/* The controls a finger can reach, in both live views. Two pills, one above
+   the other: the rail is what you press repeatedly, the palette behind the
+   three dots
+   is what you set once and leave. Splitting them is not decoration - eleven
+   round buttons in one row do not fit a phone held upright, and the five that
+   matter mid-talk should not shrink to make room for the six that do not. */
 #touch-controls { display: none; }
 @media (pointer: coarse) {
   #touch-controls {
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35em;
     position: fixed;
     bottom: max(0.6em, env(safe-area-inset-bottom));
-    left: 50%;
-    transform: translateX(-50%);
-    gap: 0.25em;
+    /* Stretched across, not centred with a transform. A fixed box with
+       left: 50% and no width is shrink-to-fit against the space *left of
+       the right edge* - half the viewport - and the transform only moves it
+       afterwards. So on a 320px phone the pills were laid out into 160px and
+       wrapped to two rows while there was room for one. The column flex below
+       centres them, at the full width. */
+    left: 0;
+    right: 0;
     z-index: 35;
+    pointer-events: none;
+  }
+  #touch-rail, #touch-palette { pointer-events: auto; }
+  #touch-rail, #touch-palette {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 96vw;
+    gap: clamp(3px, 0.8vw, 6px);
     background: oklch(0.10 0 0 / 0.78);
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
-    padding: 0.35em 0.5em;
+    padding: clamp(4px, 1vw, 7px) clamp(6px, 1.4vw, 10px);
     border-radius: 999px;
     box-shadow: 0 4px 18px oklch(0 0 0 / 0.35);
   }
+  /* An id selector outranks the user agent's [hidden] rule, so the display
+     above kept the palette open no matter what the attribute said. Toggling
+     the hidden attribute is still the right handle - it is what a screen
+     reader reads -
+     so the stylesheet has to say so at a specificity that wins. */
+  #touch-palette[hidden] { display: none; }
+  /* The palette's letters are the keys they stand for, so they are set in the
+     typeface a key is written in everywhere else in this tool. */
+  #touch-palette button {
+    font-family: var(--mono-font);
+    font-size: clamp(14px, 4.2vw, 18px);
+  }
+  #touch-palette button[aria-pressed=true],
+  #touch-rail button[aria-expanded=true] {
+    background: oklch(0.96 0 0);
+    color: oklch(0.15 0 0);
+  }
+  /* Sized against the viewport, in px, and against nothing else.
+     em inherits the slide's own type, which carries --zoom, so the rail grew
+     with the lecturer's text size: six buttons ran 441px wide on a 390px
+     phone. rem is no better here - a mobile browser sets the root size by its
+     own text-autosizing heuristics, and the same rule gave 63px buttons on an
+     iPad in landscape and 83px on the same iPad turned upright.
+     The floor is 44px because that is the smallest target a fingertip hits
+     reliably; the ceiling keeps the rail from becoming furniture on a tablet.
+     Between them the six fit one row at every width down to 320px, which is
+     what the arithmetic in the max-width above is for. flex-wrap stays as the
+     backstop for anything narrower than that. */
   #touch-controls button {
     background: transparent;
     border: 0;
     color: oklch(0.96 0 0);
-    font-size: 1.5em;
-    width: 2.2em;
-    height: 2.2em;
+    font-size: clamp(17px, 5.2vw, 22px);
+    width: clamp(44px, 13.5vw, 56px);
+    height: clamp(44px, 13.5vw, 56px);
     border-radius: 50%;
     cursor: pointer;
     font-family: inherit;
@@ -3037,10 +3088,39 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
     touch-action: manipulation;
   }
   #touch-controls button:active { background: oklch(0.30 0 0); }
+
   /* Hide while the screen is blanked. Stay visible during figure-focus
      so the +/− buttons remain reachable for figure zoom; the rail is
      above the overlay (z-index 35 vs 30) so taps still land on it. */
   body:not([data-view=speaker]).blanked #touch-controls { display: none; }
+  /* In the cockpit the bottom edge is already spoken for: the thumbnail strip
+     and then the footer. The rail clears both by reading the same two numbers
+     the grid does, so a dragged strip carries it along. With the strip moved
+     to the right edge (Shift-V) there is no bottom row to clear, and
+     --preview-h is *removed* rather than set to zero - so the fallback would
+     lift the rail 22vh off the floor for a strip that is not there. Hence the
+     second rule rather than one clever expression. */
+  body[data-view=speaker] #touch-controls {
+    bottom: calc(2.2rem + var(--preview-h, 22vh) + 0.5em);
+  }
+  body[data-view=speaker].preview-right #touch-controls {
+    bottom: calc(2.2rem + 0.5em);
+  }
+}
+/* An expansion is half of a two-column grid, which needs two columns' worth
+   of room. Under this width there are not two, so the pane covers the slide
+   instead of being squeezed beside it - the same trade the figure overlay
+   makes, and for the same reason: a card you can read beats a layout you
+   can see all of. */
+@media (max-width: 900px) {
+  .chunk.expanded { grid-template-columns: minmax(0, 1fr); }
+  .chunk.expanded .exp-body.on {
+    position: fixed;
+    inset: auto 4vw 12vh;
+    max-height: 62vh;
+    max-width: 92vw;
+    margin: 0 auto;
+  }
 }
 
 /* overview mode (PRD §5) ------------------------------------------- */
@@ -5591,6 +5671,24 @@ figure you write today may need an edit. The editor is experimental too.</p>
 <div id="note-templates">
 
 </div>
+<nav id="touch-controls" aria-label="Slide controls">
+  <div id="touch-palette" hidden>
+    <button type="button" data-action="collapse" aria-label="Shorten or expand the text">C</button>
+    <button type="button" data-action="font" aria-label="Change the font">F</button>
+    <button type="button" data-action="theme" aria-label="Change the theme">A</button>
+    <button type="button" data-action="autofit" aria-label="Fit every slide to the screen">#</button>
+    <button type="button" data-action="search" aria-label="Search the lecture">&#x2315;</button>
+    <button type="button" data-action="select" aria-label="Select text" aria-pressed="false">&#x2380;</button>
+  </div>
+  <div id="touch-rail">
+    <button type="button" data-action="prev" aria-label="Previous">&#x2039;</button>
+    <button type="button" data-action="next" aria-label="Next">&#x203A;</button>
+    <button type="button" data-action="overview" aria-label="Overview">&#x229E;</button>
+    <button type="button" data-action="zoom-out" aria-label="Zoom out">&#x2212;</button>
+    <button type="button" data-action="zoom-in" aria-label="Zoom in">+</button>
+    <button type="button" data-action="more" aria-label="More controls" aria-expanded="false">&#x22EF;</button>
+  </div>
+</nav>
 <div id="help-overlay" class="hidden" role="dialog" aria-label="Keyboard and mouse reference" aria-modal="false">
   <div id="help-inner">
     <header>
@@ -5685,6 +5783,7 @@ figure you write today may need an edit. The editor is experimental too.</p>
         <dt><kbd>L</kbd></dt><dd>slide numbers: stacked → in a row → off</dd>
         <dt><kbd>B</kbd></dt><dd>blank the projection – the speaker window keeps working, frozen or not</dd>
         <dt><kbd>Shift</kbd>-any</dt><dd>cycle that knob backwards</dd>
+        <dt>on a touchscreen</dt><dd>the same knobs sit behind the ⋯ button in the corner rail</dd>
       </dl>
     </section>
     <section>
@@ -8360,16 +8459,16 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => {
   if (e.key !== 'Alt') return;
   altSelectHeld = false;
-  if (!hasTextSelection()) setSelecting(false);
+  if (!touchSelectOn && !hasTextSelection()) setSelecting(false);
 });
 document.addEventListener('selectionchange', () => {
-  if (!altSelectHeld && !hasTextSelection()) setSelecting(false);
+  if (!altSelectHeld && !touchSelectOn && !hasTextSelection()) setSelecting(false);
 });
 // Alt-Tab away and the keyup never arrives, which would strand the stage in
 // a state where dragging silently stops panning.
 window.addEventListener('blur', () => {
   altSelectHeld = false;
-  if (!hasTextSelection()) setSelecting(false);
+  if (!touchSelectOn && !hasTextSelection()) setSelecting(false);
 });
 
 // Mode badge
@@ -8491,7 +8590,13 @@ document.addEventListener('keydown', (e) => {
       if (linkOverlayVisible()) { dismissLinkOverlay(); e.preventDefault(); break; }
       // A live highlight is the most recent thing the user did, so it is
       // the first thing Esc should take back.
-      if (hasTextSelection()) { endSelecting(); e.preventDefault(); break; }
+      if (hasTextSelection() || touchSelectOn) {
+        setTouchSelect(false);
+        endSelecting();
+        const sb = document.querySelector('#touch-controls [data-action=select]');
+        if (sb) sb.setAttribute('aria-pressed', 'false');
+        e.preventDefault(); break;
+      }
       if (focusedFigure) {
         unfocusFigure();
         if (shouldBroadcast()) sendToPeer({ type: 'figure-unfocus' });
@@ -8831,12 +8936,25 @@ function updateNavHints() {
   show('down', c.colLast && !beatsLeft && i + 1 < flatChunks.length);
 }
 
-// Touch control rail (audience only). The element is rendered only
-// in audience.html; speaker.html doesn't include it, so this no-ops
-// there. CSS hides the rail on fine-pointer devices.
+// The controls a finger can reach, in both live views. CSS hides the whole
+// thing on fine-pointer devices, so a laptop never sees it and an iPad with a
+// Magic Keyboard re-classifies and loses it again.
+//
+// Every case here calls the function the key calls, and nothing else. Not one
+// of them re-implements what a key does: cycleFont is cycleFont, and the day
+// the F key learns a fourth face the button learns it too. A second code path
+// is how a palette comes to disagree with a key map, which is the same failure
+// build.js and lint.js have to be grepped against each other to avoid.
 function wireTouchControls() {
   const bar = document.getElementById('touch-controls');
   if (!bar) return;
+  const palette = document.getElementById('touch-palette');
+  const moreBtn = bar.querySelector('[data-action=more]');
+  const selBtn = bar.querySelector('[data-action=select]');
+  const setPalette = (open) => {
+    if (palette) palette.hidden = !open;
+    if (moreBtn) moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
   bar.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-action]');
     if (!btn) return;
@@ -8853,8 +8971,39 @@ function wireTouchControls() {
         if (focusedFigure) setFigureScale(figureScale / 1.2);
         else setZoom(zoomBase() - 0.1);
         break;
+      case 'more':      setPalette(palette && palette.hidden); break;
+      case 'collapse':  cycleCollapse(1); break;
+      case 'font':      cycleFont(1); break;
+      case 'theme':     cycleTheme(1); break;
+      case 'autofit':   toggleAutoFit(); break;
+      case 'search':    setPalette(false); startSearch(); break;
+      case 'select':    setTouchSelect(!touchSelectOn); break;
     }
+    if (selBtn) selBtn.setAttribute('aria-pressed', touchSelectOn ? 'true' : 'false');
   });
+}
+
+// Selecting text without a modifier key.
+//
+// On a keyboard this is Alt held down, deliberately: a mode is state you can
+// forget you are in, and the state you forget here is the one where dragging
+// no longer pans. A finger has no modifier to hold, so on touch it has to be
+// a mode - and the two mitigations are that the button shows it is on and
+// that Esc, or turning it off, clears both the mode and the selection.
+//
+// It needs its own flag rather than borrowing altSelectHeld, because the
+// selectionchange listener switches the class off whenever there is no
+// selection and no key held. Toggling the mode on would have survived exactly
+// until the next tap.
+let touchSelectOn = false;
+function setTouchSelect(on) {
+  touchSelectOn = on;
+  if (on) {
+    setSelecting(true);
+    flashMode('select text by dragging · tap the button again to pan');
+  } else {
+    endSelecting();
+  }
 }
 
 function wireFigureClicks() {

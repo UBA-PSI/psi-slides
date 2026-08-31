@@ -313,6 +313,8 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 
 `Shift` with any of the cycling keys goes backwards. Font, theme and slide numbers are remembered for every lecture you open, so the preference follows you; zoom and the `C` setting belong to the talk you are giving.
 
+**On a phone or a tablet with no keyboard, both windows grow a small rail along the bottom.** Forward, back, overview and zoom sit on it; `C`, `F`, `A`, `#`, the search and text selection are behind its `⋯` button. Attach a keyboard and the rail goes away again, because the keys are back.
+
 **Dark mode follows your machine unless something says otherwise.** If you have never pressed `A` and the lecture pins no theme, a machine set to dark opens the lecture dark. Press `A` once and your choice is remembered from then on, everywhere. An author who writes `theme:` in the frontmatter overrides both, by the same rule as the other opening settings.
 
 **The two `C` modes keep separate zoom levels.** The short version holds whatever size you set with `+` and `-`; the full text picks its own so the whole chunk fits the screen, and switching back restores yours exactly.

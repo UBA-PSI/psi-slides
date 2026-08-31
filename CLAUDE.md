@@ -84,12 +84,15 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # browser suite so a compiler regression fails in a second rather than in four
 # minutes. `gates.yml` runs it on push and pull request.
 #
-# Five gates, five contracts: refusals
+# Six gates, six contracts: refusals
 # (build and lint agree on what is refused), accepts (every construct still
 # parses), semantics (the emitted SVG *means* what the source says, plus what
 # the source means to the editor that rewrites it – the span table), corpus
 # (every block in the repository still compiles), step-classes (which classes
-# a beat can carry, derived from DG_STEP_FIXED rather than restated). A green
+# a beat can carry, derived from DG_STEP_FIXED rather than restated), inlined
+# (the two characters that mean something else inside one of build.js's own
+# template literals – a raw backtick, which ends it, and a single-backslash
+# regex escape, which the literal eats and which therefore ships). A green
 # `accepts` once hid a sequence `<->` that parsed and drew one arrowhead;
 # that is what `semantics` exists for. And a check that reaches the compiler
 # through a browser page reaches only the build: two `lint.js` gaps sat behind
@@ -378,5 +381,7 @@ position with it. See `speaker.md` §2.
 - **Everything inlined lives in a template literal.** Three edit mistakes are easy and expensive there:
   - A raw backtick, **even inside a comment**, ends the literal. Throws at parse time. Never write one in `AUDIENCE_JS` / `SPEAKER_JS` / the CSS constants – name the identifier plainly instead.
   - An unterminated `/*` in a CSS block silently swallows every rule to the next `*/`. This used to ship broken, so `assertStylesheetsWellFormed()` runs on every `buildOnce` and turns it into a hard error.
-  - **A regex backslash must be doubled.** `\s` inside a template literal is an escape the build resolves, so source `/\s+/g` emits `/s+/g` – a regex that matches the letter s. This ships silently and nothing catches it: it cost a search index that had every `s` stripped out of its text. Write `/\\s+/g` in `build.js`, and grep the built HTML to confirm what was emitted.
+  - **A regex backslash must be doubled.** `\s` inside a template literal is an escape the build resolves, so source `/\s+/g` emits `/s+/g` – a regex that matches the letter s. This ships silently: it cost a search index that had every `s` stripped out of its text. Write `/\\s+/g` in `build.js`, and grep the built HTML to confirm what was emitted.
+
+  The first and third of these are now a gate: `node test/gates/run.mjs inlined` names the literal and the line in milliseconds, where a stray backtick otherwise costs a build and points the `SyntaxError` at the identifier *after* it. Run it before judging a build failure inside an inlined block. It does not replace reading the emitted HTML – a gate can see that an escape was doubled, not that the rule you wrote does what you meant.
 - **Verifying an inlined change: never discard stderr, and check the output first.** `node build.js … 2>&1 >/dev/null` hides a `SyntaxError` and leaves the *previous* HTML on disk, so the browser then shows a stale build that looks like a change with no effect. After touching an inlined stylesheet or script, `grep -F` the new rule or function in the built HTML before judging it in the browser.

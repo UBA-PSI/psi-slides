@@ -9,6 +9,38 @@ from building the same way is a major version.
 
 ### Changed
 
+- **A touchscreen can now reach the knobs, and the cockpit has a rail at
+  all.** There was a five-button rail – forward, back, overview, two zooms –
+  and it was rendered into `audience.html` alone. That is the window a
+  lecturer is least often holding: on a tablet at the lectern the cockpit is
+  the one in your hands, and it had no touch controls whatsoever and a footer
+  carrying freeze, layout, export and help. `C`, `F`, `A`, `#`, the search
+  and text selection were unreachable there without a keyboard, and the rail
+  in the other window carried only things a tap or a pinch already did.
+
+  The rail is now shared by both live views and gains a `⋯` button that opens
+  a second pill above it with `C`, `F`, `A`, `#`, search and text selection.
+  Two pills rather than one row: eleven round targets do not fit a phone held
+  upright, and the five that matter mid-talk should not shrink to make room
+  for the six that do not. Every button calls the function its key calls and
+  never a second code path, so the rail cannot drift away from the key map.
+
+  Text selection is the one place the two models differ, on purpose. On a
+  keyboard it is `Alt` held down, because a mode is state you can forget you
+  are in and the state you forget here is the one where dragging no longer
+  pans. A finger has no modifier to hold, so on touch it is a mode – shown as
+  a pressed button, cleared by `Esc` or by pressing it again. It carries its
+  own flag rather than borrowing the `Alt` one, which the `selectionchange`
+  listener switches off whenever nothing is selected: without that the mode
+  would have survived exactly until the next tap.
+
+  Also on a narrow screen, an opened `::: expand` now covers the slide
+  instead of being squeezed into half of a two-column grid that has no room
+  for two columns.
+
+  All of it is behind `@media (pointer: coarse)`, so a laptop never sees it
+  and an iPad with a keyboard attached re-classifies and loses it again.
+
 - **The sideways arrows now mean one thing, and `Shift` with them changes
   column – from any slide.** Up to now `→` and `←` were forward and backward
   on most slides and *next / previous column* on the first chunk of a column,
@@ -54,6 +86,21 @@ from building the same way is a major version.
   apart from the marks themselves. Print hides them.
 
 ### Added
+
+- **A gate for the two characters that mean something else inside build.js's
+  template literals** (`test/gates/inlined.mjs`). Roughly two thirds of
+  `build.js` is CSS and runtime JS held in template literals, where a raw
+  backtick ends the literal – including one inside a comment, which is where
+  it always happens – and a single-backslash regex escape is eaten by the
+  literal, so `/\s+/g` ships as `/s+/g`, a regex matching the letter s. The
+  first is loud but names the wrong thing: `SyntaxError: Unexpected
+  identifier 'hidden'`, eight thousand lines in, in a CSS comment about an
+  attribute, and it costs a build to find out. The second is silent, and cost
+  a search index with every `s` stripped out of its text. The gate names the
+  line and the literal in milliseconds, and both halves were verified by
+  introducing each defect and watching them fail. The third documented trap –
+  an unterminated `/*` swallowing every rule after it – already refuses the
+  build in `assertStylesheetsWellFormed()` and is not repeated.
 
 - **A heading can be the document's without being the slide's.**
   `## figure: How a crawl is scored {.full #loop .bare}` keeps the heading in

@@ -24,6 +24,8 @@ mitcommittet.
 |---|---|
 | 1 | Plan angelegt, alle Punkte gegen den Code verifiziert (siehe „Befund“-Zeilen) |
 | 2 | **Engine-Slice 1:** `#16` Suchindex, `#31` Formel-Zoom, `#43` Fokus als Navigationsstufe, `#55` `rule`-Divider, `#6` `option` im `?`-Overlay. Verifiziert im gebauten HTML und im Browser: `/welcome` findet die Divider-Folie; Formel wächst beim Klick um Faktor 3 (77 px → 230 px hoch), gleich bei 1440 und 1920 breit; Vorwärts auf einer fokussierten Abbildung ohne Steps schließt die Karte und bleibt auf dem Chunk, der zweite Druck geht weiter. `node test/run.mjs nav` 30/30, `npm run gate` 419/419, `node lint.js lectures/` sauber. |
+| 6 | **Nebenprodukt: `test/gates/inlined.mjs`.** Ich bin in einer Sitzung dreimal in die Backtick-Falle gelaufen, die `CLAUDE.md` beschreibt. Neues Gate prüft die beiden statisch entscheidbaren Fallen in `build.js`' Template-Literalen: rohes Backtick (beendet das Literal) und einfacher Regex-Backslash (`/\s+/g` wird zu `/s+/g` und geht still in Produktion). Beide Hälften gegengeprüft, indem ich den Defekt eingebaut und das Gate fallen sehen habe. Die dritte Falle, unterminiertes `/*`, hat mit `assertStylesheetsWellFormed()` längst einen harten Build-Fehler und wird nicht doppelt geprüft. `CLAUDE.md` und `run.mjs` sagen jetzt beide „sechs Gates". |
+| 5 | **[#17/#4/#10-mobile] Touch-Bedienung.** Leiste ist jetzt in **beiden** Live-Views (vorher nur `audience.html` – ausgerechnet nicht das Fenster, das man am Rednerpult in der Hand hält). Neuer `⋯`-Knopf öffnet eine zweite Pille mit `C`, `F`, `A`, `#`, Suche und Textauswahl. Textauswahl ist auf Touch ein Modus statt einer gehaltenen Taste, mit eigenem Flag – `altSelectHeld` hätte der `selectionchange`-Listener beim nächsten Tap zurückgesetzt. Auf schmalen Schirmen überlagert eine offene Expansion jetzt die Folie, statt in die halbe Breite eines Zweispalten-Grids gequetscht zu werden. Drei echte Fehler dabei gefunden und behoben: (a) die `#touch-palette`-ID-Regel schlug das `[hidden]`-Attribut, die Palette stand also immer offen; (b) `em`-Maße erbten die zoomskalierte Foliengröße, sechs Knöpfe liefen 441 px breit auf einem 390-px-Telefon – `rem` war nicht besser, weil Mobile-Browser die Root-Größe selbst setzen (63 px auf dem iPad quer, 83 px hochkant); (c) `left: 50%` gab dem fixierten Container nur die halbe Viewportbreite als **Layout**raum, das `translateX` verschiebt nur optisch – also brach die Leiste auf zwei Reihen um, wo Platz für eine war. Jetzt in zehn Konfigurationen gemessen (iPad quer/hoch, iPhone 13/SE, kleines Android × beide Views): je eine Reihe, Ziele ≥44 px, kein Overflow, keine Page-Errors. |
 | 4 | **[#8] Navigationsmodell.** `←`/`→` sind überall Vor/Zurück, `Shift`+`←`/`→` wechselt die Spalte von jedem Chunk aus. Mit weg: der `sideways`-Guard in der Key-Map, das gleichnamige Feld in `markColumnEdges()`, die beiden `‹ ›`-Marken samt CSS. `nextCol`/`prevCol` stehen jetzt still, wenn es keine Spalte in die Richtung gibt – vorher fiel `nextCol` auf den letzten Chunk der Lecture durch, was der alte Guard unerreichbar hielt und `Shift` von jeder Folie der letzten Spalte aus erreichbar gemacht hätte. Mitgezogen: `?`-Overlay, `PRD.md` §5, `README.md`, `speaker.md`, Tutorial `#arrows`, `CHANGELOG.md`, `test/harness.mjs` (`hints` ist jetzt ein Zeichen), `test/nav.mjs`, `test/nav-cockpit.mjs`. |
 | 3 | **Text-Slice 1** (unstrittige Streichungen und Faktenfehler): `#2`, `#3`, `#11`, `#13`, `#14`, `#15`, `#52`, `#6`. Alle vier Tutorial-Views neu gebaut. |
 
@@ -90,7 +92,7 @@ Alles hier ist eine überschaubare Änderung an `build.js`, mit klarem Befund.
 
 ## B. Engine – größer, Rückfrage oder Reproduktion nötig
 
-- [ ] **[#8] Navigationsmodell ändern.** `Shift`+`←`/`→` wechselt die Spalte;
+- [x] **[#8] Navigationsmodell ändern.** `Shift`+`←`/`→` wechselt die Spalte;
       `←`/`→` gehen **immer** einen Chunk weiter, auch auf Column-Heads.
       *Umfang:* `keydown`-Map, `markColumnEdges()`/`sideways()`, die Randmarken
       `‹ ›` in `buildNavHints()`, das `?`-Overlay (`renderHelpOverlay`), das
@@ -104,7 +106,7 @@ Alles hier ist eine überschaubare Änderung an `build.js`, mit klarem Befund.
       *Reihenfolge:* vor dem zweiten Textdurchgang, weil `#arrows`, das
       `?`-Overlay und `speaker.md` denselben Text tragen.
 
-- [ ] **[#17, #4, #10-Teil-Mobile] Touch-Bedienung: die halbe Funktionalität ist
+- [x] **[#17, #4, #10-Teil-Mobile] Touch-Bedienung: die halbe Funktionalität ist
       auf dem Smartphone unerreichbar.** Auto-Fit, `C`, Themes, Font, Suche,
       Overview – alles hängt an Tasten. Dazu [#4]: Text markieren („Alt halten“)
       geht ohne Alt-Taste gar nicht. Dazu [#10]: geöffnete Expansions sind auf
