@@ -1,136 +1,26 @@
 # TODO – Tutorial-Lecture
 
 Rückmeldungen aus einem Durchgang durch `lectures/tutorial/` (Audience- und
-Lectern-View, Desktop und iPad). Die Original-Nummern sind als `[#n]` erhalten,
-damit die Liste rückwärts lesbar bleibt.
+Lectern-View, Desktop und iPad). Die Original-Nummern sind als `[#n]` erhalten.
 
-Sortiert nach **wo die Arbeit hingeht** und nach **wie weitreichend sie ist** –
-nicht nach der Reihenfolge, in der die Punkte aufgeschrieben wurden. Ein
-Textfehler im Tutorial und eine Änderung am Navigationsmodell sehen in einer
-flachen Liste gleich aus und sind es nicht.
-
----
-
-## Wo die Arbeit steht
-
-**Erledigt:** **C und D vollständig**, dazu die Engine-Mini-Fixes bis auf
-drei, das Navigationsmodell und die Touch-Bedienung. Elf Commits –
-`git log b36bc24..` liest sie in Reihenfolge.
-
-**Als Nächstes:** die drei Reste in **A** (`#9`, `#10`-Desktop, `#1`), dann die
-drei Reproduktionen in **B** (`#5`, `#41`, `#30`). **`#1` und `#41` brauchen
-zuerst eine Messung, keine Änderung** – bei beiden widerspricht der Code der
-Beobachtung, und ohne Reproduktion ändert man das Falsche.
-
-**Alle Entscheidungsfragen sind beantwortet** – nichts wartet auf Rückmeldung.
-Die Antworten stehen fett beim jeweiligen Punkt.
-
-### Beim Verifizieren nebenbei gefunden
-
-Vier Fehler, die keiner der Punkte oben beschrieb – jeder kam heraus, weil eine
-Behauptung des Tutorials gegen den Code geprüft wurde statt geglaubt:
-
-- **`lectures/decoration` dokumentierte vier `::: backdrop`-Slot-Gruppen, es
-  sind fünf.** `focus` (`sharp` | `blur`) fehlte in genau der Lecture, die
-  jedes Konstrukt zeigen soll. Das Tutorial hatte es richtig. (`1593233`)
-- **`#figure-focus`: „click any figure, code block or margin note“.** Eine
-  Margin Note war nie klickbar – `FOCUSABLE_SEL` führt `.marginalia` und nicht
-  `.margin-note`. (`04c2921`)
-- **`#margin-demo`: „the label reads NOTE unless you say otherwise“.** Die
-  Direktive nimmt kein Label, es ist auf `note` festverdrahtet. Es gab kein
-  „otherwise“. (`04c2921`)
-- **`#cards`: „`ground: photo`“ ist keine Syntax.** `parseSlotClasses` liest
-  blanke Wörter in Klammern; ein `key: value` in einem Tail hätte den Build
-  angehalten. (`c5cdd9b`)
-
-### Wie hier verifiziert wird
-
-```bash
-node lint.js lectures/                # alle fünf Lectures, zero-dep
-npm run gate                          # 422 Assertions, ~0,5 s, kein Browser
-npm run settings                      # 244 Assertions, ~1 min, baut selbst
-node test/run.mjs                     # 583 Assertions, ~6 min, baut selbst
-node test/run.mjs nav                 # nur die Specs, deren Name passt
-```
-
-Beim Anfassen der Live-Views mindestens `nav`, bei `editor.mjs` auch `editor`.
-Prosa geht durch `writing-skills:human-writing` und
-`writing-skills:prose-passes`; alles an Grammatik oder Renderern durch die
-`psi-slides-*`-Skills.
-
-**Getrackte Outputs neu bauen und mitcommitten**, sobald `build.js` oder eine
-der drei Quellen sich ändert – sonst schlägt der Release-Workflow fehl:
-
-```bash
-node build.js lectures/tutorial/source.md      # alle vier Views
-node build.js lectures/diagrams/source.md      # alle vier Views
-node build.js lectures/decoration/source.md --audience-only
-node build.js lectures/decoration/source.md --print-only
-```
-
-### Zwei Fallen, in die ich gelaufen bin
-
-**Ein rohes Backtick in einem Kommentar innerhalb eines Template-Literals**
-beendet das Literal, und `build.js` parst nicht mehr. Dreimal passiert, jedes
-Mal in einem Kommentar, der ein Ding beim Namen nennen wollte. Der
-`SyntaxError` zeigt auf den Bezeichner *danach*, achttausend Zeilen tief. Seit
-Commit `674cbcd` findet `node test/gates/run.mjs inlined` das in Millisekunden
-und nennt Literal und Zeile – **vor** einem Build laufen lassen, nicht danach
-rätseln.
-
-**`node build.js … 2>&1 >/dev/null` verschluckt genau diesen Fehler** und lässt
-das *vorherige* HTML auf der Platte. Der Browser zeigt dann einen alten Build,
-der aussieht wie eine Änderung ohne Wirkung. Nach jedem Eingriff in inlined
-CSS/JS die neue Regel per `grep -F` im gebauten HTML nachweisen.
+**Abschnitte C und D – der ganze Textdurchgang und alle vier Umbau-Blöcke –
+sind fertig.** Was hier steht, ist das, was noch offen ist; der Rest ist unter
+*Was erledigt ist* zusammengefasst und steht ausführlich in den Commits.
+Erledigte Punkte sind aus der Liste entfernt, nicht abgehakt: eine Handoff-Datei,
+in der man sechs offene Punkte zwischen fünfzig erledigten suchen muss, ist
+keine.
 
 ---
 
-## Fortschritt
+## Was noch offen ist
 
-| # | Was | Commit |
-|---|---|---|
-| 1 | Plan angelegt, jeder Punkt gegen den Code verifiziert – die *Befund*-Zeilen unten sind das Ergebnis, nicht Vermutungen. Drei Punkte kippten dabei: `#44` ist kein Fehler, `#30` ist kein Fehler, `#41` widerspricht dem Code. | – |
-| 2 | **Engine-Slice 1:** `#16` Suchindex, `#31` Formel-Zoom, `#43` Fokus als Navigationsstufe, `#55` `rule`-Divider, `#6` `option` im `?`-Overlay. Im Browser gemessen: `/welcome` findet die Divider-Folie; die Formel wächst beim Klick von 77 auf 230 px Höhe, gleich bei 1440 und 1920 breit; Vorwärts auf einer fokussierten Abbildung ohne Steps schließt die Karte und bleibt auf dem Chunk, der zweite Druck geht weiter. | `e7dfc45` |
-| 3 | **Text-Slice 1**, die unstrittigen Streichungen und Faktenfehler: `#2`, `#3`, `#11`, `#13`, `#14`, `#15`, `#52`, `#6`. | `bfdff5f` |
-| 4 | **[#8] Navigationsmodell.** `←`/`→` sind überall Vor/Zurück, `Shift`+`←`/`→` wechselt die Spalte von jedem Chunk aus. Mit weggefallen: der `sideways`-Guard in der Key-Map, das gleichnamige Feld in `markColumnEdges()`, die beiden `‹ ›`-Marken samt CSS. `nextCol`/`prevCol` stehen jetzt still, wenn es keine Spalte in die Richtung gibt – vorher fiel `nextCol` auf den letzten Chunk der Lecture durch, was der alte Guard unerreichbar hielt und `Shift` von jeder Folie der letzten Spalte aus erreichbar gemacht hätte. Mitgezogen: `?`-Overlay, `PRD.md` §5, `README.md`, `speaker.md`, Tutorial `#arrows`, `CHANGELOG.md`, `test/harness.mjs` (`hints` ist jetzt ein Zeichen statt drei), `test/nav.mjs`, `test/nav-cockpit.mjs`. | `e9c3730` |
-| 5 | **Nebenprodukt: `test/gates/inlined.mjs`.** Prüft die beiden statisch entscheidbaren Fallen in den Template-Literalen von `build.js`: rohes Backtick und einfacher Regex-Backslash (`/\s+/g` wird zu `/s+/g` und geht still in Produktion). Beide Hälften gegengeprüft, indem der Defekt eingebaut und das Gate fallen gesehen wurde. Die dritte Falle, unterminiertes `/*`, hat mit `assertStylesheetsWellFormed()` längst einen harten Build-Fehler und wird nicht doppelt geprüft. `CLAUDE.md` und `run.mjs` sagen jetzt beide „sechs Gates“. | `674cbcd` |
-| 6 | **[#17/#4/#10-mobile] Touch-Bedienung.** Siehe den Punkt in B – drei echte CSS-Fehler kamen erst beim Messen heraus. | `12f67d4` |
-| 7 | **Text-Slice 2 – Abschnitt C komplett.** `#39` und `#54` zuerst, wie geplant: „document" als Name für die Print-Views ist überall durch `print.html` / `print-notes.html` ersetzt (vorher geprüft, dass `> annot:` wirklich in *beiden* Dateien landet – `annotationHtml` hängt nicht an `withNotes`), „saying nothing" durch „the default". Dann die restlichen 19 Punkte. `#22` heißt jetzt „auto-fit", weil `?`-Overlay, Frontmatter-Key und Flash-Meldung das Ding alle so nennen. `#28` zeigt ein Bild mit Alt-Text, statt die Caption-Regel zu behaupten. | `d52fd3b` |
-| 8 | **D-Block 1 – Decoration.** `#deco-cards` und `#deco-picture` sind aufgelöst: die Konstrukte werden jetzt genau einmal eingeführt, in einem Lauf, und dort *gezeigt* statt abgedruckt. Neu `#cards-look` mit `{accent}` und `{outline middle}` als sichtbaren Beispielen; die gerenderten Klassen (`cg-accent`/`cv-top` gegen `cg-outline`/`cv-middle`) bestätigen die Behauptungen. Die Cards-Demo trägt jetzt eine gefaltete zweite Ebene, damit `C` auf der Folie tut, was der Satz daneben sagt. | `c5cdd9b` |
-| 9 | **D-Block 2 – Diagramme.** `#diagram` war der längste Chunk der Lecture *und* die erste Begegnung mit `::: draw`. Jetzt vier Chunks: fünf Zeilen und ihre Zeichnung, dieselbe Zeichnung mit zwei `step`-Blöcken, die sechs Slots, Placement. Im gebauten Page nachgezählt: dg1 ohne Frames-Payload (statisch), dg2 mit `n:3`. Eigene id `#diagram-beats` – `#diagram-steps` gehört der großen Alice/Eve-Figur, und ids sind eingefroren. | `3259d90` |
-| 10 | **D-Block 3 – Kernidee.** `#topic-sentence` sagte „der Topic Sentence", Singular; PRD §4.5 und `splitSentencesIn` nehmen den ersten Satz **jedes** Absatzes. Trägt jetzt die Arbeitsreihenfolge (erst Prosa, dann die Eröffnungen schärfen), die sonst nirgends stand, und ist selbst vier Absätze – am gebauten Page nachgezählt, nicht geschätzt. `#33` gestrichen, `#19` ohne die Abbildung umformuliert, die es nie gab. | `d5d4bca` |
-| 11 | **D-Block 4 – `::: footnote`.** `::: margin` baut weiter und ist nirgends mehr dokumentiert. `word` merkt sich die geschriebene Schreibweise, damit „was never closed" die getippte Zeile zitiert. `test/settings.mjs` sichert den Alias in **beiden** Views ab (`.margin-note` live, `.chunk-expansion-margin` auf Papier) – gegengeprüft, indem `margin` aus dem Parser entfernt und der Test fallen gesehen wurde. | `04c2921` |
+Sechs Punkte. **Zwei davon fangen mit einer Messung an, nicht mit einer
+Änderung** – bei `#1` und `#41` widerspricht der Code der Beobachtung, und ohne
+Reproduktion ändert man das Falsche.
 
----
+### A. Engine – Mini-Fixes ← hier weitermachen
 
-## A. Engine – Mini-Fixes ← **hier weitermachen** (drei Reste)
-
-Alles hier ist eine überschaubare Änderung an `build.js`, mit klarem Befund.
-
-- [x] **[#16] Column-Heads fehlten im Suchindex.** „welcome“ war nicht findbar.
-      *Befund:* Der Divider ist ein eigener `.chunk` (steht in `flatChunks`),
-      trägt aber `.section-heading` statt `.chunk-heading` und hat keinen
-      `.chunk-body`. `buildSearchIndex()` las nur die beiden letzteren, also
-      landete jeder Divider als `(untitled)` mit leerem Body im Index.
-      *Gemacht:* Rückfall auf `.section-heading` / `.section-body`; bei einem
-      `outline`-Divider auf das aktuelle Listenelement, weil dort die Überschrift
-      nicht neben der Liste steht, sondern *ist*.
-
-- [x] **[#31] Formeln öffneten nicht vergrößert.**
-      *Befund:* Ein fokussiertes Bild bekommt `width: 95vw`, ein Codeblock eine
-      `clamp()` gegen `--slide-h` – für `.math-display` gab es keine Regel, also
-      blieb die Formel bei ihrer Fließtextgröße auf einer Papierkarte.
-      *Gemacht:* Gleiche Behandlung wie der Codeblock, gleiche Einheit.
-
-- [x] **[#55] `section: rule` sah gequetscht aus.** Statt zweier dünner Linien
-      über und unter der Überschrift jetzt eine dickere darunter.
-
-- [x] **[#43] Fokussierte Abbildung: Vorwärts wechselte den Chunk.**
-      *Befund:* `goForward()` fiel nach `advanceReveal()` direkt in
-      `nextChunk()` → `jumpTo()`, und `jumpTo` schloss die Karte beiläufig mit.
-      Eine Taste nahm also die Abbildung weg **und** wechselte die Folie.
-      *Gemacht:* Der Fokus ist in beiden Richtungen eine eigene Stufe, so wie er
-      es bei `Esc` schon war.
+Jeder Punkt eine überschaubare Änderung an `build.js`, mit klarem Befund.
 
 - [ ] **[#9] Bei großer Schrift überlagern die EXP-Buttons den Text.**
       *Befund:* `.exps` ist `position: absolute; bottom: …` im Chunk und skaliert
@@ -175,46 +65,9 @@ Alles hier ist eine überschaubare Änderung an `build.js`, mit klarem Befund.
       Foliensatz sich gegen ein Neu-Umbrechen wehren kann. Neue Regeln tragen
       ihn mit.
 
----
+### B. Engine – größer
 
-## B. Engine – größer
-
-- [x] **[#8] Navigationsmodell geändert.** Siehe Fortschritt Nr. 4.
-      **Entschieden war:** `Shift`+`←`/`→` von **jedem** Chunk aus, damit es eine
-      Regel statt einer Ausnahme ist; die `‹ ›`-Marken entfallen ersatzlos, weil
-      es keinen Sonderfall mehr gibt, den sie ankündigen müssten. `⌄` bleibt – es
-      sagt, wohin Vorwärts *führt*, nicht was eine Taste bedeutet.
-
-- [x] **[#17, #4, #10-Mobile] Touch-Bedienung.**
-      *Befund war:* Eine Leiste existierte schon (`#touch-controls`, fünf Knöpfe,
-      `@media (pointer: coarse)`), wurde aber **nur in `audience.html`
-      gerendert** – nicht in dem Fenster, das man am Rednerpult in der Hand hält
-      –, und trug ausgerechnet die Funktionen, die Tippen und Pinchen ohnehin
-      können.
-      *Gebaut:* Die Leiste liegt jetzt in einer geteilten Konstante und wird in
-      **beide** Live-Views gerendert. Ein `⋯`-Knopf öffnet eine zweite Pille mit
-      `C`, `F`, `A`, `#`, Suche und Textauswahl. Jeder Knopf ruft die Funktion
-      seiner Taste und nichts sonst.
-      **Abweichung von der ursprünglichen Notiz:** Textauswahl ist ein **Knopf in
-      der Palette**, kein Long-Press. Ein Long-Press ist nicht auffindbar, und
-      die Entscheidung lautete „alles in der Palette erreichbar“. Der Modus hat
-      ein eigenes Flag – `altSelectHeld` hätte der `selectionchange`-Listener
-      beim nächsten Tap zurückgesetzt.
-      *Drei echte Fehler, die erst das Messen zeigte:*
-      (a) die `#touch-palette`-ID-Regel schlug das `[hidden]`-Attribut, die
-      Palette stand also immer offen;
-      (b) `em`-Maße erbten die zoomskalierte Foliengröße – sechs Knöpfe liefen
-      441 px breit auf einem 390-px-Telefon. `rem` war nicht besser, weil
-      Mobile-Browser die Root-Größe per Text-Autosizing selbst setzen: dieselbe
-      Regel ergab 63 px auf dem iPad quer und 83 px auf demselben iPad hochkant.
-      Jetzt `clamp()` gegen die Viewportbreite, Untergrenze 44 px;
-      (c) `left: 50%` gibt einem fixierten Element ohne Breite nur die halbe
-      Viewportbreite als **Layout**raum – das `translateX` verschiebt bloß
-      optisch. Also brach die Leiste auf einem 320-px-Telefon in zwei Reihen um,
-      wo Platz für eine war. Jetzt `left: 0; right: 0`, zentriert vom Flex.
-      *Gemessen* in zehn Konfigurationen (iPad quer/hoch, iPhone 13/SE, kleines
-      Android × beide Views, mit hochgedrehtem Folienzoom): je eine Reihe, Ziele
-      44–56 px, kein Overflow, keine Page-Errors.
+Zwei Reproduktionen und eine Aufnahme. Keiner ist bisher nachgestellt.
 
 - [ ] **[#5] iPad, Lectern-View: `f` öffnet manchmal die Suche statt den Font zu
       wechseln.** Auch nach Antippen der Folie.
@@ -232,7 +85,8 @@ Alles hier ist eine überschaubare Änderung an `build.js`, mit klarem Befund.
       *Status:* **nicht reproduziert, und es widerspricht dem Code** –
       `countSegments()` zählt `chunkBeats()` unabhängig vom Fokus.
       *Verdacht:* Der beobachtete Chunk war schon durchgelaufen; dann ist es
-      `[#43]` von der anderen Seite, und `[#43]` ist behoben. **Vor jeder
+      `[#43]` von der anderen Seite – „Vorwärts auf einer fokussierten Abbildung
+      wechselte den Chunk“, behoben in `e7dfc45`. **Vor jeder
       Änderung reproduzieren**, mit `revealed[chunkId]` im Blick.
 
 - [ ] **[#30] Das eingebettete Video zeigt kein bewegtes Bild.**
@@ -247,221 +101,106 @@ Alles hier ist eine überschaubare Änderung an `build.js`, mit klarem Befund.
 
 ---
 
-## C. Tutorial-Text – Mini-Fixes ✅ **erledigt** (`d52fd3b`)
+## Wie hier verifiziert wird
 
-Formulierung, Präzision, Faktenfehler. Alles in `lectures/tutorial/source.md`.
-Der rote Faden über fast alle Punkte: **weniger blumig, weniger belehrend,
-weniger Andeutung – das Ding beim Namen nennen.**
+```bash
+node lint.js lectures/                # alle fünf Lectures, zero-dep
+npm run gate                          # 422 Assertions, ~0,5 s, kein Browser
+npm run settings                      # 244 Assertions, ~1 min, baut selbst
+node test/run.mjs                     # 583 Assertions, ~6 min, baut selbst
+node test/run.mjs nav                 # nur die Specs, deren Name passt
+```
 
-**`#39` und `#54` zuerst.** Beide sind Suchen-und-Ersetzen über den ganzen
-Text; jede Umformulierung davor müsste sonst zweimal angefasst werden.
+Beim Anfassen der Live-Views mindestens `nav`, bei `editor.mjs` auch `editor`.
+Prosa geht durch `writing-skills:human-writing` und
+`writing-skills:prose-passes`; alles an Grammatik oder Renderern durch die
+`psi-slides-*`-Skills.
 
-### Faktenfehler
+**Getrackte Outputs neu bauen und mitcommitten**, sobald `build.js` oder eine
+der drei Quellen sich ändert – sonst schlägt der Release-Workflow fehl:
 
-- [x] **[#2] `#expand`: die Behauptung, `C` schließe Expansions.** Stimmte nicht –
-      `cycleCollapse()` fasst weder `.exps` noch `.exp-body` an. Text ersetzt.
-- [x] **[#3] `#expand`: „`Enter` does not open expansions“** gestrichen.
-- [x] **[#6] Markieren: `Alt` / `option`** – im Tutorial und im `?`-Overlay.
-- [x] **[#11] `#expand`: `1` öffnet die erste Expansion *und schließt sie wieder*.**
-- [x] **[#7] `#audience-now`: „What you are seeing is the audience view“ stimmt
-      nicht unbedingt** – man kann die Folie auch in der Lectern-View lesen.
-      Umformulieren, sodass beide Fälle stimmen.
-- [x] **[#23] `#knobs` erklärt `B` zweimal** – einmal in der Liste, einmal im
-      Absatz darunter. Eine Erklärung reicht.
-- [x] **[#28] `#images` zeigt keinen Alt-Text auf der Folie.** Der Chunk erklärt
-      „the alt text becomes a caption“ und enthält gar kein Bild. Ein
-      Beispielbild mit Alt-Text einsetzen, damit die Regel sichtbar wird statt
-      behauptet.
+```bash
+node build.js lectures/tutorial/source.md      # alle vier Views
+node build.js lectures/diagrams/source.md      # alle vier Views
+node build.js lectures/decoration/source.md --audience-only
+node build.js lectures/decoration/source.md --print-only
+```
 
-### Ungenaue oder kryptische Sprache
+## Zwei Fallen, in die ich gelaufen bin
 
-- [x] **[#39] „document“ als Wort für die Print-View aufgeben – überall.** Der
-      Leser weiß nicht, dass die zwei Handouts gemeint sind. Stattdessen die
-      Dateinamen: `print.html` und `print-notes.html`. Betrifft den ganzen Text,
-      nicht nur `#view-defaults`. Dort außerdem streichen: „a document having no
-      keyboard to cycle it with“.
-- [x] **[#54] „when you say nothing“ / „saying nothing“ → „default“.** Gemeint
-      ist schlicht: die Einstellung ist weggelassen. Kommt an vielen Stellen vor.
-- [x] **[#20] `#labels` (`.bare`): „takes it off“ → „hides“**, und „the two
-      documents“ durch die Dateinamen ersetzen.
-- [x] **[#22] „`#` hands zoom to the tool“ → „`#` enables auto-fit, which …“.**
-- [x] **[#24] `#layout-axes`: „You decide a layout twice“** klingt nach Nachteil.
-      Umformulieren: zwei unabhängige Entscheidungen, Breite und Anordnung.
-- [x] **[#25] `#cols-demo`: „Segments work inside `::: cols`“** – „segments“ ist
-      an der Stelle nicht eingeführt. „revealed segments (`---`)“ schreiben.
-- [x] **[#51, Teil 1] `#side-ratio`: „A card row *is* welcome in a pane“.** „is
-      welcome“ ist blumig; „pane“ ist ein normales englisches Wort und wurde nie
-      als Fachbegriff eingeführt. Klar sagen: eine Hälfte eines
-      `::: side`-Blocks. (Prüfen, ob „pane“ an weiteren Stellen so benutzt wird.)
-- [x] **[#52] `#figure-focus`: „the mark“ → „the QR code symbol“.**
-- [x] **[#29] `#images`: der Absatz über das 2-MB-Limit ist kryptisch.** Wer die
-      Folie in der kollabierten Ansicht liest, versteht nicht, dass Bilder
-      **standardmäßig** in die HTML eingebettet werden, und schon gar nicht,
-      warum.
-      *Befund:* Die Regel steht zwar da, aber an der falschen Stelle. „Anything
-      under 2 MB a file and 10 MB in total goes inside the HTML without your
-      asking“ ist der **dritte** Satz eines Absatzes in einem `::: cols
-      2`-Block, erscheint also nie auf der Folie. Der Topic-Sentence des
-      nächsten Absatzes – „A picture over the 2 MB limit stops the build“ –
-      setzt genau diese Regel voraus und ist der erste, den der Raum sieht. Die
-      Folie führt also mit der Ausnahme und lässt die Regel im Handout.
-      *Fix:* Das Einbetten zum Topic-Sentence machen und das Limit zur Folge
-      davon. Das *Warum* (die Datei soll allein reisen können) gehört in
-      denselben ersten Satz – es ist der Grund, warum das Werkzeug so
-      entschieden hat, nicht ein Detail dahinter.
+**Ein rohes Backtick in einem Kommentar innerhalb eines Template-Literals**
+beendet das Literal, und `build.js` parst nicht mehr. Dreimal passiert, jedes
+Mal in einem Kommentar, der ein Ding beim Namen nennen wollte. Der
+`SyntaxError` zeigt auf den Bezeichner *danach*, achttausend Zeilen tief. Seit
+Commit `674cbcd` findet `node test/gates/run.mjs inlined` das in Millisekunden
+und nennt Literal und Zeile – **vor** einem Build laufen lassen, nicht danach
+rätseln.
 
-- [x] **[#53, Teil 2] `#bundled-fonts`: der erste Satz des `ligatures:`-Absatzes
-      ist kryptisch** – und er ist der einzige, der auf der Folie steht.
-- [x] **[#57] `#labels`, erster Absatz: „A tag word above a chunk is two
-      different things wearing one name“** – umformulieren, ohne Pointe.
-- [x] **[#58] `#labels`: „It is a key of its own and not part of `rules` …“** –
-      erklärt eine Design-Entscheidung, nach der niemand gefragt hat, und
-      erklärt sie unverständlich. Streichen oder auf „`rules` schaltet die
-      Linien, `labels` die Wörter“ eindampfen.
-- [x] **[#59] `#closing`: die drei Absätze über „tag und nicht zweites
-      `title:`“, „trägt weder Namen noch `info`“, „die vier
-      Bildkompositionen“** – alles Begründungen für nicht gestellte Fragen. Auf
-      das eindampfen, was man tun muss.
-
-### Belehrender Ton
-
-- [x] **[#13] `#figure-focus`: der Satz über QR-Codes für Folien ohne Links.**
-- [x] **[#14] `#overview`: „in a lecture you did not write“.**
-- [x] **[#15] `#toc`: „and renders normally“.**
-- [x] **[#18] `#derived-mode`: „A chunk that makes an argument lives with that
-      easily“** – umformulieren.
-- [x] **[#34] `#read-more`: „The craft only shows in lectures somebody wrote“** –
-      streichen. Stattdessen schlicht: psi-slides bringt Beispiel-Foliensätze
-      mit, zum Anschauen und Abgucken.
-- [x] **[#36] `#authoring`: „Three commands cover the whole of writing a
-      lecture“** – die Anzahl ist egal. Ohne Zählung formulieren.
-- [x] **[#56] `#section-dividers`: der Card-Text** ist belehrend („The signal
-      that arrives across a room before any word does“). Sachlich neu schreiben.
-- [x] **[#53, Teil 1] `#bundled-fonts`: die Iosevka-Entscheidungsgeschichte
-      streichen.** Interessiert außer dem Autor niemanden.
-
-### Inhaltlich unnötig oder falsch platziert
-
-- [x] **[#21] `#tag-effects`: „And the checker will not mention it“** – der
-      Linter ist an der Stelle noch nicht eingeführt, er kommt erst in
-      `#authoring`. Streichen oder nach hinten verschieben.
-- [x] **[#35] `#read-more`: `PRD.md` und `docs/comparison.md` streichen.** Beides
-      ist nicht für Endnutzer. Übrig bleiben die drei Beispiel-Lectures.
-- [x] **[#37] `#view-defaults`: `lang:` steht separat unter dem
-      Frontmatter-Block.** Einfach mit in den YAML-Block aufnehmen.
-- [x] **[#38] `#view-defaults`: „Which setting wins is one sentence.“** Als
-      Topic-Sentence ist das Foreshadowing ohne Substanz – auf der Folie steht
-      eine Ankündigung statt einer Aussage. Entweder die Regel selbst zum ersten
-      Satz machen, oder den ganzen Absatz in ein `::: expand` verschieben.
-- [x] **[#46] `#title` / Cover: `info:` „hält die Konferenz“** ist für eine
-      Vorlesung schief. Beispieltext auf eine Lehrveranstaltung münzen
-      (Kursname, Kurs-URL, Ort) und die Konferenz nur als eine Möglichkeit
-      nennen.
-- [x] **[#44] Der Link „in the decoration lecture“ hat keinen QR-Code.**
-      *Befund:* Absicht und richtig – QR-Codes gibt es nur für
-      `https?://`-Adressen (`marked`-Renderer, `isExternal`). Ein relativer Pfad
-      ist auf einem fremden Telefon nichts wert. **Kein Handlungsbedarf.**
+**`node build.js … 2>&1 >/dev/null` verschluckt genau diesen Fehler** und lässt
+das *vorherige* HTML auf der Platte. Der Browser zeigt dann einen alten Build,
+der aussieht wie eine Änderung ohne Wirkung. Nach jedem Eingriff in inlined
+CSS/JS die neue Regel per `grep -F` im gebauten HTML nachweisen.
 
 ---
 
-## D. Tutorial-Text – Umbauten ✅ **erledigt** (`c5cdd9b`, `3259d90`, `d5d4bca`, `04c2921`)
+## Was erledigt ist
 
-Hier reicht keine Formulierung; die Folge oder der Aufbau von Chunks ändert
-sich. **In Blöcken abarbeiten, jeder Block ein Commit mit neu gebauten
-Outputs.**
+Elf Slices. Die Commit-Nachrichten tragen die Begründungen; diese Tabelle ist
+der Index. Was in C und D im Einzelnen geändert wurde, steht dort und nicht
+mehr hier.
 
-### Block 1 – Decoration (`#45`, `#47`–`#51`)
+| # | Was | Commit |
+|---|---|---|
+| 1 | Plan angelegt und jeder Punkt gegen den Code verifiziert – die *Befund*-Zeilen bei den offenen Punkten sind das Ergebnis, nicht Vermutungen. Drei Punkte kippten dabei; sie stehen unter *Entschieden*. | – |
+| 2 | **Engine-Slice 1:** `#16` Suchindex, `#31` Formel-Zoom, `#43` Fokus als Navigationsstufe, `#55` `rule`-Divider, `#6` `option` im `?`-Overlay. Im Browser gemessen: `/welcome` findet die Divider-Folie; die Formel wächst beim Klick von 77 auf 230 px Höhe, gleich bei 1440 und 1920 breit; Vorwärts auf einer fokussierten Abbildung ohne Steps schließt die Karte und bleibt auf dem Chunk, der zweite Druck geht weiter. | `e7dfc45` |
+| 3 | **Text-Slice 1**, die unstrittigen Streichungen und Faktenfehler: `#2`, `#3`, `#11`, `#13`, `#14`, `#15`, `#52`, `#6`. | `bfdff5f` |
+| 4 | **[#8] Navigationsmodell.** `←`/`→` sind überall Vor/Zurück, `Shift`+`←`/`→` wechselt die Spalte von jedem Chunk aus. Mit weggefallen: der `sideways`-Guard in der Key-Map, das gleichnamige Feld in `markColumnEdges()`, die beiden `‹ ›`-Marken samt CSS. `nextCol`/`prevCol` stehen jetzt still, wenn es keine Spalte in die Richtung gibt – vorher fiel `nextCol` auf den letzten Chunk der Lecture durch, was der alte Guard unerreichbar hielt und `Shift` von jeder Folie der letzten Spalte aus erreichbar gemacht hätte. Mitgezogen: `?`-Overlay, `PRD.md` §5, `README.md`, `speaker.md`, Tutorial `#arrows`, `CHANGELOG.md`, `test/harness.mjs` (`hints` ist jetzt ein Zeichen statt drei), `test/nav.mjs`, `test/nav-cockpit.mjs`. | `e9c3730` |
+| 5 | **Nebenprodukt: `test/gates/inlined.mjs`.** Prüft die beiden statisch entscheidbaren Fallen in den Template-Literalen von `build.js`: rohes Backtick und einfacher Regex-Backslash (`/\s+/g` wird zu `/s+/g` und geht still in Produktion). Beide Hälften gegengeprüft, indem der Defekt eingebaut und das Gate fallen gesehen wurde. Die dritte Falle, unterminiertes `/*`, hat mit `assertStylesheetsWellFormed()` längst einen harten Build-Fehler und wird nicht doppelt geprüft. `CLAUDE.md` und `run.mjs` sagen jetzt beide „sechs Gates“. | `674cbcd` |
+| 6 | **[#17/#4/#10-mobile] Touch-Bedienung.** Die Leiste lag nur in `audience.html` – nicht in dem Fenster, das man am Rednerpult in der Hand hält – und trug ausgerechnet das, was Tippen und Pinchen ohnehin können. Jetzt in beiden Live-Views, mit `⋯`-Palette für `C` `F` `A` `#`, Suche und Textauswahl. Drei echte CSS-Fehler kamen erst beim Messen heraus: eine ID-Regel schlug `[hidden]`, `em` erbte die zoomskalierte Foliengröße (441 px Leiste auf einem 390-px-Telefon, und `rem` war wegen Text-Autosizing nicht besser – jetzt `clamp()` gegen die Viewportbreite, Untergrenze 44 px), und `left: 50%` gibt einem fixierten Element ohne Breite nur die halbe Viewportbreite als *Layout*raum. In zehn Konfigurationen gemessen. | `12f67d4` |
+| 7 | **Text-Slice 2 – der ganze Textdurchgang (Abschnitt C, 27 Punkte).** `#39` und `#54` zuerst, wie geplant: „document“ als Name für die Print-Views ist überall durch `print.html` / `print-notes.html` ersetzt (vorher geprüft, dass `> annot:` wirklich in *beiden* Dateien landet – `annotationHtml` hängt nicht an `withNotes`), „saying nothing“ durch „the default“. Dann die restlichen 19 Punkte. `#22` heißt jetzt „auto-fit“, weil `?`-Overlay, Frontmatter-Key und Flash-Meldung das Ding alle so nennen. `#28` zeigt ein Bild mit Alt-Text, statt die Caption-Regel zu behaupten. | `d52fd3b` |
+| 8 | **D-Block 1 – Decoration.** `#deco-cards` und `#deco-picture` sind aufgelöst: die Konstrukte werden jetzt genau einmal eingeführt, in einem Lauf, und dort *gezeigt* statt abgedruckt. Neu `#cards-look` mit `{accent}` und `{outline middle}` als sichtbaren Beispielen; die gerenderten Klassen (`cg-accent`/`cv-top` gegen `cg-outline`/`cv-middle`) bestätigen die Behauptungen. Die Cards-Demo trägt jetzt eine gefaltete zweite Ebene, damit `C` auf der Folie tut, was der Satz daneben sagt. | `c5cdd9b` |
+| 9 | **D-Block 2 – Diagramme.** `#diagram` war der längste Chunk der Lecture *und* die erste Begegnung mit `::: draw`. Jetzt vier Chunks: fünf Zeilen und ihre Zeichnung, dieselbe Zeichnung mit zwei `step`-Blöcken, die sechs Slots, Placement. Im gebauten Page nachgezählt: dg1 ohne Frames-Payload (statisch), dg2 mit `n:3`. Eigene id `#diagram-beats` – `#diagram-steps` gehört der großen Alice/Eve-Figur, und ids sind eingefroren. | `3259d90` |
+| 10 | **D-Block 3 – Kernidee.** `#topic-sentence` sagte „der Topic Sentence“, Singular; PRD §4.5 und `splitSentencesIn` nehmen den ersten Satz **jedes** Absatzes. Trägt jetzt die Arbeitsreihenfolge (erst Prosa, dann die Eröffnungen schärfen), die sonst nirgends stand, und ist selbst vier Absätze – am gebauten Page nachgezählt, nicht geschätzt. `#33` gestrichen, `#19` ohne die Abbildung umformuliert, die es nie gab. | `d5d4bca` |
+| 11 | **D-Block 4 – `::: footnote`.** `::: margin` baut weiter und ist nirgends mehr dokumentiert. `word` merkt sich die geschriebene Schreibweise, damit „was never closed“ die getippte Zeile zitiert. `test/settings.mjs` sichert den Alias in **beiden** Views ab (`.margin-note` live, `.chunk-expansion-margin` auf Papier) – gegengeprüft, indem `margin` aus dem Parser entfernt und der Test fallen gesehen wurde. | `04c2921` |
 
-- [x] **[#45] `#deco-idea` und `#deco-cards` tauschen.** Der Chunk „A picture
-      behind the text chunk“ kündigt das Konstrukt an, vorgeführt wird es aber
-      erst einen Chunk später (`#deco-picture`), weil die Cards dazwischen
-      liegen. Reihenfolge: `#deco-idea` → `#deco-picture` → `#deco-cards`.
-      *Durch `#47`/`#49` gegenstandslos geworden:* `#deco-cards` ist ganz
-      aufgelöst, `#deco-idea` eröffnet den Decoration-Lauf vor `#covers`.
-- [x] **[#47] Backdrop wird zweimal eingeführt** – `#deco-picture` und
-      `#backdrop`. Zusammenlegen; die erste Nennung geht in der zweiten auf.
-- [x] **[#49] Cards werden ebenfalls zweimal eingeführt** – `#deco-cards` und
-      `#cards`. Dasselbe.
-- [x] **[#48] Backdrop hat viele Optionen – das sagen und auf
-      `lectures/decoration/` verweisen**, statt fünf Slots in einem Absatz
-      abzuhaken, für den kein Platz ist.
-- [x] **[#50] Cards und Rows mit ausgewählten Optionen *zeigen*, nicht nur die
-      Syntax abdrucken.** Mindestens `ground`, `anchor` und die
-      Lead-in-/Heading-Unterscheidung an einem sichtbaren Beispiel.
-- [x] **[#51, Teil 2] `::: side 2:1` vorführen.** Der Chunk `#side-ratio` druckt
-      nur den Quelltext ab.
+### Beim Verifizieren nebenbei gefunden
 
-### Block 2 – Diagramme (`#40`, `#42`)
+Vier Fehler, die in keinem Punkt der Liste standen – jeder kam heraus, weil eine
+Behauptung des Tutorials gegen den Code geprüft wurde statt geglaubt:
 
-- [x] **[#40, #42] Die Diagram-Einführung auf mehrere Chunks verteilen.** Aktuell ein
-      `.full`-Chunk `#diagram` mit sieben Absätzen plus eine Expansion, die fast
-      die gesamte übrige Grammatik enthält. Das ist der längste Chunk der
-      Lecture und zugleich die erste Begegnung mit `::: draw`.
-      Neuer Aufbau, drei bis vier Chunks:
-      1. **Ein statisches Diagramm plus seinen Quelltext.** Sonst nichts.
-      2. **Dasselbe Diagramm mit zwei `step`-Blöcken**, plus die Erklärung, wie
-         man sie abspielt – dieselbe Taste wie ein Segment.
-      3. Die sechs Slots (`kind name label placement options tail`).
-      4. Placement und Tail (Klassen, Tags), der Rest in die Expansion.
-      Die überlange Expansion „The rest of the vocabulary“ dabei kürzen – sie
-      darf auf den `psi-slides-figures`-Skill und `lectures/diagrams/`
-      verweisen, statt alles selbst aufzuzählen.
+- **`lectures/decoration` dokumentierte vier `::: backdrop`-Slot-Gruppen, es
+  sind fünf.** `focus` (`sharp` | `blur`) fehlte in genau der Lecture, die
+  jedes Konstrukt zeigen soll. Das Tutorial hatte es richtig. (`1593233`)
+- **`#figure-focus`: „click any figure, code block or margin note“.** Eine
+  Margin Note war nie klickbar – `FOCUSABLE_SEL` führt `.marginalia` und nicht
+  `.margin-note`. (`04c2921`)
+- **`#margin-demo`: „the label reads NOTE unless you say otherwise“.** Die
+  Direktive nimmt kein Label, es ist auf `note` festverdrahtet. Es gab kein
+  „otherwise“. (`04c2921`)
+- **`#cards`: „`ground: photo`“ ist keine Syntax.** `parseSlotClasses` liest
+  blanke Wörter in Klammern; ein `key: value` in einem Tail hätte den Build
+  angehalten. (`c5cdd9b`)
 
-### Block 3 – Die Kernidee (`#32`, `#33`, `#19`)
+### Entschieden – nicht wieder aufmachen
 
-- [x] **[#32] `#topic-sentence` neu aufbauen.** Der Chunk erklärt die zentrale
-      Idee des Werkzeugs und tut es zu knapp und zu spät.
-      Was er sagen muss, in dieser Reihenfolge:
-      1. Standardmäßig entsteht die Folie aus dem Fließtext – **der erste Satz
-         *jedes* Absatzes**, nicht ein einziger Topic Sentence pro Chunk.
-      2. Deshalb schreibt man erst das vollständige Skript und formuliert dabei
-         die ersten Sätze so, dass sie allein die Exposition tragen.
-      3. Der Rest jedes Absatzes ist die Unterfütterung und erscheint nur im
-         Handout.
-      Vermutlich besser als zwei Chunks: die Regel, dann ein sichtbares Beispiel
-      mit zwei Absätzen und `C`.
-      *Berührt* `#two-modes`, `#derived-mode` und `#choose-mechanism` – die
-      Aufteilung zwischen den vieren nochmal ansehen, damit nichts dreimal steht.
-      *Gemacht – ein Chunk statt zwei:* das sichtbare Beispiel mit `C` ist
-      `#derived-mode`, ein zweites hätte die Sache zum dritten Mal erklärt.
-      `#topic-sentence` trägt jetzt die Arbeitsreihenfolge, die sonst nirgends
-      stand; `#derived-mode` behält den Mechanismus.
-- [x] **[#33] `#choose-mechanism`, Expansion „tag-as-predictor“: streichen.** Der
-      Nutzer wählt die Tags selbst, viele nutzen sie kaum, und „der Tag sagt
-      etwas voraus“ ist zirkulär. Derselbe Text steht außerdem fast wörtlich in
-      `#which-mode` („answer-in-practice“) – das ist der zweite Grund.
-- [x] **[#19] `#script-mode` („The other way round“).** Zwei Probleme: man
-      erkennt nicht sofort, dass es ein Beispiel ist, und die Abbildung, von der
-      der Text redet („A figure and three lines of finding“), fehlt. Entweder
-      eine kleine `::: draw`-Abbildung einsetzen oder den Text auf das ändern,
-      was zu sehen ist.
-      *Gemacht – die zweite Variante:* `::: draw` wird erst in der
-      Beyond-Spalte eingeführt, und es hier zu benutzen wäre genau der Fehler,
-      den `#21` und `#25` beschreiben. Die Liste sagt jetzt außerdem, dass sie
-      ein erfundenes Beispiel ist.
+Drei Punkte kippten beim Prüfen und sind bewusst *keine* Arbeit:
 
-### Block 4 – margin/marginalia (`#27`, `#12`, `#26`)
+- **[#44] Der Link „in the decoration lecture“ hat keinen QR-Code – richtig so.**
+  QR-Codes gibt es nur für `https?://`-Adressen (`marked`-Renderer, `isExternal`).
+  Ein relativer Pfad ist auf einem fremden Telefon nichts wert.
+- **[#30] Das Video ist kein Bug** – die Datei ist intakt, der Clip zeigt nur
+  fast nichts. Bleibt als Aufnahme-Aufgabe in B stehen.
+- **[#41] widerspricht dem Code** – `countSegments()` zählt `chunkBeats()`
+  unabhängig vom Fokus. Steht in B als Reproduktion, nicht als Fix.
 
-- [x] **[#27] `::: margin` in `::: footnote` umbenennen.**
-      *Problem:* Die beiden Namen sind zu ähnlich, und „margin note“ für etwas,
-      das *unter* dem Chunk steht, ist irreführend.
-      **Entschieden:** `::: footnote` wird der dokumentierte Name; `::: margin`
-      bleibt still gültig, damit kein bestehendes `source.md` bricht, wird aber
-      nirgends mehr genannt. Ein Wort, das beschreibt, wo die Sache steht, statt
-      eines, das sie mit `::: marginalia` verwechselt.
-      *In einem Commit mitzuziehen:* `build.js` (Parser + Renderer, `data-label`
-      der `.margin-note`), `lint.js` (die gespiegelte Direktiven-Liste – und die
-      Regel aus `CLAUDE.md`: wer eine Verweigerung in der einen Datei ändert,
-      greppt die andere nach demselben Schlüssel), `lectures/tutorial`,
-      `lectures/decoration`, `lectures/python-intro`, der
-      `psi-slides-authoring`-Skill, `PRD.md` §3, `CHANGELOG.md`.
-- [x] **[#12] `#knobs` spricht über Marginalia und Margin Notes, bevor es sie
-      gibt.** Beide kommen erst in `#marginalia-demo` / `#margin-demo`. Und
-      „marginalia werden nicht gehoben, sondern zentriert“ versteht niemand, der
-      das Konstrukt noch nicht gesehen hat. Den Hinweis dorthin verschieben und
-      am sichtbaren Beispiel erklären.
-- [x] **[#26] `#side-demo`: der Marginalia-Hinweis in Panes.** Der Chunk zeigt
-      keine Marginalia, also erinnert sich niemand an das Konstrukt. Entweder
-      eine im Beispiel zeigen oder den Satz streichen – er hängt an `[#12]`.
-      Danach `#margin-demo` und `#marginalia-demo` als Paar mit sichtbarem
-      Kontrast neu schreiben.
+Drei Punkte kamen anders heraus als der Plan vorschlug, jeweils mit Grund:
+
+- **[#19]** hat die Abbildung aus dem *Satz* verloren, statt eine in den Chunk zu
+  bekommen: `::: draw` wird erst in der Beyond-Spalte eingeführt, und es dort zu
+  benutzen wäre genau der Fehler, den `#21` und `#25` beschreiben.
+- **[#32]** blieb ein Chunk statt zwei – das sichtbare `C`-Beispiel ist
+  `#derived-mode`, ein zweites hätte die Sache zum dritten Mal erklärt.
+  `#topic-sentence` trägt jetzt die Arbeitsreihenfolge, `#derived-mode` den
+  Mechanismus.
+- **[#45]** wurde durch `#47`/`#49` gegenstandslos: `#deco-cards` ist ganz
+  aufgelöst, `#deco-idea` eröffnet den Decoration-Lauf vor `#covers`.
