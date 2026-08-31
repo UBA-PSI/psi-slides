@@ -71,6 +71,18 @@ node build.js <source.md> --serve                 # build once, then serve
 node build.js <source.md> --serve --port 8080     # fixed port (default: free one)
 node build.js <source.md> --watch --serve         # live reload over http
 
+# a PDF slide deck – one page per presentation state, printed from the
+# audience view by a headless Chromium. The fallback for a room where the
+# HTML will not run, and a deck to hand on; it does not replace print.html,
+# which is a document. Needs a browser (playwright-core is an *optional*
+# dependency, so a checkout without it builds every HTML target and refuses
+# only this one, by name). Auto-fit is the only layout mode: a chunk taller
+# than the frame is panned in the hall, and paper cannot pan.
+node build.js <source.md> --slides-pdf                    # slides.pdf beside source.md
+node build.js <source.md> --slides-pdf --pdf-beats=final  # one page per chunk (default: all)
+node build.js <source.md> --slides-pdf --pdf-size=16:10   # 1600x1000 css px (default: 16:9)
+node build.js <source.md> --slides-pdf --pdf-out=<path>
+
 # static checks – run before committing
 node lint.js lectures/                         # all lectures
 node lint.js lectures/tutorial/source.md       # single file
@@ -139,6 +151,19 @@ node test/gates/run.mjs semantics              # gates whose name matches
 node test/run.mjs                              # all specs
 node test/run.mjs nav                          # specs whose name matches
 
+# the PDF export, in the shape of test/settings.mjs and not of a spec: it
+# writes one fixture into $TMPDIR, spawns build.js, and reads back the PDF and
+# a dump of the print DOM (`--pdf-dump-dom=<path>`, hidden, only for this).
+# It drives no browser and never imports playwright-core - Chromium runs in
+# build.js's subprocess - so the whole DOM half is text search in Node. Sits
+# between settings.mjs and the browser suite in `npm test`: it cannot pass
+# without a findable browser, so it goes after the checks that need none, and
+# it takes seconds rather than minutes, so it goes before the ones that do.
+# Sixty-one assertions, including all four promised diagnostics and the page
+# count of the *file* rather than of the wrappers.
+node test/pdf-export.mjs                       # or npm run pdf
+PSI_PDF_KEEP=1 node test/pdf-export.mjs        # leave the fixture in $TMPDIR
+
 # project site (GitHub Pages)
 node docs/site/build-site.js _site              # assemble the site into _site/
 node docs/site/shoot.mjs                        # re-shoot its seven screenshots
@@ -165,7 +190,27 @@ A source file can silence specific lint warnings with an HTML comment anywhere i
 
 `build.js` holds the entire rendering stack: parser, three renderers, inlined audience/speaker runtime JS, inlined audience/speaker/print CSS, Shiki highlighter, image-shorthand resolver, WebSocket watch server, and the CLI. It is deliberately one file, and a large one – roughly two thirds of it is the embedded CSS and runtime JS, so the Node-side build logic is much smaller than the file size suggests.
 
-**`diagram-core.mjs` is the one documented exception**, and the reason is narrow: the graphical editor answers a drag by rewriting the source and re-running the compiler *in the browser*, so exactly one text has to compile a diagram in Node and in the page. Two copies of a 6,500-line compiler is not a duplication anyone can maintain. The file is pure JS with **zero imports and zero Node APIs**; the four leaves that were Node-only (asset resolution, aspect reading, the warning sink, `escapeHtml`) plus a fifth (`assetMarkup`, which splices a vector file inline) are injected by `createDiagramCompiler({…})`. build.js keeps those leaves, the diagram CSS and the step runtime. The move also *removes* a duplication: `lint.js` imports the vocabulary tables instead of mirroring them by hand – tables only, never a function, or the whole compiler comes in behind it and the linter stops being runnable without the Markdown/Shiki stack. See `editor.md` §8.1.
+**`diagram-core.mjs` is the first of two documented exceptions**, and the reason is narrow: the graphical editor answers a drag by rewriting the source and re-running the compiler *in the browser*, so exactly one text has to compile a diagram in Node and in the page. Two copies of a 6,500-line compiler is not a duplication anyone can maintain. The file is pure JS with **zero imports and zero Node APIs**; the four leaves that were Node-only (asset resolution, aspect reading, the warning sink, `escapeHtml`) plus a fifth (`assetMarkup`, which splices a vector file inline) are injected by `createDiagramCompiler({…})`. build.js keeps those leaves, the diagram CSS and the step runtime. The move also *removes* a duplication: `lint.js` imports the vocabulary tables instead of mirroring them by hand – tables only, never a function, or the whole compiler comes in behind it and the linter stops being runnable without the Markdown/Shiki stack. See `editor.md` §8.1.
+
+**`pdf-export.mjs` is the second**, and the reason is a different one:
+it imports `playwright-core`, and `build.js` must keep building HTML on an
+install that has no browser binding at all. So `playwright-core` is an
+**optional** dependency, `build.js` reaches the module through one
+`await import()` behind `--slides-pdf`, and that is the only new import the
+feature adds. What lives in the module is the export's *policy* – which states
+become pages, what leaves the clone, what the print DOM is, every diagnostic.
+The order of the beats stays in `AUDIENCE_JS`, where it has always had its one
+definition; the export calls it through a ten-line `window.psiExport` hook that
+ships in the two live views and changes no behaviour. That is what makes the
+export unable to be wrong about the order – it can only be wrong about the
+rendering. Three things are load-bearing and none should be traded away:
+auto-fit is forced on regardless of the frontmatter (a chunk taller than the
+frame is *panned* in the hall, and paper cannot pan); `page.route()` blocks
+HTTP(S) **before** the first `goto`, because `jumpTo` → `applyState` →
+`updateEmbedLoading` sets `iframe.src` and `wireEmbeds` only intercepts YouTube
+under `file://`; and the print DOM is built by **inclusion**, so the eleven
+`position: fixed` chrome elements vanish without a strike list – in a paginated
+document a missed one repeats on every page.
 
 Navigate build.js by the `// ── section ──` banners – `grep -n '^// ── ' build.js`
 lists all forty in order, which is the map that cannot go stale. Two of them carry
@@ -292,8 +337,9 @@ events – `pages.yml` redeploys the project site on every push.
 A boxes-and-arrows compiler: a line-oriented DSL inside the lecture markdown
 compiles to one inline `<svg>` plus, where the author wrote `step` blocks, a
 payload of per-beat geometries the live runtime tweens between. `renderDiagram()`
-is the entry point. **`diagram-core.mjs` is the one documented exception to the
-single-file build**, because the browser editor has to run the same compiler; it
+is the entry point. **`diagram-core.mjs` is the first of two documented exceptions to the
+single-file build** (`pdf-export.mjs` is the other), because the browser editor
+has to run the same compiler; it
 is pure JS with zero imports and zero Node APIs.
 
 **The whole vocabulary, the slot tables, the generated names, the four design
@@ -382,6 +428,7 @@ position with it. See `speaker.md` §2.
 - `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the six viewer-default keys, `style.labels`, and the three-line recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
 - `.claude/skills/psi-slides-media/SKILL.md` – **video, hosted embeds and link addresses**: the extension tables, the two sync protocols, clip staging, and the build-time QR codes. Invoked as the `psi-slides-media` skill.
 - `figure-design.md` – **how to lay out a `::: draw` so a room reads it**, as instructions rather than principles: fifteen rules, most with a wrong/right pair in real syntax, the tone-to-role table, the four-beat step order, and a checklist to work down before a figure is finished. Written for a person and a language model equally. Read it before authoring figures; the grammar itself is in the `psi-slides-figures` skill.
+- `PLAN-slide-pdf-export.md` – **the PDF export, planned and then built against the plan**: the CLI contract, the geometry, the seven architecture decisions, the five stages, and a "Belegstand" saying which sentence was measured, which was read out of the code and which was only plausible. The **Umsetzung** section at the end records what actually happened per stage, including the four places the build departed from the plan and the two defects it uncovered. `REVIEW-slide-pdf-export{,-v2,-v3}.md` are the reviews the four drafts were checked against.
 - `HANDOFF.md` – slice-by-slice build diary in German/English mix. Latest sections describe current state and deliberate non-choices. Update when landing a substantial slice.
 - `README.md` – short public-facing intro.
 - `lectures/tutorial/source.md` – the canonical authoring reference (self-referential lecture). Build and open its `audience.html` to see every directive live.

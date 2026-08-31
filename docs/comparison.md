@@ -118,7 +118,7 @@ Who else does this: **Beamer** comes closest and in one respect wins, since `han
 
 Two things to know about the psi-slides outputs. Speaker notes appear only in `speaker.html` and `print-notes.html` (grepped across all four to be sure). But `audience.html` contains the *full* prose, because collapse is a runtime mode rather than a build-time deletion, so handing out the audience view hands out the whole manuscript minus your private notes. That may be exactly what you want; it should not be a surprise.
 
-And there is no PDF export path other than the browser's print dialogue. There is no headless browser in the dependency tree and none is planned. Marp (`--pdf`, `--pdf-notes`, `--pptx`), Slidev (via `playwright-chromium`), Quarto and Beamer all have better-defined PDF stories.
+There is now a PDF export, and it is a deck rather than a document: `--slides-pdf` drives `audience.html` through every presentation state in a headless Chromium and prints one page per state, so a figure that arrives in four beats is four pages. It is the fallback for a room where the HTML will not run, and something to hand on to someone who wants slides. `playwright-core` is an optional dependency and the only thing in the project that needs a browser; everything else builds without one. Text, code and `::: draw` stay vectors and `pdftotext` reads them, though the bundled variable fonts embed as Type 3 rather than as a shared subset. Marp (`--pdf`, `--pdf-notes`, `--pptx`), Slidev (via `playwright-chromium`), Quarto and Beamer still have more of it: no speaker-notes PDF, no bookmarks, no n-up handout. For a reading document the answer here is still `print.html` and the browser's print dialogue.
 
 ### Maths
 

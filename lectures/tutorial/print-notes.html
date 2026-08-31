@@ -1805,6 +1805,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 <li><code>node build.js &lt;source.md&gt; --watch</code> rebuilds and reloads every open tab on every save.</li>
 <li><code>node lint.js lectures/</code> checks what can be checked without building: unknown tags, unclosed directives, repeated ids, word budgets, too many segments, columns with only one chunk, captions that repeat the heading. <code>--strict</code> turns the warnings into failures.</li>
 </ul>
+<p>One command is for after the writing rather than during it: <code>node build.js &lt;source.md&gt; --slides-pdf</code> prints <code>slides.pdf</code>, one page per presentation state, for a room where the HTML will not run or for someone who wants a deck to keep. It is not a fifth view and this tutorial does not show it, because a PDF is not something you can open from inside a lecture.</p>
 <p>A source file can switch one check off with <code>&lt;!-- linter: ignore reveal-overuse, density --&gt;</code> anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for <code>density</code>, and says there why.</p>
 
   

@@ -79,6 +79,12 @@ All four come from one `source.md` and are written next to it.
 
 Each is a single file. Mail one to a colleague as an attachment and it works.
 
+There is a fifth output that is not a view: `node build.js <source.md> --slides-pdf`
+drives the audience view through every presentation state in a headless Chromium
+and prints `slides.pdf`, one page per state. It is the fallback for a room where
+the HTML will not run, and a classic deck you can hand on. It does not replace
+the two print views – those are documents, this is slides.
+
 ## How you write
 
 A lecture is columns of chunks. A column is a `#` heading; a chunk is a `##` heading with a tag, and its body is ordinary Markdown.
@@ -214,6 +220,7 @@ What is different here is the combination: one text rendered at two densities, a
 
 - **Node 20+** to build. Nothing at read time: each output carries everything it needs and opens from `file://`.
 - **A current browser** to read. The stylesheets use `oklch()` colours, `:has()`, and `text-wrap: balance` with no fallbacks, which puts the floor at roughly **Chrome/Edge 114, Firefox 121, Safari 17.5**. Lectures with inline-styled SVG assets additionally need `@scope`: Chrome/Edge 118, Safari 17.4, Firefox 146. Development and real use are in Chrome; other browsers are untested rather than unsupported.
+- **A Chromium**, but only if you use `--slides-pdf`. `playwright-core` is an optional dependency, so `npm install` normally provides one; `$PSI_CHROME`, the Playwright cache and a system Google Chrome are searched in that order. Nothing else in the build needs a browser, and the export is the only thing that stops working without one.
 - **`cwebp` or `magick`** on `PATH`, but only if you use `--optimize-images`. macOS `sips` cannot write WebP, so there is no zero-install fallback for that one command.
 - Image assets are inlined automatically when they total under 10 MB. A single asset over 2 MB fails the build rather than silently shipping an external path – `--optimize-images` converts the offenders to WebP, and `--no-inline-images` is the escape hatch.
 - Math is rendered at build time, so the KaTeX fonts have to travel inside the HTML or the output stops opening from `file://`. Only the font families a lecture's formulas actually use are inlined – the tutorial's five come to 166 KB of the 254 KB the full set costs – and a lecture without math inlines none of it. The build prints what it did.
@@ -256,6 +263,11 @@ node build.js <source.md> --no-inline-images # force external asset paths
 node build.js <source.md> --optimize-images --dry-run   # report oversized rasters
 node build.js <source.md> --optimize-images             # convert them to WebP in place
 node build.js <source.md> --integrate-annotations       # fold exported live annotations back in
+
+node build.js <source.md> --slides-pdf                  # a PDF slide deck, one page per beat
+node build.js <source.md> --slides-pdf --pdf-beats=final   # one page per chunk instead
+node build.js <source.md> --slides-pdf --pdf-size=16:10    # default is 16:9
+node build.js <source.md> --slides-pdf --pdf-out=<path>    # default: slides.pdf beside source.md
 
 node lint.js lectures/                       # all lectures
 node lint.js lectures/ --strict              # warnings exit 2

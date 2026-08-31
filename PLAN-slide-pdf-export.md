@@ -1210,3 +1210,160 @@ kleiner schneiden. `--pdf-beats=final` ist eine Seite pro Chunk, braucht
 keinen Beat-Lauf und keine kumulative Reihenfolge, und wäre schon für
 sich nützlich. Wenn Etappe 2 sich als zäh erweist, ist das der Schnitt,
 an dem man v1 ausliefert und den Beat-Lauf zu v1.1 macht.
+
+---
+
+## Umsetzung
+
+Gebaut in der Reihenfolge der fünf Etappen, jede mit ihrem Prüfpunkt.
+Was hier steht, ist **nicht** der Plan noch einmal, sondern was beim
+Bauen anders war als vorhergesagt – vier Abweichungen, zwei entdeckte
+Defekte, und drei Vorhersagen, die sich als richtig herausgestellt haben
+und deshalb keine Zeile mehr brauchen.
+
+### Stand
+
+| Etappe | Zustand | Prüfpunkt |
+|---|---|---|
+| 0 Vorarbeiten | fertig | `npm run gate`, `build.js`, `lint.js` und `test/settings.mjs` laufen mit gelöschtem `node_modules/playwright-core`; Browser-Suite 602 grün |
+| 1 Hook und CLI | fertig | vier Verweigerungen ohne Browserstart; `git diff --stat main` zeigt nur Einfügungen, nur in den beiden Live-Ansichten |
+| 2 Zustandslauf | fertig | in Etappe 3 aufgegangen – siehe unten |
+| 3 Druck-DOM und Druck | fertig | `lectures/tutorial/slides.pdf`, 82 Seiten, `/Count 82`, `/MediaBox [0 0 1200 675.12]` |
+| 4 Richtig statt vorhanden | fertig | alle vier Diagnosen haben einen Testfall und lösen aus |
+| 5 Messen, prüfen, aufschreiben | fertig | alle fünf Vorlesungen exportiert und angesehen; `test/pdf-export.mjs`, 61 Assertions; Dokumentation |
+
+### Die Messung aus Umsetzungsschritt 12
+
+Alle fünf Vorlesungen dieses Repositories, `--pdf-beats=all`, 16:9,
+Chromium 149.0.7827.55 (Playwright-Cache 1228), macOS arm64:
+
+| Vorlesung | Chunks | Seiten | Datei | je Seite | Laufzeit |
+|---|---|---|---|---|---|
+| tutorial | 71 | 82 | 4,1 MB | 50 KB | 19,4 s |
+| diagrams | 32 | 70 | 2,7 MB | 39 KB | 11,0 s |
+| decoration | 33 | 38 | 1,7 MB | 46 KB | 3,7 s |
+| network-security | 43 | 156 | 4,7 MB | 31 KB | 37,3 s |
+| python-intro | 44 | 44 | 1,8 MB | 42 KB | 5,1 s |
+
+**Die Dateigröße läuft nicht aus dem Ruder, also keine
+Font-Instanzierung.** Das war die Bedingung, die der Plan an diese
+Messung geknüpft hat, und sie ist nicht eingetreten: 31–50 KB je Seite
+ist für einen Foliensatz unauffällig. `pdftotext` liest aus jedem der
+fünf sauberen Text; Type 3 bleibt.
+
+**Auto-Fit ist schnell genug.** Die Sorge aus „Wo es am ehesten hakt“ –
+160 Fit-Läufe bei 40 Chunks mit je 4 Beats – trifft nicht zu.
+`network-security` ist mit 156 Zuständen der größte Fall und braucht 37 s.
+Der Zoom wird weiterhin je Beat gelöst, wie geplant.
+
+### Abweichungen vom Plan
+
+**1. Die Overflow-Meldung misst gegen die Seite, nicht gegen 94 % davon.**
+Der Plan zeigt als Beispiel „1840px Inhalt, 846px verfügbar“, und 846 ist
+`FULL_FIT_FILL` (0,94) mal 900. Gemeldet wird jetzt gegen 900. Grund: Was
+das PDF wirklich abschneidet, ist die Seite; die 6 % Luft, die Auto-Fit
+sich lässt, verliert der Leser nicht. Eine Warnung, die auf Luft anspringt,
+ist eine, die Autoren sich abgewöhnen zu lesen. Nebenbei entfällt damit
+eine Kopie von `FULL_FIT_FILL` im Exporter.
+
+**2. Videos und Embeds werden vor dem Zustandslauf ersetzt, nicht im Klon.**
+Der Plan sagt, *was* an ihre Stelle tritt, nicht *wann*. Vorher ist besser,
+und zwar zweimal: Auto-Fit misst dann die Höhe der Karte statt die des
+Rahmens, den es im PDF nie gibt, und `updateEmbedLoading` findet kein
+`iframe` mehr, dem es eine `src` geben könnte. Die Folge ist eine, die der
+Plan nicht erwartet hat – **ein `::: embed` erzeugt gar keinen geblockten
+Request mehr**, weil keiner mehr versucht wird. Die Zusage aus
+Abnahmekriterium 7 hängt deshalb im Test an einem entfernten *Bild*, das
+der Browser in jedem Fall holen will, und nicht am Embed: das ist der
+Konstrukt, das die Routing-Zusage wirklich prüft.
+
+**3. `--slides-pdf` ignoriert die `--*-only`-Flags, indem es voll baut.**
+Der Plan sagt „werden ignoriert“ und lässt offen, ob damit ein
+Audience-Build oder der volle gemeint ist. Es ist der volle: Wer
+`--print-only --slides-pdf` tippt, soll nicht schweigend seine `print.html`
+verlieren. Was das Flag verhindern muss, ist ein Export über eine veraltete
+`audience.html`, und das tut auch der volle Build.
+
+**4. Der Hook sind zehn Zeilen Code und vierzehn Zeilen Begründung.**
+Abnahmekriterium 10 spricht von „den zehn Zeilen `psiExport`“; `git diff
+--stat main` zeigt 24 eingefügte Zeilen je Live-Ansicht. Der Code ist
+zehn. Die Begründung steht dabei, weil sie sonst nirgends steht – ein
+Leser von `build.js` findet den Hook, bevor er `pdf-export.mjs` findet.
+
+Dazu drei kleinere, jede an ihrer Stelle im Code kommentiert:
+`.pdf-slide` ist `display: contents`, damit die Zentrierung des Wrappers
+den Chunk selbst trifft; die `--pdf-*`-Flags nehmen ihren Wert mit `=`
+statt als eigenes Argument, weil ein eigenes Argument von Hand aus
+`positional` gefiltert werden muss und diese Liste Löcher bekommt; und
+`test/pdf-export.mjs` kennt `PSI_PDF_KEEP=1`, das die Fixture stehen
+lässt.
+
+### Zwei Defekte, die der Export gefunden hat
+
+**A. Auto-Fit setzt jede Deckfolie auf 0,6 – im laufenden Betrieb, nicht
+nur im Export.** Reproduziert an der *eingecheckten* `audience.html` von
+`main`, ohne eine Zeile dieses Zweigs: Seite öffnen, `#` drücken,
+`--zoom` ablesen. Ergebnis 0,6; die Trennfolie daneben steht korrekt auf
+2,2.
+
+Commit `f92f9a2` hat genau das für Trennfolien und Backdrop-Chunks
+behoben, und für die wirkt es. Die Deckfolie entkommt ihm, weil
+`flowHeightProbe` **eine Ebene zu früh aufhört**: Es sieht durch
+`.chunk-content` hindurch, und auf einer `masthead`-Deckfolie sitzt der
+Platzhalter eine Ebene tiefer. `.title-field` ist `flex: 1 1 auto` und
+schluckt den ganzen Rest der Rahmenhöhe, also spannen die Kinder von
+`.chunk-content` exakt dessen Box, und die beiden Klemmungen in
+`flowHeightProbe` fallen auf die Box zurück:
+
+```
+.chunk-content   top 44, height 812, padding 72 / 63
+Kinder           top 72 … bottom 749
+t = max(44, 44 + 72 - 72) = 44
+b = min(856, 44 + 749 + 63) = 856
+Extent = 812 + 44 + 44 = 900   gegen avail = 846   →  schrumpft bis 0,6
+```
+
+Gemessen über den ganzen Zoombereich: der Extent ist bei jedem Zoom bis
+1,35 genau 900, fällt also nie unter 846.
+
+**Nicht in diesem Zweig behoben.** Es ist ein Defekt der Live-Ansicht,
+kein Defekt des Exports – der Export bildet die Audience-Ansicht treu ab,
+und das ist es, was hier weh tut. Die Behebung ändert das Aussehen jeder
+Vorlesung mit `auto-fit: true` und die drei eingecheckten HTML-Ausgaben,
+und das ist eine eigene Entscheidung. Bis dahin gilt: **Seite 1 jedes
+exportierten PDFs steht auf dem kleinsten Schriftgrad.**
+
+**B. `findChrome()` gab `$PSI_CHROME` ungeprüft zurück.** Ein Tippfehler
+in der Variablen wurde dadurch woanders beantwortet – von Playwright,
+mit acht Stack-Frames und ohne die Variable zu erwähnen. Behoben in
+`chrome-path.mjs`, weil das die eine Funktion ist, die weiß, wonach sie
+gesucht hat. Wirkt auch auf die Browser-Suite und die Screenshot-Skripte.
+
+### Was der Plan richtig vorhergesagt hat
+
+Drei Stellen, an denen der Plan sich selbst misstraut hat und recht behielt:
+
+- `page.pdf({width:'1600px'})` layoutet bei genau 1600 CSS-px.
+  `/MediaBox [0 0 1200 675.12]`, wie in der Vormessung.
+- `emulateMedia('screen')` plus `printBackground` gibt das Theme wieder.
+  Angesehen an fünf Vorlesungen, dunkles Terminal-Theme eingeschlossen.
+- `!important` auf `--slide-w`/`--slide-h` schlägt den Inline-Write.
+  Im DOM-Abzug nachgelesen, und `test/pdf-export.mjs` prüft es für 16:10.
+
+Und eine, bei der er sich geirrt hat, zugunsten der Sache: **Video-Frame 0
+klappt.** Der Plan erwartete `SecurityError` an der eingefärbten Leinwand.
+Für ein inliniertes `data:`-Video – also den Normalfall dieses Werkzeugs –
+liefert `toDataURL()` das Bild. Der `try/catch` und der Platzhalter
+bleiben, für das nach `videos/` ausgelagerte Video über 12 MB.
+
+### Was offen ist
+
+- Defekt A oben. Bis er entschieden ist, ist die Deckfolie jedes PDFs zu
+  klein gesetzt.
+- Die Stichprobe über `../psi-slides-mylectures` (`advasp`, `evalchat`,
+  `seminar`, `vawi`) ist noch nicht gelaufen. Sie ist ausdrücklich keine
+  Abnahmebedingung.
+- 22 Overflow-Meldungen über die fünf Vorlesungen, alle geprüft und alle
+  wahr: die betroffenen Chunks werden im Hörsaal geschwenkt und auf Papier
+  abgeschnitten. Das ist das geplante Verhalten und keine offene Arbeit,
+  aber es ist die Zahl, die jemand sehen wird.

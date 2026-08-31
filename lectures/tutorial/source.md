@@ -571,6 +571,8 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 - `node build.js <source.md> --watch` rebuilds and reloads every open tab on every save.
 - `node lint.js lectures/` checks what can be checked without building: unknown tags, unclosed directives, repeated ids, word budgets, too many segments, columns with only one chunk, captions that repeat the heading. `--strict` turns the warnings into failures.
 
+One command is for after the writing rather than during it: `node build.js <source.md> --slides-pdf` prints `slides.pdf`, one page per presentation state, for a room where the HTML will not run or for someone who wants a deck to keep. It is not a fifth view and this tutorial does not show it, because a PDF is not something you can open from inside a lecture.
+
 A source file can switch one check off with `<!-- linter: ignore reveal-overuse, density -->` anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for `density`, and says there why.
 
 ## example: Deciding how a lecture opens | six view defaults, and `lang:` beside them {.wide #view-defaults}

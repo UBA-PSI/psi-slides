@@ -7,6 +7,54 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+### Added
+
+- **`--slides-pdf`: a PDF slide deck, one page per presentation state.** The
+  export drives `audience.html` through every state a lecturer would step
+  through and prints each one as a page, so a figure that arrives in four beats
+  is four pages and a chunk with no beats is one. Section dividers, the cover
+  and the closing slide are in it; expansions, annotations, the QR buttons and
+  every piece of live chrome are not. It is the fallback for a room where the
+  HTML will not run, and a classic deck to hand on – it does not replace
+  `print.html` and `print-notes.html`, which are documents.
+
+  ```
+  node build.js <source.md> --slides-pdf
+  node build.js <source.md> --slides-pdf --pdf-beats=final   # one page per chunk
+  node build.js <source.md> --slides-pdf --pdf-size=16:10    # default 16:9
+  node build.js <source.md> --slides-pdf --pdf-out=<path>
+  ```
+
+  **The order of the beats is not reimplemented.** It has one definition, in the
+  audience runtime, and the export calls it through a ten-line `window.psiExport`
+  hook that ships in the two live views and changes no behaviour. The export can
+  therefore not be wrong about the order – only about the rendering.
+
+  **Auto-fit is the only layout mode**, whatever the frontmatter says: in a hall
+  a chunk taller than the frame is *panned*, the camera pinning its head and
+  following its foot down, and a sheet of paper cannot pan. Auto-fit is the
+  mechanism that already forces a chunk into the frame. Where even its 0.6 floor
+  is not enough the page is printed anyway, visibly cut, and the export names the
+  chunk and the beat so the author can shorten it.
+
+  **The export reaches no network.** HTTP(S) is routed to nothing before the
+  page is even opened, because arriving at a chunk sets a hosted player's
+  `iframe.src` and the live view only intercepts YouTube under `file://`. What
+  was refused is counted and reported by origin. A hosted embed prints as a card
+  carrying the address the lecture already writes out; a video prints its frame
+  0, or a placeholder when the codec or the origin will not allow the grab.
+
+  Text, code and `::: draw` stay vectors – selectable, searchable, and
+  extractable with `pdftotext`; no page is a raster. The bundled variable fonts
+  embed as Type 3 rather than as a shared subset, which is accepted for this
+  version: measured over the five lectures in the repository the decks run 31 to
+  50 KB a page, 1.7 to 4.8 MB in total, in 3.7 to 37 seconds.
+
+  `playwright-core` moves to **optional** dependencies and `build.js` loads the
+  exporter through one `await import()` behind the flag, so an install without a
+  browser binding builds every HTML target exactly as before and refuses only
+  this one, by name.
+
 ### Changed
 
 - **`::: margin` is now written `::: footnote`.** The old name was one
