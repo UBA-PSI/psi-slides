@@ -20,9 +20,20 @@ import path from 'node:path';
 // system Google Chrome. Newest first, because an old cached build is the one
 // that renders a stylesheet the current one handles.
 export function findChrome() {
-  if (process.env.PSI_CHROME) return process.env.PSI_CHROME;
   const tried = [];
   const take = (p) => { tried.push(p); return fs.existsSync(p) ? p : null; };
+
+  // $PSI_CHROME is an override, not an escape from being a path. Returning it
+  // unchecked handed the caller something that fails later and elsewhere: the
+  // PDF export answered a typo'd variable with Playwright's own
+  // "Failed to launch chromium because executable doesn't exist", eight frames
+  // of stack, and no mention of the variable that caused it. Checked here, the
+  // one function that knows what it looked at says so.
+  if (process.env.PSI_CHROME) {
+    const set = take(process.env.PSI_CHROME);
+    if (set) return set;
+    return missing(tried, 'Set by $PSI_CHROME. Unset it to search the usual places.');
+  }
 
   // The Playwright cache, newest build first. Only two things differ between
   // hosts: where the cache lives, and whether a build is an .app bundle or a
@@ -71,12 +82,16 @@ export function findChrome() {
       '/usr/bin/chromium-browser', '/usr/bin/chromium'];
   for (const p of system) { const hit = take(p); if (hit) return hit; }
 
-  // Naming what was looked for, because "no Chromium found" on a host whose
-  // layout this function does not know is a sentence with no next step in it.
-  // `userFacing` is what build.js's top-level handler reads to print the
-  // message without a stack trace - a trace here buries the one line that
-  // says what to do.
+  return missing(tried);
+}
+
+// Naming what was looked for, because "no Chromium found" on a host whose
+// layout this function does not know is a sentence with no next step in it.
+// `userFacing` is what build.js's top-level handler reads to print the message
+// without a stack trace - a trace here buries the one line that says what to do.
+function missing(tried, why) {
   const err = new Error('no Chromium found – set $PSI_CHROME to a browser executable.\n'
+    + (why ? why + '\n' : '')
     + 'Tried:\n  ' + tried.join('\n  '));
   err.userFacing = true;
   throw err;
