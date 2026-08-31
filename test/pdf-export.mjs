@@ -438,6 +438,34 @@ try {
      'a --pdf-zoom that is neither fit nor a number is refused', r5.stderr.split('\n')[0]);
   ok(!/\bat .*\(.*:\d+:\d+\)/.test(r5.stderr), 'without a stack trace');
 
+  console.log('\ncollapse: which half of the text the pages carry');
+  // Unset follows the lecture, like every other appearance option. The
+  // override exists because the two answers are different documents: the slide
+  // text is what the room saw, the full prose is the manuscript behind it.
+  const collapsed = (mode) => {
+    const d = path.join(dir, `c-${mode}.html`);
+    const rr = run(dir, [`--pdf-collapse=${mode}`, `--pdf-out=${path.join(dir, `c-${mode}.pdf`)}`,
+      `--pdf-dump-dom=${d}`]);
+    if (rr.status !== 0) return null;
+    const t = fs.readFileSync(d, 'utf8');
+    return t.slice(t.lastIndexOf('</head>'));
+  };
+  const cb = collapsed('topic-bold');
+  ok(cb && /<body[^>]*data-collapse="topic-bold"/.test(cb),
+     '--pdf-collapse=topic-bold reaches the body of the print DOM');
+  // The collapse is CSS over spans splitSentencesIn made at boot, so the words
+  // are still in the DOM - what has to be true is that the walker ran and the
+  // attribute the rules key off is set.
+  ok(cb && /class="prose"/.test(cb),
+     'and the continuation prose is wrapped, which is what the rules hide');
+  const cn = collapsed('none');
+  ok(cn && /<body[^>]*data-collapse="none"/.test(cn), '--pdf-collapse=none reaches it too');
+  ok(/<body[^>]*data-collapse="topic-bold"/.test(dom),
+     'and with neither given the export follows the lecture');
+  const rc = run(dir, ['--pdf-collapse=short']);
+  ok(rc.status !== 0 && /is not a mode/.test(rc.stderr),
+     'an unknown collapse mode is refused before a browser starts', rc.stderr.split('\n')[0]);
+
   console.log('\na host with no browser');
   // No fixture needed and none wanted: this failure happens before a page
   // exists, so the message must name the paths it tried and NOT a chunk id.

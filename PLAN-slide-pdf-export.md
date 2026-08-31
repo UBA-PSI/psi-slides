@@ -1448,20 +1448,53 @@ Drei Ursachen, und die naheliegendste Reparatur ist keine.
    und der Rahmen ist der Platz, in den das Übrige kommt. Auf Papier
    sieht das nach verschenktem Raum aus; es ist derselbe Raum, den die
    letzte Beat-Seite füllt.
-2. **`.chunk[data-tag=figure] .chunk-body` ist auf `max-width: 40em`
-   gedeckelt, und die Zeichnung sitzt darin.** Auf einem `.full`-Chunk
-   bekommt sie damit 842 von 1152 verfügbaren px. Das sieht nach der
-   Ursache aus und **ist keine Reparatur**: gemessen mit aufgehobenem
-   Deckel über alle Chunks passen in `network-security` **10 Chunks
-   größer und 17 kleiner**, in `diagrams` 8 größer und 4 kleiner, in
-   `tutorial` ändert sich nichts. Der Grund ist der Aspekt: eine breitere
-   Zeichnung ist auch eine höhere, und der Fit muss sie dann stärker
-   verkleinern. Einzelne Fälle gewinnen viel (`ns-a30` 0,60 → 1,05,
-   `ns-a31` 0,60 → 0,85), ebenso viele verlieren. **Nicht geändert.**
+2. **Der 40em-Deckel auf `.chunk[data-tag=figure] .chunk-body` skalierte
+   mit dem Zoom – eine Rückkopplung, und der eigentliche Defekt.**
+   `em` trägt dort `--zoom`. Ein Chunk, dessen Code zu breit war, ließ den
+   Fit den Zoom verkleinern; der Deckel schrumpfte um denselben Faktor;
+   der Code stand exakt genauso weit über dem Rand. Die Schleife kann nur
+   am Boden 0,6 enden. Gemessen an `#ns-a31`: `.chunk-body` bei 505 px,
+   **1152 px daneben frei**, der Code im `::: side` mitten in der Zeile
+   abgeschnitten, die Folie 501 von 900 px hoch.
+
+   **Behoben, indem `--zoom` aus dem Deckel herausgekürzt wird**
+   (`max-width: calc(40em / var(--zoom))`). Beim Standardzoom ändert sich
+   nichts – pixelgleich –, aber kleinerer Text kauft jetzt wirklich
+   Breite. In `network-security` sind damit **0 statt 3 Chunks
+   abgeschnitten und 0 statt 3 am Zoom-Boden** (`ns-a30` 0,60 → 0,75,
+   `ns-a31` 0,60 → 0,65, `ns-b22` 0,60 → 0,90), und die Zahl der
+   überlaufenden Seiten bleibt über alle fünf Vorlesungen **exakt
+   gleich** (7 · 14 · 0 · 0 · 1).
+
+   **Den Deckel ganz abzunehmen war der andere Kandidat und ist
+   messbar schlechter:** die Zeichnung füllt dann die Spalte, eine
+   breitere Zeichnung ist eine höhere, und `diagrams` ging von 14 auf 28
+   überlaufende Seiten. Das ist auch die Korrektur einer früheren
+   Fehleinschätzung in diesem Dokument: gezählt worden war der gefittete
+   Zoom (»10 besser, 17 schlechter«), und das ist das falsche Maß. Ein
+   abgeschnittener Codeblock am Zoom-Boden ist ein Defekt; eine Figur,
+   die weiterhin passt und etwas kleiner sitzt, ist keiner.
 3. **Ein kleinerer Zoom schmälert auch die Spalte**, weil `--content-w`
    in `em` steht. Ein Chunk, den der Fit herunterziehen musste, wird
    dadurch ein schmales Band in einer breiten Folie – die beiden Effekte
    verstärken sich.
+
+### Nachtrag: der Collapse-Schalter
+
+Der Export folgte dem `collapse:` der Vorlesung, so wie er Theme und
+Schrift folgt – `network-security` steht auf `collapse: none`, also kam
+der volle Fließtext ins PDF. Das ist richtig als Standard und falsch als
+einzige Möglichkeit: Folientext und Manuskript sind zwei verschiedene
+Dokumente, und für das eine die Frontmatter zu ändern ist keine Antwort.
+**`--pdf-collapse=topic-bold|none`**, weggelassen gilt weiter die
+Vorlesung. Er sitzt **vor** dem Zustandslauf, weil der Fit einen
+eingeklappten Chunk als viel kürzeren misst – nachträglich gesetzt wäre
+jede Seite gegen Text bemessen, den sie nicht zeigt.
+
+Das kostet die elfte Zeile im Hook (`setCollapse`); Abnahmekriterium 10
+spricht von zehn. `state.collapse` ist eine lexikalische Bindung im
+klassischen Script und aus `page.evaluate()` nicht erreichbar, und das
+Attribut erst im Druck-DOM zu setzen wäre die falsche Reihenfolge.
 
 ### Was offen ist
 

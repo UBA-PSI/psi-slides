@@ -218,6 +218,10 @@ function pageCollect(cfg) {
   // Unconditional, and before anything else: an autoplaying figure that ticks
   // during the walk would advance a chunk behind the exporter's back.
   P.setAutoFit(true);
+  // Before the walk, not after: the fit measures a collapsed chunk as a much
+  // shorter one, so setting this afterwards would size every page against text
+  // it does not show.
+  if (cfg.collapse) P.setCollapse(cfg.collapse);
   P.quiesce();
 
   const twoFrames = () => new Promise(r =>
@@ -409,7 +413,7 @@ function userError(msg) {
 }
 
 export async function exportSlidesPdf(opts) {
-  const { audienceHtml, beats, size, w, h, zoom, ceiling, out, dumpDom } = opts;
+  const { audienceHtml, beats, size, w, h, zoom, collapse, ceiling, out, dumpDom } = opts;
 
   let chromium;
   try {
@@ -459,7 +463,7 @@ export async function exportSlidesPdf(opts) {
       null, { timeout: 30000 });
 
     const prep = await page.evaluate(pagePrepare);
-    const got = await page.evaluate(pageCollect, { beats, h, zoom, ceiling });
+    const got = await page.evaluate(pageCollect, { beats, h, zoom, collapse, ceiling });
 
     // Chunk id -> first page, then column id -> the same mapping for the
     // divider slide it generates, falling back to its first chunk when the
@@ -496,7 +500,7 @@ export async function exportSlidesPdf(opts) {
     fs.renameSync(tmp, out);
 
     report({
-      out, size, w, h, beats, zoom, ceiling,
+      out, size, w, h, beats, zoom, collapse, ceiling,
       pages: installed.pages,
       chunks: new Set(got.pages.map(p => p.chunkId)).size,
       version: browser.version(),
@@ -567,5 +571,6 @@ function report(r) {
   console.log(`[pdf] Chromium ${r.version} – ${r.executablePath}`);
   console.log(`Wrote ${rel} (${r.pages} page(s) from ${r.chunks} chunk(s), `
     + `${r.size} at ${r.w}×${r.h}, beats=${r.beats}, `
-    + `zoom=${r.zoom === null ? `fit≤${r.ceiling}` : r.zoom})`);
+    + `zoom=${r.zoom === null ? `fit≤${r.ceiling}` : r.zoom}`
+    + `${r.collapse ? `, collapse=${r.collapse}` : ''})`);
 }

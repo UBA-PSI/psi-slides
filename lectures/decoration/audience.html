@@ -823,7 +823,23 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
   letter-spacing: 0.1em;
 }
 .chunk[data-tag=figure] .chunk-content { align-items: center; gap: 0.9em; }
-.chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
+/* The measure is 40em of the body's own type, and it used to be written just
+   like that - which made it scale with --zoom, because the body's font-size
+   carries --zoom and so does its em. That turned auto-fit's answer to
+   horizontal overflow into no answer at all: a chunk whose code was too wide
+   made the fit shrink the zoom, the cap shrank by exactly the same factor, and
+   the code stayed exactly as far over the edge. The loop can only end at the
+   0.6 floor. Measured on network-security's ns-a31: .chunk-body sat at 505px
+   with 1152px free beside it, the code in its side block was cut off mid-line,
+   and the slide used 501 of 900px of height.
+
+   Dividing --zoom back out pins the measure at what it is at zoom 1, so the
+   layout at the default is unchanged to the pixel and shrinking the type now
+   really does buy horizontal room. Taking the cap off the wrapper altogether
+   was the other candidate and is worse: the drawing then fills the column, a
+   wider drawing is a taller drawing, and the diagram lecture went from 14
+   overflowing pages to 28. */
+.chunk[data-tag=figure] .chunk-body { order: 3; max-width: calc(40em / var(--zoom)); text-align: left; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
 .chunk[data-tag=figure] .chunk-heading { order: 2; }
 .chunk[data-tag=figure] .chunk-body pre { order: 1; font-size: 0.82em; }
 
@@ -7956,6 +7972,7 @@ window.psiExport = {
   applyReveal,
   settle: () => { if (state.autoFit) fitZoomToChunk(2.2); else clampZoomToWidth(); },
   setAutoFit: (on) => { state.autoFit = on; },
+  setCollapse: (m) => { state.collapse = m; },
   quiesce: () => { autoplayStopped = true; stopAutoplay(); },
   zoom: () => state.zoom,
 };

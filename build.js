@@ -6623,7 +6623,23 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
   letter-spacing: 0.1em;
 }
 .chunk[data-tag=figure] .chunk-content { align-items: center; gap: 0.9em; }
-.chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
+/* The measure is 40em of the body's own type, and it used to be written just
+   like that - which made it scale with --zoom, because the body's font-size
+   carries --zoom and so does its em. That turned auto-fit's answer to
+   horizontal overflow into no answer at all: a chunk whose code was too wide
+   made the fit shrink the zoom, the cap shrank by exactly the same factor, and
+   the code stayed exactly as far over the edge. The loop can only end at the
+   0.6 floor. Measured on network-security's ns-a31: .chunk-body sat at 505px
+   with 1152px free beside it, the code in its side block was cut off mid-line,
+   and the slide used 501 of 900px of height.
+
+   Dividing --zoom back out pins the measure at what it is at zoom 1, so the
+   layout at the default is unchanged to the pixel and shrinking the type now
+   really does buy horizontal room. Taking the cap off the wrapper altogether
+   was the other candidate and is worse: the drawing then fills the column, a
+   wider drawing is a taller drawing, and the diagram lecture went from 14
+   overflowing pages to 28. */
+.chunk[data-tag=figure] .chunk-body { order: 3; max-width: calc(40em / var(--zoom)); text-align: left; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
 .chunk[data-tag=figure] .chunk-heading { order: 2; }
 .chunk[data-tag=figure] .chunk-body pre { order: 1; font-size: 0.82em; }
 
@@ -12153,6 +12169,7 @@ window.psiExport = {
   applyReveal,
   settle: () => { if (state.autoFit) fitZoomToChunk(2.2); else clampZoomToWidth(); },
   setAutoFit: (on) => { state.autoFit = on; },
+  setCollapse: (m) => { state.collapse = m; },
   quiesce: () => { autoplayStopped = true; stopAutoplay(); },
   zoom: () => state.zoom,
 };
@@ -15011,12 +15028,26 @@ function pdfOptionsFrom(argv, flags, absIn) {
       throw err;
     }
   }
+  // Which half of the text the pages carry. Unset means the lecture's own
+  // setting, which is what every other appearance option does - a deck that
+  // opens in full prose exports in full prose. The override exists because the
+  // two answers are genuinely different documents: the slide text is what the
+  // room saw, the full prose is the manuscript behind it.
+  const collapse = pdfFlagValue(argv, '--pdf-collapse');
+  if (collapse !== null && collapse !== 'topic-bold' && collapse !== 'none') {
+    const err = new Error(
+      `Error: --pdf-collapse=${collapse} is not a mode. Use topic-bold (the slide text`
+      + ' alone) or none (the full prose). Omit it to follow the lecture.');
+    err.userFacing = true;
+    throw err;
+  }
   const outArg = pdfFlagValue(argv, '--pdf-out');
   return {
     beats,
     size,
     ...PDF_SIZES[size],
     zoom,
+    collapse,
     ceiling: PDF_FIT_CEILING,
     out: outArg ? path.resolve(outArg) : path.join(path.dirname(absIn), 'slides.pdf'),
     dumpDom: pdfFlagValue(argv, '--pdf-dump-dom'),
@@ -15070,7 +15101,8 @@ async function main() {
     console.error('  node build.js <source.md> [--watch] [--serve [--port N]] [--audience-only|--print-only|--print-notes-only|--speaker-only]');
     console.error('                            [--inline-images|--no-inline-images]');
     console.error('  node build.js <source.md> --slides-pdf [--pdf-beats=all|final] [--pdf-size=16:9|16:10]');
-    console.error('                                         [--pdf-zoom=fit|<n>] [--pdf-out=<path>]');
+    console.error('                                         [--pdf-zoom=fit|<n>] [--pdf-collapse=topic-bold|none]');
+    console.error('                                         [--pdf-out=<path>]');
     console.error('  node build.js <source.md> --integrate-annotations');
     console.error('  node build.js <source.md> --optimize-images [--dry-run] [--all] [--max-width N]');
     console.error('  node build.js --new <slug>');
@@ -15096,6 +15128,8 @@ async function main() {
     console.error('  --pdf-size=16:10      1600x1000 css px, a 1200x750 pt page');
     console.error('  --pdf-zoom=fit        size each chunk to the page, never above 1.35 (default)');
     console.error('  --pdf-zoom=<n>        hold every page at that zoom (0.6-2.2) and report overruns');
+    console.error('  --pdf-collapse=topic-bold  only the slide text: topic sentences and bolds');
+    console.error('  --pdf-collapse=none        the full prose. Default: whatever the lecture opens with');
     console.error('  --pdf-out=<path>      default: slides.pdf beside source.md');
     console.error('  Needs a Chromium (playwright-core, $PSI_CHROME or a system Chrome).');
     console.error('');

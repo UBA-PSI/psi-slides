@@ -289,6 +289,22 @@ from building the same way is a major version.
   press `Enter`, and you are on the final slide. It stands still now, and
   `test/nav.mjs` asserts both edges beside the assertions for the keys.
 
+- **A figure chunk's text measure scaled with the zoom, so auto-fit could not
+  cure horizontal overflow.** `.chunk[data-tag=figure] .chunk-body` is capped at
+  `40em`, and `em` there carries `--zoom` – so a chunk whose code ran too wide
+  made the fit shrink the zoom, the cap shrank by exactly the same factor, and
+  the code stayed exactly as far over the edge. The loop can only end at the
+  0.6 floor. Measured on `lectures/network-security` `#ns-a31`: the body sat at
+  505 px with 1152 px free beside it, the code inside its `::: side` was cut off
+  mid-line, and the slide used 501 of 900 px of height. Three chunks in that
+  lecture were pinned there. Dividing `--zoom` back out of the cap pins the
+  measure at what it is at zoom 1, so the layout at the default zoom is
+  unchanged to the pixel while shrinking the type now really does buy
+  horizontal room: the three fit at 0.75, 0.65 and 0.90 instead of 0.6 and none
+  is cut. Taking the cap off the wrapper altogether was the other candidate and
+  measured worse – the drawing then fills the column, a wider drawing is a
+  taller drawing, and the diagram lecture went from 14 overflowing pages to 28.
+
 - **The cockpit's touch rail sat on top of the lecturer's notes.** The rail
   clears the furniture below the stage by summing the numbers the grid rows
   are written in, and it summed two of the three. The one it missed is the
