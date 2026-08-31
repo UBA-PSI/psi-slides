@@ -350,16 +350,18 @@ as well as added to.
 
 ## free: Where the picture sits, and what it is veiled with {.wide #backdrop-slots}
 
-Four groups of words go in the braces after `::: backdrop`, at most one from
-each, and the first of every group is what you get by saying nothing.
+Five groups of words go in the braces after `::: backdrop`, at most one from
+each, and the first of every group is the default.
 
-::: cards 4
+::: cards 5
 - **fill**\
   `cover` `contain`
 - **crop**\
   `middle` `top` `bottom`
 - **scrim**\
   `veil` `clear` `invert`
+- **focus**\
+  `sharp` `blur`
 - **layer**\
   `under` `over`
 :::
