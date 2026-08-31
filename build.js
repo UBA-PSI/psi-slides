@@ -63,7 +63,7 @@ const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
 // navigate by and to print. Refused rather than ignored when misspelled: an
 // unknown class in this tail used to be dropped without a word by the build
 // while lint.js called it an unknown width, which named the wrong thing.
-const VALID_CHUNK_CLASSES = new Set(['bare']);
+const VALID_CHUNK_CLASSES = new Set(['bare', 'center']);
 
 // ── syntax highlighting ──────────────────────────────────────────────
 // Shiki is loaded once per process and reused across rebuilds. Output
@@ -3086,7 +3086,7 @@ function parseLecture(src) {
           columns.push(currentColumn);
         }
         const h2Attr = parseAttributeTail(h2[1]);
-        const { text, width, id, bare } = h2Attr;
+        const { text, width, id, bare, center } = h2Attr;
         // Same rule one heading level down: a class this tail does not know
         // was dropped in silence here while lint.js called it an unknown
         // width, so the two programs disagreed about a typo.
@@ -3119,11 +3119,12 @@ function parseLecture(src) {
           err.userFacing = true;
           throw err;
         }
-        if ((tag === 'title' || tag === 'closing') && (width || bare)) {
+        if ((tag === 'title' || tag === 'closing') && (width || bare || center)) {
           const err = new Error(
-            `A ${tag} chunk carries .${width || 'bare'}, which its cover composition decides ("${text}").\n` +
-            '  A title or closing slide is always full width, and its heading is\n' +
-            '  the composition\'s - so neither class has anything to act on.');
+            `A ${tag} chunk carries .${width || (bare ? 'bare' : 'center')}, which its cover composition decides ("${text}").\n` +
+            '  A title or closing slide is always full width, its heading is the\n' +
+            '  composition\'s, and where its words sit is cover-align\'s - so none\n' +
+            '  of these classes has anything to act on.');
           err.userFacing = true;
           throw err;
         }
@@ -3137,6 +3138,7 @@ function parseLecture(src) {
           // fallback could never fire - this line always supplies a value.
           width: width || (tag === 'outline' ? 'wide' : 'standard'),
           bare: !!bare,
+          center: !!center,
           id,
           expansions: [],
           overlays: [],
@@ -5292,6 +5294,15 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num, parts = 
   // DOM, and every one of them should keep working. Emitted only here -
   // print has no slide to take it off.
   const bareAttr = chunk.bare ? ' data-bare=""' : '';
+  // `.center` sets the chunk's prose on a centre axis, and like `.bare` it is
+  // a decision about the *slide*: it is emitted here and nowhere else, so the
+  // printed document keeps its left edge. A run of centred prose is hard to
+  // read - the eye loses the start of each line - which is exactly why this
+  // is a class an author writes rather than a treatment a tag carries. The
+  // case it is for is the one or two lines under a figure, where left-aligned
+  // prose starts at the far edge of a wide slide while the drawing sits in
+  // the middle and the two read as unrelated blocks.
+  const centerAttr = chunk.center ? ' data-center=""' : '';
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
 
   // No tag eyebrow on the projection. The word announced a taxonomy that is
@@ -5356,7 +5367,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num, parts = 
   const scrimAttr = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
   const bdAttr = bd.html ? ' data-has-backdrop=""' : '';
 
-  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${numAttr}${bdAttr}${scrimAttr}>
+  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${centerAttr}${numAttr}${bdAttr}${scrimAttr}>
   ${bd.html}
   <div class="chunk-content">
     ${tagLabel}
@@ -6679,6 +6690,28 @@ body[data-headings=center] .chunk-heading { text-align: center; }
    carries neither, so the document and its contents page are unchanged. */
 .chunk[data-bare] > .chunk-content > .chunk-heading,
 body[data-headings=off] .chunk-heading { display: none; }
+/* .center sets the chunk's prose on a centre axis. Audience-only for the
+   same reason .bare is: it is a decision about the slide, and the printed
+   document keeps its left edge.
+   (No backticks in this comment: one would end the template literal.)
+
+   The child combinator is what makes it safe. It reaches the chunk's own
+   paragraphs and nothing nested - not a list, not a table, not a code
+   listing, and not the prose inside a ::: side pane or a ::: cards row, each
+   of which is a run of lines with a left edge of its own that centring would
+   only ruin. It reaches no figcaption either: an image's alt text is the
+   image's own line and is centred under it already. Centring was tried as a
+   default for every figure: chunk first, and lectures/diagrams says why it
+   cannot be one - the seven-line paragraph under #flowchart came out ragged
+   on both edges and hard to read. The case is one or two lines, and only the
+   author knows which chunk is that case.
+
+   It is the prose and not the heading. Where a heading sits is already one
+   question with one answer - the tag's treatment, overridden for a whole
+   deck by style.headings - and a chunk class that also moved it would be a
+   second, stronger way to say the same thing, which style.headings: left
+   could then no longer override. */
+.chunk[data-center] > .chunk-content > .chunk-body > .reveal-segment > p { text-align: center; }
 body[data-headings=center] .chunk[data-tag=question] { text-align: center; }
 /* The hairline and the thick rule above a definition / principle chunk. */
 body[data-rules=off] .chunk[data-tag=principle] .chunk-content::before,

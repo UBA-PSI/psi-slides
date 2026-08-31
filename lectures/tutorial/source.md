@@ -37,13 +37,36 @@ top and the credits along the bottom, and this paragraph is what goes in it.
 
 The four differ only in what they **show you**. Nothing in the source is written for one of them and not the others.
 
-## figure: One file in, four files out {.wide #four-views}
+## figure: One file in, four files out {.wide #four-views .bare .center}
 
-![](four-views)
+::: draw {unit=152x52}
+default box {.mono}
+
+# The four outputs stand in one column and source.md sits opposite their
+# middle. The four edges are .elbow, and an elbow's rail is measured between
+# the two faces – so all four rails land on one line and the fan-out reads as
+# a single bracket. Nothing here places that spine by hand.
+box  doc   "print.html\nthe document"            at 1.55,0
+box  notes "print-notes.html\ndocument + notes"  below doc gap 0.3
+box  aud   "audience.html\nthe projector"        below notes gap 0.3
+box  spk   "speaker.html\nthe cockpit"           below aud gap 0.3
+
+box  src   "source.md\none file"                 between doc,spk offset -2.0,0 {.tone-3}
+text bjs   "build.js"                            right of src gap 0.14 offset 0,-0.34 {.muted .small .mono}
+
+edge src -> doc   {.elbow}
+edge src -> notes {.elbow}
+edge src -> aud   {.elbow}
+edge src -> spk   {.elbow}
+
+# The live sync runs out to the right rather than straight down the gap, so
+# it does not read as one more output of the build.
+edge sync aud.right <-> spk.right via aud.right+0.42,aud.cy aud.right+0.42,spk.cy "postMessage\nlive sync" side right {.dashed .muted .small .mono}
+:::
 
 Each of the four files carries everything it needs inside itself – the pictures, the typefaces, the styling, the code. Each one opens by double-clicking, with no web server and nothing fetched from the network, so you can send any of them to a colleague as a single attachment.
 
-> note: The drawing above is written into the page as vector artwork rather than as a picture file, and it takes its colours from the theme. Press A a few times while this slide is up and the figure re-colours with the page.
+> note: The drawing above is a `::: draw` block written out in the lecture source, drawn into the page as artwork at build time. It takes its colours from the theme: press A a few times while this slide is up and the figure re-colours with the page.
 
 ## free: What you're reading right now | the projection, or the lectern view beside it {.wide #audience-now}
 
@@ -216,7 +239,7 @@ The tag is a fair predictor: `principle` and `question` chunks are short enough 
 
 The `| Sub-Heading` and the `{.width #id}` tail are both optional. Width is one of `narrow`, `standard`, `wide`, `full`, and **once you have written an `{#id}` it should never change** – it is what cross-references, the contents list and your saved reading position all point at.
 
-The tail takes one class that is not a width: `{.bare}` hides the heading on the projection while keeping it in `print.html`, `print-notes.html` and the search index.
+The tail takes two classes that are not widths, and both act on the projection alone. **`{.bare}` hides the heading on the slide** while keeping it in `print.html`, `print-notes.html` and the search index. **`{.center}` sets the chunk's own paragraphs on a centre axis** – it is for the line or two under a figure, and the slide back at `#four-views` wears both.
 
 ## definition: What a tag actually does {.standard #tag-effects}
 
@@ -397,7 +420,7 @@ This is a footnote. The label above it always reads NOTE, and the note sits in g
 
 **The alt text becomes a caption.** The picture beside this paragraph is written `![An abstract dusk skyline](dusk)`, and the small grey line under it is that alt text. Leave the brackets empty and the picture stands on its own. On a `figure:` chunk whose heading already says what the picture is, a caption stacks two labels, so the checker warns and suggests leaving the alt text out.
 
-**A drawing saved as SVG is written into the page as artwork**, not as a picture file, so it takes its colours from the theme and changes with the `A` key – the figure back at `#four-views` is one of those. Photographs, and pictures like this skyline that carry their own colours, are embedded exactly as they are.
+**A drawing saved as SVG is written into the page as artwork**, not as a picture file, so it takes its colours from the theme and changes with the `A` key. Photographs, and pictures like this skyline that carry their own colours, are embedded exactly as they are.
 
 ::: flip
 

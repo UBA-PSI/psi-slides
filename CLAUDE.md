@@ -268,7 +268,17 @@ Four things worth knowing before writing chunks, all learned the hard way:
 
   Three things make it cheap and none should be traded away. It is `display: none` and **not a dropped element**, because the search index and the speaker's own lists read the heading's text out of the DOM. **Neither table of contents is among them, and the docs used to say it was**: `renderToc` and the live `nav#toc` both build from `columns.filter(c => c.heading)`, so a *chunk* heading has never appeared in either. What `.bare` costs is the slide and nothing else; what it saves is the printed document and search. It is emitted **only by the audience renderer**, so `PRINT_CSS` carries no rule and the document is byte-identical. And `off` lives in the **existing `style.headings` key** beside `left` and `center` rather than in one of its own: the two readings are one question – what the projection does with a heading – and a second key's only legal combination with this one would have been "off, and also aligned left", which means nothing.
 
-  `.bare` is the one non-width class an attribute tail may carry (`VALID_CHUNK_CLASSES`). An unknown class there used to be dropped without a word by the build while `lint.js` called it an unknown *width*, which named the wrong thing; both now say "unknown class" and list what a tail takes.
+  `.bare` is one of the two non-width classes an attribute tail may carry
+  (`VALID_CHUNK_CLASSES`); `.center` is the other, and it sets the chunk's
+  prose on a centre axis. Both are audience-only for the same reason – where
+  words sit on a slide is not a question the printed document asks – and
+  `.center` reaches `.chunk-body > .reveal-segment > p` and nothing nested, so
+  a list, a table, a code block and a `::: side` pane keep their left edge.
+  Centring every `figure:` caption by default was tried and reverted: the
+  seven-line paragraph under `lectures/diagrams` `#flowchart` came out ragged
+  on both edges, and no selector knows how long a caption is.
+
+  An unknown class in that tail used to be dropped without a word by the build while `lint.js` called it an unknown *width*, which named the wrong thing; both now say "unknown class" and list what a tail takes. Neither class is legal on a `title` or `closing` chunk, where the cover composition decides the width, the heading and, through `cover-align`, where the words sit.
 
 - **The live views do not print the tag name.** The small-caps eyebrow (PRINCIPLE, DEFINITION, …) was removed from `renderAudienceChunk`: it announced a taxonomy that is only as right as the tag choice was, and a mislabelled slide reads to the room as an error. `renderChunk` (the document renderer) still emits `.chunk-label`, and `.tag-label` in the audience is now only the *expansion* label. Search results read the tag off `data-tag` for this reason.
 

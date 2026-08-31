@@ -78,9 +78,10 @@ of the live deck. A chunk may appear before the first `#`; that is how the
   the ten tags is an `unknown-tag` error, not a silent heading.
 - `|` splits the heading into a main line and a typographically quieter second
   line. Further `|` segments are joined into that second line.
-- The attribute tail recognises three things: a width class, `#id`, and
-  `.bare` (keep the heading in the document and off the projection). Any other
-  class is an `unknown class` error in both the build and `lint.js` – it is not
+- The attribute tail recognises four things: a width class, `#id`, `.bare`
+  (keep the heading in the document and off the projection) and `.center` (set
+  this chunk's prose on a centre axis, on the projection only). Any other class
+  is an `unknown class` error in both the build and `lint.js` – it is not
   silently ignored. Do not invent classes.
 - Headings carry **inline** Markdown, so backticks render as a real code span
   (`## free: Loops | for, while, and \`enumerate\` {.standard #loops}`). Block
@@ -746,6 +747,16 @@ document, the contents list and the search - for a talk that is a run of
 figures with speaker notes. `{.bare}` in a chunk's attribute tail is the same
 switch for one chunk.
 
+`{.center}` sets one chunk's prose on a centre axis, on the projection and in
+the cockpit but not in the printed document. It reaches the chunk's own
+paragraphs and nothing nested, so a list, a table, a code block and the prose
+inside a `::: side` pane or a `::: cards` row all keep their left edge. Write
+it for the one or two lines under a figure, where a left-aligned caption
+starts at the far edge of a wide slide while the drawing sits in the middle.
+Not for a paragraph of any length: centred prose loses the eye at the start of
+each line, which is why this is a class you write rather than something a
+`figure:` chunk gets by default.
+
 `link-codes: off` takes away the mark after every external link. The mark
 shows the address on both screens, large, with a QR code beside it; up to
 1.0.0 that view was reachable only by `Shift`-clicking the link, which still
@@ -837,8 +848,10 @@ warning go away unread.
 
 ## Gotchas
 
-- Only the ten tags and four widths exist. `.bare` is the one non-width class
-  an attribute tail may carry; anything else is an `unknown class` error.
+- Only the ten tags and four widths exist. `.bare` and `.center` are the two
+  non-width classes an attribute tail may carry; anything else is an
+  `unknown class` error. Neither is legal on a `title` or `closing` chunk,
+  where the cover composition decides all three questions.
 - IDs unique across the file, and frozen once authored.
 - `::: flip` requires an enclosing `::: side`.
 - A bare `:::` closes layout first, then the enclosing `expand` or `margin`.

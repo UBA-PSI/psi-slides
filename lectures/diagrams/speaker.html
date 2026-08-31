@@ -890,6 +890,28 @@ body[data-headings=center] .chunk-heading { text-align: center; }
    carries neither, so the document and its contents page are unchanged. */
 .chunk[data-bare] > .chunk-content > .chunk-heading,
 body[data-headings=off] .chunk-heading { display: none; }
+/* .center sets the chunk's prose on a centre axis. Audience-only for the
+   same reason .bare is: it is a decision about the slide, and the printed
+   document keeps its left edge.
+   (No backticks in this comment: one would end the template literal.)
+
+   The child combinator is what makes it safe. It reaches the chunk's own
+   paragraphs and nothing nested - not a list, not a table, not a code
+   listing, and not the prose inside a ::: side pane or a ::: cards row, each
+   of which is a run of lines with a left edge of its own that centring would
+   only ruin. It reaches no figcaption either: an image's alt text is the
+   image's own line and is centred under it already. Centring was tried as a
+   default for every figure: chunk first, and lectures/diagrams says why it
+   cannot be one - the seven-line paragraph under #flowchart came out ragged
+   on both edges and hard to read. The case is one or two lines, and only the
+   author knows which chunk is that case.
+
+   It is the prose and not the heading. Where a heading sits is already one
+   question with one answer - the tag's treatment, overridden for a whole
+   deck by style.headings - and a chunk class that also moved it would be a
+   second, stronger way to say the same thing, which style.headings: left
+   could then no longer override. */
+.chunk[data-center] > .chunk-content > .chunk-body > .reveal-segment > p { text-align: center; }
 body[data-headings=center] .chunk[data-tag=question] { text-align: center; }
 /* The hairline and the thick rule above a definition / principle chunk. */
 body[data-rules=off] .chunk[data-tag=principle] .chunk-content::before,

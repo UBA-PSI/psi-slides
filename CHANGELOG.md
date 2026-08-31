@@ -99,6 +99,32 @@ from building the same way is a major version.
 
 ### Added
 
+- **`{.center}` in a chunk's attribute tail sets that chunk's prose on a
+  centre axis**, on the projection and in the cockpit and not in the printed
+  document – the second non-width class the tail takes, beside `.bare`, and
+  the same kind of switch: where words sit on a slide is not a question a
+  document asks, so `PRINT_CSS` carries no rule and `print.html` is unchanged
+  for every existing lecture.
+
+  The case is the line or two under a figure. Left-aligned, a caption starts
+  at the far edge of a `.wide` slide while the drawing sits in the middle, and
+  the two read as two unrelated blocks. It reaches
+  `.chunk-body > .reveal-segment > p` and nothing nested, so a list, a table,
+  a code listing and the prose inside a `::: side` pane or a `::: cards` row
+  all keep the left edge they need.
+
+  **It is a class an author writes and deliberately not a default for the
+  `figure:` tag.** That was built first and reverted on the evidence: the
+  seven-line paragraph under `lectures/diagrams` `#flowchart` came out ragged
+  on both edges and hard to read, and no selector knows how long a caption is.
+  It moves the prose and not the heading, because where a heading sits is
+  already `style.headings`'s question and a chunk class answering it too would
+  be a second, stronger way to say the same thing that
+  `style: {headings: left}` could no longer override. Refused on a `title` or
+  `closing` chunk by the guard that already refuses `.bare` there – a cover
+  composition decides the width, the heading and, through `cover-align`, where
+  its words sit.
+
 - **A gate for the two characters that mean something else inside build.js's
   template literals** (`test/gates/inlined.mjs`). Roughly two thirds of
   `build.js` is CSS and runtime JS held in template literals, where a raw

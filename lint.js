@@ -38,10 +38,12 @@ const VALID_TAGS = new Set([
 ]);
 
 const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
-// The one non-width class an attribute tail may carry. Mirrors
+// The non-width classes an attribute tail may carry. Mirrors
 // VALID_CHUNK_CLASSES in build.js: `.bare` takes the heading off the slide
-// and leaves it in the TOC, in search and in the printed document.
-const VALID_CHUNK_CLASSES = new Set(['bare']);
+// and leaves it in the TOC, in search and in the printed document;
+// `.center` sets the chunk's prose on a centre axis. Both are decisions
+// about the slide, so both are audience-only and the document is unchanged.
+const VALID_CHUNK_CLASSES = new Set(['bare', 'center']);
 // Mirrors COVER_RATIO_VARIANTS / COVER_IMAGE_VARIANTS in build.js: which
 // covers divide the slide, and which draw a picture of their own.
 const COVER_RATIO_VARIANTS = new Set(['split', 'beside', 'above']);
@@ -2422,7 +2424,8 @@ function lintFile(filePath) {
           // that changes nothing either way.
           add(ln, 'error', 'class-on-cover-chunk',
               `'.${cls}' on a ${tag} chunk – its cover composition decides the width `
-              + 'and the heading, so the class has nothing to act on');
+              + "and the heading, and cover-align decides where its words sit, so the "
+              + 'class has nothing to act on');
         }
       }
       if (!id) {
