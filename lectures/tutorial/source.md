@@ -241,7 +241,7 @@ The tag is a fair predictor: `principle` and `question` chunks are short enough 
 
 The `| Sub-Heading` and the `{.width #id}` tail are both optional. Width is one of `narrow`, `standard`, `wide`, `full`, and **once you have written an `{#id}` it should never change** – it is what cross-references, the contents list and your saved reading position all point at.
 
-The tail takes two classes that are not widths, and both act on the projection alone. **`{.bare}` hides the heading on the slide** while keeping it in `print.html`, `print-notes.html` and the search index. **`{.center}` sets the chunk's own paragraphs on a centre axis** – it is for the line or two under a figure, and the slide back at `#four-views` wears both.
+The tail takes two classes that are not widths, and both act on the projection alone. `{.bare}` hides the heading on the slide and keeps it in the printed views and in search. `{.center}` centres the chunk's own paragraphs, which is what the slide back at `#four-views` does under its figure.
 
 ## definition: What a tag actually does {.standard #tag-effects}
 
