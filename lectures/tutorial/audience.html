@@ -690,6 +690,19 @@ body.figure-dragging #figure-overlay > .figure-focus-target { transition: none; 
 #figure-overlay > pre.shiki.figure-focus-target {
   background: var(--paper) !important;
 }
+/* A display formula is focusable, and until this rule it was the one
+   focusable thing the overlay did not enlarge: an image is given 95vw, a
+   code block a clamp() off --slide-h, and a formula nothing at all - so
+   clicking it laid it on a paper card at exactly the size it already had.
+   Scaled the same way the code block is, so the two read alike, and off
+   --slide-h rather than vh so audience and speaker agree. */
+#figure-overlay > .math-display.figure-focus-target {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+#figure-overlay > .math-display.figure-focus-target .katex {
+  font-size: clamp(30px, calc(var(--slide-h, 100vh) * 0.12), 150px);
+}
 #figure-overlay pre {
   font-family: var(--mono-font);
   /* Overlay code should read LARGER than on-slide (where it's ~0.78em
@@ -2222,9 +2235,8 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    the four, and the one that survives a monochrome print. */
 .chunk[data-section=rule] .chunk-content { align-items: stretch; }
 .chunk[data-section=rule] .section-heading {
-  border-top: 2px solid var(--rule);
-  border-bottom: 2px solid var(--rule);
-  padding: 0.35em 0;
+  border-bottom: 3px solid var(--rule);
+  padding: 0 0 0.3em;
 }
 /* card - the heading on a panel, which is the card vocabulary borrowed
    rather than a fifth thing to learn. */
@@ -5470,7 +5482,7 @@ here shows the difference.</p>
         <dt>drag · wheel · <kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></dt><dd>pan · zoom · reset the zoomed card</dd>
         <dt>click a marginalia</dt><dd>pan the camera onto the aside</dd>
         <dt>drag the slide</dt><dd>pan within a chunk that is taller than the screen</dd>
-        <dt>hold <kbd>Alt</kbd> and drag</dt><dd>select text to copy – dragging pans again once you let go</dd>
+        <dt>hold <kbd>Alt</kbd>/<kbd>option</kbd> and drag</dt><dd>select text to copy – dragging pans again once you let go</dd>
         <dt>click a link</dt><dd>opens it in a new tab of this window</dd>
         <dt><kbd>Shift</kbd>-click a link</dt><dd>puts the address on both screens, big enough to write down</dd>
         <dt><kbd>Esc</kbd></dt><dd>back to the whole slide</dd>
@@ -7012,6 +7024,17 @@ function buildSearchIndex() {
     const bodyEl = c.el.querySelector('.chunk-body');
     const mainEl = c.el.querySelector('.chunk-heading .hd-main');
     const subEl = c.el.querySelector('.chunk-heading .hd-sub');
+    // A column divider is a chunk (flatChunks navigates to it) but wears
+    // .section-heading rather than .chunk-heading, so the three selectors
+    // above find nothing on it and every divider used to sit in the index
+    // as "(untitled)" with an empty body. Searching a lecture for the name
+    // of one of its own parts then found nothing, which is the one search
+    // a reader is most likely to try first.
+    // On an outline divider the heading is not set beside the list, it IS
+    // the list's current item, so that is what the index has to read.
+    const secHeadEl = c.el.querySelector('.section-heading')
+      || c.el.querySelector('.section-outline li[aria-current] .so-text');
+    const secBodyEl = c.el.querySelector('.section-body');
     const clean = (n) => (n ? n.textContent : '').replace(/\s+/g, ' ').trim();
     // The body has to be cleaned on a copy: an inlined SVG carries its own
     // style block, and textContent hands back the CSS rules as if they were
@@ -7024,9 +7047,9 @@ function buildSearchIndex() {
       copy.querySelectorAll('style, script').forEach((s) => s.remove());
       return copy.textContent.replace(/\s+/g, ' ').trim();
     };
-    const title = clean(mainEl) || clean(headEl);
+    const title = clean(mainEl) || clean(headEl) || clean(secHeadEl);
     const sub = mainEl ? clean(subEl) : '';
-    const body = cleanBody(bodyEl);
+    const body = cleanBody(bodyEl) || cleanBody(secBodyEl);
     return {
       idx,
       tag: tagName,
@@ -7337,11 +7360,26 @@ function retreatReveal() {
 // expected to behave: perform the slide, then move to the next one. The
 // column exception below is the single thing psi-slides has that a linear
 // deck does not, and it is why the first chunk of a column says so on screen.
+// An opened card is a stage of its own on the way through a chunk, the way
+// a revealed segment is. Esc already treated it that way; the arrow keys did
+// not, and the press that ran out of beats fell straight through to
+// nextChunk() - whose jumpTo closes the card on its way past. So one key
+// took the figure off the screen AND changed the slide, on a slide the
+// lecturer was very often still talking about, and it took two windows with
+// it. Closing the card first costs one extra press and gives the chunk back.
+function unfocusAsStage() {
+  if (!focusedFigure) return false;
+  unfocusFigure();
+  if (shouldBroadcast()) sendToPeer({ type: 'figure-unfocus' });
+  return true;
+}
 function goForward() {
-  if (!advanceReveal()) nextChunk();
+  if (advanceReveal() || unfocusAsStage()) return;
+  nextChunk();
 }
 function goBack() {
-  if (!retreatReveal()) prevChunk();
+  if (retreatReveal() || unfocusAsStage()) return;
+  prevChunk();
 }
 
 // Where the columns begin and end, and – the part that has to be one fact
@@ -8128,7 +8166,7 @@ window.addEventListener('keydown', (e) => {
   if (e.target && e.target.matches && e.target.matches('input, textarea, [contenteditable=true]')) return;
   altSelectHeld = true;
   setSelecting(true);
-  flashMode('select text while Alt is held · Esc clears');
+  flashMode('select text while Alt/option is held · Esc clears');
 });
 window.addEventListener('keyup', (e) => {
   if (e.key !== 'Alt') return;
