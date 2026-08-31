@@ -859,43 +859,6 @@ step damage
 
 **Two tags do all the revealing: `@attack` and `@cut`.** `show @attack` brings Eve in and the handwritten caption with her, because both lines carry that tag; `show @cut` brings the three arrows through her a step later. The pair running to Bob leaves Eve's right edge at `:0.2` and `:0.8`, a fraction along a side being how two arrows between the same two boxes run parallel instead of on top of each other, and `side top` and `side bottom` put one label above its line and the other below.
 
-## principle: A picture behind the text is not part of the text {.standard #deco-idea}
-
-**A backdrop, an overlay and a card row belong to the chunk, not to its body.**
-The body sits in the middle of the slide, so anything written inside it is
-held inside the text column and can never reach the edges.
-
-All of it – ten covers, six kinds of divider, cards, rows, backdrops that open
-on a keypress, overlays – is shown one construct per slide in
-[the decoration lecture](../decoration/audience.html). The next two slides
-carry two of them.
-
-## example: A card row is N containers | `::: cards 3`, and an item is whole or nowhere {.wide #deco-cards}
-
-::: cards 3
-- **cards**\
-  N containers side by side. A three-item comparison reads as three things
-- **rows**\
-  the same container turned ninety degrees: a term, its body beside it
-- **cols**\
-  one text flow balanced across N tracks, where a paragraph can spill
-:::
-
-The row picks its own type size from the longest item, and anything nested
-under an item folds away on the projection and stays in `print.html` and `print-notes.html`. `C`
-here shows the difference.
-
-## example: A picture behind the words | `::: backdrop`, and `::: overlay` on top {.full #deco-picture}
-
-::: backdrop dusk {cover invert}
-
-::: overlay {bottom-left ink standard}
-**The backdrop is the slide's ground**\
-and this block is an overlay, placed on a 3×3 grid.
-:::
-
-> note: The veil laid over a backdrop is the theme's own paper, not white, so ordinary dark text stays legible over a photograph in every theme. `invert`, which this slide uses, darkens the picture and turns the text light instead.
-
 ## example: Embedding your own type | `fonts/` plus a frontmatter block {.wide #fonts}
 
 **Three typefaces travel inside every file the tool writes:** Literata, IBM Plex Sans and JetBrains Mono, all under the SIL Open Font License, which permits it. Naming a typeface is not enough on its own: Safari does not tell a page which fonts a machine has, so a lecture that only names its own gets whatever that browser decides. The three cost about 280 KB per file, and `fonts: none` leaves them out.
@@ -912,6 +875,17 @@ fonts:
 Files are matched by name, and the ending gives the weight and the style: `Literata-Regular.woff2`, `-Bold`, `-Italic`, `-BoldItalic`, `-600`, `-600italic`, or a single file named `Literata[wght].woff2` that carries every weight. A role you name uses your font; a role you leave out keeps the one that ships. Naming a family with no matching file stops the build.
 
 **Check the licence first.** Putting a font inside the file redistributes it. The SIL Open Font License and Apache-2.0 – between them nearly all of Google Fonts – allow that; most commercial desktop licences do not, and want a separate web licence. The build prints a reminder and checks nothing.
+
+## principle: A picture behind the text is not part of the text {.standard #deco-idea}
+
+**A backdrop, an overlay and a card row belong to the chunk, not to its body.**
+The body sits in the middle of the slide, so anything written inside it is
+held inside the text column and can never reach the edges.
+
+The rest of this part is those constructs one at a time. All of them – ten
+covers, six kinds of divider, cards, rows, backdrops that open on a keypress,
+overlays – are shown one per slide in
+[the decoration lecture](../decoration/audience.html).
 
 ## example: Ten ways to draw the first slide | `cover:` plus a `subtitle:` line {.wide #covers}
 
@@ -970,48 +944,92 @@ A crawler that looks like a browser gets measured back.
 :::
 ```
 
-A backdrop names its picture the same three ways an image does – a bare asset id, a path, an https address – and the words in its tail answer five questions, each from a fixed list: **fill** `cover` or `contain`; **crop** `middle`, `top` or `bottom`; **veil** `veil`, `clear` or `invert`; **focus** `sharp` or `blur`; **layer** `under` or `over`, which decides whether the picture sits behind the type or in front of it.
+A backdrop names its picture the same three ways an image does – a bare asset id, a path, an https address. **The words in the braces answer five questions, at most one word each**: how the picture fills the frame, which part of it survives the crop, what is laid over it, whether it is sharp or blurred, and whether it sits under the type or in front of it. Two words answering the same question is an error, and the message names both.
 
-`veil` is the default: the theme's own paper laid over the picture at 80%, so ordinary dark text stays legible over a photograph in all seven themes. `invert` darkens the picture and turns the text light instead. Two words answering the same question is an error.
+**`veil` is the one worth knowing by name**, because it is what you get without asking: the theme's own paper over the picture at 80%, so ordinary dark text stays legible on a photograph in all seven themes. `invert` darkens the picture and turns the text light instead – the next slide is one.
 
-An overlay answers three questions: **where** – the nine cells of a 3×3 grid, `bottom-left` through `top-right`; **what it sits on** – `paper`, `ink`, `accent`, `clear` or `glass`; and **how wide** – `narrow`, `standard`, `wide` or `full`. Every one of them is a card with padding and rounded corners, because text laid straight onto a photograph is unreadable at the back of a room.
+An overlay answers three: **where** on a 3×3 grid, **what it sits on** (`paper`, `ink`, `accent`, `clear` or `glass`) and **how wide**. Every one is a card with padding and rounded corners, because text laid straight onto a photograph is unreadable at the back of a room.
+
+[The decoration lecture](../decoration/audience.html) has a slide for each of the two lists, and a backdrop whose window opens on a keypress.
+
+## example: A picture behind the words | the same two blocks, drawn {.full #deco-picture}
+
+::: backdrop dusk {cover invert}
+
+::: overlay {bottom-left ink standard}
+**The backdrop is the slide's ground**\
+and this block is an overlay, placed on a 3×3 grid.
+:::
+
+> note: The veil laid over a backdrop is the theme's own paper, not white, so ordinary dark text stays legible over a photograph in every theme. `invert`, which this slide uses, darkens the picture and turns the text light instead. The chunk is nothing but the two blocks on the slide before it – there is no body text at all.
 
 ## example: Three things stay three things | `::: cards N` {.wide #cards}
 
 **`::: cards 3` is not a second spelling of `::: cols 3`.** A `cols` block is one run of text the browser shares across that many columns, so a paragraph can spill from the foot of one into the head of the next. A `cards` block is that many separate boxes, and an item is in one of them whole or it is nowhere.
 
-```markdown
 ::: cards 3
-- **Measure** what a page does when a crawler asks for it
-- **Probe** the detector until it names itself
-- **Report** what that costs a measurement study
+- **cards**
+  - N containers side by side
+  - a three-item comparison reads as three things
+- **rows**
+  - the same container turned ninety degrees
+  - a term, with its body beside it
+- **cols**
+  - one text flow balanced across N tracks
+  - a paragraph can spill from one into the next
 :::
-```
+
+That row is one Markdown list between `::: cards 3` and `:::`, and **each card has a second level folded away under it – press `C` and it appears.** The folded level is in `print.html` and `print-notes.html` either way, so one row serves the room and the hand-out.
 
 One rule decides what becomes a card: write a single list and each of its items is a card; write anything else and each block is a card. The count runs from 1 to 6 – one card is a callout you want to stand apart, and past six what you have is a table.
 
+**How you open a card decides what the bold does**, and the two below are written the two ways:
+
+::: cards 2
+- **A lead-in** is written on the same line as its text, so the bold runs into the sentence and the card reads as one paragraph
+- **A heading**\
+  is written before a line break, so the bold sits on its own line with the text under it
+:::
+
 Use `cols` for an argument that runs long, and `cards` for a comparison the room should be able to count.
 
-**Seven words in the tail set the look**, and two of them decide themselves: `size` (by default the longest item picks it), `align` (by default it follows the size), plus `anchor`, `detail`, `ground`, `corner` and `scrim`. `ground: photo` makes the card's first picture its background and `scrim` says what is laid over it; a picture that is *not* the background runs to the card's edges with the text under it.
+## example: What the words in the braces do | `ground` and `anchor`, shown {.wide #cards-look}
 
-**How you open a card decides what the bold does.** Written on the same line it is a lead-in; written before a line break it is a heading with air under it.
+**Seven words in the tail set the look, and two of them decide themselves**: `size`, where the longest item picks it, and `align`, which follows the size. The other five are `anchor`, `detail`, `ground`, `corner` and `scrim`. They are bare words between braces, at most one per question, and a second word answering a question already answered stops the build.
 
-```markdown
-- **panel** a tinted fill…      lead-in
-- **Measure**\                  heading
-  what the page does
-```
+::: cards 3 {accent}
+- **accent**\
+  the theme's own colour, with the text in the page colour on top
+- **paper**\
+  the page colour, so the card lifts off whatever is behind it
+- **clear**\
+  no box at all. The gap between the cards is what separates them
+:::
+
+**That row is `::: cards 3 {accent}`** – one word, and `ground` is answered for every card in it. `panel` is the default, a tinted fill; `outline` is a hairline and no fill; `photo` makes the card's first picture its background, and `scrim` says what is laid over it.
+
+::: cards 3 {outline middle}
+- **outline**\
+  a hairline and no fill, which is quieter on a slide that already carries a figure
+- **middle**\
+  this text is centred against the tallest card. In the row above it sits at the top
+- **never both**\
+  a fill inside a hairline reads as a form field rather than as a card
+:::
+
+**That one is `::: cards 3 {outline middle}`**, so it answers two questions: `ground`, and `anchor` – where the text sits when the card is taller than its content, which it always is, a grid row being as tall as its longest card.
 
 ## example: A term and what it means | `::: rows` {.wide #rows}
 
 **`::: rows` is the same box turned ninety degrees**: a term in a card on the left, its explanation beside it, several of them stacked.
 
-```markdown
-::: rows {.accent}
-- **Separatism** Engineers do the technical work; managers take the decisions.
-- **Technocracy** Engineers should take them, because they understand them.
+::: rows {accent}
+- **Separatism** Engineers do the technical work; managers take the decisions
+- **Technocracy** Engineers should take them, because they understand them
+- **Deference** Engineers name the options and say what each one costs
 :::
-```
+
+That is `::: rows {accent}` around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are.
 
 It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: the text is centred against its term rather than against its first line; `align` says how the term sits *in its card*, and the explanation always ranges left; and the automatic size stops at `medium`, a term being a label in a column rather than a headline across the slide.
 
@@ -1019,20 +1037,21 @@ Reach for `rows` when a term needs a sentence, and for `cards` when a comparison
 
 ## example: A figure beside the prose | `::: side 2:1` {.wide #side-ratio}
 
-**`::: side` takes an optional ratio**, so the two panes need not be equal halves.
-
-```markdown
 ::: side 2:1
-The argument gets the wider pane, because it is the thing being read.
+
+**`::: side` takes an optional ratio, so the two panes need not be equal halves.** This slide is `::: side 2:1`: two parts of prose to one part figure, which is the shape a diagram with its commentary usually wants. Any two numbers work, `::: side` on its own is equal halves, and `::: flip` starts the second pane.
+
+The figure beside this text is a `::: draw` block inside the second pane. In `print.html` and `print-notes.html` the two panes stack one after the other and the ratio is ignored, because a page has only one column to give them.
 
 ::: flip
-::: draw {unit=140x52}
+
+::: draw {unit=140x60}
 box a "Crawler" {.tone-1}
 box b "Detector" below a gap 1.1 {.tone-4}
 edge a -> b "request"
 :::
+
 :::
-```
 
 **A figure *above* or *below* the text needs nothing at all** – put the block first or last in the chunk body. `::: cols` is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns quietly stop working. A `::: draw` written there is refused, and the message points you at `::: side`.
 
