@@ -1,9 +1,10 @@
 # Plan: PDF-Foliensatz mit allen Beats
 
-Zweite Fassung. Die erste ist an Codex' Review
-(`REVIEW-slide-pdf-export.md`) und am Code geprüft worden; was davon
-bestätigt wurde, was verworfen, und was billiger zu haben ist als
-vorgeschlagen, steht in „Was sich gegenüber Fassung 1 geändert hat“.
+Dritte Fassung. Fassung 1 ist an Codex' erstem Review geprüft worden,
+Fassung 2 an seinem zweiten (`REVIEW-slide-pdf-export.md`,
+`REVIEW-slide-pdf-export-v2.md`) und beide am Code. Was bestätigt wurde,
+was verworfen, und was billiger zu haben ist als vorgeschlagen, steht in
+den beiden Änderungsabschnitten.
 
 ## Ziel
 
@@ -17,10 +18,13 @@ nicht läuft, und ein weitergebbarer klassischer Foliensatz. Er ersetzt
 `print.html` und `print-notes.html` nicht: Das sind Dokumente, das hier
 sind Folien.
 
-**Anspruch dieser Fassung:** Der Export soll für die Vorlesungen laufen,
-die in diesem Repository und im Inhalts-Repository liegen. Er muss nicht
-jeden denkbaren Sonderfall abdecken. Wo eine Vollständigkeit teuer wäre,
-steht unten, was v1 stattdessen tut und warum das reicht.
+**Anspruch dieser Fassung:** Der Export muss für die **fünf Vorlesungen
+dieses Repositories** laufen; das ist die Zusage, und Umsetzungsschritt
+10 und Abnahmekriterium 1 nennen sie namentlich. Die vier Vorlesungen im
+Inhalts-Repository sind eine Stichprobe von Hand, keine Abnahmebedingung
+– sie liegen nicht hier und laufen nicht in CI. Er muss nicht jeden
+denkbaren Sonderfall abdecken. Wo eine Vollständigkeit teuer wäre, steht
+unten, was v1 stattdessen tut und warum das reicht.
 
 ## Was sich gegenüber Fassung 1 geändert hat
 
@@ -84,6 +88,46 @@ Neu, weil beim Prüfen aufgefallen:
 - `findChrome()` existiert bereits zweimal (`docs/site/shoot-lib.mjs` 25,
   `test/harness.mjs` 53). Eine dritte Kopie wäre die eine zu viel.
 
+## Was sich gegenüber Fassung 2 geändert hat
+
+Der zweite Review hat drei blockierende Punkte gefunden. Alle drei sind
+am Code nachgeprüft, einer davon gemessen, und alle drei stimmen.
+
+- **`html, body { height: 100%; overflow: hidden }` aus `AUDIENCE_CSS`
+  (`build.js` 5983–5986) hätte das PDF auf eine Seite reduziert.** Das
+  ist kein Verdacht: Vier seitengroße `div`s, Chromium 1228, einmal mit
+  und einmal ohne die Regel, ergeben `/Count 1` gegen `/Count 4`. Das
+  Export-Stylesheet setzt beides zurück. → „Das Druck-DOM“.
+- **Der Zustandslauf hätte Drittanbieter kontaktiert.** `jumpTo()` ruft
+  `applyState()` ruft `updateEmbedLoading()`, und das setzt `iframe.src`
+  für den aktiven Chunk; `wireEmbeds()` fängt unter `file://` nur
+  YouTube ab. Ein Vimeo-Embed lädt also, und eines auf der ersten Folie
+  schon während `page.goto()`. Der Export blockt HTTP(S) per
+  `page.route()` **vor** dem `goto`. → „Chromium-Aufruf“.
+- **Abnahmekriterium 9 war unerfüllbar.** `npm test` kann ohne
+  `playwright-core` schon heute nicht starten, weil `test/harness.mjs`
+  es statisch importiert (Zeile 42). Das Kriterium sagt jetzt, was es
+  meinen kann: `build.js` und `lint.js`.
+
+Dazu drei kleinere, ebenfalls bestätigt:
+
+- **`--pdf-fit=lecture` ist ersatzlos gestrichen.** Der Review sagt, der
+  Schalter sei mehrdeutig; er ist schlimmer, nämlich undefiniert – siehe
+  CLI-Vertrag. Ein Schalter mit undefiniertem Wert wird nicht
+  definiert, er wird entfernt.
+- **Die neue Spec braucht zwei Anschlüsse**, die Fassung 2 nicht genannt
+  hat: einen Eintrag in `SPECS` und ein `buildSource()` im Harness.
+  → „Tests“.
+- **`lectures/python-intro` fehlte in der Matrix.** Fünf Vorlesungen,
+  nicht vier; und der Anspruch auf das Inhalts-Repository ist zu einer
+  Stichprobe zurückgenommen.
+
+Ein Nebenbefund aus derselben Messung, der den Testplan verbessert:
+Chromium schreibt PDF 1.4 ohne Objektströme, `/Count` und `/MediaBox`
+stehen im Klartext. Die Seitenzahlprüfung der erzeugten Datei – die der
+Review zu Recht als obligatorisch verlangt – braucht deshalb kein
+Poppler und ist eine Zeile.
+
 ## Festgelegtes Verhalten
 
 - Der Ausgangszustand jedes Chunks wird exportiert.
@@ -119,15 +163,24 @@ schreibt `lectures/foo/slides.pdf`.
 --slides-pdf                 # baut audience.html und exportiert
 --pdf-beats=all|final        # Standard: all
 --pdf-size=16:9|16:10        # Standard: 16:9
---pdf-fit=auto|lecture       # Standard: auto
 --pdf-out=<pfad>             # Standard: slides.pdf neben source.md
 ```
 
 - `--pdf-beats=final` gibt nur den vollständig aufgebauten Zustand jedes
   Chunks aus – eine Seite pro Chunk. Der Fallback-Foliensatz ist `all`.
-- `--pdf-fit=lecture` verwendet die Zoom-Voreinstellung der Vorlesung
-  statt Auto-Fit. Wer das wählt, nimmt überlaufende Seiten in Kauf und
-  bekommt sie gemeldet.
+- **Kein `--pdf-fit`.** Auto-Fit ist der einzige Modus. Fassung 2 hatte
+  hier ein `lecture` stehen, das auf eine Einstellung zeigte, die es
+  nicht gibt: `VIEW_DEFAULT_SPEC` kennt keinen Zoom, der Runtime-Default
+  ist fest `1.35` (`build.js` 9221), und `collapsedZoom` wird bei
+  Modulstart einmal daraus abgeleitet (`build.js` 10741). Schlimmer
+  noch: Bei einer Vorlesung mit `auto-fit: true` hat der Boot `state.zoom`
+  schon auf irgendeine Folie eingestellt, und ein `settle()` holt ihn
+  nicht zurück, weil `clampZoomToWidth()` bei `collapse: none` sofort
+  zurückkehrt (`build.js` 10931–10933) – eine Kombination, die mehrere
+  der vorhandenen Vorlesungen verwenden. Der Schalter hätte also einen
+  vom Bootzustand abhängigen Zufallswert bedeutet. Ein fester Zoom ist
+  als `--pdf-zoom=<n>` später ehrlich zu haben: eine Zahl, keine Fiktion
+  über eine Vorlesungseinstellung.
 - Theme, Schrift und die übrigen Darstellungsoptionen kommen aus der
   Frontmatter beziehungsweise `VIEW_DEFAULTS`. Der Export liest kein
   `localStorage` – ein frischer Browser-Kontext hat ohnehin keins, und
@@ -196,7 +249,7 @@ window.psiExport = {
   setRevealed: (id, n) => { revealed[id] = n; },
   applyReveal,
   settle: () => { if (state.autoFit) fitZoomToChunk(2.2); else clampZoomToWidth(); },
-  setAutoFit: (on) => { state.autoFit = on; },
+  setAutoFit: (on) => { state.autoFit = on; },   // der Export setzt true
   quiesce: () => { autoplayStopped = true; stopAutoplay(); },
   zoom: () => state.zoom,
 };
@@ -259,8 +312,8 @@ in einer anderen Schriftgröße heraus als im Hörsaal.
 
 ### 3. Auto-Fit ist der Export-Modus
 
-Der Export setzt `state.autoFit = true`, sofern nicht
-`--pdf-fit=lecture`.
+Der Export setzt `state.autoFit = true`, unbedingt und unabhängig von der
+Frontmatter.
 
 Begründung: In der Audience-Ansicht wird ein Chunk, der höher ist als
 der Rahmen, *gelaufen* – die Kamera pinnt den Kopf und folgt beim
@@ -312,6 +365,13 @@ Zoom global, die Seiten brauchen ihn einzeln. Alle 57 Verwendungen von
 Das Export-Stylesheet legt fest:
 
 ```css
+/* Ohne diese zwei Zeilen bleibt es bei einer Seite – gemessen, siehe
+   unten. AUDIENCE_CSS setzt html,body auf height:100% und
+   overflow:hidden (build.js 5983–5986), was für ein Fenster richtig ist
+   und für ein paginiertes Dokument tödlich. */
+html[data-psi-pdf], html[data-psi-pdf] body {
+  height: auto !important; overflow: visible !important;
+}
 :root[data-psi-pdf] {
   --slide-w: 1600px !important; --slide-h: 900px !important;
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
@@ -334,6 +394,24 @@ Das Export-Stylesheet legt fest:
 Viewport, solange er hineinpasst – und in Auto-Fit passt er.
 `:last-child { break-after: auto }` ist der Unterschied zwischen der
 richtigen Seitenzahl und einer leeren Seite am Ende.
+
+**Gemessen**, vier seitengroße `div`s, Chromium 1228, `--print-to-pdf`,
+eine CSS-Zeile Unterschied:
+
+```text
+html,body{height:100%;  overflow:hidden}   →  /Count 1    8357 Bytes
+html,body{height:auto;  overflow:visible}  →  /Count 4   12281 Bytes
+```
+
+Das ist der Fehler, der die ganze Ausgabe still auf eine Seite reduziert
+hätte, und er erklärt nebenbei die Messung aus Fassung 1: Dass
+`audience.html` genau eine Seite ergab, lag nicht nur an den verborgenen
+Chunks. Zwei Ursachen, eine diagnostiziert.
+
+Aus derselben Messung folgt ein zweiter, nützlicher Befund: Chromium
+schreibt PDF 1.4 **ohne Objektströme**. `/Count` und `/MediaBox` stehen
+im Klartext in der Datei, sind also mit `grep` prüfbar. Die
+Seitenzahlprüfung braucht kein Poppler (siehe Tests).
 
 Der ganze Satz wird in **einem** `page.pdf()`-Aufruf gedruckt. Einzelne
 Seiten-PDFs zusammenzuführen bräuchte einen PDF-Merger, den das Projekt
@@ -415,7 +493,14 @@ Suche das erste Mal auseinanderläuft.
 const browser = await chromium.launch({ executablePath: findChrome(), headless: true });
 const ctx = await browser.newContext({ viewport: { width: 1600, height: 900 } });
 const page = await ctx.newPage();
-await page.goto(pathToFileURL(audienceHtml).href);
+// Offline ist eine Zusage, also wird sie durchgesetzt und nicht erbeten.
+// Vor dem goto, weil ein Embed auf der ersten Folie schon dort lädt.
+const blocked = new Set();
+await page.route(/^https?:/, (route) => {
+  blocked.add(new URL(route.request().url()).origin);
+  return route.abort();
+});
+await page.goto(pathToFileURL(audienceHtml).href, { waitUntil: 'load' });
 await page.waitForFunction(() => window.psiExport && document.fonts.status === 'loaded');
 // … Zustände einsammeln, Druck-DOM bauen …
 await page.emulateMedia({ media: 'screen' });
@@ -438,6 +523,22 @@ const buf = await page.pdf({
   auch bei `--no-inline-images` lädt Chromium relative Bildpfade von
   `file://`. Was ein Server zusätzlich könnte – Drittanbieter-Embeds
   laden –, will der Export ausdrücklich nicht.
+- **`page.route()` vor dem `goto`, und das ist nicht Gürtel-und-Hosenträger.**
+  Der Zustandslauf beginnt mit `jumpTo()`, das über `applyState()` →
+  `updateEmbedLoading()` (`build.js` 11134–11157) für den aktiven Chunk
+  `iframe.src` aus `data-src` setzt. `wireEmbeds()` fängt unter `file://`
+  nur YouTube ab (`build.js` 11107–11111) – ein Vimeo- oder generisches
+  Embed lädt also wirklich, und eines auf der ersten Folie sogar schon
+  während `page.goto()`. Die Frames erst nach dem Klonen zu ersetzen ist
+  zu spät. Routing ist die richtige Ebene dafür: Es ist eine Zeile, es
+  wirkt vor jedem Runtime-Zustand, und es macht die Offline-Zusage
+  prüfbar, statt sie der Kooperation der Runtime zu überlassen. Ein
+  Runtime-Exportmodus würde dasselbe versprechen und nur für die Fälle
+  gelten, an die jemand gedacht hat.
+- Was geblockt wurde, wird am Ende gemeldet – ein Origin pro Zeile. Für
+  ein Embed ist das erwartet und die Karte steht ohnehin bereit; für ein
+  entferntes Bild ist es die Erklärung des leeren Feldes, und die
+  Abhilfe heißt inlinierte Bilder, also der Standard des Werkzeugs.
 - Browser, Kontext und temporäre Dateien werden in `finally` geschlossen.
 - Der Export loggt eine Zeile mit `browser.version()` und dem
   Executable-Pfad. Das ist die halbe Reproduzierbarkeitszusage (siehe
@@ -528,6 +629,9 @@ Benannt, damit später niemand rätselt, ob es vergessen wurde:
   Meldung, nichts dazwischen.
 - **`poster:`-Syntax für Videos.** Frame 0 reicht.
 - **Ausschreiben der Link-Ziele als Text.** Später als `--pdf-urls`.
+- **Ein fester Zoom statt Auto-Fit.** Später als `--pdf-zoom=<n>`, eine
+  Zahl auf der Kommandozeile. Nicht als Verweis auf eine
+  Vorlesungseinstellung – die gibt es nicht (siehe CLI-Vertrag).
 - **PDF-Lesezeichen / Outline pro Spalte.** Nett, aber `page.pdf()`
   erzeugt sie nicht von selbst, und ein PDF-Writer ist keine
   Abhängigkeit, die dieses Feature rechtfertigt.
@@ -555,13 +659,26 @@ Benannt, damit später niemand rätselt, ob es vergessen wurde:
    geladene Bilder.
 9. `page.pdf()`-Aufruf, Overflow-Meldungen, Log-Zeile mit
    Browser-Version.
-10. **Messen, bevor weitergebaut wird:** `lectures/tutorial`,
-    `lectures/diagrams`, `lectures/decoration` und
-    `lectures/network-security` exportieren. Seitenzahl, Dateigröße,
-    Laufzeit und `pdffonts`-Ausgabe notieren. Wenn die Größe hier aus dem
-    Ruder läuft, ist das der Moment, an dem die Font-Instanzierung doch
-    in v1 muss – und nicht früher.
-11. Tests (siehe unten).
+10. **Messen, bevor weitergebaut wird:** alle fünf Vorlesungen des
+    Repositories exportieren – `tutorial`, `diagrams`, `decoration`,
+    `network-security` und `python-intro`, das in Fassung 2 fehlte und
+    unter ihnen das reichste an `::: cols`, `::: side` und
+    `::: marginalia` ist. Seitenzahl, Dateigröße, Laufzeit und
+    `pdffonts`-Ausgabe notieren. Wenn die Größe hier aus dem Ruder
+    läuft, ist das der Moment, an dem die Font-Instanzierung doch in v1
+    muss – und nicht früher.
+
+    Das Inhalts-Repository `../psi-slides-mylectures` (`advasp`,
+    `evalchat`, `seminar`, `vawi`) wird einmal von Hand durchgesehen,
+    steht aber **nicht** in der Abnahmematrix: Es liegt nicht in diesem
+    Repository, läuft nicht in CI, und ein Abnahmekriterium, das auf
+    einem Nachbarverzeichnis fußt, ist auf keiner anderen Maschine
+    prüfbar. Der Anspruch oben ist entsprechend gelesen: Die fünf
+    lokalen Vorlesungen sind die Zusage, die vier fremden sind die
+    Stichprobe.
+11. Tests: Fixture unter `test/fixtures/pdf-beats/`, `buildSource()` im
+    Harness, `'./pdf-export.mjs'` ans Ende von `SPECS` in
+    `test/run.mjs`, Spec schreiben (siehe unten).
 12. Dokumentation: `CLAUDE.md` (Commands, Architektur mit der zweiten
     Ausnahme), `README.md`, `CHANGELOG.md` unter `## [Unreleased]`,
     `docs/comparison.md`, CLI-Hilfe. Die Tutorial-Vorlesung erwähnt den
@@ -580,6 +697,23 @@ Links, IDs – ist im DOM prüfbar, bevor Chromium druckt, und dort mit
 gewöhnlichen Selektoren statt mit einem PDF-Parser. Eine neue Spec
 `test/specs/pdf-export.mjs` exportiert ein Fixture und assertet gegen das
 Druck-DOM.
+
+**Zwei Anschlüsse muss die Umsetzung dafür herstellen, und sie stehen
+hier, weil sie sonst niemand sieht:**
+
+1. `test/run.mjs` entdeckt keine Dateien, es importiert die feste
+   `SPECS`-Liste. `'./pdf-export.mjs'` gehört dort eingetragen, ans Ende
+   der Liste – die Spec startet einen zweiten Chromium-Lauf und ist die
+   langsamste, also läuft sie zuletzt.
+2. `buildLecture(slug)` baut ausschließlich `lectures/<slug>/source.md`
+   (`test/harness.mjs` 118–125). Ein Fixture außerhalb von `lectures/`
+   erreicht es nicht. Der Harness bekommt dafür ein
+   `buildSource(relPath, flags)`, das gegen `ROOT` auflöst;
+   `buildLecture` wird zum Einzeiler darüber. Ein Fixture in `lectures/`
+   abzulegen wäre die Alternative und ist die schlechtere: `lint.js` und
+   `gates.yml` laufen über `lectures/`, und ein absichtlich überlanger
+   Chunk mit einem toten Fragmentlink ist genau das, was ein Linter dort
+   zu Recht anschreit.
 
 Fixture `test/fixtures/pdf-beats/source.md`, ein Chunk je Fall:
 
@@ -620,35 +754,59 @@ Zusätzlich: Die eingebetteten `<style>`-Blöcke der Klone sind unverändert
 `--slide-h: 900px`; jede `.pdf-page` ist 1600 × 900; keine ist höher als
 ihr Inhalt breit.
 
-*Overflow.* Ein absichtlich überlanger Chunk mit `--pdf-fit=lecture`
-erzeugt genau eine Warnung, die Chunk-ID und Beat nennt.
+*Overflow.* Ein Chunk, der bei Zoom 0,6 immer noch überläuft, erzeugt
+genau eine Warnung, die Chunk-ID und Beat nennt. Das Fixture enthält
+dafür einen absichtlich überlangen Chunk.
 
-*Datei.* Ein Ende-zu-Ende-Lauf schreibt `slides.pdf`, das mit `%PDF-`
-beginnt, größer als 10 KB ist, und dessen Bytes `/MediaBox [0 0 1200
-675]` enthalten. Ein abgebrochener Lauf hinterlässt kein `slides.pdf` und
-kein `.tmp`.
+*Datei, und das ist die wichtigste Assertion der Spec.* Die Seitenzahl
+der **erzeugten Datei** muss geprüft werden, nicht nur die der Wrapper im
+DOM – die Messung oben zeigt, warum: Ein DOM mit vier richtig
+dimensionierten Wrappern hat ein einseitiges PDF ergeben, und keine
+DOM-Assertion hätte das gesehen.
 
-*Optional, wenn Poppler da ist.* Sind `pdfinfo` und `pdftotext` auf dem
-`PATH`, wird zusätzlich geprüft: Seitenzahl stimmt mit der DOM-Zählung
-überein, `pdftotext` findet einen bekannten Satz aus dem Fixture, und –
-wenn `pdffonts` da ist – die Ausgabe wird als Notiz gedruckt, nicht
-asserted. Fehlen die Werkzeuge, sagt der Test das und läuft weiter. Das
-ist dieselbe Bauart wie `encoder()` in `shoot-lib.mjs`: ein fehlendes
-Werkzeug ist ein nicht eingerichteter Rechner, kein Defekt.
+Das braucht kein Poppler. Chromium schreibt PDF 1.4 ohne Objektströme,
+also steht die Zahl im Klartext in der Datei:
+
+```js
+const pdf = fs.readFileSync(out, 'latin1');
+const pages = Number(/\/Count (\d+)/.exec(pdf)[1]);          // === erwartet
+const box = /\/MediaBox\s*\[([^\]]+)\]/.exec(pdf)[1].trim().split(/\s+/).map(Number);
+// [0, 0, 1200, 675] auf 1 pt genau – gemessen kommt 675.12 heraus,
+// also wird verglichen und nicht auf Textgleichheit geprüft.
+```
+
+Dazu: Die Datei beginnt mit `%PDF-`, ist größer als 10 KB, und ein
+abgebrochener Lauf hinterlässt weder `slides.pdf` noch `.tmp`.
+
+*Offline.* Der Lauf über ein Fixture mit einem Vimeo-`::: embed` meldet
+genau einen geblockten Origin und bricht nicht ab. Ohne das Routing
+würde er ihn laden – das ist der Test, der die Offline-Zusage von einer
+Behauptung zu einer Eigenschaft macht.
+
+*Optional, wenn Poppler da ist.* Sind `pdftotext` beziehungsweise
+`pdffonts` auf dem `PATH`, kommt dazu: `pdftotext` findet einen bekannten
+Satz aus dem Fixture (die Textnatur aus Abnahmekriterium 4), und die
+`pdffonts`-Ausgabe wird als Notiz gedruckt, nicht asserted. Fehlen die
+Werkzeuge, sagt der Test das und läuft weiter – dieselbe Bauart wie
+`encoder()` in `shoot-lib.mjs`: ein fehlendes Werkzeug ist ein nicht
+eingerichteter Rechner, kein Defekt. **Nur diese beiden sind optional**;
+Seitenzahl und Seitenmaß nicht.
 
 Ausdrücklich **kein** visueller Pixelvergleich PDF gegen Screenshot. Er
 wäre der teuerste Test hier, der am häufigsten aus Gründen ausschlägt,
 die niemanden interessieren, und die Fragen, die er beantworten soll –
 stimmen die Farben, ist der Hintergrund da – beantworten `printBackground`
-und `print-color-adjust: exact` an der Quelle. Ein Auge auf den vier
+und `print-color-adjust: exact` an der Quelle. Ein Auge auf den fünf
 Vorlesungen aus Umsetzungsschritt 10 leistet mehr.
 
 ## Abnahmekriterien
 
 Die erste Version ist fertig, wenn:
 
-1. `node build.js <source.md> --slides-pdf` aus jeder der vier
-   Vorlesungen im Repository ein `slides.pdf` erzeugt;
+1. `node build.js <source.md> --slides-pdf` aus **allen fünf**
+   Vorlesungen im Repository ein `slides.pdf` erzeugt –
+   `tutorial`, `diagrams`, `decoration`, `network-security`,
+   `python-intro`;
 2. jeder Chunk und jeder seiner Zustände genau einmal und in der
    richtigen Reihenfolge enthalten ist, ein beatloser Chunk eingeschlossen;
 3. die Seiten der Audience-Ansicht entsprechen – gleiches Theme, gleiche
@@ -659,13 +817,25 @@ Die erste Version ist fertig, wenn:
 5. Expansions, Annotationen und interaktives Chrome vollständig fehlen;
 6. externe Links klickbar bleiben und interne Links auf die erste Seite
    ihres Ziel-Chunks beziehungsweise ihrer Divider-Folie führen;
-7. der Export offline über `file://` läuft;
+7. der Export offline über `file://` läuft und dabei **nachweislich**
+   keinen HTTP-Request absetzt – geprüft über das Routing, nicht
+   angenommen;
 8. fehlender Browser, nicht geladene Bilder, unauflösbare Fragmente und
    überlaufende Zustände je eine Meldung mit Chunk-ID und nächstem
    Schritt erzeugen, statt still zu bleiben;
-9. `npm run build`, `npm run lint` und `npm test` ohne `--slides-pdf`
-   unverändert durchlaufen, auch auf einer Installation **ohne**
-   `playwright-core` – der einzige neue Import in `build.js` ist ein
-   `await import()` hinter dem Flag;
+9. `node build.js <source.md>` und `npm run lint` auf einer Installation
+   **ohne** `playwright-core` unverändert durchlaufen – der einzige neue
+   Import in `build.js` ist ein `await import()` hinter dem Flag.
+
+    Fassung 2 hat hier auch `npm test` versprochen, und das war schon
+    vorher unmöglich: `test/run.mjs` lädt `test/harness.mjs`, und das
+    importiert `playwright-core` statisch auf Modulebene
+    (`test/harness.mjs` 42). Die Browser-Suite braucht eine
+    Browserbindung, mit oder ohne dieses Vorhaben. Sie hier kontrolliert
+    überspringbar zu machen wäre eine Änderung an der Testarchitektur,
+    die der PDF-Export nicht verursacht hat und nicht mitbringen soll –
+    `npm run gate` ist der Teil, der ohne Browser läuft, und der läuft
+    weiter;
+
 10. die vier bestehenden HTML-Ausgaben byteweise unverändert sind, bis
     auf die zehn Zeilen `psiExport` in den beiden Live-Ansichten.
