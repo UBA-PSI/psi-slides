@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Five gates, and they prove five different things – which is worth stating
+ * Six gates, and they prove six different things – which is worth stating
  * because a green run summarised as one number hid a wrong drawing behind a
  * passing parse:
  *
@@ -20,6 +20,10 @@
  *   corpus     every block in the repository still compiles
  *   step-classes  which classes a beat can actually carry, derived from the
  *              compiler's own table rather than restated
+ *   inlined    the two characters that mean something else inside one of
+ *              build.js's template literals: a raw backtick, which ends the
+ *              literal, and a single-backslash regex escape, which the
+ *              literal eats and which therefore ships
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -36,6 +40,7 @@ const GATES = [
   './semantics.mjs',
   './corpus.mjs',
   './step-classes.mjs',
+  './inlined.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));
