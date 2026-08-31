@@ -595,7 +595,32 @@ lang: de                # not a view default: the language the lecture
 
 ## example: Diagrams | `::: draw` draws boxes and arrows from text {.full #diagram}
 
-**A `::: draw` block is a figure you write out in the lecture source, drawn into the page as artwork when the lecture is built.** You name the boxes and say where they go; the arrows between them are worked out for you.
+**A `::: draw` block is a figure you write out in the lecture source, and the build draws it into the page as artwork.** You name the boxes and say where each one goes; the arrows between them are routed for you.
+
+::: draw {unit=126x38}
+box src "Sender"
+box mix "Mix"       right of src gap 1.05
+box dst "Receiver"  right of mix gap 1.05
+
+edge src -> mix "encrypted"
+edge mix -> dst "recoded"
+:::
+
+That drawing is these five lines and nothing else:
+
+```text
+box src "Sender"
+box mix "Mix"       right of src gap 1.05
+box dst "Receiver"  right of mix gap 1.05
+edge src -> mix "encrypted"
+edge mix -> dst "recoded"
+```
+
+**The first element sits at the origin, so a simple figure needs no coordinates at all.** Everything after it is placed against a neighbour – `right of`, `left of`, `above`, `below` – and `gap` says how far. Nothing is arranged for you: every element sits where you put it, and that is the whole of the layout model.
+
+## example: A figure that arrives in pieces | `step` blocks ride the reveal key {.full #diagram-beats}
+
+**Write `step` blocks and the figure moves.** One step is one press of the same key that uncovers a segment, so steps and segments arrive in the order you wrote them and the lectern view reads ahead exactly as it does for text. Press forward twice here.
 
 ::: draw {unit=126x72}
 box  src  "Sender"
@@ -615,54 +640,46 @@ step blame
   emph leak, log
 :::
 
-**Every line has the same six slots, and they always come in this order** – most lines fill three or four of them:
+That is the figure from the slide before with a logfile added and four lines at the end: `step leak` shows the logfile, and `step blame` picks out the leak and the box it runs to. **The words a step knows are `show`, `hide`, `move … to`, `move … by`, the three attention verbs `emph`, `dim` and `ghost`, plus `style` and `label`.**
+
+**Anything hanging off something invisible is invisible too**, which is why `step leak` names only the logfile. An arrow is only as visible as the two things it joins, a `container` or a `brace` only as visible as its members, and a `text` with a line drawn to something only as visible as what it points at. So showing the boxes shows the arrows between them, and most of a figure needs no `show` of its own.
+
+> note: `print.html` and `print-notes.html` draw the **last** step rather than every step laid over each other, so an element a step hid stays hidden. Emphasis is the exception and comes from the first step, so attention you move around during the talk never reaches the paper while a `{.dim}` written on an element's own line does: written on the line it is part of the drawing, written inside a `step` it is part of the talk.
+
+## example: Every line has the same six slots | `kind name label placement options tail` {.full #diagram-slots}
+
+**Every line in a `::: draw` block has the same six slots, always in this order**, and most lines fill three or four of them:
 
 ```text
 box   mix   "Mix"   right of src gap 0.6   w 1.2    {.tone-2 @crypto}
 kind  name  label   placement              options  tail
 ```
 
-**Inside the tail, two prefixes answer two questions** – `.tone-2` is a class, which says how the element looks, and `@crypto` is a tag, which says what set it belongs to. `{!tone-2}` with an exclamation mark takes a class off again. The name is how later lines refer to an element and is never drawn; the label is what the room reads, and `""` is a legal empty one.
+**The name is how later lines refer to an element and is never drawn; the label is what the room reads**, and `""` is a legal empty one. A name is letters, digits, `_` and `-`, and a line starting with `#` is a comment.
 
-**Placement is a grid square or a relation to a neighbour** – `at 2,1`, or `right of mix gap 0.6`, or `below src gap 0 flush left` for boxes that touch. The first element sits at the origin, so a simple diagram needs no coordinates at all. Nothing is laid out for you: every element sits where you put it.
+**Inside the tail, two prefixes answer two questions.** `.tone-2` is a class, which says how the element looks, and `@crypto` is a tag, which says what set it belongs to. `{!tone-2}` with an exclamation mark takes a class off again. A tag goes wherever a name goes, so `show @crypto` in a step reaches every element carrying it, and an element joins a set on its own line – adding one to a set is a one-line edit.
 
-**A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`, `via iv.cx,x0.cy`. Anywhere an `X,Y` pair goes, that form goes, so moving one element does not mean retyping everything placed against it. `.elbow` on an edge writes the commonest route for you – one turn out, one turn in, halfway across the gap – and takes no waypoints and no options.
+## example: Where an element goes | a grid square, or a neighbour {.full #diagram-placement}
 
-**An edge is one of the things a coordinate can name.** `text n "only after the handshake" above w1 gap 0.2` sets a phrase against the wire it describes rather than against a box at one end of it, so the label follows its line instead of drifting off it the next time a box changes height. Name the edge first, in the slot before the arrow's first end: `edge w1 mix -> log`. An edge has no name until you write one, and most edges never need one. A name is letters, digits, `_` and `-`; a line starting with `#` is a comment.
+**Placement is a grid square or a relation to a neighbour** – `at 2,1`, or `right of mix gap 0.6`, or `below src gap 0 flush left` for boxes that touch. Placement also takes `between a,b`, the point on the line joining two elements, and any placement accepts a trailing `offset dx,dy`.
 
-**`step` blocks make a figure move.** One step is one press of the same key that uncovers a segment, so steps and segments arrive in the order you wrote them and the lectern view follows. The words a step knows are `show`, `hide`, `move … to`, `move … by`, the three attention verbs `emph`, `dim` and `ghost`, plus `style` and `label`.
+**A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`, `via iv.cx,x0.cy`. Anywhere an `X,Y` pair goes, that form goes, so moving one element does not mean retyping everything placed against it. An anchor can carry a fraction: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side instead of on top of each other.
 
-**A box that moves takes its arrows with it.** The whole figure is laid out again at every step rather than nudged, so an arrow joining two elements finds a new route whenever either end moves.
-
-**Anything hanging off something invisible is invisible too.** An arrow is only as visible as the two things it joins; a `container` or a `brace` only as visible as its members, and it shrinks to fit the ones on screen; a `text` with a line drawn to something only as visible as what it points at. So showing the boxes shows the arrows between them, the outline around them and the note beside them, and most of a diagram needs no `show` of its own. A free `text` gets that line by writing `-> some-element` after it. Naming an arrow or an outline in a `show` or a `hide` of its own overrides the rule, in both directions, from that step onwards.
+**An edge is one of the things a coordinate can name.** `text n "only after the handshake" above w1 gap 0.2` sets a phrase against the wire it describes rather than against a box at one end of it, so the label follows its line instead of drifting off it the next time a box changes height. Name the edge first, in the slot before the arrow's first end: `edge w1 mix -> log`. An edge has no name until you write one, and most edges never need one.
 
 **A picture can be an element too.** `image alice avatar-alice w 0.4` finds the file exactly as `![](fig-id)` does. An SVG drawing is written into the page itself, so it takes the theme's colours and changes with the `A` key; a photograph is embedded as it is and keeps its own colours in every theme.
 
 ::: expand The rest of the vocabulary
-`dot` is a circle for junctions and glyphs. `container … over a,b,c` draws a box that fits itself around its members and re-fits when they move; `brace … over a,b right "Label"` is a bracket spanning a subset.
+**There are more kinds than `box`, `edge` and `text`.** `dot` is a circle for junctions and glyphs. `container … over a,b,c` fits a box around its members and re-fits when they move, and `brace … over a,b right "Label"` is a bracket spanning a subset. `bars`, `grid` and `plot` are charts without a chart library. `table` reads its rows off the quoted lines under it and names every cell, `lanes` draws swim-lanes of equal width, and `sequence` draws a protocol down the page, deciding the vertical spacing and generating a name for everything it draws.
 
-`table` and `lanes` turn into ordinary boxes the way `bars` and `grid` do. `table t "Attack | Layer | Countermeasure"` reads its rows off the quoted lines under it, names every cell `t-<column>-<row>` with the heading as row 0, and tags each one `@t-row-2` and `@t-col-0`, so lighting one row per step is one line of source. `lanes swim "User | SOC | IT ops"` draws bands of equal width with their captions turned on end. Use it rather than a `container`, which fits itself to its members, so lanes holding different numbers of things come out ragged at both ends.
+**Two statements save repetition.** `default box {.tone-4} w 1.15` sets the starting point for every box in the figure, and adding a tag narrows that to one set; the same lines go in a `draw-defaults:` frontmatter key when every figure in a lecture should look alike. `same as create` copies another element's width and height.
 
-`sequence` draws a protocol down the page: `actor u "User"` lines for the columns, then `u -> br "click …"` for the messages and `note au "…"` for the boxes that sit on a lifeline. It decides the vertical spacing and nothing else – every entry states the height it needs and the statement stacks them, so a note pushes the messages under it down and inserting one costs a line instead of thirteen. A message *is* an edge, so `{.dashed}` makes it a reply and `--` a line without a head; `x -> x` loops out of a lifeline and back. The statement generates a name for everything it draws – `wa-3` is the fourth message, `au-life` the authenticator's lifeline, `@wa-msg-3`, `@au-msgs` and `@wa-notes` the sets – so annotating one is ordinary lines: `brace over wa-3,wa-4,wa-5`. Message labels bring their own paper background, and `space 0.9` on a message or a note is the air above that band, which is how a long protocol is broken into phases.
-
-A **tag** goes wherever a name goes, so `show @crypto` in a step reaches every element carrying it. An element joins a set on its own line, so adding one to a set is a one-line edit.
-
-Placement also takes `between a,b` – the point on the line joining two elements, which is where a separator or a note beside a connector goes – and any placement accepts a trailing `offset dx,dy`. An anchor can carry a fraction: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side instead of on top of each other.
-
-Two statements save repetition. `default box {.tone-4} w 1.15` sets the starting point for every box in the figure, and adding a tag – `default box @dec w 0.48` – narrows that to one set. `same as create` copies another element's width and height. The same `default` lines go in a `draw-defaults:` frontmatter key when every figure in a lecture should look alike, and a block's own `default` overrides the lecture's for that one figure.
-
-A third saves measuring: a coordinate may be another element's coordinate. `edge iv -> x0 via iv.cx,x0.cy` means *straight down from the IV, then across at the height of the XOR*, and it stays true when anything above it moves. `+0.2` or `-0.2`, as in `mix.cx+0.2`, shifts it a little without giving up the relation.
-
-Inside a label, `_sub` and `^sup` shift a character or a `{group}` down or up, `*accent*` colours a run and `~muted~` greys it.
+**Inside a label**, `_sub` and `^sup` shift a character or a `{group}` down or up, `*accent*` colours a run and `~muted~` greys it.
 
 **Click the figure, and the button in the corner of the card opens the graphical editor, which is experimental.** It is built for a desktop-sized screen and has been tested a great deal by machine and very little by people. Drag a box and it rewrites one number – the `gap`, the fraction along a line, the nudge on a borrowed coordinate – and never the relation that number sits inside. It also draws those relations while you work, which the finished drawing cannot: a box written `gap 0.55` from its neighbour looks exactly like one that happens to sit 0.55 away. `editor: none` in the frontmatter leaves it out.
 
-Two options work from the box inwards instead of from the label outwards. `pad 0.3` sets how far a box's border sits from its own label, the same word `container` and `brace` use. `.fit` on a box with a given `w` sizes the *type* to fill the box instead of growing the box to fit the type, and `.shrink` allows only the shrinking half of that. A free `text` carrying a tone draws its own patch of background, so a caption can sit on a panel without becoming a box.
-
-**An edge's label reads the same rule.** A fill class on the `edge` itself gives its label a background, and with no side named the words sit *on* the line and knock a hole in it; `side top`, `side bottom`, `side left` or `side right` lifts them clear and carries the background with them. The label is held at the middle of the route, so it stays there when the route bends or either end moves – a separate `text` placed `between` two boxes does not. Use the on-the-line form for a token naming the line, a message number or a port, the beside-it form for a phrase describing what travels along it, and keep to one of the two per figure.
+**Everything above is drawn rather than described in [the diagrams lecture](../diagrams/audience.html)**, one construct per slide, with its `#look` chunk as the reference for the class vocabulary and `#justify` for where an edge's label sits. `figure-design.md` in the repository is how to lay a figure out so a room can read it.
 :::
-
-> note: `print.html` and `print-notes.html` draw the **last** step rather than every step laid over each other, so an element a step hid stays hidden. Emphasis is the exception and comes from the first step, so attention you move around during the talk never reaches the paper while a `{.dim}` written on an element's own line does: written on the line it is part of the drawing, written inside a `step` it is part of the talk.
 
 ## example: Looks, and lining things up | the class slots, `align` and `spread` {.full #diagram-classes}
 
