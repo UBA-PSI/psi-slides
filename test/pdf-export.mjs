@@ -462,6 +462,23 @@ try {
   ok(cn && /<body[^>]*data-collapse="none"/.test(cn), '--pdf-collapse=none reaches it too');
   ok(/<body[^>]*data-collapse="topic-bold"/.test(dom),
      'and with neither given the export follows the lecture');
+  // The ceiling is a dial, so it is checked as one: a higher one really does
+  // let a page grow past the default, and a nonsense value is refused.
+  const hiDom = path.join(dir, 'hi.html');
+  const rh = run(dir, ['--pdf-zoom-max=2.2', `--pdf-out=${path.join(dir, 'hi.pdf')}`,
+    `--pdf-dump-dom=${hiDom}`]);
+  ok(rh.status === 0, '--pdf-zoom-max=<n> exits 0', (rh.stderr || '').slice(-300));
+  if (rh.status === 0) {
+    const t = fs.readFileSync(hiDom, 'utf8');
+    const hz = [...t.slice(t.lastIndexOf('</head>')).matchAll(/--zoom: ([0-9.]+);/g)].map(m => Number(m[1]));
+    ok(Math.max(...hz) > 1.35, 'and raising it really does let a page grow past the default',
+       String(Math.max(...hz)));
+    ok(Math.max(...hz) <= 2.2, 'but never past the one it was given', String(Math.max(...hz)));
+  }
+  const rm = run(dir, ['--pdf-zoom-max=9']);
+  ok(rm.status !== 0 && /not a number between/.test(rm.stderr),
+     'a --pdf-zoom-max outside 0.6-2.2 is refused', rm.stderr.split('\n')[0]);
+
   const rc = run(dir, ['--pdf-collapse=short']);
   ok(rc.status !== 0 && /is not a mode/.test(rc.stderr),
      'an unknown collapse mode is refused before a browser starts', rc.stderr.split('\n')[0]);

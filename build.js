@@ -15014,6 +15014,25 @@ function pdfOptionsFrom(argv, flags, absIn) {
   // fixed 1.35, 85% of network-security's states and 67% of the diagram
   // lecture's run off the page. A fixed zoom is an honest choice for a deck
   // whose slides are alike, and a bad default for one whose slides are not.
+  // The ceiling is a dial and not a truth, because the two things an author
+  // wants of it pull against each other: a low one keeps the type even across
+  // the deck, a high one fills each page. Measured on network-security under
+  // --pdf-collapse=topic-bold, the median page fill runs 85% at 1.35, 90% at
+  // 1.6 and 92% at 2.2, and the zoom range widens with it. 1.35 is the default
+  // because evenness is the thing a reader notices across a whole document.
+  const maxArg = pdfFlagValue(argv, '--pdf-zoom-max');
+  let ceiling = PDF_FIT_CEILING;
+  if (maxArg !== null) {
+    ceiling = Number(maxArg);
+    if (!Number.isFinite(ceiling) || ceiling < 0.6 || ceiling > 2.2) {
+      const err = new Error(
+        `Error: --pdf-zoom-max=${maxArg} is not a number between 0.6 and 2.2.\n`
+        + `  It is the largest zoom the fit may reach (default ${PDF_FIT_CEILING}). Raise it to`
+        + ' fill more of each page, lower it to keep the type even across the deck.');
+      err.userFacing = true;
+      throw err;
+    }
+  }
   const zoomArg = pdfFlagValue(argv, '--pdf-zoom') ?? 'fit';
   let zoom = null;
   if (zoomArg !== 'fit') {
@@ -15048,7 +15067,7 @@ function pdfOptionsFrom(argv, flags, absIn) {
     ...PDF_SIZES[size],
     zoom,
     collapse,
-    ceiling: PDF_FIT_CEILING,
+    ceiling,
     out: outArg ? path.resolve(outArg) : path.join(path.dirname(absIn), 'slides.pdf'),
     dumpDom: pdfFlagValue(argv, '--pdf-dump-dom'),
   };
@@ -15101,7 +15120,8 @@ async function main() {
     console.error('  node build.js <source.md> [--watch] [--serve [--port N]] [--audience-only|--print-only|--print-notes-only|--speaker-only]');
     console.error('                            [--inline-images|--no-inline-images]');
     console.error('  node build.js <source.md> --slides-pdf [--pdf-beats=all|final] [--pdf-size=16:9|16:10]');
-    console.error('                                         [--pdf-zoom=fit|<n>] [--pdf-collapse=topic-bold|none]');
+    console.error('                                         [--pdf-zoom=fit|<n>] [--pdf-zoom-max=<n>]');
+    console.error('                                         [--pdf-collapse=topic-bold|none]');
     console.error('                                         [--pdf-out=<path>]');
     console.error('  node build.js <source.md> --integrate-annotations');
     console.error('  node build.js <source.md> --optimize-images [--dry-run] [--all] [--max-width N]');
@@ -15128,6 +15148,8 @@ async function main() {
     console.error('  --pdf-size=16:10      1600x1000 css px, a 1200x750 pt page');
     console.error('  --pdf-zoom=fit        size each chunk to the page, never above 1.35 (default)');
     console.error('  --pdf-zoom=<n>        hold every page at that zoom (0.6-2.2) and report overruns');
+    console.error('  --pdf-zoom-max=<n>    largest zoom the fit may reach (default 1.35). Raise it to');
+    console.error('                        fill more of each page, lower it to keep the type even');
     console.error('  --pdf-collapse=topic-bold  only the slide text: topic sentences and bolds');
     console.error('  --pdf-collapse=none        the full prose. Default: whatever the lecture opens with');
     console.error('  --pdf-out=<path>      default: slides.pdf beside source.md');

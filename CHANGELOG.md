@@ -44,6 +44,12 @@ from building the same way is a major version.
   and smaller when it has to be. Where even the 0.6 floor is not enough the page
   is printed anyway, visibly cut, and the export names the chunk and the beat.
 
+  **`--pdf-zoom-max=<n>` moves that ceiling**, because the two things an author
+  wants of it pull against each other and neither is wrong: a low ceiling keeps
+  the type even across the whole document, a high one fills each page. Measured
+  on `network-security` under `--pdf-collapse=topic-bold`, the median page fill
+  is 85% at 1.35, 90% at 1.6 and 92% at 2.2.
+
   **`--pdf-zoom=<n>` turns the fitting off** and holds every page at one zoom,
   reporting what runs off it. It is an option and not the default because the
   measurement says so: at a fixed 1.35, 85% of `network-security`'s pages and

@@ -85,7 +85,12 @@ node build.js <source.md> --watch --serve         # live reload over http
 # jumping 3.7x between neighbouring pages. --pdf-zoom=<n> turns fitting off
 # and reports what runs off the page; measured, that costs 85% of
 # network-security's pages at 1.35, which is why it is an option and not the
-# default. --pdf-collapse overrides the lecture's own collapse for the export -
+# default. --pdf-zoom-max moves the fit ceiling, because the two things an
+# author wants of it pull against each other: a low ceiling keeps the type even
+# across the deck, a high one fills each page. Measured on network-security
+# under --pdf-collapse=topic-bold, the median page fill is 85% at 1.35, 90% at
+# 1.6 and 92% at 2.2. --pdf-collapse overrides the lecture's own collapse for
+# the export -
 # a deck that opens in full prose exports the manuscript unless told otherwise,
 # and the two are different documents.
 node build.js <source.md> --slides-pdf                    # slides.pdf beside source.md
@@ -93,6 +98,7 @@ node build.js <source.md> --slides-pdf --pdf-beats=final  # one page per chunk (
 node build.js <source.md> --slides-pdf --pdf-size=16:10   # 1600x1000 css px (default: 16:9)
 node build.js <source.md> --slides-pdf --pdf-zoom=1.2     # one zoom for every page
 node build.js <source.md> --slides-pdf --pdf-collapse=topic-bold   # slide text only
+node build.js <source.md> --slides-pdf --pdf-zoom-max=1.6 # let pages fill more
 node build.js <source.md> --slides-pdf --pdf-out=<path>
 
 # static checks – run before committing

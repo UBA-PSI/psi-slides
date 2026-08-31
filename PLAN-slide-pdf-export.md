@@ -1496,6 +1496,48 @@ spricht von zehn. `state.collapse` ist eine lexikalische Bindung im
 klassischen Script und aus `page.evaluate()` nicht erreichbar, und das
 Attribut erst im Druck-DOM zu setzen wäre die falsche Reihenfolge.
 
+### Nachtrag: was den Fit wirklich bremst
+
+Gemessen, was den Fit am Wachsen hindert – je Zustand, `network-security`,
+`--pdf-collapse=topic-bold`:
+
+| Grenze | Chunks (von 43) |
+|---|---|
+| die Export-Decke | **33** |
+| die Breite (der 40em-Deckel) | 5 |
+| die Seitenhöhe | 5 |
+
+Und die Seitenfüllung ist im Median **nicht** das Problem: 85–94 % über
+alle geprüften Kombinationen. Der Weißraum sitzt konzentriert auf den
+wenigen breitenbegrenzten Folien.
+
+**Die Decke ist ein Regler, keine Wahrheit**, weil die beiden Wünsche
+gegeneinander ziehen: eine niedrige hält die Schrift über das Dokument
+gleich, eine hohe füllt jede Seite. Median-Füllung `network-security`,
+eingeklappt: 85 % bei 1,35, 90 % bei 1,6, 92 % bei 2,2. Deshalb
+**`--pdf-zoom-max=<n>`**, Standard 1,35 – Gleichmäßigkeit ist das, was
+über ein ganzes Dokument auffällt.
+
+**Den 40em-Deckel abzunehmen bleibt gemessen schlechter**, jetzt auch
+gegen die reparierte Fassung geprüft, in beiden Collapse-Modi:
+
+| Politik | Decke | clip | überlaufend | Median-Füllung |
+|---|---|---|---|---|
+| Deckel 842 (jetzt) | 1,35 | 0 | **0** | 85 % |
+| Deckel 842 (jetzt) | 2,2 | 0 | **0** | 92 % |
+| nur Fließtext gedeckelt | 1,35 | 0 | 4 | 91 % |
+| gar kein Deckel | 1,35 | 0 | 4 | 90 % |
+
+Vier abgeschnittene Seiten für ein bis fünf Punkte Füllung ist der
+falsche Tausch – zumal die Decke dieselben Punkte umsonst liefert.
+
+**Für eine einzelne Folie kann er trotzdem viel ausmachen**, und das ist
+die offene Stelle: `#ns-b22` ist breitenbegrenzt und bleibt es. Ohne
+Deckel: Zoom 0,90 → 1,25, Füllung 46 % → 59 %. Die Decke ändert daran
+**nichts**. Wer diese Folie größer will, kürzt die Codezeilen im
+`::: side` – Budget dort ist rund 36 Zeichen (siehe CLAUDE.md), die
+Zeilen laufen auf über 50.
+
 ### Was offen ist
 
 - Defekt A oben. Bis er entschieden ist, ist die Deckfolie jedes PDFs zu
