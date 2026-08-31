@@ -46,9 +46,9 @@ jobs:
       # first entry in findChrome()'s Linux list, and the suite ran the whole
       # way from it. If a future runner image moves the browser, this step is
       # where that shows up, and the fix is one path added in
-      # test/harness.mjs and docs/site/shoot-lib.mjs.
+      # chrome-path.mjs, which is the only copy.
       - name: Name the browser
-        run: node -e "import('./test/harness.mjs').then(m => console.log(m.findChrome()))"
+        run: node -e "import('./chrome-path.mjs').then(m => console.log(m.findChrome()))"
 
       # The suite builds and serves the lectures itself, so it never reports
       # on stale HTML and needs no build step ahead of it.

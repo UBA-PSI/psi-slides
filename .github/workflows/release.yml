@@ -117,11 +117,11 @@ jobs:
       # and before anything is staged or published, so if a future runner
       # image moves the browser the worst case is a red release run with a
       # list of paths in the log - no archive, no release, no half-published
-      # tag. The fix would be one path in findChrome(), in test/harness.mjs
-      # and docs/site/shoot-lib.mjs. `browser.yml` runs these same two steps
-      # on demand, which is the cheaper place to discover it.
+      # tag. The fix would be one path in chrome-path.mjs, which is the only
+      # copy. `browser.yml` runs these same two steps on demand, which is the
+      # cheaper place to discover it.
       - name: Name the browser
-        run: node -e "import('./test/harness.mjs').then(m => console.log(m.findChrome()))"
+        run: node -e "import('./chrome-path.mjs').then(m => console.log(m.findChrome()))"
 
       - name: Browser suite
         run: node test/run.mjs
