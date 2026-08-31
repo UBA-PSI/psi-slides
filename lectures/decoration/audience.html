@@ -2973,13 +2973,16 @@ body[data-view=speaker] #laser-pointer { display: none; }
    The element doesn't exist in speaker.html. The CSS @media gate
    self-adapts: an iPad with a Magic Keyboard re-classifies as a fine
    pointer and the rail disappears. */
-/* Where the arrows will take you. Sits at the viewport edge, not on the
-   slide, so nothing in the author's layout moves for it; painted in
-   --ink-soft at a fifth of full strength, which reads as a compass on a
-   projection and disappears in a photograph of one. The two sideways marks
-   only ever appear on the first chunk of a column, which is the only place
-   the sideways keys change column; the one below appears when forward has
-   nothing left to reveal and will leave the column next. */
+/* Where forward will take you. Sits at the viewport edge, not on the slide,
+   so nothing in the author's layout moves for it; painted in --ink-soft at a
+   fifth of full strength, which reads as a compass on a projection and
+   disappears in a photograph of one. It appears when forward has nothing left
+   to reveal and will leave the column next.
+   There were two more, at the left and right edges, saying that the sideways
+   arrows changed column on this chunk. They changed column on one chunk per
+   column and moved a slide everywhere else, so a mark had a question to
+   answer; Shift answers it the same way on every slide, and a mark for a key
+   that never changes meaning is a mark nobody reads twice. */
 #nav-hints span {
   position: absolute;
   color: var(--ink-soft);
@@ -2990,8 +2993,6 @@ body[data-view=speaker] #laser-pointer { display: none; }
   transition: opacity 220ms ease;
 }
 #nav-hints span[data-on] { opacity: 0.22; }
-#nav-hints span[data-hint=left]  { left: 0.5em;  top: 50%; transform: translateY(-50%); }
-#nav-hints span[data-hint=right] { right: 0.5em; top: 50%; transform: translateY(-50%); }
 #nav-hints span[data-hint=down]  { bottom: 0.15em; left: 50%; transform: translateX(-50%); }
 /* On the cockpit the mirror is scaled down, so the marks would be shrunk to
    nothing beside chrome that is not. The speaker is also the person who has
@@ -4328,8 +4329,9 @@ slide and the next one, and the next one carries no heading on screen at all.</p
       <dl>
         <dt><kbd>Space</kbd> · <kbd>↓</kbd> · <kbd>Enter</kbd> · <kbd>PageDown</kbd></dt><dd>forward: the next reveal or diagram step, then the next slide</dd>
         <dt><kbd>↑</kbd> · <kbd>PageUp</kbd> · <kbd>Backspace</kbd></dt><dd>back: the reveal before it, then the slide before it</dd>
-        <dt><kbd>→</kbd> <kbd>←</kbd></dt><dd>the same pair – except on the first slide of a column, where they change column</dd>
-        <dt>the marks at the edge</dt><dd>‹ › sideways changes column here · ⌄ forward leaves the column next</dd>
+        <dt><kbd>→</kbd> <kbd>←</kbd></dt><dd>the same pair, on every slide</dd>
+        <dt><kbd>Shift</kbd><kbd>→</kbd> · <kbd>Shift</kbd><kbd>←</kbd></dt><dd>the next column · the column before it – from anywhere</dd>
+        <dt>the mark at the foot</dt><dd>⌄ the next forward press leaves this column</dd>
         <dt><kbd>1</kbd>–<kbd>9</kbd></dt><dd>open the n-th expansion</dd>
         <dt><kbd>Esc</kbd></dt><dd>step back out: figure, then overview, then expansion</dd>
       </dl>
@@ -6233,9 +6235,18 @@ function retreatReveal() {
 }
 
 // One forward family and one backward family, the way a presentation tool is
-// expected to behave: perform the slide, then move to the next one. The
-// column exception below is the single thing psi-slides has that a linear
-// deck does not, and it is why the first chunk of a column says so on screen.
+// expected to behave: perform the slide, then move to the next one. Every one
+// of those keys means the same thing on every slide, which is what makes the
+// model teachable in a sentence.
+//
+// Columns are the one thing psi-slides has that a linear deck does not, and
+// they used to be reached by giving the sideways arrows a second meaning on
+// the first chunk of a column - so a key meant one thing here and another
+// there, and two marks at the viewport edge existed to say which. Now they
+// are Shift and the same arrows, from anywhere. A modifier that always means
+// the same thing needs nothing on screen to announce it, so the two marks
+// are gone; the one below, which says where forward will *take* you rather
+// than what it means, stays.
 // An opened card is a stage of its own on the way through a chunk, the way
 // a revealed segment is. Esc already treated it that way; the arrow keys did
 // not, and the press that ran out of beats fell straight through to
@@ -6258,30 +6269,23 @@ function goBack() {
   prevChunk();
 }
 
-// Where the columns begin and end, and – the part that has to be one fact
-// rather than two – whether there is actually a column that way. The key map
-// and the marks at the edge both read the same field, so they cannot disagree:
-// the first version tested only "is this the head of a column", which on the
-// head of the *last* column showed no mark (correctly) and still handed the
-// key to nextCol, whose fallback clamps to the end of the deck. One press of
-// the right arrow on the title slide of a single-column lecture skipped the
-// whole lecture.
+// Where the columns begin and end. colLast is what the down mark reads;
+// colFirst is what prevCol uses to decide between rewinding to the head of
+// this column and leaving for the one before it.
+//
+// There used to be a third field here, sideways, saying whether the arrow
+// keys changed column on this chunk - a per-chunk fact, because they only did
+// so on the head of one. Both the key map and the marks read it, deliberately,
+// so that a mark could never promise a move the key would not make. Shift
+// makes the question disappear rather than answering it: nextCol and prevCol
+// clamp on their own, so there is nothing left for a predicate to guard.
 function markColumnEdges() {
-  const lastCol = flatChunks.length ? flatChunks[flatChunks.length - 1].colIdx : 0;
   flatChunks.forEach((c, i) => {
     const prev = flatChunks[i - 1], next = flatChunks[i + 1];
     c.colFirst = !prev || prev.colIdx !== c.colIdx;
     c.colLast = !next || next.colIdx !== c.colIdx;
-    c.sideways = {
-      left: c.colFirst && c.colIdx > 0,
-      right: c.colFirst && c.colIdx < lastCol,
-    };
   });
 }
-const sideways = (i, dir) => {
-  const c = flatChunks[i];
-  return !!(c && c.sideways && c.sideways[dir]);
-};
 
 function nextChunk() {
   if (state.activeIdx + 1 >= flatChunks.length) return;
@@ -6291,12 +6295,19 @@ function prevChunk() {
   if (state.activeIdx <= 0) return;
   jumpTo(state.activeIdx - 1, 'back');
 }
+// Both column keys stand still when there is no column that way, the same
+// rule nextChunk and prevChunk follow at the two ends of the deck. nextCol
+// used to fall back to the last chunk of the lecture instead. That was nearly
+// unreachable while the key existed only on a column head with a column to
+// the right of it - a guard in the key map made sure of it, and that guard is
+// what the marks at the edge were drawn from. Shift reaches it from every
+// slide in the last column, so the fallback would now be one keystroke from
+// the end of the lecture, in front of a room.
 function nextCol() {
   const cur = flatChunks[state.activeIdx];
   for (let i = state.activeIdx + 1; i < flatChunks.length; i++) {
     if (flatChunks[i].colIdx > cur.colIdx) return jumpTo(i, 'forward');
   }
-  jumpTo(flatChunks.length - 1, 'forward');
 }
 function prevCol() {
   const cur = flatChunks[state.activeIdx];
@@ -6314,7 +6325,6 @@ function prevCol() {
       return jumpTo(j, 'back');
     }
   }
-  jumpTo(0, 'back');
 }
 
 // Expansions
@@ -7134,8 +7144,11 @@ document.addEventListener('keydown', (e) => {
     // slide but the one where a second dimension exists. The first chunk of
     // a column says so on screen (updateNavHints) rather than leaving the
     // exception to be discovered by pressing it.
-    case 'ArrowRight': sideways(state.activeIdx, 'right') ? nextCol() : goForward(); e.preventDefault(); break;
-    case 'ArrowLeft':  sideways(state.activeIdx, 'left')  ? prevCol() : goBack();    e.preventDefault(); break;
+    // Shift is the column modifier and nothing else here: the arrows are not
+    // cycling keys, so it does not collide with the Shift that runs C, F, A
+    // and L backwards.
+    case 'ArrowRight': e.shiftKey ? nextCol() : goForward(); e.preventDefault(); break;
+    case 'ArrowLeft':  e.shiftKey ? prevCol() : goBack();    e.preventDefault(); break;
     // Down, Space, Enter and a presenter's forward button are one key, and
     // Up, PageUp and Backspace are its mirror. Down used to skip straight to
     // the next chunk, which meant walking a segmented slide with the arrows
@@ -7470,25 +7483,27 @@ function panToElement(el) {
   focusCamera(false);
 }
 
-// ── where the arrows will take you ────────────────────────────────
-// Two facts about the current slide that the picture cannot carry and that
-// the keys otherwise only reveal by being pressed: this is the chunk where
-// sideways changes column, and this is the chunk where forward leaves the
-// column. Both are drawn at the viewport edge rather than on the slide, so
-// nothing in the author's layout moves, and both are quiet enough to sit on
-// a projection – they are a compass, not a control.
+// ── where forward will take you ───────────────────────────────────
+// One fact about the current slide that the picture cannot carry and that the
+// keys otherwise only reveal by being pressed: the next forward press leaves
+// this column. Drawn at the viewport edge rather than on the slide, so
+// nothing in the author's layout moves, and quiet enough to sit on a
+// projection - it is a compass, not a control.
+//
+// There were three marks. Two of them said "sideways changes column here",
+// which was worth saying while the sideways arrows meant two different things
+// depending on where you stood. They mean one thing now, and Shift means the
+// other everywhere, so there is no longer a question for a mark to answer.
 function buildNavHints() {
   const vp = document.getElementById('stage-viewport');
   if (!vp || document.getElementById('nav-hints')) return;
   const wrap = document.createElement('div');
   wrap.id = 'nav-hints';
   wrap.setAttribute('aria-hidden', 'true');
-  for (const dir of ['left', 'right', 'down']) {
-    const s = document.createElement('span');
-    s.dataset.hint = dir;
-    s.textContent = dir === 'down' ? '⌄' : dir === 'left' ? '‹' : '›';
-    wrap.appendChild(s);
-  }
+  const s = document.createElement('span');
+  s.dataset.hint = 'down';
+  s.textContent = '⌄';
+  wrap.appendChild(s);
   vp.appendChild(wrap);
 }
 
@@ -7504,13 +7519,9 @@ function updateNavHints() {
   // Blanking darkens the audience stage only, so the cockpit is exactly where
   // the marks are still wanted: the lecturer is navigating with the room dark.
   if (!c || overview || (state.blanked && VIEW === 'audience')) {
-    show('left', false); show('right', false); show('down', false);
+    show('down', false);
     return;
   }
-  // Sideways is the column key here, and only here – the same fact the key
-  // map reads, so a mark can never promise a move the key will not make.
-  show('left', c.sideways.left);
-  show('right', c.sideways.right);
   // Forward leaves the column – but only once there is nothing left to
   // reveal, because until then forward is still working on this slide.
   const beatsLeft = (revealed[c.id] ?? (countSegments(c.el) ? 1 : 0)) < countSegments(c.el);

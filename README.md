@@ -269,8 +269,9 @@ Press `?` in either live view for the full on-screen reference. The ones you nee
 
 - Forward is one key family: `Space`, `↓`, `Enter`, `PageDown`. It uncovers the next reveal segment or diagram step on the chunk you are on; once there is nothing left to uncover it moves to the next chunk, and at the end of a column it carries on into the next column.
 - Backward is the mirror: `↑`, `PageUp`, `Backspace`. It takes the last reveal back, and leaves the chunk only once the chunk is back at its opening state.
-- `→` and `←` are that same forward/backward pair, except on the first chunk of a column, where they mean next column and previous column. If there is no column that way, they stay forward and backward.
-- Faint marks at the edge of the slide flag the exceptions: `‹ ›` on a chunk where sideways changes column, `⌄` when the next forward press will leave the column.
+- `→` and `←` are that same forward/backward pair, on every slide.
+- `Shift`-`→` and `Shift`-`←` are the next and previous column, from anywhere. `Shift`-`←` rewinds to the head of the column you are in before it leaves for the one before it.
+- A faint `⌄` at the foot of the slide appears when the next forward press will leave the column.
 - `1`–`9` open expansions – so does clicking the chevron. `Esc` backs out.
 - `O` overview (the letter, not zero – zero resets the zoom), `T` table of contents, `/` search from anywhere – a hit list of every slide that mentions the word.
 - `C` collapse, `F` font, `A` accent theme, `+` `-` `0` zoom.

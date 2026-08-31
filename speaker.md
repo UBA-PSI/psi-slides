@@ -203,6 +203,7 @@ Speaker inherits audience nav bindings, plus:
 | Key | Action |
 |---|---|
 | `←` `→` `↑` `↓` | Same as audience (nav broadcasts unless frozen) |
+| `Shift`-`←` `Shift`-`→` | Previous / next column, from any chunk (broadcasts) |
 | `Space` | Advance reveal (broadcasts) |
 | `Enter`, `1`-`9`, `Esc` | Local to speaker, never broadcast (expansions are audience-only) |
 | `N` | **Local**: focuses notes pane; does not open annotation |

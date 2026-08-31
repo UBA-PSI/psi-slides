@@ -63,19 +63,19 @@ Each of the four files carries everything it needs inside itself – the picture
 
 # Moving around {#moving}
 
-## example: Forward and back | plus a sideways pair for columns {.standard #arrows}
+## example: Forward and back | and `Shift` for whole columns {.standard #arrows}
 
-**Two keys carry the whole lecture, forward and back, and a sideways pair moves between columns.** A `# Heading` in the source starts a **column – a run of slides on one theme** – and each `## tag: …` under it is one chunk.
+**Two keys carry the whole lecture, forward and back, and holding `Shift` jumps a whole column.** A `# Heading` in the source starts a **column – a run of slides on one theme** – and each `## tag: …` under it is one chunk.
 
-- **Forward** is `Space`, `↓`, `Enter` or `PageDown`. It uncovers the next piece of the chunk you are on; once there is nothing left to uncover it moves to the next chunk, and at the end of a column it carries on into the first chunk of the next one.
-- **Back** is `↑`, `PageUp` or `Backspace`. It puts the last piece away again, and it leaves the chunk only once the chunk is back at its opening state.
-- `→` and `←` do the same, except on the **first chunk of a column**, where they mean next column and previous column instead. Press forward now:
+- **Forward** is `Space`, `↓`, `→`, `Enter` or `PageDown`. It uncovers the next piece of the chunk you are on; once there is nothing left to uncover it moves to the next chunk, and at the end of a column it carries on into the first chunk of the next one.
+- **Back** is `↑`, `←`, `PageUp` or `Backspace`. It puts the last piece away again, and it leaves the chunk only once the chunk is back at its opening state.
+- **`Shift`-`→` and `Shift`-`←` are the next and previous column**, and they work from any slide, not only from the first one of a column. `Shift`-`←` goes to the top of the column you are in first, so getting back to the start of a part and leaving it are the same key. Press forward now:
 
 ---
 
 **Good – you just uncovered a segment.** In the source, **a line containing nothing but `---` cuts a chunk into segments**, as long as it is outside a block of code. The first one is on screen when you arrive; forward uncovers the next, back puts it away.
 
-**Faint marks at the edge of the slide say when those two special cases apply.** `‹ ›` appear only on a chunk where sideways changes column, and `⌄` appears only when the next forward press will leave the column. There is nothing to click; they only tell you where you are.
+**A faint `⌄` at the foot of the slide says the next forward press will leave the column.** It is the one thing about where you are that the slide cannot show you by itself. There is nothing to click.
 
 **The cockpit shows you what comes next.** With a speaker window open, look at this slide there: the segment the next forward press will reveal is already drawn in place, hatched and inside a dashed frame, so you can read ahead without the room seeing it. Only the immediately next one; the segments behind it stay hidden.
 

@@ -183,17 +183,21 @@ export async function openDeck(port, view = 'audience', viewport = { width: 1440
 
 function deckHelpers(page) {
   // Every column of a named section opens with an auto-inserted divider chunk
-  // that carries no author id, and it is the chunk the sideways keys act on,
-  // so the specs have to be able to name it.
+  // that carries no author id, and it is the chunk Shift and the sideways
+  // arrows land on, so the specs have to be able to name it.
+  //
+  // `hints` is one character because there is one mark. It was three - two of
+  // them said the sideways arrows changed column on this chunk, which stopped
+  // being a per-chunk fact when Shift took that job over everywhere.
   const at = () => page.evaluate(() => {
     const a = document.querySelector('.chunk.active');
-    if (!a) return { id: null, colIdx: -1, hints: '---' };
+    if (!a) return { id: null, colIdx: -1, hints: '-' };
     const w = document.getElementById('nav-hints');
     const on = (d) => !!(w && w.querySelector('[data-hint="' + d + '"]').hasAttribute('data-on'));
     return {
       id: a.dataset.chunkId || '(section)',
       colIdx: Number(a.closest('.column').dataset.col),
-      hints: (on('left') ? 'L' : '-') + (on('right') ? 'R' : '-') + (on('down') ? 'D' : '-'),
+      hints: on('down') ? 'D' : '-',
     };
   });
 

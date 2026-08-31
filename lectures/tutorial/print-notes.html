@@ -1106,15 +1106,15 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   
   <span class="chunk-num" aria-hidden="true"><i>5</i></span>
   <span class="chunk-label">example</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Forward and back</span> <span class="hd-sub">plus a sideways pair for columns</span></h2>
-  <p><strong>Two keys carry the whole lecture, forward and back, and a sideways pair moves between columns.</strong> A <code># Heading</code> in the source starts a <strong>column – a run of slides on one theme</strong> – and each <code>## tag: …</code> under it is one chunk.</p>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Forward and back</span> <span class="hd-sub">and <code>Shift</code> for whole columns</span></h2>
+  <p><strong>Two keys carry the whole lecture, forward and back, and holding <code>Shift</code> jumps a whole column.</strong> A <code># Heading</code> in the source starts a <strong>column – a run of slides on one theme</strong> – and each <code>## tag: …</code> under it is one chunk.</p>
 <ul>
-<li><strong>Forward</strong> is <code>Space</code>, <code>↓</code>, <code>Enter</code> or <code>PageDown</code>. It uncovers the next piece of the chunk you are on; once there is nothing left to uncover it moves to the next chunk, and at the end of a column it carries on into the first chunk of the next one.</li>
-<li><strong>Back</strong> is <code>↑</code>, <code>PageUp</code> or <code>Backspace</code>. It puts the last piece away again, and it leaves the chunk only once the chunk is back at its opening state.</li>
-<li><code>→</code> and <code>←</code> do the same, except on the <strong>first chunk of a column</strong>, where they mean next column and previous column instead. Press forward now:</li>
+<li><strong>Forward</strong> is <code>Space</code>, <code>↓</code>, <code>→</code>, <code>Enter</code> or <code>PageDown</code>. It uncovers the next piece of the chunk you are on; once there is nothing left to uncover it moves to the next chunk, and at the end of a column it carries on into the first chunk of the next one.</li>
+<li><strong>Back</strong> is <code>↑</code>, <code>←</code>, <code>PageUp</code> or <code>Backspace</code>. It puts the last piece away again, and it leaves the chunk only once the chunk is back at its opening state.</li>
+<li><strong><code>Shift</code>-<code>→</code> and <code>Shift</code>-<code>←</code> are the next and previous column</strong>, and they work from any slide, not only from the first one of a column. <code>Shift</code>-<code>←</code> goes to the top of the column you are in first, so getting back to the start of a part and leaving it are the same key. Press forward now:</li>
 </ul>
 <p><strong>Good – you just uncovered a segment.</strong> In the source, <strong>a line containing nothing but <code>---</code> cuts a chunk into segments</strong>, as long as it is outside a block of code. The first one is on screen when you arrive; forward uncovers the next, back puts it away.</p>
-<p><strong>Faint marks at the edge of the slide say when those two special cases apply.</strong> <code>‹ ›</code> appear only on a chunk where sideways changes column, and <code>⌄</code> appears only when the next forward press will leave the column. There is nothing to click; they only tell you where you are.</p>
+<p><strong>A faint <code>⌄</code> at the foot of the slide says the next forward press will leave the column.</strong> It is the one thing about where you are that the slide cannot show you by itself. There is nothing to click.</p>
 <p><strong>The cockpit shows you what comes next.</strong> With a speaker window open, look at this slide there: the segment the next forward press will reveal is already drawn in place, hatched and inside a dashed frame, so you can read ahead without the room seeing it. Only the immediately next one; the segments behind it stay hidden.</p>
 <p><strong>One more, so you can see them chain.</strong> Segments let you pace a dense slide during a talk instead of putting all of it up at once. In the two document views they run together as one flowing body, so nothing is lost on paper.</p>
 

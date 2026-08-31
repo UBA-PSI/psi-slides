@@ -24,6 +24,7 @@ mitcommittet.
 |---|---|
 | 1 | Plan angelegt, alle Punkte gegen den Code verifiziert (siehe „Befund“-Zeilen) |
 | 2 | **Engine-Slice 1:** `#16` Suchindex, `#31` Formel-Zoom, `#43` Fokus als Navigationsstufe, `#55` `rule`-Divider, `#6` `option` im `?`-Overlay. Verifiziert im gebauten HTML und im Browser: `/welcome` findet die Divider-Folie; Formel wächst beim Klick um Faktor 3 (77 px → 230 px hoch), gleich bei 1440 und 1920 breit; Vorwärts auf einer fokussierten Abbildung ohne Steps schließt die Karte und bleibt auf dem Chunk, der zweite Druck geht weiter. `node test/run.mjs nav` 30/30, `npm run gate` 419/419, `node lint.js lectures/` sauber. |
+| 4 | **[#8] Navigationsmodell.** `←`/`→` sind überall Vor/Zurück, `Shift`+`←`/`→` wechselt die Spalte von jedem Chunk aus. Mit weg: der `sideways`-Guard in der Key-Map, das gleichnamige Feld in `markColumnEdges()`, die beiden `‹ ›`-Marken samt CSS. `nextCol`/`prevCol` stehen jetzt still, wenn es keine Spalte in die Richtung gibt – vorher fiel `nextCol` auf den letzten Chunk der Lecture durch, was der alte Guard unerreichbar hielt und `Shift` von jeder Folie der letzten Spalte aus erreichbar gemacht hätte. Mitgezogen: `?`-Overlay, `PRD.md` §5, `README.md`, `speaker.md`, Tutorial `#arrows`, `CHANGELOG.md`, `test/harness.mjs` (`hints` ist jetzt ein Zeichen), `test/nav.mjs`, `test/nav-cockpit.mjs`. |
 | 3 | **Text-Slice 1** (unstrittige Streichungen und Faktenfehler): `#2`, `#3`, `#11`, `#13`, `#14`, `#15`, `#52`, `#6`. Alle vier Tutorial-Views neu gebaut. |
 
 ---
@@ -108,10 +109,18 @@ Alles hier ist eine überschaubare Änderung an `build.js`, mit klarem Befund.
       Overview – alles hängt an Tasten. Dazu [#4]: Text markieren („Alt halten“)
       geht ohne Alt-Taste gar nicht. Dazu [#10]: geöffnete Expansions sind auf
       Mobile viel zu schmal.
-      *Umfang:* eine Symbol-Palette in den Live-Views, die auf Zeigegeräten ohne
-      Tastatur eingeblendet wird, plus ein Touch-Ersatz für Alt-Drag (Long-Press
-      schaltet in den Auswahlmodus), plus ein Breakpoint, unter dem eine geöffnete
-      Expansion die Folie überlagert statt neben ihr zu stehen.
+      *Befund – das ist kleiner als es klingt:* eine Touch-Leiste gibt es schon.
+      `#touch-controls`, fünf Knöpfe (`‹ › ⊞ − +`), eingeblendet unter
+      `@media (pointer: coarse)`, verdrahtet von `wireTouchControls()`. Zwei
+      Dinge fehlen ihr: sie wird **nur in `audience.html` gerendert** – in der
+      Lectern-View ist `wireTouchControls()` ein No-op, und genau dort steht der
+      Nutzer am iPad –, und sie trägt ausgerechnet die Funktionen, die auch ohne
+      sie erreichbar sind (vor/zurück per Tippen, Zoom per Pinch). `C`, `F`,
+      `A`, `#`, `/` fehlen alle.
+      *Umfang:* die bestehende Leiste um die sechs fehlenden Knöpfe erweitern,
+      sie auch in `speaker.html` rendern, plus ein Touch-Ersatz für Alt-Drag
+      (Long-Press schaltet in den Auswahlmodus), plus ein Breakpoint, unter dem
+      eine geöffnete Expansion die Folie überlagert statt neben ihr zu stehen.
       **Entschieden: minimal.** Eine Palette mit sechs Knöpfen – `C`, `F`, `A`,
       `#`, `O`, `/` – hinter einem Auf/Zu-Knopf in der Ecke. Dazu Long-Press als
       Touch-Ersatz für Alt-Drag und ein Breakpoint, unter dem eine geöffnete
@@ -140,9 +149,11 @@ Alles hier ist eine überschaubare Änderung an `build.js`, mit klarem Befund.
       *Befund:* `assets/reveal-demo.mp4` ist intakt – 960×540, h264, 72 Frames auf
       6 s. Es *bewegt* sich, aber es zeigt drei fast statische Stufen einer Folie,
       also sieht ein Standbild fast genauso aus.
-      *Fix (vermutlich):* keinen Bug suchen, sondern einen Clip nehmen, dem man
-      die Bewegung ansieht. Kandidat: ein Kameraschwenk über das Overview-Board
-      oder ein `autoplay`-Diagramm beim Durchlaufen.
+      **Entschieden: neuer Clip.** Kein Bug – wir brauchen ein Bild, dem man die
+      Bewegung ansieht. Kandidat: ein Kameraschwenk über das Overview-Board
+      (`O`, dann Drag und Wheel) oder ein `autoplay`-Diagramm beim Durchlaufen.
+      Muss unter `MAX_INLINE_VIDEO_BYTES` bleiben und sollte in der Größenordnung
+      der jetzigen 34 KB liegen, sonst wächst jede der vier Views.
 
 ---
 

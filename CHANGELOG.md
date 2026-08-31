@@ -9,6 +9,33 @@ from building the same way is a major version.
 
 ### Changed
 
+- **The sideways arrows now mean one thing, and `Shift` with them changes
+  column – from any slide.** Up to now `→` and `←` were forward and backward
+  on most slides and *next / previous column* on the first chunk of a column,
+  so the same key meant two things depending on where the lecturer stood, and
+  two faint marks at the viewport edge existed to say which. `→` and `←` are
+  now plain forward and backward everywhere; `Shift`-`→` and `Shift`-`←` are
+  the next and previous column, reachable from any chunk. `Shift`-`←` rewinds
+  to the head of the column it is in before leaving it, so returning to the
+  top of a part and leaving the part are one key.
+
+  The exception cost more than it looked. It needed a guard in the key map,
+  because `nextCol` fell through to the last chunk of the whole lecture and
+  the head of the *last* column therefore had to be excluded by hand – one
+  press otherwise skipped six slides, and on a single-column lecture all of
+  them. It needed a per-chunk `sideways` field for that guard and the marks to
+  read in common, so the two could not disagree about which meaning was in
+  force. And it could not do the thing a lecturer actually asks for, which is
+  to leave a part from the middle of it. All three are gone: the guard, the
+  field, and the `‹ ›` marks, which had nothing left to announce once the key
+  meant one thing. `nextCol` and `prevCol` now stand still when there is no
+  column that way, the rule the chunk keys already followed at the ends of the
+  deck. The `⌄` mark at the foot stays – it says where forward will *go*, not
+  what a key means, which is why it survived the two that went.
+
+  No source format changes. `test/nav.mjs` and `test/nav-cockpit.mjs` assert
+  the new model, including the two cases the old one could not express.
+
 - **An external link now carries a mark that shows its address and a QR code.**
   Up to 1.0.0 that view existed and was reachable only by `Shift`-clicking the
   link – a modifier nothing on the slide mentioned, so for most readers the
