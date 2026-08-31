@@ -881,8 +881,19 @@ as reveals advance – and is reported as a note; `lectures/tutorial` has
 eighteen. A chunk that *fits* the frame and is still outside it cannot be
 excused that way, and is the failure, with exit 2.
 
+**For a clipped chunk it also reports what the height is made of, because the
+total sends an author at the wrong lever.** Under `topic-bold` the collapse
+renders the first sentence of each paragraph plus every promoted bold and hides
+`.sentence-rest .prose` outright, so **shortening a continuation changes the
+collapsed height by exactly nothing**, while un-bolding one fragment removes a
+whole line box. Measured on a chunk 52 px over: cutting every hidden
+continuation to one word moved it 0 px; un-bolding a single fragment cleared it.
+A rewrite that shortens the words while folding two bolds into one long first
+sentence makes it worse, which is how this was found.
+
 Degrades rather than fails: with no `playwright-core` or no Chrome it says so
-and leaves the build's exit code alone.
+and leaves the build's exit code alone. It reports the viewport it used, since a
+room with a different aspect ratio wraps differently.
 
 A source file can silence checks with an HTML comment anywhere in the body:
 

@@ -14983,11 +14983,29 @@ async function runCheckFit(absIn, viewport) {
     const content = act.querySelector('.chunk-content') || act;
     const r = content.getBoundingClientRect();
     const vp = document.getElementById('stage-viewport').getBoundingClientRect();
+    // What the height is *made of*, which is not the same question as how
+    // many words the chunk holds. Under topic-bold the collapse renders the
+    // first sentence of each paragraph plus every promoted bold, and hides
+    // `.sentence-rest .prose` outright - so cutting words out of a
+    // continuation changes the collapsed height by exactly nothing, and the
+    // word count is the wrong lever. Each promoted bold is display: block
+    // with its own top margin, so un-bolding one removes a whole line box.
+    const collapse = document.body.dataset.collapse || '';
+    let bolds = 0, boldPx = 0;
+    if (collapse === 'topic-bold') {
+      for (const b of act.querySelectorAll('.reveal-segment .sentence-rest strong')) {
+        const br = b.getBoundingClientRect();
+        if (!br.height || b.offsetParent === null) continue;
+        bolds++;
+        boldPx += br.height + parseFloat(getComputedStyle(b).marginTop || 0);
+      }
+    }
     return {
       id: act.dataset.chunkId || act.id || '?',
       tag: act.dataset.tag || '', width: act.dataset.width || '',
       top: Math.round(r.top - vp.top), bottom: Math.round(r.bottom - vp.top),
       h: Math.round(r.height), vpH: Math.round(vp.height),
+      collapse, bolds, boldPx: Math.round(boldPx),
     };
   });
 
@@ -15048,9 +15066,22 @@ async function runCheckFit(absIn, viewport) {
       : b.top < 0 ? `${-b.top} px off the top` : `${b.bottom - b.vpH} px off the bottom`;
     console.error(`  #${b.id} (${b.tag}${b.width ? ', .' + b.width : ''}) – ${side}`
       + ` at beat ${b.beat}; content ${b.h} px in a ${b.vpH} px frame, so it would fit.`);
+    // The composition, not just the total. Reported because the total sends
+    // an author at the word count, and under topic-bold that is the one lever
+    // with no effect: a shortened continuation is hidden either way. This
+    // line says how much of the height is bolds, each of which is a block
+    // that un-bolding removes whole.
+    if (b.collapse === 'topic-bold' && b.bolds) {
+      console.error(`      ${b.bolds} promoted bold${b.bolds === 1 ? '' : 's'} account for`
+        + ` ~${b.boldPx} px of that. Collapsed, this view shows the first sentence of each paragraph`
+        + ` plus every bold after it, and hides the rest of the prose – so shortening a continuation`
+        + ` changes nothing here, and un-bolding one fragment removes a whole line.`);
+    }
   }
   console.error('  Nothing above the top or below the bottom reaches the room, and these would fit if'
     + ' they were a little shorter. Move a paragraph into a ::: expand, split the chunk, or widen it.');
+  console.error(`  Measured at ${where} only. A room with a different aspect ratio wraps differently;`
+    + ' --viewport WxH checks another one.');
   return 2;
 }
 
