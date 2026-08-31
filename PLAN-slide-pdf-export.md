@@ -1,7 +1,7 @@
 # Plan: PDF-Foliensatz mit allen Beats
 
-Vierte Fassung. Jede Fassung ist an einem Review von Codex und am Code
-geprüft worden (`REVIEW-slide-pdf-export.md`, `-v2`, `-v3`). Was
+Vierte Fassung, implementierungsbereit. Jede Fassung ist an einem Review
+von Codex und am Code geprüft worden (`REVIEW-slide-pdf-export.md`, `-v2`, `-v3`). Was
 bestätigt wurde, was verworfen, und was billiger zu haben ist als
 vorgeschlagen, steht in den Änderungsabschnitten. Der dritte Review
 findet keinen Architektur- oder Rendering-Blocker mehr; alles, was hier
@@ -169,6 +169,16 @@ Der Rest, einzeln:
 - **Abnahmekriterium 7 widersprach seinem eigenen Test** („setzt keinen
   HTTP-Request ab“ gegen einen Zähler, der nur zählen kann, was versucht
   wurde). Es heißt jetzt: Kein Request erreicht das Netz.
+
+Dazu drei Befunde aus dem Code, um die niemand gebeten hat, die aber
+Arbeit einsparen: Das Druck-DOM entsteht durch Aufnahme statt durch
+Ausschluss, und das ist sicher, weil **kein** `position: fixed` in
+`AUDIENCE_CSS` auf Folieninhalt sitzt (nachgezählt, elf Stück, alle
+Chrome). Die Foliennummer kostet nichts. Und die Marginalia sind der
+zweite Grund, warum Papier und Viewport dieselbe Größe haben müssen.
+Alle drei stehen in Architektur 4. Die Umsetzungsschritte sind
+außerdem zu fünf Etappen mit Prüfpunkten geworden, deren dritte ein
+lauffähiges PDF ist.
 
 ## Festgelegtes Verhalten
 
@@ -465,6 +475,43 @@ Der ganze Satz wird in **einem** `page.pdf()`-Aufruf gedruckt. Einzelne
 Seiten-PDFs zusammenzuführen bräuchte einen PDF-Merger, den das Projekt
 nicht hat und für den es keine Abhängigkeit aufnehmen will.
 
+**Das Druck-DOM entsteht durch Aufnahme, nicht durch Ausschluss.** Nur
+geklonte Chunks kommen hinein; alles andere ist danach weg, weil
+`document.body` ersetzt wird und nicht durchsucht. Die Streichliste oben
+betrifft deshalb ausschließlich, was *innerhalb* eines Chunks sitzt –
+Expansion, Annotation, QR-Knopf, Payload. Hilfe, Suche, TOC,
+Mode-Badge, Laserpunkt, Touch-Leiste und das Figure-Overlay stehen als
+Geschwister von `#stage` und verschwinden, ohne dass jemand sie
+aufzählen muss.
+
+Das ist nicht nur bequemer, es ist auch das einzig sichere: Ein
+`position: fixed`-Element wiederholt sich in einem paginierten Dokument
+auf **jeder** Seite. Nachgezählt sind alle elf `position: fixed` in
+`AUDIENCE_CSS` auf ID-selektierte Chrome-Elemente gesetzt
+(`#figure-overlay`, `#blank-badge`, `#help-overlay`, `#help-button`,
+`#link-overlay`, `#mode-badge`, `#laser-pointer`, `#overview-badge`,
+`#search-panel`, `#touch-controls`) – **keines auf Folieninhalt**. Eine
+Streichliste hätte eines davon übersehen können; die Aufnahmeregel kann
+es nicht.
+
+Zwei Dinge kosten daher nichts, die man sonst bauen müsste:
+
+- **Die Foliennummer.** `.chunk-num` ist direktes Kind von `.chunk` und
+  `position: absolute` gegen dessen eigenes `position: relative`. Der
+  Klon trägt sie mit, und weil `jumpTo` ihm `.active` gegeben hat, greift
+  auch `.chunk.active > .chunk-num { opacity: 0.5 }`. Dass alle
+  Beat-Seiten eines Chunks dieselbe Nummer tragen, ist damit keine Regel,
+  die jemand durchsetzt, sondern eine Folge davon, wo das Element steht.
+- **Marginalia.** Sie liegen in `.chunk-content` und reisen mit. Sie sind
+  aber der Grund, warum die Entscheidung „Papier gleich Viewport“ ein
+  zweites Mal trägt: `.marginalia` ist
+  `left: calc(100% + 2vw); width: 26vw`, und `vw` bezieht sich im Druck
+  auf die **Seitenbox**, nicht auf das Fenster. `--slide-w` ist mit
+  `!important` festgenagelt, die rund zwei Dutzend rohen `vw`/`vh`-Werte
+  in `AUDIENCE_CSS` sind es nicht – sie stimmen nur, weil die Seite
+  genauso breit ist wie der Viewport, in dem gemessen wurde. Ein Papier
+  in anderer Größe als der Viewport hätte hier still verschoben.
+
 Der Tausch geschieht erst am Ende: erst alle Zustände einsammeln, dann
 `document.body` durch das Druck-DOM ersetzen und `data-psi-pdf` auf
 `<html>` setzen. Die Attribute von `<body>` bleiben stehen, denn dort
@@ -686,53 +733,108 @@ Benannt, damit später niemand rätselt, ob es vergessen wurde:
 
 ## Umsetzungsschritte
 
-1. `findChrome()` nach `chrome-path.mjs` heben;
-   `docs/site/shoot-lib.mjs` und `test/harness.mjs` von dort importieren.
-   Nichts sonst ändern – ein reiner Umzug, eigener Commit.
+Fünf Etappen. Jede endet an einem Punkt, an dem etwas Nachprüfbares
+läuft, und jede ist ein eigener Commit oder wenige. Die Reihenfolge ist
+so gewählt, dass **nach Etappe 3 ein PDF existiert** – alles danach macht
+es richtig, nicht erst möglich.
+
+### Etappe 0 – Vorarbeiten, die nichts mit PDF zu tun haben
+
+1. `findChrome()` nach `chrome-path.mjs` im Wurzelverzeichnis heben;
+   `docs/site/shoot-lib.mjs` und `test/harness.mjs` importieren von dort.
+   Reiner Umzug, kein Verhalten. Die Notiz in `harness.mjs` 45–52
+   („Keep the two in step“) beschreibt danach ein Problem, das es nicht
+   mehr gibt, und geht mit.
 2. `playwright-core` von `devDependencies` nach `optionalDependencies`.
-   `pdf-export.mjs` importiert es; `build.js` lädt `pdf-export.mjs` per
-   `await import()` nur bei `--slides-pdf` und meldet bei Fehlen
-   `npm install playwright-core` mit dem Grund. `err.userFacing = true`.
-3. Den `psiExport`-Hook in `AUDIENCE_JS` ergänzen. Kein Verhalten ändern.
-   Gate `inlined` beachten: kein rohes Backtick, doppelte Backslashes.
-4. CLI-Vertrag in `build.js`: Flags, Standardwerte, Ausschluss von
-   `--watch`, Fehlertexte, atomares Schreiben.
-5. `pdf-export.mjs`, Teil eins: Browser starten, Seite laden, Zustände
-   nach der Domäne aus Abschnitt 2 durchgehen, Klone einsammeln.
-6. `pdf-export.mjs`, Teil zwei: Bereinigung, Seiten-Wrapper,
-   Export-Stylesheet, DOM-Tausch.
-7. Linktabelle (Chunk-IDs und Spalten-IDs), Umschreiben, Meldung für
+
+*Fertig, wenn:* `npm test` läuft wie vorher, und `npm run gate`
+und `node build.js lectures/tutorial/source.md` laufen in einem
+Checkout, aus dem `node_modules/playwright-core` gelöscht wurde.
+
+### Etappe 1 – Der Hook und die Kommandozeile
+
+3. `psiExport` in `AUDIENCE_JS`. Kein Verhalten ändern. Auf das Gate
+   `inlined` achten: kein rohes Backtick, doppelte Backslashes.
+4. Flags in `build.js`, mit Standardwerten, dem Ausschluss von
+   `--watch`, den Fehlertexten und dem atomaren Schreiben.
+   `pdf-export.mjs` wird per `await import()` hinter dem Flag geladen und
+   meldet bei fehlendem Paket `npm install playwright-core` mit Grund
+   (`err.userFacing = true`).
+
+*Fertig, wenn:* `--slides-pdf` einen verständlichen Fehler wirft, weil
+`pdf-export.mjs` noch leer ist, und die vier HTML-Ausgaben von
+`lectures/tutorial` sich gegenüber `main` nur um die zehn Zeilen
+`psiExport` unterscheiden (`git diff --stat`).
+
+### Etappe 2 – Der Zustandslauf
+
+5. Browser starten, Routing setzen, Seite laden, `psiExport.quiesce()`,
+   `autoFit` erzwingen.
+6. Zustände nach der Domäne aus Architektur 2 durchgehen und klonen.
+
+*Fertig, wenn:* Ein Lauf über `lectures/tutorial` die erwartete Zahl von
+Klonen meldet und `blocked` leer ist. Noch kein PDF.
+
+### Etappe 3 – Das Druck-DOM und der Druck
+
+7. Bereinigung, Seiten-Wrapper, Export-Stylesheet, DOM-Tausch,
+   `--pdf-dump-dom`.
+8. `page.pdf()`, atomares Schreiben, Log-Zeile mit Browser-Version.
+
+*Fertig, wenn:* `lectures/tutorial/slides.pdf` existiert, sich öffnen
+lässt, und `/Count` der Zahl der Klone aus Etappe 2 entspricht. **Das ist
+der Punkt, an dem sich das Vorhaben als machbar erwiesen hat oder
+nicht.** Erst hier lohnt der Rest.
+
+### Etappe 4 – Richtig statt nur vorhanden
+
+9. Linktabelle (Chunk-IDs und Spalten-IDs), Umschreiben, Meldung für
    unauflösbare Ziele.
-8. Medien-Fallbacks: Video-Frame-0, Embed-Karte, Bericht über nicht
-   geladene Bilder.
-9. `page.pdf()`-Aufruf, Overflow-Meldungen, Log-Zeile mit
-   Browser-Version.
-10. **Messen, bevor weitergebaut wird:** alle fünf Vorlesungen des
-    Repositories exportieren – `tutorial`, `diagrams`, `decoration`,
-    `network-security` und `python-intro`, das in Fassung 2 fehlte und
-    unter ihnen das reichste an `::: cols`, `::: side` und
-    `::: marginalia` ist. Seitenzahl, Dateigröße, Laufzeit und
-    `pdffonts`-Ausgabe notieren. Wenn die Größe hier aus dem Ruder
-    läuft, ist das der Moment, an dem die Font-Instanzierung doch in v1
-    muss – und nicht früher.
+10. Medien: Video-Frame-0 mit Platzhalter-Rückfall, Embed-Karte, Bericht
+    über nicht geladene Bilder.
+11. Overflow-Meldungen mit Chunk-ID und Beat.
+
+*Fertig, wenn:* Alle vier Diagnosen aus Abnahmekriterium 8 an einer
+Vorlesung ausgelöst werden können, von Hand.
+
+### Etappe 5 – Messen, prüfen, aufschreiben
+
+12. **Messen, bevor der Rest geschrieben wird:** alle fünf Vorlesungen
+    des Repositories exportieren – `tutorial`, `diagrams`, `decoration`,
+    `network-security` und `python-intro`, unter ihnen das reichste an
+    `::: cols`, `::: side` und `::: marginalia`. Seitenzahl, Dateigröße,
+    Laufzeit und `pdffonts`-Ausgabe notieren, und **die PDFs ansehen**.
+    Läuft die Dateigröße aus dem Ruder, ist das der Moment für die
+    Font-Instanzierung – und nicht früher. Sieht eine Folie falsch aus,
+    ist das der Moment, an dem der Plan eine Zeile bekommt statt der
+    Code eine Ausnahme.
 
     Das Inhalts-Repository `../psi-slides-mylectures` (`advasp`,
     `evalchat`, `seminar`, `vawi`) wird einmal von Hand durchgesehen,
     steht aber **nicht** in der Abnahmematrix: Es liegt nicht in diesem
     Repository, läuft nicht in CI, und ein Abnahmekriterium, das auf
     einem Nachbarverzeichnis fußt, ist auf keiner anderen Maschine
-    prüfbar. Der Anspruch oben ist entsprechend gelesen: Die fünf
-    lokalen Vorlesungen sind die Zusage, die vier fremden sind die
-    Stichprobe.
-11. `--pdf-dump-dom=<pfad>` im Exporter (zwei Zeilen, versteckt), dann
-    `test/pdf-export.mjs` nach dem Vorbild von `test/settings.mjs`
-    schreiben und in die `npm test`-Kette hängen. Weder `SPECS` noch
-    `test/harness.mjs` noch `.gitignore` werden angefasst (siehe Tests).
-12. Dokumentation: `CLAUDE.md` (Commands, Architektur mit der zweiten
+    prüfbar. Die fünf lokalen Vorlesungen sind die Zusage, die vier
+    fremden sind die Stichprobe.
+13. `test/pdf-export.mjs` nach dem Vorbild von `test/settings.mjs`, in
+    die `npm test`-Kette gehängt. Weder `SPECS` noch `test/harness.mjs`
+    noch `.gitignore` werden angefasst (siehe Tests).
+14. Dokumentation: `CLAUDE.md` (Commands, Architektur mit der zweiten
     Ausnahme), `README.md`, `CHANGELOG.md` unter `## [Unreleased]`,
     `docs/comparison.md`, CLI-Hilfe. Die Tutorial-Vorlesung erwähnt den
     Export in einem Satz, sie demonstriert ihn nicht – ein PDF ist keine
     HTML-Ansicht.
+
+### Wo es am ehesten hakt
+
+Drei Stellen, an denen die Umsetzung von diesem Plan abweichen könnte,
+mit dem, was dann zu tun ist:
+
+| Stelle | Symptom | Antwort |
+|---|---|---|
+| Zwei Klone eines `::: draw` beeinflussen sich | eine Beat-Seite zeigt die Geometrie einer anderen | Die Annahme aus Architektur 5 ist gebrochen. Dann und nur dann den ID-Rewriter bauen – und zwar den vollständigen, mit `@scope`. |
+| Auto-Fit braucht pro Zustand zu lange | Export dauert Minuten statt Sekunden | `fitZoomToChunk` misst in einer Schleife. Zoom je Chunk einmal lösen und für dessen Beats behalten, statt je Beat – kostet Genauigkeit bei wachsenden Chunks, und das ist der Tausch, den man dann bespricht. |
+| Der Klon sieht anders aus als die Projektion | Ränder, Zentrierung, Schriftgröße | Zuerst `--slide-w`/`--slide-h` im Abzug prüfen, dann `--zoom` auf dem Wrapper, dann `body`-Attribute. In dieser Reihenfolge, weil jede die folgende erklärt. |
 
 ## Tests
 
