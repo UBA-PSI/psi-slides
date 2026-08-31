@@ -1,10 +1,11 @@
 # Plan: PDF-Foliensatz mit allen Beats
 
-Dritte Fassung. Fassung 1 ist an Codex' erstem Review geprüft worden,
-Fassung 2 an seinem zweiten (`REVIEW-slide-pdf-export.md`,
-`REVIEW-slide-pdf-export-v2.md`) und beide am Code. Was bestätigt wurde,
-was verworfen, und was billiger zu haben ist als vorgeschlagen, steht in
-den beiden Änderungsabschnitten.
+Vierte Fassung. Jede Fassung ist an einem Review von Codex und am Code
+geprüft worden (`REVIEW-slide-pdf-export.md`, `-v2`, `-v3`). Was
+bestätigt wurde, was verworfen, und was billiger zu haben ist als
+vorgeschlagen, steht in den Änderungsabschnitten. Der dritte Review
+findet keinen Architektur- oder Rendering-Blocker mehr; alles, was hier
+noch geändert wird, steht im Testvertrag.
 
 ## Ziel
 
@@ -115,9 +116,10 @@ Dazu drei kleinere, ebenfalls bestätigt:
   Schalter sei mehrdeutig; er ist schlimmer, nämlich undefiniert – siehe
   CLI-Vertrag. Ein Schalter mit undefiniertem Wert wird nicht
   definiert, er wird entfernt.
-- **Die neue Spec braucht zwei Anschlüsse**, die Fassung 2 nicht genannt
-  hat: einen Eintrag in `SPECS` und ein `buildSource()` im Harness.
-  → „Tests“.
+- **Die neue Spec hängt an nichts.** Fassung 3 hat daraufhin einen
+  `SPECS`-Eintrag und ein `buildSource()` im Harness vorgesehen – beides
+  falsch, siehe den nächsten Abschnitt. Der Befund stimmte, die Antwort
+  war die zweitbeste. → „Tests“.
 - **`lectures/python-intro` fehlte in der Matrix.** Fünf Vorlesungen,
   nicht vier; und der Anspruch auf das Inhalts-Repository ist zu einer
   Stichprobe zurückgenommen.
@@ -127,6 +129,46 @@ Chromium schreibt PDF 1.4 ohne Objektströme, `/Count` und `/MediaBox`
 stehen im Klartext. Die Seitenzahlprüfung der erzeugten Datei – die der
 Review zu Recht als obligatorisch verlangt – braucht deshalb kein
 Poppler und ist eine Zeile.
+
+## Was sich gegenüber Fassung 3 geändert hat
+
+Sechs Punkte, alle im Testvertrag, alle bestätigt. Fünf davon lösen sich
+in **einer** Entscheidung auf, und die stand die ganze Zeit im
+Repository: `test/settings.mjs` ist bereits ein eigenständiger Test in
+der `npm test`-Kette, der seine Quellen in ein Temp-Verzeichnis schreibt,
+`build.js` als Unterprozess ruft und die Ausgabe prüft. Der PDF-Test ist
+dieselbe Form, und damit fallen weg:
+
+- der Widerspruch zwischen `test/specs/pdf-export.mjs` und dem
+  `SPECS`-Eintrag `'./pdf-export.mjs'` – **es gibt kein `test/specs/`**,
+  alle Specs liegen flach in `test/`, und der Plan hat sich hier in einem
+  Absatz selbst widersprochen;
+- der `SPECS`-Eintrag samt der Frage, wie ein Spec-Vertrag aussieht, der
+  für seinen einzigen Ausreißer einen `standalone`-Zweig bekommt;
+- `buildSource()` im Harness;
+- die Build-Artefakte im Worktree und damit die `.gitignore`-Frage;
+- der zweite Browser im Test: Der Exporter bekommt ein verstecktes
+  `--pdf-dump-dom=<pfad>`, und der ganze DOM-Teil der Prüfung wird
+  Textsuche in Node.
+
+Der Rest, einzeln:
+
+- **Die PDF-Prüfung war zu fragil.** `/Count` steht auch in einem
+  `/Outlines`-Baum, und ein `.exec(…)[1]` auf einen Fehltreffer ist ein
+  Nullzugriff statt einer Diagnose. Sie wird jetzt am Seitenbaum
+  verankert und sagt beim Misserfolg, was sie nicht lesen konnte.
+- **`--pdf-size=16:10` war ungeprüft**, obwohl öffentlicher Vertrag. Ein
+  zweiter, kurzer Exportlauf prüft DOM- und PDF-Maß.
+- **Drei der vier zugesagten Diagnosen hatten keinen Testfall.** Das
+  Fixture bekommt einen toten Fragmentlink und ein fehlendes Bild mit
+  explizitem Pfad; der fehlende Browser bekommt einen eigenen Lauf mit
+  `PSI_CHROME=/gibt/es/nicht`.
+- **Abnahmekriterium 8 verlangte eine Chunk-ID, die es nicht geben
+  kann.** Vor dem Browserstart existiert kein Deck. Das Kriterium
+  unterscheidet jetzt zwischen Fehlern vor und nach dem Laden.
+- **Abnahmekriterium 7 widersprach seinem eigenen Test** („setzt keinen
+  HTTP-Request ab“ gegen einen Zähler, der nur zählen kann, was versucht
+  wurde). Es heißt jetzt: Kein Request erreicht das Netz.
 
 ## Festgelegtes Verhalten
 
@@ -164,6 +206,7 @@ schreibt `lectures/foo/slides.pdf`.
 --pdf-beats=all|final        # Standard: all
 --pdf-size=16:9|16:10        # Standard: 16:9
 --pdf-out=<pfad>             # Standard: slides.pdf neben source.md
+--pdf-dump-dom=<pfad>        # versteckt, nur für den Test
 ```
 
 - `--pdf-beats=final` gibt nur den vollständig aufgebauten Zustand jedes
@@ -193,6 +236,11 @@ schreibt `lectures/foo/slides.pdf`.
   impliziert den Audience-Build.
 - `slides.pdf` wird atomar geschrieben: erst `slides.pdf.tmp`, dann
   `rename`. Ein Abbruch lässt kein halbes PDF stehen.
+- `--pdf-dump-dom=<pfad>` schreibt vor dem Drucken
+  `document.documentElement.outerHTML` weg. Es steht nicht in der
+  CLI-Hilfe, weil es kein Feature für Autoren ist, sondern die
+  Prüffläche des Tests: Damit kommt der ganze DOM-Teil der Prüfung ohne
+  zweiten Browser aus (siehe Tests).
 
 ## Geometrie
 
@@ -676,9 +724,10 @@ Benannt, damit später niemand rätselt, ob es vergessen wurde:
     prüfbar. Der Anspruch oben ist entsprechend gelesen: Die fünf
     lokalen Vorlesungen sind die Zusage, die vier fremden sind die
     Stichprobe.
-11. Tests: Fixture unter `test/fixtures/pdf-beats/`, `buildSource()` im
-    Harness, `'./pdf-export.mjs'` ans Ende von `SPECS` in
-    `test/run.mjs`, Spec schreiben (siehe unten).
+11. `--pdf-dump-dom=<pfad>` im Exporter (zwei Zeilen, versteckt), dann
+    `test/pdf-export.mjs` nach dem Vorbild von `test/settings.mjs`
+    schreiben und in die `npm test`-Kette hängen. Weder `SPECS` noch
+    `test/harness.mjs` noch `.gitignore` werden angefasst (siehe Tests).
 12. Dokumentation: `CLAUDE.md` (Commands, Architektur mit der zweiten
     Ausnahme), `README.md`, `CHANGELOG.md` unter `## [Unreleased]`,
     `docs/comparison.md`, CLI-Hilfe. Die Tutorial-Vorlesung erwähnt den
@@ -687,35 +736,54 @@ Benannt, damit später niemand rätselt, ob es vergessen wurde:
 
 ## Tests
 
-Der Testaufwand folgt der Repository-Praxis: Was ohne Browser
-entschieden werden kann, gehört nach `test/gates/`; was einen Browser
-braucht, nach `test/run.mjs`. Der PDF-Export braucht einen.
+Der Testaufwand folgt der Repository-Praxis, und die Praxis hat für genau
+diese Form schon eine Datei: **`test/settings.mjs`**. Sie ist ein
+eigenständiger Test in der `npm test`-Kette, schreibt ihre Quellen mit
+`fs.mkdtempSync(path.join(os.tmpdir(), 'psi-…'))` in ein Temp-Verzeichnis,
+ruft `build.js` als Unterprozess auf und prüft, was herausgekommen ist –
+zwölfmal, an zwölf Stellen (`test/settings.mjs` 109, 226, 243, 288, 316,
+371, 442, 466, 512, 545, 933, 951). Der PDF-Test ist dieselbe Form.
 
-**Die eigentliche Prüffläche ist das Druck-DOM, nicht die PDF-Datei.**
-Fast jede Zusage dieses Plans – Seitenzahl, Reihenfolge, Sauberkeit,
-Links, IDs – ist im DOM prüfbar, bevor Chromium druckt, und dort mit
-gewöhnlichen Selektoren statt mit einem PDF-Parser. Eine neue Spec
-`test/specs/pdf-export.mjs` exportiert ein Fixture und assertet gegen das
-Druck-DOM.
+**`test/pdf-export.mjs`, eigenständig, in `npm test` eingehängt:**
 
-**Zwei Anschlüsse muss die Umsetzung dafür herstellen, und sie stehen
-hier, weil sie sonst niemand sieht:**
+```json
+"test": "node test/gates/run.mjs && node test/settings.mjs && node test/pdf-export.mjs && node test/run.mjs"
+```
 
-1. `test/run.mjs` entdeckt keine Dateien, es importiert die feste
-   `SPECS`-Liste. `'./pdf-export.mjs'` gehört dort eingetragen, ans Ende
-   der Liste – die Spec startet einen zweiten Chromium-Lauf und ist die
-   langsamste, also läuft sie zuletzt.
-2. `buildLecture(slug)` baut ausschließlich `lectures/<slug>/source.md`
-   (`test/harness.mjs` 118–125). Ein Fixture außerhalb von `lectures/`
-   erreicht es nicht. Der Harness bekommt dafür ein
-   `buildSource(relPath, flags)`, das gegen `ROOT` auflöst;
-   `buildLecture` wird zum Einzeiler darüber. Ein Fixture in `lectures/`
-   abzulegen wäre die Alternative und ist die schlechtere: `lint.js` und
-   `gates.yml` laufen über `lectures/`, und ein absichtlich überlanger
-   Chunk mit einem toten Fragmentlink ist genau das, was ein Linter dort
-   zu Recht anschreit.
+Nach `settings.mjs` und vor `run.mjs`: Ohne einen auffindbaren Browser
+kann er nicht bestehen, also gehört er hinter die Prüfungen, die ganz
+ohne auskommen; er dauert Sekunden statt Minuten, also vor die
+Browser-Suite.
 
-Fixture `test/fixtures/pdf-beats/source.md`, ein Chunk je Fall:
+Das ersetzt drei Festlegungen aus Fassung 3, die alle drei falsch waren:
+
+- Es gibt **kein `test/specs/`**. Alle Specs liegen flach in `test/`, und
+  der Plan hat sich in einem Absatz selbst widersprochen (`test/specs/…`
+  gegen den `SPECS`-Eintrag `'./pdf-export.mjs'`).
+- Der `SPECS`-Eintrag entfällt ganz. `test/run.mjs` baut für jede Spec
+  `buildLecture(s.lecture)`, serviert das Verzeichnis und übergibt ein
+  bereits geöffnetes Deck (`test/run.mjs` 59–75). Der PDF-Test will
+  nichts davon: Er baut selbst, exportiert selbst und liest eine Datei.
+  Ihm einen `standalone`-Zweig im Runner zu bauen hieße, den
+  Spec-Vertrag für seinen einzigen Ausreißer zu verbiegen.
+- `buildSource()` im Harness entfällt damit ebenfalls, und mit ihm die
+  Frage nach `.gitignore`: Im Temp-Verzeichnis entstehen keine Dateien,
+  die der Worktree je sieht. Ein `finally` löscht das Verzeichnis; ein
+  abgebrochener Lauf lässt höchstens etwas in `$TMPDIR` stehen, wo es
+  hingehört.
+
+**Der Test steuert selbst keinen Browser.** Er startet keinen und
+importiert `playwright-core` nicht: Chromium läuft im Unterprozess von
+`build.js`, und der Test liest anschließend zwei Dateien – das PDF und
+einen Abzug des Druck-DOM. Dafür bekommt der Exporter ein verstecktes
+`--pdf-dump-dom=<pfad>`, das vor dem Drucken `document.documentElement.outerHTML`
+wegschreibt. Zwei Zeilen im Exporter, und der ganze DOM-Teil der Prüfung
+wird zu Textsuche in Node – dasselbe, was `settings.mjs` mit gebautem
+HTML tut.
+
+### Fixture
+
+Eine Quelle, in `$TMPDIR` geschrieben, ein Chunk je Fall:
 
 - mehrere Text-Reveal-Segmente
 - ein `::: draw` mit mehreren Schritten
@@ -725,63 +793,114 @@ Fixture `test/fixtures/pdf-beats/source.md`, ein Chunk je Fall:
 - ein beatloser Chunk
 - ein Chunk mit `::: expand`, `> note:` und einem externen Link
 - Titel, Abschnittsdivider (Spalte mit `# Heading {#id}`), Schlussfolie
-- ein interner Link auf einen Chunk **und** einer auf eine Spalten-ID
+- ein gültiger interner Link auf einen Chunk **und** einer auf eine
+  Spalten-ID
+- **ein toter Fragmentlink** `[x](#gibtsnicht)`
+- **ein Bild mit explizitem Pfad, das es nicht gibt** –
+  `![](./fehlt.png)`. Nicht die Kurzform `![](fehlt)`: Die rendert der
+  Build schon als sichtbaren `figure-missing`-Platzhalter
+  (`build.js` 1937), das ist eine vorhandene Diagnose und nicht die, die
+  hier geprüft wird. Der explizite Pfad kommt als `<img src>` durch und
+  scheitert erst im Browser, und genau das soll der Export melden.
+- **ein `::: embed` auf Vimeo**, also ein Anbieter, den `wireEmbeds()`
+  unter `file://` nicht abfängt
+- ein absichtlich überlanger Chunk
 
-Assertions:
+Ein Fixture in `lectures/` abzulegen wäre die Alternative und die
+schlechtere: `lint.js` und `gates.yml` laufen über `lectures/`, und ein
+überlanger Chunk mit einem toten Fragmentlink ist genau das, was ein
+Linter dort zu Recht anschreit.
 
-*Zustände und Seiten.* Erwartete Gesamtseitenzahl; genau eine
-Ausgangsseite pro Chunk; kumulative Reihenfolge; `--pdf-beats=final`
-ergibt genau eine Seite pro Chunk; der beatlose Chunk ergibt genau eine.
+### Assertions gegen den DOM-Abzug
 
-*Bereinigung.* Das Druck-DOM enthält keines von `.exps`, `.exp-chev`,
+*Zustände und Seiten.* Erwartete Gesamtzahl der `.pdf-page`-Wrapper;
+genau eine Ausgangsseite pro Chunk; kumulative Reihenfolge; der beatlose
+Chunk ergibt genau eine; `--pdf-beats=final` ergibt genau eine pro Chunk.
+
+*Bereinigung.* Der Abzug enthält keines von `.exps`, `.exp-chev`,
 `.exp-body`, `.annot-box`, `.annot-add`, `.link-code`, `#link-overlay`,
-`#toc`, `#search-panel`, `#mode-badge`, `script`.
+`#toc`, `#search-panel`, `#mode-badge`, `<script`.
 
 *Links.* Der externe Link ist noch ein `<a>` mit unverändertem `href`,
 und der QR-Knopf daneben fehlt. Der interne Chunk-Link zeigt auf die
-Wrapper-ID der ersten Seite seines Ziels. Der Spalten-Link zeigt auf die
-Divider-Seite. Kein `<a href="#…">` im Druck-DOM zeigt auf eine ID, die
-es nicht gibt.
+Wrapper-ID der ersten Seite seines Ziels, der Spalten-Link auf die
+Divider-Seite. Kein `<a href="#…">` im Abzug zeigt auf eine ID, die es
+nicht gibt – der tote Link aus dem Fixture ist zum `<span>` geworden.
 
-*Diagramme.* Das ist der Test, an dem die Entscheidung „nicht präfixen“
-hängt: Zwei Klone desselben `::: draw` auf verschiedenen Beats haben für
-mindestens ein Element unterschiedliche Geometrie-Attribute. Fällt der
-Test, ist die Annahme aus Abschnitt 5 gebrochen und der Rewriter fällig.
-Zusätzlich: Die eingebetteten `<style>`-Blöcke der Klone sind unverändert
-(`@scope`-Selektor identisch zum Original).
+*Diagramme.* Der Test, an dem die Entscheidung „nicht präfixen“ hängt:
+Zwei Klone desselben `::: draw` auf verschiedenen Beats unterscheiden
+sich in mindestens einem Geometrie-Attribut. Fällt er, ist die Annahme
+aus Abschnitt 5 gebrochen und der Rewriter fällig. Dazu: Der
+`@scope`-Selektor der eingebetteten `<style>`-Blöcke ist in jedem Klon
+identisch zum Original.
 
-*Geometrie.* `getComputedStyle(document.documentElement)` liefert
-`--slide-h: 900px`; jede `.pdf-page` ist 1600 × 900; keine ist höher als
-ihr Inhalt breit.
+### Assertions gegen die Diagnosen auf stderr
 
-*Overflow.* Ein Chunk, der bei Zoom 0,6 immer noch überläuft, erzeugt
-genau eine Warnung, die Chunk-ID und Beat nennt. Das Fixture enthält
-dafür einen absichtlich überlangen Chunk.
+Vier Meldungen, vier Fälle. Alle vier sind Zusagen aus
+Abnahmekriterium 8, und keine davon war in Fassung 3 geprüft außer der
+letzten:
 
-*Datei, und das ist die wichtigste Assertion der Spec.* Die Seitenzahl
-der **erzeugten Datei** muss geprüft werden, nicht nur die der Wrapper im
-DOM – die Messung oben zeigt, warum: Ein DOM mit vier richtig
-dimensionierten Wrappern hat ein einseitiges PDF ergeben, und keine
-DOM-Assertion hätte das gesehen.
+| Fall | Erwartete Meldung nennt |
+|---|---|
+| toter Fragmentlink | Zielfragment und Chunk-ID des Links |
+| fehlendes Bild | `src` und Chunk-ID |
+| geblocktes Embed | den Origin, genau einmal |
+| Overflow bei Zoom 0,6 | Chunk-ID und Beat |
 
-Das braucht kein Poppler. Chromium schreibt PDF 1.4 ohne Objektströme,
-also steht die Zahl im Klartext in der Datei:
+**Fehlender Browser, eigener Fall, ohne Fixture:** Ein Lauf mit
+`PSI_CHROME=/gibt/es/nicht` endet mit Exit-Code ungleich null, die
+Meldung nennt die abgesuchten Orte und den nächsten Schritt, und es
+erscheint **kein** Stacktrace (`err.userFacing`). Diese Meldung nennt
+richtigerweise keine Chunk-ID – vor dem Browserstart gibt es kein Deck
+und keinen Chunk, und Abnahmekriterium 8 sagt das jetzt auch.
+
+### Assertions gegen die PDF-Datei
+
+Die wichtigste Prüfung der Datei ist die Seitenzahl, und zwar die **der
+Datei**, nicht die der Wrapper im DOM: Die Messung oben zeigt ein DOM mit
+vier richtig dimensionierten Wrappern, aus dem ein einseitiges PDF wurde.
+Keine DOM-Assertion hätte das gesehen.
+
+Chromium schreibt PDF 1.4 ohne Objektströme, die Zahl steht also im
+Klartext. Aber nicht der erste beliebige Treffer: `/Count` steht auch in
+einem `/Outlines`-Baum, also wird am Seitenbaum verankert und beim
+Misserfolg gesagt, was los ist.
 
 ```js
-const pdf = fs.readFileSync(out, 'latin1');
-const pages = Number(/\/Count (\d+)/.exec(pdf)[1]);          // === erwartet
-const box = /\/MediaBox\s*\[([^\]]+)\]/.exec(pdf)[1].trim().split(/\s+/).map(Number);
-// [0, 0, 1200, 675] auf 1 pt genau – gemessen kommt 675.12 heraus,
-// also wird verglichen und nicht auf Textgleichheit geprüft.
+function pageTree(pdf) {
+  for (const m of pdf.matchAll(/\d+ 0 obj([\s\S]*?)endobj/g)) {
+    const body = m[1];
+    if (!/\/Type\s*\/Pages\b/.test(body)) continue;
+    if (/\/Parent\b/.test(body)) continue;              // nicht die Wurzel
+    const c = /\/Count\s+(\d+)/.exec(body);
+    if (c) return Number(c[1]);
+  }
+  throw new Error(
+    'konnte den Seitenbaum in slides.pdf nicht lesen. Der Browser hat '
+    + 'vermutlich eine PDF-Struktur geschrieben, die dieser Test nicht '
+    + 'kennt (komprimierte Objekte?). Von Hand prüfen: pdfinfo slides.pdf');
+}
 ```
+
+Dasselbe für die MediaBox: aus einem `/Type /Page`-Objekt gelesen, als
+vier Zahlen verglichen und nicht als Text. Gemessen kommt
+`[0 0 1200 675.12]` heraus, also gilt eine Toleranz von 1 pt.
+
+Ein fehlender Treffer ist ein **Fehlschlag mit dieser Meldung**, kein
+stilles Bestehen und kein Nullzugriff. Das ist der ehrliche Umgang mit
+dem, was der Test annimmt: `findChrome()` kann einen Browser wählen,
+dessen Serialisierung anders aussieht, und dann soll der Test das sagen,
+statt zu raten. Einen PDF-Parser als Abhängigkeit aufzunehmen wäre die
+Alternative und steht in keinem Verhältnis: Es sind zwölf Zeilen gegen
+ein Paket, das der Rest des Projekts nie wieder anfasst.
 
 Dazu: Die Datei beginnt mit `%PDF-`, ist größer als 10 KB, und ein
 abgebrochener Lauf hinterlässt weder `slides.pdf` noch `.tmp`.
 
-*Offline.* Der Lauf über ein Fixture mit einem Vimeo-`::: embed` meldet
-genau einen geblockten Origin und bricht nicht ab. Ohne das Routing
-würde er ihn laden – das ist der Test, der die Offline-Zusage von einer
-Behauptung zu einer Eigenschaft macht.
+**Beide Seitenformate.** `--pdf-size=16:10` ist öffentlicher Vertrag und
+wird geprüft wie `16:9`: ein zweiter Export desselben Fixtures mit
+`--pdf-beats=final` (kurz, weil nur die Geometrie interessiert), MediaBox
+`[0 0 1200 750]` auf 1 pt, und `--slide-h: 1000px` im DOM-Abzug.
 
 *Optional, wenn Poppler da ist.* Sind `pdftotext` beziehungsweise
 `pdffonts` auf dem `PATH`, kommt dazu: `pdftotext` findet einen bekannten
@@ -817,12 +936,19 @@ Die erste Version ist fertig, wenn:
 5. Expansions, Annotationen und interaktives Chrome vollständig fehlen;
 6. externe Links klickbar bleiben und interne Links auf die erste Seite
    ihres Ziel-Chunks beziehungsweise ihrer Divider-Folie führen;
-7. der Export offline über `file://` läuft und dabei **nachweislich**
-   keinen HTTP-Request absetzt – geprüft über das Routing, nicht
-   angenommen;
-8. fehlender Browser, nicht geladene Bilder, unauflösbare Fragmente und
-   überlaufende Zustände je eine Meldung mit Chunk-ID und nächstem
-   Schritt erzeugen, statt still zu bleiben;
+7. der Export offline über `file://` läuft und **kein HTTP(S)-Request
+   das Netz erreicht**: Jeder Versuch wird vom Routing vor dem Transport
+   abgefangen und abgebrochen, und der Export zählt die betroffenen
+   Origins. Die Formulierung ist mit Absicht diese und nicht „setzt
+   keinen Request ab“ – die Runtime *versucht* einen, sonst gäbe es
+   nichts zu zählen, und der Zähler ist genau der Beleg;
+8. vier Fehlerklassen je eine Meldung mit dem nächsten Schritt erzeugen,
+   statt still zu bleiben – und zwar mit dem Kontext, den sie haben
+   können: nicht geladene Bilder, unauflösbare Fragmente und
+   überlaufende Zustände nennen die Chunk-ID (Overflow zusätzlich den
+   Beat), ein **fehlender Browser** nennt die abgesuchten Orte und den
+   nächsten Schritt und **keine Chunk-ID** – vor dem Browserstart gibt
+   es kein Deck. Jede der vier hat einen Testfall;
 9. `node build.js <source.md>` und `npm run lint` auf einer Installation
    **ohne** `playwright-core` unverändert durchlaufen – der einzige neue
    Import in `build.js` ist ein `await import()` hinter dem Flag.
