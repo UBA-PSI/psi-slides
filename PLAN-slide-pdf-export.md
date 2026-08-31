@@ -1356,14 +1356,41 @@ Für ein inliniertes `data:`-Video – also den Normalfall dieses Werkzeugs –
 liefert `toDataURL()` das Bild. Der `try/catch` und der Platzhalter
 bleiben, für das nach `videos/` ausgelagerte Video über 12 MB.
 
+### Die Stichprobe aus dem Inhalts-Repository
+
+Gelaufen, und größer als geplant: **alle 22 Vorlesungen** aus
+`../psi-slides-mylectures` (`advasp`, `evalchat`, `introsp`, `seminar`,
+`vawi`), nicht nur vier. 8 bis 67 Seiten, **kein einziger Fehlschlag**.
+Sie steht weiterhin nicht in der Abnahmematrix – sie liegt nicht in
+diesem Repository und läuft nicht in CI.
+
+Die Diagnosen haben dabei zwei echte Befunde in fremdem Material
+gefunden, was die beste Auskunft über sie ist, die zu haben war:
+
+- **Zwei tote Fragmentlinks** in `seminar/40-wlab04`, beide im Chunk
+  `four-qualities`: `#old-new` und `#aaa-abt`. Im PDF sind sie jetzt
+  Text; in der HTML-Ansicht führen sie weiterhin ins Leere.
+- **`advasp/10-passkeys` und `advasp/20-tracking` holen Schrift von
+  `fonts.googleapis.com`** – 11 beziehungsweise 8 Requests. Die Ursache
+  sind 16 SVG-Assets im Inhalts-Repository, die ein
+  `@import url('https://fonts.googleapis.com/…')` in einem
+  `<style>`-Block tragen; `inlineSvg()` hebt `@import` bewusst auf die
+  oberste Ebene, damit die Regel gültig bleibt, und hebt damit auch
+  diesen hoch. Die betroffenen **HTML-Ansichten sind also nicht
+  self-contained** und kontaktieren beim Lesen einen Dritten. Das ist ein
+  Befund über den Inhalt, kein Defekt dieses Werkzeugs – aber es ist
+  genau die Zusage, die das Werkzeug macht, und der Export ist das
+  einzige, was sie heute nachprüft. Ob `lint.js` oder der Build davor
+  warnen soll, ist eine offene Frage.
+
 ### Was offen ist
 
 - Defekt A oben. Bis er entschieden ist, ist die Deckfolie jedes PDFs zu
   klein gesetzt.
-- Die Stichprobe über `../psi-slides-mylectures` (`advasp`, `evalchat`,
-  `seminar`, `vawi`) ist noch nicht gelaufen. Sie ist ausdrücklich keine
-  Abnahmebedingung.
-- 22 Overflow-Meldungen über die fünf Vorlesungen, alle geprüft und alle
-  wahr: die betroffenen Chunks werden im Hörsaal geschwenkt und auf Papier
-  abgeschnitten. Das ist das geplante Verhalten und keine offene Arbeit,
-  aber es ist die Zahl, die jemand sehen wird.
+- Ob ein `@import` auf einen fremden Host in einem inlinierten SVG eine
+  Warnung wert ist – siehe Stichprobe.
+- 22 Overflow-Meldungen über die fünf Vorlesungen dieses Repositories,
+  alle geprüft und alle wahr: die betroffenen Chunks werden im Hörsaal
+  geschwenkt und auf Papier abgeschnitten. Das ist das geplante Verhalten
+  und keine offene Arbeit, aber es ist die Zahl, die jemand sehen wird.
+  Über die 22 fremden Vorlesungen sind es zwei.
