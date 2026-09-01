@@ -259,6 +259,98 @@ export async function run({ report }) {
       'the default won');
   }
 
+
+  // ── a label wider than the room between the things it joins ───────
+  // The compiler knows the label's width and knows the gap, and until this
+  // check it compared them nowhere. The tutorial shipped the consequence: at
+  // `unit=126x38` three boxes at `gap 1.05` leave 40 px of clear paper and
+  // the word `encrypted` measures 71, so the room read `crypte` – a clean
+  // build, a clean lint and a broken slide.
+  //
+  // Every assertion here is about what the *drawing* means rather than about
+  // the warning's wording: the fixture that warns and the fixture that does
+  // not differ by exactly one token, and the token is the one an author would
+  // change. There is no browser in it, which is why it is a gate: the two
+  // numbers being compared are the compiler's own.
+  {
+    const clipped = (what, body, head = 'unit=126x38') => {
+      const r = render(body, head);
+      if (!r.ok) { ok(false, `${what} compiles`, r.msg.split('\n')[0]); return null; }
+      return r.warns.filter(w => /the room reads a clipped word/.test(w));
+    };
+    const ROW = (gap, label) => 'box src "Sender"\n'
+      + `box mix "Mix" right of src gap ${gap}\n`
+      + `edge src -> mix "${label}"`;
+
+    const tight = clipped("the tutorial's own row of boxes", ROW('1.05', 'encrypted'));
+    ok(tight && tight.length === 1, 'a label wider than the gap between its two boxes is reported',
+      tight ? `${tight.length} warning(s)` : 'did not compile');
+    // The numbers are the fix, so the message has to carry them: the width of
+    // the words and the paper there was for them.
+    ok(tight && tight.length === 1
+      && /\b71 px across\b/.test(tight[0]) && /\b40 px of clear space\b/.test(tight[0]),
+      "and it states both numbers - the label's width and the room it had",
+      tight && tight[0]);
+
+    // One token apart, in both directions. A wider gap is the fix an author
+    // reaches for; a shorter label is the other one.
+    const wider = clipped('the same row at a wider gap', ROW('2.6', 'encrypted'));
+    ok(wider && wider.length === 0, 'the same row with a wider gap is silent',
+      wider && wider[0]);
+    const shorter = clipped('the same row with a short label', ROW('1.05', 'e'));
+    ok(shorter && shorter.length === 0, 'the same gap with a label that fits is silent',
+      shorter && shorter[0]);
+
+    // "The space it has" is not the gap alone. `side top` lifts the words off
+    // the line, and where the two elements are short enough to pass under
+    // them the width constrains nothing - a width test alone calls this a
+    // defect, and it is the commonest correct figure in the corpus.
+    const SIDE = (h) => `box a "A" at 0,0 w 0.6 h ${h}\n`
+      + 'box b "B" right of a gap 0.6 same as a\n'
+      + 'edge a -> b "a long phrase here" side top';
+    const shortEnds = clipped('a side top label over short elements', SIDE('0.3'));
+    ok(shortEnds && shortEnds.length === 0,
+      'a side top label that clears the elements at either end is silent',
+      shortEnds && shortEnds[0]);
+    const tallEnds = clipped('a side top label over tall elements', SIDE('1.6'));
+    ok(tallEnds && tallEnds.length === 1,
+      'and the same label is reported where they are tall enough to paint over it',
+      'a side is not by itself an escape from the geometry');
+
+    // On an elbow the label sits on the rail, which is halfway across the gap
+    // and clear of both ends - the same distinction between the drawn run and
+    // the exposed one that the label-ground check is built on.
+    const rail = clipped('an elbow label on its rail',
+      'box a "A" at 0,0\nbox b "B" below a gap 1.2\nedge a -- b "on the rail" {.elbow}');
+    ok(rail && rail.length === 0,
+      "an elbow's label sits on the rail, so it is not compared with the ends",
+      rail && rail[0]);
+
+    // `.front` draws the line and its label over the boxes, so nothing is
+    // painted on top of them and there is nothing to report.
+    const front = clipped('the tutorial row written .front', ROW('1.05', 'encrypted') + ' {.front}');
+    ok(front && front.length === 0,
+      'a .front edge is exempt - it is drawn over the boxes, not under them',
+      front && front[0]);
+
+    // A `sequence` message ends on a coordinate rather than on an element, so
+    // a label crossing a lifeline - which is what a lifeline is for, and why a
+    // message carries a ground by default - is never compared with one.
+    const seq = clipped('a long sequence message',
+      'sequence s at 0,0\n  actor a "A"\n  actor b "B"\n  a -> b "a very long message label indeed"', '');
+    ok(seq && seq.length === 0,
+      'a sequence message is never reported - its ends are coordinates, not elements',
+      seq && seq[0]);
+
+    // The axis is the one the label runs along, not the page's. A turned
+    // label between two stacked boxes is measured up and down.
+    const vert = clipped('a turned label between two stacked boxes',
+      'box a "A" at 0,0\nbox b "B" below a gap 0.4\nedge a -> b "turned label here" {.turn}');
+    ok(vert && vert.length === 1 && /px of clear space between a and b/.test(vert[0]),
+      'a turned label on a vertical edge is measured on the vertical axis',
+      vert && (vert[0] || 'nothing was reported'));
+  }
+
   // ── prominence is one slot, and it reaches every member of a set the
   //    compiler itself mixed ──────────────────────────────────────────
   // The kind list was widened so that `emph @wa-msg-N` works: `sequence`

@@ -169,6 +169,24 @@ from building the same way is a major version.
   mirrors the enum and the class list. Purely additive: a lecture that names
   none of it emits no new attribute and its markup is byte-identical.
 
+- **The build now warns when a `::: draw` edge label is wider than the room
+  between the two elements it joins.** A node is painted after every edge that
+  is not `.front`, so a label with nowhere to go is not merely tight – it is
+  clipped, and the room reads `crypte` where the source says `encrypted`. The
+  compiler knew the label's width and knew the gap and compared them nowhere;
+  the message now states both numbers, because the fix is a number. It is a
+  warning, not an error: the figure still builds, and it is the compiler's
+  alone – deciding it needs the measured glyph advances and the resolved
+  layout, neither of which `lint.js` may reach without pulling the whole
+  compiler in behind it. Three cases that look like the defect and are not are
+  excluded by construction: a label is compared on **both** axes, so a
+  `side top` phrase clearing two short elements is silent; it is compared as
+  ink rather than as a line box, so the font's leading is not read as overlap;
+  and only the edge's **own** two ends are looked at, which is what keeps every
+  `sequence` message out of it and leaves a third shape to
+  `dgOverlapWarnings`. It found two in `lectures/tutorial` `#diagram` on the
+  first run.
+
 - **`{.center}` in a chunk's attribute tail sets that chunk's prose on a
   centre axis**, on the projection and in the cockpit and not in the printed
   document – the second non-width class the tail takes, beside `.bare`, and

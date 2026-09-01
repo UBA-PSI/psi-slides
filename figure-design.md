@@ -304,6 +304,29 @@ edge a -> b "1"                     {.paper .small}
 edge b -> c "carries the session key" side top {.small .muted}
 ```
 
+**Either way, the words need a line long enough to hold them.** A label is
+centred on its edge and the boxes at both ends are painted *after* it, so a
+label wider than the paper between their near faces is not tight – it is
+clipped, and what reaches the back of the room is the middle of the word. The
+build says so and gives you both numbers, because the fix is a number.
+
+```
+# wrong: at unit=126x38, gap 1.05 leaves 40px of paper and "encrypted" needs 71
+box src "Sender"
+box mix "Mix"      right of src gap 1.05
+edge src -> mix "encrypted"
+
+# right: the gap is sized to the longest label the row carries
+box src "Sender"
+box mix "Mix"      right of src gap 2.6
+edge src -> mix "encrypted"
+```
+
+Widening the `gap` is the usual answer and shortening the label is the other
+one. `side top` is an answer only where the two elements are short enough for
+the words to pass over them – a phrase lifted 14px off the line is still inside
+a box 38px tall, and the build will say so again.
+
 **A phrase that describes a wire belongs to the wire, so place it against the
 wire.** An edge has a coordinate of its own - `w1.cx`, `w1.cy` - and takes
 `above`, `below`, `left of` and `right of` like anything else. Pinning the
@@ -1030,7 +1053,9 @@ Work down this list. It is written so it can be checked mechanically.
    highlight where the handout should have it, or takes it off.
 9. Every edge label in the figure follows one convention: on the line for a
    token that names the line, beside it for a phrase that describes what runs
-   along it. Never both in one figure.
+   along it. Never both in one figure. And every one of them fits: the build
+   reports a label wider than the paper between the two elements it joins,
+   which is a word arriving in the room with both ends missing.
 10. Every `.diamond` holds two or three words. It is sized at twice what a
     rectangle would need, so a sentence in one is a shape four times the area of
     its neighbours.

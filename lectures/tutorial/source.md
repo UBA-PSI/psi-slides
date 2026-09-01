@@ -1257,16 +1257,16 @@ Only the three a lecture actually asks for are read, so choosing an alternative 
 
 **A family that is not inside the file is a family the room may not get.** Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and `fonts: none` leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.
 
-To use your own instead, put the files in a `fonts/` folder beside `source.md` and name the families:
+**Each of the three roles is answered on its own**, so you can replace one and leave the others alone. Put your files in a `fonts/` folder beside `source.md`:
 
 ```yaml
 fonts:
-  serif: Literata
-  sans: IBM Plex Sans
-  mono: JetBrains Mono
+  serif: Vollkorn        # yours – the files are in fonts/
+  mono: JetBrains Mono   # one of the five that ship, so no file
+                         # sans: not written, so it stays the default
 ```
 
-Files are matched by name, and the ending gives the weight and the style: `Literata-Regular.woff2`, `-Bold`, `-Italic`, `-BoldItalic`, `-600`, `-600italic`, or a single file named `Literata[wght].woff2` that carries every weight. A role you name uses your font; a role you leave out keeps the one that ships. Naming a family with no matching file stops the build.
+**A file's name says which weight and style it is**: `Vollkorn-Regular.woff2`, then `-Bold`, `-Italic`, `-BoldItalic`, `-600`, `-600italic` – or one file, `Vollkorn[wght].woff2`, carrying every weight. A family that is neither one of the five nor a file in `fonts/` stops the build.
 
 **Check the licence first.** Putting a font inside the file redistributes it. The SIL Open Font License and Apache-2.0 – between them nearly all of Google Fonts – allow that; most commercial desktop licences do not, and want a separate web licence. The build prints a reminder and checks nothing.
 
@@ -1333,12 +1333,15 @@ section-mark: Teil      # any short word, or nothing
 ```
 
 ::: cards 3
+- **plain** the heading on its own. The default
 - **tinted** the whole slide takes the accent colour, lightly. The most visible of the six from the back of a room
 - **rule** the heading between two rules. The quietest, and the one that survives a black-and-white print
+- **card** the heading set on a panel
+- **number** a large counter above the heading, counting the columns that have one
 - **outline** every part of the lecture listed, with the one you are entering marked. A running agenda for a long lecture
 :::
 
-`plain` is the default, the heading on its own; `card` sets it on a panel; `number` puts a large counter above it, counting the columns that have a heading. **Every one of them is quieter than the cover**, so that a divider is never mistaken for the title slide: it says *a new part starts here, and it is part of the thing you are already in*.
+**Every one of them is quieter than the cover**, so that a divider is never mistaken for the title slide: it says *a new part starts here, and it is part of the thing you are already in*.
 
 `section-mark:` puts a word of your own – `Teil`, `Kapitel` – over the heading. By default there is none.
 

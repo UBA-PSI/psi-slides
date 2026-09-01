@@ -2823,12 +2823,12 @@ shown one per slide in <a href="../decoration/audience.html">the decoration lect
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own typefaces</span> <span class="hd-sub"><code class="nb">fonts/</code> beside <code class="nb">source.md</code>, plus a frontmatter block</span></h2>
   <p><strong>A family that is not inside the file is a family the room may not get.</strong> Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and <code>fonts: none</code> leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.</p>
-<p>To use your own instead, put the files in a <code class="nb">fonts/</code> folder beside <code class="nb">source.md</code> and name the families:</p>
+<p><strong>Each of the three roles is answered on its own</strong>, so you can replace one and leave the others alone. Put your files in a <code class="nb">fonts/</code> folder beside <code class="nb">source.md</code>:</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">fonts</span><span style="color:#24292E">:</span></span>
-<span class="line"><span style="color:#22863A">  serif</span><span style="color:#24292E">: </span><span style="color:#032F62">Literata</span></span>
-<span class="line"><span style="color:#22863A">  sans</span><span style="color:#24292E">: </span><span style="color:#032F62">IBM Plex Sans</span></span>
-<span class="line"><span style="color:#22863A">  mono</span><span style="color:#24292E">: </span><span style="color:#032F62">JetBrains Mono</span></span></code></pre>
-<p>Files are matched by name, and the ending gives the weight and the style: <code class="nb">Literata-Regular.woff2</code>, <code class="nb">-Bold</code>, <code class="nb">-Italic</code>, <code class="nb">-BoldItalic</code>, <code class="nb">-600</code>, <code class="nb">-600italic</code>, or a single file named <code class="nb">Literata[wght].woff2</code> that carries every weight. A role you name uses your font; a role you leave out keeps the one that ships. Naming a family with no matching file stops the build.</p>
+<span class="line"><span style="color:#22863A">  serif</span><span style="color:#24292E">: </span><span style="color:#032F62">Vollkorn</span><span style="color:#6A737D">        # yours – the files are in fonts/</span></span>
+<span class="line"><span style="color:#22863A">  mono</span><span style="color:#24292E">: </span><span style="color:#032F62">JetBrains Mono</span><span style="color:#6A737D">   # one of the five that ship, so no file</span></span>
+<span class="line"><span style="color:#6A737D">                         # sans: not written, so it stays the default</span></span></code></pre>
+<p><strong>A file&#39;s name says which weight and style it is</strong>: <code class="nb">Vollkorn-Regular.woff2</code>, then <code class="nb">-Bold</code>, <code class="nb">-Italic</code>, <code class="nb">-BoldItalic</code>, <code class="nb">-600</code>, <code class="nb">-600italic</code> – or one file, <code class="nb">Vollkorn[wght].woff2</code>, carrying every weight. A family that is neither one of the five nor a file in <code class="nb">fonts/</code> stops the build.</p>
 <p><strong>Check the licence first.</strong> Putting a font inside the file redistributes it. The SIL Open Font License and Apache-2.0 – between them nearly all of Google Fonts – allow that; most commercial desktop licences do not, and want a separate web licence. The build prints a reminder and checks nothing.</p>
 
   
@@ -2913,15 +2913,18 @@ shown one per slide in <a href="../decoration/audience.html">the decoration lect
 <span class="line"><span style="color:#22863A">section-mark</span><span style="color:#24292E">: </span><span style="color:#032F62">Teil</span><span style="color:#6A737D">      # any short word, or nothing</span></span></code></pre>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
+<li><strong>plain</strong> the heading on its own. The default</li>
 <li><strong>tinted</strong> the whole slide takes the accent colour, lightly. The most visible of the six from the back of a room</li>
 <li><strong>rule</strong> the heading between two rules. The quietest, and the one that survives a black-and-white print</li>
+<li><strong>card</strong> the heading set on a panel</li>
+<li><strong>number</strong> a large counter above the heading, counting the columns that have one</li>
 <li><strong>outline</strong> every part of the lecture listed, with the one you are entering marked. A running agenda for a long lecture</li>
 </ul>
 
 </div>
 
 
-<p><code class="nb">plain</code> is the default, the heading on its own; <code class="nb">card</code> sets it on a panel; <code class="nb">number</code> puts a large counter above it, counting the columns that have a heading. <strong>Every one of them is quieter than the cover</strong>, so that a divider is never mistaken for the title slide: it says <em>a new part starts here, and it is part of the thing you are already in</em>.</p>
+<p><strong>Every one of them is quieter than the cover</strong>, so that a divider is never mistaken for the title slide: it says <em>a new part starts here, and it is part of the thing you are already in</em>.</p>
 <p><code class="nb">section-mark:</code> puts a word of your own – <code class="nb">Teil</code>, <code class="nb">Kapitel</code> – over the heading. By default there is none.</p>
 
   

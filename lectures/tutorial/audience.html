@@ -6067,12 +6067,12 @@ shown one per slide in <a href="../decoration/audience.html">the decoration lect
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own typefaces</span> <span class="hd-sub"><code class="nb">fonts/</code> beside <code class="nb">source.md</code>, plus a frontmatter block</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A family that is not inside the file is a family the room may not get.</strong> Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and <code>fonts: none</code> leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.</p>
-<p>To use your own instead, put the files in a <code class="nb">fonts/</code> folder beside <code class="nb">source.md</code> and name the families:</p>
+<p><strong>Each of the three roles is answered on its own</strong>, so you can replace one and leave the others alone. Put your files in a <code class="nb">fonts/</code> folder beside <code class="nb">source.md</code>:</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">fonts</span><span style="color:#24292E;--shiki-dark:#E6EDF3">:</span></span>
-<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  serif</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">Literata</span></span>
-<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  sans</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">IBM Plex Sans</span></span>
-<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  mono</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">JetBrains Mono</span></span></code></pre>
-<p>Files are matched by name, and the ending gives the weight and the style: <code class="nb">Literata-Regular.woff2</code>, <code class="nb">-Bold</code>, <code class="nb">-Italic</code>, <code class="nb">-BoldItalic</code>, <code class="nb">-600</code>, <code class="nb">-600italic</code>, or a single file named <code class="nb">Literata[wght].woff2</code> that carries every weight. A role you name uses your font; a role you leave out keeps the one that ships. Naming a family with no matching file stops the build.</p>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  serif</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">Vollkorn</span><span style="color:#6A737D;--shiki-dark:#8B949E">        # yours – the files are in fonts/</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  mono</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">JetBrains Mono</span><span style="color:#6A737D;--shiki-dark:#8B949E">   # one of the five that ship, so no file</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#8B949E">                         # sans: not written, so it stays the default</span></span></code></pre>
+<p><strong>A file&#39;s name says which weight and style it is</strong>: <code class="nb">Vollkorn-Regular.woff2</code>, then <code class="nb">-Bold</code>, <code class="nb">-Italic</code>, <code class="nb">-BoldItalic</code>, <code class="nb">-600</code>, <code class="nb">-600italic</code> – or one file, <code class="nb">Vollkorn[wght].woff2</code>, carrying every weight. A family that is neither one of the five nor a file in <code class="nb">fonts/</code> stops the build.</p>
 <p><strong>Check the licence first.</strong> Putting a font inside the file redistributes it. The SIL Open Font License and Apache-2.0 – between them nearly all of Google Fonts – allow that; most commercial desktop licences do not, and want a separate web licence. The build prints a reminder and checks nothing.</p>
 </div></div>
     
@@ -6182,15 +6182,18 @@ shown one per slide in <a href="../decoration/audience.html">the decoration lect
 <span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">section-mark</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">Teil</span><span style="color:#6A737D;--shiki-dark:#8B949E">      # any short word, or nothing</span></span></code></pre>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
+<li><strong>plain</strong> the heading on its own. The default</li>
 <li><strong>tinted</strong> the whole slide takes the accent colour, lightly. The most visible of the six from the back of a room</li>
 <li><strong>rule</strong> the heading between two rules. The quietest, and the one that survives a black-and-white print</li>
+<li><strong>card</strong> the heading set on a panel</li>
+<li><strong>number</strong> a large counter above the heading, counting the columns that have one</li>
 <li><strong>outline</strong> every part of the lecture listed, with the one you are entering marked. A running agenda for a long lecture</li>
 </ul>
 
 </div>
 
 
-<p><code class="nb">plain</code> is the default, the heading on its own; <code class="nb">card</code> sets it on a panel; <code class="nb">number</code> puts a large counter above it, counting the columns that have a heading. <strong>Every one of them is quieter than the cover</strong>, so that a divider is never mistaken for the title slide: it says <em>a new part starts here, and it is part of the thing you are already in</em>.</p>
+<p><strong>Every one of them is quieter than the cover</strong>, so that a divider is never mistaken for the title slide: it says <em>a new part starts here, and it is part of the thing you are already in</em>.</p>
 <p><code class="nb">section-mark:</code> puts a word of your own – <code class="nb">Teil</code>, <code class="nb">Kapitel</code> – over the heading. By default there is none.</p>
 </div></div>
     
@@ -16472,6 +16475,126 @@ function createDiagramCompiler(env = {}) {
     }
   }
 
+  // An edge label wider than the room between the things it joins. The
+  // ground check above is about a label erasing its own line; this is the
+  // other half of the same geometry – a label that runs *past* the line into
+  // the shapes at either end, where it is painted over and arrives at the
+  // back of the room with its first and last syllables missing.
+  //
+  // The tutorial shipped one. At `unit=126x38`, three boxes at `gap 1.05`
+  // leave 40 px of clear paper between them and the word `encrypted`
+  // measures 71, so the room read `crypte`. Nothing said anything: the
+  // compiler knew both numbers and compared them nowhere. Drawing order is
+  // what makes it a defect rather than a near miss – a node is painted after
+  // every edge that is not `.front`, so the box wins the overlap every time.
+  //
+  // Three things decide what "the room it has" honestly means, and each one
+  // is a case a plain width test would call wrong:
+  //
+  // - **Both axes, or neither.** A label is clipped only where it overlaps a
+  //   shape in *two* dimensions. `side top` lifts the words off the line, and
+  //   where the elements at either end are short enough, or the label tall
+  //   enough to clear them, the width no longer constrains anything. Testing
+  //   the width alone reports those as defects.
+  // - **The ink, not the line box.** A measured label carries the font's
+  //   leading above and below its glyphs, which is a quarter of the type size
+  //   of clear air that reads as overlap. Held to the line box, a label
+  //   sitting correctly just above a box is a collision. `DG_LINE_H - 1` is
+  //   exactly that air, and it comes off before anything is compared.
+  // - **The ends of this edge and nothing else.** A third shape the label
+  //   crosses is `dgOverlapWarnings`' business and has a different fix; here
+  //   the fix is a number, the `gap` between the two elements named, so the
+  //   check only looks at the two elements the edge was drawn between. It is
+  //   also what keeps every `sequence` out of it: a message's endpoints are
+  //   coordinates on two lifelines rather than element references, so a label
+  //   crossing a third actor's lifeline – which is what a lifeline is for,
+  //   and why a message's ground is a default – is never compared.
+  //
+  // Reported only where it is clipped at *every* beat the label is drawn at,
+  // the rule `dgOverlapWarnings` follows and for the same reason: a `move`
+  // step sliding a box across a label is mid-animation, not a mistake. An
+  // edge written `.front` is skipped outright – that class exists to put the
+  // line over the boxes, so nothing is painted on top of it.
+  const DG_LABEL_CLIP_TOL = 2;   // px of ink under a shape before it is clipping
+  function dgLabelClipWarnings(model, states, frames, frameBoxes, warn) {
+    const nodeById = new Map();
+    for (const n of model.nodes) nodeById.set(n.id, n);
+    for (const e of model.edges) {
+      const ends = [e.from && e.from.ref, e.to && e.to.ref].filter(Boolean);
+      if (!ends.length) continue;
+      let drawn = 0, clipped = 0, worst = null;
+      for (let k = 0; k < frames.length; k++) {
+        const st = states[k].get(e.id);
+        if (!st || !st.label) continue;
+        if ((frames[k].vis.get(e.id) ?? 1) <= 0) continue;
+        const g = frames[k].geom.get(e.id + '--l');
+        if (!g) continue;
+        if (st.classes.has('front')) { clipped = -1; break; }
+        drawn++;
+        const font = dgFontFor(st.classes);
+        const m = dgMeasure(st.label, font, st.classes.has('mono'));
+        // The glyph run, with the leading the line box carries taken off.
+        const ink = Math.max(1, m.h - font * (DG_LINE_H - 1));
+        const turned = dgTurnOf(st.classes) !== 0;
+        const lw = turned ? ink : m.w, lh = turned ? m.w : ink;
+        const box = { x: g[0] - lw / 2, y: g[1] - lh / 2, w: lw, h: lh };
+        const hits = [];
+        let lost = 0, horiz = true;
+        for (const ref of ends) {
+          const n = nodeById.get(ref);
+          // Only a shape drawn after the edge can paint over its label. A
+          // `container` or a `brace` is drawn before every edge – they are not
+          // in model.nodes at all – and a frame is a holder rather than a
+          // shape, which is the same exemption dgOverlapWarnings makes.
+          if (!n || n.synth === n.id) continue;
+          if ((frames[k].vis.get(ref) ?? 1) <= 0) continue;
+          const b = frameBoxes[k].get(ref);
+          if (!b || !b.w || !b.h) continue;
+          const iw = Math.min(box.x + box.w, b.x + b.w) - Math.max(box.x, b.x);
+          const ih = Math.min(box.y + box.h, b.y + b.h) - Math.max(box.y, b.y);
+          if (iw <= DG_LABEL_CLIP_TOL || ih <= DG_LABEL_CLIP_TOL) continue;
+          // Which way the label runs into that shape decides which number the
+          // author has to change, so the axis is read off the two centres
+          // rather than assumed to be horizontal.
+          const across = Math.abs((b.x + b.w / 2) - g[0]) >= Math.abs((b.y + b.h / 2) - g[1]);
+          hits.push(ref);
+          lost += across ? iw : ih;
+          horiz = across;
+        }
+        if (!hits.length) { clipped = -1; break; }
+        clipped++;
+        if (!worst || lost > worst.lost) worst = { hits, lost, horiz, box, k };
+      }
+      if (!drawn || clipped !== drawn || !worst) continue;
+      const along = worst.horiz ? worst.box.w : worst.box.h;
+      // The room the label had: the clear paper between the two elements'
+      // facing sides, on the axis the label was clipped along. Stated only
+      // where both ends are elements – with one end a bare coordinate there
+      // is no second face to measure to, and the overlap is the whole story.
+      let room = null;
+      if (ends.length === 2 && ends[0] !== ends[1]) {
+        const a = frameBoxes[worst.k].get(ends[0]), b = frameBoxes[worst.k].get(ends[1]);
+        if (a && b && a.w && b.w) {
+          room = worst.horiz
+            ? Math.max(a.x, b.x) - Math.min(a.x + a.w, b.x + b.w)
+            : Math.max(a.y, b.y) - Math.min(a.y + a.h, b.y + b.h);
+        }
+      }
+      // The label as it reads at the beat that was worst, which is not always
+      // the one on the element's own line: a `label` step may have swapped it.
+      const label = String(states[worst.k].get(e.id).label || '').replace(/\n/g, ' ');
+      warn(`edge ${e.id}: the label "${label}" measures ${Math.round(along)} px across`
+        + (room != null ? ` and has ${Math.round(Math.max(0, room))} px of clear space`
+          + ` between ${ends[0]} and ${ends[1]}` : '')
+        + `, so ${Math.round(worst.lost)} px of the words are painted over by`
+        + ` ${worst.hits.length > 1 ? 'the elements at either end' : worst.hits[0]}`
+        + ` – a shape is drawn after the edge it sits on, so the room reads a clipped word.`
+        + ` Give them more room (a wider gap), shorten the label or break it with a \\n, or,`
+        + ` where the two elements are short enough for it to clear them, lift it off the line`
+        + ` with side top / side bottom.`);
+    }
+  }
+
   function dgFrameDrawables(model, state, boxes, labelIndex) {
     const [uw, uh] = model.unit;
     const geom = new Map();
@@ -17105,6 +17228,7 @@ function createDiagramCompiler(env = {}) {
     if (!errors.length) {
       dgOverlapWarnings(model, states, frameBoxes, dgWarn);
       dgLabelGroundWarnings(model, frames, frameBoxes, dgWarn);
+      dgLabelClipWarnings(model, states, frames, frameBoxes, dgWarn);
     }
     // A DG_CLASS_CLASHES row is a **warning**, and it is the compiler's alone,
     // because deciding it correctly needs the resolved state at every beat.

@@ -28,10 +28,11 @@ figure costs an hour. The order that works:
    `DG_STEP_OPS`, `DG_PROMINENCE`, `DG_WORD_OPTS`.
 4. **This file**, when something compiles and draws the wrong thing.
 
-## Three placement traps the compiler now warns about
+## Four placement traps the compiler now warns about
 
 Every one of these produced a clean build, a clean lint and a broken figure,
-and they are the reason `dgOverlapWarnings` and `dgLabelGroundWarnings` exist.
+and they are the reason `dgOverlapWarnings`, `dgLabelGroundWarnings` and
+`dgLabelClipWarnings` exist.
 
 **Place a row of elements relationally, never with absolute `at`.** Two boxes
 written `at swim.left+5.4 w 1.45` and `at swim.left+6.75 w 1.4` have centres
@@ -56,6 +57,36 @@ of the path can cover 100 % of what a reader can see. On a straight link
 between two facing boxes the knock-out is the right form and the flowchart in
 `lectures/diagrams` uses it deliberately; on an elbow the route is the
 information and erasing it erases which box joins which.
+
+**A label between two boxes has only the paper between their near faces, and a
+box is painted after the edge under it.** At `unit=126x38` two boxes at
+`gap 1.05` leave 40 px of clear paper; `encrypted` measures 71, so 31 px of the
+word went under the boxes and the room read `crypte`. The tutorial shipped it.
+`dgLabelClipWarnings` states both numbers, because the fix is a number.
+
+Three things it deliberately does **not** report, and each is a figure the
+corpus already contains. It compares **both** axes: `side top` lifts the words
+off the line, and where the elements at either end are short enough to pass
+under them the width constrains nothing, so a width test alone would call a
+correct figure broken. It compares the **ink** and not the line box, because a
+measured label carries the font's leading (`DG_LINE_H - 1` of the type size)
+above and below its glyphs and that air is not overlap. And it compares only
+the edge's **own two ends** – a third shape the label crosses belongs to
+`dgOverlapWarnings` and has a different fix, and this is also what keeps every
+`sequence` out of it, since a message's endpoints are coordinates on two
+lifelines rather than element references. An `.elbow` needs no special case:
+its label sits on the rail, halfway across the gap and clear of both ends,
+which is the same distinction between the drawn run and the exposed one that
+the ground check above is built on. A `.front` edge is exempt outright.
+
+**It is the compiler's alone, and cannot be mirrored in `lint.js`.** Deciding
+it needs `dgMeasure`'s glyph advances and the laid-out geometry at every beat,
+and `lint.js` imports tables from `diagram-core.mjs` and never a function – a
+function would pull the whole compiler in behind it and the linter would stop
+being runnable without the Markdown/Shiki stack. Like the `DG_CLASS_CLASHES`
+rows, it is a warning rather than an error and it fires only where the label is
+clipped at **every** beat it is drawn at, so a `move` step sliding a box across
+a label is mid-animation rather than a mistake.
 
 ## Animated infographics (`::: draw`)
 

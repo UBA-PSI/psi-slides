@@ -40,12 +40,20 @@ const FILES = [
   'lectures/tutorial/source.md',
 ];
 
-// A ratchet, not a snapshot. Every warning below is deliberate – the figure
-// rules lecture draws a box too narrow for its label on purpose, and the
-// network-security deck carries two edges a degree and a half off the axis –
-// so the number is here to say "no *new* kind of complaint appeared", and it
-// is one line to raise when a figure earns one. Each warning is printed, so a
-// failure names itself.
+// A ratchet, not a snapshot. Three of the warnings below are deliberate – the
+// construct reference draws a box too narrow for its label on purpose, and the
+// figure-rules lecture carries two edges a degree and a half off the axis – so
+// the number is here to say "no *new* kind of complaint appeared", and it is
+// one line to raise when a figure earns one. Each warning is printed, so a
+// failure names itself. (The two decks were named the other way round here for
+// as long as nobody read the printout beside the ceiling.)
+//
+// It was briefly 5. The label-clearance check found its first defect on the
+// first source it was run against - `lectures/tutorial` `#diagram` put the
+// words `encrypted` and `recoded` between boxes 40 px apart, and they measure
+// 71 and 57, so the boxes at either end clipped both. The figure was redrawn
+// at `gap 2.1` in the same session, so the ceiling never had to hold a known
+// defect open. Raise it for a warning a figure has earned, not for one it has.
 const WARNING_CEILING = 3;
 
 // Extract `::: draw` blocks the way lint.js does: fence-aware, because a
