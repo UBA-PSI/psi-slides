@@ -4,6 +4,96 @@ Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als 
 
 Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
+## Slice: die Tutorial-Lecture gegen das gelesen, was der Raum sieht
+
+Ein Durchgang durch `lectures/tutorial` mit dem Autor, Folie für Folie. Der
+Ertrag ist zur Hälfte Prosa und zur Hälfte Engine, und die eine Erkenntnis, die
+alles andere sortiert, steht am Schluss dieses Abschnitts: **wer `source.md`
+liest, liest nicht die Folie.**
+
+### Was an der Lecture umgebaut wurde
+
+- **Jede Column öffnet mit genau einem `principle`**, das das Problem benennt,
+  bevor der Mechanismus kommt. Fünf sind neu. `# Beyond 1.0.0` war zwanzig
+  Chunks mit zwei Themen und ist geteilt.
+- **„tag" heißt überall „type"**, wo ein Nutzer es liest – Prosa, Meldungen,
+  zwei Lint-Regel-IDs. Der Code behält `VALID_TAGS`, `chunk.tag`, `data-tag`:
+  das Attribut steht in den ausgelieferten Views und wird vom Suchindex
+  gelesen. In `CLAUDE.md` steht jetzt, welche Hälfte welches Wort benutzt.
+- **Vier Chunks trugen je eine ganze Referenzseite** und sind gesplittet;
+  Details, die Referenz sind, stehen hinter Chevrons.
+- **`#chunks-columns` ist neu**, weil *column* nur in der unsichtbaren Hälfte
+  definiert war, während drei spätere Chunks sich darauf stützen.
+
+### Engine, sieben Änderungen
+
+Alle in eigenen Worktrees parallel gebaut und von Hand gemergt. Die Konflikte
+waren ausnahmslos „beide Seiten haben in dieselbe Liste eingetragen" – die
+Reviere hatten sich nicht überschnitten, weil sie vorher nach *Funktion und
+Tabelle* abgegrenzt wurden und nicht nach Themengebiet. Einmal war die
+Abgrenzung zu grob (`::: side` teilt `parseSlotClasses` gar nicht) und hat
+unnötig Zeit gekostet.
+
+1. **`--squint`** – schreibt, was die Projektion malt, in eine Datei. Siehe
+   unten; das ist das nachhaltigste Ergebnis des Tages.
+2. **`style: {blocks: center|left}`** plus vier Chunk-Klassen
+   (`{.blocks-left}`, `{.wrap-none}` …). Der linksbündige Code-Block deckt sich
+   exakt mit der `.wide`-Spalte: beides 72vw.
+3. **`::: side {middle}`**, **`closing-image:`**, und die vier Viewer-Defaults
+   (eigener Abschnitt unten).
+4. **Warnung bei zu breitem Kantenlabel** im Compiler.
+5. Drei Renderer-Defekte: Marginalia-Kamera, Leader-Sichtbarkeit, Karten.
+
+### Die Fallen – der eigentliche Wert dieses Abschnitts
+
+- **`nowrapProbe` zählte den Überhang der Marginalia** als „Folie ist seitlich
+  abgeschnitten" und fuhr den Zoom auf den Boden, 0.6 gegen 1.35 auf der
+  Nachbarfolie. Die Kamera wurde beschuldigt und war unschuldig.
+- **`state.visible` trägt nur explizite `show`/`hide`.** Ein *abgeleitetes*
+  Verstecken landet dort nie, also konnte die Sichtbarkeitsregel nicht ketten:
+  Text → Leader → Kante → Box. Jetzt ein Fixpunkt.
+- **`.cards > ul > li` war ein Flex-Container**, und der blockifiziert jedes
+  Kind. Die verdächtigte `display: block`-Regel hätte man entfernen können,
+  ohne dass sich etwas ändert.
+- **`checkVisibility` antwortet `false` für `display: contents`**, was dieses
+  Projekt für Kartenzeilen, Agenda und Divider-Lead benutzt.
+- **`getComputedStyle` meldet die Akzentfarbe auf einem `display: contents`
+  Element, das sie nie malt.** Wer dem glaubt, bestätigt, dass unsichtbarer
+  Text in Ordnung ist – und genau so war die Erklärung in `::: rows {accent}`
+  weiß auf weiß, gelayoutet und unlesbar.
+
+### Warum `--squint` gebaut wurde
+
+Dieselbe Fehlerklasse kam an einem Tag sechsmal: eine Folie kündigt eine
+Aufzählung an und hält sie zurück, eine Anweisung sagt *dass*, aber das *wie*
+steht im Fortsetzungssatz, ein Verweis zeigt auf etwas, das der Raum nicht
+sieht. Jedes Mal gefunden, indem gebaut und *hingeschaut* wurde. Der Collapse
+ist CSS und JS – man kann ihn nicht aus der Quelle ableiten, und jeder Versuch
+ist genau der Fehler, den das Werkzeug verhindern soll.
+
+`node build.js <source> --squint` schreibt `squint.txt`: `.` gemalt, `-` ein
+promoted Bold als eigener Bullet, `~` zurückgehalten mit Wortzahl. Beim ersten
+Korpus-Lauf fand es sofort einen echten Defekt (`#read-more`: drei nackte
+Dateipfade, jedes Wort des Warum zurückgehalten) – der lintet sauber und passt
+in den Rahmen, nur die Projektion zeigt ihn.
+
+**Wer an dieser Lecture arbeitet, liest zuerst `squint.txt`.**
+
+### Zahlen
+
+`npm run gate` 422 → 440, `test/settings.mjs` 244 → 329, `test/run.mjs`
+647 → 827 (sechs neue Specs). `--check-fit` nannte zu Beginn zwei
+beschnittene Folien und nennt jetzt keine.
+
+### Bewusst nicht gemacht
+
+- **Apostrophe bleiben gerade.** Alle fünf Lectures sind es; nur eine
+  umzustellen macht die fünf uneinig.
+- **Per-Zeile-Steuerung für `wrap`** gibt es nicht und soll es nicht geben:
+  `balance` bricht bei jeder Fenstergröße neu um, eine Syntax für „diese Zeile"
+  würde eine Entscheidung an einen Umbruch heften, den nur der Autorenbildschirm
+  hat. Leerzeichen am Zeilenende sind ohnehin vergeben (harter Umbruch).
+
 ## Slice: was eine Vorlesung darüber sagen darf, wie sie aufgeht
 
 Vier Einstellungen aus einer Familie, in einem Durchgang, weil sie dieselben

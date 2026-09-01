@@ -7,153 +7,6 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
-### Changed
-
-- **Slide numbers are now drawn in a row by default, where they used to be
-  stacked.** This one moves what an existing deck renders: `slide-numbers` is
-  a viewer default, so every lecture that does not set the key changes from
-  the stacked markers to the horizontal ones. Nothing stops building and no
-  source needs editing – the old rendering is `slide-numbers: vertical`, one
-  line in the frontmatter, and `L` still cycles all three.
-
-  The reason is what the stacked form does past nine: it sets each digit on
-  its own line, so slide 10 reaches the room as a 1 above a 0 and the reader
-  assembles the number. The content repository's house-style file had carried
-  "set `slide-numbers: horizontal` in the frontmatter" as standing advice for
-  long enough to be the tell – a default every deck is told to override is a
-  default that is the wrong way round. Taken deliberately, and not softened
-  with a compatibility switch: one more key would mean the old rendering was
-  reachable two ways and neither was the answer.
-
-- **`auto-fit` takes a third mode, `shrink`.** `true` and `false` are
-  unchanged and mean what they always meant, so this is additive. The new
-  mode fits a slide the same way `true` does but ceilings the fit at the
-  lecturer's own zoom instead of at the global maximum, so it can only ever
-  take size away: a slide that fits is left at exactly the zoom that was set,
-  and a slide that does not is shrunk until it does. That is the difference
-  between the two on-modes, and it is the one most lectures actually want –
-  `true` grows a short slide as readily as it shrinks a long one, which is
-  why a deck of one-line principles under auto-fit reads as a deck of
-  posters.
-
-  `#` is now a three-way cycle, off → shrink → on, and so is the `#` button
-  in the touch palette. Unlike `C`, `F`, `A` and `L`, `Shift` does not reverse
-  it: `#` is Shift-3 on a US layout and an unshifted key of its own on a
-  German one, so the modifier carries no information that means the same
-  thing on two keyboards. Three states are two presses from anywhere.
-
-- **The word for what a chunk is has changed from *tag* to *type* everywhere a
-  user reads it.** `## principle:` is unchanged and no `source.md` needs
-  editing – the source format never contained the word. What changed is the
-  prose (`README.md`, `PRD.md`, the authoring skill, the tutorial lecture) and
-  two linter rule ids: `unknown-tag` is now `unknown-type` and
-  `figure-tag-without-figure` is now `figure-type-without-figure`. A source
-  silencing either by its old name with `<!-- linter: ignore … -->` starts
-  reporting it again; rename it in the comment.
-
-  The code keeps the old name: `VALID_TAGS`, `chunk.tag`, `parseTagPrefix` and
-  the `data-tag` attribute in the published HTML are unchanged, because
-  `data-tag` is what the search index and the speaker's own lists read and
-  renaming it would break anyone's CSS for no reader's benefit. The `::: draw`
-  `@tag` is a different thing and stays a tag.
-
-- **A code span with no space in it is no longer broken across a line.** The
-  default line-breaking rules break after any hyphen, so `---` – the segment
-  separator – came out as a hyphen ending one line and two opening the next,
-  which reads as two different separators. The renderer marks such a span and
-  the stylesheets set `white-space: nowrap` on it. A span *with* a space in it
-  is left breakable: the widest one in the tutorial is a 46-character linter
-  directive already filling most of its line, and unbreakable it would leave
-  the text column.
-
-- **`::: margin` is now written `::: footnote`.** The old name was one
-  keystroke from `::: marginalia`, which is a different construct in a
-  different place – a marginalia goes out into the slide margin and can be
-  clicked into the centre, a footnote sits under the chunk and is read where
-  it is – and "margin note" named the one place the block never sits. The new
-  name says where the thing goes.
-
-  **`::: margin` still builds and always will**, so no existing `source.md`
-  breaks; it is simply documented nowhere any more. Both spellings render the
-  same aside, and `test/settings.mjs` asserts that they do, that both lint,
-  and that an unclosed block quotes back the word the author wrote.
-
-- **A touchscreen can now reach the knobs, and the cockpit has a rail at
-  all.** There was a five-button rail – forward, back, overview, two zooms –
-  and it was rendered into `audience.html` alone. That is the window a
-  lecturer is least often holding: on a tablet at the lectern the cockpit is
-  the one in your hands, and it had no touch controls whatsoever and a footer
-  carrying freeze, layout, export and help. `C`, `F`, `A`, `#`, the search
-  and text selection were unreachable there without a keyboard, and the rail
-  in the other window carried only things a tap or a pinch already did.
-
-  The rail is now shared by both live views and gains a `⋯` button that opens
-  a second pill above it with `C`, `F`, `A`, `#`, search and text selection.
-  Two pills rather than one row: eleven round targets do not fit a phone held
-  upright, and the five that matter mid-talk should not shrink to make room
-  for the six that do not. Every button calls the function its key calls and
-  never a second code path, so the rail cannot drift away from the key map.
-
-  Text selection is the one place the two models differ, on purpose. On a
-  keyboard it is `Alt` held down, because a mode is state you can forget you
-  are in and the state you forget here is the one where dragging no longer
-  pans. A finger has no modifier to hold, so on touch it is a mode – shown as
-  a pressed button, cleared by `Esc` or by pressing it again. It carries its
-  own flag rather than borrowing the `Alt` one, which the `selectionchange`
-  listener switches off whenever nothing is selected: without that the mode
-  would have survived exactly until the next tap.
-
-  Also on a narrow screen, an opened `::: expand` now covers the slide
-  instead of being squeezed into half of a two-column grid that has no room
-  for two columns.
-
-  All of it is behind `@media (pointer: coarse)`, so a laptop never sees it
-  and an iPad with a keyboard attached re-classifies and loses it again.
-
-- **The sideways arrows now mean one thing, and `Shift` with them changes
-  column – from any slide.** Up to now `→` and `←` were forward and backward
-  on most slides and *next / previous column* on the first chunk of a column,
-  so the same key meant two things depending on where the lecturer stood, and
-  two faint marks at the viewport edge existed to say which. `→` and `←` are
-  now plain forward and backward everywhere; `Shift`-`→` and `Shift`-`←` are
-  the next and previous column, reachable from any chunk. `Shift`-`←` rewinds
-  to the head of the column it is in before leaving it, so returning to the
-  top of a part and leaving the part are one key.
-
-  The exception cost more than it looked. It needed a guard in the key map,
-  because `nextCol` fell through to the last chunk of the whole lecture and
-  the head of the *last* column therefore had to be excluded by hand – one
-  press otherwise skipped six slides, and on a single-column lecture all of
-  them. It needed a per-chunk `sideways` field for that guard and the marks to
-  read in common, so the two could not disagree about which meaning was in
-  force. And it could not do the thing a lecturer actually asks for, which is
-  to leave a part from the middle of it. All three are gone: the guard, the
-  field, and the `‹ ›` marks, which had nothing left to announce once the key
-  meant one thing. `nextCol` and `prevCol` now stand still when there is no
-  column that way, the rule the chunk keys already followed at the ends of the
-  deck. The `⌄` mark at the foot stays – it says where forward will *go*, not
-  what a key means, which is why it survived the two that went.
-
-  No source format changes. `test/nav.mjs` and `test/nav-cockpit.mjs` assert
-  the new model, including the two cases the old one could not express.
-
-- **An external link now carries a mark that shows its address and a QR code.**
-  Up to 1.0.0 that view existed and was reachable only by `Shift`-clicking the
-  link – a modifier nothing on the slide mentioned, so for most readers the
-  feature did not exist and a plain click simply opened the page. A small
-  button after every `https?://` link now opens the same overlay on both
-  screens; `Shift`-click is unchanged, and a plain click on the link itself
-  still opens the page in a new tab as before.
-
-  It is a `<button>` rather than a second link, so it announces what it does
-  and answers `Enter` or `Space`: the key map stands back for that one
-  button, or the deck's own `Space` binding would advance the slide instead
-  of showing the address. `style: {link-codes: off}` takes the marks away
-  for a deck that would rather keep its links bare. Existing sources are
-  unaffected in every other respect: the attribute is emitted only when the
-  key says `off`, so a deck that says nothing produces byte-identical markup
-  apart from the marks themselves. Print hides them.
-
 ### Added
 
 - **`style: {blocks: left}` puts a code block, a figure and a display formula
@@ -219,6 +72,7 @@ from building the same way is a major version.
   `sequence` message out of it and leaves a third shape to
   `dgOverlapWarnings`. It found two in `lectures/tutorial` `#diagram` on the
   first run.
+
 - **`print-slide-numbers` gives the printed views their own numbering.** Same
   three values as `slide-numbers`, and its default is not a value but a
   deferral: an absent key means "whatever the live views are set to", so a
@@ -246,6 +100,7 @@ from building the same way is a major version.
   wrong. What it deliberately does not reach: the `hyphens: auto` inside a
   `::: cards` card and a `::: rows` term, which is not a preference but the
   rescue for a 320px measure a long word overflows outright.
+
 - **`::: side {middle}` centres the shorter pane against the taller one.** A
   short pane sat at the top of its half and left the rest of it blank, which
   on a two-line commentary beside a tall figure is most of a slide. The word
@@ -304,6 +159,7 @@ from building the same way is a major version.
   `cover-image` to reuse, and a `closing-image` in a deck with no `closing:`
   chunk. Purely additive – no existing `source.md` could have used the key,
   and every lecture in the repository builds byte-identical markup.
+
 - **`node build.js <source.md> --squint` writes what a room would see into a
   file.** The projection shows far less than the source: collapsed, a chunk
   renders its heading, the first sentence of every paragraph and the promoted
@@ -455,6 +311,1073 @@ from building the same way is a major version.
   slide with a name under it already reads as a quotation, and the mark is
   what gets added when the composition is not trusted to say so.
 
+### Changed
+
+- **Slide numbers are now drawn in a row by default, where they used to be
+  stacked.** This one moves what an existing deck renders: `slide-numbers` is
+  a viewer default, so every lecture that does not set the key changes from
+  the stacked markers to the horizontal ones. Nothing stops building and no
+  source needs editing – the old rendering is `slide-numbers: vertical`, one
+  line in the frontmatter, and `L` still cycles all three.
+
+  The reason is what the stacked form does past nine: it sets each digit on
+  its own line, so slide 10 reaches the room as a 1 above a 0 and the reader
+  assembles the number. The content repository's house-style file had carried
+  "set `slide-numbers: horizontal` in the frontmatter" as standing advice for
+  long enough to be the tell – a default every deck is told to override is a
+  default that is the wrong way round. Taken deliberately, and not softened
+  with a compatibility switch: one more key would mean the old rendering was
+  reachable two ways and neither was the answer.
+
+- **`auto-fit` takes a third mode, `shrink`.** `true` and `false` are
+  unchanged and mean what they always meant, so this is additive. The new
+  mode fits a slide the same way `true` does but ceilings the fit at the
+  lecturer's own zoom instead of at the global maximum, so it can only ever
+  take size away: a slide that fits is left at exactly the zoom that was set,
+  and a slide that does not is shrunk until it does. That is the difference
+  between the two on-modes, and it is the one most lectures actually want –
+  `true` grows a short slide as readily as it shrinks a long one, which is
+  why a deck of one-line principles under auto-fit reads as a deck of
+  posters.
+
+  `#` is now a three-way cycle, off → shrink → on, and so is the `#` button
+  in the touch palette. Unlike `C`, `F`, `A` and `L`, `Shift` does not reverse
+  it: `#` is Shift-3 on a US layout and an unshifted key of its own on a
+  German one, so the modifier carries no information that means the same
+  thing on two keyboards. Three states are two presses from anywhere.
+
+- **The word for what a chunk is has changed from *tag* to *type* everywhere a
+  user reads it.** `## principle:` is unchanged and no `source.md` needs
+  editing – the source format never contained the word. What changed is the
+  prose (`README.md`, `PRD.md`, the authoring skill, the tutorial lecture) and
+  two linter rule ids: `unknown-tag` is now `unknown-type` and
+  `figure-tag-without-figure` is now `figure-type-without-figure`. A source
+  silencing either by its old name with `<!-- linter: ignore … -->` starts
+  reporting it again; rename it in the comment.
+
+  The code keeps the old name: `VALID_TAGS`, `chunk.tag`, `parseTagPrefix` and
+  the `data-tag` attribute in the published HTML are unchanged, because
+  `data-tag` is what the search index and the speaker's own lists read and
+  renaming it would break anyone's CSS for no reader's benefit. The `::: draw`
+  `@tag` is a different thing and stays a tag.
+
+- **A code span with no space in it is no longer broken across a line.** The
+  default line-breaking rules break after any hyphen, so `---` – the segment
+  separator – came out as a hyphen ending one line and two opening the next,
+  which reads as two different separators. The renderer marks such a span and
+  the stylesheets set `white-space: nowrap` on it. A span *with* a space in it
+  is left breakable: the widest one in the tutorial is a 46-character linter
+  directive already filling most of its line, and unbreakable it would leave
+  the text column.
+
+- **`::: margin` is now written `::: footnote`.** The old name was one
+  keystroke from `::: marginalia`, which is a different construct in a
+  different place – a marginalia goes out into the slide margin and can be
+  clicked into the centre, a footnote sits under the chunk and is read where
+  it is – and "margin note" named the one place the block never sits. The new
+  name says where the thing goes.
+
+  **`::: margin` still builds and always will**, so no existing `source.md`
+  breaks; it is simply documented nowhere any more. Both spellings render the
+  same aside, and `test/settings.mjs` asserts that they do, that both lint,
+  and that an unclosed block quotes back the word the author wrote.
+
+- **A touchscreen can now reach the knobs, and the cockpit has a rail at
+  all.** There was a five-button rail – forward, back, overview, two zooms –
+  and it was rendered into `audience.html` alone. That is the window a
+  lecturer is least often holding: on a tablet at the lectern the cockpit is
+  the one in your hands, and it had no touch controls whatsoever and a footer
+  carrying freeze, layout, export and help. `C`, `F`, `A`, `#`, the search
+  and text selection were unreachable there without a keyboard, and the rail
+  in the other window carried only things a tap or a pinch already did.
+
+  The rail is now shared by both live views and gains a `⋯` button that opens
+  a second pill above it with `C`, `F`, `A`, `#`, search and text selection.
+  Two pills rather than one row: eleven round targets do not fit a phone held
+  upright, and the five that matter mid-talk should not shrink to make room
+  for the six that do not. Every button calls the function its key calls and
+  never a second code path, so the rail cannot drift away from the key map.
+
+  Text selection is the one place the two models differ, on purpose. On a
+  keyboard it is `Alt` held down, because a mode is state you can forget you
+  are in and the state you forget here is the one where dragging no longer
+  pans. A finger has no modifier to hold, so on touch it is a mode – shown as
+  a pressed button, cleared by `Esc` or by pressing it again. It carries its
+  own flag rather than borrowing the `Alt` one, which the `selectionchange`
+  listener switches off whenever nothing is selected: without that the mode
+  would have survived exactly until the next tap.
+
+  Also on a narrow screen, an opened `::: expand` now covers the slide
+  instead of being squeezed into half of a two-column grid that has no room
+  for two columns.
+
+  All of it is behind `@media (pointer: coarse)`, so a laptop never sees it
+  and an iPad with a keyboard attached re-classifies and loses it again.
+
+- **The sideways arrows now mean one thing, and `Shift` with them changes
+  column – from any slide.** Up to now `→` and `←` were forward and backward
+  on most slides and *next / previous column* on the first chunk of a column,
+  so the same key meant two things depending on where the lecturer stood, and
+  two faint marks at the viewport edge existed to say which. `→` and `←` are
+  now plain forward and backward everywhere; `Shift`-`→` and `Shift`-`←` are
+  the next and previous column, reachable from any chunk. `Shift`-`←` rewinds
+  to the head of the column it is in before leaving it, so returning to the
+  top of a part and leaving the part are one key.
+
+  The exception cost more than it looked. It needed a guard in the key map,
+  because `nextCol` fell through to the last chunk of the whole lecture and
+  the head of the *last* column therefore had to be excluded by hand – one
+  press otherwise skipped six slides, and on a single-column lecture all of
+  them. It needed a per-chunk `sideways` field for that guard and the marks to
+  read in common, so the two could not disagree about which meaning was in
+  force. And it could not do the thing a lecturer actually asks for, which is
+  to leave a part from the middle of it. All three are gone: the guard, the
+  field, and the `‹ ›` marks, which had nothing left to announce once the key
+  meant one thing. `nextCol` and `prevCol` now stand still when there is no
+  column that way, the rule the chunk keys already followed at the ends of the
+  deck. The `⌄` mark at the foot stays – it says where forward will *go*, not
+  what a key means, which is why it survived the two that went.
+
+  No source format changes. `test/nav.mjs` and `test/nav-cockpit.mjs` assert
+  the new model, including the two cases the old one could not express.
+
+- **An external link now carries a mark that shows its address and a QR code.**
+  Up to 1.0.0 that view existed and was reachable only by `Shift`-clicking the
+  link – a modifier nothing on the slide mentioned, so for most readers the
+  feature did not exist and a plain click simply opened the page. A small
+  button after every `https?://` link now opens the same overlay on both
+  screens; `Shift`-click is unchanged, and a plain click on the link itself
+  still opens the page in a new tab as before.
+
+  It is a `<button>` rather than a second link, so it announces what it does
+  and answers `Enter` or `Space`: the key map stands back for that one
+  button, or the deck's own `Space` binding would advance the slide instead
+  of showing the address. `style: {link-codes: off}` takes the marks away
+  for a deck that would rather keep its links bare. Existing sources are
+  unaffected in every other respect: the attribute is emitted only when the
+  key says `off`, so a deck that says nothing produces byte-identical markup
+  apart from the marks themselves. Print hides them.
+
+- **`masthead` was rebuilt.** It read as empty, and the fault was not the
+  empty middle band: measured on a real deck, *nothing on the slide spanned
+  the measure* - the longest line reached 55% of the frame with a short title,
+  and the credits, already described as "a row", were a left-hugging run with
+  a wide space in the middle. It now carries a 2px folio rule above the
+  credits, lays them out to both edges of the measure, and takes a **lede**
+  from the title chunk's own body in the field between the bands, with `info:`
+  still supplying the meta. With no lede the nameplate is set larger.
+
+- **`split`'s gutter is 4.4em, up from 2.4em.** That padding is the guaranteed
+  minimum distance between the type and a photograph bled off the edge, and at
+  the old value a title that nearly filled its column came within about 50px
+  of the picture. A long title now wraps where it did not.
+
+- **The 1.0.0 look is reachable, as three ordinary settings.** From 1.0.0 the
+  source format is the interface, and a finished deck should be able to lay
+  out the way it laid out. Exactly three things have moved since that an
+  existing lecture would notice, found by diffing the two stylesheets between
+  the tag and HEAD rather than by reading commit titles:
+  `fonts: {sans: Inter Tight}`, `style: {wrap: none}` and `ligatures: all`.
+  Verified: the same source built through `git show v1.0.0:build.js` and
+  through HEAD with all three set is **pixel-identical**, 0 differing pixels
+  by `magick compare -metric AE`.
+
+  A `layout: 1.0` umbrella over those three was written and then removed, and
+  the reasoning is the part worth keeping: one key naming a version reads as a
+  promise that the engine can rebuild any past release, which is unbounded -
+  every later change to a shared stylesheet would have to be gated on a
+  generation, the gates would compose, and the untested combinations would
+  grow with every release. It also put the burden on the author to know which
+  version their deck was authored against, and on the project to publish a
+  layout-version history beside the software version. Each of the three
+  settings is a preference someone might want on its own merits, so the old
+  look is a recipe in the docs rather than a mechanism in the code.
+
+- **The bundled font roster is per-lecture, and it has two alternates.**
+  `fonts: {sans: Inter Tight}` or `{mono: Noto Sans Mono Condensed}` needs no
+  file in `fonts/` - a bundled family is named the same way and supplies
+  itself. The roster used to be a fixed list that every output carried in
+  full, so adding two faces would have cost ~470 KB in every file including
+  the lectures that wanted neither; only the three families a lecture resolves
+  to are read at all.
+
+  The condensed mono is a **pinned instance of a variable font**, not a
+  different typeface: Noto Sans Mono carries a `wdth` axis and
+  `font-variation-settings` is a legal `@font-face` descriptor, so pinning
+  `wdth 62.5` yields one ordinary family nothing downstream has to know about.
+  Measured, 0.50 em per character against JetBrains Mono's 0.60, with a
+  slashed zero and three visibly different shapes for `I`, `l` and `1`.
+  Iosevka reaches the same width and was dropped on payload - 961 KB against
+  54, or 3.87 MB of base64 per view - so the rule is now that a bundled face
+  has to be a variable latin subset. Iosevka is still reachable through
+  `fonts/`.
+
+- **`ligatures:` decides a question that was two questions.** `text` (the
+  default) is fi and fl in prose and none in code, which is what the tool
+  already did; `none` takes them out of prose as well; `all` puts the code
+  ligatures back, so JetBrains Mono draws `->` as one arrow glyph again. The
+  default is not `none`, because code ligatures were already off and
+  defaulting to `none` would take fi and fl out of every existing lecture's
+  prose - a change to finished decks made in the name of not changing
+  finished decks.
+
+- **`::: draw {autoplay=N}` walks a figure's steps on a timer.** One delay for
+  every step, so a cover figure animates while the room files in; it works on
+  any chunk. `autoplay=` never reaches the compiler - build.js strips it from
+  the fence and puts it on the emitted figure - because playback is not part
+  of the drawing and `diagram-core.mjs` also runs inside the browser editor,
+  where there is no deck to play. The runtime calls the same advance the Space
+  key calls, so there is one counter, one broadcast and one freeze gate, and
+  the speaker view follows without knowing it exists. It runs in the audience
+  only and stops for good on the first key, pointer or wheel event: a lecturer
+  who has touched the deck has taken over. Bounded 200 ms to 60 s, refused
+  rather than clamped. `cycle` beside it repeats the walk, rewinding through
+  the same counter so the speaker view follows the rewind as it followed the
+  walk; the last beat is held for one delay like any other, because a second
+  number for how long to admire the finished picture is a knob nobody asked
+  for. `cycle` without `autoplay` is an error in both the build and the
+  linter.
+
+- **`style: {labels: off}` hides the generated tag words.** They are two
+  things wearing one name and the switch reaches both: the document renderer
+  labels principle, question, definition and exercise, while the projection
+  generates only EXERCISE. Its own key rather than part of `rules`, which
+  hides the bar over a principle and the hairline over a definition - a word
+  and a line are not one decision. A figure's all-caps heading needs no key:
+  it is the chunk's own heading, so leaving it out of the source leaves it off
+  the slide, at the cost of the TOC entry and the search text.
+
+- **Four more covers, and two of them draw.** `stack` centres the title block
+  on both axes, `rule` holds it between two hairlines - both for the talk that
+  wants a quiet opening rather than an asymmetric one. `beside` and `above`
+  take their art from the **title chunk's own body**, which is what lets a
+  `::: draw` be the cover: a diagram is not a file, so `cover-image` could
+  never name one. `beside` insets the art beside the title and `above` puts it
+  on top with the type centred in the band below. `split` bleeds where
+  `beside` insets, and that is why both exist - a photograph wants the edge, a
+  drawing wants a margin, because a diagram cropped by the frame reads as a
+  diagram that did not fit. `cover-ratio` (15-75%) sets how much of the slide
+  the picture takes on the three covers that divide it; written on one that
+  does not, it is an error rather than a number the drawing ignores.
+
+- **The cover has nine compositions, and a `subtitle:` line.** `cover:` picks
+  between them and the list runs quiet to loud, which is the only question it
+  asks. Five are type alone: `classic` (the lower-left third the tool always
+  drew, and still the default), `masthead` (the title along the top edge, the
+  credits along the bottom, the field between them left empty), `stack` (the
+  block centred on both axes), `display` (the title set to fill the slide, so
+  the scale is the whole design) and `panel` (the type on a full field of the
+  theme's accent). Four take a picture: `split` (type left, `cover-image:`
+  bled off the right edge), `hero` (the picture is the slide, the type
+  reversed out of a gradient) and `beside` / `above`, which take their art
+  from the title chunk's own body. `subtitle:` is the hierarchy step the cover
+  was missing: without it the one line that says what the talk is *about* has
+  nowhere to go but the `info` block, where it renders at meta size in soft
+  ink beside the room and the date – so the subtitle is set exactly like the
+  venue line. Four sizes now where there were two. An unknown `cover:` fails
+  the build, and so does `split` or `hero` with no `cover-image` rather than
+  drawing an empty half.
+
+  The five type compositions each combine with `::: backdrop`, which is how a
+  picture reaches a cover that has no picture slot of its own. On `panel` the
+  two make something neither has alone: the field becomes the scrim, so the
+  photograph reads through a plate of the accent rather than under the paper
+  veil that would lighten the ground beneath type which is already reversed.
+
+- **`## closing:` closes the arc back to the cover.** The last slide of a
+  deck, drawn in whatever composition `cover:` names, so the room sees the
+  shape it started with. It carries the author's own words – the heading, the
+  sub-heading after the `|`, and a body – and deliberately **neither the
+  presenter line nor the `info` block**: those say who is talking and where,
+  which the room learned an hour ago, and repeating them in the same
+  composition is a slide that reads as a mistake in the deck rather than as an
+  ending. The composition is inherited and the content is written.
+
+  It is a tag rather than a second `title:` chunk or a frontmatter key. A
+  title chunk's heading is *ignored* – the cover renders from frontmatter – so
+  a closing slide could only get its own words by making the heading mean
+  something on the second occurrence, a positional exception to a rule frozen
+  at 1.0.0; `lint.js` already warns that a second `title:` chunk does not
+  render, so the two spellings would contradict each other. Adding a tag is
+  additive: no existing source could have used the word, because it would have
+  failed the build. `lint.js` gains `closing-count`, `closing-position` and
+  `closing-heading`.
+
+- **`::: backdrop <ref> {classes}` fills the slide with a picture.** On any
+  chunk, not only the cover. One line, no closer, and chunk-level rather than
+  a body wrapper – forced rather than chosen, because `.chunk-content` sits in
+  the middle track of the slide's grid and anything emitted inside the body is
+  boxed by the text column and can never reach the edges. Four closed slots:
+  fill (`cover`/`contain`), crop (`middle`/`top`/`bottom`), scrim
+  (`veil`/`clear`/`invert`) and focus (`sharp`/`blur`). The default scrim is
+  the theme's own paper at 80%, so ordinary ink stays legible over a
+  photograph in all seven themes with no second palette; `invert` turns the
+  slide's ink light instead.
+
+- **`::: overlay {classes}` lays a grounded text block over the slide.** Nine
+  places, five grounds (`paper` `ink` `accent` `clear` `glass`), four widths.
+  The ground is the point rather than decoration: text laid straight onto a
+  photograph is unreadable at the back of a room. All overlays of one chunk go
+  into one 3×3 grid layer, so two aimed at the same corner stack instead of
+  overlapping.
+
+- **`::: rows` is the card row turned ninety degrees.** A term in a card on
+  the left, its body beside it, several stacked - the shape a definition
+  list wants and the one a lecture reaches for when a term needs a sentence
+  rather than a column. Deliberately **not** a new container: same slot
+  vocabulary, same auto size, same fold, same print rules, because the only
+  thing that differs is the arrangement of the item and that is one
+  `display` plus a grid on the list. The list is the grid and each item
+  dissolves into it, which is what gives every row one term-column width; a
+  per-item grid could not.
+
+  Four things behave differently from a card row, each for a stated reason.
+  The body is wrapped in a span at render time, because CSS can place a grid
+  item and an anonymous text run is not one - done on the source rather than
+  on the rendered HTML, since `marked` passes inline HTML through untouched.
+  `anchor` defaults to `middle` where a card defaults to `top`, because a
+  one-line term set against a three-line body's first line reads as a
+  mistake. `align` names how the term sits in its card and nothing else; it
+  centred the body too at first, and a centred definition body is not
+  something anyone wants. And the automatic size is capped at `medium`,
+  because a row term is a label in a column rather than a headline across
+  the slide: measured, `Separatism` overflowed a 229px term track and ran
+  across the body beside it.
+
+- **`ground: photo` makes a card's first picture its ground**, with a
+  `scrim` slot - `veil`, `invert`, `plain` - answering what it is veiled
+  with. Same question `::: backdrop` answers and the same reasoning: the
+  veil is the theme's own paper, so ordinary ink stays legible on a
+  photograph in all seven themes and in dark mode without a second palette.
+  A scrim written on a row with no picture is an error, checked against the
+  written tail so `{.veil}` is caught even though `veil` is the default -
+  a word the drawing ignores is a silent no-op. A picture that is *not* the
+  ground bleeds to the card's edges instead, which needed the `max-width:
+  100%` every figure carries to be lifted: the negative margins were applied
+  and the picture still did not reach the edges, 327.6px asked for and
+  262.2px granted.
+
+- **`section:` gives a column's divider slide five compositions** - `plain`,
+  `tinted`, `rule`, `card`, `number` - and every one is quieter than the
+  cover, because a divider that can be mistaken for the title slide has
+  failed at the one job it has. The hard-coded PARAGRAPH SIGN over the
+  heading is gone: it is a legal-citation mark that reads as a statute
+  number to anyone outside a German law faculty, and on a projection it was
+  a small grey glyph nobody could place. `section-mark:` puts a word there
+  instead, and saying nothing puts nothing. `number` counts the columns that
+  have a heading rather than the array index, because the anonymous opening
+  column that holds the title chunk is not a part anybody is counting.
+
+- **No word may appear in two slots of one table, and it is asserted at
+  load.** `parseSlotClasses` assigns a word to whichever slot lists it first,
+  so a collision makes the other slot silently unreachable; `clear` is
+  already a card ground and was very nearly also the card scrim, which is
+  why that value is spelled `plain` even though `::: backdrop` calls the
+  same thing `clear`. Two tables may share a word; one table may not. The
+  exemption is exact: a word that is the default of *every* slot holding it
+  is allowed, because writing a default changes nothing whichever slot
+  receives it - which is what lets `auto` be both the size and the align
+  default, a collision the assertion found the moment it was written.
+
+- **`::: cards N {classes}` sets N equal cards in a row.** Not a second
+  spelling of `::: cols N`: `cols` is one text flow the browser balances
+  across N tracks, so a paragraph can spill from the foot of one column into
+  the head of the next, while `cards` is N *containers* and an item is whole
+  or it is nowhere.
+
+  Seven slots - `size`, `align`, `anchor`, `detail`, `ground`, `corner`,
+  `scrim` - and two of them decide themselves. `auto` size counts the words
+  in the longest source item (three or fewer means large, twelve or fewer
+  medium, else small) and is the block's decision rather than each card's,
+  because three sizes in one row read as a mistake. `auto` align follows the
+  size, except where the row carries a second level, which ranges left
+  whatever its heads measure. Counts run 1 to 6: one card is a callout, and
+  in a `::: side` pane it is the narrow stacked column a lecture keeps
+  wanting.
+
+  `detail: fold` is what makes one row serve two views: the nested levels are
+  off the projection and present in the document, and `C` brings them back
+  with no second markup. `detail: page` is the third answer, for a second
+  level that is a paragraph rather than a bullet - unfolding one of those in
+  place wrecks the row, so `page` never unfolds and the detail stays the
+  hand-out's. What a card shows is otherwise **not** decided by bold - the
+  sentence splitter walks `p` and never `li`, so a card item is never
+  abridged. A leading bold run is a lead-in; a leading bold run followed by
+  a hard break is a heading with air under it, which is a distinction the
+  author already writes rather than one that had to be invented.
+
+  A card row is **refused inside any directive that has already divided the
+  measure** - cols, marginalia, embed, expand, margin, overlay - and the
+  `cols` case is why: the row spanned the full width and defeated the column
+  flow, so the author wrote `cols 2` and got one column with nothing to say
+  why. `::: side` is *not* on that list, and the distinction is the one worth
+  keeping: a pane is a container with a width the row can fill, while `cols`
+  is a text flow the row breaks. Measured both ways rather than assumed.
+  `slide` and `script` stay legal: they divide nothing, they say which half
+  of the chunk is on screen.
+
+  A card hyphenates, with a floor of eight characters: `Countermeasures`
+  overflowed a 320px card by 26px once its second level widened it, and left
+  to itself the browser then broke `until` into `un-` and `til`, which costs
+  a reader more than the ragged edge it saved.
+
+  The default look was reworked in the same pass: a tinted fill *and* a
+  hairline is the one combination to avoid, so `panel` fills and `outline`
+  strokes and neither does both; the gutter scales with the card size, the
+  padding grows faster than the type, and the row keeps real air above it,
+  because a card row is a block of surfaces rather than a continuation of the
+  text. A centred row centres the heading over it.
+
+- **A `style:` frontmatter block sets the type for a whole lecture.**
+  `headings` (`auto` keeps the per-tag treatment, `left` overrides all of it),
+  `rules` (the hairlines above principle and definition chunks), and
+  `heading-scale` / `body-scale` as multipliers on the tool's own scale. The
+  two scales are bounded to 0.6–1.8 rather than free: outside that range the
+  collapse mode, the code-width clamp and the auto-fit camera stop agreeing
+  with each other, and the result is not a look but a bug report.
+
+- **`{!class}` takes a class off.** In an element's tail, in a `default` tail
+  and in a `style` step. A step could only ever add one, and many slots express
+  their base state as the absence of every member – normal prominence, a solid
+  stroke, a regular size and family – so a beat could leave that state and
+  never return, and an element could not opt out of a `default box {.dim}` on
+  its own line either. One mark closes both, where a named neutral per slot
+  would have been a word per look. It removes the exact name and not the slot:
+  `!dim` does not clear `.ghost`, and a later layer may add `.dim` back. Layers
+  resolve weakest first, removals before additions, so `{.c !c}` in one tail is
+  refused – there is no order under which the removal is not dead – while
+  `style e {!dashed}` at beat 2 and `style e {.dashed}` at beat 4 compose the
+  way an author reads them. A `style` with nothing to add and nothing to remove
+  is an error, because both spellings of it used to be accepted and both did
+  nothing.
+
+- **An element's name goes in front of the statement, and `{#id}` is gone.**
+  On a box, dot, text, image, container, brace or a chart the name was always
+  the word after the statement. The tail form existed for the two constructs
+  with no name slot, and it put the name *last*, after the options, where
+  neither a reader nor a language model looks for it – and on every statement
+  that did not honour it the id parsed, validated and was thrown away without a
+  word, so `box a "A" {#zz}` followed by a reference to `zz` reported that `zz`
+  was not defined. An `edge` and a `sequence` message take an optional name in
+  the slot **before** the from-endpoint: `edge wire p -> q`. It reads by
+  counting rather than by lookahead, because every endpoint form is exactly one
+  token, and anonymous stays exactly as short as it was.
+
+- **Four arrow tokens, and every one of them says which ends carry a head.**
+  `--` none, `->` and `<-` one, `<->` one at each end. `<->` closes a gap that
+  made "a message is an edge" untrue in a `sequence`, where an unknown token
+  drops a line out of the entry run and every line beneath it then reports a
+  keyword nobody wrote. More importantly, `->` used to seed *nothing*: the head
+  arrived as the drawn default, so `default edge {.no-head}` beat a written
+  `->` while a written `--` beat `default edge {.both-heads}`, and precedence
+  depended on which token you happened to type. Every token now seeds a class –
+  `.no-head`, `.one-head`, `.both-heads`, one slot, three states – so no
+  default can win the channel, and a head class is refused in an element's tail
+  and in a `default edge` block. A `style` step is the one place to write one,
+  being the one place a token cannot be re-run.
+
+- **A leader takes the same tokens an edge does.** `text n "…" right of c gap
+  0.9 -- leak` is the plain stub, which is what every leader in the corpus was;
+  `-> leak` is a leader that points, which did not exist before. It used to be
+  written `->` and drew no head, so one token meant *a head* on an edge and *no
+  head* on a text, and the token that describes what a leader draws was refused
+  there. `<-` and `<->` are refused for a stated reason: a leader names one
+  operand and the words are always the other end.
+
+- **Prominence is one channel with three names in three positions.** A class
+  (`{.dim}`), a step verb (`dim a, b`), and a `bars` option taking column
+  indices (`dim 0,2`) – all three off one table, so learning one teaches the
+  others. It replaces `calm`, a verb that existed nowhere else in the grammar
+  and had no class behind it, and it gives `.ghost` a verb it never had.
+  `dim a` and `style a {.dim}` are now the same act everywhere, print included.
+  Going back to the unnamed normal is `{!emph}` / `{!dim}` / `{!ghost}`, not a
+  fourth word.
+
+- **Print's prominence for an element is the prominence it carries at the
+  opening beat.** *A prominence class on an element's own line is part of the
+  drawing and appears in the handout; a prominence set inside a `step` is a
+  lecture-time act and does not.* Everything else about print is unchanged –
+  still the last beat, still not the union, still keeping tones, labels and
+  visibility from the last beat. What it replaces was a provenance flag set by
+  the verb and cleared by the class, so `emph a` and `style a {.emph}` were
+  identical on screen and different on paper with nothing in the source to say
+  so; and it was recorded per element rather than per class, so any prominence
+  verb naming an element stripped a `{.dim}` the author had written on the
+  element's own line, and something declared to be background came out of the
+  printer as foreground. An arrowhead a step removed is no longer printed
+  either: print was the last beat's line with the opening beat's head, an
+  arrowhead sitting on an endpoint that was never shortened to receive it.
+
+- **One word, one meaning, across four pairs that had two.** The placement
+  option `align` is now **`flush`** – the statement keeps `align`, because that
+  is what the set operation is called in every drawing tool, and `flush` is the
+  word the prose already reached for when it explained the option. The centre
+  word is **`middle`** on both axes, so `align x center` becomes `align x
+  middle`; `center` stays as an anchor, where it names the centre of one
+  element. A `plot`'s tick interval is **`tick`**, not `step`, which is the
+  statement that opens a beat. And the per-unit height of a repeating thing is
+  **`row`** on a `table`, **`band`** on `lanes` and **`header`** on a
+  `sequence`, rather than `h`: on a box or a chart `h` is how tall the thing
+  is, and reading it that way on those three was wrong by a factor of the row
+  count, silently, in the direction that still draws a plausible picture. A
+  `table`'s `w` is the frame now, and writing it beside `col` is refused as one
+  number said twice.
+
+- **A `gap` is comparable with any other `gap`, whichever way it points.**
+  Every number in a figure is in that figure's own grid units, and there are
+  two families: a number that *addresses* the grid is axis-keyed, because a
+  cell has a width and a height, and a number that states a *clearance* is
+  square, with one row as its ruler. `gap` was the one clearance that was not –
+  multiplied by the cell's width across and its height down, so the same number
+  on two adjacent lines drew two distances with nothing in the source to say
+  so. Measured over the corpus, `gap 1` sideways was on median **2.9 times**
+  `gap 1` downwards, which silently breaks the first rule of figure layout:
+  even gaps say nothing, uneven gaps mean something. `space` on a `bars` and on
+  a `table` are square for the same reason – adding `horizontal` to a `bars`
+  line used to rescale its column spacing, and a table, whose whole promise is
+  regularity, put 30.0px between two columns and 10.4px between two rows at one
+  unit. Existing figures were migrated with the converted number written out.
+
+- **A class is legal on a kind exactly when that kind draws something it can
+  reach.** One table and one gate, replacing the two ad-hoc ones for outlines
+  and for label alignment, so `.hex` on an edge, `.elbow` on a box and `.left`
+  on a brace are all refused by the same rule and the refusal names the
+  question the class answers: *".hex is an outline, and an edge has nothing to
+  draw it with – it belongs on a box."* It reaches a `style` step too, where a
+  tag expands to members that may not all be able to take the class. And **two
+  classes from one slot in one attribute tail is an error**: both used to
+  survive parsing and both were emitted, so which one the reader saw was
+  decided by stylesheet order. The kind gate runs first and the slot check only
+  on what survives it, or an edge carrying two outline classes is told "an
+  element has one outline", which is false of an edge.
+
+- **Problems are reported in causal order, never in line order.** Four phases –
+  syntax, reference, semantic, layout – and the sort is by phase, stable within
+  one. A syntax failure can *manufacture* a dangling reference, and the reverse
+  never happens, so the cause is always in the earlier phase; a line number is
+  not evidence about cause, and sorting by it puts the manufactured symptom
+  first whenever the statement that caused it sits further down the block. This
+  matters most in the editor, which shows one problem and nothing else. In the
+  same pass, a statement that stopped reading early no longer earns a complaint
+  per remaining token plus one for the placement it never reached: `rightof a`
+  went from five problems to one.
+
+- **A `step` takes one name, spelled the way an element name is.** A second
+  token after it is an error naming what a step is.
+
+- **An edge label can sit on either side of its line, and `side <word>` says
+  which.** `side top` / `side bottom` beside a horizontal edge, `side left` /
+  `side right` beside a vertical one, and `.turn` stands the words on end
+  beside it. Two parallel edges can therefore carry a label each without the
+  reader having to guess which line the lower one belongs to. Which pair
+  applies depends on the direction the edge ended up running, so naming the
+  pair that runs along it is a build warning rather than a parse error. It is
+  a keyed option and not the four alignment classes, which on a box, a dot or
+  a free text are two independent channels – the same four words would have
+  meant two geometries chosen by kind, and `{.top .left}` on an edge would
+  have been writable although an edge has one side to pick. A brace's side is
+  `side <word>` too, for the one concept the two share.
+
+- **`::: draw` draws five more outlines.** `.hex`, `.diamond`, `.chevron`,
+  `.wedge` and `.cross` join `.round` and `.sharp` in one slot – a protocol
+  message that is an arrow, an IDS sensor that is a hexagon, a size comparison
+  that is a triangle, a scatter marker, and the diamond a room has been trained
+  since school to read as the question a flowchart asks. `point up|down|left|right` aims the two
+  that have a point, so eight orientations cost one option rather than eight
+  class names. They cost nothing downstream: a shape is the same four numbers
+  a rectangle carries, joined into a different path, so the extents, the
+  viewBox and the tween are untouched. An outline class on any other kind, or
+  inside a `style` step, is an error rather than a silent no-op.
+
+  The diamond is the one that eats **both** axes, and in proportion to its
+  label rather than to the other axis: the widest room a diamond offers is a
+  strip half its width by half its height through its centre, so a label that
+  fits a rectangle needs a diamond twice as wide and twice as tall. Keep a
+  diamond's label to two or three words, or the decision arrives at four times
+  the area of the boxes it sits between and takes the figure over.
+
+- **`.turn` reads a label bottom-to-top.** For a tall narrow element that has
+  room for a word only along its long side: a firewall bar, a confusion-matrix
+  row, an axis title.
+
+- **`bars`, `grid` and `plot`.** A column chart, a rectangular field of
+  markers, and a cartesian frame with gridlines, ticks and axis titles. All
+  three expand into ordinary elements, so a `brace` spans three columns of a
+  chart and a `style` step tints one cell of a grid with no new vocabulary,
+  and a step naming the statement reaches everything it produced. Inside a
+  `plot`, `roc@0.35` names a value in the plot's own units. The spacing
+  inside one of these statements is `space`; `gap` keeps the one meaning it
+  has everywhere else, the distance between two elements.
+
+- **`.smooth` draws an edge as a curve through its waypoints**, for the
+  figures where a line is a measurement rather than a connection.
+
+- **A bar chart can run sideways, and a chart can say what shape it is.**
+  `horizontal` on a `bars` line turns the columns into bars: lengths from a
+  shared left edge, categories stacked downwards, the tick strip a right-aligned
+  column down the left margin and the baseline standing on the left. It is not a
+  variant of the same picture - a reader ranks lengths more reliably than
+  heights, and a category called "DNS cache poisoning" cannot be written under
+  an upright column at all. Which is why a tick string containing `|` is now
+  split on that rather than on spaces, so a row label may be a phrase; the same
+  mark already separates a `table` row and a `lanes` name.
+
+  `aspect W:H` on a `bars` or a `plot` states the proportion the reader sees.
+  It exists because `w` and `h` are counts of *grid cells* and a grid cell is
+  not square: at `unit=150x52` a plot written `w 1.9 h 1.5` arrives 285 pixels
+  by 78, and nothing on the line hints at it. Write `aspect 4:3`, `aspect 1:1`,
+  or one bare number meaning that many wide to one tall, and the build works
+  the other dimension out. Giving `w`, `h` and `aspect` together is an error.
+
+- **`same as <chart>` sizes a `plot` or a `bars` from another one**, for the
+  row of comparable frames a shared baseline needs. It is answered while the
+  line is read rather than during layout, because a chart's gridlines, ticks
+  and columns are placed from its own dimensions at parse time - so the chart
+  being copied has to be written above the one copying it, and the build says
+  which of declared-below, not-a-chart or not-there went wrong.
+
+- **An edge can be placed against, like anything else.** `text n "…" above w1
+  gap 0.2`, `at w1.cx,w1.cy` - the box a coordinate reads is the bounding box
+  of the route. A coordinate could name a box, a dot, a text or an image and
+  never an edge, not by design but because edges were routed after the walk
+  that places everything else; the omission bit in the wrong direction, because
+  a phrase describing a wire then had to be pinned to one of the boxes at
+  either end and drifted off its line on the next edit. Raising two boxes from
+  `h 3.0` to `h 4.2` moves a box-anchored label from 13.5px off its wire to
+  22.3px; a wire-anchored one stays where it was put. `dgEdgeRoute()` is now the
+  one text that works out a route, called by the layout and by the emitter, so
+  the two cannot disagree.
+
+- **`table` and `lanes`.** A grid of labelled cells, and a set of equal bands
+  with their names turned down the side. Both expand at parse time into
+  ordinary boxes and texts, exactly as `bars`, `grid` and `plot` do, so a
+  `brace` spans two rows of a table and a `style` step tints one cell with no
+  new vocabulary anywhere downstream. They exist because the hand-built
+  versions are the ones that cannot be maintained: six rows of three cost
+  twenty-one declarations and a chain of `below` references to re-aim whenever
+  a row is inserted. A table's heading is one string split on `|` and its body
+  is the run of bare quoted strings beneath it; every cell carries two
+  generated tags, `@t-row-2` and `@t-col-0`, so lighting a row per beat is one
+  line of source. `lanes` is deliberately **not** a container: a container fits
+  its members, so bands holding different numbers of things come out ragged at
+  both ends, which is the opposite of what a swimlane means.
+
+- **A `bars` chart can carry more than one run of columns.**
+  `bars g "…" series of f` joins the first chart's frame rather than drawing
+  its own – plain, it stands beside the runs before it and the cell is shared
+  out, so a grouped chart takes exactly the paper a single one did; `stacked`,
+  it sits on the run before it and the scale becomes the tallest stack. It is
+  its own statement rather than a second values string so that each series has
+  its own attribute tail: a series is a thing with a colour and a name, and one
+  tail per series is how it gets one. A series refuses `w`, `h`, `space`, a
+  placement and a tick strip by name, because all five belong to the chart it
+  joined. `emph 1,3`, `dim 4` and `ghost 0` on any `bars` line take column
+  indices and mean on the line what they already mean in a step and as a
+  class, so a chart can *arrive* with one column singled out instead of only
+  from beat 1 onwards.
+
+- **`.elbow` routes an edge with one turn out and one turn in.** A rail halfway
+  across the gap, on whichever axis the two ends are further apart, with both
+  anchors forced onto that axis – the two waypoints every tree edge used to be
+  written with by hand, said in one word. The rail is measured between the two
+  *faces* rather than the two centres, which is what makes several connectors
+  out of one parent share a rail and read as a single bracket. Bounded: it
+  looks at nothing else in the figure, nothing steps around an obstacle, and
+  there is no option to move the rail; `.elbow` together with
+  `via` is an error rather than a preference the build guesses at.
+
+- **`sequence` draws a protocol down the page.** A row of actor heads, a
+  lifeline under each, numbered messages between them and notes on a lifeline,
+  written as three shapes of line: `actor u "User"`, `note b "…"`, and
+  `u -> br "label" ["second line"]`. It expands at parse time into the boxes,
+  texts and edges the language already had, so a `brace` spans three messages
+  and a `step` reaches one by name with no new vocabulary anywhere.
+
+  The statement owns exactly one thing – the vertical rhythm. Written out by
+  hand every message carries a y coordinate of its own, so inserting one in the
+  middle means moving everything under it, renumbering, and re-guessing how far
+  the lifelines run: measured at thirteen edits against one line. Every entry
+  states the height it needs and the statement stacks the bands, so a note
+  pushes what follows it down. `space n` on a `note` or a message line sets that
+  one band's own gap, which is how a dense protocol is broken into phases.
+
+  Everything it draws has a name – `wa-3` for a message, `au-life` for a
+  lifeline, `wa-note-0`, plus the tags `@wa-msgs`, `@au-msgs`, `@wa-msg-3` – so
+  an annotation the construct knows nothing about is an ordinary line of source.
+  There is no `alt` / `else`: a `container` with a caption already encloses and
+  names a group of messages, and a word freezes at the next release.
+
+  Message labels carry a paper ground by default, and sit beside the line
+  rather than on it, because a lifeline crosses every one of them and an edge
+  reads a fill with no side named as "knock the line out behind the words".
+  `.clear` takes the ground off, a written `.tone-n` replaces it. The numbers
+  are drawn unless the line says `unnumbered`, because the visible number and
+  the generated tag carry the same index: `@wa-msg-3` is the arrow the room
+  reads as 4.
+
+  `lanes` and `sequence` are the two statements authors pick the wrong one of,
+  and they are one pair with the axes swapped: `lanes` puts who down the side
+  and lets the reading direction carry the time, `sequence` puts who across the
+  top and makes the vertical axis the time itself.
+
+  The editor reaches all of it. A `sequence` is the one expanding statement
+  whose entries are lines the author typed, so `actor`, `note` and message
+  lines are selectable and their labels, classes and tails editable in the
+  panel, which reads its controls off the entry statement rather than off the
+  box and the edge the entry expands into. A lifeline, a message number and a
+  message's second line own no text of their own and stay with the statement;
+  the frame no longer swallows a click aimed at a message crossing it; and
+  `unnumbered` is a checkbox.
+
+- **An edge's label can carry a ground.** A fill class on an `edge` draws a
+  rect behind the label on the same terms a free `text`'s ground is drawn, and
+  `pad` and `side` are now legal `edge` options. With no side named the label
+  sits **on** the line and knocks it out behind the words, which is what a
+  sequence number or a port wants; with a `side` it clears the line and
+  carries the ground with it. Before this, `.paper` on an edge resolved,
+  emitted its class and drew nothing.
+
+- **`figure-design.md`** – how to lay a figure out so a room reads it: ten
+  rules with a wrong/right pair each, the tone-to-role table, the five
+  arrangements a lecture keeps asking for (flowchart, swimlane, tree, table,
+  protocol) with the construction fact each one turns on, the four-beat step
+  order, and a checklist to work down before a figure is finished.
+
+- **`::: draw` – animated infographics written in the lecture source.**
+  A line-oriented DSL for boxes, dots, free text, arrows, auto-fitting
+  containers, groups and braces, compiled to inline SVG at build time and
+  themed through the page's own custom properties, so a diagram re-inks
+  with the `A` cycle. `step` blocks show, hide, move, emphasise, restyle
+  and relabel elements; **layout is re-evaluated per step rather than
+  transformed**, so an arrow between two boxes re-routes when either one
+  moves. Steps become beats on the existing reveal counter, so `Space`
+  advances them, the speaker window follows, the freeze gate applies, and a
+  revisited chunk comes back fully stepped, all without new state. Free
+  `text` can grow a leader line to whatever it comments on (`-- ref` plain,
+  `-> ref` pointing), which is what makes placement free without losing the
+  connection. Print shows the last beat, carrying each element's prominence
+  from the opening beat. There is **no automatic layout and
+  no constraint solver**: placement
+  is a grid cell or a relation to a neighbour, resolved as a DAG, so a
+  mistake names its line instead of shifting the picture. `lint.js`
+  mirrors the vocabulary and reports unknown statements, unknown classes,
+  duplicate names and dangling references.
+
+  `align x|y <edge> a,b,c` lines up one coordinate (Figma's edge words,
+  with the axis stated: left/middle/right on x, top/middle/bottom on y) and `spread x|y a,…,z`
+  gives equal spacing between centres. Both are an extra dependency plus a
+  coordinate override in the same topological walk – no solver, no second
+  pass – and both name the line on a circular authoring instead of drawing
+  a plausible wrong answer. They close the commonest alignment failure:
+  two columns built as separate `below` chains drift apart as soon as
+  their captions differ in height. The build now also warns when an edge
+  runs within a few degrees of an axis without being on it, which is what
+  that drift looks like once a line is drawn across it.
+
+  Tags (`@tag` in the attribute tail) replace the `group` statement.
+  Membership sits on the element's own line, so adding an element to a set
+  is a local edit and one element can belong to several sets. An edge
+  endpoint may be a bare coordinate (`edge -0.8,0 -> a`) for an arrow
+  arriving from outside the picture.
+
+  `default <kind> {classes} [w n] [h n]` sets the base styling and size
+  for every element of that kind – two lines replaced twelve repetitions
+  in the identity-lifecycle example. It is position-independent with one
+  per kind (DOT's position-dependent model makes the source
+  order-sensitive invisibly), and an element's own class **displaces** a
+  default in the same slot rather than stacking with it. `same as
+  <element>` copies another element's width and height.
+
+  The same statements can be written **once for the whole lecture** in a
+  `draw-defaults` frontmatter key, so a series of figures looks like
+  itself without repeating four lines in every block – and changing the
+  look is one edit instead of twelve. Four layers now, most specific last:
+  the lecture's kind default, the lecture's tag default, the block's kind
+  default, the block's tag default, then the element's own attributes.
+  Scope before selector, because "closer to the element wins" is the model
+  everywhere else here. Anything but a `default` statement in the key is
+  an error naming the line even when no diagram uses it, and a
+  lecture-level `default <kind> @tag` has to be used somewhere in the
+  lecture – one scope wider than a block's, since it is written once for
+  twelve figures most of which will not carry the tag.
+
+  `image <name> <asset>` puts a picture in a diagram, resolved like the
+  `![](fig-id)` shorthand. A vector asset is spliced as a nested `<svg>`
+  and follows the `A` theme cycle; a raster is a `data:` URI and keeps
+  its own colours. `between A,B [frac n]` positions an element on the line
+  joining two others, and any placement takes a trailing `offset dx,dy`. An
+  anchor takes a fraction (`mix.right:0.3`) that slides the attachment point
+  along that edge, which is what stops two arrows between the same pair
+  of boxes from collapsing into a lens; there is no automatic fan-out,
+  because it would silently redraw existing diagrams.
+
+  Four more classes close the gaps the vocabulary could not spell.
+  `.clear` is a see-through interior – `.bare` removes the *stroke*, so a
+  frame you can read through had no spelling at all. `.serif` is the
+  upright serif; `.hand` is the same family forced italic and accented,
+  and until now the family was reachable only through that annotation
+  voice. `.fit` and `.shrink` size the type to the box instead of the box
+  to the type, clamped to 0.6–1.5× so a long label cannot become
+  unreadable and a short one cannot become a poster; both need the box to
+  be given (`w n` or `same as X`), and an element with neither is an error
+  rather than a line that does nothing. A free `text` now draws a ground
+  when it carries a tone, which is the same drawable a box uses read the
+  other way round, and `pad` works on a box and a text as well as on a
+  container and a brace – one word, one sentence, four statements. Every
+  class now belongs to a slot: `.thick`/`.bare` and `.mono`/`.serif`/`.hand`
+  used to stack with a `default` instead of displacing it. `.tone-4` with
+  `.accent` is accent ink on an accent fill; the inversion wins and the build
+  warns where the pair is live in every beat.
+
+  Inside a label, `_sub` / `^sup` shift a run and `*accent*` / `~muted~`
+  colour one. Free `text` honours `.left` / `.right`, and its anchor
+  moves with them. A diagram is click-to-zoom like any other figure, and
+  keeps stepping while focused. How large it lands is the chunk's width
+  class; `unit` sets only the proportions inside the picture.
+
+  Fixed before it ever shipped, from a review of the branch: a `label`
+  step never switched variants live (the runtime looked labels up by the
+  element id rather than the geometry key), a `.ghost` element could
+  never be hidden (author CSS beat the presentation attribute the runtime
+  set), hide-then-show started an element invisible, an unclosed
+  `::: draw` silently swallowed the rest of the file, `align` and
+  `spread` accepted containers and edges and did nothing with them, a
+  `move` on a brace was a no-op, `--optimize-images` and the linter's
+  oversized-asset gate could not see diagram assets that the build now
+  hard-fails on, WebP and GIF images were laid out square, a diagram
+  inside a collapsed expansion contributed reveal beats that changed
+  nothing on the projection, a container's caption hung outside its own
+  border, a long label could draw outside the viewBox, `label @tag` was a
+  silent no-op, and one mistake was reported once per step.
+
+  A coordinate may be another element's coordinate with an optional signed
+  nudge – `via iv.cx,x0.cy`, `edge a.left-0.8,a.cy -> a`. Rebuilding the
+  example slides had needed a browser open and three numbers read off the
+  screen; all three are now relations that survive a change above them
+  (verified: moving a row down by 48px moves the waypoint corner by
+  exactly 48px and the leg stays vertical). The nudge's shape is a promise
+  to the future editor: one signed term, no other operators, so a drag
+  rewrites one token instead of replacing the reference with an absolute.
+
+  `default <kind> @tag` refines a kind default for the elements carrying a
+  tag, resolving in three layers – kind, then tag, then the element's own
+  attributes.
+
+  Rebuilding all six example slides from scratch found three more: a
+  placement's `offset` was applied after `align` overrode the result, so
+  an element that used both got the offset twice; a brace label was
+  anchored middle and lay half across the elements it spans; and the
+  `::: side` composition of a code fence beside a diagram works, which is
+  what carries the buffer-overflow slide.
+
+  A second review pass, with every doc snippet compiled and every example
+  slide re-shot, tightened the grammar where it had grown two ways of
+  saying one thing. `brace` measures its distance to its members with
+  `pad`, the word `container` already used – `gap` everywhere else in the
+  grammar is the distance between two *elements*. One coordinate grammar
+  now sits behind `at X,Y`, `move … to X,Y`, waypoints and endpoints
+  alike, so `box m at c1.cx,m0.cy` places a box in a column without
+  measuring it, and a reference there is a real dependency the cycle
+  detector sees. `via` is no longer optional in front of a waypoint, and
+  one `via` carries every one of them. `default <kind>` accepts exactly
+  the options that kind's own statement accepts, so `default box r 5` is
+  an error naming the kind it belongs to instead of a line that parses and
+  does nothing, and `default container pad` / `default brace pad …
+  side <word>` now reach the elements they are about. An element name is
+  restricted to letters, digits, `_` and `-`, because a name with a dot in
+  it is indistinguishable from a coordinate.
+
+  Visibility became one rule with three faces: an edge is only as visible
+  as its endpoints, a `container` or `brace` only as visible as its
+  members (and it fits the ones on screen), and a `text` with a leader
+  only as visible as what it points at. Print became **the last beat**
+  rather than the union of every beat – reprinting a `hide`n element laid
+  a withdrawn arrow across whatever replaced it – and the emitted SVG now
+  carries the tight print viewBox statically, with the runtime widening it
+  to hold every beat on boot, so a stepped handout no longer prints a band
+  of empty paper the height of wherever something started out. A class
+  added by `style` displaces the one in its slot, the same rule `default`
+  follows. `move @tag to …` is refused, naming `move @tag by dx,dy`: `to`
+  would stack the whole set on one point.
+
+  **Placing a picture from inside the editor.** The image tool took the
+  first asset the lecture happened to reference, with no chooser, and
+  refused outright when there was none, so a figure could not get its
+  first picture from the editor at all. It now opens a picker over three
+  sources: the assets this lecture already inlines, everything in
+  `assets/` (asked from the watch server, so it costs no payload), and a
+  file from the machine. Under `--watch` the whole loop closes: the bytes
+  go over the socket that already carries patches, the server writes
+  `assets/<name>` with five refusals rather than five sanitisations, and
+  *then* the `image` line is placed – that order matters, because
+  `fs.watch` is on `source.md` and the patch is what kicks the build.
+  Without a watch server it writes an explicit `assets/<file>` path, which
+  the grammar already accepts, and says where to copy the file. Never a
+  `data:` URI in `source.md`. The primitive is a plain file input, not the
+  File System Access API: for *reading* a picked file that has always been
+  enough, in every browser and from `file://`.
+
+  `.paper` joined the class vocabulary while that picker was being built. The fill
+  swatch row opened with the *empty* class labelled "paper", so it meant
+  "whatever a default says" – a box under `default box {.tone-3}` had no
+  way back to the canvas colour, and a free `text` could not have a ground
+  at all – a ground is what knocks out a line running behind it.
+
+  `lint.js` was stricter than the build, which for the pre-commit gate is
+  worse than not linting: its `between` scan did not terminate on `pad`,
+  `gap`, `flush` or `same`, so a placement with any of them read their
+  values as members.
+
+  Development state: this is unreleased work on a branch, and the
+  vocabulary is **experimental** – it may still change before it is
+  frozen under the source-format contract, so it should carry that label
+  in the notes of whichever release first includes it.
+
+  See `PRD.md` §4.6a for the grammar and `lectures/diagrams/source.md` for
+  a worked example of every construct.
+
+- **A graphical editor for `::: draw`.** Click a diagram to focus it, then
+  the button in the corner or `E`. It parses the block, records where every
+  token sits, answers a drag by rewriting the smallest span it can, and
+  re-runs the same compiler the build runs – so there is no second
+  representation to drift, no export step that flattens relations into
+  numbers, and no file the editor owns. Everything it produces is a block a
+  human could have typed.
+
+  The canvas is a **frame**, not a canvas size: the chunk's own width class
+  on a slide, one pane of a `::: side` at that class, or the print measure
+  where the height cap does not apply. Switching between them changes nothing
+  in the source. It says out loud two things that are otherwise invisible
+  until you look at the built page – the measure the figure lands in, and how
+  much of it stays empty when the 62vh cap binds first.
+
+  Because a figure here is held together by *relations* rather than
+  coordinates, and that structure is completely invisible in the picture, the
+  editor draws it: the `gap` between two facing edges with its number, the
+  alignment edge as a hairline through both elements, `between` as the line
+  joining its references, a ref coordinate as the line it refers to, an
+  `align` set's shared axis through every member, a `spread` set's equal
+  distances as matched marks, `same as` as a width bracket. A drag then
+  rewrites exactly one token – the `gap`, the `frac`, the signed nudge – and
+  a coordinate that belongs to an `align` or `spread` set is refused **by
+  name**: *"y comes from align y middle on line 40. Drag iv to move the row,
+  or drop c1 from that line."* The status bar always shows the line it is
+  about to write.
+
+  Where an edit goes, in four tiers: the `--watch` socket, now two-way, which
+  patches the block straight back into `source.md`; the clipboard; File
+  System Access where the browser has it; and `localStorage` for a reader
+  whose `audience.html` is a build artefact, with a visible way back. An edit
+  syncs to the other window as its own message, gated by the freeze flag – so
+  freeze, fix the figure, unfreeze, and the room gets the finished picture.
+
+  **A relation can be re-pointed, not only stretched.** Four chips appear
+  around whatever the pointer is over while dragging, and releasing on one
+  docks the element to that side of that element – the placement is rewritten,
+  so it follows its new reference from then on. Dragging an element through
+  the thing it is measured from changes the side without leaving it. The
+  placement pane reads the relation back as the three things it says – kind,
+  reference, distance – and lets each be changed, including `between a,b`,
+  which no drag can express. The align and distribute acts are named the way
+  they would be looked for rather than the way the statement spells them.
+
+  **A label can sit somewhere other than the middle of its box.** `.left` /
+  `.right` place a horizontal run of text and `.top` / `.bottom` the block of
+  lines, measured against the element's own padding – as far that way as the
+  box allows, not on its border. A tall element with a short label is the case
+  they exist for. With more than one line the block moves rather than the
+  line, so `bottom` puts the *last* line on the inner edge. `.left` / `.right`
+  previously worked on a free `text` only.
+
+  Written where it cannot act, one of those words is now an error rather than
+  a class that resolves and moves nothing. A container's caption is placed on
+  its own top border, a brace's label beside the spine and an edge's at the
+  middle of the route, so none of the four applies to any of the three – an
+  edge says which side of its line the label sits on with `side <word>`
+  instead.
+
+  **An `align` or `spread` set can be left by dragging.** Pulling a follower
+  against its shared axis holds it there, draws the axis, and says how much
+  further to pull; half a cell past it, or with Alt held, the element is
+  dropped from the statement and the drag goes through. It used to be a flat
+  refusal telling the author to go and edit that line by hand, and the only
+  way out of a set was the text.
+
+  **Waypoints are draggable.** A hollow dot at the middle of every segment
+  adds one, a square moves one, and a double-click or the chip in the panel
+  takes one out. Where a waypoint holds a reference – `via iv.cx,d0.bottom+0.28`,
+  which is how a routed arrow stays attached to the boxes it runs past – the
+  drag rewrites the **signed nudge** on each component and never the
+  reference. Each axis is decided separately, because half reference and half
+  number is the normal case in a routed figure.
+
+  An **arrow is a first-class object** in it: an edge
+  has no box, because it is not placed – it is drawn between two things that
+  were. Clicking one hits the line itself, a box wins over an arrow crossing
+  it and an arrow wins over the container it runs through, and the selection
+  traces the line rather than boxing it. Dragging either end retargets it,
+  and answers with a **name** wherever it can – the arrow keeps following the
+  box it now points at, instead of being frozen to the coordinates the drag
+  happened to end on. Labels are multi-line, on edges as well as boxes.
+
+  Off with `editor: none` in the frontmatter; `editor: speaker` keeps it out
+  of the projection. A lecture with no diagram pays nothing.
+
+- **Navigation follows one forward key and one backward key.** `Space`, `↓`,
+  `Enter` and `PageDown` advance the reveal or diagram step on the slide and,
+  when there is none left, move to the next chunk – across column boundaries,
+  so a whole lecture is one key. `↑`, `PageUp` and `Backspace` are the exact
+  mirror: **they take a reveal back**, and only leave the chunk once it is at
+  its opening state. `→` / `←` are that same pair *except on the first chunk
+  of a column*, where they change column – the only chunk where a second
+  dimension exists to move in.
+
+  Reveal used to be forward-only, on the reasoning that a revisited slide
+  should simply show everything. That is still what happens when you arrive
+  at a chunk from somewhere else, but it is the wrong answer while you are
+  standing on the slide: a figure that assembles itself is often worth
+  assembling twice, and there was no way to run it again without leaving and
+  coming back. The mechanism was always symmetric; only the keys were not.
+
+  Presenter remotes work now – `PageUp`/`PageDown` were unbound, so a
+  clicker's back button did nothing at all.
+
+  Two marks at the edge of the viewport say which situation the current slide
+  is in: `‹ ›` where sideways changes column, `⌄` where forward will leave the
+  column next. Quiet enough for a projection, absent on the overview board and
+  behind a blanked screen.
+
+  `Enter` used to open the first expansion; it is a forward key now, and
+  `1`–`9` (or clicking the chevron) still opens expansions.
+
+- **Figures sit square in their own frame.** A diagram's `viewBox` is built
+  from what the compiler reserves for each drawable, and two things made it
+  much larger than the drawing: a label reserved a full label-width on *each*
+  side of its origin, and container captions, brace labels and edge labels
+  never recorded a width at all, falling back to a hardcoded 120 whatever
+  their text said. A figure whose outermost element was a caption therefore
+  sat off to one side of an oversized box with an unexplained empty margin
+  beside it – up to 122px on a figure 480px wide. Eight of the twelve figures
+  in `lectures/diagrams` now land exactly on the margin on both sides; what is
+  left is the generosity of the text-width estimate, which is about
+  11% on the bundled faces and never clips.
+
+### Removed
+
+- **The `editorial` cover is gone, and so is `rule`.** `editorial` drew a 4px
+  accent rail down the left edge of the type. A coloured bar welded to the
+  side of a text block carries no information and is present only so that the
+  theme colour appears somewhere on the slide; that is one of the most
+  reliable tells of a machine-made layout, it is named as one in Anthropic's
+  own design guidance, and it was the specific thing the lecturer objected to.
+  Nothing replaced it one for one – its single good idea, the meta set as a
+  row of credits instead of four stacked lines of equal weight, is what
+  `masthead` runs along the bottom of the slide. `rule` went for a smaller
+  reason: it was `stack` plus two hairlines, and a lecturer is not choosing
+  between "centred" and "centred with lines". Both names now fail the build
+  with the list of what to write instead. `::: draw` and the covers are
+  unreleased, so this is not a source-format break.
+
 ### Fixed
 
 - **A `::: marginalia` shrank the slide it belonged to.** The aside is
@@ -521,6 +1444,7 @@ from building the same way is a major version.
   the selection you started; the focus card is selectable at all, which as a
   sibling of the stage it never was; and a plain click still zooms, navigates
   and closes exactly as before.
+
 - **The run-in lead-in a card row documents did not exist, the dash in front of
   a nested item sat above its line, and an accent row's explanation was painted
   in the page colour on the page.** Three defects inside a card, one
@@ -889,903 +1813,6 @@ from building the same way is a major version.
   inherits it, unlike the ratio: a deck whose cover puts its title in the
   lower third and whose last slide centres it has not closed the arc.
 
-### Changed
-
-- **`masthead` was rebuilt.** It read as empty, and the fault was not the
-  empty middle band: measured on a real deck, *nothing on the slide spanned
-  the measure* - the longest line reached 55% of the frame with a short title,
-  and the credits, already described as "a row", were a left-hugging run with
-  a wide space in the middle. It now carries a 2px folio rule above the
-  credits, lays them out to both edges of the measure, and takes a **lede**
-  from the title chunk's own body in the field between the bands, with `info:`
-  still supplying the meta. With no lede the nameplate is set larger.
-
-- **`split`'s gutter is 4.4em, up from 2.4em.** That padding is the guaranteed
-  minimum distance between the type and a photograph bled off the edge, and at
-  the old value a title that nearly filled its column came within about 50px
-  of the picture. A long title now wraps where it did not.
-
-- **The 1.0.0 look is reachable, as three ordinary settings.** From 1.0.0 the
-  source format is the interface, and a finished deck should be able to lay
-  out the way it laid out. Exactly three things have moved since that an
-  existing lecture would notice, found by diffing the two stylesheets between
-  the tag and HEAD rather than by reading commit titles:
-  `fonts: {sans: Inter Tight}`, `style: {wrap: none}` and `ligatures: all`.
-  Verified: the same source built through `git show v1.0.0:build.js` and
-  through HEAD with all three set is **pixel-identical**, 0 differing pixels
-  by `magick compare -metric AE`.
-
-  A `layout: 1.0` umbrella over those three was written and then removed, and
-  the reasoning is the part worth keeping: one key naming a version reads as a
-  promise that the engine can rebuild any past release, which is unbounded -
-  every later change to a shared stylesheet would have to be gated on a
-  generation, the gates would compose, and the untested combinations would
-  grow with every release. It also put the burden on the author to know which
-  version their deck was authored against, and on the project to publish a
-  layout-version history beside the software version. Each of the three
-  settings is a preference someone might want on its own merits, so the old
-  look is a recipe in the docs rather than a mechanism in the code.
-
-- **The bundled font roster is per-lecture, and it has two alternates.**
-  `fonts: {sans: Inter Tight}` or `{mono: Noto Sans Mono Condensed}` needs no
-  file in `fonts/` - a bundled family is named the same way and supplies
-  itself. The roster used to be a fixed list that every output carried in
-  full, so adding two faces would have cost ~470 KB in every file including
-  the lectures that wanted neither; only the three families a lecture resolves
-  to are read at all.
-
-  The condensed mono is a **pinned instance of a variable font**, not a
-  different typeface: Noto Sans Mono carries a `wdth` axis and
-  `font-variation-settings` is a legal `@font-face` descriptor, so pinning
-  `wdth 62.5` yields one ordinary family nothing downstream has to know about.
-  Measured, 0.50 em per character against JetBrains Mono's 0.60, with a
-  slashed zero and three visibly different shapes for `I`, `l` and `1`.
-  Iosevka reaches the same width and was dropped on payload - 961 KB against
-  54, or 3.87 MB of base64 per view - so the rule is now that a bundled face
-  has to be a variable latin subset. Iosevka is still reachable through
-  `fonts/`.
-
-- **`ligatures:` decides a question that was two questions.** `text` (the
-  default) is fi and fl in prose and none in code, which is what the tool
-  already did; `none` takes them out of prose as well; `all` puts the code
-  ligatures back, so JetBrains Mono draws `->` as one arrow glyph again. The
-  default is not `none`, because code ligatures were already off and
-  defaulting to `none` would take fi and fl out of every existing lecture's
-  prose - a change to finished decks made in the name of not changing
-  finished decks.
-
-- **`::: draw {autoplay=N}` walks a figure's steps on a timer.** One delay for
-  every step, so a cover figure animates while the room files in; it works on
-  any chunk. `autoplay=` never reaches the compiler - build.js strips it from
-  the fence and puts it on the emitted figure - because playback is not part
-  of the drawing and `diagram-core.mjs` also runs inside the browser editor,
-  where there is no deck to play. The runtime calls the same advance the Space
-  key calls, so there is one counter, one broadcast and one freeze gate, and
-  the speaker view follows without knowing it exists. It runs in the audience
-  only and stops for good on the first key, pointer or wheel event: a lecturer
-  who has touched the deck has taken over. Bounded 200 ms to 60 s, refused
-  rather than clamped. `cycle` beside it repeats the walk, rewinding through
-  the same counter so the speaker view follows the rewind as it followed the
-  walk; the last beat is held for one delay like any other, because a second
-  number for how long to admire the finished picture is a knob nobody asked
-  for. `cycle` without `autoplay` is an error in both the build and the
-  linter.
-
-- **`style: {labels: off}` hides the generated tag words.** They are two
-  things wearing one name and the switch reaches both: the document renderer
-  labels principle, question, definition and exercise, while the projection
-  generates only EXERCISE. Its own key rather than part of `rules`, which
-  hides the bar over a principle and the hairline over a definition - a word
-  and a line are not one decision. A figure's all-caps heading needs no key:
-  it is the chunk's own heading, so leaving it out of the source leaves it off
-  the slide, at the cost of the TOC entry and the search text.
-
-- **Four more covers, and two of them draw.** `stack` centres the title block
-  on both axes, `rule` holds it between two hairlines - both for the talk that
-  wants a quiet opening rather than an asymmetric one. `beside` and `above`
-  take their art from the **title chunk's own body**, which is what lets a
-  `::: draw` be the cover: a diagram is not a file, so `cover-image` could
-  never name one. `beside` insets the art beside the title and `above` puts it
-  on top with the type centred in the band below. `split` bleeds where
-  `beside` insets, and that is why both exist - a photograph wants the edge, a
-  drawing wants a margin, because a diagram cropped by the frame reads as a
-  diagram that did not fit. `cover-ratio` (15-75%) sets how much of the slide
-  the picture takes on the three covers that divide it; written on one that
-  does not, it is an error rather than a number the drawing ignores.
-
-- **The cover has nine compositions, and a `subtitle:` line.** `cover:` picks
-  between them and the list runs quiet to loud, which is the only question it
-  asks. Five are type alone: `classic` (the lower-left third the tool always
-  drew, and still the default), `masthead` (the title along the top edge, the
-  credits along the bottom, the field between them left empty), `stack` (the
-  block centred on both axes), `display` (the title set to fill the slide, so
-  the scale is the whole design) and `panel` (the type on a full field of the
-  theme's accent). Four take a picture: `split` (type left, `cover-image:`
-  bled off the right edge), `hero` (the picture is the slide, the type
-  reversed out of a gradient) and `beside` / `above`, which take their art
-  from the title chunk's own body. `subtitle:` is the hierarchy step the cover
-  was missing: without it the one line that says what the talk is *about* has
-  nowhere to go but the `info` block, where it renders at meta size in soft
-  ink beside the room and the date – so the subtitle is set exactly like the
-  venue line. Four sizes now where there were two. An unknown `cover:` fails
-  the build, and so does `split` or `hero` with no `cover-image` rather than
-  drawing an empty half.
-
-  The five type compositions each combine with `::: backdrop`, which is how a
-  picture reaches a cover that has no picture slot of its own. On `panel` the
-  two make something neither has alone: the field becomes the scrim, so the
-  photograph reads through a plate of the accent rather than under the paper
-  veil that would lighten the ground beneath type which is already reversed.
-
-- **`## closing:` closes the arc back to the cover.** The last slide of a
-  deck, drawn in whatever composition `cover:` names, so the room sees the
-  shape it started with. It carries the author's own words – the heading, the
-  sub-heading after the `|`, and a body – and deliberately **neither the
-  presenter line nor the `info` block**: those say who is talking and where,
-  which the room learned an hour ago, and repeating them in the same
-  composition is a slide that reads as a mistake in the deck rather than as an
-  ending. The composition is inherited and the content is written.
-
-  It is a tag rather than a second `title:` chunk or a frontmatter key. A
-  title chunk's heading is *ignored* – the cover renders from frontmatter – so
-  a closing slide could only get its own words by making the heading mean
-  something on the second occurrence, a positional exception to a rule frozen
-  at 1.0.0; `lint.js` already warns that a second `title:` chunk does not
-  render, so the two spellings would contradict each other. Adding a tag is
-  additive: no existing source could have used the word, because it would have
-  failed the build. `lint.js` gains `closing-count`, `closing-position` and
-  `closing-heading`.
-- **`::: backdrop <ref> {classes}` fills the slide with a picture.** On any
-  chunk, not only the cover. One line, no closer, and chunk-level rather than
-  a body wrapper – forced rather than chosen, because `.chunk-content` sits in
-  the middle track of the slide's grid and anything emitted inside the body is
-  boxed by the text column and can never reach the edges. Four closed slots:
-  fill (`cover`/`contain`), crop (`middle`/`top`/`bottom`), scrim
-  (`veil`/`clear`/`invert`) and focus (`sharp`/`blur`). The default scrim is
-  the theme's own paper at 80%, so ordinary ink stays legible over a
-  photograph in all seven themes with no second palette; `invert` turns the
-  slide's ink light instead.
-
-- **`::: overlay {classes}` lays a grounded text block over the slide.** Nine
-  places, five grounds (`paper` `ink` `accent` `clear` `glass`), four widths.
-  The ground is the point rather than decoration: text laid straight onto a
-  photograph is unreadable at the back of a room. All overlays of one chunk go
-  into one 3×3 grid layer, so two aimed at the same corner stack instead of
-  overlapping.
-
-- **`::: rows` is the card row turned ninety degrees.** A term in a card on
-  the left, its body beside it, several stacked - the shape a definition
-  list wants and the one a lecture reaches for when a term needs a sentence
-  rather than a column. Deliberately **not** a new container: same slot
-  vocabulary, same auto size, same fold, same print rules, because the only
-  thing that differs is the arrangement of the item and that is one
-  `display` plus a grid on the list. The list is the grid and each item
-  dissolves into it, which is what gives every row one term-column width; a
-  per-item grid could not.
-
-  Four things behave differently from a card row, each for a stated reason.
-  The body is wrapped in a span at render time, because CSS can place a grid
-  item and an anonymous text run is not one - done on the source rather than
-  on the rendered HTML, since `marked` passes inline HTML through untouched.
-  `anchor` defaults to `middle` where a card defaults to `top`, because a
-  one-line term set against a three-line body's first line reads as a
-  mistake. `align` names how the term sits in its card and nothing else; it
-  centred the body too at first, and a centred definition body is not
-  something anyone wants. And the automatic size is capped at `medium`,
-  because a row term is a label in a column rather than a headline across
-  the slide: measured, `Separatism` overflowed a 229px term track and ran
-  across the body beside it.
-
-- **`ground: photo` makes a card's first picture its ground**, with a
-  `scrim` slot - `veil`, `invert`, `plain` - answering what it is veiled
-  with. Same question `::: backdrop` answers and the same reasoning: the
-  veil is the theme's own paper, so ordinary ink stays legible on a
-  photograph in all seven themes and in dark mode without a second palette.
-  A scrim written on a row with no picture is an error, checked against the
-  written tail so `{.veil}` is caught even though `veil` is the default -
-  a word the drawing ignores is a silent no-op. A picture that is *not* the
-  ground bleeds to the card's edges instead, which needed the `max-width:
-  100%` every figure carries to be lifted: the negative margins were applied
-  and the picture still did not reach the edges, 327.6px asked for and
-  262.2px granted.
-
-- **`section:` gives a column's divider slide five compositions** - `plain`,
-  `tinted`, `rule`, `card`, `number` - and every one is quieter than the
-  cover, because a divider that can be mistaken for the title slide has
-  failed at the one job it has. The hard-coded PARAGRAPH SIGN over the
-  heading is gone: it is a legal-citation mark that reads as a statute
-  number to anyone outside a German law faculty, and on a projection it was
-  a small grey glyph nobody could place. `section-mark:` puts a word there
-  instead, and saying nothing puts nothing. `number` counts the columns that
-  have a heading rather than the array index, because the anonymous opening
-  column that holds the title chunk is not a part anybody is counting.
-
-- **No word may appear in two slots of one table, and it is asserted at
-  load.** `parseSlotClasses` assigns a word to whichever slot lists it first,
-  so a collision makes the other slot silently unreachable; `clear` is
-  already a card ground and was very nearly also the card scrim, which is
-  why that value is spelled `plain` even though `::: backdrop` calls the
-  same thing `clear`. Two tables may share a word; one table may not. The
-  exemption is exact: a word that is the default of *every* slot holding it
-  is allowed, because writing a default changes nothing whichever slot
-  receives it - which is what lets `auto` be both the size and the align
-  default, a collision the assertion found the moment it was written.
-
-- **`::: cards N {classes}` sets N equal cards in a row.** Not a second
-  spelling of `::: cols N`: `cols` is one text flow the browser balances
-  across N tracks, so a paragraph can spill from the foot of one column into
-  the head of the next, while `cards` is N *containers* and an item is whole
-  or it is nowhere.
-
-  Seven slots - `size`, `align`, `anchor`, `detail`, `ground`, `corner`,
-  `scrim` - and two of them decide themselves. `auto` size counts the words
-  in the longest source item (three or fewer means large, twelve or fewer
-  medium, else small) and is the block's decision rather than each card's,
-  because three sizes in one row read as a mistake. `auto` align follows the
-  size, except where the row carries a second level, which ranges left
-  whatever its heads measure. Counts run 1 to 6: one card is a callout, and
-  in a `::: side` pane it is the narrow stacked column a lecture keeps
-  wanting.
-
-  `detail: fold` is what makes one row serve two views: the nested levels are
-  off the projection and present in the document, and `C` brings them back
-  with no second markup. `detail: page` is the third answer, for a second
-  level that is a paragraph rather than a bullet - unfolding one of those in
-  place wrecks the row, so `page` never unfolds and the detail stays the
-  hand-out's. What a card shows is otherwise **not** decided by bold - the
-  sentence splitter walks `p` and never `li`, so a card item is never
-  abridged. A leading bold run is a lead-in; a leading bold run followed by
-  a hard break is a heading with air under it, which is a distinction the
-  author already writes rather than one that had to be invented.
-
-  A card row is **refused inside any directive that has already divided the
-  measure** - cols, marginalia, embed, expand, margin, overlay - and the
-  `cols` case is why: the row spanned the full width and defeated the column
-  flow, so the author wrote `cols 2` and got one column with nothing to say
-  why. `::: side` is *not* on that list, and the distinction is the one worth
-  keeping: a pane is a container with a width the row can fill, while `cols`
-  is a text flow the row breaks. Measured both ways rather than assumed.
-  `slide` and `script` stay legal: they divide nothing, they say which half
-  of the chunk is on screen.
-
-  A card hyphenates, with a floor of eight characters: `Countermeasures`
-  overflowed a 320px card by 26px once its second level widened it, and left
-  to itself the browser then broke `until` into `un-` and `til`, which costs
-  a reader more than the ragged edge it saved.
-
-  The default look was reworked in the same pass: a tinted fill *and* a
-  hairline is the one combination to avoid, so `panel` fills and `outline`
-  strokes and neither does both; the gutter scales with the card size, the
-  padding grows faster than the type, and the row keeps real air above it,
-  because a card row is a block of surfaces rather than a continuation of the
-  text. A centred row centres the heading over it.
-
-- **A `style:` frontmatter block sets the type for a whole lecture.**
-  `headings` (`auto` keeps the per-tag treatment, `left` overrides all of it),
-  `rules` (the hairlines above principle and definition chunks), and
-  `heading-scale` / `body-scale` as multipliers on the tool's own scale. The
-  two scales are bounded to 0.6–1.8 rather than free: outside that range the
-  collapse mode, the code-width clamp and the auto-fit camera stop agreeing
-  with each other, and the result is not a look but a bug report.
-
-- **`{!class}` takes a class off.** In an element's tail, in a `default` tail
-  and in a `style` step. A step could only ever add one, and many slots express
-  their base state as the absence of every member – normal prominence, a solid
-  stroke, a regular size and family – so a beat could leave that state and
-  never return, and an element could not opt out of a `default box {.dim}` on
-  its own line either. One mark closes both, where a named neutral per slot
-  would have been a word per look. It removes the exact name and not the slot:
-  `!dim` does not clear `.ghost`, and a later layer may add `.dim` back. Layers
-  resolve weakest first, removals before additions, so `{.c !c}` in one tail is
-  refused – there is no order under which the removal is not dead – while
-  `style e {!dashed}` at beat 2 and `style e {.dashed}` at beat 4 compose the
-  way an author reads them. A `style` with nothing to add and nothing to remove
-  is an error, because both spellings of it used to be accepted and both did
-  nothing.
-
-- **An element's name goes in front of the statement, and `{#id}` is gone.**
-  On a box, dot, text, image, container, brace or a chart the name was always
-  the word after the statement. The tail form existed for the two constructs
-  with no name slot, and it put the name *last*, after the options, where
-  neither a reader nor a language model looks for it – and on every statement
-  that did not honour it the id parsed, validated and was thrown away without a
-  word, so `box a "A" {#zz}` followed by a reference to `zz` reported that `zz`
-  was not defined. An `edge` and a `sequence` message take an optional name in
-  the slot **before** the from-endpoint: `edge wire p -> q`. It reads by
-  counting rather than by lookahead, because every endpoint form is exactly one
-  token, and anonymous stays exactly as short as it was.
-
-- **Four arrow tokens, and every one of them says which ends carry a head.**
-  `--` none, `->` and `<-` one, `<->` one at each end. `<->` closes a gap that
-  made "a message is an edge" untrue in a `sequence`, where an unknown token
-  drops a line out of the entry run and every line beneath it then reports a
-  keyword nobody wrote. More importantly, `->` used to seed *nothing*: the head
-  arrived as the drawn default, so `default edge {.no-head}` beat a written
-  `->` while a written `--` beat `default edge {.both-heads}`, and precedence
-  depended on which token you happened to type. Every token now seeds a class –
-  `.no-head`, `.one-head`, `.both-heads`, one slot, three states – so no
-  default can win the channel, and a head class is refused in an element's tail
-  and in a `default edge` block. A `style` step is the one place to write one,
-  being the one place a token cannot be re-run.
-
-- **A leader takes the same tokens an edge does.** `text n "…" right of c gap
-  0.9 -- leak` is the plain stub, which is what every leader in the corpus was;
-  `-> leak` is a leader that points, which did not exist before. It used to be
-  written `->` and drew no head, so one token meant *a head* on an edge and *no
-  head* on a text, and the token that describes what a leader draws was refused
-  there. `<-` and `<->` are refused for a stated reason: a leader names one
-  operand and the words are always the other end.
-
-- **Prominence is one channel with three names in three positions.** A class
-  (`{.dim}`), a step verb (`dim a, b`), and a `bars` option taking column
-  indices (`dim 0,2`) – all three off one table, so learning one teaches the
-  others. It replaces `calm`, a verb that existed nowhere else in the grammar
-  and had no class behind it, and it gives `.ghost` a verb it never had.
-  `dim a` and `style a {.dim}` are now the same act everywhere, print included.
-  Going back to the unnamed normal is `{!emph}` / `{!dim}` / `{!ghost}`, not a
-  fourth word.
-
-- **Print's prominence for an element is the prominence it carries at the
-  opening beat.** *A prominence class on an element's own line is part of the
-  drawing and appears in the handout; a prominence set inside a `step` is a
-  lecture-time act and does not.* Everything else about print is unchanged –
-  still the last beat, still not the union, still keeping tones, labels and
-  visibility from the last beat. What it replaces was a provenance flag set by
-  the verb and cleared by the class, so `emph a` and `style a {.emph}` were
-  identical on screen and different on paper with nothing in the source to say
-  so; and it was recorded per element rather than per class, so any prominence
-  verb naming an element stripped a `{.dim}` the author had written on the
-  element's own line, and something declared to be background came out of the
-  printer as foreground. An arrowhead a step removed is no longer printed
-  either: print was the last beat's line with the opening beat's head, an
-  arrowhead sitting on an endpoint that was never shortened to receive it.
-
-- **One word, one meaning, across four pairs that had two.** The placement
-  option `align` is now **`flush`** – the statement keeps `align`, because that
-  is what the set operation is called in every drawing tool, and `flush` is the
-  word the prose already reached for when it explained the option. The centre
-  word is **`middle`** on both axes, so `align x center` becomes `align x
-  middle`; `center` stays as an anchor, where it names the centre of one
-  element. A `plot`'s tick interval is **`tick`**, not `step`, which is the
-  statement that opens a beat. And the per-unit height of a repeating thing is
-  **`row`** on a `table`, **`band`** on `lanes` and **`header`** on a
-  `sequence`, rather than `h`: on a box or a chart `h` is how tall the thing
-  is, and reading it that way on those three was wrong by a factor of the row
-  count, silently, in the direction that still draws a plausible picture. A
-  `table`'s `w` is the frame now, and writing it beside `col` is refused as one
-  number said twice.
-
-- **A `gap` is comparable with any other `gap`, whichever way it points.**
-  Every number in a figure is in that figure's own grid units, and there are
-  two families: a number that *addresses* the grid is axis-keyed, because a
-  cell has a width and a height, and a number that states a *clearance* is
-  square, with one row as its ruler. `gap` was the one clearance that was not –
-  multiplied by the cell's width across and its height down, so the same number
-  on two adjacent lines drew two distances with nothing in the source to say
-  so. Measured over the corpus, `gap 1` sideways was on median **2.9 times**
-  `gap 1` downwards, which silently breaks the first rule of figure layout:
-  even gaps say nothing, uneven gaps mean something. `space` on a `bars` and on
-  a `table` are square for the same reason – adding `horizontal` to a `bars`
-  line used to rescale its column spacing, and a table, whose whole promise is
-  regularity, put 30.0px between two columns and 10.4px between two rows at one
-  unit. Existing figures were migrated with the converted number written out.
-
-- **A class is legal on a kind exactly when that kind draws something it can
-  reach.** One table and one gate, replacing the two ad-hoc ones for outlines
-  and for label alignment, so `.hex` on an edge, `.elbow` on a box and `.left`
-  on a brace are all refused by the same rule and the refusal names the
-  question the class answers: *".hex is an outline, and an edge has nothing to
-  draw it with – it belongs on a box."* It reaches a `style` step too, where a
-  tag expands to members that may not all be able to take the class. And **two
-  classes from one slot in one attribute tail is an error**: both used to
-  survive parsing and both were emitted, so which one the reader saw was
-  decided by stylesheet order. The kind gate runs first and the slot check only
-  on what survives it, or an edge carrying two outline classes is told "an
-  element has one outline", which is false of an edge.
-
-- **Problems are reported in causal order, never in line order.** Four phases –
-  syntax, reference, semantic, layout – and the sort is by phase, stable within
-  one. A syntax failure can *manufacture* a dangling reference, and the reverse
-  never happens, so the cause is always in the earlier phase; a line number is
-  not evidence about cause, and sorting by it puts the manufactured symptom
-  first whenever the statement that caused it sits further down the block. This
-  matters most in the editor, which shows one problem and nothing else. In the
-  same pass, a statement that stopped reading early no longer earns a complaint
-  per remaining token plus one for the placement it never reached: `rightof a`
-  went from five problems to one.
-
-- **A `step` takes one name, spelled the way an element name is.** A second
-  token after it is an error naming what a step is.
-
-- **An edge label can sit on either side of its line, and `side <word>` says
-  which.** `side top` / `side bottom` beside a horizontal edge, `side left` /
-  `side right` beside a vertical one, and `.turn` stands the words on end
-  beside it. Two parallel edges can therefore carry a label each without the
-  reader having to guess which line the lower one belongs to. Which pair
-  applies depends on the direction the edge ended up running, so naming the
-  pair that runs along it is a build warning rather than a parse error. It is
-  a keyed option and not the four alignment classes, which on a box, a dot or
-  a free text are two independent channels – the same four words would have
-  meant two geometries chosen by kind, and `{.top .left}` on an edge would
-  have been writable although an edge has one side to pick. A brace's side is
-  `side <word>` too, for the one concept the two share.
-
-- **`::: draw` draws five more outlines.** `.hex`, `.diamond`, `.chevron`,
-  `.wedge` and `.cross` join `.round` and `.sharp` in one slot – a protocol
-  message that is an arrow, an IDS sensor that is a hexagon, a size comparison
-  that is a triangle, a scatter marker, and the diamond a room has been trained
-  since school to read as the question a flowchart asks. `point up|down|left|right` aims the two
-  that have a point, so eight orientations cost one option rather than eight
-  class names. They cost nothing downstream: a shape is the same four numbers
-  a rectangle carries, joined into a different path, so the extents, the
-  viewBox and the tween are untouched. An outline class on any other kind, or
-  inside a `style` step, is an error rather than a silent no-op.
-
-  The diamond is the one that eats **both** axes, and in proportion to its
-  label rather than to the other axis: the widest room a diamond offers is a
-  strip half its width by half its height through its centre, so a label that
-  fits a rectangle needs a diamond twice as wide and twice as tall. Keep a
-  diamond's label to two or three words, or the decision arrives at four times
-  the area of the boxes it sits between and takes the figure over.
-- **`.turn` reads a label bottom-to-top.** For a tall narrow element that has
-  room for a word only along its long side: a firewall bar, a confusion-matrix
-  row, an axis title.
-- **`bars`, `grid` and `plot`.** A column chart, a rectangular field of
-  markers, and a cartesian frame with gridlines, ticks and axis titles. All
-  three expand into ordinary elements, so a `brace` spans three columns of a
-  chart and a `style` step tints one cell of a grid with no new vocabulary,
-  and a step naming the statement reaches everything it produced. Inside a
-  `plot`, `roc@0.35` names a value in the plot's own units. The spacing
-  inside one of these statements is `space`; `gap` keeps the one meaning it
-  has everywhere else, the distance between two elements.
-- **`.smooth` draws an edge as a curve through its waypoints**, for the
-  figures where a line is a measurement rather than a connection.
-- **A bar chart can run sideways, and a chart can say what shape it is.**
-  `horizontal` on a `bars` line turns the columns into bars: lengths from a
-  shared left edge, categories stacked downwards, the tick strip a right-aligned
-  column down the left margin and the baseline standing on the left. It is not a
-  variant of the same picture - a reader ranks lengths more reliably than
-  heights, and a category called "DNS cache poisoning" cannot be written under
-  an upright column at all. Which is why a tick string containing `|` is now
-  split on that rather than on spaces, so a row label may be a phrase; the same
-  mark already separates a `table` row and a `lanes` name.
-
-  `aspect W:H` on a `bars` or a `plot` states the proportion the reader sees.
-  It exists because `w` and `h` are counts of *grid cells* and a grid cell is
-  not square: at `unit=150x52` a plot written `w 1.9 h 1.5` arrives 285 pixels
-  by 78, and nothing on the line hints at it. Write `aspect 4:3`, `aspect 1:1`,
-  or one bare number meaning that many wide to one tall, and the build works
-  the other dimension out. Giving `w`, `h` and `aspect` together is an error.
-- **`same as <chart>` sizes a `plot` or a `bars` from another one**, for the
-  row of comparable frames a shared baseline needs. It is answered while the
-  line is read rather than during layout, because a chart's gridlines, ticks
-  and columns are placed from its own dimensions at parse time - so the chart
-  being copied has to be written above the one copying it, and the build says
-  which of declared-below, not-a-chart or not-there went wrong.
-- **An edge can be placed against, like anything else.** `text n "…" above w1
-  gap 0.2`, `at w1.cx,w1.cy` - the box a coordinate reads is the bounding box
-  of the route. A coordinate could name a box, a dot, a text or an image and
-  never an edge, not by design but because edges were routed after the walk
-  that places everything else; the omission bit in the wrong direction, because
-  a phrase describing a wire then had to be pinned to one of the boxes at
-  either end and drifted off its line on the next edit. Raising two boxes from
-  `h 3.0` to `h 4.2` moves a box-anchored label from 13.5px off its wire to
-  22.3px; a wire-anchored one stays where it was put. `dgEdgeRoute()` is now the
-  one text that works out a route, called by the layout and by the emitter, so
-  the two cannot disagree.
-- **`table` and `lanes`.** A grid of labelled cells, and a set of equal bands
-  with their names turned down the side. Both expand at parse time into
-  ordinary boxes and texts, exactly as `bars`, `grid` and `plot` do, so a
-  `brace` spans two rows of a table and a `style` step tints one cell with no
-  new vocabulary anywhere downstream. They exist because the hand-built
-  versions are the ones that cannot be maintained: six rows of three cost
-  twenty-one declarations and a chain of `below` references to re-aim whenever
-  a row is inserted. A table's heading is one string split on `|` and its body
-  is the run of bare quoted strings beneath it; every cell carries two
-  generated tags, `@t-row-2` and `@t-col-0`, so lighting a row per beat is one
-  line of source. `lanes` is deliberately **not** a container: a container fits
-  its members, so bands holding different numbers of things come out ragged at
-  both ends, which is the opposite of what a swimlane means.
-- **A `bars` chart can carry more than one run of columns.**
-  `bars g "…" series of f` joins the first chart's frame rather than drawing
-  its own – plain, it stands beside the runs before it and the cell is shared
-  out, so a grouped chart takes exactly the paper a single one did; `stacked`,
-  it sits on the run before it and the scale becomes the tallest stack. It is
-  its own statement rather than a second values string so that each series has
-  its own attribute tail: a series is a thing with a colour and a name, and one
-  tail per series is how it gets one. A series refuses `w`, `h`, `space`, a
-  placement and a tick strip by name, because all five belong to the chart it
-  joined. `emph 1,3`, `dim 4` and `ghost 0` on any `bars` line take column
-  indices and mean on the line what they already mean in a step and as a
-  class, so a chart can *arrive* with one column singled out instead of only
-  from beat 1 onwards.
-- **`.elbow` routes an edge with one turn out and one turn in.** A rail halfway
-  across the gap, on whichever axis the two ends are further apart, with both
-  anchors forced onto that axis – the two waypoints every tree edge used to be
-  written with by hand, said in one word. The rail is measured between the two
-  *faces* rather than the two centres, which is what makes several connectors
-  out of one parent share a rail and read as a single bracket. Bounded: it
-  looks at nothing else in the figure, nothing steps around an obstacle, and
-  there is no option to move the rail; `.elbow` together with
-  `via` is an error rather than a preference the build guesses at.
-- **`sequence` draws a protocol down the page.** A row of actor heads, a
-  lifeline under each, numbered messages between them and notes on a lifeline,
-  written as three shapes of line: `actor u "User"`, `note b "…"`, and
-  `u -> br "label" ["second line"]`. It expands at parse time into the boxes,
-  texts and edges the language already had, so a `brace` spans three messages
-  and a `step` reaches one by name with no new vocabulary anywhere.
-
-  The statement owns exactly one thing – the vertical rhythm. Written out by
-  hand every message carries a y coordinate of its own, so inserting one in the
-  middle means moving everything under it, renumbering, and re-guessing how far
-  the lifelines run: measured at thirteen edits against one line. Every entry
-  states the height it needs and the statement stacks the bands, so a note
-  pushes what follows it down. `space n` on a `note` or a message line sets that
-  one band's own gap, which is how a dense protocol is broken into phases.
-
-  Everything it draws has a name – `wa-3` for a message, `au-life` for a
-  lifeline, `wa-note-0`, plus the tags `@wa-msgs`, `@au-msgs`, `@wa-msg-3` – so
-  an annotation the construct knows nothing about is an ordinary line of source.
-  There is no `alt` / `else`: a `container` with a caption already encloses and
-  names a group of messages, and a word freezes at the next release.
-
-  Message labels carry a paper ground by default, and sit beside the line
-  rather than on it, because a lifeline crosses every one of them and an edge
-  reads a fill with no side named as "knock the line out behind the words".
-  `.clear` takes the ground off, a written `.tone-n` replaces it. The numbers
-  are drawn unless the line says `unnumbered`, because the visible number and
-  the generated tag carry the same index: `@wa-msg-3` is the arrow the room
-  reads as 4.
-
-  `lanes` and `sequence` are the two statements authors pick the wrong one of,
-  and they are one pair with the axes swapped: `lanes` puts who down the side
-  and lets the reading direction carry the time, `sequence` puts who across the
-  top and makes the vertical axis the time itself.
-
-  The editor reaches all of it. A `sequence` is the one expanding statement
-  whose entries are lines the author typed, so `actor`, `note` and message
-  lines are selectable and their labels, classes and tails editable in the
-  panel, which reads its controls off the entry statement rather than off the
-  box and the edge the entry expands into. A lifeline, a message number and a
-  message's second line own no text of their own and stay with the statement;
-  the frame no longer swallows a click aimed at a message crossing it; and
-  `unnumbered` is a checkbox.
-- **An edge's label can carry a ground.** A fill class on an `edge` draws a
-  rect behind the label on the same terms a free `text`'s ground is drawn, and
-  `pad` and `side` are now legal `edge` options. With no side named the label
-  sits **on** the line and knocks it out behind the words, which is what a
-  sequence number or a port wants; with a `side` it clears the line and
-  carries the ground with it. Before this, `.paper` on an edge resolved,
-  emitted its class and drew nothing.
-- **`figure-design.md`** – how to lay a figure out so a room reads it: ten
-  rules with a wrong/right pair each, the tone-to-role table, the five
-  arrangements a lecture keeps asking for (flowchart, swimlane, tree, table,
-  protocol) with the construction fact each one turns on, the four-beat step
-  order, and a checklist to work down before a figure is finished.
-
-- **`::: draw` – animated infographics written in the lecture source.**
-  A line-oriented DSL for boxes, dots, free text, arrows, auto-fitting
-  containers, groups and braces, compiled to inline SVG at build time and
-  themed through the page's own custom properties, so a diagram re-inks
-  with the `A` cycle. `step` blocks show, hide, move, emphasise, restyle
-  and relabel elements; **layout is re-evaluated per step rather than
-  transformed**, so an arrow between two boxes re-routes when either one
-  moves. Steps become beats on the existing reveal counter, so `Space`
-  advances them, the speaker window follows, the freeze gate applies, and a
-  revisited chunk comes back fully stepped, all without new state. Free
-  `text` can grow a leader line to whatever it comments on (`-- ref` plain,
-  `-> ref` pointing), which is what makes placement free without losing the
-  connection. Print shows the last beat, carrying each element's prominence
-  from the opening beat. There is **no automatic layout and
-  no constraint solver**: placement
-  is a grid cell or a relation to a neighbour, resolved as a DAG, so a
-  mistake names its line instead of shifting the picture. `lint.js`
-  mirrors the vocabulary and reports unknown statements, unknown classes,
-  duplicate names and dangling references.
-
-  `align x|y <edge> a,b,c` lines up one coordinate (Figma's edge words,
-  with the axis stated: left/middle/right on x, top/middle/bottom on y) and `spread x|y a,…,z`
-  gives equal spacing between centres. Both are an extra dependency plus a
-  coordinate override in the same topological walk – no solver, no second
-  pass – and both name the line on a circular authoring instead of drawing
-  a plausible wrong answer. They close the commonest alignment failure:
-  two columns built as separate `below` chains drift apart as soon as
-  their captions differ in height. The build now also warns when an edge
-  runs within a few degrees of an axis without being on it, which is what
-  that drift looks like once a line is drawn across it.
-
-  Tags (`@tag` in the attribute tail) replace the `group` statement.
-  Membership sits on the element's own line, so adding an element to a set
-  is a local edit and one element can belong to several sets. An edge
-  endpoint may be a bare coordinate (`edge -0.8,0 -> a`) for an arrow
-  arriving from outside the picture.
-
-  `default <kind> {classes} [w n] [h n]` sets the base styling and size
-  for every element of that kind – two lines replaced twelve repetitions
-  in the identity-lifecycle example. It is position-independent with one
-  per kind (DOT's position-dependent model makes the source
-  order-sensitive invisibly), and an element's own class **displaces** a
-  default in the same slot rather than stacking with it. `same as
-  <element>` copies another element's width and height.
-
-  The same statements can be written **once for the whole lecture** in a
-  `draw-defaults` frontmatter key, so a series of figures looks like
-  itself without repeating four lines in every block – and changing the
-  look is one edit instead of twelve. Four layers now, most specific last:
-  the lecture's kind default, the lecture's tag default, the block's kind
-  default, the block's tag default, then the element's own attributes.
-  Scope before selector, because "closer to the element wins" is the model
-  everywhere else here. Anything but a `default` statement in the key is
-  an error naming the line even when no diagram uses it, and a
-  lecture-level `default <kind> @tag` has to be used somewhere in the
-  lecture – one scope wider than a block's, since it is written once for
-  twelve figures most of which will not carry the tag.
-
-  `image <name> <asset>` puts a picture in a diagram, resolved like the
-  `![](fig-id)` shorthand. A vector asset is spliced as a nested `<svg>`
-  and follows the `A` theme cycle; a raster is a `data:` URI and keeps
-  its own colours. `between A,B [frac n]` positions an element on the line
-  joining two others, and any placement takes a trailing `offset dx,dy`. An
-  anchor takes a fraction (`mix.right:0.3`) that slides the attachment point
-  along that edge, which is what stops two arrows between the same pair
-  of boxes from collapsing into a lens; there is no automatic fan-out,
-  because it would silently redraw existing diagrams.
-
-  Four more classes close the gaps the vocabulary could not spell.
-  `.clear` is a see-through interior – `.bare` removes the *stroke*, so a
-  frame you can read through had no spelling at all. `.serif` is the
-  upright serif; `.hand` is the same family forced italic and accented,
-  and until now the family was reachable only through that annotation
-  voice. `.fit` and `.shrink` size the type to the box instead of the box
-  to the type, clamped to 0.6–1.5× so a long label cannot become
-  unreadable and a short one cannot become a poster; both need the box to
-  be given (`w n` or `same as X`), and an element with neither is an error
-  rather than a line that does nothing. A free `text` now draws a ground
-  when it carries a tone, which is the same drawable a box uses read the
-  other way round, and `pad` works on a box and a text as well as on a
-  container and a brace – one word, one sentence, four statements. Every
-  class now belongs to a slot: `.thick`/`.bare` and `.mono`/`.serif`/`.hand`
-  used to stack with a `default` instead of displacing it. `.tone-4` with
-  `.accent` is accent ink on an accent fill; the inversion wins and the build
-  warns where the pair is live in every beat.
-
-  Inside a label, `_sub` / `^sup` shift a run and `*accent*` / `~muted~`
-  colour one. Free `text` honours `.left` / `.right`, and its anchor
-  moves with them. A diagram is click-to-zoom like any other figure, and
-  keeps stepping while focused. How large it lands is the chunk's width
-  class; `unit` sets only the proportions inside the picture.
-
-  Fixed before it ever shipped, from a review of the branch: a `label`
-  step never switched variants live (the runtime looked labels up by the
-  element id rather than the geometry key), a `.ghost` element could
-  never be hidden (author CSS beat the presentation attribute the runtime
-  set), hide-then-show started an element invisible, an unclosed
-  `::: draw` silently swallowed the rest of the file, `align` and
-  `spread` accepted containers and edges and did nothing with them, a
-  `move` on a brace was a no-op, `--optimize-images` and the linter's
-  oversized-asset gate could not see diagram assets that the build now
-  hard-fails on, WebP and GIF images were laid out square, a diagram
-  inside a collapsed expansion contributed reveal beats that changed
-  nothing on the projection, a container's caption hung outside its own
-  border, a long label could draw outside the viewBox, `label @tag` was a
-  silent no-op, and one mistake was reported once per step.
-
-  A coordinate may be another element's coordinate with an optional signed
-  nudge – `via iv.cx,x0.cy`, `edge a.left-0.8,a.cy -> a`. Rebuilding the
-  example slides had needed a browser open and three numbers read off the
-  screen; all three are now relations that survive a change above them
-  (verified: moving a row down by 48px moves the waypoint corner by
-  exactly 48px and the leg stays vertical). The nudge's shape is a promise
-  to the future editor: one signed term, no other operators, so a drag
-  rewrites one token instead of replacing the reference with an absolute.
-
-  `default <kind> @tag` refines a kind default for the elements carrying a
-  tag, resolving in three layers – kind, then tag, then the element's own
-  attributes.
-
-  Rebuilding all six example slides from scratch found three more: a
-  placement's `offset` was applied after `align` overrode the result, so
-  an element that used both got the offset twice; a brace label was
-  anchored middle and lay half across the elements it spans; and the
-  `::: side` composition of a code fence beside a diagram works, which is
-  what carries the buffer-overflow slide.
-
-  A second review pass, with every doc snippet compiled and every example
-  slide re-shot, tightened the grammar where it had grown two ways of
-  saying one thing. `brace` measures its distance to its members with
-  `pad`, the word `container` already used – `gap` everywhere else in the
-  grammar is the distance between two *elements*. One coordinate grammar
-  now sits behind `at X,Y`, `move … to X,Y`, waypoints and endpoints
-  alike, so `box m at c1.cx,m0.cy` places a box in a column without
-  measuring it, and a reference there is a real dependency the cycle
-  detector sees. `via` is no longer optional in front of a waypoint, and
-  one `via` carries every one of them. `default <kind>` accepts exactly
-  the options that kind's own statement accepts, so `default box r 5` is
-  an error naming the kind it belongs to instead of a line that parses and
-  does nothing, and `default container pad` / `default brace pad …
-  side <word>` now reach the elements they are about. An element name is
-  restricted to letters, digits, `_` and `-`, because a name with a dot in
-  it is indistinguishable from a coordinate.
-
-  Visibility became one rule with three faces: an edge is only as visible
-  as its endpoints, a `container` or `brace` only as visible as its
-  members (and it fits the ones on screen), and a `text` with a leader
-  only as visible as what it points at. Print became **the last beat**
-  rather than the union of every beat – reprinting a `hide`n element laid
-  a withdrawn arrow across whatever replaced it – and the emitted SVG now
-  carries the tight print viewBox statically, with the runtime widening it
-  to hold every beat on boot, so a stepped handout no longer prints a band
-  of empty paper the height of wherever something started out. A class
-  added by `style` displaces the one in its slot, the same rule `default`
-  follows. `move @tag to …` is refused, naming `move @tag by dx,dy`: `to`
-  would stack the whole set on one point.
-
-  **Placing a picture from inside the editor.** The image tool took the
-  first asset the lecture happened to reference, with no chooser, and
-  refused outright when there was none, so a figure could not get its
-  first picture from the editor at all. It now opens a picker over three
-  sources: the assets this lecture already inlines, everything in
-  `assets/` (asked from the watch server, so it costs no payload), and a
-  file from the machine. Under `--watch` the whole loop closes: the bytes
-  go over the socket that already carries patches, the server writes
-  `assets/<name>` with five refusals rather than five sanitisations, and
-  *then* the `image` line is placed – that order matters, because
-  `fs.watch` is on `source.md` and the patch is what kicks the build.
-  Without a watch server it writes an explicit `assets/<file>` path, which
-  the grammar already accepts, and says where to copy the file. Never a
-  `data:` URI in `source.md`. The primitive is a plain file input, not the
-  File System Access API: for *reading* a picked file that has always been
-  enough, in every browser and from `file://`.
-
-  `.paper` joined the class vocabulary while that picker was being built. The fill
-  swatch row opened with the *empty* class labelled "paper", so it meant
-  "whatever a default says" – a box under `default box {.tone-3}` had no
-  way back to the canvas colour, and a free `text` could not have a ground
-  at all – a ground is what knocks out a line running behind it.
-
-  `lint.js` was stricter than the build, which for the pre-commit gate is
-  worse than not linting: its `between` scan did not terminate on `pad`,
-  `gap`, `flush` or `same`, so a placement with any of them read their
-  values as members.
-
-  Development state: this is unreleased work on a branch, and the
-  vocabulary is **experimental** – it may still change before it is
-  frozen under the source-format contract, so it should carry that label
-  in the notes of whichever release first includes it.
-
-  See `PRD.md` §4.6a for the grammar and `lectures/diagrams/source.md` for
-  a worked example of every construct.
-
-- **A graphical editor for `::: draw`.** Click a diagram to focus it, then
-  the button in the corner or `E`. It parses the block, records where every
-  token sits, answers a drag by rewriting the smallest span it can, and
-  re-runs the same compiler the build runs – so there is no second
-  representation to drift, no export step that flattens relations into
-  numbers, and no file the editor owns. Everything it produces is a block a
-  human could have typed.
-
-  The canvas is a **frame**, not a canvas size: the chunk's own width class
-  on a slide, one pane of a `::: side` at that class, or the print measure
-  where the height cap does not apply. Switching between them changes nothing
-  in the source. It says out loud two things that are otherwise invisible
-  until you look at the built page – the measure the figure lands in, and how
-  much of it stays empty when the 62vh cap binds first.
-
-  Because a figure here is held together by *relations* rather than
-  coordinates, and that structure is completely invisible in the picture, the
-  editor draws it: the `gap` between two facing edges with its number, the
-  alignment edge as a hairline through both elements, `between` as the line
-  joining its references, a ref coordinate as the line it refers to, an
-  `align` set's shared axis through every member, a `spread` set's equal
-  distances as matched marks, `same as` as a width bracket. A drag then
-  rewrites exactly one token – the `gap`, the `frac`, the signed nudge – and
-  a coordinate that belongs to an `align` or `spread` set is refused **by
-  name**: *"y comes from align y middle on line 40. Drag iv to move the row,
-  or drop c1 from that line."* The status bar always shows the line it is
-  about to write.
-
-  Where an edit goes, in four tiers: the `--watch` socket, now two-way, which
-  patches the block straight back into `source.md`; the clipboard; File
-  System Access where the browser has it; and `localStorage` for a reader
-  whose `audience.html` is a build artefact, with a visible way back. An edit
-  syncs to the other window as its own message, gated by the freeze flag – so
-  freeze, fix the figure, unfreeze, and the room gets the finished picture.
-
-  **A relation can be re-pointed, not only stretched.** Four chips appear
-  around whatever the pointer is over while dragging, and releasing on one
-  docks the element to that side of that element – the placement is rewritten,
-  so it follows its new reference from then on. Dragging an element through
-  the thing it is measured from changes the side without leaving it. The
-  placement pane reads the relation back as the three things it says – kind,
-  reference, distance – and lets each be changed, including `between a,b`,
-  which no drag can express. The align and distribute acts are named the way
-  they would be looked for rather than the way the statement spells them.
-
-  **A label can sit somewhere other than the middle of its box.** `.left` /
-  `.right` place a horizontal run of text and `.top` / `.bottom` the block of
-  lines, measured against the element's own padding – as far that way as the
-  box allows, not on its border. A tall element with a short label is the case
-  they exist for. With more than one line the block moves rather than the
-  line, so `bottom` puts the *last* line on the inner edge. `.left` / `.right`
-  previously worked on a free `text` only.
-
-  Written where it cannot act, one of those words is now an error rather than
-  a class that resolves and moves nothing. A container's caption is placed on
-  its own top border, a brace's label beside the spine and an edge's at the
-  middle of the route, so none of the four applies to any of the three – an
-  edge says which side of its line the label sits on with `side <word>`
-  instead.
-
-  **An `align` or `spread` set can be left by dragging.** Pulling a follower
-  against its shared axis holds it there, draws the axis, and says how much
-  further to pull; half a cell past it, or with Alt held, the element is
-  dropped from the statement and the drag goes through. It used to be a flat
-  refusal telling the author to go and edit that line by hand, and the only
-  way out of a set was the text.
-
-  **Waypoints are draggable.** A hollow dot at the middle of every segment
-  adds one, a square moves one, and a double-click or the chip in the panel
-  takes one out. Where a waypoint holds a reference – `via iv.cx,d0.bottom+0.28`,
-  which is how a routed arrow stays attached to the boxes it runs past – the
-  drag rewrites the **signed nudge** on each component and never the
-  reference. Each axis is decided separately, because half reference and half
-  number is the normal case in a routed figure.
-
-  An **arrow is a first-class object** in it: an edge
-  has no box, because it is not placed – it is drawn between two things that
-  were. Clicking one hits the line itself, a box wins over an arrow crossing
-  it and an arrow wins over the container it runs through, and the selection
-  traces the line rather than boxing it. Dragging either end retargets it,
-  and answers with a **name** wherever it can – the arrow keeps following the
-  box it now points at, instead of being frozen to the coordinates the drag
-  happened to end on. Labels are multi-line, on edges as well as boxes.
-
-  Off with `editor: none` in the frontmatter; `editor: speaker` keeps it out
-  of the projection. A lecture with no diagram pays nothing.
-
-### Changed
-
-- **Navigation follows one forward key and one backward key.** `Space`, `↓`,
-  `Enter` and `PageDown` advance the reveal or diagram step on the slide and,
-  when there is none left, move to the next chunk – across column boundaries,
-  so a whole lecture is one key. `↑`, `PageUp` and `Backspace` are the exact
-  mirror: **they take a reveal back**, and only leave the chunk once it is at
-  its opening state. `→` / `←` are that same pair *except on the first chunk
-  of a column*, where they change column – the only chunk where a second
-  dimension exists to move in.
-
-  Reveal used to be forward-only, on the reasoning that a revisited slide
-  should simply show everything. That is still what happens when you arrive
-  at a chunk from somewhere else, but it is the wrong answer while you are
-  standing on the slide: a figure that assembles itself is often worth
-  assembling twice, and there was no way to run it again without leaving and
-  coming back. The mechanism was always symmetric; only the keys were not.
-
-  Presenter remotes work now – `PageUp`/`PageDown` were unbound, so a
-  clicker's back button did nothing at all.
-
-  Two marks at the edge of the viewport say which situation the current slide
-  is in: `‹ ›` where sideways changes column, `⌄` where forward will leave the
-  column next. Quiet enough for a projection, absent on the overview board and
-  behind a blanked screen.
-
-  `Enter` used to open the first expansion; it is a forward key now, and
-  `1`–`9` (or clicking the chevron) still opens expansions.
-
-- **Figures sit square in their own frame.** A diagram's `viewBox` is built
-  from what the compiler reserves for each drawable, and two things made it
-  much larger than the drawing: a label reserved a full label-width on *each*
-  side of its origin, and container captions, brace labels and edge labels
-  never recorded a width at all, falling back to a hardcoded 120 whatever
-  their text said. A figure whose outermost element was a caption therefore
-  sat off to one side of an oversized box with an unexplained empty margin
-  beside it – up to 122px on a figure 480px wide. Eight of the twelve figures
-  in `lectures/diagrams` now land exactly on the margin on both sides; what is
-  left is the generosity of the text-width estimate, which is about
-  11% on the bundled faces and never clips.
-
-### Fixed
-
 - **The bundled mono face ligated the grammar's own tokens away.** JetBrains
   Mono draws `->` as a single arrow glyph, and `<-`, `<->`, `--` and `!=` the
   same way, so a listing on a slide, in a handout, in a `.mono` diagram label
@@ -1796,6 +1823,7 @@ from building the same way is a major version.
   contextual set and the rest in `liga`. Only the mono channel: sans and serif
   labels keep their `fi` and `fl`, and the editor's canvas is left alone so
   the figure looks there exactly as it looks on the slide.
+
 - **Two messages named a name that exists but is not usable yet as one that
   does not exist.** A `plot` line that failed on a later option is still
   *registered* under its name, so reading a value out of it reported that
@@ -1803,22 +1831,27 @@ from building the same way is a major version.
   error, and says it once per name instead of once per coordinate. A
   `same as` naming a chart declared three lines lower said it named nothing
   in the block.
+
 - **A bare `.cross` box is square.** It was 66 by 37 - the minimum box width
   against one line of type - so a plus sign came out with arms of two different
   lengths, which reads as a stretched shape rather than as a marker. Squared
   where the size is decided rather than where the path is drawn, because the
   footprint the layout reserves has to be the footprint that is drawn.
+
 - **A label beside a vertical edge had half the clearance of one beside a
   horizontal edge.** The measured box carries the line's leading along its
   height and nothing along its width, so the same constant bought 3.9px of air
   in one direction and 2px in the other - and optically a gap across a line of
   text needs more, not less. The missing leading is added back where the
   measurement does not carry it.
+
 - **A grounded label beside a line laid its ground back across the line.** The
   offset cleared the glyphs and not the ground, so the rect painted out the one
   thing the offset existed to keep visible.
+
 - **`emph` on a `.tone-4` element was invisible** - an accent stroke on an
   accent fill. It is an ink ring now, checked in all seven themes.
+
 - **A `bars … series of` line was not editable at all.** It is the one statement
   that produces no element carrying its own name, so it had no span-table entry;
   that looked like a decision and was an accident.
@@ -1872,6 +1905,7 @@ from building the same way is a major version.
   family, so the label rule won. Measured before the fix, eight `i`s and
   eight `W`s in a `.mono` label came out 22.8px and 109.1px wide, which is
   the sans face. The three family classes are now all written the same way.
+
 - **A `container` outline was drawn in the faintest line colour on the page**
   (`--rule`, which elsewhere separates two cells of a table). Dashed at that
   weight it was close to invisible on a shaded background, which is where a
@@ -1997,22 +2031,6 @@ from building the same way is a major version.
   order decided it; `AUDIENCE_CSS` happened to order them the way that worked
   and `PRINT_CSS` the way that did not. Both name both attributes now and win
   by specificity rather than by luck.
-
-### Removed
-
-- **The `editorial` cover is gone, and so is `rule`.** `editorial` drew a 4px
-  accent rail down the left edge of the type. A coloured bar welded to the
-  side of a text block carries no information and is present only so that the
-  theme colour appears somewhere on the slide; that is one of the most
-  reliable tells of a machine-made layout, it is named as one in Anthropic's
-  own design guidance, and it was the specific thing the lecturer objected to.
-  Nothing replaced it one for one – its single good idea, the meta set as a
-  row of credits instead of four stacked lines of equal weight, is what
-  `masthead` runs along the bottom of the slide. `rule` went for a smaller
-  reason: it was `stack` plus two hairlines, and a lecturer is not choosing
-  between "centred" and "centred with lines". Both names now fail the build
-  with the list of what to write instead. `::: draw` and the covers are
-  unreleased, so this is not a source-format break.
 
 ## [1.0.0]
 
