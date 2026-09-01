@@ -246,6 +246,64 @@ from building the same way is a major version.
   wrong. What it deliberately does not reach: the `hyphens: auto` inside a
   `::: cards` card and a `::: rows` term, which is not a preference but the
   rescue for a 320px measure a long word overflows outright.
+- **`::: side {middle}` centres the shorter pane against the taller one.** A
+  short pane sat at the top of its half and left the rest of it blank, which
+  on a two-line commentary beside a tall figure is most of a slide. The word
+  rides in a brace tail against a closed slot table (`anchor: top | middle`),
+  the same two words a `::: cards` row already uses for the same question, and
+  the ratio stays positional: `::: side`, `::: side 2:1`, `::: side {middle}`,
+  `::: side 2:1 {middle}`. `top` is the default and is what a bare `::: side`
+  has always drawn, so no existing lecture moves – a figure captioned from the
+  top is often captioned from the top on purpose.
+
+  **It is the block's switch and not each pane's, and that is a fact about
+  grids rather than a simplification.** A grid row is as tall as its tallest
+  item, so the tall pane already fills the row and centring cannot move it:
+  `align-items: center` therefore moves exactly the short pane, which is the
+  whole of what "prose beside a tall figure" asked for. A second, per-pane
+  word would only have bought the ability to leave the tall pane where it
+  already is. `test/side-anchor.mjs` measures both halves of that in a browser
+  – the short pane's offset changes, the tall pane's does not, and the row is
+  the same height either way.
+
+  It costs nothing downstream, by the same measure the ratio did: print sets
+  `.side` to `display: block` and stacks the panes, so `PRINT_CSS` carries no
+  rule and `print.html` is unchanged; the collapse mode does not touch
+  `.side`. An unknown word in the tail, or two words answering the anchor,
+  are both hard errors in the build and errors in `lint.js`.
+
+- **`closing-image:` gives the closing slide a picture.** A `## closing:`
+  chunk draws the deck's cover composition, and the four compositions that
+  take a picture (`split`, `hero`, `beside`, `above`) drew their words with
+  the picture track collapsed – a lecture could not end on the image it opened
+  with. Two cases, two spellings, and only one of them is a filename:
+
+  ```yaml
+  closing-image: cover        # the picture the deck opened with
+  closing-image: end-photo    # a different one - asset id, path, or https URL
+  ```
+
+  `cover` is a reserved word and names *which* picture, so a deck ending on
+  its own opening image writes the filename once. (A deck with an asset
+  literally called `cover` writes the path, `assets/cover.jpg`, which is one
+  of the three forms anyway.) It draws through the cover's own
+  `renderCoverArt` into the same slot, so the last slide divides the frame the
+  way the first one did – which is why the closing slide now takes
+  `cover-ratio` when, and only when, it has a picture to divide it for.
+
+  **It does not replace `::: backdrop` on a closing chunk and is not the same
+  thing.** A backdrop is a full-bleed ground *behind* the type and works on
+  all ten compositions; this fills the picture slot of the four that have one.
+  A backdrop written on the chunk still wins over both, exactly as it does on
+  the cover, and does not lift the empty-track collapse – the track it would
+  have filled is still empty.
+
+  Three refusals, all in the `buildOnce` pre-flight so `--print-only` reaches
+  them, all mirrored in `lint.js` as `bad-closing-image`: the key on one of
+  the six compositions that draw no picture, `closing-image: cover` with no
+  `cover-image` to reuse, and a `closing-image` in a deck with no `closing:`
+  chunk. Purely additive – no existing `source.md` could have used the key,
+  and every lecture in the repository builds byte-identical markup.
 
 - **`{.center}` in a chunk's attribute tail sets that chunk's prose on a
   centre axis**, on the projection and in the cockpit and not in the printed

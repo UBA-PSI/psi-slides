@@ -1691,6 +1691,126 @@ console.log('\nlayout generations');
      'an unknown value is a linter error, as every other style key is');
   ok(/style\.hyphenate: yes/.test(hyph('style:\n  hyphenate: yes\n').out),
      'and fails the build');
+  // ── ::: side {middle} ────────────────────────────────────────────────
+  // The word is a brace tail against a closed slot table, which is what the
+  // rest of the language does with words; the ratio stays positional,
+  // because a number is read by its position. Both may be written, in that
+  // order.
+  const sideOf = (open) => raw(FM + `## free: A {#a}\n\n${open}\nProse.\n::: flip\nMore.\n:::\n`,
+    ['--audience-only']);
+  const sideMid = sideOf('::: side {middle}');
+  ok(sideMid.code === 0 && /<div class="side sv-middle"><div class="side-a">/.test(sideMid.html),
+     'the anchor word on ::: side reaches the markup as a class', sideMid.out.split('\n')[0]);
+  ok(/\.side\.sv-middle \{ align-items: center; \}/.test(sideMid.html),
+     'and the stylesheet centres the panes on the block, never per pane');
+  const sideBoth = sideOf('::: side 2:1 {middle}');
+  ok(sideBoth.code === 0
+     && /<div class="side sv-middle" style="--side-a:2fr;--side-b:1fr">/.test(sideBoth.html),
+     'a ratio and an anchor are read from one line, ratio first',
+     sideBoth.out.split('\n')[0]);
+  // The default is not emitted, and that is the additive half: every
+  // ::: side written before this existed produces the markup it always did.
+  const sidePlain = sideOf('::: side');
+  ok(sidePlain.code === 0 && /<div class="side"><div class="side-a">/.test(sidePlain.html),
+     'a bare ::: side still emits the class it always did, and no anchor');
+  const sideTop = sideOf('::: side {top}');
+  ok(sideTop.code === 0 && /<div class="side"><div class="side-a">/.test(sideTop.html),
+     'and writing the default explicitly changes nothing, because it is the default');
+  // The two failures this grammar refuses everywhere, in both files.
+  const sideBad = sideOf('::: side {sideways}');
+  ok(sideBad.code !== 0 && /is not a word this directive knows/.test(sideBad.out),
+     'a word from no slot is refused rather than dropped');
+  ok(/bad-side-class/.test(lintOf(FM + '## free: A {#a}\n\n::: side {sideways}\nP.\n::: flip\nQ.\n:::\n')),
+     'and the linter refuses it too, or the build accepts what the gate does not');
+  const sideTwo = sideOf('::: side {top middle}');
+  ok(sideTwo.code !== 0 && /both answer "anchor"/.test(sideTwo.out),
+     'two words from one slot are refused, because one of them would be thrown away');
+  ok(/bad-side-class/.test(lintOf(FM + '## free: A {#a}\n\n::: side {top middle}\nP.\n::: flip\nQ.\n:::\n')),
+     'and the linter says the same');
+  // The old refusal grew rather than moved: an unreadable line is still a
+  // hard error and its message now names the tail as well as the ratio.
+  const sideJunk = sideOf('::: side 2:1 wide');
+  ok(sideJunk.code !== 0 && /takes an optional ratio, an optional \{class\} tail/.test(sideJunk.out),
+     'and anything the line is not is still refused, with the tail named');
+  ok(/bad-side\b/.test(lintOf(FM + '## free: A {#a}\n\n::: side 2:1 wide\nP.\n::: flip\nQ.\n:::\n')),
+     'in both files');
+  // Print never reads it, which is why it cost nothing: .side is display
+  // block on paper and the two panes stack.
+  const sidePrint = raw(FM + '## free: A {#a}\n\n::: side {middle}\nP.\n::: flip\nQ.\n:::\n',
+    ['--print-only']);
+  ok(sidePrint.code === 0 && !/\.side\.sv-middle/.test(sidePrint.print),
+     'and PRINT_CSS carries no rule for it - on paper the panes stack');
+
+  // ── closing-image ────────────────────────────────────────────────────
+  // The counterpart of cover-image, and it draws through the same function
+  // into the same slot of the same composition.
+  const SPLIT = '---\ntitle: T\ncover: split\ncover-image: pic\n';
+  const cimg = (fm, args = ['--audience-only']) =>
+    raw(fm + '---\n\n## title: {#title}\n\n## free: F {#f}\n\nB.\n\n## closing: Fin {#end}\n', args);
+  const cloNone = cimg(SPLIT);
+  ok(cloNone.code === 0 && !/data-tag="closing"[^>]*data-closing-art/.test(cloNone.html),
+     'a closing slide still draws no picture unless one is asked for',
+     cloNone.out.split('\n')[0]);
+  const cloSame = cimg(SPLIT + 'closing-image: cover\n');
+  ok(cloSame.code === 0 && /data-tag="closing"[^>]*data-closing-art/.test(cloSame.html),
+     'closing-image: cover ends the deck on the picture it opened with',
+     cloSame.out.split('\n')[0]);
+  // The same file, not a second one: the whole point of the reserved word is
+  // that a deck ending on its own opening image does not repeat the name.
+  const artOf = (html, tag) => {
+    const m = html.match(new RegExp(`<article[^>]*data-tag="${tag}"[\\s\\S]*?</article>`));
+    return m ? m[0] : '';
+  };
+  const uriIn = (s) => (s.match(/background-image:url\(&quot;([^&]*)&quot;\)/) || [])[1] || null;
+  ok(uriIn(artOf(cloSame.html, 'closing'))
+     && uriIn(artOf(cloSame.html, 'closing')) === uriIn(artOf(cloSame.html, 'title')),
+     'and it is the cover-image itself, so the filename is written once');
+  const cloOther = cimg(SPLIT + 'closing-image: assets/pic.png\n');
+  ok(cloOther.code === 0 && uriIn(artOf(cloOther.html, 'closing')),
+     'and a path names a different picture for the last slide',
+     cloOther.out.split('\n')[0]);
+  // The collapse and the ratio both follow the picture. Without one the
+  // track is closed up; with one the composition is the cover's again.
+  ok(/\.chunk\[data-cover=split\]\[data-closing\]:not\(\[data-closing-art\]\)/.test(cloNone.html),
+     'the empty-track collapse stands down for a closing slide that has a picture');
+  const cloRatio = cimg('---\ntitle: T\ncover: split\ncover-image: pic\ncover-ratio: 40%\n'
+    + 'closing-image: cover\n');
+  ok(/data-tag="closing"[\s\S]{0,400}?--cover-ratio:40%/.test(cloRatio.html),
+     'and the ratio follows it, because a ratio divides a slide for a picture');
+  const cloNoRatio = cimg('---\ntitle: T\ncover: split\ncover-image: pic\ncover-ratio: 40%\n');
+  ok(!/data-tag="closing"[^>]*--cover-ratio/.test(cloNoRatio.html),
+     'while a closing slide with no picture still takes none, as it always did');
+  // ::: backdrop is not made obsolete and is not the same thing: it is a
+  // ground behind the type on any of the ten compositions, and the picture
+  // track it would have filled is still empty.
+  const cloBd = raw(SPLIT + '---\n\n## title: {#title}\n\n## free: F {#f}\n\nB.\n\n'
+    + '## closing: Fin {#end}\n\n::: backdrop pic\n', ['--audience-only']);
+  ok(cloBd.code === 0 && /data-tag="closing"[^>]*data-has-backdrop/.test(cloBd.html)
+     && !/data-tag="closing"[^>]*data-closing-art/.test(cloBd.html),
+     'a ::: backdrop on the closing chunk is still a backdrop and not the composition slot',
+     cloBd.out.split('\n')[0]);
+  // Three refusals, each in the pre-flight so --print-only reaches it, and
+  // each mirrored in lint.js.
+  const cloBadCover = cimg('---\ntitle: T\ncover: classic\nclosing-image: pic\n', ['--print-only']);
+  ok(cloBadCover.code !== 0 && /draws no picture of its own/.test(cloBadCover.out)
+     && cloBadCover.files.length === 0,
+     'closing-image on a cover that draws no picture is refused before anything is written');
+  ok(/bad-closing-image/.test(lintOf('---\ntitle: T\ncover: classic\nclosing-image: pic\n---\n\n'
+     + '## title: {#title}\n\n## free: F {#f}\n\nB.\n\n## closing: Fin {#end}\n')),
+     'and the linter names it too');
+  const cloNoCover = cimg('---\ntitle: T\ncover: beside\nclosing-image: cover\n', ['--print-only']);
+  ok(cloNoCover.code !== 0 && /no cover-image is set/.test(cloNoCover.out),
+     'closing-image: cover with nothing to reuse is refused rather than drawn empty');
+  ok(/bad-closing-image/.test(lintOf('---\ntitle: T\ncover: beside\nclosing-image: cover\n---\n\n'
+     + '## title: {#title}\n\n::: draw\nbox a "A"\n:::\n\n## closing: Fin {#end}\n')),
+     'in both files');
+  const cloNoChunk = raw(SPLIT + 'closing-image: cover\n---\n\n## title: {#title}\n\n'
+    + '## free: F {#f}\n\nB.\n', ['--print-only']);
+  ok(cloNoChunk.code !== 0 && /no .## closing:. chunk/.test(cloNoChunk.out),
+     'and a picture for a slide the deck does not have is a silent no-op, so it is refused');
+  ok(/bad-closing-image/.test(lintOf(SPLIT + 'closing-image: cover\n---\n\n## title: {#title}\n\n'
+     + '## free: F {#f}\n\nB.\n')),
+     'which the linter can see too, from the other end');
 }
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

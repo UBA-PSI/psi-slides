@@ -142,7 +142,11 @@ node test/gates/run.mjs semantics              # gates whose name matches
 # of why it shipped. `auto-fit` builds its own deck for the first reason and
 # exists for the second: "shrink leaves the zoom alone" is a claim about a
 # number, and it is measured on a short slide and a tall one, one # press
-# apart, rather than read off the mode. Twenty-nine specs, ~760 assertions.
+# apart, rather than read off the mode.
+# of why it shipped, and `side-anchor` for the same reason: nothing that ships
+# writes `::: side {middle}` yet, and the property it holds - that centring
+# moves the short pane and only the short pane - is a geometry rather than a
+# string. Thirty specs, ~769 assertions.
 # Builds and serves the lectures itself, so it never reports on stale HTML,
 # and launches one Chromium for the whole run ($PSI_CHROME, the Playwright
 # cache, or system Chrome); ~5 min. Run it after touching AUDIENCE_JS, the key

@@ -398,11 +398,11 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 - `C` switches between **what the room sees and the full text**.
 - `F` cycles the **font**: serif, then sans, then monospace, for legibility across a room.
 - `A` cycles the **theme**: four light ones with different accent colours, a neutral dark one, and two green-and-amber terminal ones.
-- `+` `-` `0` set the **text size**; `#` turns on **auto-fit**, which is worth trying right here – this chunk is longer than the screen.
+- `+` `-` `0` set the **text size**; `#` cycles **auto-fit** through its three modes, which is worth trying right here – this chunk is longer than the screen.
 - `B` **blanks the projection**.
 - `L` cycles the **slide numbers**: stacked, in a row, or off.
 
-`Shift` with any of the cycling keys goes backwards. Font, theme and slide numbers are remembered for every lecture you open, so the preference follows you; zoom and the `C` setting belong to the talk you are giving.
+`Shift` with `C`, `F`, `A` or `L` goes backwards. `#` has three modes and no `Shift`, because it is a shifted key on some keyboards and an unshifted one on others. Font, theme and slide numbers are remembered for every lecture you open, so the preference follows you; zoom and the `C` setting belong to the talk you are giving.
 
 **On a phone or a tablet with no keyboard, both windows show a small toolbar along the bottom edge.** Forward, back, overview and zoom sit on it; `C`, `F`, `A`, `#`, the search and text selection are behind its `⋯` button. Attach a keyboard and the toolbar goes away again, because the keys are back.
 
@@ -410,7 +410,7 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 
 **The two `C` modes keep separate zoom levels.** The short version holds whatever size you set with `+` and `-`; the full text picks its own so the whole chunk fits the screen, and switching back restores yours exactly.
 
-**`#` turns on auto-fit, which sizes every slide to the screen as you arrive on it**, in either mode, growing a short chunk as readily as shrinking a long one. `#` again takes it back. It suits a lecture whose chunks vary a lot in length, and it is wrong if you want one type size in the room all hour.
+**`#` cycles auto-fit through three modes, and the middle one is the one to know.** *Shrink* leaves your zoom exactly where you set it and only ever makes a slide that is too big fit – so the room reads one size all hour, except on the slides that would otherwise run off the bottom. *Full* sizes every slide to the screen, growing a short chunk as readily as shrinking a long one, which suits a lecture whose chunks vary a lot. *Off* is neither.
 
 **While the room sees black, the speaker window keeps everything.** The slide, the notes and the thumbnails stay where they were, so you can move on or read ahead with nothing showing. A small `BLANK · hit B to toggle` marker sits at the bottom of the speaker window, or at the bottom of the audience view when there is no speaker window.
 
@@ -655,7 +655,7 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 
 A source file can switch one check off with `<!-- linter: ignore reveal-overuse, density -->` anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for `density`, and says there why.
 
-## example: Deciding how a lecture opens | six view defaults, and `lang:` beside them {.wide #view-defaults}
+## example: Deciding how a lecture opens | seven view defaults, and `lang:` beside them {.wide #view-defaults}
 
 **A lecture can set its own starting look instead of inheriting whatever the reader last chose.**
 
@@ -666,8 +666,11 @@ font: mono              # serif | sans | mono
 theme: terminal-green   # light-{red,teal,blue,orange}
                         # dark | terminal-{amber,green}
 collapse: none          # topic-bold | none     – the C key
-auto-fit: true          # true | false          – the # key
+auto-fit: shrink        # true | false | shrink – the # key
 slide-numbers: off      # vertical | horizontal | off
+print-slide-numbers: vertical
+                        # the same three. Left out, it follows
+                        # whatever slide-numbers says
 editor: speaker         # both | speaker | none – the diagram editor
 
 lang: de                # the language the lecture is written in:
@@ -676,11 +679,11 @@ lang: de                # the language the lecture is written in:
 ---
 ```
 
-**`lang:` picks the hyphenation dictionary, and only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view never hyphenate at all.** It is not one of the six above in the other sense either – the six are opening settings that override whatever the reader last chose, and the language is a property of the lecture.
+**`lang:` picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.** `style: {hyphenate: all}` puts it into the live views too, which a German lecture at `.narrow` usually wants, and `none` takes it out everywhere. It is not one of the six above in the other sense either – the six are opening settings that override whatever the reader last chose, and the language is a property of the lecture.
 
 **A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.** So a lecture that sets nothing behaves as it always did – font, theme and slide numbers follow the reader from lecture to lecture.
 
-`slide-numbers` reaches `print.html` and `print-notes.html` too. A value the tool does not know stops the build and lists the ones it does.
+`slide-numbers` reaches `print.html` and `print-notes.html` too, and `print-slide-numbers:` overrides it there when the printed document wants different numbering from the room. A value the tool does not know stops the build and lists the ones it does.
 
 > note: When you finish this tour with a first-timer, ask them what they found on their own and what they did not. That is the most useful feedback the tool gets.
 
@@ -1179,7 +1182,7 @@ Reach for `rows` when a term needs a sentence, and for `cards` when a comparison
 
 ## example: A figure beside the prose | `::: side 2:1` {.wide #side-ratio}
 
-::: side 2:1
+::: side 2:1 {middle}
 
 **`::: side` takes an optional ratio, so the two panes need not be equal halves.** This slide is `::: side 2:1`: two parts of prose to one part figure, which is the shape a diagram with its commentary usually wants. Any two numbers work, `::: side` on its own is equal halves, and `::: flip` starts the second pane.
 
@@ -1194,6 +1197,8 @@ edge a -> b "request"
 :::
 
 :::
+
+**A short pane sits at the top of its half unless you say otherwise, and `{middle}` centres it against the taller one.** This slide is `::: side 2:1 {middle}`. `{top}` is the default and often right – a caption over a figure is aligned from the top on purpose. The word belongs to the block and not to each pane, because the taller pane is what makes the row tall, so centring can only ever move the shorter one.
 
 **A figure *above* or *below* the text needs nothing at all** – put the block first or last in the chunk body. `::: cols` is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns quietly stop working. A `::: draw` written there is refused, and the message points you at `::: side`.
 
@@ -1362,7 +1367,7 @@ Next week: certificates, and who you are actually trusting.
 
 **The heading is what it says, the sub-heading after the `|` is the second line, and the body is whatever should stay on screen while the room asks questions.** Your name and the `info` block are not drawn.
 
-A closing slide never reads `cover-image`, so the four picture compositions draw their words alone. Give it a `::: backdrop` if you want a picture of its own.
+**A closing slide never reaches for `cover-image` by itself** – ending on the opening picture unasked is the repetition this slide exists not to be. `closing-image: cover` in the frontmatter asks for it, and the deck closes on the picture it opened with; any other value names a different one, in the same three forms `cover-image` takes. A `::: backdrop` on the chunk is the other way and a different thing – a full-bleed ground behind the words, which works on all ten compositions and wins over both.
 
 > note: The checker warns if a `closing:` chunk is not the last chunk in the lecture, and if there is more than one – both of which are lectures that end twice.
 

@@ -119,8 +119,13 @@ the sub-heading after the `|` is the second line, and the body is whatever
 stays on screen while the room asks questions. It draws the deck's own
 `cover:` composition, carries **no** presenter line and **no** `info` block
 - those would make it a copy of the title slide rather than an ending - and
-never reaches for `cover-image`. Give it a `::: backdrop` for a picture of
-its own. Put it last; the linter warns if it is not.
+never reaches for `cover-image` by itself. Two ways to give it a picture:
+`closing-image: cover` in the frontmatter ends the deck on the picture it
+opened with (any other value names a different one, in the same three forms
+`cover-image` takes), which fills the composition's own picture slot on the
+four covers that have one; a `::: backdrop` on the chunk is a full-bleed
+ground behind the type and works on all ten. Put it last; the linter warns
+if it is not.
 
 ```markdown
 ## closing: Questions? | office hours Thursday, 14-16 {#end}
@@ -424,6 +429,15 @@ Private key travels across the user's devices.
 Two panes: everything before `::: flip` is pane A, everything after is pane B.
 `::: flip` only means anything inside an open `::: side`.
 
+`::: side 2:1` divides the measure unevenly. `::: side {middle}` centres the
+shorter pane against the taller one, which is what two lines of prose beside a
+tall figure want - without it the prose sits at the top and the rest of its
+half is empty. Both may be written, ratio first: `::: side 2:1 {middle}`. The
+default is `{top}`, which is what a bare `::: side` has always drawn, and it is
+often the right one: a caption above a figure is aligned from the top on
+purpose. It is the block's setting rather than each pane's, because the taller
+pane is what makes the row tall and centring cannot move it.
+
 ### `::: marginalia`
 
 An aside that extends into the right margin, part of the body layout
@@ -658,6 +672,8 @@ info: |
 cover: masthead         # see the table below
 cover-image: skyline    # only the four picture covers take one;
                         # on the six type covers it is an error
+closing-image: cover    # the ## closing: slide ends on the same picture;
+                        # or name a different one, same three forms
 ```
 
 The list runs quiet to loud, which is the only question it asks you.

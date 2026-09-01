@@ -537,6 +537,13 @@ body[data-liga=none] { font-variant-ligatures: none; }
   align-items: start;
   margin: 0.85em 0 1.2em;
 }
+/* ::: side {middle} - the shorter pane centred against the taller one.
+   One declaration, and it is the block's rather than each pane's because a
+   grid row is as tall as its tallest item: the tall pane already fills the
+   row and centring cannot move it, so this moves exactly the short one.
+   That is the case it was asked for - two lines of prose beside a tall
+   figure, sitting at the top of half an empty slide. */
+.side.sv-middle { align-items: center; }
 .side-a, .side-b { min-width: 0; }
 .side-a > :first-child, .side-b > :first-child { margin-top: 0; }
 .side-a > :last-child, .side-b > :last-child { margin-bottom: 0; }
@@ -1435,16 +1442,28 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    the picture is gone, so it is collapsed rather than left as a band of
    paper the type is pushed out of. One declaration each, keyed on
    data-closing rather than on :has(.cover-art) - the attribute is the
-   fact, and the absence of an element is only a symptom of it. */
-.chunk[data-cover=split][data-closing],
-.chunk[data-cover=beside][data-closing] { grid-template-columns: minmax(0, 1fr); }
-.chunk[data-cover=split][data-closing] .chunk-content {
+   fact, and the absence of an element is only a symptom of it.
+
+   closing-image is the author putting a picture back in that track, and
+   then there is nothing to collapse - so every one of these carries
+   :not([data-closing-art]). Written as an exclusion on the collapse rather
+   than as a second set of rules restoring the track, because the track's
+   own rules are the cover's and have never stopped applying: what the
+   closing slide adds is only the absence, and the absence is what comes
+   off. A ::: backdrop does not set the attribute and does not lift the
+   collapse - it is a ground behind the type, and the track it would have
+   filled is still empty. */
+.chunk[data-cover=split][data-closing]:not([data-closing-art]),
+.chunk[data-cover=beside][data-closing]:not([data-closing-art]) { grid-template-columns: minmax(0, 1fr); }
+.chunk[data-cover=split][data-closing]:not([data-closing-art]) .chunk-content {
   padding-right: calc(var(--slide-pad-x) * 0.62);
 }
-.chunk[data-cover=above][data-closing] { grid-template-rows: minmax(0, 1fr); }
-.chunk[data-cover=above][data-closing] .chunk-content { grid-row: 1; }
+.chunk[data-cover=above][data-closing]:not([data-closing-art]) { grid-template-rows: minmax(0, 1fr); }
+.chunk[data-cover=above][data-closing]:not([data-closing-art]) .chunk-content { grid-row: 1; }
 /* hero's gradient is on the backdrop, so a closing slide with no picture
-   simply has none - the type sits where hero puts it, on paper. */
+   simply has none - the type sits where hero puts it, on paper. With a
+   closing-image it has one, and it is the same inverted backdrop the cover
+   builds, so the reversed type comes with it and needs no rule here. */
 
 /* The body sits under the title the way the info block does on a cover,
    at reading size rather than meta size: it is the one thing on this slide

@@ -440,6 +440,12 @@ function scanReferencedImages(src, sourceDir) {
   // and the tutorial is the file that would trip it.
   for (const m of src.matchAll(/^:::[ \t]+backdrop[ \t]+([^\s{]+)/gm)) refs.add(m[1]);
   for (const m of src.matchAll(/^cover-image:[ \t]*["']?([^"'\s#]+)/gm)) refs.add(m[1]);
+  // closing-image is the same picture through the same data: URI, so it
+  // meets the same cap. `closing-image: cover` names no file of its own -
+  // the cover-image line above has already contributed it - and resolves to
+  // nothing here, which is what the isShorthand/statSync path below does
+  // with any token that is not an asset.
+  for (const m of src.matchAll(/^closing-image:[ \t]*["']?([^"'\s#]+)/gm)) refs.add(m[1]);
 
   let total = 0;
   let count = 0;
@@ -1514,6 +1520,30 @@ const COVER_IMAGE_VARIANTS = new Set(['split', 'hero', 'beside', 'above']);
 // the whole composition rather than one setting of it.
 const COVER_ALIGNS = ['top', 'middle', 'bottom'];
 const COVER_ALIGN_VARIANTS = new Set(['classic', 'stack', 'panel', 'quote', 'split', 'beside', 'hero']);
+// `closing-image:` - the picture on the last slide, and the counterpart of
+// `cover-image:` rather than a second mechanism. It draws through the same
+// renderCoverArt into the same slot the composition already has, so a deck
+// that opens on a bled photograph closes on one, in the same frame.
+//
+// One key with one reserved word, because the two cases want different
+// spellings and only one of them is a filename:
+//
+//   closing-image: cover           the picture the deck opened with
+//   closing-image: end-photo       a different one, same three forms as
+//                                  cover-image (asset id, path, https URL)
+//
+// `cover` names *which* picture, where a word like `same` only says there
+// is one. It is reserved, so a deck with an asset literally called `cover`
+// writes the path (`assets/cover.jpg`) - which is one of the three forms
+// anyway. A misspelling falls through to the asset resolver and fails with
+// "resolves to no file", which names the line.
+//
+// It does NOT make `::: backdrop` on a closing chunk obsolete, and the two
+// are not the same picture in two spellings: a backdrop is full bleed
+// *behind* the type and works on all ten compositions, this fills the
+// picture slot of the four that have one. A backdrop written on the chunk
+// still wins, exactly as it does on the cover.
+const CLOSING_IMAGE_COVER = 'cover';
 
 // Slot tables. The first member of each list is the default, which is why
 // `cover` and `veil` are named at all: a word an author can write is a word
@@ -1648,6 +1678,24 @@ const OVERLAY_SLOTS = {
   ground: ['paper', 'ink', 'accent', 'clear', 'glass'],
   width:  ['standard', 'narrow', 'wide', 'full'],
 };
+// ::: side asks exactly one question beyond the ratio: where a pane sits
+// when the other one is taller. It is the same question a card row answers
+// with `anchor`, so it is spelled with the same two words - two tables may
+// share a word, and an author who has learned `anchor: middle` on a row has
+// learned it here.
+//
+// One slot and two words, and it is the *block's* switch rather than each
+// pane's, which looks like the wrong granularity and is not: a grid row is
+// as tall as its tallest item, so the tall pane already fills the row and
+// centring cannot move it. `align-items: center` therefore centres exactly
+// the short pane - which is the whole of what "prose beside a tall figure"
+// asked for - and a per-pane word would have bought a second thing to write
+// for a case nothing can reach. `top` stays the default and is what a bare
+// ::: side has always drawn: a caption above a figure is aligned from the
+// top on purpose, and plenty of them are.
+const SIDE_SLOTS = {
+  anchor: ['top', 'middle'],
+};
 
 // No word may appear in two slots of one table: parseSlotClasses assigns a
 // word to whichever slot lists it first, so a collision makes one of the
@@ -1660,7 +1708,7 @@ const OVERLAY_SLOTS = {
 // the align default. A word that means something in one slot and is merely
 // the default of another is not exempt - that is the case where the first
 // slot listed wins and the second becomes unreachable.
-for (const [name, table] of Object.entries({ CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS })) {
+for (const [name, table] of Object.entries({ CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS })) {
   const where = new Map();   // word -> [{slot, isDefault}]
   for (const [slot, words] of Object.entries(table)) {
     words.forEach((w, i) => {
@@ -3491,20 +3539,36 @@ function parseLecture(src) {
           err.userFacing = true;
           throw err;
         }
-        const sideOpen = line.match(/^:::\s+side(?:\s+(\d{1,2})\s*:\s*(\d{1,2}))?\s*$/);
+        // The ratio stays positional and the anchor rides in a brace tail,
+        // which is the shape the rest of the language already has: a number
+        // is read by its position, a word is read out of {braces} against a
+        // closed slot table. A second positional token was the alternative
+        // and it reads worse the moment both are written - `::: side 2:1
+        // middle` is two grammars on one line, and the next word after it
+        // would have had to be positional too.
+        const sideOpen = line.match(
+          /^:::\s+side(?:\s+(\d{1,2})\s*:\s*(\d{1,2}))?\s*(?:\{([^}]*)\})?\s*$/);
         if (sideOpen) {
           const style = sideOpen[1]
             ? ` style="--side-a:${sideOpen[1]}fr;--side-b:${sideOpen[2]}fr"`
             : '';
-          target.push('', `<div class="side"${style}><div class="side-a">`, '');
+          const so = parseSlotClasses(sideOpen[3], SIDE_SLOTS, 'side',
+            currentChunk && currentChunk.id ? `chunk #${currentChunk.id}` : 'a chunk with no id');
+          // Only the written word reaches the markup. `top` is what a bare
+          // ::: side has always drawn, so emitting a class for it would
+          // change every existing output for a decision nobody made.
+          const anchorCls = so.anchor === 'top' ? '' : ` sv-${so.anchor}`;
+          target.push('', `<div class="side${anchorCls}"${style}><div class="side-a">`, '');
           layoutStack.push({ close: '</div></div>', kind: 'side', narrows: false });
           continue;
         }
         if (/^:::\s+side\b/.test(line)) {
           const err = new Error(
-            `::: side takes an optional ratio and nothing else: "${line.trim()}".\n` +
+            `::: side takes an optional ratio, an optional {class} tail, and nothing\n` +
+            `  else: "${line.trim()}".\n` +
             '  Write  ::: side  for equal panes, or  ::: side 2:1  to give the\n' +
-            '  first pane twice the width of the second.');
+            '  first pane twice the width of the second. Add  {middle}  to centre\n' +
+            '  the shorter pane against the taller one.');
           err.userFacing = true;
           throw err;
         }
@@ -4290,12 +4354,61 @@ function coverSettings(frontmatter = {}) {
     }
     align = rawA;
   }
+  // The picture on the last slide. Refused on the six compositions that
+  // draw no picture of their own, for the same reason cover-image is:
+  // read, stored and never looked at again is the silent no-op this format
+  // refuses. `::: backdrop` on the closing chunk is the way to put a
+  // photograph behind one of those six, and the message says so.
+  let closingImage = null;
+  if (frontmatter['closing-image'] != null) {
+    const rawC = String(frontmatter['closing-image']).trim();
+    if (!COVER_IMAGE_VARIANTS.has(raw)) {
+      const err = new Error(
+        `Frontmatter: closing-image is set, but "cover: ${raw}" draws no picture of its own,\n` +
+        `  and the closing slide draws the cover's composition.\n` +
+        `  It applies to: ${[...COVER_IMAGE_VARIANTS].join(', ')}. To put a photograph\n` +
+        '  behind this composition, write ::: backdrop on the closing chunk instead.');
+      err.userFacing = true;
+      throw err;
+    }
+    if (rawC === CLOSING_IMAGE_COVER) {
+      // "the one the deck opened with", so there has to be one. On beside
+      // and above the cover's picture may be the title chunk's own body -
+      // a ::: draw is not a file and cannot be pointed at from here - so
+      // the message names both ways out.
+      if (!image) {
+        const err = new Error(
+          `Frontmatter: "closing-image: ${CLOSING_IMAGE_COVER}" ends the deck on the picture it\n` +
+          '  opened with, and no cover-image is set.\n' +
+          '  Set cover-image, or name the closing slide\'s own picture:\n' +
+          '    closing-image: end-photo   (assets/end-photo.jpg), a relative path,\n' +
+          '  or an https URL. A ::: draw that is the cover cannot be reached from\n' +
+          '  here - repeat it in the closing chunk, or give it a picture of its own.');
+        err.userFacing = true;
+        throw err;
+      }
+      closingImage = image;
+    } else {
+      closingImage = rawC;
+    }
+  }
   return {
-    variant: raw, image, ratio, align,
+    variant: raw, image, ratio, align, closingImage,
     bodyIsArt: COVER_BODY_ART.has(raw),
     bodyInField: COVER_BODY_FIELD.has(raw),
     bodyRequired: COVER_BODY_REQUIRED.has(raw),
   };
+}
+
+// The picture half of a closing slide, which is the cover's own function
+// with two substitutions: the closing slide's picture, and no body. A
+// closing chunk's body is its words - `## closing:` is the one cover-shaped
+// slide whose text is authored - so the beside/above rule that makes a
+// chunk body the art cannot apply here, and turning it off is what keeps
+// the four picture compositions drawing a picture rather than a paragraph.
+function renderClosingArt(cover) {
+  if (!cover.closingImage) return { html: '', scrim: null };
+  return renderCoverArt({ ...cover, image: cover.closingImage, bodyIsArt: false }, '');
 }
 
 // The picture half of a cover. `hero` reuses the ::: backdrop machinery
@@ -4396,7 +4509,7 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
     const where = closing ? 'the closing chunk' : 'the title chunk';
     const cover = coverSettings(frontmatter);
     const own = renderBackdrop(chunk.backdrop, where);
-    const art = own.html ? own : (closing ? { html: '', scrim: null } : renderCoverArt(cover, bodyHtml));
+    const art = own.html ? own : (closing ? renderClosingArt(cover) : renderCoverArt(cover, bodyHtml));
     const scrimAttr = art.scrim && art.scrim !== 'veil' ? ` data-backdrop="${art.scrim}"` : '';
     const bdAttr = art.html ? ' data-has-backdrop=""' : '';
     const closingAttr = closing ? ' data-closing=""' : '';
@@ -5454,6 +5567,20 @@ function assertCoverBody(lecture) {
   // prevent - and --print-only never reached it at all.
   sectionSettings(lecture.frontmatter);
   const cover = coverSettings(lecture.frontmatter);
+  // A picture for a slide the deck does not have. The key reads and stores
+  // fine and nothing ever draws it, which is the silent no-op every other
+  // frontmatter key here is refused for - and this is the only place that
+  // can see it, because whether a lecture ends on a `## closing:` chunk is
+  // a fact about the body and not about the frontmatter.
+  if (cover.closingImage &&
+      !lecture.columns.some(c => c.chunks.some(k => k.tag === 'closing'))) {
+    const err = new Error(
+      'Frontmatter: closing-image is set, and the lecture has no `## closing:` chunk\n' +
+      '  for it to draw on. Add one - a closing chunk carries its own heading, which\n' +
+      '  is what it says:  ## closing: Questions? {#end}');
+    err.userFacing = true;
+    throw err;
+  }
   if (!cover.bodyRequired) return;
   const title = lecture.columns
     .flatMap(c => c.chunks).find(c => c.tag === 'title');
@@ -5483,25 +5610,39 @@ function renderTitleChunk(chunk, frontmatter, num) {
   // one the cover variant would build, so `cover: classic` plus a
   // ::: backdrop is a picture cover without a variant for it.
   const own = renderBackdrop(chunk.backdrop, where);
-  // A closing slide draws the cover's *type* and never its picture. Its
-  // own ::: backdrop still works, which is the way to give it one - what
-  // it must not do is reach for `cover-image` by itself, because that is
-  // the cover's picture and re-running it is precisely the repeat this
-  // slide exists not to be.
-  const art = own.html ? own : (closing ? { html: '', scrim: null } : renderCoverArt(cover, bodyHtml));
+  // A closing slide never reaches for `cover-image` by itself: that is the
+  // cover's picture, and re-running it unasked is precisely the repeat this
+  // slide exists not to be. `closing-image:` is the author asking for it -
+  // either the same file (`closing-image: cover`) or a different one - and
+  // it draws into the same slot through the same function. Its own
+  // ::: backdrop still wins over both, exactly as it does on the cover.
+  const art = own.html ? own : (closing ? renderClosingArt(cover) : renderCoverArt(cover, bodyHtml));
   const scrimAttr = art.scrim && art.scrim !== 'veil' ? ` data-backdrop="${art.scrim}"` : '';
   const bdAttr = art.html ? ' data-has-backdrop=""' : '';
-  const ratioStyle = (cover.ratio && !closing) ? ` style="--cover-ratio:${cover.ratio}%"` : '';
-  // The closing slide takes the placement too, unlike the ratio. The ratio
-  // divides a slide for a picture and the closing has none; the placement is
-  // where the type sits, and a deck whose cover puts its title in the lower
-  // third and whose last slide centres it has not closed the arc it opened.
+  // Whether the closing slide has a picture in the composition's own slot,
+  // which is what decides between drawing that track and collapsing it. The
+  // attribute is the fact and the missing element is only a symptom of it -
+  // the same reasoning that keyed the collapse rules on data-closing. A
+  // ::: backdrop is deliberately not it: that is a full-bleed ground behind
+  // the type, the track it would have filled is still empty, and the slide
+  // still wants it collapsed.
+  const closingArt = closing && !own.html && art.html;
+  const closingArtAttr = closingArt ? ' data-closing-art=""' : '';
+  // The ratio divides a slide for a picture, so it follows the picture: a
+  // closing slide without one has nothing to divide, and one with a
+  // closing-image must divide the frame exactly as the cover did or the
+  // bookend is a different composition wearing the same name.
+  const ratioStyle = (cover.ratio && (!closing || closingArt)) ? ` style="--cover-ratio:${cover.ratio}%"` : '';
+  // The closing slide takes the placement whether or not it has a picture.
+  // It is where the type sits, and a deck whose cover puts its title in the
+  // lower third and whose last slide centres it has not closed the arc it
+  // opened.
   const alignAttr = cover.align ? ` data-cover-align="${cover.align}"` : '';
   const closingAttr = closing ? ' data-closing=""' : '';
   const block = closing
     ? renderClosingBlock(chunk, bodyHtml)
     : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt, bodyInField: cover.bodyInField, variant: cover.variant });
-  return `<article class="chunk chunk-title" data-tag="${closing ? 'closing' : 'title'}" data-width="full" data-cover="${cover.variant}"${closingAttr}${alignAttr}${bdAttr}${scrimAttr}${chunkStyleAttrs(chunk)} data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}${ratioStyle}>
+  return `<article class="chunk chunk-title" data-tag="${closing ? 'closing' : 'title'}" data-width="full" data-cover="${cover.variant}"${closingAttr}${closingArtAttr}${alignAttr}${bdAttr}${scrimAttr}${chunkStyleAttrs(chunk)} data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}${ratioStyle}>
   ${art.html}
   <div class="chunk-content">
     ${block}
@@ -6576,6 +6717,13 @@ body[data-liga=none] { font-variant-ligatures: none; }
   align-items: start;
   margin: 0.85em 0 1.2em;
 }
+/* ::: side {middle} - the shorter pane centred against the taller one.
+   One declaration, and it is the block's rather than each pane's because a
+   grid row is as tall as its tallest item: the tall pane already fills the
+   row and centring cannot move it, so this moves exactly the short one.
+   That is the case it was asked for - two lines of prose beside a tall
+   figure, sitting at the top of half an empty slide. */
+.side.sv-middle { align-items: center; }
 .side-a, .side-b { min-width: 0; }
 .side-a > :first-child, .side-b > :first-child { margin-top: 0; }
 .side-a > :last-child, .side-b > :last-child { margin-bottom: 0; }
@@ -7474,16 +7622,28 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    the picture is gone, so it is collapsed rather than left as a band of
    paper the type is pushed out of. One declaration each, keyed on
    data-closing rather than on :has(.cover-art) - the attribute is the
-   fact, and the absence of an element is only a symptom of it. */
-.chunk[data-cover=split][data-closing],
-.chunk[data-cover=beside][data-closing] { grid-template-columns: minmax(0, 1fr); }
-.chunk[data-cover=split][data-closing] .chunk-content {
+   fact, and the absence of an element is only a symptom of it.
+
+   closing-image is the author putting a picture back in that track, and
+   then there is nothing to collapse - so every one of these carries
+   :not([data-closing-art]). Written as an exclusion on the collapse rather
+   than as a second set of rules restoring the track, because the track's
+   own rules are the cover's and have never stopped applying: what the
+   closing slide adds is only the absence, and the absence is what comes
+   off. A ::: backdrop does not set the attribute and does not lift the
+   collapse - it is a ground behind the type, and the track it would have
+   filled is still empty. */
+.chunk[data-cover=split][data-closing]:not([data-closing-art]),
+.chunk[data-cover=beside][data-closing]:not([data-closing-art]) { grid-template-columns: minmax(0, 1fr); }
+.chunk[data-cover=split][data-closing]:not([data-closing-art]) .chunk-content {
   padding-right: calc(var(--slide-pad-x) * 0.62);
 }
-.chunk[data-cover=above][data-closing] { grid-template-rows: minmax(0, 1fr); }
-.chunk[data-cover=above][data-closing] .chunk-content { grid-row: 1; }
+.chunk[data-cover=above][data-closing]:not([data-closing-art]) { grid-template-rows: minmax(0, 1fr); }
+.chunk[data-cover=above][data-closing]:not([data-closing-art]) .chunk-content { grid-row: 1; }
 /* hero's gradient is on the backdrop, so a closing slide with no picture
-   simply has none - the type sits where hero puts it, on paper. */
+   simply has none - the type sits where hero puts it, on paper. With a
+   closing-image it has one, and it is the same inverted backdrop the cover
+   builds, so the reversed type comes with it and needs no rule here. */
 
 /* The body sits under the title the way the info block does on a cover,
    at reading size rather than meta size: it is the one thing on this slide

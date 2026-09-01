@@ -1607,15 +1607,15 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 <li><code class="nb">C</code> switches between <strong>what the room sees and the full text</strong>.</li>
 <li><code class="nb">F</code> cycles the <strong>font</strong>: serif, then sans, then monospace, for legibility across a room.</li>
 <li><code class="nb">A</code> cycles the <strong>theme</strong>: four light ones with different accent colours, a neutral dark one, and two green-and-amber terminal ones.</li>
-<li><code class="nb">+</code> <code class="nb">-</code> <code class="nb">0</code> set the <strong>text size</strong>; <code class="nb">#</code> turns on <strong>auto-fit</strong>, which is worth trying right here – this chunk is longer than the screen.</li>
+<li><code class="nb">+</code> <code class="nb">-</code> <code class="nb">0</code> set the <strong>text size</strong>; <code class="nb">#</code> cycles <strong>auto-fit</strong> through its three modes, which is worth trying right here – this chunk is longer than the screen.</li>
 <li><code class="nb">B</code> <strong>blanks the projection</strong>.</li>
 <li><code class="nb">L</code> cycles the <strong>slide numbers</strong>: stacked, in a row, or off.</li>
 </ul>
-<p><code class="nb">Shift</code> with any of the cycling keys goes backwards. Font, theme and slide numbers are remembered for every lecture you open, so the preference follows you; zoom and the <code class="nb">C</code> setting belong to the talk you are giving.</p>
+<p><code class="nb">Shift</code> with <code class="nb">C</code>, <code class="nb">F</code>, <code class="nb">A</code> or <code class="nb">L</code> goes backwards. <code class="nb">#</code> has three modes and no <code class="nb">Shift</code>, because it is a shifted key on some keyboards and an unshifted one on others. Font, theme and slide numbers are remembered for every lecture you open, so the preference follows you; zoom and the <code class="nb">C</code> setting belong to the talk you are giving.</p>
 <p><strong>On a phone or a tablet with no keyboard, both windows show a small toolbar along the bottom edge.</strong> Forward, back, overview and zoom sit on it; <code class="nb">C</code>, <code class="nb">F</code>, <code class="nb">A</code>, <code class="nb">#</code>, the search and text selection are behind its <code class="nb">⋯</code> button. Attach a keyboard and the toolbar goes away again, because the keys are back.</p>
 <p><strong>Dark mode follows your machine unless something says otherwise.</strong> If you have never pressed <code class="nb">A</code> and the lecture pins no theme, a machine set to dark opens the lecture dark. Press <code class="nb">A</code> once and your choice is remembered from then on, everywhere. An author who writes <code class="nb">theme:</code> in the frontmatter overrides both, by the same rule as the other opening settings.</p>
 <p><strong>The two <code class="nb">C</code> modes keep separate zoom levels.</strong> The short version holds whatever size you set with <code class="nb">+</code> and <code class="nb">-</code>; the full text picks its own so the whole chunk fits the screen, and switching back restores yours exactly.</p>
-<p><strong><code class="nb">#</code> turns on auto-fit, which sizes every slide to the screen as you arrive on it</strong>, in either mode, growing a short chunk as readily as shrinking a long one. <code class="nb">#</code> again takes it back. It suits a lecture whose chunks vary a lot in length, and it is wrong if you want one type size in the room all hour.</p>
+<p><strong><code class="nb">#</code> cycles auto-fit through three modes, and the middle one is the one to know.</strong> <em>Shrink</em> leaves your zoom exactly where you set it and only ever makes a slide that is too big fit – so the room reads one size all hour, except on the slides that would otherwise run off the bottom. <em>Full</em> sizes every slide to the screen, growing a short chunk as readily as shrinking a long one, which suits a lecture whose chunks vary a lot. <em>Off</em> is neither.</p>
 <p><strong>While the room sees black, the speaker window keeps everything.</strong> The slide, the notes and the thumbnails stay where they were, so you can move on or read ahead with nothing showing. A small <code>BLANK · hit B to toggle</code> marker sits at the bottom of the speaker window, or at the bottom of the audience view when there is no speaker window.</p>
 
   
@@ -2000,7 +2000,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   
   <span class="chunk-num" aria-hidden="true"><i>4</i><i>4</i></span>
   <span class="chunk-label">example</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Deciding how a lecture opens</span> <span class="hd-sub">six view defaults, and <code class="nb">lang:</code> beside them</span></h2>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Deciding how a lecture opens</span> <span class="hd-sub">seven view defaults, and <code class="nb">lang:</code> beside them</span></h2>
   <p><strong>A lecture can set its own starting look instead of inheriting whatever the reader last chose.</strong></p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#6F42C1">---</span></span>
 <span class="line"><span style="color:#22863A">title</span><span style="color:#24292E">: </span><span style="color:#032F62">Anonymous Communication</span></span>
@@ -2008,17 +2008,20 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 <span class="line"><span style="color:#22863A">theme</span><span style="color:#24292E">: </span><span style="color:#032F62">terminal-green</span><span style="color:#6A737D">   # light-{red,teal,blue,orange}</span></span>
 <span class="line"><span style="color:#6A737D">                        # dark | terminal-{amber,green}</span></span>
 <span class="line"><span style="color:#22863A">collapse</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">          # topic-bold | none     – the C key</span></span>
-<span class="line"><span style="color:#22863A">auto-fit</span><span style="color:#24292E">: </span><span style="color:#005CC5">true</span><span style="color:#6A737D">          # true | false          – the # key</span></span>
+<span class="line"><span style="color:#22863A">auto-fit</span><span style="color:#24292E">: </span><span style="color:#032F62">shrink</span><span style="color:#6A737D">        # true | false | shrink – the # key</span></span>
 <span class="line"><span style="color:#22863A">slide-numbers</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">      # vertical | horizontal | off</span></span>
+<span class="line"><span style="color:#22863A">print-slide-numbers</span><span style="color:#24292E">: </span><span style="color:#032F62">vertical</span></span>
+<span class="line"><span style="color:#6A737D">                        # the same three. Left out, it follows</span></span>
+<span class="line"><span style="color:#6A737D">                        # whatever slide-numbers says</span></span>
 <span class="line"><span style="color:#22863A">editor</span><span style="color:#24292E">: </span><span style="color:#032F62">speaker</span><span style="color:#6A737D">         # both | speaker | none – the diagram editor</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#22863A">lang</span><span style="color:#24292E">: </span><span style="color:#032F62">de</span><span style="color:#6A737D">                # the language the lecture is written in:</span></span>
 <span class="line"><span style="color:#6A737D">                        # en, de, de-DE, fr and so on, and en</span></span>
 <span class="line"><span style="color:#6A737D">                        # when you leave it out</span></span>
 <span class="line"><span style="color:#6F42C1">---</span></span></code></pre>
-<p><strong><code class="nb">lang:</code> picks the hyphenation dictionary, and only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view never hyphenate at all.</strong> It is not one of the six above in the other sense either – the six are opening settings that override whatever the reader last chose, and the language is a property of the lecture.</p>
+<p><strong><code class="nb">lang:</code> picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.</strong> <code>style: {hyphenate: all}</code> puts it into the live views too, which a German lecture at <code class="nb">.narrow</code> usually wants, and <code class="nb">none</code> takes it out everywhere. It is not one of the six above in the other sense either – the six are opening settings that override whatever the reader last chose, and the language is a property of the lecture.</p>
 <p><strong>A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.</strong> So a lecture that sets nothing behaves as it always did – font, theme and slide numbers follow the reader from lecture to lecture.</p>
-<p><code class="nb">slide-numbers</code> reaches <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> too. A value the tool does not know stops the build and lists the ones it does.</p>
+<p><code class="nb">slide-numbers</code> reaches <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> too, and <code class="nb">print-slide-numbers:</code> overrides it there when the printed document wants different numbering from the room. A value the tool does not know stops the build and lists the ones it does.</p>
 
   
   
@@ -2657,7 +2660,7 @@ shown one per slide in <a href="../decoration/audience.html">the decoration lect
   <span class="chunk-num" aria-hidden="true"><i>6</i><i>3</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure beside the prose</span> <span class="hd-sub"><code>::: side 2:1</code></span></h2>
-  <div class="side" style="--side-a:2fr;--side-b:1fr"><div class="side-a">
+  <div class="side sv-middle" style="--side-a:2fr;--side-b:1fr"><div class="side-a">
 
 
 <p><strong><code>::: side</code> takes an optional ratio, so the two panes need not be equal halves.</strong> This slide is <code>::: side 2:1</code>: two parts of prose to one part figure, which is the shape a diagram with its commentary usually wants. Any two numbers work, <code>::: side</code> on its own is equal halves, and <code>::: flip</code> starts the second pane.</p>
@@ -2677,6 +2680,7 @@ shown one per slide in <a href="../decoration/audience.html">the decoration lect
 </div></div>
 
 
+<p><strong>A short pane sits at the top of its half unless you say otherwise, and <code class="nb">{middle}</code> centres it against the taller one.</strong> This slide is <code>::: side 2:1 {middle}</code>. <code class="nb">{top}</code> is the default and often right – a caption over a figure is aligned from the top on purpose. The word belongs to the block and not to each pane, because the taller pane is what makes the row tall, so centring can only ever move the shorter one.</p>
 <p><strong>A figure <em>above</em> or <em>below</em> the text needs nothing at all</strong> – put the block first or last in the chunk body. <code>::: cols</code> is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns quietly stop working. A <code>::: draw</code> written there is refused, and the message points you at <code>::: side</code>.</p>
 <p>A card row works inside one half of a <code>::: side</code> block, which is a box with a width the row can fill. <code>::: cards 1</code> in a narrow half gives you a stacked column, and one card on its own is a callout.</p>
 
@@ -2880,7 +2884,7 @@ shown one per slide in <a href="../decoration/audience.html">the decoration lect
 <span class="line"></span>
 <span class="line"><span style="color:#24292E">Next week: certificates, and who you are actually trusting.</span></span></code></pre>
 <p><strong>The heading is what it says, the sub-heading after the <code class="nb">|</code> is the second line, and the body is whatever should stay on screen while the room asks questions.</strong> Your name and the <code class="nb">info</code> block are not drawn.</p>
-<p>A closing slide never reads <code class="nb">cover-image</code>, so the four picture compositions draw their words alone. Give it a <code>::: backdrop</code> if you want a picture of its own.</p>
+<p><strong>A closing slide never reaches for <code class="nb">cover-image</code> by itself</strong> – ending on the opening picture unasked is the repetition this slide exists not to be. <code>closing-image: cover</code> in the frontmatter asks for it, and the deck closes on the picture it opened with; any other value names a different one, in the same three forms <code class="nb">cover-image</code> takes. A <code>::: backdrop</code> on the chunk is the other way and a different thing – a full-bleed ground behind the words, which works on all ten compositions and wins over both.</p>
 
   
   

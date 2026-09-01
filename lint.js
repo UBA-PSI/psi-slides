@@ -165,6 +165,13 @@ const OVERLAY_SLOTS = {
   ground: ['paper', 'ink', 'accent', 'clear', 'glass'],
   width:  ['standard', 'narrow', 'wide', 'full'],
 };
+// Mirrors SIDE_SLOTS in build.js. One question beyond the ratio - where a
+// pane sits when the other is taller - spelled with the two words a card
+// row already uses for it. The block's switch and not each pane's: the tall
+// pane is what makes the row tall, so centring can only move the short one.
+const SIDE_SLOTS = {
+  anchor: ['top', 'middle'],
+};
 // Returns [] when the tail resolves, or one message per problem.
 function slotProblems(attrs, slots) {
   const out = [];
@@ -2166,6 +2173,25 @@ function lintFile(filePath) {
         `cover-image is set, but 'cover: ${cover}' draws no picture of its own – `
         + `it applies to: ${[...COVER_IMAGE_VARIANTS].join(', ')}; use ::: backdrop instead`);
     }
+    // closing-image is cover-image's counterpart on the last slide, and it
+    // draws into the same slot of the same composition – so it is refused
+    // on the same six covers, and `closing-image: cover` needs a
+    // cover-image to be the same as. Mirrors coverSettings in build.js.
+    const cl = header.split('\n').findIndex(l => /^closing-image:[ \t]*\S/.test(l));
+    if (cl >= 0 && !COVER_IMAGE_VARIANTS.has(cover)) {
+      addFm(cl + 2, 'error', 'bad-closing-image',
+        `closing-image is set, but 'cover: ${cover}' draws no picture of its own, and the `
+        + `closing slide draws the cover's composition – it applies to: `
+        + `${[...COVER_IMAGE_VARIANTS].join(', ')}; use ::: backdrop on the closing chunk instead`);
+    }
+    if (cl >= 0 && im < 0) {
+      const cv = header.split('\n')[cl].match(/^closing-image:[ \t]*["']?([^"'\s#]+)/);
+      if (cv && cv[1] === 'cover') {
+        addFm(cl + 2, 'error', 'bad-closing-image',
+          "'closing-image: cover' ends the deck on the picture it opened with, and no "
+          + 'cover-image is set – set one, or name the closing slide\'s own picture');
+      }
+    }
   }
 
   // cover-ratio: how much of the slide the picture takes. Bounded rather
@@ -2679,10 +2705,21 @@ function lintFile(filePath) {
             + `${encl} has already divided it`);
       }
     }
-    const sideOpen = /^:::\s+side(?:\s+\d{1,2}\s*:\s*\d{1,2})?\s*$/.test(line);
+    // The ratio is positional, the anchor rides in a brace tail. Mirrors
+    // build.js, including the tail's vocabulary – a linter that refuses
+    // `::: side {middle}` while the build draws it is the direction this
+    // project does not allow.
+    const sideMatch = line.match(/^:::\s+side(?:\s+\d{1,2}\s*:\s*\d{1,2})?\s*(?:\{([^}]*)\})?\s*$/);
+    const sideOpen = !!sideMatch;
     if (!sideOpen && /^:::\s+side\b/.test(line)) {
       add(ln, 'error', 'bad-side',
-          '::: side takes an optional ratio and nothing else – write ::: side or ::: side 2:1');
+          '::: side takes an optional ratio, an optional {class} tail and nothing else – '
+          + 'write ::: side, ::: side 2:1, or ::: side {middle}');
+    }
+    if (sideOpen) {
+      for (const msg of slotProblems(sideMatch[1], SIDE_SLOTS)) {
+        add(ln, 'error', 'bad-side-class', `::: side: ${msg}`);
+      }
     }
     const flipMark = /^:::\s+flip\s*$/.test(line);
     const marginaliaOpen = /^:::\s+marginalia\s*$/.test(line);
@@ -2812,6 +2849,15 @@ function lintFile(filePath) {
       allChunks[allChunks.length - 1].tag !== 'closing') {
     add(closingChunks[closingChunks.length - 1].line, 'warn', 'closing-position',
         `a 'closing:' chunk is not the last chunk in the lecture – it draws the cover's composition, which mid-deck reads as a second title slide`);
+  }
+  // A picture for a slide the deck does not have. The build refuses it in
+  // its pre-flight, and this is the same fact read from the other end:
+  // whether a lecture ends on a `## closing:` chunk is a property of the
+  // body, so the frontmatter block above cannot see it.
+  if (!closingChunks.length && /^closing-image:[ \t]*\S/m.test(header)) {
+    const cl = header.split('\n').findIndex(l => /^closing-image:[ \t]*\S/.test(l));
+    addFm(cl + 2, 'error', 'bad-closing-image',
+      'closing-image is set, and the lecture has no closing: chunk for it to draw on');
   }
   for (const c of closingChunks) {
     if (!c.heading) {

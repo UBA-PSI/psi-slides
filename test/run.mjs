@@ -29,6 +29,7 @@ const SPECS = [
   './text-select.mjs',
   './math-focus.mjs',
   './block-align.mjs',
+  './side-anchor.mjs',
   './editor-edges.mjs',
   './editor-waypoints.mjs',
   './editor-leaders.mjs',
