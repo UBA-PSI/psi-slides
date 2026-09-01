@@ -287,8 +287,10 @@ This is the paragraph that comes and goes. It is what you would say out loud abo
 - **`{.width}`** is `narrow`, `standard`, `wide` or `full`, and defaults to `standard`.
 - **`{#id}`** anchors links, the contents list and your reading position – rename one and those need fixing too.
 
-::: expand two-more-classes
-**`{.bare}` and `{.center}` are the two classes in that tail that are not widths**, and both act on the projection alone. `.bare` keeps the heading off the slide while leaving it in the printed views and in the search index; `.center` centres the chunk's own paragraphs, which is what the slide with the four-outputs drawing does under its figure.
+::: expand the classes that are not widths
+**`{.bare}` and `{.center}` act on the projection alone.** `.bare` keeps the heading off the slide while leaving it in the printed views and in the search index; `.center` centres the chunk's own paragraphs, which is what the slide with the four-outputs drawing does under its figure.
+
+**Four more answer a `style:` key for one slide**: `{.blocks-left}` and `{.blocks-center}`, `{.wrap-none}` and `{.wrap-balance}`. Each is the key's own name and one of its values, so knowing the frontmatter is enough to guess the class. These four do reach the printed document, unlike the two above – where a formula sits relative to the sentence that introduces it is the same question on paper.
 :::
 
 > note: The details sit in a list rather than in follow-up paragraphs because the projection cuts a paragraph down to its first sentence and keeps a list item whole. Anything the room has to read in full belongs in a bullet.
@@ -554,17 +556,19 @@ node build.js <source.md> --serve         # prints the URLs
 node build.js <source.md> --watch --serve # and live reload
 ```
 
-## example: Math | `$inline$` and `$$display$$` {.wide #math}
+## example: Math | `$inline$` and `$$display$$` {.wide .blocks-left #math}
 
 **Formulas are typeset when the lecture is built, so the finished file needs nothing at the moment you show it.** Maths inside a sentence goes between single dollars – the anonymity set $S$ has size $|S|$ – and a formula on its own line goes between double ones:
 
 $$d = \frac{H(S)}{\log_2 |S|}$$
 
-**A formula on its own line behaves like a figure**: it stays on screen when the prose around it is shortened away, and clicking it opens it large for the room. Maths inside a sentence follows that sentence – on screen in an opening line, gone with everything else.
+**A formula on its own line behaves like a figure**: it stays on screen when the prose around it is shortened away, and clicking it opens it large for the room.
+
+**This chunk carries `{.blocks-left}`, which is why the formula starts where this sentence starts.** A code block, a figure and a display formula are centred by default, and `style: {blocks: left}` says otherwise for a whole deck. Centred is right when the block *is* the slide; on a slide that is an argument with a formula inside it, three blocks on three axes is what you get instead. Maths inside a sentence follows that sentence – on screen in an opening line, gone with everything else.
 
 **A lone dollar sign is safe.** The delimiters are read as Markdown, not searched for in your text, so `$PATH` inside code, a price of $5 and $10 in prose, and a `$$` inside a code block are all left alone. Write `\$` if you want to be explicit.
 
-**Only the mathematical typefaces your formulas actually use travel in the file, and a lecture with no maths carries none at all.** The build prints what that came to: for this lecture, about 120 KB in each printed view and 166 KB in each live one, against the 254 KB a complete set of KaTeX faces would weigh.
+**Only the mathematical typefaces your formulas use travel in the file.** The build prints what that came to: for this lecture, about 120 KB in each printed view and 166 KB in each live one, against the 254 KB a complete set of KaTeX faces would weigh.
 
 **The maths follows the `F` key.** Switch the body font to sans or monospace and the formulas move with it instead of sitting in the slide as a serif island. Only the letters change: operators, relations and brackets keep their own shapes, and a character the sans face does not have falls back to the mathematical one. That is where the live views' extra 46 KB goes – the printed ones have no `F` key and carry no faces for it.
 
@@ -745,7 +749,7 @@ That is the figure from the slide before with a logfile added and four lines at 
 
 > note: `print.html` and `print-notes.html` draw the **last** step rather than every step laid over each other, so an element a step hid stays hidden. Emphasis is the exception and comes from the first step, so attention you move around during the talk never reaches the paper while a `{.dim}` written on an element's own line does: written on the line it is part of the drawing, written inside a `step` it is part of the talk.
 
-## example: Every line has the same six slots | `kind name label placement options tail` {.full #diagram-slots}
+## example: Every line has the same six slots | `kind name label placement options tail` {.full .blocks-left #diagram-slots}
 
 **Every line in a `::: draw` block has the same six slots, always in this order**, and most lines fill three or four of them:
 
