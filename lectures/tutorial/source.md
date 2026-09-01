@@ -33,7 +33,7 @@ top and the credits along the bottom, and this paragraph is what goes in it.
 
 ## principle: One source, four views | print, print-notes, audience, speaker all come from the same `source.md` {.standard #one-source}
 
-**One command turns your `source.md` into four HTML files, and you write the Markdown only once.** `print.html` is a reading copy with a cover and a table of contents. `print-notes.html` is that same document with your speaker notes folded in under each slide. `audience.html` is the projection you are reading. `speaker.html` is the lectern view, carrying the notes, a strip of the slides around you and a timer.
+**One command turns your `source.md` into four HTML files, and you write the Markdown only once.** `print.html` is a reading copy with a cover and a table of contents. `print-notes.html` is that same document with your speaker notes folded in under each slide. `audience.html` is the projection for the room. `speaker.html` is the lectern view, carrying the notes, a strip of the slides around you and a timer.
 
 The four differ only in what they **show you**. Nothing in the source is written for one of them and not the others.
 
@@ -56,6 +56,18 @@ box  spk   "speaker.html\nthe cockpit"           below aud gap 0.3 same as notes
 box  src   "source.md\none file"                 between doc,spk offset -2.0,0 {.tone-3}
 text bjs   "build.js"                            right of src gap 0.14 offset 0,-0.34 {.muted .small .mono}
 
+# source.md is not the whole input. The pictures a lecture references are read
+# from assets/ and end up inside every one of the four files, which is what the
+# paragraph under this drawing claims – so they belong in the drawing. Three
+# empty frames say "some images" without pretending to be any particular one.
+# The label sits over the left frame and the wire leaves the middle one, so the
+# two never meet.
+image ph2 photo                                  below src gap 0.8 w 0.34
+image ph1 photo                                  left of ph2 gap 0.12 same as ph2
+image ph3 photo                                  right of ph2 gap 0.12 same as ph2
+text  phl  "images"                              above ph1 gap 0.16 {.muted .small .mono}
+edge ph2.top -- src.bottom {.dashed .muted}
+
 edge src -> doc   {.elbow}
 edge src -> notes {.elbow}
 edge src -> aud   {.elbow}
@@ -70,17 +82,17 @@ Each of the four files carries everything it needs inside itself – the picture
 
 > note: The drawing above is a `::: draw` block written out in the lecture source, drawn into the page as artwork at build time. It takes its colours from the theme: press A a few times while this slide is up and the figure re-colours with the page.
 
-## free: What you're reading right now | the projection, or the lectern view beside it {.wide #audience-now}
+## free: What you're reading right now | one chunk, in whichever of the four you opened {.wide #audience-now}
 
-**This is `audience.html`, the projection for the room – or the same slide in `speaker.html`, if you have the lectern window open already.** One **chunk – one `##` heading in the source, with everything written under it** – fills the slide. The keyboard moves you from chunk to chunk, and the two windows, once both are open, mirror each other as it happens.
+**Whichever of the four files you have open, what you are reading is one chunk** – one `##` heading in the source, with everything written under it. `audience.html` and `speaker.html` give a chunk the whole screen and move you from one to the next with the keyboard; `print.html` and `print-notes.html` run the same chunks on down the page, so a reader scrolls instead of pressing anything.
 
 ::: cols 2
 
-**To see the other views:**
+**In either live view, three keys reach the rest:**
 
-- Press `P` now to open `print.html` in a new tab – scroll through the whole lecture as a document.
-- Press `S` to open `speaker.html` as a second window – that is the lectern view.
-- Press `?` for the full keyboard and mouse reference. Everything below is in there too.
+- `P` opens `print.html` in a new tab – the whole lecture as a document.
+- `S` opens `speaker.html` as a second window, the lectern view. Once both are open, they mirror each other as you move.
+- `?` shows the full keyboard and mouse reference. Everything below is in there too.
 
 **The one file that produced all four** is `lectures/tutorial/source.md`. Every slide in every view came out of it. Open it in a text editor beside this window and read the two together.
 
@@ -130,6 +142,18 @@ Press `C` while this pane is open and watch the chunk behind it shorten. The pan
 
 **Click any figure, block of code or formula inside the chunk you are on.** It lifts into a card in the middle of the screen, with the slide dimmed behind it.
 
+```python
+# Click this block to zoom it. Useful when a line matters more than the slide.
+def anonymity_set(observations, senders):
+    return {s for s in senders if plausible(s, observations)}
+```
+
+Inside an opened card: drag to pan, wheel or `+` `-` to zoom, `0` to reset, `Esc` or a click to close. With a speaker window open, the projection follows which card you opened, how far you zoomed and where you panned, so what you are inspecting is what the room sees.
+
+**Hold `Alt` – `option` on a Mac – to select text.** Dragging normally pans the slide, so selection is off. Hold the key and the slide becomes selectable and the cursor changes; let go and dragging pans again. The selection survives the key release so you can reach `Cmd`-`C`, and `Esc` clears it.
+
+## example: Links | a click follows one; the symbol beside it shows the address to the room {.standard #links}
+
 **Links behave two ways, and which one you want depends on the window you are in.** A plain click follows the link in a new tab of *that* window. Clicked in the lectern view, that is you checking a source while the projection stays where it was. Clicked in the projection, it is the page itself arriving in front of the room.
 
 **The small QR-code symbol after the link does the other thing**: it puts the **address** on both screens, large, with a **scannable code** beside it, so the room can take the link away on their own phones. Click the address to open it anyway; `Esc` or the next slide clears it. `Shift`-clicking the link itself does the same.
@@ -138,19 +162,9 @@ Try it on this one: [the group behind the tool](https://psi.uni-bamberg.de/). Th
 
 The codes are drawn when the lecture is built, one per external address in the source. `style: {link-codes: off}` leaves them out.
 
-**Hold `Alt` – `option` on a Mac – to select text.** Dragging normally pans the slide, so selection is off. Hold the key and the slide becomes selectable and the cursor changes; let go and dragging pans again. The selection survives the key release so you can reach `Cmd`-`C`, and `Esc` clears it.
-
-Inside an opened card: drag to pan, wheel or `+` `-` to zoom, `0` to reset, `Esc` or a click to close. With a speaker window open, the projection follows which card you opened, how far you zoomed and where you panned, so what you are inspecting is what the room sees.
-
-```python
-# Click this block to zoom it. Useful when a line matters more than the slide.
-def anonymity_set(observations, senders):
-    return {s for s in senders if plausible(s, observations)}
-```
-
 # Finding content {#finding}
 
-## example: Overview | `O` as in Overview zooms out so you can see everything {.standard #overview}
+## example: Open the Overview | `O` zooms out so you can see every slide at once {.standard #overview}
 
 **Press `O` now** – the letter O, not the digit zero, which resets the zoom instead. The view pulls back to show every chunk at once, laid out in its columns, with an outline round the one you were on.
 
@@ -161,13 +175,13 @@ def anonymity_set(observations, senders):
 
 The board shows the shape of the lecture – where the principles are, where the figures are – which is usually enough to find the part you want. With a speaker window open, both windows enter, pan, zoom and leave together.
 
-## example: Contents | `T` lists the lecture's columns {.standard #toc}
+## example: Open the Table of Contents | `T` lists the lecture's columns {.standard #toc}
 
 **`T` shows a list of every named column.** Click an entry to jump there; `T` again closes the panel.
 
 A column with no `{#id}` does not appear – the unnamed opening column that holds the title slide stays out of the list. The `{#id}` is also what a cross-reference points at: a `[text](#some-id)` link anywhere in the body finds it.
 
-## example: Search | `/` lists every slide that mentions a word {.wide #search}
+## example: Search | `/` lists every slide that mentions a word {.standard #search}
 
 **Press `/` from anywhere – you do not have to be in overview first.** A panel opens and every slide whose heading or body contains what you type is listed with the sentence it matched, the term highlighted.
 

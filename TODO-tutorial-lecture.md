@@ -137,8 +137,8 @@ CSS/JS die neue Regel per `grep -F` im gebauten HTML nachweisen.
 
 ## Was erledigt ist
 
-Zwölf Slices. Die Commit-Nachrichten tragen die Begründungen; diese Tabelle ist
-der Index. Was in C und D im Einzelnen geändert wurde, steht dort und nicht
+Dreizehn Slices. Die Commit-Nachrichten tragen die Begründungen; diese Tabelle
+ist der Index. Was in C und D im Einzelnen geändert wurde, steht dort und nicht
 mehr hier.
 
 | # | Was | Commit |
@@ -155,10 +155,11 @@ mehr hier.
 | 10 | **D-Block 3 – Kernidee.** `#topic-sentence` sagte „der Topic Sentence“, Singular; PRD §4.5 und `splitSentencesIn` nehmen den ersten Satz **jedes** Absatzes. Trägt jetzt die Arbeitsreihenfolge (erst Prosa, dann die Eröffnungen schärfen), die sonst nirgends stand, und ist selbst vier Absätze – am gebauten Page nachgezählt, nicht geschätzt. `#33` gestrichen, `#19` ohne die Abbildung umformuliert, die es nie gab. | `d5d4bca` |
 | 11 | **D-Block 4 – `::: footnote`.** `::: margin` baut weiter und ist nirgends mehr dokumentiert. `word` merkt sich die geschriebene Schreibweise, damit „was never closed“ die getippte Zeile zitiert. `test/settings.mjs` sichert den Alias in **beiden** Views ab (`.margin-note` live, `.chunk-expansion-margin` auf Papier) – gegengeprüft, indem `margin` aus dem Parser entfernt und der Test fallen gesehen wurde. | `04c2921` |
 | 12 | **Abschnitt A – die drei Engine-Mini-Fixes**, alle drei anders gelagert als der Befund im Plan. `[#9]` reproduziert erst ab Zoom 1,65, dafür sicher: eine echte Prosazeile lag bei 1,65, 1,95 und 2,2 im Knopfrechteck. `[#10]` lag nicht an der `36em`-Kappe, die nie greift, sondern an den 14 % Seitenrand – beide Spalten kamen an jeder Fenstergröße und bei jeder Breitenklasse gleich breit heraus, 21,0em bei 1440, schmaler als `narrow`. Und dahinter steckte ein dritter Fehler, der in keinem Punkt stand: die Kamera zentrierte die Expansion statt des Chunks, unter 900 px auf ein `position: fixed` in einem transformierten Vorfahren, was das Deck um 40 850 px verschob. `[#1]` siehe *Entschieden*. Neu dazu `test/expansion.mjs`, 19 Assertions: der Kamerafehler hat vom ersten Audience-Renderer an gelebt, weil ein Screenshot der Karte richtig aussieht. Alle vier Defekte gegengeprüft, indem jeder einzeln wieder eingebaut und der Spec fallen gesehen wurde – jeder fällt genau an den Zeilen, die ihn benennen. | – |
+| 13 | **Zweite Runde durch die Lecture, vier Punkte.** `#four-views` zeigt jetzt den zweiten Input: drei Bildrahmen unter `source.md`, mit `images` darüber und einer gestrichelten Linie **ohne Spitze** – ein Pfeil *in* die Box hätte behauptet, die Bilder steckten in der Quelldatei, und sie stehen daneben. Neues Asset `assets/photo.svg` nach der Konvention von `avatar-alice.svg` (inline `<style>` mit `--ink`-Fallback), also färbt es auf `A` mit; ein Raster täte das nicht. `#audience-now` behauptete „This is `audience.html`“ in allen vier Views, also in zweien falsch – und `#one-source` eine Folie davor genauso („the projection you are reading“), was in keinem Punkt der Liste stand. Beide sagen jetzt, was in jeder Ansicht stimmt. `#figure-focus` erklärte im zweiten Absatz Links: die vier Absätze sind der eigene Chunk `#links`, und der Code-Block steht nicht mehr am Fuß der Folie, sondern direkt unter dem Absatz, der zum Klicken auffordert. `#search` war `.wide` zwischen zwei `.standard`-Folien – 52em nach 36em, mitten in einer Spalte, die dreimal dasselbe erklärt; jetzt `.standard`. `#overview` und `#toc` heißen „Open the Overview“ und „Open the Table of Contents“, weil die Folien einen Handgriff zeigen und keinen Gegenstand. | – |
 
 ### Beim Verifizieren nebenbei gefunden
 
-Fünf Fehler, die in keinem Punkt der Liste standen – jeder kam heraus, weil eine
+Sechs Fehler, die in keinem Punkt der Liste standen – jeder kam heraus, weil eine
 Behauptung des Tutorials oder des Stylesheets gegen den Code geprüft wurde statt
 geglaubt:
 
@@ -174,6 +175,10 @@ geglaubt:
 - **`#cards`: „`ground: photo`“ ist keine Syntax.** `parseSlotClasses` liest
   blanke Wörter in Klammern; ein `key: value` in einem Tail hätte den Build
   angehalten. (`c5cdd9b`)
+- **`#one-source`: „`audience.html` is the projection you are reading“.** Der
+  gemeldete Punkt war `#audience-now`; dieselbe Behauptung stand eine Folie
+  davor und in allen vier Views, also in `print.html` und `print-notes.html`
+  falsch. Wer nur den gemeldeten Chunk anfasst, lässt die erste Stelle stehen.
 - **Die Expansions-Kamera und das `position: fixed` darunter.** Der
   CSS-Kommentar sagte, unter 900 px decke die Karte die Folie zu. Sie deckte
   nichts zu: die Folie war 37 000 px weit weg, und die Karte stand auf leerer
