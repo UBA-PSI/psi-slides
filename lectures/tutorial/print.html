@@ -2466,72 +2466,20 @@ are tagged into a release.</p>
   
   <span class="chunk-num" aria-hidden="true"><i>5</i><i>7</i></span>
   <span class="chunk-label">principle</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">A slide is a frame, and the text column is only the middle of it</span> <span class="hd-sub"><code>::: backdrop</code>, <code>::: overlay</code>, <code>::: cards</code>, <code class="nb">cover:</code></span></h2>
-  <p><strong>A picture that fills the slide, a row of three cards, a composed title page: none of these can be written inside a chunk&#39;s body</strong>, which never reaches the edges of the frame.</p>
-<p><strong>They are properties of the chunk instead</strong> – a <code>::: backdrop</code> behind it, an <code>::: overlay</code> on top, a <code>::: cards</code> row instead of paragraphs, a <code class="nb">cover:</code> line in the frontmatter.</p>
-<p>The rest of this part takes them one at a time. All of them – ten
-covers, six kinds of divider, cards, rows, backdrops that open on a keypress,
-overlays – are shown one per slide in
-<a href="../decoration/audience.html">the decoration lecture</a>.</p>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">A slide can be more than a column of text</span> <span class="hd-sub">and what makes it one is not written inside the text</span></h2>
+  <p><strong>Write a picture into a chunk and you get a picture in the text column</strong> – never one that fills the slide, and never three things standing side by side.</p>
+<p><strong>A slide-wide construction is written beside the body rather than in it, and there are three kinds.</strong> Something behind the whole slide or laid over it; something that takes the place of the paragraphs; and the composed slides a lecture opens and closes with.</p>
+<p>The rest of this part takes them one at a time, in that order. All of them are
+shown one per slide in <a href="../decoration/audience.html">the decoration lecture</a>.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="covers" data-chunk-num="58">
+<article class="chunk chunk-example width-wide" id="backdrop" data-chunk-num="58">
   
   <span class="chunk-num" aria-hidden="true"><i>5</i><i>8</i></span>
-  <span class="chunk-label">example</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">How the title slide is composed</span> <span class="hd-sub"><code class="nb">cover:</code> plus a <code class="nb">subtitle:</code> line</span></h2>
-  <p><strong><code class="nb">cover:</code> in the frontmatter picks how the title slide is composed, and <code class="nb">subtitle:</code> gives it the line that says what the talk is about.</strong> Without those two, a cover is one weight of one colour with the subject set beside the venue, and it reads as a text file rather than as the opening of a talk.</p>
-<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">title</span><span style="color:#24292E">: </span><span style="color:#032F62">How Caches Forget</span></span>
-<span class="line"><span style="color:#22863A">subtitle</span><span style="color:#24292E">: </span><span style="color:#032F62">Eviction, Staleness and the Cost of Being Wrong</span></span>
-<span class="line"><span style="color:#22863A">presenter</span><span style="color:#24292E">: </span><span style="color:#032F62">Jana Wieland</span></span>
-<span class="line"><span style="color:#22863A">info</span><span style="color:#24292E">: </span><span style="color:#D73A49">|</span></span>
-<span class="line"><span style="color:#032F62">  Distributed Systems · Lecture 7 · Room WE5/00.019</span></span>
-<span class="line"><span style="color:#032F62">  uni.example/ds</span></span>
-<span class="line"><span style="color:#22863A">cover</span><span style="color:#24292E">: </span><span style="color:#032F62">split</span><span style="color:#6A737D">            # see the two rows below</span></span>
-<span class="line"><span style="color:#22863A">cover-image</span><span style="color:#24292E">: </span><span style="color:#032F62">skyline</span><span style="color:#6A737D">    # only the four picture covers take one;</span></span>
-<span class="line"><span style="color:#6A737D">                        # on the six type covers it is an error</span></span></code></pre>
-<p><code class="nb">info:</code> takes as many lines as you give it – the course and the room, the address students should write down, or, at a conference, its name and dates. Without <code class="nb">subtitle:</code> the one line saying what the talk is <em>about</em> has nowhere to go but <code class="nb">info</code> either, where it is set exactly like the rest.</p>
-<p><strong>The ten are ordered by how much the opening slide asserts itself.</strong> Six of them are type alone:</p>
-<div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
-<ul>
-<li><strong>classic</strong> the lower-left third. The default, so a lecture that names no cover at all is unchanged</li>
-<li><strong>masthead</strong> the title along the top edge, the credits along the bottom, your own text in the field between</li>
-<li><strong>stack</strong> the title block centred on both axes, for an opening that wants to be still</li>
-<li><strong>display</strong> the title set to fill the slide. The scale is the whole design</li>
-<li><strong>panel</strong> the type on a full field of the theme&#39;s accent colour</li>
-<li><strong>quote</strong> the title chunk&#39;s body set as the claim, the lecture&#39;s name under it</li>
-</ul>
-
-</div>
-
-
-<p>Four take a picture:</p>
-<div class="cards cards-4 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
-<ul>
-<li><strong>split</strong> type on the left, the picture running off the right edge</li>
-<li><strong>hero</strong> the picture is the slide, type reversed out of a dark gradient</li>
-<li><strong>beside</strong> the title chunk&#39;s own body, a drawing say, set to the right</li>
-<li><strong>above</strong> that same body on top, the title centred in the band below it</li>
-</ul>
-
-</div>
-
-
-<p><strong><code class="nb">beside</code>, <code class="nb">above</code> and <code class="nb">quote</code> take their content from the chunk body</strong>, so a <code>::: draw</code> can be the cover – a diagram is not a file, and <code class="nb">cover-image</code> can never name one. On those three, and on <code class="nb">masthead</code>, <code class="nb">info:</code> still supplies the credit lines; everywhere else writing a body replaces <code class="nb">info</code>. <code>cover-ratio: 42%</code> sets how much of the slide the picture takes on <code class="nb">split</code>, <code class="nb">beside</code> and <code class="nb">above</code>, and <code>cover-align: top | middle | bottom</code> moves the type up or down on the compositions that leave it any freedom.</p>
-<p><strong>The six type compositions each take a <code>::: backdrop</code> too</strong>, which is how a photograph reaches a cover that has no <code class="nb">cover-image</code> of its own. Try <code class="nb">panel</code> that way: its coloured field becomes the veil, so the picture reads through a plate of the accent rather than under the paper wash every other backdrop gets.</p>
-
-  
-  
-  
-  
-</article>
-<article class="chunk chunk-example width-wide" id="backdrop" data-chunk-num="59">
-  
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>9</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A picture that fills the frame</span> <span class="hd-sub"><code>::: backdrop</code> and <code>::: overlay</code></span></h2>
   <p><strong><code>::: backdrop</code> puts a picture behind the whole slide, edge to edge, and <code>::: overlay</code> puts a block of text on top of it.</strong> One line each, on any chunk – a cover is not a special case.</p>
@@ -2553,9 +2501,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-full" id="deco-picture" data-chunk-num="60" data-has-backdrop="" data-backdrop="invert">
+<article class="chunk chunk-example width-full" id="deco-picture" data-chunk-num="59" data-has-backdrop="" data-backdrop="invert">
   <div class="chunk-backdrop bd-cover bd-middle bd-invert bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>9</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A picture behind the words</span> <span class="hd-sub">what the two blocks on the last slide produce</span></h2>
   
@@ -2567,12 +2515,12 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cards" data-chunk-num="61">
+<article class="chunk chunk-example width-wide" id="cards" data-chunk-num="60">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A row of cards</span> <span class="hd-sub"><code>::: cards N</code></span></h2>
-  <p><strong><code>::: cards 3</code> is not a second spelling of <code>::: cols 3</code>.</strong> A <code class="nb">cols</code> block is one run of text the browser shares across that many columns, so a paragraph can spill from the foot of one into the head of the next. A <code class="nb">cards</code> block is that many separate boxes, and an item is in one of them whole or it is nowhere.</p>
+  <p><strong><code>::: cards 3</code> is something different from <code>::: cols 3</code>.</strong> A <code class="nb">cols</code> block is one run of text the browser shares across that many columns, so a paragraph can spill from the foot of one into the head of the next. A <code class="nb">cards</code> block is that many separate boxes, and an item is in one of them whole or it is nowhere.</p>
 <div class="cards cards-3 cs-large ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li><strong>cards</strong><ul>
@@ -2614,23 +2562,45 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cards-look" data-chunk-num="62">
+<article class="chunk chunk-example width-wide" id="cards-look" data-chunk-num="61">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>1</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">What the words in the braces do</span> <span class="hd-sub">the seven that set a card row&#39;s look</span></h2>
-  <p><strong>Seven words in the tail set the look, and two of them decide themselves</strong>: <code class="nb">size</code>, where the longest item picks it, and <code class="nb">align</code>, which follows the size. The other five are <code class="nb">anchor</code>, <code class="nb">detail</code>, <code class="nb">ground</code>, <code class="nb">corner</code> and <code class="nb">scrim</code>. They are bare words between braces, at most one per question, and a second word answering a question already answered stops the build.</p>
-<div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-accent ck-round cx-veil">
+  <p><strong>Seven words in the tail set the look of a card row</strong>, written bare between braces, at most one per question – a second word answering a question already answered stops the build.</p>
 <ul>
-<li><strong>accent</strong><br>the theme&#39;s own colour, with the text in the page colour on top</li>
-<li><strong>paper</strong><br>the page colour, so the card lifts off whatever is behind it</li>
-<li><strong>clear</strong><br>no box at all. The gap between the cards is what separates them</li>
+<li><strong><code class="nb">ground</code></strong> – what the card is made of: a tint, a hairline, the page, or nothing.</li>
+<li><strong><code class="nb">anchor</code></strong> – where the text sits when the card is taller than its content.</li>
+<li><strong><code class="nb">corner</code></strong>, <strong><code class="nb">detail</code></strong> and <strong><code class="nb">scrim</code></strong> – the radius, the small print, and what is laid over a picture.</li>
+<li><strong><code class="nb">size</code></strong> and <strong><code class="nb">align</code></strong> decide themselves: the longest item picks the size, and the alignment follows it.</li>
+</ul>
+<div class="cards cards-1 cs-small ca-left cv-top cd-fold cg-accent ck-round cx-veil">
+<ul>
+<li><strong>accent</strong> – the theme&#39;s own colour, with the text in the page colour on top</li>
 </ul>
 
 </div>
 
 
-<p><strong>That row is <code>::: cards 3 {accent}</code></strong> – one word, and <code class="nb">ground</code> is answered for every card in it. <code class="nb">panel</code> is the default, a tinted fill; <code class="nb">outline</code> is a hairline and no fill; <code class="nb">photo</code> makes the card&#39;s first picture its background, and <code class="nb">scrim</code> says what is laid over it.</p>
+
+<div class="cards cards-1 cs-small ca-left cv-top cd-fold cg-paper ck-round cx-veil">
+<ul>
+<li><strong>paper</strong> – the page colour, so the card lifts off whatever is behind it</li>
+</ul>
+
+</div>
+
+
+
+<div class="cards cards-1 cs-small ca-left cv-top cd-fold cg-clear ck-round cx-veil">
+<ul>
+<li><strong>clear</strong> – no box at all, so the gap is what separates one card from the next</li>
+</ul>
+
+</div>
+
+
+<p><strong>Each of those rows is written <code>::: cards 1 {…}</code> with its own word</strong>, because <code class="nb">ground</code> is answered once for a whole row: three grounds means three rows. <code class="nb">panel</code> is the default, a tinted fill; <code class="nb">outline</code> is a hairline and no fill; <code class="nb">photo</code> makes the card&#39;s first picture its background, and <code class="nb">scrim</code> says what is laid over it.</p>
 <div class="cards cards-3 cs-small ca-left cv-middle cd-fold cg-outline ck-round cx-veil">
 <ul>
 <li><strong>outline</strong><br>a hairline and no fill, which is quieter on a slide that already carries a figure</li>
@@ -2648,9 +2618,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="rows" data-chunk-num="63">
+<article class="chunk chunk-example width-wide" id="rows" data-chunk-num="62">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>2</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A term and what it means</span> <span class="hd-sub"><code>::: rows</code></span></h2>
   <p><strong><code>::: rows</code> is the same box turned ninety degrees</strong>: a term in a card on the left, its explanation beside it, several of them stacked.</p>
@@ -2664,7 +2634,7 @@ overlays – are shown one per slide in
 </div>
 
 
-<p>That is <code>::: rows {accent}</code> around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are.</p>
+<p>That is <code>::: rows {accent}</code> around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are. <strong>The explanation is optional</strong> – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.</p>
 <p>It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: the text is centred against its term rather than against its first line; <code class="nb">align</code> says how the term sits <em>in its card</em>, and the explanation always ranges left; and the automatic size stops at <code class="nb">medium</code>, a term being a label in a column rather than a headline across the slide.</p>
 <p>Reach for <code class="nb">rows</code> when a term needs a sentence, and for <code class="nb">cards</code> when a comparison needs counting.</p>
 
@@ -2673,9 +2643,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="side-ratio" data-chunk-num="64">
+<article class="chunk chunk-example width-wide" id="side-ratio" data-chunk-num="63">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>3</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure beside the prose</span> <span class="hd-sub"><code>::: side 2:1</code></span></h2>
   <div class="side" style="--side-a:2fr;--side-b:1fr"><div class="side-a">
@@ -2706,22 +2676,51 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="style-block" data-chunk-num="65">
+<article class="chunk chunk-example width-wide" id="style-block" data-chunk-num="64">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>4</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Setting the typography for a whole lecture</span> <span class="hd-sub">the <code class="nb">style:</code> block</span></h2>
-  <p><strong>The <code class="nb">style:</code> block holds six settings you make once for a whole lecture rather than chunk by chunk.</strong></p>
+  <p><strong>The <code class="nb">style:</code> block holds the settings you make once for a whole lecture rather than chunk by chunk.</strong></p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">style</span><span style="color:#24292E">:</span></span>
 <span class="line"><span style="color:#22863A">  headings</span><span style="color:#24292E">: </span><span style="color:#032F62">left</span><span style="color:#6A737D">        # auto | left | center | off</span></span>
 <span class="line"><span style="color:#22863A">  rules</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">            # on | off  – the hairline over a principle</span></span>
 <span class="line"><span style="color:#22863A">  labels</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">           # on | off  – the type word over a chunk</span></span>
 <span class="line"><span style="color:#22863A">  link-codes</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">       # on | off  – the mark after an external link</span></span>
+<span class="line"><span style="color:#22863A">  blocks</span><span style="color:#24292E">: </span><span style="color:#032F62">left</span><span style="color:#6A737D">          # center | left – where a code block,</span></span>
+<span class="line"><span style="color:#6A737D">                        # a figure and a formula sit</span></span>
+<span class="line"><span style="color:#22863A">  wrap</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">            # balance | none – even line lengths,</span></span>
+<span class="line"><span style="color:#6A737D">                        # in headings and in prose alike</span></span>
 <span class="line"><span style="color:#22863A">  heading-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">1.15</span><span style="color:#6A737D">   # 0.6 … 1.8</span></span>
-<span class="line"><span style="color:#22863A">  body-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">0.95</span><span style="color:#6A737D">      # 0.6 … 1.8</span></span>
-<span class="line"><span style="color:#22863A">  wrap</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">            # balance | none – how a heading breaks</span></span></code></pre>
+<span class="line"><span style="color:#22863A">  body-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">0.95</span><span style="color:#6A737D">      # 0.6 … 1.8</span></span></code></pre>
 <p><code>headings: auto</code> is the default, and it means the type decides: a question is centred, a figure&#39;s caption sits over its artwork. <code class="nb">left</code> overrides all of that, for one line of alignment down the whole lecture. <code class="nb">off</code> takes every heading off the projection while keeping it in <code class="nb">print.html</code>, <code class="nb">print-notes.html</code>, the contents list and the search.</p>
+<p><strong><code class="nb">wrap</code> reaches headings and prose both</strong>, which its name does not say: <code class="nb">balance</code> evens the line lengths of a heading and protects the last line of a paragraph, and <code class="nb">none</code> turns both off. <code class="nb">blocks</code> and <code class="nb">wrap</code> are the two keys a single chunk can answer for itself, with <code class="nb">{.blocks-left}</code> and <code class="nb">{.wrap-none}</code> in its attribute tail.</p>
 <p>The two scales multiply the tool&#39;s own sizes rather than replacing them, and they are <strong>bounded</strong>. Outside 0.6 to 1.8 the shortened view, the limit on how wide a line of code may be and the automatic zoom stop agreeing with each other.</p>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="65">
+  
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>5</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Turning the generated labels off</span> <span class="hd-sub"><code>style: {labels: off}</code></span></h2>
+  <p><strong>The type word above a chunk is drawn in two places, and one setting takes it out of both.</strong></p>
+<div class="cards cards-2 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
+<ul>
+<li><strong><code class="nb">print.html</code> and <code class="nb">print-notes.html</code></strong> set a small line of capitals over every typed chunk. Every type has one except free and figure, so that is where most of them live.</li>
+<li><strong>The projection</strong> prints only the word over an exercise. The rest were taken out: a label naming the kind of slide is only ever as right as the type was.</li>
+</ul>
+
+</div>
+
+
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">style</span><span style="color:#24292E">:</span></span>
+<span class="line"><span style="color:#22863A">  labels</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span></span></code></pre>
+<p><code class="nb">rules</code> is the neighbouring key and switches the lines – the bar above a principle, the hairline above a definition. <code class="nb">labels</code> switches the words.</p>
+<p><strong>A figure&#39;s heading, set in capitals, is your own text and needs no key.</strong> It is the chunk&#39;s heading, drawn that way because the type is <code class="nb">figure</code>, so <code>## figure: {.wide #id}</code> with no heading text leaves it off the slide. The cost is that the chunk then has no text for search to find and no heading in <code class="nb">print.html</code>. (The contents list is unaffected – <code class="nb">T</code> lists the lecture&#39;s columns, never its chunks.)</p>
 
   
   
@@ -2766,9 +2765,75 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="section-dividers" data-chunk-num="68">
+<article class="chunk chunk-example width-wide" id="covers" data-chunk-num="68" data-blocks="left">
   
   <span class="chunk-num" aria-hidden="true"><i>6</i><i>8</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">How the title slide is composed</span> <span class="hd-sub"><code class="nb">cover:</code> plus a <code class="nb">subtitle:</code> line</span></h2>
+  <p><strong><code class="nb">cover:</code> in the frontmatter picks how the title slide is composed, and <code class="nb">subtitle:</code> gives it the line that says what the talk is about.</strong> Without those two, a cover is one weight of one colour with the subject set beside the venue, and it reads as a text file rather than as the opening of a talk.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">title</span><span style="color:#24292E">: </span><span style="color:#032F62">How Caches Forget</span></span>
+<span class="line"><span style="color:#22863A">subtitle</span><span style="color:#24292E">: </span><span style="color:#032F62">Eviction, Staleness and the Cost of Being Wrong</span></span>
+<span class="line"><span style="color:#22863A">presenter</span><span style="color:#24292E">: </span><span style="color:#032F62">Jana Wieland</span></span>
+<span class="line"><span style="color:#22863A">info</span><span style="color:#24292E">: </span><span style="color:#D73A49">|</span></span>
+<span class="line"><span style="color:#032F62">  Distributed Systems · Lecture 7 · Room WE5/00.019</span></span>
+<span class="line"><span style="color:#032F62">  uni.example/ds</span></span>
+<span class="line"><span style="color:#22863A">cover</span><span style="color:#24292E">: </span><span style="color:#032F62">split</span><span style="color:#6A737D">            # see the two rows below</span></span>
+<span class="line"><span style="color:#22863A">cover-image</span><span style="color:#24292E">: </span><span style="color:#032F62">skyline</span><span style="color:#6A737D">    # only the four picture covers take one;</span></span>
+<span class="line"><span style="color:#6A737D">                        # on the six text-only ones it is an error</span></span></code></pre>
+<p><code class="nb">info:</code> takes as many lines as you give it – the course and the room, the address students should write down, or, at a conference, its name and dates. Without <code class="nb">subtitle:</code> the one line saying what the talk is <em>about</em> has nowhere to go but <code class="nb">info</code> either, where it is set exactly like the rest.</p>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="cover-list" data-chunk-num="69">
+  
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>9</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">The ten cover compositions</span> <span class="hd-sub">six of text alone, four that take a picture</span></h2>
+  <p><strong>They are ordered by how much the opening slide asserts itself.</strong> Six are text and nothing else:</p>
+<div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
+<ul>
+<li><strong>classic</strong> the lower-left third. The default, so a lecture that names no cover at all is unchanged</li>
+<li><strong>masthead</strong> the title along the top edge, the credits along the bottom, your own text in the field between</li>
+<li><strong>stack</strong> the title block centred on both axes, for an opening that wants to be still</li>
+<li><strong>display</strong> the title set to fill the slide. The scale is the whole design</li>
+<li><strong>panel</strong> the type on a full field of the theme&#39;s accent colour</li>
+<li><strong>quote</strong> the title chunk&#39;s body set as the claim, the lecture&#39;s name under it</li>
+</ul>
+
+</div>
+
+
+<p>Four take a picture:</p>
+<div class="cards cards-4 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
+<ul>
+<li><strong>split</strong> type on the left, the picture running off the right edge</li>
+<li><strong>hero</strong> the picture is the slide, type reversed out of a dark gradient</li>
+<li><strong>beside</strong> the title chunk&#39;s own body, a drawing say, set to the right</li>
+<li><strong>above</strong> that same body on top, the title centred in the band below it</li>
+</ul>
+
+</div>
+
+
+<p><strong><code class="nb">beside</code>, <code class="nb">above</code> and <code class="nb">quote</code> take their content from the chunk body</strong>, so a <code>::: draw</code> can be the cover – a diagram is not a file, and <code class="nb">cover-image</code> can never name one.</p>
+<p><strong>The six text-only compositions each take a <code>::: backdrop</code></strong>, which is how a photograph reaches a cover with no <code class="nb">cover-image</code> of its own.</p>
+
+  
+  <aside class="chunk-expansion chunk-expansion-expand" data-label="The rest of the cover keys">
+<p>On <code class="nb">beside</code>, <code class="nb">above</code>, <code class="nb">quote</code> and <code class="nb">masthead</code>, <code class="nb">info:</code> still supplies the credit lines; everywhere else writing a body replaces <code class="nb">info</code>.</p>
+<p><code>cover-ratio: 42%</code> sets how much of the slide the picture takes on <code class="nb">split</code>, <code class="nb">beside</code> and <code class="nb">above</code>, and <code>cover-align: top | middle | bottom</code> moves the words up or down on the compositions that leave them any freedom.</p>
+<p>Try <code class="nb">panel</code> with a backdrop: its coloured field becomes the veil, so the picture reads through a plate of the accent rather than under the paper wash every other backdrop gets.</p>
+
+</aside>
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="section-dividers" data-chunk-num="70">
+  
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Where a new part starts</span> <span class="hd-sub"><code class="nb">section:</code></span></h2>
   <p><strong>A column with a <code># Heading</code> opens with a divider slide</strong>, and <code class="nb">section:</code> picks how that slide is drawn.</p>
@@ -2793,34 +2858,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="69">
+<article class="chunk chunk-example width-wide" id="closing" data-chunk-num="71">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>9</i></span>
-  <span class="chunk-label">example</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Turning the generated labels off</span> <span class="hd-sub"><code>style: {labels: off}</code></span></h2>
-  <p><strong>The type word above a chunk is drawn in two places, and one setting takes it out of both.</strong></p>
-<div class="cards cards-2 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
-<ul>
-<li><strong><code class="nb">print.html</code> and <code class="nb">print-notes.html</code></strong> set a small line of capitals over every typed chunk. Every type has one except free and figure, so that is where most of them live.</li>
-<li><strong>The projection</strong> prints only the word over an exercise. The rest were taken out: a label naming the kind of slide is only ever as right as the type was.</li>
-</ul>
-
-</div>
-
-
-<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">style</span><span style="color:#24292E">:</span></span>
-<span class="line"><span style="color:#22863A">  labels</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span></span></code></pre>
-<p><code class="nb">rules</code> is the neighbouring key and switches the lines – the bar above a principle, the hairline above a definition. <code class="nb">labels</code> switches the words.</p>
-<p><strong>A figure&#39;s heading, set in capitals, is your own text and needs no key.</strong> It is the chunk&#39;s heading, drawn that way because the type is <code class="nb">figure</code>, so <code>## figure: {.wide #id}</code> with no heading text leaves it off the slide. The cost is that the chunk then has no text for search to find and no heading in <code class="nb">print.html</code>. (The contents list is unaffected – <code class="nb">T</code> lists the lecture&#39;s columns, never its chunks.)</p>
-
-  
-  
-  
-  
-</article>
-<article class="chunk chunk-example width-wide" id="closing" data-chunk-num="70">
-  
-  <span class="chunk-num" aria-hidden="true"><i>7</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>1</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The last slide</span> <span class="hd-sub"><code>## closing:</code></span></h2>
   <p><strong><code>## closing:</code> draws a last slide in the same composition as the cover, so the lecture ends on the shape it opened with.</strong> A lecture that starts on a designed slide and ends on the last bullet of the last argument stops rather than finishes.</p>
@@ -2828,16 +2868,16 @@ overlays – are shown one per slide in
 <span class="line"></span>
 <span class="line"><span style="color:#24292E">Next week: certificates, and who you are actually trusting.</span></span></code></pre>
 <p><strong>The heading is what it says, the sub-heading after the <code class="nb">|</code> is the second line, and the body is whatever should stay on screen while the room asks questions.</strong> Your name and the <code class="nb">info</code> block are not drawn.</p>
-<p>A closing slide never reads <code class="nb">cover-image</code>, so the four picture compositions draw their type alone. Give it a <code>::: backdrop</code> if you want a picture of its own.</p>
+<p>A closing slide never reads <code class="nb">cover-image</code>, so the four picture compositions draw their words alone. Give it a <code>::: backdrop</code> if you want a picture of its own.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-title" data-cover="masthead" data-closing="" data-chunk-num="71" id="end">
+<article class="chunk chunk-title" data-cover="masthead" data-closing="" data-chunk-num="72" id="end">
   
-  <span class="chunk-num" aria-hidden="true"><i>7</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>2</i></span>
   <h1 class="title-main">That is the tour</h1>
     <p class="title-subtitle">now write your own <code class="nb">source.md</code></p>
     <div class="closing-body"><p>Everything in this tour comes out of one Markdown file and one command, <code>node build.js source.md</code>. The four views are already sitting beside it.</p>

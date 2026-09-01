@@ -1049,58 +1049,14 @@ The delay has to be between 200 ms and 60 s; outside that the build refuses the 
 
 > Newer than the 1.0.0 download as well, and out of the same clone.
 
-## principle: A slide is a frame, and the text column is only the middle of it | `::: backdrop`, `::: overlay`, `::: cards`, `cover:` {.standard #deco-idea}
+## principle: A slide can be more than a column of text | and what makes it one is not written inside the text {.standard #deco-idea}
 
-**A picture that fills the slide, a row of three cards, a composed title page: none of these can be written inside a chunk's body**, which never reaches the edges of the frame.
+**Write a picture into a chunk and you get a picture in the text column** – never one that fills the slide, and never three things standing side by side.
 
-**They are properties of the chunk instead** – a `::: backdrop` behind it, an `::: overlay` on top, a `::: cards` row instead of paragraphs, a `cover:` line in the frontmatter.
+**A slide-wide construction is written beside the body rather than in it, and there are three kinds.** Something behind the whole slide or laid over it; something that takes the place of the paragraphs; and the composed slides a lecture opens and closes with.
 
-The rest of this part takes them one at a time. All of them – ten
-covers, six kinds of divider, cards, rows, backdrops that open on a keypress,
-overlays – are shown one per slide in
-[the decoration lecture](../decoration/audience.html).
-
-## example: How the title slide is composed | `cover:` plus a `subtitle:` line {.wide #covers}
-
-**`cover:` in the frontmatter picks how the title slide is composed, and `subtitle:` gives it the line that says what the talk is about.** Without those two, a cover is one weight of one colour with the subject set beside the venue, and it reads as a text file rather than as the opening of a talk.
-
-```yaml
-title: How Caches Forget
-subtitle: Eviction, Staleness and the Cost of Being Wrong
-presenter: Jana Wieland
-info: |
-  Distributed Systems · Lecture 7 · Room WE5/00.019
-  uni.example/ds
-cover: split            # see the two rows below
-cover-image: skyline    # only the four picture covers take one;
-                        # on the six type covers it is an error
-```
-
-`info:` takes as many lines as you give it – the course and the room, the address students should write down, or, at a conference, its name and dates. Without `subtitle:` the one line saying what the talk is *about* has nowhere to go but `info` either, where it is set exactly like the rest.
-
-**The ten are ordered by how much the opening slide asserts itself.** Six of them are type alone:
-
-::: cards 3
-- **classic** the lower-left third. The default, so a lecture that names no cover at all is unchanged
-- **masthead** the title along the top edge, the credits along the bottom, your own text in the field between
-- **stack** the title block centred on both axes, for an opening that wants to be still
-- **display** the title set to fill the slide. The scale is the whole design
-- **panel** the type on a full field of the theme's accent colour
-- **quote** the title chunk's body set as the claim, the lecture's name under it
-:::
-
-Four take a picture:
-
-::: cards 4
-- **split** type on the left, the picture running off the right edge
-- **hero** the picture is the slide, type reversed out of a dark gradient
-- **beside** the title chunk's own body, a drawing say, set to the right
-- **above** that same body on top, the title centred in the band below it
-:::
-
-**`beside`, `above` and `quote` take their content from the chunk body**, so a `::: draw` can be the cover – a diagram is not a file, and `cover-image` can never name one. On those three, and on `masthead`, `info:` still supplies the credit lines; everywhere else writing a body replaces `info`. `cover-ratio: 42%` sets how much of the slide the picture takes on `split`, `beside` and `above`, and `cover-align: top | middle | bottom` moves the type up or down on the compositions that leave it any freedom.
-
-**The six type compositions each take a `::: backdrop` too**, which is how a photograph reaches a cover that has no `cover-image` of its own. Try `panel` that way: its coloured field becomes the veil, so the picture reads through a plate of the accent rather than under the paper wash every other backdrop gets.
+The rest of this part takes them one at a time, in that order. All of them are
+shown one per slide in [the decoration lecture](../decoration/audience.html).
 
 ## example: A picture that fills the frame | `::: backdrop` and `::: overlay` {.wide #backdrop}
 
@@ -1138,7 +1094,7 @@ and this block is an overlay, placed on a 3×3 grid.
 
 ## example: A row of cards | `::: cards N` {.wide #cards}
 
-**`::: cards 3` is not a second spelling of `::: cols 3`.** A `cols` block is one run of text the browser shares across that many columns, so a paragraph can spill from the foot of one into the head of the next. A `cards` block is that many separate boxes, and an item is in one of them whole or it is nowhere.
+**`::: cards 3` is something different from `::: cols 3`.** A `cols` block is one run of text the browser shares across that many columns, so a paragraph can spill from the foot of one into the head of the next. A `cards` block is that many separate boxes, and an item is in one of them whole or it is nowhere.
 
 ::: cards 3
 - **cards**
@@ -1168,18 +1124,26 @@ Use `cols` for an argument that runs long, and `cards` for a comparison the room
 
 ## example: What the words in the braces do | the seven that set a card row's look {.wide #cards-look}
 
-**Seven words in the tail set the look, and two of them decide themselves**: `size`, where the longest item picks it, and `align`, which follows the size. The other five are `anchor`, `detail`, `ground`, `corner` and `scrim`. They are bare words between braces, at most one per question, and a second word answering a question already answered stops the build.
+**Seven words in the tail set the look of a card row**, written bare between braces, at most one per question – a second word answering a question already answered stops the build.
 
-::: cards 3 {accent}
-- **accent**\
-  the theme's own colour, with the text in the page colour on top
-- **paper**\
-  the page colour, so the card lifts off whatever is behind it
-- **clear**\
-  no box at all. The gap between the cards is what separates them
+- **`ground`** – what the card is made of: a tint, a hairline, the page, or nothing.
+- **`anchor`** – where the text sits when the card is taller than its content.
+- **`corner`**, **`detail`** and **`scrim`** – the radius, the small print, and what is laid over a picture.
+- **`size`** and **`align`** decide themselves: the longest item picks the size, and the alignment follows it.
+
+::: cards 1 {accent}
+- **accent** – the theme's own colour, with the text in the page colour on top
 :::
 
-**That row is `::: cards 3 {accent}`** – one word, and `ground` is answered for every card in it. `panel` is the default, a tinted fill; `outline` is a hairline and no fill; `photo` makes the card's first picture its background, and `scrim` says what is laid over it.
+::: cards 1 {paper}
+- **paper** – the page colour, so the card lifts off whatever is behind it
+:::
+
+::: cards 1 {clear}
+- **clear** – no box at all, so the gap is what separates one card from the next
+:::
+
+**Each of those rows is written `::: cards 1 {…}` with its own word**, because `ground` is answered once for a whole row: three grounds means three rows. `panel` is the default, a tinted fill; `outline` is a hairline and no fill; `photo` makes the card's first picture its background, and `scrim` says what is laid over it.
 
 ::: cards 3 {outline middle}
 - **outline**\
@@ -1202,7 +1166,7 @@ Use `cols` for an argument that runs long, and `cards` for a comparison the room
 - **Deference** Engineers name the options and say what each one costs
 :::
 
-That is `::: rows {accent}` around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are.
+That is `::: rows {accent}` around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are. **The explanation is optional** – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.
 
 It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: the text is centred against its term rather than against its first line; `align` says how the term sits *in its card*, and the explanation always ranges left; and the automatic size stops at `medium`, a term being a label in a column rather than a headline across the slide.
 
@@ -1232,7 +1196,7 @@ A card row works inside one half of a `::: side` block, which is a box with a wi
 
 ## example: Setting the typography for a whole lecture | the `style:` block {.wide #style-block}
 
-**The `style:` block holds six settings you make once for a whole lecture rather than chunk by chunk.**
+**The `style:` block holds the settings you make once for a whole lecture rather than chunk by chunk.**
 
 ```yaml
 style:
@@ -1240,14 +1204,37 @@ style:
   rules: off            # on | off  – the hairline over a principle
   labels: off           # on | off  – the type word over a chunk
   link-codes: off       # on | off  – the mark after an external link
+  blocks: left          # center | left – where a code block,
+                        # a figure and a formula sit
+  wrap: none            # balance | none – even line lengths,
+                        # in headings and in prose alike
   heading-scale: 1.15   # 0.6 … 1.8
   body-scale: 0.95      # 0.6 … 1.8
-  wrap: none            # balance | none – how a heading breaks
 ```
 
 `headings: auto` is the default, and it means the type decides: a question is centred, a figure's caption sits over its artwork. `left` overrides all of that, for one line of alignment down the whole lecture. `off` takes every heading off the projection while keeping it in `print.html`, `print-notes.html`, the contents list and the search.
 
+**`wrap` reaches headings and prose both**, which its name does not say: `balance` evens the line lengths of a heading and protects the last line of a paragraph, and `none` turns both off. `blocks` and `wrap` are the two keys a single chunk can answer for itself, with `{.blocks-left}` and `{.wrap-none}` in its attribute tail.
+
 The two scales multiply the tool's own sizes rather than replacing them, and they are **bounded**. Outside 0.6 to 1.8 the shortened view, the limit on how wide a line of code may be and the automatic zoom stop agreeing with each other.
+
+## example: Turning the generated labels off | `style: {labels: off}` {.wide #labels}
+
+**The type word above a chunk is drawn in two places, and one setting takes it out of both.**
+
+::: cards 2
+- **`print.html` and `print-notes.html`** set a small line of capitals over every typed chunk. Every type has one except free and figure, so that is where most of them live.
+- **The projection** prints only the word over an exercise. The rest were taken out: a label naming the kind of slide is only ever as right as the type was.
+:::
+
+```yaml
+style:
+  labels: off
+```
+
+`rules` is the neighbouring key and switches the lines – the bar above a principle, the hairline above a definition. `labels` switches the words.
+
+**A figure's heading, set in capitals, is your own text and needs no key.** It is the chunk's heading, drawn that way because the type is `figure`, so `## figure: {.wide #id}` with no heading text leaves it off the slide. The cost is that the chunk then has no text for search to find and no heading in `print.html`. (The contents list is unaffected – `T` lists the lecture's columns, never its chunks.)
 
 ## example: Which typefaces travel in the file | five come with the tool {.wide #bundled-fonts}
 
@@ -1283,6 +1270,58 @@ Files are matched by name, and the ending gives the weight and the style: `Liter
 
 **Check the licence first.** Putting a font inside the file redistributes it. The SIL Open Font License and Apache-2.0 – between them nearly all of Google Fonts – allow that; most commercial desktop licences do not, and want a separate web licence. The build prints a reminder and checks nothing.
 
+## example: How the title slide is composed | `cover:` plus a `subtitle:` line {.wide .blocks-left #covers}
+
+**`cover:` in the frontmatter picks how the title slide is composed, and `subtitle:` gives it the line that says what the talk is about.** Without those two, a cover is one weight of one colour with the subject set beside the venue, and it reads as a text file rather than as the opening of a talk.
+
+```yaml
+title: How Caches Forget
+subtitle: Eviction, Staleness and the Cost of Being Wrong
+presenter: Jana Wieland
+info: |
+  Distributed Systems · Lecture 7 · Room WE5/00.019
+  uni.example/ds
+cover: split            # see the two rows below
+cover-image: skyline    # only the four picture covers take one;
+                        # on the six text-only ones it is an error
+```
+
+`info:` takes as many lines as you give it – the course and the room, the address students should write down, or, at a conference, its name and dates. Without `subtitle:` the one line saying what the talk is *about* has nowhere to go but `info` either, where it is set exactly like the rest.
+
+## example: The ten cover compositions | six of text alone, four that take a picture {.wide #cover-list}
+
+**They are ordered by how much the opening slide asserts itself.** Six are text and nothing else:
+
+::: cards 3
+- **classic** the lower-left third. The default, so a lecture that names no cover at all is unchanged
+- **masthead** the title along the top edge, the credits along the bottom, your own text in the field between
+- **stack** the title block centred on both axes, for an opening that wants to be still
+- **display** the title set to fill the slide. The scale is the whole design
+- **panel** the type on a full field of the theme's accent colour
+- **quote** the title chunk's body set as the claim, the lecture's name under it
+:::
+
+Four take a picture:
+
+::: cards 4
+- **split** type on the left, the picture running off the right edge
+- **hero** the picture is the slide, type reversed out of a dark gradient
+- **beside** the title chunk's own body, a drawing say, set to the right
+- **above** that same body on top, the title centred in the band below it
+:::
+
+**`beside`, `above` and `quote` take their content from the chunk body**, so a `::: draw` can be the cover – a diagram is not a file, and `cover-image` can never name one.
+
+**The six text-only compositions each take a `::: backdrop`**, which is how a photograph reaches a cover with no `cover-image` of its own.
+
+::: expand The rest of the cover keys
+On `beside`, `above`, `quote` and `masthead`, `info:` still supplies the credit lines; everywhere else writing a body replaces `info`.
+
+`cover-ratio: 42%` sets how much of the slide the picture takes on `split`, `beside` and `above`, and `cover-align: top | middle | bottom` moves the words up or down on the compositions that leave them any freedom.
+
+Try `panel` with a backdrop: its coloured field becomes the veil, so the picture reads through a plate of the accent rather than under the paper wash every other backdrop gets.
+:::
+
 ## example: Where a new part starts | `section:` {.wide #section-dividers}
 
 **A column with a `# Heading` opens with a divider slide**, and `section:` picks how that slide is drawn.
@@ -1303,24 +1342,6 @@ section-mark: Teil      # any short word, or nothing
 
 `section-mark:` puts a word of your own – `Teil`, `Kapitel` – over the heading. By default there is none.
 
-## example: Turning the generated labels off | `style: {labels: off}` {.wide #labels}
-
-**The type word above a chunk is drawn in two places, and one setting takes it out of both.**
-
-::: cards 2
-- **`print.html` and `print-notes.html`** set a small line of capitals over every typed chunk. Every type has one except free and figure, so that is where most of them live.
-- **The projection** prints only the word over an exercise. The rest were taken out: a label naming the kind of slide is only ever as right as the type was.
-:::
-
-```yaml
-style:
-  labels: off
-```
-
-`rules` is the neighbouring key and switches the lines – the bar above a principle, the hairline above a definition. `labels` switches the words.
-
-**A figure's heading, set in capitals, is your own text and needs no key.** It is the chunk's heading, drawn that way because the type is `figure`, so `## figure: {.wide #id}` with no heading text leaves it off the slide. The cost is that the chunk then has no text for search to find and no heading in `print.html`. (The contents list is unaffected – `T` lists the lecture's columns, never its chunks.)
-
 ## example: The last slide | `## closing:` {.wide #closing}
 
 **`## closing:` draws a last slide in the same composition as the cover, so the lecture ends on the shape it opened with.** A lecture that starts on a designed slide and ends on the last bullet of the last argument stops rather than finishes.
@@ -1333,7 +1354,7 @@ Next week: certificates, and who you are actually trusting.
 
 **The heading is what it says, the sub-heading after the `|` is the second line, and the body is whatever should stay on screen while the room asks questions.** Your name and the `info` block are not drawn.
 
-A closing slide never reads `cover-image`, so the four picture compositions draw their type alone. Give it a `::: backdrop` if you want a picture of its own.
+A closing slide never reads `cover-image`, so the four picture compositions draw their words alone. Give it a `::: backdrop` if you want a picture of its own.
 
 > note: The checker warns if a `closing:` chunk is not the last chunk in the lecture, and if there is more than one – both of which are lectures that end twice.
 
