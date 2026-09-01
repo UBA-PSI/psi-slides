@@ -1,5 +1,5 @@
 ---
-title: psi-slides – a ten-step tour
+title: psi-slides – a guided tour
 subtitle: A lecture medium that builds four views from one Markdown file
 presenter: Dominik Herrmann
 cover: masthead
@@ -31,9 +31,11 @@ top and the credits along the bottom, and this paragraph is what goes in it.
 
 > note: This lecture explains the tool by being written in it. Open the speaker view too (press S) and keep the two windows side by side – the Speaker cockpit column later on assumes it is running.
 
-## principle: One source, four views | print, print-notes, audience, speaker all come from the same `source.md` {.standard #one-source}
+## principle: One source, four views | the deck, the hand-out and the notes stop drifting apart {.standard #one-source}
 
-**One command turns your `source.md` into four HTML files, and you write the Markdown only once.** `print.html` is a reading copy with a cover and a table of contents. `print-notes.html` is that same document with your speaker notes folded in under each slide. `audience.html` is the projection for the room. `speaker.html` is the lectern view, carrying the notes, a strip of the slides around you and a timer.
+**A lecture normally needs three documents that say the same thing – the deck you project, the hand-out you give away and the notes you speak from – and they start disagreeing the moment you edit one of them.** Keeping the three in step is work you do instead of preparing the lecture.
+
+**Here they are one Markdown file, and one command writes all of them.** `print.html` is a reading copy with a cover and a table of contents. `print-notes.html` is that same document with your speaker notes folded in under each slide. `audience.html` is the projection for the room. `speaker.html` is the lectern view, carrying the notes, a strip of the slides around you and a timer.
 
 The four differ only in what they **show you**. Nothing in the source is written for one of them and not the others.
 
@@ -100,6 +102,12 @@ Each of the four files carries everything it needs inside itself – the picture
 
 # Moving around {#moving}
 
+## principle: The room sets the pace | one path through the lecture, two sizes of step {.standard #pace}
+
+**A lecture has one path through it, but how fast you walk that path belongs to the room.** So forward is two moves under one key: it uncovers the next piece of the slide you are on, and only when there is nothing left does it go on to the next slide. A dense slide arrives in parts, and a slide the room has already understood is a single press.
+
+**The larger step is the whole column**, for when you have finished a part rather than a slide. The rest of this part is those keys, and the two things a click opens.
+
 ## example: Forward and back | and `Shift` for whole columns {.standard #arrows}
 
 **Two keys carry the whole lecture, forward and back, and holding `Shift` jumps a whole column.** A `# Heading` in the source starts a **column – a run of slides on one theme** – and each `## tag: …` under it is one chunk.
@@ -164,6 +172,12 @@ The codes are drawn when the lecture is built, one per external address in the s
 
 # Finding content {#finding}
 
+## principle: A talk never runs in the order you planned | so every slide has to be one move away {.standard #jumping}
+
+**A question from the room sends you to a slide forty back, and pressing the back arrow forty times in front of people is not a plan.** Three panels reach any chunk in the lecture directly, without walking through the ones in between.
+
+**Which of the three you want depends on what you can still remember about the slide** – roughly where it sat, which part of the lecture it belonged to, or a single word that was on it.
+
 ## example: Open the Overview | `O` zooms out so you can see every slide at once {.standard #overview}
 
 **Press `O` now** – the letter O, not the digit zero, which resets the zoom instead. The view pulls back to show every chunk at once, laid out in its columns, with an outline round the one you were on.
@@ -191,13 +205,15 @@ Search is what you want when you remember a topic but not which slide it is on. 
 
 # What goes on the slide {#on-screen}
 
-## principle: Two ways to decide what the room sees | derived, or stated outright {.standard #two-modes}
+## principle: The room and the reader need different amounts of the same text | written once, cut two ways {.standard #two-modes}
 
-**`C` switches between the full text of a chunk and the shorter version the room sees.** The short version is what you start in, and it is what the projector shows during a talk; the full text is for rehearsing and for looking things up afterwards.
+**A slide that can be read from the back of a hall holds a handful of lines, and the same lecture read a year later is worth having only if the argument is written out in full.** Writing both means writing everything twice, and the two copies disagree by the second edit.
 
-**Which sentences survive that shortening is decided per chunk, and you pick how.** Either psi-slides works the slide out from your prose, or you mark the slide yourself. The next two chunks show both.
+**So a chunk holds the long version and the projection takes a cut of it.** `C` switches between the two: the short view is what you start in and what the projector shows during a talk, and the full text is for rehearsing and for looking things up afterwards.
 
-## example: Worked out from the prose | first sentence of each paragraph, plus the bold phrases {.wide #derived-mode}
+**Which sentences survive that cut is decided per chunk, and you choose how.** Either psi-slides works it out from your prose, or you mark the slide yourself. The next three chunks show both options.
+
+## example: Option 1 – the default | the slide is worked out from your prose: first sentences, plus the bold phrases {.wide #derived-mode}
 
 **Unless you say otherwise, the slide is the first sentence of every paragraph plus any `**bold**` phrases from the rest.** This chunk is written that way – press `C` twice and watch what appears and disappears.
 
@@ -207,7 +223,7 @@ That suits a chunk that argues, where every paragraph has a point to open with. 
 
 > note: If the shortened version of a chunk reads as a pile of cryptic one-word bullets, the fix is almost always fewer bolds and a stronger first sentence, not a different mechanism.
 
-## example: Marked by hand | `::: slide` and `::: script` {.wide #explicit-mode}
+## example: Option 2 – explicitly set by you | `::: slide` marks the block that is the screen {.wide #explicit-mode}
 
 ::: slide
 
@@ -219,43 +235,44 @@ That suits a chunk that argues, where every paragraph has a point to open with. 
 
 You are reading the projector version of this chunk: the bullets above sit inside a `::: slide` block and this paragraph does not. Press `C` and this sentence appears; press `C` again and it goes away.
 
-Reach for `::: slide` when the slide wants tight bullets while the argument wants prose, and for `::: script` when the chunk is already slide-shaped and you only want to park a paragraph of narration beside it. A chunk with neither behaves exactly as `#derived-mode` does.
+Reach for `::: slide` when the slide wants tight bullets while the argument wants prose. A chunk with neither block behaves exactly as Option 1 does, and the next chunk is the other half of Option 2.
 
 > note: The word budget the checker enforces counts only the on-screen half. What you say is unbudgeted, so write as much of it as the argument needs.
 
-## example: A finding is already slide-shaped | so mark the narration, not the slide {.wide #script-mode}
+## example: Option 2, the other way round | `::: script` marks the narration instead {.wide #script-mode}
 
-**Three lines of a finding are already the slide.** Wrapping them in `::: slide` would mean marking almost the whole chunk, so the shorter route is to mark the part that is *not* on screen. The three below are a made-up finding, standing in for whatever yours is:
+**Press `C` twice on this chunk and watch one paragraph come and go while nothing else on the slide moves.** That paragraph sits inside a `::: script` block, which is the reverse of the last chunk: everything *outside* the block is the screen, and the block alone is what you say.
+
+**Use it when the screen half is the big half.** The three lines below are a made-up finding and are already the whole slide, so marking the one paragraph that is *not* on screen is shorter than wrapping everything that is.
 
 - One request in seven is answered differently once the crawler is instrumented.
 - The gap is widest on the sites that serve the most third-party script.
 - It closes again if the crawler waits between requests.
 
 ::: script
-This paragraph is what you say, and it never reaches the projection. Press `C` and it stays away – in `#derived-mode` it would appear. Use this shape when the chunk is a finding, a figure with a caption, or a short list already the right length for a slide.
+This is the paragraph that comes and goes. It is what you would say out loud about those three lines, and the projection never gets it – under Option 1 its first sentence would be up there with them.
 :::
 
-> note: A chunk carrying both blocks is not an error – the slide block wins and everything outside it, the script block included, is narration. Writing both usually means the chunk wants splitting.
+**A `::: slide` block wins wherever a chunk has one; failing that, a `::: script` block puts everything outside itself on the screen; failing both, Option 1 applies.** Three rules, checked in that order, on each chunk separately, so one lecture normally uses all three.
 
-## question: Which of the three does a chunk use? {.narrow #which-mode}
-
-**A `::: slide` block if there is one, otherwise everything outside `::: script`, otherwise first sentence plus bold.** Three rules, checked in that order, on each chunk separately.
-
-::: expand answer-in-practice
-**You will mix them inside one lecture.** Principles and questions are usually arguments and come out fine on their own; a long finding or a walkthrough is easier to write with a `::: slide` block round the screen half.
-
-The tag is a fair predictor: `principle` and `question` chunks are short enough that the first-sentence rule rarely bites, while `example` and `free` chunks near their word budget are where marking the slide by hand is the shorter route.
-:::
+> note: A chunk carrying both blocks is not an error – the slide block wins and everything outside it, the script block included, is narration. Writing both usually means the chunk wants splitting. In practice Option 1 carries the short argumentative chunks, and the chunks near their word budget are where marking the slide by hand is the shorter route.
 
 # The chunk vocabulary {#vocabulary}
 
-## principle: Ten tags, one grammar | `## tag: Heading | Sub {.width #id}` {.standard #grammar}
+## principle: Ten tags, one grammar | `## tag: Heading | Sub {.width #id}` {.wide #grammar}
 
-**Every chunk opens with a tag that names what kind of move it makes.** `title`, `closing`, `outline`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`.
+**Every chunk opens with a tag naming the move it makes, and everything after it is optional except the `{#id}`.**
 
-The `| Sub-Heading` and the `{.width #id}` tail are both optional. Width is one of `narrow`, `standard`, `wide`, `full`, and **once you have written an `{#id}` it should never change** – it is what cross-references, the contents list and your saved reading position all point at.
+- **The ten tags:** `title`, `closing`, `outline`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`.
+- **`| Sub-Heading`** hangs a quieter second line under the heading.
+- **`{.width}`** is `narrow`, `standard`, `wide` or `full`, and defaults to `standard`.
+- **`{#id}`** must never change once written – links, the contents list and your reading position use it.
 
-The tail takes two classes that are not widths, and both act on the projection alone. `{.bare}` hides the heading on the slide and keeps it in the printed views and in search. `{.center}` centres the chunk's own paragraphs, which is what the slide back at `#four-views` does under its figure.
+::: expand two-more-classes
+**`{.bare}` and `{.center}` are the two classes in that tail that are not widths**, and both act on the projection alone. `.bare` keeps the heading off the slide while leaving it in the printed views and in the search index; `.center` centres the chunk's own paragraphs, which is what the slide back at `#four-views` does under its figure.
+:::
+
+> note: The details sit in a list rather than in follow-up paragraphs on purpose. The projection cuts a paragraph down to its first sentence, and it keeps a list item whole – so anything the room has to read in full belongs in a bullet.
 
 ## definition: What a tag actually does {.standard #tag-effects}
 
@@ -282,6 +299,12 @@ Picking the wrong tag is not an error. It surfaces later, when a principle you t
 > note: Watch mode picks a free port and adds a small reload script to each output. An ordinary build adds none, which is why the committed HTML carries no such code.
 
 # Speaker cockpit {#speaker}
+
+## principle: The room and the lectern want different screens | one file, two windows {.standard #two-screens}
+
+**Everything that helps you through a talk – the notes, the clock, the slide that comes next – is exactly what the room must not be shown.** Putting any of it on the projection spoils the slide, and leaving it out means presenting from memory.
+
+**So the lecture opens twice, out of the same file.** One window is the projection and the other is your lectern screen, and the two keep each other in step with no server between them.
 
 ## free: Speaker view | the other window `S` spawned {.wide #speaker-s}
 
@@ -545,10 +568,6 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 
 > note: The recurring temptation is to fix a weak short view by adding more bold. That is nearly always the wrong direction – fewer bolds and a stronger opening sentence is the fix.
 
-## question: Let the tool work it out, or mark it yourself? {.standard #choose-mechanism}
-
-**Let the tool work it out while the chunk is an argument of one to three paragraphs; mark the slide yourself once the argument wants continuous prose.** Try the first and switch when it keeps fighting you.
-
 ## exercise: The squint test {.wide #squint-test}
 
 **Open your own lecture in the audience view, press `C` until it is short, and walk it end to end without opening the source.** Stop at every chunk you could not talk from using only what is on the screen.
@@ -557,13 +576,19 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 
 **For each chunk that fails**, ask in this order: is the opening sentence a claim, or a warm-up? Would each bold phrase read as a sensible bullet on its own? Is there a list hiding inside a paragraph?
 
-**If all three answers are fine and it still reads badly,** the chunk wants `::: slide`.
+**If all three answers are fine and it still reads badly,** mark the slide by hand. Option 1 holds up while a chunk is an argument of one to three paragraphs; once it wants continuous prose, a `::: slide` block is the shorter route.
 
 :::
 
 > note: Worth doing once per lecture, the day before. Reading the short version is close enough to giving the talk that it doubles as a rehearsal.
 
 # Next steps {#next}
+
+## principle: You learn this by writing a lecture, not by reading about one | start from a talk you have already given {.standard #start-writing}
+
+**The vocabulary you have just read is small, and the second lecture written in it takes no longer than the same deck would have taken.** The first one takes longer, and the cheapest way through it is a talk you have already given: the prose exists, and most of the work is deciding where one chunk ends and the next begins.
+
+**What is left is a habit rather than a feature** – write the prose, sharpen the opening sentences, run the checker, then walk the lecture once in the short view before you teach it.
 
 ## exercise: Read more | the artefacts that close the loop {.wide #read-more}
 
@@ -618,17 +643,17 @@ lang: de                # not a view default: the language the lecture
 
 > note: When you finish this tour with a first-timer, ask them what they found on their own and what they did not. That is the most useful feedback the tool gets.
 
-# Beyond 1.0.0 {#beyond}
+# Beyond 1.0.0: figures {#beyond}
 
-> Everything from here on was added after the 1.0.0 release. The archive on the
-> releases page was built before it, so a lecture that uses any of it will not
-> build against that download.
->
-> What you need is the repository itself: a clone, or **Download ZIP** from the
-> project page, and the `build.js` inside it. Try all of it – it is what the
-> rest of this tour is written in. The source format is frozen from 1.0.0
-> onwards, so these constructions may still change before they are tagged into
-> a release of their own.
+> Everything from here on is newer than the 1.0.0 download, so build these two
+> parts from a clone of the repository, and expect them to change before they
+> are tagged into a release.
+
+## principle: A figure written as text is a figure you can still change | you say what sits beside what, and the placing is worked out {.standard #drawn-from-text}
+
+**A drawing made in a drawing tool is finished the moment you export it: it does not follow the theme, it cannot arrive a piece at a time, and a fact that changes means opening the tool again.** Written as lines in the lecture source, a figure is versioned with the prose, re-coloured with the page and revealed one beat at a time.
+
+**What you give up is placing anything by eye.** You name the boxes and say which one sits beside which; where they actually land is not your decision.
 
 ## example: Diagrams | `::: draw` draws boxes and arrows from text {.full #diagram}
 
@@ -913,30 +938,38 @@ step damage
 
 **Two tags do all the revealing: `@attack` and `@cut`.** `show @attack` brings Eve in and the handwritten caption with her, because both lines carry that tag; `show @cut` brings the three arrows through her a step later. The pair running to Bob leaves Eve's right edge at `:0.2` and `:0.8`, a fraction along a side being how two arrows between the same two boxes run parallel instead of on top of each other, and `side top` and `side bottom` put one label above its line and the other below.
 
-## example: Embedding your own type | `fonts/` plus a frontmatter block {.wide #fonts}
+## example: A figure that walks itself | `::: draw {autoplay=N}` {.wide #autoplay}
 
-**Three typefaces travel inside every file the tool writes:** Literata, IBM Plex Sans and JetBrains Mono, all under the SIL Open Font License, which permits it. Naming a typeface is not enough on its own: Safari does not tell a page which fonts a machine has, so a lecture that only names its own gets whatever that browser decides. The three cost about 280 KB per file, and `fonts: none` leaves them out.
+**A figure written with `autoplay` walks its own steps on a timer once the slide is on screen** – one delay, in milliseconds, for every step. A cover figure that moves while the room files in is the case it was asked for, but it works on any chunk.
 
-To use your own instead, put the files in a `fonts/` folder beside `source.md` and name the families:
+```markdown
+::: draw {unit=150x56 autoplay=1200}
+box crawler "Crawler" {.tone-1}
+box det "Detector" right of crawler gap 1.6
+edge crawler -> det "request"
 
-```yaml
-fonts:
-  serif: Literata
-  sans: IBM Plex Sans
-  mono: JetBrains Mono
+step probe
+  emph det
+:::
 ```
 
-Files are matched by name, and the ending gives the weight and the style: `Literata-Regular.woff2`, `-Bold`, `-Italic`, `-BoldItalic`, `-600`, `-600italic`, or a single file named `Literata[wght].woff2` that carries every weight. A role you name uses your font; a role you leave out keeps the one that ships. Naming a family with no matching file stops the build.
+The timer presses the same key you would press, so the speaker view follows and freezing the projection stops it. It runs on the projection only, and **the first key, click or scroll stops it for good** – once you have touched the lecture you have taken over. It also refuses to start on a slide that is already half uncovered.
 
-**Check the licence first.** Putting a font inside the file redistributes it. The SIL Open Font License and Apache-2.0 – between them nearly all of Google Fonts – allow that; most commercial desktop licences do not, and want a separate web licence. The build prints a reminder and checks nothing.
+The delay has to be between 200 ms and 60 s; outside that the build refuses the number rather than quietly moving it.
 
-## principle: A picture behind the text is not part of the text {.standard #deco-idea}
+**`cycle` repeats the walk** – `{autoplay=1200 cycle}` – which is usually what a cover figure wants while a room fills. It rewinds the same way it advanced, so the speaker view follows the rewind too. The last step is held for one delay like every other, and there is no second number for how long to hold the finished picture.
 
-**A backdrop, an overlay and a card row belong to the chunk, not to its body.**
-The body sits in the middle of the slide, so anything written inside it is
-held inside the text column and can never reach the edges.
+# Beyond 1.0.0: slide decoration {#decoration}
 
-The rest of this part is those constructs one at a time. All of them – ten
+> Newer than the 1.0.0 download as well, and out of the same clone.
+
+## principle: A slide is a frame, and the text column is only the middle of it {.standard #deco-idea}
+
+**A picture that fills the slide, a row of three cards, a composed title page: none of these can be written inside a chunk's body**, which never reaches the edges of the frame.
+
+**They are properties of the chunk instead** – a `::: backdrop` behind it, an `::: overlay` on top, a `::: cards` row instead of paragraphs, a `cover:` line in the frontmatter.
+
+The rest of this part takes them one at a time. All of them – ten
 covers, six kinds of divider, cards, rows, backdrops that open on a keypress,
 overlays – are shown one per slide in
 [the decoration lecture](../decoration/audience.html).
@@ -1147,26 +1180,22 @@ Only the three a lecture actually asks for are read, so choosing an alternative 
 
 **`ligatures:` decides whether letter pairs are drawn joined, and answers separately for prose and for code.** `text` is the default: `fi` and `fl` joined up in prose, nothing joined in code. `none` takes them out of prose as well. `all` puts the code ones back, so JetBrains Mono draws `->` as a single arrow again. The code ones are off by default because in the figure language `->` and `--` are two *different* arrows, and every listing on a slide is source somebody may retype.
 
-## example: A figure that walks itself | `::: draw {autoplay=N}` {.wide #autoplay}
+## example: Embedding your own type | `fonts/` plus a frontmatter block {.wide #fonts}
 
-**A figure written with `autoplay` walks its own steps on a timer once the slide is on screen** – one delay, in milliseconds, for every step. A cover figure that moves while the room files in is the case it was asked for, but it works on any chunk.
+**A family that is not inside the file is a family the room may not get.** Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and `fonts: none` leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.
 
-```markdown
-::: draw {unit=150x56 autoplay=1200}
-box crawler "Crawler" {.tone-1}
-box det "Detector" right of crawler gap 1.6
-edge crawler -> det "request"
+To use your own instead, put the files in a `fonts/` folder beside `source.md` and name the families:
 
-step probe
-  emph det
-:::
+```yaml
+fonts:
+  serif: Literata
+  sans: IBM Plex Sans
+  mono: JetBrains Mono
 ```
 
-The timer presses the same key you would press, so the speaker view follows and freezing the projection stops it. It runs on the projection only, and **the first key, click or scroll stops it for good** – once you have touched the lecture you have taken over. It also refuses to start on a slide that is already half uncovered.
+Files are matched by name, and the ending gives the weight and the style: `Literata-Regular.woff2`, `-Bold`, `-Italic`, `-BoldItalic`, `-600`, `-600italic`, or a single file named `Literata[wght].woff2` that carries every weight. A role you name uses your font; a role you leave out keeps the one that ships. Naming a family with no matching file stops the build.
 
-The delay has to be between 200 ms and 60 s; outside that the build refuses the number rather than quietly moving it.
-
-**`cycle` repeats the walk** – `{autoplay=1200 cycle}` – which is usually what a cover figure wants while a room fills. It rewinds the same way it advanced, so the speaker view follows the rewind too. The last step is held for one delay like every other, and there is no second number for how long to hold the finished picture.
+**Check the licence first.** Putting a font inside the file redistributes it. The SIL Open Font License and Apache-2.0 – between them nearly all of Google Fonts – allow that; most commercial desktop licences do not, and want a separate web licence. The build prints a reminder and checks nothing.
 
 ## example: Where a new part starts | `section:` {.wide #section-dividers}
 
