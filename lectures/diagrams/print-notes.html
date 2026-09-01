@@ -64,8 +64,11 @@ body:not([data-wrap=none]) :is(p, li, dd) { text-wrap: pretty; }
 .chunk[data-wrap=balance] :is(p, li, dd) { text-wrap: pretty; }
 p { margin: 0.4em 0 0.9em; orphans: 3; widows: 3; }
 
-/* Hyphenation. Only in the document views: a hyphenated word on a
-   projection reads badly, and the live views reflow constantly anyway.
+/* Hyphenation. On here by default and off in the live views by default:
+   a hyphenated word on a projection reads badly, and the live views reflow
+   constantly anyway. style.hyphenate is the author's say over both halves –
+   none takes it out of the document too, all puts it into the projection,
+   and the wrapper below is what makes the first of those reachable.
    The browser picks its dictionary from the lang attribute on html, which
    comes from the frontmatter lang key – so this does nothing useful for a
    German lecture until the author sets lang: de, and German is exactly the
@@ -73,7 +76,7 @@ p { margin: 0.4em 0 0.9em; orphans: 3; widows: 3; }
    Limited to prose: hyphenating an identifier in code, a heading, or a URL
    would be actively wrong, and the hyphens property is inherited.
    (No backticks in this comment: one would end the template literal.) */
-p, li, blockquote, figcaption, .speaker-note {
+body:not([data-hyphenate=none]) :is(p, li, blockquote, figcaption, .speaker-note) {
   hyphens: auto;
   -webkit-hyphens: auto;
   /* Keep a two-letter stub off the next line where the browser supports it. */
@@ -1024,7 +1027,7 @@ pre.shiki .line { display: inline; }
 
 
 </head>
-<body data-slide-nums="vertical" >
+<body data-slide-nums="horizontal" >
 <main>
 <section class="column column-anon">
 <article class="chunk chunk-title" data-cover="classic" data-chunk-num="1" id="cover">

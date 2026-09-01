@@ -4,6 +4,45 @@ Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als 
 
 Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
+## Slice: was eine Vorlesung darüber sagen darf, wie sie aufgeht
+
+Vier Einstellungen aus einer Familie, in einem Durchgang, weil sie dieselben
+Tabellen anfassen (`VIEW_DEFAULT_SPEC`, `STYLE_SPEC` und ihre `lint.js`-Spiegel).
+
+1. **`auto-fit` hat einen dritten Modus, `shrink`.** Der Fit ist derselbe, nur
+   ist die Decke die eigene Zoomstufe des Vortragenden statt des globalen
+   Maximums – er kann also nur verkleinern. Aus dem Boolean wurde ein String
+   (`off | full | shrink`), und das ist die Fallgrube: **niemals
+   `if (state.autoFitMode)`**, alle drei Wörter sind truthy. `autoFitOn()` ist
+   der Test, `autoFitCeiling()` der ganze Unterschied zwischen den beiden
+   An-Modi. Der Snapshot trägt zusätzlich weiterhin ein Boolean `autoFit`, weil
+   `--audience-only` genau eines der beiden Fenster neu baut und ein älteres
+   Gegenüber das Feld mit `!!` liest. `#` ist jetzt ein Dreier-Zyklus; Shift
+   dreht ihn *nicht* um, weil `#` auf US-Layout Shift-3 ist und auf deutschem
+   eine eigene Taste – `e.shiftKey` sagt dort auf zwei Tastaturen nicht
+   dasselbe.
+2. **`slide-numbers` steht jetzt auf `horizontal`.** Die einzige Änderung hier,
+   die das Rendering fertiger Decks bewegt, bewusst und ohne Kompatibilitäts-
+   schalter. Gestapelt setzt jede Ziffer auf eine eigene Zeile, Folie 10 kommt
+   als 1 über 0 im Raum an. Zurück geht es mit `slide-numbers: vertical`.
+3. **`print-slide-numbers`** ist derselbe Wertevorrat für die Dokumentansichten,
+   und sein Default ist kein Wert, sondern eine Weiterreichung: nicht gesetzt
+   heißt „was die Live-Ansichten sagen". `printSlideNums()` ist der eine
+   dokumentierte Schritt dafür.
+4. **`style: {hyphenate: print | all | none}`.** `print` ist der Default und
+   genau das bisherige Verhalten. `lang:` bleibt eine eigene Zeile – die
+   Sprache ist eine Eigenschaft der Vorlesung, die Trennung eine Vorliebe. Die
+   Live-Regel ist auf `#stage` begrenzt (TOC, Suche und Hilfe trennen nie) und
+   trägt denselben `manual`-Reset wie PRINT_CSS. Die print-Regel ist in
+   `body:not([data-hyphenate=none])` gewickelt – ohne diese Klammer täte `none`
+   stumm nichts, und das ist die Assertion, die `test/settings.mjs` hält.
+
+Dazu neu: `viewDefaults()` und `styleSettings()` laufen in der `buildOnce`-
+Preflight neben `assertInlinable`, damit ein Tippfehler in `auto-fit` auch
+`--print-only` scheitern lässt. Und `test/auto-fit.mjs` misst, was „lässt den
+Zoom in Ruhe" heißt – eine kurze und eine zu hohe Folie, einen `#`-Druck
+auseinander.
+
 ## Review-Slice: dreißig Befunde über den ganzen Branch
 
 Ein Multi-Agent-Review über den gemergten Branch, jeder Befund einzeln

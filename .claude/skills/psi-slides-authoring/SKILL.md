@@ -620,7 +620,7 @@ repository and not against a released psi-slides.
 
 ## Viewer defaults in frontmatter
 
-Five optional keys pin how the lecture opens. A key that is present wins over
+Seven optional keys pin how the lecture opens. A key that is present wins over
 the reader's stored preference; a key that is absent leaves that preference
 alone. A value outside the allowed set fails the build (and lints as
 `unknown-view-default`), because a typo here is otherwise silent.
@@ -629,9 +629,16 @@ alone. A value outside the allowed set fails the build (and lints as
 font: serif            # serif | sans | mono
 theme: light-red       # light-red | light-teal | light-blue | light-orange | terminal-amber | terminal-green
 collapse: topic-bold   # topic-bold | none
-auto-fit: 'false'      # true | false
-slide-numbers: vertical # vertical | horizontal | off
+auto-fit: shrink       # true | false | shrink
+slide-numbers: horizontal    # vertical | horizontal | off   (default: horizontal)
+print-slide-numbers: vertical  # the same three, for print.html and print-notes.html
+                               # left out, it follows slide-numbers
+editor: speaker        # both | speaker | none  - where the diagram editor ships
 ```
+
+`auto-fit: shrink` is the mode to reach for first: it leaves the zoom where the
+lecturer set it and only ever makes a slide smaller, where `true` also grows a
+short one to fill the screen. `#` cycles off → shrink → on.
 
 Pin only what you have actually designed for. A lecture that pins nothing keeps
 following whatever the reader last chose with `F`, `A`, `C`, `#` and `L`.
@@ -767,7 +774,16 @@ style:
   body-scale: 0.95      # 0.6 … 1.8
   wrap: none            # balance | none        - how a heading breaks across lines
   blocks: left          # center | left         - where a code block, figure or formula sits
+  hyphenate: all        # print | all | none    - which views break a word
 ```
+
+`hyphenate: print` is the default and is what the tool has always done: the two
+document views hyphenate their prose, the projection and the cockpit do not.
+`all` puts it into the live views too – worth it for a German deck at `.narrow`,
+where one compound noun opens a hole in the measure – and `none` takes it out
+of the documents as well. It is a separate key from `lang:`, which picks the
+dictionary and has to be right either way: without `lang: de` a German lecture
+does not hyphenate anywhere, whatever this key says.
 
 The two scales are multipliers on the tool's own scale, bounded to 0.6-1.8.
 Reach for them on a whole deck, not to fix one chunk - a chunk that needs a

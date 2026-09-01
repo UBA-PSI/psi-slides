@@ -1543,6 +1543,154 @@ console.log('\nlayout generations');
        'while a deck that names none of it emits no attribute to match them',
        bodyTag(plain.html));
   }
+  // ── what a lecture may say about how it opens ────────────────────────────
+  // Four settings in one family, and each is asserted where it can go wrong
+  // rather than where it is easy to look at.
+  const DECK = (fm, body = '## free: A {#a}\n\nProse, and a second sentence.\n') =>
+    `---\ntitle: T\n${fm}---\n\n## title: {#title}\n\n${body}`;
+  const bodyOf = (html) => (html.match(/<body [^>]*>/) || [''])[0];
+
+  // ── slide numbers: the default moved, and print can differ from the room ──
+  // horizontal, not vertical. The stacked form sets each digit on its own
+  // line, so slide 10 reads as a 1 above a 0 - and the content repo's
+  // house-style file had carried "set slide-numbers: horizontal" as standing
+  // advice, which is a default admitting it is the wrong way round. This
+  // moves the rendering of every deck that does not set the key, which is
+  // the trade, taken deliberately.
+  const numsDflt = raw(DECK(''), []);
+  ok(/data-slide-nums="horizontal"/.test(bodyOf(numsDflt.html)),
+     'a deck that says nothing opens with slide numbers in a row, not stacked',
+     bodyOf(numsDflt.html));
+  ok(/data-slide-nums="horizontal"/.test(bodyOf(numsDflt.print)),
+     'and prints them the same way');
+  const numsPinned = raw(DECK('slide-numbers: vertical\n'), []);
+  ok(/data-slide-nums="vertical"/.test(bodyOf(numsPinned.html)),
+     'and the old rendering is one frontmatter line away, in both directions');
+
+  // print-slide-numbers, in all four of its states against all four of the
+  // live key's. The default is not a value but a deferral - an absent key
+  // means "whatever the live views are set to" - and a deferral is exactly
+  // the kind of default that resolves right in the case someone tried and
+  // wrong in the fifteen they did not.
+  {
+    const VALUES = [null, 'vertical', 'horizontal', 'off'];
+    const bad = [];
+    for (const live of VALUES) {
+      for (const print of VALUES) {
+        const fm = (live ? `slide-numbers: ${live}\n` : '')
+                 + (print ? `print-slide-numbers: ${print}\n` : '');
+        const r = raw(DECK(fm), []);
+        const got = { live: (bodyOf(r.html).match(/data-slide-nums="(\w+)"/) || [])[1],
+                      print: (bodyOf(r.print).match(/data-slide-nums="(\w+)"/) || [])[1] };
+        // The live views take the live key or the built-in default; print
+        // takes its own key, else the live key, else the built-in default.
+        const wantLive = live || 'horizontal';
+        const wantPrint = print || wantLive;
+        if (got.live !== wantLive || got.print !== wantPrint) {
+          bad.push(`live=${live} print=${print} -> ${got.live}/${got.print}, wanted ${wantLive}/${wantPrint}`);
+        }
+      }
+    }
+    ok(bad.length === 0,
+       'print-slide-numbers follows the live key when unset and overrides it when set, in all sixteen combinations',
+       bad.join('; '));
+    // The two halves of that, said separately, so a failure above names
+    // which way round it went wrong.
+    const follow = raw(DECK('slide-numbers: off\n'), []);
+    ok(/data-slide-nums="off"/.test(bodyOf(follow.print)),
+       'a deck that turns the numbers off turns them off on paper too, without saying so twice');
+    const differ = raw(DECK('slide-numbers: off\nprint-slide-numbers: vertical\n'), []);
+    ok(/data-slide-nums="off"/.test(bodyOf(differ.html))
+       && /data-slide-nums="vertical"/.test(bodyOf(differ.print)),
+       'and a deck that wants numbers on paper and not in the room says so and gets both');
+  }
+  ok(/print-slide-numbers/.test(raw(DECK('print-slide-numbers: sideways\n'), ['--audience-only']).out),
+     'an unknown value is refused by a build that renders no printed view at all');
+  ok(/unknown-view-default/.test(lintOf(DECK('print-slide-numbers: sideways\n'))),
+     'and the linter refuses the same word, which is what keeps CI honest');
+
+  // ── auto-fit grew a third mode ───────────────────────────────────────────
+  // true and false are what the key has always taken and still mean what
+  // they meant. shrink is the fit ceilinged at the lecturer's own zoom, so
+  // it can only ever take size away. What that costs in geometry is in
+  // test/auto-fit.mjs, which measures it; this is the vocabulary.
+  const modeOf = (fm) => {
+    const r = raw(DECK(fm), ['--audience-only']);
+    return { out: r.out, mode: (r.html || '').match(/"autoFit":"(\w+)"/)?.[1] };
+  };
+  ok(modeOf('auto-fit: true\n').mode === 'full', 'auto-fit: true still means fit every slide');
+  ok(modeOf('auto-fit: false\n').mode === 'off', 'auto-fit: false still means leave the zoom alone');
+  ok(modeOf('auto-fit: shrink\n').mode === 'shrink', 'and shrink is the third mode, additive to both');
+  ok(/Valid values for auto-fit: true, false, shrink/.test(modeOf('auto-fit: smaller\n').out),
+     'an unknown mode is refused and the message names all three');
+  ok(/unknown-view-default/.test(lintOf(DECK('auto-fit: smaller\n'))),
+     'and the linter refuses it too');
+
+  // The compatibility claim, run rather than read. audience.html and
+  // speaker.html are separate files and --audience-only rebuilds one of
+  // them, so a peer window can be a build that predates the third mode and
+  // sends the boolean this field used to be. normAutoFit is what has to
+  // take either, and asserting the regex that mentions it would only be
+  // this file agreeing with itself.
+  {
+    const page = raw(DECK(''), ['--audience-only']).html || '';
+    const cycle = page.match(/const AUTO_FIT_CYCLE = \[[^\]]*\];/)?.[0];
+    const norm = page.match(/function normAutoFit\(v\) \{[\s\S]*?\n\}/)?.[0];
+    ok(!!cycle && !!norm, 'the built page carries AUTO_FIT_CYCLE and normAutoFit');
+    if (cycle && norm) {
+      // Same idiom as the sentence helpers above and for the same reason:
+      // the build's copy is characters inside a string until a page runs it,
+      // so there is nothing to import. Wrapped, so a restructure that breaks
+      // the slice is a named finding here rather than a stack trace that
+      // kills the run.
+      let f = null;
+      try { f = new Function(`${cycle}\n${norm}\nreturn normAutoFit;`)(); }
+      catch (e) { ok(false, 'normAutoFit lifts out of the page and runs', String(e && e.message || e)); }
+      const got = f && [f(true), f(false), f(undefined), f('shrink'), f('off'), f('full'), f('nonsense')];
+      ok(!!got && got.join(',') === 'full,off,off,shrink,off,full,off',
+         'and it reads a legacy boolean back as a mode, and anything it does not know as off',
+         got ? got.join(',') : '');
+    }
+    // The two fields one setting travels as. The boolean is what an older
+    // peer coerces with !!, so dropping it would switch that peer ON when
+    // this one is off - the failure that reaches a projector.
+    ok(/autoFit: autoFitOn\(\),\s*\n\s*autoFitMode: state\.autoFitMode,/.test(page),
+       'a snapshot carries both the mode and the boolean an older peer reads');
+    ok(/payload\.autoFitMode === undefined \? payload\.autoFit : payload\.autoFitMode/.test(page),
+       'and a snapshot without the mode falls back to that boolean rather than to off');
+    // The rename is the guard. state.autoFitMode holds three truthy strings,
+    // so any surviving `if (state.autoFit)` would read as permanently on.
+    ok(!/state\.autoFit\b/.test(page),
+       'and nothing in the page still reads the boolean field the mode replaced');
+  }
+
+  // ── hyphenation is a choice, and its default is what the tool already did ──
+  const hyph = (fm) => raw(DECK(fm), []);
+  const dflt = hyph('lang: de\n');
+  ok(!/data-hyphenate/.test(bodyOf(dflt.html)) && !/data-hyphenate/.test(bodyOf(dflt.print)),
+     'a deck that says nothing carries no hyphenation attribute at all, so nothing moves');
+  // The guard, and it is the load-bearing assertion of this pair: without
+  // the wrapper the print rule still hyphenates and style.hyphenate: none
+  // silently does nothing, while every outcome-shaped check passes.
+  ok(/body:not\(\[data-hyphenate=none\]\) :is\(p, li, blockquote, figcaption, \.speaker-note\)/
+       .test(dflt.print),
+     'the print rule is guarded, or none would be a key that does nothing');
+  ok(/body\[data-hyphenate=all\] #stage :is\(p, li, blockquote, figcaption\)/.test(dflt.html),
+     'and the live rule is both gated on all and scoped to the stage, so the chrome never breaks a word');
+  ok(/body\[data-hyphenate=all\] #stage :is\(h1[\s\S]{0,200}hyphens: manual/.test(dflt.html),
+     'with the same manual reset print carries, since hyphens inherits into code and URLs');
+  const hAll = hyph('lang: de\nstyle:\n  hyphenate: all\n');
+  ok(/data-hyphenate="all"/.test(bodyOf(hAll.html)),
+     'style.hyphenate: all reaches the projection');
+  ok(/lang="de"/.test(hAll.html),
+     'and lang: de is still what supplies the dictionary, which is why it stays a key of its own');
+  const hNone = hyph('lang: de\nstyle:\n  hyphenate: none\n');
+  ok(/data-hyphenate="none"/.test(bodyOf(hNone.print)),
+     'and none reaches the printed document, which is the only view that hyphenated before');
+  ok(/'style\.hyphenate: yes' is not a value/.test(lintOf(DECK('style:\n  hyphenate: yes\n'))),
+     'an unknown value is a linter error, as every other style key is');
+  ok(/style\.hyphenate: yes/.test(hyph('style:\n  hyphenate: yes\n').out),
+     'and fails the build');
 }
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

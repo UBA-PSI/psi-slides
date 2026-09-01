@@ -2833,6 +2833,29 @@ body[data-blocks=left] #stage .math-display .katex-display > .katex,
 #stage .chunk[data-blocks=center] figure.figure-img figcaption { text-align: center; }
 #stage .chunk[data-blocks=center] .math-display .katex-display,
 #stage .chunk[data-blocks=center] .math-display .katex-display > .katex { text-align: center; }
+/* Hyphenation on the projection, which is off unless the author asks.
+   style: {hyphenate: all} is the ask, and the reason it is a key rather
+   than a default is in PRINT_CSS: a broken word reads badly across a room
+   and a live view reflows under the reader's hands. What makes it worth
+   having anyway is a German deck at .narrow, where one compound noun opens
+   a hole in the measure that no rewriting closes - which is also why the
+   dictionary still comes from lang: de and this key cannot supply it.
+
+   Scoped to the stage, so it is the slide's prose and never the chrome: a
+   TOC entry, a search hit and the help sheet are lists a reader scans, and
+   a broken word in one of those is only harder to scan. And the same
+   manual reset PRINT_CSS carries, for the same reason - hyphens inherits,
+   and a hyphenated identifier or URL is wrong in any view. */
+body[data-hyphenate=all] #stage :is(p, li, blockquote, figcaption) {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphenate-limit-chars: 6 3 3;
+}
+body[data-hyphenate=all] #stage :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
+  .section-heading, code, pre, pre *, .chunk-num, a[href^="http"]) {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
 
 [data-collapse=topic-bold] .reveal-segment .sentence-rest .prose { display: none; }
 [data-collapse=topic-bold] .reveal-segment .sentence-rest strong {
@@ -3778,7 +3801,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 
 
 </head>
-<body data-collapse="none" data-font="serif" data-theme="light-blue" data-mode="light" data-slide-nums="vertical">
+<body data-collapse="none" data-font="serif" data-theme="light-blue" data-mode="light" data-slide-nums="horizontal">
 
 <div id="stage-viewport">
   <div id="stage">
@@ -4651,7 +4674,7 @@ slide and the next one, and the next one carries no heading on screen at all.</p
     <button type="button" data-action="collapse" aria-label="Shorten or expand the text">C</button>
     <button type="button" data-action="font" aria-label="Change the font">F</button>
     <button type="button" data-action="theme" aria-label="Change the theme">A</button>
-    <button type="button" data-action="autofit" aria-label="Fit every slide to the screen">#</button>
+    <button type="button" data-action="autofit" aria-label="Auto-fit: off, shrink a slide that is too big, or fit every slide">#</button>
     <button type="button" data-action="search" aria-label="Search the lecture">&#x2315;</button>
     <button type="button" data-action="select" aria-label="Select text" aria-pressed="false">&#x2380;</button>
   </div>
@@ -4725,10 +4748,10 @@ slide and the next one, and the next one carries no heading on screen at all.</p
         <dt><kbd>F</kbd></dt><dd>font: serif → sans → mono</dd>
         <dt><kbd>A</kbd></dt><dd>theme: four light accents, a neutral dark, two phosphor modes</dd>
         <dt><kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></dt><dd>text size, and zero resets it (kept separately for each collapse mode)</dd>
-        <dt><kbd>#</kbd></dt><dd>auto-fit: size every slide to the screen, on or off</dd>
+        <dt><kbd>#</kbd></dt><dd>auto-fit: off → shrink a slide that is too big → size every slide to the screen</dd>
         <dt><kbd>L</kbd></dt><dd>slide numbers: stacked → in a row → off</dd>
         <dt><kbd>B</kbd></dt><dd>blank the projection – the speaker window keeps working, frozen or not</dd>
-        <dt><kbd>Shift</kbd>-any</dt><dd>cycle that knob backwards</dd>
+        <dt><kbd>Shift</kbd>-<kbd>C</kbd> <kbd>F</kbd> <kbd>A</kbd> <kbd>L</kbd></dt><dd>cycle that knob backwards</dd>
         <dt>on a touchscreen</dt><dd>the same settings sit behind the ⋯ button on the toolbar</dd>
       </dl>
     </section>
@@ -4804,7 +4827,7 @@ slide and the next one, and the next one carries no heading on screen at all.</p
 </nav>
 <script>
 const LECTURE_TITLE = "Slide Decoration";
-const VIEW_DEFAULTS = {"theme":"light-blue","collapse":"none","autoFit":true};
+const VIEW_DEFAULTS = {"theme":"light-blue","collapse":"none","autoFit":"full"};
 const LINK_QR = {"https://uba-psi.github.io/psi-slides/#covers":"\u003Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 41 41\" shape-rendering=\"crispEdges\" role=\"img\" aria-label=\"QR code for this address\">\u003Crect width=\"41\" height=\"41\" fill=\"#fff\"/>\u003Cpath d=\"M4 4h7v1h-7zM14 4h1v1h-1zM17 4h7v1h-7zM25 4h1v1h-1zM27 4h1v1h-1zM30 4h7v1h-7zM4 5h1v1h-1zM10 5h1v1h-1zM13 5h1v1h-1zM16 5h4v1h-4zM22 5h1v1h-1zM24 5h1v1h-1zM27 5h1v1h-1zM30 5h1v1h-1zM36 5h1v1h-1zM4 6h1v1h-1zM6 6h3v1h-3zM10 6h1v1h-1zM14 6h1v1h-1zM17 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM24 6h5v1h-5zM30 6h1v1h-1zM32 6h3v1h-3zM36 6h1v1h-1zM4 7h1v1h-1zM6 7h3v1h-3zM10 7h1v1h-1zM14 7h1v1h-1zM17 7h2v1h-2zM20 7h8v1h-8zM30 7h1v1h-1zM32 7h3v1h-3zM36 7h1v1h-1zM4 8h1v1h-1zM6 8h3v1h-3zM10 8h1v1h-1zM13 8h1v1h-1zM18 8h1v1h-1zM22 8h3v1h-3zM28 8h1v1h-1zM30 8h1v1h-1zM32 8h3v1h-3zM36 8h1v1h-1zM4 9h1v1h-1zM10 9h1v1h-1zM12 9h2v1h-2zM15 9h1v1h-1zM17 9h1v1h-1zM19 9h3v1h-3zM23 9h1v1h-1zM28 9h1v1h-1zM30 9h1v1h-1zM36 9h1v1h-1zM4 10h7v1h-7zM12 10h1v1h-1zM14 10h1v1h-1zM16 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM22 10h1v1h-1zM24 10h1v1h-1zM26 10h1v1h-1zM28 10h1v1h-1zM30 10h7v1h-7zM13 11h1v1h-1zM16 11h1v1h-1zM18 11h4v1h-4zM25 11h1v1h-1zM4 12h1v1h-1zM7 12h1v1h-1zM9 12h2v1h-2zM12 12h1v1h-1zM16 12h3v1h-3zM20 12h1v1h-1zM22 12h1v1h-1zM24 12h2v1h-2zM27 12h1v1h-1zM29 12h1v1h-1zM31 12h1v1h-1zM4 13h1v1h-1zM6 13h1v1h-1zM8 13h2v1h-2zM11 13h2v1h-2zM15 13h4v1h-4zM20 13h2v1h-2zM24 13h2v1h-2zM28 13h4v1h-4zM35 13h2v1h-2zM4 14h7v1h-7zM12 14h2v1h-2zM16 14h3v1h-3zM20 14h1v1h-1zM22 14h3v1h-3zM29 14h4v1h-4zM34 14h1v1h-1zM36 14h1v1h-1zM7 15h1v1h-1zM14 15h1v1h-1zM17 15h1v1h-1zM22 15h5v1h-5zM28 15h1v1h-1zM32 15h2v1h-2zM36 15h1v1h-1zM7 16h1v1h-1zM9 16h6v1h-6zM16 16h1v1h-1zM18 16h1v1h-1zM20 16h1v1h-1zM22 16h3v1h-3zM26 16h2v1h-2zM29 16h2v1h-2zM33 16h1v1h-1zM5 17h1v1h-1zM8 17h2v1h-2zM11 17h1v1h-1zM14 17h1v1h-1zM17 17h3v1h-3zM22 17h1v1h-1zM24 17h1v1h-1zM28 17h1v1h-1zM30 17h1v1h-1zM32 17h1v1h-1zM35 17h2v1h-2zM4 18h1v1h-1zM6 18h2v1h-2zM10 18h1v1h-1zM12 18h1v1h-1zM14 18h1v1h-1zM18 18h3v1h-3zM23 18h1v1h-1zM26 18h6v1h-6zM33 18h3v1h-3zM4 19h2v1h-2zM9 19h1v1h-1zM13 19h1v1h-1zM15 19h1v1h-1zM17 19h2v1h-2zM20 19h2v1h-2zM24 19h3v1h-3zM30 19h2v1h-2zM35 19h1v1h-1zM4 20h2v1h-2zM7 20h1v1h-1zM10 20h4v1h-4zM15 20h1v1h-1zM17 20h5v1h-5zM24 20h2v1h-2zM28 20h1v1h-1zM30 20h1v1h-1zM32 20h1v1h-1zM35 20h1v1h-1zM6 21h1v1h-1zM8 21h1v1h-1zM11 21h2v1h-2zM14 21h4v1h-4zM20 21h2v1h-2zM27 21h1v1h-1zM31 21h1v1h-1zM33 21h1v1h-1zM35 21h1v1h-1zM5 22h1v1h-1zM9 22h2v1h-2zM12 22h1v1h-1zM15 22h4v1h-4zM20 22h2v1h-2zM24 22h2v1h-2zM29 22h1v1h-1zM34 22h3v1h-3zM4 23h1v1h-1zM7 23h2v1h-2zM14 23h7v1h-7zM24 23h1v1h-1zM26 23h2v1h-2zM29 23h3v1h-3zM7 24h2v1h-2zM10 24h1v1h-1zM12 24h2v1h-2zM15 24h1v1h-1zM17 24h1v1h-1zM21 24h1v1h-1zM24 24h1v1h-1zM27 24h1v1h-1zM29 24h1v1h-1zM35 24h2v1h-2zM5 25h1v1h-1zM7 25h2v1h-2zM13 25h1v1h-1zM15 25h3v1h-3zM19 25h1v1h-1zM23 25h1v1h-1zM28 25h1v1h-1zM30 25h2v1h-2zM35 25h2v1h-2zM4 26h9v1h-9zM15 26h1v1h-1zM18 26h1v1h-1zM20 26h1v1h-1zM22 26h2v1h-2zM25 26h2v1h-2zM30 26h5v1h-5zM36 26h1v1h-1zM5 27h2v1h-2zM8 27h1v1h-1zM11 27h2v1h-2zM14 27h1v1h-1zM16 27h1v1h-1zM19 27h1v1h-1zM22 27h4v1h-4zM28 27h1v1h-1zM30 27h1v1h-1zM32 27h2v1h-2zM35 27h2v1h-2zM4 28h1v1h-1zM8 28h1v1h-1zM10 28h7v1h-7zM18 28h1v1h-1zM21 28h1v1h-1zM25 28h1v1h-1zM28 28h6v1h-6zM35 28h1v1h-1zM12 29h1v1h-1zM14 29h1v1h-1zM16 29h3v1h-3zM21 29h1v1h-1zM23 29h6v1h-6zM32 29h2v1h-2zM36 29h1v1h-1zM4 30h7v1h-7zM15 30h1v1h-1zM21 30h2v1h-2zM24 30h1v1h-1zM26 30h1v1h-1zM28 30h1v1h-1zM30 30h1v1h-1zM32 30h4v1h-4zM4 31h1v1h-1zM10 31h1v1h-1zM12 31h1v1h-1zM16 31h1v1h-1zM20 31h4v1h-4zM25 31h2v1h-2zM28 31h1v1h-1zM32 31h1v1h-1zM36 31h1v1h-1zM4 32h1v1h-1zM6 32h3v1h-3zM10 32h1v1h-1zM13 32h1v1h-1zM16 32h4v1h-4zM22 32h1v1h-1zM24 32h1v1h-1zM28 32h6v1h-6zM35 32h2v1h-2zM4 33h1v1h-1zM6 33h3v1h-3zM10 33h1v1h-1zM12 33h1v1h-1zM14 33h1v1h-1zM16 33h8v1h-8zM25 33h2v1h-2zM28 33h1v1h-1zM30 33h1v1h-1zM32 33h1v1h-1zM35 33h1v1h-1zM4 34h1v1h-1zM6 34h3v1h-3zM10 34h1v1h-1zM15 34h2v1h-2zM18 34h4v1h-4zM23 34h3v1h-3zM28 34h1v1h-1zM32 34h2v1h-2zM36 34h1v1h-1zM4 35h1v1h-1zM10 35h1v1h-1zM14 35h1v1h-1zM17 35h1v1h-1zM21 35h5v1h-5zM27 35h3v1h-3zM33 35h1v1h-1zM4 36h7v1h-7zM12 36h5v1h-5zM18 36h3v1h-3zM22 36h2v1h-2zM25 36h1v1h-1zM28 36h1v1h-1zM30 36h1v1h-1zM32 36h2v1h-2zM35 36h1v1h-1z\" fill=\"#000\"/>\u003C/svg>"};
 
 const DG_LIST = [];
@@ -5281,6 +5304,41 @@ document.querySelectorAll('.column').forEach((col, ci) => {
   });
 });
 
+// Auto-fit has three states and the # key walks them in this order:
+//
+//   off     – the lecturer's zoom on every slide, whatever it costs.
+//   shrink  – fit, ceilinged at the lecturer's own zoom. Only ever smaller.
+//   full    – fit, ceilinged at the global maximum. Grows a short slide too.
+//
+// Interpolated from build.js so the cycle and the frontmatter vocabulary
+// have one source. Declared above state, because state's initialiser calls
+// normAutoFit and a const read before its own line is a TDZ error, not a
+// fallback.
+const AUTO_FIT_CYCLE = ["off","shrink","full"];
+// What a value that came from somewhere else means here. Three somewheres:
+// this build's own VIEW_DEFAULTS (already one of the three words), a peer
+// window running a build that predates the third mode (a boolean, which is
+// what the field was), and a payload from anywhere at all (nonsense, which
+// must land on a mode rather than on undefined). The boolean case is the
+// load-bearing one: audience.html and speaker.html are separate files and
+// --audience-only rebuilds exactly one of them.
+function normAutoFit(v) {
+  if (v === true) return 'full';
+  if (v === false || v == null) return 'off';
+  return AUTO_FIT_CYCLE.includes(v) ? v : 'off';
+}
+// Is the camera solving the zoom at all? Never write state.autoFitMode into
+// an if: every one of the three words is a truthy string.
+function autoFitOn() { return state.autoFitMode !== 'off'; }
+// The largest zoom the fit may reach. In full mode the global maximum,
+// because there the point is that every slide is sized to the screen. In
+// shrink mode the lecturer's own zoom, which is the whole of the difference
+// between the two: a fit that cannot go above where the zoom already is can
+// only ever take size away, and a slide that already fits is left alone.
+function autoFitCeiling() { return state.autoFitMode === 'shrink' ? collapsedZoom : 2.2; }
+// The fit with no else-branch beside it, for the one caller that has none.
+function autoFitNow() { if (autoFitOn()) fitZoomToChunk(autoFitCeiling()); }
+
 // VIEW_DEFAULTS holds only the keys the author pinned in the frontmatter;
 // everything absent from it falls back to the built-in default here and, for
 // the three global preferences, to whatever the reader last chose.
@@ -5288,14 +5346,17 @@ const state = {
   activeIdx: 0,
   collapse: VIEW_DEFAULTS.collapse || 'topic-bold',
   zoom: 1.35,
-  autoFit: !!VIEW_DEFAULTS.autoFit,   // # – refit the zoom on every slide, both modes
+  // # – off | full | shrink. See AUTO_FIT_CYCLE above; never a boolean here,
+  // because three states do not fit in one, and never read for truthiness,
+  // because 'off' is a truthy string. autoFitOn() is the test.
+  autoFitMode: normAutoFit(VIEW_DEFAULTS.autoFit),
   blanked: false,
   font: VIEW_DEFAULTS.font || 'serif',           // serif | sans | mono (readable)
   theme: VIEW_DEFAULTS.theme || 'light-red',     // light-{red,teal,blue,orange} | terminal-{amber,green}
-  slideNums: VIEW_DEFAULTS.slideNums || 'vertical',  // vertical | horizontal | off – L cycles
+  slideNums: VIEW_DEFAULTS.slideNums || "horizontal",  // vertical | horizontal | off – L cycles
 };
 const FONT_CYCLE = ['serif', 'sans', 'mono'];
-const SLIDE_NUM_MODES = ['vertical', 'horizontal', 'off'];
+const SLIDE_NUM_MODES = ["vertical","horizontal","off"];
 const THEME_CYCLE = ["light-red","light-teal","light-blue","light-orange","dark","terminal-amber","terminal-green"];
 const DARK_THEMES = ["dark","terminal-amber","terminal-green"];
 let openExp = null;            // { chunkIdx, expIdx } | null
@@ -5480,14 +5541,22 @@ function snapshot() {
     activeIdx: state.activeIdx,
     revealed: Object.assign({}, revealed),
     collapse: state.collapse,
-    autoFit: state.autoFit,
+    // Two fields for one setting, and the second is the compatibility one.
+    // A peer built before the third mode reads autoFit and coerces it with
+    // !!, so it has to keep receiving a boolean or 'off' would switch it
+    // on. autoFitMode carries the whole answer for a peer that knows about
+    // it; shrink degrades to full on an old peer, which is the safe way
+    // round - the other would be a projection that runs off the screen.
+    autoFit: autoFitOn(),
+    autoFitMode: state.autoFitMode,
     // The zoom that travels is the one the lecturer chose, not the one this
     // window happens to be showing. A chunk whose code would be cut off is
     // shrunk locally, and the two windows are different sizes, so each
     // derives that for itself – sending the shrunk value would let one wide
     // slide quietly lower the setting in the other window, and then in this
-    // one on the way back.
-    zoom: (!state.autoFit && state.collapse === 'topic-bold') ? collapsedZoom : state.zoom,
+    // one on the way back. zoomBase() is that value by definition – it is
+    // what + and – step from, for the same reason.
+    zoom: zoomBase(),
     blanked: state.blanked,
     font: state.font,
     theme: state.theme,
@@ -5575,7 +5644,11 @@ function applyRemoteState(payload) {
     state.activeIdx = Math.max(0, Math.min(flatChunks.length - 1, payload.activeIdx || 0));
     state.collapse = COLLAPSE_MODES.includes(payload.collapse) ? payload.collapse : 'topic-bold';
     state.zoom = payload.zoom || 1.35;
-    state.autoFit = !!payload.autoFit;
+    // autoFitMode when the peer sends one, the old boolean when it does
+    // not. normAutoFit takes either, so a window rebuilt on its own beside
+    // one that was not still agrees about the two modes that existed then.
+    state.autoFitMode = normAutoFit(
+      payload.autoFitMode === undefined ? payload.autoFit : payload.autoFitMode);
     // Track the peer's collapsed zoom rather than syncing it as a field.
     // Both windows see the same zoom values, so remembering the one that
     // was live in topic-bold keeps the two in step without widening the
@@ -5645,7 +5718,14 @@ function applyRemoteState(payload) {
     // can show it on this chunk without cutting a code line off is a local
     // question, and it is asked after applyState has written the incoming
     // value to --zoom.
-    clampZoomToWidth();
+    //
+    // In shrink mode the same question has a taller answer: the setting that
+    // travelled is the ceiling, and how far under it this chunk has to sit in
+    // THIS window is what the mode is for - the projection and the cockpit's
+    // stage are different sizes. Full auto-fit deliberately keeps adopting
+    // the sender's fitted zoom, which is what it has always done.
+    if (state.autoFitMode === 'shrink') fitZoomToChunk(collapsedZoom);
+    else clampZoomToWidth();
     saveActive();
     focusCamera(false);
   } finally {
@@ -6502,7 +6582,7 @@ function jumpTo(idx, direction) {
   applyReveal(target.el, target.id);
 
   state.activeIdx = idx;
-  if (state.autoFit) fitZoomToChunk(2.2);
+  if (autoFitOn()) fitZoomToChunk(autoFitCeiling());
   else clampZoomToWidth();
   applyState();
   focusCamera(false);
@@ -6572,7 +6652,7 @@ function advanceReveal() {
 // the slide's own content, which is why both already have their own branch
 // in focusCamera and neither should resize anything.
 function resettleAfterReveal() {
-  if (state.autoFit) fitZoomToChunk(2.2);
+  autoFitNow();
   focusCamera(false);
 }
 
@@ -7117,7 +7197,7 @@ function fitZoomToChunk(ceiling) {
 //
 // Returns true when it had to shrink, so the caller can say so.
 function clampZoomToWidth() {
-  if (state.autoFit) return false;                    // auto-fit fits both directions already
+  if (autoFitOn()) return false;                      // either fit does both directions already
   if (state.collapse !== 'topic-bold') return false;  // full text has its own fit on entry
   const entry = flatChunks[state.activeIdx];
   const el = entry && entry.el;
@@ -7132,19 +7212,40 @@ function clampZoomToWidth() {
   return z < collapsedZoom;
 }
 
-// Auto-fit mode: every slide gets a zoom that makes it fit, in both collapse
+// Auto-fit: every slide gets a zoom that makes it fit, in both collapse
 // modes, until it is switched off again. Distinct from the fit that happens
-// on entering the full text, which is a one-off and never grows the type.
-function toggleAutoFit() {
-  state.autoFit = !state.autoFit;
-  if (state.autoFit) fitZoomToChunk(2.2);
-  else {
+// on entering the full text, which is a one-off and never grows the type -
+// and shrink is that same one-off made permanent, which is the whole of
+// what the third mode is.
+//
+// A cycle and not a toggle, walked in AUTO_FIT_CYCLE order. Shift does not
+// reverse it, unlike C, F, A and L: # is Shift-3 on a US layout and an
+// unshifted key of its own on a German one, so e.shiftKey carries no
+// information here that is the same on two keyboards. Three states are two
+// presses from anywhere, which is what makes that affordable.
+const AUTO_FIT_LABEL = {
+  off:    'auto-fit off · manual zoom',
+  shrink: 'auto-fit shrink · a slide too big is made to fit, nothing else moves',
+  full:   'auto-fit on · every slide sized to the screen',
+};
+function cycleAutoFit(dir) {
+  const i = AUTO_FIT_CYCLE.indexOf(state.autoFitMode);
+  const n = AUTO_FIT_CYCLE.length;
+  state.autoFitMode = AUTO_FIT_CYCLE[(i + (dir || 1) + n) % n];
+  if (autoFitOn()) {
+    // Back to the lecturer's zoom first, so the fit solves from the setting
+    // rather than from whatever the previous mode left on this slide - in
+    // shrink mode that value IS the ceiling, and starting below it would
+    // read as a mode that never gives the size back.
+    applyZoom(state.collapse === 'topic-bold' ? collapsedZoom : state.zoom);
+    fitZoomToChunk(autoFitCeiling());
+  } else {
     applyZoom(state.collapse === 'topic-bold' ? collapsedZoom : state.zoom);
     clampZoomToWidth();
   }
   applyState();
   focusCamera(false);
-  flashMode(state.autoFit ? 'auto-fit on · every slide sized to the screen' : 'auto-fit off · manual zoom');
+  flashMode(AUTO_FIT_LABEL[state.autoFitMode]);
 }
 
 // Zoom
@@ -7153,8 +7254,13 @@ function toggleAutoFit() {
 // stepping from it would land back on the same clamped value and the key
 // would read as dead. Step from the choice instead, so the setting really
 // moves even when this one slide cannot follow it.
+//
+// shrink counts as "the lecturer's zoom is still a setting" and full does
+// not, which is the same line the two modes are separated by everywhere
+// else: under a ceiling of the lecturer's own zoom, state.zoom is what this
+// slide could take of it, and under a ceiling of 2.2 it is the answer.
 function zoomBase() {
-  return (!state.autoFit && state.collapse === 'topic-bold') ? collapsedZoom : state.zoom;
+  return (state.autoFitMode !== 'full' && state.collapse === 'topic-bold') ? collapsedZoom : state.zoom;
 }
 function clampZoom(z) {
   return Math.round(Math.max(0.6, Math.min(2.2, z)) * 20) / 20;
@@ -7170,10 +7276,15 @@ function cycleCollapse(dir = 1) {
   const i = COLLAPSE_MODES.indexOf(state.collapse);
   const ni = (i + dir + COLLAPSE_MODES.length) % COLLAPSE_MODES.length;
   const leavingCollapsed = state.collapse === 'topic-bold';
-  if (leavingCollapsed) collapsedZoom = state.zoom;
+  // zoomBase() and not state.zoom: on this slide state.zoom may be what an
+  // automatic shrink could show of the setting rather than the setting, and
+  // carrying that across a C press would lower the lecturer's zoom a little
+  // on every wide slide they pass. setZoom is the only writer of the
+  // setting, so outside full auto-fit this line is now a no-op by design.
+  if (leavingCollapsed) collapsedZoom = zoomBase();
   state.collapse = COLLAPSE_MODES[ni];
   applyState();
-  if (state.autoFit) fitZoomToChunk(2.2);
+  if (autoFitOn()) fitZoomToChunk(autoFitCeiling());
   else if (state.collapse === 'none') fitZoomToChunk();
   else { applyZoom(collapsedZoom); clampZoomToWidth(); }
   focusCamera(false);
@@ -7191,7 +7302,19 @@ function setZoom(z) {
   // The new setting is remembered whatever this chunk can show of it, but
   // the announcement has to report what is actually on screen – otherwise +
   // on a width-limited slide reads as a key that does nothing.
-  const limited = clampZoomToWidth();
+  let limited;
+  if (state.autoFitMode === 'shrink' && state.collapse === 'topic-bold') {
+    // In shrink mode the setting is also the ceiling, so a change to it has
+    // to be re-solved against this slide at once, or + reads as a key that
+    // works on every slide except the one you are looking at. Held to the
+    // collapsed mode for the reason clampZoomToWidth is: in the full text
+    // the zoom is already a one-off correction of an automatic fit, and
+    // fitting it again would undo the correction as it was made.
+    fitZoomToChunk(collapsedZoom);
+    limited = state.zoom < collapsedZoom;
+  } else {
+    limited = clampZoomToWidth();
+  }
   setTimeout(() => focusCamera(false), 30);
   broadcastState();
   flashMode('zoom: ' + state.zoom.toFixed(2) + '×' + (limited ? ' · limited by this slide' : ''));
@@ -7755,7 +7878,7 @@ document.addEventListener('keydown', (e) => {
     case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
     case '/': startSearch(); e.preventDefault(); break;
-    case '#': toggleAutoFit(); e.preventDefault(); break;
+    case '#': cycleAutoFit(1); e.preventDefault(); break;
     case '+': case '=':
       if (focusedFigure) setFigureScale(figureScale * 1.2);
       else setZoom(zoomBase() + 0.1);
@@ -8163,7 +8286,7 @@ function wireTouchControls() {
       case 'collapse':  cycleCollapse(1); break;
       case 'font':      cycleFont(1); break;
       case 'theme':     cycleTheme(1); break;
-      case 'autofit':   toggleAutoFit(); break;
+      case 'autofit':   cycleAutoFit(1); break;
       case 'search':    setPalette(false); startSearch(); break;
       case 'select':    setTouchSelect(!touchSelectOn); break;
     }
@@ -8259,7 +8382,7 @@ applyState();
 requestAnimationFrame(() => requestAnimationFrame(() => {
   // A lecture that opens with auto-fit has to fit its *first* slide too.
   // jumpTo does this on every later move; nothing calls it at boot.
-  if (state.autoFit) fitZoomToChunk(2.2);
+  if (autoFitOn()) fitZoomToChunk(autoFitCeiling());
   else clampZoomToWidth();
   focusCamera(true);
   // Same reasoning for autoplay, and it matters more here: the cover is
@@ -8268,7 +8391,7 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
 }));
 if (document.fonts && document.fonts.ready) {
   document.fonts.ready.then(() => {
-    if (state.autoFit) fitZoomToChunk(2.2);
+    if (autoFitOn()) fitZoomToChunk(autoFitCeiling());
     else clampZoomToWidth();
     focusCamera(true);
   });

@@ -9,6 +9,39 @@ from building the same way is a major version.
 
 ### Changed
 
+- **Slide numbers are now drawn in a row by default, where they used to be
+  stacked.** This one moves what an existing deck renders: `slide-numbers` is
+  a viewer default, so every lecture that does not set the key changes from
+  the stacked markers to the horizontal ones. Nothing stops building and no
+  source needs editing – the old rendering is `slide-numbers: vertical`, one
+  line in the frontmatter, and `L` still cycles all three.
+
+  The reason is what the stacked form does past nine: it sets each digit on
+  its own line, so slide 10 reaches the room as a 1 above a 0 and the reader
+  assembles the number. The content repository's house-style file had carried
+  "set `slide-numbers: horizontal` in the frontmatter" as standing advice for
+  long enough to be the tell – a default every deck is told to override is a
+  default that is the wrong way round. Taken deliberately, and not softened
+  with a compatibility switch: one more key would mean the old rendering was
+  reachable two ways and neither was the answer.
+
+- **`auto-fit` takes a third mode, `shrink`.** `true` and `false` are
+  unchanged and mean what they always meant, so this is additive. The new
+  mode fits a slide the same way `true` does but ceilings the fit at the
+  lecturer's own zoom instead of at the global maximum, so it can only ever
+  take size away: a slide that fits is left at exactly the zoom that was set,
+  and a slide that does not is shrunk until it does. That is the difference
+  between the two on-modes, and it is the one most lectures actually want –
+  `true` grows a short slide as readily as it shrinks a long one, which is
+  why a deck of one-line principles under auto-fit reads as a deck of
+  posters.
+
+  `#` is now a three-way cycle, off → shrink → on, and so is the `#` button
+  in the touch palette. Unlike `C`, `F`, `A` and `L`, `Shift` does not reverse
+  it: `#` is Shift-3 on a US layout and an unshifted key of its own on a
+  German one, so the modifier carries no information that means the same
+  thing on two keyboards. Three states are two presses from anywhere.
+
 - **The word for what a chunk is has changed from *tag* to *type* everywhere a
   user reads it.** `## principle:` is unchanged and no `source.md` needs
   editing – the source format never contained the word. What changed is the
@@ -186,6 +219,33 @@ from building the same way is a major version.
   `sequence` message out of it and leaves a third shape to
   `dgOverlapWarnings`. It found two in `lectures/tutorial` `#diagram` on the
   first run.
+- **`print-slide-numbers` gives the printed views their own numbering.** Same
+  three values as `slide-numbers`, and its default is not a value but a
+  deferral: an absent key means "whatever the live views are set to", so a
+  deck that writes `slide-numbers: off` prints without numbers and a deck
+  that writes nothing gets the built-in default in both places. Nothing about
+  an existing lecture moves. The case is a document read at arm's length and
+  a projection read across a room, which are not obliged to want the same
+  marker – stacked digits are legible on paper at a size that would not carry
+  to the back of a hall.
+
+- **`style: {hyphenate: …}` decides which views break a word at the end of a
+  line.** `print` is the default and is exactly what the tool has always done
+  – the two document views hyphenate their prose and the two live views never
+  do. `all` puts it into the projection and the cockpit as well; `none` takes
+  it out of the documents too.
+
+  `lang:` still picks the dictionary and stays a key of its own: the language
+  is a property of the lecture, not an opening preference, and a German deck
+  may perfectly well want its projection unhyphenated. The case for `all` is
+  that same German deck at `.narrow`, where one compound noun opens a hole in
+  the measure that no rewriting closes. The live rule is scoped to the stage,
+  so a table of contents, a search hit and the help sheet are never
+  hyphenated, and it carries the same `manual` reset the print rule does,
+  because `hyphens` inherits into code and URLs where a break is simply
+  wrong. What it deliberately does not reach: the `hyphens: auto` inside a
+  `::: cards` card and a `::: rows` term, which is not a preference but the
+  rescue for a 320px measure a long word overflows outright.
 
 - **`{.center}` in a chunk's attribute tail sets that chunk's prose on a
   centre axis**, on the projection and in the cockpit and not in the printed

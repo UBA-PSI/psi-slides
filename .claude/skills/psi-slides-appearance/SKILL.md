@@ -83,7 +83,21 @@ So the values are `text` (the default: fi and fl in prose, none in code – exac
 
 `lang:` in the frontmatter (default `en`) lands in the `lang` attribute of `<html>` for all four views. It is not decoration: the browser picks its **hyphenation dictionary** from it, so `hyphens: auto` in the print stylesheet does nothing useful for a German lecture until the author writes `lang: de`. A value that is not a plausible BCP-47 tag fails the build.
 
-Hyphenation is **print-only and prose-only**. A hyphenated word on a projection reads badly and the live views reflow constantly; and because the `hyphens` property inherits, headings, code, and URLs are explicitly set back to `manual`, or the build would hyphenate an identifier.
+Hyphenation is **prose-only, and by default document-only**. A hyphenated word on a projection reads badly and the live views reflow constantly; and because the `hyphens` property inherits, headings, code, and URLs are explicitly set back to `manual`, or the build would hyphenate an identifier.
+
+`style: {hyphenate: …}` is the author's say over which views do it, and its default is exactly the behaviour above:
+
+| value | print / print-notes | audience / speaker |
+|---|---|---|
+| `print` (default) | hyphenates | does not |
+| `all` | hyphenates | hyphenates |
+| `none` | does not | does not |
+
+**It is a `style:` key and `lang:` is not, and that split is the point.** The language is a property of the lecture – it decides the dictionary, and it is wrong rather than unfashionable if it disagrees with the words – while whether the projection breaks a word is a preference a German deck may answer either way. `all` exists for the case that forced it: a German compound at `.narrow`, where one word opens a hole in the measure that no rewriting closes.
+
+Two things about the live rule are load-bearing. It is **scoped to `#stage`**, so it is the slide's prose and never the chrome – a TOC entry, a search hit and the help sheet are lists a reader scans, and a broken word in one of those is only harder to scan. And it repeats PRINT_CSS's **`manual` reset** for headings, code and URLs, for the same inheritance reason. The print rule is wrapped `body:not([data-hyphenate=none])`, and that wrapper is the guard `test/settings.mjs` holds: drop it and `none` silently does nothing while every outcome-shaped check still passes.
+
+What the key deliberately does **not** reach: the `hyphens: auto` inside a `::: cards` card and a `::: rows` term. Those are not a typographic preference but the rescue for a 320px measure a long word overflows outright, with `overflow-wrap: break-word` as the floor under them, so they answer a different question and keep answering it in all three settings.
 
 The cover treatment for `title` chunks also lives in `@media print` now. The base rule used to be a full-height block with the title pinned to the bottom edge, which is right on paper and wrong for `print.html` in a browser, where you opened a document and saw a screen of nothing.
 
@@ -99,7 +113,29 @@ Seven themes cycle on `A`: four light accents, a neutral `dark` (grey paper, whi
 
 ## Viewer defaults in the frontmatter
 
-Six optional frontmatter keys pin how a lecture opens: `font` (serif/sans/mono), `theme` (the six accent/phosphor names), `collapse` (topic-bold/none), `auto-fit` (true/false), `slide-numbers` (vertical/horizontal/off), `editor` (both/speaker/none). The last is not a look but a payload – whether the live views carry the diagram editor – and it goes through this machinery rather than growing its own because the failure mode is identical: a typo would otherwise cost the lecture its editor silently. The precedence rule is one sentence: **a key that is present wins over the reader's stored preference; a key that is absent leaves that preference alone.** So lectures that say nothing behave exactly as before – font, theme and slide numbers keep following the reader across lectures – and an author who has designed a particular look gets it without asking anyone to press keys.
+Seven optional frontmatter keys pin how a lecture opens:
+
+| key | values | default |
+|---|---|---|
+| `font` | serif / sans / mono | serif |
+| `theme` | the seven accent / dark / phosphor names | light-red |
+| `collapse` | topic-bold / none | topic-bold |
+| `auto-fit` | true / false / **shrink** | false |
+| `slide-numbers` | vertical / **horizontal** / off | **horizontal** |
+| `print-slide-numbers` | vertical / horizontal / off | *follows `slide-numbers`* |
+| `editor` | both / speaker / none | both |
+
+`editor` is not a look but a payload – whether the live views carry the diagram editor – and it goes through this machinery rather than growing its own because the failure mode is identical: a typo would otherwise cost the lecture its editor silently. The precedence rule is one sentence: **a key that is present wins over the reader's stored preference; a key that is absent leaves that preference alone.** So lectures that say nothing behave exactly as before – font, theme and slide numbers keep following the reader across lectures – and an author who has designed a particular look gets it without asking anyone to press keys.
+
+**Three of those entries are newer than 1.0.0, and each carries a decision the table cannot show.**
+
+**`slide-numbers` defaults to `horizontal`, and it used to default to `vertical`.** This is the one viewer default whose change moves what an existing deck renders: the stacked form sets each digit on its own line, so slide 10 reaches the room as a 1 above a 0. The content repo's house-style file had carried "set `slide-numbers: horizontal`" as standing advice, which is what a wrong default looks like from the outside. The old rendering is `slide-numbers: vertical`, and deliberately no compatibility flag was added beside it – one more key would make the old behaviour reachable two ways.
+
+**`print-slide-numbers` has no default of its own; it *defers*.** An absent key resolves at read time to the live value, and only if that is absent too does `SLIDE_NUM_DEFAULT` apply. `viewDefaults()` writes a key only when the frontmatter carried it, so "unset" is a fourth state distinguishable from all three values, and **`printSlideNums(frontmatter)` is the documented step** that turns it into one – `d.printSlideNums || d.slideNums || SLIDE_NUM_DEFAULT`, in that order, in one place. Reading the key anywhere else with a fallback of `SLIDE_NUM_DEFAULT` would silently drop the deferral and make an unset key mean `horizontal` rather than "follow". `test/settings.mjs` asserts all sixteen combinations of the two keys.
+
+**`auto-fit` has three modes and its frontmatter words are not its runtime words.** The file says `true` / `false` / `shrink`; the runtime carries `full` / `off` / `shrink`, because a boolean cannot hold three states and because `state.autoFitMode` must never be read for truthiness – all three words are truthy strings. `AUTO_FIT_FROM_KEY` is the one place the two vocabularies meet, `autoFitOn()` is the test, and `autoFitCeiling()` is the whole of the difference between the two on-modes: `2.2` for `full`, `collapsedZoom` (the lecturer's own zoom) for `shrink`, so shrink can only ever take size away. `#` cycles `off → shrink → full`, and `Shift` does **not** reverse it as it does on `C`, `F`, `A` and `L` – `#` is Shift-3 on a US layout and unshifted on a German one, so `e.shiftKey` carries no portable information there.
+
+The mode also travels as **two fields in the state snapshot**, `autoFitMode` (the word) and `autoFit` (a boolean), because `audience.html` and `speaker.html` are separate files and `--audience-only` rebuilds one of them: a peer built before the third mode coerces `payload.autoFit` with `!!`, so sending it `'off'` would switch it on. `normAutoFit()` reads either back, and `applyRemoteState` prefers the word when there is one. What travels in `zoom` is the *setting* (`zoomBase()`), never the shrunk value, so each window re-solves the shrink against its own size – `applyRemoteState` calls `fitZoomToChunk(collapsedZoom)` in that mode where it calls `clampZoomToWidth()` otherwise. Full auto-fit deliberately keeps adopting the sender's fitted zoom, which is what it has always done.
 
 An unknown value **fails the build** (`err.userFacing`, no stack trace) rather than being ignored, because a typo here is otherwise invisible: the lecture still builds and still looks fine, it just looks like the author never set anything. `lint.js` mirrors the table as `VIEW_DEFAULTS` and reports `unknown-view-default` as an error – keep the two in sync, same rule as `VALID_TAGS`.
 

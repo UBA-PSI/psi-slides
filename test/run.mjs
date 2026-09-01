@@ -21,6 +21,7 @@ import { buildLecture, serve, openDeck, closeBrowser, editorHelpers, createRepor
 
 const SPECS = [
   './nav.mjs',
+  './auto-fit.mjs',
   './nav-cockpit.mjs',
   './expansion.mjs',
   './marginalia.mjs',

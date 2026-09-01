@@ -108,8 +108,8 @@ node test/gates/run.mjs semantics              # gates whose name matches
 # browser suite – the things that only break in a built page, in four
 # families: the navigation model (nav, nav-cockpit), the geometry the live
 # chrome leaves the slide (expansion, marginalia, touch-rail, math-focus,
-# block-align, text-select - what a pointer gesture means while Alt is held),
-# the editor's
+# block-align, auto-fit, text-select - what a pointer gesture means while Alt
+# is held), the editor's
 # gestures and panel (editor-*), and the figure-* specs that measure the SVG –
 # figure-framing, which catches a drawing sitting off-centre in an oversized
 # frame, figure-labels, which measures where an aligned label lands inside the
@@ -138,7 +138,11 @@ node test/gates/run.mjs semantics              # gates whose name matches
 # edges against the prose's and one right edge against the slide's padding,
 # because the three blocks move by three different mechanisms (a breakout box,
 # a flex alignment, KaTeX's own text-align) and the CSS says only that all
-# three rules exist. Twenty-eight specs, ~750 assertions.
+# three rules exist.
+# of why it shipped. `auto-fit` builds its own deck for the first reason and
+# exists for the second: "shrink leaves the zoom alone" is a claim about a
+# number, and it is measured on a short slide and a tall one, one # press
+# apart, rather than read off the mode. Twenty-nine specs, ~760 assertions.
 # Builds and serves the lectures itself, so it never reports on stale HTML,
 # and launches one Chromium for the whole run ($PSI_CHROME, the Playwright
 # cache, or system Chrome); ~5 min. Run it after touching AUDIENCE_JS, the key
@@ -212,7 +216,7 @@ Checks enforced:
 - Unclosed `:::` directives and orphan `:::` closers.
 - Per-type word-count budgets (principle/question 80, definition 200, example 250, free 250, exercise 350; title/figure unlimited). Counted against the **on-screen** half only: the `::: slide` block if the chunk has one, otherwise everything outside `::: script`.
 - Duplicate `::: slide` / `::: script` blocks in one chunk (warning).
-- Unknown value for a viewer-default frontmatter key (`unknown-view-default`, error).
+- Unknown value for a viewer-default frontmatter key (`unknown-view-default`, error) or for a `style:` key (`unknown-style-setting`, error). Both mirror a build refusal that now runs in the `buildOnce` pre-flight, so `--print-only` refuses a typo in `auto-fit` and `--audience-only` refuses one in `print-slide-numbers`.
 - Assets over the 2 MB inline cap (`oversized-asset`, warning) – the pre-commit gate for the single-file property.
 - Unclosed display math (`unclosed-math`, warning). Fence-aware. Inline `$…$` is deliberately not checked: a lone dollar in prose is legitimate and the build leaves it alone.
 - A statement with no name (`bad-diagram-name`, error) – the build reads the token after the head as the name and refuses the line when there is none.
@@ -358,11 +362,14 @@ upright and italic; **which three is a per-lecture decision** made in the `fonts
 block, where a bundled name needs no file and an author-supplied one is matched
 out of `fonts/` beside `source.md`. `ligatures:` separates prose ligatures (on)
 from code ligatures (off – `->` and `--` are two different edges in the figure
-grammar). `lang:` picks the print hyphenation dictionary. Seven themes cycle on
+grammar). `lang:` picks the hyphenation dictionary and `style: {hyphenate: …}`
+says which views use it (`print` – the default and today's behaviour – / `all` /
+`none`); the two are separate keys because the language is a property of the
+lecture and the hyphenation is a preference. Seven themes cycle on
 `A`, and `applyFontTheme()` sets `body[data-mode]`, which is what every piece of
-chrome keys off rather than a theme name. Six frontmatter keys pin how a lecture
-opens; an unknown value **fails the build**, because a typo here is otherwise
-invisible.
+chrome keys off rather than a theme name. Seven frontmatter keys pin how a
+lecture opens; an unknown value **fails the build**, because a typo here is
+otherwise invisible.
 
 **The rosters, the slot tables, the measured advance widths, the precedence
 rules and the 1.0.0 recipe are in the `psi-slides-appearance` skill.**
@@ -373,6 +380,27 @@ source of truth that `lint.js` mirrors –
 change them in the same commit. And **`dgCharW` in `diagram-core.mjs` is
 calibrated to the bundled sans**: a roster change that does not re-measure it
 overflows figure labels silently.
+
+Three of the viewer defaults carry a decision the table does not:
+
+- **`slide-numbers` defaults to `horizontal`.** It defaulted to `vertical` up to
+  1.0.0, and this is the one viewer default whose own change moves what an
+  existing deck renders – stacked digits put slide 10 on two lines. The old
+  rendering is `slide-numbers: vertical`, and there is deliberately no
+  compatibility flag beside it.
+- **`print-slide-numbers` has no default, it defers.** Absent, it resolves to
+  whatever the live key resolved to. `printSlideNums()` is the one documented
+  step that does that (`printSlideNums || slideNums || SLIDE_NUM_DEFAULT`);
+  reading the key anywhere else with a fallback would silently make an unset
+  key mean `horizontal` rather than "follow".
+- **`auto-fit` is three modes and `state.autoFitMode` is a string.** Frontmatter
+  says `true` / `false` / `shrink`, the runtime says `full` / `off` / `shrink`,
+  and `AUTO_FIT_FROM_KEY` is where the two meet. **Never write
+  `if (state.autoFitMode)`** – all three words are truthy; `autoFitOn()` is the
+  test and `autoFitCeiling()` is the whole difference between the two on-modes
+  (2.2 vs the lecturer's own zoom). The snapshot carries the mode *and* a legacy
+  boolean, because `--audience-only` rebuilds one of the two windows and an
+  older peer coerces the field with `!!`.
 
 ### Video, hosted embeds and link addresses
 

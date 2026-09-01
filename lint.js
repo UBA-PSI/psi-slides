@@ -68,8 +68,17 @@ const VIEW_DEFAULTS = {
   'font': ['serif', 'sans', 'mono'],
   'theme': ['light-red', 'light-teal', 'light-blue', 'light-orange', 'dark', 'terminal-amber', 'terminal-green'],
   'collapse': ['topic-bold', 'none'],
-  'auto-fit': ['true', 'false'],
+  // Three modes, two spellings. `false` and `true` are what the key has
+  // always taken and stay exactly what they were; `shrink` is the third,
+  // where the fit is ceilinged at the lecturer's own zoom and so can only
+  // ever make a slide smaller. Mirrors AUTO_FIT_FROM_KEY.
+  'auto-fit': ['true', 'false', 'shrink'],
   'slide-numbers': ['vertical', 'horizontal', 'off'],
+  // The printed views' own numbering. Same vocabulary, and no default of
+  // its own: an absent key means "whatever the live views are set to",
+  // which the build resolves in printSlideNums(). Nothing here has to know
+  // that, because a linter's business is which words the key takes.
+  'print-slide-numbers': ['vertical', 'horizontal', 'off'],
   'editor': ['both', 'speaker', 'none'],
   // Which cover composition the lecture opens with. Mirrors COVER_VARIANTS.
   'cover': ['classic', 'masthead', 'stack', 'display', 'panel', 'quote',
@@ -115,6 +124,11 @@ const STYLE_ENUMS = {
   'labels': ['on', 'off'],
   // The mark after an external link that opens its address and QR code.
   'link-codes': ['on', 'off'],
+  // Which views break a word at the end of a line: the documents only
+  // (the default, and what the tool has always done), everywhere, or
+  // nowhere. `lang:` picks the dictionary and is a separate key, because
+  // the language is a property of the lecture and this is a preference.
+  'hyphenate': ['print', 'all', 'none'],
 };
 
 // Mirrors BACKDROP_SLOTS / OVERLAY_SLOTS in build.js. Two words from one
