@@ -355,15 +355,22 @@ each, and the first of every group is the default.
 
 ::: cards 5
 - **fill**\
-  `cover` `contain`
+  `cover`\
+  `contain`
 - **crop**\
-  `middle` `top` `bottom`
+  `middle`\
+  `top`\
+  `bottom`
 - **scrim**\
-  `veil` `clear` `invert`
+  `veil`\
+  `clear`\
+  `invert`
 - **focus**\
-  `sharp` `blur`
+  `sharp`\
+  `blur`
 - **layer**\
-  `under` `over`
+  `under`\
+  `over`
 :::
 
 **`veil` puts the theme's own page colour over the picture**, not white, so
@@ -380,9 +387,16 @@ corner and they stack rather than landing on top of each other.
 - **place**\
   `center` and the eight compass points
 - **ground**\
-  `paper` `ink` `accent` `clear` `glass`
+  `paper`\
+  `ink`\
+  `accent`\
+  `clear`\
+  `glass`
 - **width**\
-  `narrow` `standard` `wide` `full`
+  `narrow`\
+  `standard`\
+  `wide`\
+  `full`
 :::
 
 # A heading that stays off the slide {#bare}

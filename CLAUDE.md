@@ -146,7 +146,11 @@ node test/gates/run.mjs semantics              # gates whose name matches
 # of why it shipped, and `side-anchor` for the same reason: nothing that ships
 # writes `::: side {middle}` yet, and the property it holds - that centring
 # moves the short pane and only the short pane - is a geometry rather than a
-# string. Thirty specs, ~769 assertions.
+# string.
+# `cards` builds its own for the first reason: what it
+# measures is two cards differing in one character, and it also measures the
+# dash in front of a nested item against the line it belongs to and the
+# contrast of an accent row's two halves through all seven themes. Thirty-one specs, ~798 assertions.
 # Builds and serves the lectures itself, so it never reports on stale HTML,
 # and launches one Chromium for the whole run ($PSI_CHROME, the Playwright
 # cache, or system Chrome); ~5 min. Run it after touching AUDIENCE_JS, the key

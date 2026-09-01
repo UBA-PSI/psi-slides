@@ -1821,6 +1821,51 @@ function renderBackdrop(bd, where) {
 // the detail rather than the headline and folding them away is the default.
 const CARDS_LARGE_MAX = 3;    // words in the longest item
 const CARDS_MEDIUM_MAX = 12;
+
+// Two ways to open a card, and the author already writes the difference:
+//
+//   - **panel** a tinted fill…     a lead-in. The bold runs into the sentence
+//   - **Measure**\                 a heading. The bold on its own line, with
+//     what the page does           the text under it and air between
+//
+// Which of the two a card got used to be decided in the stylesheet, and it
+// could not be: every leading bold was forced to display: block, so the two
+// forms drew identically and the distinction the tutorial documents did not
+// exist. Keying it on `:has(+ br)` only moved the guess one step - a <br> is
+// what the author typed, not what the author meant, so a bold followed by a
+// bare text node lost its air while the same bold followed by a break kept
+// it. The renderer can see the hard break in the source, so it writes the
+// answer into the markup and the stylesheet reads a class.
+//
+// The slot stays open across an opening picture, which is the card that
+// bleeds an image: there the lead-in is the line *under* the picture, and
+// the two position-dependent selector pairs this replaces existed only to
+// reach it. A class on the run reaches it wherever it sits.
+const CARD_LEAD_RE = /^(\*\*(?:[^*]|\*(?!\*))+\*\*|__(?:[^_]|_(?!_))+__)(\s*\\[ \t]*|[ \t]{2,})$/;
+const CARD_IMG_ONLY_RE = /^!\[[^\]]*\]\([^)]*\)$/;
+function markCardLeads(lines) {
+  let open = false;   // still at the item's opening slot
+  return lines.map(raw => {
+    let head, rest;
+    const item = /^([-*+][ \t]+)(.*)$/.exec(raw);
+    if (item) { open = true; [, head, rest] = item; }
+    else if (open) {
+      const cont = /^([ \t]+)(.*)$/.exec(raw);
+      // A nested item, a blank line or an unindented line is the card's
+      // body proper, and the opening slot is over.
+      if (!cont || !cont[2].trim() || /^[-*+][ \t]/.test(cont[2])) { open = false; return raw; }
+      [, head, rest] = cont;
+    } else return raw;
+    const lead = CARD_LEAD_RE.exec(rest);
+    if (lead) {
+      open = false;
+      return head + `<strong class="card-lead">${lead[1].slice(2, -2)}</strong>` + lead[2];
+    }
+    if (rest.trim() && !CARD_IMG_ONLY_RE.test(rest.trim())) open = false;
+    return raw;
+  });
+}
+
 function renderCardsBlock(b) {
   const o = parseSlotClasses(b.attrs, CARDS_SLOTS, 'cards', b.where);
   // An item is its `- ` line *plus its continuation lines* - the indented
@@ -1894,6 +1939,10 @@ function renderCardsBlock(b) {
     }
     body = out.map(e => typeof e === 'string' ? e
       : e.head + (e.rest.length ? `<span class="row-body">${e.rest.join(' ')}</span>` : ''));
+  } else {
+    // A row's term is already its own element in its own column, so the
+    // lead-in question is a card question only.
+    body = markCardLeads(b.lines);
   }
   const wrote = String(b.attrs).split(/\s+/).map(w => w.replace(/^\./, ''));
   // A row's default anchor is `middle`, and a card's is `top`. The default
@@ -8063,45 +8112,42 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
      compound worth breaking. */
   hyphenate-limit-chars: 8 4 4;
   /* A grid row is as tall as its longest card, so every other card has
-     slack in it and something has to say where the text sits. Flex column
-     rather than align-content, because a card can hold more than one block
-     and they have to stay stacked. */
-  display: flex;
-  flex-direction: column;
-  justify-content: var(--card-anchor, flex-start);
+     slack in it and something has to say where the text sits. This was a
+     flex column, and the note beside it said align-content could not be
+     used because a card can hold more than one block and they have to stay
+     stacked. In block layout they do: align-content moves the content box
+     as a whole inside the leftover height and the blocks inside it stay in
+     the flow, which is what the flex column was reaching for.
+
+     The flex column cost the run-in lead-in its whole existence. A flex
+     container blockifies every child, so the bold at the head of
+     - **panel** a tinted fill… was a flex item and the sentence after it
+     an anonymous one, and the two stacked whatever the stylesheet said
+     about display. Removing one rule would not have brought the run-in
+     back; this is the rule that was preventing it. */
+  display: block;
+  align-content: var(--card-anchor, flex-start);
   text-align: var(--card-align, left);
 }
-/* A card that opens with a bold run has a heading, and it needs air under
-   it or the two read as one paragraph that happens to start bold. Detected
-   rather than declared, because the author already wrote the distinction:
-   an item beginning - **panel** a tinted fill... means exactly this. It
-   is skipped where the bold run is the whole card, which is the callout.
-   A hard line break (two trailing spaces, or a backslash) is honoured for
-   the same job and needs no rule - <br> is already a line break. */
-/* Two ways to open a card, and the author already writes the difference:
-     - **panel** a tinted fill…     a lead-in. Own line, ordinary leading.
+/* Two ways to open a card, and the author writes the difference:
+     - **panel** a tinted fill…     a lead-in. The bold runs into the text.
      - **Measure**\                 a heading. Own line, and air under it.
        what the page does
-   Keyed on the break, which is the thing the author actually typed. The
-   rule said :not(:last-child) before, which counts *elements*: a bold run
-   followed by a bare text node matched :last-child and lost its margin,
-   one followed by a <br> kept it. Same two behaviours, no way to predict
-   which you would get - and a card that opened with a nested list got the
-   margin with nothing after it to separate from.
-
-   The second selector of each pair is the card that opens with a bleeding
-   picture: there the bold run is the *second* element, so a :first-child
-   rule reached none of it and the <br> drew a visible empty line under
-   every heading. */
-.cards li > :is(strong, b):first-child,
-.cards li > :is(p, figure, img):first-child + :is(strong, b) { display: block; }
-.cards li > :is(strong, b):first-child:has(+ br),
-.cards li > :is(p, figure, img):first-child + :is(strong, b):has(+ br) { margin-bottom: 0.45em; }
-/* An author who wrote the hard break *and* opened with bold meant one
-   separation, not two: the block display already broke the line, so the
-   <br> that follows it adds an empty one. */
-.cards li > :is(strong, b):first-child + br,
-.cards li > :is(p, figure, img):first-child + :is(strong, b) + br { display: none; }
+   Which one it is is answered in the renderer, by markCardLeads, which can
+   read the hard break the author typed and marks the bold .card-lead when
+   it finds one. It is not answerable here: every leading bold used to be
+   forced to a block, so both forms drew as a heading and the run-in did
+   not exist; keying the air on :has(+ br) instead only moved the guess,
+   because a text node after the bold got no margin while a <br> after the
+   same bold got one. A class also reaches the card that bleeds a picture,
+   where the bold run is the *second* element and a :first-child rule
+   reached none of it - that case cost this block two extra selectors and
+   now costs it none. */
+.cards li .card-lead { display: block; margin-bottom: 0.45em; }
+/* An author who wrote the hard break meant one separation, not two: the
+   block display already broke the line, so the <br> after it adds an
+   empty one. */
+.cards li .card-lead + br { display: none; }
 /* An image in a card bleeds to its edges. Negative margins equal to the
    padding, which is why the padding is two custom properties rather than
    one shorthand - a shorthand cannot be negated a side at a time. The top
@@ -8199,11 +8245,13 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   min-width: 0;
 }
 .cards.rows li > :is(strong, b):first-child + br { display: none; }
-/* Every ground rule above targets > ul > li, which a contents-display
-   item is not, so the term picks the fill up through the properties. */
-.cards.rows.cg-accent li > :is(strong, b):first-child {
-  color: var(--paper);
-}
+/* The ground rules below do reach a row's li - it is still > ul > li - but
+   a contents-display item paints nothing, so everything they say through a
+   custom property arrives at the term and everything they paint directly
+   has to be restated here. The accent ground's reversed ink is the third
+   case, neither of those two: it is inherited, so it arrived at the *body*
+   as well and made it invisible. That one is fixed where the ground is
+   declared, by putting the ink on the term rather than on the item. */
 .cards.rows.cg-paper li > :is(strong, b):first-child {
   box-shadow: 0 1px 2px oklch(0.2 0.01 260 / 0.10), 0 6px 20px oklch(0.2 0.01 260 / 0.10);
 }
@@ -8244,6 +8292,19 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
 .cards.cg-accent > ol > li,
 .cards.cg-accent > :not(ul):not(ol) {
   --card-bg: var(--emph);
+}
+/* The reversed ink goes on whatever the fill is painted on, and in a row
+   block that is the term alone. The li there is display: contents and
+   spans both columns, so ink declared on it reached the body beside the
+   card as well - and the body has no fill behind it. Measured in the
+   tutorial's #rows: oklch(0.98 0 0) text on an oklch(0.98 0 0) page, an
+   810x87 box laid out correctly and impossible to see. The fill itself
+   stays on the li above, because --card-bg is a custom property and the
+   term picks it up by inheritance; only the colours have to move. */
+.cards:not(.rows).cg-accent > ul > li,
+.cards:not(.rows).cg-accent > ol > li,
+.cards:not(.rows).cg-accent > :not(ul):not(ol),
+.cards.rows.cg-accent li > :is(strong, b):first-child {
   color: var(--paper);
   --ink: var(--paper);
   --ink-soft: color-mix(in oklch, var(--paper) 78%, transparent);
@@ -8350,13 +8411,30 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   font-size: 0.88em;
   color: var(--ink-soft);
   text-align: left;
+  /* Said out loud, because it used to be free: while the card was a flex
+     column this list was a flex item and therefore a formatting context of
+     its own, so its first and last item's margins stayed inside it. In an
+     ordinary block they collapse out through its edges, which took 10.4px
+     out of every second level in the repository and moved one decoration
+     slide to a different auto-fit step. The containment was load-bearing
+     and nothing had ever said so. */
+  display: flow-root;
 }
 .cards li li { display: list-item; }
 .cards li ul li::marker, .cards li ol li::marker { content: none; }
 .cards li ul li { list-style: none; position: relative; padding-left: 0.75em; }
+/* The dash sits on the middle of the item's first line box, and says so:
+   0.5lh is half the line height that actually applies to this element, and
+   the translate takes the rule's own thickness out of the sum. It was a
+   flat 0.62em, which is a guess at half a line and was wrong for the line
+   that is there - the nested level is set at 0.88em with its own leading,
+   so the dash rode above the optical centre of the words beside it. In lh
+   it stops depending on the size, the leading and the face, which is the
+   whole reason to name the unit. */
 .cards li ul li::before {
   content: '';
-  position: absolute; left: 0; top: 0.62em;
+  position: absolute; left: 0; top: 0.5lh;
+  transform: translateY(-50%);
   width: 0.28em; height: 1px;
   background: currentColor;
   opacity: 0.55;

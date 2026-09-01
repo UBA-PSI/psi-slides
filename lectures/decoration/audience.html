@@ -1883,45 +1883,42 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
      compound worth breaking. */
   hyphenate-limit-chars: 8 4 4;
   /* A grid row is as tall as its longest card, so every other card has
-     slack in it and something has to say where the text sits. Flex column
-     rather than align-content, because a card can hold more than one block
-     and they have to stay stacked. */
-  display: flex;
-  flex-direction: column;
-  justify-content: var(--card-anchor, flex-start);
+     slack in it and something has to say where the text sits. This was a
+     flex column, and the note beside it said align-content could not be
+     used because a card can hold more than one block and they have to stay
+     stacked. In block layout they do: align-content moves the content box
+     as a whole inside the leftover height and the blocks inside it stay in
+     the flow, which is what the flex column was reaching for.
+
+     The flex column cost the run-in lead-in its whole existence. A flex
+     container blockifies every child, so the bold at the head of
+     - **panel** a tinted fill… was a flex item and the sentence after it
+     an anonymous one, and the two stacked whatever the stylesheet said
+     about display. Removing one rule would not have brought the run-in
+     back; this is the rule that was preventing it. */
+  display: block;
+  align-content: var(--card-anchor, flex-start);
   text-align: var(--card-align, left);
 }
-/* A card that opens with a bold run has a heading, and it needs air under
-   it or the two read as one paragraph that happens to start bold. Detected
-   rather than declared, because the author already wrote the distinction:
-   an item beginning - **panel** a tinted fill... means exactly this. It
-   is skipped where the bold run is the whole card, which is the callout.
-   A hard line break (two trailing spaces, or a backslash) is honoured for
-   the same job and needs no rule - <br> is already a line break. */
-/* Two ways to open a card, and the author already writes the difference:
-     - **panel** a tinted fill…     a lead-in. Own line, ordinary leading.
+/* Two ways to open a card, and the author writes the difference:
+     - **panel** a tinted fill…     a lead-in. The bold runs into the text.
      - **Measure**                 a heading. Own line, and air under it.
        what the page does
-   Keyed on the break, which is the thing the author actually typed. The
-   rule said :not(:last-child) before, which counts *elements*: a bold run
-   followed by a bare text node matched :last-child and lost its margin,
-   one followed by a <br> kept it. Same two behaviours, no way to predict
-   which you would get - and a card that opened with a nested list got the
-   margin with nothing after it to separate from.
-
-   The second selector of each pair is the card that opens with a bleeding
-   picture: there the bold run is the *second* element, so a :first-child
-   rule reached none of it and the <br> drew a visible empty line under
-   every heading. */
-.cards li > :is(strong, b):first-child,
-.cards li > :is(p, figure, img):first-child + :is(strong, b) { display: block; }
-.cards li > :is(strong, b):first-child:has(+ br),
-.cards li > :is(p, figure, img):first-child + :is(strong, b):has(+ br) { margin-bottom: 0.45em; }
-/* An author who wrote the hard break *and* opened with bold meant one
-   separation, not two: the block display already broke the line, so the
-   <br> that follows it adds an empty one. */
-.cards li > :is(strong, b):first-child + br,
-.cards li > :is(p, figure, img):first-child + :is(strong, b) + br { display: none; }
+   Which one it is is answered in the renderer, by markCardLeads, which can
+   read the hard break the author typed and marks the bold .card-lead when
+   it finds one. It is not answerable here: every leading bold used to be
+   forced to a block, so both forms drew as a heading and the run-in did
+   not exist; keying the air on :has(+ br) instead only moved the guess,
+   because a text node after the bold got no margin while a <br> after the
+   same bold got one. A class also reaches the card that bleeds a picture,
+   where the bold run is the *second* element and a :first-child rule
+   reached none of it - that case cost this block two extra selectors and
+   now costs it none. */
+.cards li .card-lead { display: block; margin-bottom: 0.45em; }
+/* An author who wrote the hard break meant one separation, not two: the
+   block display already broke the line, so the <br> after it adds an
+   empty one. */
+.cards li .card-lead + br { display: none; }
 /* An image in a card bleeds to its edges. Negative margins equal to the
    padding, which is why the padding is two custom properties rather than
    one shorthand - a shorthand cannot be negated a side at a time. The top
@@ -2019,11 +2016,13 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   min-width: 0;
 }
 .cards.rows li > :is(strong, b):first-child + br { display: none; }
-/* Every ground rule above targets > ul > li, which a contents-display
-   item is not, so the term picks the fill up through the properties. */
-.cards.rows.cg-accent li > :is(strong, b):first-child {
-  color: var(--paper);
-}
+/* The ground rules below do reach a row's li - it is still > ul > li - but
+   a contents-display item paints nothing, so everything they say through a
+   custom property arrives at the term and everything they paint directly
+   has to be restated here. The accent ground's reversed ink is the third
+   case, neither of those two: it is inherited, so it arrived at the *body*
+   as well and made it invisible. That one is fixed where the ground is
+   declared, by putting the ink on the term rather than on the item. */
 .cards.rows.cg-paper li > :is(strong, b):first-child {
   box-shadow: 0 1px 2px oklch(0.2 0.01 260 / 0.10), 0 6px 20px oklch(0.2 0.01 260 / 0.10);
 }
@@ -2064,6 +2063,19 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
 .cards.cg-accent > ol > li,
 .cards.cg-accent > :not(ul):not(ol) {
   --card-bg: var(--emph);
+}
+/* The reversed ink goes on whatever the fill is painted on, and in a row
+   block that is the term alone. The li there is display: contents and
+   spans both columns, so ink declared on it reached the body beside the
+   card as well - and the body has no fill behind it. Measured in the
+   tutorial's #rows: oklch(0.98 0 0) text on an oklch(0.98 0 0) page, an
+   810x87 box laid out correctly and impossible to see. The fill itself
+   stays on the li above, because --card-bg is a custom property and the
+   term picks it up by inheritance; only the colours have to move. */
+.cards:not(.rows).cg-accent > ul > li,
+.cards:not(.rows).cg-accent > ol > li,
+.cards:not(.rows).cg-accent > :not(ul):not(ol),
+.cards.rows.cg-accent li > :is(strong, b):first-child {
   color: var(--paper);
   --ink: var(--paper);
   --ink-soft: color-mix(in oklch, var(--paper) 78%, transparent);
@@ -2170,13 +2182,30 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   font-size: 0.88em;
   color: var(--ink-soft);
   text-align: left;
+  /* Said out loud, because it used to be free: while the card was a flex
+     column this list was a flex item and therefore a formatting context of
+     its own, so its first and last item's margins stayed inside it. In an
+     ordinary block they collapse out through its edges, which took 10.4px
+     out of every second level in the repository and moved one decoration
+     slide to a different auto-fit step. The containment was load-bearing
+     and nothing had ever said so. */
+  display: flow-root;
 }
 .cards li li { display: list-item; }
 .cards li ul li::marker, .cards li ol li::marker { content: none; }
 .cards li ul li { list-style: none; position: relative; padding-left: 0.75em; }
+/* The dash sits on the middle of the item's first line box, and says so:
+   0.5lh is half the line height that actually applies to this element, and
+   the translate takes the rule's own thickness out of the sum. It was a
+   flat 0.62em, which is a guess at half a line and was wrong for the line
+   that is there - the nested level is set at 0.88em with its own leading,
+   so the dash rode above the optical centre of the words beside it. In lh
+   it stops depending on the size, the leading and the face, which is the
+   whole reason to name the unit. */
 .cards li ul li::before {
   content: '';
-  position: absolute; left: 0; top: 0.62em;
+  position: absolute; left: 0; top: 0.5lh;
+  transform: translateY(-50%);
   width: 0.28em; height: 1px;
   background: currentColor;
   opacity: 0.55;
@@ -3910,9 +3939,9 @@ build. This deck wears <code class="nb">quote</code>.</p>
 loudly the opening slide announces itself rather than alphabetically.</p>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
-<li><strong>classic</strong><br>the lower-left third, all text. The default</li>
-<li><strong>masthead</strong><br>a nameplate on top, credits under a rule at the foot, a paragraph between</li>
-<li><strong>stack</strong><br>the title block centred on both axes</li>
+<li><strong class="card-lead">classic</strong><br>the lower-left third, all text. The default</li>
+<li><strong class="card-lead">masthead</strong><br>a nameplate on top, credits under a rule at the foot, a paragraph between</li>
+<li><strong class="card-lead">stack</strong><br>the title block centred on both axes</li>
 </ul>
 
 </div>
@@ -3921,9 +3950,9 @@ loudly the opening slide announces itself rather than alphabetically.</p>
 
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
-<li><strong>display</strong><br>the title set to fill the slide</li>
-<li><strong>panel</strong><br>the words in the page colour on a full field of the theme&#39;s accent</li>
-<li><strong>quote</strong><br>the talk opens on a claim, and the title is the attribution under it</li>
+<li><strong class="card-lead">display</strong><br>the title set to fill the slide</li>
+<li><strong class="card-lead">panel</strong><br>the words in the page colour on a full field of the theme&#39;s accent</li>
+<li><strong class="card-lead">quote</strong><br>the talk opens on a claim, and the title is the attribution under it</li>
 </ul>
 
 </div>
@@ -3932,10 +3961,10 @@ loudly the opening slide announces itself rather than alphabetically.</p>
 
 <div class="cards cards-4 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
-<li><strong>split</strong><br>text on the left, the picture running off the right edge</li>
-<li><strong>hero</strong><br>the picture is the slide, the words at its foot over a dark gradient</li>
-<li><strong>beside</strong><br>the picture inset to the right of the title</li>
-<li><strong>above</strong><br>the picture on top, the title centred in the band below</li>
+<li><strong class="card-lead">split</strong><br>text on the left, the picture running off the right edge</li>
+<li><strong class="card-lead">hero</strong><br>the picture is the slide, the words at its foot over a dark gradient</li>
+<li><strong class="card-lead">beside</strong><br>the picture inset to the right of the title</li>
+<li><strong class="card-lead">above</strong><br>the picture on top, the title centred in the band below</li>
 </ul>
 
 </div></div></div>
@@ -4049,9 +4078,9 @@ of the thing you are already in.</strong> One that can be mistaken for the title
 has failed at it.</p>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
-<li><strong>plain</strong><br>the heading alone. The default</li>
-<li><strong>tinted</strong><br>the whole slide takes the theme&#39;s accent at 12%. The ten-metre signal</li>
-<li><strong>rule</strong><br>the heading between two rules. The one that survives a monochrome print</li>
+<li><strong class="card-lead">plain</strong><br>the heading alone. The default</li>
+<li><strong class="card-lead">tinted</strong><br>the whole slide takes the theme&#39;s accent at 12%. The ten-metre signal</li>
+<li><strong class="card-lead">rule</strong><br>the heading between two rules. The one that survives a monochrome print</li>
 </ul>
 
 </div>
@@ -4060,9 +4089,9 @@ has failed at it.</p>
 
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
-<li><strong>card</strong><br>the heading on a panel, in the vocabulary the card rows use</li>
-<li><strong>number</strong><br>a large counter above the heading, which steps the heading back</li>
-<li><strong>outline</strong><br>the running agenda: every part listed, this one live. Used here</li>
+<li><strong class="card-lead">card</strong><br>the heading on a panel, in the vocabulary the card rows use</li>
+<li><strong class="card-lead">number</strong><br>a large counter above the heading, which steps the heading back</li>
+<li><strong class="card-lead">outline</strong><br>the running agenda: every part listed, this one live. Used here</li>
 </ul>
 
 </div></div></div>
@@ -4135,9 +4164,9 @@ Write nothing and nothing is drawn there.</p>
 <code>::: backdrop</code> is the picture, a <code>::: draw</code> is the figure.</p>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
-<li><strong>A blockquote</strong><br>opens the part on a quotation. Part 1 of this lecture does</li>
-<li><strong>A backdrop</strong><br>opens it on a photograph. This part does</li>
-<li><strong>A figure</strong><br>opens it on a drawing set beside the heading. Part 3 does</li>
+<li><strong class="card-lead">A blockquote</strong><br>opens the part on a quotation. Part 1 of this lecture does</li>
+<li><strong class="card-lead">A backdrop</strong><br>opens it on a photograph. This part does</li>
+<li><strong class="card-lead">A figure</strong><br>opens it on a drawing set beside the heading. Part 3 does</li>
 </ul>
 
 </div>
@@ -4243,9 +4272,9 @@ say. <code class="nb">outline</code> is on the slide before this one, and <code 
 question.</p>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-accent ck-round cx-veil">
 <ul>
-<li><strong>accent</strong><br>the theme&#39;s own colour, with the text in the page colour on top</li>
-<li><strong>paper</strong><br>the page colour, so the card lifts off whatever is behind it</li>
-<li><strong>clear</strong><br>no box at all. The gap between cards is what separates them</li>
+<li><strong class="card-lead">accent</strong><br>the theme&#39;s own colour, with the text in the page colour on top</li>
+<li><strong class="card-lead">paper</strong><br>the page colour, so the card lifts off whatever is behind it</li>
+<li><strong class="card-lead">clear</strong><br>no box at all. The gap between cards is what separates them</li>
 </ul>
 
 </div>
@@ -4254,9 +4283,9 @@ question.</p>
 
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-square cx-veil">
 <ul>
-<li><strong>square</strong><br>corners off, for a deck that wants no rounding anywhere</li>
-<li><strong>round</strong><br>the default</li>
-<li><strong>photo</strong><br>the card&#39;s first picture becomes its background instead of a band across
+<li><strong class="card-lead">square</strong><br>corners off, for a deck that wants no rounding anywhere</li>
+<li><strong class="card-lead">round</strong><br>the default</li>
+<li><strong class="card-lead">photo</strong><br>the card&#39;s first picture becomes its background instead of a band across
 its top</li>
 </ul>
 
@@ -4528,11 +4557,11 @@ its own cell over the picture and nothing else moves.</p>
 each, and the first of every group is the default.</p>
 <div class="cards cards-5 cs-medium ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
-<li><strong>fill</strong><br><code class="nb">cover</code> <code class="nb">contain</code></li>
-<li><strong>crop</strong><br><code class="nb">middle</code> <code class="nb">top</code> <code class="nb">bottom</code></li>
-<li><strong>scrim</strong><br><code class="nb">veil</code> <code class="nb">clear</code> <code class="nb">invert</code></li>
-<li><strong>focus</strong><br><code class="nb">sharp</code> <code class="nb">blur</code></li>
-<li><strong>layer</strong><br><code class="nb">under</code> <code class="nb">over</code></li>
+<li><strong class="card-lead">fill</strong><br><code class="nb">cover</code><br><code class="nb">contain</code></li>
+<li><strong class="card-lead">crop</strong><br><code class="nb">middle</code><br><code class="nb">top</code><br><code class="nb">bottom</code></li>
+<li><strong class="card-lead">scrim</strong><br><code class="nb">veil</code><br><code class="nb">clear</code><br><code class="nb">invert</code></li>
+<li><strong class="card-lead">focus</strong><br><code class="nb">sharp</code><br><code class="nb">blur</code></li>
+<li><strong class="card-lead">layer</strong><br><code class="nb">under</code><br><code class="nb">over</code></li>
 </ul>
 
 </div>
@@ -4564,9 +4593,9 @@ at the start of Part 2 does.</p>
 corner and they stack rather than landing on top of each other.</p>
 <div class="cards cards-3 cs-medium ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
-<li><strong>place</strong><br><code class="nb">center</code> and the eight compass points</li>
-<li><strong>ground</strong><br><code class="nb">paper</code> <code class="nb">ink</code> <code class="nb">accent</code> <code class="nb">clear</code> <code class="nb">glass</code></li>
-<li><strong>width</strong><br><code class="nb">narrow</code> <code class="nb">standard</code> <code class="nb">wide</code> <code class="nb">full</code></li>
+<li><strong class="card-lead">place</strong><br><code class="nb">center</code> and the eight compass points</li>
+<li><strong class="card-lead">ground</strong><br><code class="nb">paper</code><br><code class="nb">ink</code><br><code class="nb">accent</code><br><code class="nb">clear</code><br><code class="nb">glass</code></li>
+<li><strong class="card-lead">width</strong><br><code class="nb">narrow</code><br><code class="nb">standard</code><br><code class="nb">wide</code><br><code class="nb">full</code></li>
 </ul>
 
 </div></div></div>
@@ -4632,7 +4661,7 @@ slide and the next one, and the next one carries no heading on screen at all.</p
 <g id="dg3-crawl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-crawl--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg3-crawl--lw0" data-lab="crawl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg3-crawl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
 <g id="dg3-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-site--r" x="156.35" y="-18.38" width="56.00" height="36.75" rx="4"/><g id="dg3-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(184.35,0.00)"><g id="dg3-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
 <g id="dg3-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-score--r" x="112.93" y="91.17" width="142.85" height="36.75" rx="4"/><g id="dg3-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(184.35,109.55)"><g id="dg3-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"box crawl \"Crawler\"         at 0,0\nbox site  \"Site\"            right of crawl gap 2.0\nbox score \"Scoring service\" below site gap 1.3\nedge crawl.right:0.3 -> site.left:0.3 \"request\" side top\nedge site.left:0.72 -> crawl.right:0.72 \"page, or not\" side bottom\nedge site -> score {.dashed}","attrs":"unit=150x56","range":[14461,14746],"chunk":"bare-loop","width":"full","alt":"The measurement loop"}</script></figure></div></div>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"box crawl \"Crawler\"         at 0,0\nbox site  \"Site\"            right of crawl gap 2.0\nbox score \"Scoring service\" below site gap 1.3\nedge crawl.right:0.3 -> site.left:0.3 \"request\" side top\nedge site.left:0.72 -> crawl.right:0.72 \"page, or not\" side bottom\nedge site -> score {.dashed}","attrs":"unit=150x56","range":[14503,14788],"chunk":"bare-loop","width":"full","alt":"The measurement loop"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="bare-loop">
       <div class="annot-box-label">annotation · bare-loop</div>
@@ -4658,7 +4687,7 @@ slide and the next one, and the next one carries no heading on screen at all.</p
 <g id="dg4-inst" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg4-inst--r" x="153.40" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg4-inst--lw0" data-lab="inst--l" class="dg-lwrap" transform="translate(228.40,0.00)"><g id="dg4-inst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">instrumented</tspan></text></g></g></g>
 <g id="dg4-diff" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg4-diff--r" x="153.40" y="74.38" width="150.00" height="36.75" rx="4"/><g id="dg4-diff--lw0" data-lab="diff--l" class="dg-lwrap" transform="translate(228.40,92.75)"><g id="dg4-diff--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">difference</tspan></text></g></g></g>
 <g id="dg4-n" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg4-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(359.40,92.75)"><g id="dg4-n--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a difference is a detection</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg4-root">{"p":"dg4-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","n--lead--p":"path","n--lead--h":"path","raw--r":"rect","raw--l":"text","inst--r":"rect","inst--l":"text","diff--r":"rect","diff--l":"text","n--l":"text"},"names":["compare","verdict","note"],"frames":[{"vis":{"raw":1,"inst":0,"diff":0,"n":0,"edge-1":0,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":0,"n":0,"edge-1":1,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":0,"edge-1":1,"edge-2":1,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":1,"edge-1":1,"edge-2":1,"n--lead":1},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box  raw  \"raw crawl\"    at 0,0 w 1.0 {.tone-2}\nbox  inst \"instrumented\" right of raw gap 1.4 w 1.0 {.tone-3}\nbox  diff \"difference\"   below inst gap 1.0 w 1.0 {.tone-1}\nedge raw -> inst\nedge inst -> diff\ntext  n \"a difference is a detection\" right of diff gap 1.0 -- diff {.small .muted .left}\n\nstep compare\n  show inst\n\nstep verdict\n  show diff\n  emph diff\n\nstep note\n  show n","attrs":"unit=150x56","range":[15151,15529],"chunk":"autoplay","width":"full","alt":"A figure that walks itself"}</script></figure></div></div>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg4-root">{"p":"dg4-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","n--lead--p":"path","n--lead--h":"path","raw--r":"rect","raw--l":"text","inst--r":"rect","inst--l":"text","diff--r":"rect","diff--l":"text","n--l":"text"},"names":["compare","verdict","note"],"frames":[{"vis":{"raw":1,"inst":0,"diff":0,"n":0,"edge-1":0,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":0,"n":0,"edge-1":1,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":0,"edge-1":1,"edge-2":1,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":1,"edge-1":1,"edge-2":1,"n--lead":1},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box  raw  \"raw crawl\"    at 0,0 w 1.0 {.tone-2}\nbox  inst \"instrumented\" right of raw gap 1.4 w 1.0 {.tone-3}\nbox  diff \"difference\"   below inst gap 1.0 w 1.0 {.tone-1}\nedge raw -> inst\nedge inst -> diff\ntext  n \"a difference is a detection\" right of diff gap 1.0 -- diff {.small .muted .left}\n\nstep compare\n  show inst\n\nstep verdict\n  show diff\n  emph diff\n\nstep note\n  show n","attrs":"unit=150x56","range":[15193,15571],"chunk":"autoplay","width":"full","alt":"A figure that walks itself"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="autoplay">
       <div class="annot-box-label">annotation · autoplay</div>

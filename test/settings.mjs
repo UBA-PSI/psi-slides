@@ -409,22 +409,23 @@ console.log('\nlayout generations');
   ok(/\.cards li,\s*\n?[^\n]*\.cards > :not\(ul\):not\(ol\) \{ text-wrap: pretty; \}/.test(css)
      || /\.cards li[\s\S]{0,120}?text-wrap: pretty/.test(css),
      'a card item wraps pretty rather than balanced');
-  // A card that opens with a bold run has a heading and needs air under it,
-  // and the <br> an author may also have written must not double it.
-  // Two selectors per rule, and the second is the card that opens with a
-  // bleeding picture: there the bold run is the *second* element, so a
-  // :first-child rule reached none of it and the <br> drew a visible empty
-  // line under every heading.
-  ok(/\.cards li > :is\(strong, b\):first-child,\s*\n?\.cards li > :is\(p, figure, img\):first-child \+ :is\(strong, b\) \{ display: block; \}/.test(css),
-     'a leading bold run becomes the card heading, after a picture too');
-  // The margin is keyed on the break the author typed, not on whether a
-  // text node happens to follow - :last-child counts elements, so the old
-  // rule gave a card that opened with a nested list a margin with nothing
-  // after it to separate from.
-  ok(/:is\(strong, b\):first-child:has\(\+ br\)/.test(css),
-     'and the air under it needs the hard break, not a following element');
-  ok(/:is\(strong, b\):first-child \+ br,[\s\S]{0,140}?display: none/.test(css),
-     'and that break is suppressed, or the separation doubles');
+  // A card opened with a hard break has a heading, and it needs air under
+  // it. The stylesheet no longer decides which of the two forms it is
+  // looking at - markCardLeads does, and puts the answer on the run - so
+  // the rule is one selector and reaches the bold wherever it sits,
+  // including the card that bleeds a picture and has it second.
+  ok(/\.cards li \.card-lead \{ display: block; margin-bottom: 0\.45em; \}/.test(css),
+     'a marked lead-in is the card heading, and carries the air under it');
+  ok(/\.cards li \.card-lead \+ br \{ display: none; \}/.test(css),
+     'and the break the author typed is suppressed, or the separation doubles');
+  ok(!/:is\(strong, b\):first-child:has\(\+ br\)/.test(css),
+     'and no rule guesses the form from a <br> any more');
+  // The card itself is a block box, not a flex column. A flex container
+  // blockifies every child, so the bold at the head of a run-in card was a
+  // flex item and the sentence after it an anonymous one - the run-in form
+  // could not exist while this said flex, whatever the rule above said.
+  ok(/\.cards > ul > li,[\s\S]{0,2400}?\n  display: block;\n  align-content: var\(--card-anchor, flex-start\);/.test(css),
+     'a card anchors its content with align-content, so a run-in stays inline');
   // Measured: a 231px card carried 39.8px of padding a side and left 151px
   // for a word 153.7px wide, so the word overflowed and centred text that
   // overflows shifts - which read as "not centred".
@@ -434,6 +435,78 @@ console.log('\nlayout generations');
   // clamped the bleeding image straight back inside its padded box.
   ok(/\.cards li > figure\.figure-img:first-child img[\s\S]{0,400}?max-width: none/.test(css),
      'a bleeding card image lifts the max-width cap that clamped it');
+  // The accent ground reverses the ink, and the reversal has to land on
+  // whatever the fill is painted on. A row's li is display: contents and
+  // spans both columns while only the term carries the fill, so ink
+  // declared on the li inherited into the body beside the card and painted
+  // it in the page colour on the page - laid out correctly and invisible.
+  const inkBlock = (css.match(/\.cards:not\(\.rows\)\.cg-accent > ul > li,[\s\S]{0,500}?\}/) || [''])[0];
+  ok(/\.cards\.rows\.cg-accent li > :is\(strong, b\):first-child/.test(inkBlock)
+     && /color: var\(--paper\)/.test(inkBlock),
+     'the accent ground reverses the ink on the card, and on a row only on its term');
+  ok(/\.cards\.cg-accent > ul > li,[\s\S]{0,200}?--card-bg: var\(--emph\);\n\}/.test(css),
+     'while the fill itself still rides on the item, where the term inherits it');
+}
+
+// ── the two ways to open a card, decided in the renderer ──────────────
+// The stylesheet cannot answer this one. It used to try, and got it wrong
+// in both directions: every leading bold was forced to a block, so the
+// run-in form the tutorial documents did not exist, and the air under a
+// heading was keyed on :has(+ br), which is what the author typed rather
+// than what the author meant. markCardLeads reads the hard break out of the
+// source and marks the run, so the markup carries the answer.
+{
+  const mk = (body, extra) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-lead-'));
+    if (extra) for (const [name, buf] of Object.entries(extra)) fs.writeFileSync(path.join(dir, name), buf);
+    fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\n---\n\n## free: F {#f}\n\n' + body);
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
+      { cwd: ROOT, encoding: 'utf8' });
+    if (r.status !== 0) throw new Error((r.stdout || '') + (r.stderr || ''));
+    return fs.readFileSync(path.join(dir, 'audience.html'), 'utf8');
+  };
+  const WORDS = 'the same words in both of these cards, so only the opening differs';
+
+  const runIn = mk(`::: cards 2\n- **Alpha** ${WORDS}\n- **Beta** ${WORDS}\n:::\n`);
+  ok(/<li><strong>Alpha<\/strong> the same words/.test(runIn),
+     'a bold on the same line as its text stays an ordinary bold run');
+  ok(!/card-lead">Alpha/.test(runIn), 'and is not marked as a heading');
+
+  const broken = mk(`::: cards 2\n- **Alpha**\\\n  ${WORDS}\n- **Beta**\\\n  ${WORDS}\n:::\n`);
+  ok(/<li><strong class="card-lead">Alpha<\/strong><br>/.test(broken),
+     'a bold before a backslash break is marked, and keeps the break');
+  // Two trailing spaces are the other hard break, and mean the same thing.
+  const spaced = mk(`::: cards 2\n- **Alpha**  \n  ${WORDS}\n- **Beta**  \n  ${WORDS}\n:::\n`);
+  ok(/<strong class="card-lead">Alpha<\/strong><br>/.test(spaced),
+     'and so is a bold before two trailing spaces, which is the same break');
+
+  // A bold that is the whole card is the callout, and a bold over a nested
+  // list is a headline over its own detail. Neither is a lead-in with text
+  // under it, and neither carries a break, so neither is marked.
+  const callout = mk('::: cards 2\n- **Alpha**\n- **Beta**\n:::\n');
+  ok(!/class="card-lead"/.test(callout),
+     'a bold that is the whole card is a callout, not a heading');
+  const nested = mk('::: cards 2\n- **Alpha**\n  - one\n  - two\n- **Beta**\n  - three\n:::\n');
+  ok(!/class="card-lead"/.test(nested),
+     'nor is a bold standing over its own nested level');
+
+  // The card that bleeds a picture has its lead-in on the line *under* the
+  // image, which is exactly the case the two position-dependent selectors
+  // this replaces existed to reach. A class reaches it with no second rule.
+  const PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+    'base64');
+  const bleeding = mk(`::: cards 2\n- ![](pic.png)\n  **Alpha**\\\n  ${WORDS}\n- ![](pic.png)\n  **Beta**\\\n  ${WORDS}\n:::\n`,
+    { 'pic.png': PNG });
+  ok(/<strong class="card-lead">Alpha<\/strong>/.test(bleeding),
+     'a card that opens with a picture still has its lead-in marked, one line down');
+
+  // A row's term is already an element in its own column, so the question
+  // does not arise there and the markup must not answer it.
+  const rows = mk(`::: rows\n- **Alpha** ${WORDS}\n- **Beta**\\\n  ${WORDS}\n:::\n`);
+  ok(!/class="card-lead"/.test(rows),
+     'a row term is not a lead-in, and is left alone');
 }
 
 // ── the auto size counts an item, not its first line ──────────────────

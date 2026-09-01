@@ -30,6 +30,7 @@ const SPECS = [
   './math-focus.mjs',
   './block-align.mjs',
   './side-anchor.mjs',
+  './cards.mjs',
   './editor-edges.mjs',
   './editor-waypoints.mjs',
   './editor-leaders.mjs',

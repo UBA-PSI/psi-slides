@@ -465,6 +465,55 @@ from building the same way is a major version.
   the selection you started; the focus card is selectable at all, which as a
   sibling of the stage it never was; and a plain click still zooms, navigates
   and closes exactly as before.
+- **The run-in lead-in a card row documents did not exist, the dash in front of
+  a nested item sat above its line, and an accent row's explanation was painted
+  in the page colour on the page.** Three defects inside a card, one
+  stylesheet neighbourhood.
+
+  The tutorial has said since it was written that `- **A lead-in** its text`
+  runs the bold into the sentence and `- **A heading**\` puts it on its own
+  line, and both drew the second way. One rule forced every leading bold to
+  `display: block`, and under it the card was a flex column – a flex container
+  blockifies every child, so the bold was a flex item and the sentence after it
+  an anonymous one, and no stylesheet rule could have brought the run-in back.
+  The card is a block box now, anchored with `align-content` rather than
+  `justify-content`, and *which* of the two forms an item is written in is
+  answered in the renderer, by `markCardLeads`, which can see the hard break in
+  the source and marks the run `.card-lead`. Keying it on `:has(+ br)` instead
+  was only a second guess: a `<br>` is what the author typed, not what the
+  author meant, so a bold followed by a bare text node lost its air while the
+  same bold followed by a break kept it. A class also reaches the card that
+  bleeds a picture, where the bold is the *second* element and a `:first-child`
+  rule reached none of it – that case used to cost the block two extra
+  selectors and now costs it none.
+
+  Two things follow from the card no longer being a flex container, and both
+  are the same defect as the first. An inline element that is a direct child of
+  a card – a code span in a slot vocabulary, say – was blockified onto a line
+  of its own, so `` `center` and the eight compass points `` broke after the
+  code; it flows now. And the second level inside a card was a flex item, hence
+  a formatting context, so its first and last item's margins stayed inside it;
+  it is declared `display: flow-root` so that containment survives, which it
+  did not for the ten minutes it was free.
+
+  The dash in front of a nested item was placed at `top: 0.62em`, a guess at
+  half a line, and the nested level is set at `0.88em` with its own leading, so
+  the mark rode above the words beside it. It is `0.5lh` now, half of whatever
+  line-height actually applies, so it stays put when the size, the leading or
+  the face changes.
+
+  And the accent ground reverses the ink by declaring it on the item, which in
+  a `::: rows` block is `display: contents` and spans both columns while only
+  the term carries the fill. The explanation beside the term came out
+  `oklch(0.98 0 0)` on an `oklch(0.98 0 0)` page – laid out correctly, 810×87,
+  and impossible to see, in all seven themes. The reversal now lands on
+  whatever the fill is painted on; the fill itself still rides on the item,
+  where the term inherits it.
+
+  `test/cards.mjs` measures all three in a browser, `test/settings.mjs` the
+  markup contract the renderer now carries. Two decoration slides state their
+  option columns with hard breaks instead of relying on the blockification that
+  used to produce them.
 
 - **Clicking a display formula could hide a third of it.** The overlay
   enlarges a focused formula by setting type – 0.12 of the slide height, 108px
