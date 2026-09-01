@@ -148,7 +148,7 @@ Press `C` while this pane is open and watch the chunk behind it shorten. The pan
 
 **`print.html` and `print-notes.html` print every expansion** as an indented aside where it stood in the source, so the reading copy loses nothing.
 
-## example: Zoom into a figure or code block | click it, drag to pan, `Esc` to close {.standard #figure-focus}
+## example: Zoom into a figure or code block | click it, drag to pan, `Esc` to close {.wide #figure-focus}
 
 **Click any figure, block of code or formula inside the chunk you are on.** It lifts into a card in the middle of the screen, with the slide dimmed behind it.
 
@@ -194,7 +194,7 @@ The codes are drawn when the lecture is built, one per external address in the s
 - **Arrow keys** move the outline without landing, and the board follows, because the slide you want is often off screen.
 - `O` again or `Enter` **lands** on the outlined slide; `Esc` leaves without moving.
 
-The board shows the shape of the lecture – where the principles are, where the figures are – which is usually enough to find the part you want. With a speaker window open, both windows enter, pan, zoom and leave together.
+The board shows the shape of the lecture, which is usually enough to find the part you want. With a speaker window open, both windows enter, pan, zoom and leave together.
 
 ## example: Open the Table of Contents | `T` lists the lecture's columns {.standard #toc}
 
@@ -214,29 +214,41 @@ Search is what you want when you remember a topic but not which slide it is on. 
 
 ## principle: The room and the reader need different amounts of text | written once, cut two ways {.standard #two-modes}
 
-**A slide that can be read from the back of a hall holds a handful of lines, and the same lecture read a year later is worth having only if the argument is written out in full.** Writing both means writing everything twice, and the two copies disagree by the second edit.
+**A slide readable from the back of a hall holds a handful of lines, but a student revising for the exam – or you, teaching the course again next year – wants the explanation there was no room for.** That second thing is what a lecture script is, and writing it separately means writing everything twice, in two copies that disagree by the second edit.
 
-**So a chunk holds the long version and the projection takes a cut of it.** `C` switches between the two: the short view is what you start in and what the projector shows during a talk, and the full text is for rehearsing and for looking things up afterwards.
+**So there is one text, and every chunk is both versions of it at once.** You write the argument in full; the projection shows a cut of it and the printed document shows all of it.
 
-**Which sentences survive that cut is decided per chunk, and you choose how.** Either psi-slides works it out from your prose, or you mark the slide yourself. The next three chunks show both options.
+## definition: One chunk, two versions | `C` switches between them {.wide #c-key}
+
+**This chunk has more text in it than the slide is showing you: press `C` and the rest appears, press it again and it goes.** Nothing was added – it has been in the source all along, and `print.html` has been carrying it since the first slide.
+
+**The live views open in the short version**, because that is the one a room reads. The long one is for rehearsing, for looking something up mid-talk, and for whoever reads the lecture afterwards.
+
+**The cut only ever takes prose away.** A list, a figure, a code block or a formula goes up whole in both versions; it is the sentences of a paragraph that get shortened.
+
+**Which of those sentences survive is decided per chunk, and you choose how.** Either psi-slides works it out from your prose, or you mark the slide yourself. The next three chunks show both.
+
+> note: This is the chunk to demonstrate `C` on, because the paragraph the room cannot see is the one saying that a paragraph is being hidden.
 
 ## example: Option 1 – the default | the slide is worked out from your prose: first sentences, plus the bold phrases {.wide #derived-mode}
 
 **Unless you say otherwise, the slide is the first sentence of every paragraph plus any `**bold**` phrases from the rest.** This chunk is written that way – press `C` twice and watch what appears and disappears.
 
-It asks two things of you: every paragraph has to open with a sentence that stands up on its own, and the **bold phrases have to read as bullets on their own**. Everything else is for `print.html` and `print-notes.html`.
+It asks two things of you. Every paragraph has to **open with a sentence that stands on its own**, because that sentence is the slide. A bold phrase anywhere after it is **promoted to a bullet underneath**, so it has to read as one. Everything unbolded is for `print.html` and `print-notes.html`.
+
+The two bullets above are that rule running: neither is a list in the source – each is a `**bold**` phrase inside a sentence the projection is holding back.
 
 That suits a chunk that argues, where every paragraph has a point to open with. It is the wrong fit when the chunk wants continuous explanation instead, and the next chunk is the way out.
 
 > note: If the shortened version of a chunk reads as a pile of cryptic one-word bullets, the fix is almost always fewer bolds and a stronger first sentence, not a different mechanism.
 
-## example: Option 2 – explicitly set by you | `::: slide` marks the block that is the screen {.wide #explicit-mode}
+## example: Option 2 – explicitly set by you | you mark which block is the screen {.wide #explicit-mode}
 
 ::: slide
 
 - **`::: slide`** marks the block that is the screen. Everything else in the chunk is what you say.
 - **`::: script`** does the reverse: the chunk is the screen, and only the marked block is what you say.
-- Neither block is ever shortened. Lists, figures and code go up whole.
+- Neither marked block is ever shortened, however long it runs.
 
 :::
 
@@ -250,7 +262,7 @@ Reach for `::: slide` when the slide wants tight bullets while the argument want
 
 **Press `C` twice on this chunk and watch one paragraph come and go while nothing else on the slide moves.** That paragraph sits inside a `::: script` block, which is the reverse of the last chunk: everything *outside* the block is the screen, and the block alone is what you say.
 
-**Use it when the screen half is the big half.** The three lines below are a made-up finding and are already the whole slide, so marking the one paragraph that is *not* on screen is shorter than wrapping everything that is.
+**Use it when the screen half is the big half: the three made-up findings below are already the whole slide, and pressing `C` does not touch them.** Wrapping them in a `::: slide` block would mean marking nearly the whole chunk in order to exclude one paragraph, so marking that paragraph is the shorter way to say the same thing.
 
 - One request in seven is answered differently once the crawler is instrumented.
 - The gap is widest on the sites that serve the most third-party script.
@@ -266,14 +278,14 @@ This is the paragraph that comes and goes. It is what you would say out loud abo
 
 # The chunk vocabulary {#vocabulary}
 
-## principle: Chunk types | ten of them, and only the type itself is required {.wide #grammar}
+## principle: Chunk types {.wide #grammar}
 
 **Every chunk opens with a type, and everything after the type is optional except the `{#id}`.**
 
-- **The line is** `## type: Heading | Sub-heading {.width #id}`, the sub-heading being a quieter second line.
+- **The line is** `## type: Heading | Sub-heading {.width #id}`.
 - **The ten types:** `title`, `closing`, `outline`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`.
 - **`{.width}`** is `narrow`, `standard`, `wide` or `full`, and defaults to `standard`.
-- **`{#id}`** must never change once written – links, the contents list and your reading position use it.
+- **`{#id}`** anchors links, the contents list and your reading position – rename one and those need fixing too.
 
 ::: expand two-more-classes
 **`{.bare}` and `{.center}` are the two classes in that tail that are not widths**, and both act on the projection alone. `.bare` keeps the heading off the slide while leaving it in the printed views and in the search index; `.center` centres the chunk's own paragraphs, which is what the slide with the four-outputs drawing does under its figure.
@@ -287,11 +299,11 @@ This is the paragraph that comes and goes. It is what you would say out loud abo
 
 - **It caps how many words the chunk may carry**, from 80 for a principle to 350 for an exercise; `node lint.js` reports one that runs over.
 - **It labels the chunk in the printed views**, in small capitals over the heading. The projection prints only `EXERCISE`.
-- **It sets a small treatment**: the rule over a principle, the hairline over a definition.
+- **It sets a small treatment.** This chunk is typed `definition`, hence the hairline above its heading; a `principle` gets a short rule there.
 
 `title`, `closing` and `outline` each draw a whole slide instead.
 
-Picking the wrong type is not an error; it shows up on the overview board, where a principle you typed as an example stops standing out.
+Picking the wrong type is not an error; it shows on the overview board, where a principle typed as an example stops standing out.
 
 ::: expand the-word-budgets
 **The budget per type:** `principle` and `question` 80 words, `definition` 200, `example` and `free` 250, `exercise` 350, `closing` 60, `outline` 40. `title` and `figure` have no limit.
@@ -466,13 +478,13 @@ This is a footnote. The label above it always reads NOTE, and the note sits in g
 
 **The two slides are the whole distinction**: a marginalia goes out into the margin and can be brought to the centre with a click, and a footnote stays under the chunk and is read where it stands. Reach for `::: footnote` when the extra material is short and you want it on the page every time, and for `::: expand <label>`, the chevron button from earlier, when it should stay behind a button until somebody asks.
 
-## example: Images | `![](fig-id)` resolves against `assets/` {.wide #images}
+## example: Images | `![Caption](fig-id)` resolves against `assets/` {.wide #images}
 
-**Write `![](fig-id)` and the build looks in `assets/` for `fig-id.svg`, `.png`, `.jpg`, `.jpeg`, `.gif` or `.webp`, taking the first it finds.** No folder, no extension. Writing the path out in full still works when you need it.
+**Write `![Caption](fig-id)` and the build looks in `assets/` for `fig-id.svg`, `.png`, `.jpg`, `.jpeg`, `.gif` or `.webp`, taking the first it finds.** No folder, no extension. Writing the path out in full still works when you need it.
 
 ::: side
 
-**The alt text becomes a caption.** The picture beside this paragraph is written `![An abstract dusk skyline](dusk)`, and the small grey line under it is that alt text. Leave the brackets empty and the picture stands on its own. On a `figure:` chunk whose heading already says what the picture is, a caption stacks two labels, so the checker warns and suggests leaving the alt text out.
+**Whatever you write in the square brackets becomes the caption under the picture.** The one beside this paragraph is `![An abstract dusk skyline](dusk)`, and the small grey line under it is that text – which is also the image's alt text, so a screen reader reads the same words. Leave the brackets empty and the picture stands on its own. On a `figure:` chunk whose heading already says what the picture is, a caption stacks two labels, so the checker warns and suggests leaving the alt text out.
 
 **A drawing saved as SVG is written into the page as artwork**, not as a picture file, so it takes its colours from the theme and changes with the `A` key. Photographs, and pictures like this skyline that carry their own colours, are embedded exactly as they are.
 

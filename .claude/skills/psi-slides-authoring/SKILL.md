@@ -131,6 +131,15 @@ treatment and budget, the width decides how much stage the chunk takes. In
 particular `principle` is not a narrow type – prefer `.standard` for it, because
 anything longer than one sentence turns into a tall thin ribbon in `.narrow`.
 
+**A chunk with a top-level code block wants `.wide` or `.full`.** A `<pre>` that
+is not inside a `::: side` or `::: cols` breaks out of the text column to 72vw
+and centres on the slide. Measured at 1600×900 and the default zoom, that is
+1152 px – exactly the prose column of `.wide` and `.full`, and 310 px wider than
+`.standard`'s 842 px. So in a `.standard` chunk the listing sticks out past both
+edges of the paragraph above it and reads as a rendering fault. The line-length
+budget is unaffected (it is 72vw at every width); this is about the block and
+its own prose lining up.
+
 The live views do **not** print the type name on screen. Do not write prose that
 depends on the room seeing the word DEFINITION.
 

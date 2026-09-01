@@ -388,7 +388,13 @@ body[data-slide-nums=off] .chunk-num { display: none; }
 a { color: var(--emph); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
 a:hover { text-decoration-thickness: 2px; }
 .chunk-body ul, .chunk-body ol { margin: 0 0 0.7em 1.4em; }
-.chunk-body li { margin: 0.15em 0; }
+/* Adjacent items were 0.15em apart at line-height 1.5, so the gap between
+   two items was smaller than the leading inside a two-line item and a list
+   read as one block of text with dots in it. The gap is now larger than the
+   line gap, which is what makes an item a unit. Card and row items are not
+   affected: .cards > ul > li sets its own margin at a higher specificity,
+   and their spacing is the grid's. */
+.chunk-body li { margin: 0.45em 0; }
 .chunk-body code { font-family: var(--mono-font); font-size: 0.92em; }
 /* See the codespan renderer: a span with no space in it is one token and is
    not broken across lines. Bare element selector, so the heading, the
