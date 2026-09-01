@@ -494,9 +494,15 @@ This is a footnote. The label above it always reads NOTE, and the note sits in g
 
 :::
 
-**Your pictures go inside the HTML by default, so that a built view travels as one file with nothing to leave behind.** That is where the limit comes from: up to 2 MB a picture and 10 MB in total they are embedded without your asking, and a picture over that stops the build rather than being quietly left outside, where it would show as a broken figure the moment the file arrived somewhere without its assets folder. `node build.js <source.md> --optimize-images` converts the offenders to WebP in place, which on real lecture assets comes out at 12 to 18 percent of the original with no visible loss. `--no-inline-images` is there if you do want the files kept outside.
+**As long as your pictures are small, the build puts them inside the HTML, so the whole lecture travels as one file.** The chevron has the limits, and what happens to a picture over them.
 
-> note: That command does not shrink the picture's dimensions. The heavy files are usually already at slide resolution and heavy because PNG is a poor fit for photographs. An opened figure zooms to eight times, so the extra pixels in a diagram are ones the room gets to see; `--max-width` exists for the genuine outliers.
+::: expand when-a-picture-is-too-big
+**The limits are 2 MB for one picture and 10 MB for all of them together.** Under those, every picture is embedded without your asking. Over them the build stops, rather than quietly leaving the file outside – where it would show as a broken figure the moment the HTML arrived somewhere without its `assets/` folder.
+
+**`node build.js <source.md> --optimize-images` converts the offenders to WebP in place**, which on real lecture assets comes out at 12 to 18 percent of the original with no visible loss. `--no-inline-images` is there if you do want the files kept outside.
+
+It does not shrink the picture's dimensions. The heavy files are usually already at slide resolution and heavy because PNG is a poor fit for photographs. An opened figure zooms to eight times, so the extra pixels in a diagram are ones the room gets to see. `--max-width` exists for the genuine outliers.
+:::
 
 ## example: Video | `![](clip-id)`, the same shorthand an image uses {.wide #video}
 
@@ -504,17 +510,19 @@ This is a footnote. The label above it always reads NOTE, and the note sits in g
 
 ![](reveal-demo)
 
-That player is a real clip carried inside this HTML file: 34 KB, showing the three stages of the navigation slide you walked through earlier. Press play, then check the address bar – nothing was fetched.
+That player is a real clip carried inside this HTML file, all 34 KB of it. Press play, then check the address bar – nothing was fetched.
 
-Clips go inside the file like any other asset, up to a separate limit of 12 MB. A clip is an order of magnitude heavier than a diagram, and the 2 MB picture limit would reject every real one.
+## example: More on videos | the size limit, clips on a server, and what a click does {.wide #video-more}
 
-**There is no fullscreen setting**: the player has its own button, and how large the clip sits on the slide is the chunk's width, as with a still picture. Clicking a clip does not open it in a card either, because that would fight the play button.
+**Play, pause and seeking are shared between the windows.** Operate the clip at the lectern and the projection follows. Freeze the projection first and it does not, so you can check a clip before showing it.
+
+**A clip goes inside the HTML like any other asset, up to its own limit of 12 MB.** A clip is an order of magnitude heavier than a diagram, and the 2 MB picture limit would reject every real one.
+
+**Over that limit the clip travels beside the file instead.** The build copies it into a `videos/` folder next to the output, plays it from there, tells you on the terminal, and suggests an `ffmpeg` line that would make it small enough to go inside. One named folder to carry with the HTML, instead of a path that only works on the machine that built it.
 
 **A clip can also live on a web server:** `![](https://host/clip.mp4)` works and stays an ordinary player, so play, pause and seeking still travel between the two windows.
 
-**Over the limit, the clip travels beside the file instead.** The build copies it into a `videos/` folder next to the output, plays it from there, tells you on the terminal, and suggests an `ffmpeg` line that would make it small enough to go inside. One named folder to carry with the HTML, instead of a path that only works on the machine that built it.
-
-**Play, pause and seeking are shared between the windows.** Operate the clip at the lectern and the projection follows. Freeze the projection first and it does not, so you can check a clip before showing it.
+**There is no fullscreen setting**: the player has its own button, and how large the clip sits on the slide is the chunk's width, as with a still picture. Clicking a clip does not open it in a card either, because that would fight the play button.
 
 ## example: Hosted players | `::: embed` for YouTube and Vimeo {.wide #embed}
 
@@ -528,23 +536,23 @@ Big Buck Bunny, Blender Foundation
 
 The line under it becomes the caption. A `youtu.be/…` or a bare `vimeo.com/123` works too; anything else has to be a full `https://` address, and the build refuses what it does not recognise.
 
-**Four things happen that a plain embed code would not do for you.**
+**The address is always printed under the player**, with a QR code on `Shift`-click, so the room can reach the video even when the player will not run. YouTube is asked for through `youtube-nocookie.com`, and Vimeo is asked not to track.
 
-- **Nothing loads until you get there.** The player is pointed at the video only while its chunk is on screen, so a lecture contacts YouTube only for the slides you actually showed, and no player keeps running on a slide you have left.
-- **Play and pause are shared between the windows**, as they are for a local clip. Freeze the projection and it stays put.
+**A lecture with a hosted player no longer carries everything it needs: the machine showing it – often the lecture hall's own PC – contacts that company while you teach.** A clip in `assets/`, or an `.mp4` address on a server you control, keeps the two windows in step and asks nothing of anyone else. The build tells you which of the two you have chosen, every time.
+
+## example: More on hosted players | what the directive does that an embed code would not {.wide #embed-more}
+
+- **Nothing loads until you get there.** The player points at the video only while its chunk is on screen.
+- **Play and pause are shared between the windows**, as for a local clip. Freeze the projection and it stays put.
 - **Nothing starts by itself.** Arriving at the slide gives you a loaded player waiting on its button.
-- **YouTube gets a card explaining itself instead of an error.** A page opened straight from disk has no web address and YouTube refuses to play without one, so the room would otherwise be looking at “Error 153”. The player is replaced by a card telling you to serve the lecture. Vimeo plays either way.
+- **YouTube gets a card instead of an error.** From disk a page has no web address and YouTube will not play; Vimeo does.
 
 **To teach with a YouTube video, serve the lecture:**
 
 ```bash
-node build.js <source.md> --serve          # http://localhost, prints the URLs
-node build.js <source.md> --watch --serve  # and live reload while authoring
+node build.js <source.md> --serve         # prints the URLs
+node build.js <source.md> --watch --serve # and live reload
 ```
-
-**The address is always printed under the player**, with a QR code on `Shift`-click, so the room can reach the video even when the player will not run. YouTube is asked for through `youtube-nocookie.com`, and Vimeo is asked not to track.
-
-**Weigh this one before you use it.** A lecture with a hosted player no longer carries everything it needs: the machine showing it – often the lecture hall's own PC – contacts that company while you teach. A clip in `assets/`, or an `.mp4` address on a server you control, keeps the two windows in step and asks nothing of anyone else. The build tells you which of the two you have chosen, every time.
 
 ## example: Math | `$inline$` and `$$display$$` {.wide #math}
 
