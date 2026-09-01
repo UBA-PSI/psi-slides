@@ -16,6 +16,19 @@
  * row's list, the agenda's items, a divider's lead) is a box-less element
  * that `checkVisibility` calls invisible.
  *
+ * And three facts a review asked this file for and did not get, all of them
+ * the same shape - a construct reported by a name that leaves out the one
+ * thing it is about:
+ *
+ *   - a two-cell list item, whose cells build.js writes with no whitespace
+ *     between them because a grid supplies the gap. Read flat they come out
+ *     as one word that is on no slide, and the review that met it went
+ *     looking for a typo in the lecture;
+ *   - a `::: side`, reported without the ratio it splits on;
+ *   - a running agenda, reported without which of its items is live - which
+ *     on a deck wearing `section: outline` is the only thing separating one
+ *     divider's block in this file from the next one's.
+ *
  * A fixture and not a lecture, for the reason math-focus.mjs gives: no
  * lecture in the repository has all four shapes in six chunks, and a spec
  * that walks a real deck to find them breaks when that deck is edited.
@@ -100,6 +113,29 @@ y = 2
 
 > note: Two sentences of prompt for the lecturer. Neither of them is on the
 > slide, and this file should say only how many words they are.
+
+# What a name leaves out {#leftout}
+
+## free: Two cells, and two panes {.wide #cells}
+
+::: rows
+- **Anonymity** comes from the others doing the same thing
+- **Unlinkability** means two actions cannot be tied together
+:::
+
+::: side 2:1 {middle}
+
+The left pane is twice the width of the right one.
+
+::: flip
+
+The right one.
+
+:::
+
+## outline: Where we are {.wide #where}
+
+The same list the dividers draw, with this part live.
 `;
 
 // One chunk's block of the report, header line included.
@@ -116,7 +152,7 @@ function chunkOf(text, id) {
 }
 // The lines of one chunk carrying a given mark, beat prefix stripped.
 const marked = (block, mark) => block.split('\n')
-  .map(l => l.match(/^\s*(\+\d+)?\s([hs.\-•|[~])\s(.*)$/))
+  .map(l => l.match(/^\s*(\+\d+)?\s([hs.\-•▸|[~])\s(.*)$/))
   .filter(m => m && m[2] === mark)
   .map(m => ({ beat: m[1] ? Number(m[1].slice(1)) : 0, text: m[3].trim() }));
 
@@ -198,6 +234,27 @@ export async function run({ report }) {
   ok(/note \d+ words/.test(whole.split('\n')[0]),
     'the speaker note is counted and not quoted', whole.split('\n')[0]);
   ok(!/prompt for the lecturer/.test(text), 'the note text itself stays out of the file');
+
+  // ── the two-cell list item, and the pane that carries a ratio ────
+  const cells = chunkOf(text, 'cells');
+  const rowItems = marked(cells, '•');
+  ok(rowItems.length === 2 && rowItems.every(l => /\w \w/.test(l.text)
+    && /^(Anonymity comes|Unlinkability means) /.test(l.text)),
+    'a row keeps the space between its term and its body, as the grid does',
+    JSON.stringify(rowItems));
+  ok(!/Anonymitycomes|Unlinkabilitymeans/.test(text),
+    'and never runs the two into a word that is on no slide');
+  ok(/\[ side 2:1 · middle · first pane/.test(cells),
+    'a ::: side is reported with the ratio it splits on, and with its anchor', cells);
+  ok(/\[ side 2:1 · middle · second pane/.test(cells), 'on the second pane too', cells);
+
+  // ── which item of a running agenda is live ───────────────────────
+  const where = chunkOf(text, 'where');
+  ok(/\[ list · 2 items · live 2 of 2/.test(where),
+    'a running agenda says which of its items is live, and out of how many', where);
+  ok(marked(where, '▸').length === 1 && marked(where, '•').length === 1,
+    'and the live one carries a mark of its own', where);
+  ok(/^ {2}•.*▸/m.test(text), 'which the legend names', text.split('\n').slice(0, 24).join('\n'));
 
   // ── the header, and the summary ──────────────────────────────────
   ok(/collapse "topic-bold"/.test(text), 'the report says which collapse it read the deck in');

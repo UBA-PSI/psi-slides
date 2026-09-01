@@ -16142,20 +16142,36 @@ function squintScan() {
 
   const list = (el, quiet) => {
     const items = [...el.children].filter(c => c.tagName === 'LI');
-    if (!quiet) put('[', 'list · ' + items.length + (items.length === 1 ? ' item' : ' items'));
+    // Which item is live is the whole of what an `outline` divider says. A
+    // deck wearing it draws the same list at every part, so without this the
+    // five dividers of a five-part lecture are five identical blocks here and
+    // the one fact that separates them - which part starts - is in none of
+    // them. Read off `aria-current`, which renderOutlineList already writes.
+    const live = items.findIndex(li => li.matches('[aria-current]'));
+    if (!quiet) put('[', 'list · ' + items.length + (items.length === 1 ? ' item' : ' items')
+      + (live >= 0 ? ' · live ' + (live + 1) + ' of ' + items.length : ''));
     for (const li of items) {
       if (!seen(li)) continue;
-      // The running agenda numbers its items in a span of their own, with no
-      // space between it and the heading - the layout is a grid and puts the
-      // gap there. Read flat, "1The cover" is one word that is not on any
-      // slide, so the two are joined by hand.
-      const num = li.querySelector(':scope > .so-num');
-      const label = li.querySelector(':scope > .so-text');
-      if (num && label) { put('•', textOf(num) + ' ' + textOf(label)); continue; }
+      const mark = li.matches('[aria-current]') ? '▸' : '•';
       const nested = [...li.children].filter(c => c.tagName === 'UL' || c.tagName === 'OL');
-      const bare = li.cloneNode(true);
-      for (const n of bare.querySelectorAll('ul, ol')) n.remove();
-      put('•', textOf(bare));
+      // Both of this project's two-cell list items are written with no
+      // whitespace between the cells, because the grid supplies the gap: the
+      // running agenda's numeral and its heading, and a card row's term and
+      // its body - `renderOutlineList` writes the one, and the `b.rows` branch
+      // of the card renderer eats the space to write the other. Read flat,
+      // textContent runs the pair into one word that is on no slide, and a
+      // reviewer then repairs a defect the deck does not have: "1The cover",
+      // "Anonymitycomes from the others". The class sits on the *second* cell
+      // in both, so one test finds both and a third such construct adds a
+      // selector here and nothing else.
+      if (li.querySelector(':scope > .so-text, :scope > .row-body')) {
+        put(mark, [...li.children]
+          .filter(k => !nested.includes(k) && seen(k)).map(textOf).filter(Boolean).join(' '));
+      } else {
+        const bare = li.cloneNode(true);
+        for (const n of bare.querySelectorAll('ul, ol')) n.remove();
+        put(mark, textOf(bare));
+      }
       for (const n of nested) for (const sub of [...n.children]) put('•', '· ' + textOf(sub));
     }
   };
@@ -16319,10 +16335,21 @@ function squintScan() {
       put('[', '::: slide – the author named this block as the screen');
     } else if (cl.contains('cols')) {
       put('[', 'cols · ' + (slots(el, 'cols-') || '?'));
-    } else if (cl.contains('side-a')) {
-      put('[', 'side · first pane');
-    } else if (cl.contains('side-b')) {
-      put('[', 'side · second pane');
+    } else if (cl.contains('side-a') || cl.contains('side-b')) {
+      // The ratio is the thing `::: side 2:1` is *about*, and it was the one
+      // fact about the construct this file did not carry. It lives on the
+      // wrapper as two custom properties rather than in a class, so it is read
+      // from there; an equal pair writes no style at all and is reported as
+      // the 1:1 the room actually sees, because this file says what is
+      // painted and not what was typed. The anchor rides along for the same
+      // reason it is a class - `top` is the default and emits none.
+      const box = el.parentElement;
+      const cs = box ? getComputedStyle(box) : null;
+      const fr = (k) => (cs ? cs.getPropertyValue(k).trim() : '').replace(/fr$/, '');
+      const a = fr('--side-a'), b = fr('--side-b');
+      const anchor = box ? slots(box, 'sv-') : '';
+      put('[', 'side ' + (a && b ? a + ':' + b : '1:1') + (anchor ? ' · ' + anchor : '')
+        + ' · ' + (cl.contains('side-a') ? 'first' : 'second') + ' pane');
     } else if (cl.contains('cover-art')) {
       put('[', 'cover art');
     } else opened = false;
@@ -16402,7 +16429,8 @@ const SQUINT_LEGEND = [
   '  h   the heading, when the slide carries it     s   its sub-heading',
   '  .   a sentence the room reads',
   '  -   a promoted bold, which the collapse renders as its own bullet',
-  '  •   a list item                                |   code, a table row, a formula',
+  '  •   a list item                                ▸   the live one in a running agenda',
+  '  |   code, a table row, a formula',
   '  [   a block or a construct that is on the slide whole',
   '  ~   prose the collapse withholds, with the number of words it holds',
   ' +N   first painted at beat N; a slide opens at beat 0',
