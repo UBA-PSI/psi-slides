@@ -15940,9 +15940,12 @@ async function runCheckFit(absIn, viewport) {
     if (!st) break;
     const shot = await page.screenshot();
     const hash = crypto.createHash('sha1').update(shot).digest('hex');
-    if (hash === lastHash) { if (++same >= 2) break; } else same = 0;
+    // Count a state, not an iteration: a repeat that has not yet tripped the
+    // two-in-a-row stop is the same slide seen twice. --squint counts the same
+    // way, and the two commands reporting different totals for one deck is a
+    // puzzle a reviewer should not have to solve.
+    if (hash === lastHash) { if (++same >= 2) break; } else { same = 0; states++; }
     lastHash = hash;
-    states++;
     const over = Math.max(0, -st.top) + Math.max(0, st.bottom - st.vpH);
     if (over > 0) {
       const prev = worst.get(st.id);
@@ -16122,7 +16125,19 @@ function squintScan() {
     const prose = [...rest.querySelectorAll('.prose')];
     if (!prose.length || prose.some(seen)) { put('.', textOf(rest)); return; }
     for (const s of rest.querySelectorAll('strong')) if (seen(s)) put('-', textOf(s));
-    withheld(prose.map(textOf).join(' '));
+    // Lifting the bolds out leaves the prose around them, and joining only the
+    // survivors reads as a defect: "Every paragraph has to , because …". The
+    // bold went to a `-` line above, so say so in its place rather than
+    // closing the gap over it.
+    const around = [];
+    for (const n of rest.childNodes) {
+      if (n.nodeType === 3) { around.push(n.textContent); continue; }
+      if (n.nodeType !== 1) continue;
+      if (n.classList && n.classList.contains('prose')) { around.push(textOf(n)); continue; }
+      if (n.tagName === 'STRONG' && seen(n)) { around.push('[\u2026]'); continue; }
+      around.push(textOf(n));
+    }
+    withheld(around.join(' ').replace(/\s+([,.;:!?])/g, '$1'));
   };
 
   const list = (el, quiet) => {
@@ -16219,11 +16234,20 @@ function squintScan() {
     }
     if (cl.contains('script-only')) { withheld(textOf(el), '::: script'); return; }
     if (cl.contains('chunk-heading') || cl.contains('section-heading')) {
-      const off = !seen(el) ? ' (in the document, off the slide)' : '';
       const main = el.querySelector('.hd-main');
       const sub = el.querySelector('.hd-sub');
-      put('h', (main ? textOf(main) : textOf(el)) + off);
-      if (sub) put('s', textOf(sub) + off);
+      const headText = main ? textOf(main) : textOf(el);
+      // `h` is defined as the heading *as the slide carries it*, so a heading
+      // the slide does not carry - {.bare}, or style: {headings: off} - must
+      // not wear that mark. It goes to the withheld class it belongs to,
+      // where a reviewer scanning for what the room got will not count it in.
+      if (seen(el)) {
+        put('h', headText);
+        if (sub) put('s', textOf(sub));
+      } else {
+        withheld(headText, 'heading, in the document and off the slide');
+        if (sub) withheld(textOf(sub), 'sub-heading, off the slide');
+      }
       return;
     }
 
@@ -16375,7 +16399,7 @@ function squintMerge(chunk, state, beat) {
 }
 
 const SQUINT_LEGEND = [
-  '  h   the heading as the slide carries it        s   its sub-heading',
+  '  h   the heading, when the slide carries it     s   its sub-heading',
   '  .   a sentence the room reads',
   '  -   a promoted bold, which the collapse renders as its own bullet',
   '  •   a list item                                |   code, a table row, a formula',

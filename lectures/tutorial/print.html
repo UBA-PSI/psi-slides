@@ -1075,7 +1075,7 @@ goes in it.</p>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">One source, four views</span> <span class="hd-sub">the deck, the hand-out and the notes stop drifting apart</span></h2>
   <p><strong>The deck, the hand-out and your notes say the same thing, and they disagree the moment you edit one.</strong> A lecture normally needs all three, and keeping them in step is work you do instead of preparing the lecture.</p>
-<p><strong>You write one Markdown file instead, and the next slide is the whole of its structure.</strong></p>
+<p><strong>You write one Markdown file instead, and its whole structure is two words: <em>chunks</em> and <em>columns</em>.</strong></p>
 <p><strong>One command turns that file into four HTML files, and the four differ only in what they show you.</strong> <code class="nb">print.html</code> is a reading copy with a cover and a table of contents. <code class="nb">print-notes.html</code> is that same <em>document</em> with your speaker notes folded in under each chunk. <code class="nb">audience.html</code> is the <em>projection</em> for the room. <code class="nb">speaker.html</code> is the speaker view, the screen you keep at the lectern, carrying the notes, a strip of the slides around you and a timer. Nothing in the source is written for one of them and not the others.</p>
 
   
@@ -1389,7 +1389,7 @@ goes in it.</p>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Option 1 – the default</span> <span class="hd-sub">the slide is worked out from your prose: first sentences, plus the bold phrases</span></h2>
   <p><strong>Unless you say otherwise, the slide is the first sentence of every paragraph plus any <code class="nb">**bold**</code> phrases from the rest.</strong> This chunk is written that way – press <code class="nb">C</code> twice and watch what appears and disappears.</p>
-<p>It asks two things of you. Every paragraph has to <strong>open with a sentence that stands on its own</strong>, because that sentence is the slide. A bold phrase anywhere after it is <strong>promoted to a bullet underneath</strong>, so it has to read as one. Everything unbolded is for <code class="nb">print.html</code> and <code class="nb">print-notes.html</code>.</p>
+<p>It asks two things of you. Every paragraph has to <strong>open with a sentence that stands on its own</strong>, because that sentence is the slide. After it, <strong>a bold phrase becomes a bullet of its own, so it has to read as one</strong>. Everything unbolded is for <code class="nb">print.html</code> and <code class="nb">print-notes.html</code>.</p>
 <p>The two bullets above are that rule running: neither is a list in the source – each is a <code class="nb">**bold**</code> phrase inside a sentence the projection is holding back.</p>
 <p>That suits a chunk that argues, where every paragraph has a point to open with. It is the wrong fit when the chunk wants continuous explanation instead, and the next chunk is the way out.</p>
 
@@ -1544,7 +1544,7 @@ goes in it.</p>
 <div class="cols cols-2">
 
 
-<p><strong>Four bands, top to bottom:</strong></p>
+<p><strong>From the top edge downwards:</strong></p>
 <ul>
 <li><strong>A row of dots</strong>, one per chunk in the column, each of them clickable.</li>
 <li><strong>A copy of the projection</strong>, laid out identically and at the same zoom.</li>
@@ -1630,7 +1630,7 @@ goes in it.</p>
 <p><strong>On a phone or a tablet with no keyboard, both windows show a small toolbar along the bottom edge.</strong> Forward, back, overview and zoom sit on it; <code class="nb">C</code>, <code class="nb">F</code>, <code class="nb">A</code>, <code class="nb">#</code>, the search and text selection are behind its <code class="nb">⋯</code> button. Attach a keyboard and the toolbar goes away again, because the keys are back.</p>
 <p><strong>Dark mode follows your machine unless something says otherwise.</strong> If you have never pressed <code class="nb">A</code> and the lecture pins no theme, a machine set to dark opens the lecture dark. Press <code class="nb">A</code> once and your choice is remembered from then on, everywhere. An author who writes <code class="nb">theme:</code> in the frontmatter overrides both, by the same rule as the other opening settings.</p>
 <p><strong>The two <code class="nb">C</code> modes keep separate zoom levels.</strong> The short version holds whatever size you set with <code class="nb">+</code> and <code class="nb">-</code>; the full text picks its own so the whole chunk fits the screen, and switching back restores yours exactly.</p>
-<p><strong><code class="nb">#</code> cycles auto-fit through three modes, and the middle one is the one to know.</strong> <em>Shrink</em> leaves your zoom exactly where you set it and only ever makes a slide that is too big fit – so the room reads one size all hour, except on the slides that would otherwise run off the bottom. <em>Full</em> sizes every slide to the screen, growing a short chunk as readily as shrinking a long one, which suits a lecture whose chunks vary a lot. <em>Off</em> is neither.</p>
+<p><strong><code class="nb">#</code> cycles auto-fit through three modes, and the middle one, <em>shrink</em>, leaves your zoom where you set it and only ever makes a slide that is too big fit.</strong> So the room reads one size all hour, except on the slides that would otherwise run off the bottom. <em>Full</em> sizes every slide to the screen, growing a short chunk as readily as shrinking a long one, which suits a lecture whose chunks vary a lot. <em>Off</em> is neither.</p>
 <p><strong>While the room sees black, the speaker window keeps everything.</strong> The slide, the notes and the thumbnails stay where they were, so you can move on or read ahead with nothing showing. A small <code>BLANK · hit B to toggle</code> marker sits at the bottom of the speaker window, or at the bottom of the audience view when there is no speaker window.</p>
 
   
@@ -1716,7 +1716,7 @@ goes in it.</p>
 </aside>
 
 
-<p><strong>A marginalia is the one aside you can click.</strong> A figure or a block of code lifts into a card in the middle of the screen; a marginalia gets no card, because it is part of the slide&#39;s layout rather than something laid over it – the frame slides right until all of it is on screen. <strong><code class="nb">Esc</code>, or a click on the slide, gives the frame back.</strong> Try it on the block out to the right, the part of it the edge of the screen has cut off.</p>
+<p><strong>A marginalia is the one aside you can click: the frame slides right until all of it is on screen.</strong> A figure or a block of code lifts into a card in the middle of the screen; a marginalia gets no card, because it is part of the slide&#39;s layout rather than something laid over it. <strong><code class="nb">Esc</code>, or a click on the slide, gives the frame back.</strong> Try it on the block out to the right, the part of it the edge of the screen has cut off.</p>
 <p>The body stays in the middle column and only the marginalia moves outward. Keep them short: a marginalia shares the chunk&#39;s height and cannot grow taller than it. One can also go <em>inside</em> a <code>::: side</code> pane, when a tangent belongs to one half in particular – it still escapes to the slide&#39;s right margin.</p>
 
   
@@ -1944,7 +1944,6 @@ goes in it.</p>
   <span class="chunk-label">exercise</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The squint test</span> <span class="hd-sub">walk your own lecture end to end in the short view</span></h2>
   <p><strong>Open your own lecture in the audience view, press <code class="nb">C</code> until it is short, and walk it end to end without opening the source.</strong> Stop at every chunk you could not talk from using only what is on the screen.</p>
-<p><strong>For each chunk that fails, ask three questions in this order.</strong></p>
 <p><strong>For each chunk that fails, ask three questions in this order:</strong></p>
 <ol>
 <li>Is the opening sentence a claim, or a warm-up?</li>
@@ -2247,7 +2246,7 @@ are tagged into a release.</p>
 <li><strong><code class="nb">align</code> is a statement on a line of its own.</strong> <code>align y middle a, b, c</code> gives <code class="nb">b</code> and <code class="nb">c</code> the vertical centre of <code class="nb">a</code>; the first name is the one the others follow.</li>
 <li><strong><code>spread x a, b, c, d</code> shares a set out evenly.</strong> First and last stay put; everything between gets the same distance from its neighbours.</li>
 </ul>
-<p><strong>Both are at work in the sheet on the last slide</strong>: an <code>align x right</code> gives the five row labels the right edge of the first, and <code>spread x</code> puts the five middle words of the family row between <code class="nb">sans</code> and <code class="nb">bold</code>.</p>
+<p><strong>The two statements are both at work in the sheet on the last slide</strong>: an <code>align x right</code> gives the five row labels the right edge of the first, and a <code>spread x</code> puts the five middle words of the family row between <code class="nb">sans</code> and <code class="nb">bold</code>.</p>
 
   
   <aside class="chunk-expansion chunk-expansion-expand" data-label="Where the two statements refuse">
@@ -2490,9 +2489,9 @@ are tagged into a release.</p>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A slide can be more than a column of text</span> <span class="hd-sub">and what makes it one is not written inside the text</span></h2>
   <p><strong>Write a picture into a chunk and you get a picture in the text column</strong> – never one that fills the slide, and never three things standing side by side.</p>
-<p><strong>A slide-wide construction is written beside the body rather than in it, and there are three kinds.</strong> Something behind the whole slide or laid over it; something that takes the place of the paragraphs; and the composed slides a lecture opens and closes with.</p>
-<p>The rest of this part takes them one at a time, in that order. All of them are
-shown one per slide in <a href="../decoration/audience.html">the decoration lecture</a>.</p>
+<p><strong>Three kinds of construction sit beside the body rather than in it: a picture behind the slide, blocks in place of the paragraphs, and the slides a lecture opens and closes with.</strong> The rest of this part takes them one at a time, in that order, and all
+of them are shown one per slide in
+<a href="../decoration/audience.html">the decoration lecture</a>.</p>
 
   
   
@@ -2515,7 +2514,8 @@ shown one per slide in <a href="../decoration/audience.html">the decoration lect
 <span class="line"><span style="color:#24292E">:::</span></span></code></pre>
 <p>A backdrop names its picture the same three ways an image does – a bare asset id, a path, an https address. <strong>The words in its braces answer five questions, at most one word each.</strong></p>
 <ul>
-<li><strong>How the picture fills the frame</strong>, and <strong>which part survives the crop</strong>.</li>
+<li><strong>How the picture fills the frame</strong> – it covers the slide, or it fits inside it whole.</li>
+<li><strong>Which part of it survives the crop.</strong></li>
 <li><strong>What is laid over it.</strong> Without asking you get <code class="nb">veil</code>: the theme&#39;s own paper at 80%, so ordinary dark text stays legible on a photograph in all seven themes. <code class="nb">invert</code> darkens the picture and turns the text light instead – the next slide is one.</li>
 <li><strong>Whether it is sharp or blurred.</strong></li>
 <li><strong>Whether it sits under the type or in front of it.</strong></li>

@@ -36,7 +36,7 @@ goes in it.
 
 **The deck, the hand-out and your notes say the same thing, and they disagree the moment you edit one.** A lecture normally needs all three, and keeping them in step is work you do instead of preparing the lecture.
 
-**You write one Markdown file instead, and the next slide is the whole of its structure.**
+**You write one Markdown file instead, and its whole structure is two words: *chunks* and *columns*.**
 
 **One command turns that file into four HTML files, and the four differ only in what they show you.** `print.html` is a reading copy with a cover and a table of contents. `print-notes.html` is that same *document* with your speaker notes folded in under each chunk. `audience.html` is the *projection* for the room. `speaker.html` is the speaker view, the screen you keep at the lectern, carrying the notes, a strip of the slides around you and a timer. Nothing in the source is written for one of them and not the others.
 
@@ -245,7 +245,7 @@ Search is what you want when you remember a topic but not which slide it is on. 
 
 **Unless you say otherwise, the slide is the first sentence of every paragraph plus any `**bold**` phrases from the rest.** This chunk is written that way – press `C` twice and watch what appears and disappears.
 
-It asks two things of you. Every paragraph has to **open with a sentence that stands on its own**, because that sentence is the slide. A bold phrase anywhere after it is **promoted to a bullet underneath**, so it has to read as one. Everything unbolded is for `print.html` and `print-notes.html`.
+It asks two things of you. Every paragraph has to **open with a sentence that stands on its own**, because that sentence is the slide. After it, **a bold phrase becomes a bullet of its own, so it has to read as one**. Everything unbolded is for `print.html` and `print-notes.html`.
 
 The two bullets above are that rule running: neither is a list in the source – each is a `**bold**` phrase inside a sentence the projection is holding back.
 
@@ -352,7 +352,7 @@ Counted against the on-screen half only, so narration inside a `::: script` bloc
 
 ::: cols 2
 
-**Four bands, top to bottom:**
+**From the top edge downwards:**
 
 - **A row of dots**, one per chunk in the column, each of them clickable.
 - **A copy of the projection**, laid out identically and at the same zoom.
@@ -421,7 +421,7 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 
 **The two `C` modes keep separate zoom levels.** The short version holds whatever size you set with `+` and `-`; the full text picks its own so the whole chunk fits the screen, and switching back restores yours exactly.
 
-**`#` cycles auto-fit through three modes, and the middle one is the one to know.** *Shrink* leaves your zoom exactly where you set it and only ever makes a slide that is too big fit – so the room reads one size all hour, except on the slides that would otherwise run off the bottom. *Full* sizes every slide to the screen, growing a short chunk as readily as shrinking a long one, which suits a lecture whose chunks vary a lot. *Off* is neither.
+**`#` cycles auto-fit through three modes, and the middle one, *shrink*, leaves your zoom where you set it and only ever makes a slide that is too big fit.** So the room reads one size all hour, except on the slides that would otherwise run off the bottom. *Full* sizes every slide to the screen, growing a short chunk as readily as shrinking a long one, which suits a lecture whose chunks vary a lot. *Off* is neither.
 
 **While the room sees black, the speaker window keeps everything.** The slide, the notes and the thumbnails stay where they were, so you can move on or read ahead with nothing showing. A small `BLANK · hit B to toggle` marker sits at the bottom of the speaker window, or at the bottom of the audience view when there is no speaker window.
 
@@ -477,7 +477,7 @@ This whole block sits in the slide margin, small and grey. Use a marginalia for 
 
 :::
 
-**A marginalia is the one aside you can click.** A figure or a block of code lifts into a card in the middle of the screen; a marginalia gets no card, because it is part of the slide's layout rather than something laid over it – the frame slides right until all of it is on screen. **`Esc`, or a click on the slide, gives the frame back.** Try it on the block out to the right, the part of it the edge of the screen has cut off.
+**A marginalia is the one aside you can click: the frame slides right until all of it is on screen.** A figure or a block of code lifts into a card in the middle of the screen; a marginalia gets no card, because it is part of the slide's layout rather than something laid over it. **`Esc`, or a click on the slide, gives the frame back.** Try it on the block out to the right, the part of it the edge of the screen has cut off.
 
 The body stays in the middle column and only the marginalia moves outward. Keep them short: a marginalia shares the chunk's height and cannot grow taller than it. One can also go *inside* a `::: side` pane, when a tangent belongs to one half in particular – it still escapes to the slide's right margin.
 
@@ -623,8 +623,6 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 ## exercise: The squint test | walk your own lecture end to end in the short view {.wide #squint-test}
 
 **Open your own lecture in the audience view, press `C` until it is short, and walk it end to end without opening the source.** Stop at every chunk you could not talk from using only what is on the screen.
-
-**For each chunk that fails, ask three questions in this order.**
 
 **For each chunk that fails, ask three questions in this order:**
 
@@ -908,7 +906,7 @@ Which way a pointed outline aims is the `point` option – `up`, `down`, `left` 
 - **`align` is a statement on a line of its own.** `align y middle a, b, c` gives `b` and `c` the vertical centre of `a`; the first name is the one the others follow.
 - **`spread x a, b, c, d` shares a set out evenly.** First and last stay put; everything between gets the same distance from its neighbours.
 
-**Both are at work in the sheet on the last slide**: an `align x right` gives the five row labels the right edge of the first, and `spread x` puts the five middle words of the family row between `sans` and `bold`.
+**The two statements are both at work in the sheet on the last slide**: an `align x right` gives the five row labels the right edge of the first, and a `spread x` puts the five middle words of the family row between `sans` and `bold`.
 
 ::: expand Where the two statements refuse
 `align` and `spread` work on boxes, dots, texts and images only – naming an edge, a container or a brace is an error. `align` names its axis first: `x` takes `left`, `middle` or `right`, `y` takes `top`, `middle` or `bottom`. `spread` needs at least three elements; `align` needs two.
@@ -1069,10 +1067,9 @@ The delay has to be between 200 ms and 60 s; outside that the build refuses the 
 
 **Write a picture into a chunk and you get a picture in the text column** – never one that fills the slide, and never three things standing side by side.
 
-**A slide-wide construction is written beside the body rather than in it, and there are three kinds.** Something behind the whole slide or laid over it; something that takes the place of the paragraphs; and the composed slides a lecture opens and closes with.
-
-The rest of this part takes them one at a time, in that order. All of them are
-shown one per slide in [the decoration lecture](../decoration/audience.html).
+**Three kinds of construction sit beside the body rather than in it: a picture behind the slide, blocks in place of the paragraphs, and the slides a lecture opens and closes with.** The rest of this part takes them one at a time, in that order, and all
+of them are shown one per slide in
+[the decoration lecture](../decoration/audience.html).
 
 ## example: A picture that fills the frame | `::: backdrop` and `::: overlay` {.wide #backdrop}
 
@@ -1091,7 +1088,8 @@ A crawler that looks like a browser gets measured back.
 
 A backdrop names its picture the same three ways an image does – a bare asset id, a path, an https address. **The words in its braces answer five questions, at most one word each.**
 
-- **How the picture fills the frame**, and **which part survives the crop**.
+- **How the picture fills the frame** – it covers the slide, or it fits inside it whole.
+- **Which part of it survives the crop.**
 - **What is laid over it.** Without asking you get `veil`: the theme's own paper at 80%, so ordinary dark text stays legible on a photograph in all seven themes. `invert` darkens the picture and turns the text light instead – the next slide is one.
 - **Whether it is sharp or blurred.**
 - **Whether it sits under the type or in front of it.**
