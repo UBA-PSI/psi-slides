@@ -304,6 +304,62 @@ from building the same way is a major version.
   `cover-image` to reuse, and a `closing-image` in a deck with no `closing:`
   chunk. Purely additive – no existing `source.md` could have used the key,
   and every lecture in the repository builds byte-identical markup.
+- **`node build.js <source.md> --squint` writes what a room would see into a
+  file.** The projection shows far less than the source: collapsed, a chunk
+  renders its heading, the first sentence of every paragraph and the promoted
+  `**bold**` fragments, while lists, code, figures and formulas stay whole,
+  `::: slide` and `::: script` change the rule for one chunk, and a
+  `::: backdrop` or `::: overlay` is not inside `.chunk-body` at all. Anyone
+  reading `source.md` – a person or a language model – reasons about text the
+  room never gets, and the defects that follow are one shape: a slide that
+  announces a list and withholds it, a sentence that points at something
+  nobody can see, an instruction whose "how" sits in a continuation clause.
+  The tutorial's own `#anti-patterns` chunk names the failure; nothing
+  measured it. This is the squint test made mechanical, and step 8 of the
+  authoring workflow – *build, open `audience.html`, press `C` on every chunk*
+  – is now a command that produces a diff.
+
+  It **reads a rendered page and never the source**, which is the whole
+  design. The collapse is CSS and JS; a source-parsing extractor would be a
+  second implementation of the exact rule this exists to stop people getting
+  wrong, and would be wrong in the same places they are. Every line comes out
+  of the built `audience.html`, walked state by state in a real browser, and
+  "is this painted?" is answered by `Element.checkVisibility` rather than by a
+  table of selectors. It walks **beats, not slides**: a chunk with `---` shows
+  only its first segment when you arrive and an overlay with `from 2` is not
+  there at all, so what arrives later is marked `+N`. And it carries the
+  **withheld prose too, abridged** – the question a review actually asks is
+  what the room did *not* get, and answering it in full would make the file a
+  copy of `source.md`, so a hidden paragraph is one line: its word count and
+  its opening. The count is the part that diffs, which says exactly the right
+  thing – shortening a continuation moves nothing on the slide, and the file
+  then changes one number and no text.
+
+  The output is line-oriented and made for reading in a review and for
+  `git diff`: one block per slide with its id, type, width, beats and note
+  length, then one line per thing on it, each with a mark saying what it
+  becomes – `.` a sentence the room reads, `-` a promoted bold, which the
+  collapse renders as its own bullet, `•` a list item, `|` code or a table row
+  or a formula, `[` a block or construct that is on the slide whole, `~` prose
+  the collapse withholds. Written to `squint.txt` beside the source, or where
+  `--squint-out` says; `--squint-out -` writes to stdout. `--viewport WxH`
+  reads at another size. Speaker notes are counted and never quoted: they are
+  the one thing certain not to be on the projection, and `print-notes.html` is
+  the file for reading them.
+
+  What it deliberately cannot see is in its own header: colour, contrast,
+  overlap and anything below the fold. A slide can be in this file in full and
+  unreadable on the wall – a `::: rows` body painted in the page colour
+  measured 810×87 px, `visibility: visible`, `opacity: 1`, and was invisible.
+  `--check-fit` answers the frame; this answers the words.
+
+  It never fails a build: no `playwright-core` or no browser reports that it
+  could not look and leaves the exit code alone, and with the flag absent the
+  build is byte-identical and needs no browser. `--check-fit` and `--squint`
+  now share one bootstrap, which also taught `--check-fit` to read
+  `$PSI_CHROME` – the variable the test suite and `docs/site/shoot.mjs`
+  already read, and the only way to point either at a browser that lives in
+  the Playwright cache rather than in `/Applications`.
 
 - **`{.center}` in a chunk's attribute tail sets that chunk's prose on a
   centre axis**, on the projection and in the cockpit and not in the printed

@@ -36,6 +36,12 @@ plus the first sentences: could you recover the intended explanation in five to
 ten seconds? Then imagine every `**bold**` rendered as its own tiny bullet: if
 that looks fragmented, consolidate or remove the bolding.
 
+Neither test needs imagining. `node build.js <source.md> --squint` writes both
+out of the rendered projection: the heading and first sentences as `.` lines,
+every promoted bold as the `-` bullet it becomes, and the prose the collapse
+drops as a `~` line with its word count. Read `squint.txt` and the two tests
+are a thing you look at rather than picture.
+
 ## Anti-patterns to scan for
 
 **Meta-label bolds.** Opening a continuation paragraph with a bold connector

@@ -31,6 +31,7 @@ const SPECS = [
   './block-align.mjs',
   './side-anchor.mjs',
   './cards.mjs',
+  './squint.mjs',
   './editor-edges.mjs',
   './editor-waypoints.mjs',
   './editor-leaders.mjs',

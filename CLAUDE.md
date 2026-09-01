@@ -71,6 +71,31 @@ node build.js <source.md> --serve                 # build once, then serve
 node build.js <source.md> --serve --port 8080     # fixed port (default: free one)
 node build.js <source.md> --watch --serve         # live reload over http
 
+# two questions only a rendered page can answer, so both drive the built
+# audience.html in a real browser with playwright-core and both degrade
+# rather than fail (no browser, or no playwright-core, says so and leaves the
+# exit code alone). They share one bootstrap, `openAudienceProbe`, which reads
+# $PSI_CHROME first and then the chrome/msedge channels.
+#
+# --check-fit asks whether the slide is inside the frame: it walks state by
+# state at 1600x900 and reports any slide that fits the frame and is
+# positioned outside it. Exit 2 if one is; the density budgets are word
+# counts, so cards and rows overflow with a clean lint.
+node build.js <source.md> --check-fit
+node build.js <source.md> --check-fit --viewport 1920x1080
+#
+# --squint asks what the slide *says*. It writes the projection back out as
+# text – heading, topic sentences, promoted bolds, what stays whole, what the
+# collapse withholds, and what arrives on which beat – to squint.txt beside
+# the source. Read from the rendered page and never from source.md: the
+# collapse is CSS and JS, and re-implementing it is the mistake the command
+# exists to prevent. Made for reading in a review and for `git diff`, so a
+# prose edit shows as what it did to the room. It is a description, never a
+# verdict: it never fails a build. Blind to colour, contrast, overlap and
+# anything below the fold – that half is --check-fit and your eyes.
+node build.js <source.md> --squint
+node build.js <source.md> --squint --squint-out -    # to stdout instead
+
 # static checks – run before committing
 node lint.js lectures/                         # all lectures
 node lint.js lectures/tutorial/source.md       # single file
@@ -150,7 +175,14 @@ node test/gates/run.mjs semantics              # gates whose name matches
 # `cards` builds its own for the first reason: what it
 # measures is two cards differing in one character, and it also measures the
 # dash in front of a nested item against the line it belongs to and the
-# contrast of an accent row's two halves through all seven themes. Thirty-one specs, ~798 assertions.
+# contrast of an accent row's two halves through all seven themes.
+# of why it shipped. `squint` does the same for the opposite reason: its four
+# shapes – a promoted bold, a reveal segment, a `::: slide` block and a chunk
+# that is nothing but a backdrop and an overlay – exist in the corpus but
+# never six chunks apart, and a spec that walked a real deck to find them
+# would break the next time that deck was edited. It drives no page of its
+# own; the command it runs drives its own browser, and the spec asserts on the
+# file that comes out. Thirty-two specs, ~827 assertions.
 # Builds and serves the lectures itself, so it never reports on stale HTML,
 # and launches one Chromium for the whole run ($PSI_CHROME, the Playwright
 # cache, or system Chrome); ~5 min. Run it after touching AUDIENCE_JS, the key

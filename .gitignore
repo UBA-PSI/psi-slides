@@ -28,6 +28,10 @@ lectures/*/print.html
 lectures/*/print-notes.html
 lectures/*/audience.html
 lectures/*/speaker.html
+# --squint writes this beside the source. It is a reading of a built view, so
+# it is as generated as the views are, and it moves whenever the deck does.
+lectures/*/squint.txt
+docs/artifact/figure-rules/squint.txt
 # Three lectures ship their built outputs so they can be read straight from
 # the repository without running build.js: the self-referential tutorial, the
 # diagram reference, which is the only place every ::: draw construct is

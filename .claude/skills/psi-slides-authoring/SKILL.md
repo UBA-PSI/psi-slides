@@ -965,6 +965,52 @@ Degrades rather than fails: with no `playwright-core` or no Chrome it says so
 and leaves the build's exit code alone. It reports the viewport it used, since a
 room with a different aspect ratio wraps differently.
 
+## `build.js --squint`
+
+The squint test, mechanically. `--check-fit` asks whether the slide is inside
+the frame; this asks what it *says*.
+
+```bash
+node build.js <source.md> --squint          # → squint.txt beside the source
+node build.js <source.md> --squint --squint-out -        # → stdout
+node build.js <source.md> --squint --viewport 1920x1080
+```
+
+It walks the built `audience.html` state by state and writes out the text a
+room would actually get: the heading, the first sentence of every paragraph,
+every promoted bold as the bullet it becomes, the lists and code and figures
+and formulas that stay whole, and – marked as withheld, with a word count – the
+continuation prose the collapse drops. What arrives on a later beat is marked
+`+N`. Chunk-level constructs are in it too: a chunk that is nothing but a
+`::: backdrop` and an `::: overlay` is a picture with a caption on it, not an
+empty slide.
+
+**It reads the rendered page and never `source.md`.** The collapse is CSS and
+JS. Reasoning about a slide from the source is the mistake this exists to
+catch, and an extractor that parsed the source would make the same mistake with
+more confidence.
+
+Read it for the four things the collapse is most often wrong about:
+
+- a topic sentence that cannot stand alone – you are reading exactly what the
+  room reads, with nothing under it;
+- a `-` bullet that is a bare noun or a label, which is `single-word-bold` and
+  its cousins seen from the other end;
+- a slide whose only `.` line ends in a colon, with the substance on the `~`
+  line under it: that is a slide announcing something and withholding it;
+- a `~` count far larger than the words above it, which is a chunk written as
+  prose and presented as a stub.
+
+Speaker notes are counted, never quoted – they are the one thing certain not to
+be on the projection, and `print-notes.html` is the file for reading them.
+
+**What it cannot see** is in the file's own header: colour, contrast, overlap,
+and anything below the fold. A slide can be in this file in full and unreadable
+on the wall. `--check-fit` answers the frame; your eyes answer the rest.
+
+Like `--check-fit` it degrades rather than fails, and it never fails a build:
+it is a description of the projection, not a verdict on it.
+
 A source file can silence checks with an HTML comment anywhere in the body:
 
 ```md
@@ -985,10 +1031,13 @@ warning go away unread.
    backups; `margin` or `marginalia` only for genuinely secondary context.
 6. **Prose and typography pass** – see `reference/style.md`.
 7. `node lint.js <source.md>`.
-8. Build, open `audience.html`, press `C` on every chunk. Anything fragmented
-   goes back to step 3 or 4. Press `O` for the overview board: repeated
-   sentence openers, type monotony, and over-dense chunks show up there and
-   nowhere else.
+8. `node build.js <source.md> --squint`, then read `squint.txt`: that is the
+   squint test done mechanically, one line per thing the room gets and every
+   withheld paragraph marked with its word count. Anything fragmented goes
+   back to step 3 or 4, and `git diff` on the file says what a prose edit did
+   to the projection. Then open `audience.html` and press `O` for the overview
+   board – repeated sentence openers, type monotony and over-dense chunks show
+   up there and nowhere else – and `C` on any chunk the file made you doubt.
 
 ## Gotchas
 

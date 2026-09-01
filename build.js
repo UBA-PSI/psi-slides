@@ -15804,7 +15804,67 @@ async function runServe(rootDir, wantedPort) {
 
 // Flags that consume the following argv token as their value, so it is not
 // mistaken for the source path.
-const VALUE_FLAGS = new Set(['--max-width', '--port']);
+const VALUE_FLAGS = new Set(['--max-width', '--port', '--viewport', '--squint-out']);
+
+// ── driving the built projection (shared by --check-fit and --squint) ─
+// Two commands answer questions that only a rendered page can answer - does
+// the slide fit the frame, and what does the slide actually say - and both
+// have the same three ways of not being able to look: nothing was built, no
+// playwright-core, no browser. Written twice, the second copy learned the
+// Chrome channel order late and by hand.
+//
+// Every failure here degrades rather than fails. A missing browser is a fact
+// about the machine, not a defect in the deck, so it reports and returns 0;
+// only "you have not built this yet" is the author's to fix.
+async function openAudienceProbe(absIn, label, viewport, verb = 'read') {
+  const audience = path.join(path.dirname(absIn), 'audience.html');
+  if (!fs.existsSync(audience)) {
+    console.error(`${label}: no audience.html beside the source; build it first.`);
+    return { code: 1 };
+  }
+  let chromium;
+  try {
+    ({ chromium } = await import('playwright-core'));
+  } catch {
+    console.error(`${label}: playwright-core is not installed, so nothing was ${verb}.`);
+    console.error(`${' '.repeat(label.length)}  npm install, then try again.`);
+    return { code: 0 };
+  }
+  // $PSI_CHROME first, which is what the test suite and docs/site/shoot.mjs
+  // already read: a machine with a browser only in the Playwright cache has
+  // no channel to answer these, and asking the author to install a second
+  // Chrome to read their own slides back is not an answer.
+  let browser;
+  const starts = [
+    ...(process.env.PSI_CHROME ? [{ executablePath: process.env.PSI_CHROME }] : []),
+    { channel: 'chrome' }, { channel: 'msedge' }, {},
+  ];
+  for (const how of starts) {
+    try { browser = await chromium.launch(how); break; } catch { /* next */ }
+  }
+  if (!browser) {
+    console.error(`${label}: no Chrome or Chromium this process could start, so nothing was ${verb}.`);
+    return { code: 0 };
+  }
+  const page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
+  await page.goto(pathToFileURL(audience).href, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  return { browser, page };
+}
+
+// WIDTHxHEIGHT off the command line, for both commands that take one. Exits
+// rather than falling back to the default: a mistyped viewport that silently
+// measures 1600x900 answers a question nobody asked.
+function readViewportFlag(argv, fallback = { width: 1600, height: 900 }) {
+  const at = argv.indexOf('--viewport');
+  if (at < 0) return fallback;
+  const m = String(argv[at + 1] || '').match(/^(\d{3,5})x(\d{3,5})$/);
+  if (!m) {
+    console.error('--viewport takes WIDTHxHEIGHT, e.g. --viewport 1600x900.');
+    process.exit(1);
+  }
+  return { width: Number(m[1]), height: Number(m[2]) };
+}
 
 // ── --check-fit ──────────────────────────────────────────────────────
 // Whether every slide actually fits the frame, measured rather than
@@ -15833,30 +15893,9 @@ const VALUE_FLAGS = new Set(['--max-width', '--port']);
 // Degrades rather than fails: no browser, or no playwright-core, reports
 // that it could not look and leaves the build's own exit code alone.
 async function runCheckFit(absIn, viewport) {
-  const audience = path.join(path.dirname(absIn), 'audience.html');
-  if (!fs.existsSync(audience)) {
-    console.error('--check-fit: no audience.html beside the source; build it first.');
-    return 1;
-  }
-  let chromium;
-  try {
-    ({ chromium } = await import('playwright-core'));
-  } catch {
-    console.error('--check-fit: playwright-core is not installed, so nothing was measured.');
-    console.error('             npm install, then try again.');
-    return 0;
-  }
-  let browser;
-  for (const channel of ['chrome', 'msedge', undefined]) {
-    try { browser = await chromium.launch(channel ? { channel } : {}); break; } catch { /* next */ }
-  }
-  if (!browser) {
-    console.error('--check-fit: no Chrome or Chromium this process could start, so nothing was measured.');
-    return 0;
-  }
-  const page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
-  await page.goto(pathToFileURL(audience).href, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1200);
+  const opened = await openAudienceProbe(absIn, '--check-fit', viewport, 'measured');
+  if (!opened.page) return opened.code;
+  const { browser, page } = opened;
 
   const probe = () => page.evaluate(() => {
     const act = document.querySelector('.chunk.active');
@@ -15966,6 +16005,556 @@ async function runCheckFit(absIn, viewport) {
   return 2;
 }
 
+// ── --squint ─────────────────────────────────────────────────────────
+// What a room would see, in a file. The projection shows far less than the
+// source: collapsed, a chunk renders its heading, the first sentence of each
+// paragraph and the promoted `**bold**` fragments, while lists, code, figures
+// and formulas stay whole, `::: slide` / `::: script` change the rule per
+// chunk, and a backdrop or an overlay is not in `.chunk-body` at all. Anyone
+// reading source.md - a person or a model - silently reasons about text that
+// never reaches the room, and the defects that follow are all one shape: a
+// slide that announces a list and withholds it, a sentence that points at
+// something nobody can see, an instruction whose "how" is in a continuation
+// clause. The lecture's own #anti-patterns chunk names the failure; nothing
+// measured it.
+//
+// Three decisions, and the first is the whole design:
+//
+//   * **It reads a rendered page, never the source.** The collapse is CSS and
+//     JS. A source-parsing extractor would be a second implementation of the
+//     exact rule this command exists to stop people getting wrong, and it
+//     would be wrong in the same places they are. Every line in the output
+//     came out of a built view, and "is this painted?" is a question for the
+//     browser (`checkVisibility`), not for a table of selectors here.
+//   * **Per beat, not per slide.** A chunk with `---` shows only its first
+//     segment when you arrive, and an overlay with `from 2` is not there at
+//     all. Reporting the opening state as if it were the slide is the same
+//     error one level down, so the walk presses the key and marks what
+//     arrives late with `+N`.
+//   * **Withheld prose is in the file, abridged.** The question a review
+//     actually asks is "what did the room *not* get", and answering it from
+//     two files is answering it badly. Answering it in full would make this a
+//     copy of source.md with extra steps, so a hidden paragraph is one line:
+//     its word count and its opening. The count is the part that diffs -
+//     shortening a continuation moves nothing on the slide, and this file
+//     says exactly that by changing one number and no text.
+//
+// Degrades rather than fails, like --check-fit: no browser, or no
+// playwright-core, reports that it could not look and leaves the build's exit
+// code alone. It never fails a build - it is a description, not a judgement.
+
+// Runs inside the page, once per state, against the active chunk. Passed to
+// page.evaluate as a function, so it must close over nothing.
+function squintScan() {
+  const art = document.querySelector('.chunk.active');
+  if (!art) return null;
+
+  const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+  const words = (s) => (norm(s).match(/\S+/g) || []).length;
+
+  // Painted or not is a question for the browser. A re-implementation of the
+  // collapse rules here would be the mistake this command exists to prevent.
+  const seen = (el) => {
+    if (!(el instanceof Element)) return false;
+    const cs = getComputedStyle(el);
+    if (cs.visibility === 'hidden' || cs.visibility === 'collapse') return false;
+    if (cs.opacity === '0') return false;
+    // `display: contents` generates no box, so checkVisibility answers false
+    // for it - and this project uses it for a card row's list, for the
+    // outline's items and for the divider's lead. Ask the parent instead.
+    // Without this the decoration lecture reports six empty slides.
+    if (cs.display === 'contents') return el.parentElement ? seen(el.parentElement) : true;
+    if (el.checkVisibility) return el.checkVisibility({
+      visibilityProperty: true, opacityProperty: true, contentVisibilityAuto: true });
+    return cs.display !== 'none';
+  };
+
+  // Text as a reader gets it. Four things have to go first: a <style> block
+  // inside an inlined <svg> is CSS and not prose (a naive walk that skips
+  // display:none still finds it); KaTeX renders a hidden MathML copy beside
+  // the visible formula, so textContent says every formula twice; <defs>
+  // holds markup that is painted nowhere; and a <br> is a space, or two
+  // sentences run together into one word.
+  const textOf = (el) => {
+    const c = el.cloneNode(true);
+    for (const k of c.querySelectorAll('.katex')) {
+      const tex = k.querySelector('annotation[encoding="application/x-tex"]');
+      k.replaceWith(document.createTextNode(tex ? ' ' + norm(tex.textContent) + ' ' : ' '));
+    }
+    for (const k of c.querySelectorAll('style, script, defs, template, .katex-mathml')) k.remove();
+    for (const k of c.querySelectorAll('br')) k.replaceWith(document.createTextNode(' '));
+    return norm(c.textContent);
+  };
+
+  const lines = [];
+  // How deep inside the constructs a line sits. A `::: side` pane, a card row
+  // and an overlay all hold text, and a flat run of sentences says nothing
+  // about which of them a sentence is inside - which on a two-pane slide is
+  // half of what the reader wants to know.
+  let depth = 0;
+  const put = (mark, text, extra) => {
+    const t = norm(text);
+    if (!t && mark !== '|') return;
+    lines.push(Object.assign({ mark, text: t, depth }, extra || {}));
+  };
+  const HEAD = 88;
+  const clip = (s) => s.length > HEAD ? s.slice(0, HEAD - 1).replace(/\s\S*$/, '') + ' …' : s;
+  const withheld = (text, why) => {
+    const t = norm(text);
+    if (!t) return;
+    lines.push({ mark: '~', text: clip(t), depth, words: words(t), why: why || '' });
+  };
+  const slots = (el, prefix, drop) => [...el.classList]
+    .filter(c => c.startsWith(prefix) && !(drop || []).includes(c.slice(prefix.length)))
+    .map(c => c.slice(prefix.length)).join(' · ');
+
+  // One paragraph, which is where the whole collapse lives. The head is the
+  // topic sentence; in the rest, a <strong> is promoted to its own bullet and
+  // everything else is withheld. Whether that is so is read off the page: in
+  // the full reading mode the same markup paints the lot, and this then
+  // reports one sentence with no bullets and nothing hidden.
+  const para = (p) => {
+    const head = p.querySelector(':scope > .sentence-head');
+    if (!head) { put('.', textOf(p)); return; }
+    put('.', textOf(head));
+    const rest = p.querySelector(':scope > .sentence-rest');
+    if (!rest) return;
+    const prose = [...rest.querySelectorAll('.prose')];
+    if (!prose.length || prose.some(seen)) { put('.', textOf(rest)); return; }
+    for (const s of rest.querySelectorAll('strong')) if (seen(s)) put('-', textOf(s));
+    withheld(prose.map(textOf).join(' '));
+  };
+
+  const list = (el, quiet) => {
+    const items = [...el.children].filter(c => c.tagName === 'LI');
+    if (!quiet) put('[', 'list · ' + items.length + (items.length === 1 ? ' item' : ' items'));
+    for (const li of items) {
+      if (!seen(li)) continue;
+      // The running agenda numbers its items in a span of their own, with no
+      // space between it and the heading - the layout is a grid and puts the
+      // gap there. Read flat, "1The cover" is one word that is not on any
+      // slide, so the two are joined by hand.
+      const num = li.querySelector(':scope > .so-num');
+      const label = li.querySelector(':scope > .so-text');
+      if (num && label) { put('•', textOf(num) + ' ' + textOf(label)); continue; }
+      const nested = [...li.children].filter(c => c.tagName === 'UL' || c.tagName === 'OL');
+      const bare = li.cloneNode(true);
+      for (const n of bare.querySelectorAll('ul, ol')) n.remove();
+      put('•', textOf(bare));
+      for (const n of nested) for (const sub of [...n.children]) put('•', '· ' + textOf(sub));
+    }
+  };
+
+  // A figure is reported by what it is and how much of it there is, and its
+  // labels are not transcribed. A drawing's meaning is its arrangement, and a
+  // list of eleven words in reading order would describe a different picture
+  // from the one on the slide - convincingly, which is worse than not at all.
+  const figure = (el) => {
+    const q = (s) => el.querySelector ? el.querySelector(s) : null;
+    const svg = q('svg.psi-diagram');
+    const img = q('img');
+    const cap = q('figcaption');
+    let what;
+    if (svg) {
+      const d = svg.psiDiagram;
+      const n = svg.querySelectorAll('text').length;
+      what = 'drawing · ' + n + (n === 1 ? ' label' : ' labels')
+        + (d && d.data && d.data.n > 1 ? ' · ' + d.data.n + ' beats' : '');
+    } else if (img) what = 'image' + (img.alt ? ' "' + norm(img.alt) + '"' : '');
+    else if (q('video')) what = 'video';
+    else if (q('iframe, .embed-card, .embed-shell')) what = 'hosted embed';
+    else if (q('svg')) what = 'artwork (svg)';
+    else what = 'figure';
+    put('[', what);
+    if (cap && seen(cap)) put('.', textOf(cap));
+  };
+
+  const walk = (el, ctx) => {
+    const tag = el.tagName;
+    const cl = el.classList;
+    if (tag === 'STYLE' || tag === 'SCRIPT' || tag === 'TEMPLATE' || tag === 'NOSCRIPT'
+      || tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'defs') return;
+    if (cl.contains('annot-box') || cl.contains('annot-add') || cl.contains('chunk-num')
+      || cl.contains('exps')) return;
+
+    // Four constructs are reported whether the page paints them or not,
+    // because the fact worth having is that they exist. A `.bare` heading is
+    // in the document and off the slide; an expansion is a key press away; a
+    // ::: script block is the half that is deliberately not on screen; and a
+    // backdrop is a picture that is not in .chunk-body at all - an extractor
+    // that walks only the body calls such a chunk empty.
+    if (cl.contains('chunk-backdrop')) {
+      const url = (el.style.backgroundImage || '').match(/url\(["']?([^"')]*)/);
+      const ref = !url ? '' : (/^data:/.test(url[1]) ? 'inlined'
+        : decodeURIComponent(url[1].split('/').pop()));
+      let frames = '', moved = '';
+      try {
+        const f = JSON.parse(el.getAttribute('data-bd-frames') || 'null');
+        if (f) {
+          // Both sides through the same serialiser. The runtime assigns a
+          // frame straight out of this list, but `style.clipPath` reads back
+          // what CSS made of it - `inset(0)` comes out `inset(0px)` - so a
+          // string comparison against the list itself never matches.
+          const probe = document.createElement('div');
+          const canon = (v) => { probe.style.clipPath = ''; probe.style.clipPath = v;
+            return probe.style.clipPath; };
+          const at = f.map(canon).indexOf(canon(el.style.clipPath));
+          frames = ' · reveal, ' + f.length + ' frames';
+          // The frame it is showing is a line of its own rather than part of
+          // the marker, so that the marker itself is the same string at every
+          // beat: a line whose text changes each beat is a new line to the
+          // merge, and the picture's second place would sort above its first.
+          if (at > 0) moved = 'the picture moves to frame ' + (at + 1) + ' of ' + f.length;
+        }
+      } catch (e) { /* not a reveal */ }
+      put('[', 'backdrop · ' + slots(el, 'bd-') + (ref ? ' · ' + ref : '') + frames);
+      if (moved) put('[', moved);
+      return;
+    }
+    if (cl.contains('exp-body')) {
+      const label = el.querySelector('.tag-label');
+      put('[', 'expansion "' + (label ? norm(label.textContent) : '') + '" · '
+        + words(textOf(el)) + ' words, one key press away');
+      return;
+    }
+    if (cl.contains('script-only')) { withheld(textOf(el), '::: script'); return; }
+    if (cl.contains('chunk-heading') || cl.contains('section-heading')) {
+      const off = !seen(el) ? ' (in the document, off the slide)' : '';
+      const main = el.querySelector('.hd-main');
+      const sub = el.querySelector('.hd-sub');
+      put('h', (main ? textOf(main) : textOf(el)) + off);
+      if (sub) put('s', textOf(sub) + off);
+      return;
+    }
+
+    if (!seen(el)) {
+      // A `::: slide` block does not abridge its neighbours, it hides them
+      // outright, so without this nothing at all would be said about them -
+      // and "the room read a four-item list" is half a fact when three
+      // paragraphs beside it never arrived. Reported at the highest hidden
+      // element, which is where the walk stops, so nothing is said twice.
+      const seg = el.closest('.reveal-segment');
+      if (seg && seg !== el && seen(seg) && seg.querySelector('.slide-explicit')
+        && !el.closest('.slide-explicit')) {
+        withheld(textOf(el), 'not in the ::: slide block');
+      }
+      return;
+    }
+
+    if (tag === 'P') {
+      // A figure or a clip on a line of its own arrives inside a paragraph,
+      // and `splitSentencesIn` wraps that paragraph like any other. Read as
+      // prose it would come out as a drawing's labels run together into a
+      // sentence nobody wrote, so a paragraph that is only art is walked as
+      // structure. One with words around the picture stays prose.
+      const art = el.querySelector('figure, svg.psi-diagram, video, iframe');
+      if (art) {
+        const rest = el.cloneNode(true);
+        for (const a of rest.querySelectorAll('figure, svg.psi-diagram, video, iframe')) a.remove();
+        if (!norm(rest.textContent)) { for (const k of [...el.children]) walk(k, ctx); return; }
+      }
+      para(el);
+      return;
+    }
+    if (tag === 'PRE') {
+      const src = el.textContent.replace(/\n+$/, '').split('\n');
+      put('[', 'code · ' + src.length + (src.length === 1 ? ' line' : ' lines'));
+      for (const l of src) put('|', l);
+      return;
+    }
+    if (tag === 'TABLE') {
+      const rows = [...el.querySelectorAll('tr')];
+      const cols = rows.length ? rows[0].children.length : 0;
+      put('[', 'table · ' + rows.length + ' × ' + cols);
+      for (const r of rows) put('|', [...r.children].map(textOf).join(' | '));
+      return;
+    }
+    if (tag === 'UL' || tag === 'OL') { list(el, ctx.inCards); return; }
+    if (tag === 'FIGURE') { figure(el); return; }
+    if (tag === 'IMG') { put('[', 'image' + (el.alt ? ' "' + norm(el.alt) + '"' : '')); return; }
+    if (tag === 'svg') { figure(el.parentElement || el); return; }
+    if (cl.contains('math-display')) {
+      const tex = el.querySelector('annotation[encoding="application/x-tex"]');
+      put('[', 'formula');
+      put('|', tex ? norm(tex.textContent) : textOf(el));
+      return;
+    }
+
+    let opened = true;
+    if (cl.contains('cards')) {
+      const n = [...el.querySelectorAll('li')].length;
+      put('[', (cl.contains('rows') ? 'rows · ' : 'cards · ') + n + ' · ' + slots(el, 'cs-'));
+      ctx = Object.assign({}, ctx, { inCards: true });
+    } else if (cl.contains('overlay-card')) {
+      put('[', 'overlay · ' + slots(el, 'ov-').replace(/ · w-[a-z]+/, ''));
+    } else if (cl.contains('margin-note')) {
+      put('[', 'footnote "' + norm(el.dataset.label || '') + '"');
+    } else if (cl.contains('marginalia')) {
+      put('[', 'marginalia');
+    } else if (cl.contains('slide-explicit')) {
+      put('[', '::: slide – the author named this block as the screen');
+    } else if (cl.contains('cols')) {
+      put('[', 'cols · ' + (slots(el, 'cols-') || '?'));
+    } else if (cl.contains('side-a')) {
+      put('[', 'side · first pane');
+    } else if (cl.contains('side-b')) {
+      put('[', 'side · second pane');
+    } else if (cl.contains('cover-art')) {
+      put('[', 'cover art');
+    } else opened = false;
+
+    const kids = [...el.children];
+    if (!kids.length) { put('.', textOf(el)); return; }
+    if (opened) depth++;
+    for (const k of kids) walk(k, ctx);
+    if (opened) depth--;
+  };
+
+  for (const k of [...art.children]) walk(k, {});
+
+  const col = art.closest('.column');
+  // The signature says whether this state differs from the last one. The DOM
+  // is enough here where a screenshot is needed in --check-fit, because every
+  // change this file reports on is in it: a diagram step is a number on the
+  // runtime object, a backdrop frame is a clip-path, and everything else
+  // changes a line.
+  const steps = [...art.querySelectorAll('svg.psi-diagram')]
+    .map(s => (s.psiDiagram ? s.psiDiagram.step : 0)).join(',');
+  const clips = [...art.querySelectorAll('.chunk-backdrop')]
+    .map(b => b.style.clipPath || '').join(',');
+  return {
+    id: art.dataset.chunkId || art.id || '?',
+    tag: art.dataset.tag || '',
+    width: art.dataset.width || '',
+    num: art.dataset.chunkNum || '',
+    cover: art.dataset.cover || '',
+    section: art.dataset.section || '',
+    bare: art.hasAttribute('data-bare'),
+    center: art.hasAttribute('data-center'),
+    col: col ? Number(col.dataset.col) : -1,
+    lines,
+    sig: [art.dataset.chunkId, steps, clips, lines.length,
+      lines.map(l => l.mark).join('')].join('|'),
+  };
+}
+
+// The deck's own opening settings, and the column headings, read once.
+function squintMeta() {
+  const cols = [...document.querySelectorAll('.column')].map(c => {
+    const h = c.querySelector('.chunk-section .section-heading');
+    const li = c.querySelector('.chunk-section .section-outline li[aria-current] .so-text');
+    return { col: Number(c.dataset.col), heading: h ? h.textContent : (li ? li.textContent : '') };
+  });
+  return {
+    title: document.title || '',
+    collapse: document.body.dataset.collapse || '',
+    mode: document.body.dataset.mode || '',
+    zoom: getComputedStyle(document.documentElement).getPropertyValue('--zoom').trim(),
+    chunks: document.querySelectorAll('.chunk').length,
+    cols,
+  };
+}
+
+// Merge one state's lines into the chunk's running list, recording the beat
+// each line first appeared on. Content mostly accumulates, so this is an
+// ordered merge rather than a diff: a line already present keeps its beat and
+// its place, a new one is inserted where it was found.
+function squintMerge(chunk, state, beat) {
+  const counts = new Map();
+  let at = 0;
+  for (const l of state.lines) {
+    const base = l.mark + ' ' + (l.depth || 0) + ' ' + l.text + ' ' + (l.words || '');
+    const n = counts.get(base) || 0;
+    counts.set(base, n + 1);
+    const key = base + ' #' + n;
+    const idx = chunk.lines.findIndex((m, i) => i >= at && m.key === key);
+    if (idx >= 0) { at = idx + 1; continue; }
+    chunk.lines.splice(at, 0, Object.assign({}, l, { key, beat }));
+    at++;
+  }
+}
+
+const SQUINT_LEGEND = [
+  '  h   the heading as the slide carries it        s   its sub-heading',
+  '  .   a sentence the room reads',
+  '  -   a promoted bold, which the collapse renders as its own bullet',
+  '  •   a list item                                |   code, a table row, a formula',
+  '  [   a block or a construct that is on the slide whole',
+  '  ~   prose the collapse withholds, with the number of words it holds',
+  ' +N   first painted at beat N; a slide opens at beat 0',
+];
+
+// A slide with something under its heading. `~` does not count: withheld
+// prose is the room getting nothing, which is the case being looked for.
+function squintPaintsBody(c) {
+  return c.lines.some(l => l.mark !== 'h' && l.mark !== 's' && l.mark !== '~');
+}
+
+function formatSquint(doc) {
+  const out = [];
+  const w = (...s) => out.push(...s);
+  w('squint · ' + doc.title);
+  w('');
+  w('source    ' + doc.source);
+  w('read from ' + doc.view + ' at ' + doc.viewport
+    + ', collapse "' + (doc.meta.collapse || '?') + '", theme "' + (doc.meta.mode || '?') + '"');
+  w('walked    ' + doc.chunks.length + ' slides, ' + doc.states + ' states, '
+    + doc.meta.cols.length + ' columns'
+    + (doc.notes ? '' : ' · no speaker.html beside the source, so no note counts'));
+  w('');
+  w('Everything below was read out of the rendered projection, not out of');
+  w('source.md: the collapse is CSS and JS, and this file is here so that a');
+  w('review argues about what the room got rather than about what was typed.');
+  w('');
+  w(...SQUINT_LEGEND);
+  w('');
+  w('A slide opens with its id, its type and its width, then whatever else is');
+  w('true of it: the cover or divider composition, .bare or .center, how many');
+  w('beats it has, how long its speaker note is. Notes are counted and never');
+  w('quoted - they are the one thing certainly not on the projection, and');
+  w('print-notes.html is the file for reading them.');
+  w('');
+  w('It cannot see colour, contrast, overlap, or anything below the fold -');
+  w('a slide can be in this file in full and unreadable on the wall. Use');
+  w('--check-fit for the frame, and your eyes for the rest.');
+
+  let col = null;
+  for (const c of doc.chunks) {
+    if (c.col !== col) {
+      col = c.col;
+      const meta = doc.meta.cols.find(x => x.col === col);
+      const head = meta && meta.heading ? meta.heading : '(no heading)';
+      w('');
+      w('');
+      w('════ column ' + col + ' · ' + head);
+    }
+    const flags = [c.tag || 'free', c.width || '',
+      c.cover ? 'cover=' + c.cover : '', c.section ? 'divider=' + c.section : '',
+      c.bare ? '.bare' : '', c.center ? '.center' : '',
+      c.beats > 1 ? c.beats + ' beats' : '',
+      c.noteWords ? 'note ' + c.noteWords + ' words' : ''].filter(Boolean);
+    w('');
+    w('──── #' + c.id + ' · ' + flags.join(' · '));
+    for (const l of c.lines) {
+      const beat = l.beat ? '+' + l.beat : '';
+      const tail = l.words ? '  (' + l.words + ' words withheld'
+        + (l.why ? ' · ' + l.why : '') + ')' : '';
+      w(beat.padStart(3) + ' ' + l.mark + ' ' + '  '.repeat(l.depth || 0) + l.text + tail);
+    }
+  }
+
+  // A divider is a heading on purpose, so it is not one of these. Every
+  // other slide that paints nothing under its heading is a slide that
+  // announced something and withheld it, which is the whole reason this
+  // file exists.
+  const mute = doc.chunks.filter(c => c.tag !== 'section' && !squintPaintsBody(c));
+  const hiddenWords = doc.chunks.reduce((n, c) =>
+    n + c.lines.reduce((m, l) => m + (l.words || 0), 0), 0);
+  w('');
+  w('');
+  w('════ what the walk added up to');
+  w('');
+  w('  ' + doc.chunks.length + ' slides, ' + doc.states + ' states, '
+    + hiddenWords + ' words withheld by the collapse.');
+  if (mute.length) {
+    w('  ' + mute.length + ' slide(s) paint a heading and nothing else: '
+      + mute.map(c => '#' + c.id).join(', ') + '.');
+    w('  Section dividers are not counted; they are a heading on purpose.');
+  } else {
+    w('  Every slide but the dividers paints something under its heading.');
+  }
+  return out.join('\n') + '\n';
+}
+
+async function runSquint(absIn, viewport, outArg) {
+  const probe = await openAudienceProbe(absIn, '--squint', viewport);
+  if (!probe.page) return probe.code;
+  const { browser, page } = probe;
+
+  const meta = await page.evaluate(squintMeta);
+  const chunks = [];
+  const byId = new Map();
+  let states = 0, lastSig = null, same = 0, lastId = null, onSame = 0;
+  for (let i = 0; i < 2000; i++) {
+    const st = await page.evaluate(squintScan);
+    if (!st) break;
+    // A `{autoplay cycle}` diagram changes its own step on a timer, so its
+    // signature never settles and the two-identical-states rule never fires.
+    // Every other slide walks off it on the next key press; the last slide in
+    // a deck has nowhere to walk to, and would press the key two thousand
+    // times. No chunk in the corpus has more than five beats.
+    onSame = st.id === lastId ? onSame + 1 : 0;
+    lastId = st.id;
+    if (onSame > 40) break;
+    if (st.sig === lastSig) { if (++same >= 2) break; } else {
+      same = 0;
+      states++;
+      let c = byId.get(st.id);
+      if (!c) {
+        c = Object.assign({}, st, { lines: [], beats: 0 });
+        byId.set(st.id, c);
+        chunks.push(c);
+      } else c.beats++;
+      squintMerge(c, st, c.beats);
+    }
+    lastSig = st.sig;
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(200);
+  }
+  for (const c of chunks) c.beats += 1;
+
+  // Speaker notes are not on the projection and not in audience.html, and
+  // this file is about the projection - so what it carries is that a prompt
+  // exists and how long it is, never its text. A slide that withholds its
+  // substance is a different matter when the lecturer has 60 words of notes
+  // for it, and a different matter again when nobody has anything to say.
+  // The text itself is one keystroke away in the cockpit and printed in
+  // print-notes.html, which is the file for reading it.
+  const speaker = path.join(path.dirname(absIn), 'speaker.html');
+  let notes = null;
+  if (fs.existsSync(speaker)) {
+    await page.goto(pathToFileURL(speaker).href, { waitUntil: 'domcontentloaded' });
+    notes = await page.evaluate(() => {
+      const o = {};
+      for (const t of document.querySelectorAll('template[data-notes-for]')) {
+        o[t.dataset.notesFor] = (t.content ? t.content.textContent : t.textContent) || '';
+      }
+      return o;
+    });
+    for (const c of chunks) {
+      const raw = notes[c.id];
+      c.noteWords = raw ? (raw.match(/\S+/g) || []).length : 0;
+    }
+  }
+  await browser.close();
+
+  const doc = {
+    // The audience view's <title> is the lecture's name plus " – lecture",
+    // which is right in a browser tab and reads as a typo at the head of a
+    // file that says what it is on the next line.
+    title: (meta.title || '').replace(/\s+–\s+lecture$/, '')
+      || path.basename(path.dirname(absIn)),
+    source: path.relative(process.cwd(), absIn) || absIn,
+    view: 'audience.html',
+    viewport: viewport.width + '×' + viewport.height,
+    meta, chunks, states, notes: !!notes,
+  };
+  const text = formatSquint(doc);
+  if (outArg === '-') {
+    process.stdout.write(text);
+    return 0;
+  }
+  const outPath = outArg
+    ? path.resolve(outArg)
+    : path.join(path.dirname(absIn), 'squint.txt');
+  fs.writeFileSync(outPath, text);
+  const bodyless = chunks.filter(c => c.tag !== 'section' && !squintPaintsBody(c)).length;
+  console.log('[squint] ' + chunks.length + ' slide(s) over ' + states + ' state(s) at '
+    + doc.viewport + ' → ' + (path.relative(process.cwd(), outPath) || outPath)
+    + (bodyless ? '; ' + bodyless + ' paint a heading and nothing else.' : '.'));
+  return 0;
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const flags = new Set(argv.filter(a => a.startsWith('--')));
@@ -16013,6 +16602,7 @@ async function main() {
     console.error('  node build.js <source.md> [--watch] [--serve [--port N]] [--audience-only|--print-only|--print-notes-only|--speaker-only]');
     console.error('                            [--inline-images|--no-inline-images]');
     console.error('  node build.js <source.md> --check-fit [--viewport 1600x900]');
+    console.error('  node build.js <source.md> --squint [--squint-out PATH] [--viewport 1600x900]');
     console.error('  node build.js <source.md> --integrate-annotations');
     console.error('  node build.js <source.md> --optimize-images [--dry-run] [--all] [--max-width N]');
     console.error('  node build.js --new <slug>');
@@ -16036,6 +16626,13 @@ async function main() {
     console.error('                        frame. Exit 2 if one does. The density budgets are word');
     console.error('                        counts, so cards and rows can overflow with a clean lint.');
     console.error('  --viewport WxH        measure at another size (default 1600x900, a 16:9 room).');
+    console.error('');
+    console.error('Reading the projection back (needs playwright-core and a Chrome or Chromium):');
+    console.error('  --squint              after building, walk audience.html state by state and write');
+    console.error('                        what a room would see – heading, topic sentences, promoted');
+    console.error('                        bolds, what stays whole, what the collapse withholds – to');
+    console.error('                        squint.txt beside the source. Never fails a build.');
+    console.error('  --squint-out PATH     write it somewhere else; "-" writes to stdout.');
     console.error('');
     console.error('Annotation integration:');
     console.error('  --integrate-annotations   move `> annot:` blocks from a trailing');
@@ -16097,17 +16694,20 @@ async function main() {
   // exit code is the command's: a slide that does not fit is a defect the
   // author has to see, and a clean lint will not report it.
   if (flags.has('--check-fit')) {
-    const vpIdx = argv.indexOf('--viewport');
-    let viewport = { width: 1600, height: 900 };
-    if (vpIdx >= 0) {
-      const m = String(argv[vpIdx + 1] || '').match(/^(\d{3,5})x(\d{3,5})$/);
-      if (!m) {
-        console.error('--viewport takes WIDTHxHEIGHT, e.g. --viewport 1600x900.');
-        process.exit(1);
-      }
-      viewport = { width: Number(m[1]), height: Number(m[2]) };
+    const code = await runCheckFit(absIn, readViewportFlag(argv));
+    if (code) process.exitCode = code;
+  }
+  // After --check-fit, and never instead of it: one says whether the slide is
+  // inside the frame, the other says what it says. Its exit code is not the
+  // command's - a description of the projection is not a verdict on it.
+  if (flags.has('--squint')) {
+    const outIdx = argv.indexOf('--squint-out');
+    if (outIdx >= 0 && !argv[outIdx + 1]) {
+      console.error('--squint-out takes a path, or "-" for stdout.');
+      process.exit(1);
     }
-    const code = await runCheckFit(absIn, viewport);
+    const code = await runSquint(absIn, readViewportFlag(argv),
+      outIdx >= 0 ? argv[outIdx + 1] : null);
     if (code) process.exitCode = code;
   }
   if (flags.has('--serve')) await runServe(path.dirname(absIn), servePort);
