@@ -257,6 +257,9 @@ node build.js <source.md> --optimize-images --dry-run   # report oversized raste
 node build.js <source.md> --optimize-images             # convert them to WebP in place
 node build.js <source.md> --integrate-annotations       # fold exported live annotations back in
 
+node build.js <source.md> --squint           # write what the projection paints to squint.txt
+node build.js <source.md> --check-fit        # report any slide that fits the frame and sits outside it
+
 node lint.js lectures/                       # all lectures
 node lint.js lectures/ --strict              # warnings exit 2
 ```

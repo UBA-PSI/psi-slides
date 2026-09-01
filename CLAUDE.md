@@ -84,15 +84,13 @@ node build.js <source.md> --watch --serve         # live reload over http
 node build.js <source.md> --check-fit
 node build.js <source.md> --check-fit --viewport 1920x1080
 #
-# --squint asks what the slide *says*. It writes the projection back out as
-# text – heading, topic sentences, promoted bolds, what stays whole, what the
-# collapse withholds, and what arrives on which beat – to squint.txt beside
-# the source. Read from the rendered page and never from source.md: the
-# collapse is CSS and JS, and re-implementing it is the mistake the command
-# exists to prevent. Made for reading in a review and for `git diff`, so a
-# prose edit shows as what it did to the room. It is a description, never a
-# verdict: it never fails a build. Blind to colour, contrast, overlap and
-# anything below the fold – that half is --check-fit and your eyes.
+# --squint writes the projection back out as text - what each slide paints,
+# what the collapse withholds, what arrives on which beat - to squint.txt
+# beside the source. Read it before arguing about a lecture's wording: the
+# collapse is CSS and JS, so source.md is not the slide. It never fails a
+# build, and it is blind to colour, contrast and overlap - that half is
+# --check-fit and your eyes. Notation and the six decisions behind the format:
+# the `psi-slides-authoring` skill.
 node build.js <source.md> --squint
 node build.js <source.md> --squint --squint-out -    # to stdout instead
 
@@ -154,35 +152,18 @@ node test/gates/run.mjs semantics              # gates whose name matches
 # `touch-rail` opens its own browser context: the rail lives behind
 # `@media (pointer: coarse)` and openDeck's has a fine pointer, so in the
 # default context the bar is not in the document and a measurement of it
-# reports no overlaps among no buttons. `math-focus` builds its own deck for
-# the opposite reason: no lecture in the repository has a display formula with
-# more than one row, so nothing that ships can reach the case, which is most
-# of why it shipped. `block-align` builds two decks for a third reason: the
-# switch it measures is only legible as a pair, and the same content has to be
-# shown centred and left to say anything about either. It measures three left
-# edges against the prose's and one right edge against the slide's padding,
-# because the three blocks move by three different mechanisms (a breakout box,
-# a flex alignment, KaTeX's own text-align) and the CSS says only that all
-# three rules exist.
-# of why it shipped. `auto-fit` builds its own deck for the first reason and
-# exists for the second: "shrink leaves the zoom alone" is a claim about a
-# number, and it is measured on a short slide and a tall one, one # press
-# apart, rather than read off the mode.
-# of why it shipped, and `side-anchor` for the same reason: nothing that ships
-# writes `::: side {middle}` yet, and the property it holds - that centring
-# moves the short pane and only the short pane - is a geometry rather than a
-# string.
-# `cards` builds its own for the first reason: what it
-# measures is two cards differing in one character, and it also measures the
-# dash in front of a nested item against the line it belongs to and the
-# contrast of an accent row's two halves through all seven themes.
-# of why it shipped. `squint` does the same for the opposite reason: its four
-# shapes – a promoted bold, a reveal segment, a `::: slide` block and a chunk
-# that is nothing but a backdrop and an overlay – exist in the corpus but
-# never six chunks apart, and a spec that walked a real deck to find them
-# would break the next time that deck was edited. It drives no page of its
-# own; the command it runs drives its own browser, and the spec asserts on the
-# file that comes out. Thirty-two specs, ~827 assertions.
+# reports no overlaps among no buttons. Five specs build a deck of their own,
+# for three different reasons. Because nothing that ships can reach the case:
+# `math-focus` (no lecture has a two-row display formula) and `side-anchor`
+# (nothing writes `::: side {middle}` yet). Because the thing is only legible
+# as a pair: `block-align` shows the same content centred and left, and
+# `cards` two cards differing in one character. And because a spec that hunted
+# its shapes in a real deck would break the next time that deck was edited:
+# `squint`, whose four - a promoted bold, a reveal segment, a `::: slide`
+# block, a chunk that is only a backdrop and an overlay - exist in the corpus
+# but never six chunks apart. `squint` also drives no page itself: the command
+# drives its own browser and the spec asserts on the file that comes out.
+# Thirty-two specs, ~827 assertions.
 # Builds and serves the lectures itself, so it never reports on stale HTML,
 # and launches one Chromium for the whole run ($PSI_CHROME, the Playwright
 # cache, or system Chrome); ~5 min. Run it after touching AUDIENCE_JS, the key

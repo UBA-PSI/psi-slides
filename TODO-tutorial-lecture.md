@@ -68,12 +68,19 @@ fünf Sekunden beantwortet.
 
 ```bash
 node lint.js lectures/                # alle fünf Lectures, zero-dep
-npm run gate                          # 422 Assertions, ~0,5 s, kein Browser
-npm run settings                      # 244 Assertions, ~1 min, baut selbst
-node test/run.mjs                     # 602 Assertions, ~6 min, baut selbst
+npm run gate                          # 440 Assertions, ~0,5 s, kein Browser
+npm run settings                      # 329 Assertions, ~1 min, baut selbst
+node test/run.mjs                     # 827 Assertions, ~7 min, baut selbst
 node test/run.mjs nav                 # nur die Specs, deren Name passt
-node test/run.mjs expansion           # der neue Spec aus Slice 12, ~10 s
+
+node build.js <source.md> --squint    # was die Projektion malt, als Text
+node build.js <source.md> --check-fit # Folien, die passen und trotzdem raushängen
 ```
+
+**Vor jeder inhaltlichen Diskussion über eine Folie: `--squint` laufen lassen
+und `squint.txt` lesen.** Der Collapse ist CSS und JS – wer `source.md` liest,
+liest nicht die Folie, und genau diese Verwechslung hat an einem Tag sechs
+Defekte produziert.
 
 Beim Anfassen der Live-Views mindestens `nav`, bei `editor.mjs` auch `editor`.
 Prosa geht durch `writing-skills:human-writing` und
