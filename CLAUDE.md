@@ -108,7 +108,8 @@ node test/gates/run.mjs semantics              # gates whose name matches
 # browser suite – the things that only break in a built page, in four
 # families: the navigation model (nav, nav-cockpit), the geometry the live
 # chrome leaves the slide (expansion, marginalia, touch-rail, math-focus,
-# block-align), the editor's
+# block-align, text-select - what a pointer gesture means while Alt is held),
+# the editor's
 # gestures and panel (editor-*), and the figure-* specs that measure the SVG –
 # figure-framing, which catches a drawing sitting off-centre in an oversized
 # frame, figure-labels, which measures where an aligned label lands inside the
@@ -137,7 +138,7 @@ node test/gates/run.mjs semantics              # gates whose name matches
 # edges against the prose's and one right edge against the slide's padding,
 # because the three blocks move by three different mechanisms (a breakout box,
 # a flex alignment, KaTeX's own text-align) and the CSS says only that all
-# three rules exist. Twenty-seven specs, ~713 assertions.
+# three rules exist. Twenty-eight specs, ~750 assertions.
 # Builds and serves the lectures itself, so it never reports on stale HTML,
 # and launches one Chromium for the whole run ($PSI_CHROME, the Playwright
 # cache, or system Chrome); ~5 min. Run it after touching AUDIENCE_JS, the key

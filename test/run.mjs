@@ -25,6 +25,7 @@ const SPECS = [
   './expansion.mjs',
   './marginalia.mjs',
   './touch-rail.mjs',
+  './text-select.mjs',
   './math-focus.mjs',
   './block-align.mjs',
   './editor-edges.mjs',

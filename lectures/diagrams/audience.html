@@ -211,13 +211,25 @@ textarea, input, [contenteditable=true] {
 }
 /* Hold Alt and the stage becomes selectable – see the runtime comment for
    why this is a held modifier rather than a mode. The cursor change is the
-   only signal that it worked, so it is not optional. */
+   only signal that it worked, so it is not optional.
+
+   #figure-overlay is named here beside #stage because it is not inside it.
+   The focus card is cloned into a sibling of #stage-viewport – that is the
+   one construct in the live views that deliberately escapes the stage – so a
+   rule written against #stage left the focused code block unselectable, and
+   a focused listing is the single thing on the screen a lecturer is most
+   likely to want a line out of. The grab cursor the overlay and its card
+   carry has to give way for the same reason the stage's does. */
 body.text-selecting #stage,
-body.text-selecting #stage * {
+body.text-selecting #stage *,
+body.text-selecting #figure-overlay,
+body.text-selecting #figure-overlay * {
   user-select: text;
   -webkit-user-select: text;
 }
-body.text-selecting #stage { cursor: text; }
+body.text-selecting #stage,
+body.text-selecting #figure-overlay,
+body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
 ::selection { background: color-mix(in oklch, var(--emph) 30%, transparent); }
 
 /* stage */
@@ -7322,6 +7334,11 @@ function wireAnnotations() {
 function wireClicks() {
   flatChunks.forEach((entry, idx) => {
     entry.el.addEventListener('click', (ev) => {
+      // Before the overview branch, because a selection gesture is not a
+      // decision about where to be in either mode: a drag across an
+      // inactive chunk otherwise navigates to it on release, and the
+      // highlight the lecturer just made goes with the camera.
+      if (gestureSelects(ev)) return;
       // Overview: a click is a decision, so it lands on the slide and
       // leaves the board in one gesture. A drag is not a click – the
       // pointerdown handler swallows the synthesized click past a 3px
@@ -8005,6 +8022,55 @@ window.addEventListener('blur', () => {
   if (!touchSelectOn && !hasTextSelection()) setSelecting(false);
 });
 
+// ── the one question the click path asks ────────────────────────────
+// Turning the stage selectable is not enough on its own: a drag across a
+// code block still ends in a click on that block, and every handler that
+// answers a click by navigating, focusing, closing or panning would answer
+// this one too. That is how Alt-dragging a listing came to open the focus
+// card instead of highlighting the line - and, with the card already open,
+// to close it. Five sites stand aside for it, and they ask one predicate
+// rather than each carrying its own copy of the condition: the two that
+// decide at pointerdown ask whether this drag is going to select (the
+// camera's pan, and the card's), the three that decide at click ask whether
+// the gesture that just ended was a selection (the chunk, the focus target,
+// and the card's click-to-close).
+//
+// The answer belongs to the gesture and not to the keyboard at the instant
+// the click arrives, so it is decided at pointerdown and read at click: let
+// go of Alt before the mouse comes up and the drag you are finishing is
+// still the selection you started.
+//
+// Two signals rather than one, because they answer different halves. The
+// class deliberately outlives the keyup while a highlight is still on screen
+// - that is what lets a lecturer reach Cmd-C - so suppressing on the class
+// alone would eat the first ordinary click after every selection, and
+// clicking a figure to zoom it would do nothing until you clicked twice. The
+// key alone is not enough either: a drag that starts on a standing highlight
+// is the user still working with the selection, and the click that ends it
+// must not zoom the block it happens to have crossed. So a held modifier
+// means the pointer is selecting whatever it does, and a standing highlight
+// means a drag is.
+function stageSelectable() { return document.body.classList.contains('text-selecting'); }
+function selectionModeOn() { return altSelectHeld || touchSelectOn; }
+const pointerGesture = { selectable: false, mode: false, x: 0, y: 0 };
+// Capture, on the document, so it is recorded before any handler that will
+// go on to read it - including the ones bound to the stage and the overlay.
+document.addEventListener('pointerdown', (e) => {
+  pointerGesture.selectable = stageSelectable();
+  pointerGesture.mode = selectionModeOn();
+  pointerGesture.x = e.clientX;
+  pointerGesture.y = e.clientY;
+}, true);
+// The same 3px the pan handlers use to tell a drag from a tap, measured
+// against the click's own coordinates so no extra pointermove listener has
+// to run for every gesture on the page.
+function gestureSelects(ev) {
+  if (pointerGesture.mode) return true;
+  if (!pointerGesture.selectable) return false;
+  return Math.abs((ev.clientX || 0) - pointerGesture.x) > 3
+      || Math.abs((ev.clientY || 0) - pointerGesture.y) > 3;
+}
+
 // Mode badge
 let modeTimer = null;
 function showModeBadge(text) {
@@ -8264,8 +8330,10 @@ viewport.addEventListener('pointerdown', (e) => {
   // Skip drag on interactive children so click-to-select still works.
   if (e.target.closest('button, textarea, input, .annot-box, .exp-chev, .annot-add, nav#toc')) return;
   // While Alt-selection is live the same gesture means "highlight this",
-  // so the camera must keep its hands off it.
-  if (document.body.classList.contains('text-selecting')) return;
+  // so the camera must keep its hands off it. The pointerdown-time question
+  // is the stage's own selectability, not the modifier: a lingering
+  // highlight leaves user-select on, so this drag would select either way.
+  if (stageSelectable()) return;
   // Two pan modes share this handler: in overview, any drag pans; in
   // normal view, plain drag pans (chunk-local, reset on navigation).
   // The 3px movement threshold below keeps plain clicks (chunk select,
@@ -8421,12 +8489,19 @@ function fitFocusedMath(card) {
 // jitter still counts as a tap.
 figureOverlay.addEventListener('pointerdown', (e) => {
   if (e.target.closest('button, textarea, input')) return;
+  // The card is where a listing is largest and most readable, so it is where
+  // a line is most likely to be copied. While the overlay is selectable the
+  // drag belongs to the browser's own selection and the card must neither
+  // pan under it nor close when the pointer comes up. Recorded here for the
+  // same reason as everywhere else: Alt can be let go before the mouse is.
+  const selecting = stageSelectable();
   const session = {
     x: e.clientX, y: e.clientY,
     panX0: figurePan.x, panY0: figurePan.y,
     moved: false,
   };
   const move = (ev) => {
+    if (selecting) return;
     const dx = ev.clientX - session.x, dy = ev.clientY - session.y;
     if (!session.moved && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
       session.moved = true;
@@ -8437,11 +8512,14 @@ figureOverlay.addEventListener('pointerdown', (e) => {
     applyFigureTransform();
     broadcastFigureView();
   };
-  const up = () => {
+  const up = (ev) => {
     window.removeEventListener('pointermove', move);
     window.removeEventListener('pointerup', up);
     if (!session.moved) {
-      // Pure click → close (preserve previous click-to-unfocus UX).
+      // Pure click → close (preserve previous click-to-unfocus UX) – unless
+      // the pointer is being used to select, in which case it placed a caret
+      // and closing the card would throw away what was being read.
+      if (gestureSelects(ev)) return;
       unfocusFigure();
       if (shouldBroadcast()) sendToPeer({ type: 'figure-unfocus' });
       return;
@@ -8608,6 +8686,11 @@ function wireFigureClicks() {
       target.dataset.figureWired = '1';
       target.addEventListener('click', (ev) => {
         if (overview) return;
+        // A drag across this <pre> ends in a click on it, so without this the
+        // one element a lecturer most wants to copy out of is the one that
+        // cannot be selected: the highlight is made and the focus card opens
+        // on top of it.
+        if (gestureSelects(ev)) return;
         if (ev.target.closest('.annot-textarea, input, button')) return;
         const chunk = target.closest('.chunk');
         if (!chunk || !chunk.classList.contains('active')) return;

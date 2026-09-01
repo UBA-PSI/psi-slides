@@ -338,6 +338,16 @@ from building the same way is a major version.
   overrides it, placement still implies nothing, and a leader cycle terminates
   rather than spinning.
 
+- **Holding `Alt` could not select a line of code.** The live views turn the
+  stage selectable while the key is down, but a drag across a `<pre>` still
+  ends in a `click` on it, and only the camera's pointerdown stood aside – so
+  the drag opened the focus card over the listing, and inside the card the
+  same drag closed it. The whole click path now asks one predicate, decided at
+  pointerdown so that letting go of the key before the mouse still finishes
+  the selection you started; the focus card is selectable at all, which as a
+  sibling of the stage it never was; and a plain click still zooms, navigates
+  and closes exactly as before.
+
 - **Clicking a display formula could hide a third of it.** The overlay
   enlarges a focused formula by setting type – 0.12 of the slide height, 108px
   at 1440×900, about three times what it had on the slide – and the card it
