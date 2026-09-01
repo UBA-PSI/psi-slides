@@ -10,7 +10,7 @@ draw-defaults: |
   default container pad 0.34
 ---
 
-## title: Animated Infographics | Six real slides, rebuilt from text {#cover}
+## title: Animated Infographics {#cover}
 
 This is a psi-slides lecture: one Markdown source becomes the projected slides,
 a speaker cockpit, a reading document, and a handout with the spoken notes. The
@@ -19,6 +19,12 @@ itself.
 
 Every figure in this lecture is written in the lecture source, laid out at
 build time, and stepped with the same key that advances a reveal.
+
+## outline: Finished pictures first, then the language {.wide #agenda}
+
+**Parts 1 to 3 are six real lecture slides, rebuilt as figures.** The note under
+each says what holds the drawing together, in words Part 4 defines – so watch
+the pictures now and read the notes again after.
 
 ## principle: None of this is in the 1.0.0 release {.standard #preview}
 
@@ -32,7 +38,7 @@ figure you write today may need an edit. The editor is experimental too.
 
 # Memory safety
 
-## figure: Types of memory unsafety {.full #unsafety}
+## figure: Types of memory unsafety | keeping two columns level {.full #unsafety}
 
 ::: draw {unit=150x52}
 default box {.tone-2} w 1.05
@@ -66,7 +72,7 @@ step spatial
 
 **Two families, one shape.** `flush left` at the end of a placement keeps each `below` chain level at its left edge, though the upper listing runs to two lines and the lower one is a different width; `same as` gives each pair boxes of one size. The *statement* `align x middle tobj, sobj` is a different thing: it hands one coordinate from the first element named to the rest, and it is needed here because the two small boxes hang beside words of different lengths. The two steps name `@temporal` and `@spatial` instead of listing eight names.
 
-## figure: Your first buffer overflow | a made-up example {.full #overflow}
+## figure: Your first buffer overflow | a code block beside a drawing {.full #overflow}
 
 ::: side
 ```c
@@ -108,11 +114,11 @@ step reached
 :::
 :::
 
-**An ordinary Markdown code block on the left, a diagram on the right.** `::: side` puts the two beside each other, and the diagram needs to know nothing about it. Inside, `same as` and `gap 0` hold the four frames together as one stack, and the `brace` spans all four and writes the direction of writing beside them.
+**An ordinary Markdown code block on the left, a diagram on the right.** `::: side` puts the two beside each other, and the diagram needs to know nothing about it. The C is invented for the slide; the frame layout beside it is not. Inside, `same as` and `gap 0` hold the four frames together as one stack, and the `brace` spans all four and writes the direction of writing beside them.
 
 # Block ciphers
 
-## figure: Cipher Block Chaining, decryption {.full #cbc}
+## figure: Cipher Block Chaining, decryption | four beats and a routed arrow {.full #cbc}
 
 ::: draw {unit=112x74}
 default box {.tone-3} w 0.82
@@ -179,7 +185,7 @@ step recover
 
 Each `step` is one press of the forward key. The chaining arrows carry one waypoint each (`via`), which is as much routing as these figures ever need.
 
-## figure: Counter mode, encryption {.full #ctr}
+## figure: Counter mode, encryption | twelve arrows nobody has to name {.full #ctr}
 
 ::: draw {unit=104x66}
 default text {.mono}
@@ -256,7 +262,7 @@ step cipher
 
 # Identity and authentication
 
-## figure: Identity lifecycle {.full #lifecycle}
+## figure: Identity lifecycle | three lines that hold the rows level {.full #lifecycle}
 
 ::: draw {unit=176x56}
 default box {.tone-3} w 1.15
@@ -315,7 +321,7 @@ step self
 
 **Without `align y middle` the two columns drift apart.** They are separate `below` chains, and the captions run to one line or to two; three `align` lines hold the rows level.
 
-## figure: Message authentication | it is not about confidentiality {.full #mac}
+## figure: Message authentication | a drawing that follows the theme {.full #mac}
 
 ::: draw {unit=150x60}
 image alice avatar-alice "Alice" w 0.42
@@ -352,6 +358,10 @@ step attack
 :::
 
 **The avatars are vector drawings and follow the theme.** `image alice avatar-alice` finds the file in `assets/` exactly as `![](fig-id)` does; an SVG file is spliced in as a nested `<svg>` and inherits `--ink` and `--paper`. The two attack arrows start at `eve.right:0.28` and `:0.72`: the fraction after the colon slides the attachment point along that side, so the two run parallel instead of on top of each other.
+
+What the slide is about is still integrity and authenticity, not
+confidentiality – the figure says so in the note under Bob, in the one place a
+drawing can say it without a caption repeating it.
 
 # The vocabulary
 
@@ -413,7 +423,7 @@ brace whole over r1,r2,r3 side left "the whole thing" pad 0.5 {.turn .muted}
 
 A `container` lays itself around its members and re-fits when they move. A `brace` spans a subset and hangs its label outside. Both measure their distance to their contents with the same word, `pad` – the brace is given `0.62` here so that it comes to lie outside the container's `0.42`.
 
-**Swimlanes are not a `container`, and that is why.** A container measures itself against what it holds, so three lanes holding different numbers of things come out different lengths at both ends. A swimlane diagram says the opposite: the bands are equal, and only what happens inside them differs. `lanes` is for that – bands of equal width that want to know nothing about their contents. The figure is further down, under *Three roles, one incident*.
+**Swimlanes are not a `container`, and the reason is what a container does.** A container measures itself against what it holds, so three lanes holding different numbers of things come out different lengths at both ends. A swimlane diagram says the opposite: the bands are equal, and only what happens inside them differs. `lanes` is for that – bands of equal width that want to know nothing about their contents. Part 5 draws one, under *Three roles, one incident*.
 
 **`.turn` applies to every label, not only to a box's.** The left brace reads bottom to top, and the same class does the same thing on a container caption and on an edge label – at all four places, that is, where a label is set at all.
 
@@ -489,27 +499,106 @@ box  p5 "!dim"   right of p4 gap 0.7 same as p1 {@prom !dim}
 text pl "prominence" left of p1 gap 0.8 {.muted .right}
 :::
 
-**The editor's sidebar shows exactly these rows.** It is experimental and made for a desktop-sized screen: heavily covered by automated tests, not yet widely tried by people. The classes are a closed list rather than free colours – every fill is mixed from `--emph` and `--ink` over `--paper`, so it survives all seven themes.
+**The editor's sidebar is a catalogue of six rows, and the next four slides walk
+down it.** It is experimental and made for a desktop-sized screen: heavily
+covered by automated tests, not yet widely tried by people. The classes are a
+closed list rather than free colours – every fill is mixed from `--emph` and
+`--ink` over `--paper`, so it survives all seven themes.
 
-**`.paper` in the top row looks inert and is not.** It is a box's default, but under a `default box {.tone-3}` a box without the class cannot find its way back, and a free `text` gets no background at all without it – that background is what knocks a line out behind a label.
+**`.paper` in the top row looks inert and is not.** It is a box's default, but
+under a `default box {.tone-3}` a box without the class cannot find its way
+back, and a free `text` gets no background at all without it – that background
+is what knocks a line out behind a label. The rule drawn through the row is what
+tells `.paper` and `.clear` apart: one knocks the line out, the other lets it
+through.
 
-**The bottom row is the five outlines that are not rectangles, plus `.turn`.** They share a slot with `.round` and `.sharp` – a group from which only one class can hold at a time – because a hexagon has no corner radius to argue about. The same four numbers are drawn as for a rectangle, joined into a different path. `.turn` reads the label bottom to top: a tall narrow box has room for a word only along its length, and the alternative is one letter per line.
+## free: Five outlines that are not rectangles {.wide #outlines}
 
-**A `.cross` with no `w` of its own comes out square, block default or not.** A plus with arms of two different lengths is not a plus. Without the exception the cross would take the minimum width one line of type needs and arrive at 66 by 37 pixels, a stretched shape instead of a sign. The row's `default box … w 0.62` applies to the rectangles in it, and a cross is not one, so it passes by – the same exception `bars` makes for outlines. A `w` written on the element's own line still wins, that being a statement about this one element.
+**The bottom row of the catalogue shares a slot with `.round` and `.sharp`** – a
+group from which only one class can hold at a time – because a hexagon has no
+corner radius to argue about. The same four numbers are drawn as for a
+rectangle, joined into a different path.
 
-**`.diamond` is the one outline that eats both axes.** The widest room a diamond offers is a strip half its width by half its height through the middle, so the build sizes it at twice what a rectangle would need for the same string, in both directions. A sentence in a diamond therefore takes four times the area of the boxes beside it and swallows the figure; two or three words is the measure, and the explanation belongs in a note next to it. The diamond in this row carries no label for the same reason – the labelled one is in the flowchart further down. `.hex` also says *a question is asked here*; the diamond says on top of that that it goes on in two ways, which a room has been trained on since school.
+**`.turn` reads the label bottom to top.** A tall narrow box has room for a word
+only along its length, and the alternative is one letter per line. It applies to
+every label, not only to a box's – the same class does the same thing on a
+container caption, a brace and an edge label.
 
-**Which way an outline aims is the `point` option, not the class name.** `{.chevron} point left` rather than a class `.chevron-left`: a chevron aimed up is the same shape aimed differently, and a word for every shape times every direction would quadruple the closed list. `point` applies to `.chevron` and `.wedge`; on a shape with no point the build refuses it instead of reading past it.
+**Which way an outline aims is the `point` option, not the class name.**
+`{.chevron} point left` rather than a class `.chevron-left`: a chevron aimed up
+is the same shape aimed differently, and a word for every shape times every
+direction would quadruple the closed list. `point` applies to `.chevron` and
+`.wedge`; on a shape with no point the build refuses it instead of reading past
+it.
 
-**The last row is the one channel the language spells in three places, and spells the same way in all three.** `.emph`, `.dim` and `.ghost` are classes on an element's own line; they are the verbs a `step` has for them (`dim a, b`); and on a `bars` line the same three words name column numbers. Learn one form and you have all three. The fourth state – ordinary prominence – deliberately has no name: `{!dim}` takes the class off instead of adding a fourth, and that holds for every class and in every tail.
+## figure: Two outlines argue with their own size {.full #outline-size}
 
-**`p5` carries `@prom`, and so the default `default box @prom {.dim}` – and `{!dim}` beside it.** Without that mark there is no way back: a `style` step could only ever *add* a class, and many slots spell their base state as the absence of every member, so a beat could leave such a state and never reach it again.
+::: draw {unit=118x74}
+# Nothing here is given a width on purpose: the rectangle takes one, and the
+# other two are left to size themselves, which is the whole slide. The
+# catalogue's diamond carries no label for exactly the reason drawn here, so
+# this is the one place a labelled one appears.
+box  r1 "two words" at 0,0 w 1.2 h 0.5 {.sharp .tone-2}
+box  d1 "two words" right of r1 gap 1.1 {.diamond .tone-2}
+box  c1 ""          right of d1 gap 1.1 h 0.5 {.cross .accent}
+text dl "a diamond needs twice as much,\nboth ways"  below d1 gap 0.3 {.muted .small}
+text rl "a rectangle is sized\nto the string"        below r1 gap 0.3 {.muted .small}
+text cl "a cross ignores w\nand comes out square"    below c1 gap 0.3 {.muted .small}
+# dl is named first because it hangs lowest: align hands the first element's
+# coordinate to the rest, so the other two come down to it rather than up into
+# their own boxes.
+align y middle dl, rl, cl
+:::
 
-**What is written on the line is in the handout; what is written in a `step` is not.** That is the whole rule, and it reads off the source: prominence on an element's own line describes the drawing, prominence in a beat is an act performed in the talk. Print therefore takes it from the opening beat rather than the last.
+**`.diamond` is the one outline that eats both axes.** The widest room a diamond
+offers is a strip half its width by half its height through the middle, so the
+build sizes it at twice what a rectangle would need for the same string, in both
+directions. A sentence in a diamond therefore takes four times the area of the
+boxes beside it and swallows the figure; two or three words is the measure, and
+the explanation belongs in a note next to it. `.hex` also says *a question is
+asked here*; the diamond says on top of that that it goes on in two ways, which
+a room has been trained on since school.
 
-**When type and box do not match, there are three answers.** With no `w` the box grows to the type. With a fixed `w`, `.shrink` shrinks the type until it fits and `.fit` fills the box in both directions, bounded to 0.6–1.5× the base size. Text width is *estimated* at build time – there is no browser – so the size chosen comes out a shade too small, which is the safe direction.
+**A `.cross` with no `w` of its own comes out square, block default or not.** A
+plus with arms of two different lengths is not a plus, so a block `default` that
+carries a `w` reaches every rectangle in the block and the cross passes it by –
+the same exception `bars` makes for outlines. A `w` written on the element's own
+line still wins, that being a statement about this one element.
 
-**The first box overflows on purpose, and the build says so:** `box g1 is 1.2 units wide but its label needs about 1.64`. That is the answer nobody wants: a fixed `w` too small for the label, and neither `.shrink` nor `.fit`. It is the one warning this lecture builds with.
+## free: One channel, spelled the same in three places {.wide #prominence}
+
+**The catalogue's last two rows are one channel, written three ways.** `.emph`,
+`.dim` and `.ghost` are classes on an element's own line; they are the verbs a
+`step` has for them (`dim a, b`); and on a `bars` line the same three words name
+column numbers. Learn one form and you have all three.
+
+**The fourth state – ordinary prominence – deliberately has no name.** `{!dim}`
+takes the class off instead of adding a fourth word, and that holds for every
+class and in every tail. Without the mark there is no way back: a `style` step
+could only ever *add* a class, and many slots spell their base state as the
+absence of every member, so a beat could leave such a state and never reach it
+again. `p5` on the catalogue is that case drawn – it carries `@prom`, the block
+gives `@prom` a `.dim`, and `{!dim}` beside it takes the class away again.
+
+**What is written on the line is in the handout; what is written in a `step` is
+not.** That is the whole rule, and it reads off the source: prominence on an
+element's own line describes the drawing, prominence in a beat is an act
+performed in the talk. Print therefore takes it from the opening beat rather
+than the last.
+
+## free: When the type does not fit the box {.wide #typefit}
+
+**When type and box do not match, there are three answers**, and the catalogue's
+fourth row is all three. With no `w` the box grows to the type. With a fixed
+`w`, `.shrink` shrinks the type until it fits and `.fit` fills the box in both
+directions, bounded to 0.6–1.5× the base size. Text width is *estimated* at
+build time – there is no browser – so the size chosen comes out a shade too
+small, which is the safe direction.
+
+**That row's first box overflows on purpose, and the build says so:** `box g1 is 1.2
+units wide but its label needs about 1.64`. That is the answer nobody wants: a
+fixed `w` too small for the label, and neither `.shrink` nor `.fit`. It is the
+one warning this lecture builds with.
 
 ## figure: Steps that move {.wide #motion}
 
@@ -551,7 +640,7 @@ step all-again
 
 **Anything hanging off something invisible stays invisible.** So neither the `container` nor the dashed arrows nor the handwritten label needs a `show` of its own: an arrow is only as visible as its ends, a `container` only as visible as its members, and a `text` with a leader only as visible as what it points at. The first step says `show px` and nothing else – the two dashed arrows arrive with the proxy.
 
-**Naming an element overrides that rule, in both directions.** `hide direct` takes the direct arrow away though both its ends are still there; a written `show` does the reverse and brings something on screen whose source is still missing – an outline, say, that should stand around its whole set before the set is assembled (the figure for that is the tree under *Leaves first, and the brackets follow*). Both hold from the beat they are written in onwards. Write one only where the rule says the wrong thing. Write a `show` on every element and you have a figure that stays incomplete the next time one is added: the element is in the block, no step names it, and it never appears.
+**Naming an element overrides that rule, in both directions.** `hide direct` takes the direct arrow away though both its ends are still there; a written `show` does the reverse and brings something on screen whose source is still missing – an outline, say, that should stand around its whole set before the set is assembled (the tree in Part 5, under *Leaves first, and the brackets follow*). Both hold from the beat they are written in onwards. Write one only where the rule says the wrong thing. Write a `show` on every element and you have a figure that stays incomplete the next time one is added: the element is in the block, no step names it, and it never appears.
 
 ## figure: Where the words sit {.wide #justify}
 
@@ -611,7 +700,7 @@ step exception
   emph f-0, f-1, f-2
 :::
 
-**Six statements expand at parse time into ordinary elements.** `bars` becomes a box per column (`f-0` … `f-11`), a baseline and – where a second string is written – a text per label; `grid` a cell per field (`g-<column>-<row>`); `plot` a frame with gridlines and axes; `table` a box per cell; `lanes` a band per lane; `sequence` a head, a lifeline, a message and a note per entry. Everything downstream treats the result like any other element: the `brace` spans three columns because three columns are three ordinary boxes, and a `style` step tints three cells because they are boxes. What makes that work is that a coordinate may be another element's – every cell is placed against an edge of the frame the same statement lays. The other four are further on: `plot` two figures later, `table`, `lanes` and `sequence` under *Four arrangements*.
+**Six statements expand at parse time into ordinary elements.** `bars` becomes a box per column (`f-0` … `f-11`), a baseline and – where a second string is written – a text per label; `grid` a cell per field (`g-<column>-<row>`); `plot` a frame with gridlines and axes; `table` a box per cell; `lanes` a band per lane; `sequence` a head, a lifeline, a message and a note per entry. Everything downstream treats the result like any other element: the `brace` spans three columns because three columns are three ordinary boxes, and a `style` step tints three cells because they are boxes. What makes that work is that a coordinate may be another element's – every cell is placed against an edge of the frame the same statement lays. The other four come later: `plot` on *A frame to draw in*, and `table`, `lanes` and `sequence` in Part 5.
 
 **An edge is one of the things a coordinate can be read off.** `w1.cx`, `w1.cy`, `above w1 gap 0.2` – what is read is the wire's bounding box. That counts as soon as a sentence describes the wire rather than one of its ends. Pinned to a box, such a sentence keeps its distance from the box and loses it from the line the moment a fraction or a height changes, with no warning. An edge has no name until you give it one, and the name goes in front, as it does on every other statement: in the slot before the first endpoint, `edge w1 mix -> log`. Staying anonymous costs nothing, the slot being optional. Place in a circle – an element against an edge that itself hangs off it – and you get `placement cycle` with the line number.
 
@@ -705,7 +794,7 @@ step judge
 
 **The curves are ordinary edges.** `.smooth` draws the same waypoints as a curve running *through* them instead of as straight segments – an interpolating spline, so a waypoint stays exactly where it was written. The skew warning stays quiet here, its premise not holding: on a curve two nearly level points are the shape rather than two ends that missed each other.
 
-**“weaker” is an edge label *beside* the line, and the ground travels with it.** A fill class on an edge draws a ground behind the label; without a `side top`, `side bottom`, `side left` or `side right` it stays on the line and knocks it out, which is what the flowchart further down does with “yes” and “no”. With one of them it moves clear and takes the ground along. For the name of a curve that is the only choice: on the line it would knock out exactly what it names. The ground still has work to do, because the diagonal and two gridlines run under the curve.
+**“weaker” is an edge label *beside* the line, and the ground travels with it.** A fill class on an edge draws a ground behind the label; without a `side top`, `side bottom`, `side left` or `side right` it stays on the line and knocks it out, which is what *The road straight down* does with “yes” and “no”. With one of them it moves clear and takes the ground along. For the name of a curve that is the only choice: on the line it would knock out exactly what it names. The ground still has work to do, because the diagonal and two gridlines run under the curve.
 
 **The word is short, and that is not a matter of taste here.** The label is moved clear along the normal *at the middle* of the curve, but the curve goes on climbing, so a long label runs back into its own line at both ends instead of staying beside it. Beside a horizontal or vertical edge the question does not arise, and there a label may be as long as it needs to be.
 
@@ -775,7 +864,7 @@ edge d2 -> drop "no"  {.paper}
 
 **The diamond is the outline a room needs no explanation for.** It learned it at school: a question is asked here, and it goes on in two ways. What that costs is room. The widest strip a diamond offers is half its width by half its height, so the build sizes it at twice what a rectangle would need – two or three words, with the explanation in a note beside it, as on the left here. A whole sentence in a diamond would take four times the area of the boxes around it and become the figure.
 
-**The four labels sit *on* the line, and each one says so on its own tail.** A fill class on an edge draws a ground behind the label; with no `side top`, `side bottom`, `side left` or `side right` beside it, the label stays on the line and knocks it out behind itself. That is the right form for a word that *names* the line – “yes”, “no”, a port number, a message type – the way a street sign belongs to the street and the street runs past it either side. A sentence describing what *travels* along the line belongs beside it: the swimlanes next door do that, and the ROC curves above take the ground along when they do. Mixing the two in one figure means the room has to sort each label before it can read any of them, so everything here is on the line.
+**The four labels sit *on* the line, and each one says so on its own tail.** A fill class on an edge draws a ground behind the label; with no `side top`, `side bottom`, `side left` or `side right` beside it, the label stays on the line and knocks it out behind itself. That is the right form for a word that *names* the line – “yes”, “no”, a port number, a message type – the way a street sign belongs to the street and the street runs past it either side. A sentence describing what *travels* along the line belongs beside it: *Three roles, one incident* does that, and the ROC curves on *A frame to draw in* take the ground along when they do. Mixing the two in one figure means the room has to sort each label before it can read any of them, so everything here is on the line.
 
 ## figure: Three roles, one incident | a swimlane {.full #swimlane}
 
@@ -808,7 +897,7 @@ step answered
 
 **Every hand-off changes band, and `.elbow` is the routing for it.** The class draws two waypoints itself – a rail halfway across the gap, on the axis the two ends are further apart on – instead of the same double bend written out by hand on every edge. A straight line would do something else: it would run diagonally through a band it never enters, and the room reads that as involvement.
 
-**The one edge label sits *beside* the line, not on it.** “same sender” describes what travels along the line, and a sentence with a rule through the middle of it is read as two fragments before it is read as a sentence. `side top` lifts it over the line; on a vertical edge it would be `side left` and `side right`, and which pair applies is known only once the edge has been routed – so the wrong pair is a warning at build time rather than an error at parse time. The label is moved clear by what it measures *across* the line: beside a horizontal edge its height, beside a vertical one its width, there with a margin, because a gap across a line of type needs more air than one above it. This label needs no ground: there is nothing but band under it. What a ground does, and how large it may be, is at the ROC curves above.
+**The one edge label sits *beside* the line, not on it.** “same sender” describes what travels along the line, and a sentence with a rule through the middle of it is read as two fragments before it is read as a sentence. `side top` lifts it over the line; on a vertical edge it would be `side left` and `side right`, and which pair applies is known only once the edge has been routed – so the wrong pair is a warning at build time rather than an error at parse time. The label is moved clear by what it measures *across* the line: beside a horizontal edge its height, beside a vertical one its width, there with a margin, because a gap across a line of type needs more air than one above it. This label needs no ground: there is nothing but band under it. What a ground does, and how large it may be, is on *A frame to draw in*.
 
 ## figure: Leaves first, and the brackets follow | a tree {.full #tree}
 
@@ -994,3 +1083,10 @@ step verdict
 **The first keypress, click or scroll stops it for good.** Whoever has touched the deck has taken over, and a timer running on underneath them is worse than none. For the same reason it does not start at all on a slide that is already half revealed: half revealed means somebody left it that way.
 
 **Between 200 ms and 60 s, and outside that refused rather than clamped.** Under 200 ms the room reads no beat; over a minute a “moving” figure is a still one that changes while nobody is watching. A clamped number is a number nobody wrote.
+
+## closing: The drawing lives in the source | so it is reviewed, diffed and fixed where the words are {#end}
+
+Seventeen statements, one inline `<svg>` per figure, and beats that ride the
+same counter a reveal does. Nothing in this lecture is a file exported from a
+drawing tool and pasted back in – which is why a figure survives the edit that
+renames the thing it is about.

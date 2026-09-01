@@ -70,6 +70,10 @@ loudly the opening slide announces itself rather than alphabetically.
   the picture on top, the title centred in the band below
 :::
 
+A name and a sentence carry the idea; they do not carry the shape it makes. Each
+of the ten is shot from a real build in the
+[gallery](https://uba-psi.github.io/psi-slides/#covers).
+
 ## free: Three keys the cover reads {.wide #cover-keys}
 
 **`cover-image:`** names the picture, and four of the ten draw one: `split`,
@@ -133,6 +137,10 @@ has failed at it.
 - **outline**\
   the running agenda: every part listed, this one live. Used here
 :::
+
+The six are in the same
+[gallery](https://uba-psi.github.io/psi-slides/#covers) as the covers, under the
+same rule: a deck settles on one and wears it at every part.
 
 ## principle: What a running agenda says that a coloured field cannot {.standard #outline-why}
 
@@ -312,7 +320,7 @@ What moves is the window, not the picture. The photograph is painted across the
 whole slide either way and the frame opens and closes over it, so nothing zooms
 or slides about while it is being revealed.
 
-## figure: {.full #reveal-open}
+## figure: A picture that retreats {.full #reveal-open .bare}
 
 ::: backdrop dusk {cover clear} reveal full, right 52%
 
@@ -335,7 +343,7 @@ An overlay fades in where a reveal segment simply appears. A segment is part of
 the flowing text, so what follows it closes up as it arrives; an overlay sits in
 its own cell over the picture and nothing else moves.
 
-## figure: {.full #reveal-close}
+## figure: A picture that covers the words {.full #reveal-close .bare}
 
 ::: backdrop dusk {cover clear over} reveal right 45%, full
 
@@ -412,6 +420,10 @@ So `## figure: How a crawl is scored {.full #id .bare}` prints the heading,
 indexes it, and draws nothing on screen. `style: {headings: off}` says the same
 for a whole deck. Press `/` and search for *measurement loop*: it matches this
 slide and the next one, and the next one carries no heading on screen at all.
+
+The two revealed photographs in Part 4 are the case the class was written for:
+each is a picture and a speaker note, each would have read wrong with a line of
+type above it, and each is still a row in the search index.
 
 ## figure: The measurement loop {.full #bare-loop .bare}
 

@@ -37,6 +37,13 @@
 * { box-sizing: border-box; }
 html { font-family: var(--serif); font-size: 10pt; color: var(--ink); line-height: 1.6; background: var(--paper); text-rendering: optimizeLegibility; }
 body { margin: 0; }
+/* style: {print-body: sans}. One declaration on <body> is the whole switch:
+   it beats what body inherits from html, and everything below that should
+   stay a sans or a mono names its own family already, so only what actually
+   inherited the serif moves - the running text, the chunk and column
+   headings, a blockquote. The page number in @page is outside the document
+   tree and was never the serif. */
+body[data-print-body=sans] { font-family: var(--sans); }
 
 main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
 
@@ -1130,6 +1137,12 @@ loudly the opening slide announces itself rather than alphabetically.</p>
 </ul>
 
 </div>
+
+
+<p>A name and a sentence carry the idea; they do not carry the shape it makes. Each
+of the ten is shot from a real build in the
+<a href="https://uba-psi.github.io/psi-slides/#covers" target="_blank" rel="noopener noreferrer">gallery</a><button type="button" class="link-code" data-link-code="https://uba-psi.github.io/psi-slides/#covers" aria-label="Show this address large, with a code to scan"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M1 1h5.4v5.4H1V1zm1.3 1.3v2.8h2.8V2.3H2.3zM9.6 1H15v5.4H9.6V1zm1.3 1.3v2.8h2.8V2.3h-2.8zM1 9.6h5.4V15H1V9.6zm1.3 1.3v2.8h2.8v-2.8H2.3z"/><path d="M8 1h1.2v3.1H8V1zm0 4.3h1.2v2.4h2.3v1.2H8V5.3zm5.5 2.4H15v1.2h-1.5V7.7zM8 10.1h1.2v1.4H8v-1.4zm2.4 0H15v1.2h-1.9v1.4H15V15h-1.2v-2.1h-2.2v-1.4h-1.2v-1.4zM8 12.6h1.2V15H8v-2.4z"/></svg></button>.</p>
+
   
   
   
@@ -1222,6 +1235,12 @@ has failed at it.</p>
 </ul>
 
 </div>
+
+
+<p>The six are in the same
+<a href="https://uba-psi.github.io/psi-slides/#covers" target="_blank" rel="noopener noreferrer">gallery</a><button type="button" class="link-code" data-link-code="https://uba-psi.github.io/psi-slides/#covers" aria-label="Show this address large, with a code to scan"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M1 1h5.4v5.4H1V1zm1.3 1.3v2.8h2.8V2.3H2.3zM9.6 1H15v5.4H9.6V1zm1.3 1.3v2.8h2.8V2.3h-2.8zM1 9.6h5.4V15H1V9.6zm1.3 1.3v2.8h2.8v-2.8H2.3z"/><path d="M8 1h1.2v3.1H8V1zm0 4.3h1.2v2.4h2.3v1.2H8V5.3zm5.5 2.4H15v1.2h-1.5V7.7zM8 10.1h1.2v1.4H8v-1.4zm2.4 0H15v1.2h-1.9v1.4H15V15h-1.2v-2.1h-2.2v-1.4h-1.2v-1.4zM8 12.6h1.2V15H8v-2.4z"/></svg></button> as the covers, under the
+same rule: a deck settles on one and wears it at every part.</p>
+
   
   
   
@@ -1514,7 +1533,7 @@ or slides about while it is being revealed.</p>
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></span>
   
-  
+  <h2 class="chunk-heading">A picture that retreats</h2>
   
   <div class="overlay-layer">
 <div class="overlay-card ov-left ov-clear ov-w-standard" data-from="1"><h3>The picture retreats</h3>
@@ -1546,7 +1565,7 @@ its own cell over the picture and nothing else moves.</p>
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-over" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></span>
   
-  
+  <h2 class="chunk-heading">A picture that covers the words</h2>
   
   <div class="overlay-layer">
 <div class="overlay-card ov-bottom-left ov-ink ov-w-standard" data-from="1"><p><strong>A title can be covered</strong><br>as well as added to.</p>
@@ -1623,6 +1642,9 @@ usually wants to lose only the first.</p>
 indexes it, and draws nothing on screen. <code>style: {headings: off}</code> says the same
 for a whole deck. Press <code class="nb">/</code> and search for <em>measurement loop</em>: it matches this
 slide and the next one, and the next one carries no heading on screen at all.</p>
+<p>The two revealed photographs in Part 4 are the case the class was written for:
+each is a picture and a speaker note, each would have read wrong with a line of
+type above it, and each is still a row in the search index.</p>
 
   
   
