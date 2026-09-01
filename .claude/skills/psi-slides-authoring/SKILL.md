@@ -1,6 +1,6 @@
 ---
 name: psi-slides-authoring
-description: Write or edit a psi-slides lecture source.md – chunk grammar (## tag: Heading | Sub {.width #id}), the ::: directive vocabulary (expand, margin, marginalia, cols, cards, side/flip, slide, script, backdrop, overlay), reveal segments, speaker notes, image shorthand, KaTeX math, and the frontmatter keys (viewer defaults, cover variants, the style block, embedded fonts). Use when drafting a new lecture, restructuring or polishing an existing one, fixing lint findings from lint.js, or when a Markdown file has chunk headings like "## principle:" / "## definition:" or ":::" blocks. Not for changing build.js or lint.js themselves.
+description: Write or edit a psi-slides lecture source.md – chunk grammar (## type: Heading | Sub {.width #id}), the ::: directive vocabulary (expand, margin, marginalia, cols, cards, side/flip, slide, script, backdrop, overlay), reveal segments, speaker notes, image shorthand, KaTeX math, and the frontmatter keys (viewer defaults, cover variants, the style block, embedded fonts). Use when drafting a new lecture, restructuring or polishing an existing one, fixing lint findings from lint.js, or when a Markdown file has chunk headings like "## principle:" / "## definition:" or ":::" blocks. Not for changing build.js or lint.js themselves.
 ---
 
 # Authoring psi-slides lectures
@@ -70,12 +70,12 @@ of the live deck. A chunk may appear before the first `#`; that is how the
 ### Chunks
 
 ```
-## tag: Heading | quieter sub-heading {.width #id}
+## type: Heading | quieter sub-heading {.width #id}
 ```
 
-- `tag:` is optional. Without one the whole line is the heading and the chunk
+- `type:` is optional. Without one the whole line is the heading and the chunk
   renders and lints as `free`. A lowercase `word:` prefix that is *not* one of
-  the ten tags is an `unknown-tag` error, not a silent heading.
+  the ten types is an `unknown-type` error, not a silent heading.
 - `|` splits the heading into a main line and a typographically quieter second
   line. Further `|` segments are joined into that second line.
 - The attribute tail recognises four things: a width class, `#id`, `.bare`
@@ -91,9 +91,9 @@ of the live deck. A chunk may appear before the first `#`; that is how the
   speaker-sync snapshots, exported annotations, and `localStorage`. Renaming a
   heading is free; renaming an id is not.
 
-Tags (ten, exhaustive) and what they mean in practice:
+Types (ten, exhaustive) and what they mean in practice:
 
-| Tag | Use for | Word budget the linter enforces |
+| Type | Use for | Word budget the linter enforces |
 |---|---|---|
 | `title` | the cover chunk, normally `## title: {#title}` | unlimited |
 | `closing` | the last slide, drawn in the cover's composition with its own heading and body | 60 |
@@ -126,12 +126,12 @@ Next week: certificates, and who you are actually trusting.
 Widths (four, exhaustive): `.narrow` (28em), `.standard` (36em, the default),
 `.wide` (52em), `.full` (72em).
 
-**The tag never sets the width.** They are independent axes: the tag decides
+**The type never sets the width.** They are independent axes: the type decides
 treatment and budget, the width decides how much stage the chunk takes. In
-particular `principle` is not a narrow tag – prefer `.standard` for it, because
+particular `principle` is not a narrow type – prefer `.standard` for it, because
 anything longer than one sentence turns into a tall thin ribbon in `.narrow`.
 
-The live views do **not** print the tag name on screen. Do not write prose that
+The live views do **not** print the type name on screen. Do not write prose that
 depends on the room seeing the word DEFINITION.
 
 ## What lands on the slide
@@ -738,9 +738,9 @@ The `style:` block sets the type for the whole lecture:
 
 ```yaml
 style:
-  headings: left        # auto | left | center | off  - auto keeps the per-tag treatment
+  headings: left        # auto | left | center | off  - auto keeps the per-type treatment
   rules: off            # on | off              - the hairline above principle/definition
-  labels: off           # on | off              - the generated tag word (PRINCIPLE, EXERCISE...)
+  labels: off           # on | off              - the generated type word (PRINCIPLE, EXERCISE...)
   link-codes: off       # on | off              - the mark after an external link
   heading-scale: 1.15   # 0.6 … 1.8
   body-scale: 0.95      # 0.6 … 1.8
@@ -771,7 +771,7 @@ shows the address on both screens, large, with a QR code beside it; up to
 1.0.0 that view was reachable only by `Shift`-clicking the link, which still
 works.
 
-`labels: off` hides the generated tag word in **both** views: the document
+`labels: off` hides the generated type word in **both** views: the document
 renderer labels principle, question, definition and exercise, the projection
 generates only EXERCISE. Separate from `rules`, which hides the bar and the
 hairline - a word and a line are not one decision.
@@ -811,12 +811,12 @@ node lint.js lectures/<slug>/source.md    # one file
 node lint.js lectures/ --strict           # warnings exit 2
 ```
 
-Rules you will meet while authoring: `unknown-tag`, `unknown-width`,
+Rules you will meet while authoring: `unknown-type`, `unknown-width`,
 `missing-id`, `duplicate-id`, `multiple-ids`, `title-count`, `density`,
 `duplicate-explicit-block`, `unclosed-directive`, `stray-directive`,
 `stray-directive-close`, `nested-directive`, `unclosed-math`, `reveal-overuse`,
 `orphan-column` (a column with fewer than two chunks),
-`figure-caption-redundant`, `single-word-bold`, `figure-tag-without-figure`,
+`figure-caption-redundant`, `single-word-bold`, `figure-type-without-figure`,
 `oversized-asset`,
 `unknown-view-default`,
 `unknown-style-setting`, `bad-backdrop`, `bad-backdrop-class`,
@@ -831,10 +831,10 @@ paragraphs – a list item is shown whole and never triggers it, and neither doe
 anything in a `::: slide`, a `::: script`, a `::: cards` or a code fence. See
 `reference/style.md` for the two fixes.
 
-`figure-tag-without-figure` is a chunk tagged `figure:` whose body holds no
+`figure-type-without-figure` is a chunk typed `figure:` whose body holds no
 `::: draw`, image, `::: backdrop`, `::: embed` or code fence. The slide renders
 identically either way, so this is not about the projection – the `O` overview
-board and the speaker view both read the tag, and a deck with eight `figure:`
+board and the speaker view both read the type, and a deck with eight `figure:`
 chunks holding `::: cards` lists reports twice the figures it has.
 
 **Two checks that were tried and deliberately not shipped**, because a
@@ -907,7 +907,7 @@ warning go away unread.
 ## Workflow
 
 1. Frontmatter, the `title` chunk, and the column headings.
-2. Chunks with explicit tags, widths, and IDs. Main argument as plain prose.
+2. Chunks with explicit types, widths, and IDs. Main argument as plain prose.
 3. **Mechanism pass**: per chunk, decide derived / `::: slide` / `::: script`.
    Do this before polishing, because it changes what the prose has to achieve.
 4. **Topic-sentence and bold audit** on the derived chunks. Squint test.
@@ -917,12 +917,12 @@ warning go away unread.
 7. `node lint.js <source.md>`.
 8. Build, open `audience.html`, press `C` on every chunk. Anything fragmented
    goes back to step 3 or 4. Press `O` for the overview board: repeated
-   sentence openers, tag monotony, and over-dense chunks show up there and
+   sentence openers, type monotony, and over-dense chunks show up there and
    nowhere else.
 
 ## Gotchas
 
-- Only the ten tags and four widths exist. `.bare` and `.center` are the two
+- Only the ten types and four widths exist. `.bare` and `.center` are the two
   non-width classes an attribute tail may carry; anything else is an
   `unknown class` error. Neither is legal on a `title` or `closing` chunk,
   where the cover composition decides all three questions.
@@ -942,6 +942,6 @@ warning go away unread.
   reference, a lecture that teaches the tool by being the tool.
 - `lectures/python-intro/source.md` – the richest worked example of `cols`,
   `side` and `marginalia` together.
-- `PRD.md` sections 2, 2.1, 3, 4.5 – the content model, tag vocabulary,
+- `PRD.md` sections 2, 2.1, 3, 4.5 – the content model, type vocabulary,
   source format, and the explicit-slide rationale.
 - `CLAUDE.md` – repo conventions and a map of `build.js`.

@@ -176,7 +176,7 @@ a decision the name does not:
 
 ### Parser
 
-`parseLecture(src)` is **line-based, not AST-based**. It walks the source tracking fence state, a `layoutStack` of open `:::` directives, a `currentExpansion` slot, and `pendingNotes`, emitting a `{frontmatter, columns: [{chunks: [...]}]}` structure. `marked` is only invoked later on each chunk's *body string* – by the time `marked` runs, reveal segments have already been split on standalone `---` lines (fence-aware). Attribute-tail syntax `{.width #id}` and the `tag: Heading | Sub {...}` prefix are parsed by hand, not by `marked`.
+`parseLecture(src)` is **line-based, not AST-based**. It walks the source tracking fence state, a `layoutStack` of open `:::` directives, a `currentExpansion` slot, and `pendingNotes`, emitting a `{frontmatter, columns: [{chunks: [...]}]}` structure. `marked` is only invoked later on each chunk's *body string* – by the time `marked` runs, reveal segments have already been split on standalone `---` lines (fence-aware). Attribute-tail syntax `{.width #id}` and the `type: Heading | Sub {...}` prefix are parsed by hand, not by `marked`.
 
 Design implications:
 
@@ -194,10 +194,10 @@ The **diagram vocabulary is the exception**: it is imported from `diagram-core.m
 
 Checks enforced:
 
-- Unknown tag, unknown width class.
+- Unknown type, unknown width class.
 - Duplicate or missing chunk IDs (required on every non-title chunk).
 - Unclosed `:::` directives and orphan `:::` closers.
-- Per-tag word-count budgets (principle/question 80, definition 200, example 250, free 250, exercise 350; title/figure unlimited). Counted against the **on-screen** half only: the `::: slide` block if the chunk has one, otherwise everything outside `::: script`.
+- Per-type word-count budgets (principle/question 80, definition 200, example 250, free 250, exercise 350; title/figure unlimited). Counted against the **on-screen** half only: the `::: slide` block if the chunk has one, otherwise everything outside `::: script`.
 - Duplicate `::: slide` / `::: script` blocks in one chunk (warning).
 - Unknown value for a viewer-default frontmatter key (`unknown-view-default`, error).
 - Assets over the 2 MB inline cap (`oversized-asset`, warning) – the pre-commit gate for the single-file property.
@@ -252,17 +252,17 @@ Errors of this kind set `err.userFacing = true`; the top-level handler prints th
 
 ### Authoring contract
 
-By default every chunk must open with a **topic sentence that stands on its own**, because in the live audience view the `topic-bold` collapse mode renders only that sentence plus any `**bold**` fragments. Authors promote bullet-worthy phrases to bold; unbolded continuation prose renders only in print. This shapes both the render logic (the `splitSentencesIn` walker and collapse CSS) and the lint budgets (narrow tags have small budgets because the topic sentence is the payload).
+By default every chunk must open with a **topic sentence that stands on its own**, because in the live audience view the `topic-bold` collapse mode renders only that sentence plus any `**bold**` fragments. Authors promote bullet-worthy phrases to bold; unbolded continuation prose renders only in print. This shapes both the render logic (the `splitSentencesIn` walker and collapse CSS) and the lint budgets (narrow types have small budgets because the topic sentence is the payload).
 
 A chunk can opt out of that derivation with `::: slide` (this block is the screen) or `::: script` (everything but this block is the screen). Use it when the argument wants continuous prose that no first-sentence rule can carve up sensibly. See PRD §4.5.
 
 ### Chunk grammar
 
-Chunk grammar: `## tag: Heading | Sub-Heading {.width #id}` where `tag` is one of `title`, `closing`, `outline`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`, and width is one of `narrow` (28em), `standard` (36em), `wide` (52em), `full` (72em). The `|` sub-heading and the `{...}` attribute tail are both optional; width defaults to `standard`.
+Chunk grammar: `## type: Heading | Sub-Heading {.width #id}` where `type` is one of `title`, `closing`, `outline`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`, and width is one of `narrow` (28em), `standard` (36em), `wide` (52em), `full` (72em). The `|` sub-heading and the `{...}` attribute tail are both optional; width defaults to `standard`.
 
 Four things worth knowing before writing chunks, all learned the hard way:
 
-- **`principle` is not a narrow tag.** The tag sets treatment and budget, never width, but the docs used to pair it with `.narrow` and every example followed – which meant anything longer than one sentence became a tall thin ribbon. Prefer `.standard` for principles. `narrow` itself went from 22em to 28em for the same reason.
+- **`principle` is not a narrow type.** The type sets treatment and budget, never width, but the docs used to pair it with `.narrow` and every example followed – which meant anything longer than one sentence became a tall thin ribbon. Prefer `.standard` for principles. `narrow` itself went from 22em to 28em for the same reason.
 - **Code lines have a width budget, and it is smaller than it looks.** A `<pre>` does not wrap, so a long line would run off the projection. `clampZoomToWidth()` stops that by shrinking *that one slide* – never the lecturer's zoom setting, which is global and comes back on the next chunk. The budget at the default zoom (1.35) in a 16:9 window is roughly **78 characters**, and it is the **same at every chunk width**: a top-level code block breaks out of the text column to 72vw and pins to the slide centre, so `.narrow` and `.full` give a line exactly as much room. Inside one pane of a `::: side` the block stays in its local container and the budget is about **36**. The count holds for any 16:9 window, because the base font is a fraction of the slide height, and it is measured against the bundled JetBrains Mono at 0.60 em per character – `mono: Noto Sans Mono Condensed` measures 0.50 and buys about **94**. (It was ~57 and ~27 until `.chunk-body pre` stopped multiplying by `var(--zoom)` a second time – code is set at 0.78 of the prose it sits in, and until that fix the ratio only held at zoom 1.) Over budget is not an error, it is a slide rendered smaller than its neighbours – so treat a heavily clamped chunk as a signal to break the line, not as something the runtime should fix harder.
 - **A chunk's heading can be the document's without being the slide's.** `## figure: How a crawl is scored {.full #loop .bare}` renders the heading in `print.html` and in the search index, and **not on the projection**. `style: {headings: off}` is the same switch for a whole deck. The case is a talk that is a run of `::: draw` figures with speaker notes: the room looks at the drawing, and the deck still needs a name per slide to navigate by and to print. Leaving the heading *text* out gives up all four at once, which is the trade the `psi-slides-appearance` skill's note on figure headings describes; this gives up only the first.
 
@@ -280,7 +280,7 @@ Four things worth knowing before writing chunks, all learned the hard way:
 
   An unknown class in that tail used to be dropped without a word by the build while `lint.js` called it an unknown *width*, which named the wrong thing; both now say "unknown class" and list what a tail takes. Neither class is legal on a `title` or `closing` chunk, where the cover composition decides the width, the heading and, through `cover-align`, where the words sit.
 
-- **The live views do not print the tag name.** The small-caps eyebrow (PRINCIPLE, DEFINITION, …) was removed from `renderAudienceChunk`: it announced a taxonomy that is only as right as the tag choice was, and a mislabelled slide reads to the room as an error. `renderChunk` (the document renderer) still emits `.chunk-label`, and `.tag-label` in the audience is now only the *expansion* label. Search results read the tag off `data-tag` for this reason.
+- **The live views do not print the type name.** The small-caps eyebrow (PRINCIPLE, DEFINITION, …) was removed from `renderAudienceChunk`: it announced a taxonomy that is only as right as the type choice was, and a mislabelled slide reads to the room as an error. `renderChunk` (the document renderer) still emits `.chunk-label`, and `.tag-label` in the audience is now only the *expansion* label. Search results read the type off `data-tag` for this reason.
 
 ### Animated infographics (`::: draw`) and the diagram editor
 
@@ -373,7 +373,7 @@ position with it. See `speaker.md` §2.
 ## Reference material
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
-- `PRD.md` – §1 non-negotiables, §2 content model, §2.1 tag vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
+- `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.
 - `.claude/skills/psi-slides-authoring/SKILL.md` – **how to write a lecture `source.md`**: the chunk grammar in practice, the `:::` directive vocabulary, reveal segments, notes, images and math, with worked examples. Invoked as the `psi-slides-authoring` skill.
@@ -398,7 +398,8 @@ position with it. See `speaker.md` §2.
 ## Conventions
 
 - **En-dashes only.** Use `–` or `&ndash;` in all prose (docs, markdown, comments, lecture sources). Never em-dashes (`—`).
-- When adding or renaming a chunk tag, change it in **both** `build.js` and `lint.js` (and document the visual treatment in `PRD.md` §2.1).
+- When adding or renaming a chunk type, change it in **both** `build.js` and `lint.js` (and document the visual treatment in `PRD.md` §2.1).
+- **The word is "type" everywhere a user reads it and `tag` everywhere the code says it.** Prose, headings and linter messages say *chunk type*; `VALID_TAGS`, `chunk.tag`, `data-tag`, `.tag-label` and `parseTagPrefix` keep the old name, because `data-tag` is in the published outputs and is what the search index and the speaker's lists read. Renaming the identifiers would change an output attribute for no reader's benefit. The `::: draw` `@tag` is a different thing altogether and stays a tag.
 - Don't commit generated HTML outputs – they are regenerated per build and gitignored. Exception: **`lectures/tutorial/` and `lectures/diagrams/` track all four views**, and **`lectures/decoration/` tracks two, `audience.html` and `print.html`**. What the decoration reference demonstrates is what a slide looks like, so the projection and the printed document carry the whole of it; the notes view and the cockpit would add about 2 MB of tracked HTML and show nothing the other two do not. Rebuild and commit when any of the three sources changes. The release workflow fails if they are stale.
 - `{#id}` attributes on chunks are **frozen once authored**. They are the anchor for cross-references, TOC entries, speaker-sync snapshots, and localStorage persistence. Don't renumber them reflexively when headings change.
 - Shiki is loaded once and cached across `--watch` rebuilds; adding a new language means extending `SHIKI_LANGS` (and optionally `LANG_ALIAS`) at the top of `build.js`.

@@ -221,7 +221,7 @@ not fight the rest of the film. Font 18 px, line numbers on. Open
    - the `> note:` block at the end of the chunk
 
 **Post.** As each selection is made, a 22 px Iosevka label slides in from the
-right margin, ink-soft, and holds until the next: `tag + heading`,
+right margin, ink-soft, and holds until the next: `type + heading`,
 `the slide`, `also the slide`, `only for you`.
 
 ### Narration

@@ -1888,6 +1888,18 @@ marked.use({
       }
       return `<pre><code>${escapeHtml(code)}</code></pre>\n`;
     },
+    // A code span is one token to the reader, and the default line-breaking
+    // rules break it after any hyphen in it: `---`, the segment separator,
+    // came out as "-" ending one line and "--" opening the next, which reads
+    // as two different separators. white-space: nowrap is the only thing that
+    // stops it (word-break, line-break and overflow-wrap were all measured in
+    // a built page and all still broke), and it cannot go on every span: the
+    // widest one in the tutorial is a 46-character linter directive already
+    // filling 97% of its line, and unbreakable it would leave the column. A
+    // span with no space in it is short by construction, so that is the test.
+    codespan(text) {
+      return `<code${/\s/.test(text) ? '' : ' class="nb"'}>${text}</code>`;
+    },
     image(href, title, text) {
       // Shorthand: bare id (no slash, no extension) → assets/<id>.<ext>
       const isShorthand = href && !/[\\/]/.test(href) && !/\.[a-z0-9]+$/i.test(href);
@@ -4538,6 +4550,11 @@ li > p:first-child { margin-top: 0; }
 li > p:last-child { margin-bottom: 0.3em; }
 
 code { font-family: var(--mono); font-size: 0.92em; }
+/* Set by the codespan renderer on a span with no space in it – see the note
+   there. Keeps a three-hyphen separator, or an arrow token, from being split
+   across a line break. No backtick in this comment: PRINT_CSS is a template
+   literal and one would end it. */
+code.nb { white-space: nowrap; }
 pre {
   font-family: var(--mono);
   font-size: 0.85em;
@@ -5648,7 +5665,7 @@ function renderHelpOverlay(view, withEditor) {
       ['<kbd>L</kbd>', 'slide numbers: stacked → in a row → off'],
       ['<kbd>B</kbd>', 'blank the projection – the speaker window keeps working, frozen or not'],
       ['<kbd>Shift</kbd>-any', 'cycle that knob backwards'],
-      ['on a touchscreen', 'the same knobs sit behind the ⋯ button in the corner rail'],
+      ['on a touchscreen', 'the same settings sit behind the ⋯ button on the toolbar'],
     ]],
   ];
   const speakerOnly = [
@@ -6220,6 +6237,10 @@ a:hover { text-decoration-thickness: 2px; }
 .chunk-body ul, .chunk-body ol { margin: 0 0 0.7em 1.4em; }
 .chunk-body li { margin: 0.15em 0; }
 .chunk-body code { font-family: var(--mono-font); font-size: 0.92em; }
+/* See the codespan renderer: a span with no space in it is one token and is
+   not broken across lines. Bare element selector, so the heading, the
+   expansions and the cockpit get it too. */
+code.nb { white-space: nowrap; }
 /* Same reason as the matching rule in PRINT_CSS: the bundled mono face
    ligates the arrow tokens into one glyph, and a slide is where the room is
    reading the token rather than the prose. Bare element selectors, so the

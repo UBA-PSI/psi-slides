@@ -37,7 +37,7 @@ Three commitments explain nearly every difference below.
 
 **The artefact survives leaving the machine.** The four outputs inline everything: CSS, runtime JavaScript, images as `data:` URIs or spliced-in `<svg>`, KaTeX-rendered maths with the woff2 faces those formulas need, and, if the author supplies the files, the text typefaces. `build.js` contains no HTTP URLs at all, and the only URL-shaped strings in a built output are the SVG and MathML XML namespaces. Open one with the network unplugged and it is complete.
 
-**The source is text under version control.** One Markdown file per lecture, a closed grammar of eight tags and eight `:::` directives, and a zero-dependency linter enforcing per-tag word budgets. A semester of lectures is greppable and mergeable.
+**The source is text under version control.** One Markdown file per lecture, a closed grammar of eight types and eight `:::` directives, and a zero-dependency linter enforcing per-type word budgets. A semester of lectures is greppable and mergeable.
 
 What that combination costs is set out at the end, and it is not cheap.
 
@@ -142,7 +142,7 @@ What is still missing is a diagram pipeline that *computes* anything. The chart 
 
 ### Fonts and typographic control
 
-An opinionated tool can be genuinely better than a general one here. psi-slides has a chunk-tag vocabulary that sets treatment, four width classes on the internal measure, an OKLCH palette, and a documented list of ornaments the design refuses (PRD §10). Fonts embed from a `fonts/` directory in woff2, woff, ttf or otf, with weight and style read off the filename; naming a family with no matching file fails the build rather than falling back silently.
+An opinionated tool can be genuinely better than a general one here. psi-slides has a chunk-type vocabulary that sets treatment, four width classes on the internal measure, an OKLCH palette, and a documented list of ornaments the design refuses (PRD §10). Fonts embed from a `fonts/` directory in woff2, woff, ttf or otf, with weight and style read off the filename; naming a family with no matching file fails the build rather than falling back silently.
 
 The flip side is that there is exactly one design and no template gallery. You get the project's taste. Beamer has many themes and most universities ship an official one; PowerPoint, Keynote and Google Slides have vast template markets; reveal.js, Marp and Slidev all have theme ecosystems and Marp themes are plain CSS. Deckset is an interesting middle case: it has 25 or so built-in themes but custom theming is style commands layered on those built-ins rather than authoring a theme from scratch. If your faculty requires a corporate slide master, psi-slides cannot give you one, and there is no export path to a tool that can.
 
@@ -204,7 +204,7 @@ Where psi-slides loses badly is *collaboration*. No co-editing, no comments, no 
 
 ### Writing with an LLM assistant
 
-Worth its own dimension because it has changed how lectures get drafted. A closed Markdown grammar plus a linter is close to ideal for a model: nothing to guess, no binary format, and `node lint.js` catches most of what a model gets wrong (invented directives, unknown tags, missing IDs, over-budget chunks). This repository ships an authoring skill for exactly that. The same is broadly true of Beamer, Quarto, Marp and Slidev, all of which are text, and Slidev now ships an MCP server for agents to inspect and edit slides. It is not true of PowerPoint, where a model must drive an API or generate OOXML.
+Worth its own dimension because it has changed how lectures get drafted. A closed Markdown grammar plus a linter is close to ideal for a model: nothing to guess, no binary format, and `node lint.js` catches most of what a model gets wrong (invented directives, unknown types, missing IDs, over-budget chunks). This repository ships an authoring skill for exactly that. The same is broadly true of Beamer, Quarto, Marp and Slidev, all of which are text, and Slidev now ships an MCP server for agents to inspect and edit slides. It is not true of PowerPoint, where a model must drive an API or generate OOXML.
 
 The failure mode to watch, which no checker catches: models renumber `{#id}` attributes when they rewrite a heading, silently breaking cross-references and stored speaker state.
 

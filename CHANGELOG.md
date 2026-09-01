@@ -9,6 +9,30 @@ from building the same way is a major version.
 
 ### Changed
 
+- **The word for what a chunk is has changed from *tag* to *type* everywhere a
+  user reads it.** `## principle:` is unchanged and no `source.md` needs
+  editing – the source format never contained the word. What changed is the
+  prose (`README.md`, `PRD.md`, the authoring skill, the tutorial lecture) and
+  two linter rule ids: `unknown-tag` is now `unknown-type` and
+  `figure-tag-without-figure` is now `figure-type-without-figure`. A source
+  silencing either by its old name with `<!-- linter: ignore … -->` starts
+  reporting it again; rename it in the comment.
+
+  The code keeps the old name: `VALID_TAGS`, `chunk.tag`, `parseTagPrefix` and
+  the `data-tag` attribute in the published HTML are unchanged, because
+  `data-tag` is what the search index and the speaker's own lists read and
+  renaming it would break anyone's CSS for no reader's benefit. The `::: draw`
+  `@tag` is a different thing and stays a tag.
+
+- **A code span with no space in it is no longer broken across a line.** The
+  default line-breaking rules break after any hyphen, so `---` – the segment
+  separator – came out as a hyphen ending one line and two opening the next,
+  which reads as two different separators. The renderer marks such a span and
+  the stylesheets set `white-space: nowrap` on it. A span *with* a space in it
+  is left breakable: the widest one in the tutorial is a 46-character linter
+  directive already filling most of its line, and unbreakable it would leave
+  the text column.
+
 - **`::: margin` is now written `::: footnote`.** The old name was one
   keystroke from `::: marginalia`, which is a different construct in a
   different place – a marginalia goes out into the slide margin and can be

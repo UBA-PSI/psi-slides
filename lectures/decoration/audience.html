@@ -390,6 +390,10 @@ a:hover { text-decoration-thickness: 2px; }
 .chunk-body ul, .chunk-body ol { margin: 0 0 0.7em 1.4em; }
 .chunk-body li { margin: 0.15em 0; }
 .chunk-body code { font-family: var(--mono-font); font-size: 0.92em; }
+/* See the codespan renderer: a span with no space in it is one token and is
+   not broken across lines. Bare element selector, so the heading, the
+   expansions and the cockpit get it too. */
+code.nb { white-space: nowrap; }
 /* Same reason as the matching rule in PRINT_CSS: the bundled mono face
    ligates the arrow tokens into one glyph, and a slide is where the room is
    reading the token rather than the prose. Bare element selectors, so the
@@ -3700,7 +3704,7 @@ describes it.</p>
 archive on the releases page does not have it and a lecture that uses it will
 not build against that download.</p>
 <p>What you need instead is the repository: a clone, or <strong>Download ZIP</strong> from the
-project page, and the <code>build.js</code> inside it. The source format is frozen from
+project page, and the <code class="nb">build.js</code> inside it. The source format is frozen from
 1.0.0 onwards, so these constructions may still change before they are tagged.</p>
 </div></div>
     
@@ -3727,7 +3731,7 @@ project page, and the <code>build.js</code> inside it. The source format is froz
     <div class="section-body"><blockquote>
 <p>All ten covers are in the
 <a href="https://uba-psi.github.io/psi-slides/#covers" target="_blank" rel="noopener noreferrer">gallery</a><button type="button" class="link-code" data-link-code="https://uba-psi.github.io/psi-slides/#covers" aria-label="Show this address large, with a code to scan"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M1 1h5.4v5.4H1V1zm1.3 1.3v2.8h2.8V2.3H2.3zM9.6 1H15v5.4H9.6V1zm1.3 1.3v2.8h2.8V2.3h-2.8zM1 9.6h5.4V15H1V9.6zm1.3 1.3v2.8h2.8v-2.8H2.3z"/><path d="M8 1h1.2v3.1H8V1zm0 4.3h1.2v2.4h2.3v1.2H8V5.3zm5.5 2.4H15v1.2h-1.5V7.7zM8 10.1h1.2v1.4H8v-1.4zm2.4 0H15v1.2h-1.9v1.4H15V15h-1.2v-2.1h-2.2v-1.4h-1.2v-1.4zM8 12.6h1.2V15H8v-2.4z"/></svg></button>, each shot from a real
-build. This deck wears <code>quote</code>.</p>
+build. This deck wears <code class="nb">quote</code>.</p>
 </blockquote>
 </div>
   </div>
@@ -3737,7 +3741,7 @@ build. This deck wears <code>quote</code>.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Ten ways to open a lecture</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>cover:</code> in the frontmatter picks one of the ten below</strong>, ordered by how
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code class="nb">cover:</code> in the frontmatter picks one of the ten below</strong>, ordered by how
 loudly the opening slide announces itself rather than alphabetically.</p>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
@@ -3787,16 +3791,16 @@ loudly the opening slide announces itself rather than alphabetically.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading">Three keys the cover reads</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>cover-image:</code></strong> names the picture, and four of the ten draw one: <code>split</code>,
-<code>hero</code>, <code>beside</code> and <code>above</code>. On the last two it is only the fallback – they
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code class="nb">cover-image:</code></strong> names the picture, and four of the ten draw one: <code class="nb">split</code>,
+<code class="nb">hero</code>, <code class="nb">beside</code> and <code class="nb">above</code>. On the last two it is only the fallback – they
 take whatever you write under the <code>## title:</code> heading, so a <code>::: draw</code> can be
 the cover.</p>
-<p><strong><code>cover-ratio:</code></strong> is how much of the slide the picture takes, as a percentage
-between 15 and 75. Only the three that divide the slide read it – <code>split</code>,
-<code>beside</code> and <code>above</code>. A percentage and not a <code>W:H</code> ratio: the shape of the
+<p><strong><code class="nb">cover-ratio:</code></strong> is how much of the slide the picture takes, as a percentage
+between 15 and 75. Only the three that divide the slide read it – <code class="nb">split</code>,
+<code class="nb">beside</code> and <code class="nb">above</code>. A percentage and not a <code class="nb">W:H</code> ratio: the shape of the
 frame comes from the projector, and this splits it.</p>
-<p><strong><code>cover-align:</code></strong> puts the block of text at the <code>top</code>, the <code>middle</code> or the
-<code>bottom</code>. The seven compositions that leave the block any freedom read it.</p>
+<p><strong><code class="nb">cover-align:</code></strong> puts the block of text at the <code class="nb">top</code>, the <code class="nb">middle</code> or the
+<code class="nb">bottom</code>. The seven compositions that leave the block any freedom read it.</p>
 <p>Set either of the last two keys on a composition that has already settled the
 question and the build stops with an error rather than ignoring the line.</p>
 </div></div>
@@ -3816,11 +3820,11 @@ question and the build stops with an error rather than ignoring the line.</p>
   
   <div class="chunk-content">
     
-    <h2 class="chunk-heading"><code>quote</code> draws no quotation mark</h2>
+    <h2 class="chunk-heading"><code class="nb">quote</code> draws no quotation mark</h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p>A sentence set alone on a slide with a name under it <strong>already reads as a
 quotation</strong>, so there is no mark: no hanging curly quote, no glyph behind the
 words, no rule beside them.</p>
-<p>The claim is what you write under the <code>## title:</code> heading. A <code>quote</code> cover
+<p>The claim is what you write under the <code>## title:</code> heading. A <code class="nb">quote</code> cover
 without one fails the build.</p>
 </div></div>
     
@@ -3840,10 +3844,10 @@ without one fails the build.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading">The last slide closes the arc</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>## closing:</code> draws the last slide in whatever composition <code>cover:</code> names</strong>,
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>## closing:</code> draws the last slide in whatever composition <code class="nb">cover:</code> names</strong>,
 so the room sees the shape the lecture opened with.</p>
 <p>What it carries is different: your own heading, sub-heading and text, and
-neither the presenter line nor the <code>info</code> block – the room learned who is
+neither the presenter line nor the <code class="nb">info</code> block – the room learned who is
 talking and where an hour ago. The last slide of this lecture is one.</p>
 </div></div>
     
@@ -3941,7 +3945,7 @@ heading is the live item in the list rather than a second copy set beside it.</p
 recede. What carries progress is where the live item sits as it walks down the
 list, so the recession only has to say <em>not this one</em>. The live part is a size
 and not a third shade: two greys read from the back of a room, three do not.</p>
-<p><code>section-mark:</code> puts a short word over the heading. This lecture writes <code>Part</code>.
+<p><code class="nb">section-mark:</code> puts a short word over the heading. This lecture writes <code class="nb">Part</code>.
 Write nothing and nothing is drawn there.</p>
 </div></div>
     
@@ -3960,8 +3964,8 @@ Write nothing and nothing is drawn there.</p>
   
   <div class="chunk-content">
     
-    <h2 class="chunk-heading">The lines under a <code>#</code> heading are the divider&#39;s slide</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p>Whatever you write between a <code># Heading</code> and the first <code>##</code> heading under it
+    <h2 class="chunk-heading">The lines under a <code class="nb">#</code> heading are the divider&#39;s slide</h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p>Whatever you write between a <code># Heading</code> and the first <code class="nb">##</code> heading under it
 <strong>becomes the divider&#39;s slide.</strong> Ordinary markdown is the words, a
 <code>::: backdrop</code> is the picture, a <code>::: draw</code> is the figure.</p>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
@@ -3975,7 +3979,7 @@ Write nothing and nothing is drawn there.</p>
 
 
 <p>Those three are what a divider takes; the other directives belong inside a
-<code>##</code> slide. The words do print, as a short paragraph under the part title. The
+<code class="nb">##</code> slide. The words do print, as a short paragraph under the part title. The
 divider slide itself never prints.</p>
 </div></div>
     
@@ -4068,9 +4072,9 @@ than as a card</li>
   <div class="chunk-content">
     
     <h2 class="chunk-heading">What a card sits on</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p>The <code>ground</code> word says what is behind the text, and a row wears one at a time:
-these two are set to <code>accent</code> and to the default <code>panel</code>, whatever their cards
-say. <code>outline</code> is on the slide before this one, and <code>corner</code> is a separate
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p>The <code class="nb">ground</code> word says what is behind the text, and a row wears one at a time:
+these two are set to <code class="nb">accent</code> and to the default <code class="nb">panel</code>, whatever their cards
+say. <code class="nb">outline</code> is on the slide before this one, and <code class="nb">corner</code> is a separate
 question.</p>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-accent ck-round cx-veil">
 <ul>
@@ -4125,7 +4129,7 @@ whole row, never one per card.</p>
 
 <p>Alignment then follows the size, a single word centring and a sentence ranging
 left. A row that carries a second level ranges left whatever its heads measure,
-so the heads do not jump when the reader presses <code>C</code>.</p>
+so the heads do not jump when the reader presses <code class="nb">C</code>.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="cards-size">
@@ -4145,15 +4149,15 @@ so the heads do not jump when the reader presses <code>C</code>.</p>
     
     <h2 class="chunk-heading">One row serves two views</h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>detail: fold</code> is the default</strong>, so the levels under the first are in the
-printed hand-out and off the projection, and <code>C</code> switches between the two. This
+printed hand-out and off the projection, and <code class="nb">C</code> switches between the two. This
 deck opens with everything showing, because its frontmatter says
-<code>collapse: none</code>; press <code>C</code> once here and the second level folds away.</p>
+<code>collapse: none</code>; press <code class="nb">C</code> once here and the second level folds away.</p>
 <div class="cards cards-3 cs-large ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li><strong>fold</strong><ul>
 <li>off the projection</li>
 <li>in the document</li>
-<li><code>C</code> switches</li>
+<li><code class="nb">C</code> switches</li>
 </ul>
 </li>
 <li><strong>show</strong><ul>
@@ -4309,7 +4313,7 @@ or slides about while it is being revealed.</p>
   
   <div class="chunk-content">
     
-    <h2 class="chunk-heading"><code>from</code> holds an overlay back until a beat</h2>
+    <h2 class="chunk-heading"><code class="nb">from</code> holds an overlay back until a beat</h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: overlay {…} from 1</code> keeps the block off the slide</strong> until the first press
 of Space. One number, not a list: an overlay is either on the slide or it is
 not, where the backdrop&#39;s list says where the picture is at each beat.</p>
@@ -4359,18 +4363,18 @@ its own cell over the picture and nothing else moves.</p>
 each, and the first of every group is the default.</p>
 <div class="cards cards-5 cs-medium ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
-<li><strong>fill</strong><br><code>cover</code> <code>contain</code></li>
-<li><strong>crop</strong><br><code>middle</code> <code>top</code> <code>bottom</code></li>
-<li><strong>scrim</strong><br><code>veil</code> <code>clear</code> <code>invert</code></li>
-<li><strong>focus</strong><br><code>sharp</code> <code>blur</code></li>
-<li><strong>layer</strong><br><code>under</code> <code>over</code></li>
+<li><strong>fill</strong><br><code class="nb">cover</code> <code class="nb">contain</code></li>
+<li><strong>crop</strong><br><code class="nb">middle</code> <code class="nb">top</code> <code class="nb">bottom</code></li>
+<li><strong>scrim</strong><br><code class="nb">veil</code> <code class="nb">clear</code> <code class="nb">invert</code></li>
+<li><strong>focus</strong><br><code class="nb">sharp</code> <code class="nb">blur</code></li>
+<li><strong>layer</strong><br><code class="nb">under</code> <code class="nb">over</code></li>
 </ul>
 
 </div>
 
 
-<p><strong><code>veil</code> puts the theme&#39;s own page colour over the picture</strong>, not white, so
-ordinary text stays readable on a photograph in all seven themes. <code>invert</code>
+<p><strong><code class="nb">veil</code> puts the theme&#39;s own page colour over the picture</strong>, not white, so
+ordinary text stays readable on a photograph in all seven themes. <code class="nb">invert</code>
 darkens the picture and turns the text light instead, which is what the divider
 at the start of Part 2 does.</p>
 </div></div>
@@ -4395,9 +4399,9 @@ at the start of Part 2 does.</p>
 corner and they stack rather than landing on top of each other.</p>
 <div class="cards cards-3 cs-medium ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
-<li><strong>place</strong><br><code>center</code> and the eight compass points</li>
-<li><strong>ground</strong><br><code>paper</code> <code>ink</code> <code>accent</code> <code>clear</code> <code>glass</code></li>
-<li><strong>width</strong><br><code>narrow</code> <code>standard</code> <code>wide</code> <code>full</code></li>
+<li><strong>place</strong><br><code class="nb">center</code> and the eight compass points</li>
+<li><strong>ground</strong><br><code class="nb">paper</code> <code class="nb">ink</code> <code class="nb">accent</code> <code class="nb">clear</code> <code class="nb">glass</code></li>
+<li><strong>width</strong><br><code class="nb">narrow</code> <code class="nb">standard</code> <code class="nb">wide</code> <code class="nb">full</code></li>
 </ul>
 
 </div></div></div>
@@ -4429,14 +4433,14 @@ corner and they stack rather than landing on top of each other.</p>
   
   <div class="chunk-content">
     
-    <h2 class="chunk-heading"><code>{.bare}</code> gives up the projection and nothing else</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>{.bare}</code> keeps a heading out of the projection</strong> and leaves it everywhere
+    <h2 class="chunk-heading"><code class="nb">{.bare}</code> gives up the projection and nothing else</h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code class="nb">{.bare}</code> keeps a heading out of the projection</strong> and leaves it everywhere
 else. Writing no heading at all would cost the slide, the printed document and
 the search index together; a talk that is a run of figures with speaker notes
 usually wants to lose only the first.</p>
 <p>So <code>## figure: How a crawl is scored {.full #id .bare}</code> prints the heading,
 indexes it, and draws nothing on screen. <code>style: {headings: off}</code> says the same
-for a whole deck. Press <code>/</code> and search for <em>measurement loop</em>: it matches this
+for a whole deck. Press <code class="nb">/</code> and search for <em>measurement loop</em>: it matches this
 slide and the next one, and the next one carries no heading on screen at all.</p>
 </div></div>
     
@@ -4508,7 +4512,7 @@ slide and the next one, and the next one carries no heading on screen at all.</p
     <h1 class="title-main">A slide is a frame</h1>
     <p class="title-subtitle">and the frame can carry more than a column of text</p>
     <div class="closing-body"><p>None of these constructions changes a lecture that does not use them. A
-<code>source.md</code> written before any of them builds exactly as it did before.</p>
+<code class="nb">source.md</code> written before any of them builds exactly as it did before.</p>
 </div>
   </div>
   
@@ -4602,7 +4606,7 @@ slide and the next one, and the next one carries no heading on screen at all.</p
         <dt><kbd>L</kbd></dt><dd>slide numbers: stacked → in a row → off</dd>
         <dt><kbd>B</kbd></dt><dd>blank the projection – the speaker window keeps working, frozen or not</dd>
         <dt><kbd>Shift</kbd>-any</dt><dd>cycle that knob backwards</dd>
-        <dt>on a touchscreen</dt><dd>the same knobs sit behind the ⋯ button in the corner rail</dd>
+        <dt>on a touchscreen</dt><dd>the same settings sit behind the ⋯ button on the toolbar</dd>
       </dl>
     </section>
     <section>

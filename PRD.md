@@ -25,7 +25,7 @@ These are the commitments. Everything downstream is subordinate.
 
 **Column.** A vertical stack of related slides. Horizontal motion between columns signals a new sub-topic; vertical motion signals the next slide within the current sub-topic. Columns are visually isolated – the inter-column spacing is large enough that the neighboring column is fully off-viewport whenever the camera is framing any slide.
 
-**Chunk.** The atomic unit of lecture content, rendered as one slide. Has a stable ID, an optional heading, a body, an optional structural tag (`title`, `principle`, `example`, `definition`, `question`, `figure`, `exercise`, `free`), a width class, optional reveal separators (`---`) inside the body (§4.6), optional expansions, and an optional author-editable annotation slot. The width class determines the slide's *internal* text-column max-width, **not** the frame size.
+**Chunk.** The atomic unit of lecture content, rendered as one slide. Has a stable ID, an optional heading, a body, an optional structural type (`title`, `principle`, `example`, `definition`, `question`, `figure`, `exercise`, `free`), a width class, optional reveal separators (`---`) inside the body (§4.6), optional expansions, and an optional author-editable annotation slot. The width class determines the slide's *internal* text-column max-width, **not** the frame size.
 
 **Expansion.** Detail content (deeper explanation, worked example, answer to a question) that lives with its parent chunk, reached via a chevron affordance in the bottom-right of the slide. When opened, the slide's internal layout splits into two columns – content on the left, expansion on the right – without leaving the slide frame. Chevrons carry a 2–3 letter abbreviation (`Ex`, `Exp`, `Ref`, `?`, `Pf`, `Fig`, `Set`) derived from the expansion label.
 
@@ -47,11 +47,11 @@ This algorithm is pure: same source → same slide positions → same camera tar
 
 **Stable chunk IDs.** Every chunk carries an explicit `{#column-slug/chunk-slug}` attribute in source. IDs are frozen once authored; renaming a heading does not change the ID. Normal builds – including `--watch` – never mutate source. A separate, opt-in `build.js --assign-ids` one-shot mode generates IDs from current slugs for any chunk missing one and writes them back, resolving collisions. This keeps the rebuild loop pure and makes source the single source of truth. Every downstream feature – speaker sync, URL deep-links, print anchors, student references, linter – depends on these IDs being present and stable.
 
-### 2.1 Structural tag vocabulary
+### 2.1 Structural type vocabulary
 
-The `## tag: Heading` prefix marks the chunk's structural role. This list is **exhaustive** – an unknown tag is a build error (§9), not a custom extension point. Adding a tag is a spec change, because each tag has visual treatment in the CSS and reading-order implications in the print view.
+The `## type: Heading` prefix marks the chunk's structural role. This list is **exhaustive** – an unknown type is a build error (§9), not a custom extension point. Adding a type is a spec change, because each type has visual treatment in the CSS and reading-order implications in the print view.
 
-| Tag | Use |
+| Type | Use |
 |---|---|
 | `title` | Lecture cover slide. Pulls `title`, `presenter`, `info` from frontmatter; see §4.4 for layout. |
 | `closing` | The last slide, drawn in the composition `cover:` names. Its heading, sub-heading and body are its own – it is the one cover-shaped slide whose words are not the frontmatter's; see §4.4. |
@@ -63,9 +63,9 @@ The `## tag: Heading` prefix marks the chunk's structural role. This list is **e
 | `exercise` | Student-facing task. Rendered with the exercise marginalia treatment in print. |
 | `free` | Uncategorized narration. No rule above – typographically quiet. |
 
-Tag is optional on a chunk; omitting `tag:` is equivalent to `free:`.
+Type is optional on a chunk; omitting `type:` is equivalent to `free:`.
 
-**The live views do not print the tag name.** They did, as a small-caps eyebrow above the heading, and it was removed: the word announced a taxonomy that is correct only as often as the author's tag choice was, and a slide labelled PRINCIPLE that is not one reads to the room as a mistake. The tag still decides the rule above, the type scale, the spacing and the lint budget – it just stops naming itself. The document renderer keeps the label, because a reader scanning a long text does benefit from the taxonomy, and because a document is read at one's own pace rather than projected at a room.
+**The live views do not print the type name.** They did, as a small-caps eyebrow above the heading, and it was removed: the word announced a taxonomy that is correct only as often as the author's type choice was, and a slide labelled PRINCIPLE that is not one reads to the room as a mistake. The type still decides the rule above, the type scale, the spacing and the lint budget – it just stops naming itself. The document renderer keeps the label, because a reader scanning a long text does benefit from the taxonomy, and because a document is read at one's own pace rather than projected at a room.
 
 ---
 
@@ -130,7 +130,7 @@ Formal statement. $k \geq 2$ inline math.
 
 **Rules:**
 - `# Heading` = column title.
-- `## tag: Chunk heading` = chunk, with structural tag prefix. Tag is optional; width class and ID are attributes.
+- `## type: Chunk heading` = chunk, with structural type prefix. Type is optional; width class and ID are attributes.
 - `## title: {#title}` = cover slide. The heading text after `title:` is intentionally ignored – the cover always renders from frontmatter (`title`, `presenter`, `info`), so the heading is left empty by convention and only the `{#title}` id is needed. The body may also be empty; a non-empty body overrides `info`.
 - `## closing: Heading | Sub {#end}` = closing slide, and the exception to the line above: its heading is exactly what it says. It draws the deck's own `cover:` composition, with the body in place of the info block and no presenter or info lines at all.
 - Width classes: `.narrow`, `.standard`, `.wide`, `.full`. Default: `.standard`.
@@ -152,7 +152,7 @@ Source is parsed to a single AST; no regex post-processing on rendered HTML. Pip
 1. **Frontmatter split** via `gray-matter`.
 2. **Directive pre-tokenization.** A line-based pre-processor scans for fenced directives (`::: name args` opening, `:::` closing). It replaces each directive block with a placeholder token (e.g. `<!--DIR:0-->`) keyed into a side map, leaving the Markdown body with well-formed placeholders that `marked` will pass through as HTML comments. This runs *before* `marked` and cannot collide with standard fenced code blocks.
 3. **`marked` with custom extensions.**
-    - `heading`: parses `tag:` prefix on `##` and attribute tail `{.width-class #id}`. Unknown tags become parse errors (see linter errors).
+    - `heading`: parses `type:` prefix on `##` and attribute tail `{.width-class #id}`. Unknown types become parse errors (see linter errors).
     - `image`: recognizes bare `![](fig-id)` and `![](fig-id){.width-class}`; resolves to `<figure>` AST nodes with a `resolve-later` flag.
     - `blockquote`: a post-parse walker inspects each blockquote's first text child. If it matches the literal pattern `^note:\s`, the node is retyped as a `speaker-note` AST node; otherwise it remains an ordinary blockquote. There is no other overloading of blockquote syntax.
     - **Attribute tokenizer.** The trailing `{.class #id}` syntax on headings and images is Pandoc-style; `marked`'s core does not ship it. The build includes a ~30-line inline tokenizer that parses `{ ... }` at end-of-line into `{classes: string[], id?: string}` and attaches the result to the host AST node. This tokenizer is the one intentional divergence from plain Markdown.
@@ -233,7 +233,7 @@ Because each slide fills the viewport and shares one frame, visual variability l
 
 1. **Width class** → internal text-column max-width (`narrow 22em / standard 36em / wide 52em / full 72em`). A narrow chunk floats a tight column in whitespace; a full chunk fills the slide.
 2. **Alignment** (`data-align="left" | "center" | "right"`) → where the text column sits within the slide horizontally. Left-anchored chunks feel like running prose; right-anchored feel like a closing remark.
-3. **Per-tag treatment** – the canonical compositional vocabulary:
+3. **Per-type treatment** – the canonical compositional vocabulary:
    - `title`: lecture cover. `title` in `display` size; below it `presenter` in `lg`; below that a multiline `info` block in `sm` soft ink (date, location, course code, URL, any extra line). Left-aligned. Vertically placed so the whole block sits in the lower-left third of the slide – *not* centered. Centered cover slides look institutional and dead; lower-left-third gives asymmetric weight and reads as intentional. Content is pulled from frontmatter; a non-empty chunk body overrides the `info` lines. `closing`: the bookend, drawn in the same composition with its own heading and body and neither the presenter nor the info lines.
    - `principle`: thick rule above, larger body (1.2× zoom), larger heading. Pull-quote feel.
    - `definition`: hairline rule above, math blocks centered, tight body. Academic feel.
@@ -246,7 +246,7 @@ Because each slide fills the viewport and shares one frame, visual variability l
 
 **`editorial` was the tenth and has been removed.** It drew a 4px accent rail down the left edge of the type. A coloured bar welded to the side of a text block carries no information and is present only so that the theme colour appears somewhere on the slide, which is the most reliable single tell of a machine-made layout; it is named as one in Anthropic's own artifact-design guidance, and it was the specific thing the lecturer objected to. Nothing replaced it one for one. Its one good idea – the meta set as a row of credits rather than four stacked lines of equal weight – is what `masthead` runs along the bottom of the slide. `rule` went with it for a smaller reason: it was `stack` plus two hairlines, and "centred" against "centred with lines" is not a choice a lecturer is making.
 
-**A deck closes the arc with `## closing:`, and it is a tag rather than a second `title:` chunk.** The last slide is drawn in whatever composition `cover:` names, so the room sees the shape it started with – but it carries the author's own words and neither the presenter line nor the `info` block. Those two say who is talking and where, which the room learned an hour ago, and setting them again in the same composition is a slide that reads as a mistake in the deck rather than as an ending. The composition is inherited and the content is written, which is what makes it the same shape without being the same slide. Three things ruled out the alternatives. A title chunk's heading is *ignored* (§3) because the cover renders from frontmatter, so a closing slide could only get its own words by making the heading mean something on the second occurrence, which is a positional exception to a frozen rule; `lint.js` already warns that a second `title:` chunk does not render, so the two spellings would contradict each other; and a frontmatter key could only ever recombine the cover's own fields, which is exactly the repeat this slide exists not to be. The four picture compositions draw their type alone here – a closing slide never reaches for `cover-image` – and a `::: backdrop` on the chunk gives it a picture of its own.
+**A deck closes the arc with `## closing:`, and it is a type rather than a second `title:` chunk.** The last slide is drawn in whatever composition `cover:` names, so the room sees the shape it started with – but it carries the author's own words and neither the presenter line nor the `info` block. Those two say who is talking and where, which the room learned an hour ago, and setting them again in the same composition is a slide that reads as a mistake in the deck rather than as an ending. The composition is inherited and the content is written, which is what makes it the same shape without being the same slide. Three things ruled out the alternatives. A title chunk's heading is *ignored* (§3) because the cover renders from frontmatter, so a closing slide could only get its own words by making the heading mean something on the second occurrence, which is a positional exception to a frozen rule; `lint.js` already warns that a second `title:` chunk does not render, so the two spellings would contradict each other; and a frontmatter key could only ever recombine the cover's own fields, which is exactly the repeat this slide exists not to be. The four picture compositions draw their type alone here – a closing slide never reaches for `cover-image` – and a `::: backdrop` on the chunk gives it a picture of its own.
 
 **A finished 1.0.0 deck must be able to lay out the way it did**, and the three things that have moved since are each reachable as an ordinary preference: `fonts: {sans: Inter Tight}`, `style: {wrap: none}`, `ligatures: all`. Deliberately *not* a version key. One key naming a release reads as a promise to rebuild any past release, which is unbounded – every later stylesheet change would have to be gated on a generation and the untested combinations would multiply – and it puts the burden on the author to know which version their deck was authored against. Each of the three is a preference someone might want on its own merits, so the old look is a recipe rather than a mechanism. Title-chunk composition is outside the promise: a cover is one slide, and this revision was asked to fix it.
 
@@ -264,9 +264,9 @@ Because each slide fills the viewport and shares one frame, visual variability l
 
 **A chunk's heading can belong to the document and not to the slide.** `{.bare}` in the attribute tail renders the heading in `print.html` and in the search index, and not on the projection; `style: {headings: off}` says the same for a whole deck. The case is a talk that is a run of `::: draw` figures with speaker notes – the room looks at the drawing, and the deck still needs a name per slide to navigate by and to print. Leaving the heading *text* out gives up all four at once, which is why this exists as a separate switch. It is `display: none` rather than a dropped element, because the search index and the speaker's own lists read the heading out of the DOM. Neither table of contents does: both list column headings only, so a chunk heading was never in one.
 
-**And where a chunk's prose sits can belong to the slide and not to the document.** `{.center}` is the tail's second non-width class: it sets the chunk's own paragraphs on a centre axis, on the projection and in the cockpit, and leaves `print.html` byte-identical. The case is the one or two lines under a figure – left-aligned they start at the far edge of a wide slide while the drawing sits in the middle, and the two read as unrelated blocks. It reaches `.chunk-body > .reveal-segment > p` and nothing nested, so a list, a table, a code listing and the prose inside a `::: side` pane or a `::: cards` row all keep the left edge they need. It is a class an author writes and **not** a default for the `figure:` tag: that was built first and reverted, because the seven-line paragraph under `lectures/diagrams` `#flowchart` came out ragged on both edges and hard to read, and no selector knows how long a caption is. It moves the prose and not the heading – where a heading sits is `style.headings`'s question, and a chunk class answering it too would be a second, stronger way to say the same thing that `style: {headings: left}` could no longer override.
+**And where a chunk's prose sits can belong to the slide and not to the document.** `{.center}` is the tail's second non-width class: it sets the chunk's own paragraphs on a centre axis, on the projection and in the cockpit, and leaves `print.html` byte-identical. The case is the one or two lines under a figure – left-aligned they start at the far edge of a wide slide while the drawing sits in the middle, and the two read as unrelated blocks. It reaches `.chunk-body > .reveal-segment > p` and nothing nested, so a list, a table, a code listing and the prose inside a `::: side` pane or a `::: cards` row all keep the left edge they need. It is a class an author writes and **not** a default for the `figure:` type: that was built first and reverted, because the seven-line paragraph under `lectures/diagrams` `#flowchart` came out ragged on both edges and hard to read, and no selector knows how long a caption is. It moves the prose and not the heading – where a heading sits is `style.headings`'s question, and a chunk class answering it too would be a second, stronger way to say the same thing that `style: {headings: left}` could no longer override.
 
-**A lecture can set its own type, within bounds.** The `style:` block carries `headings` (`auto` keeps the per-tag treatment; `left` overrides all of it; `off` takes it off the projection), `rules` (the hairlines above principle and definition chunks), `labels` (the generated tag word), `link-codes` (the mark after an external link), `wrap`, and `heading-scale` / `body-scale` as multipliers on the tool's own scale. The two scales are bounded to 0.6–1.8, because outside that range the collapse mode, the code-width clamp and the auto-fit camera stop agreeing with each other and the result is not a look but a bug report.
+**A lecture can set its own type, within bounds.** The `style:` block carries `headings` (`auto` keeps the per-type treatment; `left` overrides all of it; `off` takes it off the projection), `rules` (the hairlines above principle and definition chunks), `labels` (the generated type word), `link-codes` (the mark after an external link), `wrap`, and `heading-scale` / `body-scale` as multipliers on the tool's own scale. The two scales are bounded to 0.6–1.8, because outside that range the collapse mode, the code-width clamp and the auto-fit camera stop agreeing with each other and the result is not a look but a bug report.
 
 **An external link says that its address can be shown.** The address view – both screens, set large, with a QR code beside it – is what a room actually needs from a link, and up to 1.0.0 it was reachable only by `Shift`-clicking, a gesture nothing on the slide mentioned. A small mark after every `https?://` link opens it now; `Shift`-click is unchanged, and a plain click still opens the page in a new tab. It is a `<button>` and not a second anchor, so it says what it does and answers a key – the key map stands back for that one button, because the deck binds `Space` and would otherwise advance the slide instead. `style: {link-codes: off}` takes the marks away, which is also how a deck gets the 1.0.0 rendering back.
 
@@ -513,7 +513,7 @@ Discipline: the same as reveal. A diagram earns steps when the *sequence* is the
 
 ### 4.7 Discipline
 
-The 70/30 rule: roughly 70% of chunks use a quiet repeating vocabulary (body prose, standard width, `free` or `definition` tags). Roughly 30% take compositional risks (principle with thick rule, question centered large, figure with sketch, full-width chunk). Invert this and risk becomes the baseline; monotony returns through the opposite door. The playground's “anti-pattern” preset – every chunk widened, every tag promoted to `principle` – is the concrete visualization of this failure mode.
+The 70/30 rule: roughly 70% of chunks use a quiet repeating vocabulary (body prose, standard width, `free` or `definition` types). Roughly 30% take compositional risks (principle with thick rule, question centered large, figure with sketch, full-width chunk). Invert this and risk becomes the baseline; monotony returns through the opposite door. The playground's “anti-pattern” preset – every chunk widened, every type promoted to `principle` – is the concrete visualization of this failure mode.
 
 Density budget per chunk: body text should occupy no more than ~12 line-heights at default zoom, with slide padding ~14%. The linter enforces this.
 
@@ -678,7 +678,7 @@ Single Node script, target <400 lines. Dependencies: `marked`, `katex`, `gray-ma
    - Duplicate chunk ID within a lecture.
    - Dead image reference (`images/fig-id.*` not found).
    - Orphaned sketch ID: speaker textarea referencing an undeclared slot, or a `::: sketch` slot never mentioned by id in the source structure.
-   - Unknown structural tag on a `## tag:` heading (typo-catcher; the tag vocabulary in §2.1 is exhaustive).
+   - Unknown structural type on a `## type:` heading (typo-catcher; the type vocabulary in §2.1 is exhaustive).
    - Nested directive of any kind (`::: expand` inside `::: expand`, `::: footnote` inside `::: expand`, etc.). Directives do not nest – the parser and placement algorithm both rely on this.
 
    **Warnings – succeed but surface:**
@@ -767,7 +767,7 @@ The goal of Phase 1 is to retire every “temporarily” in Phase 0 **and** clos
 
 **Live interactions the wlab01 input shape broke:**
 - **Progressive reveal** per §4.6. The `---` separator, `Space` or `↓` to advance, backward-nav resets to fully-revealed. This is what will make bullet-heavy content (the dominant shape in practice, despite the “prose first” intent) teachable at a controlled pace.
-- **Title slide renderer** per §4.4 `title` tag – lower-left-third layout, frontmatter-driven.
+- **Title slide renderer** per §4.4 `title` type – lower-left-third layout, frontmatter-driven.
 
 **Overview upgrades (the wlab01 overview was a dead end once you entered it):**
 - Click-to-select (thick border) + second-`O` to land.

@@ -81,7 +81,7 @@ Each is a single file. Mail one to a colleague as an attachment and it works.
 
 ## How you write
 
-A lecture is columns of chunks. A column is a `#` heading; a chunk is a `##` heading with a tag, and its body is ordinary Markdown.
+A lecture is columns of chunks. A column is a `#` heading; a chunk is a `##` heading with a type, and its body is ordinary Markdown.
 
 ```markdown
 ---
@@ -104,7 +104,7 @@ of the protocol.
 > around 100 and the reasoning is always worth two minutes.
 ```
 
-The grammar is `## tag: Heading | Sub-heading {.width #id}`. Ten tags (`title`, `closing`, `outline`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`) set the visual treatment and a word budget the linter enforces; four widths (`narrow`, `standard`, `wide`, `full`) set how much stage the chunk takes. Adding `{.bare}` to the same braces keeps a heading in the document, the contents page and the search index and takes it off the projection – for the talk that is a run of figures and still needs a name per slide.
+The grammar is `## type: Heading | Sub-heading {.width #id}`. Ten types (`title`, `closing`, `outline`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`) set the visual treatment and a word budget the linter enforces; four widths (`narrow`, `standard`, `wide`, `full`) set how much stage the chunk takes. Adding `{.bare}` to the same braces keeps a heading in the document, the contents page and the search index and takes it off the projection – for the talk that is a run of figures and still needs a name per slide.
 
 **What lands on the slide** is decided per chunk, by one of two mechanisms:
 
@@ -147,7 +147,7 @@ Two kinds of note are easy to confuse. A **note** (`> note:`) is yours, written 
 ## Writing lectures with an LLM assistant
 
 A lecture source is a good thing to hand a language model. It is plain
-Markdown with a small, closed grammar: ten tags, four widths, fourteen `:::`
+Markdown with a small, closed grammar: ten types, four widths, fourteen `:::`
 directives, one reveal separator. There is nothing to guess at and no binary
 format in the way, so a model that has been shown the rules produces sources
 that build and lint on the first pass. Diffs stay reviewable, because the unit
@@ -172,7 +172,7 @@ If you would rather not use the skill, the minimum useful set is:
   reference, and the one file that shows every directive in real use.
 - [`CLAUDE.md`](CLAUDE.md) – the conventions, the parsing contract, and the
   things that are easy to get wrong.
-- `node lint.js <source.md>` after every edit. It catches unknown tags and
+- `node lint.js <source.md>` after every edit. It catches unknown types and
   widths, missing or duplicate IDs, unclosed directives, and over-budget
   chunks, which is most of what a model gets wrong.
 
@@ -231,7 +231,7 @@ What is different here is the combination: one text rendered at two densities, a
 | [`docs/site/figures.html`](docs/site/figures.html) | The case for the figure language, published on the project site: why a lecture figure is not a picture, and three figures that show it. Sends the reader to the manual. |
 | [`editor.md`](editor.md) | Design and build log for the experimental graphical editor: what it edits, what it refuses to edit, and why. |
 | [`docs/comparison.md`](docs/comparison.md) | Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, compared in both directions. |
-| [`PRD.md`](PRD.md) | Design rationale. Why four views, why this tag set, why collapse has two mechanisms and not four. |
+| [`PRD.md`](PRD.md) | Design rationale. Why four views, why this type set, why collapse has two mechanisms and not four. |
 | [`speaker.md`](speaker.md) | The cockpit spec and the `postMessage` sync protocol – which fields travel, which stay local. |
 | [`CHANGELOG.md`](CHANGELOG.md) | What is in each release, and what the known limits are. |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | What is useful to send, and what to read before touching the code. |
@@ -261,7 +261,7 @@ node lint.js lectures/                       # all lectures
 node lint.js lectures/ --strict              # warnings exit 2
 ```
 
-The linter checks unknown tags and widths, duplicate or missing chunk IDs, unclosed `:::` directives and unclosed `$$` math, per-tag word budgets, duplicate explicit-slide blocks, assets over the inline cap, reveal overuse, orphan columns, and redundant figure captions. A source file can silence a check with `<!-- linter: ignore reveal-overuse, density -->`.
+The linter checks unknown types and widths, duplicate or missing chunk IDs, unclosed `:::` directives and unclosed `$$` math, per-type word budgets, duplicate explicit-slide blocks, assets over the inline cap, reveal overuse, orphan columns, and redundant figure captions. A source file can silence a check with `<!-- linter: ignore reveal-overuse, density -->`.
 
 ## Hotkeys
 

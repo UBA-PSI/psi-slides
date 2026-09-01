@@ -5,7 +5,7 @@
  * Zero-dep – nothing from node_modules – so it runs as a pre-commit gate
  * without the Markdown/Shiki stack, and independent of build.js so the two
  * can evolve without sharing state. It re-states the parser's ground truth
- * rather than importing it: VALID_TAGS, VALID_WIDTHS, attribute-tail syntax,
+ * rather than importing it: VALID_TAGS (the chunk types), VALID_WIDTHS, attribute-tail syntax,
  * fence-aware reveal splits, ::: directives.
  *
  * The one exception is the diagram vocabulary, which comes from
@@ -481,7 +481,7 @@ function lintCollapsedBolds(entries, add) {
 }
 
 
-// `figure-tag-without-figure`: a chunk tagged `figure:` that holds no figure.
+// `figure-type-without-figure`: a chunk typed `figure:` that holds no figure.
 // It renders identically either way, so this is not about the slide - it is
 // about the `O` overview board and the speaker's own map of the deck, both of
 // which read the tag. Eight chunks in one course were tagged `figure:` while
@@ -505,10 +505,10 @@ function lintChunkShape(chunk, chunkBody, hasDrawing, add) {
     || /!\[[^\]]*\]\(/.test(l)
     || /<(img|svg|video)\b/.test(l));
   if (hasFigure) return;
-  add(chunk.line, 'warn', 'figure-tag-without-figure',
-      'tagged figure: but the body holds no ::: draw, no image and no ::: embed. The slide renders '
-      + 'the same, but the overview board and the speaker view read the tag, so the deck reports more '
-      + 'figures than it has – use free:, definition: or whichever tag names what this chunk is');
+  add(chunk.line, 'warn', 'figure-type-without-figure',
+      'typed figure: but the body holds no ::: draw, no image and no ::: embed. The slide renders '
+      + 'the same, but the overview board and the speaker view read the type, so the deck reports more '
+      + 'figures than it has – use free:, definition: or whichever type names what this chunk is');
 }
 
 // One `default …` line, checked the same way wherever it is written: inside
@@ -2472,8 +2472,8 @@ function lintFile(filePath) {
           tag = tagMatch[1];
           heading = tagMatch[2].trim();
         } else {
-          add(ln, 'error', 'unknown-tag',
-              `unknown tag '${tagMatch[1]}:' – valid: ${[...VALID_TAGS].join(', ')}`);
+          add(ln, 'error', 'unknown-type',
+              `unknown chunk type '${tagMatch[1]}:' – valid: ${[...VALID_TAGS].join(', ')}`);
         }
       }
       for (const cls of attr.classes) {
