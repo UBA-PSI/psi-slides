@@ -14,9 +14,9 @@ erledigten suchen muss, ist keine.
 
 ## Was noch offen ist
 
-Drei Punkte, und **keiner davon ist am Schreibtisch zu erledigen**. Zwei
-brauchen ein echtes iPad, einer eine Bildschirmaufnahme. Alles, was ohne beides
-zu klären war, ist geklärt – bei `[#5]` sind unten zwei Mechanismen mit Messung
+Zwei Punkte, und **beide brauchen ein echtes iPad**. Die Bildschirmaufnahme
+(`[#30]`) ist inzwischen gemacht. Alles, was ohne ein Gerät zu klären war, ist
+geklärt – bei `[#5]` sind unten zwei Mechanismen mit Messung
 ausgeschlossen und eine Frage formuliert, die der nächste iPad-Durchgang in
 fünf Sekunden beantwortet.
 
@@ -58,15 +58,20 @@ fünf Sekunden beantwortet.
       wechselte den Chunk“, behoben in `e7dfc45`. **Vor jeder
       Änderung reproduzieren**, mit `revealed[chunkId]` im Blick.
 
-- [ ] **[#30] Das eingebettete Video zeigt kein bewegtes Bild.**
-      *Befund:* `assets/reveal-demo.mp4` ist intakt – 960×540, h264, 72 Frames
-      auf 6 s. Es bewegt sich, zeigt aber drei fast statische Stufen einer Folie,
-      also sieht ein Standbild fast genauso aus.
-      **Entschieden: neuer Clip**, kein Bug. Kandidat: ein Kameraschwenk über das
-      Overview-Board (`O`, dann Ziehen und Scrollen) oder ein
-      `autoplay`-Diagramm beim Durchlaufen. Muss unter `MAX_INLINE_VIDEO_BYTES`
-      (12 MB) bleiben und sollte in der Größenordnung der jetzigen 34 KB liegen,
-      sonst wächst jede der vier Views.
+- [x] **[#30] Das eingebettete Video zeigt kein bewegtes Bild.** – *erledigt.*
+      Neu aufgenommen: ein Schwenk über das Overview-Board, aufgezeichnet mit
+      Playwrights `recordVideo` über denselben Browser, den `test/harness.mjs`
+      findet, und über dieselbe `serve()`-Funktion. 640×360, 10 fps, 7,2 s,
+      h264 crf 36, **78 KB**. Im gebauten Page nachgemessen: als `data:`-URI
+      eingebettet, `readyState` 4, **null Netzwerk-Requests**, und sechs
+      Stichproben im Abstand von 0,4 s liefern sechs verschiedene Bilder – was
+      beim alten Clip gerade nicht der Fall war.
+
+      Zwei Zahlen für den nächsten, der ihn ersetzt. Ein Schwenk über dichten
+      Text ist teuer: bei 960×540 kostete derselbe Clip 212 KB bei crf 36 und
+      596 KB bei crf 28. Die Auflösung ist der Hebel, nicht die Qualität – das
+      Board liest man als Formen, nicht als Text. Und der Clip landet in
+      **jeder** der vier Views, hier +59 KB auf `audience.html`.
 
 ---
 
