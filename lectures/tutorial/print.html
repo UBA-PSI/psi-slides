@@ -1823,8 +1823,8 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 <div class="math-display"><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>d</mi><mo>=</mo><mfrac><mrow><mi>H</mi><mo stretchy="false">(</mo><mi>S</mi><mo stretchy="false">)</mo></mrow><mrow><msub><mrow><mi>log</mi><mo>⁡</mo></mrow><mn>2</mn></msub><mi mathvariant="normal">∣</mi><mi>S</mi><mi mathvariant="normal">∣</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">d = \frac{H(S)}{\log_2 |S|}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em"></span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2778em"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.363em;vertical-align:-0.936em"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em"><span style="top:-2.314em"><span class="pstrut" style="height:3em"></span><span class="mord"><span class="mop"><span class="mop">lo<span style="margin-right:0.0139em">g</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.207em"><span style="top:-2.4559em;margin-right:0.05em"><span class="pstrut" style="height:2.7em"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2441em"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em"></span><span class="mord">∣</span><span class="mord mathnormal" style="margin-right:0.0576em">S</span><span class="mord">∣</span></span></span><span style="top:-3.23em"><span class="pstrut" style="height:3em"></span><span class="frac-line" style="border-bottom-width:0.04em"></span></span><span style="top:-3.677em"><span class="pstrut" style="height:3em"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0813em">H</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0576em">S</span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span></div>
 <p><strong>A formula on its own line behaves like a figure</strong>: it stays on screen when the prose around it is shortened away, and clicking it opens it large for the room. Maths inside a sentence follows that sentence – on screen in an opening line, gone with everything else.</p>
 <p><strong>A lone dollar sign is safe.</strong> The delimiters are read as Markdown, not searched for in your text, so <code class="nb">$PATH</code> inside code, a price of $5 and $10 in prose, and a <code> $$</code> inside a code block are all left alone. Write <code class="nb">\$</code> if you want to be explicit.</p>
-<p><strong>Only the mathematical typefaces a lecture&#39;s formulas actually use travel in it</strong> – around 120 KB out of a possible 254 KB in <code class="nb">print.html</code> and <code class="nb">print-notes.html</code>. A lecture without maths carries none, and the build tells you which.</p>
-<p><strong>The maths follows the <code class="nb">F</code> key.</strong> Switch the body font to sans or monospace and the formulas move with it instead of sitting in the slide as a serif island. Only the letters change: operators, relations and brackets keep their own shapes, and a character the sans face does not have falls back to the mathematical one. The two live views pay about 46 KB more for the extra faces; <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> have no such key and pay nothing.</p>
+<p><strong>Only the mathematical typefaces your formulas actually use travel in the file, and a lecture with no maths carries none at all.</strong> The build prints what that came to: for this lecture, about 120 KB in each printed view and 166 KB in each live one, against the 254 KB a complete set of KaTeX faces would weigh.</p>
+<p><strong>The maths follows the <code class="nb">F</code> key.</strong> Switch the body font to sans or monospace and the formulas move with it instead of sitting in the slide as a serif island. Only the letters change: operators, relations and brackets keep their own shapes, and a character the sans face does not have falls back to the mathematical one. That is where the live views&#39; extra 46 KB goes – the printed ones have no <code class="nb">F</code> key and carry no faces for it.</p>
 
   
   
@@ -1836,15 +1836,16 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   <h1 class="column-heading">Writing chunks that work</h1>
   
   
-<article class="chunk chunk-principle width-standard" id="topic-sentence" data-chunk-num="38">
+<article class="chunk chunk-principle width-wide" id="topic-sentence" data-chunk-num="38">
   
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></span>
   <span class="chunk-label">principle</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Write the prose first, then sharpen the openings</span> <span class="hd-sub">the slide is every paragraph&#39;s first sentence</span></h2>
-  <p><strong>The projection is the first sentence of every paragraph, so a chunk of four paragraphs puts four sentences in front of the room.</strong> It is not one topic sentence per chunk. It is one per paragraph, in the order you wrote them, plus whatever you set in bold.</p>
-<p><strong>So write what you mean to say first and in full, then go back and sharpen the openings.</strong> Each opening has to be a claim that survives having its own paragraph taken away; everything after it stays where it is and becomes the backing, which reaches <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> and never the projection.</p>
-<p><strong>Doing it the other way round – bullets first, prose afterwards – leaves you a slide with nothing underneath it</strong>, and an hour you have to improvise the substance of while standing in front of people.</p>
-<p><strong>This chunk is four paragraphs, so its slide is the four sentences you have just read.</strong> Press <code class="nb">C</code> and the backing under each of them appears. <em>Option 1 – the default</em>, back in <em>What goes on the slide</em>, is where that shortening is shown happening.</p>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">One paragraph per point</span> <span class="hd-sub">the slide is every paragraph&#39;s first sentence</span></h2>
+  <p><strong>The projection is the first sentence of every paragraph: four paragraphs, four sentences in front of the room.</strong> It is not one topic sentence per chunk. It is one per paragraph, in the order you wrote them, plus whatever you set in bold.</p>
+<p><strong>Either order works: the prose first and the openings sharpened afterwards, or the openings first as an outline and the paragraphs written under them.</strong> Each opening has to end up a claim that survives having its own paragraph taken away; everything after it becomes the backing, which reaches <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> and never the projection.</p>
+<p><strong>Either way, every load-bearing thought and every explanation the argument needs starts a paragraph of its own.</strong> Two of them sharing a paragraph means the second one never reaches the room, however well it is written.</p>
+<p><strong>The failure is stopping at the outline.</strong> Openings with nothing written under them leave you a projection that works and a hand-out that does not, and an hour whose substance you improvise standing in front of people.</p>
+<p><strong>This chunk is five paragraphs, so its slide is the five sentences you have just read.</strong> Press <code class="nb">C</code> and the backing under each of them appears. <em>Option 1 – the default</em>, back in <em>What goes on the slide</em>, is where that shortening is shown happening.</p>
 
   
   
@@ -1883,12 +1884,14 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   <span class="chunk-label">exercise</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The squint test</span> <span class="hd-sub">walk your own lecture end to end in the short view</span></h2>
   <p><strong>Open your own lecture in the audience view, press <code class="nb">C</code> until it is short, and walk it end to end without opening the source.</strong> Stop at every chunk you could not talk from using only what is on the screen.</p>
-<div class="cols cols-2">
-
-
-<p><strong>For each chunk that fails</strong>, ask in this order: is the opening sentence a claim, or a warm-up? Would each bold phrase read as a sensible bullet on its own? Is there a list hiding inside a paragraph?</p>
+<p><strong>For each chunk that fails, ask three questions in this order.</strong></p>
+<ul>
+<li>Is the <strong>opening sentence a claim</strong>, or a warm-up?</li>
+<li>Would <strong>each bold phrase read as a sensible bullet</strong> on its own?</li>
+<li>Is there a <strong>list hiding inside a paragraph</strong>?</li>
+</ul>
 <p><strong>If all three answers are fine and it still reads badly,</strong> mark the slide by hand. Option 1 holds up while a chunk is an argument of one to three paragraphs; once it wants continuous prose, a <code>::: slide</code> block is the shorter route.</p>
-</div>
+
   
   
   
@@ -1903,19 +1906,19 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
   
   <span class="chunk-num" aria-hidden="true"><i>4</i><i>1</i></span>
   <span class="chunk-label">principle</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">The first lecture is the slow one</span> <span class="hd-sub">start from a talk you have already given</span></h2>
-  <p><strong>The vocabulary you have just read is small, and a second lecture written in it takes about as long as the same deck would have taken.</strong> The first one takes longer, and the cheapest way through it is a talk you have already given: the prose exists, and most of the work is deciding where one chunk ends and the next begins.</p>
-<p><strong>After that it is a routine</strong> – write the prose, sharpen the opening sentences, run the checker, then walk the lecture once in the short view before you teach it.</p>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Start from a talk you have already given</span> <span class="hd-sub">the prose exists; the work is where the chunks end</span></h2>
+  <p><strong>The first lecture is the one that costs, because it is where the vocabulary gets learned, and the cheapest way through it is a talk you have already given.</strong> The prose exists. Most of the work is deciding where one chunk ends and the next begins, and the vocabulary you have just read is the whole of it.</p>
+<p><strong>The loop is the same every time</strong> – write the prose, sharpen the opening sentences, run the checker, then walk the lecture once in the short view before you teach it.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-exercise width-wide" id="read-more" data-chunk-num="42">
+<article class="chunk chunk-free width-wide" id="read-more" data-chunk-num="42">
   
   <span class="chunk-num" aria-hidden="true"><i>4</i><i>2</i></span>
-  <span class="chunk-label">exercise</span>
+  
   <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">three finished lectures to open</span></h2>
   <p><strong>psi-slides comes with three finished lectures. Open them, and take whatever you need out of their sources.</strong></p>
 <div class="cols cols-2">
@@ -1964,11 +1967,11 @@ top and the credits along the bottom, and this paragraph is what goes in it.</p>
 <span class="line"><span style="color:#22863A">slide-numbers</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">      # vertical | horizontal | off</span></span>
 <span class="line"><span style="color:#22863A">editor</span><span style="color:#24292E">: </span><span style="color:#032F62">speaker</span><span style="color:#6A737D">         # both | speaker | none – the diagram editor</span></span>
 <span class="line"></span>
-<span class="line"><span style="color:#22863A">lang</span><span style="color:#24292E">: </span><span style="color:#032F62">de</span><span style="color:#6A737D">                # not a view default: the language the lecture</span></span>
-<span class="line"><span style="color:#6A737D">                        # is written in. en, de, de-DE, fr and so on,</span></span>
-<span class="line"><span style="color:#6A737D">                        # and en when you leave it out</span></span>
+<span class="line"><span style="color:#22863A">lang</span><span style="color:#24292E">: </span><span style="color:#032F62">de</span><span style="color:#6A737D">                # the language the lecture is written in:</span></span>
+<span class="line"><span style="color:#6A737D">                        # en, de, de-DE, fr and so on, and en</span></span>
+<span class="line"><span style="color:#6A737D">                        # when you leave it out</span></span>
 <span class="line"><span style="color:#6F42C1">---</span></span></code></pre>
-<p><code class="nb">lang:</code> reaches all four views. <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> use it to pick the hyphenation rules, so <strong>a long German compound breaks at the end of a line instead of leaving a hole</strong>. The two live views never hyphenate.</p>
+<p><strong><code class="nb">lang:</code> picks the hyphenation dictionary, and only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view never hyphenate at all.</strong> It is not one of the six above in the other sense either – the six are opening settings that override whatever the reader last chose, and the language is a property of the lecture.</p>
 <p><strong>A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.</strong> So a lecture that sets nothing behaves as it always did – font, theme and slide numbers follow the reader from lecture to lecture.</p>
 <p><code class="nb">slide-numbers</code> reaches <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> too. A value the tool does not know stops the build and lists the ones it does.</p>
 
@@ -2006,19 +2009,19 @@ are tagged into a release.</p>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Diagrams</span> <span class="hd-sub"><code>::: draw</code> draws boxes and arrows from text</span></h2>
   <p><strong>A <code>::: draw</code> block is a figure you write out in the lecture source, and the build draws it into the page as artwork.</strong> You name the boxes and say where each one goes; the arrows between them are routed for you.</p>
-<figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-50.35 -32.75 325.35 63.13" width="2000" height="388" data-steps="1" role="img" aria-label="Diagrams" preserveAspectRatio="xMidYMid meet">
-<g id="dg2-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg2-edge-1--p" class="dg-stroke" d="M38.35 0.00L70.60 0.00" fill="none"/><path id="dg2-edge-1--h" class="dg-head" d="M78.25 0.00L69.25 3.96L69.25 -3.96Z"/><g id="dg2-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(58.30,-11.38)"><g id="dg2-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">encrypted</tspan></text></g></g></g>
-<g id="dg2-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg2-edge-2--p" class="dg-stroke" d="M132.45 0.00L164.70 0.00" fill="none"/><path id="dg2-edge-2--h" class="dg-head" d="M172.35 0.00L163.35 3.96L163.35 -3.96Z"/><g id="dg2-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(152.40,-11.38)"><g id="dg2-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">recoded</tspan></text></g></g></g>
+<figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-50.35 -32.75 405.15 63.13" width="2000" height="312" data-steps="1" role="img" aria-label="Diagrams" preserveAspectRatio="xMidYMid meet">
+<g id="dg2-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg2-edge-1--p" class="dg-stroke" d="M38.35 0.00L110.50 0.00" fill="none"/><path id="dg2-edge-1--h" class="dg-head" d="M118.15 0.00L109.15 3.96L109.15 -3.96Z"/><g id="dg2-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(78.25,-11.38)"><g id="dg2-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">encrypted</tspan></text></g></g></g>
+<g id="dg2-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg2-edge-2--p" class="dg-stroke" d="M172.35 0.00L244.50 0.00" fill="none"/><path id="dg2-edge-2--h" class="dg-head" d="M252.15 0.00L243.15 3.96L243.15 -3.96Z"/><g id="dg2-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(212.25,-11.38)"><g id="dg2-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">recoded</tspan></text></g></g></g>
 <g id="dg2-src" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg2-src--r" x="-38.35" y="-18.38" width="76.70" height="36.75" rx="4"/><g id="dg2-src--lw0" data-lab="src--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg2-src--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sender</tspan></text></g></g></g>
-<g id="dg2-mix" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg2-mix--r" x="78.25" y="-18.38" width="54.20" height="36.75" rx="4"/><g id="dg2-mix--lw0" data-lab="mix--l" class="dg-lwrap" transform="translate(105.35,0.00)"><g id="dg2-mix--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Mix</tspan></text></g></g></g>
-<g id="dg2-dst" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg2-dst--r" x="172.35" y="-18.38" width="90.65" height="36.75" rx="4"/><g id="dg2-dst--lw0" data-lab="dst--l" class="dg-lwrap" transform="translate(217.68,0.00)"><g id="dg2-dst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Receiver</tspan></text></g></g></g>
+<g id="dg2-mix" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg2-mix--r" x="118.15" y="-18.38" width="54.20" height="36.75" rx="4"/><g id="dg2-mix--lw0" data-lab="mix--l" class="dg-lwrap" transform="translate(145.25,0.00)"><g id="dg2-mix--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Mix</tspan></text></g></g></g>
+<g id="dg2-dst" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg2-dst--r" x="252.15" y="-18.38" width="90.65" height="36.75" rx="4"/><g id="dg2-dst--lw0" data-lab="dst--l" class="dg-lwrap" transform="translate(297.48,0.00)"><g id="dg2-dst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Receiver</tspan></text></g></g></g>
 </svg></figure>
 
 
 <p>That drawing is these five lines and nothing else:</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span>box src "Sender"</span></span>
-<span class="line"><span>box mix "Mix"       right of src gap 1.05</span></span>
-<span class="line"><span>box dst "Receiver"  right of mix gap 1.05</span></span>
+<span class="line"><span>box mix "Mix"       right of src gap 2.1</span></span>
+<span class="line"><span>box dst "Receiver"  right of mix gap 2.1</span></span>
 <span class="line"><span>edge src -> mix "encrypted"</span></span>
 <span class="line"><span>edge mix -> dst "recoded"</span></span></code></pre>
 <p><strong>The first element sits at the origin, so a simple figure needs no coordinates at all.</strong> Everything after it is placed against a neighbour – <code>right of</code>, <code>left of</code>, <code class="nb">above</code>, <code class="nb">below</code> – and <code class="nb">gap</code> says how far. Nothing is arranged for you: every element sits where you put it, and that is the whole of the layout model.</p>
@@ -2064,7 +2067,12 @@ are tagged into a release.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span>box   mix   "Mix"   right of src gap 0.6   w 1.2    {.tone-2 @crypto}</span></span>
 <span class="line"><span>kind  name  label   placement              options  tail</span></span></code></pre>
 <p><strong>The name is how later lines refer to an element and is never drawn; the label is what the room reads</strong>, and <code class="nb">&quot;&quot;</code> is a legal empty one. A name is letters, digits, <code class="nb">_</code> and <code class="nb">-</code>, and a line starting with <code class="nb">#</code> is a comment.</p>
-<p><strong>Inside the tail, two prefixes answer two questions.</strong> <code class="nb">.tone-2</code> is a class, which says how the element looks, and <code class="nb">@crypto</code> is a tag, which says what set it belongs to. <code class="nb">{!tone-2}</code> with an exclamation mark takes a class off again. A tag goes wherever a name goes, so <code>show @crypto</code> in a step reaches every element carrying it, and an element joins a set on its own line – adding one to a set is a one-line edit.</p>
+<p><strong>Inside the tail, two prefixes answer two questions.</strong></p>
+<ul>
+<li><strong><code class="nb">.tone-2</code> is a class</strong>, which says how the element looks. <code class="nb">{!tone-2}</code>, with an exclamation mark, takes one off again.</li>
+<li><strong><code class="nb">@crypto</code> is a tag</strong>, which says what set the element belongs to.</li>
+</ul>
+<p>A tag goes wherever a name goes, so <code>show @crypto</code> in a step reaches every element carrying it. An element joins a set on its own line, which makes adding one a one-line edit.</p>
 
   
   
@@ -2075,9 +2083,16 @@ are tagged into a release.</p>
   
   <span class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></span>
   <span class="chunk-label">example</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Where an element goes</span> <span class="hd-sub">a grid square, or a neighbour</span></h2>
-  <p><strong>Placement is a grid square or a relation to a neighbour</strong> – <code>at 2,1</code>, or <code>right of mix gap 0.6</code>, or <code>below src gap 0 flush left</code> for boxes that touch. Placement also takes <code>between a,b</code>, the point on the line joining two elements, and any placement accepts a trailing <code>offset dx,dy</code>.</p>
-<p><strong>A coordinate can be another element&#39;s, plus or minus a little</strong> – <code>at mix.cx,src.cy+0.4</code>, <code>via iv.cx,x0.cy</code>. Anywhere an <code class="nb">X,Y</code> pair goes, that form goes, so moving one element does not mean retyping everything placed against it. An anchor can carry a fraction: <code class="nb">mix.right:0.3</code> slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side instead of on top of each other.</p>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Where an element goes</span> <span class="hd-sub">a grid square, a neighbour, or another element&#39;s coordinate</span></h2>
+  <p><strong>Placement is a grid square, or a relation to a neighbour.</strong></p>
+<ul>
+<li><strong><code>at 2,1</code></strong> puts an element in a grid square.</li>
+<li><strong><code>right of mix gap 0.6</code></strong> places it against a neighbour, as do <code>left of</code>, <code class="nb">above</code> and <code class="nb">below</code>.</li>
+<li><strong><code>between a,b</code></strong> is the point on the line joining two elements.</li>
+<li><strong><code>offset dx,dy</code></strong> is a nudge any of the three accepts on the end.</li>
+</ul>
+<p><strong>A coordinate can be another element&#39;s, plus or minus a little</strong> – <code>at mix.cx,src.cy+0.4</code>. Anywhere an <code class="nb">X,Y</code> pair goes, that form goes.</p>
+<p><strong>An anchor can carry a fraction</strong>: <code class="nb">mix.right:0.3</code> slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side rather than on top of each other. <code>gap 0 flush left</code> at the end of a placement makes two boxes touch.</p>
 <p><strong>An edge is one of the things a coordinate can name.</strong> <code>text n &quot;only after the handshake&quot; above w1 gap 0.2</code> sets a phrase against the wire it describes rather than against a box at one end of it, so the label follows its line instead of drifting off it the next time a box changes height. Name the edge first, in the slot before the arrow&#39;s first end: <code>edge w1 mix -&gt; log</code>. An edge has no name until you write one, and most edges never need one.</p>
 <p><strong>A picture can be an element too.</strong> <code>image alice avatar-alice w 0.4</code> finds the file exactly as <code class="nb">![](fig-id)</code> does. An SVG drawing is written into the page itself, so it takes the theme&#39;s colours and changes with the <code class="nb">A</code> key; a photograph is embedded as it is and keeps its own colours in every theme.</p>
 
@@ -2097,9 +2112,9 @@ are tagged into a release.</p>
   
   <span class="chunk-num" aria-hidden="true"><i>5</i><i>0</i></span>
   <span class="chunk-label">example</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Classes and alignment</span> <span class="hd-sub">the class slots, <code class="nb">align</code> and <code class="nb">spread</code></span></h2>
-  <p><strong>How an element looks comes from a fixed list of classes, and thirteen groups of them answer one question each, so only one member of a group can be in force at a time.</strong> <code class="nb">{.tone-1}</code> on a box therefore <em>replaces</em> a <code>default box {.tone-4}</code> rather than piling on top of it.</p>
-<figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-199.07 -29.22 794.71 453.92" width="2000" height="1142" data-steps="1" role="img" aria-label="Classes and alignment" preserveAspectRatio="xMidYMid meet">
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Classes</span> <span class="hd-sub">thirteen groups, and one question each</span></h2>
+  <p><strong>Only one member of a group is ever in force.</strong> The names come from a fixed list, and <code class="nb">{.tone-1}</code> on a box therefore <em>replaces</em> a <code>default box {.tone-4}</code> rather than piling on top of it, which is what makes the groups worth knowing.</p>
+<figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-199.07 -29.22 794.71 453.92" width="2000" height="1142" data-steps="1" role="img" aria-label="Classes" preserveAspectRatio="xMidYMid meet">
 <g id="dg4-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge muted no-head"><path id="dg4-edge-1--p" class="dg-stroke" d="M-61.60 0.00L543.20 0.00" fill="none"/><path id="dg4-edge-1--h" class="dg-head" d="M543.20 0.00L543.20 0.00L543.20 0.00Z"/></g>
 <g id="dg4-f1" data-base="dg-el dg-box" class="dg-el dg-box paper sharp"><rect id="dg4-f1--r" x="-34.72" y="-17.22" width="69.44" height="34.44" rx="4"/><g id="dg4-f1--lw0" data-lab="f1--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg4-f1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">paper</tspan></text></g></g></g>
 <g id="dg4-f2" data-base="dg-el dg-box" class="dg-el dg-box tone-1 sharp"><rect id="dg4-f2--r" x="63.42" y="-17.22" width="69.44" height="34.44" rx="4"/><g id="dg4-f2--lw0" data-lab="f2--l" class="dg-lwrap" transform="translate(98.14,0.00)"><g id="dg4-f2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">tone-1</tspan></text></g></g></g>
@@ -2145,26 +2160,42 @@ are tagged into a release.</p>
 <g id="dg4-w4" data-base="dg-el dg-box" class="dg-el dg-box tone-2 turn sharp"><rect id="dg4-w4--r" x="545.56" y="314.06" width="38.08" height="60.68" rx="4"/><g id="dg4-w4--lw0" data-lab="w4--l" class="dg-lwrap" transform="translate(564.60,344.40) rotate(-90)"><g id="dg4-w4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">turn</tspan></text></g></g></g>
 <g id="dg4-wl" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg4-wl--lw0" data-lab="wl--l" class="dg-lwrap" transform="translate(410.48,405.20)"><g id="dg4-wl--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">where the words sit</tspan></text></g></g></g>
 </svg></figure>
-
-
-<p><strong>Every row of the specimen sheet above shows one group</strong>, except three that show two or three where the questions belong together: stroke pattern, weight and the two ways of receding; family and size; the words that place a label across and the ones that place it down. The two ink classes have no row, being at work over the whole sheet – <code class="nb">.accent</code> on the cross, <code class="nb">.muted</code> on every caption. <strong>Forty-one names in all, and <code class="nb">lint.js</code> refuses anything else</strong>, so a typo stops the build rather than leaving a box unstyled.</p>
-<p><strong><code class="nb">flush</code> and <code class="nb">align</code> do two different jobs.</strong> At the end of a placement, <code class="nb">flush</code> takes one word: <code>below src gap 0 flush left</code> keeps the new box&#39;s left edge level with <code class="nb">src</code>. On a line of its own, <code class="nb">align</code> is a statement: <code>align y middle a, b, c</code> gives <code class="nb">b</code> and <code class="nb">c</code> the vertical centre of <code class="nb">a</code>, the first name being the one the others follow. The centre of an axis is <code class="nb">middle</code> whichever axis it is.</p>
-<p><strong><code>spread x a, b, c, d</code> shares a set out evenly</strong> – first and last stay put, everything between gets the same distance from its neighbours. <strong>Both statements are at work in the sheet above</strong>: one <code>align x right</code> gives the five row labels the right edge of the first, and <code>spread x</code> puts the five middle words of the family row between <code class="nb">sans</code> and <code class="nb">bold</code>, which are the only two on that row that were placed at all.</p>
-
   
-  <aside class="chunk-expansion chunk-expansion-expand" data-label="The rest of the class list, and where the two statements refuse">
+  <aside class="chunk-expansion chunk-expansion-expand" data-label="How to read the sheet, and the rest of the list">
+<p><strong>Every row above is one group</strong>, except three that carry two or three because the questions belong together: stroke pattern, weight and the two ways of receding; family and size; the words that place a label across and the ones that place it down. The two ink classes have no row of their own, being at work over the whole sheet – <code class="nb">.accent</code> on the cross, <code class="nb">.muted</code> on every caption.</p>
+<p><strong>Forty-one names in all, and <code class="nb">lint.js</code> refuses anything else</strong>, so a typo stops the build rather than leaving a box unstyled.</p>
 <p>Only three class names belong to no group and can be combined with anything: <code class="nb">.bold</code> for a heavier label, <code class="nb">.turn</code> for a label read bottom-to-top up the side of something tall and narrow, and <code class="nb">.front</code> for a line drawn over the boxes rather than under them. Three groups have no row on the sheet. Two of them belong to edges – how a line is drawn (<code class="nb">.smooth</code> bends your waypoints into a curve running through them, <code class="nb">.elbow</code> works out a right-angled route with its turn halfway across the gap and needs no waypoints at all) and which end carries an arrowhead, which you normally say with the arrow itself (<code class="nb">-&gt;</code>, <code class="nb">&lt;-</code>, <code class="nb">&lt;-&gt;</code>, <code class="nb">--</code>) and only ever write as a class inside a <code class="nb">step</code>. The third is how much of the room&#39;s attention an element asks for: <code class="nb">.emph</code>, <code class="nb">.dim</code> and <code class="nb">.ghost</code>. <strong>Those three names are also the three verbs a step uses for the same thing.</strong> Two members of one group on one element is an error, and <code class="nb">{!dim}</code> is how a class comes back off; there is no fourth name for ordinary prominence, the absence of all three being what that is. <code class="nb">.paper</code> fills a label with the page colour, knocking a hole in a line running behind it.</p>
 <p>Two pairs are not one group but still draw a warning, because one of the two ends up doing nothing: <code class="nb">.tone-4</code> with <code class="nb">.accent</code>, where the fill already <em>is</em> the accent, and <code class="nb">.turn</code> with <code class="nb">.left</code> or <code class="nb">.right</code>, where a label standing on end is centred across the direction it reads. <code class="nb">.top</code> and <code class="nb">.bottom</code> do still move a turned label.</p>
 <p>Which way a pointed outline aims is the <code class="nb">point</code> option – <code class="nb">up</code>, <code class="nb">down</code>, <code class="nb">left</code> or <code class="nb">right</code> – and writing it on an outline that has no point is an error. So is <code class="nb">.fit</code> on a box with no width to fit into, and so is an outline class on anything but a <code class="nb">box</code>. A <code class="nb">.cross</code> given no <code class="nb">w</code> of its own comes out square, and stays square even under a <code>default box … w</code>; a <code class="nb">w</code> on the element&#39;s own line still wins.</p>
+
+</aside>
+  
+  
+</article>
+<article class="chunk chunk-example width-full" id="diagram-align" data-chunk-num="51">
+  
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>1</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Lining things up</span> <span class="hd-sub"><code class="nb">flush</code>, <code class="nb">align</code> and <code class="nb">spread</code></span></h2>
+  <p><strong>Three words put elements level with each other, and they are not interchangeable.</strong></p>
+<ul>
+<li><strong><code class="nb">flush</code> finishes a placement</strong> and takes one word: <code>below src gap 0 flush left</code> keeps the new box&#39;s left edge level with <code class="nb">src</code>.</li>
+<li><strong><code class="nb">align</code> is a statement on a line of its own.</strong> <code>align y middle a, b, c</code> gives <code class="nb">b</code> and <code class="nb">c</code> the vertical centre of <code class="nb">a</code>; the first name is the one the others follow.</li>
+<li><strong><code>spread x a, b, c, d</code> shares a set out evenly.</strong> First and last stay put; everything between gets the same distance from its neighbours.</li>
+</ul>
+<p><strong>Both are at work in the sheet on the last slide</strong>: an <code>align x right</code> gives the five row labels the right edge of the first, and <code>spread x</code> puts the five middle words of the family row between <code class="nb">sans</code> and <code class="nb">bold</code>.</p>
+
+  
+  <aside class="chunk-expansion chunk-expansion-expand" data-label="Where the two statements refuse">
 <p><code class="nb">align</code> and <code class="nb">spread</code> work on boxes, dots, texts and images only – naming an edge, a container or a brace is an error. <code class="nb">align</code> names its axis first: <code class="nb">x</code> takes <code class="nb">left</code>, <code class="nb">middle</code> or <code class="nb">right</code>, <code class="nb">y</code> takes <code class="nb">top</code>, <code class="nb">middle</code> or <code class="nb">bottom</code>. <code class="nb">spread</code> needs at least three elements; <code class="nb">align</code> needs two.</p>
 
 </aside>
   
   
 </article>
-<article class="chunk chunk-example width-full" id="diagram-charts" data-chunk-num="51">
+<article class="chunk chunk-example width-full" id="diagram-charts" data-chunk-num="52">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>2</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Charts</span> <span class="hd-sub"><code class="nb">bars</code>, <code class="nb">grid</code> and <code class="nb">plot</code></span></h2>
   <p><strong>Three statements draw data, and each turns into ordinary boxes, texts and edges first.</strong> <code class="nb">bars</code> becomes one box per column plus a baseline, <code class="nb">grid</code> one box per cell, and <code class="nb">plot</code> a frame of gridlines, ticks and two axis titles.</p>
@@ -2232,10 +2263,28 @@ are tagged into a release.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong>A <code class="nb">brace</code> spans three of the columns and a <code class="nb">style</code> step tints four of the cells, because all of those are ordinary boxes</strong> – named after the statement they came out of: <code class="nb">wc-0</code>, <code class="nb">wc-1</code>, … for the columns and <code class="nb">ch-1-0</code>, <code class="nb">ch-4-2</code>, … for the cells. The budget line is an ordinary edge drawn between two coordinates read off the chart&#39;s own frame, with <code class="nb">.front</code> on it so the columns do not cover it. The spacing <em>inside</em> these statements is <code class="nb">space</code> and never <code class="nb">gap</code>, <code class="nb">gap</code> being the distance to another element on the same line.</p>
-<p><strong>A second set of numbers is one more <code class="nb">bars</code> line.</strong> <code>bars after &quot;…&quot; series of wc {.tone-1}</code> joins the first chart&#39;s frame and borrows its ticks, its baseline and its scale, bringing only its own numbers and its own colour. The width is shared out between them, so a grouped chart takes exactly the paper a single one did. <code class="nb">stacked</code> piles it on the run before it instead, and the scale becomes the tallest stack. Such a line takes no <code class="nb">w</code>, no <code class="nb">h</code>, no <code class="nb">space</code>, no placement and no tick labels: all five belong to the chart it joined. <code>emph 0,1,2</code> or <code>dim 5</code> on any <code class="nb">bars</code> line marks those columns from the opening picture onwards, which is usually where a chart wants one – the same three words again, in a third position.</p>
-<p><strong><code class="nb">horizontal</code> lays the columns flat.</strong> The bars run left to right, the categories stack downwards, the tick labels become a right-aligned column down the left margin and the baseline stands on the left. Lengths from one shared left edge are easier to rank than heights over a shared floor, and a category called “DNS cache poisoning” cannot be written under an upright column at all. A tick string containing <code class="nb">|</code> splits on that instead of on spaces, so a label can be as many words as it needs – the same mark that separates a <code class="nb">table</code> row and a <code class="nb">lanes</code> name list.</p>
-<figure class="figure-diagram"><svg id="dg6-root" class="psi-diagram" viewBox="-267.54 -43.25 407.04 126.50" width="2000" height="622" data-steps="1" role="img" aria-label="Charts" preserveAspectRatio="xMidYMid meet">
+<p><strong>Everything a chart draws is an ordinary element with a generated name</strong> – <code class="nb">wc-0</code>, <code class="nb">wc-1</code>, … for the columns and <code class="nb">ch-1-0</code>, <code class="nb">ch-4-2</code>, … for the cells – which is why the brace and the tinted cells above needed no vocabulary of their own.</p>
+
+  
+  <aside class="chunk-expansion chunk-expansion-expand" data-label="What else is going on in that figure">
+<ul>
+<li><strong>The budget line is an <code class="nb">edge</code></strong> between two coordinates read off the chart&#39;s own frame, with <code class="nb">.front</code> on it so the columns do not cover it.</li>
+<li><strong>Spacing inside a chart is <code class="nb">space</code>, never <code class="nb">gap</code></strong> – <code class="nb">gap</code> is the distance to another element on the same line.</li>
+<li><strong><code>emph 0,1,2</code> or <code>dim 5</code></strong> on a <code class="nb">bars</code> line marks those columns from the opening picture onwards, which is usually where a chart wants one.</li>
+</ul>
+
+</aside>
+  
+  
+</article>
+<article class="chunk chunk-example width-full" id="diagram-bars" data-chunk-num="53">
+  
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>3</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">More on bars</span> <span class="hd-sub">a second series, and columns laid flat</span></h2>
+  <p><strong>A second set of numbers is one more <code class="nb">bars</code> line:</strong> <code>bars after &quot;…&quot; series of wc {.tone-1}</code> joins the first chart&#39;s frame and borrows its ticks, its baseline and its scale.</p>
+<p><strong><code class="nb">horizontal</code> lays the columns flat</strong>, which is what a chart wants as soon as its categories have names rather than numbers – lengths from one shared left edge are easier to rank, and “DNS cache poisoning” cannot be written under an upright column at all.</p>
+<figure class="figure-diagram"><svg id="dg6-root" class="psi-diagram" viewBox="-267.54 -43.25 407.04 126.50" width="2000" height="622" data-steps="1" role="img" aria-label="More on bars" preserveAspectRatio="xMidYMid meet">
 <g id="dg6-hour" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg6-hour--r" x="-127.50" y="-31.25" width="255.00" height="62.50" rx="4"/></g>
 <g id="dg6-hour-0" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2"><rect id="dg6-hour-0--r" x="-127.50" y="-29.30" width="255.00" height="11.72" rx="4"/></g>
 <g id="dg6-hour-1" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2 emph"><rect id="dg6-hour-1--r" x="-127.50" y="-13.67" width="197.42" height="11.72" rx="4"/></g>
@@ -2248,10 +2297,22 @@ are tagged into a release.</p>
 <g id="dg6-hourn" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg6-hourn--lw0" data-lab="hourn--l" class="dg-lwrap" transform="translate(0.00,63.75)"><g id="dg6-hourn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">minutes, in the hour before a lecture</tspan></text></g></g></g>
 <g id="dg6-hour-base" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted front"><path id="dg6-hour-base--p" class="dg-stroke" d="M-127.50 -31.25L-127.50 31.25" fill="none"/><path id="dg6-hour-base--h" class="dg-head" d="M-127.50 31.25L-127.50 31.25L-127.50 31.25Z"/></g>
 </svg></figure>
+  
+  <aside class="chunk-expansion chunk-expansion-expand" data-label="What a joined series may and may not carry">
+<p><strong>A joined series brings only its own numbers and its own colour.</strong> The width is shared out between them, so a grouped chart takes exactly the paper a single one did. <code class="nb">stacked</code> piles it on the run before it instead, and the scale becomes the tallest stack. Such a line takes no <code class="nb">w</code>, no <code class="nb">h</code>, no <code class="nb">space</code>, no placement and no tick labels: all five belong to the chart it joined.</p>
+<p><strong>Laid flat</strong>, the bars run left to right, the categories stack downwards, the tick labels become a right-aligned column down the left margin, and the baseline stands on the left. A tick string containing <code class="nb">|</code> splits on that instead of on spaces, so a label can be as many words as it needs – the same mark that separates a <code class="nb">table</code> row and a <code class="nb">lanes</code> name list.</p>
 
-
-<p><strong><code class="nb">w</code> and <code class="nb">h</code> are counted in grid squares, and a grid square is not square – so those two numbers do not describe the shape on the page.</strong> At the <code class="nb">unit=150x54</code> of the figure below, a plot written <code>w 1.9 h 1.5</code> comes out 285 by 81 pixels, which is nothing like 1.9 by 1.5. <code>aspect 4:3</code>, <code>aspect 1:1</code>, or a single number meaning that many wide to one tall, states the proportion the reader actually sees and lets the build work the other number out. Both <code class="nb">bars</code> and <code class="nb">plot</code> take it. Giving <code class="nb">w</code>, <code class="nb">h</code> and <code class="nb">aspect</code> together is an error, because two of the three would have to lose and nothing on the line says which.</p>
-<figure class="figure-diagram"><svg id="dg7-root" class="psi-diagram" viewBox="-315.00 -120.75 536.82 271.20" width="2000" height="1010" data-live-viewbox="-315.00 -120.75 536.82 271.20" data-live-ratio="0.505197" data-steps="3" role="img" aria-label="Charts" preserveAspectRatio="xMidYMid meet">
+</aside>
+  
+  
+</article>
+<article class="chunk chunk-example width-full" id="diagram-plot" data-chunk-num="54">
+  
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>4</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Plots</span> <span class="hd-sub"><code class="nb">plot</code> draws a frame and a scale, and nothing else</span></h2>
+  <p><strong>A chart is sized with <code class="nb">aspect</code>, not with <code class="nb">w</code> and <code class="nb">h</code></strong> – those two are counted in grid squares, and a grid square is not square, so they do not describe the shape a reader sees.</p>
+<figure class="figure-diagram"><svg id="dg7-root" class="psi-diagram" viewBox="-315.00 -120.75 536.82 271.20" width="2000" height="1010" data-live-viewbox="-315.00 -120.75 536.82 271.20" data-live-ratio="0.505197" data-steps="3" role="img" aria-label="Plots" preserveAspectRatio="xMidYMid meet">
 <g id="dg7-pace-gx-0" data-base="dg-el dg-edge" class="dg-el dg-edge muted dotted no-head"><path id="dg7-pace-gx-0--p" class="dg-stroke" d="M-202.50 -101.25L-202.50 101.25" fill="none"/><path id="dg7-pace-gx-0--h" class="dg-head" d="M-202.50 101.25L-202.50 101.25L-202.50 101.25Z"/></g>
 <g id="dg7-pace-gx-1" data-base="dg-el dg-edge" class="dg-el dg-edge muted dotted no-head"><path id="dg7-pace-gx-1--p" class="dg-stroke" d="M-135.00 -101.25L-135.00 101.25" fill="none"/><path id="dg7-pace-gx-1--h" class="dg-head" d="M-135.00 101.25L-135.00 101.25L-135.00 101.25Z"/></g>
 <g id="dg7-pace-gx-2" data-base="dg-el dg-edge" class="dg-el dg-edge muted dotted no-head"><path id="dg7-pace-gx-2--p" class="dg-stroke" d="M-67.50 -101.25L-67.50 101.25" fill="none"/><path id="dg7-pace-gx-2--h" class="dg-head" d="M-67.50 101.25L-67.50 101.25L-67.50 101.25Z"/></g>
@@ -2288,25 +2349,29 @@ are tagged into a release.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p><strong>A <code class="nb">plot</code> draws the frame and the scale and nothing else.</strong> It takes the two ranges and one <code class="nb">tick</code> interval, after which <code class="nb">pace@26</code> names a value in the plot&#39;s own units anywhere a coordinate can go – in a waypoint, in an <code class="nb">at</code>, at the end of a pointer line. <strong>The curves are ordinary edges.</strong> <code class="nb">.smooth</code> runs a curve <em>through</em> the waypoints you wrote instead of joining them with straight segments, <code class="nb">--</code> draws a line with no arrowhead, and the two steps bring the second curve in and then emphasise it while the reference line recedes.</p>
-<p><strong>Two charts meant to be compared take one size, written once.</strong> <code>same as pace</code> on a second <code class="nb">bars</code> or <code class="nb">plot</code> line copies the whole frame. It can only name a chart written <em>above</em> it, and <code class="nb">w</code>, <code class="nb">h</code> or <code class="nb">aspect</code> beside it is an error. Matching frames are not a matching scale: the ranges are written per chart and nothing checks that two of them agree.</p>
+<p><strong>A <code class="nb">plot</code> takes two ranges and one <code class="nb">tick</code> interval, and draws nothing but the frame and the scale</strong> – after which <code class="nb">pace@26</code> names a value in the plot&#39;s own units anywhere a coordinate can go, and the curves over it are ordinary edges.</p>
 
   
-  
+  <aside class="chunk-expansion chunk-expansion-expand" data-label="Sizing, curves, and two charts that match">
+<p><strong><code>aspect 4:3</code>, <code>aspect 1:1</code>, or a single number meaning that many wide to one tall</strong>, states the proportion the reader sees and lets the build work the other number out. Both <code class="nb">bars</code> and <code class="nb">plot</code> take it. At the <code class="nb">unit=150x54</code> of the figure above, a plot written <code>w 1.9 h 1.5</code> comes out 285 by 81 pixels, which is nothing like 1.9 by 1.5. Giving <code class="nb">w</code>, <code class="nb">h</code> and <code class="nb">aspect</code> together is an error, because two of the three would have to lose and nothing on the line says which.</p>
+<p><strong><code class="nb">pace@26</code> goes anywhere a coordinate can</strong> – in a waypoint, in an <code class="nb">at</code>, at the end of a pointer line. <code class="nb">.smooth</code> runs a curve <em>through</em> the waypoints you wrote rather than joining them with straight segments, <code class="nb">--</code> draws a line with no arrowhead, and the two steps bring the second curve in and then emphasise it while the reference line recedes.</p>
+<p><strong>Two charts meant to be compared take one size, written once.</strong> <code>same as pace</code> on a second <code class="nb">bars</code> or <code class="nb">plot</code> line copies the whole frame. It can only name a chart written <em>above</em> it, and <code class="nb">w</code>, <code class="nb">h</code> or <code class="nb">aspect</code> beside it is an error. Matching frames are not a matching scale: the ranges are written per chart and nothing checks that two of them agree.</p>
+
+</aside>
   
   
 </article>
-<article class="chunk chunk-example width-full" id="diagram-steps" data-chunk-num="52">
+<article class="chunk chunk-example width-full" id="diagram-steps" data-chunk-num="55">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>5</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure that moves</span> <span class="hd-sub"><code class="nb">hide</code>, <code class="nb">dim</code>, <code class="nb">move</code> and <code class="nb">label</code>, inside a <code class="nb">step</code></span></h2>
   <p><strong>A figure with steps is an argument in stages – the setting, the intruder, the cut wire, and what it costs.</strong> Press forward three times.</p>
 <figure class="figure-diagram"><svg id="dg8-root" class="psi-diagram" viewBox="-202.25 -87.25 949.00 220.25" width="2000" height="464" data-live-viewbox="-202.25 -148.50 949.00 281.50" data-live-ratio="0.296628" data-steps="4" role="img" aria-label="A figure that moves" preserveAspectRatio="xMidYMid meet">
-<g id="dg8-net" data-base="dg-el dg-container" class="dg-el dg-container dashed muted"><rect id="dg8-net--r" x="-190.25" y="-75.25" width="925.00" height="127.75" rx="4"/><g id="dg8-net--lw0" data-lab="net--l" class="dg-lwrap" transform="translate(-180.25,-62.88)"><g id="dg8-net--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">one wire, two honest ends</tspan></text></g></g></g>
+<g id="dg8-net" data-base="dg-el dg-container" class="dg-el dg-container dashed muted"><rect id="dg8-net--r" x="-190.25" y="-75.25" width="925.00" height="127.75" rx="4"/><g id="dg8-net--lw0" data-lab="net--l" class="dg-lwrap" transform="translate(-180.25,-62.88)"><g id="dg8-net--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">the intended channel</tspan></text></g></g></g>
 <g id="dg8-wire" data-base="dg-el dg-edge" class="dg-el dg-edge both-heads" style="opacity:0"><path id="dg8-wire--p" class="dg-stroke" d="M24.90 0.00L519.60 0.00" fill="none"/><path id="dg8-wire--h" class="dg-head" d="M527.25 0.00L518.25 3.96L518.25 -3.96Z"/><path id="dg8-wire--h2" class="dg-head" d="M17.25 0.00L26.25 -3.96L26.25 3.96Z"/><g id="dg8-wire--lw0" data-lab="wire--l" class="dg-lwrap" transform="translate(272.25,-11.38)"><g id="dg8-wire--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">M</tspan></text></g></g></g>
 <g id="dg8-note--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg8-note--lead--p" class="dg-stroke" d="M23.69 106.00L272.25 17.50" fill="none"/><path id="dg8-note--lead--h" class="dg-head" d="M272.25 17.50L272.25 17.50L272.25 17.50Z"/></g>
-<g id="dg8-in" data-base="dg-el dg-edge" class="dg-el dg-edge accent one-head"><path id="dg8-in--p" class="dg-stroke" d="M17.25 17.50L178.51 -15.95" fill="none"/><path id="dg8-in--h" class="dg-head" d="M186.00 -17.50L177.99 -11.79L176.38 -19.55Z"/></g>
+<g id="dg8-in" data-base="dg-el dg-edge" class="dg-el dg-edge accent one-head"><path id="dg8-in--p" class="dg-stroke" d="M17.25 0.00L178.35 0.00" fill="none"/><path id="dg8-in--h" class="dg-head" d="M186.00 0.00L177.00 3.96L177.00 -3.96Z"/></g>
 <g id="dg8-fwd" data-base="dg-el dg-edge" class="dg-el dg-edge accent one-head"><path id="dg8-fwd--p" class="dg-stroke" d="M358.50 -10.50L519.60 -10.50" fill="none"/><path id="dg8-fwd--h" class="dg-head" d="M527.25 -10.50L518.25 -6.54L518.25 -14.46Z"/><g id="dg8-fwd--lw0" data-lab="fwd--l" class="dg-lwrap" transform="translate(442.88,-21.88)"><g id="dg8-fwd--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">M</tspan></text></g></g></g>
 <g id="dg8-edit" data-base="dg-el dg-edge" class="dg-el dg-edge accent one-head dashed"><path id="dg8-edit--p" class="dg-stroke" d="M358.50 10.50L519.60 10.50" fill="none"/><path id="dg8-edit--h" class="dg-head" d="M527.25 10.50L518.25 14.46L518.25 6.54Z"/><g id="dg8-edit--lw0" data-lab="edit--l" class="dg-lwrap" transform="translate(442.88,21.88)"><g id="dg8-edit--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">M′</tspan></text></g></g></g>
 <g id="dg8-alice" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg8-alice--r" x="-155.25" y="-17.50" width="172.50" height="35.00" rx="4"/><g id="dg8-alice--lw0" data-lab="alice--l" class="dg-lwrap" transform="translate(-69.00,0.00)"><g id="dg8-alice--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Alice</tspan></text></g></g></g>
@@ -2324,9 +2389,9 @@ are tagged into a release.</p>
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="autoplay" data-chunk-num="53">
+<article class="chunk chunk-example width-wide" id="autoplay" data-chunk-num="56">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>6</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure that advances on a timer</span> <span class="hd-sub"><code>::: draw {autoplay=N}</code></span></h2>
   <p><strong>A figure written with <code class="nb">autoplay</code> walks its own steps on a timer once the slide is on screen</strong> – one delay, in milliseconds, for every step. A cover figure that moves while the room files in is the case it was asked for, but it works on any chunk.</p>
@@ -2355,9 +2420,9 @@ are tagged into a release.</p>
 <p>Newer than the 1.0.0 download as well, and out of the same clone.</p>
 </blockquote>
 </div>
-<article class="chunk chunk-principle width-standard" id="deco-idea" data-chunk-num="54">
+<article class="chunk chunk-principle width-standard" id="deco-idea" data-chunk-num="57">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>7</i></span>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A slide is a frame, and the text column is only the middle of it</span> <span class="hd-sub"><code>::: backdrop</code>, <code>::: overlay</code>, <code>::: cards</code>, <code class="nb">cover:</code></span></h2>
   <p><strong>A picture that fills the slide, a row of three cards, a composed title page: none of these can be written inside a chunk&#39;s body</strong>, which never reaches the edges of the frame.</p>
@@ -2372,9 +2437,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="covers" data-chunk-num="55">
+<article class="chunk chunk-example width-wide" id="covers" data-chunk-num="58">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>8</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">How the title slide is composed</span> <span class="hd-sub"><code class="nb">cover:</code> plus a <code class="nb">subtitle:</code> line</span></h2>
   <p><strong><code class="nb">cover:</code> in the frontmatter picks how the title slide is composed, and <code class="nb">subtitle:</code> gives it the line that says what the talk is about.</strong> Without those two, a cover is one weight of one colour with the subject set beside the venue, and it reads as a text file rather than as the opening of a talk.</p>
@@ -2422,9 +2487,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="backdrop" data-chunk-num="56">
+<article class="chunk chunk-example width-wide" id="backdrop" data-chunk-num="59">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>9</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A picture that fills the frame</span> <span class="hd-sub"><code>::: backdrop</code> and <code>::: overlay</code></span></h2>
   <p><strong><code>::: backdrop</code> puts a picture behind the whole slide, edge to edge, and <code>::: overlay</code> puts a block of text on top of it.</strong> One line each, on any chunk – a cover is not a special case.</p>
@@ -2446,9 +2511,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-full" id="deco-picture" data-chunk-num="57" data-has-backdrop="" data-backdrop="invert">
+<article class="chunk chunk-example width-full" id="deco-picture" data-chunk-num="60" data-has-backdrop="" data-backdrop="invert">
   <div class="chunk-backdrop bd-cover bd-middle bd-invert bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A picture behind the words</span> <span class="hd-sub">what the two blocks on the last slide produce</span></h2>
   
@@ -2460,9 +2525,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cards" data-chunk-num="58">
+<article class="chunk chunk-example width-wide" id="cards" data-chunk-num="61">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>1</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A row of cards</span> <span class="hd-sub"><code>::: cards N</code></span></h2>
   <p><strong><code>::: cards 3</code> is not a second spelling of <code>::: cols 3</code>.</strong> A <code class="nb">cols</code> block is one run of text the browser shares across that many columns, so a paragraph can spill from the foot of one into the head of the next. A <code class="nb">cards</code> block is that many separate boxes, and an item is in one of them whole or it is nowhere.</p>
@@ -2507,9 +2572,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cards-look" data-chunk-num="59">
+<article class="chunk chunk-example width-wide" id="cards-look" data-chunk-num="62">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>2</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">What the words in the braces do</span> <span class="hd-sub">the seven that set a card row&#39;s look</span></h2>
   <p><strong>Seven words in the tail set the look, and two of them decide themselves</strong>: <code class="nb">size</code>, where the longest item picks it, and <code class="nb">align</code>, which follows the size. The other five are <code class="nb">anchor</code>, <code class="nb">detail</code>, <code class="nb">ground</code>, <code class="nb">corner</code> and <code class="nb">scrim</code>. They are bare words between braces, at most one per question, and a second word answering a question already answered stops the build.</p>
@@ -2541,9 +2606,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="rows" data-chunk-num="60">
+<article class="chunk chunk-example width-wide" id="rows" data-chunk-num="63">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>3</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A term and what it means</span> <span class="hd-sub"><code>::: rows</code></span></h2>
   <p><strong><code>::: rows</code> is the same box turned ninety degrees</strong>: a term in a card on the left, its explanation beside it, several of them stacked.</p>
@@ -2566,9 +2631,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="side-ratio" data-chunk-num="61">
+<article class="chunk chunk-example width-wide" id="side-ratio" data-chunk-num="64">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>4</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure beside the prose</span> <span class="hd-sub"><code>::: side 2:1</code></span></h2>
   <div class="side" style="--side-a:2fr;--side-b:1fr"><div class="side-a">
@@ -2599,9 +2664,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="style-block" data-chunk-num="62">
+<article class="chunk chunk-example width-wide" id="style-block" data-chunk-num="65">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>5</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Setting the typography for a whole lecture</span> <span class="hd-sub">the <code class="nb">style:</code> block</span></h2>
   <p><strong>The <code class="nb">style:</code> block holds six settings you make once for a whole lecture rather than chunk by chunk.</strong></p>
@@ -2621,9 +2686,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="bundled-fonts" data-chunk-num="63">
+<article class="chunk chunk-example width-wide" id="bundled-fonts" data-chunk-num="66">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>6</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Which typefaces travel in the file</span> <span class="hd-sub">five come with the tool</span></h2>
   <p><strong>Three families travel in any one file, and which three is yours to pick.</strong> Five come with the tool, so naming one of those needs no font file at all.</p>
@@ -2640,9 +2705,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="64">
+<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="67">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own typefaces</span> <span class="hd-sub"><code class="nb">fonts/</code> beside <code class="nb">source.md</code>, plus a frontmatter block</span></h2>
   <p><strong>A family that is not inside the file is a family the room may not get.</strong> Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and <code>fonts: none</code> leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.</p>
@@ -2659,9 +2724,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="section-dividers" data-chunk-num="65">
+<article class="chunk chunk-example width-wide" id="section-dividers" data-chunk-num="68">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>8</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Where a new part starts</span> <span class="hd-sub"><code class="nb">section:</code></span></h2>
   <p><strong>A column with a <code># Heading</code> opens with a divider slide</strong>, and <code class="nb">section:</code> picks how that slide is drawn.</p>
@@ -2686,9 +2751,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="66">
+<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="69">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>9</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Turning the generated labels off</span> <span class="hd-sub"><code>style: {labels: off}</code></span></h2>
   <p><strong>The type word above a chunk is drawn in two places, and one setting takes it out of both.</strong></p>
@@ -2711,9 +2776,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="closing" data-chunk-num="67">
+<article class="chunk chunk-example width-wide" id="closing" data-chunk-num="70">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The last slide</span> <span class="hd-sub"><code>## closing:</code></span></h2>
   <p><strong><code>## closing:</code> draws a last slide in the same composition as the cover, so the lecture ends on the shape it opened with.</strong> A lecture that starts on a designed slide and ends on the last bullet of the last argument stops rather than finishes.</p>
@@ -2728,9 +2793,9 @@ overlays – are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-title" data-cover="masthead" data-closing="" data-chunk-num="68" id="end">
+<article class="chunk chunk-title" data-cover="masthead" data-closing="" data-chunk-num="71" id="end">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>1</i></span>
   <h1 class="title-main">That is the tour</h1>
     <p class="title-subtitle">now write your own <code class="nb">source.md</code></p>
     <div class="closing-body"><p>Everything in this tour comes out of one Markdown file and one command, <code>node build.js source.md</code>. The four views are already sitting beside it.</p>

@@ -564,23 +564,25 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 **A lone dollar sign is safe.** The delimiters are read as Markdown, not searched for in your text, so `$PATH` inside code, a price of $5 and $10 in prose, and a `$$` inside a code block are all left alone. Write `\$` if you want to be explicit.
 
-**Only the mathematical typefaces a lecture's formulas actually use travel in it** – around 120 KB out of a possible 254 KB in `print.html` and `print-notes.html`. A lecture without maths carries none, and the build tells you which.
+**Only the mathematical typefaces your formulas actually use travel in the file, and a lecture with no maths carries none at all.** The build prints what that came to: for this lecture, about 120 KB in each printed view and 166 KB in each live one, against the 254 KB a complete set of KaTeX faces would weigh.
 
-**The maths follows the `F` key.** Switch the body font to sans or monospace and the formulas move with it instead of sitting in the slide as a serif island. Only the letters change: operators, relations and brackets keep their own shapes, and a character the sans face does not have falls back to the mathematical one. The two live views pay about 46 KB more for the extra faces; `print.html` and `print-notes.html` have no such key and pay nothing.
+**The maths follows the `F` key.** Switch the body font to sans or monospace and the formulas move with it instead of sitting in the slide as a serif island. Only the letters change: operators, relations and brackets keep their own shapes, and a character the sans face does not have falls back to the mathematical one. That is where the live views' extra 46 KB goes – the printed ones have no `F` key and carry no faces for it.
 
 > note: A malformed formula does not stop the build – it is drawn in red, so a typo never blanks the projector mid-lecture. The terminal reports it, and `lint.js` warns about a `$$` you forgot to close.
 
 # Writing chunks that work {#craft}
 
-## principle: Write the prose first, then sharpen the openings | the slide is every paragraph's first sentence {.standard #topic-sentence}
+## principle: One paragraph per point | the slide is every paragraph's first sentence {.wide #topic-sentence}
 
-**The projection is the first sentence of every paragraph, so a chunk of four paragraphs puts four sentences in front of the room.** It is not one topic sentence per chunk. It is one per paragraph, in the order you wrote them, plus whatever you set in bold.
+**The projection is the first sentence of every paragraph: four paragraphs, four sentences in front of the room.** It is not one topic sentence per chunk. It is one per paragraph, in the order you wrote them, plus whatever you set in bold.
 
-**So write what you mean to say first and in full, then go back and sharpen the openings.** Each opening has to be a claim that survives having its own paragraph taken away; everything after it stays where it is and becomes the backing, which reaches `print.html` and `print-notes.html` and never the projection.
+**Either order works: the prose first and the openings sharpened afterwards, or the openings first as an outline and the paragraphs written under them.** Each opening has to end up a claim that survives having its own paragraph taken away; everything after it becomes the backing, which reaches `print.html` and `print-notes.html` and never the projection.
 
-**Doing it the other way round – bullets first, prose afterwards – leaves you a slide with nothing underneath it**, and an hour you have to improvise the substance of while standing in front of people.
+**Either way, every load-bearing thought and every explanation the argument needs starts a paragraph of its own.** Two of them sharing a paragraph means the second one never reaches the room, however well it is written.
 
-**This chunk is four paragraphs, so its slide is the four sentences you have just read.** Press `C` and the backing under each of them appears. *Option 1 – the default*, back in *What goes on the slide*, is where that shortening is shown happening.
+**The failure is stopping at the outline.** Openings with nothing written under them leave you a projection that works and a hand-out that does not, and an hour whose substance you improvise standing in front of people.
+
+**This chunk is five paragraphs, so its slide is the five sentences you have just read.** Press `C` and the backing under each of them appears. *Option 1 – the default*, back in *What goes on the slide*, is where that shortening is shown happening.
 
 > note: The short view doubles as a rehearsal test: if it would not remind you what you meant to say, the chunk is not finished. Present this one from the short view while you say it – the room can see that the slide is the same text as the hand-out.
 
@@ -607,25 +609,25 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 
 **Open your own lecture in the audience view, press `C` until it is short, and walk it end to end without opening the source.** Stop at every chunk you could not talk from using only what is on the screen.
 
-::: cols 2
+**For each chunk that fails, ask three questions in this order.**
 
-**For each chunk that fails**, ask in this order: is the opening sentence a claim, or a warm-up? Would each bold phrase read as a sensible bullet on its own? Is there a list hiding inside a paragraph?
+- Is the **opening sentence a claim**, or a warm-up?
+- Would **each bold phrase read as a sensible bullet** on its own?
+- Is there a **list hiding inside a paragraph**?
 
 **If all three answers are fine and it still reads badly,** mark the slide by hand. Option 1 holds up while a chunk is an argument of one to three paragraphs; once it wants continuous prose, a `::: slide` block is the shorter route.
-
-:::
 
 > note: Worth doing once per lecture, the day before. Reading the short version is close enough to giving the talk that it doubles as a rehearsal.
 
 # Next steps {#next}
 
-## principle: The first lecture is the slow one | start from a talk you have already given {.standard #start-writing}
+## principle: Start from a talk you have already given | the prose exists; the work is where the chunks end {.standard #start-writing}
 
-**The vocabulary you have just read is small, and a second lecture written in it takes about as long as the same deck would have taken.** The first one takes longer, and the cheapest way through it is a talk you have already given: the prose exists, and most of the work is deciding where one chunk ends and the next begins.
+**The first lecture is the one that costs, because it is where the vocabulary gets learned, and the cheapest way through it is a talk you have already given.** The prose exists. Most of the work is deciding where one chunk ends and the next begins, and the vocabulary you have just read is the whole of it.
 
-**After that it is a routine** – write the prose, sharpen the opening sentences, run the checker, then walk the lecture once in the short view before you teach it.
+**The loop is the same every time** – write the prose, sharpen the opening sentences, run the checker, then walk the lecture once in the short view before you teach it.
 
-## exercise: Read more | three finished lectures to open {.wide #read-more}
+## free: Read more | three finished lectures to open {.wide #read-more}
 
 **psi-slides comes with three finished lectures. Open them, and take whatever you need out of their sources.**
 
@@ -664,13 +666,13 @@ auto-fit: true          # true | false          – the # key
 slide-numbers: off      # vertical | horizontal | off
 editor: speaker         # both | speaker | none – the diagram editor
 
-lang: de                # not a view default: the language the lecture
-                        # is written in. en, de, de-DE, fr and so on,
-                        # and en when you leave it out
+lang: de                # the language the lecture is written in:
+                        # en, de, de-DE, fr and so on, and en
+                        # when you leave it out
 ---
 ```
 
-`lang:` reaches all four views. `print.html` and `print-notes.html` use it to pick the hyphenation rules, so **a long German compound breaks at the end of a line instead of leaving a hole**. The two live views never hyphenate.
+**`lang:` picks the hyphenation dictionary, and only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view never hyphenate at all.** It is not one of the six above in the other sense either – the six are opening settings that override whatever the reader last chose, and the language is a property of the lecture.
 
 **A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.** So a lecture that sets nothing behaves as it always did – font, theme and slide numbers follow the reader from lecture to lecture.
 
@@ -696,8 +698,8 @@ lang: de                # not a view default: the language the lecture
 
 ::: draw {unit=126x38}
 box src "Sender"
-box mix "Mix"       right of src gap 1.05
-box dst "Receiver"  right of mix gap 1.05
+box mix "Mix"       right of src gap 2.1
+box dst "Receiver"  right of mix gap 2.1
 
 edge src -> mix "encrypted"
 edge mix -> dst "recoded"
@@ -707,8 +709,8 @@ That drawing is these five lines and nothing else:
 
 ```text
 box src "Sender"
-box mix "Mix"       right of src gap 1.05
-box dst "Receiver"  right of mix gap 1.05
+box mix "Mix"       right of src gap 2.1
+box dst "Receiver"  right of mix gap 2.1
 edge src -> mix "encrypted"
 edge mix -> dst "recoded"
 ```
@@ -754,13 +756,25 @@ kind  name  label   placement              options  tail
 
 **The name is how later lines refer to an element and is never drawn; the label is what the room reads**, and `""` is a legal empty one. A name is letters, digits, `_` and `-`, and a line starting with `#` is a comment.
 
-**Inside the tail, two prefixes answer two questions.** `.tone-2` is a class, which says how the element looks, and `@crypto` is a tag, which says what set it belongs to. `{!tone-2}` with an exclamation mark takes a class off again. A tag goes wherever a name goes, so `show @crypto` in a step reaches every element carrying it, and an element joins a set on its own line – adding one to a set is a one-line edit.
+**Inside the tail, two prefixes answer two questions.**
 
-## example: Where an element goes | a grid square, or a neighbour {.full #diagram-placement}
+- **`.tone-2` is a class**, which says how the element looks. `{!tone-2}`, with an exclamation mark, takes one off again.
+- **`@crypto` is a tag**, which says what set the element belongs to.
 
-**Placement is a grid square or a relation to a neighbour** – `at 2,1`, or `right of mix gap 0.6`, or `below src gap 0 flush left` for boxes that touch. Placement also takes `between a,b`, the point on the line joining two elements, and any placement accepts a trailing `offset dx,dy`.
+A tag goes wherever a name goes, so `show @crypto` in a step reaches every element carrying it. An element joins a set on its own line, which makes adding one a one-line edit.
 
-**A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`, `via iv.cx,x0.cy`. Anywhere an `X,Y` pair goes, that form goes, so moving one element does not mean retyping everything placed against it. An anchor can carry a fraction: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side instead of on top of each other.
+## example: Where an element goes | a grid square, a neighbour, or another element's coordinate {.full #diagram-placement}
+
+**Placement is a grid square, or a relation to a neighbour.**
+
+- **`at 2,1`** puts an element in a grid square.
+- **`right of mix gap 0.6`** places it against a neighbour, as do `left of`, `above` and `below`.
+- **`between a,b`** is the point on the line joining two elements.
+- **`offset dx,dy`** is a nudge any of the three accepts on the end.
+
+**A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`. Anywhere an `X,Y` pair goes, that form goes.
+
+**An anchor can carry a fraction**: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side rather than on top of each other. `gap 0 flush left` at the end of a placement makes two boxes touch.
 
 **An edge is one of the things a coordinate can name.** `text n "only after the handshake" above w1 gap 0.2` sets a phrase against the wire it describes rather than against a box at one end of it, so the label follows its line instead of drifting off it the next time a box changes height. Name the edge first, in the slot before the arrow's first end: `edge w1 mix -> log`. An edge has no name until you write one, and most edges never need one.
 
@@ -778,9 +792,9 @@ kind  name  label   placement              options  tail
 **Everything above is drawn rather than described in [the diagrams lecture](../diagrams/audience.html)**, one construct per slide, with one chunk there as the reference for the whole class vocabulary and another for where an edge's label sits. `figure-design.md` in the repository is how to lay a figure out so a room can read it.
 :::
 
-## example: Classes and alignment | the class slots, `align` and `spread` {.full #diagram-classes}
+## example: Classes | thirteen groups, and one question each {.full #diagram-classes}
 
-**How an element looks comes from a fixed list of classes, and thirteen groups of them answer one question each, so only one member of a group can be in force at a time.** `{.tone-1}` on a box therefore *replaces* a `default box {.tone-4}` rather than piling on top of it.
+**Only one member of a group is ever in force.** The names come from a fixed list, and `{.tone-1}` on a box therefore *replaces* a `default box {.tone-4}` rather than piling on top of it, which is what makes the groups worth knowing.
 
 ::: draw {unit=112x82}
 default box {.sharp} w 0.62 h 0.42 pad 0.12
@@ -852,13 +866,11 @@ text wl "where the words sit" below w2 gap 0.28 {.small .muted}
 align x right fl, ol, sl, tw, gl
 :::
 
-**Every row of the specimen sheet above shows one group**, except three that show two or three where the questions belong together: stroke pattern, weight and the two ways of receding; family and size; the words that place a label across and the ones that place it down. The two ink classes have no row, being at work over the whole sheet – `.accent` on the cross, `.muted` on every caption. **Forty-one names in all, and `lint.js` refuses anything else**, so a typo stops the build rather than leaving a box unstyled.
+::: expand How to read the sheet, and the rest of the list
+**Every row above is one group**, except three that carry two or three because the questions belong together: stroke pattern, weight and the two ways of receding; family and size; the words that place a label across and the ones that place it down. The two ink classes have no row of their own, being at work over the whole sheet – `.accent` on the cross, `.muted` on every caption.
 
-**`flush` and `align` do two different jobs.** At the end of a placement, `flush` takes one word: `below src gap 0 flush left` keeps the new box's left edge level with `src`. On a line of its own, `align` is a statement: `align y middle a, b, c` gives `b` and `c` the vertical centre of `a`, the first name being the one the others follow. The centre of an axis is `middle` whichever axis it is.
+**Forty-one names in all, and `lint.js` refuses anything else**, so a typo stops the build rather than leaving a box unstyled.
 
-**`spread x a, b, c, d` shares a set out evenly** – first and last stay put, everything between gets the same distance from its neighbours. **Both statements are at work in the sheet above**: one `align x right` gives the five row labels the right edge of the first, and `spread x` puts the five middle words of the family row between `sans` and `bold`, which are the only two on that row that were placed at all.
-
-::: expand The rest of the class list, and where the two statements refuse
 
 Only three class names belong to no group and can be combined with anything: `.bold` for a heavier label, `.turn` for a label read bottom-to-top up the side of something tall and narrow, and `.front` for a line drawn over the boxes rather than under them. Three groups have no row on the sheet. Two of them belong to edges – how a line is drawn (`.smooth` bends your waypoints into a curve running through them, `.elbow` works out a right-angled route with its turn halfway across the gap and needs no waypoints at all) and which end carries an arrowhead, which you normally say with the arrow itself (`->`, `<-`, `<->`, `--`) and only ever write as a class inside a `step`. The third is how much of the room's attention an element asks for: `.emph`, `.dim` and `.ghost`. **Those three names are also the three verbs a step uses for the same thing.** Two members of one group on one element is an error, and `{!dim}` is how a class comes back off; there is no fourth name for ordinary prominence, the absence of all three being what that is. `.paper` fills a label with the page colour, knocking a hole in a line running behind it.
 
@@ -866,8 +878,20 @@ Two pairs are not one group but still draw a warning, because one of the two end
 
 Which way a pointed outline aims is the `point` option – `up`, `down`, `left` or `right` – and writing it on an outline that has no point is an error. So is `.fit` on a box with no width to fit into, and so is an outline class on anything but a `box`. A `.cross` given no `w` of its own comes out square, and stays square even under a `default box … w`; a `w` on the element's own line still wins.
 
-`align` and `spread` work on boxes, dots, texts and images only – naming an edge, a container or a brace is an error. `align` names its axis first: `x` takes `left`, `middle` or `right`, `y` takes `top`, `middle` or `bottom`. `spread` needs at least three elements; `align` needs two.
+:::
 
+## example: Lining things up | `flush`, `align` and `spread` {.full #diagram-align}
+
+**Three words put elements level with each other, and they are not interchangeable.**
+
+- **`flush` finishes a placement** and takes one word: `below src gap 0 flush left` keeps the new box's left edge level with `src`.
+- **`align` is a statement on a line of its own.** `align y middle a, b, c` gives `b` and `c` the vertical centre of `a`; the first name is the one the others follow.
+- **`spread x a, b, c, d` shares a set out evenly.** First and last stay put; everything between gets the same distance from its neighbours.
+
+**Both are at work in the sheet on the last slide**: an `align x right` gives the five row labels the right edge of the first, and `spread x` puts the five middle words of the family row between `sans` and `bold`.
+
+::: expand Where the two statements refuse
+`align` and `spread` work on boxes, dots, texts and images only – naming an edge, a container or a brace is an error. `align` names its axis first: `x` takes `left`, `middle` or `right`, `y` takes `top`, `middle` or `bottom`. `spread` needs at least three elements; `align` needs two.
 :::
 
 > note: Two columns built as separate `below` chains drift apart the moment their captions differ in height, and a line between two drifted boxes then runs a degree off the axis. The build warns about that.
@@ -895,18 +919,34 @@ step figures
   style ch-1-0, ch-4-2, ch-6-3, ch-0-4 {.tone-4}
 :::
 
-**A `brace` spans three of the columns and a `style` step tints four of the cells, because all of those are ordinary boxes** – named after the statement they came out of: `wc-0`, `wc-1`, … for the columns and `ch-1-0`, `ch-4-2`, … for the cells. The budget line is an ordinary edge drawn between two coordinates read off the chart's own frame, with `.front` on it so the columns do not cover it. The spacing *inside* these statements is `space` and never `gap`, `gap` being the distance to another element on the same line.
+**Everything a chart draws is an ordinary element with a generated name** – `wc-0`, `wc-1`, … for the columns and `ch-1-0`, `ch-4-2`, … for the cells – which is why the brace and the tinted cells above needed no vocabulary of their own.
 
-**A second set of numbers is one more `bars` line.** `bars after "…" series of wc {.tone-1}` joins the first chart's frame and borrows its ticks, its baseline and its scale, bringing only its own numbers and its own colour. The width is shared out between them, so a grouped chart takes exactly the paper a single one did. `stacked` piles it on the run before it instead, and the scale becomes the tallest stack. Such a line takes no `w`, no `h`, no `space`, no placement and no tick labels: all five belong to the chart it joined. `emph 0,1,2` or `dim 5` on any `bars` line marks those columns from the opening picture onwards, which is usually where a chart wants one – the same three words again, in a third position.
+::: expand What else is going on in that figure
+- **The budget line is an `edge`** between two coordinates read off the chart's own frame, with `.front` on it so the columns do not cover it.
+- **Spacing inside a chart is `space`, never `gap`** – `gap` is the distance to another element on the same line.
+- **`emph 0,1,2` or `dim 5`** on a `bars` line marks those columns from the opening picture onwards, which is usually where a chart wants one.
+:::
 
-**`horizontal` lays the columns flat.** The bars run left to right, the categories stack downwards, the tick labels become a right-aligned column down the left margin and the baseline stands on the left. Lengths from one shared left edge are easier to rank than heights over a shared floor, and a category called “DNS cache poisoning” cannot be written under an upright column at all. A tick string containing `|` splits on that instead of on spaces, so a label can be as many words as it needs – the same mark that separates a `table` row and a `lanes` name list.
+## example: More on bars | a second series, and columns laid flat {.full #diagram-bars}
+
+**A second set of numbers is one more `bars` line:** `bars after "…" series of wc {.tone-1}` joins the first chart's frame and borrows its ticks, its baseline and its scale.
+
+**`horizontal` lays the columns flat**, which is what a chart wants as soon as its categories have names rather than numbers – lengths from one shared left edge are easier to rank, and “DNS cache poisoning” cannot be written under an upright column at all.
+
+::: expand What a joined series may and may not carry
+**A joined series brings only its own numbers and its own colour.** The width is shared out between them, so a grouped chart takes exactly the paper a single one did. `stacked` piles it on the run before it instead, and the scale becomes the tallest stack. Such a line takes no `w`, no `h`, no `space`, no placement and no tick labels: all five belong to the chart it joined.
+
+**Laid flat**, the bars run left to right, the categories stack downwards, the tick labels become a right-aligned column down the left margin, and the baseline stands on the left. A tick string containing `|` splits on that instead of on spaces, so a label can be as many words as it needs – the same mark that separates a `table` row and a `lanes` name list.
+:::
 
 ::: draw {unit=150x50}
 bars hour "31,24,18,9" "writing the prose | drawing the figures | fixing one wording | fighting the tooling" at 0,0 horizontal w 1.7 h 1.25 emph 1 {.tone-2}
 text hourn "minutes, in the hour before a lecture" below hour gap 0.5 {.small .muted}
 :::
 
-**`w` and `h` are counted in grid squares, and a grid square is not square – so those two numbers do not describe the shape on the page.** At the `unit=150x54` of the figure below, a plot written `w 1.9 h 1.5` comes out 285 by 81 pixels, which is nothing like 1.9 by 1.5. `aspect 4:3`, `aspect 1:1`, or a single number meaning that many wide to one tall, states the proportion the reader actually sees and lets the build work the other number out. Both `bars` and `plot` take it. Giving `w`, `h` and `aspect` together is an error, because two of the three would have to lose and nothing on the line says which.
+## example: Plots | `plot` draws a frame and a scale, and nothing else {.full #diagram-plot}
+
+**A chart is sized with `aspect`, not with `w` and `h`** – those two are counted in grid squares, and a grid square is not square, so they do not describe the shape a reader sees.
 
 ::: draw {unit=150x54}
 plot pace "minutes into the talk" "chunks covered" at 0,0 w 2.7 aspect 2:1 x 0,60 y 0,40 tick 10
@@ -925,9 +965,15 @@ step lesson
   dim even
 :::
 
-**A `plot` draws the frame and the scale and nothing else.** It takes the two ranges and one `tick` interval, after which `pace@26` names a value in the plot's own units anywhere a coordinate can go – in a waypoint, in an `at`, at the end of a pointer line. **The curves are ordinary edges.** `.smooth` runs a curve *through* the waypoints you wrote instead of joining them with straight segments, `--` draws a line with no arrowhead, and the two steps bring the second curve in and then emphasise it while the reference line recedes.
+**A `plot` takes two ranges and one `tick` interval, and draws nothing but the frame and the scale** – after which `pace@26` names a value in the plot's own units anywhere a coordinate can go, and the curves over it are ordinary edges.
+
+::: expand Sizing, curves, and two charts that match
+**`aspect 4:3`, `aspect 1:1`, or a single number meaning that many wide to one tall**, states the proportion the reader sees and lets the build work the other number out. Both `bars` and `plot` take it. At the `unit=150x54` of the figure above, a plot written `w 1.9 h 1.5` comes out 285 by 81 pixels, which is nothing like 1.9 by 1.5. Giving `w`, `h` and `aspect` together is an error, because two of the three would have to lose and nothing on the line says which.
+
+**`pace@26` goes anywhere a coordinate can** – in a waypoint, in an `at`, at the end of a pointer line. `.smooth` runs a curve *through* the waypoints you wrote rather than joining them with straight segments, `--` draws a line with no arrowhead, and the two steps bring the second curve in and then emphasise it while the reference line recedes.
 
 **Two charts meant to be compared take one size, written once.** `same as pace` on a second `bars` or `plot` line copies the whole frame. It can only name a chart written *above* it, and `w`, `h` or `aspect` beside it is an error. Matching frames are not a matching scale: the ranges are written per chart and nothing checks that two of them agree.
+:::
 
 > note: The numbers in both figures are made up. `plot` has no logarithmic scale, no automatic choice of ticks, no legend and no series of its own – everything it draws is an element you could have written by hand.
 
@@ -941,14 +987,15 @@ default box {.tone-2} w 1.25 h 0.5
 box alice "Alice" at 0,0
 box bob   "Bob"   right of alice gap 6.3 same as alice
 edge wire alice <-> bob "M"
-container net "one wire, two honest ends" over alice,bob pad 0.5 {.dashed .muted}
+container net "the intended channel" over alice,bob pad 0.5 {.dashed .muted}
 
 box eve "Eve" between alice,bob offset 0,-1.7 same as alice {.tone-4 @attack}
 text note "no cipher is broken here –\nshe just stands in the middle" below alice gap 1.05 flush left -- eve.cx,eve.bottom {.hand .small @attack}
 
-# A corner is as addressable as a side: .tl .tr .bl .br, plus .center. On a
-# diagonal connection the corner hits what the side would miss.
-edge in alice.br -> eve.tl {.accent @cut}
+# Eve is level with the other two by the time this arrow is shown - the same
+# step moves her onto the line - so it is a plain side-to-side connection and
+# the compiler picks the two facing edges.
+edge in alice -> eve {.accent @cut}
 edge fwd eve.right:0.2 -> bob.left:0.2 "M" {.accent @cut} side top
 edge edit eve.right:0.8 -> bob.left:0.8 "M′" {.accent @cut} side bottom
 
