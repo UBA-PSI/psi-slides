@@ -311,6 +311,82 @@ export async function run({ report }) {
     }
   }
 
+  // ── visibility runs downhill, and it chains ──────────────────────
+  // "An arrow is only as visible as the two things it joins, a container or a
+  // brace only as visible as its members, and a text with a line drawn to
+  // something only as visible as what it points at." Three faces of one rule,
+  // and the third one used to hold only where the leader pointed at a *node*:
+  // the closure read the visibility the steps wrote and never the visibility
+  // it had itself derived, so a leader aimed at an edge saw that edge's
+  // untouched `true`. The tutorial states the rule on the very slide that
+  // broke it – `#diagram-beats` opened with an annotation and a stub hanging
+  // in empty paper, one beat before the logfile they annotate exists.
+  //
+  // Read off the per-beat payload rather than the SVG: opacity per beat is
+  // what the runtime sets, and it is compiled, so no browser is needed to ask.
+  const visAt = (out, k) => (frames(out) || { frames: [] }).frames[k] || {};
+  {
+    const out = fig('the tutorial\'s stepped annotation',
+      'box  mix  "Mixnode"  at 0,0\n'
+      + 'box  log  "Logfile"    below mix gap 0.9  {.dashed}\n'
+      + 'edge leak mix -> log {.dashed}\n'
+      + 'text why "this is where the anonymity ends"  right of log gap 1.4 -- leak {.hand}\n'
+      + '\nstep leak\n  show log\nstep blame\n  emph leak, log');
+    if (out) {
+      const v0 = visAt(out, 0).vis || {}, v1 = visAt(out, 1).vis || {};
+      ok(v0.log === 0 && v0.leak === 0, 'the hidden box takes its own edge with it',
+        `log ${v0.log}, leak ${v0.leak}`);
+      ok(v0.why === 0, 'a text whose leader points at a hidden edge is hidden too',
+        `the annotation was at opacity ${v0.why} while its subject was at ${v0.leak}`);
+      ok(v0['why--lead'] === 0, 'and so is the leader stub it grew',
+        `the stub was at opacity ${v0['why--lead']}`);
+      ok(v1.why === 1 && v1['why--lead'] === 1 && v1.log === 1,
+        'both come back with the thing they annotate',
+        `at beat 1: text ${v1.why}, stub ${v1['why--lead']}, box ${v1.log}`);
+    }
+  }
+  {
+    // The face that always worked, kept as the control: a leader aimed
+    // straight at a node. If this one ever goes dark the closure has stopped
+    // running rather than started chaining.
+    const out = fig('a leader aimed at a node',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1\ntext t "note" below b gap 1 -- b\nstep s\n  show b');
+    const v0 = out && (visAt(out, 0).vis || {});
+    ok(v0 && v0.t === 0 && v0['t--lead'] === 0, 'a leader aimed at a hidden node hides its text',
+      `text ${v0 && v0.t}, stub ${v0 && v0['t--lead']}`);
+  }
+  {
+    // It is a default, not a law: an author who says `show` by name owns the
+    // answer, which is what `visExplicit` is for.
+    const out = fig('a shown text with a hidden subject',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1\ntext t "note" below b gap 1 -- b\n'
+      + 'step s\n  hide b\n  show t');
+    const v1 = out && (visAt(out, 1).vis || {});
+    ok(v1 && v1.b === 0 && v1.t === 1, 'an explicit show on the text overrides the leader rule',
+      `box ${v1 && v1.b}, text ${v1 && v1.t}`);
+  }
+  {
+    // The chain one link further, through the holder face: a container whose
+    // only member is an edge that a hidden endpoint took away.
+    const out = fig('a container holding one derived-hidden edge',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1\nbox c "C" below a gap 1\n'
+      + 'edge e a -> b\ncontainer k over e "held" pad 0.2\nstep s\n  show b');
+    const v0 = out && (visAt(out, 0).vis || {});
+    ok(v0 && v0.e === 0 && v0.k === 0, 'a holder whose members are all derived-hidden goes with them',
+      `edge ${v0 && v0.e}, container ${v0 && v0.k}`);
+  }
+  {
+    // Two leaders pointing at each other is a cycle in the closure. Nothing in
+    // the grammar forbids writing one, so the only requirement is that the
+    // compiler answers at all – it does, because a round can only ever turn
+    // visibility off and the iteration stops when a round changes nothing.
+    const out = fig('two leaders pointing at each other',
+      'box a "A" at 0,0\ntext p "P" right of a gap 1 -- q\ntext q "Q" below a gap 1 -- p\nstep s\n  show a');
+    const v0 = out && (visAt(out, 0).vis || {});
+    ok(v0 && v0.p === 1 && v0.q === 1, 'a leader cycle terminates instead of hanging the compiler',
+      `p ${v0 && v0.p}, q ${v0 && v0.q}`);
+  }
+
   // ── what the source means to a rewriter ──────────────────────────
   // A name is not a keyword. The span table used to find `w` by scanning the
   // line for the token, so an element *called* `w` was taken for the width

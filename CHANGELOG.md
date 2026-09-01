@@ -304,6 +304,22 @@ from building the same way is a major version.
   against a number. Print is untouched: a marginalia still prints as an
   indented aside, and `print.html` is byte-identical.
 
+- **An annotation whose leader pointed at an arrow was drawn before the arrow
+  was.** "Anything hanging off something invisible is invisible too" held for
+  an edge's endpoints and a holder's members, and for a `text` whose leader
+  named a *node* – but not for one whose leader named an **edge**. The three
+  faces of that rule each read the visibility the `step` blocks had written and
+  never the visibility the rule itself had just derived, so a leader aimed at
+  an edge saw that edge's untouched "visible" while the edge was already dark
+  for want of one of its endpoints, and the words plus their stub arrived a
+  beat early, pointing into empty paper. The tutorial's own `#diagram-beats`
+  slide, which states the rule, is where it showed. The three faces now resolve
+  together as one fixed point before anything is drawn, so the rule chains as
+  far as it needs to (and a holder whose members are all *derived*-hidden goes
+  with them, which it also used not to do); a written `show` or `hide` still
+  overrides it, placement still implies nothing, and a leader cycle terminates
+  rather than spinning.
+
 - **Clicking a display formula could hide a third of it.** The overlay
   enlarges a focused formula by setting type – 0.12 of the slide height, 108px
   at 1440×900, about three times what it had on the slide – and the card it
