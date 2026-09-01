@@ -97,14 +97,14 @@ const VIEW_DEFAULTS = {
   'ligatures': ['text', 'none', 'all'],
 };
 
-// Mirrors BUNDLED_FONTS in build.js – the families that need no file in
-// fonts/. Names only: the build owns the packages, the byte counts and the
-// warning about Iosevka's size.
-const BUNDLED_FAMILIES = {
-  serif: ['Literata'],
-  sans: ['IBM Plex Sans', 'Inter Tight'],
-  mono: ['JetBrains Mono', 'Noto Sans Mono Condensed'],
-};
+// There is deliberately no mirror of BUNDLED_FONTS here. One stood in this
+// spot from the commit that made the roster per-lecture until the serif role
+// gained its alternates, and nothing ever read it: `fonts:` is the one piece
+// of frontmatter this file does not check, because deciding a family needs
+// the contents of `fonts/` as well as the bundle, and the build already
+// hard-fails with the list of names for that role and the files it found.
+// A table kept congruent for nobody is the duplication CLAUDE.md warns about
+// with none of the benefit that pays for it.
 
 // Mirrors STYLE_SPEC in build.js – the nested `style:` block. Only the two
 // enum keys are checked: the two scales are bounded numbers, and reading a
@@ -129,6 +129,9 @@ const STYLE_ENUMS = {
   // nowhere. `lang:` picks the dictionary and is a separate key, because
   // the language is a property of the lecture and this is a preference.
   'hyphenate': ['print', 'all', 'none'],
+  // Whether the printed document is set in the serif or the sans. The live
+  // views answer this with `F` and with `font:`; print had no answer at all.
+  'print-body': ['serif', 'sans'],
 };
 
 // Mirrors BACKDROP_SLOTS / OVERLAY_SLOTS in build.js. Two words from one

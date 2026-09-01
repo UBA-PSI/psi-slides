@@ -9,6 +9,62 @@ from building the same way is a major version.
 
 ### Added
 
+- **`style: {print-body: sans}` sets the printed document in the sans.** The
+  live views have answered "serif, sans or mono" since the first commit – `F`
+  cycles it, `font:` pins where a lecture opens – and print answered nothing,
+  because `PRINT_CSS` names the serif on `html`. `serif` is the default and
+  writing it changes nothing; `print-notes.html` follows, being the same
+  renderer.
+
+  It is one declaration on `<body>`, not a list of elements, and that is the
+  part worth knowing: everything in the print stylesheet that ought to be a
+  sans already names one – the tag word, a figure's caption, a sub-heading,
+  the contents list – so what inherits the serif off `html` is exactly the set
+  that should move, namely the running text, the chunk and column headings and
+  a blockquote. Code stays mono either way.
+
+  It deliberately does **not** defer to `font:` the way `print-slide-numbers`
+  defers to `slide-numbers`. That key was born deferring, so nothing moved
+  under any existing deck; here, a lecture that already says `font: sans` for
+  the room would start printing in a sans it never chose – and `font: mono`
+  has no sensible reading as a whole printed document.
+
+- **Four serif alternates in the bundle: Source Serif 4, Bitter, Noto Serif and
+  Roboto Serif.** Literata stays the default and an existing lecture is
+  unchanged; the serif role simply stops being the one role with no choice.
+  `fonts: {serif: Bitter}` needs no file, the same way the sans and mono
+  alternates do, and only the three families a lecture resolves to are
+  embedded, so a deck that names none of them carries none of them.
+
+  They were picked against one question – what a projector does to a typeface –
+  and the numbers are measured in a browser rather than argued about. Stroke
+  contrast is a capital O's stem over its hairline, and low is what survives a
+  lit room; the bold column is how much wider the 600 stem is than the 400,
+  which matters more here than in most tools, because `topic-bold` puts the
+  first sentence and the bold fragments on the slide and nothing else.
+
+  | | contrast | bold | advance | payload |
+  |---|---|---|---|---|
+  | Literata *(default)* | 1.68 | +40% | 0.560 | 106 KB |
+  | Bitter | **1.35** | +51% | 0.547 | **66 KB** |
+  | Roboto Serif | 1.60 | **+63%** | 0.606 | 136 KB |
+  | Source Serif 4 | 1.91 | +30% | 0.559 | 100 KB |
+  | Noto Serif | 2.00 | +34% | 0.560 | 83 KB |
+
+  Bitter is the sturdiest and the cheapest of the five. Roboto Serif is the one
+  that **re-wraps a finished deck** – 8% wider than Literata, which is a line
+  the paragraph did not have before – and it is also the one whose width
+  reaches a figure: `dgMeasure` estimates every non-mono label with `dgCharW`,
+  the *sans* table, so a `.serif` label in a Roboto Serif deck may want an
+  explicit `w`. Against 210 real label strings from the corpus the other three
+  are **tighter** than Literata already is.
+
+  Two obvious candidates are deliberately absent. Merriweather reads robust and
+  has the worst bold separation in the field at +15%. IBM Plex Serif would pair
+  with the default sans and has no variable build on `@fontsource-variable`, so
+  it fails the rule that a bundled face is a variable latin subset; it is still
+  available by dropping the files in `fonts/`.
+
 - **`style: {blocks: left}` puts a code block, a figure and a display formula
   on the prose's own axis**, and four new chunk classes answer that key and
   `style.wrap` for one slide at a time: `{.blocks-left}`, `{.blocks-center}`,
@@ -1397,6 +1453,18 @@ from building the same way is a major version.
   unreleased, so this is not a source-format break.
 
 ### Fixed
+
+- **The OFL notice in an output now names the faces that output actually
+  carries.** It was a literal reading "Literata, IBM Plex Sans and JetBrains
+  Mono" whatever the lecture's roster was, so a deck on `sans: Inter Tight`
+  already shipped a licence notice naming a font it did not embed and omitting
+  one it did. Derived from the embedded set now.
+
+- **A roster family that also sits in its own fallback stack is no longer named
+  twice.** `fonts: {serif: Source Serif 4}` emitted
+  `'Source Serif 4', 'Literata', 'Source Serif 4', Georgia, serif` – harmless
+  to a browser, untrue about the file. It is the first roster family to collide
+  with its own tail, which is why nothing had caught it.
 
 - **A `::: marginalia` shrank the slide it belonged to.** The aside is
   absolutely positioned out past the text column, so its overhang lands in the

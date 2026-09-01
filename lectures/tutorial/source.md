@@ -1229,6 +1229,7 @@ style:
                         # a figure and a formula sit
   wrap: none            # balance | none – even line lengths,
                         # in headings and in prose alike
+  print-body: sans      # serif | sans – the printed document's face
   heading-scale: 1.15   # 0.6 … 1.8
   body-scale: 0.95      # 0.6 … 1.8
 ```
@@ -1236,6 +1237,8 @@ style:
 `headings: auto` is the default, and it means the type decides: a question is centred, a figure's caption sits over its artwork. `left` overrides all of that, for one line of alignment down the whole lecture. `off` takes every heading off the projection while keeping it in `print.html`, `print-notes.html`, the contents list and the search.
 
 **`wrap` reaches headings and prose both**, which its name does not say: `balance` evens the line lengths of a heading and protects the last line of a paragraph, and `none` turns both off. `blocks` and `wrap` are the two keys a single chunk can answer for itself, with `{.blocks-left}` and `{.wrap-none}` in its attribute tail.
+
+**`print-body` is the one setting here that only the printed pages see.** The projection and the lectern let a reader pick the face with `F`; a document has no reader to press it, so `sans` is how you ask for one set in the sans. Code stays in the monospace, and so does everything the document already draws in the sans – the type word, a caption, the contents list.
 
 The two scales multiply the tool's own sizes rather than replacing them, and they are **bounded**. Outside 0.6 to 1.8 the shortened view, the limit on how wide a line of code may be and the automatic zoom stop agreeing with each other.
 
@@ -1257,18 +1260,21 @@ style:
 
 **A figure's heading, set in capitals, is your own text and needs no key.** It is the chunk's heading, drawn that way because the type is `figure`, so `## figure: {.wide #id}` with no heading text leaves it off the slide. The cost is that the chunk then has no text for search to find and no heading in `print.html`. (The contents list is unaffected – `T` lists the lecture's columns, never its chunks.)
 
-## example: Which typefaces travel in the file | five come with the tool {.wide #bundled-fonts}
+## example: Which typefaces travel in the file | nine come with the tool {.wide #bundled-fonts}
 
-**Three families travel in any one file, and which three is yours to pick.** Five come with the tool, so naming one of those needs no font file at all.
+**Three families travel in any one file, and which three is yours to pick.** Nine come with the tool, so naming one of those needs no font file at all.
 
 ```yaml
 fonts:
+  serif: Bitter                    # or Literata, the default; also Source
+                                   # Serif 4, Noto Serif, Roboto Serif
   sans: Inter Tight                # or IBM Plex Sans, the default
   mono: Noto Sans Mono Condensed   # or JetBrains Mono, the default
-  serif: Literata                  # the only serif that ships
 ```
 
-Only the three a lecture actually asks for are read, so choosing an alternative costs that lecture and no other. A name that is neither one of the five nor a file in `fonts/` stops the build, and the message lists the names available for that role.
+Only the three a lecture actually asks for are read, so choosing an alternative costs that lecture and no other. A name that is neither one of the nine nor a file in `fonts/` stops the build, and the message lists the names available for that role.
+
+**Among the serifs, the question is what a projector does to a typeface.** Bitter has the lowest stroke contrast and the smallest file, which is why it survives a lit room; Roboto Serif has the strongest bold but sets 8% wider, so it re-wraps a deck written against another face.
 
 **The condensed monospace is 17% narrower** – 0.50 em against 0.60 em per character, measured in a browser – so a listing that ran off the slide now fits. It is Noto Sans Mono with its width axis pinned rather than a different typeface, so it costs 54 KB. Slashed zero, and `I`, `l` and `1` are three visibly different shapes.
 

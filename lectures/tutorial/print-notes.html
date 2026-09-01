@@ -37,6 +37,13 @@
 * { box-sizing: border-box; }
 html { font-family: var(--serif); font-size: 10pt; color: var(--ink); line-height: 1.6; background: var(--paper); text-rendering: optimizeLegibility; }
 body { margin: 0; }
+/* style: {print-body: sans}. One declaration on <body> is the whole switch:
+   it beats what body inherits from html, and everything below that should
+   stay a sans or a mono names its own family already, so only what actually
+   inherited the serif moves - the running text, the chunk and column
+   headings, a blockquote. The page number in @page is outside the document
+   tree and was never the serif. */
+body[data-print-body=sans] { font-family: var(--sans); }
 
 main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
 
@@ -2795,10 +2802,12 @@ of them are shown one per slide in
 <span class="line"><span style="color:#6A737D">                        # a figure and a formula sit</span></span>
 <span class="line"><span style="color:#22863A">  wrap</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">            # balance | none – even line lengths,</span></span>
 <span class="line"><span style="color:#6A737D">                        # in headings and in prose alike</span></span>
+<span class="line"><span style="color:#22863A">  print-body</span><span style="color:#24292E">: </span><span style="color:#032F62">sans</span><span style="color:#6A737D">      # serif | sans – the printed document's face</span></span>
 <span class="line"><span style="color:#22863A">  heading-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">1.15</span><span style="color:#6A737D">   # 0.6 … 1.8</span></span>
 <span class="line"><span style="color:#22863A">  body-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">0.95</span><span style="color:#6A737D">      # 0.6 … 1.8</span></span></code></pre>
 <p><code>headings: auto</code> is the default, and it means the type decides: a question is centred, a figure&#39;s caption sits over its artwork. <code class="nb">left</code> overrides all of that, for one line of alignment down the whole lecture. <code class="nb">off</code> takes every heading off the projection while keeping it in <code class="nb">print.html</code>, <code class="nb">print-notes.html</code>, the contents list and the search.</p>
 <p><strong><code class="nb">wrap</code> reaches headings and prose both</strong>, which its name does not say: <code class="nb">balance</code> evens the line lengths of a heading and protects the last line of a paragraph, and <code class="nb">none</code> turns both off. <code class="nb">blocks</code> and <code class="nb">wrap</code> are the two keys a single chunk can answer for itself, with <code class="nb">{.blocks-left}</code> and <code class="nb">{.wrap-none}</code> in its attribute tail.</p>
+<p><strong><code class="nb">print-body</code> is the one setting here that only the printed pages see.</strong> The projection and the lectern let a reader pick the face with <code class="nb">F</code>; a document has no reader to press it, so <code class="nb">sans</code> is how you ask for one set in the sans. Code stays in the monospace, and so does everything the document already draws in the sans – the type word, a caption, the contents list.</p>
 <p>The two scales multiply the tool&#39;s own sizes rather than replacing them, and they are <strong>bounded</strong>. Outside 0.6 to 1.8 the shortened view, the limit on how wide a line of code may be and the automatic zoom stop agreeing with each other.</p>
 
   
@@ -2835,13 +2844,15 @@ of them are shown one per slide in
   
   <span class="chunk-num" aria-hidden="true"><i>6</i><i>7</i></span>
   <span class="chunk-label">example</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Which typefaces travel in the file</span> <span class="hd-sub">five come with the tool</span></h2>
-  <p><strong>Three families travel in any one file, and which three is yours to pick.</strong> Five come with the tool, so naming one of those needs no font file at all.</p>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Which typefaces travel in the file</span> <span class="hd-sub">nine come with the tool</span></h2>
+  <p><strong>Three families travel in any one file, and which three is yours to pick.</strong> Nine come with the tool, so naming one of those needs no font file at all.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">fonts</span><span style="color:#24292E">:</span></span>
+<span class="line"><span style="color:#22863A">  serif</span><span style="color:#24292E">: </span><span style="color:#032F62">Bitter</span><span style="color:#6A737D">                    # or Literata, the default; also Source</span></span>
+<span class="line"><span style="color:#6A737D">                                   # Serif 4, Noto Serif, Roboto Serif</span></span>
 <span class="line"><span style="color:#22863A">  sans</span><span style="color:#24292E">: </span><span style="color:#032F62">Inter Tight</span><span style="color:#6A737D">                # or IBM Plex Sans, the default</span></span>
-<span class="line"><span style="color:#22863A">  mono</span><span style="color:#24292E">: </span><span style="color:#032F62">Noto Sans Mono Condensed</span><span style="color:#6A737D">   # or JetBrains Mono, the default</span></span>
-<span class="line"><span style="color:#22863A">  serif</span><span style="color:#24292E">: </span><span style="color:#032F62">Literata</span><span style="color:#6A737D">                  # the only serif that ships</span></span></code></pre>
-<p>Only the three a lecture actually asks for are read, so choosing an alternative costs that lecture and no other. A name that is neither one of the five nor a file in <code class="nb">fonts/</code> stops the build, and the message lists the names available for that role.</p>
+<span class="line"><span style="color:#22863A">  mono</span><span style="color:#24292E">: </span><span style="color:#032F62">Noto Sans Mono Condensed</span><span style="color:#6A737D">   # or JetBrains Mono, the default</span></span></code></pre>
+<p>Only the three a lecture actually asks for are read, so choosing an alternative costs that lecture and no other. A name that is neither one of the nine nor a file in <code class="nb">fonts/</code> stops the build, and the message lists the names available for that role.</p>
+<p><strong>Among the serifs, the question is what a projector does to a typeface.</strong> Bitter has the lowest stroke contrast and the smallest file, which is why it survives a lit room; Roboto Serif has the strongest bold but sets 8% wider, so it re-wraps a deck written against another face.</p>
 <p><strong>The condensed monospace is 17% narrower</strong> – 0.50 em against 0.60 em per character, measured in a browser – so a listing that ran off the slide now fits. It is Noto Sans Mono with its width axis pinned rather than a different typeface, so it costs 54 KB. Slashed zero, and <code class="nb">I</code>, <code class="nb">l</code> and <code class="nb">1</code> are three visibly different shapes.</p>
 <p><strong><code class="nb">ligatures:</code> decides whether letter pairs are drawn joined, and answers separately for prose and for code.</strong> <code class="nb">text</code> is the default: <code class="nb">fi</code> and <code class="nb">fl</code> joined up in prose, nothing joined in code. <code class="nb">none</code> takes them out of prose as well. <code class="nb">all</code> puts the code ones back, so JetBrains Mono draws <code class="nb">-&gt;</code> as a single arrow again. The code ones are off by default because in the figure language <code class="nb">-&gt;</code> and <code class="nb">--</code> are two <em>different</em> arrows, and every listing on a slide is source somebody may retype.</p>
 

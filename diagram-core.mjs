@@ -884,6 +884,19 @@ export const DG_WIDE = new Set([...'mwMWQ@%']);
 // table too tight. Left alone, labels-that-outgrow-their-box went from 1 in 25
 // to 5 in 25 on real lecture strings. Re-measure this table if the sans
 // changes again - scratch/table.mjs in the build log shows how.
+//
+// It is the sans table and it measures every non-mono label, `.serif` ones
+// included: the class changes what is painted, never what was measured. That
+// is survivable because the serif is the minority case, and it was already
+// looser than the sans before any alternate landed - against 210 real label
+// strings from the corpus, IBM Plex Sans exceeds the estimate 7 times and
+// Literata 49. Of the four serif alternates three are *tighter* than Literata
+// (Bitter 22, Noto Serif 29, Source Serif 4 36); Roboto Serif is the one that
+// is not, at 122, with a mean ratio of 1.01 - the estimate under-reads it on
+// average. Give a `.serif` label an explicit `w` in a deck set in Roboto
+// Serif. Threading the roster down to here so the table could vary per family
+// would have to reach the browser editor too, which is a great deal of
+// machinery for a class the whole corpus uses five times.
 export function dgCharW(ch) {
   if (DG_NARROW.has(ch)) return 0.39;
   if (DG_WIDE.has(ch)) return 0.95;

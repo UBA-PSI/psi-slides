@@ -745,11 +745,15 @@ number to anyone outside a German law faculty. Put a word there with
 Three families travel in any one output, and which three the lecture chooses.
 A **bundled** family needs no file in `fonts/`:
 
-| role | default | alternate |
+| role | default | alternates |
 |---|---|---|
-| serif | Literata | - |
+| serif | Literata | Source Serif 4, Bitter, Noto Serif, Roboto Serif |
 | sans | IBM Plex Sans | Inter Tight |
 | mono | JetBrains Mono | Noto Sans Mono Condensed |
+
+Among the serifs, **Bitter** is the sturdiest on a projection and the smallest
+file; **Roboto Serif** has the strongest bold but is 8% wider than Literata, so
+it re-wraps a deck that was written against another face.
 
 ```yaml
 fonts:

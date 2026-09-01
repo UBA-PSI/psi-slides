@@ -927,6 +927,53 @@ const BUNDLED_FONTS = {
     role: 'serif', pkg: '@fontsource-variable/literata', variable: true,
     files: { normal: 'literata-latin-wght-normal.woff2', italic: 'literata-latin-wght-italic.woff2' },
   },
+  // Four serif alternates, and the role got them for the reason the sans and
+  // the mono got theirs: the roster is per-lecture, so a family costs only
+  // the deck that names it. They were picked against one question - what a
+  // projector does to a typeface - and measured in a browser rather than
+  // argued about. Stroke contrast is the stem of a capital O over its
+  // hairline, and low is what survives a lit room and a tired lamp; the
+  // second number is how much wider the 600 stem is than the 400, which
+  // matters more here than anywhere else, because `topic-bold` puts the
+  // first sentence and the bold fragments on the slide and nothing else.
+  //
+  //                  contrast   bold    advance   payload
+  //   Literata         1.68     +40%     0.560     106 KB
+  //   Bitter           1.35     +51%     0.547      66 KB
+  //   Roboto Serif     1.60     +63%     0.606     136 KB
+  //   Source Serif 4   1.91     +30%     0.559     100 KB
+  //   Noto Serif       2.00     +34%     0.560      83 KB
+  //
+  // Two families that look like obvious candidates are deliberately absent.
+  // Merriweather reads robust - the largest x-height of any of them - and
+  // its bold is the worst in the field at +15%, which is the one measurement
+  // this tool cannot afford to lose. IBM Plex Serif would pair with the
+  // default sans and has no variable build on @fontsource-variable, so it
+  // fails the rule that a bundled face is a variable latin subset; an author
+  // who wants it drops the static files in fonts/.
+  'Source Serif 4': {
+    role: 'serif', pkg: '@fontsource-variable/source-serif-4', variable: true,
+    files: { normal: 'source-serif-4-latin-wght-normal.woff2', italic: 'source-serif-4-latin-wght-italic.woff2' },
+  },
+  // The sturdiest of the four by every measure that matters on a projection,
+  // and the cheapest: lowest contrast, thickest hairline, largest x-height
+  // after Merriweather, and 66 KB against Literata's 106.
+  Bitter: {
+    role: 'serif', pkg: '@fontsource-variable/bitter', variable: true,
+    files: { normal: 'bitter-latin-wght-normal.woff2', italic: 'bitter-latin-wght-italic.woff2' },
+  },
+  'Noto Serif': {
+    role: 'serif', pkg: '@fontsource-variable/noto-serif', variable: true,
+    files: { normal: 'noto-serif-latin-wght-normal.woff2', italic: 'noto-serif-latin-wght-italic.woff2' },
+  },
+  // The one alternate that re-wraps a finished deck: 8% wider than Literata,
+  // which is a line the paragraph did not have before. It also has the best
+  // bold separation of the five, so the trade is real rather than a defect.
+  // The width reaches one more place - see the note on dgCharW below.
+  'Roboto Serif': {
+    role: 'serif', pkg: '@fontsource-variable/roboto-serif', variable: true,
+    files: { normal: 'roboto-serif-latin-wght-normal.woff2', italic: 'roboto-serif-latin-wght-italic.woff2' },
+  },
   // The default sans since it replaced Inter Tight. Tight is the condensed
   // cut of Inter, and the saved width is paid for in letter spacing that
   // reads cramped on a screen - worst exactly where the text is already
@@ -1294,11 +1341,19 @@ function collectEmbeddedFonts(frontmatter = {}, srcDir) {
   return { faces, overrides, bytes, notes };
 }
 
-const OFL_NOTICE =
-  '/* Bundled typefaces: Literata, IBM Plex Sans and JetBrains Mono, each under\n' +
+// The notice has to name the faces that are actually in this file. It used
+// to name the three defaults as a literal, which was already wrong for a
+// lecture on `sans: Inter Tight` and is wrong far more often now that the
+// serif role has four alternates - a notice that names a font the file does
+// not carry, and omits one it does, is not the notice the licence asks to
+// travel with the bytes.
+const oflNotice = (families) =>
+  `/* Bundled typefaces: ${listAnd(families)}, each under\n` +
   '   SIL Open Font License 1.1 (https://openfontlicense.org). The licence\n' +
   '   permits this embedding and requires the notice to travel with it.\n' +
   '   Full text: node_modules/@fontsource-variable/<family>/LICENSE */';
+const listAnd = (xs) =>
+  xs.length < 2 ? (xs[0] || '') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`;
 
 // Emits the @font-face blocks and the stack overrides for one view. Takes
 // the bundled defaults and whatever the author supplied; a role the author
@@ -1313,11 +1368,24 @@ function fontStyleTag(embed) {
   // font-display:block, not swap: a lecture must not flash a fallback face
   // on the projector and then reflow the slide under the room's eyes.
   const faceCss = [...bundled, ...faces].map(face).join('\n');
+  // The roster family goes in front of the very list the build would have
+  // emitted - and out of it, where it is already there. Source Serif 4 is the
+  // first roster family that also sits in its own fallback tail, and without
+  // the drop the stack reads `'Source Serif 4', 'Literata', 'Source Serif 4'`,
+  // which works and says something untrue about what this file carries.
+  const dropSelf = (tail, family) => tail
+    .split(',')
+    .filter(part => normFontName(part.replace(/['"]/g, '')) !== normFontName(family))
+    .join(',')
+    .trim();
   const varCss = overrides.map(({ role, family }) =>
-    FONT_ROLE_VARS[role].map(v => `  ${v}: '${family}', ${FONT_STACK_TAILS[role]};`).join('\n')
+    FONT_ROLE_VARS[role]
+      .map(v => `  ${v}: '${family}', ${dropSelf(FONT_STACK_TAILS[role], family)};`)
+      .join('\n')
   ).join('\n');
   const rootBlock = varCss ? `\n:root {\n${varCss}\n}` : '';
-  const notice = bundled.length ? OFL_NOTICE + '\n' : '';
+  const notice = bundled.length
+    ? oflNotice([...new Set(bundled.map(f => f.family))]) + '\n' : '';
   return `<style>\n${notice}${faceCss}${rootBlock}\n</style>`;
 }
 
@@ -4042,6 +4110,29 @@ const STYLE_SPEC = {
   // floor under them – so they answer a different question and keep
   // answering it in all three settings.
   hyphenate: { kind: 'enum', values: ['print', 'all', 'none'], dflt: 'print' },
+  // Whether the printed document is set in the serif or the sans. The live
+  // views have had this since the first commit - `F` cycles the three faces
+  // and `font:` pins which one a lecture opens in - and print had nothing,
+  // because PRINT_CSS names the serif on `html` and every reader of a
+  // document is the author's choice rather than the reader's.
+  //
+  // It sits in `style:` next to `hyphenate`, which is the other key here
+  // whose effect lands in the two document views and nowhere else, and it
+  // rides the same styleBodyAttrs into every renderer. One rule carries it,
+  // on `body`, because everything in PRINT_CSS that should be a sans already
+  // names one: the tag word, a figure's caption, a sub-heading, the contents
+  // list. What inherits the serif off `html` is the running text, the chunk
+  // and column headings and a blockquote - which is exactly the set that
+  // should move, so an enumerated list of elements would only be a way of
+  // getting the set slightly wrong later.
+  //
+  // Deliberately NOT deferred to `font:` the way `print-slide-numbers`
+  // defers to `slide-numbers`. That key was born deferring, so nothing moved
+  // under anyone; here, a deck that already says `font: sans` for the room
+  // would start printing in a sans it never asked for. And `font: mono` has
+  // no sensible reading as a whole printed document, which a deferral would
+  // have to invent one for.
+  'print-body': { kind: 'enum', values: ['serif', 'sans'], dflt: 'serif' },
 };
 function styleSettings(frontmatter = {}) {
   const raw = frontmatter.style;
@@ -4110,6 +4201,7 @@ function styleBodyAttrs(st, frontmatter = {}) {
   if (st.wrap !== 'balance') parts.push('data-wrap="none"');
   if (st.blocks !== 'center') parts.push('data-blocks="left"');
   if (st.hyphenate !== 'print') parts.push(`data-hyphenate="${st.hyphenate}"`);
+  if (st['print-body'] !== 'serif') parts.push(`data-print-body="${st['print-body']}"`);
   return parts.join(' ');
 }
 // The same two settings answered on one chunk, from its attribute tail. The
@@ -4817,6 +4909,13 @@ const PRINT_CSS = `
 * { box-sizing: border-box; }
 html { font-family: var(--serif); font-size: 10pt; color: var(--ink); line-height: 1.6; background: var(--paper); text-rendering: optimizeLegibility; }
 body { margin: 0; }
+/* style: {print-body: sans}. One declaration on <body> is the whole switch:
+   it beats what body inherits from html, and everything below that should
+   stay a sans or a mono names its own family already, so only what actually
+   inherited the serif moves - the running text, the chunk and column
+   headings, a blockquote. The page number in @page is outside the document
+   tree and was never the serif. */
+body[data-print-body=sans] { font-family: var(--sans); }
 
 main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
 

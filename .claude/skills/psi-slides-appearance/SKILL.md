@@ -14,9 +14,9 @@ without re-measuring it makes figure labels overflow their boxes in silence.
 
 **Three families ship in any one output**, as variable `wght` latin subsets, upright and italic. Which three is now a per-lecture decision rather than a fixed list, and that change is what makes an alternate affordable: the roster used to be a list and every output carried all of it, so adding two more faces would have put ~470 KB in every file including every lecture that wanted neither.
 
-| role | default | alternate |
+| role | default | alternates |
 |---|---|---|
-| serif | Literata | – |
+| serif | Literata | Source Serif 4, Bitter, Noto Serif, Roboto Serif |
 | sans | IBM Plex Sans | Inter Tight |
 | mono | JetBrains Mono | Noto Sans Mono Condensed |
 
@@ -36,6 +36,33 @@ All of them are SIL OFL 1.1, which permits redistribution and embedding; `OFL_NO
 | Iosevka | 0.500 | 0.500 | 0.500 | 0.500 | 0.500 |
 
 So picking either leaves the estimate *more* generous, never less – the safe direction, and the reason neither needs its own table. **A future alternate that is wider than the default does need one**, and adding it without re-measuring is how labels start overflowing their boxes in silence.
+
+**The four serif alternates reach that same table, and one of them tests it.** `dgMeasure` estimates every non-mono label with `dgCharW` – `.serif` included, because the class changes what is painted and never what was measured. Measured against 210 real label strings lifted out of the corpus, comparing the estimate to the rendered width:
+
+| family | over budget | worst | mean |
+|---|---|---|---|
+| IBM Plex Sans *(what the table is calibrated to)* | 7/210 | 1.040 | 0.898 |
+| Bitter | 22/210 | 1.130 | 0.909 |
+| Noto Serif | 29/210 | 1.107 | 0.938 |
+| Source Serif 4 | 36/210 | 1.089 | 0.936 |
+| Literata *(the default, and the prior art)* | 49/210 | 1.164 | 0.943 |
+| Roboto Serif | 122/210 | 1.204 | 1.010 |
+
+Read the Literata row first: the serif has always been looser than the sans here, so three of the four alternates *improve* on what already ships. Roboto Serif does not – a mean of 1.010 means the estimate under-reads it on average, which is the same 8% extra width that makes it the one alternate to re-wrap a finished deck. **Give a `.serif` label an explicit `w` in a Roboto Serif deck.** Threading the roster down into `dgMeasure` so the table could vary per family would have to reach the browser editor too; that is a great deal of machinery for a class the whole corpus uses five times.
+
+The choice among the four is a projection question, and these are the numbers behind it – stroke contrast is a capital O's stem over its hairline (low survives a lit room and a tired lamp), and the bold column is how much wider the 600 stem is than the 400:
+
+| | contrast | bold | advance | payload |
+|---|---|---|---|---|
+| Literata | 1.68 | +40% | 0.560 | 106 KB |
+| Bitter | **1.35** | +51% | 0.547 | **66 KB** |
+| Roboto Serif | 1.60 | **+63%** | 0.606 | 136 KB |
+| Source Serif 4 | 1.91 | +30% | 0.559 | 100 KB |
+| Noto Serif | 2.00 | +34% | 0.560 | 83 KB |
+
+**The bold column is the one that is easy to skip and expensive to get wrong**, because `topic-bold` puts the first sentence and the bold fragments on the slide and nothing else: a serif whose 600 barely separates from its 400 quietly dismantles the mechanism the projection runs on. That is what kept **Merriweather** out despite the largest x-height of any candidate – it separates by +15%. **IBM Plex Serif** would pair with the default sans and has no variable build on `@fontsource-variable`, so it fails the rule that a bundled face is a variable latin subset; `fonts/` is still open to it.
+
+**`Source Serif 4` is the first roster family that also appears in its own fallback tail**, so `fontStyleTag` drops the duplicate rather than emitting `'Source Serif 4', 'Literata', 'Source Serif 4', Georgia, serif`. And the OFL notice is **generated from the embedded set**, not a literal – it named the three defaults whatever the roster was, which was already wrong for a deck on `sans: Inter Tight`.
 
 **The condensed mono is a pinned instance of a variable font, not a different typeface.** Noto Sans Mono carries a `wdth` axis, and `font-variation-settings` is a legal `@font-face` **descriptor** – verified rather than assumed: with the descriptor the same file measures 0.50 em per character and without it 0.60. So pinning `wdth 62.5` in the face declaration produces one ordinary family that nothing downstream has to know about: no `font-stretch` on any element, no second selector list, no rule that has to reach every place the mono role is used. It has a slashed zero and its `I`, `l` and `1` are three visibly different shapes, which is the other half of what a code face has to do. It ships upright only – the family has no italic, so an italic listing gets a synthesised oblique.
 
@@ -149,7 +176,17 @@ The tag word above a chunk is **two different things wearing one name**, and a s
 
 ## Where the blocks sit (`style.blocks`), and the two keys a chunk can answer
 
-`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` (the two enums only – the two scales are bounded numbers, and reading a number out of YAML with no parser is where a linter starts disagreeing with the build). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `heading-scale` and `body-scale` (0.6–1.8).
+`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` (the enums only – the two scales are bounded numbers, and reading a number out of YAML with no parser is where a linter starts disagreeing with the build). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `heading-scale` and `body-scale` (0.6–1.8).
+
+## The printed document's face (`style.print-body`)
+
+The live views have answered "serif, sans or mono" since the first commit – `F` cycles it, `font:` pins where a lecture opens – and print answered nothing, because `PRINT_CSS` names `var(--serif)` on `html`. `style: {print-body: sans}` is that switch, `serif` is the default, and `print-notes.html` gets it free because it is the same renderer with `withNotes`.
+
+**Two things about it are worth keeping.** It is **one declaration on `body`**, not a list of elements. Everything in `PRINT_CSS` that ought to be a sans already names one – the tag word, a figure's caption, a `.has-sub` sub-heading, the contents list – so what inherits the serif off `html` is exactly the set that should move: running text, chunk and column headings, blockquotes. Measured rather than assumed, and the first attempt at this enumerated `p, li, dd, blockquote, figcaption, td, th` from a wrong reading of which elements were already sans. An element list here is only a way of getting the set slightly wrong later.
+
+And it **does not defer to `font:`** the way `print-slide-numbers` defers to `slide-numbers`. That key was born deferring, so nothing moved under any existing deck; here, a lecture that already says `font: sans` for the room would start printing in a sans it never chose. `font: mono` also has no sensible reading as a whole printed document, and a deferral would have to invent one.
+
+It lives in `style:` rather than beside the viewer defaults because it is the author's composition, not the reader's preference – and `hyphenate` is already here on the same reasoning, which is what makes a print-only key ordinary in this block rather than novel.
 
 `blocks` is the newest and the only one that moves something other than type. Three things on a slide are not prose and have always been centred – a code block, a figure with its caption, a display formula – and `left` puts all three on the prose's own axis. **Which thing moves is different for each, and that is the part to know before editing the rules.** A top-level `pre` already breaks out of the text column to 72vw; what centres it is `left: 50%` plus a translate, so `left` moves the *box* and the listing inside it was left-aligned all along. A figure and a formula are already the full measure, so it is the artwork, the caption and the equation *inside* the box that move (`align-items` and KaTeX's own `text-align`, two rules deep).
 
