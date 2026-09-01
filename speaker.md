@@ -140,6 +140,7 @@ Every message is a **full snapshot**, never a diff. Snapshots are cheap, and thi
 { type: 'cursor', source: 'speaker', chunkIdx, x, y, target: 'chunk' | 'figure' }
 { type: 'figure-focus' | 'figure-pan', chunkIdx, figureIdx }
 { type: 'figure-unfocus' }
+{ type: 'figure-unpan' }
 { type: 'figure-view', scale, panX, panY }
 
 // Sent by speaker on open; audience replies with current state.
@@ -150,6 +151,8 @@ Every message is a **full snapshot**, never a diff. Snapshots are cheap, and thi
 ```
 
 The `figure-*` and `cursor` messages are the one remaining deliberately one-directional family: the audience acts on them, the speaker ignores them. Figure inspection is a lecturer gesture, and the audience window is normally on a projector nobody clicks.
+
+`figure-pan` / `figure-unpan` carry the `::: marginalia` aside being brought into the frame and let go again. They are their own message types for the reason the three gated ones above are: a snapshot sent to say "the aside is in" is a full apply and would drag the receiver's slide position with it. What travels is **which aside**, never how far to move – each window solves the offset against its own frame, and the cockpit's scaled stage is a different size, so a shared pixel count would be wrong in one of them by construction. Same reasoning as `clampZoomToWidth` and the focused formula's fit.
 
 Receive rule: any incoming `state` replaces the local state wholesale (except for the always-local fields in §2). No merging, no conflict resolution. If both sides edit the same field within one tick, last write wins.
 

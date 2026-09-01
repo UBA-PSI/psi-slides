@@ -219,6 +219,45 @@ from building the same way is a major version.
 
 ### Fixed
 
+- **A `::: marginalia` shrank the slide it belonged to.** The aside is
+  absolutely positioned out past the text column, so its overhang lands in the
+  chunk's `scrollWidth` like anything else that overflows – and the probe that
+  decides whether a slide is being cut off sideways read that as a slide being
+  cut off. It is the one thing on a chunk that overflows on purpose, and the
+  fit answered by walking the type down until it stopped, which on the
+  tutorial's own `#marginalia-demo` meant the 0.6 floor: the words the room was
+  there to read came out at less than half the size of the slide before it,
+  because of an aside the camera was not framing anyway. Then the click made it
+  worse – it centred the aside in the viewport by writing into the drag-pan
+  offset, which pushed the sentence the aside belongs to off the left edge, so
+  the room was left reading a tangent with nothing to hang it on.
+
+  A marginalia chunk is now framed exactly as a chunk without one: same camera,
+  same centre line, same type size. The aside runs off the right edge of the
+  frame and is simply cut off there, which is the whole affordance – nothing
+  was added to point at it. Clicking it slides the frame right by the minimum
+  that puts all of it on screen, with the same 2vw of air on its right that the
+  stylesheet already gives it on its left, so the slide keeps as much of itself
+  as the overhang allows. `Esc`, a click on the slide, or a second click on the
+  aside gives the frame back; leaving the slide clears it.
+
+  What it cost. The pan stopped being a number and became a state: `asidePan`
+  holds which aside is in, and `focusCamera` derives the offset from where that
+  aside is *now*, the way it already does for the annotation input. Written
+  into the drag-pan it was a stale pixel count that survived a resize, could
+  not be told apart from a hand drag by anything that reads it, and had to be
+  recomputed by hand every time the layout moved. It travels between the two
+  windows as its own message type rather than in the state snapshot – the
+  snapshot is a full apply and would drag the receiver's slide position with it
+  – and because each window solves for its own frame, the cockpit's smaller
+  stage lands the aside correctly instead of adopting the projection's pixels.
+  The width probe now allows for the aside's reach on the chunk's own box; the
+  elements that can overflow without reflowing are still checked one by one
+  beside it, which is what that list was always for. `test/marginalia.mjs`
+  holds the properties, against another chunk of the same deck rather than
+  against a number. Print is untouched: a marginalia still prints as an
+  indented aside, and `print.html` is byte-identical.
+
 - **Clicking a display formula could hide a third of it.** The overlay
   enlarges a focused formula by setting type – 0.12 of the slide height, 108px
   at 1440×900, about three times what it had on the slide – and the card it

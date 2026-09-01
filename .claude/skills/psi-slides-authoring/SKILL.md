@@ -425,6 +425,13 @@ An aside that extends into the right margin, part of the body layout
 vocabulary rather than the expansion system, and separately focusable in the
 live views.
 
+The slide itself is framed as if the aside were not there, so the aside runs
+off the right edge of the frame and is cut off by it – that is what tells a
+reader there is more of it. Clicking it slides the frame right until all of
+it is on screen; `Esc`, or a click on the slide, gives the frame back. So
+write it to be read *after* the slide, not with it, and keep it short: a
+marginalia shares the chunk's height and cannot grow taller than it.
+
 ### `::: slide` / `::: script`
 
 Covered above. In directive terms they behave like the other layout wrappers:

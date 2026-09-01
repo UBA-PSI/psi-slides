@@ -107,7 +107,7 @@ node test/gates/run.mjs semantics              # gates whose name matches
 
 # browser suite – the things that only break in a built page, in four
 # families: the navigation model (nav, nav-cockpit), the geometry the live
-# chrome leaves the slide (expansion, touch-rail, math-focus), the editor's
+# chrome leaves the slide (expansion, marginalia, touch-rail, math-focus), the editor's
 # gestures and panel (editor-*), and the figure-* specs that measure the SVG –
 # figure-framing, which catches a drawing sitting off-centre in an oversized
 # frame, figure-labels, which measures where an aligned label lands inside the
@@ -118,14 +118,19 @@ node test/gates/run.mjs semantics              # gates whose name matches
 # why the family exists: the camera framed an open expansion by centring the
 # pane and cropping the slide it belongs to, and the cockpit rail sat on 82%
 # of the notes pane, and both survived because a screenshot of the thing you
-# were looking at is fine. They assert the property and never a coordinate.
+# were looking at is fine. `marginalia` is the third: the aside overflows the
+# chunk on purpose, the width probe counted that overhang as a slide being cut
+# off, and the type on every marginalia chunk was walked down to the 0.6 floor
+# – which reads as a design decision until you put the slide next to its
+# neighbour. It compares against another chunk of the same deck rather than a
+# number. They assert the property and never a coordinate.
 # `touch-rail` opens its own browser context: the rail lives behind
 # `@media (pointer: coarse)` and openDeck's has a fine pointer, so in the
 # default context the bar is not in the document and a measurement of it
 # reports no overlaps among no buttons. `math-focus` builds its own deck for
 # the opposite reason: no lecture in the repository has a display formula with
 # more than one row, so nothing that ships can reach the case, which is most
-# of why it shipped. Twenty-five specs, ~647 assertions.
+# of why it shipped. Twenty-six specs, ~669 assertions.
 # Builds and serves the lectures itself, so it never reports on stale HTML,
 # and launches one Chromium for the whole run ($PSI_CHROME, the Playwright
 # cache, or system Chrome); ~5 min. Run it after touching AUDIENCE_JS, the key

@@ -530,9 +530,12 @@ body[data-liga=none] { font-variant-ligatures: none; }
 .side-a > :last-child, .side-b > :last-child { margin-bottom: 0; }
 
 /* ::: marginalia  – aside that extends into the right slide margin.
-   Anchored to chunk-content's right edge, spills toward the slide
-   padding. Camera does not pan automatically on load; click pans
-   manualPan so the marginalia lands centered. */
+   Anchored to chunk-content's right edge, spills toward the slide padding
+   and past it: the slide is framed as if the aside were not there, so
+   whatever does not fit is simply cut off by the frame, which is what tells
+   the reader there is more of it. Clicking it slides the camera right until
+   all of it is on screen (asidePan in AUDIENCE_JS); Esc, or a click on the
+   slide, gives the frame back. */
 .marginalia {
   position: absolute;
   left: calc(100% + 2vw);
@@ -796,6 +799,9 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
 .chunk:not(.active) .chunk-body figure.figure-img,
 .chunk:not(.active) .chunk-body pre,
 .chunk:not(.active) .marginalia { cursor: default; }
+/* Once the aside is in the frame the click that brought it in is also the
+   click that lets it go, and the cursor is the only place that can say so. */
+body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 
 /* reveal segments: first visible, rest hidden until advanced */
 .reveal-segment { transition: opacity 180ms ease; }
@@ -4593,7 +4599,7 @@ slide and the next one, and the next one carries no heading on screen at all.</p
       <dl>
         <dt>click a figure or code block</dt><dd>zoom it into a centred card</dd>
         <dt>drag · wheel · <kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></dt><dd>pan · zoom · reset the zoomed card</dd>
-        <dt>click a marginalia</dt><dd>pan the camera onto the aside</dd>
+        <dt>click a marginalia</dt><dd>slide the frame right until the whole aside is on it</dd>
         <dt>drag the slide</dt><dd>pan within a chunk that is taller than the screen</dd>
         <dt>hold <kbd>Alt</kbd>/<kbd>option</kbd> and drag</dt><dd>select text to copy – dragging pans again once you let go</dd>
         <dt>click a link</dt><dd>opens it in a new tab of this window</dd>
@@ -5202,6 +5208,16 @@ const OVERVIEW_MAX_SCALE = 1;
 let selectedIdx = 0;           // overview selection outline (independent of activeIdx)
 let overviewAnchorIdx = 0;     // chunk the overview camera is centred on
 let manualPan = { dx: 0, dy: 0 };
+// The aside that has been brought into the frame: { chunkId, el }, or null.
+// Deliberately not manualPan, which is where this used to live. manualPan is
+// the drag offset - a free-hand nudge the camera keeps until something
+// clears it - so a marginalia written into it survived a resize as a stale
+// number of pixels, could not be told apart from a drag by anything that
+// reads it, and had to be recomputed by hand every time the layout moved. A
+// panned aside is a *state* the camera solves for, exactly the way
+// annotEditingId is: focusCamera reads it and derives the offset from where
+// the aside is now. See the branch there.
+let asidePan = null;
 let searchActive = false;
 let tocVisible = false;
 
@@ -5623,12 +5639,23 @@ window.addEventListener('message', (ev) => {
       }
       return;
     }
+    // Bringing an aside into the frame is a command to the projector, not a
+    // field of the shared state, so it travels as its own message type - the
+    // same reasoning as blank and slide-ref. applyRemoteState is a full
+    // apply, and a snapshot sent to say "the aside is in" would drag the
+    // room's slide position with it. It has to travel at all because the
+    // aside is on the projection: the lecturer clicks it in the cockpit and
+    // the room is what has to move.
     if (m.type === 'figure-pan') {
       const chunk = flatChunks[m.chunkIdx];
       if (chunk) {
         const el = chunk.el.querySelectorAll(FOCUSABLE_SEL)[m.figureIdx];
-        if (el) panToElement(el);
+        if (el && el.classList.contains('marginalia')) setAsidePan(el);
       }
+      return;
+    }
+    if (m.type === 'figure-unpan') {
+      if (clearAsidePan()) focusCamera(false);
       return;
     }
     if (m.type === 'figure-unfocus') { unfocusFigure(); return; }
@@ -5993,6 +6020,30 @@ function focusCamera(instant = false) {
     }
   }
 
+  // The aside, brought in. A ::: marginalia is not lifted into the overlay
+  // the way a figure is - it is part of the slide's layout, not something
+  // laid over it - so the camera slides sideways instead, far enough that
+  // the whole aside is inside the frame and no further. Same shape as the
+  // annotation branch above: a state the camera solves for, from where the
+  // aside is *now*, so a resize or a zoom re-derives it rather than carrying
+  // a stale offset.
+  //
+  // The minimum move on purpose. The aside was centred in the viewport
+  // before, which is a bigger move than the question asks for: it took the
+  // sentence the aside belongs to off the left edge, so the room was reading
+  // a tangent with nothing to hang it on. Here the slide keeps as much of
+  // itself as the aside's overhang allows.
+  //
+  // The gap on the right is the 2vw the stylesheet already puts between the
+  // text column and the aside, so the aside is framed with the same air on
+  // both sides.
+  if (asidePan && asidePan.chunkId === entry.id && annotEditingId !== entry.id) {
+    const mo = getOffset(asidePan.el, stage);
+    const gap = vp.width * 0.02;
+    const over = (mo.left + mo.width + tx + gap) - vp.width;
+    if (over > 0) tx -= over;
+  }
+
   // Manual pan offset from drag (§5: zoom-induced overflow). Reset on chunk change.
   tx += manualPan.dx; ty += manualPan.dy;
 
@@ -6320,6 +6371,8 @@ function jumpTo(idx, direction) {
   closeAnyExpansion();
   // Reset drag pan on chunk change – pan is per-chunk inspection.
   manualPan = { dx: 0, dy: 0 };
+  // Same for a brought-in aside: it belonged to the slide being left.
+  clearAsidePan();
 
   const target = flatChunks[idx];
   const segCount = countSegments(target.el);
@@ -6696,6 +6749,15 @@ function wireClicks() {
       const chev = ev.target.closest('[data-exp]');
       if (chev) { toggleExp(idx, parseInt(chev.dataset.exp, 10)); return; }
       if (annotEditingId === entry.id) { blurAnnotation(); return; }
+      // Back from a brought-in aside. The aside's own click handler stops
+      // propagation, so anything that reaches here is the slide itself -
+      // which is the gesture that means "I am done with the tangent".
+      if (asidePan && asidePan.chunkId === entry.id) {
+        clearAsidePan();
+        focusCamera(false);
+        if (shouldBroadcast()) sendToPeer({ type: 'figure-unpan' });
+        return;
+      }
       if (idx !== state.activeIdx) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
     });
   });
@@ -6742,9 +6804,36 @@ const NOWRAP_SEL = 'pre, table, .katex-display';
 // walking the subtree again. Sub-pixel layout rounding makes an exact
 // comparison report phantom overflow on content that fits, so allow a pixel
 // of slack.
+//
+// The chunk's own box is in that list as a backstop for anything wide that
+// is not a pre, a table or a formula. It has to be told about the one thing
+// that overflows on purpose: a ::: marginalia is absolutely positioned out
+// past the text column and is *meant* to run off the right edge of the
+// frame. Its overhang lands in the chunk's scrollWidth like any other, so
+// the backstop read "this slide is cut off" on every marginalia chunk and
+// the fit walked the zoom to its 0.6 floor - the tutorial's own
+// #marginalia-demo came out at 0.6 where the slide before it was at 1.35,
+// which is the whole reason a marginalia looked like a framing bug. So the
+// allowance is the frame *or* the aside's own reach, whichever is further.
+//
+// What this deliberately cannot see is an in-flow element that overflows by
+// less than the aside reaches, because the aside's excess hides it. Every
+// element that can do that without reflowing is checked by name in the list
+// beside it, which is what NOWRAP_SEL is for.
 function nowrapProbe(el) {
   const wide = [el].concat(Array.from(el.querySelectorAll(NOWRAP_SEL)));
-  return () => wide.some((n) => n.scrollWidth > n.clientWidth + 1);
+  const asides = Array.from(el.querySelectorAll('.marginalia'));
+  return () => wide.some((n) => {
+    let room = n.clientWidth;
+    if (n === el) {
+      for (const a of asides) {
+        let reach = a.offsetWidth, p = a;
+        while (p && p !== el) { reach += p.offsetLeft; p = p.offsetParent; }
+        if (reach > room) room = reach;
+      }
+    }
+    return n.scrollWidth > room + 1;
+  });
 }
 
 // And a chunk's own box is not a measure of how much is on it. Three
@@ -7469,6 +7558,14 @@ document.addEventListener('keydown', (e) => {
       if (tocVisible) { tocVisible = false; document.body.classList.remove('toc-visible'); break; }
       if (overview) { dismissOverviewNoMove(); break; }
       if (annotEditingId) { blurAnnotation(); break; }
+      // A brought-in aside is a camera state like the drag-pan, and it is
+      // the more recent of the two, so it unwinds first.
+      if (asidePan) {
+        clearAsidePan();
+        focusCamera(false);
+        if (shouldBroadcast()) sendToPeer({ type: 'figure-unpan' });
+        break;
+      }
       if (manualPan.dx || manualPan.dy) { manualPan = { dx: 0, dy: 0 }; focusCamera(false); break; }
       if (openExp) { closeAnyExpansion(); broadcastState(); setTimeout(() => focusCamera(false), 20); }
       break;
@@ -7631,8 +7728,9 @@ window.addEventListener('resize', () => { clampZoomToWidth(); focusCamera(true);
 // ── figure focus / marginalia pan (§figures) ────────────────────────
 // Click a <figure>, a <pre>, or a .marginalia inside the active chunk
 // to "focus" it: figures/pre land in a centered overlay with the slide
-// dimmed underneath; .marginalia instead pans the camera right so the
-// aside is centered in the viewport (no overlay – it's in-frame).
+// dimmed underneath; .marginalia gets no overlay - it is in the slide's
+// layout rather than laid over it - and the camera slides right instead,
+// far enough to put the whole aside inside the frame. See setAsidePan.
 const figureOverlay = document.getElementById('figure-overlay');
 let focusedFigure = null;
 // Per-focus zoom + pan: +/− keys (and wheel) scale; drag pans. Reset
@@ -7782,22 +7880,26 @@ figureOverlay.addEventListener('wheel', (e) => {
   setFigureScale(figureScale * factor);
 }, { passive: false });
 
-// Pan the camera so that a given element inside the active chunk lands
-// centered horizontally in the viewport. Used for .marginalia clicks so
-// the right-margin aside becomes the focal point without leaving the
-// slide. Math lives in stage-local layout space so the speaker's
-// transform:scale on the viewport doesn't break the calculation.
-function panToElement(el) {
-  const vp = vpLayout();
-  const activeEntry = flatChunks[state.activeIdx];
-  if (!activeEntry) return;
-  const ao = getOffset(activeEntry.el, stage);
-  const eo = getOffset(el, stage);
-  // manualPan.dx offsets relative to the chunk-centered camera, so:
-  //   Δ = (ao_center_x) - (eo_center_x)
-  const dx = (ao.left + ao.width / 2) - (eo.left + eo.width / 2);
-  manualPan = { dx: dx, dy: manualPan.dy || 0 };
+// Bring a .marginalia into the frame, or let it go again. All this does is
+// set the state focusCamera solves against; the offset itself is derived
+// there, from the aside's live geometry.
+//
+// A slide with a marginalia is framed exactly as one without: the aside is
+// out past the text column and the frame simply cuts it off, which is the
+// whole affordance - the reader sees that something continues off the right
+// edge and clicks it.
+function setAsidePan(el) {
+  const chunk = el && el.closest('.chunk');
+  if (!chunk || !chunk.dataset.chunkId) return;
+  asidePan = { chunkId: chunk.dataset.chunkId, el };
+  document.body.classList.add('aside-panned');
   focusCamera(false);
+}
+function clearAsidePan() {
+  if (!asidePan) return false;
+  asidePan = null;
+  document.body.classList.remove('aside-panned');
+  return true;
 }
 
 // ── where forward will take you ───────────────────────────────────
@@ -7928,10 +8030,17 @@ function wireFigureClicks() {
         ev.stopPropagation();
         ev.preventDefault();
         if (target.classList.contains('marginalia')) {
-          panToElement(target);
+          // A second click on the aside is the way back, the same as Esc:
+          // the thing that brought it in is the nearest thing to hand.
+          const panned = asidePan && asidePan.el === target;
+          if (panned) clearAsidePan(); else setAsidePan(target);
+          focusCamera(false);
           if (shouldBroadcast()) {
             const figureIdx = Array.from(chunk.querySelectorAll(FOCUSABLE_SEL)).indexOf(target);
-            sendToPeer({ type: 'figure-pan', chunkIdx: state.activeIdx, figureIdx });
+            sendToPeer({
+              type: panned ? 'figure-unpan' : 'figure-pan',
+              chunkIdx: state.activeIdx, figureIdx,
+            });
           }
           return;
         }

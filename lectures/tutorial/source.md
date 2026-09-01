@@ -464,7 +464,7 @@ This whole block sits in the slide margin, small and grey. Use a marginalia for 
 
 :::
 
-**A marginalia is the one aside you can click.** A figure or a block of code lifts into a card in the middle of the screen; a marginalia is panned into the centre instead, because it is part of the slide's layout rather than something laid over it. Try it on the block out to the right.
+**A marginalia is the one aside you can click.** A figure or a block of code lifts into a card in the middle of the screen; a marginalia gets no card, because it is part of the slide's layout rather than something laid over it – the frame slides right until all of it is on screen. **`Esc`, or a click on the slide, gives the frame back.** Try it on the block out to the right, the part of it the edge of the screen has cut off.
 
 The body stays in the middle column and only the marginalia moves outward. Keep them short: a marginalia shares the chunk's height and cannot grow taller than it. One can also go *inside* a `::: side` pane, when a tangent belongs to one half in particular – it still escapes to the slide's right margin.
 
@@ -476,7 +476,7 @@ The body stays in the middle column and only the marginalia moves outward. Keep 
 This is a footnote. The label above it always reads NOTE, and the note sits in grey under a dotted rule. Unlike a marginalia it stays in the middle column, under the body it was written beneath.
 :::
 
-**The two slides are the whole distinction**: a marginalia goes out into the margin and can be brought to the centre with a click, and a footnote stays under the chunk and is read where it stands. Reach for `::: footnote` when the extra material is short and you want it on the page every time, and for `::: expand <label>`, the chevron button from earlier, when it should stay behind a button until somebody asks.
+**The two slides are the whole distinction**: a marginalia goes out into the margin, past the edge of the frame, and is brought in with a click, and a footnote stays under the chunk and is read where it stands. Reach for `::: footnote` when the extra material is short and you want it on the page every time, and for `::: expand <label>`, the chevron button from earlier, when it should stay behind a button until somebody asks.
 
 ## example: Images | `![Caption](fig-id)` resolves against `assets/` {.wide #images}
 
