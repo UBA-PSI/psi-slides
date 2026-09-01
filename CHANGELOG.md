@@ -195,13 +195,31 @@ from building the same way is a major version.
   `git diff`: one block per slide with its id, type, width, beats and note
   length, then one line per thing on it, each with a mark saying what it
   becomes – `.` a sentence the room reads, `-` a promoted bold, which the
-  collapse renders as its own bullet, `•` a list item, `|` code or a table row
+  collapse renders as its own bullet, `•` a list item and `▸` the one a
+  running agenda marks live, `|` code or a table row
   or a formula, `[` a block or construct that is on the slide whole, `~` prose
   the collapse withholds. Written to `squint.txt` beside the source, or where
   `--squint-out` says; `--squint-out -` writes to stdout. `--viewport WxH`
   reads at another size. Speaker notes are counted and never quoted: they are
   the one thing certain not to be on the projection, and `print-notes.html` is
   the file for reading them.
+
+  **A construct is named with the one thing it is about**, which took three
+  corrections found by reading the file rather than the lectures – each of
+  them a line that named a construct and left out its subject. A `::: side`
+  carries the ratio it splits on and its anchor (`side 2:1 · middle · first
+  pane`), read off the wrapper's custom properties rather than off a class,
+  with an equal pair reported as the `1:1` the room sees rather than as the
+  nothing that was typed. A running agenda says which of its items is live and
+  out of how many: a deck wearing `section: outline` draws the same list at
+  every part, so without it five dividers are five identical blocks and the
+  one fact that separates them is in none of them. And a two-cell list item is
+  joined as the grid joins it – that last one a defect the file *induced*
+  rather than reported, because `build.js` writes the agenda's numeral against
+  its heading, and a `::: rows` term against its body, with no whitespace
+  between them on purpose, the layout supplying the gap. Read flat that
+  returns one word that is on no slide, `Anonymitycomes from the others`, and
+  the review it was written for went looking for a typo the deck did not have.
 
   What it deliberately cannot see is in its own header: colour, contrast,
   overlap and anything below the fold. A slide can be in this file in full and
