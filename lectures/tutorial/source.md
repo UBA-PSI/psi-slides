@@ -132,7 +132,7 @@ Each of the four files carries everything it needs inside itself – the picture
 
 ## example: Expansions | `1`–`9`, or a click on the chevron, opens one {.wide #expand}
 
-**Some chunks have extra detail tucked behind a chevron button.** Click one, or press `1`…`9` for the n-th. This chunk has two expansions – try both.
+**Some chunks have extra detail tucked behind a chevron button: click one, or press `1`…`9` for the n-th.** This chunk has two of them – try both.
 
 ::: expand digits-and-chevrons
 **A digit opens the expansion with that number, and the same digit closes it again.** This is expansion number 1, so `1` puts it away. `Esc` closes it too, and `2` switches straight to the second one without closing this first.
@@ -1073,9 +1073,14 @@ A crawler that looks like a browser gets measured back.
 :::
 ```
 
-A backdrop names its picture the same three ways an image does – a bare asset id, a path, an https address. **The words in the braces answer five questions, at most one word each**: how the picture fills the frame, which part of it survives the crop, what is laid over it, whether it is sharp or blurred, and whether it sits under the type or in front of it. Two words answering the same question is an error, and the message names both.
+A backdrop names its picture the same three ways an image does – a bare asset id, a path, an https address. **The words in its braces answer five questions, at most one word each.**
 
-**`veil` is the one worth knowing by name**, because it is what you get without asking: the theme's own paper over the picture at 80%, so ordinary dark text stays legible on a photograph in all seven themes. `invert` darkens the picture and turns the text light instead – the next slide is one.
+- **How the picture fills the frame**, and **which part survives the crop**.
+- **What is laid over it.** Without asking you get `veil`: the theme's own paper at 80%, so ordinary dark text stays legible on a photograph in all seven themes. `invert` darkens the picture and turns the text light instead – the next slide is one.
+- **Whether it is sharp or blurred.**
+- **Whether it sits under the type or in front of it.**
+
+Two words answering the same question is an error, and the message names both.
 
 An overlay answers three: **where** on a 3×3 grid, **what it sits on** (`paper`, `ink`, `accent`, `clear` or `glass`) and **how wide**. Every one is a card with padding and rounded corners, because text laid straight onto a photograph is unreadable at the back of a room.
 
