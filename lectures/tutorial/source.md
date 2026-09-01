@@ -36,7 +36,7 @@ goes in it.
 
 **The deck, the hand-out and your notes say the same thing, and they disagree the moment you edit one.** A lecture normally needs all three, and keeping them in step is work you do instead of preparing the lecture.
 
-**You write one Markdown file instead: a run of *chunks*, each one a heading and the text under it – roughly a slide.** Chunks are grouped into *columns*, one part of the lecture each: a `# Heading` in the source starts a column, and every `## …` under it is a chunk of that column.
+**You write one Markdown file instead, and the next slide is the whole of its structure.**
 
 **One command turns that file into four HTML files, and the four differ only in what they show you.** `print.html` is a reading copy with a cover and a table of contents. `print-notes.html` is that same *document* with your speaker notes folded in under each chunk. `audience.html` is the *projection* for the room. `speaker.html` is the speaker view, the screen you keep at the lectern, carrying the notes, a strip of the slides around you and a timer. Nothing in the source is written for one of them and not the others.
 
@@ -86,6 +86,16 @@ edge sync aud.right <-> spk.right via aud.right+0.42,aud.cy aud.right+0.42,spk.c
 Each of the four files carries everything it needs inside itself – the pictures, the typefaces, the styling, the code. Each one opens by double-clicking, with no web server and nothing fetched from the network, so you can send any of them to a colleague as a single attachment.
 
 > note: The drawing above is a `::: draw` block written out in the lecture source, drawn into the page as artwork at build time. It takes its colours from the theme: press A a few times while this slide is up and the figure re-colours with the page.
+
+## definition: Chunks and columns | the two words the rest of the tour is written in {.standard #chunks-columns}
+
+**A *chunk* is one `##` heading and everything written under it.** In the two live views it gets a screen of its own; in the printed ones it is a section of the page. It is the nearest thing here to what another tool calls a slide.
+
+**A *column* is a run of chunks on one theme, opened by a `# Heading`.** It is the part of a lecture that `Shift` and an arrow moves you through in one press, and it is what the contents list on `T` shows – chunks never appear there.
+
+**A lecture is therefore columns of chunks, and nothing else.** Everything after this slide is what you may write inside one.
+
+> note: These two words carry the whole tour, so they are worth a slide of their own rather than a clause in the one before. A room that has not been told what a column is cannot be told that `Shift` moves by one.
 
 ## free: What you are reading is one chunk | `P`, `S` and `?` reach the rest of the lecture {.wide #audience-now}
 

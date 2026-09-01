@@ -14,39 +14,28 @@ erledigten suchen muss, ist keine.
 
 ## Was noch offen ist
 
-Zwei Punkte, und **beide brauchen ein echtes iPad**. Die Bildschirmaufnahme
-(`[#30]`) ist inzwischen gemacht. Alles, was ohne ein Gerät zu klären war, ist
+Ein Punkt, und er braucht ein echtes iPad. Die Bildschirmaufnahme (`[#30]`)
+ist gemacht, und `[#5]` ist beantwortet: es war Safaris Seitensuche. Alles, was ohne ein Gerät zu klären war, ist
 geklärt – bei `[#5]` sind unten zwei Mechanismen mit Messung
 ausgeschlossen und eine Frage formuliert, die der nächste iPad-Durchgang in
 fünf Sekunden beantwortet.
 
 ### B. Engine – größer ← hier weitermachen
 
-- [ ] **[#5] iPad, Lectern-View: `f` öffnet manchmal die Suche statt den Font
-      zu wechseln.** Auch nach Antippen der Folie.
-      *Status:* **nicht reproduziert, braucht ein echtes iPad.**
+- [x] **[#5] iPad, Lectern-View: `f` öffnet manchmal die Suche statt den Font
+      zu wechseln.** – *geschlossen, kein Fehler im Code.*
+      **Es war Safaris eigene Seitensuche**, nicht das Suchpanel der Lecture –
+      beantwortet beim iPad-Durchgang. Damit ist die Frage, die hier stand,
+      beantwortet und die Diagnose steht: `⌘F` ist durchgekommen. Wie, ist eine
+      Frage an die Tastatur (Sticky Keys, Globe-Taste, Belegung) und nicht an
+      `build.js`.
 
-      *Zwei Mechanismen sind inzwischen ausgeschlossen, beide gemessen:*
-
-      1. **Nicht der Key-Handler.** In `startSearch()` führen genau zwei Wege:
-         `case '/'` in der Key-Map und der `search`-Knopf der Touch-Palette.
-         Es gibt keinen Type-to-Search-Zweig, auch nicht im Overview-Ast, und
-         `e.metaKey || e.ctrlKey || e.altKey` steigt vorher aus. Ein `f` kann
-         den Panel über diesen Handler nicht öffnen.
-      2. **Nicht die Trefferflächen.** Die Palette an sechs iPad-Größen in
-         beiden Live-Views vermessen (`pointer: coarse` muss der Kontext
-         setzen, sonst ist die Leiste gar nicht da): zwölf Knöpfe, jeder
-         56 × 56 px, 6 px Abstand, keine Überlappung, keiner unter 44 px,
-         keiner außerhalb des Bildschirms. `F` ist der zweite Knopf, `⌕` der
-         fünfte – die beiden liegen nicht nebeneinander.
-
-      *Was der nächste Durchgang beantworten muss, bevor irgendetwas geändert
-      wird:* **welche Suche ging auf?** Das Panel der Lecture (eine Karte, die
-      Folien auflistet) oder Safaris eigene Seitensuche (Leiste am unteren
-      Rand)? War es Safaris, ist `⌘F` durchgekommen und die Frage lautet, wie
-      – Sticky Keys, Globe-Taste, Tastaturbelegung –, und der Code hier ist
-      unschuldig. War es das Panel, ist es doch der Knopf, und dann brauche ich
-      wissen, ob die Palette offen war.
+      Die zwei Ausschlüsse, die vorher hier standen, bleiben als Messung
+      wertvoll und sind der Grund, dass diese Antwort genügt: `startSearch()`
+      hat genau zwei Aufrufer (`case '/'` und den `search`-Knopf), es gibt
+      keinen Type-to-Search-Zweig, und die zwölf Knöpfe der Touch-Palette sind
+      an sechs iPad-Größen vermessen – 56 × 56 px, kein Überlappen, `F` und `⌕`
+      liegen nicht nebeneinander. Ein `f` konnte das Panel nie öffnen.
 
 - [ ] **[#41] iPad: Diagram-Steps laufen angeblich nur bei fokussierter
       Abbildung.** Bei normal geöffnetem Chunk springe Vorwärts direkt zum
