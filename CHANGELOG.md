@@ -123,6 +123,52 @@ from building the same way is a major version.
 
 ### Added
 
+- **`style: {blocks: left}` puts a code block, a figure and a display formula
+  on the prose's own axis**, and four new chunk classes answer that key and
+  `style.wrap` for one slide at a time: `{.blocks-left}`, `{.blocks-center}`,
+  `{.wrap-none}`, `{.wrap-balance}`.
+
+  All three of those blocks have been centred since the tool shipped, and
+  centred is right when the block *is* the slide. It is wrong when the block
+  is one step of an argument: a paragraph, then a formula, then a paragraph
+  reads as three blocks on three axes, and the formula is the one the eye
+  loses. `blocks: left` starts all three where the sentence above them starts.
+  `center` is the default and writing it changes nothing.
+
+  Which thing moves is not the same for all three. A top-level code block
+  already breaks out of the text column to 72vw and is *centred as a box* –
+  the listing inside it was left-aligned all along – so `left` moves the box
+  and leaves its contents where they were, keeping the same 78-character
+  budget by capping the breakout from the column's left edge instead of from
+  the slide's middle. A figure and a display formula are already the full
+  measure, so what moves is the artwork, the caption and the equation inside
+  the box. A `::: draw` is deliberately untouched: its `<svg>` is emitted
+  2000px wide under `max-width: 100%`, so it fills the measure at every chunk
+  width and has no space beside it to sit in.
+
+  The four classes are spelled `<key>-<value>` off the `style:` key they
+  answer, so either form is guessable from the other, and both directions of
+  both keys exist because under a deck-wide `wrap: none` the only way left to
+  ask for balancing is to ask for it on the chunk. Only these two keys have
+  chunk classes, and deliberately: they are the two whose right answer changes
+  from slide to slide, where `headings`, `rules` and `labels` are decisions a
+  deck makes once.
+
+  **Unlike `.bare` and `.center`, both reach the printed document**, because
+  the keys they mirror do. Those two answer where words sit on a *slide*,
+  which a page does not ask; where a formula sits relative to the paragraph
+  that introduced it is the same question on paper, and `style.wrap` has been
+  in `PRINT_CSS` since it landed. In print, `blocks` reaches the figure and
+  the formula and has no code block to move – a listing there is already
+  inside the measure.
+
+  Both are legal on a `title` or `closing` chunk, where a width, `.bare` and
+  `.center` are refused: a cover's title is a heading and balances like one,
+  so `.wrap-none` has something to act on. An unknown value for `blocks` fails
+  the build in the pre-flight, like every other viewer default, and `lint.js`
+  mirrors the enum and the class list. Purely additive: a lecture that names
+  none of it emits no new attribute and its markup is byte-identical.
+
 - **`{.center}` in a chunk's attribute tail sets that chunk's prose on a
   centre axis**, on the projection and in the cockpit and not in the printed
   document – the second non-width class the tail takes, beside `.bare`, and

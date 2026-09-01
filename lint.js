@@ -43,7 +43,16 @@ const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
 // and leaves it in the TOC, in search and in the printed document;
 // `.center` sets the chunk's prose on a centre axis. Both are decisions
 // about the slide, so both are audience-only and the document is unchanged.
-const VALID_CHUNK_CLASSES = new Set(['bare', 'center']);
+// Mirrors CHUNK_STYLE_CLASSES in build.js: the other family in the tail,
+// each one a `style:` key and one of its values, spelled key-value so the
+// two forms are guessable from each other. Only `wrap` and `blocks` are in
+// it - the two settings whose right answer changes from slide to slide -
+// and both directions of both, because under a deck-wide `wrap: none` the
+// only way left to ask for balancing is to ask for it on the chunk.
+const CHUNK_STYLE_CLASSES = new Set([
+  'wrap-balance', 'wrap-none', 'blocks-center', 'blocks-left',
+]);
+const VALID_CHUNK_CLASSES = new Set(['bare', 'center', ...CHUNK_STYLE_CLASSES]);
 // Mirrors COVER_RATIO_VARIANTS / COVER_IMAGE_VARIANTS in build.js: which
 // covers divide the slide, and which draw a picture of their own.
 const COVER_RATIO_VARIANTS = new Set(['split', 'beside', 'above']);
@@ -99,6 +108,10 @@ const STYLE_ENUMS = {
   'headings': ['auto', 'left', 'center', 'off'],
   'rules': ['on', 'off'],
   'wrap': ['balance', 'none'],
+  // Where a code block, a figure and a display formula sit across the
+  // measure. Centred is the treatment all three have always had; `left`
+  // puts them on the prose's own axis.
+  'blocks': ['center', 'left'],
   'labels': ['on', 'off'],
   // The mark after an external link that opens its address and QR code.
   'link-codes': ['on', 'off'],
@@ -2481,11 +2494,18 @@ function lintFile(filePath) {
           add(ln, 'error', 'unknown-width',
               `unknown class '.${cls}' – valid: ${[...VALID_WIDTHS].map(w => '.' + w).join(', ')}`
               + `, or ${[...VALID_CHUNK_CLASSES].map(c => '.' + c).join(', ')}`);
-        } else if (tag === 'title' || tag === 'closing') {
+        } else if ((tag === 'title' || tag === 'closing') && !CHUNK_STYLE_CLASSES.has(cls)) {
           // Both are placed by the cover composition: full width, and a
           // heading that is the composition's rather than the slide's. The
           // build refuses these; unmirrored, the two disagreed about a class
           // that changes nothing either way.
+          //
+          // A `style:` override is the exception, and the build agrees: its
+          // refusal reads `width || bare || center` and lets these past. They
+          // have something to act on here - a cover title is a heading and
+          // balances like one, so .wrap-none breaks it greedily - and a rule
+          // the linter refuses while the build renders it is the direction
+          // this project does not allow.
           add(ln, 'error', 'class-on-cover-chunk',
               `'.${cls}' on a ${tag} chunk – its cover composition decides the width `
               + "and the heading, and cover-align decides where its words sit, so the "

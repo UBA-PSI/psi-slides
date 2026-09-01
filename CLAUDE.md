@@ -107,7 +107,8 @@ node test/gates/run.mjs semantics              # gates whose name matches
 
 # browser suite – the things that only break in a built page, in four
 # families: the navigation model (nav, nav-cockpit), the geometry the live
-# chrome leaves the slide (expansion, marginalia, touch-rail, math-focus), the editor's
+# chrome leaves the slide (expansion, marginalia, touch-rail, math-focus,
+# block-align), the editor's
 # gestures and panel (editor-*), and the figure-* specs that measure the SVG –
 # figure-framing, which catches a drawing sitting off-centre in an oversized
 # frame, figure-labels, which measures where an aligned label lands inside the
@@ -130,7 +131,13 @@ node test/gates/run.mjs semantics              # gates whose name matches
 # reports no overlaps among no buttons. `math-focus` builds its own deck for
 # the opposite reason: no lecture in the repository has a display formula with
 # more than one row, so nothing that ships can reach the case, which is most
-# of why it shipped. Twenty-six specs, ~669 assertions.
+# of why it shipped. `block-align` builds two decks for a third reason: the
+# switch it measures is only legible as a pair, and the same content has to be
+# shown centred and left to say anything about either. It measures three left
+# edges against the prose's and one right edge against the slide's padding,
+# because the three blocks move by three different mechanisms (a breakout box,
+# a flex alignment, KaTeX's own text-align) and the CSS says only that all
+# three rules exist. Twenty-seven specs, ~713 assertions.
 # Builds and serves the lectures itself, so it never reports on stale HTML,
 # and launches one Chromium for the whole run ($PSI_CHROME, the Playwright
 # cache, or system Chrome); ~5 min. Run it after touching AUDIENCE_JS, the key
@@ -275,8 +282,8 @@ Four things worth knowing before writing chunks, all learned the hard way:
 
   Three things make it cheap and none should be traded away. It is `display: none` and **not a dropped element**, because the search index and the speaker's own lists read the heading's text out of the DOM. **Neither table of contents is among them, and the docs used to say it was**: `renderToc` and the live `nav#toc` both build from `columns.filter(c => c.heading)`, so a *chunk* heading has never appeared in either. What `.bare` costs is the slide and nothing else; what it saves is the printed document and search. It is emitted **only by the audience renderer**, so `PRINT_CSS` carries no rule and the document is byte-identical. And `off` lives in the **existing `style.headings` key** beside `left` and `center` rather than in one of its own: the two readings are one question – what the projection does with a heading – and a second key's only legal combination with this one would have been "off, and also aligned left", which means nothing.
 
-  `.bare` is one of the two non-width classes an attribute tail may carry
-  (`VALID_CHUNK_CLASSES`); `.center` is the other, and it sets the chunk's
+  `.bare` is one of the six non-width classes an attribute tail may carry
+  (`VALID_CHUNK_CLASSES`); `.center` is the second, and it sets the chunk's
   prose on a centre axis. Both are audience-only for the same reason – where
   words sit on a slide is not a question the printed document asks – and
   `.center` reaches `.chunk-body > .reveal-segment > p` and nothing nested, so
@@ -286,6 +293,12 @@ Four things worth knowing before writing chunks, all learned the hard way:
   on both edges, and no selector knows how long a caption is.
 
   An unknown class in that tail used to be dropped without a word by the build while `lint.js` called it an unknown *width*, which named the wrong thing; both now say "unknown class" and list what a tail takes. Neither class is legal on a `title` or `closing` chunk, where the cover composition decides the width, the heading and, through `cover-align`, where the words sit.
+
+- **The other four classes in that tail are a `style:` key answered for one chunk.** `.wrap-none` / `.wrap-balance` and `.blocks-left` / `.blocks-center` (`CHUNK_STYLE_CLASSES`, mirrored in `lint.js`), each spelled `<key>-<value>` so either form is guessable from the other. Only `wrap` and `blocks` have this, and deliberately: they are the two `style:` keys whose right answer changes from slide to slide, where `headings`, `rules` and `labels` are decisions a deck makes once. Both directions of both, because under a deck-wide `wrap: none` the only way left to ask for balancing is to ask for it here.
+
+  **Unlike `.bare` and `.center`, these four reach print**, because the keys they answer do – `data-wrap` has been in `PRINT_CSS` since it landed. They are also legal on a `title` or `closing` chunk, where a width, `.bare` and `.center` are refused: a cover's title is a heading and balances like one. `lint.js` exempts them from its cover-chunk refusal for that reason; it used to refuse every class there, and the build refuses only `width || bare || center`.
+
+  `style: {blocks: left}` is the deck-wide half, and what it moves is not the same for the three families it reaches. A top-level `pre` is centred **as a box** by the 72vw breakout (`left: 50%` plus a translate) and its listing was left-aligned all along, so `left` moves the box; a figure and a display formula are already the full measure, so what moves is inside them. The left-aligned breakout's cap, `calc(var(--slide-w) * 0.36 + 50%)`, is exact for any centred column and is what keeps the 78-character code budget the same in both directions – `test/block-align.mjs` measures it at two chunk widths and two window sizes. A `::: draw` is outside the key: its `<svg>` is 2000px wide under `max-width: 100%` and fills the measure at every width. In `AUDIENCE_CSS` every chunk-level rule is prefixed `#stage`, which is load-bearing – the deck-wide heading-balance rule carries an id (`#toc-panel li` rides in its `:is()` list) and a class-only rule cannot outrank it – and which also keeps the `blocks` rules off the focus overlay, where a centred modal card is correct.
 
 - **The live views do not print the type name.** The small-caps eyebrow (PRINCIPLE, DEFINITION, …) was removed from `renderAudienceChunk`: it announced a taxonomy that is only as right as the type choice was, and a mislabelled slide reads to the room as an error. `renderChunk` (the document renderer) still emits `.chunk-label`, and `.tag-label` in the audience is now only the *expansion* label. Search results read the type off `data-tag` for this reason.
 
@@ -353,8 +366,9 @@ invisible.
 **The rosters, the slot tables, the measured advance widths, the precedence
 rules and the 1.0.0 recipe are in the `psi-slides-appearance` skill.**
 
-**What stays true here:** `FONT_STACK_TAILS`, `THEME_NAMES` / `DARK_THEME_NAMES`
-and `VIEW_DEFAULT_SPEC` are each a single source of truth that `lint.js` mirrors –
+**What stays true here:** `FONT_STACK_TAILS`, `THEME_NAMES` / `DARK_THEME_NAMES`,
+`VIEW_DEFAULT_SPEC`, `STYLE_SPEC` and `CHUNK_STYLE_CLASSES` are each a single
+source of truth that `lint.js` mirrors –
 change them in the same commit. And **`dgCharW` in `diagram-core.mjs` is
 calibrated to the bundled sans**: a roster change that does not re-measure it
 overflows figure labels silently.
@@ -386,7 +400,7 @@ position with it. See `speaker.md` §2.
 - `.claude/skills/psi-slides-authoring/SKILL.md` – **how to write a lecture `source.md`**: the chunk grammar in practice, the `:::` directive vocabulary, reveal segments, notes, images and math, with worked examples. Invoked as the `psi-slides-authoring` skill.
 - `.claude/skills/psi-slides-figures/SKILL.md` – **the `::: draw` vocabulary and the editor's contract**, lifted out of this file so it loads when figures are the work. Every statement, class, slot table and generated name, plus the four decisions behind the compiler. Invoked as the `psi-slides-figures` skill.
 - `.claude/skills/psi-slides-decoration/SKILL.md` – **the cover, backdrop, overlay, card, row and divider vocabulary**, same reasoning: the slot tables, the refusals, and the CSS traps each construct cost. Invoked as the `psi-slides-decoration` skill.
-- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the six viewer-default keys, `style.labels`, and the three-line recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
+- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the six viewer-default keys, the whole `style:` block including `labels` and `blocks`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the three-line recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
 - `.claude/skills/psi-slides-media/SKILL.md` – **video, hosted embeds and link addresses**: the extension tables, the two sync protocols, clip staging, and the build-time QR codes. Invoked as the `psi-slides-media` skill.
 - `figure-design.md` – **how to lay out a `::: draw` so a room reads it**, as instructions rather than principles: fifteen rules, most with a wrong/right pair in real syntax, the tone-to-role table, the four-beat step order, and a checklist to work down before a figure is finished. Written for a person and a language model equally. Read it before authoring figures; the grammar itself is in the `psi-slides-figures` skill.
 - `HANDOFF.md` – slice-by-slice build diary in German/English mix. Latest sections describe current state and deliberate non-choices. Update when landing a substantial slice.

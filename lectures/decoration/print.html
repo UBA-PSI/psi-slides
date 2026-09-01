@@ -51,6 +51,17 @@ h1, h2, h3 { font-weight: 500; letter-spacing: -0.01em; break-after: avoid; page
    off rather than leaving an old lecture to re-wrap under its author. */
 body:not([data-wrap=none]) :is(h1, h2, h3, h4, .chunk-heading, .hd-sub, .section-heading, figcaption) { text-wrap: balance; }
 body:not([data-wrap=none]) :is(p, li, dd) { text-wrap: pretty; }
+/* The same question answered on one chunk, from a .wrap-none / .wrap-balance
+   in its attribute tail. Both directions, because under a deck-wide
+   wrap: none the only way left to ask for balancing is to ask for it here.
+   text-wrap: wrap is the initial value of the shorthand, so the off switch hands the
+   line back to the browser's plain greedy breaker rather than naming a third
+   behaviour. Written as one rule per direction with the whole family inside
+   an :is(), which is also what keeps the off switch specific enough to beat
+   the two rules above it. */
+.chunk[data-wrap=none] :is(h1, h2, h3, h4, .chunk-heading, .hd-sub, .section-heading, figcaption, p, li, dd) { text-wrap: wrap; }
+.chunk[data-wrap=balance] :is(h1, h2, h3, h4, .chunk-heading, .hd-sub, .section-heading, figcaption) { text-wrap: balance; }
+.chunk[data-wrap=balance] :is(p, li, dd) { text-wrap: pretty; }
 p { margin: 0.4em 0 0.9em; orphans: 3; widows: 3; }
 
 /* Hyphenation. Only in the document views: a hyphenated word on a
@@ -424,6 +435,35 @@ body[data-rules=off] .chunk-definition { border-top: 0; }
 .link-code { display: none; }
 
 body[data-labels=off] .chunk-label { display: none; }
+
+/* style.blocks, on paper. Two of the three families it reaches exist here -
+   a figure with its caption and a display formula - and the third does not:
+   a code block in the document sits inside the 42rem measure with nothing to
+   break out of, so it is already flush with the prose and there is nothing
+   for left to move.
+
+   It reaches print at all because block alignment is typography rather than
+   stagecraft. The .bare and .center classes stop at the projection because where
+   words sit on a slide is not a question a printed page asks; where a
+   formula sits relative to the paragraph that introduced it is the same
+   question on both, and style.wrap - the other key the chunk classes
+   mirror - has been in this stylesheet since it landed. */
+body[data-blocks=left] figure.figure-img,
+body[data-blocks=left] figure.figure-video,
+body[data-blocks=left] figure.figure-embed,
+.chunk[data-blocks=left] figure.figure-img,
+.chunk[data-blocks=left] figure.figure-video,
+.chunk[data-blocks=left] figure.figure-embed { text-align: left; }
+body[data-blocks=left] .math-display .katex-display,
+body[data-blocks=left] .math-display .katex-display > .katex,
+.chunk[data-blocks=left] .math-display .katex-display,
+.chunk[data-blocks=left] .math-display .katex-display > .katex { text-align: left; }
+/* And back, for one chunk in a document that set blocks: left. */
+.chunk[data-blocks=center] figure.figure-img,
+.chunk[data-blocks=center] figure.figure-video,
+.chunk[data-blocks=center] figure.figure-embed { text-align: center; }
+.chunk[data-blocks=center] .math-display .katex-display,
+.chunk[data-blocks=center] .math-display .katex-display > .katex { text-align: center; }
 
 /* Cover, backdrop, overlay and card grid in the document view. Print is a
    document, not a slide: composition over a picture is the one thing paper

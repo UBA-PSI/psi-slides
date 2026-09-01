@@ -78,11 +78,16 @@ of the live deck. A chunk may appear before the first `#`; that is how the
   the ten types is an `unknown-type` error, not a silent heading.
 - `|` splits the heading into a main line and a typographically quieter second
   line. Further `|` segments are joined into that second line.
-- The attribute tail recognises four things: a width class, `#id`, `.bare`
-  (keep the heading in the document and off the projection) and `.center` (set
-  this chunk's prose on a centre axis, on the projection only). Any other class
-  is an `unknown class` error in both the build and `lint.js` – it is not
-  silently ignored. Do not invent classes.
+- The attribute tail recognises a width class, `#id`, and six other classes.
+  Two are the chunk's own: `.bare` (keep the heading in the document and off
+  the projection) and `.center` (set this chunk's prose on a centre axis, on
+  the projection only). Four answer a `style:` key for this one chunk and are
+  spelled key-value: `.blocks-left` / `.blocks-center` (where a code block, a
+  figure and a display formula sit across the measure) and `.wrap-none` /
+  `.wrap-balance` (whether this chunk's headings are balanced and its prose
+  gets a protected last line). Any other class is an `unknown class` error in
+  both the build and `lint.js` – it is not silently ignored. Do not invent
+  classes.
 - Headings carry **inline** Markdown, so backticks render as a real code span
   (`## free: Loops | for, while, and \`enumerate\` {.standard #loops}`). Block
   Markdown does not belong in a heading.
@@ -761,6 +766,7 @@ style:
   heading-scale: 1.15   # 0.6 … 1.8
   body-scale: 0.95      # 0.6 … 1.8
   wrap: none            # balance | none        - how a heading breaks across lines
+  blocks: left          # center | left         - where a code block, figure or formula sits
 ```
 
 The two scales are multipliers on the tool's own scale, bounded to 0.6-1.8.
@@ -781,6 +787,22 @@ starts at the far edge of a wide slide while the drawing sits in the middle.
 Not for a paragraph of any length: centred prose loses the eye at the start of
 each line, which is why this is a class you write rather than something a
 `figure:` chunk gets by default.
+
+`blocks: left` puts the three things on a slide that are not prose - a code
+block, a figure with its caption, a display formula - on the prose's own axis
+instead of centring them. Reach for it when a chunk is an argument with a
+formula or a listing inside it: centred, the three land on three different
+axes and the eye loses the step. Leave it alone when the block *is* the slide.
+A `::: draw` is unaffected either way - a diagram fills the measure at every
+chunk width, so there is no space beside it to align in.
+
+**Two keys have a per-chunk form, and only two**: `blocks` and `wrap`, because
+they are the two whose right answer changes from slide to slide. Write
+`{.blocks-left}`, `{.blocks-center}`, `{.wrap-none}` or `{.wrap-balance}` in
+the attribute tail; each is the key's name and one of its values, and the
+chunk wins over whatever the deck said. Both directions exist so a chunk can
+say the non-default thing under either global default. Unlike `.bare` and
+`.center`, both reach the printed document, because the keys they answer do.
 
 `link-codes: off` takes away the mark after every external link. The mark
 shows the address on both screens, large, with a QR code beside it; up to
@@ -938,10 +960,12 @@ warning go away unread.
 
 ## Gotchas
 
-- Only the ten types and four widths exist. `.bare` and `.center` are the two
-  non-width classes an attribute tail may carry; anything else is an
-  `unknown class` error. Neither is legal on a `title` or `closing` chunk,
-  where the cover composition decides all three questions.
+- Only the ten types and four widths exist. Six non-width classes exist and no
+  others: `.bare`, `.center`, `.blocks-left`, `.blocks-center`, `.wrap-none`,
+  `.wrap-balance`; anything else is an `unknown class` error. `.bare` and
+  `.center` are not legal on a `title` or `closing` chunk, where the cover
+  composition decides all three questions; the four `style:` classes are, and
+  `.wrap-none` on a cover breaks its title greedily.
 - IDs unique across the file, and frozen once authored.
 - `::: flip` requires an enclosing `::: side`.
 - A bare `:::` closes layout first, then the enclosing `expand` or `margin`.

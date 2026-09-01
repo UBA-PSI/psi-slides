@@ -1427,6 +1427,122 @@ console.log('\nlayout generations');
      'a list item is shown whole, so it is exempt');
   ok(/single-word-bold/.test(bold('Lead-in.\n\n::: slide\n\nA sentence. Then **this**.\n\n:::')) === false,
      'and so is an explicit ::: slide block');
+
+  // ── the two settings a chunk can answer for itself ──────────────────
+  // `wrap` and `blocks` are the two style: keys whose right answer changes
+  // from slide to slide, so each has a chunk class spelled key-value. What
+  // is asserted here is the contract, not the geometry: which attribute is
+  // emitted where, that both directions exist, that the linter and the build
+  // agree, and that an unknown value still fails the build. Where the blocks
+  // actually land is measured in the browser suite.
+  const chunkCls = (cls, body = 'Prose.') =>
+    raw(FM + `## free: A {#a${cls ? ' ' + cls : ''}}\n\n${body}\n`);
+
+  for (const [cls, attr] of [
+    ['.wrap-none', 'data-wrap="none"'],
+    ['.wrap-balance', 'data-wrap="balance"'],
+    ['.blocks-left', 'data-blocks="left"'],
+    ['.blocks-center', 'data-blocks="center"'],
+  ]) {
+    const r = chunkCls(cls);
+    ok(r.code === 0 && r.html.includes(attr) && r.print.includes(attr),
+       `${cls} reaches the chunk as ${attr}, in the live view and on paper`,
+       r.out.split('\n')[0]);
+  }
+  // The direction that matters: unlike .bare and .center, these reach print,
+  // because the key they mirror always has. A chunk class that stopped at
+  // the projection would contradict style.wrap.
+  ok(/<article[^>]*data-wrap="none"/.test(chunkCls('.wrap-none').print),
+     'and it is on the print article, not only on the live one');
+  // Absent unless asked for, which is the whole of the additive promise.
+  // Matched on the article tags rather than on the file: the stylesheet
+  // names both attributes in its own selectors, and a document-wide grep
+  // would report the rules as if they were markup.
+  {
+    const plain = chunkCls('');
+    const articles = (h) => (h.match(/<article [^>]*>/g) || []).join('\n');
+    ok(!/data-wrap=|data-blocks=/.test(articles(plain.html))
+       && !/data-wrap=|data-blocks=/.test(articles(plain.print)),
+       'a chunk that writes neither class emits neither attribute',
+       articles(plain.html).split('\n')[0]);
+  }
+  // Two classes naming the same key resolve to one value rather than both.
+  {
+    const both = chunkCls('.wrap-none .wrap-balance');
+    ok(both.code === 0 && /data-wrap="balance"/.test(both.html)
+       && !/data-wrap="none"/.test(both.html),
+       'the last of two classes naming one key wins, rather than both landing');
+  }
+  // A cover is the one place .bare, .center and a width are refused. These
+  // are not: a cover title is a heading and balances like one, and the build
+  // and the linter have to agree about that or the pre-commit gate refuses
+  // what the build renders.
+  {
+    const coverSrc = '---\ntitle: T\n---\n\n## title: {#title .wrap-none}\n\n'
+      + '## free: A {#a}\n\nProse.\n';
+    const r = raw(coverSrc, ['--audience-only']);
+    ok(r.code === 0 && /<article class="chunk chunk-title"[^>]*data-wrap="none"/.test(r.html),
+       'a style class on a title chunk builds, unlike a width or .bare',
+       r.out.split('\n')[0]);
+    ok(/ 0 error\(s\)/.test(lintOf(coverSrc)),
+       'and the linter lets it past too, or it is stricter than the build');
+    const bad = raw('---\ntitle: T\n---\n\n## title: {#title .narrow}\n\n## free: A {#a}\n\nP.\n',
+      ['--audience-only']);
+    ok(bad.code !== 0, 'while a width on a title chunk is still refused');
+  }
+  // The unknown-class message lists what a tail takes, so it has to have
+  // grown with the vocabulary rather than naming four widths and two words.
+  {
+    const r = chunkCls('.wrap-of');
+    ok(r.code !== 0 && /\.wrap-of/.test(r.out) && /\.wrap-none/.test(r.out)
+       && /\.blocks-left/.test(r.out),
+       'a near miss is refused and the message names the classes that exist',
+       r.out.split('\n')[0]);
+    ok(/unknown class '\.wrap-of'/.test(lintOf(FM + '## free: A {#a .wrap-of}\n\nP.\n'))
+       || /\.wrap-of/.test(lintOf(FM + '## free: A {#a .wrap-of}\n\nP.\n')),
+       'and the linter refuses the same spelling');
+  }
+  // The deck-wide half of the same pair, and the refusal every viewer
+  // default carries: a typo in a look is otherwise invisible.
+  {
+    const left = raw('---\ntitle: T\nstyle:\n  blocks: left\n---\n\n## title: {#title}\n\n'
+      + '## free: A {#a}\n\nProse.\n');
+    ok(left.code === 0 && /<body [^>]*data-blocks="left"/.test(left.html)
+       && /<body [^>]*data-blocks="left"/.test(left.print),
+       'style.blocks: left reaches both bodies', left.out.split('\n')[0]);
+    const centre = raw('---\ntitle: T\nstyle:\n  blocks: center\n---\n\n## title: {#title}\n\n'
+      + '## free: A {#a}\n\nProse.\n');
+    ok(centre.code === 0 && !/data-blocks=/.test(bodyTag(centre.html)),
+       'and writing the default emits nothing, so it is a true no-op',
+       bodyTag(centre.html));
+    const bad = raw('---\ntitle: T\nstyle:\n  blocks: middle\n---\n\n## title: {#title}\n\n'
+      + '## free: A {#a}\n\nP.\n', ['--print-only']);
+    ok(bad.code !== 0 && /blocks/.test(bad.out),
+       'an unknown value fails the build, and --print-only reaches the refusal too',
+       bad.out.split('\n')[0]);
+    ok(/unknown-style-value|blocks/.test(lintOf('---\ntitle: T\nstyle:\n  blocks: middle\n---\n\n'
+       + '## title: {#title}\n\n## free: A {#a}\n\nP.\n')),
+       'and lint.js mirrors the enum');
+  }
+  // The rules themselves have to be in both stylesheets, guarded, and inert
+  // in a deck that says nothing - the same shape the wrap guards are checked
+  // in at the top of this file. A rule that lost its attribute still moves a
+  // formula, and nothing else here would notice.
+  {
+    const plain = chunkCls('');
+    ok(/#stage \.chunk\[data-wrap=none\][\s\S]{0,260}?text-wrap: wrap/.test(plain.html),
+       'the per-chunk wrap override ships in AUDIENCE_CSS, keyed on the attribute');
+    ok(/\.chunk\[data-wrap=none\][\s\S]{0,220}?text-wrap: wrap/.test(plain.print),
+       'and in PRINT_CSS, which is a separate copy');
+    ok(/body\[data-blocks=left\] #stage \.reveal-segment > pre/.test(plain.html)
+       && /#stage \.chunk\[data-blocks=center\][\s\S]{0,300}?translateX\(-50%\)/.test(plain.html),
+       'and the blocks rules ship in both directions, deck-wide and per chunk');
+    ok(/body\[data-blocks=left\] figure\.figure-img/.test(plain.print),
+       'with print carrying the two families it has - figure and formula');
+    ok(!/data-blocks=/.test(bodyTag(plain.html)),
+       'while a deck that names none of it emits no attribute to match them',
+       bodyTag(plain.html));
+  }
 }
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

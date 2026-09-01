@@ -64,7 +64,25 @@ const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
 // navigate by and to print. Refused rather than ignored when misspelled: an
 // unknown class in this tail used to be dropped without a word by the build
 // while lint.js called it an unknown width, which named the wrong thing.
-const VALID_CHUNK_CLASSES = new Set(['bare', 'center']);
+//
+// The rest of the tail is the other family: a class that answers a `style:`
+// key for one chunk. Each is spelled `<key>-<value>` off STYLE_SPEC below,
+// so an author who knows `style: {wrap: none}` can guess `.wrap-none` and
+// an author who meets `.blocks-left` in a source can guess the key. Only
+// two keys are in it, and deliberately: these are the two whose right answer
+// changes from slide to slide - a chunk whose one paragraph balances into a
+// ragged block, a chunk whose formula wants to sit under the sentence that
+// introduced it - where `headings`, `rules` and `labels` are decisions a deck
+// makes once. Both directions of both keys are here, because the class has to
+// be able to say the non-default thing under either global default: under
+// `wrap: none` a chunk asks for balancing back with `.wrap-balance`.
+const CHUNK_STYLE_CLASSES = {
+  'wrap-balance':  ['wrap', 'balance'],
+  'wrap-none':     ['wrap', 'none'],
+  'blocks-center': ['blocks', 'center'],
+  'blocks-left':   ['blocks', 'left'],
+};
+const VALID_CHUNK_CLASSES = new Set(['bare', 'center', ...Object.keys(CHUNK_STYLE_CLASSES)]);
 
 // ── syntax highlighting ──────────────────────────────────────────────
 // Shiki is loaded once per process and reused across rebuilds. Output
@@ -2818,6 +2836,13 @@ function parseAttributeTail(text) {
       const cls = token.slice(1);
       out.classes.push(cls);
       if (VALID_WIDTHS.has(cls)) out.width = cls;
+      // A `style:` override lands in one slot keyed by the setting, not in a
+      // flag named after the class, so the last of two classes naming the
+      // same key wins rather than both being true at once.
+      else if (CHUNK_STYLE_CLASSES[cls]) {
+        const [key, value] = CHUNK_STYLE_CLASSES[cls];
+        (out.styleOverrides ??= {})[key] = value;
+      }
       else if (VALID_CHUNK_CLASSES.has(cls)) out[cls] = true;
     } else if (token.startsWith('#')) {
       out.id = token.slice(1);
@@ -3152,6 +3177,11 @@ function parseLecture(src) {
           width: width || (tag === 'outline' ? 'wide' : 'standard'),
           bare: !!bare,
           center: !!center,
+          // The `style:` keys this one chunk answers differently, or null.
+          // Null and not an empty object so every renderer's attribute
+          // helper can leave in one line, and so a chunk that wrote none of
+          // these classes carries nothing new through the pipeline.
+          styleOverrides: h2Attr.styleOverrides || null,
           id,
           expansions: [],
           overlays: [],
@@ -3811,6 +3841,25 @@ const STYLE_SPEC = {
   // built before the balancing landed needs in order to break where it
   // used to.
   wrap: { kind: 'enum', values: ['balance', 'none'], dflt: 'balance' },
+  // Where the three things that are not prose sit across the measure: a
+  // code block, a figure with a caption, a display formula. All three have
+  // always been centred, and centred is right when the block is the slide -
+  // but a chunk that is a paragraph, a formula and another paragraph reads
+  // as three blocks on three axes, which is the complaint this key answers.
+  //
+  // `left` is flush with the prose's own left edge and not with the slide's:
+  // the point is that the formula starts where the sentence above it starts.
+  // For a code block that means the box moves and its contents do not - the
+  // listing is left-aligned inside its box either way, and what the eye sees
+  // as centring is the breakout box being pinned to the slide's middle. For a
+  // figure and a formula it is the other way round: the box is already the
+  // full measure and it is the artwork, the caption and the equation inside
+  // it that move.
+  //
+  // A `::: draw` is deliberately not in the list. Its <svg> is emitted 2000px
+  // wide under max-width: 100%, so it fills the measure at every chunk width
+  // and there is no space beside it to align in.
+  blocks: { kind: 'enum', values: ['center', 'left'], dflt: 'center' },
   // The generated tag word above a chunk. Two different things wear that
   // name and one switch has to reach both: the document renderer emits a
   // <span class="chunk-label"> for principle, question, definition and
@@ -3888,7 +3937,27 @@ function styleBodyAttrs(st, frontmatter = {}) {
   const liga = ligatureMode(frontmatter);
   if (liga !== 'text') parts.push(`data-liga="${liga}"`);
   if (st.wrap !== 'balance') parts.push('data-wrap="none"');
+  if (st.blocks !== 'center') parts.push('data-blocks="left"');
   return parts.join(' ');
+}
+// The same two settings answered on one chunk, from its attribute tail. The
+// attribute names are the body's, so one stylesheet serves both levels and
+// the chunk wins on specificity alone: `.chunk[data-wrap=none]` is two
+// classes where `body:not([data-wrap=none])` is one class and one element.
+//
+// Unlike `.bare` and `.center`, this is emitted by the print renderer too.
+// Those two answer where words sit on a slide, which the printed document
+// does not ask; these two answer typography, which it asks in the same
+// words - and `style.wrap` has reached PRINT_CSS since it landed, so a
+// per-chunk form that stopped at the projection would contradict the key it
+// is named after.
+function chunkStyleAttrs(chunk) {
+  const ov = chunk && chunk.styleOverrides;
+  if (!ov) return '';
+  let out = '';
+  if (ov.wrap) out += ` data-wrap="${ov.wrap}"`;
+  if (ov.blocks) out += ` data-blocks="${ov.blocks}"`;
+  return out;
 }
 
 function viewDefaults(frontmatter = {}) {
@@ -4254,7 +4323,7 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
     const scrimAttr = art.scrim && art.scrim !== 'veil' ? ` data-backdrop="${art.scrim}"` : '';
     const bdAttr = art.html ? ' data-has-backdrop=""' : '';
     const closingAttr = closing ? ' data-closing=""' : '';
-    return `<article class="chunk chunk-title" data-cover="${cover.variant}"${closingAttr}${bdAttr}${scrimAttr}${numAttr}${idAttr}>
+    return `<article class="chunk chunk-title" data-cover="${cover.variant}"${closingAttr}${bdAttr}${scrimAttr}${chunkStyleAttrs(chunk)}${numAttr}${idAttr}>
   ${art.html}
   ${numHtml}
   ${closing
@@ -4310,7 +4379,7 @@ ${inner}
   const scrimAttr = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
   const bdAttr = bd.html ? ' data-has-backdrop=""' : '';
 
-  return `<article class="${classes}"${idAttr}${numAttr}${bdAttr}${scrimAttr}>
+  return `<article class="${classes}"${idAttr}${numAttr}${bdAttr}${scrimAttr}${chunkStyleAttrs(chunk)}>
   ${bd.html}
   ${numHtml}
   ${label}
@@ -4520,6 +4589,17 @@ h1, h2, h3 { font-weight: 500; letter-spacing: -0.01em; break-after: avoid; page
    off rather than leaving an old lecture to re-wrap under its author. */
 body:not([data-wrap=none]) :is(h1, h2, h3, h4, .chunk-heading, .hd-sub, .section-heading, figcaption) { text-wrap: balance; }
 body:not([data-wrap=none]) :is(p, li, dd) { text-wrap: pretty; }
+/* The same question answered on one chunk, from a .wrap-none / .wrap-balance
+   in its attribute tail. Both directions, because under a deck-wide
+   wrap: none the only way left to ask for balancing is to ask for it here.
+   text-wrap: wrap is the initial value of the shorthand, so the off switch hands the
+   line back to the browser's plain greedy breaker rather than naming a third
+   behaviour. Written as one rule per direction with the whole family inside
+   an :is(), which is also what keeps the off switch specific enough to beat
+   the two rules above it. */
+.chunk[data-wrap=none] :is(h1, h2, h3, h4, .chunk-heading, .hd-sub, .section-heading, figcaption, p, li, dd) { text-wrap: wrap; }
+.chunk[data-wrap=balance] :is(h1, h2, h3, h4, .chunk-heading, .hd-sub, .section-heading, figcaption) { text-wrap: balance; }
+.chunk[data-wrap=balance] :is(p, li, dd) { text-wrap: pretty; }
 p { margin: 0.4em 0 0.9em; orphans: 3; widows: 3; }
 
 /* Hyphenation. Only in the document views: a hyphenated word on a
@@ -4893,6 +4973,35 @@ body[data-rules=off] .chunk-definition { border-top: 0; }
 .link-code { display: none; }
 
 body[data-labels=off] .chunk-label { display: none; }
+
+/* style.blocks, on paper. Two of the three families it reaches exist here -
+   a figure with its caption and a display formula - and the third does not:
+   a code block in the document sits inside the 42rem measure with nothing to
+   break out of, so it is already flush with the prose and there is nothing
+   for left to move.
+
+   It reaches print at all because block alignment is typography rather than
+   stagecraft. The .bare and .center classes stop at the projection because where
+   words sit on a slide is not a question a printed page asks; where a
+   formula sits relative to the paragraph that introduced it is the same
+   question on both, and style.wrap - the other key the chunk classes
+   mirror - has been in this stylesheet since it landed. */
+body[data-blocks=left] figure.figure-img,
+body[data-blocks=left] figure.figure-video,
+body[data-blocks=left] figure.figure-embed,
+.chunk[data-blocks=left] figure.figure-img,
+.chunk[data-blocks=left] figure.figure-video,
+.chunk[data-blocks=left] figure.figure-embed { text-align: left; }
+body[data-blocks=left] .math-display .katex-display,
+body[data-blocks=left] .math-display .katex-display > .katex,
+.chunk[data-blocks=left] .math-display .katex-display,
+.chunk[data-blocks=left] .math-display .katex-display > .katex { text-align: left; }
+/* And back, for one chunk in a document that set blocks: left. */
+.chunk[data-blocks=center] figure.figure-img,
+.chunk[data-blocks=center] figure.figure-video,
+.chunk[data-blocks=center] figure.figure-embed { text-align: center; }
+.chunk[data-blocks=center] .math-display .katex-display,
+.chunk[data-blocks=center] .math-display .katex-display > .katex { text-align: center; }
 
 /* Cover, backdrop, overlay and card grid in the document view. Print is a
    document, not a slide: composition over a picture is the one thing paper
@@ -5309,7 +5418,7 @@ function renderTitleChunk(chunk, frontmatter, num) {
   const block = closing
     ? renderClosingBlock(chunk, bodyHtml)
     : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt, bodyInField: cover.bodyInField, variant: cover.variant });
-  return `<article class="chunk chunk-title" data-tag="${closing ? 'closing' : 'title'}" data-width="full" data-cover="${cover.variant}"${closingAttr}${alignAttr}${bdAttr}${scrimAttr} data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}${ratioStyle}>
+  return `<article class="chunk chunk-title" data-tag="${closing ? 'closing' : 'title'}" data-width="full" data-cover="${cover.variant}"${closingAttr}${alignAttr}${bdAttr}${scrimAttr}${chunkStyleAttrs(chunk)} data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}${ratioStyle}>
   ${art.html}
   <div class="chunk-content">
     ${block}
@@ -5414,7 +5523,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num, parts = 
   const scrimAttr = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
   const bdAttr = bd.html ? ' data-has-backdrop=""' : '';
 
-  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${centerAttr}${numAttr}${bdAttr}${scrimAttr}>
+  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${centerAttr}${chunkStyleAttrs(chunk)}${numAttr}${bdAttr}${scrimAttr}>
   ${bd.html}
   <div class="chunk-content">
     ${tagLabel}
@@ -8569,6 +8678,105 @@ body:not([data-wrap=none]) .cards > :not(ul):not(ol) { text-wrap: pretty; }
    the last runt left after the rule above. */
 body:not([data-wrap=none]) :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
   .section-heading, figcaption, .tag-label, #toc-panel li) { text-wrap: balance; }
+
+/* The same four rules answered on one chunk, from a .wrap-none /
+   .wrap-balance in its attribute tail. Both directions: under a deck-wide
+   wrap: none there is otherwise no way left to ask for balancing back.
+   text-wrap: wrap is the shorthand's initial value, so the off switch hands
+   the line to the browser's plain greedy breaker rather than inventing a
+   third behaviour.
+
+   #stage is load-bearing and not decoration. The heading rule above carries
+   an id (#toc-panel li rides in its :is list), so it sits at one id, and a
+   chunk-scoped rule made of classes alone loses to it however many classes
+   it stacks. #stage is the element every chunk in both live views is inside,
+   which makes it the honest way to say "this is a slide, not the chrome" and
+   buys the id the cascade is asking for. The rules keep the base sheet's own
+   order and relative weights, so a .wrap-balance chunk under a deck-wide
+   wrap: none breaks exactly the way the same chunk breaks in a deck that
+   said nothing - collapsed slide lines balanced, cards pretty, and the
+   collapsed rule winning over the card rule the way it already does. */
+#stage .chunk[data-wrap=none] :is(p, li, h1, h2, h3, h4, .chunk-heading,
+  .hd-sub, .section-heading, figcaption, .tag-label, .sentence-rest strong,
+  .cards > :not(ul):not(ol)) { text-wrap: wrap; }
+#stage .chunk[data-wrap=balance] :is(p, li) { text-wrap: pretty; }
+#stage .chunk[data-wrap=balance] .cards li,
+#stage .chunk[data-wrap=balance] .cards > :not(ul):not(ol) { text-wrap: pretty; }
+#stage .chunk[data-wrap=balance] :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
+  .section-heading, figcaption, .tag-label) { text-wrap: balance; }
+#stage .chunk[data-wrap=balance] :is(
+  [data-collapse=topic-bold] .reveal-segment p,
+  [data-collapse=topic-bold] .reveal-segment li,
+  [data-collapse=topic-bold] .reveal-segment .sentence-rest strong) { text-wrap: balance; }
+
+/* ── where a block sits across the slide (style.blocks) ──────────────
+   Three things on a slide are not prose and have always been centred: a
+   code block, a figure with its caption, a display formula. Centred is
+   right when the block is the slide, and wrong when it is one step of an
+   argument - a paragraph, then a formula, then a paragraph reads as three
+   blocks on three axes. The left value puts all three on the prose's axis.
+
+   Which thing moves is not the same for all three, and the difference is
+   worth knowing before editing this. A top-level pre already breaks out of
+   the text column to 72vw; what centres it is left: 50% plus the translate,
+   so the *box* moves and the listing inside it was left-aligned all along.
+   A figure and a formula are already the full measure, so it is the artwork,
+   the caption and the equation *inside* the box that move.
+
+   The left-hand max-width is exact rather than cautious. A column centred on
+   the slide has (slide - column) / 2 to its left, so the room between its
+   left edge and the content area's right edge is 0.36 x slide + half the
+   column - which is what the calc says, and what keeps a wide listing inside
+   the same 72vw the centred one gets without ever crossing the slide's
+   padding. It holds at every chunk width, and for a figure: chunk too, whose
+   .chunk-body is narrower than its .chunk-content and centred inside it.
+
+   A ::: draw is deliberately not here. Its svg is emitted 2000px wide under
+   max-width: 100%, so it fills the measure whatever the chunk width is and
+   has no space beside it to sit in.
+
+   #stage for the same reason as the wrap rules above: it keeps every rule
+   here off the focus overlay, whose clone of a figure is a modal card and
+   is centred because a modal card is centred, not because the slide is. */
+body[data-blocks=left] #stage .reveal-segment > pre,
+body[data-blocks=left] #stage .reveal-segment > div > pre,
+body[data-blocks=left] #stage .chunk-content > .reveal-segment > pre,
+#stage .chunk[data-blocks=left] .reveal-segment > pre,
+#stage .chunk[data-blocks=left] .reveal-segment > div > pre,
+#stage .chunk[data-blocks=left] .chunk-content > .reveal-segment > pre {
+  left: 0;
+  transform: none;
+  max-width: calc(var(--slide-w) * 0.36 + 50%);
+}
+body[data-blocks=left] #stage figure.figure-img,
+body[data-blocks=left] #stage figure.figure-video,
+body[data-blocks=left] #stage figure.figure-embed,
+#stage .chunk[data-blocks=left] figure.figure-img,
+#stage .chunk[data-blocks=left] figure.figure-video,
+#stage .chunk[data-blocks=left] figure.figure-embed { align-items: flex-start; }
+body[data-blocks=left] #stage figure.figure-img figcaption,
+#stage .chunk[data-blocks=left] figure.figure-img figcaption { text-align: left; }
+body[data-blocks=left] #stage .math-display .katex-display,
+body[data-blocks=left] #stage .math-display .katex-display > .katex,
+#stage .chunk[data-blocks=left] .math-display .katex-display,
+#stage .chunk[data-blocks=left] .math-display .katex-display > .katex { text-align: left; }
+
+/* And back again, for one chunk in a deck that set blocks: left. Every
+   declaration is the value the base sheet already gives an unset deck, so
+   .blocks-center is a no-op wherever there is nothing to undo. */
+#stage .chunk[data-blocks=center] .reveal-segment > pre,
+#stage .chunk[data-blocks=center] .reveal-segment > div > pre,
+#stage .chunk[data-blocks=center] .chunk-content > .reveal-segment > pre {
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(var(--slide-w) * 0.72);
+}
+#stage .chunk[data-blocks=center] figure.figure-img,
+#stage .chunk[data-blocks=center] figure.figure-video,
+#stage .chunk[data-blocks=center] figure.figure-embed { align-items: center; }
+#stage .chunk[data-blocks=center] figure.figure-img figcaption { text-align: center; }
+#stage .chunk[data-blocks=center] .math-display .katex-display,
+#stage .chunk[data-blocks=center] .math-display .katex-display > .katex { text-align: center; }
 
 [data-collapse=topic-bold] .reveal-segment .sentence-rest .prose { display: none; }
 [data-collapse=topic-bold] .reveal-segment .sentence-rest strong {

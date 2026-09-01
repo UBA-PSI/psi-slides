@@ -2723,6 +2723,105 @@ body:not([data-wrap=none]) .cards > :not(ul):not(ol) { text-wrap: pretty; }
 body:not([data-wrap=none]) :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
   .section-heading, figcaption, .tag-label, #toc-panel li) { text-wrap: balance; }
 
+/* The same four rules answered on one chunk, from a .wrap-none /
+   .wrap-balance in its attribute tail. Both directions: under a deck-wide
+   wrap: none there is otherwise no way left to ask for balancing back.
+   text-wrap: wrap is the shorthand's initial value, so the off switch hands
+   the line to the browser's plain greedy breaker rather than inventing a
+   third behaviour.
+
+   #stage is load-bearing and not decoration. The heading rule above carries
+   an id (#toc-panel li rides in its :is list), so it sits at one id, and a
+   chunk-scoped rule made of classes alone loses to it however many classes
+   it stacks. #stage is the element every chunk in both live views is inside,
+   which makes it the honest way to say "this is a slide, not the chrome" and
+   buys the id the cascade is asking for. The rules keep the base sheet's own
+   order and relative weights, so a .wrap-balance chunk under a deck-wide
+   wrap: none breaks exactly the way the same chunk breaks in a deck that
+   said nothing - collapsed slide lines balanced, cards pretty, and the
+   collapsed rule winning over the card rule the way it already does. */
+#stage .chunk[data-wrap=none] :is(p, li, h1, h2, h3, h4, .chunk-heading,
+  .hd-sub, .section-heading, figcaption, .tag-label, .sentence-rest strong,
+  .cards > :not(ul):not(ol)) { text-wrap: wrap; }
+#stage .chunk[data-wrap=balance] :is(p, li) { text-wrap: pretty; }
+#stage .chunk[data-wrap=balance] .cards li,
+#stage .chunk[data-wrap=balance] .cards > :not(ul):not(ol) { text-wrap: pretty; }
+#stage .chunk[data-wrap=balance] :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
+  .section-heading, figcaption, .tag-label) { text-wrap: balance; }
+#stage .chunk[data-wrap=balance] :is(
+  [data-collapse=topic-bold] .reveal-segment p,
+  [data-collapse=topic-bold] .reveal-segment li,
+  [data-collapse=topic-bold] .reveal-segment .sentence-rest strong) { text-wrap: balance; }
+
+/* ── where a block sits across the slide (style.blocks) ──────────────
+   Three things on a slide are not prose and have always been centred: a
+   code block, a figure with its caption, a display formula. Centred is
+   right when the block is the slide, and wrong when it is one step of an
+   argument - a paragraph, then a formula, then a paragraph reads as three
+   blocks on three axes. The left value puts all three on the prose's axis.
+
+   Which thing moves is not the same for all three, and the difference is
+   worth knowing before editing this. A top-level pre already breaks out of
+   the text column to 72vw; what centres it is left: 50% plus the translate,
+   so the *box* moves and the listing inside it was left-aligned all along.
+   A figure and a formula are already the full measure, so it is the artwork,
+   the caption and the equation *inside* the box that move.
+
+   The left-hand max-width is exact rather than cautious. A column centred on
+   the slide has (slide - column) / 2 to its left, so the room between its
+   left edge and the content area's right edge is 0.36 x slide + half the
+   column - which is what the calc says, and what keeps a wide listing inside
+   the same 72vw the centred one gets without ever crossing the slide's
+   padding. It holds at every chunk width, and for a figure: chunk too, whose
+   .chunk-body is narrower than its .chunk-content and centred inside it.
+
+   A ::: draw is deliberately not here. Its svg is emitted 2000px wide under
+   max-width: 100%, so it fills the measure whatever the chunk width is and
+   has no space beside it to sit in.
+
+   #stage for the same reason as the wrap rules above: it keeps every rule
+   here off the focus overlay, whose clone of a figure is a modal card and
+   is centred because a modal card is centred, not because the slide is. */
+body[data-blocks=left] #stage .reveal-segment > pre,
+body[data-blocks=left] #stage .reveal-segment > div > pre,
+body[data-blocks=left] #stage .chunk-content > .reveal-segment > pre,
+#stage .chunk[data-blocks=left] .reveal-segment > pre,
+#stage .chunk[data-blocks=left] .reveal-segment > div > pre,
+#stage .chunk[data-blocks=left] .chunk-content > .reveal-segment > pre {
+  left: 0;
+  transform: none;
+  max-width: calc(var(--slide-w) * 0.36 + 50%);
+}
+body[data-blocks=left] #stage figure.figure-img,
+body[data-blocks=left] #stage figure.figure-video,
+body[data-blocks=left] #stage figure.figure-embed,
+#stage .chunk[data-blocks=left] figure.figure-img,
+#stage .chunk[data-blocks=left] figure.figure-video,
+#stage .chunk[data-blocks=left] figure.figure-embed { align-items: flex-start; }
+body[data-blocks=left] #stage figure.figure-img figcaption,
+#stage .chunk[data-blocks=left] figure.figure-img figcaption { text-align: left; }
+body[data-blocks=left] #stage .math-display .katex-display,
+body[data-blocks=left] #stage .math-display .katex-display > .katex,
+#stage .chunk[data-blocks=left] .math-display .katex-display,
+#stage .chunk[data-blocks=left] .math-display .katex-display > .katex { text-align: left; }
+
+/* And back again, for one chunk in a deck that set blocks: left. Every
+   declaration is the value the base sheet already gives an unset deck, so
+   .blocks-center is a no-op wherever there is nothing to undo. */
+#stage .chunk[data-blocks=center] .reveal-segment > pre,
+#stage .chunk[data-blocks=center] .reveal-segment > div > pre,
+#stage .chunk[data-blocks=center] .chunk-content > .reveal-segment > pre {
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(var(--slide-w) * 0.72);
+}
+#stage .chunk[data-blocks=center] figure.figure-img,
+#stage .chunk[data-blocks=center] figure.figure-video,
+#stage .chunk[data-blocks=center] figure.figure-embed { align-items: center; }
+#stage .chunk[data-blocks=center] figure.figure-img figcaption { text-align: center; }
+#stage .chunk[data-blocks=center] .math-display .katex-display,
+#stage .chunk[data-blocks=center] .math-display .katex-display > .katex { text-align: center; }
+
 [data-collapse=topic-bold] .reveal-segment .sentence-rest .prose { display: none; }
 [data-collapse=topic-bold] .reveal-segment .sentence-rest strong {
   display: block;

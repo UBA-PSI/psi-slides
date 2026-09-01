@@ -26,6 +26,7 @@ const SPECS = [
   './marginalia.mjs',
   './touch-rail.mjs',
   './math-focus.mjs',
+  './block-align.mjs',
   './editor-edges.mjs',
   './editor-waypoints.mjs',
   './editor-leaders.mjs',
