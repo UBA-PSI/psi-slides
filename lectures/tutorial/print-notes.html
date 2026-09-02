@@ -1672,8 +1672,30 @@ goes in it.</p>
 <li><code class="nb">L</code> cycles the <strong>slide numbers</strong>: stacked, in a row, or off.</li>
 </ul>
 <p><code class="nb">Shift</code> with <code class="nb">C</code>, <code class="nb">F</code>, <code class="nb">A</code> or <code class="nb">L</code> goes backwards. <code class="nb">#</code> has three modes and no <code class="nb">Shift</code>, because it is a shifted key on some keyboards and an unshifted one on others. Font, theme and slide numbers are remembered for every lecture you open, so the preference follows you; zoom and the <code class="nb">C</code> setting belong to the talk you are giving.</p>
-<p><strong>On a phone or a tablet with no keyboard, both windows show a small toolbar along the bottom edge.</strong> Forward, back, overview and zoom sit on it; <code class="nb">C</code>, <code class="nb">F</code>, <code class="nb">A</code>, <code class="nb">#</code>, the search and text selection are behind its <code class="nb">⋯</code> button. Attach a keyboard and the toolbar goes away again, because the keys are back.</p>
-<p><strong>Dark mode follows your machine unless something says otherwise.</strong> If you have never pressed <code class="nb">A</code> and the lecture pins no theme, a machine set to dark opens the lecture dark. Press <code class="nb">A</code> once and your choice is remembered from then on, everywhere. An author who writes <code class="nb">theme:</code> in the frontmatter overrides both, by the same rule as the other opening settings.</p>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="knobs-touch" data-chunk-num="28">
+  
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">The same controls without a keyboard</span> <span class="hd-sub">the toolbar on a phone or tablet</span></h2>
+  <p><strong>On a phone or a tablet with no keyboard, both windows show a small toolbar along the bottom edge.</strong> Forward, back, overview and zoom sit on it; <code class="nb">C</code>, <code class="nb">F</code>, <code class="nb">A</code>, <code class="nb">#</code>, the search and text selection are behind its <code class="nb">⋯</code> button. Attach a keyboard and the toolbar goes away again, because the keys are back.</p>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="knobs-modes" data-chunk-num="29">
+  
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">What the keys remember</span> <span class="hd-sub">themes, the two zooms, auto-fit and blanking</span></h2>
+  <p><strong>Dark mode follows your machine unless something says otherwise.</strong> If you have never pressed <code class="nb">A</code> and the lecture pins no theme, a machine set to dark opens the lecture dark. Press <code class="nb">A</code> once and your choice is remembered from then on, everywhere. An author who writes <code class="nb">theme:</code> in the frontmatter overrides both, by the same rule as the other opening settings.</p>
 <p><strong>The two <code class="nb">C</code> modes keep separate zoom levels.</strong> The short version holds whatever size you set with <code class="nb">+</code> and <code class="nb">-</code>; the full text picks its own so the whole chunk fits the screen, and switching back restores yours exactly.</p>
 <p><strong><code class="nb">#</code> cycles auto-fit through three modes, and the middle one, <em>shrink</em>, leaves your zoom where you set it and only ever makes a slide that is too big fit.</strong> So the room reads one size all hour, except on the slides that would otherwise run off the bottom. <em>Full</em> sizes every slide to the screen, growing a short chunk as readily as shrinking a long one, which suits a lecture whose chunks vary a lot. <em>Off</em> is neither.</p>
 <p><strong>While the room sees black, the speaker window keeps everything.</strong> The slide, the notes and the thumbnails stay where they were, so you can move on or read ahead with nothing showing. A small <code>BLANK · hit B to toggle</code> marker sits at the bottom of the speaker window, or at the bottom of the audience view when there is no speaker window.</p>
@@ -1688,9 +1710,9 @@ goes in it.</p>
   <h1 class="column-heading">Authoring layouts</h1>
   
   
-<article class="chunk chunk-principle width-standard" id="layout-axes" data-chunk-num="28">
+<article class="chunk chunk-principle width-standard" id="layout-axes" data-chunk-num="30">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></span>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Two decisions make a layout</span> <span class="hd-sub">a width class on the heading, and <code class="nb">:::</code> blocks in the body</span></h2>
   <p><strong>A layout is two independent decisions: how wide the chunk is, and how its body is arranged inside that width.</strong> The heading picks one of four widths – <code class="nb">{.narrow}</code>, <code class="nb">{.standard}</code>, <code class="nb">{.wide}</code>, <code class="nb">{.full}</code> – and <code class="nb">:::</code> blocks in the body do the rest.</p>
@@ -1701,9 +1723,9 @@ goes in it.</p>
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cols-demo" data-chunk-num="29">
+<article class="chunk chunk-example width-wide" id="cols-demo" data-chunk-num="31">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Text across two columns</span> <span class="hd-sub"><code>::: cols 2</code> and <code>::: cols 3</code></span></h2>
   <p><strong><code>::: cols 2</code> (or <code>cols 3</code>) flows the body across that many columns, the way a newspaper page does.</strong> Use it when several short paragraphs read better side by side than stacked – a list of features, a brief comparison, two or three parallel definitions.</p>
@@ -1723,9 +1745,9 @@ goes in it.</p>
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="side-demo" data-chunk-num="30">
+<article class="chunk chunk-example width-wide" id="side-demo" data-chunk-num="32">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Two panes you fill yourself</span> <span class="hd-sub"><code>::: side</code> and <code>::: flip</code></span></h2>
   <p><strong><code>::: side</code> makes two panes side by side, and <code>::: flip</code> marks where one ends and the other begins.</strong> Unlike <code class="nb">cols</code>, you decide what goes where: everything before <code>::: flip</code> is the left pane, everything after it the right. Use it for a figure with its commentary, or for a before-and-after pair.</p>
@@ -1747,9 +1769,9 @@ goes in it.</p>
   
   
 </article>
-<article class="chunk chunk-example width-standard" id="marginalia-demo" data-chunk-num="31">
+<article class="chunk chunk-example width-standard" id="marginalia-demo" data-chunk-num="33">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Marginalia</span> <span class="hd-sub"><code>::: marginalia</code> escapes into the slide margin</span></h2>
   <p><strong><code>::: marginalia</code> sets an aside out to the right of the chunk</strong>, past the edge of the text column and into the slide&#39;s margin.</p>
@@ -1769,9 +1791,9 @@ goes in it.</p>
   
   
 </article>
-<article class="chunk chunk-example width-standard" id="margin-demo" data-chunk-num="32">
+<article class="chunk chunk-example width-standard" id="margin-demo" data-chunk-num="34">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Footnotes</span> <span class="hd-sub"><code>::: footnote</code> is a quiet note under the chunk</span></h2>
   <p><strong><code>::: footnote</code> puts a small grey note under the chunk, labelled and always visible</strong> – down in the flow of the text rather than out at the side. No button, no separate panel, nothing to click.</p>
@@ -1785,9 +1807,9 @@ goes in it.</p>
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="images" data-chunk-num="33">
+<article class="chunk chunk-example width-wide" id="images" data-chunk-num="35">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Images</span> <span class="hd-sub"><code class="nb">![Caption](fig-id)</code> resolves against <code class="nb">assets/</code></span></h2>
   <p><strong>Write <code class="nb">![Caption](fig-id)</code> and the build looks in <code class="nb">assets/</code> for <code class="nb">fig-id.svg</code>, <code class="nb">.png</code>, <code class="nb">.jpg</code>, <code class="nb">.jpeg</code>, <code class="nb">.gif</code> or <code class="nb">.webp</code>, taking the first it finds.</strong> No folder, no extension. Writing the path out in full still works when you need it.</p>
@@ -1850,9 +1872,9 @@ goes in it.</p>
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="video" data-chunk-num="34">
+<article class="chunk chunk-example width-wide" id="video" data-chunk-num="36">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Video</span> <span class="hd-sub"><code class="nb">![](clip-id)</code>, the same shorthand an image uses</span></h2>
   <p><strong>Drop <code class="nb">clip.mp4</code> into <code class="nb">assets/</code> and write <code class="nb">![](clip)</code></strong> – the same shorthand an image uses. The build looks for video files after image files, so an id that has both a still and a clip behind it gives you the still.</p>
@@ -1864,9 +1886,9 @@ goes in it.</p>
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="video-more" data-chunk-num="35">
+<article class="chunk chunk-example width-wide" id="video-more" data-chunk-num="37">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">More on videos</span> <span class="hd-sub">the size limit, clips on a server, and what a click does</span></h2>
   <p><strong>Play, pause and seeking are shared between the windows.</strong> Operate the clip at the lectern and the projection follows. Freeze the projection first and it does not, so you can check a clip before showing it.</p>
@@ -1880,9 +1902,9 @@ goes in it.</p>
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="embed" data-chunk-num="36">
+<article class="chunk chunk-example width-wide" id="embed" data-chunk-num="38">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Hosted players</span> <span class="hd-sub"><code>::: embed</code> for YouTube and Vimeo</span></h2>
   <p><strong>A hosted player is written as <code>::: embed</code>, and a bare link never becomes one.</strong> This is the only thing you can write that makes a lecture fetch from somebody else&#39;s server while you are teaching, so you say so in the source:</p>
@@ -1898,9 +1920,9 @@ goes in it.</p>
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="embed-more" data-chunk-num="37">
+<article class="chunk chunk-example width-wide" id="embed-more" data-chunk-num="39">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>9</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">More on hosted players</span> <span class="hd-sub">what the directive does that an embed code would not</span></h2>
   <ul>
@@ -1918,9 +1940,9 @@ goes in it.</p>
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="math" data-chunk-num="38" data-blocks="left">
+<article class="chunk chunk-example width-wide" id="math" data-chunk-num="40" data-blocks="left">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Math</span> <span class="hd-sub"><code class="nb">$inline$</code> and <code class="nb">$$display$$</code></span></h2>
   <p><strong>Formulas are typeset when the lecture is built, so the finished file needs nothing at the moment you show it.</strong> Maths inside a sentence goes between single dollars – the anonymity set <span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi></mrow><annotation encoding="application/x-tex">S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em"></span><span class="mord mathnormal" style="margin-right:0.0576em">S</span></span></span></span></span> has size <span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">∣</mi><mi>S</mi><mi mathvariant="normal">∣</mi></mrow><annotation encoding="application/x-tex">|S|</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em"></span><span class="mord">∣</span><span class="mord mathnormal" style="margin-right:0.0576em">S</span><span class="mord">∣</span></span></span></span></span> – and a formula on its own line goes between double ones:</p>
@@ -1945,9 +1967,9 @@ goes in it.</p>
   <h1 class="column-heading">Writing chunks that work</h1>
   
   
-<article class="chunk chunk-principle width-wide" id="topic-sentence" data-chunk-num="39">
+<article class="chunk chunk-principle width-wide" id="topic-sentence" data-chunk-num="41">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>1</i></span>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">One paragraph per point</span> <span class="hd-sub">the slide is every paragraph&#39;s first sentence</span></h2>
   <p><strong>The projection is the first sentence of every paragraph: four paragraphs, four sentences in front of the room.</strong> It is not one topic sentence per chunk. It is one per paragraph, in the order you wrote them, plus whatever you set in bold.</p>
@@ -1965,9 +1987,9 @@ goes in it.</p>
 </div>
 </aside>
 </article>
-<article class="chunk chunk-example width-wide" id="anti-patterns" data-chunk-num="40">
+<article class="chunk chunk-example width-wide" id="anti-patterns" data-chunk-num="42">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>2</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">What breaks a shortened chunk</span> <span class="hd-sub">bold as a label, bold on one word, a weak opening, substance after a colon</span></h2>
   <p><strong>Most chunks that read badly on the projector fail in one of four ways.</strong></p>
@@ -1995,9 +2017,9 @@ goes in it.</p>
 </div>
 </aside>
 </article>
-<article class="chunk chunk-exercise width-wide" id="squint-test" data-chunk-num="41">
+<article class="chunk chunk-exercise width-wide" id="squint-test" data-chunk-num="43">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>3</i></span>
   <span class="chunk-label">exercise</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The squint test</span> <span class="hd-sub">walk your own lecture end to end in the short view</span></h2>
   <p><strong>Open your own lecture in the audience view, press <code class="nb">C</code> until it is short, and walk it end to end without opening the source.</strong> Stop at every chunk you could not talk from using only what is on the screen.</p>
@@ -2023,9 +2045,9 @@ goes in it.</p>
   <h1 class="column-heading">Next steps</h1>
   
   
-<article class="chunk chunk-principle width-standard" id="start-writing" data-chunk-num="42">
+<article class="chunk chunk-principle width-standard" id="start-writing" data-chunk-num="44">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>4</i></span>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Start from a talk you have already given</span> <span class="hd-sub">the prose exists; the work is where the chunks end</span></h2>
   <p><strong>The first lecture is the one that costs, because it is where the vocabulary gets learned, and the cheapest way through it is a talk you have already given.</strong> The prose exists. Most of the work is deciding where one chunk ends and the next begins, and the vocabulary you have just read is the whole of it.</p>
@@ -2036,9 +2058,9 @@ goes in it.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="read-more" data-chunk-num="43">
+<article class="chunk chunk-free width-wide" id="read-more" data-chunk-num="45">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>5</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Read more</span> <span class="hd-sub">three finished lectures to open</span></h2>
   <p><strong>psi-slides comes with three finished lectures. Open them, and take whatever you need out of their sources.</strong></p>
@@ -2054,9 +2076,9 @@ goes in it.</p>
   
   
 </article>
-<article class="chunk chunk-free width-standard" id="authoring" data-chunk-num="44">
+<article class="chunk chunk-free width-wide" id="authoring" data-chunk-num="46">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>6</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Writing your own</span> <span class="hd-sub"><code class="nb">--new</code>, <code class="nb">--watch</code>, <code class="nb">lint.js</code></span></h2>
   <p><strong>These are the commands you need while writing a lecture:</strong></p>
@@ -2072,9 +2094,9 @@ goes in it.</p>
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="view-defaults" data-chunk-num="45">
+<article class="chunk chunk-example width-wide" id="view-defaults" data-chunk-num="47">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Deciding how a lecture opens</span> <span class="hd-sub">seven frontmatter keys, and <code class="nb">lang:</code> beside them</span></h2>
   <p><strong>A lecture can set its own starting look instead of inheriting whatever the reader last chose.</strong></p>
@@ -2090,11 +2112,21 @@ goes in it.</p>
 <span class="line"><span style="color:#6A737D">                        # the same three. Left out, it follows</span></span>
 <span class="line"><span style="color:#6A737D">                        # whatever slide-numbers says</span></span>
 <span class="line"><span style="color:#22863A">editor</span><span style="color:#24292E">: </span><span style="color:#032F62">speaker</span><span style="color:#6A737D">         # both | speaker | none – the diagram editor</span></span>
-<span class="line"></span>
-<span class="line"><span style="color:#22863A">lang</span><span style="color:#24292E">: </span><span style="color:#032F62">de</span><span style="color:#6A737D">                # the language the lecture is written in:</span></span>
-<span class="line"><span style="color:#6A737D">                        # en, de, de-DE, fr and so on, and en</span></span>
-<span class="line"><span style="color:#6A737D">                        # when you leave it out</span></span>
 <span class="line"><span style="color:#6F42C1">---</span></span></code></pre>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="view-lang" data-chunk-num="48">
+  
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>8</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">The language, and who wins a disagreement</span> <span class="hd-sub"><code class="nb">lang:</code> and the rule for every key above</span></h2>
+  <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">lang</span><span style="color:#24292E">: </span><span style="color:#032F62">de</span><span style="color:#6A737D">                # the language the lecture is written in:</span></span>
+<span class="line"><span style="color:#6A737D">                        # en, de, de-DE, fr and so on, and en</span></span>
+<span class="line"><span style="color:#6A737D">                        # when you leave it out</span></span></code></pre>
 <p><strong><code class="nb">lang:</code> picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.</strong> <code>style: {hyphenate: all}</code> puts it into the live views too, which a German lecture at <code class="nb">.narrow</code> usually wants, and <code class="nb">none</code> takes it out everywhere. It is not one of the six above in the other sense either – the six are opening settings that override whatever the reader last chose, and the language is a property of the lecture.</p>
 <p><strong>A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.</strong> So a lecture that sets nothing behaves as it always did – font, theme and slide numbers follow the reader from lecture to lecture.</p>
 <p><code class="nb">slide-numbers</code> reaches <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> too, and <code class="nb">print-slide-numbers:</code> overrides it there when the printed document wants different numbering from the room. A value the tool does not know stops the build and lists the ones it does.</p>
@@ -2118,9 +2150,9 @@ parts from a clone of the repository, and expect them to change before they
 are tagged into a release.</p>
 </blockquote>
 </div>
-<article class="chunk chunk-principle width-standard" id="drawn-from-text" data-chunk-num="46">
+<article class="chunk chunk-principle width-standard" id="drawn-from-text" data-chunk-num="49">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></span>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure written as text is a figure you can still change</span> <span class="hd-sub">you say what sits beside what, and the placing is worked out</span></h2>
   <p><strong>A drawing made in a drawing tool is finished the moment you export it: it does not follow the theme, it cannot arrive a piece at a time, and a fact that changes means opening the tool again.</strong> Written as lines in the lecture source, a figure is versioned with the prose, re-coloured with the page and revealed one beat at a time.</p>
@@ -2131,9 +2163,9 @@ are tagged into a release.</p>
   
   
 </article>
-<article class="chunk chunk-example width-full" id="diagram" data-chunk-num="47">
+<article class="chunk chunk-example width-full" id="diagram" data-chunk-num="50">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Diagrams</span> <span class="hd-sub">the figure below is five lines of source</span></h2>
   <p><strong>A <code>::: draw</code> block is a figure written as text.</strong> The build draws it into the page: you name the boxes and say where each one goes, and the arrows between them are routed for you.</p>
@@ -2159,9 +2191,9 @@ are tagged into a release.</p>
   
   
 </article>
-<article class="chunk chunk-example width-full" id="diagram-beats" data-chunk-num="48">
+<article class="chunk chunk-example width-full" id="diagram-beats" data-chunk-num="51">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>1</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure that arrives in pieces</span> <span class="hd-sub">a <code class="nb">step</code> block advances on the same key as a reveal</span></h2>
   <p><strong>Write <code class="nb">step</code> blocks and the figure moves.</strong> One step is one press of the same key that uncovers a segment, so steps and segments arrive in the order you wrote them and the speaker view reads ahead exactly as it does for text. Press forward twice here.</p>
@@ -2176,9 +2208,17 @@ are tagged into a release.</p>
 <g id="dg3-log" data-base="dg-el dg-box" class="dg-el dg-box dashed"><rect id="dg3-log--r" x="100.90" y="83.17" width="80.30" height="36.75" rx="4"/><g id="dg3-log--lw0" data-lab="log--l" class="dg-lwrap" transform="translate(141.05,101.55)"><g id="dg3-log--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Logfile</tspan></text></g></g></g>
 <g id="dg3-why" data-base="dg-el dg-text" class="dg-el dg-text hand"><g id="dg3-why--lw0" data-lab="why--l" class="dg-lwrap" transform="translate(352.35,101.55)"><g id="dg3-why--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">this is where</tspan><tspan x="0" y="14.48">the anonymity ends</tspan></text></g></g></g>
 </svg><figcaption class="dg-hint"></figcaption></figure>
-
-
-<p>That is the figure from the slide before with a logfile added and four lines at the end: <code>step leak</code> shows the logfile, and <code>step blame</code> picks out the leak and the box it runs to. <strong>The words a step knows are <code class="nb">show</code>, <code class="nb">hide</code>, <code>move … to</code>, <code>move … by</code>, the three attention verbs <code class="nb">emph</code>, <code class="nb">dim</code> and <code class="nb">ghost</code>, plus <code class="nb">style</code> and <code class="nb">label</code>.</strong></p>
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="diagram-beats-rule" data-chunk-num="52">
+  
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>2</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">What a step block says</span> <span class="hd-sub">and what it does not have to</span></h2>
+  <p>That is the figure from the slide before with a logfile added and four lines at the end: <code>step leak</code> shows the logfile, and <code>step blame</code> picks out the leak and the box it runs to. <strong>The words a step knows are <code class="nb">show</code>, <code class="nb">hide</code>, <code>move … to</code>, <code>move … by</code>, the three attention verbs <code class="nb">emph</code>, <code class="nb">dim</code> and <code class="nb">ghost</code>, plus <code class="nb">style</code> and <code class="nb">label</code>.</strong></p>
 <p><strong>Anything hanging off something invisible is invisible too</strong>, which is why <code>step leak</code> names only the logfile. An arrow is only as visible as the two things it joins, a <code class="nb">container</code> or a <code class="nb">brace</code> only as visible as its members, and a <code class="nb">text</code> with a line drawn to something only as visible as what it points at. So showing the boxes shows the arrows between them, and most of a figure needs no <code class="nb">show</code> of its own.</p>
 
   
@@ -2190,9 +2230,9 @@ are tagged into a release.</p>
 </div>
 </aside>
 </article>
-<article class="chunk chunk-example width-full" id="diagram-slots" data-chunk-num="49" data-blocks="left">
+<article class="chunk chunk-example width-full" id="diagram-slots" data-chunk-num="53" data-blocks="left">
   
-  <span class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>3</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Every line has the same six slots</span> <span class="hd-sub"><code>kind name label placement options tail</code></span></h2>
   <p><strong>Every line in a <code>::: draw</code> block has the same six slots, always in this order</strong>, and most lines fill three or four of them:</p>
@@ -2211,9 +2251,9 @@ are tagged into a release.</p>
   
   
 </article>
-<article class="chunk chunk-example width-full" id="diagram-placement" data-chunk-num="50">
+<article class="chunk chunk-example width-full" id="diagram-placement" data-chunk-num="54">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>4</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Where an element goes</span> <span class="hd-sub">a grid square, a neighbour, or another element&#39;s coordinate</span></h2>
   <p><strong>Placement is a grid square, or a relation to a neighbour.</strong></p>
@@ -2223,7 +2263,18 @@ are tagged into a release.</p>
 <li><strong><code>between a,b</code></strong> is the point on the line joining two elements.</li>
 <li><strong><code>offset dx,dy</code></strong> is a nudge any of the three accepts on the end.</li>
 </ul>
-<p><strong>A coordinate can be another element&#39;s, plus or minus a little</strong> – <code>at mix.cx,src.cy+0.4</code>. Anywhere an <code class="nb">X,Y</code> pair goes, that form goes.</p>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-full" id="diagram-coords" data-chunk-num="55">
+  
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>5</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">A coordinate can be another element&#39;s</span> <span class="hd-sub">fractions, edges and pictures</span></h2>
+  <p><strong>A coordinate can be another element&#39;s, plus or minus a little</strong> – <code>at mix.cx,src.cy+0.4</code>. Anywhere an <code class="nb">X,Y</code> pair goes, that form goes.</p>
 <p><strong>An anchor can carry a fraction</strong>: <code class="nb">mix.right:0.3</code> slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side rather than on top of each other. <code>gap 0 flush left</code> at the end of a placement makes two boxes touch.</p>
 <p><strong>An edge is one of the things a coordinate can name.</strong> <code>text n &quot;only after the handshake&quot; above w1 gap 0.2</code> sets a phrase against the wire it describes rather than against a box at one end of it, so the label follows its line instead of drifting off it the next time a box changes height. Name the edge first, in the slot before the arrow&#39;s first end: <code>edge w1 mix -&gt; log</code>. An edge has no name until you write one, and most edges never need one.</p>
 <p><strong>A picture can be an element too.</strong> <code>image alice avatar-alice w 0.4</code> finds the file exactly as <code class="nb">![](fig-id)</code> does, and an SVG drawing takes the theme&#39;s colours there in the same way.</p>
@@ -2240,9 +2291,9 @@ are tagged into a release.</p>
   
   
 </article>
-<article class="chunk chunk-example width-full" id="diagram-classes" data-chunk-num="51">
+<article class="chunk chunk-example width-full" id="diagram-classes" data-chunk-num="56">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>6</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Classes</span> <span class="hd-sub">thirteen groups, and one question each</span></h2>
   <p><strong>Only one member of a group is ever in force.</strong> The names come from a fixed list, and <code class="nb">{.tone-1}</code> on a box therefore <em>replaces</em> a <code>default box {.tone-4}</code> rather than piling on top of it, which is what makes the groups worth knowing.</p>
@@ -2304,9 +2355,9 @@ are tagged into a release.</p>
   
   
 </article>
-<article class="chunk chunk-example width-full" id="diagram-align" data-chunk-num="52">
+<article class="chunk chunk-example width-full" id="diagram-align" data-chunk-num="57">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Lining things up</span> <span class="hd-sub"><code class="nb">flush</code>, <code class="nb">align</code> and <code class="nb">spread</code></span></h2>
   <p><strong>Three words put elements level with each other, and they are not interchangeable.</strong></p>
@@ -2330,9 +2381,9 @@ are tagged into a release.</p>
 </div>
 </aside>
 </article>
-<article class="chunk chunk-example width-full" id="diagram-charts" data-chunk-num="53">
+<article class="chunk chunk-example width-full" id="diagram-charts" data-chunk-num="58">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>8</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Charts</span> <span class="hd-sub"><code class="nb">bars</code>, <code class="nb">grid</code> and <code class="nb">plot</code></span></h2>
   <p><strong>Three statements draw data, and each turns into ordinary boxes, texts and edges first.</strong> <code class="nb">bars</code> becomes one box per column plus a baseline, <code class="nb">grid</code> one box per cell, and <code class="nb">plot</code> a frame of gridlines, ticks and two axis titles.</p>
@@ -2414,14 +2465,25 @@ are tagged into a release.</p>
   
   
 </article>
-<article class="chunk chunk-example width-full" id="diagram-bars" data-chunk-num="54">
+<article class="chunk chunk-example width-full" id="diagram-bars" data-chunk-num="59">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>5</i><i>9</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">More on bars</span> <span class="hd-sub">a second series, and columns laid flat</span></h2>
   <p><strong>A second set of numbers is one more <code class="nb">bars</code> line:</strong> <code>bars after &quot;…&quot; series of wc {.tone-1}</code> joins the first chart&#39;s frame and borrows its ticks, its baseline and its scale.</p>
-<p><strong><code class="nb">horizontal</code> lays the columns flat</strong>, which is what a chart wants as soon as its categories have names rather than numbers – lengths from one shared left edge are easier to rank, and “DNS cache poisoning” cannot be written under an upright column at all.</p>
-<figure class="figure-diagram"><svg id="dg6-root" class="psi-diagram" viewBox="-267.54 -43.25 407.04 126.50" width="2000" height="622" data-steps="1" role="img" aria-label="More on bars" preserveAspectRatio="xMidYMid meet">
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-full" id="diagram-flat" data-chunk-num="60">
+  
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>0</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Columns laid flat</span> <span class="hd-sub"><code class="nb">horizontal</code>, and what it buys</span></h2>
+  <p><strong><code class="nb">horizontal</code> lays the columns flat</strong>, which is what a chart wants as soon as its categories have names rather than numbers – lengths from one shared left edge are easier to rank, and “DNS cache poisoning” cannot be written under an upright column at all.</p>
+<figure class="figure-diagram"><svg id="dg6-root" class="psi-diagram" viewBox="-267.54 -43.25 407.04 126.50" width="2000" height="622" data-steps="1" role="img" aria-label="Columns laid flat" preserveAspectRatio="xMidYMid meet">
 <g id="dg6-hour" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg6-hour--r" x="-127.50" y="-31.25" width="255.00" height="62.50" rx="4"/></g>
 <g id="dg6-hour-0" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2"><rect id="dg6-hour-0--r" x="-127.50" y="-29.30" width="255.00" height="11.72" rx="4"/></g>
 <g id="dg6-hour-1" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2 emph"><rect id="dg6-hour-1--r" x="-127.50" y="-13.67" width="197.42" height="11.72" rx="4"/></g>
@@ -2443,12 +2505,12 @@ are tagged into a release.</p>
   
   
 </article>
-<article class="chunk chunk-example width-full" id="diagram-plot" data-chunk-num="55">
+<article class="chunk chunk-example width-full" id="diagram-plot" data-chunk-num="61">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>1</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Plots</span> <span class="hd-sub"><code class="nb">plot</code> draws a frame and a scale, and nothing else</span></h2>
-  <p><strong>A chart is sized with <code class="nb">aspect</code>, not with <code class="nb">w</code> and <code class="nb">h</code></strong> – those two are counted in grid squares, and a grid square is not square, so they do not describe the shape a reader sees.</p>
+  <p><strong>A <code class="nb">plot</code> draws a frame and a scale, and nothing else.</strong></p>
 <figure class="figure-diagram"><svg id="dg7-root" class="psi-diagram" viewBox="-315.00 -120.75 536.82 271.20" width="2000" height="1010" data-live-viewbox="-315.00 -120.75 536.82 271.20" data-live-ratio="0.505197" data-steps="3" role="img" aria-label="Plots" preserveAspectRatio="xMidYMid meet">
 <g id="dg7-pace-gx-0" data-base="dg-el dg-edge" class="dg-el dg-edge muted dotted no-head"><path id="dg7-pace-gx-0--p" class="dg-stroke" d="M-202.50 -101.25L-202.50 101.25" fill="none"/><path id="dg7-pace-gx-0--h" class="dg-head" d="M-202.50 101.25L-202.50 101.25L-202.50 101.25Z"/></g>
 <g id="dg7-pace-gx-1" data-base="dg-el dg-edge" class="dg-el dg-edge muted dotted no-head"><path id="dg7-pace-gx-1--p" class="dg-stroke" d="M-135.00 -101.25L-135.00 101.25" fill="none"/><path id="dg7-pace-gx-1--h" class="dg-head" d="M-135.00 101.25L-135.00 101.25L-135.00 101.25Z"/></g>
@@ -2484,8 +2546,17 @@ are tagged into a release.</p>
 <g id="dg7-evenn" data-base="dg-el dg-text" class="dg-el dg-text small paper"><rect id="dg7-evenn--r" x="100.26" y="-79.79" width="69.48" height="27.96" rx="4"/><g id="dg7-evenn--lw0" data-lab="evenn--l" class="dg-lwrap" transform="translate(135.00,-65.81)"><g id="dg7-evenn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">even pace</tspan></text></g></g></g>
 <g id="dg7-realn" data-base="dg-el dg-text" class="dg-el dg-text small hand paper"><rect id="dg7-realn--r" x="-111.18" y="-77.17" width="114.36" height="42.96" rx="4"/><g id="dg7-realn--lw0" data-lab="realn--l" class="dg-lwrap" transform="translate(-54.00,-55.69)"><g id="dg7-realn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="-3.42">the first third</tspan><tspan x="0" y="11.58">always runs long</tspan></text></g></g></g>
 </svg><figcaption class="dg-hint"></figcaption></figure>
-
-
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="diagram-plot-scale" data-chunk-num="62">
+  
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>2</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">What a plot gives you</span> <span class="hd-sub">a frame, a scale, and ordinary edges over it</span></h2>
+  <p><strong>A chart is sized with <code class="nb">aspect</code>, not with <code class="nb">w</code> and <code class="nb">h</code></strong> – those two are counted in grid squares, and a grid square is not square, so they do not describe the shape a reader sees.</p>
 <p><strong>A <code class="nb">plot</code> takes two ranges and one <code class="nb">tick</code> interval, and draws nothing but the frame and the scale</strong> – after which <code class="nb">pace@26</code> names a value in the plot&#39;s own units anywhere a coordinate can go, and the curves over it are ordinary edges.</p>
 
   
@@ -2502,9 +2573,9 @@ are tagged into a release.</p>
 </div>
 </aside>
 </article>
-<article class="chunk chunk-example width-full" id="diagram-steps" data-chunk-num="56">
+<article class="chunk chunk-example width-full" id="diagram-steps" data-chunk-num="63">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>3</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure that moves</span> <span class="hd-sub"><code class="nb">hide</code>, <code class="nb">dim</code>, <code class="nb">move</code> and <code class="nb">label</code>, inside a <code class="nb">step</code></span></h2>
   <p><strong>A figure with steps is an argument in stages – the setting, the intruder, the cut wire, and what it costs.</strong> Press forward three times.</p>
@@ -2530,9 +2601,9 @@ are tagged into a release.</p>
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="autoplay" data-chunk-num="57">
+<article class="chunk chunk-example width-wide" id="autoplay" data-chunk-num="64">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>4</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure that advances on a timer</span> <span class="hd-sub"><code>::: draw {autoplay=N}</code></span></h2>
   <p><strong>A figure written with <code class="nb">autoplay</code> walks its own steps on a timer once the slide is on screen</strong> – one delay, in milliseconds, for every step. A cover figure that moves while the room files in is the case it was asked for, but it works on any chunk.</p>
@@ -2545,7 +2616,18 @@ are tagged into a release.</p>
 <span class="line"><span style="color:#24292E">  emph det</span></span>
 <span class="line"><span style="color:#24292E">:::</span></span></code></pre>
 <p>The timer presses the same key you would press, so the speaker view follows and freezing the projection stops it. It runs on the projection only, and <strong>the first key, click or scroll on that slide stops it</strong> – once you have touched the figure you have taken over. It also refuses to start on a slide that is already half uncovered.</p>
-<p>The delay has to be between 200 ms and 60 s; outside that the build refuses the number rather than quietly moving it.</p>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="autoplay-bounds" data-chunk-num="65">
+  
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>5</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">What the timer promises</span> <span class="hd-sub">the bounds, and who takes over</span></h2>
+  <p>The delay has to be between 200 ms and 60 s; outside that the build refuses the number rather than quietly moving it.</p>
 <p><strong><code class="nb">cycle</code> repeats the walk</strong> – <code>{autoplay=1200 cycle}</code> – which is usually what a cover figure wants while a room fills. It rewinds the same way it advanced, so the speaker view follows the rewind too. The last step is held for one delay like every other, and there is no second number for how long to hold the finished picture.</p>
 
   
@@ -2561,9 +2643,9 @@ are tagged into a release.</p>
 <p>Newer than the 1.0.0 download as well, and out of the same clone.</p>
 </blockquote>
 </div>
-<article class="chunk chunk-principle width-standard" id="deco-idea" data-chunk-num="58">
+<article class="chunk chunk-principle width-standard" id="deco-idea" data-chunk-num="66">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>6</i></span>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A slide can be more than a column of text</span> <span class="hd-sub">and what makes it one is not written inside the text</span></h2>
   <p><strong>Write a picture into a chunk and you get a picture in the text column</strong> – never one that fills the slide, and never three things standing side by side.</p>
@@ -2576,9 +2658,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="backdrop" data-chunk-num="59">
+<article class="chunk chunk-example width-wide" id="backdrop" data-chunk-num="67">
   
-  <span class="chunk-num" aria-hidden="true"><i>5</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A picture that fills the frame</span> <span class="hd-sub"><code>::: backdrop</code> and <code>::: overlay</code></span></h2>
   <p><strong><code>::: backdrop</code> puts a picture behind the whole slide, edge to edge, and <code>::: overlay</code> puts a block of text on top of it.</strong> One line each, on any chunk – a cover is not a special case. A backdrop names its picture the same three ways an image does: a bare asset id, a path, an https address.</p>
@@ -2596,9 +2678,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="backdrop-words" data-chunk-num="60">
+<article class="chunk chunk-example width-wide" id="backdrop-words" data-chunk-num="68">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>8</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The words in the braces</span> <span class="hd-sub">five questions for a backdrop, three for an overlay</span></h2>
   <p><strong>A backdrop&#39;s braces answer five questions, at most one word each.</strong> How the picture fills the frame – it covers the slide, or it fits inside it whole. Which part of it survives the crop. What is laid over it. Whether it is sharp or blurred. And whether it sits under the type or in front of it. Two words answering the same question is an error, and the message names both.</p>
@@ -2611,9 +2693,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-full" id="deco-picture" data-chunk-num="61" data-has-backdrop="" data-backdrop="invert">
+<article class="chunk chunk-example width-full" id="deco-picture" data-chunk-num="69" data-has-backdrop="" data-backdrop="invert">
   <div class="chunk-backdrop bd-cover bd-middle bd-invert bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>9</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A picture behind the words</span> <span class="hd-sub">what the two blocks on the last slide produce</span></h2>
   
@@ -2629,9 +2711,9 @@ of them are shown one per slide in
 </div>
 </aside>
 </article>
-<article class="chunk chunk-example width-wide" id="cards" data-chunk-num="62">
+<article class="chunk chunk-example width-wide" id="cards" data-chunk-num="70">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A row of cards</span> <span class="hd-sub"><code>::: cards N</code></span></h2>
   <p><strong><code>::: cards 3</code> puts three separate boxes across the slide, and an item is in one of them whole or it is nowhere.</strong> A <code>::: cols 3</code> block does the other thing: one run of text the browser shares across three columns, so a paragraph can spill from the foot of one into the head of the next.</p>
@@ -2659,7 +2741,18 @@ of them are shown one per slide in
 
 <p>That row is one Markdown list between <code>::: cards 3</code> and <code class="nb">:::</code>, and <strong>each card has a second level folded away under it – press <code class="nb">C</code> and it appears.</strong> The folded level is in <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> either way, so one row serves the room and the hand-out.</p>
 <p>One rule decides what becomes a card: write a single list and each of its items is a card; write anything else and each block is a card. The count runs from 1 to 6 – one card is a callout you want to stand apart, and past six what you have is a table.</p>
-<p><strong>How you open a card decides what the bold does</strong>, and the two below are written the two ways:</p>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="cards-open" data-chunk-num="71">
+  
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>1</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">The two ways to open a card</span> <span class="hd-sub">a lead-in, or a heading</span></h2>
+  <p><strong>How you open a card decides what the bold does</strong>, and the two below are written the two ways:</p>
 <div class="cards cards-2 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li><strong>A lead-in</strong> is written on the same line as its text, so the bold runs into the sentence and the card reads as one paragraph</li>
@@ -2676,9 +2769,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cards-look" data-chunk-num="63">
+<article class="chunk chunk-example width-wide" id="cards-look" data-chunk-num="72">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>2</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">What the words in the braces do</span> <span class="hd-sub">the seven that set a card row&#39;s look</span></h2>
   <p><strong>Seven words in the tail set the look of a card row</strong>, written bare between braces, at most one per question – a second word answering a question already answered stops the build.</p>
@@ -2694,9 +2787,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cards-ground" data-chunk-num="64">
+<article class="chunk chunk-example width-wide" id="cards-ground" data-chunk-num="73">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>3</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">One ground for a whole row</span> <span class="hd-sub"><code class="nb">accent</code>, <code class="nb">paper</code>, <code class="nb">clear</code></span></h2>
   <p><strong><code class="nb">ground</code> is answered once for a whole row</strong>, so three grounds means three rows, each written <code>::: cards 1 {…}</code> with its own word. <code class="nb">panel</code> is the default, a tinted fill; <code class="nb">outline</code> is a hairline and no fill; <code class="nb">photo</code> makes the card&#39;s first picture its background, and <code class="nb">scrim</code> says what is laid over it.</p>
@@ -2729,9 +2822,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cards-anchor" data-chunk-num="65">
+<article class="chunk chunk-example width-wide" id="cards-anchor" data-chunk-num="74">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>4</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A tail that answers twice</span> <span class="hd-sub"><code>::: cards 3 {outline middle}</code></span></h2>
   <div class="cards cards-3 cs-small ca-left cv-middle cd-fold cg-outline ck-round cx-veil">
@@ -2751,9 +2844,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="rows" data-chunk-num="66">
+<article class="chunk chunk-example width-wide" id="rows" data-chunk-num="75">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>5</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A term and what it means</span> <span class="hd-sub"><code>::: rows</code></span></h2>
   <p><strong><code>::: rows</code> is a card turned ninety degrees</strong>: a term in a card on the left, its explanation beside it, several of them stacked.</p>
@@ -2765,9 +2858,17 @@ of them are shown one per slide in
 </ul>
 
 </div>
-
-
-<p>That is <code>::: rows {accent}</code> around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are. <strong>The explanation is optional</strong> – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.</p>
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="rows-rules" data-chunk-num="76">
+  
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>6</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">What a row block does differently</span> <span class="hd-sub">no count, and three defaults of its own</span></h2>
+  <p>That row is <code>::: rows {accent}</code> around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are. <strong>The explanation is optional</strong> – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.</p>
 <p>It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: the text is centred against its term rather than against its first line; <code class="nb">align</code> says how the term sits <em>in its card</em>, and the explanation always ranges left; and the automatic size stops at <code class="nb">medium</code>, a term being a label in a column rather than a headline across the slide.</p>
 <p>Reach for <code class="nb">rows</code> when a term needs a sentence, and for <code class="nb">cards</code> when a comparison needs counting.</p>
 
@@ -2776,9 +2877,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="side-ratio" data-chunk-num="67">
+<article class="chunk chunk-example width-wide" id="side-ratio" data-chunk-num="77">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure beside the prose</span> <span class="hd-sub"><code>::: side 2:1</code></span></h2>
   <div class="side sv-middle" style="--side-a:2fr;--side-b:1fr"><div class="side-a">
@@ -2806,9 +2907,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="style-block" data-chunk-num="68">
+<article class="chunk chunk-example width-wide" id="style-block" data-chunk-num="78">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>8</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Setting the typography for a whole lecture</span> <span class="hd-sub">the <code class="nb">style:</code> block</span></h2>
   <p><strong>The <code class="nb">style:</code> block holds the settings you make once for a whole lecture rather than chunk by chunk.</strong></p>
@@ -2825,7 +2926,18 @@ of them are shown one per slide in
 <span class="line"><span style="color:#22863A">  heading-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">1.15</span><span style="color:#6A737D">   # 0.6 … 1.8</span></span>
 <span class="line"><span style="color:#22863A">  body-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">0.95</span><span style="color:#6A737D">      # 0.6 … 1.8</span></span></code></pre>
 <p><code>headings: auto</code> is the default, and it means the type decides: a question is centred, a figure&#39;s caption sits over its artwork. <code class="nb">left</code> overrides all of that, for one line of alignment down the whole lecture. <code class="nb">off</code> takes every heading off the projection while keeping it in <code class="nb">print.html</code>, <code class="nb">print-notes.html</code>, the contents list and the search.</p>
-<p><strong><code class="nb">wrap</code> reaches headings and prose both</strong>, which its name does not say: <code class="nb">balance</code> evens the line lengths of a heading and protects the last line of a paragraph, and <code class="nb">none</code> turns both off. <code class="nb">blocks</code> and <code class="nb">wrap</code> are the two keys a single chunk can answer for itself, with <code class="nb">{.blocks-left}</code> and <code class="nb">{.wrap-none}</code> in its attribute tail.</p>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="style-keys" data-chunk-num="79">
+  
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>9</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Four keys the block&#39;s names do not explain</span> <span class="hd-sub"><code class="nb">wrap</code>, <code class="nb">blocks</code>, <code class="nb">print-body</code> and the scales</span></h2>
+  <p><strong><code class="nb">wrap</code> reaches headings and prose both</strong>, which its name does not say: <code class="nb">balance</code> evens the line lengths of a heading and protects the last line of a paragraph, and <code class="nb">none</code> turns both off. <code class="nb">blocks</code> and <code class="nb">wrap</code> are the two keys a single chunk can answer for itself, with <code class="nb">{.blocks-left}</code> and <code class="nb">{.wrap-none}</code> in its attribute tail.</p>
 <p><strong><code class="nb">print-body</code> is the one setting here that only the printed pages see.</strong> The projection and the lectern let a reader pick the face with <code class="nb">F</code>; a document has no reader to press it, so <code class="nb">sans</code> is how you ask for one set in the sans. Code stays in the monospace, and so does everything the document already draws in the sans – the type word, a caption, the contents list.</p>
 <p>The two scales multiply the tool&#39;s own sizes rather than replacing them, and they are <strong>bounded</strong>. Outside 0.6 to 1.8 the shortened view, the limit on how wide a line of code may be and the automatic zoom stop agreeing with each other.</p>
 
@@ -2834,9 +2946,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="69">
+<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="80">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Turning the generated labels off</span> <span class="hd-sub"><code>style: {labels: off}</code></span></h2>
   <p><strong>The type word above a chunk is drawn in two places, and one setting takes it out of both.</strong></p>
@@ -2859,9 +2971,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="bundled-fonts" data-chunk-num="70">
+<article class="chunk chunk-example width-wide" id="bundled-fonts" data-chunk-num="81">
   
-  <span class="chunk-num" aria-hidden="true"><i>7</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>1</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Which typefaces travel in the file</span> <span class="hd-sub">nine come with the tool</span></h2>
   <p><strong>Three families travel in any one file, and which three is yours to pick.</strong> Nine come with the tool, so naming one of those needs no font file at all.</p>
@@ -2880,9 +2992,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="71">
+<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="82">
   
-  <span class="chunk-num" aria-hidden="true"><i>7</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>2</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own typefaces</span> <span class="hd-sub"><code class="nb">fonts/</code> beside <code class="nb">source.md</code>, plus a frontmatter block</span></h2>
   <p><strong>A family that is not inside the file is a family the room may not get.</strong> Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and <code>fonts: none</code> leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.</p>
@@ -2899,9 +3011,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="covers" data-chunk-num="72" data-blocks="left">
+<article class="chunk chunk-example width-wide" id="covers" data-chunk-num="83" data-blocks="left">
   
-  <span class="chunk-num" aria-hidden="true"><i>7</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>3</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">How the title slide is composed</span> <span class="hd-sub"><code class="nb">cover:</code> plus a <code class="nb">subtitle:</code> line</span></h2>
   <p><strong><code class="nb">cover:</code> in the frontmatter picks how the title slide is composed, and <code class="nb">subtitle:</code> gives it the line that says what the talk is about.</strong> Without those two, a cover is one weight of one colour with the subject set beside the venue, and it reads as a text file rather than as the opening of a talk.</p>
@@ -2921,9 +3033,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cover-list" data-chunk-num="73">
+<article class="chunk chunk-example width-wide" id="cover-list" data-chunk-num="84">
   
-  <span class="chunk-num" aria-hidden="true"><i>7</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>4</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The ten cover compositions</span> <span class="hd-sub">six of text alone, four that take a picture</span></h2>
   <p><strong>They are ordered by how much the opening slide asserts itself.</strong> Six are text and nothing else:</p>
@@ -2938,9 +3050,17 @@ of them are shown one per slide in
 </ul>
 
 </div>
-
-
-<p>Four take a picture:</p>
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="cover-pictures" data-chunk-num="85">
+  
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>5</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">The four covers that take a picture</span> <span class="hd-sub">and what each does with it</span></h2>
+  <p>Four take a picture:</p>
 <div class="cards cards-4 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li><strong>split</strong> type on the left, the picture running off the right edge</li>
@@ -2950,9 +3070,17 @@ of them are shown one per slide in
 </ul>
 
 </div>
-
-
-<p><strong><code class="nb">beside</code>, <code class="nb">above</code> and <code class="nb">quote</code> take their content from the chunk body</strong>, so a <code>::: draw</code> can be the cover – a diagram is not a file, and <code class="nb">cover-image</code> can never name one.</p>
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="cover-keys" data-chunk-num="86">
+  
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>6</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">What a cover reads besides its name</span> <span class="hd-sub">the body, a backdrop, and three more keys</span></h2>
+  <p><strong><code class="nb">beside</code>, <code class="nb">above</code> and <code class="nb">quote</code> take their content from the chunk body</strong>, so a <code>::: draw</code> can be the cover – a diagram is not a file, and <code class="nb">cover-image</code> can never name one.</p>
 <p><strong>The six text-only compositions each take a <code>::: backdrop</code></strong>, which is how a photograph reaches a cover with no <code class="nb">cover-image</code> of its own.</p>
 
   
@@ -2965,29 +3093,37 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="section-dividers" data-chunk-num="74">
+<article class="chunk chunk-example width-wide" id="section-dividers" data-chunk-num="87">
   
-  <span class="chunk-num" aria-hidden="true"><i>7</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Where a new part starts</span> <span class="hd-sub"><code class="nb">section:</code></span></h2>
   <p><strong>A column with a <code># Heading</code> opens with a divider slide</strong>, and <code class="nb">section:</code> picks how that slide is drawn.</p>
-<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">section</span><span style="color:#24292E">: </span><span style="color:#032F62">tinted</span><span style="color:#6A737D">         # plain | tinted | rule</span></span>
-<span class="line"><span style="color:#6A737D">                        # card | number | outline</span></span>
-<span class="line"><span style="color:#22863A">section-mark</span><span style="color:#24292E">: </span><span style="color:#032F62">Teil</span><span style="color:#6A737D">      # any short word, or nothing</span></span></code></pre>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li><strong>plain</strong> the heading on its own. The default</li>
-<li><strong>tinted</strong> the whole slide takes the accent colour, lightly. The most visible of the six from the back of a room</li>
-<li><strong>rule</strong> the heading between two rules. The quietest, and the one that survives a black-and-white print</li>
+<li><strong>tinted</strong> the accent colour over the whole slide. The most visible of the six</li>
+<li><strong>rule</strong> the heading between two rules. The one that survives a mono print</li>
 <li><strong>card</strong> the heading set on a panel</li>
-<li><strong>number</strong> a large counter above the heading, counting the columns that have one</li>
-<li><strong>outline</strong> every part of the lecture listed, with the one you are entering marked. A running agenda for a long lecture</li>
+<li><strong>number</strong> a large counter above the heading</li>
+<li><strong>outline</strong> every part listed, the one you are entering marked. A running agenda</li>
 </ul>
 
 </div>
-
-
-<p><strong>Every one of them is quieter than the cover</strong>, so that a divider is never mistaken for the title slide: it says <em>a new part starts here, and it is part of the thing you are already in</em>.</p>
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="section-quiet" data-chunk-num="88">
+  
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>8</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">A divider is never the title slide</span> <span class="hd-sub">and <code class="nb">section-mark:</code> puts a word over it</span></h2>
+  <p><strong>Every one of them is quieter than the cover</strong>, so that a divider is never mistaken for the title slide: it says <em>a new part starts here, and it is part of the thing you are already in</em>.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">section</span><span style="color:#24292E">: </span><span style="color:#032F62">tinted</span><span style="color:#6A737D">         # plain | tinted | rule</span></span>
+<span class="line"><span style="color:#6A737D">                        # card | number | outline</span></span>
+<span class="line"><span style="color:#22863A">section-mark</span><span style="color:#24292E">: </span><span style="color:#032F62">Teil</span><span style="color:#6A737D">      # any short word, or nothing</span></span></code></pre>
 <p><code class="nb">section-mark:</code> puts a word of your own – <code class="nb">Teil</code>, <code class="nb">Kapitel</code> – over the heading. By default there is none.</p>
 
   
@@ -2995,9 +3131,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="closing" data-chunk-num="75">
+<article class="chunk chunk-example width-wide" id="closing" data-chunk-num="89">
   
-  <span class="chunk-num" aria-hidden="true"><i>7</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>9</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The last slide</span> <span class="hd-sub"><code>## closing:</code></span></h2>
   <p><strong><code>## closing:</code> draws a last slide in the same composition as the cover, so the lecture ends on the shape it opened with.</strong> A lecture that starts on a designed slide and ends on the last bullet of the last argument stops rather than finishes.</p>
@@ -3016,9 +3152,9 @@ of them are shown one per slide in
 </div>
 </aside>
 </article>
-<article class="chunk chunk-title" data-cover="masthead" data-closing="" data-chunk-num="76" id="end">
+<article class="chunk chunk-title" data-cover="masthead" data-closing="" data-chunk-num="90" id="end">
   
-  <span class="chunk-num" aria-hidden="true"><i>7</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>0</i></span>
   <h1 class="title-main">That is the tour</h1>
     <p class="title-subtitle">now write your own <code class="nb">source.md</code></p>
     <div class="closing-body"><p>Everything in this tour comes out of one Markdown file and one command, <code>node build.js source.md</code>. The four views are already sitting beside it.</p>

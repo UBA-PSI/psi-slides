@@ -415,7 +415,11 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 
 `Shift` with `C`, `F`, `A` or `L` goes backwards. `#` has three modes and no `Shift`, because it is a shifted key on some keyboards and an unshifted one on others. Font, theme and slide numbers are remembered for every lecture you open, so the preference follows you; zoom and the `C` setting belong to the talk you are giving.
 
+## example: The same controls without a keyboard | the toolbar on a phone or tablet {.wide #knobs-touch}
+
 **On a phone or a tablet with no keyboard, both windows show a small toolbar along the bottom edge.** Forward, back, overview and zoom sit on it; `C`, `F`, `A`, `#`, the search and text selection are behind its `⋯` button. Attach a keyboard and the toolbar goes away again, because the keys are back.
+
+## example: What the keys remember | themes, the two zooms, auto-fit and blanking {.wide #knobs-modes}
 
 **Dark mode follows your machine unless something says otherwise.** If you have never pressed `A` and the lecture pins no theme, a machine set to dark opens the lecture dark. Press `A` once and your choice is remembered from then on, everywhere. An author who writes `theme:` in the frontmatter overrides both, by the same rule as the other opening settings.
 
@@ -656,7 +660,7 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 
 :::
 
-## free: Writing your own | `--new`, `--watch`, `lint.js` {.standard #authoring}
+## free: Writing your own | `--new`, `--watch`, `lint.js` {.wide #authoring}
 
 **These are the commands you need while writing a lecture:**
 
@@ -683,11 +687,15 @@ print-slide-numbers: vertical
                         # the same three. Left out, it follows
                         # whatever slide-numbers says
 editor: speaker         # both | speaker | none – the diagram editor
+---
+```
 
+## example: The language, and who wins a disagreement | `lang:` and the rule for every key above {.wide #view-lang}
+
+```yaml
 lang: de                # the language the lecture is written in:
                         # en, de, de-DE, fr and so on, and en
                         # when you leave it out
----
 ```
 
 **`lang:` picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.** `style: {hyphenate: all}` puts it into the live views too, which a German lecture at `.narrow` usually wants, and `none` takes it out everywhere. It is not one of the six above in the other sense either – the six are opening settings that override whatever the reader last chose, and the language is a property of the lecture.
@@ -757,6 +765,8 @@ step blame
   emph leak, log
 :::
 
+## example: What a step block says | and what it does not have to {.wide #diagram-beats-rule}
+
 That is the figure from the slide before with a logfile added and four lines at the end: `step leak` shows the logfile, and `step blame` picks out the leak and the box it runs to. **The words a step knows are `show`, `hide`, `move … to`, `move … by`, the three attention verbs `emph`, `dim` and `ghost`, plus `style` and `label`.**
 
 **Anything hanging off something invisible is invisible too**, which is why `step leak` names only the logfile. An arrow is only as visible as the two things it joins, a `container` or a `brace` only as visible as its members, and a `text` with a line drawn to something only as visible as what it points at. So showing the boxes shows the arrows between them, and most of a figure needs no `show` of its own.
@@ -789,6 +799,8 @@ A tag goes wherever a name goes, so `show @crypto` in a step reaches every eleme
 - **`right of mix gap 0.6`** places it against a neighbour, as do `left of`, `above` and `below`.
 - **`between a,b`** is the point on the line joining two elements.
 - **`offset dx,dy`** is a nudge any of the three accepts on the end.
+
+## example: A coordinate can be another element's | fractions, edges and pictures {.full #diagram-coords}
 
 **A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`. Anywhere an `X,Y` pair goes, that form goes.
 
@@ -949,6 +961,8 @@ step figures
 
 **A second set of numbers is one more `bars` line:** `bars after "…" series of wc {.tone-1}` joins the first chart's frame and borrows its ticks, its baseline and its scale.
 
+## example: Columns laid flat | `horizontal`, and what it buys {.full #diagram-flat}
+
 **`horizontal` lays the columns flat**, which is what a chart wants as soon as its categories have names rather than numbers – lengths from one shared left edge are easier to rank, and “DNS cache poisoning” cannot be written under an upright column at all.
 
 ::: expand What a joined series may and may not carry
@@ -964,7 +978,7 @@ text hourn "minutes, in the hour before a lecture" below hour gap 0.5 {.small .m
 
 ## example: Plots | `plot` draws a frame and a scale, and nothing else {.full #diagram-plot}
 
-**A chart is sized with `aspect`, not with `w` and `h`** – those two are counted in grid squares, and a grid square is not square, so they do not describe the shape a reader sees.
+**A `plot` draws a frame and a scale, and nothing else.**
 
 ::: draw {unit=150x54}
 plot pace "minutes into the talk" "chunks covered" at 0,0 w 2.7 aspect 2:1 x 0,60 y 0,40 tick 10
@@ -982,6 +996,10 @@ step lesson
   emph real
   dim even
 :::
+
+## example: What a plot gives you | a frame, a scale, and ordinary edges over it {.wide #diagram-plot-scale}
+
+**A chart is sized with `aspect`, not with `w` and `h`** – those two are counted in grid squares, and a grid square is not square, so they do not describe the shape a reader sees.
 
 **A `plot` takes two ranges and one `tick` interval, and draws nothing but the frame and the scale** – after which `pace@26` names a value in the plot's own units anywhere a coordinate can go, and the curves over it are ordinary edges.
 
@@ -1055,6 +1073,8 @@ step probe
 
 The timer presses the same key you would press, so the speaker view follows and freezing the projection stops it. It runs on the projection only, and **the first key, click or scroll on that slide stops it** – once you have touched the figure you have taken over. It also refuses to start on a slide that is already half uncovered.
 
+## example: What the timer promises | the bounds, and who takes over {.wide #autoplay-bounds}
+
 The delay has to be between 200 ms and 60 s; outside that the build refuses the number rather than quietly moving it.
 
 **`cycle` repeats the walk** – `{autoplay=1200 cycle}` – which is usually what a cover figure wants while a room fills. It rewinds the same way it advanced, so the speaker view follows the rewind too. The last step is held for one delay like every other, and there is no second number for how long to hold the finished picture.
@@ -1127,6 +1147,8 @@ That row is one Markdown list between `::: cards 3` and `:::`, and **each card h
 
 One rule decides what becomes a card: write a single list and each of its items is a card; write anything else and each block is a card. The count runs from 1 to 6 – one card is a callout you want to stand apart, and past six what you have is a table.
 
+## example: The two ways to open a card | a lead-in, or a heading {.wide #cards-open}
+
 **How you open a card decides what the bold does**, and the two below are written the two ways:
 
 ::: cards 2
@@ -1185,7 +1207,9 @@ Use `cols` for an argument that runs long, and `cards` for a comparison the room
 - **Deference** Engineers name the options and say what each one costs
 :::
 
-That is `::: rows {accent}` around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are. **The explanation is optional** – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.
+## example: What a row block does differently | no count, and three defaults of its own {.wide #rows-rules}
+
+That row is `::: rows {accent}` around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are. **The explanation is optional** – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.
 
 It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: the text is centred against its term rather than against its first line; `align` says how the term sits *in its card*, and the explanation always ranges left; and the automatic size stops at `medium`, a term being a label in a column rather than a headline across the slide.
 
@@ -1233,6 +1257,8 @@ style:
 ```
 
 `headings: auto` is the default, and it means the type decides: a question is centred, a figure's caption sits over its artwork. `left` overrides all of that, for one line of alignment down the whole lecture. `off` takes every heading off the projection while keeping it in `print.html`, `print-notes.html`, the contents list and the search.
+
+## example: Four keys the block's names do not explain | `wrap`, `blocks`, `print-body` and the scales {.wide #style-keys}
 
 **`wrap` reaches headings and prose both**, which its name does not say: `balance` evens the line lengths of a heading and protects the last line of a paragraph, and `none` turns both off. `blocks` and `wrap` are the two keys a single chunk can answer for itself, with `{.blocks-left}` and `{.wrap-none}` in its attribute tail.
 
@@ -1326,6 +1352,8 @@ cover-image: skyline    # only the four picture covers take one;
 - **quote** the title chunk's body set as the claim, the lecture's name under it
 :::
 
+## example: The four covers that take a picture | and what each does with it {.wide #cover-pictures}
+
 Four take a picture:
 
 ::: cards 4
@@ -1334,6 +1362,8 @@ Four take a picture:
 - **beside** the title chunk's own body, a drawing say, set to the right
 - **above** that same body on top, the title centred in the band below it
 :::
+
+## example: What a cover reads besides its name | the body, a backdrop, and three more keys {.wide #cover-keys}
 
 **`beside`, `above` and `quote` take their content from the chunk body**, so a `::: draw` can be the cover – a diagram is not a file, and `cover-image` can never name one.
 
@@ -1351,22 +1381,24 @@ Try `panel` with a backdrop: its coloured field becomes the veil, so the picture
 
 **A column with a `# Heading` opens with a divider slide**, and `section:` picks how that slide is drawn.
 
+::: cards 3
+- **plain** the heading on its own. The default
+- **tinted** the accent colour over the whole slide. The most visible of the six
+- **rule** the heading between two rules. The one that survives a mono print
+- **card** the heading set on a panel
+- **number** a large counter above the heading
+- **outline** every part listed, the one you are entering marked. A running agenda
+:::
+
+## example: A divider is never the title slide | and `section-mark:` puts a word over it {.wide #section-quiet}
+
+**Every one of them is quieter than the cover**, so that a divider is never mistaken for the title slide: it says *a new part starts here, and it is part of the thing you are already in*.
+
 ```yaml
 section: tinted         # plain | tinted | rule
                         # card | number | outline
 section-mark: Teil      # any short word, or nothing
 ```
-
-::: cards 3
-- **plain** the heading on its own. The default
-- **tinted** the whole slide takes the accent colour, lightly. The most visible of the six from the back of a room
-- **rule** the heading between two rules. The quietest, and the one that survives a black-and-white print
-- **card** the heading set on a panel
-- **number** a large counter above the heading, counting the columns that have one
-- **outline** every part of the lecture listed, with the one you are entering marked. A running agenda for a long lecture
-:::
-
-**Every one of them is quieter than the cover**, so that a divider is never mistaken for the title slide: it says *a new part starts here, and it is part of the thing you are already in*.
 
 `section-mark:` puts a word of your own – `Teil`, `Kapitel` – over the heading. By default there is none.
 
