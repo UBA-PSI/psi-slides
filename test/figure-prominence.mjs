@@ -30,11 +30,11 @@ export const view = 'audience';
 export async function run({ page, report, walkTo }) {
   const { ok, note } = report;
 
-  await walkTo('look');
+  await walkTo('prominence');
   await page.waitForTimeout(600);
 
   const seen = await page.evaluate(() => {
-    const svg = document.querySelector('#look svg.psi-diagram');
+    const svg = document.querySelector('#prominence svg.psi-diagram');
     if (!svg) return { missing: true };
     const fillOf = (id) => {
       const g = [...svg.querySelectorAll('g.dg-el')].find(x => (x.id || '').endsWith(id));
@@ -55,7 +55,7 @@ export async function run({ page, report, walkTo }) {
   });
 
   ok(!seen.missing, 'the class-vocabulary figure is on the page',
-    'no svg.psi-diagram inside #look');
+    'no svg.psi-diagram inside #prominence');
   if (seen.missing) return;
 
   // The claim is a difference, not a hue: the page has seven themes and the

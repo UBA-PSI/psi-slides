@@ -37,9 +37,9 @@ const clickSlot = async (page, label, text) => {
 export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
-  // #look carries one of every outline, so it is where an aimable element is.
-  await walkTo('look');
-  ok(await ed.open('look'), 'the editor is open on #look');
+  // #outlines carries one of every outline, so it is where an aimable element is.
+  await walkTo('outlines');
+  ok(await ed.open('outlines'), 'the editor is open on #outlines');
   await ed.beat(0);
 
   // s2 is the plain chevron: a point, and no direction written yet.
@@ -79,10 +79,12 @@ export async function run({ page, report, walkTo, ed }) {
     (document.querySelector('#dge-statusnote') || {}).textContent || '');
   ok(!/not applied/.test(note2), 'and says nothing was refused', JSON.stringify(note2));
 
-  // A rectangle has no point, so it is not offered one.
+  // A rectangle has no point, so it is not offered one. s8 is the one box in
+  // this row carrying no outline class - it is here for `.turn`, and a turned
+  // label is a reading direction rather than an aim.
   await page.evaluate(() => {
     const row = [...document.querySelectorAll('#dge-side .dge-list button')]
-      .find((b) => b.textContent.includes('paper'));
+      .find((b) => b.textContent.includes('turn'));
     if (row) row.click();
   });
   await page.waitForTimeout(350);

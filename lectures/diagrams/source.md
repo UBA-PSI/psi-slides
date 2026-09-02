@@ -427,7 +427,7 @@ A `container` lays itself around its members and re-fits when they move. A `brac
 
 **`.turn` applies to every label, not only to a box's.** The left brace reads bottom to top, and the same class does the same thing on a container caption and on an edge label – at all four places, that is, where a label is set at all.
 
-## figure: The look of a thing {.full #look}
+## figure: The look of a thing | fill and family {.full #look}
 
 ::: draw {unit=118x74}
 default box {.sharp} w 0.62 h 0.42
@@ -448,31 +448,26 @@ text t2 "mono"  right of t1 gap 1 {.mono}
 text t3 "serif" right of t2 gap 1 {.serif}
 text t4 "hand"  right of t3 gap 1 {.hand}
 text tl "family" left of t1 gap 1.15 {.muted}
+:::
 
-# The three prominence words, on free text rather than on boxes: they occupy
-# one slot and displace each other, and .emph colours the words themselves
-# here. An image has no ink to thicken and is still served by the same list,
-# because there emph takes a dim off again.
-text pr0 "normal" at 0.31,1.85
-text pr1 "emph"  right of pr0 gap 1 {.emph}
-text pr2 "dim"   right of pr1 gap 1 {.dim}
-text pr3 "ghost" right of pr2 gap 1 {.ghost}
-text prl "prominence" left of pr0 gap 1.15 {.muted}
+**Two channels that say what a thing is made of: what fills it, and what its
+words are set in.** The classes are a closed list rather than free colours –
+every fill is mixed from `--emph` and `--ink` over `--paper`, so it survives all
+seven themes. The editor's sidebar offers exactly these rows, one slide at a
+time, as the next four slides do.
 
-# One width, three answers: leave the type as it is and let it run over the
-# border, shrink it until it fits, or let it fill the box in both directions.
-box g1 "a label that is too long" at 0,2.3 w 1.2 h 0.46
-box g2 "a label that is too long" right of g1 gap 0.55 same as g1 {.shrink}
-box g3 "short"                    right of g2 gap 0.55 same as g1 {.fit}
-text n1 "no"     below g1 gap 0.16 {.muted}
-text n2 "shrink" below g2 gap 0.16 {.muted}
-text n3 "fit"    below g3 gap 0.16 {.muted}
-text gl "type meets\nits box" left of g1 gap 0.8 {.muted .right}
+**`.paper` here looks inert and is not.** It is a box's default, but under a
+`default box {.tone-3}` a box without the class cannot find its way back, and a
+free `text` gets no background at all without it – that background is what knocks
+a line out behind a label. The rule drawn through the row is what tells `.paper`
+and `.clear` apart: one knocks the line out, the other lets it through.
 
-# The five outlines that are not rectangles, and the one reading direction
-# that is not horizontal. Both belong here: this is the catalogue the editor's
-# sidebar mirrors.
-box  s1 "hex"      at 0,3.5 w 0.66 h 0.42 {.hex .tone-2}
+## figure: Five outlines that are not rectangles | and one reading direction {.full #outlines}
+
+::: draw {unit=118x74}
+default box {.sharp} w 0.62 h 0.42
+
+box  s1 "hex"      at 0,0 w 0.66 h 0.42 {.hex .tone-2}
 box  s2 "chevron"  right of s1 gap 0.5 same as s1 {.chevron .tone-2}
 box  s3 "left"     right of s2 gap 0.5 same as s1 point left {.chevron .tone-2}
 box  s4 ""         right of s3 gap 0.4 w 0.4 h 0.42 {.diamond .tone-2}
@@ -484,45 +479,17 @@ box  s6 ""         right of s5 gap 0.35 same as s5 point up {.wedge .tone-4}
 box  s7 ""         right of s6 gap 0.35 {.cross .accent}
 box  s8 "turn"     right of s7 gap 0.65 h 0.62 {.tone-2 .turn}
 text sl "outline, and\nreading direction" left of s1 gap 0.8 {.muted .right}
-
-# Prominence: one channel, four states. The three classes are named exactly
-# like the three verbs a step has for them, which is why the row is here and
-# not only in the editor's sidebar. The fourth state has no name and needs
-# none: {!dim} takes the class off again, here against the block default one
-# line above.
-default box @prom {.dim}
-box  p1 "emph"   at 0,5.1 w 0.62 h 0.42 {.emph}
-box  p2 "normal" right of p1 gap 0.7 same as p1
-box  p3 "dim"    right of p2 gap 0.7 same as p1 {.dim}
-box  p4 "ghost"  right of p3 gap 0.7 same as p1 {.ghost}
-box  p5 "!dim"   right of p4 gap 0.7 same as p1 {@prom !dim}
-text pl "prominence" left of p1 gap 0.8 {.muted .right}
 :::
 
-**The editor's sidebar is a catalogue of six rows, and the next four slides walk
-down it.** It is experimental and made for a desktop-sized screen: heavily
-covered by automated tests, not yet widely tried by people. The classes are a
-closed list rather than free colours – every fill is mixed from `--emph` and
-`--ink` over `--paper`, so it survives all seven themes.
+**These five share a slot with `.round` and `.sharp`** – a group from which only
+one class can hold at a time – because a hexagon has no corner radius to argue
+about. The same four numbers are drawn as for a rectangle, joined into a
+different path.
 
-**`.paper` in the top row looks inert and is not.** It is a box's default, but
-under a `default box {.tone-3}` a box without the class cannot find its way
-back, and a free `text` gets no background at all without it – that background
-is what knocks a line out behind a label. The rule drawn through the row is what
-tells `.paper` and `.clear` apart: one knocks the line out, the other lets it
-through.
-
-## free: Five outlines that are not rectangles {.wide #outlines}
-
-**The bottom row of the catalogue shares a slot with `.round` and `.sharp`** – a
-group from which only one class can hold at a time – because a hexagon has no
-corner radius to argue about. The same four numbers are drawn as for a
-rectangle, joined into a different path.
-
-**`.turn` reads the label bottom to top.** A tall narrow box has room for a word
-only along its length, and the alternative is one letter per line. It applies to
-every label, not only to a box's – the same class does the same thing on a
-container caption, a brace and an edge label.
+**`.turn` reads the label bottom to top**, which is the last box above. A tall
+narrow box has room for a word only along its length, and the alternative is one
+letter per line. It applies to every label, not only to a box's – the same class
+does the same thing on a container caption, a brace and an edge label.
 
 **Which way an outline aims is the `point` option, not the class name.**
 `{.chevron} point left` rather than a class `.chevron-left`: a chevron aimed up
@@ -533,23 +500,19 @@ it.
 
 ## figure: Two outlines argue with their own size {.full #outline-size}
 
+::: side 1:1
 ::: draw {unit=118x74}
 # Nothing here is given a width on purpose: the rectangle takes one, and the
-# other two are left to size themselves, which is the whole slide. The
-# catalogue's diamond carries no label for exactly the reason drawn here, so
-# this is the one place a labelled one appears.
+# other two are left to size themselves, which is the whole slide.
 box  r1 "two words" at 0,0 w 1.2 h 0.5 {.sharp .tone-2}
-box  d1 "two words" right of r1 gap 1.1 {.diamond .tone-2}
-box  c1 ""          right of d1 gap 1.1 h 0.5 {.cross .accent}
-text dl "a diamond needs twice as much,\nboth ways"  below d1 gap 0.3 {.muted .small}
-text rl "a rectangle is sized\nto the string"        below r1 gap 0.3 {.muted .small}
-text cl "a cross ignores w\nand comes out square"    below c1 gap 0.3 {.muted .small}
-# dl is named first because it hangs lowest: align hands the first element's
-# coordinate to the rest, so the other two come down to it rather than up into
-# their own boxes.
-align y middle dl, rl, cl
+box  d1 "two words" below r1 gap 0.5 {.diamond .tone-2}
+box  c1 ""          below d1 gap 0.5 h 0.5 {.cross .accent}
+text rl "sized to the string"   right of r1 gap 0.5 {.muted .small .left}
+text dl "twice as much, both ways" right of d1 gap 0.5 {.muted .small .left}
+text cl "ignores w, comes out square" right of c1 gap 0.5 {.muted .small .left}
 :::
 
+::: flip
 **`.diamond` is the one outline that eats both axes.** The widest room a diamond
 offers is a strip half its width by half its height through the middle, so the
 build sizes it at twice what a rectangle would need for the same string, in both
@@ -564,21 +527,46 @@ plus with arms of two different lengths is not a plus, so a block `default` that
 carries a `w` reaches every rectangle in the block and the cross passes it by –
 the same exception `bars` makes for outlines. A `w` written on the element's own
 line still wins, that being a statement about this one element.
+:::
 
-## free: One channel, spelled the same in three places {.wide #prominence}
+## figure: One channel, spelled the same in three places {.full #prominence}
 
-**The catalogue's last two rows are one channel, written three ways.** `.emph`,
-`.dim` and `.ghost` are classes on an element's own line; they are the verbs a
-`step` has for them (`dim a, b`); and on a `bars` line the same three words name
-column numbers. Learn one form and you have all three.
+::: draw {unit=118x74}
+default box {.sharp} w 0.62 h 0.42
+
+# The three prominence words, on free text rather than on boxes: they occupy
+# one slot and displace each other, and .emph colours the words themselves
+# here. An image has no ink to thicken and is still served by the same list,
+# because there emph takes a dim off again.
+text pr0 "normal" at 0.31,0
+text pr1 "emph"  right of pr0 gap 1 {.emph}
+text pr2 "dim"   right of pr1 gap 1 {.dim}
+text pr3 "ghost" right of pr2 gap 1 {.ghost}
+text prl "on a text" left of pr0 gap 1.15 {.muted}
+
+# The fourth state has no name and needs none: {!dim} takes the class off
+# again, here against the block default one line above.
+default box @prom {.dim}
+box  p1 "emph"   at 0,1.1 w 0.62 h 0.42 {.emph}
+box  p2 "normal" right of p1 gap 0.7 same as p1
+box  p3 "dim"    right of p2 gap 0.7 same as p1 {.dim}
+box  p4 "ghost"  right of p3 gap 0.7 same as p1 {.ghost}
+box  p5 "!dim"   right of p4 gap 0.7 same as p1 {@prom !dim}
+text pl "on a box" left of p1 gap 0.8 {.muted .right}
+:::
+
+**`.emph`, `.dim` and `.ghost` are one channel written three ways.** They are
+classes on an element's own line; they are the verbs a `step` has for them
+(`dim a, b`); and on a `bars` line the same three words name column numbers.
+Learn one form and you have all three.
 
 **The fourth state – ordinary prominence – deliberately has no name.** `{!dim}`
 takes the class off instead of adding a fourth word, and that holds for every
 class and in every tail. Without the mark there is no way back: a `style` step
 could only ever *add* a class, and many slots spell their base state as the
 absence of every member, so a beat could leave such a state and never reach it
-again. `p5` on the catalogue is that case drawn – it carries `@prom`, the block
-gives `@prom` a `.dim`, and `{!dim}` beside it takes the class away again.
+again. `p5` is that case drawn – it carries `@prom`, the block gives `@prom` a
+`.dim`, and `{!dim}` beside it takes the class away again.
 
 **What is written on the line is in the handout; what is written in a `step` is
 not.** That is the whole rule, and it reads off the source: prominence on an
@@ -586,16 +574,28 @@ element's own line describes the drawing, prominence in a beat is an act
 performed in the talk. Print therefore takes it from the opening beat rather
 than the last.
 
-## free: When the type does not fit the box {.wide #typefit}
+## figure: When the type does not fit the box {.full #typefit}
 
-**When type and box do not match, there are three answers**, and the catalogue's
-fourth row is all three. With no `w` the box grows to the type. With a fixed
-`w`, `.shrink` shrinks the type until it fits and `.fit` fills the box in both
+::: draw {unit=118x74}
+# One width, three answers: leave the type as it is and let it run over the
+# border, shrink it until it fits, or let it fill the box in both directions.
+box g1 "a label that is too long" at 0,0 w 1.2 h 0.46 {.sharp}
+box g2 "a label that is too long" right of g1 gap 0.55 same as g1 {.sharp .shrink}
+box g3 "short"                    right of g2 gap 0.55 same as g1 {.sharp .fit}
+text n1 "no"     below g1 gap 0.16 {.muted}
+text n2 "shrink" below g2 gap 0.16 {.muted}
+text n3 "fit"    below g3 gap 0.16 {.muted}
+text gl "type meets\nits box" left of g1 gap 0.8 {.muted .right}
+:::
+
+**When type and box do not match, there are three answers**, and the three boxes
+above are all three. With no `w` the box grows to the type. With a fixed `w`,
+`.shrink` shrinks the type until it fits and `.fit` fills the box in both
 directions, bounded to 0.6–1.5× the base size. Text width is *estimated* at
 build time – there is no browser – so the size chosen comes out a shade too
 small, which is the safe direction.
 
-**That row's first box overflows on purpose, and the build says so:** `box g1 is 1.2
+**The first box overflows on purpose, and the build says so:** `box g1 is 1.2
 units wide but its label needs about 1.64`. That is the answer nobody wants: a
 fixed `w` too small for the label, and neither `.shrink` nor `.fit`. It is the
 one warning this lecture builds with.
