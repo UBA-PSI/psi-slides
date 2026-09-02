@@ -527,7 +527,7 @@ It does not shrink the picture's dimensions. The heavy files are usually already
 
 ![](reveal-demo)
 
-That player is a real clip carried inside this HTML file: 78 KB, a pan across the overview board. Press play, then check the address bar – nothing was fetched.
+That player is a real clip carried inside this HTML file, a pan across the overview board. Press play, then check the address bar – nothing was fetched. **The file is 78 KB and it costs 104 KB here**, because a `data:` URI is base64 and base64 is a third larger than the bytes it carries – which is the price of the whole file being one file.
 
 ## example: More on videos | the size limit, clips on a server, and what a click does {.wide #video-more}
 
@@ -1078,6 +1078,17 @@ The timer presses the same key you would press, so the speaker view follows and 
 The delay has to be between 200 ms and 60 s; outside that the build refuses the number rather than quietly moving it.
 
 **`cycle` repeats the walk** – `{autoplay=1200 cycle}` – which is usually what a cover figure wants while a room fills. It rewinds the same way it advanced, so the speaker view follows the rewind too. The last step is held for one delay like every other, and there is no second number for how long to hold the finished picture.
+
+**The figure below is running now**, written exactly as the block on the slide before with `cycle` added. Press any key and it stops where it stands – that is the take-over, and it is why you can read the rest of this slide without it moving underneath you.
+
+::: draw {unit=150x56 autoplay=1200 cycle}
+box crawler "Crawler" {.tone-1}
+box det "Detector" right of crawler gap 1.6
+edge crawler -> det "request"
+
+step probe
+  emph det
+:::
 
 # Beyond 1.0.0: slide decoration {#decoration}
 

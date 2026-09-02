@@ -6900,6 +6900,17 @@ body[data-liga=none] { font-variant-ligatures: none; }
 }
 .marginalia > :first-child { margin-top: 0; }
 .marginalia > :last-child { margin-bottom: 0; }
+/* The slide-number badge lives in the same corner: .chunk-num is anchored at
+   top: var(--slide-pad-y) against the chunk's right edge, and an aside
+   starting at top: 0 begins on exactly that line - measured at 1600x900 on
+   the tutorial, both boxes had top: 173 and the digits sat on the aside's
+   first words. So the aside starts below the badge whenever there is one.
+   The two offsets differ because the badge does: horizontal is one line box,
+   vertical stacks a line box per digit and has to clear three of them. They
+   are written in the aside's own em, which is 0.82 of the chunk's, so the
+   numbers are larger here than the badge's own measurements suggest. */
+body:not([data-slide-nums=off]) .marginalia { top: calc(var(--slide-pad-y) + 1.5em); }
+body[data-slide-nums=vertical] .marginalia { top: calc(var(--slide-pad-y) + 3.2em); }
 .marginalia figure { margin: 0; }
 .marginalia img { max-width: 100%; height: auto; display: block; }
 .marginalia pre { font-size: 0.85em; }
