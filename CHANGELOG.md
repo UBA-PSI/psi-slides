@@ -9,6 +9,21 @@ from building the same way is a major version.
 
 ### Added
 
+- **A PNG or JPEG that is inlined now goes into the output as WebP q92, by
+  default.** A `data:` URI is base64 and so a third larger than the bytes it
+  carries; WebP q92 measured 12-18% of the original on real lecture assets, so
+  the transcode wins far more than the encoding gives away, and the reader
+  cannot see the difference. **It touches nothing on disk** - the asset stays a
+  PNG and `source.md` is not rewritten - which is what separates it from
+  `--optimize-images`, the explicit verb that does rewrite both and is
+  unchanged. Two things deliberately are not failures: no `cwebp` or `magick`
+  on PATH puts the original bytes in and says so once, and a small flat PNG
+  that comes out *larger* as WebP keeps its original, because shipping a bigger
+  file to honour a default is not an optimisation. `--no-optimize-images` turns
+  it off, for a build that has to be byte-comparable against one made with a
+  different encoder. Measured on a 90 KB screenshot: 56 KB in the page instead
+  of 90, and `audience.html` 775 KB instead of 835.
+
 - **`style: {print-body: sans}` sets the printed document in the sans.** The
   live views have answered "serif, sans or mono" since the first commit – `F`
   cycles it, `font:` pins where a lecture opens – and print answered nothing,

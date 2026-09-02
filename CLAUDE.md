@@ -32,6 +32,14 @@ node build.js <source.md> --speaker-only
 node build.js <source.md> --inline-images       # force inline regardless of total size
 node build.js <source.md> --no-inline-images    # force external asset paths
 
+# a PNG or JPEG that IS inlined is transcoded to WebP q92 on the way in, and
+# this is on by default. It touches nothing on disk: the asset stays a PNG and
+# source.md is not rewritten, which is the whole difference from
+# --optimize-images below. No cwebp/magick on PATH is not an error - the
+# original bytes go in and the build says so once. Nor is a PNG that comes out
+# larger as WebP, which small flat images do: the original is kept.
+node build.js <source.md> --no-optimize-images  # inline the original bytes
+
 # shrink assets that blow the per-image cap: converts referenced PNG/JPEG to
 # WebP q92 in place, replacing the originals and rewriting explicit-path refs
 # in source.md – the markdown `](path)` form and the bare token a ::: draw

@@ -219,6 +219,61 @@ console.log('\nlayout generations');
      'and it costs kilobytes, not megabytes', log.split('\n').find(l => l.includes('[fonts]')) || '');
 }
 
+// ── PNG and JPEG go into the output as WebP, and the file is untouched ─
+// The win is larger than the base64 overhead it pays for: a data: URI is a
+// third bigger than the bytes it carries, and WebP q92 is a fraction of a
+// PNG. What makes it safe as a default is the second assertion: the asset on
+// disk is byte-identical afterwards, so nothing an author wrote is rewritten.
+// Skipped where no encoder is on PATH, which is also how the build behaves.
+{
+  const hasEncoder = ['cwebp', 'magick'].some((bin) => {
+    const r = spawnSync(bin, ['-version'], { stdio: 'ignore' });
+    return !r.error;
+  });
+  if (!hasEncoder) {
+    console.log('  · no cwebp or magick on PATH, so the WebP inlining case is skipped');
+  } else {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-webp-'));
+    fs.mkdirSync(path.join(dir, 'assets'));
+    // Photographic rather than flat: a small flat PNG can come out larger as
+    // WebP, and the build then keeps the original on purpose. Noise is what
+    // PNG is worst at and is the case the default exists for.
+    const png = path.join(dir, 'assets', 'photo.png');
+    const gen = spawnSync('magick', ['-size', '600x400', 'gradient:navy-orange',
+      '-attenuate', '2', '+noise', 'Gaussian', png], { encoding: 'utf8' });
+    if (gen.error || !fs.existsSync(png)) {
+      console.log('  · could not generate a fixture image, so the WebP case is skipped');
+    } else {
+      const before = fs.readFileSync(png);
+      fs.writeFileSync(path.join(dir, 'source.md'),
+        '---\ntitle: T\n---\n\n## figure: F {#f}\n\n![A photograph](photo)\n');
+      const run = (extra) => spawnSync(process.execPath,
+        [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only',
+         '--inline-images', ...extra], { cwd: ROOT, encoding: 'utf8' });
+
+      const r = run([]);
+      ok(r.status === 0, 'a deck with a PNG builds', (r.stdout || '') + (r.stderr || ''));
+      if (r.status === 0) {
+        const out = fs.readFileSync(path.join(dir, 'audience.html'), 'utf8');
+        ok(/data:image\/webp;base64,/.test(out),
+           'the PNG reaches the output as a WebP data URI');
+        ok(!/data:image\/png;base64,/.test(out),
+           'and not as a PNG one as well');
+        ok(Buffer.compare(before, fs.readFileSync(png)) === 0,
+           'and the file on disk is byte-identical - this never rewrites an asset');
+
+        const off = run(['--no-optimize-images']);
+        const outOff = fs.readFileSync(path.join(dir, 'audience.html'), 'utf8');
+        ok(off.status === 0 && /data:image\/png;base64,/.test(outOff),
+           '--no-optimize-images puts the original bytes in instead');
+        ok(out.length < outOff.length,
+           'and the transcoded output is the smaller of the two',
+           `${out.length} vs ${outOff.length}`);
+      }
+    }
+  }
+}
+
 // ── autoplay is stripped before the compiler sees it ──────────────────
 // Playback is not part of the drawing, and diagram-core.mjs also runs in
 // the browser editor, where there is no deck to play.

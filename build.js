@@ -20,6 +20,7 @@ import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import crypto from 'node:crypto';
+import os from 'node:os';
 import matter from 'gray-matter';
 import { marked } from 'marked';
 import { createHighlighter } from 'shiki';
@@ -229,6 +230,73 @@ function warnOversizedAsset(absPath, size) {
   );
 }
 
+// ── WebP on the way into the HTML, never onto the author's files ─────
+//
+// A data: URI is base64, so inlining a PNG costs a third more than the file.
+// Transcoding to WebP first wins far more than that overhead gives away -
+// WebP q92 measured 12-18% of the original on real lecture assets - and the
+// reader cannot tell, which is the whole reason --optimize-images picked
+// those settings.
+//
+// The difference from that verb is the only thing to remember here: this
+// touches **nothing on disk**. The PNG stays a PNG, the source.md is not
+// rewritten, and a clone that someone else builds produces the same output.
+// --optimize-images remains the explicit run for an author who also wants
+// their repository smaller, and it is the one that rewrites both.
+//
+// No encoder on PATH is not an error. The original bytes go in, the build
+// says so once, and everything still works - which is what makes this safe
+// to have on by default. --no-optimize-images turns it off.
+let noOptimizeImages = false;    // --no-optimize-images
+const WEBP_INLINE_EXTS = new Set(['png', 'jpg', 'jpeg']);
+let webpEncoder;                 // undefined = not probed, null = none found
+let webpNoticeShown = false;
+const webpInlineCache = new Map();
+let webpInlineCount = 0, webpInlineSaved = 0;
+
+function webpInlineBytes(absPath, origBytes) {
+  if (noOptimizeImages) return null;
+  const ext = path.extname(absPath).slice(1).toLowerCase();
+  if (!WEBP_INLINE_EXTS.has(ext)) return null;
+  if (webpInlineCache.has(absPath)) return webpInlineCache.get(absPath);
+  if (webpEncoder === undefined) webpEncoder = detectWebpEncoder();
+  if (!webpEncoder) {
+    if (!webpNoticeShown) {
+      webpNoticeShown = true;
+      console.log('[images] no cwebp or magick on PATH, so PNG and JPEG go in as they are.'
+        + ' Install one (brew install webp) and they shrink to roughly a sixth.');
+    }
+    webpInlineCache.set(absPath, null);
+    return null;
+  }
+  const tmp = path.join(os.tmpdir(), 'psi-webp-' + crypto.randomBytes(6).toString('hex') + '.webp');
+  let out = null;
+  try {
+    webpEncoder.encode(absPath, tmp, null);
+    const buf = fs.readFileSync(tmp);
+    // Only when it actually wins. A small flat PNG - a diagram exported as a
+    // raster, a screenshot of a terminal - can come out larger as WebP, and
+    // shipping a bigger file to honour a default is not an optimisation.
+    if (buf.length < origBytes) out = buf;
+  } catch (e) {
+    out = null;
+  } finally {
+    try { fs.unlinkSync(tmp); } catch (e) { /* never existed */ }
+  }
+  if (out) { webpInlineCount++; webpInlineSaved += origBytes - out.length; }
+  webpInlineCache.set(absPath, out);
+  return out;
+}
+
+// Said once per build, after the inlining decision, because a reader wants
+// the two numbers together: how much went in, and how much of it was saved.
+function reportWebpInline() {
+  if (!webpInlineCount) return;
+  const mb = (webpInlineSaved / 1024 / 1024).toFixed(2);
+  console.log(`[images] ${webpInlineCount} PNG/JPEG re-encoded to WebP for the output, ${mb} MB saved.`
+    + ' The files on disk are untouched; --no-optimize-images turns this off.');
+}
+
 function toDataUri(absPath) {
   if (!absPath) return null;
   if (dataUriCache.has(absPath)) return dataUriCache.get(absPath);
@@ -249,7 +317,10 @@ function toDataUri(absPath) {
     uri = `data:${mime};utf8,${encodeURIComponent(text)}`;
   } else {
     const buf = fs.readFileSync(absPath);
-    uri = `data:${mime};base64,${buf.toString('base64')}`;
+    const webp = webpInlineBytes(absPath, buf.length);
+    uri = webp
+      ? `data:image/webp;base64,${webp.toString('base64')}`
+      : `data:${mime};base64,${buf.toString('base64')}`;
   }
   dataUriCache.set(absPath, uri);
   return uri;
@@ -16808,6 +16879,7 @@ async function main() {
     console.error('Usage:');
     console.error('  node build.js <source.md> [--watch] [--serve [--port N]] [--audience-only|--print-only|--print-notes-only|--speaker-only]');
     console.error('                            [--inline-images|--no-inline-images]');
+    console.error('                            [--no-optimize-images]');
     console.error('  node build.js <source.md> --check-fit [--viewport 1600x900]');
     console.error('  node build.js <source.md> --squint [--squint-out PATH] [--viewport 1600x900]');
     console.error('  node build.js <source.md> --integrate-annotations');
@@ -16817,6 +16889,8 @@ async function main() {
     console.error('Image inlining (default: auto – inline iff referenced images sum < 10 MB; per-image cap 2 MB):');
     console.error('  --inline-images       force inlining regardless of total size');
     console.error('  --no-inline-images    force external asset paths');
+    console.error('  --no-optimize-images  inline PNG/JPEG as they are, rather than');
+    console.error('                        re-encoding them to WebP for the output');
     console.error('');
     console.error('Image optimisation (converts referenced PNG/JPEG to WebP q92, replacing the');
     console.error('originals; needs cwebp or magick on PATH):');
@@ -16871,6 +16945,11 @@ async function main() {
   const opts = {};
   if (flags.has('--inline-images')) opts.inlineImages = true;
   else if (flags.has('--no-inline-images')) opts.inlineImages = false;
+  // Transcoding into the output is on by default because it costs the author
+  // nothing: no file changes, and no encoder simply means the original bytes.
+  // The switch is for a build that must be byte-comparable against one made
+  // on a machine with a different encoder version.
+  if (flags.has('--no-optimize-images')) noOptimizeImages = true;
   // else: leave undefined → buildOnce decides automatically
 
   const absIn = path.resolve(inputPath);
@@ -16896,6 +16975,7 @@ async function main() {
   }
 
   const { written, shape } = buildOnce(absIn, only, opts);
+  reportWebpInline();
   console.log(`Wrote ${written.join(', ')} (${shape})`);
   // After the build, because it measures what the build just wrote. Its
   // exit code is the command's: a slide that does not fit is a defect the
