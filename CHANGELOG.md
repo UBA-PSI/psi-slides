@@ -1459,6 +1459,20 @@ from building the same way is a major version.
 
 ### Fixed
 
+- **A slide whose content fitted the frame could still be positioned outside
+  it.** `focusCamera` measured the chunk *box* to decide whether to centre a
+  chunk or walk it, and the box carries the breathing space above the heading -
+  about 78 px, and a deliberate part of the design. So a chunk whose content
+  was 793 px in an 800 px frame had a box of 871 px, failed the fit test, had
+  its head pinned near the top and hung off the bottom of a frame it fitted
+  inside comfortably. The room read a slide with a sentence missing. The fit
+  test and the centring now use the same `.chunk-content` box that
+  `--check-fit` has been measuring all along - the two were judging different
+  boxes, and only one of them was the box a reader sees. A chunk whose
+  *content* overflows is still walked, unchanged. `test/camera-fit.mjs` is new
+  and holds the invariant: a chunk that fits the frame is inside it. With the
+  fix, `lectures/tutorial` exits 0 at 1280x800 for the first time.
+
 - **The OFL notice in an output now names the faces that output actually
   carries.** It was a literal reading "Literata, IBM Plex Sans and JetBrains
   Mono" whatever the lecture's roster was, so a deck on `sans: Inter Tight`

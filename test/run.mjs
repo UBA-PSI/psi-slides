@@ -32,6 +32,7 @@ const SPECS = [
   './side-anchor.mjs',
   './cards.mjs',
   './autoplay.mjs',
+  './camera-fit.mjs',
   './squint.mjs',
   './editor-edges.mjs',
   './editor-waypoints.mjs',

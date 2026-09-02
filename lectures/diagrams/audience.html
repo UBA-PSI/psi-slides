@@ -7040,8 +7040,25 @@ function focusCamera(instant = false) {
     ty = vp.height / 2 - (bo.top + bo.height / 2);
   } else {
     tx = vp.width / 2 - (left + width / 2);
-    if (height <= vp.height) {
-      ty = vp.height / 2 - (top + height / 2);
+    // Whether a chunk fits, and where it is centred, are judged on its
+    // **content** and not on the chunk box. The box carries the breathing
+    // space above the heading - a deliberate part of the design, and about
+    // 78 px of it - which must not be charged against the frame. Measured on
+    // the tutorial at 1280x800: six chunks whose content was 723-793 px had
+    // boxes of 802-872 px, failed this test, took the walk below, had their
+    // heads pinned at 5% and hung 2-78 px off the bottom of a frame they fit
+    // inside comfortably. --check-fit measures the chunk-content box and had
+    // been reporting exactly those as "fits the frame and is positioned
+    // outside it"; the two were measuring different boxes, and only one of
+    // them was the box a reader sees.
+    //
+    // The walk branch below still measures the box. A chunk whose *content*
+    // overflows is genuinely walked, and the head pin and the foot-following
+    // are a pair that has to stay in one coordinate system.
+    const fitEl = entry.el.querySelector('.chunk-content');
+    const fit = fitEl ? getOffset(fitEl, stage) : { top, height };
+    if (fit.height <= vp.height) {
+      ty = vp.height / 2 - (fit.top + fit.height / 2);
     } else {
       // A chunk taller than the frame cannot be framed, so it is walked: its
       // head is pinned near the top edge and stays there.
