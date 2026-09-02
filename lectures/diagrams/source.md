@@ -462,7 +462,7 @@ free `text` gets no background at all without it – that background is what kno
 a line out behind a label. The rule drawn through the row is what tells `.paper`
 and `.clear` apart: one knocks the line out, the other lets it through.
 
-## figure: Five outlines that are not rectangles | and one reading direction {.full #outlines}
+## figure: One slot, seven members | and the one reading direction beside it {.full #outlines}
 
 ::: draw {unit=118x74}
 default box {.sharp} w 0.62 h 0.42
@@ -479,14 +479,26 @@ box  s6 ""         right of s5 gap 0.35 same as s5 point up {.wedge .tone-4}
 box  s7 ""         right of s6 gap 0.35 {.cross .accent}
 box  s8 "turn"     right of s7 gap 0.65 h 0.62 {.tone-2 .turn}
 text sl "outline, and\nreading direction" left of s1 gap 0.8 {.muted .right}
+
+# The two rectangles the five share their slot with. A second line rather than
+# more of the first: the row's width sets the editor's fit-to-frame zoom, and
+# two specs drag against grips whose size depends on it.
+box  k1 "round"    below s1 gap 0.85 w 0.7 h 0.42 {.round .tone-3}
+box  k2 "sharp"    right of k1 gap 0.5 same as k1 {.sharp .tone-3}
+text kl "corner"   left of k1 gap 0.8 {.muted .right}
 :::
 
-**These five share a slot with `.round` and `.sharp`** – a group from which only
-one class can hold at a time – because a hexagon has no corner radius to argue
-about. The same four numbers are drawn as for a rectangle, joined into a
-different path.
+**All seven above are one slot, and only one member of it can hold at a time.**
+The first two are the corner treatments a rectangle can take, `.round` (the
+default) and `.sharp`; the five after them are the outlines that are not
+rectangles at all. They share the slot because a hexagon has no corner radius to
+argue about, so asking for both would be asking a question with no answer. Each
+of the five is drawn from the same four numbers a rectangle would use, joined
+into a different path.
 
-**`.turn` reads the label bottom to top**, which is the last box above. A tall
+**`.turn` reads the label bottom to top**, and it is the box standing apart
+at the end – a reading direction, not a shape, so it is in no slot with the
+seven. A tall
 narrow box has room for a word only along its length, and the alternative is one
 letter per line. It applies to every label, not only to a box's – the same class
 does the same thing on a container caption, a brace and an edge label.
@@ -500,34 +512,38 @@ it.
 
 ## figure: Two outlines argue with their own size {.full #outline-size}
 
-::: side 1:1
 ::: draw {unit=118x74}
 # Nothing here is given a width on purpose: the rectangle takes one, and the
-# other two are left to size themselves, which is the whole slide.
+# other two are left to size themselves, which is the whole slide. Laid across
+# rather than down, because the diamond's cost is a comparison - it only reads
+# as twice as much when the rectangle is beside it at the same eye level.
 box  r1 "two words" at 0,0 w 1.2 h 0.5 {.sharp .tone-2}
-box  d1 "two words" below r1 gap 0.5 {.diamond .tone-2}
-box  c1 ""          below d1 gap 0.5 h 0.5 {.cross .accent}
-text rl "sized to the string"   right of r1 gap 0.5 {.muted .small .left}
-text dl "twice as much, both ways" right of d1 gap 0.5 {.muted .small .left}
-text cl "ignores w, comes out square" right of c1 gap 0.5 {.muted .small .left}
+box  d1 "two words" right of r1 gap 1.0 {.diamond .tone-2}
+box  c1 ""          right of d1 gap 1.0 h 0.5 {.cross .accent}
+text rl "sized to the string"         below r1 gap 0.3 {.muted .small}
+text dl "twice as much, both ways"    below d1 gap 0.3 {.muted .small}
+text cl "ignores w, comes out square" below c1 gap 0.3 {.muted .small}
+# dl is named first because it hangs lowest: align hands the first element's
+# coordinate to the rest, so the other two come down to it rather than up into
+# their own boxes.
+align y middle dl, rl, cl
 :::
 
-::: flip
 **`.diamond` is the one outline that eats both axes.** The widest room a diamond
 offers is a strip half its width by half its height through the middle, so the
 build sizes it at twice what a rectangle would need for the same string, in both
-directions. A sentence in a diamond therefore takes four times the area of the
-boxes beside it and swallows the figure; two or three words is the measure, and
-the explanation belongs in a note next to it. `.hex` also says *a question is
-asked here*; the diamond says on top of that that it goes on in two ways, which
-a room has been trained on since school.
+directions – which is why the two above hold the same words at very different
+sizes. A sentence in a diamond takes four times the area of the boxes beside it
+and swallows the figure; two or three words is the measure, and the explanation
+belongs in a note next to it. `.hex` also says *a question is asked here*; the
+diamond says on top of that that it goes on in two ways, which a room has been
+trained on since school.
 
 **A `.cross` with no `w` of its own comes out square, block default or not.** A
 plus with arms of two different lengths is not a plus, so a block `default` that
 carries a `w` reaches every rectangle in the block and the cross passes it by –
 the same exception `bars` makes for outlines. A `w` written on the element's own
 line still wins, that being a statement about this one element.
-:::
 
 ## figure: One channel, spelled the same in three places {.full #prominence}
 
@@ -645,8 +661,9 @@ step all-again
 **Naming an element overrides that rule, in both directions.** `hide direct` takes the direct arrow away though both its ends are still there; a written `show` does the reverse and brings something on screen whose source is still missing – an outline, say, that should stand around its whole set before the set is assembled (the tree in Part 5, under *Leaves first, and the brackets follow*). Both hold from the beat they are written in onwards. Write one only where the rule says the wrong thing. Write a `show` on every element and you have a figure that stays incomplete the next time one is added: the element is in the block, no step names it, and it never appears.
 
 
-## figure: Where the words sit {.wide #justify}
+## figure: Where the words sit {.full #justify}
 
+::: side 1:1
 ::: draw {unit=126x86}
 default box {.sharp} w 0.66 h 0.72
 
@@ -679,9 +696,11 @@ edge sa tl.left,tl.top-0.5 -> tr.right,tr.top-0.5 "side top" side top {.small .m
 edge sb bl.left,bl.bottom+0.95 -> br.right,br.bottom+0.95 "side bottom" side bottom {.small .muted}
 :::
 
+::: flip
 **`left` and `right` say where a line of words sits, `top` and `bottom` where the block of lines sits.** Both are **measured against the padding rather than the border**: `left` means as far left as this box allows. Without one of the four the label sits centred, which is right for almost every box; the words are there for the rest, above all for a tall box with a short label.
 
 With more than one line **the whole block of lines moves, not the single line**, so on two lines `bottom` puts the *last* one on the inner edge rather than the first. `turn` beats both: a turned label reads bottom to top and is centred on its point whichever way round it goes.
+:::
 
 ## free: One question across, one question along {.wide #justify-edges}
 
@@ -792,6 +811,13 @@ step curves
 step judge
   emph good
   dim weak
+  # The leader points at a coordinate rather than at an element, so the usual
+  # rule - a text with a leader is only as visible as what it points at - has
+  # nothing to inherit from, and the note stood on the opening picture naming a
+  # curve that was not drawn yet. A written `show` is the documented override
+  # for exactly this, and it belongs in this beat rather than the one before:
+  # "the one you want" is the judgement, not the curve.
+  show ngood
 :::
 
 **A `plot` is a frame to draw in, not a chart library.** It lays down gridlines, axis labels and the two axis titles, plus a conversion, so that `roc@0.35` names a value in the plot's own units. That is resolved into an ordinary `roc.left+n` only once the block has been read, so a point may name a plot written further down.
