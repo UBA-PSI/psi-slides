@@ -1126,7 +1126,7 @@ step verdict
 
 **It calls the same advance the space bar does.** A counter of its own would have let the drawing and the beat counter drift apart, and the next keypress would have jumped. Because it *is* the counter, the speaker window follows through the ordinary sync and the freeze gate applies. `cycle` rewinds through the same counter, so the speaker window follows the rewind too.
 
-**The first keypress, click or scroll stops it for good.** Whoever has touched the deck has taken over, and a timer running on underneath them is worse than none. For the same reason it does not start at all on a slide that is already half revealed: half revealed means somebody left it that way.
+**The first keypress, click or scroll on this slide stops it.** Whoever has touched the figure has taken over, and a timer running on underneath them is worse than none. It is the *slide* that is taken over and not the session, because you reach a slide by pressing a key: a session-wide flag was retired by the very keypress that navigated here, and the figure then never moved at all. For the same reason it does not start on a slide that is already half revealed: half revealed means somebody left it that way.
 
 **Between 200 ms and 60 s, and outside that refused rather than clamped.** Under 200 ms the room reads no beat; over a minute a “moving” figure is a still one that changes while nobody is watching. A clamped number is a number nobody wrote.
 

@@ -603,8 +603,13 @@ from building the same way is a major version.
   where there is no deck to play. The runtime calls the same advance the Space
   key calls, so there is one counter, one broadcast and one freeze gate, and
   the speaker view follows without knowing it exists. It runs in the audience
-  only and stops for good on the first key, pointer or wheel event: a lecturer
-  who has touched the deck has taken over. Bounded 200 ms to 60 s, refused
+  only, and the first key, pointer or wheel event **on that slide** retires its
+  clock: a lecturer who has touched the figure has taken over. Scoped to the
+  slide rather than to the session, which is not a nicety - you reach a slide
+  by pressing a key, so a session-wide flag was set by the very keypress that
+  navigated to the figure, and autoplay could only ever run on a slide the deck
+  happened to open on. The listener is in the capture phase, so the arrival key
+  is charged to the slide being left rather than the one arriving. Bounded 200 ms to 60 s, refused
   rather than clamped. `cycle` beside it repeats the walk, rewinding through
   the same counter so the speaker view follows the rewind as it followed the
   walk; the last beat is held for one delay like any other, because a second

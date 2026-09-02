@@ -443,8 +443,8 @@ edge site -> score {.dashed}
 
 > note: `{autoplay=1400 cycle}` walks the figure's steps on a timer once the
 > slide is on screen, and starts again at the end. The first key, click or
-> scroll stops it for good: once you have touched the deck it is yours. It also
-> declines to start on a slide you arrive at half-revealed.
+> scroll *on this slide* stops it: once you have touched the figure it is
+> yours. It also declines to start on a slide you arrive at half-revealed.
 
 ::: draw {unit=150x56 autoplay=1400 cycle}
 box  raw  "raw crawl"    at 0,0 w 1.0 {.tone-2}

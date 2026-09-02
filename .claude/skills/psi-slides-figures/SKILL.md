@@ -320,7 +320,7 @@ A figure written `{autoplay=1200}` walks its own steps on a timer once the slide
 Two decisions carry the runtime, and both are about not inventing state:
 
 - **It calls `advanceReveal()`, so it is the Space key on a timer.** A private step index would have let the drawing and the reveal counter disagree, and the next Space would jump. Because it *is* the counter, the speaker view follows through the ordinary state broadcast, the freeze gate applies, and localStorage recovery is unchanged.
-- **It runs in the audience only** – the state root – **and stops for good on the first key, pointer or wheel event.** Two windows both advancing would take two beats per tick; and a lecturer who has touched the deck has taken over, so a timer resuming underneath them is worse than no timer. Verified in a browser: interrupted one beat in, the figure froze there and stayed frozen for three seconds, and a manual Space then advanced it by exactly one.
+- **It runs in the audience only** – the state root – **and the first key, pointer or wheel event on that slide retires its clock.** Two windows both advancing would take two beats per tick; and a lecturer who has touched the deck has taken over, so a timer resuming underneath them is worse than no timer. Verified in a browser: interrupted one beat in, the figure froze there and stayed frozen for three seconds, and a manual Space then advanced it by exactly one.
 
 It also refuses to start from a half-revealed slide: arriving at one means the lecturer left it that way, and finishing it for them is the surprise this must not spring. Bounded 200 ms – 60 s, **refused rather than clamped**, because a clamped number is a number the author did not write.
 

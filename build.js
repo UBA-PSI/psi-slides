@@ -11440,13 +11440,21 @@ function resettleAfterReveal() {
 // deliberate act stops it for good: a lecturer who has touched the deck has
 // taken over, and a timer resuming underneath them is worse than no timer.
 let autoplayTimer = 0;
-let autoplayStopped = false;
+// The chunk the lecturer took over on, and it is a chunk id rather than a
+// boolean for a reason that made the feature unusable. Taking over is an act
+// on *this slide*; but you reach a slide by pressing a key, and a
+// session-wide flag was therefore set by the very keypress that navigated to
+// the figure, before it was on screen. Measured: jumping by address played
+// the figure, one arrow key anywhere killed it for the rest of the session -
+// so autoplay only ever ran on a slide a deck happened to open on. Scoped to
+// the chunk, the arrival key belongs to the slide being left.
+let autoplayStoppedOn = null;
 function stopAutoplay() {
   if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = 0; }
 }
 function restartAutoplay() {
   stopAutoplay();
-  if (autoplayStopped || VIEW !== 'audience') return;
+  if (VIEW !== 'audience') return;
   const entry = flatChunks[state.activeIdx];
   if (!entry) return;
   const fig = entry.el.querySelector('[data-autoplay]');
@@ -11457,11 +11465,12 @@ function restartAutoplay() {
   // lecturer left it that way, and finishing it for them is the surprise
   // this feature must not spring.
   const segCount = countSegments(entry.el);
+  if (autoplayStoppedOn === entry.id) return;
   if ((revealed[entry.id] ?? 0) > 1) return;
   const cycle = fig.hasAttribute('data-autoplay-cycle');
   const tick = () => {
     autoplayTimer = 0;
-    if (autoplayStopped) return;
+    if (autoplayStoppedOn === entry.id) return;
     if (flatChunks[state.activeIdx] !== entry) return;
     if (advanceReveal()) {
       if ((revealed[entry.id] ?? 0) < segCount) autoplayTimer = setTimeout(tick, ms);
@@ -11486,10 +11495,16 @@ function restartAutoplay() {
 }
 // Any deliberate input retires the clock. Capture phase and passive, so it
 // sees the event whatever else handles it and never delays one.
+// Capture phase, and that is load-bearing here as well as for not delaying an
+// event: the key that moves to the next slide is seen while state.activeIdx is
+// still the slide being left, so the take-over is recorded against that one
+// and not against the slide about to arrive. The navigation handler runs in
+// the bubble phase, after this.
 for (const ev of ['keydown', 'pointerdown', 'wheel']) {
   window.addEventListener(ev, () => {
-    if (autoplayStopped) return;
-    autoplayStopped = true;
+    const cur = flatChunks[state.activeIdx];
+    if (!cur || autoplayStoppedOn === cur.id) return;
+    autoplayStoppedOn = cur.id;
     stopAutoplay();
   }, { capture: true, passive: true });
 }

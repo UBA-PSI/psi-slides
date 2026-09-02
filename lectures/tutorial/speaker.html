@@ -6579,7 +6579,7 @@ are tagged into a release.</p>
 <span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">step probe</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">  emph det</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">:::</span></span></code></pre>
-<p>The timer presses the same key you would press, so the speaker view follows and freezing the projection stops it. It runs on the projection only, and <strong>the first key, click or scroll stops it for good</strong> – once you have touched the lecture you have taken over. It also refuses to start on a slide that is already half uncovered.</p>
+<p>The timer presses the same key you would press, so the speaker view follows and freezing the projection stops it. It runs on the projection only, and <strong>the first key, click or scroll on that slide stops it</strong> – once you have touched the figure you have taken over. It also refuses to start on a slide that is already half uncovered.</p>
 <p>The delay has to be between 200 ms and 60 s; outside that the build refuses the number rather than quietly moving it.</p>
 <p><strong><code class="nb">cycle</code> repeats the walk</strong> – <code>{autoplay=1200 cycle}</code> – which is usually what a cover figure wants while a room fills. It rewinds the same way it advanced, so the speaker view follows the rewind too. The last step is held for one delay like every other, and there is no second number for how long to hold the finished picture.</p>
 </div></div>
@@ -6858,7 +6858,7 @@ of them are shown one per slide in
 <g id="dg9-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg9-edge-1--p" class="dg-stroke" d="M0.00 18.38L0.00 76.72" fill="none"/><path id="dg9-edge-1--h" class="dg-head" d="M0.00 84.38L-3.96 75.38L3.96 75.38Z"/><g id="dg9-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(33.10,51.38)"><g id="dg9-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
 <g id="dg9-a" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg9-a--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg9-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg9-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
 <g id="dg9-b" data-base="dg-el dg-box" class="dg-el dg-box tone-4"><rect id="dg9-b--r" x="-44.20" y="84.38" width="88.40" height="36.75" rx="4"/><g id="dg9-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(0.00,102.75)"><g id="dg9-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Detector</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg9-root">{"body":"box a \"Crawler\" {.tone-1}\nbox b \"Detector\" below a gap 1.1 {.tone-4}\nedge a -> b \"request\"","attrs":"unit=140x60","range":[89599,89689],"chunk":"side-ratio","width":"wide","alt":"A figure beside the prose"}</script></figure>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg9-root">{"body":"box a \"Crawler\" {.tone-1}\nbox b \"Detector\" below a gap 1.1 {.tone-4}\nedge a -> b \"request\"","attrs":"unit=140x60","range":[89603,89693],"chunk":"side-ratio","width":"wide","alt":"A figure beside the prose"}</script></figure>
 
 
 
@@ -9243,13 +9243,21 @@ function resettleAfterReveal() {
 // deliberate act stops it for good: a lecturer who has touched the deck has
 // taken over, and a timer resuming underneath them is worse than no timer.
 let autoplayTimer = 0;
-let autoplayStopped = false;
+// The chunk the lecturer took over on, and it is a chunk id rather than a
+// boolean for a reason that made the feature unusable. Taking over is an act
+// on *this slide*; but you reach a slide by pressing a key, and a
+// session-wide flag was therefore set by the very keypress that navigated to
+// the figure, before it was on screen. Measured: jumping by address played
+// the figure, one arrow key anywhere killed it for the rest of the session -
+// so autoplay only ever ran on a slide a deck happened to open on. Scoped to
+// the chunk, the arrival key belongs to the slide being left.
+let autoplayStoppedOn = null;
 function stopAutoplay() {
   if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = 0; }
 }
 function restartAutoplay() {
   stopAutoplay();
-  if (autoplayStopped || VIEW !== 'audience') return;
+  if (VIEW !== 'audience') return;
   const entry = flatChunks[state.activeIdx];
   if (!entry) return;
   const fig = entry.el.querySelector('[data-autoplay]');
@@ -9260,11 +9268,12 @@ function restartAutoplay() {
   // lecturer left it that way, and finishing it for them is the surprise
   // this feature must not spring.
   const segCount = countSegments(entry.el);
+  if (autoplayStoppedOn === entry.id) return;
   if ((revealed[entry.id] ?? 0) > 1) return;
   const cycle = fig.hasAttribute('data-autoplay-cycle');
   const tick = () => {
     autoplayTimer = 0;
-    if (autoplayStopped) return;
+    if (autoplayStoppedOn === entry.id) return;
     if (flatChunks[state.activeIdx] !== entry) return;
     if (advanceReveal()) {
       if ((revealed[entry.id] ?? 0) < segCount) autoplayTimer = setTimeout(tick, ms);
@@ -9289,10 +9298,16 @@ function restartAutoplay() {
 }
 // Any deliberate input retires the clock. Capture phase and passive, so it
 // sees the event whatever else handles it and never delays one.
+// Capture phase, and that is load-bearing here as well as for not delaying an
+// event: the key that moves to the next slide is seen while state.activeIdx is
+// still the slide being left, so the take-over is recorded against that one
+// and not against the slide about to arrive. The navigation handler runs in
+// the bubble phase, after this.
 for (const ev of ['keydown', 'pointerdown', 'wheel']) {
   window.addEventListener(ev, () => {
-    if (autoplayStopped) return;
-    autoplayStopped = true;
+    const cur = flatChunks[state.activeIdx];
+    if (!cur || autoplayStoppedOn === cur.id) return;
+    autoplayStoppedOn = cur.id;
     stopAutoplay();
   }, { capture: true, passive: true });
 }

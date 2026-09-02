@@ -621,8 +621,10 @@ One backdrop per chunk. A second is an error.
 wrapper or an aside: each compiles to something of its own.
 
 - **`::: draw`** takes `{autoplay=N}` - N milliseconds per step - which walks
-  the figure's own beats once the slide is on screen, and stops for good on the
-  first key, click or scroll. Between 200 and 60000. Add `cycle` to repeat the
+  the figure's own beats once the slide is on screen, and the first key, click
+  or scroll *on that slide* retires the clock for it. (Scoped to the slide, not
+  to the session: you reach a slide by pressing a key, so a session-wide flag
+  meant the arrival keypress killed the figure before it was on screen.) Between 200 and 60000. Add `cycle` to repeat the
   walk (`{autoplay=1200 cycle}`); `cycle` alone is an error. Use it on a cover
   figure; on a slide you are talking over, press Space.
 - **`::: draw`** is a figure written as text - named boxes, arrows,

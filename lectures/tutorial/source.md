@@ -1053,7 +1053,7 @@ step probe
 :::
 ```
 
-The timer presses the same key you would press, so the speaker view follows and freezing the projection stops it. It runs on the projection only, and **the first key, click or scroll stops it for good** – once you have touched the lecture you have taken over. It also refuses to start on a slide that is already half uncovered.
+The timer presses the same key you would press, so the speaker view follows and freezing the projection stops it. It runs on the projection only, and **the first key, click or scroll on that slide stops it** – once you have touched the figure you have taken over. It also refuses to start on a slide that is already half uncovered.
 
 The delay has to be between 200 ms and 60 s; outside that the build refuses the number rather than quietly moving it.
 
