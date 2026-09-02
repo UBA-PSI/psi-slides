@@ -21,6 +21,13 @@ The second page is `docs/site/figures.html`, on the project site: the *case*
 for the language rather than the manual for it, drawing three of the same
 figures. This script writes it too, and `--check` covers both.
 
+**They were one page, and it did neither job well.** Its own eyebrow put
+`start here` on the **second** section, 1,562 words in, and a reader who wanted
+to learn walked through a manifesto naming all nine step verbs before meeting a
+`box`. Splitting them put `start here` first and cut those 1,562 words to 306.
+The case ends by sending the reader here, which is why `build-site.js` copies
+this page into the published site.
+
 ## What the script owns
 
 Run it after any change to the lecture, to `build.js`, or to
@@ -113,3 +120,8 @@ change to the compiler that would spoil the page's figures therefore fails
 there first, where `node lint.js` and the build's own `[diagram]` warnings can
 name the line. Its built views are gitignored; run the refresh script rather
 than committing them.
+
+**Its chunk ids are the contract with `refresh-figures.mjs`.** The script pulls
+each generated region out by chunk id, so renaming one there without renaming it
+in the script breaks the refresh silently - the region simply stops being
+updated. Rename both or neither.

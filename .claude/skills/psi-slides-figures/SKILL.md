@@ -269,6 +269,22 @@ Consequences worth not breaking:
 
 `lint.js` **imports** the diagram vocabulary from `diagram-core.mjs` rather than mirroring it – every table that used to have to change in two files in one commit. Tables only, never a function: a function would pull the whole compiler in behind it and the linter would stop being runnable without the Markdown/Shiki stack. It also **captures the diagram body verbatim, ahead of the heading matchers but behind the fence tracker**: a diagram comment starts with `#`, and read as markdown that is a column heading – while a `::: draw` inside a code fence is a syntax example and must not be compiled. Getting that order wrong made the linter fail any lecture that documented the directive, which is the tutorial the release job publishes. Its `oversized-asset` gate and `collectImageRefs` (for `--optimize-images`) both scan diagram `image` lines too, or the pre-commit gate would let through exactly what `assertInlinable` refuses.
 
+## What `lint.js` refuses in a `::: draw` block
+
+These four run in the zero-dep linter, so they fire on every commit without the
+Markdown/Shiki stack. They are the diagram half of the build-and-linter
+duplication CLAUDE.md describes: **add a refusal to one file and grep the other
+for the same key in the same commit.**
+
+- A statement with no name (`bad-diagram-name`, error) – the build reads the token after the head as the name and refuses the line when there is none.
+- The kind gate on a `style` step's classes, in both signs, answered **after the block is read**: a step may name an element declared below it and a tag whose members are. That is why `define()` records what each name draws, generated names included, and why a tag expands to its members with one bad member failing the statement – the compiler's own rule.
+- Everything a `bars … series of` line does not own: `w`, `h`, `space` and a placement all belong to the chart it joined, and `stacked` needs a series to stand on.
+- An element after the first in a `::: draw` block with no placement (`diagram-no-placement`, error), off the compiler's own `DG_PLACED_HEADS` / `DG_PLACE_INTRO`. The words are matched **positionally**: `point` takes `left` and `right`, so a line-wide test reads `box b "B" point left` as placed, and ten lines of the corpus carry that shape. It counts **nodes**, which is the build's own test for "is this the first element", and exempts a `bars … series of` line, which joins another chart's frame and refuses a placement by name. It also stays quiet on a line this gate has already reported on – one authored defect, one causal diagnostic, which is the nearest a linter gets to the build's "the statement stopped reading" rule.
+
+`lint.js` imports the vocabulary **tables** from `diagram-core.mjs` - never a
+function, or the whole compiler comes in behind it and the linter stops being
+runnable on its own.
+
 ## The diagram editor (`editor.mjs`, `editor.css`)
 
 **Development state, like `::: draw` itself.** The spec, the build plan and a running build log are in `editor.md`; §15 there is the thing to read before picking the work up. What follows is only the part a change to this repo has to not break.

@@ -99,81 +99,22 @@ node lint.js lectures/                         # all lectures
 node lint.js lectures/tutorial/source.md       # single file
 node lint.js lectures/ --strict                # warnings → exit 2
 
-# fast gates – everything about the figure language that can be decided
-# without a browser: which lines the compiler refuses, which it accepts, what
-# the emitted SVG means, and which classes a beat can carry. Needs no browser
-# and no `npm install` (both `diagram-core.mjs` and `lint.js` are
-# zero-dependency), runs in under a second, and `npm test` runs it ahead of the
-# browser suite so a compiler regression fails in a second rather than in four
-# minutes. `gates.yml` runs it on push and pull request.
+# two test suites, split by one question: can this be decided without a
+# browser? test/gates/ is everything about the figure language that can - six
+# gates, 440 assertions, under a second, no browser and no `npm install`
+# (diagram-core.mjs and lint.js are both zero-dep). test/ is the things that
+# only break in a built page - 33 specs, ~834 assertions, ~5 min, one Chromium.
+# `npm test` runs the gates first so a compiler regression fails in a second
+# rather than in four minutes; gates.yml runs them on push and PR.
 #
-# Six gates, six contracts: refusals
-# (build and lint agree on what is refused), accepts (every construct still
-# parses), semantics (the emitted SVG *means* what the source says, plus what
-# the source means to the editor that rewrites it – the span table), corpus
-# (every block in the repository still compiles), step-classes (which classes
-# a beat can carry, derived from DG_STEP_FIXED rather than restated), inlined
-# (the two characters that mean something else inside one of build.js's own
-# template literals – a raw backtick, which ends it, and a single-backslash
-# regex escape, which the literal eats and which therefore ships; **all
-# twelve** literals, which is a number worth checking against the gate's own
-# note when you add one – it recognised seven until the five holding inlined
-# markup, the likeliest place of all to write a backtick beside a button,
-# turned out to open with a tag on the same line and be skipped). A green
-# `accepts` once hid a sequence `<->` that parsed and drew one arrowhead;
-# that is what `semantics` exists for. And a check that reaches the compiler
-# through a browser page reaches only the build: two `lint.js` gaps sat behind
-# assertions in `figure-labels.mjs` until they were moved here, where every
-# fixture is compiled *and* linted.
+# Run the browser suite after touching AUDIENCE_JS, the key map, editor.mjs,
+# createSpanTable, or anything that moves a label or an extent. Anything
+# checkable without a browser belongs in lint.js or in test/gates/, never here.
+#
+# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the five specs that build a
+# deck of their own rather than hunting shapes in a real one: test/README.md.
 npm run gate                                   # all gates
 node test/gates/run.mjs semantics              # gates whose name matches
-
-# browser suite – the things that only break in a built page, in four
-# families: the navigation model (nav, nav-cockpit), the geometry the live
-# chrome leaves the slide (expansion, marginalia, touch-rail, math-focus,
-# block-align, auto-fit, text-select - what a pointer gesture means while Alt
-# is held), the editor's
-# gestures and panel (editor-*), and the figure-* specs that measure the SVG –
-# figure-framing, which catches a drawing sitting off-centre in an oversized
-# frame, figure-labels, which measures where an aligned label lands inside the
-# thing that holds it, and figure-sequence, which asserts that nothing in a
-# `sequence` overlaps anything else in it and that its generated names are the
-# documented ones. The editor-* family also covers the neighbour-alignment
-# guides, which is what a gesture snaps to. `expansion` and `touch-rail` say
-# why the family exists: the camera framed an open expansion by centring the
-# pane and cropping the slide it belongs to, and the cockpit rail sat on 82%
-# of the notes pane, and both survived because a screenshot of the thing you
-# were looking at is fine. `marginalia` is the third: the aside overflows the
-# chunk on purpose, the width probe counted that overhang as a slide being cut
-# off, and the type on every marginalia chunk was walked down to the 0.6 floor
-# – which reads as a design decision until you put the slide next to its
-# neighbour. It compares against another chunk of the same deck rather than a
-# number. They assert the property and never a coordinate.
-# `touch-rail` opens its own browser context: the rail lives behind
-# `@media (pointer: coarse)` and openDeck's has a fine pointer, so in the
-# default context the bar is not in the document and a measurement of it
-# reports no overlaps among no buttons. Five specs build a deck of their own,
-# for three different reasons. Because nothing that ships can reach the case:
-# `math-focus` (no lecture has a two-row display formula) and `side-anchor`
-# (nothing writes `::: side {middle}` yet). Because the thing is only legible
-# as a pair: `block-align` shows the same content centred and left, and
-# `cards` two cards differing in one character. And because a spec that hunted
-# its shapes in a real deck would break the next time that deck was edited:
-# `squint`, whose four - a promoted bold, a reveal segment, a `::: slide`
-# block, a chunk that is only a backdrop and an overlay - exist in the corpus
-# but never six chunks apart. `squint` also drives no page itself: the command
-# drives its own browser and the spec asserts on the file that comes out.
-# Thirty-two specs, ~827 assertions.
-# Builds and serves the lectures itself, so it never reports on stale HTML,
-# and launches one Chromium for the whole run ($PSI_CHROME, the Playwright
-# cache, or system Chrome); ~5 min. Run it after touching AUDIENCE_JS, the key
-# map, editor.mjs, createSpanTable, or anything that moves a label or an
-# extent. `no page errors` is asserted by the runner after every spec rather
-# than by each spec: it is an invariant of running one at all, and the one
-# spec that forgot the line swallowed console errors for as long as it
-# existed. Not a unit-test suite: anything checkable without a browser belongs
-# in lint.js, where it runs on every commit, or in `test/gates/`, where it
-# runs on every push.
 node test/run.mjs                              # all specs
 node test/run.mjs nav                          # specs whose name matches
 
@@ -209,7 +150,7 @@ Navigate build.js by the `// ── section ──` banners – `grep -n '^// �
 lists all forty in order, which is the map that cannot go stale. Two of them carry
 a decision the name does not:
 
-- `// ── math (KaTeX, rendered at build time) ──` – the family→class map is **parsed out of `katex.min.css`**, never hard-coded, so it survives a KaTeX upgrade; and the stylesheet is emitted only for views that actually contain a formula, because the inlined woff2 faces are 254 KB for the full set. The live views additionally carry `KATEX_TOGGLE_FAMS` (sans + typewriter, ~46 KB) so the maths can follow the `F` toggle; print passes no `fontToggle` flag and pays nothing extra.
+- `// ── math (KaTeX, rendered at build time) ──` – the family→class map is **parsed out of `katex.min.css`** (`node_modules/katex/dist/`, reached with `nodeRequire.resolve`), never hard-coded, so it survives a KaTeX upgrade; and the stylesheet is emitted only for views that actually contain a formula, because the inlined woff2 faces are 254 KB for the full set. The live views additionally carry `KATEX_TOGGLE_FAMS` (sans + typewriter, ~46 KB) so the maths can follow the `F` toggle; print passes no `fontToggle` flag and pays nothing extra.
 - `// ── audience rendering ──` – `renderHelpOverlay(view)` generates the `?` cheat sheet for **both** live views from one data structure – edit labels there, not in the per-view HTML.
 
 ### Parser
@@ -228,7 +169,7 @@ Design implications:
 
 `lint.js` is a **zero-dep** linter – nothing from `node_modules`, so it runs as a pre-commit gate without the Markdown/Shiki stack. It deliberately does not import anything from `build.js`; it re-implements the parsing contract and mirrors the constants (`VALID_TAGS`, `VALID_WIDTHS`, `DENSITY_BUDGET`, `VIEW_DEFAULTS`). When you change the parser vocabulary in `build.js`, update `lint.js` in the same commit – the duplication is the price paid for keeping the linter runnable without the Markdown/Shiki stack.
 
-The **diagram vocabulary is the exception**: it is imported from `diagram-core.mjs`, which has no dependencies of its own, so importing it costs nothing this file was protecting and removes every table that used to have to change in two places in one commit. **Tables only.** A function from that module would pull the whole compiler in behind it – with the one bend recorded in the `psi-slides-figures` skill, for rules that ARE the vocabulary.
+**The four `::: draw` refusals live in the `psi-slides-figures` skill**, with the reasoning each one encodes. The **diagram vocabulary is the exception** to this file's no-imports rule: it is imported from `diagram-core.mjs`, which has no dependencies of its own, so importing it costs nothing this file was protecting and removes every table that used to have to change in two places in one commit. **Tables only.** A function from that module would pull the whole compiler in behind it – with the one bend recorded in the `psi-slides-figures` skill, for rules that ARE the vocabulary.
 
 Checks enforced:
 
@@ -240,32 +181,19 @@ Checks enforced:
 - Unknown value for a viewer-default frontmatter key (`unknown-view-default`, error) or for a `style:` key (`unknown-style-setting`, error). Both mirror a build refusal that now runs in the `buildOnce` pre-flight, so `--print-only` refuses a typo in `auto-fit` and `--audience-only` refuses one in `print-slide-numbers`.
 - Assets over the 2 MB inline cap (`oversized-asset`, warning) – the pre-commit gate for the single-file property.
 - Unclosed display math (`unclosed-math`, warning). Fence-aware. Inline `$…$` is deliberately not checked: a lone dollar in prose is legitimate and the build leaves it alone.
-- A statement with no name (`bad-diagram-name`, error) – the build reads the token after the head as the name and refuses the line when there is none.
-- The kind gate on a `style` step's classes, in both signs, answered **after the block is read**: a step may name an element declared below it and a tag whose members are. That is why `define()` records what each name draws, generated names included, and why a tag expands to its members with one bad member failing the statement – the compiler's own rule.
-- Everything a `bars … series of` line does not own: `w`, `h`, `space` and a placement all belong to the chart it joined, and `stacked` needs a series to stand on.
-- An element after the first in a `::: draw` block with no placement (`diagram-no-placement`, error), off the compiler's own `DG_PLACED_HEADS` / `DG_PLACE_INTRO`. The words are matched **positionally**: `point` takes `left` and `right`, so a line-wide test reads `box b "B" point left` as placed, and ten lines of the corpus carry that shape. It counts **nodes**, which is the build's own test for "is this the first element", and exempts a `bars … series of` line, which joins another chart's frame and refuses a placement by name. It also stays quiet on a line this gate has already reported on – one authored defect, one causal diagnostic, which is the nearest a linter gets to the build's "the statement stopped reading" rule.
 - A bold of two words or fewer sitting after a paragraph's first sentence
-  (`single-word-bold`, warning). In `topic-bold` the collapse hides the
-  continuation's prose and leaves its `<strong>` runs standing, so such a bold
-  reaches the room as a bare noun – the tutorial shipped `a **marginalia** – an
-  aside …` and the slide read `– marginalia`. Mirrors `splitSentencesIn`'s
-  head/rest walk and its three sentence helpers, which live inside the
-  `AUDIENCE_JS` template literal and so cannot be imported; keep them congruent
-  or the two files disagree about where the first sentence ends. Scoped to what
-  the walker actually reaches: chunk-body paragraphs only, never a list item
-  (`splitSentencesIn` walks `p` and never `li`, which is also why `::: cards`
-  and `::: rows` are exempt), never a `::: slide` or `::: script` block, never a
-  fence. Warning and not error on purpose – the build renders it happily, and a
-  linter stricter than the build fails a source that builds clean.
-  **The mirror is guarded in `test/settings.mjs`**, which lifts the helpers out
-  of a built `audience.html` and out of `lint.js` as text and runs them side by
-  side: neither copy can be imported – lint.js calls `main()` at module scope,
-  and the build's copy is characters inside a string until a page runs it. That
-  is the assertion that matters. A contract drifts when someone changes a
-  number, visibly; an algorithm drifts when someone fixes an edge case in the
-  renderer, invisibly, and the warning then describes a collapse that no longer
-  happens. Asserting only that the rule fires would be lint.js agreeing with
-  itself.
+  (`single-word-bold`, warning; the author-facing rule is in the
+  `psi-slides-authoring` skill). **It mirrors `splitSentencesIn`'s head/rest walk
+  and its three sentence helpers, which live inside the `AUDIENCE_JS` template
+  literal and so cannot be imported** – keep them congruent or the two files
+  disagree about where a first sentence ends. **The mirror is guarded in
+  `test/settings.mjs`**, which lifts the helpers out of a built `audience.html`
+  and out of `lint.js` *as text* and runs them side by side, because neither copy
+  can be imported: lint.js calls `main()` at module scope, and the build's copy
+  is characters inside a string until a page runs it. That is the assertion that
+  matters – a contract drifts when someone changes a number, visibly; an
+  algorithm drifts when someone fixes an edge case in the renderer, invisibly,
+  and the warning then describes a collapse that no longer happens.
 - Reveal-overuse (>50% of chunks using segments in a lecture flags a warning).
 - Orphan columns (columns with <2 chunks).
 - Figure caption redundancy (`figure:` chunk opens with an image whose alt text becomes a `<figcaption>` stacked under the heading – discourages three-label pile-ups of heading + sub-heading + caption).
@@ -298,35 +226,20 @@ A chunk can opt out of that derivation with `::: slide` (this block is the scree
 
 Chunk grammar: `## type: Heading | Sub-Heading {.width #id}` where `type` is one of `title`, `closing`, `outline`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`, and width is one of `narrow` (28em), `standard` (36em), `wide` (52em), `full` (72em). The `|` sub-heading and the `{...}` attribute tail are both optional; width defaults to `standard`.
 
-Four things worth knowing before writing chunks, all learned the hard way:
+An attribute tail may also carry six non-width classes: `.bare` and `.center`
+(`VALID_CHUNK_CLASSES`, audience-only) and `.wrap-none` / `.wrap-balance` /
+`.blocks-left` / `.blocks-center` (`CHUNK_STYLE_CLASSES`, a `style:` key answered
+for one chunk, and these four reach print). All six are refused on a `title` or
+`closing` chunk except the `style:` four. **The vocabulary, what each one costs,
+the character budget a code line has and why `.bare` hides rather than drops are
+in the `psi-slides-authoring` and `psi-slides-appearance` skills** – authoring
+for what to write, appearance for what the build does with it.
 
-- **`principle` is not a narrow type.** The type sets treatment and budget, never width, but the docs used to pair it with `.narrow` and every example followed – which meant anything longer than one sentence became a tall thin ribbon. Prefer `.standard` for principles. `narrow` itself went from 22em to 28em for the same reason.
-- **Code lines have a width budget, and it is smaller than it looks.** A `<pre>` does not wrap, so a long line would run off the projection. `clampZoomToWidth()` stops that by shrinking *that one slide* – never the lecturer's zoom setting, which is global and comes back on the next chunk. The budget at the default zoom (1.35) in a 16:9 window is roughly **78 characters**, and it is the **same at every chunk width**: a top-level code block breaks out of the text column to 72vw and pins to the slide centre, so `.narrow` and `.full` give a line exactly as much room. Inside one pane of a `::: side` the block stays in its local container and the budget is about **36**. The count holds for any 16:9 window, because the base font is a fraction of the slide height, and it is measured against the bundled JetBrains Mono at 0.60 em per character – `mono: Noto Sans Mono Condensed` measures 0.50 and buys about **94**. (It was ~57 and ~27 until `.chunk-body pre` stopped multiplying by `var(--zoom)` a second time – code is set at 0.78 of the prose it sits in, and until that fix the ratio only held at zoom 1.) Over budget is not an error, it is a slide rendered smaller than its neighbours – so treat a heavily clamped chunk as a signal to break the line, not as something the runtime should fix harder.
+Two things worth knowing before writing chunks, because neither is guessable and
+both were learned the hard way:
 
-  **A chunk carrying a top-level code block wants `.wide` or `.full`, and the reason is that same 72vw.** Measured in a built page at 1600×900 and the default zoom: the prose column is 842 px in `.standard` and 1152 px in `.wide` and `.full`, and 72vw is 1152 px exactly. So in a `.wide` chunk the block and the prose are the same column, and in a `.standard` one the block sticks out on both sides of the text it belongs to and reads as a rendering fault. It is not one – the clamp budget really is the same at every width – but the eye is measuring the block against the paragraph above it, not against the frame. The tutorial's `#figure-focus` shipped `.standard` for exactly this reason and was widened.
-- **A chunk's heading can be the document's without being the slide's.** `## figure: How a crawl is scored {.full #loop .bare}` renders the heading in `print.html` and in the search index, and **not on the projection**. `style: {headings: off}` is the same switch for a whole deck. The case is a talk that is a run of `::: draw` figures with speaker notes: the room looks at the drawing, and the deck still needs a name per slide to navigate by and to print. Leaving the heading *text* out gives up all four at once, which is the trade the `psi-slides-appearance` skill's note on figure headings describes; this gives up only the first.
-
-  Three things make it cheap and none should be traded away. It is `display: none` and **not a dropped element**, because the search index and the speaker's own lists read the heading's text out of the DOM. **Neither table of contents is among them, and the docs used to say it was**: `renderToc` and the live `nav#toc` both build from `columns.filter(c => c.heading)`, so a *chunk* heading has never appeared in either. What `.bare` costs is the slide and nothing else; what it saves is the printed document and search. It is emitted **only by the audience renderer**, so `PRINT_CSS` carries no rule and the document is byte-identical. And `off` lives in the **existing `style.headings` key** beside `left` and `center` rather than in one of its own: the two readings are one question – what the projection does with a heading – and a second key's only legal combination with this one would have been "off, and also aligned left", which means nothing.
-
-  `.bare` is one of the six non-width classes an attribute tail may carry
-  (`VALID_CHUNK_CLASSES`); `.center` is the second, and it sets the chunk's
-  prose on a centre axis. Both are audience-only for the same reason – where
-  words sit on a slide is not a question the printed document asks – and
-  `.center` reaches `.chunk-body > .reveal-segment > p` and nothing nested, so
-  a list, a table, a code block and a `::: side` pane keep their left edge.
-  Centring every `figure:` caption by default was tried and reverted: the
-  seven-line paragraph under `lectures/diagrams` `#flowchart` came out ragged
-  on both edges, and no selector knows how long a caption is.
-
-  An unknown class in that tail used to be dropped without a word by the build while `lint.js` called it an unknown *width*, which named the wrong thing; both now say "unknown class" and list what a tail takes. Neither class is legal on a `title` or `closing` chunk, where the cover composition decides the width, the heading and, through `cover-align`, where the words sit.
-
-- **The other four classes in that tail are a `style:` key answered for one chunk.** `.wrap-none` / `.wrap-balance` and `.blocks-left` / `.blocks-center` (`CHUNK_STYLE_CLASSES`, mirrored in `lint.js`), each spelled `<key>-<value>` so either form is guessable from the other. Only `wrap` and `blocks` have this, and deliberately: they are the two `style:` keys whose right answer changes from slide to slide, where `headings`, `rules` and `labels` are decisions a deck makes once. Both directions of both, because under a deck-wide `wrap: none` the only way left to ask for balancing is to ask for it here.
-
-  **Unlike `.bare` and `.center`, these four reach print**, because the keys they answer do – `data-wrap` has been in `PRINT_CSS` since it landed. They are also legal on a `title` or `closing` chunk, where a width, `.bare` and `.center` are refused: a cover's title is a heading and balances like one. `lint.js` exempts them from its cover-chunk refusal for that reason; it used to refuse every class there, and the build refuses only `width || bare || center`.
-
-  `style: {blocks: left}` is the deck-wide half, and what it moves is not the same for the three families it reaches. A top-level `pre` is centred **as a box** by the 72vw breakout (`left: 50%` plus a translate) and its listing was left-aligned all along, so `left` moves the box; a figure and a display formula are already the full measure, so what moves is inside them. The left-aligned breakout's cap, `calc(var(--slide-w) * 0.36 + 50%)`, is exact for any centred column and is what keeps the 78-character code budget the same in both directions – `test/block-align.mjs` measures it at two chunk widths and two window sizes. A `::: draw` is outside the key: its `<svg>` is 2000px wide under `max-width: 100%` and fills the measure at every width. In `AUDIENCE_CSS` every chunk-level rule is prefixed `#stage`, which is load-bearing – the deck-wide heading-balance rule carries an id (`#toc-panel li` rides in its `:is()` list) and a class-only rule cannot outrank it – and which also keeps the `blocks` rules off the focus overlay, where a centred modal card is correct.
-
-- **The live views do not print the type name.** The small-caps eyebrow (PRINCIPLE, DEFINITION, …) was removed from `renderAudienceChunk`: it announced a taxonomy that is only as right as the type choice was, and a mislabelled slide reads to the room as an error. `renderChunk` (the document renderer) still emits `.chunk-label`, and `.tag-label` in the audience is now only the *expansion* label. Search results read the type off `data-tag` for this reason.
+- **`principle` is not a narrow type.** The type sets treatment and budget, never width. The docs used to pair it with `.narrow` and every example followed, which made anything longer than one sentence a tall thin ribbon. Prefer `.standard`; `narrow` itself went from 22em to 28em for the same reason.
+- **The live views do not print the type name.** The small-caps eyebrow (PRINCIPLE, DEFINITION, …) was removed from `renderAudienceChunk`: it announced a taxonomy only as right as the type choice was, and a mislabelled slide reads to the room as an error. `renderChunk` (the document renderer) still emits `.chunk-label`, and `.tag-label` in the audience is now only the *expansion* label. Search results read the type off `data-tag` for this reason.
 
 ### Animated infographics (`::: draw`) and the diagram editor
 
@@ -444,6 +357,7 @@ position with it. See `speaker.md` §2.
 ## Reference material
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the six gates guards, the four browser-spec families, and the five specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.
@@ -458,7 +372,15 @@ position with it. See `speaker.md` §2.
 - `lectures/tutorial/source.md` – the canonical authoring reference (self-referential lecture). Build and open its `audience.html` to see every directive live.
 - `lectures/diagrams/source.md` – every `::: draw` construct, including two of the stepped figures the feature was built for (CBC decryption, a stack frame being overrun) and, in `#sequence` and `#seqmore`, the whole of the `sequence` sub-grammar with two annotations hung off its generated names. Its `#look` chunk is the reference for the class vocabulary: every fill, every family, and the three answers to how type meets its box.
 
-  **`#look`'s `::: draw` block is load-bearing for four browser specs and must not be split.** `figure-prominence` reads `pr0`–`pr3` out of it, `editor-aim` selects its chevron and its `paper` box, and `editor-guides` and `editor-drag-guides` both measure its geometry – the neighbour-guide sections need a figure several rows tall with bare `at` anchors, which is what six rows in one block gives them and what no single row does. Splitting the drawing across slides was tried and reverted: the specs went red, and re-deriving their premises against smaller figures did not converge. The **prose** under it was 843 words on one slide and was split instead, onto `#outlines`, `#outline-size`, `#prominence` and `#typefit`, which is why the commentary on a row now sits one slide after the row. `#outline-size` is the one that also draws: a *labelled* diamond, the case the catalogue deliberately cannot show. If a spec ever needs a different shape, give it a fixture deck the way `squint`, `math-focus`, `side-anchor`, `block-align` and `cards` do, rather than editing this figure.
+  **`#look`'s `::: draw` block is load-bearing for four browser specs and must
+  not be split** – `figure-prominence`, `editor-aim`, `editor-guides` and
+  `editor-drag-guides` all measure that one figure, and the guide specs need one
+  several rows tall with bare `at` anchors. Splitting the drawing was tried and
+  reverted; its **prose** was split instead, onto `#outlines`, `#outline-size`,
+  `#prominence` and `#typefit`, which is why the commentary on a row sits one
+  slide after the row. The same cure was then applied to seven more chunks that
+  `--check-fit` reported as taller than the frame. A spec that needs a shape the
+  lectures do not have gets a fixture deck – see `test/README.md`.
 
   The lecture-wide `draw-defaults` block is in its frontmatter.
 - `lectures/decoration/source.md` – **every slide-decoration construct, shown rather than described**: the card and row vocabulary, `::: side` with a ratio, `::: backdrop` with a `reveal` in both directions, `::: overlay` with `from`, `{.bare}`, `::: draw {autoplay cycle}`, a `## outline:` chunk, a `## closing:` slide, and the three kinds of divider content – a quotation, a photograph and a figure, one per column. It is the third tracked lecture, for the same reason `lectures/diagrams/` is the second: a reader should be able to see a construct working before writing it.
@@ -467,7 +389,7 @@ position with it. See `speaker.md` §2.
 
 - `lectures/network-security/source.md` – **thirty-six real lecture slides rebuilt as figures**, and the reason the outlines, `.turn`, `bars`, `grid`, `plot` and `.smooth` exist. Rebuilt from two PowerPoint decks with the wording kept verbatim (original typos included, each marked in a `#` comment) and the arrangement redrawn. Read it for what the vocabulary looks like at scale; `figure-design.md` is the rules it was built against. Linted **and built** by CI, as a compiler check on the largest body of real figures there is, but not published – unlike `lectures/diagrams/`, which is now both. Its views are not tracked, so a build here is the only thing that compiles it.
 - `lectures/python-intro/source.md` – richest example of `::: cols`, `::: side`, and `::: marginalia` in combination, 36 chunks. It is also what the project site's screenshots come from, so a change to `#why-playwright` means re-running `docs/site/shoot.mjs`.
-- `docs/artifact/` and `docs/site/figures.html` – **two pages, and the split is the point.** `docs/site/figures.html` is the *case* for the figure language: situation, complication, answer, then three figures that carry it (the seven-line hero, the two-beat one whose second beat moves four things nobody named, and a passkey protocol), then the four decisions and the comparison with drawing tools and auto-layout languages. `docs/artifact/figures-you-write.html` is the *manual*: build a figure a line at a time, give it beats, then every class and statement, fifteen design rules, and a gallery. They were one page, and it did neither job well – its own eyebrow put `start here` on the **second** section, 1,562 words in, and a reader who wanted to learn walked through a manifesto naming all nine step verbs before meeting a `box`. Splitting them put `start here` first and cut those 1,562 words to 306. **Both are produced by `refresh-figures.mjs`**, which is the only text that compiles a figure for publication, and `--check` covers both &ndash; **run by `pages.yml` before it assembles the site and by `release.yml` beside the tracked-output check**, which it was not when those two files first claimed it was. A staleness gate nothing runs is a comment; `demo-controls.js` is inlined into both, because two copies of the same event wiring is how the arrows on one page come to behave differently from the arrows on the other. `build-site.js` copies the manual into the published site, because the case ends by sending the reader to it. Plus the lecture both draw with. `figures-you-write.html` is hand-written prose around machine-made parts: every drawing, every listing, the stepped demos, the compiler's stylesheet, its runtime and the three webfonts are lifted out of a real build (or out of `node_modules`) by `refresh-figures.mjs`, so a change to the compiler reaches the page by running that script rather than by anyone redrawing anything. **The page fetches nothing at run time** – the fonts are embedded as `data:` URIs rather than pulled from Google Fonts, which is the same reasoning the project site follows and the same promise the lecture outputs make. Verified by loading it with every non-`file:`, non-`data:` request blocked: zero requests. It costs 372 KB of base64 for six faces. `figure-rules/source.md` is the lecture those figures are compiled from, and it exists only to be compiled – CI lints it, and a compiler change that would spoil the page breaks it there first, where `node lint.js` can name the line. Its chunk ids are the contract with the script; do not rename one without renaming it there too.
+- `docs/artifact/` and `docs/site/figures.html` – **two pages, and the split is the point.** `docs/site/figures.html` is the *case* for the figure language; `docs/artifact/figures-you-write.html` is the *manual*. Both are produced by `docs/artifact/refresh-figures.mjs`, the only text that compiles a figure for publication, and its `--check` covers both – **run by `pages.yml` before it assembles the site and by `release.yml` beside the tracked-output check.** A staleness gate nothing runs is a comment. `docs/artifact/figure-rules/source.md` is the lecture both pages draw with, and it exists only to be compiled: CI lints it, so a compiler change that would spoil either page breaks it there first, where `node lint.js` can name the line. **Its chunk ids are the contract with the script – do not rename one without renaming it there too.** Everything else about the two pages, what the script owns and why the page fetches nothing at run time: `docs/artifact/README.md`.
 - `docs/comparison.md` – how psi-slides differs from Beamer, reveal.js, Quarto, Marp and friends, in both directions. Published as a page on the site.
 
 ## Conventions

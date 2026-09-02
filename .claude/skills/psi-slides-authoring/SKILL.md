@@ -150,6 +150,19 @@ edges of the paragraph above it and reads as a rendering fault. The line-length
 budget is unaffected (it is 72vw at every width); this is about the block and
 its own prose lining up.
 
+**The line-length budget itself is about 78 characters**, and it is the same at
+every chunk width for that same reason - a top-level block gets 72vw whether the
+chunk is `.narrow` or `.full`. Inside one pane of a `::: side` the block stays in
+its local container and the budget is about **36**. The number is measured
+against the bundled JetBrains Mono at 0.60 em per character; `mono: Noto Sans
+Mono Condensed` measures 0.50 and buys about **94**. It holds for any 16:9
+window, because the base font is a fraction of the slide height.
+
+Going over is not an error. `clampZoomToWidth()` shrinks **that one slide** so
+the line still fits - never the lecturer's zoom, which is global and comes back
+on the next chunk. So a heavily clamped chunk reads smaller than its neighbours,
+and the fix is to break the line rather than to make the runtime try harder.
+
 The live views do **not** print the type name on screen. Do not write prose that
 depends on the room seeing the word DEFINITION.
 
