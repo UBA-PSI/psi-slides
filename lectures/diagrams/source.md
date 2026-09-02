@@ -638,9 +638,12 @@ step all-again
 
 **A beat can also take a class off, and `{!class}` is the only word for it.** A `style` step could once only *add*, and because many slots spell their base state as the absence of every member – ordinary prominence, a solid stroke, the normal type size – a beat could leave such a state and never reach it again. The last beat here takes `.dim` and `.emph` off and gives the figure its opening weighting back. **The mark removes the exact name written, not the slot**: `{!dim}` clears no `.ghost`, and a later beat may set `.dim` again.
 
+## free: What a step does not have to say {.wide #motion-implicit}
+
 **Anything hanging off something invisible stays invisible.** So neither the `container` nor the dashed arrows nor the handwritten label needs a `show` of its own: an arrow is only as visible as its ends, a `container` only as visible as its members, and a `text` with a leader only as visible as what it points at. The first step says `show px` and nothing else – the two dashed arrows arrive with the proxy.
 
 **Naming an element overrides that rule, in both directions.** `hide direct` takes the direct arrow away though both its ends are still there; a written `show` does the reverse and brings something on screen whose source is still missing – an outline, say, that should stand around its whole set before the set is assembled (the tree in Part 5, under *Leaves first, and the brackets follow*). Both hold from the beat they are written in onwards. Write one only where the rule says the wrong thing. Write a `show` on every element and you have a figure that stays incomplete the next time one is added: the element is in the block, no step names it, and it never appears.
+
 
 ## figure: Where the words sit {.wide #justify}
 
@@ -680,7 +683,10 @@ edge sb bl.left,bl.bottom+0.95 -> br.right,br.bottom+0.95 "side bottom" side bot
 
 With more than one line **the whole block of lines moves, not the single line**, so on two lines `bottom` puts the *last* one on the inner edge rather than the first. `turn` beats both: a turned label reads bottom to top and is centred on its point whichever way round it goes.
 
-**The nine boxes above are two independent channels; the two lines around them are one.** A box label sits somewhere in a rectangle of space, so there are three answers across and three down. An edge label lies on one side of its line or the other, and that is all. The same four words for both meant `{.top .left}` was writable on an edge, which has only one side to pick. On an edge it is therefore `side <word>`, the pattern `point` follows on the outlines: a closed word list as an option instead of a class per word. Which pair can choose at all is settled only once the line is routed, so naming the other one draws a warning.
+## free: One question across, one question along {.wide #justify-edges}
+
+**A box label and an edge label are two different questions, and only one of them has nine answers.** A box label sits somewhere in a rectangle of space, so there are three answers across and three down. An edge label lies on one side of its line or the other, and that is all. The same four words for both meant `{.top .left}` was writable on an edge, which has only one side to pick. On an edge it is therefore `side <word>`, the pattern `point` follows on the outlines: a closed word list as an option instead of a class per word. Which pair can choose at all is settled only once the line is routed, so naming the other one draws a warning.
+
 
 ## figure: Six statements that expand {.full #expand}
 
@@ -792,11 +798,14 @@ step judge
 
 **`w` and `h` are counted in grid units, and a grid cell is not square. That is the trap.** At `unit=150x58` a `plot … w 1.9 h 1.5` comes out 285 by 87 pixels: the two numbers are a quarter apart, the picture more than three times. **`aspect W:H` states the proportion the reader actually sees** and lets the build work the missing number out. This ROC curve is therefore written `aspect 1:1` and comes out square, as two axes carrying the same unit should – the chance diagonal runs at 45 degrees, the only slope at which it says what it is called. `4:3`, `1:1` or a single number (that many wide to one tall) are all allowed; `w`, `h` and `aspect` together is an error, because two of the three can contradict each other. The same word and the same rule apply on `bars`.
 
-**The curves are ordinary edges.** `.smooth` draws the same waypoints as a curve running *through* them instead of as straight segments – an interpolating spline, so a waypoint stays exactly where it was written. The skew warning stays quiet here, its premise not holding: on a curve two nearly level points are the shape rather than two ends that missed each other.
+## free: A curve, and the label beside it {.wide #plot-curves}
+
+**The curves are ordinary edges.** `.smooth` draws the same waypoints as a curve running *through* them instead of as straight segments – an interpolating spline, so a waypoint stays exactly where it was written. The skew warning stays quiet on a curve, its premise not holding: two nearly level points are the shape there rather than two ends that missed each other.
 
 **“weaker” is an edge label *beside* the line, and the ground travels with it.** A fill class on an edge draws a ground behind the label; without a `side top`, `side bottom`, `side left` or `side right` it stays on the line and knocks it out, which is what *The road straight down* does with “yes” and “no”. With one of them it moves clear and takes the ground along. For the name of a curve that is the only choice: on the line it would knock out exactly what it names. The ground still has work to do, because the diagonal and two gridlines run under the curve.
 
-**The word is short, and that is not a matter of taste here.** The label is moved clear along the normal *at the middle* of the curve, but the curve goes on climbing, so a long label runs back into its own line at both ends instead of staying beside it. Beside a horizontal or vertical edge the question does not arise, and there a label may be as long as it needs to be.
+**The word is short, and on a curve that is not a matter of taste.** The label is moved clear along the normal *at the middle* of the curve, but the curve goes on climbing, so a long label runs back into its own line at both ends instead of staying beside it. Beside a horizontal or vertical edge the question does not arise, and there a label may be as long as it needs to be.
+
 
 ## figure: One size, two frames | two plots that can be compared {.full #sameframe}
 
@@ -935,9 +944,12 @@ step certificates
 
 **A tree is built from the leaves.** They are the fixed points, and every level above stands `between` its own children with an `offset` upwards. Written the other way round the compiler copes – it reads the whole block and resolves the dependencies in whatever order works out, not in line order – but the tool you then reach for does not: `align x middle rt, i1, i2` hands the *first* named element's coordinate to the rest, so it would not put the root over its children but stack both children on the root's centre line.
 
-**The brackets are the same word six times.** `.elbow` leaves one end on the axis the two are further apart on, runs a rail halfway across the gap and arrives on the same axis; both attachment points are forced onto that axis, whatever the automatic choice would otherwise have taken. The rail is measured between the two elements' *facing edges*, not between their centres, so it lies on one line for both children of an issuer and the pair reads as one bracket rather than as two connectors. By hand that would be twelve waypoints, recomputed every time a level changes its spacing. Put the rail somewhere else with `via`; both on one line is an error. `.elbow` shares a slot with `.smooth`: how a line is drawn is a question with exactly one answer.
+## free: One word draws all six brackets {.wide #tree-elbow}
 
-**The dashed box stands around the whole set before the set is assembled.** It is written into the same beat as the issuers (`show @issuers, scope`), though its other two members arrive a beat later. Without the written `show` the usual rule applies: an outline is only as visible as its members and fits itself to the ones you can see, so it would first have grown around the issuer alone and then opened downwards. Naming it gets you both the visibility *and* the full extent. That is what the exception is for, and it is expressly not for the ordinary case.
+**Every bracket in that tree is the same word, written six times.** `.elbow` leaves one end on the axis the two are further apart on, runs a rail halfway across the gap and arrives on the same axis; both attachment points are forced onto that axis, whatever the automatic choice would otherwise have taken. The rail is measured between the two elements' *facing edges*, not between their centres, so it lies on one line for both children of an issuer and the pair reads as one bracket rather than as two connectors. By hand that would be twelve waypoints, recomputed every time a level changes its spacing. Put the rail somewhere else with `via`; both on one line is an error. `.elbow` shares a slot with `.smooth`: how a line is drawn is a question with exactly one answer.
+
+**Its dashed box stands around the whole set before the set is assembled.** It is written into the same beat as the issuers (`show @issuers, scope`), though its other two members arrive a beat later. Without the written `show` the usual rule applies: an outline is only as visible as its members and fits itself to the ones you can see, so it would first have grown around the issuer alone and then opened downwards. Naming it gets you both the visibility *and* the full extent. That is what the exception is for, and it is expressly not for the ordinary case.
+
 
 ## figure: One line per row | a table {.full #table}
 
@@ -1019,11 +1031,14 @@ step everything
 
 **`sequence` therefore owns exactly one thing: the vertical rhythm.** Every entry states how tall it is – a message as tall as its label, a note as tall as its text – and the statement stacks them. A box pushes down what stands under it, and an inserted line is an inserted line. Across, the statement measures itself the same way: all heads are as wide as the widest label, so a row of equal participants does not stand there ragged. `w`, `header` and `space` are overrides nobody normally writes.
 
+## free: Every part of a sequence keeps a name {.wide #seq-names}
+
 **A message may also name itself, and the name goes in front.** `tunnel c -- s "…"` – in exactly the slot an `edge` carries its name in, before the first endpoint. It is worth doing on the lines something else points at: a generated name like `x-4` counts messages and moves the moment one is added above it, where a written name stays put. Staying anonymous costs nothing, and most messages do.
 
-**Everything else it answers by keeping a name on every part, not by adding words.** Each head keeps the name its `actor` line gives it; each lifeline is `<actor>-life`, each message `wa-N` (counted from 0, so the number drawn is `N+1`), its number `wa-n-N`, its smaller second line `wa-sub-N`, each note `wa-note-N`. Plus tags for the sets: `@wa-msg-N` for one message with its number and second line, `@wa-msgs` for all of them, `@au-msgs` for all that touch the authenticator, `@wa-notes`, `@wa-actors`, `@wa-lives`. The brace and the handwritten annotation above are therefore ordinary lines hung off `wa-3` and `wa-2`, and the statement knows nothing about either.
+**Everything else it answers by keeping a name on every part, not by adding words.** Each head keeps the name its `actor` line gives it; each lifeline is `<actor>-life`, each message `wa-N` (counted from 0, so the number drawn is `N+1`), its number `wa-n-N`, its smaller second line `wa-sub-N`, each note `wa-note-N`. Plus tags for the sets: `@wa-msg-N` for one message with its number and second line, `@wa-msgs` for all of them, `@au-msgs` for all that touch the authenticator, `@wa-notes`, `@wa-actors`, `@wa-lives`. The brace and the handwritten annotation on *A protocol down the page* are therefore ordinary lines hung off `wa-3` and `wa-2`, and the statement knows nothing about either.
 
 **There is no `alt` / `else`.** Enclosing a group of messages and naming it is what `container … pad n` already draws, and two of the nine figures in the measured corpus wanted it. A word that freezes with the first release deserves more cases than that.
+
 
 ## figure: What else a message can be {.wide #seqmore}
 
@@ -1049,13 +1064,18 @@ brace tun over tunnel side right "this is the payload" pad 0.35 {.muted .small}
 
 **The token states the head, not a class.** Each of the four sets exactly one of the three states – no head, one, one at each end – so the same thing is never said twice on one line: `{.no-head}` beside a `->` is an error rather than a silent contradiction. Inside a beat the reverse holds, and there the class is the only spelling, because a token cannot be run again.
 
+## free: A self-message, a note, and the air between bands {.wide #seq-entries}
+
 **A self-message is the usual way to put a local action into the sequence**, and it loops out of the lifeline and back in. Its label stands beside the loop, its second line under it. A note between two names sits midway between their lifelines and is as wide as its own text – not as wide as the span, or three words become a banner. It breaks at `\n`, so a three-line note stays a note.
 
-**`space` on an entry line is the air above that one band.** The tunnel at the bottom carries `space 0.9` and stands visibly apart from the setup above it; two or three such gaps break a long exchange into phases a room can hold. A blank line in the source does not do this: the statement reads through blank lines, so the source may be grouped however it reads best. On an `actor` line `space` is an error, there being no band above the heads.
+**`space` on an entry line is the air above that one band.** The tunnel at the foot of *What else a message can be* carries `space 0.9` and stands visibly apart from the setup over it; two or three such gaps break a long exchange into phases a room can hold. A blank line in the source does not do this: the statement reads through blank lines, so the source may be grouped however it reads best. On an `actor` line `space` is an error, there being no band above the heads.
 
-**Every message label brings its own ground.** A lifeline crosses every label in the figure, so the ground is drawn from the start and the dashed line is knocked out behind the words. `{.clear}` takes it away, `{.tone-2}` colours it. The smaller second line gets the same ground; the numbers on the left get none, standing outside the frame and crossing nothing.
+## free: What a label sits on, and the column of numbers {.wide #seq-labels}
+
+**Every message label brings its own ground.** A lifeline crosses every label a sequence draws, so the ground is drawn from the start and the dashed line is knocked out behind the words. `{.clear}` takes it away, `{.tone-2}` colours it. The smaller second line gets the same ground; the numbers on the left get none, standing outside the frame and crossing nothing.
 
 **`unnumbered` takes the column of numbers away.** It is there otherwise because renumbering by hand is exactly the work the statement removes, and because the number drawn and the index in the tag are the same number: `@x-msg-3` is the arrow the room reads as 4. Where an exchange is short enough that nobody points at a number, the column is just paper.
+
 
 ## figure: A figure that plays itself | `autoplay` and `cycle` {.wide #autoplay}
 
