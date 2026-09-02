@@ -8988,6 +8988,19 @@ function cycleCollapse(dir = 1) {
   flashMode('collapse: ' + COLLAPSE_LABEL[state.collapse]);
 }
 
+// One step of the zoom key, snapped to the ladder rather than added to where
+// we happen to be. Adding 0.1 to the 1.35 default gave 1.25, 1.15, 1.05,
+// 0.95 - a ladder on which **1.00 cannot be reached at all**, which is the
+// one number a lecturer is most likely to want. Working in whole units of
+// 0.05 (the grid clampZoom already rounds to) keeps the arithmetic exact:
+// from an odd unit the first press lands on the neighbouring even one, and
+// every press after that is a whole 0.1.
+function stepZoom(dir) {
+  const n = Math.round(zoomBase() * 20);
+  const m = (n % 2 === 0) ? n + dir * 2 : n + dir;
+  setZoom(m / 20);
+}
+
 function setZoom(z) {
   state.zoom = clampZoom(z);
   document.documentElement.style.setProperty('--zoom', state.zoom);
@@ -9577,11 +9590,11 @@ document.addEventListener('keydown', (e) => {
     case '#': cycleAutoFit(1); e.preventDefault(); break;
     case '+': case '=':
       if (focusedFigure) setFigureScale(figureScale * 1.2);
-      else setZoom(zoomBase() + 0.1);
+      else stepZoom(1);
       e.preventDefault(); break;
     case '-': case '_':
       if (focusedFigure) setFigureScale(figureScale / 1.2);
-      else setZoom(zoomBase() - 0.1);
+      else stepZoom(-1);
       e.preventDefault(); break;
     case '0':
       if (focusedFigure) {
@@ -9972,11 +9985,11 @@ function wireTouchControls() {
       case 'overview':  toggleOverview(); break;
       case 'zoom-in':
         if (focusedFigure) setFigureScale(figureScale * 1.2);
-        else setZoom(zoomBase() + 0.1);
+        else stepZoom(1);
         break;
       case 'zoom-out':
         if (focusedFigure) setFigureScale(figureScale / 1.2);
-        else setZoom(zoomBase() - 0.1);
+        else stepZoom(-1);
         break;
       case 'more':      setPalette(palette && palette.hidden); break;
       case 'collapse':  cycleCollapse(1); break;

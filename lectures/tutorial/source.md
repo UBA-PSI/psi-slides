@@ -1073,7 +1073,7 @@ of them are shown one per slide in
 
 ## example: A picture that fills the frame | `::: backdrop` and `::: overlay` {.wide #backdrop}
 
-**`::: backdrop` puts a picture behind the whole slide, edge to edge, and `::: overlay` puts a block of text on top of it.** One line each, on any chunk – a cover is not a special case.
+**`::: backdrop` puts a picture behind the whole slide, edge to edge, and `::: overlay` puts a block of text on top of it.** One line each, on any chunk – a cover is not a special case. A backdrop names its picture the same three ways an image does: a bare asset id, a path, an https address.
 
 ```markdown
 ## figure: {#skyline .full}
@@ -1086,17 +1086,13 @@ A crawler that looks like a browser gets measured back.
 :::
 ```
 
-A backdrop names its picture the same three ways an image does – a bare asset id, a path, an https address. **The words in its braces answer five questions, at most one word each.**
+## example: The words in the braces | five questions for a backdrop, three for an overlay {.wide #backdrop-words}
 
-- **How the picture fills the frame** – it covers the slide, or it fits inside it whole.
-- **Which part of it survives the crop.**
-- **What is laid over it.** Without asking you get `veil`: the theme's own paper at 80%, so ordinary dark text stays legible on a photograph in all seven themes. `invert` darkens the picture and turns the text light instead – the next slide is one.
-- **Whether it is sharp or blurred.**
-- **Whether it sits under the type or in front of it.**
+**A backdrop's braces answer five questions, at most one word each.** How the picture fills the frame – it covers the slide, or it fits inside it whole. Which part of it survives the crop. What is laid over it. Whether it is sharp or blurred. And whether it sits under the type or in front of it. Two words answering the same question is an error, and the message names both.
 
-Two words answering the same question is an error, and the message names both.
+**Without asking you get `veil`**: the theme's own paper at 80%, so ordinary dark text stays legible on a photograph in all seven themes. `invert` darkens the picture and turns the text light instead – the next slide is one.
 
-An overlay answers three: **where** on a 3×3 grid, **what it sits on** (`paper`, `ink`, `accent`, `clear` or `glass`) and **how wide**. Every one is a card with padding and rounded corners, because text laid straight onto a photograph is unreadable at the back of a room.
+**An overlay answers three**: *where* on a 3×3 grid, *what it sits on* (`paper`, `ink`, `accent`, `clear` or `glass`) and *how wide*. Every one is a card with padding and rounded corners, because text laid straight onto a photograph is unreadable at the back of a room.
 
 [The decoration lecture](../decoration/audience.html) has a slide for each of the two lists, and a backdrop whose window opens on a keypress.
 
@@ -1150,6 +1146,10 @@ Use `cols` for an argument that runs long, and `cards` for a comparison the room
 - **`corner`**, **`detail`** and **`scrim`** – the radius, the small print, and what is laid over a picture.
 - **`size`** and **`align`** decide themselves: the longest item picks the size, and the alignment follows it.
 
+## example: One ground for a whole row | `accent`, `paper`, `clear` {.wide #cards-ground}
+
+**`ground` is answered once for a whole row**, so three grounds means three rows, each written `::: cards 1 {…}` with its own word. `panel` is the default, a tinted fill; `outline` is a hairline and no fill; `photo` makes the card's first picture its background, and `scrim` says what is laid over it.
+
 ::: cards 1 {accent}
 - **accent** – the theme's own colour, with the text in the page colour on top
 :::
@@ -1162,7 +1162,7 @@ Use `cols` for an argument that runs long, and `cards` for a comparison the room
 - **clear** – no box at all, so the gap is what separates one card from the next
 :::
 
-**Each of those rows is written `::: cards 1 {…}` with its own word**, because `ground` is answered once for a whole row: three grounds means three rows. `panel` is the default, a tinted fill; `outline` is a hairline and no fill; `photo` makes the card's first picture its background, and `scrim` says what is laid over it.
+## example: A tail that answers twice | `::: cards 3 {outline middle}` {.wide #cards-anchor}
 
 ::: cards 3 {outline middle}
 - **outline**\
@@ -1173,7 +1173,7 @@ Use `cols` for an argument that runs long, and `cards` for a comparison the room
   a fill inside a hairline reads as a form field rather than as a card
 :::
 
-**That one is `::: cards 3 {outline middle}`**, so it answers two questions: `ground`, and `anchor` – where the text sits when the card is taller than its content, which it always is, a grid row being as tall as its longest card.
+**That row is `::: cards 3 {outline middle}`**, so its tail answers two questions at once: `ground`, and `anchor` – where the text sits when the card is taller than its content, which it always is, a grid row being as tall as its longest card.
 
 ## example: A term and what it means | `::: rows` {.wide #rows}
 
@@ -1199,6 +1199,10 @@ Reach for `rows` when a term needs a sentence, and for `cards` when a comparison
 
 That drawing is a `::: draw` block inside the second pane. In `print.html` and `print-notes.html` the two panes stack one after the other and the ratio is ignored, because a page has only one column to give them.
 
+**A short pane sits at the top of its half unless you say otherwise, and `{middle}` centres it against the taller one.** Here the *figure* is the short pane, so `{middle}` is what puts it level with the middle of this column instead of at the top. `{top}` is the default and often right – a caption over a figure is aligned from the top on purpose. The word belongs to the block and not to either pane, because the taller pane is what makes the row tall, so centring can only ever move the shorter one.
+
+**A figure *above* or *below* the text needs nothing at all** – put the block first or last in the chunk body. `::: cols` is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns quietly stop working. A `::: draw` written there is refused, and the message points you at `::: side`.
+
 ::: flip
 
 ::: draw {unit=140x60}
@@ -1208,12 +1212,6 @@ edge a -> b "request"
 :::
 
 :::
-
-**A short pane sits at the top of its half unless you say otherwise, and `{middle}` centres it against the taller one.** This slide is `::: side 2:1 {middle}`. `{top}` is the default and often right – a caption over a figure is aligned from the top on purpose. The word belongs to the block and not to each pane, because the taller pane is what makes the row tall, so centring can only ever move the shorter one.
-
-**A figure *above* or *below* the text needs nothing at all** – put the block first or last in the chunk body. `::: cols` is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns quietly stop working. A `::: draw` written there is refused, and the message points you at `::: side`.
-
-**A card row works inside one half of a `::: side` block.** `::: cards 1` in a narrow half gives you a stacked column, and one card on its own is a callout.
 
 ## example: Setting the typography for a whole lecture | the `style:` block {.wide #style-block}
 

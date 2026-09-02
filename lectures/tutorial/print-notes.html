@@ -2581,7 +2581,7 @@ of them are shown one per slide in
   <span class="chunk-num" aria-hidden="true"><i>5</i><i>9</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A picture that fills the frame</span> <span class="hd-sub"><code>::: backdrop</code> and <code>::: overlay</code></span></h2>
-  <p><strong><code>::: backdrop</code> puts a picture behind the whole slide, edge to edge, and <code>::: overlay</code> puts a block of text on top of it.</strong> One line each, on any chunk – a cover is not a special case.</p>
+  <p><strong><code>::: backdrop</code> puts a picture behind the whole slide, edge to edge, and <code>::: overlay</code> puts a block of text on top of it.</strong> One line each, on any chunk – a cover is not a special case. A backdrop names its picture the same three ways an image does: a bare asset id, a path, an https address.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold">## figure: {#skyline .full}</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#24292E">::: backdrop city-at-night {invert blur}</span></span>
@@ -2590,16 +2590,20 @@ of them are shown one per slide in
 <span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold">### Every endpoint is a sensor</span></span>
 <span class="line"><span style="color:#24292E">A crawler that looks like a browser gets measured back.</span></span>
 <span class="line"><span style="color:#24292E">:::</span></span></code></pre>
-<p>A backdrop names its picture the same three ways an image does – a bare asset id, a path, an https address. <strong>The words in its braces answer five questions, at most one word each.</strong></p>
-<ul>
-<li><strong>How the picture fills the frame</strong> – it covers the slide, or it fits inside it whole.</li>
-<li><strong>Which part of it survives the crop.</strong></li>
-<li><strong>What is laid over it.</strong> Without asking you get <code class="nb">veil</code>: the theme&#39;s own paper at 80%, so ordinary dark text stays legible on a photograph in all seven themes. <code class="nb">invert</code> darkens the picture and turns the text light instead – the next slide is one.</li>
-<li><strong>Whether it is sharp or blurred.</strong></li>
-<li><strong>Whether it sits under the type or in front of it.</strong></li>
-</ul>
-<p>Two words answering the same question is an error, and the message names both.</p>
-<p>An overlay answers three: <strong>where</strong> on a 3×3 grid, <strong>what it sits on</strong> (<code class="nb">paper</code>, <code class="nb">ink</code>, <code class="nb">accent</code>, <code class="nb">clear</code> or <code class="nb">glass</code>) and <strong>how wide</strong>. Every one is a card with padding and rounded corners, because text laid straight onto a photograph is unreadable at the back of a room.</p>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="backdrop-words" data-chunk-num="60">
+  
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>0</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">The words in the braces</span> <span class="hd-sub">five questions for a backdrop, three for an overlay</span></h2>
+  <p><strong>A backdrop&#39;s braces answer five questions, at most one word each.</strong> How the picture fills the frame – it covers the slide, or it fits inside it whole. Which part of it survives the crop. What is laid over it. Whether it is sharp or blurred. And whether it sits under the type or in front of it. Two words answering the same question is an error, and the message names both.</p>
+<p><strong>Without asking you get <code class="nb">veil</code></strong>: the theme&#39;s own paper at 80%, so ordinary dark text stays legible on a photograph in all seven themes. <code class="nb">invert</code> darkens the picture and turns the text light instead – the next slide is one.</p>
+<p><strong>An overlay answers three</strong>: <em>where</em> on a 3×3 grid, <em>what it sits on</em> (<code class="nb">paper</code>, <code class="nb">ink</code>, <code class="nb">accent</code>, <code class="nb">clear</code> or <code class="nb">glass</code>) and <em>how wide</em>. Every one is a card with padding and rounded corners, because text laid straight onto a photograph is unreadable at the back of a room.</p>
 <p><a href="../decoration/audience.html">The decoration lecture</a> has a slide for each of the two lists, and a backdrop whose window opens on a keypress.</p>
 
   
@@ -2607,9 +2611,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-full" id="deco-picture" data-chunk-num="60" data-has-backdrop="" data-backdrop="invert">
+<article class="chunk chunk-example width-full" id="deco-picture" data-chunk-num="61" data-has-backdrop="" data-backdrop="invert">
   <div class="chunk-backdrop bd-cover bd-middle bd-invert bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>1</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A picture behind the words</span> <span class="hd-sub">what the two blocks on the last slide produce</span></h2>
   
@@ -2625,9 +2629,9 @@ of them are shown one per slide in
 </div>
 </aside>
 </article>
-<article class="chunk chunk-example width-wide" id="cards" data-chunk-num="61">
+<article class="chunk chunk-example width-wide" id="cards" data-chunk-num="62">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>2</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A row of cards</span> <span class="hd-sub"><code>::: cards N</code></span></h2>
   <p><strong><code>::: cards 3</code> puts three separate boxes across the slide, and an item is in one of them whole or it is nowhere.</strong> A <code>::: cols 3</code> block does the other thing: one run of text the browser shares across three columns, so a paragraph can spill from the foot of one into the head of the next.</p>
@@ -2672,9 +2676,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cards-look" data-chunk-num="62">
+<article class="chunk chunk-example width-wide" id="cards-look" data-chunk-num="63">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>3</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">What the words in the braces do</span> <span class="hd-sub">the seven that set a card row&#39;s look</span></h2>
   <p><strong>Seven words in the tail set the look of a card row</strong>, written bare between braces, at most one per question – a second word answering a question already answered stops the build.</p>
@@ -2684,6 +2688,18 @@ of them are shown one per slide in
 <li><strong><code class="nb">corner</code></strong>, <strong><code class="nb">detail</code></strong> and <strong><code class="nb">scrim</code></strong> – the radius, the small print, and what is laid over a picture.</li>
 <li><strong><code class="nb">size</code></strong> and <strong><code class="nb">align</code></strong> decide themselves: the longest item picks the size, and the alignment follows it.</li>
 </ul>
+
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="cards-ground" data-chunk-num="64">
+  
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>4</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">One ground for a whole row</span> <span class="hd-sub"><code class="nb">accent</code>, <code class="nb">paper</code>, <code class="nb">clear</code></span></h2>
+  <p><strong><code class="nb">ground</code> is answered once for a whole row</strong>, so three grounds means three rows, each written <code>::: cards 1 {…}</code> with its own word. <code class="nb">panel</code> is the default, a tinted fill; <code class="nb">outline</code> is a hairline and no fill; <code class="nb">photo</code> makes the card&#39;s first picture its background, and <code class="nb">scrim</code> says what is laid over it.</p>
 <div class="cards cards-1 cs-small ca-left cv-top cd-fold cg-accent ck-round cx-veil">
 <ul>
 <li><strong>accent</strong> – the theme&#39;s own colour, with the text in the page colour on top</li>
@@ -2708,10 +2724,17 @@ of them are shown one per slide in
 </ul>
 
 </div>
-
-
-<p><strong>Each of those rows is written <code>::: cards 1 {…}</code> with its own word</strong>, because <code class="nb">ground</code> is answered once for a whole row: three grounds means three rows. <code class="nb">panel</code> is the default, a tinted fill; <code class="nb">outline</code> is a hairline and no fill; <code class="nb">photo</code> makes the card&#39;s first picture its background, and <code class="nb">scrim</code> says what is laid over it.</p>
-<div class="cards cards-3 cs-small ca-left cv-middle cd-fold cg-outline ck-round cx-veil">
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="cards-anchor" data-chunk-num="65">
+  
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>5</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">A tail that answers twice</span> <span class="hd-sub"><code>::: cards 3 {outline middle}</code></span></h2>
+  <div class="cards cards-3 cs-small ca-left cv-middle cd-fold cg-outline ck-round cx-veil">
 <ul>
 <li><strong class="card-lead">outline</strong><br>a hairline and no fill, which is quieter on a slide that already carries a figure</li>
 <li><strong class="card-lead">middle</strong><br>this text is centred against the tallest card. In the row above it sits at the top</li>
@@ -2721,16 +2744,16 @@ of them are shown one per slide in
 </div>
 
 
-<p><strong>That one is <code>::: cards 3 {outline middle}</code></strong>, so it answers two questions: <code class="nb">ground</code>, and <code class="nb">anchor</code> – where the text sits when the card is taller than its content, which it always is, a grid row being as tall as its longest card.</p>
+<p><strong>That row is <code>::: cards 3 {outline middle}</code></strong>, so its tail answers two questions at once: <code class="nb">ground</code>, and <code class="nb">anchor</code> – where the text sits when the card is taller than its content, which it always is, a grid row being as tall as its longest card.</p>
 
   
   
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="rows" data-chunk-num="63">
+<article class="chunk chunk-example width-wide" id="rows" data-chunk-num="66">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>6</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A term and what it means</span> <span class="hd-sub"><code>::: rows</code></span></h2>
   <p><strong><code>::: rows</code> is a card turned ninety degrees</strong>: a term in a card on the left, its explanation beside it, several of them stacked.</p>
@@ -2753,9 +2776,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="side-ratio" data-chunk-num="64">
+<article class="chunk chunk-example width-wide" id="side-ratio" data-chunk-num="67">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure beside the prose</span> <span class="hd-sub"><code>::: side 2:1</code></span></h2>
   <div class="side sv-middle" style="--side-a:2fr;--side-b:1fr"><div class="side-a">
@@ -2763,6 +2786,8 @@ of them are shown one per slide in
 
 <p><strong><code>::: side</code> takes an optional ratio, so the two panes need not be equal halves.</strong> This slide is <code>::: side 2:1</code>: two parts of prose to one part figure, which is the shape a diagram with its commentary usually wants. Any two numbers work, <code>::: side</code> on its own is equal halves, and <code>::: flip</code> starts the second pane.</p>
 <p>That drawing is a <code>::: draw</code> block inside the second pane. In <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> the two panes stack one after the other and the ratio is ignored, because a page has only one column to give them.</p>
+<p><strong>A short pane sits at the top of its half unless you say otherwise, and <code class="nb">{middle}</code> centres it against the taller one.</strong> Here the <em>figure</em> is the short pane, so <code class="nb">{middle}</code> is what puts it level with the middle of this column instead of at the top. <code class="nb">{top}</code> is the default and often right – a caption over a figure is aligned from the top on purpose. The word belongs to the block and not to either pane, because the taller pane is what makes the row tall, so centring can only ever move the shorter one.</p>
+<p><strong>A figure <em>above</em> or <em>below</em> the text needs nothing at all</strong> – put the block first or last in the chunk body. <code>::: cols</code> is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns quietly stop working. A <code>::: draw</code> written there is refused, and the message points you at <code>::: side</code>.</p>
 </div><div class="side-b">
 
 
@@ -2776,20 +2801,14 @@ of them are shown one per slide in
 
 
 </div></div>
-
-
-<p><strong>A short pane sits at the top of its half unless you say otherwise, and <code class="nb">{middle}</code> centres it against the taller one.</strong> This slide is <code>::: side 2:1 {middle}</code>. <code class="nb">{top}</code> is the default and often right – a caption over a figure is aligned from the top on purpose. The word belongs to the block and not to each pane, because the taller pane is what makes the row tall, so centring can only ever move the shorter one.</p>
-<p><strong>A figure <em>above</em> or <em>below</em> the text needs nothing at all</strong> – put the block first or last in the chunk body. <code>::: cols</code> is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns quietly stop working. A <code>::: draw</code> written there is refused, and the message points you at <code>::: side</code>.</p>
-<p><strong>A card row works inside one half of a <code>::: side</code> block.</strong> <code>::: cards 1</code> in a narrow half gives you a stacked column, and one card on its own is a callout.</p>
-
   
   
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="style-block" data-chunk-num="65">
+<article class="chunk chunk-example width-wide" id="style-block" data-chunk-num="68">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>8</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Setting the typography for a whole lecture</span> <span class="hd-sub">the <code class="nb">style:</code> block</span></h2>
   <p><strong>The <code class="nb">style:</code> block holds the settings you make once for a whole lecture rather than chunk by chunk.</strong></p>
@@ -2815,9 +2834,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="66">
+<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="69">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>6</i><i>9</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Turning the generated labels off</span> <span class="hd-sub"><code>style: {labels: off}</code></span></h2>
   <p><strong>The type word above a chunk is drawn in two places, and one setting takes it out of both.</strong></p>
@@ -2840,9 +2859,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="bundled-fonts" data-chunk-num="67">
+<article class="chunk chunk-example width-wide" id="bundled-fonts" data-chunk-num="70">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Which typefaces travel in the file</span> <span class="hd-sub">nine come with the tool</span></h2>
   <p><strong>Three families travel in any one file, and which three is yours to pick.</strong> Nine come with the tool, so naming one of those needs no font file at all.</p>
@@ -2861,9 +2880,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="68">
+<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="71">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>1</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own typefaces</span> <span class="hd-sub"><code class="nb">fonts/</code> beside <code class="nb">source.md</code>, plus a frontmatter block</span></h2>
   <p><strong>A family that is not inside the file is a family the room may not get.</strong> Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and <code>fonts: none</code> leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.</p>
@@ -2880,9 +2899,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="covers" data-chunk-num="69" data-blocks="left">
+<article class="chunk chunk-example width-wide" id="covers" data-chunk-num="72" data-blocks="left">
   
-  <span class="chunk-num" aria-hidden="true"><i>6</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>2</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">How the title slide is composed</span> <span class="hd-sub"><code class="nb">cover:</code> plus a <code class="nb">subtitle:</code> line</span></h2>
   <p><strong><code class="nb">cover:</code> in the frontmatter picks how the title slide is composed, and <code class="nb">subtitle:</code> gives it the line that says what the talk is about.</strong> Without those two, a cover is one weight of one colour with the subject set beside the venue, and it reads as a text file rather than as the opening of a talk.</p>
@@ -2902,9 +2921,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cover-list" data-chunk-num="70">
+<article class="chunk chunk-example width-wide" id="cover-list" data-chunk-num="73">
   
-  <span class="chunk-num" aria-hidden="true"><i>7</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>3</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The ten cover compositions</span> <span class="hd-sub">six of text alone, four that take a picture</span></h2>
   <p><strong>They are ordered by how much the opening slide asserts itself.</strong> Six are text and nothing else:</p>
@@ -2946,9 +2965,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="section-dividers" data-chunk-num="71">
+<article class="chunk chunk-example width-wide" id="section-dividers" data-chunk-num="74">
   
-  <span class="chunk-num" aria-hidden="true"><i>7</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>4</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Where a new part starts</span> <span class="hd-sub"><code class="nb">section:</code></span></h2>
   <p><strong>A column with a <code># Heading</code> opens with a divider slide</strong>, and <code class="nb">section:</code> picks how that slide is drawn.</p>
@@ -2976,9 +2995,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="closing" data-chunk-num="72">
+<article class="chunk chunk-example width-wide" id="closing" data-chunk-num="75">
   
-  <span class="chunk-num" aria-hidden="true"><i>7</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>5</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The last slide</span> <span class="hd-sub"><code>## closing:</code></span></h2>
   <p><strong><code>## closing:</code> draws a last slide in the same composition as the cover, so the lecture ends on the shape it opened with.</strong> A lecture that starts on a designed slide and ends on the last bullet of the last argument stops rather than finishes.</p>
@@ -2997,9 +3016,9 @@ of them are shown one per slide in
 </div>
 </aside>
 </article>
-<article class="chunk chunk-title" data-cover="masthead" data-closing="" data-chunk-num="73" id="end">
+<article class="chunk chunk-title" data-cover="masthead" data-closing="" data-chunk-num="76" id="end">
   
-  <span class="chunk-num" aria-hidden="true"><i>7</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>7</i><i>6</i></span>
   <h1 class="title-main">That is the tour</h1>
     <p class="title-subtitle">now write your own <code class="nb">source.md</code></p>
     <div class="closing-body"><p>Everything in this tour comes out of one Markdown file and one command, <code>node build.js source.md</code>. The four views are already sitting beside it.</p>
