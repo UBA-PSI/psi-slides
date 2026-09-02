@@ -108,12 +108,25 @@ itself: the command drives its own browser and the spec asserts on the file that
 comes out.
 
 **That third reason is the pattern to reach for when a spec needs a shape the
-lectures do not have.** It is not hypothetical: splitting the `#look` drawing in
-`lectures/diagrams` across slides took four specs down at once
-(`figure-prominence`, `editor-aim`, `editor-guides`, `editor-drag-guides`), all
-of which measure that one figure. The drawing was restored and only its prose
-moved. A fixture deck is cheaper than re-deriving four specs' geometric
-premises – see the note on `#look` in `CLAUDE.md`.
+lectures do not have**, and `editor-guides` is the worked example.
+
+`#look` in `lectures/diagrams` was one catalogue figure six rows tall, and four
+specs measured it: `figure-prominence`, `editor-aim`, `editor-guides` and
+`editor-drag-guides`. When each row moved to the slide that explains it - a room
+cannot hold "the bottom row of the catalogue" - three of the four only needed
+repointing at the new chunk. `editor-guides` did not, because two of its
+sections need *a shape* rather than a chunk: three elements collinear on a bare
+`at`, so a drag along that axis has a `between a,b` to propose and a nudge
+across it has a `.cx` to snap back to. `#look` had that shape by accident, being
+tall; nothing was ever going to keep it. So the spec builds it.
+
+**The trap inside that fixture is worth knowing before you write another one.**
+`dgeGuidePairs` in `editor.mjs` only pairs elements that are *already related* -
+the two ends of an edge, the outer members of an `align` or `spread`, or a node
+and the element its relative placement names. Boxes on bare `at` coordinates
+produce no pairs at all, and therefore no `between` candidate, however neatly
+they line up. The fixture's `b` is written `below a` for that reason alone. Two
+browser runs were spent guessing at this before anyone read the function.
 
 ## Running it
 

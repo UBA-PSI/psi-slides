@@ -372,15 +372,25 @@ position with it. See `speaker.md` §2.
 - `lectures/tutorial/source.md` – the canonical authoring reference (self-referential lecture). Build and open its `audience.html` to see every directive live.
 - `lectures/diagrams/source.md` – every `::: draw` construct, including two of the stepped figures the feature was built for (CBC decryption, a stack frame being overrun) and, in `#sequence` and `#seqmore`, the whole of the `sequence` sub-grammar with two annotations hung off its generated names. Its `#look` chunk is the reference for the class vocabulary: every fill, every family, and the three answers to how type meets its box.
 
-  **`#look`'s `::: draw` block is load-bearing for four browser specs and must
-  not be split** – `figure-prominence`, `editor-aim`, `editor-guides` and
-  `editor-drag-guides` all measure that one figure, and the guide specs need one
-  several rows tall with bare `at` anchors. Splitting the drawing was tried and
-  reverted; its **prose** was split instead, onto `#outlines`, `#outline-size`,
-  `#prominence` and `#typefit`, which is why the commentary on a row sits one
-  slide after the row. The same cure was then applied to seven more chunks that
-  `--check-fit` reported as taller than the frame. A spec that needs a shape the
-  lectures do not have gets a fixture deck – see `test/README.md`.
+  **Most of the browser suite drives this lecture, and it addresses the figures
+  by chunk id, so a drawing here has tests on it.** (Twenty specs at the time of
+  writing, seventeen of them naming a chunk.) Keep a chunk's id and its `::: draw`
+  block together and they stay green; move a row onto another slide and the spec
+  that measured it has to follow. The current map is a command rather than a
+  table here, because a table would rot:
+
+  ```bash
+  grep -l "lecture = 'diagrams'" test/*.mjs        # the specs
+  grep -oE "(walkTo|ed\.open|getElementById)\('[a-z0-9-]+'\)" test/<spec>.mjs
+  ```
+
+  `#look` was one six-row catalogue until each row went to the slide that
+  explains it – a room cannot hold "the bottom row of the catalogue" – and the
+  four specs that measured it were repointed at `#outlines`, `#prominence` and
+  `#typefit`. One could not be: `editor-guides` needs three elements collinear
+  on a bare `at`, which no lecture figure owes it, so it builds a fixture deck.
+  **That is the pattern for any spec needing a shape the lectures do not have**,
+  and `test/README.md` says why and lists the five others that do it.
 
   The lecture-wide `draw-defaults` block is in its frontmatter.
 - `lectures/decoration/source.md` – **every slide-decoration construct, shown rather than described**: the card and row vocabulary, `::: side` with a ratio, `::: backdrop` with a `reveal` in both directions, `::: overlay` with `from`, `{.bare}`, `::: draw {autoplay cycle}`, a `## outline:` chunk, a `## closing:` slide, and the three kinds of divider content – a quotation, a photograph and a figure, one per column. It is the third tracked lecture, for the same reason `lectures/diagrams/` is the second: a reader should be able to see a construct working before writing it.
