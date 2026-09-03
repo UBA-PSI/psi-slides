@@ -1437,6 +1437,7 @@ goes in it.</p>
   <p><strong>Unless you say otherwise, the slide is the first sentence of every paragraph plus any <code class="nb">**bold**</code> phrases from the rest.</strong> This chunk is written that way – press <code class="nb">C</code> twice and watch what appears and disappears.</p>
 <p>It asks two things of you. Every paragraph has to <strong>open with a sentence that stands on its own</strong>, because that sentence is the slide. After it, <strong>a bold phrase becomes a bullet of its own, so it has to read as one</strong>. Everything unbolded is for <code class="nb">print.html</code> and <code class="nb">print-notes.html</code>.</p>
 <p>The two bullets above are that rule applied: neither is a list in the source – each is a <code class="nb">**bold**</code> phrase inside a sentence the projection is holding back.</p>
+<p><strong>Bold selects, it does not stress.</strong> A bullet is set like the sentence above it, and <strong>one word inside a bold phrase is stressed with <code class="nb">*em*</code>, like <em>this</em> one</strong>. On paper the phrase is bold and the stressed word bold in the accent colour; <code>style: {bold: …}</code> and <code>style: {print-bold: …}</code> change either look for a whole lecture, and the chunk on the <code class="nb">style:</code> block lists the six.</p>
 <p>That suits a chunk that argues, where every paragraph has a point to open with. It is the wrong fit when the chunk wants continuous explanation instead, and the next chunk shows the alternative.</p>
 
   
@@ -2237,12 +2238,25 @@ are tagged into a release.</p>
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="diagram-beats-rule" data-chunk-num="53">
+<article class="chunk chunk-example width-full" id="diagram-beats-rule" data-chunk-num="53" data-blocks="left">
   
   <span class="chunk-num" aria-hidden="true"><i>5</i><i>3</i></span>
   <span class="chunk-label">example</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">What a step block says</span> <span class="hd-sub">and what it does not have to</span></h2>
-  <p>The figure on the previous slide is the three boxes from the slide before it, with a logfile added and four lines at the end: <code>step leak</code> shows the logfile, and <code>step blame</code> emphasises the leak and the box it runs to. <strong>The words a step knows are <code class="nb">show</code>, <code class="nb">hide</code>, <code>move … to</code>, <code>move … by</code>, the three attention verbs <code class="nb">emph</code>, <code class="nb">dim</code> and <code class="nb">ghost</code>, plus <code class="nb">style</code> and <code class="nb">label</code>.</strong></p>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">What a step block says</span> <span class="hd-sub">the source of the figure on the previous slide</span></h2>
+  <p><strong>The figure on the previous slide is the three boxes from the slide before it, with a logfile added and four lines at the end.</strong></p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span>box  src  "Sender"</span></span>
+<span class="line"><span>box  mix  "Mix"        right of src gap 1.05</span></span>
+<span class="line"><span>box  dst  "Receiver"   right of mix gap 1.05</span></span>
+<span class="line"><span>box  log  "Logfile"    below mix gap 0.9  {.dashed}</span></span>
+<span class="line"><span>edge src -> mix "encrypted"</span></span>
+<span class="line"><span>edge mix -> dst "recoded"</span></span>
+<span class="line"><span>edge leak mix -> log {.dashed}</span></span>
+<span class="line"><span>text why "this is where\nthe anonymity ends"  right of log gap 1.4 -- leak {.hand}</span></span>
+<span class="line"><span>step leak</span></span>
+<span class="line"><span>  show log</span></span>
+<span class="line"><span>step blame</span></span>
+<span class="line"><span>  emph leak, log</span></span></code></pre>
+<p><code>step leak</code> shows the logfile, and <code>step blame</code> emphasises the leak and the box it runs to. <strong>The words a step knows are <code class="nb">show</code>, <code class="nb">hide</code>, <code>move … to</code>, <code>move … by</code>, the three attention verbs <code class="nb">emph</code>, <code class="nb">dim</code> and <code class="nb">ghost</code>, plus <code class="nb">style</code> and <code class="nb">label</code>.</strong></p>
 <p><strong>Anything attached to something invisible is invisible too</strong>, which is why <code>step leak</code> names only the logfile. An arrow is only as visible as the two things it joins, a <code class="nb">container</code> or a <code class="nb">brace</code> only as visible as its members, and a <code class="nb">text</code> with a line drawn to something only as visible as what it points at. So showing the boxes shows the arrows between them, and most of a figure needs no <code class="nb">show</code> of its own.</p>
 
   
@@ -2952,6 +2966,9 @@ of them are shown one per slide in
 <span class="line"><span style="color:#22863A">  wrap</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">            # balance | none – even line lengths,</span></span>
 <span class="line"><span style="color:#6A737D">                        # in headings and in prose alike</span></span>
 <span class="line"><span style="color:#22863A">  print-body</span><span style="color:#24292E">: </span><span style="color:#032F62">sans</span><span style="color:#6A737D">      # serif | sans – the printed document's face</span></span>
+<span class="line"><span style="color:#22863A">  bold</span><span style="color:#24292E">: </span><span style="color:#032F62">accent-bold</span><span style="color:#6A737D">     # plain | bold | italic | accent | accent-bold</span></span>
+<span class="line"><span style="color:#6A737D">                        # | accent-italic – a **bold** phrase, live</span></span>
+<span class="line"><span style="color:#22863A">  print-bold</span><span style="color:#24292E">: </span><span style="color:#032F62">italic</span><span style="color:#6A737D">    # the same six – a **bold** phrase on paper</span></span>
 <span class="line"><span style="color:#22863A">  heading-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">1.15</span><span style="color:#6A737D">   # 0.6 … 1.8</span></span>
 <span class="line"><span style="color:#22863A">  body-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">0.95</span><span style="color:#6A737D">      # 0.6 … 1.8</span></span></code></pre>
 <p><code>headings: auto</code> is the default, and it means the type decides: a question is centred, a figure&#39;s caption sits over its artwork. <code class="nb">left</code> overrides all of that, for one line of alignment down the whole lecture. <code class="nb">off</code> takes every heading off the projection while keeping it in <code class="nb">print.html</code>, <code class="nb">print-notes.html</code>, the contents list and the search.</p>
@@ -2965,9 +2982,10 @@ of them are shown one per slide in
   
   <span class="chunk-num" aria-hidden="true"><i>8</i><i>0</i></span>
   <span class="chunk-label">example</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">Four keys the block&#39;s names do not explain</span> <span class="hd-sub"><code class="nb">wrap</code>, <code class="nb">blocks</code>, <code class="nb">print-body</code> and the scales</span></h2>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Five keys the block&#39;s names do not explain</span> <span class="hd-sub"><code class="nb">wrap</code>, <code class="nb">blocks</code>, <code class="nb">print-body</code>, the bold pair and the scales</span></h2>
   <p><strong><code class="nb">wrap</code> applies to headings and prose both</strong>, which its name does not say: <code class="nb">balance</code> evens the line lengths of a heading and protects the last line of a paragraph, and <code class="nb">none</code> turns both off. <code class="nb">blocks</code> and <code class="nb">wrap</code> are the two keys a single chunk can answer for itself, with <code class="nb">{.blocks-left}</code> and <code class="nb">{.wrap-none}</code> in its attribute tail.</p>
 <p><strong><code class="nb">print-body</code> is the one setting here that only the printed pages see.</strong> The projection and the lectern let a reader pick the face with <code class="nb">F</code>; a document has no reader to press it, so <code class="nb">sans</code> is how you ask for one set in the sans. Code stays in the monospace, and so does everything the document already draws in the sans – the type word, a caption, the contents list.</p>
+<p><strong><code class="nb">bold</code> and <code class="nb">print-bold</code> set how a <code class="nb">**bold**</code> phrase looks, and <code class="nb">plain</code> is a legal answer because bold selects before it decorates.</strong> Live the default is <code class="nb">plain</code>, so a promoted bullet is set like the sentence above it; on paper it is <code class="nb">bold</code>, in the ink. <code class="nb">accent-bold</code> in both is how the tool drew every bold before the keys existed. A word stressed with <code class="nb">*em*</code> inside the phrase is bold and in the accent whatever the key says – except under <code class="nb">accent-bold</code>, where it stays italic.</p>
 <p>The two scales multiply the tool&#39;s own sizes rather than replacing them, and they are <strong>bounded</strong>. Outside 0.6 to 1.8 the shortened view, the limit on how wide a line of code may be and the automatic zoom stop agreeing with each other.</p>
 
   

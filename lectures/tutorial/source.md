@@ -251,6 +251,8 @@ It asks two things of you. Every paragraph has to **open with a sentence that st
 
 The two bullets above are that rule applied: neither is a list in the source – each is a `**bold**` phrase inside a sentence the projection is holding back.
 
+**Bold selects, it does not stress.** A bullet is set like the sentence above it, and **one word inside a bold phrase is stressed with `*em*`, like *this* one**. On paper the phrase is bold and the stressed word bold in the accent colour; `style: {bold: …}` and `style: {print-bold: …}` change either look for a whole lecture, and the chunk on the `style:` block lists the six.
+
 That suits a chunk that argues, where every paragraph has a point to open with. It is the wrong fit when the chunk wants continuous explanation instead, and the next chunk shows the alternative.
 
 > note: If the shortened version of a chunk reads as a pile of cryptic one-word bullets, the fix is almost always fewer bolds and a stronger first sentence, not a different mechanism.
@@ -769,9 +771,26 @@ step blame
   emph leak, log
 :::
 
-## example: What a step block says | and what it does not have to {.wide #diagram-beats-rule}
+## example: What a step block says | the source of the figure on the previous slide {.full .blocks-left #diagram-beats-rule}
 
-The figure on the previous slide is the three boxes from the slide before it, with a logfile added and four lines at the end: `step leak` shows the logfile, and `step blame` emphasises the leak and the box it runs to. **The words a step knows are `show`, `hide`, `move … to`, `move … by`, the three attention verbs `emph`, `dim` and `ghost`, plus `style` and `label`.**
+**The figure on the previous slide is the three boxes from the slide before it, with a logfile added and four lines at the end.**
+
+```text
+box  src  "Sender"
+box  mix  "Mix"        right of src gap 1.05
+box  dst  "Receiver"   right of mix gap 1.05
+box  log  "Logfile"    below mix gap 0.9  {.dashed}
+edge src -> mix "encrypted"
+edge mix -> dst "recoded"
+edge leak mix -> log {.dashed}
+text why "this is where\nthe anonymity ends"  right of log gap 1.4 -- leak {.hand}
+step leak
+  show log
+step blame
+  emph leak, log
+```
+
+`step leak` shows the logfile, and `step blame` emphasises the leak and the box it runs to. **The words a step knows are `show`, `hide`, `move … to`, `move … by`, the three attention verbs `emph`, `dim` and `ghost`, plus `style` and `label`.**
 
 **Anything attached to something invisible is invisible too**, which is why `step leak` names only the logfile. An arrow is only as visible as the two things it joins, a `container` or a `brace` only as visible as its members, and a `text` with a line drawn to something only as visible as what it points at. So showing the boxes shows the arrows between them, and most of a figure needs no `show` of its own.
 
@@ -1267,17 +1286,22 @@ style:
   wrap: none            # balance | none – even line lengths,
                         # in headings and in prose alike
   print-body: sans      # serif | sans – the printed document's face
+  bold: accent-bold     # plain | bold | italic | accent | accent-bold
+                        # | accent-italic – a **bold** phrase, live
+  print-bold: italic    # the same six – a **bold** phrase on paper
   heading-scale: 1.15   # 0.6 … 1.8
   body-scale: 0.95      # 0.6 … 1.8
 ```
 
 `headings: auto` is the default, and it means the type decides: a question is centred, a figure's caption sits over its artwork. `left` overrides all of that, for one line of alignment down the whole lecture. `off` takes every heading off the projection while keeping it in `print.html`, `print-notes.html`, the contents list and the search.
 
-## example: Four keys the block's names do not explain | `wrap`, `blocks`, `print-body` and the scales {.wide #style-keys}
+## example: Five keys the block's names do not explain | `wrap`, `blocks`, `print-body`, the bold pair and the scales {.wide #style-keys}
 
 **`wrap` applies to headings and prose both**, which its name does not say: `balance` evens the line lengths of a heading and protects the last line of a paragraph, and `none` turns both off. `blocks` and `wrap` are the two keys a single chunk can answer for itself, with `{.blocks-left}` and `{.wrap-none}` in its attribute tail.
 
 **`print-body` is the one setting here that only the printed pages see.** The projection and the lectern let a reader pick the face with `F`; a document has no reader to press it, so `sans` is how you ask for one set in the sans. Code stays in the monospace, and so does everything the document already draws in the sans – the type word, a caption, the contents list.
+
+**`bold` and `print-bold` set how a `**bold**` phrase looks, and `plain` is a legal answer because bold selects before it decorates.** Live the default is `plain`, so a promoted bullet is set like the sentence above it; on paper it is `bold`, in the ink. `accent-bold` in both is how the tool drew every bold before the keys existed. A word stressed with `*em*` inside the phrase is bold and in the accent whatever the key says – except under `accent-bold`, where it stays italic.
 
 The two scales multiply the tool's own sizes rather than replacing them, and they are **bounded**. Outside 0.6 to 1.8 the shortened view, the limit on how wide a line of code may be and the automatic zoom stop agreeing with each other.
 
