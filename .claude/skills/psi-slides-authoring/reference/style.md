@@ -117,6 +117,27 @@ significance: *quietly, deeply, fundamentally, remarkably, arguably*.
 - Anaphora: the same sentence opener three times across consecutive chunks. The
   overview board (`O`) makes this glaringly visible.
 
+**Mannered prose.** A metaphor or a flourish where a literal phrase exists: *a
+dial worth turning* for *a parameter worth varying*, *this point earns its keep*
+for *this point still matters*, *the branch you take if somebody asks* for
+*material you open only if somebody asks*. The phrase displays the writer, and
+a metaphor carries connotations the writer did not choose. When a literal phrase
+is available, use it. Three forms to scan for:
+
+- Verbs that dramatise a mechanism – *travels in the file, walks in, lifts into
+  a card, escapes into the margin, fights the button, reach for `::: slide`* –
+  where the literal verb is *is embedded, moves, opens, goes, conflicts with,
+  use*.
+- Rhetorical compression that states how small or simple a thing is instead of
+  stating the thing: *its whole structure is two words*, *and nothing else*,
+  *that is the whole of it*, *two keys carry the whole lecture*. Say what it
+  consists of: *a lecture consists of one or more columns, and each column
+  holds one or more chunks*.
+- Cross-references said sideways: *the speaker view, which has a part of its
+  own later on*, *the next chunk is the way out*, *that slide is where the
+  shortening is shown happening*. Say *which is discussed later on*, *the next
+  chunk shows the alternative*, *that slide shows the shortening*.
+
 **Claim discipline:**
 
 - Every empirical claim on a slide needs a number, a figure, or a citation, or
