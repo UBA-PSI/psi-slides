@@ -749,7 +749,7 @@ edge mix -> dst "recoded"
 
 ## example: A figure that arrives in pieces | a `step` block advances on the same key as a reveal {.full #diagram-beats}
 
-**Write `step` blocks and the figure moves.** One step is one press of the same key that uncovers a segment, so steps and segments arrive in the order you wrote them and the speaker view reads ahead exactly as it does for text. Press forward twice here.
+**Write `step` blocks and the figure changes with each forward press.** One step is one press of the same key that uncovers a segment, so steps and segments arrive in the order you wrote them and the speaker view reads ahead exactly as it does for text. Press forward twice here.
 
 ::: draw {unit=126x72}
 box  src  "Sender"
@@ -771,7 +771,7 @@ step blame
 
 ## example: What a step block says | and what it does not have to {.wide #diagram-beats-rule}
 
-That is the figure from the slide before with a logfile added and four lines at the end: `step leak` shows the logfile, and `step blame` emphasises the leak and the box it runs to. **The words a step knows are `show`, `hide`, `move … to`, `move … by`, the three attention verbs `emph`, `dim` and `ghost`, plus `style` and `label`.**
+The figure on the previous slide is the three boxes from the slide before it, with a logfile added and four lines at the end: `step leak` shows the logfile, and `step blame` emphasises the leak and the box it runs to. **The words a step knows are `show`, `hide`, `move … to`, `move … by`, the three attention verbs `emph`, `dim` and `ghost`, plus `style` and `label`.**
 
 **Anything attached to something invisible is invisible too**, which is why `step leak` names only the logfile. An arrow is only as visible as the two things it joins, a `container` or a `brace` only as visible as its members, and a `text` with a line drawn to something only as visible as what it points at. So showing the boxes shows the arrows between them, and most of a figure needs no `show` of its own.
 
