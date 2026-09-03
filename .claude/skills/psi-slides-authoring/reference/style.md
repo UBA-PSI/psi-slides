@@ -6,7 +6,7 @@ not about the syntax around them.
 ## The collapsed view is also your presenter prompt
 
 In `topic-bold` mode a derived chunk shows the heading, the first sentence of
-every paragraph, and the promoted `**bold**` fragments. That is what the room
+every paragraph, and the promoted `**bold**` fragments. That is what the audience
 reads and it is what you present from. A chunk that is not understandable from
 those three things is not finished.
 
@@ -65,7 +65,7 @@ alone as a paragraph's first sentence, that same bold is inside the head and the
 room reads the whole of it – which is the mechanism, not a gap in the check.
 
 **Topic sentences that are pure connectors.** „Das ist gewollt.“, „Sie haben 10
-Minuten.“ carry no claim. The presenter gets a thin prompt and the room gets
+Minuten.“ carry no claim. The presenter gets a thin prompt and the audience gets
 nothing. Rewrite so the first sentence contains the claim.
 
 **Colon-cuts in the topic sentence.** If the first sentence ends mid-thought
@@ -137,6 +137,13 @@ is available, use it. Three forms to scan for:
   own later on*, *the next chunk is the way out*, *that slide is where the
   shortening is shown happening*. Say *which is discussed later on*, *the next
   chunk shows the alternative*, *that slide shows the shortening*.
+
+**One term per concept.** Whatever a thing is called the first time is what
+it is called every time: the projection is not later *the live view*, *the
+screen* or *the room's version*, an expansion is not *the pane* in one chunk
+and *the aside* in the next. A synonym reads as a second thing, and a reader
+who cannot tell whether it is one spends the slide finding out. Introduce a
+term once, in italics where it is the tool's own, and repeat it.
 
 **No anthropomorphised room.** *The room reads*, *the room sees*, *what the
 room must not be shown*: rooms do not read. Say *the audience*, or *people*.

@@ -70,7 +70,7 @@ The choice among the four is a projection question, and these are the numbers be
 
 `fonts: none` turns the bundle off entirely for an author who would rather ship a smaller file. That matters more than it looks: **Safari does not expose locally installed fonts to a page**, as an anti-fingerprinting measure, so the old name-only stacks resolved to Georgia and system-ui there no matter what the lecturer had installed.
 
-**`FONT_STACK_TAILS` is the single source of truth for the default stacks**, and a roster family other than the built-in default is emitted as an override that prepends it – otherwise the `@font-face` lands and nothing asks for it, because `--sans-font` still says `IBM Plex Sans` first and falls through to whatever the machine has. Emitted only where it differs, so a default lecture's CSS is byte-identical to before. `font-display: block`, not `swap`: a lecture must not flash a fallback face on the projector and then reflow the slide under the room's eyes. The bytes are read and base64-encoded **once** in `buildOnce` and passed to all four renderers via `opts.fontEmbed`.
+**`FONT_STACK_TAILS` is the single source of truth for the default stacks**, and a roster family other than the built-in default is emitted as an override that prepends it – otherwise the `@font-face` lands and nothing asks for it, because `--sans-font` still says `IBM Plex Sans` first and falls through to whatever the machine has. Emitted only where it differs, so a default lecture's CSS is byte-identical to before. `font-display: block`, not `swap`: a lecture must not flash a fallback face on the projector and then reflow the slide while the audience is watching. The bytes are read and base64-encoded **once** in `buildOnce` and passed to all four renderers via `opts.fontEmbed`.
 
 ## Author-supplied webfonts
 
@@ -90,7 +90,7 @@ Files are matched by name prefix, with weight and style read off the suffix: `Li
 Three things to keep in mind when touching this:
 
 - `FONT_STACK_TAILS` is the single source of truth for the default stacks. `AUDIENCE_CSS` interpolates from it and the `:root` override prepends to it, so an embedded family lands in front of the very list the build would otherwise have emitted. Don't re-inline those stacks.
-- `font-display: block`, not `swap`. A lecture must not flash a fallback face on the projector and then reflow the slide under the room's eyes.
+- `font-display: block`, not `swap`. A lecture must not flash a fallback face on the projector and then reflow the slide while the audience is watching.
 - The bytes are read and base64-encoded **once** in `buildOnce` and passed to all four renderers via `opts.fontEmbed`. Don't move the call into a renderer; that quadruples the work.
 
 `lint.js` deliberately does **not** mirror this check. It would need `fs` plus the whole filename-parsing table, and the build already hard-fails with the list of files it found – so unlike `VALID_TAGS`, the duplication would buy nothing.
@@ -102,7 +102,7 @@ Three things to keep in mind when touching this:
 `ligatures:` in the frontmatter, and the reason it needs a key at all is that **two different questions get called "ligatures"**:
 
 - **text** – `fi`, `fl` and friends in prose. On by default and always has been; that is ordinary typesetting, not an effect.
-- **code** – `->` drawn as a single arrow glyph in a listing. **Off since `7eec831`**, and off for a reason worth keeping: JetBrains Mono ligates `->`, `<-`, `<->`, `--` and `!=`, and in the figure grammar `->` and `--` are two *different edges*. Every listing on a slide, in a handout, on the project site and on the artifact page is source a reader is meant to retype, and what the room saw was a character that does not exist in the language.
+- **code** – `->` drawn as a single arrow glyph in a listing. **Off since `7eec831`**, and off for a reason worth keeping: JetBrains Mono ligates `->`, `<-`, `<->`, `--` and `!=`, and in the figure grammar `->` and `--` are two *different edges*. Every listing on a slide, in a handout, on the project site and on the artifact page is source a reader is meant to retype, and what the audience saw was a character that does not exist in the language.
 
 So the values are `text` (the default: fi and fl in prose, none in code – exactly what the tool does today), `none` (none anywhere, prose included) and `all` (code ligatures back). **The default is `text` and not `none`** even though `none` is what "default: no ligatures" would suggest: code ligatures are already off, and defaulting to `none` would take fi and fl out of every existing lecture's prose, which is a change to finished decks made in the name of not changing finished decks. The rule is `font-variant-ligatures`, and `none` rather than `no-contextual` because the arrows live in the contextual set (`calt`) and the rest in `liga`.
 
@@ -156,7 +156,7 @@ Seven optional frontmatter keys pin how a lecture opens:
 
 **Three of those entries are newer than 1.0.0, and each carries a decision the table cannot show.**
 
-**`slide-numbers` defaults to `horizontal`, and it used to default to `vertical`.** This is the one viewer default whose change moves what an existing deck renders: the stacked form sets each digit on its own line, so slide 10 reaches the room as a 1 above a 0. The content repo's house-style file had carried "set `slide-numbers: horizontal`" as standing advice, which is what a wrong default looks like from the outside. The old rendering is `slide-numbers: vertical`, and deliberately no compatibility flag was added beside it – one more key would make the old behaviour reachable two ways.
+**`slide-numbers` defaults to `horizontal`, and it used to default to `vertical`.** This is the one viewer default whose change moves what an existing deck renders: the stacked form sets each digit on its own line, so slide 10 reaches the audience as a 1 above a 0. The content repo's house-style file had carried "set `slide-numbers: horizontal`" as standing advice, which is what a wrong default looks like from the outside. The old rendering is `slide-numbers: vertical`, and deliberately no compatibility flag was added beside it – one more key would make the old behaviour reachable two ways.
 
 **`print-slide-numbers` has no default of its own; it *defers*.** An absent key resolves at read time to the live value, and only if that is absent too does `SLIDE_NUM_DEFAULT` apply. `viewDefaults()` writes a key only when the frontmatter carried it, so "unset" is a fourth state distinguishable from all three values, and **`printSlideNums(frontmatter)` is the documented step** that turns it into one – `d.printSlideNums || d.slideNums || SLIDE_NUM_DEFAULT`, in that order, in one place. Reading the key anywhere else with a fallback of `SLIDE_NUM_DEFAULT` would silently drop the deferral and make an unset key mean `horizontal` rather than "follow". `test/settings.mjs` asserts all sixteen combinations of the two keys.
 
@@ -184,7 +184,7 @@ The live views have answered "serif, sans or mono" since the first commit – `F
 
 **Two things about it are worth keeping.** It is **one declaration on `body`**, not a list of elements. Everything in `PRINT_CSS` that ought to be a sans already names one – the tag word, a figure's caption, a `.has-sub` sub-heading, the contents list – so what inherits the serif off `html` is exactly the set that should move: running text, chunk and column headings, blockquotes. Measured rather than assumed, and the first attempt at this enumerated `p, li, dd, blockquote, figcaption, td, th` from a wrong reading of which elements were already sans. An element list here is only a way of getting the set slightly wrong later.
 
-And it **does not defer to `font:`** the way `print-slide-numbers` defers to `slide-numbers`. That key was born deferring, so nothing moved under any existing deck; here, a lecture that already says `font: sans` for the room would start printing in a sans it never chose. `font: mono` also has no sensible reading as a whole printed document, and a deferral would have to invent one.
+And it **does not defer to `font:`** the way `print-slide-numbers` defers to `slide-numbers`. That key was born deferring, so nothing moved under any existing deck; here, a lecture that already says `font: sans` for the projection would start printing in a sans it never chose. `font: mono` also has no sensible reading as a whole printed document, and a deferral would have to invent one.
 
 It lives in `style:` rather than beside the viewer defaults because it is the author's composition, not the reader's preference – and `hyphenate` is already here on the same reasoning, which is what makes a print-only key ordinary in this block rather than novel.
 

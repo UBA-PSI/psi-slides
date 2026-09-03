@@ -116,7 +116,7 @@ When in doubt, `free`.
 `closing:` is the bookend and is the one exception to the rule that a
 cover-shaped slide renders from frontmatter: its heading is what it says,
 the sub-heading after the `|` is the second line, and the body is whatever
-stays on screen while the room asks questions. It draws the deck's own
+stays on screen while the audience asks questions. It draws the deck's own
 `cover:` composition, carries **no** presenter line and **no** `info` block
 - those would make it a copy of the title slide rather than an ending - and
 never reaches for `cover-image` by itself. Two ways to give it a picture:
@@ -164,7 +164,7 @@ on the next chunk. So a heavily clamped chunk reads smaller than its neighbours,
 and the fix is to break the line rather than to make the runtime try harder.
 
 The live views do **not** print the type name on screen. Do not write prose that
-depends on the room seeing the word DEFINITION.
+depends on the audience seeing the word DEFINITION.
 
 ## What lands on the slide
 
@@ -198,7 +198,7 @@ The signing operation binds a message to the private key. **Verification
 succeeds only with the matching public key.**
 ```
 
-Collapsed, the room sees the two opening sentences plus the promoted bold
+Collapsed, the audience sees the two opening sentences plus the promoted bold
 fragment. The squint test: heading + first sentences + bolds – could you
 present the chunk cold from that alone?
 
@@ -411,17 +411,17 @@ one place the block never sits.
 ### `::: cols 2` / `::: cols 3`
 
 A multi-column flow inside the chunk body. **The audience view's default
-collapse mode folds it back to one column, so in the room `::: cols` does
+collapse mode folds it back to one column, so on the projection `::: cols` does
 nothing.** That is deliberate: collapsed content is one topic sentence per
 paragraph, and the browser can only balance in whole paragraphs, so two columns
 of stubs look broken. But it makes `cols` a **print-and-reading-mode
-construct**, and the consequence is worth stating in the room's terms rather
+construct**, and the consequence is worth stating in the audience's terms rather
 than the renderer's: content you write in `cols` because it is too long for one
 column arrives on the projection as one column of exactly that length. A
 six-definition quiz written as `::: cols 2` was projected as eleven unbroken
 lines of 70-character prose.
 
-**For two- or three-up content the room has to read, use `::: cards` or
+**For two- or three-up content the audience has to read, use `::: cards` or
 `::: rows`.** Both survive the collapse in full. Author `cols` for a handout
 whose reader can scroll.
 
@@ -506,7 +506,7 @@ and an item is whole or it is nowhere.
 A lone list dissolves into the grid, so its items are the cards; anything else
 contributes one card per block. Counts 1 to 6 - one card is a callout, and in
 a `::: side` pane it is the narrow stacked column. Use `cols` for an argument
-that runs long and `cards` for a comparison the room should be able to count.
+that runs long and `cards` for a comparison the audience should be able to count.
 
 Seven slots in the tail, and two decide themselves:
 
@@ -1051,7 +1051,7 @@ warning go away unread.
 6. **Prose and typography pass** – see `reference/style.md`.
 7. `node lint.js <source.md>`.
 8. `node build.js <source.md> --squint`, then read `squint.txt`: that is the
-   squint test done mechanically, one line per thing the room gets and every
+   squint test done mechanically, one line per thing the audience gets and every
    withheld paragraph marked with its word count. Anything fragmented goes
    back to step 3 or 4, and `git diff` on the file says what a prose edit did
    to the projection. Then open `audience.html` and press `O` for the overview
