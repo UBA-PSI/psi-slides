@@ -593,17 +593,19 @@ $$d = \frac{H(S)}{\log_2 |S|}$$
 
 # Writing chunks that work {#craft}
 
-## principle: One paragraph per point | the slide is every paragraph's first sentence {.wide #topic-sentence}
+## principle: How to write a chunk that works | one paragraph per point, and the first sentence of each is the slide {.wide #topic-sentence}
 
-**The projection is the first sentence of every paragraph: four paragraphs, four sentences in front of the audience.** It is not one topic sentence per chunk. It is one per paragraph, in the order you wrote them, plus whatever you set in bold.
+**A chunk that works is written one paragraph per point, because the projection shows the first sentence of every paragraph and nothing after it.** It is not one topic sentence per chunk. It is one per paragraph, in the order you wrote them, plus whatever you set in bold.
 
-**Either order works: the prose first and the openings sharpened afterwards, or the openings first as an outline and the paragraphs written under them.** Each opening has to end up a claim that survives having its own paragraph taken away; everything after it is the supporting text, which appears in `print.html` and `print-notes.html` and never on the projection.
+**There are two ways to write such a chunk, and both end in the same place:**
 
-**Either way, every thought the argument depends on and every explanation it needs starts a paragraph of its own.** Two of them sharing a paragraph means the second one never reaches the audience, however well it is written.
+- **Prose first.** Write the argument as paragraphs, then sharpen the opening sentence of each until it states that paragraph's point on its own.
+- **Outline first.** Write the opening sentences as an outline of the argument, then write the paragraph under each one.
 
-**The failure is stopping at the outline.** Openings with nothing written under them leave you a projection that works and a hand-out that does not, and an hour whose substance you improvise standing in front of people.
+**Whichever way, each opening has to be a claim that survives having its paragraph taken away.** Everything after it is the supporting text, which appears in `print.html` and `print-notes.html` and never on the projection.
 
-**This chunk is five paragraphs, so its slide is the five sentences you have just read.** Press `C` and the supporting text under each of them appears. *Option 1 – the default*, back in *What goes on the slide*, shows that shortening.
+**Every thought the argument depends on, and every explanation it needs, starts a paragraph of its own.** Two of them sharing a paragraph means the second one never reaches the audience, however well it is written.
+
 
 > note: The short view doubles as a rehearsal test: if it would not remind you what you meant to say, the chunk is not finished. Present this one from the short view while you say it – the audience can see that the slide is the same text as the hand-out.
 
@@ -628,9 +630,9 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 
 ## exercise: The squint test | walk your own lecture end to end in the short view {.wide #squint-test}
 
-**Open your own lecture in the audience view, press `C` until it is short, and walk it end to end without opening the source.** Stop at every chunk you could not talk from using only what is on the screen.
+**Open your own lecture in the projection, press `C` until it is short, walk it end to end without opening the source, and stop at every chunk you could not talk from using only what is on the screen.**
 
-**For each chunk that fails, ask three questions in this order:**
+**For each chunk you stopped at, ask three questions in this order:**
 
 1. Is the opening sentence a claim, or a warm-up?
 2. Would each bold phrase read as a sensible bullet on its own?
