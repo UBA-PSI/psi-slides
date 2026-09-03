@@ -987,15 +987,19 @@ pre.shiki .line { display: inline; }
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
-/* A chart's column has no outline to emphasise, so on a bar the same word
-   is a fill: the column goes solid accent, which is what .tone-4 already
-   means. The stroke stays off – the outline rule two lines up would
-   otherwise put one back at 2.6 on exactly the columns a figure singles
-   out, and it was that outline crossing the baseline at the foot of every
-   marked column that made the pair look wrong. Written after the tone
-   rules on purpose: they set the fill at a lower specificity, and a marked
-   column in a .tone-1 chart has to come out accent, not pale accent. */
+/* A chart's column: what it is filled with, and what emph does to it. A
+   column draws no outline, so paper would make it vanish and there is nothing
+   but its fill to emphasise; the rules come from DG_BAR_FILLS in
+   diagram-core, which is also what the linter reads when it says a column is
+   too pale for a theme - one table, so the warning is about the colour that
+   is drawn. The block sits after the box tones on purpose: a column's tone
+   rule is one class more specific and has to win. */
+.psi-diagram .dg-bar > rect { fill: color-mix(in oklab, var(--ink) 55%, var(--paper)); }
+.psi-diagram .dg-bar.tone-1 > rect { fill: color-mix(in oklab, var(--emph) 70%, var(--paper)); }
+.psi-diagram .dg-bar.tone-2 > rect { fill: color-mix(in oklab, var(--ink) 45%, var(--paper)); }
+.psi-diagram .dg-bar.tone-3 > rect { fill: color-mix(in oklab, var(--ink) 68%, var(--paper)); }
 .psi-diagram .dg-bar.emph > rect { fill: var(--emph); stroke: none; }
+.psi-diagram .dg-bar.tone-4.emph > rect { stroke: none; }
 /* Words are the third thing emphasis can act on, and leaving them out left the
    emph verb on a text accepted and completely inert - the ground rule at the
    foot of this stylesheet refuses to stroke a label's rect, deliberately and
@@ -1535,7 +1539,7 @@ second one. Any two numbers work.</p>
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></span>
   
   <h2 class="chunk-heading">The window walks the beats, and the picture stands still</h2>
-  <p><strong><code>::: backdrop dusk {cover} reveal full, right 52%</code></strong> gives the picture one
+  <p><strong><code>::: backdrop dusk {.cover} reveal full, right 52%</code></strong> gives the picture one
 place per beat – one press of Space – and the last place stays. Two moves come
 out of it: a picture that retreats to free the space the words need, and one
 that grows over the words and covers them.</p>

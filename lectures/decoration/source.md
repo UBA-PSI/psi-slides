@@ -112,7 +112,7 @@ talking and where an hour ago. The last slide of this lecture is one.
 
 # Dividers carry their own slide {#dividers}
 
-::: backdrop dusk {cover invert}
+::: backdrop dusk {.cover .invert}
 
 ## free: Six treatments, every one quieter than the cover {.wide #section-list}
 
@@ -311,7 +311,7 @@ box b "1fr" right of a gap 0.22 w 0.95 h 1.9 {.tone-3}
 
 ## free: The window walks the beats, and the picture stands still {.wide #reveal-why}
 
-**`::: backdrop dusk {cover} reveal full, right 52%`** gives the picture one
+**`::: backdrop dusk {.cover} reveal full, right 52%`** gives the picture one
 place per beat – one press of Space – and the last place stays. Two moves come
 out of it: a picture that retreats to free the space the words need, and one
 that grows over the words and covers them.
@@ -322,9 +322,9 @@ or slides about while it is being revealed.
 
 ## figure: A picture that retreats {.full #reveal-open .bare}
 
-::: backdrop dusk {cover clear} reveal full, right 52%
+::: backdrop dusk {.cover .clear} reveal full, right 52%
 
-::: overlay {left clear standard} from 1
+::: overlay {.left .clear .standard} from 1
 ### The picture retreats
 
 and the words arrive in the space it freed, on the same press of Space.
@@ -345,9 +345,9 @@ its own cell over the picture and nothing else moves.
 
 ## figure: A picture that covers the words {.full #reveal-close .bare}
 
-::: backdrop dusk {cover clear over} reveal right 45%, full
+::: backdrop dusk {.cover .clear .over} reveal right 45%, full
 
-::: overlay {bottom-left ink standard} from 1
+::: overlay {.bottom-left .ink .standard} from 1
 **A title can be covered**\
 as well as added to.
 :::

@@ -870,7 +870,7 @@ console.log('\nlayout generations');
              print: r.status === 0 ? fs.readFileSync(path.join(dir, 'print.html'), 'utf8') : '' };
   };
   const PIC = 'https://example.invalid/p.jpg';
-  const rev = mask('::: backdrop ' + PIC + ' {cover clear} reveal full, right 52%\n');
+  const rev = mask('::: backdrop ' + PIC + ' {.cover .clear} reveal full, right 52%\n');
   ok(!rev.failed, 'a backdrop reveal builds', rev.out.split('\n')[0]);
   // The frames are places, and the second one has to be the *window* the
   // author asked for: right 52% is a left inset of 48, not a width of 52.
@@ -903,14 +903,14 @@ console.log('\nlayout generations');
   // The ladder: backdrop 0, content 1, an over-layer picture 2, overlays 3.
   // Read all four or none - a picture that covers the type must still leave
   // an ::: overlay standing on top of it.
-  const over = mask('::: backdrop ' + PIC + ' {cover clear over} reveal right 45%, full\n');
+  const over = mask('::: backdrop ' + PIC + ' {.cover .clear .over} reveal right 45%, full\n');
   ok(/class="chunk-backdrop[^"]*bd-over/.test(over.html),
      'the over layer reaches the markup');
   ok(/\.chunk-backdrop\.bd-over \{ z-index: 2; \}/.test(over.html)
      && /\.overlay-layer \{[^}]*z-index: 3/.test(over.html),
      'and sits above the type but below the overlay layer');
   // An overlay held to a beat.
-  const ovf = mask('::: overlay {left clear} from 1\n# Later\n:::\n');
+  const ovf = mask('::: overlay {.left .clear} from 1\n# Later\n:::\n');
   ok(!ovf.failed && /class="overlay-card[^"]*" data-from="1"/.test(ovf.html),
      'an overlay can be held to a beat', ovf.out.split('\n')[0]);
   // A heading inside a captured block is content. Left unguarded this opened
@@ -958,7 +958,7 @@ console.log('\nlayout generations');
     fs.writeFileSync(path.join(dir, 'source.md'),
       '---\ntitle: T\n---\n\n## title: {#title}\n\n' +
       '# One {#o}\n\n> A claim worth opening on.\n\n## free: A {#a}\n\nX.\n\n' +
-      '# Two {#t}\n\n::: backdrop ' + PIC + ' {cover invert}\n\n## free: B {#b}\n\nX.\n');
+      '# Two {#t}\n\n::: backdrop ' + PIC + ' {.cover .invert}\n\n## free: B {#b}\n\nX.\n');
     const r = spawnSync(process.execPath,
       [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
       { cwd: ROOT, encoding: 'utf8' });
@@ -1138,7 +1138,7 @@ console.log('\nlayout generations');
   // 5 · the reveal is live-only, but its clip and payload rode into print and
   // cropped the banner band with a slide-sized geometry.
   const rvRev = raw(FM + '## figure: F {.full #c}\n\n'
-    + '::: backdrop pic {cover clear} reveal right 45%, full\n\nText.\n');
+    + '::: backdrop pic {.cover .clear} reveal right 45%, full\n\nText.\n');
   ok(!/clip-path/.test(rvRev.print) && !/data-bd-frames/.test(rvRev.print),
      'the backdrop reveal does not reach print', rvRev.out.split('\n')[0]);
   ok(/data-bd-frames/.test(rvRev.html) && /clip-path:inset\(0 0 0 55%\)/.test(rvRev.html),
@@ -1164,11 +1164,11 @@ console.log('\nlayout generations');
      'and the linter says the same');
 
   // 10 · `from 0` is what writing no `from` already says.
-  const from0 = raw(FM + '## free: A {#a}\n\n::: overlay {left} from 0\nWords.\n:::\n\nX.\n', ['--audience-only']);
+  const from0 = raw(FM + '## free: A {#a}\n\n::: overlay {.left} from 0\nWords.\n:::\n\nX.\n', ['--audience-only']);
   ok(from0.code !== 0 && /from 0/.test(from0.out), 'an overlay held to beat 0 is refused');
-  ok(/bad-overlay-from/.test(lintOf(FM + '## free: A {#a}\n\n::: overlay {left} from 0\nWords.\n:::\n\nX.\n')),
+  ok(/bad-overlay-from/.test(lintOf(FM + '## free: A {#a}\n\n::: overlay {.left} from 0\nWords.\n:::\n\nX.\n')),
      'and the linter says the same');
-  const from1 = raw(FM + '## free: A {#a}\n\n::: overlay {left} from 1\nWords.\n:::\n\nX.\n', ['--audience-only']);
+  const from1 = raw(FM + '## free: A {#a}\n\n::: overlay {.left} from 1\nWords.\n:::\n\nX.\n', ['--audience-only']);
   ok(from1.code === 0 && /data-from="1"/.test(from1.html),
      'while from 1 still works', from1.out.split('\n')[0]);
 
@@ -1185,7 +1185,7 @@ console.log('\nlayout generations');
     + '## free: B {#d}\n\nProse.\n', ['--print-only']);
   ok(swMargin.code !== 0 && /::: footnote was never closed/.test(swMargin.out),
      'and so is an unclosed ::: footnote');
-  const swOv = raw(FM + '## free: A {#c}\n\n::: overlay {left}\n\nInside.\n\n'
+  const swOv = raw(FM + '## free: A {#c}\n\n::: overlay {.left}\n\nInside.\n\n'
     + '## free: B {#d}\n\nProse.\n', ['--print-only']);
   ok(swOv.code !== 0 && /::: overlay was never closed/.test(swOv.out),
      'and an unclosed ::: overlay');
@@ -1253,7 +1253,7 @@ console.log('\nlayout generations');
   // Print emits data-has-backdrop and data-backdrop on a chunk's article;
   // nothing keyed on either yet, which is why a divider had neither - and why
   // a scrim rule added later would have reached chunks and skipped dividers.
-  const divAttr = raw(FM + '# One {#o}\n\n::: backdrop pic {invert}\n\n## free: A {#a}\n\nX.\n');
+  const divAttr = raw(FM + '# One {#o}\n\n::: backdrop pic {.invert}\n\n## free: A {#a}\n\nX.\n');
   ok(/<section class="column" id="o" data-has-backdrop="" data-backdrop="invert">/.test(divAttr.print),
      'and a divider carries the same backdrop attributes a chunk does',
      divAttr.out.split('\n')[0]);
@@ -1293,11 +1293,11 @@ console.log('\nlayout generations');
   // whole line fail to match: `from later` was not an overlay at all, printed
   // `::: overlay …` as literal text on the projection, and the linter blamed
   // the closing `:::` two lines down.
-  const badFrom = raw(FM + '## free: A {#a}\n\n::: overlay {left} from later\nWords.\n:::\n\nX.\n',
+  const badFrom = raw(FM + '## free: A {#a}\n\n::: overlay {.left} from later\nWords.\n:::\n\nX.\n',
     ['--audience-only']);
   ok(badFrom.code !== 0 && /from later/.test(badFrom.out),
      'an unreadable `from` is named rather than printed on the slide');
-  ok(/bad-overlay-from/.test(lintOf(FM + '## free: A {#a}\n\n::: overlay {left} from later\nWords.\n:::\n\nX.\n')),
+  ok(/bad-overlay-from/.test(lintOf(FM + '## free: A {#a}\n\n::: overlay {.left} from later\nWords.\n:::\n\nX.\n')),
      'and the linter names it too, on the line that carries it');
 
   // The divider's mark and heading were separate grid rows, so the spanning
@@ -1417,8 +1417,8 @@ console.log('\nlayout generations');
 
   // A second ::: overlay replaced the first and its words were gone from every
   // output with the build exiting 0, while lint.js reported nested-directive.
-  const twoOv = raw(FM + '## free: S {#s}\n\n::: overlay {left}\nFirst.\n'
-    + '::: overlay {right}\nSecond.\n:::\n', ['--audience-only']);
+  const twoOv = raw(FM + '## free: S {#s}\n\n::: overlay {.left}\nFirst.\n'
+    + '::: overlay {.right}\nSecond.\n:::\n', ['--audience-only']);
   ok(twoOv.code !== 0 && /still open/.test(twoOv.out),
      'a second ::: overlay while one is open is refused, not silently dropped');
 
@@ -1603,12 +1603,13 @@ console.log('\nlayout generations');
        'a chunk that writes neither class emits neither attribute',
        articles(plain.html).split('\n')[0]);
   }
-  // Two classes naming the same key resolve to one value rather than both.
+  // Two classes naming the same key are refused: the last one used to win,
+  // with nothing in the line to say which - the same-slot rule every other
+  // tail applies.
   {
     const both = chunkCls('.wrap-none .wrap-balance');
-    ok(both.code === 0 && /data-wrap="balance"/.test(both.html)
-       && !/data-wrap="none"/.test(both.html),
-       'the last of two classes naming one key wins, rather than both landing');
+    ok(both.code !== 0 && /both answer "wrap"/.test(both.out || ''),
+       'two classes naming one key are refused rather than the last winning');
   }
   // A cover is the one place .bare, .center and a width are refused. These
   // are not: a cover title is a heading and balances like one, and the build
@@ -1891,19 +1892,19 @@ console.log('\nlayout generations');
        'and the same values for each, in the same order',
        Object.keys(spec).filter(k => spec[k].join(',') !== (mirror[k] || []).join(',')).join(','));
   }
-  // ── ::: side {middle} ────────────────────────────────────────────────
+  // ── ::: side {.middle} ────────────────────────────────────────────────
   // The word is a brace tail against a closed slot table, which is what the
   // rest of the language does with words; the ratio stays positional,
   // because a number is read by its position. Both may be written, in that
   // order.
   const sideOf = (open) => raw(FM + `## free: A {#a}\n\n${open}\nProse.\n::: flip\nMore.\n:::\n`,
     ['--audience-only']);
-  const sideMid = sideOf('::: side {middle}');
+  const sideMid = sideOf('::: side {.middle}');
   ok(sideMid.code === 0 && /<div class="side sv-middle"><div class="side-a">/.test(sideMid.html),
      'the anchor word on ::: side reaches the markup as a class', sideMid.out.split('\n')[0]);
   ok(/\.side\.sv-middle \{ align-items: center; \}/.test(sideMid.html),
      'and the stylesheet centres the panes on the block, never per pane');
-  const sideBoth = sideOf('::: side 2:1 {middle}');
+  const sideBoth = sideOf('::: side 2:1 {.middle}');
   ok(sideBoth.code === 0
      && /<div class="side sv-middle" style="--side-a:2fr;--side-b:1fr">/.test(sideBoth.html),
      'a ratio and an anchor are read from one line, ratio first',
@@ -1913,20 +1914,50 @@ console.log('\nlayout generations');
   const sidePlain = sideOf('::: side');
   ok(sidePlain.code === 0 && /<div class="side"><div class="side-a">/.test(sidePlain.html),
      'a bare ::: side still emits the class it always did, and no anchor');
-  const sideTop = sideOf('::: side {top}');
+  const sideTop = sideOf('::: side {.top}');
   ok(sideTop.code === 0 && /<div class="side"><div class="side-a">/.test(sideTop.html),
      'and writing the default explicitly changes nothing, because it is the default');
   // The two failures this grammar refuses everywhere, in both files.
-  const sideBad = sideOf('::: side {sideways}');
+  const sideBad = sideOf('::: side {.sideways}');
   ok(sideBad.code !== 0 && /is not a word this directive knows/.test(sideBad.out),
      'a word from no slot is refused rather than dropped');
-  ok(/bad-side-class/.test(lintOf(FM + '## free: A {#a}\n\n::: side {sideways}\nP.\n::: flip\nQ.\n:::\n')),
+  ok(/bad-side-class/.test(lintOf(FM + '## free: A {#a}\n\n::: side {.sideways}\nP.\n::: flip\nQ.\n:::\n')),
      'and the linter refuses it too, or the build accepts what the gate does not');
-  const sideTwo = sideOf('::: side {top middle}');
+  const sideTwo = sideOf('::: side {.top .middle}');
   ok(sideTwo.code !== 0 && /both answer "anchor"/.test(sideTwo.out),
      'two words from one slot are refused, because one of them would be thrown away');
-  ok(/bad-side-class/.test(lintOf(FM + '## free: A {#a}\n\n::: side {top middle}\nP.\n::: flip\nQ.\n:::\n')),
+  ok(/bad-side-class/.test(lintOf(FM + '## free: A {#a}\n\n::: side {.top .middle}\nP.\n::: flip\nQ.\n:::\n')),
      'and the linter says the same');
+  // One sigil rule for every {…} tail: a setting is written with its dot.
+  // The dot was stripped here at first, so `{middle}` and `{.middle}` both
+  // built while a chunk heading took only the second - two spellings of one
+  // thing. Refused in both files now, with the dotted spelling in the message.
+  const sideNoDot = sideOf('::: side {middle}');
+  ok(sideNoDot.code !== 0 && /"middle" is not a \.word/.test(sideNoDot.out) && /\{\.middle\}/.test(sideNoDot.out),
+     'a slot word without its dot is refused, and the message spells it with one');
+  ok(/bad-side-class.*'middle' is not a \.word/.test(lintOf(FM + '## free: A {#a}\n\n::: side {middle}\nP.\n::: flip\nQ.\n:::\n')),
+     'and the linter refuses the dotless word too');
+  const cardsNoDot = raw(FM + '## free: A {#a}\n\n::: cards 2 {outline}\n- One\n- Two\n:::\n');
+  ok(cardsNoDot.code !== 0 && /"outline" is not a \.word/.test(cardsNoDot.out),
+     'the same refusal on a card row, which shares the parser');
+  // The chunk tail was the one tail where a token without a sigil was
+  // dropped in silence: `{wide #a}` built without its width and linted clean.
+  const strayTail = raw(FM + '## free: A {wide #a}\n\nProse.\n');
+  ok(strayTail.code !== 0 && /"wide" is not a \.class or an #id/.test(strayTail.out),
+     'a chunk-tail token without its sigil is refused rather than dropped');
+  ok(/stray-attribute/.test(lintOf(FM + '## free: A {wide #a}\n\nProse.\n')),
+     'and the linter reports it as stray-attribute');
+  // Width is a slot like any other: two widths on one heading used to let
+  // the last one win with nothing in the line to say so.
+  const twoWidths = raw(FM + '## free: A {.wide .full #a}\n\nProse.\n');
+  ok(twoWidths.code !== 0 && /both answer "width"/.test(twoWidths.out),
+     'two widths on one chunk heading are refused');
+  ok(/same-slot.*both answer 'width'/.test(lintOf(FM + '## free: A {.wide .full #a}\n\nProse.\n')),
+     'and the linter reports same-slot');
+  ok(/same-slot.*both answer 'wrap'/.test(lintOf(FM + '## free: A {.wrap-none .wrap-balance #a}\n\nProse.\n')),
+     'as it does for two answers to one style key');
+  ok(!/stray-attribute|same-slot/.test(lintOf(FM + '## free: A {.wide .bare .wrap-none #a}\n\nProse.\n')),
+     'while one answer per slot is what the tail has always taken');
   // The old refusal grew rather than moved: an unreadable line is still a
   // hard error and its message now names the tail as well as the ratio.
   const sideJunk = sideOf('::: side 2:1 wide');
@@ -1936,7 +1967,7 @@ console.log('\nlayout generations');
      'in both files');
   // Print never reads it, which is why it cost nothing: .side is display
   // block on paper and the two panes stack.
-  const sidePrint = raw(FM + '## free: A {#a}\n\n::: side {middle}\nP.\n::: flip\nQ.\n:::\n',
+  const sidePrint = raw(FM + '## free: A {#a}\n\n::: side {.middle}\nP.\n::: flip\nQ.\n:::\n',
     ['--print-only']);
   ok(sidePrint.code === 0 && !/\.side\.sv-middle/.test(sidePrint.print),
      'and PRINT_CSS carries no rule for it - on paper the panes stack');

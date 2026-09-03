@@ -539,7 +539,7 @@ body[data-liga=none] { font-variant-ligatures: none; }
   align-items: start;
   margin: 0.85em 0 1.2em;
 }
-/* ::: side {middle} - the shorter pane centred against the taller one.
+/* ::: side {.middle} - the shorter pane centred against the taller one.
    One declaration, and it is the block's rather than each pane's because a
    grid row is as tall as its tallest item: the tall pane already fills the
    row and centring cannot move it, so this moves exactly the short one.
@@ -3814,15 +3814,19 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
-/* A chart's column has no outline to emphasise, so on a bar the same word
-   is a fill: the column goes solid accent, which is what .tone-4 already
-   means. The stroke stays off – the outline rule two lines up would
-   otherwise put one back at 2.6 on exactly the columns a figure singles
-   out, and it was that outline crossing the baseline at the foot of every
-   marked column that made the pair look wrong. Written after the tone
-   rules on purpose: they set the fill at a lower specificity, and a marked
-   column in a .tone-1 chart has to come out accent, not pale accent. */
+/* A chart's column: what it is filled with, and what emph does to it. A
+   column draws no outline, so paper would make it vanish and there is nothing
+   but its fill to emphasise; the rules come from DG_BAR_FILLS in
+   diagram-core, which is also what the linter reads when it says a column is
+   too pale for a theme - one table, so the warning is about the colour that
+   is drawn. The block sits after the box tones on purpose: a column's tone
+   rule is one class more specific and has to win. */
+.psi-diagram .dg-bar > rect { fill: color-mix(in oklab, var(--ink) 55%, var(--paper)); }
+.psi-diagram .dg-bar.tone-1 > rect { fill: color-mix(in oklab, var(--emph) 70%, var(--paper)); }
+.psi-diagram .dg-bar.tone-2 > rect { fill: color-mix(in oklab, var(--ink) 45%, var(--paper)); }
+.psi-diagram .dg-bar.tone-3 > rect { fill: color-mix(in oklab, var(--ink) 68%, var(--paper)); }
 .psi-diagram .dg-bar.emph > rect { fill: var(--emph); stroke: none; }
+.psi-diagram .dg-bar.tone-4.emph > rect { stroke: none; }
 /* Words are the third thing emphasis can act on, and leaving them out left the
    emph verb on a text accepted and completely inert - the ground rule at the
    foot of this stylesheet refuses to stroke a label's rect, deliberately and
@@ -4269,7 +4273,7 @@ the quotation divider in Part 1 comes out.</p>
 <g id="dg1-rows" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg1-rows--r" x="-77.00" y="40.50" width="154.00" height="27.00" rx="4"/><g id="dg1-rows--lw0" data-lab="rows--l" class="dg-lwrap" transform="translate(0.00,54.00)"><g id="dg1-rows--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">rows</tspan></text></g></g></g>
 <g id="dg1-side" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg1-side--r" x="-77.00" y="94.50" width="154.00" height="27.00" rx="4"/><g id="dg1-side--lw0" data-lab="side--l" class="dg-lwrap" transform="translate(0.00,108.00)"><g id="dg1-side--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">side 2:1</tspan></text></g></g></g>
 <g id="dg1-note" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg1-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(136.40,54.00)"><g id="dg1-note--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">three containers,</tspan><tspan x="0" y="11.58">three jobs</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  cards \"cards 3\"  at 0,0 w 1.1 h 0.5 {.tone-2}\nbox  rows  \"rows\"     below cards gap 0.5 same as cards {.tone-3}\nbox  side  \"side 2:1\" below rows  gap 0.5 same as cards {.tone-1}\ntext note  \"three containers,\\nthree jobs\" right of rows gap 1.1 -- rows {.small .muted .left}","attrs":"unit=140x54","range":[7077,7354],"chunk":null,"width":null,"alt":""}</script></figure></div>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  cards \"cards 3\"  at 0,0 w 1.1 h 0.5 {.tone-2}\nbox  rows  \"rows\"     below cards gap 0.5 same as cards {.tone-3}\nbox  side  \"side 2:1\" below rows  gap 0.5 same as cards {.tone-1}\ntext note  \"three containers,\\nthree jobs\" right of rows gap 1.1 -- rows {.small .muted .left}","attrs":"unit=140x54","range":[7079,7356],"chunk":null,"width":null,"alt":""}</script></figure></div>
   </div>
 </article>
 <article class="chunk chunk-free" id="cards-why" data-chunk-id="cards-why" data-tag="free" data-width="wide" data-chunk-num="13">
@@ -4471,7 +4475,7 @@ second one. Any two numbers work.</p>
 <figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-154.50 -69.00 464.70 138.00" width="2000" height="594" data-steps="1" role="img" aria-label="`::: side` takes a ratio" preserveAspectRatio="xMidYMid meet">
 <g id="dg2-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg2-a--r" x="-142.50" y="-57.00" width="285.00" height="114.00" rx="4"/><g id="dg2-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg2-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">2fr</tspan></text></g></g></g>
 <g id="dg2-b" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg2-b--r" x="155.70" y="-57.00" width="142.50" height="114.00" rx="4"/><g id="dg2-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(226.95,0.00)"><g id="dg2-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">1fr</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"box a \"2fr\" at 0,0 w 1.9 h 1.9 {.tone-2}\nbox b \"1fr\" right of a gap 0.22 w 0.95 h 1.9 {.tone-3}","attrs":"unit=150x60","range":[10845,10940],"chunk":"side","width":"wide","alt":"`::: side` takes a ratio"}</script></figure>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"box a \"2fr\" at 0,0 w 1.9 h 1.9 {.tone-2}\nbox b \"1fr\" right of a gap 0.22 w 0.95 h 1.9 {.tone-3}","attrs":"unit=150x60","range":[10847,10942],"chunk":"side","width":"wide","alt":"`::: side` takes a ratio"}</script></figure>
 
 
 </div></div></div></div>
@@ -4504,7 +4508,7 @@ second one. Any two numbers work.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading">The window walks the beats, and the picture stands still</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: backdrop dusk {cover} reveal full, right 52%</code></strong> gives the picture one
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: backdrop dusk {.cover} reveal full, right 52%</code></strong> gives the picture one
 place per beat – one press of Space – and the last place stays. Two moves come
 out of it: a picture that retreats to free the space the words need, and one
 that grows over the words and covers them.</p>
@@ -4707,7 +4711,7 @@ type above it, and each is still a row in the search index.</p>
 <g id="dg3-crawl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-crawl--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg3-crawl--lw0" data-lab="crawl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg3-crawl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
 <g id="dg3-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-site--r" x="156.35" y="-18.38" width="56.00" height="36.75" rx="4"/><g id="dg3-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(184.35,0.00)"><g id="dg3-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
 <g id="dg3-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-score--r" x="112.93" y="91.17" width="142.85" height="36.75" rx="4"/><g id="dg3-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(184.35,109.55)"><g id="dg3-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"box crawl \"Crawler\"         at 0,0\nbox site  \"Site\"            right of crawl gap 2.0\nbox score \"Scoring service\" below site gap 1.3\nedge crawl.right:0.3 -> site.left:0.3 \"request\" side top\nedge site.left:0.72 -> crawl.right:0.72 \"page, or not\" side bottom\nedge site -> score {.dashed}","attrs":"unit=150x56","range":[15141,15426],"chunk":"bare-loop","width":"full","alt":"The measurement loop"}</script></figure></div></div>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"box crawl \"Crawler\"         at 0,0\nbox site  \"Site\"            right of crawl gap 2.0\nbox score \"Scoring service\" below site gap 1.3\nedge crawl.right:0.3 -> site.left:0.3 \"request\" side top\nedge site.left:0.72 -> crawl.right:0.72 \"page, or not\" side bottom\nedge site -> score {.dashed}","attrs":"unit=150x56","range":[15155,15440],"chunk":"bare-loop","width":"full","alt":"The measurement loop"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="bare-loop">
       <div class="annot-box-label">annotation · bare-loop</div>
@@ -4733,7 +4737,7 @@ type above it, and each is still a row in the search index.</p>
 <g id="dg4-inst" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg4-inst--r" x="153.40" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg4-inst--lw0" data-lab="inst--l" class="dg-lwrap" transform="translate(228.40,0.00)"><g id="dg4-inst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">instrumented</tspan></text></g></g></g>
 <g id="dg4-diff" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg4-diff--r" x="153.40" y="74.38" width="150.00" height="36.75" rx="4"/><g id="dg4-diff--lw0" data-lab="diff--l" class="dg-lwrap" transform="translate(228.40,92.75)"><g id="dg4-diff--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">difference</tspan></text></g></g></g>
 <g id="dg4-n" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg4-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(359.40,92.75)"><g id="dg4-n--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a difference is a detection</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg4-root">{"p":"dg4-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","n--lead--p":"path","n--lead--h":"path","raw--r":"rect","raw--l":"text","inst--r":"rect","inst--l":"text","diff--r":"rect","diff--l":"text","n--l":"text"},"names":["compare","verdict","note"],"frames":[{"vis":{"raw":1,"inst":0,"diff":0,"n":0,"edge-1":0,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":0,"n":0,"edge-1":1,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":0,"edge-1":1,"edge-2":1,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":1,"edge-1":1,"edge-2":1,"n--lead":1},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box  raw  \"raw crawl\"    at 0,0 w 1.0 {.tone-2}\nbox  inst \"instrumented\" right of raw gap 1.4 w 1.0 {.tone-3}\nbox  diff \"difference\"   below inst gap 1.0 w 1.0 {.tone-1}\nedge raw -> inst\nedge inst -> diff\ntext  n \"a difference is a detection\" right of diff gap 1.0 -- diff {.small .muted .left}\n\nstep compare\n  show inst\n\nstep verdict\n  show diff\n  emph diff\n\nstep note\n  show n","attrs":"unit=150x56","range":[15840,16218],"chunk":"autoplay","width":"full","alt":"A figure that walks itself"}</script></figure></div></div>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg4-root">{"p":"dg4-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","n--lead--p":"path","n--lead--h":"path","raw--r":"rect","raw--l":"text","inst--r":"rect","inst--l":"text","diff--r":"rect","diff--l":"text","n--l":"text"},"names":["compare","verdict","note"],"frames":[{"vis":{"raw":1,"inst":0,"diff":0,"n":0,"edge-1":0,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":0,"n":0,"edge-1":1,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":0,"edge-1":1,"edge-2":1,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":1,"edge-1":1,"edge-2":1,"n--lead":1},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box  raw  \"raw crawl\"    at 0,0 w 1.0 {.tone-2}\nbox  inst \"instrumented\" right of raw gap 1.4 w 1.0 {.tone-3}\nbox  diff \"difference\"   below inst gap 1.0 w 1.0 {.tone-1}\nedge raw -> inst\nedge inst -> diff\ntext  n \"a difference is a detection\" right of diff gap 1.0 -- diff {.small .muted .left}\n\nstep compare\n  show inst\n\nstep verdict\n  show diff\n  emph diff\n\nstep note\n  show n","attrs":"unit=150x56","range":[15854,16232],"chunk":"autoplay","width":"full","alt":"A figure that walks itself"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="autoplay">
       <div class="annot-box-label">annotation · autoplay</div>
@@ -9661,6 +9665,91 @@ const DG_CLASSES = new Set([
 // fill (dgHasFill says so) but it is an answer to the same question, and a
 // default that stacked on top of it would paint the thing the author took off.
 const DG_FILL_SLOT = ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper'];
+
+// ── what a column is filled with, and whether a room can see it ──────────
+// The seven themes' three inks in oklch, copied from the audience stylesheet
+// in build.js and held to it by a gate (test/gates/semantics.mjs). The linter
+// has to say which theme loses a column, and it cannot read a stylesheet.
+const DG_THEMES = {
+  'light-red':      { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.42, 0.16, 30] },
+  'light-teal':     { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.52, 0.12, 195] },
+  'light-blue':     { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.48, 0.18, 250] },
+  'light-orange':   { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.58, 0.17, 60] },
+  'dark':           { paper: [0.17, 0.005, 260], ink: [0.95, 0, 0],      emph: [0.76, 0.15, 35] },
+  'terminal-amber': { paper: [0.12, 0.02, 60],   ink: [0.82, 0.14, 75],  emph: [0.94, 0.18, 85] },
+  'terminal-green': { paper: [0.11, 0.02, 150],  ink: [0.80, 0.20, 145], emph: [0.92, 0.24, 145] },
+};
+// A column's fill, as the ink it is mixed from and the percentage of it over
+// the paper - the two arguments of color-mix. A tone on a box is mixed pale
+// so the ink of its label stays legible on it; a column carries no label,
+// and the same mix is a watermark on a projector, so a column reads its tone
+// at roughly twice a box's strength, in the same hue and the same order. One
+// table feeds the stylesheet (dgBarFillCss) and the linter (dgBarContrast),
+// so the warning is about the colour that is actually drawn.
+// The steps are ten points apart on the grey side so three runs can be told
+// apart, and the numbers are chosen against DG_BAR_CONTRAST_MIN: plain, tone-3
+// and tone-4 clear it in all seven themes, tone-1 misses it where the accent
+// is a light hue (teal, orange) and tone-2 in the two terminal themes, whose
+// ink and paper are close to begin with. The linter says which.
+const DG_BAR_FILLS = {
+  plain:    ['ink', 55],
+  'tone-1': ['emph', 70],
+  'tone-2': ['ink', 45],
+  'tone-3': ['ink', 68],
+  'tone-4': ['emph', 100],
+  // `emph` on a column is a fill, the accent, because it has no outline to
+  // emphasise. It overwrites the run's tone, which is why the linter warns
+  // when two runs are lit at one index.
+  emph:     ['emph', 100],
+};
+// WCAG 1.4.11, the non-text contrast floor. Below it a projector, which
+// flattens every mid-tone toward the paper, has nothing left to show.
+const DG_BAR_CONTRAST_MIN = 3;
+/** The fill table's key for a column of `tone` (or 'plain') under `prominence` (or null). */
+function dgBarFill(tone, prominence) {
+  if (prominence === 'emph') return 'emph';
+  return DG_BAR_FILLS[tone] ? tone : 'plain';
+}
+/** The stylesheet rules for a column's fills, generated from the table above. */
+function dgBarFillCss() {
+  const mix = (key) => {
+    const [tok, pct] = DG_BAR_FILLS[key];
+    return pct >= 100 ? `var(--${tok})` : `color-mix(in oklab, var(--${tok}) ${pct}%, var(--paper))`;
+  };
+  return [
+    `.psi-diagram .dg-bar > rect { fill: ${mix('plain')}; }`,
+    ...['tone-1', 'tone-2', 'tone-3'].map(t => `.psi-diagram .dg-bar.${t} > rect { fill: ${mix(t)}; }`),
+    // stroke: none twice, because the box rules for .emph and for .tone-4.emph
+    // each put an outline back at a higher specificity than the bar's own.
+    `.psi-diagram .dg-bar.emph > rect { fill: ${mix('emph')}; stroke: none; }`,
+    '.psi-diagram .dg-bar.tone-4.emph > rect { stroke: none; }',
+  ].join('\n');
+}
+// oklch -> oklab -> linear sRGB -> relative luminance, the chain color-mix in
+// oklab and the WCAG ratio are defined over. Clamped at the gamut edge the
+// way a display clamps.
+const dgOklchToLab = ([L, C, h]) => [L, C * Math.cos(h * Math.PI / 180), C * Math.sin(h * Math.PI / 180)];
+const dgLabToLinear = ([L, a, b]) => {
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+  const l = l_ ** 3, m = m_ ** 3, sv = s_ ** 3;
+  return [
+    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * sv,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * sv,
+    -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * sv,
+  ].map(v => Math.min(1, Math.max(0, v)));
+};
+const dgLuminance = (lab) => { const [r, g, b] = dgLabToLinear(lab); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+/** WCAG contrast of a column's fill (a DG_BAR_FILLS key) against the paper of one theme. */
+function dgBarContrast(fillKey, theme) {
+  const th = DG_THEMES[theme];
+  const [tok, pct] = DG_BAR_FILLS[fillKey] || DG_BAR_FILLS.plain;
+  const paper = dgOklchToLab(th.paper), ink = dgOklchToLab(th[tok]);
+  const fill = ink.map((v, i) => v * pct / 100 + paper[i] * (1 - pct / 100));
+  const a = dgLuminance(fill), b = dgLuminance(paper);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
 // Prominence – how much of a room's attention an element is asking for. One
 // channel, four visual states: an unnamed normal plus these three. This *is*
 // the prominence slot in DG_CLASS_GROUPS, and it is also the step-verb list and
@@ -10061,6 +10150,10 @@ const DG_GRID_MAX = 400;
 const dgBarName = (id, i) => `${id}-${i}`;
 const dgTickName = (id, i) => `${id}-tick-${i}`;
 const dgBaseName = (id) => `${id}-base`;
+// A run's entry in the legend the chart draws for it: the swatch, which is a
+// column of the run, and the name beside it.
+const dgKeyName = (id) => `${id}-key`;
+const dgKeyLabelName = (id) => `${id}-key-label`;
 const dgCellName = (id, c, r) => `${id}-${c}-${r}`;
 // A table's cells are addressed the way a grid's are, column then row, and
 // row 0 is the header – so `style @t-row-1 {.tone-4}` lights the first line
@@ -10264,7 +10357,7 @@ const DG_KIND_OPTS = {
   // mean on the line what they already mean in a step and in a class. Without
   // them a column could be singled out from beat 1 onwards and never in the
   // opening picture, which is exactly where a chart usually wants one.
-  bars: ['w', 'h', 'space', ...DG_PROMINENCE, 'aspect'], grid: ['cell', 'space'],
+  bars: ['w', 'h', 'space', ...DG_PROMINENCE, 'aspect', 'key'], grid: ['cell', 'space'],
   // `tick 0.2` reads as "a tick every 0.2", which is what it does. It was
   // `step`, which is also the statement that opens a beat – one word, two
   // grammatical roles, and the worse pair of the three this revision unpicked,
@@ -11341,7 +11434,7 @@ function readGridOpts(head, id, rest0, lineNo, errors) {
   const out = { place: null, w: null, h: null, row: null, band: null, header: null, tick: null,
     cell: null, space: null, col: null, emph: null,
     dim: null, ghost: null, series: null, stacked: false, horizontal: false, unnumbered: false,
-    aspect: null, sameAs: null };
+    aspect: null, sameAs: null, key: false };
   // `space`, not `gap`. Everywhere else in this grammar `gap` is the distance
   // between two *elements*, and a placement on this very line uses it in
   // exactly that sense – so a bare `gap` here meant one thing written before
@@ -11366,6 +11459,11 @@ function readGridOpts(head, id, rest0, lineNo, errors) {
       else { dgErr(errors, lineNo, `bars ${id}: write "series of <chart>" – the name of the bars whose frame this belongs to`); return null; }
       continue;
     }
+    // `key "2023"` names the run for the legend the chart draws. Its value is
+    // a quoted string, and this function never sees one - body0 carries no
+    // quoted tokens - so the word is noted here and the string is picked up
+    // by the bars statement off the raw token list.
+    if (key === 'key' && head === 'bars') { out.key = true; k++; continue; }
     if (allowed.includes(key)) {
       if (DG_RATIO_OPTS.has(key)) {
         const r = dgParseRatio(rest[k + 1]?.v);
@@ -12097,6 +12195,15 @@ function createSpanTable(model, body) {
       return gap(tailInsert(el, toks), ' same as ');
     }
 
+    // `key "…"` is the one keyed option whose value is a string. Present is
+    // the quoted token; absent is an insertion before the tail that carries
+    // the quotes, the shape a label's absent span already has.
+    if (attr === 'key') {
+      if ((el.frame || el.kind) !== 'bars') return null;
+      const k = find('key');
+      const val = k >= 0 && toks[k + 1] && toks[k + 1].q ? toks[k + 1] : null;
+      return val ? hit(val.s, val.e, val.v) : gap(tailInsert(el, toks), ' key "', '"');
+    }
     if (DG_KEYED_ATTRS.includes(attr)) {
       const k = find(attr);
       if (k >= 0 && toks[k + 1]) return hit(toks[k + 1].s, toks[k + 1].e, toks[k + 1].v);
@@ -13746,7 +13853,18 @@ function createDiagramCompiler(env = {}) {
         // `bars` and `plot` only ever draw boxes; a `grid` draws whatever its
         // kind word says, and an outline on a grid of dots did nothing at all.
         rejectClassOn(head === 'grid' ? (t(2) || 'box') : 'box', attrs.classes, lineNo, errors, '', attrs.removedClasses);
-        const qToks = toks.filter(x => x.q);
+        // `key "2023"` is the one option whose value is a quoted string. The
+        // quoted tokens of a chart line are otherwise positional - the values,
+        // then the tick strip - so the key's string has to be taken out of that
+        // list before the strip is read off it, or a named run gains a strip
+        // of one label and is refused for it.
+        const keyAt = toks.findIndex((x, i) => i >= 2 && !x.q && !x.attr && x.v === 'key');
+        const keyTok = keyAt >= 0 && toks[keyAt + 1] && toks[keyAt + 1].q ? toks[keyAt + 1] : null;
+        if (keyAt >= 0 && !keyTok && head === 'bars') {
+          dgErr(errors, lineNo, `bars ${id}: "key" takes the run's name in quotes, e.g. key "2023"`);
+          continue;
+        }
+        const qToks = toks.filter(x => x.q && x !== keyTok);
         // A synthetic element carries the statement's own span so an error
         // names the line that wrote it, and `synth` so anything that rewrites
         // source – the editor above all – knows there is no line of its own
@@ -13928,20 +14046,19 @@ function createDiagramCompiler(env = {}) {
             kind: 'abs',
             at: [{ ref: owner, prop: 'left', nudge: xn }, { ref: owner, prop: 'top', nudge: yn }],
           });
-          // A column is a bar, not a box: it draws no outline, and it carries
-          // a fill that can stand on its own without one. Both arrive the
-          // way `sharp` does – prepended, so the author's own tail displaces
-          // them through the slot rather than stacking beside them. The
+          // A column is a bar, not a box: it draws no outline. `bare` arrives
+          // the way `sharp` does – prepended, so the author's own `.thick`
+          // displaces it through the slot rather than stacking beside it. The
           // reasons are in figure-design.md under Charts: an outline on a
           // column is ink that encodes nothing (Tufte), it never matched the
           // baseline's weight, and under `emph` the two crossed each other at
-          // the foot of every marked column. Paper fill with no outline would
-          // be invisible, so a bare column defaults to the fill `.bare`
-          // already asks for on a box, `.tone-3`.
+          // the foot of every marked column. The fill a column has when no
+          // tone is written is the stylesheet's business (`.dg-bar`), not a
+          // class: a tone is a category the author chose, and a column with
+          // no category should not report one.
           const barred = (cls) => {
             const out = [...cls];
             if (!out.some(c => c === 'thick' || c === 'bare')) out.unshift('bare');
-            if (!out.some(c => DG_FILL_SLOT.includes(c))) out.unshift('tone-3');
             return squared(out);
           };
           values.forEach((v, i) => {
@@ -13975,6 +14092,34 @@ function createDiagramCompiler(env = {}) {
               r: null, pad: null,
             }));
           });
+          // The run's name, drawn by the chart. The swatch is a column of the
+          // run - same role, same classes, so the same fill by construction,
+          // which is the reason the chart draws it: a legend built out of
+          // boxes shows the run's tone at a box's strength, and that is not
+          // the colour of the columns. Entries stand in a row above the
+          // frame's top-left corner, in source order; a series appends to the
+          // row of the chart it joined, so the running x lives on that
+          // chart's geometry record.
+          if (keyTok) {
+            const kgeo = barsGeom.get(owner);
+            const fs = DG_FONT * 0.8;
+            const m = dgMeasure(keyTok.v, fs, false);
+            const sw = fs * 1.15, gapK = fs * 0.45, afterK = fs * 1.6;
+            const x0 = kgeo.keyX || 0;
+            const yc = -(fs * 1.35);
+            claim(dgKeyName(id), 'box', lineNo);
+            model.nodes.push(synth({
+              kind: 'box', id: dgKeyName(id), label: '', role: 'bar',
+              classes: barred([...attrs.classes]), removedClasses: attrs.removedClasses, tags: attrs.tags,
+              place: atOwner((x0 + sw / 2) / uw, yc / uh), w: sw / uw, h: fs / uh, r: null, pad: null,
+            }));
+            claim(dgKeyLabelName(id), 'text', lineNo);
+            model.nodes.push(synth({
+              kind: 'text', id: dgKeyLabelName(id), label: keyTok.v, classes: ['small'], tags: attrs.tags,
+              place: atOwner((x0 + sw + gapK + m.w / 2) / uw, yc / uh), w: null, h: null, r: null, pad: null,
+            }));
+            kgeo.keyX = x0 + sw + gapK + m.w + afterK;
+          }
           if (opts.series) {
             // Enough for the span table to re-tokenize the line and find the
             // values, the classes, the tags, `stacked` and the prominence words.
@@ -16383,7 +16528,7 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_RESERVED_IDS, DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_HOST_OPTS, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, rejectClassOn, dgArticle, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_THEMES, DG_BAR_FILLS, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarFillCss, dgBarContrast, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_RESERVED_IDS, DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_HOST_OPTS, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, rejectClassOn, dgArticle, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "";
 window.PSI_DG_EDIT_HTML = false;
@@ -21285,7 +21430,8 @@ function dgeRenderSide() {
 
   // Geometry: exactly the options that element's own statement accepts.
   if (single) {
-    const opts = dgeKindOpts(single).filter((k) => !DGE_WORD_OPTS.has(k));
+    // `key` is a string and lives with the data fields.
+    const opts = dgeKindOpts(single).filter((k) => !DGE_WORD_OPTS.has(k) && k !== 'key');
     if (opts.length) {
       const row = dgeEl('div', { class: 'dge-nums' });
       for (const key of opts) {
@@ -22272,6 +22418,12 @@ const DGE_DATA_FIELDS = {
       empty: 'drop',
       count: (v) => (v.includes('|') ? v.split('|') : v.trim().split(/\s+/))
         .filter((x) => x.trim()).length },
+    // `key "2023"`: the run's name, for the legend the chart draws itself. A
+    // keyed option rather than a positional one, and the only keyed option
+    // whose value is a string – so it sits with the data fields, which know
+    // how to quote, rather than in the size row, which reads numbers.
+    { key: 'key', label: 'key', hint: 'the name of this run, for the legend the chart draws · leave empty for none',
+      empty: 'drop' },
   ],
   grid: [
     { key: 'shape', label: 'shape', hint: 'columns × rows, written 8x12', empty: 'refuse' },
@@ -22366,7 +22518,7 @@ function dgeDataPane(el) {
     // the author cannot fill is worse than no box.
     if (!sp) continue;
     if (f.count) counts.push(f.label + ': ' + f.count(sp.present ? sp.value : ''));
-    const quoted = f.key === 'values' || f.key === 'ticks'
+    const quoted = f.key === 'values' || f.key === 'ticks' || f.key === 'key'
       || f.key === 'xtitle' || f.key === 'ytitle' || f.key === 'sub';
     rows.push(dgeEl('label', { class: 'dge-num dge-num-wide' }, [
       dgeEl('span', { text: f.label }),

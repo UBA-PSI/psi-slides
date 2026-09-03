@@ -1133,9 +1133,9 @@ of them are shown one per slide in
 ```markdown
 ## figure: {#skyline .full}
 
-::: backdrop city-at-night {invert blur}
+::: backdrop city-at-night {.invert .blur}
 
-::: overlay {bottom-left ink wide}
+::: overlay {.bottom-left .ink .wide}
 ### Every endpoint is a sensor
 A crawler that looks like a browser gets measured back.
 :::
@@ -1153,9 +1153,9 @@ A crawler that looks like a browser gets measured back.
 
 ## example: A picture behind the words | what the two blocks on the last slide produce {.full #deco-picture}
 
-::: backdrop dusk {cover invert}
+::: backdrop dusk {.cover .invert}
 
-::: overlay {bottom-left ink standard}
+::: overlay {.bottom-left .ink .standard}
 **The backdrop is the slide's ground**\
 and this block is an overlay, placed on a 3×3 grid.
 :::
@@ -1207,21 +1207,21 @@ Use `cols` for an argument that runs long, and `cards` for a comparison the audi
 
 **`ground` is answered once for a whole row**, so three grounds means three rows, each written `::: cards 1 {…}` with its own word. `panel` is the default, a tinted fill; `outline` is a hairline and no fill; `photo` makes the card's first picture its background, and `scrim` says what is laid over it.
 
-::: cards 1 {accent}
+::: cards 1 {.accent}
 - **accent** – the theme's own colour, with the text in the page colour on top
 :::
 
-::: cards 1 {paper}
+::: cards 1 {.paper}
 - **paper** – the page colour, so the card stands out from whatever is behind it
 :::
 
-::: cards 1 {clear}
+::: cards 1 {.clear}
 - **clear** – no box at all, so the gap is what separates one card from the next
 :::
 
-## example: A tail that answers twice | `::: cards 3 {outline middle}` {.wide #cards-anchor}
+## example: A tail that answers twice | `::: cards 3 {.outline .middle}` {.wide #cards-anchor}
 
-::: cards 3 {outline middle}
+::: cards 3 {.outline .middle}
 - **outline**\
   a hairline and no fill, which is less prominent on a slide that already carries a figure
 - **middle**\
@@ -1230,13 +1230,13 @@ Use `cols` for an argument that runs long, and `cards` for a comparison the audi
   a fill inside a hairline reads as a form field rather than as a card
 :::
 
-**That row is `::: cards 3 {outline middle}`**, so its tail answers two questions at once: `ground`, and `anchor` – where the text sits when the card is taller than its content, which it always is, a grid row being as tall as its longest card.
+**That row is `::: cards 3 {.outline .middle}`**, so its tail answers two questions at once: `ground`, and `anchor` – where the text sits when the card is taller than its content, which it always is, a grid row being as tall as its longest card.
 
 ## example: A term and what it means | `::: rows` {.wide #rows}
 
 **`::: rows` is a card turned ninety degrees**: a term in a card on the left, its explanation beside it, several of them stacked.
 
-::: rows {accent}
+::: rows {.accent}
 - **Separatism** Engineers do the technical work; managers take the decisions
 - **Technocracy** Engineers should take them, because they understand them
 - **Deference** Engineers name the options and say what each one costs
@@ -1244,7 +1244,7 @@ Use `cols` for an argument that runs long, and `cards` for a comparison the audi
 
 ## example: What a row block does differently | no count, and three defaults of its own {.wide #rows-rules}
 
-That row is `::: rows {accent}` around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are. **The explanation is optional** – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.
+That row is `::: rows {.accent}` around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are. **The explanation is optional** – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.
 
 It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: the text is centred against its term rather than against its first line; `align` says how the term sits *in its card*, and the explanation always ranges left; and the automatic size stops at `medium`, a term being a label in a column rather than a headline across the slide.
 
@@ -1252,13 +1252,13 @@ Use `rows` when a term needs a sentence, and `cards` when a comparison needs cou
 
 ## example: A figure beside the prose | `::: side 2:1` {.wide #side-ratio}
 
-::: side 2:1 {middle}
+::: side 2:1 {.middle}
 
 **`::: side` takes an optional ratio, so the two panes need not be equal halves.** This slide is `::: side 2:1`: two parts of prose to one part figure, which is the shape a diagram with its commentary usually wants. Any two numbers work, `::: side` on its own is equal halves, and `::: flip` starts the second pane.
 
 That drawing is a `::: draw` block inside the second pane. In `print.html` and `print-notes.html` the two panes stack one after the other and the ratio is ignored, because a page has only one column to give them.
 
-**A short pane sits at the top of its half unless you say otherwise, and `{middle}` centres it against the taller one.** Here the *figure* is the short pane, so `{middle}` is what puts it level with the middle of this column instead of at the top. `{top}` is the default and often right – a caption over a figure should be aligned from the top. The word belongs to the block and not to either pane, because the taller pane is what makes the row tall, so centring can only ever move the shorter one.
+**A short pane sits at the top of its half unless you say otherwise, and `{.middle}` centres it against the taller one.** Here the *figure* is the short pane, so `{middle}` is what puts it level with the middle of this column instead of at the top. `{top}` is the default and often right – a caption over a figure should be aligned from the top. The word belongs to the block and not to either pane, because the taller pane is what makes the row tall, so centring can only ever move the shorter one.
 
 **A figure *above* or *below* the text needs nothing at all** – put the block first or last in the chunk body. `::: cols` is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns stop working, without an error. A `::: draw` written there is refused, and the message points you at `::: side`.
 

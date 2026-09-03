@@ -94,7 +94,7 @@ overlaps among no buttons.
 Three different reasons, and the third is the one to remember.
 
 **Because nothing that ships can reach the case** – `math-focus` (no lecture has
-a two-row display formula) and `side-anchor` (nothing writes `::: side {middle}`
+a two-row display formula) and `side-anchor` (nothing writes `::: side {.middle}`
 yet).
 
 **Because the thing is only legible as a pair** – `block-align` shows the same

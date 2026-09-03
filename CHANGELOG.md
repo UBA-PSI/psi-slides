@@ -191,13 +191,13 @@ from building the same way is a major version.
   `::: cards` card and a `::: rows` term, which is not a preference but the
   rescue for a 320px measure a long word overflows outright.
 
-- **`::: side {middle}` centres the shorter pane against the taller one.** A
+- **`::: side {.middle}` centres the shorter pane against the taller one.** A
   short pane sat at the top of its half and left the rest of it blank, which
   on a two-line commentary beside a tall figure is most of a slide. The word
   rides in a brace tail against a closed slot table (`anchor: top | middle`),
   the same two words a `::: cards` row already uses for the same question, and
-  the ratio stays positional: `::: side`, `::: side 2:1`, `::: side {middle}`,
-  `::: side 2:1 {middle}`. `top` is the default and is what a bare `::: side`
+  the ratio stays positional: `::: side`, `::: side 2:1`, `::: side {.middle}`,
+  `::: side 2:1 {.middle}`. `top` is the default and is what a bare `::: side`
   has always drawn, so no existing lecture moves – a figure captioned from the
   top is often captioned from the top on purpose.
 
@@ -380,10 +380,10 @@ from building the same way is a major version.
   combination with this one would have been "off, and also aligned left".
 
 - **A backdrop can be revealed, and text can wait for the beat.**
-  `::: backdrop pic {cover} reveal full, right 45%` walks the picture's
+  `::: backdrop pic {.cover} reveal full, right 45%` walks the picture's
   *window* across the slide's beats: a photograph that retreats to free the
   paper the title is written on, or – with `over` in the class tail –
-  one that grows over the title and covers it. `::: overlay {left} from 1`
+  one that grows over the title and covers it. `::: overlay {.left} from 1`
   is the other half: a block of type that arrives on a beat, which is what
   makes the picture half work on a slide with no body to split.
 
@@ -421,6 +421,20 @@ from building the same way is a major version.
 
 ### Changed
 
+- **Every setting in a `{…}` tail is written with its dot, and the parsers
+  refuse anything else.** `::: cards`, `::: rows`, `::: overlay`, `::: backdrop`
+  and `::: side` accepted `{outline middle}` and `{.outline .middle}` alike –
+  the dot was stripped – while a chunk heading and a `::: draw` box took the
+  dot and nothing else, so one thing had two spellings and an author could not
+  tell which was the real one. Now one sigil rule holds everywhere: `.word` is
+  a setting, `#word` an id, `@word` a group. A dotless word on a slot directive
+  is an error in the build and in `lint.js`, with the dotted spelling in the
+  message. The chunk tail is held to the same standard from the other side: a
+  token with no sigil (`{wide #id}`) was dropped in silence and the chunk built
+  without its width – now a `stray-attribute` error – and two widths, or two
+  answers to one `style:` key, let the last one win – now a `same-slot` error,
+  the refusal the slot directives already made. The affected directives are
+  post-1.0.0 and unreleased, so no released source changes meaning.
 - **A chart's columns draw no outline, are filled at a column's strength,
   and `emph` on a column is a fill.** A `bars` column was an ordinary box: a
   1.4 outline standing on a 1.05 baseline, and under `emph` a 2.6 accent
@@ -757,7 +771,7 @@ from building the same way is a major version.
   failed the build. `lint.js` gains `closing-count`, `closing-position` and
   `closing-heading`.
 
-- **`::: backdrop <ref> {classes}` fills the slide with a picture.** On any
+- **`::: backdrop <ref> {.classes}` fills the slide with a picture.** On any
   chunk, not only the cover. One line, no closer, and chunk-level rather than
   a body wrapper – forced rather than chosen, because `.chunk-content` sits in
   the middle track of the slide's grid and anything emitted inside the body is
@@ -768,7 +782,7 @@ from building the same way is a major version.
   photograph in all seven themes with no second palette; `invert` turns the
   slide's ink light instead.
 
-- **`::: overlay {classes}` lays a grounded text block over the slide.** Nine
+- **`::: overlay {.classes}` lays a grounded text block over the slide.** Nine
   places, five grounds (`paper` `ink` `accent` `clear` `glass`), four widths.
   The ground is the point rather than decoration: text laid straight onto a
   photograph is unreadable at the back of a room. All overlays of one chunk go
@@ -833,7 +847,7 @@ from building the same way is a major version.
   receives it - which is what lets `auto` be both the size and the align
   default, a collision the assertion found the moment it was written.
 
-- **`::: cards N {classes}` sets N equal cards in a row.** Not a second
+- **`::: cards N {.classes}` sets N equal cards in a row.** Not a second
   spelling of `::: cols N`: `cols` is one text flow the browser balances
   across N tracks, so a paragraph can spill from the foot of one column into
   the head of the next, while `cards` is N *containers* and an item is whole

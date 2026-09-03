@@ -52,6 +52,10 @@ const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
 const CHUNK_STYLE_CLASSES = new Set([
   'wrap-balance', 'wrap-none', 'blocks-center', 'blocks-left',
 ]);
+// The `style:` key each class answers - the slot, for the same-slot check
+// that refuses `.wrap-none .wrap-balance` on one heading.
+const CHUNK_STYLE_KEYS = Object.fromEntries(
+  [...CHUNK_STYLE_CLASSES].map(c => [c, c.split('-')[0]]));
 const VALID_CHUNK_CLASSES = new Set(['bare', 'center', ...CHUNK_STYLE_CLASSES]);
 // Mirrors COVER_RATIO_VARIANTS / COVER_IMAGE_VARIANTS in build.js: which
 // covers divide the slide, and which draw a picture of their own.
@@ -181,19 +185,27 @@ const SIDE_SLOTS = {
   anchor: ['top', 'middle'],
 };
 // Returns [] when the tail resolves, or one message per problem.
+// The dot is required, mirroring build.js: one sigil rule for every {…}
+// tail in the format, `.word` a setting, `#word` an id, `@word` a group.
 function slotProblems(attrs, slots) {
   const out = [];
   const seen = {};
+  const table = () => Object.entries(slots)
+    .map(([k, m]) => `${k}: ${m.map(w => '.' + w).join('|')}`).join(', ');
   for (const raw of String(attrs || '').trim().split(/\s+/).filter(Boolean)) {
-    const w = raw.replace(/^\./, '');
+    if (!raw.startsWith('.') || raw.length < 2) {
+      out.push(`'${raw}' is not a .word – every setting in a {…} tail is written `
+        + `with its dot, as on a chunk heading: {.${raw.replace(/^[.#@!]/, '')}}`);
+      continue;
+    }
+    const w = raw.slice(1);
     const slot = Object.keys(slots).find(k => slots[k].includes(w));
     if (!slot) {
-      out.push(`'${w}' is not a word this directive knows – `
-        + Object.entries(slots).map(([k, m]) => `${k}: ${m.join('|')}`).join(', '));
+      out.push(`'.${w}' is not a word this directive knows – ${table()}`);
       continue;
     }
     if (seen[slot]) {
-      out.push(`'${seen[slot]}' and '${w}' both answer '${slot}', `
+      out.push(`'.${seen[slot]}' and '.${w}' both answer '${slot}', `
         + `and one of them would be thrown away with nothing in the line to say which`);
       continue;
     }
@@ -353,11 +365,35 @@ function splitFrontmatter(src) {
 
 function parseAttributeTail(text) {
   const m = text.match(/^(.*?)\s*\{([^}]*)\}\s*$/);
-  if (!m) return { text: text.trim(), classes: [], ids: [] };
-  const out = { text: m[1].trim(), classes: [], ids: [] };
+  if (!m) return { text: text.trim(), classes: [], ids: [], stray: [] };
+  // `stray` holds every token that is neither .class nor #id. The build
+  // refuses them; here they were dropped, so `{wide #id}` linted clean and
+  // built without its width.
+  const out = { text: m[1].trim(), classes: [], ids: [], stray: [] };
   for (const tok of m[2].trim().split(/\s+/).filter(Boolean)) {
-    if (tok.startsWith('.')) out.classes.push(tok.slice(1));
-    else if (tok.startsWith('#')) out.ids.push(tok.slice(1));
+    if (tok.startsWith('.') && tok.length > 1) out.classes.push(tok.slice(1));
+    else if (tok.startsWith('#') && tok.length > 1) out.ids.push(tok.slice(1));
+    else out.stray.push(tok);
+  }
+  return out;
+}
+
+// Width and each `style:` key are slots, so two classes answering one are
+// refused the way cards/rows/overlay/backdrop/side refuse them - the build
+// does the same. Returns lint messages, or none.
+function tailSlotProblems(classes) {
+  const out = [];
+  const answered = {};
+  for (const cls of classes) {
+    const slot = VALID_WIDTHS.has(cls) ? 'width'
+      : CHUNK_STYLE_KEYS[cls] || cls;
+    if (answered[slot]) {
+      out.push(answered[slot] === cls
+        ? `'.${cls}' is written twice`
+        : `'.${answered[slot]}' and '.${cls}' both answer '${slot}', and one of them `
+          + 'would be thrown away with nothing in the line to say which');
+    }
+    answered[slot] = cls;
   }
   return out;
 }
@@ -2567,6 +2603,11 @@ function lintFile(filePath) {
         add(ln, 'error', 'multiple-ids',
             `column heading has ${attr.ids.length} {#id} tokens; only the first is used`);
       }
+      for (const tok of attr.stray) {
+        add(ln, 'error', 'stray-attribute',
+            `'${tok}' in the {…} tail is not a .class or an #id – every setting is `
+            + `written with its dot: {.${tok.replace(/^[.#@!]/, '')}}`);
+      }
       // A column heading takes an {#id} and nothing else - width and .bare
       // are a chunk's business. The build refuses them here; unmirrored, a
       // `.bare` written one heading level up parsed, was dropped, and neither
@@ -2601,6 +2642,14 @@ function lintFile(filePath) {
       if (attr.ids.length > 1) {
         add(ln, 'error', 'multiple-ids',
             `chunk heading has ${attr.ids.length} {#id} tokens; only the first is used`);
+      }
+      for (const tok of attr.stray) {
+        add(ln, 'error', 'stray-attribute',
+            `'${tok}' in the {…} tail is not a .class or an #id – every setting is `
+            + `written with its dot: {.${tok.replace(/^[.#@!]/, '')}}`);
+      }
+      for (const msg of tailSlotProblems(attr.classes)) {
+        add(ln, 'error', 'same-slot', msg);
       }
       const tagMatch = attr.text.match(/^([a-z]+):\s*(.*)$/);
       let tag = null, heading = attr.text;
@@ -2669,8 +2718,8 @@ function lintFile(filePath) {
       continue;
     }
 
-    // ::: backdrop <ref> {classes} – one line, no closer, chunk-level.
-    // ::: overlay {classes} … ::: – a text block laid over the slide.
+    // ::: backdrop <ref> {.classes} – one line, no closer, chunk-level.
+    // ::: overlay {.classes} … ::: – a text block laid over the slide.
     // Both mirror build.js; the reference is resolved there (a backdrop
     // that names no file hard-fails), so the linter rules on the shape of
     // the line and on the class tail, which is what it can decide alone.
@@ -2791,14 +2840,14 @@ function lintFile(filePath) {
     }
     // The ratio is positional, the anchor rides in a brace tail. Mirrors
     // build.js, including the tail's vocabulary – a linter that refuses
-    // `::: side {middle}` while the build draws it is the direction this
+    // `::: side {.middle}` while the build draws it is the direction this
     // project does not allow.
     const sideMatch = line.match(/^:::\s+side(?:\s+\d{1,2}\s*:\s*\d{1,2})?\s*(?:\{([^}]*)\})?\s*$/);
     const sideOpen = !!sideMatch;
     if (!sideOpen && /^:::\s+side\b/.test(line)) {
       add(ln, 'error', 'bad-side',
           '::: side takes an optional ratio, an optional {class} tail and nothing else – '
-          + 'write ::: side, ::: side 2:1, or ::: side {middle}');
+          + 'write ::: side, ::: side 2:1, or ::: side {.middle}');
     }
     if (sideOpen) {
       for (const msg of slotProblems(sideMatch[1], SIDE_SLOTS)) {

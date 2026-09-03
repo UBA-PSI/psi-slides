@@ -2723,9 +2723,9 @@ of them are shown one per slide in
   <p><strong><code>::: backdrop</code> puts a picture behind the whole slide, edge to edge, and <code>::: overlay</code> puts a block of text on top of it.</strong> One line each, on any chunk – a cover is not a special case. A backdrop names its picture the same three ways an image does: a bare asset id, a path, an https address.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold">## figure: {#skyline .full}</span></span>
 <span class="line"></span>
-<span class="line"><span style="color:#24292E">::: backdrop city-at-night {invert blur}</span></span>
+<span class="line"><span style="color:#24292E">::: backdrop city-at-night {.invert .blur}</span></span>
 <span class="line"></span>
-<span class="line"><span style="color:#24292E">::: overlay {bottom-left ink wide}</span></span>
+<span class="line"><span style="color:#24292E">::: overlay {.bottom-left .ink .wide}</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold">### Every endpoint is a sensor</span></span>
 <span class="line"><span style="color:#24292E">A crawler that looks like a browser gets measured back.</span></span>
 <span class="line"><span style="color:#24292E">:::</span></span></code></pre>
@@ -2883,7 +2883,7 @@ of them are shown one per slide in
   
   <span class="chunk-num" aria-hidden="true"><i>7</i><i>5</i></span>
   <span class="chunk-label">example</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">A tail that answers twice</span> <span class="hd-sub"><code>::: cards 3 {outline middle}</code></span></h2>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">A tail that answers twice</span> <span class="hd-sub"><code>::: cards 3 {.outline .middle}</code></span></h2>
   <div class="cards cards-3 cs-small ca-left cv-middle cd-fold cg-outline ck-round cx-veil">
 <ul>
 <li><strong class="card-lead">outline</strong><br>a hairline and no fill, which is less prominent on a slide that already carries a figure</li>
@@ -2894,7 +2894,7 @@ of them are shown one per slide in
 </div>
 
 
-<p><strong>That row is <code>::: cards 3 {outline middle}</code></strong>, so its tail answers two questions at once: <code class="nb">ground</code>, and <code class="nb">anchor</code> – where the text sits when the card is taller than its content, which it always is, a grid row being as tall as its longest card.</p>
+<p><strong>That row is <code>::: cards 3 {.outline .middle}</code></strong>, so its tail answers two questions at once: <code class="nb">ground</code>, and <code class="nb">anchor</code> – where the text sits when the card is taller than its content, which it always is, a grid row being as tall as its longest card.</p>
 
   
   
@@ -2925,7 +2925,7 @@ of them are shown one per slide in
   <span class="chunk-num" aria-hidden="true"><i>7</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">What a row block does differently</span> <span class="hd-sub">no count, and three defaults of its own</span></h2>
-  <p>That row is <code>::: rows {accent}</code> around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are. <strong>The explanation is optional</strong> – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.</p>
+  <p>That row is <code>::: rows {.accent}</code> around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are. <strong>The explanation is optional</strong> – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.</p>
 <p>It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: the text is centred against its term rather than against its first line; <code class="nb">align</code> says how the term sits <em>in its card</em>, and the explanation always ranges left; and the automatic size stops at <code class="nb">medium</code>, a term being a label in a column rather than a headline across the slide.</p>
 <p>Use <code class="nb">rows</code> when a term needs a sentence, and <code class="nb">cards</code> when a comparison needs counting.</p>
 
@@ -2944,7 +2944,7 @@ of them are shown one per slide in
 
 <p><strong><code>::: side</code> takes an optional ratio, so the two panes need not be equal halves.</strong> This slide is <code>::: side 2:1</code>: two parts of prose to one part figure, which is the shape a diagram with its commentary usually wants. Any two numbers work, <code>::: side</code> on its own is equal halves, and <code>::: flip</code> starts the second pane.</p>
 <p>That drawing is a <code>::: draw</code> block inside the second pane. In <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> the two panes stack one after the other and the ratio is ignored, because a page has only one column to give them.</p>
-<p><strong>A short pane sits at the top of its half unless you say otherwise, and <code class="nb">{middle}</code> centres it against the taller one.</strong> Here the <em>figure</em> is the short pane, so <code class="nb">{middle}</code> is what puts it level with the middle of this column instead of at the top. <code class="nb">{top}</code> is the default and often right – a caption over a figure should be aligned from the top. The word belongs to the block and not to either pane, because the taller pane is what makes the row tall, so centring can only ever move the shorter one.</p>
+<p><strong>A short pane sits at the top of its half unless you say otherwise, and <code class="nb">{.middle}</code> centres it against the taller one.</strong> Here the <em>figure</em> is the short pane, so <code class="nb">{middle}</code> is what puts it level with the middle of this column instead of at the top. <code class="nb">{top}</code> is the default and often right – a caption over a figure should be aligned from the top. The word belongs to the block and not to either pane, because the taller pane is what makes the row tall, so centring can only ever move the shorter one.</p>
 <p><strong>A figure <em>above</em> or <em>below</em> the text needs nothing at all</strong> – put the block first or last in the chunk body. <code>::: cols</code> is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns stop working, without an error. A <code>::: draw</code> written there is refused, and the message points you at <code>::: side</code>.</p>
 </div><div class="side-b">
 

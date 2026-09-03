@@ -1,5 +1,5 @@
 /*
- * ::: side {middle} centres the shorter pane, and moves nothing else.
+ * ::: side {.middle} centres the shorter pane, and moves nothing else.
  *
  * The complaint it answers is a measurement: two lines of prose beside a tall
  * figure sit at the top of their half and leave most of it blank. The fix is
@@ -66,7 +66,7 @@ ${PANES('::: side 1:1')}
 
 ## example: Middle {.wide #mid}
 
-${PANES('::: side 1:1 {middle}')}
+${PANES('::: side 1:1 {.middle}')}
 `;
 
 // Where the two panes sit inside the row that holds them, measured against

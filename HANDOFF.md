@@ -39,7 +39,7 @@ unnötig Zeit gekostet.
 2. **`style: {blocks: center|left}`** plus vier Chunk-Klassen
    (`{.blocks-left}`, `{.wrap-none}` …). Der linksbündige Code-Block deckt sich
    exakt mit der `.wide`-Spalte: beides 72vw.
-3. **`::: side {middle}`**, **`closing-image:`**, und die vier Viewer-Defaults
+3. **`::: side {.middle}`**, **`closing-image:`**, und die vier Viewer-Defaults
    (eigener Abschnitt unten).
 4. **Warnung bei zu breitem Kantenlabel** im Compiler.
 5. Drei Renderer-Defekte: Marginalia-Kamera, Leader-Sichtbarkeit, Karten.
@@ -59,7 +59,7 @@ unnötig Zeit gekostet.
   Projekt für Kartenzeilen, Agenda und Divider-Lead benutzt.
 - **`getComputedStyle` meldet die Akzentfarbe auf einem `display: contents`
   Element, das sie nie malt.** Wer dem glaubt, bestätigt, dass unsichtbarer
-  Text in Ordnung ist – und genau so war die Erklärung in `::: rows {accent}`
+  Text in Ordnung ist – und genau so war die Erklärung in `::: rows {.accent}`
   weiß auf weiß, gelayoutet und unlesbar.
 
 ### Warum `--squint` gebaut wurde

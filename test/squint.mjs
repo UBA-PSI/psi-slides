@@ -94,9 +94,9 @@ projection at all, whatever it says.
 
 ## figure: A picture with a caption on it {.full #picture}
 
-::: backdrop dusk {cover invert}
+::: backdrop dusk {.cover .invert}
 
-::: overlay {bottom-left ink standard}
+::: overlay {.bottom-left .ink .standard}
 **The caption is an overlay** and it lives outside the chunk body.
 :::
 
@@ -123,7 +123,7 @@ y = 2
 - **Unlinkability** means two actions cannot be tied together
 :::
 
-::: side 2:1 {middle}
+::: side 2:1 {.middle}
 
 The left pane is twice the width of the right one.
 

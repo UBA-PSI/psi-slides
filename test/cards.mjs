@@ -18,7 +18,7 @@
  *    and measured again with the face, the size and the leading changed,
  *    because not depending on those is the whole point of the unit.
  *
- * 3. Reversed ink has to stay where the fill is. A `::: rows {accent}` block
+ * 3. Reversed ink has to stay where the fill is. A `::: rows {.accent}` block
  *    puts the fill on the term alone, and the item that carried the reversal
  *    is display: contents and spans both columns - so the body beside the
  *    card was painted in the page colour on the page. Contrast, in all seven
@@ -66,7 +66,7 @@ collapse: none
 
 ## free: Reversed {.wide #rev}
 
-::: rows {accent}
+::: rows {.accent}
 - **Anonymity** comes from the others doing the same thing at the same time
 - **Unlinkability** means two actions of one person cannot be tied together
 :::

@@ -88,6 +88,15 @@ of the live deck. A chunk may appear before the first `#`; that is how the
   gets a protected last line). Any other class is an `unknown class` error in
   both the build and `lint.js` – it is not silently ignored. Do not invent
   classes.
+- **One sigil rule for every `{…}` tail in the format**, on a heading, on a
+  `:::` directive and inside a `::: draw` block: `.word` is a setting, `#word`
+  an id, `@word` a group (draw only). A token without its sigil is a
+  `stray-attribute` error, never silently dropped – `{wide #id}` once built
+  without its width. Settings that answer one question are exclusive: the
+  width, each `style:` key, and every slot of `cards`, `rows`, `overlay`,
+  `backdrop` and `side`. Two answers to one question are a `same-slot` error
+  (`{.wide .full}`, `{.wrap-none .wrap-balance}`, `{.top .middle}`); a flag
+  such as `.bare` is a slot too, one whose default is not written.
 - Headings carry **inline** Markdown, so backticks render as a real code span
   (`## free: Loops | for, while, and \`enumerate\` {.standard #loops}`). Block
   Markdown does not belong in a heading.
@@ -449,11 +458,11 @@ Private key travels across the user's devices.
 Two panes: everything before `::: flip` is pane A, everything after is pane B.
 `::: flip` only means anything inside an open `::: side`.
 
-`::: side 2:1` divides the measure unevenly. `::: side {middle}` centres the
+`::: side 2:1` divides the measure unevenly. `::: side {.middle}` centres the
 shorter pane against the taller one, which is what two lines of prose beside a
 tall figure want - without it the prose sits at the top and the rest of its
-half is empty. Both may be written, ratio first: `::: side 2:1 {middle}`. The
-default is `{top}`, which is what a bare `::: side` has always drawn, and it is
+half is empty. Both may be written, ratio first: `::: side 2:1 {.middle}`. The
+default is `{.top}`, which is what a bare `::: side` has always drawn, and it is
 often the right one: a caption above a figure is aligned from the top on
 purpose. It is the block's setting rather than each pane's, because the taller
 pane is what makes the row tall and centring cannot move it.
@@ -519,13 +528,13 @@ Seven slots in the tail, and two decide themselves:
 
 | slot | words (first is the default) |
 |---|---|
-| size | `auto` `large` `medium` `small` |
-| align | `auto` `left` `center` |
-| anchor | `top` `middle` |
-| detail | `fold` `show` `page` |
-| ground | `panel` `outline` `clear` `accent` `paper` `photo` |
-| corner | `round` `square` |
-| scrim | `veil` `invert` `plain` |
+| size | `.auto` `.large` `.medium` `.small` |
+| align | `.auto` `.left` `.center` |
+| anchor | `.top` `.middle` |
+| detail | `.fold` `.show` `.page` |
+| ground | `.panel` `.outline` `.clear` `.accent` `.paper` `.photo` |
+| corner | `.round` `.square` |
+| scrim | `.veil` `.invert` `.plain` |
 
 `auto` size counts the words in the longest item - three or fewer is large,
 twelve or fewer medium, else small - and applies to the whole row, never per
@@ -583,7 +592,7 @@ comparison needs counting.
 items, so everything written in a card is on the slide; folding the nested
 level is the only thing that takes anything away.
 
-### `::: backdrop <ref> {classes}` and `::: overlay {classes}`
+### `::: backdrop <ref> {.classes}` and `::: overlay {.classes}`
 
 A full-bleed picture behind the whole slide, and a grounded text block laid over
 it. The backdrop is one line with no closer; the overlay is a block.
@@ -606,13 +615,13 @@ no slot.
 
 | directive | slot | members (first is the default) |
 |---|---|---|
-| `backdrop` | fill | `cover` `contain` |
-| | crop | `middle` `top` `bottom` |
-| | scrim | `veil` `clear` `invert` |
-| | focus | `sharp` `blur` |
-| `overlay` | place | `center` `top-left` `top` `top-right` `left` `right` `bottom-left` `bottom` `bottom-right` |
-| | ground | `paper` `ink` `accent` `clear` `glass` |
-| | width | `standard` `narrow` `wide` `full` |
+| `backdrop` | fill | `.cover` `.contain` |
+| | crop | `.middle` `.top` `.bottom` |
+| | scrim | `.veil` `.clear` `.invert` |
+| | focus | `.sharp` `.blur` |
+| `overlay` | place | `.center` `.top-left` `.top` `.top-right` `.left` `.right` `.bottom-left` `.bottom` `.bottom-right` |
+| | ground | `.paper` `.ink` `.accent` `.clear` `.glass` |
+| | width | `.standard` `.narrow` `.wide` `.full` |
 
 `veil` is the theme's own paper at 80%, so ordinary ink stays readable over a
 photograph in every theme; `invert` turns the slide's ink light instead. Give a

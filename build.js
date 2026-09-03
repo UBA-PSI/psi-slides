@@ -1864,31 +1864,50 @@ for (const [name, table] of Object.entries({ CARDS_SLOTS, OVERLAY_SLOTS, BACKDRO
   }
 }
 
-// Resolve a `{.a .b}` tail against a slot table. Reports the two failures
-// this grammar refuses everywhere else: a word from no slot, and two words
-// from one.
+// Resolve a `{.a .b}` tail against a slot table. Reports the three failures
+// this grammar refuses everywhere else: a word without its dot, a word from
+// no slot, and two words from one.
+//
+// The dot is required, not tolerated. It was stripped here at first, so
+// `{outline middle}` and `{.outline .middle}` both built - and the same tail
+// on a chunk heading or a draw box takes the dot and nothing else, so an
+// author learned two spellings of one thing and could not tell which was
+// the real one. One sigil rule for every {…} tail in the format: `.word` is
+// a setting, `#word` an id, `@word` a group.
+function slotTable(slots) {
+  return Object.entries(slots)
+    .map(([s, m]) => `  ${s.padEnd(6)} ${m.map(w => '.' + w).join(' | ')}   (default: .${m[0]})`)
+    .join('\n');
+}
 function parseSlotClasses(attrs, slots, what, where) {
-  const words = String(attrs || '').trim().split(/\s+/).filter(Boolean)
-    .map(w => w.replace(/^\./, ''));
+  const tokens = String(attrs || '').trim().split(/\s+/).filter(Boolean);
   const out = {};
   for (const [slot, members] of Object.entries(slots)) out[slot] = members[0];
   const seen = {};
-  for (const w of words) {
+  for (const tok of tokens) {
+    if (!tok.startsWith('.') || tok.length < 2) {
+      const err = new Error(
+        `::: ${what} in ${where}: "${tok}" is not a .word.\n` +
+        `  Every setting in a {…} tail is written with its dot, here as on a chunk heading\n` +
+        `  and in a draw block: {.${tok.replace(/^[.#@!]/, '')}}.\n` +
+        slotTable(slots));
+      err.userFacing = true;
+      throw err;
+    }
+    const w = tok.slice(1);
     const slot = Object.keys(slots).find(s => slots[s].includes(w));
     if (!slot) {
       const err = new Error(
-        `::: ${what} in ${where}: "${w}" is not a word this directive knows.\n` +
-        Object.entries(slots)
-          .map(([s, m]) => `  ${s.padEnd(6)} ${m.join(' | ')}   (default: ${m[0]})`)
-          .join('\n'));
+        `::: ${what} in ${where}: ".${w}" is not a word this directive knows.\n` +
+        slotTable(slots));
       err.userFacing = true;
       throw err;
     }
     if (seen[slot]) {
       const err = new Error(
-        `::: ${what} in ${where}: "${seen[slot]}" and "${w}" both answer "${slot}",\n` +
+        `::: ${what} in ${where}: ".${seen[slot]}" and ".${w}" both answer "${slot}",\n` +
         `  and one of them would be thrown away with nothing in the line to say which.\n` +
-        `  ${slot}: ${slots[slot].join(' | ')}`);
+        `  ${slot}: ${slots[slot].map(x => '.' + x).join(' | ')}`);
       err.userFacing = true;
       throw err;
     }
@@ -3075,21 +3094,46 @@ function parseAttributeTail(text) {
   // direction this project does not allow. The callers decide what is legal
   // where; this only reads the line.
   const out = { text: m[1].trim(), classes: [] };
-  for (const token of m[2].trim().split(/\s+/)) {
-    if (token.startsWith('.')) {
+  const refuse = (msg) => {
+    const err = new Error(`{${m[2].trim()}} on "${out.text}": ${msg}`);
+    err.userFacing = true;
+    throw err;
+  };
+  // Every token is `.class` or `#id`, and one that is neither is refused
+  // rather than skipped. `{wide #id}` once parsed as a bare id and the
+  // width vanished without a word - the silent no-op this format refuses,
+  // and the one place in the grammar where the dot was optional by accident.
+  const answered = {};   // slot -> the class that answered it
+  for (const token of m[2].trim().split(/\s+/).filter(Boolean)) {
+    if (token.startsWith('.') && token.length > 1) {
       const cls = token.slice(1);
+      // Width and each `style:` key are slots: two classes answering one
+      // would leave the last to win in silence. The same rule cards, rows,
+      // overlay, backdrop and side already apply.
+      const slot = VALID_WIDTHS.has(cls) ? 'width'
+        : CHUNK_STYLE_CLASSES[cls] ? CHUNK_STYLE_CLASSES[cls][0]
+        : cls;
+      if (answered[slot]) {
+        refuse(answered[slot] === cls
+          ? `.${cls} is written twice.`
+          : `.${answered[slot]} and .${cls} both answer "${slot}", and one of them\n` +
+            '  would be thrown away with nothing in the line to say which.');
+      }
+      answered[slot] = cls;
       out.classes.push(cls);
       if (VALID_WIDTHS.has(cls)) out.width = cls;
-      // A `style:` override lands in one slot keyed by the setting, not in a
-      // flag named after the class, so the last of two classes naming the
-      // same key wins rather than both being true at once.
       else if (CHUNK_STYLE_CLASSES[cls]) {
         const [key, value] = CHUNK_STYLE_CLASSES[cls];
         (out.styleOverrides ??= {})[key] = value;
       }
       else if (VALID_CHUNK_CLASSES.has(cls)) out[cls] = true;
-    } else if (token.startsWith('#')) {
+    } else if (token.startsWith('#') && token.length > 1) {
+      if (out.id !== undefined) refuse(`#${out.id} and ${token} are two ids for one heading.`);
       out.id = token.slice(1);
+    } else {
+      refuse(`"${token}" is not a .class or an #id.\n` +
+        '  Every setting in a {…} tail is written with its dot: ' +
+        `{.${token.replace(/^[.#@!]/, '')}}.`);
     }
   }
   return out;
@@ -3507,7 +3551,7 @@ function parseLecture(src) {
 
       if (currentChunk) {
 
-        // ::: backdrop <ref> {classes} – a full-bleed image behind the
+        // ::: backdrop <ref> {.classes} – a full-bleed image behind the
         // whole slide. Chunk-level rather than a body wrapper, and that is
         // forced rather than chosen: .chunk-content sits in the middle
         // track of the slide's grid, so anything emitted inside the body
@@ -3534,7 +3578,7 @@ function parseLecture(src) {
           continue;
         }
 
-        // ::: overlay {classes} – a text block laid over the slide rather
+        // ::: overlay {.classes} – a text block laid over the slide rather
         // than set in its column. Collected on the chunk for the same
         // reason the backdrop is: it has to escape the content track.
         // `from` takes a token rather than digits, and the token is checked
@@ -4713,7 +4757,7 @@ function renderCoverArt(cover, bodyHtml = '') {
     return { html: '', scrim: null };
   }
   if (cover.variant === 'hero') {
-    return renderBackdrop({ ref: cover.image, attrs: 'invert' }, 'the cover');
+    return renderBackdrop({ ref: cover.image, attrs: '.invert' }, 'the cover');
   }
   if (cover.variant === 'split' || cover.variant === 'beside' || cover.variant === 'above') {
     const url = resolveAssetUrl(cover.image);
@@ -7007,7 +7051,7 @@ body[data-liga=none] { font-variant-ligatures: none; }
   align-items: start;
   margin: 0.85em 0 1.2em;
 }
-/* ::: side {middle} - the shorter pane centred against the taller one.
+/* ::: side {.middle} - the shorter pane centred against the taller one.
    One declaration, and it is the block's rather than each pane's because a
    grid row is as tall as its tallest item: the tall pane already fills the
    row and centring cannot move it, so this moves exactly the short one.

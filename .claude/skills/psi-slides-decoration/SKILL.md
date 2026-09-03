@@ -12,6 +12,8 @@ added to the other in the same commit.
 
 ## Slide decoration: covers, backdrops, overlays, cards
 
+**Every setting in a `{…}` tail below is written with its dot** – `::: cards 3 {.outline .middle}`, `::: side {.middle}`, `::: backdrop dusk {.cover .invert}` – exactly as a width is on a chunk heading and a class is in a `::: draw` block. The parser refuses a word without its dot rather than tolerating it, so the format has one spelling. Each slot in the tables below takes at most one word; two are a `same-slot` error.
+
 Four additions that are one idea – **a slide is a frame, and the frame can carry more than a text column.** All of them are additive: a `source.md` that uses none of them builds byte-identically to before.
 
 - **`subtitle:` in the frontmatter.** The hierarchy step the cover was missing, and most of the original "hard to read" complaint. Without it the one line that says what the talk is *about* has nowhere to go but the `info` block, where it renders at meta size in soft ink beside the room and the date. Four sizes now where there were two.
@@ -71,13 +73,13 @@ Four additions that are one idea – **a slide is a frame, and the frame can car
   **`data-closing-art` is what lifts the empty-track collapse**, and the four collapse rules carry `:not([data-closing-art])`. Keyed on an attribute rather than on `:has(.cover-art)` for the reason the collapse itself is: the attribute is the fact, the missing element only a symptom. A `::: backdrop` on the chunk deliberately does **not** set it – a backdrop still wins over `closing-image` (as it does over `cover-image` on the cover), and it is a ground *behind* the type rather than the composition's picture, so the track it would have filled is still empty and still collapses.
 
   **`::: backdrop` on a closing chunk is therefore not obsolete and is not a worse spelling of this.** It is the only way to put a photograph behind the six type compositions, it is what `panel` combines with to get a plate over a picture, and it takes `reveal` and `layer`, which a frontmatter key cannot. `closing-image` fills a slot; a backdrop covers a slide.
-- **`::: backdrop <ref> {classes}`** – a full-bleed image behind the whole slide, on any chunk. One line, no closer. **Chunk-level rather than a body wrapper, and that is forced rather than chosen**: `.chunk-content` sits in the middle track of the slide's grid, so anything emitted inside the body is boxed by the text column and can never reach the edges.
+- **`::: backdrop <ref> {.classes}`** – a full-bleed image behind the whole slide, on any chunk. One line, no closer. **Chunk-level rather than a body wrapper, and that is forced rather than chosen**: `.chunk-content` sits in the middle track of the slide's grid, so anything emitted inside the body is boxed by the text column and can never reach the edges.
 
-- **`::: side` takes an optional ratio and an optional `{anchor}` tail** – `::: side 2:1 {middle}`, in that order, both optional. A ratio rather than a set of classes, because it is the same question `aspect W:H` answers on a chart and the same two-number answer; a closed list would have had to guess which handful of splits an author wants and would still refuse the one they meant. **The ratio was the whole of what "figure beside the text" needed** – and `over` / `under` needed nothing at all, being document order. Measured before anything was built.
+- **`::: side` takes an optional ratio and an optional `{.anchor}` tail** – `::: side 2:1 {.middle}`, in that order, both optional. A ratio rather than a set of classes, because it is the same question `aspect W:H` answers on a chart and the same two-number answer; a closed list would have had to guess which handful of splits an author wants and would still refuse the one they meant. **The ratio was the whole of what "figure beside the text" needed** – and `over` / `under` needed nothing at all, being document order. Measured before anything was built.
 
   | slot | words (first is the default) |
   |---|---|
-  | anchor | `top` `middle` |
+  | anchor | `.top` `.middle` |
 
   **The anchor is the one question the ratio left, and it is the same question a card row answers with the same two words** – two tables may share a word, and an author who has learned `anchor: middle` on a row has learned it here. The case is measured too: two lines of prose beside a tall figure sat at the top of their half and left the rest of it blank. `top` stays the default, because a figure captioned from the top is very often captioned from the top on purpose, and because emitting a class for it would change every existing output for a decision nobody made – the class is emitted **only when the word is written**.
 
@@ -89,9 +91,9 @@ Four additions that are one idea – **a slide is a frame, and the frame can car
 
   **Centring does not make a slide shorter.** The row's height is the tall pane's either way, so a chunk that `--check-fit` reports as overflowing reports the same number with the word as without it. The tutorial's `#side-ratio` is the standing example: 47 px off the bottom at 1600×900 before and after.
 
-- **`::: overlay {classes}` … `:::`** – a grounded text block laid over the slide. Chunk-level for the same reason. All overlays of one chunk go into **one** absolutely-positioned 3×3 grid (`.overlay-layer`), so two aimed at the same corner stack instead of overlapping.
+- **`::: overlay {.classes}` … `:::`** – a grounded text block laid over the slide. Chunk-level for the same reason. All overlays of one chunk go into **one** absolutely-positioned 3×3 grid (`.overlay-layer`), so two aimed at the same corner stack instead of overlapping.
 
-- **`::: backdrop <ref> {classes} reveal <place>, <place>` – the picture's *window* changes per beat.** A band against one edge (`left 45%` … `bottom 30%`), the whole slide (`full`), or nothing (`none`). Two moves, which are the same move in two directions: a picture that retreats to free the paper the type is written on, and a picture that grows over it.
+- **`::: backdrop <ref> {.classes} reveal <place>, <place>` – the picture's *window* changes per beat.** A band against one edge (`left 45%` … `bottom 30%`), the whole slide (`full`), or nothing (`none`). Two moves, which are the same move in two directions: a picture that retreats to free the paper the type is written on, and a picture that grows over it.
 
   **It is a window and not a size.** `clip-path: inset(…)`, animated; `background-size: cover` is resolved against the whole slide either way, so the photograph stays exactly where it is and the frame opens over it. Animating a width or an `inset` property instead re-resolves `cover` on every frame and the picture zooms and slides while it is being revealed – a different effect, and not the one anyone asked for. It also costs no layout, `clip-path` being composited. 0.62s, deliberately slower than a text segment: a segment appearing is a footnote to what is already on the slide, a picture opening across the frame is the slide changing, and at a bullet's speed that reads as a glitch.
 
@@ -109,28 +111,28 @@ Four additions that are one idea – **a slide is a frame, and the frame can car
 
   | directive | slot | words (first is the default) |
   |---|---|---|
-  | `backdrop` | fill | `cover` `contain` |
-  | | crop | `middle` `top` `bottom` |
-  | | scrim | `veil` `clear` `invert` |
-  | | focus | `sharp` `blur` |
-  | `backdrop` | layer | `under` `over` |
-  | `overlay` | place | `center` `top-left` `top` `top-right` `left` `right` `bottom-left` `bottom` `bottom-right` |
-  | | ground | `paper` `ink` `accent` `clear` `glass` |
-  | | width | `standard` `narrow` `wide` `full` |
+  | `backdrop` | fill | `.cover` `.contain` |
+  | | crop | `.middle` `.top` `.bottom` |
+  | | scrim | `.veil` `.clear` `.invert` |
+  | | focus | `.sharp` `.blur` |
+  | `backdrop` | layer | `.under` `.over` |
+  | `overlay` | place | `.center` `.top-left` `.top` `.top-right` `.left` `.right` `.bottom-left` `.bottom` `.bottom-right` |
+  | | ground | `.paper` `.ink` `.accent` `.clear` `.glass` |
+  | | width | `.standard` `.narrow` `.wide` `.full` |
 
-- **`::: cards N {classes}`** – N equal containers in a row. **Not a second spelling of `cols`**: `cols` is one text flow the browser balances across N tracks, so a paragraph can spill from the foot of one column into the head of the next; `cards` is N *containers*, and an item is whole or it is nowhere.
+- **`::: cards N {.classes}`** – N equal containers in a row. **Not a second spelling of `cols`**: `cols` is one text flow the browser balances across N tracks, so a paragraph can spill from the foot of one column into the head of the next; `cards` is N *containers*, and an item is whole or it is nowhere.
 
   **The block's body is captured and rendered by `renderCardsBlock` rather than streamed** as an open `<div>` for the markdown between to fall into, and that is what the size needs: choosing it means counting the words in the longest item, which is a fact about the *source* and cannot be recovered from CSS or from rendered HTML without parsing it back. The count is taken from the `- ` lines, which is a rule an author can see, and nested items are excluded because they are the detail rather than the headline.
 
   | slot | words (first is the default) |
   |---|---|
-  | size | `auto` `large` `medium` `small` |
-  | align | `auto` `left` `center` |
-  | anchor | `top` `middle` |
-  | detail | `fold` `show` `page` |
-  | ground | `panel` `outline` `clear` `accent` `paper` `photo` |
-  | corner | `round` `square` |
-  | scrim | `veil` `invert` `plain` |
+  | size | `.auto` `.large` `.medium` `.small` |
+  | align | `.auto` `.left` `.center` |
+  | anchor | `.top` `.middle` |
+  | detail | `.fold` `.show` `.page` |
+  | ground | `.panel` `.outline` `.clear` `.accent` `.paper` `.photo` |
+  | corner | `.round` `.square` |
+  | scrim | `.veil` `.invert` `.plain` |
 
   **`auto` size reads the longest item**: ≤ 3 words → large, ≤ 12 → medium, else small. It is the **block's** decision and never each card's, because three sizes in one row read as a mistake rather than as a hierarchy. **`auto` align follows the size** – a word centres, a sentence ranges left – *except* where the row carries a second level, which ranges left whatever its heads measure: unfolded, a centred head over a left-aligned detail list reads as a mistake, and the head cannot change alignment with the collapse mode without the row jumping when `C` is pressed.
 
@@ -184,7 +186,7 @@ Four additions that are one idea – **a slide is a frame, and the frame can car
 
   **The default look is one device, not two.** A tinted fill *and* a hairline is the combination to avoid – a grey box inside a grey border reads as a form field rather than as a card – so `panel` fills, `outline` strokes, and neither does both. Three numbers were tuned rather than defaulted: the gutter scales with the card's own size (at a flat 0.7em against a 300px card the row read as one panel with seams), the padding grows *faster* than the type (big type wants proportionally more air, or a large card reads as a caption that outgrew its box), and the row keeps `1.5em × card size` above it, because a card row is a block of surfaces rather than a continuation of the text. **The heading over a centred row centres with it**, written as a CSS coupling (`body:not([data-headings]) .chunk-content:has(.cards.ca-center)`) rather than as a class: there is nothing an author would want to say there that the cards have not already said, and naming any value for `style.headings` takes the decision back.
 
-- **`::: rows {classes}`** – the card row turned ninety degrees: a term in a card on the left, its body beside it, several stacked. **It is deliberately not a new container.** Same slot vocabulary, same auto size, same fold, same print rules; the only thing that differs is the arrangement of the item, and that is one `display` plus a grid on the list. Under the criterion above that makes it nearly free, where a genuinely new container would not have been.
+- **`::: rows {.classes}`** – the card row turned ninety degrees: a term in a card on the left, its body beside it, several stacked. **It is deliberately not a new container.** Same slot vocabulary, same auto size, same fold, same print rules; the only thing that differs is the arrangement of the item, and that is one `display` plus a grid on the list. Under the criterion above that makes it nearly free, where a genuinely new container would not have been.
 
   **The list is the grid and each item dissolves into it** (`display: contents` on both `ul` and `li`), which is what gives every row one term-column width. A per-item grid could not: each row would have sized its own first column and the terms would not line up.
 
