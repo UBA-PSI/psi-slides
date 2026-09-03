@@ -6691,10 +6691,12 @@ body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
    is sized in 0.62em times var(--zoom), so the reserve has to be written in
    the same terms or it stops matching the moment the lecturer presses +: measured
    on the tutorial's own #expand, a real line of prose sat inside the button
-   rectangle at zoom 1.65, 1.95 and 2.2. The 2.3 is the chevron's own box in
+   rectangle at zoom 1.65, 1.95 and 2.2. 2.3 is the chevron's own box in
    its own type - line box plus 0.45em of padding top and bottom - and the
-   band stands 0.65 of the vertical slide padding off the floor, which is
-   room the text already leaves, so that part comes back off.
+   0.7 on top of it is clearance: at exactly 2.3 the last line of prose
+   ended on the button's top edge, and read as touching it. The band stands
+   0.65 of the vertical slide padding off the floor, which is room the text
+   already leaves, so that part comes back off.
 
    The em unit here is the chunk's, which is the responsive body size and
    carries no zoom of its own; the zoom is the explicit factor. That is the opposite of
@@ -6719,7 +6721,7 @@ body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
    resolve it the same way. The pane does not - it sets 0.88em times the zoom
    of its own - so do not reach for this inside .exp-body. */
 .chunk:has(> .exps) {
-  --exp-band: calc(0.62em * var(--zoom) * 2.3);
+  --exp-band: calc(0.62em * var(--zoom) * 3);
 }
 .chunk:has(> .exps):not(.expanded) > .chunk-content {
   padding-block-end: max(0px, calc(var(--exp-band) - var(--slide-pad-y) * 0.35));
@@ -9047,9 +9049,9 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
   white-space: nowrap;
 }
 .exp-chev:hover { color: var(--ink); border-color: var(--ink); }
-.exp-chev .caret { opacity: 0.55; transition: transform 150ms; }
+.exp-chev .caret { opacity: 0.55; }
 .exp-chev.on { color: var(--paper); background: var(--ink); border-color: var(--ink); }
-.exp-chev.on .caret { opacity: 1; transform: rotate(90deg); }
+.exp-chev.on .caret { opacity: 1; }
 .chunk:not(.active) .exps { display: none; }
 
 /* expanded: split the slide grid into content-left + expansion-right.

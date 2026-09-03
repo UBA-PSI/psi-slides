@@ -159,7 +159,7 @@ Press `C` while this pane is open and watch the chunk behind it shorten. The pan
 
 **`print.html` and `print-notes.html` print every expansion** as an indented aside where it stood in the source, so the reading copy loses nothing.
 
-## example: Zoom into a figure or code block | click it, drag to pan, `Esc` to close {.wide #figure-focus}
+## example: Zoom into a figure or code block | click it, drag to pan, `Esc` to close {.wide .blocks-left #figure-focus}
 
 **Click any figure, block of code or formula inside the chunk you are on.** It opens in a card in the middle of the screen, with the slide dimmed behind it.
 
