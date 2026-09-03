@@ -30,7 +30,7 @@ import katex from 'katex';
 // and in the browser when the editor re-lays-out a figure after a drag.
 // Imported for the build; its *text* is also read and inlined into the live
 // views, the same way bundledFaces() reads woff2 out of node_modules.
-import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPathD, DG_SHAPE_CLASSES } from './diagram-core.mjs';
+import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPathD, DG_SHAPE_CLASSES, dgBarFillCss } from './diagram-core.mjs';
 
 // KaTeX ships its stylesheet and fonts as plain files next to the module.
 // They are not importable as ESM, so resolve them the CommonJS way.
@@ -1156,11 +1156,11 @@ function bundledFaces(roster = BUNDLED_DEFAULTS) {
 // project would have to publish and explain a layout-version history beside
 // the software version.
 //
-// None of that buys anything the three settings do not already give. An
-// author who wants Inter Tight is expressing a preference about type, not
-// pinning a release; the same is true of the other two. So the settings
-// stay, the umbrella is gone, and the 1.0.0 look is a three-line recipe in
-// the docs rather than a mechanism in the code.
+// None of that buys anything the settings do not already give. An author
+// who wants Inter Tight is expressing a preference about type, not pinning a
+// release; the same is true of the others, the bold pair included. So the
+// settings stay, the umbrella is gone, and the 1.0.0 look is a short recipe
+// in the docs rather than a mechanism in the code.
 
 // Ligature policy. Two different questions get called "ligatures" and they
 // need separating, because the defaults differ and one of them already
@@ -2731,6 +2731,14 @@ const DIAGRAM_CSS = `
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
+/* A chart's column: what it is filled with, and what emph does to it. A
+   column draws no outline, so paper would make it vanish and there is nothing
+   but its fill to emphasise; the rules come from DG_BAR_FILLS in
+   diagram-core, which is also what the linter reads when it says a column is
+   too pale for a theme - one table, so the warning is about the colour that
+   is drawn. The block sits after the box tones on purpose: a column's tone
+   rule is one class more specific and has to win. */
+${dgBarFillCss()}
 /* Words are the third thing emphasis can act on, and leaving them out left the
    emph verb on a text accepted and completely inert - the ground rule at the
    foot of this stylesheet refuses to stroke a label's rect, deliberately and
@@ -4099,6 +4107,50 @@ const VIEW_DEFAULT_SPEC = [
 // Deliberately small, and deliberately not a stylesheet hook: each key is
 // a closed vocabulary or a bounded number, so a lecture cannot end up
 // depending on an internal class name that the next version renames.
+// The six looks a `**bold**` phrase may have in a view, as the three
+// declarations each one makes. `inherit` rather than a value, so a phrase
+// set `plain` is exactly the sentence around it. W is the view's own bold
+// weight: `var(--bold-weight)` live (500 serif, 600 sans and mono), 600 on
+// paper, which is what PRINT_CSS has always given a strong.
+const BOLD_LOOKS = {
+  'plain':         (W) => 'font-weight: inherit; color: inherit; font-style: inherit;',
+  'bold':          (W) => `font-weight: ${W}; color: inherit; font-style: inherit;`,
+  'italic':        (W) => 'font-weight: inherit; color: inherit; font-style: italic;',
+  'accent':        (W) => 'font-weight: inherit; color: var(--emph); font-style: inherit;',
+  'accent-bold':   (W) => `font-weight: ${W}; color: var(--emph); font-style: inherit;`,
+  'accent-italic': (W) => 'font-weight: inherit; color: var(--emph); font-style: italic;',
+};
+// The strongs the two keys reach: the ones the derivation reads, which is a
+// strong inside a paragraph splitSentencesIn splits - ordinary prose, and
+// prose inside ::: cols, ::: side, a blockquote, a loose list item, a
+// caption and a ::: marginalia. Not a ::: slide or ::: script block, whose
+// bolds the author typed for the look; not a card's lead or a row's term,
+// which carry their own rules; not an overlay, an expansion, a margin or
+// speaker note; not a cover or a section divider. The audience wraps prose
+// in .chunk-body and print does not, so the anchor is the article both
+// renderers emit. Specificity (0,4,3): above .chunk-body strong, above
+// PRINT_CSS's bare strong, and above the promoted-bullet rule
+// ([data-collapse=topic-bold] .reveal-segment .sentence-rest strong, (0,3,1)),
+// which is why that rule no longer says anything about weight or colour.
+const DERIVED_STRONG = '.chunk:not(.chunk-title, .chunk-section) '
+  + 'p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) '
+  + 'strong:not(.card-lead)';
+// The rules for one stylesheet: the default look unguarded, every other
+// look behind its body attribute, and the stress rule - an em inside such a
+// phrase is upright, bold and accent in every look but accent-bold, where
+// the phrase already has all three and the em stays the italic it always
+// was. So a lecture that says nothing renders its stress marks, and the one
+// that asks for the old look gets exactly the old look.
+function boldLookCss(attr, dflt, W) {
+  const out = [];
+  for (const [name, decl] of Object.entries(BOLD_LOOKS)) {
+    const guard = name === dflt ? '' : `body[data-${attr}=${name}] `;
+    out.push(`${guard}${DERIVED_STRONG} { ${decl(W)} }`);
+  }
+  out.push(`body:not([data-${attr}=accent-bold]) ${DERIVED_STRONG} em { font-style: normal; font-weight: ${W}; color: var(--emph); }`);
+  return out.join('\n');
+}
+
 const STYLE_SPEC = {
   // Where a heading sits. `auto` keeps the per-tag treatment (a question
   // is centred, a figure's caption is centred over its artwork); `left`
@@ -4204,6 +4256,17 @@ const STYLE_SPEC = {
   // no sensible reading as a whole printed document, which a deferral would
   // have to invent one for.
   'print-body': { kind: 'enum', values: ['serif', 'sans'], dflt: 'serif' },
+  // How a `**bold**` phrase looks. In this tool bold is a selection mark
+  // first - the collapse lifts it onto the slide as a bullet of its own - and
+  // a typographic weight only by the accident of markdown. `bold` answers for
+  // the two live views, `print-bold` for the two documents, and the two
+  // defaults differ on purpose: a slide of accent-coloured bold bullets reads
+  // as a slide of highlights nobody asked for, so the projection sets them in
+  // the sentence's own ink; a page keeps a plain bold so a reader can still
+  // skim what the room saw. Within such a phrase, `*em*` is the stress mark -
+  // see BOLD_LOOKS. The old look of both is `accent-bold`.
+  'bold':       { kind: 'enum', values: Object.keys(BOLD_LOOKS), dflt: 'plain' },
+  'print-bold': { kind: 'enum', values: Object.keys(BOLD_LOOKS), dflt: 'bold' },
 };
 function styleSettings(frontmatter = {}) {
   const raw = frontmatter.style;
@@ -4273,6 +4336,8 @@ function styleBodyAttrs(st, frontmatter = {}) {
   if (st.blocks !== 'center') parts.push('data-blocks="left"');
   if (st.hyphenate !== 'print') parts.push(`data-hyphenate="${st.hyphenate}"`);
   if (st['print-body'] !== 'serif') parts.push(`data-print-body="${st['print-body']}"`);
+  if (st.bold !== 'plain') parts.push(`data-bold="${st.bold}"`);
+  if (st['print-bold'] !== 'bold') parts.push(`data-print-bold="${st['print-bold']}"`);
   return parts.join(' ');
 }
 // The same two settings answered on one chunk, from its attribute tail. The
@@ -5038,6 +5103,10 @@ h1, h2, h3, h4, code, pre, pre *, .chunk-num, a[href^="http"] {
 }
 strong { color: var(--emph); font-weight: 600; }
 em { font-style: italic; }
+/* style.print-bold - the look of a bold the derivation reads, default bold
+   in the ink. See BOLD_LOOKS and DERIVED_STRONG. A bold outside that scope -
+   a row's term, a tight list's item, a card's lead - keeps the rule above. */
+${boldLookCss('print-bold', 'bold', '600')}
 
 ul, ol { margin: 0.4em 0 0.9em 1.4em; }
 li { margin: 0.2em 0; orphans: 2; widows: 2; }
@@ -9321,10 +9390,13 @@ body[data-hyphenate=all] #stage :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
 [data-collapse=topic-bold] .reveal-segment .sentence-rest strong {
   display: block;
   margin: 0.35em 0 0 1.5em;
-  font-weight: 500;
   position: relative;
-  color: var(--emph);
 }
+/* style.bold - the look of a bold the derivation reads, promoted bullet and
+   topic-sentence bold alike, default plain. See BOLD_LOOKS and
+   DERIVED_STRONG; the speaker view embeds this stylesheet and carries the
+   same body attribute, so it shows what the room sees. */
+${boldLookCss('bold', 'plain', 'var(--bold-weight)')}
 [data-collapse=topic-bold] .reveal-segment .sentence-rest strong::before {
   content: '–';
   position: absolute;

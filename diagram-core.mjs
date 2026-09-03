@@ -172,6 +172,91 @@ export const DG_CLASSES = new Set([
 // fill (dgHasFill says so) but it is an answer to the same question, and a
 // default that stacked on top of it would paint the thing the author took off.
 export const DG_FILL_SLOT = ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'clear', 'paper'];
+
+// ── what a column is filled with, and whether a room can see it ──────────
+// The seven themes' three inks in oklch, copied from the audience stylesheet
+// in build.js and held to it by a gate (test/gates/semantics.mjs). The linter
+// has to say which theme loses a column, and it cannot read a stylesheet.
+export const DG_THEMES = {
+  'light-red':      { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.42, 0.16, 30] },
+  'light-teal':     { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.52, 0.12, 195] },
+  'light-blue':     { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.48, 0.18, 250] },
+  'light-orange':   { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.58, 0.17, 60] },
+  'dark':           { paper: [0.17, 0.005, 260], ink: [0.95, 0, 0],      emph: [0.76, 0.15, 35] },
+  'terminal-amber': { paper: [0.12, 0.02, 60],   ink: [0.82, 0.14, 75],  emph: [0.94, 0.18, 85] },
+  'terminal-green': { paper: [0.11, 0.02, 150],  ink: [0.80, 0.20, 145], emph: [0.92, 0.24, 145] },
+};
+// A column's fill, as the ink it is mixed from and the percentage of it over
+// the paper - the two arguments of color-mix. A tone on a box is mixed pale
+// so the ink of its label stays legible on it; a column carries no label,
+// and the same mix is a watermark on a projector, so a column reads its tone
+// at roughly twice a box's strength, in the same hue and the same order. One
+// table feeds the stylesheet (dgBarFillCss) and the linter (dgBarContrast),
+// so the warning is about the colour that is actually drawn.
+// The steps are ten points apart on the grey side so three runs can be told
+// apart, and the numbers are chosen against DG_BAR_CONTRAST_MIN: plain, tone-3
+// and tone-4 clear it in all seven themes, tone-1 misses it where the accent
+// is a light hue (teal, orange) and tone-2 in the two terminal themes, whose
+// ink and paper are close to begin with. The linter says which.
+export const DG_BAR_FILLS = {
+  plain:    ['ink', 55],
+  'tone-1': ['emph', 70],
+  'tone-2': ['ink', 45],
+  'tone-3': ['ink', 68],
+  'tone-4': ['emph', 100],
+  // `emph` on a column is a fill, the accent, because it has no outline to
+  // emphasise. It overwrites the run's tone, which is why the linter warns
+  // when two runs are lit at one index.
+  emph:     ['emph', 100],
+};
+// WCAG 1.4.11, the non-text contrast floor. Below it a projector, which
+// flattens every mid-tone toward the paper, has nothing left to show.
+export const DG_BAR_CONTRAST_MIN = 3;
+/** The fill table's key for a column of `tone` (or 'plain') under `prominence` (or null). */
+export function dgBarFill(tone, prominence) {
+  if (prominence === 'emph') return 'emph';
+  return DG_BAR_FILLS[tone] ? tone : 'plain';
+}
+/** The stylesheet rules for a column's fills, generated from the table above. */
+export function dgBarFillCss() {
+  const mix = (key) => {
+    const [tok, pct] = DG_BAR_FILLS[key];
+    return pct >= 100 ? `var(--${tok})` : `color-mix(in oklab, var(--${tok}) ${pct}%, var(--paper))`;
+  };
+  return [
+    `.psi-diagram .dg-bar > rect { fill: ${mix('plain')}; }`,
+    ...['tone-1', 'tone-2', 'tone-3'].map(t => `.psi-diagram .dg-bar.${t} > rect { fill: ${mix(t)}; }`),
+    // stroke: none twice, because the box rules for .emph and for .tone-4.emph
+    // each put an outline back at a higher specificity than the bar's own.
+    `.psi-diagram .dg-bar.emph > rect { fill: ${mix('emph')}; stroke: none; }`,
+    '.psi-diagram .dg-bar.tone-4.emph > rect { stroke: none; }',
+  ].join('\n');
+}
+// oklch -> oklab -> linear sRGB -> relative luminance, the chain color-mix in
+// oklab and the WCAG ratio are defined over. Clamped at the gamut edge the
+// way a display clamps.
+const dgOklchToLab = ([L, C, h]) => [L, C * Math.cos(h * Math.PI / 180), C * Math.sin(h * Math.PI / 180)];
+const dgLabToLinear = ([L, a, b]) => {
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+  const l = l_ ** 3, m = m_ ** 3, sv = s_ ** 3;
+  return [
+    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * sv,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * sv,
+    -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * sv,
+  ].map(v => Math.min(1, Math.max(0, v)));
+};
+const dgLuminance = (lab) => { const [r, g, b] = dgLabToLinear(lab); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+/** WCAG contrast of a column's fill (a DG_BAR_FILLS key) against the paper of one theme. */
+export function dgBarContrast(fillKey, theme) {
+  const th = DG_THEMES[theme];
+  const [tok, pct] = DG_BAR_FILLS[fillKey] || DG_BAR_FILLS.plain;
+  const paper = dgOklchToLab(th.paper), ink = dgOklchToLab(th[tok]);
+  const fill = ink.map((v, i) => v * pct / 100 + paper[i] * (1 - pct / 100));
+  const a = dgLuminance(fill), b = dgLuminance(paper);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
 // Prominence – how much of a room's attention an element is asking for. One
 // channel, four visual states: an unnamed normal plus these three. This *is*
 // the prominence slot in DG_CLASS_GROUPS, and it is also the step-verb list and
@@ -572,6 +657,10 @@ export const DG_GRID_MAX = 400;
 export const dgBarName = (id, i) => `${id}-${i}`;
 export const dgTickName = (id, i) => `${id}-tick-${i}`;
 export const dgBaseName = (id) => `${id}-base`;
+// A run's entry in the legend the chart draws for it: the swatch, which is a
+// column of the run, and the name beside it.
+export const dgKeyName = (id) => `${id}-key`;
+export const dgKeyLabelName = (id) => `${id}-key-label`;
 export const dgCellName = (id, c, r) => `${id}-${c}-${r}`;
 // A table's cells are addressed the way a grid's are, column then row, and
 // row 0 is the header – so `style @t-row-1 {.tone-4}` lights the first line
@@ -775,7 +864,7 @@ export const DG_KIND_OPTS = {
   // mean on the line what they already mean in a step and in a class. Without
   // them a column could be singled out from beat 1 onwards and never in the
   // opening picture, which is exactly where a chart usually wants one.
-  bars: ['w', 'h', 'space', ...DG_PROMINENCE, 'aspect'], grid: ['cell', 'space'],
+  bars: ['w', 'h', 'space', ...DG_PROMINENCE, 'aspect', 'key'], grid: ['cell', 'space'],
   // `tick 0.2` reads as "a tick every 0.2", which is what it does. It was
   // `step`, which is also the statement that opens a beat – one word, two
   // grammatical roles, and the worse pair of the three this revision unpicked,
@@ -1852,7 +1941,7 @@ export function readGridOpts(head, id, rest0, lineNo, errors) {
   const out = { place: null, w: null, h: null, row: null, band: null, header: null, tick: null,
     cell: null, space: null, col: null, emph: null,
     dim: null, ghost: null, series: null, stacked: false, horizontal: false, unnumbered: false,
-    aspect: null, sameAs: null };
+    aspect: null, sameAs: null, key: false };
   // `space`, not `gap`. Everywhere else in this grammar `gap` is the distance
   // between two *elements*, and a placement on this very line uses it in
   // exactly that sense – so a bare `gap` here meant one thing written before
@@ -1877,6 +1966,11 @@ export function readGridOpts(head, id, rest0, lineNo, errors) {
       else { dgErr(errors, lineNo, `bars ${id}: write "series of <chart>" – the name of the bars whose frame this belongs to`); return null; }
       continue;
     }
+    // `key "2023"` names the run for the legend the chart draws. Its value is
+    // a quoted string, and this function never sees one - body0 carries no
+    // quoted tokens - so the word is noted here and the string is picked up
+    // by the bars statement off the raw token list.
+    if (key === 'key' && head === 'bars') { out.key = true; k++; continue; }
     if (allowed.includes(key)) {
       if (DG_RATIO_OPTS.has(key)) {
         const r = dgParseRatio(rest[k + 1]?.v);
@@ -2608,6 +2702,15 @@ export function createSpanTable(model, body) {
       return gap(tailInsert(el, toks), ' same as ');
     }
 
+    // `key "…"` is the one keyed option whose value is a string. Present is
+    // the quoted token; absent is an insertion before the tail that carries
+    // the quotes, the shape a label's absent span already has.
+    if (attr === 'key') {
+      if ((el.frame || el.kind) !== 'bars') return null;
+      const k = find('key');
+      const val = k >= 0 && toks[k + 1] && toks[k + 1].q ? toks[k + 1] : null;
+      return val ? hit(val.s, val.e, val.v) : gap(tailInsert(el, toks), ' key "', '"');
+    }
     if (DG_KEYED_ATTRS.includes(attr)) {
       const k = find(attr);
       if (k >= 0 && toks[k + 1]) return hit(toks[k + 1].s, toks[k + 1].e, toks[k + 1].v);
@@ -4257,7 +4360,18 @@ export function createDiagramCompiler(env = {}) {
         // `bars` and `plot` only ever draw boxes; a `grid` draws whatever its
         // kind word says, and an outline on a grid of dots did nothing at all.
         rejectClassOn(head === 'grid' ? (t(2) || 'box') : 'box', attrs.classes, lineNo, errors, '', attrs.removedClasses);
-        const qToks = toks.filter(x => x.q);
+        // `key "2023"` is the one option whose value is a quoted string. The
+        // quoted tokens of a chart line are otherwise positional - the values,
+        // then the tick strip - so the key's string has to be taken out of that
+        // list before the strip is read off it, or a named run gains a strip
+        // of one label and is refused for it.
+        const keyAt = toks.findIndex((x, i) => i >= 2 && !x.q && !x.attr && x.v === 'key');
+        const keyTok = keyAt >= 0 && toks[keyAt + 1] && toks[keyAt + 1].q ? toks[keyAt + 1] : null;
+        if (keyAt >= 0 && !keyTok && head === 'bars') {
+          dgErr(errors, lineNo, `bars ${id}: "key" takes the run's name in quotes, e.g. key "2023"`);
+          continue;
+        }
+        const qToks = toks.filter(x => x.q && x !== keyTok);
         // A synthetic element carries the statement's own span so an error
         // names the line that wrote it, and `synth` so anything that rewrites
         // source – the editor above all – knows there is no line of its own
@@ -4439,6 +4553,21 @@ export function createDiagramCompiler(env = {}) {
             kind: 'abs',
             at: [{ ref: owner, prop: 'left', nudge: xn }, { ref: owner, prop: 'top', nudge: yn }],
           });
+          // A column is a bar, not a box: it draws no outline. `bare` arrives
+          // the way `sharp` does – prepended, so the author's own `.thick`
+          // displaces it through the slot rather than stacking beside it. The
+          // reasons are in figure-design.md under Charts: an outline on a
+          // column is ink that encodes nothing (Tufte), it never matched the
+          // baseline's weight, and under `emph` the two crossed each other at
+          // the foot of every marked column. The fill a column has when no
+          // tone is written is the stylesheet's business (`.dg-bar`), not a
+          // class: a tone is a category the author chose, and a column with
+          // no category should not report one.
+          const barred = (cls) => {
+            const out = [...cls];
+            if (!out.some(c => c === 'thick' || c === 'bare')) out.unshift('bare');
+            return squared(out);
+          };
           values.forEach((v, i) => {
             const len = (v / max) * along;                 // px
             const foot = ((base[i] || 0) / max) * along;   // px already used in this slot
@@ -4446,7 +4575,12 @@ export function createDiagramCompiler(env = {}) {
             claim(dgBarName(id, i), 'box', lineNo);
             model.nodes.push(synth({
               kind: 'box', id: dgBarName(id, i), label: '',
-              classes: squared([...attrs.classes,
+              // The role reaches the stylesheet as `dg-bar` on the group, in
+              // the base class string the runtime rebuilds every frame from,
+              // so a step cannot lose it. It is what lets `emph` mean a fill
+              // on a column and an outline everywhere else.
+              role: 'bar',
+              classes: barred([...attrs.classes,
                 ...DG_PROMINENCE.filter(w => marks[w].has(i))]),
               removedClasses: attrs.removedClasses,
               tags: attrs.tags,
@@ -4465,6 +4599,34 @@ export function createDiagramCompiler(env = {}) {
               r: null, pad: null,
             }));
           });
+          // The run's name, drawn by the chart. The swatch is a column of the
+          // run - same role, same classes, so the same fill by construction,
+          // which is the reason the chart draws it: a legend built out of
+          // boxes shows the run's tone at a box's strength, and that is not
+          // the colour of the columns. Entries stand in a row above the
+          // frame's top-left corner, in source order; a series appends to the
+          // row of the chart it joined, so the running x lives on that
+          // chart's geometry record.
+          if (keyTok) {
+            const kgeo = barsGeom.get(owner);
+            const fs = DG_FONT * 0.8;
+            const m = dgMeasure(keyTok.v, fs, false);
+            const sw = fs * 1.15, gapK = fs * 0.45, afterK = fs * 1.6;
+            const x0 = kgeo.keyX || 0;
+            const yc = -(fs * 1.35);
+            claim(dgKeyName(id), 'box', lineNo);
+            model.nodes.push(synth({
+              kind: 'box', id: dgKeyName(id), label: '', role: 'bar',
+              classes: barred([...attrs.classes]), removedClasses: attrs.removedClasses, tags: attrs.tags,
+              place: atOwner((x0 + sw / 2) / uw, yc / uh), w: sw / uw, h: fs / uh, r: null, pad: null,
+            }));
+            claim(dgKeyLabelName(id), 'text', lineNo);
+            model.nodes.push(synth({
+              kind: 'text', id: dgKeyLabelName(id), label: keyTok.v, classes: ['small'], tags: attrs.tags,
+              place: atOwner((x0 + sw + gapK + m.w / 2) / uw, yc / uh), w: null, h: null, r: null, pad: null,
+            }));
+            kgeo.keyX = x0 + sw + gapK + m.w + afterK;
+          }
           if (opts.series) {
             // Enough for the span table to re-tokenize the line and find the
             // values, the classes, the tags, `stacked` and the prominence words.
@@ -6783,7 +6945,11 @@ export function createDiagramCompiler(env = {}) {
                      kind === 'container' ? 'start' : (anchorOf.get(e.id) || null),
                      fitOf.has(e.id) ? dgFitFont(text, classes, ...fitOf.get(e.id)) : 0) + '</g>';
       });
-      const base = `dg-el dg-${kind}`;
+      // A role is a second kind-word on the group – `dg-bar` on a chart's
+      // column – for a stylesheet rule that has to tell a synthesised box
+      // from an authored one. It rides in data-base because the runtime
+      // rebuilds the class string from that every frame.
+      const base = `dg-el dg-${kind}${e.role ? ' dg-' + e.role : ''}`;
       svgBody += `<g id="${prefix}${e.id}" data-base="${base}" class="${base}${st ? ' ' + st : ''}"${on}>${inner}</g>\n`;
     }
 

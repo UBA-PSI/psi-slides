@@ -421,6 +421,47 @@ from building the same way is a major version.
 - **`auto-fit` takes a third mode, `shrink`.** `true` and `false` are
   unchanged and mean what they always meant, so this is additive. The new
   mode fits a slide the same way `true` does but ceilings the fit at the
+- **A chart's columns draw no outline, are filled at a column's strength,
+  and `emph` on a column is a fill.** A `bars` column was an ordinary box: a
+  1.4 outline standing on a 1.05 baseline, and under `emph` a 2.6 accent
+  outline crossing that baseline at the foot of every marked column. The
+  outline encoded nothing (Tufte's data-ink), so a column now arrives
+  `.bare` – the author's own `.thick` displaces it through the stroke-weight
+  slot – and `emph 2` turns column 2 solid accent, which is what `.tone-4`
+  already means. Without an outline a box tone is a watermark on a
+  projector, worst in the dark themes, so a column reads its tone at
+  roughly twice a box's strength, in the same hue and order: no tone is a mid
+  grey, `.tone-2` lighter, `.tone-3` darker, `.tone-1` a strong accent tint,
+  `.tone-4` the accent. One table, `DG_BAR_FILLS`, generates the stylesheet
+  rules and feeds the linter. A tone on a `bars` line is a category from here
+  on, one per `series of`; `.tone-3` written only to get a fill can come off.
+  `figure-design.md` says it under Charts.
+
+- **`key "2023"` on a `bars` line, and the chart draws its legend.** A swatch
+  that is a column of the run – same classes, same role, so the same colour by
+  construction – and the name beside it, in a row above the frame's top-left
+  corner; a `series of` line appends to the row of the chart it joined. The
+  hand-built legend out of boxes showed a tone at a box's strength, which
+  was never the colour of the columns. Generated names `<id>-key` and
+  `<id>-key-label`; the editor offers the field with the run's data.
+
+- **The linter measures every run of columns against the paper of all seven
+  themes** (`diagram-bar-contrast`) and warns where a fill falls under 3:1,
+  naming the themes, with the note that the warning can be ignored for a
+  theme the lecture will not be shown in. It also warns (`diagram-bars-emph`)
+  where `emph` says nothing or the wrong thing on a grouped chart: on a
+  `.tone-4` run, whose columns are the accent already, and at an index a
+  run above already lit, where both columns come out alike at exactly the
+  place the figure is about – `dim` on the other columns is the idiom.
+
+- **The default look of a bold phrase moved: `plain` on the slide, `bold` in
+  the ink on paper.** A promoted bullet is now set like the sentence above it,
+  and a printed bold no longer carries the accent colour. Both are the fourth
+  line of the 1.0.0 recipe: `style: {bold: accent-bold, print-bold: accent-bold}`
+  gives the old rendering back, the one difference being that a sans deck's
+  promoted bullets then weigh 600 like its other bolds rather than the old
+  fixed 500.
+
   lecturer's own zoom instead of at the global maximum, so it can only ever
   take size away: a slide that fits is left at exactly the zoom that was set,
   and a slide that does not is shrunk until it does. That is the difference

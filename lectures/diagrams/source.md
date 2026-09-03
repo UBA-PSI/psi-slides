@@ -710,7 +710,7 @@ With more than one line **the whole block of lines moves, not the single line**,
 ## figure: Six statements that expand {.full #expand}
 
 ::: draw {unit=150x62}
-bars f "20,19,17,12,11,10,9,9,8,7,6,5" at 0,0 w 2.4 h 1.0 {.tone-3 .bare}
+bars f "20,19,17,12,11,10,9,9,8,7,6,5" at 0,0 w 2.4 h 1.0
 brace b1 over f-0,f-1,f-2 side bottom "Bin 1" pad 0.4 {.muted}
 brace b2 over f-3,f-4,f-5,f-6,f-7 side bottom "Bin 2" pad 0.4 {.muted}
 brace b3 over f-8,f-9,f-10,f-11 side bottom "Bin 3" pad 0.4 {.muted}
@@ -739,23 +739,22 @@ step exception
 # The same eight numbers, drawn twice. The second line lays no frame of its
 # own, it joins the first - and the first one's columns narrow for it, so the
 # pair takes the room a single run did.
-bars a  "12,15,19,24" "Q1 Q2 Q3 Q4" at 0,0 w 1.9 h 1.05 emph 3 dim 0 {.tone-2}
-bars a2 "9,11,10,21"  series of a emph 3 dim 0 {.tone-3}
+bars a  "12,15,19,24" "Q1 Q2 Q3 Q4" at 0,0 w 1.9 h 1.05 dim 0,1,2 key "2023" {.tone-3}
+bars a2 "9,11,10,21"  series of a dim 0,1,2 key "2024" {.tone-4}
 text an "side by side" below a gap 0.55 {.muted}
 
-bars b  "12,15,19,24" "Q1 Q2 Q3 Q4" right of a gap 3.5 w 1.9 h 1.05 emph 3 dim 0 {.tone-2}
-bars b2 "9,11,10,21"  series of b stacked emph 3 dim 0 {.tone-3}
+bars b  "12,15,19,24" "Q1 Q2 Q3 Q4" right of a gap 3.5 w 1.9 h 1.05 dim 0,1,2 key "2023" {.tone-3}
+bars b2 "9,11,10,21"  series of b stacked dim 0,1,2 key "2024" {.tone-4}
 text bn "stacked" below b gap 0.55 {.muted}
-
-text y1 "2023" at a.left+0.32,a.top-0.34 pad 0.12 {.tone-2}
-text y2 "2024" right of y1 gap 0.55 pad 0.12 {.tone-3}
 :::
 
 **`series of a` means: the same columns, a second run.** The second `bars` line gets no frame, no baseline and no strip of category names – all three belong to the frame it joins, and writing one anyway is an error. It refuses a placement for the same reason. What it brings is its values, its classes and, like any other `bars` line, the two words that single columns out from the opening picture onwards.
 
 **One word separates the two figures, and it changes the scale.** Without `stacked` the second run stands *beside* the first and a column's cell is shared between them; with `stacked` it stands *on* it, and the scale is no longer the tallest single value but the tallest stack. The same numbers are therefore flatter on the right than on the left, though no value changed. Which reading you want is a question about the content: side by side compares the years, stacked adds them up.
 
-**`emph 3 dim 0` stands on the statement, not in a step.** Q4 is what this is about and Q1 was only counted from February onwards; both hold the moment the figure is on screen. Written as a step, the first thing the room would see is four equal quarters, and the point would arrive on a keypress. All three prominence words – `emph`, `dim`, `ghost` – take column numbers here, counted from 0, and a number with no column behind it is refused. They are the same three that are classes on an element's line and verbs in a beat.
+**`key "2023"` names a run, and the chart draws the legend itself** – a swatch that is a column of the run, so it carries the run's colour by construction, and the name beside it. A legend built by hand out of boxes shows a tone at a box's strength, which is not what the columns are filled with.
+
+**`dim 0,1,2` stands on the statement, not in a step.** Q4 is what this is about, and that holds the moment the figure is on screen. Written as a step, the first thing the room would see is four equal quarters, and the point would arrive on a keypress. It is `dim` on the other three rather than `emph` on the fourth because a column has one channel, its fill, and in a grouped chart the fill already says which run a column belongs to: `emph 3` on both lines paints both Q4 columns in the accent, and the years are gone at exactly the quarter the slide is about. All three prominence words – `emph`, `dim`, `ghost` – take column numbers here, counted from 0, and a number with no column behind it is refused. They are the same three that are classes on an element's line and verbs in a beat.
 
 ## figure: Columns laid flat | the same six numbers, twice {.full #flat}
 
@@ -764,10 +763,10 @@ text y2 "2024" right of y1 gap 0.55 pad 0.12 {.tone-3}
 # column, so it carries a number and the names would have to go elsewhere; on
 # the right the names are the axis. The same emph column in both figures, so
 # that you can see the numbers are the same.
-bars up "41,33,22,14,9,6" "1 2 3 4 5 6" at 0,0 w 1.25 h 2.0 emph 3 {.tone-3}
+bars up "41,33,22,14,9,6" "1 2 3 4 5 6" at 0,0 w 1.25 h 2.0 emph 3
 text upn "the names go elsewhere" below up gap 0.55 {.small .muted}
 
-bars inc "41,33,22,14,9,6" "Phishing | Ransomware | Credential stuffing | DNS cache poisoning | Supply-chain compromise | Insider misuse" right of up gap 4.7 horizontal w 1.8 h 2.0 emph 3 {.tone-3}
+bars inc "41,33,22,14,9,6" "Phishing | Ransomware | Credential stuffing | DNS cache poisoning | Supply-chain compromise | Insider misuse" right of up gap 4.7 horizontal w 1.8 h 2.0 emph 3
 text incn "the names are the axis" below inc gap 0.55 {.small .muted}
 :::
 

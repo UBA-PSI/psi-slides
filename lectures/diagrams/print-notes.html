@@ -95,6 +95,16 @@ h1, h2, h3, h4, code, pre, pre *, .chunk-num, a[href^="http"] {
 }
 strong { color: var(--emph); font-weight: 600; }
 em { font-style: italic; }
+/* style.print-bold - the look of a bold the derivation reads, default bold
+   in the ink. See BOLD_LOOKS and DERIVED_STRONG. A bold outside that scope -
+   a row's term, a tight list's item, a card's lead - keeps the rule above. */
+body[data-print-bold=plain] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: inherit; font-style: inherit; }
+.chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: 600; color: inherit; font-style: inherit; }
+body[data-print-bold=italic] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: inherit; font-style: italic; }
+body[data-print-bold=accent] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: var(--emph); font-style: inherit; }
+body[data-print-bold=accent-bold] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: 600; color: var(--emph); font-style: inherit; }
+body[data-print-bold=accent-italic] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: var(--emph); font-style: italic; }
+body:not([data-print-bold=accent-bold]) .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) em { font-style: normal; font-weight: 600; color: var(--emph); }
 
 ul, ol { margin: 0.4em 0 0.9em 1.4em; }
 li { margin: 0.2em 0; orphans: 2; widows: 2; }
@@ -977,6 +987,19 @@ pre.shiki .line { display: inline; }
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
+/* A chart's column: what it is filled with, and what emph does to it. A
+   column draws no outline, so paper would make it vanish and there is nothing
+   but its fill to emphasise; the rules come from DG_BAR_FILLS in
+   diagram-core, which is also what the linter reads when it says a column is
+   too pale for a theme - one table, so the warning is about the colour that
+   is drawn. The block sits after the box tones on purpose: a column's tone
+   rule is one class more specific and has to win. */
+.psi-diagram .dg-bar > rect { fill: color-mix(in oklab, var(--ink) 55%, var(--paper)); }
+.psi-diagram .dg-bar.tone-1 > rect { fill: color-mix(in oklab, var(--emph) 70%, var(--paper)); }
+.psi-diagram .dg-bar.tone-2 > rect { fill: color-mix(in oklab, var(--ink) 45%, var(--paper)); }
+.psi-diagram .dg-bar.tone-3 > rect { fill: color-mix(in oklab, var(--ink) 68%, var(--paper)); }
+.psi-diagram .dg-bar.emph > rect { fill: var(--emph); stroke: none; }
+.psi-diagram .dg-bar.tone-4.emph > rect { stroke: none; }
 /* Words are the third thing emphasis can act on, and leaving them out left the
    emph verb on a text accepted and completely inert - the ground rule at the
    foot of this stylesheet refuses to stroke a label's rect, deliberately and
@@ -1777,18 +1800,18 @@ one warning this lecture builds with.</p>
 <g id="dg17-b2" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg17-b2--p" class="dg-stroke" d="M-86.25 55.80L-86.25 62.80L56.25 62.80L56.25 55.80" fill="none"/><g id="dg17-b2--lw0" data-lab="b2--l" class="dg-lwrap" transform="translate(-15.00,71.80)"><g id="dg17-b2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bin 2</tspan></text></g></g></g>
 <g id="dg17-b3" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg17-b3--p" class="dg-stroke" d="M63.75 55.80L63.75 62.80L176.25 62.80L176.25 55.80" fill="none"/><g id="dg17-b3--lw0" data-lab="b3--l" class="dg-lwrap" transform="translate(120.00,71.80)"><g id="dg17-b3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bin 3</tspan></text></g></g></g>
 <g id="dg17-f" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg17-f--r" x="-180.00" y="-31.00" width="360.00" height="62.00" rx="4"/></g>
-<g id="dg17-f-0" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 bare"><rect id="dg17-f-0--r" x="-176.25" y="-31.00" width="22.50" height="62.00" rx="4"/></g>
-<g id="dg17-f-1" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 bare"><rect id="dg17-f-1--r" x="-146.25" y="-27.90" width="22.50" height="58.90" rx="4"/></g>
-<g id="dg17-f-2" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 bare"><rect id="dg17-f-2--r" x="-116.25" y="-21.70" width="22.50" height="52.70" rx="4"/></g>
-<g id="dg17-f-3" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 bare"><rect id="dg17-f-3--r" x="-86.25" y="-6.20" width="22.50" height="37.20" rx="4"/></g>
-<g id="dg17-f-4" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 bare"><rect id="dg17-f-4--r" x="-56.25" y="-3.10" width="22.50" height="34.10" rx="4"/></g>
-<g id="dg17-f-5" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 bare"><rect id="dg17-f-5--r" x="-26.25" y="0.00" width="22.50" height="31.00" rx="4"/></g>
-<g id="dg17-f-6" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 bare"><rect id="dg17-f-6--r" x="3.75" y="3.10" width="22.50" height="27.90" rx="4"/></g>
-<g id="dg17-f-7" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 bare"><rect id="dg17-f-7--r" x="33.75" y="3.10" width="22.50" height="27.90" rx="4"/></g>
-<g id="dg17-f-8" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 bare"><rect id="dg17-f-8--r" x="63.75" y="6.20" width="22.50" height="24.80" rx="4"/></g>
-<g id="dg17-f-9" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 bare"><rect id="dg17-f-9--r" x="93.75" y="9.30" width="22.50" height="21.70" rx="4"/></g>
-<g id="dg17-f-10" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 bare"><rect id="dg17-f-10--r" x="123.75" y="12.40" width="22.50" height="18.60" rx="4"/></g>
-<g id="dg17-f-11" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 bare"><rect id="dg17-f-11--r" x="153.75" y="15.50" width="22.50" height="15.50" rx="4"/></g>
+<g id="dg17-f-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg17-f-0--r" x="-176.25" y="-31.00" width="22.50" height="62.00" rx="4"/></g>
+<g id="dg17-f-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg17-f-1--r" x="-146.25" y="-27.90" width="22.50" height="58.90" rx="4"/></g>
+<g id="dg17-f-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg17-f-2--r" x="-116.25" y="-21.70" width="22.50" height="52.70" rx="4"/></g>
+<g id="dg17-f-3" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg17-f-3--r" x="-86.25" y="-6.20" width="22.50" height="37.20" rx="4"/></g>
+<g id="dg17-f-4" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg17-f-4--r" x="-56.25" y="-3.10" width="22.50" height="34.10" rx="4"/></g>
+<g id="dg17-f-5" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg17-f-5--r" x="-26.25" y="0.00" width="22.50" height="31.00" rx="4"/></g>
+<g id="dg17-f-6" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg17-f-6--r" x="3.75" y="3.10" width="22.50" height="27.90" rx="4"/></g>
+<g id="dg17-f-7" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg17-f-7--r" x="33.75" y="3.10" width="22.50" height="27.90" rx="4"/></g>
+<g id="dg17-f-8" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg17-f-8--r" x="63.75" y="6.20" width="22.50" height="24.80" rx="4"/></g>
+<g id="dg17-f-9" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg17-f-9--r" x="93.75" y="9.30" width="22.50" height="21.70" rx="4"/></g>
+<g id="dg17-f-10" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg17-f-10--r" x="123.75" y="12.40" width="22.50" height="18.60" rx="4"/></g>
+<g id="dg17-f-11" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg17-f-11--r" x="153.75" y="15.50" width="22.50" height="15.50" rx="4"/></g>
 <g id="dg17-g" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg17-g--r" x="316.40" y="-33.48" width="90.52" height="66.96" rx="4"/></g>
 <g id="dg17-g-0-0" data-base="dg-el dg-dot" class="dg-el dg-dot tone-2"><circle id="dg17-g-0-0--c" cx="320.43" cy="-29.45" r="4.03"/></g>
 <g id="dg17-g-1-0" data-base="dg-el dg-dot" class="dg-el dg-dot tone-2"><circle id="dg17-g-1-0--c" cx="332.21" cy="-29.45" r="4.03"/></g>
@@ -1858,37 +1881,43 @@ one warning this lecture builds with.</p>
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></span>
   
   <h2 class="chunk-heading">A second run of columns</h2>
-  <figure class="figure-diagram"><svg id="dg18-root" class="psi-diagram" viewBox="-154.50 -82.54 818.00 178.34" width="2000" height="436" data-steps="1" role="img" aria-label="A second run of columns" preserveAspectRatio="xMidYMid meet">
+  <figure class="figure-diagram"><svg id="dg18-root" class="psi-diagram" viewBox="-154.50 -69.30 818.00 165.10" width="2000" height="404" data-steps="1" role="img" aria-label="A second run of columns" preserveAspectRatio="xMidYMid meet">
 <g id="dg18-a" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg18-a--r" x="-142.50" y="-33.60" width="285.00" height="67.20" rx="4"/></g>
-<g id="dg18-a-0" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2 dim" style="opacity:0.3"><rect id="dg18-a-0--r" x="-133.59" y="0.00" width="26.72" height="33.60" rx="4"/></g>
-<g id="dg18-a-1" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2"><rect id="dg18-a-1--r" x="-62.34" y="-8.40" width="26.72" height="42.00" rx="4"/></g>
-<g id="dg18-a-2" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2"><rect id="dg18-a-2--r" x="8.91" y="-19.60" width="26.72" height="53.20" rx="4"/></g>
-<g id="dg18-a-3" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2 emph"><rect id="dg18-a-3--r" x="80.16" y="-33.60" width="26.72" height="67.20" rx="4"/></g>
+<g id="dg18-a-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.3"><rect id="dg18-a-0--r" x="-133.59" y="0.00" width="26.72" height="33.60" rx="4"/></g>
+<g id="dg18-a-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.3"><rect id="dg18-a-1--r" x="-62.34" y="-8.40" width="26.72" height="42.00" rx="4"/></g>
+<g id="dg18-a-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.3"><rect id="dg18-a-2--r" x="8.91" y="-19.60" width="26.72" height="53.20" rx="4"/></g>
+<g id="dg18-a-3" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3"><rect id="dg18-a-3--r" x="80.16" y="-33.60" width="26.72" height="67.20" rx="4"/></g>
+<g id="dg18-a-key" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3"><rect id="dg18-a-key--r" x="-142.50" y="-55.80" width="13.80" height="12.00" rx="4"/></g>
+<g id="dg18-a-key-label" data-base="dg-el dg-text" class="dg-el dg-text small"><g id="dg18-a-key-label--lw0" data-lab="a-key-label--l" class="dg-lwrap" transform="translate(-108.66,-49.80)"><g id="dg18-a-key-label--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">2023</tspan></text></g></g></g>
 <g id="dg18-a-tick-0" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg18-a-tick-0--lw0" data-lab="a-tick-0--l" class="dg-lwrap" transform="translate(-106.88,45.12)"><g id="dg18-a-tick-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">Q1</tspan></text></g></g></g>
 <g id="dg18-a-tick-1" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg18-a-tick-1--lw0" data-lab="a-tick-1--l" class="dg-lwrap" transform="translate(-35.63,45.12)"><g id="dg18-a-tick-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">Q2</tspan></text></g></g></g>
 <g id="dg18-a-tick-2" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg18-a-tick-2--lw0" data-lab="a-tick-2--l" class="dg-lwrap" transform="translate(35.63,45.12)"><g id="dg18-a-tick-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">Q3</tspan></text></g></g></g>
 <g id="dg18-a-tick-3" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg18-a-tick-3--lw0" data-lab="a-tick-3--l" class="dg-lwrap" transform="translate(106.88,45.12)"><g id="dg18-a-tick-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">Q4</tspan></text></g></g></g>
-<g id="dg18-a2-0" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 dim" style="opacity:0.3"><rect id="dg18-a2-0--r" x="-106.88" y="8.40" width="26.72" height="25.20" rx="4"/></g>
-<g id="dg18-a2-1" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg18-a2-1--r" x="-35.63" y="2.80" width="26.72" height="30.80" rx="4"/></g>
-<g id="dg18-a2-2" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg18-a2-2--r" x="35.63" y="5.60" width="26.72" height="28.00" rx="4"/></g>
-<g id="dg18-a2-3" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 emph"><rect id="dg18-a2-3--r" x="106.88" y="-25.20" width="26.72" height="58.80" rx="4"/></g>
+<g id="dg18-a2-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.3"><rect id="dg18-a2-0--r" x="-106.88" y="8.40" width="26.72" height="25.20" rx="4"/></g>
+<g id="dg18-a2-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.3"><rect id="dg18-a2-1--r" x="-35.63" y="2.80" width="26.72" height="30.80" rx="4"/></g>
+<g id="dg18-a2-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.3"><rect id="dg18-a2-2--r" x="35.63" y="5.60" width="26.72" height="28.00" rx="4"/></g>
+<g id="dg18-a2-3" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4"><rect id="dg18-a2-3--r" x="106.88" y="-25.20" width="26.72" height="58.80" rx="4"/></g>
+<g id="dg18-a2-key" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4"><rect id="dg18-a2-key--r" x="-74.82" y="-55.80" width="13.80" height="12.00" rx="4"/></g>
+<g id="dg18-a2-key-label" data-base="dg-el dg-text" class="dg-el dg-text small"><g id="dg18-a2-key-label--lw0" data-lab="a2-key-label--l" class="dg-lwrap" transform="translate(-40.98,-49.80)"><g id="dg18-a2-key-label--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">2024</tspan></text></g></g></g>
 <g id="dg18-an" data-base="dg-el dg-text" class="dg-el dg-text muted small"><g id="dg18-an--lw0" data-lab="an--l" class="dg-lwrap" transform="translate(0.00,76.30)"><g id="dg18-an--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">side by side</tspan></text></g></g></g>
 <g id="dg18-b" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg18-b--r" x="366.50" y="-33.60" width="285.00" height="67.20" rx="4"/></g>
-<g id="dg18-b-0" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2 dim" style="opacity:0.3"><rect id="dg18-b-0--r" x="375.41" y="15.68" width="53.44" height="17.92" rx="4"/></g>
-<g id="dg18-b-1" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2"><rect id="dg18-b-1--r" x="446.66" y="11.20" width="53.44" height="22.40" rx="4"/></g>
-<g id="dg18-b-2" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2"><rect id="dg18-b-2--r" x="517.91" y="5.23" width="53.44" height="28.37" rx="4"/></g>
-<g id="dg18-b-3" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2 emph"><rect id="dg18-b-3--r" x="589.16" y="-2.24" width="53.44" height="35.84" rx="4"/></g>
+<g id="dg18-b-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.3"><rect id="dg18-b-0--r" x="375.41" y="15.68" width="53.44" height="17.92" rx="4"/></g>
+<g id="dg18-b-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.3"><rect id="dg18-b-1--r" x="446.66" y="11.20" width="53.44" height="22.40" rx="4"/></g>
+<g id="dg18-b-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.3"><rect id="dg18-b-2--r" x="517.91" y="5.23" width="53.44" height="28.37" rx="4"/></g>
+<g id="dg18-b-3" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3"><rect id="dg18-b-3--r" x="589.16" y="-2.24" width="53.44" height="35.84" rx="4"/></g>
+<g id="dg18-b-key" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3"><rect id="dg18-b-key--r" x="366.50" y="-55.80" width="13.80" height="12.00" rx="4"/></g>
+<g id="dg18-b-key-label" data-base="dg-el dg-text" class="dg-el dg-text small"><g id="dg18-b-key-label--lw0" data-lab="b-key-label--l" class="dg-lwrap" transform="translate(400.34,-49.80)"><g id="dg18-b-key-label--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">2023</tspan></text></g></g></g>
 <g id="dg18-b-tick-0" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg18-b-tick-0--lw0" data-lab="b-tick-0--l" class="dg-lwrap" transform="translate(402.13,45.12)"><g id="dg18-b-tick-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">Q1</tspan></text></g></g></g>
 <g id="dg18-b-tick-1" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg18-b-tick-1--lw0" data-lab="b-tick-1--l" class="dg-lwrap" transform="translate(473.38,45.12)"><g id="dg18-b-tick-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">Q2</tspan></text></g></g></g>
 <g id="dg18-b-tick-2" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg18-b-tick-2--lw0" data-lab="b-tick-2--l" class="dg-lwrap" transform="translate(544.63,45.12)"><g id="dg18-b-tick-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">Q3</tspan></text></g></g></g>
 <g id="dg18-b-tick-3" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg18-b-tick-3--lw0" data-lab="b-tick-3--l" class="dg-lwrap" transform="translate(615.88,45.12)"><g id="dg18-b-tick-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">Q4</tspan></text></g></g></g>
-<g id="dg18-b2-0" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 dim" style="opacity:0.3"><rect id="dg18-b2-0--r" x="375.41" y="2.24" width="53.44" height="13.44" rx="4"/></g>
-<g id="dg18-b2-1" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg18-b2-1--r" x="446.66" y="-5.23" width="53.44" height="16.43" rx="4"/></g>
-<g id="dg18-b2-2" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg18-b2-2--r" x="517.91" y="-9.71" width="53.44" height="14.93" rx="4"/></g>
-<g id="dg18-b2-3" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 emph"><rect id="dg18-b2-3--r" x="589.16" y="-33.60" width="53.44" height="31.36" rx="4"/></g>
+<g id="dg18-b2-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.3"><rect id="dg18-b2-0--r" x="375.41" y="2.24" width="53.44" height="13.44" rx="4"/></g>
+<g id="dg18-b2-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.3"><rect id="dg18-b2-1--r" x="446.66" y="-5.23" width="53.44" height="16.43" rx="4"/></g>
+<g id="dg18-b2-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.3"><rect id="dg18-b2-2--r" x="517.91" y="-9.71" width="53.44" height="14.93" rx="4"/></g>
+<g id="dg18-b2-3" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4"><rect id="dg18-b2-3--r" x="589.16" y="-33.60" width="53.44" height="31.36" rx="4"/></g>
+<g id="dg18-b2-key" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4"><rect id="dg18-b2-key--r" x="434.18" y="-55.80" width="13.80" height="12.00" rx="4"/></g>
+<g id="dg18-b2-key-label" data-base="dg-el dg-text" class="dg-el dg-text small"><g id="dg18-b2-key-label--lw0" data-lab="b2-key-label--l" class="dg-lwrap" transform="translate(468.02,-49.80)"><g id="dg18-b2-key-label--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">2024</tspan></text></g></g></g>
 <g id="dg18-bn" data-base="dg-el dg-text" class="dg-el dg-text muted small"><g id="dg18-bn--lw0" data-lab="bn--l" class="dg-lwrap" transform="translate(509.00,76.30)"><g id="dg18-bn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">stacked</tspan></text></g></g></g>
-<g id="dg18-y1" data-base="dg-el dg-text" class="dg-el dg-text tone-2 small"><rect id="dg18-y1--r" x="-116.82" y="-70.54" width="44.64" height="30.36" rx="4"/><g id="dg18-y1--lw0" data-lab="y1--l" class="dg-lwrap" transform="translate(-94.50,-55.36)"><g id="dg18-y1--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">2023</tspan></text></g></g></g>
-<g id="dg18-y2" data-base="dg-el dg-text" class="dg-el dg-text tone-3 small"><rect id="dg18-y2--r" x="-52.34" y="-70.54" width="44.64" height="30.36" rx="4"/><g id="dg18-y2--lw0" data-lab="y2--l" class="dg-lwrap" transform="translate(-30.02,-55.36)"><g id="dg18-y2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">2024</tspan></text></g></g></g>
 <g id="dg18-a-base" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted front"><path id="dg18-a-base--p" class="dg-stroke" d="M-142.50 33.60L142.50 33.60" fill="none"/><path id="dg18-a-base--h" class="dg-head" d="M142.50 33.60L142.50 33.60L142.50 33.60Z"/></g>
 <g id="dg18-b-base" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted front"><path id="dg18-b-base--p" class="dg-stroke" d="M366.50 33.60L651.50 33.60" fill="none"/><path id="dg18-b-base--h" class="dg-head" d="M651.50 33.60L651.50 33.60L651.50 33.60Z"/></g>
 </svg></figure>
@@ -1896,7 +1925,8 @@ one warning this lecture builds with.</p>
 
 <p><strong><code>series of a</code> means: the same columns, a second run.</strong> The second <code class="nb">bars</code> line gets no frame, no baseline and no strip of category names – all three belong to the frame it joins, and writing one anyway is an error. It refuses a placement for the same reason. What it brings is its values, its classes and, like any other <code class="nb">bars</code> line, the two words that single columns out from the opening picture onwards.</p>
 <p><strong>One word separates the two figures, and it changes the scale.</strong> Without <code class="nb">stacked</code> the second run stands <em>beside</em> the first and a column&#39;s cell is shared between them; with <code class="nb">stacked</code> it stands <em>on</em> it, and the scale is no longer the tallest single value but the tallest stack. The same numbers are therefore flatter on the right than on the left, though no value changed. Which reading you want is a question about the content: side by side compares the years, stacked adds them up.</p>
-<p><strong><code>emph 3 dim 0</code> stands on the statement, not in a step.</strong> Q4 is what this is about and Q1 was only counted from February onwards; both hold the moment the figure is on screen. Written as a step, the first thing the room would see is four equal quarters, and the point would arrive on a keypress. All three prominence words – <code class="nb">emph</code>, <code class="nb">dim</code>, <code class="nb">ghost</code> – take column numbers here, counted from 0, and a number with no column behind it is refused. They are the same three that are classes on an element&#39;s line and verbs in a beat.</p>
+<p><strong><code>key &quot;2023&quot;</code> names a run, and the chart draws the legend itself</strong> – a swatch that is a column of the run, so it carries the run&#39;s colour by construction, and the name beside it. A legend built by hand out of boxes shows a tone at a box&#39;s strength, which is not what the columns are filled with.</p>
+<p><strong><code>dim 0,1,2</code> stands on the statement, not in a step.</strong> Q4 is what this is about, and that holds the moment the figure is on screen. Written as a step, the first thing the room would see is four equal quarters, and the point would arrive on a keypress. It is <code class="nb">dim</code> on the other three rather than <code class="nb">emph</code> on the fourth because a column has one channel, its fill, and in a grouped chart the fill already says which run a column belongs to: <code>emph 3</code> on both lines paints both Q4 columns in the accent, and the years are gone at exactly the quarter the slide is about. All three prominence words – <code class="nb">emph</code>, <code class="nb">dim</code>, <code class="nb">ghost</code> – take column numbers here, counted from 0, and a number with no column behind it is refused. They are the same three that are classes on an element&#39;s line and verbs in a beat.</p>
 
   
   
@@ -1910,12 +1940,12 @@ one warning this lecture builds with.</p>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Columns laid flat</span> <span class="hd-sub">the same six numbers, twice</span></h2>
   <figure class="figure-diagram"><svg id="dg19-root" class="psi-diagram" viewBox="-105.75 -66.00 735.30 176.70" width="2000" height="481" data-steps="1" role="img" aria-label="Columns laid flat" preserveAspectRatio="xMidYMid meet">
 <g id="dg19-up" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg19-up--r" x="-93.75" y="-54.00" width="187.50" height="108.00" rx="4"/></g>
-<g id="dg19-up-0" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg19-up-0--r" x="-89.84" y="-54.00" width="23.44" height="108.00" rx="4"/></g>
-<g id="dg19-up-1" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg19-up-1--r" x="-58.59" y="-32.93" width="23.44" height="86.93" rx="4"/></g>
-<g id="dg19-up-2" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg19-up-2--r" x="-27.34" y="-3.95" width="23.44" height="57.95" rx="4"/></g>
-<g id="dg19-up-3" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 emph"><rect id="dg19-up-3--r" x="3.91" y="17.12" width="23.44" height="36.88" rx="4"/></g>
-<g id="dg19-up-4" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg19-up-4--r" x="35.16" y="30.29" width="23.44" height="23.71" rx="4"/></g>
-<g id="dg19-up-5" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg19-up-5--r" x="66.41" y="38.20" width="23.44" height="15.80" rx="4"/></g>
+<g id="dg19-up-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg19-up-0--r" x="-89.84" y="-54.00" width="23.44" height="108.00" rx="4"/></g>
+<g id="dg19-up-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg19-up-1--r" x="-58.59" y="-32.93" width="23.44" height="86.93" rx="4"/></g>
+<g id="dg19-up-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg19-up-2--r" x="-27.34" y="-3.95" width="23.44" height="57.95" rx="4"/></g>
+<g id="dg19-up-3" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare emph"><rect id="dg19-up-3--r" x="3.91" y="17.12" width="23.44" height="36.88" rx="4"/></g>
+<g id="dg19-up-4" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg19-up-4--r" x="35.16" y="30.29" width="23.44" height="23.71" rx="4"/></g>
+<g id="dg19-up-5" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg19-up-5--r" x="66.41" y="38.20" width="23.44" height="15.80" rx="4"/></g>
 <g id="dg19-up-tick-0" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg19-up-tick-0--lw0" data-lab="up-tick-0--l" class="dg-lwrap" transform="translate(-78.13,63.72)"><g id="dg19-up-tick-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">1</tspan></text></g></g></g>
 <g id="dg19-up-tick-1" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg19-up-tick-1--lw0" data-lab="up-tick-1--l" class="dg-lwrap" transform="translate(-46.88,63.72)"><g id="dg19-up-tick-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">2</tspan></text></g></g></g>
 <g id="dg19-up-tick-2" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg19-up-tick-2--lw0" data-lab="up-tick-2--l" class="dg-lwrap" transform="translate(-15.63,63.72)"><g id="dg19-up-tick-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">3</tspan></text></g></g></g>
@@ -1924,12 +1954,12 @@ one warning this lecture builds with.</p>
 <g id="dg19-up-tick-5" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg19-up-tick-5--lw0" data-lab="up-tick-5--l" class="dg-lwrap" transform="translate(78.13,63.72)"><g id="dg19-up-tick-5--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">6</tspan></text></g></g></g>
 <g id="dg19-upn" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg19-upn--lw0" data-lab="upn--l" class="dg-lwrap" transform="translate(0.00,91.20)"><g id="dg19-upn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">the names go elsewhere</tspan></text></g></g></g>
 <g id="dg19-inc" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg19-inc--r" x="347.55" y="-54.00" width="270.00" height="108.00" rx="4"/></g>
-<g id="dg19-inc-0" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg19-inc-0--r" x="347.55" y="-51.75" width="270.00" height="13.50" rx="4"/></g>
-<g id="dg19-inc-1" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg19-inc-1--r" x="347.55" y="-33.75" width="217.32" height="13.50" rx="4"/></g>
-<g id="dg19-inc-2" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg19-inc-2--r" x="347.55" y="-15.75" width="144.88" height="13.50" rx="4"/></g>
-<g id="dg19-inc-3" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3 emph"><rect id="dg19-inc-3--r" x="347.55" y="2.25" width="92.20" height="13.50" rx="4"/></g>
-<g id="dg19-inc-4" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg19-inc-4--r" x="347.55" y="20.25" width="59.27" height="13.50" rx="4"/></g>
-<g id="dg19-inc-5" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg19-inc-5--r" x="347.55" y="38.25" width="39.51" height="13.50" rx="4"/></g>
+<g id="dg19-inc-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg19-inc-0--r" x="347.55" y="-51.75" width="270.00" height="13.50" rx="4"/></g>
+<g id="dg19-inc-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg19-inc-1--r" x="347.55" y="-33.75" width="217.32" height="13.50" rx="4"/></g>
+<g id="dg19-inc-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg19-inc-2--r" x="347.55" y="-15.75" width="144.88" height="13.50" rx="4"/></g>
+<g id="dg19-inc-3" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare emph"><rect id="dg19-inc-3--r" x="347.55" y="2.25" width="92.20" height="13.50" rx="4"/></g>
+<g id="dg19-inc-4" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg19-inc-4--r" x="347.55" y="20.25" width="59.27" height="13.50" rx="4"/></g>
+<g id="dg19-inc-5" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg19-inc-5--r" x="347.55" y="38.25" width="39.51" height="13.50" rx="4"/></g>
 <g id="dg19-inc-tick-0" data-base="dg-el dg-text" class="dg-el dg-text small muted right"><g id="dg19-inc-tick-0--lw0" data-lab="inc-tick-0--l" class="dg-lwrap" transform="translate(338.55,-45.00)"><g id="dg19-inc-tick-0--l0" class="dg-lbl"><text text-anchor="end" font-size="12.00"><tspan x="0" y="4.08">Phishing</tspan></text></g></g></g>
 <g id="dg19-inc-tick-1" data-base="dg-el dg-text" class="dg-el dg-text small muted right"><g id="dg19-inc-tick-1--lw0" data-lab="inc-tick-1--l" class="dg-lwrap" transform="translate(338.55,-27.00)"><g id="dg19-inc-tick-1--l0" class="dg-lbl"><text text-anchor="end" font-size="12.00"><tspan x="0" y="4.08">Ransomware</tspan></text></g></g></g>
 <g id="dg19-inc-tick-2" data-base="dg-el dg-text" class="dg-el dg-text small muted right"><g id="dg19-inc-tick-2--lw0" data-lab="inc-tick-2--l" class="dg-lwrap" transform="translate(338.55,-9.00)"><g id="dg19-inc-tick-2--l0" class="dg-lbl"><text text-anchor="end" font-size="12.00"><tspan x="0" y="4.08">Credential stuffing</tspan></text></g></g></g>

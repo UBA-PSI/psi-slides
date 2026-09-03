@@ -987,6 +987,19 @@ pre.shiki .line { display: inline; }
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
+/* A chart's column: what it is filled with, and what emph does to it. A
+   column draws no outline, so paper would make it vanish and there is nothing
+   but its fill to emphasise; the rules come from DG_BAR_FILLS in
+   diagram-core, which is also what the linter reads when it says a column is
+   too pale for a theme - one table, so the warning is about the colour that
+   is drawn. The block sits after the box tones on purpose: a column's tone
+   rule is one class more specific and has to win. */
+.psi-diagram .dg-bar > rect { fill: color-mix(in oklab, var(--ink) 55%, var(--paper)); }
+.psi-diagram .dg-bar.tone-1 > rect { fill: color-mix(in oklab, var(--emph) 70%, var(--paper)); }
+.psi-diagram .dg-bar.tone-2 > rect { fill: color-mix(in oklab, var(--ink) 45%, var(--paper)); }
+.psi-diagram .dg-bar.tone-3 > rect { fill: color-mix(in oklab, var(--ink) 68%, var(--paper)); }
+.psi-diagram .dg-bar.emph > rect { fill: var(--emph); stroke: none; }
+.psi-diagram .dg-bar.tone-4.emph > rect { stroke: none; }
 /* Words are the third thing emphasis can act on, and leaving them out left the
    emph verb on a text accepted and completely inert - the ground rule at the
    foot of this stylesheet refuses to stroke a label's rect, deliberately and
@@ -2428,19 +2441,19 @@ are tagged into a release.</p>
 <figure class="figure-diagram"><svg id="dg5-root" class="psi-diagram" viewBox="-199.71 -79.80 655.79 177.70" width="2000" height="542" data-live-viewbox="-199.71 -79.80 655.79 177.70" data-live-ratio="0.270971" data-steps="3" role="img" aria-label="Charts" preserveAspectRatio="xMidYMid meet">
 <g id="dg5-long" data-base="dg-el dg-brace" class="dg-el dg-brace small muted"><path id="dg5-long--p" class="dg-stroke" d="M-168.28 62.40L-168.28 69.40L-87.02 69.40L-87.02 62.40" fill="none"/><g id="dg5-long--lw0" data-lab="long--l" class="dg-lwrap" transform="translate(-127.65,78.40)"><g id="dg5-long--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">the three to rewrite</tspan></text></g></g></g>
 <g id="dg5-wc" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg5-wc--r" x="-170.20" y="-33.60" width="340.40" height="67.20" rx="4"/></g>
-<g id="dg5-wc-0" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg5-wc-0--r" x="-168.28" y="-33.60" width="24.53" height="67.20" rx="4"/></g>
-<g id="dg5-wc-1" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg5-wc-1--r" x="-139.91" y="-26.13" width="24.53" height="59.73" rx="4"/></g>
-<g id="dg5-wc-2" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg5-wc-2--r" x="-111.55" y="-22.40" width="24.53" height="56.00" rx="4"/></g>
-<g id="dg5-wc-3" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg5-wc-3--r" x="-83.18" y="-11.20" width="24.53" height="44.80" rx="4"/></g>
-<g id="dg5-wc-4" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg5-wc-4--r" x="-54.81" y="-7.47" width="24.53" height="41.07" rx="4"/></g>
-<g id="dg5-wc-5" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg5-wc-5--r" x="-26.45" y="0.00" width="24.53" height="33.60" rx="4"/></g>
-<g id="dg5-wc-6" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg5-wc-6--r" x="1.92" y="3.73" width="24.53" height="29.87" rx="4"/></g>
-<g id="dg5-wc-7" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg5-wc-7--r" x="30.29" y="7.47" width="24.53" height="26.13" rx="4"/></g>
-<g id="dg5-wc-8" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg5-wc-8--r" x="58.65" y="11.20" width="24.53" height="22.40" rx="4"/></g>
-<g id="dg5-wc-9" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg5-wc-9--r" x="87.02" y="14.93" width="24.53" height="18.67" rx="4"/></g>
-<g id="dg5-wc-10" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg5-wc-10--r" x="115.39" y="18.67" width="24.53" height="14.93" rx="4"/></g>
-<g id="dg5-wc-11" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-3"><rect id="dg5-wc-11--r" x="143.75" y="22.40" width="24.53" height="11.20" rx="4"/></g>
-<g id="dg5-limn" data-base="dg-el dg-text" class="dg-el dg-text small accent"><g id="dg5-limn--lw0" data-lab="limn--l" class="dg-lwrap" transform="translate(128.76,-27.20)"><g id="dg5-limn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">budget</tspan></text></g></g></g>
+<g id="dg5-wc-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg5-wc-0--r" x="-168.28" y="-33.60" width="24.53" height="67.20" rx="4"/></g>
+<g id="dg5-wc-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg5-wc-1--r" x="-139.91" y="-26.13" width="24.53" height="59.73" rx="4"/></g>
+<g id="dg5-wc-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg5-wc-2--r" x="-111.55" y="-22.40" width="24.53" height="56.00" rx="4"/></g>
+<g id="dg5-wc-3" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg5-wc-3--r" x="-83.18" y="-11.20" width="24.53" height="44.80" rx="4"/></g>
+<g id="dg5-wc-4" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg5-wc-4--r" x="-54.81" y="-7.47" width="24.53" height="41.07" rx="4"/></g>
+<g id="dg5-wc-5" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg5-wc-5--r" x="-26.45" y="0.00" width="24.53" height="33.60" rx="4"/></g>
+<g id="dg5-wc-6" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg5-wc-6--r" x="1.92" y="3.73" width="24.53" height="29.87" rx="4"/></g>
+<g id="dg5-wc-7" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg5-wc-7--r" x="30.29" y="7.47" width="24.53" height="26.13" rx="4"/></g>
+<g id="dg5-wc-8" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg5-wc-8--r" x="58.65" y="11.20" width="24.53" height="22.40" rx="4"/></g>
+<g id="dg5-wc-9" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg5-wc-9--r" x="87.02" y="14.93" width="24.53" height="18.67" rx="4"/></g>
+<g id="dg5-wc-10" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg5-wc-10--r" x="115.39" y="18.67" width="24.53" height="14.93" rx="4"/></g>
+<g id="dg5-wc-11" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg5-wc-11--r" x="143.75" y="22.40" width="24.53" height="11.20" rx="4"/></g>
+<g id="dg5-limn" data-base="dg-el dg-text" class="dg-el dg-text small"><g id="dg5-limn--lw0" data-lab="limn--l" class="dg-lwrap" transform="translate(128.76,-27.20)"><g id="dg5-limn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">budget</tspan></text></g></g></g>
 <g id="dg5-wcn" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg5-wcn--lw0" data-lab="wcn--l" class="dg-lwrap" transform="translate(-170.20,-60.30)"><g id="dg5-wcn--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">words per chunk</tspan></text></g></g></g>
 <g id="dg5-ch" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg5-ch--r" x="282.20" y="-32.96" width="108.16" height="65.92" rx="4"/></g>
 <g id="dg5-ch-0-0" data-base="dg-el dg-dot" class="dg-el dg-dot tone-2"><circle id="dg5-ch-0-0--c" cx="287.00" cy="-28.16" r="4.80"/></g>
@@ -2485,7 +2498,7 @@ are tagged into a release.</p>
 <g id="dg5-ch-7-4" data-base="dg-el dg-dot" class="dg-el dg-dot tone-2"><circle id="dg5-ch-7-4--c" cx="385.56" cy="28.16" r="4.80"/></g>
 <g id="dg5-chn" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg5-chn--lw0" data-lab="chn--l" class="dg-lwrap" transform="translate(282.20,67.16)"><g id="dg5-chn--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">one dot per chunk,</tspan><tspan x="0" y="11.58">tinted where a figure lives</tspan></text></g></g></g>
 <g id="dg5-wc-base" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted front"><path id="dg5-wc-base--p" class="dg-stroke" d="M-170.20 33.60L170.20 33.60" fill="none"/><path id="dg5-wc-base--h" class="dg-head" d="M170.20 33.60L170.20 33.60L170.20 33.60Z"/></g>
-<g id="dg5-lim" data-base="dg-el dg-edge" class="dg-el dg-edge accent dashed front no-head"><path id="dg5-lim--p" class="dg-stroke" d="M-170.20 -14.40L170.20 -14.40" fill="none"/><path id="dg5-lim--h" class="dg-head" d="M170.20 -14.40L170.20 -14.40L170.20 -14.40Z"/></g>
+<g id="dg5-lim" data-base="dg-el dg-edge" class="dg-el dg-edge dashed front no-head"><path id="dg5-lim--p" class="dg-stroke" d="M-170.20 -14.40L170.20 -14.40" fill="none"/><path id="dg5-lim--h" class="dg-head" d="M170.20 -14.40L170.20 -14.40L170.20 -14.40Z"/></g>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
@@ -2496,6 +2509,7 @@ are tagged into a release.</p>
 <ul>
 <li><strong>The budget line is an <code class="nb">edge</code></strong> between two coordinates read off the chart&#39;s own frame, with <code class="nb">.front</code> on it so the columns do not cover it.</li>
 <li><strong>Spacing inside a chart is <code class="nb">space</code>, never <code class="nb">gap</code></strong> – <code class="nb">gap</code> is the distance to another element on the same line.</li>
+<li><strong>A column draws no outline</strong>, and a tone on a <code class="nb">bars</code> line is a category rather than a way to get a fill: a column with none is drawn in a fill of its own. <code class="nb">emph</code> on a column fills it in the accent instead of outlining it.</li>
 <li><strong><code>emph 0,1,2</code> or <code>dim 5</code></strong> on a <code class="nb">bars</code> line marks those columns from the opening picture onwards, which is usually where a chart wants one.</li>
 </ul>
 
@@ -2508,7 +2522,7 @@ are tagged into a release.</p>
   <span class="chunk-num" aria-hidden="true"><i>6</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">More on bars</span> <span class="hd-sub">a second series, and columns laid flat</span></h2>
-  <p><strong>A second set of numbers is one more <code class="nb">bars</code> line:</strong> <code>bars after &quot;…&quot; series of wc {.tone-1}</code> joins the first chart&#39;s frame and borrows its ticks, its baseline and its scale.</p>
+  <p><strong>A second set of numbers is one more <code class="nb">bars</code> line:</strong> <code>bars after &quot;…&quot; series of wc {.tone-1}</code> joins the first chart&#39;s frame and borrows its ticks, its baseline and its scale. <code>key &quot;2024&quot;</code> on either line names the run, and the chart draws the legend itself.</p>
 
   
   
@@ -2523,10 +2537,10 @@ are tagged into a release.</p>
   <p><strong><code class="nb">horizontal</code> lays the columns flat</strong>, which is what a chart wants as soon as its categories have names rather than numbers – lengths from one shared left edge are easier to rank, and “DNS cache poisoning” cannot be written under an upright column at all.</p>
 <figure class="figure-diagram"><svg id="dg6-root" class="psi-diagram" viewBox="-267.54 -43.25 407.04 126.50" width="2000" height="622" data-steps="1" role="img" aria-label="Columns laid flat" preserveAspectRatio="xMidYMid meet">
 <g id="dg6-hour" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg6-hour--r" x="-127.50" y="-31.25" width="255.00" height="62.50" rx="4"/></g>
-<g id="dg6-hour-0" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2"><rect id="dg6-hour-0--r" x="-127.50" y="-29.30" width="255.00" height="11.72" rx="4"/></g>
-<g id="dg6-hour-1" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2 emph"><rect id="dg6-hour-1--r" x="-127.50" y="-13.67" width="197.42" height="11.72" rx="4"/></g>
-<g id="dg6-hour-2" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2"><rect id="dg6-hour-2--r" x="-127.50" y="1.95" width="148.06" height="11.72" rx="4"/></g>
-<g id="dg6-hour-3" data-base="dg-el dg-box" class="dg-el dg-box sharp tone-2"><rect id="dg6-hour-3--r" x="-127.50" y="17.58" width="74.03" height="11.72" rx="4"/></g>
+<g id="dg6-hour-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg6-hour-0--r" x="-127.50" y="-29.30" width="255.00" height="11.72" rx="4"/></g>
+<g id="dg6-hour-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare emph"><rect id="dg6-hour-1--r" x="-127.50" y="-13.67" width="197.42" height="11.72" rx="4"/></g>
+<g id="dg6-hour-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg6-hour-2--r" x="-127.50" y="1.95" width="148.06" height="11.72" rx="4"/></g>
+<g id="dg6-hour-3" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg6-hour-3--r" x="-127.50" y="17.58" width="74.03" height="11.72" rx="4"/></g>
 <g id="dg6-hour-tick-0" data-base="dg-el dg-text" class="dg-el dg-text small muted right"><g id="dg6-hour-tick-0--lw0" data-lab="hour-tick-0--l" class="dg-lwrap" transform="translate(-136.50,-23.44)"><g id="dg6-hour-tick-0--l0" class="dg-lbl"><text text-anchor="end" font-size="12.00"><tspan x="0" y="4.08">writing the prose</tspan></text></g></g></g>
 <g id="dg6-hour-tick-1" data-base="dg-el dg-text" class="dg-el dg-text small muted right"><g id="dg6-hour-tick-1--lw0" data-lab="hour-tick-1--l" class="dg-lwrap" transform="translate(-136.50,-7.81)"><g id="dg6-hour-tick-1--l0" class="dg-lbl"><text text-anchor="end" font-size="12.00"><tspan x="0" y="4.08">drawing the figures</tspan></text></g></g></g>
 <g id="dg6-hour-tick-2" data-base="dg-el dg-text" class="dg-el dg-text small muted right"><g id="dg6-hour-tick-2--lw0" data-lab="hour-tick-2--l" class="dg-lwrap" transform="translate(-136.50,7.81)"><g id="dg6-hour-tick-2--l0" class="dg-lbl"><text text-anchor="end" font-size="12.00"><tspan x="0" y="4.08">fixing one wording</tspan></text></g></g></g>

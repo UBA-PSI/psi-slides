@@ -1372,7 +1372,7 @@ step rest
 # per column. The values are chosen so that the bins on #ns-b57 - the same
 # packet, the same columns - come to exactly the counts 43 / 36 / 21 taken
 # verbatim there.
-bars obs "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 3.1 h 0.85 {.tone-3 .bare}
+bars obs "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 3.1 h 0.85
 
 text hcmp "Comparison with normal behavior" below obs gap 0.62 flush left {.left}
 
@@ -1389,7 +1389,7 @@ edge normal cmp@0.01,cmp@0.6 -- cmp@1,cmp@0.03 via cmp@0.1,cmp@0.4 cmp@0.25,cmp@
 # needles - the point is the contrast, not the count.
 # .tone-4 is the only full fill there is, and it mixes from --emph: a needle
 # 6 px wide with a bare stroke would be empty inside.
-bars sus "20,14,55,10,8,45,12,88,9,62,7,6,10,5,18,4,6,5,3,4,3,2,3,2" at cmp@0.5,cmp@0.425 w 3.1 h 1.275 space 0.085 {.tone-4 .bare @sus}
+bars sus "20,14,55,10,8,45,12,88,9,62,7,6,10,5,18,4,6,5,3,4,3,2,3,2" at cmp@0.5,cmp@0.425 w 3.1 h 1.275 space 0.085 {.tone-4 @sus}
 
 text ls "/" above sus-2 gap 0.06 {@sus}
 text lr "r" above sus-5 gap 0.06 {@sus}
@@ -1418,7 +1418,7 @@ step metric
 ## figure: Training stage | Chi-square statistic (goodness of fit) {.full #ns-b56}
 
 ::: draw {unit=150x56}
-bars f "20,19,17,12,11,10,9,9,8,7,6,5" ". i e 0 l o 1 / a 3 5 M" at 0,0 w 2.5 h 0.9 {.tone-3 .bare}
+bars f "20,19,17,12,11,10,9,9,8,7,6,5" ". i e 0 l o 1 / a 3 5 M" at 0,0 w 2.5 h 0.9
 text cap "Char. freq. distribution for\nnormal payloads" above f gap 0.16 flush right {.right}
 
 brace b1 over f-0,f-1,f-2 side bottom "Bin 1" pad 0.45 {.muted @bins}
@@ -1451,7 +1451,7 @@ step weights
 # 10+9+9+8 = 36, 8+7+6 = 21. These used to be the values of the *training*
 # distribution from #ns-b56, which made the anomalous distribution identical
 # to the one it is meant to deviate from.
-bars g "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 2.5 h 0.9 {.tone-3 .bare}
+bars g "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 2.5 h 0.9
 text cap "Anomalous payload\ndistribution" above g gap 0.16 flush right {.right}
 
 brace b1 over g-0,g-1,g-2 side bottom "Bin 1" pad 0.45 {.muted @bins}

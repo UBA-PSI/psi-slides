@@ -248,6 +248,14 @@ const FIXTURES = [
   //
   // A series draws columns in a frame it does not own, so the frame, the
   // scale, the ticks and the placement all belong to the chart it joined.
+  // `key "…"` names a run for the legend the chart draws. Its value is the
+  // one quoted string on a chart line with a keyword in front of it, so the
+  // build reads it off the raw tokens and the linter off the source, and the
+  // two have to agree on what a key without its string is.
+  { item: 2, name: 'a key without its name', body: SERIES + 'bars g "3,4" series of f key' },
+  { item: 2, name: 'a key on a grid', body: QUAD + 'grid g box 2x2 at 0,1 cell 0.3 key "k"' },
+  { item: 2, accept: true, name: 'a named run and a named series', body: 'bars f "3,5" "a b" at 0,0 w 2 h 1 key "one"\nbars g "1,2" series of f key "two"' },
+  { item: 2, accept: true, name: 'a key before a size', body: 'bars f "3,5" at 0,0 key "one" w 2 h 1' },
   { item: 2, name: 'a series with a placement', body: SERIES + 'bars g "3,4" series of f at 1,1' },
   { item: 2, name: 'a series placed against its own chart', body: SERIES + 'bars g "3,4" series of f right of f' },
   { item: 2, name: 'a series with a width', body: SERIES + 'bars g "3,4" series of f w 2' },
@@ -372,7 +380,10 @@ export async function run({ report }) {
   const wrong = [];
   FIXTURES.forEach((f, i) => {
     const buildRefuses = !render(f.body).ok;
-    const lintReports = lint[i].length > 0;
+    // Refusals, not remarks: a fixture the build accepts may still draw a
+    // warning from the linter - a pale tone the contrast check names - and
+    // that is the linter doing its other job, not disagreeing with the build.
+    const lintReports = lint[i].some((f) => f.sev === 'error');
     const expectRefusal = !f.accept;
     const good = buildRefuses === expectRefusal && lintReports === expectRefusal;
     if (good) agree++;

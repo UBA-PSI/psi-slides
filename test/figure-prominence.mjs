@@ -97,6 +97,40 @@ export async function run({ page, report, walkTo }) {
     return out;
   });
 
+  // A column is emphasised by its fill, not by an outline: the stylesheet
+  // rule is keyed on the dg-bar role, and this is the one place that role
+  // is measured as a colour rather than as a class. The claims are
+  // differences, for the same reason as above – seven themes, one token.
+  const bars = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.style.cssText = 'position:fixed;left:-4000px;top:0';
+    document.body.appendChild(host);
+    const c = window.PSI_DG.createDiagramCompiler({
+      resolveImage: () => null, imageAspect: () => 1, warn: () => {},
+      escapeHtml: (s) => String(s), assetMarkup: () => '',
+    });
+    host.innerHTML = c.renderDiagram(
+      'bars f "3,5" at 0,0 w 2 h 1 emph 1\nbox b "B" right of f gap 0.5', '', {});
+    const rect = (n) => {
+      const g = [...host.querySelectorAll('g.dg-el')].find(x => (x.id || '').endsWith(n));
+      const r = g && g.querySelector(':scope > rect');
+      return r ? { fill: getComputedStyle(r).fill, stroke: getComputedStyle(r).stroke } : null;
+    };
+    const out = { plain: rect('f-0'), emphd: rect('f-1'), box: rect('b') };
+    host.remove();
+    return out;
+  });
+
+  ok(bars.plain && bars.plain.stroke === 'none' && bars.emphd && bars.emphd.stroke === 'none',
+    'a column draws no outline, emphasised or not',
+    `plain ${bars.plain && bars.plain.stroke} / emph ${bars.emphd && bars.emphd.stroke}`);
+  ok(bars.plain && bars.box && bars.plain.fill !== bars.box.fill,
+    'a column with no tone is filled darker than the paper a box defaults to',
+    `column ${bars.plain && bars.plain.fill} vs box ${bars.box && bars.box.fill}`);
+  ok(bars.plain && bars.emphd && bars.emphd.fill !== bars.plain.fill,
+    'emph on a column changes its fill',
+    `emph ${bars.emphd && bars.emphd.fill} vs plain ${bars.plain && bars.plain.fill}`);
+
   ok(tone4.plain && tone4.emphd && tone4.plain === tone4.emphd,
     'a .tone-4 label keeps its inverted colour when the element is emphasised',
     `plain ${tone4.plain} vs emphasised ${tone4.emphd}`);

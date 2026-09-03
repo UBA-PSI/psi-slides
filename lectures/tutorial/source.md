@@ -956,11 +956,11 @@ Which way a pointed outline aims is the `point` option – `up`, `down`, `left` 
 **Three statements draw data, and each turns into ordinary boxes, texts and edges first.** `bars` becomes one box per column plus a baseline, `grid` one box per cell, and `plot` a frame of gridlines, ticks and two axis titles.
 
 ::: draw {unit=148x64}
-bars wc "18,16,15,12,11,9,8,7,6,5,4,3" at 0,0 w 2.3 h 1.05 space 0.06 {.tone-3}
+bars wc "18,16,15,12,11,9,8,7,6,5,4,3" at 0,0 w 2.3 h 1.05 space 0.06
 brace long over wc-0,wc-1,wc-2 side bottom "the three to rewrite" pad 0.45 {.small .muted}
 # In front, or the columns cover the line and it shows only in the gaps.
-edge lim wc.left,wc.top+0.3 -- wc.right,wc.top+0.3 {.accent .dashed .front}
-text limn "budget" at wc.right-0.28,wc.top+0.1 {.small .accent}
+edge lim wc.left,wc.top+0.3 -- wc.right,wc.top+0.3 {.dashed .front}
+text limn "budget" at wc.right-0.28,wc.top+0.1 {.small}
 text wcn "words per chunk" above wc gap 0.3 flush left {.small .muted .left}
 
 grid ch dot 8x5 right of wc gap 1.75 cell 0.15 space 0.07 {.tone-2}
@@ -977,12 +977,13 @@ step figures
 ::: expand What else is going on in that figure
 - **The budget line is an `edge`** between two coordinates read off the chart's own frame, with `.front` on it so the columns do not cover it.
 - **Spacing inside a chart is `space`, never `gap`** – `gap` is the distance to another element on the same line.
+- **A column draws no outline**, and a tone on a `bars` line is a category rather than a way to get a fill: a column with none is drawn in a fill of its own. `emph` on a column fills it in the accent instead of outlining it.
 - **`emph 0,1,2` or `dim 5`** on a `bars` line marks those columns from the opening picture onwards, which is usually where a chart wants one.
 :::
 
 ## example: More on bars | a second series, and columns laid flat {.full #diagram-bars}
 
-**A second set of numbers is one more `bars` line:** `bars after "…" series of wc {.tone-1}` joins the first chart's frame and borrows its ticks, its baseline and its scale.
+**A second set of numbers is one more `bars` line:** `bars after "…" series of wc {.tone-1}` joins the first chart's frame and borrows its ticks, its baseline and its scale. `key "2024"` on either line names the run, and the chart draws the legend itself.
 
 ## example: Columns laid flat | `horizontal`, and when to use it {.full #diagram-flat}
 
@@ -995,7 +996,7 @@ step figures
 :::
 
 ::: draw {unit=150x50}
-bars hour "31,24,18,9" "writing the prose | drawing the figures | fixing one wording | fighting the tooling" at 0,0 horizontal w 1.7 h 1.25 emph 1 {.tone-2}
+bars hour "31,24,18,9" "writing the prose | drawing the figures | fixing one wording | fighting the tooling" at 0,0 horizontal w 1.7 h 1.25 emph 1
 text hourn "minutes, in the hour before a lecture" below hour gap 0.5 {.small .muted}
 :::
 

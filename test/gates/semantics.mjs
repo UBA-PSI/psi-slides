@@ -28,7 +28,10 @@
  * lives here rather than in a browser spec for the same reason as everything
  * else in this directory – it needs no page to answer.
  */
-import { frames, render, spans } from './harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { frames, render, spans, ROOT } from './harness.mjs';
+import { DG_THEMES } from '../../diagram-core.mjs';
 
 export const name = 'the emitted drawing means what the source says';
 
@@ -132,6 +135,86 @@ export async function run({ report }) {
       ok(got && got.has('both-heads') && headDrawn(out, 's-0--h') && headDrawn(out, 's-0--h2'),
         'a self-message <-> draws a head at each end of its loop',
         got ? [...got].join(' ') : 'not drawn');
+    }
+  }
+
+  // ── a column is a bar, not a box ──────────────────────────────────
+  // Its outline was ink that encoded nothing and never matched the
+  // baseline it stood on, so a column arrives `bare` unless the author's own
+  // tail says `.thick` – the same slot displacement `sharp` already uses –
+  // and carries `dg-bar` in its base class, which is what lets the
+  // stylesheet mean "a fill" by `emph` on a column and "an outline" by the
+  // same word everywhere else. The base is what the runtime rebuilds the
+  // class string from every frame, so it is read off data-base, not class.
+  {
+    const plain = fig('bars with no tail', 'bars f "3,5" at 0,0 w 2 h 1 emph 1\nbox b "B" right of f gap 1');
+    const thick = fig('bars with .thick', 'bars f "3,5" at 0,0 w 2 h 1 {.thick}');
+    if (plain && thick) {
+      const c0 = setOf(plain, 'f-0'), c1 = setOf(plain, 'f-1'), t = setOf(thick, 'f-0');
+      ok(c0 && c0.has('bare') && c0.has('sharp'),
+        'a column arrives bare and sharp with no tail written',
+        c0 ? [...c0].join(' ') : 'f-0 was not drawn');
+      ok(c1 && c1.has('emph') && c1.has('bare'),
+        'emph on a column keeps it bare – the fill is the emphasis, not an outline',
+        c1 ? [...c1].join(' ') : 'f-1 was not drawn');
+      ok(t && t.has('thick') && !t.has('bare'),
+        '.thick on the bars line displaces the bare a column arrives with',
+        t ? [...t].join(' ') : 'f-0 was not drawn');
+      ok(attrOf(plain, 'f-0', 'data-base') === 'dg-el dg-box dg-bar'
+        && attrOf(plain, 'b', 'data-base') === 'dg-el dg-box',
+        'a column carries dg-bar in its base class and an authored box does not',
+        `${attrOf(plain, 'f-0', 'data-base')} / ${attrOf(plain, 'b', 'data-base')}`);
+    }
+  }
+
+  // ── a chart draws its own legend ──────────────────────────────────
+  // `key "…"` on a bars line makes a swatch and a name. The swatch is a
+  // column of the run - same classes, same role - which is the whole point:
+  // a legend built out of boxes shows a tone at a box's strength, and that
+  // is not what the columns are filled with. Entries stand in one row above
+  // the frame, in source order, a series appending to its chart's row.
+  {
+    const out = fig('bars with keys',
+      'bars f "3,5" at 0,0 w 2 h 1 key "one" {.tone-3}\nbars g "1,2" series of f key "two" {.tone-4}');
+    if (out) {
+      const sw = setOf(out, 'f-key'), sw2 = setOf(out, 'g-key');
+      ok(sw && sw.has('tone-3') && sw.has('bare') && sw.has('sharp')
+        && attrOf(out, 'f-key', 'data-base') === 'dg-el dg-box dg-bar',
+        'the swatch is a column of its run: the run\'s classes and the bar role',
+        sw ? [...sw].join(' ') + ' / ' + attrOf(out, 'f-key', 'data-base') : 'f-key was not drawn');
+      ok(sw2 && sw2.has('tone-4') && hasEl(out, 'f-key-label') && hasEl(out, 'g-key-label'),
+        'a series names itself into the same legend, with its own classes',
+        sw2 ? [...sw2].join(' ') : 'g-key was not drawn');
+      const fx = Number(attrOf(out, 'f-key--r', 'x')), gx = Number(attrOf(out, 'g-key--r', 'x'));
+      const fy = Number(attrOf(out, 'f-key--r', 'y')), top = Number(attrOf(out, 'f--r', 'y'));
+      ok(Number.isFinite(fx) && Number.isFinite(gx) && gx > fx && fy < top,
+        'the entries stand in a row above the frame, the series to the right of the chart',
+        `f-key x ${fx}, g-key x ${gx}, f-key y ${fy}, frame top ${top}`);
+    }
+  }
+
+  // ── the linter's theme table is the stylesheet's ─────────────────
+  // DG_THEMES says which theme loses a column; build.js says what the theme
+  // is. Copied numbers, so a gate that reads both and compares.
+  {
+    const css = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const trip = (block, tok) => {
+      const m = block.match(new RegExp(`--${tok}:\\s*oklch\\(([\\d.]+) ([\\d.]+) ([\\d.]+)\\)`));
+      return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+    };
+    const root = css.slice(css.indexOf('const AUDIENCE_CSS = `'), css.indexOf('--zoom:'));
+    const inkL = Number((root.match(/--ink-l:\s*([\d.]+)/) || [])[1]);
+    for (const [name, want] of Object.entries(DG_THEMES)) {
+      const m = css.match(new RegExp(`body\\[data-theme=${name}\\]\\s*\\{([^}]*)\\}`));
+      const block = m ? m[1] : '';
+      const got = {
+        paper: trip(block, 'paper') || trip(root, 'paper'),
+        ink: trip(block, 'ink') || [inkL, 0.01, 260],
+        emph: trip(block, 'emph') || trip(root, 'emph'),
+      };
+      const same = (a, b) => a && b && a.every((v, i) => Math.abs(v - b[i]) < 1e-9);
+      ok(same(got.paper, want.paper) && same(got.ink, want.ink) && same(got.emph, want.emph),
+        `DG_THEMES agrees with build.js for ${name}`, JSON.stringify(got));
     }
   }
 
@@ -492,6 +575,21 @@ export async function run({ report }) {
     ok(!(misW && misW.present) && !(own && own.present),
       'spanOf never mistakes a name or a reference for an option keyword',
       `on the reference ${JSON.stringify(misW)}, on its own name ${JSON.stringify(own)}`);
+  }
+
+  // `key` is the one keyed option whose value is a string, so its span is
+  // the quoted token when present and an insertion carrying the quotes when
+  // not - the shape a label's absent span has, and the shape the editor's
+  // data fields know how to write.
+  {
+    const t = spans('bars f "3,5" at 0,0 w 2 h 1 key "one"\nbars g "1,2" series of f');
+    const has = t.spanOf('f', 'key'), not = t.spanOf('g', 'key');
+    ok(has && has.present && has.value === 'one' && has.text === '"one"',
+      'spanOf key is the quoted token, value unquoted and text as written',
+      JSON.stringify(has));
+    ok(not && !not.present && not.prefix === ' key "' && not.suffix === '"',
+      'an absent key is an insertion that carries its own quotes',
+      JSON.stringify(not));
   }
 
   note('four contracts, and this gate holds the third: what the compiler emitted, '

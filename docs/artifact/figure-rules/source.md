@@ -591,7 +591,7 @@ text ax "True Positive Rate" left of fw gap 0.7 {.turn}
 # aspect rather than h: w and h are counts of grid cells and a cell here is
 # 150 by 52, so the two numbers that look square draw something three times
 # wider than it is tall. 4:1 is the proportion the room actually sees.
-bars f "20,19,17,12,11,10,9,9,8,7,6,5" ". i e 0 l o 1 / a 3 5 M" at 0,0 w 2.2 aspect 4:1 {.tone-3 .bare}
+bars f "20,19,17,12,11,10,9,9,8,7,6,5" ". i e 0 l o 1 / a 3 5 M" at 0,0 w 2.2 aspect 4:1
 brace b1 over f-0,f-1,f-2 side bottom "the top three"
 brace b2 over f-3,f-4,f-5,f-6,f-7 side bottom "the next five"
 :::
@@ -638,11 +638,11 @@ text ng "w 1.9  aspect 1:1" below good gap 0.4 {.small .muted}
 # can be read against one another and, on paper, laid over one another.
 # `same as` is answered as the line is read - which is why the chart being
 # copied has to stand above the ones copying it.
-bars w1 "18,24,31,9" "M T W T" at 0,0 w 1.5 aspect 3:2 {.tone-3}
+bars w1 "18,24,31,9" "M T W T" at 0,0 w 1.5 aspect 3:2
 text c1 "week 1" below w1 gap 0.35 {.small .muted}
-bars w2 "22,19,31,14" "M T W T" right of w1 gap 1.75 same as w1 {.tone-3}
+bars w2 "22,19,31,14" "M T W T" right of w1 gap 1.75 same as w1
 text c2 "week 2" below w2 gap 0.35 {.small .muted}
-bars w3 "9,12,7,31" "M T W T" right of w2 gap 1.75 same as w1 {.tone-3}
+bars w3 "9,12,7,31" "M T W T" right of w2 gap 1.75 same as w1
 text c3 "week 3" below w3 gap 0.35 {.small .muted}
 :::
 
@@ -717,15 +717,13 @@ edge c.left-0.55,c.cy -- c.right+0.45,c.cy {.front .accent}
 # the two are being compared, and the false positives are stacked on the
 # scanner because they are part of what it reported, not a fourth opinion.
 # Three separate charts would ask the reader to hold three scales at once.
-bars man "12,18,9,4" "info low medium high" at 0,0 w 2.9 h 1.3 {.tone-1}
-bars scan "26,31,14,5" series of man {.tone-3}
-bars fp "19,22,7,1" series of man stacked {.tone-4}
-box  s1 "" at man.left+0.14,man.bottom+0.78 w 0.2 h 0.55 {.tone-1 .sharp}
-text n1 "reviewed by hand" right of s1 gap 0.35 {.small .muted}
-box  s2 "" right of n1 gap 0.85 same as s1 {.tone-3 .sharp}
-text n2 "scanner" right of s2 gap 0.35 {.small .muted}
-box  s3 "" right of n2 gap 0.85 same as s1 {.tone-4 .sharp}
-text n3 "false positive" right of s3 gap 0.35 {.small .muted}
+# key names the run and the chart draws the legend: the swatch is a column
+# of the run, so it has the run's colour by construction. The tones are the
+# two greys and the accent - the linter says tone-2 is faint in the two
+# terminal themes, which is true and a decision, not a mistake.
+bars man "12,18,9,4" "info low medium high" at 0,0 w 2.9 h 1.3 key "reviewed by hand" {.tone-2}
+bars scan "26,31,14,5" series of man key "scanner" {.tone-3}
+bars fp "19,22,7,1" series of man stacked key "false positive" {.tone-4}
 :::
 
 ## figure: sp9 one column singled out {.full #sp9}
@@ -735,7 +733,7 @@ text n3 "false positive" right of s3 gap 0.35 {.small .muted}
 # saying which column the sentence beside it is about. Reached by a step
 # instead, the opening picture would be five equal columns and the point
 # would only exist from beat one onwards.
-bars port "12,9,41,7,5" "80 443 22 53 25" at 0,0 w 2.4 h 1.2 emph 2 dim 0,1,3,4 {.tone-3}
+bars port "12,9,41,7,5" "80 443 22 53 25" at 0,0 w 2.4 h 1.2 emph 2 dim 0,1,3,4
 text n "one port carries more\nthan the other four together" right of port gap 1.6 -- port-2 {.small .muted .left}
 text ax "blocked connection attempts, by destination port, one week" below port gap 0.55 {.small .muted}
 :::
@@ -754,7 +752,7 @@ text ax "blocked connection attempts, by destination port, one week" below port 
 # only way a label with a space in it can be written at all.
 # aspect rather than h, because what has to be true of this chart is that its
 # five rows have room to be read - a proportion, not a count of grid cells.
-bars al "412,268,91,57,24" "SSH brute force | Port scan | DNS tunnelling attempt | SMB exploit attempt | TLS certificate mismatch" at 0,0 horizontal w 3.0 aspect 5:2 emph 0 {.tone-3}
+bars al "412,268,91,57,24" "SSH brute force | Port scan | DNS tunnelling attempt | SMB exploit attempt | TLS certificate mismatch" at 0,0 horizontal w 3.0 aspect 5:2 emph 0
 text n "one automated attack accounts\nfor nearly half the week" right of al gap 1.45 -- al-0 {.small .muted .left}
 text ax "IDS alerts by signature class, one campus network, one week" below al gap 0.5 {.small .muted}
 :::

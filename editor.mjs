@@ -4896,7 +4896,8 @@ function dgeRenderSide() {
 
   // Geometry: exactly the options that element's own statement accepts.
   if (single) {
-    const opts = dgeKindOpts(single).filter((k) => !DGE_WORD_OPTS.has(k));
+    // `key` is a string and lives with the data fields.
+    const opts = dgeKindOpts(single).filter((k) => !DGE_WORD_OPTS.has(k) && k !== 'key');
     if (opts.length) {
       const row = dgeEl('div', { class: 'dge-nums' });
       for (const key of opts) {
@@ -5883,6 +5884,12 @@ const DGE_DATA_FIELDS = {
       empty: 'drop',
       count: (v) => (v.includes('|') ? v.split('|') : v.trim().split(/\s+/))
         .filter((x) => x.trim()).length },
+    // `key "2023"`: the run's name, for the legend the chart draws itself. A
+    // keyed option rather than a positional one, and the only keyed option
+    // whose value is a string – so it sits with the data fields, which know
+    // how to quote, rather than in the size row, which reads numbers.
+    { key: 'key', label: 'key', hint: 'the name of this run, for the legend the chart draws · leave empty for none',
+      empty: 'drop' },
   ],
   grid: [
     { key: 'shape', label: 'shape', hint: 'columns × rows, written 8x12', empty: 'refuse' },
@@ -5977,7 +5984,7 @@ function dgeDataPane(el) {
     // the author cannot fill is worse than no box.
     if (!sp) continue;
     if (f.count) counts.push(f.label + ': ' + f.count(sp.present ? sp.value : ''));
-    const quoted = f.key === 'values' || f.key === 'ticks'
+    const quoted = f.key === 'values' || f.key === 'ticks' || f.key === 'key'
       || f.key === 'xtitle' || f.key === 'ytitle' || f.key === 'sub';
     rows.push(dgeEl('label', { class: 'dge-num dge-num-wide' }, [
       dgeEl('span', { text: f.label }),

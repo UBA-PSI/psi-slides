@@ -958,8 +958,12 @@ one statement and puts the name where the eye already is; a key in the corner
 asks a reader to hold a tone in memory, look away, and come back (Carter). A
 legend is the right answer only where the names cannot go beside the marks at
 all – a `bars` chart with two or three `series of`, where the marks are
-interleaved columns – and there it is built by hand out of small `.sharp` boxes
-and texts, as `#sp8` in `docs/artifact/figure-rules` shows.
+interleaved columns – and there the chart draws it: `key "scanner"` on a
+`bars` line, the frame's and each series', puts a swatch and the name in a row
+above the frame, as `#sp8` in `docs/artifact/figure-rules` shows. The swatch is
+a column of the run, so it has the run's colour by construction; a legend built
+by hand out of boxes shows a tone at a box's strength, which is not what the
+columns are filled with.
 
 **A histogram is a `bars` with `space 0`, and the space is the whole
 difference.** A bar chart compares categories, which are separate things, so
@@ -987,6 +991,52 @@ about a third of the bar width. And a `series of` shares its cell with the
 columns beside it, so grouped bars touch inside a group and the gap falls
 between groups, which is Carter's rule for grouped data without your having to
 space anything by hand.
+
+**A column has no outline, and `emph` on one is a fill.** A box closes its
+contour with a stroke; a column does not need one, because its neighbours and
+the baseline already say where it ends, and an outline on a column is ink
+that encodes nothing (Tufte). So a `bars` line draws its columns `.bare`, and
+`emph 2` turns column 2 solid accent, which is what `.tone-4` means, instead
+of drawing a 2.6 accent outline across a 1.05 baseline. `.thick` puts an
+outline back, for the one chart that wants one.
+
+**A column reads its tone at a column's strength, not a box's.** A tone on a
+box is mixed pale so the ink of its label stays legible on it; a column has no
+label, and the same mix is a watermark on a projector, worst in the dark
+themes. So the columns are filled darker – a column with no tone at all is a
+mid grey, `.tone-2` a lighter grey, `.tone-3` a darker one, `.tone-1` a strong
+accent tint and `.tone-4` the accent – in the same hues and the same order as
+the box tones. Write a tone only where it is a category, one per `series of`,
+so the runs can be told apart; a single run needs none.
+
+**The linter measures the columns against the paper in all seven themes** and
+warns where a fill falls under 3:1, WCAG's floor for graphics, naming the
+themes. `.tone-1` misses it where the accent is a light hue (teal, orange),
+`.tone-2` in the two terminal themes, whose ink and paper are close to begin
+with. That is information, not a refusal: ignore it for a theme you will not
+present in.
+
+**In a grouped chart, single a group out with `dim`, not with `emph`.** A
+column has one channel, its fill, and in a chart with two runs the fill already
+says which run a column belongs to. `emph 3` on both lines paints both Q4
+columns in the accent, and the years are gone at exactly the quarter the
+figure is about; `emph` on a `.tone-4` run changes nothing at all. The linter
+warns on both. `dim 0,1,2` on every line says the same thing and keeps the
+runs apart.
+
+```
+# right: one run, no tone, the accent for the one column that matters
+bars b "24,19,11,5" "A B C D" at 0,0 w 2.4 aspect 3:1 emph 0
+
+# right: two runs, two tones, a legend the chart draws, and Q4 singled
+# out by dimming the rest
+bars y1 "24,19,11,5" "A B C D" at 0,0 w 2.4 aspect 3:1 dim 0,1,2 key "2023" {.tone-3}
+bars y2 "20,22,9,7" series of y1 dim 0,1,2 key "2024" {.tone-4}
+
+# wrong: both runs lit at Q4 come out in one colour there
+bars y1 "24,19,11,5" "A B C D" at 0,0 w 2.4 aspect 3:1 emph 3 {.tone-3}
+bars y2 "20,22,9,7" series of y1 emph 3 {.tone-4}
+```
 
 ---
 

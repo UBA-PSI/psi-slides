@@ -297,7 +297,8 @@ import {
   DG_SCALAR_Y, DG_DEFAULT_KINDS, DG_ANCHORS, DG_DEFINES, DG_GRID_KINDS, DG_GRID_MAX,
   DG_PLOT_MAX_TICKS, DG_POINT_DIRS, DG_POINTED, DG_SHAPE_CLASSES, DG_RESERVED_IDS,
   DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP,
-  dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks,
+  dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgPlotName, dgPlotTicks,
+  DG_THEMES, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarContrast,
   dgRowTag, dgColTag, dgLaneName, dgLaneCapName,
   DG_SEQ_ENTRIES, DG_SEQ_ARROWS,
   dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName,
@@ -979,6 +980,9 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
     if (at < 1 || words[at + 1] !== 'as') return;
     const name = words[at + 2];
     if (!name || chartsAbove.has(name)) return;
+  // The runs of columns each chart's frame holds, by frame, so a second
+  // `emph` at one index can be answered on the line that writes it.
+  const runsOf = new Map();
     add(ln, 'error', 'diagram-bad-chart', `${kind} ${id}: "same as ${name}" names no chart `
         + 'above it. A chart is sized when its own line is read, so it can only copy one it '
         + 'has already seen.');
@@ -1316,7 +1320,19 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       // The frame of a chart is a box, whatever it repeats inside itself.
       define(id, ln, 'box');
       if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: id, tags: attrs.tags, ln });
-      const strings = [...trimmed.matchAll(/"([^"]*)"/g)].map(m => m[1]);
+      // `key "…"` is the one quoted string on a chart line with a keyword in
+      // front of it. The rest are positional - the values, then the tick strip
+      // - so the key's string comes out of that list before the strip is read,
+      // exactly as the compiler takes it out of its own quoted-token list.
+      const keyM = trimmed.match(/(^|\s)key\s+"/);
+      const keyQ = keyM ? keyM.index + keyM[0].length - 1 : -1;
+      const keyStr = keyM ? (trimmed.slice(keyQ).match(/^"([^"]*)"/) || [])[1] ?? null : null;
+      const strings = [...trimmed.matchAll(/"([^"]*)"/g)].filter(m => m.index !== keyQ).map(m => m[1]);
+      // Only a bars line takes a key; on a grid or a plot the build refuses
+      // the word, and a chart option the linter passes is the laxer gate.
+      if (head !== 'bars' && words.includes('key')) {
+        add(ln, 'error', 'diagram-unexpected-token', dgUnexpectedMsg(head, id, 'key'));
+      }
       // Narrow, for the reason the `table … h` check above is narrow: the
       // expanding statements have no general option check in either file, and
       // this is the one word a migrating author types. `calm` is deleted from
@@ -1337,6 +1353,12 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         // baseline. Registering a `<id>-base` for one would let `hide g-base`
         // through a gate the build then refuses.
         const joined = seriesOf(words);
+        // The legend entry a key makes: a swatch that is a column of the run,
+        // and the name beside it. Both generated, so both are defined here.
+        if (words.includes('key') && keyStr === null) {
+          add(ln, 'error', 'bad-diagram-bars', `bars ${id}: "key" takes the run's name in quotes, e.g. key "2023"`);
+        }
+        if (keyStr !== null) { define(dgKeyName(id), ln, 'box'); define(dgKeyLabelName(id), ln, 'text'); }
         const isSeries = joined !== null;
         // Everything a series does not own. The frame, the scale, the ticks
         // and the baseline belong to the chart it joined, so a number for any
@@ -1410,6 +1432,60 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         if (!DG_GRID_KINDS.has(kindWord)) {
           add(ln, 'error', 'bad-diagram-grid', `grid ${id || ''}: expected one of `
               + `${[...DG_GRID_KINDS].join(', ')} after the name, got '${kindWord || ''}'`);
+        // ── can a room see the columns ────────────────────────────────
+        // A column has no outline, so its fill is all there is, and the fill
+        // is a mix over the paper that changes with the theme. DG_BAR_FILLS is
+        // the table the stylesheet is generated from, so the ratio here is
+        // the ratio of the colour actually drawn. Dimmed and ghosted columns
+        // are meant to be faint and are not measured; a run that is all
+        // emphasis has no normal column to measure either.
+        {
+          const listOf = (word) => {
+            const at = words.indexOf(word);
+            return at < 2 ? [] : String(words[at + 1] ?? '').split(',').map(x => Number(x.trim())).filter(Number.isFinite);
+          };
+          const tone = (attrs.classes || []).find(c => /^tone-[1-4]$/.test(c)) || 'plain';
+          const cls = attrs.classes || [];
+          const emphIx = listOf('emph');
+          const back = new Set([...listOf('dim'), ...listOf('ghost')]);
+          const states = [];
+          const someNormal = [...Array(cols).keys()].some(i => !emphIx.includes(i) && !back.has(i));
+          if (someNormal && !cls.includes('dim') && !cls.includes('ghost')) states.push(['', dgBarFill(tone, null)]);
+          if (emphIx.length && tone !== 'tone-4') states.push(['emphasised ', dgBarFill(tone, 'emph')]);
+          const all = Object.keys(DG_THEMES);
+          for (const [what, fk] of states) {
+            const weak = all.map(t => [t, dgBarContrast(fk, t)]).filter(([, r]) => r < DG_BAR_CONTRAST_MIN);
+            if (!weak.length) continue;
+            const low = Math.min(...weak.map(([, r]) => r)).toFixed(1);
+            const where = weak.length === all.length ? 'every theme' : weak.map(([t]) => t).join(', ');
+            add(ln, 'warn', 'diagram-bar-contrast', `bars ${id}: the ${what}columns`
+                + `${tone === 'plain' ? '' : ' in .' + tone} come to as little as ${low}:1 against the paper in ${where} – `
+                + `under ${DG_BAR_CONTRAST_MIN}:1 a projector loses them. A darker tone fixes it; `
+                + `ignore this if you will not present in ${weak.length === 1 ? 'that theme' : 'those themes'}.`);
+          }
+          // A column has one channel, and in a grouped chart the fill already
+          // says which run a column belongs to. `emph` overwrites it with the
+          // accent: on a .tone-4 run that changes nothing, and on two runs at
+          // one index it paints two columns alike at exactly the place the
+          // figure is about. `dim` on the other columns says the same thing
+          // and keeps the runs apart.
+          if (emphIx.length && tone === 'tone-4') {
+            add(ln, 'warn', 'diagram-bars-emph', `bars ${id}: "emph" on a .tone-4 run changes nothing – `
+                + 'its columns are the accent already. Single the group out with "dim" on the other columns instead.');
+          }
+          const frameId = isSeries ? joined : id;
+          const runs = runsOf.get(frameId) || [];
+          for (const ix of emphIx) {
+            const other = runs.find(r => r.emph.has(ix));
+            if (!other) continue;
+            add(ln, 'warn', 'diagram-bars-emph', `bars ${id}: "emph ${ix}" is also on ${other.id}, so both `
+                + `column ${ix}s come out in the accent and the runs cannot be told apart there. `
+                + 'Single the group out with "dim" on the other columns instead.');
+            break;
+          }
+          runs.push({ id, emph: new Set(emphIx) });
+          runsOf.set(frameId, runs);
+        }
         }
         const dims = words.map(w => /^(\d+)x(\d+)$/.exec(w)).find(Boolean);
         if (!dims) {

@@ -355,6 +355,19 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
+/* A chart's column: what it is filled with, and what emph does to it. A
+   column draws no outline, so paper would make it vanish and there is nothing
+   but its fill to emphasise; the rules come from DG_BAR_FILLS in
+   diagram-core, which is also what the linter reads when it says a column is
+   too pale for a theme - one table, so the warning is about the colour that
+   is drawn. The block sits after the box tones on purpose: a column's tone
+   rule is one class more specific and has to win. */
+.psi-diagram .dg-bar > rect { fill: color-mix(in oklab, var(--ink) 55%, var(--paper)); }
+.psi-diagram .dg-bar.tone-1 > rect { fill: color-mix(in oklab, var(--emph) 70%, var(--paper)); }
+.psi-diagram .dg-bar.tone-2 > rect { fill: color-mix(in oklab, var(--ink) 45%, var(--paper)); }
+.psi-diagram .dg-bar.tone-3 > rect { fill: color-mix(in oklab, var(--ink) 68%, var(--paper)); }
+.psi-diagram .dg-bar.emph > rect { fill: var(--emph); stroke: none; }
+.psi-diagram .dg-bar.tone-4.emph > rect { stroke: none; }
 /* Words are the third thing emphasis can act on, and leaving them out left the
    emph verb on a text accepted and completely inert - the ground rule at the
    foot of this stylesheet refuses to stroke a label's rect, deliberately and
