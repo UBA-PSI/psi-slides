@@ -1,6 +1,6 @@
 ---
 name: psi-slides-appearance
-description: How a psi-slides lecture's look is configured and where those settings live in `build.js` – the three-family bundled webfont roster and the `fonts:` block (including author-supplied files in `fonts/`), `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the six viewer-default frontmatter keys, the `style:` block including `labels` and `blocks`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the three-line recipe that reproduces the 1.0.0 look. Use when changing the font roster, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.
+description: How a psi-slides lecture's look is configured and where those settings live in `build.js` – the three-family bundled webfont roster and the `fonts:` block (including author-supplied files in `fonts/`), `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the six viewer-default frontmatter keys, the `style:` block including `labels`, `blocks` and the look of a bold phrase (`bold`, `print-bold`), the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe that reproduces the 1.0.0 look. Use when changing the font roster, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.
 ---
 
 # Type, themes and viewer defaults in psi-slides
@@ -176,7 +176,7 @@ The tag word above a chunk is **two different things wearing one name**, and a s
 
 ## Where the blocks sit (`style.blocks`), and the two keys a chunk can answer
 
-`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` (the enums only – the two scales are bounded numbers, and reading a number out of YAML with no parser is where a linter starts disagreeing with the build). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `heading-scale` and `body-scale` (0.6–1.8).
+`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` (the enums only – the two scales are bounded numbers, and reading a number out of YAML with no parser is where a linter starts disagreeing with the build). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `heading-scale` and `body-scale` (0.6–1.8).
 
 ## The printed document's face (`style.print-body`)
 
@@ -206,23 +206,32 @@ The attribute names are the body's, so one stylesheet serves both levels and the
 
 
 
+## The look of a bold phrase (`style.bold`, `style.print-bold`)
+
+Bold is a selection mark here before it is a weight: the collapse lifts a `**bold**` phrase onto the slide as a bullet of its own, and markdown makes it heavy as a side effect. The two keys separate the two. Same closed enum – `plain | bold | italic | accent | accent-bold | accent-italic` – `bold` for the live views (default `plain`), `print-bold` for the documents (default `bold`, in the ink). `BOLD_LOOKS` in build.js is the table, `DERIVED_STRONG` the scope, `boldLookCss()` writes the rules into `AUDIENCE_CSS` and `PRINT_CSS`; the speaker view embeds the audience stylesheet and carries the same body attribute, so it shows exactly what the room sees.
+
+**The scope is the thing to get right when editing it.** The keys reach the strongs the derivation reads – a `strong` inside a `p` that `splitSentencesIn` splits: ordinary prose, and prose inside `::: cols`, `::: side`, a blockquote, a loose list item, a caption and `::: marginalia`. They deliberately do not reach a `::: slide` or `::: script` block, a card's lead or a row's term, an overlay, an expansion, a margin or speaker note, the cover and the section divider – bolds typed for the look, with rules of their own. A tight list's `- **term**` is outside too, so on the slide it keeps `.chunk-body strong`'s accent beside plain bullets; that is the visible edge of the scope, not a bug. The selector's specificity is (0,4,3), above `.chunk-body strong`, PRINT_CSS's bare `strong` and the promoted-bullet rule, which is why that rule no longer names a colour or a weight.
+
+**`*em*` inside a phrase in scope is the stress mark**: upright, the view's bold weight, accent – in every look except `accent-bold`, where the phrase already has all three and the em stays italic, so the old look is exactly the old look. `***x***` is not a construct: marked emits `<em><strong>`, the strong is in scope and the em outside it, so under `plain` it reads as an italic phrase. `test/settings.mjs` holds the guards: the default rule unguarded, the others behind their attribute, the em rule guarded against `accent-bold`, the promoted-bullet rule silent on colour and weight, and `STYLE_SPEC` congruent with lint's `STYLE_ENUMS`.
+
 ## Reaching the 1.0.0 look (and why there is no `layout:` key)
 
-From 1.0.0 the source format is the interface, and that promise is about more than parsing: **a lecture that laid out a certain way should be able to lay out that way again.** Exactly three things have moved since 1.0.0 that a finished deck would notice, and each is reachable as an ordinary preference:
+From 1.0.0 the source format is the interface, and that promise is about more than parsing: **a lecture that laid out a certain way should be able to lay out that way again.** Exactly four things have moved since 1.0.0 that a finished deck would notice, and each is reachable as an ordinary preference:
 
 | what moved | how to get the old behaviour back |
 |---|---|
 | bundled sans, Inter Tight → IBM Plex Sans | `fonts: {sans: Inter Tight}` |
 | `text-wrap: balance` on headings, `pretty` on prose | `style: {wrap: none}` |
 | `font-variant-ligatures: none` on code | `ligatures: all` |
+| accent-coloured bold phrases, live and on paper | `style: {bold: accent-bold, print-bold: accent-bold}` |
 
 **There was a `layout: 1.0` umbrella over those three and it was removed. The reasoning generalises and is the part to keep.** One key naming a version reads as a promise that the engine can rebuild any past release, and that promise is unbounded: every later change to a shared stylesheet would have to be gated on a generation, the gates would compose, and the set of combinations nobody tests would grow with every release. It also puts the burden in the wrong place – an author would have to know which version their deck was authored against and write it down, and the project would have to publish and explain a layout-version history beside the software version.
 
-None of that buys anything the three settings do not already give, and each of them is a preference an author might want on its own merits: someone who prefers Inter Tight is expressing a view about type, not pinning a release. So the settings stay, the umbrella is gone, and **the 1.0.0 look is a three-line recipe in the docs rather than a mechanism in the code.**
+None of that buys anything the settings do not already give, and each of them is a preference an author might want on its own merits: someone who prefers Inter Tight is expressing a view about type, not pinning a release. So the settings stay, the umbrella is gone, and **the 1.0.0 look is a short recipe in the docs rather than a mechanism in the code.**
 
 The list was arrived at by diffing `AUDIENCE_CSS` and `PRINT_CSS` between `v1.0.0` and `HEAD` rather than by reading commit titles – 185 commits, of which these are the ones that touch an existing slide. **Repeat that diff before claiming the list is still complete**, and prefer adding a setting to adding a generation.
 
-**The recipe was verified against the real thing.** The same source built through `git show v1.0.0:build.js` and through HEAD with all three set came out **pixel-identical** – 0 differing pixels by `magick compare -metric AE`, at 1440×810 and `deviceScaleFactor: 2`, on a deck carrying a principle chunk, prose with `fi`/`fl` pairs, and a listing containing `->` and `!=`. That comparison cannot be a standing test, because it needs a checkout of the old build; `test/settings.mjs` is what stands in for it and guards the mechanism the comparison proved.
+**The recipe was verified against the real thing, when it had three lines.** The same source built through `git show v1.0.0:build.js` and through HEAD with all three set came out **pixel-identical** – 0 differing pixels by `magick compare -metric AE`, at 1440×810 and `deviceScaleFactor: 2`, on a deck carrying a principle chunk, prose with `fi`/`fl` pairs, and a listing containing `->` and `!=`. The bold pair came later and was not re-measured; its one known departure is a promoted bullet under `accent-bold`, which now weighs the deck's bold weight – 600 in a sans deck where 1.0.0 had a fixed 500. That comparison cannot be a standing test, because it needs a checkout of the old build; `test/settings.mjs` is what stands in for it and guards the mechanism the comparison proved.
 
 **Its load-bearing assertions are the guards, not the outcomes.** An edit that drops the `body:not([data-wrap=none])` wrapper from the text-wrap rules leaves `style.wrap` silently doing nothing, and every outcome-shaped check still passes. It runs from `npm test` between the fast gates and the browser suite, and in `pages.yml` and `release.yml` – **not** in `gates.yml`, which has no `npm ci` by design and could not build a lecture.
 

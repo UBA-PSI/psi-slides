@@ -202,6 +202,13 @@ Collapsed, the audience sees the two opening sentences plus the promoted bold
 fragment. The squint test: heading + first sentences + bolds – could you
 present the chunk cold from that alone?
 
+Bold selects, it does not stress. How a bold phrase looks is a lecture-wide
+setting – `style: {bold: …}` live, default `plain`; `style: {print-bold: …}` on
+paper, default `bold` – and to stress one word inside a bold phrase you write
+it `*em*`: upright, bold and in the accent in every view
+(`**the check runs *before* any signature is requested**`). `*em*` outside a
+bold phrase is the ordinary italic.
+
 Bold sparingly. Each bold fragment becomes its own prompt, so a scatter of
 one-word bolds collapses into cryptic stubs. See `reference/style.md` for the
 full topic-sentence and bold audit, the recurring anti-patterns, and the prose
@@ -790,11 +797,10 @@ the code ligatures back, so `->` draws as one arrow glyph - which is why it is
 off, since in the figure grammar `->` and `--` are two different edges and a
 listing on a slide is source a reader retypes.
 
-**To lay a lecture out the way 1.0.0 did**, set all three of
-`fonts: {sans: Inter Tight}`, `style: {wrap: none}` and `ligatures: all`.
-That is the whole of what has moved, and together they reproduce it exactly.
-There is deliberately no version key - each of the three is a preference in
-its own right, and a key naming a release would promise a rebuild of every
+**To lay a lecture out the way 1.0.0 did**, set `fonts: {sans: Inter Tight}`,
+`ligatures: all` and `style: {wrap: none, bold: accent-bold, print-bold: accent-bold}`.
+That is the whole of what has moved. There is deliberately no version key -
+each of them is a preference in its own right, and a key naming a release would promise a rebuild of every
 past release.
 
 The `style:` block sets the type for the whole lecture:
@@ -810,6 +816,9 @@ style:
   wrap: none            # balance | none        - how a heading breaks across lines
   blocks: left          # center | left         - where a code block, figure or formula sits
   hyphenate: all        # print | all | none    - which views break a word
+  bold: accent          # plain | bold | italic | accent | accent-bold | accent-italic
+                        #   - how a **bold** phrase looks live; plain is the default
+  print-bold: italic    # the same six - on paper; bold is the default
 ```
 
 `hyphenate: print` is the default and is what the tool has always done: the two

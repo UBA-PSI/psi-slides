@@ -9,6 +9,25 @@ from building the same way is a major version.
 
 ### Added
 
+- **`style: {bold: …}` and `style: {print-bold: …}` set how a `**bold**` phrase
+  looks, per view.** In this tool bold is a selection mark first – the collapse
+  lifts it onto the slide as a bullet of its own – and a weight only by the
+  accident of markdown, so a slide came out as a run of accent-coloured bold
+  bullets and a printed page dense with them. Each key takes `plain`, `bold`,
+  `italic`, `accent`, `accent-bold` or `accent-italic`; `bold` answers for the
+  audience and the speaker view alike, `print-bold` for the two documents. The
+  switch reaches exactly the bolds the derivation reads – prose paragraphs,
+  including inside `::: cols`, `::: side`, a blockquote, a caption and
+  `::: marginalia` – and leaves alone a `::: slide` block, a card's lead, a
+  row's term, an overlay and a tight list, whose bolds were typed for the look.
+
+  **`*em*` inside such a phrase is now the stress mark.** It renders upright,
+  bold and in the accent in every look but `accent-bold`, where the phrase
+  already has all three and the em stays italic. Outside a bold phrase `*em*`
+  is the italic it always was. That is why no new syntax was needed: the
+  thirty-odd `**… *word* …**` already in the lecture corpus are contrast
+  stress to a one, and from now on they render as such.
+
 - **A PNG or JPEG that is inlined now goes into the output as WebP q92, by
   default.** A `data:` URI is base64 and so a third larger than the bytes it
   carries; WebP q92 measured 12-18% of the original on real lecture assets, so
@@ -402,25 +421,6 @@ from building the same way is a major version.
 
 ### Changed
 
-- **Slide numbers are now drawn in a row by default, where they used to be
-  stacked.** This one moves what an existing deck renders: `slide-numbers` is
-  a viewer default, so every lecture that does not set the key changes from
-  the stacked markers to the horizontal ones. Nothing stops building and no
-  source needs editing – the old rendering is `slide-numbers: vertical`, one
-  line in the frontmatter, and `L` still cycles all three.
-
-  The reason is what the stacked form does past nine: it sets each digit on
-  its own line, so slide 10 reaches the room as a 1 above a 0 and the reader
-  assembles the number. The content repository's house-style file had carried
-  "set `slide-numbers: horizontal` in the frontmatter" as standing advice for
-  long enough to be the tell – a default every deck is told to override is a
-  default that is the wrong way round. Taken deliberately, and not softened
-  with a compatibility switch: one more key would mean the old rendering was
-  reachable two ways and neither was the answer.
-
-- **`auto-fit` takes a third mode, `shrink`.** `true` and `false` are
-  unchanged and mean what they always meant, so this is additive. The new
-  mode fits a slide the same way `true` does but ceilings the fit at the
 - **A chart's columns draw no outline, are filled at a column's strength,
   and `emph` on a column is a fill.** A `bars` column was an ordinary box: a
   1.4 outline standing on a 1.05 baseline, and under `emph` a 2.6 accent
@@ -462,6 +462,25 @@ from building the same way is a major version.
   promoted bullets then weigh 600 like its other bolds rather than the old
   fixed 500.
 
+- **Slide numbers are now drawn in a row by default, where they used to be
+  stacked.** This one moves what an existing deck renders: `slide-numbers` is
+  a viewer default, so every lecture that does not set the key changes from
+  the stacked markers to the horizontal ones. Nothing stops building and no
+  source needs editing – the old rendering is `slide-numbers: vertical`, one
+  line in the frontmatter, and `L` still cycles all three.
+
+  The reason is what the stacked form does past nine: it sets each digit on
+  its own line, so slide 10 reaches the room as a 1 above a 0 and the reader
+  assembles the number. The content repository's house-style file had carried
+  "set `slide-numbers: horizontal` in the frontmatter" as standing advice for
+  long enough to be the tell – a default every deck is told to override is a
+  default that is the wrong way round. Taken deliberately, and not softened
+  with a compatibility switch: one more key would mean the old rendering was
+  reachable two ways and neither was the answer.
+
+- **`auto-fit` takes a third mode, `shrink`.** `true` and `false` are
+  unchanged and mean what they always meant, so this is additive. The new
+  mode fits a slide the same way `true` does but ceilings the fit at the
   lecturer's own zoom instead of at the global maximum, so it can only ever
   take size away: a slide that fits is left at exactly the zoom that was set,
   and a slide that does not is shrunk until it does. That is the difference

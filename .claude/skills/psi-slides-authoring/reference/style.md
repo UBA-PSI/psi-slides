@@ -53,7 +53,9 @@ bullet that shows the label and hides the content.
 
 **Single-word bolds in continuation.** A standalone `**nicht**` or `**unter**`
 collapses to a cryptic one-word bullet. Lift the word into a longer bold phrase
-that stands alone, or move the emphasis into the topic sentence.
+that stands alone and stress it there with `*em*` – `**liegen sogar *unter*
+beiden KI-Bedingungen**` renders the one word upright bold in every view – or
+move the emphasis into the topic sentence.
 
 - Bad: `Die Tutor-Werte liegen sogar **unter** beiden KI-Bedingungen.`
 - Good: `Die Tutor-Werte liegen sogar unter beiden KI-Bedingungen – das war die **unerwartetste Beobachtung** des Experiments.`
@@ -167,7 +169,8 @@ Fixed rules, no exceptions:
 
 - Headings in sentence case, not Title Case.
 - Boldface is a slide mechanism here, not decoration. Never bold for keyword
-  highlighting.
+  highlighting. Its look per view is `style: {bold: …}` / `style: {print-bold: …}`;
+  stress inside a bold phrase is `*em*`, never a second bold.
 - No decorative unicode in prose: no arrows, stars, or check marks. Inside a
   `::: slide` bullet list the marker is the list's job.
 - **En-dash only.** Use `–` (U+2013) for parenthetical breaks, ranges

@@ -27,10 +27,10 @@
  * assertion, consolidate downwards onto those two first - that is the moment
  * it is worth paying for, and no earlier.
  *
- * Three settings, and the reason they exist.
+ * The settings that reproduce the 1.0.0 layout, and the reason they exist.
  *
  * From 1.0.0 the source format is the interface, and a lecture that laid out
- * a certain way should be able to lay out that way again. Exactly three
+ * a certain way should be able to lay out that way again. Exactly four
  * things have moved since 1.0.0 that a finished deck would notice, found by
  * diffing AUDIENCE_CSS and PRINT_CSS between the v1.0.0 tag and HEAD rather
  * than by reading commit titles:
@@ -38,6 +38,8 @@
  *   1. the bundled sans           -> `fonts: {sans: Inter Tight}`
  *   2. text-wrap balance/pretty   -> `style: {wrap: none}`
  *   3. code ligatures             -> `ligatures: all`
+ *   4. the look of a bold phrase  -> `style: {bold: accent-bold,
+ *                                            print-bold: accent-bold}`
  *
  * There was a `layout: 1.0` umbrella over those three and it was removed.
  * One key naming a version reads as a promise that the engine can rebuild
@@ -47,14 +49,18 @@
  * release. It also put the burden in the wrong place - an author would have
  * had to know which version their deck was authored against, and the project
  * would have had to publish a layout-version history beside the software
- * version. The three settings give the same reachability and each is a
+ * version. The settings give the same reachability and each is a
  * preference an author might want on its own merits, so the 1.0.0 look is a
- * three-line recipe rather than a mechanism.
+ * short recipe rather than a mechanism.
  *
- * The recipe was verified once against the real thing: the same source built
- * through `git show v1.0.0:build.js` and through HEAD with all three set came
- * out **pixel-identical**, 0 differing pixels by `magick compare -metric AE`
- * at 1440x810 deviceScaleFactor 2. That comparison cannot be a standing
+ * The recipe was verified once against the real thing, when it had three
+ * lines: the same source built through `git show v1.0.0:build.js` and
+ * through HEAD with all three set came out **pixel-identical**, 0 differing
+ * pixels by `magick compare -metric AE` at 1440x810 deviceScaleFactor 2.
+ * The fourth setting came later and was not re-measured; its one known
+ * departure is that a promoted bullet under `accent-bold` now weighs the
+ * deck's bold weight, which in a sans deck is 600 where 1.0.0 had a fixed
+ * 500. That comparison cannot be a standing
  * test, because it needs a checkout of the old build; this file stands in for
  * it and guards the mechanism the comparison proved.
  *
@@ -154,11 +160,12 @@ console.log('\nlayout generations');
      'with no Inter Tight face riding along unasked');
 }
 
-// ── the three together are the 1.0.0 recipe ──────────────────────────
+// ── the four together are the 1.0.0 recipe ───────────────────────────
 {
-  const { html, print, log } = build('ligatures: all\nfonts:\n  sans: Inter Tight\nstyle:\n  wrap: none');
+  const { html, print, log } = build('ligatures: all\nfonts:\n  sans: Inter Tight\nstyle:\n  wrap: none\n  bold: accent-bold\n  print-bold: accent-bold');
   const body = bodyTag(html);
   ok(/data-wrap="none"/.test(body), 'the recipe turns the text-wrap balancing off', body);
+  ok(/data-bold="accent-bold"/.test(body), 'and gives a bold phrase its old accent and weight on the slide', body);
   ok(/data-liga="all"/.test(body), 'and puts the code ligatures back', body);
   ok(/font-family:'Inter Tight'/.test(html), 'and embeds Inter Tight');
   ok(!/font-family:'IBM Plex Sans'/.test(html),
@@ -174,9 +181,11 @@ console.log('\nlayout generations');
   const printBody = (print.match(/<body [^>]*data-slide-nums[^>]*>/) || [''])[0];
   ok(/data-wrap="none"/.test(printBody) && /data-liga="all"/.test(printBody),
      'and the document view is held with it', printBody);
+  ok(/data-print-bold="accent-bold"/.test(printBody),
+     'bold phrases on paper included', printBody);
 }
 
-// ── the three are independently reachable ────────────────────────────
+// ── the four are independently reachable ────────────────────────────
 {
   const { html } = build('ligatures: all');
   const body = bodyTag(html);
@@ -966,7 +975,7 @@ console.log('\nlayout generations');
   // They are the author's words, so they print - the divider itself never has.
   ok(/class="column-lede"><blockquote>/.test(dv.print),
      'and both reach the document, where the divider slide does not');
-  ok(!/chunk-section/.test(dv.print),
+  ok(!/class="[^"]*chunk-section/.test(dv.print),
      'because print renders the column heading, not the camera stop');
 
   // ── cover: quote ──
@@ -1819,6 +1828,69 @@ console.log('\nlayout generations');
      'an unknown value is a linter error, as every other style key is');
   ok(/style\.hyphenate: yes/.test(hyph('style:\n  hyphenate: yes\n').out),
      'and fails the build');
+  // ── the look of a bold phrase: style.bold and style.print-bold ──────
+  // Bold is a selection mark before it is a weight, so its look is a
+  // setting per view. The load-bearing checks are the guards again: the
+  // default rule unguarded, every other look behind its attribute, the
+  // stress rule guarded against accent-bold – and the promoted-bullet rule
+  // saying nothing about colour or weight any more, or the switch would be
+  // silently overruled on exactly the strongs it was written for.
+  const SCOPE = '\\.chunk:not\\(\\.chunk-title, \\.chunk-section\\) p:not\\([^{\\n]*strong:not\\(\\.card-lead\\)';
+  const speakerOf = (r) => fs.readFileSync(path.join(r.dir, 'speaker.html'), 'utf8');
+  const bDflt = raw(DECK(''), []);
+  ok(!/data-bold=|data-print-bold=/.test(bodyOf(bDflt.html) + bodyOf(bDflt.print) + bodyOf(speakerOf(bDflt))),
+     'a deck that says nothing about bold carries no bold attribute on any body');
+  ok(new RegExp('\\n' + SCOPE + ' \\{ font-weight: inherit; color: inherit; font-style: inherit; \\}').test(bDflt.html),
+     'the live default is plain and its rule is unguarded');
+  ok(new RegExp('\\n' + SCOPE + ' \\{ font-weight: 600; color: inherit; font-style: inherit; \\}').test(bDflt.print),
+     'the print default is bold in the ink and its rule is unguarded');
+  ok(new RegExp('body\\[data-bold=accent-bold\\] ' + SCOPE + ' \\{ font-weight: var\\(--bold-weight\\); color: var\\(--emph\\)').test(bDflt.html)
+     && new RegExp('body\\[data-print-bold=accent-italic\\] ' + SCOPE + ' \\{ [^}]*font-style: italic').test(bDflt.print),
+     'every other look is behind its own body attribute, in each stylesheet under its own key');
+  ok(new RegExp('body:not\\(\\[data-bold=accent-bold\\]\\) ' + SCOPE + ' em \\{ font-style: normal; font-weight: var\\(--bold-weight\\); color: var\\(--emph\\)').test(bDflt.html)
+     && new RegExp('body:not\\(\\[data-print-bold=accent-bold\\]\\) ' + SCOPE + ' em \\{ font-style: normal; font-weight: 600').test(bDflt.print),
+     'an em inside such a phrase is the stress mark in every look but accent-bold, where it stays italic');
+  const promoted = (bDflt.html.match(/\[data-collapse=topic-bold\] \.reveal-segment \.sentence-rest strong \{[^}]*\}/) || [''])[0];
+  ok(promoted && !/color:|font-weight:/.test(promoted),
+     'the promoted-bullet rule no longer sets colour or weight, so the switch is what decides them', promoted);
+  const bSet = raw(DECK('style:\n  bold: accent-italic\n  print-bold: plain\n'), []);
+  ok(/data-bold="accent-italic"/.test(bodyOf(bSet.html)) && /data-bold="accent-italic"/.test(bodyOf(speakerOf(bSet))),
+     'style.bold reaches the audience and the speaker body alike, so the lectern shows what the room sees');
+  ok(/data-print-bold="plain"/.test(bodyOf(bSet.print)) && !/data-print-bold=/.test(bDflt.print.match(/<body [^>]*>/)[0]),
+     'and style.print-bold reaches the document, whose stylesheet reads only its own key');
+  const bOld = raw(DECK('style:\n  bold: plain\n  print-bold: bold\n'), []);
+  ok(!/data-bold=|data-print-bold=/.test(bodyOf(bOld.html) + bodyOf(bOld.print)),
+     'writing the defaults out emits nothing, like every other style key');
+  ok(/style\.bold: shiny/.test(raw(DECK('style:\n  bold: shiny\n'), []).out)
+     && /Valid values for print-bold: plain, bold, italic, accent, accent-bold, accent-italic/.test(raw(DECK('style:\n  print-bold: shiny\n'), []).out),
+     'an unknown value fails the build, naming the six');
+  ok(/'style\.bold: shiny' is not a value/.test(lintOf(DECK('style:\n  bold: shiny\n')))
+     && /'style\.print-bold: 700' is not a value/.test(lintOf(DECK('style:\n  print-bold: 700\n'))),
+     'and the linter refuses it too, in the block form it reads');
+  // The two tables are kept by hand. Read both out of the source and compare
+  // them, so a value added on one side is a failure here and not a deck that
+  // lints clean and refuses to build.
+  {
+    const buildSrc = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const lintSrc = fs.readFileSync(path.join(ROOT, 'lint.js'), 'utf8');
+    const looks = [...(buildSrc.match(/const BOLD_LOOKS = \{[\s\S]*?\n\};/) || [''])[0].matchAll(/^\s*'([a-z-]+)':/gm)].map(m => m[1]);
+    const spec = {};
+    for (const m of (buildSrc.match(/const STYLE_SPEC = \{[\s\S]*?\n\};/) || [''])[0]
+           .matchAll(/^\s*'?([a-z-]+)'?:\s*\{ kind: 'enum', values: (\[[^\]]*\]|Object\.keys\(BOLD_LOOKS\))/gm)) {
+      spec[m[1]] = m[2].startsWith('[') ? [...m[2].matchAll(/'([a-z-]+)'/g)].map(x => x[1]) : looks;
+    }
+    const mirror = {};
+    for (const m of (lintSrc.match(/const STYLE_ENUMS = \{[\s\S]*?\n\};/) || [''])[0]
+           .matchAll(/^\s*'([a-z-]+)':\s*\[([^\]]*)\]/gm)) {
+      mirror[m[1]] = [...m[2].matchAll(/'([a-z-]+)'/g)].map(x => x[1]);
+    }
+    const specKeys = Object.keys(spec).sort().join(','), mirrorKeys = Object.keys(mirror).sort().join(',');
+    ok(looks.length === 6 && specKeys === mirrorKeys && 'bold' in spec && 'print-bold' in spec,
+       'STYLE_SPEC and STYLE_ENUMS name the same enum keys', specKeys + ' | ' + mirrorKeys);
+    ok(Object.keys(spec).every(k => spec[k].join(',') === (mirror[k] || []).join(',')),
+       'and the same values for each, in the same order',
+       Object.keys(spec).filter(k => spec[k].join(',') !== (mirror[k] || []).join(',')).join(','));
+  }
   // ── ::: side {middle} ────────────────────────────────────────────────
   // The word is a brace tail against a closed slot table, which is what the
   // rest of the language does with words; the ratio stays positional,

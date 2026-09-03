@@ -132,6 +132,11 @@ const STYLE_ENUMS = {
   // Whether the printed document is set in the serif or the sans. The live
   // views answer this with `F` and with `font:`; print had no answer at all.
   'print-body': ['serif', 'sans'],
+  // How a `**bold**` phrase the derivation reads looks – live views and the
+  // documents separately. Bold is a selection mark here before it is a
+  // weight, which is why `plain` is a legal answer.
+  'bold':       ['plain', 'bold', 'italic', 'accent', 'accent-bold', 'accent-italic'],
+  'print-bold': ['plain', 'bold', 'italic', 'accent', 'accent-bold', 'accent-italic'],
 };
 
 // Mirrors BACKDROP_SLOTS / OVERLAY_SLOTS in build.js. Two words from one
@@ -975,14 +980,14 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   // and never builds them, so a check the build makes and the linter does not
   // is a line that merges green and fails every later build.
   const chartsAbove = new Set();
+  // The runs of columns each chart's frame holds, by frame, so a second
+  // `emph` at one index can be answered on the line that writes it.
+  const runsOf = new Map();
   const chartSameAs = (kind, id, words, ln) => {
     const at = words.indexOf('same');
     if (at < 1 || words[at + 1] !== 'as') return;
     const name = words[at + 2];
     if (!name || chartsAbove.has(name)) return;
-  // The runs of columns each chart's frame holds, by frame, so a second
-  // `emph` at one index can be answered on the line that writes it.
-  const runsOf = new Map();
     add(ln, 'error', 'diagram-bad-chart', `${kind} ${id}: "same as ${name}" names no chart `
         + 'above it. A chart is sized when its own line is read, so it can only copy one it '
         + 'has already seen.');
@@ -1348,17 +1353,17 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
               `bars ${id || ''} needs its values as one string, e.g. "18,17,15,11"`);
         }
         for (let i = 0; i < cols; i++) define(dgBarName(id, i), ln, 'box');
-        // `series of <chart>` is a run of columns inside somebody else's
-        // frame, so it declares columns and nothing else – no ticks, no
-        // baseline. Registering a `<id>-base` for one would let `hide g-base`
-        // through a gate the build then refuses.
-        const joined = seriesOf(words);
         // The legend entry a key makes: a swatch that is a column of the run,
         // and the name beside it. Both generated, so both are defined here.
         if (words.includes('key') && keyStr === null) {
           add(ln, 'error', 'bad-diagram-bars', `bars ${id}: "key" takes the run's name in quotes, e.g. key "2023"`);
         }
         if (keyStr !== null) { define(dgKeyName(id), ln, 'box'); define(dgKeyLabelName(id), ln, 'text'); }
+        // `series of <chart>` is a run of columns inside somebody else's
+        // frame, so it declares columns and nothing else – no ticks, no
+        // baseline. Registering a `<id>-base` for one would let `hide g-base`
+        // through a gate the build then refuses.
+        const joined = seriesOf(words);
         const isSeries = joined !== null;
         // Everything a series does not own. The frame, the scale, the ticks
         // and the baseline belong to the chart it joined, so a number for any
@@ -1427,11 +1432,6 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
             }
           }
         }
-      } else {
-        const kindWord = words[2];
-        if (!DG_GRID_KINDS.has(kindWord)) {
-          add(ln, 'error', 'bad-diagram-grid', `grid ${id || ''}: expected one of `
-              + `${[...DG_GRID_KINDS].join(', ')} after the name, got '${kindWord || ''}'`);
         // ── can a room see the columns ────────────────────────────────
         // A column has no outline, so its fill is all there is, and the fill
         // is a mix over the paper that changes with the theme. DG_BAR_FILLS is
@@ -1486,6 +1486,11 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
           runs.push({ id, emph: new Set(emphIx) });
           runsOf.set(frameId, runs);
         }
+      } else {
+        const kindWord = words[2];
+        if (!DG_GRID_KINDS.has(kindWord)) {
+          add(ln, 'error', 'bad-diagram-grid', `grid ${id || ''}: expected one of `
+              + `${[...DG_GRID_KINDS].join(', ')} after the name, got '${kindWord || ''}'`);
         }
         const dims = words.map(w => /^(\d+)x(\d+)$/.exec(w)).find(Boolean);
         if (!dims) {

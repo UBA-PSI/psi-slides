@@ -292,10 +292,12 @@ body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
    is sized in 0.62em times var(--zoom), so the reserve has to be written in
    the same terms or it stops matching the moment the lecturer presses +: measured
    on the tutorial's own #expand, a real line of prose sat inside the button
-   rectangle at zoom 1.65, 1.95 and 2.2. The 2.3 is the chevron's own box in
+   rectangle at zoom 1.65, 1.95 and 2.2. 2.3 is the chevron's own box in
    its own type - line box plus 0.45em of padding top and bottom - and the
-   band stands 0.65 of the vertical slide padding off the floor, which is
-   room the text already leaves, so that part comes back off.
+   0.7 on top of it is clearance: at exactly 2.3 the last line of prose
+   ended on the button's top edge, and read as touching it. The band stands
+   0.65 of the vertical slide padding off the floor, which is room the text
+   already leaves, so that part comes back off.
 
    The em unit here is the chunk's, which is the responsive body size and
    carries no zoom of its own; the zoom is the explicit factor. That is the opposite of
@@ -320,7 +322,7 @@ body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
    resolve it the same way. The pane does not - it sets 0.88em times the zoom
    of its own - so do not reach for this inside .exp-body. */
 .chunk:has(> .exps) {
-  --exp-band: calc(0.62em * var(--zoom) * 2.3);
+  --exp-band: calc(0.62em * var(--zoom) * 3);
 }
 .chunk:has(> .exps):not(.expanded) > .chunk-content {
   padding-block-end: max(0px, calc(var(--exp-band) - var(--slide-pad-y) * 0.35));
@@ -2648,9 +2650,9 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
   white-space: nowrap;
 }
 .exp-chev:hover { color: var(--ink); border-color: var(--ink); }
-.exp-chev .caret { opacity: 0.55; transition: transform 150ms; }
+.exp-chev .caret { opacity: 0.55; }
 .exp-chev.on { color: var(--paper); background: var(--ink); border-color: var(--ink); }
-.exp-chev.on .caret { opacity: 1; transform: rotate(90deg); }
+.exp-chev.on .caret { opacity: 1; }
 .chunk:not(.active) .exps { display: none; }
 
 /* expanded: split the slide grid into content-left + expansion-right.
@@ -2920,10 +2922,19 @@ body[data-hyphenate=all] #stage :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
 [data-collapse=topic-bold] .reveal-segment .sentence-rest strong {
   display: block;
   margin: 0.35em 0 0 1.5em;
-  font-weight: 500;
   position: relative;
-  color: var(--emph);
 }
+/* style.bold - the look of a bold the derivation reads, promoted bullet and
+   topic-sentence bold alike, default plain. See BOLD_LOOKS and
+   DERIVED_STRONG; the speaker view embeds this stylesheet and carries the
+   same body attribute, so it shows what the room sees. */
+.chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: inherit; font-style: inherit; }
+body[data-bold=bold] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: var(--bold-weight); color: inherit; font-style: inherit; }
+body[data-bold=italic] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: inherit; font-style: italic; }
+body[data-bold=accent] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: var(--emph); font-style: inherit; }
+body[data-bold=accent-bold] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: var(--bold-weight); color: var(--emph); font-style: inherit; }
+body[data-bold=accent-italic] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: var(--emph); font-style: italic; }
+body:not([data-bold=accent-bold]) .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) em { font-style: normal; font-weight: var(--bold-weight); color: var(--emph); }
 [data-collapse=topic-bold] .reveal-segment .sentence-rest strong::before {
   content: '–';
   position: absolute;
@@ -3803,6 +3814,15 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
+/* A chart's column has no outline to emphasise, so on a bar the same word
+   is a fill: the column goes solid accent, which is what .tone-4 already
+   means. The stroke stays off – the outline rule two lines up would
+   otherwise put one back at 2.6 on exactly the columns a figure singles
+   out, and it was that outline crossing the baseline at the foot of every
+   marked column that made the pair look wrong. Written after the tone
+   rules on purpose: they set the fill at a lower specificity, and a marked
+   column in a .tone-1 chart has to come out accent, not pale accent. */
+.psi-diagram .dg-bar.emph > rect { fill: var(--emph); stroke: none; }
 /* Words are the third thing emphasis can act on, and leaving them out left the
    emph verb on a text accepted and completely inert - the ground rule at the
    foot of this stylesheet refuses to stroke a label's rect, deliberately and
@@ -13908,6 +13928,22 @@ function createDiagramCompiler(env = {}) {
             kind: 'abs',
             at: [{ ref: owner, prop: 'left', nudge: xn }, { ref: owner, prop: 'top', nudge: yn }],
           });
+          // A column is a bar, not a box: it draws no outline, and it carries
+          // a fill that can stand on its own without one. Both arrive the
+          // way `sharp` does – prepended, so the author's own tail displaces
+          // them through the slot rather than stacking beside them. The
+          // reasons are in figure-design.md under Charts: an outline on a
+          // column is ink that encodes nothing (Tufte), it never matched the
+          // baseline's weight, and under `emph` the two crossed each other at
+          // the foot of every marked column. Paper fill with no outline would
+          // be invisible, so a bare column defaults to the fill `.bare`
+          // already asks for on a box, `.tone-3`.
+          const barred = (cls) => {
+            const out = [...cls];
+            if (!out.some(c => c === 'thick' || c === 'bare')) out.unshift('bare');
+            if (!out.some(c => DG_FILL_SLOT.includes(c))) out.unshift('tone-3');
+            return squared(out);
+          };
           values.forEach((v, i) => {
             const len = (v / max) * along;                 // px
             const foot = ((base[i] || 0) / max) * along;   // px already used in this slot
@@ -13915,7 +13951,12 @@ function createDiagramCompiler(env = {}) {
             claim(dgBarName(id, i), 'box', lineNo);
             model.nodes.push(synth({
               kind: 'box', id: dgBarName(id, i), label: '',
-              classes: squared([...attrs.classes,
+              // The role reaches the stylesheet as `dg-bar` on the group, in
+              // the base class string the runtime rebuilds every frame from,
+              // so a step cannot lose it. It is what lets `emph` mean a fill
+              // on a column and an outline everywhere else.
+              role: 'bar',
+              classes: barred([...attrs.classes,
                 ...DG_PROMINENCE.filter(w => marks[w].has(i))]),
               removedClasses: attrs.removedClasses,
               tags: attrs.tags,
@@ -16252,7 +16293,11 @@ function createDiagramCompiler(env = {}) {
                      kind === 'container' ? 'start' : (anchorOf.get(e.id) || null),
                      fitOf.has(e.id) ? dgFitFont(text, classes, ...fitOf.get(e.id)) : 0) + '</g>';
       });
-      const base = `dg-el dg-${kind}`;
+      // A role is a second kind-word on the group – `dg-bar` on a chart's
+      // column – for a stylesheet rule that has to tell a synthesised box
+      // from an authored one. It rides in data-base because the runtime
+      // rebuilds the class string from that every frame.
+      const base = `dg-el dg-${kind}${e.role ? ' dg-' + e.role : ''}`;
       svgBody += `<g id="${prefix}${e.id}" data-base="${base}" class="${base}${st ? ' ' + st : ''}"${on}>${inner}</g>\n`;
     }
 

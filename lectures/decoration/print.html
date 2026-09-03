@@ -95,6 +95,16 @@ h1, h2, h3, h4, code, pre, pre *, .chunk-num, a[href^="http"] {
 }
 strong { color: var(--emph); font-weight: 600; }
 em { font-style: italic; }
+/* style.print-bold - the look of a bold the derivation reads, default bold
+   in the ink. See BOLD_LOOKS and DERIVED_STRONG. A bold outside that scope -
+   a row's term, a tight list's item, a card's lead - keeps the rule above. */
+body[data-print-bold=plain] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: inherit; font-style: inherit; }
+.chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: 600; color: inherit; font-style: inherit; }
+body[data-print-bold=italic] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: inherit; font-style: italic; }
+body[data-print-bold=accent] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: var(--emph); font-style: inherit; }
+body[data-print-bold=accent-bold] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: 600; color: var(--emph); font-style: inherit; }
+body[data-print-bold=accent-italic] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: var(--emph); font-style: italic; }
+body:not([data-print-bold=accent-bold]) .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) em { font-style: normal; font-weight: 600; color: var(--emph); }
 
 ul, ol { margin: 0.4em 0 0.9em 1.4em; }
 li { margin: 0.2em 0; orphans: 2; widows: 2; }
@@ -977,6 +987,15 @@ pre.shiki .line { display: inline; }
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
+/* A chart's column has no outline to emphasise, so on a bar the same word
+   is a fill: the column goes solid accent, which is what .tone-4 already
+   means. The stroke stays off – the outline rule two lines up would
+   otherwise put one back at 2.6 on exactly the columns a figure singles
+   out, and it was that outline crossing the baseline at the foot of every
+   marked column that made the pair look wrong. Written after the tone
+   rules on purpose: they set the fill at a lower specificity, and a marked
+   column in a .tone-1 chart has to come out accent, not pale accent. */
+.psi-diagram .dg-bar.emph > rect { fill: var(--emph); stroke: none; }
 /* Words are the third thing emphasis can act on, and leaving them out left the
    emph verb on a text accepted and completely inert - the ground rule at the
    foot of this stylesheet refuses to stroke a label's rect, deliberately and
