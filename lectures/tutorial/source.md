@@ -644,11 +644,11 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 
 # Next steps {#next}
 
-## principle: Start from a talk you have already given | the prose exists; the work is where the chunks end {.standard #start-writing}
+## principle: Start from a talk you have already given | the text already exists, so all that is left is cutting it into chunks {.standard #start-writing}
 
-**The first lecture is the one that costs, because it is where the vocabulary gets learned, and the cheapest way through it is a talk you have already given.** The prose exists. Most of the work is deciding where one chunk ends and the next begins, and the vocabulary you have just read is all you need for that.
+**The first lecture takes the most effort, because you are still learning the vocabulary, so start with a talk you have already given.** Its text already exists. Most of the remaining work is deciding where one chunk ends and the next begins, and the vocabulary you have just read is all you need for that.
 
-**The loop is the same every time** – write the prose, sharpen the opening sentences, run the checker, then walk the lecture once in the short view before you teach it.
+**The steps are the same for every lecture** – write the prose, sharpen the opening sentences, run the checker, then walk the lecture once in the short view before you teach it.
 
 ## free: Read more | three finished lectures to open {.wide #read-more}
 
