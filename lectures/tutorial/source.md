@@ -788,7 +788,7 @@ kind  name  label   placement              options  tail
 
 **The name is how later lines refer to an element and is never drawn; the label is what the audience reads**, and `""` is a legal empty one. A name is letters, digits, `_` and `-`, and a line starting with `#` is a comment.
 
-**Inside the tail, two prefixes answer two questions.**
+**Inside the tail, the first character says what a word is: `.` starts a class and `@` starts a tag.**
 
 - **`.tone-2` is a class**, which says how the element looks. `{!tone-2}`, with an exclamation mark, takes one off again.
 - **`@crypto` is a tag**, which says what set the element belongs to.

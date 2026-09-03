@@ -95,6 +95,16 @@ h1, h2, h3, h4, code, pre, pre *, .chunk-num, a[href^="http"] {
 }
 strong { color: var(--emph); font-weight: 600; }
 em { font-style: italic; }
+/* style.print-bold - the look of a bold the derivation reads, default bold
+   in the ink. See BOLD_LOOKS and DERIVED_STRONG. A bold outside that scope -
+   a row's term, a tight list's item, a card's lead - keeps the rule above. */
+body[data-print-bold=plain] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: inherit; font-style: inherit; }
+.chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: 600; color: inherit; font-style: inherit; }
+body[data-print-bold=italic] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: inherit; font-style: italic; }
+body[data-print-bold=accent] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: var(--emph); font-style: inherit; }
+body[data-print-bold=accent-bold] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: 600; color: var(--emph); font-style: inherit; }
+body[data-print-bold=accent-italic] .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) { font-weight: inherit; color: var(--emph); font-style: italic; }
+body:not([data-print-bold=accent-bold]) .chunk:not(.chunk-title, .chunk-section) p:not(:is(.slide-explicit, .script-only, .cards, .overlay-card, aside:not(.marginalia)) p) strong:not(.card-lead) em { font-style: normal; font-weight: 600; color: var(--emph); }
 
 ul, ol { margin: 0.4em 0 0.9em 1.4em; }
 li { margin: 0.2em 0; orphans: 2; widows: 2; }
@@ -2191,7 +2201,7 @@ are tagged into a release.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span>box   mix   "Mix"   right of src gap 0.6   w 1.2    {.tone-2 @crypto}</span></span>
 <span class="line"><span>kind  name  label   placement              options  tail</span></span></code></pre>
 <p><strong>The name is how later lines refer to an element and is never drawn; the label is what the audience reads</strong>, and <code class="nb">&quot;&quot;</code> is a legal empty one. A name is letters, digits, <code class="nb">_</code> and <code class="nb">-</code>, and a line starting with <code class="nb">#</code> is a comment.</p>
-<p><strong>Inside the tail, two prefixes answer two questions.</strong></p>
+<p><strong>Inside the tail, the first character says what a word is: <code class="nb">.</code> starts a class and <code class="nb">@</code> starts a tag.</strong></p>
 <ul>
 <li><strong><code class="nb">.tone-2</code> is a class</strong>, which says how the element looks. <code class="nb">{!tone-2}</code>, with an exclamation mark, takes one off again.</li>
 <li><strong><code class="nb">@crypto</code> is a tag</strong>, which says what set the element belongs to.</li>
