@@ -138,6 +138,10 @@ is available, use it. Three forms to scan for:
   shortening is shown happening*. Say *which is discussed later on*, *the next
   chunk shows the alternative*, *that slide shows the shortening*.
 
+**No anthropomorphised room.** *The room reads*, *the room sees*, *what the
+room must not be shown*: rooms do not read. Say *the audience*, or *people*.
+*The back of a room* and *a lit room* are places and stay.
+
 **Claim discipline:**
 
 - Every empirical claim on a slide needs a number, a figure, or a citation, or
