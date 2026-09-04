@@ -8,10 +8,11 @@ session can implement each item without re-deriving it. Every entry has:
 what it is, what has been checked (with anchors), what to check before
 touching it, the plan, the risks, and the tests that pin it.
 
-Three reviews of earlier drafts (Codex, 2026-09-04) found six, seven and
-seven gaps. Each is resolved in place below and marked **[review]**,
-**[review 2]** or **[review 3]** where the text changed; the "Review trail" section at the
-end lists them so nothing was folded in silently.
+Four reviews of earlier drafts (Codex, 2026-09-04) found six, seven, seven
+and eight gaps. Each is resolved in place below and marked **[review]**,
+**[review 2]**, **[review 3]** or **[review 4]** where the text changed; the
+"Review trail" section at the end lists them so nothing was folded in
+silently.
 
 The end state all items aim at, in one line each:
 
@@ -188,9 +189,9 @@ it imports vocabulary plus the tail parser.
   the return shape, in written order.
 - `parseDiagramDefaults` in diagram-core has its own `{…}` reader for
   *element* tails inside a draw body (lint.js ~2343 reads them for draw
-  defaults). Those stay in diagram-core; this item covers only the
-  *block-level* tails (heading, `:::` directive, and after item 4 the draw
-  opener's `{#id}`).
+  defaults). Those stay in diagram-core; this item covers only heading and
+  `:::` directive tails. **[review 4]** Item 4 removes braces from the draw
+  opener altogether, so it is not a `parseTail` caller.
 - `test/settings.mjs` greps message text: `/is not a word this directive knows/`,
   `/both answer "anchor"/`, `/is not a \.word/`, `/is not a \.class or an #id/`,
   `/both answer "width"/`, `/both answer "wrap"/`. Keep the phrases or
@@ -354,8 +355,9 @@ key=value options and one bare flag.
   compiler learns the unit.
 - No source in either repo writes `#id` inside the draw braces today
   (`grep -rhE "^::: draw \{[^}]*#" … --include=source.md` → 0). **[review 3]**
-  Together with the fact that `model.id` has no consumer but an error
-  prefix, that is why the new opener has no `{#id}` at all (Plan 1).
+  `model.id` has exactly one consumer, the compiler-error prefix.
+  **[review 4]** That diagnostic use and its divider-path replacement are handled in
+  Plan 1; after that replacement, the new opener needs no `{#id}`.
 - **[review] The editor's payload carries the stripped tail, not the
   opener.** The build emits the figure's source payload from `diagramBlock`
   (`range: [bodyAt, bodyAt + body.length]`, build.js ~3327–3334) and the
@@ -423,7 +425,7 @@ key=value options and one bare flag.
 1. New opener grammar, one regex in `tails.mjs` used by all **four**
    callers – build.js ×2, lint.js, `test/gates/corpus.mjs`:
    ```
-   ::: draw [WxH] [{#id}] [autoplay N [cycle]]
+   ::: draw [WxH] [autoplay N [cycle]]
    ```
    `WxH` positional (the grid is the figure's one primary argument, as the
    ratio is for `side`); no braces (see "`{#id}` is dropped" below);
@@ -435,15 +437,21 @@ key=value options and one bare flag.
    ```js
    parseDrawOpener(line)
      → null                                          // not a draw opener: line does not match /^:::\s+draw(?=\s|$)/
-     → { unit: [w, h] | null, autoplay: n | null, cycle: bool, problems: [] }   // valid opener
+     → { unit: 'WxH' | null, autoplay: n | null, cycle: bool, problems: [] }    // valid opener
      → { …, problems: [{ code, msg }] }              // begins `::: draw`, must be refused; codes:
-                                                     //   stray-attribute (old `{unit=…}`, `autoplay=`, bare `cycle`, any braces),
-                                                     //   bad-autoplay (range, or cycle without autoplay), bad-unit
+                                                     //   stray-attribute (old braced form, `autoplay=`, unknown token),
+                                                     //   bad-autoplay (not numeric/range, or cycle without autoplay), bad-unit
    ```
    `null` is the only "unrelated line" answer; a non-null result with
    problems is a refusal, and build.js throws `problems[0].msg` as
    `userFacing` while lint.js adds every problem under its code. The unit
-   is `null` when unwritten (compiler default), never a synthesised value.
+   is the validated canonical string (for example `150x56`), or `null`
+   when unwritten (compiler default), never a synthesised value.
+   **[review 4]** Do not return `[150, 56]`: the formatter shown in Plan 3 would
+   stringify that array as `150,56`, and the compiler adapter would then
+   synthesise the invalid `unit=150,56`. One representation crosses parser,
+   formatter, payload and migration; `parseDiagramSource` alone converts it
+   to the numeric `[w, h]` model value.
 
    **[review 3] `DG_HOST_OPTS` is removed, not kept beside the new parser.**
    Today `diagram-core.mjs:944` exports `['autoplay', 'cycle']`, the
@@ -461,12 +469,33 @@ key=value options and one bare flag.
    **[review 3] `{#id}` is dropped from the opener.** Checked: the
    compiler stores it as `model.id` (`diagram-core.mjs:3020`) and the only
    consumer is the prefix of the "has N problem(s)" error (`:6677`); it
-   becomes no SVG id, no editor identity, no link target, and no source in
-   either repo writes one. A setting that changes nothing in successful
-   output is what this format refuses, so the opener takes none, the
-   compiler's `#` branch goes with the `DG_HOST_OPTS` branch, and the error
-   prefix keeps the `where` (chunk id) it already has. Migration cost:
-   zero. If a figure-level id is ever wanted, it is a new feature with
+   becomes no SVG id, no editor identity and no link target, and no source
+   in either repo writes one. **[review 4] That is small but real diagnostic
+   semantics, not "no consumer".** For a chunk figure, build.js already
+   supplies `opts.where` from `currentChunk.id` (`:3337`), so `#id` is
+   redundant. For a column-heading/divider figure, however, the same call
+   sees `currentChunk === null` and currently says `in a chunk with no id`
+   even when `currentColumn.id` or `.heading` exists. Before deleting the
+   compiler's `#` branch, make `where` choose the chunk id/heading or,
+   without a chunk, the current column id/heading (and call it a divider).
+   **Checked (review 4 verification):** at `build.js:3337` the expression is
+   `currentChunk && currentChunk.id ? \`chunk #${currentChunk.id}\` : 'a chunk with no id'`,
+   while `currentColumn` – `{ heading, id, … }`, set at `:3400` – is in
+   scope in the same function. The replacement:
+   ```js
+   where: currentChunk
+     ? (currentChunk.id ? `chunk #${currentChunk.id}` : 'a chunk with no id')
+     : currentColumn
+       ? (currentColumn.id ? `the divider of column #${currentColumn.id}`
+                           : `the divider of column "${currentColumn.heading}"`)
+       : 'outside any chunk or column',
+   ```
+   The same choice goes into the payload's `chunk` field (`:3329`, today
+   `currentChunk ? currentChunk.id : null`) as a `column` sibling, so the
+   editor's reopen key (`DGE_REOPEN`, editor.mjs ~7254) can name a divider
+   figure instead of falling back to its index.
+   Then the opener id can be removed without degrading the one behaviour it
+   had. If a figure-level id is ever wanted, it is a new feature with
    observable semantics and its own tests, not a leftover.
 
    `parseDrawOpener(line) → { unit, autoplay, cycle, problems }`
@@ -487,30 +516,44 @@ key=value options and one bare flag.
    `unit=WxH` from the fields (nothing when unit is null) – so diagram-core
    changes only by losing the `#id` and `DG_HOST_OPTS` branches and their
    error text. (Second step, optional: pass an object.)
-3. **[review] The editor payload carries the whole opener.** The build
-   puts `opener: { unit, autoplay, cycle }` into the figure's source
-   payload next to `attrs`; the editor stores it on `DGE.fig`;
-   `dgeBlockText()` serialises the new spelling from it:
-   `'::: draw' + (unit ? ' ' + unit : '') + (autoplay ? ' autoplay ' + autoplay + (cycle ? ' cycle' : '') : '')`
-   – the same function as the migration script's serialiser, exported from
-   `tails.mjs` as `formatDrawOpener({ unit, autoplay, cycle })` so the two
-   cannot drift.
+3. **[review] The editor payload carries the whole opener. [review 4]**
+   Make it the already-formatted canonical line, not an object the browser
+   must format again. The build calls
+   `formatDrawOpener({ unit, autoplay, cycle })` from `tails.mjs` and puts
+   the resulting `opener: '::: draw 150x56 autoplay 1200 cycle'` into the
+   figure's source payload next to the compiler-only `attrs: 'unit=150x56'`;
+   the editor stores both on `DGE.fig`, and `dgeBlockText()` uses
+   `DGE.fig.opener + '\n' + DGE.source + '\n:::'`. This module boundary is
+   deliberate: `editor.mjs` is read as text and inserted into a classic
+   inline `<script>` (`build.js:2532–2536, :6461`), so an import from
+   `tails.mjs` would not work and merely exporting the formatter does not
+   make it available in the browser. The migration script and build share
+   the one formatter; the editor copies its result and therefore cannot
+   drift while it edits only bodies.
    Tiers 1 and 1b keep patching the body range only. This also fixes the
    pre-existing clipboard bug in the same commit.
-4. lint.js: the old spelling (`unit=` inside braces, `autoplay=`, bare
-   `cycle`) becomes a `stray-attribute` whose message spells the new form
-   (`write ::: draw 150x56 {#fig} autoplay 1200 cycle`), so a stale source
-   says exactly what to type. `DG_HOST_OPTS` stays as the list of keywords
-   the host recognises after the braces.
+4. lint.js: the old braced spelling and `autoplay=` become a
+   `stray-attribute` whose message spells the new form
+   (`write ::: draw 150x56 autoplay 1200 cycle`), so a stale source says
+   exactly what to type. `cycle` in the new position but without
+   `autoplay N` remains `bad-autoplay`. **[review 4]** The former draft put
+   bare `cycle` under both codes. `DG_HOST_OPTS` does not stay: Plan 1
+   removes it. Lint recognises the host keywords only through
+   `parseDrawOpener`, then hands the compiler only its synthesised
+   `unit=WxH` adapter string.
 5. Migration script, dry-run first, over **both repos and the whole tree**,
    not only lines starting with `::: draw`: match `::: draw\s*\{([^}]*)\}`
    anywhere (that catches the template literal in `shoot-gallery.mjs`, the
    test sources, and prose in the skills). **[review 2] The transform
    replaces the whole matched opener, it does not substitute tokens in
-   place**: parse the captured old tail into `{unit, id, autoplay, cycle}`
+   place**: parse the captured old tail into `{unit, id, autoplay, cycle}` –
+   the *old* tail's fields, the only place an `id` survives in this plan –
    (refusing anything else, so a tail the script does not understand stops
-   the run rather than being half-rewritten; a `#id` in an old tail is
-   reported and dropped, and the census says there are none), then emit
+   the run rather than being half-rewritten). **[review 4]** A `#id` also
+   stops the run with an explicit "draw ids were diagnostic-only and are no
+   longer supported" message; do not silently discard user-authored text
+   merely because the checked repositories currently contain none. After
+   the old tail has been accepted, emit
    the canonical new opener with `formatDrawOpener` –
    `::: draw 150x56 autoplay 1200 cycle`. The old braces go with the old
    tail. **Exclusions, in the script, by basename at any depth [review 3]:**
@@ -588,6 +631,9 @@ editor round-trip**: open a figure whose opener is
 `::: draw 150x56 autoplay 1200 cycle`, press "New figure…" / copy
 block, and assert the clipboard text (or `dgeBlockText()` via the page)
 reproduces the opener verbatim – `test/editor-*.mjs` has the harness.
+**[review 4]** Also pin the diagnostic replacement for `#id`: a broken chunk figure
+names its chunk, and a broken column-heading figure names its divider id or
+heading instead of claiming it is "a chunk with no id".
 
 ---
 
@@ -644,7 +690,7 @@ lands, the draw opener.
 
 ## Review trail
 
-Both reviews are resolved in place; this list is the index.
+All four reviews are resolved in place; this list is the index.
 
 - Review 1: chunk slots must not invent `.shown`/`.left` (1a); one code
   for a word from no slot (1b); `CLAUDE.md` lint-independence contract
@@ -668,6 +714,20 @@ Both reviews are resolved in place; this list is the index.
   diagram-core and lint (4, Plan 1); exclusions by basename at any depth
   and a scan over the same file list (4, Plan 5); `{#id}` dropped from the
   opener, with the reason (4, Plan 1 + end state).
+- Review 4 was applied by the reviewer in place rather than listed; its
+  three code claims were re-checked afterwards (`build.js:3337` and
+  `:3400` for `where`/`currentColumn`; `:2532–2536` and `:6461` for the
+  editor being inlined as a classic script) and hold.
+- Review 4: removed the last stale draw-tail/`{#id}` grammar references
+  (1, To check; 4, Plan 1 + Plan 4); preserved the real diagnostic value of
+  draw ids through chunk/divider-aware `where` before removing them (4,
+  Plan 1 + Tests); made `unit` one canonical `WxH` string across parser,
+  adapter, formatter and migration (4, Plan 1); crossed the classic-script
+  editor boundary with a preformatted opener payload instead of an
+  unavailable module export (4, Plan 3); removed the contradictory
+  `DG_HOST_OPTS` instruction and the overlapping `cycle` error codes (4,
+  Plan 4); made an unexpected old `#id` abort migration instead of losing
+  authored text (4, Plan 5).
 
 ---
 
