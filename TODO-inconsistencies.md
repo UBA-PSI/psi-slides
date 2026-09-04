@@ -13,6 +13,82 @@ seven gaps. Each is resolved in place below and marked **[review]** or
 **[review 2]** where the text changed; the "Review trail" section at the
 end lists them so nothing was folded in silently.
 
+### Review 3 – unresolved comments (Codex, 2026-09-04)
+
+- **P1 – `parseTail` still has no unambiguous input contract.** The heading
+  parser currently receives the complete text (`Heading {.wide #id}`) and
+  separates prose from the tail, while every directive parser receives only
+  the already-captured contents of the braces (`.wide #id`). The proposed
+  result says `text` is empty for a directive, but the signature does not say
+  how the function can distinguish directive tail contents from heading text;
+  its code sample also still omits the required `{ id: 'none' | 'one' }`
+  argument introduced in 1b′. Choose one invariant input shape – for example
+  `parseTail({ text, tail }, slots, what, { id })`, or always pass the complete
+  pre-tail text plus the literal braced tail – and show one heading and one
+  directive call. Otherwise an implementation can legitimately treat `.wide`
+  as heading text rather than as the directive's tail.
+
+- **P1 – the integration-test matrix contradicts the ID policy.** Section
+  1b′ correctly says `multiple-ids` never fires on cards/rows/side/overlay/
+  backdrop because their first `#id` is already `stray-attribute`. Item 3
+  still says `multiple-ids` is "now on directives too", and the test plan asks
+  for every code once on a heading and once on a directive. That requires an
+  impossible `multiple-ids` directive case. Test `multiple-ids` on a heading
+  and on the draw opener; test the first directive id as `stray-attribute`.
+
+- **P1 – the corpus gate's scope and proposed counts are still wrong.** Its
+  `FILES` list omits `lectures/decoration/source.md`, although that tracked
+  lecture contains four real draw blocks. The actual per-file draw counts are
+  diagrams 29, network-security 36, figure-rules 55, tutorial 11, decoration
+  4: 135 when decoration is added, but only 131 in the gate today. The example
+  ratchet value `lectures/diagrams/source.md: 31` is a count of grep hits for
+  old option spellings, not a count of draw blocks, and would fail immediately.
+  Add decoration and ratchet those exact block counts. When `blocks()` adopts
+  `parseDrawOpener`, it must also synthesise the compiler's `unit=WxH #id`
+  string from the parsed result before calling `renderDiagram`; merely using
+  the opener parser would otherwise compile every figure at the default unit.
+
+- **P2 – `parseDrawOpener` needs a caller-facing match contract.** Build and
+  lint scan every source line and must distinguish (a) an unrelated line,
+  (b) a valid draw opener, and (c) a line beginning `::: draw` whose syntax is
+  invalid and must be refused. The proposed return type has no `matched`
+  discriminator and does not say whether unrelated input returns `null` or an
+  empty successful result. Define this explicitly so callers do not need a
+  second `^:::\s+draw` pre-regex, which would recreate the duplicated opener
+  recognition the shared function is meant to remove.
+
+- **P2 – `DG_HOST_OPTS` would become a second source of truth again.** The new
+  `parseDrawOpener` in zero-dependency `tails.mjs` must itself know the words
+  `autoplay` and `cycle`, while the plan says `DG_HOST_OPTS` remains in
+  `diagram-core.mjs`. The compiler will no longer receive host options once
+  build, corpus and editor all pass the synthesised compiler-only attributes,
+  so decide explicitly: remove `DG_HOST_OPTS` and its skip branch from
+  diagram-core, or document and test why the compiler API must continue to
+  accept those obsolete strings. Leaving both lists creates exactly the
+  vocabulary drift this refactor is intended to eliminate, and importing
+  diagram-core from `tails.mjs` would violate the zero-dependency architecture.
+
+- **P2 – the migration exclusions do not cover nested lecture outputs in the
+  second repository.** `lectures/*/{audience,speaker,print,print-notes}.html`
+  matches the engine's one-level lecture directories, but mylectures stores
+  sources and generated views under paths such as
+  `lectures/introsp/10-welcome/`. The migration matcher itself may not see a
+  raw opener in highlighted HTML, but the final broad `unit=`/`autoplay=` scan
+  does see source-payload attributes there and cannot come back empty. Exclude
+  generated views by basename at any depth (`lectures/**/...`) or restrict the
+  scan to tracked source files. Also update the stale Risk text that still says
+  "three opener regexes" and "three callers" after Plan 1 correctly says four.
+
+- **P2 – decide whether a draw-level `{#id}` is real syntax before making it
+  the canonical example.** Today `parseDiagramSource` stores it only as
+  `model.id`, and the only consumer is the prefix of a thrown compiler error;
+  it does not become an SVG/figure id, an editor identity, or a link target.
+  No source in either repo uses it. Keeping it is defensible as a diagnostic
+  label, but the end-state example strongly suggests a normal addressable id
+  and the project otherwise refuses settings that do nothing in successful
+  output. Either remove `{#id}` from the new opener while migration is free,
+  or define its observable semantics and test them.
+
 The end state all items aim at, in one line each:
 
 ```
